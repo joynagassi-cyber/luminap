@@ -4,13 +4,16 @@ import { ArrowLeft, Check, X, Edit3, Clock } from 'lucide-react';
 import { formatCurrency, formatDate, getStatusColor, getStatusLabel } from '@/lib/utils';
 import { useStore } from '@/store/useStore';
 import StatusBadge from '@/components/StatusBadge';
+import ConfirmModal from '@/components/ConfirmModal';
 
 export default function TransactionDetail() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { transactions, categories, approveTransaction, rejectTransaction, deleteTransaction, user } = useStore();
+  const { transactions, categories, approveTransaction, rejectTransaction, deleteTransaction, user, canActOnTransaction } = useStore();
   const [showRejectComment, setShowRejectComment] = useState(false);
   const [rejectComment, setRejectComment] = useState('');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteInput, setDeleteInput] = useState('');
 
   const transaction = transactions.find(t => t.id === id);
 
@@ -29,6 +32,10 @@ export default function TransactionDetail() {
 
   const isIncome = transaction.type === 'INCOME';
   const statusColor = getStatusColor(transaction.status);
+  const canApprove = canActOnTransaction(transaction, 'approve', user);
+  const canReject = canActOnTransaction(transaction, 'reject', user);
+  const canEdit = canActOnTransaction(transaction, 'edit', user);
+  const canDelete = canActOnTransaction(transaction, 'delete', user);
 
   const handleApprove = () => {
     approveTransaction(transaction.id, user?.id || '');
@@ -45,10 +52,12 @@ export default function TransactionDetail() {
   };
 
   const handleDelete = () => {
-    if (confirm('Supprimer cette transaction ?')) {
-      deleteTransaction(transaction.id);
-      navigate('/finance');
-    }
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = () => {
+    deleteTransaction(transaction.id);
+    navigate('/finance');
   };
 
   const handleEdit = () => {
@@ -118,7 +127,7 @@ export default function TransactionDetail() {
         <div className="mb-5">
           <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider mb-3">Actions</p>
           <div className="space-y-2">
-            {transaction.status === 'DRAFT' && (
+            {transaction.status === 'DRAFT' && canEdit && (
               <>
                 <button onClick={handleEdit} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-full text-sm font-semibold" style={{ backgroundColor: '#181818', color: '#B3B3B3' }}>
                   <Edit3 className="w-4 h-4" />Modifier
@@ -129,15 +138,15 @@ export default function TransactionDetail() {
               </>
             )}
 
-            {transaction.status === 'PENDING' && (
-              <>
-                <button onClick={handleApprove} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-full text-sm font-semibold" style={{ backgroundColor: '#1DB954', color: '#FFFFFF' }}>
-                  <Check className="w-4 h-4" />Approuver
-                </button>
-                <button onClick={() => setShowRejectComment(true)} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-full text-sm font-semibold" style={{ backgroundColor: '#E51332', color: '#FFFFFF' }}>
-                  <X className="w-4 h-4" />Rejeter
-                </button>
-              </>
+            {transaction.status === 'PENDING' && canApprove && (
+              <button onClick={handleApprove} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-full text-sm font-semibold" style={{ backgroundColor: '#1DB954', color: '#FFFFFF' }}>
+                <Check className="w-4 h-4" />Approuver
+              </button>
+            )}
+            {transaction.status === 'PENDING' && canReject && (
+              <button onClick={() => setShowRejectComment(true)} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-full text-sm font-semibold" style={{ backgroundColor: '#E51332', color: '#FFFFFF' }}>
+                <X className="w-4 h-4" />Rejeter
+              </button>
             )}
 
             {transaction.status === 'APPROVED' && (
@@ -146,15 +155,15 @@ export default function TransactionDetail() {
               </button>
             )}
 
-            {transaction.status === 'REJECTED' && (
-              <>
-                <button onClick={handleEdit} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-full text-sm font-semibold" style={{ backgroundColor: '#181818', color: '#B3B3B3' }}>
-                  <Edit3 className="w-4 h-4" />Réviser
-                </button>
-                <button onClick={handleDelete} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-full text-sm font-semibold" style={{ backgroundColor: '#E5133220', color: '#E51332' }}>
-                  <X className="w-4 h-4" />Supprimer
-                </button>
-              </>
+            {transaction.status === 'REJECTED' && canEdit && (
+              <button onClick={handleEdit} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-full text-sm font-semibold" style={{ backgroundColor: '#181818', color: '#B3B3B3' }}>
+                <Edit3 className="w-4 h-4" />Réviser
+              </button>
+            )}
+            {transaction.status === 'REJECTED' && canDelete && (
+              <button onClick={handleDelete} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-full text-sm font-semibold" style={{ backgroundColor: '#E5133220', color: '#E51332' }}>
+                <X className="w-4 h-4" />Supprimer
+              </button>
             )}
           </div>
         </div>
@@ -196,6 +205,18 @@ export default function TransactionDetail() {
             </div>
           </div>
         )}
+
+        {/* Delete Confirmation Modal */}
+        <ConfirmModal
+          open={showDeleteModal}
+          onClose={() => setShowDeleteModal(false)}
+          onConfirm={confirmDelete}
+          title="Supprimer la transaction"
+          description="Cette action est irréversible. La transaction sera supprimée définitivement."
+          confirmLabel="Supprimer"
+          confirmVariant="danger"
+          requiredText="SUPPRIMER"
+        />
       </div>
     </div>
   );

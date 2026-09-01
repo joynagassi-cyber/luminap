@@ -1,7 +1,10 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '@/store/useStore';
-import { LogIn } from 'lucide-react';
+import { LogIn, Lock } from 'lucide-react';
+
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_DURATION = 60_000; // 1 minute
 
 export default function Login() {
   const navigate = useNavigate();
@@ -10,24 +13,50 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [lockedUntil, setLockedUntil] = useState<number | null>(null);
+  const attemptCount = useRef(0);
+  const lockoutTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Clean up timer on unmount
+  useState(() => () => {
+    if (lockoutTimer.current) clearTimeout(lockoutTimer.current);
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    if (lockedUntil && Date.now() < lockedUntil) {
+      const remaining = Math.ceil((lockedUntil - Date.now()) / 1000);
+      setError(`Trop de tentatives. Réessayez dans ${remaining}s`);
+      return;
+    }
+
     if (!email || !password) {
       setError('Veuillez remplir tous les champs');
       return;
     }
+
     setLoading(true);
-    setTimeout(() => {
-      const success = login(email, password);
+    try {
+      const success = await login(email, password);
       if (success) {
+        attemptCount.current = 0;
         navigate('/');
       } else {
-        setError('Identifiants invalides');
+        attemptCount.current += 1;
+        if (attemptCount.current >= MAX_ATTEMPTS) {
+          const until = Date.now() + LOCKOUT_DURATION;
+          setLockedUntil(until);
+          lockoutTimer.current = setTimeout(() => setLockedUntil(null), LOCKOUT_DURATION);
+          setError(`Compte verrouillé. Réessayez dans ${LOCKOUT_DURATION / 1000}s`);
+        } else {
+          setError(`Identifiants invalides (${MAX_ATTEMPTS - attemptCount.current} tentative${MAX_ATTEMPTS - attemptCount.current > 1 ? 's' : ''} restante${MAX_ATTEMPTS - attemptCount.current > 1 ? 's' : ''})`);
+        }
       }
+    } finally {
       setLoading(false);
-    }, 500);
+    }
   };
 
   return (

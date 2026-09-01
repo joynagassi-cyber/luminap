@@ -8,7 +8,7 @@ import type { TransactionType } from '@/types';
 export default function TransactionEdit() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { transactions, categories, orgUnits, updateTransaction } = useStore();
+  const { transactions, categories, orgUnits, updateTransaction, canActOnTransaction, user } = useStore();
 
   const transaction = transactions.find(t => t.id === id);
   const [type, setType] = useState<TransactionType>(transaction?.type || 'INCOME');
@@ -31,11 +31,12 @@ export default function TransactionEdit() {
     );
   }
 
-  if (transaction.status === 'APPROVED') {
+  const canEdit = canActOnTransaction(transaction, 'edit', user);
+  if (!canEdit) {
     return (
       <div className="min-h-screen bg-canvas flex items-center justify-center px-5 py-12">
         <div className="text-center">
-          <p className="text-text-tertiary mb-4">Cette transaction est approuvée et ne peut pas être modifiée.</p>
+          <p className="text-text-tertiary mb-4">Vous n'avez pas les droits nécessaires pour modifier cette transaction.</p>
           <button onClick={() => navigate(`/transaction/${id}`)} className="px-5 py-3 rounded-full text-sm font-semibold" style={{ backgroundColor: '#FF6B00', color: '#FFFFFF' }}>
             Retour au détail
           </button>

@@ -1,212 +1,58 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 import type {
   Transaction,
   Category,
   OrgUnit,
   AuditEntry,
-  User,
-  Organization,
   BalanceResult,
-  TransactionStatus,
+  User,
 } from '@/types';
+import {
+  MOCK_ORG,
+  MOCK_USER,
+  MOCK_CATEGORIES,
+  MOCK_ORG_UNITS,
+  MOCK_TRANSACTIONS,
+  MOCK_AUDIT_ENTRIES,
+} from '@/config/mockData';
+import { getSessionToken, setSessionToken, clearSession } from '@/lib/api';
 
-// Mock data
-const mockOrg: Organization = {
-  id: 'org-1',
-  name: "Église MFE-JC Centrale",
-  type: 'Eglise',
-  accentColor: '#FF6B00',
-};
+// --- Authorization helpers (frontend-only, not a substitute for server-side checks) ---
 
-const mockUser: User = {
-  id: 'user-1',
-  email: 'admin@mfe-jc.org',
-  firstName: 'Pasteur',
-  lastName: 'Jean',
-  role: 'ADMIN',
-  org: mockOrg,
-};
+/**
+ * Check if the current user can perform an action on a transaction.
+ * In production, this must be enforced server-side as well.
+ */
+export function canActOnTransaction(
+  transaction: Transaction | undefined,
+  action: 'approve' | 'reject' | 'edit' | 'delete',
+  currentUser: User | null,
+): boolean {
+  if (!transaction || !currentUser) return false;
 
-const mockCategories: Category[] = [
-  { id: 'cat-1', key: 'dime', labelFr: 'Dîme', type: 'INCOME', orgId: 'org-1' },
-  { id: 'cat-2', key: 'offrande', labelFr: 'Offrande', type: 'INCOME', orgId: 'org-1' },
-  { id: 'cat-3', key: 'offrande_mission', labelFr: 'Offrande Mission', type: 'INCOME', orgId: 'org-1' },
-  { id: 'cat-4', key: 'don', labelFr: 'Don', type: 'INCOME', orgId: 'org-1' },
-  { id: 'cat-5', key: 'salaire_pasteur', labelFr: 'Salaire Pasteur', type: 'EXPENSE', orgId: 'org-1' },
-  { id: 'cat-6', key: 'frais_fonctionnement', labelFr: 'Frais de Fonctionnement', type: 'EXPENSE', orgId: 'org-1' },
-  { id: 'cat-7', key: 'mission', labelFr: 'Mission', type: 'EXPENSE', orgId: 'org-1' },
-  { id: 'cat-8', key: 'entretien', labelFr: 'Entretien', type: 'EXPENSE', orgId: 'org-1' },
-  { id: 'cat-9', key: 'aumone', labelFr: 'Aumône', type: 'EXPENSE', orgId: 'org-1' },
-];
+  // Cannot act on another organization's transactions
+  if (transaction.orgId !== currentUser.org.id) return false;
 
-const mockOrgUnits: OrgUnit[] = [
-  { id: 'ou-1', name: 'Diacres', type: 'groupe', orgId: 'org-1' },
-  { id: 'ou-2', name: 'Jeunesse', type: 'groupe', orgId: 'org-1' },
-  { id: 'ou-3', name: 'Dames', type: 'groupe', orgId: 'org-1' },
-  { id: 'ou-4', name: 'Messieurs', type: 'groupe', orgId: 'org-1' },
-  { id: 'ou-5', name: 'Chorale', type: 'groupe', orgId: 'org-1' },
-];
-
-const now = new Date();
-const daysAgo = (n: number) => {
-  const d = new Date(now);
-  d.setDate(d.getDate() - n);
-  return d.toISOString().split('T')[0];
-};
-
-const mockTransactions: Transaction[] = [
-  {
-    id: 'tx-1',
-    orgId: 'org-1',
-    type: 'INCOME',
-    amount: 5000000,
-    description: 'Dîme dimanche',
-    date: daysAgo(6),
-    status: 'APPROVED',
-    createdAt: new Date(now.getTime() - 7 * 86400000).toISOString(),
-    updatedAt: new Date(now.getTime() - 6 * 86400000).toISOString(),
-    createdById: 'user-1',
-    approvedById: 'user-1',
-    approvedAt: new Date(now.getTime() - 6 * 86400000).toISOString(),
-    categoryId: 'cat-1',
-    orgUnitId: null,
-    compensatesFor: null,
-    comment: null,
-    version: 1,
-    category: mockCategories[0],
-    creator: mockUser,
-    approver: mockUser,
-  },
-  {
-    id: 'tx-2',
-    orgId: 'org-1',
-    type: 'INCOME',
-    amount: 1500000,
-    description: 'Offrande oeuvre sociale',
-    date: daysAgo(6),
-    status: 'APPROVED',
-    createdAt: new Date(now.getTime() - 7 * 86400000).toISOString(),
-    updatedAt: new Date(now.getTime() - 6 * 86400000).toISOString(),
-    createdById: 'user-1',
-    approvedById: 'user-1',
-    approvedAt: new Date(now.getTime() - 6 * 86400000).toISOString(),
-    categoryId: 'cat-2',
-    orgUnitId: null,
-    compensatesFor: null,
-    comment: null,
-    version: 1,
-    category: mockCategories[1],
-    creator: mockUser,
-    approver: mockUser,
-  },
-  {
-    id: 'tx-3',
-    orgId: 'org-1',
-    type: 'EXPENSE',
-    amount: 250000,
-    description: 'Frais électricité église',
-    date: daysAgo(8),
-    status: 'PENDING',
-    createdAt: new Date(now.getTime() - 8 * 86400000).toISOString(),
-    updatedAt: new Date(now.getTime() - 8 * 86400000).toISOString(),
-    createdById: 'user-1',
-    approvedById: null,
-    approvedAt: null,
-    categoryId: 'cat-6',
-    orgUnitId: null,
-    compensatesFor: null,
-    comment: null,
-    version: 1,
-    category: mockCategories[5],
-    creator: mockUser,
-  },
-  {
-    id: 'tx-4',
-    orgId: 'org-1',
-    type: 'INCOME',
-    amount: 750000,
-    description: 'Offrande mission',
-    date: daysAgo(3),
-    status: 'DRAFT',
-    createdAt: new Date(now.getTime() - 3 * 86400000).toISOString(),
-    updatedAt: new Date(now.getTime() - 3 * 86400000).toISOString(),
-    createdById: 'user-1',
-    approvedById: null,
-    approvedAt: null,
-    categoryId: 'cat-3',
-    orgUnitId: null,
-    compensatesFor: null,
-    comment: null,
-    version: 1,
-    category: mockCategories[2],
-    creator: mockUser,
-  },
-  {
-    id: 'tx-5',
-    orgId: 'org-1',
-    type: 'EXPENSE',
-    amount: 100000,
-    description: 'Aumône aux nécessiteux',
-    date: daysAgo(10),
-    status: 'APPROVED',
-    createdAt: new Date(now.getTime() - 10 * 86400000).toISOString(),
-    updatedAt: new Date(now.getTime() - 9 * 86400000).toISOString(),
-    createdById: 'user-1',
-    approvedById: 'user-1',
-    approvedAt: new Date(now.getTime() - 9 * 86400000).toISOString(),
-    categoryId: 'cat-9',
-    orgUnitId: null,
-    compensatesFor: null,
-    comment: null,
-    version: 1,
-    category: mockCategories[8],
-    creator: mockUser,
-    approver: mockUser,
-  },
-];
-
-const mockAuditEntries: AuditEntry[] = [
-  {
-    id: 'audit-1',
-    orgId: 'org-1',
-    transactionId: 'tx-1',
-    userId: 'user-1',
-    action: 'CREATED',
-    entityType: 'transaction',
-    entityId: 'tx-1',
-    comment: null,
-    createdAt: new Date(now.getTime() - 7 * 86400000).toISOString(),
-    user: mockUser,
-  },
-  {
-    id: 'audit-2',
-    orgId: 'org-1',
-    transactionId: 'tx-1',
-    userId: 'user-1',
-    action: 'APPROVED',
-    entityType: 'transaction',
-    entityId: 'tx-1',
-    comment: null,
-    createdAt: new Date(now.getTime() - 6 * 86400000).toISOString(),
-    user: mockUser,
-  },
-  {
-    id: 'audit-3',
-    orgId: 'org-1',
-    transactionId: 'tx-3',
-    userId: 'user-1',
-    action: 'CREATED',
-    entityType: 'transaction',
-    entityId: 'tx-3',
-    comment: null,
-    createdAt: new Date(now.getTime() - 8 * 86400000).toISOString(),
-    user: mockUser,
-  },
-];
+  switch (action) {
+    case 'edit':
+      // Only DRAFT and REJECTED can be edited
+      return transaction.status === 'DRAFT' || transaction.status === 'REJECTED';
+    case 'delete':
+      // Only REJECTED can be deleted (approved transactions are immutable)
+      return transaction.status === 'REJECTED';
+    case 'approve':
+      // Only PENDING transactions can be approved
+      return transaction.status === 'PENDING' && currentUser.role !== 'TREASURER';
+    case 'reject':
+      // Only PENDING transactions can be rejected
+      return transaction.status === 'PENDING' && currentUser.role !== 'TREASURER';
+    default:
+      return false;
+  }
+}
 
 export function getBalance(startDate: string, endDate: string): BalanceResult {
-  const filtered = mockTransactions.filter(t => t.date >= startDate && t.date <= endDate);
+  const filtered = MOCK_TRANSACTIONS.filter(t => t.date >= startDate && t.date <= endDate);
   const totalIncome = filtered.filter(t => t.type === 'INCOME').reduce((s, t) => s + t.amount, 0);
   const totalExpense = filtered.filter(t => t.type === 'EXPENSE').reduce((s, t) => s + t.amount, 0);
 
@@ -235,12 +81,12 @@ export function getBalance(startDate: string, endDate: string): BalanceResult {
     byCategory: Array.from(byCategory.entries()).map(([id, v]) => ({
       categoryId: id,
       ...v,
-      category: mockCategories.find(c => c.id === id),
+      category: MOCK_CATEGORIES.find(c => c.id === id),
     })),
     byOrgUnit: Array.from(byOrgUnit.entries()).map(([id, v]) => ({
       orgUnitId: id,
       ...v,
-      orgUnit: mockOrgUnits.find(o => o.id === id),
+      orgUnit: MOCK_ORG_UNITS.find(o => o.id === id),
     })),
     transactionCount: filtered.length,
   };
@@ -250,8 +96,10 @@ interface LuminaState {
   // Auth
   isAuthenticated: boolean;
   user: User | null;
-  login: (email: string, password: string) => boolean;
+  sessionToken: string | null;
+  login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
+  canActOnTransaction: (transaction: Transaction, action: 'approve' | 'reject' | 'edit' | 'delete', currentUser: User | null) => boolean;
 
   // Data
   transactions: Transaction[];
@@ -267,81 +115,106 @@ interface LuminaState {
   deleteTransaction: (id: string) => void;
 }
 
-export const useStore = create<LuminaState>()(
-  persist(
-    (set) => ({
-      isAuthenticated: false,
-      user: null,
-      transactions: mockTransactions,
-      categories: mockCategories,
-      orgUnits: mockOrgUnits,
-      auditEntries: mockAuditEntries,
+export const useStore = create<LuminaState>()((set) => ({
+  isAuthenticated: false,
+  user: null,
+  sessionToken: null,
+  transactions: MOCK_TRANSACTIONS,
+  categories: MOCK_CATEGORIES,
+  orgUnits: MOCK_ORG_UNITS,
+  auditEntries: MOCK_AUDIT_ENTRIES,
 
-      login: (email: string, _password: string) => {
-        if (email && _password) {
-          set({ isAuthenticated: true, user: mockUser });
-          return true;
-        }
+  login: async (email: string, password: string) => {
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+        credentials: 'include',
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        console.error('Login failed:', err);
         return false;
-      },
+      }
 
-      logout: () => {
-        set({ isAuthenticated: false, user: null });
-      },
+      const data = await res.json();
+      if (data.sessionToken) {
+        setSessionToken(data.sessionToken);
+      }
 
-      addTransaction: (tx) => {
-        const newTx: Transaction = {
-          ...tx,
-          id: `tx-${Date.now()}`,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          version: 1,
-          createdById: 'user-1',
-          approvedById: null,
-          approvedAt: null,
-          compensatesFor: null,
-          comment: null,
-          category: mockCategories.find(c => c.id === tx.categoryId),
-        };
-        set((s) => ({ transactions: [newTx, ...s.transactions] }));
-      },
+      set({ isAuthenticated: true, user: { ...MOCK_USER, id: data.user?.id ?? MOCK_USER.id } });
+      return true;
+    } catch {
+      // Fallback to mock auth if server is unavailable
+      if (email && password) {
+        set({ isAuthenticated: true, user: MOCK_USER });
+        return true;
+      }
+      return false;
+    }
+  },
 
-      updateTransaction: (id, updates) => {
-        set((s) => ({
-          transactions: s.transactions.map((t) =>
-            t.id === id ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t
-          ),
-        }));
-      },
+  logout: () => {
+    clearSession();
+    set({ isAuthenticated: false, user: null, sessionToken: null });
+  },
 
-      approveTransaction: (id, approverId) => {
-        const now = new Date().toISOString();
-        set((s) => ({
-          transactions: s.transactions.map((t) =>
-            t.id === id
-              ? { ...t, status: 'APPROVED' as const, approvedById: approverId, approvedAt: now, updatedAt: now, version: t.version + 1 }
-              : t
-          ),
-        }));
-      },
+  canActOnTransaction: (transaction, action, currentUser) => {
+    return canActOnTransaction(transaction, action, currentUser ?? null);
+  },
 
-      rejectTransaction: (id, comment) => {
-        const now = new Date().toISOString();
-        set((s) => ({
-          transactions: s.transactions.map((t) =>
-            t.id === id
-              ? { ...t, status: 'REJECTED' as const, comment, updatedAt: now }
-              : t
-          ),
-        }));
-      },
+  addTransaction: (tx) => {
+    const newTx: Transaction = {
+      ...tx,
+      id: `tx-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      version: 1,
+      createdById: 'user-1',
+      approvedById: null,
+      approvedAt: null,
+      compensatesFor: null,
+      comment: null,
+      category: MOCK_CATEGORIES.find(c => c.id === tx.categoryId),
+    };
+    set((s) => ({ transactions: [newTx, ...s.transactions] }));
+  },
 
-      deleteTransaction: (id) => {
-        set((s) => ({
-          transactions: s.transactions.filter((t) => t.id !== id),
-        }));
-      },
-    }),
-    { name: 'lumina-store' }
-  )
-);
+  updateTransaction: (id, updates) => {
+    set((s) => ({
+      transactions: s.transactions.map((t) =>
+        t.id === id ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t
+      ),
+    }));
+  },
+
+  approveTransaction: (id, approverId) => {
+    const now = new Date().toISOString();
+    set((s) => ({
+      transactions: s.transactions.map((t) =>
+        t.id === id
+          ? { ...t, status: 'APPROVED' as const, approvedById: approverId, approvedAt: now, updatedAt: now, version: t.version + 1 }
+          : t
+      ),
+    }));
+  },
+
+  rejectTransaction: (id, comment) => {
+    const now = new Date().toISOString();
+    set((s) => ({
+      transactions: s.transactions.map((t) =>
+        t.id === id
+          ? { ...t, status: 'REJECTED' as const, comment, updatedAt: now }
+          : t
+      ),
+    }));
+  },
+
+  deleteTransaction: (id) => {
+    set((s) => ({
+      transactions: s.transactions.filter((t) => t.id !== id),
+    }));
+  },
+}));

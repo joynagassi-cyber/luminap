@@ -52,7 +52,7 @@ export default function Settings() {
         </div>
 
         {/* Logout */}
-        <button onClick={() => { logout(); navigate('/login'); }} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-full text-sm font-semibold transition-all active:scale-95" style={{ backgroundColor: '#E5133220', color: '#E51332' }}>
+        <button onClick={async () => { logout(); navigate('/login'); }} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-full text-sm font-semibold transition-all active:scale-95" style={{ backgroundColor: '#E5133220', color: '#E51332' }}>
           <LogOut className="w-5 h-5" />Se déconnecter
         </button>
 
