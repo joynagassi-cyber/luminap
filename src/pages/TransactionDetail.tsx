@@ -2,14 +2,14 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useState } from 'react';
 import { ArrowLeft, Check, X, Edit3, Clock } from 'lucide-react';
 import { formatCurrency, formatDate, getStatusColor, getStatusLabel } from '@/lib/utils';
-import { useStore } from '@/store/useStore';
+import { useStore, canActOnTransaction } from '@/store/useStore';
 import StatusBadge from '@/components/StatusBadge';
 import ConfirmModal from '@/components/ConfirmModal';
 
 export default function TransactionDetail() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { transactions, categories, approveTransaction, rejectTransaction, deleteTransaction, user, canActOnTransaction } = useStore();
+  const { transactions, categories, approveTransaction, rejectTransaction, deleteTransaction, user } = useStore();
   const [showRejectComment, setShowRejectComment] = useState(false);
   const [rejectComment, setRejectComment] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);

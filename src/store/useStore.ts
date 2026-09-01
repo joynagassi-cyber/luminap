@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import type {
   Transaction,
   Category,
@@ -6,6 +7,7 @@ import type {
   AuditEntry,
   BalanceResult,
   User,
+  TransactionStatus,
 } from '@/types';
 import {
   MOCK_ORG,
@@ -15,41 +17,6 @@ import {
   MOCK_TRANSACTIONS,
   MOCK_AUDIT_ENTRIES,
 } from '@/config/mockData';
-import { getSessionToken, setSessionToken, clearSession } from '@/lib/api';
-
-// --- Authorization helpers (frontend-only, not a substitute for server-side checks) ---
-
-/**
- * Check if the current user can perform an action on a transaction.
- * In production, this must be enforced server-side as well.
- */
-export function canActOnTransaction(
-  transaction: Transaction | undefined,
-  action: 'approve' | 'reject' | 'edit' | 'delete',
-  currentUser: User | null,
-): boolean {
-  if (!transaction || !currentUser) return false;
-
-  // Cannot act on another organization's transactions
-  if (transaction.orgId !== currentUser.org.id) return false;
-
-  switch (action) {
-    case 'edit':
-      // Only DRAFT and REJECTED can be edited
-      return transaction.status === 'DRAFT' || transaction.status === 'REJECTED';
-    case 'delete':
-      // Only REJECTED can be deleted (approved transactions are immutable)
-      return transaction.status === 'REJECTED';
-    case 'approve':
-      // Only PENDING transactions can be approved
-      return transaction.status === 'PENDING' && currentUser.role !== 'TREASURER';
-    case 'reject':
-      // Only PENDING transactions can be rejected
-      return transaction.status === 'PENDING' && currentUser.role !== 'TREASURER';
-    default:
-      return false;
-  }
-}
 
 export function getBalance(startDate: string, endDate: string): BalanceResult {
   const filtered = MOCK_TRANSACTIONS.filter(t => t.date >= startDate && t.date <= endDate);
@@ -93,21 +60,16 @@ export function getBalance(startDate: string, endDate: string): BalanceResult {
 }
 
 interface LuminaState {
-  // Auth
   isAuthenticated: boolean;
   user: User | null;
-  sessionToken: string | null;
-  login: (email: string, password: string) => Promise<boolean>;
-  logout: () => void;
-  canActOnTransaction: (transaction: Transaction, action: 'approve' | 'reject' | 'edit' | 'delete', currentUser: User | null) => boolean;
-
-  // Data
   transactions: Transaction[];
   categories: Category[];
   orgUnits: OrgUnit[];
   auditEntries: AuditEntry[];
 
-  // Actions
+  login: (email: string, _password: string) => boolean;
+  logout: () => void;
+
   addTransaction: (tx: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt' | 'version' | 'createdById' | 'approvedById' | 'approvedAt' | 'compensatesFor' | 'comment'>) => void;
   updateTransaction: (id: string, updates: Partial<Transaction>) => void;
   approveTransaction: (id: string, approverId: string) => void;
@@ -115,106 +77,97 @@ interface LuminaState {
   deleteTransaction: (id: string) => void;
 }
 
-export const useStore = create<LuminaState>()((set) => ({
-  isAuthenticated: false,
-  user: null,
-  sessionToken: null,
-  transactions: MOCK_TRANSACTIONS,
-  categories: MOCK_CATEGORIES,
-  orgUnits: MOCK_ORG_UNITS,
-  auditEntries: MOCK_AUDIT_ENTRIES,
+export function canActOnTransaction(
+  transaction: Transaction | undefined,
+  action: 'approve' | 'reject' | 'edit' | 'delete',
+  currentUser: User | null,
+): boolean {
+  if (!transaction || !currentUser) return false;
+  if (transaction.orgId !== currentUser.org.id) return false;
+  switch (action) {
+    case 'edit': return transaction.status === 'DRAFT' || transaction.status === 'REJECTED';
+    case 'delete': return transaction.status === 'REJECTED';
+    case 'approve': return transaction.status === 'PENDING' && currentUser.role !== 'TREASURER';
+    case 'reject': return transaction.status === 'PENDING' && currentUser.role !== 'TREASURER';
+    default: return false;
+  }
+}
 
-  login: async (email: string, password: string) => {
-    try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-        credentials: 'include',
-      });
+export const useStore = create<LuminaState>()(
+  persist(
+    (set) => ({
+      isAuthenticated: false,
+      user: null,
+      transactions: MOCK_TRANSACTIONS,
+      categories: MOCK_CATEGORIES,
+      orgUnits: MOCK_ORG_UNITS,
+      auditEntries: MOCK_AUDIT_ENTRIES,
 
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        console.error('Login failed:', err);
+      login: (email: string, _password: string) => {
+        if (email && _password) {
+          set({ isAuthenticated: true, user: MOCK_USER });
+          return true;
+        }
         return false;
-      }
+      },
 
-      const data = await res.json();
-      if (data.sessionToken) {
-        setSessionToken(data.sessionToken);
-      }
+      logout: () => {
+        set({ isAuthenticated: false, user: null });
+      },
 
-      set({ isAuthenticated: true, user: { ...MOCK_USER, id: data.user?.id ?? MOCK_USER.id } });
-      return true;
-    } catch {
-      // Fallback to mock auth if server is unavailable
-      if (email && password) {
-        set({ isAuthenticated: true, user: MOCK_USER });
-        return true;
-      }
-      return false;
-    }
-  },
+      addTransaction: (tx) => {
+        const newTx: Transaction = {
+          ...tx,
+          id: `tx-${Date.now()}`,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          version: 1,
+          createdById: 'user-1',
+          approvedById: null,
+          approvedAt: null,
+          compensatesFor: null,
+          comment: null,
+          category: MOCK_CATEGORIES.find(c => c.id === tx.categoryId),
+        };
+        set((s) => ({ transactions: [newTx, ...s.transactions] }));
+      },
 
-  logout: () => {
-    clearSession();
-    set({ isAuthenticated: false, user: null, sessionToken: null });
-  },
+      updateTransaction: (id, updates) => {
+        set((s) => ({
+          transactions: s.transactions.map((t) =>
+            t.id === id ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t
+          ),
+        }));
+      },
 
-  canActOnTransaction: (transaction, action, currentUser) => {
-    return canActOnTransaction(transaction, action, currentUser ?? null);
-  },
+      approveTransaction: (id, approverId) => {
+        const now = new Date().toISOString();
+        set((s) => ({
+          transactions: s.transactions.map((t) =>
+            t.id === id
+              ? { ...t, status: 'APPROVED' as const, approvedById: approverId, approvedAt: now, updatedAt: now, version: t.version + 1 }
+              : t
+          ),
+        }));
+      },
 
-  addTransaction: (tx) => {
-    const newTx: Transaction = {
-      ...tx,
-      id: `tx-${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      version: 1,
-      createdById: 'user-1',
-      approvedById: null,
-      approvedAt: null,
-      compensatesFor: null,
-      comment: null,
-      category: MOCK_CATEGORIES.find(c => c.id === tx.categoryId),
-    };
-    set((s) => ({ transactions: [newTx, ...s.transactions] }));
-  },
+      rejectTransaction: (id, comment) => {
+        const now = new Date().toISOString();
+        set((s) => ({
+          transactions: s.transactions.map((t) =>
+            t.id === id
+              ? { ...t, status: 'REJECTED' as const, comment, updatedAt: now }
+              : t
+          ),
+        }));
+      },
 
-  updateTransaction: (id, updates) => {
-    set((s) => ({
-      transactions: s.transactions.map((t) =>
-        t.id === id ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t
-      ),
-    }));
-  },
-
-  approveTransaction: (id, approverId) => {
-    const now = new Date().toISOString();
-    set((s) => ({
-      transactions: s.transactions.map((t) =>
-        t.id === id
-          ? { ...t, status: 'APPROVED' as const, approvedById: approverId, approvedAt: now, updatedAt: now, version: t.version + 1 }
-          : t
-      ),
-    }));
-  },
-
-  rejectTransaction: (id, comment) => {
-    const now = new Date().toISOString();
-    set((s) => ({
-      transactions: s.transactions.map((t) =>
-        t.id === id
-          ? { ...t, status: 'REJECTED' as const, comment, updatedAt: now }
-          : t
-      ),
-    }));
-  },
-
-  deleteTransaction: (id) => {
-    set((s) => ({
-      transactions: s.transactions.filter((t) => t.id !== id),
-    }));
-  },
-}));
+      deleteTransaction: (id) => {
+        set((s) => ({
+          transactions: s.transactions.filter((t) => t.id !== id),
+        }));
+      },
+    }),
+    { name: 'lumina-store' }
+  )
+);

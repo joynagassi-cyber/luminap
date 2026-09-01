@@ -2,13 +2,13 @@ import { useState } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { getTodayStr } from '@/lib/utils';
-import { useStore } from '@/store/useStore';
+import { useStore, canActOnTransaction } from '@/store/useStore';
 import type { TransactionType } from '@/types';
 
 export default function TransactionEdit() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { transactions, categories, orgUnits, updateTransaction, canActOnTransaction, user } = useStore();
+  const { transactions, categories, orgUnits, updateTransaction, user } = useStore();
 
   const transaction = transactions.find(t => t.id === id);
   const [type, setType] = useState<TransactionType>(transaction?.type || 'INCOME');
