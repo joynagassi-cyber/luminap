@@ -1,27 +1,22 @@
-import { useLocation } from "react-router-dom";
-import { useEffect } from "react";
+import { useNavigate } from 'react-router-dom';
+import { AlertTriangle } from 'lucide-react';
 
-const NotFound = () => {
-  const location = useLocation();
-
-  useEffect(() => {
-    console.error(
-      "404 Error: User attempted to access non-existent route:",
-      location.pathname,
-    );
-  }, [location.pathname]);
-
+export default function NotFound() {
+  const navigate = useNavigate();
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">404</h1>
-        <p className="text-xl text-gray-600 mb-4">Oops! Page not found</p>
-        <a href="/" className="text-blue-500 hover:text-blue-700 underline">
-          Return to Home
-        </a>
+    <div className="min-h-screen bg-canvas flex items-center justify-center px-5">
+      <div className="text-center py-12">
+        <AlertTriangle className="w-12 h-12 mx-auto mb-4 text-text-tertiary" />
+        <h1 className="text-xl font-bold text-text-primary mb-2">Page introuvable</h1>
+        <p className="text-text-tertiary text-sm mb-6">La page que vous recherchez n'existe pas.</p>
+        <button
+          onClick={() => navigate('/')}
+          className="px-6 py-3 rounded-full text-sm font-semibold"
+          style={{ backgroundColor: '#FF6B00', color: '#FFFFFF' }}
+        >
+          Retour à l'accueil
+        </button>
       </div>
     </div>
   );
-};
-
-export default NotFound;
+}

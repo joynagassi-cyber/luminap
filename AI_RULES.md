@@ -1,19 +1,43 @@
-# Tech Stack
+# Lumina — Plateforme Universelle d'Organisation
 
-- You are building a React application.
-- Use TypeScript.
-- Use React Router. KEEP the routes in src/App.tsx
-- Always put source code in the src folder.
-- Put pages into src/pages/
-- Put components into src/components/
-- The main page (default page) is src/pages/Index.tsx
-- UPDATE the main page to include the new components. OTHERWISE, the user can NOT see any components!
-- ALWAYS try to use the shadcn/ui library.
-- Tailwind CSS: always use Tailwind CSS for styling components. Utilize Tailwind classes extensively for layout, spacing, colors, and other design aspects.
+## Stack
+- React + TypeScript + Vite
+- Tailwind CSS (design system Lumina)
+- Zustand (state management, persisted)
+- React Router (routing)
+- lucide-react (icons)
+- date-fns (formatting, fr locale)
 
-Available packages and libraries:
+## Design System
+- Fond principal: `#121212` (canvas)
+- Surface: `#181818`, hover: `#282828`, active: `#333333`
+- Text: primary `#FFFFFF`, secondary `#B3B3B3`, tertiary `#808080`, placeholder `#535353`
+- Couleurs financières fixes: income `#1DB954`, expense `#E51332`, pending `#FFB800`
+- Accent brand: `#FF6B00` (orange église)
+- Boutons pill shape, cartes 8px radius
+- Navigation bottom tab bar fixe
 
-- The lucide-react package is installed for icons.
-- You ALREADY have ALL the shadcn/ui components and their dependencies installed. So you don't need to install them again.
-- You have ALL the necessary Radix UI components installed.
-- Use prebuilt components from the shadcn/ui library after importing them. Note that these files shouldn't be edited, so make new components if you need to change them.
+## Règles Métier
+- Montants en centimes (multiples de 100)
+- Transactions approuvées immuables
+- State: DRAFT → PENDING → APPROVED | REJECTED
+
+## Données
+- Mock données dans `src/store/useStore.ts`
+- Organisation: Église MFE-JC Centrale
+- 9 catégories, 5 groupes, 5 transactions exemple
+
+## Routage
+- `/login` — Authentification simulée
+- `/` — Dashboard
+- `/finance` — Grand livre avec filtres
+- `/transaction/new` — Nouvelle transaction
+- `/transaction/:id` — Détail transaction
+- `/transaction/:id/edit` — Modifier (draft/rejeté seulement)
+- `/balance` — Bilan financier par période
+- `/groups` — Groupes organisationnels
+- `/settings` — Paramètres utilisateur
+
+## Auth simulée
+- Login avec email + mot de passe quelconques
+- User: admin@mfe-jc.org, rôle ADMIN
