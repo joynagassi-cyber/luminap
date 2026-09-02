@@ -40,7 +40,7 @@ interface AppState {
 interface StoreActions {
   addTransaction: (tx: { type: string; amount: number; description: string; date: string; categoryId: string; orgUnitId?: string; status: string }) => Promise<void>;
   updateTransaction: (id: string, updates: Partial<Transaction>) => Promise<void>;
-  approveTransaction: (id: string) => Promise<void>;
+  approveTransaction: (id: string, userId?: string) => Promise<void>;
   rejectTransaction: (id: string, comment: string) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
   refreshData: () => Promise<void>;
@@ -108,7 +108,7 @@ export const useLocalStore = create<AppState & StoreActions>((set, get) => ({
         auditEntries: finalAudit,
         isLoading: false,
         syncStatus: navigator.onLine ? 'idle' : 'offline',
-        lastSyncedAt: cloudData?.lastSyncedAt ?? null,
+        lastSyncedAt: null,
       });
     } catch (err) {
       set({ error: String(err), isLoading: false, syncStatus: 'error' });
@@ -176,7 +176,7 @@ export const useLocalStore = create<AppState & StoreActions>((set, get) => ({
     }));
   },
 
-  approveTransaction: async (id) => {
+  approveTransaction: async (id, userId) => {
     const localTx = await db.getTransaction(id);
     if (!localTx) return;
 
@@ -184,7 +184,7 @@ export const useLocalStore = create<AppState & StoreActions>((set, get) => ({
     const updatedTx = {
       ...localTx,
       status: 'APPROVED' as const,
-      approvedById: DEFAULT_USER.id,
+      approvedById: userId ?? DEFAULT_USER.id,
       approvedAt: now,
       updatedAt: now,
       version: localTx.version + 1,

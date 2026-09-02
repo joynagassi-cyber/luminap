@@ -95,8 +95,8 @@ export default function TransactionDetail() {
             <span className="text-sm font-medium px-3 py-1 rounded-full" style={{ backgroundColor: isIncome ? '#1DB95420' : '#E5133220', color: isIncome ? '#1DB954' : '#E51332' }}>
               {isIncome ? 'Entrée' : 'Sortie'}
             </span>
-            {transaction.org_unit && (
-              <span className="text-sm text-text-tertiary">{transaction.org_unit.name}</span>
+            {transaction.orgUnit && (
+              <span className="text-sm text-text-tertiary">{transaction.orgUnit.name}</span>
             )}
           </div>
           <p className="text-3xl font-black tabular-nums mb-1" style={{ color: isIncome ? '#1DB954' : '#E51332' }}>

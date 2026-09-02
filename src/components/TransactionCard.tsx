@@ -33,7 +33,7 @@ export default function TransactionCard({ transaction, onPress }: TransactionCar
           {transaction.description || 'Sans description'}
         </p>
         <p className="text-text-tertiary text-sm mt-0.5">
-          {transaction.category?.label_fr} · {formatDate(transaction.date)}
+          {transaction.category?.labelFr} · {formatDate(transaction.date)}
         </p>
       </div>
 

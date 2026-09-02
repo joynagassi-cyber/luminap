@@ -26,7 +26,7 @@ async function request<T>(
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(token ? { 'x-session-token': token } : {}),
-    ...options.headers,
+    ...(options.headers ? Object.fromEntries(Object.entries(options.headers).map(([k, v]) => [k, String(v)])) : {}),
   };
 
   const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
