@@ -3,7 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider, useAuth } from "@/context/AuthContext";
+import { useStore, useStoreHydrate } from "@/store/useStore";
 import Dashboard from "./pages/Dashboard";
 import Finance from "./pages/Finance";
 import TransactionNew from "./pages/TransactionNew";
@@ -18,8 +18,9 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const AppRoutes = () => {
-  const { isAuthenticated, isLoading } = useAuth();
+function AuthGuard({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isLoading } = useStore();
+  useStoreHydrate();
 
   if (isLoading) {
     return (
@@ -31,6 +32,12 @@ const AppRoutes = () => {
       </div>
     );
   }
+
+  return <>{children}</>;
+}
+
+const AppRoutes = () => {
+  const { isAuthenticated } = useStore();
 
   return (
     <Routes>
@@ -55,9 +62,9 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <AuthProvider>
+        <AuthGuard>
           <AppRoutes />
-        </AuthProvider>
+        </AuthGuard>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

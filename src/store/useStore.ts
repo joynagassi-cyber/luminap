@@ -1,5 +1,7 @@
 import { create } from 'zustand';
-import type { Transaction, Category, OrgUnit, AuditEntry, User } from '@/types';
+import { useEffect } from 'react';
+import type { Transaction, Category, OrgUnit, AuditEntry, User, Role } from '@/types';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AppState {
   isAuthenticated: boolean;
@@ -27,20 +29,6 @@ interface StoreActions {
   deleteTransaction: (id: string) => Promise<void>;
 }
 
-const API_BASE = '/api';
-
-async function fetchApi<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
-    ...options,
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error((err as { statusMessage?: string; message?: string }).statusMessage || res.statusText);
-  }
-  return res.json();
-}
-
 export const useStore = create<AppState & StoreActions>((set, get) => ({
   isAuthenticated: false,
   user: null,
@@ -51,14 +39,55 @@ export const useStore = create<AppState & StoreActions>((set, get) => ({
   isLoading: true,
   error: null,
 
+  // Restore session on mount
+  __hydrate: async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
+
+      const user: User = {
+        id: session.user.id,
+        email: session.user.email,
+        firstName: profile?.first_name || '',
+        lastName: profile?.last_name || '',
+        role: (profile?.role as 'ADMIN' | 'TREASURER' | 'APPROVER') || 'TREASURER',
+        org: { id: 'org-1', name: 'Église MFE-JC Centrale', type: 'Eglise', accentColor: '#FF6B00' },
+      };
+      set({ isAuthenticated: true, user, isLoading: false });
+      await get().refreshData();
+    } else {
+      set({ isLoading: false });
+    }
+  },
+
   login: async (email, password) => {
     try {
-      const res = await fetchApi<{ ok: boolean; user: User; sessionToken: string }>(`/auth/login`, {
-        method: 'POST',
-        body: JSON.stringify({ email, password }),
-      });
-      if (res.ok && res.user) {
-        set({ isAuthenticated: true, user: res.user, error: null });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        set({ error: 'Identifiants invalides' });
+        return false;
+      }
+      if (data.user) {
+        // Fetch profile
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', data.user.id)
+          .single();
+
+        const user: User = {
+          id: data.user.id,
+          email: data.user.email,
+          firstName: profile?.first_name || '',
+          lastName: profile?.last_name || '',
+          role: (profile?.role as 'ADMIN' | 'TREASURER' | 'APPROVER') || 'TREASURER',
+          org: { id: 'org-1', name: 'Église MFE-JC Centrale', type: 'Eglise', accentColor: '#FF6B00' },
+        };
+        set({ isAuthenticated: true, user, error: null });
         await get().refreshData();
         return true;
       }
@@ -72,12 +101,31 @@ export const useStore = create<AppState & StoreActions>((set, get) => ({
 
   signup: async (email, password, firstName, lastName) => {
     try {
-      const res = await fetchApi<{ ok: boolean; user: User; sessionToken: string }>(`/auth/signup`, {
-        method: 'POST',
-        body: JSON.stringify({ email, password, firstName, lastName }),
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { first_name: firstName, last_name: lastName, role: 'TREASURER' },
+        },
       });
-      if (res.ok && res.user) {
-        set({ isAuthenticated: true, user: res.user, error: null });
+      if (error) {
+        if (error.message?.includes('already registered')) {
+          set({ error: 'Cet email est déjà utilisé' });
+        } else {
+          set({ error: error.message });
+        }
+        return false;
+      }
+      if (data.user) {
+        const user: User = {
+          id: data.user.id,
+          email: data.user.email,
+          firstName,
+          lastName,
+          role: 'TREASURER',
+          org: { id: 'org-1', name: 'Église MFE-JC Centrale', type: 'Eglise', accentColor: '#FF6B00' },
+        };
+        set({ isAuthenticated: true, user, error: null });
         await get().refreshData();
         return true;
       }
@@ -89,22 +137,56 @@ export const useStore = create<AppState & StoreActions>((set, get) => ({
   },
 
   logout: async () => {
-    await fetchApi('/auth/session', { method: 'DELETE' }).catch(() => {});
+    await supabase.auth.signOut();
     set({ isAuthenticated: false, user: null, transactions: [], categories: [], orgUnits: [], auditEntries: [] });
   },
 
   refreshData: async () => {
     try {
-      const res = await fetchApi<{ ok: boolean; categories: Category[]; orgUnits: OrgUnit[]; transactions: Transaction[]; auditEntries: AuditEntry[] }>(`/data`);
-      if (res.ok) {
-        set({
-          categories: res.categories || [],
-          orgUnits: res.orgUnits || [],
-          transactions: res.transactions || [],
-          auditEntries: res.auditEntries || [],
-          error: null,
-        });
-      }
+      const { data: categories } = await supabase.from('categories').select('*');
+      const { data: orgUnits } = await supabase.from('org_units').select('*');
+      const { data: transactions } = await supabase
+        .from('transactions')
+        .select(`*, category:categories(*), creator:profiles!created_by_id(id, email, first_name, last_name, role), approver:profiles!approved_by_id(id, email, first_name, last_name, role)`)
+        .order('created_at', { ascending: false });
+
+      const { data: auditEntries } = await supabase
+        .from('audit_entries')
+        .select(`*, user:profiles!user_id(id, email, first_name, last_name, role)`)
+        .order('created_at', { ascending: false });
+
+      set({
+        categories: (categories || []).map((c: any) => ({
+          id: c.id, key: c.key, labelFr: c.label_fr, type: c.type, orgId: c.org_id,
+        })),
+        orgUnits: (orgUnits || []).map((o: any) => ({
+          id: o.id, name: o.name, type: o.type, orgId: o.org_id,
+        })),
+        transactions: (transactions || []).map((t: any) => ({
+          ...t,
+          orgId: t.org_id,
+          categoryId: t.category_id,
+          orgUnitId: t.org_unit_id,
+          compensatesFor: t.compensates_for,
+          createdById: t.created_by_id,
+          approvedById: t.approved_by_id,
+          createdAt: t.created_at,
+          updatedAt: t.updated_at,
+          approvedAt: t.approved_at,
+          category: t.category ? { id: t.category.id, key: t.category.key, labelFr: t.category.label_fr, type: t.category.type, orgId: t.category.org_id } : undefined,
+          creator: t.creator ? { id: t.creator.id, email: t.creator.email, firstName: t.creator.first_name, lastName: t.creator.last_name, role: t.creator.role as Role, org: { id: 'org-1', name: 'Église MFE-JC Centrale', type: 'Eglise', accentColor: '#FF6B00' } } : undefined,
+          approver: t.approver ? { id: t.approver.id, email: t.approver.email, firstName: t.approver.first_name, lastName: t.approver.last_name, role: t.approver.role as Role, org: { id: 'org-1', name: 'Église MFE-JC Centrale', type: 'Eglise', accentColor: '#FF6B00' } } : undefined,
+        })),
+        auditEntries: (auditEntries || []).map((a: any) => ({
+          ...a,
+          orgId: a.org_id,
+          transactionId: a.transaction_id,
+          userId: a.user_id,
+          createdAt: a.created_at,
+          user: a.user ? { id: a.user.id, email: a.user.email, firstName: a.user.first_name, lastName: a.user.last_name, role: a.user.role as Role, org: { id: 'org-1', name: 'Église MFE-JC Centrale', type: 'Eglise', accentColor: '#FF6B00' } } : undefined,
+        })),
+        error: null,
+      });
     } catch (e) {
       set({ error: (e as Error).message });
     } finally {
@@ -114,13 +196,24 @@ export const useStore = create<AppState & StoreActions>((set, get) => ({
 
   addTransaction: async (tx) => {
     try {
-      const res = await fetchApi<{ ok: boolean; transaction: Transaction }>(`/transactions`, {
-        method: 'POST',
-        body: JSON.stringify(tx),
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) throw new Error('Non authentifié');
+
+      const id = `tx-${Date.now()}`;
+      const { error } = await supabase.from('transactions').insert({
+        id,
+        org_id: 'org-1',
+        type: tx.type,
+        amount: Math.round(tx.amount),
+        description: tx.description,
+        date: tx.date,
+        status: tx.status,
+        category_id: tx.categoryId,
+        org_unit_id: tx.orgUnitId || null,
+        created_by_id: user.user.id,
       });
-      if (res.ok) {
-        set(s => ({ transactions: [res.transaction, ...s.transactions] }));
-      }
+      if (error) throw error;
+      await get().refreshData();
     } catch (e) {
       set({ error: (e as Error).message });
     }
@@ -128,10 +221,15 @@ export const useStore = create<AppState & StoreActions>((set, get) => ({
 
   updateTransaction: async (id, updates) => {
     try {
-      await fetchApi<{ ok: boolean }>(`/transactions/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(updates),
-      });
+      const { error } = await supabase
+        .from('transactions')
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString(),
+          version: updates.version || 1,
+        })
+        .eq('id', id);
+      if (error) throw error;
       await get().refreshData();
     } catch (e) {
       set({ error: (e as Error).message });
@@ -140,16 +238,20 @@ export const useStore = create<AppState & StoreActions>((set, get) => ({
 
   approveTransaction: async (id) => {
     try {
-      const res = await fetchApi<{ ok: boolean; transaction: Transaction }>(`/transactions/${id}/action`, {
-        method: 'POST',
-        body: JSON.stringify({ action: 'APPROVE' }),
-      });
-      if (res.ok) {
-        set(s => ({
-          transactions: s.transactions.map(t => t.id === id ? { ...t, ...res.transaction } : t),
-          error: null,
-        }));
-      }
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) throw new Error('Non authentifié');
+
+      const { error } = await supabase
+        .from('transactions')
+        .update({
+          status: 'APPROVED',
+          approved_by_id: user.user.id,
+          approved_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id);
+      if (error) throw error;
+      await get().refreshData();
     } catch (e) {
       set({ error: (e as Error).message });
     }
@@ -157,16 +259,16 @@ export const useStore = create<AppState & StoreActions>((set, get) => ({
 
   rejectTransaction: async (id, comment) => {
     try {
-      const res = await fetchApi<{ ok: boolean; transaction: Transaction }>(`/transactions/${id}/action`, {
-        method: 'POST',
-        body: JSON.stringify({ action: 'REJECT', comment }),
-      });
-      if (res.ok) {
-        set(s => ({
-          transactions: s.transactions.map(t => t.id === id ? { ...t, ...res.transaction } : t),
-          error: null,
-        }));
-      }
+      const { error } = await supabase
+        .from('transactions')
+        .update({
+          status: 'REJECTED',
+          comment,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id);
+      if (error) throw error;
+      await get().refreshData();
     } catch (e) {
       set({ error: (e as Error).message });
     }
@@ -174,13 +276,46 @@ export const useStore = create<AppState & StoreActions>((set, get) => ({
 
   deleteTransaction: async (id) => {
     try {
-      await fetchApi<{ ok: boolean }>(`/transactions/${id}`, { method: 'DELETE' });
+      const { error } = await supabase.from('transactions').delete().eq('id', id);
+      if (error) throw error;
       set(s => ({ transactions: s.transactions.filter(t => t.id !== id), error: null }));
     } catch (e) {
       set({ error: (e as Error).message });
     }
   },
 }));
+
+// React hook version that handles auth state subscription
+export function useStoreHydrate() {
+  useEffect(() => {
+    useStore.getState().__hydrate();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+
+        const user: User = {
+          id: session.user.id,
+          email: session.user.email,
+          firstName: profile?.first_name || '',
+          lastName: profile?.last_name || '',
+          role: (profile?.role as 'ADMIN' | 'TREASURER' | 'APPROVER') || 'TREASURER',
+          org: { id: 'org-1', name: 'Église MFE-JC Centrale', type: 'Eglise', accentColor: '#FF6B00' },
+        };
+        useStore.setState({ isAuthenticated: true, user });
+        await useStore.getState().refreshData();
+      } else {
+        useStore.setState({ isAuthenticated: false, user: null });
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+}
 
 export function canActOnTransaction(
   transaction: Transaction | undefined,
