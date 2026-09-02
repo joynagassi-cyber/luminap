@@ -1,99 +1,74 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useStore } from '@/store/useStore';
-import { LogIn, Lock } from 'lucide-react';
-
-const MAX_ATTEMPTS = 5;
-const LOCKOUT_DURATION = 60_000;
+import { useAuth } from '@/context/AuthContext';
+import { LogIn, UserPlus } from 'lucide-react';
 
 export default function Login() {
   const navigate = useNavigate();
-  const { login, signup, error } = useStore();
+  const { login, signup, isLoading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [localError, setLocalError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [lockedUntil, setLockedUntil] = useState<number | null>(null);
-  const [remainingSeconds, setRemainingSeconds] = useState(0);
   const [isSignup, setIsSignup] = useState(false);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const attemptCount = useRef(0);
-  const lockoutTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (lockoutTimer.current) clearTimeout(lockoutTimer.current);
-    };
-  }, []);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (lockedUntil && Date.now() < lockedUntil) {
-        setRemainingSeconds(Math.ceil((lockedUntil - Date.now()) / 1000));
-      } else if (remainingSeconds > 0) {
-        setRemainingSeconds(0);
-      }
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [lockedUntil, remainingSeconds]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLocalError('');
-
-    if (lockedUntil && Date.now() < lockedUntil) {
-      return;
-    }
 
     if (!email || !password) {
       setLocalError('Veuillez remplir tous les champs');
       return;
     }
 
+    if (isSignup && (!firstName.trim() || !lastName.trim())) {
+      setLocalError('Veuillez entrer votre prénom et nom');
+      return;
+    }
+
     setLoading(true);
     try {
-      let success: boolean;
+      let result: { ok: boolean; error?: string };
       if (isSignup) {
-        if (!firstName.trim() || !lastName.trim()) {
-          setLocalError('Veuillez entrer votre prénom et nom');
-          setLoading(false);
-          return;
-        }
-        success = await signup(email, password, firstName.trim(), lastName.trim());
+        result = await signup(email, password, firstName.trim(), lastName.trim());
       } else {
-        success = await login(email, password);
+        result = await login(email, password);
       }
 
-      if (success) {
-        attemptCount.current = 0;
+      if (result.ok) {
         navigate('/');
       } else {
-        attemptCount.current += 1;
-        if (attemptCount.current >= MAX_ATTEMPTS && !isSignup) {
-          const until = Date.now() + LOCKOUT_DURATION;
-          setLockedUntil(until);
-          setRemainingSeconds(Math.ceil(LOCKOUT_DURATION / 1000));
-          lockoutTimer.current = setTimeout(() => setLockedUntil(null), LOCKOUT_DURATION);
-          setLocalError('Trop de tentatives. Réessayez dans 60s');
-        } else {
-          setLocalError(error || (isSignup ? 'Échec de l\'inscription' : 'Identifiants invalides'));
-        }
+        setLocalError(result.error || (isSignup ? 'Échec de l\'inscription' : 'Identifiants invalides'));
       }
     } finally {
       setLoading(false);
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#121212' }}>
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 rounded-full flex items-center justify-center animate-pulse" style={{ backgroundColor: '#181818', border: '2px solid #FF6B00' }}>
+            <span className="text-2xl font-black" style={{ color: '#FF6B00' }}>L</span>
+          </div>
+          <p className="text-text-tertiary text-sm">Connexion en cours...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-6" style={{ backgroundColor: '#121212' }}>
       {/* Logo */}
       <div className="mb-8 flex flex-col items-center">
-        <div className="w-20 h-20 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: '#212121', border: '2px solid #FF6B00' }}>
+        <div className="w-20 h-20 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: '#181818', border: '2px solid #FF6B00' }}>
           <span className="text-4xl font-black" style={{ color: '#FF6B00' }}>L</span>
         </div>
         <h1 className="text-2xl font-bold text-text-primary">Lumina</h1>
-        <p className="text-text-tertiary text-sm mt-1">Gestion financière des organisations</p>
+        <p className="text-text-tertiary text-sm mt-1">Gestion financière · Temps réel</p>
       </div>
 
       {/* Form */}
@@ -106,8 +81,8 @@ export default function Login() {
                 type="text"
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg text-text-primary text-base outline-none"
-                style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
+                className="w-full px-4 py-3 rounded-lg text-text-primary text-base outline-none transition-colors focus:ring-2 focus:ring-[#FF6B00]/50"
+                style={{ backgroundColor: '#181818', border: '1px solid #282828' }}
               />
             </div>
             <div>
@@ -116,8 +91,8 @@ export default function Login() {
                 type="text"
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg text-text-primary text-base outline-none"
-                style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
+                className="w-full px-4 py-3 rounded-lg text-text-primary text-base outline-none transition-colors focus:ring-2 focus:ring-[#FF6B00]/50"
+                style={{ backgroundColor: '#181818', border: '1px solid #282828' }}
               />
             </div>
           </div>
@@ -129,9 +104,9 @@ export default function Login() {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="admin@mfe-jc.org"
-            className="w-full px-4 py-3 rounded-lg text-text-primary text-base outline-none"
-            style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
+            placeholder="utilisateur@mfe-jc.org"
+            className="w-full px-4 py-3 rounded-lg text-text-primary text-base outline-none transition-colors focus:ring-2 focus:ring-[#FF6B00]/50"
+            style={{ backgroundColor: '#181818', border: '1px solid #282828' }}
           />
         </div>
 
@@ -142,8 +117,8 @@ export default function Login() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
-            className="w-full px-4 py-3 rounded-lg text-text-primary text-base outline-none"
-            style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
+            className="w-full px-4 py-3 rounded-lg text-text-primary text-base outline-none transition-colors focus:ring-2 focus:ring-[#FF6B00]/50"
+            style={{ backgroundColor: '#181818', border: '1px solid #282828' }}
           />
         </div>
 
@@ -151,27 +126,31 @@ export default function Login() {
           <p className="text-sm" style={{ color: '#E51332' }}>{localError}</p>
         )}
 
-        {lockedUntil && Date.now() < lockedUntil && (
-          <div className="flex items-center justify-center gap-2 py-3 rounded-full text-sm font-medium" style={{ backgroundColor: '#E5133220', color: '#E51332' }}>
-            <Lock className="w-4 h-4" />
-            Réessayez dans {remainingSeconds}s
-          </div>
-        )}
-
         <button
           type="submit"
-          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-full font-semibold text-base text-white transition-all active:scale-95"
+          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-full font-semibold text-base text-white transition-all active:scale-95 disabled:opacity-50"
           style={{ backgroundColor: '#FF6B00' }}
           disabled={loading}
         >
-          <LogIn className="w-5 h-5" />
-          {loading ? 'Chargement...' : (isSignup ? "S'inscrire" : 'Se connecter')}
+          {loading ? (
+            <span className="flex items-center gap-2">
+              <svg className="animate-spin w-5 h-5" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+              </svg>
+              Chargement...
+            </span>
+          ) : isSignup ? (
+            <><UserPlus className="w-5 h-5" />Créer un compte</>
+          ) : (
+            <><LogIn className="w-5 h-5" />Se connecter</>
+          )}
         </button>
 
         <div className="text-center">
           <button
             type="button"
-            className="text-sm"
+            className="text-sm transition-colors hover:underline"
             style={{ color: '#808080' }}
             onClick={() => { setIsSignup(!isSignup); setLocalError(''); }}
           >
@@ -180,8 +159,16 @@ export default function Login() {
         </div>
       </form>
 
-      <p className="text-text-tertiary text-xs mt-8 text-center">
-        Version 1.0 · Église MFE-JC Centrale
+      {/* Help text */}
+      <div className="mt-8 p-4 rounded-lg text-center" style={{ backgroundColor: '#181818', border: '1px solid #282828', maxWidth: '320px' }}>
+        <p className="text-text-tertiary text-xs mb-2">🔒 Authentification sécurisée</p>
+        <p className="text-text-tertiary text-xs">
+          Vos données sont synchronisées en temps réel entre tous les utilisateurs connectés.
+        </p>
+      </div>
+
+      <p className="text-text-tertiary text-xs mt-6">
+        Lumina v2.0 · Église MFE-JC Centrale
       </p>
     </div>
   );

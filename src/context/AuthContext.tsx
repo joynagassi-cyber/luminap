@@ -1,118 +1,113 @@
-import { createContext, useContext, ReactNode } from 'react';
-import { useEffect, useState } from 'react';
-import type { User, Transaction, Category, OrgUnit, AuditEntry } from '@/types';
+import { createContext, useContext, ReactNode, useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import type { User as DbUser } from '@supabase/supabase-js';
+import type { User } from '@/types';
+import { useSupabaseStore } from '@/store/useSupabaseStore';
+import { mapDbProfileToUser } from '@/store/useSupabaseStore';
 
-interface AuthUser {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  role: string;
-  org: { id: string; name: string; type: string; accentColor: string };
-}
-
-interface AppState {
-  user: AuthUser | null;
-  transactions: Transaction[];
-  categories: Category[];
-  orgUnits: OrgUnit[];
-  auditEntries: AuditEntry[];
+interface AuthContextType {
+  user: User | null;
   isLoading: boolean;
-  error: string | null;
-}
-
-interface AuthContextType extends AppState {
-  login: (email: string, password: string) => Promise<boolean>;
-  signup: (email: string, password: string, firstName: string, lastName: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
+  signup: (email: string, password: string, firstName: string, lastName: string) => Promise<{ ok: boolean; error?: string }>;
   logout: () => Promise<void>;
-  refreshData: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<AppState>({
-    user: null,
-    transactions: [],
-    categories: [],
-    orgUnits: [],
-    auditEntries: [],
-    isLoading: true,
-    error: null,
-  });
-
-  const loadUser = async () => {
-    try {
-      const res = await fetch('/api/auth/session');
-      const data = await res.json();
-      if (data.ok && data.user) {
-        setState(s => ({ ...s, user: data.user, isLoading: false }));
-      } else {
-        setState(s => ({ ...s, user: null, isLoading: false }));
-      }
-    } catch {
-      setState(s => ({ ...s, isLoading: false }));
-    }
-  };
-
-  const loadData = async () => {
-    try {
-      const res = await fetch('/api/data');
-      const data = await res.json();
-      if (data.ok) {
-        setState(s => ({
-          ...s,
-          categories: data.categories || [],
-          orgUnits: data.orgUnits || [],
-          transactions: data.transactions || [],
-          auditEntries: data.auditEntries || [],
-        }));
-      }
-    } catch {
-      // ignore
-    }
-  };
+  const [isLoading, setIsLoading] = useState(true);
+  const setUser = useSupabaseStore(s => s.setUser);
+  const refreshData = useSupabaseStore(s => s.refreshData);
 
   useEffect(() => {
-    loadUser();
+    // Initial session check
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        handleSessionUser(session.user);
+      } else {
+        setUser(null);
+        setIsLoading(false);
+      }
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        handleSessionUser(session.user);
+      } else {
+        setUser(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const handleSessionUser = async (dbUser: DbUser) => {
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-      const data = await res.json();
-      if (data.ok && data.user) {
-        setState(s => ({ ...s, user: data.user, error: null, isLoading: false }));
-        await loadData();
-        return true;
+      // Fetch profile
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', dbUser.id)
+        .single();
+
+      if (error) {
+        console.error('[auth] profile fetch error', error);
+        setUser(null);
+        setIsLoading(false);
+        return;
       }
-      setState(s => ({ ...s, error: data.statusMessage || 'Identifiants invalides', isLoading: false }));
-      return false;
-    } catch {
-      setState(s => ({ ...s, error: 'Erreur de connexion', isLoading: false }));
-      return false;
+
+      const user = mapDbProfileToUser({ ...dbUser, ...profile });
+      setUser(user);
+      await refreshData();
+      setIsLoading(false);
+    } catch (err) {
+      console.error('[auth] handleSessionUser error', err);
+      setUser(null);
+      setIsLoading(false);
     }
   };
 
-  const signup = async (email: string, password: string, firstName: string, lastName: string): Promise<boolean> => {
-    // For now, signup is not available - use existing credentials
-    setState(s => ({ ...s, error: 'Inscription désactivée. Utilisez les identifiants fournis.', isLoading: false }));
-    return false;
+  const login = async (email: string, password: string) => {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) return { ok: false, error: error.message };
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: String(err) };
+    }
+  };
+
+  const signup = async (email: string, password: string, firstName: string, lastName: string) => {
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { first_name: firstName, last_name: lastName },
+        },
+      });
+      if (error) return { ok: false, error: error.message };
+      
+      // If no user returned (email confirmation required), still ok
+      if (data.user) {
+        await handleSessionUser(data.user);
+      }
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: String(err) };
+    }
   };
 
   const logout = async () => {
-    await fetch('/api/auth/session', { method: 'DELETE' }).catch(() => {});
-    setState(s => ({ ...s, user: null, transactions: [], categories: [], orgUnits: [], auditEntries: [] }));
+    await supabase.auth.signOut();
+    setUser(null);
   };
 
-  const refreshData = () => loadData();
-
   return (
-    <AuthContext.Provider value={{ ...state, login, signup, logout, refreshData }}>
+    <AuthContext.Provider value={{ user: useSupabaseStore(s => s.user), isLoading, login, signup, logout }}>
       {children}
     </AuthContext.Provider>
   );

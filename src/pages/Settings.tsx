@@ -1,11 +1,13 @@
 import { useNavigate } from 'react-router-dom';
 import { LogOut, User, Bell, Shield } from 'lucide-react';
-import { useStore } from '@/store/useStore';
+import { useSupabaseStore } from '@/store/useSupabaseStore';
+import { useAuth } from '@/context/AuthContext';
 import BottomNav from '@/components/BottomNav';
 
 export default function Settings() {
   const navigate = useNavigate();
-  const { user, logout } = useStore();
+  const { user } = useSupabaseStore();
+  const { logout } = useAuth();
 
   return (
     <div className="min-h-screen bg-canvas">

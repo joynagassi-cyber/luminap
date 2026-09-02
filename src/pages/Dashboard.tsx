@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useStore } from '@/store/useStore';
+import { useSupabaseStore } from '@/store/useSupabaseStore';
 import { formatCurrency, getPeriodRange } from '@/lib/utils';
 import { ArrowUpRight, ArrowDownRight, BarChart3, BookOpen, PlusCircle, ChevronDown } from 'lucide-react';
 import TransactionCard from '@/components/TransactionCard';
@@ -9,7 +9,7 @@ import BottomDrawer from '@/components/BottomDrawer';
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { transactions, user } = useStore();
+  const { transactions, user } = useSupabaseStore();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const { start, end } = getPeriodRange('mois');

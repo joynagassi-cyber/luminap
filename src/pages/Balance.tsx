@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { formatCurrency, formatDate, exportToCSV, getPeriodRange } from '@/lib/utils';
-import { useStore } from '@/store/useStore';
+import { useSupabaseStore } from '@/store/useSupabaseStore';
 import { Download } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import type { PeriodType } from '@/lib/utils';
 
 export default function Balance() {
   const navigate = useNavigate();
-  const { transactions, categories, orgUnits } = useStore();
+  const { transactions, categories, orgUnits } = useSupabaseStore();
   const [period, setPeriod] = useState<PeriodType>('mois');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');

@@ -10,7 +10,7 @@ import {
   ResponsiveContainer, Area, AreaChart,
 } from 'recharts';
 import { formatCurrency, formatDate, getPeriodRange } from '@/lib/utils';
-import { useStore } from '@/store/useStore';
+import { useSupabaseStore } from '@/store/useSupabaseStore';
 import BottomNav from '@/components/BottomNav';
 import BottomDrawer from '@/components/BottomDrawer';
 import type { Transaction } from '@/types';
@@ -20,7 +20,7 @@ const COLORS = ['#FF6B00', '#1DB954', '#E51332', '#FFB800', '#808080', '#2196F3'
 
 export default function History() {
   const navigate = useNavigate();
-  const { transactions, categories, orgUnits } = useStore();
+  const { transactions, categories, orgUnits } = useSupabaseStore();
   const [period, setPeriod] = useState<PeriodType>('mois');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [startDate, setStartDate] = useState('');

@@ -5,7 +5,7 @@ import {
   BarChart3, PieChart, ArrowDownLeft, ArrowUpRight, Calendar,
 } from 'lucide-react';
 import { formatCurrency, formatDate, getStatusColor, getStatusLabel } from '@/lib/utils';
-import { useStore } from '@/store/useStore';
+import { useSupabaseStore } from '@/store/useSupabaseStore';
 import type { Transaction } from '@/types';
 import BottomNav from '@/components/BottomNav';
 import type { PeriodType } from '@/lib/utils';
@@ -19,7 +19,7 @@ interface FilteredTransaction extends Transaction {
 
 export default function Finance() {
   const navigate = useNavigate();
-  const { transactions, categories } = useStore();
+  const { transactions, categories } = useSupabaseStore();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('ALL');

@@ -2,14 +2,14 @@ import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, CheckCircle, Clock } from 'lucide-react';
 import { getTodayStr } from '@/lib/utils';
-import { useStore } from '@/store/useStore';
+import { useSupabaseStore } from '@/store/useSupabaseStore';
 import ConfirmModal from '@/components/ConfirmModal';
 import type { TransactionType } from '@/types';
 
 export default function TransactionNew() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { addTransaction, categories, orgUnits } = useStore();
+  const { addTransaction, categories, orgUnits } = useSupabaseStore();
 
   const initState = location.state as { compensateFor?: string } | null;
 

@@ -1,11 +1,11 @@
 import { useNavigate } from 'react-router-dom';
 import { Building2 } from 'lucide-react';
-import { useStore } from '@/store/useStore';
+import { useSupabaseStore } from '@/store/useSupabaseStore';
 import BottomNav from '@/components/BottomNav';
 
 export default function Groups() {
   const navigate = useNavigate();
-  const { orgUnits } = useStore();
+  const { orgUnits } = useSupabaseStore();
 
   return (
     <div className="min-h-screen bg-canvas">

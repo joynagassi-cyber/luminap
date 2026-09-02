@@ -1,11 +1,93 @@
 import { create } from 'zustand';
-import { useEffect } from 'react';
-import type { Transaction, Category, OrgUnit, AuditEntry, User, Role } from '@/types';
-import { supabase } from '@/integrations/supabase/client';
+import type { Transaction, Category, OrgUnit, AuditEntry, User } from '@/types';
+
+const ORG = { id: 'org-1', name: 'Église MFE-JC Centrale', type: 'Eglise' as const, accentColor: '#FF6B00' };
+
+const ADMIN: User = {
+  id: 'user-1',
+  email: 'admin@mfe-jc.org',
+  firstName: 'Pasteur',
+  lastName: 'Jean',
+  role: 'ADMIN',
+  org: ORG,
+};
+
+const CATEGORIES: Category[] = [
+  { id: 'cat-1', key: 'dime', labelFr: 'Dîme', type: 'INCOME', orgId: 'org-1' },
+  { id: 'cat-2', key: 'offrande', labelFr: 'Offrande', type: 'INCOME', orgId: 'org-1' },
+  { id: 'cat-3', key: 'offrande_mission', labelFr: 'Offrande Mission', type: 'INCOME', orgId: 'org-1' },
+  { id: 'cat-4', key: 'don', labelFr: 'Don', type: 'INCOME', orgId: 'org-1' },
+  { id: 'cat-5', key: 'salaire_pasteur', labelFr: 'Salaire Pasteur', type: 'EXPENSE', orgId: 'org-1' },
+  { id: 'cat-6', key: 'frais_fonctionnement', labelFr: 'Frais de Fonctionnement', type: 'EXPENSE', orgId: 'org-1' },
+  { id: 'cat-7', key: 'mission', labelFr: 'Mission', type: 'EXPENSE', orgId: 'org-1' },
+  { id: 'cat-8', key: 'entretien', labelFr: 'Entretien', type: 'EXPENSE', orgId: 'org-1' },
+  { id: 'cat-9', key: 'aumone', labelFr: 'Aumône', type: 'EXPENSE', orgId: 'org-1' },
+];
+
+const ORG_UNITS: OrgUnit[] = [
+  { id: 'ou-1', name: 'Diacres', type: 'groupe', orgId: 'org-1' },
+  { id: 'ou-2', name: 'Jeunesse', type: 'groupe', orgId: 'org-1' },
+  { id: 'ou-3', name: 'Dames', type: 'groupe', orgId: 'org-1' },
+  { id: 'ou-4', name: 'Messieurs', type: 'groupe', orgId: 'org-1' },
+  { id: 'ou-5', name: 'Chorale', type: 'groupe', orgId: 'org-1' },
+];
+
+const now = new Date();
+const daysAgo = (n: number) => {
+  const d = new Date(now);
+  d.setDate(d.getDate() - n);
+  return d.toISOString().split('T')[0];
+};
+
+const TRANSACTIONS: Transaction[] = [
+  {
+    id: 'tx-1', orgId: 'org-1', type: 'INCOME', amount: 5000000, description: 'Dîme dimanche', date: daysAgo(6),
+    status: 'APPROVED', createdAt: new Date(now.getTime() - 7 * 86400000).toISOString(),
+    updatedAt: new Date(now.getTime() - 6 * 86400000).toISOString(), createdById: 'user-1',
+    approvedById: 'user-1', approvedAt: new Date(now.getTime() - 6 * 86400000).toISOString(),
+    categoryId: 'cat-1', orgUnitId: null, compensatesFor: null, comment: null, version: 1,
+    category: CATEGORIES[0], creator: ADMIN, approver: ADMIN,
+  },
+  {
+    id: 'tx-2', orgId: 'org-1', type: 'INCOME', amount: 1500000, description: 'Offrande oeuvre sociale', date: daysAgo(6),
+    status: 'APPROVED', createdAt: new Date(now.getTime() - 7 * 86400000).toISOString(),
+    updatedAt: new Date(now.getTime() - 6 * 86400000).toISOString(), createdById: 'user-1',
+    approvedById: 'user-1', approvedAt: new Date(now.getTime() - 6 * 86400000).toISOString(),
+    categoryId: 'cat-2', orgUnitId: null, compensatesFor: null, comment: null, version: 1,
+    category: CATEGORIES[1], creator: ADMIN, approver: ADMIN,
+  },
+  {
+    id: 'tx-3', orgId: 'org-1', type: 'EXPENSE', amount: 250000, description: 'Frais électricité église', date: daysAgo(8),
+    status: 'PENDING', createdAt: new Date(now.getTime() - 8 * 86400000).toISOString(),
+    updatedAt: new Date(now.getTime() - 8 * 86400000).toISOString(), createdById: 'user-1',
+    approvedById: null, approvedAt: null, categoryId: 'cat-6', orgUnitId: null,
+    compensatesFor: null, comment: null, version: 1, category: CATEGORIES[5], creator: ADMIN,
+  },
+  {
+    id: 'tx-4', orgId: 'org-1', type: 'INCOME', amount: 750000, description: 'Offrande mission', date: daysAgo(3),
+    status: 'DRAFT', createdAt: new Date(now.getTime() - 3 * 86400000).toISOString(),
+    updatedAt: new Date(now.getTime() - 3 * 86400000).toISOString(), createdById: 'user-1',
+    approvedById: null, approvedAt: null, categoryId: 'cat-3', orgUnitId: null,
+    compensatesFor: null, comment: null, version: 1, category: CATEGORIES[2], creator: ADMIN,
+  },
+  {
+    id: 'tx-5', orgId: 'org-1', type: 'EXPENSE', amount: 100000, description: 'Aumône aux nécessiteux', date: daysAgo(10),
+    status: 'APPROVED', createdAt: new Date(now.getTime() - 10 * 86400000).toISOString(),
+    updatedAt: new Date(now.getTime() - 9 * 86400000).toISOString(), createdById: 'user-1',
+    approvedById: 'user-1', approvedAt: new Date(now.getTime() - 9 * 86400000).toISOString(),
+    categoryId: 'cat-9', orgUnitId: null, compensatesFor: null, comment: null, version: 1,
+    category: CATEGORIES[8], creator: ADMIN, approver: ADMIN,
+  },
+];
+
+const AUDIT_ENTRIES: AuditEntry[] = [
+  { id: 'audit-1', orgId: 'org-1', transactionId: 'tx-1', userId: 'user-1', action: 'CREATED', entityType: 'transaction', entityId: 'tx-1', comment: null, createdAt: new Date(now.getTime() - 7 * 86400000).toISOString(), user: ADMIN },
+  { id: 'audit-2', orgId: 'org-1', transactionId: 'tx-1', userId: 'user-1', action: 'APPROVED', entityType: 'transaction', entityId: 'tx-1', comment: null, createdAt: new Date(now.getTime() - 6 * 86400000).toISOString(), user: ADMIN },
+  { id: 'audit-3', orgId: 'org-1', transactionId: 'tx-3', userId: 'user-1', action: 'CREATED', entityType: 'transaction', entityId: 'tx-3', comment: null, createdAt: new Date(now.getTime() - 8 * 86400000).toISOString(), user: ADMIN },
+];
 
 interface AppState {
-  isAuthenticated: boolean;
-  user: User | null;
+  user: User;
   transactions: Transaction[];
   categories: Category[];
   orgUnits: OrgUnit[];
@@ -15,307 +97,71 @@ interface AppState {
 }
 
 interface StoreActions {
-  login: (email: string, password: string) => Promise<boolean>;
-  signup: (email: string, password: string, firstName: string, lastName: string) => Promise<boolean>;
-  logout: () => Promise<void>;
-  refreshData: () => Promise<void>;
-  addTransaction: (tx: {
-    type: string; amount: number; description: string; date: string;
-    categoryId: string; orgUnitId?: string; status: string;
-  }) => Promise<void>;
-  updateTransaction: (id: string, updates: Partial<Transaction>) => Promise<void>;
-  approveTransaction: (id: string) => Promise<void>;
-  rejectTransaction: (id: string, comment: string) => Promise<void>;
-  deleteTransaction: (id: string) => Promise<void>;
+  addTransaction: (tx: { type: string; amount: number; description: string; date: string; categoryId: string; orgUnitId?: string; status: string }) => void;
+  updateTransaction: (id: string, updates: Partial<Transaction>) => void;
+  approveTransaction: (id: string) => void;
+  rejectTransaction: (id: string, comment: string) => void;
+  deleteTransaction: (id: string) => void;
+  refreshData: () => void;
 }
 
-export const useStore = create<AppState & StoreActions>((set, get) => ({
-  isAuthenticated: false,
-  user: null,
-  transactions: [],
-  categories: [],
-  orgUnits: [],
-  auditEntries: [],
-  isLoading: true,
+export const useStore = create<AppState & StoreActions>((set) => ({
+  user: ADMIN,
+  transactions: TRANSACTIONS,
+  categories: CATEGORIES,
+  orgUnits: ORG_UNITS,
+  auditEntries: AUDIT_ENTRIES,
+  isLoading: false,
   error: null,
 
-  // Restore session on mount
-  __hydrate: async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.user) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .single();
-
-      const user: User = {
-        id: session.user.id,
-        email: session.user.email,
-        firstName: profile?.first_name || '',
-        lastName: profile?.last_name || '',
-        role: (profile?.role as 'ADMIN' | 'TREASURER' | 'APPROVER') || 'TREASURER',
-        org: { id: 'org-1', name: 'Église MFE-JC Centrale', type: 'Eglise', accentColor: '#FF6B00' },
-      };
-      set({ isAuthenticated: true, user, isLoading: false });
-      await get().refreshData();
-    } else {
-      set({ isLoading: false });
-    }
+  addTransaction: (tx) => {
+    const id = `tx-${Date.now()}`;
+    const now = new Date().toISOString();
+    const newTx: Transaction = {
+      id, orgId: 'org-1', type: tx.type as 'INCOME' | 'EXPENSE', amount: Math.round(tx.amount),
+      description: tx.description, date: tx.date, status: tx.status as any,
+      createdAt: now, updatedAt: now, createdById: 'user-1', approvedById: null, approvedAt: null,
+      categoryId: tx.categoryId, orgUnitId: tx.orgUnitId || null, compensatesFor: null, comment: null, version: 1,
+      category: CATEGORIES.find(c => c.id === tx.categoryId),
+      creator: ADMIN,
+    };
+    set(s => ({ transactions: [newTx, ...s.transactions], error: null }));
   },
 
-  login: async (email, password) => {
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        set({ error: 'Identifiants invalides' });
-        return false;
-      }
-      if (data.user) {
-        // Fetch profile
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', data.user.id)
-          .single();
-
-        const user: User = {
-          id: data.user.id,
-          email: data.user.email,
-          firstName: profile?.first_name || '',
-          lastName: profile?.last_name || '',
-          role: (profile?.role as 'ADMIN' | 'TREASURER' | 'APPROVER') || 'TREASURER',
-          org: { id: 'org-1', name: 'Église MFE-JC Centrale', type: 'Eglise', accentColor: '#FF6B00' },
-        };
-        set({ isAuthenticated: true, user, error: null });
-        await get().refreshData();
-        return true;
-      }
-      set({ error: 'Identifiants invalides' });
-      return false;
-    } catch (e) {
-      set({ error: (e as Error).message || 'Erreur de connexion' });
-      return false;
-    }
+  updateTransaction: (id, updates) => {
+    set(s => ({
+      transactions: s.transactions.map(t => t.id === id ? { ...t, ...updates, updatedAt: new Date().toISOString(), version: (t.version || 0) + 1 } : t),
+      error: null,
+    }));
   },
 
-  signup: async (email, password, firstName, lastName) => {
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { first_name: firstName, last_name: lastName, role: 'TREASURER' },
-        },
-      });
-      if (error) {
-        if (error.message?.includes('already registered')) {
-          set({ error: 'Cet email est déjà utilisé' });
-        } else {
-          set({ error: error.message });
-        }
-        return false;
-      }
-      if (data.user) {
-        const user: User = {
-          id: data.user.id,
-          email: data.user.email,
-          firstName,
-          lastName,
-          role: 'TREASURER',
-          org: { id: 'org-1', name: 'Église MFE-JC Centrale', type: 'Eglise', accentColor: '#FF6B00' },
-        };
-        set({ isAuthenticated: true, user, error: null });
-        await get().refreshData();
-        return true;
-      }
-      return false;
-    } catch (e) {
-      set({ error: (e as Error).message });
-      return false;
-    }
+  approveTransaction: (id) => {
+    const now = new Date().toISOString();
+    set(s => ({
+      transactions: s.transactions.map(t => t.id === id
+        ? { ...t, status: 'APPROVED' as const, approvedById: 'user-1', approvedAt: now, updatedAt: now }
+        : t
+      ),
+      error: null,
+    }));
   },
 
-  logout: async () => {
-    await supabase.auth.signOut();
-    set({ isAuthenticated: false, user: null, transactions: [], categories: [], orgUnits: [], auditEntries: [] });
+  rejectTransaction: (id, comment) => {
+    set(s => ({
+      transactions: s.transactions.map(t => t.id === id
+        ? { ...t, status: 'REJECTED' as const, comment, updatedAt: new Date().toISOString() }
+        : t
+      ),
+      error: null,
+    }));
   },
 
-  refreshData: async () => {
-    try {
-      const { data: categories } = await supabase.from('categories').select('*');
-      const { data: orgUnits } = await supabase.from('org_units').select('*');
-      const { data: transactions } = await supabase
-        .from('transactions')
-        .select(`*, category:categories(*), creator:profiles!created_by_id(id, email, first_name, last_name, role), approver:profiles!approved_by_id(id, email, first_name, last_name, role)`)
-        .order('created_at', { ascending: false });
-
-      const { data: auditEntries } = await supabase
-        .from('audit_entries')
-        .select(`*, user:profiles!user_id(id, email, first_name, last_name, role)`)
-        .order('created_at', { ascending: false });
-
-      set({
-        categories: (categories || []).map((c: any) => ({
-          id: c.id, key: c.key, labelFr: c.label_fr, type: c.type, orgId: c.org_id,
-        })),
-        orgUnits: (orgUnits || []).map((o: any) => ({
-          id: o.id, name: o.name, type: o.type, orgId: o.org_id,
-        })),
-        transactions: (transactions || []).map((t: any) => ({
-          ...t,
-          orgId: t.org_id,
-          categoryId: t.category_id,
-          orgUnitId: t.org_unit_id,
-          compensatesFor: t.compensates_for,
-          createdById: t.created_by_id,
-          approvedById: t.approved_by_id,
-          createdAt: t.created_at,
-          updatedAt: t.updated_at,
-          approvedAt: t.approved_at,
-          category: t.category ? { id: t.category.id, key: t.category.key, labelFr: t.category.label_fr, type: t.category.type, orgId: t.category.org_id } : undefined,
-          creator: t.creator ? { id: t.creator.id, email: t.creator.email, firstName: t.creator.first_name, lastName: t.creator.last_name, role: t.creator.role as Role, org: { id: 'org-1', name: 'Église MFE-JC Centrale', type: 'Eglise', accentColor: '#FF6B00' } } : undefined,
-          approver: t.approver ? { id: t.approver.id, email: t.approver.email, firstName: t.approver.first_name, lastName: t.approver.last_name, role: t.approver.role as Role, org: { id: 'org-1', name: 'Église MFE-JC Centrale', type: 'Eglise', accentColor: '#FF6B00' } } : undefined,
-        })),
-        auditEntries: (auditEntries || []).map((a: any) => ({
-          ...a,
-          orgId: a.org_id,
-          transactionId: a.transaction_id,
-          userId: a.user_id,
-          createdAt: a.created_at,
-          user: a.user ? { id: a.user.id, email: a.user.email, firstName: a.user.first_name, lastName: a.user.last_name, role: a.user.role as Role, org: { id: 'org-1', name: 'Église MFE-JC Centrale', type: 'Eglise', accentColor: '#FF6B00' } } : undefined,
-        })),
-        error: null,
-      });
-    } catch (e) {
-      set({ error: (e as Error).message });
-    } finally {
-      set({ isLoading: false });
-    }
+  deleteTransaction: (id) => {
+    set(s => ({ transactions: s.transactions.filter(t => t.id !== id), error: null }));
   },
 
-  addTransaction: async (tx) => {
-    try {
-      const { data: user } = await supabase.auth.getUser();
-      if (!user.user) throw new Error('Non authentifié');
-
-      const id = `tx-${Date.now()}`;
-      const { error } = await supabase.from('transactions').insert({
-        id,
-        org_id: 'org-1',
-        type: tx.type,
-        amount: Math.round(tx.amount),
-        description: tx.description,
-        date: tx.date,
-        status: tx.status,
-        category_id: tx.categoryId,
-        org_unit_id: tx.orgUnitId || null,
-        created_by_id: user.user.id,
-      });
-      if (error) throw error;
-      await get().refreshData();
-    } catch (e) {
-      set({ error: (e as Error).message });
-    }
-  },
-
-  updateTransaction: async (id, updates) => {
-    try {
-      const { error } = await supabase
-        .from('transactions')
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString(),
-          version: updates.version || 1,
-        })
-        .eq('id', id);
-      if (error) throw error;
-      await get().refreshData();
-    } catch (e) {
-      set({ error: (e as Error).message });
-    }
-  },
-
-  approveTransaction: async (id) => {
-    try {
-      const { data: user } = await supabase.auth.getUser();
-      if (!user.user) throw new Error('Non authentifié');
-
-      const { error } = await supabase
-        .from('transactions')
-        .update({
-          status: 'APPROVED',
-          approved_by_id: user.user.id,
-          approved_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', id);
-      if (error) throw error;
-      await get().refreshData();
-    } catch (e) {
-      set({ error: (e as Error).message });
-    }
-  },
-
-  rejectTransaction: async (id, comment) => {
-    try {
-      const { error } = await supabase
-        .from('transactions')
-        .update({
-          status: 'REJECTED',
-          comment,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', id);
-      if (error) throw error;
-      await get().refreshData();
-    } catch (e) {
-      set({ error: (e as Error).message });
-    }
-  },
-
-  deleteTransaction: async (id) => {
-    try {
-      const { error } = await supabase.from('transactions').delete().eq('id', id);
-      if (error) throw error;
-      set(s => ({ transactions: s.transactions.filter(t => t.id !== id), error: null }));
-    } catch (e) {
-      set({ error: (e as Error).message });
-    }
-  },
+  refreshData: () => set({ isLoading: false, error: null }),
 }));
-
-// React hook version that handles auth state subscription
-export function useStoreHydrate() {
-  useEffect(() => {
-    useStore.getState().__hydrate();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (session?.user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-
-        const user: User = {
-          id: session.user.id,
-          email: session.user.email,
-          firstName: profile?.first_name || '',
-          lastName: profile?.last_name || '',
-          role: (profile?.role as 'ADMIN' | 'TREASURER' | 'APPROVER') || 'TREASURER',
-          org: { id: 'org-1', name: 'Église MFE-JC Centrale', type: 'Eglise', accentColor: '#FF6B00' },
-        };
-        useStore.setState({ isAuthenticated: true, user });
-        await useStore.getState().refreshData();
-      } else {
-        useStore.setState({ isAuthenticated: false, user: null });
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-}
 
 export function canActOnTransaction(
   transaction: Transaction | undefined,
