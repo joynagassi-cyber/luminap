@@ -72,11 +72,21 @@ export interface SyncQueueEntry {
 
 // ─── Database access ───────────────────────────────────────────
 
+// Cache a single open promise so concurrent calls during upgrade
+// don't race against each other (causes "version change transaction is running")
+let openPromise: Promise<IDBDatabase> | null = null;
+
 function openDB(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
+  if (openPromise) return openPromise;
+
+  openPromise = new Promise<IDBDatabase>((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
 
-    request.onerror = () => reject(request.error);
+    request.onerror = () => {
+      openPromise = null;
+      reject(request.error);
+    };
+
     request.onsuccess = () => resolve(request.result);
 
     request.onupgradeneeded = (event) => {
@@ -123,6 +133,13 @@ function openDB(): Promise<IDBDatabase> {
       }
     };
   });
+
+  // On success keep the promise cached forever so no new open() races
+  // with the still-committing version change transaction.
+  // On failure clear it so the next call can retry.
+  openPromise.catch(() => { openPromise = null; });
+
+  return openPromise;
 }
 
 async function withDB<T>(fn: (db: IDBDatabase) => Promise<T>): Promise<T> {
