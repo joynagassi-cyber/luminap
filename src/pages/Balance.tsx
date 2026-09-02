@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { formatCurrency, formatDate, exportToCSV, getPeriodRange } from '@/lib/utils';
+import { formatCurrencyCompact, formatDate, exportToCSV, exportToPDF, exportToExcel, getPeriodRange } from '@/lib/utils';
 import { useLocalStore } from '@/store/useLocalStore';
 import { Download } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
+import { PageSkeleton } from '@/components/Skeleton';
 import type { PeriodType } from '@/lib/utils';
 
 export default function Balance() {
@@ -12,10 +13,26 @@ export default function Balance() {
   const [period, setPeriod] = useState<PeriodType>('mois');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [loaded, setLoaded] = useState(false);
 
-  const defaultRange = getPeriodRange(period);
-  if (!startDate) setStartDate(defaultRange.start);
-  if (!endDate) setEndDate(defaultRange.end);
+  // Set initial dates once
+  useEffect(() => {
+    if (!loaded) {
+      const range = getPeriodRange(period);
+      setStartDate(range.start);
+      setEndDate(range.end);
+      setLoaded(true);
+    }
+  }, [loaded, period]);
+
+  if (!startDate || !endDate) {
+    return (
+      <div className="min-h-screen bg-canvas">
+        <PageSkeleton />
+        <BottomNav />
+      </div>
+    );
+  }
 
   const periodTransactions = transactions.filter(
     t => t.date >= startDate && t.date <= endDate
@@ -43,9 +60,9 @@ export default function Balance() {
     }
   }
 
-  const handleExport = () => {
-    exportToCSV(periodTransactions, `bilan-${startDate}-${endDate}`);
-  };
+  const handleExportCSV = () => exportToCSV(periodTransactions, `bilan-${startDate}-${endDate}`);
+  const handleExportPDF = () => exportToPDF(periodTransactions, `bilan-${startDate}-${endDate}`);
+  const handleExportExcel = () => exportToExcel(periodTransactions, `bilan-${startDate}-${endDate}`);
 
   const handlePeriodChange = (p: PeriodType) => {
     setPeriod(p);
@@ -60,9 +77,17 @@ export default function Balance() {
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
           <h1 className="text-xl font-bold text-text-primary">Bilan financier</h1>
-          <button onClick={handleExport} className="flex items-center gap-1 px-3 py-2 rounded-full text-sm" style={{ backgroundColor: '#212121', color: '#B3B3B3' }}>
-            <Download className="w-4 h-4" />Exporter CSV
-          </button>
+          <div className="flex gap-2">
+            <button onClick={handleExportCSV} className="px-3 py-2 rounded-full text-xs" style={{ backgroundColor: '#212121', color: '#B3B3B3' }}>
+              CSV
+            </button>
+            <button onClick={handleExportPDF} className="px-3 py-2 rounded-full text-xs" style={{ backgroundColor: '#212121', color: '#B3B3B3' }}>
+              PDF
+            </button>
+            <button onClick={handleExportExcel} className="px-3 py-2 rounded-full text-xs" style={{ backgroundColor: '#212121', color: '#B3B3B3' }}>
+              Excel
+            </button>
+          </div>
         </div>
 
         {/* Period Selector */}
@@ -88,24 +113,24 @@ export default function Balance() {
 
         {/* Stat Cards */}
         <div className="grid grid-cols-3 gap-3 mb-5">
-          <div className="rounded-lg p-3 text-center" style={{ backgroundColor: '#212121' }}>
+          <div className="rounded-lg p-3 text-center" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
             <p className="text-text-tertiary text-xs mb-1">Entrées</p>
-            <p className="text-base font-bold tabular-nums" style={{ color: '#1DB954' }}>{formatCurrency(totalIncome)}</p>
+            <p className="text-base font-bold tabular-nums" style={{ color: '#1DB954' }}>{formatCurrencyCompact(totalIncome)}</p>
           </div>
-          <div className="rounded-lg p-3 text-center" style={{ backgroundColor: '#212121' }}>
+          <div className="rounded-lg p-3 text-center" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
             <p className="text-text-tertiary text-xs mb-1">Sorties</p>
-            <p className="text-base font-bold tabular-nums" style={{ color: '#E51332' }}>{formatCurrency(totalExpense)}</p>
+            <p className="text-base font-bold tabular-nums" style={{ color: '#E51332' }}>{formatCurrencyCompact(totalExpense)}</p>
           </div>
-          <div className="rounded-lg p-3 text-center" style={{ backgroundColor: '#212121' }}>
+          <div className="rounded-lg p-3 text-center" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
             <p className="text-text-tertiary text-xs mb-1">Résultat</p>
-            <p className="text-base font-bold tabular-nums" style={{ color: netResult >= 0 ? '#1DB954' : '#E51332' }}>{formatCurrency(Math.abs(netResult))}</p>
+            <p className="text-base font-bold tabular-nums" style={{ color: netResult >= 0 ? '#1DB954' : '#E51332' }}>{netResult >= 0 ? '' : '-'}{formatCurrencyCompact(Math.abs(netResult))}</p>
           </div>
         </div>
 
         {/* By Category */}
         <div className="mb-5">
           <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider mb-3">Par catégorie</p>
-          <div className="rounded-lg overflow-hidden" style={{ backgroundColor: '#212121' }}>
+          <div className="rounded-lg overflow-hidden" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
             <div className="flex items-center px-4 py-3 text-xs text-text-tertiary border-b" style={{ borderBottomColor: '#282828' }}>
               <span className="flex-1">Libellé</span>
               <span className="w-24 text-right">Entrées</span>
@@ -115,9 +140,9 @@ export default function Balance() {
               const cat = categories.find(c => c.id === id);
               return (
                 <div key={id} className="flex items-center px-4 py-3 text-sm border-b last:border-0" style={{ borderBottomColor: '#282828' }}>
-                  <span className="flex-1 text-text-primary">{cat?.labelFr || id}</span>
-                  <span className="w-24 text-right tabular-nums" style={{ color: '#1DB954' }}>{formatCurrency(v.income)}</span>
-                  <span className="w-24 text-right tabular-nums font-medium" style={{ color: v.income - v.expense >= 0 ? '#1DB954' : '#E51332' }}>{v.income - v.expense >= 0 ? '+' : ''}{formatCurrency(v.income - v.expense)}</span>
+                  <span className="flex-1 text-text-primary">{cat?.labelFr || id}{cat?.isCustom ? ' ✦' : ''}</span>
+                  <span className="w-24 text-right tabular-nums" style={{ color: '#1DB954' }}>{formatCurrencyCompact(v.income)}</span>
+                  <span className="w-24 text-right tabular-nums font-medium" style={{ color: v.income - v.expense >= 0 ? '#1DB954' : '#E51332' }}>{v.income - v.expense >= 0 ? '+' : ''}{formatCurrencyCompact(v.income - v.expense)}</span>
                 </div>
               );
             })}
@@ -128,19 +153,19 @@ export default function Balance() {
         {byOrgUnit.size > 0 && (
           <div className="mb-5">
             <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider mb-3">Par groupe</p>
-            <div className="rounded-lg overflow-hidden" style={{ backgroundColor: '#212121' }}>
+            <div className="rounded-lg overflow-hidden" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
               <div className="flex items-center px-4 py-3 text-xs text-text-tertiary border-b" style={{ borderBottomColor: '#282828' }}>
                 <span className="flex-1">Nom</span>
                 <span className="w-24 text-right">Entrées</span>
                 <span className="w-24 text-right">Net</span>
-                </div>
-                {Array.from(byOrgUnit.entries()).map(([id, v]) => {
+              </div>
+              {Array.from(byOrgUnit.entries()).map(([id, v]) => {
                 const unit = orgUnits.find(o => o.id === id);
                 return (
                   <button key={id} onClick={() => navigate('/finance')} className="flex items-center px-4 py-3 text-sm border-b last:border-0 w-full text-left" style={{ borderBottomColor: '#282828' }}>
                     <span className="flex-1 text-text-primary">{unit?.name || id}</span>
-                    <span className="w-24 text-right tabular-nums" style={{ color: '#1DB954' }}>{formatCurrency(v.income)}</span>
-                    <span className="w-24 text-right tabular-nums font-medium" style={{ color: v.income - v.expense >= 0 ? '#1DB954' : '#E51332' }}>{v.income - v.expense >= 0 ? '+' : ''}{formatCurrency(v.income - v.expense)}</span>
+                    <span className="w-24 text-right tabular-nums" style={{ color: '#1DB954' }}>{formatCurrencyCompact(v.income)}</span>
+                    <span className="w-24 text-right tabular-nums font-medium" style={{ color: v.income - v.expense >= 0 ? '#1DB954' : '#E51332' }}>{v.income - v.expense >= 0 ? '+' : ''}{formatCurrencyCompact(v.income - v.expense)}</span>
                   </button>
                 );
               })}
@@ -150,7 +175,9 @@ export default function Balance() {
 
         {/* Actions */}
         <div className="flex gap-3 mb-6 pb-20">
-          <button onClick={handleExport} className="flex-1 py-3 rounded-full text-sm font-semibold" style={{ backgroundColor: '#FF6B00', color: '#FFFFFF' }}>Exporter CSV</button>
+          <button onClick={handleExportPDF} className="flex-1 py-3 rounded-full text-sm font-semibold flex items-center justify-center gap-2" style={{ backgroundColor: '#FF6B00', color: '#FFFFFF' }}>
+            <Download className="w-4 h-4" />Exporter PDF
+          </button>
           <button onClick={() => navigate('/finance')} className="flex-1 py-3 rounded-full text-sm font-semibold" style={{ backgroundColor: '#212121', color: '#B3B3B3' }}>Grand livre</button>
         </div>
       </div>

@@ -24,7 +24,9 @@ export function getSyncStatus() {
 
 export function onSyncStatusChange(fn: () => void) {
   listeners.add(fn);
-  return () => listeners.delete(fn);
+  return () => {
+    listeners.delete(fn);
+  };
 }
 
 function notifyListeners() {
@@ -76,6 +78,7 @@ async function syncTransaction(tx: IndexedTransaction): Promise<void> {
 }
 
 async function syncCategory(cat: IndexedCategory): Promise<void> {
+  // Sync custom categories (isCustom=true) and all categories
   const { error } = await supabase
     .from('categories')
     .upsert({
@@ -84,6 +87,7 @@ async function syncCategory(cat: IndexedCategory): Promise<void> {
       label_fr: cat.labelFr,
       type: cat.type,
       org_id: cat.orgId,
+      is_custom: cat.isCustom ?? false,
     });
   if (error) throw error;
   await db.putCategory({ ...cat, syncStatus: 'synced' });
@@ -231,12 +235,14 @@ export function stopBackgroundSync(): void {
 
 // ─── Fetch from Supabase (one-time load) ──────────────────────
 
-export async function fetchFromCloud(): Promise<{
-  transactions: IndexedTransaction[];
-  categories: IndexedCategory[];
-  orgUnits: IndexedOrgUnit[];
-  auditEntries: IndexedAuditEntry[];
-}> {
+export async function fetchFromCloud(): Promise<
+  {
+    transactions: IndexedTransaction[];
+    categories: IndexedCategory[];
+    orgUnits: IndexedOrgUnit[];
+    auditEntries: IndexedAuditEntry[];
+  }
+> {
   const [txRes, catRes, ouRes, auditRes] = await Promise.all([
     supabase.from('transactions').select('*').order('created_at', { ascending: false }),
     supabase.from('categories').select('*').order('id'),
@@ -289,6 +295,7 @@ function mapDbCat(cat: any): IndexedCategory {
     type: cat.type,
     orgId: cat.org_id,
     syncStatus: 'synced',
+    isCustom: cat.is_custom ?? false,
   };
 }
 

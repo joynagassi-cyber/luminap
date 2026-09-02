@@ -1,15 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLocalStore } from '@/store/useLocalStore';
-import { formatCurrency, getPeriodRange } from '@/lib/utils';
+import { formatCurrencyCompact, getPeriodRange } from '@/lib/utils';
 import { ArrowUpRight, ArrowDownRight, BarChart3, BookOpen, PlusCircle, ChevronDown } from 'lucide-react';
 import TransactionCard from '@/components/TransactionCard';
 import BottomNav from '@/components/BottomNav';
 import BottomDrawer from '@/components/BottomDrawer';
+import { PageSkeleton, CardSkeleton } from '@/components/Skeleton';
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { transactions, user } = useLocalStore();
+  const { transactions, categories, orgUnits, isLoading } = useLocalStore();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const { start, end } = getPeriodRange('mois');
@@ -28,6 +29,15 @@ export default function Dashboard() {
   const pendingCount = transactions.filter(t => t.status === 'PENDING').length;
   const draftCount = transactions.filter(t => t.status === 'DRAFT').length;
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-canvas">
+        <PageSkeleton />
+        <BottomNav />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-canvas">
       <div className="max-w-lg mx-auto px-5 pt-6 pb-4">
@@ -38,7 +48,7 @@ export default function Dashboard() {
             <div>
               <p className="text-text-tertiary text-xs">Lumina</p>
               <h1 className="text-sm font-bold text-text-primary">
-                {user?.firstName || 'Utilisateur'}
+                {useLocalStore.getState().user?.firstName || 'Utilisateur'}
               </h1>
             </div>
           </div>
@@ -52,42 +62,48 @@ export default function Dashboard() {
         </div>
 
         {/* Hero Balance Card */}
-        <div className="rounded-xl p-5 mb-5" style={{ backgroundColor: '#212121' }}>
+        <div
+          className="rounded-xl p-5 mb-5"
+          style={{
+            backgroundColor: '#212121',
+            border: '1px solid #282828',
+          }}
+        >
           <p className="text-text-tertiary text-sm mb-1">Solde du mois</p>
           <div className="flex items-baseline gap-2">
             <span
               className="text-4xl font-black tabular-nums"
               style={{ color: netResult >= 0 ? '#1DB954' : '#E51332' }}
             >
-              {netResult >= 0 ? '' : '-'}{formatCurrency(Math.abs(netResult))}
+              {netResult >= 0 ? '' : '-'}{formatCurrencyCompact(Math.abs(netResult))}
             </span>
             <span className="text-text-tertiary text-sm">FCFA</span>
           </div>
           <div className="flex items-center gap-4 mt-4">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#1DB954' }} />
-              <span className="text-text-tertiary text-sm">+{formatCurrency(totalIncome)} entrées</span>
+              <span className="text-text-tertiary text-sm">+{formatCurrencyCompact(totalIncome)}</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#E51332' }} />
-              <span className="text-text-tertiary text-sm">-{formatCurrency(totalExpense)} sorties</span>
+              <span className="text-text-tertiary text-sm">-{formatCurrencyCompact(totalExpense)}</span>
             </div>
           </div>
         </div>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-3 gap-3 mb-5">
-          <div className="rounded-lg p-3 text-center" style={{ backgroundColor: '#212121' }}>
+          <div className="rounded-lg p-3 text-center" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
             <p className="text-text-tertiary text-xs mb-1">Entrées</p>
-            <p className="text-base font-bold tabular-nums" style={{ color: '#1DB954' }}>{formatCurrency(totalIncome)}</p>
+            <p className="text-base font-bold tabular-nums" style={{ color: '#1DB954' }}>{formatCurrencyCompact(totalIncome)}</p>
           </div>
-          <div className="rounded-lg p-3 text-center" style={{ backgroundColor: '#212121' }}>
+          <div className="rounded-lg p-3 text-center" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
             <p className="text-text-tertiary text-xs mb-1">Sorties</p>
-            <p className="text-base font-bold tabular-nums" style={{ color: '#E51332' }}>{formatCurrency(totalExpense)}</p>
+            <p className="text-base font-bold tabular-nums" style={{ color: '#E51332' }}>{formatCurrencyCompact(totalExpense)}</p>
           </div>
-          <div className="rounded-lg p-3 text-center" style={{ backgroundColor: '#212121' }}>
+          <div className="rounded-lg p-3 text-center" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
             <p className="text-text-tertiary text-xs mb-1">Net</p>
-            <p className="text-base font-bold tabular-nums" style={{ color: netResult >= 0 ? '#1DB954' : '#E51332' }}>{formatCurrency(Math.abs(netResult))}</p>
+            <p className="text-base font-bold tabular-nums" style={{ color: netResult >= 0 ? '#1DB954' : '#E51332' }}>{formatCurrencyCompact(Math.abs(netResult))}</p>
           </div>
         </div>
 
@@ -111,7 +127,7 @@ export default function Dashboard() {
         <div className="mb-5">
           <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider mb-3">Actions rapides</p>
           <div className="grid grid-cols-2 gap-3">
-            <button onClick={() => navigate('/transaction/new')} className="flex items-center gap-3 p-4 rounded-lg active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121' }}>
+            <button onClick={() => navigate('/transaction/new')} className="flex items-center gap-3 p-4 rounded-lg active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
               <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#1DB95420' }}>
                 <ArrowUpRight className="w-5 h-5" style={{ color: '#1DB954' }} />
               </div>
@@ -120,7 +136,7 @@ export default function Dashboard() {
                 <p className="text-text-tertiary text-xs mt-0.5">Ajouter un revenu</p>
               </div>
             </button>
-            <button onClick={() => navigate('/transaction/new')} className="flex items-center gap-3 p-4 rounded-lg active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121' }}>
+            <button onClick={() => navigate('/transaction/new')} className="flex items-center gap-3 p-4 rounded-lg active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
               <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#E5133220' }}>
                 <ArrowDownRight className="w-5 h-5" style={{ color: '#E51332' }} />
               </div>
@@ -129,7 +145,7 @@ export default function Dashboard() {
                 <p className="text-text-tertiary text-xs mt-0.5">Ajouter une dépense</p>
               </div>
             </button>
-            <button onClick={() => navigate('/history')} className="flex items-center gap-3 p-4 rounded-lg active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121' }}>
+            <button onClick={() => navigate('/history')} className="flex items-center gap-3 p-4 rounded-lg active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
               <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#FF6B0020' }}>
                 <BarChart3 className="w-5 h-5" style={{ color: '#FF6B00' }} />
               </div>
@@ -138,7 +154,7 @@ export default function Dashboard() {
                 <p className="text-text-tertiary text-xs mt-0.5">Courbes & graphiques</p>
               </div>
             </button>
-            <button onClick={() => navigate('/finance')} className="flex items-center gap-3 p-4 rounded-lg active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121' }}>
+            <button onClick={() => navigate('/finance')} className="flex items-center gap-3 p-4 rounded-lg active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
               <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#FF6B0020' }}>
                 <BookOpen className="w-5 h-5" style={{ color: '#FF6B00' }} />
               </div>
@@ -157,7 +173,7 @@ export default function Dashboard() {
         </div>
         <div className="space-y-2 mb-6 pb-20">
           {recentTransactions.length === 0 ? (
-            <div className="text-center py-10 rounded-lg" style={{ backgroundColor: '#212121' }}>
+            <div className="text-center py-10 rounded-lg" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
               <PlusCircle className="w-8 h-8 mx-auto mb-3 text-text-tertiary" />
               <p className="text-text-tertiary text-sm">Aucune transaction</p>
               <button onClick={() => navigate('/transaction/new')} className="mt-3 text-sm font-medium" style={{ color: '#FF6B00' }}>

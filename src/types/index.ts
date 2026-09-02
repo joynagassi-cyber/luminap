@@ -62,6 +62,7 @@ export type Category = {
   labelFr: string;
   type: TransactionType;
   orgId: string;
+  isCustom?: boolean;
 };
 
 export type OrgUnit = {

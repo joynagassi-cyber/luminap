@@ -2,30 +2,36 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Search, Filter, X, TrendingUp, TrendingDown,
-  BarChart3, PieChart, ArrowDownLeft, ArrowUpRight, Calendar,
+  BarChart3, PieChart, ArrowDownLeft, ArrowUpRight, Calendar, Download,
 } from 'lucide-react';
-import { formatCurrency, formatDate, getStatusColor, getStatusLabel } from '@/lib/utils';
+import { formatCurrency, formatCurrencyCompact, formatDate, getStatusColor, getStatusLabel, exportToCSV, exportToPDF, exportToExcel } from '@/lib/utils';
 import { useLocalStore } from '@/store/useLocalStore';
 import type { Transaction } from '@/types';
 import BottomNav from '@/components/BottomNav';
+import { PageSkeleton } from '@/components/Skeleton';
 import type { PeriodType } from '@/lib/utils';
 
 type StatusFilter = 'ALL' | 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED';
 type TypeFilter = 'ALL' | 'INCOME' | 'EXPENSE';
 
-interface FilteredTransaction extends Transaction {
-  _dateStr: string;
-}
-
 export default function Finance() {
   const navigate = useNavigate();
-  const { transactions, categories } = useLocalStore();
+  const { transactions, categories, isLoading } = useLocalStore();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('ALL');
   const [categoryId, setCategoryId] = useState<string>('ALL');
   const [showFilters, setShowFilters] = useState(false);
   const [period, setPeriod] = useState<PeriodType>('mois');
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-canvas">
+        <PageSkeleton />
+        <BottomNav />
+      </div>
+    );
+  }
 
   // Build filtered list
   const filtered = transactions
@@ -47,7 +53,17 @@ export default function Finance() {
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   // Chart data for period
-  const chartData = getChartData(transactions, period, categories);
+  const chartData = getChartData(transactions, period);
+
+  const handleExport = () => {
+    exportToCSV(filtered, `grand-livre-${Date.now()}`);
+  };
+  const handleExportPDF = () => {
+    exportToPDF(filtered, `grand-livre-${Date.now()}`);
+  };
+  const handleExportExcel = () => {
+    exportToExcel(filtered, `grand-livre-${Date.now()}`);
+  };
 
   return (
     <div className="min-h-screen bg-canvas">
@@ -59,6 +75,9 @@ export default function Finance() {
             <p className="text-text-tertiary text-xs mt-0.5">{filtered.length} transaction{filtered.length > 1 ? 's' : ''}</p>
           </div>
           <div className="flex gap-2">
+            <button onClick={handleExport} className="px-3 py-2 rounded-full text-xs" style={{ backgroundColor: '#212121', color: '#B3B3B3' }}>CSV</button>
+            <button onClick={handleExportPDF} className="px-3 py-2 rounded-full text-xs" style={{ backgroundColor: '#212121', color: '#B3B3B3' }}>PDF</button>
+            <button onClick={handleExportExcel} className="px-3 py-2 rounded-full text-xs" style={{ backgroundColor: '#212121', color: '#B3B3B3' }}>Excel</button>
             <button
               onClick={() => navigate('/history')}
               className="flex items-center gap-1 px-3 py-2 rounded-full text-sm"
@@ -104,7 +123,7 @@ export default function Finance() {
 
         {/* Filter Panels */}
         {showFilters && (
-          <div className="space-y-3 mb-5 p-4 rounded-xl" style={{ backgroundColor: '#212121' }}>
+          <div className="space-y-3 mb-5 p-4 rounded-xl" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
             {/* Status */}
             <div>
               <p className="text-text-tertiary text-xs mb-2">État</p>
@@ -145,7 +164,7 @@ export default function Finance() {
               </div>
             </div>
 
-            {/* Category */}
+            {/* Category — includes custom */}
             <div>
               <p className="text-text-tertiary text-xs mb-2">Catégorie</p>
               <div className="flex flex-wrap gap-2">
@@ -169,7 +188,7 @@ export default function Finance() {
                       color: categoryId === cat.id ? '#FFFFFF' : '#808080',
                     }}
                   >
-                    {cat.labelFr}
+                    {cat.labelFr}{cat.isCustom ? ' ✦' : ''}
                   </button>
                 ))}
               </div>
@@ -179,31 +198,31 @@ export default function Finance() {
 
         {/* Quick Stats */}
         <div className="grid grid-cols-3 gap-3 mb-5">
-          <div className="rounded-xl p-3 text-center" style={{ backgroundColor: '#212121' }}>
+          <div className="rounded-xl p-3 text-center" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
             <div className="flex items-center justify-center gap-1 mb-1">
               <ArrowUpRight className="w-3 h-3" style={{ color: '#1DB954' }} />
               <p className="text-text-tertiary text-xs">Entrées</p>
             </div>
             <p className="text-base font-bold tabular-nums" style={{ color: '#1DB954' }}>
-              {formatCurrency(filtered.filter(t => t.type === 'INCOME').reduce((s, t) => s + t.amount, 0))}
+              {formatCurrencyCompact(filtered.filter(t => t.type === 'INCOME').reduce((s, t) => s + t.amount, 0))}
             </p>
           </div>
-          <div className="rounded-xl p-3 text-center" style={{ backgroundColor: '#212121' }}>
+          <div className="rounded-xl p-3 text-center" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
             <div className="flex items-center justify-center gap-1 mb-1">
               <ArrowDownLeft className="w-3 h-3" style={{ color: '#E51332' }} />
               <p className="text-text-tertiary text-xs">Sorties</p>
             </div>
             <p className="text-base font-bold tabular-nums" style={{ color: '#E51332' }}>
-              {formatCurrency(filtered.filter(t => t.type === 'EXPENSE').reduce((s, t) => s + t.amount, 0))}
+              {formatCurrencyCompact(filtered.filter(t => t.type === 'EXPENSE').reduce((s, t) => s + t.amount, 0))}
             </p>
           </div>
-          <div className="rounded-xl p-3 text-center" style={{ backgroundColor: '#212121' }}>
+          <div className="rounded-xl p-3 text-center" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
             <div className="flex items-center justify-center gap-1 mb-1">
               <TrendingUp className="w-3 h-3" style={{ color: '#FF6B00' }} />
               <p className="text-text-tertiary text-xs">Net</p>
             </div>
             <p className="text-base font-bold tabular-nums" style={{ color: '#FF6B00' }}>
-              {formatCurrency(
+              {formatCurrencyCompact(
                 filtered.filter(t => t.type === 'INCOME').reduce((s, t) => s + t.amount, 0) -
                 filtered.filter(t => t.type === 'EXPENSE').reduce((s, t) => s + t.amount, 0)
               )}
@@ -226,7 +245,7 @@ export default function Finance() {
         </div>
 
         {/* Mini Chart */}
-        <div className="rounded-xl p-4 mb-5" style={{ backgroundColor: '#212121' }}>
+        <div className="rounded-xl p-4 mb-5" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
           <div className="flex items-center gap-2 mb-3">
             <BarChart3 className="w-4 h-4" style={{ color: '#FF6B00' }} />
             <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider">Aperçu</p>
@@ -237,7 +256,7 @@ export default function Finance() {
         {/* Transactions List */}
         <div className="space-y-2 mb-6 pb-20">
           {filtered.length === 0 ? (
-            <div className="text-center py-10 rounded-xl" style={{ backgroundColor: '#212121' }}>
+            <div className="text-center py-10 rounded-xl" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
               <Search className="w-8 h-8 mx-auto mb-3 text-text-tertiary" />
               <p className="text-text-tertiary text-sm">Aucun résultat</p>
               <p className="text-text-tertiary text-xs mt-1">Essayez de modifier vos filtres</p>
@@ -261,7 +280,7 @@ function TransactionRow({ tx, onClick }: { tx: Transaction; onClick: () => void 
     <button
       onClick={onClick}
       className="w-full flex items-center gap-3 p-4 rounded-xl text-left active:scale-95 transition-transform"
-      style={{ backgroundColor: '#212121' }}
+      style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
     >
       <div
         className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
@@ -333,7 +352,7 @@ function ChartPreview({ data, period }: { data: { label: string; income: number;
   );
 }
 
-function getChartData(transactions: Transaction[], period: PeriodType, categories: { id: string; labelFr: string; type: string }[]) {
+function getChartData(transactions: Transaction[], period: PeriodType) {
   const now = new Date();
   const data: { label: string; income: number; expense: number }[] = [];
 

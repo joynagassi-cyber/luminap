@@ -15,6 +15,27 @@ export function formatCurrency(amountCents: number): string {
   }).format(units);
 }
 
+/** Format like 2M, 300K, 15K */
+export function formatCurrencyCompact(amountCents: number): string {
+  const units = Math.abs(amountCents) / 100;
+  if (units >= 1_000_000) {
+    const val = units / 1_000_000;
+    return `${val % 1 === 0 ? val.toFixed(0) : val.toFixed(1)}M`;
+  }
+  if (units >= 100_000) {
+    const val = Math.round(units / 1000) / 10;
+    return `${val % 1 === 0 ? val.toFixed(0) : val.toFixed(1)}K`;
+  }
+  if (units >= 1000) {
+    return `${Math.round(units / 100) / 10}K`;
+  }
+  return new Intl.NumberFormat('fr-FR', {
+    style: 'decimal',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(units);
+}
+
 export function formatCurrencySigned(amountCents: number): string {
   const sign = amountCents >= 0 ? '+' : '';
   return sign + formatCurrency(amountCents);
@@ -85,6 +106,91 @@ export function exportToCSV(transactions: any[], filename: string) {
   a.download = `${filename}.csv`;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+/** Export transactions to PDF using jsPDF */
+export function exportToPDF(transactions: any[], filename: string): void {
+  import('jspdf').then(({ jsPDF }) => {
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 15;
+    const contentWidth = pageWidth - margin * 2;
+    let y = 20;
+
+    doc.setFontSize(18);
+    doc.setTextColor(0xFF, 0x6B, 0x00);
+    doc.text('Lumina — Export Transaction', pageWidth / 2, y, { align: 'center' });
+    y += 10;
+
+    doc.setFontSize(10);
+    doc.setTextColor(0x80, 0x80, 0x80);
+    doc.text(`Généré le ${formatDateShort(new Date().toISOString())}`, pageWidth / 2, y, { align: 'center' });
+    y += 10;
+
+    doc.setFontSize(9);
+    doc.setTextColor(0x21, 0x21, 0x21);
+    const cols = [
+      { label: 'Date', x: margin },
+      { label: 'Type', x: margin + 28 },
+      { label: 'Montant', x: margin + 46 },
+      { label: 'Description', x: margin + 74 },
+      { label: 'Catégorie', x: margin + 124 },
+      { label: 'Statut', x: margin + 154 },
+    ];
+    cols.forEach(c => doc.text(c.label, c.x, y));
+    y += 2;
+    doc.setDrawColor(0xE0, 0xE0, 0xE0);
+    doc.line(margin, y, margin + contentWidth, y);
+    y += 4;
+
+    doc.setFontSize(8);
+    transactions.slice(0, 80).forEach((t) => {
+      if (y > 270) {
+        doc.addPage();
+        y = 20;
+        cols.forEach(c => doc.text(c.label, c.x, y));
+        y += 2;
+        doc.line(margin, y, margin + contentWidth, y);
+        y += 4;
+      }
+      const date = formatDateShort(t.date);
+      const type = t.type === 'INCOME' ? 'Entrée' : 'Sortie';
+      const amount = formatCurrency(t.amount);
+      const cat = t.category?.labelFr || '';
+      const status = getStatusLabel(t.status);
+      doc.setTextColor(0x33, 0x33, 0x33);
+      doc.text(date, margin, y);
+      doc.text(type, margin + 28, y);
+      doc.text(amount, margin + 46, y);
+      doc.text(t.description || '', margin + 74, y);
+      doc.text(cat, margin + 124, y);
+      doc.text(status, margin + 154, y);
+      y += 5;
+    });
+
+    doc.save(`${filename}.pdf`);
+  });
+}
+
+/** Export transactions to Excel using xlsx */
+export function exportToExcel(transactions: any[], filename: string): void {
+  import('xlsx').then((XLSX) => {
+    const wsData = [['Date', 'Type', 'Montant (FCFA)', 'Description', 'Catégorie', 'Statut']];
+    for (const t of transactions) {
+      wsData.push([
+        t.date,
+        t.type === 'INCOME' ? 'Entrée' : 'Sortie',
+        t.amount / 100,
+        t.description || '',
+        t.category?.labelFr || '',
+        getStatusLabel(t.status),
+      ]);
+    }
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Transactions');
+    XLSX.writeFile(wb, `${filename}.xlsx`);
+  });
 }
 
 export function getTodayStr(): string {

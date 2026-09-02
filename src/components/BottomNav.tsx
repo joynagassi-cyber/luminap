@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, BookOpen, Plus, BarChart3, Settings, MoreHorizontal } from 'lucide-react';
+import { Home, BookOpen, BarChart3, Settings, MoreHorizontal } from 'lucide-react';
 import { useState } from 'react';
 import BottomDrawer from './BottomDrawer';
 
@@ -12,7 +12,6 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { path: '/', label: 'Accueil', icon: Home },
   { path: '/finance', label: 'Finance', icon: BookOpen },
-  { path: '/transaction/new', label: 'Ajouter', icon: Plus },
   { path: '/history', label: 'Historique', icon: BarChart3 },
   { path: '/settings', label: 'Réglages', icon: Settings },
 ];
@@ -25,7 +24,7 @@ export default function BottomNav() {
   return (
     <>
       <nav
-        className="fixed bottom-0 left-0 right-0 flex items-center justify-around z-50"
+        className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around"
         style={{
           backgroundColor: '#212121',
           borderTop: '1px solid #282828',
@@ -35,7 +34,10 @@ export default function BottomNav() {
       >
         {NAV_ITEMS.map((item) => {
           const isActive = location.pathname === item.path ||
-            (item.path === '/transaction/new' && location.pathname.startsWith('/transaction/'));
+            (item.path === '/' && location.pathname === '/') ||
+            (item.path === '/finance' && location.pathname === '/finance') ||
+            (item.path === '/history' && location.pathname === '/history') ||
+            (item.path === '/settings' && location.pathname === '/settings');
           const Icon = item.icon;
           return (
             <button
@@ -67,6 +69,25 @@ export default function BottomNav() {
           <span className="text-xs font-medium text-text-tertiary">Plus</span>
         </button>
       </nav>
+
+      {/* Floating "+" button */}
+      <button
+        onClick={() => navigate('/transaction/new')}
+        className="fixed z-50 w-14 h-14 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform hover:scale-105"
+        style={{
+          bottom: 'calc(64px + env(safe-area-inset-bottom) + 16px)',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          backgroundColor: '#FF6B00',
+          color: '#FFFFFF',
+        }}
+        aria-label="Nouvelle transaction"
+      >
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+      </button>
 
       <BottomDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
     </>

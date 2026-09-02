@@ -4,7 +4,7 @@
  */
 
 const DB_NAME = 'lumina-db';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 // ─── Types ─────────────────────────────────────────────────────
 
@@ -37,6 +37,7 @@ export interface IndexedCategory {
   type: 'INCOME' | 'EXPENSE';
   orgId: string;
   syncStatus: 'pending' | 'synced';
+  isCustom?: boolean;
 }
 
 export interface IndexedOrgUnit {
@@ -92,6 +93,11 @@ function openDB(): Promise<IDBDatabase> {
       // Categories store
       if (!db.objectStoreNames.contains('categories')) {
         db.createObjectStore('categories', { keyPath: 'id' });
+      } else if (Number(event.oldVersion) < 3) {
+        const store = db.transaction('categories', 'readwrite').objectStore('categories');
+        if (!store.indexNames.contains('isCustom')) {
+          store.createIndex('isCustom', 'isCustom', { unique: false });
+        }
       }
 
       // Org units store
@@ -192,6 +198,18 @@ export async function putCategory(cat: IndexedCategory): Promise<void> {
       const transaction = db.transaction('categories', 'readwrite');
       const store = transaction.objectStore('categories');
       const req = store.put(cat);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  });
+}
+
+export async function deleteCategory(id: string): Promise<void> {
+  return withDB(async (db) => {
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction('categories', 'readwrite');
+      const store = transaction.objectStore('categories');
+      const req = store.delete(id);
       req.onsuccess = () => resolve();
       req.onerror = () => reject(req.error);
     });

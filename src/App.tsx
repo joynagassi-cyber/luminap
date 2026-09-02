@@ -14,6 +14,7 @@ import Balance from "./pages/Balance";
 import Groups from "./pages/Groups";
 import Settings from "./pages/Settings";
 import History from "./pages/History";
+import Help from "./pages/Help";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 
@@ -33,6 +34,7 @@ function AppRoutes() {
         <Route path="/balance" element={<Balance />} />
         <Route path="/groups" element={<Groups />} />
         <Route path="/history" element={<History />} />
+        <Route path="/help" element={<Help />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="*" element={<NotFound />} />
       </Routes>

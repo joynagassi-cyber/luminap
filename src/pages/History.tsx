@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   TrendingUp, ArrowDownLeft, ArrowUpRight,
@@ -9,10 +9,11 @@ import {
   Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, Area, AreaChart,
 } from 'recharts';
-import { formatCurrency, formatDate, getPeriodRange } from '@/lib/utils';
+import { formatCurrencyCompact, formatDate, exportToCSV, exportToPDF, exportToExcel, getPeriodRange } from '@/lib/utils';
 import { useLocalStore } from '@/store/useLocalStore';
 import BottomNav from '@/components/BottomNav';
 import BottomDrawer from '@/components/BottomDrawer';
+import { PageSkeleton } from '@/components/Skeleton';
 import type { Transaction } from '@/types';
 import type { PeriodType } from '@/lib/utils';
 
@@ -25,10 +26,26 @@ export default function History() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [loaded, setLoaded] = useState(false);
 
-  const defaultRange = getPeriodRange(period);
-  if (!startDate) setStartDate(defaultRange.start);
-  if (!endDate) setEndDate(defaultRange.end);
+  // Set initial dates once
+  useEffect(() => {
+    if (!loaded) {
+      const range = getPeriodRange(period);
+      setStartDate(range.start);
+      setEndDate(range.end);
+      setLoaded(true);
+    }
+  }, [loaded, period]);
+
+  if (!startDate || !endDate) {
+    return (
+      <div className="min-h-screen bg-canvas">
+        <PageSkeleton />
+        <BottomNav />
+      </div>
+    );
+  }
 
   const handlePeriodChange = (p: PeriodType) => {
     setPeriod(p);
@@ -41,12 +58,22 @@ export default function History() {
 
   const lineData = getLineChartData(approved, period);
   const barData = getBarChartData(approved, period);
-  const pieData = getPieData(approved);
-  const orgPieData = getOrgPieData(approved);
+  const pieData = getPieData(approved, categories);
+  const orgPieData = getOrgPieData(approved, orgUnits);
 
   const totalIncome = approved.filter(t => t.type === 'INCOME').reduce((s, t) => s + t.amount, 0);
   const totalExpense = approved.filter(t => t.type === 'EXPENSE').reduce((s, t) => s + t.amount, 0);
   const netResult = totalIncome - totalExpense;
+
+  const handleExport = () => {
+    exportToCSV(approved, `historique-${startDate}-${endDate}`);
+  };
+  const handleExportPDF = () => {
+    exportToPDF(approved, `historique-${startDate}-${endDate}`);
+  };
+  const handleExportExcel = () => {
+    exportToExcel(approved, `historique-${startDate}-${endDate}`);
+  };
 
   return (
     <div className="min-h-screen bg-canvas">
@@ -62,13 +89,17 @@ export default function History() {
               <p className="text-text-tertiary text-xs">{approved.length} transaction{approved.length > 1 ? 's' : ''}</p>
             </div>
           </div>
-          <button
-            onClick={() => setDrawerOpen(true)}
-            className="px-3 py-2 rounded-full text-sm"
-            style={{ backgroundColor: '#212121', color: '#B3B3B3' }}
-          >
-            Plus
-          </button>
+          <div className="flex gap-2">
+            <button onClick={handleExport} className="px-3 py-2 rounded-full text-xs" style={{ backgroundColor: '#212121', color: '#B3B3B3' }}>
+              CSV
+            </button>
+            <button onClick={handleExportPDF} className="px-3 py-2 rounded-full text-xs" style={{ backgroundColor: '#212121', color: '#B3B3B3' }}>
+              PDF
+            </button>
+            <button onClick={handleExportExcel} className="px-3 py-2 rounded-full text-xs" style={{ backgroundColor: '#212121', color: '#B3B3B3' }}>
+              Excel
+            </button>
+          </div>
         </div>
 
         {/* Period Selector */}
@@ -103,33 +134,33 @@ export default function History() {
 
         {/* Summary Cards */}
         <div className="grid grid-cols-3 gap-3 mb-5">
-          <div className="rounded-xl p-4 text-center" style={{ backgroundColor: '#212121' }}>
+          <div className="rounded-xl p-4 text-center" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
             <div className="flex items-center justify-center gap-1 mb-2">
               <ArrowUpRight className="w-4 h-4" style={{ color: '#1DB954' }} />
               <p className="text-text-tertiary text-xs">Entrées</p>
             </div>
-            <p className="text-lg font-black tabular-nums" style={{ color: '#1DB954' }}>{formatCurrency(totalIncome)}</p>
+            <p className="text-lg font-black tabular-nums" style={{ color: '#1DB954' }}>{formatCurrencyCompact(totalIncome)}</p>
           </div>
-          <div className="rounded-xl p-4 text-center" style={{ backgroundColor: '#212121' }}>
+          <div className="rounded-xl p-4 text-center" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
             <div className="flex items-center justify-center gap-1 mb-2">
               <ArrowDownLeft className="w-4 h-4" style={{ color: '#E51332' }} />
               <p className="text-text-tertiary text-xs">Sorties</p>
             </div>
-            <p className="text-lg font-black tabular-nums" style={{ color: '#E51332' }}>{formatCurrency(totalExpense)}</p>
+            <p className="text-lg font-black tabular-nums" style={{ color: '#E51332' }}>{formatCurrencyCompact(totalExpense)}</p>
           </div>
-          <div className="rounded-xl p-4 text-center" style={{ backgroundColor: '#212121' }}>
+          <div className="rounded-xl p-4 text-center" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
             <div className="flex items-center justify-center gap-1 mb-2">
               <TrendingUp className="w-4 h-4" style={{ color: '#FF6B00' }} />
               <p className="text-text-tertiary text-xs">Résultat</p>
             </div>
             <p className="text-lg font-black tabular-nums" style={{ color: netResult >= 0 ? '#1DB954' : '#E51332' }}>
-              {netResult >= 0 ? '' : '-'}{formatCurrency(Math.abs(netResult))}
+              {netResult >= 0 ? '' : '-'}{formatCurrencyCompact(Math.abs(netResult))}
             </p>
           </div>
         </div>
 
         {/* Bezier Curve Chart */}
-        <div className="rounded-xl p-4 mb-5" style={{ backgroundColor: '#212121' }}>
+        <div className="rounded-xl p-4 mb-5" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
           <div className="flex items-center gap-2 mb-4">
             <TrendingUp className="w-4 h-4" style={{ color: '#FF6B00' }} />
             <p className="text-text-primary text-sm font-semibold">Évolution du solde</p>
@@ -148,11 +179,11 @@ export default function History() {
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#282828" />
               <XAxis dataKey="label" tick={{ fill: '#808080', fontSize: 11 }} />
-              <YAxis tick={{ fill: '#808080', fontSize: 10 }} tickFormatter={(v) => `${(v/10000).toFixed(0)}k`} />
+              <YAxis tick={{ fill: '#808080', fontSize: 10 }} tickFormatter={(v) => `${(v/1000).toFixed(0)}k`} />
               <Tooltip
                 contentStyle={{ backgroundColor: '#212121', border: '1px solid #282828', borderRadius: '8px' }}
                 labelStyle={{ color: '#B3B3B3' }}
-                formatter={(value: number) => [formatCurrency(value), '']}
+                formatter={(value: number) => [formatCurrencyCompact(value), '']}
               />
               <Area type="monotone" dataKey="income" name="Entrées" stroke="#1DB954" fill="url(#colorIncome)" strokeWidth={2} />
               <Area type="monotone" dataKey="expense" name="Sorties" stroke="#E51332" fill="url(#colorExpense)" strokeWidth={2} />
@@ -162,7 +193,7 @@ export default function History() {
         </div>
 
         {/* Bar Chart */}
-        <div className="rounded-xl p-4 mb-5" style={{ backgroundColor: '#212121' }}>
+        <div className="rounded-xl p-4 mb-5" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
           <div className="flex items-center gap-2 mb-4">
             <BarChart3 className="w-4 h-4" style={{ color: '#FF6B00' }} />
             <p className="text-text-primary text-sm font-semibold">Revenus vs Dépenses</p>
@@ -171,11 +202,11 @@ export default function History() {
             <BarChart data={barData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#282828" />
               <XAxis dataKey="label" tick={{ fill: '#808080', fontSize: 11 }} />
-              <YAxis tick={{ fill: '#808080', fontSize: 10 }} tickFormatter={(v) => `${(v/10000).toFixed(0)}k`} />
+              <YAxis tick={{ fill: '#808080', fontSize: 10 }} tickFormatter={(v) => `${(v/1000).toFixed(0)}k`} />
               <Tooltip
                 contentStyle={{ backgroundColor: '#212121', border: '1px solid #282828', borderRadius: '8px' }}
                 labelStyle={{ color: '#B3B3B3' }}
-                formatter={(value: number) => [formatCurrency(value), '']}
+                formatter={(value: number) => [formatCurrencyCompact(value), '']}
               />
               <Bar dataKey="income" name="Entrées" fill="#1DB954" radius={[4, 4, 0, 0]} />
               <Bar dataKey="expense" name="Sorties" fill="#E51332" radius={[4, 4, 0, 0]} />
@@ -186,7 +217,7 @@ export default function History() {
         {/* Pie Charts Row */}
         <div className="grid grid-cols-2 gap-3 mb-5">
           {/* By Category */}
-          <div className="rounded-xl p-4" style={{ backgroundColor: '#212121' }}>
+          <div className="rounded-xl p-4" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
             <div className="flex items-center gap-2 mb-3">
               <PieChart className="w-4 h-4" style={{ color: '#FF6B00' }} />
               <p className="text-text-primary text-xs font-semibold">Par catégorie</p>
@@ -208,7 +239,7 @@ export default function History() {
                 </Pie>
                 <Tooltip
                   contentStyle={{ backgroundColor: '#212121', border: '1px solid #282828', borderRadius: '8px', fontSize: '11px' }}
-                  formatter={(value: number) => formatCurrency(value)}
+                  formatter={(value: number) => formatCurrencyCompact(value)}
                 />
               </RePieChart>
             </ResponsiveContainer>
@@ -223,7 +254,7 @@ export default function History() {
           </div>
 
           {/* By Org Unit */}
-          <div className="rounded-xl p-4" style={{ backgroundColor: '#212121' }}>
+          <div className="rounded-xl p-4" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
             <div className="flex items-center gap-2 mb-3">
               <BarChart3 className="w-4 h-4" style={{ color: '#FF6B00' }} />
               <p className="text-text-primary text-xs font-semibold">Par groupe</p>
@@ -245,7 +276,7 @@ export default function History() {
                 </Pie>
                 <Tooltip
                   contentStyle={{ backgroundColor: '#212121', border: '1px solid #282828', borderRadius: '8px', fontSize: '11px' }}
-                  formatter={(value: number) => formatCurrency(value)}
+                  formatter={(value: number) => formatCurrencyCompact(value)}
                 />
               </RePieChart>
             </ResponsiveContainer>
@@ -261,7 +292,7 @@ export default function History() {
         </div>
 
         {/* Line Chart — Bezier style */}
-        <div className="rounded-xl p-4 mb-5" style={{ backgroundColor: '#212121' }}>
+        <div className="rounded-xl p-4 mb-5" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
           <div className="flex items-center gap-2 mb-4">
             <TrendingUp className="w-4 h-4" style={{ color: '#FF6B00' }} />
             <p className="text-text-primary text-sm font-semibold">Tendance du solde (Bezier)</p>
@@ -270,39 +301,15 @@ export default function History() {
             <LineChart data={lineData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#282828" />
               <XAxis dataKey="label" tick={{ fill: '#808080', fontSize: 11 }} />
-              <YAxis tick={{ fill: '#808080', fontSize: 10 }} tickFormatter={(v) => `${(v/10000).toFixed(0)}k`} />
+              <YAxis tick={{ fill: '#808080', fontSize: 10 }} tickFormatter={(v) => `${(v/1000).toFixed(0)}k`} />
               <Tooltip
                 contentStyle={{ backgroundColor: '#212121', border: '1px solid #282828', borderRadius: '8px' }}
                 labelStyle={{ color: '#B3B3B3' }}
-                formatter={(value: number) => [formatCurrency(value), '']}
+                formatter={(value: number) => [formatCurrencyCompact(value), '']}
               />
-              <Line
-                type="monotone"
-                dataKey="net"
-                name="Solde"
-                stroke="#FF6B00"
-                strokeWidth={3}
-                dot={{ fill: '#FF6B00', r: 4 }}
-                activeDot={{ r: 6 }}
-              />
-              <Line
-                type="monotone"
-                dataKey="income"
-                name="Entrées"
-                stroke="#1DB954"
-                strokeWidth={2}
-                dot={{ fill: '#1DB954', r: 3 }}
-                strokeDasharray="5 3"
-              />
-              <Line
-                type="monotone"
-                dataKey="expense"
-                name="Sorties"
-                stroke="#E51332"
-                strokeWidth={2}
-                dot={{ fill: '#E51332', r: 3 }}
-                strokeDasharray="5 3"
-              />
+              <Line type="monotone" dataKey="net" name="Solde" stroke="#FF6B00" strokeWidth={3} dot={{ fill: '#FF6B00', r: 4 }} activeDot={{ r: 6 }} />
+              <Line type="monotone" dataKey="income" name="Entrées" stroke="#1DB954" strokeWidth={2} dot={{ fill: '#1DB954', r: 3 }} strokeDasharray="5 3" />
+              <Line type="monotone" dataKey="expense" name="Sorties" stroke="#E51332" strokeWidth={2} dot={{ fill: '#E51332', r: 3 }} strokeDasharray="5 3" />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -377,7 +384,7 @@ function getBarChartData(transactions: Transaction[], period: PeriodType) {
   return getLineChartData(transactions, period).map(d => ({ label: d.label, income: d.income, expense: d.expense }));
 }
 
-function getPieData(transactions: Transaction[]) {
+function getPieData(transactions: Transaction[], categories: { id: string; labelFr: string; isCustom?: boolean }[]) {
   const map = new Map<string, number>();
   for (const t of transactions) {
     const existing = map.get(t.categoryId) || 0;
@@ -385,13 +392,13 @@ function getPieData(transactions: Transaction[]) {
   }
   return Array.from(map.entries())
     .map(([id, value]) => {
-      const cat = transactions.find(t => t.categoryId === id)?.category;
+      const cat = categories.find(c => c.id === id);
       return { name: cat?.labelFr || id, value };
     })
     .sort((a, b) => b.value - a.value);
 }
 
-function getOrgPieData(transactions: Transaction[]) {
+function getOrgPieData(transactions: Transaction[], orgUnits: { id: string; name: string }[]) {
   const map = new Map<string, number>();
   for (const t of transactions) {
     if (!t.orgUnitId) continue;
@@ -400,7 +407,7 @@ function getOrgPieData(transactions: Transaction[]) {
   }
   return Array.from(map.entries())
     .map(([id, value]) => {
-      const unit = transactions.find(t => t.orgUnitId === id)?.orgUnit;
+      const unit = orgUnits.find(o => o.id === id);
       return { name: unit?.name || id, value };
     })
     .sort((a, b) => b.value - a.value);

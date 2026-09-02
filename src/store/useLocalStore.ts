@@ -43,7 +43,11 @@ interface StoreActions {
   approveTransaction: (id: string, userId?: string) => Promise<void>;
   rejectTransaction: (id: string, comment: string) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
+  addCategory: (cat: { key: string; labelFr: string; type: 'INCOME' | 'EXPENSE' }) => Promise<void>;
+  updateCategory: (id: string, updates: { key?: string; labelFr?: string; type?: 'INCOME' | 'EXPENSE' }) => Promise<void>;
+  deleteCategory: (id: string) => Promise<void>;
   refreshData: () => Promise<void>;
+  syncAll: () => Promise<void>;
   setSyncStatus: (status: AppState['syncStatus']) => void;
 }
 
@@ -67,7 +71,6 @@ export const useLocalStore = create<AppState & StoreActions>((set, get) => ({
     set({ isLoading: true, error: null, syncStatus: 'syncing' });
 
     try {
-      // Try cloud first, fall back to local
       let transactions: Transaction[] = [];
       let categories: Category[] = [];
       let orgUnits: OrgUnit[] = [];
@@ -92,14 +95,14 @@ export const useLocalStore = create<AppState & StoreActions>((set, get) => ({
       const localAudit = await db.getAllAuditEntries();
 
       // Prefer cloud data, merge local unsynced changes
-      const syncedLocalTxs = localTxs.filter(t => t.syncStatus === 'synced');
-      const pendingLocalTxs = localTxs.filter(t => t.syncStatus === 'pending');
-
-      // Use cloud if available, otherwise local
       const finalTxs = transactions.length > 0 ? transactions : localTxs.map(toLocalTx);
       const finalCats = categories.length > 0 ? categories : localCats.map(toLocalCat);
       const finalOus = orgUnits.length > 0 ? orgUnits : localOus.map(toLocalOu);
       const finalAudit = auditEntries.length > 0 ? auditEntries : localAudit.map(toLocalAudit);
+
+      // Update lastSyncedAt
+      const now = new Date().toISOString();
+      await db.setConfig('lastSyncedAt', now);
 
       set({
         transactions: finalTxs,
@@ -108,11 +111,18 @@ export const useLocalStore = create<AppState & StoreActions>((set, get) => ({
         auditEntries: finalAudit,
         isLoading: false,
         syncStatus: navigator.onLine ? 'idle' : 'offline',
-        lastSyncedAt: null,
+        lastSyncedAt: now,
       });
     } catch (err) {
       set({ error: String(err), isLoading: false, syncStatus: 'error' });
     }
+  },
+
+  syncAll: async () => {
+    set({ syncStatus: 'syncing' });
+    await get().refreshData();
+    // Trigger sync engine
+    startBackgroundSync();
   },
 
   addTransaction: async (tx) => {
@@ -237,6 +247,63 @@ export const useLocalStore = create<AppState & StoreActions>((set, get) => ({
       syncStatus: 'syncing',
     }));
   },
+
+  addCategory: async (cat) => {
+    const id = `cat-${Date.now()}`;
+    const now = new Date().toISOString();
+    const localCat = {
+      id,
+      key: cat.key,
+      labelFr: cat.labelFr,
+      type: cat.type,
+      orgId: 'org-1',
+      syncStatus: 'pending' as const,
+      isCustom: true,
+    };
+
+    await db.putCategory(localCat);
+    await db.enqueueSync('insert', 'categories', localCat);
+
+    set(s => ({
+      categories: [...s.categories, toLocalCat(localCat)],
+      error: null,
+      syncStatus: 'syncing',
+    }));
+  },
+
+  updateCategory: async (id, updates) => {
+    const localCat = await db.getAllCategories();
+    const found = localCat.find(c => c.id === id);
+    if (!found) return;
+
+    const updatedCat = {
+      ...found,
+      ...updates,
+      updatedAt: new Date().toISOString(),
+      syncStatus: 'pending' as const,
+    };
+
+    await db.putCategory(updatedCat);
+    await db.enqueueSync('update', 'categories', updatedCat);
+
+    set(s => ({
+      categories: s.categories.map(c => c.id === id ? toLocalCat(updatedCat) : c),
+      error: null,
+      syncStatus: 'syncing',
+    }));
+  },
+
+  deleteCategory: async (id) => {
+    await db.deleteCategory(id);
+    // Also enqueue delete for sync
+    await db.enqueueSync('delete', 'categories', { id });
+
+    set(s => ({
+      categories: s.categories.filter(c => c.id !== id),
+      error: null,
+      syncStatus: 'syncing',
+    }));
+  },
 }));
 
 // ─── Mappers ───────────────────────────────────────────────────
@@ -264,7 +331,7 @@ function toLocalTx(tx: any): Transaction {
 }
 
 function toLocalCat(cat: any): Category {
-  return { id: cat.id, key: cat.key, labelFr: cat.labelFr, type: cat.type, orgId: cat.orgId };
+  return { id: cat.id, key: cat.key, labelFr: cat.labelFr, type: cat.type, orgId: cat.orgId, isCustom: cat.isCustom };
 }
 
 function toLocalOu(ou: any): OrgUnit {
