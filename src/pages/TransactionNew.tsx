@@ -71,7 +71,7 @@ export default function TransactionNew() {
             <ArrowLeft className="w-5 h-5 text-text-primary" />
           </button>
           <h1 className="text-lg font-bold text-text-primary">
-            {initState?.compensateFor ? 'Creer une correction' : 'Nouvelle transaction'}
+            {initState?.compensateFor ? 'Créer une correction' : 'Nouvelle transaction'}
           </h1>
         </div>
 
@@ -79,14 +79,14 @@ export default function TransactionNew() {
           <div className="flex items-center gap-2 px-4 py-3 rounded-lg mb-4" style={{ backgroundColor: '#FF6B0020' }}>
             <Clock className="w-4 h-4" style={{ color: '#FF6B00' }} />
             <p className="text-sm" style={{ color: '#FF8533' }}>
-              Cette transaction corrigera une transaction approuvee existante.
+              Cette transaction corrigera une transaction approuvée existante.
             </p>
           </div>
         )}
 
         {/* Type Selector */}
         <div className="flex gap-3 mb-5">
-          <button onClick={() => { setType('INCOME'); setCategoryId(''); }} className="flex-1 py-3.5 rounded-full text-sm font-semibold transition-all" style={{ backgroundColor: type === 'INCOME' ? '#1DB954' : '#181818', color: type === 'INCOME' ? '#FFFFFF' : '#808080' }}>Entree</button>
+          <button onClick={() => { setType('INCOME'); setCategoryId(''); }} className="flex-1 py-3.5 rounded-full text-sm font-semibold transition-all" style={{ backgroundColor: type === 'INCOME' ? '#1DB954' : '#181818', color: type === 'INCOME' ? '#FFFFFF' : '#808080' }}>Entrée</button>
           <button onClick={() => { setType('EXPENSE'); setCategoryId(''); }} className="flex-1 py-3.5 rounded-full text-sm font-semibold transition-all" style={{ backgroundColor: type === 'EXPENSE' ? '#E51332' : '#181818', color: type === 'EXPENSE' ? '#FFFFFF' : '#808080' }}>Sortie</button>
         </div>
 
@@ -104,9 +104,9 @@ export default function TransactionNew() {
 
         {/* Category */}
         <div className="mb-5">
-          <label className="block text-text-secondary text-sm font-medium mb-2">Categorie</label>
+          <label className="block text-text-secondary text-sm font-medium mb-2">Catégorie</label>
           <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="w-full px-4 py-3 rounded-lg text-text-primary text-sm outline-none appearance-none" style={{ backgroundColor: '#181818', border: '1px solid #282828' }}>
-            <option value="">Selectionner une categorie</option>
+            <option value="">Sélectionner une catégorie</option>
             {filteredCategories.map((cat) => (<option key={cat.id} value={cat.id}>{cat.labelFr}</option>))}
           </select>
         </div>

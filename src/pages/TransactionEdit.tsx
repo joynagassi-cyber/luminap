@@ -39,9 +39,9 @@ export default function TransactionEdit() {
     return (
       <div className="min-h-screen bg-canvas flex items-center justify-center px-5 py-12">
         <div className="text-center">
-          <p className="text-text-tertiary mb-4">Vous n'avez pas les droits necessaires pour modifier cette transaction.</p>
+          <p className="text-text-tertiary mb-4">Vous n'avez pas les droits nécessaires pour modifier cette transaction.</p>
           <button onClick={() => navigate(`/transaction/${id}`)} className="px-5 py-3 rounded-full text-sm font-semibold" style={{ backgroundColor: '#FF6B00', color: '#FFFFFF' }}>
-            Retour au detail
+            Retour au détail
           </button>
         </div>
       </div>
@@ -87,7 +87,7 @@ export default function TransactionEdit() {
         </div>
 
         <div className="flex gap-3 mb-5">
-          <button onClick={() => { setType('INCOME'); setCategoryId(''); }} className="flex-1 py-3.5 rounded-full text-sm font-semibold" style={{ backgroundColor: type === 'INCOME' ? '#1DB954' : '#181818', color: type === 'INCOME' ? '#FFFFFF' : '#808080' }}>Entree</button>
+          <button onClick={() => { setType('INCOME'); setCategoryId(''); }} className="flex-1 py-3.5 rounded-full text-sm font-semibold" style={{ backgroundColor: type === 'INCOME' ? '#1DB954' : '#181818', color: type === 'INCOME' ? '#FFFFFF' : '#808080' }}>Entrée</button>
           <button onClick={() => { setType('EXPENSE'); setCategoryId(''); }} className="flex-1 py-3.5 rounded-full text-sm font-semibold" style={{ backgroundColor: type === 'EXPENSE' ? '#E51332' : '#181818', color: type === 'EXPENSE' ? '#FFFFFF' : '#808080' }}>Sortie</button>
         </div>
 
@@ -102,9 +102,9 @@ export default function TransactionEdit() {
         </div>
 
         <div className="mb-5">
-          <label className="block text-text-secondary text-sm font-medium mb-2">Categorie</label>
+          <label className="block text-text-secondary text-sm font-medium mb-2">Catégorie</label>
           <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="w-full px-4 py-3 rounded-lg text-text-primary text-sm outline-none appearance-none" style={{ backgroundColor: '#181818', border: '1px solid #282828' }}>
-            <option value="">Selectionner</option>
+            <option value="">Sélectionner</option>
             {filteredCategories.map((cat) => (<option key={cat.id} value={cat.id}>{cat.labelFr}</option>))}
           </select>
         </div>

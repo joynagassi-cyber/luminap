@@ -54,7 +54,7 @@ export default function Finance() {
             ))}
           </div>
           <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
-            <span className="text-text-tertiary text-xs flex-shrink-0">Type:</span>
+            <span className="text-text-tertiary text-xs flex-shrink-0">Type :</span>
             {(['ALL', 'INCOME', 'EXPENSE'] as TypeFilter[]).map((t) => (
               <button key={t} onClick={() => setTypeFilter(t)} className="px-3 py-1.5 rounded-full text-xs font-medium flex-shrink-0 transition-all" style={{ backgroundColor: typeFilter === t ? '#FF6B00' : '#181818', color: typeFilter === t ? '#FFFFFF' : '#808080' }}>
                 {t === 'ALL' ? 'Tous' : t === 'INCOME' ? 'Entrée' : 'Sortie'}

@@ -22,7 +22,7 @@ export default function Groups() {
         {orgUnits.length === 0 ? (
           <div className="text-center py-16">
             <Building2 className="w-16 h-16 mx-auto mb-4 text-text-tertiary" />
-            <p className="text-text-tertiary text-sm">Les groupes sont crees par l'administrateur.</p>
+            <p className="text-text-tertiary text-sm">Les groupes sont créés par l'administrateur.</p>
           </div>
         ) : (
           <div className="space-y-2 mb-6 pb-20">

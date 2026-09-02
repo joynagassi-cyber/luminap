@@ -12,7 +12,7 @@ export default function Settings() {
     <div className="min-h-screen bg-canvas">
       <div className="max-w-lg mx-auto px-5 pt-6 pb-4">
         {/* Header */}
-        <h1 className="text-xl font-bold text-text-primary mb-6">Parametres</h1>
+        <h1 className="text-xl font-bold text-text-primary mb-6">Paramètres</h1>
 
         {/* Profile Card */}
         <div className="rounded-xl p-4 mb-5 flex items-center gap-4" style={{ backgroundColor: '#181818' }}>
@@ -31,8 +31,8 @@ export default function Settings() {
         <div className="space-y-2 mb-5">
           {[
             { icon: User, label: 'Profil', desc: 'Modifier vos informations' },
-            { icon: Bell, label: 'Notifications', desc: 'Gerer les alertes' },
-            { icon: Shield, label: 'Segurite', desc: 'Mot de passe et authentification' },
+            { icon: Bell, label: 'Notifications', desc: 'Gérer les alertes' },
+            { icon: Shield, label: 'Sécurité', desc: 'Mot de passe et authentification' },
           ].map((item) => (
             <button key={item.label} className="w-full flex items-center gap-4 p-4 rounded-lg transition-colors text-left active:bg-surface-active" style={{ backgroundColor: '#181818' }}>
               <item.icon className="w-5 h-5 text-text-tertiary flex-shrink-0" />
@@ -56,10 +56,10 @@ export default function Settings() {
 
         {/* Logout */}
         <button onClick={async () => { logout(); navigate('/login'); }} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-full text-sm font-semibold transition-all active:scale-95" style={{ backgroundColor: '#E5133220', color: '#E51332' }}>
-          <LogOut className="w-5 h-5" />Se deconnecter
+          <LogOut className="w-5 h-5" />Se déconnecter
         </button>
 
-        <p className="text-text-tertiary text-xs text-center mt-6 pb-6">Lumina v1.0 · Eglise MFE-JC Centrale</p>
+        <p className="text-text-tertiary text-xs text-center mt-6 pb-6">Lumina v1.0 · Église MFE-JC Centrale</p>
       </div>
 
       <BottomNav />
