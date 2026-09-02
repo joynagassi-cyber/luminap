@@ -49,14 +49,13 @@ export default function TransactionNew() {
     }
 
     addTransaction({
-      orgId: 'org-1',
       type,
-      amount: Math.round(parseFloat(amount) * 100),
+      amount: parseFloat(amount) * 100,
       description: description.trim(),
       date,
       status,
       categoryId,
-      orgUnitId: orgUnitId || null,
+      orgUnitId: orgUnitId || undefined,
     });
 
     navigate('/finance');
@@ -107,7 +106,7 @@ export default function TransactionNew() {
           <label className="block text-text-secondary text-sm font-medium mb-2">Catégorie</label>
           <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="w-full px-4 py-3 rounded-lg text-text-primary text-sm outline-none appearance-none" style={{ backgroundColor: '#181818', border: '1px solid #282828' }}>
             <option value="">Sélectionner une catégorie</option>
-            {filteredCategories.map((cat) => (<option key={cat.id} value={cat.id}>{cat.labelFr}</option>))}
+            {filteredCategories.map((cat) => (<option key={cat.id} value={cat.id}>{cat.label_fr}</option>))}
           </select>
         </div>
 

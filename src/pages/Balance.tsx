@@ -27,19 +27,19 @@ export default function Balance() {
 
   const byCategory = new Map<string, { income: number; expense: number }>();
   for (const t of periodTransactions) {
-    const existing = byCategory.get(t.categoryId) || { income: 0, expense: 0 };
+    const existing = byCategory.get(t.category_id) || { income: 0, expense: 0 };
     if (t.type === 'INCOME') existing.income += t.amount;
     else existing.expense += t.amount;
-    byCategory.set(t.categoryId, existing);
+    byCategory.set(t.category_id, existing);
   }
 
   const byOrgUnit = new Map<string, { income: number; expense: number }>();
   for (const t of periodTransactions) {
-    if (t.orgUnitId) {
-      const existing = byOrgUnit.get(t.orgUnitId) || { income: 0, expense: 0 };
+    if (t.org_unit_id) {
+      const existing = byOrgUnit.get(t.org_unit_id) || { income: 0, expense: 0 };
       if (t.type === 'INCOME') existing.income += t.amount;
       else existing.expense += t.amount;
-      byOrgUnit.set(t.orgUnitId, existing);
+      byOrgUnit.set(t.org_unit_id, existing);
     }
   }
 
@@ -115,7 +115,7 @@ export default function Balance() {
               const cat = categories.find(c => c.id === id);
               return (
                 <div key={id} className="flex items-center px-4 py-3 text-sm border-b last:border-0" style={{ borderBottomColor: '#282828' }}>
-                  <span className="flex-1 text-text-primary">{cat?.labelFr || id}</span>
+                  <span className="flex-1 text-text-primary">{cat?.label_fr || id}</span>
                   <span className="w-24 text-right tabular-nums" style={{ color: '#1DB954' }}>{formatCurrency(v.income)}</span>
                   <span className="w-24 text-right tabular-nums font-medium" style={{ color: v.income - v.expense >= 0 ? '#1DB954' : '#E51332' }}>{v.income - v.expense >= 0 ? '+' : ''}{formatCurrency(v.income - v.expense)}</span>
                 </div>

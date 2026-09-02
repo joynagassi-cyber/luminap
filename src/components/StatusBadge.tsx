@@ -1,4 +1,4 @@
-import type { TransactionStatus } from '@/types';
+import type { Transaction } from '@/integrations/supabase/client';
 import { getStatusColor, getStatusLabel } from '@/lib/utils';
 
 interface StatusBadgeProps {

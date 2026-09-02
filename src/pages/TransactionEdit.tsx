@@ -5,6 +5,7 @@ import { getTodayStr } from '@/lib/utils';
 import { useStore, canActOnTransaction } from '@/store/useStore';
 import ConfirmModal from '@/components/ConfirmModal';
 import type { TransactionType } from '@/types';
+import type { Transaction } from '@/integrations/supabase/client';
 
 export default function TransactionEdit() {
   const navigate = useNavigate();
@@ -14,9 +15,9 @@ export default function TransactionEdit() {
   const transaction = transactions.find(t => t.id === id);
   const [type, setType] = useState<TransactionType>(transaction?.type || 'INCOME');
   const [amount, setAmount] = useState(transaction ? (transaction.amount / 100).toString() : '');
-  const [categoryId, setCategoryId] = useState(transaction?.categoryId || '');
+  const [categoryId, setCategoryId] = useState(transaction?.category_id || '');
   const [date, setDate] = useState(transaction?.date || getTodayStr());
-  const [orgUnitId, setOrgUnitId] = useState(transaction?.orgUnitId || '');
+  const [orgUnitId, setOrgUnitId] = useState(transaction?.org_unit_id || '');
   const [description, setDescription] = useState(transaction?.description || '');
   const [errorMsg, setErrorMsg] = useState('');
   const [showErrorModal, setShowErrorModal] = useState(false);
@@ -70,8 +71,8 @@ export default function TransactionEdit() {
       amount: Math.round(parseFloat(amount) * 100),
       description: description.trim(),
       date,
-      categoryId,
-      orgUnitId: orgUnitId || null,
+      category_id: categoryId,
+      org_unit_id: orgUnitId || null,
     });
     navigate(`/transaction/${id}`);
   };
@@ -105,7 +106,7 @@ export default function TransactionEdit() {
           <label className="block text-text-secondary text-sm font-medium mb-2">Catégorie</label>
           <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="w-full px-4 py-3 rounded-lg text-text-primary text-sm outline-none appearance-none" style={{ backgroundColor: '#181818', border: '1px solid #282828' }}>
             <option value="">Sélectionner</option>
-            {filteredCategories.map((cat) => (<option key={cat.id} value={cat.id}>{cat.labelFr}</option>))}
+            {filteredCategories.map((cat) => (<option key={cat.id} value={cat.id}>{cat.label_fr}</option>))}
           </select>
         </div>
 

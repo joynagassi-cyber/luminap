@@ -16,12 +16,12 @@ export default function Settings() {
         {/* Profile Card */}
         <div className="rounded-xl p-4 mb-5 flex items-center gap-4" style={{ backgroundColor: '#181818' }}>
           <div className="w-14 h-14 rounded-full flex items-center justify-center text-xl font-bold flex-shrink-0" style={{ backgroundColor: '#FF6B00', color: '#FFFFFF' }}>
-            {user?.firstName?.[0] || 'U'}
+            {user?.profile?.first_name?.[0] || user?.email?.[0] || 'U'}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-text-primary font-semibold text-lg truncate">{user?.firstName} {user?.lastName}</p>
+            <p className="text-text-primary font-semibold text-lg truncate">{user?.profile?.first_name || user?.email?.split('@')[0] || 'Utilisateur'} {user?.profile?.lastName || ''}</p>
             <p className="text-text-tertiary text-sm truncate">{user?.email}</p>
-            <p className="text-text-tertiary text-xs mt-1 capitalize">{user?.role?.toLowerCase()}</p>
+            <p className="text-text-tertiary text-xs mt-1 capitalize">{user?.profile?.role?.toLowerCase()}</p>
           </div>
         </div>
 
@@ -49,8 +49,7 @@ export default function Settings() {
         {/* Organization */}
         <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider mb-2">Organisation</p>
         <div className="rounded-lg p-4 mb-5" style={{ backgroundColor: '#181818' }}>
-          <p className="text-text-primary font-semibold">{user?.org.name}</p>
-          <p className="text-text-tertiary text-sm mt-1 capitalize">{user?.org.type}</p>
+          <p className="text-text-primary font-semibold">{user?.profile?.org_id ? 'Église MFE-JC Centrale' : '—'}</p>
         </div>
 
         {/* Logout */}

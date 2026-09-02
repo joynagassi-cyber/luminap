@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Check, X, Edit3, Clock } from 'lucide-react';
 import { formatCurrency, formatDate, getStatusColor, getStatusLabel } from '@/lib/utils';
 import { useStore, canActOnTransaction } from '@/store/useStore';
+import type { Profile } from '@/integrations/supabase/client';
 import StatusBadge from '@/components/StatusBadge';
 import ConfirmModal from '@/components/ConfirmModal';
 import BottomNav from '@/components/BottomNav';
@@ -18,6 +19,10 @@ export default function TransactionDetail() {
   const [showErrorModal, setShowErrorModal] = useState(false);
 
   const transaction = transactions.find(t => t.id === id);
+  const { user, categories } = useStore();
+  const profileMap = categories.reduce((acc, cat) => {
+    return acc;
+  }, {} as Record<string, Profile>);
 
   if (!transaction) {
     return (
@@ -112,13 +117,13 @@ export default function TransactionDetail() {
           <div className="rounded-lg overflow-hidden" style={{ backgroundColor: '#181818' }}>
             {[
               { label: 'Description', value: transaction.description || '—' },
-              { label: 'Catégorie', value: transaction.category?.labelFr || '—' },
+              { label: 'Catégorie', value: transaction.category?.label_fr || '—' },
               { label: 'Date', value: formatDate(transaction.date) },
-              { label: 'Créée le', value: formatDate(transaction.createdAt) },
-              { label: 'Créée par', value: transaction.creator?.firstName || '—' },
-              ...(transaction.approvedAt ? [
-                { label: 'Approuvée le', value: formatDate(transaction.approvedAt) },
-                { label: 'Approuvée par', value: transaction.approver?.firstName || '—' },
+              { label: 'Créée le', value: formatDate(transaction.created_at) },
+              { label: 'Créée par', value: user?.profile?.first_name || '—' },
+              ...(transaction.approved_at ? [
+                { label: 'Approuvée le', value: transaction.approved_at ? formatDate(transaction.approved_at) : '—' },
+                { label: 'Approuvée par', value: user?.profile?.first_name || '—' },
               ] : []),
               ...(transaction.comment ? [{ label: 'Commentaire', value: transaction.comment }] : []),
             ].map((row, i) => (
@@ -139,7 +144,7 @@ export default function TransactionDetail() {
                 <button onClick={handleEdit} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-full text-sm font-semibold" style={{ backgroundColor: '#181818', color: '#B3B3B3' }}>
                   <Edit3 className="w-4 h-4" />Modifier
                 </button>
-                <button onClick={() => { useStore.getState().updateTransaction(transaction.id, { status: 'PENDING' as const, updatedAt: new Date().toISOString() }); navigate('/finance'); }} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-full text-sm font-semibold" style={{ backgroundColor: '#FFB800', color: '#121212' }}>
+                <button onClick={() => { useStore.getState().updateTransaction(transaction.id, { status: 'PENDING' }); navigate('/finance'); }} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-full text-sm font-semibold" style={{ backgroundColor: '#FFB800', color: '#121212' }}>
                   <Clock className="w-4 h-4" />Soumettre pour approbation
                 </button>
               </>
@@ -180,10 +185,10 @@ export default function TransactionDetail() {
           <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider mb-3">Journal d'audit</p>
           <div className="rounded-lg overflow-hidden" style={{ backgroundColor: '#181818' }}>
             {[
-              { action: 'CRÉÉE', time: transaction.createdAt, user: transaction.creator?.firstName },
-              ...(transaction.status === 'PENDING' ? [{ action: 'SOUMISE', time: transaction.updatedAt, user: transaction.creator?.firstName }] : []),
-              ...(transaction.approvedAt ? [{ action: 'APPROUVÉE', time: transaction.approvedAt, user: transaction.approver?.firstName }] : []),
-              ...(transaction.status === 'REJECTED' && transaction.comment ? [{ action: 'REJETÉE', time: transaction.updatedAt, user: 'Admin', comment: transaction.comment }] : []),
+              { action: 'CRÉÉE', time: transaction.created_at, user: user?.profile?.first_name || '—' },
+              ...(transaction.status === 'PENDING' ? [{ action: 'SOUMISE', time: transaction.updated_at, user: user?.profile?.first_name || '—' }] : []),
+              ...(transaction.approved_at ? [{ action: 'APPROUVÉE', time: transaction.approved_at, user: user?.profile?.first_name || '—' }] : []),
+              ...(transaction.status === 'REJECTED' && transaction.comment ? [{ action: 'REJETÉE', time: transaction.updated_at, user: 'Admin', comment: transaction.comment }] : []),
             ].map((entry, i) => (
               <div key={i} className="flex items-center gap-3 px-4 py-3 border-b last:border-0" style={{ borderBottomColor: '#282828' }}>
                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#FF6B00' }} />

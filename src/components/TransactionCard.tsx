@@ -1,4 +1,4 @@
-import type { Transaction } from '@/types';
+import type { Transaction } from '@/integrations/supabase/client';
 import { formatCurrency, formatDate, getStatusColor, getStatusLabel } from '@/lib/utils';
 import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
 
@@ -33,7 +33,7 @@ export default function TransactionCard({ transaction, onPress }: TransactionCar
           {transaction.description || 'Sans description'}
         </p>
         <p className="text-text-tertiary text-sm mt-0.5">
-          {transaction.category?.labelFr} · {formatDate(transaction.date)}
+          {transaction.category?.label_fr} · {formatDate(transaction.date)}
         </p>
       </div>
 
