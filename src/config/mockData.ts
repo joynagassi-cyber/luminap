@@ -12,6 +12,15 @@ import type {
   Organization,
 } from '@/types';
 
+export const MOCK_CREDENTIALS = [
+  {
+    email: 'admin@mfe-jc.org',
+    passwordHash: btoa('lumina-admin-2026'),
+    role: 'ADMIN',
+    orgId: 'org-1',
+  },
+];
+
 export const DEFAULT_CREDENTIALS = {
   email: 'admin@mfe-jc.org',
   // In production, passwords must never be stored in source code.

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { formatCurrency, formatDate, exportToCSV, getPeriodRange } from '@/lib/utils';
 import { useStore } from '@/store/useStore';
 import { Download } from 'lucide-react';
+import BottomNav from '@/components/BottomNav';
 
 type PeriodType = 'mois' | 'trimestre' | 'annee';
 
@@ -133,8 +134,8 @@ export default function Balance() {
                 <span className="flex-1">Nom</span>
                 <span className="w-24 text-right">Entrées</span>
                 <span className="w-24 text-right">Net</span>
-              </div>
-              {Array.from(byOrgUnit.entries()).map(([id, v]) => {
+                </div>
+                {Array.from(byOrgUnit.entries()).map(([id, v]) => {
                 const unit = orgUnits.find(o => o.id === id);
                 return (
                   <button key={id} onClick={() => navigate('/finance')} className="flex items-center px-4 py-3 text-sm border-b last:border-0 w-full text-left" style={{ borderBottomColor: '#282828' }}>
@@ -155,21 +156,7 @@ export default function Balance() {
         </div>
       </div>
 
-      {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 flex items-center justify-around" style={{ backgroundColor: '#181818', borderTop: '1px solid #282828', minHeight: '64px', zIndex: 50, paddingBottom: 'env(safe-area-inset-bottom)' }}>
-        {[
-          { path: '/', label: 'Accueil', icon: '🏠' },
-          { path: '/finance', label: 'Finance', icon: '📊' },
-          { path: '/transaction/new', label: 'Ajouter', icon: '➕' },
-          { path: '/groups', label: 'Groupes', icon: '👥' },
-          { path: '/settings', label: 'Réglages', icon: '⚙️' },
-        ].map((tab) => (
-          <button key={tab.path} onClick={() => navigate(tab.path)} className="flex flex-col items-center justify-center gap-1 px-4" style={{ minHeight: '44px' }}>
-            <span className="text-xl">{tab.icon}</span>
-            <span className="text-xs font-medium" style={{ color: window.location.pathname === tab.path ? '#FF6B00' : '#808080' }}>{tab.label}</span>
-          </button>
-        ))}
-      </nav>
+      <BottomNav />
     </div>
   );
 }

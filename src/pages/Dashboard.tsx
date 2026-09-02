@@ -1,16 +1,19 @@
+import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useStore } from '@/store/useStore';
 import { formatCurrency, getPeriodRange } from '@/lib/utils';
-import { ArrowUpRight, ArrowDownRight, BarChart3, BookOpen } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, BarChart3, BookOpen, PlusCircle } from 'lucide-react';
 import TransactionCard from '@/components/TransactionCard';
+import BottomNav from '@/components/BottomNav';
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const location = useLocation();
   const { transactions, user } = useStore();
 
   const { start, end } = getPeriodRange('mois');
-  const approvedTransactions = transactions.filter(t => t.status === 'APPROVED' && t.date >= start && t.date <= end);
+  const approvedTransactions = transactions.filter(
+    t => t.status === 'APPROVED' && t.date >= start && t.date <= end
+  );
   const totalIncome = approvedTransactions.filter(t => t.type === 'INCOME').reduce((s, t) => s + t.amount, 0);
   const totalExpense = approvedTransactions.filter(t => t.type === 'EXPENSE').reduce((s, t) => s + t.amount, 0);
   const netResult = totalIncome - totalExpense;
@@ -25,7 +28,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-canvas">
-      <div className="max-w-lg mx-auto px-5 pt-6 pb-4">
+      <div className="max-w-lg mx-auto px-5 pt-6 pb-24">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -99,42 +102,62 @@ export default function Dashboard() {
         )}
 
         {/* Shortcuts */}
-        <p className="text-text-primary font-semibold text-base mb-3">Raccourcis</p>
-        <div className="grid grid-cols-2 gap-3 mb-6">
-          <button onClick={() => navigate('/transaction/new')} className="flex flex-col items-center gap-2 p-4 rounded-lg active:scale-95 transition-transform" style={{ backgroundColor: '#181818' }}>
-            <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#1DB95420' }}>
-              <ArrowUpRight className="w-5 h-5" style={{ color: '#1DB954' }} />
-            </div>
-            <span className="text-text-primary text-sm font-medium">Nouvelle entrée</span>
-          </button>
-          <button onClick={() => navigate('/transaction/new')} className="flex flex-col items-center gap-2 p-4 rounded-lg active:scale-95 transition-transform" style={{ backgroundColor: '#181818' }}>
-            <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#E5133220' }}>
-              <ArrowDownRight className="w-5 h-5" style={{ color: '#E51332' }} />
-            </div>
-            <span className="text-text-primary text-sm font-medium">Nouvelle sortie</span>
-          </button>
-          <button onClick={() => navigate('/balance')} className="flex flex-col items-center gap-2 p-4 rounded-lg active:scale-95 transition-transform" style={{ backgroundColor: '#181818' }}>
-            <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#FF6B0020' }}>
-              <BarChart3 className="w-5 h-5" style={{ color: '#FF6B00' }} />
-            </div>
-            <span className="text-text-primary text-sm font-medium">Bilan financier</span>
-          </button>
-          <button onClick={() => navigate('/finance')} className="flex flex-col items-center gap-2 p-4 rounded-lg active:scale-95 transition-transform" style={{ backgroundColor: '#181818' }}>
-            <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#FF6B0020' }}>
-              <BookOpen className="w-5 h-5" style={{ color: '#FF6B00' }} />
-            </div>
-            <span className="text-text-primary text-sm font-medium">Grand livre</span>
-          </button>
+        <div className="mb-5">
+          <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider mb-3">Actions rapides</p>
+          <div className="grid grid-cols-2 gap-3">
+            <button onClick={() => navigate('/transaction/new')} className="flex items-center gap-3 p-4 rounded-lg active:scale-95 transition-transform text-left" style={{ backgroundColor: '#181818' }}>
+              <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#1DB95420' }}>
+                <ArrowUpRight className="w-5 h-5" style={{ color: '#1DB954' }} />
+              </div>
+              <div>
+                <p className="text-text-primary text-sm font-semibold">Nouvelle entrée</p>
+                  <p className="text-text-tertiary text-xs mt-0.5">Ajouter un revenu</p>
+              </div>
+            </button>
+            <button onClick={() => navigate('/transaction/new')} className="flex items-center gap-3 p-4 rounded-lg active:scale-95 transition-transform text-left" style={{ backgroundColor: '#181818' }}>
+              <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#E5133220' }}>
+                <ArrowDownRight className="w-5 h-5" style={{ color: '#E51332' }} />
+              </div>
+              <div>
+                <p className="text-text-primary text-sm font-semibold">Nouvelle sortie</p>
+                  <p className="text-text-tertiary text-xs mt-0.5">Ajouter une dépense</p>
+              </div>
+            </button>
+            <button onClick={() => navigate('/balance')} className="flex items-center gap-3 p-4 rounded-lg active:scale-95 transition-transform text-left" style={{ backgroundColor: '#181818' }}>
+              <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#FF6B0020' }}>
+                <BarChart3 className="w-5 h-5" style={{ color: '#FF6B00' }} />
+              </div>
+              <div>
+                <p className="text-text-primary text-sm font-semibold">Bilan financier</p>
+                <p className="text-text-tertiary text-xs mt-0.5">Voir le bilan</p>
+              </div>
+            </button>
+            <button onClick={() => navigate('/finance')} className="flex items-center gap-3 p-4 rounded-lg active:scale-95 transition-transform text-left" style={{ backgroundColor: '#181818' }}>
+              <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#FF6B0020' }}>
+                <BookOpen className="w-5 h-5" style={{ color: '#FF6B00' }} />
+              </div>
+              <div>
+                <p className="text-text-primary text-sm font-semibold">Grand livre</p>
+                <p className="text-text-tertiary text-xs mt-0.5">Toutes les transactions</p>
+              </div>
+            </button>
+          </div>
         </div>
 
         {/* Recent Transactions */}
         <div className="flex items-center justify-between mb-3">
           <p className="text-text-primary font-semibold text-base">Derniers mouvements</p>
-          <button onClick={() => navigate('/finance')} className="text-sm" style={{ color: '#FF6B00' }}>Voir tout</button>
+          <button onClick={() => navigate('/finance')} className="text-sm font-medium" style={{ color: '#FF6B00' }}>Tout voir</button>
         </div>
-        <div className="space-y-2 mb-6 pb-20">
+        <div className="space-y-2 mb-6">
           {recentTransactions.length === 0 ? (
-            <p className="text-text-tertiary text-sm text-center py-8">Aucune transaction</p>
+            <div className="text-center py-10 rounded-lg" style={{ backgroundColor: '#181818' }}>
+              <PlusCircle className="w-8 h-8 mx-auto mb-3 text-text-tertiary" />
+              <p className="text-text-tertiary text-sm">Aucune transaction</p>
+              <button onClick={() => navigate('/transaction/new')} className="mt-3 text-sm font-medium" style={{ color: '#FF6B00' }}>
+                Créer une transaction
+              </button>
+            </div>
           ) : (
             recentTransactions.map((tx) => (
               <TransactionCard key={tx.id} transaction={tx} onPress={(id) => navigate(`/transaction/${id}`)} />
@@ -143,21 +166,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 flex items-center justify-around" style={{ backgroundColor: '#181818', borderTop: '1px solid #282828', minHeight: '64px', zIndex: 50, paddingBottom: 'env(safe-area-inset-bottom)' }}>
-        {[
-          { path: '/', label: 'Accueil', icon: '🏠' },
-          { path: '/finance', label: 'Finance', icon: '📊' },
-          { path: '/transaction/new', label: 'Ajouter', icon: '➕' },
-          { path: '/groups', label: 'Groupes', icon: '👥' },
-          { path: '/settings', label: 'Réglages', icon: '⚙️' },
-        ].map((tab) => (
-          <button key={tab.path} onClick={() => navigate(tab.path)} className="flex flex-col items-center justify-center gap-1 px-4" style={{ minHeight: '44px' }}>
-            <span className="text-xl">{tab.icon}</span>
-            <span className="text-xs font-medium" style={{ color: location.pathname === tab.path ? '#FF6B00' : '#808080' }}>{tab.label}</span>
-          </button>
-        ))}
-      </nav>
+      <BottomNav />
     </div>
   );
 }

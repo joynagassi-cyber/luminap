@@ -1,19 +1,21 @@
-import { useNavigate, useParams } from 'react-router-dom';
 import { useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Check, X, Edit3, Clock } from 'lucide-react';
 import { formatCurrency, formatDate, getStatusColor, getStatusLabel } from '@/lib/utils';
-import { useStore, canActOnTransaction } from '@/store/useStore';
+import { useStore } from '@/store/useStore';
 import StatusBadge from '@/components/StatusBadge';
 import ConfirmModal from '@/components/ConfirmModal';
+import BottomNav from '@/components/BottomNav';
 
 export default function TransactionDetail() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { transactions, categories, approveTransaction, rejectTransaction, deleteTransaction, user } = useStore();
+  const { transactions, categories, approveTransaction, rejectTransaction, deleteTransaction, user, canActOnTransaction } = useStore();
   const [showRejectComment, setShowRejectComment] = useState(false);
   const [rejectComment, setRejectComment] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [deleteInput, setDeleteInput] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
+  const [showErrorModal, setShowErrorModal] = useState(false);
 
   const transaction = transactions.find(t => t.id === id);
 
@@ -37,6 +39,11 @@ export default function TransactionDetail() {
   const canEdit = canActOnTransaction(transaction, 'edit', user);
   const canDelete = canActOnTransaction(transaction, 'delete', user);
 
+  const showError = (msg: string) => {
+    setErrorMsg(msg);
+    setShowErrorModal(true);
+  };
+
   const handleApprove = () => {
     approveTransaction(transaction.id, user?.id || '');
     navigate('/finance');
@@ -44,7 +51,7 @@ export default function TransactionDetail() {
 
   const handleReject = () => {
     if (!rejectComment.trim()) {
-      alert('Veuillez fournir un motif de rejet');
+      showError('Veuillez fournir un motif de rejet');
       return;
     }
     rejectTransaction(transaction.id, rejectComment);
@@ -174,9 +181,9 @@ export default function TransactionDetail() {
           <div className="rounded-lg overflow-hidden" style={{ backgroundColor: '#181818' }}>
             {[
               { action: 'CRÉÉE', time: transaction.createdAt, user: transaction.creator?.firstName },
-              ...(transaction.status === 'PENDING' ? [{ action: 'SOUMISE', time: transaction.updatedAt, user: transaction.creator?.firstName }] : []),
-              ...(transaction.approvedAt ? [{ action: 'APPROUVÉE', time: transaction.approvedAt, user: transaction.approver?.firstName }] : []),
-              ...(transaction.status === 'REJECTED' && transaction.comment ? [{ action: 'REJETÉE', time: transaction.updatedAt, user: 'Admin', comment: transaction.comment }] : []),
+            ...(transaction.status === 'PENDING' ? [{ action: 'SOUMISE', time: transaction.updatedAt, user: transaction.creator?.firstName }] : []),
+            ...(transaction.approvedAt ? [{ action: 'APPROUVÉE', time: transaction.approvedAt, user: transaction.approver?.firstName }] : []),
+            ...(transaction.status === 'REJECTED' && transaction.comment ? [{ action: 'REJETÉE', time: transaction.updatedAt, user: 'Admin', comment: transaction.comment }] : []),
             ].map((entry, i) => (
               <div key={i} className="flex items-center gap-3 px-4 py-3 border-b last:border-0" style={{ borderBottomColor: '#282828' }}>
                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#FF6B00' }} />
@@ -197,7 +204,7 @@ export default function TransactionDetail() {
             <div className="relative w-full rounded-t-2xl p-6 pb-8" style={{ backgroundColor: '#181818' }}>
               <div className="w-12 h-1 rounded-full bg-surface-active mx-auto mb-4" />
               <h3 className="text-lg font-bold text-text-primary mb-4">Motif du rejet</h3>
-              <textarea value={rejectComment} onChange={(e) => setRejectComment(e.target.value)} placeholder="Veuillez décrire le motif du rejet..." className="w-full px-4 py-3 rounded-lg text-text-primary text-sm outline-none resize-none mb-4" style={{ backgroundColor: '#121212', minHeight: '100px' }} rows={3} />
+              <textarea value={rejectComment} onChange={(e) => setRejectComment(e.target.value)} placeholder="Veuillez decrire le motif du rejet..." className="w-full px-4 py-3 rounded-lg text-text-primary text-sm outline-none resize-none mb-4" style={{ backgroundColor: '#121212', minHeight: '100px' }} rows={3} />
               <div className="flex gap-3">
                 <button onClick={() => setShowRejectComment(false)} className="flex-1 py-3 rounded-full text-sm font-semibold" style={{ backgroundColor: '#282828', color: '#B3B3B3' }}>Annuler</button>
                 <button onClick={handleReject} className="flex-1 py-3 rounded-full text-sm font-semibold" style={{ backgroundColor: '#E51332', color: '#FFFFFF' }}>Confirmer le rejet</button>
@@ -218,6 +225,19 @@ export default function TransactionDetail() {
           requiredText="SUPPRIMER"
         />
       </div>
+
+      <BottomNav />
+
+      {/* Error Modal */}
+      <ConfirmModal
+        open={showErrorModal}
+        onClose={() => setShowErrorModal(false)}
+        onConfirm={() => setShowErrorModal(false)}
+        title="Erreur"
+        description={errorMsg}
+        confirmLabel="Compris"
+        confirmVariant="primary"
+      />
     </div>
   );
 }

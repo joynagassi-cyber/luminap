@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 import type {
   Transaction,
   Category,
@@ -16,7 +15,9 @@ import {
   MOCK_ORG_UNITS,
   MOCK_TRANSACTIONS,
   MOCK_AUDIT_ENTRIES,
+  MOCK_CREDENTIALS,
 } from '@/config/mockData';
+import { api, getSessionToken, setSessionToken, clearSession } from '@/lib/api';
 
 export function getBalance(startDate: string, endDate: string): BalanceResult {
   const filtered = MOCK_TRANSACTIONS.filter(t => t.date >= startDate && t.date <= endDate);
@@ -67,7 +68,7 @@ interface LuminaState {
   orgUnits: OrgUnit[];
   auditEntries: AuditEntry[];
 
-  login: (email: string, _password: string) => boolean;
+  login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
 
   addTransaction: (tx: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt' | 'version' | 'createdById' | 'approvedById' | 'approvedAt' | 'compensatesFor' | 'comment'>) => void;
@@ -93,81 +94,85 @@ export function canActOnTransaction(
   }
 }
 
-export const useStore = create<LuminaState>()(
-  persist(
-    (set) => ({
-      isAuthenticated: false,
-      user: null,
-      transactions: MOCK_TRANSACTIONS,
-      categories: MOCK_CATEGORIES,
-      orgUnits: MOCK_ORG_UNITS,
-      auditEntries: MOCK_AUDIT_ENTRIES,
+export const useStore = create<LuminaState>((set) => ({
+  isAuthenticated: getSessionToken() !== null,
+  user: getSessionToken() ? MOCK_USER : null,
+  transactions: MOCK_TRANSACTIONS,
+  categories: MOCK_CATEGORIES,
+  orgUnits: MOCK_ORG_UNITS,
+  auditEntries: MOCK_AUDIT_ENTRIES,
 
-      login: (email: string, _password: string) => {
-        if (email && _password) {
-          set({ isAuthenticated: true, user: MOCK_USER });
-          return true;
-        }
-        return false;
-      },
+  login: async (email: string, password: string) => {
+    const result = await api.auth.login(email, password);
+    if (result.ok && result.data?.sessionToken) {
+      setSessionToken(result.data.sessionToken);
+      set({ isAuthenticated: true, user: MOCK_USER });
+      return true;
+    }
+    // Fallback to mock auth for dev
+    const credentials = MOCK_CREDENTIALS.find(c => c.email === email);
+    if (credentials && credentials.passwordHash === btoa(password)) {
+      set({ isAuthenticated: true, user: MOCK_USER });
+      return true;
+    }
+    return false;
+  },
 
-      logout: () => {
-        set({ isAuthenticated: false, user: null });
-      },
+  logout: () => {
+    clearSession();
+    set({ isAuthenticated: false, user: null });
+  },
 
-      addTransaction: (tx) => {
-        const newTx: Transaction = {
-          ...tx,
-          id: `tx-${Date.now()}`,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          version: 1,
-          createdById: 'user-1',
-          approvedById: null,
-          approvedAt: null,
-          compensatesFor: null,
-          comment: null,
-          category: MOCK_CATEGORIES.find(c => c.id === tx.categoryId),
-        };
-        set((s) => ({ transactions: [newTx, ...s.transactions] }));
-      },
+  addTransaction: (tx) => {
+    const newTx: Transaction = {
+      ...tx,
+      id: `tx-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      version: 1,
+      createdById: 'user-1',
+      approvedById: null,
+      approvedAt: null,
+      compensatesFor: null,
+      comment: null,
+      category: MOCK_CATEGORIES.find(c => c.id === tx.categoryId),
+    };
+    set((s) => ({ transactions: [newTx, ...s.transactions] }));
+  },
 
-      updateTransaction: (id, updates) => {
-        set((s) => ({
-          transactions: s.transactions.map((t) =>
-            t.id === id ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t
-          ),
-        }));
-      },
+  updateTransaction: (id, updates) => {
+    set((s) => ({
+      transactions: s.transactions.map((t) =>
+        t.id === id ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t
+      ),
+    }));
+  },
 
-      approveTransaction: (id, approverId) => {
-        const now = new Date().toISOString();
-        set((s) => ({
-          transactions: s.transactions.map((t) =>
-            t.id === id
-              ? { ...t, status: 'APPROVED' as const, approvedById: approverId, approvedAt: now, updatedAt: now, version: t.version + 1 }
-              : t
-          ),
-        }));
-      },
+  approveTransaction: (id, approverId) => {
+    const now = new Date().toISOString();
+    set((s) => ({
+      transactions: s.transactions.map((t) =>
+        t.id === id
+          ? { ...t, status: 'APPROVED' as const, approvedById: approverId, approvedAt: now, updatedAt: now, version: t.version + 1 }
+          : t
+      ),
+    }));
+  },
 
-      rejectTransaction: (id, comment) => {
-        const now = new Date().toISOString();
-        set((s) => ({
-          transactions: s.transactions.map((t) =>
-            t.id === id
-              ? { ...t, status: 'REJECTED' as const, comment, updatedAt: now }
-              : t
-          ),
-        }));
-      },
+  rejectTransaction: (id, comment) => {
+    const now = new Date().toISOString();
+    set((s) => ({
+      transactions: s.transactions.map((t) =>
+        t.id === id
+          ? { ...t, status: 'REJECTED' as const, comment, updatedAt: now }
+          : t
+      ),
+    }));
+  },
 
-      deleteTransaction: (id) => {
-        set((s) => ({
-          transactions: s.transactions.filter((t) => t.id !== id),
-        }));
-      },
-    }),
-    { name: 'lumina-store' }
-  )
-);
+  deleteTransaction: (id) => {
+    set((s) => ({
+      transactions: s.transactions.filter((t) => t.id !== id),
+    }));
+  },
+}));

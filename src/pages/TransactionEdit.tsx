@@ -3,6 +3,7 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { getTodayStr } from '@/lib/utils';
 import { useStore, canActOnTransaction } from '@/store/useStore';
+import ConfirmModal from '@/components/ConfirmModal';
 import type { TransactionType } from '@/types';
 
 export default function TransactionEdit() {
@@ -17,6 +18,8 @@ export default function TransactionEdit() {
   const [date, setDate] = useState(transaction?.date || getTodayStr());
   const [orgUnitId, setOrgUnitId] = useState(transaction?.orgUnitId || '');
   const [description, setDescription] = useState(transaction?.description || '');
+  const [errorMsg, setErrorMsg] = useState('');
+  const [showErrorModal, setShowErrorModal] = useState(false);
 
   if (!transaction) {
     return (
@@ -36,9 +39,9 @@ export default function TransactionEdit() {
     return (
       <div className="min-h-screen bg-canvas flex items-center justify-center px-5 py-12">
         <div className="text-center">
-          <p className="text-text-tertiary mb-4">Vous n'avez pas les droits nécessaires pour modifier cette transaction.</p>
+          <p className="text-text-tertiary mb-4">Vous n'avez pas les droits necessaires pour modifier cette transaction.</p>
           <button onClick={() => navigate(`/transaction/${id}`)} className="px-5 py-3 rounded-full text-sm font-semibold" style={{ backgroundColor: '#FF6B00', color: '#FFFFFF' }}>
-            Retour au détail
+            Retour au detail
           </button>
         </div>
       </div>
@@ -48,13 +51,18 @@ export default function TransactionEdit() {
   const filteredCategories = categories.filter(c => c.type === type);
   const isExpense = type === 'EXPENSE';
 
+  const showError = (msg: string) => {
+    setErrorMsg(msg);
+    setShowErrorModal(true);
+  };
+
   const handleSave = () => {
     if (!amount || parseFloat(amount) <= 0) {
-      alert('Veuillez entrer un montant valide');
+      showError('Veuillez entrer un montant valide');
       return;
     }
     if (!categoryId) {
-      alert('Veuillez sélectionner une catégorie');
+      showError('Veuillez sélectionner une catégorie');
       return;
     }
     updateTransaction(id!, {
@@ -79,7 +87,7 @@ export default function TransactionEdit() {
         </div>
 
         <div className="flex gap-3 mb-5">
-          <button onClick={() => { setType('INCOME'); setCategoryId(''); }} className="flex-1 py-3.5 rounded-full text-sm font-semibold" style={{ backgroundColor: type === 'INCOME' ? '#1DB954' : '#181818', color: type === 'INCOME' ? '#FFFFFF' : '#808080' }}>Entrée</button>
+          <button onClick={() => { setType('INCOME'); setCategoryId(''); }} className="flex-1 py-3.5 rounded-full text-sm font-semibold" style={{ backgroundColor: type === 'INCOME' ? '#1DB954' : '#181818', color: type === 'INCOME' ? '#FFFFFF' : '#808080' }}>Entree</button>
           <button onClick={() => { setType('EXPENSE'); setCategoryId(''); }} className="flex-1 py-3.5 rounded-full text-sm font-semibold" style={{ backgroundColor: type === 'EXPENSE' ? '#E51332' : '#181818', color: type === 'EXPENSE' ? '#FFFFFF' : '#808080' }}>Sortie</button>
         </div>
 
@@ -94,9 +102,9 @@ export default function TransactionEdit() {
         </div>
 
         <div className="mb-5">
-          <label className="block text-text-secondary text-sm font-medium mb-2">Catégorie</label>
+          <label className="block text-text-secondary text-sm font-medium mb-2">Categorie</label>
           <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="w-full px-4 py-3 rounded-lg text-text-primary text-sm outline-none appearance-none" style={{ backgroundColor: '#181818', border: '1px solid #282828' }}>
-            <option value="">Sélectionner</option>
+            <option value="">Selectionner</option>
             {filteredCategories.map((cat) => (<option key={cat.id} value={cat.id}>{cat.labelFr}</option>))}
           </select>
         </div>
@@ -119,6 +127,17 @@ export default function TransactionEdit() {
           <button onClick={handleSave} className="flex-1 py-3.5 rounded-full text-sm font-semibold" style={{ backgroundColor: '#FF6B00', color: '#FFFFFF' }}>Enregistrer</button>
         </div>
       </div>
+
+      {/* Error Modal */}
+      <ConfirmModal
+        open={showErrorModal}
+        onClose={() => setShowErrorModal(false)}
+        onConfirm={() => setShowErrorModal(false)}
+        title="Erreur"
+        description={errorMsg}
+        confirmLabel="Compris"
+        confirmVariant="primary"
+      />
     </div>
   );
 }

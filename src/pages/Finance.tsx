@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { formatCurrency, formatDate, getStatusColor, getStatusLabel, exportToCSV, getPeriodRange } from '@/lib/utils';
+import { formatCurrency, formatDate, getStatusColor, getStatusLabel, exportToCSV } from '@/lib/utils';
 import { useStore } from '@/store/useStore';
 import { Download, Plus } from 'lucide-react';
 import TransactionCard from '@/components/TransactionCard';
 import EmptyState from '@/components/EmptyState';
+import BottomNav from '@/components/BottomNav';
 import type { TransactionStatus } from '@/types';
 
 type StatusFilter = 'ALL' | 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED';
@@ -45,7 +46,7 @@ export default function Finance() {
         {/* Filter Pills */}
         <div className="flex flex-col gap-3 mb-5">
           <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
-            <span className="text-text-tertiary text-xs flex-shrink-0">État:</span>
+            <span className="text-text-tertiary text-xs flex-shrink-0">État :</span>
             {(['ALL', 'DRAFT', 'PENDING', 'APPROVED', 'REJECTED'] as StatusFilter[]).map((s) => (
               <button key={s} onClick={() => setStatusFilter(s)} className="px-3 py-1.5 rounded-full text-xs font-medium flex-shrink-0 transition-all" style={{ backgroundColor: statusFilter === s ? '#FF6B00' : '#181818', color: statusFilter === s ? '#FFFFFF' : '#808080' }}>
                 {s === 'ALL' ? 'Tous' : getStatusLabel(s)}
@@ -79,21 +80,7 @@ export default function Finance() {
         </div>
       </div>
 
-      {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 flex items-center justify-around" style={{ backgroundColor: '#181818', borderTop: '1px solid #282828', minHeight: '64px', zIndex: 50, paddingBottom: 'env(safe-area-inset-bottom)' }}>
-        {[
-          { path: '/', label: 'Accueil', icon: '🏠' },
-          { path: '/finance', label: 'Finance', icon: '📊' },
-          { path: '/transaction/new', label: 'Ajouter', icon: '➕' },
-          { path: '/groups', label: 'Groupes', icon: '👥' },
-          { path: '/settings', label: 'Réglages', icon: '⚙️' },
-        ].map((tab) => (
-          <button key={tab.path} onClick={() => navigate(tab.path)} className="flex flex-col items-center justify-center gap-1 px-4" style={{ minHeight: '44px' }}>
-            <span className="text-xl">{tab.icon}</span>
-            <span className="text-xs font-medium" style={{ color: location.pathname === tab.path ? '#FF6B00' : '#808080' }}>{tab.label}</span>
-          </button>
-        ))}
-      </nav>
+      <BottomNav />
     </div>
   );
 }
