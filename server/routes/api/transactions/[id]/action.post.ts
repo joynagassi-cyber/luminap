@@ -1,47 +1,29 @@
 import { defineHandler } from "nitro";
-import { readBody } from "nitro/h3";
-import { getRouterParam } from "nitro/h3";
+import { readBody, getRouterParam, createError } from "nitro/h3";
 import { store } from "../../../store";
 
 export default defineHandler(async (event) => {
   const id = getRouterParam(event, "id");
+  if (!id) throw createError({ statusCode: 400, statusMessage: "id required" });
+
   const body = await readBody<{ action?: string; comment?: string }>(event);
+  const tx = store.transactions.find(t => t.id === id);
+  if (!tx) throw createError({ statusCode: 404, statusMessage: "Not found" });
 
-  const txIndex = store.transactions.findIndex((t) => t.id === id);
-  if (txIndex === -1) {
-    return { ok: false, error: "Transaction not found" };
-  }
-
-  const tx = store.transactions[txIndex];
-  const now = new Date().toISOString();
-
-  if (body.action === "approve" && tx.status === "PENDING") {
-    store.transactions[txIndex] = {
-      ...tx,
-      status: "APPROVED",
-      approvedById: "user-1",
-      approvedAt: now,
-      updatedAt: now,
-      version: tx.version + 1,
-    };
-  } else if (body.action === "reject" && tx.status === "PENDING") {
-    store.transactions[txIndex] = {
-      ...tx,
-      status: "REJECTED",
-      comment: body.comment || null,
-      updatedAt: now,
-      version: tx.version + 1,
-    };
-  } else if (body.action === "submit" && tx.status === "DRAFT") {
-    store.transactions[txIndex] = {
-      ...tx,
-      status: "PENDING",
-      updatedAt: now,
-      version: tx.version + 1,
-    };
+  if (body.action === "APPROVE") {
+    if (tx.status !== "PENDING") throw createError({ statusCode: 400, statusMessage: "Transaction is not pending" });
+    tx.status = "APPROVED";
+    tx.approvedById = "user-1";
+    tx.approvedAt = new Date().toISOString();
+    tx.version = (tx.version || 0) + 1;
+  } else if (body.action === "REJECT") {
+    if (tx.status !== "PENDING") throw createError({ statusCode: 400, statusMessage: "Transaction is not pending" });
+    tx.status = "REJECTED";
+    tx.comment = body.comment || null;
+    tx.version = (tx.version || 0) + 1;
   } else {
-    return { ok: false, error: "Invalid action for this status" };
+    throw createError({ statusCode: 400, statusMessage: "Invalid action" });
   }
 
-  return { ok: true, transaction: store.transactions[txIndex] };
+  return { ok: true, transaction: tx };
 });

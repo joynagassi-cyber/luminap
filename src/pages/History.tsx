@@ -13,7 +13,7 @@ import { formatCurrency, formatDate, getPeriodRange } from '@/lib/utils';
 import { useStore } from '@/store/useStore';
 import BottomNav from '@/components/BottomNav';
 import BottomDrawer from '@/components/BottomDrawer';
-import type { Transaction } from '@/integrations/supabase/client';
+import type { Transaction } from '@/types';
 import type { PeriodType } from '@/lib/utils';
 
 const COLORS = ['#FF6B00', '#1DB954', '#E51332', '#FFB800', '#808080', '#2196F3', '#9C27B0'];
@@ -381,13 +381,13 @@ function getBarChartData(transactions: Transaction[], period: PeriodType) {
 function getPieData(transactions: Transaction[]) {
   const map = new Map<string, number>();
   for (const t of transactions) {
-    const existing = map.get(t.category_id) || 0;
-    map.set(t.category_id, existing + t.amount);
+    const existing = map.get(t.categoryId) || 0;
+    map.set(t.categoryId, existing + t.amount);
   }
   return Array.from(map.entries())
     .map(([id, value]) => {
-      const cat = transactions.find(t => t.category_id === id)?.category;
-      return { name: cat?.label_fr || id, value };
+      const cat = transactions.find(t => t.categoryId === id)?.category;
+      return { name: cat?.labelFr || id, value };
     })
     .sort((a, b) => b.value - a.value);
 }
@@ -395,13 +395,13 @@ function getPieData(transactions: Transaction[]) {
 function getOrgPieData(transactions: Transaction[]) {
   const map = new Map<string, number>();
   for (const t of transactions) {
-    if (!t.org_unit_id) continue;
-    const existing = map.get(t.org_unit_id) || 0;
-    map.set(t.org_unit_id, existing + t.amount);
+    if (!t.orgUnitId) continue;
+    const existing = map.get(t.orgUnitId) || 0;
+    map.set(t.orgUnitId, existing + t.amount);
   }
   return Array.from(map.entries())
     .map(([id, value]) => {
-      const unit = transactions.find(t => t.org_unit_id === id)?.org_unit;
+      const unit = transactions.find(t => t.orgUnitId === id)?.orgUnit;
       return { name: unit?.name || id, value };
     })
     .sort((a, b) => b.value - a.value);

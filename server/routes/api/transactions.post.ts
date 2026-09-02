@@ -28,6 +28,8 @@ export default defineHandler(async (event) => {
     createdById: "user-1",
     approvedById: null,
     approvedAt: null,
+    category: store.categories.find(c => c.id === categoryId),
+    creator: store.user ? { id: 'user-1', email: 'admin@mfe-jc.org', firstName: 'Pasteur', lastName: 'Jean', role: 'ADMIN', org: store.user.org } : undefined,
   };
 
   store.transactions = [newTx, ...store.transactions];

@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { formatCurrency, formatDate, getStatusColor, getStatusLabel } from '@/lib/utils';
 import { useStore } from '@/store/useStore';
-import type { Transaction } from '@/integrations/supabase/client';
+import type { Transaction } from '@/types';
 import BottomNav from '@/components/BottomNav';
 import type { PeriodType } from '@/lib/utils';
 
@@ -32,12 +32,12 @@ export default function Finance() {
     .filter(t => {
       if (statusFilter !== 'ALL' && t.status !== statusFilter) return false;
       if (typeFilter !== 'ALL' && t.type !== typeFilter) return false;
-      if (categoryId !== 'ALL' && t.category_id !== categoryId) return false;
+      if (categoryId !== 'ALL' && t.categoryId !== categoryId) return false;
       if (search.trim()) {
         const q = search.toLowerCase();
         return (
           t.description.toLowerCase().includes(q) ||
-          t.category?.label_fr.toLowerCase().includes(q) ||
+          t.category?.labelFr.toLowerCase().includes(q) ||
           formatCurrency(t.amount).includes(q) ||
           false
         );
@@ -169,7 +169,7 @@ export default function Finance() {
                       color: categoryId === cat.id ? '#FFFFFF' : '#808080',
                     }}
                   >
-                    {cat.label_fr}
+                    {cat.labelFr}
                   </button>
                 ))}
               </div>
@@ -276,7 +276,7 @@ function TransactionRow({ tx, onClick }: { tx: Transaction; onClick: () => void 
       <div className="flex-1 min-w-0">
         <p className="text-text-primary text-sm font-medium truncate">{tx.description}</p>
         <div className="flex items-center gap-2 mt-0.5">
-          <span className="text-text-tertiary text-xs">{tx.category?.label_fr}</span>
+          <span className="text-text-tertiary text-xs">{tx.category?.labelFr}</span>
           <span className="text-text-tertiary text-xs">·</span>
           <span className="text-text-tertiary text-xs">{formatDate(tx.date)}</span>
         </div>
@@ -333,7 +333,7 @@ function ChartPreview({ data, period }: { data: { label: string; income: number;
   );
 }
 
-function getChartData(transactions: Transaction[], period: PeriodType, categories: { id: string; label_fr: string; type: string }[]) {
+function getChartData(transactions: Transaction[], period: PeriodType, categories: { id: string; labelFr: string; type: string }[]) {
   const now = new Date();
   const data: { label: string; income: number; expense: number }[] = [];
 

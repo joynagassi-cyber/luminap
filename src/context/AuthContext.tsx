@@ -1,12 +1,14 @@
 import { createContext, useContext, ReactNode } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import type { Profile, Transaction, Category, OrgUnit, AuditEntry } from '@/integrations/supabase/client';
 import { useEffect, useState } from 'react';
+import type { User, Transaction, Category, OrgUnit, AuditEntry } from '@/types';
 
 interface AuthUser {
   id: string;
   email: string;
-  profile: Profile | null;
+  firstName: string;
+  lastName: string;
+  role: string;
+  org: { id: string; name: string; type: string; accentColor: string };
 }
 
 interface AppState {
@@ -40,75 +42,71 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   const loadUser = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.user) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .maybeSingle();
-      setState(s => ({ ...s, user: { id: session.user.id, email: session.user.email!, profile }, isLoading: false }));
-    } else {
-      setState(s => ({ ...s, user: null, isLoading: false }));
+    try {
+      const res = await fetch('/api/auth/session');
+      const data = await res.json();
+      if (data.ok && data.user) {
+        setState(s => ({ ...s, user: data.user, isLoading: false }));
+      } else {
+        setState(s => ({ ...s, user: null, isLoading: false }));
+      }
+    } catch {
+      setState(s => ({ ...s, isLoading: false }));
     }
   };
 
   const loadData = async () => {
-    const [catsRes, orgsRes, txRes, auditRes] = await Promise.all([
-      supabase.from('categories').select('*'),
-      supabase.from('org_units').select('*'),
-      supabase.from('transactions').select('*, category:categories(*), org_unit:org_units(*)').order('date', { ascending: false }),
-      supabase.from('audit_entries').select('*').order('created_at', { ascending: false }),
-    ]);
-
-    setState(s => ({
-      ...s,
-      categories: catsRes.data || [],
-      orgUnits: orgsRes.data || [],
-      transactions: txRes.data || [],
-      auditEntries: auditRes.data || [],
-      error: catsRes.error?.message || orgsRes.error?.message || txRes.error?.message || auditRes.error?.message || null,
-    }));
+    try {
+      const res = await fetch('/api/data');
+      const data = await res.json();
+      if (data.ok) {
+        setState(s => ({
+          ...s,
+          categories: data.categories || [],
+          orgUnits: data.orgUnits || [],
+          transactions: data.transactions || [],
+          auditEntries: data.auditEntries || [],
+        }));
+      }
+    } catch {
+      // ignore
+    }
   };
 
   useEffect(() => {
     loadUser();
-    supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        const { data: profile } = supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
-        profile.then(({ data }) => {
-          setState(s => ({ ...s, user: { id: session!.user.id, email: session!.user.email!, profile: data } }));
-          loadData();
-        });
-      } else {
-        setState(s => ({ ...s, user: null }));
-      }
-    });
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error || !data.user) {
-      setState(s => ({ ...s, error: error?.message || 'Identifiants invalides' }));
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (data.ok && data.user) {
+        setState(s => ({ ...s, user: data.user, error: null, isLoading: false }));
+        await loadData();
+        return true;
+      }
+      setState(s => ({ ...s, error: data.statusMessage || 'Identifiants invalides', isLoading: false }));
+      return false;
+    } catch {
+      setState(s => ({ ...s, error: 'Erreur de connexion', isLoading: false }));
       return false;
     }
-    await loadUser();
-    return true;
   };
 
   const signup = async (email: string, password: string, firstName: string, lastName: string): Promise<boolean> => {
-    const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { first_name: firstName, last_name: lastName } } });
-    if (error || !data.user) {
-      setState(s => ({ ...s, error: error?.message || 'Échec de l\'inscription' }));
-      return false;
-    }
-    await loadUser();
-    return true;
+    // For now, signup is not available - use existing credentials
+    setState(s => ({ ...s, error: 'Inscription désactivée. Utilisez les identifiants fournis.', isLoading: false }));
+    return false;
   };
 
   const logout = async () => {
-    await supabase.auth.signOut();
-    setState(s => ({ ...s, user: null }));
+    await fetch('/api/auth/session', { method: 'DELETE' }).catch(() => {});
+    setState(s => ({ ...s, user: null, transactions: [], categories: [], orgUnits: [], auditEntries: [] }));
   };
 
   const refreshData = () => loadData();

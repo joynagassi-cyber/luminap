@@ -3,9 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { useEffect } from "react";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
-import { setupRealtime, teardownRealtime } from "@/store/useStore";
 import Dashboard from "./pages/Dashboard";
 import Finance from "./pages/Finance";
 import TransactionNew from "./pages/TransactionNew";
@@ -20,7 +18,7 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-function AppRoutes() {
+const AppRoutes = () => {
   const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
@@ -49,18 +47,7 @@ function AppRoutes() {
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
-}
-
-function RealtimeManager() {
-  const { isAuthenticated } = useAuth();
-  useEffect(() => {
-    if (isAuthenticated) {
-      setupRealtime();
-      return () => teardownRealtime();
-    }
-  }, [isAuthenticated]);
-  return null;
-}
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -69,7 +56,6 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <RealtimeManager />
           <AppRoutes />
         </AuthProvider>
       </BrowserRouter>

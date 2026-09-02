@@ -112,13 +112,13 @@ export default function TransactionDetail() {
           <div className="rounded-lg overflow-hidden" style={{ backgroundColor: '#181818' }}>
             {[
               { label: 'Description', value: transaction.description || '—' },
-              { label: 'Catégorie', value: transaction.category?.label_fr || '—' },
+              { label: 'Catégorie', value: transaction.category?.labelFr || '—' },
               { label: 'Date', value: formatDate(transaction.date) },
-              { label: 'Créée le', value: formatDate(transaction.created_at) },
-              { label: 'Créée par', value: user?.profile?.first_name || '—' },
-              ...(transaction.approved_at ? [
-                { label: 'Approuvée le', value: transaction.approved_at ? formatDate(transaction.approved_at) : '—' },
-                { label: 'Approuvée par', value: user?.profile?.first_name || '—' },
+              { label: 'Créée le', value: formatDate(transaction.createdAt) },
+              { label: 'Créée par', value: transaction.creator?.firstName || '—' },
+              ...(transaction.approvedAt ? [
+                { label: 'Approuvée le', value: transaction.approvedAt ? formatDate(transaction.approvedAt) : '—' },
+                { label: 'Approuvée par', value: transaction.approver?.firstName || '—' },
               ] : []),
               ...(transaction.comment ? [{ label: 'Commentaire', value: transaction.comment }] : []),
             ].map((row, i) => (
@@ -180,10 +180,10 @@ export default function TransactionDetail() {
           <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider mb-3">Journal d'audit</p>
           <div className="rounded-lg overflow-hidden" style={{ backgroundColor: '#181818' }}>
             {[
-              { action: 'CRÉÉE', time: transaction.created_at, user: user?.profile?.first_name || '—' },
-              ...(transaction.status === 'PENDING' ? [{ action: 'SOUMISE', time: transaction.updated_at, user: user?.profile?.first_name || '—' }] : []),
-              ...(transaction.approved_at ? [{ action: 'APPROUVÉE', time: transaction.approved_at, user: user?.profile?.first_name || '—' }] : []),
-              ...(transaction.status === 'REJECTED' && transaction.comment ? [{ action: 'REJETÉE', time: transaction.updated_at, user: 'Admin', comment: transaction.comment }] : []),
+              { action: 'CRÉÉE', time: transaction.createdAt, user: user?.firstName || '—' },
+              ...(transaction.status === 'PENDING' ? [{ action: 'SOUMISE', time: transaction.updatedAt, user: user?.firstName || '—' }] : []),
+              ...(transaction.approvedAt ? [{ action: 'APPROUVÉE', time: transaction.approvedAt, user: user?.firstName || '—' }] : []),
+              ...(transaction.status === 'REJECTED' && transaction.comment ? [{ action: 'REJETÉE', time: transaction.updatedAt, user: 'Admin', comment: transaction.comment }] : []),
             ].map((entry, i) => (
               <div key={i} className="flex items-center gap-3 px-4 py-3 border-b last:border-0" style={{ borderBottomColor: '#282828' }}>
                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#FF6B00' }} />

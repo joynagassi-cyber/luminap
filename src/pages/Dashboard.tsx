@@ -38,7 +38,7 @@ export default function Dashboard() {
             <div>
               <p className="text-text-tertiary text-xs">Lumina</p>
               <h1 className="text-sm font-bold text-text-primary">
-                {user?.profile?.first_name || 'Utilisateur'}
+                {user?.firstName || 'Utilisateur'}
               </h1>
             </div>
           </div>

@@ -1,4 +1,4 @@
-import type { Transaction } from '@/integrations/supabase/client';
+import type { Transaction } from '@/types';
 import { formatCurrency, formatDate, getStatusColor, getStatusLabel } from '@/lib/utils';
 import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
 

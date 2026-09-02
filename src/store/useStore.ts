@@ -1,33 +1,46 @@
 import { create } from 'zustand';
-import { supabase } from '@/integrations/supabase/client';
-import type { Transaction, Category, OrgUnit, AuditEntry, Profile } from '@/integrations/supabase/client';
+import type { Transaction, Category, OrgUnit, AuditEntry, User } from '@/types';
 
-interface LuminaState {
+interface AppState {
   isAuthenticated: boolean;
-  user: { id: string; email: string; profile: Profile | null } | null;
+  user: User | null;
   transactions: Transaction[];
   categories: Category[];
   orgUnits: OrgUnit[];
   auditEntries: AuditEntry[];
   isLoading: boolean;
   error: string | null;
+}
 
+interface StoreActions {
   login: (email: string, password: string) => Promise<boolean>;
-  signup: (email: string, password: string, firstName: string, lastName: string) => Promise<boolean>;
   logout: () => Promise<void>;
   refreshData: () => Promise<void>;
-
   addTransaction: (tx: {
     type: string; amount: number; description: string; date: string;
     categoryId: string; orgUnitId?: string; status: string;
   }) => Promise<void>;
   updateTransaction: (id: string, updates: Partial<Transaction>) => Promise<void>;
-  approveTransaction: (id: string, approverId: string) => Promise<void>;
+  approveTransaction: (id: string) => Promise<void>;
   rejectTransaction: (id: string, comment: string) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
 }
 
-export const useStore = create<LuminaState>((set, get) => ({
+const API_BASE = '/api';
+
+async function fetchApi<T>(path: string, options?: RequestInit): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { 'Content-Type': 'application/json' },
+    ...options,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { statusMessage?: string; message?: string }).statusMessage || res.statusText);
+  }
+  return res.json();
+}
+
+export const useStore = create<AppState & StoreActions>((set, get) => ({
   isAuthenticated: false,
   user: null,
   transactions: [],
@@ -38,174 +51,129 @@ export const useStore = create<LuminaState>((set, get) => ({
   error: null,
 
   login: async (email, password) => {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error || !data.user) {
-      set({ error: error?.message || 'Identifiants invalides' });
+    try {
+      const res = await fetchApi<{ ok: boolean; user: User; sessionToken: string }>(`/auth/login`, {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      });
+      if (res.ok && res.user) {
+        set({ isAuthenticated: true, user: res.user, error: null });
+        await get().refreshData();
+        return true;
+      }
+      set({ error: 'Identifiants invalides' });
+      return false;
+    } catch (e) {
+      set({ error: (e as Error).message || 'Erreur de connexion' });
       return false;
     }
-    await get().refreshData();
-    return true;
-  },
-
-  signup: async (email, password, firstName, lastName) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { first_name: firstName, last_name: lastName } },
-    });
-    if (error || !data.user) {
-      set({ error: error?.message || 'Échec de l\'inscription' });
-      return false;
-    }
-    await get().refreshData();
-    return true;
   },
 
   logout: async () => {
-    await supabase.auth.signOut();
+    await fetchApi('/auth/session', { method: 'DELETE' }).catch(() => {});
     set({ isAuthenticated: false, user: null, transactions: [], categories: [], orgUnits: [], auditEntries: [] });
   },
 
   refreshData: async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      set({ isLoading: false, isAuthenticated: false });
-      return;
+    try {
+      const res = await fetchApi<{ ok: boolean; categories: Category[]; orgUnits: OrgUnit[]; transactions: Transaction[]; auditEntries: AuditEntry[] }>(`/data`);
+      if (res.ok) {
+        set({
+          categories: res.categories || [],
+          orgUnits: res.orgUnits || [],
+          transactions: res.transactions || [],
+          auditEntries: res.auditEntries || [],
+          error: null,
+        });
+      }
+    } catch (e) {
+      set({ error: (e as Error).message });
+    } finally {
+      set({ isLoading: false });
     }
-
-    // Fetch user profile
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .maybeSingle();
-
-    // Fetch all categories
-    const { data: cats } = await supabase.from('categories').select('*');
-
-    // Fetch all org units
-    const { data: orgs } = await supabase.from('org_units').select('*');
-
-    // Fetch transactions with full relations (categories + org_units)
-    const { data: txs } = await supabase
-      .from('transactions')
-      .select(`
-        *,
-        category:categories(*),
-        org_unit:org_units(*)
-      `)
-      .order('date', { ascending: false });
-
-    // Fetch audit entries
-    const { data: audits } = await supabase
-      .from('audit_entries')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    set({
-      isAuthenticated: true,
-      user: { id: user.id, email: user.email!, profile },
-      categories: cats || [],
-      orgUnits: orgs || [],
-      transactions: txs || [],
-      auditEntries: audits || [],
-      isLoading: false,
-      error: null,
-    });
   },
 
   addTransaction: async (tx) => {
-    const { user } = get();
-    const newTx = {
-      id: `tx-${Date.now()}`,
-      org_id: 'org-1',
-      type: tx.type,
-      amount: Math.round(tx.amount),
-      description: tx.description,
-      date: tx.date,
-      status: tx.status as 'DRAFT' | 'PENDING',
-      category_id: tx.categoryId,
-      org_unit_id: tx.orgUnitId || null,
-      compensates_for: null,
-      comment: null,
-      version: 1,
-      created_by_id: user?.id || null,
-      approved_by_id: null,
-      approved_at: null,
-    };
-
-    const { error } = await supabase.from('transactions').insert(newTx);
-    if (error) { set({ error: error.message }); return; }
-    get().refreshData();
+    try {
+      const res = await fetchApi<{ ok: boolean; transaction: Transaction }>(`/transactions`, {
+        method: 'POST',
+        body: JSON.stringify(tx),
+      });
+      if (res.ok) {
+        set(s => ({ transactions: [res.transaction, ...s.transactions] }));
+      }
+    } catch (e) {
+      set({ error: (e as Error).message });
+    }
   },
 
   updateTransaction: async (id, updates) => {
-    const { error } = await supabase.from('transactions').update(updates).eq('id', id);
-    if (error) { set({ error: error.message }); return; }
-    get().refreshData();
+    try {
+      await fetchApi<{ ok: boolean }>(`/transactions/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(updates),
+      });
+      await get().refreshData();
+    } catch (e) {
+      set({ error: (e as Error).message });
+    }
   },
 
-  approveTransaction: async (id, approverId) => {
-    const { error } = await supabase.from('transactions').update({
-      status: 'APPROVED',
-      approved_by_id: approverId,
-      approved_at: new Date().toISOString(),
-      version: 1,
-    }).eq('id', id);
-    if (error) { set({ error: error.message }); return; }
-    get().refreshData();
+  approveTransaction: async (id) => {
+    try {
+      const res = await fetchApi<{ ok: boolean; transaction: Transaction }>(`/transactions/${id}/action`, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'APPROVE' }),
+      });
+      if (res.ok) {
+        set(s => ({
+          transactions: s.transactions.map(t => t.id === id ? { ...t, ...res.transaction } : t),
+          error: null,
+        }));
+      }
+    } catch (e) {
+      set({ error: (e as Error).message });
+    }
   },
 
   rejectTransaction: async (id, comment) => {
-    const { error } = await supabase.from('transactions').update({
-      status: 'REJECTED',
-      comment,
-      version: 1,
-    }).eq('id', id);
-    if (error) { set({ error: error.message }); return; }
-    get().refreshData();
+    try {
+      const res = await fetchApi<{ ok: boolean; transaction: Transaction }>(`/transactions/${id}/action`, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'REJECT', comment }),
+      });
+      if (res.ok) {
+        set(s => ({
+          transactions: s.transactions.map(t => t.id === id ? { ...t, ...res.transaction } : t),
+          error: null,
+        }));
+      }
+    } catch (e) {
+      set({ error: (e as Error).message });
+    }
   },
 
   deleteTransaction: async (id) => {
-    const { error } = await supabase.from('transactions').delete().eq('id', id);
-    if (error) { set({ error: error.message }); return; }
-    get().refreshData();
+    try {
+      await fetchApi<{ ok: boolean }>(`/transactions/${id}`, { method: 'DELETE' });
+      set(s => ({ transactions: s.transactions.filter(t => t.id !== id), error: null }));
+    } catch (e) {
+      set({ error: (e as Error).message });
+    }
   },
 }));
-
-// Real-time subscription
-let subscription: ReturnType<typeof supabase.channel> | null = null;
-
-export function setupRealtime() {
-  if (subscription) return;
-  subscription = supabase
-    .channel('lumina-changes')
-    .on(
-      'postgres_changes',
-      { event: '*', schema: 'public', table: 'transactions' },
-      () => { get().refreshData(); }
-    )
-    .subscribe();
-}
-
-export function teardownRealtime() {
-  if (subscription) {
-    supabase.removeChannel(subscription);
-    subscription = null;
-  }
-}
 
 export function canActOnTransaction(
   transaction: Transaction | undefined,
   action: 'approve' | 'reject' | 'edit' | 'delete',
-  currentUser: { id: string; profile: Profile | null } | null,
+  currentUser: User | null,
 ): boolean {
   if (!transaction || !currentUser) return false;
   switch (action) {
     case 'edit': return transaction.status === 'DRAFT' || transaction.status === 'REJECTED';
     case 'delete': return transaction.status === 'REJECTED';
-    case 'approve': return transaction.status === 'PENDING' && currentUser.profile?.role !== 'TREASURER';
-    case 'reject': return transaction.status === 'PENDING' && currentUser.profile?.role !== 'TREASURER';
+    case 'approve': return transaction.status === 'PENDING' && currentUser.role !== 'TREASURER';
+    case 'reject': return transaction.status === 'PENDING' && currentUser.role !== 'TREASURER';
     default: return false;
   }
 }
