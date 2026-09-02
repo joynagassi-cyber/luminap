@@ -82,8 +82,8 @@ const TRANSACTIONS: Transaction[] = [
     comment: null,
     version: 1,
     category: CATEGORIES[0],
-    creator: USER,
-    approver: USER,
+    creator: adminUser,
+    approver: adminUser,
   },
   {
     id: "tx-2",
@@ -104,8 +104,8 @@ const TRANSACTIONS: Transaction[] = [
     comment: null,
     version: 1,
     category: CATEGORIES[1],
-    creator: USER,
-    approver: USER,
+    creator: adminUser,
+    approver: adminUser,
   },
   {
     id: "tx-3",
@@ -126,7 +126,7 @@ const TRANSACTIONS: Transaction[] = [
     comment: null,
     version: 1,
     category: CATEGORIES[5],
-    creator: USER,
+    creator: adminUser,
   },
   {
     id: "tx-4",
@@ -147,7 +147,7 @@ const TRANSACTIONS: Transaction[] = [
     comment: null,
     version: 1,
     category: CATEGORIES[2],
-    creator: USER,
+    creator: adminUser,
   },
   {
     id: "tx-5",
@@ -168,8 +168,8 @@ const TRANSACTIONS: Transaction[] = [
     comment: null,
     version: 1,
     category: CATEGORIES[8],
-    creator: USER,
-    approver: USER,
+    creator: adminUser,
+    approver: adminUser,
   },
 ];
 
@@ -184,7 +184,7 @@ const AUDIT_ENTRIES: AuditEntry[] = [
     entityId: "tx-1",
     comment: null,
     createdAt: new Date(now.getTime() - 7 * 86400000).toISOString(),
-    user: USER,
+    user: adminUser,
   },
   {
     id: "audit-2",
@@ -196,7 +196,7 @@ const AUDIT_ENTRIES: AuditEntry[] = [
     entityId: "tx-1",
     comment: null,
     createdAt: new Date(now.getTime() - 6 * 86400000).toISOString(),
-    user: USER,
+    user: adminUser,
   },
   {
     id: "audit-3",
@@ -208,7 +208,7 @@ const AUDIT_ENTRIES: AuditEntry[] = [
     entityId: "tx-3",
     comment: null,
     createdAt: new Date(now.getTime() - 8 * 86400000).toISOString(),
-    user: USER,
+    user: adminUser,
   },
 ];
 
