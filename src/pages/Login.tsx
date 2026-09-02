@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '@/store/useStore';
 import { LogIn, Lock } from 'lucide-react';
@@ -14,23 +14,35 @@ export default function Login() {
   const [localError, setLocalError] = useState('');
   const [loading, setLoading] = useState(false);
   const [lockedUntil, setLockedUntil] = useState<number | null>(null);
+  const [remainingSeconds, setRemainingSeconds] = useState(0);
   const [isSignup, setIsSignup] = useState(false);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const attemptCount = useRef(0);
   const lockoutTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useState(() => () => {
-    if (lockoutTimer.current) clearTimeout(lockoutTimer.current);
-  });
+  useEffect(() => {
+    return () => {
+      if (lockoutTimer.current) clearTimeout(lockoutTimer.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (lockedUntil && Date.now() < lockedUntil) {
+        setRemainingSeconds(Math.ceil((lockedUntil - Date.now()) / 1000));
+      } else if (remainingSeconds > 0) {
+        setRemainingSeconds(0);
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [lockedUntil, remainingSeconds]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLocalError('');
 
     if (lockedUntil && Date.now() < lockedUntil) {
-      const remaining = Math.ceil((lockedUntil - Date.now()) / 1000);
-      setLocalError(`Trop de tentatives. Réessayez dans ${remaining}s`);
       return;
     }
 
@@ -61,8 +73,9 @@ export default function Login() {
         if (attemptCount.current >= MAX_ATTEMPTS && !isSignup) {
           const until = Date.now() + LOCKOUT_DURATION;
           setLockedUntil(until);
+          setRemainingSeconds(Math.ceil(LOCKOUT_DURATION / 1000));
           lockoutTimer.current = setTimeout(() => setLockedUntil(null), LOCKOUT_DURATION);
-          setLocalError(`Compte verrouillé. Réessayez dans ${LOCKOUT_DURATION / 1000}s`);
+          setLocalError('Trop de tentatives. Réessayez dans 60s');
         } else {
           setLocalError(error || (isSignup ? 'Échec de l\'inscription' : 'Identifiants invalides'));
         }
@@ -136,6 +149,13 @@ export default function Login() {
 
         {localError && (
           <p className="text-sm" style={{ color: '#E51332' }}>{localError}</p>
+        )}
+
+        {lockedUntil && Date.now() < lockedUntil && (
+          <div className="flex items-center justify-center gap-2 py-3 rounded-full text-sm font-medium" style={{ backgroundColor: '#E5133220', color: '#E51332' }}>
+            <Lock className="w-4 h-4" />
+            Réessayez dans {remainingSeconds}s
+          </div>
         )}
 
         <button
