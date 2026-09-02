@@ -27,7 +27,7 @@ export default function BottomNav() {
       <nav
         className="fixed bottom-0 left-0 right-0 flex items-center justify-around z-50"
         style={{
-          backgroundColor: '#181818',
+          backgroundColor: '#212121',
           borderTop: '1px solid #282828',
           minHeight: '64px',
           paddingBottom: 'env(safe-area-inset-bottom)',

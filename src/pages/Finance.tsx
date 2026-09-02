@@ -62,7 +62,7 @@ export default function Finance() {
             <button
               onClick={() => navigate('/history')}
               className="flex items-center gap-1 px-3 py-2 rounded-full text-sm"
-              style={{ backgroundColor: '#181818', color: '#B3B3B3' }}
+              style={{ backgroundColor: '#212121', color: '#B3B3B3' }}
             >
               <BarChart3 className="w-4 h-4" />Historique
             </button>
@@ -78,7 +78,7 @@ export default function Finance() {
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Rechercher une transaction..."
             className="w-full pl-10 pr-10 py-2.5 rounded-full text-sm text-text-primary outline-none"
-            style={{ backgroundColor: '#181818', border: '1px solid #282828' }}
+            style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
           />
           {search && (
             <button
@@ -104,7 +104,7 @@ export default function Finance() {
 
         {/* Filter Panels */}
         {showFilters && (
-          <div className="space-y-3 mb-5 p-4 rounded-xl" style={{ backgroundColor: '#181818' }}>
+          <div className="space-y-3 mb-5 p-4 rounded-xl" style={{ backgroundColor: '#212121' }}>
             {/* Status */}
             <div>
               <p className="text-text-tertiary text-xs mb-2">État</p>
@@ -179,7 +179,7 @@ export default function Finance() {
 
         {/* Quick Stats */}
         <div className="grid grid-cols-3 gap-3 mb-5">
-          <div className="rounded-xl p-3 text-center" style={{ backgroundColor: '#181818' }}>
+          <div className="rounded-xl p-3 text-center" style={{ backgroundColor: '#212121' }}>
             <div className="flex items-center justify-center gap-1 mb-1">
               <ArrowUpRight className="w-3 h-3" style={{ color: '#1DB954' }} />
               <p className="text-text-tertiary text-xs">Entrées</p>
@@ -188,7 +188,7 @@ export default function Finance() {
               {formatCurrency(filtered.filter(t => t.type === 'INCOME').reduce((s, t) => s + t.amount, 0))}
             </p>
           </div>
-          <div className="rounded-xl p-3 text-center" style={{ backgroundColor: '#181818' }}>
+          <div className="rounded-xl p-3 text-center" style={{ backgroundColor: '#212121' }}>
             <div className="flex items-center justify-center gap-1 mb-1">
               <ArrowDownLeft className="w-3 h-3" style={{ color: '#E51332' }} />
               <p className="text-text-tertiary text-xs">Sorties</p>
@@ -197,7 +197,7 @@ export default function Finance() {
               {formatCurrency(filtered.filter(t => t.type === 'EXPENSE').reduce((s, t) => s + t.amount, 0))}
             </p>
           </div>
-          <div className="rounded-xl p-3 text-center" style={{ backgroundColor: '#181818' }}>
+          <div className="rounded-xl p-3 text-center" style={{ backgroundColor: '#212121' }}>
             <div className="flex items-center justify-center gap-1 mb-1">
               <TrendingUp className="w-3 h-3" style={{ color: '#FF6B00' }} />
               <p className="text-text-tertiary text-xs">Net</p>
@@ -218,7 +218,7 @@ export default function Finance() {
               key={p}
               onClick={() => setPeriod(p)}
               className="flex-1 py-2 rounded-full text-xs font-medium transition-all"
-              style={{ backgroundColor: period === p ? '#FF6B00' : '#181818', color: period === p ? '#FFFFFF' : '#808080' }}
+              style={{ backgroundColor: period === p ? '#FF6B00' : '#212121', color: period === p ? '#FFFFFF' : '#808080' }}
             >
               {p === 'mois' ? 'Mois' : p === 'trimestre' ? 'Trimestre' : 'Année'}
             </button>
@@ -226,7 +226,7 @@ export default function Finance() {
         </div>
 
         {/* Mini Chart */}
-        <div className="rounded-xl p-4 mb-5" style={{ backgroundColor: '#181818' }}>
+        <div className="rounded-xl p-4 mb-5" style={{ backgroundColor: '#212121' }}>
           <div className="flex items-center gap-2 mb-3">
             <BarChart3 className="w-4 h-4" style={{ color: '#FF6B00' }} />
             <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider">Aperçu</p>
@@ -237,7 +237,7 @@ export default function Finance() {
         {/* Transactions List */}
         <div className="space-y-2 mb-6 pb-20">
           {filtered.length === 0 ? (
-            <div className="text-center py-10 rounded-xl" style={{ backgroundColor: '#181818' }}>
+            <div className="text-center py-10 rounded-xl" style={{ backgroundColor: '#212121' }}>
               <Search className="w-8 h-8 mx-auto mb-3 text-text-tertiary" />
               <p className="text-text-tertiary text-sm">Aucun résultat</p>
               <p className="text-text-tertiary text-xs mt-1">Essayez de modifier vos filtres</p>
@@ -261,7 +261,7 @@ function TransactionRow({ tx, onClick }: { tx: Transaction; onClick: () => void 
     <button
       onClick={onClick}
       className="w-full flex items-center gap-3 p-4 rounded-xl text-left active:scale-95 transition-transform"
-      style={{ backgroundColor: '#181818' }}
+      style={{ backgroundColor: '#212121' }}
     >
       <div
         className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"

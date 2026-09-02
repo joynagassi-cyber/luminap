@@ -89,7 +89,7 @@ export default function Login() {
     <div className="min-h-screen flex flex-col items-center justify-center px-6" style={{ backgroundColor: '#121212' }}>
       {/* Logo */}
       <div className="mb-8 flex flex-col items-center">
-        <div className="w-20 h-20 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: '#181818', border: '2px solid #FF6B00' }}>
+        <div className="w-20 h-20 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: '#212121', border: '2px solid #FF6B00' }}>
           <span className="text-4xl font-black" style={{ color: '#FF6B00' }}>L</span>
         </div>
         <h1 className="text-2xl font-bold text-text-primary">Lumina</h1>
@@ -107,7 +107,7 @@ export default function Login() {
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
                 className="w-full px-4 py-3 rounded-lg text-text-primary text-base outline-none"
-                style={{ backgroundColor: '#181818', border: '1px solid #282828' }}
+                style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
               />
             </div>
             <div>
@@ -117,7 +117,7 @@ export default function Login() {
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
                 className="w-full px-4 py-3 rounded-lg text-text-primary text-base outline-none"
-                style={{ backgroundColor: '#181818', border: '1px solid #282828' }}
+                style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
               />
             </div>
           </div>
@@ -131,7 +131,7 @@ export default function Login() {
             onChange={(e) => setEmail(e.target.value)}
             placeholder="admin@mfe-jc.org"
             className="w-full px-4 py-3 rounded-lg text-text-primary text-base outline-none"
-            style={{ backgroundColor: '#181818', border: '1px solid #282828' }}
+            style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
           />
         </div>
 
@@ -143,7 +143,7 @@ export default function Login() {
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
             className="w-full px-4 py-3 rounded-lg text-text-primary text-base outline-none"
-            style={{ backgroundColor: '#181818', border: '1px solid #282828' }}
+            style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
           />
         </div>
 

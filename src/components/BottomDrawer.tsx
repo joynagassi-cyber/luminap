@@ -56,7 +56,7 @@ export default function BottomDrawer({ open, onClose }: BottomDrawerProps) {
         ref={drawerRef}
         className="fixed bottom-0 left-0 right-0 z-50 rounded-t-2xl overflow-hidden"
         style={{
-          backgroundColor: '#181818',
+          backgroundColor: '#212121',
           borderTop: '1px solid #282828',
           maxHeight: '80vh',
           transform: open ? 'translateY(0)' : 'translateY(100%)',

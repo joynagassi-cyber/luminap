@@ -39,7 +39,6 @@ export default function History() {
 
   const approved = transactions.filter(t => t.status === 'APPROVED' && t.date >= startDate && t.date <= endDate);
 
-  // Chart data
   const lineData = getLineChartData(approved, period);
   const barData = getBarChartData(approved, period);
   const pieData = getPieData(approved);
@@ -55,7 +54,7 @@ export default function History() {
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
-            <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#181818' }}>
+            <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#212121' }}>
               <ArrowLeft className="w-5 h-5 text-text-primary" />
             </button>
             <div>
@@ -66,7 +65,7 @@ export default function History() {
           <button
             onClick={() => setDrawerOpen(true)}
             className="px-3 py-2 rounded-full text-sm"
-            style={{ backgroundColor: '#181818', color: '#B3B3B3' }}
+            style={{ backgroundColor: '#212121', color: '#B3B3B3' }}
           >
             Plus
           </button>
@@ -79,7 +78,7 @@ export default function History() {
               key={p}
               onClick={() => handlePeriodChange(p)}
               className="flex-1 py-2.5 rounded-full text-xs font-medium transition-all"
-              style={{ backgroundColor: period === p ? '#FF6B00' : '#181818', color: period === p ? '#FFFFFF' : '#808080' }}
+              style={{ backgroundColor: period === p ? '#FF6B00' : '#212121', color: period === p ? '#FFFFFF' : '#808080' }}
             >
               {p === 'mois' ? 'Mois' : p === 'trimestre' ? 'Trimestre' : 'Année'}
             </button>
@@ -92,33 +91,33 @@ export default function History() {
             <label className="block text-text-tertiary text-xs mb-1.5">Du</label>
             <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
               className="w-full px-3 py-2.5 rounded-lg text-sm text-text-primary outline-none"
-              style={{ backgroundColor: '#181818', border: '1px solid #282828' }} />
+              style={{ backgroundColor: '#212121', border: '1px solid #282828' }} />
           </div>
           <div className="flex-1">
             <label className="block text-text-tertiary text-xs mb-1.5">Au</label>
             <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)}
               className="w-full px-3 py-2.5 rounded-lg text-sm text-text-primary outline-none"
-              style={{ backgroundColor: '#181818', border: '1px solid #282828' }} />
+              style={{ backgroundColor: '#212121', border: '1px solid #282828' }} />
           </div>
         </div>
 
         {/* Summary Cards */}
         <div className="grid grid-cols-3 gap-3 mb-5">
-          <div className="rounded-xl p-4 text-center" style={{ backgroundColor: '#181818' }}>
+          <div className="rounded-xl p-4 text-center" style={{ backgroundColor: '#212121' }}>
             <div className="flex items-center justify-center gap-1 mb-2">
               <ArrowUpRight className="w-4 h-4" style={{ color: '#1DB954' }} />
               <p className="text-text-tertiary text-xs">Entrées</p>
             </div>
             <p className="text-lg font-black tabular-nums" style={{ color: '#1DB954' }}>{formatCurrency(totalIncome)}</p>
           </div>
-          <div className="rounded-xl p-4 text-center" style={{ backgroundColor: '#181818' }}>
+          <div className="rounded-xl p-4 text-center" style={{ backgroundColor: '#212121' }}>
             <div className="flex items-center justify-center gap-1 mb-2">
               <ArrowDownLeft className="w-4 h-4" style={{ color: '#E51332' }} />
               <p className="text-text-tertiary text-xs">Sorties</p>
             </div>
             <p className="text-lg font-black tabular-nums" style={{ color: '#E51332' }}>{formatCurrency(totalExpense)}</p>
           </div>
-          <div className="rounded-xl p-4 text-center" style={{ backgroundColor: '#181818' }}>
+          <div className="rounded-xl p-4 text-center" style={{ backgroundColor: '#212121' }}>
             <div className="flex items-center justify-center gap-1 mb-2">
               <TrendingUp className="w-4 h-4" style={{ color: '#FF6B00' }} />
               <p className="text-text-tertiary text-xs">Résultat</p>
@@ -130,7 +129,7 @@ export default function History() {
         </div>
 
         {/* Bezier Curve Chart */}
-        <div className="rounded-xl p-4 mb-5" style={{ backgroundColor: '#181818' }}>
+        <div className="rounded-xl p-4 mb-5" style={{ backgroundColor: '#212121' }}>
           <div className="flex items-center gap-2 mb-4">
             <TrendingUp className="w-4 h-4" style={{ color: '#FF6B00' }} />
             <p className="text-text-primary text-sm font-semibold">Évolution du solde</p>
@@ -151,7 +150,7 @@ export default function History() {
               <XAxis dataKey="label" tick={{ fill: '#808080', fontSize: 11 }} />
               <YAxis tick={{ fill: '#808080', fontSize: 10 }} tickFormatter={(v) => `${(v/10000).toFixed(0)}k`} />
               <Tooltip
-                contentStyle={{ backgroundColor: '#181818', border: '1px solid #282828', borderRadius: '8px' }}
+                contentStyle={{ backgroundColor: '#212121', border: '1px solid #282828', borderRadius: '8px' }}
                 labelStyle={{ color: '#B3B3B3' }}
                 formatter={(value: number) => [formatCurrency(value), '']}
               />
@@ -163,7 +162,7 @@ export default function History() {
         </div>
 
         {/* Bar Chart */}
-        <div className="rounded-xl p-4 mb-5" style={{ backgroundColor: '#181818' }}>
+        <div className="rounded-xl p-4 mb-5" style={{ backgroundColor: '#212121' }}>
           <div className="flex items-center gap-2 mb-4">
             <BarChart3 className="w-4 h-4" style={{ color: '#FF6B00' }} />
             <p className="text-text-primary text-sm font-semibold">Revenus vs Dépenses</p>
@@ -174,7 +173,7 @@ export default function History() {
               <XAxis dataKey="label" tick={{ fill: '#808080', fontSize: 11 }} />
               <YAxis tick={{ fill: '#808080', fontSize: 10 }} tickFormatter={(v) => `${(v/10000).toFixed(0)}k`} />
               <Tooltip
-                contentStyle={{ backgroundColor: '#181818', border: '1px solid #282828', borderRadius: '8px' }}
+                contentStyle={{ backgroundColor: '#212121', border: '1px solid #282828', borderRadius: '8px' }}
                 labelStyle={{ color: '#B3B3B3' }}
                 formatter={(value: number) => [formatCurrency(value), '']}
               />
@@ -187,7 +186,7 @@ export default function History() {
         {/* Pie Charts Row */}
         <div className="grid grid-cols-2 gap-3 mb-5">
           {/* By Category */}
-          <div className="rounded-xl p-4" style={{ backgroundColor: '#181818' }}>
+          <div className="rounded-xl p-4" style={{ backgroundColor: '#212121' }}>
             <div className="flex items-center gap-2 mb-3">
               <PieChart className="w-4 h-4" style={{ color: '#FF6B00' }} />
               <p className="text-text-primary text-xs font-semibold">Par catégorie</p>
@@ -208,7 +207,7 @@ export default function History() {
                   ))}
                 </Pie>
                 <Tooltip
-                  contentStyle={{ backgroundColor: '#181818', border: '1px solid #282828', borderRadius: '8px', fontSize: '11px' }}
+                  contentStyle={{ backgroundColor: '#212121', border: '1px solid #282828', borderRadius: '8px', fontSize: '11px' }}
                   formatter={(value: number) => formatCurrency(value)}
                 />
               </RePieChart>
@@ -224,7 +223,7 @@ export default function History() {
           </div>
 
           {/* By Org Unit */}
-          <div className="rounded-xl p-4" style={{ backgroundColor: '#181818' }}>
+          <div className="rounded-xl p-4" style={{ backgroundColor: '#212121' }}>
             <div className="flex items-center gap-2 mb-3">
               <BarChart3 className="w-4 h-4" style={{ color: '#FF6B00' }} />
               <p className="text-text-primary text-xs font-semibold">Par groupe</p>
@@ -245,7 +244,7 @@ export default function History() {
                   ))}
                 </Pie>
                 <Tooltip
-                  contentStyle={{ backgroundColor: '#181818', border: '1px solid #282828', borderRadius: '8px', fontSize: '11px' }}
+                  contentStyle={{ backgroundColor: '#212121', border: '1px solid #282828', borderRadius: '8px', fontSize: '11px' }}
                   formatter={(value: number) => formatCurrency(value)}
                 />
               </RePieChart>
@@ -262,7 +261,7 @@ export default function History() {
         </div>
 
         {/* Line Chart — Bezier style */}
-        <div className="rounded-xl p-4 mb-5" style={{ backgroundColor: '#181818' }}>
+        <div className="rounded-xl p-4 mb-5" style={{ backgroundColor: '#212121' }}>
           <div className="flex items-center gap-2 mb-4">
             <TrendingUp className="w-4 h-4" style={{ color: '#FF6B00' }} />
             <p className="text-text-primary text-sm font-semibold">Tendance du solde (Bezier)</p>
@@ -273,7 +272,7 @@ export default function History() {
               <XAxis dataKey="label" tick={{ fill: '#808080', fontSize: 11 }} />
               <YAxis tick={{ fill: '#808080', fontSize: 10 }} tickFormatter={(v) => `${(v/10000).toFixed(0)}k`} />
               <Tooltip
-                contentStyle={{ backgroundColor: '#181818', border: '1px solid #282828', borderRadius: '8px' }}
+                contentStyle={{ backgroundColor: '#212121', border: '1px solid #282828', borderRadius: '8px' }}
                 labelStyle={{ color: '#B3B3B3' }}
                 formatter={(value: number) => [formatCurrency(value), '']}
               />
@@ -311,7 +310,7 @@ export default function History() {
         {/* Actions */}
         <div className="flex gap-3 mb-6 pb-20">
           <button className="flex-1 py-3 rounded-full text-sm font-semibold flex items-center justify-center gap-2"
-            style={{ backgroundColor: '#181818', color: '#B3B3B3' }}>
+            style={{ backgroundColor: '#212121', color: '#B3B3B3' }}>
             <Download className="w-4 h-4" />Exporter
           </button>
           <button onClick={() => navigate('/finance')} className="flex-1 py-3 rounded-full text-sm font-semibold"

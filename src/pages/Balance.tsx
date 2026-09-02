@@ -60,7 +60,7 @@ export default function Balance() {
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
           <h1 className="text-xl font-bold text-text-primary">Bilan financier</h1>
-          <button onClick={handleExport} className="flex items-center gap-1 px-3 py-2 rounded-full text-sm" style={{ backgroundColor: '#181818', color: '#B3B3B3' }}>
+          <button onClick={handleExport} className="flex items-center gap-1 px-3 py-2 rounded-full text-sm" style={{ backgroundColor: '#212121', color: '#B3B3B3' }}>
             <Download className="w-4 h-4" />Exporter CSV
           </button>
         </div>
@@ -68,7 +68,7 @@ export default function Balance() {
         {/* Period Selector */}
         <div className="flex gap-2 mb-5">
           {(['mois', 'trimestre', 'annee'] as PeriodType[]).map((p) => (
-            <button key={p} onClick={() => handlePeriodChange(p)} className="flex-1 py-2.5 rounded-full text-sm font-medium transition-all" style={{ backgroundColor: period === p ? '#FF6B00' : '#181818', color: period === p ? '#FFFFFF' : '#808080' }}>
+            <button key={p} onClick={() => handlePeriodChange(p)} className="flex-1 py-2.5 rounded-full text-sm font-medium transition-all" style={{ backgroundColor: period === p ? '#FF6B00' : '#212121', color: period === p ? '#FFFFFF' : '#808080' }}>
               {p === 'mois' ? 'Mois' : p === 'trimestre' ? 'Trimestre' : 'Année'}
             </button>
           ))}
@@ -78,25 +78,25 @@ export default function Balance() {
         <div className="flex gap-3 mb-5">
           <div className="flex-1">
             <label className="block text-text-tertiary text-xs mb-1.5">Du</label>
-            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full px-3 py-2.5 rounded-lg text-sm text-text-primary outline-none" style={{ backgroundColor: '#181818', border: '1px solid #282828' }} />
+            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full px-3 py-2.5 rounded-lg text-sm text-text-primary outline-none" style={{ backgroundColor: '#212121', border: '1px solid #282828' }} />
           </div>
           <div className="flex-1">
             <label className="block text-text-tertiary text-xs mb-1.5">Au</label>
-            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full px-3 py-2.5 rounded-lg text-sm text-text-primary outline-none" style={{ backgroundColor: '#181818', border: '1px solid #282828' }} />
+            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full px-3 py-2.5 rounded-lg text-sm text-text-primary outline-none" style={{ backgroundColor: '#212121', border: '1px solid #282828' }} />
           </div>
         </div>
 
         {/* Stat Cards */}
         <div className="grid grid-cols-3 gap-3 mb-5">
-          <div className="rounded-lg p-3 text-center" style={{ backgroundColor: '#181818' }}>
+          <div className="rounded-lg p-3 text-center" style={{ backgroundColor: '#212121' }}>
             <p className="text-text-tertiary text-xs mb-1">Entrées</p>
             <p className="text-base font-bold tabular-nums" style={{ color: '#1DB954' }}>{formatCurrency(totalIncome)}</p>
           </div>
-          <div className="rounded-lg p-3 text-center" style={{ backgroundColor: '#181818' }}>
+          <div className="rounded-lg p-3 text-center" style={{ backgroundColor: '#212121' }}>
             <p className="text-text-tertiary text-xs mb-1">Sorties</p>
             <p className="text-base font-bold tabular-nums" style={{ color: '#E51332' }}>{formatCurrency(totalExpense)}</p>
           </div>
-          <div className="rounded-lg p-3 text-center" style={{ backgroundColor: '#181818' }}>
+          <div className="rounded-lg p-3 text-center" style={{ backgroundColor: '#212121' }}>
             <p className="text-text-tertiary text-xs mb-1">Résultat</p>
             <p className="text-base font-bold tabular-nums" style={{ color: netResult >= 0 ? '#1DB954' : '#E51332' }}>{formatCurrency(Math.abs(netResult))}</p>
           </div>
@@ -105,7 +105,7 @@ export default function Balance() {
         {/* By Category */}
         <div className="mb-5">
           <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider mb-3">Par catégorie</p>
-          <div className="rounded-lg overflow-hidden" style={{ backgroundColor: '#181818' }}>
+          <div className="rounded-lg overflow-hidden" style={{ backgroundColor: '#212121' }}>
             <div className="flex items-center px-4 py-3 text-xs text-text-tertiary border-b" style={{ borderBottomColor: '#282828' }}>
               <span className="flex-1">Libellé</span>
               <span className="w-24 text-right">Entrées</span>
@@ -128,7 +128,7 @@ export default function Balance() {
         {byOrgUnit.size > 0 && (
           <div className="mb-5">
             <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider mb-3">Par groupe</p>
-            <div className="rounded-lg overflow-hidden" style={{ backgroundColor: '#181818' }}>
+            <div className="rounded-lg overflow-hidden" style={{ backgroundColor: '#212121' }}>
               <div className="flex items-center px-4 py-3 text-xs text-text-tertiary border-b" style={{ borderBottomColor: '#282828' }}>
                 <span className="flex-1">Nom</span>
                 <span className="w-24 text-right">Entrées</span>
@@ -151,7 +151,7 @@ export default function Balance() {
         {/* Actions */}
         <div className="flex gap-3 mb-6 pb-20">
           <button onClick={handleExport} className="flex-1 py-3 rounded-full text-sm font-semibold" style={{ backgroundColor: '#FF6B00', color: '#FFFFFF' }}>Exporter CSV</button>
-          <button onClick={() => navigate('/finance')} className="flex-1 py-3 rounded-full text-sm font-semibold" style={{ backgroundColor: '#181818', color: '#B3B3B3' }}>Grand livre</button>
+          <button onClick={() => navigate('/finance')} className="flex-1 py-3 rounded-full text-sm font-semibold" style={{ backgroundColor: '#212121', color: '#B3B3B3' }}>Grand livre</button>
         </div>
       </div>
 

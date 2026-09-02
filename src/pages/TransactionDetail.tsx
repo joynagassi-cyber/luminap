@@ -80,7 +80,7 @@ export default function TransactionDetail() {
       <div className="max-w-lg mx-auto px-5 pt-4 pb-4">
         {/* Header */}
         <div className="flex items-center gap-3 mb-5">
-          <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#181818' }}>
+          <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#212121' }}>
             <ArrowLeft className="w-5 h-5 text-text-primary" />
           </button>
           <h1 className="text-lg font-bold text-text-primary">Transaction</h1>
@@ -90,7 +90,7 @@ export default function TransactionDetail() {
         </div>
 
         {/* Hero Card */}
-        <div className="rounded-xl p-5 mb-5 text-center" style={{ backgroundColor: '#181818' }}>
+        <div className="rounded-xl p-5 mb-5 text-center" style={{ backgroundColor: '#212121' }}>
           <div className="flex items-center justify-center gap-2 mb-2">
             <span className="text-sm font-medium px-3 py-1 rounded-full" style={{ backgroundColor: isIncome ? '#1DB95420' : '#E5133220', color: isIncome ? '#1DB954' : '#E51332' }}>
               {isIncome ? 'Entrée' : 'Sortie'}
@@ -109,7 +109,7 @@ export default function TransactionDetail() {
         {/* Details */}
         <div className="mb-5">
           <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider mb-3">Détails</p>
-          <div className="rounded-lg overflow-hidden" style={{ backgroundColor: '#181818' }}>
+          <div className="rounded-lg overflow-hidden" style={{ backgroundColor: '#212121' }}>
             {[
               { label: 'Description', value: transaction.description || '—' },
               { label: 'Catégorie', value: transaction.category?.labelFr || '—' },
@@ -136,7 +136,7 @@ export default function TransactionDetail() {
           <div className="space-y-2">
             {transaction.status === 'DRAFT' && canEdit && (
               <>
-                <button onClick={handleEdit} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-full text-sm font-semibold" style={{ backgroundColor: '#181818', color: '#B3B3B3' }}>
+                <button onClick={handleEdit} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-full text-sm font-semibold" style={{ backgroundColor: '#212121', color: '#B3B3B3' }}>
                   <Edit3 className="w-4 h-4" />Modifier
                 </button>
                 <button onClick={() => { useStore.getState().updateTransaction(transaction.id, { status: 'PENDING' }); navigate('/finance'); }} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-full text-sm font-semibold" style={{ backgroundColor: '#FFB800', color: '#121212' }}>
@@ -157,13 +157,13 @@ export default function TransactionDetail() {
             )}
 
             {transaction.status === 'APPROVED' && (
-              <button onClick={handleCreateCorrection} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-full text-sm font-semibold" style={{ backgroundColor: '#181818', color: '#B3B3B3' }}>
+              <button onClick={handleCreateCorrection} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-full text-sm font-semibold" style={{ backgroundColor: '#212121', color: '#B3B3B3' }}>
                 <Edit3 className="w-4 h-4" />Corriger (contre-transactions)
               </button>
             )}
 
             {transaction.status === 'REJECTED' && canEdit && (
-              <button onClick={handleEdit} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-full text-sm font-semibold" style={{ backgroundColor: '#181818', color: '#B3B3B3' }}>
+              <button onClick={handleEdit} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-full text-sm font-semibold" style={{ backgroundColor: '#212121', color: '#B3B3B3' }}>
                 <Edit3 className="w-4 h-4" />Réviser
               </button>
             )}
@@ -178,7 +178,7 @@ export default function TransactionDetail() {
         {/* Audit Section */}
         <div className="mb-6 pb-6">
           <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider mb-3">Journal d'audit</p>
-          <div className="rounded-lg overflow-hidden" style={{ backgroundColor: '#181818' }}>
+          <div className="rounded-lg overflow-hidden" style={{ backgroundColor: '#212121' }}>
             {[
               { action: 'CRÉÉE', time: transaction.createdAt, user: user?.firstName || '—' },
               ...(transaction.status === 'PENDING' ? [{ action: 'SOUMISE', time: transaction.updatedAt, user: user?.firstName || '—' }] : []),
@@ -201,7 +201,7 @@ export default function TransactionDetail() {
         {showRejectComment && (
           <div className="fixed inset-0 z-50 flex items-end">
             <div className="absolute inset-0 bg-black/60" onClick={() => setShowRejectComment(false)} />
-            <div className="relative w-full rounded-t-2xl p-6 pb-8" style={{ backgroundColor: '#181818' }}>
+            <div className="relative w-full rounded-t-2xl p-6 pb-8" style={{ backgroundColor: '#212121' }}>
               <div className="w-12 h-1 rounded-full bg-surface-active mx-auto mb-4" />
               <h3 className="text-lg font-bold text-text-primary mb-4">Motif du rejet</h3>
               <textarea value={rejectComment} onChange={(e) => setRejectComment(e.target.value)} placeholder="Veuillez décrire le motif du rejet..." className="w-full px-4 py-3 rounded-lg text-text-primary text-sm outline-none resize-none mb-4" style={{ backgroundColor: '#121212', minHeight: '100px' }} rows={3} />

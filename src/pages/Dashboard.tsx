@@ -45,14 +45,14 @@ export default function Dashboard() {
           <button
             onClick={() => setDrawerOpen(true)}
             className="w-10 h-10 rounded-full flex items-center justify-center"
-            style={{ backgroundColor: '#181818' }}
+            style={{ backgroundColor: '#212121' }}
           >
             <ChevronDown className="w-5 h-5 text-text-secondary rotate-90" />
           </button>
         </div>
 
         {/* Hero Balance Card */}
-        <div className="rounded-xl p-5 mb-5" style={{ backgroundColor: '#181818' }}>
+        <div className="rounded-xl p-5 mb-5" style={{ backgroundColor: '#212121' }}>
           <p className="text-text-tertiary text-sm mb-1">Solde du mois</p>
           <div className="flex items-baseline gap-2">
             <span
@@ -77,15 +77,15 @@ export default function Dashboard() {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-3 gap-3 mb-5">
-          <div className="rounded-lg p-3 text-center" style={{ backgroundColor: '#181818' }}>
+          <div className="rounded-lg p-3 text-center" style={{ backgroundColor: '#212121' }}>
             <p className="text-text-tertiary text-xs mb-1">Entrées</p>
             <p className="text-base font-bold tabular-nums" style={{ color: '#1DB954' }}>{formatCurrency(totalIncome)}</p>
           </div>
-          <div className="rounded-lg p-3 text-center" style={{ backgroundColor: '#181818' }}>
+          <div className="rounded-lg p-3 text-center" style={{ backgroundColor: '#212121' }}>
             <p className="text-text-tertiary text-xs mb-1">Sorties</p>
             <p className="text-base font-bold tabular-nums" style={{ color: '#E51332' }}>{formatCurrency(totalExpense)}</p>
           </div>
-          <div className="rounded-lg p-3 text-center" style={{ backgroundColor: '#181818' }}>
+          <div className="rounded-lg p-3 text-center" style={{ backgroundColor: '#212121' }}>
             <p className="text-text-tertiary text-xs mb-1">Net</p>
             <p className="text-base font-bold tabular-nums" style={{ color: netResult >= 0 ? '#1DB954' : '#E51332' }}>{formatCurrency(Math.abs(netResult))}</p>
           </div>
@@ -111,7 +111,7 @@ export default function Dashboard() {
         <div className="mb-5">
           <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider mb-3">Actions rapides</p>
           <div className="grid grid-cols-2 gap-3">
-            <button onClick={() => navigate('/transaction/new')} className="flex items-center gap-3 p-4 rounded-lg active:scale-95 transition-transform text-left" style={{ backgroundColor: '#181818' }}>
+            <button onClick={() => navigate('/transaction/new')} className="flex items-center gap-3 p-4 rounded-lg active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121' }}>
               <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#1DB95420' }}>
                 <ArrowUpRight className="w-5 h-5" style={{ color: '#1DB954' }} />
               </div>
@@ -120,7 +120,7 @@ export default function Dashboard() {
                 <p className="text-text-tertiary text-xs mt-0.5">Ajouter un revenu</p>
               </div>
             </button>
-            <button onClick={() => navigate('/transaction/new')} className="flex items-center gap-3 p-4 rounded-lg active:scale-95 transition-transform text-left" style={{ backgroundColor: '#181818' }}>
+            <button onClick={() => navigate('/transaction/new')} className="flex items-center gap-3 p-4 rounded-lg active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121' }}>
               <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#E5133220' }}>
                 <ArrowDownRight className="w-5 h-5" style={{ color: '#E51332' }} />
               </div>
@@ -129,7 +129,7 @@ export default function Dashboard() {
                 <p className="text-text-tertiary text-xs mt-0.5">Ajouter une dépense</p>
               </div>
             </button>
-            <button onClick={() => navigate('/history')} className="flex items-center gap-3 p-4 rounded-lg active:scale-95 transition-transform text-left" style={{ backgroundColor: '#181818' }}>
+            <button onClick={() => navigate('/history')} className="flex items-center gap-3 p-4 rounded-lg active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121' }}>
               <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#FF6B0020' }}>
                 <BarChart3 className="w-5 h-5" style={{ color: '#FF6B00' }} />
               </div>
@@ -138,7 +138,7 @@ export default function Dashboard() {
                 <p className="text-text-tertiary text-xs mt-0.5">Courbes & graphiques</p>
               </div>
             </button>
-            <button onClick={() => navigate('/finance')} className="flex items-center gap-3 p-4 rounded-lg active:scale-95 transition-transform text-left" style={{ backgroundColor: '#181818' }}>
+            <button onClick={() => navigate('/finance')} className="flex items-center gap-3 p-4 rounded-lg active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121' }}>
               <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#FF6B0020' }}>
                 <BookOpen className="w-5 h-5" style={{ color: '#FF6B00' }} />
               </div>
@@ -157,7 +157,7 @@ export default function Dashboard() {
         </div>
         <div className="space-y-2 mb-6 pb-20">
           {recentTransactions.length === 0 ? (
-            <div className="text-center py-10 rounded-lg" style={{ backgroundColor: '#181818' }}>
+            <div className="text-center py-10 rounded-lg" style={{ backgroundColor: '#212121' }}>
               <PlusCircle className="w-8 h-8 mx-auto mb-3 text-text-tertiary" />
               <p className="text-text-tertiary text-sm">Aucune transaction</p>
               <button onClick={() => navigate('/transaction/new')} className="mt-3 text-sm font-medium" style={{ color: '#FF6B00' }}>

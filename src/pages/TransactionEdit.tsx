@@ -81,30 +81,30 @@ export default function TransactionEdit() {
     <div className="min-h-screen bg-canvas">
       <div className="max-w-lg mx-auto px-5 pt-4 pb-4">
         <div className="flex items-center gap-3 mb-5">
-          <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#181818' }}>
+          <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#212121' }}>
             <ArrowLeft className="w-5 h-5 text-text-primary" />
           </button>
           <h1 className="text-lg font-bold text-text-primary">Modifier la transaction</h1>
         </div>
 
         <div className="flex gap-3 mb-5">
-          <button onClick={() => { setType('INCOME'); setCategoryId(''); }} className="flex-1 py-3.5 rounded-full text-sm font-semibold" style={{ backgroundColor: type === 'INCOME' ? '#1DB954' : '#181818', color: type === 'INCOME' ? '#FFFFFF' : '#808080' }}>Entrée</button>
-          <button onClick={() => { setType('EXPENSE'); setCategoryId(''); }} className="flex-1 py-3.5 rounded-full text-sm font-semibold" style={{ backgroundColor: type === 'EXPENSE' ? '#E51332' : '#181818', color: type === 'EXPENSE' ? '#FFFFFF' : '#808080' }}>Sortie</button>
+          <button onClick={() => { setType('INCOME'); setCategoryId(''); }} className="flex-1 py-3.5 rounded-full text-sm font-semibold" style={{ backgroundColor: type === 'INCOME' ? '#1DB954' : '#212121', color: type === 'INCOME' ? '#FFFFFF' : '#808080' }}>Entrée</button>
+          <button onClick={() => { setType('EXPENSE'); setCategoryId(''); }} className="flex-1 py-3.5 rounded-full text-sm font-semibold" style={{ backgroundColor: type === 'EXPENSE' ? '#E51332' : '#212121', color: type === 'EXPENSE' ? '#FFFFFF' : '#808080' }}>Sortie</button>
         </div>
 
         <div className="mb-5">
           <label className="block text-text-secondary text-sm font-medium mb-2">Montant (FCFA)</label>
-          <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" className="w-full px-4 py-4 rounded-lg text-3xl font-black text-center tabular-nums outline-none" style={{ backgroundColor: '#181818', border: '1px solid #282828', color: isExpense ? '#E51332' : '#1DB954' }} min="0" />
+          <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" className="w-full px-4 py-4 rounded-lg text-3xl font-black text-center tabular-nums outline-none" style={{ backgroundColor: '#212121', border: '1px solid #282828', color: isExpense ? '#E51332' : '#1DB954' }} min="0" />
         </div>
 
         <div className="mb-5">
           <label className="block text-text-secondary text-sm font-medium mb-2">Date</label>
-          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} max={getTodayStr()} className="w-full px-4 py-3 rounded-lg text-text-primary text-sm outline-none" style={{ backgroundColor: '#181818', border: '1px solid #282828' }} />
+          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} max={getTodayStr()} className="w-full px-4 py-3 rounded-lg text-text-primary text-sm outline-none" style={{ backgroundColor: '#212121', border: '1px solid #282828' }} />
         </div>
 
         <div className="mb-5">
           <label className="block text-text-secondary text-sm font-medium mb-2">Catégorie</label>
-          <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="w-full px-4 py-3 rounded-lg text-text-primary text-sm outline-none appearance-none" style={{ backgroundColor: '#181818', border: '1px solid #282828' }}>
+          <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="w-full px-4 py-3 rounded-lg text-text-primary text-sm outline-none appearance-none" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
             <option value="">Sélectionner</option>
             {filteredCategories.map((cat) => (<option key={cat.id} value={cat.id}>{cat.labelFr}</option>))}
           </select>
@@ -112,7 +112,7 @@ export default function TransactionEdit() {
 
         <div className="mb-5">
           <label className="block text-text-secondary text-sm font-medium mb-2">Groupe (optionnel)</label>
-          <select value={orgUnitId} onChange={(e) => setOrgUnitId(e.target.value)} className="w-full px-4 py-3 rounded-lg text-text-primary text-sm outline-none appearance-none" style={{ backgroundColor: '#181818', border: '1px solid #282828' }}>
+          <select value={orgUnitId} onChange={(e) => setOrgUnitId(e.target.value)} className="w-full px-4 py-3 rounded-lg text-text-primary text-sm outline-none appearance-none" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
             <option value="">Aucun</option>
             {orgUnits.map((unit) => (<option key={unit.id} value={unit.id}>{unit.name}</option>))}
           </select>
@@ -120,11 +120,11 @@ export default function TransactionEdit() {
 
         <div className="mb-6">
           <label className="block text-text-secondary text-sm font-medium mb-2">Description</label>
-          <textarea value={description} onChange={(e) => setDescription(e.target.value)} maxLength={500} className="w-full px-4 py-3 rounded-lg text-text-primary text-sm outline-none resize-none" style={{ backgroundColor: '#181818', border: '1px solid #282828', minHeight: '80px' }} rows={3} />
+          <textarea value={description} onChange={(e) => setDescription(e.target.value)} maxLength={500} className="w-full px-4 py-3 rounded-lg text-text-primary text-sm outline-none resize-none" style={{ backgroundColor: '#212121', border: '1px solid #282828', minHeight: '80px' }} rows={3} />
         </div>
 
         <div className="flex gap-3 mb-6">
-          <button onClick={() => navigate(-1)} className="flex-1 py-3.5 rounded-full text-sm font-semibold" style={{ backgroundColor: '#181818', color: '#B3B3B3' }}>Annuler</button>
+          <button onClick={() => navigate(-1)} className="flex-1 py-3.5 rounded-full text-sm font-semibold" style={{ backgroundColor: '#212121', color: '#B3B3B3' }}>Annuler</button>
           <button onClick={handleSave} className="flex-1 py-3.5 rounded-full text-sm font-semibold" style={{ backgroundColor: '#FF6B00', color: '#FFFFFF' }}>Enregistrer</button>
         </div>
       </div>

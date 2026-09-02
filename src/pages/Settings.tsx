@@ -14,12 +14,12 @@ export default function Settings() {
         <h1 className="text-xl font-bold text-text-primary mb-6">Paramètres</h1>
 
         {/* Profile Card */}
-        <div className="rounded-xl p-4 mb-5 flex items-center gap-4" style={{ backgroundColor: '#181818' }}>
+        <div className="rounded-xl p-4 mb-5 flex items-center gap-4" style={{ backgroundColor: '#212121' }}>
           <div className="w-14 h-14 rounded-full flex items-center justify-center text-xl font-bold flex-shrink-0" style={{ backgroundColor: '#FF6B00', color: '#FFFFFF' }}>
             {user?.firstName?.[0] || user?.email?.[0] || 'U'}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-text-primary font-semibold text-lg truncate">{user?.profile?.first_name || user?.email?.split('@')[0] || 'Utilisateur'} {user?.profile?.lastName || ''}</p>
+            <p className="text-text-primary font-semibold text-lg truncate">{user?.firstName || user?.email?.split('@')[0] || 'Utilisateur'} {user?.lastName || ''}</p>
             <p className="text-text-tertiary text-sm truncate">{user?.email}</p>
             <p className="text-text-tertiary text-xs mt-1 capitalize">{user?.role?.toLowerCase()}</p>
           </div>
@@ -33,7 +33,7 @@ export default function Settings() {
             { icon: Bell, label: 'Notifications', desc: 'Gérer les alertes' },
             { icon: Shield, label: 'Sécurité', desc: 'Mot de passe et authentification' },
           ].map((item) => (
-            <button key={item.label} className="w-full flex items-center gap-4 p-4 rounded-lg transition-colors text-left active:bg-surface-active" style={{ backgroundColor: '#181818' }}>
+            <button key={item.label} className="w-full flex items-center gap-4 p-4 rounded-lg transition-colors text-left active:bg-surface-active" style={{ backgroundColor: '#212121' }}>
               <item.icon className="w-5 h-5 text-text-tertiary flex-shrink-0" />
               <div className="flex-1">
                 <p className="text-text-primary font-medium text-base">{item.label}</p>
@@ -48,7 +48,7 @@ export default function Settings() {
 
         {/* Organization */}
         <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider mb-2">Organisation</p>
-        <div className="rounded-lg p-4 mb-5" style={{ backgroundColor: '#181818' }}>
+        <div className="rounded-lg p-4 mb-5" style={{ backgroundColor: '#212121' }}>
           <p className="text-text-primary font-semibold">{user?.org?.name || '—'}</p>
         </div>
 

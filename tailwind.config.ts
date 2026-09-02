@@ -20,7 +20,7 @@ export default {
       colors: {
         // Lumina Design System
         canvas: "#121212",
-        surface: "#181818",
+        surface: "#212121",
         "surface-hover": "#282828",
         "surface-active": "#333333",
         "text-primary": "#FFFFFF",
