@@ -20,7 +20,6 @@ const COLORS = ['#FF6B00', '#1DB954', '#E51332', '#FFB800', '#808080', '#2196F3'
 
 export default function History() {
   const navigate = useNavigate();
-  const location = useLocation();
   const { transactions, categories, orgUnits } = useStore();
   const [period, setPeriod] = useState<PeriodType>('mois');
   const [drawerOpen, setDrawerOpen] = useState(false);

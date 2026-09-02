@@ -260,7 +260,7 @@ function TransactionRow({ tx, onClick }: { tx: Transaction; onClick: () => void 
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center gap-3 p-4 rounded-xl text-left active:scale-98 transition-transform"
+      className="w-full flex items-center gap-3 p-4 rounded-xl text-left active:scale-95 transition-transform"
       style={{ backgroundColor: '#181818' }}
     >
       <div

@@ -1,11 +1,10 @@
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { LogOut, User, Bell, Shield } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import BottomNav from '@/components/BottomNav';
 
 export default function Settings() {
   const navigate = useNavigate();
-  const location = useLocation();
   const { user, logout } = useStore();
 
   return (

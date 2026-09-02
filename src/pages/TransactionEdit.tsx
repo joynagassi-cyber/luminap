@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { getTodayStr } from '@/lib/utils';
 import { useStore, canActOnTransaction } from '@/store/useStore';
