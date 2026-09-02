@@ -3,7 +3,6 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Check, X, Edit3, Clock } from 'lucide-react';
 import { formatCurrency, formatDate, getStatusColor, getStatusLabel } from '@/lib/utils';
 import { useStore, canActOnTransaction } from '@/store/useStore';
-import type { Profile } from '@/integrations/supabase/client';
 import StatusBadge from '@/components/StatusBadge';
 import ConfirmModal from '@/components/ConfirmModal';
 import BottomNav from '@/components/BottomNav';
@@ -11,7 +10,7 @@ import BottomNav from '@/components/BottomNav';
 export default function TransactionDetail() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { transactions, categories, approveTransaction, rejectTransaction, deleteTransaction, user } = useStore();
+  const { transactions, approveTransaction, rejectTransaction, deleteTransaction, user } = useStore();
   const [showRejectComment, setShowRejectComment] = useState(false);
   const [rejectComment, setRejectComment] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -19,10 +18,6 @@ export default function TransactionDetail() {
   const [showErrorModal, setShowErrorModal] = useState(false);
 
   const transaction = transactions.find(t => t.id === id);
-  const { user, categories } = useStore();
-  const profileMap = categories.reduce((acc, cat) => {
-    return acc;
-  }, {} as Record<string, Profile>);
 
   if (!transaction) {
     return (
@@ -100,8 +95,8 @@ export default function TransactionDetail() {
             <span className="text-sm font-medium px-3 py-1 rounded-full" style={{ backgroundColor: isIncome ? '#1DB95420' : '#E5133220', color: isIncome ? '#1DB954' : '#E51332' }}>
               {isIncome ? 'Entrée' : 'Sortie'}
             </span>
-            {transaction.orgUnit && (
-              <span className="text-sm text-text-tertiary">{transaction.orgUnit.name}</span>
+            {transaction.org_unit && (
+              <span className="text-sm text-text-tertiary">{transaction.org_unit.name}</span>
             )}
           </div>
           <p className="text-3xl font-black tabular-nums mb-1" style={{ color: isIncome ? '#1DB954' : '#E51332' }}>
