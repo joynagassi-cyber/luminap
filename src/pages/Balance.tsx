@@ -4,8 +4,7 @@ import { formatCurrency, formatDate, exportToCSV, getPeriodRange } from '@/lib/u
 import { useStore } from '@/store/useStore';
 import { Download } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
-
-type PeriodType = 'mois' | 'trimestre' | 'annee';
+import type { PeriodType } from '@/lib/utils';
 
 export default function Balance() {
   const navigate = useNavigate();

@@ -2,13 +2,15 @@ import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useStore } from '@/store/useStore';
 import { formatCurrency, getPeriodRange } from '@/lib/utils';
-import { ArrowUpRight, ArrowDownRight, BarChart3, BookOpen, PlusCircle } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, BarChart3, BookOpen, PlusCircle, ChevronDown } from 'lucide-react';
 import TransactionCard from '@/components/TransactionCard';
 import BottomNav from '@/components/BottomNav';
+import BottomDrawer from '@/components/BottomDrawer';
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const { transactions, user } = useStore();
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const { start, end } = getPeriodRange('mois');
   const approvedTransactions = transactions.filter(
@@ -28,21 +30,25 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-canvas">
-      <div className="max-w-lg mx-auto px-5 pt-6 pb-24">
-        {/* Header */}
+      <div className="max-w-lg mx-auto px-5 pt-6 pb-4">
+        {/* Header with Logo */}
         <div className="flex items-center justify-between mb-6">
-          <div>
-            <p className="text-text-tertiary text-sm">Bonjour,</p>
-            <h1 className="text-xl font-bold text-text-primary">
-              {user?.firstName || 'Utilisateur'}
-            </h1>
+          <div className="flex items-center gap-3">
+            <img src="/assets/logo.png" alt="Lumina" className="w-10 h-10 rounded-full object-cover" />
+            <div>
+              <p className="text-text-tertiary text-xs">Lumina</p>
+              <h1 className="text-sm font-bold text-text-primary">
+                {user?.firstName || 'Utilisateur'}
+              </h1>
+            </div>
           </div>
-          <div
-            className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold"
-            style={{ backgroundColor: '#FF6B00', color: '#FFFFFF' }}
+          <button
+            onClick={() => setDrawerOpen(true)}
+            className="w-10 h-10 rounded-full flex items-center justify-center"
+            style={{ backgroundColor: '#181818' }}
           >
-            {user?.firstName?.[0] || 'U'}
-          </div>
+            <ChevronDown className="w-5 h-5 text-text-secondary rotate-90" />
+          </button>
         </div>
 
         {/* Hero Balance Card */}
@@ -111,7 +117,7 @@ export default function Dashboard() {
               </div>
               <div>
                 <p className="text-text-primary text-sm font-semibold">Nouvelle entrée</p>
-                  <p className="text-text-tertiary text-xs mt-0.5">Ajouter un revenu</p>
+                <p className="text-text-tertiary text-xs mt-0.5">Ajouter un revenu</p>
               </div>
             </button>
             <button onClick={() => navigate('/transaction/new')} className="flex items-center gap-3 p-4 rounded-lg active:scale-95 transition-transform text-left" style={{ backgroundColor: '#181818' }}>
@@ -120,16 +126,16 @@ export default function Dashboard() {
               </div>
               <div>
                 <p className="text-text-primary text-sm font-semibold">Nouvelle sortie</p>
-                  <p className="text-text-tertiary text-xs mt-0.5">Ajouter une dépense</p>
+                <p className="text-text-tertiary text-xs mt-0.5">Ajouter une dépense</p>
               </div>
             </button>
-            <button onClick={() => navigate('/balance')} className="flex items-center gap-3 p-4 rounded-lg active:scale-95 transition-transform text-left" style={{ backgroundColor: '#181818' }}>
+            <button onClick={() => navigate('/history')} className="flex items-center gap-3 p-4 rounded-lg active:scale-95 transition-transform text-left" style={{ backgroundColor: '#181818' }}>
               <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#FF6B0020' }}>
                 <BarChart3 className="w-5 h-5" style={{ color: '#FF6B00' }} />
               </div>
               <div>
-                <p className="text-text-primary text-sm font-semibold">Bilan financier</p>
-                <p className="text-text-tertiary text-xs mt-0.5">Voir le bilan</p>
+                <p className="text-text-primary text-sm font-semibold">Historique</p>
+                <p className="text-text-tertiary text-xs mt-0.5">Courbes & graphiques</p>
               </div>
             </button>
             <button onClick={() => navigate('/finance')} className="flex items-center gap-3 p-4 rounded-lg active:scale-95 transition-transform text-left" style={{ backgroundColor: '#181818' }}>
@@ -149,7 +155,7 @@ export default function Dashboard() {
           <p className="text-text-primary font-semibold text-base">Derniers mouvements</p>
           <button onClick={() => navigate('/finance')} className="text-sm font-medium" style={{ color: '#FF6B00' }}>Tout voir</button>
         </div>
-        <div className="space-y-2 mb-6">
+        <div className="space-y-2 mb-6 pb-20">
           {recentTransactions.length === 0 ? (
             <div className="text-center py-10 rounded-lg" style={{ backgroundColor: '#181818' }}>
               <PlusCircle className="w-8 h-8 mx-auto mb-3 text-text-tertiary" />
@@ -167,6 +173,7 @@ export default function Dashboard() {
       </div>
 
       <BottomNav />
+      <BottomDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
     </div>
   );
 }

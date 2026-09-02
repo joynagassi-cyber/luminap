@@ -11,6 +11,7 @@ import TransactionEdit from "./pages/TransactionEdit";
 import Balance from "./pages/Balance";
 import Groups from "./pages/Groups";
 import Settings from "./pages/Settings";
+import History from "./pages/History";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,6 +30,7 @@ const App = () => (
           <Route path="/transaction/:id/edit" element={<TransactionEdit />} />
           <Route path="/balance" element={<Balance />} />
           <Route path="/groups" element={<Groups />} />
+          <Route path="/history" element={<History />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

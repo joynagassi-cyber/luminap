@@ -90,3 +90,5 @@ export function exportToCSV(transactions: any[], filename: string) {
 export function getTodayStr(): string {
   return format(new Date(), 'yyyy-MM-dd');
 }
+
+export type PeriodType = 'mois' | 'trimestre' | 'annee';
