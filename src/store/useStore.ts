@@ -95,8 +95,8 @@ export function canActOnTransaction(
 }
 
 export const useStore = create<LuminaState>((set) => ({
-  isAuthenticated: getSessionToken() !== null,
-  user: getSessionToken() ? MOCK_USER : null,
+  isAuthenticated: true,
+  user: MOCK_USER,
   transactions: MOCK_TRANSACTIONS,
   categories: MOCK_CATEGORIES,
   orgUnits: MOCK_ORG_UNITS,
