@@ -14,6 +14,7 @@ interface AppState {
 
 interface StoreActions {
   login: (email: string, password: string) => Promise<boolean>;
+  signup: (email: string, password: string, firstName: string, lastName: string) => Promise<boolean>;
   logout: () => Promise<void>;
   refreshData: () => Promise<void>;
   addTransaction: (tx: {
@@ -65,6 +66,24 @@ export const useStore = create<AppState & StoreActions>((set, get) => ({
       return false;
     } catch (e) {
       set({ error: (e as Error).message || 'Erreur de connexion' });
+      return false;
+    }
+  },
+
+  signup: async (email, password, firstName, lastName) => {
+    try {
+      const res = await fetchApi<{ ok: boolean; user: User; sessionToken: string }>(`/auth/signup`, {
+        method: 'POST',
+        body: JSON.stringify({ email, password, firstName, lastName }),
+      });
+      if (res.ok && res.user) {
+        set({ isAuthenticated: true, user: res.user, error: null });
+        await get().refreshData();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      set({ error: (e as Error).message });
       return false;
     }
   },

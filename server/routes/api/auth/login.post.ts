@@ -1,5 +1,7 @@
 import { defineHandler } from "nitro";
 import { readBody, createError, setCookie } from "nitro/h3";
+import { findUserByEmail } from "../../../store";
+import { createHash } from "node:crypto";
 
 export default defineHandler(async (event) => {
   const body = await readBody<{ email?: string; password?: string }>(event);
@@ -8,14 +10,8 @@ export default defineHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: "email and password are required" });
   }
 
-  const ADMIN_EMAIL = "admin@mfe-jc.org";
-  const ADMIN_PASSWORD = "lumina-admin-2026";
-
-  const valid =
-    body.email === ADMIN_EMAIL &&
-    body.password === ADMIN_PASSWORD;
-
-  if (!valid) {
+  const user = findUserByEmail(body.email);
+  if (!user || user.hashedPassword !== createHash("sha256").update(body.password).digest("hex")) {
     throw createError({ statusCode: 401, statusMessage: "Identifiants invalides" });
   }
 
@@ -30,17 +26,12 @@ export default defineHandler(async (event) => {
   return {
     ok: true,
     user: {
-      id: "user-1",
-      email: ADMIN_EMAIL,
-      firstName: "Pasteur",
-      lastName: "Jean",
-      role: "ADMIN",
-      org: {
-        id: "org-1",
-        name: "Église MFE-JC Centrale",
-        type: "Eglise",
-        accentColor: "#FF6B00",
-      },
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      org: user.org,
     },
     sessionToken: token,
   };

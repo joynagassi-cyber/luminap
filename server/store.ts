@@ -1,4 +1,20 @@
 import type { Category, OrgUnit, Transaction, AuditEntry, User, Organization } from '../src/types';
+import { createHash } from 'node:crypto';
+
+// User storage for signup/login
+export interface UserRecord {
+  id: string;
+  email: string;
+  hashedPassword: string;
+  firstName: string;
+  lastName: string;
+  role: 'ADMIN' | 'TREASURER' | 'APPROVER';
+  org: Organization;
+}
+
+function hashPassword(password: string): string {
+  return createHash('sha256').update(password).digest('hex');
+}
 
 const ORG: Organization = {
   id: "org-1",
@@ -7,14 +23,17 @@ const ORG: Organization = {
   accentColor: "#FF6B00",
 };
 
-const USER: User = {
+export const adminUser: UserRecord = {
   id: "user-1",
   email: "admin@mfe-jc.org",
+  hashedPassword: hashPassword("lumina-admin-2026"),
   firstName: "Pasteur",
   lastName: "Jean",
   role: "ADMIN",
   org: ORG,
 };
+
+const USERS: UserRecord[] = [adminUser];
 
 const CATEGORIES: Category[] = [
   { id: "cat-1", key: "dime", labelFr: "Dîme", type: "INCOME", orgId: "org-1" },
@@ -202,9 +221,35 @@ export interface Store {
   auditEntries: AuditEntry[];
 }
 
+export function findUserByEmail(email: string): UserRecord | undefined {
+  return USERS.find(u => u.email === email);
+}
+
+export function createUserRecord(firstName: string, lastName: string, email: string, password: string): UserRecord {
+  const id = `user-${Date.now()}`;
+  const user: UserRecord = {
+    id,
+    email,
+    hashedPassword: hashPassword(password),
+    firstName,
+    lastName,
+    role: "TREASURER",
+    org: ORG,
+  };
+  USERS.push(user);
+  return user;
+}
+
 export const store: Store = {
   isAuthenticated: true,
-  user: USER,
+  user: {
+    id: "user-1",
+    email: "admin@mfe-jc.org",
+    firstName: "Pasteur",
+    lastName: "Jean",
+    role: "ADMIN",
+    org: ORG,
+  },
   transactions: TRANSACTIONS,
   categories: CATEGORIES,
   orgUnits: ORG_UNITS,
