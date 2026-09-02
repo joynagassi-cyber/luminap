@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { getTodayStr } from '@/lib/utils';
-import { useSupabaseStore, canActOnTransaction } from '@/store/useSupabaseStore';
+import { useLocalStore, canActOnTransaction } from '@/store/useLocalStore';
 import ConfirmModal from '@/components/ConfirmModal';
 import type { TransactionType } from '@/types';
 import type { Transaction } from '@/types';
@@ -10,7 +10,7 @@ import type { Transaction } from '@/types';
 export default function TransactionEdit() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { transactions, categories, orgUnits, updateTransaction, user } = useSupabaseStore();
+  const { transactions, categories, orgUnits, updateTransaction, user } = useLocalStore();
 
   const transaction = transactions.find(t => t.id === id);
   const [type, setType] = useState<TransactionType>(transaction?.type || 'INCOME');

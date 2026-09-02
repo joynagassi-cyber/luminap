@@ -1,13 +1,12 @@
 import { useNavigate } from 'react-router-dom';
-import { LogOut, User, Bell, Shield } from 'lucide-react';
-import { useSupabaseStore } from '@/store/useSupabaseStore';
-import { useAuth } from '@/context/AuthContext';
+import { User, Wifi, WifiOff } from 'lucide-react';
+import { useLocalStore } from '@/store/useLocalStore';
 import BottomNav from '@/components/BottomNav';
+import { formatDistanceToNow } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 export default function Settings() {
-  const navigate = useNavigate();
-  const { user } = useSupabaseStore();
-  const { logout } = useAuth();
+  const { user, syncStatus, lastSyncedAt, isOnline } = useLocalStore();
 
   return (
     <div className="min-h-screen bg-canvas">
@@ -18,48 +17,65 @@ export default function Settings() {
         {/* Profile Card */}
         <div className="rounded-xl p-4 mb-5 flex items-center gap-4" style={{ backgroundColor: '#212121' }}>
           <div className="w-14 h-14 rounded-full flex items-center justify-center text-xl font-bold flex-shrink-0" style={{ backgroundColor: '#FF6B00', color: '#FFFFFF' }}>
-            {user?.firstName?.[0] || user?.email?.[0] || 'U'}
+            {user?.firstName?.[0] || 'U'}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-text-primary font-semibold text-lg truncate">{user?.firstName || user?.email?.split('@')[0] || 'Utilisateur'} {user?.lastName || ''}</p>
+            <p className="text-text-primary font-semibold text-lg truncate">{user?.firstName} {user?.lastName}</p>
             <p className="text-text-tertiary text-sm truncate">{user?.email}</p>
             <p className="text-text-tertiary text-xs mt-1 capitalize">{user?.role?.toLowerCase()}</p>
           </div>
         </div>
 
-        {/* Menu Items */}
-        <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider mb-2">Compte</p>
-        <div className="space-y-2 mb-5">
-          {[
-            { icon: User, label: 'Profil', desc: 'Modifier vos informations' },
-            { icon: Bell, label: 'Notifications', desc: 'Gérer les alertes' },
-            { icon: Shield, label: 'Sécurité', desc: 'Mot de passe et authentification' },
-          ].map((item) => (
-            <button key={item.label} className="w-full flex items-center gap-4 p-4 rounded-lg transition-colors text-left active:bg-surface-active" style={{ backgroundColor: '#212121' }}>
-              <item.icon className="w-5 h-5 text-text-tertiary flex-shrink-0" />
-              <div className="flex-1">
-                <p className="text-text-primary font-medium text-base">{item.label}</p>
-                <p className="text-text-tertiary text-sm">{item.desc}</p>
+        {/* Network Status */}
+        <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider mb-2">Connectivité</p>
+        <div className="rounded-lg overflow-hidden mb-5" style={{ backgroundColor: '#212121' }}>
+          <div className="flex items-center justify-between px-4 py-3">
+            <div className="flex items-center gap-3">
+              {isOnline ? (
+                <Wifi className="w-5 h-5" style={{ color: '#1DB954' }} />
+              ) : (
+                <WifiOff className="w-5 h-5" style={{ color: '#E51332' }} />
+              )}
+              <div>
+                <p className="text-text-primary font-medium text-sm">{isOnline ? 'En ligne' : 'Hors ligne'}</p>
+                <p className="text-text-tertiary text-xs">
+                  {lastSyncedAt
+                    ? `Sync: ${formatDistanceToNow(new Date(lastSyncedAt), { addSuffix: true, locale: fr })}`
+                    : 'Jamais sync'}
+                </p>
               </div>
-              <svg className="w-5 h-5 text-text-tertiary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          ))}
+            </div>
+            <span className="text-xs px-3 py-1 rounded-full font-medium"
+              style={{ backgroundColor: isOnline ? '#1DB95420' : '#E5133220', color: isOnline ? '#1DB954' : '#E51332' }}>
+              {syncStatus === 'syncing' ? 'Sync...' : syncStatus === 'error' ? 'Erreur' : 'OK'}
+            </span>
+          </div>
+        </div>
+
+        {/* Storage info */}
+        <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider mb-2">Stockage local</p>
+        <div className="rounded-lg p-4 mb-5" style={{ backgroundColor: '#212121' }}>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-text-tertiary text-sm">IndexedDB</span>
+            <span className="text-text-primary text-sm font-medium">Actif</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-text-tertiary text-sm">Mode</span>
+            <span className="text-text-primary text-sm font-medium">Local-first</span>
+          </div>
         </div>
 
         {/* Organization */}
         <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider mb-2">Organisation</p>
-        <div className="rounded-lg p-4 mb-5" style={{ backgroundColor: '#212121' }}>
+        <div className="rounded-lg p-4 mb-8" style={{ backgroundColor: '#212121' }}>
           <p className="text-text-primary font-semibold">{user?.org?.name || '—'}</p>
+          <p className="text-text-tertiary text-sm mt-1">{user?.org?.type}</p>
         </div>
 
-        {/* Logout */}
-        <button onClick={async () => { logout(); navigate('/login'); }} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-full text-sm font-semibold transition-all active:scale-95" style={{ backgroundColor: '#E5133220', color: '#E51332' }}>
-          <LogOut className="w-5 h-5" />Se déconnecter
-        </button>
-
-        <p className="text-text-tertiary text-xs text-center mt-6 pb-6">Lumina v1.0 · Église MFE-JC Centrale</p>
+        <p className="text-text-tertiary text-xs text-center pb-6">
+          Lumina v2.0 · Église MFE-JC Centrale<br />
+          Données sauvegardées localement · Sync cloud automatique
+        </p>
       </div>
 
       <BottomNav />

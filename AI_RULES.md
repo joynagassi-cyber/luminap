@@ -1,5 +1,12 @@
 # Lumina — Plateforme Universelle d'Organisation
 
+## Architecture
+- **Local-first** : IndexedDB comme source de vérité (persiste aux crashs/reloads)
+- **Sync background** : Supabase cloud en arrière-plan, retry auto avec backoff exponentiel
+- **Pas d'auth** : Accès direct, données sécurisées par RLS open sur Supabase
+- **Offline-first** : L'app fonctionne sans internet, sync dès la reconnexion
+- **Retry queue** : Opérations échouées stockées dans IndexedDB, retry auto (max 5, backoff 1s→2s→4s→8s→16s)
+
 ## Stack
 - React + TypeScript + Vite
 - Tailwind CSS (design system Lumina)
@@ -24,13 +31,14 @@
 - State: DRAFT → PENDING → APPROVED | REJECTED
 
 ## Données
-- Mock données dans `src/config/mockData.ts`
-- State serveur dans `server/store.ts`
-- Organisation: Église MFE-JC Centrale
-- 9 catégories, 5 groupes, 5 transactions exemple
+- **Supabase** : tables `transactions`, `categories`, `org_units`, `audit_entries`
+- **IndexedDB** : `lumina-db` avec stores `transactions`, `categories`, `orgUnits`, `auditEntries`, `syncQueue`, `config`
+- **Organisation** : Église MFE-JC Centrale (org-1)
+- **Catégories** : 9 (dîme, offrande, offrande mission, don, salaire pasteur, frais fonctionnement, mission, entretien, aumône)
+- **Groupes** : 5 (diacres, jeunesse, dames, messieurs, chorale)
 
 ## Routage
-- `/login` — Authentification (serveur-side avec hash SHA-256)
+- `/login` — Page d'entrée (pas d'auth, simple clic)
 - `/` — Dashboard
 - `/finance` — Grand livre avec filtres
 - `/transaction/new` — Nouvelle transaction
@@ -38,16 +46,15 @@
 - `/transaction/:id/edit` — Modifier (draft/rejeté seulement)
 - `/balance` — Bilan financier par période
 - `/groups` — Groupes organisationnels
-- `/settings` — Paramètres utilisateur
+- `/settings` — Paramètres (status sync, stockage local)
 
-## Auth & Sécurité
-- **Serveur Nitro** : authentification via `/api/auth/login` avec hash SHA-256 + salt, rate limiting (5 tentatives/60s), cookies httpOnly
-- **Session** : token stocké en sessionStorage côté client, cookie httpOnly côté serveur
-- **Autorisation** : middleware `server/middleware/security.ts` applique CSP, X-Frame-Options, X-Content-Type-Options
-- **Métier** : transactions approuvées immuables, seuls REJECTED peuvent être supprimés
-- **Rôles** : ADMIN (tous), TREASURER (lecture+création), APPROVER (lecture+approbation)
-- **Données** : mock dans `src/config/mockData.ts`, state serveur dans `server/store.ts`
-- **User par défaut** : admin@mfe-jc.org (mdp: `lumina-admin-2026`)
+## Architecture Local-First
+- **IndexedDB** (`src/lib/db.ts`) : source de vérité locale, persiste aux crashs/reloads
+- **Zustand store** (`src/store/useLocalStore.ts`) : UI alimentée par IndexedDB
+- **Sync engine** (`src/lib/sync.ts`) : background sync Supabase avec retry (max 5, backoff 1s→16s)
+- **Pas d'auth** : accès direct, RLS open sur Supabase pour tous les utilisateurs
+- **Offline-first** : fonctionne sans internet, sync auto à la reconnexion
+- **Network events** : écoute `online`/`offline` + `visibilitychange` pour relancer la sync
 
 <!-- nitro:start -->
 

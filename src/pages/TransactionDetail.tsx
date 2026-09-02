@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Check, X, Edit3, Clock } from 'lucide-react';
 import { formatCurrency, formatDate, getStatusColor, getStatusLabel } from '@/lib/utils';
-import { useSupabaseStore, canActOnTransaction } from '@/store/useSupabaseStore';
+import { useLocalStore, canActOnTransaction } from '@/store/useLocalStore';
 import StatusBadge from '@/components/StatusBadge';
 import ConfirmModal from '@/components/ConfirmModal';
 import BottomNav from '@/components/BottomNav';
@@ -10,7 +10,7 @@ import BottomNav from '@/components/BottomNav';
 export default function TransactionDetail() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { transactions, approveTransaction, rejectTransaction, deleteTransaction, user } = useSupabaseStore();
+  const { transactions, approveTransaction, rejectTransaction, deleteTransaction, user } = useLocalStore();
   const [showRejectComment, setShowRejectComment] = useState(false);
   const [rejectComment, setRejectComment] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -139,7 +139,7 @@ export default function TransactionDetail() {
                 <button onClick={handleEdit} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-full text-sm font-semibold" style={{ backgroundColor: '#212121', color: '#B3B3B3' }}>
                   <Edit3 className="w-4 h-4" />Modifier
                 </button>
-                <button onClick={() => { useSupabaseStore.getState().updateTransaction(transaction.id, { status: 'PENDING' }); navigate('/finance'); }} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-full text-sm font-semibold" style={{ backgroundColor: '#FFB800', color: '#121212' }}>
+                <button onClick={() => { useLocalStore.getState().updateTransaction(transaction.id, { status: 'PENDING' }); navigate('/finance'); }} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-full text-sm font-semibold" style={{ backgroundColor: '#FFB800', color: '#121212' }}>
                   <Clock className="w-4 h-4" />Soumettre pour approbation
                 </button>
               </>
