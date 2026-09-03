@@ -45,7 +45,9 @@ export default function Groups() {
       id,
       name: form.name.trim(),
       type: form.type,
+      description: '',
       orgId: 'org-1',
+      isActive: true,
       syncStatus: 'pending' as const,
     };
 
@@ -105,7 +107,7 @@ export default function Groups() {
                     <p className="text-text-tertiary text-sm capitalize">{unit.type}</p>
                   </div>
                   <button
-                    onClick={() => navigate('/finance')}
+                    onClick={() => navigate(`/groups/${unit.id}`)}
                     className="p-2 rounded-full hover:bg-surface-active transition-colors"
                     style={{ color: '#808080' }}
                   >

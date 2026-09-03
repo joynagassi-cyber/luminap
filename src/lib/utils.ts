@@ -109,23 +109,43 @@ export function exportToCSV(transactions: any[], filename: string) {
 }
 
 /** Export transactions to PDF using jsPDF */
-export function exportToPDF(transactions: any[], filename: string): void {
-  import('jspdf').then(({ jsPDF }) => {
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const margin = 15;
-    const contentWidth = pageWidth - margin * 2;
-    let y = 20;
+export async function exportToPDF(transactions: any[], filename: string): Promise<void> {
+  const { jsPDF } = await import('jspdf');
+  const db = await import('@/lib/db');
+  const orgName = await db.getConfig<string>('orgName').catch(() => null) || 'Église MFE-JC Centrale';
+  const orgLogoUrl = await db.getConfig<string>('orgLogoUrl').catch(() => null) || '';
 
-    doc.setFontSize(18);
-    doc.setTextColor(0xFF, 0x6B, 0x00);
-    doc.text('Lumina — Export Transaction', pageWidth / 2, y, { align: 'center' });
-    y += 10;
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const margin = 15;
+  const contentWidth = pageWidth - margin * 2;
+  let y = 20;
 
-    doc.setFontSize(10);
-    doc.setTextColor(0x80, 0x80, 0x80);
-    doc.text(`Généré le ${formatDateShort(new Date().toISOString())}`, pageWidth / 2, y, { align: 'center' });
-    y += 10;
+  // Header: Church logo + name
+  if (orgLogoUrl) {
+    try {
+      doc.addImage(orgLogoUrl, 'PNG', margin, y, 25, 25);
+    } catch (_) {
+      // If image fails, skip logo
+    }
+  }
+  doc.setFontSize(16);
+  doc.setTextColor(0xFF, 0x6B, 0x00);
+  doc.text(orgName, orgLogoUrl ? margin + 30 : pageWidth / 2, y + 10, { align: orgLogoUrl ? 'left' : 'center' });
+  y += 14;
+
+  doc.setFontSize(10);
+  doc.setTextColor(0x80, 0x80, 0x80);
+  doc.text('Lumina — Export Transaction', orgLogoUrl ? pageWidth - margin : pageWidth / 2, y, { align: orgLogoUrl ? 'right' : 'center' });
+  y += 6;
+  doc.text(`Généré le ${formatDateShort(new Date().toISOString())}`, orgLogoUrl ? pageWidth - margin : pageWidth / 2, y, { align: orgLogoUrl ? 'right' : 'center' });
+  y += 10;
+
+  // Separator line
+  doc.setDrawColor(0xFF, 0x6B, 0x00);
+  doc.setLineWidth(0.5);
+  doc.line(margin, y, pageWidth - margin, y);
+  y += 8;
 
     doc.setFontSize(9);
     doc.setTextColor(0x21, 0x21, 0x21);
@@ -168,8 +188,20 @@ export function exportToPDF(transactions: any[], filename: string): void {
       y += 5;
     });
 
+    // Footer on all pages
+    const pageCount = (doc as any).internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(7);
+      doc.setTextColor(0x80, 0x80, 0x80);
+      doc.text(`Page ${i}/${pageCount}`, pageWidth / 2, 290, { align: 'center' });
+      doc.text(orgName, margin, 290);
+      doc.text('Lumina', pageWidth - margin, 290, { align: 'right' });
+      doc.setDrawColor(0xE0, 0xE0, 0xE0);
+      doc.line(margin, 287, pageWidth - margin, 287);
+    }
+
     doc.save(`${filename}.pdf`);
-  });
 }
 
 /** Export transactions to Excel using xlsx */

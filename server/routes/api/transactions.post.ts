@@ -4,7 +4,7 @@ import { store } from "../../../store";
 
 export default defineHandler(async (event) => {
   const body = await readBody(event);
-  const { type, amount, description, date, categoryId, orgUnitId, status } = body;
+  const { type, amount, description, date, categoryId, orgUnitId, eventId, source, status } = body;
 
   if (!type || !amount || !description || !date || !categoryId || !status) {
     return { ok: false, error: "Missing required fields" };
@@ -20,6 +20,8 @@ export default defineHandler(async (event) => {
     status,
     categoryId,
     orgUnitId: orgUnitId || null,
+    eventId: eventId || null,
+    source: source || null,
     compensatesFor: null,
     comment: null,
     createdAt: new Date().toISOString(),

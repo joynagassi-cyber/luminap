@@ -10,10 +10,12 @@ import type { PeriodType } from '@/lib/utils';
 
 export default function Balance() {
   const navigate = useNavigate();
-  const { transactions, categories, orgUnits } = useLocalStore();
+  const { transactions, categories, orgUnits, events } = useLocalStore();
   const [period, setPeriod] = useState<PeriodType>('mois');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [orgUnitFilter, setOrgUnitFilter] = useState<string>('ALL');
+  const [eventFilter, setEventFilter] = useState<string>('ALL');
   const [loaded, setLoaded] = useState(false);
 
   // Set initial dates once
@@ -36,7 +38,9 @@ export default function Balance() {
   }
 
   const periodTransactions = transactions.filter(
-    t => t.date >= startDate && t.date <= endDate
+    t => t.date >= startDate && t.date <= endDate &&
+      (orgUnitFilter === 'ALL' || t.orgUnitId === orgUnitFilter) &&
+      (eventFilter === 'ALL' || t.eventId === eventFilter)
   );
 
   const totalIncome = periodTransactions.filter(t => t.type === 'INCOME').reduce((s, t) => s + t.amount, 0);
@@ -107,6 +111,24 @@ export default function Balance() {
             <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full px-3 py-2.5 rounded-lg text-sm text-text-primary outline-none" style={{ backgroundColor: '#212121', border: '1px solid #282828' }} />
           </div>
         </div>
+
+        {/* Group & Event Filters */}
+        {(orgUnits.length > 0 || events.length > 0) && (
+          <div className="flex gap-2 mb-5 flex-wrap">
+            {orgUnits.length > 0 && (
+              <select value={orgUnitFilter} onChange={(e) => setOrgUnitFilter(e.target.value)} className="px-3 py-2 rounded-full text-xs font-medium outline-none" style={{ backgroundColor: '#212121', color: '#B3B3B3', border: '1px solid #282828' }}>
+                <option value="ALL">Tous les groupes</option>
+                {orgUnits.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+              </select>
+            )}
+            {events.length > 0 && (
+              <select value={eventFilter} onChange={(e) => setEventFilter(e.target.value)} className="px-3 py-2 rounded-full text-xs font-medium outline-none" style={{ backgroundColor: '#212121', color: '#B3B3B3', border: '1px solid #282828' }}>
+                <option value="ALL">Tous les événements</option>
+                {events.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+              </select>
+            )}
+          </div>
+        )}
 
         {/* Stat Cards */}
         <div className="grid grid-cols-3 gap-3 mb-5">

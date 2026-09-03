@@ -11,6 +11,7 @@ import type {
   IndexedTransaction,
   IndexedCategory,
   IndexedOrgUnit,
+  IndexedEvent,
   IndexedAuditEntry,
   IndexedNotification,
   IndexedRoleAssignment,
@@ -56,6 +57,8 @@ async function syncTransaction(tx: IndexedTransaction): Promise<void> {
     status: tx.status,
     category_id: tx.categoryId,
     org_unit_id: tx.orgUnitId,
+    event_id: tx.eventId,
+    source: tx.source,
     compensates_for: tx.compensatesFor,
     comment: tx.comment,
     version: tx.version,
@@ -99,6 +102,24 @@ async function syncCategory(cat: IndexedCategory): Promise<void> {
     });
   if (error) throw error;
   await db.putCategory({ ...cat, syncStatus: 'synced' });
+}
+
+async function syncEvent(ev: IndexedEvent): Promise<void> {
+  const { error } = await supabase
+    .from('events')
+    .upsert({
+      id: ev.id,
+      name: ev.name,
+      description: ev.description,
+      start_date: ev.startDate,
+      end_date: ev.endDate,
+      status: ev.status,
+      budget: ev.budget,
+      created_at: ev.createdAt,
+      updated_at: ev.updatedAt,
+    });
+  if (error) throw error;
+  await db.putEvent({ ...ev, syncStatus: 'synced' });
 }
 
 async function syncOrgUnit(ou: IndexedOrgUnit): Promise<void> {
@@ -179,6 +200,11 @@ async function processQueue(): Promise<void> {
           case 'audit_entries': {
             const ae = entry.payload as IndexedAuditEntry;
             await syncAuditEntry(ae);
+            break;
+          }
+          case 'events': {
+            const ev = entry.payload as IndexedEvent;
+            await syncEvent(ev);
             break;
           }
         }
@@ -360,24 +386,28 @@ export async function fetchFromCloud(): Promise<{
   transactions: IndexedTransaction[];
   categories: IndexedCategory[];
   orgUnits: IndexedOrgUnit[];
+  events: IndexedEvent[];
   auditEntries: IndexedAuditEntry[];
 }> {
-  const [txRes, catRes, ouRes, auditRes] = await Promise.all([
+  const [txRes, catRes, ouRes, eventRes, auditRes] = await Promise.all([
     supabase.from('transactions').select('*').order('created_at', { ascending: false }),
     supabase.from('categories').select('*').order('id'),
     supabase.from('org_units').select('*').order('id'),
+    supabase.from('events').select('*').order('created_at', { ascending: false }),
     supabase.from('audit_entries').select('*').order('created_at', { ascending: false }).limit(50),
   ]);
 
   if (txRes.error) throw txRes.error;
   if (catRes.error) console.warn('[sync] categories fetch error', catRes.error);
   if (ouRes.error) console.warn('[sync] org_units fetch error', ouRes.error);
+  if (eventRes.error) console.warn('[sync] events fetch error', eventRes.error);
   if (auditRes.error) console.warn('[sync] audit fetch error', auditRes.error);
 
   return {
     transactions: (txRes.data ?? []).map(mapDbTx),
     categories: (catRes.data ?? []).map(mapDbCat),
     orgUnits: (ouRes.data ?? []).map(mapDbOu),
+    events: (eventRes.data ?? []).map(mapDbEvent),
     auditEntries: (auditRes.data ?? []).map(mapDbAudit),
   };
 }
@@ -393,6 +423,8 @@ function mapDbTx(tx: any): IndexedTransaction {
     status: tx.status,
     categoryId: tx.category_id,
     orgUnitId: tx.org_unit_id,
+    eventId: tx.event_id ?? null,
+    source: tx.source ?? null,
     compensatesFor: tx.compensates_for,
     comment: tx.comment,
     version: tx.version,
@@ -419,7 +451,23 @@ function mapDbCat(cat: any): IndexedCategory {
 }
 
 function mapDbOu(ou: any): IndexedOrgUnit {
-  return { id: ou.id, name: ou.name, type: ou.type, orgId: ou.org_id, syncStatus: 'synced' };
+  return { id: ou.id, name: ou.name, type: ou.type, description: ou.description ?? '', orgId: ou.org_id, isActive: ou.is_active ?? true, syncStatus: 'synced' };
+}
+
+function mapDbEvent(ev: any): IndexedEvent {
+  return {
+    id: ev.id,
+    orgId: ev.org_id,
+    name: ev.name,
+    description: ev.description ?? '',
+    startDate: ev.start_date,
+    endDate: ev.end_date,
+    status: ev.status,
+    budget: ev.budget,
+    createdAt: ev.created_at,
+    updatedAt: ev.updated_at,
+    syncStatus: 'synced',
+  };
 }
 
 function mapDbAudit(entry: any): IndexedAuditEntry {

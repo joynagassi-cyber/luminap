@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, BookOpen, BarChart3, Settings, Building2, MoreHorizontal } from 'lucide-react';
+import { Home, BookOpen, BarChart3, Settings, Building2, Calendar, MoreHorizontal } from 'lucide-react';
 import { useState } from 'react';
 import BottomDrawer from './BottomDrawer';
 import { useState as useStateReact } from 'react';
@@ -14,6 +14,7 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/', label: 'Accueil', icon: Home },
   { path: '/finance', label: 'Finance', icon: BookOpen },
   { path: '/groups', label: 'Groupes', icon: Building2 },
+  { path: '/events', label: 'Événements', icon: Calendar },
   { path: '/settings', label: 'Réglages', icon: Settings },
 ];
 

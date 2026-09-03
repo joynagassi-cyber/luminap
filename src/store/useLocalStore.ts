@@ -6,7 +6,7 @@ import { create } from 'zustand';
 import { supabase } from '@/integrations/supabase/client';
 import * as db from '@/lib/db';
 import { fetchFromCloud, startBackgroundSync, syncNotifications, syncRoleAssignments, startRealtimeSubscriptions, stopRealtimeSubscriptions, stopBackgroundSync } from '@/lib/sync';
-import type { Transaction, Category, OrgUnit, AuditEntry, NotificationItem, Role } from '@/types';
+import type { Transaction, Category, OrgUnit, Event, AuditEntry, NotificationItem, Role } from '@/types';
 
 // ─── Constants ─────────────────────────────────────────────────────────
 
@@ -26,6 +26,7 @@ interface AppState {
   transactions: Transaction[];
   categories: Category[];
   orgUnits: OrgUnit[];
+  events: Event[];
   auditEntries: AuditEntry[];
   notifications: NotificationItem[];
   isLoading: boolean;
@@ -36,7 +37,7 @@ interface AppState {
 }
 
 interface StoreActions {
-  addTransaction: (tx: { type: string; amount: number; description: string; date: string; categoryId: string; orgUnitId?: string; status: string }) => Promise<void>;
+  addTransaction: (tx: { type: string; amount: number; description: string; date: string; categoryId: string; orgUnitId?: string; eventId?: string; source?: string; status: string }) => Promise<void>;
   updateTransaction: (id: string, updates: Partial<Transaction>) => Promise<void>;
   approveTransaction: (id: string, userId?: string) => Promise<void>;
   rejectTransaction: (id: string, comment: string) => Promise<void>;
@@ -44,6 +45,9 @@ interface StoreActions {
   addCategory: (cat: { key: string; labelFr: string; type: 'INCOME' | 'EXPENSE' }) => Promise<void>;
   updateCategory: (id: string, updates: { key?: string; labelFr?: string; type?: 'INCOME' | 'EXPENSE' }) => Promise<void>;
   deleteCategory: (id: string) => Promise<void>;
+  addEvent: (evt: { name: string; description: string; startDate: string; endDate?: string; budget: number }) => Promise<void>;
+  updateEvent: (id: string, updates: Partial<Event>) => Promise<void>;
+  deleteEvent: (id: string) => Promise<void>;
   refreshData: () => Promise<void>;
   syncAll: () => Promise<void>;
   setSyncStatus: (status: AppState['syncStatus']) => void;
@@ -74,6 +78,7 @@ export const useLocalStore = create<AppState & StoreActions>((set, get) => ({
   transactions: [],
   categories: [],
   orgUnits: [],
+  events: [],
   auditEntries: [],
   notifications: [],
   isLoading: true,
@@ -93,6 +98,7 @@ export const useLocalStore = create<AppState & StoreActions>((set, get) => ({
       let transactions: Transaction[] = [];
       let categories: Category[] = [];
       let orgUnits: OrgUnit[] = [];
+      let events: Event[] = [];
       let auditEntries: AuditEntry[] = [];
       let notifications: NotificationItem[] = [];
 
@@ -112,12 +118,14 @@ export const useLocalStore = create<AppState & StoreActions>((set, get) => ({
       const localTxs = await db.getAllTransactions();
       const localCats = await db.getAllCategories();
       const localOus = await db.getAllOrgUnits();
+      const localEvents = await db.getAllEvents();
       const localAudit = await db.getAllAuditEntries();
       const localNotifs = await db.getAllNotifications();
 
       const finalTxs = transactions.length > 0 ? transactions : localTxs.map(toLocalTx);
       const finalCats = categories.length > 0 ? categories : localCats.map(toLocalCat);
       const finalOus = orgUnits.length > 0 ? orgUnits : localOus.map(toLocalOu);
+      const finalEvents = events.length > 0 ? events : localEvents.map(toLocalEvent);
       const finalAudit = auditEntries.length > 0 ? auditEntries : localAudit.map(toLocalAudit);
       notifications = localNotifs.map(toLocalNotif);
 
@@ -145,6 +153,7 @@ export const useLocalStore = create<AppState & StoreActions>((set, get) => ({
         transactions: finalTxs,
         categories: finalCats,
         orgUnits: finalOus,
+        events: finalEvents,
         auditEntries: finalAudit,
         notifications,
         isLoading: false,
@@ -177,6 +186,8 @@ export const useLocalStore = create<AppState & StoreActions>((set, get) => ({
       status: tx.status as any,
       categoryId: tx.categoryId,
       orgUnitId: tx.orgUnitId ?? null,
+      eventId: tx.eventId ?? null,
+      source: tx.source ? (tx.source as db.FundSource) : null,
       compensatesFor: null,
       comment: null,
       version: 1,
@@ -386,6 +397,65 @@ export const useLocalStore = create<AppState & StoreActions>((set, get) => ({
     }));
   },
 
+  addEvent: async (evt) => {
+    const id = `evt-${Date.now()}`;
+    const now = new Date().toISOString();
+    const localEvent = {
+      id,
+      orgId: 'org-1',
+      name: evt.name,
+      description: evt.description,
+      startDate: evt.startDate,
+      endDate: evt.endDate ?? null,
+      status: 'PLANIFIED' as const,
+      budget: Math.round(evt.budget),
+      createdAt: now,
+      updatedAt: now,
+      syncStatus: 'pending' as const,
+    };
+
+    await db.putEvent(localEvent);
+    await db.enqueueSync('insert', 'events', localEvent);
+
+    set(s => ({
+      events: [...s.events, toLocalEvent(localEvent)],
+      error: null,
+      syncStatus: 'syncing',
+    }));
+  },
+
+  updateEvent: async (id, updates) => {
+    const localEvent = await db.getEvent(id);
+    if (!localEvent) return;
+
+    const updatedEvent = {
+      ...localEvent,
+      ...updates,
+      updatedAt: new Date().toISOString(),
+      syncStatus: 'pending' as const,
+    };
+
+    await db.putEvent(updatedEvent);
+    await db.enqueueSync('update', 'events', updatedEvent);
+
+    set(s => ({
+      events: s.events.map(e => e.id === id ? toLocalEvent(updatedEvent) : e),
+      error: null,
+      syncStatus: 'syncing',
+    }));
+  },
+
+  deleteEvent: async (id) => {
+    await db.deleteEvent(id);
+    await db.enqueueSync('delete', 'events', { id });
+
+    set(s => ({
+      events: s.events.filter(e => e.id !== id),
+      error: null,
+      syncStatus: 'syncing',
+    }));
+  },
+
   selectRole: async (role: Role) => {
     await db.setRole(role);
     const sessionId = await getUserSessionId();
@@ -442,6 +512,8 @@ function toLocalTx(tx: any): Transaction {
     approvedAt: tx.approvedAt,
     categoryId: tx.categoryId,
     orgUnitId: tx.orgUnitId,
+    eventId: tx.eventId ?? null,
+    source: tx.source ? (tx.source as db.FundSource) : null,
     compensatesFor: tx.compensatesFor,
     comment: tx.comment,
     version: tx.version,
@@ -453,7 +525,22 @@ function toLocalCat(cat: any): Category {
 }
 
 function toLocalOu(ou: any): OrgUnit {
-  return { id: ou.id, name: ou.name, type: ou.type, orgId: ou.orgId };
+  return { id: ou.id, name: ou.name, type: ou.type, description: ou.description ?? '', orgId: ou.orgId, isActive: ou.isActive ?? true };
+}
+
+function toLocalEvent(ev: any): Event {
+  return {
+    id: ev.id,
+    orgId: ev.orgId,
+    name: ev.name,
+    description: ev.description,
+    startDate: ev.startDate,
+    endDate: ev.endDate,
+    status: ev.status,
+    budget: ev.budget,
+    createdAt: ev.createdAt,
+    updatedAt: ev.updatedAt,
+  };
 }
 
 function toLocalAudit(entry: any): AuditEntry {

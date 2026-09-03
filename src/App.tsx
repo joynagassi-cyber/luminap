@@ -12,6 +12,10 @@ import TransactionDetail from "./pages/TransactionDetail";
 import TransactionEdit from "./pages/TransactionEdit";
 import Balance from "./pages/Balance";
 import Groups from "./pages/Groups";
+import GroupDetail from "./pages/GroupDetail";
+import Events from "./pages/Events";
+import EventNew from "./pages/EventNew";
+import EventDetail from "./pages/EventDetail";
 import Settings from "./pages/Settings";
 import History from "./pages/History";
 import Help from "./pages/Help";
@@ -37,6 +41,10 @@ function AppRoutes() {
         <Route path="/transaction/:id/edit" element={<TransactionEdit />} />
         <Route path="/balance" element={<Balance />} />
         <Route path="/groups" element={<Groups />} />
+        <Route path="/groups/:id" element={<GroupDetail />} />
+        <Route path="/events" element={<Events />} />
+        <Route path="/event/new" element={<EventNew />} />
+        <Route path="/event/:id" element={<EventDetail />} />
         <Route path="/history" element={<History />} />
         <Route path="/help" element={<Help />} />
         <Route path="/settings" element={<Settings />} />

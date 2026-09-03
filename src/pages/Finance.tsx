@@ -14,11 +14,13 @@ type TypeFilter = 'ALL' | 'INCOME' | 'EXPENSE';
 
 export default function Finance() {
   const navigate = useNavigate();
-  const { transactions, categories, isLoading } = useLocalStore();
+  const { transactions, categories, orgUnits, events, isLoading } = useLocalStore();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('ALL');
   const [categoryId, setCategoryId] = useState<string>('ALL');
+  const [orgUnitId, setOrgUnitId] = useState<string>('ALL');
+  const [eventId, setEventId] = useState<string>('ALL');
   const [showFilters, setShowFilters] = useState(false);
   const [period, setPeriod] = useState<PeriodType>('mois');
 
@@ -37,6 +39,8 @@ export default function Finance() {
       if (statusFilter !== 'ALL' && t.status !== statusFilter) return false;
       if (typeFilter !== 'ALL' && t.type !== typeFilter) return false;
       if (categoryId !== 'ALL' && t.categoryId !== categoryId) return false;
+      if (orgUnitId !== 'ALL' && t.orgUnitId !== orgUnitId) return false;
+      if (eventId !== 'ALL' && t.eventId !== eventId) return false;
       if (search.trim()) {
         const q = search.toLowerCase();
         return (
@@ -123,6 +127,32 @@ export default function Finance() {
                 ))}
               </div>
             </div>
+            {orgUnits.length > 0 && (
+              <div>
+                <p className="text-text-tertiary text-xs mb-2">Groupe</p>
+                <div className="flex flex-wrap gap-2">
+                  <button onClick={() => setOrgUnitId('ALL')} className="px-3 py-1.5 rounded-full text-xs font-medium" style={{ backgroundColor: orgUnitId === 'ALL' ? '#FF6B00' : '#282828', color: orgUnitId === 'ALL' ? '#FFFFFF' : '#808080' }}>Tous</button>
+                  {orgUnits.map((unit) => (
+                    <button key={unit.id} onClick={() => setOrgUnitId(unit.id)} className="px-3 py-1.5 rounded-full text-xs font-medium" style={{ backgroundColor: orgUnitId === unit.id ? '#FF6B00' : '#282828', color: orgUnitId === unit.id ? '#FFFFFF' : '#808080' }}>
+                      {unit.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {events.length > 0 && (
+              <div>
+                <p className="text-text-tertiary text-xs mb-2">Événement</p>
+                <div className="flex flex-wrap gap-2">
+                  <button onClick={() => setEventId('ALL')} className="px-3 py-1.5 rounded-full text-xs font-medium" style={{ backgroundColor: eventId === 'ALL' ? '#FF6B00' : '#282828', color: eventId === 'ALL' ? '#FFFFFF' : '#808080' }}>Tous</button>
+                  {events.map((evt) => (
+                    <button key={evt.id} onClick={() => setEventId(evt.id)} className="px-3 py-1.5 rounded-full text-xs font-medium" style={{ backgroundColor: eventId === evt.id ? '#FF6B00' : '#282828', color: eventId === evt.id ? '#FFFFFF' : '#808080' }}>
+                      {evt.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 

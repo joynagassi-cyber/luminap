@@ -10,7 +10,7 @@ export default defineHandler(async (event) => {
   const tx = store.transactions.find(t => t.id === id);
   if (!tx) throw createError({ statusCode: 404, statusMessage: "Not found" });
 
-  const allowedFields = ["type", "amount", "description", "date", "categoryId", "orgUnitId", "status"];
+  const allowedFields = ["type", "amount", "description", "date", "categoryId", "orgUnitId", "eventId", "source", "status"];
   const updates: Record<string, unknown> = {};
   for (const key of allowedFields) {
     if (body[key] !== undefined) updates[key] = body[key];

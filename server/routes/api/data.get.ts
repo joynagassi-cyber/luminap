@@ -6,7 +6,9 @@ export default defineHandler(() => {
     ok: true,
     categories: store.categories,
     orgUnits: store.orgUnits,
+    events: store.events,
     transactions: store.transactions,
     auditEntries: store.auditEntries,
+    orgConfig: store.orgConfig,
   };
 });

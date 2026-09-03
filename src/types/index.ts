@@ -27,11 +27,14 @@ export type Organization = {
   name: string;
   type: OrgType;
   accentColor: string;
+  logoUrl?: string;
 };
 
 export type TransactionStatus = 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED';
 
 export type TransactionType = 'INCOME' | 'EXPENSE';
+
+export type FundSource = 'CAISSE' | 'COTISATION' | 'PERSONNE' | 'AUTRE';
 
 export type Transaction = {
   id: string;
@@ -48,11 +51,14 @@ export type Transaction = {
   approvedAt: string | null;
   categoryId: string;
   orgUnitId: string | null;
+  eventId: string | null;
+  source: FundSource | null;
   compensatesFor: string | null;
   comment: string | null;
   version: number;
   category?: Category;
   orgUnit?: OrgUnit;
+  event?: Event;
   creator?: User;
   approver?: User;
 };
@@ -70,7 +76,24 @@ export type OrgUnit = {
   id: string;
   name: string;
   type: string;
+  description: string;
   orgId: string;
+  isActive: boolean;
+};
+
+export type EventStatus = 'PLANIFIED' | 'ONGOING' | 'COMPLETED' | 'CANCELLED';
+
+export type Event = {
+  id: string;
+  orgId: string;
+  name: string;
+  description: string;
+  startDate: string;
+  endDate: string | null;
+  status: EventStatus;
+  budget: number;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type AuditEntry = {

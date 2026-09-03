@@ -1,4 +1,4 @@
-import type { Category, OrgUnit, Transaction, AuditEntry, User, Organization } from '../src/types';
+import type { Category, OrgUnit, Transaction, AuditEntry, User, Organization, Event } from '../src/types';
 import { createHash } from 'node:crypto';
 
 // User storage for signup/login
@@ -219,6 +219,8 @@ export interface Store {
   categories: Category[];
   orgUnits: OrgUnit[];
   auditEntries: AuditEntry[];
+  events: Event[];
+  orgConfig: { name?: string; logoUrl?: string };
 }
 
 export function findUserByEmail(email: string): UserRecord | undefined {
@@ -240,6 +242,8 @@ export function createUserRecord(firstName: string, lastName: string, email: str
   return user;
 }
 
+const EVENTS: Event[] = [];
+
 export const store: Store = {
   isAuthenticated: true,
   user: {
@@ -254,4 +258,6 @@ export const store: Store = {
   categories: CATEGORIES,
   orgUnits: ORG_UNITS,
   auditEntries: AUDIT_ENTRIES,
+  events: EVENTS,
+  orgConfig: { name: ORG.name, logoUrl: undefined },
 };

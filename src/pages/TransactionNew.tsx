@@ -124,15 +124,17 @@ function CategoryModal({
 export default function TransactionNew() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { addTransaction, categories, orgUnits, addCategory } = useLocalStore();
+  const { addTransaction, categories, orgUnits, events, addCategory } = useLocalStore();
 
-  const initState = location.state as { compensateFor?: string } | null;
+  const initState = location.state as { compensateFor?: string; orgUnitId?: string; eventId?: string } | null;
 
   const [type, setType] = useState<TransactionType>('INCOME');
   const [amount, setAmount] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [date, setDate] = useState(getTodayStr());
-  const [orgUnitId, setOrgUnitId] = useState('');
+  const [orgUnitId, setOrgUnitId] = useState(initState?.orgUnitId || '');
+  const [eventId, setEventId] = useState(initState?.eventId || '');
+  const [source, setSource] = useState('');
   const [description, setDescription] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [showErrorModal, setShowErrorModal] = useState(false);
@@ -175,6 +177,8 @@ export default function TransactionNew() {
       status,
       categoryId,
       orgUnitId: orgUnitId || undefined,
+      eventId: eventId || undefined,
+      source: source || undefined,
     });
 
     navigate('/finance');
@@ -262,6 +266,41 @@ export default function TransactionNew() {
             <option value="">Aucun groupe</option>
             {orgUnits.map((unit) => (<option key={unit.id} value={unit.id}>{unit.name}</option>))}
           </select>
+        </div>
+
+        {/* Event */}
+        <div className="mb-5">
+          <label className="block text-text-secondary text-sm font-medium mb-2">Événement (optionnel)</label>
+          <select value={eventId} onChange={(e) => setEventId(e.target.value)} className="w-full px-4 py-3 rounded-lg text-text-primary text-sm outline-none appearance-none" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
+            <option value="">Aucun événement</option>
+            {events.map((evt) => (<option key={evt.id} value={evt.id}>{evt.name}</option>))}
+          </select>
+        </div>
+
+        {/* Fund Source */}
+        <div className="mb-5">
+          <label className="block text-text-secondary text-sm font-medium mb-2">Origine des fonds (optionnel)</label>
+          <div className="grid grid-cols-2 gap-2">
+            {([
+              { value: 'CAISSE', label: 'Caisse église', color: '#FF6B00' },
+              { value: 'COTISATION', label: 'Cotisation', color: '#2196F3' },
+              { value: 'PERSONNE', label: 'Personne', color: '#E91E63' },
+              { value: 'AUTRE', label: 'Autre', color: '#808080' },
+            ] as const).map((s) => (
+              <button
+                key={s.value}
+                onClick={() => setSource(source === s.value ? '' : s.value)}
+                className="py-2.5 rounded-lg text-xs font-medium transition-all"
+                style={{
+                  backgroundColor: source === s.value ? s.color + '20' : '#212121',
+                  border: source === s.value ? `2px solid ${s.color}` : '1px solid #282828',
+                  color: source === s.value ? s.color : '#808080',
+                }}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Description */}

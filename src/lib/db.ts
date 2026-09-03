@@ -4,11 +4,14 @@
  */
 
 const DB_NAME = 'lumina-db';
-const DB_VERSION = 4;
+const DB_VERSION = 5;
 
 // ─── Types ─────────────────────────────────────────────
 
 export type Role = 'PASTEUR' | 'SECRETAIRE' | 'TREASURIER' | 'COMPTABLE' | 'TREASURIER_ADJOINT' | 'SECRETAIRE_ADJOINT';
+
+export type FundSource = 'CAISSE' | 'COTISATION' | 'PERSONNE' | 'AUTRE';
+export type EventStatus = 'PLANIFIED' | 'ONGOING' | 'COMPLETED' | 'CANCELLED';
 
 export interface IndexedTransaction {
   id: string;
@@ -20,6 +23,8 @@ export interface IndexedTransaction {
   status: 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED';
   categoryId: string;
   orgUnitId: string | null;
+  eventId: string | null;
+  source: FundSource | null;
   compensatesFor: string | null;
   comment: string | null;
   version: number;
@@ -46,8 +51,25 @@ export interface IndexedOrgUnit {
   id: string;
   name: string;
   type: string;
+  description: string;
   orgId: string;
+  isActive: boolean;
   syncStatus: 'pending' | 'synced';
+}
+
+export interface IndexedEvent {
+  id: string;
+  orgId: string;
+  name: string;
+  description: string;
+  startDate: string;
+  endDate: string | null;
+  status: EventStatus;
+  budget: number;
+  createdAt: string;
+  updatedAt: string;
+  syncStatus: 'pending' | 'synced';
+  cloudId?: string;
 }
 
 export interface IndexedAuditEntry {
@@ -80,10 +102,15 @@ export interface IndexedRoleAssignment {
   createdAt: string;
 }
 
+export interface OrgConfig {
+  key: string;
+  value: unknown;
+}
+
 export interface SyncQueueEntry {
   id: string;
   type: 'insert' | 'update' | 'delete';
-  table: 'transactions' | 'categories' | 'org_units' | 'audit_entries';
+  table: 'transactions' | 'categories' | 'org_units' | 'audit_entries' | 'events';
   payload: unknown;
   attempt: number;
   lastAttemptAt: string;
@@ -104,7 +131,7 @@ export const ALL_ROLES: { key: Role; label: string; icon: string }[] = [
 // ─── Async cleanup after version upgrade ─────────────────────────
 
 async function runCleanup(db: IDBDatabase): Promise<void> {
-  const stores = ['transactions', 'categories', 'orgUnits', 'auditEntries', 'syncQueue', 'notifications', 'roleAssignments'];
+  const stores = ['transactions', 'categories', 'orgUnits', 'auditEntries', 'syncQueue', 'notifications', 'roleAssignments', 'events'];
   for (const storeName of stores) {
     if (db.objectStoreNames.contains(storeName)) {
       try {
@@ -228,8 +255,13 @@ function ensureDBReady(): Promise<IDBDatabase> {
         db.createObjectStore('roleAssignments', { keyPath: 'sessionId' });
       }
 
+      // Events store (v5)
+      if (!db.objectStoreNames.contains('events')) {
+        db.createObjectStore('events', { keyPath: 'id' });
+      }
+
       // Mark that we need to clear stale data after upgrade completes
-      if (oldVersion < 4) {
+      if (oldVersion < 5) {
         (db as any).__needsDataCleanup = true;
       }
     };
@@ -654,4 +686,64 @@ export async function getAllRolesFromCloud(): Promise<Role[]> {
 
 export async function setAllRolesFromCloud(roles: Role[]): Promise<void> {
   await setConfig('assignedRoles', roles);
+}
+
+// ─── Events ──────────────────────────────────────────────
+
+export async function getAllEvents(): Promise<IndexedEvent[]> {
+  return withDB(async (db) => {
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('events', 'readonly');
+      const store = tx.objectStore('events');
+      const request = store.getAll();
+      request.onsuccess = () => resolve(request.result as IndexedEvent[]);
+      request.onerror = () => reject(request.error);
+    });
+  });
+}
+
+export async function getEvent(id: string): Promise<IndexedEvent | undefined> {
+  return withDB(async (db) => {
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('events', 'readonly');
+      const store = tx.objectStore('events');
+      const request = store.get(id);
+      request.onsuccess = () => resolve(request.result as IndexedEvent | undefined);
+      request.onerror = () => reject(request.error);
+    });
+  });
+}
+
+export async function putEvent(ev: IndexedEvent): Promise<void> {
+  return withDB(async (db) => {
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('events', 'readwrite');
+      const store = tx.objectStore('events');
+      const req = store.put(ev);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  });
+}
+
+export async function deleteEvent(id: string): Promise<void> {
+  return withDB(async (db) => {
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('events', 'readwrite');
+      const store = tx.objectStore('events');
+      const req = store.delete(id);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  });
+}
+
+// ─── Org Config (church name, logo) ──────────────────────
+
+export async function getOrgConfig<T>(key: string): Promise<T | null> {
+  return getConfig<T>(key);
+}
+
+export async function setOrgConfig(key: string, value: unknown): Promise<void> {
+  await setConfig(key, value);
 }
