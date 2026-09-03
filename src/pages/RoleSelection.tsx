@@ -6,6 +6,8 @@ import type { Role } from '@/types';
 import { Bell } from 'lucide-react';
 import * as db from '@/lib/db';
 import { supabase } from '@/integrations/supabase/client';
+import LuminaLogo from '@/components/LuminaLogo';
+import LogoSpinner from '@/components/LogoSpinner';
 
 export default function RoleSelection() {
   const navigate = useNavigate();
@@ -57,7 +59,7 @@ export default function RoleSelection() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#121212' }}>
-        <div className="w-8 h-8 rounded-full border-4 border-[#FF6B00] border-t-transparent animate-spin" />
+        <LogoSpinner size={80} />
       </div>
     );
   }
@@ -67,7 +69,7 @@ export default function RoleSelection() {
       {/* Header */}
       <div className="px-6 pt-10 pb-6 text-center">
         <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: '#181818', border: '2px solid #FF6B00' }}>
-          <span className="text-3xl font-black" style={{ color: '#FF6B00' }}>L</span>
+          <LuminaLogo size={56} />
         </div>
         <h1 className="text-2xl font-bold text-white mb-2">Bienvenue sur Lumina</h1>
         <p className="text-[#808080] text-sm max-w-xs mx-auto">

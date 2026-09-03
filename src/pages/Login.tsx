@@ -3,19 +3,26 @@ import { useNavigate } from 'react-router-dom';
 import { LogIn } from 'lucide-react';
 import { useLocalStore } from '@/store/useLocalStore';
 import * as db from '@/lib/db';
+import LuminaLogo from '@/components/LuminaLogo';
+import LogoSpinner from '@/components/LogoSpinner';
+import Onboarding from '@/pages/Onboarding';
 
 export default function Login() {
   const navigate = useNavigate();
   const { refreshData } = useLocalStore();
   const [loading, setLoading] = useState(false);
   const [checkDone, setCheckDone] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
-    // Check if user already has a role selected
     const check = async () => {
+      const hasCompleted = await db.getConfig<boolean>('hasCompletedOnboarding');
+      if (!hasCompleted) {
+        setShowOnboarding(true);
+        return;
+      }
       const role = await db.getRole();
       if (role) {
-        // Role already selected – go directly to dashboard
         navigate('/');
       } else {
         setCheckDone(true);
@@ -31,10 +38,14 @@ export default function Login() {
     navigate('/role-selection');
   };
 
+  if (showOnboarding) {
+    return <Onboarding />;
+  }
+
   if (!checkDone) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#121212' }}>
-        <div className="w-8 h-8 rounded-full border-4 border-[#FF6B00] border-t-transparent animate-spin" />
+        <LogoSpinner size={100} />
       </div>
     );
   }
@@ -44,7 +55,7 @@ export default function Login() {
       {/* Logo */}
       <div className="mb-8 flex flex-col items-center">
         <div className="w-24 h-24 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: '#181818', border: '3px solid #FF6B00' }}>
-          <span className="text-5xl font-black" style={{ color: '#FF6B00' }}>L</span>
+          <LuminaLogo size={80} />
         </div>
         <h1 className="text-3xl font-bold text-text-primary">Lumina</h1>
         <p className="text-text-tertiary text-sm mt-1">Gestion financière · Sans compte requis</p>
