@@ -101,6 +101,38 @@ export const ALL_ROLES: { key: Role; label: string; icon: string }[] = [
   { key: 'SECRETAIRE_ADJOINT', label: 'Secrétaire Adjoint', icon: '📋' },
 ];
 
+// ─── Async cleanup after version upgrade ─────────────────────────
+
+async function runCleanup(db: IDBDatabase): Promise<void> {
+  const stores = ['transactions', 'categories', 'orgUnits', 'auditEntries', 'syncQueue', 'notifications', 'roleAssignments'];
+  for (const storeName of stores) {
+    if (db.objectStoreNames.contains(storeName)) {
+      try {
+        db.transaction(storeName, 'readwrite').objectStore(storeName).clear();
+      } catch (_) { /* ignore */ }
+    }
+  }
+  if (db.objectStoreNames.contains('config')) {
+    try {
+      const tx = db.transaction('config', 'readwrite');
+      const store = tx.objectStore('config');
+      const req = store.getAllKeys();
+      await new Promise<void>((resolve) => {
+        req.onsuccess = () => {
+          const keepKeys = new Set(['sessionId', 'selectedRole', 'lastSyncedAt']);
+          const allKeys = req.result as string[];
+          for (const key of allKeys) {
+            if (!keepKeys.has(key)) store.delete(key);
+          }
+          resolve();
+        };
+        req.onerror = () => resolve();
+      });
+    } catch (_) { /* ignore */ }
+  }
+  console.log('[db] cleanup after version upgrade complete');
+}
+
 // ─── Database access ────────────────────────────────────
 
 let dbReady: Promise<IDBDatabase> | null = null;
@@ -136,6 +168,12 @@ function ensureDBReady(): Promise<IDBDatabase> {
       dbReady = Promise.resolve(request.result);
       dbOpenInProgress = false;
       resolve(request.result);
+      // Run async cleanup after upgrade if needed
+      const dbConn = request.result;
+      if ((dbConn as any).__needsDataCleanup) {
+        delete (dbConn as any).__needsDataCleanup;
+        runCleanup(dbConn);
+      }
     };
 
     request.onupgradeneeded = (event) => {
@@ -185,40 +223,14 @@ function ensureDBReady(): Promise<IDBDatabase> {
         db.createObjectStore('notifications', { keyPath: 'id' });
       }
 
-      // Notifications store (v4)
-      if (!db.objectStoreNames.contains('notifications')) {
-        db.createObjectStore('notifications', { keyPath: 'id' });
-      }
-
       // Role assignments store (v4)
       if (!db.objectStoreNames.contains('roleAssignments')) {
         db.createObjectStore('roleAssignments', { keyPath: 'sessionId' });
       }
 
-      // Clear stale data on upgrade (v3 → v4)
+      // Mark that we need to clear stale data after upgrade completes
       if (oldVersion < 4) {
-        const stores = ['transactions', 'categories', 'orgUnits', 'auditEntries', 'syncQueue', 'notifications', 'roleAssignments'];
-        for (const storeName of stores) {
-          if (db.objectStoreNames.contains(storeName)) {
-            const tx = db.transaction(storeName, 'readwrite');
-            tx.objectStore(storeName).clear();
-          }
-        }
-        // Clear config but keep sessionId and selectedRole
-        if (db.objectStoreNames.contains('config')) {
-          const tx = db.transaction('config', 'readwrite');
-          const store = tx.objectStore('config');
-          const req = store.getAllKeys();
-          req.onsuccess = () => {
-            const keepKeys = new Set(['sessionId', 'selectedRole', 'lastSyncedAt']);
-            const allKeys = req.result as string[];
-            for (const key of allKeys) {
-              if (!keepKeys.has(key)) {
-                store.delete(key);
-              }
-            }
-          };
-        }
+        (db as any).__needsDataCleanup = true;
       }
     };
   });

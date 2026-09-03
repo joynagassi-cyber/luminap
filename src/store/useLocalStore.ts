@@ -5,7 +5,7 @@
 import { create } from 'zustand';
 import { supabase } from '@/integrations/supabase/client';
 import * as db from '@/lib/db';
-import { fetchFromCloud, startBackgroundSync, syncNotifications, syncRoleAssignments, startRealtimeSubscriptions, stopRealtimeSubscriptions } from '@/lib/sync';
+import { fetchFromCloud, startBackgroundSync, syncNotifications, syncRoleAssignments, startRealtimeSubscriptions, stopRealtimeSubscriptions, stopBackgroundSync } from '@/lib/sync';
 import type { Transaction, Category, OrgUnit, AuditEntry, NotificationItem, Role } from '@/types';
 
 // ─── Constants ─────────────────────────────────────────────────────────
@@ -518,13 +518,27 @@ export function initStore(): void {
   window.addEventListener('lumina:roles-changed', handleNewNotif);
 
   // Listen for online/offline
-  window.addEventListener('online', () => {
+  const handleOnline = () => {
     useLocalStore.setState({ isOnline: true, syncStatus: 'syncing' });
     getState().refreshData();
-  });
-  window.addEventListener('offline', () => {
+  };
+  const handleOffline = () => {
     useLocalStore.setState({ isOnline: false, syncStatus: 'offline' });
-  });
+  };
+  window.addEventListener('online', handleOnline);
+  window.addEventListener('offline', handleOffline);
+
+  // Cleanup on unmount
+  const cleanup = () => {
+    window.removeEventListener('lumina:notification', handleNewNotif);
+    window.removeEventListener('lumina:roles-changed', handleNewNotif);
+    window.removeEventListener('online', handleOnline);
+    window.removeEventListener('offline', handleOffline);
+    stopRealtimeSubscriptions();
+    stopBackgroundSync();
+  };
+  // Expose for framework unmount
+  (window as any).__luminaCleanup = cleanup;
 
   // Initial load
   getState().refreshData();

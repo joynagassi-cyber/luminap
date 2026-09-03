@@ -68,10 +68,9 @@ async function syncTransaction(tx: IndexedTransaction): Promise<void> {
 
   if (tx.syncStatus === 'pending' && !tx.cloudId) {
     // New transaction – insert
-    const { error } = await supabase.from('transactions').insert(data).select().single();
+    const { data: inserted, error } = await supabase.from('transactions').insert(data).select().single();
     if (error) throw error;
-    const result = data as any;
-    await db.putTransaction({ ...tx, cloudId: result.id, syncStatus: 'synced' });
+    await db.putTransaction({ ...tx, cloudId: inserted?.id ?? tx.id, syncStatus: 'synced' });
   } else if (tx.cloudId) {
     // Existing transaction – update
     const { error } = await supabase
