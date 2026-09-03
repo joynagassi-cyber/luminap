@@ -6,7 +6,7 @@
 const DB_NAME = 'lumina-db';
 const DB_VERSION = 3;
 
-// ─── Types ─────────────────────────────────────────────────────
+// ─── Types ─────────────────────────────────────────────
 
 export interface IndexedTransaction {
   id: string;
@@ -70,44 +70,67 @@ export interface SyncQueueEntry {
   createdAt: string;
 }
 
-// ─── Database access ───────────────────────────────────────────
+// ─── Database access ────────────────────────────────────
 
-// Cache a single open promise so concurrent calls during upgrade
-// don't race against each other (causes "version change transaction is running")
-let openPromise: Promise<IDBDatabase> | null = null;
+// Async mutex: guarantees only ONE indexedDB.open() runs at a time.
+// Without this, two concurrent open() calls both trigger onupgradeneeded
+// and race, causing "version change transaction is running".
+let dbReady: Promise<IDBDatabase> | null = null;
+let dbOpenInProgress = false;
 
-function openDB(): Promise<IDBDatabase> {
-  if (openPromise) return openPromise;
+function ensureDBReady(): Promise<IDBDatabase> {
+  // Already connected — return cached connection
+  if (dbReady) return dbReady;
+  // Open already in progress — wait for it
+  if (dbOpenInProgress) {
+    return new Promise<IDBDatabase>((resolve, reject) => {
+      const check = () => {
+        if (dbReady) {
+          dbReady.then(resolve, reject);
+        } else {
+          setTimeout(check, 10);
+        }
+      };
+      check();
+    });
+  }
 
-  openPromise = new Promise<IDBDatabase>((resolve, reject) => {
+  // Start the open — only one indexedDB.open() at a time
+  dbOpenInProgress = true;
+
+  dbReady = new Promise<IDBDatabase>((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
 
     request.onerror = () => {
-      openPromise = null;
+      dbReady = null;
+      dbOpenInProgress = false;
       reject(request.error);
     };
 
-    request.onsuccess = () => resolve(request.result);
+    request.onsuccess = () => {
+      dbReady = Promise.resolve(request.result);
+      dbOpenInProgress = false;
+      resolve(request.result);
+    };
 
     request.onupgradeneeded = (event) => {
       const db = (event.target as IDBOpenDBRequest).result;
+      const oldVersion = event.oldVersion;
 
       // Transactions store
       if (!db.objectStoreNames.contains('transactions')) {
-        const txStore = db.createObjectStore('transactions', { keyPath: 'id' });
-        txStore.createIndex('syncStatus', 'syncStatus', { unique: false });
-        txStore.createIndex('date', 'date', { unique: false });
-        txStore.createIndex('status', 'status', { unique: false });
+        const store = db.createObjectStore('transactions', { keyPath: 'id' });
+        store.createIndex('syncStatus', 'syncStatus', { unique: false });
+        store.createIndex('date', 'date', { unique: false });
+        store.createIndex('status', 'status', { unique: false });
       }
 
       // Categories store
       if (!db.objectStoreNames.contains('categories')) {
         db.createObjectStore('categories', { keyPath: 'id' });
-      } else if (Number(event.oldVersion) < 3) {
+      } else if (oldVersion < 3) {
         const store = db.transaction('categories', 'readwrite').objectStore('categories');
-        if (!store.indexNames.contains('isCustom')) {
-          store.createIndex('isCustom', 'isCustom', { unique: false });
-        }
+        store.createIndex('isCustom', 'isCustom', { unique: false });
       }
 
       // Org units store
@@ -122,9 +145,9 @@ function openDB(): Promise<IDBDatabase> {
 
       // Sync queue store
       if (!db.objectStoreNames.contains('syncQueue')) {
-        const queueStore = db.createObjectStore('syncQueue', { keyPath: 'id' });
-        queueStore.createIndex('createdAt', 'createdAt', { unique: false });
-        queueStore.createIndex('table', 'table', { unique: false });
+        const store = db.createObjectStore('syncQueue', { keyPath: 'id' });
+        store.createIndex('createdAt', 'createdAt', { unique: false });
+        store.createIndex('table', 'table', { unique: false });
       }
 
       // Config store
@@ -134,20 +157,35 @@ function openDB(): Promise<IDBDatabase> {
     };
   });
 
-  // On success keep the promise cached forever so no new open() races
-  // with the still-committing version change transaction.
-  // On failure clear it so the next call can retry.
-  openPromise.catch(() => { openPromise = null; });
+  dbReady.catch(() => {
+    dbReady = null;
+    dbOpenInProgress = false;
+  });
 
-  return openPromise;
+  return dbReady;
 }
 
 async function withDB<T>(fn: (db: IDBDatabase) => Promise<T>): Promise<T> {
-  const db = await openDB();
-  return fn(db);
+  try {
+    const db = await ensureDBReady();
+    return fn(db);
+  } catch (err) {
+    const message = (err as Error).message ?? '';
+    const isVersionError =
+      message.includes('version change transaction is running') ||
+      (err as DOMException)?.name === 'AbortError';
+    if (!isVersionError) throw err;
+
+    // Corrupted state — clear cache and retry once
+    dbReady = null;
+    dbOpenInProgress = false;
+    await new Promise(r => setTimeout(r, 100));
+    const db = await ensureDBReady();
+    return fn(db);
+  }
 }
 
-// ─── CRUD operations ───────────────────────────────────────────
+// ─── CRUD operations ────────────────────────────────────
 
 export async function getAllTransactions(): Promise<IndexedTransaction[]> {
   return withDB(async (db) => {
@@ -281,7 +319,7 @@ export async function putAuditEntry(entry: IndexedAuditEntry): Promise<void> {
   });
 }
 
-// ─── Sync queue ────────────────────────────────────────────────
+// ─── Sync queue ──────────────────────────────────────────
 
 export async function enqueueSync(
   type: SyncQueueEntry['type'],
@@ -356,7 +394,7 @@ export async function updateSyncEntry(id: string, updates: Partial<SyncQueueEntr
   });
 }
 
-// ─── Config ────────────────────────────────────────────────────
+// ─── Config ──────────────────────────────────────────────
 
 export async function setConfig(key: string, value: unknown): Promise<void> {
   return withDB(async (db) => {
