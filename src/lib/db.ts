@@ -4,7 +4,7 @@
  */
 
 const DB_NAME = 'lumina-db';
-const DB_VERSION = 5;
+const DB_VERSION = 6;
 
 // ─── Types ─────────────────────────────────────────────
 
@@ -262,7 +262,7 @@ function ensureDBReady(): Promise<IDBDatabase> {
       }
 
       // Mark that we need to clear stale data after upgrade completes
-      if (oldVersion < 5) {
+      if (oldVersion < 6) {
         (db as any).__needsDataCleanup = true;
       }
     };
