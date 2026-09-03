@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, BookOpen, BarChart3, Settings, Building2, Calendar, MoreHorizontal } from 'lucide-react';
+import { Home, TrendingUp, Building2, Settings, MoreHorizontal, Calendar } from 'lucide-react';
 import { useState } from 'react';
 import BottomDrawer from './BottomDrawer';
 import { useState as useStateReact } from 'react';
@@ -12,10 +12,14 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { path: '/', label: 'Accueil', icon: Home },
-  { path: '/finance', label: 'Finance', icon: BookOpen },
+  { path: '/finance', label: 'Finance', icon: TrendingUp },
   { path: '/groups', label: 'Groupes', icon: Building2 },
-  { path: '/events', label: 'Événements', icon: Calendar },
   { path: '/settings', label: 'Réglages', icon: Settings },
+];
+
+// Extra features that go into the "Plus" drawer
+const EXTRA_FEATURES: { path: string; label: string; icon: typeof Calendar; color: string }[] = [
+  { path: '/events', label: 'Événements', icon: Calendar, color: '#FF6B00' },
 ];
 
 export default function BottomNav() {
@@ -64,8 +68,8 @@ export default function BottomNav() {
           onClick={() => setDrawerOpen(true)}
           className="flex flex-col items-center justify-center gap-1 px-4 py-2 active:scale-95 transition-transform"
         >
-          <MoreHorizontal className="w-5 h-5" style={{ color: '#808080' }} />
-          <span className="text-xs font-medium" style={{ color: '#808080' }}>Plus</span>
+          <MoreHorizontal className="w-5 h-5" style={{ color: location.pathname.startsWith('/events') ? '#FF6B00' : '#808080' }} />
+          <span className="text-xs font-medium" style={{ color: location.pathname.startsWith('/events') ? '#FF6B00' : '#808080' }}>Plus</span>
         </button>
       </nav>
 
@@ -88,7 +92,7 @@ export default function BottomNav() {
         </svg>
       </button>
 
-      <BottomDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
+      <BottomDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} extraFeatures={EXTRA_FEATURES} />
     </>
   );
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Calendar, TrendingUp, TrendingDown, Scale, Search, X } from 'lucide-react';
+import { Plus, Calendar, TrendingUp, TrendingDown, Scale, Search, X, Play, CheckCircle, Pause } from 'lucide-react';
 import { formatCurrency, formatCurrencyCompact, formatDate } from '@/lib/utils';
 import { useLocalStore } from '@/store/useLocalStore';
 import type { Event, EventStatus } from '@/types';
@@ -15,6 +15,13 @@ const STATUS_CONFIG: Record<EventStatus, { label: string; color: string; bg: str
   CANCELLED: { label: 'Annulé', color: '#E51332', bg: '#E5133220' },
 };
 
+const STATUS_FLOW: Record<EventStatus, EventStatus | null> = {
+  PLANIFIED: 'ONGOING',
+  ONGOING: 'COMPLETED',
+  COMPLETED: null,
+  CANCELLED: null,
+};
+
 function getEventSummary(event: Event, transactions: any[]) {
   const txs = transactions.filter(t => t.eventId === event.id && t.status === 'APPROVED');
   const income = txs.filter(t => t.type === 'INCOME').reduce((s, t) => s + t.amount, 0);
@@ -24,7 +31,7 @@ function getEventSummary(event: Event, transactions: any[]) {
 
 export default function Events() {
   const navigate = useNavigate();
-  const { events, transactions, isLoading } = useLocalStore();
+  const { events, transactions, isLoading, updateEvent } = useLocalStore();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<EventStatus | 'ALL'>('ALL');
 
@@ -123,9 +130,31 @@ export default function Events() {
                         <p className="text-text-tertiary text-xs">{formatDateRange(event.startDate, event.endDate)}</p>
                       </div>
                     </div>
-                    <span className="text-xs px-2.5 py-1 rounded-full font-medium flex-shrink-0" style={{ backgroundColor: cfg.bg, color: cfg.color }}>
-                      {cfg.label}
-                    </span>
+                    {/* Status badge + lifecycle buttons */}
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <span className="text-xs px-2.5 py-1 rounded-full font-medium" style={{ backgroundColor: cfg.bg, color: cfg.color }}>
+                        {cfg.label}
+                      </span>
+                      {Object.entries(STATUS_FLOW).filter(([s, next]) => s !== event.status && next === event.status).length === 0 && (
+                        Object.entries(STATUS_FLOW).map(([statusKey, nextStatus]) =>
+                          statusKey !== event.status && nextStatus === null ? null : (
+                            statusKey !== event.status && STATUS_FLOW[event.status] === statusKey ? (
+                              <button
+                                key={statusKey}
+                                onClick={(e) => { e.stopPropagation(); updateEvent(event.id, { status: statusKey as EventStatus }); }}
+                                className="w-7 h-7 rounded-full flex items-center justify-center transition-all active:scale-90"
+                                style={{ backgroundColor: cfg.color + '15', color: cfg.color }}
+                                title={`Passer à ${STATUS_CONFIG[statusKey as EventStatus].label}`}
+                              >
+                                {statusKey === 'ONGOING' && <Play className="w-3 h-3" />}
+                                {statusKey === 'COMPLETED' && <CheckCircle className="w-3 h-3" />}
+                                {statusKey === 'CANCELLED' && <Pause className="w-3 h-3" />}
+                              </button>
+                            ) : null
+                          )
+                        )
+                      )}
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-3 gap-3">
@@ -143,25 +172,48 @@ export default function Events() {
                     </div>
                   </div>
 
+                  {/* Quick lifecycle action */}
                   <div className="mt-3 pt-3 border-t" style={{ borderColor: '#282828' }}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: summary.balance >= 0 ? '#1DB954' : '#E51332' }} />
-                        <span className="text-text-tertiary text-xs">Solde</span>
-                      </div>
-                      <span className="text-sm font-bold tabular-nums" style={{ color: summary.balance >= 0 ? '#1DB954' : '#E51332' }}>
-                        {summary.balance >= 0 ? '+' : ''}{formatCurrencyCompact(summary.balance)}
-                      </span>
+                    <div className="flex gap-2">
+                      {STATUS_FLOW[event.status] && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); updateEvent(event.id, { status: STATUS_FLOW[event.status]! }); }}
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all active:scale-95"
+                          style={{ backgroundColor: STATUS_CONFIG[STATUS_FLOW[event.status]!].color + '15', color: STATUS_CONFIG[STATUS_FLOW[event.status]!].color, border: `1px solid ${STATUS_CONFIG[STATUS_FLOW[event.status]!].color}30` }}
+                        >
+                          {STATUS_FLOW[event.status] === 'ONGOING' && <Play className="w-3.5 h-3.5" />}
+                          {STATUS_FLOW[event.status] === 'COMPLETED' && <CheckCircle className="w-3.5 h-3.5" />}
+                          Passer en {STATUS_CONFIG[STATUS_FLOW[event.status]!].label.toLowerCase()}
+                        </button>
+                      )}
+                      {event.status === 'PLANIFIED' && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); updateEvent(event.id, { status: 'CANCELLED' }); }}
+                          className="px-3 py-2 rounded-lg text-xs font-semibold transition-all active:scale-95"
+                          style={{ backgroundColor: '#E5133215', color: '#E51332', border: '1px solid #E5133230' }}
+                        >
+                          <Pause className="w-3.5 h-3.5" />Annuler
+                        </button>
+                      )}
+                      {event.status === 'ONGOING' && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); updateEvent(event.id, { status: 'CANCELLED' }); }}
+                          className="px-3 py-2 rounded-lg text-xs font-semibold transition-all active:scale-95"
+                          style={{ backgroundColor: '#E5133215', color: '#E51332', border: '1px solid #E5133230' }}
+                        >
+                          <Pause className="w-3.5 h-3.5" />Annuler
+                        </button>
+                      )}
                     </div>
-                    {event.budget > 0 && (
-                      <div className="mt-2 h-1.5 rounded-full" style={{ backgroundColor: '#282828' }}>
-                        <div
-                          className="h-1.5 rounded-full transition-all"
-                          style={{
-                            width: `${Math.min(100, (summary.expense / event.budget) * 100)}%`,
-                            backgroundColor: summary.expense > event.budget ? '#E51332' : '#FF6B00',
-                          }}
-                        />
+                    {!STATUS_FLOW[event.status] && (
+                      <div className="flex items-center justify-between mt-1">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: summary.balance >= 0 ? '#1DB954' : '#E51332' }} />
+                          <span className="text-text-tertiary text-xs">Solde</span>
+                        </div>
+                        <span className="text-sm font-bold tabular-nums" style={{ color: summary.balance >= 0 ? '#1DB954' : '#E51332' }}>
+                          {summary.balance >= 0 ? '+' : ''}{formatCurrencyCompact(summary.balance)}
+                        </span>
                       </div>
                     )}
                   </div>

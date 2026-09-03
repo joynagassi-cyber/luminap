@@ -126,14 +126,16 @@ export default function TransactionNew() {
   const location = useLocation();
   const { addTransaction, categories, orgUnits, events, addCategory } = useLocalStore();
 
-  const initState = location.state as { compensateFor?: string; orgUnitId?: string; eventId?: string } | null;
+  const initState = location.state as { compensateFor?: string; orgUnitId?: string; eventId?: string; defaultType?: TransactionType } | null;
 
-  const [type, setType] = useState<TransactionType>('INCOME');
+  const [type, setType] = useState<TransactionType>(initState?.defaultType || 'INCOME');
   const [amount, setAmount] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [date, setDate] = useState(getTodayStr());
   const [orgUnitId, setOrgUnitId] = useState(initState?.orgUnitId || '');
   const [eventId, setEventId] = useState(initState?.eventId || '');
+  if (initState?.orgUnitId && !orgUnitId) setOrgUnitId(initState.orgUnitId);
+  if (initState?.eventId && !eventId) setEventId(initState.eventId);
   const [source, setSource] = useState('');
   const [personName, setPersonName] = useState('');
   const [description, setDescription] = useState('');

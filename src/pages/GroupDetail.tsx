@@ -1,6 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Building2, TrendingUp, TrendingDown, Scale, Wallet } from 'lucide-react';
+import {
+  ArrowLeft, Building2, TrendingUp, TrendingDown, Scale, Wallet,
+  Plus, Filter, X,
+} from 'lucide-react';
 import { formatCurrency, formatCurrencyCompact, formatDate } from '@/lib/utils';
 import { useLocalStore } from '@/store/useLocalStore';
 import { format } from 'date-fns';
@@ -8,6 +11,7 @@ import { fr } from 'date-fns/locale';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
 import { PageSkeleton } from '@/components/Skeleton';
+import ConfirmModal from '@/components/ConfirmModal';
 
 function formatDateRange(start: string, end: string | null) {
   if (end) {
@@ -18,10 +22,11 @@ function formatDateRange(start: string, end: string | null) {
   return format(new Date(start), 'd MMM yyyy', { locale: fr });
 }
 
+
 export default function GroupDetail() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { orgUnits, transactions, categories, events, isLoading } = useLocalStore();
+  const { orgUnits, transactions, categories, isLoading } = useLocalStore();
 
   const orgUnit = orgUnits.find(o => o.id === id);
   const groupTransactions = transactions.filter(t => t.orgUnitId === id);
@@ -41,9 +46,26 @@ export default function GroupDetail() {
     byCategory.set(t.categoryId, existing);
   }
 
-  const recentTransactions = groupTransactions
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .slice(0, 10);
+  const [filter, setFilter] = useState<'ALL' | 'INCOME' | 'EXPENSE' | 'PENDING'>('ALL');
+  const [search, setSearch] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
+  const [showErrorModal, setShowErrorModal] = useState(false);
+
+  const showError = (msg: string) => { setErrorMsg(msg); setShowErrorModal(true); };
+
+  const filteredTxs = groupTransactions
+    .filter(t => {
+      if (filter === 'INCOME') return t.type === 'INCOME';
+      if (filter === 'EXPENSE') return t.type === 'EXPENSE';
+      if (filter === 'PENDING') return t.status === 'PENDING';
+      return true;
+    })
+    .filter(t => {
+      if (!search.trim()) return true;
+      const q = search.toLowerCase();
+      return t.description.toLowerCase().includes(q) || t.category?.labelFr?.toLowerCase().includes(q);
+    })
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   if (isLoading || !orgUnit) {
     return (
@@ -86,21 +108,64 @@ export default function GroupDetail() {
 
         {/* Pending */}
         {(pendingIncome > 0 || pendingExpense > 0) && (
-          <div className="flex gap-2 mb-5">
+          <div className="flex gap-2 mb-5 flex-wrap">
             {pendingIncome > 0 && (
               <span className="text-xs font-medium px-3 py-1.5 rounded-full" style={{ backgroundColor: '#FFB80020', color: '#FFB800' }}>
-                {pendingIncome > 0 ? `${formatCurrencyCompact(pendingIncome)} en attente (entrées)` : ''}
+                {formatCurrencyCompact(pendingIncome)} en attente (entrées)
               </span>
             )}
             {pendingExpense > 0 && (
               <span className="text-xs font-medium px-3 py-1.5 rounded-full" style={{ backgroundColor: '#80808020', color: '#808080' }}>
-                {pendingExpense > 0 ? `${formatCurrencyCompact(pendingExpense)} en attente (sorties)` : ''}
+                {formatCurrencyCompact(pendingExpense)} en attente (sorties)
               </span>
             )}
           </div>
         )}
 
-        {/* By Category */}
+        {/* ─── Filter & Search ─────────────────────────────────────── */}
+        <div className="mb-4">
+          {/* Filter chips */}
+          <div className="flex gap-2 mb-3 overflow-x-auto pb-1">
+            {([
+              { key: 'ALL', label: 'Tous', color: '#FF6B00' },
+              { key: 'INCOME', label: 'Entrées', color: '#1DB954' },
+              { key: 'EXPENSE', label: 'Sorties', color: '#E51332' },
+              { key: 'PENDING', label: 'En attente', color: '#FFB800' },
+            ] as const).map(({ key, label, color }) => (
+              <button
+                key={key}
+                onClick={() => setFilter(key)}
+                className="px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0 transition-all"
+                style={{
+                  backgroundColor: filter === key ? color + '25' : '#212121',
+                  color: filter === key ? color : '#808080',
+                  border: filter === key ? `1px solid ${color}50` : '1px solid #282828',
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {/* Search */}
+          <div className="relative">
+            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-tertiary" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Rechercher dans les mouvements…"
+              className="w-full pl-9 pr-9 py-2.5 rounded-full text-sm text-text-primary outline-none"
+              style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
+            />
+            {search && (
+              <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full flex items-center justify-center" style={{ backgroundColor: '#282828' }}>
+                <X className="w-3 h-3 text-text-tertiary" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* ─── By Category ─────────────────────────────────────────── */}
         {byCategory.size > 0 && (
           <div className="mb-5">
             <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider mb-3">Par catégorie</p>
@@ -126,26 +191,30 @@ export default function GroupDetail() {
           </div>
         )}
 
-        {/* Recent Transactions */}
+        {/* ─── Transaction List ────────────────────────────────────── */}
         <div className="mb-5">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider">Derniers mouvements</p>
+            <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider">
+              {filter === 'ALL' ? 'Tous les mouvements' : filter === 'INCOME' ? 'Entrées' : filter === 'EXPENSE' ? 'Sorties' : 'En attente'}
+              <span className="text-text-tertiary ml-1 font-normal">({filteredTxs.length})</span>
+            </p>
             <button onClick={() => navigate('/finance')} className="text-xs font-medium" style={{ color: '#FF6B00' }}>Tout voir</button>
           </div>
           <div className="space-y-2">
-            {recentTransactions.length === 0 ? (
-              <div className="text-center py-8 rounded-lg" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
+            {filteredTxs.length === 0 ? (
+              <div className="text-center py-10 rounded-lg" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
                 <Wallet className="w-8 h-8 mx-auto mb-3 text-text-tertiary" />
-                <p className="text-text-tertiary text-sm">Aucune transaction</p>
+                <p className="text-text-tertiary text-sm">Aucun mouvement</p>
+                <p className="text-text-tertiary text-xs mt-1">Commencez par ajouter une entrée ou sortie</p>
               </div>
             ) : (
-              recentTransactions.map((tx) => {
+              filteredTxs.map((tx) => {
                 const isIncome = tx.type === 'INCOME';
                 return (
                   <button
                     key={tx.id}
                     onClick={() => navigate(`/transaction/${tx.id}`)}
-                    className="w-full flex items-center gap-3 p-3 rounded-lg text-left"
+                    className="w-full flex items-center gap-3 p-3 rounded-lg text-left active:scale-98 transition-transform"
                     style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
                   >
                     <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: isIncome ? '#1DB95420' : '#E5133220' }}>
@@ -155,12 +224,25 @@ export default function GroupDetail() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-text-primary text-sm font-medium truncate">{tx.description}</p>
-                      <p className="text-text-tertiary text-xs">{tx.category?.labelFr} · {formatDate(tx.date)}</p>
+                      <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                        <span className="text-text-tertiary text-xs">{tx.category?.labelFr}</span>
+                        <span className="text-text-tertiary text-xs">·</span>
+                        <span className="text-text-tertiary text-xs">{formatDate(tx.date)}</span>
+                        {tx.source && (
+                          <>
+                            <span className="text-text-tertiary text-xs">·</span>
+                            <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: '#282828', color: '#B3B3B3' }}>{tx.source}</span>
+                          </>
+                        )}
+                      </div>
                     </div>
                     <div className="text-right flex-shrink-0">
                       <p className="text-sm font-bold tabular-nums" style={{ color: isIncome ? '#1DB954' : '#E51332' }}>
                         {isIncome ? '+' : '-'}{formatCurrency(tx.amount)}
                       </p>
+                      {tx.status === 'PENDING' && (
+                        <span className="text-xs px-1.5 py-0.5 rounded-full" style={{ backgroundColor: '#FFB80020', color: '#FFB800' }}>en attente</span>
+                      )}
                     </div>
                   </button>
                 );
@@ -169,24 +251,35 @@ export default function GroupDetail() {
           </div>
         </div>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-2 gap-3 mb-6">
+        {/* ─── Quick Actions ───────────────────────────────────────── */}
+        <div className="flex gap-3 mb-6 pb-6">
           <button
-            onClick={() => navigate('/transaction/new', { state: { orgUnitId: id } })}
-            className="flex items-center justify-center gap-2 py-3.5 rounded-full text-sm font-semibold"
+            onClick={() => navigate('/transaction/new', { state: { orgUnitId: id, defaultType: 'INCOME' } })}
+            className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-full text-sm font-semibold"
             style={{ backgroundColor: '#1DB954', color: '#FFFFFF' }}
           >
-            <TrendingUp className="w-4 h-4" />Entrée
+            <Plus className="w-4 h-4" />Entrée
           </button>
           <button
-            onClick={() => navigate('/transaction/new', { state: { orgUnitId: id } })}
-            className="flex items-center justify-center gap-2 py-3.5 rounded-full text-sm font-semibold"
+            onClick={() => navigate('/transaction/new', { state: { orgUnitId: id, defaultType: 'EXPENSE' } })}
+            className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-full text-sm font-semibold"
             style={{ backgroundColor: '#E51332', color: '#FFFFFF' }}
           >
-            <TrendingDown className="w-4 h-4" />Sortie
+            <Plus className="w-4 h-4" />Sortie
           </button>
         </div>
       </div>
+
+      <ConfirmModal
+        open={showErrorModal}
+        onClose={() => setShowErrorModal(false)}
+        onConfirm={() => setShowErrorModal(false)}
+        title="Erreur"
+        description={errorMsg}
+        confirmLabel="Compris"
+        confirmVariant="primary"
+      />
+
       <BottomNav />
     </div>
   );

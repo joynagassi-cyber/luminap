@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Calendar, TrendingUp, TrendingDown, Scale, Plus, X, Edit3, Check } from 'lucide-react';
+import { ArrowLeft, Calendar, TrendingUp, TrendingDown, Scale, Plus, X, Edit3, Check, Play, CheckCircle, Pause, Trash2 } from 'lucide-react';
 import { formatCurrency, formatCurrencyCompact, formatDate } from '@/lib/utils';
 import { useLocalStore } from '@/store/useLocalStore';
-import type { Event, FundSource } from '@/types';
+import type { Event, FundSource, EventStatus } from '@/types';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
 import { PageSkeleton } from '@/components/Skeleton';
@@ -18,11 +18,18 @@ const FUND_SOURCES: { value: FundSource; label: string; color: string }[] = [
   { value: 'AUTRE', label: 'Autre', color: '#808080' },
 ];
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
+const STATUS_CONFIG: Record<EventStatus, { label: string; color: string; bg: string }> = {
   PLANIFIED: { label: 'Planifié', color: '#2196F3', bg: '#2196F320' },
   ONGOING: { label: 'En cours', color: '#FFB800', bg: '#FFB80020' },
   COMPLETED: { label: 'Terminé', color: '#1DB954', bg: '#1DB95420' },
   CANCELLED: { label: 'Annulé', color: '#E51332', bg: '#E5133220' },
+};
+
+const STATUS_FLOW: Record<EventStatus, EventStatus | null> = {
+  PLANIFIED: 'ONGOING',
+  ONGOING: 'COMPLETED',
+  COMPLETED: null,
+  CANCELLED: null,
 };
 
 function formatDateRange(start: string, end: string | null) {
@@ -250,28 +257,60 @@ export default function EventDetail() {
           </div>
         </div>
 
-        {/* Actions */}
+        {/* ─── Lifecycle Management ─────────────────────────────────── */}
+        <div className="mb-5">
+          <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider mb-3">Statut de l'événement</p>
+          <div className="flex gap-2 flex-wrap">
+            {(['PLANIFIED', 'ONGOING', 'COMPLETED', 'CANCELLED'] as EventStatus[]).map((status) => {
+              const cfg = STATUS_CONFIG[status];
+              const isActive = event.status === status;
+              const canTransition = STATUS_FLOW[event.status] === status;
+              const isPast = ['COMPLETED', 'CANCELLED'].includes(status) && status !== event.status;
+              return (
+                <button
+                  key={status}
+                  onClick={() => canTransition && updateEvent(event.id, { status })}
+                  disabled={!canTransition}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold transition-all active:scale-95 ${canTransition ? 'hover:scale-105 cursor-pointer' : 'opacity-40 cursor-not-allowed'}`}
+                  style={{
+                    backgroundColor: isActive ? cfg.color : '#282828',
+                    color: isActive ? '#FFFFFF' : cfg.color,
+                    border: isActive ? `1px solid ${cfg.color}` : `1px solid ${cfg.color}30`,
+                  }}
+                >
+                  {status === 'PLANIFIED' && <Calendar className="w-3.5 h-3.5" />}
+                  {status === 'ONGOING' && <Play className="w-3.5 h-3.5" />}
+                  {status === 'COMPLETED' && <CheckCircle className="w-3.5 h-3.5" />}
+                  {status === 'CANCELLED' && <Pause className="w-3.5 h-3.5" />}
+                  {cfg.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ─── Financial Actions ────────────────────────────────────── */}
         <div className="flex gap-3 mb-6 pb-6">
           <button
             onClick={() => navigate('/transaction/new', { state: { eventId: event.id } })}
             className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-full text-sm font-semibold"
             style={{ backgroundColor: '#1DB954', color: '#FFFFFF' }}
           >
-            <Plus className="w-4 h-4" />Ajouter une entrée
+            <Plus className="w-4 h-4" />Entrée
           </button>
           <button
             onClick={() => navigate('/transaction/new', { state: { eventId: event.id } })}
             className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-full text-sm font-semibold"
             style={{ backgroundColor: '#E51332', color: '#FFFFFF' }}
           >
-            <Plus className="w-4 h-4" />Ajouter une sortie
+            <Plus className="w-4 h-4" />Sortie
           </button>
         </div>
 
         {/* Delete button */}
         <div className="text-center pb-6">
-          <button onClick={() => setShowDeleteModal(true)} className="text-xs text-text-tertiary hover:text-red-500 transition-colors">
-            Supprimer l'événement
+          <button onClick={() => setShowDeleteModal(true)} className="inline-flex items-center gap-2 text-xs text-text-tertiary hover:text-red-500 transition-colors px-4 py-2 rounded-lg" style={{ border: '1px solid #282828', backgroundColor: '#212121' }}>
+            <Trash2 className="w-3.5 h-3.5" />Supprimer l'événement
           </button>
         </div>
       </div>

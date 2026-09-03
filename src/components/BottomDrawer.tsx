@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { X, TrendingUp, BarChart3, PieChart, Download, FileText, HelpCircle, Building2 } from 'lucide-react';
+import { X, TrendingUp, BarChart3, PieChart, Download, FileText, HelpCircle, Building2, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { exportToCSV, exportToPDF, exportToExcel } from '@/lib/utils';
 import { useLocalStore } from '@/store/useLocalStore';
@@ -12,7 +12,14 @@ interface DrawerItem {
   color: string;
 }
 
-export default function BottomDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
+interface ExtraFeature {
+  path: string;
+  label: string;
+  icon: typeof Calendar;
+  color: string;
+}
+
+export default function BottomDrawer({ open, onClose, extraFeatures = [] }: { open: boolean; onClose: () => void; extraFeatures?: ExtraFeature[] }) {
   const navigate = useNavigate();
   const { transactions } = useLocalStore();
   const drawerRef = useRef<HTMLDivElement>(null);
@@ -52,46 +59,53 @@ export default function BottomDrawer({ open, onClose }: { open: boolean; onClose
 
   const features: DrawerItem[] = [
     {
+      icon: Calendar,
+      label: 'Événements',
+      desc: 'Planifier, suivre et gérer vos événements',
+      action: () => { onClose(); navigate('/events'); },
+      color: '#FF6B00',
+    },
+    {
       icon: TrendingUp,
       label: 'Bilan financier',
       desc: 'Entrées, sorties, net',
       action: () => { onClose(); navigate('/balance'); },
-      color: '#FF6B00',
+      color: '#1DB954',
     },
     {
       icon: BarChart3,
       label: 'Graphiques & tendances',
       desc: 'Courbes, camemberts',
       action: () => { onClose(); navigate('/history'); },
-      color: '#1DB954',
+      color: '#2196F3',
     },
     {
       icon: PieChart,
       label: 'Répartition par catégorie',
       desc: 'Analyse détaillée',
       action: () => { onClose(); navigate('/balance'); },
-      color: '#E51332',
+      color: '#E91E63',
     },
     {
       icon: Building2,
       label: 'Groupes organisationnels',
       desc: 'Diacres, jeunesse…',
       action: () => { onClose(); navigate('/groups'); },
-      color: '#2196F3',
+      color: '#FFB800',
     },
     {
       icon: Download,
       label: 'Exporter les données',
       desc: 'CSV / PDF / Excel',
       action: () => { onClose(); handleExport('csv'); },
-      color: '#FFB800',
+      color: '#808080',
     },
     {
       icon: HelpCircle,
       label: 'Aide & FAQ',
       desc: 'Guide d\'utilisation',
       action: () => { onClose(); navigate('/help'); },
-      color: '#808080',
+      color: '#535353',
     },
   ];
 
