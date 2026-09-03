@@ -1,35 +1,33 @@
 /**
  * Local-first store for Lumina
  * Data persists in IndexedDB, syncs to Supabase in background
- * No authentication required
  */
 import { create } from 'zustand';
+import { supabase } from '@/integrations/supabase/client';
 import * as db from '@/lib/db';
-import { fetchFromCloud, startBackgroundSync } from '@/lib/sync';
-import type { Transaction, Category, OrgUnit, AuditEntry } from '@/types';
+import { fetchFromCloud, startBackgroundSync, syncNotifications, syncRoleAssignments, startRealtimeSubscriptions, stopRealtimeSubscriptions } from '@/lib/sync';
+import type { Transaction, Category, OrgUnit, AuditEntry, NotificationItem, Role } from '@/types';
 
-// ─── Constants ─────────────────────────────────────────────────
+// ─── Constants ─────────────────────────────────────────────────────────
 
 const ORG = { id: 'org-1', name: 'Église MFE-JC Centrale', type: 'Eglise' as const, accentColor: '#FF6B00' };
 
-// Mock admin for display purposes
-const DEFAULT_USER = {
-  id: 'local-user',
-  email: 'utilisateur@mfe-jc.org',
-  firstName: 'Membre',
-  lastName: 'MFE-JC',
-  role: 'ADMIN' as const,
-  org: ORG,
-};
-
-// ─── Types ─────────────────────────────────────────────────────
+// ─── Types ─────────────────────────────────────────────────────────────
 
 interface AppState {
-  user: typeof DEFAULT_USER;
+  user: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    role: Role;
+    org: typeof ORG;
+  };
   transactions: Transaction[];
   categories: Category[];
   orgUnits: OrgUnit[];
   auditEntries: AuditEntry[];
+  notifications: NotificationItem[];
   isLoading: boolean;
   error: string | null;
   syncStatus: 'idle' | 'syncing' | 'error' | 'offline';
@@ -49,16 +47,35 @@ interface StoreActions {
   refreshData: () => Promise<void>;
   syncAll: () => Promise<void>;
   setSyncStatus: (status: AppState['syncStatus']) => void;
+  selectRole: (role: Role) => Promise<void>;
+  markNotificationRead: (id: string) => Promise<void>;
+  markAllNotificationsRead: () => Promise<void>;
+  getUnreadCount: () => number;
 }
 
-// ─── Store ─────────────────────────────────────────────────────
+// ─── Helpers ───────────────────────────────────────────────────────────
+
+async function getUserSessionId(): Promise<string> {
+  const id = await db.getConfig<string>('sessionId');
+  return id ?? `session-${Date.now()}`;
+}
+
+// ─── Store ─────────────────────────────────────────────────────────────
 
 export const useLocalStore = create<AppState & StoreActions>((set, get) => ({
-  user: DEFAULT_USER,
+  user: {
+    id: '',
+    email: '',
+    firstName: 'Utilisateur',
+    lastName: '',
+    role: 'TREASURIER' as Role,
+    org: ORG,
+  },
   transactions: [],
   categories: [],
   orgUnits: [],
   auditEntries: [],
+  notifications: [],
   isLoading: true,
   error: null,
   syncStatus: 'idle',
@@ -66,6 +83,8 @@ export const useLocalStore = create<AppState & StoreActions>((set, get) => ({
   isOnline: navigator.onLine,
 
   setSyncStatus: (syncStatus) => set({ syncStatus }),
+
+  getUnreadCount: () => get().notifications.filter(n => !n.isRead).length,
 
   refreshData: async () => {
     set({ isLoading: true, error: null, syncStatus: 'syncing' });
@@ -75,6 +94,7 @@ export const useLocalStore = create<AppState & StoreActions>((set, get) => ({
       let categories: Category[] = [];
       let orgUnits: OrgUnit[] = [];
       let auditEntries: AuditEntry[] = [];
+      let notifications: NotificationItem[] = [];
 
       if (navigator.onLine) {
         try {
@@ -88,27 +108,45 @@ export const useLocalStore = create<AppState & StoreActions>((set, get) => ({
         }
       }
 
-      // Always merge with local data (local is source of truth for unsynced changes)
+      // Always merge with local data
       const localTxs = await db.getAllTransactions();
       const localCats = await db.getAllCategories();
       const localOus = await db.getAllOrgUnits();
       const localAudit = await db.getAllAuditEntries();
+      const localNotifs = await db.getAllNotifications();
 
-      // Prefer cloud data, merge local unsynced changes
       const finalTxs = transactions.length > 0 ? transactions : localTxs.map(toLocalTx);
       const finalCats = categories.length > 0 ? categories : localCats.map(toLocalCat);
       const finalOus = orgUnits.length > 0 ? orgUnits : localOus.map(toLocalOu);
       const finalAudit = auditEntries.length > 0 ? auditEntries : localAudit.map(toLocalAudit);
+      notifications = localNotifs.map(toLocalNotif);
+
+      // Sync role assignments
+      await syncRoleAssignments();
 
       // Update lastSyncedAt
       const now = new Date().toISOString();
       await db.setConfig('lastSyncedAt', now);
 
+      // Restore user role from config
+      const savedRole = await db.getConfig<Role>('selectedRole');
+      const sessionId = await getUserSessionId();
+      const savedRoleAssignment = await db.getRoleAssignment(sessionId);
+
       set({
+        user: {
+          id: sessionId,
+          email: '',
+          firstName: savedRoleAssignment?.role ? getRoleLabel(savedRoleAssignment.role) : 'Utilisateur',
+          lastName: '',
+          role: savedRole ?? savedRoleAssignment?.role ?? 'TREASURIER',
+          org: ORG,
+        },
         transactions: finalTxs,
         categories: finalCats,
         orgUnits: finalOus,
         auditEntries: finalAudit,
+        notifications,
         isLoading: false,
         syncStatus: navigator.onLine ? 'idle' : 'offline',
         lastSyncedAt: now,
@@ -121,13 +159,13 @@ export const useLocalStore = create<AppState & StoreActions>((set, get) => ({
   syncAll: async () => {
     set({ syncStatus: 'syncing' });
     await get().refreshData();
-    // Trigger sync engine
     startBackgroundSync();
   },
 
   addTransaction: async (tx) => {
     const id = `tx-${Date.now()}`;
     const now = new Date().toISOString();
+    const user = get().user;
 
     const localTx = {
       id,
@@ -142,7 +180,7 @@ export const useLocalStore = create<AppState & StoreActions>((set, get) => ({
       compensatesFor: null,
       comment: null,
       version: 1,
-      createdById: DEFAULT_USER.id,
+      createdById: user.id,
       approvedById: null,
       approvedAt: null,
       createdAt: now,
@@ -150,15 +188,25 @@ export const useLocalStore = create<AppState & StoreActions>((set, get) => ({
       syncStatus: 'pending' as const,
     };
 
-    // Save to IndexedDB immediately (optimistic)
     await db.putTransaction(localTx);
-
-    // Enqueue for background sync
     await db.enqueueSync('insert', 'transactions', localTx);
 
-    // Update UI immediately
+    // Also insert notification locally
+    const notif: db.IndexedNotification = {
+      id: `notif-${Date.now()}`,
+      orgId: 'org-1',
+      actionType: tx.status === 'PENDING' ? 'TRANSACTION_SUBMITTED' : 'TRANSACTION_DRAFT',
+      title: tx.status === 'PENDING' ? 'Nouvelle transaction soumise' : 'Brouillon créé',
+      message: `${tx.description} – ${Math.round(tx.amount / 100).toLocaleString('fr-FR')} FCFA`,
+      isRead: false,
+      sourceTransactionId: id,
+      createdAt: now,
+    };
+    await db.putNotification(notif);
+
     set(s => ({
       transactions: [toLocalTx(localTx), ...s.transactions],
+      notifications: [toLocalNotif(notif), ...s.notifications],
       error: null,
       syncStatus: 'syncing',
     }));
@@ -194,7 +242,7 @@ export const useLocalStore = create<AppState & StoreActions>((set, get) => ({
     const updatedTx = {
       ...localTx,
       status: 'APPROVED' as const,
-      approvedById: userId ?? DEFAULT_USER.id,
+      approvedById: userId ?? get().user.id,
       approvedAt: now,
       updatedAt: now,
       version: localTx.version + 1,
@@ -204,8 +252,21 @@ export const useLocalStore = create<AppState & StoreActions>((set, get) => ({
     await db.putTransaction(updatedTx);
     await db.enqueueSync('update', 'transactions', updatedTx);
 
+    const notif: db.IndexedNotification = {
+      id: `notif-${Date.now()}`,
+      orgId: 'org-1',
+      actionType: 'TRANSACTION_APPROVED',
+      title: 'Transaction approuvée',
+      message: `"${updatedTx.description}" a été approuvée`,
+      isRead: false,
+      sourceTransactionId: id,
+      createdAt: now,
+    };
+    await db.putNotification(notif);
+
     set(s => ({
       transactions: s.transactions.map(t => t.id === id ? toLocalTx(updatedTx) : t),
+      notifications: [toLocalNotif(notif), ...s.notifications],
       error: null,
       syncStatus: 'syncing',
     }));
@@ -215,11 +276,12 @@ export const useLocalStore = create<AppState & StoreActions>((set, get) => ({
     const localTx = await db.getTransaction(id);
     if (!localTx) return;
 
+    const now = new Date().toISOString();
     const updatedTx = {
       ...localTx,
       status: 'REJECTED' as const,
       comment,
-      updatedAt: new Date().toISOString(),
+      updatedAt: now,
       version: localTx.version + 1,
       syncStatus: 'pending' as const,
     };
@@ -227,8 +289,21 @@ export const useLocalStore = create<AppState & StoreActions>((set, get) => ({
     await db.putTransaction(updatedTx);
     await db.enqueueSync('update', 'transactions', updatedTx);
 
+    const notif: db.IndexedNotification = {
+      id: `notif-${Date.now()}`,
+      orgId: 'org-1',
+      actionType: 'TRANSACTION_REJECTED',
+      title: 'Transaction rejetée',
+      message: `"${updatedTx.description}" a été rejetée`,
+      isRead: false,
+      sourceTransactionId: id,
+      createdAt: now,
+    };
+    await db.putNotification(notif);
+
     set(s => ({
       transactions: s.transactions.map(t => t.id === id ? toLocalTx(updatedTx) : t),
+      notifications: [toLocalNotif(notif), ...s.notifications],
       error: null,
       syncStatus: 'syncing',
     }));
@@ -241,8 +316,21 @@ export const useLocalStore = create<AppState & StoreActions>((set, get) => ({
     await db.deleteTransaction(id);
     await db.enqueueSync('delete', 'transactions', { id });
 
+    const notif: db.IndexedNotification = {
+      id: `notif-${Date.now()}`,
+      orgId: 'org-1',
+      actionType: 'TRANSACTION_DELETED',
+      title: 'Transaction supprimée',
+      message: `"${localTx.description}" a été supprimée`,
+      isRead: false,
+      sourceTransactionId: id,
+      createdAt: new Date().toISOString(),
+    };
+    await db.putNotification(notif);
+
     set(s => ({
       transactions: s.transactions.filter(t => t.id !== id),
+      notifications: [toLocalNotif(notif), ...s.notifications],
       error: null,
       syncStatus: 'syncing',
     }));
@@ -276,13 +364,7 @@ export const useLocalStore = create<AppState & StoreActions>((set, get) => ({
     const found = localCat.find(c => c.id === id);
     if (!found) return;
 
-    const updatedCat = {
-      ...found,
-      ...updates,
-      updatedAt: new Date().toISOString(),
-      syncStatus: 'pending' as const,
-    };
-
+    const updatedCat = { ...found, ...updates, syncStatus: 'pending' as const };
     await db.putCategory(updatedCat);
     await db.enqueueSync('update', 'categories', updatedCat);
 
@@ -295,7 +377,6 @@ export const useLocalStore = create<AppState & StoreActions>((set, get) => ({
 
   deleteCategory: async (id) => {
     await db.deleteCategory(id);
-    // Also enqueue delete for sync
     await db.enqueueSync('delete', 'categories', { id });
 
     set(s => ({
@@ -304,9 +385,46 @@ export const useLocalStore = create<AppState & StoreActions>((set, get) => ({
       syncStatus: 'syncing',
     }));
   },
+
+  selectRole: async (role: Role) => {
+    await db.setRole(role);
+    const sessionId = await getUserSessionId();
+    await db.putRoleAssignment({ sessionId, role, orgId: 'org-1', createdAt: new Date().toISOString() });
+
+    // Sync role to cloud
+    if (navigator.onLine) {
+      try {
+        await supabase.from('role_assignments').upsert({
+          session_id: sessionId,
+          role,
+          org_id: 'org-1',
+        });
+      } catch (e) {
+        console.warn('[store] role sync to cloud failed', e);
+      }
+    }
+
+    set(s => ({
+      user: { ...s.user, role },
+    }));
+  },
+
+  markNotificationRead: async (id) => {
+    await db.markNotificationRead(id);
+    set(s => ({
+      notifications: s.notifications.map(n => n.id === id ? { ...n, isRead: true } : n),
+    }));
+  },
+
+  markAllNotificationsRead: async () => {
+    await db.markAllNotificationsRead();
+    set(s => ({
+      notifications: s.notifications.map(n => ({ ...n, isRead: true })),
+    }));
+  },
 }));
 
-// ─── Mappers ───────────────────────────────────────────────────
+// ─── Mappers ───────────────────────────────────────────────────────────
 
 function toLocalTx(tx: any): Transaction {
   return {
@@ -352,12 +470,72 @@ function toLocalAudit(entry: any): AuditEntry {
   };
 }
 
-// ─── Authorization ─────────────────────────────────────────────
+function toLocalNotif(n: db.IndexedNotification): NotificationItem {
+  return {
+    id: n.id,
+    orgId: n.orgId,
+    actionType: n.actionType,
+    title: n.title,
+    message: n.message,
+    isRead: n.isRead,
+    sourceTransactionId: n.sourceTransactionId,
+    createdAt: n.createdAt,
+  };
+}
+
+// ─── Role label helper ─────────────────────────────────────────────────
+
+export function getRoleLabel(role: Role): string {
+  const labels: Record<Role, string> = {
+    PASTEUR: 'Pasteur',
+    SECRETAIRE: 'Secrétaire',
+    TREASURIER: 'Trésorier',
+    COMPTABLE: 'Comptable',
+    TREASURIER_ADJOINT: 'Trésorier Adjoint',
+    SECRETAIRE_ADJOINT: 'Secrétaire Adjoint',
+  };
+  return labels[role] ?? role;
+}
+
+// ─── Init ──────────────────────────────────────────────────────────────
+
+function getState(): AppState & StoreActions {
+  return useLocalStore.getState();
+}
+
+export function initStore(): void {
+  // Start background sync
+  startBackgroundSync();
+
+  // Start realtime subscriptions
+  startRealtimeSubscriptions();
+
+  // Listen for realtime notifications from window events
+  const handleNewNotif = () => {
+    getState().refreshData();
+  };
+  window.addEventListener('lumina:notification', handleNewNotif);
+  window.addEventListener('lumina:roles-changed', handleNewNotif);
+
+  // Listen for online/offline
+  window.addEventListener('online', () => {
+    useLocalStore.setState({ isOnline: true, syncStatus: 'syncing' });
+    getState().refreshData();
+  });
+  window.addEventListener('offline', () => {
+    useLocalStore.setState({ isOnline: false, syncStatus: 'offline' });
+  });
+
+  // Initial load
+  getState().refreshData();
+}
+
+// ─── Authorization (read-only, no enforcement) ────────────────────────
 
 export function canActOnTransaction(
   transaction: Transaction | undefined,
   action: 'approve' | 'reject' | 'edit' | 'delete',
-  currentUser: typeof DEFAULT_USER | null,
+  currentUser: ReturnType<typeof useLocalStore.getState>['user'] | null,
 ): boolean {
   if (!transaction || !currentUser) return false;
   switch (action) {
@@ -367,23 +545,4 @@ export function canActOnTransaction(
     case 'reject': return transaction.status === 'PENDING';
     default: return false;
   }
-}
-
-// ─── Init ──────────────────────────────────────────────────────
-
-export function initStore(): void {
-  // Start background sync
-  startBackgroundSync();
-
-  // Listen for online/offline
-  window.addEventListener('online', () => {
-    useLocalStore.setState({ isOnline: true, syncStatus: 'syncing' });
-    useLocalStore.getState().refreshData();
-  });
-  window.addEventListener('offline', () => {
-    useLocalStore.setState({ isOnline: false, syncStatus: 'offline' });
-  });
-
-  // Initial load
-  useLocalStore.getState().refreshData();
 }

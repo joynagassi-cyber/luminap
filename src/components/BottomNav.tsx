@@ -1,15 +1,18 @@
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, BookOpen, BarChart3, Settings, MoreHorizontal } from 'lucide-react';
-import { useState } from 'react';
+import { Home, BookOpen, BarChart3, Settings, Bell } from 'lucide-react';
+import { useState as useStateReact } from 'react';
 import BottomDrawer from './BottomDrawer';
+import { useLocalStore } from '@/store/useLocalStore';
 
 interface NavItem {
   path: string;
   label: string;
   icon: typeof Home;
+  badge?: number;
 }
 
-const NAV_ITEMS: NavItem[] = [
+const NAV_ITEMS: Omit<NavItem, 'badge'>[] = [
   { path: '/', label: 'Accueil', icon: Home },
   { path: '/finance', label: 'Finance', icon: BookOpen },
   { path: '/history', label: 'Historique', icon: BarChart3 },
@@ -19,7 +22,14 @@ const NAV_ITEMS: NavItem[] = [
 export default function BottomNav() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useStateReact(false);
+  const { notifications, getUnreadCount } = useLocalStore();
+  const unreadCount = getUnreadCount();
+
+  const navItems = NAV_ITEMS.map(item => ({
+    ...item,
+    badge: item.path === '/finance' ? 0 : 0,
+  }));
 
   return (
     <>
@@ -32,12 +42,8 @@ export default function BottomNav() {
           paddingBottom: 'env(safe-area-inset-bottom)',
         }}
       >
-        {NAV_ITEMS.map((item) => {
-          const isActive = location.pathname === item.path ||
-            (item.path === '/' && location.pathname === '/') ||
-            (item.path === '/finance' && location.pathname === '/finance') ||
-            (item.path === '/history' && location.pathname === '/history') ||
-            (item.path === '/settings' && location.pathname === '/settings');
+        {navItems.map((item) => {
+          const isActive = location.pathname === item.path;
           const Icon = item.icon;
           return (
             <button
@@ -45,11 +51,13 @@ export default function BottomNav() {
               onClick={() => navigate(item.path)}
               className="flex flex-col items-center justify-center gap-1 px-4 py-2 active:scale-95 transition-transform"
             >
-              <Icon
-                className="w-5 h-5"
-                strokeWidth={isActive ? 2.5 : 2}
-                style={{ color: isActive ? '#FF6B00' : '#808080' }}
-              />
+              <div className="relative">
+                <Icon
+                  className="w-5 h-5"
+                  strokeWidth={isActive ? 2.5 : 2}
+                  style={{ color: isActive ? '#FF6B00' : '#808080' }}
+                />
+              </div>
               <span
                 className="text-xs font-medium"
                 style={{ color: isActive ? '#FF6B00' : '#808080' }}
@@ -60,12 +68,33 @@ export default function BottomNav() {
           );
         })}
 
+        {/* Notifications button */}
+        <button
+          onClick={() => navigate('/notifications')}
+          className="flex flex-col items-center justify-center gap-1 px-4 py-2 active:scale-95 transition-transform relative"
+        >
+          <div className="relative">
+            <Bell className="w-5 h-5" style={{ color: '#808080' }} />
+            {unreadCount > 0 && (
+              <span
+                className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold"
+                style={{ backgroundColor: '#FF6B00', color: '#FFFFFF' }}
+              >
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+          </div>
+          <span className="text-xs font-medium" style={{ color: '#808080' }}>Alertes</span>
+        </button>
+
         {/* More button → drawer */}
         <button
           onClick={() => setDrawerOpen(true)}
           className="flex flex-col items-center justify-center gap-1 px-4 py-2 active:scale-95 transition-transform"
         >
-          <MoreHorizontal className="w-5 h-5 text-text-tertiary" />
+          <svg className="w-5 h-5 text-text-tertiary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
+          </svg>
           <span className="text-xs font-medium text-text-tertiary">Plus</span>
         </button>
       </nav>

@@ -4,9 +4,11 @@
  */
 
 const DB_NAME = 'lumina-db';
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 
 // ─── Types ─────────────────────────────────────────────
+
+export type Role = 'PASTEUR' | 'SECRETAIRE' | 'TREASURIER' | 'COMPTABLE' | 'TREASURIER_ADJOINT' | 'SECRETAIRE_ADJOINT';
 
 export interface IndexedTransaction {
   id: string;
@@ -60,6 +62,24 @@ export interface IndexedAuditEntry {
   createdAt: string;
 }
 
+export interface IndexedNotification {
+  id: string;
+  orgId: string;
+  actionType: string;
+  title: string;
+  message: string;
+  isRead: boolean;
+  sourceTransactionId: string | null;
+  createdAt: string;
+}
+
+export interface IndexedRoleAssignment {
+  sessionId: string;
+  role: Role;
+  orgId: string;
+  createdAt: string;
+}
+
 export interface SyncQueueEntry {
   id: string;
   type: 'insert' | 'update' | 'delete';
@@ -70,18 +90,24 @@ export interface SyncQueueEntry {
   createdAt: string;
 }
 
+// ─── Constants ───────────────────────────────────────────
+
+export const ALL_ROLES: { key: Role; label: string; icon: string }[] = [
+  { key: 'PASTEUR', label: 'Pasteur', icon: '✝' },
+  { key: 'SECRETAIRE', label: 'Secrétaire', icon: '📝' },
+  { key: 'TREASURIER', label: 'Trésorier', icon: '💰' },
+  { key: 'COMPTABLE', label: 'Comptable', icon: '📊' },
+  { key: 'TREASURIER_ADJOINT', label: 'Trésorier Adjoint', icon: '🔢' },
+  { key: 'SECRETAIRE_ADJOINT', label: 'Secrétaire Adjoint', icon: '📋' },
+];
+
 // ─── Database access ────────────────────────────────────
 
-// Async mutex: guarantees only ONE indexedDB.open() runs at a time.
-// Without this, two concurrent open() calls both trigger onupgradeneeded
-// and race, causing "version change transaction is running".
 let dbReady: Promise<IDBDatabase> | null = null;
 let dbOpenInProgress = false;
 
 function ensureDBReady(): Promise<IDBDatabase> {
-  // Already connected — return cached connection
   if (dbReady) return dbReady;
-  // Open already in progress — wait for it
   if (dbOpenInProgress) {
     return new Promise<IDBDatabase>((resolve, reject) => {
       const check = () => {
@@ -95,7 +121,6 @@ function ensureDBReady(): Promise<IDBDatabase> {
     });
   }
 
-  // Start the open — only one indexedDB.open() at a time
   dbOpenInProgress = true;
 
   dbReady = new Promise<IDBDatabase>((resolve, reject) => {
@@ -154,6 +179,47 @@ function ensureDBReady(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains('config')) {
         db.createObjectStore('config', { keyPath: 'key' });
       }
+
+      // Notifications store (v4)
+      if (!db.objectStoreNames.contains('notifications')) {
+        db.createObjectStore('notifications', { keyPath: 'id' });
+      }
+
+      // Notifications store (v4)
+      if (!db.objectStoreNames.contains('notifications')) {
+        db.createObjectStore('notifications', { keyPath: 'id' });
+      }
+
+      // Role assignments store (v4)
+      if (!db.objectStoreNames.contains('roleAssignments')) {
+        db.createObjectStore('roleAssignments', { keyPath: 'sessionId' });
+      }
+
+      // Clear stale data on upgrade (v3 → v4)
+      if (oldVersion < 4) {
+        const stores = ['transactions', 'categories', 'orgUnits', 'auditEntries', 'syncQueue', 'notifications', 'roleAssignments'];
+        for (const storeName of stores) {
+          if (db.objectStoreNames.contains(storeName)) {
+            const tx = db.transaction(storeName, 'readwrite');
+            tx.objectStore(storeName).clear();
+          }
+        }
+        // Clear config but keep sessionId and selectedRole
+        if (db.objectStoreNames.contains('config')) {
+          const tx = db.transaction('config', 'readwrite');
+          const store = tx.objectStore('config');
+          const req = store.getAllKeys();
+          req.onsuccess = () => {
+            const keepKeys = new Set(['sessionId', 'selectedRole', 'lastSyncedAt']);
+            const allKeys = req.result as string[];
+            for (const key of allKeys) {
+              if (!keepKeys.has(key)) {
+                store.delete(key);
+              }
+            }
+          };
+        }
+      }
     };
   });
 
@@ -176,7 +242,6 @@ async function withDB<T>(fn: (db: IDBDatabase) => Promise<T>): Promise<T> {
       (err as DOMException)?.name === 'AbortError';
     if (!isVersionError) throw err;
 
-    // Corrupted state — clear cache and retry once
     dbReady = null;
     dbOpenInProgress = false;
     await new Promise(r => setTimeout(r, 100));
@@ -185,7 +250,7 @@ async function withDB<T>(fn: (db: IDBDatabase) => Promise<T>): Promise<T> {
   }
 }
 
-// ─── CRUD operations ────────────────────────────────────
+// ─── Transactions ─────────────────────────────────────────
 
 export async function getAllTransactions(): Promise<IndexedTransaction[]> {
   return withDB(async (db) => {
@@ -235,6 +300,8 @@ export async function deleteTransaction(id: string): Promise<void> {
   });
 }
 
+// ─── Categories ──────────────────────────────────────────
+
 export async function getAllCategories(): Promise<IndexedCategory[]> {
   return withDB(async (db) => {
     return new Promise((resolve, reject) => {
@@ -271,6 +338,8 @@ export async function deleteCategory(id: string): Promise<void> {
   });
 }
 
+// ─── Org Units ───────────────────────────────────────────
+
 export async function getAllOrgUnits(): Promise<IndexedOrgUnit[]> {
   return withDB(async (db) => {
     return new Promise((resolve, reject) => {
@@ -295,6 +364,8 @@ export async function putOrgUnit(ou: IndexedOrgUnit): Promise<void> {
   });
 }
 
+// ─── Audit ───────────────────────────────────────────────
+
 export async function getAllAuditEntries(): Promise<IndexedAuditEntry[]> {
   return withDB(async (db) => {
     return new Promise((resolve, reject) => {
@@ -314,6 +385,127 @@ export async function putAuditEntry(entry: IndexedAuditEntry): Promise<void> {
       const store = transaction.objectStore('auditEntries');
       const req = store.put(entry);
       req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  });
+}
+
+// ─── Notifications (local) ───────────────────────────────
+
+export async function getAllNotifications(): Promise<IndexedNotification[]> {
+  return withDB(async (db) => {
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('notifications', 'readonly');
+      const store = tx.objectStore('notifications');
+      const request = store.getAll();
+      request.onsuccess = () => resolve(request.result as IndexedNotification[]);
+      request.onerror = () => reject(request.error);
+    });
+  });
+}
+
+export async function putNotification(n: IndexedNotification): Promise<void> {
+  return withDB(async (db) => {
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('notifications', 'readwrite');
+      const store = tx.objectStore('notifications');
+      const req = store.put(n);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  });
+}
+
+export async function markNotificationRead(id: string): Promise<void> {
+  return withDB(async (db) => {
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('notifications', 'readwrite');
+      const store = tx.objectStore('notifications');
+      const getReq = store.get(id);
+      getReq.onsuccess = () => {
+        const entry = getReq.result as IndexedNotification | undefined;
+        if (entry) {
+          const updated = { ...entry, isRead: true };
+          const putReq = store.put(updated);
+          putReq.onsuccess = () => resolve();
+          putReq.onerror = () => reject(putReq.error);
+        } else {
+          resolve();
+        }
+      };
+      getReq.onerror = () => reject(getReq.error);
+    });
+  });
+}
+
+export async function markAllNotificationsRead(): Promise<void> {
+  return withDB(async (db) => {
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('notifications', 'readwrite');
+      const store = tx.objectStore('notifications');
+      const req = store.getAll();
+      req.onsuccess = () => {
+        const notifications = req.result as IndexedNotification[];
+        let count = notifications.length;
+        if (count === 0) { resolve(); return; }
+        notifications.forEach(n => {
+          store.put({ ...n, isRead: true }).onsuccess = () => {
+            if (--count === 0) resolve();
+          };
+        });
+      };
+      req.onerror = () => reject(req.error);
+    });
+  });
+}
+
+export async function deleteNotificationsOlderThan(days: number): Promise<void> {
+  return withDB(async (db) => {
+    return new Promise((resolve, reject) => {
+      const cutoff = new Date(Date.now() - days * 86400000).toISOString();
+      const tx = db.transaction('notifications', 'readwrite');
+      const store = tx.objectStore('notifications');
+      const range = IDBKeyRange.lowerBound(cutoff, true);
+      const req = store.delete(range);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  });
+}
+
+// ─── Role Assignments (local) ────────────────────────────
+
+export async function getRoleAssignment(sessionId: string): Promise<IndexedRoleAssignment | null> {
+  return withDB(async (db) => {
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('roleAssignments', 'readonly');
+      const store = tx.objectStore('roleAssignments');
+      const req = store.get(sessionId);
+      req.onsuccess = () => resolve(req.result as IndexedRoleAssignment | null);
+      req.onerror = () => reject(req.error);
+    });
+  });
+}
+
+export async function putRoleAssignment(ra: IndexedRoleAssignment): Promise<void> {
+  return withDB(async (db) => {
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('roleAssignments', 'readwrite');
+      const store = tx.objectStore('roleAssignments');
+      const req = store.put(ra);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  });
+}
+
+export async function getAllRoleAssignments(): Promise<IndexedRoleAssignment[]> {
+  return withDB(async (db) => {
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('roleAssignments', 'readonly');
+      const store = tx.objectStore('roleAssignments');
+      const req = store.getAll();
+      req.onsuccess = () => resolve(req.result as IndexedRoleAssignment[]);
       req.onerror = () => reject(req.error);
     });
   });
@@ -418,4 +610,36 @@ export async function getConfig<T>(key: string): Promise<T | null> {
       req.onerror = () => reject(req.error);
     });
   });
+}
+
+// ─── Session / Cleanup ──────────────────────────────────
+
+export async function getSessionId(): Promise<string> {
+  let id = await getConfig<string>('sessionId');
+  if (!id) {
+    id = `session-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    await setConfig('sessionId', id);
+  }
+  return id;
+}
+
+export async function getRole(): Promise<Role | null> {
+  const sessionId = await getSessionId();
+  const ra = await getRoleAssignment(sessionId);
+  return ra?.role ?? null;
+}
+
+export async function setRole(role: Role): Promise<void> {
+  const sessionId = await getSessionId();
+  await putRoleAssignment({ sessionId, role, orgId: 'org-1', createdAt: new Date().toISOString() });
+  await setConfig('selectedRole', role);
+}
+
+export async function getAllRolesFromCloud(): Promise<Role[]> {
+  // This will be populated by sync.ts
+  return getConfig<Role[]>('assignedRoles') ?? [];
+}
+
+export async function setAllRolesFromCloud(roles: Role[]): Promise<void> {
+  await setConfig('assignedRoles', roles);
 }

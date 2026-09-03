@@ -9,7 +9,9 @@ export const ORG_PRESETS: Record<OrgType, { primary: string; light: string; dark
   Custom: { primary: '#FF6B00', light: '#FF8533', dark: '#CC5500' },
 };
 
-export type Role = 'ADMIN' | 'TREASURER' | 'APPROVER';
+export type Role = 'PASTEUR' | 'SECRETAIRE' | 'TREASURIER' | 'COMPTABLE' | 'TREASURIER_ADJOINT' | 'SECRETAIRE_ADJOINT';
+
+export type UserRole = Role;
 
 export type User = {
   id: string;
@@ -35,9 +37,9 @@ export type Transaction = {
   id: string;
   orgId: string;
   type: TransactionType;
-  amount: number; // en centimes
+  amount: number;
   description: string;
-  date: string; // ISO date
+  date: string;
   status: TransactionStatus;
   createdAt: string;
   updatedAt: string;
@@ -49,7 +51,6 @@ export type Transaction = {
   compensatesFor: string | null;
   comment: string | null;
   version: number;
-  // Relations
   category?: Category;
   orgUnit?: OrgUnit;
   creator?: User;
@@ -83,6 +84,17 @@ export type AuditEntry = {
   comment: string | null;
   createdAt: string;
   user?: User;
+};
+
+export type NotificationItem = {
+  id: string;
+  orgId: string;
+  actionType: string;
+  title: string;
+  message: string;
+  isRead: boolean;
+  sourceTransactionId: string | null;
+  createdAt: string;
 };
 
 export type BalanceResult = {

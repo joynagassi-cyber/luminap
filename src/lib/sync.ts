@@ -1,18 +1,29 @@
 /**
  * Sync engine for Lumina
  * Handles background sync with retry queue and exponential backoff
+ * Plus real-time notifications and role assignment sync
  */
 import { supabase } from '@/integrations/supabase/client';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import * as db from './db';
-import type { SyncQueueEntry, IndexedTransaction, IndexedCategory, IndexedOrgUnit, IndexedAuditEntry } from './db';
+import type {
+  SyncQueueEntry,
+  IndexedTransaction,
+  IndexedCategory,
+  IndexedOrgUnit,
+  IndexedAuditEntry,
+  IndexedNotification,
+  IndexedRoleAssignment,
+  Role,
+} from './db';
 
-// ─── Constants ─────────────────────────────────────────────────
+// ─── Constants ─────────────────────────────────────────────────────────
 
 const MAX_RETRIES = 5;
 const BASE_DELAY_MS = 1000;
-const SYNC_INTERVAL_MS = 30_000; // Check every 30s
+const SYNC_INTERVAL_MS = 30_000;
 
-// ─── Sync status ───────────────────────────────────────────────
+// ─── Sync status ───────────────────────────────────────────────────────
 
 let syncStatus: 'idle' | 'syncing' | 'error' = 'idle';
 let lastSyncedAt: string | null = null;
@@ -33,7 +44,7 @@ function notifyListeners() {
   listeners.forEach(fn => fn());
 }
 
-// ─── Supabase operations ───────────────────────────────────────
+// ─── Supabase operations ───────────────────────────────────────────────
 
 async function syncTransaction(tx: IndexedTransaction): Promise<void> {
   const data: Record<string, unknown> = {
@@ -56,14 +67,13 @@ async function syncTransaction(tx: IndexedTransaction): Promise<void> {
   };
 
   if (tx.syncStatus === 'pending' && !tx.cloudId) {
-    // New transaction - insert
+    // New transaction – insert
     const { error } = await supabase.from('transactions').insert(data).select().single();
     if (error) throw error;
-    // Update local with cloud ID
     const result = data as any;
     await db.putTransaction({ ...tx, cloudId: result.id, syncStatus: 'synced' });
   } else if (tx.cloudId) {
-    // Existing transaction - update
+    // Existing transaction – update
     const { error } = await supabase
       .from('transactions')
       .update({
@@ -78,7 +88,6 @@ async function syncTransaction(tx: IndexedTransaction): Promise<void> {
 }
 
 async function syncCategory(cat: IndexedCategory): Promise<void> {
-  // Sync custom categories (isCustom=true) and all categories
   const { error } = await supabase
     .from('categories')
     .upsert({
@@ -96,12 +105,7 @@ async function syncCategory(cat: IndexedCategory): Promise<void> {
 async function syncOrgUnit(ou: IndexedOrgUnit): Promise<void> {
   const { error } = await supabase
     .from('org_units')
-    .upsert({
-      id: ou.id,
-      name: ou.name,
-      type: ou.type,
-      org_id: ou.orgId,
-    });
+    .upsert({ id: ou.id, name: ou.name, type: ou.type, org_id: ou.orgId });
   if (error) throw error;
   await db.putOrgUnit({ ...ou, syncStatus: 'synced' });
 }
@@ -120,7 +124,7 @@ async function syncAuditEntry(entry: IndexedAuditEntry): Promise<void> {
   if (error) throw error;
 }
 
-// ─── Retry with exponential backoff ────────────────────────────
+// ─── Retry with exponential backoff ─────────────────────────────────────
 
 async function withRetry<T>(
   operation: () => Promise<T>,
@@ -145,7 +149,7 @@ async function withRetry<T>(
   throw lastError!;
 }
 
-// ─── Main sync loop ────────────────────────────────────────────
+// ─── Main sync loop ─────────────────────────────────────────────────────
 
 async function processQueue(): Promise<void> {
   const queue = await db.getPendingSyncQueue();
@@ -181,11 +185,9 @@ async function processQueue(): Promise<void> {
         }
       });
 
-      // Success - remove from queue
       await db.removeSyncEntry(entry.id);
     } catch (err) {
       console.error('[sync] failed to process queue entry', entry.id, err);
-      // Update attempt count and schedule retry
       await db.updateSyncEntry(entry.id, {
         attempt: entry.attempt + 1,
         lastAttemptAt: new Date().toISOString(),
@@ -199,23 +201,142 @@ async function processQueue(): Promise<void> {
   notifyListeners();
 }
 
-// ─── Background sync interval ──────────────────────────────────
+// ─── Notifications sync ────────────────────────────────────────────────
+
+export async function syncNotifications(): Promise<void> {
+  if (!navigator.onLine) return;
+  try {
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('[sync] notifications fetch error', error);
+      return;
+    }
+
+    const localNotifs = await db.getAllNotifications();
+    const localIds = new Set(localNotifs.map(n => n.id));
+
+    // Upsert remote notifications
+    for (const n of (data ?? [])) {
+      const local: IndexedNotification = {
+        id: n.id,
+        orgId: n.org_id,
+        actionType: n.action_type,
+        title: n.title,
+        message: n.message,
+        isRead: n.is_read,
+        sourceTransactionId: n.source_transaction_id,
+        createdAt: n.created_at,
+      };
+      if (!localIds.has(n.id)) {
+        // New notification – store locally
+        await db.putNotification(local);
+      }
+    }
+  } catch (err) {
+    console.error('[sync] notifications sync error', err);
+  }
+}
+
+// ─── Role assignments sync ─────────────────────────────────────────────
+
+export async function syncRoleAssignments(): Promise<void> {
+  if (!navigator.onLine) return;
+  try {
+    const { data, error } = await supabase
+      .from('role_assignments')
+      .select('role');
+
+    if (error) {
+      console.error('[sync] role_assignments fetch error', error);
+      return;
+    }
+
+    const roles = (data ?? []).map(r => r.role as Role);
+    await db.setAllRolesFromCloud(roles);
+  } catch (err) {
+    console.error('[sync] role_assignments sync error', err);
+  }
+}
+
+// ─── Realtime subscription ─────────────────────────────────────────────
+
+let notifSubscription: RealtimeChannel | null = null;
+let roleSubscription: RealtimeChannel | null = null;
+
+export function startRealtimeSubscriptions(): void {
+  // Subscribe to new notifications
+  notifSubscription = supabase
+    .channel('notifications-channel')
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'notifications' },
+      async (payload) => {
+        console.log('[realtime] new notification', payload);
+        const n = payload.new as any;
+        const local: IndexedNotification = {
+          id: n.id,
+          orgId: n.org_id,
+          actionType: n.action_type,
+          title: n.title,
+          message: n.message,
+          isRead: n.is_read,
+          sourceTransactionId: n.source_transaction_id,
+          createdAt: n.created_at,
+        };
+        await db.putNotification(local);
+        window.dispatchEvent(new CustomEvent('lumina:notification'));
+      },
+    )
+    .subscribe();
+
+  // Subscribe to role assignment changes
+  roleSubscription = supabase
+    .channel('role-assignments-channel')
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'role_assignments' },
+      async () => {
+        console.log('[realtime] role assignment changed');
+        await syncRoleAssignments();
+        window.dispatchEvent(new CustomEvent('lumina:roles-changed'));
+      },
+    )
+    .subscribe();
+}
+
+export function stopRealtimeSubscriptions(): void {
+  if (notifSubscription) {
+    supabase.removeChannel(notifSubscription);
+    notifSubscription = null;
+  }
+  if (roleSubscription) {
+    supabase.removeChannel(roleSubscription);
+    roleSubscription = null;
+  }
+}
+
+// ─── Background sync interval ──────────────────────────────────────────
 
 let syncInterval: ReturnType<typeof setInterval> | null = null;
 
 export function startBackgroundSync(): void {
-  // Check queue immediately
+  // Initial sync
   processQueue().catch(console.error);
 
-  // Then check periodically
+  // Periodic queue processing
   syncInterval = setInterval(() => {
     processQueue().catch(console.error);
   }, SYNC_INTERVAL_MS);
 
-  // Also sync on visibility change (user returns to app)
+  // Sync on visibility change
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
       processQueue().catch(console.error);
+      syncNotifications().catch(console.error);
     }
   });
 
@@ -223,6 +344,7 @@ export function startBackgroundSync(): void {
   window.addEventListener('online', () => {
     console.log('[sync] network restored, syncing...');
     processQueue().catch(console.error);
+    syncNotifications().catch(console.error);
   });
 }
 
@@ -233,16 +355,14 @@ export function stopBackgroundSync(): void {
   }
 }
 
-// ─── Fetch from Supabase (one-time load) ──────────────────────
+// ─── Fetch from Supabase (one-time load) ───────────────────────────────
 
-export async function fetchFromCloud(): Promise<
-  {
-    transactions: IndexedTransaction[];
-    categories: IndexedCategory[];
-    orgUnits: IndexedOrgUnit[];
-    auditEntries: IndexedAuditEntry[];
-  }
-> {
+export async function fetchFromCloud(): Promise<{
+  transactions: IndexedTransaction[];
+  categories: IndexedCategory[];
+  orgUnits: IndexedOrgUnit[];
+  auditEntries: IndexedAuditEntry[];
+}> {
   const [txRes, catRes, ouRes, auditRes] = await Promise.all([
     supabase.from('transactions').select('*').order('created_at', { ascending: false }),
     supabase.from('categories').select('*').order('id'),
