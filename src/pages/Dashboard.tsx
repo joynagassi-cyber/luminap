@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useLocalStore } from '@/store/useLocalStore';
+import { useLocalStore, getRoleLabel } from '@/store/useLocalStore';
 import { formatCurrencyCompact, getPeriodRange } from '@/lib/utils';
-import { ArrowUpRight, ArrowDownRight, BarChart3, BookOpen, PlusCircle, Calendar, TrendingUp, Wallet } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, BarChart3, BookOpen, PlusCircle, Calendar, TrendingUp, Wallet, Sparkles } from 'lucide-react';
 import TransactionCard from '@/components/TransactionCard';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
@@ -62,8 +62,16 @@ function CaisseCard({ caisse, transactions, navigate }: { caisse: Caisse; transa
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { transactions, categories, orgUnits, caisses, isLoading } = useLocalStore();
+  const { transactions, categories, orgUnits, caisses, isLoading, user } = useLocalStore();
   const [drawerOpen, setDrawerOpen] = useState(false);
+
+  // Greeting based on time of day
+  const greeting = useMemo(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Bonjour';
+    if (hour < 18) return 'Bon après-midi';
+    return 'Bonsoir';
+  }, []);
 
   const { start, end } = getPeriodRange('mois');
   const mainCaisse = caisses.find(c => c.id === 'main');
@@ -104,31 +112,64 @@ export default function Dashboard() {
         {/* Main Caisse Hero */}
         {mainCaisse && (
           <div
-            className="rounded-xl p-5 mb-5 cursor-pointer active:scale-98 transition-transform"
-            style={{ backgroundColor: '#212121', border: '1px solid #FF6B0040' }}
+            className="rounded-2xl p-5 mb-5 cursor-pointer active:scale-98 transition-transform"
+            style={{
+              backgroundColor: '#212121',
+              border: '1px solid #FF6B0040',
+              background: 'linear-gradient(135deg, #212121 0%, #1a1a1a 100%)',
+            }}
             onClick={() => navigate('/finance')}
           >
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: '#FF6B0020' }}>
-                <Wallet className="w-4 h-4" style={{ color: '#FF6B00' }} />
+            {/* Top row: greeting + role */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#FF6B0020' }}>
+                  <Sparkles className="w-5 h-5" style={{ color: '#FF6B00' }} />
+                </div>
+                <div>
+                  <p className="text-text-primary font-bold text-base">{greeting} 👋</p>
+                  <p className="text-text-tertiary text-xs mt-0.5">
+                    {user.role ? getRoleLabel(user.role) : 'Trésorier'}
+                  </p>
+                </div>
               </div>
-              <span className="text-text-tertiary text-sm">Caisse Principale</span>
-            </div>
-            <p className="text-text-tertiary text-xs mb-1">Solde global de l'église</p>
-            <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-black tabular-nums" style={{ color: netResult >= 0 ? '#1DB954' : '#E51332' }}>
-                {netResult >= 0 ? '' : '-'}{formatCurrencyCompact(Math.abs(netResult))}
-              </span>
-              <span className="text-text-tertiary text-sm">FCFA</span>
-            </div>
-            <div className="flex items-center gap-4 mt-3">
-              <div className="flex items-center gap-1.5">
-                <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#1DB954' }} />
-                <span className="text-text-tertiary text-xs">+{formatCurrencyCompact(totalIncome)}</span>
+              <div className="text-right">
+                <p className="text-text-tertiary text-xs">Caisse principale</p>
+                <div className="flex items-baseline gap-1 mt-1">
+                  <span className="text-2xl font-black tabular-nums" style={{ color: netResult >= 0 ? '#1DB954' : '#E51332' }}>
+                    {netResult >= 0 ? '' : '-'}{formatCurrencyCompact(Math.abs(netResult))}
+                  </span>
+                  <span className="text-text-tertiary text-xs">FCFA</span>
+                </div>
               </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#E51332' }} />
-                <span className="text-text-tertiary text-xs">-{formatCurrencyCompact(totalExpense)}</span>
+            </div>
+
+            {/* Divider */}
+            <div className="h-px mb-4" style={{ backgroundColor: '#282828' }} />
+
+            {/* Stats row */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: '#1DB95420' }}>
+                  <ArrowUpRight className="w-4 h-4" style={{ color: '#1DB954' }} />
+                </div>
+                <div>
+                  <p className="text-text-tertiary text-xs">Entrées</p>
+                  <p className="text-sm font-semibold tabular-nums" style={{ color: '#1DB954' }}>
+                    +{formatCurrencyCompact(totalIncome)}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: '#E5133220' }}>
+                  <ArrowDownRight className="w-4 h-4" style={{ color: '#E51332' }} />
+                </div>
+                <div className="text-right">
+                  <p className="text-text-tertiary text-xs">Sorties</p>
+                  <p className="text-sm font-semibold tabular-nums" style={{ color: '#E51332' }}>
+                    -{formatCurrencyCompact(totalExpense)}
+                  </p>
+                </div>
               </div>
             </div>
           </div>

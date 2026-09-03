@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Wallet, TrendingDown, ChevronRight, CheckCircle } from 'lucide-react';
+import { Wallet, TrendingDown, TrendingUp, ChevronRight, CheckCircle } from 'lucide-react';
 import { formatCurrencyCompact } from '@/lib/utils';
 import { useLocalStore } from '@/store/useLocalStore';
 import type { Caisse } from '@/types';

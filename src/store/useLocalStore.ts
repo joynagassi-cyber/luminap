@@ -6,6 +6,7 @@ import { create } from 'zustand';
 import { supabase } from '@/integrations/supabase/client';
 import * as db from '@/lib/db';
 import { fetchFromCloud, startBackgroundSync, syncNotifications, syncRoleAssignments, startRealtimeSubscriptions, stopRealtimeSubscriptions, stopBackgroundSync } from '@/lib/sync';
+import { formatCurrencyCompact } from '@/lib/utils';
 import type { Transaction, Category, OrgUnit, Event, AuditEntry, NotificationItem, Role, Caisse, CaisseType } from '@/types';
 
 // ─── Constants ─────────────────────────────────────────────────────────

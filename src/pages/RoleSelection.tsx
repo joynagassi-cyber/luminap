@@ -10,7 +10,7 @@ import LuminaLogo from '@/components/LuminaLogo';
 import LogoSpinner from '@/components/LogoSpinner';
 
 // Professional SVG icons for each role
-const ROLE_ICONS: Record<Role, JSX.Element> = {
+const ROLE_ICONS: Record<Role, React.JSX.Element> = {
   PASTEUR: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
       <path d="M12 2v8m0 0v12m0-12H8m4 0h4" />
