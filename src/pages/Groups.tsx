@@ -61,7 +61,7 @@ export default function Groups() {
 
   const handleDelete = async (id: string, name: string) => {
     if (!confirm(`Supprimer le groupe "${name}" ? Les transactions associées ne seront pas supprimées.`)) return;
-    await db.deleteTransaction(id);
+    await db.deleteOrgUnit(id);
     await db.enqueueSync('delete', 'org_units', { id });
     await refreshData();
   };

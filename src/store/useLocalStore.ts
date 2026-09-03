@@ -45,6 +45,7 @@ interface StoreActions {
   addCategory: (cat: { key: string; labelFr: string; type: 'INCOME' | 'EXPENSE' }) => Promise<void>;
   updateCategory: (id: string, updates: { key?: string; labelFr?: string; type?: 'INCOME' | 'EXPENSE' }) => Promise<void>;
   deleteCategory: (id: string) => Promise<void>;
+  deleteOrgUnit: (id: string) => Promise<void>;
   addEvent: (evt: { name: string; description: string; startDate: string; endDate?: string; budget: number }) => Promise<void>;
   updateEvent: (id: string, updates: Partial<Event>) => Promise<void>;
   deleteEvent: (id: string) => Promise<void>;
@@ -392,6 +393,17 @@ export const useLocalStore = create<AppState & StoreActions>((set, get) => ({
 
     set(s => ({
       categories: s.categories.filter(c => c.id !== id),
+      error: null,
+      syncStatus: 'syncing',
+    }));
+  },
+
+  deleteOrgUnit: async (id) => {
+    await db.deleteOrgUnit(id);
+    await db.enqueueSync('delete', 'org_units', { id });
+
+    set(s => ({
+      orgUnits: s.orgUnits.filter(u => u.id !== id),
       error: null,
       syncStatus: 'syncing',
     }));

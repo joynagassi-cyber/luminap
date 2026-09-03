@@ -408,6 +408,18 @@ export async function putOrgUnit(ou: IndexedOrgUnit): Promise<void> {
   });
 }
 
+export async function deleteOrgUnit(id: string): Promise<void> {
+  return withDB(async (db) => {
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction('orgUnits', 'readwrite');
+      const store = transaction.objectStore('orgUnits');
+      const req = store.delete(id);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  });
+}
+
 // ─── Audit ───────────────────────────────────────────────
 
 export async function getAllAuditEntries(): Promise<IndexedAuditEntry[]> {
