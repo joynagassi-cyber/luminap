@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { formatCurrency, formatCurrencyCompact, formatDate, getStatusColor, getStatusLabel, exportToCSV, exportToPDF, exportToExcel } from '@/lib/utils';
 import { useLocalStore } from '@/store/useLocalStore';
 import type { Transaction } from '@/types';
@@ -7,14 +7,21 @@ import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
 import { PageSkeleton } from '@/components/Skeleton';
 import type { PeriodType } from '@/lib/utils';
-import { Search, Filter, X, TrendingUp, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
+import { Search, Filter, X, TrendingUp, ArrowDownLeft, ArrowUpRight, Wallet } from 'lucide-react';
 
 type StatusFilter = 'ALL' | 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED';
 type TypeFilter = 'ALL' | 'INCOME' | 'EXPENSE';
 
 export default function Finance() {
   const navigate = useNavigate();
-  const { transactions, categories, orgUnits, events, isLoading } = useLocalStore();
+  const location = useLocation();
+  const { transactions, categories, orgUnits, events, caisses, isLoading } = useLocalStore();
+
+  // Check for caisseId from navigation state
+  const [caisseId, setCaisseId] = useState<string>(
+    (location.state as { caisseId?: string } | null)?.caisseId || 'all'
+  );
+
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('ALL');
@@ -23,6 +30,11 @@ export default function Finance() {
   const [eventId, setEventId] = useState<string>('ALL');
   const [showFilters, setShowFilters] = useState(false);
   const [period, setPeriod] = useState<PeriodType>('mois');
+
+  useEffect(() => {
+    const state = location.state as { caisseId?: string } | null;
+    if (state?.caisseId) setCaisseId(state.caisseId);
+  }, [location.state]);
 
   if (isLoading) {
     return (
@@ -36,6 +48,7 @@ export default function Finance() {
 
   const filtered = transactions
     .filter(t => {
+      if (caisseId !== 'all' && t.sourceCaisseId !== caisseId) return false;
       if (statusFilter !== 'ALL' && t.status !== statusFilter) return false;
       if (typeFilter !== 'ALL' && t.type !== typeFilter) return false;
       if (categoryId !== 'ALL' && t.categoryId !== categoryId) return false;
@@ -54,6 +67,8 @@ export default function Finance() {
     })
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
+  const currentCaisse = caisses.find(c => c.id === caisseId);
+
   const chartData = getChartData(transactions, period);
 
   const handleExport = () => { exportToCSV(filtered, `grand-livre-${Date.now()}`); };
@@ -62,7 +77,7 @@ export default function Finance() {
 
   return (
     <div className="min-h-screen bg-canvas">
-      <TopHeader title="Grand livre" rightAction={
+      <TopHeader title="Finance" rightAction={
         <div className="flex gap-1.5">
           <button onClick={handleExport} className="px-2.5 py-1.5 rounded-full text-xs" style={{ backgroundColor: '#212121', color: '#B3B3B3' }}>CSV</button>
           <button onClick={handleExportPDF} className="px-2.5 py-1.5 rounded-full text-xs" style={{ backgroundColor: '#212121', color: '#B3B3B3' }}>PDF</button>
@@ -70,6 +85,41 @@ export default function Finance() {
         </div>
       } />
       <div className="max-w-lg mx-auto px-5 pb-24">
+
+        {/* Caisse Selector */}
+        {caisses.length > 1 && (
+          <div className="mb-4">
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              <button
+                onClick={() => setCaisseId('all')}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0 transition-all"
+                style={{
+                  backgroundColor: caisseId === 'all' ? '#FF6B00' : '#212121',
+                  color: caisseId === 'all' ? '#FFFFFF' : '#808080',
+                  border: caisseId === 'all' ? '1px solid #FF6B00' : '1px solid #282828',
+                }}
+              >
+                <Wallet className="w-3.5 h-3.5" />Toutes caisses
+              </button>
+              {caisses.map((c) => (
+                <button
+                  key={c.id}
+                  onClick={() => setCaisseId(c.id)}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0 transition-all"
+                  style={{
+                    backgroundColor: caisseId === c.id ? c.color + '25' : '#212121',
+                    color: caisseId === c.id ? c.color : '#808080',
+                    border: caisseId === c.id ? `1px solid ${c.color}60` : '1px solid #282828',
+                  }}
+                >
+                  <Wallet className="w-3.5 h-3.5" />
+                  {c.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Search Bar */}
         <div className="relative mb-4">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
@@ -172,6 +222,17 @@ export default function Finance() {
           </div>
         </div>
 
+        {/* Caisse label */}
+        {caisseId !== 'all' && currentCaisse && (
+          <div className="flex items-center gap-2 mb-3 px-3 py-2 rounded-lg" style={{ backgroundColor: currentCaisse.color + '10', border: `1px solid ${currentCaisse.color}25` }}>
+            <Wallet className="w-4 h-4" style={{ color: currentCaisse.color }} />
+            <span className="text-sm font-medium" style={{ color: currentCaisse.color }}>{currentCaisse.name}</span>
+            <button onClick={() => setCaisseId('all')} className="ml-auto text-xs text-text-tertiary hover:text-text-primary">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+
         {/* Transactions List */}
         <div className="space-y-2">
           {filtered.length === 0 ? (
@@ -203,21 +264,22 @@ function TransactionRow({ tx, onClick }: { tx: Transaction; onClick: () => void 
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-text-primary text-sm font-medium truncate">{tx.description}</p>
-        <div className="flex items-center gap-2 mt-0.5">
+        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
           <span className="text-text-tertiary text-xs">{tx.category?.labelFr}</span>
           <span className="text-text-tertiary text-xs">·</span>
           <span className="text-text-tertiary text-xs">{formatDate(tx.date)}</span>
-          {tx.source && (
+          {tx.sourceCaisseId && tx.sourceCaisseId !== 'main' && (
             <>
               <span className="text-text-tertiary text-xs">·</span>
-              <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: '#282828', color: '#B3B3B3' }}>{tx.source}</span>
-              {tx.source === 'PERSONNE' && tx.personName && (
-                <>
-                  <span className="text-text-tertiary text-xs">·</span>
-                  <span className="text-text-secondary text-xs italic">{tx.personName}</span>
-                </>
-              )}
+              <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: '#282828', color: '#B3B3B3' }}>
+                Caisse {tx.sourceCaisseId}
+              </span>
             </>
+          )}
+          {tx.versementId && (
+            <span className="text-xs px-1.5 py-0.5 rounded-full" style={{ backgroundColor: '#FF6B0020', color: '#FF6B00' }}>
+              Versement
+            </span>
           )}
         </div>
       </div>

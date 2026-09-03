@@ -15,6 +15,7 @@ import type {
   IndexedAuditEntry,
   IndexedNotification,
   IndexedRoleAssignment,
+  IndexedCaisse,
   Role,
 } from './db';
 
@@ -103,6 +104,23 @@ async function syncCategory(cat: IndexedCategory): Promise<void> {
     });
   if (error) throw error;
   await db.putCategory({ ...cat, syncStatus: 'synced' });
+}
+
+async function syncCaisse(caiss: IndexedCaisse): Promise<void> {
+  const { error } = await supabase
+    .from('caisses')
+    .upsert({
+      id: caiss.id,
+      name: caiss.name,
+      description: caiss.description,
+      type: caiss.type,
+      color: caiss.color,
+      org_id: caiss.orgId,
+      created_at: caiss.createdAt,
+      updated_at: caiss.updatedAt,
+    });
+  if (error) throw error;
+  await db.putCaisse({ ...caiss, syncStatus: 'synced' });
 }
 
 async function syncEvent(ev: IndexedEvent): Promise<void> {
@@ -206,6 +224,11 @@ async function processQueue(): Promise<void> {
           case 'events': {
             const ev = entry.payload as IndexedEvent;
             await syncEvent(ev);
+            break;
+          }
+          case 'caisses': {
+            const caiss = entry.payload as IndexedCaisse;
+            await syncCaisse(caiss);
             break;
           }
         }
@@ -388,13 +411,15 @@ export async function fetchFromCloud(): Promise<{
   categories: IndexedCategory[];
   orgUnits: IndexedOrgUnit[];
   events: IndexedEvent[];
+  caisses: IndexedCaisse[];
   auditEntries: IndexedAuditEntry[];
 }> {
-  const [txRes, catRes, ouRes, eventRes, auditRes] = await Promise.all([
+  const [txRes, catRes, ouRes, eventRes, caissRes, auditRes] = await Promise.all([
     supabase.from('transactions').select('*').order('created_at', { ascending: false }),
     supabase.from('categories').select('*').order('id'),
     supabase.from('org_units').select('*').order('id'),
     supabase.from('events').select('*').order('created_at', { ascending: false }),
+    supabase.from('caisses').select('*').order('created_at', { ascending: false }),
     supabase.from('audit_entries').select('*').order('created_at', { ascending: false }).limit(50),
   ]);
 
@@ -402,6 +427,7 @@ export async function fetchFromCloud(): Promise<{
   if (catRes.error) console.warn('[sync] categories fetch error', catRes.error);
   if (ouRes.error) console.warn('[sync] org_units fetch error', ouRes.error);
   if (eventRes.error) console.warn('[sync] events fetch error', eventRes.error);
+  if (caissRes.error) console.warn('[sync] caisses fetch error', caissRes.error);
   if (auditRes.error) console.warn('[sync] audit fetch error', auditRes.error);
 
   return {
@@ -409,6 +435,7 @@ export async function fetchFromCloud(): Promise<{
     categories: (catRes.data ?? []).map(mapDbCat),
     orgUnits: (ouRes.data ?? []).map(mapDbOu),
     events: (eventRes.data ?? []).map(mapDbEvent),
+    caisses: (caissRes.data ?? []).map(mapDbCaisse),
     auditEntries: (auditRes.data ?? []).map(mapDbAudit),
   };
 }
@@ -430,6 +457,8 @@ function mapDbTx(tx: any): IndexedTransaction {
     compensatesFor: tx.compensates_for,
     comment: tx.comment,
     version: tx.version,
+    sourceCaisseId: tx.source_caisse_id ?? null,
+    versementId: tx.versement_id ?? null,
     createdById: tx.created_by_id ?? '',
     approvedById: tx.approved_by_id,
     approvedAt: tx.approved_at,
@@ -437,6 +466,20 @@ function mapDbTx(tx: any): IndexedTransaction {
     updatedAt: tx.updated_at,
     syncStatus: 'synced',
     cloudId: tx.id,
+  };
+}
+
+function mapDbCaisse(c: any): IndexedCaisse {
+  return {
+    id: c.id,
+    name: c.name,
+    description: c.description ?? '',
+    type: c.type,
+    color: c.color ?? '#FF6B00',
+    orgId: c.org_id,
+    createdAt: c.created_at,
+    updatedAt: c.updated_at,
+    syncStatus: 'synced',
   };
 }
 

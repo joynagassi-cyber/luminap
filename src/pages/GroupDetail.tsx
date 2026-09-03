@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
-  ArrowLeft, Building2, TrendingUp, TrendingDown, Scale, Wallet,
-  Plus, Filter, X,
+  Building2, TrendingUp, TrendingDown, Wallet,
+  Plus, Filter, X, Send,
 } from 'lucide-react';
 import { formatCurrency, formatCurrencyCompact, formatDate } from '@/lib/utils';
 import { useLocalStore } from '@/store/useLocalStore';
@@ -26,10 +26,12 @@ function formatDateRange(start: string, end: string | null) {
 export default function GroupDetail() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { orgUnits, transactions, categories, isLoading } = useLocalStore();
+  const { orgUnits, transactions, categories, caisses, isLoading } = useLocalStore();
 
   const orgUnit = orgUnits.find(o => o.id === id);
-  const groupTransactions = transactions.filter(t => t.orgUnitId === id);
+  const caisse = caisses.find(c => c.id === id);
+  // Use sourceCaisseId for filtering (new architecture)
+  const groupTransactions = transactions.filter(t => t.sourceCaisseId === id);
 
   const totalIncome = groupTransactions.filter(t => t.type === 'INCOME' && t.status === 'APPROVED').reduce((s, t) => s + t.amount, 0);
   const totalExpense = groupTransactions.filter(t => t.type === 'EXPENSE' && t.status === 'APPROVED').reduce((s, t) => s + t.amount, 0);
@@ -50,8 +52,21 @@ export default function GroupDetail() {
   const [search, setSearch] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [showErrorModal, setShowErrorModal] = useState(false);
+  const [showVersementModal, setShowVersementModal] = useState(false);
+  const [versementAmount, setVersementAmount] = useState('');
 
   const showError = (msg: string) => { setErrorMsg(msg); setShowErrorModal(true); };
+
+  const handleVersement = () => {
+    const amount = versementAmount ? parseFloat(versementAmount) * 100 : balance;
+    if (amount <= 0) {
+      showError('Montant invalide');
+      return;
+    }
+    useLocalStore.getState().versement(id, amount, `Versement ${orgUnit?.name}`)
+      .then(() => setShowVersementModal(false))
+      .catch((err: any) => showError(String(err)));
+  };
 
   const filteredTxs = groupTransactions
     .filter(t => {
@@ -83,14 +98,17 @@ export default function GroupDetail() {
       <div className="max-w-lg mx-auto px-5 pb-24">
 
         {/* Hero Card */}
-        <div className="rounded-xl p-5 mb-5 text-center" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
+        <div className="rounded-xl p-5 mb-5 text-center" style={{
+          backgroundColor: '#212121',
+          border: `1px solid ${caisse?.color ? caisse.color + '40' : '#282828'}`,
+        }}>
           <div className="flex items-center justify-center gap-2 mb-3">
-            <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#FF6B0020' }}>
-              <Building2 className="w-5 h-5" style={{ color: '#FF6B00' }} />
+            <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: caisse?.color ? caisse.color + '20' : '#FF6B0020' }}>
+              <Building2 className="w-5 h-5" style={{ color: caisse?.color || '#FF6B00' }} />
             </div>
             <span className="text-text-tertiary text-sm capitalize">{orgUnit.type}</span>
           </div>
-          <p className="text-text-tertiary text-sm mb-1">Solde du groupe</p>
+          <p className="text-text-tertiary text-sm mb-1">Solde de la caisse</p>
           <p className="text-3xl font-black tabular-nums mb-1" style={{ color: balance >= 0 ? '#1DB954' : '#E51332' }}>
             {balance >= 0 ? '' : '-'}{formatCurrencyCompact(Math.abs(balance))} <span className="text-sm font-medium text-text-tertiary">FCFA</span>
           </p>
@@ -104,6 +122,16 @@ export default function GroupDetail() {
               <span className="text-text-tertiary text-sm">-{formatCurrencyCompact(totalExpense)}</span>
             </div>
           </div>
+          {/* Verse to main caisse button */}
+          {balance > 0 && (
+            <button
+              onClick={() => setShowVersementModal(true)}
+              className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-all active:scale-95"
+              style={{ backgroundColor: '#FF6B00', color: '#FFFFFF' }}
+            >
+              <Send className="w-3.5 h-3.5" />Verser à la caisse principale
+            </button>
+          )}
         </div>
 
         {/* Pending */}
@@ -279,6 +307,36 @@ export default function GroupDetail() {
         confirmLabel="Compris"
         confirmVariant="primary"
       />
+
+      <ConfirmModal
+        open={showVersementModal}
+        onClose={() => setShowVersementModal(false)}
+        onConfirm={handleVersement}
+        title={`Verser vers la caisse principale`}
+        description={
+          versementAmount
+            ? `Confirmer le versement de ${parseFloat(versementAmount).toLocaleString('fr-FR')} FCFA depuis ${orgUnit?.name} ?`
+            : `Confirmer le versement de ${formatCurrencyCompact(balance)} FCFA depuis ${orgUnit?.name} ?`
+        }
+        confirmLabel="Verser"
+        confirmVariant="primary"
+      >
+        <div className="mt-4">
+          <label className="block text-text-secondary text-sm font-medium mb-2">
+            Montant (FCFA) — laisser vide pour tout verser ({formatCurrencyCompact(balance)} FCFA)
+          </label>
+          <input
+            type="number"
+            value={versementAmount}
+            onChange={(e) => setVersementAmount(e.target.value)}
+            placeholder="Montant personnalisé..."
+            className="w-full px-4 py-3 rounded-lg text-text-primary text-sm outline-none"
+            style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
+            min="0"
+            max={balance / 100}
+          />
+        </div>
+      </ConfirmModal>
 
       <BottomNav />
     </div>

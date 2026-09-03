@@ -101,6 +101,9 @@ export default function TransactionDetail() {
             {transaction.source && transaction.source !== 'CAISSE' && (
               <span className="text-sm text-text-tertiary">· {transaction.source}</span>
             )}
+            {transaction.versementId && (
+              <span className="text-sm px-2 py-0.5 rounded-full" style={{ backgroundColor: '#FF6B0020', color: '#FF6B00' }}>Versement</span>
+            )}
           </div>
           <p className="text-3xl font-black tabular-nums mb-1" style={{ color: isIncome ? '#1DB954' : '#E51332' }}>
             {isIncome ? '+' : '-'} {formatCurrency(transaction.amount)}
@@ -125,6 +128,9 @@ export default function TransactionDetail() {
               ] : []),
               ...(transaction.source === 'PERSONNE' && transaction.personName ? [
                 { label: 'Personne', value: transaction.personName },
+              ] : []),
+              ...(transaction.versementId ? [
+                { label: 'Versement', value: transaction.versementId.startsWith('versement-') ? 'Transfert entre caisses' : 'Versement' },
               ] : []),
               ...(transaction.comment ? [{ label: 'Commentaire', value: transaction.comment }] : []),
             ].map((row, i) => (

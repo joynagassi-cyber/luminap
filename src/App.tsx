@@ -16,6 +16,7 @@ import GroupDetail from "./pages/GroupDetail";
 import Events from "./pages/Events";
 import EventNew from "./pages/EventNew";
 import EventDetail from "./pages/EventDetail";
+import Versement from "./pages/Versement";
 import Settings from "./pages/Settings";
 import History from "./pages/History";
 import Help from "./pages/Help";
@@ -47,6 +48,7 @@ function AppRoutes() {
         <Route path="/events" element={<Events />} />
         <Route path="/event/new" element={<EventNew />} />
         <Route path="/event/:id" element={<EventDetail />} />
+        <Route path="/versement" element={<Versement />} />
         <Route path="/history" element={<History />} />
         <Route path="/help" element={<Help />} />
         <Route path="/settings" element={<Settings />} />

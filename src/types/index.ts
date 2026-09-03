@@ -57,6 +57,8 @@ export type Transaction = {
   compensatesFor: string | null;
   comment: string | null;
   version: number;
+  sourceCaisseId: string | null;
+  versementId: string | null;
   category?: Category;
   orgUnit?: OrgUnit;
   event?: Event;
@@ -84,6 +86,19 @@ export type OrgUnit = {
 
 export type EventStatus = 'PLANIFIED' | 'ONGOING' | 'COMPLETED' | 'CANCELLED';
 
+export type CaisseType = 'MAIN' | 'GROUP';
+
+export type Caisse = {
+  id: string;
+  name: string;
+  description: string;
+  type: CaisseType;
+  color: string;
+  orgId: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type Event = {
   id: string;
   orgId: string;
@@ -108,6 +123,15 @@ export type AuditEntry = {
   comment: string | null;
   createdAt: string;
   user?: User;
+};
+
+export type VersementRecord = {
+  id: string;
+  orgId: string;
+  sourceCaisseId: string;
+  targetCaisseId: string;
+  amount: number;
+  createdAt: string;
 };
 
 export type NotificationItem = {

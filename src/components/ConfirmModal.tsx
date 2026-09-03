@@ -10,6 +10,7 @@ interface ModalProps {
   confirmVariant?: 'danger' | 'primary';
   requiredText?: string;
   onTextConfirm?: (text: string) => void;
+  children?: React.ReactNode;
 }
 
 export default function ConfirmModal({
@@ -22,6 +23,7 @@ export default function ConfirmModal({
   confirmVariant = 'danger',
   requiredText,
   onTextConfirm,
+  children,
 }: ModalProps) {
   const [inputValue, setInputValue] = useState('');
 
@@ -48,7 +50,7 @@ export default function ConfirmModal({
       <div className="relative w-full max-w-sm rounded-t-2xl sm:rounded-2xl p-6 pb-8" style={{ backgroundColor: '#212121' }}>
         <div className="w-12 h-1 rounded-full bg-surface-active mx-auto mb-4 sm:hidden" />
         <h3 className="text-lg font-bold text-text-primary mb-2 text-center">{title}</h3>
-        <p className="text-text-tertiary text-sm text-center mb-5">{description}</p>
+        <p className="text-text-tertiary text-sm text-center mb-4">{description}</p>
 
         {requiredText && (
           <div className="mb-4">
@@ -66,7 +68,9 @@ export default function ConfirmModal({
           </div>
         )}
 
-        <div className="flex gap-3">
+        {children}
+
+        <div className="flex gap-3 mt-4">
           <button
             onClick={onClose}
             className="flex-1 py-3 rounded-full text-sm font-semibold"

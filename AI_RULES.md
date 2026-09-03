@@ -31,21 +31,39 @@
 - State: DRAFT → PENDING → APPROVED | REJECTED
 
 ## Données
-- **Supabase** : tables `transactions`, `categories`, `org_units`, `audit_entries`
-- **IndexedDB** : `lumina-db` avec stores `transactions`, `categories`, `orgUnits`, `auditEntries`, `syncQueue`, `config`
+- **Supabase** : tables `transactions`, `categories`, `org_units`, `audit_entries`, `caisses`
+- **IndexedDB** : `lumina-db` v7 avec stores `transactions`, `categories`, `orgUnits`, `auditEntries`, `events`, `syncQueue`, `config`, `caisses`
 - **Organisation** : Église MFE-JC Centrale (org-1)
 - **Catégories** : 9 (dîme, offrande, offrande mission, don, salaire pasteur, frais fonctionnement, mission, entretien, aumône)
 - **Groupes** : 5 (diacres, jeunesse, dames, messieurs, chorale)
+- **Caisses** : Chaque groupe a sa propre caisse (`sourceCaisseId`). La caisse principale (`id: 'main'`) reçoit les versements.
+
+## Architecture Caisses & Versement
+- **Caisse principale** (`id: 'main'`) : fonds de l'église, visible dans le dashboard
+- **Caisse groupe** (`id: orgUnitId`) : fonds de chaque groupe
+- **Versement** : transfert d'une caisse groupe → caisse principale (crée 2 transactions liées par `versementId`)
+- **Champ transaction** : `sourceCaisseId` indique quelle caisse est débitée (orgUnitId ou 'main')
+- **Champ transaction** : `versementId` relie les 2 transactions d'un versement
+- **Dashboard** : affiche toutes les caisses avec leur solde
+- **Finance** : filtre par caisse (toutes / principale / groupe)
+- **Page Versement** : sélectionne un groupe, montant total ou personnalisé, confirme le transfert
+- **GroupDetail** : bouton "Verser à la caisse principale" avec modal montant personnalisé
+- **TransactionNew** : le sélecteur "Groupe" détermine automatiquement `sourceCaisseId`
 
 ## Routage
 - `/login` — Page d'entrée (pas d'auth, simple clic)
-- `/` — Dashboard
-- `/finance` — Grand livre avec filtres
+- `/` — Dashboard (caisses + transactions principale)
+- `/finance` — Grand livre avec filtres (dont filtre par caisse)
 - `/transaction/new` — Nouvelle transaction
 - `/transaction/:id` — Détail transaction
 - `/transaction/:id/edit` — Modifier (draft/rejeté seulement)
 - `/balance` — Bilan financier par période
 - `/groups` — Groupes organisationnels
+- `/groups/:id` — Détail groupe (solde caisse + bouton verser)
+- `/events` — Événements (dans menu Plus)
+- `/event/new` — Nouvel événement
+- `/event/:id` — Détail événement
+- `/versement` — Page de versement (caisse groupe → caisse principale)
 - `/settings` — Paramètres (status sync, stockage local)
 
 ## Architecture Local-First

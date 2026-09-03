@@ -6,7 +6,7 @@ import { create } from 'zustand';
 import { supabase } from '@/integrations/supabase/client';
 import * as db from '@/lib/db';
 import { fetchFromCloud, startBackgroundSync, syncNotifications, syncRoleAssignments, startRealtimeSubscriptions, stopRealtimeSubscriptions, stopBackgroundSync } from '@/lib/sync';
-import type { Transaction, Category, OrgUnit, Event, AuditEntry, NotificationItem, Role } from '@/types';
+import type { Transaction, Category, OrgUnit, Event, AuditEntry, NotificationItem, Role, Caisse, CaisseType } from '@/types';
 
 // ─── Constants ─────────────────────────────────────────────────────────
 
@@ -27,6 +27,7 @@ interface AppState {
   categories: Category[];
   orgUnits: OrgUnit[];
   events: Event[];
+  caisses: Caisse[];
   auditEntries: AuditEntry[];
   notifications: NotificationItem[];
   isLoading: boolean;
@@ -49,6 +50,8 @@ interface StoreActions {
   addEvent: (evt: { name: string; description: string; startDate: string; endDate?: string; budget: number }) => Promise<void>;
   updateEvent: (id: string, updates: Partial<Event>) => Promise<void>;
   deleteEvent: (id: string) => Promise<void>;
+  initCaisses: () => Promise<void>;
+  versement: (caisseId: string, amount: number, note?: string) => Promise<void>;
   refreshData: () => Promise<void>;
   syncAll: () => Promise<void>;
   setSyncStatus: (status: AppState['syncStatus']) => void;
@@ -80,6 +83,7 @@ export const useLocalStore = create<AppState & StoreActions>((set, get) => ({
   categories: [],
   orgUnits: [],
   events: [],
+  caisses: [],
   auditEntries: [],
   notifications: [],
   isLoading: true,
@@ -100,6 +104,7 @@ export const useLocalStore = create<AppState & StoreActions>((set, get) => ({
       let categories: Category[] = [];
       let orgUnits: OrgUnit[] = [];
       let events: Event[] = [];
+      let caisses: Caisse[] = [];
       let auditEntries: AuditEntry[] = [];
       let notifications: NotificationItem[] = [];
 
@@ -120,6 +125,7 @@ export const useLocalStore = create<AppState & StoreActions>((set, get) => ({
       const localCats = await db.getAllCategories();
       const localOus = await db.getAllOrgUnits();
       const localEvents = await db.getAllEvents();
+      const localCaisses = await db.getAllCaisses();
       const localAudit = await db.getAllAuditEntries();
       const localNotifs = await db.getAllNotifications();
 
@@ -127,7 +133,14 @@ export const useLocalStore = create<AppState & StoreActions>((set, get) => ({
       const finalCats = categories.length > 0 ? categories : localCats.map(toLocalCat);
       const finalOus = orgUnits.length > 0 ? orgUnits : localOus.map(toLocalOu);
       const finalEvents = events.length > 0 ? events : localEvents.map(toLocalEvent);
+      const finalCaisses = caisses.length > 0 ? caisses : localCaisses.map(toLocalCaisse);
       const finalAudit = auditEntries.length > 0 ? auditEntries : localAudit.map(toLocalAudit);
+
+      // Ensure caisses exist (migration safety)
+      if (finalCaisses.length === 0) {
+        console.warn('[store] no caisses found, initializing...');
+        await get().initCaisses();
+      }
       notifications = localNotifs.map(toLocalNotif);
 
       // Sync role assignments
@@ -155,6 +168,7 @@ export const useLocalStore = create<AppState & StoreActions>((set, get) => ({
         categories: finalCats,
         orgUnits: finalOus,
         events: finalEvents,
+        caisses: finalCaisses,
         auditEntries: finalAudit,
         notifications,
         isLoading: false,
@@ -193,6 +207,8 @@ export const useLocalStore = create<AppState & StoreActions>((set, get) => ({
       compensatesFor: null,
       comment: null,
       version: 1,
+      sourceCaisseId: tx.orgUnitId || 'main',
+      versementId: null,
       createdById: user.id,
       approvedById: null,
       approvedAt: null,
@@ -469,6 +485,132 @@ export const useLocalStore = create<AppState & StoreActions>((set, get) => ({
     }));
   },
 
+  // ─── Caisse initialization ──────────────────────────────────
+  initCaisses: async () => {
+    const existing = await db.getAllCaisses();
+    if (existing.length > 0) return; // Already initialized
+
+    const now = new Date().toISOString();
+    const caisses: db.IndexedCaisse[] = [
+      {
+        id: 'main',
+        name: 'Caisse principale',
+        description: 'Caisse principale de l\'église MFE-JC Centrale',
+        type: 'MAIN',
+        color: '#FF6B00',
+        orgId: 'org-1',
+        createdAt: now,
+        updatedAt: now,
+        syncStatus: 'synced',
+      },
+    ];
+    // Create caisse for each existing orgUnit
+    const orgUnits = await db.getAllOrgUnits();
+    for (const ou of orgUnits) {
+      caisses.push({
+        id: ou.id,
+        name: `Caisse ${ou.name}`,
+        description: `Caisse du groupe ${ou.name}`,
+        type: 'GROUP',
+        color: '#2196F3',
+        orgId: ou.orgId,
+        createdAt: now,
+        updatedAt: now,
+        syncStatus: 'synced',
+      });
+    }
+    for (const c of caisses) {
+      await db.putCaisse(c);
+      await db.enqueueSync('insert', 'caisses', c);
+    }
+    console.log(`[store] initialized ${caisses.length} caisses`);
+  },
+
+  // ─── Versement ───────────────────────────────────────────────
+  versement: async (caisseId: string, amount: number, note?: string) => {
+    const now = new Date().toISOString();
+    const versementId = `versement-${Date.now()}`;
+    const userId = get().user.id;
+
+    // Create expense transaction from source caisse
+    const sourceTx: db.IndexedTransaction = {
+      id: `tx-${Date.now()}-src`,
+      orgId: 'org-1',
+      type: 'EXPENSE',
+      amount,
+      description: note || `Versement → Caisse principale`,
+      date: new Date().toISOString().split('T')[0],
+      status: 'APPROVED' as const,
+      categoryId: 'dime', // default
+      orgUnitId: null,
+      eventId: null,
+      source: 'CAISSE',
+      personName: null,
+      compensatesFor: null,
+      comment: null,
+      version: 1,
+      sourceCaisseId: caisseId,
+      versementId,
+      createdById: userId,
+      approvedById: userId,
+      approvedAt: now,
+      createdAt: now,
+      updatedAt: now,
+      syncStatus: 'pending',
+    };
+
+    // Create income transaction to main caisse
+    const targetTx: db.IndexedTransaction = {
+      id: `tx-${Date.now()}-tgt`,
+      orgId: 'org-1',
+      type: 'INCOME',
+      amount,
+      description: note || `Versement depuis Caisse ${caisseId}`,
+      date: new Date().toISOString().split('T')[0],
+      status: 'APPROVED' as const,
+      categoryId: 'dime',
+      orgUnitId: null,
+      eventId: null,
+      source: 'CAISSE',
+      personName: null,
+      compensatesFor: null,
+      comment: null,
+      version: 1,
+      sourceCaisseId: 'main',
+      versementId,
+      createdById: userId,
+      approvedById: userId,
+      approvedAt: now,
+      createdAt: now,
+      updatedAt: now,
+      syncStatus: 'pending',
+    };
+
+    await db.putTransaction(sourceTx);
+    await db.putTransaction(targetTx);
+    await db.enqueueSync('insert', 'transactions', sourceTx);
+    await db.enqueueSync('insert', 'transactions', targetTx);
+
+    const notif: db.IndexedNotification = {
+      id: `notif-${Date.now()}`,
+      orgId: 'org-1',
+      actionType: 'VERSEMENT',
+      title: 'Versement effectué',
+      message: `${formatCurrencyCompact(amount)} transféré de Caisse ${caisseId} vers Caisse principale`,
+      isRead: false,
+      sourceTransactionId: versementId,
+      createdAt: now,
+    };
+    await db.putNotification(notif);
+
+    set(s => ({
+      transactions: [toLocalTx(targetTx), toLocalTx(sourceTx), ...s.transactions],
+      notifications: [toLocalNotif(notif), ...s.notifications],
+      error: null,
+      syncStatus: 'syncing',
+    }));
+  },
+
   selectRole: async (role: Role) => {
     await db.setRole(role);
     const sessionId = await getUserSessionId();
@@ -531,6 +673,8 @@ function toLocalTx(tx: any): Transaction {
     compensatesFor: tx.compensatesFor,
     comment: tx.comment,
     version: tx.version,
+    sourceCaisseId: tx.sourceCaisseId ?? tx.orgUnitId ?? 'main',
+    versementId: tx.versementId ?? null,
   };
 }
 
@@ -540,6 +684,19 @@ function toLocalCat(cat: any): Category {
 
 function toLocalOu(ou: any): OrgUnit {
   return { id: ou.id, name: ou.name, type: ou.type, description: ou.description ?? '', orgId: ou.orgId, isActive: ou.isActive ?? true };
+}
+
+function toLocalCaisse(c: any): Caisse {
+  return {
+    id: c.id,
+    name: c.name,
+    description: c.description ?? '',
+    type: c.type ?? 'GROUP',
+    color: c.color ?? '#FF6B00',
+    orgId: c.orgId,
+    createdAt: c.createdAt,
+    updatedAt: c.updatedAt,
+  };
 }
 
 function toLocalEvent(ev: any): Event {

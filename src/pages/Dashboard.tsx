@@ -2,37 +2,94 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLocalStore } from '@/store/useLocalStore';
 import { formatCurrencyCompact, getPeriodRange } from '@/lib/utils';
-import { ArrowUpRight, ArrowDownRight, BarChart3, BookOpen, PlusCircle, Calendar, TrendingUp } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, BarChart3, BookOpen, PlusCircle, Calendar, TrendingUp, Wallet } from 'lucide-react';
 import TransactionCard from '@/components/TransactionCard';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
 import BottomDrawer from '@/components/BottomDrawer';
 import { PageSkeleton, CardSkeleton } from '@/components/Skeleton';
+import type { Caisse } from '@/types';
+
+function CaisseCard({ caisse, transactions, navigate }: { caisse: Caisse; transactions: any[]; navigate: ReturnType<typeof useNavigate> }) {
+  const approvedTxs = transactions.filter(t => t.sourceCaisseId === caisse.id && t.status === 'APPROVED');
+  const income = approvedTxs.filter(t => t.type === 'INCOME').reduce((s, t) => s + t.amount, 0);
+  const expense = approvedTxs.filter(t => t.type === 'EXPENSE').reduce((s, t) => s + t.amount, 0);
+  const balance = income - expense;
+  const pending = transactions.filter(t => t.sourceCaisseId === caisse.id && t.status === 'PENDING');
+  const pendingAmount = pending.reduce((s, t) => s + (t.type === 'INCOME' ? t.amount : -t.amount), 0);
+
+  return (
+    <button
+      onClick={() => navigate('/finance', { state: { caisseId: caisse.id } })}
+      className="w-full text-left rounded-xl p-4 transition-all active:scale-95"
+      style={{ backgroundColor: '#212121', border: `1px solid ${caisse.color}30` }}
+    >
+      <div className="flex items-center gap-3 mb-3">
+        <div
+          className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+          style={{ backgroundColor: caisse.color + '20' }}
+        >
+          <Wallet className="w-5 h-5" style={{ color: caisse.color }} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-text-primary text-sm font-semibold truncate">{caisse.name}</p>
+          <p className="text-text-tertiary text-xs">{caisse.type === 'MAIN' ? 'Église' : 'Groupe'}</p>
+        </div>
+        {caisse.type === 'GROUP' && (
+          <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: caisse.color + '15', color: caisse.color }}>
+            Caisse
+          </span>
+        )}
+      </div>
+      <div className="flex items-baseline justify-between">
+        <span className="text-2xl font-black tabular-nums" style={{ color: balance >= 0 ? '#1DB954' : '#E51332' }}>
+          {balance >= 0 ? '' : '-'}{formatCurrencyCompact(Math.abs(balance))}
+        </span>
+        <span className="text-text-tertiary text-xs">FCFA</span>
+      </div>
+      <div className="flex items-center justify-between mt-2 text-xs">
+        <span className="text-text-tertiary">Entrées: <span style={{ color: '#1DB954' }}>+{formatCurrencyCompact(income)}</span></span>
+        <span className="text-text-tertiary">Sorties: <span style={{ color: '#E51332' }}>-{formatCurrencyCompact(expense)}</span></span>
+      </div>
+      {pendingAmount !== 0 && (
+        <div className="mt-2 text-xs" style={{ color: '#FFB800' }}>
+          {pendingAmount > 0 ? '+' : '-'}{formatCurrencyCompact(Math.abs(pendingAmount))} en attente
+        </div>
+      )}
+    </button>
+  );
+}
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { transactions, categories, orgUnits, isLoading } = useLocalStore();
+  const { transactions, categories, orgUnits, caisses, isLoading } = useLocalStore();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const { start, end } = getPeriodRange('mois');
-  const approvedTransactions = transactions.filter(
+  const mainCaisse = caisses.find(c => c.id === 'main');
+  const groupCaisses = caisses.filter(c => c.type === 'GROUP');
+  const mainTxs = transactions.filter(t => t.sourceCaisseId === 'main');
+
+  const approvedTransactions = mainTxs.filter(
     t => t.status === 'APPROVED' && t.date >= start && t.date <= end
   );
   const totalIncome = approvedTransactions.filter(t => t.type === 'INCOME').reduce((s, t) => s + t.amount, 0);
   const totalExpense = approvedTransactions.filter(t => t.type === 'EXPENSE').reduce((s, t) => s + t.amount, 0);
   const netResult = totalIncome - totalExpense;
 
-  const recentTransactions = transactions
+  // Recent main caisse transactions
+  const recentTransactions = mainTxs
     .filter(t => t.status === 'APPROVED' || t.status === 'PENDING')
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 5);
 
-  const pendingCount = transactions.filter(t => t.status === 'PENDING').length;
-  const draftCount = transactions.filter(t => t.status === 'DRAFT').length;
+  const pendingCount = mainTxs.filter(t => t.status === 'PENDING').length;
+  const draftCount = mainTxs.filter(t => t.status === 'DRAFT').length;
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-canvas">
+        <TopHeader title="Lumina" />
         <PageSkeleton />
         <BottomNav />
       </div>
@@ -43,48 +100,56 @@ export default function Dashboard() {
     <div className="min-h-screen bg-canvas">
       <TopHeader title="Lumina" />
       <div className="max-w-lg mx-auto px-5 pb-24">
-        {/* Hero Balance Card */}
-        <div
-          className="rounded-xl p-5 mb-5"
-          style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
-        >
-          <p className="text-text-tertiary text-sm mb-1">Solde du mois</p>
-          <div className="flex items-baseline gap-2">
-            <span
-              className="text-4xl font-black tabular-nums"
-              style={{ color: netResult >= 0 ? '#1DB954' : '#E51332' }}
-            >
-              {netResult >= 0 ? '' : '-'}{formatCurrencyCompact(Math.abs(netResult))}
-            </span>
-            <span className="text-text-tertiary text-sm">FCFA</span>
-          </div>
-          <div className="flex items-center gap-4 mt-4">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#1DB954' }} />
-              <span className="text-text-tertiary text-sm">+{formatCurrencyCompact(totalIncome)}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#E51332' }} />
-              <span className="text-text-tertiary text-sm">-{formatCurrencyCompact(totalExpense)}</span>
-            </div>
-          </div>
-        </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-3 gap-3 mb-5">
-          <div className="rounded-lg p-3 text-center" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
-            <p className="text-text-tertiary text-xs mb-1">Entrées</p>
-            <p className="text-base font-bold tabular-nums" style={{ color: '#1DB954' }}>{formatCurrencyCompact(totalIncome)}</p>
+        {/* Main Caisse Hero */}
+        {mainCaisse && (
+          <div
+            className="rounded-xl p-5 mb-5 cursor-pointer active:scale-98 transition-transform"
+            style={{ backgroundColor: '#212121', border: '1px solid #FF6B0040' }}
+            onClick={() => navigate('/finance')}
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: '#FF6B0020' }}>
+                <Wallet className="w-4 h-4" style={{ color: '#FF6B00' }} />
+              </div>
+              <span className="text-text-tertiary text-sm">Caisse Principale</span>
+            </div>
+            <p className="text-text-tertiary text-xs mb-1">Solde global de l'église</p>
+            <div className="flex items-baseline gap-2">
+              <span className="text-3xl font-black tabular-nums" style={{ color: netResult >= 0 ? '#1DB954' : '#E51332' }}>
+                {netResult >= 0 ? '' : '-'}{formatCurrencyCompact(Math.abs(netResult))}
+              </span>
+              <span className="text-text-tertiary text-sm">FCFA</span>
+            </div>
+            <div className="flex items-center gap-4 mt-3">
+              <div className="flex items-center gap-1.5">
+                <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#1DB954' }} />
+                <span className="text-text-tertiary text-xs">+{formatCurrencyCompact(totalIncome)}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#E51332' }} />
+                <span className="text-text-tertiary text-xs">-{formatCurrencyCompact(totalExpense)}</span>
+              </div>
+            </div>
           </div>
-          <div className="rounded-lg p-3 text-center" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
-            <p className="text-text-tertiary text-xs mb-1">Sorties</p>
-            <p className="text-base font-bold tabular-nums" style={{ color: '#E51332' }}>{formatCurrencyCompact(totalExpense)}</p>
+        )}
+
+        {/* Caisses Grid */}
+        {groupCaisses.length > 0 && (
+          <div className="mb-5">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider">Caisses des groupes</p>
+              <button onClick={() => navigate('/versement')} className="text-xs font-medium" style={{ color: '#FF6B00' }}>
+                Verser →
+              </button>
+            </div>
+            <div className="space-y-2">
+              {groupCaisses.map((caisse) => (
+                <CaisseCard key={caisse.id} caisse={caisse} transactions={transactions} navigate={navigate} />
+              ))}
+            </div>
           </div>
-          <div className="rounded-lg p-3 text-center" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
-            <p className="text-text-tertiary text-xs mb-1">Net</p>
-            <p className="text-base font-bold tabular-nums" style={{ color: netResult >= 0 ? '#1DB954' : '#E51332' }}>{formatCurrencyCompact(Math.abs(netResult))}</p>
-          </div>
-        </div>
+        )}
 
         {/* Pending/Draft badges */}
         {(pendingCount > 0 || draftCount > 0) && (
@@ -124,13 +189,13 @@ export default function Dashboard() {
                 <p className="text-text-tertiary text-xs mt-0.5">Ajouter une dépense</p>
               </div>
             </button>
-            <button onClick={() => navigate('/history')} className="flex items-center gap-3 p-4 rounded-lg active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
+            <button onClick={() => navigate('/versement')} className="flex items-center gap-3 p-4 rounded-lg active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
               <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#FF6B0020' }}>
-                <BarChart3 className="w-5 h-5" style={{ color: '#FF6B00' }} />
+                <TrendingUp className="w-5 h-5" style={{ color: '#FF6B00' }} />
               </div>
               <div>
-                <p className="text-text-primary text-sm font-semibold">Historique</p>
-                <p className="text-text-tertiary text-xs mt-0.5">Courbes & graphiques</p>
+                <p className="text-text-primary text-sm font-semibold">Versement</p>
+                <p className="text-text-tertiary text-xs mt-0.5">Vérser vers la caisse</p>
               </div>
             </button>
             <button onClick={() => navigate('/events')} className="flex items-center gap-3 p-4 rounded-lg active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { X, TrendingUp, BarChart3, PieChart, Download, FileText, HelpCircle, Building2, Calendar } from 'lucide-react';
+import { X, TrendingUp, BarChart3, PieChart, Download, FileText, HelpCircle, Building2, Calendar, Wallet } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { exportToCSV, exportToPDF, exportToExcel } from '@/lib/utils';
 import { useLocalStore } from '@/store/useLocalStore';
@@ -58,6 +58,13 @@ export default function BottomDrawer({ open, onClose, extraFeatures = [] }: { op
   };
 
   const features: DrawerItem[] = [
+    {
+      icon: Wallet,
+      label: 'Versement',
+      desc: 'Transférer les fonds vers la caisse principale',
+      action: () => { onClose(); navigate('/versement'); },
+      color: '#1DB954',
+    },
     {
       icon: Calendar,
       label: 'Événements',

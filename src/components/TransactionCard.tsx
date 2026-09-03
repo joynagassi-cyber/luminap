@@ -32,8 +32,26 @@ export default function TransactionCard({ transaction, onPress }: TransactionCar
         <p className="text-text-primary font-semibold text-base truncate">
           {transaction.description || 'Sans description'}
         </p>
-        <p className="text-text-tertiary text-sm mt-0.5">
-          {transaction.category?.labelFr} · {formatDate(transaction.date)}
+        <p className="text-text-tertiary text-sm mt-0.5 flex items-center gap-1.5 flex-wrap">
+          <span>{transaction.category?.labelFr}</span>
+          <span>·</span>
+          <span>{formatDate(transaction.date)}</span>
+          {transaction.sourceCaisseId && transaction.sourceCaisseId !== 'main' && (
+            <>
+              <span>·</span>
+              <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: '#282828', color: '#B3B3B3' }}>
+                Caisse
+              </span>
+            </>
+          )}
+          {transaction.versementId && (
+            <>
+              <span>·</span>
+              <span className="text-xs px-1.5 py-0.5 rounded-full" style={{ backgroundColor: '#FF6B0020', color: '#FF6B00' }}>
+                Versement
+              </span>
+            </>
+          )}
         </p>
       </div>
 

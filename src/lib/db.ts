@@ -4,7 +4,7 @@
  */
 
 const DB_NAME = 'lumina-db';
-const DB_VERSION = 6;
+const DB_VERSION = 7;
 
 // ─── Types ─────────────────────────────────────────────
 
@@ -29,6 +29,8 @@ export interface IndexedTransaction {
   compensatesFor: string | null;
   comment: string | null;
   version: number;
+  sourceCaisseId: string | null;
+  versementId: string | null;
   createdById: string;
   approvedById: string | null;
   approvedAt: string | null;
@@ -56,6 +58,29 @@ export interface IndexedOrgUnit {
   orgId: string;
   isActive: boolean;
   syncStatus: 'pending' | 'synced';
+}
+
+export type CaisseType = 'MAIN' | 'GROUP';
+
+export interface IndexedCaisse {
+  id: string;
+  name: string;
+  description: string;
+  type: CaisseType;
+  color: string;
+  orgId: string;
+  createdAt: string;
+  updatedAt: string;
+  syncStatus: 'pending' | 'synced';
+}
+
+export interface IndexedVersement {
+  id: string;
+  orgId: string;
+  sourceCaisseId: string;
+  targetCaisseId: string;
+  amount: number;
+  createdAt: string;
 }
 
 export interface IndexedEvent {
@@ -111,7 +136,7 @@ export interface OrgConfig {
 export interface SyncQueueEntry {
   id: string;
   type: 'insert' | 'update' | 'delete';
-  table: 'transactions' | 'categories' | 'org_units' | 'audit_entries' | 'events';
+  table: 'transactions' | 'categories' | 'org_units' | 'audit_entries' | 'events' | 'caisses';
   payload: unknown;
   attempt: number;
   lastAttemptAt: string;
@@ -132,7 +157,7 @@ export const ALL_ROLES: { key: Role; label: string; icon: string }[] = [
 // ─── Async cleanup after version upgrade ─────────────────────────
 
 async function runCleanup(db: IDBDatabase): Promise<void> {
-  const stores = ['transactions', 'categories', 'orgUnits', 'auditEntries', 'syncQueue', 'notifications', 'roleAssignments', 'events'];
+  const stores = ['transactions', 'categories', 'orgUnits', 'auditEntries', 'syncQueue', 'notifications', 'roleAssignments', 'events', 'caisses'];
   for (const storeName of stores) {
     if (db.objectStoreNames.contains(storeName)) {
       try {
@@ -259,6 +284,30 @@ function ensureDBReady(): Promise<IDBDatabase> {
       // Events store (v5)
       if (!db.objectStoreNames.contains('events')) {
         db.createObjectStore('events', { keyPath: 'id' });
+      }
+
+      // Caisse source/versement fields on transactions (v7)
+      if (oldVersion < 7) {
+        const txStore = db.transaction('transactions', 'readwrite').objectStore('transactions');
+        try { txStore.createIndex('sourceCaisseId', 'sourceCaisseId', { unique: false }); } catch (_) {}
+        try { txStore.createIndex('versementId', 'versementId', { unique: false }); } catch (_) {}
+        // Migrate existing transactions: add sourceCaisseId
+        const allTxs = txStore.getAll();
+        allTxs.onsuccess = () => {
+          const txs = allTxs.result as IndexedTransaction[];
+          for (const tx of txs) {
+            if (!tx.sourceCaisseId) {
+              tx.sourceCaisseId = tx.orgUnitId || 'main';
+              txStore.put(tx);
+            }
+          }
+        };
+        // Create caisses store
+        if (!db.objectStoreNames.contains('caisses')) {
+          const caisseStore = db.createObjectStore('caisses', { keyPath: 'id' });
+          caisseStore.createIndex('type', 'type', { unique: false });
+          caisseStore.createIndex('orgId', 'orgId', { unique: false });
+        }
       }
 
       // Mark that we need to clear stale data after upgrade completes
@@ -764,6 +813,56 @@ export async function deleteEvent(id: string): Promise<void> {
     return new Promise((resolve, reject) => {
       const tx = db.transaction('events', 'readwrite');
       const store = tx.objectStore('events');
+      const req = store.delete(id);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  });
+}
+
+// ─── Caisses ───────────────────────────────────────────────
+
+export async function getAllCaisses(): Promise<IndexedCaisse[]> {
+  return withDB(async (db) => {
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('caisses', 'readonly');
+      const store = tx.objectStore('caisses');
+      const request = store.getAll();
+      request.onsuccess = () => resolve(request.result as IndexedCaisse[]);
+      request.onerror = () => reject(request.error);
+    });
+  });
+}
+
+export async function getCaisse(id: string): Promise<IndexedCaisse | undefined> {
+  return withDB(async (db) => {
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('caisses', 'readonly');
+      const store = tx.objectStore('caisses');
+      const request = store.get(id);
+      request.onsuccess = () => resolve(request.result as IndexedCaisse | undefined);
+      request.onerror = () => reject(request.error);
+    });
+  });
+}
+
+export async function putCaisse(caiss: IndexedCaisse): Promise<void> {
+  return withDB(async (db) => {
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction('caisses', 'readwrite');
+      const store = transaction.objectStore('caisses');
+      const req = store.put(caiss);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  });
+}
+
+export async function deleteCaisse(id: string): Promise<void> {
+  return withDB(async (db) => {
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction('caisses', 'readwrite');
+      const store = transaction.objectStore('caisses');
       const req = store.delete(id);
       req.onsuccess = () => resolve();
       req.onerror = () => reject(req.error);
