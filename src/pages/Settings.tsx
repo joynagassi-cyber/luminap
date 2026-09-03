@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { User, Wifi, WifiOff, BookOpen, Bell } from 'lucide-react';
 import { useLocalStore } from '@/store/useLocalStore';
 import BottomNav from '@/components/BottomNav';
+import TopHeader from '@/components/TopHeader';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
@@ -12,9 +13,8 @@ export default function Settings() {
 
   return (
     <div className="min-h-screen bg-canvas">
-      <div className="max-w-lg mx-auto px-5 pt-6 pb-4">
-        {/* Header */}
-        <h1 className="text-xl font-bold text-text-primary mb-6">Paramètres</h1>
+      <TopHeader title="Paramètres" />
+      <div className="max-w-lg mx-auto px-5 pb-24">
 
         {/* Profile Card */}
         <div className="rounded-xl p-4 mb-5 flex items-center gap-4" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>

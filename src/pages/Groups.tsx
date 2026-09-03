@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { Building2 } from 'lucide-react';
 import { useLocalStore } from '@/store/useLocalStore';
 import BottomNav from '@/components/BottomNav';
+import TopHeader from '@/components/TopHeader';
 
 export default function Groups() {
   const navigate = useNavigate();
@@ -9,14 +10,8 @@ export default function Groups() {
 
   return (
     <div className="min-h-screen bg-canvas">
-      <div className="max-w-lg mx-auto px-5 pt-6 pb-4">
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-5">
-          <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#212121' }}>
-            <Building2 className="w-5 h-5 text-text-primary" />
-          </button>
-          <h1 className="text-xl font-bold text-text-primary">Groupes organisationnels</h1>
-        </div>
+      <TopHeader title="Groupes organisationnels" showBack />
+      <div className="max-w-lg mx-auto px-5 pb-24">
 
         {orgUnits.length === 0 ? (
           <div className="text-center py-16">

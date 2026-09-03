@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLocalStore } from '@/store/useLocalStore';
 import { formatCurrencyCompact, getPeriodRange } from '@/lib/utils';
-import { ArrowUpRight, ArrowDownRight, BarChart3, BookOpen, PlusCircle, ChevronDown } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, BarChart3, BookOpen, PlusCircle } from 'lucide-react';
 import TransactionCard from '@/components/TransactionCard';
 import BottomNav from '@/components/BottomNav';
+import TopHeader from '@/components/TopHeader';
 import BottomDrawer from '@/components/BottomDrawer';
 import { PageSkeleton, CardSkeleton } from '@/components/Skeleton';
 
@@ -40,34 +41,12 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-canvas">
-      <div className="max-w-lg mx-auto px-5 pt-6 pb-4">
-        {/* Header with Logo */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <img src="/assets/logo.png" alt="Lumina" className="w-10 h-10 rounded-full object-cover" />
-            <div>
-              <p className="text-text-tertiary text-xs">Lumina</p>
-              <h1 className="text-sm font-bold text-text-primary">
-                {useLocalStore.getState().user?.firstName || 'Utilisateur'}
-              </h1>
-            </div>
-          </div>
-          <button
-            onClick={() => setDrawerOpen(true)}
-            className="w-10 h-10 rounded-full flex items-center justify-center"
-            style={{ backgroundColor: '#212121' }}
-          >
-            <ChevronDown className="w-5 h-5 text-text-secondary rotate-90" />
-          </button>
-        </div>
-
+      <TopHeader title="Lumina" />
+      <div className="max-w-lg mx-auto px-5 pb-24">
         {/* Hero Balance Card */}
         <div
           className="rounded-xl p-5 mb-5"
-          style={{
-            backgroundColor: '#212121',
-            border: '1px solid #282828',
-          }}
+          style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
         >
           <p className="text-text-tertiary text-sm mb-1">Solde du mois</p>
           <div className="flex items-baseline gap-2">
@@ -171,7 +150,7 @@ export default function Dashboard() {
           <p className="text-text-primary font-semibold text-base">Derniers mouvements</p>
           <button onClick={() => navigate('/finance')} className="text-sm font-medium" style={{ color: '#FF6B00' }}>Tout voir</button>
         </div>
-        <div className="space-y-2 mb-6 pb-20">
+        <div className="space-y-2 pb-4">
           {recentTransactions.length === 0 ? (
             <div className="text-center py-10 rounded-lg" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
               <PlusCircle className="w-8 h-8 mx-auto mb-3 text-text-tertiary" />

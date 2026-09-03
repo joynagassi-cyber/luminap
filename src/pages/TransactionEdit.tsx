@@ -6,6 +6,7 @@ import { useLocalStore, canActOnTransaction } from '@/store/useLocalStore';
 import ConfirmModal from '@/components/ConfirmModal';
 import type { TransactionType } from '@/types';
 import type { Transaction } from '@/types';
+import TopHeader from '@/components/TopHeader';
 
 export default function TransactionEdit() {
   const navigate = useNavigate();
@@ -79,13 +80,8 @@ export default function TransactionEdit() {
 
   return (
     <div className="min-h-screen bg-canvas">
-      <div className="max-w-lg mx-auto px-5 pt-4 pb-4">
-        <div className="flex items-center gap-3 mb-5">
-          <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#212121' }}>
-            <ArrowLeft className="w-5 h-5 text-text-primary" />
-          </button>
-          <h1 className="text-lg font-bold text-text-primary">Modifier la transaction</h1>
-        </div>
+      <TopHeader title="Modifier la transaction" showBack />
+      <div className="max-w-lg mx-auto px-5 pb-24">
 
         <div className="flex gap-3 mb-5">
           <button onClick={() => { setType('INCOME'); setCategoryId(''); }} className="flex-1 py-3.5 rounded-full text-sm font-semibold" style={{ backgroundColor: type === 'INCOME' ? '#1DB954' : '#212121', color: type === 'INCOME' ? '#FFFFFF' : '#808080' }}>Entrée</button>

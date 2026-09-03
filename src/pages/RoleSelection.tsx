@@ -20,13 +20,6 @@ export default function RoleSelection() {
     loadTakenRoles();
   }, []);
 
-  useEffect(() => {
-    // If user has a role locally, navigate away immediately
-    db.getRole().then(role => {
-      if (role) navigate('/');
-    });
-  }, []);
-
   async function checkAlreadySelected() {
     const role = await db.getRole();
     if (role) {

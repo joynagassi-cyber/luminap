@@ -5,6 +5,7 @@ import { getTodayStr } from '@/lib/utils';
 import { useLocalStore } from '@/store/useLocalStore';
 import ConfirmModal from '@/components/ConfirmModal';
 import type { TransactionType, Category } from '@/types';
+import TopHeader from '@/components/TopHeader';
 
 // Category creation/edit modal
 function CategoryModal({
@@ -196,16 +197,11 @@ export default function TransactionNew() {
 
   return (
     <div className="min-h-screen bg-canvas">
-      <div className="max-w-lg mx-auto px-5 pt-4 pb-4">
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-5">
-          <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#212121' }}>
-            <ArrowLeft className="w-5 h-5 text-text-primary" />
-          </button>
-          <h1 className="text-lg font-bold text-text-primary">
-            {initState?.compensateFor ? 'Créer une correction' : 'Nouvelle transaction'}
-          </h1>
-        </div>
+      <TopHeader
+        title={initState?.compensateFor ? 'Créer une correction' : 'Nouvelle transaction'}
+        showBack
+      />
+      <div className="max-w-lg mx-auto px-5 pb-24">
 
         {initState?.compensateFor && (
           <div className="flex items-center gap-2 px-4 py-3 rounded-lg mb-4" style={{ backgroundColor: '#FF6B0020' }}>

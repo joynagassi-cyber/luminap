@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   TrendingUp, ArrowDownLeft, ArrowUpRight,
-  BarChart3, PieChart, Download, ArrowLeft,
+  BarChart3, PieChart, Download,
 } from 'lucide-react';
 import {
   LineChart, Line, BarChart, Bar, PieChart as RePieChart, Pie,
@@ -12,6 +12,7 @@ import {
 import { formatCurrencyCompact, formatDate, exportToCSV, exportToPDF, exportToExcel, getPeriodRange } from '@/lib/utils';
 import { useLocalStore } from '@/store/useLocalStore';
 import BottomNav from '@/components/BottomNav';
+import TopHeader from '@/components/TopHeader';
 import BottomDrawer from '@/components/BottomDrawer';
 import { PageSkeleton } from '@/components/Skeleton';
 import type { Transaction } from '@/types';
@@ -77,30 +78,18 @@ export default function History() {
 
   return (
     <div className="min-h-screen bg-canvas">
-      <div className="max-w-lg mx-auto px-5 pt-6 pb-4">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-5">
-          <div className="flex items-center gap-3">
-            <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#212121' }}>
-              <ArrowLeft className="w-5 h-5 text-text-primary" />
-            </button>
-            <div>
-              <h1 className="text-xl font-bold text-text-primary">Historique</h1>
-              <p className="text-text-tertiary text-xs">{approved.length} transaction{approved.length > 1 ? 's' : ''}</p>
-            </div>
+      <TopHeader
+        title={`Historique (${approved.length})`}
+        showBack
+        rightAction={
+          <div className="flex gap-1.5">
+            <button onClick={handleExport} className="px-2.5 py-1.5 rounded-full text-xs" style={{ backgroundColor: '#212121', color: '#B3B3B3' }}>CSV</button>
+            <button onClick={handleExportPDF} className="px-2.5 py-1.5 rounded-full text-xs" style={{ backgroundColor: '#212121', color: '#B3B3B3' }}>PDF</button>
+            <button onClick={handleExportExcel} className="px-2.5 py-1.5 rounded-full text-xs" style={{ backgroundColor: '#212121', color: '#B3B3B3' }}>Excel</button>
           </div>
-          <div className="flex gap-2">
-            <button onClick={handleExport} className="px-3 py-2 rounded-full text-xs" style={{ backgroundColor: '#212121', color: '#B3B3B3' }}>
-              CSV
-            </button>
-            <button onClick={handleExportPDF} className="px-3 py-2 rounded-full text-xs" style={{ backgroundColor: '#212121', color: '#B3B3B3' }}>
-              PDF
-            </button>
-            <button onClick={handleExportExcel} className="px-3 py-2 rounded-full text-xs" style={{ backgroundColor: '#212121', color: '#B3B3B3' }}>
-              Excel
-            </button>
-          </div>
-        </div>
+        }
+      />
+      <div className="max-w-lg mx-auto px-5 pb-24">
 
         {/* Period Selector */}
         <div className="flex gap-2 mb-4">

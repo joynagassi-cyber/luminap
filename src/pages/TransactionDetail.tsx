@@ -6,6 +6,7 @@ import { useLocalStore, canActOnTransaction } from '@/store/useLocalStore';
 import StatusBadge from '@/components/StatusBadge';
 import ConfirmModal from '@/components/ConfirmModal';
 import BottomNav from '@/components/BottomNav';
+import TopHeader from '@/components/TopHeader';
 
 export default function TransactionDetail() {
   const navigate = useNavigate();
@@ -77,17 +78,16 @@ export default function TransactionDetail() {
 
   return (
     <div className="min-h-screen bg-canvas">
-      <div className="max-w-lg mx-auto px-5 pt-4 pb-4">
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-5">
-          <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#212121' }}>
-            <ArrowLeft className="w-5 h-5 text-text-primary" />
-          </button>
-          <h1 className="text-lg font-bold text-text-primary">Transaction</h1>
+      <TopHeader
+        title="Transaction"
+        showBack
+        rightAction={
           <div className="ml-auto">
             <StatusBadge status={transaction.status} size="md" />
           </div>
-        </div>
+        }
+      />
+      <div className="max-w-lg mx-auto px-5 pb-24">
 
         {/* Hero Card */}
         <div className="rounded-xl p-5 mb-5 text-center" style={{ backgroundColor: '#212121' }}>

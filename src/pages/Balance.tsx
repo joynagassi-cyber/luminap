@@ -4,6 +4,7 @@ import { formatCurrencyCompact, formatDate, exportToCSV, exportToPDF, exportToEx
 import { useLocalStore } from '@/store/useLocalStore';
 import { Download } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
+import TopHeader from '@/components/TopHeader';
 import { PageSkeleton } from '@/components/Skeleton';
 import type { PeriodType } from '@/lib/utils';
 
@@ -73,22 +74,18 @@ export default function Balance() {
 
   return (
     <div className="min-h-screen bg-canvas">
-      <div className="max-w-lg mx-auto px-5 pt-6 pb-4">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-5">
-          <h1 className="text-xl font-bold text-text-primary">Bilan financier</h1>
-          <div className="flex gap-2">
-            <button onClick={handleExportCSV} className="px-3 py-2 rounded-full text-xs" style={{ backgroundColor: '#212121', color: '#B3B3B3' }}>
-              CSV
-            </button>
-            <button onClick={handleExportPDF} className="px-3 py-2 rounded-full text-xs" style={{ backgroundColor: '#212121', color: '#B3B3B3' }}>
-              PDF
-            </button>
-            <button onClick={handleExportExcel} className="px-3 py-2 rounded-full text-xs" style={{ backgroundColor: '#212121', color: '#B3B3B3' }}>
-              Excel
-            </button>
+      <TopHeader
+        title="Bilan financier"
+        showBack
+        rightAction={
+          <div className="flex gap-1.5">
+            <button onClick={handleExportCSV} className="px-2.5 py-1.5 rounded-full text-xs" style={{ backgroundColor: '#212121', color: '#B3B3B3' }}>CSV</button>
+            <button onClick={handleExportPDF} className="px-2.5 py-1.5 rounded-full text-xs" style={{ backgroundColor: '#212121', color: '#B3B3B3' }}>PDF</button>
+            <button onClick={handleExportExcel} className="px-2.5 py-1.5 rounded-full text-xs" style={{ backgroundColor: '#212121', color: '#B3B3B3' }}>Excel</button>
           </div>
-        </div>
+        }
+      />
+      <div className="max-w-lg mx-auto px-5 pb-24">
 
         {/* Period Selector */}
         <div className="flex gap-2 mb-5">
