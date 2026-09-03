@@ -22,6 +22,7 @@ import Help from "./pages/Help";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import RoleSelection from "./pages/RoleSelection";
+import Onboarding from "./pages/Onboarding";
 import Notifications from "./pages/Notifications";
 
 const queryClient = new QueryClient();
@@ -31,6 +32,7 @@ function AppRoutes() {
     <>
       <SyncIndicator />
       <Routes>
+        <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/login" element={<Login />} />
         <Route path="/role-selection" element={<RoleSelection />} />
         <Route path="/notifications" element={<Notifications />} />
