@@ -37,7 +37,7 @@ interface AppState {
 }
 
 interface StoreActions {
-  addTransaction: (tx: { type: string; amount: number; description: string; date: string; categoryId: string; orgUnitId?: string; eventId?: string; source?: string; status: string }) => Promise<void>;
+  addTransaction: (tx: { type: string; amount: number; description: string; date: string; categoryId: string; orgUnitId?: string; eventId?: string; source?: string; personName?: string; status: string }) => Promise<void>;
   updateTransaction: (id: string, updates: Partial<Transaction>) => Promise<void>;
   approveTransaction: (id: string, userId?: string) => Promise<void>;
   rejectTransaction: (id: string, comment: string) => Promise<void>;
@@ -189,6 +189,7 @@ export const useLocalStore = create<AppState & StoreActions>((set, get) => ({
       orgUnitId: tx.orgUnitId ?? null,
       eventId: tx.eventId ?? null,
       source: tx.source ? (tx.source as db.FundSource) : null,
+      personName: tx.personName || null,
       compensatesFor: null,
       comment: null,
       version: 1,
@@ -526,6 +527,7 @@ function toLocalTx(tx: any): Transaction {
     orgUnitId: tx.orgUnitId,
     eventId: tx.eventId ?? null,
     source: tx.source ? (tx.source as db.FundSource) : null,
+    personName: tx.personName ?? null,
     compensatesFor: tx.compensatesFor,
     comment: tx.comment,
     version: tx.version,

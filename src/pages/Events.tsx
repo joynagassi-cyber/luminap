@@ -130,16 +130,16 @@ export default function Events() {
 
                   <div className="grid grid-cols-3 gap-3">
                     <div>
-                      <p className="text-text-tertiary text-xs mb-1">Budget</p>
-                      <p className="text-text-primary text-sm font-bold tabular-nums">{formatCurrencyCompact(event.budget)}</p>
-                    </div>
-                    <div>
-                      <p className="text-text-tertiary text-xs mb-1">Recettes</p>
-                      <p className="text-sm font-bold tabular-nums" style={{ color: '#1DB954' }}>{formatCurrencyCompact(summary.income)}</p>
+                      <p className="text-text-tertiary text-xs mb-1">{event.budget > 0 ? 'Budget' : 'Recettes'}</p>
+                      <p className="text-text-primary text-sm font-bold tabular-nums">{event.budget > 0 ? formatCurrencyCompact(event.budget) : formatCurrencyCompact(summary.income)}</p>
                     </div>
                     <div>
                       <p className="text-text-tertiary text-xs mb-1">Dépenses</p>
                       <p className="text-sm font-bold tabular-nums" style={{ color: '#E51332' }}>{formatCurrencyCompact(summary.expense)}</p>
+                    </div>
+                    <div>
+                      <p className="text-text-tertiary text-xs mb-1">Solde</p>
+                      <p className="text-sm font-bold tabular-nums" style={{ color: summary.balance >= 0 ? '#1DB954' : '#E51332' }}>{summary.balance >= 0 ? '+' : ''}{formatCurrencyCompact(summary.balance)}</p>
                     </div>
                   </div>
 
@@ -158,7 +158,7 @@ export default function Events() {
                         <div
                           className="h-1.5 rounded-full transition-all"
                           style={{
-                            width: `${Math.min(100, Math.abs(summary.expense) / event.budget * 100)}%`,
+                            width: `${Math.min(100, (summary.expense / event.budget) * 100)}%`,
                             backgroundColor: summary.expense > event.budget ? '#E51332' : '#FF6B00',
                           }}
                         />

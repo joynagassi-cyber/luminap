@@ -7,7 +7,7 @@ import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
 import { PageSkeleton } from '@/components/Skeleton';
 import type { PeriodType } from '@/lib/utils';
-import { Search, Filter, X, TrendingUp, ArrowDownLeft, ArrowUpRight, BarChart3 } from 'lucide-react';
+import { Search, Filter, X, TrendingUp, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
 
 type StatusFilter = 'ALL' | 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED';
 type TypeFilter = 'ALL' | 'INCOME' | 'EXPENSE';
@@ -207,6 +207,18 @@ function TransactionRow({ tx, onClick }: { tx: Transaction; onClick: () => void 
           <span className="text-text-tertiary text-xs">{tx.category?.labelFr}</span>
           <span className="text-text-tertiary text-xs">·</span>
           <span className="text-text-tertiary text-xs">{formatDate(tx.date)}</span>
+          {tx.source && (
+            <>
+              <span className="text-text-tertiary text-xs">·</span>
+              <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: '#282828', color: '#B3B3B3' }}>{tx.source}</span>
+              {tx.source === 'PERSONNE' && tx.personName && (
+                <>
+                  <span className="text-text-tertiary text-xs">·</span>
+                  <span className="text-text-secondary text-xs italic">{tx.personName}</span>
+                </>
+              )}
+            </>
+          )}
         </div>
       </div>
       <div className="text-right flex-shrink-0">

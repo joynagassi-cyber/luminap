@@ -53,6 +53,7 @@ export type Transaction = {
   orgUnitId: string | null;
   eventId: string | null;
   source: FundSource | null;
+  personName: string | null;
   compensatesFor: string | null;
   comment: string | null;
   version: number;

@@ -230,6 +230,12 @@ export default function EventDetail() {
                               <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: getSourceColor(tx.source) + '20', color: getSourceColor(tx.source) }}>
                                 {getSourceLabel(tx.source)}
                               </span>
+                              {tx.source === 'PERSONNE' && tx.personName && (
+                                <>
+                                  <span className="text-text-tertiary text-xs">·</span>
+                                  <span className="text-text-secondary text-xs italic">{tx.personName}</span>
+                                </>
+                              )}
                             </>
                           )}
                         </div>

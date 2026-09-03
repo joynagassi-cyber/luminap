@@ -98,6 +98,9 @@ export default function TransactionDetail() {
             {transaction.orgUnit && (
               <span className="text-sm text-text-tertiary">{transaction.orgUnit.name}</span>
             )}
+            {transaction.source && transaction.source !== 'CAISSE' && (
+              <span className="text-sm text-text-tertiary">· {transaction.source}</span>
+            )}
           </div>
           <p className="text-3xl font-black tabular-nums mb-1" style={{ color: isIncome ? '#1DB954' : '#E51332' }}>
             {isIncome ? '+' : '-'} {formatCurrency(transaction.amount)}
@@ -119,6 +122,9 @@ export default function TransactionDetail() {
               ...(transaction.approvedAt ? [
                 { label: 'Approuvée le', value: transaction.approvedAt ? formatDate(transaction.approvedAt) : '—' },
                 { label: 'Approuvée par', value: transaction.approver?.firstName || '—' },
+              ] : []),
+              ...(transaction.source === 'PERSONNE' && transaction.personName ? [
+                { label: 'Personne', value: transaction.personName },
               ] : []),
               ...(transaction.comment ? [{ label: 'Commentaire', value: transaction.comment }] : []),
             ].map((row, i) => (

@@ -24,14 +24,13 @@ export default function EventNew() {
 
   const handleSubmit = async () => {
     if (!name.trim()) { showError('Le nom de l\'événement est requis'); return; }
-    if (!budget || parseFloat(budget) <= 0) { showError('Veuillez entrer un budget valide'); return; }
 
     await addEvent({
       name: name.trim(),
       description: description.trim(),
       startDate,
       endDate: endDate || undefined,
-      budget: parseFloat(budget) * 100,
+      budget: budget ? Math.round(parseFloat(budget) * 100) : 0,
     });
     navigate('/events');
   };
@@ -94,12 +93,12 @@ export default function EventNew() {
 
         {/* Budget */}
         <div className="mb-6">
-          <label className="block text-text-secondary text-sm font-medium mb-2">Budget prévisionnel (FCFA) *</label>
+          <label className="block text-text-secondary text-sm font-medium mb-2">Budget prévisionnel (FCFA) <span className="text-text-tertiary">(optionnel)</span></label>
           <input
             type="number"
             value={budget}
             onChange={(e) => setBudget(e.target.value)}
-            placeholder="0"
+            placeholder="0 (optionnel)"
             className="w-full px-4 py-3 rounded-lg text-2xl font-bold text-center tabular-nums outline-none"
             style={{ backgroundColor: '#212121', border: '1px solid #282828', color: '#FF6B00' }}
             min="0"

@@ -25,6 +25,7 @@ export interface IndexedTransaction {
   orgUnitId: string | null;
   eventId: string | null;
   source: FundSource | null;
+  personName: string | null;
   compensatesFor: string | null;
   comment: string | null;
   version: number;
@@ -733,6 +734,26 @@ export async function putEvent(ev: IndexedEvent): Promise<void> {
       const store = tx.objectStore('events');
       const req = store.put(ev);
       req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  });
+}
+
+export async function putEventBudget(id: string, budget: number): Promise<void> {
+  return withDB(async (db) => {
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('events', 'readwrite');
+      const store = tx.objectStore('events');
+      const req = store.get(id);
+      req.onsuccess = () => {
+        const ev = req.result as IndexedEvent | undefined;
+        if (ev) {
+          store.put({ ...ev, budget, updatedAt: new Date().toISOString() });
+          resolve();
+        } else {
+          reject(new Error('Event not found'));
+        }
+      };
       req.onerror = () => reject(req.error);
     });
   });

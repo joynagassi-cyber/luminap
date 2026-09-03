@@ -135,6 +135,7 @@ export default function TransactionNew() {
   const [orgUnitId, setOrgUnitId] = useState(initState?.orgUnitId || '');
   const [eventId, setEventId] = useState(initState?.eventId || '');
   const [source, setSource] = useState('');
+  const [personName, setPersonName] = useState('');
   const [description, setDescription] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [showErrorModal, setShowErrorModal] = useState(false);
@@ -179,6 +180,7 @@ export default function TransactionNew() {
       orgUnitId: orgUnitId || undefined,
       eventId: eventId || undefined,
       source: source || undefined,
+      personName: (source === 'PERSONNE' && personName.trim()) ? personName.trim() : undefined,
     });
 
     navigate('/finance');
@@ -289,7 +291,7 @@ export default function TransactionNew() {
             ] as const).map((s) => (
               <button
                 key={s.value}
-                onClick={() => setSource(source === s.value ? '' : s.value)}
+                onClick={() => { setSource(source === s.value ? '' : s.value); if (s.value !== 'PERSONNE') setPersonName(''); }}
                 className="py-2.5 rounded-lg text-xs font-medium transition-all"
                 style={{
                   backgroundColor: source === s.value ? s.color + '20' : '#212121',
@@ -301,6 +303,21 @@ export default function TransactionNew() {
               </button>
             ))}
           </div>
+          {source === 'PERSONNE' && (
+            <div className="mt-3">
+              <label className="block text-text-secondary text-xs font-medium mb-1.5">Nom de la personne</label>
+              <input
+                type="text"
+                value={personName}
+                onChange={(e) => setPersonName(e.target.value)}
+                placeholder="ex: Jean Dupont"
+                maxLength={60}
+                className="w-full px-4 py-2.5 rounded-lg text-text-primary text-sm outline-none"
+                style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
+                autoFocus
+              />
+            </div>
+          )}
         </div>
 
         {/* Description */}
