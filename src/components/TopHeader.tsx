@@ -1,6 +1,7 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Bell } from 'lucide-react';
 import { useLocalStore } from '@/store/useLocalStore';
+import LuminaLogo from '@/components/LuminaLogo';
 
 interface TopHeaderProps {
   title: string;
@@ -47,7 +48,14 @@ export default function TopHeader({ title, showBack = false, rightAction }: TopH
             <ArrowLeft className="w-4 h-4 text-text-primary" />
           </button>
         )}
-        <h1 className="text-base font-bold text-text-primary">{title}</h1>
+        {isHome ? (
+          <div className="flex items-center gap-2">
+            <LuminaLogo size={28} />
+            <span className="text-base font-bold text-text-primary">{title}</span>
+          </div>
+        ) : (
+          <h1 className="text-base font-bold text-text-primary">{title}</h1>
+        )}
       </div>
 
       <div className="flex items-center gap-2">
