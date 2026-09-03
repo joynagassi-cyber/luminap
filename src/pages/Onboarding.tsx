@@ -395,7 +395,7 @@ export default function Onboarding() {
   const handleStart = async () => {
     if (currentPage === PAGES.length - 1) {
       await db.setConfig('hasCompletedOnboarding', true);
-      navigate('/login');
+      navigate('/role-selection');
     } else {
       goToPage(currentPage + 1);
     }
