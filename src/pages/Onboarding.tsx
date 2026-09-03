@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight, Wallet, Cloud, Bell as BellIcon } from 'lucide-react';
+import LuminaLogo from '@/components/LuminaLogo';
 import * as db from '@/lib/db';
 
 const PAGES = [
@@ -9,22 +10,7 @@ const PAGES = [
     title: 'Bienvenue sur Lumina',
     subtitle: 'La gestion financière simplifiée pour votre communauté',
     cta: "C'est parti",
-    illustration: (
-      <svg viewBox="0 0 200 200" className="w-48 h-48 mx-auto" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="100" cy="80" r="60" fill="#FF6B00" fillOpacity="0.1" />
-        <circle cx="100" cy="80" r="40" fill="#FF6B00" fillOpacity="0.15" />
-        <path d="M100 30C80 30 65 45 65 65C65 80 75 90 80 95V110H120V95C125 90 135 80 135 65C135 45 120 30 100 30Z" fill="#FF6B00" stroke="#FF6B00" strokeWidth="2" />
-        <text x="100" y="72" textAnchor="middle" fontFamily="Arial Black" fontSize="28" fontWeight="900" fill="white">L</text>
-        <rect x="85" y="110" width="30" height="8" rx="2" fill="#FF6B00" />
-        <path d="M100 15L100 5M60 40L50 35M140 40L150 35M55 70L45 70M145 70L155 70" stroke="#FF6B00" strokeWidth="2" strokeLinecap="round" opacity="0.5" />
-        <circle cx="50" cy="140" r="12" fill="#1DB954" opacity="0.8" />
-        <circle cx="150" cy="140" r="12" fill="#1DB954" opacity="0.8" />
-        <circle cx="150" cy="170" r="8" fill="#FFB800" opacity="0.8" />
-        <text x="50" y="144" textAnchor="middle" fontSize="10" fontWeight="bold" fill="white">F</text>
-        <text x="150" y="144" textAnchor="middle" fontSize="10" fontWeight="bold" fill="white">F</text>
-        <text x="150" y="173" textAnchor="middle" fontSize="8" fontWeight="bold" fill="white">F</text>
-      </svg>
-    ),
+    illustration: <LuminaLogo size={192} />,
     icon: Wallet,
     iconColor: '#FF6B00',
   },
@@ -139,7 +125,7 @@ export default function Onboarding() {
           onTouchStart={handleSwipe}
           onTouchEnd={handleSwipeEnd}
         >
-          <div className="mb-8">{page.illustration}</div>
+          <div className="mb-8 flex items-center justify-center">{page.illustration}</div>
           <div
             className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-6"
             style={{ backgroundColor: page.iconColor + '20' }}
