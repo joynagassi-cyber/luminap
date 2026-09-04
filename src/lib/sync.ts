@@ -1,4 +1,4 @@
-import { supabase } from './client';
+import { supabase } from '@/integrations/supabase/client';
 
 const BACKOFF_MS = [1000, 2000, 4000, 8000, 16000];
 const MAX_RETRIES = 5;
