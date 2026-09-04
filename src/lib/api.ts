@@ -21,6 +21,7 @@ interface ApiResponse<T> {
 async function request<T>(
   path: string,
   options: RequestInit = {},
+  retries = 3,
 ): Promise<ApiResponse<T>> {
   const token = sessionStorage.getItem('lumina_session_token');
   const headers: Record<string, string> = {
@@ -29,15 +30,27 @@ async function request<T>(
     ...(options.headers ? Object.fromEntries(Object.entries(options.headers).map(([k, v]) => [k, String(v)])) : {}),
   };
 
-  const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+  const url = `${API_BASE}${path}`;
 
-  if (!res.ok) {
+  for (let i = 0; i < retries; i++) {
+    const res = await fetch(url, { ...options, headers });
+
+    if (res.ok) {
+      const data = await res.json();
+      return { ok: true, data };
+    }
+
+    // Retry on 503 (environment not ready yet)
+    if (res.status === 503 && i < retries - 1) {
+      await new Promise(r => setTimeout(r, 500 * (i + 1)));
+      continue;
+    }
+
     const err = await res.json().catch(() => ({}));
     return { ok: false, error: (err as { statusMessage?: string }).statusMessage ?? `HTTP ${res.status}` };
   }
 
-  const data = await res.json();
-  return { ok: true, data };
+  return { ok: false, error: `Request to ${url} failed after ${retries} attempts` };
 }
 
 export const api = {
