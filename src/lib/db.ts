@@ -73,4 +73,28 @@ export const db = {
   async setRole(role: string) {
     await db.setConfig('selectedRole', role);
   },
+  async enqueueSync(item: {
+    id: string;
+    operation: 'create' | 'update' | 'delete';
+    entityType: string;
+    entityId: string;
+    payload: any;
+    attempts: number;
+    lastAttempt: string | null;
+    createdAt: string;
+  }): Promise<void> {
+    await db.put('syncQueue', item);
+  },
+  async getSyncQueue(): Promise<any[]> {
+    return await db.getAll('syncQueue');
+  },
+  async removeSyncItem(id: string): Promise<void> {
+    await db.delete('syncQueue', id);
+  },
+  async updateSyncAttempt(id: string, attempt: number): Promise<void> {
+    const item = await db.get<any>('syncQueue', id);
+    if (item) {
+      await db.put('syncQueue', { ...item, attempts: attempt, lastAttempt: new Date().toISOString() });
+    }
+  },
 };

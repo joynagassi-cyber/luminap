@@ -1,6 +1,6 @@
 import { defineHandler } from "nitro";
 import { readBody } from "nitro/h3";
-import { store } from "../../../store";
+import { store } from "../../store";
 
 export default defineHandler(async (event) => {
   const body = await readBody(event);
@@ -10,7 +10,7 @@ export default defineHandler(async (event) => {
     return { ok: false, error: "name, startDate, and budget are required" };
   }
 
-  const event: any = {
+  const newEvent: any = {
     id: `evt-${Date.now()}`,
     orgId: "org-1",
     name,
@@ -23,6 +23,6 @@ export default defineHandler(async (event) => {
     updatedAt: new Date().toISOString(),
   };
 
-  store.events.push(event);
-  return { ok: true, event };
+  store.events.push(newEvent);
+  return { ok: true, event: newEvent };
 });

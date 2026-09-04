@@ -30,6 +30,11 @@ dist-ssr
 .last-run.json
 .dyad/
 
+# Environment variables
+.env
+.env.local
+.env.production
+
 # Playwright test artifacts
 /e2e-tests/fixtures/dyad/
 /e2e-tests/tsconfig.json

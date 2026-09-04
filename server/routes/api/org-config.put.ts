@@ -1,6 +1,6 @@
 import { defineHandler } from "nitro";
 import { readBody } from "nitro/h3";
-import { store } from "../../../store";
+import { store } from "../../store";
 
 export default defineHandler(async (event) => {
   const body = await readBody(event);

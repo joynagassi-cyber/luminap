@@ -1,6 +1,6 @@
 import { defineHandler } from "nitro";
 import { getQuery } from "nitro/h3";
-import { store } from "../../../store";
+import { store } from "../../store";
 
 export default defineHandler((event) => {
   const query = getQuery(event);

@@ -1,6 +1,6 @@
 import { defineHandler } from "nitro";
 import { readBody, createError, setCookie } from "nitro/h3";
-import { createUserRecord, findUserByEmail } from "../../../store";
+import { createUserRecord, findUserByEmail } from "../../store";
 
 export default defineHandler(async (event) => {
   const body = await readBody<{ firstName?: string; lastName?: string; email?: string; password?: string }>(event);

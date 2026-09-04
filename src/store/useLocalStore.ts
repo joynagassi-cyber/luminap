@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { db } from '@/lib/db';
+import { enqueueSync } from '@/lib/sync';
 import type { User, Role, Transaction, Category, OrgUnit, Caisse, Event, BudgetItem, ShoppingItem, AppConfig, NotificationItem } from '@/types';
 import { generateId } from '@/lib/utils';
 
@@ -130,11 +131,13 @@ export const useLocalStore = create<LocalStoreState>()(
         const updated = [...get().transactions, newTx];
         set({ transactions: updated });
         await db.put('transactions', newTx);
+        await enqueueSync({ id: `sync-${id}`, operation: 'create', entityType: 'transactions', entityId: id, payload: newTx, attempts: 0, lastAttempt: null, createdAt: now });
         // Create notification for pending transactions
         if (newTx.status === 'PENDING') {
           const caisse = get().caisses.find(c => c.id === newTx.sourceCaisseId);
-          await db.put('notifications', {
-            id: generateId(),
+          const notifId = generateId();
+          const notif = {
+            id: notifId,
             orgId: 'org-1',
             actionType: 'TRANSACTION_PENDING',
             title: 'Nouvelle transaction en attente',
@@ -142,7 +145,9 @@ export const useLocalStore = create<LocalStoreState>()(
             isRead: false,
             sourceTransactionId: id,
             createdAt: now,
-          });
+          };
+          await db.put('notifications', notif);
+          await enqueueSync({ id: `sync-notif-${notifId}`, operation: 'create', entityType: 'notifications', entityId: notifId, payload: notif, attempts: 0, lastAttempt: null, createdAt: now });
         }
       },
 
@@ -152,19 +157,26 @@ export const useLocalStore = create<LocalStoreState>()(
         );
         set({ transactions: updated });
         const updatedTx = updated.find(t => t.id === id);
-        if (updatedTx) await db.put('transactions', updatedTx);
+        if (updatedTx) {
+          await db.put('transactions', updatedTx);
+          await enqueueSync({ id: `sync-${id}`, operation: 'update', entityType: 'transactions', entityId: id, payload: updatedTx, attempts: 0, lastAttempt: null, createdAt: new Date().toISOString() });
+        }
       },
 
       deleteTransaction: async (id) => {
         const updated = get().transactions.filter(t => t.id !== id);
         set({ transactions: updated });
         await db.delete('transactions', id);
+        await enqueueSync({ id: `sync-${id}`, operation: 'delete', entityType: 'transactions', entityId: id, payload: {}, attempts: 0, lastAttempt: null, createdAt: new Date().toISOString() });
       },
 
       batchDeleteTransactions: async (ids: string[]) => {
         const updated = get().transactions.filter(t => !ids.includes(t.id));
         set({ transactions: updated });
-        for (const id of ids) await db.delete('transactions', id);
+        for (const id of ids) {
+          await db.delete('transactions', id);
+          await enqueueSync({ id: `sync-${id}`, operation: 'delete', entityType: 'transactions', entityId: id, payload: {}, attempts: 0, lastAttempt: null, createdAt: new Date().toISOString() });
+        }
       },
 
       approveTransaction: async (id, userId) => {
@@ -176,14 +188,16 @@ export const useLocalStore = create<LocalStoreState>()(
         const updatedTx = updated.find(t => t.id === id);
         if (updatedTx) {
           await db.put('transactions', updatedTx);
+          await enqueueSync({ id: `sync-${id}`, operation: 'update', entityType: 'transactions', entityId: id, payload: updatedTx, attempts: 0, lastAttempt: null, createdAt: now });
           // Sync budget spent for events
           if (updatedTx.eventId) {
             await get().syncEventBudget(updatedTx.eventId);
           }
           // Notify
           const caisse = get().caisses.find(c => c.id === updatedTx.sourceCaisseId);
-          await db.put('notifications', {
-            id: generateId(),
+          const notifId = generateId();
+          const notif = {
+            id: notifId,
             orgId: 'org-1',
             actionType: 'TRANSACTION_APPROVED',
             title: 'Transaction approuvée',
@@ -191,7 +205,9 @@ export const useLocalStore = create<LocalStoreState>()(
             isRead: false,
             sourceTransactionId: id,
             createdAt: now,
-          });
+          };
+          await db.put('notifications', notif);
+          await enqueueSync({ id: `sync-notif-${notifId}`, operation: 'create', entityType: 'notifications', entityId: notifId, payload: notif, attempts: 0, lastAttempt: null, createdAt: now });
         }
       },
 
@@ -207,6 +223,7 @@ export const useLocalStore = create<LocalStoreState>()(
           const updatedTx = updated.find(t => t.id === txId);
           if (updatedTx) {
             await db.put('transactions', updatedTx);
+            await enqueueSync({ id: `sync-${txId}`, operation: 'update', entityType: 'transactions', entityId: txId, payload: updatedTx, attempts: 0, lastAttempt: null, createdAt: now });
             if (updatedTx.eventId) {
               await get().syncEventBudget(updatedTx.eventId);
             }
@@ -271,9 +288,11 @@ export const useLocalStore = create<LocalStoreState>()(
         if (linkedTxIds.length > 0) {
           await get().batchDeleteTransactions(linkedTxIds);
         }
+        const now = new Date().toISOString();
         const updated = get().events.filter(e => e.id !== id);
         set({ events: updated });
         await db.delete('events', id);
+        await enqueueSync({ id: `sync-${id}`, operation: 'delete', entityType: 'events', entityId: id, payload: {}, attempts: 0, lastAttempt: null, createdAt: now });
       },
 
       updateEventStatus: async (id, status) => {
@@ -283,11 +302,15 @@ export const useLocalStore = create<LocalStoreState>()(
         );
         set({ events: updated });
         const updatedEvent = updated.find(e => e.id === id);
-        if (updatedEvent) await db.put('events', updatedEvent);
+        if (updatedEvent) {
+          await db.put('events', updatedEvent);
+          await enqueueSync({ id: `sync-${id}`, operation: 'update', entityType: 'events', entityId: id, payload: updatedEvent, attempts: 0, lastAttempt: null, createdAt: now });
+        }
         // Notify on status change
         if (updatedEvent) {
-          await db.put('notifications', {
-            id: generateId(),
+          const notifId = generateId();
+          const notif = {
+            id: notifId,
             orgId: 'org-1',
             actionType: 'EVENT_STATUS_CHANGED',
             title: `Événement ${status === 'ONGOING' ? 'démarré' : status === 'COMPLETED' ? 'terminé' : status === 'CANCELLED' ? 'annulé' : 'planifié'}`,
@@ -295,7 +318,9 @@ export const useLocalStore = create<LocalStoreState>()(
             isRead: false,
             sourceTransactionId: null,
             createdAt: now,
-          });
+          };
+          await db.put('notifications', notif);
+          await enqueueSync({ id: `sync-notif-${notifId}`, operation: 'create', entityType: 'notifications', entityId: notifId, payload: notif, attempts: 0, lastAttempt: null, createdAt: now });
         }
       },
 
@@ -313,6 +338,7 @@ export const useLocalStore = create<LocalStoreState>()(
         const updated = [...get().events, newEvent];
         set({ events: updated });
         await db.put('events', newEvent);
+        await enqueueSync({ id: `sync-${id}`, operation: 'create', entityType: 'events', entityId: id, payload: newEvent, attempts: 0, lastAttempt: null, createdAt: now });
       },
 
       updateEvent: async (id, data) => {
@@ -321,7 +347,10 @@ export const useLocalStore = create<LocalStoreState>()(
         );
         set({ events: updated });
         const updatedEvent = updated.find(e => e.id === id);
-        if (updatedEvent) await db.put('events', updatedEvent);
+        if (updatedEvent) {
+          await db.put('events', updatedEvent);
+          await enqueueSync({ id: `sync-${id}`, operation: 'update', entityType: 'events', entityId: id, payload: updatedEvent, attempts: 0, lastAttempt: null, createdAt: new Date().toISOString() });
+        }
       },
 
       addBudgetItem: async (eventId, item) => {
@@ -379,6 +408,7 @@ export const useLocalStore = create<LocalStoreState>()(
         const updated = [newNotif, ...get().notifications];
         set({ notifications: updated });
         await db.put('notifications', newNotif);
+        await enqueueSync({ id: `sync-notif-${id}`, operation: 'create', entityType: 'notifications', entityId: id, payload: newNotif, attempts: 0, lastAttempt: null, createdAt: now });
       },
 
       markNotificationRead: async (id) => {
@@ -386,7 +416,11 @@ export const useLocalStore = create<LocalStoreState>()(
           n.id === id ? { ...n, isRead: true } : n
         );
         set({ notifications: updated });
-        await db.put('notifications', updated.find(n => n.id === id)!);
+        const updatedNotif = updated.find(n => n.id === id);
+        if (updatedNotif) {
+          await db.put('notifications', updatedNotif);
+          await enqueueSync({ id: `sync-notif-${id}`, operation: 'update', entityType: 'notifications', entityId: id, payload: updatedNotif, attempts: 0, lastAttempt: null, createdAt: new Date().toISOString() });
+        }
       },
 
       markAllNotificationsRead: async () => {
@@ -421,20 +455,29 @@ export const useLocalStore = create<LocalStoreState>()(
         set({ orgUnits: updatedOrgUnits, caisses: updatedCaisses });
         await db.put('orgUnits', orgUnit);
         await db.put('caisses', caisse);
+        await enqueueSync({ id: `sync-org-${id}`, operation: 'create', entityType: 'orgUnits', entityId: id, payload: orgUnit, attempts: 0, lastAttempt: null, createdAt: now });
+        await enqueueSync({ id: `sync-caisse-${id}`, operation: 'create', entityType: 'caisses', entityId: id, payload: caisse, attempts: 0, lastAttempt: null, createdAt: now });
       },
 
       updateGroup: async (id, data) => {
+        const now = new Date().toISOString();
         const updatedOrgUnits = get().orgUnits.map(ou =>
           ou.id === id ? { ...ou, ...data } : ou
         );
         const updatedCaisses = get().caisses.map(c =>
-          c.id === id ? { ...c, name: data.name ?? c.name, description: data.description ?? c.description, updatedAt: new Date().toISOString() } : c
+          c.id === id ? { ...c, name: data.name ?? c.name, description: data.description ?? c.description, updatedAt: now } : c
         );
         set({ orgUnits: updatedOrgUnits, caisses: updatedCaisses });
         const updatedOu = updatedOrgUnits.find(ou => ou.id === id);
-        if (updatedOu) await db.put('orgUnits', updatedOu);
+        if (updatedOu) {
+          await db.put('orgUnits', updatedOu);
+          await enqueueSync({ id: `sync-org-${id}`, operation: 'update', entityType: 'orgUnits', entityId: id, payload: updatedOu, attempts: 0, lastAttempt: null, createdAt: now });
+        }
         const updatedCaisse = updatedCaisses.find(c => c.id === id);
-        if (updatedCaisse) await db.put('caisses', updatedCaisse);
+        if (updatedCaisse) {
+          await db.put('caisses', updatedCaisse);
+          await enqueueSync({ id: `sync-caisse-${id}`, operation: 'update', entityType: 'caisses', entityId: id, payload: updatedCaisse, attempts: 0, lastAttempt: null, createdAt: now });
+        }
       },
 
       deleteGroup: async (id) => {
@@ -445,11 +488,14 @@ export const useLocalStore = create<LocalStoreState>()(
             await db.delete('transactions', tx.id);
           }
         }
+        const now = new Date().toISOString();
         const updatedOrgUnits = get().orgUnits.filter(ou => ou.id !== id);
         const updatedCaisses = get().caisses.filter(c => c.id !== id);
         set({ orgUnits: updatedOrgUnits, caisses: updatedCaisses, transactions: get().transactions.filter(t => t.sourceCaisseId !== id) });
         await db.delete('orgUnits', id);
         await db.delete('caisses', id);
+        await enqueueSync({ id: `sync-org-${id}`, operation: 'delete', entityType: 'orgUnits', entityId: id, payload: {}, attempts: 0, lastAttempt: null, createdAt: now });
+        await enqueueSync({ id: `sync-caisse-${id}`, operation: 'delete', entityType: 'caisses', entityId: id, payload: {}, attempts: 0, lastAttempt: null, createdAt: now });
       },
 
       loadInitialData: async () => {
