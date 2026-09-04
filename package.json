@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "build:dev": "vite build --mode development",
-    "build:cap": "CAPACITOR_BUILD=true vite build",
+    "build:cap": "cross-env CAPACITOR_BUILD=true vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "start": "node .output/server/index.mjs",

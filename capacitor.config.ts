@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'org.mfej-centrale.lumina',
+  appId: 'org.mfejcentrale.lumina',
   appName: 'Lumina',
   webDir: 'dist',
   server: {

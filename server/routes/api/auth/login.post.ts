@@ -1,6 +1,6 @@
 import { defineHandler } from "nitro";
 import { readBody, createError, setCookie } from "nitro/h3";
-import { findUserByEmail } from "../../store";
+import { findUserByEmail } from "../../../store";
 import { createHash } from "node:crypto";
 
 export default defineHandler(async (event) => {
