@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLocalStore } from '@/store/useLocalStore';
 
@@ -30,9 +30,7 @@ export default function Login() {
     <div className="min-h-screen bg-canvas flex flex-col items-center justify-center px-5">
       <div className="w-full max-w-sm">
         <div className="text-center mb-10">
-          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: '#FF6B00' }}>
-            <span className="text-white text-2xl font-bold">L</span>
-          </div>
+          <img src="/lumina-logo.png" alt="Lumina" className="w-16 h-16 mx-auto mb-4 rounded-xl" />
           <h1 className="text-text-primary text-2xl font-bold mb-2">Lumina</h1>
           <p className="text-text-tertiary text-sm">Gestion financière de l'église</p>
         </div>

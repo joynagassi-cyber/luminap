@@ -117,8 +117,10 @@ export default function Dashboard() {
         {/* Church name */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            {appConfig.churchLogoUrl && (
+            {appConfig.churchLogoUrl ? (
               <img src={appConfig.churchLogoUrl} alt="Logo" className="w-6 h-6 rounded" />
+            ) : (
+              <img src="/lumina-logo.png" alt="Lumina" className="w-6 h-6 rounded" />
             )}
             <p className="text-text-tertiary text-xs">{churchName}</p>
           </div>

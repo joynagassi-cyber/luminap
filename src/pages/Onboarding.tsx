@@ -23,9 +23,7 @@ export default function Onboarding() {
   return (
     <div className="min-h-screen bg-canvas flex items-center justify-center">
       <div className="text-center">
-        <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: '#FF6B00' }}>
-          <span className="text-white text-2xl font-bold">L</span>
-        </div>
+        <img src="/lumina-logo.png" alt="Lumina" className="w-16 h-16 mx-auto mb-4 rounded-xl" />
         <Loader2 className="w-8 h-8 mx-auto mb-3 animate-spin" style={{ color: '#FF6B00' }} />
         <p className="text-text-tertiary text-sm">Chargement...</p>
       </div>

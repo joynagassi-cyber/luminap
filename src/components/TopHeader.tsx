@@ -1,17 +1,10 @@
 import { Bell, Settings } from 'lucide-react';
 import { useLocalStore } from '@/store/useLocalStore';
 import { useNavigate } from 'react-router-dom';
-import LuminaLogo from './LuminaLogo';
-import { useEffect } from 'react';
 
 export default function TopHeader({ title }: { title?: string }) {
-  const { user, notifications, loadInitialData, markAllNotificationsRead } = useLocalStore();
+  const { notifications, markAllNotificationsRead } = useLocalStore();
   const navigate = useNavigate();
-
-  // Refresh notifications when navigating to this page
-  useEffect(() => {
-    loadInitialData();
-  }, []);
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
@@ -23,10 +16,10 @@ export default function TopHeader({ title }: { title?: string }) {
   return (
     <div className="fixed top-0 left-0 right-0 z-50 px-4 py-2.5 flex items-center justify-between" style={{ backgroundColor: 'rgba(18,18,18,0.97)', backdropFilter: 'blur(12px)', borderBottom: '1px solid #282828' }}>
       <div className="flex items-center gap-2.5">
-        <LuminaLogo size={32} />
+        <img src="/lumina-logo.png" alt="Lumina" className="w-8 h-8 rounded-lg" />
         <div>
-          <p className="text-text-primary font-bold text-sm leading-none">Lumina</p>
-          <p className="text-text-tertiary text-xs mt-0.5">{user.firstName} · {user.role ? user.role.toLowerCase() : ''}</p>
+          <p className="text-text-primary font-bold text-sm leading-none">{title || 'Lumina'}</p>
+          <p className="text-text-tertiary text-xs mt-0.5">{title ? 'Gestion financière' : 'Lumina'}</p>
         </div>
       </div>
       <div className="flex items-center gap-2">
