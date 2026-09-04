@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, BookOpen, Wallet, Users, Calendar, BarChart3, HelpCircle, AlertCircle, ChevronRight, CheckCircle } from 'lucide-react';
+import { ArrowLeft, BookOpen, Wallet, Users, Calendar, BarChart3, HelpCircle, AlertCircle, ChevronRight, CheckCircle, Lightbulb, AlertTriangle } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
 import { useState } from 'react';
@@ -207,7 +207,9 @@ export default function Tutorial() {
           {/* Tips */}
           {current.tips && current.tips.length > 0 && (
             <div className="rounded-xl p-4 mb-5" style={{ backgroundColor: current.iconBg }}>
-              <p className="text-sm font-semibold mb-3" style={{ color: current.color }}>💡 Conseils</p>
+              <p className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: current.color }}>
+                <Lightbulb className="w-4 h-4 flex-shrink-0" /> Conseils
+              </p>
               <div className="space-y-2">
                 {current.tips.map((tip, i) => (
                   <div key={i} className="flex items-start gap-2">
@@ -222,7 +224,9 @@ export default function Tutorial() {
           {/* Warnings */}
           {current.warnings && current.warnings.length > 0 && (
             <div className="rounded-xl p-4 mb-5" style={{ backgroundColor: '#E5133220' }}>
-              <p className="text-sm font-semibold mb-3 text-[#E51332]">⚠️ Précautions</p>
+              <p className="text-sm font-semibold mb-3 flex items-center gap-2 text-[#E51332]">
+                <AlertTriangle className="w-4 h-4 flex-shrink-0" /> Précautions
+              </p>
               <div className="space-y-2">
                 {current.warnings.map((w, i) => (
                   <div key={i} className="flex items-start gap-2">

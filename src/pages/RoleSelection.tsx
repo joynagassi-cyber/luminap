@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLocalStore } from '@/store/useLocalStore';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, Wallet, Church, ClipboardList, BarChart3, Banknote, PenTool } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
 import LuminaLogo from '@/components/LuminaLogo';
@@ -13,12 +13,12 @@ export default function RoleSelection() {
   const churchName = appConfig.churchName || 'Église MFE-JC Centrale';
 
   const roles = [
-    { id: 'TREASURIER', label: 'Trésorier', desc: 'Gestion complète des finances', emoji: '💰' },
-    { id: 'PASTEUR', label: 'Pasteur', desc: 'Vue d\'ensemble et validation', emoji: '✝️' },
-    { id: 'SECRETAIRE', label: 'Secrétaire', desc: 'Gestion des événements', emoji: '📋' },
-    { id: 'COMPTABLE', label: 'Comptable', desc: 'Bilans et grand livre', emoji: '📊' },
-    { id: 'TREASURIER_ADJOINT', label: 'Trésorier Adjoint', desc: 'Assistance trésorerie', emoji: '💵' },
-    { id: 'SECRETAIRE_ADJOINT', label: 'Secrétaire Adjoint', desc: 'Assistance secrétariat', emoji: '📝' },
+    { id: 'TREASURIER', label: 'Trésorier', desc: 'Gestion complète des finances', icon: Wallet, iconColor: '#1DB954' },
+    { id: 'PASTEUR', label: 'Pasteur', desc: 'Vue d\'ensemble et validation', icon: Church, iconColor: '#FF6B00' },
+    { id: 'SECRETAIRE', label: 'Secrétaire', desc: 'Gestion des événements', icon: ClipboardList, iconColor: '#8B5CF6' },
+    { id: 'COMPTABLE', label: 'Comptable', desc: 'Bilans et grand livre', icon: BarChart3, iconColor: '#3B82F6' },
+    { id: 'TREASURIER_ADJOINT', label: 'Trésorier Adjoint', desc: 'Assistance trésorerie', icon: Banknote, iconColor: '#14B8A6' },
+    { id: 'SECRETAIRE_ADJOINT', label: 'Secrétaire Adjoint', desc: 'Assistance secrétariat', icon: PenTool, iconColor: '#EC4899' },
   ];
 
   const handleSelect = async (roleId: string) => {
@@ -52,7 +52,7 @@ export default function RoleSelection() {
           <p className="text-text-tertiary text-sm text-center mb-8">Cela déterminera vos permissions dans l'application.</p>
 
           <div className="space-y-3">
-            {roles.map(({ id, label, desc, emoji }) => (
+            {roles.map(({ id, label, desc, icon: Icon, iconColor }) => (
               <button
                 key={id}
                 onClick={() => handleSelect(id)}
@@ -60,11 +60,11 @@ export default function RoleSelection() {
                 className="w-full text-left rounded-xl p-4 transition-all active:scale-95 flex items-center gap-4"
                 style={{ backgroundColor: '#212121', border: user.role === id ? '1px solid #FF6B00' : '1px solid #282828' }}
               >
-                <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 text-xl" style={{ backgroundColor: user.role === id ? '#FF6B0020' : '#282828' }}>
+                <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: user.role === id ? iconColor + '20' : '#282828' }}>
                   {loading === id ? (
                     <div className="w-5 h-5 rounded-full border-2 border-[#FF6B00] border-t-transparent" style={{ animation: 'spin 0.8s linear infinite' }} />
                   ) : (
-                    <span>{emoji}</span>
+                    <Icon className="w-6 h-6" style={{ color: user.role === id ? iconColor : '#808080' }} />
                   )}
                 </div>
                 <div className="flex-1">

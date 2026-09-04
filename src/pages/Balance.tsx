@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLocalStore } from '@/store/useLocalStore';
 import { formatCurrencyCompact, getPeriodRange } from '@/lib/utils';
-import { TrendingUp, TrendingDown, BarChart3, Download } from 'lucide-react';
+import { TrendingUp, TrendingDown, BarChart3, Download, X, FileText, ClipboardList } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
 import { exportPDF, exportExcel, exportCSV } from '@/lib/export';
@@ -130,7 +130,7 @@ export default function Balance() {
               <div className="flex items-center justify-between mb-5">
                 <h2 className="text-text-primary font-bold text-lg">Exporter le rapport</h2>
                 <button onClick={() => setShowExport(false)} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: '#282828' }}>
-                  <span className="text-text-tertiary text-sm">✕</span>
+                  <span className="text-text-tertiary text-sm"><X className="w-4 h-4" /></span>
                 </button>
               </div>
               {appConfig.churchName && (
@@ -145,7 +145,7 @@ export default function Balance() {
                   setShowExport(false);
                 }} className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
                   <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#E5133220' }}>
-                    <span className="text-lg">📄</span>
+                    <FileText className="text-lg" style={{ color: '#E51332' }} />
                   </div>
                   <div className="text-left">
                     <p className="text-text-primary text-sm font-semibold">PDF</p>
@@ -157,7 +157,7 @@ export default function Balance() {
                   setShowExport(false);
                 }} className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
                   <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#1DB95420' }}>
-                    <span className="text-lg">📊</span>
+                    <BarChart3 className="text-lg" style={{ color: '#1DB954' }} />
                   </div>
                   <div className="text-left">
                     <p className="text-text-primary text-sm font-semibold">Excel</p>
@@ -169,7 +169,7 @@ export default function Balance() {
                   setShowExport(false);
                 }} className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
                   <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#3B82F620' }}>
-                    <span className="text-lg">📋</span>
+                    <ClipboardList className="text-lg" style={{ color: '#3B82F6' }} />
                   </div>
                   <div className="text-left">
                     <p className="text-text-primary text-sm font-semibold">CSV</p>

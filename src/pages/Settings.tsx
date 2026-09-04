@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLocalStore } from '@/store/useLocalStore';
-import { Settings, Database, Cloud, CloudOff, RefreshCw, CreditCard, UserCircle, Camera, Building2, Image as ImageIcon } from 'lucide-react';
+import { Settings, Database, Cloud, CloudOff, RefreshCw, CreditCard, UserCircle, Camera, Building2, Image as ImageIcon, BookOpen, ScrollText, Check } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
 import LuminaLogo from '@/components/LuminaLogo';
@@ -119,7 +119,9 @@ export default function SettingsPage() {
               </div>
             </div>
             <button onClick={handleSave} disabled={saving} className="w-full py-3 rounded-full font-semibold text-white text-sm transition-all active:scale-95 disabled:opacity-50" style={{ backgroundColor: '#FF6B00' }}>
-              {saving ? 'Sauvegarde...' : saved ? '✓ Sauvegardé' : 'Sauvegarder la configuration'}
+              {saving ? 'Sauvegarde...' : saved ? (
+                <span className="flex items-center justify-center gap-2"><Check className="w-4 h-4" /> Sauvegardé</span>
+              ) : 'Sauvegarder la configuration'}
             </button>
           </div>
         </div>
@@ -178,7 +180,7 @@ export default function SettingsPage() {
 
           <button onClick={() => navigate('/tutoriel')} className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
             <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#8B5CF620' }}>
-              <span className="text-lg">📖</span>
+              <BookOpen className="text-lg" style={{ color: '#8B5CF6' }} />
             </div>
             <div>
               <p className="text-text-primary text-sm font-semibold">Tutoriel & Aide</p>
@@ -188,7 +190,7 @@ export default function SettingsPage() {
 
           <button onClick={() => navigate('/history')} className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
             <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#3B82F620' }}>
-              <span className="text-lg">📜</span>
+              <ScrollText className="text-lg" style={{ color: '#3B82F6' }} />
             </div>
             <div>
               <p className="text-text-primary text-sm font-semibold">Historique des actions</p>
@@ -198,7 +200,7 @@ export default function SettingsPage() {
 
           <button onClick={() => navigate('/versement')} className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
             <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#FFB80020' }}>
-              <span className="text-lg">💳</span>
+              <CreditCard className="text-lg" style={{ color: '#FFB800' }} />
             </div>
             <div>
               <p className="text-text-primary text-sm font-semibold">Versement</p>

@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useLocalStore } from '@/store/useLocalStore';
-import { Calendar, Plus, Clock } from 'lucide-react';
+import { Calendar, Plus, Clock, Gift } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
 import { FullPageSkeleton, ListSkeleton } from '@/components/Skeleton';
@@ -59,7 +59,7 @@ export default function Events() {
                 <button key={event.id} onClick={() => navigate(`/event/${event.id}`)} className="w-full text-left rounded-xl p-4 transition-all active:scale-95" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
                   <div className="flex items-start gap-3">
                     <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: color + '20' }}>
-                      <span className="text-lg">🎉</span>
+                      <Gift className="text-lg" style={{ color: '#FF6B00' }} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-text-primary font-semibold truncate">{event.name}</p>

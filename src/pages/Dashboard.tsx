@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLocalStore } from '@/store/useLocalStore';
 import { formatCurrencyCompact, getPeriodRange } from '@/lib/utils';
-import { ArrowUpRight, ArrowDownRight, Calendar, TrendingUp, Wallet, PlusCircle, Bell } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Calendar, TrendingUp, Wallet, PlusCircle, Bell, Sparkles } from 'lucide-react';
 import TransactionCard from '@/components/TransactionCard';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
@@ -127,7 +127,10 @@ export default function Dashboard() {
               <div className="flex items-center gap-3">
                 <LuminaLogo size={40} />
                 <div>
-                  <p className="text-text-primary font-bold text-base">{greeting} 👋</p>
+                  <p className="text-text-primary font-bold text-base">
+                    {greeting}{' '}
+                    <Sparkles className="w-5 h-5 inline" style={{ color: '#FF6B00' }} />
+                  </p>
                   <p className="text-text-tertiary text-xs mt-0.5">
                     {user.role ? getRoleLabel(user.role) : 'Trésorier'}
                   </p>

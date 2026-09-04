@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useLocalStore } from '@/store/useLocalStore';
 import { formatCurrencyCompact } from '@/lib/utils';
-import { ArrowLeft, Check, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Check, AlertCircle, Badge, User, Music, Users } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
 
@@ -133,7 +133,12 @@ export default function Versement() {
                   return (
                     <button key={c.id} onClick={() => { setSelectedCaisse(c.id); setAmount(''); }} className="w-full text-left rounded-xl p-4 flex items-center gap-3 transition-all" style={selectedCaisse === c.id ? { backgroundColor: c.color + '20', border: `1px solid ${c.color}` } : { backgroundColor: '#212121', border: '1px solid #282828' }}>
                       <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: c.color + '20' }}>
-                        <span className="text-lg">{c.color === '#3B82F6' ? '👔' : c.color === '#8B5CF6' ? '👦' : c.color === '#EC4899' ? '👩' : c.color === '#14B8A6' ? '👨' : c.color === '#F59E0B' ? '🎵' : '👥'}</span>
+                        {c.color === '#3B82F6' ? <Badge className="text-lg" style={{ color: '#3B82F6' }} /> :
+                         c.color === '#8B5CF6' ? <User className="text-lg" style={{ color: '#8B5CF6' }} /> :
+                         c.color === '#EC4899' ? <User className="text-lg" style={{ color: '#EC4899' }} /> :
+                         c.color === '#14B8A6' ? <Users className="text-lg" style={{ color: '#14B8A6' }} /> :
+                         c.color === '#F59E0B' ? <Music className="text-lg" style={{ color: '#F59E0B' }} /> :
+                         <Users className="text-lg" style={{ color: '#808080' }} />}
                       </div>
                       <div className="flex-1">
                         <p className="text-text-primary text-sm font-semibold">{c.name}</p>
