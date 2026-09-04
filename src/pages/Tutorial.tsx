@@ -128,6 +128,9 @@ const SECTIONS = [
     color: '#808080',
     iconBg: '#80808020',
     titleColor: '#808080',
+    paragraphs: [
+      'Questions fréquentes sur l\'utilisation de Lumina.',
+    ],
     faqs: [
       { q: 'Qui peut approuver une transaction ?', a: 'Le trésorier et le trésorier adjoint peuvent approuver. Le pasteur peut rejeter.' },
       { q: 'Mes données sont-elles en sécurité ?', a: 'Oui, elles sont stockées localement. La synchronisation cloud est optionnelle.' },
@@ -144,6 +147,9 @@ const SECTIONS = [
     color: '#E51332',
     iconBg: '#E5133220',
     titleColor: '#E51332',
+    paragraphs: [
+      'Erreurs courantes et comment les résoudre.',
+    ],
     errors: [
       { title: 'Transaction impossible à approuver', solution: 'Vérifiez que vous avez le rôle de trésorier ou pasteur. Les brouillons doivent d\'abord être soumis.' },
       { title: 'Solde négatif impossible à verser', solution: 'Le versement est bloqué si le solde est négatif ou nul. Vérifiez les transactions du groupe.' },
@@ -199,7 +205,7 @@ export default function Tutorial() {
 
           {/* Paragraphs */}
           <div className="space-y-3 mb-5">
-            {current.paragraphs.map((p, i) => (
+            {(current.paragraphs || []).map((p, i) => (
               <p key={i} className="text-text-secondary text-sm leading-relaxed">{p}</p>
             ))}
           </div>
