@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useLocalStore } from '@/store/useLocalStore';
 import { formatCurrencyCompact, formatDate } from '@/lib/utils';
-import { ArrowLeft, Wallet, TrendingUp, TrendingDown, Check, Edit3, Trash2, X, Users, Clock } from 'lucide-react';
+import { ArrowLeft, Wallet, TrendingUp, TrendingDown, Check, Edit3, Trash2, X, Users, Clock, ArrowUp, ArrowDown } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
 import TransactionCard from '@/components/TransactionCard';
@@ -112,12 +112,32 @@ export default function GroupDetail() {
           </div>
         </div>
 
-        {/* Versement button */}
-        {balance > 0 && (
-          <button onClick={handleVersement} className="w-full py-3.5 rounded-full font-semibold text-white text-sm flex items-center justify-center gap-2 mb-5 transition-all active:scale-95" style={{ background: 'linear-gradient(135deg, #FF8533, #FF6B00)' }}>
-            <Check className="w-4 h-4" /> Verser {formatCurrencyCompact(balance)} FCFA à la caisse principale
+        {/* Quick actions */}
+        <div className="flex gap-3 mb-5">
+          <button
+            onClick={() => navigate('/transaction/new', { state: { caisseId: caisse.id, type: 'INCOME' } })}
+            className="flex-1 py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-95"
+            style={{ backgroundColor: '#1DB95420', color: '#1DB954', border: '1px solid #1DB95440' }}
+          >
+            <ArrowUp className="w-4 h-4" /> Entrée
           </button>
-        )}
+          <button
+            onClick={() => navigate('/transaction/new', { state: { caisseId: caisse.id, type: 'EXPENSE' } })}
+            className="flex-1 py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-95"
+            style={{ backgroundColor: '#E5133220', color: '#E51332', border: '1px solid #E5133240' }}
+          >
+            <ArrowDown className="w-4 h-4" /> Sortie
+          </button>
+          {balance > 0 && (
+            <button
+              onClick={handleVersement}
+              className="px-4 py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-95"
+              style={{ background: 'linear-gradient(135deg, #FF8533, #FF6B00)', color: '#fff' }}
+            >
+              <Check className="w-4 h-4" />
+            </button>
+          )}
+        </div>
 
         {/* Tabs */}
         <div className="flex rounded-xl p-1 mb-5" style={{ backgroundColor: '#212121' }}>

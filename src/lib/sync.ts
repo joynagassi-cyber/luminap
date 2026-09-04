@@ -46,6 +46,13 @@ export async function startBackgroundSync(store: any) {
             await supabase.from('caisses').insert(item.payload);
           }
           break;
+        case 'notifications':
+          if (item.operation === 'create') {
+            await supabase.from('notifications').insert(item.payload);
+          } else if (item.operation === 'update') {
+            await supabase.from('notifications').update(item.payload).eq('id', item.entityId);
+          }
+          break;
       }
       await store.removeSyncItem(item.id);
     });
@@ -56,8 +63,21 @@ export async function syncRoleAssignments() {
   // Sync role assignments to cloud
 }
 
-export async function syncNotifications() {
-  // Sync notifications to cloud
+export async function syncNotifications(store: any) {
+  if (!navigator.onLine) return;
+  const queue = await store.getSyncQueue();
+  for (const item of queue) {
+    if (item.entityType === 'notifications') {
+      await syncWithBackoff(async () => {
+        if (item.operation === 'create') {
+          await supabase.from('notifications').insert(item.payload);
+        } else if (item.operation === 'update') {
+          await supabase.from('notifications').update(item.payload).eq('id', item.entityId);
+        }
+        await store.removeSyncItem(item.id);
+      });
+    }
+  }
 }
 
 export function startRealtimeSubscriptions() {

@@ -1,7 +1,7 @@
 const DB_NAME = 'lumina-db';
 const DB_VERSION = 8;
 
-type StoreName = 'transactions' | 'categories' | 'orgUnits' | 'auditEntries' | 'events' | 'syncQueue' | 'config' | 'caisses';
+type StoreName = 'transactions' | 'categories' | 'orgUnits' | 'auditEntries' | 'events' | 'syncQueue' | 'config' | 'caisses' | 'notifications';
 
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -17,6 +17,7 @@ function openDB(): Promise<IDBDatabase> {
         { name: 'syncQueue', keyPath: 'id' },
         { name: 'config', keyPath: 'key' },
         { name: 'caisses', keyPath: 'id' },
+        { name: 'notifications', keyPath: 'id' },
       ];
       for (const s of stores) {
         if (!db.objectStoreNames.contains(s.name)) {

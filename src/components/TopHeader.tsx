@@ -1,15 +1,24 @@
-import { Bell, Settings, Camera } from 'lucide-react';
+import { Bell, Settings } from 'lucide-react';
 import { useLocalStore } from '@/store/useLocalStore';
 import { useNavigate } from 'react-router-dom';
 import LuminaLogo from './LuminaLogo';
-import { useState } from 'react';
+import { useEffect } from 'react';
 
 export default function TopHeader({ title }: { title?: string }) {
-  const { user, appConfig } = useLocalStore();
+  const { user, notifications, loadInitialData, markAllNotificationsRead } = useLocalStore();
   const navigate = useNavigate();
-  const [showPhotoHint, setShowPhotoHint] = useState(false);
 
-  const pendingCount = 0; // computed from transactions in actual usage
+  // Refresh notifications when navigating to this page
+  useEffect(() => {
+    loadInitialData();
+  }, []);
+
+  const unreadCount = notifications.filter(n => !n.isRead).length;
+
+  const handleNotificationsClick = async () => {
+    await markAllNotificationsRead();
+    navigate('/notifications');
+  };
 
   return (
     <div className="fixed top-0 left-0 right-0 z-50 px-4 py-2.5 flex items-center justify-between" style={{ backgroundColor: 'rgba(18,18,18,0.97)', backdropFilter: 'blur(12px)', borderBottom: '1px solid #282828' }}>
@@ -22,14 +31,14 @@ export default function TopHeader({ title }: { title?: string }) {
       </div>
       <div className="flex items-center gap-2">
         <button
-          onClick={() => navigate('/notifications')}
+          onClick={handleNotificationsClick}
           className="relative w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-95"
           style={{ backgroundColor: '#212121' }}
         >
           <Bell className="w-4 h-4 text-text-secondary" />
-          {pendingCount > 0 && (
+          {unreadCount > 0 && (
             <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center text-xs font-bold" style={{ backgroundColor: '#E51332', color: '#fff' }}>
-              {pendingCount}
+              {unreadCount > 9 ? '9+' : unreadCount}
             </span>
           )}
         </button>

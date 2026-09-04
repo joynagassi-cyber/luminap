@@ -11,8 +11,9 @@ export default function TransactionNew() {
   const location = useLocation();
   const { categories, orgUnits, caisses, addTransaction } = useLocalStore();
   const preselectedCaisse = (location.state as any)?.caisseId || '';
+  const preselectedType = (location.state as any)?.type || '';
 
-  const [type, setType] = useState<'INCOME' | 'EXPENSE'>('INCOME');
+  const [type, setType] = useState<'INCOME' | 'EXPENSE'>(preselectedType as any || 'INCOME');
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { db } from '@/lib/db';
-import type { User, Role, Transaction, Category, OrgUnit, Caisse, Event, BudgetItem, ShoppingItem, AppConfig } from '@/types';
+import type { User, Role, Transaction, Category, OrgUnit, Caisse, Event, BudgetItem, ShoppingItem, AppConfig, NotificationItem } from '@/types';
 import { generateId } from '@/lib/utils';
 
 interface LocalStoreState {
@@ -12,10 +12,14 @@ interface LocalStoreState {
   caisses: Caisse[];
   events: Event[];
   auditEntries: any[];
+  notifications: NotificationItem[];
   appConfig: AppConfig;
   isLoading: boolean;
   isOnline: boolean;
   selectRole: (role: Role) => Promise<void>;
+  createNotification: (notif: Omit<NotificationItem, 'id' | 'createdAt'>) => Promise<void>;
+  markNotificationRead: (id: string) => Promise<void>;
+  markAllNotificationsRead: () => Promise<void>;
   addTransaction: (tx: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt' | 'version'>) => Promise<void>;
   updateTransaction: (id: string, data: Partial<Transaction>) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
@@ -103,6 +107,7 @@ export const useLocalStore = create<LocalStoreState>()(
       caisses: DEFAULT_CAISSES,
       events: [],
       auditEntries: [],
+      notifications: [],
       appConfig: { churchName: '', churchLogoUrl: '', userPhoto: '' },
       isLoading: false,
       isOnline: navigator.onLine,
@@ -123,6 +128,20 @@ export const useLocalStore = create<LocalStoreState>()(
         const updated = [...get().transactions, newTx];
         set({ transactions: updated });
         await db.put('transactions', newTx);
+        // Create notification for pending transactions
+        if (newTx.status === 'PENDING') {
+          const caisse = get().caisses.find(c => c.id === newTx.sourceCaisseId);
+          await db.put('notifications', {
+            id: generateId(),
+            orgId: 'org-1',
+            actionType: 'TRANSACTION_PENDING',
+            title: 'Nouvelle transaction en attente',
+            message: `${newTx.description} — ${newTx.amount / 100} FCFA${caisse?.name ? ` (${caisse.name})` : ''}`,
+            isRead: false,
+            sourceTransactionId: id,
+            createdAt: now,
+          });
+        }
       },
 
       updateTransaction: async (id, data) => {
@@ -148,6 +167,20 @@ export const useLocalStore = create<LocalStoreState>()(
         set({ transactions: updated });
         const updatedTx = updated.find(t => t.id === id);
         if (updatedTx) await db.put('transactions', updatedTx);
+        // Notify approvers
+        if (updatedTx) {
+          const caisse = get().caisses.find(c => c.id === updatedTx.sourceCaisseId);
+          await db.put('notifications', {
+            id: generateId(),
+            orgId: 'org-1',
+            actionType: 'TRANSACTION_APPROVED',
+            title: 'Transaction approuvée',
+            message: `${updatedTx.description} — ${updatedTx.amount / 100} FCFA${caisse?.name ? ` (${caisse.name})` : ''} a été approuvée.`,
+            isRead: false,
+            sourceTransactionId: id,
+            createdAt: now,
+          });
+        }
       },
 
       addEvent: async (event) => {
@@ -230,6 +263,29 @@ export const useLocalStore = create<LocalStoreState>()(
         await db.setConfig('appConfig', updated);
       },
 
+      createNotification: async (notif) => {
+        const id = generateId();
+        const now = new Date().toISOString();
+        const newNotif: NotificationItem = { ...notif, id, createdAt: now };
+        const updated = [newNotif, ...get().notifications];
+        set({ notifications: updated });
+        await db.put('notifications', newNotif);
+      },
+
+      markNotificationRead: async (id) => {
+        const updated = get().notifications.map(n =>
+          n.id === id ? { ...n, isRead: true } : n
+        );
+        set({ notifications: updated });
+        await db.put('notifications', updated.find(n => n.id === id)!);
+      },
+
+      markAllNotificationsRead: async () => {
+        const updated = get().notifications.map(n => ({ ...n, isRead: true }));
+        set({ notifications: updated });
+        for (const n of updated) await db.put('notifications', n);
+      },
+
       createGroup: async (data) => {
         const id = generateId();
         const now = new Date().toISOString();
@@ -291,7 +347,7 @@ export const useLocalStore = create<LocalStoreState>()(
       loadInitialData: async () => {
         set({ isLoading: true });
         try {
-          const [storedTx, storedCats, storedOrgUnits, storedCaisses, storedEvents, storedAudit, storedConfig] = await Promise.all([
+          const [storedTx, storedCats, storedOrgUnits, storedCaisses, storedEvents, storedAudit, storedConfig, storedNotifs] = await Promise.all([
             db.getAll<Transaction>('transactions').catch(() => [] as Transaction[]),
             db.getAll<Category>('categories').catch(() => DEFAULT_CATEGORIES),
             db.getAll<OrgUnit>('orgUnits').catch(() => DEFAULT_ORG_UNITS),
@@ -299,6 +355,7 @@ export const useLocalStore = create<LocalStoreState>()(
             db.getAll<Event>('events').catch(() => [] as Event[]),
             db.getAll<any>('auditEntries').catch(() => [] as any[]),
             db.getConfig<AppConfig>('appConfig').catch(() => null),
+            db.getAll<NotificationItem>('notifications').catch(() => [] as NotificationItem[]),
           ]);
           const savedRole = await db.getConfig<Role>('selectedRole');
           const sessionId = localStorage.getItem('lumina-session');
@@ -311,6 +368,7 @@ export const useLocalStore = create<LocalStoreState>()(
             caisses: storedCaisses,
             events: storedEvents,
             auditEntries: storedAudit,
+            notifications: storedNotifs,
             appConfig: storedConfig ?? { churchName: '', churchLogoUrl: '', userPhoto: '' },
             user: {
               ...DEFAULT_USER,

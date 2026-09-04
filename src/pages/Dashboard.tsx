@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLocalStore } from '@/store/useLocalStore';
 import { formatCurrencyCompact, getPeriodRange } from '@/lib/utils';
-import { ArrowUpRight, ArrowDownRight, Calendar, TrendingUp, Wallet, PlusCircle, Bell, Sparkles } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Calendar, TrendingUp, Wallet, PlusCircle, Bell, Sparkles, ArrowUp, ArrowDown } from 'lucide-react';
 import TransactionCard from '@/components/TransactionCard';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
@@ -282,6 +282,15 @@ export default function Dashboard() {
           )}
         </div>
       </div>
+
+      {/* FAB — Quick transaction */}
+      <button
+        onClick={() => navigate('/transaction/new')}
+        className="fixed bottom-20 right-5 z-40 w-14 h-14 rounded-full flex items-center justify-center transition-all active:scale-90 shadow-lg"
+        style={{ background: 'linear-gradient(135deg, #FF8533, #FF6B00)', boxShadow: '0 4px 16px rgba(255,107,0,0.4)' }}
+      >
+        <PlusCircle className="w-7 h-7 text-white" />
+      </button>
 
       <BottomNav />
     </div>
