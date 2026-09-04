@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AppProvider } from "./context/AppContext";
 import SyncIndicator from "./components/SyncIndicator";
 import Dashboard from "./pages/Dashboard";
@@ -28,6 +28,12 @@ import Notifications from "./pages/Notifications";
 
 const queryClient = new QueryClient();
 
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const storedRole = localStorage.getItem('lumina-role');
+  if (!storedRole) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+}
+
 function AppRoutes() {
   return (
     <>
@@ -37,21 +43,21 @@ function AppRoutes() {
         <Route path="/login" element={<Login />} />
         <Route path="/role-selection" element={<RoleSelection />} />
         <Route path="/notifications" element={<Notifications />} />
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/finance" element={<Finance />} />
-        <Route path="/transaction/new" element={<TransactionNew />} />
-        <Route path="/transaction/:id" element={<TransactionDetail />} />
-        <Route path="/transaction/:id/edit" element={<TransactionEdit />} />
-        <Route path="/balance" element={<Balance />} />
-        <Route path="/groups" element={<Groups />} />
-        <Route path="/groups/:id" element={<GroupDetail />} />
-        <Route path="/events" element={<Events />} />
-        <Route path="/event/new" element={<EventNew />} />
-        <Route path="/event/:id" element={<EventDetail />} />
-        <Route path="/versement" element={<Versement />} />
-        <Route path="/history" element={<History />} />
-        <Route path="/help" element={<Help />} />
-        <Route path="/settings" element={<Settings />} />
+        <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/finance" element={<ProtectedRoute><Finance /></ProtectedRoute>} />
+        <Route path="/transaction/new" element={<ProtectedRoute><TransactionNew /></ProtectedRoute>} />
+        <Route path="/transaction/:id" element={<ProtectedRoute><TransactionDetail /></ProtectedRoute>} />
+        <Route path="/transaction/:id/edit" element={<ProtectedRoute><TransactionEdit /></ProtectedRoute>} />
+        <Route path="/balance" element={<ProtectedRoute><Balance /></ProtectedRoute>} />
+        <Route path="/groups" element={<ProtectedRoute><Groups /></ProtectedRoute>} />
+        <Route path="/groups/:id" element={<ProtectedRoute><GroupDetail /></ProtectedRoute>} />
+        <Route path="/events" element={<ProtectedRoute><Events /></ProtectedRoute>} />
+        <Route path="/event/new" element={<ProtectedRoute><EventNew /></ProtectedRoute>} />
+        <Route path="/event/:id" element={<ProtectedRoute><EventDetail /></ProtectedRoute>} />
+        <Route path="/versement" element={<ProtectedRoute><Versement /></ProtectedRoute>} />
+        <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
+        <Route path="/help" element={<ProtectedRoute><Help /></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </>

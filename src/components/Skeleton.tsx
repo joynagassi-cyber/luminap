@@ -1,29 +1,9 @@
-export default function Skeleton({ className = '' }: { className?: string }) {
-  return (
-    <div
-      className={`animate-pulse rounded ${className}`}
-      style={{ backgroundColor: '#282828', borderRadius: '8px' }}
-    />
-  );
-}
+import { Loader2 } from 'lucide-react';
 
 export function PageSkeleton() {
   return (
-    <div className="space-y-4 p-5">
-      <Skeleton className="h-8 w-32" />
-      <Skeleton className="h-32 w-full" />
-      <div className="grid grid-cols-3 gap-3">
-        <Skeleton className="h-20 w-full" />
-        <Skeleton className="h-20 w-full" />
-        <Skeleton className="h-20 w-full" />
-      </div>
-      <Skeleton className="h-4 w-3/4" />
-      <Skeleton className="h-4 w-1/2" />
-      <div className="space-y-3">
-        <Skeleton className="h-16 w-full" />
-        <Skeleton className="h-16 w-full" />
-        <Skeleton className="h-16 w-full" />
-      </div>
+    <div className="flex items-center justify-center py-20">
+      <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#FF6B00' }} />
     </div>
   );
 }
@@ -31,8 +11,14 @@ export function PageSkeleton() {
 export function CardSkeleton() {
   return (
     <div className="rounded-xl p-4 animate-pulse" style={{ backgroundColor: '#212121' }}>
-      <Skeleton className="h-4 w-1/2 mb-3" />
-      <Skeleton className="h-7 w-2/3" />
+      <div className="flex items-center gap-3 mb-3">
+        <div className="w-10 h-10 rounded-full bg-surface-hover" />
+        <div className="flex-1">
+          <div className="h-4 bg-surface-hover rounded w-2/3 mb-2" />
+          <div className="h-3 bg-surface-hover rounded w-1/2" />
+        </div>
+      </div>
+      <div className="h-7 bg-surface-hover rounded w-1/2" />
     </div>
   );
 }

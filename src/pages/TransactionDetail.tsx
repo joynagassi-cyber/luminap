@@ -1,255 +1,129 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Check, X, Edit3, Clock } from 'lucide-react';
-import { formatCurrency, formatDate, getStatusColor, getStatusLabel } from '@/lib/utils';
-import { useLocalStore, canActOnTransaction } from '@/store/useLocalStore';
-import StatusBadge from '@/components/StatusBadge';
-import ConfirmModal from '@/components/ConfirmModal';
+import { useLocalStore } from '@/store/useLocalStore';
+import { formatCurrencyCompact, formatDate, getStatusLabel, getStatusColor } from '@/lib/utils';
+import { ArrowLeft, Check, X, Edit2, Trash2 } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
 
 export default function TransactionDetail() {
-  const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { transactions, approveTransaction, rejectTransaction, deleteTransaction, user } = useLocalStore();
-  const [showRejectComment, setShowRejectComment] = useState(false);
-  const [rejectComment, setRejectComment] = useState('');
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
-  const [showErrorModal, setShowErrorModal] = useState(false);
+  const navigate = useNavigate();
+  const { transactions, approveTransaction, deleteTransaction, user } = useLocalStore();
+  const [showActions, setShowActions] = useState(false);
 
-  const transaction = transactions.find(t => t.id === id);
-
-  if (!transaction) {
+  const tx = transactions.find(t => t.id === id);
+  if (!tx) {
     return (
-      <div className="min-h-screen bg-canvas flex items-center justify-center px-5">
-        <div className="text-center">
-          <p className="text-text-tertiary mb-4">Transaction introuvable</p>
-          <button onClick={() => navigate('/finance')} className="px-5 py-3 rounded-full text-sm font-semibold" style={{ backgroundColor: '#FF6B00', color: '#FFFFFF' }}>
-            Retour au grand livre
-          </button>
-        </div>
+      <div className="min-h-screen bg-canvas flex items-center justify-center">
+        <p className="text-text-tertiary">Transaction introuvable</p>
       </div>
     );
   }
 
-  const isIncome = transaction.type === 'INCOME';
-  const statusColor = getStatusColor(transaction.status);
-  const canApprove = canActOnTransaction(transaction, 'approve', user);
-  const canReject = canActOnTransaction(transaction, 'reject', user);
-  const canEdit = canActOnTransaction(transaction, 'edit', user);
-  const canDelete = canActOnTransaction(transaction, 'delete', user);
+  const isIncome = tx.type === 'INCOME';
+  const category = tx.category || { labelFr: tx.categoryId };
+  const orgUnit = tx.orgUnit;
 
-  const showError = (msg: string) => {
-    setErrorMsg(msg);
-    setShowErrorModal(true);
+  const handleApprove = async () => {
+    await approveTransaction(tx.id, user.id);
+    navigate(-1);
   };
 
-  const handleApprove = () => {
-    approveTransaction(transaction.id, user?.id || '');
-    navigate('/finance');
+  const handleReject = async () => {
+    await useLocalStore.getState().updateTransaction(tx.id, { status: 'REJECTED' });
+    navigate(-1);
   };
 
-  const handleReject = () => {
-    if (!rejectComment.trim()) {
-      showError('Veuillez fournir un motif de rejet');
-      return;
-    }
-    rejectTransaction(transaction.id, rejectComment);
-    navigate('/finance');
-  };
-
-  const handleDelete = () => {
-    setShowDeleteModal(true);
-  };
-
-  const confirmDelete = () => {
-    deleteTransaction(transaction.id);
-    navigate('/finance');
-  };
-
-  const handleEdit = () => {
-    navigate(`/transaction/${transaction.id}/edit`);
-  };
-
-  const handleCreateCorrection = () => {
-    navigate('/transaction/new', { state: { compensateFor: transaction.id } });
+  const handleDelete = async () => {
+    await deleteTransaction(tx.id);
+    navigate(-1);
   };
 
   return (
     <div className="min-h-screen bg-canvas">
-      <TopHeader
-        title="Transaction"
-        showBack
-        rightAction={
-          <div className="ml-auto">
-            <StatusBadge status={transaction.status} size="md" />
-          </div>
-        }
-      />
-      <div className="max-w-lg mx-auto px-5 pb-24">
+      <TopHeader title="Transaction" />
+      <div className="max-w-lg mx-auto px-5 pb-24 pt-16">
+        <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-text-secondary text-sm mb-6">
+          <ArrowLeft className="w-4 h-4" />
+          <span>Retour</span>
+        </button>
 
-        {/* Hero Card */}
-        <div className="rounded-xl p-5 mb-5 text-center" style={{ backgroundColor: '#212121' }}>
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <span className="text-sm font-medium px-3 py-1 rounded-full" style={{ backgroundColor: isIncome ? '#1DB95420' : '#E5133220', color: isIncome ? '#1DB954' : '#E51332' }}>
-              {isIncome ? 'Entrée' : 'Sortie'}
-            </span>
-            {transaction.orgUnit && (
-              <span className="text-sm text-text-tertiary">{transaction.orgUnit.name}</span>
-            )}
-            {transaction.source && transaction.source !== 'CAISSE' && (
-              <span className="text-sm text-text-tertiary">· {transaction.source}</span>
-            )}
-            {transaction.versementId && (
-              <span className="text-sm px-2 py-0.5 rounded-full" style={{ backgroundColor: '#FF6B0020', color: '#FF6B00' }}>Versement</span>
-            )}
+        {/* Amount */}
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: isIncome ? '#1DB95420' : '#E5133220' }}>
+            <span className="text-3xl">{isIncome ? '↑' : '↓'}</span>
           </div>
-          <p className="text-3xl font-black tabular-nums mb-1" style={{ color: isIncome ? '#1DB954' : '#E51332' }}>
-            {isIncome ? '+' : '-'} {formatCurrency(transaction.amount)}
+          <p className="text-4xl font-black" style={{ color: isIncome ? '#1DB954' : '#E51332' }}>
+            {isIncome ? '+' : '-'}{formatCurrencyCompact(tx.amount)}
           </p>
-          <p className="text-text-tertiary text-sm">FCFA</p>
-          <p className="text-text-tertiary text-xs mt-2">{formatDate(transaction.date)}</p>
+          <p className="text-text-tertiary text-sm mt-1">FCFA</p>
+          <div className="mt-3 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: getStatusColor(tx.status) + '20', color: getStatusColor(tx.status) }}>
+            {getStatusLabel(tx.status)}
+          </div>
         </div>
 
         {/* Details */}
-        <div className="mb-5">
-          <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider mb-3">Détails</p>
-          <div className="rounded-lg overflow-hidden" style={{ backgroundColor: '#212121' }}>
-            {[
-              { label: 'Description', value: transaction.description || '—' },
-              { label: 'Catégorie', value: transaction.category?.labelFr || '—' },
-              { label: 'Date', value: formatDate(transaction.date) },
-              { label: 'Créée le', value: formatDate(transaction.createdAt) },
-              { label: 'Créée par', value: transaction.creator?.firstName || '—' },
-              ...(transaction.approvedAt ? [
-                { label: 'Approuvée le', value: transaction.approvedAt ? formatDate(transaction.approvedAt) : '—' },
-                { label: 'Approuvée par', value: transaction.approver?.firstName || '—' },
-              ] : []),
-              ...(transaction.source === 'PERSONNE' && transaction.personName ? [
-                { label: 'Personne', value: transaction.personName },
-              ] : []),
-              ...(transaction.versementId ? [
-                { label: 'Versement', value: transaction.versementId.startsWith('versement-') ? 'Transfert entre caisses' : 'Versement' },
-              ] : []),
-              ...(transaction.comment ? [{ label: 'Commentaire', value: transaction.comment }] : []),
-            ].map((row, i) => (
-              <div key={i} className="flex items-center justify-between px-4 py-3 border-b last:border-0" style={{ borderBottomColor: '#282828' }}>
-                <span className="text-text-tertiary text-sm">{row.label}</span>
-                <span className="text-text-primary text-sm font-medium max-w-48 text-right truncate">{row.value}</span>
-              </div>
-            ))}
+        <div className="rounded-xl p-4 space-y-4 mb-6" style={{ backgroundColor: '#212121' }}>
+          <div className="flex justify-between">
+            <span className="text-text-tertiary text-sm">Description</span>
+            <span className="text-text-primary text-sm font-medium">{tx.description || '—'}</span>
           </div>
+          <div className="flex justify-between">
+            <span className="text-text-tertiary text-sm">Catégorie</span>
+            <span className="text-text-primary text-sm font-medium">{category.labelFr}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-text-tertiary text-sm">Date</span>
+            <span className="text-text-primary text-sm font-medium">{formatDate(tx.date)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-text-tertiary text-sm">Groupe</span>
+            <span className="text-text-primary text-sm font-medium">{orgUnit?.name || 'Principal'}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-text-tertiary text-sm">Caisse</span>
+            <span className="text-text-primary text-sm font-medium">{tx.sourceCaisseId || 'Principal'}</span>
+          </div>
+          {tx.comment && (
+            <div className="flex justify-between">
+              <span className="text-text-tertiary text-sm">Commentaire</span>
+              <span className="text-text-primary text-sm font-medium">{tx.comment}</span>
+            </div>
+          )}
         </div>
 
         {/* Actions */}
-        <div className="mb-5">
-          <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider mb-3">Actions</p>
-          <div className="space-y-2">
-            {transaction.status === 'DRAFT' && canEdit && (
-              <>
-                <button onClick={handleEdit} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-full text-sm font-semibold" style={{ backgroundColor: '#212121', color: '#B3B3B3' }}>
-                  <Edit3 className="w-4 h-4" />Modifier
-                </button>
-                <button onClick={() => { useLocalStore.getState().updateTransaction(transaction.id, { status: 'PENDING' }); navigate('/finance'); }} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-full text-sm font-semibold" style={{ backgroundColor: '#FFB800', color: '#121212' }}>
-                  <Clock className="w-4 h-4" />Soumettre pour approbation
-                </button>
-              </>
-            )}
-
-            {transaction.status === 'PENDING' && canApprove && (
-              <button onClick={handleApprove} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-full text-sm font-semibold" style={{ backgroundColor: '#1DB954', color: '#FFFFFF' }}>
-                <Check className="w-4 h-4" />Approuver
-              </button>
-            )}
-            {transaction.status === 'PENDING' && canReject && (
-              <button onClick={() => setShowRejectComment(true)} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-full text-sm font-semibold" style={{ backgroundColor: '#E51332', color: '#FFFFFF' }}>
-                <X className="w-4 h-4" />Rejeter
-              </button>
-            )}
-
-            {transaction.status === 'APPROVED' && (
-              <button onClick={handleCreateCorrection} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-full text-sm font-semibold" style={{ backgroundColor: '#212121', color: '#B3B3B3' }}>
-                <Edit3 className="w-4 h-4" />Corriger (contre-transactions)
-              </button>
-            )}
-
-            {transaction.status === 'REJECTED' && canEdit && (
-              <button onClick={handleEdit} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-full text-sm font-semibold" style={{ backgroundColor: '#212121', color: '#B3B3B3' }}>
-                <Edit3 className="w-4 h-4" />Réviser
-              </button>
-            )}
-            {transaction.status === 'REJECTED' && canDelete && (
-              <button onClick={handleDelete} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-full text-sm font-semibold" style={{ backgroundColor: '#E5133220', color: '#E51332' }}>
-                <X className="w-4 h-4" />Supprimer
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Audit Section */}
-        <div className="mb-6 pb-6">
-          <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider mb-3">Journal d'audit</p>
-          <div className="rounded-lg overflow-hidden" style={{ backgroundColor: '#212121' }}>
-            {[
-              { action: 'CRÉÉE', time: transaction.createdAt, user: user?.firstName || '—' },
-              ...(transaction.status === 'PENDING' ? [{ action: 'SOUMISE', time: transaction.updatedAt, user: user?.firstName || '—' }] : []),
-              ...(transaction.approvedAt ? [{ action: 'APPROUVÉE', time: transaction.approvedAt, user: user?.firstName || '—' }] : []),
-              ...(transaction.status === 'REJECTED' && transaction.comment ? [{ action: 'REJETÉE', time: transaction.updatedAt, user: 'Admin', comment: transaction.comment }] : []),
-            ].map((entry, i) => (
-              <div key={i} className="flex items-center gap-3 px-4 py-3 border-b last:border-0" style={{ borderBottomColor: '#282828' }}>
-                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#FF6B00' }} />
-                <div className="flex-1">
-                  <p className="text-text-primary text-sm font-medium">{entry.action}</p>
-                  <p className="text-text-tertiary text-xs">{entry.user} · {formatDate(entry.time)}</p>
-                  {entry.comment && <p className="text-text-tertiary text-xs mt-1">{entry.comment}</p>}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Reject Modal */}
-        {showRejectComment && (
-          <div className="fixed inset-0 z-50 flex items-end">
-            <div className="absolute inset-0 bg-black/60" onClick={() => setShowRejectComment(false)} />
-            <div className="relative w-full rounded-t-2xl p-6 pb-8" style={{ backgroundColor: '#212121' }}>
-              <div className="w-12 h-1 rounded-full bg-surface-active mx-auto mb-4" />
-              <h3 className="text-lg font-bold text-text-primary mb-4">Motif du rejet</h3>
-              <textarea value={rejectComment} onChange={(e) => setRejectComment(e.target.value)} placeholder="Veuillez décrire le motif du rejet..." className="w-full px-4 py-3 rounded-lg text-text-primary text-sm outline-none resize-none mb-4" style={{ backgroundColor: '#121212', minHeight: '100px' }} rows={3} />
-              <div className="flex gap-3">
-                <button onClick={() => setShowRejectComment(false)} className="flex-1 py-3 rounded-full text-sm font-semibold" style={{ backgroundColor: '#282828', color: '#B3B3B3' }}>Annuler</button>
-                <button onClick={handleReject} className="flex-1 py-3 rounded-full text-sm font-semibold" style={{ backgroundColor: '#E51332', color: '#FFFFFF' }}>Confirmer le rejet</button>
-              </div>
-            </div>
+        {(tx.status === 'DRAFT' || tx.status === 'REJECTED') && (
+          <div className="space-y-2 mb-6">
+            <button onClick={() => navigate(`/transaction/${id}/edit`)} className="w-full py-3 rounded-full font-medium text-sm flex items-center justify-center gap-2" style={{ backgroundColor: '#212121', color: '#B3B3B3' }}>
+              <Edit2 className="w-4 h-4" /> Modifier
+            </button>
+            <button onClick={handleDelete} className="w-full py-3 rounded-full font-medium text-sm flex items-center justify-center gap-2" style={{ backgroundColor: '#E5133220', color: '#E51332' }}>
+              <Trash2 className="w-4 h-4" /> Supprimer
+            </button>
           </div>
         )}
 
-        {/* Delete Confirmation Modal */}
-        <ConfirmModal
-          open={showDeleteModal}
-          onClose={() => setShowDeleteModal(false)}
-          onConfirm={confirmDelete}
-          title="Supprimer la transaction"
-          description="Cette action est irréversible. La transaction sera supprimée définitivement."
-          confirmLabel="Supprimer"
-          confirmVariant="danger"
-          requiredText="SUPPRIMER"
-        />
+        {tx.status === 'PENDING' && (
+          <div className="space-y-2 mb-6">
+            <button onClick={handleApprove} className="w-full py-3.5 rounded-full font-semibold text-white text-sm flex items-center justify-center gap-2" style={{ backgroundColor: '#1DB954' }}>
+              <Check className="w-4 h-4" /> Approuver
+            </button>
+            <button onClick={handleReject} className="w-full py-3.5 rounded-full font-semibold text-white text-sm flex items-center justify-center gap-2" style={{ backgroundColor: '#E51332' }}>
+              <X className="w-4 h-4" /> Rejeter
+            </button>
+          </div>
+        )}
+
+        {tx.status === 'APPROVED' && (
+          <div className="text-center py-6 rounded-xl" style={{ backgroundColor: '#1DB95415', border: '1px solid #1DB95430' }}>
+            <Check className="w-8 h-8 mx-auto mb-2 text-income" />
+            <p className="text-income font-medium text-sm">Transaction approuvée</p>
+          </div>
+        )}
       </div>
-
       <BottomNav />
-
-      {/* Error Modal */}
-      <ConfirmModal
-        open={showErrorModal}
-        onClose={() => setShowErrorModal(false)}
-        onConfirm={() => setShowErrorModal(false)}
-        title="Erreur"
-        description={errorMsg}
-        confirmLabel="Compris"
-        confirmVariant="primary"
-      />
     </div>
   );
 }

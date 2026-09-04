@@ -1,79 +1,27 @@
-import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Bell } from 'lucide-react';
+import { Settings, User, LogOut } from 'lucide-react';
 import { useLocalStore } from '@/store/useLocalStore';
-import LuminaLogo from '@/components/LuminaLogo';
+import { useNavigate } from 'react-router-dom';
 
-interface TopHeaderProps {
-  title: string;
-  showBack?: boolean;
-  rightAction?: React.ReactNode;
-}
-
-export default function TopHeader({ title, showBack = false, rightAction }: TopHeaderProps) {
+export default function TopHeader() {
+  const { user } = useLocalStore();
   const navigate = useNavigate();
-  const location = useLocation();
-  const { notifications, getUnreadCount } = useLocalStore();
-  const unreadCount = getUnreadCount();
-  const isHome = location.pathname === '/';
-
   return (
-    <div
-      className="flex items-center justify-between px-5 py-3.5 mb-4"
-      style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 30,
-        backgroundColor: '#121212',
-        borderBottom: '1px solid #282828',
-        marginLeft: '-20px',
-        marginRight: '-20px',
-      }}
-    >
+    <div className="fixed top-0 left-0 right-0 z-50 px-5 py-3 flex items-center justify-between" style={{ backgroundColor: 'rgba(18,18,18,0.95)', backdropFilter: 'blur(10px)' }}>
       <div className="flex items-center gap-3">
-        {showBack && (
-          <button
-            onClick={() => navigate(-1)}
-            className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
-            style={{ backgroundColor: '#212121' }}
-          >
-            <ArrowLeft className="w-4 h-4 text-text-primary" />
-          </button>
-        )}
-        {!isHome && !showBack && (
-          <button
-            onClick={() => navigate(-1)}
-            className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
-            style={{ backgroundColor: '#212121' }}
-          >
-            <ArrowLeft className="w-4 h-4 text-text-primary" />
-          </button>
-        )}
-        {isHome ? (
-          <div className="flex items-center gap-2">
-            <LuminaLogo size={28} />
-            <span className="text-base font-bold text-text-primary">{title}</span>
-          </div>
-        ) : (
-          <h1 className="text-base font-bold text-text-primary">{title}</h1>
-        )}
+        <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: '#FF6B00' }}>
+          <span className="text-white text-sm font-bold">L</span>
+        </div>
+        <div>
+          <p className="text-text-primary font-bold text-sm leading-none">Lumina</p>
+          <p className="text-text-tertiary text-xs mt-0.5">{user.firstName} · {user.role ? user.role.toLowerCase() : ''}</p>
+        </div>
       </div>
-
       <div className="flex items-center gap-2">
-        {rightAction}
-        <button
-          onClick={() => navigate('/notifications')}
-          className="w-9 h-9 rounded-full flex items-center justify-center relative"
-          style={{ backgroundColor: '#212121' }}
-        >
-          <Bell className="w-4 h-4 text-text-secondary" />
-          {unreadCount > 0 && (
-            <span
-              className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold"
-              style={{ backgroundColor: '#FF6B00', color: '#FFFFFF' }}
-            >
-              {unreadCount > 9 ? '9+' : unreadCount}
-            </span>
-          )}
+        <button onClick={() => navigate('/notifications')} className="w-9 h-9 rounded-full flex items-center justify-center" style={{ backgroundColor: '#212121' }}>
+          <span className="text-text-primary text-sm">🔔</span>
+        </button>
+        <button onClick={() => navigate('/settings')} className="w-9 h-9 rounded-full flex items-center justify-center" style={{ backgroundColor: '#212121' }}>
+          <Settings className="w-4 h-4 text-text-secondary" />
         </button>
       </div>
     </div>

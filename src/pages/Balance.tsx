@@ -1,206 +1,109 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { formatCurrencyCompact, formatDate, exportToCSV, exportToPDF, exportToExcel, getPeriodRange } from '@/lib/utils';
 import { useLocalStore } from '@/store/useLocalStore';
-import { Download } from 'lucide-react';
+import { formatCurrencyCompact, getPeriodRange, formatDate } from '@/lib/utils';
+import { TrendingUp, TrendingDown, BarChart3, Download } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
-import { PageSkeleton } from '@/components/Skeleton';
-import type { PeriodType } from '@/lib/utils';
 
 export default function Balance() {
   const navigate = useNavigate();
-  const { transactions, categories, orgUnits, events } = useLocalStore();
-  const [period, setPeriod] = useState<PeriodType>('mois');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [orgUnitFilter, setOrgUnitFilter] = useState<string>('ALL');
-  const [eventFilter, setEventFilter] = useState<string>('ALL');
-  const [loaded, setLoaded] = useState(false);
+  const { transactions, categories, caisses } = useLocalStore();
+  const [period, setPeriod] = useState<'mois' | 'annee'>('mois');
+  const [selectedCaisse, setSelectedCaisse] = useState<string>('main');
 
-  // Set initial dates once
-  useEffect(() => {
-    if (!loaded) {
-      const range = getPeriodRange(period);
-      setStartDate(range.start);
-      setEndDate(range.end);
-      setLoaded(true);
-    }
-  }, [loaded, period]);
+  const { start, end } = getPeriodRange(period);
+  const mainTxs = transactions.filter(t => t.sourceCaisseId === selectedCaisse);
+  const approved = mainTxs.filter(t => t.status === 'APPROVED' && t.date >= start && t.date <= end);
 
-  if (!startDate || !endDate) {
-    return (
-      <div className="min-h-screen bg-canvas">
-        <PageSkeleton />
-        <BottomNav />
-      </div>
-    );
-  }
-
-  const periodTransactions = transactions.filter(
-    t => t.date >= startDate && t.date <= endDate &&
-      (orgUnitFilter === 'ALL' || t.orgUnitId === orgUnitFilter) &&
-      (eventFilter === 'ALL' || t.eventId === eventFilter)
-  );
-
-  const totalIncome = periodTransactions.filter(t => t.type === 'INCOME').reduce((s, t) => s + t.amount, 0);
-  const totalExpense = periodTransactions.filter(t => t.type === 'EXPENSE').reduce((s, t) => s + t.amount, 0);
+  const totalIncome = approved.filter(t => t.type === 'INCOME').reduce((s, t) => s + t.amount, 0);
+  const totalExpense = approved.filter(t => t.type === 'EXPENSE').reduce((s, t) => s + t.amount, 0);
   const netResult = totalIncome - totalExpense;
 
-  const byCategory = new Map<string, { income: number; expense: number }>();
-  for (const t of periodTransactions) {
-    const existing = byCategory.get(t.categoryId) || { income: 0, expense: 0 };
-    if (t.type === 'INCOME') existing.income += t.amount;
-    else existing.expense += t.amount;
-    byCategory.set(t.categoryId, existing);
-  }
+  const byCategory = categories.map(cat => {
+    const catTxs = approved.filter(t => t.categoryId === cat.id);
+    const income = catTxs.filter(t => t.type === 'INCOME').reduce((s, t) => s + t.amount, 0);
+    const expense = catTxs.filter(t => t.type === 'EXPENSE').reduce((s, t) => s + t.amount, 0);
+    return { categoryId: cat.id, label: cat.labelFr, income, expense, net: income - expense };
+  }).filter(c => c.income > 0 || c.expense > 0);
 
-  const byOrgUnit = new Map<string, { income: number; expense: number }>();
-  for (const t of periodTransactions) {
-    if (t.orgUnitId) {
-      const existing = byOrgUnit.get(t.orgUnitId) || { income: 0, expense: 0 };
-      if (t.type === 'INCOME') existing.income += t.amount;
-      else existing.expense += t.amount;
-      byOrgUnit.set(t.orgUnitId, existing);
-    }
-  }
-
-  const handleExportCSV = () => exportToCSV(periodTransactions, `bilan-${startDate}-${endDate}`);
-  const handleExportPDF = () => exportToPDF(periodTransactions, `bilan-${startDate}-${endDate}`);
-  const handleExportExcel = () => exportToExcel(periodTransactions, `bilan-${startDate}-${endDate}`);
-
-  const handlePeriodChange = (p: PeriodType) => {
-    setPeriod(p);
-    const range = getPeriodRange(p);
-    setStartDate(range.start);
-    setEndDate(range.end);
-  };
+  const maxVal = Math.max(...byCategory.map(c => Math.max(c.income, c.expense)), 1);
 
   return (
     <div className="min-h-screen bg-canvas">
-      <TopHeader
-        title="Bilan financier"
-        showBack
-        rightAction={
-          <div className="flex gap-1.5">
-            <button onClick={handleExportCSV} className="px-2.5 py-1.5 rounded-full text-xs" style={{ backgroundColor: '#212121', color: '#B3B3B3' }}>CSV</button>
-            <button onClick={handleExportPDF} className="px-2.5 py-1.5 rounded-full text-xs" style={{ backgroundColor: '#212121', color: '#B3B3B3' }}>PDF</button>
-            <button onClick={handleExportExcel} className="px-2.5 py-1.5 rounded-full text-xs" style={{ backgroundColor: '#212121', color: '#B3B3B3' }}>Excel</button>
-          </div>
-        }
-      />
-      <div className="max-w-lg mx-auto px-5 pb-24">
+      <TopHeader title="Bilan" />
+      <div className="max-w-lg mx-auto px-5 pb-24 pt-16">
+        <h1 className="text-text-primary font-bold text-xl mb-5">Bilan financier</h1>
 
-        {/* Period Selector */}
-        <div className="flex gap-2 mb-5">
-          {(['mois', 'trimestre', 'annee'] as PeriodType[]).map((p) => (
-            <button key={p} onClick={() => handlePeriodChange(p)} className="flex-1 py-2.5 rounded-full text-sm font-medium transition-all" style={{ backgroundColor: period === p ? '#FF6B00' : '#212121', color: period === p ? '#FFFFFF' : '#808080' }}>
-              {p === 'mois' ? 'Mois' : p === 'trimestre' ? 'Trimestre' : 'Année'}
+        {/* Period toggle */}
+        <div className="flex rounded-xl p-1 mb-5" style={{ backgroundColor: '#212121' }}>
+          <button onClick={() => setPeriod('mois')} className="flex-1 py-2 rounded-lg text-sm font-medium transition-all" style={period === 'mois' ? { backgroundColor: '#FF6B00', color: '#fff' } : { color: '#808080' }}>Mois</button>
+          <button onClick={() => setPeriod('annee')} className="flex-1 py-2 rounded-lg text-sm font-medium transition-all" style={period === 'annee' ? { backgroundColor: '#FF6B00', color: '#fff' } : { color: '#808080' }}>Année</button>
+        </div>
+
+        {/* Caisse selector */}
+        <div className="flex gap-2 mb-5 overflow-x-auto pb-2">
+          {caisses.map((c) => (
+            <button key={c.id} onClick={() => setSelectedCaisse(c.id)} className="px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-all" style={selectedCaisse === c.id ? { backgroundColor: c.color, color: '#fff' } : { backgroundColor: '#212121', color: '#808080' }}>
+              {c.name}
             </button>
           ))}
         </div>
 
-        {/* Date Range */}
-        <div className="flex gap-3 mb-5">
-          <div className="flex-1">
-            <label className="block text-text-tertiary text-xs mb-1.5">Du</label>
-            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full px-3 py-2.5 rounded-lg text-sm text-text-primary outline-none" style={{ backgroundColor: '#212121', border: '1px solid #282828' }} />
-          </div>
-          <div className="flex-1">
-            <label className="block text-text-tertiary text-xs mb-1.5">Au</label>
-            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full px-3 py-2.5 rounded-lg text-sm text-text-primary outline-none" style={{ backgroundColor: '#212121', border: '1px solid #282828' }} />
-          </div>
-        </div>
-
-        {/* Group & Event Filters */}
-        {(orgUnits.length > 0 || events.length > 0) && (
-          <div className="flex gap-2 mb-5 flex-wrap">
-            {orgUnits.length > 0 && (
-              <select value={orgUnitFilter} onChange={(e) => setOrgUnitFilter(e.target.value)} className="px-3 py-2 rounded-full text-xs font-medium outline-none" style={{ backgroundColor: '#212121', color: '#B3B3B3', border: '1px solid #282828' }}>
-                <option value="ALL">Tous les groupes</option>
-                {orgUnits.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-              </select>
-            )}
-            {events.length > 0 && (
-              <select value={eventFilter} onChange={(e) => setEventFilter(e.target.value)} className="px-3 py-2 rounded-full text-xs font-medium outline-none" style={{ backgroundColor: '#212121', color: '#B3B3B3', border: '1px solid #282828' }}>
-                <option value="ALL">Tous les événements</option>
-                {events.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
-              </select>
-            )}
-          </div>
-        )}
-
-        {/* Stat Cards */}
-        <div className="grid grid-cols-3 gap-3 mb-5">
-          <div className="rounded-lg p-3 text-center" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
-            <p className="text-text-tertiary text-xs mb-1">Entrées</p>
-            <p className="text-base font-bold tabular-nums" style={{ color: '#1DB954' }}>{formatCurrencyCompact(totalIncome)}</p>
-          </div>
-          <div className="rounded-lg p-3 text-center" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
-            <p className="text-text-tertiary text-xs mb-1">Sorties</p>
-            <p className="text-base font-bold tabular-nums" style={{ color: '#E51332' }}>{formatCurrencyCompact(totalExpense)}</p>
-          </div>
-          <div className="rounded-lg p-3 text-center" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
-            <p className="text-text-tertiary text-xs mb-1">Résultat</p>
-            <p className="text-base font-bold tabular-nums" style={{ color: netResult >= 0 ? '#1DB954' : '#E51332' }}>{netResult >= 0 ? '' : '-'}{formatCurrencyCompact(Math.abs(netResult))}</p>
-          </div>
-        </div>
-
-        {/* By Category */}
-        <div className="mb-5">
-          <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider mb-3">Par catégorie</p>
-          <div className="rounded-lg overflow-hidden" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
-            <div className="flex items-center px-4 py-3 text-xs text-text-tertiary border-b" style={{ borderBottomColor: '#282828' }}>
-              <span className="flex-1">Libellé</span>
-              <span className="w-24 text-right">Entrées</span>
-              <span className="w-24 text-right">Net</span>
+        {/* Summary cards */}
+        <div className="grid grid-cols-3 gap-3 mb-6">
+          <div className="rounded-xl p-4 text-center" style={{ backgroundColor: '#212121' }}>
+            <div className="w-8 h-8 rounded-full flex items-center justify-center mx-auto mb-2" style={{ backgroundColor: '#1DB95420' }}>
+              <TrendingUp className="w-4 h-4" style={{ color: '#1DB954' }} />
             </div>
-            {Array.from(byCategory.entries()).map(([id, v]) => {
-              const cat = categories.find(c => c.id === id);
-              return (
-                <div key={id} className="flex items-center px-4 py-3 text-sm border-b last:border-0" style={{ borderBottomColor: '#282828' }}>
-                  <span className="flex-1 text-text-primary">{cat?.labelFr || id}{cat?.isCustom ? ' ✦' : ''}</span>
-                  <span className="w-24 text-right tabular-nums" style={{ color: '#1DB954' }}>{formatCurrencyCompact(v.income)}</span>
-                  <span className="w-24 text-right tabular-nums font-medium" style={{ color: v.income - v.expense >= 0 ? '#1DB954' : '#E51332' }}>{v.income - v.expense >= 0 ? '+' : ''}{formatCurrencyCompact(v.income - v.expense)}</span>
+            <p className="text-text-tertiary text-xs">Entrées</p>
+            <p className="text-income font-bold text-sm mt-1">+{formatCurrencyCompact(totalIncome)}</p>
+          </div>
+          <div className="rounded-xl p-4 text-center" style={{ backgroundColor: '#212121' }}>
+            <div className="w-8 h-8 rounded-full flex items-center justify-center mx-auto mb-2" style={{ backgroundColor: '#E5133220' }}>
+              <TrendingDown className="w-4 h-4" style={{ color: '#E51332' }} />
+            </div>
+            <p className="text-text-tertiary text-xs">Sorties</p>
+            <p className="text-expense font-bold text-sm mt-1">-{formatCurrencyCompact(totalExpense)}</p>
+          </div>
+          <div className="rounded-xl p-4 text-center" style={{ backgroundColor: '#212121' }}>
+            <div className="w-8 h-8 rounded-full flex items-center justify-center mx-auto mb-2" style={{ backgroundColor: '#FF6B0020' }}>
+              <BarChart3 className="w-4 h-4" style={{ color: '#FF6B00' }} />
+            </div>
+            <p className="text-text-tertiary text-xs">Résultat</p>
+            <p className="font-bold text-sm mt-1" style={{ color: netResult >= 0 ? '#1DB954' : '#E51332' }}>
+              {netResult >= 0 ? '+' : '-'}{formatCurrencyCompact(Math.abs(netResult))}
+            </p>
+          </div>
+        </div>
+
+        {/* By category */}
+        <div className="rounded-xl p-4 mb-6" style={{ backgroundColor: '#212121' }}>
+          <p className="text-text-tertiary text-xs font-medium mb-4">Par catégorie</p>
+          <div className="space-y-3">
+            {byCategory.map((cat) => (
+              <div key={cat.categoryId}>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="text-text-primary font-medium">{cat.labelFr}</span>
+                  <span className="text-text-tertiary">{cat.net >= 0 ? '+' : '-'}{formatCurrencyCompact(Math.abs(cat.net))}</span>
                 </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* By Org Unit */}
-        {byOrgUnit.size > 0 && (
-          <div className="mb-5">
-            <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider mb-3">Par groupe</p>
-            <div className="rounded-lg overflow-hidden" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
-              <div className="flex items-center px-4 py-3 text-xs text-text-tertiary border-b" style={{ borderBottomColor: '#282828' }}>
-                <span className="flex-1">Nom</span>
-                <span className="w-24 text-right">Entrées</span>
-                <span className="w-24 text-right">Net</span>
+                <div className="flex gap-1 h-2 rounded-full overflow-hidden" style={{ backgroundColor: '#282828' }}>
+                  {cat.income > 0 && (
+                    <div className="rounded-full" style={{ width: `${(cat.income / maxVal) * 50}%`, backgroundColor: '#1DB954' }} />
+                  )}
+                  {cat.expense > 0 && (
+                    <div className="rounded-full ml-auto" style={{ width: `${(cat.expense / maxVal) * 50}%`, backgroundColor: '#E51332' }} />
+                  )}
+                </div>
               </div>
-              {Array.from(byOrgUnit.entries()).map(([id, v]) => {
-                const unit = orgUnits.find(o => o.id === id);
-                return (
-                  <button key={id} onClick={() => navigate('/finance')} className="flex items-center px-4 py-3 text-sm border-b last:border-0 w-full text-left" style={{ borderBottomColor: '#282828' }}>
-                    <span className="flex-1 text-text-primary">{unit?.name || id}</span>
-                    <span className="w-24 text-right tabular-nums" style={{ color: '#1DB954' }}>{formatCurrencyCompact(v.income)}</span>
-                    <span className="w-24 text-right tabular-nums font-medium" style={{ color: v.income - v.expense >= 0 ? '#1DB954' : '#E51332' }}>{v.income - v.expense >= 0 ? '+' : ''}{formatCurrencyCompact(v.income - v.expense)}</span>
-                  </button>
-                );
-              })}
-            </div>
+            ))}
           </div>
-        )}
-
-        {/* Actions */}
-        <div className="flex gap-3 mb-6 pb-20">
-          <button onClick={handleExportPDF} className="flex-1 py-3 rounded-full text-sm font-semibold flex items-center justify-center gap-2" style={{ backgroundColor: '#FF6B00', color: '#FFFFFF' }}>
-            <Download className="w-4 h-4" />Exporter PDF
-          </button>
-          <button onClick={() => navigate('/finance')} className="flex-1 py-3 rounded-full text-sm font-semibold" style={{ backgroundColor: '#212121', color: '#B3B3B3' }}>Grand livre</button>
         </div>
-      </div>
 
+        <button onClick={() => navigate(-1)} className="w-full py-3 rounded-full font-medium text-sm flex items-center justify-center gap-2" style={{ backgroundColor: '#212121', color: '#B3B3B3' }}>
+          <Download className="w-4 h-4" /> Exporter
+        </button>
+      </div>
       <BottomNav />
     </div>
   );

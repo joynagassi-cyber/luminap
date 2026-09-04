@@ -1,14 +1,15 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useLocalStore, getRoleLabel } from '@/store/useLocalStore';
+import { useLocalStore } from '@/store/useLocalStore';
 import { formatCurrencyCompact, getPeriodRange } from '@/lib/utils';
-import { ArrowUpRight, ArrowDownRight, BarChart3, BookOpen, PlusCircle, Calendar, TrendingUp, Wallet, Sparkles } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Calendar, TrendingUp, Wallet, Sparkles, PlusCircle } from 'lucide-react';
 import TransactionCard from '@/components/TransactionCard';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
 import BottomDrawer from '@/components/BottomDrawer';
 import { PageSkeleton, CardSkeleton } from '@/components/Skeleton';
 import type { Caisse } from '@/types';
+import { getRoleLabel } from '@/store/useLocalStore';
 
 function CaisseCard({ caisse, transactions, navigate }: { caisse: Caisse; transactions: any[]; navigate: ReturnType<typeof useNavigate> }) {
   const approvedTxs = transactions.filter(t => t.sourceCaisseId === caisse.id && t.status === 'APPROVED');
@@ -107,7 +108,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-canvas">
       <TopHeader title="Lumina" />
-      <div className="max-w-lg mx-auto px-5 pb-24">
+      <div className="max-w-lg mx-auto px-5 pb-24 pt-16">
 
         {/* Main Caisse Hero */}
         {mainCaisse && (
@@ -120,7 +121,7 @@ export default function Dashboard() {
             }}
             onClick={() => navigate('/finance')}
           >
-            {/* Top row: greeting + role */}
+            {/* Top row: greeting + role on left, balance on right */}
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#FF6B0020' }}>
@@ -147,10 +148,10 @@ export default function Dashboard() {
             {/* Divider */}
             <div className="h-px mb-4" style={{ backgroundColor: '#282828' }} />
 
-            {/* Stats row */}
+            {/* Stats row with circular icon badges */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: '#1DB95420' }}>
+                <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#1DB95420' }}>
                   <ArrowUpRight className="w-4 h-4" style={{ color: '#1DB954' }} />
                 </div>
                 <div>
@@ -161,7 +162,7 @@ export default function Dashboard() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: '#E5133220' }}>
+                <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#E5133220' }}>
                   <ArrowDownRight className="w-4 h-4" style={{ color: '#E51332' }} />
                 </div>
                 <div className="text-right">
@@ -236,7 +237,7 @@ export default function Dashboard() {
               </div>
               <div>
                 <p className="text-text-primary text-sm font-semibold">Versement</p>
-                <p className="text-text-tertiary text-xs mt-0.5">Vérser vers la caisse</p>
+                <p className="text-text-tertiary text-xs mt-0.5">Verset vers la caisse</p>
               </div>
             </button>
             <button onClick={() => navigate('/events')} className="flex items-center gap-3 p-4 rounded-lg active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
@@ -248,7 +249,7 @@ export default function Dashboard() {
                 <p className="text-text-tertiary text-xs mt-0.5">Planifier & suivre</p>
               </div>
             </button>
-            <button onClick={() => navigate('/finance')} className="flex items-center gap-3 p-4 rounded-lg active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
+            <button onClick={() => navigate('/finance')} className="flex items-center gap-3 p-4 rounded-lg active:scale-95 transition-transform text-left col-span-2" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
               <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#1DB95420' }}>
                 <TrendingUp className="w-5 h-5" style={{ color: '#1DB954' }} />
               </div>

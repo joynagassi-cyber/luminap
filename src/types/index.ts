@@ -11,7 +11,19 @@ export const ORG_PRESETS: Record<OrgType, { primary: string; light: string; dark
 
 export type Role = 'PASTEUR' | 'SECRETAIRE' | 'TREASURIER' | 'COMPTABLE' | 'TREASURIER_ADJOINT' | 'SECRETAIRE_ADJOINT';
 
-export type UserRole = Role;
+export type TransactionStatus = 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED';
+export type TransactionType = 'INCOME' | 'EXPENSE';
+export type FundSource = 'CAISSE' | 'COTISATION' | 'PERSONNE' | 'AUTRE';
+export type CaisseType = 'MAIN' | 'GROUP';
+export type EventStatus = 'PLANIFIED' | 'ONGOING' | 'COMPLETED' | 'CANCELLED';
+
+export type Organization = {
+  id: string;
+  name: string;
+  type: OrgType;
+  accentColor: string;
+  logoUrl?: string;
+};
 
 export type User = {
   id: string;
@@ -22,19 +34,34 @@ export type User = {
   org: Organization;
 };
 
-export type Organization = {
+export type Category = {
   id: string;
-  name: string;
-  type: OrgType;
-  accentColor: string;
-  logoUrl?: string;
+  key: string;
+  labelFr: string;
+  type: TransactionType;
+  orgId: string;
+  isCustom?: boolean;
 };
 
-export type TransactionStatus = 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED';
+export type OrgUnit = {
+  id: string;
+  name: string;
+  type: string;
+  description: string;
+  orgId: string;
+  isActive: boolean;
+};
 
-export type TransactionType = 'INCOME' | 'EXPENSE';
-
-export type FundSource = 'CAISSE' | 'COTISATION' | 'PERSONNE' | 'AUTRE';
+export type Caisse = {
+  id: string;
+  name: string;
+  description: string;
+  type: CaisseType;
+  color: string;
+  orgId: string;
+  createdAt: string;
+  updatedAt: string;
+};
 
 export type Transaction = {
   id: string;
@@ -64,39 +91,6 @@ export type Transaction = {
   event?: Event;
   creator?: User;
   approver?: User;
-};
-
-export type Category = {
-  id: string;
-  key: string;
-  labelFr: string;
-  type: TransactionType;
-  orgId: string;
-  isCustom?: boolean;
-};
-
-export type OrgUnit = {
-  id: string;
-  name: string;
-  type: string;
-  description: string;
-  orgId: string;
-  isActive: boolean;
-};
-
-export type EventStatus = 'PLANIFIED' | 'ONGOING' | 'COMPLETED' | 'CANCELLED';
-
-export type CaisseType = 'MAIN' | 'GROUP';
-
-export type Caisse = {
-  id: string;
-  name: string;
-  description: string;
-  type: CaisseType;
-  color: string;
-  orgId: string;
-  createdAt: string;
-  updatedAt: string;
 };
 
 export type Event = {
@@ -145,11 +139,20 @@ export type NotificationItem = {
   createdAt: string;
 };
 
-export type BalanceResult = {
-  totalIncome: number;
-  totalExpense: number;
-  netResult: number;
-  byCategory: { categoryId: string; income: number; expense: number; category?: Category }[];
-  byOrgUnit: { orgUnitId: string; income: number; expense: number; orgUnit?: OrgUnit }[];
-  transactionCount: number;
+export type RoleAssignment = {
+  sessionId: string;
+  role: Role;
+  orgId: string;
+  createdAt: string;
+};
+
+export type SyncQueueItem = {
+  id: string;
+  operation: string;
+  entityType: string;
+  entityId: string;
+  payload: any;
+  attempts: number;
+  lastAttempt: string | null;
+  createdAt: string;
 };

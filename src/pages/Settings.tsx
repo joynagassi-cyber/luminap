@@ -1,254 +1,98 @@
-import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Wifi, WifiOff, BookOpen, Bell, Building2, Camera, Upload, Save, X } from 'lucide-react';
 import { useLocalStore } from '@/store/useLocalStore';
+import { Settings, Database, Cloud, CloudOff, RefreshCw, CreditCard, UserCircle } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
-import { formatDistanceToNow } from 'date-fns';
-import { fr } from 'date-fns/locale';
-import LuminaLogo from '@/components/LuminaLogo';
 
-export default function Settings() {
+export default function SettingsPage() {
   const navigate = useNavigate();
-  const { user, syncStatus, lastSyncedAt, isOnline, notifications, refreshData } = useLocalStore();
-  const unreadCount = notifications.filter(n => !n.isRead).length;
-  const [orgName, setOrgName] = useState('');
-  const [logoUrl, setLogoUrl] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [logoError, setLogoError] = useState(false);
+  const { user, loadInitialData, isOnline } = useLocalStore();
 
-  useEffect(() => {
-    const loadConfig = async () => {
-      const name = await import('@/lib/db').then(m => m.getConfig<string>('orgName')).catch(() => null);
-      const logo = await import('@/lib/db').then(m => m.getConfig<string>('orgLogoUrl')).catch(() => null);
-      setOrgName(name || 'Église MFE-JC Centrale');
-      setLogoUrl(logo || '');
-    };
-    loadConfig();
-  }, []);
-
-  const handleSave = async () => {
-    const db = await import('@/lib/db');
-    setSaving(true);
-    await db.setOrgConfig('orgName', orgName.trim());
-    await db.setOrgConfig('orgLogoUrl', logoUrl.trim());
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+  const handleRefresh = async () => {
+    await loadInitialData();
   };
 
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      setLogoError(true);
-      return;
-    }
-    if (file.size > 500 * 1024) {
-      setLogoError(true);
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      setLogoUrl(ev.target?.result as string);
-      setLogoError(false);
-    };
-    reader.readAsDataURL(file);
+  const handleLogout = () => {
+    localStorage.removeItem('lumina-session');
+    navigate('/login');
   };
 
   return (
     <div className="min-h-screen bg-canvas">
       <TopHeader title="Paramètres" />
-      <div className="max-w-lg mx-auto px-5 pb-24">
+      <div className="max-w-lg mx-auto px-5 pb-24 pt-16">
+        <h1 className="text-text-primary font-bold text-xl mb-6">Paramètres</h1>
 
-        {/* Profile Card */}
-        <div className="rounded-xl p-4 mb-5 flex items-center gap-4" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
-          <div className="w-14 h-14 rounded-full flex items-center justify-center text-xl font-bold flex-shrink-0" style={{ backgroundColor: '#FF6B00', color: '#FFFFFF' }}>
-            {user?.role?.[0] || 'U'}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-text-primary font-semibold text-lg">
-              {user?.role === 'TREASURIER' ? 'Trésorier' :
-               user?.role === 'PASTEUR' ? 'Pasteur' :
-               user?.role === 'SECRETAIRE' ? 'Secrétaire' :
-               user?.role === 'COMPTABLE' ? 'Comptable' :
-               user?.role === 'TREASURIER_ADJOINT' ? 'Trésorier Adjoint' :
-               user?.role === 'SECRETAIRE_ADJOINT' ? 'Secrétaire Adjoint' :
-               user?.firstName || 'Utilisateur'}
-            </p>
-            <p className="text-text-tertiary text-sm capitalize">{user?.role?.replace('_', ' ').toLowerCase()}</p>
-          </div>
-        </div>
-
-        {/* Notifications */}
-        <button
-          onClick={() => navigate('/notifications')}
-          className="w-full flex items-center gap-4 p-4 rounded-xl mb-5 text-left active:scale-95 transition-transform"
-          style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
-        >
-          <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#FF6B0020' }}>
-            <Bell className="w-5 h-5" style={{ color: '#FF6B00' }} />
+        {/* Profile */}
+        <div className="rounded-xl p-4 mb-5 flex items-center gap-4" style={{ backgroundColor: '#212121' }}>
+          <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ backgroundColor: '#FF6B0020' }}>
+            <UserCircle className="w-7 h-7" style={{ color: '#FF6B00' }} />
           </div>
           <div className="flex-1">
-            <p className="text-text-primary font-semibold text-sm">Notifications</p>
-            <p className="text-text-tertiary text-xs mt-0.5">
-              {unreadCount > 0
-                ? `${unreadCount} notification${unreadCount > 1 ? 's' : ''} non lue${unreadCount > 1 ? 's' : ''}`
-                : 'Aucune notification'}
-            </p>
-          </div>
-          {unreadCount > 0 && (
-            <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{ backgroundColor: '#FF6B00', color: '#FFFFFF' }}>
-              {unreadCount}
-            </span>
-          )}
-          <svg className="w-4 h-4 text-text-tertiary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
-
-        {/* Network Status */}
-        <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider mb-2">Connectivité</p>
-        <div className="rounded-lg overflow-hidden mb-5" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
-          <div className="flex items-center justify-between px-4 py-3">
-            <div className="flex items-center gap-3">
-              {isOnline ? (
-                <Wifi className="w-5 h-5" style={{ color: '#1DB954' }} />
-              ) : (
-                <WifiOff className="w-5 h-5" style={{ color: '#E51332' }} />
-              )}
-              <div>
-                <p className="text-text-primary font-medium text-sm">{isOnline ? 'En ligne' : 'Hors ligne'}</p>
-                <p className="text-text-tertiary text-xs">
-                  {lastSyncedAt
-                    ? `Sync: ${formatDistanceToNow(new Date(lastSyncedAt), { addSuffix: true, locale: fr })}`
-                    : 'Jamais sync'}
-                </p>
-              </div>
-            </div>
-            <span className="text-xs px-3 py-1 rounded-full font-medium"
-              style={{ backgroundColor: isOnline ? '#1DB95420' : '#E5133220', color: isOnline ? '#1DB954' : '#E51332' }}>
-              {syncStatus === 'syncing' ? 'Sync...' : syncStatus === 'error' ? 'Erreur' : 'OK'}
-            </span>
+            <p className="text-text-primary font-semibold text-base">{user.firstName} {user.lastName}</p>
+            <p className="text-text-tertiary text-sm">{user.role}</p>
+            <p className="text-text-tertiary text-xs mt-0.5">{user.org.name}</p>
           </div>
         </div>
 
-        {/* Storage info */}
-        <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider mb-2">Stockage local</p>
-        <div className="rounded-lg p-4 mb-5" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-text-tertiary text-sm">IndexedDB</span>
-            <span className="text-text-primary text-sm font-medium">Actif</span>
+        {/* Sync status */}
+        <div className="rounded-xl p-4 mb-5" style={{ backgroundColor: '#212121' }}>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              {isOnline ? <Cloud className="w-5 h-5" style={{ color: '#1DB954' }} /> : <CloudOff className="w-5 h-5" style={{ color: '#808080' }} />}
+              <span className="text-text-primary font-medium">Synchronisation</span>
+            </div>
+            <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: isOnline ? '#1DB95420' : '#80808020', color: isOnline ? '#1DB954' : '#808080' }}>
+              {isOnline ? 'Connecté' : 'Hors ligne'}
+            </span>
           </div>
-          <div className="flex items-center justify-between">
-            <span className="text-text-tertiary text-sm">Mode</span>
-            <span className="text-text-primary text-sm font-medium">Local-first</span>
+          <p className="text-text-tertiary text-xs">Données synchronisées automatiquement quand la connexion est disponible.</p>
+        </div>
+
+        {/* Storage */}
+        <div className="rounded-xl p-4 mb-5" style={{ backgroundColor: '#212121' }}>
+          <div className="flex items-center gap-2 mb-3">
+            <Database className="w-5 h-5" style={{ color: '#FF6B00' }} />
+            <span className="text-text-primary font-medium">Stockage local</span>
+          </div>
+          <p className="text-text-tertiary text-xs mb-3">Les données sont stockées localement sur votre appareil (IndexedDB). Aucune authentification requise.</p>
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-text-tertiary">Base de données</span>
+            <span className="text-text-secondary">lumina-db v7</span>
           </div>
         </div>
 
-        {/* Organization Config */}
-        <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider mb-2">Organisation</p>
-        <div className="rounded-xl p-5 mb-5" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
-          <div className="flex items-center gap-3 mb-4">
-            {logoUrl ? (
-              <img src={logoUrl} alt="Logo église" className="w-12 h-12 rounded-lg object-cover" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }} />
-            ) : (
-              <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#282828' }}>
-                <Building2 className="w-6 h-6" style={{ color: '#808080' }} />
-              </div>
-            )}
-            <div className="flex-1">
-              <p className="text-text-primary font-semibold text-base">{orgName || 'Église MFE-JC Centrale'}</p>
-              <p className="text-text-tertiary text-xs mt-0.5">Configurateur d'identité</p>
+        {/* Actions */}
+        <div className="space-y-2 mb-6">
+          <button onClick={handleRefresh} className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
+            <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#FF6B0020' }}>
+              <RefreshCw className="w-5 h-5" style={{ color: '#FF6B00' }} />
             </div>
-          </div>
-
-          {/* Church name */}
-          <div className="mb-4">
-            <label className="block text-text-secondary text-sm font-medium mb-2">Nom de l'église</label>
-            <input
-              type="text"
-              value={orgName}
-              onChange={(e) => setOrgName(e.target.value)}
-              placeholder="ex: Église de la Grâce"
-              maxLength={60}
-              className="w-full px-4 py-3 rounded-lg text-text-primary text-sm outline-none"
-              style={{ backgroundColor: '#121212', border: '1px solid #282828' }}
-            />
-          </div>
-
-          {/* Logo upload */}
-          <div className="mb-4">
-            <label className="block text-text-secondary text-sm font-medium mb-2">Logo de l'église</label>
-            <div className="flex items-center gap-3">
-              <label className="flex-1 flex items-center gap-2 py-3 px-4 rounded-lg cursor-pointer transition-all hover:scale-105 active:scale-95" style={{ backgroundColor: '#121212', border: '1px dashed #282828' }}>
-                <Upload className="w-4 h-4 text-text-tertiary" />
-                <span className="text-text-tertiary text-sm">Choisir une image</span>
-                <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
-              </label>
-              {logoUrl && (
-                <button onClick={() => { setLogoUrl(''); setLogoError(false); }} className="p-2.5 rounded-lg" style={{ backgroundColor: '#282828', color: '#808080' }}>
-                  <X className="w-4 h-4" />
-                </button>
-              )}
+            <div>
+              <p className="text-text-primary text-sm font-semibold">Actualiser les données</p>
+              <p className="text-text-tertiary text-xs mt-0.5">Recharger depuis la base locale</p>
             </div>
-            {logoError && <p className="text-xs mt-1" style={{ color: '#E51332' }}>Image requise (max 500 Ko)</p>}
-            {logoUrl && (
-              <div className="mt-3 flex items-center gap-3 p-3 rounded-lg" style={{ backgroundColor: '#121212' }}>
-                <img src={logoUrl} alt="Aperçu" className="w-10 h-10 rounded-lg object-cover" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }} />
-                <div>
-                  <p className="text-text-primary text-sm font-medium">Logo prêt</p>
-                  <p className="text-text-tertiary text-xs">Sera affiché dans les rapports</p>
-                </div>
-              </div>
-            )}
-          </div>
+          </button>
 
-          {/* Save button */}
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-full text-sm font-semibold transition-all active:scale-95 disabled:opacity-60"
-            style={{ backgroundColor: saved ? '#1DB954' : '#FF6B00', color: '#FFFFFF' }}
-          >
-            {saving ? (
-              <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            ) : saved ? (
-              <><Save className="w-4 h-4" />Sauvegardé ✓</>
-            ) : (
-              <><Save className="w-4 h-4" />Sauvegarder</>
-            )}
+          <button onClick={() => navigate('/balance')} className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
+            <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#1DB95420' }}>
+              <CreditCard className="w-5 h-5" style={{ color: '#1DB954' }} />
+            </div>
+            <div>
+              <p className="text-text-primary text-sm font-semibold">Bilan financier</p>
+              <p className="text-text-tertiary text-xs mt-0.5">Voir le rapport par période</p>
+            </div>
           </button>
         </div>
 
-        {/* Help link */}
-        <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider mb-2">Aide</p>
-        <button
-          onClick={() => navigate('/help')}
-          className="w-full flex items-center gap-3 p-4 rounded-lg mb-8 text-left active:scale-95 transition-transform"
-          style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
-        >
-          <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#FF6B0020' }}>
-            <BookOpen className="w-5 h-5" style={{ color: '#FF6B00' }} />
-          </div>
-          <div>
-            <p className="text-text-primary font-semibold text-sm">Centre d'aide</p>
-            <p className="text-text-tertiary text-xs mt-0.5">Guide d'utilisation et FAQ</p>
-          </div>
-          <svg className="w-4 h-4 text-text-tertiary ml-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
+        {/* Logout */}
+        <button onClick={handleLogout} className="w-full py-3 rounded-full font-medium text-sm text-text-tertiary transition-all active:scale-95" style={{ backgroundColor: '#212121' }}>
+          Se déconnecter
         </button>
 
-        <p className="text-text-tertiary text-xs text-center pb-6">
-          Lumina v2.0 · {orgName || 'Église MFE-JC Centrale'}<br />
-          Données sauvegardées localement · Sync cloud automatique
-        </p>
+        <p className="text-text-tertiary text-xs text-center mt-6">Lumina v1.0 · Église MFE-JC Centrale</p>
       </div>
-
       <BottomNav />
     </div>
   );
 }
-
