@@ -209,7 +209,7 @@ export default function Dashboard() {
             </div>
             <div className="space-y-2">
               {upcomingEvents.map((event) => {
-                const budgetSpent = event.budgetItems.reduce((s, i) => s + i.spent, 0);
+                const budgetSpent = (event.budgetItems || []).reduce((s, i) => s + i.spent, 0);
                 const overBudget = event.budget > 0 && budgetSpent > event.budget;
                 const EVENT_COLORS: Record<string, string> = {
                   PLANIFIED: '#3B82F6',
