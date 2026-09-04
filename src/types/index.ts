@@ -93,6 +93,27 @@ export type Transaction = {
   approver?: User;
 };
 
+export type BudgetItem = {
+  id: string;
+  label: string;
+  allocated: number;
+  spent: number;
+  fundedBy: 'main' | string;
+  categoryId?: string;
+  isCustom?: boolean;
+};
+
+export type ShoppingItem = {
+  id: string;
+  label: string;
+  quantity: number;
+  unitPrice: number;
+  total: number;
+  status: 'PENDING' | 'ORDERED' | 'RECEIVED' | 'CANCELLED';
+  supplier?: string;
+  notes?: string;
+};
+
 export type Event = {
   id: string;
   orgId: string;
@@ -102,6 +123,8 @@ export type Event = {
   endDate: string | null;
   status: EventStatus;
   budget: number;
+  budgetItems: BudgetItem[];
+  shoppingItems: ShoppingItem[];
   createdAt: string;
   updatedAt: string;
 };
@@ -109,14 +132,22 @@ export type Event = {
 export type AuditEntry = {
   id: string;
   orgId: string;
-  transactionId: string;
+  transactionId: string | null;
   userId: string;
   action: string;
   entityType: string;
   entityId: string;
+  previousValue: any;
+  newValue: any;
   comment: string | null;
   createdAt: string;
   user?: User;
+};
+
+export type AppConfig = {
+  churchName: string;
+  churchLogoUrl: string;
+  userPhoto: string;
 };
 
 export type VersementRecord = {

@@ -1,5 +1,5 @@
 const DB_NAME = 'lumina-db';
-const DB_VERSION = 7;
+const DB_VERSION = 8;
 
 type StoreName = 'transactions' | 'categories' | 'orgUnits' | 'auditEntries' | 'events' | 'syncQueue' | 'config' | 'caisses';
 

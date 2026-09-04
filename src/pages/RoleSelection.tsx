@@ -1,59 +1,93 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLocalStore } from '@/store/useLocalStore';
 import { ChevronLeft } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
+import LuminaLogo from '@/components/LuminaLogo';
 
 export default function RoleSelection() {
   const navigate = useNavigate();
-  const { user, selectRole } = useLocalStore();
+  const { user, selectRole, appConfig } = useLocalStore();
+  const [loading, setLoading] = useState<string | null>(null);
+  const churchName = appConfig.churchName || 'Église MFE-JC Centrale';
 
   const roles = [
-    { id: 'TREASURIER', label: 'Trésorier', desc: 'Gestion complète des finances' },
-    { id: 'PASTEUR', label: 'Pasteur', desc: 'Vue d\'ensemble et validation' },
-    { id: 'SECRETAIRE', label: 'Secrétaire', desc: 'Gestion des événements' },
-    { id: 'COMPTABLE', label: 'Comptable', desc: 'Bilans et grand livre' },
-    { id: 'TREASURIER_ADJOINT', label: 'Trésorier Adjoint', desc: 'Assistance trésorerie' },
-    { id: 'SECRETAIRE_ADJOINT', label: 'Secrétaire Adjoint', desc: 'Assistance secrétariat' },
+    { id: 'TREASURIER', label: 'Trésorier', desc: 'Gestion complète des finances', emoji: '💰' },
+    { id: 'PASTEUR', label: 'Pasteur', desc: 'Vue d\'ensemble et validation', emoji: '✝️' },
+    { id: 'SECRETAIRE', label: 'Secrétaire', desc: 'Gestion des événements', emoji: '📋' },
+    { id: 'COMPTABLE', label: 'Comptable', desc: 'Bilans et grand livre', emoji: '📊' },
+    { id: 'TREASURIER_ADJOINT', label: 'Trésorier Adjoint', desc: 'Assistance trésorerie', emoji: '💵' },
+    { id: 'SECRETAIRE_ADJOINT', label: 'Secrétaire Adjoint', desc: 'Assistance secrétariat', emoji: '📝' },
   ];
 
   const handleSelect = async (roleId: string) => {
-    await selectRole(roleId as any);
-    navigate('/');
+    setLoading(roleId);
+    try {
+      await selectRole(roleId as any);
+      navigate('/');
+    } finally {
+      setLoading(null);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-canvas">
-      <TopHeader title="Rôle" />
-      <div className="max-w-lg mx-auto px-5 pb-24 pt-16">
-        <button onClick={() => navigate('/login')} className="flex items-center gap-2 text-text-secondary text-sm mb-6">
-          <ChevronLeft className="w-4 h-4" /> Retour
-        </button>
-
-        <h1 className="text-text-primary font-bold text-2xl mb-2">Choisissez votre rôle</h1>
-        <p className="text-text-tertiary text-sm mb-8">Cela déterminera vos permissions dans l'application.</p>
-
-        <div className="space-y-3">
-          {roles.map(({ id, label, desc }) => (
-            <button
-              key={id}
-              onClick={() => handleSelect(id)}
-              className="w-full text-left rounded-xl p-4 transition-all active:scale-95 flex items-center gap-4"
-              style={{ backgroundColor: '#212121', border: user.role === id ? '1px solid #FF6B00' : '1px solid #282828' }}
-            >
-              <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: user.role === id ? '#FF6B0020' : '#282828' }}>
-                <span className="text-xl">{id === 'TREASURIER' ? '💰' : id === 'PASTEUR' ? '✝️' : id === 'SECRETAIRE' ? '📋' : id === 'COMPTABLE' ? '📊' : id === 'TREASURIER_ADJOINT' ? '💵' : '📝'}</span>
+    <div className="min-h-screen bg-canvas flex flex-col">
+      {/* Header with logo */}
+      <div className="flex-1 flex flex-col items-center justify-center px-5 pb-24">
+        <div className="w-full max-w-sm">
+          {/* Logo */}
+          <div className="text-center mb-10">
+            <div className="flex justify-center mb-4">
+              <div className="w-20 h-20 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #FF8533, #FF6B00)', boxShadow: '0 8px 24px rgba(255,107,0,0.3)' }}>
+                <LuminaLogo size={48} />
               </div>
-              <div>
-                <p className="text-text-primary font-semibold">{label}</p>
-                <p className="text-text-tertiary text-xs">{desc}</p>
-              </div>
-              {user.role === id && <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: '#FF6B0020', color: '#FF6B00' }}>Actif</span>}
-            </button>
-          ))}
+            </div>
+            <h1 className="text-text-primary text-2xl font-bold mb-1">Lumina</h1>
+            <p className="text-text-tertiary text-sm">{churchName}</p>
+            <p className="text-text-tertiary text-xs mt-1">Gestion financière de l'église</p>
+          </div>
+
+          <h2 className="text-text-primary font-bold text-xl mb-2 text-center">Choisissez votre rôle</h2>
+          <p className="text-text-tertiary text-sm text-center mb-8">Cela déterminera vos permissions dans l'application.</p>
+
+          <div className="space-y-3">
+            {roles.map(({ id, label, desc, emoji }) => (
+              <button
+                key={id}
+                onClick={() => handleSelect(id)}
+                disabled={loading !== null && loading !== id}
+                className="w-full text-left rounded-xl p-4 transition-all active:scale-95 flex items-center gap-4"
+                style={{ backgroundColor: '#212121', border: user.role === id ? '1px solid #FF6B00' : '1px solid #282828' }}
+              >
+                <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 text-xl" style={{ backgroundColor: user.role === id ? '#FF6B0020' : '#282828' }}>
+                  {loading === id ? (
+                    <div className="w-5 h-5 rounded-full border-2 border-[#FF6B00] border-t-transparent" style={{ animation: 'spin 0.8s linear infinite' }} />
+                  ) : (
+                    <span>{emoji}</span>
+                  )}
+                </div>
+                <div className="flex-1">
+                  <p className="text-text-primary font-semibold">{label}</p>
+                  <p className="text-text-tertiary text-xs">{desc}</p>
+                </div>
+                {user.role === id && <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: '#FF6B0020', color: '#FF6B00' }}>Actif</span>}
+              </button>
+            ))}
+          </div>
+
+          <p className="text-text-tertiary text-xs text-center mt-8">
+            Accès direct — aucune authentification requise
+          </p>
         </div>
       </div>
-      <BottomNav />
+
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 }

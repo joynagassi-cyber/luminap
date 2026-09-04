@@ -2,12 +2,12 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLocalStore } from '@/store/useLocalStore';
 import { formatCurrencyCompact, getPeriodRange } from '@/lib/utils';
-import { ArrowUpRight, ArrowDownRight, Calendar, TrendingUp, Wallet, Sparkles, PlusCircle } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Calendar, TrendingUp, Wallet, PlusCircle, Bell } from 'lucide-react';
 import TransactionCard from '@/components/TransactionCard';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
-import BottomDrawer from '@/components/BottomDrawer';
-import { PageSkeleton, CardSkeleton } from '@/components/Skeleton';
+import LuminaLogo from '@/components/LuminaLogo';
+import { PageSkeleton, ListSkeleton } from '@/components/Skeleton';
 import type { Caisse } from '@/types';
 import { getRoleLabel } from '@/store/useLocalStore';
 
@@ -26,10 +26,7 @@ function CaisseCard({ caisse, transactions, navigate }: { caisse: Caisse; transa
       style={{ backgroundColor: '#212121', border: `1px solid ${caisse.color}30` }}
     >
       <div className="flex items-center gap-3 mb-3">
-        <div
-          className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-          style={{ backgroundColor: caisse.color + '20' }}
-        >
+        <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: caisse.color + '20' }}>
           <Wallet className="w-5 h-5" style={{ color: caisse.color }} />
         </div>
         <div className="flex-1 min-w-0">
@@ -63,10 +60,9 @@ function CaisseCard({ caisse, transactions, navigate }: { caisse: Caisse; transa
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { transactions, categories, orgUnits, caisses, isLoading, user } = useLocalStore();
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const { transactions, categories, orgUnits, caisses, isLoading, user, appConfig } = useLocalStore();
+  const churchName = appConfig.churchName || user.org.name;
 
-  // Greeting based on time of day
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Bonjour';
@@ -86,7 +82,6 @@ export default function Dashboard() {
   const totalExpense = approvedTransactions.filter(t => t.type === 'EXPENSE').reduce((s, t) => s + t.amount, 0);
   const netResult = totalIncome - totalExpense;
 
-  // Recent main caisse transactions
   const recentTransactions = mainTxs
     .filter(t => t.status === 'APPROVED' || t.status === 'PENDING')
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -110,6 +105,14 @@ export default function Dashboard() {
       <TopHeader title="Lumina" />
       <div className="max-w-lg mx-auto px-5 pb-24 pt-16">
 
+        {/* Church name */}
+        <div className="flex items-center gap-2 mb-4">
+          {appConfig.churchLogoUrl && (
+            <img src={appConfig.churchLogoUrl} alt="Logo" className="w-6 h-6 rounded" />
+          )}
+          <p className="text-text-tertiary text-xs">{churchName}</p>
+        </div>
+
         {/* Main Caisse Hero */}
         {mainCaisse && (
           <div
@@ -117,16 +120,12 @@ export default function Dashboard() {
             style={{
               backgroundColor: '#212121',
               border: '1px solid #FF6B0040',
-              background: 'linear-gradient(135deg, #212121 0%, #1a1a1a 100%)',
             }}
             onClick={() => navigate('/finance')}
           >
-            {/* Top row: greeting + role on left, balance on right */}
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#FF6B0020' }}>
-                  <Sparkles className="w-5 h-5" style={{ color: '#FF6B00' }} />
-                </div>
+                <LuminaLogo size={40} />
                 <div>
                   <p className="text-text-primary font-bold text-base">{greeting} 👋</p>
                   <p className="text-text-tertiary text-xs mt-0.5">
@@ -145,10 +144,8 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Divider */}
             <div className="h-px mb-4" style={{ backgroundColor: '#282828' }} />
 
-            {/* Stats row with circular icon badges */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#1DB95420' }}>
@@ -213,7 +210,7 @@ export default function Dashboard() {
         <div className="mb-5">
           <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider mb-3">Actions rapides</p>
           <div className="grid grid-cols-2 gap-3">
-            <button onClick={() => navigate('/transaction/new')} className="flex items-center gap-3 p-4 rounded-lg active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
+            <button onClick={() => navigate('/transaction/new')} className="flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
               <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#1DB95420' }}>
                 <ArrowUpRight className="w-5 h-5" style={{ color: '#1DB954' }} />
               </div>
@@ -222,7 +219,7 @@ export default function Dashboard() {
                 <p className="text-text-tertiary text-xs mt-0.5">Ajouter un revenu</p>
               </div>
             </button>
-            <button onClick={() => navigate('/transaction/new')} className="flex items-center gap-3 p-4 rounded-lg active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
+            <button onClick={() => navigate('/transaction/new')} className="flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
               <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#E5133220' }}>
                 <ArrowDownRight className="w-5 h-5" style={{ color: '#E51332' }} />
               </div>
@@ -231,25 +228,25 @@ export default function Dashboard() {
                 <p className="text-text-tertiary text-xs mt-0.5">Ajouter une dépense</p>
               </div>
             </button>
-            <button onClick={() => navigate('/versement')} className="flex items-center gap-3 p-4 rounded-lg active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
+            <button onClick={() => navigate('/versement')} className="flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
               <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#FF6B0020' }}>
                 <TrendingUp className="w-5 h-5" style={{ color: '#FF6B00' }} />
               </div>
               <div>
                 <p className="text-text-primary text-sm font-semibold">Versement</p>
-                <p className="text-text-tertiary text-xs mt-0.5">Verset vers la caisse</p>
+                <p className="text-text-tertiary text-xs mt-0.5">Transférer vers la caisse</p>
               </div>
             </button>
-            <button onClick={() => navigate('/events')} className="flex items-center gap-3 p-4 rounded-lg active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
-              <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#FF6B0020' }}>
-                <Calendar className="w-5 h-5" style={{ color: '#FF6B00' }} />
+            <button onClick={() => navigate('/events')} className="flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
+              <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#8B5CF620' }}>
+                <Calendar className="w-5 h-5" style={{ color: '#8B5CF6' }} />
               </div>
               <div>
                 <p className="text-text-primary text-sm font-semibold">Événements</p>
                 <p className="text-text-tertiary text-xs mt-0.5">Planifier & suivre</p>
               </div>
             </button>
-            <button onClick={() => navigate('/finance')} className="flex items-center gap-3 p-4 rounded-lg active:scale-95 transition-transform text-left col-span-2" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
+            <button onClick={() => navigate('/finance')} className="flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform text-left col-span-2" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
               <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#1DB95420' }}>
                 <TrendingUp className="w-5 h-5" style={{ color: '#1DB954' }} />
               </div>
@@ -268,7 +265,7 @@ export default function Dashboard() {
         </div>
         <div className="space-y-2 pb-4">
           {recentTransactions.length === 0 ? (
-            <div className="text-center py-10 rounded-lg" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
+            <div className="text-center py-10 rounded-xl" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
               <PlusCircle className="w-8 h-8 mx-auto mb-3 text-text-tertiary" />
               <p className="text-text-tertiary text-sm">Aucune transaction</p>
               <button onClick={() => navigate('/transaction/new')} className="mt-3 text-sm font-medium" style={{ color: '#FF6B00' }}>
@@ -284,7 +281,6 @@ export default function Dashboard() {
       </div>
 
       <BottomNav />
-      <BottomDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
     </div>
   );
 }

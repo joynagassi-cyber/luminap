@@ -20,6 +20,7 @@ import Versement from "./pages/Versement";
 import Settings from "./pages/Settings";
 import History from "./pages/History";
 import Help from "./pages/Help";
+import Tutorial from "./pages/Tutorial";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import RoleSelection from "./pages/RoleSelection";
@@ -43,6 +44,7 @@ function AppRoutes() {
         <Route path="/login" element={<Login />} />
         <Route path="/role-selection" element={<RoleSelection />} />
         <Route path="/notifications" element={<Notifications />} />
+        <Route path="/tutoriel" element={<Tutorial />} />
         <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/finance" element={<ProtectedRoute><Finance /></ProtectedRoute>} />
         <Route path="/transaction/new" element={<ProtectedRoute><TransactionNew /></ProtectedRoute>} />
