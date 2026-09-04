@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useLocalStore } from '@/store/useLocalStore';
-import { ArrowLeft, Wallet, User, Building2 } from 'lucide-react';
+import { ArrowLeft, Wallet, Calendar } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
 import { generateId } from '@/lib/utils';
@@ -9,9 +9,10 @@ import { generateId } from '@/lib/utils';
 export default function TransactionNew() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { categories, orgUnits, caisses, addTransaction } = useLocalStore();
+  const { categories, orgUnits, caisses, events, addTransaction } = useLocalStore();
   const preselectedCaisse = (location.state as any)?.caisseId || '';
   const preselectedType = (location.state as any)?.type || '';
+  const preselectedEvent = (location.state as any)?.eventId || '';
 
   const [type, setType] = useState<'INCOME' | 'EXPENSE'>(preselectedType as any || 'INCOME');
   const [amount, setAmount] = useState('');
@@ -22,7 +23,7 @@ export default function TransactionNew() {
   const [sourceCaisseId, setSourceCaisseId] = useState(preselectedCaisse || 'main');
   const [source, setSource] = useState<'CAISSE' | 'COTISATION' | 'PERSONNE' | 'AUTRE'>('CAISSE');
   const [personName, setPersonName] = useState('');
-  const [eventId, setEventId] = useState('');
+  const [eventId, setEventId] = useState(preselectedEvent);
   const [comment, setComment] = useState('');
   const [error, setError] = useState('');
 
@@ -46,6 +47,7 @@ export default function TransactionNew() {
     }
     setError('');
     const sessionId = localStorage.getItem('lumina-session') || 'local-user';
+    const isExpense = type === 'EXPENSE';
 
     await addTransaction({
       orgId: 'org-1',
@@ -53,7 +55,7 @@ export default function TransactionNew() {
       amount: Math.round(parseFloat(amount) * 100),
       description,
       date,
-      status: source === 'CAISSE' ? 'PENDING' : 'DRAFT',
+      status: isExpense ? 'PENDING' : 'DRAFT',
       categoryId,
       orgUnitId: orgUnitId || null,
       sourceCaisseId: sourceCaisseId || 'main',
@@ -154,18 +156,17 @@ export default function TransactionNew() {
             <label className="text-text-tertiary text-xs mb-1.5 block">Source</label>
             <div className="grid grid-cols-4 gap-2">
               {([
-                { id: 'CAISSE' as const, label: 'Caisse', icon: Building2 },
-                { id: 'COTISATION' as const, label: 'Cotisation', icon: Wallet },
-                { id: 'PERSONNE' as const, label: 'Personne', icon: User },
-                { id: 'AUTRE' as const, label: 'Autre', icon: Wallet },
-              ]).map(({ id, label, icon: Icon }) => (
+                { id: 'CAISSE' as const, label: 'Caisse' },
+                { id: 'COTISATION' as const, label: 'Cotisation' },
+                { id: 'PERSONNE' as const, label: 'Personne' },
+                { id: 'AUTRE' as const, label: 'Autre' },
+              ]).map(({ id, label }) => (
                 <button
                   key={id}
                   onClick={() => setSource(id)}
-                  className="flex flex-col items-center gap-1 py-2.5 rounded-xl text-xs font-medium transition-all"
+                  className="py-2.5 rounded-xl text-xs font-medium transition-all"
                   style={source === id ? { backgroundColor: '#FF6B0020', color: '#FF6B00', border: '1px solid #FF6B00' } : { backgroundColor: '#212121', color: '#808080', border: '1px solid #282828' }}
                 >
-                  <Icon className="w-4 h-4" />
                   {label}
                 </button>
               ))}
@@ -213,7 +214,7 @@ export default function TransactionNew() {
               style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
             >
               <option value="">— Aucun —</option>
-              {useLocalStore.getState().events.map((ev) => (
+              {events.map((ev) => (
                 <option key={ev.id} value={ev.id}>{ev.name}</option>
               ))}
             </select>

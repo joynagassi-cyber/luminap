@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useLocalStore } from '@/store/useLocalStore';
 import { formatCurrencyCompact } from '@/lib/utils';
-import { ArrowLeft, Check, AlertCircle, Badge, User, Music, Users } from 'lucide-react';
+import { ArrowLeft, Check, AlertCircle, Wallet, RefreshCw } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
 
@@ -14,10 +14,12 @@ export default function Versement() {
   const [amount, setAmount] = useState<string>((location.state as any)?.defaultAmount ? String(Math.round((location.state as any).defaultAmount / 100)) : '');
   const [comment, setComment] = useState('');
   const [showConfirm, setShowConfirm] = useState(false);
+  const [previewTx, setPreviewTx] = useState<{ source: any; target: any } | null>(null);
 
   const groupCaisses = caisses.filter(c => c.type === 'GROUP');
   const selected = groupCaisses.find(c => c.id === selectedCaisse);
 
+  // Re-calculate balance fresh each time
   const approvedTxs = transactions.filter(t => t.sourceCaisseId === selectedCaisse && t.status === 'APPROVED');
   const balance = approvedTxs.filter(t => t.type === 'INCOME').reduce((s, t) => s + t.amount, 0) - approvedTxs.filter(t => t.type === 'EXPENSE').reduce((s, t) => s + t.amount, 0);
   const balanceFCFA = Math.round(balance / 100);
@@ -26,17 +28,14 @@ export default function Versement() {
   const amountNum = Math.round(parseFloat(amount || '0'));
   const isValid = amountNum > 0 && amountNum <= maxAmount;
 
-  const handleConfirm = async () => {
-    if (!isValid || !selectedCaisse) return;
-    const versementId = Date.now().toString(36);
+  const buildPreview = () => {
+    const versementId = Date.now().toString(36) + Math.random().toString(36).substr(2, 4);
     const mainCaisse = caisses.find(c => c.id === 'main');
     if (!mainCaisse) return;
-
     const amountCents = amountNum * 100;
     const now = new Date().toISOString();
     const sessionId = localStorage.getItem('lumina-session') || 'local-user';
 
-    // Source transaction (debit from group)
     const sourceTx = {
       id: versementId + '_src',
       orgId: 'org-1' as const,
@@ -62,7 +61,6 @@ export default function Versement() {
       versementId,
     };
 
-    // Target transaction (credit to main)
     const targetTx = {
       id: versementId + '_tgt',
       orgId: 'org-1' as const,
@@ -88,9 +86,13 @@ export default function Versement() {
       versementId,
     };
 
-    // Add both transactions
-    await addTransaction(sourceTx);
-    await addTransaction(targetTx);
+    setPreviewTx({ source: sourceTx, target: targetTx });
+  };
+
+  const handleConfirm = async () => {
+    if (!isValid || !selectedCaisse || !previewTx) return;
+    await addTransaction(previewTx.source);
+    await addTransaction(previewTx.target);
     navigate('/');
   };
 
@@ -103,16 +105,43 @@ export default function Versement() {
         </button>
         <h1 className="text-text-primary font-bold text-xl mb-6">Verser à la caisse principale</h1>
 
-        {showConfirm ? (
+        {showConfirm && previewTx ? (
           <div className="space-y-4">
-            <div className="rounded-xl p-5 text-center" style={{ backgroundColor: '#212121' }}>
-              <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3" style={{ backgroundColor: '#FF6B0020' }}>
-                <Check className="w-8 h-8" style={{ color: '#FF6B00' }} />
+            <div className="rounded-xl p-5" style={{ backgroundColor: '#212121' }}>
+              <p className="text-text-tertiary text-xs font-medium mb-3 text-center uppercase tracking-wider">Aperçu du versement</p>
+              
+              {/* Source side */}
+              <div className="flex items-center gap-3 p-3 rounded-xl mb-3" style={{ backgroundColor: '#E5133210', border: '1px solid #E5133230' }}>
+                <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#E5133220' }}>
+                  <ArrowLeft className="w-4 h-4" style={{ color: '#E51332', transform: 'rotate(90deg)' }} />
+                </div>
+                <div className="flex-1">
+                  <p className="text-text-primary text-sm font-medium">{selected?.name}</p>
+                  <p className="text-text-tertiary text-xs">Débit — Solde après: {formatCurrencyCompact(maxAmount - amountNum)} FCFA</p>
+                </div>
+                <span className="text-[#E51332] font-bold text-sm">-{formatCurrencyCompact(amountNum)} F</span>
               </div>
-              <p className="text-text-tertiary text-sm mb-1">Confirmer le versement</p>
-              <p className="text-3xl font-black" style={{ color: '#FF6B00' }}>{formatCurrencyCompact(amountNum)} <span className="text-text-tertiary text-base font-medium">FCFA</span></p>
-              <p className="text-text-tertiary text-xs mt-2">De {selected?.name} → Caisse principale</p>
-              {comment && <p className="text-text-tertiary text-xs mt-2 italic">"{comment}"</p>}
+
+              {/* Arrow */}
+              <div className="flex justify-center my-2">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: '#FF6B0020' }}>
+                  <RefreshCw className="w-4 h-4" style={{ color: '#FF6B00' }} />
+                </div>
+              </div>
+
+              {/* Target side */}
+              <div className="flex items-center gap-3 p-3 rounded-xl" style={{ backgroundColor: '#1DB95410', border: '1px solid #1DB95430' }}>
+                <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#1DB95420' }}>
+                  <Check className="w-4 h-4" style={{ color: '#1DB954' }} />
+                </div>
+                <div className="flex-1">
+                  <p className="text-text-primary text-sm font-medium">Caisse principale</p>
+                  <p className="text-text-tertiary text-xs">Crédit</p>
+                </div>
+                <span className="text-[#1DB954] font-bold text-sm">+{formatCurrencyCompact(amountNum)} F</span>
+              </div>
+
+              {comment && <p className="text-text-tertiary text-xs mt-3 text-center italic">"{comment}"</p>}
             </div>
             <button onClick={handleConfirm} className="w-full py-4 rounded-full font-semibold text-white transition-all active:scale-95" style={{ backgroundColor: '#FF6B00' }}>
               Confirmer le versement
@@ -133,12 +162,7 @@ export default function Versement() {
                   return (
                     <button key={c.id} onClick={() => { setSelectedCaisse(c.id); setAmount(''); }} className="w-full text-left rounded-xl p-4 flex items-center gap-3 transition-all" style={selectedCaisse === c.id ? { backgroundColor: c.color + '20', border: `1px solid ${c.color}` } : { backgroundColor: '#212121', border: '1px solid #282828' }}>
                       <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: c.color + '20' }}>
-                        {c.color === '#3B82F6' ? <Badge className="text-lg" style={{ color: '#3B82F6' }} /> :
-                         c.color === '#8B5CF6' ? <User className="text-lg" style={{ color: '#8B5CF6' }} /> :
-                         c.color === '#EC4899' ? <User className="text-lg" style={{ color: '#EC4899' }} /> :
-                         c.color === '#14B8A6' ? <Users className="text-lg" style={{ color: '#14B8A6' }} /> :
-                         c.color === '#F59E0B' ? <Music className="text-lg" style={{ color: '#F59E0B' }} /> :
-                         <Users className="text-lg" style={{ color: '#808080' }} />}
+                        <Wallet className="w-5 h-5" style={{ color: c.color }} />
                       </div>
                       <div className="flex-1">
                         <p className="text-text-primary text-sm font-semibold">{c.name}</p>
@@ -175,8 +199,8 @@ export default function Versement() {
                   </div>
                 )}
 
-                <button onClick={() => isValid && setShowConfirm(true)} disabled={!isValid} className="w-full py-4 rounded-full font-semibold text-white transition-all active:scale-95 disabled:opacity-40" style={{ backgroundColor: '#FF6B00' }}>
-                  Confirmer
+                <button onClick={() => isValid && buildPreview()} disabled={!isValid} className="w-full py-4 rounded-full font-semibold text-white transition-all active:scale-95 disabled:opacity-40" style={{ backgroundColor: '#FF6B00' }}>
+                  Aperçu du versement
                 </button>
               </>
             )}

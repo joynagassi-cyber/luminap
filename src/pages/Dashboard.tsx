@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLocalStore } from '@/store/useLocalStore';
-import { formatCurrencyCompact, getPeriodRange } from '@/lib/utils';
+import { formatCurrencyCompact, getPeriodRange, formatDate } from '@/lib/utils';
 import { ArrowUpRight, ArrowDownRight, Calendar, TrendingUp, Wallet, PlusCircle, Bell, Sparkles, ArrowUp, ArrowDown } from 'lucide-react';
 import TransactionCard from '@/components/TransactionCard';
 import BottomNav from '@/components/BottomNav';
@@ -60,7 +60,7 @@ function CaisseCard({ caisse, transactions, navigate }: { caisse: Caisse; transa
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { transactions, categories, orgUnits, caisses, isLoading, user, appConfig } = useLocalStore();
+  const { transactions, categories, orgUnits, caisses, events, isLoading, user, appConfig, notifications } = useLocalStore();
   const churchName = appConfig.churchName || user.org.name;
 
   const greeting = useMemo(() => {
@@ -90,6 +90,15 @@ export default function Dashboard() {
   const pendingCount = mainTxs.filter(t => t.status === 'PENDING').length;
   const draftCount = mainTxs.filter(t => t.status === 'DRAFT').length;
 
+  // Upcoming events (PLANIFIED or ONGOING, sorted by date)
+  const upcomingEvents = events
+    .filter(e => e.status === 'PLANIFIED' || e.status === 'ONGOING')
+    .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
+    .slice(0, 3);
+
+  // Unread notifications count
+  const unreadNotifCount = notifications.filter(n => !n.isRead).length;
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-canvas">
@@ -106,11 +115,21 @@ export default function Dashboard() {
       <div className="max-w-lg mx-auto px-5 pb-24 pt-16">
 
         {/* Church name */}
-        <div className="flex items-center gap-2 mb-4">
-          {appConfig.churchLogoUrl && (
-            <img src={appConfig.churchLogoUrl} alt="Logo" className="w-6 h-6 rounded" />
-          )}
-          <p className="text-text-tertiary text-xs">{churchName}</p>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            {appConfig.churchLogoUrl && (
+              <img src={appConfig.churchLogoUrl} alt="Logo" className="w-6 h-6 rounded" />
+            )}
+            <p className="text-text-tertiary text-xs">{churchName}</p>
+          </div>
+          <button onClick={() => navigate('/notifications')} className="relative flex items-center gap-1 px-2 py-1 rounded-full" style={{ backgroundColor: '#212121' }}>
+            <Bell className="w-4 h-4 text-text-tertiary" />
+            {unreadNotifCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-xs font-bold flex items-center justify-center" style={{ backgroundColor: '#E51332', color: '#fff' }}>
+                {unreadNotifCount}
+              </span>
+            )}
+          </button>
         </div>
 
         {/* Main Caisse Hero */}
@@ -128,8 +147,8 @@ export default function Dashboard() {
                 <LuminaLogo size={40} />
                 <div>
                   <p className="text-text-primary font-bold text-base">
-                    {greeting}{' '}
-                    <Sparkles className="w-5 h-5 inline" style={{ color: '#FF6B00' }} />
+                    {greeting}{' '
+                    }<Sparkles className="w-5 h-5 inline" style={{ color: '#FF6B00' }} />
                   </p>
                   <p className="text-text-tertiary text-xs mt-0.5">
                     {user.role ? getRoleLabel(user.role) : 'Trésorier'}
@@ -172,6 +191,67 @@ export default function Dashboard() {
                   </p>
                 </div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Upcoming Events */}
+        {upcomingEvents.length > 0 && (
+          <div className="mb-5">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4" style={{ color: '#8B5CF6' }} />
+                <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider">Événements à venir</p>
+              </div>
+              <button onClick={() => navigate('/events')} className="text-xs font-medium" style={{ color: '#FF6B00' }}>
+                Voir tout →
+              </button>
+            </div>
+            <div className="space-y-2">
+              {upcomingEvents.map((event) => {
+                const budgetSpent = event.budgetItems.reduce((s, i) => s + i.spent, 0);
+                const overBudget = event.budget > 0 && budgetSpent > event.budget;
+                const EVENT_COLORS: Record<string, string> = {
+                  PLANIFIED: '#3B82F6',
+                  ONGOING: '#1DB954',
+                  COMPLETED: '#808080',
+                  CANCELLED: '#E51332',
+                };
+                const color = EVENT_COLORS[event.status] || '#808080';
+                return (
+                  <button
+                    key={event.id}
+                    onClick={() => navigate(`/event/${event.id}`)}
+                    className="w-full text-left rounded-xl p-4 transition-all active:scale-95"
+                    style={{ backgroundColor: '#212121', border: `1px solid ${overBudget ? '#E5133240' : '#282828'}` }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: color + '20' }}>
+                        <Calendar className="w-5 h-5" style={{ color }} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-text-primary text-sm font-semibold truncate">{event.name}</p>
+                        <p className="text-text-tertiary text-xs mt-0.5">
+                          {event.startDate === event.endDate ? formatDate(event.startDate) : `${formatDate(event.startDate)} → ${formatDate(event.endDate!)}`}
+                        </p>
+                        {event.budget > 0 && (
+                          <div className="flex items-center gap-2 mt-1">
+                            <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ backgroundColor: '#282828' }}>
+                              <div className="h-full rounded-full" style={{ width: `${Math.min(100, (budgetSpent / event.budget) * 100)}%`, backgroundColor: overBudget ? '#E51332' : '#FF6B00' }} />
+                            </div>
+                            <span className={`text-xs ${overBudget ? 'text-[#E51332]' : 'text-text-tertiary'}`}>
+                              {formatCurrencyCompact(budgetSpent)}/{formatCurrencyCompact(event.budget)}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: color + '20', color }}>
+                        {event.status === 'PLANIFIED' ? 'Planifié' : event.status === 'ONGOING' ? 'En cours' : ''}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}

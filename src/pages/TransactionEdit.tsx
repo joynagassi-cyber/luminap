@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useLocalStore } from '@/store/useLocalStore';
-import { ArrowUpRight, ArrowDownRight, X } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, X, Wallet, User } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
 
 export default function TransactionEdit() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { transactions, categories, orgUnits, caisses, updateTransaction } = useLocalStore();
+  const { transactions, categories, orgUnits, caisses, events, updateTransaction } = useLocalStore();
   const [type, setType] = useState<'INCOME' | 'EXPENSE'>('INCOME');
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
@@ -16,6 +16,10 @@ export default function TransactionEdit() {
   const [categoryId, setCategoryId] = useState('');
   const [orgUnitId, setOrgUnitId] = useState('');
   const [sourceCaisseId, setSourceCaisseId] = useState('main');
+  const [source, setSource] = useState<'CAISSE' | 'COTISATION' | 'PERSONNE' | 'AUTRE'>('CAISSE');
+  const [personName, setPersonName] = useState('');
+  const [eventId, setEventId] = useState('');
+  const [compensatesFor, setCompensatesFor] = useState('');
   const [comment, setComment] = useState('');
 
   useEffect(() => {
@@ -28,11 +32,25 @@ export default function TransactionEdit() {
       setCategoryId(tx.categoryId);
       setOrgUnitId(tx.orgUnitId || '');
       setSourceCaisseId(tx.sourceCaisseId || 'main');
+      setSource(tx.source || 'CAISSE');
+      setPersonName(tx.personName || '');
+      setEventId(tx.eventId || '');
+      setCompensatesFor(tx.compensatesFor || '');
       setComment(tx.comment || '');
     }
   }, [id, transactions]);
 
   const filteredCategories = categories.filter(c => c.type === type);
+
+  const handleOrgUnitChange = (ouId: string) => {
+    setOrgUnitId(ouId);
+    if (ouId) {
+      const caisse = caisses.find(c => c.id === ouId);
+      if (caisse) setSourceCaisseId(caisse.id);
+    } else {
+      setSourceCaisseId('main');
+    }
+  };
 
   const handleSubmit = async () => {
     if (!amount || !description || !categoryId) return;
@@ -44,7 +62,11 @@ export default function TransactionEdit() {
       categoryId,
       orgUnitId: orgUnitId || null,
       sourceCaisseId,
-      comment,
+      source,
+      personName: source === 'PERSONNE' ? personName || null : null,
+      eventId: eventId || null,
+      compensatesFor: compensatesFor || null,
+      comment: comment || null,
     });
     navigate(`/transaction/${id}`);
   };
@@ -94,8 +116,31 @@ export default function TransactionEdit() {
           </div>
 
           <div>
+            <label className="text-text-tertiary text-xs mb-2 block">Source</label>
+            <div className="grid grid-cols-4 gap-2">
+              {([
+                { id: 'CAISSE' as const, label: 'Caisse' },
+                { id: 'COTISATION' as const, label: 'Cotisation' },
+                { id: 'PERSONNE' as const, label: 'Personne' },
+                { id: 'AUTRE' as const, label: 'Autre' },
+              ]).map(({ id, label }) => (
+                <button key={id} onClick={() => setSource(id)} className="py-2.5 rounded-xl text-xs font-medium transition-all" style={source === id ? { backgroundColor: '#FF6B0020', color: '#FF6B00', border: '1px solid #FF6B00' } : { backgroundColor: '#212121', color: '#808080', border: '1px solid #282828' }}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {source === 'PERSONNE' && (
+            <div>
+              <label className="text-text-tertiary text-xs mb-2 block">Nom de la personne</label>
+              <input type="text" value={personName} onChange={(e) => setPersonName(e.target.value)} placeholder="Ex: Jean Mbarga" className="w-full px-4 py-3 rounded-xl text-text-primary text-sm outline-none" style={{ backgroundColor: '#212121', border: '1px solid #282828' }} />
+            </div>
+          )}
+
+          <div>
             <label className="text-text-tertiary text-xs mb-2 block">Groupe</label>
-            <select value={orgUnitId} onChange={(e) => { setOrgUnitId(e.target.value); setSourceCaisseId(e.target.value || 'main'); }} className="w-full px-4 py-3 rounded-xl text-text-primary text-sm outline-none appearance-none" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
+            <select value={orgUnitId} onChange={(e) => handleOrgUnitChange(e.target.value)} className="w-full px-4 py-3 rounded-xl text-text-primary text-sm outline-none appearance-none" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
               <option value="">— Principal —</option>
               {orgUnits.map((ou) => (<option key={ou.id} value={ou.id}>{ou.name}</option>))}
             </select>
@@ -106,6 +151,19 @@ export default function TransactionEdit() {
             <select value={sourceCaisseId} onChange={(e) => setSourceCaisseId(e.target.value)} className="w-full px-4 py-3 rounded-xl text-text-primary text-sm outline-none appearance-none" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
               {caisses.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
             </select>
+          </div>
+
+          <div>
+            <label className="text-text-tertiary text-xs mb-2 block">Événement (optionnel)</label>
+            <select value={eventId} onChange={(e) => setEventId(e.target.value)} className="w-full px-4 py-3 rounded-xl text-text-primary text-sm outline-none appearance-none" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
+              <option value="">— Aucun —</option>
+              {events.map((ev) => (<option key={ev.id} value={ev.id}>{ev.name}</option>))}
+            </select>
+          </div>
+
+          <div>
+            <label className="text-text-tertiary text-xs mb-2 block">Compense une transaction (optionnel)</label>
+            <input type="text" value={compensatesFor} onChange={(e) => setCompensatesFor(e.target.value)} placeholder="Référence ou description" className="w-full px-4 py-3 rounded-xl text-text-primary text-sm outline-none" style={{ backgroundColor: '#212121', border: '1px solid #282828' }} />
           </div>
 
           <div>

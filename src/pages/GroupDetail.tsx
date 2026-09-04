@@ -2,18 +2,19 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useLocalStore } from '@/store/useLocalStore';
 import { formatCurrencyCompact, formatDate } from '@/lib/utils';
-import { ArrowLeft, Wallet, TrendingUp, TrendingDown, Check, Edit3, Trash2, X, Users, Clock, ArrowUp, ArrowDown } from 'lucide-react';
+import { ArrowLeft, Wallet, TrendingUp, TrendingDown, Check, Edit3, Trash2, Users, Clock, ArrowUp, ArrowDown, RefreshCw, ArrowRightLeft } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
 import TransactionCard from '@/components/TransactionCard';
 import { FullPageSkeleton, ListSkeleton } from '@/components/Skeleton';
+import type { Transaction } from '@/types';
 
 type Tab = 'transactions' | 'historique' | 'parametres';
 
 export default function GroupDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { orgUnits, caisses, transactions, createGroup, updateGroup, deleteGroup, isLoading } = useLocalStore();
+  const { orgUnits, caisses, transactions, createGroup, updateGroup, deleteGroup, isLoading, createNotification } = useLocalStore();
   const [activeTab, setActiveTab] = useState<Tab>('transactions');
   const [showEdit, setShowEdit] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
@@ -34,6 +35,22 @@ export default function GroupDetail() {
   const balance = income - expense;
   const pendingCount = txs.filter(t => t.status === 'PENDING').length;
   const pendingAmount = txs.filter(t => t.status === 'PENDING').reduce((s, t) => s + (t.type === 'INCOME' ? t.amount : -t.amount), 0);
+
+  // Versement history: transactions that have a versementId and come from this group
+  const versementTxs = txs.filter(t => t.versementId !== null);
+  const versements: Record<string, { amount: number; date: string; tx: Transaction }> = {};
+  for (const tx of versementTxs) {
+    if (!versements[tx.versementId!]) {
+      versements[tx.versementId!] = { amount: tx.amount, date: tx.date, tx };
+    }
+  }
+  const versementList = Object.values(versements)
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  // Timeline actions for enriched history
+  const timelineEvents: Array<{ date: string; label: string; type: 'info' | 'success' | 'warning' }> = [
+    { date: caisse.createdAt, label: 'Caisse créée', type: 'info' },
+  ];
 
   const handleVersement = () => {
     navigate('/versement', { state: { caisseId: caisse.id, defaultAmount: balance } });
@@ -177,11 +194,72 @@ export default function GroupDetail() {
         )}
 
         {activeTab === 'historique' && (
-          <div className="space-y-2">
-            <div className="p-4 rounded-xl text-center" style={{ backgroundColor: '#212121' }}>
-              <Users className="w-6 h-6 mx-auto mb-2 text-text-tertiary opacity-40" />
-              <p className="text-text-tertiary text-sm">Historique du groupe</p>
-              <p className="text-text-tertiary text-xs mt-1">Créé le {formatDate(caisse.createdAt)}</p>
+          <div className="space-y-3">
+            {/* Versement history */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <ArrowRightLeft className="w-4 h-4" style={{ color: '#FF6B00' }} />
+                <p className="text-text-primary font-semibold text-sm">Versements</p>
+                {versementList.length > 0 && (
+                  <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: '#FF6B0020', color: '#FF6B00' }}>{versementList.length}</span>
+                )}
+              </div>
+              {versementList.length === 0 ? (
+                <div className="rounded-xl p-6 text-center" style={{ backgroundColor: '#212121' }}>
+                  <ArrowRightLeft className="w-6 h-6 mx-auto mb-2 text-text-tertiary opacity-40" />
+                  <p className="text-text-tertiary text-sm">Aucun versement effectué</p>
+                  <p className="text-text-tertiary text-xs mt-1">Les versements apparaîtront ici</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {versementList.map((v, idx) => (
+                    <div key={idx} className="rounded-xl p-3 flex items-center gap-3" style={{ backgroundColor: '#212121' }}>
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#FF6B0020' }}>
+                        <ArrowRightLeft className="w-4 h-4" style={{ color: '#FF6B00' }} />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-text-primary text-sm font-medium">Versement vers caisse principale</p>
+                        <p className="text-text-tertiary text-xs">{formatDate(v.date)}</p>
+                      </div>
+                      <span className="text-sm font-bold text-[#E51332]">-{formatCurrencyCompact(v.amount)} F</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Group timeline */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <Clock className="w-4 h-4" style={{ color: '#808080' }} />
+                <p className="text-text-primary font-semibold text-sm">Timeline du groupe</p>
+              </div>
+              <div className="rounded-xl p-4" style={{ backgroundColor: '#212121' }}>
+                <div className="space-y-4">
+                  {timelineEvents.map((evt, idx) => (
+                    <div key={idx} className="flex items-start gap-3">
+                      <div className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ backgroundColor: evt.type === 'info' ? '#FF6B00' : evt.type === 'success' ? '#1DB954' : '#808080' }} />
+                      <div>
+                        <p className="text-text-primary text-xs font-medium">{evt.label}</p>
+                        <p className="text-text-tertiary text-xs">{formatDate(evt.date)}</p>
+                      </div>
+                    </div>
+                  ))}
+                  {/* Add transaction events */}
+                  {approvedTxs
+                    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                    .slice(0, 5)
+                    .map((tx) => (
+                      <div key={tx.id} className="flex items-start gap-3">
+                        <div className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ backgroundColor: tx.type === 'INCOME' ? '#1DB954' : '#E51332' }} />
+                        <div>
+                          <p className="text-text-primary text-xs font-medium">{tx.type === 'INCOME' ? 'Entrée' : 'Sortie'}: {tx.description}</p>
+                          <p className="text-text-tertiary text-xs">{formatDate(tx.date)} · {formatCurrencyCompact(tx.amount)} FCFA</p>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -232,7 +310,8 @@ export default function GroupDetail() {
               <Trash2 className="w-6 h-6 text-[#E51332]" />
             </div>
             <h3 className="text-text-primary font-bold text-lg mb-2">Supprimer {orgUnit.name} ?</h3>
-            <p className="text-text-tertiary text-sm mb-6">Cette action est irréversible. La caisse et toutes les données associées seront supprimées.</p>
+            <p className="text-text-tertiary text-sm mb-1">Cette action est irréversible.</p>
+            <p className="text-text-tertiary text-xs mb-4">La caisse et toutes les transactions associées seront supprimées.</p>
             <button onClick={handleDelete} className="w-full py-3.5 rounded-full font-semibold text-white mb-3" style={{ backgroundColor: '#E51332' }}>Supprimer</button>
             <button onClick={() => setShowDelete(false)} className="w-full py-3 rounded-full font-medium text-sm text-text-tertiary" style={{ backgroundColor: '#212121' }}>Annuler</button>
           </div>

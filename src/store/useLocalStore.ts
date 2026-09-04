@@ -23,15 +23,17 @@ interface LocalStoreState {
   addTransaction: (tx: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt' | 'version'>) => Promise<void>;
   updateTransaction: (id: string, data: Partial<Transaction>) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
+  batchDeleteTransactions: (ids: string[]) => Promise<void>;
   approveTransaction: (id: string, userId?: string) => Promise<void>;
+  batchApproveTransactions: (ids: string[], userId?: string) => Promise<void>;
+  syncEventBudget: (eventId: string) => Promise<void>;
   addEvent: (event: Omit<Event, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
   updateEvent: (id: string, data: Partial<Event>) => Promise<void>;
   deleteEvent: (id: string) => Promise<void>;
   updateEventStatus: (id: string, status: Event['status'], userId?: string) => Promise<void>;
   addBudgetItem: (eventId: string, item: Omit<BudgetItem, 'id'>) => Promise<void>;
   removeBudgetItem: (eventId: string, itemId: string) => Promise<void>;
-  addShoppingItem: (eventId: string, item: Omit<ShoppingItem, 'id'>) => Promise<void>;
-  removeShoppingItem: (eventId: string, itemId: string) => Promise<void>;
+  updateShoppingItemStatus: (eventId: string, itemId: string, status: ShoppingItem['status']) => Promise<void>;
   updateConfig: (config: Partial<AppConfig>) => Promise<void>;
   createGroup: (data: { name: string; type: string; description: string; color: string }) => Promise<void>;
   updateGroup: (id: string, data: Partial<OrgUnit>) => Promise<void>;
@@ -159,6 +161,12 @@ export const useLocalStore = create<LocalStoreState>()(
         await db.delete('transactions', id);
       },
 
+      batchDeleteTransactions: async (ids: string[]) => {
+        const updated = get().transactions.filter(t => !ids.includes(t.id));
+        set({ transactions: updated });
+        for (const id of ids) await db.delete('transactions', id);
+      },
+
       approveTransaction: async (id, userId) => {
         const now = new Date().toISOString();
         const updated = get().transactions.map(t =>
@@ -166,9 +174,13 @@ export const useLocalStore = create<LocalStoreState>()(
         );
         set({ transactions: updated });
         const updatedTx = updated.find(t => t.id === id);
-        if (updatedTx) await db.put('transactions', updatedTx);
-        // Notify approvers
         if (updatedTx) {
+          await db.put('transactions', updatedTx);
+          // Sync budget spent for events
+          if (updatedTx.eventId) {
+            await get().syncEventBudget(updatedTx.eventId);
+          }
+          // Notify
           const caisse = get().caisses.find(c => c.id === updatedTx.sourceCaisseId);
           await db.put('notifications', {
             id: generateId(),
@@ -178,6 +190,110 @@ export const useLocalStore = create<LocalStoreState>()(
             message: `${updatedTx.description} — ${updatedTx.amount / 100} FCFA${caisse?.name ? ` (${caisse.name})` : ''} a été approuvée.`,
             isRead: false,
             sourceTransactionId: id,
+            createdAt: now,
+          });
+        }
+      },
+
+      batchApproveTransactions: async (ids, userId) => {
+        const now = new Date().toISOString();
+        const updated = get().transactions.map(t =>
+          ids.includes(t.id)
+            ? { ...t, status: 'APPROVED' as const, approvedById: userId ?? get().user.id, approvedAt: now, updatedAt: now, version: t.version + 1 }
+            : t
+        );
+        set({ transactions: updated });
+        for (const txId of ids) {
+          const updatedTx = updated.find(t => t.id === txId);
+          if (updatedTx) {
+            await db.put('transactions', updatedTx);
+            if (updatedTx.eventId) {
+              await get().syncEventBudget(updatedTx.eventId);
+            }
+          }
+        }
+      },
+
+      syncEventBudget: async (eventId: string) => {
+        const events = get().events;
+        const txs = get().transactions;
+        const event = events.find(e => e.id === eventId);
+        if (!event) return;
+
+        const eventTxs = txs.filter(t => t.eventId === eventId && t.status === 'APPROVED');
+        const incomeByCategory: Record<string, number> = {};
+        const expenseByCategory: Record<string, number> = {};
+
+        for (const tx of eventTxs) {
+          if (tx.type === 'INCOME') {
+            incomeByCategory[tx.categoryId] = (incomeByCategory[tx.categoryId] || 0) + tx.amount;
+          } else {
+            expenseByCategory[tx.categoryId] = (expenseByCategory[tx.categoryId] || 0) + tx.amount;
+          }
+        }
+
+        const updatedBudgetItems = event.budgetItems.map(item => {
+          // Match by categoryId or by label containing category
+          const categoryIncome = incomeByCategory[item.categoryId || ''] || 0;
+          const categoryExpense = expenseByCategory[item.categoryId || ''] || 0;
+          const newSpent = Math.round((categoryIncome - categoryExpense) / 100);
+          const prevSpent = Math.round(item.spent / 100);
+          return { ...item, spent: item.allocated > 0 && newSpent > prevSpent ? newSpent * 100 : item.spent };
+        });
+
+        const totalSpent = updatedBudgetItems.reduce((s, i) => s + i.spent, 0);
+        const updatedEvent = { ...event, budgetItems: updatedBudgetItems, updatedAt: new Date().toISOString() };
+        const updatedEvents = events.map(e => e.id === eventId ? updatedEvent : e);
+        set({ events: updatedEvents });
+        await db.put('events', updatedEvent);
+
+        // Check for budget exceeded
+        for (const item of updatedBudgetItems) {
+          if (item.allocated > 0 && item.spent > item.allocated) {
+            const now = new Date().toISOString();
+            await db.put('notifications', {
+              id: generateId(),
+              orgId: 'org-1',
+              actionType: 'BUDGET_EXCEEDED',
+              title: `Budget dépassé: ${event.name}`,
+              message: `Le poste "${item.label}" a dépassé son budget (${Math.round(item.spent / 100)} FCFA / ${Math.round(item.allocated / 100)} FCFA)`,
+              isRead: false,
+              sourceTransactionId: null,
+              createdAt: now,
+            });
+          }
+        }
+      },
+
+      deleteEvent: async (id) => {
+        // Delete all transactions linked to this event
+        const linkedTxIds = get().transactions.filter(t => t.eventId === id).map(t => t.id);
+        if (linkedTxIds.length > 0) {
+          await get().batchDeleteTransactions(linkedTxIds);
+        }
+        const updated = get().events.filter(e => e.id !== id);
+        set({ events: updated });
+        await db.delete('events', id);
+      },
+
+      updateEventStatus: async (id, status) => {
+        const now = new Date().toISOString();
+        const updated = get().events.map(e =>
+          e.id === id ? { ...e, status, updatedAt: now } : e
+        );
+        set({ events: updated });
+        const updatedEvent = updated.find(e => e.id === id);
+        if (updatedEvent) await db.put('events', updatedEvent);
+        // Notify on status change
+        if (updatedEvent) {
+          await db.put('notifications', {
+            id: generateId(),
+            orgId: 'org-1',
+            actionType: 'EVENT_STATUS_CHANGED',
+            title: `Événement ${status === 'ONGOING' ? 'démarré' : status === 'COMPLETED' ? 'terminé' : status === 'CANCELLED' ? 'annulé' : 'planifié'}`,
+            message: `${updatedEvent.name} — ${status}`,
+            isRead: false,
+            sourceTransactionId: null,
             createdAt: now,
           });
         }
@@ -202,22 +318,6 @@ export const useLocalStore = create<LocalStoreState>()(
       updateEvent: async (id, data) => {
         const updated = get().events.map(e =>
           e.id === id ? { ...e, ...data, updatedAt: new Date().toISOString() } : e
-        );
-        set({ events: updated });
-        const updatedEvent = updated.find(e => e.id === id);
-        if (updatedEvent) await db.put('events', updatedEvent);
-      },
-
-      deleteEvent: async (id) => {
-        const updated = get().events.filter(e => e.id !== id);
-        set({ events: updated });
-        await db.delete('events', id);
-      },
-
-      updateEventStatus: async (id, status) => {
-        const now = new Date().toISOString();
-        const updated = get().events.map(e =>
-          e.id === id ? { ...e, status, updatedAt: now } : e
         );
         set({ events: updated });
         const updatedEvent = updated.find(e => e.id === id);
@@ -253,6 +353,15 @@ export const useLocalStore = create<LocalStoreState>()(
         const event = get().events.find(e => e.id === eventId);
         if (!event) return;
         const newItems = event.shoppingItems.filter(i => i.id !== itemId);
+        await get().updateEvent(eventId, { shoppingItems: newItems });
+      },
+
+      updateShoppingItemStatus: async (eventId, itemId, status) => {
+        const event = get().events.find(e => e.id === eventId);
+        if (!event) return;
+        const newItems = event.shoppingItems.map(i =>
+          i.id === itemId ? { ...i, status } : i
+        );
         await get().updateEvent(eventId, { shoppingItems: newItems });
       },
 
@@ -329,17 +438,16 @@ export const useLocalStore = create<LocalStoreState>()(
       },
 
       deleteGroup: async (id) => {
-        const caisse = get().caisses.find(c => c.id === id);
-        if (caisse) {
-          const txs = get().transactions.filter(t => t.sourceCaisseId === id && t.status === 'APPROVED');
-          const balance = txs.filter(t => t.type === 'INCOME').reduce((s, t) => s + t.amount, 0) - txs.filter(t => t.type === 'EXPENSE').reduce((s, t) => s + t.amount, 0);
-          if (balance !== 0) {
-            throw new Error('Le groupe a un solde non nul. Veuillez le vider avant de supprimer.');
+        // Cascade delete: also delete all transactions for this group's caisse
+        const groupTxs = get().transactions.filter(t => t.sourceCaisseId === id);
+        if (groupTxs.length > 0) {
+          for (const tx of groupTxs) {
+            await db.delete('transactions', tx.id);
           }
         }
         const updatedOrgUnits = get().orgUnits.filter(ou => ou.id !== id);
         const updatedCaisses = get().caisses.filter(c => c.id !== id);
-        set({ orgUnits: updatedOrgUnits, caisses: updatedCaisses });
+        set({ orgUnits: updatedOrgUnits, caisses: updatedCaisses, transactions: get().transactions.filter(t => t.sourceCaisseId !== id) });
         await db.delete('orgUnits', id);
         await db.delete('caisses', id);
       },
