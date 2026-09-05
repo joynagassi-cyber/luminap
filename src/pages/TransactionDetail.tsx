@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useLocalStore } from '@/store/useLocalStore';
 import { formatCurrencyCompact, formatDate, getStatusLabel, getStatusColor } from '@/lib/utils';
-import { ArrowLeft, Check, X, Edit2, Trash2, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Check, X, Edit2, Trash2, AlertCircle, RotateCcw } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
 
@@ -13,6 +13,8 @@ export default function TransactionDetail() {
   const [showActions, setShowActions] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectComment, setRejectComment] = useState('');
+  const [showReverseModal, setShowReverseModal] = useState(false);
+  const [reverseReason, setReverseReason] = useState('');
 
   const tx = transactions.find(t => t.id === id);
   if (!tx) {
@@ -45,6 +47,19 @@ export default function TransactionDetail() {
     await deleteTransaction(tx.id);
     navigate(-1);
   };
+
+  const handleReverse = async () => {
+    if (!reverseReason.trim()) return;
+    await useLocalStore.getState().reverseTransaction(tx.id, reverseReason.trim());
+    setShowReverseModal(false);
+    setReverseReason('');
+    navigate(-1);
+  };
+
+  // Find reversal transaction if exists
+  const reversal = tx.reversalOfId
+    ? transactions.find(t => t.reversalOfId === tx.id)
+    : null;
 
   return (
     <div className="min-h-screen bg-canvas">
@@ -122,6 +137,12 @@ export default function TransactionDetail() {
               <span className="text-text-primary text-sm font-medium">{tx.compensatesFor}</span>
             </div>
           )}
+          {tx.reversalOfId && (
+            <div className="flex justify-between">
+              <span className="text-text-tertiary text-sm">Contre-trans.</span>
+              <span className="text-text-primary text-sm font-medium">{formatCurrencyCompact(tx.amount)} FCFA</span>
+            </div>
+          )}
         </div>
 
         {/* Actions */}
@@ -148,9 +169,20 @@ export default function TransactionDetail() {
         )}
 
         {tx.status === 'APPROVED' && (
-          <div className="text-center py-6 rounded-xl" style={{ backgroundColor: '#1DB95415', border: '1px solid #1DB95430' }}>
-            <Check className="w-8 h-8 mx-auto mb-2 text-income" />
-            <p className="text-income font-medium text-sm">Transaction approuvée</p>
+          <div className="space-y-2 mb-6">
+            <div className="text-center py-6 rounded-xl" style={{ backgroundColor: '#1DB95415', border: '1px solid #1DB95430' }}>
+              <Check className="w-8 h-8 mx-auto mb-2 text-income" />
+              <p className="text-income font-medium text-sm">Transaction approuvée</p>
+            </div>
+            <button onClick={() => setShowReverseModal(true)} className="w-full py-3 rounded-full font-medium text-sm flex items-center justify-center gap-2" style={{ backgroundColor: '#212121', color: '#B3B3B3' }}>
+              <RotateCcw className="w-4 h-4" /> Créer une contre-transaction
+            </button>
+            {reversal && (
+              <div className="rounded-xl p-3 text-center" style={{ backgroundColor: '#FFB80020', border: '1px solid #FFB80030' }}>
+                <p className="text-text-primary text-sm font-medium">Contre-transaction: {formatCurrencyCompact(reversal.amount)} FCFA</p>
+                <p className="text-text-tertiary text-xs mt-1">{reversal.comment || '—'}</p>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -180,6 +212,37 @@ export default function TransactionDetail() {
                 Confirmer le rejet
               </button>
               <button onClick={() => setShowRejectModal(false)} className="w-full py-3 rounded-full font-medium text-sm text-text-tertiary" style={{ backgroundColor: '#212121' }}>
+                Annuler
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reverse Modal */}
+      {showReverseModal && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={() => setShowReverseModal(false)}>
+          <div className="absolute inset-0 bg-black/60" />
+          <div className="relative w-full max-w-lg rounded-t-2xl p-5 pb-8" style={{ backgroundColor: '#181818' }} onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-text-primary font-bold text-lg">Contre-transaction</h2>
+              <button onClick={() => setShowReverseModal(false)} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: '#282828' }}>
+                <X className="w-4 h-4 text-text-tertiary" />
+              </button>
+            </div>
+            <div className="flex items-center gap-2 mb-4 p-3 rounded-xl text-sm" style={{ backgroundColor: '#FFB80020', color: '#FFB800' }}>
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              <span>Crée une transaction opposée pour corriger ce montant.</span>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="text-text-tertiary text-xs mb-2 block">Raison *</label>
+                <textarea value={reverseReason} onChange={(e) => setReverseReason(e.target.value)} placeholder="Motif de la contre-transaction..." rows={3} className="w-full px-4 py-3 rounded-xl text-text-primary text-sm outline-none resize-none" style={{ backgroundColor: '#212121', border: '1px solid #282828' }} />
+              </div>
+              <button onClick={handleReverse} disabled={!reverseReason.trim()} className="w-full py-3.5 rounded-full font-semibold text-white transition-all active:scale-95 disabled:opacity-40" style={{ backgroundColor: '#FFB800' }}>
+                Créer la contre-transaction
+              </button>
+              <button onClick={() => setShowReverseModal(false)} className="w-full py-3 rounded-full font-medium text-sm text-text-tertiary" style={{ backgroundColor: '#212121' }}>
                 Annuler
               </button>
             </div>

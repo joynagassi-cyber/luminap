@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLocalStore } from '@/store/useLocalStore';
 import { formatCentsToFCFA, getPeriodRange, formatDate } from '@/lib/utils';
-import { ArrowUpRight, ArrowDownRight, Calendar, TrendingUp, Wallet, PlusCircle, Bell, Sparkles, ArrowUp, ArrowDown, Home, Landmark, Users, CalendarPlus } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Calendar, TrendingUp, Wallet, PlusCircle, Bell, Sparkles, ArrowUp, ArrowDown, Home, Landmark, Users, CalendarPlus, Archive, BarChart3 } from 'lucide-react';
 import TransactionCard from '@/components/TransactionCard';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
@@ -10,6 +10,7 @@ import LuminaLogo from '@/components/LuminaLogo';
 import { PageSkeleton, ListSkeleton } from '@/components/Skeleton';
 import type { Caisse } from '@/types';
 import { getRoleLabel } from '@/store/useLocalStore';
+import { getAccountBalance } from '@/lib/account';
 
 function CaisseCard({ caisse, transactions, navigate }: { caisse: Caisse; transactions: any[]; navigate: ReturnType<typeof useNavigate> }) {
   const approvedTxs = transactions.filter(t => t.sourceCaisseId === caisse.id && t.status === 'APPROVED');

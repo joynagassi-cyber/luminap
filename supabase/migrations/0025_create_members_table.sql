@@ -1,0 +1,21 @@
+CREATE TABLE IF NOT EXISTS members (
+  id TEXT PRIMARY KEY,
+  org_id TEXT NOT NULL DEFAULT 'org-1',
+  first_name TEXT NOT NULL,
+  last_name TEXT NOT NULL,
+  phone TEXT,
+  email TEXT,
+  status TEXT NOT NULL DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'INACTIVE', 'ARCHIVED')),
+  joined_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+  archived_at TIMESTAMP WITH TIME ZONE,
+  archived_by TEXT,
+  archive_reason TEXT,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE members TO service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE members TO authenticated;
+ALTER TABLE members ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "members_open_all" ON members FOR ALL TO PUBLIC USING (true) WITH CHECK (true);
+CREATE INDEX IF NOT EXISTS idx_members_org_id ON members(org_id);

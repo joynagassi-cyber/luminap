@@ -1,7 +1,7 @@
 const DB_NAME = 'lumina-db';
-const DB_VERSION = 9;
+const DB_VERSION = 10;
 
-type StoreName = 'transactions' | 'categories' | 'orgUnits' | 'auditEntries' | 'events' | 'syncQueue' | 'config' | 'caisses' | 'notifications';
+export type StoreName = 'transactions' | 'categories' | 'orgUnits' | 'auditEntries' | 'events' | 'syncQueue' | 'config' | 'caisses' | 'notifications' | 'members' | 'groups' | 'accounts' | 'group_memberships' | 'form_definitions' | 'form_submissions' | 'custom_field_definitions' | 'custom_field_values' | 'versements' | 'event_budgets' | 'budget_lines' | 'report_definitions';
 
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -18,6 +18,18 @@ function openDB(): Promise<IDBDatabase> {
         { name: 'config', keyPath: 'key' },
         { name: 'caisses', keyPath: 'id' },
         { name: 'notifications', keyPath: 'id' },
+        { name: 'members', keyPath: 'id' },
+        { name: 'groups', keyPath: 'id' },
+        { name: 'accounts', keyPath: 'id' },
+        { name: 'group_memberships', keyPath: 'id' },
+        { name: 'versements', keyPath: 'id' },
+        { name: 'event_budgets', keyPath: 'id' },
+        { name: 'budget_lines', keyPath: 'id' },
+        { name: 'report_definitions', keyPath: 'id' },
+        { name: 'form_definitions', keyPath: 'id' },
+        { name: 'form_submissions', keyPath: 'id' },
+        { name: 'custom_field_definitions', keyPath: 'id' },
+        { name: 'custom_field_values', keyPath: 'id' },
       ];
       // Migrate events: add budget_items column if missing
       if (!db.objectStoreNames.contains('events')) {

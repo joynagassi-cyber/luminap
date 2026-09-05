@@ -16,6 +16,10 @@ export type TransactionType = 'INCOME' | 'EXPENSE';
 export type FundSource = 'CAISSE' | 'COTISATION' | 'PERSONNE' | 'AUTRE';
 export type CaisseType = 'MAIN' | 'GROUP';
 export type EventStatus = 'PLANIFIED' | 'ONGOING' | 'COMPLETED' | 'CANCELLED';
+export type MemberStatus = 'ACTIVE' | 'INACTIVE' | 'ARCHIVED';
+export type GroupStatus = 'ACTIVE' | 'ARCHIVED';
+export type AccountStatus = 'ACTIVE' | 'ARCHIVED';
+export type VersementStatus = 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED';
 
 export type Organization = {
   id: string;
@@ -86,6 +90,7 @@ export type Transaction = {
   version: number;
   sourceCaisseId: string | null;
   versementId: string | null;
+  reversalOfId: string | null;
   category?: Category;
   orgUnit?: OrgUnit;
   event?: Event;
@@ -134,11 +139,12 @@ export type AuditEntry = {
   orgId: string;
   transactionId: string | null;
   userId: string;
-  action: string;
+  actorRoleAtTime: string | null;
+  action: 'CREATE' | 'UPDATE' | 'DELETE' | 'APPROVE' | 'REJECT' | 'ARCHIVE' | 'RESTORE' | 'SUBMIT' | 'CLOSE' | 'REVISE';
   entityType: string;
   entityId: string;
-  previousValue: any;
-  newValue: any;
+  beforeState: any | null;
+  afterState: any | null;
   comment: string | null;
   createdAt: string;
   user?: User;
@@ -186,4 +192,195 @@ export type SyncQueueItem = {
   attempts: number;
   lastAttempt: string | null;
   createdAt: string;
+};
+
+// === NEW TYPE: Member ===
+export type Member = {
+  id: string;
+  orgId: string;
+  firstName: string;
+  lastName: string;
+  phone: string | null;
+  email: string | null;
+  status: MemberStatus;
+  joinedAt: string;
+  archivedAt: string | null;
+  archivedBy: string | null;
+  archiveReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+// === NEW TYPE: Group (canonical) ===
+export type Group = {
+  id: string;
+  orgId: string;
+  name: string;
+  parentGroupId: string | null;
+  responsableMemberId: string | null;
+  status: GroupStatus;
+  archivedAt: string | null;
+  archivedBy: string | null;
+  archiveReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+// === NEW TYPE: Account (canonical) ===
+export type Account = {
+  id: string;
+  orgId: string;
+  ownerType: 'ORGANIZATION' | 'GROUP';
+  ownerId: string;
+  name: string;
+  currency: string;
+  status: AccountStatus;
+  archivedAt: string | null;
+  archivedBy: string | null;
+  archiveReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+// === NEW TYPE: GroupMembership ===
+export type GroupMembership = {
+  id: string;
+  memberId: string;
+  groupId: string;
+  roleInGroup: 'MEMBRE' | 'RESPONSABLE';
+  joinedAt: string;
+  leftAt: string | null;
+  createdAt: string;
+};
+
+// === NEW TYPE: Versement (canonical entity) ===
+export type Versement = {
+  id: string;
+  orgId: string;
+  fromAccountId: string;
+  toAccountId: string;
+  amountCents: number;
+  date: string;
+  status: VersementStatus;
+  createdBy: string;
+  approvedBy: string | null;
+  approvedAt: string | null;
+  createdAt: string;
+};
+
+// === NEW TYPE: EventBudget ===
+export type EventBudget = {
+  id: string;
+  eventId: string;
+  currency: string;
+  revisedAt: string | null;
+  revisedBy: string | null;
+  createdAt: string;
+};
+
+// === NEW TYPE: BudgetLine ===
+export type BudgetLine = {
+  id: string;
+  eventBudgetId: string;
+  categoryId: string;
+  plannedAmountCents: number;
+  actualAmountCents: number;
+  createdAt: string;
+};
+
+// === NEW TYPE: ReportDefinition ===
+export type ReportDefinition = {
+  id: string;
+  orgId: string;
+  name: string;
+  dataSource: string;
+  dimensions: string[];
+  metrics: string[];
+  filters: any[];
+  groupBy: string[];
+  sortBy: string | null;
+  savedBy: string | null;
+  isTemplate: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+// === NEW TYPE: FormFieldDefinition ===
+export type FormFieldDefinition = {
+  key: string;
+  label: string;
+  type: 'text' | 'number' | 'date' | 'select' | 'boolean' | 'currency' | 'reference' | 'textarea' | 'file';
+  required: boolean;
+  validation?: { min?: number; max?: number; regex?: string; custom?: string };
+  options?: string[];
+  referenceEntityType?: string;
+  conditional?: { showIfField: string; showIfValue: any };
+  mapsToEntityField?: string;
+  order: number;
+};
+
+// === NEW TYPE: FormDefinition ===
+export type FormDefinition = {
+  id: string;
+  orgId: string;
+  key: string;
+  name: string;
+  description?: string;
+  version: number;
+  targetEntityType?: string;
+  status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+  fields: FormFieldDefinition[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+// === NEW TYPE: FormSubmission ===
+export type FormSubmission = {
+  id: string;
+  orgId: string;
+  formDefinitionId: string;
+  formVersion: number;
+  submittedBy: string;
+  submittedAt: string;
+  data: Record<string, any>;
+  linkedEntityType?: string;
+  linkedEntityId?: string;
+  status: 'SUBMITTED' | 'PROCESSED' | 'REJECTED';
+  createdAt: string;
+};
+
+// === NEW TYPE: CustomFieldDefinition ===
+export type CustomFieldDefinition = {
+  id: string;
+  orgId: string;
+  entityType: string;
+  key: string;
+  label: string;
+  type: 'text' | 'number' | 'date' | 'select' | 'boolean';
+  options?: string[];
+  order: number;
+};
+
+// === NEW TYPE: CustomFieldValue ===
+export type CustomFieldValue = {
+  id: string;
+  entityType: string;
+  entityId: string;
+  customFieldDefinitionId: string;
+  value: any;
+  createdAt: string;
+  updatedAt: string;
+};
+
+// === NEW TYPE: ArchivableEntity ===
+export type ArchivableEntity = 'Group' | 'Event' | 'Member' | 'Account' | 'Category' | 'Role';
+
+// === NEW TYPE: Permission ===
+export type Permission = string;
+
+// === REPORT RESULT ===
+export type ReportResult = {
+  rows: Record<string, any>[];
+  columns: string[];
+  total: number;
 };
