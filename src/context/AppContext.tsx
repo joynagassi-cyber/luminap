@@ -8,10 +8,19 @@ import {
   stopRealtimeSubscriptions,
   setupNetworkListeners,
 } from '@/lib/sync';
+import { cleanInitialData } from '@/lib/cleanup';
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const { loadInitialData, setOnline } = useLocalStore();
+
+  // First-run cleanup: remove stale groups, clear IndexedDB
+  useEffect(() => {
+    const stored = localStorage.getItem('lumina-onboarded');
+    if (!stored) {
+      cleanInitialData();
+    }
+  }, []);
 
   // Load data once on mount — cold start with short skeleton
   useEffect(() => {

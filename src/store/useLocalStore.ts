@@ -99,19 +99,10 @@ const DEFAULT_CATEGORIES: Category[] = [
 
 const DEFAULT_CAISSES: Caisse[] = [
   { id: 'main', name: 'Caisse principale', description: 'Fonds de l\'église', type: 'MAIN', color: '#FF6B00', orgId: 'org-1', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), archivedAt: null, archivedBy: null, archiveReason: null, status: 'ACTIVE' },
-  { id: 'org-diactes', name: 'Diacres', description: 'Groupe des diacres', type: 'GROUP', color: '#3B82F6', orgId: 'org-1', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), archivedAt: null, archivedBy: null, archiveReason: null, status: 'ACTIVE' },
-  { id: 'org-jeunesse', name: 'Jeunesse', description: 'Groupe de jeunesse', type: 'GROUP', color: '#8B5CF6', orgId: 'org-1', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), archivedAt: null, archivedBy: null, archiveReason: null, status: 'ACTIVE' },
-  { id: 'org-dames', name: 'Dames', description: 'Groupe des dames', type: 'GROUP', color: '#EC4899', orgId: 'org-1', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), archivedAt: null, archivedBy: null, archiveReason: null, status: 'ACTIVE' },
-  { id: 'org-messieurs', name: 'Messieurs', description: 'Groupe des messieurs', type: 'GROUP', color: '#14B8A6', orgId: 'org-1', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), archivedAt: null, archivedBy: null, archiveReason: null, status: 'ACTIVE' },
-  { id: 'org-chorale', name: 'Chorale', description: 'Groupe de la chorale', type: 'GROUP', color: '#F59E0B', orgId: 'org-1', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), archivedAt: null, archivedBy: null, archiveReason: null, status: 'ACTIVE' },
 ];
 
 const DEFAULT_ORG_UNITS: OrgUnit[] = [
-  { id: 'org-diactes', name: 'Diacres', type: 'groupe', description: 'Groupe des diacres', orgId: 'org-1', isActive: true },
-  { id: 'org-jeunesse', name: 'Jeunesse', type: 'groupe', description: 'Groupe de jeunesse', orgId: 'org-1', isActive: true },
-  { id: 'org-dames', name: 'Dames', type: 'groupe', description: 'Groupe des dames', orgId: 'org-1', isActive: true },
-  { id: 'org-messieurs', name: 'Messieurs', type: 'groupe', description: 'Groupe des messieurs', orgId: 'org-1', isActive: true },
-  { id: 'org-chorale', name: 'Chorale', type: 'groupe', description: 'Groupe de la chorale', orgId: 'org-1', isActive: true },
+  { id: 'org-1', name: 'Église MFE-JC Centrale', type: 'eglise', description: 'Église mère', orgId: 'org-1', isActive: true },
 ];
 
 const COLOR_PALETTE = ['#3B82F6', '#8B5CF6', '#EC4899', '#14B8A6', '#F59E0B', '#EF4444', '#22C55E', '#6366F1', '#F97316', '#06B6D4'];

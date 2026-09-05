@@ -8,6 +8,7 @@ import SyncIndicator from "./components/SyncIndicator";
 import Dashboard from "./pages/Dashboard";
 import Finance from "./pages/Finance";
 import TransactionNew from "./pages/TransactionNew";
+import TransactionNewGroup from "./pages/TransactionNewGroup";
 import TransactionDetail from "./pages/TransactionDetail";
 import TransactionEdit from "./pages/TransactionEdit";
 import Balance from "./pages/Balance";
@@ -56,6 +57,7 @@ function AppRoutes() {
         <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/finance" element={<ProtectedRoute><Finance /></ProtectedRoute>} />
         <Route path="/transaction/new" element={<ProtectedRoute><TransactionNew /></ProtectedRoute>} />
+        <Route path="/groups/:id/transaction/new" element={<ProtectedRoute><TransactionNewGroup /></ProtectedRoute>} />
         <Route path="/transaction/:id" element={<ProtectedRoute><TransactionDetail /></ProtectedRoute>} />
         <Route path="/transaction/:id/edit" element={<ProtectedRoute><TransactionEdit /></ProtectedRoute>} />
         <Route path="/balance" element={<ProtectedRoute><Balance /></ProtectedRoute>} />

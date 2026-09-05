@@ -34,7 +34,19 @@ export default function GroupDetail() {
   const groupMemberIds = groupMemberships.map(m => m.memberId);
   const groupMembers = members.filter(m => groupMemberIds.includes(m.id) && m.status !== 'ARCHIVED');
 
-  if (isLoading || !orgUnit || !account) return <FullPageSkeleton />;
+  // If group/account not found, redirect to groups list
+  if (isLoading || !orgUnit || !account) {
+    return (
+      <div className="min-h-screen bg-canvas flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-text-primary font-semibold mb-2">Groupe introuvable</p>
+          <button onClick={() => navigate('/groups')} className="text-sm" style={{ color: '#FF6B00' }}>
+            Retour aux groupes
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const color = caisseDisplay?.color || '#FF6B00';
   const txs = transactions.filter(t => t.sourceCaisseId === account.id);
@@ -174,14 +186,14 @@ export default function GroupDetail() {
         {/* Quick actions */}
         <div className="flex gap-3 mb-5">
           <button
-            onClick={() => navigate('/transaction/new', { state: { caisseId: account.id, type: 'INCOME' } })}
+            onClick={() => navigate(`/groups/${id}/transaction/new`)}
             className="flex-1 py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-95"
             style={{ backgroundColor: '#1DB95420', color: '#1DB954', border: '1px solid #1DB95440' }}
           >
             <ArrowUp className="w-4 h-4" /> Entrée
           </button>
           <button
-            onClick={() => navigate('/transaction/new', { state: { caisseId: account.id, type: 'EXPENSE' } })}
+            onClick={() => navigate(`/groups/${id}/transaction/new`, { state: { type: 'EXPENSE' } })}
             className="flex-1 py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-95"
             style={{ backgroundColor: '#E5133220', color: '#E51332', border: '1px solid #E5133240' }}
           >
