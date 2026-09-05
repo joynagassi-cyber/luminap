@@ -11,6 +11,10 @@ test.describe("Lumina comprehensive navigation and finance flow", () => {
     await page.getByRole("button", { name: "Trésorier", exact: true }).click();
     await page.getByRole("button", { name: "Continuer", exact: true }).click();
 
+    // Role selection page
+    await expect(page.getByRole("heading", { name: "Choisissez votre rôle" })).toBeVisible({ timeout: 15000 });
+    await page.getByRole("button", { name: "Trésorier" }).click();
+
     // Wait for dashboard to load
     await expect(page.getByRole("button", { name: "Plus", exact: true })).toBeVisible({ timeout: 30000 });
 
@@ -53,17 +57,14 @@ test.describe("Lumina comprehensive navigation and finance flow", () => {
     // Step 15-16: Navigate to History
     await page.getByRole("button", { name: "Plus", exact: true }).click();
     await page.getByRole("button", { name: "Historique", exact: true }).click();
-    await expect(page.getByRole("heading", { name: "Historique d'actions" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Historique" })).toBeVisible();
 
-    // Step 17-20: Filter tabs
-    await page.getByRole("button", { name: "Transaction", exact: true }).click();
-    await expect(page.getByRole("button", { name: "Transaction", exact: true })).toBeVisible();
+    // Step 17-20: Filter tabs (period selector)
+    await page.getByRole("button", { name: "Ce mois", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Ce mois", exact: true })).toBeVisible();
 
-    await page.getByRole("button", { name: "Groupe", exact: true }).click();
-    await expect(page.getByRole("button", { name: "Groupe", exact: true })).toBeVisible();
-
-    await page.getByRole("button", { name: "Événement", exact: true }).click();
-    await expect(page.getByRole("button", { name: "Événement", exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Cette année", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Cette année", exact: true })).toBeVisible();
 
     await page.getByRole("button", { name: "Tout", exact: true }).click();
     await expect(page.getByRole("button", { name: "Tout", exact: true })).toBeVisible();
