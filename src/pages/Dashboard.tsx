@@ -1,8 +1,8 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLocalStore } from '@/store/useLocalStore';
-import { formatCurrencyCompact, getPeriodRange, formatDate } from '@/lib/utils';
-import { ArrowUpRight, ArrowDownRight, Calendar, TrendingUp, Wallet, PlusCircle, Bell, Sparkles, ArrowUp, ArrowDown } from 'lucide-react';
+import { formatCentsToFCFA, getPeriodRange, formatDate } from '@/lib/utils';
+import { ArrowUpRight, ArrowDownRight, Calendar, TrendingUp, Wallet, PlusCircle, Bell, Sparkles, ArrowUp, ArrowDown, Home, Landmark, Users, CalendarPlus } from 'lucide-react';
 import TransactionCard from '@/components/TransactionCard';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
@@ -23,35 +23,32 @@ function CaisseCard({ caisse, transactions, navigate }: { caisse: Caisse; transa
     <button
       onClick={() => navigate('/finance', { state: { caisseId: caisse.id } })}
       className="w-full text-left rounded-xl p-4 transition-all active:scale-95"
-      style={{ backgroundColor: '#212121', border: `1px solid ${caisse.color}30` }}
+      style={{ backgroundColor: '#1e1e1e', border: `1px solid ${caisse.color}30` }}
     >
-      <div className="flex items-center gap-3 mb-3">
-        <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: caisse.color + '20' }}>
-          <Wallet className="w-5 h-5" style={{ color: caisse.color }} />
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: caisse.color + '20' }}>
+            <span className="text-sm font-bold" style={{ color: caisse.color }}>{caisse.name.charAt(0)}</span>
+          </div>
+          <div>
+            <p className="text-text-primary text-sm font-semibold">{caisse.name}</p>
+            <p className="text-text-tertiary text-xs">{caisse.type === 'MAIN' ? 'Église' : 'Groupe'}</p>
+          </div>
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-text-primary text-sm font-semibold truncate">{caisse.name}</p>
-          <p className="text-text-tertiary text-xs">{caisse.type === 'MAIN' ? 'Église' : 'Groupe'}</p>
+        <div className="text-right">
+          <p className="text-text-primary font-bold text-lg" style={{ color: balance >= 0 ? '#1DB954' : '#E51332' }}>
+            {balance >= 0 ? '' : '-'}{formatCentsToFCFA(Math.abs(balance))}
+          </p>
+          <p className="text-text-tertiary text-xs">FCFA</p>
         </div>
-        {caisse.type === 'GROUP' && (
-          <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: caisse.color + '15', color: caisse.color }}>
-            Caisse
-          </span>
-        )}
       </div>
-      <div className="flex items-baseline justify-between">
-        <span className="text-2xl font-black tabular-nums" style={{ color: balance >= 0 ? '#1DB954' : '#E51332' }}>
-          {balance >= 0 ? '' : '-'}{formatCurrencyCompact(Math.abs(balance))}
-        </span>
-        <span className="text-text-tertiary text-xs">FCFA</span>
-      </div>
-      <div className="flex items-center justify-between mt-2 text-xs">
-        <span className="text-text-tertiary">Entrées: <span style={{ color: '#1DB954' }}>+{formatCurrencyCompact(income)}</span></span>
-        <span className="text-text-tertiary">Sorties: <span style={{ color: '#E51332' }}>-{formatCurrencyCompact(expense)}</span></span>
+      <div className="flex items-center justify-between text-xs">
+        <span className="text-text-tertiary">Entrées: <span style={{ color: '#1DB954' }}>+{formatCentsToFCFA(income)}</span></span>
+        <span className="text-text-tertiary">Sorties: <span style={{ color: '#E51332' }}>-{formatCentsToFCFA(expense)}</span></span>
       </div>
       {pendingAmount !== 0 && (
         <div className="mt-2 text-xs" style={{ color: '#FFB800' }}>
-          {pendingAmount > 0 ? '+' : '-'}{formatCurrencyCompact(Math.abs(pendingAmount))} en attente
+          {pendingAmount > 0 ? '+' : '-'}{formatCentsToFCFA(Math.abs(pendingAmount))} en attente
         </div>
       )}
     </button>
@@ -114,33 +111,45 @@ export default function Dashboard() {
       <TopHeader title="Lumina" />
       <div className="max-w-lg mx-auto px-5 pb-24 pt-16">
 
-        {/* Church name */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
+        {/* Church name + Notifications */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
             {appConfig.churchLogoUrl ? (
-              <img src={appConfig.churchLogoUrl} alt="Logo" className="w-6 h-6 rounded" />
+              <img src={appConfig.churchLogoUrl} alt="Logo" className="w-10 h-10 rounded-xl" />
             ) : (
-              <img src="/lumina-logo.png" alt="Lumina" className="w-6 h-6 rounded" />
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center">
+                <span className="text-white font-bold text-lg">L</span>
+              </div>
             )}
-            <p className="text-text-tertiary text-xs">{churchName}</p>
+            <div>
+              <p className="text-text-primary font-semibold text-sm">{churchName}</p>
+              <p className="text-text-tertiary text-xs">{getRoleLabel(user.role)}</p>
+            </div>
           </div>
-          <button onClick={() => navigate('/notifications')} className="relative flex items-center gap-1 px-2 py-1 rounded-full" style={{ backgroundColor: '#212121' }}>
-            <Bell className="w-4 h-4 text-text-tertiary" />
+          <button
+            onClick={() => navigate('/notifications')}
+            className="relative w-10 h-10 rounded-full flex items-center justify-center"
+            style={{ backgroundColor: '#212121' }}
+          >
+            <Bell className="w-5 h-5 text-text-secondary" />
             {unreadNotifCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-xs font-bold flex items-center justify-center" style={{ backgroundColor: '#E51332', color: '#fff' }}>
-                {unreadNotifCount}
+              <span
+                className="absolute -top-1 -right-1 w-5 h-5 rounded-full text-xs font-bold flex items-center justify-center"
+                style={{ backgroundColor: '#E51332', color: '#fff' }}
+              >
+                {unreadNotifCount > 9 ? '9+' : unreadNotifCount}
               </span>
             )}
           </button>
         </div>
 
-        {/* Main Caisse Hero */}
+        {/* Main Caisse Hero Card */}
         {mainCaisse && (
           <div
-            className="rounded-2xl p-5 mb-5 cursor-pointer active:scale-98 transition-transform"
+            className="rounded-2xl p-5 mb-6 cursor-pointer transition-all active:scale-98"
             style={{
-              backgroundColor: '#212121',
-              border: '1px solid #FF6B0040',
+              background: 'linear-gradient(135deg, #FF6B0020 0%, #FF6B0010 100%)',
+              border: '1px solid #FF6B0030',
             }}
             onClick={() => navigate('/finance')}
           >
@@ -149,21 +158,18 @@ export default function Dashboard() {
                 <LuminaLogo size={40} />
                 <div>
                   <p className="text-text-primary font-bold text-base">
-                    {greeting}{' '
-                    }<Sparkles className="w-5 h-5 inline" style={{ color: '#FF6B00' }} />
+                    {greeting} <Sparkles className="w-5 h-5 inline" style={{ color: '#FF6B00' }} />
                   </p>
-                  <p className="text-text-tertiary text-xs mt-0.5">
-                    {user.role ? getRoleLabel(user.role) : 'Trésorier'}
-                  </p>
+                  <p className="text-text-tertiary text-xs mt-0.5">Caisse principale</p>
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-text-tertiary text-xs">Caisse principale</p>
+                <p className="text-text-tertiary text-xs">Solde total</p>
                 <div className="flex items-baseline gap-1 mt-1">
                   <span className="text-2xl font-black tabular-nums" style={{ color: netResult >= 0 ? '#1DB954' : '#E51332' }}>
-                    {netResult >= 0 ? '' : '-'}{formatCurrencyCompact(Math.abs(netResult))}
+                    {netResult >= 0 ? '' : '-'}{formatCentsToFCFA(Math.abs(netResult))}
                   </span>
-                  <span className="text-text-tertiary text-xs">FCFA</span>
+                  <span className="text-text-tertiary text-xs">F</span>
                 </div>
               </div>
             </div>
@@ -171,25 +177,25 @@ export default function Dashboard() {
             <div className="h-px mb-4" style={{ backgroundColor: '#282828' }} />
 
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#1DB95420' }}>
-                  <ArrowUpRight className="w-4 h-4" style={{ color: '#1DB954' }} />
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#1DB95420' }}>
+                  <ArrowUpRight className="w-5 h-5" style={{ color: '#1DB954' }} />
                 </div>
                 <div>
-                  <p className="text-text-tertiary text-xs">Entrées</p>
+                  <p className="text-text-tertiary text-xs">Entrées du mois</p>
                   <p className="text-sm font-semibold tabular-nums" style={{ color: '#1DB954' }}>
-                    +{formatCurrencyCompact(totalIncome)}
+                    +{formatCentsToFCFA(totalIncome)}
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#E5133220' }}>
-                  <ArrowDownRight className="w-4 h-4" style={{ color: '#E51332' }} />
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#E5133220' }}>
+                  <ArrowDownRight className="w-5 h-5" style={{ color: '#E51332' }} />
                 </div>
                 <div className="text-right">
-                  <p className="text-text-tertiary text-xs">Sorties</p>
+                  <p className="text-text-tertiary text-xs">Sorties du mois</p>
                   <p className="text-sm font-semibold tabular-nums" style={{ color: '#E51332' }}>
-                    -{formatCurrencyCompact(totalExpense)}
+                    -{formatCentsToFCFA(totalExpense)}
                   </p>
                 </div>
               </div>
@@ -197,9 +203,33 @@ export default function Dashboard() {
           </div>
         )}
 
+        {/* Quick Stats Grid */}
+        {(pendingCount > 0 || draftCount > 0 || upcomingEvents.length > 0 || groupCaisses.length > 0) && (
+          <div className="grid grid-cols-3 gap-3 mb-6">
+            {pendingCount > 0 && (
+              <div className="rounded-xl p-4 text-center" style={{ backgroundColor: '#1e1e1e' }}>
+                <p className="text-text-tertiary text-xs mb-1">En attente</p>
+                <p className="text-yellow-500 font-bold text-xl">{pendingCount}</p>
+              </div>
+            )}
+            {upcomingEvents.length > 0 && (
+              <div className="rounded-xl p-4 text-center" style={{ backgroundColor: '#1e1e1e' }}>
+                <p className="text-text-tertiary text-xs mb-1">Événements</p>
+                <p className="text-purple-500 font-bold text-xl">{upcomingEvents.length}</p>
+              </div>
+            )}
+            {groupCaisses.length > 0 && (
+              <div className="rounded-xl p-4 text-center" style={{ backgroundColor: '#1e1e1e' }}>
+                <p className="text-text-tertiary text-xs mb-1">Groupes</p>
+                <p className="text-blue-500 font-bold text-xl">{groupCaisses.length}</p>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Upcoming Events */}
         {upcomingEvents.length > 0 && (
-          <div className="mb-5">
+          <div className="mb-6">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4" style={{ color: '#8B5CF6' }} />
@@ -225,7 +255,7 @@ export default function Dashboard() {
                     key={event.id}
                     onClick={() => navigate(`/event/${event.id}`)}
                     className="w-full text-left rounded-xl p-4 transition-all active:scale-95"
-                    style={{ backgroundColor: '#212121', border: `1px solid ${overBudget ? '#E5133240' : '#282828'}` }}
+                    style={{ backgroundColor: '#1e1e1e', border: `1px solid ${overBudget ? '#E5133240' : '#282828'}` }}
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: color + '20' }}>
@@ -242,12 +272,12 @@ export default function Dashboard() {
                               <div className="h-full rounded-full" style={{ width: `${Math.min(100, (budgetSpent / event.budget) * 100)}%`, backgroundColor: overBudget ? '#E51332' : '#FF6B00' }} />
                             </div>
                             <span className={`text-xs ${overBudget ? 'text-[#E51332]' : 'text-text-tertiary'}`}>
-                              {formatCurrencyCompact(budgetSpent)}/{formatCurrencyCompact(event.budget)}
+                              {formatCentsToFCFA(budgetSpent)}/{formatCentsToFCFA(event.budget)}
                             </span>
                           </div>
                         )}
                       </div>
-                      <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: color + '20', color }}>
+                      <span className="text-xs px-2 py-1 rounded-full font-medium" style={{ backgroundColor: color + '20', color }}>
                         {event.status === 'PLANIFIED' ? 'Planifié' : event.status === 'ONGOING' ? 'En cours' : ''}
                       </span>
                     </div>
@@ -260,7 +290,7 @@ export default function Dashboard() {
 
         {/* Caisses Grid */}
         {groupCaisses.length > 0 && (
-          <div className="mb-5">
+          <div className="mb-6">
             <div className="flex items-center justify-between mb-3">
               <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider">Caisses des groupes</p>
               <button onClick={() => navigate('/versement')} className="text-xs font-medium" style={{ color: '#FF6B00' }}>
@@ -275,70 +305,49 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Pending/Draft badges */}
-        {(pendingCount > 0 || draftCount > 0) && (
-          <div className="flex gap-2 mb-5">
-            {pendingCount > 0 && (
-              <span className="text-xs font-medium px-3 py-1 rounded-full" style={{ backgroundColor: '#FFB80020', color: '#FFB800' }}>
-                {pendingCount} en attente
-              </span>
-            )}
-            {draftCount > 0 && (
-              <span className="text-xs font-medium px-3 py-1 rounded-full" style={{ backgroundColor: '#80808020', color: '#808080' }}>
-                {draftCount} brouillon
-              </span>
-            )}
-          </div>
-        )}
-
-        {/* Shortcuts */}
-        <div className="mb-5">
+        {/* Quick Actions Grid */}
+        <div className="mb-6">
           <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider mb-3">Actions rapides</p>
-          <div className="grid grid-cols-2 gap-3">
-            <button onClick={() => navigate('/transaction/new')} className="flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
+          <div className="grid grid-cols-4 gap-3">
+            <button
+              onClick={() => navigate('/transaction/new', { state: { type: 'INCOME' } })}
+              className="flex flex-col items-center gap-2 p-3 rounded-xl active:scale-95 transition-transform text-left"
+              style={{ backgroundColor: '#1e1e1e', border: '1px solid #282828' }}
+            >
               <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#1DB95420' }}>
                 <ArrowUpRight className="w-5 h-5" style={{ color: '#1DB954' }} />
               </div>
-              <div>
-                <p className="text-text-primary text-sm font-semibold">Nouvelle entrée</p>
-                <p className="text-text-tertiary text-xs mt-0.5">Ajouter un revenu</p>
-              </div>
+              <span className="text-text-primary text-xs font-medium text-center">Entrée</span>
             </button>
-            <button onClick={() => navigate('/transaction/new')} className="flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
+            <button
+              onClick={() => navigate('/transaction/new', { state: { type: 'EXPENSE' } })}
+              className="flex flex-col items-center gap-2 p-3 rounded-xl active:scale-95 transition-transform text-left"
+              style={{ backgroundColor: '#1e1e1e', border: '1px solid #282828' }}
+            >
               <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#E5133220' }}>
                 <ArrowDownRight className="w-5 h-5" style={{ color: '#E51332' }} />
               </div>
-              <div>
-                <p className="text-text-primary text-sm font-semibold">Nouvelle sortie</p>
-                <p className="text-text-tertiary text-xs mt-0.5">Ajouter une dépense</p>
-              </div>
+              <span className="text-text-primary text-xs font-medium text-center">Sortie</span>
             </button>
-            <button onClick={() => navigate('/versement')} className="flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
+            <button
+              onClick={() => navigate('/versement')}
+              className="flex flex-col items-center gap-2 p-3 rounded-xl active:scale-95 transition-transform text-left"
+              style={{ backgroundColor: '#1e1e1e', border: '1px solid #282828' }}
+            >
               <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#FF6B0020' }}>
                 <TrendingUp className="w-5 h-5" style={{ color: '#FF6B00' }} />
               </div>
-              <div>
-                <p className="text-text-primary text-sm font-semibold">Versement</p>
-                <p className="text-text-tertiary text-xs mt-0.5">Transférer vers la caisse</p>
-              </div>
+              <span className="text-text-primary text-xs font-medium text-center">Versement</span>
             </button>
-            <button onClick={() => navigate('/events')} className="flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
+            <button
+              onClick={() => navigate('/events')}
+              className="flex flex-col items-center gap-2 p-3 rounded-xl active:scale-95 transition-transform text-left"
+              style={{ backgroundColor: '#1e1e1e', border: '1px solid #282828' }}
+            >
               <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#8B5CF620' }}>
                 <Calendar className="w-5 h-5" style={{ color: '#8B5CF6' }} />
               </div>
-              <div>
-                <p className="text-text-primary text-sm font-semibold">Événements</p>
-                <p className="text-text-tertiary text-xs mt-0.5">Planifier & suivre</p>
-              </div>
-            </button>
-            <button onClick={() => navigate('/finance')} className="flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform text-left col-span-2" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
-              <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#1DB95420' }}>
-                <TrendingUp className="w-5 h-5" style={{ color: '#1DB954' }} />
-              </div>
-              <div>
-                <p className="text-text-primary text-sm font-semibold">Grand livre</p>
-                <p className="text-text-tertiary text-xs mt-0.5">Toutes les transactions</p>
-              </div>
+              <span className="text-text-primary text-xs font-medium text-center">Événement</span>
             </button>
           </div>
         </div>
@@ -350,7 +359,7 @@ export default function Dashboard() {
         </div>
         <div className="space-y-2 pb-4">
           {recentTransactions.length === 0 ? (
-            <div className="text-center py-10 rounded-xl" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
+            <div className="text-center py-10 rounded-xl" style={{ backgroundColor: '#1e1e1e', border: '1px solid #282828' }}>
               <PlusCircle className="w-8 h-8 mx-auto mb-3 text-text-tertiary" />
               <p className="text-text-tertiary text-sm">Aucune transaction</p>
               <button onClick={() => navigate('/transaction/new')} className="mt-3 text-sm font-medium" style={{ color: '#FF6B00' }}>
