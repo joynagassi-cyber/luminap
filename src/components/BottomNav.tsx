@@ -1,4 +1,4 @@
-import { Home, Landmark, Users, CalendarPlus, MoreVertical, Settings, FileText, BarChart3, Clock, LineChart } from 'lucide-react';
+import { Home, Landmark, Users, CalendarPlus, MoreVertical, Settings, FileText, BarChart3, Clock, LineChart, Wallet, ArrowRightLeft, UserPlus, Archive, ClipboardList, ListChecks, History, PieChart } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useState, useRef, useEffect } from 'react';
 
@@ -7,13 +7,18 @@ const NAV_ITEMS = [
   { icon: Landmark, label: 'Finances', path: '/finance' },
   { icon: Users, label: 'Groupes', path: '/groups' },
   { icon: CalendarPlus, label: 'Événements', path: '/events' },
+  { icon: Settings, label: 'Paramètres', path: '/settings' },
 ];
 
 const MORE_ACTIONS = [
   { icon: BarChart3, label: 'Rapports', path: '/reports' },
-  { icon: FileText, label: 'Bilan', path: '/balance' },
-  { icon: Clock, label: 'Historique', path: '/history' },
-  { icon: Settings, label: 'Paramètres', path: '/settings' },
+  { icon: LineChart, label: 'Bilan', path: '/balance' },
+  { icon: History, label: 'Historique', path: '/history' },
+  { icon: ClipboardList, label: 'Membres', path: '/members' },
+  { icon: Archive, label: 'Archives', path: '/archives' },
+  { icon: Wallet, label: 'Versements', path: '/versement' },
+  { icon: ListChecks, label: 'Trace', path: '/trace' },
+  { icon: FileText, label: 'Formulaires', path: '/forms' },
 ];
 
 export default function BottomNav() {
@@ -45,7 +50,7 @@ export default function BottomNav() {
               </button>
             );
           })}
-          {/* More button (three dots) */}
+          {/* More button */}
           <div className="relative" ref={moreRef}>
             <button
               onClick={() => setShowMore(!showMore)}
