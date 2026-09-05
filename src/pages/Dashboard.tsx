@@ -144,64 +144,62 @@ export default function Dashboard() {
         </div>
 
         {/* Main Caisse Hero Card */}
-        {mainCaisse && (
-          <div
-            className="rounded-2xl p-5 mb-6 cursor-pointer transition-all active:scale-98"
-            style={{
-              background: 'linear-gradient(135deg, #FF6B0020 0%, #FF6B0010 100%)',
-              border: '1px solid #FF6B0030',
-            }}
-            onClick={() => navigate('/finance')}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <LuminaLogo size={40} />
-                <div>
-                  <p className="text-text-primary font-bold text-base">
-                    {greeting} <Sparkles className="w-5 h-5 inline" style={{ color: '#FF6B00' }} />
-                  </p>
-                  <p className="text-text-tertiary text-xs mt-0.5">Caisse principale</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-text-tertiary text-xs">Solde total</p>
-                <div className="flex items-baseline gap-1 mt-1">
-                  <span className="text-2xl font-black tabular-nums" style={{ color: netResult >= 0 ? '#1DB954' : '#E51332' }}>
-                    {netResult >= 0 ? '' : '-'}{formatCentsToFCFA(Math.abs(netResult))}
-                  </span>
-                  <span className="text-text-tertiary text-xs">F</span>
-                </div>
+        <div
+          className="rounded-2xl p-5 mb-6 cursor-pointer transition-all active:scale-98"
+          style={{
+            background: 'linear-gradient(135deg, #FF6B0020 0%, #FF6B0010 100%)',
+            border: '1px solid #FF6B0030',
+          }}
+          onClick={() => navigate('/finance')}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <LuminaLogo size={40} />
+              <div>
+                <p className="text-text-primary font-bold text-base">
+                  {greeting} <Sparkles className="w-5 h-5 inline" style={{ color: '#FF6B00' }} />
+                </p>
+                <p className="text-text-tertiary text-xs mt-0.5">Caisse principale</p>
               </div>
             </div>
-
-            <div className="h-px mb-4" style={{ backgroundColor: '#282828' }} />
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#1DB95420' }}>
-                  <ArrowUpRight className="w-5 h-5" style={{ color: '#1DB954' }} />
-                </div>
-                <div>
-                  <p className="text-text-tertiary text-xs">Entrées du mois</p>
-                  <p className="text-sm font-semibold tabular-nums" style={{ color: '#1DB954' }}>
-                    +{formatCentsToFCFA(totalIncome)}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#E5133220' }}>
-                  <ArrowDownRight className="w-5 h-5" style={{ color: '#E51332' }} />
-                </div>
-                <div className="text-right">
-                  <p className="text-text-tertiary text-xs">Sorties du mois</p>
-                  <p className="text-sm font-semibold tabular-nums" style={{ color: '#E51332' }}>
-                    -{formatCentsToFCFA(totalExpense)}
-                  </p>
-                </div>
+            <div className="text-right">
+              <p className="text-text-tertiary text-xs">Solde total</p>
+              <div className="flex items-baseline gap-1 mt-1">
+                <span className="text-2xl font-black tabular-nums" style={{ color: netResult >= 0 ? '#1DB954' : '#E51332' }}>
+                  {netResult >= 0 ? '' : '-'}{formatCentsToFCFA(Math.abs(netResult))}
+                </span>
+                <span className="text-text-tertiary text-xs">F</span>
               </div>
             </div>
           </div>
-        )}
+
+          <div className="h-px mb-4" style={{ backgroundColor: '#282828' }} />
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#1DB95420' }}>
+                <ArrowUpRight className="w-5 h-5" style={{ color: '#1DB954' }} />
+              </div>
+              <div>
+                <p className="text-text-tertiary text-xs">Entrées du mois</p>
+                <p className="text-sm font-semibold tabular-nums" style={{ color: '#1DB954' }}>
+                  +{formatCentsToFCFA(totalIncome)}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#E5133220' }}>
+                <ArrowDownRight className="w-5 h-5" style={{ color: '#E51332' }} />
+              </div>
+              <div className="text-right">
+                <p className="text-text-tertiary text-xs">Sorties du mois</p>
+                <p className="text-sm font-semibold tabular-nums" style={{ color: '#E51332' }}>
+                  -{formatCentsToFCFA(totalExpense)}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* Quick Stats Grid */}
         {(pendingCount > 0 || draftCount > 0 || upcomingEvents.length > 0 || groupCaisses.length > 0) && (
