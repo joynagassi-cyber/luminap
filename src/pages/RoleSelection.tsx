@@ -25,7 +25,9 @@ export default function RoleSelection() {
     setLoading(roleId);
     try {
       await selectRole(roleId as any);
-      navigate('/');
+      localStorage.setItem('lumina-onboarded', 'true');
+      await loadInitialData();
+      navigate('/', { replace: true });
     } finally {
       setLoading(null);
     }

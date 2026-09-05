@@ -17,9 +17,10 @@ export default function Login() {
     try {
       localStorage.setItem('lumina-session', crypto.randomUUID());
       localStorage.setItem('lumina-role', role);
+      localStorage.setItem('lumina-onboarded', 'true');
       await selectRole(role as any);
       await loadInitialData();
-      navigate('/');
+      navigate('/role-selection', { replace: true });
     } catch (e) {
       setError('Erreur de connexion');
     }
