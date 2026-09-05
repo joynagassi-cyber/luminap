@@ -26,7 +26,7 @@ function fmt(amount: number): string {
 
 export default function EventNew() {
   const navigate = useNavigate();
-  const { addEvent, orgUnits, caisses } = useLocalStore;
+  const { addEvent, orgUnits, caisses } = useLocalStore();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
