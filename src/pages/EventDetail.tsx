@@ -104,10 +104,20 @@ export default function EventDetail() {
         ? { ...item, spent: item.spent + amountCents }
         : item
     );
-    const newTotalSpent = updatedItems.reduce((s, i) => s + i.spent, 0);
 
+    // Add transaction first
     await addTransaction(newTx);
-    await updateEvent(event.id, { budgetItems: updatedItems, budget: event.budget });
+
+    // Then update event with new budget items
+    await updateEvent(event.id, { budgetItems: updatedItems });
+
+    // Force re-fetch event from store
+    const { events } = useLocalStore.getState();
+    const updatedEvent = events.find(e => e.id === event.id);
+    if (updatedEvent) {
+      // Force re-render by updating local state
+      navigate(0);
+    }
 
     setSuccess(`Dépense de ${amountFCFA.toLocaleString('fr-FR')} FCFA enregistrée`);
     setTimeout(() => setSuccess(''), 3000);
