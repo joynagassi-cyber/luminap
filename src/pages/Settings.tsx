@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLocalStore } from '@/store/useLocalStore';
-import { Settings, Database, Cloud, CloudOff, RefreshCw, CreditCard, UserCircle, Camera, Building2, Image as ImageIcon, BookOpen, ScrollText, Check } from 'lucide-react';
+import { Settings, Database, Cloud, CloudOff, RefreshCw, CreditCard, UserCircle, Camera, Building2, Image as ImageIcon, BookOpen, ScrollText, Check, ClipboardList, Tag, Archive, BarChart3, Clock } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
 import LuminaLogo from '@/components/LuminaLogo';
@@ -159,28 +159,28 @@ export default function SettingsPage() {
         <div className="grid grid-cols-2 gap-3 mb-5">
           <button onClick={() => navigate('/forms')} className="p-4 rounded-xl text-left active:scale-95 transition-transform" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
             <div className="w-10 h-10 rounded-full flex items-center justify-center mb-2" style={{ backgroundColor: '#FF6B0020' }}>
-              <span className="text-lg">📋</span>
+              <ClipboardList className="w-5 h-5" style={{ color: '#FF6B00' }} />
             </div>
             <p className="text-text-primary text-sm font-semibold">Formulaires</p>
             <p className="text-text-tertiary text-xs mt-0.5">Créer & gérer</p>
           </button>
           <button onClick={() => navigate('/custom-fields')} className="p-4 rounded-xl text-left active:scale-95 transition-transform" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
             <div className="w-10 h-10 rounded-full flex items-center justify-center mb-2" style={{ backgroundColor: '#8B5CF620' }}>
-              <span className="text-lg">🏷️</span>
+              <Tag className="w-5 h-5" style={{ color: '#8B5CF6' }} />
             </div>
             <p className="text-text-primary text-sm font-semibold">Champs pers.</p>
             <p className="text-text-tertiary text-xs mt-0.5">Customiser</p>
           </button>
           <button onClick={() => navigate('/archives')} className="p-4 rounded-xl text-left active:scale-95 transition-transform" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
             <div className="w-10 h-10 rounded-full flex items-center justify-center mb-2" style={{ backgroundColor: '#3B82F620' }}>
-              <span className="text-lg">📦</span>
+              <Archive className="w-5 h-5" style={{ color: '#3B82F6' }} />
             </div>
             <p className="text-text-primary text-sm font-semibold">Archives</p>
             <p className="text-text-tertiary text-xs mt-0.5">Gérer les archives</p>
           </button>
           <button onClick={() => navigate('/reports')} className="p-4 rounded-xl text-left active:scale-95 transition-transform" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
             <div className="w-10 h-10 rounded-full flex items-center justify-center mb-2" style={{ backgroundColor: '#1DB95420' }}>
-              <span className="text-lg">📊</span>
+              <BarChart3 className="w-5 h-5" style={{ color: '#1DB954' }} />
             </div>
             <p className="text-text-primary text-sm font-semibold">Rapports</p>
             <p className="text-text-tertiary text-xs mt-0.5">Bilans & stats</p>
@@ -219,13 +219,22 @@ export default function SettingsPage() {
             </div>
           </button>
 
-          <button onClick={() => navigate('/history')} className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
+          <button onClick={() => navigate('/trace')} className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
             <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#3B82F620' }}>
-              <ScrollText className="text-lg" style={{ color: '#3B82F6' }} />
+              <Clock className="w-5 h-5" style={{ color: '#3B82F6' }} />
             </div>
             <div>
-              <p className="text-text-primary text-sm font-semibold">Historique des actions</p>
-              <p className="text-text-tertiary text-xs mt-0.5">Traçabilité de toutes les opérations</p>
+              <p className="text-text-primary text-sm font-semibold">Trace d'activité</p>
+              <p className="text-text-tertiary text-xs mt-0.5">Journal de toutes les opérations</p>
+            </div>
+          </button>
+          <button onClick={() => navigate('/history')} className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
+            <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#FFB80020' }}>
+              <BarChart3 className="w-5 h-5" style={{ color: '#FFB800' }} />
+            </div>
+            <div>
+              <p className="text-text-primary text-sm font-semibold">Historique financier</p>
+              <p className="text-text-tertiary text-xs mt-0.5">Graphiques et statistiques</p>
             </div>
           </button>
 

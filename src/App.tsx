@@ -19,6 +19,7 @@ import EventDetail from "./pages/EventDetail";
 import Versement from "./pages/Versement";
 import Settings from "./pages/Settings";
 import History from "./pages/History";
+import Trace from "./pages/Trace";
 import Help from "./pages/Help";
 import Tutorial from "./pages/Tutorial";
 import NotFound from "./pages/NotFound";
@@ -71,6 +72,7 @@ function AppRoutes() {
         <Route path="/form/fill/:id" element={<ProtectedRoute><FormFill /></ProtectedRoute>} />
         <Route path="/custom-fields" element={<ProtectedRoute><CustomFields /></ProtectedRoute>} />
         <Route path="/report-builder" element={<ProtectedRoute><ReportBuilder /></ProtectedRoute>} />
+        <Route path="/trace" element={<ProtectedRoute><Trace /></ProtectedRoute>} />
         <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
         <Route path="/help" element={<ProtectedRoute><Help /></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
