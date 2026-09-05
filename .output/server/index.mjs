@@ -11,12 +11,12 @@ var headers = ((m) => function headersRouteRule(event) {
 //#endregion
 //#region #nitro/virtual/public-assets-data
 var public_assets_data_default = {
-	"/manifest.json": {
-		"type": "application/json",
-		"etag": "\"1eb-Y7kttYgCEPOR8HGHYsGcvSqM47M\"",
-		"mtime": "2026-09-02T17:13:42.999Z",
-		"size": 491,
-		"path": "../public/manifest.json"
+	"/favicon.ico": {
+		"type": "image/vnd.microsoft.icon",
+		"etag": "\"15f09-4MFHRo4azA6knOGNmsefGO+QUAE\"",
+		"mtime": "2026-09-01T22:18:50.675Z",
+		"size": 89865,
+		"path": "../public/favicon.ico"
 	},
 	"/placeholder.svg": {
 		"type": "image/svg+xml",
@@ -25,26 +25,40 @@ var public_assets_data_default = {
 		"size": 3253,
 		"path": "../public/placeholder.svg"
 	},
-	"/assets/index-4ohfnSAe.css": {
-		"type": "text/css; charset=utf-8",
-		"etag": "\"ebca-W1VftlgPM0HjB4QmNQaRMefhdNM\"",
-		"mtime": "2026-09-05T02:38:03.081Z",
-		"size": 60362,
-		"path": "../public/assets/index-4ohfnSAe.css"
-	},
-	"/assets/html2canvas-D6E2jxby.js": {
-		"type": "text/javascript; charset=utf-8",
-		"etag": "\"30b45-xGAGfzVbs0oDBcgHtDFkWgBp3DM\"",
-		"mtime": "2026-09-05T02:38:03.071Z",
-		"size": 199493,
-		"path": "../public/assets/html2canvas-D6E2jxby.js"
-	},
 	"/lumina-logo.png": {
 		"type": "image/png",
 		"etag": "\"c2ce-Xrm5OeE6Rcs4GqYh+OFZRZQyAYE\"",
 		"mtime": "2026-09-04T20:43:25.384Z",
 		"size": 49870,
 		"path": "../public/lumina-logo.png"
+	},
+	"/assets/html2canvas-CBQkfQ0F.js": {
+		"type": "text/javascript; charset=utf-8",
+		"etag": "\"30b45-T4Sj7iqmqXZxaMIXzhVtt8x3vyg\"",
+		"mtime": "2026-09-05T16:26:33.776Z",
+		"size": 199493,
+		"path": "../public/assets/html2canvas-CBQkfQ0F.js"
+	},
+	"/assets/index-sAxyoFLA.css": {
+		"type": "text/css; charset=utf-8",
+		"etag": "\"ebe9-1+ADWpL961cldrrLa5Bfg7EKjNI\"",
+		"mtime": "2026-09-05T16:26:33.782Z",
+		"size": 60393,
+		"path": "../public/assets/index-sAxyoFLA.css"
+	},
+	"/assets/index.es-CrQ-amD1.js": {
+		"type": "text/javascript; charset=utf-8",
+		"etag": "\"24f69-DGoBirbqdMUgEME14//J2PumjM0\"",
+		"mtime": "2026-09-05T16:26:33.779Z",
+		"size": 151401,
+		"path": "../public/assets/index.es-CrQ-amD1.js"
+	},
+	"/manifest.json": {
+		"type": "application/json",
+		"etag": "\"1eb-Y7kttYgCEPOR8HGHYsGcvSqM47M\"",
+		"mtime": "2026-09-02T17:13:42.999Z",
+		"size": 491,
+		"path": "../public/manifest.json"
 	},
 	"/robots.txt": {
 		"type": "text/plain; charset=utf-8",
@@ -53,33 +67,12 @@ var public_assets_data_default = {
 		"size": 174,
 		"path": "../public/robots.txt"
 	},
-	"/assets/index.es-8Zf2FBLs.js": {
-		"type": "text/javascript; charset=utf-8",
-		"etag": "\"24f69-3GpgyvjvXF3OUsG5UTtIm3r/XaQ\"",
-		"mtime": "2026-09-05T02:38:03.079Z",
-		"size": 151401,
-		"path": "../public/assets/index.es-8Zf2FBLs.js"
-	},
 	"/assets/purify.es-ChwZkWde.js": {
 		"type": "text/javascript; charset=utf-8",
 		"etag": "\"68bc-bPPRDEosU/Lqj+2Oyi1ue22LViM\"",
-		"mtime": "2026-09-05T02:38:03.081Z",
+		"mtime": "2026-09-05T16:26:33.781Z",
 		"size": 26812,
 		"path": "../public/assets/purify.es-ChwZkWde.js"
-	},
-	"/favicon.ico": {
-		"type": "image/vnd.microsoft.icon",
-		"etag": "\"15f09-4MFHRo4azA6knOGNmsefGO+QUAE\"",
-		"mtime": "2026-09-01T22:18:50.675Z",
-		"size": 89865,
-		"path": "../public/favicon.ico"
-	},
-	"/assets/logo.png": {
-		"type": "image/png",
-		"etag": "\"c2ce-Xrm5OeE6Rcs4GqYh+OFZRZQyAYE\"",
-		"mtime": "2026-09-02T09:03:42.946Z",
-		"size": 49870,
-		"path": "../public/assets/logo.png"
 	},
 	"/assets/logo-lumina.png": {
 		"type": "image/png",
@@ -88,12 +81,19 @@ var public_assets_data_default = {
 		"size": 49870,
 		"path": "../public/assets/logo-lumina.png"
 	},
-	"/assets/index-DUryz-dp.js": {
+	"/assets/index-DcmcnsRG.js": {
 		"type": "text/javascript; charset=utf-8",
-		"etag": "\"169c77-e5Xc2rnV0rwprcgbqDRqJZbk1wo\"",
-		"mtime": "2026-09-05T02:38:03.062Z",
-		"size": 1481847,
-		"path": "../public/assets/index-DUryz-dp.js"
+		"etag": "\"17b955-CQBix6Alv4Dm/7Io5cExNHdKVik\"",
+		"mtime": "2026-09-05T16:26:33.774Z",
+		"size": 1554773,
+		"path": "../public/assets/index-DcmcnsRG.js"
+	},
+	"/assets/logo.png": {
+		"type": "image/png",
+		"etag": "\"c2ce-Xrm5OeE6Rcs4GqYh+OFZRZQyAYE\"",
+		"mtime": "2026-09-02T09:03:42.946Z",
+		"size": 49870,
+		"path": "../public/assets/logo.png"
 	}
 };
 //#endregion

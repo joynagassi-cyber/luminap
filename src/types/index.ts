@@ -65,6 +65,11 @@ export type Caisse = {
   orgId: string;
   createdAt: string;
   updatedAt: string;
+  // Archive fields (mirrored from Account)
+  archivedAt: string | null;
+  archivedBy: string | null;
+  archiveReason: string | null;
+  status: 'ACTIVE' | 'ARCHIVED';
 };
 
 export type Transaction = {

@@ -9,7 +9,7 @@ import type { ReportDefinition } from '@/types';
 
 export default function Reports() {
   const navigate = useNavigate();
-  const { transactions, caisses, events, members } = useLocalStore();
+  const { transactions, accounts, events, members } = useLocalStore();
   const [selectedReport, setSelectedReport] = useState<string | null>(null);
 
   const monthlyReport = transactions
@@ -22,11 +22,11 @@ export default function Reports() {
       return acc;
     }, {});
 
-  const caisseReport = caisses.filter(c => c.type === 'GROUP').map(caisse => {
-    const txs = transactions.filter(t => t.sourceCaisseId === caisse.id && t.status === 'APPROVED');
+  const caisseReport = accounts.filter(a => a.ownerType === 'GROUP' && a.status === 'ACTIVE').map(account => {
+    const txs = transactions.filter(t => t.sourceCaisseId === account.id && t.status === 'APPROVED');
     const income = txs.filter(t => t.type === 'INCOME').reduce((s, t) => s + t.amount, 0);
     const expense = txs.filter(t => t.type === 'EXPENSE').reduce((s, t) => s + t.amount, 0);
-    return { caisse: caisse.name, income, expense, balance: income - expense };
+    return { caisse: account.name, income, expense, balance: income - expense };
   });
 
   const eventReport = events.filter(e => e.status === 'COMPLETED' || e.status === 'CANCELLED').map(event => {

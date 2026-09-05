@@ -20,7 +20,7 @@ const STATUS_CONFIG: Record<EventStatus, { label: string; color: string; bg: str
 export default function EventDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { events, updateEventStatus, deleteEvent, transactions, caisses, addTransaction, updateEvent } = useLocalStore();
+  const { events, updateEventStatus, deleteEvent, transactions, caisses, accounts, addTransaction, updateEvent } = useLocalStore();
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [showDelete, setShowDelete] = useState(false);
   const [success, setSuccess] = useState('');
@@ -338,8 +338,8 @@ export default function EventDetail() {
                 const isExceeded = item.spent > item.allocated;
                 const remainingItem = item.allocated - item.spent;
                 const sourceCaisse = item.fundedBy === 'main'
-                  ? caisses.find(c => c.id === 'main')
-                  : caisses.find(c => c.id === item.fundedBy);
+                  ? useLocalStore.getState().getCaisseForDisplay('main')
+                  : useLocalStore.getState().getCaisseForDisplay(item.fundedBy);
 
                 return (
                   <div key={item.id} className="rounded-xl p-4" style={{ backgroundColor: '#212121', border: isExceeded ? '1px solid #E5133240' : '1px solid #282828' }}>
@@ -400,7 +400,7 @@ export default function EventDetail() {
               </div>
             ) : (
               eventTxs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((tx) => {
-                const caisse = caisses.find(c => c.id === tx.sourceCaisseId);
+                const caisse = useLocalStore.getState().getCaisseForDisplay(tx.sourceCaisseId);
                 return (
                   <div key={tx.id} className="rounded-xl p-3 flex items-center gap-3" style={{ backgroundColor: '#212121' }}>
                     <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: tx.type === 'INCOME' ? '#1DB95420' : '#E5133220' }}>

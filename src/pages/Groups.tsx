@@ -12,7 +12,7 @@ const GROUP_TYPES = ['groupe', 'commission', 'comité', 'diaconie', 'service'];
 
 export default function Groups() {
   const navigate = useNavigate();
-  const { orgUnits, caisses, createGroup, updateGroup, deleteGroup, isLoading, appConfig, user } = useLocalStore();
+  const { orgUnits, caisses, accounts, createGroup, updateGroup, deleteGroup, isLoading, appConfig, user } = useLocalStore();
   const [showCreate, setShowCreate] = useState(false);
   const [showEdit, setShowEdit] = useState<string | null>(null);
   const [showDelete, setShowDelete] = useState<string | null>(null);
@@ -95,7 +95,8 @@ export default function Groups() {
         {/* Groups list */}
         <div className="space-y-3">
           {orgUnits.map((ou) => {
-            const caisse = caisses.find(c => c.id === ou.id);
+            const account = accounts.find(a => a.id === ou.id);
+            const caisse = useLocalStore.getState().getCaisseForDisplay(ou.id);
             const color = caisse?.color || '#808080';
             return (
               <div key={ou.id} className="rounded-xl overflow-hidden" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
@@ -108,7 +109,7 @@ export default function Groups() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-text-primary font-semibold">{ou.name}</p>
-                    <p className="text-text-tertiary text-xs mt-0.5">{caisse?.description || ou.description || 'Pas de description'}</p>
+                    <p className="text-text-tertiary text-xs mt-0.5">{caisse?.description || account?.name || ou.description || 'Pas de description'}</p>
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: color + '15', color }}>{ou.type}</span>
                       {!ou.isActive && <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: '#80808020', color: '#808080' }}>Inactif</span>}

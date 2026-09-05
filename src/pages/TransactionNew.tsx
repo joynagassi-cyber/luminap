@@ -9,7 +9,7 @@ import { generateId } from '@/lib/utils';
 export default function TransactionNew() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { categories, orgUnits, caisses, events, addTransaction } = useLocalStore();
+  const { categories, orgUnits, caisses, accounts, events, addTransaction } = useLocalStore();
   const preselectedCaisse = (location.state as any)?.caisseId || '';
   const preselectedType = (location.state as any)?.type || '';
   const preselectedEvent = (location.state as any)?.eventId || '';
@@ -33,8 +33,8 @@ export default function TransactionNew() {
   const handleOrgUnitChange = (ouId: string) => {
     setOrgUnitId(ouId);
     if (ouId) {
-      const caisse = caisses.find(c => c.id === ouId);
-      if (caisse) setSourceCaisseId(caisse.id);
+      const account = accounts.find(a => a.id === ouId);
+      if (account) setSourceCaisseId(account.id);
     } else {
       setSourceCaisseId('main');
     }

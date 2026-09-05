@@ -2,33 +2,42 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useLocalStore } from '@/store/useLocalStore';
 import { formatCurrencyCompact, formatDate } from '@/lib/utils';
-import { ArrowLeft, Wallet, TrendingUp, TrendingDown, Check, Edit3, Trash2, Users, Clock, ArrowUp, ArrowDown, RefreshCw, ArrowRightLeft } from 'lucide-react';
+import { ArrowLeft, Wallet, TrendingUp, TrendingDown, Check, Edit3, Trash2, Users, Clock, ArrowUp, ArrowDown, RefreshCw, ArrowRightLeft, Plus, UserPlus, UserMinus, Archive } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
 import TransactionCard from '@/components/TransactionCard';
 import { FullPageSkeleton, ListSkeleton } from '@/components/Skeleton';
-import type { Transaction } from '@/types';
+import type { Transaction, Account, Member, GroupMembership } from '@/types';
 
-type Tab = 'transactions' | 'historique' | 'parametres';
+type Tab = 'transactions' | 'membres' | 'historique' | 'parametres';
 
 export default function GroupDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { orgUnits, caisses, transactions, createGroup, updateGroup, deleteGroup, isLoading, createNotification } = useLocalStore();
+  const { orgUnits, accounts, transactions, members, memberships, createGroup, updateGroup, deleteGroup, archiveGroup, isLoading, createNotification, addMemberToGroup, removeMemberFromGroup } = useLocalStore();
   const [activeTab, setActiveTab] = useState<Tab>('transactions');
   const [showEdit, setShowEdit] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
+  const [showArchive, setShowArchive] = useState(false);
   const [editName, setEditName] = useState('');
   const [editDesc, setEditDesc] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [showAddMember, setShowAddMember] = useState(false);
+  const [selectedMemberId, setSelectedMemberId] = useState('');
 
   const orgUnit = orgUnits.find(o => o.id === id);
-  const caisse = caisses.find(c => c.id === id);
+  const account = accounts.find(a => a.id === id) as Account | undefined;
+  const caisseDisplay = account ? useLocalStore.getState().getCaisseForDisplay(account.id) : null;
 
-  if (isLoading || !orgUnit || !caisse) return <FullPageSkeleton />;
+  const groupMemberships = memberships.filter(m => m.groupId === id);
+  const groupMemberIds = groupMemberships.map(m => m.memberId);
+  const groupMembers = members.filter(m => groupMemberIds.includes(m.id) && m.status !== 'ARCHIVED');
 
-  const txs = transactions.filter(t => t.sourceCaisseId === caisse.id);
+  if (isLoading || !orgUnit || !account) return <FullPageSkeleton />;
+
+  const color = caisseDisplay?.color || '#FF6B00';
+  const txs = transactions.filter(t => t.sourceCaisseId === account.id);
   const approvedTxs = txs.filter(t => t.status === 'APPROVED');
   const income = approvedTxs.filter(t => t.type === 'INCOME').reduce((s, t) => s + t.amount, 0);
   const expense = approvedTxs.filter(t => t.type === 'EXPENSE').reduce((s, t) => s + t.amount, 0);
@@ -49,11 +58,11 @@ export default function GroupDetail() {
 
   // Timeline actions for enriched history
   const timelineEvents: Array<{ date: string; label: string; type: 'info' | 'success' | 'warning' }> = [
-    { date: caisse.createdAt, label: 'Caisse créée', type: 'info' },
+    { date: account.createdAt, label: 'Caisse créée', type: 'info' },
   ];
 
   const handleVersement = () => {
-    navigate('/versement', { state: { caisseId: caisse.id, defaultAmount: balance } });
+    navigate('/versement', { state: { caisseId: account.id, defaultAmount: balance } });
   };
 
   const handleUpdate = async () => {
@@ -73,6 +82,39 @@ export default function GroupDetail() {
     }
   };
 
+  const handleArchive = async () => {
+    try {
+      await archiveGroup(id!, 'Archive manuelle', 'local-user');
+      navigate('/groups');
+    } catch (e: any) {
+      setError(e.message || 'Erreur lors de l\'archivage');
+    }
+  };
+
+  const handleAddMember = async () => {
+    if (!selectedMemberId) return;
+    const existing = groupMemberships.find(m => m.memberId === selectedMemberId);
+    if (existing) {
+      setError('Ce membre est déjà dans le groupe');
+      return;
+    }
+    await addMemberToGroup({
+      memberId: selectedMemberId,
+      groupId: id!,
+      roleInGroup: 'MEMBRE',
+      joinedAt: new Date().toISOString(),
+      leftAt: null,
+    });
+    setShowAddMember(false);
+    setSelectedMemberId('');
+    setSuccess('Membre ajouté');
+    setTimeout(() => setSuccess(''), 3000);
+  };
+
+  const handleRemoveMember = async (membershipId: string) => {
+    await removeMemberFromGroup(membershipId);
+  };
+
   return (
     <div className="min-h-screen bg-canvas">
       <TopHeader title={orgUnit.name} />
@@ -86,16 +128,16 @@ export default function GroupDetail() {
         {success && <div className="mb-4 p-3 rounded-xl text-sm" style={{ backgroundColor: '#1DB95420', color: '#1DB954' }}>{success}</div>}
 
         {/* Hero Card */}
-        <div className="rounded-2xl p-5 mb-5" style={{ backgroundColor: '#212121', border: `1px solid ${caisse.color}30` }}>
+        <div className="rounded-2xl p-5 mb-5" style={{ backgroundColor: '#212121', border: `1px solid ${color}30` }}>
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: caisse.color + '20' }}>
-              <Wallet className="w-6 h-6" style={{ color: caisse.color }} />
+            <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: color + '20' }}>
+              <Wallet className="w-6 h-6" style={{ color }} />
             </div>
             <div className="flex-1">
-              <p className="text-text-primary font-bold text-lg">{caisse.name}</p>
-              <p className="text-text-tertiary text-xs">{caisse.description}</p>
+              <p className="text-text-primary font-bold text-lg">{account.name}</p>
+              <p className="text-text-tertiary text-xs">{orgUnit.description || caisseDisplay?.description || ''}</p>
             </div>
-            <span className="text-xs px-2 py-1 rounded-full font-medium" style={{ backgroundColor: caisse.color + '15', color: caisse.color }}>Caisse</span>
+            <span className="text-xs px-2 py-1 rounded-full font-medium" style={{ backgroundColor: color + '15', color }}>Caisse</span>
           </div>
 
           <div className="h-px mb-4" style={{ backgroundColor: '#282828' }} />
@@ -132,14 +174,14 @@ export default function GroupDetail() {
         {/* Quick actions */}
         <div className="flex gap-3 mb-5">
           <button
-            onClick={() => navigate('/transaction/new', { state: { caisseId: caisse.id, type: 'INCOME' } })}
+            onClick={() => navigate('/transaction/new', { state: { caisseId: account.id, type: 'INCOME' } })}
             className="flex-1 py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-95"
             style={{ backgroundColor: '#1DB95420', color: '#1DB954', border: '1px solid #1DB95440' }}
           >
             <ArrowUp className="w-4 h-4" /> Entrée
           </button>
           <button
-            onClick={() => navigate('/transaction/new', { state: { caisseId: caisse.id, type: 'EXPENSE' } })}
+            onClick={() => navigate('/transaction/new', { state: { caisseId: account.id, type: 'EXPENSE' } })}
             className="flex-1 py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-95"
             style={{ backgroundColor: '#E5133220', color: '#E51332', border: '1px solid #E5133240' }}
           >
@@ -157,13 +199,14 @@ export default function GroupDetail() {
         </div>
 
         {/* Tabs */}
-        <div className="flex rounded-xl p-1 mb-5" style={{ backgroundColor: '#212121' }}>
+        <div className="flex rounded-xl p-1 mb-5 overflow-x-auto" style={{ backgroundColor: '#212121' }}>
           {([
             { id: 'transactions' as Tab, label: 'Transactions', icon: Wallet },
+            { id: 'membres' as Tab, label: 'Membres', icon: Users },
             { id: 'historique' as Tab, label: 'Historique', icon: Clock },
             { id: 'parametres' as Tab, label: 'Paramètres', icon: Edit3 },
           ]).map(({ id: tabId, label, icon: TabIcon }) => (
-            <button key={tabId} onClick={() => setActiveTab(tabId)} className="flex-1 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1.5" style={activeTab === tabId ? { backgroundColor: '#FF6B00', color: '#fff' } : { color: '#808080' }}>
+            <button key={tabId} onClick={() => setActiveTab(tabId)} className="flex-1 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1.5 whitespace-nowrap" style={activeTab === tabId ? { backgroundColor: '#FF6B00', color: '#fff' } : { color: '#808080' }}>
               <TabIcon className="w-3.5 h-3.5" /> {label}
             </button>
           ))}
@@ -174,7 +217,7 @@ export default function GroupDetail() {
           <>
             <div className="flex items-center justify-between mb-3">
               <p className="text-text-primary font-semibold text-sm">Transactions récentes</p>
-              <button onClick={() => navigate('/finance', { state: { caisseId: caisse.id } })} className="text-xs font-medium" style={{ color: '#FF6B00' }}>Tout voir</button>
+              <button onClick={() => navigate('/finance', { state: { caisseId: account.id } })} className="text-xs font-medium" style={{ color: '#FF6B00' }}>Tout voir</button>
             </div>
             <div className="space-y-2">
               {txs.filter(t => t.status === 'APPROVED' || t.status === 'PENDING')
@@ -191,6 +234,54 @@ export default function GroupDetail() {
               )}
             </div>
           </>
+        )}
+
+        {activeTab === 'membres' && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-text-primary font-semibold text-sm">Membres du groupe</p>
+              <button
+                onClick={() => setShowAddMember(true)}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium"
+                style={{ backgroundColor: '#FF6B0020', color: '#FF6B00' }}
+              >
+                <UserPlus className="w-3.5 h-3.5" /> Ajouter
+              </button>
+            </div>
+            {groupMembers.length === 0 ? (
+              <div className="text-center py-10 rounded-xl" style={{ backgroundColor: '#212121' }}>
+                <Users className="w-8 h-8 mx-auto mb-3 text-text-tertiary opacity-40" />
+                <p className="text-text-tertiary text-sm">Aucun membre</p>
+                <p className="text-text-tertiary text-xs mt-1">Ajoutez des membres à ce groupe</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {groupMembers.map((member) => {
+                  const membership = groupMemberships.find(m => m.memberId === member.id);
+                  return (
+                    <div key={member.id} className="rounded-xl p-4 flex items-center gap-3" style={{ backgroundColor: '#212121' }}>
+                      <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#FF6B0020' }}>
+                        <span className="text-sm font-bold" style={{ color: '#FF6B00' }}>{member.firstName.charAt(0)}{member.lastName.charAt(0)}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-text-primary text-sm font-semibold">{member.firstName} {member.lastName}</p>
+                        <p className="text-text-tertiary text-xs">{member.phone || member.email || 'Pas de contact'}</p>
+                      </div>
+                      {membership && (
+                        <button
+                          onClick={() => handleRemoveMember(membership.id)}
+                          className="w-8 h-8 rounded-full flex items-center justify-center"
+                          style={{ backgroundColor: '#E5133220' }}
+                        >
+                          <UserMinus className="w-4 h-4" style={{ color: '#E51332' }} />
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         )}
 
         {activeTab === 'historique' && (
@@ -290,6 +381,13 @@ export default function GroupDetail() {
               </button>
             )}
 
+            <button onClick={() => setShowArchive(true)} className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
+              <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#80808020' }}>
+                <Archive className="w-5 h-5" style={{ color: '#808080' }} />
+              </div>
+              <span className="text-text-primary text-sm font-medium">Archiver le groupe</span>
+            </button>
+
             <button onClick={() => setShowDelete(true)} className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
               <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#E5133220' }}>
                 <Trash2 className="w-5 h-5" style={{ color: '#E51332' }} />
@@ -300,6 +398,58 @@ export default function GroupDetail() {
         )}
       </div>
       <BottomNav />
+
+      {/* Archive Confirmation */}
+      {showArchive && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-5" onClick={() => setShowArchive(false)}>
+          <div className="absolute inset-0 bg-black/70" />
+          <div className="relative w-full max-w-sm rounded-2xl p-5 text-center" style={{ backgroundColor: '#181818' }} onClick={(e) => e.stopPropagation()}>
+            <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: '#80808020' }}>
+              <Archive className="w-6 h-6 text-text-tertiary" />
+            </div>
+            <h3 className="text-text-primary font-bold text-lg mb-2">Archiver {orgUnit.name} ?</h3>
+            <p className="text-text-tertiary text-sm mb-1">Le groupe sera archivée mais pas supprimée.</p>
+            <p className="text-text-tertiary text-xs mb-4">Vous pourrez le restaurer plus tard.</p>
+            <button onClick={handleArchive} className="w-full py-3.5 rounded-full font-semibold text-white mb-3" style={{ backgroundColor: '#808080' }}>Archiver</button>
+            <button onClick={() => setShowArchive(false)} className="w-full py-3 rounded-full font-medium text-sm text-text-tertiary" style={{ backgroundColor: '#212121' }}>Annuler</button>
+          </div>
+        </div>
+      )}
+
+      {/* Add Member Modal */}
+      {showAddMember && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={() => setShowAddMember(false)}>
+          <div className="absolute inset-0 bg-black/60" />
+          <div className="relative w-full max-w-lg rounded-t-2xl p-5 pb-8" style={{ backgroundColor: '#181818' }} onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-text-primary font-bold text-lg">Ajouter un membre</h2>
+              <button onClick={() => setShowAddMember(false)} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: '#282828' }}>
+                <span className="text-text-tertiary text-sm"><UserMinus className="w-4 h-4" /></span>
+              </button>
+            </div>
+            <div className="space-y-3">
+              <select
+                value={selectedMemberId}
+                onChange={(e) => setSelectedMemberId(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl text-text-primary text-sm outline-none appearance-none"
+                style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
+              >
+                <option value="">Sélectionner un membre...</option>
+                {members.filter(m => m.status === 'ACTIVE' && !groupMemberIds.includes(m.id)).map(m => (
+                  <option key={m.id} value={m.id}>{m.firstName} {m.lastName}</option>
+                ))}
+              </select>
+              {error && <p className="text-xs" style={{ color: '#E51332' }}>{error}</p>}
+              <button onClick={handleAddMember} disabled={!selectedMemberId} className="w-full py-3.5 rounded-full font-semibold text-white disabled:opacity-40" style={{ backgroundColor: '#FF6B00' }}>
+                Ajouter au groupe
+              </button>
+              <button onClick={() => { setShowAddMember(false); setError(''); setSelectedMemberId(''); }} className="w-full py-3 rounded-full font-medium text-sm text-text-tertiary" style={{ backgroundColor: '#212121' }}>
+                Annuler
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Delete Confirmation */}
       {showDelete && (

@@ -8,7 +8,7 @@ import TopHeader from '@/components/TopHeader';
 export default function TransactionEdit() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { transactions, categories, orgUnits, caisses, events, updateTransaction } = useLocalStore();
+  const { transactions, categories, orgUnits, caisses, accounts, events, updateTransaction } = useLocalStore();
   const [type, setType] = useState<'INCOME' | 'EXPENSE'>('INCOME');
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
@@ -24,6 +24,12 @@ export default function TransactionEdit() {
 
   useEffect(() => {
     const tx = transactions.find(t => t.id === id);
+    if (!tx) return;
+    // Immunité: approved transactions cannot be edited
+    if (tx.status === 'APPROVED') {
+      navigate(`/transaction/${id}`);
+      return;
+    }
     if (tx) {
       setType(tx.type);
       setAmount(Math.round(tx.amount / 100).toString());
@@ -45,8 +51,8 @@ export default function TransactionEdit() {
   const handleOrgUnitChange = (ouId: string) => {
     setOrgUnitId(ouId);
     if (ouId) {
-      const caisse = caisses.find(c => c.id === ouId);
-      if (caisse) setSourceCaisseId(caisse.id);
+      const account = accounts.find(a => a.id === ouId);
+      if (account) setSourceCaisseId(account.id);
     } else {
       setSourceCaisseId('main');
     }
@@ -149,7 +155,7 @@ export default function TransactionEdit() {
           <div>
             <label className="text-text-tertiary text-xs mb-2 block">Caisse source</label>
             <select value={sourceCaisseId} onChange={(e) => setSourceCaisseId(e.target.value)} className="w-full px-4 py-3 rounded-xl text-text-primary text-sm outline-none appearance-none" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
-              {caisses.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
+              {accounts.map((a) => (<option key={a.id} value={a.id}>{a.name}</option>))}
             </select>
           </div>
 

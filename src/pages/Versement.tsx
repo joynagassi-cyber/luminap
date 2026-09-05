@@ -9,15 +9,15 @@ import TopHeader from '@/components/TopHeader';
 export default function Versement() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { caisses, transactions, addTransaction } = useLocalStore();
+  const { caisses, accounts, transactions, createVersement } = useLocalStore();
   const [selectedCaisse, setSelectedCaisse] = useState<string>((location.state as any)?.caisseId || '');
   const [amount, setAmount] = useState<string>((location.state as any)?.defaultAmount ? String(Math.round((location.state as any).defaultAmount / 100)) : '');
   const [comment, setComment] = useState('');
   const [showConfirm, setShowConfirm] = useState(false);
-  const [previewTx, setPreviewTx] = useState<{ source: any; target: any } | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const groupCaisses = caisses.filter(c => c.type === 'GROUP');
-  const selected = groupCaisses.find(c => c.id === selectedCaisse);
+  const groupAccounts = accounts.filter(a => a.ownerType === 'GROUP' && a.status === 'ACTIVE');
+  const selected = groupAccounts.find(a => a.id === selectedCaisse);
 
   // Re-calculate balance fresh each time
   const approvedTxs = transactions.filter(t => t.sourceCaisseId === selectedCaisse && t.status === 'APPROVED');
@@ -28,72 +28,21 @@ export default function Versement() {
   const amountNum = Math.round(parseFloat(amount || '0'));
   const isValid = amountNum > 0 && amountNum <= maxAmount;
 
-  const buildPreview = () => {
-    const versementId = Date.now().toString(36) + Math.random().toString(36).substr(2, 4);
-    const mainCaisse = caisses.find(c => c.id === 'main');
-    if (!mainCaisse) return;
-    const amountCents = amountNum * 100;
-    const now = new Date().toISOString();
-    const sessionId = localStorage.getItem('lumina-session') || 'local-user';
-
-    const sourceTx = {
-      id: versementId + '_src',
-      orgId: 'org-1' as const,
-      type: 'EXPENSE' as const,
-      amount: amountCents,
-      description: `Versement vers caisse principale`,
-      date: now.split('T')[0],
-      status: 'APPROVED' as const,
-      createdAt: now,
-      updatedAt: now,
-      createdById: sessionId,
-      approvedById: sessionId,
-      approvedAt: now,
-      categoryId: 'cat-dime',
-      orgUnitId: selectedCaisse,
-      eventId: null,
-      source: 'CAISSE' as const,
-      personName: null,
-      compensatesFor: null,
-      comment: `Versement ${amountNum} FCFA → Caisse principale`,
-      version: 1,
-      sourceCaisseId: selectedCaisse,
-      versementId,
-    };
-
-    const targetTx = {
-      id: versementId + '_tgt',
-      orgId: 'org-1' as const,
-      type: 'INCOME' as const,
-      amount: amountCents,
-      description: `Versement de ${selected?.name || 'groupe'}`,
-      date: now.split('T')[0],
-      status: 'APPROVED' as const,
-      createdAt: now,
-      updatedAt: now,
-      createdById: sessionId,
-      approvedById: sessionId,
-      approvedAt: now,
-      categoryId: 'cat-dime',
-      orgUnitId: null,
-      eventId: null,
-      source: 'CAISSE' as const,
-      personName: null,
-      compensatesFor: null,
-      comment: `Versement ${amountNum} FCFA de ${selected?.name || 'groupe'} → Caisse principale`,
-      version: 1,
-      sourceCaisseId: 'main',
-      versementId,
-    };
-
-    setPreviewTx({ source: sourceTx, target: targetTx });
-  };
-
   const handleConfirm = async () => {
-    if (!isValid || !selectedCaisse || !previewTx) return;
-    await addTransaction(previewTx.source);
-    await addTransaction(previewTx.target);
-    navigate('/');
+    if (!isValid || !selectedCaisse) return;
+    setIsLoading(true);
+    try {
+      await createVersement({
+        sourceCaisseId: selectedCaisse,
+        amount: amountNum * 100,
+        comment: comment.trim() || undefined,
+      });
+      navigate('/');
+    } catch (e) {
+      console.error('[Versement] failed', e);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -105,7 +54,7 @@ export default function Versement() {
         </button>
         <h1 className="text-text-primary font-bold text-xl mb-6">Verser à la caisse principale</h1>
 
-        {showConfirm && previewTx ? (
+        {showConfirm ? (
           <div className="space-y-4">
             <div className="rounded-xl p-5" style={{ backgroundColor: '#212121' }}>
               <p className="text-text-tertiary text-xs font-medium mb-3 text-center uppercase tracking-wider">Aperçu du versement</p>
@@ -143,8 +92,8 @@ export default function Versement() {
 
               {comment && <p className="text-text-tertiary text-xs mt-3 text-center italic">"{comment}"</p>}
             </div>
-            <button onClick={handleConfirm} className="w-full py-4 rounded-full font-semibold text-white transition-all active:scale-95" style={{ backgroundColor: '#FF6B00' }}>
-              Confirmer le versement
+            <button onClick={handleConfirm} disabled={isLoading} className="w-full py-4 rounded-full font-semibold text-white transition-all active:scale-95 disabled:opacity-40" style={{ backgroundColor: '#FF6B00' }}>
+              {isLoading ? 'Traitement...' : 'Confirmer le versement'}
             </button>
             <button onClick={() => setShowConfirm(false)} className="w-full py-3 rounded-full font-medium text-sm" style={{ backgroundColor: '#212121', color: '#B3B3B3' }}>
               Annuler
@@ -156,22 +105,24 @@ export default function Versement() {
             <div>
               <label className="text-text-tertiary text-xs mb-2 block">Groupe (caisse source)</label>
               <div className="space-y-2">
-                {groupCaisses.map((c) => {
-                  const txs = transactions.filter(t => t.sourceCaisseId === c.id && t.status === 'APPROVED');
-                  const bal = txs.filter(t => t.type === 'INCOME').reduce((s, t) => s + t.amount, 0) - txs.filter(t => t.type === 'EXPENSE').reduce((s, t) => s + t.amount, 0);
-                  return (
-                    <button key={c.id} onClick={() => { setSelectedCaisse(c.id); setAmount(''); }} className="w-full text-left rounded-xl p-4 flex items-center gap-3 transition-all" style={selectedCaisse === c.id ? { backgroundColor: c.color + '20', border: `1px solid ${c.color}` } : { backgroundColor: '#212121', border: '1px solid #282828' }}>
-                      <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: c.color + '20' }}>
-                        <Wallet className="w-5 h-5" style={{ color: c.color }} />
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-text-primary text-sm font-semibold">{c.name}</p>
-                        <p className="text-text-tertiary text-xs">Solde: {formatCurrencyCompact(bal)} FCFA</p>
-                      </div>
-                      {selectedCaisse === c.id && <Check className="w-5 h-5" style={{ color: c.color }} />}
-                    </button>
-                  );
-                })}
+                {groupAccounts.map((a) => {
+                    const caisse = useLocalStore.getState().getCaisseForDisplay(a.id);
+                    const color = caisse?.color || '#FF6B00';
+                    const txs = transactions.filter(t => t.sourceCaisseId === a.id && t.status === 'APPROVED');
+                    const bal = txs.filter(t => t.type === 'INCOME').reduce((s, t) => s + t.amount, 0) - txs.filter(t => t.type === 'EXPENSE').reduce((s, t) => s + t.amount, 0);
+                    return (
+                      <button key={a.id} onClick={() => { setSelectedCaisse(a.id); setAmount(''); }} className="w-full text-left rounded-xl p-4 flex items-center gap-3 transition-all" style={selectedCaisse === a.id ? { backgroundColor: color + '20', border: `1px solid ${color}` } : { backgroundColor: '#212121', border: '1px solid #282828' }}>
+                        <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: color + '20' }}>
+                          <Wallet className="w-5 h-5" style={{ color }} />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-text-primary text-sm font-semibold">{a.name}</p>
+                          <p className="text-text-tertiary text-xs">Solde: {formatCurrencyCompact(bal)} FCFA</p>
+                        </div>
+                        {selectedCaisse === a.id && <Check className="w-5 h-5" style={{ color }} />}
+                      </button>
+                    );
+                  })}
               </div>
             </div>
 
@@ -199,7 +150,7 @@ export default function Versement() {
                   </div>
                 )}
 
-                <button onClick={() => isValid && buildPreview()} disabled={!isValid} className="w-full py-4 rounded-full font-semibold text-white transition-all active:scale-95 disabled:opacity-40" style={{ backgroundColor: '#FF6B00' }}>
+                <button onClick={() => setShowConfirm(true)} disabled={!isValid} className="w-full py-4 rounded-full font-semibold text-white transition-all active:scale-95 disabled:opacity-40" style={{ backgroundColor: '#FF6B00' }}>
                   Aperçu du versement
                 </button>
               </>

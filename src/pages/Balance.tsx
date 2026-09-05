@@ -9,7 +9,7 @@ import { exportPDF, exportExcel, exportCSV } from '@/lib/export';
 
 export default function Balance() {
   const navigate = useNavigate();
-  const { transactions, categories, caisses, appConfig, isLoading } = useLocalStore();
+  const { transactions, categories, caisses, accounts, isLoading, appConfig } = useLocalStore();
   const [period, setPeriod] = useState<'mois' | 'annee'>('mois');
   const [selectedCaisse, setSelectedCaisse] = useState<string>('main');
   const [showExport, setShowExport] = useState(false);
@@ -61,11 +61,15 @@ export default function Balance() {
 
         {/* Caisse selector */}
         <div className="flex gap-2 mb-5 overflow-x-auto pb-2">
-          {caisses.map((c) => (
-            <button key={c.id} onClick={() => setSelectedCaisse(c.id)} className="px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-all" style={selectedCaisse === c.id ? { backgroundColor: c.color, color: '#fff' } : { backgroundColor: '#212121', color: '#808080' }}>
-              {c.name}
-            </button>
-          ))}
+          {accounts.map((a) => {
+            const caisse = useLocalStore.getState().getCaisseForDisplay(a.id);
+            const color = caisse?.color || '#FF6B00';
+            return (
+              <button key={a.id} onClick={() => setSelectedCaisse(a.id)} className="px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-all" style={selectedCaisse === a.id ? { backgroundColor: color, color: '#fff' } : { backgroundColor: '#212121', color: '#808080' }}>
+                {a.name}
+              </button>
+            );
+          })}
         </div>
 
         {/* Summary cards */}

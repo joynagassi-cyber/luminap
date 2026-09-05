@@ -29,6 +29,10 @@ import Notifications from "./pages/Notifications";
 import Members from "./pages/Members";
 import Archives from "./pages/Archives";
 import Reports from "./pages/Reports";
+import FormBuilder from "./pages/FormBuilder";
+import FormFill from "./pages/FormFill";
+import CustomFields from "./pages/CustomFields";
+import ReportBuilder from "./pages/ReportBuilder";
 
 const queryClient = new QueryClient();
 
@@ -63,6 +67,10 @@ function AppRoutes() {
         <Route path="/members" element={<ProtectedRoute><Members /></ProtectedRoute>} />
         <Route path="/archives" element={<ProtectedRoute><Archives /></ProtectedRoute>} />
         <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+        <Route path="/forms" element={<ProtectedRoute><FormBuilder /></ProtectedRoute>} />
+        <Route path="/form/fill/:id" element={<ProtectedRoute><FormFill /></ProtectedRoute>} />
+        <Route path="/custom-fields" element={<ProtectedRoute><CustomFields /></ProtectedRoute>} />
+        <Route path="/report-builder" element={<ProtectedRoute><ReportBuilder /></ProtectedRoute>} />
         <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
         <Route path="/help" element={<ProtectedRoute><Help /></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />

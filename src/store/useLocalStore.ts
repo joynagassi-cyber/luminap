@@ -4,7 +4,7 @@ import { db } from '@/lib/db';
 import { enqueueSync } from '@/lib/sync';
 import { writeAudit } from '@/lib/audit';
 import { checkPermission } from '@/lib/rbac';
-import type { User, Role, Transaction, Category, OrgUnit, Caisse, Event, BudgetItem, ShoppingItem, AppConfig, NotificationItem, Member, Group, Account, GroupMembership, Versement, SyncQueueItem } from '@/types';
+import type { User, Role, Transaction, Category, OrgUnit, Caisse, Event, BudgetItem, ShoppingItem, AppConfig, NotificationItem, Member, Group, Account, GroupMembership, Versement, SyncQueueItem, EventBudget, BudgetLine } from '@/types';
 import { generateId } from '@/lib/utils';
 
 interface LocalStoreState {
@@ -21,6 +21,8 @@ interface LocalStoreState {
   groups: Group[];
   accounts: Account[];
   memberships: GroupMembership[];
+  eventBudgets: EventBudget[];
+  budgetLines: BudgetLine[];
   isLoading: boolean;
   isOnline: boolean;
   selectRole: (role: Role) => Promise<void>;
@@ -34,6 +36,7 @@ interface LocalStoreState {
   approveTransaction: (id: string, userId?: string) => Promise<void>;
   batchApproveTransactions: (ids: string[], userId?: string) => Promise<void>;
   reverseTransaction: (id: string, reason: string) => Promise<void>;
+  createVersement: (data: { sourceCaisseId: string; amount: number; comment?: string }) => Promise<void>;
   syncEventBudget: (eventId: string) => Promise<void>;
   addEvent: (event: Omit<Event, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
   updateEvent: (id: string, data: Partial<Event>) => Promise<void>;
@@ -48,6 +51,12 @@ interface LocalStoreState {
   deleteGroup: (id: string) => Promise<void>;
   archiveGroup: (id: string, reason: string, actorId: string) => Promise<void>;
   restoreGroup: (id: string, reason: string, actorId: string) => Promise<void>;
+  // EventBudget operations
+  createEventBudget: (eventId: string, currency: string) => Promise<void>;
+  addBudgetLine: (eventBudgetId: string, line: Omit<BudgetLine, 'id' | 'createdAt'>) => Promise<void>;
+  removeBudgetLine: (eventBudgetId: string, lineId: string) => Promise<void>;
+  getEventBudget: (eventId: string) => EventBudget | undefined;
+  getBudgetLines: (eventBudgetId: string) => BudgetLine[];
   // Member operations
   createMember: (data: Omit<Member, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
   updateMember: (id: string, data: Partial<Member>) => Promise<void>;
@@ -59,6 +68,7 @@ interface LocalStoreState {
   removeMemberFromGroup: (id: string) => Promise<void>;
   loadInitialData: () => Promise<void>;
   setOnline: (online: boolean) => void;
+  getCaisseForDisplay: (accountId: string) => { id: string; name: string; description: string; type: 'MAIN' | 'GROUP'; color: string; orgId: string; createdAt: string; updatedAt: string; archivedAt: string | null; archivedBy: string | null; archiveReason: string | null; status: 'ACTIVE' | 'ARCHIVED' } | null;
 }
 
 const DEFAULT_USER: User = {
@@ -88,12 +98,12 @@ const DEFAULT_CATEGORIES: Category[] = [
 ];
 
 const DEFAULT_CAISSES: Caisse[] = [
-  { id: 'main', name: 'Caisse principale', description: 'Fonds de l\'église', type: 'MAIN', color: '#FF6B00', orgId: 'org-1', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { id: 'org-diactes', name: 'Diacres', description: 'Groupe des diacres', type: 'GROUP', color: '#3B82F6', orgId: 'org-1', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { id: 'org-jeunesse', name: 'Jeunesse', description: 'Groupe de jeunesse', type: 'GROUP', color: '#8B5CF6', orgId: 'org-1', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { id: 'org-dames', name: 'Dames', description: 'Groupe des dames', type: 'GROUP', color: '#EC4899', orgId: 'org-1', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { id: 'org-messieurs', name: 'Messieurs', description: 'Groupe des messieurs', type: 'GROUP', color: '#14B8A6', orgId: 'org-1', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { id: 'org-chorale', name: 'Chorale', description: 'Groupe de la chorale', type: 'GROUP', color: '#F59E0B', orgId: 'org-1', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: 'main', name: 'Caisse principale', description: 'Fonds de l\'église', type: 'MAIN', color: '#FF6B00', orgId: 'org-1', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), archivedAt: null, archivedBy: null, archiveReason: null, status: 'ACTIVE' },
+  { id: 'org-diactes', name: 'Diacres', description: 'Groupe des diacres', type: 'GROUP', color: '#3B82F6', orgId: 'org-1', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), archivedAt: null, archivedBy: null, archiveReason: null, status: 'ACTIVE' },
+  { id: 'org-jeunesse', name: 'Jeunesse', description: 'Groupe de jeunesse', type: 'GROUP', color: '#8B5CF6', orgId: 'org-1', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), archivedAt: null, archivedBy: null, archiveReason: null, status: 'ACTIVE' },
+  { id: 'org-dames', name: 'Dames', description: 'Groupe des dames', type: 'GROUP', color: '#EC4899', orgId: 'org-1', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), archivedAt: null, archivedBy: null, archiveReason: null, status: 'ACTIVE' },
+  { id: 'org-messieurs', name: 'Messieurs', description: 'Groupe des messieurs', type: 'GROUP', color: '#14B8A6', orgId: 'org-1', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), archivedAt: null, archivedBy: null, archiveReason: null, status: 'ACTIVE' },
+  { id: 'org-chorale', name: 'Chorale', description: 'Groupe de la chorale', type: 'GROUP', color: '#F59E0B', orgId: 'org-1', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), archivedAt: null, archivedBy: null, archiveReason: null, status: 'ACTIVE' },
 ];
 
 const DEFAULT_ORG_UNITS: OrgUnit[] = [
@@ -133,6 +143,8 @@ export const useLocalStore = create<LocalStoreState>()(
       groups: [],
       accounts: [],
       memberships: [],
+      eventBudgets: [],
+      budgetLines: [],
       appConfig: { churchName: '', churchLogoUrl: '', userPhoto: '' },
       isLoading: false,
       isOnline: navigator.onLine,
@@ -189,6 +201,10 @@ export const useLocalStore = create<LocalStoreState>()(
       updateTransaction: async (id, data) => {
         const now = new Date().toISOString();
         const oldTx = get().transactions.find(t => t.id === id);
+        // Immunité: approved transactions cannot be modified
+        if (oldTx?.status === 'APPROVED') {
+          throw new Error('TRANSACTION_APPROVED_IMMUTABLE');
+        }
         const updated = get().transactions.map(t =>
           t.id === id ? { ...t, ...data, updatedAt: now, version: t.version + 1 } : t
         );
@@ -215,6 +231,10 @@ export const useLocalStore = create<LocalStoreState>()(
 
       deleteTransaction: async (id) => {
         const oldTx = get().transactions.find(t => t.id === id);
+        // Immunité: approved transactions cannot be deleted
+        if (oldTx?.status === 'APPROVED') {
+          throw new Error('TRANSACTION_APPROVED_IMMUTABLE');
+        }
         const updated = get().transactions.filter(t => t.id !== id);
         set({ transactions: updated });
         await db.delete('transactions', id);
@@ -235,6 +255,11 @@ export const useLocalStore = create<LocalStoreState>()(
       },
 
       batchDeleteTransactions: async (ids: string[]) => {
+        // Immunité: filter out approved transactions
+        const approvedIds = ids.filter(id => get().transactions.find(t => t.id === id)?.status === 'APPROVED');
+        if (approvedIds.length > 0) {
+          throw new Error('TRANSACTION_APPROVED_IMMUTABLE');
+        }
         const oldTxs = ids.map(id => get().transactions.find(t => t.id === id)).filter(Boolean);
         const updated = get().transactions.filter(t => !ids.includes(t.id));
         set({ transactions: updated });
@@ -339,6 +364,106 @@ export const useLocalStore = create<LocalStoreState>()(
             }
           }
         }
+      },
+
+      createVersement: async (data) => {
+        const now = new Date().toISOString();
+        const versementId = generateId();
+        const sessionId = localStorage.getItem('lumina-session') || 'local-user';
+
+        // Create canonical Versement record
+        const versement: Versement = {
+          id: versementId,
+          orgId: 'org-1',
+          fromAccountId: data.sourceCaisseId,
+          toAccountId: 'main',
+          amountCents: data.amount,
+          date: now.split('T')[0],
+          status: 'APPROVED',
+          createdBy: sessionId,
+          approvedBy: sessionId,
+          approvedAt: now,
+          createdAt: now,
+        };
+
+        // Source transaction (expense from group caisse)
+        const sourceTx: Transaction = {
+          id: generateId(),
+          orgId: 'org-1',
+          type: 'EXPENSE',
+          amount: data.amount,
+          description: `Versement vers caisse principale`,
+          date: now.split('T')[0],
+          status: 'APPROVED',
+          createdAt: now,
+          updatedAt: now,
+          createdById: sessionId,
+          approvedById: sessionId,
+          approvedAt: now,
+          categoryId: 'cat-dime',
+          orgUnitId: data.sourceCaisseId,
+          eventId: null,
+          source: 'CAISSE',
+          personName: null,
+          compensatesFor: null,
+          comment: data.comment || `Versement ${Math.round(data.amount / 100)} FCFA → Caisse principale`,
+          version: 1,
+          sourceCaisseId: data.sourceCaisseId,
+          versementId,
+          reversalOfId: null,
+        };
+
+        // Target transaction (income to main caisse)
+        const targetTx: Transaction = {
+          id: generateId(),
+          orgId: 'org-1',
+          type: 'INCOME',
+          amount: data.amount,
+          description: `Versement de groupe`,
+          date: now.split('T')[0],
+          status: 'APPROVED',
+          createdAt: now,
+          updatedAt: now,
+          createdById: sessionId,
+          approvedById: sessionId,
+          approvedAt: now,
+          categoryId: 'cat-dime',
+          orgUnitId: null,
+          eventId: null,
+          source: 'CAISSE',
+          personName: null,
+          compensatesFor: null,
+          comment: data.comment || `Versement ${Math.round(data.amount / 100)} FCFA → Caisse principale`,
+          version: 1,
+          sourceCaisseId: 'main',
+          versementId,
+          reversalOfId: null,
+        };
+
+        // Update state
+        set({ transactions: [...get().transactions, sourceTx, targetTx] });
+        await db.put('transactions', sourceTx);
+        await db.put('transactions', targetTx);
+        await db.put('versements' as any, versement);
+
+        // Sync queue
+        await enqueueSync({ id: `sync-versement-${versementId}`, operation: 'create', entityType: 'versements', entityId: versementId, payload: versement, attempts: 0, lastAttempt: null, createdAt: now });
+        await enqueueSync({ id: `sync-${sourceTx.id}`, operation: 'create', entityType: 'transactions', entityId: sourceTx.id, payload: sourceTx, attempts: 0, lastAttempt: null, createdAt: now });
+        await enqueueSync({ id: `sync-${targetTx.id}`, operation: 'create', entityType: 'transactions', entityId: targetTx.id, payload: targetTx, attempts: 0, lastAttempt: null, createdAt: now });
+
+        // Audit
+        await writeAudit({
+          orgId: 'org-1',
+          transactionId: null,
+          userId: sessionId,
+          actorRoleAtTime: get().user.role,
+          action: 'CREATE',
+          entityType: 'Versement',
+          entityId: versementId,
+          beforeState: null,
+          afterState: versement,
+          comment: null,
+        });
       },
 
       reverseTransaction: async (id, reason) => {
@@ -639,30 +764,8 @@ export const useLocalStore = create<LocalStoreState>()(
           orgId: 'org-1',
           isActive: true,
         };
-        const caisse: Caisse = {
-          id,
-          name: data.name,
-          description: data.description || '',
-          type: 'GROUP',
-          color: data.color || COLOR_PALETTE[get().caisses.filter(c => c.type === 'GROUP').length % COLOR_PALETTE.length],
-          orgId: 'org-1',
-          createdAt: now,
-          updatedAt: now,
-        };
-        // Also create canonical Group and Account
-        const group: Group = {
-          id,
-          orgId: 'org-1',
-          name: data.name,
-          parentGroupId: null,
-          responsableMemberId: null,
-          status: 'ACTIVE',
-          archivedAt: null,
-          archivedBy: null,
-          archiveReason: null,
-          createdAt: now,
-          updatedAt: now,
-        };
+        const color = data.color || COLOR_PALETTE[get().caisses.filter(c => c.type === 'GROUP').length % COLOR_PALETTE.length];
+        // Canonical Account
         const account: Account = {
           id,
           orgId: 'org-1',
@@ -677,17 +780,45 @@ export const useLocalStore = create<LocalStoreState>()(
           createdAt: now,
           updatedAt: now,
         };
+        // Legacy Caisse (mirrored from Account)
+        const caisse: Caisse = {
+          id,
+          name: data.name,
+          description: data.description || '',
+          type: 'GROUP',
+          color,
+          orgId: 'org-1',
+          createdAt: now,
+          updatedAt: now,
+          archivedAt: null,
+          archivedBy: null,
+          archiveReason: null,
+          status: 'ACTIVE',
+        };
+        const group: Group = {
+          id,
+          orgId: 'org-1',
+          name: data.name,
+          parentGroupId: null,
+          responsableMemberId: null,
+          status: 'ACTIVE',
+          archivedAt: null,
+          archivedBy: null,
+          archiveReason: null,
+          createdAt: now,
+          updatedAt: now,
+        };
         const updatedOrgUnits = [...get().orgUnits, orgUnit];
         const updatedCaisses = [...get().caisses, caisse];
         const updatedGroups = [...get().groups, group];
         const updatedAccounts = [...get().accounts, account];
         set({ orgUnits: updatedOrgUnits, caisses: updatedCaisses, groups: updatedGroups, accounts: updatedAccounts });
         await db.put('orgUnits', orgUnit);
+        await db.put('accounts', account);
         await db.put('caisses', caisse);
         await db.put('groups' as any, group);
-        await db.put('accounts' as any, account);
         await enqueueSync({ id: `sync-org-${id}`, operation: 'create', entityType: 'orgUnits', entityId: id, payload: orgUnit, attempts: 0, lastAttempt: null, createdAt: now });
-        await enqueueSync({ id: `sync-caisse-${id}`, operation: 'create', entityType: 'caisses', entityId: id, payload: caisse, attempts: 0, lastAttempt: null, createdAt: now });
+        await enqueueSync({ id: `sync-account-${id}`, operation: 'create', entityType: 'accounts', entityId: id, payload: account, attempts: 0, lastAttempt: null, createdAt: now });
         await writeAudit({
           orgId: 'org-1',
           transactionId: null,
@@ -709,14 +840,22 @@ export const useLocalStore = create<LocalStoreState>()(
         const updatedOrgUnits = get().orgUnits.map(ou =>
           ou.id === id ? { ...ou, ...data } : ou
         );
-        const updatedCaisses = get().caisses.map(c =>
-          c.id === id ? { ...c, name: data.name ?? c.name, description: data.description ?? c.description, updatedAt: now } : c
-        );
         const updatedGroups = get().groups.map(g =>
           g.id === id ? { ...g, ...data, updatedAt: now } : g
         );
+        // Canonical Account (source of truth)
         const updatedAccounts = get().accounts.map(a =>
           a.id === id ? { ...a, name: data.name ?? a.name, updatedAt: now } : a
+        );
+        // Sync caisse from account
+        const updatedAccountsMap = updatedAccounts.reduce<Record<string, Account>>((acc, a) => { acc[a.id] = a; return acc; }, {});
+        const updatedCaisses = get().caisses.map(c =>
+          c.id === id ? {
+            ...c,
+            name: data.name ?? c.name,
+            description: data.description ?? c.description,
+            updatedAt: now,
+          } : c
         );
         set({ orgUnits: updatedOrgUnits, caisses: updatedCaisses, groups: updatedGroups, accounts: updatedAccounts });
         const updatedOu = updatedOrgUnits.find(ou => ou.id === id);
@@ -724,10 +863,14 @@ export const useLocalStore = create<LocalStoreState>()(
           await db.put('orgUnits', updatedOu);
           await enqueueSync({ id: `sync-org-${id}`, operation: 'update', entityType: 'orgUnits', entityId: id, payload: updatedOu, attempts: 0, lastAttempt: null, createdAt: now });
         }
+        const updatedAccount = updatedAccounts.find(a => a.id === id);
+        if (updatedAccount) {
+          await db.put('accounts', updatedAccount);
+          await enqueueSync({ id: `sync-account-${id}`, operation: 'update', entityType: 'accounts', entityId: id, payload: updatedAccount, attempts: 0, lastAttempt: null, createdAt: now });
+        }
         const updatedCaisse = updatedCaisses.find(c => c.id === id);
         if (updatedCaisse) {
           await db.put('caisses', updatedCaisse);
-          await enqueueSync({ id: `sync-caisse-${id}`, operation: 'update', entityType: 'caisses', entityId: id, payload: updatedCaisse, attempts: 0, lastAttempt: null, createdAt: now });
         }
         // Audit
         await writeAudit({
@@ -747,14 +890,10 @@ export const useLocalStore = create<LocalStoreState>()(
       deleteGroup: async (id) => {
         const oldOrgUnit = get().orgUnits.find(ou => ou.id === id);
         const oldGroup = get().groups.find(g => g.id === id);
-        // Cascade delete: also delete all transactions for this group's caisse
+        // Cascade delete: also delete all transactions for this group's caisse (respects immunité)
         const groupTxs = get().transactions.filter(t => t.sourceCaisseId === id);
-        const now = new Date().toISOString();
         if (groupTxs.length > 0) {
-          for (const tx of groupTxs) {
-            await db.delete('transactions', tx.id);
-            await enqueueSync({ id: `sync-${tx.id}`, operation: 'delete', entityType: 'transactions', entityId: tx.id, payload: {}, attempts: 0, lastAttempt: null, createdAt: now });
-          }
+          await get().batchDeleteTransactions(groupTxs.map(t => t.id));
         }
         const updatedOrgUnits = get().orgUnits.filter(ou => ou.id !== id);
         const updatedCaisses = get().caisses.filter(c => c.id !== id);
@@ -762,11 +901,11 @@ export const useLocalStore = create<LocalStoreState>()(
         const updatedAccounts = get().accounts.filter(a => a.id !== id);
         set({ orgUnits: updatedOrgUnits, caisses: updatedCaisses, groups: updatedGroups, accounts: updatedAccounts, transactions: get().transactions.filter(t => t.sourceCaisseId !== id) });
         await db.delete('orgUnits', id);
+        await db.delete('accounts', id);
         await db.delete('caisses', id);
         await db.delete('groups' as any, id);
-        await db.delete('accounts' as any, id);
-        await enqueueSync({ id: `sync-org-${id}`, operation: 'delete', entityType: 'orgUnits', entityId: id, payload: {}, attempts: 0, lastAttempt: null, createdAt: now });
-        await enqueueSync({ id: `sync-caisse-${id}`, operation: 'delete', entityType: 'caisses', entityId: id, payload: {}, attempts: 0, lastAttempt: null, createdAt: now });
+        await enqueueSync({ id: `sync-org-${id}`, operation: 'delete', entityType: 'orgUnits', entityId: id, payload: {}, attempts: 0, lastAttempt: null, createdAt: new Date().toISOString() });
+        await enqueueSync({ id: `sync-account-${id}`, operation: 'delete', entityType: 'accounts', entityId: id, payload: {}, attempts: 0, lastAttempt: null, createdAt: new Date().toISOString() });
         // Audit
         await writeAudit({
           orgId: 'org-1',
@@ -787,8 +926,8 @@ export const useLocalStore = create<LocalStoreState>()(
         const group = get().groups.find(g => g.id === id);
         if (!group || group.status === 'ARCHIVED') throw new Error('Group already archived');
         // Check balance
-        const caisse = get().caisses.find(c => c.id === id);
-        if (caisse) {
+        const account = get().accounts.find(a => a.id === id);
+        if (account) {
           const approvedTxs = get().transactions.filter(t => t.sourceCaisseId === id && t.status === 'APPROVED');
           const balance = approvedTxs.filter(t => t.type === 'INCOME').reduce((s, t) => s + t.amount, 0) -
                           approvedTxs.filter(t => t.type === 'EXPENSE').reduce((s, t) => s + t.amount, 0);
@@ -797,8 +936,18 @@ export const useLocalStore = create<LocalStoreState>()(
         const updatedGroups = get().groups.map(g =>
           g.id === id ? { ...g, status: 'ARCHIVED' as const, archivedAt: now, archivedBy: actorId, archiveReason: reason, updatedAt: now } : g
         );
-        set({ groups: updatedGroups });
+        // Archive canonical Account
+        const updatedAccounts = get().accounts.map(a =>
+          a.id === id ? { ...a, status: 'ARCHIVED' as const, archivedAt: now, archivedBy: actorId, archiveReason: reason, updatedAt: now } : a
+        );
+        // Sync caisse
+        const updatedCaisses = get().caisses.map(c =>
+          c.id === id ? { ...c, status: 'ARCHIVED' as const, archivedAt: now, archivedBy: actorId, archiveReason: reason, updatedAt: now } : c
+        );
+        set({ groups: updatedGroups, accounts: updatedAccounts, caisses: updatedCaisses });
         await db.put('groups' as any, updatedGroups.find(g => g.id === id));
+        await db.put('accounts', updatedAccounts.find(a => a.id === id));
+        await db.put('caisses', updatedCaisses.find(c => c.id === id));
         await writeAudit({
           orgId: 'org-1',
           transactionId: null,
@@ -820,8 +969,18 @@ export const useLocalStore = create<LocalStoreState>()(
         const updatedGroups = get().groups.map(g =>
           g.id === id ? { ...g, status: 'ACTIVE' as const, archivedAt: null, archivedBy: null, archiveReason: null, updatedAt: now } : g
         );
-        set({ groups: updatedGroups });
+        // Restore canonical Account
+        const updatedAccounts = get().accounts.map(a =>
+          a.id === id ? { ...a, status: 'ACTIVE' as const, archivedAt: null, archivedBy: null, archiveReason: null, updatedAt: now } : a
+        );
+        // Sync caisse
+        const updatedCaisses = get().caisses.map(c =>
+          c.id === id ? { ...c, status: 'ACTIVE' as const, archivedAt: null, archivedBy: null, archiveReason: null, updatedAt: now } : c
+        );
+        set({ groups: updatedGroups, accounts: updatedAccounts, caisses: updatedCaisses });
         await db.put('groups' as any, updatedGroups.find(g => g.id === id));
+        await db.put('accounts', updatedAccounts.find(a => a.id === id));
+        await db.put('caisses', updatedCaisses.find(c => c.id === id));
         await writeAudit({
           orgId: 'org-1',
           transactionId: null,
@@ -835,6 +994,63 @@ export const useLocalStore = create<LocalStoreState>()(
           comment: reason,
         });
       },
+
+      // === EVENT BUDGET OPERATIONS ===
+      createEventBudget: async (eventId, currency = 'XOF') => {
+        const now = new Date().toISOString();
+        const id = generateId();
+        const budget: EventBudget = {
+          id,
+          eventId,
+          currency,
+          revisedAt: null,
+          revisedBy: null,
+          createdAt: now,
+        };
+        const updated = [...get().eventBudgets, budget];
+        set({ eventBudgets: updated });
+        await db.put('event_budgets' as any, budget);
+        await enqueueSync({ id: `sync-eb-${id}`, operation: 'create', entityType: 'eventBudgets', entityId: id, payload: budget, attempts: 0, lastAttempt: null, createdAt: now });
+      },
+
+      addBudgetLine: async (eventBudgetId, line) => {
+        const now = new Date().toISOString();
+        const id = generateId();
+        const budgetLine: BudgetLine = { ...line, id, createdAt: now };
+        const updated = [...get().budgetLines, budgetLine];
+        set({ budgetLines: updated });
+        await db.put('budget_lines' as any, budgetLine);
+        await enqueueSync({ id: `sync-bline-${id}`, operation: 'create', entityType: 'budgetLines', entityId: id, payload: budgetLine, attempts: 0, lastAttempt: null, createdAt: now });
+        // Sync back to event budget items
+        const event = get().events.find(e => e.id === get().eventBudgets.find(eb => eb.id === eventBudgetId)?.eventId);
+        if (event) {
+          const existingLines = get().budgetLines.filter(bl => bl.eventBudgetId === eventBudgetId);
+          const categories = get().categories;
+          const budgetItems = existingLines.map(bl => {
+            const cat = categories.find(c => c.id === bl.categoryId);
+            return {
+              id: bl.id,
+              label: cat?.labelFr || 'Poste',
+              allocated: bl.plannedAmountCents,
+              spent: bl.actualAmountCents,
+              fundedBy: 'main' as const,
+              categoryId: bl.categoryId,
+              isCustom: true,
+            };
+          });
+          const total = budgetItems.reduce((s, i) => s + i.allocated, 0);
+          await get().updateEvent(event.id, { budgetItems: [...event.budgetItems.filter(i => !existingLines.find(l => l.id === i.id)), ...budgetItems], budget: total + budgetItems.reduce((s, i) => s + i.allocated, 0) - existingLines.filter(l => l.plannedAmountCents > 0).reduce((s, l) => s + l.plannedAmountCents, 0) });
+        }
+      },
+
+      removeBudgetLine: async (eventBudgetId, lineId) => {
+        const updated = get().budgetLines.filter(bl => !(bl.eventBudgetId === eventBudgetId && bl.id === lineId));
+        set({ budgetLines: updated });
+        await db.delete('budget_lines' as any, lineId);
+      },
+
+      getEventBudget: (eventId) => get().eventBudgets.find(eb => eb.eventId === eventId),
+      getBudgetLines: (eventBudgetId) => get().budgetLines.filter(bl => bl.eventBudgetId === eventBudgetId),
 
       // === MEMBER OPERATIONS ===
       createMember: async (data) => {
@@ -1002,7 +1218,7 @@ export const useLocalStore = create<LocalStoreState>()(
       loadInitialData: async () => {
         set({ isLoading: true });
         try {
-          const [storedTx, storedCats, storedOrgUnits, storedCaisses, storedEvents, storedAudit, storedConfig, storedNotifs, storedMembers, storedGroups, storedAccounts, storedMemberships] = await Promise.all([
+          const [storedTx, storedCats, storedOrgUnits, storedCaisses, storedEvents, storedAudit, storedConfig, storedNotifs, storedMembers, storedGroups, storedAccounts, storedMemberships, storedEventBudgets, storedBudgetLines] = await Promise.all([
             db.getAll<Transaction>('transactions').catch(() => [] as Transaction[]),
             db.getAll<Category>('categories').catch(() => DEFAULT_CATEGORIES),
             db.getAll<OrgUnit>('orgUnits').catch(() => DEFAULT_ORG_UNITS),
@@ -1015,7 +1231,24 @@ export const useLocalStore = create<LocalStoreState>()(
             db.getAll<Group>('groups' as any).catch(() => [] as Group[]),
             db.getAll<Account>('accounts' as any).catch(() => [] as Account[]),
             db.getAll<GroupMembership>('group_memberships' as any).catch(() => [] as GroupMembership[]),
+            db.getAll<EventBudget>('event_budgets' as any).catch(() => [] as EventBudget[]),
+            db.getAll<BudgetLine>('budget_lines' as any).catch(() => [] as BudgetLine[]),
           ]);
+          // Sync caisse archive state from accounts
+          const accountMap = storedAccounts.reduce<Record<string, Account>>((acc, a) => { acc[a.id] = a; return acc; }, {});
+          const syncedCaisses = storedCaisses.map(c => {
+            const acc = accountMap[c.id];
+            if (acc && (acc.archivedAt || c.archivedAt)) {
+              return {
+                ...c,
+                archivedAt: acc.archivedAt ?? c.archivedAt,
+                archivedBy: acc.archivedBy ?? c.archivedBy,
+                archiveReason: acc.archiveReason ?? c.archiveReason,
+                status: acc.status ?? 'ACTIVE',
+              };
+            }
+            return c;
+          });
           const savedRole = await db.getConfig<Role>('selectedRole');
           const sessionId = localStorage.getItem('lumina-session');
           const savedRoleAssignment = sessionId ? await db.getRoleAssignment(sessionId) : null;
@@ -1024,7 +1257,7 @@ export const useLocalStore = create<LocalStoreState>()(
             transactions: storedTx,
             categories: storedCats,
             orgUnits: storedOrgUnits,
-            caisses: storedCaisses,
+            caisses: syncedCaisses,
             events: storedEvents,
             auditEntries: storedAudit,
             notifications: storedNotifs,
@@ -1032,6 +1265,8 @@ export const useLocalStore = create<LocalStoreState>()(
             groups: storedGroups,
             accounts: storedAccounts,
             memberships: storedMemberships,
+            eventBudgets: storedEventBudgets,
+            budgetLines: storedBudgetLines,
             appConfig: storedConfig ?? { churchName: '', churchLogoUrl: '', userPhoto: '' },
             user: {
               ...DEFAULT_USER,
@@ -1046,6 +1281,34 @@ export const useLocalStore = create<LocalStoreState>()(
       },
 
       setOnline: (isOnline) => set({ isOnline }),
+
+      /**
+       * Returns a Caisse-compatible object from the canonical Account model.
+       * Used by UI pages during the migration from Caisse → Account.
+       */
+      getCaisseForDisplay: (accountId: string) => {
+        const state = get();
+        const acc = state.accounts.find(a => a.id === accountId);
+        if (acc) {
+          const caisse = state.caisses.find(c => c.id === accountId);
+          return {
+            id: acc.id,
+            name: acc.name,
+            description: state.orgUnits.find(o => o.id === acc.id)?.description || '',
+            type: acc.ownerType === 'ORGANIZATION' ? 'MAIN' : 'GROUP' as const,
+            color: caisse?.color || '#FF6B00',
+            orgId: acc.orgId,
+            createdAt: acc.createdAt,
+            updatedAt: acc.updatedAt,
+            archivedAt: acc.archivedAt,
+            archivedBy: acc.archivedBy,
+            archiveReason: acc.archiveReason,
+            status: acc.status,
+          };
+        }
+        // Fallback to legacy Caisse
+        return state.caisses.find(c => c.id === accountId) ?? null;
+      },
     }),
     {
       name: 'lumina-store',

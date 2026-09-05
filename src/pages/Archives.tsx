@@ -4,24 +4,27 @@ import { useLocalStore } from '@/store/useLocalStore';
 import { ArrowLeft, RefreshCw, Search, Users, Wallet, Eye, Archive } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
-import type { Group } from '@/types';
+import { archiveRegistry } from '@/lib/archiveService';
+import type { Group, Member, Account } from '@/types';
 
 export default function Archives() {
   const navigate = useNavigate();
-  const { groups, members, events } = useLocalStore();
+  const { groups, members, events, accounts } = useLocalStore();
 
   const archivedGroups = groups.filter(g => g.status === 'ARCHIVED');
+  const archivedAccounts = accounts.filter(a => a.status === 'ARCHIVED');
   const archivedEvents = events.filter(e => e.status === 'CANCELLED');
   const archivedMembers = members.filter(m => m.status === 'ARCHIVED');
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterType, setFilterType] = useState<'all' | 'group' | 'member' | 'event'>('all');
+  const [filterType, setFilterType] = useState<'all' | 'group' | 'member' | 'event' | 'account'>('all');
 
-  const allArchived = [
+  const allArchived = useMemo(() => [
     ...archivedGroups.map(g => ({ type: 'group' as const, id: g.id, name: g.name, reason: g.archiveReason, archivedAt: g.archivedAt, archivedBy: g.archivedBy })),
+    ...archivedAccounts.map(a => ({ type: 'account' as const, id: a.id, name: a.name, reason: a.archiveReason, archivedAt: a.archivedAt, archivedBy: a.archivedBy })),
     ...archivedEvents.map(e => ({ type: 'event' as const, id: e.id, name: e.name, reason: 'Événement annulé', archivedAt: e.updatedAt, archivedBy: null })),
     ...archivedMembers.map(m => ({ type: 'member' as const, id: m.id, name: `${m.firstName} ${m.lastName}`, reason: m.archiveReason, archivedAt: m.archivedAt, archivedBy: m.archivedBy })),
-  ];
+  ], [archivedGroups, archivedAccounts, archivedEvents, archivedMembers]);
 
   const filtered = allArchived.filter(item => {
     const q = searchQuery.toLowerCase();
@@ -30,7 +33,7 @@ export default function Archives() {
     return matchesSearch && matchesType;
   });
 
-  const handleRestore = async (type: 'group' | 'member' | 'event', id: string) => {
+  const handleRestore = async (type: 'group' | 'member' | 'event' | 'account', id: string) => {
     if (type === 'group') {
       await useLocalStore.getState().restoreGroup(id, '', 'local-user');
     } else if (type === 'member') {
@@ -64,12 +67,13 @@ export default function Archives() {
 
         {/* Filter tabs */}
         <div className="flex gap-2 mb-5 overflow-x-auto pb-2">
-          {[
+          {[[
             { id: 'all' as const, label: 'Tout', icon: Eye },
             { id: 'group' as const, label: 'Groupes', icon: Users },
+            { id: 'account' as const, label: 'Comptes', icon: Wallet },
             { id: 'member' as const, label: 'Membres', icon: Users },
             { id: 'event' as const, label: 'Événements', icon: Wallet },
-          ].map(({ id, label, icon: Icon }) => (
+          ]].map(items => items.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               onClick={() => setFilterType(id)}
@@ -78,7 +82,7 @@ export default function Archives() {
             >
               <Icon className="w-3.5 h-3.5" /> {label}
             </button>
-          ))}
+          )))}
         </div>
 
         {/* Archived items */}
@@ -88,8 +92,8 @@ export default function Archives() {
               <div key={item.id} className="rounded-xl p-4 opacity-70" style={{ backgroundColor: '#212121' }}>
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: item.type === 'group' ? '#8B5CF620' : item.type === 'member' ? '#14B8A620' : '#3B82F620', color: item.type === 'group' ? '#8B5CF6' : item.type === 'member' ? '#14B8A6' : '#3B82F6' }}>
-                      {item.type === 'group' ? 'Groupe' : item.type === 'member' ? 'Membre' : 'Événement'}
+                    <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: item.type === 'group' ? '#8B5CF620' : item.type === 'member' ? '#14B8A620' : item.type === 'account' ? '#3B82F620' : '#F59E0B20', color: item.type === 'group' ? '#8B5CF6' : item.type === 'member' ? '#14B8A6' : item.type === 'account' ? '#3B82F6' : '#F59E0B' }}>
+                      {item.type === 'group' ? 'Groupe' : item.type === 'member' ? 'Membre' : item.type === 'account' ? 'Compte' : 'Événement'}
                     </span>
                     {item.archivedAt && (
                       <span className="text-text-tertiary text-xs">{new Date(item.archivedAt).toLocaleDateString('fr-FR')}</span>

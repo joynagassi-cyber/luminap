@@ -8,32 +8,34 @@ import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
 import LuminaLogo from '@/components/LuminaLogo';
 import { PageSkeleton, ListSkeleton } from '@/components/Skeleton';
-import type { Caisse } from '@/types';
+import type { Account, Caisse } from '@/types';
 import { getRoleLabel } from '@/store/useLocalStore';
 import { getAccountBalance } from '@/lib/account';
 
-function CaisseCard({ caisse, transactions, navigate }: { caisse: Caisse; transactions: any[]; navigate: ReturnType<typeof useNavigate> }) {
-  const approvedTxs = transactions.filter(t => t.sourceCaisseId === caisse.id && t.status === 'APPROVED');
+function CaisseCard({ account, transactions, navigate }: { account: Account; transactions: any[]; navigate: ReturnType<typeof useNavigate> }) {
+  const caisse = useLocalStore.getState().getCaisseForDisplay(account.id);
+  const color = caisse?.color || '#FF6B00';
+  const approvedTxs = transactions.filter(t => t.sourceCaisseId === account.id && t.status === 'APPROVED');
   const income = approvedTxs.filter(t => t.type === 'INCOME').reduce((s, t) => s + t.amount, 0);
   const expense = approvedTxs.filter(t => t.type === 'EXPENSE').reduce((s, t) => s + t.amount, 0);
   const balance = income - expense;
-  const pending = transactions.filter(t => t.sourceCaisseId === caisse.id && t.status === 'PENDING');
+  const pending = transactions.filter(t => t.sourceCaisseId === account.id && t.status === 'PENDING');
   const pendingAmount = pending.reduce((s, t) => s + (t.type === 'INCOME' ? t.amount : -t.amount), 0);
 
   return (
     <button
-      onClick={() => navigate('/finance', { state: { caisseId: caisse.id } })}
+      onClick={() => navigate('/finance', { state: { caisseId: account.id } })}
       className="w-full text-left rounded-xl p-4 transition-all active:scale-95"
-      style={{ backgroundColor: '#1e1e1e', border: `1px solid ${caisse.color}30` }}
+      style={{ backgroundColor: '#1e1e1e', border: `1px solid ${color}30` }}
     >
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: caisse.color + '20' }}>
-            <span className="text-sm font-bold" style={{ color: caisse.color }}>{caisse.name.charAt(0)}</span>
+          <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: color + '20' }}>
+            <span className="text-sm font-bold" style={{ color }}>{account.name.charAt(0)}</span>
           </div>
           <div>
-            <p className="text-text-primary text-sm font-semibold">{caisse.name}</p>
-            <p className="text-text-tertiary text-xs">{caisse.type === 'MAIN' ? 'Église' : 'Groupe'}</p>
+            <p className="text-text-primary text-sm font-semibold">{account.name}</p>
+            <p className="text-text-tertiary text-xs">{account.ownerType === 'ORGANIZATION' ? 'Église' : 'Groupe'}</p>
           </div>
         </div>
         <div className="text-right">
@@ -58,7 +60,7 @@ function CaisseCard({ caisse, transactions, navigate }: { caisse: Caisse; transa
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { transactions, categories, orgUnits, caisses, events, isLoading, user, appConfig, notifications } = useLocalStore();
+  const { transactions, categories, orgUnits, caisses, accounts, events, isLoading, user, appConfig, notifications } = useLocalStore();
   const churchName = appConfig.churchName || user.org.name;
 
   const greeting = useMemo(() => {
@@ -69,8 +71,8 @@ export default function Dashboard() {
   }, []);
 
   const { start, end } = getPeriodRange('mois');
-  const mainCaisse = caisses.find(c => c.id === 'main');
-  const groupCaisses = caisses.filter(c => c.type === 'GROUP');
+  const mainAccount = accounts.find(a => a.ownerType === 'ORGANIZATION');
+  const groupAccounts = accounts.filter(a => a.ownerType === 'GROUP' && a.status === 'ACTIVE');
   const mainTxs = transactions.filter(t => t.sourceCaisseId === 'main');
 
   const approvedTransactions = mainTxs.filter(
@@ -203,7 +205,7 @@ export default function Dashboard() {
         </div>
 
         {/* Quick Stats Grid */}
-        {(pendingCount > 0 || draftCount > 0 || upcomingEvents.length > 0 || groupCaisses.length > 0) && (
+        {(pendingCount > 0 || draftCount > 0 || upcomingEvents.length > 0 || groupAccounts.length > 0) && (
           <div className="grid grid-cols-3 gap-3 mb-6">
             {pendingCount > 0 && (
               <div className="rounded-xl p-4 text-center" style={{ backgroundColor: '#1e1e1e' }}>
@@ -217,10 +219,10 @@ export default function Dashboard() {
                 <p className="text-purple-500 font-bold text-xl">{upcomingEvents.length}</p>
               </div>
             )}
-            {groupCaisses.length > 0 && (
+            {groupAccounts.length > 0 && (
               <div className="rounded-xl p-4 text-center" style={{ backgroundColor: '#1e1e1e' }}>
                 <p className="text-text-tertiary text-xs mb-1">Groupes</p>
-                <p className="text-blue-500 font-bold text-xl">{groupCaisses.length}</p>
+                <p className="text-blue-500 font-bold text-xl">{groupAccounts.length}</p>
               </div>
             )}
           </div>
@@ -288,7 +290,7 @@ export default function Dashboard() {
         )}
 
         {/* Caisses Grid */}
-        {groupCaisses.length > 0 && (
+        {groupAccounts.length > 0 && (
           <div className="mb-6">
             <div className="flex items-center justify-between mb-3">
               <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider">Caisses des groupes</p>
@@ -297,8 +299,8 @@ export default function Dashboard() {
               </button>
             </div>
             <div className="space-y-2">
-              {groupCaisses.map((caisse) => (
-                <CaisseCard key={caisse.id} caisse={caisse} transactions={transactions} navigate={navigate} />
+              {groupAccounts.map((account) => (
+                <CaisseCard key={account.id} account={account} transactions={transactions} navigate={navigate} />
               ))}
             </div>
           </div>

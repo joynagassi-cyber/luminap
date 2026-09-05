@@ -15,7 +15,7 @@ const ENTITY_STORE_MAP: Record<ArchivableEntity, StoreName> = {
   Group: 'orgUnits',
   Event: 'events',
   Member: 'members',
-  Account: 'caisses',
+  Account: 'accounts',
   Category: 'categories',
   Role: 'orgUnits',
 };

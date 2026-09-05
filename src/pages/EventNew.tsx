@@ -20,7 +20,7 @@ const DEFAULT_BUDGET_ITEMS = [
 
 export default function EventNew() {
   const navigate = useNavigate();
-  const { addEvent, caisses } = useLocalStore();
+  const { addEvent, caisses, accounts } = useLocalStore();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
@@ -236,8 +236,8 @@ export default function EventNew() {
                     style={{ backgroundColor: '#181818', color: '#B3B3B3', border: '1px solid #282828' }}
                   >
                     <option value="main">Caisse principale</option>
-                    {caisses.filter(c => c.type === 'GROUP').map(c => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
+                    {accounts.filter(a => a.ownerType === 'GROUP' && a.status === 'ACTIVE').map(a => (
+                      <option key={a.id} value={a.id}>{a.name}</option>
                     ))}
                   </select>
                 </div>

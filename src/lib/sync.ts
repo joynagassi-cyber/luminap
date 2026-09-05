@@ -106,6 +106,114 @@ export async function startBackgroundSync() {
                 await supabase.from('notifications').update(item.payload).eq('id', item.entityId);
               }
               break;
+            case 'accounts':
+              if (item.operation === 'create') {
+                await supabase.from('accounts').insert(item.payload);
+              } else if (item.operation === 'update') {
+                await supabase.from('accounts').update(item.payload).eq('id', item.entityId);
+              } else if (item.operation === 'delete') {
+                await supabase.from('accounts').delete().eq('id', item.entityId);
+              }
+              break;
+            case 'groups':
+              if (item.operation === 'create') {
+                await supabase.from('groups').insert(item.payload);
+              } else if (item.operation === 'update') {
+                await supabase.from('groups').update(item.payload).eq('id', item.entityId);
+              } else if (item.operation === 'delete') {
+                await supabase.from('groups').delete().eq('id', item.entityId);
+              }
+              break;
+            case 'members':
+              if (item.operation === 'create') {
+                await supabase.from('members').insert(item.payload);
+              } else if (item.operation === 'update') {
+                await supabase.from('members').update(item.payload).eq('id', item.entityId);
+              } else if (item.operation === 'delete') {
+                await supabase.from('members').delete().eq('id', item.entityId);
+              }
+              break;
+            case 'groupMemberships':
+              if (item.operation === 'create') {
+                await supabase.from('group_memberships').insert(item.payload);
+              } else if (item.operation === 'update') {
+                await supabase.from('group_memberships').update(item.payload).eq('id', item.entityId);
+              } else if (item.operation === 'delete') {
+                await supabase.from('group_memberships').delete().eq('id', item.entityId);
+              }
+              break;
+            case 'versements':
+              if (item.operation === 'create') {
+                await supabase.from('versements').insert(item.payload);
+              } else if (item.operation === 'update') {
+                await supabase.from('versements').update(item.payload).eq('id', item.entityId);
+              } else if (item.operation === 'delete') {
+                await supabase.from('versements').delete().eq('id', item.entityId);
+              }
+              break;
+            case 'event_budgets':
+              if (item.operation === 'create') {
+                await supabase.from('event_budgets').insert(item.payload);
+              } else if (item.operation === 'update') {
+                await supabase.from('event_budgets').update(item.payload).eq('id', item.entityId);
+              } else if (item.operation === 'delete') {
+                await supabase.from('event_budgets').delete().eq('id', item.entityId);
+              }
+              break;
+            case 'budget_lines':
+              if (item.operation === 'create') {
+                await supabase.from('budget_lines').insert(item.payload);
+              } else if (item.operation === 'update') {
+                await supabase.from('budget_lines').update(item.payload).eq('id', item.entityId);
+              } else if (item.operation === 'delete') {
+                await supabase.from('budget_lines').delete().eq('id', item.entityId);
+              }
+              break;
+            case 'report_definitions':
+              if (item.operation === 'create') {
+                await supabase.from('report_definitions').insert(item.payload);
+              } else if (item.operation === 'update') {
+                await supabase.from('report_definitions').update(item.payload).eq('id', item.entityId);
+              } else if (item.operation === 'delete') {
+                await supabase.from('report_definitions').delete().eq('id', item.entityId);
+              }
+              break;
+            case 'form_definitions':
+              if (item.operation === 'create') {
+                await supabase.from('form_definitions').insert(item.payload);
+              } else if (item.operation === 'update') {
+                await supabase.from('form_definitions').update(item.payload).eq('id', item.entityId);
+              } else if (item.operation === 'delete') {
+                await supabase.from('form_definitions').delete().eq('id', item.entityId);
+              }
+              break;
+            case 'form_submissions':
+              if (item.operation === 'create') {
+                await supabase.from('form_submissions').insert(item.payload);
+              } else if (item.operation === 'update') {
+                await supabase.from('form_submissions').update(item.payload).eq('id', item.entityId);
+              } else if (item.operation === 'delete') {
+                await supabase.from('form_submissions').delete().eq('id', item.entityId);
+              }
+              break;
+            case 'custom_field_definitions':
+              if (item.operation === 'create') {
+                await supabase.from('custom_field_definitions').insert(item.payload);
+              } else if (item.operation === 'update') {
+                await supabase.from('custom_field_definitions').update(item.payload).eq('id', item.entityId);
+              } else if (item.operation === 'delete') {
+                await supabase.from('custom_field_definitions').delete().eq('id', item.entityId);
+              }
+              break;
+            case 'custom_field_values':
+              if (item.operation === 'create') {
+                await supabase.from('custom_field_values').insert(item.payload);
+              } else if (item.operation === 'update') {
+                await supabase.from('custom_field_values').update(item.payload).eq('id', item.entityId);
+              } else if (item.operation === 'delete') {
+                await supabase.from('custom_field_values').delete().eq('id', item.entityId);
+              }
+              break;
           }
           await db.removeSyncItem(item.id);
         });
