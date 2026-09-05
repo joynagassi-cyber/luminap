@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useLocalStore } from '@/store/useLocalStore';
-import { formatCurrencyCompact, formatDate } from '@/lib/utils';
-import { ArrowLeft, Calendar, Clock, Tag, CheckCircle, Play, Flag, Trash2, AlertCircle, Plus, Wallet, ArrowUp, ArrowDown, TrendingDown, TrendingUp, PiggyBank } from 'lucide-react';
+import { formatCentsToFCFA, formatDate } from '@/lib/utils';
+import { ArrowLeft, Calendar, Clock, Tag, CheckCircle, Play, Flag, Trash2, AlertCircle, Plus, ArrowUp, ArrowDown } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
 import { FullPageSkeleton } from '@/components/Skeleton';
 import type { EventStatus } from '@/types';
-import { generateId } from '@/lib/utils';
 
 type Tab = 'overview' | 'budget' | 'transactions';
 
@@ -21,7 +20,7 @@ const STATUS_CONFIG: Record<EventStatus, { label: string; color: string; bg: str
 export default function EventDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { events, updateEventStatus, deleteEvent, transactions, caisses, orgUnits, addTransaction, user } = useLocalStore();
+  const { events, updateEventStatus, deleteEvent, transactions, caisses, addTransaction, updateEvent } = useLocalStore();
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [showDelete, setShowDelete] = useState(false);
   const [success, setSuccess] = useState('');
@@ -38,12 +37,6 @@ export default function EventDetail() {
   const config = STATUS_CONFIG[event.status];
   const budgetSpent = event.budgetItems.reduce((s, i) => s + i.spent, 0);
   const eventTxs = transactions.filter(t => t.eventId === event.id && t.status === 'APPROVED');
-  const txIncome = eventTxs.filter(t => t.type === 'INCOME').reduce((s, t) => s + t.amount, 0);
-  const txExpense = eventTxs.filter(t => t.type === 'EXPENSE').reduce((s, t) => s + t.amount, 0);
-
-  useEffect(() => {
-    // Budget sync is handled by store
-  }, [event.id]);
 
   const handleStatusChange = (newStatus: EventStatus) => {
     updateEventStatus(id!, newStatus);
@@ -65,15 +58,20 @@ export default function EventDetail() {
     const budgetItem = event.budgetItems.find(i => i.id === selectedBudgetItemId);
     if (!budgetItem) return;
 
-    const amountCents = Math.round(parseFloat(expenseAmount) * 100);
+    const amountFCFA = parseFloat(expenseAmount);
+    if (isNaN(amountFCFA) || amountFCFA <= 0) {
+      setExpenseError('Montant invalide');
+      return;
+    }
+
+    const amountCents = Math.round(amountFCFA * 100);
     const now = new Date().toISOString();
     const sessionId = localStorage.getItem('lumina-session') || 'local-user';
 
     // Determine source caisse from budget item's fundedBy
     const sourceCaisseId = budgetItem.fundedBy === 'main' ? 'main' : budgetItem.fundedBy;
-    const caisse = caisses.find(c => c.id === sourceCaisseId);
 
-    // Find or create category for this expense
+    // Find category
     const categoryId = budgetItem.categoryId || 'cat-frais-fonc';
 
     const newTx = {
@@ -100,9 +98,19 @@ export default function EventDetail() {
       versementId: null,
     };
 
+    // Update budget item spent
+    const updatedItems = event.budgetItems.map(item =>
+      item.id === selectedBudgetItemId
+        ? { ...item, spent: item.spent + amountCents }
+        : item
+    );
+    const newTotalSpent = updatedItems.reduce((s, i) => s + i.spent, 0);
+
     await addTransaction(newTx);
-    setSuccess('Dépense ajoutée');
-    setTimeout(() => setSuccess(''), 2000);
+    await updateEvent(event.id, { budgetItems: updatedItems, budget: event.budget });
+
+    setSuccess(`Dépense de ${amountFCFA.toLocaleString('fr-FR')} FCFA enregistrée`);
+    setTimeout(() => setSuccess(''), 3000);
     setShowAddExpense(false);
     setExpenseAmount('');
     setExpenseDescription('');
@@ -113,9 +121,11 @@ export default function EventDetail() {
   const progressPct = event.budget > 0 ? Math.min(100, Math.round((budgetSpent / event.budget) * 100)) : 0;
 
   return (
-    <div className="min-h-screen bg-canvas">
+    <div className="min-h-screen bg-canvas flex flex-col">
       <TopHeader title={event.name} />
-      <div className="max-w-lg mx-auto px-5 pb-24 pt-16">
+
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto px-5 pb-28 pt-16">
         <button onClick={() => navigate('/events')} className="flex items-center gap-2 text-text-secondary text-sm mb-5">
           <ArrowLeft className="w-4 h-4" /> Retour
         </button>
@@ -174,18 +184,18 @@ export default function EventDetail() {
         <div className="grid grid-cols-3 gap-3 mb-5">
           <div className="rounded-xl p-3 text-center" style={{ backgroundColor: '#212121' }}>
             <p className="text-text-tertiary text-xs mb-1">Budget</p>
-            <p className="text-text-primary font-bold text-sm">{formatCurrencyCompact(event.budget)} <span className="text-text-tertiary text-xs font-normal">F</span></p>
+            <p className="text-text-primary font-bold text-sm">{formatCentsToFCFA(event.budget)} <span className="text-text-tertiary text-xs font-normal">F</span></p>
           </div>
           <div className="rounded-xl p-3 text-center" style={{ backgroundColor: '#212121' }}>
             <p className="text-text-tertiary text-xs mb-1">Dépensé</p>
             <p className="font-bold text-sm" style={{ color: budgetSpent > event.budget ? '#E51332' : '#FFB800' }}>
-              {formatCurrencyCompact(budgetSpent)} <span className="text-text-tertiary text-xs font-normal">F</span>
+              {formatCentsToFCFA(budgetSpent)} <span className="text-text-tertiary text-xs font-normal">F</span>
             </p>
           </div>
           <div className="rounded-xl p-3 text-center" style={{ backgroundColor: '#212121' }}>
             <p className="text-text-tertiary text-xs mb-1">Reste</p>
             <p className="font-bold text-sm" style={{ color: remaining >= 0 ? '#1DB954' : '#E51332' }}>
-              {formatCurrencyCompact(Math.max(0, remaining))} <span className="text-text-tertiary text-xs font-normal">F</span>
+              {formatCentsToFCFA(Math.max(0, remaining))} <span className="text-text-tertiary text-xs font-normal">F</span>
             </p>
           </div>
         </div>
@@ -203,7 +213,7 @@ export default function EventDetail() {
             {budgetSpent > event.budget && (
               <div className="flex items-center gap-2 mt-2 text-xs" style={{ color: '#E51332' }}>
                 <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
-                <span>Budget dépassé de {formatCurrencyCompact(budgetSpent - event.budget)} FCFA</span>
+                <span>Budget dépassé de {formatCentsToFCFA(budgetSpent - event.budget)} FCFA</span>
               </div>
             )}
           </div>
@@ -225,10 +235,9 @@ export default function EventDetail() {
         {/* Tab: Overview */}
         {activeTab === 'overview' && (
           <div className="space-y-4">
-            {/* Quick actions */}
             <div className="grid grid-cols-2 gap-3">
               <button
-                onClick={() => { setActiveTab('budget'); }}
+                onClick={() => setActiveTab('budget')}
                 className="p-4 rounded-xl text-left transition-all active:scale-95"
                 style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
               >
@@ -239,19 +248,18 @@ export default function EventDetail() {
                 <p className="text-text-tertiary text-xs mt-1">{event.budgetItems.length} postes</p>
               </button>
               <button
-                onClick={() => { setActiveTab('transactions'); }}
+                onClick={() => setActiveTab('transactions')}
                 className="p-4 rounded-xl text-left transition-all active:scale-95"
                 style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
               >
                 <div className="w-10 h-10 rounded-full flex items-center justify-center mb-2" style={{ backgroundColor: '#1DB95420' }}>
-                  <TrendingDown className="w-5 h-5" style={{ color: '#1DB954' }} />
+                  <ArrowDown className="w-5 h-5" style={{ color: '#1DB954' }} />
                 </div>
                 <p className="text-text-primary text-sm font-semibold">Transactions</p>
                 <p className="text-text-tertiary text-xs mt-1">{eventTxs.length} liée{eventTxs.length > 1 ? 's' : ''}</p>
               </button>
             </div>
 
-            {/* Budget summary */}
             {event.budgetItems.length > 0 && (
               <div className="rounded-xl p-4" style={{ backgroundColor: '#212121' }}>
                 <p className="text-text-tertiary text-xs font-medium mb-3">Répartition du budget</p>
@@ -262,7 +270,7 @@ export default function EventDetail() {
                       <div key={item.id}>
                         <div className="flex justify-between text-xs mb-1">
                           <span className="text-text-secondary truncate">{item.label}</span>
-                          <span className="text-text-tertiary">{formatCurrencyCompact(item.spent)}/{formatCurrencyCompact(item.allocated)} F</span>
+                          <span className="text-text-tertiary">{formatCentsToFCFA(item.spent)}/{formatCentsToFCFA(item.allocated)} F</span>
                         </div>
                         <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: '#282828' }}>
                           <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: pct >= 100 ? '#E51332' : '#FF6B00' }} />
@@ -277,7 +285,6 @@ export default function EventDetail() {
               </div>
             )}
 
-            {/* Recent transactions */}
             {eventTxs.length > 0 && (
               <div className="rounded-xl p-4" style={{ backgroundColor: '#212121' }}>
                 <div className="flex items-center justify-between mb-3">
@@ -297,7 +304,7 @@ export default function EventDetail() {
                       <p className="text-text-tertiary text-xs">{formatDate(tx.date)}</p>
                     </div>
                     <span className="text-sm font-bold" style={{ color: tx.type === 'INCOME' ? '#1DB954' : '#E51332' }}>
-                      {tx.type === 'INCOME' ? '+' : '-'}{formatCurrencyCompact(tx.amount)} F
+                      {tx.type === 'INCOME' ? '+' : '-'}{formatCentsToFCFA(tx.amount)} F
                     </span>
                   </div>
                 ))}
@@ -334,9 +341,9 @@ export default function EventDetail() {
                         </p>
                       </div>
                       <div className="text-right ml-3">
-                        <p className="text-text-primary text-sm font-bold">{formatCurrencyCompact(item.allocated)} F</p>
+                        <p className="text-text-primary text-sm font-bold">{formatCentsToFCFA(item.allocated)} F</p>
                         <p className={`text-xs ${isExceeded ? 'text-[#E51332]' : 'text-text-tertiary'}`}>
-                          {formatCurrencyCompact(item.spent)} F dépensé
+                          {formatCentsToFCFA(item.spent)} F dépensé
                         </p>
                       </div>
                     </div>
@@ -346,7 +353,7 @@ export default function EventDetail() {
                     </div>
 
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-text-tertiary">Reste: <span style={{ color: remainingItem >= 0 ? '#1DB954' : '#E51332' }}>{formatCurrencyCompact(Math.max(0, remainingItem))} F</span></span>
+                      <span className="text-text-tertiary">Reste: <span style={{ color: remainingItem >= 0 ? '#1DB954' : '#E51332' }}>{formatCentsToFCFA(Math.max(0, remainingItem))} F</span></span>
                       <button
                         onClick={() => {
                           setSelectedBudgetItemId(item.id);
@@ -399,7 +406,7 @@ export default function EventDetail() {
                       </p>
                     </div>
                     <span className="text-sm font-bold" style={{ color: tx.type === 'INCOME' ? '#1DB954' : '#E51332' }}>
-                      {tx.type === 'INCOME' ? '+' : '-'}{formatCurrencyCompact(tx.amount)} F
+                      {tx.type === 'INCOME' ? '+' : '-'}{formatCentsToFCFA(tx.amount)} F
                     </span>
                   </div>
                 );
@@ -408,11 +415,20 @@ export default function EventDetail() {
           </div>
         )}
 
-        {/* Add Expense Modal */}
-        {showAddExpense && (
-          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" onClick={() => setShowAddExpense(false)}>
-            <div className="absolute inset-0 bg-black/70" />
-            <div className="relative w-full max-w-lg rounded-t-2xl sm:rounded-2xl p-5 mb-0 sm:mb-4" style={{ backgroundColor: '#181818' }} onClick={(e) => e.stopPropagation()}>
+        {/* Delete button */}
+        <button onClick={() => setShowDelete(true)} className="w-full py-3 rounded-full font-medium text-sm flex items-center justify-center gap-2 mt-5 mb-4" style={{ backgroundColor: '#212121', color: '#E51332' }}>
+          <Trash2 className="w-4 h-4" /> Supprimer l'événement
+        </button>
+      </div>
+
+      <BottomNav />
+
+      {/* Add Expense Modal - Fixed positioning */}
+      {showAddExpense && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+          <div className="absolute inset-0 bg-black/70" onClick={() => setShowAddExpense(false)} />
+          <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl" style={{ backgroundColor: '#181818' }}>
+            <div className="p-5">
               <h3 className="text-text-primary font-bold text-lg mb-4">Dépenser depuis le budget</h3>
 
               {expenseError && (
@@ -431,7 +447,7 @@ export default function EventDetail() {
                     <option value="">Sélectionner un poste...</option>
                     {event.budgetItems.map(item => (
                       <option key={item.id} value={item.id}>
-                        {item.label} — Reste: {formatCurrencyCompact(item.allocated - item.spent)} F
+                        {item.label} — Reste: {formatCentsToFCFA(item.allocated - item.spent)} F
                       </option>
                     ))}
                   </select>
@@ -447,6 +463,18 @@ export default function EventDetail() {
                     className="w-full px-4 py-3 rounded-xl text-text-primary text-sm outline-none"
                     style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
                   />
+                  {selectedBudgetItemId && (() => {
+                    const item = event.budgetItems.find(i => i.id === selectedBudgetItemId);
+                    if (!item) return null;
+                    const remaining = item.allocated - item.spent;
+                    const entered = parseFloat(expenseAmount) || 0;
+                    const overBudget = entered > (remaining / 100);
+                    return (
+                      <p className={`text-xs mt-1 ${overBudget ? 'text-[#E51332]' : 'text-text-tertiary'}`}>
+                        Reste disponible: {formatCentsToFCFA(remaining)} F{overBudget && ' ⚠️ Montant insuffisant'}
+                      </p>
+                    );
+                  })()}
                 </div>
 
                 <div>
@@ -480,14 +508,8 @@ export default function EventDetail() {
               </div>
             </div>
           </div>
-        )}
-
-        {/* Delete button */}
-        <button onClick={() => setShowDelete(true)} className="w-full py-3 rounded-full font-medium text-sm flex items-center justify-center gap-2 mt-5" style={{ backgroundColor: '#212121', color: '#E51332' }}>
-          <Trash2 className="w-4 h-4" /> Supprimer l'événement
-        </button>
-      </div>
-      <BottomNav />
+        </div>
+      )}
 
       {/* Delete Confirmation */}
       {showDelete && (
