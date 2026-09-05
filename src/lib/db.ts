@@ -31,10 +31,6 @@ function openDB(): Promise<IDBDatabase> {
         { name: 'custom_field_definitions', keyPath: 'id' },
         { name: 'custom_field_values', keyPath: 'id' },
       ];
-      // Migrate events: add budget_items column if missing
-      if (!db.objectStoreNames.contains('events')) {
-        db.createObjectStore('events', { keyPath: 'id' });
-      }
       for (const s of stores) {
         if (!db.objectStoreNames.contains(s.name)) {
           db.createObjectStore(s.name, { keyPath: s.keyPath });
@@ -50,7 +46,28 @@ async function withStore<T>(storeName: StoreName, mode: IDBTransactionMode, fn: 
   const db = await openDB();
   return new Promise<T>((resolve, reject) => {
     const tx = db.transaction(storeName, mode);
-    const store = tx.objectStore(storeName);
+    let store: IDBObjectStore;
+    try {
+      store = tx.objectStore(storeName);
+    } catch {
+      // Store missing — reopen at higher version to trigger upgrade
+      const freshDB = await openDB();
+      freshDB.close();
+      const newVersion = DB_VERSION + 1;
+      const upgradeReq = indexedDB.open(DB_NAME, newVersion);
+      await new Promise<void>((res, rej) => {
+        upgradeReq.onupgradeneeded = () => res();
+        upgradeReq.onsuccess = () => res();
+        upgradeReq.onerror = () => rej(upgradeReq.error);
+      });
+      const upgradedDB = await openDB();
+      const upgradedTx = upgradedDB.transaction(storeName, mode);
+      const upgradedStore = upgradedTx.objectStore(storeName);
+      const request = fn(upgradedStore);
+      upgradedTx.oncomplete = () => resolve(request.result as T);
+      upgradedTx.onerror = () => reject(upgradedTx.error);
+      return;
+    }
     const request = fn(store);
     tx.oncomplete = () => resolve(request.result as T);
     tx.onerror = () => reject(tx.error);
