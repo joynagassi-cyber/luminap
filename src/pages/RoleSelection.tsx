@@ -8,7 +8,7 @@ import LuminaLogo from '@/components/LuminaLogo';
 
 export default function RoleSelection() {
   const navigate = useNavigate();
-  const { user, selectRole, appConfig } = useLocalStore();
+  const { user, selectRole, appConfig, loadInitialData } = useLocalStore();
   const [loading, setLoading] = useState<string | null>(null);
   const churchName = appConfig.churchName || 'Église MFE-JC Centrale';
 
