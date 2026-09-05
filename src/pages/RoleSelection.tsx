@@ -4,7 +4,6 @@ import { useLocalStore } from '@/store/useLocalStore';
 import { ChevronLeft, Wallet, Church, ClipboardList, BarChart3, Banknote, PenTool } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
-import LuminaLogo from '@/components/LuminaLogo';
 
 export default function RoleSelection() {
   const navigate = useNavigate();

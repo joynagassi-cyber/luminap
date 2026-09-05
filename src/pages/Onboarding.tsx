@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight, Wallet, WalletMinimal, Calendar, BarChart3, Sparkles } from 'lucide-react';
-import LuminaLogo from '@/components/LuminaLogo';
 
 const SCREENS = [
   {
@@ -99,7 +98,7 @@ export default function Onboarding() {
       <div className="flex-1 flex flex-col items-center justify-center px-8 pb-12">
         {/* Logo */}
         <div className="mb-6">
-          <LuminaLogo size={80} />
+          <img src="/lumina-logo.png" alt="Lumina" className="w-24 h-24 mx-auto" />
         </div>
 
         {/* Icon */}
