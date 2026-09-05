@@ -52,6 +52,13 @@ export async function startBackgroundSync() {
     try {
       const queue = await db.getSyncQueue();
       const pending = queue.filter(item => item.attempts < MAX_RETRIES);
+      const maxAttempts = queue.filter(item => item.attempts >= MAX_RETRIES);
+      const tooOld = queue.filter(item => item.createdAt && Date.now() - new Date(item.createdAt).getTime() > 24 * 60 * 60 * 1000);
+      const toRemove = new Set([...maxAttempts, ...tooOld].map(i => i.id));
+      for (const id of toRemove) {
+        await db.removeSyncItem(id);
+        console.log('[sync] cleaned up stuck sync item:', id);
+      }
 
       for (const item of pending) {
         await syncWithBackoff(async () => {
@@ -157,6 +164,24 @@ export function startRealtimeSubscriptions() {
     )
     .subscribe();
 
+  // Subscribe to audit entries changes
+  const sub3 = supabase
+    .channel('audit-changes')
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'audit_entries' },
+      async (payload) => {
+        if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+          const audit = payload.new as any;
+          await db.put('auditEntries', audit);
+        } else if (payload.eventType === 'DELETE') {
+          const audit = payload.old as any;
+          await db.delete('auditEntries', audit.id);
+        }
+      }
+    )
+    .subscribe();
+
   // Subscribe to notifications changes
   const sub2 = supabase
     .channel('notifications-changes')
@@ -164,18 +189,23 @@ export function startRealtimeSubscriptions() {
       'postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'notifications' },
       async (payload) => {
-        console.log('[sync] realtime notification:', payload);
         const notif = payload.new as any;
-        // Avoid duplicates
-        const existing = await db.get('notifications', notif.id);
-        if (!existing) {
+        // Avoid duplicates: check by source_transaction_id first, then by id
+        const sourceTxId = notif.source_transaction_id;
+        if (sourceTxId) {
+          const existing = await db.getAll<any>('notifications');
+          const duplicate = existing.find((n: any) => n.source_transaction_id === sourceTxId && n.action_type === notif.action_type && Math.abs(new Date(n.created_at).getTime() - new Date(notif.created_at).getTime()) < 60000);
+          if (duplicate) return;
+        }
+        const existingById = await db.get('notifications', notif.id);
+        if (!existingById) {
           await db.put('notifications', notif);
         }
       }
     )
     .subscribe();
 
-  realtimeChannels.push(sub1, sub2);
+  realtimeChannels.push(sub1, sub2, sub3);
   console.log('[sync] realtime subscriptions started');
 }
 

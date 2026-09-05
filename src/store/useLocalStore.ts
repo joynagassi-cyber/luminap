@@ -132,7 +132,21 @@ export const useLocalStore = create<LocalStoreState>()(
         set({ transactions: updated });
         await db.put('transactions', newTx);
         await enqueueSync({ id: `sync-${id}`, operation: 'create', entityType: 'transactions', entityId: id, payload: newTx, attempts: 0, lastAttempt: null, createdAt: now });
-        // Create notification for pending transactions
+        // Audit entry
+        await db.put('auditEntries', {
+          id: generateId(),
+          orgId: 'org-1',
+          transactionId: id,
+          userId: tx.createdById || 'local-user',
+          action: 'CREATED',
+          entityType: 'transaction',
+          entityId: id,
+          previousValue: null,
+          newValue: newTx,
+          comment: null,
+          createdAt: now,
+        });
+        // Notify for pending transactions (cloud trigger also creates one, but frontend ensures offline support)
         if (newTx.status === 'PENDING') {
           const caisse = get().caisses.find(c => c.id === newTx.sourceCaisseId);
           const notifId = generateId();
@@ -181,6 +195,7 @@ export const useLocalStore = create<LocalStoreState>()(
 
       approveTransaction: async (id, userId) => {
         const now = new Date().toISOString();
+        const oldTx = get().transactions.find(t => t.id === id);
         const updated = get().transactions.map(t =>
           t.id === id ? { ...t, status: 'APPROVED' as const, approvedById: userId ?? get().user.id, approvedAt: now, updatedAt: now, version: t.version + 1 } : t
         );
@@ -189,11 +204,25 @@ export const useLocalStore = create<LocalStoreState>()(
         if (updatedTx) {
           await db.put('transactions', updatedTx);
           await enqueueSync({ id: `sync-${id}`, operation: 'update', entityType: 'transactions', entityId: id, payload: updatedTx, attempts: 0, lastAttempt: null, createdAt: now });
+          // Audit entry
+          await db.put('auditEntries', {
+            id: generateId(),
+            orgId: 'org-1',
+            transactionId: id,
+            userId: userId ?? get().user.id,
+            action: 'APPROVED',
+            entityType: 'transaction',
+            entityId: id,
+            previousValue: oldTx || null,
+            newValue: updatedTx,
+            comment: null,
+            createdAt: now,
+          });
           // Sync budget spent for events
           if (updatedTx.eventId) {
             await get().syncEventBudget(updatedTx.eventId);
           }
-          // Notify
+          // Notify (cloud trigger also creates one; frontend handles offline)
           const caisse = get().caisses.find(c => c.id === updatedTx.sourceCaisseId);
           const notifId = generateId();
           const notif = {
@@ -220,10 +249,25 @@ export const useLocalStore = create<LocalStoreState>()(
         );
         set({ transactions: updated });
         for (const txId of ids) {
+          const oldTx = get().transactions.find(t => t.id === txId);
           const updatedTx = updated.find(t => t.id === txId);
           if (updatedTx) {
             await db.put('transactions', updatedTx);
             await enqueueSync({ id: `sync-${txId}`, operation: 'update', entityType: 'transactions', entityId: txId, payload: updatedTx, attempts: 0, lastAttempt: null, createdAt: now });
+            // Audit entry
+            await db.put('auditEntries', {
+              id: generateId(),
+              orgId: 'org-1',
+              transactionId: txId,
+              userId: userId ?? get().user.id,
+              action: 'APPROVED',
+              entityType: 'transaction',
+              entityId: txId,
+              previousValue: oldTx || null,
+              newValue: updatedTx,
+              comment: null,
+              createdAt: now,
+            });
             if (updatedTx.eventId) {
               await get().syncEventBudget(updatedTx.eventId);
             }
@@ -483,12 +527,13 @@ export const useLocalStore = create<LocalStoreState>()(
       deleteGroup: async (id) => {
         // Cascade delete: also delete all transactions for this group's caisse
         const groupTxs = get().transactions.filter(t => t.sourceCaisseId === id);
+        const now = new Date().toISOString();
         if (groupTxs.length > 0) {
           for (const tx of groupTxs) {
             await db.delete('transactions', tx.id);
+            await enqueueSync({ id: `sync-${tx.id}`, operation: 'delete', entityType: 'transactions', entityId: tx.id, payload: {}, attempts: 0, lastAttempt: null, createdAt: now });
           }
         }
-        const now = new Date().toISOString();
         const updatedOrgUnits = get().orgUnits.filter(ou => ou.id !== id);
         const updatedCaisses = get().caisses.filter(c => c.id !== id);
         set({ orgUnits: updatedOrgUnits, caisses: updatedCaisses, transactions: get().transactions.filter(t => t.sourceCaisseId !== id) });

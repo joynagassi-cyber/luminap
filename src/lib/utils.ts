@@ -26,14 +26,14 @@ export function formatCurrencyCompact(cents: number): string {
 
 /**
  * Format cents to FCFA compact display.
- * This is the correct function to use for displaying amounts stored in cents.
+ * Delegates to formatCurrencyCompact which handles the K/M formatting.
  * Examples:
- *   500000 cents → "5K" (5000 FCFA)
- *   5000 cents → "5 000" (50 FCFA)
+ *   500000 cents → "5K" (5 000 FCFA)
+ *   50000 cents → "500" (500 FCFA)
+ *   1500000 cents → "15K" (15 000 FCFA)
  */
 export function formatCentsToFCFA(cents: number): string {
-  const ffa = cents / 100;
-  return formatCurrencyCompact(ffa);
+  return formatCurrencyCompact(cents);
 }
 
 /**

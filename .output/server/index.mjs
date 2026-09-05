@@ -11,26 +11,12 @@ var headers = ((m) => function headersRouteRule(event) {
 //#endregion
 //#region #nitro/virtual/public-assets-data
 var public_assets_data_default = {
-	"/favicon.ico": {
-		"type": "image/vnd.microsoft.icon",
-		"etag": "\"15f09-4MFHRo4azA6knOGNmsefGO+QUAE\"",
-		"mtime": "2026-09-01T22:18:50.675Z",
-		"size": 89865,
-		"path": "../public/favicon.ico"
-	},
-	"/robots.txt": {
-		"type": "text/plain; charset=utf-8",
-		"etag": "\"ae-hLVBrSrDdpIw3Xl0dJPRkupPepQ\"",
-		"mtime": "2026-09-01T22:18:50.689Z",
-		"size": 174,
-		"path": "../public/robots.txt"
-	},
-	"/assets/html2canvas-BJoDW77K.js": {
-		"type": "text/javascript; charset=utf-8",
-		"etag": "\"30b45-EhHBMLYWignq0K3rvLVgX+PLlPU\"",
-		"mtime": "2026-09-04T21:39:54.740Z",
-		"size": 199493,
-		"path": "../public/assets/html2canvas-BJoDW77K.js"
+	"/manifest.json": {
+		"type": "application/json",
+		"etag": "\"1eb-Y7kttYgCEPOR8HGHYsGcvSqM47M\"",
+		"mtime": "2026-09-02T17:13:42.999Z",
+		"size": 491,
+		"path": "../public/manifest.json"
 	},
 	"/placeholder.svg": {
 		"type": "image/svg+xml",
@@ -39,33 +25,19 @@ var public_assets_data_default = {
 		"size": 3253,
 		"path": "../public/placeholder.svg"
 	},
-	"/assets/index-VN7kHS0j.css": {
+	"/assets/index-4ohfnSAe.css": {
 		"type": "text/css; charset=utf-8",
-		"etag": "\"e759-F6jQ/MMMN4DAW6GjQ9gx7vpKHys\"",
-		"mtime": "2026-09-04T21:39:54.773Z",
-		"size": 59225,
-		"path": "../public/assets/index-VN7kHS0j.css"
+		"etag": "\"ebca-W1VftlgPM0HjB4QmNQaRMefhdNM\"",
+		"mtime": "2026-09-05T02:38:03.081Z",
+		"size": 60362,
+		"path": "../public/assets/index-4ohfnSAe.css"
 	},
-	"/assets/index.es-AWS5dZGC.js": {
+	"/assets/html2canvas-D6E2jxby.js": {
 		"type": "text/javascript; charset=utf-8",
-		"etag": "\"24f69-ebTTAmJwChrVR569zObKhpC0l4k\"",
-		"mtime": "2026-09-04T21:39:54.744Z",
-		"size": 151401,
-		"path": "../public/assets/index.es-AWS5dZGC.js"
-	},
-	"/manifest.json": {
-		"type": "application/json",
-		"etag": "\"1eb-Y7kttYgCEPOR8HGHYsGcvSqM47M\"",
-		"mtime": "2026-09-02T17:13:42.999Z",
-		"size": 491,
-		"path": "../public/manifest.json"
-	},
-	"/assets/purify.es-ChwZkWde.js": {
-		"type": "text/javascript; charset=utf-8",
-		"etag": "\"68bc-bPPRDEosU/Lqj+2Oyi1ue22LViM\"",
-		"mtime": "2026-09-04T21:39:54.751Z",
-		"size": 26812,
-		"path": "../public/assets/purify.es-ChwZkWde.js"
+		"etag": "\"30b45-xGAGfzVbs0oDBcgHtDFkWgBp3DM\"",
+		"mtime": "2026-09-05T02:38:03.071Z",
+		"size": 199493,
+		"path": "../public/assets/html2canvas-D6E2jxby.js"
 	},
 	"/lumina-logo.png": {
 		"type": "image/png",
@@ -74,12 +46,33 @@ var public_assets_data_default = {
 		"size": 49870,
 		"path": "../public/lumina-logo.png"
 	},
-	"/assets/logo-lumina.png": {
-		"type": "image/png",
-		"etag": "\"c2ce-Xrm5OeE6Rcs4GqYh+OFZRZQyAYE\"",
-		"mtime": "2026-09-03T16:41:02.881Z",
-		"size": 49870,
-		"path": "../public/assets/logo-lumina.png"
+	"/robots.txt": {
+		"type": "text/plain; charset=utf-8",
+		"etag": "\"ae-hLVBrSrDdpIw3Xl0dJPRkupPepQ\"",
+		"mtime": "2026-09-01T22:18:50.689Z",
+		"size": 174,
+		"path": "../public/robots.txt"
+	},
+	"/assets/index.es-8Zf2FBLs.js": {
+		"type": "text/javascript; charset=utf-8",
+		"etag": "\"24f69-3GpgyvjvXF3OUsG5UTtIm3r/XaQ\"",
+		"mtime": "2026-09-05T02:38:03.079Z",
+		"size": 151401,
+		"path": "../public/assets/index.es-8Zf2FBLs.js"
+	},
+	"/assets/purify.es-ChwZkWde.js": {
+		"type": "text/javascript; charset=utf-8",
+		"etag": "\"68bc-bPPRDEosU/Lqj+2Oyi1ue22LViM\"",
+		"mtime": "2026-09-05T02:38:03.081Z",
+		"size": 26812,
+		"path": "../public/assets/purify.es-ChwZkWde.js"
+	},
+	"/favicon.ico": {
+		"type": "image/vnd.microsoft.icon",
+		"etag": "\"15f09-4MFHRo4azA6knOGNmsefGO+QUAE\"",
+		"mtime": "2026-09-01T22:18:50.675Z",
+		"size": 89865,
+		"path": "../public/favicon.ico"
 	},
 	"/assets/logo.png": {
 		"type": "image/png",
@@ -88,12 +81,19 @@ var public_assets_data_default = {
 		"size": 49870,
 		"path": "../public/assets/logo.png"
 	},
-	"/assets/index-BmQZOoK3.js": {
+	"/assets/logo-lumina.png": {
+		"type": "image/png",
+		"etag": "\"c2ce-Xrm5OeE6Rcs4GqYh+OFZRZQyAYE\"",
+		"mtime": "2026-09-03T16:41:02.881Z",
+		"size": 49870,
+		"path": "../public/assets/logo-lumina.png"
+	},
+	"/assets/index-DUryz-dp.js": {
 		"type": "text/javascript; charset=utf-8",
-		"etag": "\"16740e-6r2n8h4RbBO7ZiepA9dI+bzDq+k\"",
-		"mtime": "2026-09-04T21:39:54.738Z",
-		"size": 1471502,
-		"path": "../public/assets/index-BmQZOoK3.js"
+		"etag": "\"169c77-e5Xc2rnV0rwprcgbqDRqJZbk1wo\"",
+		"mtime": "2026-09-05T02:38:03.062Z",
+		"size": 1481847,
+		"path": "../public/assets/index-DUryz-dp.js"
 	}
 };
 //#endregion

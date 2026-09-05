@@ -1,5 +1,5 @@
 const DB_NAME = 'lumina-db';
-const DB_VERSION = 8;
+const DB_VERSION = 9;
 
 type StoreName = 'transactions' | 'categories' | 'orgUnits' | 'auditEntries' | 'events' | 'syncQueue' | 'config' | 'caisses' | 'notifications';
 
@@ -19,6 +19,10 @@ function openDB(): Promise<IDBDatabase> {
         { name: 'caisses', keyPath: 'id' },
         { name: 'notifications', keyPath: 'id' },
       ];
+      // Migrate events: add budget_items column if missing
+      if (!db.objectStoreNames.contains('events')) {
+        db.createObjectStore('events', { keyPath: 'id' });
+      }
       for (const s of stores) {
         if (!db.objectStoreNames.contains(s.name)) {
           db.createObjectStore(s.name, { keyPath: s.keyPath });
