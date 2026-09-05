@@ -36,7 +36,7 @@ export default function EventDetail() {
 
   const config = STATUS_CONFIG[event.status];
   const budgetSpent = event.budgetItems.reduce((s, i) => s + i.spent, 0);
-  const eventTxs = transactions.filter(t => t.eventId === event.id && t.status === 'APPROVED');
+  const eventTxs = transactions.filter(t => t.eventId === event.id);
 
   const handleStatusChange = (newStatus: EventStatus) => {
     updateEventStatus(id!, newStatus);
@@ -80,12 +80,12 @@ export default function EventDetail() {
       amount: amountCents,
       description: `${event.name} — ${expenseDescription}`,
       date: now.split('T')[0],
-      status: 'PENDING' as const,
+      status: 'APPROVED' as const,
       createdAt: now,
       updatedAt: now,
       createdById: sessionId,
-      approvedById: null,
-      approvedAt: null,
+      approvedById: sessionId,
+      approvedAt: now,
       categoryId,
       orgUnitId: null,
       eventId: event.id,
