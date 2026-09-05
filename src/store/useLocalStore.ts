@@ -1257,21 +1257,29 @@ export const useLocalStore = create<LocalStoreState>()(
       loadInitialData: async () => {
         set({ isLoading: true });
         try {
-          const [storedTx, storedCats, storedOrgUnits, storedCaisses, storedEvents, storedAudit, storedConfig, storedNotifs, storedMembers, storedGroups, storedAccounts, storedMemberships, storedEventBudgets, storedBudgetLines] = await Promise.all([
-            db.getAll<Transaction>('transactions').catch(() => [] as Transaction[]),
-            db.getAll<Category>('categories').catch(() => DEFAULT_CATEGORIES),
-            db.getAll<OrgUnit>('orgUnits').catch(() => DEFAULT_ORG_UNITS),
-            db.getAll<Caisse>('caisses').catch(() => DEFAULT_CAISSES),
-            db.getAll<Event>('events').catch(() => [] as Event[]),
-            db.getAll<any>('auditEntries').catch(() => [] as any[]),
-            db.getConfig<AppConfig>('appConfig').catch(() => null),
-            db.getAll<NotificationItem>('notifications').catch(() => [] as NotificationItem[]),
-            db.getAll<Member>('members' as any).catch(() => [] as Member[]),
-            db.getAll<Group>('groups' as any).catch(() => [] as Group[]),
-            db.getAll<Account>('accounts' as any).catch(() => [] as Account[]),
-            db.getAll<GroupMembership>('group_memberships' as any).catch(() => [] as GroupMembership[]),
-            db.getAll<EventBudget>('event_budgets' as any).catch(() => [] as EventBudget[]),
-            db.getAll<BudgetLine>('budget_lines' as any).catch(() => [] as BudgetLine[]),
+          // Pre-warm DB connection once, then load everything
+          await db.warmDB();
+          const timeout = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('loadInitialData timeout')), 5000)
+          );
+          const [storedTx, storedCats, storedOrgUnits, storedCaisses, storedEvents, storedAudit, storedConfig, storedNotifs, storedMembers, storedGroups, storedAccounts, storedMemberships, storedEventBudgets, storedBudgetLines] = await Promise.race([
+            Promise.all([
+              db.getAll<Transaction>('transactions').catch(() => [] as Transaction[]),
+              db.getAll<Category>('categories').catch(() => DEFAULT_CATEGORIES),
+              db.getAll<OrgUnit>('orgUnits').catch(() => DEFAULT_ORG_UNITS),
+              db.getAll<Caisse>('caisses').catch(() => DEFAULT_CAISSES),
+              db.getAll<Event>('events').catch(() => [] as Event[]),
+              db.getAll<any>('auditEntries').catch(() => [] as any[]),
+              db.getConfig<AppConfig>('appConfig').catch(() => null),
+              db.getAll<NotificationItem>('notifications').catch(() => [] as NotificationItem[]),
+              db.getAll<Member>('members' as any).catch(() => [] as Member[]),
+              db.getAll<Group>('groups' as any).catch(() => [] as Group[]),
+              db.getAll<Account>('accounts' as any).catch(() => [] as Account[]),
+              db.getAll<GroupMembership>('group_memberships' as any).catch(() => [] as GroupMembership[]),
+              db.getAll<EventBudget>('event_budgets' as any).catch(() => [] as EventBudget[]),
+              db.getAll<BudgetLine>('budget_lines' as any).catch(() => [] as BudgetLine[]),
+            ]),
+            timeout,
           ]);
           // Sync caisse archive state from accounts
           const accountMap = storedAccounts.reduce<Record<string, Account>>((acc, a) => { acc[a.id] = a; return acc; }, {});

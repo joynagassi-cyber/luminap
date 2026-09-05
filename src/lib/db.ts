@@ -3,8 +3,14 @@ const DB_VERSION = 10;
 
 export type StoreName = 'transactions' | 'categories' | 'orgUnits' | 'auditEntries' | 'events' | 'syncQueue' | 'config' | 'caisses' | 'notifications' | 'members' | 'groups' | 'accounts' | 'group_memberships' | 'form_definitions' | 'form_submissions' | 'custom_field_definitions' | 'custom_field_values' | 'versements' | 'event_budgets' | 'budget_lines' | 'report_definitions';
 
-function openDB(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
+// Singleton DB connection — opened once, reused
+let _db: IDBDatabase | null = null;
+let _dbPromise: Promise<IDBDatabase> | null = null;
+
+function ensureDB(): Promise<IDBDatabase> {
+  if (_db && _db.readyState === 'open') return Promise.resolve(_db);
+  if (_dbPromise) return _dbPromise;
+  _dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
     request.onupgradeneeded = (e) => {
       const db = (e.target as IDBOpenDBRequest).result;
@@ -37,45 +43,44 @@ function openDB(): Promise<IDBDatabase> {
         }
       }
     };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      _db = request.result;
+      _dbPromise = null;
+      resolve(request.result);
+    };
+    request.onerror = () => {
+      _dbPromise = null;
+      reject(request.error);
+    };
   });
+  return _dbPromise;
 }
 
 async function withStore<T>(storeName: StoreName, mode: IDBTransactionMode, fn: (store: IDBObjectStore) => IDBRequest): Promise<T> {
-  const db = await openDB();
-
-  // Try to get the store normally
-  try {
+  const db = await ensureDB();
+  return new Promise<T>((resolve, reject) => {
     const tx = db.transaction(storeName, mode);
     const store = tx.objectStore(storeName);
-    return new Promise<T>((resolve, reject) => {
-      const request = fn(store);
-      tx.oncomplete = () => resolve(request.result as T);
-      tx.onerror = () => reject(tx.error);
-    });
+    const request = fn(store);
+    tx.oncomplete = () => resolve(request.result as T);
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+// Pre-warm the DB connection with a timeout
+async function warmDB(): Promise<void> {
+  const timeout = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error('DB warm-up timeout')), 5000)
+  );
+  try {
+    await Promise.race([ensureDB(), timeout]);
   } catch {
-    // Store missing — reopen at higher version to trigger upgrade
-    db.close();
-    const newVersion = DB_VERSION + 1;
-    const upgradeReq = indexedDB.open(DB_NAME, newVersion);
-    await new Promise<void>((res, rej) => {
-      upgradeReq.onupgradeneeded = () => res();
-      upgradeReq.onsuccess = () => res();
-      upgradeReq.onerror = () => rej(upgradeReq.error);
-    });
-    const upgradedDB = await openDB();
-    const upgradedTx = upgradedDB.transaction(storeName, mode);
-    const upgradedStore = upgradedTx.objectStore(storeName);
-    const request = fn(upgradedStore);
-    return new Promise<T>((resolve, reject) => {
-      upgradedTx.oncomplete = () => resolve(request.result as T);
-      upgradedTx.onerror = () => reject(upgradedTx.error);
-    });
+    console.warn('[db] warm-up failed, will retry on demand');
   }
 }
 
 export const db = {
+  warmDB,
   async get<T>(storeName: StoreName, id: string): Promise<T | null> {
     return withStore<T>(storeName, 'readonly', (s) => s.get(id));
   },

@@ -13,9 +13,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const { loadInitialData, setOnline } = useLocalStore();
 
-  // Load data once on mount
+  // Load data once on mount — cold start with short skeleton
   useEffect(() => {
-    loadInitialData();
+    loadInitialData().catch(() => {});
   }, []);
 
   // Network listeners
