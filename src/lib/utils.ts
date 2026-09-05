@@ -17,6 +17,15 @@ export function cn(...inputs: ClassValue[]) {
  *   1500000 → "1.5M"       (15 000 FCFA)
  *   50000000→ "50K"        (500 000 FCFA)
  */
+/**
+ * Convert cents to FCFA full display (no K/M).
+ * Examples: 50000 → "500", 500000 → "5 000", 1500000 → "15 000"
+ */
+export function formatCurrencyFull(cents: number): string {
+  const ffa = cents / 100;
+  return new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(ffa);
+}
+
 export function formatCurrencyCompact(cents: number): string {
   const ffa = cents / 100;
   if (Math.abs(ffa) >= 1_000_000) return `${(ffa / 1_000_000).toFixed(1)}M`;
