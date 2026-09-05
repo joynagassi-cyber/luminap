@@ -1,4 +1,4 @@
-import { Home, Landmark, Users, CalendarPlus, MoreVertical, Settings, FileText, BarChart3, Clock, LineChart, Wallet, ArrowRightLeft, UserPlus, Archive, ClipboardList, ListChecks, History, PieChart } from 'lucide-react';
+import { Home, Landmark, Users, CalendarPlus, MoreVertical, Settings, FileText, BarChart3, LineChart, Wallet, Archive, ClipboardList, ListChecks, History } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useState, useRef, useEffect } from 'react';
 
@@ -7,7 +7,6 @@ const NAV_ITEMS = [
   { icon: Landmark, label: 'Finances', path: '/finance' },
   { icon: Users, label: 'Groupes', path: '/groups' },
   { icon: CalendarPlus, label: 'Événements', path: '/events' },
-  { icon: Settings, label: 'Paramètres', path: '/settings' },
 ];
 
 const MORE_ACTIONS = [
@@ -19,6 +18,7 @@ const MORE_ACTIONS = [
   { icon: Wallet, label: 'Versements', path: '/versement' },
   { icon: ListChecks, label: 'Trace', path: '/trace' },
   { icon: FileText, label: 'Formulaires', path: '/forms' },
+  { icon: Settings, label: 'Paramètres', path: '/settings' },
 ];
 
 export default function BottomNav() {
