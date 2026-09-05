@@ -1,10 +1,11 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLocalStore } from '@/store/useLocalStore';
-import { Calendar, Plus, Clock, Gift } from 'lucide-react';
+import { Calendar, Plus, Clock, Gift, ArrowUp, ArrowDown } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
 import { FullPageSkeleton, ListSkeleton } from '@/components/Skeleton';
-import { formatDate } from '@/lib/utils';
+import { formatDate, formatCurrencyCompact } from '@/lib/utils';
 
 const STATUS_COLORS: Record<string, string> = {
   PLANIFIED: '#3B82F6',
@@ -22,7 +23,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 export default function Events() {
   const navigate = useNavigate();
-  const { events, isLoading } = useLocalStore();
+  const { events, transactions, addTransaction, isLoading } = useLocalStore();
 
   if (isLoading) return <FullPageSkeleton />;
 
@@ -55,6 +56,9 @@ export default function Events() {
           <div className="space-y-3">
             {sortedEvents.map((event) => {
               const color = STATUS_COLORS[event.status] || '#808080';
+              const eventTxs = transactions.filter(t => t.eventId === event.id);
+              const income = eventTxs.filter(t => t.type === 'INCOME' && t.status === 'APPROVED').reduce((s, t) => s + t.amount, 0);
+              const expense = eventTxs.filter(t => t.type === 'EXPENSE' && t.status === 'APPROVED').reduce((s, t) => s + t.amount, 0);
               return (
                 <button key={event.id} onClick={() => navigate(`/event/${event.id}`)} className="w-full text-left rounded-xl p-4 transition-all active:scale-95" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
                   <div className="flex items-start gap-3">
@@ -73,10 +77,17 @@ export default function Events() {
                         {event.budgetItems?.length > 0 && (
                           <span className="text-xs text-text-tertiary">{event.budgetItems.length} poste{event.budgetItems.length > 1 ? 's' : ''}</span>
                         )}
-                        {event.shoppingItems?.length > 0 && (
-                          <span className="text-xs text-text-tertiary">{event.shoppingItems.length} article{event.shoppingItems.length > 1 ? 's' : ''}</span>
-                        )}
                       </div>
+                      {eventTxs.length > 0 && (
+                        <div className="flex items-center gap-3 mt-2 text-xs">
+                          <span className="flex items-center gap-1" style={{ color: '#1DB954' }}>
+                            <ArrowUp className="w-3 h-3" /> +{formatCurrencyCompact(income)} F
+                          </span>
+                          <span className="flex items-center gap-1" style={{ color: '#E51332' }}>
+                            <ArrowDown className="w-3 h-3" /> -{formatCurrencyCompact(expense)} F
+                          </span>
+                        </div>
+                      )}
                     </div>
                     <Clock className="w-4 h-4 text-text-tertiary flex-shrink-0 mt-1" />
                   </div>

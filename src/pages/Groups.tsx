@@ -152,7 +152,7 @@ export default function Groups() {
         <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={() => setShowCreate(false)}>
           <div className="absolute inset-0 bg-black/60" />
           <div
-            className="relative w-full max-w-lg rounded-t-2xl p-5 pb-8"
+            className="relative w-full max-w-lg rounded-t-2xl p-5 pb-8 max-h-[90vh] overflow-y-auto"
             style={{ backgroundColor: '#181818' }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -207,7 +207,7 @@ export default function Groups() {
         return (
           <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={() => setShowEdit(null)}>
             <div className="absolute inset-0 bg-black/60" />
-            <div className="relative w-full max-w-lg rounded-t-2xl p-5 pb-8" style={{ backgroundColor: '#181818' }} onClick={(e) => e.stopPropagation()}>
+            <div className="relative w-full max-w-lg rounded-t-2xl p-5 pb-8 max-h-[90vh] overflow-y-auto" style={{ backgroundColor: '#181818' }} onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-5">
                 <h2 className="text-text-primary font-bold text-lg">Modifier le groupe</h2>
                 <button onClick={() => setShowEdit(null)} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: '#282828' }}>

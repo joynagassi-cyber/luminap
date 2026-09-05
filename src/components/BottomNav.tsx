@@ -1,4 +1,4 @@
-import { Home, Landmark, Users, CalendarPlus, MoreVertical, Settings, FileText, BookOpen, History, ClipboardList, Tag, BarChart3, Archive, ChevronRight, Clock, LineChart } from 'lucide-react';
+import { Home, Landmark, Users, CalendarPlus, MoreVertical, Settings, FileText, BarChart3, Clock, LineChart } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useState, useRef, useEffect } from 'react';
 
@@ -10,15 +10,9 @@ const NAV_ITEMS = [
 ];
 
 const MORE_ACTIONS = [
-  { icon: Users, label: 'Membres', path: '/members' },
-  { icon: ClipboardList, label: 'Formulaires', path: '/forms' },
-  { icon: Tag, label: 'Champs perso.', path: '/custom-fields' },
   { icon: BarChart3, label: 'Rapports', path: '/reports' },
-  { icon: Archive, label: 'Archives', path: '/archives' },
   { icon: FileText, label: 'Bilan', path: '/balance' },
-  { icon: Clock, label: 'Trace', path: '/trace' },
-  { icon: LineChart, label: 'Historique', path: '/history' },
-  { icon: BookOpen, label: 'Tutoriel', path: '/tutoriel' },
+  { icon: Clock, label: 'Historique', path: '/history' },
   { icon: Settings, label: 'Paramètres', path: '/settings' },
 ];
 
@@ -46,7 +40,7 @@ export default function BottomNav() {
             const isActive = location.pathname === path || (path !== '/' && location.pathname.startsWith(path));
             return (
               <button key={path} onClick={() => navigate(path)} className="flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-all min-w-0">
-                <Icon className={`w-5 h-5 ${isActive ? '' : 'opacity-60'}`} style={isActive ? { color: '#FF6B00' } : { color: '#808080' }} />
+                <Icon className="w-5 h-5" style={isActive ? { color: '#FF6B00' } : { color: '#808080', opacity: 0.6 }} />
                 <span className="text-xs font-medium" style={isActive ? { color: '#FF6B00' } : { color: '#808080' }}>{label}</span>
               </button>
             );

@@ -34,7 +34,6 @@ export default function GroupDetail() {
   const groupMemberIds = groupMemberships.map(m => m.memberId);
   const groupMembers = members.filter(m => groupMemberIds.includes(m.id) && m.status !== 'ARCHIVED');
 
-  // If group/account not found, redirect to groups list
   if (isLoading || !orgUnit || !account) {
     return (
       <div className="min-h-screen bg-canvas flex items-center justify-center">
@@ -57,7 +56,6 @@ export default function GroupDetail() {
   const pendingCount = txs.filter(t => t.status === 'PENDING').length;
   const pendingAmount = txs.filter(t => t.status === 'PENDING').reduce((s, t) => s + (t.type === 'INCOME' ? t.amount : -t.amount), 0);
 
-  // Versement history: transactions that have a versementId and come from this group
   const versementTxs = txs.filter(t => t.versementId !== null);
   const versements: Record<string, { amount: number; date: string; tx: Transaction }> = {};
   for (const tx of versementTxs) {
@@ -68,7 +66,6 @@ export default function GroupDetail() {
   const versementList = Object.values(versements)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-  // Timeline actions for enriched history
   const timelineEvents: Array<{ date: string; label: string; type: 'info' | 'success' | 'warning' }> = [
     { date: account.createdAt, label: 'Caisse créée', type: 'info' },
   ];
@@ -135,7 +132,6 @@ export default function GroupDetail() {
           <ArrowLeft className="w-4 h-4" /> Retour
         </button>
 
-        {/* Success/Error */}
         {error && <div className="mb-4 p-3 rounded-xl text-sm" style={{ backgroundColor: '#E5133220', color: '#E51332' }}>{error}</div>}
         {success && <div className="mb-4 p-3 rounded-xl text-sm" style={{ backgroundColor: '#1DB95420', color: '#1DB954' }}>{success}</div>}
 
@@ -348,7 +344,6 @@ export default function GroupDetail() {
                       </div>
                     </div>
                   ))}
-                  {/* Add transaction events */}
                   {approvedTxs
                     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                     .slice(0, 5)

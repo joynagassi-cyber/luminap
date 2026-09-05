@@ -29,7 +29,6 @@ export default function TransactionNew() {
 
   const filteredCategories = categories.filter(c => c.type === type);
 
-  // When org unit changes, auto-set source caisse
   const handleOrgUnitChange = (ouId: string) => {
     setOrgUnitId(ouId);
     if (ouId) {
@@ -73,9 +72,9 @@ export default function TransactionNew() {
   };
 
   return (
-    <div className="min-h-screen bg-canvas">
+    <div className="min-h-screen bg-canvas flex flex-col">
       <TopHeader title="Nouvelle transaction" />
-      <div className="max-w-lg mx-auto px-5 pb-24 pt-16">
+      <div className="flex-1 overflow-y-auto px-5 pt-16 pb-28">
         <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-text-secondary text-sm mb-5">
           <ArrowLeft className="w-4 h-4" /> Retour
         </button>
@@ -233,15 +232,17 @@ export default function TransactionNew() {
             />
           </div>
         </div>
+      </div>
 
+      {/* Fixed bottom buttons */}
+      <div className="fixed bottom-16 left-0 right-0 px-5 pb-5 bg-canvas" style={{ borderTop: '1px solid #282828' }}>
         <button
           onClick={handleSubmit}
-          className="w-full mt-6 py-4 rounded-full font-semibold text-white transition-all active:scale-95"
+          className="w-full py-4 rounded-full font-semibold text-white transition-all active:scale-95"
           style={{ backgroundColor: type === 'INCOME' ? '#1DB954' : '#E51332' }}
         >
-          {type === 'INCOME' ? 'Enregistrer l\'entrée' : 'Enregistrer la sortie'}
+          {type === 'INCOME' ? "Enregistrer l'entrée" : 'Enregistrer la sortie'}
         </button>
-
         <button
           onClick={() => navigate(-1)}
           className="w-full mt-3 py-3 rounded-full font-medium text-text-tertiary text-sm transition-all"
