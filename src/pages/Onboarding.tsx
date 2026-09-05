@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight, ChevronLeft, Wallet, WalletMinimal, Users, Calendar, BarChart3, Sparkles } from 'lucide-react';
+import { ChevronRight, Wallet, WalletMinimal, Calendar, BarChart3, Sparkles } from 'lucide-react';
 import LuminaLogo from '@/components/LuminaLogo';
 
 const SCREENS = [
@@ -97,6 +97,11 @@ export default function Onboarding() {
 
       {/* Content */}
       <div className="flex-1 flex flex-col items-center justify-center px-8 pb-12">
+        {/* Logo */}
+        <div className="mb-6">
+          <LuminaLogo size={80} />
+        </div>
+
         {/* Icon */}
         <div
           className="w-24 h-24 rounded-3xl flex items-center justify-center mb-8"
