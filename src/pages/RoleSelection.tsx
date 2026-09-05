@@ -40,9 +40,7 @@ export default function RoleSelection() {
           {/* Logo */}
           <div className="text-center mb-10">
             <div className="flex justify-center mb-4">
-              <div className="w-20 h-20 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #FF8533, #FF6B00)', boxShadow: '0 8px 24px rgba(255,107,0,0.3)' }}>
-                <LuminaLogo size={48} />
-              </div>
+              <img src="/lumina-logo.png" alt="Lumina" className="w-20 h-20 rounded-2xl" style={{ boxShadow: '0 8px 24px rgba(255,107,0,0.3)' }} />
             </div>
             <h1 className="text-text-primary text-2xl font-bold mb-1">Lumina</h1>
             <p className="text-text-tertiary text-sm">{churchName}</p>
