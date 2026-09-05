@@ -1,5 +1,6 @@
 import { db } from './db';
 import { generateId } from './utils';
+import { writeAudit } from './audit';
 import type { FormDefinition, FormSubmission } from '@/types';
 import type { StoreName } from './db';
 
@@ -12,6 +13,18 @@ export const formDefinitionRepo = {
     const now = new Date().toISOString();
     const entry: FormDefinition = { ...def, id, createdAt: now, updatedAt: now };
     await db.put('form_definitions' as StoreName, entry);
+    await writeAudit({
+      orgId: 'org-1',
+      transactionId: null,
+      userId: 'local-user',
+      actorRoleAtTime: null,
+      action: 'CREATE',
+      entityType: 'FormDefinition',
+      entityId: id,
+      beforeState: null,
+      afterState: entry,
+      comment: null,
+    });
     return entry;
   },
 
@@ -48,6 +61,18 @@ export const formSubmissionRepo = {
     const now = new Date().toISOString();
     const entry: FormSubmission = { ...sub, id, submittedAt: now, createdAt: now };
     await db.put('form_submissions' as StoreName, entry);
+    await writeAudit({
+      orgId: 'org-1',
+      transactionId: null,
+      userId: sub.submittedBy,
+      actorRoleAtTime: null,
+      action: 'CREATE',
+      entityType: 'FormSubmission',
+      entityId: id,
+      beforeState: null,
+      afterState: entry,
+      comment: null,
+    });
     return entry;
   },
 

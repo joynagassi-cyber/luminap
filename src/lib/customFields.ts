@@ -1,5 +1,6 @@
 import { db } from './db';
 import { generateId } from './utils';
+import { writeAudit } from './audit';
 import type { CustomFieldDefinition, CustomFieldValue } from '@/types';
 import type { StoreName } from './db';
 
@@ -9,6 +10,18 @@ export const customFieldRepo = {
     const now = new Date().toISOString();
     const entry = { ...def, id, createdAt: now, updatedAt: now } as CustomFieldDefinition;
     await db.put('custom_field_definitions' as StoreName, entry);
+    await writeAudit({
+      orgId: 'org-1',
+      transactionId: null,
+      userId: 'local-user',
+      actorRoleAtTime: null,
+      action: 'CREATE',
+      entityType: 'CustomFieldDefinition',
+      entityId: id,
+      beforeState: null,
+      afterState: entry,
+      comment: null,
+    });
     return entry;
   },
   async get(id: string): Promise<CustomFieldDefinition | null> {

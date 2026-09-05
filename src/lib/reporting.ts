@@ -1,5 +1,7 @@
 import type { ReportDefinition, ReportResult } from '@/types';
 import { db } from './db';
+import { generateId } from './utils';
+import { writeAudit } from './audit';
 import type { Transaction } from '@/types';
 import type { StoreName } from './db';
 
@@ -90,3 +92,48 @@ export class AggregationEngine {
 }
 
 export const reportEngine = new AggregationEngine();
+
+/**
+ * ReportDefinitionRepository — creates and persists report definitions with audit
+ */
+export const reportDefinitionRepo = {
+  async create(def: Omit<ReportDefinition, 'id' | 'createdAt' | 'updatedAt'>): Promise<ReportDefinition> {
+    const id = generateId();
+    const now = new Date().toISOString();
+    const entry: ReportDefinition = { ...def, id, createdAt: now, updatedAt: now };
+    await db.put('report_definitions' as any, entry);
+    await writeAudit({
+      orgId: 'org-1',
+      transactionId: null,
+      userId: 'local-user',
+      actorRoleAtTime: null,
+      action: 'CREATE',
+      entityType: 'ReportDefinition',
+      entityId: id,
+      beforeState: null,
+      afterState: entry,
+      comment: null,
+    });
+    return entry;
+  },
+
+  async list(): Promise<ReportDefinition[]> {
+    return db.getAll<ReportDefinition>('report_definitions' as any).catch(() => [] as ReportDefinition[]);
+  },
+
+  async delete(id: string): Promise<void> {
+    await db.delete('report_definitions' as any, id);
+    await writeAudit({
+      orgId: 'org-1',
+      transactionId: null,
+      userId: 'local-user',
+      actorRoleAtTime: null,
+      action: 'DELETE',
+      entityType: 'ReportDefinition',
+      entityId: id,
+      beforeState: null,
+      afterState: null,
+      comment: null,
+    });
+  },
+};

@@ -51,7 +51,6 @@ export default function SettingsPage() {
     navigate('/login');
   };
 
-  const pendingCount = auditEntries.filter(a => a.action === 'CREATED' || a.action === 'UPDATED').length;
   const totalActions = auditEntries.length;
 
   return (
@@ -148,12 +147,44 @@ export default function SettingsPage() {
           </div>
           <div className="flex items-center justify-between text-sm mb-2">
             <span className="text-text-tertiary">Base de données</span>
-            <span className="text-text-secondary">lumina-db v8</span>
+            <span className="text-text-secondary">lumina-db v10</span>
           </div>
           <div className="flex items-center justify-between text-sm">
             <span className="text-text-tertiary">Actions enregistrées</span>
             <span className="text-text-secondary">{totalActions}</span>
           </div>
+        </div>
+
+        {/* Quick links */}
+        <div className="grid grid-cols-2 gap-3 mb-5">
+          <button onClick={() => navigate('/forms')} className="p-4 rounded-xl text-left active:scale-95 transition-transform" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
+            <div className="w-10 h-10 rounded-full flex items-center justify-center mb-2" style={{ backgroundColor: '#FF6B0020' }}>
+              <span className="text-lg">📋</span>
+            </div>
+            <p className="text-text-primary text-sm font-semibold">Formulaires</p>
+            <p className="text-text-tertiary text-xs mt-0.5">Créer & gérer</p>
+          </button>
+          <button onClick={() => navigate('/custom-fields')} className="p-4 rounded-xl text-left active:scale-95 transition-transform" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
+            <div className="w-10 h-10 rounded-full flex items-center justify-center mb-2" style={{ backgroundColor: '#8B5CF620' }}>
+              <span className="text-lg">🏷️</span>
+            </div>
+            <p className="text-text-primary text-sm font-semibold">Champs pers.</p>
+            <p className="text-text-tertiary text-xs mt-0.5">Customiser</p>
+          </button>
+          <button onClick={() => navigate('/archives')} className="p-4 rounded-xl text-left active:scale-95 transition-transform" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
+            <div className="w-10 h-10 rounded-full flex items-center justify-center mb-2" style={{ backgroundColor: '#3B82F620' }}>
+              <span className="text-lg">📦</span>
+            </div>
+            <p className="text-text-primary text-sm font-semibold">Archives</p>
+            <p className="text-text-tertiary text-xs mt-0.5">Gérer les archives</p>
+          </button>
+          <button onClick={() => navigate('/reports')} className="p-4 rounded-xl text-left active:scale-95 transition-transform" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
+            <div className="w-10 h-10 rounded-full flex items-center justify-center mb-2" style={{ backgroundColor: '#1DB95420' }}>
+              <span className="text-lg">📊</span>
+            </div>
+            <p className="text-text-primary text-sm font-semibold">Rapports</p>
+            <p className="text-text-tertiary text-xs mt-0.5">Bilans & stats</p>
+          </button>
         </div>
 
         {/* Actions */}

@@ -1011,6 +1011,18 @@ export const useLocalStore = create<LocalStoreState>()(
         set({ eventBudgets: updated });
         await db.put('event_budgets' as any, budget);
         await enqueueSync({ id: `sync-eb-${id}`, operation: 'create', entityType: 'eventBudgets', entityId: id, payload: budget, attempts: 0, lastAttempt: null, createdAt: now });
+        await writeAudit({
+          orgId: 'org-1',
+          transactionId: null,
+          userId: get().user.id,
+          actorRoleAtTime: get().user.role,
+          action: 'CREATE',
+          entityType: 'EventBudget',
+          entityId: id,
+          beforeState: null,
+          afterState: budget,
+          comment: null,
+        });
       },
 
       addBudgetLine: async (eventBudgetId, line) => {
@@ -1021,6 +1033,18 @@ export const useLocalStore = create<LocalStoreState>()(
         set({ budgetLines: updated });
         await db.put('budget_lines' as any, budgetLine);
         await enqueueSync({ id: `sync-bline-${id}`, operation: 'create', entityType: 'budgetLines', entityId: id, payload: budgetLine, attempts: 0, lastAttempt: null, createdAt: now });
+        await writeAudit({
+          orgId: 'org-1',
+          transactionId: null,
+          userId: get().user.id,
+          actorRoleAtTime: get().user.role,
+          action: 'CREATE',
+          entityType: 'BudgetLine',
+          entityId: id,
+          beforeState: null,
+          afterState: budgetLine,
+          comment: null,
+        });
         // Sync back to event budget items
         const event = get().events.find(e => e.id === get().eventBudgets.find(eb => eb.id === eventBudgetId)?.eventId);
         if (event) {
@@ -1044,9 +1068,24 @@ export const useLocalStore = create<LocalStoreState>()(
       },
 
       removeBudgetLine: async (eventBudgetId, lineId) => {
+        const oldLine = get().budgetLines.find(bl => bl.eventBudgetId === eventBudgetId && bl.id === lineId);
         const updated = get().budgetLines.filter(bl => !(bl.eventBudgetId === eventBudgetId && bl.id === lineId));
         set({ budgetLines: updated });
         await db.delete('budget_lines' as any, lineId);
+        if (oldLine) {
+          await writeAudit({
+            orgId: 'org-1',
+            transactionId: null,
+            userId: get().user.id,
+            actorRoleAtTime: get().user.role,
+            action: 'DELETE',
+            entityType: 'BudgetLine',
+            entityId: lineId,
+            beforeState: oldLine,
+            afterState: null,
+            comment: null,
+          });
+        }
       },
 
       getEventBudget: (eventId) => get().eventBudgets.find(eb => eb.eventId === eventId),

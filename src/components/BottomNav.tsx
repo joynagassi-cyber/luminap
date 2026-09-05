@@ -1,4 +1,4 @@
-import { Home, Landmark, Users, CalendarPlus, MoreVertical, Settings, FileText, BookOpen, History } from 'lucide-react';
+import { Home, Landmark, Users, CalendarPlus, MoreVertical, Settings, FileText, BookOpen, History, ClipboardList, Tag, BarChart3, Archive, ChevronRight } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useState, useRef, useEffect } from 'react';
 
@@ -10,10 +10,15 @@ const NAV_ITEMS = [
 ];
 
 const MORE_ACTIONS = [
-  { icon: Settings, label: 'Paramètres', path: '/settings' },
+  { icon: Users, label: 'Membres', path: '/members' },
+  { icon: ClipboardList, label: 'Formulaires', path: '/forms' },
+  { icon: Tag, label: 'Champs perso.', path: '/custom-fields' },
+  { icon: BarChart3, label: 'Rapports', path: '/reports' },
+  { icon: Archive, label: 'Archives', path: '/archives' },
   { icon: FileText, label: 'Bilan', path: '/balance' },
   { icon: History, label: 'Historique', path: '/history' },
   { icon: BookOpen, label: 'Tutoriel', path: '/tutoriel' },
+  { icon: Settings, label: 'Paramètres', path: '/settings' },
 ];
 
 export default function BottomNav() {

@@ -36,7 +36,7 @@ const ACTION_LABELS: Record<string, string> = {
   EVENT_STATUS_CHANGED: 'Événement mis à jour',
 };
 
-const FILTERS = ['Tout', 'Transaction', 'Groupe', 'Événement'];
+const FILTERS = ['Tout', 'Transaction', 'Groupe', 'Événement', 'Formulaires', 'Budget'];
 
 export default function History() {
   const navigate = useNavigate();
@@ -70,10 +70,16 @@ export default function History() {
   const filtered = filter === 'Tout'
     ? auditEntries
     : filter === 'Transaction'
-      ? auditEntries.filter(a => a.entityType === 'transaction')
+      ? auditEntries.filter(a => a.entityType === 'Transaction')
       : filter === 'Groupe'
-        ? auditEntries.filter(a => a.entityType === 'orgUnit')
-        : auditEntries.filter(a => a.entityType === 'event');
+        ? auditEntries.filter(a => a.entityType === 'Group' || a.entityType === 'GroupMembership' || a.entityType === 'Account')
+        : filter === 'Événement'
+          ? auditEntries.filter(a => a.entityType === 'Event')
+          : filter === 'Formulaires'
+            ? auditEntries.filter(a => a.entityType === 'FormDefinition' || a.entityType === 'FormSubmission')
+            : filter === 'Budget'
+              ? auditEntries.filter(a => a.entityType === 'EventBudget' || a.entityType === 'BudgetLine')
+              : auditEntries;
 
   const sorted = [...filtered].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
@@ -115,13 +121,13 @@ export default function History() {
                   <div className="flex-1 min-w-0">
                     <p className="text-text-primary text-sm font-medium">{label}</p>
                     <p className="text-text-tertiary text-xs mt-0.5 truncate">
-                      {entry.entityType === 'transaction' ? 'Transaction' : entry.entityType === 'orgUnit' ? 'Groupe' : 'Événement'}
+                      {entry.entityType === 'Transaction' ? 'Transaction' : entry.entityType === 'Group' ? 'Groupe' : entry.entityType === 'Event' ? 'Événement' : entry.entityType === 'FormDefinition' ? 'Formulaire' : entry.entityType === 'EventBudget' ? 'Budget' : entry.entityType}
                       {entry.entityId ? ` — ${entry.entityId.substring(0, 8)}` : ''}
                     </p>
                   </div>
                   <div className="text-right flex-shrink-0">
                     <p className="text-text-tertiary text-xs">{formatDate(entry.createdAt)}</p>
-                    {entry.user && <p className="text-text-tertiary text-xs">{entry.user.firstName}</p>}
+                    {entry.userId && <p className="text-text-tertiary text-xs">Acteur: {entry.userId}</p>}
                   </div>
                 </div>
               );
