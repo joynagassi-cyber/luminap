@@ -8,48 +8,29 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('fr-FR', { style: 'decimal', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount);
-}
-
 /**
- * Format a currency amount (in FCFA) to compact display.
- * Use this when the value is ALREADY in FCFA (divided by 100).
- * Examples:
- *   5000 → "5K"
- *   1500000 → "1.5M"
- *   500 → "500"
+ * Format an amount stored in cents to a compact display string.
+ * Rule: < 1000 FCFA → full number, ≥ 1000 → K, ≥ 1 000 000 → M
+ * Examples (input is cents):
+ *   50000   → "500"        (500 FCFA)
+ *   500000  → "5K"         (5 000 FCFA)
+ *   1500000 → "1.5M"       (15 000 FCFA)
+ *   50000000→ "50K"        (500 000 FCFA)
  */
-export function formatCurrencyCompact(amount: number): string {
-  if (Math.abs(amount) >= 1_000_000) {
-    return `${(amount / 1_000_000).toFixed(1)}M`;
-  }
-  if (Math.abs(amount) >= 1_000) {
-    return `${(amount / 1_000).toFixed(0)}K`;
-  }
-  return formatCurrency(amount);
-}
-
-/**
- * Convert cents (internal storage) to FCFA string for display.
- * IMPORTANT: Use this when displaying values stored in cents!
- * Examples:
- *   500000 cents → "5K" (5000 FCFA)
- *   5000 cents → "5 000" (50 FCFA)
- *   1500000 cents → "1.5M" (15000 FCFA)
- */
-export function formatCentsToFCFA(cents: number): string {
+export function formatCurrencyCompact(cents: number): string {
   const ffa = cents / 100;
-  return formatCurrencyCompact(ffa);
+  if (Math.abs(ffa) >= 1_000_000) return `${(ffa / 1_000_000).toFixed(1)}M`;
+  if (Math.abs(ffa) >= 1_000) return `${(ffa / 1_000).toFixed(0)}K`;
+  return new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(ffa);
 }
 
 /**
- * Format cents to full FCFA number (no compact).
- * Examples: 500000 → "5 000", 1500000 → "15 000"
+ * Convert cents to FCFA full display (no K/M).
+ * Examples: 50000 → "500", 500000 → "5 000", 1500000 → "15 000"
  */
 export function formatCentsFull(cents: number): string {
   const ffa = cents / 100;
-  return formatCurrency(ffa);
+  return new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(ffa);
 }
 
 export function formatDate(date: string | Date): string {

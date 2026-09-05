@@ -117,9 +117,9 @@ export default function Versement() {
                 </div>
                 <div className="flex-1">
                   <p className="text-text-primary text-sm font-medium">{selected?.name}</p>
-                  <p className="text-text-tertiary text-xs">Débit — Solde après: {formatCurrencyCompact(maxAmount - amountNum)} FCFA</p>
+                  <p className="text-text-tertiary text-xs">Débit — Solde après: {formatCurrencyCompact((maxAmount - amountNum) * 100)} FCFA</p>
                 </div>
-                <span className="text-[#E51332] font-bold text-sm">-{formatCurrencyCompact(amountNum)} F</span>
+                <span className="text-[#E51332] font-bold text-sm">-{formatCurrencyCompact(amountNum * 100)} F</span>
               </div>
 
               {/* Arrow */}
@@ -138,7 +138,7 @@ export default function Versement() {
                   <p className="text-text-primary text-sm font-medium">Caisse principale</p>
                   <p className="text-text-tertiary text-xs">Crédit</p>
                 </div>
-                <span className="text-[#1DB954] font-bold text-sm">+{formatCurrencyCompact(amountNum)} F</span>
+                <span className="text-[#1DB954] font-bold text-sm">+{formatCurrencyCompact(amountNum * 100)} F</span>
               </div>
 
               {comment && <p className="text-text-tertiary text-xs mt-3 text-center italic">"{comment}"</p>}
@@ -166,7 +166,7 @@ export default function Versement() {
                       </div>
                       <div className="flex-1">
                         <p className="text-text-primary text-sm font-semibold">{c.name}</p>
-                        <p className="text-text-tertiary text-xs">Solde: {formatCurrencyCompact(Math.round(bal / 100))} FCFA</p>
+                        <p className="text-text-tertiary text-xs">Solde: {formatCurrencyCompact(bal)} FCFA</p>
                       </div>
                       {selectedCaisse === c.id && <Check className="w-5 h-5" style={{ color: c.color }} />}
                     </button>
@@ -182,7 +182,7 @@ export default function Versement() {
                   <label className="text-text-tertiary text-xs mb-2 block">Montant à verser (FCFA)</label>
                   <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" className="w-full px-4 py-3.5 rounded-xl text-text-primary text-lg font-bold outline-none" style={{ backgroundColor: '#212121', border: '1px solid #282828' }} />
                   <div className="flex justify-between mt-2">
-                    <span className="text-text-tertiary text-xs">Solde disponible: <span style={{ color: '#1DB954' }}>{formatCurrencyCompact(maxAmount)} FCFA</span></span>
+                    <span className="text-text-tertiary text-xs">Solde disponible: <span style={{ color: '#1DB954' }}>{formatCurrencyCompact(maxAmount * 100)} FCFA</span></span>
                     <button onClick={() => setAmount(String(maxAmount))} className="text-xs font-medium" style={{ color: '#FF6B00' }}>Tout verser</button>
                   </div>
                 </div>

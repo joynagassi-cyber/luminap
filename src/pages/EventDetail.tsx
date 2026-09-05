@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useLocalStore } from '@/store/useLocalStore';
-import { formatCentsToFCFA, formatDate } from '@/lib/utils';
+import { formatCurrencyCompact, formatDate } from '@/lib/utils';
 import { ArrowLeft, Calendar, Clock, Tag, CheckCircle, Play, Flag, Trash2, AlertCircle, Plus, ArrowUp, ArrowDown } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
@@ -119,7 +119,7 @@ export default function EventDetail() {
       navigate(0);
     }
 
-    setSuccess(`Dépense de ${amountFCFA.toLocaleString('fr-FR')} FCFA enregistrée`);
+    setSuccess(`Dépense de ${formatCurrencyCompact(amountCents)} FCFA enregistrée`);
     setTimeout(() => setSuccess(''), 3000);
     setShowAddExpense(false);
     setExpenseAmount('');
@@ -194,18 +194,18 @@ export default function EventDetail() {
         <div className="grid grid-cols-3 gap-3 mb-5">
           <div className="rounded-xl p-3 text-center" style={{ backgroundColor: '#212121' }}>
             <p className="text-text-tertiary text-xs mb-1">Budget</p>
-            <p className="text-text-primary font-bold text-sm">{formatCentsToFCFA(event.budget)} <span className="text-text-tertiary text-xs font-normal">F</span></p>
+            <p className="text-text-primary font-bold text-sm">{formatCurrencyCompact(event.budget)} <span className="text-text-tertiary text-xs font-normal">F</span></p>
           </div>
           <div className="rounded-xl p-3 text-center" style={{ backgroundColor: '#212121' }}>
             <p className="text-text-tertiary text-xs mb-1">Dépensé</p>
             <p className="font-bold text-sm" style={{ color: budgetSpent > event.budget ? '#E51332' : '#FFB800' }}>
-              {formatCentsToFCFA(budgetSpent)} <span className="text-text-tertiary text-xs font-normal">F</span>
+              {formatCurrencyCompact(budgetSpent)} <span className="text-text-tertiary text-xs font-normal">F</span>
             </p>
           </div>
           <div className="rounded-xl p-3 text-center" style={{ backgroundColor: '#212121' }}>
             <p className="text-text-tertiary text-xs mb-1">Reste</p>
             <p className="font-bold text-sm" style={{ color: remaining >= 0 ? '#1DB954' : '#E51332' }}>
-              {formatCentsToFCFA(Math.max(0, remaining))} <span className="text-text-tertiary text-xs font-normal">F</span>
+              {formatCurrencyCompact(Math.max(0, remaining))} <span className="text-text-tertiary text-xs font-normal">F</span>
             </p>
           </div>
         </div>
@@ -223,7 +223,7 @@ export default function EventDetail() {
             {budgetSpent > event.budget && (
               <div className="flex items-center gap-2 mt-2 text-xs" style={{ color: '#E51332' }}>
                 <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
-                <span>Budget dépassé de {formatCentsToFCFA(budgetSpent - event.budget)} FCFA</span>
+                <span>Budget dépassé de {formatCurrencyCompact(budgetSpent - event.budget)} FCFA</span>
               </div>
             )}
           </div>
@@ -280,7 +280,7 @@ export default function EventDetail() {
                       <div key={item.id}>
                         <div className="flex justify-between text-xs mb-1">
                           <span className="text-text-secondary truncate">{item.label}</span>
-                          <span className="text-text-tertiary">{formatCentsToFCFA(item.spent)}/{formatCentsToFCFA(item.allocated)} F</span>
+                          <span className="text-text-tertiary">{formatCurrencyCompact(item.spent)}/{formatCurrencyCompact(item.allocated)} F</span>
                         </div>
                         <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: '#282828' }}>
                           <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: pct >= 100 ? '#E51332' : '#FF6B00' }} />
@@ -314,7 +314,7 @@ export default function EventDetail() {
                       <p className="text-text-tertiary text-xs">{formatDate(tx.date)}</p>
                     </div>
                     <span className="text-sm font-bold" style={{ color: tx.type === 'INCOME' ? '#1DB954' : '#E51332' }}>
-                      {tx.type === 'INCOME' ? '+' : '-'}{formatCentsToFCFA(tx.amount)} F
+                      {tx.type === 'INCOME' ? '+' : '-'}{formatCurrencyCompact(tx.amount)} F
                     </span>
                   </div>
                 ))}
@@ -351,9 +351,9 @@ export default function EventDetail() {
                         </p>
                       </div>
                       <div className="text-right ml-3">
-                        <p className="text-text-primary text-sm font-bold">{formatCentsToFCFA(item.allocated)} F</p>
+                        <p className="text-text-primary text-sm font-bold">{formatCurrencyCompact(item.allocated)} F</p>
                         <p className={`text-xs ${isExceeded ? 'text-[#E51332]' : 'text-text-tertiary'}`}>
-                          {formatCentsToFCFA(item.spent)} F dépensé
+                          {formatCurrencyCompact(item.spent)} F dépensé
                         </p>
                       </div>
                     </div>
@@ -363,7 +363,7 @@ export default function EventDetail() {
                     </div>
 
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-text-tertiary">Reste: <span style={{ color: remainingItem >= 0 ? '#1DB954' : '#E51332' }}>{formatCentsToFCFA(Math.max(0, remainingItem))} F</span></span>
+                      <span className="text-text-tertiary">Reste: <span style={{ color: remainingItem >= 0 ? '#1DB954' : '#E51332' }}>{formatCurrencyCompact(Math.max(0, remainingItem))} F</span></span>
                       <button
                         onClick={() => {
                           setSelectedBudgetItemId(item.id);
@@ -416,7 +416,7 @@ export default function EventDetail() {
                       </p>
                     </div>
                     <span className="text-sm font-bold" style={{ color: tx.type === 'INCOME' ? '#1DB954' : '#E51332' }}>
-                      {tx.type === 'INCOME' ? '+' : '-'}{formatCentsToFCFA(tx.amount)} F
+                      {tx.type === 'INCOME' ? '+' : '-'}{formatCurrencyCompact(tx.amount)} F
                     </span>
                   </div>
                 );
@@ -457,7 +457,7 @@ export default function EventDetail() {
                     <option value="">Sélectionner un poste...</option>
                     {event.budgetItems.map(item => (
                       <option key={item.id} value={item.id}>
-                        {item.label} — Reste: {formatCentsToFCFA(item.allocated - item.spent)} F
+                        {item.label} — Reste: {formatCurrencyCompact(item.allocated - item.spent)} F
                       </option>
                     ))}
                   </select>
@@ -481,7 +481,7 @@ export default function EventDetail() {
                     const overBudget = entered > (remaining / 100);
                     return (
                       <p className={`text-xs mt-1 ${overBudget ? 'text-[#E51332]' : 'text-text-tertiary'}`}>
-                        Reste disponible: {formatCentsToFCFA(remaining)} F{overBudget && ' ⚠️ Montant insuffisant'}
+                        Reste disponible: {formatCurrencyCompact(remaining)} F{overBudget && ' ⚠️ Montant insuffisant'}
                       </p>
                     );
                   })()}

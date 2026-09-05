@@ -4,7 +4,7 @@ import { useLocalStore } from '@/store/useLocalStore';
 import { ArrowLeft, Plus, X, Tag } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
-import { generateId } from '@/lib/utils';
+import { generateId, formatCurrencyCompact } from '@/lib/utils';
 import type { BudgetItem } from '@/types';
 
 const DEFAULT_BUDGET_ITEMS = [
@@ -17,12 +17,6 @@ const DEFAULT_BUDGET_ITEMS = [
   { label: 'Entretien', categoryId: 'cat-entretien', allocated: 0 },
   { label: 'Aumône', categoryId: 'cat-aumone', allocated: 0 },
 ];
-
-function fmt(amount: number): string {
-  if (amount >= 1_000_000) return `${(amount / 1_000_000).toFixed(1)}M`;
-  if (amount >= 1_000) return `${(amount / 1_000).toFixed(0)}K`;
-  return amount.toLocaleString('fr-FR');
-}
 
 export default function EventNew() {
   const navigate = useNavigate();
@@ -171,7 +165,7 @@ export default function EventNew() {
               <span className="text-text-primary font-semibold text-sm">Budget</span>
               {budgetItems.length > 0 && (
                 <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: '#FF6B0020', color: '#FF6B00' }}>
-                  {fmt(totalBudget)} F
+                  {formatCurrencyCompact(totalBudget)} F
                 </span>
               )}
             </div>
@@ -192,7 +186,7 @@ export default function EventNew() {
                       <div className="flex-1 min-w-0">
                         <p className="text-text-primary text-sm font-medium">{item.label}</p>
                         {existing && (
-                          <p className="text-text-tertiary text-xs">{fmt(existing.allocated)} FCFA · {existing.fundedBy === 'main' ? 'Caisse principale' : existing.fundedBy}</p>
+                          <p className="text-text-tertiary text-xs">{formatCurrencyCompact(existing.allocated)} FCFA · {existing.fundedBy === 'main' ? 'Caisse principale' : existing.fundedBy}</p>
                         )}
                       </div>
                       {existing ? (
@@ -266,7 +260,7 @@ export default function EventNew() {
                         <p className="text-text-tertiary text-xs">{item.fundedBy === 'main' ? 'Caisse princ.' : item.fundedBy}</p>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-text-primary text-xs font-bold">{fmt(item.allocated)} F</span>
+                        <span className="text-text-primary text-xs font-bold">{formatCurrencyCompact(item.allocated)} F</span>
                         <button onClick={() => handleRemoveBudget(item.id)} className="w-5 h-5 rounded-full flex items-center justify-center" style={{ backgroundColor: '#E5133220' }}>
                           <X className="w-3 h-3 text-[#E51332]" />
                         </button>
@@ -275,7 +269,7 @@ export default function EventNew() {
                   ))}
                   <div className="flex items-center justify-between pt-2 mt-2" style={{ borderTop: '1px solid #282828' }}>
                     <span className="text-text-secondary text-xs font-medium">Total budget</span>
-                    <span className="text-text-primary text-sm font-bold">{fmt(totalBudget)} FCFA</span>
+                    <span className="text-text-primary text-sm font-bold">{formatCurrencyCompact(totalBudget)} FCFA</span>
                   </div>
                 </div>
               )}
