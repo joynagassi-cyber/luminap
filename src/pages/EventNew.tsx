@@ -89,7 +89,7 @@ export default function EventNew() {
       <TopHeader title="Nouvel événement" />
 
       {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto px-5 pb-44 pt-16">
+      <div className="flex-1 overflow-y-auto px-5 pb-6 pt-16">
         <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-text-secondary text-sm mb-5">
           <ArrowLeft className="w-4 h-4" /> Retour
         </button>
@@ -259,24 +259,24 @@ export default function EventNew() {
             </div>
           )}
         </div>
-      </div>
 
-      {/* Fixed bottom buttons */}
-      <div className="fixed bottom-[72px] left-0 right-0 px-5 pt-3 pb-4 z-40" style={{ backgroundColor: 'rgba(18,18,18,0.97)', borderTop: '1px solid #282828', backdropFilter: 'blur(10px)' }}>
-        <button
-          onClick={handleSubmit}
-          className="w-full py-4 rounded-full font-semibold text-white transition-all active:scale-95 mb-3"
-          style={{ background: 'linear-gradient(135deg, #FF8533, #FF6B00)' }}
-        >
-          Créer l'événement
-        </button>
-        <button
-          onClick={() => navigate(-1)}
-          className="w-full py-3 rounded-full font-medium text-sm text-text-tertiary"
-          style={{ backgroundColor: '#212121' }}
-        >
-          Annuler
-        </button>
+        {/* Form action buttons */}
+        <div className="pt-4 space-y-3">
+          <button
+            onClick={handleSubmit}
+            className="w-full py-4 rounded-full font-semibold text-white transition-all active:scale-95"
+            style={{ background: 'linear-gradient(135deg, #FF8533, #FF6B00)' }}
+          >
+            Créer l'événement
+          </button>
+          <button
+            onClick={() => navigate(-1)}
+            className="w-full py-3 rounded-full font-medium text-sm text-text-tertiary"
+            style={{ backgroundColor: '#212121' }}
+          >
+            Annuler
+          </button>
+        </div>
       </div>
 
       <BottomNav />

@@ -77,7 +77,7 @@ export default function TransactionNewGroup() {
   return (
     <div className="h-screen bg-canvas flex flex-col overflow-hidden">
       <TopHeader title={groupAccount?.name || 'Groupe'} />
-      <div className="flex-1 overflow-y-auto px-5 pt-16 pb-44">
+      <div className="flex-1 overflow-y-auto px-5 pt-16 pb-6">
         <button onClick={() => navigate(`/groups/${groupId}`)} className="flex items-center gap-2 text-text-secondary text-sm mb-5">
           <ArrowLeft className="w-4 h-4" /> Retour
         </button>
@@ -221,30 +221,30 @@ export default function TransactionNewGroup() {
               placeholder="Notes..."
               rows={2}
               className="w-full px-4 py-3 rounded-xl text-text-primary text-sm outline-none resize-none"
-              
+
               style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
             />
           </div>
-        </div>
-      </div>
 
-      {/* Fixed bottom buttons */}
-      <div className="fixed bottom-[72px] left-0 right-0 px-5 pt-3 pb-4 z-40" style={{ backgroundColor: 'rgba(18,18,18,0.97)', borderTop: '1px solid #282828', backdropFilter: 'blur(10px)' }}>
-        <button
-          onClick={handleSubmit}
-          disabled={submitting}
-          className="w-full py-4 rounded-full font-semibold text-white transition-all active:scale-95 disabled:opacity-40 mb-3"
-          style={{ backgroundColor: type === 'INCOME' ? '#1DB954' : '#E51332' }}
-        >
-          {submitting ? 'Enregistrement...' : type === 'INCOME' ? "Enregistrer l'entrée" : 'Enregistrer la sortie'}
-        </button>
-        <button
-          onClick={() => navigate(`/groups/${groupId}`)}
-          className="w-full py-3 rounded-full font-medium text-text-tertiary text-sm transition-all"
-          style={{ backgroundColor: '#212121' }}
-        >
-          Annuler
-        </button>
+          {/* Form action buttons */}
+          <div className="pt-4 space-y-3">
+            <button
+              onClick={handleSubmit}
+              disabled={submitting}
+              className="w-full py-4 rounded-full font-semibold text-white transition-all active:scale-95 disabled:opacity-40"
+              style={{ backgroundColor: type === 'INCOME' ? '#1DB954' : '#E51332' }}
+            >
+              {submitting ? 'Enregistrement...' : type === 'INCOME' ? "Enregistrer l'entrée" : 'Enregistrer la sortie'}
+            </button>
+            <button
+              onClick={() => navigate(`/groups/${groupId}`)}
+              className="w-full py-3 rounded-full font-medium text-text-tertiary text-sm transition-all"
+              style={{ backgroundColor: '#212121' }}
+            >
+              Annuler
+            </button>
+          </div>
+        </div>
       </div>
       <BottomNav />
     </div>
