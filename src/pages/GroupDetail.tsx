@@ -207,17 +207,28 @@ export default function GroupDetail() {
         </div>
 
         {/* Tabs */}
-        <div className="mt-6 flex rounded-xl p-1 mb-6 overflow-x-auto" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
-          {([
-            { id: 'transactions' as Tab, label: 'Transactions', icon: Wallet },
-            { id: 'membres' as Tab, label: 'Membres', icon: Users },
-            { id: 'historique' as Tab, label: 'Historique', icon: Clock },
-            { id: 'parametres' as Tab, label: 'Paramètres', icon: Edit3 },
-          ]).map(({ id: tabId, label, icon: TabIcon }) => (
-            <button key={tabId} onClick={() => setActiveTab(tabId)} className="flex-1 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1.5 whitespace-nowrap" style={activeTab === tabId ? { backgroundColor: '#FF6B00', color: '#fff' } : { color: '#B3B3B3' }}>
-              <TabIcon className="w-3.5 h-3.5" /> {label}
-            </button>
-          ))}
+        <div className="mt-6 mb-6">
+          <div className="flex rounded-2xl p-1.5" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
+            {([
+              { id: 'transactions' as Tab, label: 'Transactions', icon: Wallet },
+              { id: 'membres' as Tab, label: 'Membres', icon: Users },
+              { id: 'historique' as Tab, label: 'Historique', icon: Clock },
+              { id: 'parametres' as Tab, label: 'Paramètres', icon: Edit3 },
+            ]).map(({ id: tabId, label, icon: TabIcon }) => (
+              <button
+                key={tabId}
+                onClick={() => setActiveTab(tabId)}
+                className="flex-1 py-3 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2"
+                style={activeTab === tabId
+                  ? { backgroundColor: '#FF6B00', color: '#fff', boxShadow: '0 2px 8px rgba(255,107,0,0.3)' }
+                  : { backgroundColor: 'transparent', color: '#808080' }
+                }
+              >
+                <TabIcon className="w-4 h-4" />
+                <span>{label}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Tab content */}

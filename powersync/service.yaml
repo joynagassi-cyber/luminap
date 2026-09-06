@@ -14,7 +14,8 @@ region: eu
 replication:
   connections:
     - type: postgresql
-      uri: postgresql://postgres:fUF6s8U678w6ct1a@db.vvcdmqpbwfyhkzalwdli.supabase.co:5432/postgres
+      # Supabase uses username: postgres.[project-ref]
+      uri: postgresql://postgres.vvcdmqpbwfyhkzalwdli:fUF6s8U678w6ct1a@db.vvcdmqpbwfyhkzalwdli.supabase.co:5432/postgres
       password:
         secret: !env PS_DATABASE_PASSWORD
       sslmode: verify-full
