@@ -80,7 +80,7 @@ export default function TransactionEdit() {
   return (
     <div className="h-screen bg-canvas flex flex-col overflow-hidden">
       <TopHeader title="Modifier" />
-      <div className="flex-1 overflow-y-auto px-5 pt-16 pb-40 max-w-lg mx-auto">
+      <div className="flex-1 overflow-y-auto px-5 pt-16 pb-44 max-w-lg mx-auto">
         <div className="flex items-center justify-between mb-6">
           <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-text-secondary text-sm">
             <ArrowUpRight className="w-4 h-4 rotate-180" /> Retour
