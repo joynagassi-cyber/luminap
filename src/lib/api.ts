@@ -71,14 +71,14 @@ export const api = {
       if (params?.type) query.set('type', params.type);
       return request<{ transactions: any[] }>(`/transactions${query.toString() ? `?${query}` : ''}`);
     },
-    get: (id: string) => request<{ transaction: any }>(`/transactions/${id}`),
-    create: (tx: any) => request<{ ok: boolean; transaction: any }>('/transactions', { method: 'POST', body: JSON.stringify(tx) }),
-    update: (id: string, updates: any) =>
-      request<{ ok: boolean; transaction: any }>(`/transactions/${id}`, { method: 'PUT', body: JSON.stringify(updates) }),
+    get: (id: string) => request<{ transaction: Record<string, any> }>(`/transactions/${id}`),
+    create: (tx: Record<string, any>) => request<{ ok: boolean; transaction: Record<string, any> }>('/transactions', { method: 'POST', body: JSON.stringify(tx) }),
+    update: (id: string, updates: Record<string, any>) =>
+      request<{ ok: boolean; transaction: Record<string, any> }>(`/transactions/${id}`, { method: 'PUT', body: JSON.stringify(updates) }),
     delete: (id: string) =>
       request<{ ok: boolean; deleted: string }>(`/transactions/${id}`, { method: 'DELETE' }),
     action: (id: string, action: 'approve' | 'reject' | 'submit', extra?: Record<string, unknown>) =>
-      request<{ ok: boolean; transaction: any }>(`/transactions/${id}/action`, {
+      request<{ ok: boolean; transaction: Record<string, any> }>(`/transactions/${id}/action`, {
         method: 'POST',
         body: JSON.stringify({ action, ...extra }),
       }),

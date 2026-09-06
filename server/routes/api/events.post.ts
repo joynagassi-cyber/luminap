@@ -10,7 +10,7 @@ export default defineHandler(async (event) => {
     return { ok: false, error: "name, startDate, and budget are required" };
   }
 
-  const newEvent: any = {
+  const newEvent: Record<string, any> = {
     id: `evt-${Date.now()}`,
     orgId: "org-1",
     name,
