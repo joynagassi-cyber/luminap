@@ -1,6 +1,5 @@
 const DB_NAME = 'lumina-db';
 const DB_VERSION = 15;
-const SCHEMA_VERSION = 4; // Increment to force cache bust on mismatch
 
 export type StoreName = 'transactions' | 'categories' | 'orgUnits' | 'auditEntries' | 'events' | 'syncQueue' | 'config' | 'caisses' | 'notifications' | 'members' | 'groups' | 'accounts' | 'group_memberships' | 'form_definitions' | 'form_submissions' | 'custom_field_definitions' | 'custom_field_values' | 'versements' | 'event_budgets' | 'budget_lines' | 'report_definitions';
 
@@ -16,70 +15,6 @@ function ensureDB(): Promise<IDBDatabase> {
     if (_db) {
       try { _db.close(); } catch {}
       _db = null;
-    }
-    // Check schema version in localStorage; force reload if mismatched
-    const stored = localStorage.getItem(`${DB_NAME}_schema`);
-    if (stored !== String(SCHEMA_VERSION)) {
-      // Guard against infinite reload loop: if we already tried once and
-      // the version still doesn't match, skip the reload to avoid an
-      // infinite loop (e.g. when localStorage is cleared by the DB delete).
-      const tries = parseInt(localStorage.getItem(`${DB_NAME}_schemaTries`) ?? '0', 10);
-      if (tries >= 1) {
-        // Give up on schema mismatch, clear localStorage and resolve with a fresh DB
-        localStorage.removeItem(`${DB_NAME}_schema`);
-        localStorage.removeItem(`${DB_NAME}_schemaTries`);
-        try { indexedDB.deleteDatabase(DB_NAME); } catch {}
-        const request = indexedDB.open(DB_NAME, DB_VERSION);
-        request.onupgradeneeded = (e) => {
-          _upgrading = true;
-          const db = (e.target as IDBOpenDBRequest).result;
-          const stores: { name: StoreName; keyPath?: string }[] = [
-            { name: 'transactions', keyPath: 'id' },
-            { name: 'categories', keyPath: 'id' },
-            { name: 'orgUnits', keyPath: 'id' },
-            { name: 'auditEntries', keyPath: 'id' },
-            { name: 'events', keyPath: 'id' },
-            { name: 'syncQueue', keyPath: 'id' },
-            { name: 'config', keyPath: 'key' },
-            { name: 'caisses', keyPath: 'id' },
-            { name: 'notifications', keyPath: 'id' },
-            { name: 'members', keyPath: 'id' },
-            { name: 'groups', keyPath: 'id' },
-            { name: 'accounts', keyPath: 'id' },
-            { name: 'group_memberships', keyPath: 'id' },
-            { name: 'versements', keyPath: 'id' },
-            { name: 'event_budgets', keyPath: 'id' },
-            { name: 'budget_lines', keyPath: 'id' },
-            { name: 'report_definitions', keyPath: 'id' },
-            { name: 'form_definitions', keyPath: 'id' },
-            { name: 'form_submissions', keyPath: 'id' },
-            { name: 'custom_field_definitions', keyPath: 'id' },
-            { name: 'custom_field_values', keyPath: 'id' },
-          ];
-          for (const s of stores) {
-            if (!db.objectStoreNames.contains(s.name)) {
-              db.createObjectStore(s.name, { keyPath: s.keyPath });
-            }
-          }
-        };
-        request.onsuccess = () => {
-          _upgrading = false;
-          _db = request.result;
-          _dbPromise = null;
-          resolve(request.result);
-        };
-        request.onerror = () => {
-          _upgrading = false;
-          _dbPromise = null;
-          reject(request.error);
-        };
-        return;
-      }
-      localStorage.setItem(`${DB_NAME}_schemaTries`, String(tries + 1));
-      try { indexedDB.deleteDatabase(DB_NAME); } catch {}
-      localStorage.removeItem(`${DB_NAME}_schema`);
-      window.location.reload();
-      return;
     }
     const request = indexedDB.open(DB_NAME, DB_VERSION);
     request.onupgradeneeded = (e) => {
@@ -200,7 +135,6 @@ function ensureDB(): Promise<IDBDatabase> {
       if (_db && _db !== newDb) {
         try { _db.close(); } catch {}
       }
-      localStorage.setItem(`${DB_NAME}_schema`, String(SCHEMA_VERSION));
       _db = newDb;
       _dbPromise = null;
       resolve(newDb);
