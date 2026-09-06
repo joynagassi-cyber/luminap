@@ -37,7 +37,7 @@ export default function Splash() {
 
         if (storedRole && storedOnboarded === 'true') {
           // Registered user with role → go to dashboard
-          navigate('/', { replace: true });
+          navigate('/dashboard', { replace: true });
         } else {
           // First time or no role → go to onboarding
           navigate('/onboarding', { replace: true });

@@ -67,6 +67,7 @@ function AppRoutes() {
         <Route path="/role-selection" element={<RoleSelection />} />
 
         {/* Protected routes */}
+        <Route path="/dashboard" element={<AuthRoute><Dashboard /></AuthRoute>} />
         <Route path="/notifications" element={<AuthRoute><Notifications /></AuthRoute>} />
         <Route path="/tutoriel" element={<AuthRoute><Tutorial /></AuthRoute>} />
         <Route path="/finance" element={<AuthRoute><Finance /></AuthRoute>} />
