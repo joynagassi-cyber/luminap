@@ -7,14 +7,14 @@ _type: cloud
 # Instance name
 name: lumina
 
-# Deployment region (US or EU)
-region: us
+# Deployment region - MUST match existing instance (eu)
+region: eu
 
 # Replication connection to Supabase
 replication:
   connections:
     - type: postgresql
-      uri: postgresql://postgres.fUF6s8U678w6ct1a@db.vvcdmqpbwfyhkzalwdli.supabase.co:5432/postgres
+      uri: postgresql://postgres:fUF6s8U678w6ct1a@db.vvcdmqpbwfyhkzalwdli.supabase.co:5432/postgres
       password:
         secret: !env PS_DATABASE_PASSWORD
       sslmode: verify-full

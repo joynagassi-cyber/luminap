@@ -112,7 +112,7 @@ export default function EventEdit() {
   return (
     <div className="h-screen bg-canvas flex flex-col overflow-hidden">
       <TopHeader title="Modifier l'événement" />
-      <div className="flex-1 overflow-y-auto px-5 pt-16 pb-44">
+      <div className="flex-1 overflow-y-auto px-5 pt-16 pb-6">
         <button onClick={() => navigate(`/event/${id}`)} className="flex items-center gap-2 text-text-secondary text-sm mb-5">
           <ArrowLeft className="w-4 h-4" /> Retour
         </button>

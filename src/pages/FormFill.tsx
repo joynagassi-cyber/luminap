@@ -60,7 +60,7 @@ export default function FormFill() {
     return (
       <div className="min-h-screen bg-canvas flex flex-col">
         <TopHeader title="Formulaire" />
-        <div className="flex-1 overflow-y-auto px-5 pt-16 pb-32 max-w-lg mx-auto">
+        <div className="flex-1 overflow-y-auto px-5 pt-16 pb-6 max-w-lg mx-auto">
           <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-text-secondary text-sm mb-5">
             <ArrowLeft className="w-4 h-4" /> Retour
           </button>
@@ -74,7 +74,7 @@ export default function FormFill() {
   return (
     <div className="min-h-screen bg-canvas flex flex-col">
       <TopHeader title={form.name} />
-      <div className="flex-1 overflow-y-auto px-5 pt-16 pb-32 max-w-lg mx-auto">
+      <div className="flex-1 overflow-y-auto px-5 pt-16 pb-6 max-w-lg mx-auto">
         <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-text-secondary text-sm mb-5">
           <ArrowLeft className="w-4 h-4" /> Retour
         </button>
