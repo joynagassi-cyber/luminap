@@ -18,6 +18,32 @@ interface ApiResponse<T> {
   error?: string;
 }
 
+interface Transaction {
+  id: string;
+  orgId: string;
+  type: string;
+  amount: number;
+  description: string;
+  date: string;
+  status: string;
+  categoryId: string;
+  orgUnitId: string | null;
+  eventId: string | null;
+  source: string | null;
+  personName: string | null;
+  compensatesFor: string | null;
+  comment: string | null;
+  version: number;
+  sourceCaisseId: string | null;
+  versementId: string | null;
+  reversalOfId: string | null;
+  createdById: string;
+  approvedById: string | null;
+  createdAt: string;
+  updatedAt: string;
+  approvedAt: string | null;
+}
+
 async function request<T>(
   path: string,
   options: RequestInit = {},
@@ -69,16 +95,16 @@ export const api = {
       const query = new URLSearchParams();
       if (params?.status) query.set('status', params.status);
       if (params?.type) query.set('type', params.type);
-      return request<{ transactions: any[] }>(`/transactions${query.toString() ? `?${query}` : ''}`);
+      return request<{ transactions: Transaction[] }>(`/transactions${query.toString() ? `?${query}` : ''}`);
     },
-    get: (id: string) => request<{ transaction: Record<string, any> }>(`/transactions/${id}`),
-    create: (tx: Record<string, any>) => request<{ ok: boolean; transaction: Record<string, any> }>('/transactions', { method: 'POST', body: JSON.stringify(tx) }),
-    update: (id: string, updates: Record<string, any>) =>
-      request<{ ok: boolean; transaction: Record<string, any> }>(`/transactions/${id}`, { method: 'PUT', body: JSON.stringify(updates) }),
+    get: (id: string) => request<{ transaction: Transaction }>(`/transactions/${id}`),
+    create: (tx: Partial<Transaction>) => request<{ ok: boolean; transaction: Transaction }>('/transactions', { method: 'POST', body: JSON.stringify(tx) }),
+    update: (id: string, updates: Partial<Transaction>) =>
+      request<{ ok: boolean; transaction: Transaction }>(`/transactions/${id}`, { method: 'PUT', body: JSON.stringify(updates) }),
     delete: (id: string) =>
       request<{ ok: boolean; deleted: string }>(`/transactions/${id}`, { method: 'DELETE' }),
     action: (id: string, action: 'approve' | 'reject' | 'submit', extra?: Record<string, unknown>) =>
-      request<{ ok: boolean; transaction: Record<string, any> }>(`/transactions/${id}/action`, {
+      request<{ ok: boolean; transaction: Transaction }>(`/transactions/${id}/action`, {
         method: 'POST',
         body: JSON.stringify({ action, ...extra }),
       }),
