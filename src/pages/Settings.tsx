@@ -129,7 +129,7 @@ export default function SettingsPage() {
         <div className="rounded-xl p-4 mb-5" style={{ backgroundColor: '#212121' }}>
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              {isOnline ? <Cloud className="w-5 h-5" style={{ color: '#1DB954' }} /> : <CloudOff className="w-5 h-5" style={{ color: '#808080' }} />}
+              {isOnline ? <Cloud className="w-5 h-5" style={{ color: '#1DB954' }} /> : <CloudOff className="w-5 h-5" style={{ color: '#B3B3B3' }} />}
               <span className="text-text-primary font-medium">Synchronisation</span>
             </div>
             <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: isOnline ? '#1DB95420' : '#80808020', color: isOnline ? '#1DB954' : '#808080' }}>

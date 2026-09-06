@@ -350,7 +350,7 @@ export default function HistoryPage() {
                     />
                     <Tooltip content={<CustomTooltip />} />
                     <Area
-                      type="bezier"
+                      type="monotone"
                       dataKey="income"
                       name="Revenus"
                       stroke={COLORS.income}
@@ -360,7 +360,7 @@ export default function HistoryPage() {
                       activeDot={{ r: 5, fill: COLORS.income, strokeWidth: 0 }}
                     />
                     <Area
-                      type="bezier"
+                      type="monotone"
                       dataKey="expense"
                       name="Dépenses"
                       stroke={COLORS.expense}
@@ -403,7 +403,7 @@ export default function HistoryPage() {
                     />
                     <Tooltip content={<CustomTooltip />} />
                     <Line
-                      type="bezier"
+                      type="monotone"
                       dataKey="balance"
                       name="Solde"
                       stroke={netResult >= 0 ? COLORS.income : COLORS.expense}

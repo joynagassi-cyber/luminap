@@ -91,8 +91,8 @@ export default function TransactionEdit() {
 
         <div className="space-y-4">
           <div className="flex rounded-xl p-1" style={{ backgroundColor: '#212121' }}>
-            <button onClick={() => setType('INCOME')} className="flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all" style={type === 'INCOME' ? { backgroundColor: '#1DB954', color: '#fff' } : { color: '#808080' }}>Entrée</button>
-            <button onClick={() => setType('EXPENSE')} className="flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all" style={type === 'EXPENSE' ? { backgroundColor: '#E51332', color: '#fff' } : { color: '#808080' }}>Sortie</button>
+            <button onClick={() => setType('INCOME')} className="flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all" style={type === 'INCOME' ? { backgroundColor: '#1DB954', color: '#fff' } : { color: '#B3B3B3' }}>Entrée</button>
+            <button onClick={() => setType('EXPENSE')} className="flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all" style={type === 'EXPENSE' ? { backgroundColor: '#E51332', color: '#fff' } : { color: '#B3B3B3' }}>Sortie</button>
           </div>
 
           <div>
@@ -114,7 +114,7 @@ export default function TransactionEdit() {
             <label className="text-text-tertiary text-xs mb-2 block">Catégorie</label>
             <div className="grid grid-cols-3 gap-2">
               {filteredCategories.map((cat) => (
-                <button key={cat.id} onClick={() => setCategoryId(cat.id)} className="py-2 px-2 rounded-lg text-xs font-medium transition-all text-center" style={categoryId === cat.id ? { backgroundColor: type === 'INCOME' ? '#1DB95420' : '#E5133220', color: type === 'INCOME' ? '#1DB954' : '#E51332', border: '1px solid' } : { backgroundColor: '#212121', color: '#808080', border: '1px solid #282828' }}>
+                <button key={cat.id} onClick={() => setCategoryId(cat.id)} className="py-2 px-2 rounded-lg text-xs font-medium transition-all text-center" style={categoryId === cat.id ? { backgroundColor: type === 'INCOME' ? '#1DB95420' : '#E5133220', color: type === 'INCOME' ? '#1DB954' : '#E51332', border: '1px solid' } : { backgroundColor: '#212121', color: '#B3B3B3', border: '1px solid #282828' }}>
                   {cat.labelFr}
                 </button>
               ))}
@@ -130,7 +130,7 @@ export default function TransactionEdit() {
                 { id: 'PERSONNE' as const, label: 'Personne' },
                 { id: 'AUTRE' as const, label: 'Autre' },
               ]).map(({ id, label }) => (
-                <button key={id} onClick={() => setSource(id)} className="py-2.5 rounded-xl text-xs font-medium transition-all" style={source === id ? { backgroundColor: '#FF6B0020', color: '#FF6B00', border: '1px solid #FF6B00' } : { backgroundColor: '#212121', color: '#808080', border: '1px solid #282828' }}>
+                <button key={id} onClick={() => setSource(id)} className="py-2.5 rounded-xl text-xs font-medium transition-all" style={source === id ? { backgroundColor: '#FF6B0020', color: '#FF6B00', border: '1px solid #FF6B00' } : { backgroundColor: '#212121', color: '#B3B3B3', border: '1px solid #282828' }}>
                   {label}
                 </button>
               ))}

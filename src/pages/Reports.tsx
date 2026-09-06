@@ -10,7 +10,7 @@ import {
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
 import { exportPDF, exportExcel, exportCSV } from '@/lib/export';
-import type { Transaction, Caisse, Event } from '@/types';
+import type { Transaction, Caisse, Event, Category, AppConfig, Account, Member, GroupMembership } from '@/types';
 
 type Tab = 'global' | 'groupe' | 'evenement';
 type PeriodType = 'ce-mois' | 'cette-annee' | 'personnalise';
@@ -37,8 +37,8 @@ function GlobalReport({
 }: {
   transactions: Transaction[];
   caisses: Caisse[];
-  categories: typeof import('@/types').Category[];
-  appConfig: import('@/types').AppConfig;
+  categories: Category[];
+  appConfig: AppConfig;
 }) {
   const navigate = useNavigate();
   const [period, setPeriod] = useState<PeriodType>('ce-mois');
@@ -281,11 +281,11 @@ function GroupReport({
 }: {
   transactions: Transaction[];
   caisses: Caisse[];
-  categories: typeof import('@/types').Category[];
-  accounts: import('@/types').Account[];
-  members: import('@/types').Member[];
-  memberships: import('@/types').GroupMembership[];
-  appConfig: import('@/types').AppConfig;
+  categories: Category[];
+  accounts: Account[];
+  members: Member[];
+  memberships: GroupMembership[];
+  appConfig: AppConfig;
 }) {
   const navigate = useNavigate();
   const [selectedGroupId, setSelectedGroupId] = useState<string>('');
@@ -319,9 +319,17 @@ function GroupReport({
   for (const tx of versementTxs) {
     versementsMap.set(tx.versementId!, (versementsMap.get(tx.versementId!) || 0) + tx.amount);
   }
-  const versementList = Array.from(versementsMap.entries())
-    .map(([id, amount]) => ({ id, amount }))
-    .sort((a, b) => b.amount - a.amount);
+  const versementMap = new Map<string, { amount: number; date: string }>();
+  for (const tx of versementTxs) {
+    const existing = versementMap.get(tx.versementId!);
+    if (existing) {
+      existing.amount += tx.amount;
+    } else {
+      versementMap.set(tx.versementId!, { amount: tx.amount, date: tx.date });
+    }
+  }
+  const versementList = Array.from(versementMap.values())
+    .sort((a, b) => b.date.localeCompare(a.date));
 
   const selectedGroup = groupAccounts.find(a => a.id === selectedGroupId);
   const caisse = caisses.find(c => c.id === selectedGroupId);
@@ -421,8 +429,8 @@ function GroupReport({
                 <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: '#FF6B0020', color: '#FF6B00' }}>{versementList.length}</span>
               </div>
               <div className="space-y-2">
-                {versementList.map(v => (
-                  <div key={v.id} className="flex items-center justify-between text-sm">
+                {versementList.map((v, idx) => (
+                  <div key={idx} className="flex items-center justify-between text-sm">
                     <span className="text-text-secondary">Versement</span>
                     <span className="font-bold text-[#E51332]">-{formatCurrencyCompact(v.amount)} F</span>
                   </div>
@@ -492,8 +500,8 @@ function EventReport({
   transactions: Transaction[];
   events: Event[];
   caisses: Caisse[];
-  categories: typeof import('@/types').Category[];
-  appConfig: import('@/types').AppConfig;
+  categories: Category[];
+  appConfig: AppConfig;
 }) {
   const navigate = useNavigate();
   const [selectedEventId, setSelectedEventId] = useState<string>('');

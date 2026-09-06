@@ -308,7 +308,7 @@ const SECTIONS = [
     id: 'parametres',
     title: 'Paramètres & Configuration',
     icon: Settings,
-    color: '#808080',
+    color: '#B3B3B3',
     iconBg: '#80808020',
     titleColor: '#808080',
     paragraphs: [
@@ -348,7 +348,7 @@ const SECTIONS = [
     id: 'faq',
     title: 'FAQ',
     icon: HelpCircle,
-    color: '#808080',
+    color: '#B3B3B3',
     iconBg: '#80808020',
     titleColor: '#808080',
     paragraphs: [
@@ -415,7 +415,7 @@ export default function Tutorial() {
                 key={s.id}
                 onClick={() => setActiveSection(s.id)}
                 className="flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-all"
-                style={activeSection === s.id ? { backgroundColor: s.color + '20', color: s.color } : { backgroundColor: '#181818', color: '#808080', border: '1px solid #282828' }}
+                style={activeSection === s.id ? { backgroundColor: s.color + '20', color: s.color } : { backgroundColor: '#181818', color: '#B3B3B3', border: '1px solid #282828' }}
               >
                 <SIcon className="w-3.5 h-3.5" />
                 {s.title}
