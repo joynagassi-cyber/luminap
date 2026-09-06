@@ -1,5 +1,5 @@
 const DB_NAME = 'lumina-db';
-const DB_VERSION = 16;
+const DB_VERSION = 17;
 
 export type StoreName = 'transactions' | 'categories' | 'orgUnits' | 'auditEntries' | 'events' | 'syncQueue' | 'config' | 'caisses' | 'notifications' | 'members' | 'groups' | 'accounts' | 'group_memberships' | 'form_definitions' | 'form_submissions' | 'custom_field_definitions' | 'custom_field_values' | 'versements' | 'event_budgets' | 'budget_lines' | 'report_definitions';
 
@@ -28,7 +28,9 @@ function openDB(): Promise<IDBDatabase> {
       // Create all stores
       for (const name of ALL_STORES) {
         if (!db.objectStoreNames.contains(name)) {
-          db.createObjectStore(name, { keyPath: 'id' });
+          // config store uses 'key' as keyPath instead of 'id'
+          const keyPath = name === 'config' ? 'key' : 'id';
+          db.createObjectStore(name, { keyPath });
         }
       }
 
