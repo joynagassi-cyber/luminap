@@ -85,11 +85,11 @@ export default function EventNew() {
   };
 
   return (
-    <div className="min-h-screen bg-canvas flex flex-col">
+    <div className="h-screen bg-canvas flex flex-col overflow-hidden">
       <TopHeader title="Nouvel événement" />
 
       {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto px-5 pb-28 pt-16">
+      <div className="flex-1 overflow-y-auto px-5 pb-32 pt-16">
         <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-text-secondary text-sm mb-5">
           <ArrowLeft className="w-4 h-4" /> Retour
         </button>

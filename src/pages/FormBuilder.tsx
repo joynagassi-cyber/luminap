@@ -88,7 +88,7 @@ export default function FormBuilder() {
   };
 
   return (
-    <div className="min-h-screen bg-canvas flex flex-col">
+    <div className="h-screen bg-canvas flex flex-col overflow-hidden">
       <TopHeader title="Formulaires" />
       <div className="flex-1 overflow-y-auto px-5 pt-16 pb-32 max-w-lg mx-auto">
         <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-text-secondary text-sm mb-5">

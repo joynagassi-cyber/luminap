@@ -75,9 +75,9 @@ export default function TransactionNewGroup() {
   };
 
   return (
-    <div className="min-h-screen bg-canvas flex flex-col">
+    <div className="h-screen bg-canvas flex flex-col overflow-hidden">
       <TopHeader title={groupAccount?.name || 'Groupe'} />
-      <div className="flex-1 overflow-y-auto px-5 pt-16 pb-28">
+      <div className="flex-1 overflow-y-auto px-5 pt-16 pb-32">
         <button onClick={() => navigate(`/groups/${groupId}`)} className="flex items-center gap-2 text-text-secondary text-sm mb-5">
           <ArrowLeft className="w-4 h-4" /> Retour
         </button>

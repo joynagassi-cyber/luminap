@@ -18,28 +18,49 @@
 
 ## 1. Modèle Métier Complet
 
-### Flux de paiement complet
+### Flux de paiement complet (RÈGLES MÉTIER CRITIQUES)
 
 ```
-1. Créateur un culte → système crée automatiquement N cotisations (N = membres actifs)
+1. CRÉATION D'UN CULT'E → système crée automatiquement N cotisations (N = membres actifs)
    - Chaque cotisation: statut='NON_PAYE', montantObligatoire=5000 (50 FCFA en cents)
    - Seuls les membres ajoutés AVANT la création du culte apparaissent
+   - Les membres ajoutés APRES n'apparaîtront PAS dans ce culte
 
-2. Saisie rapide : file d'attente des membres
-   - Clic "Payé" (50F) → statut → 'PAYE' ou 'EN_AVANCE' (auto si date < culte)
-   - Transaction INCOME créée immédiatement (montant=5000)
-   - Si don (100F, 150F…) → excédent → totalDons du membre += don
-   - Passage automatique au membre suivant
+2. PAIEMENT RAPIDE (file d'attente)
+   ┌─────────────────────────────────────────────────────────────────┐
+   │ Clic "Payé" (50F)                                               │
+   │   → Si montantEnAvance >= 5000: consomme l'avance (pas de tx)  │
+   │   → Sinon: crée Transaction INCOME (5000 cents)                 │
+   │   → Statut → 'PAYE' ou 'EN_AVANCE' (auto si date < culte)      │
+   │   → Si don (100F, 150F…): excédent → totalDons += don          │
+   │   → Passage automatique au membre suivant                       │
+   └─────────────────────────────────────────────────────────────────┘
 
-3. Montant libre : dialog pour saisir un montant personnalisé
-   - Même logique que ci-dessus, mais le montant est celui saisi
+3. MONTANT LIBRE (dialog personnalisé)
+   - Même logique que ci-dessus, montant = celui saisi
    - Don = montant - montantObligatoire
+   - Validation: montant >= montantObligatoire sinon erreur
 
-4. Paiement en avance
+4. PAIEMENT EN AVANCE
    - Si datePaiement < dateCulte → statut='EN_AVANCE'
-   - montantEnAvance du membre += montantPaye
-   - Au culte suivant, le membre peut utiliser son avance (montant déduit)
+   - montantEnAvance du membre += montantPaye (si pas consommé)
+   - Au culte suivant, le membre peut utiliser son avance
+
+5. VERROUILAGE 30 JOURS (RÈGLE CRITIQUE)
+   - Après 30 jours: un culte ne peut plus être modifié
+   - Les paiements déjà validés sont verrouillés
+   - Tentative de modification après 30 jours → Exception
 ```
+
+### Règles de validation critiques
+
+| Règle | Implémentation |
+|---|---|
+| **Montant minimum** | `montantPaye >= montantObligatoire` sinon erreur |
+| **Verrouillage 30j** | `isLocked(dateCulte)` → interdit modification si `daysDiff > 30` |
+| **Paiement verrouillé** | `isLocked && cotisationEstPaye` → interdit changement |
+| **Consommation avance** | `montantEnAvance >= montant` → consomme l'avance, pas de transaction |
+| **Membre dans culte** | Seulement si ajouté AVANT création du culte |
 
 ### Règle critique : Membres dans un culte
 ```
@@ -459,18 +480,101 @@ import type { ..., Cotisation, CotisationStatut } from '@/types';
         const membre = get().members.find(m => m.id === cot.membreId);
         if (!culte || !membre) return;
 
-        // Déterminer le statut (auto en avance si paiement avant le culte)
+        // === VALIDATIONS CRITIQUES ===
+
+        // 1. Vérifier verrouillage 30 jours
+        if (isPaiementVerrouille({ dateCulte: culte.startDate, cotisationEstPaye: cot.statut === 'PAYE' || cot.statut === 'EN_AVANCE' })) {
+          throw new Error('PAIEMENT_VERROUILLE: Ce paiement est verrouillé (culte de plus de 30 jours)');
+        }
+
+        // 2. Vérifier montant minimum
+        if (montantPayeCents < cot.montantObligatoire) {
+          throw new Error(`Le montant doit être au moins égal au montant obligatoire (${cot.montantObligatoire} cents)`);
+        }
+
+        // 3. Déterminer le statut (auto en avance si paiement avant le culte)
         const statut = determinerStatutAvance({ datePaiement, dateCulte: culte.startDate });
         const donCents = calculerDon(montantPayeCents, cot.montantObligatoire);
 
-        // Mettre à jour la cotisation
-        const updatedCot = {
-          ...cot,
-          statut,
-          montantPaye: montantPayeCents,
-          datePaiement,
-          updatedAt: now,
-        };
+        // === LOGIQUE AVANCE ===
+        // Si le membre a suffisamment d'avance, consommer l'avance au lieu de créer une transaction
+        const aAvance = membre.montantEnAvance >= montantPayeCents;
+
+        let updatedCot: Cotisation;
+        let updatedMembre: Member | null = null;
+
+        if (aAvance) {
+          // Consomme l'avance
+          updatedCot = {
+            ...cot,
+            statut,
+            montantPaye: montantPayeCents,
+            datePaiement,
+            updatedAt: now,
+          };
+          updatedMembre = {
+            ...membre,
+            montantEnAvance: membre.montantEnAvance - montantPayeCents,
+            updatedAt: now,
+          };
+          // PAS de transaction créée (avanced consommée)
+        } else {
+          // Crée une transaction normale
+          updatedCot = {
+            ...cot,
+            statut,
+            montantPaye: montantPayeCents,
+            datePaiement,
+            updatedAt: now,
+          };
+
+          // Créer la transaction INCOME (toujours vers la caisse principale)
+          const sessionId = localStorage.getItem('lumina-session') || 'local-user';
+          const tx: Transaction = {
+            id: generateId(),
+            orgId: 'org-1',
+            type: 'INCOME',
+            amount: montantPayeCents,
+            description: `Cotisation ${membre.firstName} ${membre.lastName} — Culte du ${formatDate(culte.startDate)}`,
+            date: datePaiement.split('T')[0],
+            status: 'APPROVED',
+            categoryId: 'cat-dime',
+            orgUnitId: null,
+            eventId: cot.culteId,
+            source: 'COTISATION',
+            personName: `${membre.firstName} ${membre.lastName}`,
+            compensatesFor: null,
+            comment: donCents > 0
+              ? `Cotisation + don ${formatCentsToFCFA(donCents)} FCFA`
+              : 'Cotisation',
+            version: 1,
+            sourceCaisseId: 'main',
+            versementId: null,
+            reversalOfId: null,
+            cotisationId,
+            createdAt: now,
+            updatedAt: now,
+            createdById: sessionId,
+            approvedById: sessionId,
+            approvedAt: now,
+          };
+
+          const updatedTxs = [...get().transactions, tx];
+          set({ transactions: updatedTxs });
+          await db.put('transactions', tx);
+          await enqueueSync({
+            id: `sync-tx-${tx.id}`,
+            operation: 'create',
+            entityType: 'transactions',
+            entityId: tx.id,
+            payload: tx,
+            attempts: 0,
+            lastAttempt: null,
+            createdAt: now,
+          });
+        }
+
+        // === MISE À JOUR COTISATION ===
         const updatedCotisations = get().cotisations.map(c => c.id === cotisationId ? updatedCot : c);
         set({ cotisations: updatedCotisations });
         await db.put('cotisations', updatedCot);
@@ -485,52 +589,14 @@ import type { ..., Cotisation, CotisationStatut } from '@/types';
           createdAt: now,
         });
 
-        // Créer la transaction INCOME (toujours vers la caisse principale)
-        const sessionId = localStorage.getItem('lumina-session') || 'local-user';
-        const tx: Transaction = {
-          id: generateId(),
-          orgId: 'org-1',
-          type: 'INCOME',
-          amount: montantPayeCents,
-          description: `Cotisation ${membre.firstName} ${membre.lastName} — Culte du ${formatDate(culte.startDate)}`,
-          date: datePaiement.split('T')[0],
-          status: 'APPROVED',
-          categoryId: 'cat-dime',
-          orgUnitId: null,
-          eventId: cot.culteId,
-          source: 'COTISATION',
-          personName: `${membre.firstName} ${membre.lastName}`,
-          compensatesFor: null,
-          comment: donCents > 0
-            ? `Cotisation + don ${formatCentsToFCFA(donCents)} FCFA`
-            : 'Cotisation',
-          version: 1,
-          sourceCaisseId: 'main',
-          versementId: null,
-          reversalOfId: null,
-          cotisationId,
-          createdAt: now,
-          updatedAt: now,
-          createdById: sessionId,
-          approvedById: sessionId,
-          approvedAt: now,
-        };
-        const updatedTxs = [...get().transactions, tx];
-        set({ transactions: updatedTxs });
-        await db.put('transactions', tx);
-        await enqueueSync({
-          id: `sync-tx-${tx.id}`,
-          operation: 'create',
-          entityType: 'transactions',
-          entityId: tx.id,
-          payload: tx,
-          attempts: 0,
-          lastAttempt: null,
-          createdAt: now,
-        });
-
-        // Mettre à jour le don du membre si applicable
-        if (donCents > 0) {
+        // === MISE À JOUR MEMBRE (dons + avance) ===
+        if (updatedMembre) {
+          // Avance consommée
+          const updatedMembers = get().members.map(m => m.id === membre.id ? updatedMembre! : m);
+          set({ members: updatedMembers });
+          await db.put('members', updatedMembre);
+        } else if (donCents > 0) {
+          // Don ajouté
           const updatedMembers = get().members.map(m =>
             m.id === membre.id
               ? { ...m, totalDons: (m.totalDons || 0) + donCents, updatedAt: now }
@@ -1669,20 +1735,58 @@ npm run dev
 
 ---
 
-## Résumé Final
+## 6. Résumé des Tâches avec Efforts
 
-| Tâche | Fichier | Effort |
-|---|---|---|
-| 1. Types + Logique pure | `types/index.ts`, `lib/cotisation-logic.ts` | 30 min |
-| 2. Migrations SQL | 4 fichiers `.sql` | 15 min |
-| 3. Store Zustand | `store/useLocalStore.ts`, `lib/db.ts` | 1h30 |
-| 4. Page Cotisations | `pages/Cotisations.tsx` | 30 min |
-| 5. Page Saisie Rapide | `pages/SaisieRapide.tsx` | 1h |
-| 6. Page CulteDetail | `pages/CulteDetail.tsx` | 45 min |
-| 7. Page MembresEnAvance | `pages/MembresEnAvance.tsx` | 20 min |
-| 8. Page MembreDetail | `pages/MembreDetail.tsx` | 45 min |
-| 9. Modifier EventNew | `pages/EventNew.tsx` | 20 min |
-| 10. Router + Nav | `App.tsx`, `BottomNav.tsx` | 15 min |
-| 11. Tests | Manuel | 30 min |
+| Tâche | Fichiers | Effort | Dépendances |
+|---|---|---|---|
+| 1. Types + Logique pure | `types/index.ts`, `lib/cotisation-logic.ts` | 30 min | — |
+| 2. Migrations SQL | 4 fichiers `.sql` | 15 min | Tâche 1 |
+| 3. Store Zustand | `store/useLocalStore.ts`, `lib/db.ts` | 1h30 | Tâche 1, 2 |
+| 4. Page Cotisations | `pages/Cotisations.tsx` | 30 min | Tâche 3 |
+| 5. Page SaisieRapide | `pages/SaisieRapide.tsx` | 1h | Tâche 3, 4 |
+| 6. Page CulteDetail | `pages/CulteDetail.tsx` | 45 min | Tâche 3, 4 |
+| 7. Page MembresEnAvance | `pages/MembresEnAvance.tsx` | 20 min | Tâche 3 |
+| 8. Page MembreDetail | `pages/MembreDetail.tsx` | 45 min | Tâche 3, 5 |
+| 9. Modifier EventNew | `pages/EventNew.tsx` | 20 min | Tâche 3 |
+| 10. Router + Nav | `App.tsx`, `BottomNav.tsx` | 15 min | Tâche 4-8 |
+| 11. Tests | Manuel | 30 min | Toutes |
 
 **Total estimé : ~5 heures**
+
+---
+
+## 7. Points de Vigilance Critiques
+
+### 7.1 Règle des 30 jours
+```typescript
+// À implémenter dans markCotisationPaid et markCotisationsAbsent
+if (isPaiementVerrouille({ dateCulte, cotisationEstPaye })) {
+  throw new Error('PAIEMENT_VERROUILLE');
+}
+```
+
+### 7.2 Consommation de l'avance
+```typescript
+// À implémenter dans markCotisationPaid
+if (membre.montantEnAvance >= montantPayeCents) {
+  // Consomme l'avance, PAS de transaction créée
+  membre.montantEnAvance -= montantPayeCents;
+} else {
+  // Crée une transaction normale
+}
+```
+
+### 7.3 Validation montant minimum
+```typescript
+// À implémenter dans markCotisationPaid
+if (montantPayeCents < cot.montantObligatoire) {
+  throw new Error('MONTANT_INSUFFISANT');
+}
+```
+
+### 7.4 Membres dans un culte
+```typescript
+// createCulte crée des cotisations pour TOUS les membres actifs
+// au moment de la création. Les membres ajoutés après n'apparaîtront pas.
+const members = get().members.filter(m => m.status === 'ACTIVE');
+```
