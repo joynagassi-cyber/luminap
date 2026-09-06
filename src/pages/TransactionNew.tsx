@@ -89,7 +89,7 @@ export default function TransactionNew() {
   return (
     <div className="h-screen bg-canvas flex flex-col overflow-hidden">
       <TopHeader title="Nouvelle transaction" />
-      <div className="flex-1 overflow-y-auto px-5 pt-16 pb-32">
+      <div className="flex-1 overflow-y-auto px-5 pt-16 pb-40">
         <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-text-secondary text-sm mb-5">
           <ArrowLeft className="w-4 h-4" /> Retour
         </button>
@@ -253,7 +253,7 @@ export default function TransactionNew() {
       </div>
 
       {/* Fixed bottom buttons */}
-      <div className="fixed bottom-16 left-0 right-0 px-5 pb-5 bg-canvas" style={{ borderTop: '1px solid #282828' }}>
+      <div className="fixed bottom-[64px] left-0 right-0 px-5 pt-3 pb-4" style={{ backgroundColor: 'rgba(18,18,18,0.97)', borderTop: '1px solid #282828', backdropFilter: 'blur(10px)' }}>
         <button
           onClick={handleSubmit}
           className="w-full py-4 rounded-full font-semibold text-white transition-all active:scale-95"
@@ -263,7 +263,7 @@ export default function TransactionNew() {
         </button>
         <button
           onClick={() => navigate(-1)}
-          className="w-full mt-3 py-3 rounded-full font-medium text-text-tertiary text-sm transition-all"
+          className="w-full py-3 rounded-full font-medium text-text-tertiary text-sm transition-all"
           style={{ backgroundColor: '#212121' }}
         >
           Annuler
