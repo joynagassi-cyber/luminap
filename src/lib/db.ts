@@ -1,195 +1,103 @@
 const DB_NAME = 'lumina-db';
-const DB_VERSION = 15;
+const DB_VERSION = 16;
 
 export type StoreName = 'transactions' | 'categories' | 'orgUnits' | 'auditEntries' | 'events' | 'syncQueue' | 'config' | 'caisses' | 'notifications' | 'members' | 'groups' | 'accounts' | 'group_memberships' | 'form_definitions' | 'form_submissions' | 'custom_field_definitions' | 'custom_field_values' | 'versements' | 'event_budgets' | 'budget_lines' | 'report_definitions';
 
-// Singleton DB connection — opened once, reused
+// All stores that should exist
+const ALL_STORES: StoreName[] = [
+  'transactions', 'categories', 'orgUnits', 'auditEntries', 'events',
+  'syncQueue', 'config', 'caisses', 'notifications', 'members', 'groups',
+  'accounts', 'group_memberships', 'versements', 'event_budgets',
+  'budget_lines', 'report_definitions', 'form_definitions', 'form_submissions',
+  'custom_field_definitions', 'custom_field_values',
+];
+
+// Singleton DB connection
 let _db: IDBDatabase | null = null;
 let _dbPromise: Promise<IDBDatabase> | null = null;
 let _upgrading = false;
 
-function ensureDB(): Promise<IDBDatabase> {
-  if (_dbPromise) return _dbPromise;
-  _dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
-    // Close any existing connection first to unblock upgrades
-    if (_db) {
-      try { _db.close(); } catch {}
-      _db = null;
-    }
+function openDB(): Promise<IDBDatabase> {
+  return new Promise<IDBDatabase>((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
+
     request.onupgradeneeded = (e) => {
       _upgrading = true;
       const db = (e.target as IDBOpenDBRequest).result;
-      const stores: { name: StoreName; keyPath?: string }[] = [
-        { name: 'transactions', keyPath: 'id' },
-        { name: 'categories', keyPath: 'id' },
-        { name: 'orgUnits', keyPath: 'id' },
-        { name: 'auditEntries', keyPath: 'id' },
-        { name: 'events', keyPath: 'id' },
-        { name: 'syncQueue', keyPath: 'id' },
-        { name: 'config', keyPath: 'key' },
-        { name: 'caisses', keyPath: 'id' },
-        { name: 'notifications', keyPath: 'id' },
-        { name: 'members', keyPath: 'id' },
-        { name: 'groups', keyPath: 'id' },
-        { name: 'accounts', keyPath: 'id' },
-        { name: 'group_memberships', keyPath: 'id' },
-        { name: 'versements', keyPath: 'id' },
-        { name: 'event_budgets', keyPath: 'id' },
-        { name: 'budget_lines', keyPath: 'id' },
-        { name: 'report_definitions', keyPath: 'id' },
-        { name: 'form_definitions', keyPath: 'id' },
-        { name: 'form_submissions', keyPath: 'id' },
-        { name: 'custom_field_definitions', keyPath: 'id' },
-        { name: 'custom_field_values', keyPath: 'id' },
-      ];
-      for (const s of stores) {
-        if (!db.objectStoreNames.contains(s.name)) {
-          db.createObjectStore(s.name, { keyPath: s.keyPath });
+
+      // Create all stores
+      for (const name of ALL_STORES) {
+        if (!db.objectStoreNames.contains(name)) {
+          db.createObjectStore(name, { keyPath: 'id' });
         }
       }
-      // Create secondary indexes for performance
-      try {
-        const tx1 = db.transaction(['transactions'], 'readwrite');
-        const txStore = tx1.objectStore('transactions');
-        if (!txStore.indexNames.contains('source_caisse_id')) txStore.createIndex('source_caisse_id', 'sourceCaisseId', { unique: false });
-        if (!txStore.indexNames.contains('versement_id')) txStore.createIndex('versement_id', 'versementId', { unique: false });
-        if (!txStore.indexNames.contains('reversal_of_id')) txStore.createIndex('reversal_of_id', 'reversalOfId', { unique: false });
-        tx1.commit();
-      } catch (e) { /* index may already exist */ }
 
-      try {
-        const tx2 = db.transaction(['caisses'], 'readwrite');
-        const caissesStore = tx2.objectStore('caisses');
-        if (!caissesStore.indexNames.contains('org_id')) caissesStore.createIndex('org_id', 'orgId', { unique: false });
-        tx2.commit();
-      } catch (e) { /* index may already exist */ }
+      // Create indexes
+      const indexDefs: [string, string, string | string[]][] = [
+        ['transactions', 'source_caisse_id', 'sourceCaisseId'],
+        ['transactions', 'versement_id', 'versementId'],
+        ['transactions', 'reversal_of_id', 'reversalOfId'],
+        ['caisses', 'org_id', 'orgId'],
+        ['groups', 'org_id', 'orgId'],
+        ['groups', 'parent_group_id', 'parentGroupId'],
+        ['accounts', 'org_id', 'orgId'],
+        ['accounts', 'owner_type_owner_id', ['ownerType', 'ownerId']],
+        ['versements', 'org_id', 'orgId'],
+        ['versements', 'from_account_id', 'fromAccountId'],
+        ['versements', 'to_account_id', 'toAccountId'],
+        ['versements', 'status', 'status'],
+        ['members', 'org_id', 'orgId'],
+        ['budget_lines', 'event_budget_id', 'eventBudgetId'],
+        ['budget_lines', 'category_id', 'categoryId'],
+        ['group_memberships', 'member_id', 'memberId'],
+        ['group_memberships', 'group_id', 'groupId'],
+        ['form_submissions', 'form_definition_id', 'formDefinitionId'],
+        ['form_submissions', 'entity', ['linkedEntityType', 'linkedEntityId']],
+        ['custom_field_values', 'entity', ['entityType', 'entityId']],
+      ];
 
-      try {
-        const tx3 = db.transaction(['groups'], 'readwrite');
-        const groupsStore = tx3.objectStore('groups');
-        if (!groupsStore.indexNames.contains('org_id')) groupsStore.createIndex('org_id', 'orgId', { unique: false });
-        if (!groupsStore.indexNames.contains('parent_group_id')) groupsStore.createIndex('parent_group_id', 'parentGroupId', { unique: false });
-        tx3.commit();
-      } catch (e) { /* index may already exist */ }
-
-      try {
-        const tx4 = db.transaction(['accounts'], 'readwrite');
-        const accountsStore = tx4.objectStore('accounts');
-        if (!accountsStore.indexNames.contains('org_id')) accountsStore.createIndex('org_id', 'orgId', { unique: false });
-        if (!accountsStore.indexNames.contains('owner_type_owner_id')) accountsStore.createIndex('owner_type_owner_id', ['ownerType', 'ownerId'], { unique: false });
-        tx4.commit();
-      } catch (e) { /* index may already exist */ }
-
-      try {
-        const tx5 = db.transaction(['versements'], 'readwrite');
-        const versementsStore = tx5.objectStore('versements');
-        if (!versementsStore.indexNames.contains('org_id')) versementsStore.createIndex('org_id', 'orgId', { unique: false });
-        if (!versementsStore.indexNames.contains('from_account_id')) versementsStore.createIndex('from_account_id', 'fromAccountId', { unique: false });
-        if (!versementsStore.indexNames.contains('to_account_id')) versementsStore.createIndex('to_account_id', 'toAccountId', { unique: false });
-        if (!versementsStore.indexNames.contains('status')) versementsStore.createIndex('status', 'status', { unique: false });
-        tx5.commit();
-      } catch (e) { /* index may already exist */ }
-
-      try {
-        const tx6 = db.transaction(['members'], 'readwrite');
-        const membersStore = tx6.objectStore('members');
-        if (!membersStore.indexNames.contains('org_id')) membersStore.createIndex('org_id', 'orgId', { unique: false });
-        tx6.commit();
-      } catch (e) { /* index may already exist */ }
-
-      try {
-        const tx7 = db.transaction(['budget_lines'], 'readwrite');
-        const budgetLinesStore = tx7.objectStore('budget_lines');
-        if (!budgetLinesStore.indexNames.contains('event_budget_id')) budgetLinesStore.createIndex('event_budget_id', 'eventBudgetId', { unique: false });
-        if (!budgetLinesStore.indexNames.contains('category_id')) budgetLinesStore.createIndex('category_id', 'categoryId', { unique: false });
-        tx7.commit();
-      } catch (e) { /* index may already exist */ }
-
-      try {
-        const tx8 = db.transaction(['group_memberships'], 'readwrite');
-        const gmStore = tx8.objectStore('group_memberships');
-        if (!gmStore.indexNames.contains('member_id')) gmStore.createIndex('member_id', 'memberId', { unique: false });
-        if (!gmStore.indexNames.contains('group_id')) gmStore.createIndex('group_id', 'groupId', { unique: false });
-        tx8.commit();
-      } catch (e) { /* index may already exist */ }
-
-      try {
-        const tx9 = db.transaction(['form_submissions'], 'readwrite');
-        const fsStore = tx9.objectStore('form_submissions');
-        if (!fsStore.indexNames.contains('form_definition_id')) fsStore.createIndex('form_definition_id', 'formDefinitionId', { unique: false });
-        if (!fsStore.indexNames.contains('entity')) fsStore.createIndex('entity', ['linkedEntityType', 'linkedEntityId'], { unique: false });
-        tx9.commit();
-      } catch (e) { /* index may already exist */ }
-
-      try {
-        const tx10 = db.transaction(['custom_field_values'], 'readwrite');
-        const cfvStore = tx10.objectStore('custom_field_values');
-        if (!cfvStore.indexNames.contains('entity')) cfvStore.createIndex('entity', ['entityType', 'entityId'], { unique: false });
-        tx10.commit();
-      } catch (e) { /* index may already exist */ }
+      for (const [storeName, idxName, keyPath] of indexDefs) {
+        try {
+          const tx = db.transaction([storeName], 'readwrite');
+          const store = tx.objectStore(storeName);
+          if (!store.indexNames.contains(idxName)) {
+            store.createIndex(idxName, keyPath);
+          }
+          tx.commit();
+        } catch { /* index may already exist */ }
+      }
     };
+
     request.onsuccess = () => {
       _upgrading = false;
-      const newDb = request.result;
-      if (_db && _db !== newDb) {
-        try { _db.close(); } catch {}
-      }
-      _db = newDb;
+      _db = request.result;
       _dbPromise = null;
-      resolve(newDb);
+      resolve(request.result);
     };
+
     request.onerror = () => {
       _upgrading = false;
       _dbPromise = null;
       reject(request.error);
     };
+
     request.onblocked = () => {
-      // Wait for old connections to close
+      // Another tab holds the old version — wait and retry
+      setTimeout(() => {
+        if (_dbPromise) {
+          _dbPromise.then(resolve).catch(reject);
+        }
+      }, 1000);
     };
   });
-  return _dbPromise;
 }
 
-// Verify all stores exist; if missing stores detected, delete the DB to force full recreation
-async function ensureStores(db: IDBDatabase): Promise<void> {
-  const expectedStores: StoreName[] = [
-    'transactions', 'categories', 'orgUnits', 'auditEntries', 'events',
-    'syncQueue', 'config', 'caisses', 'notifications', 'members', 'groups',
-    'accounts', 'group_memberships', 'versements', 'event_budgets',
-    'budget_lines', 'report_definitions', 'form_definitions', 'form_submissions',
-    'custom_field_definitions', 'custom_field_values',
-  ];
-  const missing = expectedStores.filter(s => !db.objectStoreNames.contains(s));
-  if (missing.length === 0) return;
-  try {
-    indexedDB.deleteDatabase(DB_NAME);
-  } catch {}
-  _db?.close();
-  _db = null;
-  _dbPromise = null;
-  _upgrading = false;
-  await new Promise<void>((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, DB_VERSION);
-    req.onupgradeneeded = (e) => {
-      const newDb = (e.target as IDBOpenDBRequest).result;
-      const stores: { name: StoreName; keyPath?: string }[] = expectedStores.map(name => ({ name, keyPath: 'id' }));
-      for (const s of stores) {
-        if (!newDb.objectStoreNames.contains(s.name)) {
-          newDb.createObjectStore(s.name, { keyPath: s.keyPath });
-        }
-      }
-    };
-    req.onsuccess = () => {
-      _db = req.result;
-      _dbPromise = null;
-      resolve();
-    };
-    req.onerror = () => {
-      _dbPromise = null;
-      reject(req.error);
-    };
-  });
+function ensureDB(): Promise<IDBDatabase> {
+  if (_db) return Promise.resolve(_db);
+  if (_dbPromise) return _dbPromise;
+
+  _dbPromise = openDB();
+  return _dbPromise;
 }
 
 async function withStore<T>(storeName: StoreName, mode: IDBTransactionMode, fn: (store: IDBObjectStore) => IDBRequest, retry = 0): Promise<T> {
@@ -199,9 +107,15 @@ async function withStore<T>(storeName: StoreName, mode: IDBTransactionMode, fn: 
   }
   const db = await ensureDB();
 
-  // Check if the store exists; if not, try to fix the DB
+  // If a store is missing, the DB schema is out of sync — recreate it
   if (!db.objectStoreNames.contains(storeName)) {
-    await ensureStores(db);
+    try { indexedDB.deleteDatabase(DB_NAME); } catch {}
+    _db?.close();
+    _db = null;
+    _dbPromise = null;
+    _upgrading = false;
+    await new Promise(r => setTimeout(r, 100));
+    await ensureDB();
     return withStore(storeName, mode, fn, retry + 1);
   }
 

@@ -14,16 +14,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const { loadInitialData, setOnline } = useLocalStore();
 
-  // First-run cleanup: remove stale groups, clear IndexedDB
+  // First-run cleanup then load data — sequential to avoid DB races
   useEffect(() => {
     const stored = localStorage.getItem('lumina-onboarded');
     if (!stored) {
-      cleanInitialData();
+      cleanInitialData().catch(() => {});
     }
-  }, []);
-
-  // Load data once on mount — cold start with short skeleton
-  useEffect(() => {
     loadInitialData().catch(() => {});
   }, []);
 

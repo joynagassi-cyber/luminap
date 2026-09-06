@@ -21,12 +21,8 @@ export default function Splash() {
       if (cancelled) return;
       setPhase('loading');
 
-      // Load data from IndexedDB
-      try {
-        await loadInitialData();
-      } catch (e) {
-        console.error('[Splash] loadInitialData failed', e);
-      }
+      // Data already loaded by AppProvider — skip redundant load
+      // await loadInitialData();
 
       if (cancelled) return;
 
