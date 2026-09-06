@@ -1,57 +1,49 @@
 # Adds YAML Schema support for VSCode users with the YAML extension installed. This enables features like validation and autocompletion based on the provided schema.
 # yaml-language-server: $schema=https://unpkg.com/@powersync/service-sync-rules@latest/schema/sync_rules.json
 
-# See https://docs.powersync.com/sync/advanced/compatibility
 config:
   edition: 3
 
-# Define Sync Streams to control which data is synced to each user
 streams:
   # Global data - same for all users
   categories:
     auto_subscribe: true
-    query: SELECT * FROM transaction_categories
+    query: SELECT * FROM categories
 
-  churches:
+  org_units:
     auto_subscribe: true
-    query: SELECT * FROM churches
+    query: SELECT * FROM org_units
+
+  caisses:
+    auto_subscribe: true
+    query: SELECT * FROM caisses
 
   # User-specific data
   profiles:
     auto_subscribe: true
-    query: SELECT * FROM profiles WHERE id = auth.user_id()
+    query: SELECT * FROM profiles WHERE email = auth.email()
 
-  user_roles:
-    auto_subscribe: true
-    query: SELECT * FROM user_roles WHERE user_id = auth.user_id()
-
-  # Church-specific data (for multi-church support)
-  church_members:
-    auto_subscribe: true
-    query: SELECT * FROM church_members WHERE church_id IN (SELECT church_id FROM user_churches WHERE user_id = auth.user_id())
-
-  members:
-    auto_subscribe: true
-    query: SELECT * FROM members WHERE church_id IN (SELECT church_id FROM user_churches WHERE user_id = auth.user_id())
-
+  # Organization data (for single org setup)
   transactions:
     auto_subscribe: true
-    query: SELECT * FROM transactions WHERE church_id IN (SELECT church_id FROM user_churches WHERE user_id = auth.user_id())
-
-  finance_transactions:
-    auto_subscribe: true
-    query: SELECT * FROM finance_transactions WHERE church_id IN (SELECT church_id FROM user_churches WHERE user_id = auth.user_id())
+    query: SELECT * FROM transactions WHERE org_id = 'org-1'
 
   events:
     auto_subscribe: true
-    query: SELECT * FROM events WHERE church_id IN (SELECT church_id FROM user_churches WHERE user_id = auth.user_id())
+    query: SELECT * FROM events WHERE org_id = 'org-1'
+
+  members:
+    auto_subscribe: true
+    query: SELECT * FROM members WHERE org_id = 'org-1'
+
+  groups:
+    auto_subscribe: true
+    query: SELECT * FROM groups WHERE org_id = 'org-1'
+
+  versements:
+    auto_subscribe: true
+    query: SELECT * FROM versements WHERE org_id = 'org-1'
 
   notifications:
     auto_subscribe: true
-    query: SELECT * FROM notifications WHERE user_id = auth.user_id()
-
-  # Development: sync all tables (remove in production)
-  # Uncomment below to sync everything during development
-  # all_tables:
-  #   auto_subscribe: true
-  #   query: SELECT * FROM "%"
+    query: SELECT * FROM notifications WHERE org_id = 'org-1'

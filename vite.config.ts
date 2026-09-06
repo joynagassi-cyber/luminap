@@ -7,6 +7,7 @@ import topLevelAwait from "vite-plugin-top-level-await";
 import path from "path";
 
 const isCapacitorBuild = process.env.CAPACITOR_BUILD === "true";
+const isDev = process.env.NODE_ENV !== "production";
 
 export default defineConfig(() => ({
   server: {
@@ -15,7 +16,14 @@ export default defineConfig(() => ({
   },
   plugins: isCapacitorBuild
     ? [dyadComponentTagger(), react()]
-    : [dyadComponentTagger(), react(), wasm(), topLevelAwait(), nitro()],
+    : [
+        dyadComponentTagger(),
+        react(),
+        wasm(),
+        // Only enable top-level await in dev mode (not with Nitro)
+        ...(isDev ? [topLevelAwait()] : []),
+        nitro(),
+      ],
   resolve: {
     alias: {
       "@": path.resolve(process.cwd(), "./src"),
@@ -26,6 +34,6 @@ export default defineConfig(() => ({
   },
   worker: {
     format: "es",
-    plugins: () => [wasm(), topLevelAwait()],
+    plugins: () => [wasm()],
   },
 }));
