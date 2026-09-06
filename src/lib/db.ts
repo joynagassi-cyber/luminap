@@ -8,7 +8,6 @@ let _db: IDBDatabase | null = null;
 let _dbPromise: Promise<IDBDatabase> | null = null;
 
 function ensureDB(): Promise<IDBDatabase> {
-  if (_db && _db.readyState === 'open') return Promise.resolve(_db);
   if (_dbPromise) return _dbPromise;
   _dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
@@ -44,6 +43,9 @@ function ensureDB(): Promise<IDBDatabase> {
       }
     };
     request.onsuccess = () => {
+      // Close any stale connection from a previous version to avoid
+      // "object store not found" errors during the upgrade transition
+      _db?.close();
       _db = request.result;
       _dbPromise = null;
       resolve(request.result);
@@ -59,7 +61,25 @@ function ensureDB(): Promise<IDBDatabase> {
 async function withStore<T>(storeName: StoreName, mode: IDBTransactionMode, fn: (store: IDBObjectStore) => IDBRequest): Promise<T> {
   const db = await ensureDB();
   return new Promise<T>((resolve, reject) => {
-    const tx = db.transaction(storeName, mode);
+    let tx: IDBTransaction;
+    try {
+      tx = db.transaction(storeName, mode);
+    } catch {
+      // Store may not exist yet if DB is being upgraded — close stale ref and retry
+      _db?.close();
+      _db = null;
+      _dbPromise = null;
+      const freshDb = (db as IDBDatabase & { _retry?: boolean }) as IDBDatabase;
+      if ((freshDb as any)._retry) {
+        reject(new Error(`[db] store "${storeName}" not found and retry failed`));
+        return;
+      }
+      (freshDb as any)._retry = true;
+      withStore(storeName, mode, fn)
+        .then(resolve)
+        .catch(reject);
+      return;
+    }
     const store = tx.objectStore(storeName);
     const request = fn(store);
     tx.oncomplete = () => resolve(request.result as T);

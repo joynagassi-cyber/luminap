@@ -1,10 +1,10 @@
-import { Landmark, Home, Users, CalendarPlus, MoreVertical, Wallet, BarChart3, LineChart, ClipboardList, History, Settings, Plus, Check, ArrowRightLeft } from 'lucide-react';
+import { Landmark, Home, Users, CalendarPlus, MoreVertical, Wallet, BarChart3, LineChart, ClipboardList, History, Settings, Plus, Check, ArrowRightLeft, FileText, Archive, HelpCircle, ListChecks } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useState, useRef, useEffect, useMemo } from 'react';
 
 const NAV_ITEMS = [
-  { icon: Landmark, label: 'Finances', path: '/finance' },
   { icon: Home, label: 'Accueil', path: '/' },
+  { icon: Landmark, label: 'Finances', path: '/finance' },
   { icon: Users, label: 'Groupes', path: '/groups' },
   { icon: CalendarPlus, label: 'Événements', path: '/events' },
 ];
@@ -15,7 +15,11 @@ const MORE_ACTIONS = [
   { icon: LineChart, label: 'Bilan', path: '/balance' },
   { icon: ClipboardList, label: 'Membres', path: '/members' },
   { icon: History, label: 'Historique', path: '/history' },
+  { icon: Archive, label: 'Archives', path: '/archives' },
+  { icon: ListChecks, label: 'Trace', path: '/trace' },
+  { icon: FileText, label: 'Formulaires', path: '/forms' },
   { icon: Settings, label: 'Paramètres', path: '/settings' },
+  { icon: HelpCircle, label: 'Aide', path: '/help' },
 ];
 
 export default function BottomNav() {
