@@ -1,23 +1,20 @@
-import { Home, Landmark, Users, CalendarPlus, MoreVertical, Settings, FileText, BarChart3, LineChart, Wallet, Archive, ClipboardList, ListChecks, History } from 'lucide-react';
+import { Landmark, Home, Users, CalendarPlus, MoreVertical, Wallet, BarChart3, LineChart, ClipboardList, History, Settings, Plus, Check, ArrowRightLeft } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 
 const NAV_ITEMS = [
-  { icon: Home, label: 'Accueil', path: '/' },
   { icon: Landmark, label: 'Finances', path: '/finance' },
+  { icon: Home, label: 'Accueil', path: '/' },
   { icon: Users, label: 'Groupes', path: '/groups' },
   { icon: CalendarPlus, label: 'Événements', path: '/events' },
 ];
 
 const MORE_ACTIONS = [
+  { icon: Wallet, label: 'Versement', path: '/versement' },
   { icon: BarChart3, label: 'Rapports', path: '/reports' },
   { icon: LineChart, label: 'Bilan', path: '/balance' },
-  { icon: History, label: 'Historique', path: '/history' },
   { icon: ClipboardList, label: 'Membres', path: '/members' },
-  { icon: Archive, label: 'Archives', path: '/archives' },
-  { icon: Wallet, label: 'Versements', path: '/versement' },
-  { icon: ListChecks, label: 'Trace', path: '/trace' },
-  { icon: FileText, label: 'Formulaires', path: '/forms' },
+  { icon: History, label: 'Historique', path: '/history' },
   { icon: Settings, label: 'Paramètres', path: '/settings' },
 ];
 
@@ -26,6 +23,21 @@ export default function BottomNav() {
   const location = useLocation();
   const [showMore, setShowMore] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
+
+  // FAB content based on current route
+  const fabAction = useMemo(() => {
+    const path = location.pathname;
+    if (path.startsWith('/transaction/') && !path.endsWith('/edit')) {
+      return { icon: Check, label: 'Valider', action: () => {}, color: '#1DB954' };
+    }
+    if (path.startsWith('/event')) {
+      return { icon: Plus, label: 'Nouveau', action: () => navigate('/event/new'), color: '#8B5CF6' };
+    }
+    if (path.startsWith('/groups/')) {
+      return { icon: ArrowRightLeft, label: 'Verser', action: () => navigate('/versement'), color: '#FF6B00' };
+    }
+    return { icon: Plus, label: 'Transaction', action: () => navigate('/transaction/new'), color: '#FF6B00' };
+  }, [location.pathname, navigate]);
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -39,6 +51,22 @@ export default function BottomNav() {
 
   return (
     <>
+      {/* FAB — Contextual action button */}
+      <button
+        onClick={fabAction.action}
+        className="fixed bottom-20 right-5 z-40 w-14 h-14 rounded-full flex items-center justify-center transition-all active:scale-90 shadow-lg"
+        style={{ background: `linear-gradient(135deg, ${fabAction.color}dd, ${fabAction.color})`, boxShadow: `0 4px 16px ${fabAction.color}60` }}
+        aria-label={fabAction.label}
+      >
+        {fabAction.icon === Check ? (
+          <Check className="w-7 h-7 text-white" />
+        ) : fabAction.icon === ArrowRightLeft ? (
+          <ArrowRightLeft className="w-7 h-7 text-white" />
+        ) : (
+          <Plus className="w-7 h-7 text-white" />
+        )}
+      </button>
+
       <div className="fixed bottom-0 left-0 right-0 z-50 px-2 pb-2 pt-1" style={{ backgroundColor: 'rgba(18,18,18,0.97)', backdropFilter: 'blur(10px)', borderTop: '1px solid #282828' }}>
         <div className="flex items-center justify-around max-w-lg mx-auto">
           {NAV_ITEMS.map(({ icon: Icon, label, path }) => {

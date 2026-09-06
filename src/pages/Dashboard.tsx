@@ -375,15 +375,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* FAB — Quick transaction */}
-      <button
-        onClick={() => navigate('/transaction/new')}
-        className="fixed bottom-20 right-5 z-40 w-14 h-14 rounded-full flex items-center justify-center transition-all active:scale-90 shadow-lg"
-        style={{ background: 'linear-gradient(135deg, #FF8533, #FF6B00)', boxShadow: '0 4px 16px rgba(255,107,0,0.4)' }}
-      >
-        <PlusCircle className="w-7 h-7 text-white" />
-      </button>
-
       <BottomNav />
     </div>
   );
