@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLocalStore } from '@/store/useLocalStore';
 import { Wallet, Church, ClipboardList, BarChart3, Banknote, PenTool } from 'lucide-react';
-import type { Role } from '@/types';
+import BottomNav from '@/components/BottomNav';
+import TopHeader from '@/components/TopHeader';
 
 export default function RoleSelection() {
   const navigate = useNavigate();
@@ -19,15 +20,15 @@ export default function RoleSelection() {
     { id: 'SECRETAIRE_ADJOINT', label: 'Secrétaire Adjoint', desc: 'Assistance secrétariat', icon: PenTool, iconColor: '#EC4899' },
   ];
 
-  const handleSelect = async (roleId: Role) => {
+  const handleSelect = async (roleId: string) => {
     setLoading(roleId);
     try {
       localStorage.setItem('lumina-session', crypto.randomUUID());
       localStorage.setItem('lumina-role', roleId);
       localStorage.setItem('lumina-onboarded', 'true');
-      await selectRole(roleId);
+      await selectRole(roleId as any);
       await loadInitialData();
-      navigate('/', { replace: true });
+      navigate('/dashboard', { replace: true });
     } finally {
       setLoading(null);
     }
@@ -54,7 +55,7 @@ export default function RoleSelection() {
             {roles.map(({ id, label, desc, icon: Icon, iconColor }) => (
               <button
                 key={id}
-                onClick={() => handleSelect(id as Role)}
+                onClick={() => handleSelect(id)}
                 disabled={loading !== null && loading !== id}
                 className="w-full text-left rounded-xl p-4 transition-all active:scale-95 flex items-center gap-4"
                 style={{ backgroundColor: '#181818', border: user.role === id ? '1px solid #FF6B00' : '1px solid #282828' }}
@@ -84,6 +85,8 @@ export default function RoleSelection() {
           </p>
         </div>
       </div>
+
+      <BottomNav />
     </div>
   );
 }

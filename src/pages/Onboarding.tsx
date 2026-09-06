@@ -175,7 +175,6 @@ export default function Onboarding() {
 
   const handleNext = () => {
     if (isLast) {
-      // Go to role selection after onboarding
       navigate('/role-selection', { replace: true });
     } else {
       setCurrent(c => c + 1);
@@ -266,7 +265,7 @@ export default function Onboarding() {
             className="flex-1 py-3.5 rounded-full font-semibold text-sm text-white transition-all active:scale-95 flex items-center justify-center gap-2"
             style={{ backgroundColor: '#FF6B00' }}
           >
-            {isLast ? 'Choisir mon rôle' : 'Suivant'}
+            {isLast ? 'Commencer' : 'Suivant'}
             {!isLast && <ChevronRight className="w-4 h-4" />}
             {isLast && <ChevronLeft className="w-4 h-4" />}
           </button>

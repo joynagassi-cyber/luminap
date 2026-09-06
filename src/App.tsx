@@ -1,11 +1,11 @@
-import AppEntrypoint from "./AppEntrypoint";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppProvider } from "./context/AppContext";
 import SyncIndicator from "./components/SyncIndicator";
+import AppRouter from "./AppRouter";
 import Splash from "./pages/Splash";
 import Dashboard from "./pages/Dashboard";
 import Finance from "./pages/Finance";
@@ -41,24 +41,15 @@ import ReportBuilder from "./pages/ReportBuilder";
 
 const queryClient = new QueryClient();
 
-function AuthRoute({ children }: { children: React.ReactNode }) {
-  const storedRole = localStorage.getItem('lumina-role');
-  const storedOnboarded = localStorage.getItem('lumina-onboarded');
-  if (!storedRole || storedOnboarded !== 'true') {
-    return <Navigate to="/login" replace />;
-  }
-  return <>{children}</>;
-}
-
 function AppRoutes() {
   return (
     <>
       <SyncIndicator />
       <Routes>
-        {/* Root — redirect to splash on every app load */}
-        <Route path="/" element={<AppEntrypoint />} />
+        {/* Root — renders AppRouter which redirects to splash on first visit */}
+        <Route path="/" element={<AppRouter />} />
 
-        {/* Splash screen — handles all routing logic after native splash */}
+        {/* Splash — always runs first after initial load */}
         <Route path="/splash" element={<Splash />} />
 
         {/* Auth screens */}
@@ -67,33 +58,33 @@ function AppRoutes() {
         <Route path="/role-selection" element={<RoleSelection />} />
 
         {/* Protected routes */}
-        <Route path="/dashboard" element={<AuthRoute><Dashboard /></AuthRoute>} />
-        <Route path="/notifications" element={<AuthRoute><Notifications /></AuthRoute>} />
-        <Route path="/tutoriel" element={<AuthRoute><Tutorial /></AuthRoute>} />
-        <Route path="/finance" element={<AuthRoute><Finance /></AuthRoute>} />
-        <Route path="/transaction/new" element={<AuthRoute><TransactionNew /></AuthRoute>} />
-        <Route path="/groups/:id/transaction/new" element={<AuthRoute><TransactionNewGroup /></AuthRoute>} />
-        <Route path="/transaction/:id" element={<AuthRoute><TransactionDetail /></AuthRoute>} />
-        <Route path="/transaction/:id/edit" element={<AuthRoute><TransactionEdit /></AuthRoute>} />
-        <Route path="/balance" element={<AuthRoute><Balance /></AuthRoute>} />
-        <Route path="/groups" element={<AuthRoute><Groups /></AuthRoute>} />
-        <Route path="/groups/:id" element={<AuthRoute><GroupDetail /></AuthRoute>} />
-        <Route path="/events" element={<AuthRoute><Events /></AuthRoute>} />
-        <Route path="/event/new" element={<AuthRoute><EventNew /></AuthRoute>} />
-        <Route path="/event/:id" element={<AuthRoute><EventDetail /></AuthRoute>} />
-        <Route path="/event/:id/edit" element={<AuthRoute><EventEdit /></AuthRoute>} />
-        <Route path="/versement" element={<AuthRoute><Versement /></AuthRoute>} />
-        <Route path="/members" element={<AuthRoute><Members /></AuthRoute>} />
-        <Route path="/archives" element={<AuthRoute><Archives /></AuthRoute>} />
-        <Route path="/reports" element={<AuthRoute><Reports /></AuthRoute>} />
-        <Route path="/forms" element={<AuthRoute><FormBuilder /></AuthRoute>} />
-        <Route path="/form/fill/:id" element={<AuthRoute><FormFill /></AuthRoute>} />
-        <Route path="/custom-fields" element={<AuthRoute><CustomFields /></AuthRoute>} />
-        <Route path="/report-builder" element={<AuthRoute><ReportBuilder /></AuthRoute>} />
-        <Route path="/trace" element={<AuthRoute><Trace /></AuthRoute>} />
-        <Route path="/history" element={<AuthRoute><History /></AuthRoute>} />
-        <Route path="/help" element={<AuthRoute><Help /></AuthRoute>} />
-        <Route path="/settings" element={<AuthRoute><Settings /></AuthRoute>} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/notifications" element={<Notifications />} />
+        <Route path="/tutoriel" element={<Tutorial />} />
+        <Route path="/finance" element={<Finance />} />
+        <Route path="/transaction/new" element={<TransactionNew />} />
+        <Route path="/groups/:id/transaction/new" element={<TransactionNewGroup />} />
+        <Route path="/transaction/:id" element={<TransactionDetail />} />
+        <Route path="/transaction/:id/edit" element={<TransactionEdit />} />
+        <Route path="/balance" element={<Balance />} />
+        <Route path="/groups" element={<Groups />} />
+        <Route path="/groups/:id" element={<GroupDetail />} />
+        <Route path="/events" element={<Events />} />
+        <Route path="/event/new" element={<EventNew />} />
+        <Route path="/event/:id" element={<EventDetail />} />
+        <Route path="/event/:id/edit" element={<EventEdit />} />
+        <Route path="/versement" element={<Versement />} />
+        <Route path="/members" element={<Members />} />
+        <Route path="/archives" element={<Archives />} />
+        <Route path="/reports" element={<Reports />} />
+        <Route path="/forms" element={<FormBuilder />} />
+        <Route path="/form/fill/:id" element={<FormFill />} />
+        <Route path="/custom-fields" element={<CustomFields />} />
+        <Route path="/report-builder" element={<ReportBuilder />} />
+        <Route path="/trace" element={<Trace />} />
+        <Route path="/history" element={<History />} />
+        <Route path="/help" element={<Help />} />
+        <Route path="/settings" element={<Settings />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </>

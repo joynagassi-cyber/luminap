@@ -1330,7 +1330,6 @@ export const useLocalStore = create<LocalStoreState>()(
             appConfig: storedConfig ?? { churchName: '', churchLogoUrl: '', userPhoto: '' },
             user: {
               ...DEFAULT_USER,
-              firstName: localStorage.getItem('lumina-firstName') || DEFAULT_USER.firstName,
               role: finalRole,
             },
             isLoading: false,

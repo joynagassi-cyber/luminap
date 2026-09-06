@@ -1,13 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLocalStore } from '@/store/useLocalStore';
-import type { Role } from '@/types';
 
 export default function Login() {
   const navigate = useNavigate();
   const { selectRole, loadInitialData } = useLocalStore();
   const [name, setName] = useState('');
-  const [role, setRole] = useState<Role | ''>('');
+  const [role, setRole] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -29,10 +28,9 @@ export default function Login() {
       localStorage.setItem('lumina-role', role);
       localStorage.setItem('lumina-onboarded', 'true');
       localStorage.setItem('lumina-firstName', name.trim());
-      await selectRole(role);
+      await selectRole(role as any);
       await loadInitialData();
-      // Direct to dashboard — no intermediate screen
-      navigate('/', { replace: true });
+      navigate('/dashboard', { replace: true });
     } catch (e) {
       setError('Nous n\'avons pas pu vous connecter. Vérifiez votre connexion internet puis réessayez.');
     }
@@ -63,7 +61,6 @@ export default function Login() {
               style={{ backgroundColor: '#181818', border: '1px solid #282828' }}
               onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
               disabled={loading}
-              autoFocus
             />
           </div>
 
@@ -73,7 +70,7 @@ export default function Login() {
               {roles.map(({ id, label }) => (
                 <button
                   key={id}
-                  onClick={() => setRole(id as Role)}
+                  onClick={() => setRole(id)}
                   disabled={loading}
                   className="py-2.5 px-3 rounded-xl text-xs font-medium transition-all"
                   style={role === id
