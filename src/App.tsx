@@ -1,3 +1,4 @@
+import AppEntrypoint from "./AppEntrypoint";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -5,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AppProvider } from "./context/AppContext";
 import SyncIndicator from "./components/SyncIndicator";
+import Splash from "./pages/Splash";
 import Dashboard from "./pages/Dashboard";
 import Finance from "./pages/Finance";
 import TransactionNew from "./pages/TransactionNew";
@@ -39,9 +41,12 @@ import ReportBuilder from "./pages/ReportBuilder";
 
 const queryClient = new QueryClient();
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
+function AuthRoute({ children }: { children: React.ReactNode }) {
   const storedRole = localStorage.getItem('lumina-role');
-  if (!storedRole) return <Navigate to="/login" replace />;
+  const storedOnboarded = localStorage.getItem('lumina-onboarded');
+  if (!storedRole || storedOnboarded !== 'true') {
+    return <Navigate to="/login" replace />;
+  }
   return <>{children}</>;
 }
 
@@ -50,36 +55,44 @@ function AppRoutes() {
     <>
       <SyncIndicator />
       <Routes>
-        <Route path="/onboarding" element={<Onboarding />} />
+        {/* Root — redirect to splash on every app load */}
+        <Route path="/" element={<AppEntrypoint />} />
+
+        {/* Splash screen — handles all routing logic after native splash */}
+        <Route path="/splash" element={<Splash />} />
+
+        {/* Auth screens */}
         <Route path="/login" element={<Login />} />
+        <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/role-selection" element={<RoleSelection />} />
-        <Route path="/notifications" element={<Notifications />} />
-        <Route path="/tutoriel" element={<Tutorial />} />
-        <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-        <Route path="/finance" element={<ProtectedRoute><Finance /></ProtectedRoute>} />
-        <Route path="/transaction/new" element={<ProtectedRoute><TransactionNew /></ProtectedRoute>} />
-        <Route path="/groups/:id/transaction/new" element={<ProtectedRoute><TransactionNewGroup /></ProtectedRoute>} />
-        <Route path="/transaction/:id" element={<ProtectedRoute><TransactionDetail /></ProtectedRoute>} />
-        <Route path="/transaction/:id/edit" element={<ProtectedRoute><TransactionEdit /></ProtectedRoute>} />
-        <Route path="/balance" element={<ProtectedRoute><Balance /></ProtectedRoute>} />
-        <Route path="/groups" element={<ProtectedRoute><Groups /></ProtectedRoute>} />
-        <Route path="/groups/:id" element={<ProtectedRoute><GroupDetail /></ProtectedRoute>} />
-        <Route path="/events" element={<ProtectedRoute><Events /></ProtectedRoute>} />
-        <Route path="/event/new" element={<ProtectedRoute><EventNew /></ProtectedRoute>} />
-        <Route path="/event/:id" element={<ProtectedRoute><EventDetail /></ProtectedRoute>} />
-        <Route path="/event/:id/edit" element={<ProtectedRoute><EventEdit /></ProtectedRoute>} />
-        <Route path="/versement" element={<ProtectedRoute><Versement /></ProtectedRoute>} />
-        <Route path="/members" element={<ProtectedRoute><Members /></ProtectedRoute>} />
-        <Route path="/archives" element={<ProtectedRoute><Archives /></ProtectedRoute>} />
-        <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
-        <Route path="/forms" element={<ProtectedRoute><FormBuilder /></ProtectedRoute>} />
-        <Route path="/form/fill/:id" element={<ProtectedRoute><FormFill /></ProtectedRoute>} />
-        <Route path="/custom-fields" element={<ProtectedRoute><CustomFields /></ProtectedRoute>} />
-        <Route path="/report-builder" element={<ProtectedRoute><ReportBuilder /></ProtectedRoute>} />
-        <Route path="/trace" element={<ProtectedRoute><Trace /></ProtectedRoute>} />
-        <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
-        <Route path="/help" element={<ProtectedRoute><Help /></ProtectedRoute>} />
-        <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+
+        {/* Protected routes */}
+        <Route path="/notifications" element={<AuthRoute><Notifications /></AuthRoute>} />
+        <Route path="/tutoriel" element={<AuthRoute><Tutorial /></AuthRoute>} />
+        <Route path="/finance" element={<AuthRoute><Finance /></AuthRoute>} />
+        <Route path="/transaction/new" element={<AuthRoute><TransactionNew /></AuthRoute>} />
+        <Route path="/groups/:id/transaction/new" element={<AuthRoute><TransactionNewGroup /></AuthRoute>} />
+        <Route path="/transaction/:id" element={<AuthRoute><TransactionDetail /></AuthRoute>} />
+        <Route path="/transaction/:id/edit" element={<AuthRoute><TransactionEdit /></AuthRoute>} />
+        <Route path="/balance" element={<AuthRoute><Balance /></AuthRoute>} />
+        <Route path="/groups" element={<AuthRoute><Groups /></AuthRoute>} />
+        <Route path="/groups/:id" element={<AuthRoute><GroupDetail /></AuthRoute>} />
+        <Route path="/events" element={<AuthRoute><Events /></AuthRoute>} />
+        <Route path="/event/new" element={<AuthRoute><EventNew /></AuthRoute>} />
+        <Route path="/event/:id" element={<AuthRoute><EventDetail /></AuthRoute>} />
+        <Route path="/event/:id/edit" element={<AuthRoute><EventEdit /></AuthRoute>} />
+        <Route path="/versement" element={<AuthRoute><Versement /></AuthRoute>} />
+        <Route path="/members" element={<AuthRoute><Members /></AuthRoute>} />
+        <Route path="/archives" element={<AuthRoute><Archives /></AuthRoute>} />
+        <Route path="/reports" element={<AuthRoute><Reports /></AuthRoute>} />
+        <Route path="/forms" element={<AuthRoute><FormBuilder /></AuthRoute>} />
+        <Route path="/form/fill/:id" element={<AuthRoute><FormFill /></AuthRoute>} />
+        <Route path="/custom-fields" element={<AuthRoute><CustomFields /></AuthRoute>} />
+        <Route path="/report-builder" element={<AuthRoute><ReportBuilder /></AuthRoute>} />
+        <Route path="/trace" element={<AuthRoute><Trace /></AuthRoute>} />
+        <Route path="/history" element={<AuthRoute><History /></AuthRoute>} />
+        <Route path="/help" element={<AuthRoute><Help /></AuthRoute>} />
+        <Route path="/settings" element={<AuthRoute><Settings /></AuthRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </>

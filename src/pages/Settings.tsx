@@ -48,6 +48,8 @@ export default function SettingsPage() {
   const handleLogout = () => {
     localStorage.removeItem('lumina-session');
     localStorage.removeItem('lumina-role');
+    localStorage.removeItem('lumina-onboarded');
+    localStorage.removeItem('lumina-firstName');
     navigate('/login');
   };
 

@@ -65,9 +65,9 @@ export default function Dashboard() {
 
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
-    if (hour < 12) return 'Bonjour';
-    if (hour < 18) return 'Bon après-midi';
-    return 'Bonsoir';
+    const prefix = hour < 12 ? 'Bonjour' : hour < 18 ? 'Bon après-midi' : 'Bonsoir';
+    const firstName = localStorage.getItem('lumina-firstName') || '';
+    return `${prefix} ${firstName ? firstName : ''}`.trim();
   }, []);
 
   const { start, end } = getPeriodRange('mois');
