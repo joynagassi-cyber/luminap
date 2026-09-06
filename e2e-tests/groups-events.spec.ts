@@ -124,8 +124,9 @@ test.describe("Events Feature — Complete Flow", () => {
 
     // Fill event form
     await page.locator('input[placeholder*="nom|ex:"]').first().fill("Culte de Noël");
-    await page.locator('input[type="date"]').first().fill("2025-12-25");
-    await page.getByRole("button", { name: "Continuer" }).click();
+    await page.getByRole("button", { name: /sélectionner/i }).first().click();
+    await page.getByRole("gridcell", { name: "25" }).click();
+    await page.getByRole("button", { name: "Créer l'événement" }).click();
 
     // Verify event created
     await expect(page.getByText("Culte de Noël")).toBeVisible();
@@ -171,8 +172,9 @@ test.describe("Events Feature — Complete Flow", () => {
     await page.getByRole("navigation", { name: /bottom/i }).getByRole("button", { name: "Événements" }).click();
     await page.getByRole("button", { name: "Créer" }).click();
     await page.locator('input[placeholder*="nom|ex:"]').first().fill("Conférence 2025");
-    await page.locator('input[type="date"]').first().fill("2025-06-15");
-    await page.getByRole("button", { name: "Continuer" }).click();
+    await page.getByRole("button", { name: /sélectionner/i }).first().click();
+    await page.getByRole("gridcell", { name: "15" }).click();
+    await page.getByRole("button", { name: "Créer l'événement" }).click();
 
     // Navigate to detail
     await page.getByText("Conférence 2025").click();
@@ -215,8 +217,9 @@ test.describe("Events Feature — Complete Flow", () => {
     await page.getByRole("navigation", { name: /bottom/i }).getByRole("button", { name: "Événements" }).click();
     await page.getByRole("button", { name: "Créer" }).click();
     await page.locator('input[placeholder*="nom|ex:"]').first().fill("Event à Modifier");
-    await page.locator('input[type="date"]').first().fill("2025-07-01");
-    await page.getByRole("button", { name: "Continuer" }).click();
+    await page.getByRole("button", { name: /sélectionner/i }).first().click();
+    await page.getByRole("gridcell", { name: "1" }).click();
+    await page.getByRole("button", { name: "Créer l'événement" }).click();
 
     // Navigate to detail
     await page.getByText("Event à Modifier").click();
@@ -250,8 +253,9 @@ test.describe("Events Feature — Complete Flow", () => {
     await page.getByRole("navigation", { name: /bottom/i }).getByRole("button", { name: "Événements" }).click();
     await page.getByRole("button", { name: "Créer" }).click();
     await page.locator('input[placeholder*="nom|ex:"]').first().fill("Event à Annuler");
-    await page.locator('input[type="date"]').first().fill("2025-08-01");
-    await page.getByRole("button", { name: "Continuer" }).click();
+    await page.getByRole("button", { name: /sélectionner/i }).first().click();
+    await page.getByRole("gridcell", { name: "1" }).click();
+    await page.getByRole("button", { name: "Créer l'événement" }).click();
     await page.getByText("Event à Annuler").click();
 
     // Click cancel button
@@ -289,8 +293,9 @@ test.describe("Groups and Events Integration", () => {
     await page.getByRole("navigation", { name: /bottom/i }).getByRole("button", { name: "Événements" }).click();
     await page.getByRole("button", { name: "Créer" }).click();
     await page.locator('input[placeholder*="nom|ex:"]').first().fill("Événement Intégration");
-    await page.locator('input[type="date"]').first().fill("2025-09-01");
-    await page.getByRole("button", { name: "Continuer" }).click();
+    await page.getByRole("button", { name: /sélectionner/i }).first().click();
+    await page.getByRole("gridcell", { name: "1" }).click();
+    await page.getByRole("button", { name: "Créer l'événement" }).click();
     await page.getByText("Événement Intégration").click();
 
     // Add transaction linked to event

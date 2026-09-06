@@ -4,6 +4,7 @@ import { useLocalStore } from '@/store/useLocalStore';
 import { ArrowLeft, Plus, X, Tag } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
+import DatePicker from '@/components/DatePicker';
 import { generateId, formatCurrencyCompact } from '@/lib/utils';
 import type { BudgetItem } from '@/types';
 
@@ -119,26 +120,8 @@ export default function EventNew() {
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-text-tertiary text-xs mb-1.5 block">Date début *</label>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl text-text-primary text-sm outline-none"
-                style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
-              />
-            </div>
-            <div>
-              <label className="text-text-tertiary text-xs mb-1.5 block">Date fin</label>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl text-text-primary text-sm outline-none"
-                style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
-              />
-            </div>
+            <DatePicker value={startDate} onChange={setStartDate} label="Date début *" id="start-date" />
+            <DatePicker value={endDate} onChange={setEndDate} label="Date fin" id="end-date" />
           </div>
           <div>
             <label className="text-text-tertiary text-xs mb-1.5 block">Statut initial</label>
