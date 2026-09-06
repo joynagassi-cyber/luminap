@@ -17,6 +17,7 @@ import GroupDetail from "./pages/GroupDetail";
 import Events from "./pages/Events";
 import EventNew from "./pages/EventNew";
 import EventDetail from "./pages/EventDetail";
+import EventEdit from "./pages/EventEdit";
 import Versement from "./pages/Versement";
 import Settings from "./pages/Settings";
 import History from "./pages/History";
@@ -66,6 +67,7 @@ function AppRoutes() {
         <Route path="/events" element={<ProtectedRoute><Events /></ProtectedRoute>} />
         <Route path="/event/new" element={<ProtectedRoute><EventNew /></ProtectedRoute>} />
         <Route path="/event/:id" element={<ProtectedRoute><EventDetail /></ProtectedRoute>} />
+        <Route path="/event/:id/edit" element={<ProtectedRoute><EventEdit /></ProtectedRoute>} />
         <Route path="/versement" element={<ProtectedRoute><Versement /></ProtectedRoute>} />
         <Route path="/members" element={<ProtectedRoute><Members /></ProtectedRoute>} />
         <Route path="/archives" element={<ProtectedRoute><Archives /></ProtectedRoute>} />

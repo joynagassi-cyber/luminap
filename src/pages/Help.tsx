@@ -11,7 +11,7 @@ export default function Help() {
   return (
     <div className="min-h-screen bg-canvas">
       <TopHeader title="Aide" />
-      <div className="max-w-lg mx-auto px-5 pb-24 pt-16">
+      <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
         <h1 className="text-text-primary font-bold text-xl mb-6">Aide & Informations</h1>
 
         <div className="space-y-4 mb-8">

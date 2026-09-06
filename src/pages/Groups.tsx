@@ -63,9 +63,9 @@ export default function Groups() {
   if (isLoading) return <FullPageSkeleton />;
 
   return (
-    <div className="min-h-screen bg-canvas">
+    <div className="min-h-screen bg-canvas flex flex-col">
       <TopHeader title="Groupes" />
-      <div className="max-w-lg mx-auto px-5 pb-24 pt-16">
+      <div className="flex-1 overflow-y-auto px-5 pt-16 pb-32 max-w-lg mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
           <div>

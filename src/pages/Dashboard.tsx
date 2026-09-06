@@ -112,7 +112,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-canvas">
       <TopHeader title="Lumina" />
-      <div className="max-w-lg mx-auto px-5 pb-24 pt-16">
+      <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
 
         {/* Church name + Notifications */}
         <div className="flex items-center justify-between mb-6">

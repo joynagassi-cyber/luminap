@@ -127,7 +127,7 @@ export default function GroupDetail() {
   return (
     <div className="min-h-screen bg-canvas">
       <TopHeader title={orgUnit.name} />
-      <div className="max-w-lg mx-auto px-5 pb-24 pt-16">
+      <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
         <button onClick={() => navigate('/groups')} className="flex items-center gap-2 text-text-secondary text-sm mb-5">
           <ArrowLeft className="w-4 h-4" /> Retour
         </button>
@@ -136,7 +136,7 @@ export default function GroupDetail() {
         {success && <div className="mb-4 p-3 rounded-xl text-sm" style={{ backgroundColor: '#1DB95420', color: '#1DB954' }}>{success}</div>}
 
         {/* Hero Card */}
-        <div className="rounded-2xl p-5 mb-5" style={{ backgroundColor: '#212121', border: `1px solid ${color}30` }}>
+        <div className="rounded-2xl p-5 mb-5" style={{ backgroundColor: '#212121', border: `1px solid ${color}40` }}>
           <div className="flex items-center gap-3 mb-4">
             <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: color + '20' }}>
               <Wallet className="w-6 h-6" style={{ color }} />
@@ -180,7 +180,7 @@ export default function GroupDetail() {
         </div>
 
         {/* Quick actions */}
-        <div className="flex gap-3 mb-5">
+        <div className="flex gap-3 mb-6">
           <button
             onClick={() => navigate(`/groups/${id}/transaction/new`)}
             className="flex-1 py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-95"
@@ -207,7 +207,7 @@ export default function GroupDetail() {
         </div>
 
         {/* Tabs */}
-        <div className="flex rounded-xl p-1 mb-5 overflow-x-auto" style={{ backgroundColor: '#212121' }}>
+        <div className="mt-6 flex rounded-xl p-1 mb-6 overflow-x-auto" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
           {([
             { id: 'transactions' as Tab, label: 'Transactions', icon: Wallet },
             { id: 'membres' as Tab, label: 'Membres', icon: Users },

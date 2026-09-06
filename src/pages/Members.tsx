@@ -57,7 +57,7 @@ export default function Members() {
   return (
     <div className="min-h-screen bg-canvas">
       <TopHeader title="Membres" />
-      <div className="max-w-lg mx-auto px-5 pb-24 pt-16">
+      <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
         <div className="flex items-center justify-between mb-5">
           <h1 className="text-text-primary font-bold text-xl">Membres</h1>
           <button

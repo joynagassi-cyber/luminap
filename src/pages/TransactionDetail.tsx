@@ -64,7 +64,7 @@ export default function TransactionDetail() {
   return (
     <div className="min-h-screen bg-canvas">
       <TopHeader title="Transaction" />
-      <div className="max-w-lg mx-auto px-5 pb-24 pt-16">
+      <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
         <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-text-secondary text-sm mb-6">
           <ArrowLeft className="w-4 h-4" />
           <span>Retour</span>

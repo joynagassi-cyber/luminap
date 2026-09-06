@@ -45,7 +45,7 @@ export default function TracePage() {
     return (
       <div className="min-h-screen bg-[#121212]">
         <TopHeader title="Trace" />
-        <div className="max-w-lg mx-auto px-5 pb-24 pt-16">
+        <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
           <div className="space-y-3">
             {[1, 2, 3, 4].map(i => (
               <div key={i} className="rounded-xl p-4 animate-pulse" style={{ backgroundColor: '#181818' }}>
@@ -97,7 +97,7 @@ export default function TracePage() {
   return (
     <div className="min-h-screen bg-[#121212]">
       <TopHeader title="Trace" />
-      <div className="max-w-lg mx-auto px-5 pb-24 pt-16">
+      <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
         <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-text-secondary text-sm mb-5">
           <ArrowLeft className="w-4 h-4" /> Retour
         </button>

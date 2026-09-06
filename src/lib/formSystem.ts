@@ -44,7 +44,21 @@ export const formDefinitionRepo = {
   async update(id: string, data: Partial<FormDefinition>): Promise<FormDefinition | null> {
     const existing = await this.get(id);
     if (!existing) return null;
-    return { ...existing, ...data, updatedAt: new Date().toISOString() };
+    const updated: FormDefinition = { ...existing, ...data, updatedAt: new Date().toISOString() };
+    await db.put('form_definitions' as StoreName, updated);
+    await writeAudit({
+      orgId: existing.orgId,
+      transactionId: null,
+      userId: 'local-user',
+      actorRoleAtTime: null,
+      action: 'UPDATE',
+      entityType: 'FormDefinition',
+      entityId: id,
+      beforeState: existing,
+      afterState: updated,
+      comment: null,
+    });
+    return updated;
   },
 
   async delete(id: string): Promise<void> {
@@ -93,7 +107,9 @@ export const formSubmissionRepo = {
   async update(id: string, data: Partial<FormSubmission>): Promise<FormSubmission | null> {
     const existing = await this.get(id);
     if (!existing) return null;
-    return { ...existing, ...data };
+    const updated: FormSubmission = { ...existing, ...data };
+    await db.put('form_submissions' as StoreName, updated);
+    return updated;
   },
 };
 
@@ -106,7 +122,7 @@ export function validateFormSubmission(
 ): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
   for (const field of formDef.fields) {
-    if (field.required && !data[field.key]) {
+    if (field.required && (data[field.key] === undefined || data[field.key] === '' || data[field.key] === null)) {
       errors.push(`Field ${field.label} is required`);
     }
     if (field.type === 'number' && data[field.key] && isNaN(Number(data[field.key]))) {

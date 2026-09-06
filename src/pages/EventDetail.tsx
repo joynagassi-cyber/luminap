@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useLocalStore } from '@/store/useLocalStore';
 import { formatCurrencyCompact, formatDate } from '@/lib/utils';
-import { ArrowLeft, Calendar, Clock, Tag, CheckCircle, Play, Flag, Trash2, AlertCircle, Plus, ArrowUp, ArrowDown } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, Tag, CheckCircle, Play, Flag, Trash2, AlertCircle, Plus, ArrowUp, ArrowDown, Edit3 } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
 import { FullPageSkeleton } from '@/components/Skeleton';
@@ -145,7 +145,7 @@ export default function EventDetail() {
         )}
 
         {/* Status badge + quick actions */}
-        <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center justify-between mb-6 p-4 rounded-xl" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
           <span className="flex items-center gap-2 text-sm px-3 py-1.5 rounded-full font-medium" style={{ color: config.color, backgroundColor: config.bg }}>
             <config.icon className="w-4 h-4" /> {config.label}
           </span>
@@ -169,7 +169,7 @@ export default function EventDetail() {
         </div>
 
         {/* Hero Card */}
-        <div className="rounded-2xl p-5 mb-5 text-center" style={{ backgroundColor: '#212121' }}>
+        <div className="rounded-2xl p-5 mb-5 text-center" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
           <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3" style={{ backgroundColor: config.bg }}>
             <config.icon className="w-8 h-8" style={{ color: config.color }} />
           </div>
@@ -191,7 +191,7 @@ export default function EventDetail() {
         </div>
 
         {/* Stats summary */}
-        <div className="grid grid-cols-3 gap-3 mb-5">
+        <div className="grid grid-cols-3 gap-3 mb-6">
           <div className="rounded-xl p-3 text-center" style={{ backgroundColor: '#212121' }}>
             <p className="text-text-tertiary text-xs mb-1">Budget</p>
             <p className="text-text-primary font-bold text-sm">{formatCurrencyCompact(event.budget)} <span className="text-text-tertiary text-xs font-normal">F</span></p>
@@ -212,7 +212,7 @@ export default function EventDetail() {
 
         {/* Budget progress */}
         {event.budget > 0 && (
-          <div className="rounded-xl p-4 mb-5" style={{ backgroundColor: '#212121' }}>
+          <div className="rounded-xl p-4 mb-6" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
             <div className="flex items-center justify-between mb-2">
               <span className="text-text-tertiary text-xs">Progression budgétaire</span>
               <span className="text-text-secondary text-xs">{progressPct}%</span>
@@ -230,7 +230,7 @@ export default function EventDetail() {
         )}
 
         {/* Tabs */}
-        <div className="flex rounded-xl p-1 mb-5 overflow-x-auto" style={{ backgroundColor: '#212121' }}>
+        <div className="flex rounded-xl p-1 mb-6 overflow-x-auto" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
           {([
             { id: 'overview' as Tab, label: 'Aperçu' },
             { id: 'budget' as Tab, label: 'Budget' },
@@ -428,6 +428,11 @@ export default function EventDetail() {
         {/* Delete button */}
         <button onClick={() => setShowDelete(true)} className="w-full py-3 rounded-full font-medium text-sm flex items-center justify-center gap-2 mt-5 mb-4" style={{ backgroundColor: '#212121', color: '#E51332' }}>
           <Trash2 className="w-4 h-4" /> Supprimer l'événement
+        </button>
+
+        {/* Edit button */}
+        <button onClick={() => navigate(`/event/${event.id}/edit`)} className="w-full py-3 rounded-full font-medium text-sm flex items-center justify-center gap-2 mb-4" style={{ backgroundColor: '#212121', color: '#FF6B00' }}>
+          <Edit3 className="w-4 h-4" /> Modifier l'événement
         </button>
       </div>
 

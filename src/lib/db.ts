@@ -1,6 +1,6 @@
 const DB_NAME = 'lumina-db';
-const DB_VERSION = 14;
-const SCHEMA_VERSION = 3; // Increment to force cache bust on mismatch
+const DB_VERSION = 15;
+const SCHEMA_VERSION = 4; // Increment to force cache bust on mismatch
 
 export type StoreName = 'transactions' | 'categories' | 'orgUnits' | 'auditEntries' | 'events' | 'syncQueue' | 'config' | 'caisses' | 'notifications' | 'members' | 'groups' | 'accounts' | 'group_memberships' | 'form_definitions' | 'form_submissions' | 'custom_field_definitions' | 'custom_field_values' | 'versements' | 'event_budgets' | 'budget_lines' | 'report_definitions';
 
@@ -57,6 +57,86 @@ function ensureDB(): Promise<IDBDatabase> {
           db.createObjectStore(s.name, { keyPath: s.keyPath });
         }
       }
+      // Create secondary indexes for performance
+      try {
+        const tx1 = db.transaction(['transactions'], 'readwrite');
+        const txStore = tx1.objectStore('transactions');
+        if (!txStore.indexNames.contains('source_caisse_id')) txStore.createIndex('source_caisse_id', 'sourceCaisseId', { unique: false });
+        if (!txStore.indexNames.contains('versement_id')) txStore.createIndex('versement_id', 'versementId', { unique: false });
+        if (!txStore.indexNames.contains('reversal_of_id')) txStore.createIndex('reversal_of_id', 'reversalOfId', { unique: false });
+        tx1.commit();
+      } catch (e) { /* index may already exist */ }
+
+      try {
+        const tx2 = db.transaction(['caisses'], 'readwrite');
+        const caissesStore = tx2.objectStore('caisses');
+        if (!caissesStore.indexNames.contains('org_id')) caissesStore.createIndex('org_id', 'orgId', { unique: false });
+        tx2.commit();
+      } catch (e) { /* index may already exist */ }
+
+      try {
+        const tx3 = db.transaction(['groups'], 'readwrite');
+        const groupsStore = tx3.objectStore('groups');
+        if (!groupsStore.indexNames.contains('org_id')) groupsStore.createIndex('org_id', 'orgId', { unique: false });
+        if (!groupsStore.indexNames.contains('parent_group_id')) groupsStore.createIndex('parent_group_id', 'parentGroupId', { unique: false });
+        tx3.commit();
+      } catch (e) { /* index may already exist */ }
+
+      try {
+        const tx4 = db.transaction(['accounts'], 'readwrite');
+        const accountsStore = tx4.objectStore('accounts');
+        if (!accountsStore.indexNames.contains('org_id')) accountsStore.createIndex('org_id', 'orgId', { unique: false });
+        if (!accountsStore.indexNames.contains('owner_type_owner_id')) accountsStore.createIndex('owner_type_owner_id', ['ownerType', 'ownerId'], { unique: false });
+        tx4.commit();
+      } catch (e) { /* index may already exist */ }
+
+      try {
+        const tx5 = db.transaction(['versements'], 'readwrite');
+        const versementsStore = tx5.objectStore('versements');
+        if (!versementsStore.indexNames.contains('org_id')) versementsStore.createIndex('org_id', 'orgId', { unique: false });
+        if (!versementsStore.indexNames.contains('from_account_id')) versementsStore.createIndex('from_account_id', 'fromAccountId', { unique: false });
+        if (!versementsStore.indexNames.contains('to_account_id')) versementsStore.createIndex('to_account_id', 'toAccountId', { unique: false });
+        if (!versementsStore.indexNames.contains('status')) versementsStore.createIndex('status', 'status', { unique: false });
+        tx5.commit();
+      } catch (e) { /* index may already exist */ }
+
+      try {
+        const tx6 = db.transaction(['members'], 'readwrite');
+        const membersStore = tx6.objectStore('members');
+        if (!membersStore.indexNames.contains('org_id')) membersStore.createIndex('org_id', 'orgId', { unique: false });
+        tx6.commit();
+      } catch (e) { /* index may already exist */ }
+
+      try {
+        const tx7 = db.transaction(['budget_lines'], 'readwrite');
+        const budgetLinesStore = tx7.objectStore('budget_lines');
+        if (!budgetLinesStore.indexNames.contains('event_budget_id')) budgetLinesStore.createIndex('event_budget_id', 'eventBudgetId', { unique: false });
+        if (!budgetLinesStore.indexNames.contains('category_id')) budgetLinesStore.createIndex('category_id', 'categoryId', { unique: false });
+        tx7.commit();
+      } catch (e) { /* index may already exist */ }
+
+      try {
+        const tx8 = db.transaction(['group_memberships'], 'readwrite');
+        const gmStore = tx8.objectStore('group_memberships');
+        if (!gmStore.indexNames.contains('member_id')) gmStore.createIndex('member_id', 'memberId', { unique: false });
+        if (!gmStore.indexNames.contains('group_id')) gmStore.createIndex('group_id', 'groupId', { unique: false });
+        tx8.commit();
+      } catch (e) { /* index may already exist */ }
+
+      try {
+        const tx9 = db.transaction(['form_submissions'], 'readwrite');
+        const fsStore = tx9.objectStore('form_submissions');
+        if (!fsStore.indexNames.contains('form_definition_id')) fsStore.createIndex('form_definition_id', 'formDefinitionId', { unique: false });
+        if (!fsStore.indexNames.contains('entity')) fsStore.createIndex('entity', ['linkedEntityType', 'linkedEntityId'], { unique: false });
+        tx9.commit();
+      } catch (e) { /* index may already exist */ }
+
+      try {
+        const tx10 = db.transaction(['custom_field_values'], 'readwrite');
+        const cfvStore = tx10.objectStore('custom_field_values');
+        if (!cfvStore.indexNames.contains('entity')) cfvStore.createIndex('entity', ['entityType', 'entityId'], { unique: false });
+        tx10.commit();
+      } catch (e) { /* index may already exist */ }
     };
     request.onsuccess = () => {
       _upgrading = false;

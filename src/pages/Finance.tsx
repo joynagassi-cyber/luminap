@@ -124,7 +124,7 @@ export default function Finance() {
   return (
     <div className="min-h-screen bg-canvas">
       <TopHeader title="Finances" />
-      <div className="max-w-lg mx-auto px-5 pb-24 pt-16">
+      <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
         <h1 className="text-text-primary font-bold text-xl mb-5">Grand livre</h1>
 
         {/* Period toggle */}

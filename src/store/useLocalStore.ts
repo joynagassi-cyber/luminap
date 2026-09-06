@@ -392,7 +392,7 @@ export const useLocalStore = create<LocalStoreState>()(
           approvedById: sessionId,
           approvedAt: now,
           categoryId: 'cat-dime',
-          orgUnitId: data.sourceCaisseId,
+          orgUnitId: null,
           eventId: null,
           source: 'CAISSE',
           personName: null,
@@ -435,7 +435,7 @@ export const useLocalStore = create<LocalStoreState>()(
         set({ transactions: [...get().transactions, sourceTx, targetTx] });
         await db.put('transactions', sourceTx);
         await db.put('transactions', targetTx);
-        await db.put('versements' as any, versement);
+        await db.put('versements', versement);
 
         // Sync queue
         await enqueueSync({ id: `sync-versement-${versementId}`, operation: 'create', entityType: 'versements', entityId: versementId, payload: versement, attempts: 0, lastAttempt: null, createdAt: now });
@@ -624,10 +624,31 @@ export const useLocalStore = create<LocalStoreState>()(
           budgetItems: event.budgetItems ?? [],
           shoppingItems: event.shoppingItems ?? [],
         };
+        // Create a caisse for this event (id = event id, type = GROUP)
+        const eventColor = event.budgetItems?.length > 0
+          ? COLOR_PALETTE[Math.floor(Math.random() * COLOR_PALETTE.length)]
+          : '#8B5CF6';
+        const eventCaisse: Caisse = {
+          id,
+          name: event.name,
+          description: event.description || '',
+          type: 'GROUP',
+          color: eventColor,
+          orgId: 'org-1',
+          createdAt: now,
+          updatedAt: now,
+          archivedAt: null,
+          archivedBy: null,
+          archiveReason: null,
+          status: 'ACTIVE',
+        };
         const updated = [...get().events, newEvent];
-        set({ events: updated });
+        const updatedCaisses = [...get().caisses, eventCaisse];
+        set({ events: updated, caisses: updatedCaisses });
         await db.put('events', newEvent);
+        await db.put('caisses', eventCaisse);
         await enqueueSync({ id: `sync-${id}`, operation: 'create', entityType: 'events', entityId: id, payload: newEvent, attempts: 0, lastAttempt: null, createdAt: now });
+        await enqueueSync({ id: `sync-caisse-${id}`, operation: 'create', entityType: 'caisses', entityId: id, payload: eventCaisse, attempts: 0, lastAttempt: null, createdAt: now });
         await writeAudit({
           orgId: 'org-1',
           transactionId: null,
@@ -810,6 +831,7 @@ export const useLocalStore = create<LocalStoreState>()(
         await db.put('groups' as any, group);
         await enqueueSync({ id: `sync-org-${id}`, operation: 'create', entityType: 'orgUnits', entityId: id, payload: orgUnit, attempts: 0, lastAttempt: null, createdAt: now });
         await enqueueSync({ id: `sync-account-${id}`, operation: 'create', entityType: 'accounts', entityId: id, payload: account, attempts: 0, lastAttempt: null, createdAt: now });
+        await enqueueSync({ id: `sync-caisse-${id}`, operation: 'create', entityType: 'caisses', entityId: id, payload: caisse, attempts: 0, lastAttempt: null, createdAt: now });
         await writeAudit({
           orgId: 'org-1',
           transactionId: null,

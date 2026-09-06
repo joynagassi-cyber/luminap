@@ -18,7 +18,7 @@ export default function Balance() {
     return (
       <div className="min-h-screen bg-canvas">
         <TopHeader title="Bilan" />
-        <div className="max-w-lg mx-auto px-5 pb-24 pt-16">
+        <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
           <div className="space-y-3">
             {[1, 2, 3].map(i => (
               <div key={i} className="h-16 rounded-xl animate-pulse" style={{ backgroundColor: '#212121' }} />
@@ -50,7 +50,7 @@ export default function Balance() {
   return (
     <div className="min-h-screen bg-canvas">
       <TopHeader title="Bilan" />
-      <div className="max-w-lg mx-auto px-5 pb-24 pt-16">
+      <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
         <h1 className="text-text-primary font-bold text-xl mb-5">Bilan financier</h1>
 
         {/* Period toggle */}
