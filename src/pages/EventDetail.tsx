@@ -13,7 +13,7 @@ type Tab = 'overview' | 'budget' | 'transactions';
 const STATUS_CONFIG: Record<EventStatus, { label: string; color: string; bg: string; icon: any }> = {
   PLANIFIED: { label: 'Planifié', color: '#3B82F6', bg: '#3B82F620', icon: Calendar },
   ONGOING: { label: 'En cours', color: '#1DB954', bg: '#1DB95420', icon: Play },
-  COMPLETED: { label: 'Terminé', color: '#808080', bg: '#80808020', icon: CheckCircle },
+  COMPLETED: { label: 'Terminé', color: '#B3B3B3', bg: '#80808020', icon: CheckCircle },
   CANCELLED: { label: 'Annulé', color: '#E51332', bg: '#E5133220', icon: Flag },
 };
 
@@ -156,7 +156,7 @@ export default function EventDetail() {
               </button>
             )}
             {event.status === 'ONGOING' && (
-              <button onClick={() => handleStatusChange('COMPLETED')} className="px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1" style={{ backgroundColor: '#80808020', color: '#808080' }}>
+              <button onClick={() => handleStatusChange('COMPLETED')} className="px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1" style={{ backgroundColor: '#80808020', color: '#B3B3B3' }}>
                 <CheckCircle className="w-3 h-3" /> Terminer
               </button>
             )}

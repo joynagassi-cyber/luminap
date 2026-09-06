@@ -76,8 +76,8 @@ export default function CustomFields() {
 
         {fields.length === 0 ? (
           <div className="text-center py-16 rounded-xl" style={{ backgroundColor: '#212121' }}>
-            <p className="text-text-tertiary text-sm">Aucun champ personnalisé</p>
-            <p className="text-text-tertiary text-xs mt-1">Ajoutez des champs pour enrichir vos entités</p>
+            <p className="text-text-primary font-medium text-sm mb-2">Pas encore de champ personnalisé</p>
+            <p className="text-text-tertiary text-xs mb-4">Ajoutez des champs pour collecter des informations complémentaires</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -155,7 +155,7 @@ export default function CustomFields() {
                       key={ft.value}
                       onClick={() => setType(ft.value)}
                       className="px-3 py-1.5 rounded-full text-xs font-medium"
-                      style={type === ft.value ? { backgroundColor: '#FF6B00', color: '#fff' } : { backgroundColor: '#212121', color: '#808080', border: '1px solid #282828' }}
+                      style={type === ft.value ? { backgroundColor: '#FF6B00', color: '#fff' } : { backgroundColor: '#212121', color: '#B3B3B3', border: '1px solid #282828' }}
                     >
                       {ft.label}
                     </button>

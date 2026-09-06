@@ -35,7 +35,7 @@ export default function Groups() {
       setSuccess('Groupe créé avec succès');
       setTimeout(() => setSuccess(''), 3000);
     } catch (e: any) {
-      setError(e.message || 'Erreur lors de la création');
+      setError("Nous n'avons pas pu créer ce groupe. Veuillez vérifier les informations puis réessayer.");
     }
   };
 
@@ -56,7 +56,7 @@ export default function Groups() {
       setSuccess('Groupe supprimé');
       setTimeout(() => setSuccess(''), 3000);
     } catch (e: any) {
-      setError(e.message || 'Erreur lors de la suppression');
+      setError("Nous n'avons pas pu supprimer ce groupe. Veuillez réessayer.");
     }
   };
 
@@ -112,7 +112,7 @@ export default function Groups() {
                     <p className="text-text-tertiary text-xs mt-0.5">{caisse?.description || account?.name || ou.description || 'Pas de description'}</p>
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: color + '15', color }}>{ou.type}</span>
-                      {!ou.isActive && <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: '#80808020', color: '#808080' }}>Inactif</span>}
+                      {!ou.isActive && <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: '#80808020', color: '#B3B3B3' }}>Inactif</span>}
                     </div>
                   </div>
                 </div>
@@ -140,8 +140,11 @@ export default function Groups() {
         {orgUnits.length === 0 && (
           <div className="text-center py-16 rounded-xl" style={{ backgroundColor: '#212121' }}>
             <Users className="w-12 h-12 mx-auto mb-4 text-text-tertiary opacity-40" />
-            <p className="text-text-tertiary text-sm mb-2">Aucun groupe</p>
-            <p className="text-text-tertiary text-xs">Créez votre premier groupe organisationnel</p>
+            <p className="text-text-primary font-medium text-sm mb-2">Pas encore de groupe</p>
+            <p className="text-text-tertiary text-xs mb-4">Créez votre premier groupe organisationnel pour organiser votre église</p>
+            <button onClick={() => setShowCreate(true)} className="px-6 py-2.5 rounded-full text-sm font-medium text-white" style={{ backgroundColor: '#FF6B00' }}>
+              Créer un groupe
+            </button>
           </div>
         )}
       </div>
@@ -171,7 +174,7 @@ export default function Groups() {
                 <label className="text-text-tertiary text-xs mb-2 block">Type</label>
                 <div className="flex flex-wrap gap-2">
                   {GROUP_TYPES.map((t) => (
-                    <button key={t} onClick={() => setCreateType(t)} className="px-3 py-1.5 rounded-full text-xs font-medium transition-all" style={createType === t ? { backgroundColor: '#FF6B00', color: '#fff' } : { backgroundColor: '#212121', color: '#808080', border: '1px solid #282828' }}>
+                    <button key={t} onClick={() => setCreateType(t)} className="px-3 py-1.5 rounded-full text-xs font-medium transition-all" style={createType === t ? { backgroundColor: '#FF6B00', color: '#fff' } : { backgroundColor: '#212121', color: '#B3B3B3', border: '1px solid #282828' }}>
                       {t}
                     </button>
                   ))}

@@ -12,7 +12,7 @@ const ACTION_META: Record<string, { icon: typeof Clock; color: string; label: st
   DELETE: { icon: Trash2, color: '#E51332', label: 'Supprimé' },
   APPROVE: { icon: CheckCircle, color: '#1DB954', label: 'Approuvé' },
   REJECT: { icon: XCircle, color: '#E51332', label: 'Rejeté' },
-  ARCHIVE: { icon: FileText, color: '#808080', label: 'Archivé' },
+  ARCHIVE: { icon: FileText, color: '#B3B3B3', label: 'Archivé' },
   RESTORE: { icon: CheckCircle, color: '#1DB954', label: 'Rétabli' },
   REVISE: { icon: Edit2, color: '#FFB800', label: 'Révisé' },
   CANCEL: { icon: XCircle, color: '#E51332', label: 'Annulé' },
@@ -124,7 +124,7 @@ export default function TracePage() {
               key={f}
               onClick={() => setFilter(f)}
               className="px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-all"
-              style={filter === f ? { backgroundColor: '#FF6B00', color: '#fff' } : { backgroundColor: '#181818', color: '#808080', border: '1px solid #282828' }}
+              style={filter === f ? { backgroundColor: '#FF6B00', color: '#fff' } : { backgroundColor: '#181818', color: '#B3B3B3', border: '1px solid #282828' }}
             >
               {f}
             </button>
@@ -134,13 +134,13 @@ export default function TracePage() {
         {filtered.length === 0 ? (
           <div className="text-center py-16 rounded-xl" style={{ backgroundColor: '#181818' }}>
             <Clock className="w-12 h-12 mx-auto mb-4" style={{ color: '#535353' }} />
-            <p className="text-text-tertiary text-sm">Aucune trace enregistrée</p>
+            <p className="text-text-primary font-medium text-sm mb-2">Pas encore de trace</p>
             <p className="text-text-tertiary text-xs mt-1">Les actions apparaîtront ici après leur réalisation</p>
           </div>
         ) : (
           <div className="space-y-2">
             {filtered.map((entry) => {
-              const meta = ACTION_META[entry.action] || { icon: Clock, color: '#808080', label: entry.action };
+              const meta = ACTION_META[entry.action] || { icon: Clock, color: '#B3B3B3', label: entry.action };
               const entityLabel = ENTITY_LABELS[entry.entityType] || entry.entityType;
               return (
                 <div
@@ -157,7 +157,7 @@ export default function TracePage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="text-text-primary text-sm font-semibold">{meta.label}</p>
-                      <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: '#282828', color: '#808080' }}>
+                      <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: '#282828', color: '#B3B3B3' }}>
                         {entityLabel}
                       </span>
                     </div>

@@ -129,8 +129,8 @@ export default function Finance() {
 
         {/* Period toggle */}
         <div className="flex rounded-xl p-1 mb-5" style={{ backgroundColor: '#212121' }}>
-          <button onClick={() => setPeriod('mois')} className="flex-1 py-2.5 rounded-lg text-sm font-medium transition-all" style={period === 'mois' ? { backgroundColor: '#FF6B00', color: '#fff' } : { color: '#808080' }}>Mois</button>
-          <button onClick={() => setPeriod('annee')} className="flex-1 py-2.5 rounded-lg text-sm font-medium transition-all" style={period === 'annee' ? { backgroundColor: '#FF6B00', color: '#fff' } : { color: '#808080' }}>Année</button>
+          <button onClick={() => setPeriod('mois')} className="flex-1 py-2.5 rounded-lg text-sm font-medium transition-all" style={period === 'mois' ? { backgroundColor: '#FF6B00', color: '#fff' } : { color: '#B3B3B3' }}>Mois</button>
+          <button onClick={() => setPeriod('annee')} className="flex-1 py-2.5 rounded-lg text-sm font-medium transition-all" style={period === 'annee' ? { backgroundColor: '#FF6B00', color: '#fff' } : { color: '#B3B3B3' }}>Année</button>
         </div>
 
         {/* Caisse selector */}
@@ -139,7 +139,7 @@ export default function Finance() {
             const caisse = useLocalStore.getState().getCaisseForDisplay(a.id);
             const color = caisse?.color || '#FF6B00';
             return (
-              <button key={a.id} onClick={() => { setSelectedCaisse(a.id); setStatusFilter(''); setCategoryFilter(''); setSearchQuery(''); setSelectedIds([]); }} className="px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-all" style={selectedCaisse === a.id ? { backgroundColor: color, color: '#fff' } : { backgroundColor: '#212121', color: '#808080', border: '1px solid #282828' }}>
+              <button key={a.id} onClick={() => { setSelectedCaisse(a.id); setStatusFilter(''); setCategoryFilter(''); setSearchQuery(''); setSelectedIds([]); }} className="px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-all" style={selectedCaisse === a.id ? { backgroundColor: color, color: '#fff' } : { backgroundColor: '#212121', color: '#B3B3B3', border: '1px solid #282828' }}>
                 {a.name}
               </button>
             );
@@ -168,7 +168,7 @@ export default function Finance() {
             <>
               <span className="text-xs text-text-tertiary">{selectedIds.length} sélectionné(s)</span>
               <button onClick={selectAll} className="text-xs font-medium" style={{ color: '#FF6B00' }}>Tout</button>
-              <button onClick={clearSelection} className="text-xs" style={{ color: '#808080' }}>Effacer</button>
+              <button onClick={clearSelection} className="text-xs" style={{ color: '#B3B3B3' }}>Effacer</button>
               <button onClick={handleBatchApprove} className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium" style={{ backgroundColor: '#1DB954', color: '#fff' }}>
                 <CheckSquare className="w-3.5 h-3.5" /> Approuver tout ({selectedIds.length})
               </button>
@@ -189,7 +189,7 @@ export default function Finance() {
                   { value: 'DRAFT', label: 'Brouillon' },
                   { value: 'REJECTED', label: 'Rejeté' },
                 ].map(f => (
-                  <button key={f.value} onClick={() => setStatusFilter(f.value)} className="px-3 py-1.5 rounded-full text-xs font-medium transition-all" style={statusFilter === f.value ? { backgroundColor: '#FF6B00', color: '#fff' } : { backgroundColor: '#282828', color: '#808080' }}>
+                  <button key={f.value} onClick={() => setStatusFilter(f.value)} className="px-3 py-1.5 rounded-full text-xs font-medium transition-all" style={statusFilter === f.value ? { backgroundColor: '#FF6B00', color: '#fff' } : { backgroundColor: '#282828', color: '#B3B3B3' }}>
                     {f.label}
                   </button>
                 ))}
@@ -292,7 +292,14 @@ export default function Finance() {
           {filteredTxs.length === 0 && (
             <div className="text-center py-10 rounded-xl" style={{ backgroundColor: '#212121' }}>
               <BarChart3 className="w-8 h-8 mx-auto mb-3 text-text-tertiary opacity-40" />
-              <p className="text-text-tertiary text-sm">Aucune transaction</p>
+              <p className="text-text-primary font-medium text-sm mb-2">
+                {searchQuery || statusFilter || categoryFilter ? 'Aucun résultat' : `Aucun mouvement ce ${period}`}
+              </p>
+              <p className="text-text-tertiary text-xs mb-4">
+                {searchQuery || statusFilter || categoryFilter
+                  ? 'Essayez de modifier vos filtres'
+                  : 'Vos transactions apparaîtront ici'}
+              </p>
             </div>
           )}
         </div>

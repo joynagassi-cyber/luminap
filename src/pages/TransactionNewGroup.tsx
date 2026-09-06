@@ -24,6 +24,15 @@ export default function TransactionNewGroup() {
   const [personName, setPersonName] = useState('');
   const [comment, setComment] = useState('');
   const [error, setError] = useState('');
+
+  const validateAmount = (val: string): string => {
+    const num = parseFloat(val);
+    if (!val) return '';
+    if (isNaN(num) || num <= 0) return 'Le montant doit être supérieur à 0';
+    if (num > 999999999) return 'Montant maximum atteint';
+    return '';
+  };
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
 
   const [filteredCategories, setFilteredCategories] = useState<Category[]>([]);
@@ -108,11 +117,19 @@ export default function TransactionNewGroup() {
             <input
               type="number"
               value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              onChange={(e) => {
+              setAmount(e.target.value);
+              const num = parseFloat(e.target.value);
+              setFieldErrors(prev => ({ ...prev, amount: (!e.target.value || isNaN(num) || num <= 0) ? 'Le montant doit être supérieur à 0' : '' }));
+            }}
               placeholder="0"
               className="w-full px-4 py-3.5 rounded-xl text-text-primary text-lg font-bold outline-none"
-              style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
+              
+              style={{ backgroundColor: '#212121', border: fieldErrors.amount ? '1px solid #E51332' : '1px solid #282828' }}
             />
+            {fieldErrors.amount && (
+              <p className="text-[#E51332] text-xs mt-1">{fieldErrors.amount}</p>
+            )}
           </div>
 
           <div>
@@ -123,6 +140,7 @@ export default function TransactionNewGroup() {
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Ex: Dîme du groupe"
               className="w-full px-4 py-3 rounded-xl text-text-primary text-sm outline-none"
+              
               style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
             />
           </div>
@@ -134,6 +152,7 @@ export default function TransactionNewGroup() {
               value={date}
               onChange={(e) => setDate(e.target.value)}
               className="w-full px-4 py-3 rounded-xl text-text-primary text-sm outline-none"
+              
               style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
             />
           </div>
@@ -188,7 +207,8 @@ export default function TransactionNewGroup() {
                 onChange={(e) => setPersonName(e.target.value)}
                 placeholder="Ex: Jean Mbarga"
                 className="w-full px-4 py-3 rounded-xl text-text-primary text-sm outline-none"
-                style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
+                
+              style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
               />
             </div>
           )}
@@ -201,6 +221,7 @@ export default function TransactionNewGroup() {
               placeholder="Notes..."
               rows={2}
               className="w-full px-4 py-3 rounded-xl text-text-primary text-sm outline-none resize-none"
+              
               style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
             />
           </div>

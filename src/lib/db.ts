@@ -1,17 +1,33 @@
 const DB_NAME = 'lumina-db';
-const DB_VERSION = 11;
+const DB_VERSION = 14;
+const SCHEMA_VERSION = 3; // Increment to force cache bust on mismatch
 
 export type StoreName = 'transactions' | 'categories' | 'orgUnits' | 'auditEntries' | 'events' | 'syncQueue' | 'config' | 'caisses' | 'notifications' | 'members' | 'groups' | 'accounts' | 'group_memberships' | 'form_definitions' | 'form_submissions' | 'custom_field_definitions' | 'custom_field_values' | 'versements' | 'event_budgets' | 'budget_lines' | 'report_definitions';
 
 // Singleton DB connection — opened once, reused
 let _db: IDBDatabase | null = null;
 let _dbPromise: Promise<IDBDatabase> | null = null;
+let _upgrading = false;
 
 function ensureDB(): Promise<IDBDatabase> {
   if (_dbPromise) return _dbPromise;
   _dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
+    // Close any existing connection first to unblock upgrades
+    if (_db) {
+      try { _db.close(); } catch {}
+      _db = null;
+    }
+    // Check schema version in localStorage; force reload if mismatched
+    const stored = localStorage.getItem(`${DB_NAME}_schema`);
+    if (stored !== String(SCHEMA_VERSION)) {
+      try { indexedDB.deleteDatabase(DB_NAME); } catch {}
+      localStorage.removeItem(`${DB_NAME}_schema`);
+      window.location.reload();
+      return;
+    }
     const request = indexedDB.open(DB_NAME, DB_VERSION);
     request.onupgradeneeded = (e) => {
+      _upgrading = true;
       const db = (e.target as IDBOpenDBRequest).result;
       const stores: { name: StoreName; keyPath?: string }[] = [
         { name: 'transactions', keyPath: 'id' },
@@ -43,39 +59,96 @@ function ensureDB(): Promise<IDBDatabase> {
       }
     };
     request.onsuccess = () => {
-      // Close any stale connection from a previous version to avoid
-      // "object store not found" errors during the upgrade transition
-      _db?.close();
-      _db = request.result;
+      _upgrading = false;
+      const newDb = request.result;
+      if (_db && _db !== newDb) {
+        try { _db.close(); } catch {}
+      }
+      localStorage.setItem(`${DB_NAME}_schema`, String(SCHEMA_VERSION));
+      _db = newDb;
       _dbPromise = null;
-      resolve(request.result);
+      resolve(newDb);
     };
     request.onerror = () => {
+      _upgrading = false;
       _dbPromise = null;
       reject(request.error);
+    };
+    request.onblocked = () => {
+      // Wait for old connections to close
     };
   });
   return _dbPromise;
 }
 
-async function withStore<T>(storeName: StoreName, mode: IDBTransactionMode, fn: (store: IDBObjectStore) => IDBRequest): Promise<T> {
+// Verify all stores exist; if missing stores detected, delete the DB to force full recreation
+async function ensureStores(db: IDBDatabase): Promise<void> {
+  const expectedStores: StoreName[] = [
+    'transactions', 'categories', 'orgUnits', 'auditEntries', 'events',
+    'syncQueue', 'config', 'caisses', 'notifications', 'members', 'groups',
+    'accounts', 'group_memberships', 'versements', 'event_budgets',
+    'budget_lines', 'report_definitions', 'form_definitions', 'form_submissions',
+    'custom_field_definitions', 'custom_field_values',
+  ];
+  const missing = expectedStores.filter(s => !db.objectStoreNames.contains(s));
+  if (missing.length === 0) return;
+  try {
+    indexedDB.deleteDatabase(DB_NAME);
+  } catch {}
+  _db?.close();
+  _db = null;
+  _dbPromise = null;
+  _upgrading = false;
+  await new Promise<void>((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = (e) => {
+      const newDb = (e.target as IDBOpenDBRequest).result;
+      const stores: { name: StoreName; keyPath?: string }[] = expectedStores.map(name => ({ name, keyPath: 'id' }));
+      for (const s of stores) {
+        if (!newDb.objectStoreNames.contains(s.name)) {
+          newDb.createObjectStore(s.name, { keyPath: s.keyPath });
+        }
+      }
+    };
+    req.onsuccess = () => {
+      _db = req.result;
+      _dbPromise = null;
+      resolve();
+    };
+    req.onerror = () => {
+      _dbPromise = null;
+      reject(req.error);
+    };
+  });
+}
+
+async function withStore<T>(storeName: StoreName, mode: IDBTransactionMode, fn: (store: IDBObjectStore) => IDBRequest, retry = 0): Promise<T> {
+  if (_upgrading) {
+    await new Promise(r => setTimeout(r, 50));
+    return withStore(storeName, mode, fn, retry);
+  }
   const db = await ensureDB();
+
+  // Check if the store exists; if not, try to fix the DB
+  if (!db.objectStoreNames.contains(storeName)) {
+    await ensureStores(db);
+    return withStore(storeName, mode, fn, retry + 1);
+  }
+
   return new Promise<T>((resolve, reject) => {
     let tx: IDBTransaction;
     try {
       tx = db.transaction(storeName, mode);
-    } catch {
-      // Store may not exist yet if DB is being upgraded — close stale ref and retry
+    } catch (err) {
+      if (retry >= 2) {
+        reject(new Error(`[db] store "${storeName}" not found after ${retry + 1} attempts`));
+        return;
+      }
       _db?.close();
       _db = null;
       _dbPromise = null;
-      const freshDb = (db as IDBDatabase & { _retry?: boolean }) as IDBDatabase;
-      if ((freshDb as any)._retry) {
-        reject(new Error(`[db] store "${storeName}" not found and retry failed`));
-        return;
-      }
-      (freshDb as any)._retry = true;
-      withStore(storeName, mode, fn)
+      _upgrading = false;
+      withStore(storeName, mode, fn, retry + 1)
         .then(resolve)
         .catch(reject);
       return;
@@ -95,7 +168,7 @@ async function warmDB(): Promise<void> {
   try {
     await Promise.race([ensureDB(), timeout]);
   } catch {
-    console.warn('[db] warm-up failed, will retry on demand');
+    // will retry on demand
   }
 }
 

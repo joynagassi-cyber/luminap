@@ -220,7 +220,7 @@ export default function HistoryPage() {
               key={p}
               onClick={() => setPeriod(p)}
               className="px-4 py-2 rounded-full text-xs font-medium transition-all"
-              style={period === p ? { backgroundColor: '#FF6B00', color: '#fff' } : { backgroundColor: '#181818', color: '#808080', border: '1px solid #282828' }}
+              style={period === p ? { backgroundColor: '#FF6B00', color: '#fff' } : { backgroundColor: '#181818', color: '#B3B3B3', border: '1px solid #282828' }}
             >
               {p === 'all' ? 'Tout' : p === 'month' ? 'Ce mois' : 'Cette année'}
             </button>
@@ -283,7 +283,7 @@ export default function HistoryPage() {
               key={key}
               onClick={() => setActiveTab(key)}
               className="flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-all"
-              style={activeTab === key ? { backgroundColor: '#FF6B00', color: '#fff' } : { backgroundColor: '#181818', color: '#808080', border: '1px solid #282828' }}
+              style={activeTab === key ? { backgroundColor: '#FF6B00', color: '#fff' } : { backgroundColor: '#181818', color: '#B3B3B3', border: '1px solid #282828' }}
             >
               <Icon className="w-3 h-3" />
               {label}

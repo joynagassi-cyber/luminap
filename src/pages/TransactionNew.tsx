@@ -26,6 +26,21 @@ export default function TransactionNew() {
   const [eventId, setEventId] = useState(preselectedEvent);
   const [comment, setComment] = useState('');
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  const validateAmount = (val: string): string => {
+    const num = parseFloat(val);
+    if (!val) return '';
+    if (isNaN(num) || num <= 0) return 'Le montant doit être supérieur à 0';
+    if (num > 999999999) return 'Montant maximum atteint';
+    return '';
+  };
+
+  const handleAmountChange = (val: string) => {
+    setAmount(val);
+    const err = validateAmount(val);
+    setFieldErrors(prev => ({ ...prev, amount: err }));
+  };
 
   const filteredCategories = categories.filter(c => c.type === type);
 
@@ -101,11 +116,14 @@ export default function TransactionNew() {
             <input
               type="number"
               value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              onChange={(e) => handleAmountChange(e.target.value)}
               placeholder="0"
-              className="w-full px-4 py-3.5 rounded-xl text-text-primary text-lg font-bold outline-none"
-              style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
+              className={`w-full px-4 py-3.5 rounded-xl text-text-primary text-lg font-bold outline-none ${fieldErrors.amount ? 'border-[#E51332]' : ''}`}
+              style={{ backgroundColor: '#212121', border: `1px solid ${fieldErrors.amount ? '#E51332' : '#282828'}` }}
             />
+            {fieldErrors.amount && (
+              <p className="text-[#E51332] text-xs mt-1">{fieldErrors.amount}</p>
+            )}
           </div>
 
           <div>

@@ -78,7 +78,7 @@ export default function Archives() {
               key={id}
               onClick={() => setFilterType(id)}
               className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-all"
-              style={filterType === id ? { backgroundColor: '#FF6B00', color: '#fff' } : { backgroundColor: '#212121', color: '#808080', border: '1px solid #282828' }}
+              style={filterType === id ? { backgroundColor: '#FF6B00', color: '#fff' } : { backgroundColor: '#212121', color: '#B3B3B3', border: '1px solid #282828' }}
             >
               <Icon className="w-3.5 h-3.5" /> {label}
             </button>
@@ -115,8 +115,8 @@ export default function Archives() {
         ) : (
           <div className="text-center py-16 rounded-xl" style={{ backgroundColor: '#212121' }}>
             <Archive className="w-12 h-12 mx-auto mb-4 text-text-tertiary opacity-50" />
-            <p className="text-text-tertiary text-sm">Aucune archive</p>
-            <p className="text-text-tertiary text-xs mt-1">Les éléments archivés apparaîtront ici</p>
+            <p className="text-text-primary font-medium text-sm mb-2">Pas encore d'archives</p>
+            <p className="text-text-tertiary text-xs">Les éléments archivés apparaîtront ici</p>
           </div>
         )}
       </div>

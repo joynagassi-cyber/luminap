@@ -55,8 +55,8 @@ export default function Balance() {
 
         {/* Period toggle */}
         <div className="flex rounded-xl p-1 mb-5" style={{ backgroundColor: '#212121' }}>
-          <button onClick={() => setPeriod('mois')} className="flex-1 py-2 rounded-lg text-sm font-medium transition-all" style={period === 'mois' ? { backgroundColor: '#FF6B00', color: '#fff' } : { color: '#808080' }}>Mois</button>
-          <button onClick={() => setPeriod('annee')} className="flex-1 py-2 rounded-lg text-sm font-medium transition-all" style={period === 'annee' ? { backgroundColor: '#FF6B00', color: '#fff' } : { color: '#808080' }}>Année</button>
+          <button onClick={() => setPeriod('mois')} className="flex-1 py-2 rounded-lg text-sm font-medium transition-all" style={period === 'mois' ? { backgroundColor: '#FF6B00', color: '#fff' } : { color: '#B3B3B3' }}>Mois</button>
+          <button onClick={() => setPeriod('annee')} className="flex-1 py-2 rounded-lg text-sm font-medium transition-all" style={period === 'annee' ? { backgroundColor: '#FF6B00', color: '#fff' } : { color: '#B3B3B3' }}>Année</button>
         </div>
 
         {/* Caisse selector */}
@@ -65,7 +65,7 @@ export default function Balance() {
             const caisse = useLocalStore.getState().getCaisseForDisplay(a.id);
             const color = caisse?.color || '#FF6B00';
             return (
-              <button key={a.id} onClick={() => setSelectedCaisse(a.id)} className="px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-all" style={selectedCaisse === a.id ? { backgroundColor: color, color: '#fff' } : { backgroundColor: '#212121', color: '#808080' }}>
+              <button key={a.id} onClick={() => setSelectedCaisse(a.id)} className="px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-all" style={selectedCaisse === a.id ? { backgroundColor: color, color: '#fff' } : { backgroundColor: '#212121', color: '#B3B3B3' }}>
                 {a.name}
               </button>
             );

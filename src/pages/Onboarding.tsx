@@ -256,7 +256,7 @@ export default function Onboarding() {
           <button
             onClick={handleBack}
             className="flex-1 py-3.5 rounded-full font-semibold text-sm transition-all active:scale-95"
-            style={{ backgroundColor: '#1E1E1E', color: '#808080', border: '1px solid #282828' }}
+            style={{ backgroundColor: '#1E1E1E', color: '#B3B3B3', border: '1px solid #282828' }}
           >
             {current > 0 ? 'Précédent' : 'Ignorer'}
           </button>

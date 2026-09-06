@@ -197,8 +197,9 @@ export default function Members() {
         {filteredMembers.length === 0 && !showForm && (
           <div className="text-center py-16 rounded-xl" style={{ backgroundColor: '#212121' }}>
             <Users className="w-12 h-12 mx-auto mb-4 text-text-tertiary opacity-50" />
-            <p className="text-text-tertiary text-sm">Aucun membre</p>
-            <button onClick={() => setShowForm(true)} className="mt-3 text-sm font-medium" style={{ color: '#FF6B00' }}>
+            <p className="text-text-primary font-medium text-sm mb-2">Pas encore de membre</p>
+            <p className="text-text-tertiary text-xs mb-4">Ajoutez les membres de votre communauté</p>
+            <button onClick={() => setShowForm(true)} className="mt-3 px-6 py-2.5 rounded-full text-sm font-medium text-white" style={{ backgroundColor: '#FF6B00' }}>
               Ajouter un membre
             </button>
           </div>

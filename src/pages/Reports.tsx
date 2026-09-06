@@ -123,7 +123,7 @@ function GlobalReport({
             key={p}
             onClick={() => setPeriod(p)}
             className="flex-1 py-2 rounded-lg text-xs font-medium transition-all"
-            style={period === p ? { backgroundColor: '#FF6B00', color: '#fff' } : { color: '#808080' }}
+            style={period === p ? { backgroundColor: '#FF6B00', color: '#fff' } : { color: '#B3B3B3' }}
           >
             {p === 'ce-mois' ? 'Ce mois' : p === 'cette-annee' ? 'Cette année' : 'Personnalisé'}
           </button>
@@ -405,7 +405,7 @@ function GroupReport({
                 key={p}
                 onClick={() => setPeriod(p)}
                 className="flex-1 py-2 rounded-lg text-xs font-medium transition-all"
-                style={period === p ? { backgroundColor: '#FF6B00', color: '#fff' } : { color: '#808080' }}
+                style={period === p ? { backgroundColor: '#FF6B00', color: '#fff' } : { color: '#B3B3B3' }}
               >
                 {p === 'ce-mois' ? 'Ce mois' : p === 'cette-annee' ? 'Cette année' : 'Personnalisé'}
               </button>
@@ -905,7 +905,7 @@ export default function Reports() {
               key={tabId}
               onClick={() => setActiveTab(tabId)}
               className="flex-1 py-2.5 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-1.5 whitespace-nowrap"
-              style={activeTab === tabId ? { backgroundColor: '#FF6B00', color: '#fff' } : { color: '#808080' }}
+              style={activeTab === tabId ? { backgroundColor: '#FF6B00', color: '#fff' } : { color: '#B3B3B3' }}
             >
               <TabIcon className="w-3.5 h-3.5" /> {label}
             </button>

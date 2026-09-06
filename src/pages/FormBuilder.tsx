@@ -108,8 +108,8 @@ export default function FormBuilder() {
 
         {forms.length === 0 ? (
           <div className="text-center py-16 rounded-xl" style={{ backgroundColor: '#212121' }}>
-            <p className="text-text-tertiary text-sm">Aucun formulaire</p>
-            <p className="text-text-tertiary text-xs mt-1">Créez votre premier formulaire</p>
+            <p className="text-text-primary font-medium text-sm mb-2">Pas encore de formulaire</p>
+            <p className="text-text-tertiary text-xs mb-4">Créez votre premier formulaire pour collecter des données</p>
           </div>
         ) : (
           <div className="space-y-2">

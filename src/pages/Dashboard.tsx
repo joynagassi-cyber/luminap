@@ -362,7 +362,8 @@ export default function Dashboard() {
           {recentTransactions.length === 0 ? (
             <div className="text-center py-10 rounded-xl" style={{ backgroundColor: '#1e1e1e', border: '1px solid #282828' }}>
               <PlusCircle className="w-8 h-8 mx-auto mb-3 text-text-tertiary" />
-              <p className="text-text-tertiary text-sm">Aucune transaction</p>
+              <p className="text-text-primary font-medium text-sm mb-2">Pas encore de mouvement</p>
+              <p className="text-text-tertiary text-xs mb-4">Commencez par enregistrer votre première transaction</p>
               <button onClick={() => navigate('/transaction/new')} className="mt-3 text-sm font-medium" style={{ color: '#FF6B00' }}>
                 Créer une transaction
               </button>

@@ -78,7 +78,7 @@ export default function GroupDetail() {
     if (!editName.trim()) { setError('Le nom est requis'); return; }
     await updateGroup(id!, { name: editName.trim(), description: editDesc.trim() });
     setShowEdit(false);
-    setSuccess('Groupe modifié');
+    setSuccess('Groupe mis à jour avec succès');
     setTimeout(() => setSuccess(''), 3000);
   };
 
@@ -87,7 +87,7 @@ export default function GroupDetail() {
       await deleteGroup(id!);
       navigate('/groups');
     } catch (e: any) {
-      setError(e.message || 'Erreur lors de la suppression');
+      setError("Nous n'avons pas pu supprimer ce groupe. Veuillez réessayer.");
     }
   };
 
@@ -96,7 +96,7 @@ export default function GroupDetail() {
       await archiveGroup(id!, 'Archive manuelle', 'local-user');
       navigate('/groups');
     } catch (e: any) {
-      setError(e.message || 'Erreur lors de l\'archivage');
+      setError("Nous n'avons pas pu archiver ce groupe. Veuillez réessayer.");
     }
   };
 
@@ -116,7 +116,7 @@ export default function GroupDetail() {
     });
     setShowAddMember(false);
     setSelectedMemberId('');
-    setSuccess('Membre ajouté');
+    setSuccess('Membre ajouté au groupe');
     setTimeout(() => setSuccess(''), 3000);
   };
 
@@ -214,7 +214,7 @@ export default function GroupDetail() {
             { id: 'historique' as Tab, label: 'Historique', icon: Clock },
             { id: 'parametres' as Tab, label: 'Paramètres', icon: Edit3 },
           ]).map(({ id: tabId, label, icon: TabIcon }) => (
-            <button key={tabId} onClick={() => setActiveTab(tabId)} className="flex-1 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1.5 whitespace-nowrap" style={activeTab === tabId ? { backgroundColor: '#FF6B00', color: '#fff' } : { color: '#808080' }}>
+            <button key={tabId} onClick={() => setActiveTab(tabId)} className="flex-1 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1.5 whitespace-nowrap" style={activeTab === tabId ? { backgroundColor: '#FF6B00', color: '#fff' } : { color: '#B3B3B3' }}>
               <TabIcon className="w-3.5 h-3.5" /> {label}
             </button>
           ))}
@@ -330,7 +330,7 @@ export default function GroupDetail() {
             {/* Group timeline */}
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <Clock className="w-4 h-4" style={{ color: '#808080' }} />
+                <Clock className="w-4 h-4" style={{ color: '#B3B3B3' }} />
                 <p className="text-text-primary font-semibold text-sm">Timeline du groupe</p>
               </div>
               <div className="rounded-xl p-4" style={{ backgroundColor: '#212121' }}>
@@ -390,7 +390,7 @@ export default function GroupDetail() {
 
             <button onClick={() => setShowArchive(true)} className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
               <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#80808020' }}>
-                <Archive className="w-5 h-5" style={{ color: '#808080' }} />
+                <Archive className="w-5 h-5" style={{ color: '#B3B3B3' }} />
               </div>
               <span className="text-text-primary text-sm font-medium">Archiver le groupe</span>
             </button>
@@ -467,9 +467,9 @@ export default function GroupDetail() {
               <Trash2 className="w-6 h-6 text-[#E51332]" />
             </div>
             <h3 className="text-text-primary font-bold text-lg mb-2">Supprimer {orgUnit.name} ?</h3>
-            <p className="text-text-tertiary text-sm mb-1">Cette action est irréversible.</p>
-            <p className="text-text-tertiary text-xs mb-4">La caisse et toutes les transactions associées seront supprimées.</p>
-            <button onClick={handleDelete} className="w-full py-3.5 rounded-full font-semibold text-white mb-3" style={{ backgroundColor: '#E51332' }}>Supprimer</button>
+            <p className="text-text-tertiary text-sm mb-1">La caisse et toutes les transactions associées seront supprimées définitivement.</p>
+            <p className="text-text-tertiary text-xs mb-4">Cette action ne peut pas être annulée.</p>
+            <button onClick={handleDelete} className="w-full py-3.5 rounded-full font-semibold text-white mb-3" style={{ backgroundColor: '#E51332' }}>Supprimer définitivement</button>
             <button onClick={() => setShowDelete(false)} className="w-full py-3 rounded-full font-medium text-sm text-text-tertiary" style={{ backgroundColor: '#212121' }}>Annuler</button>
           </div>
         </div>

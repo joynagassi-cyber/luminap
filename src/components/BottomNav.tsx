@@ -76,9 +76,9 @@ export default function BottomNav() {
           {NAV_ITEMS.map(({ icon: Icon, label, path }) => {
             const isActive = location.pathname === path || (path !== '/' && location.pathname.startsWith(path));
             return (
-              <button key={path} onClick={() => navigate(path)} className="flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-all min-w-0">
-                <Icon className="w-5 h-5" style={isActive ? { color: '#FF6B00' } : { color: '#808080', opacity: 0.6 }} />
-                <span className="text-xs font-medium" style={isActive ? { color: '#FF6B00' } : { color: '#808080' }}>{label}</span>
+              <button key={path} onClick={() => navigate(path)} className="flex flex-col items-center gap-0.5 px-3 py-2.5 rounded-xl transition-all min-w-0">
+                <Icon className="w-5 h-5" style={isActive ? { color: '#FF6B00' } : { color: '#B3B3B3', opacity: 0.7 }} />
+                <span className="text-xs font-medium" style={isActive ? { color: '#FF6B00' } : { color: '#B3B3B3' }}>{label}</span>
               </button>
             );
           })}
@@ -88,8 +88,8 @@ export default function BottomNav() {
               onClick={() => setShowMore(!showMore)}
               className="flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-all min-w-0"
             >
-              <MoreVertical className="w-5 h-5" style={{ color: showMore ? '#FF6B00' : '#808080' }} />
-              <span className="text-xs font-medium" style={{ color: showMore ? '#FF6B00' : '#808080' }}>Plus</span>
+              <MoreVertical className="w-5 h-5" style={{ color: showMore ? '#FF6B00' : '#B3B3B3' }} />
+              <span className="text-xs font-medium" style={{ color: showMore ? '#FF6B00' : '#B3B3B3' }}>Plus</span>
             </button>
 
             {/* More menu */}
@@ -105,7 +105,7 @@ export default function BottomNav() {
                       onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#282828')}
                       onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                     >
-                      <Icon className="w-4 h-4 flex-shrink-0" style={{ color: '#808080' }} />
+                      <Icon className="w-4 h-4 flex-shrink-0" style={{ color: '#B3B3B3' }} />
                       <span className="text-sm font-medium">{label}</span>
                     </button>
                   ))}

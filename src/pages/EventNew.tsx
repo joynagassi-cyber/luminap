@@ -148,7 +148,7 @@ export default function EventNew() {
                   key={s}
                   onClick={() => setStatus(s)}
                   className="flex-1 py-2.5 rounded-xl text-sm font-medium transition-all"
-                  style={status === s ? { backgroundColor: '#FF6B00', color: '#fff' } : { backgroundColor: '#212121', color: '#808080', border: '1px solid #282828' }}
+                  style={status === s ? { backgroundColor: '#FF6B00', color: '#fff' } : { backgroundColor: '#212121', color: '#B3B3B3', border: '1px solid #282828' }}
                 >
                   {s === 'PLANIFIED' ? 'Planifié' : 'En cours'}
                 </button>

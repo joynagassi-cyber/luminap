@@ -31,7 +31,7 @@ export default function Login() {
       await loadInitialData();
       navigate('/role-selection', { replace: true });
     } catch (e) {
-      setError('Erreur de connexion');
+      setError('Nous n\'avons pas pu vous connecter. Vérifiez votre connexion internet puis réessayez.');
     }
     setLoading(false);
   };
@@ -74,7 +74,7 @@ export default function Login() {
                   className="py-2.5 px-3 rounded-xl text-xs font-medium transition-all"
                   style={role === id
                     ? { backgroundColor: '#FF6B0020', border: '1px solid #FF6B00', color: '#FF6B00' }
-                    : { backgroundColor: '#181818', border: '1px solid #282828', color: '#808080' }
+                    : { backgroundColor: '#181818', border: '1px solid #282828', color: '#B3B3B3' }
                   }
                 >
                   {label}

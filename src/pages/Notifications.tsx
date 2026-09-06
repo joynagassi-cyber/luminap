@@ -10,7 +10,7 @@ function getNotifIcon(actionType: string) {
   switch (actionType) {
     case 'TRANSACTION_PENDING': return <Bell className="w-4 h-4" style={{ color: '#FFB800' }} />;
     case 'TRANSACTION_APPROVED': return <CheckCircle className="w-4 h-4" style={{ color: '#1DB954' }} />;
-    default: return <Bell className="w-4 h-4" style={{ color: '#808080' }} />;
+    default: return <Bell className="w-4 h-4" style={{ color: '#B3B3B3' }} />;
   }
 }
 
@@ -37,7 +37,7 @@ export default function Notifications() {
         {sorted.length === 0 ? (
           <div className="text-center py-16 rounded-xl" style={{ backgroundColor: '#212121' }}>
             <Bell className="w-12 h-12 mx-auto mb-4 text-text-tertiary opacity-50" />
-            <p className="text-text-tertiary text-sm">Aucune notification</p>
+            <p className="text-text-primary font-medium text-sm mb-2">Pas encore de notification</p>
             <p className="text-text-tertiary text-xs mt-1">Les notifications apparaîtront ici</p>
           </div>
         ) : (

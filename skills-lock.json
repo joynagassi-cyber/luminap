@@ -1,6 +1,24 @@
 {
   "version": 1,
   "skills": {
+    "ai-interface-reviewer": {
+      "source": "uxuiprinciples/agent-skills",
+      "sourceType": "github",
+      "skillPath": "ai-interface-reviewer/SKILL.md",
+      "computedHash": "036c88e8039b3a6804ee14f403304f81d14596980ba6130e1dccd58a58a6afef"
+    },
+    "flow-checker": {
+      "source": "uxuiprinciples/agent-skills",
+      "sourceType": "github",
+      "skillPath": "flow-checker/SKILL.md",
+      "computedHash": "ca6b9960c2d73f590a68bdf97790010634a2c70e5945e5d2cdbff86399636400"
+    },
+    "interface-auditor": {
+      "source": "uxuiprinciples/agent-skills",
+      "sourceType": "github",
+      "skillPath": "interface-auditor/SKILL.md",
+      "computedHash": "b23ca6bbee26ccc4ea14404e453ca3cfa0d7cb0edd50c9f48d4fa584a63cddb1"
+    },
     "supabase": {
       "source": "supabase/agent-skills",
       "sourceType": "github",
@@ -18,6 +36,18 @@
       "sourceType": "github",
       "skillPath": "skills/supabase-server/SKILL.md",
       "computedHash": "de3068fa3b606fa50a661992ab7e3a8570d310d793b7b8a7e6ddb1a9b716b1a6"
+    },
+    "uxui-evaluator": {
+      "source": "uxuiprinciples/agent-skills",
+      "sourceType": "github",
+      "skillPath": "uxui-evaluator/SKILL.md",
+      "computedHash": "35883cc061c4476346d83c87e96177f494c0f97cd6078dd5d351b21c012e3579"
+    },
+    "vibe-coding-advisor": {
+      "source": "uxuiprinciples/agent-skills",
+      "sourceType": "github",
+      "skillPath": "vibe-coding-advisor/SKILL.md",
+      "computedHash": "dedf2be7e00bd0339c3fed342b6873b0a2136f0e1992a851aeafa2a514a0a892"
     }
   }
 }

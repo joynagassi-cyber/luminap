@@ -108,7 +108,7 @@ export default function ReportBuilder() {
                   onClick={() => addDimension(dim)}
                   disabled={report.dimensions?.includes(dim)}
                   className="px-3 py-1.5 rounded-full text-xs font-medium"
-                  style={report.dimensions?.includes(dim) ? { backgroundColor: '#282828', color: '#808080', cursor: 'default' } : { backgroundColor: '#FF6B0020', color: '#FF6B00' }}
+                  style={report.dimensions?.includes(dim) ? { backgroundColor: '#282828', color: '#B3B3B3', cursor: 'default' } : { backgroundColor: '#FF6B0020', color: '#FF6B00' }}
                 >
                   {dim === 'month' ? 'Mois' : dim === 'year' ? 'Année' : dim === 'sourceCaisseId' ? 'Caisse' : 'Catégorie'}
                 </button>
