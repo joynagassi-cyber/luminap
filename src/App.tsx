@@ -43,6 +43,7 @@ import SaisieRapide from "./pages/SaisieRapide";
 import CulteDetail from "./pages/CulteDetail";
 import MembresEnAvance from "./pages/MembresEnAvance";
 import MembreDetail from "./pages/MembreDetail";
+import AuthPage from "./pages/AuthPage";
 
 const queryClient = new QueryClient();
 
@@ -58,6 +59,8 @@ function AppRoutes() {
         <Route path="/splash" element={<Splash />} />
 
         {/* Auth screens */}
+        <Route path="/auth" element={<AuthPage />} />
+        <Route path="/auth/callback" element={<AuthPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/role-selection" element={<RoleSelection />} />
