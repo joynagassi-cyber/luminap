@@ -111,23 +111,23 @@ const DEFAULT_USER: User = {
 };
 
 const DEFAULT_CATEGORIES: Category[] = [
-  { id: 'cat-dime', key: 'dime', labelFr: 'Dîme', type: 'INCOME', orgId: 'org-1' },
-  { id: 'cat-offrande', key: 'offrande', labelFr: 'Offrande', type: 'INCOME', orgId: 'org-1' },
-  { id: 'cat-offrande-mission', key: 'offrande_mission', labelFr: 'Offrande Mission', type: 'INCOME', orgId: 'org-1' },
-  { id: 'cat-don', key: 'don', labelFr: 'Don', type: 'INCOME', orgId: 'org-1' },
-  { id: 'cat-salaire-pasteur', key: 'salaire_pasteur', labelFr: 'Salaire Pasteur', type: 'EXPENSE', orgId: 'org-1' },
-  { id: 'cat-frais-fonc', key: 'frais_fonctionnement', labelFr: 'Frais de Fonctionnement', type: 'EXPENSE', orgId: 'org-1' },
-  { id: 'cat-mission', key: 'mission', labelFr: 'Mission', type: 'EXPENSE', orgId: 'org-1' },
-  { id: 'cat-entretien', key: 'entretien', labelFr: 'Entretien', type: 'EXPENSE', orgId: 'org-1' },
-  { id: 'cat-aumone', key: 'aumone', labelFr: 'Aumône', type: 'EXPENSE', orgId: 'org-1' },
+  { id: 'cat-dime', key: 'dime', labelFr: 'Dîme', type: 'INCOME', orgId: getOrganizationId() },
+  { id: 'cat-offrande', key: 'offrande', labelFr: 'Offrande', type: 'INCOME', orgId: getOrganizationId() },
+  { id: 'cat-offrande-mission', key: 'offrande_mission', labelFr: 'Offrande Mission', type: 'INCOME', orgId: getOrganizationId() },
+  { id: 'cat-don', key: 'don', labelFr: 'Don', type: 'INCOME', orgId: getOrganizationId() },
+  { id: 'cat-salaire-pasteur', key: 'salaire_pasteur', labelFr: 'Salaire Pasteur', type: 'EXPENSE', orgId: getOrganizationId() },
+  { id: 'cat-frais-fonc', key: 'frais_fonctionnement', labelFr: 'Frais de Fonctionnement', type: 'EXPENSE', orgId: getOrganizationId() },
+  { id: 'cat-mission', key: 'mission', labelFr: 'Mission', type: 'EXPENSE', orgId: getOrganizationId() },
+  { id: 'cat-entretien', key: 'entretien', labelFr: 'Entretien', type: 'EXPENSE', orgId: getOrganizationId() },
+  { id: 'cat-aumone', key: 'aumone', labelFr: 'Aumône', type: 'EXPENSE', orgId: getOrganizationId() },
 ];
 
 const DEFAULT_CAISSES: Caisse[] = [
-  { id: 'main', name: 'Caisse principale', description: 'Fonds de l\'église', type: 'MAIN', color: '#FF6B00', orgId: 'org-1', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), archivedAt: null, archivedBy: null, archiveReason: null, status: 'ACTIVE' },
+  { id: 'main', name: 'Caisse principale', description: 'Fonds de l\'église', type: 'MAIN', color: '#FF6B00', orgId: getOrganizationId(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), archivedAt: null, archivedBy: null, archiveReason: null, status: 'ACTIVE' },
 ];
 
 const DEFAULT_ORG_UNITS: OrgUnit[] = [
-  { id: 'org-1', name: 'Église MFE-JC Centrale', type: 'eglise', description: 'Église mère', orgId: 'org-1', isActive: true },
+  { id: 'org-1', name: 'Église MFE-JC Centrale', type: 'eglise', description: 'Église mère', orgId: getOrganizationId(), isActive: true },
 ];
 
 const COLOR_PALETTE = ['#3B82F6', '#8B5CF6', '#EC4899', '#14B8A6', '#F59E0B', '#EF4444', '#22C55E', '#6366F1', '#F97316', '#06B6D4'];
