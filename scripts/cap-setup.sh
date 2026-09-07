@@ -4,7 +4,7 @@ echo "=== Capacitor Android Setup ==="
 echo "Step 1: Build web app..."
 npm run build
 echo "Step 2: Initialize Capacitor..."
-npx cap init Lumina org.mfej-centrale.lumina --web-dir=dist --no-open
+npx cap init Lumina com.lumina.mfejc --web-dir=dist --no-open
 echo "Step 3: Add Android platform..."
 npx cap add android
 echo "Step 4: Sync..."

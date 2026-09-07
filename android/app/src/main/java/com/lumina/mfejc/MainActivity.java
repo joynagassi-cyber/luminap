@@ -1,4 +1,4 @@
-package org.mfejcentrale.lumina;
+package com.lumina.mfejc;
 
 import com.getcapacitor.BridgeActivity;
 
