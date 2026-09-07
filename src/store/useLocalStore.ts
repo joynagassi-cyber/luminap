@@ -6,6 +6,7 @@
  */
 
 import { create } from 'zustand';
+import { workflow } from '@/capabilities/workflow';
 import type { User, Role, Transaction, Category, OrgUnit, Caisse, Event, BudgetItem, ShoppingItem, AppConfig, NotificationItem, Member, Group, Account, GroupMembership, Versement, EventBudget, BudgetLine, Cotisation, CotisationStatut } from '@/types';
 import { generateId } from '@/lib/utils';
 import { formatDate, formatCentsToFCFA } from '@/lib/utils';
@@ -224,9 +225,8 @@ export const useLocalStore = create<LocalStoreState>()(
 
     updateTransaction: async (id, data) => {
       const oldTx = get().transactions.find(t => t.id === id);
-      if (oldTx?.status === 'APPROVED') {
-        throw new Error('TRANSACTION_APPROVED_IMMUTABLE');
-      }
+      const guardResult = workflow.check('transaction', oldTx?.status as any, data.status as any);
+      if (!guardResult.allowed) throw new Error(guardResult.reason ?? 'TRANSACTION_APPROVED_IMMUTABLE');
 
       // Write to PowerSync
       try {
@@ -244,9 +244,8 @@ export const useLocalStore = create<LocalStoreState>()(
 
     deleteTransaction: async (id) => {
       const oldTx = get().transactions.find(t => t.id === id);
-      if (oldTx?.status === 'APPROVED') {
-        throw new Error('TRANSACTION_APPROVED_IMMUTABLE');
-      }
+      const guardResult = workflow.check('transaction', oldTx?.status as any, 'DELETED' as any);
+      if (!guardResult.allowed) throw new Error(guardResult.reason ?? 'TRANSACTION_APPROVED_IMMUTABLE');
 
       // Write to PowerSync
       try {
@@ -260,7 +259,10 @@ export const useLocalStore = create<LocalStoreState>()(
     },
 
     batchDeleteTransactions: async (ids) => {
-      const approvedIds = ids.filter(id => get().transactions.find(t => t.id === id)?.status === 'APPROVED');
+      const approvedIds = ids.filter(id => {
+        const tx = get().transactions.find(t => t.id === id);
+        return workflow.check('transaction', tx?.status as any, 'DELETED' as any).allowed === false;
+      });
       if (approvedIds.length > 0) {
         throw new Error('TRANSACTION_APPROVED_IMMUTABLE');
       }
