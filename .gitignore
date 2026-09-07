@@ -43,3 +43,4 @@ android/app/lumina-keystore.jks
 # Playwright test artifacts
 /e2e-tests/fixtures/dyad/
 /e2e-tests/tsconfig.json
+android/app/lumina-keystore.b64
