@@ -118,7 +118,8 @@ export default function TracePage() {
         </div>
 
         {/* Filters */}
-        <div className="flex gap-2 mb-5 overflow-x-auto pb-2">
+        <div className="-mx-5 px-5 mb-5">
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
           {FILTERS.map((f) => (
             <button
               key={f}
@@ -129,6 +130,7 @@ export default function TracePage() {
               {f}
             </button>
           ))}
+          </div>
         </div>
 
         {filtered.length === 0 ? (

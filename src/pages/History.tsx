@@ -255,7 +255,8 @@ export default function HistoryPage() {
         </div>
 
         {/* Quick stats */}
-        <div className="flex gap-3 mb-5 overflow-x-auto pb-1">
+        <div className="-mx-5 px-5 mb-5">
+          <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
           <div className="flex-shrink-0 px-4 py-2.5 rounded-xl text-center" style={{ backgroundColor: '#181818' }}>
             <p className="text-text-tertiary text-xs">Transactions</p>
             <p className="text-text-primary font-bold text-sm">{totalTransactions}</p>
@@ -274,10 +275,12 @@ export default function HistoryPage() {
               {totalIncome > 0 ? Math.round((netResult / totalIncome) * 100) : 0}%
             </p>
           </div>
+          </div>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 mb-5 overflow-x-auto pb-2">
+        <div className="-mx-5 px-5 mb-5">
+          <div className="flex gap-1 overflow-x-auto pb-2 scrollbar-hide">
           {TABS.map(({ key, label, icon: Icon }) => (
             <button
               key={key}
@@ -289,6 +292,7 @@ export default function HistoryPage() {
               {label}
             </button>
           ))}
+          </div>
         </div>
 
         {/* ═══════════════════════════════════════════════════════════ */}

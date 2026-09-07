@@ -66,23 +66,25 @@ export default function Archives() {
         </div>
 
         {/* Filter tabs */}
-        <div className="flex gap-2 mb-5 overflow-x-auto pb-2">
-          {[[
-            { id: 'all' as const, label: 'Tout', icon: Eye },
-            { id: 'group' as const, label: 'Groupes', icon: Users },
-            { id: 'account' as const, label: 'Comptes', icon: Wallet },
-            { id: 'member' as const, label: 'Membres', icon: Users },
-            { id: 'event' as const, label: 'Événements', icon: Wallet },
-          ]].map(items => items.map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              onClick={() => setFilterType(id)}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-all"
-              style={filterType === id ? { backgroundColor: '#FF6B00', color: '#fff' } : { backgroundColor: '#212121', color: '#B3B3B3', border: '1px solid #282828' }}
-            >
-              <Icon className="w-3.5 h-3.5" /> {label}
-            </button>
-          )))}
+        <div className="-mx-5 px-5 mb-5">
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+            {[[
+              { id: 'all' as const, label: 'Tout', icon: Eye },
+              { id: 'group' as const, label: 'Groupes', icon: Users },
+              { id: 'account' as const, label: 'Comptes', icon: Wallet },
+              { id: 'member' as const, label: 'Membres', icon: Users },
+              { id: 'event' as const, label: 'Événements', icon: Wallet },
+            ]].map(items => items.map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                onClick={() => setFilterType(id)}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-all"
+                style={filterType === id ? { backgroundColor: '#FF6B00', color: '#fff' } : { backgroundColor: '#212121', color: '#B3B3B3', border: '1px solid #282828' }}
+              >
+                <Icon className="w-3.5 h-3.5" /> {label}
+              </button>
+            )))}
+          </div>
         </div>
 
         {/* Archived items */}

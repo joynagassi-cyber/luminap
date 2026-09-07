@@ -60,16 +60,18 @@ export default function Balance() {
         </div>
 
         {/* Caisse selector */}
-        <div className="flex gap-2 mb-5 overflow-x-auto pb-2">
-          {accounts.map((a) => {
-            const caisse = useLocalStore.getState().getCaisseForDisplay(a.id);
-            const color = caisse?.color || '#FF6B00';
-            return (
-              <button key={a.id} onClick={() => setSelectedCaisse(a.id)} className="px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-all" style={selectedCaisse === a.id ? { backgroundColor: color, color: '#fff' } : { backgroundColor: '#212121', color: '#B3B3B3' }}>
-                {a.name}
-              </button>
-            );
-          })}
+        <div className="-mx-5 px-5 mb-5">
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+            {accounts.map((a) => {
+              const caisse = useLocalStore.getState().getCaisseForDisplay(a.id);
+              const color = caisse?.color || '#FF6B00';
+              return (
+                <button key={a.id} onClick={() => setSelectedCaisse(a.id)} className="px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-all" style={selectedCaisse === a.id ? { backgroundColor: color, color: '#fff' } : { backgroundColor: '#212121', color: '#B3B3B3' }}>
+                  {a.name}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Summary cards */}

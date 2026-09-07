@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLocalStore } from '@/store/useLocalStore';
+import { useNotifications, useAccounts } from '@/lib/dataLayer';
 import { Settings, Database, Cloud, CloudOff, RefreshCw, CreditCard, UserCircle, Camera, Building2, Image as ImageIcon, BookOpen, ScrollText, Check, ClipboardList, Tag, Archive, BarChart3, Clock } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
@@ -11,6 +12,8 @@ import { generateId } from '@/lib/utils';
 export default function SettingsPage() {
   const navigate = useNavigate();
   const { user, appConfig, updateConfig, loadInitialData, isOnline, auditEntries } = useLocalStore();
+  const { data: notifications } = useNotifications();
+  const { data: accounts } = useAccounts();
   const [churchName, setChurchName] = useState(appConfig.churchName);
   const [churchLogo, setChurchLogo] = useState(appConfig.churchLogoUrl);
   const [userPhoto, setUserPhoto] = useState(appConfig.userPhoto);
@@ -54,6 +57,7 @@ export default function SettingsPage() {
   };
 
   const totalActions = auditEntries.length;
+  const unreadCount = notifications?.filter(n => !n.is_read).length ?? 0;
 
   return (
     <div className="min-h-screen bg-canvas">
@@ -149,11 +153,19 @@ export default function SettingsPage() {
           </div>
           <div className="flex items-center justify-between text-sm mb-2">
             <span className="text-text-tertiary">Base de données</span>
-            <span className="text-text-secondary">lumina-db v10</span>
+            <span className="text-text-secondary">PowerSync + IndexedDB</span>
           </div>
-          <div className="flex items-center justify-between text-sm">
+          <div className="flex items-center justify-between text-sm mb-2">
             <span className="text-text-tertiary">Actions enregistrées</span>
             <span className="text-text-secondary">{totalActions}</span>
+          </div>
+          <div className="flex items-center justify-between text-sm mb-2">
+            <span className="text-text-tertiary">Notifications</span>
+            <span className="text-text-secondary">{notifications?.length ?? 0}</span>
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-text-tertiary">Caisses / Comptes</span>
+            <span className="text-text-secondary">{accounts?.length ?? 0}</span>
           </div>
         </div>
 

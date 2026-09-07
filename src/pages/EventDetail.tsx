@@ -233,16 +233,26 @@ export default function EventDetail() {
         )}
 
         {/* Tabs */}
-        <div className="flex rounded-xl p-1 mb-6 overflow-x-auto" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
-          {([
-            { id: 'overview' as Tab, label: 'Aperçu' },
-            { id: 'budget' as Tab, label: 'Budget' },
-            { id: 'transactions' as Tab, label: 'Transactions' },
-          ]).map(({ id: tabId, label }) => (
-            <button key={tabId} onClick={() => setActiveTab(tabId)} className={`px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${activeTab === tabId ? 'font-semibold' : 'text-text-tertiary'}`} style={activeTab === tabId ? { backgroundColor: '#FF6B00', color: '#fff' } : {}}>
-              {label}
-            </button>
-          ))}
+        <div className="mt-6 mb-6">
+          <div className="flex rounded-2xl p-1.5 overflow-x-auto scrollbar-hide" style={{ backgroundColor: '#212121', border: '1px solid #282828', gap: '6px' }}>
+            {([
+              { id: 'overview' as Tab, label: 'Aperçu' },
+              { id: 'budget' as Tab, label: 'Budget' },
+              { id: 'transactions' as Tab, label: 'Transactions' },
+            ]).map(({ id: tabId, label }) => (
+              <button
+                key={tabId}
+                onClick={() => setActiveTab(tabId)}
+                className="flex-shrink-0 py-3 px-4 rounded-xl text-xs font-medium whitespace-nowrap transition-all"
+                style={activeTab === tabId
+                  ? { backgroundColor: '#FF6B00', color: '#fff', boxShadow: '0 2px 8px rgba(255,107,0,0.3)' }
+                  : { backgroundColor: 'transparent', color: '#808080' }
+                }
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Tab: Overview */}

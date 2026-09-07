@@ -1,23 +1,24 @@
 import { column, Schema, Table } from '@powersync/web';
-// OR: import { column, Schema, Table } from '@powersync/react-native';
+
+// ============================================================
+// Core Tables (déjà existants)
+// ============================================================
 
 const profiles = new Table(
   {
-    // id column (text) is automatically included
     email: column.text,
     first_name: column.text,
     last_name: column.text,
     role: column.text,
     org_id: column.text,
     created_at: column.text,
-    updated_at: column.text
+    updated_at: column.text,
   },
   { indexes: {} }
 );
 
 const members = new Table(
   {
-    // id column (text) is automatically included
     org_id: column.text,
     first_name: column.text,
     last_name: column.text,
@@ -29,14 +30,13 @@ const members = new Table(
     archived_by: column.text,
     archive_reason: column.text,
     created_at: column.text,
-    updated_at: column.text
+    updated_at: column.text,
   },
   { indexes: {} }
 );
 
 const transactions = new Table(
   {
-    // id column (text) is automatically included
     org_id: column.text,
     type: column.text,
     amount: column.integer,
@@ -58,14 +58,13 @@ const transactions = new Table(
     person_name: column.text,
     source_caisse_id: column.text,
     versement_id: column.text,
-    reversal_of_id: column.text
+    reversal_of_id: column.text,
   },
   { indexes: {} }
 );
 
 const events = new Table(
   {
-    // id column (text) is automatically included
     org_id: column.text,
     name: column.text,
     description: column.text,
@@ -75,21 +74,251 @@ const events = new Table(
     budget: column.integer,
     created_at: column.text,
     updated_at: column.text,
-    budget_items: column.text
+    budget_items: column.text,
   },
   { indexes: {} }
 );
 
 const notifications = new Table(
   {
-    // id column (text) is automatically included
     org_id: column.text,
     action_type: column.text,
     title: column.text,
     message: column.text,
     is_read: column.integer,
     source_transaction_id: column.text,
-    created_at: column.text
+    created_at: column.text,
+  },
+  { indexes: {} }
+);
+
+// ============================================================
+// Finance Tables
+// ============================================================
+
+const categories = new Table(
+  {
+    key: column.text,
+    label_fr: column.text,
+    type: column.text,
+    org_id: column.text,
+    created_at: column.text,
+  },
+  { indexes: {} }
+);
+
+const caisses = new Table(
+  {
+    name: column.text,
+    description: column.text,
+    type: column.text,
+    color: column.text,
+    org_id: column.text,
+    created_at: column.text,
+    updated_at: column.text,
+    archived_at: column.text,
+    archived_by: column.text,
+    archive_reason: column.text,
+    status: column.text,
+  },
+  { indexes: {} }
+);
+
+const accounts = new Table(
+  {
+    org_id: column.text,
+    owner_type: column.text,
+    owner_id: column.text,
+    name: column.text,
+    currency: column.text,
+    status: column.text,
+    archived_at: column.text,
+    archived_by: column.text,
+    archive_reason: column.text,
+    created_at: column.text,
+    updated_at: column.text,
+  },
+  { indexes: {} }
+);
+
+const versements = new Table(
+  {
+    org_id: column.text,
+    from_account_id: column.text,
+    to_account_id: column.text,
+    amount_cents: column.integer,
+    date: column.text,
+    status: column.text,
+    created_by: column.text,
+    approved_by: column.text,
+    approved_at: column.text,
+    comment: column.text,
+    created_at: column.text,
+  },
+  { indexes: {} }
+);
+
+// ============================================================
+// Organization Tables
+// ============================================================
+
+const org_units = new Table(
+  {
+    name: column.text,
+    type: column.text,
+    org_id: column.text,
+    description: column.text,
+    is_active: column.integer,
+    created_at: column.text,
+    updated_at: column.text,
+  },
+  { indexes: {} }
+);
+
+const groups = new Table(
+  {
+    org_id: column.text,
+    name: column.text,
+    parent_group_id: column.text,
+    responsable_member_id: column.text,
+    status: column.text,
+    archived_at: column.text,
+    archived_by: column.text,
+    archive_reason: column.text,
+    created_at: column.text,
+    updated_at: column.text,
+  },
+  { indexes: {} }
+);
+
+const group_memberships = new Table(
+  {
+    member_id: column.text,
+    group_id: column.text,
+    role: column.text,
+    created_at: column.text,
+  },
+  { indexes: {} }
+);
+
+// ============================================================
+// Event Budget Tables
+// ============================================================
+
+const event_budgets = new Table(
+  {
+    event_id: column.text,
+    currency: column.text,
+    revised_at: column.text,
+    revised_by: column.text,
+    created_at: column.text,
+  },
+  { indexes: {} }
+);
+
+const budget_lines = new Table(
+  {
+    event_budget_id: column.text,
+    category_id: column.text,
+    planned_amount_cents: column.integer,
+    actual_amount_cents: column.integer,
+    description: column.text,
+    created_at: column.text,
+  },
+  { indexes: {} }
+);
+
+// ============================================================
+// Audit & Config Tables
+// ============================================================
+
+const audit_entries = new Table(
+  {
+    org_id: column.text,
+    transaction_id: column.text,
+    user_id: column.text,
+    actor_role_at_time: column.text,
+    action: column.text,
+    entity_type: column.text,
+    entity_id: column.text,
+    before_state: column.text,
+    after_state: column.text,
+    comment: column.text,
+    created_at: column.text,
+  },
+  { indexes: {} }
+);
+
+const config = new Table(
+  {
+    key: column.text,
+    value: column.text,
+    created_at: column.text,
+    updated_at: column.text,
+  },
+  { indexes: {} }
+);
+
+// ============================================================
+// Form & Custom Field Tables
+// ============================================================
+
+const form_definitions = new Table(
+  {
+    org_id: column.text,
+    name: column.text,
+    description: column.text,
+    fields: column.text,
+    status: column.text,
+    created_at: column.text,
+    updated_at: column.text,
+  },
+  { indexes: {} }
+);
+
+const form_submissions = new Table(
+  {
+    form_definition_id: column.text,
+    entity_type: column.text,
+    entity_id: column.text,
+    data: column.text,
+    submitted_by: column.text,
+    submitted_at: column.text,
+  },
+  { indexes: {} }
+);
+
+const custom_field_definitions = new Table(
+  {
+    org_id: column.text,
+    entity_type: column.text,
+    field_name: column.text,
+    field_label: column.text,
+    field_type: column.text,
+    created_at: column.text,
+  },
+  { indexes: {} }
+);
+
+const custom_field_values = new Table(
+  {
+    entity_type: column.text,
+    entity_id: column.text,
+    field_name: column.text,
+    value: column.text,
+    updated_at: column.text,
+  },
+  { indexes: {} }
+);
+
+const report_definitions = new Table(
+  {
+    org_id: column.text,
+    name: column.text,
+    type: column.text,
+    config: column.text,
+    created_at: column.text,
+    updated_at: column.text,
   },
   { indexes: {} }
 );
@@ -99,8 +328,23 @@ export const AppSchema = new Schema({
   members,
   transactions,
   events,
-  notifications
+  notifications,
+  categories,
+  caisses,
+  accounts,
+  versements,
+  org_units,
+  groups,
+  group_memberships,
+  event_budgets,
+  budget_lines,
+  audit_entries,
+  config,
+  form_definitions,
+  form_submissions,
+  custom_field_definitions,
+  custom_field_values,
+  report_definitions,
 });
 
 export type Database = (typeof AppSchema)['types'];
-

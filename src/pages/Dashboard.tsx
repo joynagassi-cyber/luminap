@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLocalStore } from '@/store/useLocalStore';
+import { useTransactions, useEvents, useNotifications, useAccounts, useCaisses } from '@/lib/dataLayer';
 import { formatCentsToFCFA, getPeriodRange, formatDate } from '@/lib/utils';
 import { ArrowUpRight, ArrowDownRight, Calendar, TrendingUp, Wallet, PlusCircle, Bell, Sparkles, ArrowUp, ArrowDown, Home, Landmark, Users, CalendarPlus, Archive, BarChart3 } from 'lucide-react';
 import TransactionCard from '@/components/TransactionCard';
@@ -60,7 +61,23 @@ function CaisseCard({ account, transactions, navigate }: { account: Account; tra
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { transactions, categories, orgUnits, caisses, accounts, events, isLoading, user, appConfig, notifications } = useLocalStore();
+  const { transactions: idbTxs, categories, orgUnits, caisses: idbCaisses, accounts: idbAccounts, events: idbEvents, isLoading, user, appConfig, notifications: idbNotifs } = useLocalStore();
+
+  // PowerSync hooks with fallback to IndexedDB
+  const { data: psTransactions } = useTransactions();
+  const { data: psEvents } = useEvents();
+  const { data: psNotifications } = useNotifications();
+  const { data: psAccounts } = useAccounts();
+  const { data: psCaisses } = useCaisses();
+
+  // Use PowerSync data if available, fallback to IndexedDB
+  const transactions = psTransactions ?? idbTxs;
+  const events = psEvents ?? idbEvents;
+  const notifications = psNotifications ?? idbNotifs;
+  const accounts = psAccounts ?? idbAccounts;
+  const caisses = psCaisses ?? idbCaisses;
+  const isSyncReady = psTransactions !== undefined;
+
   const churchName = appConfig.churchName || user.org.name;
 
   const greeting = useMemo(() => {

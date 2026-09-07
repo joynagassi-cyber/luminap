@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useLocalStore } from '@/store/useLocalStore';
+import { useNotifications } from '@/lib/dataLayer';
 import { HelpCircle, Info, Shield, Database } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
@@ -7,6 +8,7 @@ import TopHeader from '@/components/TopHeader';
 export default function Help() {
   const navigate = useNavigate();
   const { user } = useLocalStore();
+  const { data: notifications } = useNotifications();
 
   return (
     <div className="min-h-screen bg-canvas">
@@ -17,8 +19,8 @@ export default function Help() {
         <div className="space-y-4 mb-8">
           {[
             { icon: Info, title: 'Comment utiliser Lumina', desc: 'Ajoutez des transactions, gérez vos caisses et effectuez des versements entre groupes.' },
-            { icon: Shield, title: 'Sécurité des données', desc: 'Vos données sont stockées localement sur votre appareil. Elles ne quittent jamais votre téléphone.' },
-            { icon: Database, title: 'Synchronisation', desc: 'Quand vous êtes en ligne, les données sont synchronisées avec le cloud pour accès multi-appareil.' },
+            { icon: Shield, title: 'Sécurité des données', desc: 'Vos données sont stockées localement et synchronisées via PowerSync pour accès multi-appareil.' },
+            { icon: Database, title: 'Synchronisation', desc: `État: ${notifications?.length ?? 0} notifications reçues.` },
           ].map(({ icon: Icon, title, desc }) => (
             <div key={title} className="rounded-xl p-4 flex items-start gap-3" style={{ backgroundColor: '#212121' }}>
               <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#FF6B0020' }}>
@@ -54,7 +56,7 @@ export default function Help() {
           </div>
         </div>
 
-        <p className="text-text-tertiary text-xs text-center">Lumina v1.0 · Église MFE-JC Centrale</p>
+        <p className="text-text-tertiary text-xs text-center">Lumina v2.0 · Église MFE-JC Centrale</p>
       </div>
       <BottomNav />
     </div>
