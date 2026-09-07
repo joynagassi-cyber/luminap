@@ -8,6 +8,7 @@
 import { create } from 'zustand';
 import { workflow } from '@/capabilities/workflow';
 import { lifecycle } from '@/capabilities/lifecycle';
+import { relationship } from '@/capabilities/relationship';
 import { getOrganizationId } from '@/lib/orgContext';
 import type { User, Role, Transaction, Category, OrgUnit, Caisse, Event, BudgetItem, ShoppingItem, AppConfig, NotificationItem, Member, Group, Account, GroupMembership, Versement, EventBudget, BudgetLine, Cotisation, CotisationStatut } from '@/types';
 import { generateId } from '@/lib/utils';
@@ -1004,13 +1005,18 @@ export const useLocalStore = create<LocalStoreState>()(
     },
 
     addMemberToGroup: async (membership) => {
-      const id = generateId();
+      // Delegate to Relationship capability (PS)
+      const id = await relationship.addMembership(membership.groupId, membership.memberId, membership.roleInGroup, 'local-user');
       const now = new Date().toISOString();
+      // Update local state for immediate UI feedback
       const fullMembership = { ...membership, id, createdAt: now };
       set({ memberships: [...get().memberships, fullMembership] });
     },
 
     removeMemberFromGroup: async (id) => {
+      // Delegate to Relationship capability (PS)
+      await relationship.removeMembership(id, 'local-user');
+      // Update local state for immediate UI feedback
       set({ memberships: get().memberships.filter(m => m.id !== id) });
     },
 

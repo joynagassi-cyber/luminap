@@ -224,6 +224,14 @@ export interface PSCotisation {
   updatedAt: string;
 }
 
+export interface PSGroupMembership {
+  id: string;
+  member_id: string;
+  group_id: string;
+  role: string;
+  created_at: string;
+}
+
 // ============================================================
 // Internal helper: check if PowerSync is initialized
 // ============================================================
@@ -517,6 +525,48 @@ export function useCotisations() {
   }
 
   return { data: store.cotisations, isLoading: store.isLoading, source: 'indexeddb' as const };
+}
+
+/**
+ * Hook to get all group memberships
+ */
+export function useGroupMemberships() {
+  const { data: psData } = useQuery<PSGroupMembership>(
+    'SELECT * FROM group_memberships',
+    [],
+    { reportFetching: true }
+  );
+  const store = useLocalStore();
+
+  if (psData && psData.length > 0 && isPowerSyncReady()) {
+    return { data: psData, isLoading: false, source: 'powersync' as const };
+  }
+
+  return { data: store.memberships, isLoading: store.isLoading, source: 'indexeddb' as const };
+}
+
+/**
+ * Add a group membership via PowerSync
+ */
+export async function addGroupMembershipPS(
+  groupId: string,
+  memberId: string,
+  role: string
+): Promise<string> {
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  await executeWrite(
+    `INSERT INTO group_memberships (id, member_id, group_id, role, created_at) VALUES (?, ?, ?, ?, ?)`,
+    [id, memberId, groupId, role, now]
+  );
+  return id;
+}
+
+/**
+ * Remove a group membership via PowerSync
+ */
+export async function removeGroupMembershipPS(id: string): Promise<void> {
+  await executeWrite(`DELETE FROM group_memberships WHERE id = ?`, [id]);
 }
 
 // ============================================================
