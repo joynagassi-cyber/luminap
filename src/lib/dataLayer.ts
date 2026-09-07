@@ -209,6 +209,19 @@ export interface PSAuditEntry {
   created_at: string;
 }
 
+export interface PSCotisation {
+  id: string;
+  culte_id: string;
+  membre_id: string;
+  statut: string;
+  montantObligatoire: number;
+  montantPaye: number;
+  datePaiement: string | null;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // ============================================================
 // Internal helper: check if PowerSync is initialized
 // ============================================================
@@ -484,6 +497,24 @@ export function useAuditEntries() {
   }
 
   return { data: store.auditEntries, isLoading: store.isLoading, source: 'indexeddb' as const };
+}
+
+/**
+ * Hook to get all cotisations
+ */
+export function useCotisations() {
+  const { data: psData } = useQuery<PSCotisation>(
+    'SELECT * FROM cotisations ORDER BY createdAt DESC',
+    [],
+    { reportFetching: true }
+  );
+  const store = useLocalStore();
+
+  if (psData && psData.length > 0 && isPowerSyncReady()) {
+    return { data: psData, isLoading: false, source: 'powersync' as const };
+  }
+
+  return { data: store.cotisations, isLoading: store.isLoading, source: 'indexeddb' as const };
 }
 
 // ============================================================
@@ -790,4 +821,110 @@ export async function updateEventPS(
  */
 export async function deleteEventPS(id: string): Promise<void> {
   await executeWrite('DELETE FROM events WHERE id = ?', [id]);
+}
+
+/**
+ * Add a cotisation via PowerSync
+ */
+export async function addCotisationPS(
+  cot: Omit<PSCotisation, 'id' | 'createdAt' | 'updatedAt'>
+): Promise<string> {
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+
+  await executeWrite(
+    `INSERT INTO cotisations (
+      id, culte_id, membre_id, statut, montantObligatoire, montantPaye,
+      datePaiement, notes, createdAt, updatedAt
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      id,
+      cot.culte_id,
+      cot.membre_id,
+      cot.statut,
+      cot.montantObligatoire,
+      cot.montantPaye,
+      cot.datePaiement,
+      cot.notes,
+      now,
+      now,
+    ]
+  );
+
+  return id;
+}
+
+/**
+ * Update a cotisation via PowerSync
+ */
+export async function updateCotisationPS(
+  id: string,
+  updates: Partial<PSCotisation>
+): Promise<void> {
+  const setClauses: string[] = [];
+  const params: any[] = [];
+
+  const fieldMap: [keyof PSCotisation, string][] = [
+    ['statut', 'statut'],
+    ['montantPaye', 'montantPaye'],
+    ['datePaiement', 'datePaiement'],
+    ['notes', 'notes'],
+  ];
+
+  for (const [key, col] of fieldMap) {
+    if (updates[key] !== undefined) {
+      setClauses.push(`${col} = ?`);
+      params.push(updates[key]);
+    }
+  }
+
+  setClauses.push('updatedAt = ?');
+  params.push(new Date().toISOString());
+  params.push(id);
+
+  await executeWrite(
+    `UPDATE cotisations SET ${setClauses.join(', ')} WHERE id = ?`,
+    params
+  );
+}
+
+/**
+ * Update member donations and advance
+ */
+export async function updateMemberPS(
+  id: string,
+  updates: Partial<PSMember>
+): Promise<void> {
+  const setClauses: string[] = [];
+  const params: any[] = [];
+
+  const fieldMap: [keyof PSMember, string][] = [
+    ['first_name', 'first_name'],
+    ['last_name', 'last_name'],
+    ['phone', 'phone'],
+    ['email', 'email'],
+    ['status', 'status'],
+    ['joined_at', 'joined_at'],
+    ['archived_at', 'archived_at'],
+    ['archived_by', 'archived_by'],
+    ['archive_reason', 'archive_reason'],
+    ['total_dons', 'total_dons'],
+    ['montant_en_avance', 'montant_en_avance'],
+  ];
+
+  for (const [key, col] of fieldMap) {
+    if (updates[key] !== undefined) {
+      setClauses.push(`${col} = ?`);
+      params.push(updates[key]);
+    }
+  }
+
+  setClauses.push('updated_at = ?');
+  params.push(new Date().toISOString());
+  params.push(id);
+
+  await executeWrite(
+    `UPDATE members SET ${setClauses.join(', ')} WHERE id = ?`,
+    params
+  );
 }
