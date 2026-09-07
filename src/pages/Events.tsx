@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLocalStore } from '@/store/useLocalStore';
+import { useEvents, useTransactions } from '@/lib/dataLayer';
 import { Calendar, Plus, Clock, Gift, ArrowUp, ArrowDown } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
@@ -23,11 +24,19 @@ const STATUS_LABELS: Record<string, string> = {
 
 export default function Events() {
   const navigate = useNavigate();
-  const { events, transactions, addTransaction, isLoading } = useLocalStore();
+  const { transactions: idbTxs, isLoading } = useLocalStore();
+  const { data: psEvents } = useEvents();
+  const { data: psTransactions } = useTransactions();
+
+  // Use PowerSync or fallback to IndexedDB
+  const events = psEvents ?? [];
+  const transactions = psTransactions ?? idbTxs;
 
   if (isLoading) return <FullPageSkeleton />;
 
-  const sortedEvents = [...events].sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
+  const sortedEvents = useMemo(() => {
+    return [...events].sort((a: any, b: any) => new Date(b.start_date || b.startDate).getTime() - new Date(a.start_date || a.startDate).getTime());
+  }, [events]);
 
   return (
     <div className="min-h-screen bg-canvas">
@@ -54,11 +63,12 @@ export default function Events() {
           </div>
         ) : (
           <div className="space-y-3">
-            {sortedEvents.map((event) => {
+            {sortedEvents.map((event: any) => {
               const color = STATUS_COLORS[event.status] || '#808080';
-              const eventTxs = transactions.filter(t => t.eventId === event.id);
-              const income = eventTxs.filter(t => t.type === 'INCOME' && t.status === 'APPROVED').reduce((s, t) => s + t.amount, 0);
-              const expense = eventTxs.filter(t => t.type === 'EXPENSE' && t.status === 'APPROVED').reduce((s, t) => s + t.amount, 0);
+              const eventTxs = transactions.filter((t: any) => t.event_id === event.id || t.eventId === event.id);
+              const income = eventTxs.filter((t: any) => t.type === 'INCOME' && t.status === 'APPROVED').reduce((s: number, t: any) => s + t.amount, 0);
+              const expense = eventTxs.filter((t: any) => t.type === 'EXPENSE' && t.status === 'APPROVED').reduce((s: number, t: any) => s + t.amount, 0);
+              const budgetItems = event.budget_items ? JSON.parse(event.budget_items) : [];
               return (
                 <button key={event.id} onClick={() => navigate(`/event/${event.id}`)} className="w-full text-left rounded-xl p-4 transition-all active:scale-95" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
                   <div className="flex items-start gap-3">
@@ -68,14 +78,14 @@ export default function Events() {
                     <div className="flex-1 min-w-0">
                       <p className="text-text-primary font-semibold truncate">{event.name}</p>
                       <p className="text-text-tertiary text-xs mt-0.5">
-                        {formatDate(event.startDate)}{event.endDate ? ' → ' + formatDate(event.endDate) : ''}
+                        {formatDate(event.start_date || event.startDate)}{event.end_date || event.endDate ? ' → ' + formatDate(event.end_date || event.endDate) : ''}
                       </p>
                       <div className="flex items-center gap-2 mt-1.5">
                         <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ color, backgroundColor: color + '20' }}>
                           {STATUS_LABELS[event.status] || event.status}
                         </span>
-                        {event.budgetItems?.length > 0 && (
-                          <span className="text-xs text-text-tertiary">{event.budgetItems.length} poste{event.budgetItems.length > 1 ? 's' : ''}</span>
+                        {budgetItems.length > 0 && (
+                          <span className="text-xs text-text-tertiary">{budgetItems.length} poste{budgetItems.length > 1 ? 's' : ''}</span>
                         )}
                       </div>
                       {eventTxs.length > 0 && (
