@@ -12,7 +12,7 @@ export default function MembersPage() {
   const { members: idbMembers, createMember, archiveMember, restoreMember, user } = useLocalStore();
   const { data: psMembers } = useMembers();
 
-  // Use PowerSync or fallback to IndexedDB
+  // Use PowerSync or fallback to local cache
   const members = psMembers ?? idbMembers;
 
   const [searchQuery, setSearchQuery] = useState('');

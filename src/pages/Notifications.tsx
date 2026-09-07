@@ -22,7 +22,7 @@ export default function NotificationsPage() {
   const { notifications: idbNotifs, markNotificationRead, markAllNotificationsRead } = useLocalStore();
   const { data: psNotifications } = useNotifications();
 
-  // Use PowerSync or fallback to IndexedDB
+  // Use PowerSync or fallback to local cache
   const notifications = psNotifications ?? idbNotifs;
 
   const sorted = [...notifications].sort((a: any, b: any) => new Date(b.created_at || b.createdAt).getTime() - new Date(a.created_at || a.createdAt).getTime());

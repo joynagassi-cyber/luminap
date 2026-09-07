@@ -28,7 +28,7 @@ export default function Events() {
   const { data: psEvents } = useEvents();
   const { data: psTransactions } = useTransactions();
 
-  // Use PowerSync or fallback to IndexedDB
+  // Use PowerSync or fallback to local cache
   const events = psEvents ?? [];
   const transactions = psTransactions ?? idbTxs;
 

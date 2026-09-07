@@ -20,7 +20,7 @@ export default function Finance() {
   const { data: accounts } = useAccounts();
   const { data: caisses } = useCaisses();
 
-  // Merge: prefer PowerSync, fallback to IndexedDB
+  // Merge: prefer PowerSync, fallback to local cache
   const transactions = psTransactions ?? idbTxs;
 
   const [filterOpen, setFilterOpen] = useState(false);

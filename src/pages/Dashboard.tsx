@@ -63,14 +63,14 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { transactions: idbTxs, categories, orgUnits, caisses: idbCaisses, accounts: idbAccounts, events: idbEvents, isLoading, user, appConfig, notifications: idbNotifs } = useLocalStore();
 
-  // PowerSync hooks with fallback to IndexedDB
+  // PowerSync hooks with fallback to local cache
   const { data: psTransactions } = useTransactions();
   const { data: psEvents } = useEvents();
   const { data: psNotifications } = useNotifications();
   const { data: psAccounts } = useAccounts();
   const { data: psCaisses } = useCaisses();
 
-  // Use PowerSync data if available, fallback to IndexedDB
+  // Use PowerSync data if available, fallback to local cache
   const transactions = psTransactions ?? idbTxs;
   const events = psEvents ?? idbEvents;
   const notifications = psNotifications ?? idbNotifs;
