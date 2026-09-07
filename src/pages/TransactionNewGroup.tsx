@@ -41,7 +41,11 @@ export default function TransactionNewGroup() {
   }, [type, categories]);
 
   const handleSubmit = async () => {
-    if (!amount || !description || !categoryId) {
+    const trimmedAmount = amount.trim();
+    const trimmedDesc = description.trim();
+    const trimmedCatId = categoryId?.toString().trim();
+
+    if (!trimmedAmount || !trimmedDesc || !trimmedCatId) {
       setError('Veuillez remplir tous les champs obligatoires');
       return;
     }
