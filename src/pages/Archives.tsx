@@ -1,39 +1,45 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLocalStore } from '@/store/useLocalStore';
-import { ArrowLeft, RefreshCw, Search, Users, Wallet, Eye, Archive } from 'lucide-react';
+import { useMembers, useGroups } from '@/lib/dataLayer';
+import { Users, Plus, Search, Archive, RefreshCw } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
-import { archiveRegistry } from '@/lib/archiveService';
-import type { Group, Member, Account } from '@/types';
 
 export default function Archives() {
   const navigate = useNavigate();
-  const { groups, members, events, accounts } = useLocalStore();
+  const { groups: idbGroups, members: idbMembers, events: idbEvents, accounts: idbAccounts } = useLocalStore();
 
-  const archivedGroups = groups.filter(g => g.status === 'ARCHIVED');
-  const archivedAccounts = accounts.filter(a => a.status === 'ARCHIVED');
-  const archivedEvents = events.filter(e => e.status === 'CANCELLED');
-  const archivedMembers = members.filter(m => m.status === 'ARCHIVED');
+  // PowerSync with fallback
+  const { data: psGroups } = useGroups();
+  const { data: psMembers } = useMembers();
+  const { data: psEvents } = useEvents();
+
+  const groups = psGroups ?? idbGroups;
+  const members = psMembers ?? idbMembers;
+  const events = psEvents ?? idbEvents;
+
+  const archivedGroups = groups.filter((g: any) => g.status === 'ARCHIVED');
+  const archivedMembers = members.filter((m: any) => m.status === 'ARCHIVED');
+  const archivedEvents = events.filter((e: any) => e.status === 'CANCELLED');
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterType, setFilterType] = useState<'all' | 'group' | 'member' | 'event' | 'account'>('all');
+  const [filterType, setFilterType] = useState<'all' | 'group' | 'member' | 'event'>('all');
 
-  const allArchived = useMemo(() => [
-    ...archivedGroups.map(g => ({ type: 'group' as const, id: g.id, name: g.name, reason: g.archiveReason, archivedAt: g.archivedAt, archivedBy: g.archivedBy })),
-    ...archivedAccounts.map(a => ({ type: 'account' as const, id: a.id, name: a.name, reason: a.archiveReason, archivedAt: a.archivedAt, archivedBy: a.archivedBy })),
-    ...archivedEvents.map(e => ({ type: 'event' as const, id: e.id, name: e.name, reason: 'Événement annulé', archivedAt: e.updatedAt, archivedBy: null })),
-    ...archivedMembers.map(m => ({ type: 'member' as const, id: m.id, name: `${m.firstName} ${m.lastName}`, reason: m.archiveReason, archivedAt: m.archivedAt, archivedBy: m.archivedBy })),
-  ], [archivedGroups, archivedAccounts, archivedEvents, archivedMembers]);
+  const allArchived = [
+    ...archivedGroups.map((g: any) => ({ type: 'group' as const, id: g.id, name: g.name, reason: g.archive_reason || g.archiveReason, archivedAt: g.archived_at || g.archivedAt, archivedBy: g.archived_by || g.archivedBy })),
+    ...archivedMembers.map((m: any) => ({ type: 'member' as const, id: m.id, name: `${m.first_name || m.firstName} ${m.last_name || m.lastName}`, reason: m.archive_reason || m.archiveReason, archivedAt: m.archived_at || m.archivedAt, archivedBy: m.archived_by || m.archivedBy })),
+    ...archivedEvents.map((e: any) => ({ type: 'event' as const, id: e.id, name: e.name, reason: 'Événement annulé', archivedAt: e.updated_at || e.updatedAt, archivedBy: null })),
+  ];
 
-  const filtered = allArchived.filter(item => {
+  const filtered = allArchived.filter((item: any) => {
     const q = searchQuery.toLowerCase();
     const matchesSearch = !q || item.name.toLowerCase().includes(q);
     const matchesType = filterType === 'all' || item.type === filterType;
     return matchesSearch && matchesType;
   });
 
-  const handleRestore = async (type: 'group' | 'member' | 'event' | 'account', id: string) => {
+  const handleRestore = async (type: 'group' | 'member' | 'event', id: string) => {
     if (type === 'group') {
       await useLocalStore.getState().restoreGroup(id, '', 'local-user');
     } else if (type === 'member') {
@@ -66,61 +72,62 @@ export default function Archives() {
         </div>
 
         {/* Filter tabs */}
-        <div className="-mx-5 px-5 mb-5">
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-            {[[
-              { id: 'all' as const, label: 'Tout', icon: Eye },
-              { id: 'group' as const, label: 'Groupes', icon: Users },
-              { id: 'account' as const, label: 'Comptes', icon: Wallet },
-              { id: 'member' as const, label: 'Membres', icon: Users },
-              { id: 'event' as const, label: 'Événements', icon: Wallet },
-            ]].map(items => items.map(({ id, label, icon: Icon }) => (
-              <button
-                key={id}
-                onClick={() => setFilterType(id)}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-all"
-                style={filterType === id ? { backgroundColor: '#FF6B00', color: '#fff' } : { backgroundColor: '#212121', color: '#B3B3B3', border: '1px solid #282828' }}
-              >
-                <Icon className="w-3.5 h-3.5" /> {label}
-              </button>
-            )))}
-          </div>
+        <div className="flex gap-2 overflow-x-auto pb-3 mb-5 scrollbar-hide">
+          {[
+            { id: 'all' as const, label: 'Tout' },
+            { id: 'group' as const, label: 'Groupes' },
+            { id: 'member' as const, label: 'Membres' },
+            { id: 'event' as const, label: 'Événements' },
+          ].map(({ id, label }) => (
+            <button
+              key={id}
+              onClick={() => setFilterType(id)}
+              className="px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-all"
+              style={{ backgroundColor: filterType === id ? '#FF6B00' : '#212121', color: filterType === id ? '#fff' : '#B3B3B3' }}
+            >
+              {label}
+            </button>
+          ))}
         </div>
 
         {/* Archived items */}
-        {filtered.length > 0 ? (
-          <div className="space-y-2">
-            {filtered.map((item) => (
-              <div key={item.id} className="rounded-xl p-4 opacity-70" style={{ backgroundColor: '#212121' }}>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: item.type === 'group' ? '#8B5CF620' : item.type === 'member' ? '#14B8A620' : item.type === 'account' ? '#3B82F620' : '#F59E0B20', color: item.type === 'group' ? '#8B5CF6' : item.type === 'member' ? '#14B8A6' : item.type === 'account' ? '#3B82F6' : '#F59E0B' }}>
-                      {item.type === 'group' ? 'Groupe' : item.type === 'member' ? 'Membre' : item.type === 'account' ? 'Compte' : 'Événement'}
-                    </span>
-                    {item.archivedAt && (
-                      <span className="text-text-tertiary text-xs">{new Date(item.archivedAt).toLocaleDateString('fr-FR')}</span>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => handleRestore(item.type, item.id)}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium"
-                    style={{ backgroundColor: '#1DB95420', color: '#1DB954' }}
-                  >
-                    <RefreshCw className="w-3 h-3" /> Restaurer
-                  </button>
+        <div className="space-y-2">
+          {filtered.length === 0 ? (
+            <div className="text-center py-10 rounded-xl" style={{ backgroundColor: '#1e1e1e' }}>
+              <Archive className="w-12 h-12 mx-auto mb-4 text-text-tertiary opacity-40" />
+              <p className="text-text-tertiary text-sm">Aucun élément archivé</p>
+              <p className="text-text-tertiary text-xs mt-1">Les éléments archivés apparaîtront ici</p>
+            </div>
+          ) : (
+            filtered.map((item: any) => (
+              <div
+                key={item.id}
+                className="rounded-xl p-4 flex items-center gap-3"
+                style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
+              >
+                <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#282828' }}>
+                  {item.type === 'group' && <Users className="w-5 h-5 text-text-tertiary" />}
+                  {item.type === 'member' && <Users className="w-5 h-5 text-text-tertiary" />}
+                  {item.type === 'event' && <Archive className="w-5 h-5 text-text-tertiary" />}
                 </div>
-                <p className="text-text-primary text-sm font-semibold">{item.name}</p>
-                {item.reason && <p className="text-text-tertiary text-xs mt-1">{item.reason}</p>}
+                <div className="flex-1 min-w-0">
+                  <p className="text-text-secondary text-sm font-medium truncate">{item.name}</p>
+                  <p className="text-text-tertiary text-xs mt-0.5">{item.reason}</p>
+                  {item.archivedAt && (
+                    <p className="text-text-tertiary text-xs mt-0.5">Archivé le {new Date(item.archivedAt).toLocaleDateString('fr-FR')}</p>
+                  )}
+                </div>
+                <button
+                  onClick={() => handleRestore(item.type as any, item.id)}
+                  className="p-2 rounded-full active:scale-95 transition-transform"
+                  style={{ backgroundColor: '#1DB95420' }}
+                >
+                  <RefreshCw className="w-4 h-4" style={{ color: '#1DB954' }} />
+                </button>
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-16 rounded-xl" style={{ backgroundColor: '#212121' }}>
-            <Archive className="w-12 h-12 mx-auto mb-4 text-text-tertiary opacity-50" />
-            <p className="text-text-primary font-medium text-sm mb-2">Pas encore d'archives</p>
-            <p className="text-text-tertiary text-xs">Les éléments archivés apparaîtront ici</p>
-          </div>
-        )}
+            ))
+          )}
+        </div>
       </div>
       <BottomNav />
     </div>

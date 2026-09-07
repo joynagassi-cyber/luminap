@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLocalStore } from '@/store/useLocalStore';
+import { useTransactions, useCategories, useAccounts } from '@/lib/dataLayer';
 import { formatCurrencyCompact, getPeriodRange } from '@/lib/utils';
 import { TrendingUp, TrendingDown, BarChart3, Download, X, FileText, ClipboardList } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
@@ -9,7 +10,17 @@ import { exportPDF, exportExcel, exportCSV } from '@/lib/export';
 
 export default function Balance() {
   const navigate = useNavigate();
-  const { transactions, categories, caisses, accounts, isLoading, appConfig } = useLocalStore();
+  const { transactions: idbTxs, categories: idbCats, caisses: idbCaisses, accounts: idbAccounts, isLoading, appConfig } = useLocalStore();
+
+  // PowerSync with fallback
+  const { data: psTransactions } = useTransactions();
+  const { data: psCategories } = useCategories();
+  const { data: psAccounts } = useAccounts();
+
+  const transactions = psTransactions ?? idbTxs;
+  const categories = psCategories ?? idbCats;
+  const accounts = psAccounts ?? idbAccounts;
+
   const [period, setPeriod] = useState<'mois' | 'annee'>('mois');
   const [selectedCaisse, setSelectedCaisse] = useState<string>('main');
   const [showExport, setShowExport] = useState(false);
@@ -31,21 +42,21 @@ export default function Balance() {
   }
 
   const { start, end } = getPeriodRange(period);
-  const mainTxs = transactions.filter(t => t.sourceCaisseId === selectedCaisse);
-  const approved = mainTxs.filter(t => t.status === 'APPROVED' && t.date >= start && t.date <= end);
+  const mainTxs = transactions.filter((t: any) => t.source_caisse_id === selectedCaisse || t.sourceCaisseId === selectedCaisse);
+  const approved = mainTxs.filter((t: any) => t.status === 'APPROVED' && t.date >= start && t.date <= end);
 
-  const totalIncome = approved.filter(t => t.type === 'INCOME').reduce((s, t) => s + t.amount, 0);
-  const totalExpense = approved.filter(t => t.type === 'EXPENSE').reduce((s, t) => s + t.amount, 0);
+  const totalIncome = approved.filter((t: any) => t.type === 'INCOME').reduce((s: number, t: any) => s + t.amount, 0);
+  const totalExpense = approved.filter((t: any) => t.type === 'EXPENSE').reduce((s: number, t: any) => s + t.amount, 0);
   const netResult = totalIncome - totalExpense;
 
-  const byCategory = categories.map(cat => {
-    const catTxs = approved.filter(t => t.categoryId === cat.id);
-    const income = catTxs.filter(t => t.type === 'INCOME').reduce((s, t) => s + t.amount, 0);
-    const expense = catTxs.filter(t => t.type === 'EXPENSE').reduce((s, t) => s + t.amount, 0);
-    return { categoryId: cat.id, label: cat.labelFr, income, expense, net: income - expense };
-  }).filter(c => c.income > 0 || c.expense > 0);
+  const byCategory = categories.map((cat: any) => {
+    const catTxs = approved.filter((t: any) => t.category_id === cat.id || t.categoryId === cat.id);
+    const income = catTxs.filter((t: any) => t.type === 'INCOME').reduce((s: number, t: any) => s + t.amount, 0);
+    const expense = catTxs.filter((t: any) => t.type === 'EXPENSE').reduce((s: number, t: any) => s + t.amount, 0);
+    return { categoryId: cat.id, label: cat.label_fr || cat.label, income, expense, net: income - expense };
+  }).filter((c: any) => c.income > 0 || c.expense > 0);
 
-  const maxVal = Math.max(...byCategory.map(c => Math.max(c.income, c.expense)), 1);
+  const maxVal = Math.max(...byCategory.map((c: any) => Math.max(c.income, c.expense)), 1);
 
   return (
     <div className="min-h-screen bg-canvas">
@@ -62,9 +73,8 @@ export default function Balance() {
         {/* Caisse selector */}
         <div className="-mx-5 px-5 mb-5">
           <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-            {accounts.map((a) => {
-              const caisse = useLocalStore.getState().getCaisseForDisplay(a.id);
-              const color = caisse?.color || '#FF6B00';
+            {accounts.map((a: any) => {
+              const color = a.color || '#FF6B00';
               return (
                 <button key={a.id} onClick={() => setSelectedCaisse(a.id)} className="px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-all" style={selectedCaisse === a.id ? { backgroundColor: color, color: '#fff' } : { backgroundColor: '#212121', color: '#B3B3B3' }}>
                   {a.name}
@@ -105,7 +115,7 @@ export default function Balance() {
         <div className="rounded-xl p-4 mb-6" style={{ backgroundColor: '#212121' }}>
           <p className="text-text-tertiary text-xs font-medium mb-4">Par catégorie</p>
           <div className="space-y-3">
-            {byCategory.map((cat) => (
+            {byCategory.map((cat: any) => (
               <div key={cat.categoryId}>
                 <div className="flex justify-between text-xs mb-1">
                   <span className="text-text-primary font-medium">{cat.label}</span>
@@ -147,7 +157,7 @@ export default function Balance() {
               )}
               <div className="space-y-3">
                 <button onClick={() => {
-                  exportPDF({ churchName: appConfig.churchName, churchLogoUrl: appConfig.churchLogoUrl, transactions: approved, caisses, title: `Bilan financier — ${period === 'mois' ? 'Ce mois' : 'Cette année'}` });
+                  exportPDF({ churchName: appConfig.churchName, churchLogoUrl: appConfig.churchLogoUrl, transactions: approved, caisses: [], title: `Bilan financier — ${period === 'mois' ? 'Ce mois' : 'Cette année'}` });
                   setShowExport(false);
                 }} className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
                   <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#E5133220' }}>
@@ -159,7 +169,7 @@ export default function Balance() {
                   </div>
                 </button>
                 <button onClick={() => {
-                  exportExcel({ churchName: appConfig.churchName, churchLogoUrl: appConfig.churchLogoUrl, transactions: approved, caisses, title: `Bilan financier — ${period === 'mois' ? 'Ce mois' : 'Cette année'}` });
+                  exportExcel({ churchName: appConfig.churchName, churchLogoUrl: appConfig.churchLogoUrl, transactions: approved, caisses: [], title: `Bilan financier — ${period === 'mois' ? 'Ce mois' : 'Cette année'}` });
                   setShowExport(false);
                 }} className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
                   <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#1DB95420' }}>
@@ -171,7 +181,7 @@ export default function Balance() {
                   </div>
                 </button>
                 <button onClick={() => {
-                  exportCSV({ churchName: appConfig.churchName, churchLogoUrl: appConfig.churchLogoUrl, transactions: approved, caisses, title: `Bilan financier — ${period === 'mois' ? 'Ce mois' : 'Cette année'}` });
+                  exportCSV({ churchName: appConfig.churchName, churchLogoUrl: appConfig.churchLogoUrl, transactions: approved, caisses: [], title: `Bilan financier — ${period === 'mois' ? 'Ce mois' : 'Cette année'}` });
                   setShowExport(false);
                 }} className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
                   <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#3B82F620' }}>

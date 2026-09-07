@@ -1,10 +1,14 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLocalStore } from '@/store/useLocalStore';
+import { usePowerSyncStatus } from '@/lib/dataLayer';
+import { Shield, User, Mail, Wifi, WifiOff } from 'lucide-react';
 
 export default function Login() {
   const navigate = useNavigate();
   const { selectRole, loadInitialData } = useLocalStore();
+  const isPowerSyncReady = usePowerSyncStatus();
+
   const [name, setName] = useState('');
   const [role, setRole] = useState('');
   const [error, setError] = useState('');
@@ -42,6 +46,10 @@ export default function Login() {
       {/* Top bar */}
       <div className="flex items-center justify-between px-6 py-5">
         <img src="/lumina-logo.png" alt="Lumina" className="w-10 h-10 object-contain" />
+        <div className="flex items-center gap-2 text-xs" style={{ color: isPowerSyncReady ? '#1DB954' : '#B3B3B3' }}>
+          {isPowerSyncReady ? <Wifi className="w-4 h-4" /> : <WifiOff className="w-4 h-4" />}
+          <span>{isPowerSyncReady ? 'Connecté' : 'Hors ligne'}</span>
+        </div>
       </div>
 
       {/* Content */}
@@ -58,49 +66,44 @@ export default function Login() {
               onChange={(e) => setName(e.target.value)}
               placeholder="Ex: Jean"
               className="w-full px-4 py-3 rounded-xl text-white text-sm outline-none"
-              style={{ backgroundColor: '#181818', border: '1px solid #282828' }}
-              onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-              disabled={loading}
+              style={{ backgroundColor: '#1E1E1E', border: '1px solid #282828' }}
             />
           </div>
 
           <div>
             <label className="text-[#B3B3B3] text-xs font-medium mb-2 block">Votre rôle</label>
             <div className="grid grid-cols-2 gap-2">
-              {roles.map(({ id, label }) => (
+              {roles.map(r => (
                 <button
-                  key={id}
-                  onClick={() => setRole(id)}
-                  disabled={loading}
-                  className="py-2.5 px-3 rounded-xl text-xs font-medium transition-all"
-                  style={role === id
-                    ? { backgroundColor: '#FF6B0020', border: '1px solid #FF6B00', color: '#FF6B00' }
-                    : { backgroundColor: '#181818', border: '1px solid #282828', color: '#B3B3B3' }
+                  key={r.id}
+                  onClick={() => setRole(r.id)}
+                  className="py-3 rounded-xl text-xs font-medium transition-all"
+                  style={role === r.id
+                    ? { backgroundColor: '#FF6B00', color: '#fff' }
+                    : { backgroundColor: '#1E1E1E', color: '#B3B3B3', border: '1px solid #282828' }
                   }
                 >
-                  {label}
+                  {r.label}
                 </button>
               ))}
             </div>
           </div>
+
+          {error && (
+            <div className="p-3 rounded-xl text-sm text-center" style={{ backgroundColor: '#E5133220', color: '#E51332' }}>
+              {error}
+            </div>
+          )}
+
+          <button
+            onClick={handleLogin}
+            disabled={loading || !name.trim() || !role}
+            className="w-full py-4 rounded-full font-semibold text-white text-sm transition-all active:scale-95 disabled:opacity-50"
+            style={{ backgroundColor: '#FF6B00' }}
+          >
+            {loading ? 'Connexion...' : 'Continuer'}
+          </button>
         </div>
-
-        {error && (
-          <p className="text-[#E51332] text-xs text-center mt-4">{error}</p>
-        )}
-
-        <button
-          onClick={handleLogin}
-          disabled={loading}
-          className="w-full py-3.5 rounded-full font-semibold text-base text-white mt-8 transition-all active:scale-95 disabled:opacity-50"
-          style={{ backgroundColor: '#FF6B00' }}
-        >
-          {loading ? 'Connexion...' : 'Continuer'}
-        </button>
-
-        <p className="text-[#808080] text-xs text-center mt-6">
-          Accès direct — aucune authentification requise
-        </p>
       </div>
     </div>
   );

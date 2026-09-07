@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useLocalStore } from '@/store/useLocalStore';
+import { useGroups, useAccounts, useTransactions, useMembers, useOrgUnits } from '@/lib/dataLayer';
 import { formatCurrencyCompact, formatDate } from '@/lib/utils';
 import { ArrowLeft, Wallet, TrendingUp, TrendingDown, Check, Edit3, Trash2, Users, Clock, ArrowUp, ArrowDown, RefreshCw, ArrowRightLeft, Plus, UserPlus, UserMinus, Archive } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
@@ -14,7 +15,20 @@ type Tab = 'transactions' | 'membres' | 'historique' | 'parametres';
 export default function GroupDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { orgUnits, accounts, transactions, members, memberships, createGroup, updateGroup, deleteGroup, archiveGroup, isLoading, createNotification, addMemberToGroup, removeMemberFromGroup } = useLocalStore();
+  const { orgUnits: idbOrgUnits, accounts: idbAccounts, transactions: idbTxs, members: idbMembers, memberships, createGroup, updateGroup, deleteGroup, archiveGroup, isLoading, createNotification, addMemberToGroup, removeMemberFromGroup } = useLocalStore();
+
+  // PowerSync with fallback
+  const { data: psGroups } = useGroups();
+  const { data: psAccounts } = useAccounts();
+  const { data: psTransactions } = useTransactions();
+  const { data: psMembers } = useMembers();
+  const { data: psOrgUnits } = useOrgUnits();
+
+  const orgUnits = psOrgUnits ?? idbOrgUnits;
+  const accounts = psAccounts ?? idbAccounts;
+  const transactions = psTransactions ?? idbTxs;
+  const members = psMembers ?? idbMembers;
+
   const [activeTab, setActiveTab] = useState<Tab>('transactions');
   const [showEdit, setShowEdit] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
@@ -26,13 +40,12 @@ export default function GroupDetail() {
   const [showAddMember, setShowAddMember] = useState(false);
   const [selectedMemberId, setSelectedMemberId] = useState('');
 
-  const orgUnit = orgUnits.find(o => o.id === id);
-  const account = accounts.find(a => a.id === id) as Account | undefined;
-  const caisseDisplay = account ? useLocalStore.getState().getCaisseForDisplay(account.id) : null;
+  const orgUnit = orgUnits.find((o: any) => o.id === id);
+  const account = accounts.find((a: any) => a.id === id) as Account | undefined;
 
-  const groupMemberships = memberships.filter(m => m.groupId === id);
-  const groupMemberIds = groupMemberships.map(m => m.memberId);
-  const groupMembers = members.filter(m => groupMemberIds.includes(m.id) && m.status !== 'ARCHIVED');
+  const groupMemberships = memberships.filter((m: any) => m.group_id === id || m.groupId === id);
+  const groupMemberIds = groupMemberships.map((m: any) => m.member_id || m.memberId);
+  const groupMembers = members.filter((m: any) => groupMemberIds.includes(m.id) && m.status !== 'ARCHIVED');
 
   if (isLoading || !orgUnit || !account) {
     return (
@@ -47,27 +60,28 @@ export default function GroupDetail() {
     );
   }
 
-  const color = caisseDisplay?.color || '#FF6B00';
-  const txs = transactions.filter(t => t.sourceCaisseId === account.id);
-  const approvedTxs = txs.filter(t => t.status === 'APPROVED');
-  const income = approvedTxs.filter(t => t.type === 'INCOME').reduce((s, t) => s + t.amount, 0);
-  const expense = approvedTxs.filter(t => t.type === 'EXPENSE').reduce((s, t) => s + t.amount, 0);
+  const color = account.color || '#FF6B00';
+  const txs = transactions.filter((t: any) => t.source_caisse_id === account.id || t.sourceCaisseId === account.id);
+  const approvedTxs = txs.filter((t: any) => t.status === 'APPROVED');
+  const income = approvedTxs.filter((t: any) => t.type === 'INCOME').reduce((s: number, t: any) => s + t.amount, 0);
+  const expense = approvedTxs.filter((t: any) => t.type === 'EXPENSE').reduce((s: number, t: any) => s + t.amount, 0);
   const balance = income - expense;
-  const pendingCount = txs.filter(t => t.status === 'PENDING').length;
-  const pendingAmount = txs.filter(t => t.status === 'PENDING').reduce((s, t) => s + (t.type === 'INCOME' ? t.amount : -t.amount), 0);
+  const pendingCount = txs.filter((t: any) => t.status === 'PENDING').length;
+  const pendingAmount = txs.filter((t: any) => t.status === 'PENDING').reduce((s: number, t: any) => s + (t.type === 'INCOME' ? t.amount : -t.amount), 0);
 
-  const versementTxs = txs.filter(t => t.versementId !== null);
+  const versementTxs = txs.filter((t: any) => t.versement_id || t.versementId);
   const versements: Record<string, { amount: number; date: string; tx: Transaction }> = {};
   for (const tx of versementTxs) {
-    if (!versements[tx.versementId!]) {
-      versements[tx.versementId!] = { amount: tx.amount, date: tx.date, tx };
+    const versementId = tx.versement_id || tx.versementId;
+    if (!versements[versementId]) {
+      versements[versementId] = { amount: tx.amount, date: tx.date, tx: tx as any };
     }
   }
   const versementList = Object.values(versements)
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   const timelineEvents: Array<{ date: string; label: string; type: 'info' | 'success' | 'warning' }> = [
-    { date: account.createdAt, label: 'Caisse créée', type: 'info' },
+    { date: account.created_at || account.createdAt, label: 'Caisse créée', type: 'info' },
   ];
 
   const handleVersement = () => {
@@ -102,7 +116,7 @@ export default function GroupDetail() {
 
   const handleAddMember = async () => {
     if (!selectedMemberId) return;
-    const existing = groupMemberships.find(m => m.memberId === selectedMemberId);
+    const existing = groupMemberships.find((m: any) => m.member_id === selectedMemberId || m.memberId === selectedMemberId);
     if (existing) {
       setError('Ce membre est déjà dans le groupe');
       return;
@@ -143,7 +157,7 @@ export default function GroupDetail() {
             </div>
             <div className="flex-1">
               <p className="text-text-primary font-bold text-lg">{account.name}</p>
-              <p className="text-text-tertiary text-xs">{orgUnit.description || caisseDisplay?.description || ''}</p>
+              <p className="text-text-tertiary text-xs">{orgUnit.description || ''}</p>
             </div>
             <span className="text-xs px-2 py-1 rounded-full font-medium" style={{ backgroundColor: color + '15', color }}>Caisse</span>
           </div>
@@ -206,7 +220,7 @@ export default function GroupDetail() {
           )}
         </div>
 
-        {/* Tabs - scrollable container with hidden scrollbar */}
+        {/* Tabs */}
         <div className="mt-6 mb-6 -mx-5 px-5">
           <div className="flex rounded-2xl p-1.5 overflow-x-auto scrollbar-hide" style={{ backgroundColor: '#212121', border: '1px solid #282828', gap: '6px' }}>
             {([
@@ -239,10 +253,10 @@ export default function GroupDetail() {
               <button onClick={() => navigate('/finance', { state: { caisseId: account.id } })} className="text-xs font-medium" style={{ color: '#FF6B00' }}>Tout voir</button>
             </div>
             <div className="space-y-2">
-              {txs.filter(t => t.status === 'APPROVED' || t.status === 'PENDING')
-                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+              {txs.filter((t: any) => t.status === 'APPROVED' || t.status === 'PENDING')
+                .sort((a: any, b: any) => new Date(b.date || b.created_at).getTime() - new Date(a.date || a.created_at).getTime())
                 .slice(0, 10)
-                .map((tx) => (
+                .map((tx: any) => (
                   <TransactionCard key={tx.id} transaction={tx} onPress={(id) => navigate(`/transaction/${id}`)} />
                 ))}
               {txs.length === 0 && (
@@ -275,15 +289,15 @@ export default function GroupDetail() {
               </div>
             ) : (
               <div className="space-y-2">
-                {groupMembers.map((member) => {
-                  const membership = groupMemberships.find(m => m.memberId === member.id);
+                {groupMembers.map((member: any) => {
+                  const membership = groupMemberships.find((m: any) => m.member_id === member.id || m.memberId === member.id);
                   return (
                     <div key={member.id} className="rounded-xl p-4 flex items-center gap-3" style={{ backgroundColor: '#212121' }}>
                       <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#FF6B0020' }}>
-                        <span className="text-sm font-bold" style={{ color: '#FF6B00' }}>{member.firstName.charAt(0)}{member.lastName.charAt(0)}</span>
+                        <span className="text-sm font-bold" style={{ color: '#FF6B00' }}>{(member.first_name || member.firstName)?.charAt(0)}{(member.last_name || member.lastName)?.charAt(0)}</span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-text-primary text-sm font-semibold">{member.firstName} {member.lastName}</p>
+                        <p className="text-text-primary text-sm font-semibold">{member.first_name || member.firstName} {member.last_name || member.lastName}</p>
                         <p className="text-text-tertiary text-xs">{member.phone || member.email || 'Pas de contact'}</p>
                       </div>
                       {membership && (
@@ -322,7 +336,7 @@ export default function GroupDetail() {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {versementList.map((v, idx) => (
+                  {versementList.map((v: any, idx: number) => (
                     <div key={idx} className="rounded-xl p-3 flex items-center gap-3" style={{ backgroundColor: '#212121' }}>
                       <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#FF6B0020' }}>
                         <ArrowRightLeft className="w-4 h-4" style={{ color: '#FF6B00' }} />
@@ -346,7 +360,7 @@ export default function GroupDetail() {
               </div>
               <div className="rounded-xl p-4" style={{ backgroundColor: '#212121' }}>
                 <div className="space-y-4">
-                  {timelineEvents.map((evt, idx) => (
+                  {timelineEvents.map((evt: any, idx: number) => (
                     <div key={idx} className="flex items-start gap-3">
                       <div className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ backgroundColor: evt.type === 'info' ? '#FF6B00' : evt.type === 'success' ? '#1DB954' : '#808080' }} />
                       <div>
@@ -356,9 +370,9 @@ export default function GroupDetail() {
                     </div>
                   ))}
                   {approvedTxs
-                    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                    .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
                     .slice(0, 5)
-                    .map((tx) => (
+                    .map((tx: any) => (
                       <div key={tx.id} className="flex items-start gap-3">
                         <div className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ backgroundColor: tx.type === 'INCOME' ? '#1DB954' : '#E51332' }} />
                         <div>
@@ -453,8 +467,8 @@ export default function GroupDetail() {
                 style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
               >
                 <option value="">Sélectionner un membre...</option>
-                {members.filter(m => m.status === 'ACTIVE' && !groupMemberIds.includes(m.id)).map(m => (
-                  <option key={m.id} value={m.id}>{m.firstName} {m.lastName}</option>
+                {members.filter((m: any) => m.status === 'ACTIVE' && !groupMemberIds.includes(m.id)).map((m: any) => (
+                  <option key={m.id} value={m.id}>{m.first_name || m.firstName} {m.last_name || m.lastName}</option>
                 ))}
               </select>
               {error && <p className="text-xs" style={{ color: '#E51332' }}>{error}</p>}

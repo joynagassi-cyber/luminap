@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useLocalStore } from '@/store/useLocalStore';
+import { useEvents, useTransactions, useCaisses } from '@/lib/dataLayer';
 import { formatCurrencyCompact, formatDate } from '@/lib/utils';
 import { ArrowLeft, Calendar, Clock, Tag, CheckCircle, Play, Flag, Trash2, AlertCircle, Plus, ArrowUp, ArrowDown, Edit3 } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
@@ -20,7 +21,17 @@ const STATUS_CONFIG: Record<EventStatus, { label: string; color: string; bg: str
 export default function EventDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { events, updateEventStatus, deleteEvent, transactions, caisses, accounts, addTransaction, updateEvent } = useLocalStore();
+  const { events: idbEvents, updateEventStatus, deleteEvent, transactions: idbTxs, caisses: idbCaisses, accounts, addTransaction, updateEvent } = useLocalStore();
+
+  // PowerSync with fallback
+  const { data: psEvents } = useEvents();
+  const { data: psTransactions } = useTransactions();
+  const { data: psCaisses } = useCaisses();
+
+  const events = psEvents ?? idbEvents;
+  const transactions = psTransactions ?? idbTxs;
+  const caisses = psCaisses ?? idbCaisses;
+
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [showDelete, setShowDelete] = useState(false);
   const [success, setSuccess] = useState('');
@@ -30,13 +41,14 @@ export default function EventDetail() {
   const [expenseDescription, setExpenseDescription] = useState('');
   const [expenseError, setExpenseError] = useState('');
 
-  const event = events.find(e => e.id === id);
+  const event = events.find((e: any) => e.id === id);
 
   if (!event) return <FullPageSkeleton />;
 
   const config = STATUS_CONFIG[event.status];
-  const budgetSpent = event.budgetItems.reduce((s, i) => s + i.spent, 0);
-  const eventTxs = transactions.filter(t => t.eventId === event.id);
+  const budgetItems = event.budget_items ? JSON.parse(event.budget_items) : [];
+  const budgetSpent = budgetItems.reduce((s: number, i: any) => s + (i.spent || 0), 0);
+  const eventTxs = transactions.filter((t: any) => t.event_id === event.id || t.eventId === event.id);
 
   const handleStatusChange = (newStatus: EventStatus) => {
     updateEventStatus(id!, newStatus);
@@ -58,7 +70,7 @@ export default function EventDetail() {
       return;
     }
 
-    const budgetItem = event.budgetItems.find(i => i.id === selectedBudgetItemId);
+    const budgetItem = budgetItems.find((i: any) => i.id === selectedBudgetItemId);
     if (!budgetItem) return;
 
     const amountFCFA = parseFloat(expenseAmount);
@@ -71,56 +83,39 @@ export default function EventDetail() {
     const now = new Date().toISOString();
     const sessionId = localStorage.getItem('lumina-session') || 'local-user';
 
-    // Determine source caisse from budget item's fundedBy
     const sourceCaisseId = budgetItem.fundedBy === 'main' ? 'main' : budgetItem.fundedBy;
-
-    // Find category
     const categoryId = budgetItem.categoryId || 'cat-frais-fonc';
 
-    const newTx = {
+    await addTransaction({
       orgId: 'org-1',
-      type: 'EXPENSE' as const,
+      type: 'EXPENSE',
       amount: amountCents,
       description: `${event.name} — ${expenseDescription}`,
       date: now.split('T')[0],
-      status: 'APPROVED' as const,
-      createdAt: now,
-      updatedAt: now,
-      createdById: sessionId,
-      approvedById: sessionId,
-      approvedAt: now,
+      status: 'APPROVED',
       categoryId,
       orgUnitId: null,
       eventId: event.id,
-      source: 'CAISSE' as const,
+      source: 'CAISSE',
       personName: null,
       compensatesFor: null,
       comment: `Dépense événement: ${expenseDescription}`,
       version: 1,
+      createdById: sessionId,
+      approvedById: sessionId,
+      approvedAt: now,
       sourceCaisseId,
       versementId: null,
-    };
+      reversalOfId: null,
+    });
 
-    // Update budget item spent
-    const updatedItems = event.budgetItems.map(item =>
+    const updatedItems = budgetItems.map((item: any) =>
       item.id === selectedBudgetItemId
-        ? { ...item, spent: item.spent + amountCents }
+        ? { ...item, spent: (item.spent || 0) + amountCents }
         : item
     );
 
-    // Add transaction first
-    await addTransaction(newTx);
-
-    // Then update event with new budget items
     await updateEvent(event.id, { budgetItems: updatedItems });
-
-    // Force re-fetch event from store
-    const { events } = useLocalStore.getState();
-    const updatedEvent = events.find(e => e.id === event.id);
-    if (updatedEvent) {
-      // Force re-render by updating local state
-      navigate(0);
-    }
 
     setSuccess(`Dépense de ${formatCurrencyCompact(amountCents)} FCFA enregistrée`);
     setTimeout(() => setSuccess(''), 3000);
@@ -130,14 +125,13 @@ export default function EventDetail() {
     setSelectedBudgetItemId(null);
   };
 
-  const remaining = event.budget - budgetSpent;
-  const progressPct = event.budget > 0 ? Math.min(100, Math.round((budgetSpent / event.budget) * 100)) : 0;
+  const remaining = (event.budget || 0) - budgetSpent;
+  const progressPct = (event.budget || 0) > 0 ? Math.min(100, Math.round((budgetSpent / event.budget) * 100)) : 0;
 
   return (
     <div className="min-h-screen bg-canvas flex flex-col">
       <TopHeader title={event.name} />
 
-      {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto px-5 pb-28 pt-16">
         <button onClick={() => navigate('/events')} className="flex items-center gap-2 text-text-secondary text-sm mb-5">
           <ArrowLeft className="w-4 h-4" /> Retour
@@ -147,7 +141,7 @@ export default function EventDetail() {
           <div className="mb-4 p-3 rounded-xl text-sm" style={{ backgroundColor: '#1DB95420', color: '#1DB954' }}>{success}</div>
         )}
 
-        {/* Status badge + quick actions */}
+        {/* Status badge */}
         <div className="flex items-center justify-between mb-6 p-4 rounded-xl" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
           <span className="flex items-center gap-2 text-sm px-3 py-1.5 rounded-full font-medium" style={{ color: config.color, backgroundColor: config.bg }}>
             <config.icon className="w-4 h-4" /> {config.label}
@@ -182,12 +176,12 @@ export default function EventDetail() {
           <div className="flex items-center justify-center gap-4 text-xs">
             <div className="flex items-center gap-1.5">
               <Calendar className="w-3.5 h-3.5 text-text-tertiary" />
-              <span className="text-text-secondary">{formatDate(event.startDate)}</span>
+              <span className="text-text-secondary">{formatDate(event.start_date || event.startDate)}</span>
             </div>
-            {event.endDate && (
+            {event.end_date || event.endDate && (
               <div className="flex items-center gap-1.5">
                 <Clock className="w-3.5 h-3.5 text-text-tertiary" />
-                <span className="text-text-secondary">{formatDate(event.endDate)}</span>
+                <span className="text-text-secondary">{formatDate(event.end_date || event.endDate)}</span>
               </div>
             )}
           </div>
@@ -197,11 +191,11 @@ export default function EventDetail() {
         <div className="grid grid-cols-3 gap-3 mb-6">
           <div className="rounded-xl p-3 text-center" style={{ backgroundColor: '#212121' }}>
             <p className="text-text-tertiary text-xs mb-1">Budget</p>
-            <p className="text-text-primary font-bold text-sm">{formatCurrencyCompact(event.budget)} <span className="text-text-tertiary text-xs font-normal">F</span></p>
+            <p className="text-text-primary font-bold text-sm">{formatCurrencyCompact(event.budget || 0)} <span className="text-text-tertiary text-xs font-normal">F</span></p>
           </div>
           <div className="rounded-xl p-3 text-center" style={{ backgroundColor: '#212121' }}>
             <p className="text-text-tertiary text-xs mb-1">Dépensé</p>
-            <p className="font-bold text-sm" style={{ color: budgetSpent > event.budget ? '#E51332' : '#FFB800' }}>
+            <p className="font-bold text-sm" style={{ color: budgetSpent > (event.budget || 0) ? '#E51332' : '#FFB800' }}>
               {formatCurrencyCompact(budgetSpent)} <span className="text-text-tertiary text-xs font-normal">F</span>
             </p>
           </div>
@@ -214,16 +208,16 @@ export default function EventDetail() {
         </div>
 
         {/* Budget progress */}
-        {event.budget > 0 && (
+        {(event.budget || 0) > 0 && (
           <div className="rounded-xl p-4 mb-6" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
             <div className="flex items-center justify-between mb-2">
               <span className="text-text-tertiary text-xs">Progression budgétaire</span>
               <span className="text-text-secondary text-xs">{progressPct}%</span>
             </div>
             <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: '#282828' }}>
-              <div className="h-full rounded-full transition-all" style={{ width: `${progressPct}%`, backgroundColor: budgetSpent > event.budget ? '#E51332' : '#FF6B00' }} />
+              <div className="h-full rounded-full transition-all" style={{ width: `${progressPct}%`, backgroundColor: budgetSpent > (event.budget || 0) ? '#E51332' : '#FF6B00' }} />
             </div>
-            {budgetSpent > event.budget && (
+            {budgetSpent > (event.budget || 0) && (
               <div className="flex items-center gap-2 mt-2 text-xs" style={{ color: '#E51332' }}>
                 <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
                 <span>Budget dépassé de {formatCurrencyCompact(budgetSpent - event.budget)} FCFA</span>
@@ -268,7 +262,7 @@ export default function EventDetail() {
                   <Tag className="w-5 h-5" style={{ color: '#FF6B00' }} />
                 </div>
                 <p className="text-text-primary text-sm font-semibold">Gérer le budget</p>
-                <p className="text-text-tertiary text-xs mt-1">{event.budgetItems.length} postes</p>
+                <p className="text-text-tertiary text-xs mt-1">{budgetItems.length} postes</p>
               </button>
               <button
                 onClick={() => setActiveTab('transactions')}
@@ -283,17 +277,17 @@ export default function EventDetail() {
               </button>
             </div>
 
-            {event.budgetItems.length > 0 && (
+            {budgetItems.length > 0 && (
               <div className="rounded-xl p-4" style={{ backgroundColor: '#212121' }}>
                 <p className="text-text-tertiary text-xs font-medium mb-3">Répartition du budget</p>
                 <div className="space-y-2">
-                  {event.budgetItems.slice(0, 3).map(item => {
-                    const pct = item.allocated > 0 ? Math.min(100, Math.round((item.spent / item.allocated) * 100)) : 0;
+                  {budgetItems.slice(0, 3).map((item: any) => {
+                    const pct = item.allocated > 0 ? Math.min(100, Math.round(((item.spent || 0) / item.allocated) * 100)) : 0;
                     return (
                       <div key={item.id}>
                         <div className="flex justify-between text-xs mb-1">
                           <span className="text-text-secondary truncate">{item.label}</span>
-                          <span className="text-text-tertiary">{formatCurrencyCompact(item.spent)}/{formatCurrencyCompact(item.allocated)} F</span>
+                          <span className="text-text-tertiary">{formatCurrencyCompact(item.spent || 0)}/{formatCurrencyCompact(item.allocated)} F</span>
                         </div>
                         <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: '#282828' }}>
                           <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: pct >= 100 ? '#E51332' : '#FF6B00' }} />
@@ -301,8 +295,8 @@ export default function EventDetail() {
                       </div>
                     );
                   })}
-                  {event.budgetItems.length > 3 && (
-                    <p className="text-text-tertiary text-xs text-center mt-2">+ {event.budgetItems.length - 3} autres postes</p>
+                  {budgetItems.length > 3 && (
+                    <p className="text-text-tertiary text-xs text-center mt-2">+ {budgetItems.length - 3} autres postes</p>
                   )}
                 </div>
               </div>
@@ -314,7 +308,7 @@ export default function EventDetail() {
                   <p className="text-text-tertiary text-xs font-medium">Dernières transactions</p>
                   <button onClick={() => setActiveTab('transactions')} className="text-xs" style={{ color: '#FF6B00' }}>Tout voir</button>
                 </div>
-                {eventTxs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 3).map(tx => (
+                {eventTxs.sort((a: any, b: any) => new Date(b.date || b.created_at).getTime() - new Date(a.date || a.created_at).getTime()).slice(0, 3).map((tx: any) => (
                   <div key={tx.id} className="flex items-center gap-3 py-2 border-b last:border-0" style={{ borderColor: '#282828' }}>
                     <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: tx.type === 'INCOME' ? '#1DB95420' : '#E5133220' }}>
                       {tx.type === 'INCOME'
@@ -324,7 +318,7 @@ export default function EventDetail() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-text-primary text-sm font-medium truncate">{tx.description}</p>
-                      <p className="text-text-tertiary text-xs">{formatDate(tx.date)}</p>
+                      <p className="text-text-tertiary text-xs">{formatDate(tx.date || tx.created_at)}</p>
                     </div>
                     <span className="text-sm font-bold" style={{ color: tx.type === 'INCOME' ? '#1DB954' : '#E51332' }}>
                       {tx.type === 'INCOME' ? '+' : '-'}{formatCurrencyCompact(tx.amount)} F
@@ -339,34 +333,30 @@ export default function EventDetail() {
         {/* Tab: Budget */}
         {activeTab === 'budget' && (
           <div className="space-y-3">
-            {event.budgetItems.length === 0 ? (
+            {budgetItems.length === 0 ? (
               <div className="text-center py-10 rounded-xl" style={{ backgroundColor: '#212121' }}>
                 <Tag className="w-8 h-8 mx-auto mb-3 text-text-tertiary opacity-40" />
                 <p className="text-text-tertiary text-sm">Aucun poste budgétaire</p>
                 <p className="text-text-tertiary text-xs mt-1">Ajoutez des postes depuis la création de l'événement</p>
               </div>
             ) : (
-              event.budgetItems.map(item => {
-                const pct = item.allocated > 0 ? Math.min(100, Math.round((item.spent / item.allocated) * 100)) : 0;
-                const isExceeded = item.spent > item.allocated;
-                const remainingItem = item.allocated - item.spent;
-                const sourceCaisse = item.fundedBy === 'main'
-                  ? useLocalStore.getState().getCaisseForDisplay('main')
-                  : useLocalStore.getState().getCaisseForDisplay(item.fundedBy);
-
+              budgetItems.map((item: any) => {
+                const pct = item.allocated > 0 ? Math.min(100, Math.round(((item.spent || 0) / item.allocated) * 100)) : 0;
+                const isExceeded = (item.spent || 0) > item.allocated;
+                const remainingItem = item.allocated - (item.spent || 0);
                 return (
                   <div key={item.id} className="rounded-xl p-4" style={{ backgroundColor: '#212121', border: isExceeded ? '1px solid #E5133240' : '1px solid #282828' }}>
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex-1 min-w-0">
                         <p className="text-text-primary text-sm font-medium">{item.label}</p>
                         <p className="text-text-tertiary text-xs mt-0.5">
-                          {sourceCaisse?.name || 'Caisse principale'}
+                          {item.fundedBy === 'main' ? 'Caisse principale' : item.fundedBy}
                         </p>
                       </div>
                       <div className="text-right ml-3">
                         <p className="text-text-primary text-sm font-bold">{formatCurrencyCompact(item.allocated)} F</p>
                         <p className={`text-xs ${isExceeded ? 'text-[#E51332]' : 'text-text-tertiary'}`}>
-                          {formatCurrencyCompact(item.spent)} F dépensé
+                          {formatCurrencyCompact(item.spent || 0)} F dépensé
                         </p>
                       </div>
                     </div>
@@ -412,28 +402,23 @@ export default function EventDetail() {
                 <p className="text-text-tertiary text-xs mt-1">Les dépenses seront enregistrées ici</p>
               </div>
             ) : (
-              eventTxs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((tx) => {
-                const caisse = useLocalStore.getState().getCaisseForDisplay(tx.sourceCaisseId);
-                return (
-                  <div key={tx.id} className="rounded-xl p-3 flex items-center gap-3" style={{ backgroundColor: '#212121' }}>
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: tx.type === 'INCOME' ? '#1DB95420' : '#E5133220' }}>
-                      {tx.type === 'INCOME'
-                        ? <ArrowUp className="w-4 h-4" style={{ color: '#1DB954' }} />
-                        : <ArrowDown className="w-4 h-4" style={{ color: '#E51332' }} />
-                      }
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-text-primary text-sm font-medium truncate">{tx.description}</p>
-                      <p className="text-text-tertiary text-xs">
-                        {caisse?.name || 'Caisse principale'} · {tx.category?.labelFr || tx.categoryId}
-                      </p>
-                    </div>
-                    <span className="text-sm font-bold" style={{ color: tx.type === 'INCOME' ? '#1DB954' : '#E51332' }}>
-                      {tx.type === 'INCOME' ? '+' : '-'}{formatCurrencyCompact(tx.amount)} F
-                    </span>
+              eventTxs.sort((a: any, b: any) => new Date(b.date || b.created_at).getTime() - new Date(a.date || a.created_at).getTime()).map((tx: any) => (
+                <div key={tx.id} className="rounded-xl p-3 flex items-center gap-3" style={{ backgroundColor: '#212121' }}>
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: tx.type === 'INCOME' ? '#1DB95420' : '#E5133220' }}>
+                    {tx.type === 'INCOME'
+                      ? <ArrowUp className="w-4 h-4" style={{ color: '#1DB954' }} />
+                      : <ArrowDown className="w-4 h-4" style={{ color: '#E51332' }} />
+                    }
                   </div>
-                );
-              })
+                  <div className="flex-1 min-w-0">
+                    <p className="text-text-primary text-sm font-medium truncate">{tx.description}</p>
+                    <p className="text-text-tertiary text-xs">{formatDate(tx.date || tx.created_at)}</p>
+                  </div>
+                  <span className="text-sm font-bold" style={{ color: tx.type === 'INCOME' ? '#1DB954' : '#E51332' }}>
+                    {tx.type === 'INCOME' ? '+' : '-'}{formatCurrencyCompact(tx.amount)} F
+                  </span>
+                </div>
+              ))
             )}
           </div>
         )}
@@ -451,7 +436,7 @@ export default function EventDetail() {
 
       <BottomNav />
 
-      {/* Add Expense Modal - Fixed positioning */}
+      {/* Add Expense Modal */}
       {showAddExpense && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
           <div className="absolute inset-0 bg-black/70" onClick={() => setShowAddExpense(false)} />
@@ -473,9 +458,9 @@ export default function EventDetail() {
                     style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
                   >
                     <option value="">Sélectionner un poste...</option>
-                    {event.budgetItems.map(item => (
+                    {budgetItems.map((item: any) => (
                       <option key={item.id} value={item.id}>
-                        {item.label} — Reste: {formatCurrencyCompact(item.allocated - item.spent)} F
+                        {item.label} — Reste: {formatCurrencyCompact(item.allocated - (item.spent || 0))} F
                       </option>
                     ))}
                   </select>
@@ -492,9 +477,9 @@ export default function EventDetail() {
                     style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
                   />
                   {selectedBudgetItemId && (() => {
-                    const item = event.budgetItems.find(i => i.id === selectedBudgetItemId);
+                    const item = budgetItems.find((i: any) => i.id === selectedBudgetItemId);
                     if (!item) return null;
-                    const remaining = item.allocated - item.spent;
+                    const remaining = item.allocated - (item.spent || 0);
                     const entered = parseFloat(expenseAmount) || 0;
                     const overBudget = entered > (remaining / 100);
                     return (

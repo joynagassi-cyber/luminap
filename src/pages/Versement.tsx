@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useLocalStore } from '@/store/useLocalStore';
+import { useCaisses, useAccounts } from '@/lib/dataLayer';
 import { formatCurrencyCompact } from '@/lib/utils';
 import { ArrowLeft, Check, AlertCircle, Wallet, RefreshCw } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
@@ -9,19 +10,29 @@ import TopHeader from '@/components/TopHeader';
 export default function Versement() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { caisses, accounts, transactions, createVersement } = useLocalStore();
+  const { caisses: idbCaisses, accounts: idbAccounts, transactions: idbTxs, createVersement } = useLocalStore();
+
+  // PowerSync with fallback
+  const { data: psCaisses } = useCaisses();
+  const { data: psAccounts } = useAccounts();
+  const { data: psTransactions } = useTransactions();
+
+  const caisses = psCaisses ?? idbCaisses;
+  const accounts = psAccounts ?? idbAccounts;
+  const transactions = psTransactions ?? idbTxs;
+
   const [selectedCaisse, setSelectedCaisse] = useState<string>((location.state as any)?.caisseId || '');
   const [amount, setAmount] = useState<string>((location.state as any)?.defaultAmount ? String(Math.round((location.state as any).defaultAmount / 100)) : '');
   const [comment, setComment] = useState('');
   const [showConfirm, setShowConfirm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const groupAccounts = accounts.filter(a => a.ownerType === 'GROUP' && a.status === 'ACTIVE');
-  const selected = groupAccounts.find(a => a.id === selectedCaisse);
+  const groupAccounts = accounts.filter((a: any) => a.owner_type === 'GROUP' && a.status === 'ACTIVE');
+  const selected = groupAccounts.find((a: any) => a.id === selectedCaisse);
 
   // Re-calculate balance fresh each time
-  const approvedTxs = transactions.filter(t => t.sourceCaisseId === selectedCaisse && t.status === 'APPROVED');
-  const balance = approvedTxs.filter(t => t.type === 'INCOME').reduce((s, t) => s + t.amount, 0) - approvedTxs.filter(t => t.type === 'EXPENSE').reduce((s, t) => s + t.amount, 0);
+  const approvedTxs = transactions.filter((t: any) => t.source_caisse_id === selectedCaisse || t.sourceCaisseId === selectedCaisse && t.status === 'APPROVED');
+  const balance = approvedTxs.filter((t: any) => t.type === 'INCOME').reduce((s: number, t: any) => s + t.amount, 0) - approvedTxs.filter((t: any) => t.type === 'EXPENSE').reduce((s: number, t: any) => s + t.amount, 0);
   const balanceFCFA = Math.round(balance / 100);
 
   const maxAmount = Math.max(0, balanceFCFA);
@@ -58,103 +69,135 @@ export default function Versement() {
           <div className="space-y-4">
             <div className="rounded-xl p-5" style={{ backgroundColor: '#212121' }}>
               <p className="text-text-tertiary text-xs font-medium mb-3 text-center uppercase tracking-wider">Aperçu du versement</p>
-              
-              {/* Source side */}
-              <div className="flex items-center gap-3 p-3 rounded-xl mb-3" style={{ backgroundColor: '#E5133210', border: '1px solid #E5133230' }}>
-                <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#E5133220' }}>
-                  <ArrowLeft className="w-4 h-4" style={{ color: '#E51332', transform: 'rotate(90deg)' }} />
-                </div>
-                <div className="flex-1">
-                  <p className="text-text-primary text-sm font-medium">{selected?.name}</p>
-                  <p className="text-text-tertiary text-xs">Débit — Solde après: {formatCurrencyCompact((maxAmount - amountNum) * 100)} FCFA</p>
-                </div>
-                <span className="text-[#E51332] font-bold text-sm">-{formatCurrencyCompact(amountNum * 100)} F</span>
+              <div className="text-center mb-4">
+                <p className="text-text-tertiary text-sm mb-1">Montant à verser</p>
+                <p className="text-3xl font-black text-[#FF6B00]">{formatCurrencyCompact(amountNum)} F</p>
               </div>
-
-              {/* Arrow */}
-              <div className="flex justify-center my-2">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: '#FF6B0020' }}>
-                  <RefreshCw className="w-4 h-4" style={{ color: '#FF6B00' }} />
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-text-tertiary">De:</span>
+                  <span className="text-text-primary font-medium">{selected?.name || selectedCaisse}</span>
                 </div>
-              </div>
-
-              {/* Target side */}
-              <div className="flex items-center gap-3 p-3 rounded-xl" style={{ backgroundColor: '#1DB95410', border: '1px solid #1DB95430' }}>
-                <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#1DB95420' }}>
-                  <Check className="w-4 h-4" style={{ color: '#1DB954' }} />
+                <div className="flex justify-between">
+                  <span className="text-text-tertiary">Vers:</span>
+                  <span className="text-text-primary font-medium">Caisse principale</span>
                 </div>
-                <div className="flex-1">
-                  <p className="text-text-primary text-sm font-medium">Caisse principale</p>
-                  <p className="text-text-tertiary text-xs">Crédit</p>
-                </div>
-                <span className="text-[#1DB954] font-bold text-sm">+{formatCurrencyCompact(amountNum * 100)} F</span>
-              </div>
-
-              {comment && <p className="text-text-tertiary text-xs mt-3 text-center italic">"{comment}"</p>}
-            </div>
-            <button onClick={handleConfirm} disabled={isLoading} className="w-full py-4 rounded-full font-semibold text-white transition-all active:scale-95 disabled:opacity-40" style={{ backgroundColor: '#FF6B00' }}>
-              {isLoading ? 'Traitement...' : 'Confirmer le versement'}
-            </button>
-            <button onClick={() => setShowConfirm(false)} className="w-full py-3 rounded-full font-medium text-sm" style={{ backgroundColor: '#212121', color: '#B3B3B3' }}>
-              Annuler
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {/* Caisse selector */}
-            <div>
-              <label className="text-text-tertiary text-xs mb-2 block">Groupe (caisse source)</label>
-              <div className="space-y-2">
-                {groupAccounts.map((a) => {
-                    const caisse = useLocalStore.getState().getCaisseForDisplay(a.id);
-                    const color = caisse?.color || '#FF6B00';
-                    const txs = transactions.filter(t => t.sourceCaisseId === a.id && t.status === 'APPROVED');
-                    const bal = txs.filter(t => t.type === 'INCOME').reduce((s, t) => s + t.amount, 0) - txs.filter(t => t.type === 'EXPENSE').reduce((s, t) => s + t.amount, 0);
-                    return (
-                      <button key={a.id} onClick={() => { setSelectedCaisse(a.id); setAmount(''); }} className="w-full text-left rounded-xl p-4 flex items-center gap-3 transition-all" style={selectedCaisse === a.id ? { backgroundColor: color + '20', border: `1px solid ${color}` } : { backgroundColor: '#212121', border: '1px solid #282828' }}>
-                        <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: color + '20' }}>
-                          <Wallet className="w-5 h-5" style={{ color }} />
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-text-primary text-sm font-semibold">{a.name}</p>
-                          <p className="text-text-tertiary text-xs">Solde: {formatCurrencyCompact(bal)} FCFA</p>
-                        </div>
-                        {selectedCaisse === a.id && <Check className="w-5 h-5" style={{ color }} />}
-                      </button>
-                    );
-                  })}
-              </div>
-            </div>
-
-            {selected && (
-              <>
-                {/* Amount */}
-                <div>
-                  <label className="text-text-tertiary text-xs mb-2 block">Montant à verser (FCFA)</label>
-                  <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" className="w-full px-4 py-3.5 rounded-xl text-text-primary text-lg font-bold outline-none" style={{ backgroundColor: '#212121', border: '1px solid #282828' }} />
-                  <div className="flex justify-between mt-2">
-                    <span className="text-text-tertiary text-xs">Solde disponible: <span style={{ color: '#1DB954' }}>{formatCurrencyCompact(maxAmount * 100)} FCFA</span></span>
-                    <button onClick={() => setAmount(String(maxAmount))} className="text-xs font-medium" style={{ color: '#FF6B00' }}>Tout verser</button>
-                  </div>
-                </div>
-
-                {/* Comment */}
-                <div>
-                  <label className="text-text-tertiary text-xs mb-2 block">Commentaire (optionnel)</label>
-                  <textarea value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Note..." rows={2} className="w-full px-4 py-3 rounded-xl text-text-primary text-sm outline-none resize-none" style={{ backgroundColor: '#212121', border: '1px solid #282828' }} />
-                </div>
-
-                {!isValid && amountNum > 0 && (
-                  <div className="flex items-center gap-2 text-xs" style={{ color: '#E51332' }}>
-                    <AlertCircle className="w-4 h-4" /> Montant supérieur au solde disponible
+                {comment && (
+                  <div className="flex justify-between">
+                    <span className="text-text-tertiary">Commentaire:</span>
+                    <span className="text-text-primary font-medium text-right max-w-[60%]">{comment}</span>
                   </div>
                 )}
+              </div>
+            </div>
 
-                <button onClick={() => setShowConfirm(true)} disabled={!isValid} className="w-full py-4 rounded-full font-semibold text-white transition-all active:scale-95 disabled:opacity-40" style={{ backgroundColor: '#FF6B00' }}>
-                  Aperçu du versement
-                </button>
-              </>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowConfirm(false)}
+                className="flex-1 py-3.5 rounded-full font-semibold text-sm"
+                style={{ backgroundColor: '#212121', color: '#B3B3B3' }}
+              >
+                Retour
+              </button>
+              <button
+                onClick={handleConfirm}
+                disabled={isLoading || !isValid}
+                className="flex-1 py-3.5 rounded-full font-semibold text-white text-sm disabled:opacity-50"
+                style={{ backgroundColor: '#FF6B00' }}
+              >
+                {isLoading ? 'Traitement...' : 'Confirmer le versement'}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-5">
+            {/* Caisse selector */}
+            <div>
+              <label className="text-text-tertiary text-xs mb-2 block">Sélectionner une caisse</label>
+              <select
+                value={selectedCaisse}
+                onChange={(e) => setSelectedCaisse(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl text-sm outline-none"
+                style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
+              >
+                <option value="">Choisir une caisse...</option>
+                {groupAccounts.map((account: any) => (
+                  <option key={account.id} value={account.id}>{account.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Balance display */}
+            {selected && (
+              <div className="rounded-xl p-4" style={{ backgroundColor: '#212121' }}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-text-tertiary text-xs">Solde disponible</p>
+                    <p className="text-text-primary font-bold text-xl mt-1">{formatCurrencyCompact(balanceFCFA)} F</p>
+                  </div>
+                  <Wallet className="w-8 h-8 text-text-tertiary" />
+                </div>
+              </div>
             )}
+
+            {/* Amount input */}
+            <div>
+              <label className="text-text-tertiary text-xs mb-2 block">Montant à verser (FCFA)</label>
+              <input
+                type="number"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="0"
+                max={maxAmount}
+                className="w-full px-4 py-4 rounded-xl text-2xl font-bold outline-none text-center"
+                style={{ backgroundColor: '#212121', color: '#fff', border: amountNum > maxAmount ? '1px solid #E51332' : '1px solid #282828' }}
+              />
+              {amountNum > maxAmount && (
+                <p className="text-[#E51332] text-xs mt-1 text-center">Montant supérieur au solde disponible</p>
+              )}
+              {amountNum <= maxAmount && maxAmount > 0 && (
+                <p className="text-text-tertiary text-xs mt-1 text-center">Maximum: {formatCurrencyCompact(maxAmount)} F</p>
+              )}
+            </div>
+
+            {/* Comment */}
+            <div>
+              <label className="text-text-tertiary text-xs mb-2 block">Commentaire (optionnel)</label>
+              <textarea
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                placeholder="Ajouter un commentaire..."
+                rows={2}
+                className="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none"
+                style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
+              />
+            </div>
+
+            {/* Quick amounts */}
+            {maxAmount > 0 && (
+              <div className="flex gap-2">
+                {[0.25, 0.5, 0.75, 1].map((pct) => (
+                  <button
+                    key={pct}
+                    onClick={() => setAmount(Math.round(maxAmount * pct).toString())}
+                    className="flex-1 py-2 rounded-lg text-xs font-medium"
+                    style={{ backgroundColor: '#212121', color: '#B3B3B3', border: '1px solid #282828' }}
+                  >
+                    {Math.round(pct * 100)}%
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Confirm button */}
+            <button
+              onClick={() => setShowConfirm(true)}
+              disabled={!isValid}
+              className="w-full py-4 rounded-full font-semibold text-white text-sm disabled:opacity-50 transition-all active:scale-95"
+              style={{ backgroundColor: '#FF6B00' }}
+            >
+              Continuer
+            </button>
           </div>
         )}
       </div>
