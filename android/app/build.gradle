@@ -15,6 +15,8 @@ android {
              // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
+        resValue "string", "onesignal_app_id", "5482a4eb-a402-4612-ab5e-a72df7961b12"
+        resValue "string", "onesignal_google_project_number", "remote"
     }
     signingConfigs {
         release {
@@ -40,6 +42,9 @@ repositories {
     flatDir{
         dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
     }
+    maven {
+        url "https://maven.onesignal.com"
+    }
 }
 
 dependencies {
@@ -52,6 +57,7 @@ dependencies {
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
+    implementation 'com.onesignal:OneSignal:[5.0.0, 5.99.99]'
 }
 
 apply from: 'capacitor.build.gradle'

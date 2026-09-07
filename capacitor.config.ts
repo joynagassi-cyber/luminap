@@ -15,6 +15,11 @@ const config: CapacitorConfig = {
       showSpinner: false,
       androidSplashResourceName: 'splash',
       androidScaleType: 'CENTER_CROP'
+    },
+    OneSignal: {
+      appId: '5482a4eb-a402-4612-ab5e-a72df7961b12',
+      promptForNotifications: true,
+      notifyWhenConfirmation: true,
     }
   }
 };
