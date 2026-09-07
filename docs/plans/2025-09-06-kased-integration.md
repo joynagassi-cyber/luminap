@@ -88,87 +88,50 @@ C'est la règle métier originale de Kased.
 
 ---
 
-# Tâche 2: Migrations Supabase (AVANT tout le reste)
+# Tâche 0: Migrations Supabase (AVANT tout le reste)
 
-## Commandes à exécuter
+## ⚠️ IMPORTANT: Déploiement manuel requis
+
+Les fichiers de migration ont été créés dans `supabase/migrations/`. Pour les déployer:
 
 ```bash
-# 1. Se connecter au projet Supabase
+# Option 1: Via CLI Supabase (recommandé)
 supabase login
-
-# 2. Lier le projet local au projet Supabase
 supabase link --project-ref vvcdmqpbwfyhkzalwdli
-
-# 3. Créer les migrations (une par fichier SQL)
-supabase migration new 0035_add_event_type_to_events
-supabase migration new 0036_create_cotisations_table
-supabase migration new 0037_enrich_members_table
-supabase migration new 0038_enrich_transactions_table
-
-# 4. Déployer toutes les migrations
 supabase db push
 
-# 5. Vérifier que les tables ont été créées
-supabase db remote execute "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name;"
+# Option 2: Via Supabase Dashboard
+# 1. Aller sur https://supabase.com/dashboard/project/vvcdmqpbwfyhkzalwdli
+# 2. SQL Editor → New Query
+# 3. Copier-coller le contenu de chaque fichier SQL dans l'ordre
 ```
 
-## Fichiers SQL à créer
+## Fichiers SQL créés
 
-### `supabase/migrations/0035_add_event_type_to_events.sql`
+✅ `0035_add_event_type_to_events.sql`
+✅ `0036_create_cotisations_table.sql`
+✅ `0037_enrich_members_table.sql`
+✅ `0038_enrich_transactions_table.sql`
 
-```sql
--- Ajouter un type aux événements pour distinguer Cultes des autres événements
-ALTER TABLE public.events ADD COLUMN IF NOT EXISTS type TEXT NOT NULL DEFAULT 'EVENT'
-  CHECK (type IN ('EVENT', 'CULTE'));
-
--- Index pour requêtes fréquentes
-CREATE INDEX IF NOT EXISTS idx_events_type ON public.events(type);
-```
-
-### `supabase/migrations/0036_create_cotisations_table.sql`
+## Vérification post-migration
 
 ```sql
-CREATE TABLE IF NOT EXISTS public.cotisations (
-  id TEXT PRIMARY KEY,
-  culte_id TEXT NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
-  membre_id TEXT NOT NULL REFERENCES public.members(id) ON DELETE CASCADE,
-  statut TEXT NOT NULL DEFAULT 'NON_PAYE'
-    CHECK (statut IN ('NON_PAYE', 'PAYE', 'ABSENT', 'EN_AVANCE')),
-  montantObligatoire BIGINT NOT NULL DEFAULT 5000,
-  montantPaye BIGINT NOT NULL DEFAULT 0,
-  datePaiement TIMESTAMP WITH TIME ZONE,
-  notes TEXT,
-  createdAt TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-  updatedAt TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
-);
+-- Vérifier que les tables existent
+SELECT table_name FROM information_schema.tables
+WHERE table_schema = 'public'
+ORDER BY table_name;
 
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.cotisations TO service_role;
-GRANT SELECT, INSERT, UPDATE ON public.cotisations TO authenticated;
-ALTER TABLE public.cotisations ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "cotisations_open_all" ON public.cotisations
-  FOR ALL TO PUBLIC USING (true) WITH CHECK (true);
+-- Vérifier les colonnes de members
+SELECT column_name FROM information_schema.columns
+WHERE table_name = 'members' AND column_name IN ('total_dons', 'montant_en_avance');
 
-CREATE INDEX IF NOT EXISTS idx_cotisations_culte ON public.cotisations(culte_id);
-CREATE INDEX IF NOT EXISTS idx_cotisations_membre ON public.cotisations(membre_id);
-CREATE INDEX IF NOT EXISTS idx_cotisations_statut ON public.cotisations(statut);
-```
+-- Vérifier la colonne type de events
+SELECT column_name FROM information_schema.columns
+WHERE table_name = 'events' AND column_name = 'type';
 
-### `supabase/migrations/0037_enrich_members_table.sql`
-
-```sql
--- Ajouter les champs pour les dons et avances
-ALTER TABLE public.members ADD COLUMN IF NOT EXISTS total_dons BIGINT NOT NULL DEFAULT 0;
-ALTER TABLE public.members ADD COLUMN IF NOT EXISTS montant_en_avance BIGINT NOT NULL DEFAULT 0;
-CREATE INDEX IF NOT EXISTS idx_members_total_dons ON public.members(total_dons);
-```
-
-### `supabase/migrations/0038_enrich_transactions_table.sql`
-
-```sql
--- Lier les transactions de cotisation aux cotisations
-ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS cotisation_id TEXT
-  REFERENCES public.cotisations(id) ON DELETE SET NULL;
-CREATE INDEX IF NOT EXISTS idx_transactions_cotisation ON public.transactions(cotisation_id);
+-- Vérifier la colonne cotisation_id
+SELECT column_name FROM information_schema.columns
+WHERE table_name = 'transactions' AND column_name = 'cotisation_id';
 ```
 
 ---

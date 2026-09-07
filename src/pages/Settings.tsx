@@ -153,7 +153,7 @@ export default function SettingsPage() {
           </div>
           <div className="flex items-center justify-between text-sm mb-2">
             <span className="text-text-tertiary">Base de données</span>
-            <span className="text-text-secondary">PowerSync + IndexedDB</span>
+            <span className="text-text-secondary">PowerSync + LocalStorage</span>
           </div>
           <div className="flex items-center justify-between text-sm mb-2">
             <span className="text-text-tertiary">Actions enregistrées</span>

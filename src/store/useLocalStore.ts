@@ -2,7 +2,7 @@
  * Legacy Store - PowerSync Migration Complete
  *
  * This store now uses PowerSync for all data operations.
- * IndexedDB has been completely removed.
+ * Using PowerSync for all data operations.
  */
 
 import { create } from 'zustand';

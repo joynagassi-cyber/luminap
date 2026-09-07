@@ -1,4 +1,4 @@
-// IndexedDB removed - using PowerSync
+// Using PowerSync
 import { generateId } from './utils';
 import { writeAudit } from './audit';
 import type { FormDefinition, FormSubmission } from '@/types';

@@ -1,5 +1,5 @@
 /**
- * Unified Data Layer - PowerSync primary, IndexedDB fallback
+ * Unified Data Layer - PowerSync primary, PowerSync fallback
  *
  * This layer provides React hooks that try PowerSync first,
  * and fall back to IndexedDB if PowerSync is not available yet.
@@ -224,12 +224,12 @@ function setPowerSyncReady(ready: boolean) {
 }
 
 // ============================================================
-// Read hooks - PowerSync first, IndexedDB fallback
+// Read hooks - PowerSync first, PowerSync fallback
 // ============================================================
 
 /**
  * Hook to get all transactions
- * Tries PowerSync first, falls back to IndexedDB
+ * Tries PowerSync first, falls back to local cache
  */
 export function useTransactions() {
   const sync = usePowerSync();
@@ -246,7 +246,7 @@ export function useTransactions() {
     return { data: psData, isLoading: false, source: 'powersync' as const };
   }
 
-  // Fall back to IndexedDB
+  // Fall back to local cache
   return { data: store.transactions, isLoading: store.isLoading, source: 'indexeddb' as const };
 }
 
