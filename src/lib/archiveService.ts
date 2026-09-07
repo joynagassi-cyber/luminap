@@ -2,7 +2,7 @@
 import { generateId } from './utils';
 import { auditLogRepo } from './audit';
 import type { ArchivableEntity } from '@/types';
-import type { StoreName } from './db';
+// StoreName removed - using PowerSync
 
 export interface ArchivePolicy {
   canArchive(entityId: string): Promise<{ ok: boolean; reason?: string }>;

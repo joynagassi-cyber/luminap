@@ -2,7 +2,7 @@
 import { generateId } from './utils';
 import { writeAudit } from './audit';
 import type { CustomFieldDefinition, CustomFieldValue } from '@/types';
-import type { StoreName } from './db';
+// StoreName removed - using PowerSync
 
 export const customFieldRepo = {
   async create(def: Omit<CustomFieldDefinition, 'id'>): Promise<CustomFieldDefinition> {

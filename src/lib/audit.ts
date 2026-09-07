@@ -1,7 +1,7 @@
 // IndexedDB removed - using PowerSync
 import { generateId } from './utils';
 import type { AuditEntry } from '@/types';
-import type { StoreName } from './db';
+// StoreName removed - using PowerSync
 
 /**
  * AuditLogRepository

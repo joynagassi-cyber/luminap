@@ -3,7 +3,7 @@ import type { ReportDefinition, ReportResult } from '@/types';
 import { generateId } from './utils';
 import { writeAudit } from './audit';
 import type { Transaction } from '@/types';
-import type { StoreName } from './db';
+// StoreName removed - using PowerSync
 
 export type FilterOp = 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte' | 'contains' | 'in';
 

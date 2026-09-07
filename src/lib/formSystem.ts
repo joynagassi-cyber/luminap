@@ -2,7 +2,7 @@
 import { generateId } from './utils';
 import { writeAudit } from './audit';
 import type { FormDefinition, FormSubmission } from '@/types';
-import type { StoreName } from './db';
+// StoreName removed - using PowerSync
 
 /**
  * FormDefinitionRepository
