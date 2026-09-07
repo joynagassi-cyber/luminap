@@ -2,7 +2,6 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useLocalStore } from '@/store/useLocalStore';
 import { useEvents, useCotisations } from '@/lib/dataLayer';
 import { formatCurrencyCompact, formatDate } from '@/lib/utils';
-import { calculerNombreRetards } from '@/lib/cotisation-logic';
 import { ArrowLeft, CheckCircle, Clock, User } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
@@ -61,11 +60,6 @@ export default function MembreDetail() {
   const payeCount = memberCotisations.filter(c => c.statut === 'PAYE' || c.statut === 'EN_AVANCE').length;
   const absentCount = memberCotisations.filter(c => c.statut === 'ABSENT').length;
   const totalDons = member.totalDons || 0;
-  const nombreRetards = calculerNombreRetards({
-    cultes: memberEvents,
-    cotisations: memberCotisations,
-    dateAdhesion: member.joinedAt,
-  });
   const totalCultes = memberEvents.length;
   const cadence = totalCultes > 0 ? Math.round((payeCount / totalCultes) * 100) : 0;
 
@@ -110,16 +104,11 @@ export default function MembreDetail() {
           </div>
 
           {/* Stats row */}
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             <div className="text-center p-2 rounded-xl" style={{ backgroundColor: '#10B98115' }}>
               <CheckCircle className="w-4 h-4 mx-auto mb-1" style={{ color: '#10B981' }} />
               <p className="text-white font-bold text-sm">{payeCount}</p>
               <p className="text-text-tertiary text-xs">Cultes</p>
-            </div>
-            <div className="text-center p-2 rounded-xl" style={{ backgroundColor: '#EF444415' }}>
-              <Clock className="w-4 h-4 mx-auto mb-1" style={{ color: '#EF4444' }} />
-              <p className="text-white font-bold text-sm">{nombreRetards}</p>
-              <p className="text-text-tertiary text-xs">Retards</p>
             </div>
             <div className="text-center p-2 rounded-xl" style={{ backgroundColor: '#80808015' }}>
               <Clock className="w-4 h-4 mx-auto mb-1" style={{ color: '#808080' }} />
