@@ -1,82 +1,103 @@
-# 📊 État Final de la Migration Hybride
+# 📊 État de la Migration Hybride IndexedDB → PowerSync
 
-## 🎯 Résumé
+## 🎯 Résumé Exécutif
 
-La migration hybride IndexedDB → PowerSync est **en cours de réalisation** avec une approche progressive.
+La migration hybride est **en cours de réalisation** avec succès. L'approche progressive permet de migrer page par page sans risquer de casser l'application.
 
-### Statistiques actuelles
+### Statistiques Actuelles (Mise à jour: 2026-09-07)
 
 ```
-✅ Pages migrées: 13/25 (52%)
-❌ Pages restant sur IndexedDB: 12/25 (48%)
+✅ Pages migrées: 15/25 (60%)
+❌ Pages restant sur IndexedDB: 10/25 (40%)
 📊 Tables PowerSync: 21 (toutes synchronisées)
 🔧 Infrastructure: 100% opérationnelle
 📝 Compilation TypeScript: ✅ Sans erreur
+🚀 Statut PowerSync: ✅ Connected (0 bytes lag)
 ```
 
-### Pages migrées vers PowerSync
+## ✅ Pages Migrées vers PowerSync (15)
 
-| Page | Type | Statut |
-|------|------|--------|
-| Dashboard.tsx | Lecture | ✅ |
-| Settings.tsx | Lecture | ✅ |
-| Help.tsx | Lecture | ✅ |
-| History.tsx | Lecture | ✅ |
-| Trace.tsx | Lecture | ✅ |
-| Notifications.tsx | Lecture | ✅ |
-| Finance.tsx | Lecture/Écriture | ✅ |
-| Members.tsx | Lecture/Écriture | ✅ |
-| Events.tsx | Lecture | ✅ |
-| TransactionNew.tsx | Écriture | ✅ |
-| EventNew.tsx | Écriture | ✅ |
-| Groups.tsx | Lecture/Écriture | ✅ |
-| EventEdit.tsx | Écriture | ✅ |
+| Page | Type | Statut | Date Migration |
+|------|------|--------|----------------|
+| Dashboard.tsx | Lecture | ✅ | Phase 1 |
+| Settings.tsx | Lecture | ✅ | Phase 1 |
+| Help.tsx | Lecture | ✅ | Phase 1 |
+| History.tsx | Lecture | ✅ | Phase 2 |
+| Trace.tsx | Lecture | ✅ | Phase 2 |
+| Notifications.tsx | Lecture | ✅ | Phase 2 |
+| Finance.tsx | Lecture/Écriture | ✅ | Phase 2 |
+| Members.tsx | Lecture/Écriture | ✅ | Phase 2 |
+| Events.tsx | Lecture | ✅ | Phase 3 |
+| TransactionNew.tsx | Écriture | ✅ | Phase 3 |
+| EventNew.tsx | Écriture | ✅ | Phase 3 |
+| Groups.tsx | Lecture/Écriture | ✅ | Phase 3 |
+| EventEdit.tsx | Écriture | ✅ | Phase 3 |
+| TransactionDetail.tsx | Lecture | ✅ | Phase 4 |
+| TransactionEdit.tsx | Écriture | ✅ | Phase 4 |
 
-### Pages encore sur IndexedDB
+## ❌ Pages Restant sur IndexedDB (10)
 
-| Page | Priorité | Type |
-|------|----------|------|
-| TransactionEdit.tsx | Moyenne | Écriture |
-| TransactionDetail.tsx | Basse | Lecture |
-| GroupDetail.tsx | Moyenne | Lecture |
-| Balance.tsx | Basse | Lecture |
-| Archives.tsx | Basse | Lecture |
-| Reports.tsx | Moyenne | Lecture |
-| Versement.tsx | Moyenne | Écriture |
-| Login.tsx | Moyenne | Auth |
-| RoleSelection.tsx | Basse | Auth |
-| Splash.tsx | Basse | Initialisation |
+| Page | Priorité | Type | Complexité |
+|------|----------|------|------------|
+| EventDetail.tsx | Haute | Lecture | Moyenne |
+| GroupDetail.tsx | Moyenne | Lecture | Moyenne |
+| Balance.tsx | Basse | Lecture | Basse |
+| Archives.tsx | Basse | Lecture | Basse |
+| Reports.tsx | Moyenne | Lecture | Moyenne |
+| Versement.tsx | Moyenne | Écriture | Moyenne |
+| Login.tsx | Moyenne | Auth | Moyenne |
+| RoleSelection.tsx | Basse | Auth | Basse |
+| Splash.tsx | Basse | Initialisation | Basse |
+| TransactionNewGroup.tsx | Basse | Écriture | Basse |
 
-## 🏗️ Architecture en place
+## 🏗️ Architecture Hybride
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    Application                              │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐      │
-│  │Dashboard │ │Finance   │ │Members   │ │Events    │      │
-│  │ ✅PS     │ │ ✅PS     │ │ ✅PS     │ │ ✅PS     │      │
-│  └──────────┘ └──────────┘ └──────────┘ └──────────┘      │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐      │
-│  │History   │ │Trace     │ │Settings  │ │Groups    │      │
-│  │ ✅PS     │ │ ✅PS     │ │ ✅PS     │ │ ✅PS     │      │
-│  └──────────┘ └──────────┘ └──────────┘ └──────────┘      │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐      │
-│  │Help      │ │Notif.    │ │Tx New    │ │Event New │      │
-│  │ ✅PS     │ │ ✅PS     │ │ ✅PS     │ │ ✅PS     │      │
-│  └──────────┘ └──────────┘ └──────────┘ └──────────┘      │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐      │
-│  │Event Edit│ │ ❌Tx Edit│ │ ❌Tx Det │ │ ❌Grp Det │      │
-│  │ ✅PS     │ │ ❌IDB    │ │ ❌IDB    │ │ ❌IDB    │      │
-│  └──────────┘ └──────────┘ └──────────┘ └──────────┘      │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐      │
-│  │ ❌Balance │ │ ❌Archives│ │ ❌Reports │ │ ❌Versement│      │
-│  │ ❌IDB    │ │ ❌IDB    │ │ ❌IDB    │ │ ❌IDB    │      │
-│  └──────────┘ └──────────┘ └──────────┘ └──────────┘      │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐      │
-│  │ ❌Login   │ │ ❌RoleSel │ │ ❌Splash  │ │          │      │
-│  │ ❌IDB    │ │ ❌IDB    │ │ ❌IDB    │ │          │      │
-│  └──────────┘ └──────────┘ └──────────┘              │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                    Application                                  │
+│                                                                 │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐         │
+│  │  Dashboard   │  │   Finance    │  │   Members    │         │
+│  │    ✅ PS     │  │    ✅ PS     │  │    ✅ PS     │         │
+│  └──────────────┘  └──────────────┘  └──────────────┘         │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐         │
+│  │   History    │  │    Trace     │  │  Settings    │         │
+│  │    ✅ PS     │  │    ✅ PS     │  │    ✅ PS     │         │
+│  └──────────────┘  └──────────────┘  └──────────────┘         │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐         │
+│  │  Notifications│ │   Events     │  │  Groups      │         │
+│  │    ✅ PS     │  │    ✅ PS     │  │    ✅ PS     │         │
+│  └──────────────┘  └──────────────┘  └──────────────┘         │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐         │
+│  │ Transaction  │  │ Transaction  │  │   Event New  │         │
+│  │   Detail     │  │    New       │  │    ✅ PS     │         │
+│  │    ✅ PS     │  │    ✅ PS     │  └──────────────┘         │
+│  └──────────────┘  └──────────────┘                          │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐         │
+│  │  Event Edit  │  │ Transaction  │  │     Help     │         │
+│  │    ✅ PS     │  │    Edit      │  │    ✅ PS     │         │
+│  └──────────────┘  └──────────────┘  └──────────────┘         │
+│                                                                 │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐         │
+│  │  Event       │  │  Group       │  │   Balance    │         │
+│  │  Detail      │  │  Detail      │  │    ❌ IDB    │         │
+│  │    ❌ IDB    │  │    ❌ IDB    │  └──────────────┘         │
+│  └──────────────┘  └──────────────┘                          │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐         │
+│  │   Archives   │  │   Reports    │  │  Versement   │         │
+│  │    ❌ IDB    │  │    ❌ IDB    │  │    ❌ IDB    │         │
+│  └──────────────┘  └──────────────┘  └──────────────┘         │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐         │
+│  │    Login     │  │  Role        │  │   Splash     │         │
+│  │    ❌ IDB    │  │ Selection    │  │    ❌ IDB    │         │
+│  │              │  │    ❌ IDB    │  └──────────────┘         │
+│  └──────────────┘  └──────────────┘                          │
+│  ┌──────────────┐                                            │
+│  │ Transaction  │                                            │
+│  │  NewGroup    │                                            │
+│  │    ❌ IDB    │                                            │
+│  └──────────────┘                                            │
+└─────────────────────────────────────────────────────────────────┘
                            │
               ┌────────────▼────────────┐
               │    src/lib/dataLayer.ts  │
@@ -123,29 +144,29 @@ La migration hybride IndexedDB → PowerSync est **en cours de réalisation** av
 
 ### Tables répliquées (21)
 
-| Table | Description |
-|-------|-------------|
-| `profiles` | Utilisateurs authentifiés |
-| `members` | Membres de l'organisation |
-| `transactions` | Transactions financières |
-| `events` | Événements |
-| `notifications` | Notifications |
-| `categories` | Catégories de transactions |
-| `caisses` | Caisses (legacy) |
-| `accounts` | Comptes canoniques |
-| `versements` | Versements entre caisses |
-| `org_units` | Unités organisationnelles |
-| `groups` | Groupes |
-| `group_memberships` | Appartenances aux groupes |
-| `event_budgets` | Budgets d'événements |
-| `budget_lines` | Lignes budgétaires |
-| `audit_entries` | Journal d'audit |
-| `config` | Configuration application |
-| `form_definitions` | Définitions de formulaires |
-| `form_submissions` | Soumissions de formulaires |
-| `custom_field_definitions` | Champs personnalisés |
-| `custom_field_values` | Valeurs de champs personnalisés |
-| `report_definitions` | Définitions de rapports |
+| # | Table | Description |
+|---|-------|-------------|
+| 1 | `profiles` | Utilisateurs authentifiés |
+| 2 | `members` | Membres de l'organisation |
+| 3 | `transactions` | Transactions financières |
+| 4 | `events` | Événements |
+| 5 | `notifications` | Notifications |
+| 6 | `categories` | Catégories de transactions |
+| 7 | `caisses` | Caisses (legacy) |
+| 8 | `accounts` | Comptes canoniques |
+| 9 | `versements` | Versements entre caisses |
+| 10 | `org_units` | Unités organisationnelles |
+| 11 | `groups` | Groupes |
+| 12 | `group_memberships` | Appartenances aux groupes |
+| 13 | `event_budgets` | Budgets d'événements |
+| 14 | `budget_lines` | Lignes budgétaires |
+| 15 | `audit_entries` | Journal d'audit |
+| 16 | `config` | Configuration application |
+| 17 | `form_definitions` | Définitions de formulaires |
+| 18 | `form_submissions` | Soumissions de formulaires |
+| 19 | `custom_field_definitions` | Champs personnalisés |
+| 20 | `custom_field_values` | Valeurs de champs personnalisés |
+| 21 | `report_definitions` | Définitions de rapports |
 
 ## 🔧 Utilisation du DataLayer
 
@@ -185,19 +206,19 @@ async function handleAdd() {
 
 ## 🚀 Prochaines étapes
 
-### Court terme (1-2h)
-1. **Migrer TransactionEdit.tsx** - Modification de transactions
-2. **Migrer TransactionDetail.tsx** - Détail des transactions
-3. **Migrer GroupDetail.tsx** - Détail des groupes
-4. **Tester chaque page** en mode offline/online
+### Immédiat (1-2h)
+1. **Migrer EventDetail.tsx** - Page critique pour la gestion des événements
+2. **Migrer GroupDetail.tsx** - Page critique pour la gestion des groupes
+3. **Tester chaque page migrée** en mode offline/online
 
-### Moyen terme (2-4h)
-5. Migrer Balance.tsx, Archives.tsx, Reports.tsx
-6. Migrer Versement.tsx
+### Court terme (2-4h)
+4. Migrer Balance.tsx, Archives.tsx, Reports.tsx
+5. Migrer Versement.tsx
+6. Migrer Login.tsx, RoleSelection.tsx, Splash.tsx
 7. Supprimer le code IndexedDB non utilisé
 8. Ajouter des tests E2E pour la sync
 
-### Long terme (1-2 jours)
+### Moyen terme (1-2 jours)
 9. Activer Supabase Auth (email/password + Google)
 10. Configurer les permissions RLS sur Supabase
 11. Tester la sync multi-appareil
@@ -226,8 +247,8 @@ git log --oneline -10
 ## 🎯 Conclusion
 
 La migration hybride est **fonctionnelle** :
-- ✅ 13 pages utilisent PowerSync avec fallback automatique
-- ✅ 12 pages continuent de fonctionner sur IndexedDB
+- ✅ 15 pages utilisent PowerSync avec fallback automatique
+- ✅ 10 pages continuent de fonctionner sur IndexedDB
 - ✅ Aucune régression - l'application fonctionne normalement
 - ✅ Migration progressive possible page par page
 
@@ -235,5 +256,6 @@ La migration hybride est **fonctionnelle** :
 
 ---
 
-*Dernière mise à jour: 2026-09-07*
-*Statut: Migration hybride en cours (Phase 3/5)*
+*Dernière mise à jour: 2026-09-07 00:45*
+*Statut: Migration hybride en cours (Phase 4/5)*
+*Progression: 60% (15/25 pages)*
