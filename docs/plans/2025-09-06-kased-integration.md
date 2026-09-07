@@ -88,17 +88,44 @@ C'est la règle métier originale de Kased.
 
 ---
 
-## 2. Schéma de Base de Données
+# Tâche 2: Migrations Supabase (AVANT tout le reste)
 
-### Migration 0035 : Type d'événement
+## Commandes à exécuter
+
+```bash
+# 1. Se connecter au projet Supabase
+supabase login
+
+# 2. Lier le projet local au projet Supabase
+supabase link --project-ref vvcdmqpbwfyhkzalwdli
+
+# 3. Créer les migrations (une par fichier SQL)
+supabase migration new 0035_add_event_type_to_events
+supabase migration new 0036_create_cotisations_table
+supabase migration new 0037_enrich_members_table
+supabase migration new 0038_enrich_transactions_table
+
+# 4. Déployer toutes les migrations
+supabase db push
+
+# 5. Vérifier que les tables ont été créées
+supabase db remote execute "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name;"
+```
+
+## Fichiers SQL à créer
+
+### `supabase/migrations/0035_add_event_type_to_events.sql`
 
 ```sql
+-- Ajouter un type aux événements pour distinguer Cultes des autres événements
 ALTER TABLE public.events ADD COLUMN IF NOT EXISTS type TEXT NOT NULL DEFAULT 'EVENT'
   CHECK (type IN ('EVENT', 'CULTE'));
+
+-- Index pour requêtes fréquentes
 CREATE INDEX IF NOT EXISTS idx_events_type ON public.events(type);
 ```
 
-### Migration 0036 : Table cotisations
+### `supabase/migrations/0036_create_cotisations_table.sql`
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.cotisations (
@@ -126,17 +153,19 @@ CREATE INDEX IF NOT EXISTS idx_cotisations_membre ON public.cotisations(membre_i
 CREATE INDEX IF NOT EXISTS idx_cotisations_statut ON public.cotisations(statut);
 ```
 
-### Migration 0037 : Enrichissement membres
+### `supabase/migrations/0037_enrich_members_table.sql`
 
 ```sql
+-- Ajouter les champs pour les dons et avances
 ALTER TABLE public.members ADD COLUMN IF NOT EXISTS total_dons BIGINT NOT NULL DEFAULT 0;
 ALTER TABLE public.members ADD COLUMN IF NOT EXISTS montant_en_avance BIGINT NOT NULL DEFAULT 0;
 CREATE INDEX IF NOT EXISTS idx_members_total_dons ON public.members(total_dons);
 ```
 
-### Migration 0038 : Liens transaction-cotisation
+### `supabase/migrations/0038_enrich_transactions_table.sql`
 
 ```sql
+-- Lier les transactions de cotisation aux cotisations
 ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS cotisation_id TEXT
   REFERENCES public.cotisations(id) ON DELETE SET NULL;
 CREATE INDEX IF NOT EXISTS idx_transactions_cotisation ON public.transactions(cotisation_id);
@@ -738,7 +767,247 @@ export type StoreName = 'transactions' | 'categories' | 'orgUnits' | 'auditEntri
 
 ---
 
-# Tâche 4 : Page Cotisations (Liste des cultes)
+# Tâche 3.5: Mise à jour du Schema PowerSync
+
+## Fichier: `src/lib/powersync/schema.ts`
+
+### Ajouter la table `cotisations`
+
+Après la table `transactions` (ligne ~64), ajouter :
+
+```typescript
+const cotisations = new Table(
+  {
+    culte_id: column.text,
+    membre_id: column.text,
+    statut: column.text,
+    montantObligatoire: column.integer,
+    montantPaye: column.integer,
+    datePaiement: column.text,
+    notes: column.text,
+    createdAt: column.text,
+    updatedAt: column.text,
+  },
+  { indexes: { culte_id: 'culte_id', membre_id: 'membre_id', statut: 'statut' } }
+);
+```
+
+### Ajouter les colonnes manquantes aux tables existantes
+
+**Dans la table `events` (ligne ~66), ajouter :**
+```typescript
+const events = new Table(
+  {
+    org_id: column.text,
+    name: column.text,
+    description: column.text,
+    start_date: column.text,
+    end_date: column.text,
+    status: column.text,
+    budget: column.integer,
+    type: column.text,  // ← AJOUTER: 'EVENT' ou 'CULTE'
+    created_at: column.text,
+    updated_at: column.text,
+    budget_items: column.text,
+  },
+  { indexes: {} }
+);
+```
+
+**Dans la table `members` (ligne ~20), ajouter :**
+```typescript
+const members = new Table(
+  {
+    org_id: column.text,
+    first_name: column.text,
+    last_name: column.text,
+    phone: column.text,
+    email: column.text,
+    status: column.text,
+    joined_at: column.text,
+    archived_at: column.text,
+    archived_by: column.text,
+    archive_reason: column.text,
+    total_dons: column.integer,        // ← AJOUTER
+    montant_en_avance: column.integer, // ← AJOUTER
+    created_at: column.text,
+    updated_at: column.text,
+  },
+  { indexes: {} }
+);
+```
+
+**Dans la table `transactions` (ligne ~38), ajouter :**
+```typescript
+const transactions = new Table(
+  {
+    // ... champs existants ...
+    cotisation_id: column.text,  // ← AJOUTER
+  },
+  { indexes: {} }
+);
+```
+
+### Ajouter la table `cotisations` à l'export `AppSchema`
+
+Dans la section `export const AppSchema = new Schema({`, ajouter `cotisations` :
+
+```typescript
+export const AppSchema = new Schema({
+  profiles,
+  members,
+  transactions,
+  events,
+  notifications,
+  categories,
+  caisses,
+  accounts,
+  versements,
+  org_units,
+  groups,
+  group_memberships,
+  event_budgets,
+  budget_lines,
+  audit_entries,
+  config,
+  form_definitions,
+  form_submissions,
+  custom_field_definitions,
+  custom_field_values,
+  report_definitions,
+  cotisations,  // ← AJOUTER
+});
+```
+
+---
+
+# Tâche 3.6: Mise à jour du Sync Config PowerSync
+
+## Fichier: `powersync/sync-config.yaml`
+
+### Ajouter le stream pour les cotisations
+
+Après le stream `events` (ligne ~47), ajouter :
+
+```yaml
+  cotisations:
+    auto_subscribe: true
+    query: SELECT * FROM cotisations WHERE org_id = 'org-1'
+```
+
+---
+
+# Tâche 3.7: Mise à jour du Data Layer
+
+## Fichier: `src/lib/dataLayer.ts`
+
+### Ajouter les interfaces PowerSync pour les nouvelles tables
+
+```typescript
+export interface PSCotisation {
+  id: string;
+  culte_id: string;
+  membre_id: string;
+  statut: string;
+  montantObligatoire: number;
+  montantPaye: number;
+  datePaiement: string | null;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+```
+
+### Ajouter le hook `useCotisations`
+
+```typescript
+/**
+ * Hook to get all cotisations
+ */
+export function useCotisations() {
+  const { data: psData } = useQuery<PSCotisation>(
+    'SELECT * FROM cotisations ORDER BY createdAt DESC',
+    [],
+    { reportFetching: true }
+  );
+  const store = useLocalStore();
+
+  if (psData && psData.length > 0 && isPowerSyncReady()) {
+    return { data: psData, isLoading: false, source: 'powersync' as const };
+  }
+
+  return { data: store.cotisations, isLoading: store.isLoading, source: 'indexeddb' as const };
+}
+```
+
+### Ajouter les fonctions d'écriture pour les cotisations
+
+```typescript
+/**
+ * Add a cotisation via PowerSync
+ */
+export async function addCotisationPS(
+  cot: Omit<PSCotisation, 'id' | 'createdAt' | 'updatedAt'>
+): Promise<string> {
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+
+  await executeWrite(
+    `INSERT INTO cotisations (
+      id, culte_id, membre_id, statut, montantObligatoire, montantPaye,
+      datePaiement, notes, createdAt, updatedAt
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      id,
+      cot.culte_id,
+      cot.membre_id,
+      cot.statut,
+      cot.montantObligatoire,
+      cot.montantPaye,
+      cot.datePaiement,
+      cot.notes,
+      now,
+      now,
+    ]
+  );
+
+  return id;
+}
+
+/**
+ * Update a cotisation via PowerSync
+ */
+export async function updateCotisationPS(
+  id: string,
+  updates: Partial<PSCotisation>
+): Promise<void> {
+  const setClauses: string[] = [];
+  const params: any[] = [];
+
+  const fieldMap: [keyof PSCotisation, string][] = [
+    ['statut', 'statut'],
+    ['montantPaye', 'montantPaye'],
+    ['datePaiement', 'datePaiement'],
+    ['notes', 'notes'],
+  ];
+
+  for (const [key, col] of fieldMap) {
+    if (updates[key] !== undefined) {
+      setClauses.push(`${col} = ?`);
+      params.push(updates[key]);
+    }
+  }
+
+  setClauses.push('updatedAt = ?');
+  params.push(new Date().toISOString());
+  params.push(id);
+
+  await executeWrite(
+    `UPDATE cotisations SET ${setClauses.join(', ')} WHERE id = ?`,
+    params
+  );
+}
+```
 
 ## Fichier: `src/pages/Cotisations.tsx`
 
@@ -1789,21 +2058,40 @@ npm run dev
 
 ## 6. Résumé des Tâches avec Efforts
 
-| Tâche | Fichiers | Effort | Dépendances |
-|---|---|---|---|
-| 1. Types + Logique pure | `types/index.ts`, `lib/cotisation-logic.ts` | 30 min | — |
-| 2. Migrations SQL | 4 fichiers `.sql` | 15 min | Tâche 1 |
-| 3. Store Zustand | `store/useLocalStore.ts`, `lib/db.ts` | 1h30 | Tâche 1, 2 |
-| 4. Page Cotisations | `pages/Cotisations.tsx` | 30 min | Tâche 3 |
-| 5. Page SaisieRapide | `pages/SaisieRapide.tsx` | 1h | Tâche 3, 4 |
-| 6. Page CulteDetail | `pages/CulteDetail.tsx` | 45 min | Tâche 3, 4 |
-| 7. Page MembresEnAvance | `pages/MembresEnAvance.tsx` | 20 min | Tâche 3 |
-| 8. Page MembreDetail | `pages/MembreDetail.tsx` | 45 min | Tâche 3, 5 |
-| 9. Modifier EventNew | `pages/EventNew.tsx` | 20 min | Tâche 3 |
-| 10. Router + Nav | `App.tsx`, `BottomNav.tsx` | 15 min | Tâche 4-8 |
-| 11. Tests | Manuel | 30 min | Toutes |
+| # | Tâche | Fichiers | Effort | Prérequis |
+|---|---|---|---|---|
+| **0** | **Migrations Supabase CLI** | `supabase/migrations/*.sql` | 15 min | — |
+| 1 | Types + Logique pure | `types/index.ts`, `lib/cotisation-logic.ts` | 30 min | — |
+| 2 | Schema PowerSync | `lib/powersync/schema.ts` | 20 min | Tâche 0 |
+| 3 | Sync Config | `powersync/sync-config.yaml` | 5 min | Tâche 2 |
+| 4 | Data Layer | `lib/dataLayer.ts` | 30 min | Tâche 2, 3 |
+| 5 | Store Zustand | `store/useLocalStore.ts` | 1h30 | Tâche 4 |
+| 6 | Page Cotisations | `pages/Cotisations.tsx` | 30 min | Tâche 5 |
+| 7 | Page SaisieRapide | `pages/SaisieRapide.tsx` | 1h | Tâche 5, 6 |
+| 8 | Page CulteDetail | `pages/CulteDetail.tsx` | 45 min | Tâche 5, 6 |
+| 9 | Page MembresEnAvance | `pages/MembresEnAvance.tsx` | 20 min | Tâche 5 |
+| 10 | Page MembreDetail | `pages/MembreDetail.tsx` | 45 min | Tâche 5, 7 |
+| 11 | Modifier EventNew | `pages/EventNew.tsx` | 20 min | Tâche 5 |
+| 12 | Router + Nav | `App.tsx`, `BottomNav.tsx` | 15 min | Tâche 6-10 |
+| 13 | Tests | Manuel | 30 min | Toutes |
 
-**Total estimé : ~5 heures**
+**Total estimé : ~5.75 heures**
+
+### ⚠️ IMPORTANT: Ordre d'exécution critique
+
+```
+1. EXÉCUTER D'ABORD les migrations Supabase (Tâche 0)
+   ↓
+2. Vérifier que les tables existent dans Supabase
+   ↓
+3. Déployer le sync config PowerSync
+   ↓
+4. Mettre à jour le schema PowerSync local
+   ↓
+5. Implémenter le code applicatif (Tâches 1-13)
+```
+
+**Ne pas implémenter le code avant d'avoir déployé les migrations SQL !**
 
 ---
 
