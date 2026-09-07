@@ -1,8 +1,7 @@
-// IndexedDB removed - using PowerSync
+import { getPowerSyncDatabase } from '@/lib/powersync';
 import { generateId } from './utils';
 import { auditLogRepo } from './audit';
 import type { ArchivableEntity } from '@/types';
-// StoreName removed - using PowerSync
 
 export interface ArchivePolicy {
   canArchive(entityId: string): Promise<{ ok: boolean; reason?: string }>;
@@ -11,13 +10,13 @@ export interface ArchivePolicy {
   canRestore(entityId: string): Promise<{ ok: boolean; reason?: string }>;
 }
 
-const ENTITY_STORE_MAP: Record<ArchivableEntity, StoreName> = {
-  Group: 'orgUnits',
+const ENTITY_STORE_MAP: Record<ArchivableEntity, string> = {
+  Group: 'groups',
   Event: 'events',
   Member: 'members',
   Account: 'accounts',
   Category: 'categories',
-  Role: 'orgUnits',
+  Role: 'org_units',
 };
 
 export class ArchiveRegistry {
@@ -34,12 +33,17 @@ export class ArchiveRegistry {
     if (!check.ok) throw new Error(check.reason ?? 'Cannot archive');
 
     const storeName = ENTITY_STORE_MAP[entityType];
-    const entity: any = await db.get(storeName, entityId);
+    const db = getPowerSyncDatabase();
+    const result = await db.execute(`SELECT * FROM ${storeName} WHERE id = ?`, [entityId]);
+    const entity: any = result?.result?.[0];
     if (!entity) throw new Error(`Entity ${entityType} with id ${entityId} not found`);
 
     const now = new Date().toISOString();
     const archivedEntity = { ...entity, status: 'ARCHIVED', archivedAt: now, archivedBy: actorId, archiveReason: reason, updatedAt: now };
-    await db.put(storeName, archivedEntity);
+    await db.execute(
+      `UPDATE ${storeName} SET status = 'ARCHIVED', archived_at = ?, archived_by = ?, archive_reason = ?, updated_at = ? WHERE id = ?`,
+      [now, actorId, reason, now, entityId]
+    );
     await policy.onArchive?.(entityId);
     await auditLogRepo.write({ orgId: 'org-1', transactionId: null, userId: actorId, actorRoleAtTime: null, action: 'ARCHIVE', entityType, entityId, beforeState: entity, afterState: archivedEntity, comment: reason });
   }
@@ -51,12 +55,17 @@ export class ArchiveRegistry {
     if (!check.ok) throw new Error(check.reason ?? 'Cannot restore');
 
     const storeName = ENTITY_STORE_MAP[entityType];
-    const entity: any = await db.get(storeName, entityId);
+    const db = getPowerSyncDatabase();
+    const result = await db.execute(`SELECT * FROM ${storeName} WHERE id = ?`, [entityId]);
+    const entity: any = result?.result?.[0];
     if (!entity) throw new Error(`Entity ${entityType} with id ${entityId} not found`);
 
     const now = new Date().toISOString();
     const restoredEntity = { ...entity, status: 'ACTIVE', archivedAt: null, archivedBy: null, archiveReason: null, updatedAt: now };
-    await db.put(storeName, restoredEntity);
+    await db.execute(
+      `UPDATE ${storeName} SET status = 'ACTIVE', archived_at = NULL, archived_by = NULL, archive_reason = NULL, updated_at = ? WHERE id = ?`,
+      [now, entityId]
+    );
     await policy.onRestore?.(entityId);
     await auditLogRepo.write({ orgId: 'org-1', transactionId: null, userId: actorId, actorRoleAtTime: null, action: 'RESTORE', entityType, entityId, beforeState: entity, afterState: restoredEntity, comment: reason });
   }

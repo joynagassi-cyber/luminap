@@ -1,7 +1,6 @@
-// IndexedDB removed - using PowerSync
+import { getPowerSyncDatabase } from '@/lib/powersync';
 import { generateId } from './utils';
 import type { AuditEntry } from '@/types';
-// StoreName removed - using PowerSync
 
 /**
  * AuditLogRepository
@@ -38,25 +37,72 @@ const defaultAuditEntry = {
 
 export const auditLogRepo: AuditLogRepository = {
   async write(entry) {
+    const db = getPowerSyncDatabase();
     const now = new Date().toISOString();
     const fullEntry: AuditEntry = { ...defaultAuditEntry, ...entry, id: generateId(), createdAt: now };
-    await db.put('auditEntries' as StoreName, fullEntry);
+    await db.execute(
+      `INSERT INTO audit_entries (id, org_id, transaction_id, user_id, actor_role_at_time, action, entity_type, entity_id, before_state, after_state, comment, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        fullEntry.id,
+        fullEntry.orgId,
+        fullEntry.transactionId,
+        fullEntry.userId,
+        fullEntry.actorRoleAtTime,
+        fullEntry.action,
+        fullEntry.entityType,
+        fullEntry.entityId,
+        JSON.stringify(fullEntry.beforeState),
+        JSON.stringify(fullEntry.afterState),
+        fullEntry.comment,
+        fullEntry.createdAt,
+      ]
+    );
     return Promise.resolve();
   },
 
   async list(filters = {}) {
-    const all = await db.getAll<any>('auditEntries' as StoreName).catch(() => [] as any[]);
-    return all
-      .filter((a: any) => {
-        if (filters.entityType && a.entityType !== filters.entityType) return false;
-        if (filters.entityId && a.entityId !== filters.entityId) return false;
-        if (filters.startDate && a.createdAt < filters.startDate) return false;
-        if (filters.endDate && a.createdAt > filters.endDate) return false;
-        if (filters.action && a.action !== filters.action) return false;
-        if (filters.actorId && a.userId !== filters.actorId) return false;
-        return true;
-      })
-      .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    const db = getPowerSyncDatabase();
+    let query = 'SELECT * FROM audit_entries';
+    const params: any[] = [];
+    const conditions: string[] = [];
+
+    if (filters.entityType) {
+      conditions.push('entity_type = ?');
+      params.push(filters.entityType);
+    }
+    if (filters.entityId) {
+      conditions.push('entity_id = ?');
+      params.push(filters.entityId);
+    }
+    if (filters.startDate) {
+      conditions.push('created_at >= ?');
+      params.push(filters.startDate);
+    }
+    if (filters.endDate) {
+      conditions.push('created_at <= ?');
+      params.push(filters.endDate);
+    }
+    if (filters.action) {
+      conditions.push('action = ?');
+      params.push(filters.action);
+    }
+    if (filters.actorId) {
+      conditions.push('user_id = ?');
+      params.push(filters.actorId);
+    }
+
+    if (conditions.length > 0) {
+      query += ' WHERE ' + conditions.join(' AND ');
+    }
+    query += ' ORDER BY created_at DESC';
+
+    const result = await db.execute(query, params);
+    return (result?.result || []).map((a: any) => ({
+      ...a,
+      beforeState: a.before_state ? JSON.parse(a.before_state) : null,
+      afterState: a.after_state ? JSON.parse(a.after_state) : null,
+    }));
   },
 
   async getByEntity(entityType, entityId) {
