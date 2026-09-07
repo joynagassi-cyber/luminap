@@ -1,163 +1,660 @@
-import { OneSignal, HmsEvent, OsNotificationClickEvent, NotificationReceivedEvent } from 'onesignal-capacitor-plugin';
-import { PushNotifications, PermissionStatus } from '@capacitor/push-notifications';
-import { useCallback, useEffect, useState } from 'react';
+/**
+ * OneSignal Service for Lumina App
+ * Uses the Cordova OneSignal plugin which works with Capacitor via the Cordova bridge
+ *
+ * OneSignal App ID: 5482a4eb-a402-4612-ab5e-a72df7961b12
+ */
 
-const ONESIGNAL_APP_ID = import.meta.env.VITE_ONESIGNAL_APP_ID || '5482a4eb-a402-4612-ab5e-a72df7961b12';
+// Type definitions for OneSignal Cordova plugin
+interface OneSignalPlugin {
+  initialize(appId: string): void;
+  login(playerId: string): void;
+  logout(): void;
+  setTag(key: string, value: string): void;
+  addTags(tags: Record<string, string>): void;
+  removeTag(key: string): void;
+  setEmail(email: string): void;
+  removeEmail(): void;
+  getOnesignalId(): Promise<string | null>;
+  getExternalId(): Promise<string | null>;
+  trackEvent(eventName: string, metrics?: Record<string, number>): void;
+  Notifications: {
+    requestPermission(foreground?: boolean): Promise<boolean>;
+    addEventListener(event: string, callback: (data: any) => void): void;
+    removeEventListener(event: string, callback: (data: any) => void): void;
+    clearAll(): void;
+    removeNotification(notificationId: string): void;
+  };
+  InAppMessages: {
+    addEventListener(event: string, callback: (data: any) => void): void;
+    removeEventListener(event: string, callback: (data: any) => void): void;
+    promptAdditionalPermissions(): void;
+  };
+  User: {
+    addAlias(alias: string, name: string): void;
+    addAliases(aliases: Record<string, string>): void;
+    removeAlias(alias: string): void;
+    removeAliases(aliases: string[]): void;
+    addEmail(email: string): void;
+    removeEmail(email: string): void;
+    addSms(smsNumber: string): void;
+    removeSms(smsNumber: string): void;
+    addTag(key: string, value: string): void;
+    addTags(tags: Record<string, string>): void;
+    removeTag(key: string): void;
+    removeTags(keys: string[]): void;
+    getTags(): Promise<Record<string, string>>;
+    addOutcome(outcomeName: string): void;
+    addUniqueOutcome(outcomeName: string): void;
+    addOutcomeWithValue(outcomeName: string, value: number): void;
+  };
+  Debug: {
+    setLogLevel(logLevel: number): void;
+  };
+  Location: {
+    requestPermission(): void;
+    setShared(shared: boolean): void;
+    isShared(): Promise<boolean>;
+  };
+  Session: {
+    addOutcome(outcomeName: string): void;
+    addUniqueOutcome(outcomeName: string): void;
+    addOutcomeWithValue(outcomeName: string, value: number): void;
+  };
+}
 
-// Hook to use OneSignal in React components
-export function useOneSignal() {
-  const [userId, setUserId] = useState<string | null>(null);
-  const [isSubscribed, setIsSubscribed] = useState(false);
+interface OneSignalWindow extends Window {
+  plugins?: {
+    OneSignal?: OneSignalPlugin;
+  };
+  OneSignal?: OneSignalPlugin;
+}
 
-  useEffect(() => {
-    initOneSignal();
-    return () => {
-      // Cleanup listeners on unmount
-      OneSignal.Notifications.removeEventListener('click', handleNotificationClick);
-      OneSignal.Notifications.removeEventListener('subscriptionChange', handleSubscriptionChange);
-      OneSignal.Notifications.removeEventListener('received', handleNotificationReceived);
+// LogLevel enum
+export enum LogLevel {
+  None = 0,
+  Fatal = 1,
+  Error = 2,
+  Warn = 3,
+  Info = 4,
+  Debug = 5,
+  Verbose = 6,
+}
+
+// OneSignal service class
+class OneSignalService {
+  private isInitialized = false;
+  private appId: string;
+  private plugin: OneSignalPlugin | null = null;
+
+  constructor(appId: string) {
+    this.appId = appId;
+    this.plugin = this.getPlugin();
+  }
+
+  private getPlugin(): OneSignalPlugin | null {
+    const win = window as OneSignalWindow;
+
+    // Check if Capacitor is available
+    if ((win as any).Capacitor?.isNativePlatform?.()) {
+      // Use Capacitor bridge to call plugin
+      return this.createCapacitorPlugin();
+    }
+
+    // Check for Cordova plugin
+    if (win.plugins?.OneSignal) {
+      return win.plugins.OneSignal;
+    }
+
+    // Check for global OneSignal
+    if (win.OneSignal) {
+      return win.OneSignal;
+    }
+
+    console.warn('[OneSignal] Plugin not found. Make sure to run capacitor sync after installing the plugin.');
+    return null;
+  }
+
+  private createCapacitorPlugin(): OneSignalPlugin | null {
+    const win = window as OneSignalWindow;
+    const capacitor = (win as any).Capacitor;
+
+    if (!capacitor) {
+      return null;
+    }
+
+    // Create a proxy that uses Capacitor's exec
+    const exec = (success: any, error: any, service: string, action: string, args: any[]) => {
+      capacitor.plugin.callbackFromNative(service, true, args[0] || 0, args[1] || null, args[2] || null);
     };
-  }, []);
 
-  const initOneSignal = useCallback(async () => {
+    return {
+      initialize: (appId: string) => {
+        capacitor.nativeCallback('OneSignalPush', 'init', { appId });
+      },
+      login: (playerId: string) => {
+        capacitor.nativeCallback('OneSignalPush', 'login', { playerId });
+      },
+      logout: () => {
+        capacitor.nativeCallback('OneSignalPush', 'logout', {});
+      },
+      setTag: (key: string, value: string) => {
+        capacitor.nativeCallback('OneSignalPush', 'addTags', { tags: { [key]: value } });
+      },
+      addTags: (tags: Record<string, string>) => {
+        capacitor.nativeCallback('OneSignalPush', 'addTags', { tags });
+      },
+      removeTag: (key: string) => {
+        capacitor.nativeCallback('OneSignalPush', 'removeTags', { tags: [key] });
+      },
+      setEmail: (email: string) => {
+        capacitor.nativeCallback('OneSignalPush', 'addEmail', { email });
+      },
+      removeEmail: () => {
+        capacitor.nativeCallback('OneSignalPush', 'removeEmail', {});
+      },
+      getOnesignalId: () => {
+        return new Promise<string | null>((resolve) => {
+          capacitor.nativeCallback('OneSignalPush', 'getOnesignalId', {}, resolve);
+        });
+      },
+      getExternalId: () => {
+        return new Promise<string | null>((resolve) => {
+          capacitor.nativeCallback('OneSignalPush', 'getExternalId', {}, resolve);
+        });
+      },
+      trackEvent: (eventName: string, metrics?: Record<string, number>) => {
+        const args = metrics ? [eventName, metrics] : [eventName];
+        capacitor.nativeCallback('OneSignalPush', 'trackEvent', args, () => {});
+      },
+      Notifications: {
+        requestPermission: (foreground?: boolean) => {
+          return new Promise<boolean>((resolve) => {
+            capacitor.nativeCallback('OneSignalPush', 'requestPermission', { foreground }, (result: any) => {
+              resolve(result?.granted || false);
+            });
+          });
+        },
+        addEventListener: (event: string, callback: (data: any) => void) => {
+          capacitor.addListener('OneSignalPush', event, callback);
+        },
+        removeEventListener: (event: string, callback: (data: any) => void) => {
+          capacitor.removeListener('OneSignalPush', event, callback);
+        },
+        clearAll: () => {
+          capacitor.nativeCallback('OneSignalPush', 'clearAll', {}, () => {});
+        },
+        removeNotification: (notificationId: string) => {
+          capacitor.nativeCallback('OneSignalPush', 'removeNotification', { notificationId }, () => {});
+        },
+      },
+      InAppMessages: {
+        addEventListener: (event: string, callback: (data: any) => void) => {
+          capacitor.addListener('OneSignalPush', event, callback);
+        },
+        removeEventListener: (event: string, callback: (data: any) => void) => {
+          capacitor.removeListener('OneSignalPush', event, callback);
+        },
+        promptAdditionalPermissions: () => {
+          capacitor.nativeCallback('OneSignalPush', 'promptAdditionalPermissions', {}, () => {});
+        },
+      },
+      User: {
+        addAlias: (alias: string, name: string) => {
+          capacitor.nativeCallback('OneSignalPush', 'addAliases', { aliases: { [alias]: name } }, () => {});
+        },
+        addAliases: (aliases: Record<string, string>) => {
+          capacitor.nativeCallback('OneSignalPush', 'addAliases', { aliases }, () => {});
+        },
+        removeAlias: (alias: string) => {
+          capacitor.nativeCallback('OneSignalPush', 'removeAliases', { aliases: [alias] }, () => {});
+        },
+        removeAliases: (aliases: string[]) => {
+          capacitor.nativeCallback('OneSignalPush', 'removeAliases', { aliases }, () => {});
+        },
+        addEmail: (email: string) => {
+          capacitor.nativeCallback('OneSignalPush', 'addEmail', { email }, () => {});
+        },
+        removeEmail: (email: string) => {
+          capacitor.nativeCallback('OneSignalPush', 'removeEmail', { email }, () => {});
+        },
+        addSms: (smsNumber: string) => {
+          capacitor.nativeCallback('OneSignalPush', 'addSms', { smsNumber }, () => {});
+        },
+        removeSms: (smsNumber: string) => {
+          capacitor.nativeCallback('OneSignalPush', 'removeSms', { smsNumber }, () => {});
+        },
+        addTag: (key: string, value: string) => {
+          capacitor.nativeCallback('OneSignalPush', 'addTags', { tags: { [key]: value } }, () => {});
+        },
+        addTags: (tags: Record<string, string>) => {
+          capacitor.nativeCallback('OneSignalPush', 'addTags', { tags }, () => {});
+        },
+        removeTag: (key: string) => {
+          capacitor.nativeCallback('OneSignalPush', 'removeTags', { tags: [key] }, () => {});
+        },
+        removeTags: (keys: string[]) => {
+          capacitor.nativeCallback('OneSignalPush', 'removeTags', { tags: keys }, () => {});
+        },
+        getTags: () => {
+          return new Promise<Record<string, string>>((resolve) => {
+            capacitor.nativeCallback('OneSignalPush', 'getTags', {}, resolve);
+          });
+        },
+        addOutcome: (outcomeName: string) => {
+          capacitor.nativeCallback('OneSignalPush', 'addOutcome', { outcomeName }, () => {});
+        },
+        addUniqueOutcome: (outcomeName: string) => {
+          capacitor.nativeCallback('OneSignalPush', 'addUniqueOutcome', { outcomeName }, () => {});
+        },
+        addOutcomeWithValue: (outcomeName: string, value: number) => {
+          capacitor.nativeCallback('OneSignalPush', 'addOutcomeWithValue', { outcomeName, value }, () => {});
+        },
+      },
+      Debug: {
+        setLogLevel: (logLevel: LogLevel) => {
+          capacitor.nativeCallback('OneSignalPush', 'setLogLevel', { logLevel }, () => {});
+        },
+      },
+      Location: {
+        requestPermission: () => {
+          capacitor.nativeCallback('OneSignalPush', 'requestLocationPermission', {}, () => {});
+        },
+        setShared: (shared: boolean) => {
+          capacitor.nativeCallback('OneSignalPush', 'setLocationShared', { shared }, () => {});
+        },
+        isShared: () => {
+          return new Promise<boolean>((resolve) => {
+            capacitor.nativeCallback('OneSignalPush', 'isLocationShared', {}, resolve);
+          });
+        },
+      },
+      Session: {
+        addOutcome: (outcomeName: string) => {
+          capacitor.nativeCallback('OneSignalPush', 'addOutcome', { outcomeName }, () => {});
+        },
+        addUniqueOutcome: (outcomeName: string) => {
+          capacitor.nativeCallback('OneSignalPush', 'addUniqueOutcome', { outcomeName }, () => {});
+        },
+        addOutcomeWithValue: (outcomeName: string, value: number) => {
+          capacitor.nativeCallback('OneSignalPush', 'addOutcomeWithValue', { outcomeName, value }, () => {});
+        },
+      },
+    };
+  }
+
+  /**
+   * Initialize OneSignal SDK
+   */
+  async initialize(): Promise<void> {
+    if (this.isInitialized) {
+      console.log('[OneSignal] Already initialized');
+      return;
+    }
+
     try {
-      // Initialize OneSignal
-      await OneSignal.initialize(ONESIGNAL_APP_ID);
+      this.plugin = this.getPlugin();
 
-      // Request permission
-      const permissionStatus = await PushNotifications.requestPermission();
-      console.log('[OneSignal] Permission status:', permissionStatus);
-
-      if (permissionStatus.granted) {
-        await OneSignal.Notifications.requestPermission(true);
+      if (!this.plugin) {
+        console.error('[OneSignal] Plugin not available. Run: npx cap sync');
+        return;
       }
 
-      // Set up listeners
-      OneSignal.Notifications.addEventListener('received', handleNotificationReceived);
-      OneSignal.Notifications.addEventListener('click', handleNotificationClick);
-      OneSignal.Notifications.addEventListener('subscriptionChange', handleSubscriptionChange);
+      // Initialize with app ID
+      this.plugin.initialize(this.appId);
 
-      // Get current user ID
-      const playerId = await OneSignal.Users.getCurrentPushSubscriptionId();
-      if (playerId) {
-        setUserId(playerId);
-        setIsSubscribed(true);
+      // Enable verbose logging in development
+      if (import.meta.env.DEV) {
+        this.plugin.Debug.setLogLevel(LogLevel.Verbose);
       }
 
+      this.isInitialized = true;
       console.log('[OneSignal] Initialized successfully');
     } catch (error) {
       console.error('[OneSignal] Initialization error:', error);
+      throw error;
     }
-  }, []);
+  }
 
-  const handleNotificationReceived = (event: NotificationReceivedEvent) => {
-    console.log('[OneSignal] Notification received:', event.notification);
-    // Handle notification received while app is in foreground
-  };
+  /**
+   * Check if OneSignal is initialized
+   */
+  isReady(): boolean {
+    return this.isInitialized && !!this.plugin;
+  }
 
-  const handleNotificationClick = (event: OsNotificationClickEvent) => {
-    console.log('[OneSignal] Notification clicked:', event.notification);
-    // Handle notification click - navigate to specific screen
-    const data = event.notification.additionalData;
-    if (data?.['deeplink']) {
-      // Navigate based on deeplink
-      window.location.href = data['deeplink'] as string;
+  /**
+   * Request push notification permission
+   */
+  async requestPermission(): Promise<boolean> {
+    if (!this.plugin) {
+      console.error('[OneSignal] Not initialized');
+      return false;
     }
-  };
 
-  const handleSubscriptionChange = (event: any) => {
-    const subscription = event.subscription;
-    if (subscription && subscription.id && !subscription.id.startsWith('local-')) {
-      setUserId(subscription.id);
-      setIsSubscribed(true);
-      console.log('[OneSignal] User subscribed:', subscription.id);
-    }
-  };
-
-  const setTag = useCallback(async (key: string, value: string) => {
     try {
-      await OneSignal.User.addTag(key, value);
+      const granted = await this.plugin.Notifications.requestPermission(true);
+      console.log('[OneSignal] Permission granted:', granted);
+      return granted;
+    } catch (error) {
+      console.error('[OneSignal] Error requesting permission:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Get the current OneSignal player ID
+   */
+  async getUserId(): Promise<string | null> {
+    if (!this.plugin) {
+      return null;
+    }
+
+    try {
+      const playerId = await this.plugin.getOnesignalId();
+      return playerId;
+    } catch (error) {
+      console.error('[OneSignal] Error getting user ID:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Get the current push subscription token
+   */
+  async getToken(): Promise<string | null> {
+    if (!this.plugin) {
+      return null;
+    }
+
+    try {
+      const token = await (this.plugin as any).Session?.getPushSubscriptionToken?.();
+      return token || null;
+    } catch (error) {
+      console.error('[OneSignal] Error getting token:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Set a tag for the current user
+   */
+  async setTag(key: string, value: string): Promise<void> {
+    if (!this.plugin) {
+      console.error('[OneSignal] Not initialized');
+      return;
+    }
+
+    try {
+      await this.plugin.User.addTag(key, value);
       console.log(`[OneSignal] Tag set: ${key} = ${value}`);
     } catch (error) {
       console.error('[OneSignal] Error setting tag:', error);
     }
-  }, []);
+  }
 
-  const setEmail = useCallback(async (email: string) => {
+  /**
+   * Set multiple tags for the current user
+   */
+  async setTags(tags: Record<string, string>): Promise<void> {
+    if (!this.plugin) {
+      console.error('[OneSignal] Not initialized');
+      return;
+    }
+
     try {
-      await OneSignal.User.addEmail(email);
+      await this.plugin.User.addTags(tags);
+      console.log('[OneSignal] Tags set:', tags);
+    } catch (error) {
+      console.error('[OneSignal] Error setting tags:', error);
+    }
+  }
+
+  /**
+   * Remove a tag
+   */
+  async removeTag(key: string): Promise<void> {
+    if (!this.plugin) {
+      return;
+    }
+
+    try {
+      await this.plugin.User.removeTag(key);
+    } catch (error) {
+      console.error('[OneSignal] Error removing tag:', error);
+    }
+  }
+
+  /**
+   * Set email for the current user
+   */
+  async setEmail(email: string): Promise<void> {
+    if (!this.plugin) {
+      console.error('[OneSignal] Not initialized');
+      return;
+    }
+
+    try {
+      await this.plugin.User.addEmail(email);
       console.log('[OneSignal] Email set:', email);
     } catch (error) {
       console.error('[OneSignal] Error setting email:', error);
     }
-  }, []);
+  }
 
-  const logout = useCallback(async () => {
+  /**
+   * Remove email
+   */
+  async removeEmail(): Promise<void> {
+    if (!this.plugin) {
+      return;
+    }
+
     try {
-      await OneSignal.logout();
-      setUserId(null);
-      setIsSubscribed(false);
-      console.log('[OneSignal] User logged out');
+      await this.plugin.User.removeEmail();
+    } catch (error) {
+      console.error('[OneSignal] Error removing email:', error);
+    }
+  }
+
+  /**
+   * Login with external user ID
+   */
+  async login(externalId: string): Promise<void> {
+    if (!this.plugin) {
+      console.error('[OneSignal] Not initialized');
+      return;
+    }
+
+    try {
+      this.plugin.login(externalId);
+      console.log('[OneSignal] Logged in as:', externalId);
+    } catch (error) {
+      console.error('[OneSignal] Error logging in:', error);
+    }
+  }
+
+  /**
+   * Logout
+   */
+  async logout(): Promise<void> {
+    if (!this.plugin) {
+      return;
+    }
+
+    try {
+      this.plugin.logout();
+      console.log('[OneSignal] Logged out');
     } catch (error) {
       console.error('[OneSignal] Error logging out:', error);
     }
-  }, []);
+  }
 
-  return {
-    userId,
-    isSubscribed,
-    setTag,
-    setEmail,
-    logout,
-    refresh: initOneSignal,
-  };
-}
-
-// Service initialization function (for non-React contexts)
-export async function initOneSignalService() {
-  try {
-    await OneSignal.initialize(ONESIGNAL_APP_ID);
-
-    // Request permission
-    const permissionStatus = await PushNotifications.requestPermission();
-    console.log('[OneSignal] Permission status:', permissionStatus);
-
-    if (permissionStatus.granted) {
-      await OneSignal.Notifications.requestPermission(true);
+  /**
+   * Track an event
+   */
+  async trackEvent(eventName: string, metrics?: Record<string, number>): Promise<void> {
+    if (!this.plugin) {
+      console.error('[OneSignal] Not initialized');
+      return;
     }
 
-    // Set up listeners
-    OneSignal.Notifications.addEventListener('received', handleNotificationReceived);
-    OneSignal.Notifications.addEventListener('click', handleNotificationClick);
-    OneSignal.Notifications.addEventListener('subscriptionChange', handleSubscriptionChange);
+    try {
+      this.plugin.trackEvent(eventName, metrics);
+      console.log('[OneSignal] Event tracked:', eventName);
+    } catch (error) {
+      console.error('[OneSignal] Error tracking event:', error);
+    }
+  }
 
-    // Get current user ID
-    const playerId = await OneSignal.Users.getCurrentPushSubscriptionId();
-    if (playerId) {
-      console.log('[OneSignal] User ID:', playerId);
+  /**
+   * Add notification received listener
+   */
+  addNotificationReceivedListener(callback: (notification: any) => void): void {
+    if (!this.plugin) {
+      console.error('[OneSignal] Not initialized');
+      return;
     }
 
-    console.log('[OneSignal] Service initialized successfully');
-  } catch (error) {
-    console.error('[OneSignal] Service initialization error:', error);
+    try {
+      this.plugin.Notifications.addEventListener('foregroundWillDisplay', callback);
+      console.log('[OneSignal] Notification received listener added');
+    } catch (error) {
+      console.error('[OneSignal] Error adding listener:', error);
+    }
+  }
+
+  /**
+   * Add notification click listener
+   */
+  addNotificationClickListener(callback: (notification: any) => void): void {
+    if (!this.plugin) {
+      console.error('[OneSignal] Not initialized');
+      return;
+    }
+
+    try {
+      this.plugin.Notifications.addEventListener('click', callback);
+      console.log('[OneSignal] Notification click listener added');
+    } catch (error) {
+      console.error('[OneSignal] Error adding click listener:', error);
+    }
+  }
+
+  /**
+   * Remove notification received listener
+   */
+  removeNotificationReceivedListener(callback: (notification: any) => void): void {
+    if (!this.plugin) {
+      return;
+    }
+
+    try {
+      this.plugin.Notifications.removeEventListener('foregroundWillDisplay', callback);
+    } catch (error) {
+      console.error('[OneSignal] Error removing listener:', error);
+    }
+  }
+
+  /**
+   * Remove notification click listener
+   */
+  removeNotificationClickListener(callback: (notification: any) => void): void {
+    if (!this.plugin) {
+      return;
+    }
+
+    try {
+      this.plugin.Notifications.removeEventListener('click', callback);
+    } catch (error) {
+      console.error('[OneSignal] Error removing click listener:', error);
+    }
+  }
+
+  /**
+   * Clear all notifications
+   */
+  clearAllNotifications(): void {
+    if (!this.plugin) {
+      return;
+    }
+
+    try {
+      this.plugin.Notifications.clearAll();
+    } catch (error) {
+      console.error('[OneSignal] Error clearing notifications:', error);
+    }
+  }
+
+  /**
+   * Remove a specific notification
+   */
+  removeNotification(notificationId: string): void {
+    if (!this.plugin) {
+      return;
+    }
+
+    try {
+      this.plugin.Notifications.removeNotification(notificationId);
+    } catch (error) {
+      console.error('[OneSignal] Error removing notification:', error);
+    }
+  }
+
+  /**
+   * Set location shared status
+   */
+  setLocationShared(shared: boolean): void {
+    if (!this.plugin) {
+      return;
+    }
+
+    try {
+      this.plugin.Location.setShared(shared);
+    } catch (error) {
+      console.error('[OneSignal] Error setting location:', error);
+    }
+  }
+
+  /**
+   * Get location shared status
+   */
+  async isLocationShared(): Promise<boolean> {
+    if (!this.plugin) {
+      return false;
+    }
+
+    try {
+      return await this.plugin.Location.isShared();
+    } catch (error) {
+      console.error('[OneSignal] Error getting location status:', error);
+      return false;
+    }
   }
 }
 
-function handleNotificationReceived(event: NotificationReceivedEvent) {
-  console.log('[OneSignal] Notification received:', event.notification);
+// Singleton instance
+let instance: OneSignalService | null = null;
+
+/**
+ * Get or create the OneSignal service instance
+ */
+export function getOneSignalService(): OneSignalService {
+  if (!instance) {
+    const appId = import.meta.env.VITE_ONESIGNAL_APP_ID || '5482a4eb-a402-4612-ab5e-a72df7961b12';
+    instance = new OneSignalService(appId);
+  }
+  return instance;
 }
 
-function handleNotificationClick(event: OsNotificationClickEvent) {
-  console.log('[OneSignal] Notification clicked:', event.notification);
-  const data = event.notification.additionalData;
-  if (data?.['deeplink']) {
-    window.location.href = data['deeplink'] as string;
-  }
+/**
+ * Initialize OneSignal (call this once at app startup)
+ */
+export async function initOneSignal(): Promise<void> {
+  const service = getOneSignalService();
+  await service.initialize();
+  console.log('[OneSignal] App ID:', service['appId']);
 }
 
-function handleSubscriptionChange(event: any) {
-  const subscription = event.subscription;
-  if (subscription && subscription.id && !subscription.id.startsWith('local-')) {
-    console.log('[OneSignal] User subscribed:', subscription.id);
-  }
-}
+// Export the service class for advanced usage
+export { OneSignalService };
