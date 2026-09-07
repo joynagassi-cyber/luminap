@@ -7,6 +7,7 @@
 
 import { create } from 'zustand';
 import { workflow } from '@/capabilities/workflow';
+import { lifecycle } from '@/capabilities/lifecycle';
 import { getOrganizationId } from '@/lib/orgContext';
 import type { User, Role, Transaction, Category, OrgUnit, Caisse, Event, BudgetItem, ShoppingItem, AppConfig, NotificationItem, Member, Group, Account, GroupMembership, Versement, EventBudget, BudgetLine, Cotisation, CotisationStatut } from '@/types';
 import { generateId } from '@/lib/utils';
@@ -709,6 +710,9 @@ export const useLocalStore = create<LocalStoreState>()(
 
     archiveGroup: async (id, reason, actorId) => {
       const now = new Date().toISOString();
+      // Delegate to Lifecycle capability (PS + audit)
+      await lifecycle.archive('Group', id, reason, actorId);
+      // Update local state for immediate UI feedback
       const updatedGroups = get().groups.map(g =>
         g.id === id ? { ...g, status: 'ARCHIVED' as const, archivedAt: now, archivedBy: actorId, archiveReason: reason, updatedAt: now } : g
       );
@@ -718,12 +722,14 @@ export const useLocalStore = create<LocalStoreState>()(
       const updatedCaisses = get().caisses.map(c =>
         c.id === id ? { ...c, status: 'ARCHIVED' as const, archivedAt: now, archivedBy: actorId, archiveReason: reason, updatedAt: now } : c
       );
-
       set({ groups: updatedGroups, accounts: updatedAccounts, caisses: updatedCaisses });
     },
 
     restoreGroup: async (id, reason, actorId) => {
       const now = new Date().toISOString();
+      // Delegate to Lifecycle capability (PS + audit)
+      await lifecycle.restore('Group', id, reason, actorId);
+      // Update local state for immediate UI feedback
       const updatedGroups = get().groups.map(g =>
         g.id === id ? { ...g, status: 'ACTIVE' as const, archivedAt: null, archivedBy: null, archiveReason: null, updatedAt: now } : g
       );
@@ -733,7 +739,6 @@ export const useLocalStore = create<LocalStoreState>()(
       const updatedCaisses = get().caisses.map(c =>
         c.id === id ? { ...c, status: 'ACTIVE' as const, archivedAt: null, archivedBy: null, archiveReason: null, updatedAt: now } : c
       );
-
       set({ groups: updatedGroups, accounts: updatedAccounts, caisses: updatedCaisses });
     },
 
@@ -978,6 +983,9 @@ export const useLocalStore = create<LocalStoreState>()(
 
     archiveMember: async (id, reason, actorId) => {
       const now = new Date().toISOString();
+      // Delegate to Lifecycle capability (PS + audit)
+      await lifecycle.archive('Member', id, reason, actorId);
+      // Update local state for immediate UI feedback
       const updated = get().members.map(m =>
         m.id === id ? { ...m, status: 'ARCHIVED' as const, archivedAt: now, archivedBy: actorId, archiveReason: reason, updatedAt: now } : m
       );
@@ -986,6 +994,9 @@ export const useLocalStore = create<LocalStoreState>()(
 
     restoreMember: async (id, reason, actorId) => {
       const now = new Date().toISOString();
+      // Delegate to Lifecycle capability (PS + audit)
+      await lifecycle.restore('Member', id, reason, actorId);
+      // Update local state for immediate UI feedback
       const updated = get().members.map(m =>
         m.id === id ? { ...m, status: 'ACTIVE' as const, archivedAt: null, archivedBy: null, archiveReason: null, updatedAt: now } : m
       );
