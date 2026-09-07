@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useLocalStore } from '@/store/useLocalStore';
+import { useTransactions, useCategories, useOrgUnits, useEvents } from '@/lib/dataLayer';
 import { ArrowUpRight, ArrowDownRight, X, Wallet, User } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
@@ -8,7 +9,17 @@ import TopHeader from '@/components/TopHeader';
 export default function TransactionEdit() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { transactions, categories, orgUnits, caisses, accounts, events, updateTransaction } = useLocalStore();
+  const { transactions: idbTxs, categories: idbCats, orgUnits, caisses: idbCaisses, accounts, events: idbEvents, updateTransaction } = useLocalStore();
+
+  // PowerSync with fallback
+  const { data: psTransactions } = useTransactions();
+  const { data: psCategories } = useCategories();
+  const { data: psEvents } = useEvents();
+
+  const transactions = psTransactions ?? idbTxs;
+  const categories = psCategories ?? idbCats;
+  const events = psEvents ?? idbEvents;
+
   const [type, setType] = useState<'INCOME' | 'EXPENSE'>('INCOME');
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
@@ -23,7 +34,7 @@ export default function TransactionEdit() {
   const [comment, setComment] = useState('');
 
   useEffect(() => {
-    const tx = transactions.find(t => t.id === id);
+    const tx = transactions.find((t: any) => t.id === id);
     if (!tx) return;
     // Immunité: approved transactions cannot be edited
     if (tx.status === 'APPROVED') {
@@ -32,26 +43,26 @@ export default function TransactionEdit() {
     }
     if (tx) {
       setType(tx.type);
-      setAmount(Math.round(tx.amount / 100).toString());
+      setAmount(Math.round((tx.amount || 0) / 100).toString());
       setDescription(tx.description);
       setDate(tx.date.split('T')[0]);
-      setCategoryId(tx.categoryId);
-      setOrgUnitId(tx.orgUnitId || '');
-      setSourceCaisseId(tx.sourceCaisseId || 'main');
+      setCategoryId(tx.category_id || tx.categoryId);
+      setOrgUnitId(tx.org_unit_id || tx.orgUnitId || '');
+      setSourceCaisseId(tx.source_caisse_id || tx.sourceCaisseId || 'main');
       setSource(tx.source || 'CAISSE');
-      setPersonName(tx.personName || '');
-      setEventId(tx.eventId || '');
-      setCompensatesFor(tx.compensatesFor || '');
+      setPersonName(tx.person_name || tx.personName || '');
+      setEventId(tx.event_id || tx.eventId || '');
+      setCompensatesFor(tx.compensates_for || tx.compensatesFor || '');
       setComment(tx.comment || '');
     }
   }, [id, transactions]);
 
-  const filteredCategories = categories.filter(c => c.type === type);
+  const filteredCategories = categories.filter((c: any) => c.type === type);
 
   const handleOrgUnitChange = (ouId: string) => {
     setOrgUnitId(ouId);
     if (ouId) {
-      const account = accounts.find(a => a.id === ouId);
+      const account = accounts.find((a: any) => a.id === ouId);
       if (account) setSourceCaisseId(account.id);
     } else {
       setSourceCaisseId('main');
@@ -100,93 +111,118 @@ export default function TransactionEdit() {
 
           <div>
             <label className="text-text-tertiary text-xs mb-2 block">Montant (FCFA)</label>
-            <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" className="w-full px-4 py-3.5 rounded-xl text-text-primary text-lg font-bold outline-none" style={{ backgroundColor: '#212121', border: '1px solid #282828' }} />
+            <input
+              type="number"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="0"
+              className="w-full px-4 py-3 rounded-xl text-lg font-bold outline-none text-center"
+              style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
+            />
           </div>
 
           <div>
             <label className="text-text-tertiary text-xs mb-2 block">Description</label>
-            <input type="text" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Ex: Dîme du dimanche" className="w-full px-4 py-3 rounded-xl text-text-primary text-sm outline-none" style={{ backgroundColor: '#212121', border: '1px solid #282828' }} />
+            <input
+              type="text"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Description de la transaction"
+              className="w-full px-4 py-3 rounded-xl text-sm outline-none"
+              style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
+            />
           </div>
 
           <div>
             <label className="text-text-tertiary text-xs mb-2 block">Date</label>
-            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full px-4 py-3 rounded-xl text-text-primary text-sm outline-none" style={{ backgroundColor: '#212121', border: '1px solid #282828' }} />
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl text-sm outline-none"
+              style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
+            />
           </div>
 
           <div>
             <label className="text-text-tertiary text-xs mb-2 block">Catégorie</label>
-            <div className="grid grid-cols-3 gap-2">
-              {filteredCategories.map((cat) => (
-                <button key={cat.id} onClick={() => setCategoryId(cat.id)} className="py-2 px-2 rounded-lg text-xs font-medium transition-all text-center" style={categoryId === cat.id ? { backgroundColor: type === 'INCOME' ? '#1DB95420' : '#E5133220', color: type === 'INCOME' ? '#1DB954' : '#E51332', border: '1px solid' } : { backgroundColor: '#212121', color: '#B3B3B3', border: '1px solid #282828' }}>
-                  {cat.labelFr}
-                </button>
+            <select
+              value={categoryId}
+              onChange={(e) => setCategoryId(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl text-sm outline-none"
+              style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
+            >
+              <option value="">Sélectionner une catégorie</option>
+              {filteredCategories.map((cat: any) => (
+                <option key={cat.id} value={cat.id}>{cat.label_fr || cat.label}</option>
               ))}
-            </div>
+            </select>
           </div>
 
           <div>
             <label className="text-text-tertiary text-xs mb-2 block">Source</label>
-            <div className="grid grid-cols-4 gap-2">
-              {([
-                { id: 'CAISSE' as const, label: 'Caisse' },
-                { id: 'COTISATION' as const, label: 'Cotisation' },
-                { id: 'PERSONNE' as const, label: 'Personne' },
-                { id: 'AUTRE' as const, label: 'Autre' },
-              ]).map(({ id, label }) => (
-                <button key={id} onClick={() => setSource(id)} className="py-2.5 rounded-xl text-xs font-medium transition-all" style={source === id ? { backgroundColor: '#FF6B0020', color: '#FF6B00', border: '1px solid #FF6B00' } : { backgroundColor: '#212121', color: '#B3B3B3', border: '1px solid #282828' }}>
-                  {label}
-                </button>
-              ))}
-            </div>
+            <select
+              value={source}
+              onChange={(e) => setSource(e.target.value as any)}
+              className="w-full px-4 py-3 rounded-xl text-sm outline-none"
+              style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
+            >
+              <option value="CAISSE">Caisse</option>
+              <option value="COTISATION">Cotisation</option>
+              <option value="PERSONNE">Personne</option>
+              <option value="AUTRE">Autre</option>
+            </select>
           </div>
 
           {source === 'PERSONNE' && (
             <div>
               <label className="text-text-tertiary text-xs mb-2 block">Nom de la personne</label>
-              <input type="text" value={personName} onChange={(e) => setPersonName(e.target.value)} placeholder="Ex: Jean Mbarga" className="w-full px-4 py-3 rounded-xl text-text-primary text-sm outline-none" style={{ backgroundColor: '#212121', border: '1px solid #282828' }} />
+              <input
+                type="text"
+                value={personName}
+                onChange={(e) => setPersonName(e.target.value)}
+                placeholder="Nom de la personne"
+                className="w-full px-4 py-3 rounded-xl text-sm outline-none"
+                style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
+              />
             </div>
           )}
 
           <div>
-            <label className="text-text-tertiary text-xs mb-2 block">Groupe</label>
-            <select value={orgUnitId} onChange={(e) => handleOrgUnitChange(e.target.value)} className="w-full px-4 py-3 rounded-xl text-text-primary text-sm outline-none appearance-none" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
-              <option value="">— Principal —</option>
-              {orgUnits.map((ou) => (<option key={ou.id} value={ou.id}>{ou.name}</option>))}
-            </select>
-          </div>
-
-          <div>
-            <label className="text-text-tertiary text-xs mb-2 block">Caisse source</label>
-            <select value={sourceCaisseId} onChange={(e) => setSourceCaisseId(e.target.value)} className="w-full px-4 py-3 rounded-xl text-text-primary text-sm outline-none appearance-none" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
-              {accounts.map((a) => (<option key={a.id} value={a.id}>{a.name}</option>))}
-            </select>
-          </div>
-
-          <div>
             <label className="text-text-tertiary text-xs mb-2 block">Événement (optionnel)</label>
-            <select value={eventId} onChange={(e) => setEventId(e.target.value)} className="w-full px-4 py-3 rounded-xl text-text-primary text-sm outline-none appearance-none" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
-              <option value="">— Aucun —</option>
-              {events.map((ev) => (<option key={ev.id} value={ev.id}>{ev.name}</option>))}
+            <select
+              value={eventId}
+              onChange={(e) => setEventId(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl text-sm outline-none"
+              style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
+            >
+              <option value="">Aucun événement</option>
+              {events.map((ev: any) => (
+                <option key={ev.id} value={ev.id}>{ev.name}</option>
+              ))}
             </select>
           </div>
 
           <div>
-            <label className="text-text-tertiary text-xs mb-2 block">Compense une transaction (optionnel)</label>
-            <input type="text" value={compensatesFor} onChange={(e) => setCompensatesFor(e.target.value)} placeholder="Référence ou description" className="w-full px-4 py-3 rounded-xl text-text-primary text-sm outline-none" style={{ backgroundColor: '#212121', border: '1px solid #282828' }} />
+            <label className="text-text-tertiary text-xs mb-2 block">Commentaire (optionnel)</label>
+            <textarea
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              placeholder="Ajouter un commentaire..."
+              rows={2}
+              className="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none"
+              style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
+            />
           </div>
 
-          <div>
-            <label className="text-text-tertiary text-xs mb-2 block">Commentaire</label>
-            <textarea value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Optionnel..." rows={2} className="w-full px-4 py-3 rounded-xl text-text-primary text-sm outline-none resize-none" style={{ backgroundColor: '#212121', border: '1px solid #282828' }} />
-          </div>
+          <button
+            onClick={handleSubmit}
+            className="w-full py-4 rounded-full font-semibold text-white text-sm transition-all active:scale-95"
+            style={{ backgroundColor: type === 'INCOME' ? '#1DB954' : '#E51332' }}
+          >
+            Sauvegarder
+          </button>
         </div>
-
-        <button onClick={handleSubmit} className="w-full mt-6 py-4 rounded-full font-semibold text-white transition-all active:scale-95" style={{ backgroundColor: type === 'INCOME' ? '#1DB954' : '#E51332' }}>
-          Enregistrer
-        </button>
-        <button onClick={() => navigate(-1)} className="w-full mt-3 py-3 rounded-full font-medium text-text-tertiary text-sm" style={{ backgroundColor: '#212121' }}>
-          Annuler
-        </button>
       </div>
       <BottomNav />
     </div>
