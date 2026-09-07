@@ -371,7 +371,7 @@ const SECTIONS: SectionData[] = [
   },
   {
     id: 'trace',
-    title: 'Trace d'activité',
+    title: "Trace d'activité",
     icon: ListChecks,
     color: '#E51332',
     iconBg: '#E5133220',
@@ -550,13 +550,15 @@ function VersementFlowDiagram() {
       <title>Flux de versement</title>
       {/* Caisse Groupe */}
       <rect x="20" y="30" width="120" height="80" rx="10" fill="#FFB80020" stroke="#FFB800" strokeWidth="1.5" />
-      <Wallet className="w-5 h-5" x="50" y="40" style={{ color: '#FFB800' }} />
+      <rect x="50" y="38" width="24" height="24" rx="4" fill="#FFB800" opacity="0.2" />
+      <path d="M62 44 L62 56 M56 48 L68 48" stroke="#FFB800" strokeWidth="2" strokeLinecap="round" />
       <text x="80" y="65" textAnchor="middle" fill="#FFB800" fontSize="11" fontWeight="600">Caisse Groupe</text>
       <text x="80" y="82" textAnchor="middle" fill="#808080" fontSize="9">sourceCaisseId</text>
       <text x="80" y="96" textAnchor="middle" fill="#E51332" fontSize="9">Sortie (-montant)</text>
       {/* Caisse Principale */}
       <rect x="260" y="30" width="120" height="80" rx="10" fill="#1DB95420" stroke="#1DB954" strokeWidth="1.5" />
-      <Home className="w-5 h-5" x="290" y="40" style={{ color: '#1DB954' }} />
+      <rect x="290" y="38" width="24" height="24" rx="4" fill="#1DB954" opacity="0.2" />
+      <path d="M296 50 L302 44 L308 50 M302 44 L302 56" stroke="#1DB954" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
       <text x="320" y="65" textAnchor="middle" fill="#1DB954" fontSize="11" fontWeight="600">Caisse Principale</text>
       <text x="320" y="82" textAnchor="middle" fill="#808080" fontSize="9">id: main</text>
       <text x="320" y="96" textAnchor="middle" fill="#1DB954" fontSize="9">Entrée (+montant)</text>
@@ -1001,7 +1003,7 @@ export default function Tutorial() {
           >
             {activeSection === SECTIONS[SECTIONS.length - 1].id
               ? 'Terminé'
-              : `Suivant ${ChevronRight && <ChevronRight className="w-4 h-4" />}`}
+              : 'Suivant'}
           </button>
         </div>
 

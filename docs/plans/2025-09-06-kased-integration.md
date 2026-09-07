@@ -491,30 +491,18 @@ import { executeWrite, addMemberPS, addEventPS } from '@/lib/dataLayer';
           cotisations: updatedCotisations,
         });
 
-        await db.put('events', culte);
+        // === POWERSYNC: Écrire via executeWrite ===
+        await executeWrite(
+          'INSERT INTO events (id, org_id, name, description, start_date, end_date, status, budget, type, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          [id, 'org-1', data.name, '', data.startDate, null, 'PLANIFIED', 0, 'CULTE', now, now]
+        );
+
         for (const cot of newCotisations) {
-          await db.put('cotisations', cot);
-          await enqueueSync({
-            id: `sync-cot-${cot.id}`,
-            operation: 'create',
-            entityType: 'cotisations',
-            entityId: cot.id,
-            payload: cot,
-            attempts: 0,
-            lastAttempt: null,
-            createdAt: now,
-          });
+          await executeWrite(
+            'INSERT INTO cotisations (id, culte_id, membre_id, statut, montantObligatoire, montantPaye, datePaiement, notes, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [cot.id, cot.culteId, cot.membreId, cot.statut, cot.montantObligatoire, cot.montantPaye, cot.datePaiement, cot.notes, cot.createdAt, cot.updatedAt]
+          );
         }
-        await enqueueSync({
-          id: `sync-${id}`,
-          operation: 'create',
-          entityType: 'events',
-          entityId: id,
-          payload: culte,
-          attempts: 0,
-          lastAttempt: null,
-          createdAt: now,
-        });
       },
 
       markCotisationPaid: async (cotisationId, montantPayeCents, datePaiement) => {
@@ -607,23 +595,33 @@ import { executeWrite, addMemberPS, addEventPS } from '@/lib/dataLayer';
 
           const updatedTxs = [...get().transactions, tx];
           set({ transactions: updatedTxs });
-          await db.put('transactions', tx);
-          await enqueueSync({
-            id: `sync-tx-${tx.id}`,
-            operation: 'create',
-            entityType: 'transactions',
-            entityId: tx.id,
-            payload: tx,
-            attempts: 0,
-            lastAttempt: null,
-            createdAt: now,
-          });
+          // POWERSYNC: Écrire la transaction
+          await executeWrite(
+            `INSERT INTO transactions (
+              id, org_id, type, amount, description, date, status,
+              category_id, org_unit_id, compensates_for, comment,
+              version, created_by_id, approved_by_id, created_at,
+              updated_at, approved_at, event_id, source, person_name,
+              source_caisse_id, versement_id, reversal_of_id, cotisation_id
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              tx.id, tx.orgId, tx.type, tx.amount, tx.description, tx.date, tx.status,
+              tx.categoryId, tx.orgUnitId, tx.compensatesFor, tx.comment,
+              tx.version, tx.createdById, tx.approvedById, tx.createdAt,
+              tx.updatedAt, tx.approvedAt, tx.eventId, tx.source, tx.personName,
+              tx.sourceCaisseId, tx.versementId, tx.reversalOfId, tx.cotisationId,
+            ]
+          );
         }
 
         // === MISE À JOUR COTISATION ===
         const updatedCotisations = get().cotisations.map(c => c.id === cotisationId ? updatedCot : c);
         set({ cotisations: updatedCotisations });
-        await db.put('cotisations', updatedCot);
+        // POWERSYNC: Mettre à jour la cotisation
+        await executeWrite(
+          `UPDATE cotisations SET statut = ?, montantPaye = ?, datePaiement = ?, updatedAt = ? WHERE id = ?`,
+          [updatedCot.statut, updatedCot.montantPaye, updatedCot.datePaiement, now, cotisationId]
+        );
         await enqueueSync({
           id: `sync-cot-${cotisationId}`,
           operation: 'update',
@@ -640,7 +638,11 @@ import { executeWrite, addMemberPS, addEventPS } from '@/lib/dataLayer';
           // Avance consommée
           const updatedMembers = get().members.map(m => m.id === membre.id ? updatedMembre! : m);
           set({ members: updatedMembers });
-          await db.put('members', updatedMembre);
+          // POWERSYNC: Mettre à jour le membre
+          await executeWrite(
+            `UPDATE members SET montant_en_avance = ?, updatedAt = ? WHERE id = ?`,
+            [updatedMembre.montantEnAvance, now, membre.id]
+          );
         } else if (donCents > 0) {
           // Don ajouté
           const updatedMembers = get().members.map(m =>
@@ -649,7 +651,11 @@ import { executeWrite, addMemberPS, addEventPS } from '@/lib/dataLayer';
               : m
           );
           set({ members: updatedMembers });
-          await db.put('members', updatedMembers.find(m => m.id === membre.id)!);
+          // POWERSYNC: Mettre à jour le membre
+          await executeWrite(
+            `UPDATE members SET total_dons = ?, updatedAt = ? WHERE id = ?`,
+            [(membre.totalDons || 0) + donCents, now, membre.id]
+          );
         }
       },
 

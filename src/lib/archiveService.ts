@@ -1,4 +1,4 @@
-import { db } from './db';
+// IndexedDB removed - using PowerSync
 import { generateId } from './utils';
 import { auditLogRepo } from './audit';
 import type { ArchivableEntity } from '@/types';

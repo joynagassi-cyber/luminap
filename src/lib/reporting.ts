@@ -1,5 +1,5 @@
 import type { ReportDefinition, ReportResult } from '@/types';
-import { db } from './db';
+// IndexedDB removed - using PowerSync
 import { generateId } from './utils';
 import { writeAudit } from './audit';
 import type { Transaction } from '@/types';
