@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLocalStore } from '@/store/useLocalStore';
+import { useAuditEntries, useTransactions, useGroups, useMembers, useEvents } from '@/lib/dataLayer';
 import { ArrowLeft, Clock, CheckCircle, XCircle, Trash2, Edit2, FileText, Users, Shield, ChevronRight } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
@@ -37,7 +38,15 @@ const FILTERS = ['Tout', 'Transaction', 'Groupe', 'Membre', 'Événement', 'Budg
 
 export default function TracePage() {
   const navigate = useNavigate();
-  const { auditEntries, transactions, orgUnits, events, members, isLoading } = useLocalStore();
+  const { transactions: idbTxs, orgUnits: idbOrgUnits, events: idbEvents, members: idbMembers, isLoading } = useLocalStore();
+
+  // PowerSync with fallback
+  const { data: auditEntries } = useAuditEntries();
+  const { data: transactions } = useTransactions();
+  const { data: groups } = useGroups();
+  const { data: members } = useMembers();
+  const { data: events } = useEvents();
+
   const [filter, setFilter] = useState('Tout');
   const [search, setSearch] = useState('');
 
@@ -80,107 +89,90 @@ export default function TracePage() {
     Account: { label: 'Compte', type: 'Groupe' },
   };
 
-  const filtered = auditEntries
-    .filter(a => {
-      if (filter === 'Tout') return true;
-      const entityType = entityMap[a.entityType]?.type || a.entityType;
-      return entityType === filter;
-    })
-    .filter(a => {
-      if (!search) return true;
-      const entityLabel = ENTITY_LABELS[a.entityType] || a.entityType;
-      return entityLabel.toLowerCase().includes(search.toLowerCase()) ||
-             a.action.toLowerCase().includes(search.toLowerCase());
-    })
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const getEntityLabel = (entry: any) => {
+    const entityType = entry.entity_type || entry.entityType;
+    return ENTITY_LABELS[entityType] || entityType || 'Entité';
+  };
+
+  const filteredEntries = auditEntries.filter((entry: any) => {
+    const entityType = entry.entity_type || entry.entityType;
+    if (filter !== 'Tout' && !entityType?.includes(filter)) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      return (
+        (entry.comment || '').toLowerCase().includes(q) ||
+        (entityType || '').toLowerCase().includes(q)
+      );
+    }
+    return true;
+  });
 
   return (
-    <div className="min-h-screen bg-[#121212]">
-      <TopHeader title="Trace" />
+    <div className="min-h-screen bg-canvas">
+      <TopHeader title="Trace d'activité" />
       <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
-        <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-text-secondary text-sm mb-5">
-          <ArrowLeft className="w-4 h-4" /> Retour
-        </button>
-
-        <h1 className="text-text-primary font-bold text-xl mb-1">Trace d'activité</h1>
-        <p className="text-text-tertiary text-sm mb-5">Journal complet de toutes les actions</p>
-
         {/* Search */}
-        <div className="mb-5">
+        <div className="relative mb-4">
           <input
             type="text"
+            placeholder="Rechercher..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Rechercher une action..."
-            className="w-full px-4 py-3 rounded-xl text-text-primary text-sm outline-none"
-            style={{ backgroundColor: '#181818', border: '1px solid #282828' }}
+            className="w-full px-4 py-3 rounded-xl text-sm outline-none"
+            style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
           />
         </div>
 
-        {/* Filters */}
-        <div className="-mx-5 px-5 mb-5">
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-          {FILTERS.map((f) => (
+        {/* Filter chips */}
+        <div className="flex flex-wrap gap-2 mb-5">
+          {FILTERS.map(f => (
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className="px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-all"
-              style={filter === f ? { backgroundColor: '#FF6B00', color: '#fff' } : { backgroundColor: '#181818', color: '#B3B3B3', border: '1px solid #282828' }}
+              className="px-3 py-1.5 rounded-full text-xs font-medium transition-all"
+              style={{
+                backgroundColor: filter === f ? '#FF6B00' : '#212121',
+                color: filter === f ? '#fff' : '#B3B3B3'
+              }}
             >
               {f}
             </button>
           ))}
-          </div>
         </div>
 
-        {filtered.length === 0 ? (
-          <div className="text-center py-16 rounded-xl" style={{ backgroundColor: '#181818' }}>
-            <Clock className="w-12 h-12 mx-auto mb-4" style={{ color: '#535353' }} />
-            <p className="text-text-primary font-medium text-sm mb-2">Pas encore de trace</p>
-            <p className="text-text-tertiary text-xs mt-1">Les actions apparaîtront ici après leur réalisation</p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {filtered.map((entry) => {
-              const meta = ACTION_META[entry.action] || { icon: Clock, color: '#B3B3B3', label: entry.action };
-              const entityLabel = ENTITY_LABELS[entry.entityType] || entry.entityType;
+        {/* Entries */}
+        <div className="space-y-2 mb-6">
+          {filteredEntries.length === 0 ? (
+            <div className="text-center py-10 rounded-xl" style={{ backgroundColor: '#1e1e1e' }}>
+              <p className="text-text-tertiary text-sm">Aucune entrée trouvée</p>
+            </div>
+          ) : (
+            filteredEntries.map((entry: any) => {
+              const meta = ACTION_META[entry.action] || ACTION_META.UPDATE;
+              const EntityLabel = meta.icon;
               return (
                 <div
                   key={entry.id}
                   className="rounded-xl p-4 flex items-center gap-3"
-                  style={{ backgroundColor: '#181818' }}
+                  style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
                 >
-                  <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                    style={{ backgroundColor: `${meta.color}20` }}
-                  >
-                    <meta.icon className="w-4 h-4" style={{ color: meta.color }} />
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: meta.color + '20' }}>
+                    <EntityLabel className="w-5 h-5" style={{ color: meta.color }} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="text-text-primary text-sm font-semibold">{meta.label}</p>
-                      <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: '#282828', color: '#B3B3B3' }}>
-                        {entityLabel}
-                      </span>
-                    </div>
-                    <p className="text-text-tertiary text-xs mt-0.5 truncate">
-                      {entry.entityId ? `ID: ${entry.entityId.substring(0, 8)}` : ''}
-                      {entry.comment ? ` — ${entry.comment}` : ''}
+                    <p className="text-text-primary text-sm font-medium">
+                      {meta.label} {getEntityLabel(entry)}
+                    </p>
+                    <p className="text-text-tertiary text-xs mt-0.5">
+                      {formatDateTime(entry.created_at)}
                     </p>
                   </div>
-                  <div className="text-right flex-shrink-0">
-                    <p className="text-text-tertiary text-xs">{formatDate(entry.createdAt)}</p>
-                    {entry.actorRoleAtTime && (
-                      <p className="text-text-tertiary text-xs mt-0.5">{entry.actorRoleAtTime.replace(/_/g, ' ').toLowerCase()}</p>
-                    )}
-                  </div>
+                  <ChevronRight className="w-4 h-4 text-text-tertiary" />
                 </div>
               );
-            })}
-          </div>
-        )}
-
-        <p className="text-text-tertiary text-xs text-center mt-6">{filtered.length} action{filtered.length !== 1 ? 's' : ''}</p>
+            })
+          )}
+        </div>
       </div>
       <BottomNav />
     </div>
