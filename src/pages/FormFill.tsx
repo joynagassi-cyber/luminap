@@ -5,6 +5,7 @@ import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
 import { formDefinitionRepo, formSubmissionRepo, validateFormSubmission, mapFormFields } from '@/lib/formSystem';
 import { generateId } from '@/lib/utils';
+import { getOrganizationId } from '@/lib/orgContext';
 import type { FormDefinition } from '@/types';
 
 export default function FormFill() {
@@ -37,7 +38,7 @@ export default function FormFill() {
     }
     const mapped = mapFormFields(form, data);
     const submission = await formSubmissionRepo.create({
-      orgId: 'org-1',
+      orgId: getOrganizationId(),
       formDefinitionId: form.id,
       formVersion: form.version,
       submittedBy: 'local-user',

@@ -88,7 +88,7 @@ export default function EventDetail() {
     const categoryId = budgetItem.categoryId || 'cat-frais-fonc';
 
     await addTransaction({
-      orgId: 'org-1',
+      orgId: getOrganizationId(),
       type: 'EXPENSE',
       amount: amountCents,
       description: `${event.name} — ${expenseDescription}`,

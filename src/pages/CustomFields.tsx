@@ -5,6 +5,7 @@ import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
 import { customFieldRepo, customFieldValueRepo } from '@/lib/customFields';
 import { generateId } from '@/lib/utils';
+import { getOrganizationId } from '@/lib/orgContext';
 import type { CustomFieldDefinition } from '@/types';
 
 const ENTITY_TYPES = ['Transaction', 'Event', 'Group', 'Member', 'Account', 'Category'];
@@ -34,7 +35,7 @@ export default function CustomFields() {
   const handleCreate = async () => {
     if (!label.trim() || !key.trim()) { setError('Label et clé requis'); return; }
     const def = await customFieldRepo.create({
-      orgId: 'org-1',
+      orgId: getOrganizationId(),
       entityType,
       key: key.trim().toLowerCase().replace(/\s+/g, '_'),
       label: label.trim(),

@@ -95,7 +95,7 @@ export default function EventNew() {
     }
 
     await addEvent({
-      orgId: 'org-1',
+      orgId: getOrganizationId(),
       name: name.trim(),
       description: description.trim(),
       startDate,

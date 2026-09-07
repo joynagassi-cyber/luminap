@@ -5,6 +5,7 @@ import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
 import { reportEngine } from '@/lib/reporting';
 import { generateId } from '@/lib/utils';
+import { getOrganizationId } from '@/lib/orgContext';
 import type { ReportDefinition } from '@/types';
 
 const METRICS = [
@@ -52,7 +53,7 @@ export default function ReportBuilder() {
     setError('');
     const def: ReportDefinition = {
       id: generateId(),
-      orgId: 'org-1',
+      orgId: getOrganizationId(),
       name: report.name!,
       dataSource: report.dataSource || 'transactions',
       dimensions: report.dimensions || [],

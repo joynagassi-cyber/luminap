@@ -38,7 +38,7 @@ export default function MembersPage() {
   const handleCreate = async () => {
     if (!firstName.trim() || !lastName.trim()) return;
     await createMember({
-      orgId: 'org-1',
+      orgId: getOrganizationId(),
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       phone: phone.trim() || null,

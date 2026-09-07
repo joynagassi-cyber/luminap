@@ -7,6 +7,7 @@
 
 import { create } from 'zustand';
 import { workflow } from '@/capabilities/workflow';
+import { getOrganizationId } from '@/lib/orgContext';
 import type { User, Role, Transaction, Category, OrgUnit, Caisse, Event, BudgetItem, ShoppingItem, AppConfig, NotificationItem, Member, Group, Account, GroupMembership, Versement, EventBudget, BudgetLine, Cotisation, CotisationStatut } from '@/types';
 import { generateId } from '@/lib/utils';
 import { formatDate, formatCentsToFCFA } from '@/lib/utils';
@@ -210,7 +211,7 @@ export const useLocalStore = create<LocalStoreState>()(
 
       // Audit
       await writeAudit({
-        orgId: 'org-1',
+        orgId: getOrganizationId(),
         transactionId: id,
         userId: tx.createdById || 'local-user',
         actorRoleAtTime: get().user.role,
@@ -372,7 +373,7 @@ export const useLocalStore = create<LocalStoreState>()(
         await executeWrite(
           `INSERT INTO versements (id, org_id, from_account_id, to_account_id, amount_cents, date, status, created_by, approved_by, approved_at, created_at)
            VALUES (?, ?, ?, ?, ?, ?, 'APPROVED', ?, ?, ?, ?)`,
-          [versementId, 'org-1', data.sourceCaisseId, 'main', data.amount, now.split('T')[0], sessionId, sessionId, now, now]
+          [versementId, getOrganizationId(), data.sourceCaisseId, 'main', data.amount, now.split('T')[0], sessionId, sessionId, now, now]
         );
       } catch (error) {
         console.error('[Store] Failed to create versement record:', error);
@@ -381,7 +382,7 @@ export const useLocalStore = create<LocalStoreState>()(
       // Create transactions
       const sourceTx = {
         id: generateId(),
-        orgId: 'org-1',
+        orgId: getOrganizationId(),
         type: 'EXPENSE',
         amount: data.amount,
         description: `Versement vers caisse principale`,
@@ -407,7 +408,7 @@ export const useLocalStore = create<LocalStoreState>()(
 
       const targetTx = {
         id: generateId(),
-        orgId: 'org-1',
+        orgId: getOrganizationId(),
         type: 'INCOME',
         amount: data.amount,
         description: `Versement de groupe`,
@@ -618,13 +619,13 @@ export const useLocalStore = create<LocalStoreState>()(
         name: data.name,
         type: data.type || 'groupe',
         description: data.description || '',
-        orgId: 'org-1',
+        orgId: getOrganizationId(),
         isActive: true,
       };
 
       const account: Account = {
         id,
-        orgId: 'org-1',
+        orgId: getOrganizationId(),
         ownerType: 'GROUP',
         ownerId: id,
         name: data.name,
@@ -643,7 +644,7 @@ export const useLocalStore = create<LocalStoreState>()(
         description: data.description || '',
         type: 'GROUP',
         color,
-        orgId: 'org-1',
+        orgId: getOrganizationId(),
         createdAt: now,
         updatedAt: now,
         archivedAt: null,
@@ -654,7 +655,7 @@ export const useLocalStore = create<LocalStoreState>()(
 
       const group: Group = {
         id,
-        orgId: 'org-1',
+        orgId: getOrganizationId(),
         name: data.name,
         parentGroupId: null,
         responsableMemberId: null,
@@ -765,7 +766,7 @@ export const useLocalStore = create<LocalStoreState>()(
       // Create the culte as an Event with type='CULTE'
       const culte: Event = {
         id,
-        orgId: 'org-1',
+        orgId: getOrganizationId(),
         name: data.name,
         description: '',
         startDate: data.startDate,
@@ -805,7 +806,7 @@ export const useLocalStore = create<LocalStoreState>()(
       // Write to PowerSync
       await executeWrite(
         'INSERT INTO events (id, org_id, name, description, start_date, end_date, status, type, budget, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [id, 'org-1', data.name, '', data.startDate, null, 'PLANIFIED', 'CULTE', 0, now, now]
+        [id, getOrganizationId(), data.name, '', data.startDate, null, 'PLANIFIED', 'CULTE', 0, now, now]
       );
 
       for (const cot of newCotisations) {
@@ -848,7 +849,7 @@ export const useLocalStore = create<LocalStoreState>()(
         const sessionId = localStorage.getItem('lumina-session') || 'local-user';
         const tx = {
           id: generateId(),
-          orgId: 'org-1',
+          orgId: getOrganizationId(),
           type: 'INCOME' as const,
           amount: montantPayeCents,
           description: `Cotisation ${membre.firstName} ${membre.lastName} -- Culte du ${formatDate(culte.startDate)}`,

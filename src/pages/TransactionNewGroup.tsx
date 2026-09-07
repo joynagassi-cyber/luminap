@@ -66,7 +66,7 @@ export default function TransactionNewGroup() {
     const isExpense = type === 'EXPENSE';
 
     await addTransaction({
-      orgId: 'org-1',
+      orgId: getOrganizationId(),
       type,
       amount: Math.round(parseFloat(amount) * 100),
       description,

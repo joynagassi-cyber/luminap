@@ -6,6 +6,7 @@ import { ArrowLeft, Wallet, Calendar } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
 import { generateId } from '@/lib/utils';
+import { getOrganizationId } from '@/lib/orgContext';
 
 export default function TransactionNew() {
   const navigate = useNavigate();
@@ -79,7 +80,7 @@ export default function TransactionNew() {
     const isExpense = type === 'EXPENSE';
 
     await addTransaction({
-      orgId: 'org-1',
+      orgId: getOrganizationId(),
       type,
       amount: Math.round(parseFloat(amount) * 100),
       description,

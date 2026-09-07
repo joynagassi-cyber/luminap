@@ -5,6 +5,7 @@ import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
 import { formDefinitionRepo } from '@/lib/formSystem';
 import { generateId } from '@/lib/utils';
+import { getOrganizationId } from '@/lib/orgContext';
 import type { FormDefinition, FormFieldDefinition } from '@/types';
 
 const FIELD_TYPES: { value: FormFieldDefinition['type']; label: string }[] = [
@@ -29,7 +30,7 @@ export default function FormBuilder() {
   const [error, setError] = useState('');
 
   const loadForms = async () => {
-    const list = await formDefinitionRepo.list({ orgId: 'org-1' });
+    const list = await formDefinitionRepo.list({ orgId: getOrganizationId() });
     setForms(list);
   };
 
@@ -39,7 +40,7 @@ export default function FormBuilder() {
     if (!formName.trim() || !formKey.trim()) { setError('Nom et clé requis'); return; }
     const def: FormDefinition = {
       id: generateId(),
-      orgId: 'org-1',
+      orgId: getOrganizationId(),
       key: formKey.trim(),
       name: formName.trim(),
       description: formDescription.trim(),
