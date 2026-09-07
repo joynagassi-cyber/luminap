@@ -2,7 +2,7 @@
  * Unified Data Layer - PowerSync primary, PowerSync fallback
  *
  * This layer provides React hooks that try PowerSync first,
- * and fall back to IndexedDB if PowerSync is not available yet.
+ * and fall back to local cache if PowerSync is not available yet.
  *
  * Usage:
  * import { useData } from '@/lib/dataLayer';

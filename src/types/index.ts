@@ -20,6 +20,7 @@ export type MemberStatus = 'ACTIVE' | 'INACTIVE' | 'ARCHIVED';
 export type GroupStatus = 'ACTIVE' | 'ARCHIVED';
 export type AccountStatus = 'ACTIVE' | 'ARCHIVED';
 export type VersementStatus = 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED';
+export type CotisationStatut = 'NON_PAYE' | 'PAYE' | 'ABSENT' | 'EN_AVANCE';
 
 export type Organization = {
   id: string;
@@ -96,6 +97,7 @@ export type Transaction = {
   sourceCaisseId: string | null;
   versementId: string | null;
   reversalOfId: string | null;
+  cotisationId: string | null;
   category?: Category;
   orgUnit?: OrgUnit;
   event?: Event;
@@ -132,6 +134,7 @@ export type Event = {
   startDate: string;
   endDate: string | null;
   status: EventStatus;
+  type: 'EVENT' | 'CULTE';
   budget: number;
   budgetItems: BudgetItem[];
   shoppingItems: ShoppingItem[];
@@ -199,6 +202,20 @@ export type SyncQueueItem = {
   createdAt: string;
 };
 
+// === NEW TYPE: Cotisation ===
+export type Cotisation = {
+  id: string;
+  culteId: string;
+  membreId: string;
+  statut: CotisationStatut;
+  montantObligatoire: number;
+  montantPaye: number;
+  datePaiement: string | null;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 // === NEW TYPE: Member ===
 export type Member = {
   id: string;
@@ -212,6 +229,8 @@ export type Member = {
   archivedAt: string | null;
   archivedBy: string | null;
   archiveReason: string | null;
+  totalDons: number;
+  montantEnAvance: number;
   createdAt: string;
   updatedAt: string;
 };

@@ -32,6 +32,10 @@ streams:
     auto_subscribe: true
     query: SELECT * FROM events WHERE org_id = 'org-1'
 
+  cotisations:
+    auto_subscribe: true
+    query: SELECT * FROM cotisations WHERE org_id = 'org-1'
+
   members:
     auto_subscribe: true
     query: SELECT * FROM members WHERE org_id = 'org-1'

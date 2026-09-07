@@ -29,6 +29,8 @@ const members = new Table(
     archived_at: column.text,
     archived_by: column.text,
     archive_reason: column.text,
+    total_dons: column.integer,
+    montant_en_avance: column.integer,
     created_at: column.text,
     updated_at: column.text,
   },
@@ -59,6 +61,7 @@ const transactions = new Table(
     source_caisse_id: column.text,
     versement_id: column.text,
     reversal_of_id: column.text,
+    cotisation_id: column.text,
   },
   { indexes: {} }
 );
@@ -71,6 +74,7 @@ const events = new Table(
     start_date: column.text,
     end_date: column.text,
     status: column.text,
+    type: column.text,
     budget: column.integer,
     created_at: column.text,
     updated_at: column.text,
@@ -311,6 +315,27 @@ const custom_field_values = new Table(
   { indexes: {} }
 );
 
+const cotisations = new Table(
+  {
+    culte_id: column.text,
+    membre_id: column.text,
+    statut: column.text,
+    montantObligatoire: column.integer,
+    montantPaye: column.integer,
+    datePaiement: column.text,
+    notes: column.text,
+    createdAt: column.text,
+    updatedAt: column.text,
+  },
+  {
+    indexes: {
+      culte_id: 'culte_id',
+      membre_id: 'membre_id',
+      statut: 'statut',
+    },
+  }
+);
+
 const report_definitions = new Table(
   {
     org_id: column.text,
@@ -345,6 +370,7 @@ export const AppSchema = new Schema({
   custom_field_definitions,
   custom_field_values,
   report_definitions,
+  cotisations,
 });
 
 export type Database = (typeof AppSchema)['types'];
