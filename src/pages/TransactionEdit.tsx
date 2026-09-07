@@ -59,7 +59,10 @@ export default function TransactionEdit() {
   };
 
   const handleSubmit = async () => {
-    if (!amount || !description || !categoryId) return;
+    const trimmedAmount = amount?.toString().trim();
+    const trimmedDesc = description?.trim();
+    const trimmedCatId = categoryId?.toString().trim();
+    if (!trimmedAmount || !trimmedDesc || !trimmedCatId) return;
     await updateTransaction(id!, {
       type,
       amount: Math.round(parseFloat(amount) * 100),

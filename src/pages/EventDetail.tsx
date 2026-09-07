@@ -50,7 +50,10 @@ export default function EventDetail() {
   };
 
   const handleAddExpense = async () => {
-    if (!expenseAmount || !expenseDescription || !selectedBudgetItemId) {
+    const trimmedAmount = (expenseAmount || '').trim();
+    const trimmedDesc = (expenseDescription || '').trim();
+    const trimmedItemId = (selectedBudgetItemId || '').trim();
+    if (!trimmedAmount || !trimmedDesc || !trimmedItemId) {
       setExpenseError('Veuillez remplir tous les champs');
       return;
     }
