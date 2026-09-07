@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useLocalStore } from '@/store/useLocalStore';
+import { useTransactions, useCategories, useAccounts, useCaisses } from '@/lib/dataLayer';
 import { ArrowLeft, Wallet } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
@@ -10,9 +11,19 @@ export default function TransactionNewGroup() {
   const { id: groupId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const { categories, addTransaction, caisses, accounts } = useLocalStore();
-  const groupAccount = accounts.find(a => a.id === groupId);
-  const caisse = caisses.find(c => c.id === groupId);
+  const { categories: idbCats, addTransaction, caisses: idbCaisses, accounts: idbAccounts } = useLocalStore();
+
+  // PowerSync with fallback
+  const { data: psCategories } = useCategories();
+  const { data: psAccounts } = useAccounts();
+  const { data: psCaisses } = useCaisses();
+
+  const categories = psCategories ?? idbCats;
+  const accounts = psAccounts ?? idbAccounts;
+  const caisses = psCaisses ?? idbCaisses;
+
+  const groupAccount = accounts.find((a: any) => a.id === groupId);
+  const caisse = caisses.find((c: any) => c.id === groupId);
   const queryType = (location.state as any)?.type || 'INCOME';
 
   const [type, setType] = useState<'INCOME' | 'EXPENSE'>(queryType as any);
@@ -37,7 +48,7 @@ export default function TransactionNewGroup() {
 
   const [filteredCategories, setFilteredCategories] = useState<Category[]>([]);
   useEffect(() => {
-    setFilteredCategories(categories.filter(c => c.type === type));
+    setFilteredCategories(categories.filter((c: any) => c.type === type));
   }, [type, categories]);
 
   const handleSubmit = async () => {
@@ -62,8 +73,8 @@ export default function TransactionNewGroup() {
       date,
       status: isExpense ? 'PENDING' : 'DRAFT',
       categoryId,
-      orgUnitId: groupId,
-      sourceCaisseId: groupId,
+      orgUnitId: null,
+      sourceCaisseId: groupId || 'main',
       eventId: null,
       source: source || 'CAISSE',
       personName: source === 'PERSONNE' ? personName || null : null,
@@ -73,182 +84,157 @@ export default function TransactionNewGroup() {
       approvedById: null,
       approvedAt: null,
       versementId: null,
+      reversalOfId: null,
     });
-    setSubmitting(false);
     navigate(`/groups/${groupId}`);
   };
 
   return (
     <div className="h-screen bg-canvas flex flex-col overflow-hidden">
-      <TopHeader title={groupAccount?.name || 'Groupe'} />
+      <TopHeader title="Nouvelle transaction" />
       <div className="flex-1 overflow-y-auto px-5 pt-16 pb-6">
-        <button onClick={() => navigate(`/groups/${groupId}`)} className="flex items-center gap-2 text-text-secondary text-sm mb-5">
+        <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-text-secondary text-sm mb-5">
           <ArrowLeft className="w-4 h-4" /> Retour
         </button>
 
-        {/* Group caisse info */}
-        <div className="rounded-xl p-4 mb-5 flex items-center gap-3" style={{ backgroundColor: '#212121', border: `1px solid ${caisse?.color || '#FF6B00'}30` }}>
-          <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: (caisse?.color || '#FF6B00') + '20' }}>
-            <Wallet className="w-5 h-5" style={{ color: caisse?.color || '#FF6B00' }} />
+        {/* Group info */}
+        {groupAccount && (
+          <div className="rounded-xl p-4 mb-5" style={{ backgroundColor: '#212121' }}>
+            <p className="text-text-tertiary text-xs mb-1">Groupe</p>
+            <p className="text-text-primary font-semibold">{groupAccount.name}</p>
           </div>
-          <div>
-            <p className="text-text-primary text-sm font-semibold">{caisse?.name || groupAccount?.name || 'Caisse du groupe'}</p>
-            <p className="text-text-tertiary text-xs">Caisse de groupe</p>
-          </div>
-        </div>
-
-        {error && (
-          <div className="mb-4 p-3 rounded-xl text-sm" style={{ backgroundColor: '#E5133220', color: '#E51332' }}>{error}</div>
         )}
 
-        <h1 className="text-text-primary font-bold text-xl mb-5">
-          Nouvelle {type === 'INCOME' ? 'entrée' : 'sortie'}
-        </h1>
-
-        {/* Type toggle */}
-        <div className="flex rounded-xl p-1 mb-5" style={{ backgroundColor: '#212121' }}>
-          <button onClick={() => setType('INCOME')} className="flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all" style={type === 'INCOME' ? { backgroundColor: '#1DB954', color: '#fff' } : { color: '#B3B3B3' }}>
+        {/* Type selector */}
+        <div className="flex gap-2 mb-5">
+          <button
+            onClick={() => setType('INCOME')}
+            className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all"
+            style={{ backgroundColor: type === 'INCOME' ? '#1DB954' : '#212121', color: type === 'INCOME' ? '#fff' : '#B3B3B3' }}
+          >
             Entrée
           </button>
-          <button onClick={() => setType('EXPENSE')} className="flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all" style={type === 'EXPENSE' ? { backgroundColor: '#E51332', color: '#fff' } : { color: '#B3B3B3' }}>
+          <button
+            onClick={() => setType('EXPENSE')}
+            className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all"
+            style={{ backgroundColor: type === 'EXPENSE' ? '#E51332' : '#212121', color: type === 'EXPENSE' ? '#fff' : '#B3B3B3' }}
+          >
             Sortie
           </button>
         </div>
 
-        <div className="space-y-4">
-          <div>
-            <label className="text-text-tertiary text-xs mb-1.5 block">Montant (FCFA) *</label>
-            <input
-              type="number"
-              value={amount}
-              onChange={(e) => {
-              setAmount(e.target.value);
-              const num = parseFloat(e.target.value);
-              setFieldErrors(prev => ({ ...prev, amount: (!e.target.value || isNaN(num) || num <= 0) ? 'Le montant doit être supérieur à 0' : '' }));
-            }}
-              placeholder="0"
-              className="w-full px-4 py-3.5 rounded-xl text-text-primary text-lg font-bold outline-none"
-              
-              style={{ backgroundColor: '#212121', border: fieldErrors.amount ? '1px solid #E51332' : '1px solid #282828' }}
-            />
-            {fieldErrors.amount && (
-              <p className="text-[#E51332] text-xs mt-1">{fieldErrors.amount}</p>
-            )}
-          </div>
+        {/* Amount */}
+        <div className="mb-5">
+          <label className="text-text-tertiary text-xs mb-2 block">Montant (FCFA)</label>
+          <input
+            type="number"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            placeholder="0"
+            className="w-full px-4 py-4 rounded-xl text-2xl font-bold outline-none text-center"
+            style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
+          />
+        </div>
 
-          <div>
-            <label className="text-text-tertiary text-xs mb-1.5 block">Description *</label>
+        {/* Description */}
+        <div className="mb-5">
+          <label className="text-text-tertiary text-xs mb-2 block">Description</label>
+          <input
+            type="text"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Ex: Dîme du groupe"
+            className="w-full px-4 py-3 rounded-xl text-sm outline-none"
+            style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
+          />
+        </div>
+
+        {/* Date */}
+        <div className="mb-5">
+          <label className="text-text-tertiary text-xs mb-2 block">Date</label>
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            className="w-full px-4 py-3 rounded-xl text-sm outline-none"
+            style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
+          />
+        </div>
+
+        {/* Category */}
+        <div className="mb-5">
+          <label className="text-text-tertiary text-xs mb-2 block">Catégorie</label>
+          <select
+            value={categoryId}
+            onChange={(e) => setCategoryId(e.target.value)}
+            className="w-full px-4 py-3 rounded-xl text-sm outline-none"
+            style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
+          >
+            <option value="">Sélectionner une catégorie</option>
+            {filteredCategories.map((cat: any) => (
+              <option key={cat.id} value={cat.id}>{cat.label_fr || cat.label}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Source */}
+        <div className="mb-5">
+          <label className="text-text-tertiary text-xs mb-2 block">Source</label>
+          <select
+            value={source}
+            onChange={(e) => setSource(e.target.value as any)}
+            className="w-full px-4 py-3 rounded-xl text-sm outline-none"
+            style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
+          >
+            <option value="CAISSE">Caisse</option>
+            <option value="COTISATION">Cotisation</option>
+            <option value="PERSONNE">Personne</option>
+            <option value="AUTRE">Autre</option>
+          </select>
+        </div>
+
+        {/* Person name */}
+        {source === 'PERSONNE' && (
+          <div className="mb-5">
+            <label className="text-text-tertiary text-xs mb-2 block">Nom de la personne</label>
             <input
               type="text"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Ex: Dîme du groupe"
-              className="w-full px-4 py-3 rounded-xl text-text-primary text-sm outline-none"
-              
-              style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
+              value={personName}
+              onChange={(e) => setPersonName(e.target.value)}
+              placeholder="Nom de la personne"
+              className="w-full px-4 py-3 rounded-xl text-sm outline-none"
+              style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
             />
           </div>
+        )}
 
-          <div>
-            <label className="text-text-tertiary text-xs mb-1.5 block">Date *</label>
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl text-text-primary text-sm outline-none"
-              
-              style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
-            />
-          </div>
-
-          <div>
-            <label className="text-text-tertiary text-xs mb-1.5 block">Catégorie *</label>
-            <div className="grid grid-cols-3 gap-2">
-              {filteredCategories.map((cat) => (
-                <button
-                  key={cat.id}
-                  onClick={() => setCategoryId(cat.id)}
-                  className="py-2 px-2 rounded-lg text-xs font-medium transition-all text-center"
-                  style={categoryId === cat.id
-                    ? { backgroundColor: type === 'INCOME' ? '#1DB95420' : '#E5133220', color: type === 'INCOME' ? '#1DB954' : '#E51332', border: '1px solid' }
-                    : { backgroundColor: '#212121', color: '#B3B3B3', border: '1px solid #282828' }
-                  }
-                >
-                  {cat.labelFr}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Source selector */}
-          <div>
-            <label className="text-text-tertiary text-xs mb-1.5 block">Source</label>
-            <div className="grid grid-cols-4 gap-2">
-              {([
-                { id: 'CAISSE' as const, label: 'Caisse' },
-                { id: 'COTISATION' as const, label: 'Cotisation' },
-                { id: 'PERSONNE' as const, label: 'Personne' },
-                { id: 'AUTRE' as const, label: 'Autre' },
-              ]).map(({ id, label }) => (
-                <button
-                  key={id}
-                  onClick={() => setSource(id)}
-                  className="py-2.5 rounded-xl text-xs font-medium transition-all"
-                  style={source === id ? { backgroundColor: '#FF6B0020', color: '#FF6B00', border: '1px solid #FF6B00' } : { backgroundColor: '#212121', color: '#B3B3B3', border: '1px solid #282828' }}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {source === 'PERSONNE' && (
-            <div>
-              <label className="text-text-tertiary text-xs mb-1.5 block">Nom de la personne</label>
-              <input
-                type="text"
-                value={personName}
-                onChange={(e) => setPersonName(e.target.value)}
-                placeholder="Ex: Jean Mbarga"
-                className="w-full px-4 py-3 rounded-xl text-text-primary text-sm outline-none"
-                
-              style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
-              />
-            </div>
-          )}
-
-          <div>
-            <label className="text-text-tertiary text-xs mb-1.5 block">Commentaire (optionnel)</label>
-            <textarea
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              placeholder="Notes..."
-              rows={2}
-              className="w-full px-4 py-3 rounded-xl text-text-primary text-sm outline-none resize-none"
-
-              style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
-            />
-          </div>
-
-          {/* Form action buttons */}
-          <div className="pt-4 space-y-3">
-            <button
-              onClick={handleSubmit}
-              disabled={submitting}
-              className="w-full py-4 rounded-full font-semibold text-white transition-all active:scale-95 disabled:opacity-40"
-              style={{ backgroundColor: type === 'INCOME' ? '#1DB954' : '#E51332' }}
-            >
-              {submitting ? 'Enregistrement...' : type === 'INCOME' ? "Enregistrer l'entrée" : 'Enregistrer la sortie'}
-            </button>
-            <button
-              onClick={() => navigate(`/groups/${groupId}`)}
-              className="w-full py-3 rounded-full font-medium text-text-tertiary text-sm transition-all"
-              style={{ backgroundColor: '#212121' }}
-            >
-              Annuler
-            </button>
-          </div>
+        {/* Comment */}
+        <div className="mb-6">
+          <label className="text-text-tertiary text-xs mb-2 block">Commentaire (optionnel)</label>
+          <textarea
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            placeholder="Ajouter un commentaire..."
+            rows={2}
+            className="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none"
+            style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
+          />
         </div>
+
+        {error && (
+          <div className="mb-4 p-3 rounded-xl text-sm text-center" style={{ backgroundColor: '#E5133220', color: '#E51332' }}>
+            {error}
+          </div>
+        )}
+
+        <button
+          onClick={handleSubmit}
+          disabled={submitting}
+          className="w-full py-4 rounded-full font-semibold text-white text-sm transition-all active:scale-95 disabled:opacity-50"
+          style={{ backgroundColor: type === 'INCOME' ? '#1DB954' : '#E51332' }}
+        >
+          {submitting ? 'Enregistrement...' : 'Enregistrer la transaction'}
+        </button>
       </div>
       <BottomNav />
     </div>

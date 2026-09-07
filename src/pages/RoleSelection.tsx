@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLocalStore } from '@/store/useLocalStore';
-import { Wallet, Church, ClipboardList, BarChart3, Banknote, PenTool } from 'lucide-react';
+import { usePowerSyncStatus } from '@/lib/dataLayer';
+import { Wallet, Church, ClipboardList, BarChart3, Banknote, PenTool, Wifi, WifiOff } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
 
 export default function RoleSelection() {
   const navigate = useNavigate();
   const { user, selectRole, appConfig, loadInitialData } = useLocalStore();
+  const isPowerSyncReady = usePowerSyncStatus();
   const [loading, setLoading] = useState<string | null>(null);
   const churchName = appConfig.churchName || 'Église MFE-JC Centrale';
 
@@ -43,13 +45,17 @@ export default function RoleSelection() {
           <p className="text-white text-sm font-semibold">{churchName}</p>
           <p className="text-[#808080] text-xs">Gestion financière</p>
         </div>
+        <div className="flex items-center gap-2 text-xs" style={{ color: isPowerSyncReady ? '#1DB954' : '#B3B3B3' }}>
+          {isPowerSyncReady ? <Wifi className="w-4 h-4" /> : <WifiOff className="w-4 h-4" />}
+          <span>{isPowerSyncReady ? 'Sync' : 'Offline'}</span>
+        </div>
       </div>
 
       {/* Content */}
       <div className="flex-1 px-6 pb-24 pt-2">
         <div className="max-w-sm mx-auto">
           <h1 className="text-white font-bold text-xl mb-1">Choisissez votre rôle</h1>
-          <p className="text-[#808080] text-sm mb-6">Cela déterminera vos permissions dans l&apos;application.</p>
+          <p className="text-[#808080] text-sm mb-6">Cela déterminera vos permissions dans l'application.</p>
 
           <div className="space-y-2">
             {roles.map(({ id, label, desc, icon: Icon, iconColor }) => (
@@ -58,35 +64,23 @@ export default function RoleSelection() {
                 onClick={() => handleSelect(id)}
                 disabled={loading !== null && loading !== id}
                 className="w-full text-left rounded-xl p-4 transition-all active:scale-95 flex items-center gap-4"
-                style={{ backgroundColor: '#181818', border: user.role === id ? '1px solid #FF6B00' : '1px solid #282828' }}
+                style={{ backgroundColor: '#1E1E1E', border: '1px solid #282828', opacity: loading !== null && loading !== id ? 0.5 : 1 }}
               >
-                <div className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: user.role === id ? iconColor + '20' : '#212121' }}>
-                  {loading === id ? (
-                    <div className="w-5 h-5 rounded-full border-2 border-[#FF6B00] border-t-transparent animate-spin" />
-                  ) : (
-                    <Icon className="w-5 h-5" style={{ color: user.role === id ? iconColor : '#808080' }} />
-                  )}
+                <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: iconColor + '20' }}>
+                  <Icon className="w-5 h-5" style={{ color: iconColor }} />
                 </div>
-                <div className="flex-1 min-w-0">
+                <div className="flex-1">
                   <p className="text-white font-semibold text-sm">{label}</p>
-                  <p className="text-[#808080] text-xs truncate">{desc}</p>
+                  <p className="text-[#808080] text-xs mt-0.5">{desc}</p>
                 </div>
-                {user.role === id && (
-                  <span className="text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0" style={{ backgroundColor: '#FF6B0020', color: '#FF6B00' }}>
-                    Actif
-                  </span>
+                {loading === id && (
+                  <div className="w-5 h-5 rounded-full border-2 border-[#FF6B00] border-t-transparent animate-spin" />
                 )}
               </button>
             ))}
           </div>
-
-          <p className="text-[#808080] text-xs text-center mt-8">
-            Accès direct — aucune authentification requise
-          </p>
         </div>
       </div>
-
-      <BottomNav />
     </div>
   );
 }

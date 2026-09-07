@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLocalStore } from '@/store/useLocalStore';
+import { usePowerSyncStatus } from '@/lib/dataLayer';
+import { Wifi, WifiOff } from 'lucide-react';
 
 const SPLASH_DURATION = 2000;
 
 export default function Splash() {
   const navigate = useNavigate();
   const { loadInitialData } = useLocalStore();
+  const isPowerSyncReady = usePowerSyncStatus();
   const [phase, setPhase] = useState<'initializing' | 'loading'>('initializing');
 
   useEffect(() => {
@@ -46,6 +49,12 @@ export default function Splash() {
       className="min-h-screen flex flex-col items-center justify-center"
       style={{ backgroundColor: '#121212' }}
     >
+      {/* Sync indicator */}
+      <div className="absolute top-4 right-4 flex items-center gap-2 text-xs" style={{ color: isPowerSyncReady ? '#1DB954' : '#B3B3B3' }}>
+        {isPowerSyncReady ? <Wifi className="w-4 h-4" /> : <WifiOff className="w-4 h-4" />}
+        <span>{isPowerSyncReady ? 'Sync' : 'Offline'}</span>
+      </div>
+
       <div className="mb-6">
         <img src="/lumina-logo.png" alt="Lumina" className="w-20 h-20 object-contain" />
       </div>
@@ -59,7 +68,6 @@ export default function Splash() {
           <p className="text-[#808080] text-xs">Chargement en cours…</p>
         </div>
       )}
-      <p className="absolute bottom-8 text-[#535353] text-xs">Lumina v2.0</p>
     </div>
   );
 }
