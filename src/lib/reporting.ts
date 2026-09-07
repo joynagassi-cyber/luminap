@@ -1,9 +1,9 @@
 import type { ReportDefinition, ReportResult } from '@/types';
-// Using PowerSync
+import { getPowerSyncDatabase } from '@/lib/powersync';
 import { generateId } from './utils';
 import { writeAudit } from './audit';
 import type { Transaction } from '@/types';
-// StoreName removed - using PowerSync
+import { getOrganizationId } from './orgContext';
 
 export type FilterOp = 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte' | 'contains' | 'in';
 
@@ -39,7 +39,21 @@ export class AggregationEngine {
   }
 
   private async aggregateTransactions(reportDef: ReportDefinition): Promise<ReportResult> {
-    const transactions = await db.getAll<Transaction>('transactions' as StoreName).catch(() => [] as Transaction[]);
+    const db = getPowerSyncDatabase();
+    const result = await db.execute('SELECT * FROM transactions WHERE status = ?', ['APPROVED']);
+    const transactions: Transaction[] = (result?.result || []).map((t: any) => ({
+      id: t.id, orgId: t.org_id, type: t.type, amount: t.amount,
+      description: t.description, date: t.date, status: t.status,
+      createdAt: t.created_at, updatedAt: t.updated_at,
+      createdById: t.created_by_id, approvedById: t.approved_by_id,
+      approvedAt: t.approved_at, categoryId: t.category_id,
+      orgUnitId: t.org_unit_id ?? null, eventId: t.event_id ?? null,
+      source: t.source ?? null, personName: t.person_name ?? null,
+      compensatesFor: t.compensates_for ?? null, comment: t.comment ?? null,
+      version: t.version, sourceCaisseId: t.source_caisse_id ?? null,
+      versementId: t.versement_id ?? null, reversalOfId: t.reversal_of_id ?? null,
+      cotisationId: t.cotisation_id ?? null,
+    }));
     const approved = transactions.filter(t => t.status === 'APPROVED');
     let filtered = approved;
 
@@ -101,9 +115,14 @@ export const reportDefinitionRepo = {
     const id = generateId();
     const now = new Date().toISOString();
     const entry: ReportDefinition = { ...def, id, createdAt: now, updatedAt: now };
-    await db.put('report_definitions' as any, entry);
+    const db = getPowerSyncDatabase();
+    await db.execute(
+      `INSERT INTO report_definitions (id, org_id, name, data_source, dimensions, metrics, filters, group_by, sort_by, saved_by, is_template, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, getOrganizationId(), entry.name, entry.dataSource, JSON.stringify(entry.dimensions), JSON.stringify(entry.metrics), JSON.stringify(entry.filters), JSON.stringify(entry.groupBy), entry.sortBy, entry.savedBy, entry.isTemplate, now, now]
+    );
     await writeAudit({
-      orgId: 'org-1',
+      orgId: getOrganizationId(),
       transactionId: null,
       userId: 'local-user',
       actorRoleAtTime: null,
@@ -118,13 +137,22 @@ export const reportDefinitionRepo = {
   },
 
   async list(): Promise<ReportDefinition[]> {
-    return db.getAll<ReportDefinition>('report_definitions' as any).catch(() => [] as ReportDefinition[]);
+    const db = getPowerSyncDatabase();
+    const result = await db.execute('SELECT * FROM report_definitions ORDER BY created_at DESC');
+    return (result?.result || []).map((r: any) => ({
+      id: r.id, orgId: r.org_id, name: r.name, dataSource: r.data_source,
+      dimensions: JSON.parse(r.dimensions || '[]'), metrics: JSON.parse(r.metrics || '[]'),
+      filters: JSON.parse(r.filters || '[]'), groupBy: JSON.parse(r.group_by || '[]'),
+      sortBy: r.sort_by, savedBy: r.saved_by, isTemplate: r.is_template,
+      createdAt: r.created_at, updatedAt: r.updated_at,
+    }));
   },
 
   async delete(id: string): Promise<void> {
-    await db.delete('report_definitions' as any, id);
+    const db = getPowerSyncDatabase();
+    await db.execute('DELETE FROM report_definitions WHERE id = ?', [id]);
     await writeAudit({
-      orgId: 'org-1',
+      orgId: getOrganizationId(),
       transactionId: null,
       userId: 'local-user',
       actorRoleAtTime: null,

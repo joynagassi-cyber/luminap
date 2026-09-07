@@ -6,7 +6,6 @@
  */
 
 import { create } from 'zustand';
-import { checkPermission } from '@/lib/rbac';
 import type { User, Role, Transaction, Category, OrgUnit, Caisse, Event, BudgetItem, ShoppingItem, AppConfig, NotificationItem, Member, Group, Account, GroupMembership, Versement, EventBudget, BudgetLine, Cotisation, CotisationStatut } from '@/types';
 import { generateId } from '@/lib/utils';
 import { formatDate, formatCentsToFCFA } from '@/lib/utils';
@@ -365,6 +364,17 @@ export const useLocalStore = create<LocalStoreState>()(
       const now = new Date().toISOString();
       const versementId = generateId();
       const sessionId = localStorage.getItem('lumina-session') || 'local-user';
+
+      // Create versement record
+      try {
+        await executeWrite(
+          `INSERT INTO versements (id, org_id, from_account_id, to_account_id, amount_cents, date, status, created_by, approved_by, approved_at, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, 'APPROVED', ?, ?, ?, ?)`,
+          [versementId, 'org-1', data.sourceCaisseId, 'main', data.amount, now.split('T')[0], sessionId, sessionId, now, now]
+        );
+      } catch (error) {
+        console.error('[Store] Failed to create versement record:', error);
+      }
 
       // Create transactions
       const sourceTx = {

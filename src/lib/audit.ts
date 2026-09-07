@@ -1,6 +1,7 @@
 import { getPowerSyncDatabase } from '@/lib/powersync';
 import { generateId } from './utils';
 import type { AuditEntry } from '@/types';
+import { getOrganizationId } from './orgContext';
 
 /**
  * AuditLogRepository
@@ -22,7 +23,7 @@ export interface AuditLogRepository {
 
 const defaultAuditEntry = {
   id: '',
-  orgId: 'org-1',
+  orgId: getOrganizationId(),
   transactionId: null as string | null,
   userId: 'local-user',
   actorRoleAtTime: null as string | null,
@@ -139,7 +140,7 @@ export async function writeAuditSummary(options: {
   comment?: string | null;
 }): Promise<void> {
   await auditLogRepo.write({
-    orgId: 'org-1',
+    orgId: getOrganizationId(),
     transactionId: null,
     userId: options.actorId,
     actorRoleAtTime: options.actorRoleAtTime ?? null,

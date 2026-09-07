@@ -11,6 +11,7 @@
 
 import { useQuery, usePowerSync } from '@powersync/react';
 import type { PowerSyncDatabase } from '@powersync/web';
+import { getPowerSyncDatabase } from '@/lib/powersync';
 import { useLocalStore } from '@/store/useLocalStore';
 import { useEffect, useState, useRef } from 'react';
 
@@ -632,6 +633,15 @@ export async function updateTransactionPS(
   id: string,
   updates: Partial<PSTransaction>
 ): Promise<void> {
+  // Guard: APPROVED transactions are immutable
+  // Exception: allow status change TO APPROVED (approve flow)
+  const db = getPowerSyncDatabase();
+  const statusResult = await db.execute(`SELECT status FROM transactions WHERE id = ?`, [id]);
+  const tx = statusResult?.result?.[0] as any;
+  if (tx?.status === 'APPROVED' && updates.status !== 'APPROVED') {
+    throw new Error('TRANSACTION_APPROVED_IMMUTABLE');
+  }
+
   const setClauses: string[] = [];
   const params: any[] = [];
 
@@ -671,6 +681,14 @@ export async function updateTransactionPS(
  * Delete a transaction via PowerSync
  */
 export async function deleteTransactionPS(id: string): Promise<void> {
+  // Guard: APPROVED transactions are immutable
+  const db = getPowerSyncDatabase();
+  const statusResult = await db.execute(`SELECT status FROM transactions WHERE id = ?`, [id]);
+  const tx = statusResult?.result?.[0] as any;
+  if (tx?.status === 'APPROVED') {
+    throw new Error('TRANSACTION_APPROVED_IMMUTABLE');
+  }
+
   await executeWrite('DELETE FROM transactions WHERE id = ?', [id]);
 }
 

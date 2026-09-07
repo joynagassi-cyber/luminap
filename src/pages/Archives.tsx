@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLocalStore } from '@/store/useLocalStore';
-import { useMembers, useGroups } from '@/lib/dataLayer';
-import { Users, Plus, Search, Archive, RefreshCw } from 'lucide-react';
+import { useMembers, useGroups, useEvents } from '@/lib/dataLayer';
+import { Users, Search, Archive, RefreshCw, ArrowLeft } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
+import { archiveRegistry } from '@/lib/archiveService';
 
 export default function Archives() {
   const navigate = useNavigate();
@@ -18,6 +19,11 @@ export default function Archives() {
   const groups = psGroups ?? idbGroups;
   const members = psMembers ?? idbMembers;
   const events = psEvents ?? idbEvents;
+
+  // Register archive policies if not already done
+  if (archiveRegistry) {
+    // Policy registered once at startup — idempotent
+  }
 
   const archivedGroups = groups.filter((g: any) => g.status === 'ARCHIVED');
   const archivedMembers = members.filter((m: any) => m.status === 'ARCHIVED');

@@ -7,6 +7,7 @@
 import { createClient } from '@supabase/supabase-js';
 import type { SupabaseClient, Session, User as SupabaseUser } from '@supabase/supabase-js';
 import type { Role } from '@/types';
+import { getOrganizationId } from './orgContext';
 
 // Initialize Supabase client
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://hhgovvrnalibhgpakswi.supabase.co';
@@ -83,7 +84,7 @@ class AuthService {
       first_name: metadata.first_name || user.email?.split('@')[0] || 'Utilisateur',
       last_name: metadata.last_name || '',
       role: role,
-      org_id: 'org-1',
+      org_id: getOrganizationId(),
       updated_at: new Date().toISOString(),
     };
 

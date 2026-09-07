@@ -9,7 +9,21 @@ export const ORG_PRESETS: Record<OrgType, { primary: string; light: string; dark
   Custom: { primary: '#FF6B00', light: '#FF8533', dark: '#CC5500' },
 };
 
-export type Role = 'PASTEUR' | 'SECRETAIRE' | 'TREASURIER' | 'COMPTABLE' | 'TREASURIER_ADJOINT' | 'SECRETAIRE_ADJOINT';
+export type Role =
+  | 'PASTEUR_PRINCIPAL'
+  | 'PASTEUR_ASSOCIE'
+  | 'PASTEUR_JEUNESSE'
+  | 'ANCIEN'
+  | 'DIACRE'
+  | 'RESPONSABLE_DEPARTEMENT'
+  | 'SECRETAIRE'
+  | 'SECRETAIRE_ADJOINT'
+  | 'TREASURIER'
+  | 'TREASURIER_ADJOINT'
+  | 'COMPTABLE'
+  | 'RESPONSABLE_GROUPE'
+  | 'BENEVOLE'
+  | 'MEMBRE';
 
 export type TransactionStatus = 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED';
 export type TransactionType = 'INCOME' | 'EXPENSE';

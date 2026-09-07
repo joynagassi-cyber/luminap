@@ -51,3 +51,45 @@ streams:
   notifications:
     auto_subscribe: true
     query: SELECT * FROM notifications WHERE org_id = 'org-1'
+
+  # Canonical account model
+  accounts:
+    auto_subscribe: true
+    query: SELECT * FROM accounts WHERE org_id = 'org-1'
+
+  # Group membership (linked to groups/members, no org_id column)
+  group_memberships:
+    auto_subscribe: true
+    query: SELECT * FROM group_memberships
+
+  # Event budget (linked to events, no org_id column)
+  event_budgets:
+    auto_subscribe: true
+    query: SELECT * FROM event_budgets
+
+  budget_lines:
+    auto_subscribe: true
+    query: SELECT * FROM budget_lines
+
+  # Forms
+  form_definitions:
+    auto_subscribe: true
+    query: SELECT * FROM form_definitions WHERE org_id = 'org-1'
+
+  form_submissions:
+    auto_subscribe: true
+    query: SELECT * FROM form_submissions WHERE org_id = 'org-1'
+
+  # Custom fields
+  custom_field_definitions:
+    auto_subscribe: true
+    query: SELECT * FROM custom_field_definitions WHERE org_id = 'org-1'
+
+  custom_field_values:
+    auto_subscribe: true
+    query: SELECT * FROM custom_field_values
+
+  # Reports
+  report_definitions:
+    auto_subscribe: true
+    query: SELECT * FROM report_definitions WHERE org_id = 'org-1'

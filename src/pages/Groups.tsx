@@ -7,6 +7,7 @@ import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
 import { FullPageSkeleton } from '@/components/Skeleton';
 import { getRoleLabel } from '@/store/useLocalStore';
+import { canAccess } from '@/lib/rbac';
 
 const COLOR_PALETTE = ['#3B82F6', '#8B5CF6', '#EC4899', '#14B8A6', '#F59E0B', '#EF4444', '#22C55E', '#6366F1', '#F97316', '#06B6D4'];
 const GROUP_TYPES = ['groupe', 'commission', 'comité', 'diaconie', 'service'];
@@ -185,7 +186,7 @@ export default function Groups() {
                     <Edit3 className="w-4 h-4" style={{ color: '#3B82F6' }} />
                   </button>
                   <button
-                    onClick={() => setShowDelete(orgUnit.id)}
+                    onClick={() => canAccess(user.role, 'group', 'delete') && setShowDelete(orgUnit.id)}
                     className="p-2 rounded-full active:scale-95 transition-transform"
                     style={{ backgroundColor: '#E5133220' }}
                   >

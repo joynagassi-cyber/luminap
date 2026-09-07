@@ -2,6 +2,7 @@ import { getPowerSyncDatabase } from '@/lib/powersync';
 import { generateId } from './utils';
 import { auditLogRepo } from './audit';
 import type { ArchivableEntity } from '@/types';
+import { getOrganizationId } from './orgContext';
 
 export interface ArchivePolicy {
   canArchive(entityId: string): Promise<{ ok: boolean; reason?: string }>;
@@ -45,7 +46,7 @@ export class ArchiveRegistry {
       [now, actorId, reason, now, entityId]
     );
     await policy.onArchive?.(entityId);
-    await auditLogRepo.write({ orgId: 'org-1', transactionId: null, userId: actorId, actorRoleAtTime: null, action: 'ARCHIVE', entityType, entityId, beforeState: entity, afterState: archivedEntity, comment: reason });
+    await auditLogRepo.write({ orgId: getOrganizationId(), transactionId: null, userId: actorId, actorRoleAtTime: null, action: 'ARCHIVE', entityType, entityId, beforeState: entity, afterState: archivedEntity, comment: reason });
   }
 
   async restore(entityType: ArchivableEntity, entityId: string, reason: string, actorId: string): Promise<void> {
@@ -67,7 +68,7 @@ export class ArchiveRegistry {
       [now, entityId]
     );
     await policy.onRestore?.(entityId);
-    await auditLogRepo.write({ orgId: 'org-1', transactionId: null, userId: actorId, actorRoleAtTime: null, action: 'RESTORE', entityType, entityId, beforeState: entity, afterState: restoredEntity, comment: reason });
+    await auditLogRepo.write({ orgId: getOrganizationId(), transactionId: null, userId: actorId, actorRoleAtTime: null, action: 'RESTORE', entityType, entityId, beforeState: entity, afterState: restoredEntity, comment: reason });
   }
 
   async listArchived(filters?: { entityType?: ArchivableEntity; period?: { start: string; end: string }; actorId?: string }): Promise<any[]> {

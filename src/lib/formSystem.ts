@@ -2,6 +2,7 @@
 import { generateId } from './utils';
 import { writeAudit } from './audit';
 import type { FormDefinition, FormSubmission } from '@/types';
+import { getOrganizationId } from './orgContext';
 // StoreName removed - using PowerSync
 
 /**
@@ -14,7 +15,7 @@ export const formDefinitionRepo = {
     const entry: FormDefinition = { ...def, id, createdAt: now, updatedAt: now };
     await db.put('form_definitions' as StoreName, entry);
     await writeAudit({
-      orgId: 'org-1',
+      orgId: getOrganizationId(),
       transactionId: null,
       userId: 'local-user',
       actorRoleAtTime: null,
@@ -76,7 +77,7 @@ export const formSubmissionRepo = {
     const entry: FormSubmission = { ...sub, id, submittedAt: now, createdAt: now };
     await db.put('form_submissions' as StoreName, entry);
     await writeAudit({
-      orgId: 'org-1',
+      orgId: getOrganizationId(),
       transactionId: null,
       userId: sub.submittedBy,
       actorRoleAtTime: null,

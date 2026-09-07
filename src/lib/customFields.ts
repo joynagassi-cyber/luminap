@@ -2,6 +2,7 @@
 import { generateId } from './utils';
 import { writeAudit } from './audit';
 import type { CustomFieldDefinition, CustomFieldValue } from '@/types';
+import { getOrganizationId } from './orgContext';
 // StoreName removed - using PowerSync
 
 export const customFieldRepo = {
@@ -11,7 +12,7 @@ export const customFieldRepo = {
     const entry = { ...def, id, createdAt: now, updatedAt: now } as CustomFieldDefinition;
     await db.put('custom_field_definitions' as StoreName, entry);
     await writeAudit({
-      orgId: 'org-1',
+      orgId: getOrganizationId(),
       transactionId: null,
       userId: 'local-user',
       actorRoleAtTime: null,

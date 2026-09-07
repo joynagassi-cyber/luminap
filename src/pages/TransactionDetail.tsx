@@ -6,6 +6,7 @@ import { formatCurrencyCompact, formatDate, getStatusLabel, getStatusColor } fro
 import { ArrowLeft, Check, X, Edit2, Trash2, AlertCircle, RotateCcw } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
+import { canAccess } from '@/lib/rbac';
 
 export default function TransactionDetail() {
   const { id } = useParams<{ id: string }>();
@@ -156,20 +157,24 @@ export default function TransactionDetail() {
         <div className="space-y-2 mb-6">
           {tx.status === 'PENDING' && (
             <>
-              <button
-                onClick={handleApprove}
-                className="w-full py-4 rounded-full font-semibold text-white text-sm transition-all active:scale-95"
-                style={{ backgroundColor: '#1DB954' }}
-              >
-                Approuver
-              </button>
-              <button
-                onClick={() => setShowRejectModal(true)}
-                className="w-full py-4 rounded-full font-semibold text-sm transition-all active:scale-95"
-                style={{ backgroundColor: '#212121', color: '#E51332', border: '1px solid #E5133230' }}
-              >
-                Rejeter
-              </button>
+              {canAccess(user.role, 'transaction', 'approve') && (
+                <button
+                  onClick={handleApprove}
+                  className="w-full py-4 rounded-full font-semibold text-white text-sm transition-all active:scale-95"
+                  style={{ backgroundColor: '#1DB954' }}
+                >
+                  Approuver
+                </button>
+              )}
+              {canAccess(user.role, 'transaction', 'reject') && (
+                <button
+                  onClick={() => setShowRejectModal(true)}
+                  className="w-full py-4 rounded-full font-semibold text-sm transition-all active:scale-95"
+                  style={{ backgroundColor: '#212121', color: '#E51332', border: '1px solid #E5133230' }}
+                >
+                  Rejeter
+                </button>
+              )}
             </>
           )}
           {tx.status === 'APPROVED' && (
@@ -190,7 +195,7 @@ export default function TransactionDetail() {
               Modifier
             </button>
           )}
-          {(tx.status === 'DRAFT' || tx.status === 'PENDING') && (
+          {(tx.status === 'DRAFT' || tx.status === 'PENDING') && canAccess(user.role, 'transaction', 'delete') && (
             <button
               onClick={handleDelete}
               className="w-full py-4 rounded-full font-semibold text-sm transition-all active:scale-95"
