@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useLocalStore } from '@/store/useLocalStore';
 import { useCategories, useCaisses } from '@/lib/dataLayer';
 import { ArrowLeft, Plus, X, Tag } from 'lucide-react';
@@ -22,7 +22,8 @@ const DEFAULT_BUDGET_ITEMS = [
 
 export default function EventNew() {
   const navigate = useNavigate();
-  const { addEvent, caisses: idbCaisses, accounts } = useLocalStore();
+  const location = useLocation();
+  const { addEvent, members, createCulte, caisses: idbCaisses, accounts } = useLocalStore();
 
   // PowerSync with fallback
   const { data: psCategories } = useCategories();
@@ -36,6 +37,8 @@ export default function EventNew() {
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [endDate, setEndDate] = useState('');
   const [status, setStatus] = useState<'PLANIFIED' | 'ONGOING'>('PLANIFIED');
+  const [eventType, setEventType] = useState<'EVENT' | 'CULTE'>(location.state?.defaultType === 'CULTE' ? 'CULTE' : 'EVENT');
+  const [montantCotisation, setMontantCotisation] = useState('50');
   const [budgetItems, setBudgetItems] = useState<BudgetItem[]>([]);
   const [showBudget, setShowBudget] = useState(false);
   const [newBudgetLabel, setNewBudgetLabel] = useState('');
@@ -79,6 +82,18 @@ export default function EventNew() {
   const handleSubmit = async () => {
     if (!name.trim()) { setError('Le nom est requis'); return; }
     setError('');
+
+    if (eventType === 'CULTE') {
+      const montantCotisationCents = Math.round(parseFloat(montantCotisation || '50') * 100);
+      await createCulte({
+        name: name.trim(),
+        startDate,
+        montantCotisationCents,
+      });
+      navigate('/cotisations');
+      return;
+    }
+
     await addEvent({
       orgId: 'org-1',
       name: name.trim(),
@@ -103,6 +118,47 @@ export default function EventNew() {
         {error && (
           <div className="mb-4 p-3 rounded-xl text-sm text-center" style={{ backgroundColor: '#E5133220', color: '#E51332' }}>
             {error}
+          </div>
+        )}
+
+        {/* Type selector */}
+        <div className="flex gap-2 mb-5">
+          <button
+            onClick={() => setEventType('EVENT')}
+            className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${eventType === 'EVENT' ? 'text-white' : 'text-text-tertiary'}`}
+            style={eventType === 'EVENT' ? { backgroundColor: '#FF6B00' } : { backgroundColor: '#212121' }}
+          >
+            Événement
+          </button>
+          <button
+            onClick={() => setEventType('CULTE')}
+            className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${eventType === 'CULTE' ? 'text-white' : 'text-text-tertiary'}`}
+            style={eventType === 'CULTE' ? { backgroundColor: '#FF6B00' } : { backgroundColor: '#212121' }}
+          >
+            Culte dominical
+          </button>
+        </div>
+
+        {/* Cotisation settings (only for cultes) */}
+        {eventType === 'CULTE' && (
+          <div className="rounded-xl p-4 mb-5" style={{ backgroundColor: '#212121' }}>
+            <p className="text-text-tertiary text-xs font-medium mb-3 uppercase tracking-wider">Paramètres de cotisation</p>
+            <div className="flex items-center gap-3">
+              <div className="flex-1">
+                <label className="text-text-tertiary text-xs mb-1.5 block">Montant obligatoire (FCFA)</label>
+                <input
+                  type="number"
+                  value={montantCotisation}
+                  onChange={(e) => setMontantCotisation(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl text-text-primary text-sm outline-none"
+                  style={{ backgroundColor: '#181818', border: '1px solid #282828' }}
+                  min="0"
+                />
+              </div>
+            </div>
+            <p className="text-text-tertiary text-xs mt-2">
+              {members.filter(m => m.status === 'ACTIVE').length} membre{members.filter(m => m.status === 'ACTIVE').length !== 1 ? 's' : ''} actif{members.filter(m => m.status === 'ACTIVE').length !== 1 ? 's' : ''} — des cotisations seront créées automatiquement
+            </p>
           </div>
         )}
 

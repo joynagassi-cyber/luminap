@@ -38,6 +38,11 @@ import FormBuilder from "./pages/FormBuilder";
 import FormFill from "./pages/FormFill";
 import CustomFields from "./pages/CustomFields";
 import ReportBuilder from "./pages/ReportBuilder";
+import Cotisations from "./pages/Cotisations";
+import SaisieRapide from "./pages/SaisieRapide";
+import CulteDetail from "./pages/CulteDetail";
+import MembresEnAvance from "./pages/MembresEnAvance";
+import MembreDetail from "./pages/MembreDetail";
 
 const queryClient = new QueryClient();
 
@@ -81,6 +86,11 @@ function AppRoutes() {
         <Route path="/form/fill/:id" element={<FormFill />} />
         <Route path="/custom-fields" element={<CustomFields />} />
         <Route path="/report-builder" element={<ReportBuilder />} />
+        <Route path="/cotisations" element={<Cotisations />} />
+        <Route path="/saisie-rapide/:id" element={<SaisieRapide />} />
+        <Route path="/culte/:id" element={<CulteDetail />} />
+        <Route path="/membres-en-avance" element={<MembresEnAvance />} />
+        <Route path="/membre/:id" element={<MembreDetail />} />
         <Route path="/trace" element={<Trace />} />
         <Route path="/history" element={<History />} />
         <Route path="/help" element={<Help />} />

@@ -79,6 +79,7 @@ export interface PSEvent {
   start_date: string;
   end_date: string;
   status: string;
+  type: string;
   budget: number;
   created_at: string;
   updated_at: string;
@@ -706,45 +707,6 @@ export async function addMemberPS(
   );
 
   return id;
-}
-
-/**
- * Update a member via PowerSync
- */
-export async function updateMemberPS(
-  id: string,
-  updates: Partial<PSMember>
-): Promise<void> {
-  const setClauses: string[] = [];
-  const params: any[] = [];
-
-  const fieldMap: [keyof PSMember, string][] = [
-    ['first_name', 'first_name'],
-    ['last_name', 'last_name'],
-    ['phone', 'phone'],
-    ['email', 'email'],
-    ['status', 'status'],
-    ['joined_at', 'joined_at'],
-    ['archived_at', 'archived_at'],
-    ['archived_by', 'archived_by'],
-    ['archive_reason', 'archive_reason'],
-  ];
-
-  for (const [key, col] of fieldMap) {
-    if (updates[key] !== undefined) {
-      setClauses.push(`${col} = ?`);
-      params.push(updates[key]);
-    }
-  }
-
-  setClauses.push('updated_at = ?');
-  params.push(new Date().toISOString());
-  params.push(id);
-
-  await executeWrite(
-    `UPDATE members SET ${setClauses.join(', ')} WHERE id = ?`,
-    params
-  );
 }
 
 /**

@@ -7,8 +7,10 @@
 
 import { create } from 'zustand';
 import { checkPermission } from '@/lib/rbac';
-import type { User, Role, Transaction, Category, OrgUnit, Caisse, Event, BudgetItem, ShoppingItem, AppConfig, NotificationItem, Member, Group, Account, GroupMembership, Versement, EventBudget, BudgetLine } from '@/types';
+import type { User, Role, Transaction, Category, OrgUnit, Caisse, Event, BudgetItem, ShoppingItem, AppConfig, NotificationItem, Member, Group, Account, GroupMembership, Versement, EventBudget, BudgetLine, Cotisation, CotisationStatut } from '@/types';
 import { generateId } from '@/lib/utils';
+import { formatDate, formatCentsToFCFA } from '@/lib/utils';
+import { determinerStatutAvance, calculerDon, isPaiementVerrouille } from '@/lib/cotisation-logic';
 import {
   addTransactionPS,
   updateTransactionPS,
@@ -18,6 +20,9 @@ import {
   deleteEventPS,
   addMemberPS,
   updateMemberPS,
+  addCotisationPS,
+  updateCotisationPS,
+  executeWrite,
 } from '@/lib/dataLayer';
 import { getPowerSyncDatabase } from '@/lib/powersync';
 
@@ -37,6 +42,14 @@ interface LocalStoreState {
   memberships: GroupMembership[];
   eventBudgets: EventBudget[];
   budgetLines: BudgetLine[];
+  cotisations: Cotisation[];
+  createCulte: (data: { name: string; startDate: string; montantCotisationCents?: number }) => Promise<void>;
+  markCotisationPaid: (cotisationId: string, montantPayeCents: number, datePaiement: string) => Promise<void>;
+  markCotisationsAbsent: (culteId: string, membreIds: string[]) => Promise<void>;
+  updateCotisation: (id: string, data: Partial<Cotisation>) => Promise<void>;
+  getCotisationsForCulte: (culteId: string) => Cotisation[];
+  getMembreHistorique: (membreId: string) => { cotisation: Cotisation; culte: Event | undefined }[];
+  getMembresEnAvance: () => { membre: Member; montant: number }[];
   isLoading: boolean;
   isOnline: boolean;
   selectRole: (role: Role) => Promise<void>;
@@ -146,6 +159,7 @@ export const useLocalStore = create<LocalStoreState>()(
     memberships: [],
     eventBudgets: [],
     budgetLines: [],
+    cotisations: [],
     appConfig: { churchName: '', churchLogoUrl: '', userPhoto: '' },
     isLoading: false,
     isOnline: navigator.onLine,
@@ -731,6 +745,185 @@ export const useLocalStore = create<LocalStoreState>()(
     getEventBudget: (eventId) => get().eventBudgets.find(eb => eb.eventId === eventId),
     getBudgetLines: (eventBudgetId) => get().budgetLines.filter(bl => bl.eventBudgetId === eventBudgetId),
 
+    // === COTISATIONS ===
+    createCulte: async (data) => {
+      const now = new Date().toISOString();
+      const id = generateId();
+
+      // Create the culte as an Event with type='CULTE'
+      const culte: Event = {
+        id,
+        orgId: 'org-1',
+        name: data.name,
+        description: '',
+        startDate: data.startDate,
+        endDate: null,
+        status: 'PLANIFIED',
+        type: 'CULTE' as const,
+        budget: 0,
+        budgetItems: [],
+        shoppingItems: [],
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      // Create cotisations for ALL active members
+      const members = get().members.filter(m => m.status === 'ACTIVE');
+      const montantObligatoireCents = data.montantCotisationCents ?? 5000;
+
+      const newCotisations: Cotisation[] = members.map(m => ({
+        id: generateId(),
+        culteId: id,
+        membreId: m.id,
+        statut: 'NON_PAYE' as CotisationStatut,
+        montantObligatoire: montantObligatoireCents,
+        montantPaye: 0,
+        datePaiement: null,
+        notes: null,
+        createdAt: now,
+        updatedAt: now,
+      }));
+
+      const updatedCotisations = [...get().cotisations, ...newCotisations];
+      set({
+        events: [...get().events, culte],
+        cotisations: updatedCotisations,
+      });
+
+      // Write to PowerSync
+      await executeWrite(
+        'INSERT INTO events (id, org_id, name, description, start_date, end_date, status, type, budget, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [id, 'org-1', data.name, '', data.startDate, null, 'PLANIFIED', 'CULTE', 0, now, now]
+      );
+
+      for (const cot of newCotisations) {
+        await executeWrite(
+          'INSERT INTO cotisations (id, culte_id, membre_id, statut, montantObligatoire, montantPaye, datePaiement, notes, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          [cot.id, cot.culteId, cot.membreId, cot.statut, cot.montantObligatoire, cot.montantPaye, cot.datePaiement, cot.notes, cot.createdAt, cot.updatedAt]
+        );
+      }
+    },
+
+    markCotisationPaid: async (cotisationId, montantPayeCents, datePaiement) => {
+      const now = new Date().toISOString();
+      const cot = get().cotisations.find(c => c.id === cotisationId);
+      if (!cot) return;
+
+      const culte = get().events.find(e => e.id === cot.culteId);
+      const membre = get().members.find(m => m.id === cot.membreId);
+      if (!culte || !membre) return;
+
+      // === VALIDATIONS ===
+      if (isPaiementVerrouille({ dateCulte: culte.startDate, cotisationEstPaye: cot.statut === 'PAYE' || cot.statut === 'EN_AVANCE' })) {
+        throw new Error('PAIEMENT_VERROUILLE');
+      }
+      if (montantPayeCents < cot.montantObligatoire) {
+        throw new Error('MONTANT_INSUFFISANT');
+      }
+
+      const statut = determinerStatutAvance({ datePaiement, dateCulte: culte.startDate });
+      const donCents = calculerDon(montantPayeCents, cot.montantObligatoire);
+      const aAvance = (membre.montantEnAvance || 0) >= montantPayeCents;
+
+      let updatedCot: Cotisation;
+      let updatedMembre: Member | null = null;
+
+      if (aAvance) {
+        updatedCot = { ...cot, statut, montantPaye: montantPayeCents, datePaiement, updatedAt: now };
+        updatedMembre = { ...membre, montantEnAvance: membre.montantEnAvance - montantPayeCents, updatedAt: now };
+      } else {
+        updatedCot = { ...cot, statut, montantPaye: montantPayeCents, datePaiement, updatedAt: now };
+        const sessionId = localStorage.getItem('lumina-session') || 'local-user';
+        const tx = {
+          id: generateId(),
+          orgId: 'org-1',
+          type: 'INCOME' as const,
+          amount: montantPayeCents,
+          description: `Cotisation ${membre.firstName} ${membre.lastName} -- Culte du ${formatDate(culte.startDate)}`,
+          date: datePaiement.split('T')[0],
+          status: 'APPROVED' as const,
+          categoryId: 'cat-dime',
+          orgUnitId: null,
+          eventId: cot.culteId,
+          source: 'COTISATION' as const,
+          personName: `${membre.firstName} ${membre.lastName}`,
+          compensatesFor: null,
+          comment: donCents > 0 ? `Cotisation + don ${formatCentsToFCFA(donCents)} FCFA` : 'Cotisation',
+          version: 1,
+          sourceCaisseId: 'main',
+          versementId: null,
+          reversalOfId: null,
+          cotisationId,
+          createdAt: now,
+          updatedAt: now,
+          createdById: sessionId,
+          approvedById: sessionId,
+          approvedAt: now,
+        };
+        set({ transactions: [...get().transactions, tx] });
+        await executeWrite(
+          'INSERT INTO transactions (id, org_id, type, amount, description, date, status, category_id, org_unit_id, event_id, source, person_name, comment, version, source_caisse_id, versement_id, reversal_of_id, cotisation_id, created_by_id, approved_by_id, created_at, updated_at, approved_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          [tx.id, tx.orgId, tx.type, tx.amount, tx.description, tx.date, tx.status, tx.categoryId, tx.orgUnitId, tx.eventId, tx.source, tx.personName, tx.comment, tx.version, tx.sourceCaisseId, tx.versementId, tx.reversalOfId, tx.cotisationId, tx.createdById, tx.approvedById, tx.createdAt, tx.updatedAt, tx.approvedAt]
+        );
+      }
+
+      // Update cotisation
+      set({ cotisations: get().cotisations.map(c => c.id === cotisationId ? updatedCot : c) });
+      await updateCotisationPS(cotisationId, { statut: updatedCot.statut, montantPaye: updatedCot.montantPaye, datePaiement: updatedCot.datePaiement, updatedAt: now });
+
+      // Update member
+      if (updatedMembre) {
+        set({ members: get().members.map(m => m.id === membre.id ? updatedMembre! : m) });
+        await updateMemberPS(membre.id, { montant_en_avance: updatedMembre.montantEnAvance, updated_at: now });
+      } else if (donCents > 0) {
+        const newTotalDons = (membre.totalDons || 0) + donCents;
+        set({ members: get().members.map(m => m.id === membre.id ? { ...m, totalDons: newTotalDons, updatedAt: now } : m) });
+        await updateMemberPS(membre.id, { total_dons: newTotalDons, updated_at: now });
+      }
+    },
+
+    markCotisationsAbsent: async (culteId, membreIds) => {
+      const now = new Date().toISOString();
+      const updated = get().cotisations.map(c =>
+        c.culteId === culteId && membreIds.includes(c.membreId)
+          ? { ...c, statut: 'ABSENT' as CotisationStatut, updatedAt: now }
+          : c
+      );
+      set({ cotisations: updated });
+      for (const cot of updated.filter(c => c.culteId === culteId && membreIds.includes(c.membreId))) {
+        await updateCotisationPS(cot.id, { statut: 'ABSENT', updatedAt: now });
+      }
+    },
+
+    updateCotisation: async (id, data) => {
+      const now = new Date().toISOString();
+      const updated = get().cotisations.map(c => c.id === id ? { ...c, ...data, updatedAt: now } : c);
+      set({ cotisations: updated });
+      await updateCotisationPS(id, data);
+    },
+
+    getCotisationsForCulte: (culteId) => {
+      return get().cotisations.filter(c => c.culteId === culteId);
+    },
+
+    getMembreHistorique: (membreId) => {
+      const cotisations = get().cotisations.filter(c => c.membreId === membreId);
+      return cotisations
+        .map(cot => {
+          const culte = get().events.find(e => e.id === cot.culteId);
+          return { cotisation: cot, culte };
+        })
+        .filter(({ culte }) => culte !== undefined)
+        .sort((a, b) => new Date(b.culte!.startDate).getTime() - new Date(a.culte!.startDate).getTime());
+    },
+
+    getMembresEnAvance: () => {
+      return get().members
+        .filter(m => m.montantEnAvance > 0 && m.status === 'ACTIVE')
+        .map(m => ({ membre: m, montant: m.montantEnAvance }))
+        .sort((a, b) => b.montant - a.montant);
+    },
+
     createMember: async (data) => {
       const now = new Date().toISOString();
       const id = generateId();
@@ -804,6 +997,11 @@ export const useLocalStore = create<LocalStoreState>()(
         const storedConfig = localStorage.getItem('lumina-config');
         const storedRole = localStorage.getItem('lumina-role') as Role;
         const sessionId = localStorage.getItem('lumina-session');
+
+        // Load cotisations from PowerSync
+        const db = getPowerSyncDatabase();
+        const cotisations = await db.getAll<Cotisation>('cotisations').catch(() => [] as Cotisation[]);
+        set({ cotisations });
 
         set({
           appConfig: storedConfig ? JSON.parse(storedConfig) : { churchName: '', churchLogoUrl: '', userPhoto: '' },

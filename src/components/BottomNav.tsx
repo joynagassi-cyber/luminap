@@ -6,7 +6,7 @@ const NAV_ITEMS = [
   { icon: Home, label: 'Accueil', path: '/' },
   { icon: Landmark, label: 'Finances', path: '/finance' },
   { icon: Users, label: 'Groupes', path: '/groups' },
-  { icon: CalendarPlus, label: 'Événements', path: '/events' },
+  { icon: CalendarPlus, label: 'Cultes', path: '/cotisations' },
 ];
 
 const MORE_ACTIONS = [
@@ -14,6 +14,7 @@ const MORE_ACTIONS = [
   { icon: BarChart3, label: 'Rapports', path: '/reports' },
   { icon: LineChart, label: 'Bilan', path: '/balance' },
   { icon: ClipboardList, label: 'Membres', path: '/members' },
+  { icon: CalendarPlus, label: 'Membres en avance', path: '/membres-en-avance' },
   { icon: History, label: 'Historique', path: '/history' },
   { icon: Archive, label: 'Archives', path: '/archives' },
   { icon: ListChecks, label: 'Trace', path: '/trace' },
