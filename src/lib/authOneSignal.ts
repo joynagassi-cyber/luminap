@@ -102,19 +102,23 @@ class OneSignalAuthService {
     if (data?.['actionId']) {
       // Navigate to specific screen based on action ID
       const actionId = data['actionId'] as string;
-      this.navigateToAction(actionId);
+      this.navigateToAction(actionId, data);
     }
   };
 
   // Navigate to action based on notification data
-  private navigateToAction(actionId: string): void {
+  private navigateToAction(actionId: string, data?: any): void {
     // Use window.location for navigation (will work in both web and Capacitor)
     switch (actionId) {
       case 'transaction_pending':
-        window.location.href = '/transactions?filter=pending';
+        window.location.href = '/finance?filter=pending';
         break;
       case 'transaction_approved':
-        window.location.href = '/transaction/' + (data?.['transaction_id'] as string);
+        if (data?.['transaction_id']) {
+          window.location.href = '/transaction/' + data['transaction_id'];
+        } else {
+          window.location.href = '/finance';
+        }
         break;
       case 'cotisation_paid':
         window.location.href = '/cotisations';
@@ -129,6 +133,7 @@ class OneSignalAuthService {
     // This would call the backend Edge Function to send push notification
     // For now, we just log it
     console.log(`[OneSignal] Would send notification to role ${role}: ${title}`);
+    console.log(`[OneSignal] Data:`, data);
   }
 }
 
