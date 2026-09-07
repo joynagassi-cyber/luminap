@@ -2,17 +2,26 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Intégrer l'intégralité du système de cotisations de Kased dans Lumina : gestion des cultes dominicaux, paiement rapide en file d'attente, montants personnalisés, détection auto « en avance », suivi des dons, page membres en avance, historique de paiement par membre, création/suppression de membres, et export.
+**Goal:** Intégrer l'intégralité du système de cotisations de Kased dans Lumina, en exploitant l'infrastructure PowerSync déjà mise en place.
 
-**Architecture:**
-- Un **Culte** est un `Event` avec `type: 'CULTE'` — réutilise toute l'infrastructure Events de Lumina.
-- Les **Cotisations** sont une nouvelle entité (`cotisations` table + store IndexedDB) qui lie `membre × culte` avec statut et montants.
+**Architecture actuelle (MIGRÉE VERS POWERSYNC):**
+- ✅ PowerSync Cloud + Supabase configuré
+- ✅ Schema PowerSync défini (20 tables syncées)
+- ✅ Backend Connector Supabase implémenté
+- ✅ Data Layer avec hooks React (`useQuery`, etc.)
+- ✅ Provider PowerSync configuré
+- ⚠️ **Reste à faire:** Ajouter les tables cotisations + enrichir membres/transactions
+
+**Architecture cible:**
+- Un **Culte** est un `Event` avec `type: 'CULTE'` — réutilise toute l'infrastructure Events.
+- Les **Cotisations** sont une nouvelle table PowerSync (`cotisations`) qui lie `membre × culte`.
 - Chaque paiement génère une **Transaction INCOME** vers la caisse principale avec `source: 'COTISATION'`.
 - Le don (excédent) est automatiquement ajouté au `totalDons` du membre.
-- Le paiement en avance (datePaiement < dateCulte) marque automatiquement `EN_AVANCE` et décale le montant dans `montantEnAvance` du membre.
-- La **saisie rapide** est une file d'attente (queue) de membres non-payés, style « swipe » : on clique « Payé » et ça passe au suivant automatiquement.
+- Le paiement en avance (datePaiement < dateCulte) marque automatiquement `EN_AVANCE`.
 
-**Tech Stack:** React 19 + TypeScript, Zustand, IndexedDB, Supabase, shadcn/ui, Recharts, jsPDF/xlsx.
+**Tech Stack:** React 19 + TypeScript, Zustand, PowerSync (SQLite local + Supabase cloud), shadcn/ui, Recharts, jsPDF/xlsx.
+
+**Note importante:** L'application utilise désormais PowerSync comme couche de synchronisation. Les opérations d'écriture doivent utiliser `executeWrite()` depuis `dataLayer.ts` au lieu de `db.put()` d'IndexedDB.
 
 ---
 
@@ -141,24 +150,24 @@ CREATE INDEX IF NOT EXISTS idx_transactions_cotisation ON public.transactions(co
 src/
 ├── lib/
 │   ├── cotisation-logic.ts       ← [CREATE] Logique pure (100% copié de kased)
+│   ├── dataLayer.ts              ← [MODIFIER] Ajouter hooks cotisations + writes
 │   └── utils.ts                  ← [MODIFIER] formatCotisationStatut()
 │
+├── lib/powersync/
+│   └── schema.ts                 ← [MODIFIER] Ajouter table cotisations
+│
 ├── types/
-│   └── index.ts                  ← [MODIFIER] Cotisation, CotisationStatut, FundSource.COTISATION
+│   └── index.ts                  ← [MODIFIER] Cotisation, CotisationStatut
 │
 ├── store/
 │   └── useLocalStore.ts          ← [MODIFIER] Méthodes cotisations + createCulte
 │
-├── lib/
-│   └── db.ts                     ← [MODIFIER] StoreName + schéma IndexedDB
-│
 ├── pages/
 │   ├── Cotisations.tsx           ← [CREATE] Liste des cultes avec stats
-│   ├── SaisieRapide.tsx          ← [CREATE] File d'attente paiement rapide (cœur de kased)
+│   ├── SaisieRapide.tsx          ← [CREATE] File d'attente paiement rapide
 │   ├── CulteDetail.tsx           ← [CREATE] Détail culte + liste cotisations
 │   ├── MembresEnAvance.tsx       ← [CREATE] Membres avec montantEnAvance > 0
 │   ├── MembreDetail.tsx          ← [CREATE] Détail membre + historique paiement
-│   ├── Retards.tsx               ← [DELETE/NE PAS CRÉER] Supprimé selon demande
 │   └── EventNew.tsx              ← [MODIFIER] Ajouter type "Culte"
 │
 ├── supabase/migrations/
@@ -166,6 +175,41 @@ src/
 │   ├── 0036_create_cotisations_table.sql
 │   ├── 0037_enrich_members_table.sql
 │   └── 0038_enrich_transactions_table.sql
+│
+└── powersync/
+    └── sync-config.yaml          ← [MODIFIER] Ajouter stream cotisations
+```
+
+---
+
+## 3.1 Architecture PowerSync — Points Clés
+
+### Ce qui existe déjà:
+- ✅ Provider PowerSync (`src/components/PowerSyncProvider.tsx`)
+- ✅ Connector Supabase (`src/lib/powersync/SupabaseConnector.ts`)
+- ✅ Schema avec 20 tables (`src/lib/powersync/schema.ts`)
+- ✅ Hooks de lecture (`src/lib/dataLayer.ts`)
+- ✅ Config sync (`powersync/sync-config.yaml`, `powersync/service.yaml`)
+
+### Ce qui doit être ajouté:
+1. **Nouvelle table** `cotisations` dans le schema PowerSync
+2. **Nouvelles colonnes** sur `members` (`total_dons`, `montant_en_avance`)
+3. **Nouvelle colonne** sur `events` (`type`)
+4. **Nouvelle colonne** sur `transactions` (`cotisation_id`)
+5. **Nouveau stream** dans `sync-config.yaml`
+6. **Nouveaux hooks** dans `dataLayer.ts`
+7. **Nouvelles méthodes** dans le store Zustand
+
+### Règle critique PowerSync:
+```typescript
+// Les writes doivent passer par executeWrite() de dataLayer.ts
+// NE PAS utiliser db.put() d'IndexedDB pour les nouvelles tables PowerSync
+import { executeWrite } from '@/lib/dataLayer';
+
+await executeWrite(
+  'INSERT INTO cotisations (id, culte_id, membre_id, statut, montantObligatoire, montantPaye, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+  [id, culteId, membreId, 'NON_PAYE', 5000, 0, now, now]
+);
 ```
 
 ---
@@ -365,16 +409,18 @@ CREATE INDEX IF NOT EXISTS idx_transactions_cotisation ON public.transactions(co
 
 ---
 
-# Tâche 3 : Store Zustand — Opérations Cotisations
+# Tâche 3: Store Zustand — Opérations Cotisations (ADAPTÉ POWERSYNC)
 
 ## Fichier: `src/store/useLocalStore.ts`
 
-### 3a. Ajouter aux imports
+### Modifications à appliquer
+
+**1. Ajouter les imports nécessaires:**
 ```typescript
-import type { ..., Cotisation, CotisationStatut } from '@/types';
+import { executeWrite, addMemberPS, addEventPS } from '@/lib/dataLayer';
 ```
 
-### 3b. Ajouter au state interface (après `budgetLines`)
+**2. Ajouter au state interface (après `budgetLines`):**
 ```typescript
   cotisations: Cotisation[];
   createCulte: (data: {
@@ -390,12 +436,12 @@ import type { ..., Cotisation, CotisationStatut } from '@/types';
   getMembresEnAvance: () => { membre: Member; montant: number }[];
 ```
 
-### 3c. Ajouter au state initial (après `budgetLines: []`)
+**3. Ajouter au state initial (après `budgetLines: []`):**
 ```typescript
   cotisations: [],
 ```
 
-### 3d. Implémenter les méthodes
+**4. Implémenter les méthodes (extrait du code complet dans la section suivante)**
 
 ```typescript
       // === COTISATIONS ===
