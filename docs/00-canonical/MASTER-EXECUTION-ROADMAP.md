@@ -48,13 +48,13 @@
 
 ---
 
-## PHASE 2 — FOUNDATION CAPABILITIES (20%)
+## PHASE 2 — FOUNDATION CAPABILITIES (35%)
 
 ### Current State
 - Identity: NOT CREATED
 - Organization: NOT CREATED
 - Permission: MERGED into Security (acceptable)
-- Notification: stub (OneSignal integration exists but not capability-wrapped)
+- ✅ **Notification**: OneSignal wrapper capability created (18 tests)
 - Forms: NOT CREATED
 - Reporting: NOT CREATED
 - Search: NOT CREATED
