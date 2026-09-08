@@ -4,6 +4,7 @@ import { useLocalStore } from '@/store/useLocalStore';
 import { useMembers } from '@/lib/dataLayer';
 import { resource } from '@/capabilities/resource';
 import { lifecycle } from '@/capabilities/lifecycle';
+import { workflow } from '@/capabilities/workflow';
 import { PlusCircle, Users, Search, Archive, RefreshCw, UserPlus, UserMinus } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
@@ -66,6 +67,11 @@ export default function MembersPage() {
   };
 
   const handleArchive = async (member: any) => {
+    const check = workflow.check('member', member.status, 'INACTIVE');
+    if (!check.allowed) {
+      console.warn(`Member status transition blocked: ${check.reason}`);
+      return;
+    }
     await lifecycle.archive('Member', member.id, 'Archivé via la gestion des membres', user.id);
     // Refresh archived list
     const { items } = await resource.listArchived<Member>('Member');
@@ -73,6 +79,11 @@ export default function MembersPage() {
   };
 
   const handleRestore = async (member: any) => {
+    const check = workflow.check('member', member.status, 'ACTIVE');
+    if (!check.allowed) {
+      console.warn(`Member status transition blocked: ${check.reason}`);
+      return;
+    }
     await lifecycle.restore('Member', member.id, 'Rétabli', user.id);
     // Refresh archived list
     const { items } = await resource.listArchived<Member>('Member');

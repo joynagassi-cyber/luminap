@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { transactionGuard, eventStatusGuard, WorkflowService, type GuardResult, type WorkflowGuard } from '../workflow';
+import { transactionGuard, eventStatusGuard, memberStatusGuard, WorkflowService, type GuardResult, type WorkflowGuard } from '../workflow';
 
 describe('workflow capability', () => {
   let service: WorkflowService;
@@ -150,6 +150,48 @@ describe('workflow capability', () => {
     });
   });
 
+  // ─── memberStatusGuard ──────────────────────────────────────────
+
+  describe('memberStatusGuard', () => {
+    it('allows ACTIVE → INACTIVE', () => {
+      const result = memberStatusGuard('ACTIVE', 'INACTIVE');
+      expect(result).toEqual({ allowed: true });
+    });
+
+    it('allows INACTIVE → ACTIVE', () => {
+      const result = memberStatusGuard('INACTIVE', 'ACTIVE');
+      expect(result).toEqual({ allowed: true });
+    });
+
+    it('allows same-status transition (no-op) for ACTIVE', () => {
+      const result = memberStatusGuard('ACTIVE', 'ACTIVE');
+      expect(result).toEqual({ allowed: true });
+    });
+
+    it('allows same-status transition (no-op) for INACTIVE', () => {
+      const result = memberStatusGuard('INACTIVE', 'INACTIVE');
+      expect(result).toEqual({ allowed: true });
+    });
+
+    it('blocks invalid current status', () => {
+      const result = memberStatusGuard('UNKNOWN', 'ACTIVE');
+      expect(result.allowed).toBe(false);
+      expect(result.reason).toBe('INVALID_MEMBER_STATUS');
+    });
+
+    it('blocks invalid target status', () => {
+      const result = memberStatusGuard('ACTIVE', 'ARCHIVED');
+      expect(result.allowed).toBe(false);
+      expect(result.reason).toBe('INVALID_MEMBER_STATUS');
+    });
+
+    it('blocks both invalid statuses', () => {
+      const result = memberStatusGuard('GHOST', 'PHANTOM');
+      expect(result.allowed).toBe(false);
+      expect(result.reason).toBe('INVALID_MEMBER_STATUS');
+    });
+  });
+
   // ─── WorkflowService.transition ────────────────────────────────
 
   describe('WorkflowService.transition', () => {
@@ -177,6 +219,21 @@ describe('workflow capability', () => {
 
     it('allows transition when no guard is registered', async () => {
       const result = await service.transition('unknown', makeTx('DRAFT'), 'ANY');
+      expect(result.success).toBe(true);
+    });
+
+    it('blocks invalid member status transition', async () => {
+      const makeMember = (status: string) => ({ id: 'm-1', status });
+      service.register('member', memberStatusGuard);
+      const result = await service.transition('member', makeMember('ACTIVE'), 'ARCHIVED');
+      expect(result.success).toBe(false);
+      expect(result.reason).toBe('INVALID_MEMBER_STATUS');
+    });
+
+    it('allows valid member status transition', async () => {
+      const makeMember = (status: string) => ({ id: 'm-1', status });
+      service.register('member', memberStatusGuard);
+      const result = await service.transition('member', makeMember('ACTIVE'), 'INACTIVE');
       expect(result.success).toBe(true);
     });
   });

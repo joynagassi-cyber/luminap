@@ -59,8 +59,24 @@ export const eventStatusGuard: WorkflowGuard = (
 };
 
 /**
- * Default guard for transactions (domain-agnostic core)
+ * Default guard for members — status transitions ACTIVE ↔ INACTIVE
  */
+export const memberStatusGuard: WorkflowGuard = (
+  currentStatus,
+  targetStatus
+): GuardResult => {
+  // Valid member statuses
+  const validStatuses = ['ACTIVE', 'INACTIVE'];
+  if (!validStatuses.includes(currentStatus) || !validStatuses.includes(targetStatus)) {
+    return { allowed: false, reason: 'INVALID_MEMBER_STATUS' };
+  }
+  // Already at target — no-op, allowed
+  if (currentStatus === targetStatus) {
+    return { allowed: true };
+  }
+  // ACTIVE and INACTIVE are mutually reversible
+  return { allowed: true };
+};
 export const transactionGuard: WorkflowGuard = (
   currentStatus,
   targetStatus
@@ -122,3 +138,4 @@ export const workflow = new WorkflowService();
 // Register default guards at module load
 workflow.register('transaction', transactionGuard);
 workflow.register('event', eventStatusGuard);
+workflow.register('member', memberStatusGuard);
