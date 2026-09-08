@@ -199,7 +199,6 @@ export default function CustomFields() {
 
       <BottomNav />
       </div>
-      </div>
       </IonContent>
     </IonPage>
   );

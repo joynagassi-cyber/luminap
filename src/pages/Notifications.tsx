@@ -7,6 +7,7 @@ import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar } from '@ionic/react';
 
 function getNotifIcon(actionType: string) {
   switch (actionType) {
@@ -37,9 +38,16 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-canvas">
-      <TopHeader title="Notifications" />
-      <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
+    <IonPage>
+      <IonHeader>
+        <IonToolbar>
+          <IonTitle>Notifications</IonTitle>
+        </IonToolbar>
+      </IonHeader>
+      <IonContent fullscreen>
+        <div className="min-h-screen bg-canvas">
+          <TopHeader title="Notifications" />
+          <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
         <div className="flex items-center justify-between mb-5">
           <h1 className="text-text-primary font-bold text-xl">Notifications</h1>
           {unread > 0 && (
@@ -99,6 +107,8 @@ export default function NotificationsPage() {
         )}
       </div>
       <BottomNav />
-    </div>
+        </div>
+      </IonContent>
+    </IonPage>
   );
 }
