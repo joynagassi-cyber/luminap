@@ -1,7 +1,7 @@
 import { Landmark, Home, Users, CalendarPlus, MoreVertical, Wallet, BarChart3, LineChart, ClipboardList, History, Settings, Plus, Check, ArrowRightLeft, FileText, Archive, HelpCircle, ListChecks } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { IonButton } from '@ionic/react';
+import { IonButton, IonTabBar, IonTabButton } from '@ionic/react';
 
 const NAV_ITEMS = [
   { icon: Home, label: 'Accueil', path: '/' },
@@ -20,7 +20,7 @@ const MORE_ACTIONS = [
   { icon: Archive, label: 'Archives', path: '/archives' },
   { icon: ListChecks, label: 'Trace', path: '/trace' },
   { icon: FileText, label: 'Formulaires', path: '/forms' },
-  { icon: Settings, label: 'Paramètres', path: '/settings' },
+  { icon: Settings, label: 'Parametres', path: '/settings' },
   { icon: HelpCircle, label: 'Aide', path: '/help' },
 ];
 
@@ -30,7 +30,6 @@ export default function BottomNav() {
   const [showMore, setShowMore] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
 
-  // FAB content based on current route
   const fabAction = useMemo(() => {
     const path = location.pathname;
     if (path.startsWith('/transaction/') && !path.endsWith('/edit')) {
@@ -55,6 +54,9 @@ export default function BottomNav() {
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
+  const isActive = (path: string) =>
+    location.pathname === path || (path !== '/' && location.pathname.startsWith(path));
+
   return (
     <>
       {/* FAB — Contextual action button */}
@@ -76,17 +78,33 @@ export default function BottomNav() {
         )}
       </IonButton>
 
-      <div className="fixed bottom-0 left-0 right-0 z-50 px-2 pb-2 pt-1" style={{ backgroundColor: 'rgba(18,18,18,0.97)', backdropFilter: 'blur(10px)', borderTop: '1px solid #282828' }}>
+      {/* Ionic TabBar — dark theme, replaces div-based nav */}
+      <IonTabBar
+        className="fixed bottom-0 left-0 right-0 z-50 px-2 pb-2 pt-1"
+        style={{
+          backgroundColor: 'rgba(18,18,18,0.97)',
+          backdropFilter: 'blur(10px)',
+          borderTop: '1px solid #282828',
+        }}
+      >
         <div className="flex items-center justify-around max-w-lg mx-auto">
-          {NAV_ITEMS.map(({ icon: Icon, label, path }) => {
-            const isActive = location.pathname === path || (path !== '/' && location.pathname.startsWith(path));
-            return (
-              <IonButton key={path} fill="clear" onClick={() => navigate(path)} className="!min-height:auto !p-0 flex flex-col items-center gap-0.5 px-3 py-2.5 rounded-xl transition-all min-w-0">
-                <Icon className="w-5 h-5" style={isActive ? { color: '#FF6B00' } : { color: '#B3B3B3', opacity: 0.7 }} />
-                <span className="text-xs font-medium" style={isActive ? { color: '#FF6B00' } : { color: '#B3B3B3' }}>{label}</span>
-              </IonButton>
-            );
-          })}
+          {NAV_ITEMS.map(({ icon: Icon, label, path }) => (
+            <IonTabButton
+              key={path}
+              tab={path}
+              onClick={() => navigate(path)}
+              className="!min-height:auto !p-0 flex flex-col items-center gap-0.5 px-3 py-2.5 rounded-xl transition-all min-w-0"
+            >
+              <Icon
+                className="w-5 h-5"
+                style={{ color: isActive(path) ? '#FF6B00' : '#B3B3B3', opacity: isActive(path) ? 1 : 0.7 }}
+              />
+              <span className="text-xs font-medium" style={{ color: isActive(path) ? '#FF6B00' : '#B3B3B3' }}>
+                {label}
+              </span>
+            </IonTabButton>
+          ))}
+
           {/* More button */}
           <div className="relative" ref={moreRef}>
             <IonButton
@@ -122,7 +140,7 @@ export default function BottomNav() {
             )}
           </div>
         </div>
-      </div>
+      </IonTabBar>
     </>
   );
 }
