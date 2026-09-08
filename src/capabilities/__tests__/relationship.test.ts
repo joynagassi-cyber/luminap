@@ -17,11 +17,10 @@ vi.mock('@/lib/dataLayer', () => ({
   getGroupMembershipsPS: vi.fn(async () => _memberships),
 }));
 
-let _currentOrgId = 'test-org-1';
+const mockGetOrgId = vi.fn(() => 'test-org-1');
 
 vi.mock('@/lib/orgContext', () => ({
-  getOrganizationId: () => _currentOrgId,
-  setOrganizationId: (id: string) => { _currentOrgId = id; },
+  getOrganizationId: () => mockGetOrgId(),
 }));
 
 describe('relationship capability', () => {
@@ -152,11 +151,11 @@ describe('relationship capability', () => {
       );
 
       // With org-1 context: should find the membership
-      _currentOrgId = 'org-1';
+      mockGetOrgId.mockReturnValue('org-1');
       expect(await relationship.isMember('group-1', 'member-a')).toBe(true);
 
       // With org-2 context: membership belongs to org-1, so returns false
-      _currentOrgId = 'org-2';
+      mockGetOrgId.mockReturnValue('org-2');
       expect(await relationship.isMember('group-1', 'member-a')).toBe(false);
     });
   });
