@@ -1,17 +1,17 @@
-import { Landmark, Home, Users, CalendarPlus, MoreVertical, Wallet, BarChart3, LineChart, ClipboardList, History, Settings, Plus, Check, ArrowRightLeft, FileText, Archive, HelpCircle, ListChecks } from 'lucide-react';
+import { Home, Wallet, Users, CalendarPlus, MoreVertical, Wallet as WalletIcon, BarChart3, LineChart, ClipboardList, History, Settings, Plus, Check, ArrowRightLeft, FileText, Archive, HelpCircle, ListChecks } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { IonButton, IonTabBar, IonTabButton } from '@ionic/react';
 
 const NAV_ITEMS = [
   { icon: Home, label: 'Accueil', path: '/' },
-  { icon: Landmark, label: 'Finances', path: '/finance' },
+  { icon: Wallet, label: 'Finances', path: '/finance' },
   { icon: Users, label: 'Groupes', path: '/groups' },
   { icon: CalendarPlus, label: 'Cultes', path: '/cotisations' },
 ];
 
 const MORE_ACTIONS = [
-  { icon: Wallet, label: 'Versement', path: '/versement' },
+  { icon: WalletIcon, label: 'Versement', path: '/versement' },
   { icon: BarChart3, label: 'Rapports', path: '/reports' },
   { icon: LineChart, label: 'Bilan', path: '/balance' },
   { icon: ClipboardList, label: 'Membres', path: '/members' },
@@ -20,7 +20,7 @@ const MORE_ACTIONS = [
   { icon: Archive, label: 'Archives', path: '/archives' },
   { icon: ListChecks, label: 'Trace', path: '/trace' },
   { icon: FileText, label: 'Formulaires', path: '/forms' },
-  { icon: Settings, label: 'Parametres', path: '/settings' },
+  { icon: Settings, label: 'Paramètres', path: '/settings' },
   { icon: HelpCircle, label: 'Aide', path: '/help' },
 ];
 
@@ -78,7 +78,7 @@ export default function BottomNav() {
         )}
       </IonButton>
 
-      {/* Ionic TabBar — dark theme, replaces div-based nav */}
+      {/* Ionic TabBar — dark theme */}
       <IonTabBar
         className="fixed bottom-0 left-0 right-0 z-50 px-2 pb-2 pt-1"
         style={{
@@ -91,14 +91,10 @@ export default function BottomNav() {
           {NAV_ITEMS.map(({ icon: Icon, label, path }) => (
             <IonTabButton
               key={path}
-              tab={path}
-              onClick={() => navigate(path)}
+              href={path}
               className="!min-height:auto !p-0 flex flex-col items-center gap-0.5 px-3 py-2.5 rounded-xl transition-all min-w-0"
             >
-              <Icon
-                className="w-5 h-5"
-                style={{ color: isActive(path) ? '#FF6B00' : '#B3B3B3', opacity: isActive(path) ? 1 : 0.7 }}
-              />
+              <Icon className="w-5 h-5" style={{ color: isActive(path) ? '#FF6B00' : '#B3B3B3', opacity: isActive(path) ? 1 : 0.7 }} />
               <span className="text-xs font-medium" style={{ color: isActive(path) ? '#FF6B00' : '#B3B3B3' }}>
                 {label}
               </span>
