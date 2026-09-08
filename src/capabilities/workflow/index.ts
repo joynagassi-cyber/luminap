@@ -9,7 +9,6 @@
  *   await workflow.transition('transaction', tx.id, 'APPROVED', userId)
  */
 
-import type { Transaction, TransactionStatus } from '@/types';
 
 /**
  * Guard result — standardised across all workflow implementations
@@ -23,8 +22,8 @@ export interface GuardResult {
  * Workflow guard — checks if a status transition is allowed
  */
 export type WorkflowGuard = (
-  currentStatus: TransactionStatus,
-  targetStatus: TransactionStatus,
+  currentStatus: string,
+  targetStatus: string,
   context?: Record<string, any>
 ) => GuardResult;
 
@@ -60,7 +59,7 @@ export class WorkflowService {
   /**
    * Check if a transition is allowed (dry-run)
    */
-  check(resource: string, currentStatus: TransactionStatus, targetStatus: TransactionStatus): GuardResult {
+  check(resource: string, currentStatus: string, targetStatus: string): GuardResult {
     const guard = this.guards.get(resource);
     if (!guard) return { allowed: true }; // no guard = allow
     return guard(currentStatus, targetStatus);
@@ -76,7 +75,7 @@ export class WorkflowService {
     targetStatus: string,
     context?: Record<string, any>
   ): Promise<{ success: boolean; reason?: string }> {
-    const currentStatus = entity.status as TransactionStatus;
+    const currentStatus = entity.status;
     const result = this.check(resource, currentStatus, targetStatus);
     if (!result.allowed) {
       return { success: false, reason: result.reason };
