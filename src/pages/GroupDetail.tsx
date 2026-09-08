@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useLocalStore } from '@/store/useLocalStore';
-import { useGroups, useAccounts, useTransactions, useMembers, useOrgUnits } from '@/lib/dataLayer';
+import { useGroups, useAccounts, useTransactions, useMembers, useOrgUnits, useGroupMemberships } from '@/lib/dataLayer';
 import { formatCurrencyCompact, formatDate } from '@/lib/utils';
 import { ArrowLeft, Wallet, TrendingUp, TrendingDown, Check, Edit3, Trash2, Users, Clock, ArrowUp, ArrowDown, RefreshCw, ArrowRightLeft, Plus, UserPlus, UserMinus, Archive } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
 import TransactionCard from '@/components/TransactionCard';
 import { FullPageSkeleton, ListSkeleton } from '@/components/Skeleton';
+import { relationship } from '@/capabilities/relationship';
 import type { Transaction, Account, Member, GroupMembership } from '@/types';
 
 type Tab = 'transactions' | 'membres' | 'historique' | 'parametres';
@@ -15,7 +16,7 @@ type Tab = 'transactions' | 'membres' | 'historique' | 'parametres';
 export default function GroupDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { orgUnits: idbOrgUnits, accounts: idbAccounts, transactions: idbTxs, members: idbMembers, memberships, createGroup, updateGroup, deleteGroup, archiveGroup, isLoading, createNotification, addMemberToGroup, removeMemberFromGroup } = useLocalStore();
+  const { orgUnits: idbOrgUnits, accounts: idbAccounts, transactions: idbTxs, members: idbMembers, createGroup, updateGroup, deleteGroup, archiveGroup, isLoading, createNotification } = useLocalStore();
 
   // PowerSync with fallback
   const { data: psGroups } = useGroups();
@@ -23,6 +24,7 @@ export default function GroupDetail() {
   const { data: psTransactions } = useTransactions();
   const { data: psMembers } = useMembers();
   const { data: psOrgUnits } = useOrgUnits();
+  const { data: psMemberships } = useGroupMemberships();
 
   const orgUnits = psOrgUnits ?? idbOrgUnits;
   const accounts = psAccounts ?? idbAccounts;
@@ -43,7 +45,7 @@ export default function GroupDetail() {
   const orgUnit = orgUnits.find((o: any) => o.id === id);
   const account = accounts.find((a: any) => a.id === id) as Account | undefined;
 
-  const groupMemberships = memberships.filter((m: any) => m.group_id === id || m.groupId === id);
+  const groupMemberships = (psMemberships || []).filter((m: any) => m.group_id === id || m.groupId === id);
   const groupMemberIds = groupMemberships.map((m: any) => m.member_id || m.memberId);
   const groupMembers = members.filter((m: any) => groupMemberIds.includes(m.id) && m.status !== 'ARCHIVED');
 
