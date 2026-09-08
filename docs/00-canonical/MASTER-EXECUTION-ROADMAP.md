@@ -290,110 +290,171 @@
 
 ---
 
-## CURRENT SPRINT: SPRINT 7.1 (IN PROGRESS)
+## 📢 MESSAGE POUR L'AGENT B (session parallèle)
 
-### Objective
-Migrate 26 remaining pages to Ionic IonPage pattern + fix build-critical JSX errors + convert BottomNav/TopHeader
-
-### Plan Document
-📄 `docs/plans/2026-09-08-sprint-7-1-to-7-4.md`
-
-### Sprint 7.1a: Auth Pages (COMPLETED)
-- [x] Login.tsx — fixed div imbalance (missing `</div>`)
-- [ ] RoleSelection.tsx — wrap in IonPage
-- [ ] Onboarding.tsx — wrap in IonPage
-
-### Sprint 7.1b: Core Pages (ALREADY DONE)
-- [x] Dashboard.tsx — already Ionic-wrapped
-- [x] Finance.tsx — already Ionic-wrapped
-- [x] Groups.tsx — already Ionic-wrapped
-- [x] Members.tsx — already Ionic-wrapped
-- [x] Events.tsx — already Ionic-wrapped
-
-### Sprint 7.1c: Detail Pages (ALREADY DONE)
-- [x] TransactionDetail.tsx — already Ionic-wrapped
-- [x] EventDetail.tsx — already Ionic-wrapped
-- [x] GroupDetail.tsx — already Ionic-wrapped
-- [x] MembreDetail.tsx — already Ionic-wrapped
-- [x] CulteDetail.tsx — already Ionic-wrapped
-
-### Sprint 7.1d: Form Pages (IN PROGRESS)
-- [x] TransactionNew.tsx — already Ionic-wrapped
-- [x] EventNew.tsx — already Ionic-wrapped
-- [x] FormBuilder.tsx — already Ionic-wrapped
-- [ ] FormFill.tsx — wrap in IonPage
-
-### Sprint 7.1e: System Pages (PENDING)
-- [ ] Settings.tsx — wrap in IonPage (41 divs balanced)
-- [ ] Help.tsx — wrap in IonPage (10 divs balanced)
-- [ ] History.tsx — fix div imbalance (+3) then wrap
-- [ ] Trace.tsx — fix div imbalance (+2) then wrap
-- [ ] Notifications.tsx — wrap in IonPage (9 divs balanced)
-
-### Sprint 7.1f: Remaining Pages (PENDING)
-- [ ] Archives.tsx — fix div imbalance (-1) then wrap
-- [ ] Balance.tsx — fix div imbalance (+4) then wrap
-- [ ] Cotisations.tsx — fix div imbalance (+1) then wrap
-- [ ] CustomFields.tsx — fix div imbalance (+1) then wrap
-- [ ] ReportBuilder.tsx — wrap in IonPage (13 divs balanced)
-- [ ] Reports.tsx — fix div imbalance (+1) then wrap
-- [ ] TransactionEdit.tsx — fix div imbalance (+1) then wrap
-- [ ] TransactionNewGroup.tsx — wrap in IonPage (12 divs balanced)
-- [ ] Versement.tsx — wrap in IonPage (18 divs balanced)
-- [ ] SaisieRapide.tsx — wrap in IonPage (1 div balanced)
-- [ ] Tutorial.tsx — fix div imbalance (-5) then wrap
-
-### Sprint 7.1g: BottomNav → IonTabBar (PENDING)
-- [ ] Convert to IonTabBar with Ionicons
-- [ ] Keep FAB as IonButton
-
-### Sprint 7.1h: TopHeader → IonToolbar (PENDING)
-- [ ] Convert to IonToolbar
-
-### Sprint 7.1i: Final Verification (PENDING)
-- [x] All 38 pages wrapped in IonPage — COMPLETE
-- [ ] Build passes
-- [ ] TypeScript clean
-- [ ] All 132 tests pass
-- [ ] No broken navigation
-
-### Acceptance Criteria
-- [ ] All 38 pages wrapped in IonPage
-- [ ] Build passes (pnpm build)
-- [ ] TypeScript clean (pnpm tsc --noEmit)
-- [ ] All 132 tests pass
-- [ ] No broken navigation
-- [ ] No visual regressions on desktop
-- [ ] Safe area handling verified on mobile
-
-### Risks
-- **HIGH**: Div imbalances in 20 pages may cause build failures — must fix before Ionic wrapping
-- **MEDIUM**: BottomNav → IonTabBar migration may break existing navigation state
-- **LOW**: Ionic CSS may override some Tailwind styles
-
-### Rollback Plan
-- Ionic shell is a thin wrapper — pages remain unchanged
-- Revert: `git revert <commit>` removes all Ionic changes
-- No data loss, no business logic changes
+> **Sprints 7.1-7.4 TERMINÉS par les deux sessions.**
+> - Commit d'état: `22059d3` (roadmap mise à jour)
+> - Build: ✅ | TypeScript: 0 errors | Tests: 157/157 passing
+>
+> **Sprints suivants disponibles pour exécution parallèle:**
+> - **Sprint 7.5**: BottomNav/TopHeader finalization + Notification capability tests
+> - **Sprint 7.6**: Phase 2 Foundation — Identity + Organization capabilities
+> - **Sprint 7.7**: Phase 6 Store Decomposition completion — reduce to <600 lines
+>
+> **NE PAS RÉEXÉCUTER:** Sprints 7.1-7.4 déjà complets.
+> **CONFLITS À ÉVITER:** Ne pas modifier src/lib/orgContext.ts, src/store/useLocalStore.ts, src/lib/rbac.ts, src/capabilities/security/index.ts.
 
 ---
 
-## NEXT SPRINT: SPRINT 7.2 (after 7.1 gates pass)
+## SPRINTS COMPLÉTÉS
 
-### Objective
-Implement real RBAC evaluator + remove ArchiveRegistry + add permission tests
+### Sprint 7.1 — Ionic Page Migration ✅ COMPLETE
+- 38/38 pages Ionic-wrapped
+- Build fixé (Login.tsx div imbalance)
+- 12→38 pages migrées
+- Commit: `f3d5792`
 
-### Plan Document
-📄 `docs/plans/2026-09-08-sprint-7-1-to-7-4.md` — Section "SPRINT 7.2"
+### Sprint 7.2 — RBAC + ArchiveRegistry ✅ COMPLETE
+- checkPermission: stub → implémentation réelle
+- ArchiveRegistry supprimé (0 consumers)
+- Notification capability créée
+- TopHeader → IonToolbar
+- Commit: `6e02ae6`
 
-### Tasks
-| ID | Task | Dependencies | Estimate |
-|----|------|-------------|----------|
-| 7.2.1 | Implement checkPermission in SecurityService | None | 2h |
-| 7.2.2 | Add hasPermission() usage in 3 UI consumers | 7.2.1 | 1h |
-| 7.2.3 | Remove ArchiveRegistry, verify no consumers remain | 7.2.1 | 1h |
-| 7.2.4 | Add RBAC tests (permission matrix coverage) | 7.2.1 | 2h |
-| 7.2.5 | Verify build + tests + TypeScript | 7.2.4 | 0.5h |
+### Sprint 7.3 — Capability Cleanup ✅ COMPLETE
+- Workflow: découpé de TransactionStatus (string générique)
+- Relationship: test org_id filter ajouté
+- Security: tests checkPermission ajoutés
+- Commit: `afee408`, `54b3384`
+
+### Sprint 7.4 — org-1 + Store Decomposition ✅ COMPLETE
+- org-1 hardcoded: 4 → 0 (dynamic resolution)
+- Store: 1117 → 898 lignes (-19.6%)
+- Services extraits: versement-service, group-service
+- Commit: `baf3176`, `4865de4`
+
+---
+
+## SPRINTS EN COURS / À EXÉCUTER
+
+### Sprint 7.5 — Component Finalization (BOTTOM PRIORITY)
+**Objectif:** Finaliser BottomNav → IonTabBar et ajouter tests Notification
+
+**Dépendances:** Sprint 7.2 (TopHeader déjà fait par agent A)
+
+**Tâches:**
+| ID | Task | Fichiers | Estimé |
+|----|------|----------|--------|
+| 7.5.1 | BottomNav → IonTabBar conversion | BottomNav.tsx | 2h |
+| 7.5.2 | Notification capability tests | notification.test.ts | 1h |
+| 7.5.3 | Vérification build + tests | — | 0.5h |
+
+**Fichiers à NE PAS modifier:**
+- src/lib/orgContext.ts (déjà propre)
+- src/lib/rbac.ts (déjà complet)
+- src/capabilities/security/index.ts (déjà implémenté)
+
+---
+
+### Sprint 7.6 — Phase 2 Foundation Capabilities (MEDIUM PRIORITY)
+**Objectif:** Créer Identity et Organization capabilities
+
+**Dépendances:** Sprint 7.4 (org-1 cleanup fait)
+
+**Tâches:**
+| ID | Task | Fichiers | Estimé |
+|----|------|----------|--------|
+| 7.6.1 | Identity capability (skeleton) | src/capabilities/identity/ | 2h |
+| 7.6.2 | Organization capability (skeleton) | src/capabilities/organization/ | 2h |
+| 7.6.3 | Tests Identity + Organization | __tests__/identity.test.ts | 1h |
+| 7.6.4 | Vérification build + tests | — | 0.5h |
+
+**Contraintes:**
+- Les capabilities doivent être génériques (pas church-specific)
+- Pas de hardcode métier
+- Testable sans PowerSync réel
+
+---
+
+### Sprint 7.7 — Store Decomposition Completion (HIGH PRIORITY)
+**Objectif:** Réduire useLocalStore de 898 → <600 lignes
+
+**Dépendances:** Sprint 7.4 (décomposition débutée)
+
+**Tâches:**
+| ID | Task | Fichiers | Estimé |
+|----|------|----------|--------|
+| 7.7.1 | Identifier logique métier restante | useLocalStore.ts | 1h |
+| 7.7.2 | Extraire notification logic | src/lib/notification-service.ts | 2h |
+| 7.7.3 | Extraire audit logic (dédup) | src/lib/audit.ts | 1h |
+| 7.7.4 | Supprimer duplications | useLocalStore.ts | 1h |
+| 7.7.5 | Vérification build + tests | — | 0.5h |
+
+**Cible:** Store <600 lignes, zéro logique métier
+
+---
+
+## PROCHAIN SPRINTS (après 7.5-7.7)
+
+### Sprint 7.8 — Phase 5 Domain Migration: Events
+- Add Workflow capability for events (status: PLANIFIED → ONGOING → COMPLETED)
+- Files: src/pages/Events.tsx, src/pages/EventNew.tsx, src/capabilities/workflow/
+
+### Sprint 7.9 — Phase 5 Domain Migration: Archives
+- Complete migration, verify no ArchiveRegistry references
+- Files: src/pages/Archives.tsx, src/capabilities/lifecycle/
+
+### Sprint 8 — Template System
+- Template definition schema
+- Template validation
+- Church template as reference
+
+---
+
+## DÉPENDANCES ENTRE SPRINTS
+
+```
+Sprint 7.5 (Component)  ──────────────────────┐
+Sprint 7.6 (Foundation) ── PARALLEL ──────────┼─→ Sprint 7.8 (Events)
+Sprint 7.7 (Store)      ──────────────────────┘          ↓
+                                                       Sprint 8 (Templates)
+```
+
+**Règle:** Les 3 sprints 7.5-7.7 peuvent s'exécuter en parallèle car ils touchent des fichiers différents.
+
+---
+
+## METRICS ACTUELLES
+
+| Metric | Current | Target | Status |
+|--------|---------|--------|--------|
+| Build | ✅ | ✅ | PASS |
+| TypeScript | 0 errors | 0 | PASS |
+| Tests | 157 | 200+ | 🟡 -43 |
+| Store lines | 898 | <600 | 🟡 -298 |
+| Pages Ionic | 38/38 | 38/38 | PASS |
+| org-1 hardcodes | 0 | 0 | PASS |
+| ArchiveRegistry | 0 | 0 | PASS |
+
+---
+
+## NEXT SPRINT: SPRINT 7.5-7.7 (PARALLEL EXECUTION)
+
+### Sprint 7.5: Component Finalization
+- BottomNav → IonTabBar
+- Notification capability tests
+
+### Sprint 7.6: Foundation Capabilities
+- Identity capability (skeleton)
+- Organization capability (skeleton)
+- Tests for both
+
+### Sprint 7.7: Store Decomposition Completion
+- Target: 898 → <600 lines
+- Extract notification, audit logic
+- Remove duplications
+
+**Tous les 3 sprints peuvent s'exécuter en parallèle (fichiers différents).**
 
 ---
 
