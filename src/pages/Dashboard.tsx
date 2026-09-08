@@ -10,7 +10,7 @@ import TopHeader from '@/components/TopHeader';
 import LuminaLogo from '@/components/LuminaLogo';
 import { PageSkeleton, ListSkeleton } from '@/components/Skeleton';
 import type { Account, Caisse } from '@/types';
-import { getRoleLabel } from '@/store/useLocalStore';
+import { getRoleLabel } from '@/lib/utils';
 import { getAccountBalance } from '@/lib/account';
 import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar } from '@ionic/react';
 

@@ -9,7 +9,11 @@ import { create } from 'zustand';
 import { workflow } from '@/capabilities/workflow';
 import { lifecycle } from '@/capabilities/lifecycle';
 import { relationship } from '@/capabilities/relationship';
+import { security } from '@/capabilities/security';
 import { getOrganizationId } from '@/lib/orgContext';
+import { writeAudit } from '@/lib/audit';
+import { createVersement as createVersementService } from '@/lib/versement-service';
+import { createGroup as createGroupService } from '@/lib/group-service';
 import type { User, Role, Transaction, Category, OrgUnit, Caisse, Event, BudgetItem, ShoppingItem, AppConfig, NotificationItem, Member, Group, Account, GroupMembership, Versement, EventBudget, BudgetLine, Cotisation, CotisationStatut } from '@/types';
 import { generateId } from '@/lib/utils';
 import { formatDate, formatCentsToFCFA } from '@/lib/utils';
@@ -131,20 +135,6 @@ const DEFAULT_CAISSES: Caisse[] = [
 const DEFAULT_ORG_UNITS: OrgUnit[] = [
   { id: getOrganizationId(), name: 'Église MFE-JC Centrale', type: 'eglise', description: 'Église mère', orgId: getOrganizationId(), isActive: true },
 ];
-
-const COLOR_PALETTE = ['#3B82F6', '#8B5CF6', '#EC4899', '#14B8A6', '#F59E0B', '#EF4444', '#22C55E', '#6366F1', '#F97316', '#06B6D4'];
-
-export function getRoleLabel(role: Role): string {
-  const labels: Record<Role, string> = {
-    PASTEUR: 'Pasteur',
-    SECRETAIRE: 'Secrétaire',
-    TREASURIER: 'Trésorier',
-    COMPTABLE: 'Comptable',
-    TREASURIER_ADJOINT: 'Trésorier Adjoint',
-    SECRETAIRE_ADJOINT: 'Secrétaire Adjoint',
-  };
-  return labels[role] ?? role;
-}
 
 export const useLocalStore = create<LocalStoreState>()(
   (set, get) => ({
@@ -366,124 +356,8 @@ export const useLocalStore = create<LocalStoreState>()(
     },
 
     createVersement: async (data) => {
-      const now = new Date().toISOString();
-      const versementId = generateId();
-      const sessionId = localStorage.getItem('lumina-session') || 'local-user';
-
-      // Create versement record
-      try {
-        await executeWrite(
-          `INSERT INTO versements (id, org_id, from_account_id, to_account_id, amount_cents, date, status, created_by, approved_by, approved_at, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, 'APPROVED', ?, ?, ?, ?)`,
-          [versementId, getOrganizationId(), data.sourceCaisseId, 'main', data.amount, now.split('T')[0], sessionId, sessionId, now, now]
-        );
-      } catch (error) {
-        console.error('[Store] Failed to create versement record:', error);
-      }
-
-      // Create transactions
-      const sourceTx = {
-        id: generateId(),
-        orgId: getOrganizationId(),
-        type: 'EXPENSE',
-        amount: data.amount,
-        description: `Versement vers caisse principale`,
-        date: now.split('T')[0],
-        status: 'APPROVED',
-        createdAt: now,
-        updatedAt: now,
-        createdById: sessionId,
-        approvedById: sessionId,
-        approvedAt: now,
-        categoryId: 'cat-dime',
-        orgUnitId: null,
-        eventId: null,
-        source: 'CAISSE',
-        personName: null,
-        compensatesFor: null,
-        comment: data.comment || `Versement ${Math.round(data.amount / 100)} FCFA → Caisse principale`,
-        version: 1,
-        sourceCaisseId: data.sourceCaisseId,
-        versementId,
-        reversalOfId: null,
-      };
-
-      const targetTx = {
-        id: generateId(),
-        orgId: getOrganizationId(),
-        type: 'INCOME',
-        amount: data.amount,
-        description: `Versement de groupe`,
-        date: now.split('T')[0],
-        status: 'APPROVED',
-        createdAt: now,
-        updatedAt: now,
-        createdById: sessionId,
-        approvedById: sessionId,
-        approvedAt: now,
-        categoryId: 'cat-dime',
-        orgUnitId: null,
-        eventId: null,
-        source: 'CAISSE',
-        personName: null,
-        compensatesFor: null,
-        comment: data.comment || `Versement ${Math.round(data.amount / 100)} FCFA → Caisse principale`,
-        version: 1,
-        sourceCaisseId: 'main',
-        versementId,
-        reversalOfId: null,
-      };
-
-      try {
-        await addTransactionPS({
-          org_id: sourceTx.orgId,
-          type: sourceTx.type,
-          amount: sourceTx.amount,
-          description: sourceTx.description,
-          date: sourceTx.date,
-          status: sourceTx.status,
-          category_id: sourceTx.categoryId,
-          org_unit_id: sourceTx.orgUnitId,
-          compensates_for: sourceTx.compensatesFor,
-          comment: sourceTx.comment,
-          version: sourceTx.version,
-          created_by_id: sourceTx.createdById,
-          approved_by_id: sourceTx.approvedById,
-          approved_at: sourceTx.approvedAt,
-          event_id: sourceTx.eventId,
-          source: sourceTx.source,
-          person_name: sourceTx.personName,
-          source_caisse_id: sourceTx.sourceCaisseId,
-          versement_id: sourceTx.versementId,
-          reversal_of_id: sourceTx.reversalOfId,
-        });
-        await addTransactionPS({
-          org_id: targetTx.orgId,
-          type: targetTx.type,
-          amount: targetTx.amount,
-          description: targetTx.description,
-          date: targetTx.date,
-          status: targetTx.status,
-          category_id: targetTx.categoryId,
-          org_unit_id: targetTx.orgUnitId,
-          compensates_for: targetTx.compensatesFor,
-          comment: targetTx.comment,
-          version: targetTx.version,
-          created_by_id: targetTx.createdById,
-          approved_by_id: targetTx.approvedById,
-          approved_at: targetTx.approvedAt,
-          event_id: targetTx.eventId,
-          source: targetTx.source,
-          person_name: targetTx.personName,
-          source_caisse_id: targetTx.sourceCaisseId,
-          versement_id: targetTx.versementId,
-          reversal_of_id: targetTx.reversalOfId,
-        });
-      } catch (error) {
-        console.error('[Store] Failed to create versement:', error);
-      }
-
-      set({ transactions: [...get().transactions, sourceTx, targetTx] });
+      const result = await createVersementService(data);
+      set({ transactions: [...get().transactions, result.sourceTx, result.targetTx] });
     },
 
     syncEventBudget: async (eventId: string) => {
@@ -612,68 +486,13 @@ export const useLocalStore = create<LocalStoreState>()(
     },
 
     createGroup: async (data) => {
-      const id = generateId();
-      const now = new Date().toISOString();
-      const color = data.color || COLOR_PALETTE[get().caisses.filter(c => c.type === 'GROUP').length % COLOR_PALETTE.length];
-
-      const orgUnit: OrgUnit = {
-        id,
-        name: data.name,
-        type: data.type || 'groupe',
-        description: data.description || '',
-        orgId: getOrganizationId(),
-        isActive: true,
-      };
-
-      const account: Account = {
-        id,
-        orgId: getOrganizationId(),
-        ownerType: 'GROUP',
-        ownerId: id,
-        name: data.name,
-        currency: 'XOF',
-        status: 'ACTIVE',
-        archivedAt: null,
-        archivedBy: null,
-        archiveReason: null,
-        createdAt: now,
-        updatedAt: now,
-      };
-
-      const caisse: Caisse = {
-        id,
-        name: data.name,
-        description: data.description || '',
-        type: 'GROUP',
-        color,
-        orgId: getOrganizationId(),
-        createdAt: now,
-        updatedAt: now,
-        archivedAt: null,
-        archivedBy: null,
-        archiveReason: null,
-        status: 'ACTIVE',
-      };
-
-      const group: Group = {
-        id,
-        orgId: getOrganizationId(),
-        name: data.name,
-        parentGroupId: null,
-        responsableMemberId: null,
-        status: 'ACTIVE',
-        archivedAt: null,
-        archivedBy: null,
-        archiveReason: null,
-        createdAt: now,
-        updatedAt: now,
-      };
-
+      const groupCount = get().caisses.filter(c => c.type === 'GROUP').length;
+      const result = createGroupService({ ...data, existingGroupCount: groupCount });
       set({
-        orgUnits: [...get().orgUnits, orgUnit],
-        caisses: [...get().caisses, caisse],
-        groups: [...get().groups, group],
-        accounts: [...get().accounts, account],
+        orgUnits: [...get().orgUnits, result.orgUnit],
+        caisses: [...get().caisses, result.caisse],
+        groups: [...get().groups, result.group],
+        accounts: [...get().accounts, result.account],
       });
     },
 
@@ -1077,41 +896,3 @@ export const useLocalStore = create<LocalStoreState>()(
     partialize: (state) => ({ user: state.user }),
   }
 );
-
-// Helper function for audit logging
-async function writeAudit(data: {
-  orgId: string;
-  transactionId: string | null;
-  userId: string;
-  actorRoleAtTime: string;
-  action: string;
-  entityType: string;
-  entityId: string;
-  beforeState: any;
-  afterState: any;
-  comment: string | null;
-}): Promise<void> {
-  // Audit is stored in PowerSync
-  const db = getPowerSyncDatabase();
-  try {
-    await db.execute(
-      `INSERT INTO audit_entries (id, org_id, transaction_id, user_id, actor_role_at_time, action, entity_type, entity_id, before_state, after_state, comment, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
-      [
-        generateId(),
-        data.orgId,
-        data.transactionId,
-        data.userId,
-        data.actorRoleAtTime,
-        data.action,
-        data.entityType,
-        data.entityId,
-        JSON.stringify(data.beforeState),
-        JSON.stringify(data.afterState),
-        data.comment,
-      ]
-    );
-  } catch (error) {
-    console.error('[Audit] Failed to write audit entry:', error);
-  }
-}

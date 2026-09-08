@@ -8,7 +8,7 @@ import { Users, Plus, X, Palette, Edit3, Trash2 } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
 import { FullPageSkeleton } from '@/components/Skeleton';
-import { getRoleLabel } from '@/store/useLocalStore';
+import { getRoleLabel } from '@/lib/utils';
 import { security } from '@/capabilities/security';
 import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar } from '@ionic/react';
 
