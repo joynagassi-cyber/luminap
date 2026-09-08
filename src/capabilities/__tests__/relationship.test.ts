@@ -17,8 +17,11 @@ vi.mock('@/lib/dataLayer', () => ({
   getGroupMembershipsPS: vi.fn(async () => _memberships),
 }));
 
+let _currentOrgId = 'test-org-1';
+
 vi.mock('@/lib/orgContext', () => ({
-  getOrganizationId: () => 'test-org-1',
+  getOrganizationId: () => _currentOrgId,
+  setOrganizationId: (id: string) => { _currentOrgId = id; },
 }));
 
 describe('relationship capability', () => {
@@ -139,6 +142,22 @@ describe('relationship capability', () => {
       expect(await relationship.isMember('group-1', 'member-2')).toBe(true);
       expect(await relationship.isMember('group-2', 'member-1')).toBe(true);
       expect(await relationship.isMember('group-2', 'member-2')).toBe(false);
+    });
+
+    it('isMember filters by org_id — cross-org isolation', async () => {
+      // Insert two memberships: same group and member, different org_ids
+      _memberships.push(
+        { id: 'mem-org1', group_id: 'group-1', member_id: 'member-a', role: 'MEMBRE', org_id: 'org-1' },
+        { id: 'mem-org2', group_id: 'group-1', member_id: 'member-a', role: 'MEMBRE', org_id: 'org-2' },
+      );
+
+      // With org-1 context: should find the membership
+      _currentOrgId = 'org-1';
+      expect(await relationship.isMember('group-1', 'member-a')).toBe(true);
+
+      // With org-2 context: membership belongs to org-1, so returns false
+      _currentOrgId = 'org-2';
+      expect(await relationship.isMember('group-1', 'member-a')).toBe(false);
     });
   });
 });
