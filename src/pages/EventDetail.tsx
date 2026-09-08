@@ -8,7 +8,7 @@ import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
 import { FullPageSkeleton } from '@/components/Skeleton';
 import type { EventStatus } from '@/types';
-import { canAccess } from '@/lib/rbac';
+import { security } from '@/capabilities/security';
 
 type Tab = 'overview' | 'budget' | 'transactions';
 
@@ -425,7 +425,7 @@ export default function EventDetail() {
         )}
 
         {/* Delete button */}
-        {canAccess(useLocalStore.getState().user.role, 'event', 'delete') && (
+        {security.hasRole(useLocalStore.getState().user.role, 'event', 'delete') && (
           <button onClick={() => setShowDelete(true)} className="w-full py-3 rounded-full font-medium text-sm flex items-center justify-center gap-2 mt-5 mb-4" style={{ backgroundColor: '#212121', color: '#E51332' }}>
             <Trash2 className="w-4 h-4" /> Supprimer l'événement
           </button>
