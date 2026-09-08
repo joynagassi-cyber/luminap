@@ -36,9 +36,6 @@ export type Permission =
  * Retourne toujours true car le RBAC canonique n'est pas encore implémenté.
  * Le stub est conforme à l'amendement mono-église.
  */
-export function checkPermission(_role: Role, _permission: Permission): boolean {
-  return true;
-}
 
 /**
  * Permission matrix — maps each role to its allowed permissions.
