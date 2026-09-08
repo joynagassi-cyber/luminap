@@ -10,6 +10,7 @@ import TopHeader from '@/components/TopHeader';
 import { FullPageSkeleton } from '@/components/Skeleton';
 import { getRoleLabel } from '@/store/useLocalStore';
 import { security } from '@/capabilities/security';
+import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar } from '@ionic/react';
 
 const COLOR_PALETTE = ['#3B82F6', '#8B5CF6', '#EC4899', '#14B8A6', '#F59E0B', '#EF4444', '#22C55E', '#6366F1', '#F97316', '#06B6D4'];
 const GROUP_TYPES = ['groupe', 'commission', 'comité', 'diaconie', 'service'];
@@ -100,6 +101,13 @@ export default function Groups() {
   if (isLoading) return <FullPageSkeleton />;
 
   return (
+    <IonPage>
+      <IonHeader>
+        <IonToolbar>
+          <IonTitle>Groupes</IonTitle>
+        </IonToolbar>
+      </IonHeader>
+      <IonContent className="bg-canvas">
     <div className="min-h-screen bg-canvas flex flex-col">
       <TopHeader title="Groupes" />
       <div className="flex-1 overflow-y-auto px-5 pt-16 pb-32 max-w-lg mx-auto">
@@ -281,5 +289,7 @@ export default function Groups() {
       </div>
       <BottomNav />
     </div>
+      </IonContent>
+    </IonPage>
   );
 }

@@ -281,7 +281,7 @@ const form_definitions = new Table(
     created_at: column.text,
     updated_at: column.text,
   },
-  { indexes: { idx_form_defs_key: 'key', idx_form_defs_org: 'org_id' } }
+  { indexes: { idx_form_defs_key: ['key'], idx_form_defs_org: ['org_id'] } }
 );
 
 const form_submissions = new Table(
@@ -298,7 +298,7 @@ const form_submissions = new Table(
     status: column.text,
     created_at: column.text,
   },
-  { indexes: { idx_form_subs_def: 'form_definition_id', idx_form_subs_org: 'org_id' } }
+  { indexes: { idx_form_subs_def: ['form_definition_id'], idx_form_subs_org: ['org_id'] } }
 );
 
 const custom_field_definitions = new Table(
@@ -338,9 +338,9 @@ const cotisations = new Table(
   },
   {
     indexes: {
-      culte_id: 'culte_id',
-      membre_id: 'membre_id',
-      statut: 'statut',
+      culte_id: ['culte_id'],
+      membre_id: ['membre_id'],
+      statut: ['statut'],
     },
   }
 );

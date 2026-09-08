@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 /**
- * Redirects to /splash on every app load to ensure the splash screen
+ * Navigates to /splash on every app load to ensure the splash screen
  * always runs first and handles routing logic.
  * Uses a one-time flag to prevent infinite redirect loops.
  */

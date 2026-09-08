@@ -10,6 +10,7 @@ import { ArrowLeft, Users, CheckCircle, Clock } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
 import ConfirmModal from '@/components/ConfirmModal';
+import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar, IonButtons, IonBackButton } from '@ionic/react';
 
 export default function CulteDetail() {
   const { id } = useParams<{ id: string }>();
@@ -27,20 +28,32 @@ export default function CulteDetail() {
 
   if (!culte) {
     return (
-      <div className="min-h-screen bg-[#121212]" style={{ paddingTop: 64 }}>
-        <TopHeader />
-        <div className="p-4 text-center text-text-tertiary">
-          <p className="font-semibold mb-2">Culte introuvable</p>
-          <button
-            onClick={() => navigate('/cotisations')}
-            className="text-sm"
-            style={{ color: '#FF6B00' }}
-          >
-            Retour aux cultes
-          </button>
+      <IonPage>
+        <IonHeader>
+          <IonToolbar>
+            <IonButtons slot="start">
+              <IonBackButton defaultHref="/cotisations" />
+            </IonButtons>
+            <IonTitle>Détail du Culte</IonTitle>
+          </IonToolbar>
+        </IonHeader>
+        <IonContent>
+        <div className="min-h-screen bg-[#121212]" style={{ paddingTop: 64 }}>
+          <TopHeader />
+          <div className="p-4 text-center text-text-tertiary">
+            <p className="font-semibold mb-2">Culte introuvable</p>
+            <button
+              onClick={() => navigate('/cotisations')}
+              className="text-sm"
+              style={{ color: '#FF6B00' }}
+            >
+              Retour aux cultes
+            </button>
+          </div>
+          <BottomNav />
         </div>
-        <BottomNav />
-      </div>
+        </IonContent>
+      </IonPage>
     );
   }
 
@@ -96,8 +109,18 @@ export default function CulteDetail() {
   };
 
   return (
-    <div className="min-h-screen bg-[#121212]" style={{ paddingTop: 64, paddingBottom: 72 }}>
-      <TopHeader title="Détail du Culte" />
+    <IonPage>
+      <IonHeader>
+        <IonToolbar>
+          <IonButtons slot="start">
+            <IonBackButton defaultHref="/cotisations" />
+          </IonButtons>
+          <IonTitle>Détail du Culte</IonTitle>
+        </IonToolbar>
+      </IonHeader>
+      <IonContent>
+      <div className="min-h-screen bg-[#121212]" style={{ paddingTop: 64, paddingBottom: 72 }}>
+        <TopHeader title="Détail du Culte" />
 
       {/* Header */}
       <div className="px-4 py-3 flex items-center gap-3 border-b border-[#282828]">
@@ -245,6 +268,8 @@ export default function CulteDetail() {
       />
 
       <BottomNav />
-    </div>
+      </div>
+      </IonContent>
+    </IonPage>
   );
 }

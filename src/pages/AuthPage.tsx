@@ -4,6 +4,7 @@ import { useLocalStore } from '@/store/useLocalStore';
 import { authService, type Profile } from '@/lib/auth';
 import { oneSignalService } from '@/lib/authOneSignal';
 import { Loader2, Mail, Lock, User,  } from 'lucide-react';
+import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar } from '@ionic/react';
 
 type AuthMode = 'login' | 'signup';
 
@@ -126,7 +127,14 @@ export default function AuthPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#121212] flex flex-col">
+    <IonPage>
+      <IonHeader>
+        <IonToolbar>
+          <IonTitle>AuthPage</IonTitle>
+        </IonToolbar>
+      </IonHeader>
+      <IonContent className="bg-canvas">
+      <div className="min-h-screen bg-[#121212] flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-5">
         <img src="/lumina-logo.png" alt="Lumina" className="w-10 h-10 object-contain" />
@@ -277,6 +285,8 @@ export default function AuthPage() {
           </button>
         </div>
       </div>
-    </div>
+      </div>
+      </IonContent>
+    </IonPage>
   );
 }

@@ -1,6 +1,7 @@
 import { Landmark, Home, Users, CalendarPlus, MoreVertical, Wallet, BarChart3, LineChart, ClipboardList, History, Settings, Plus, Check, ArrowRightLeft, FileText, Archive, HelpCircle, ListChecks } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useState, useRef, useEffect, useMemo } from 'react';
+import { IonButton } from '@ionic/react';
 
 const NAV_ITEMS = [
   { icon: Home, label: 'Accueil', path: '/' },
@@ -57,10 +58,13 @@ export default function BottomNav() {
   return (
     <>
       {/* FAB — Contextual action button */}
-      <button
+      <IonButton
         onClick={fabAction.action}
-        className="fixed bottom-20 right-5 z-40 w-14 h-14 rounded-full flex items-center justify-center transition-all active:scale-90 shadow-lg"
-        style={{ background: `linear-gradient(135deg, ${fabAction.color}dd, ${fabAction.color})`, boxShadow: `0 4px 16px ${fabAction.color}60` }}
+        className="fixed bottom-20 right-5 z-40 !w-14 !h-14 !rounded-full !p-0 !shadow-lg !min-height:auto"
+        style={{
+          background: `linear-gradient(135deg, ${fabAction.color}dd, ${fabAction.color})`,
+          boxShadow: `0 4px 16px ${fabAction.color}60`,
+        }}
         aria-label={fabAction.label}
       >
         {fabAction.icon === Check ? (
@@ -70,45 +74,48 @@ export default function BottomNav() {
         ) : (
           <Plus className="w-7 h-7 text-white" />
         )}
-      </button>
+      </IonButton>
 
       <div className="fixed bottom-0 left-0 right-0 z-50 px-2 pb-2 pt-1" style={{ backgroundColor: 'rgba(18,18,18,0.97)', backdropFilter: 'blur(10px)', borderTop: '1px solid #282828' }}>
         <div className="flex items-center justify-around max-w-lg mx-auto">
           {NAV_ITEMS.map(({ icon: Icon, label, path }) => {
             const isActive = location.pathname === path || (path !== '/' && location.pathname.startsWith(path));
             return (
-              <button key={path} onClick={() => navigate(path)} className="flex flex-col items-center gap-0.5 px-3 py-2.5 rounded-xl transition-all min-w-0">
+              <IonButton key={path} fill="clear" onClick={() => navigate(path)} className="!min-height:auto !p-0 flex flex-col items-center gap-0.5 px-3 py-2.5 rounded-xl transition-all min-w-0">
                 <Icon className="w-5 h-5" style={isActive ? { color: '#FF6B00' } : { color: '#B3B3B3', opacity: 0.7 }} />
                 <span className="text-xs font-medium" style={isActive ? { color: '#FF6B00' } : { color: '#B3B3B3' }}>{label}</span>
-              </button>
+              </IonButton>
             );
           })}
           {/* More button */}
           <div className="relative" ref={moreRef}>
-            <button
+            <IonButton
+              fill="clear"
               onClick={() => setShowMore(!showMore)}
-              className="flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-all min-w-0"
+              className="!min-height:auto !p-0 flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-all min-w-0"
             >
               <MoreVertical className="w-5 h-5" style={{ color: showMore ? '#FF6B00' : '#B3B3B3' }} />
               <span className="text-xs font-medium" style={{ color: showMore ? '#FF6B00' : '#B3B3B3' }}>Plus</span>
-            </button>
+            </IonButton>
 
             {/* More menu */}
             {showMore && (
               <div className="absolute bottom-12 right-0 w-48 rounded-2xl overflow-hidden z-50" style={{ backgroundColor: '#181818', border: '1px solid #282828', boxShadow: '0 8px 24px rgba(0,0,0,0.5)' }}>
                 <div className="p-2">
                   {MORE_ACTIONS.map(({ icon: Icon, label, path }) => (
-                    <button
+                    <IonButton
                       key={path}
+                      fill="clear"
+                      expand="block"
                       onClick={() => { navigate(path); setShowMore(false); }}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all active:scale-95"
+                      className="w-full !min-height:auto !p-0 flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all active:scale-95"
                       style={{ color: '#B3B3B3' }}
                       onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#282828')}
                       onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                     >
                       <Icon className="w-4 h-4 flex-shrink-0" style={{ color: '#B3B3B3' }} />
                       <span className="text-sm font-medium">{label}</span>
-                    </button>
+                    </IonButton>
                   ))}
                 </div>
               </div>

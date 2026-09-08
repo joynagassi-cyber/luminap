@@ -1,7 +1,7 @@
 # Ionic React Migration
 
 > Date: 2026-09-08
-> Status: **IN PROGRESS — Core integration complete**
+> Status: **Core integration complete — pages unchanged, IonSplitPane responsive layout in place**
 > Scope: Incremental, non-breaking migration from pure React web → React + Ionic mobile
 
 ---
@@ -25,10 +25,10 @@ This means:
 
 | Phase | Status | Description |
 |-------|--------|-------------|
-| P0: Core wrapper | Done | `IonicApp.tsx` wraps app in `IonApp` + `IonReactRouter` |
+| P0: Core wrapper | Done | `App.tsx` wraps app in `IonApp` + `IonReactRouter` |
 | P1: Theme mapping | Done | Lumina tokens mapped to Ionic CSS variables (`theme.ts`) |
 | P2: Route preservation | Done | 38 routes migrated from react-router to Ionic routes |
-| P3: Mobile layout | In progress | `IonSplitPane` for responsive desktop/mobile layout |
+| P3: Mobile layout | Done | `IonSplitPane` for responsive desktop/mobile layout in `IonicApp.tsx` |
 | P4: Ionic-native components | Planned | `IonPage`, `IonHeader`, `IonContent`, `IonToolbar`, `IonFab` per page |
 | P5: Native features | Planned | Capacitor plugins (camera, geolocation, etc.) |
 
@@ -91,17 +91,21 @@ The following are intentionally left as React components because they are custom
 
 **After (Ionic React):**
 ```tsx
+// src/App.tsx
 <IonApp>
   <IonReactRouter>
-    <IonRouterOutlet>
-      {luminaRoutes}
-      <Route path="/">
-        <Navigate to="/splash" replace />
-      </Route>
-      <Route path="*">
-        <Navigate to="/splash" replace />
-      </Route>
-    </IonRouterOutlet>
+    <AppProvider>
+      <SyncIndicator />
+      <IonRouterOutlet>
+        {luminaRoutes}
+        <Route path="/">
+          <Navigate to="/splash" replace />
+        </Route>
+        <Route path="*">
+          <Navigate to="/splash" replace />
+        </Route>
+      </IonRouterOutlet>
+    </AppProvider>
   </IonReactRouter>
 </IonApp>
 ```
@@ -111,6 +115,7 @@ Key differences:
 - `IonRouterOutlet` replaces `Routes` — wraps all routes.
 - Wildcard routes (`path="*"`) still work identically.
 - `AppRouter.tsx` (auth guard) is unchanged — it uses `useNavigate` and `useLocation` which are identical across both routers.
+- `IonicApp.tsx` provides a secondary entry with `IonSplitPane` for responsive desktop/mobile layout.
 
 ### Theming
 

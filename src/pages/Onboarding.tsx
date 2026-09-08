@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
+import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar } from '@ionic/react';
 
 const SCREENS = [
   {
@@ -190,6 +191,13 @@ export default function Onboarding() {
   };
 
   return (
+    <IonPage>
+      <IonHeader>
+        <IonToolbar>
+          <IonTitle>Onboarding</IonTitle>
+        </IonToolbar>
+      </IonHeader>
+      <IonContent className="bg-canvas">
     <div className="min-h-screen bg-[#121212] flex flex-col">
       {/* Header with logo */}
       <div className="flex items-center justify-between px-6 py-5">
@@ -272,5 +280,7 @@ export default function Onboarding() {
         </div>
       </div>
     </div>
+      </IonContent>
+    </IonPage>
   );
 }

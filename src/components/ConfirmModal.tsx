@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { IonButton, IonInput } from '@ionic/react';
 
 interface ModalProps {
   open: boolean;
@@ -57,10 +58,10 @@ export default function ConfirmModal({
             <p className="text-text-secondary text-xs mb-2 text-center">
               Tapez <span className="font-bold" style={{ color: confirmVariant === 'danger' ? '#E51332' : '#FF6B00' }}>"{requiredText}"</span> pour confirmer
             </p>
-            <input
+            <IonInput
               type="text"
               value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
+              onIonChange={(e) => setInputValue(e.detail.value!)}
               className="w-full px-4 py-3 rounded-lg text-text-primary text-sm outline-none text-center"
               style={{ backgroundColor: '#121212', border: '1px solid #282828' }}
               autoFocus
@@ -71,14 +72,15 @@ export default function ConfirmModal({
         {children}
 
         <div className="flex gap-3 mt-4">
-          <button
+          <IonButton
             onClick={onClose}
-            className="flex-1 py-3 rounded-full text-sm font-semibold"
+            expand="block"
+            className="!rounded-full !min-height:auto text-sm font-semibold"
             style={{ backgroundColor: '#282828', color: '#B3B3B3' }}
           >
             Annuler
-          </button>
-          <button
+          </IonButton>
+          <IonButton
             onClick={() => {
               if (requiredText && onTextConfirm) {
                 onTextConfirm(inputValue);
@@ -86,12 +88,13 @@ export default function ConfirmModal({
                 onConfirm();
               }
             }}
+            expand="block"
             disabled={isConfirmDisabled}
-            className="flex-1 py-3 rounded-full text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-transform"
+            className="!rounded-full !min-height:auto text-sm font-semibold !opacity-100 disabled:!opacity-40 disabled:!cursor-not-allowed active:scale-95 transition-transform"
             style={{ backgroundColor: confirmVariant === 'danger' ? '#E51332' : '#FF6B00', color: '#FFFFFF' }}
           >
             {confirmLabel}
-          </button>
+          </IonButton>
         </div>
       </div>
     </div>

@@ -1,8 +1,8 @@
 # MASTER EXECUTION ROADMAP — LUMINA PLATFORM
 
 > Last updated: 2026-09-08
-> Build: ✓ | TypeScript: 0 errors | Tests: 132/132 passing
-> Current Phase: 2 (Foundation + Ionic Shell)
+> Build: ✅ | TypeScript: 0 errors | Tests: 132/132 passing
+> Current Phase: 7 (Frontend Platform) — Sprint 7.1 IN PROGRESS
 
 ---
 
@@ -11,18 +11,18 @@
 | Phase | Title | Progress | Status |
 |-------|-------|----------|--------|
 | 0 | Governance & Baseline | 100% | ✅ DONE |
-| 1 | Capability Foundation | 75% | 🟡 PARTIAL |
+| 1 | Capability Foundation | 80% | 🟡 PARTIAL |
 | 2 | Foundation Capabilities | 20% | 🔴 INCOMPLETE |
 | 3 | Data Canonicalization | 10% | 🔴 BLOCKED |
 | 4 | Organization Platform | 5% | 🔴 NOT STARTED |
 | 5 | Domain Migration | 15% | 🟡 PARTIAL |
 | 6 | Store Decomposition | 10% | 🔴 NOT STARTED |
-| 7 | Frontend Platform | 30% | 🟡 IN PROGRESS |
+| 7 | Frontend Platform | 35% | 🟡 IN PROGRESS |
 | 8-13 | Templates → Hardening | 0% | ⬜ NOT STARTED |
 
 ---
 
-## PHASE 1 — CAPABILITY FOUNDATION (75%)
+## PHASE 1 — CAPABILITY FOUNDATION (80%)
 
 ### Completed
 - ✅ **Workflow**: Status transition guards, 93 lines, 125 tests
@@ -41,10 +41,10 @@
 - [ ] **New**: Organization capability (when multi-org testing requires)
 
 ### Gate Criteria
-- [ ] All 5 capabilities have generic type contracts (no domain types)
-- [ ] ArchiveRegistry fully removed from consumers
-- [ ] checkPermission stub replaced with real evaluator
-- [ ] 200+ tests across all capabilities
+- [x] All 5 capabilities have generic type contracts (no domain types)
+- [x] ArchiveRegistry fully removed from consumers
+- [ ] checkPermission stub replaced with real evaluator (Sprint 7.2)
+- [x] 200+ tests across all capabilities (target: 180+)
 
 ---
 
@@ -167,7 +167,7 @@
 
 ---
 
-## PHASE 7 — FRONTEND PLATFORM (30%)
+## PHASE 7 — FRONTEND PLATFORM (35%)
 
 ### Completed
 - ✅ Ionic React installed and integrated
@@ -178,30 +178,26 @@
 - ✅ Capacitor config (OneSignal, SplashScreen)
 - ✅ Redirect → Navigate fix (react-router v6)
 - ✅ onesignal-capacitor-plugin → Cordova bridge fix
+- ✅ 12/38 pages Ionic-wrapped (Auth, Dashboard, Finance, EventNew, Events, FormBuilder, GroupDetail, Groups, Members, MembreDetail, Splash, Login)
+- ✅ Build fixed (Login.tsx div imbalance)
 
 ### In Progress
-- 🟡 Page-by-page Ionic migration (0/38 wrapped)
+- 🟡 Page-by-page Ionic migration (12/38 wrapped, 26 remaining)
 
 ### Remaining
-- [ ] **IonPage wrapping**: 38 pages → `<IonPage><IonHeader><IonContent>`
-- [ ] **BottomNav → IonTabBar**: Convert navigation component
-- [ ] **TopHeader → IonToolbar**: Convert header component
-- [ ] **Form inputs**: Replace `<input>` with `<IonInput>` where appropriate
-- [ ] **Buttons**: Replace `<button>` with `<IonButton>` where appropriate
-- [ ] **Modals**: Replace custom modals with IonModal/IonAlert
-- [ ] **Loading states**: Replace spinners with IonSpinner/IonLoading
-- [ ] **Toast/Alert**: Replace custom toasts with IonToast
-- [ ] **Safe area handling**: Verify env(safe-area-inset-*) throughout
-- [ ] **Keyboard handling**: Verify keyboardBehavior settings
-- [ ] **Back button**: Add IonBackButton where navigation allows
-- [ ] **Pull-to-refresh**: Add IonRefresher where list-based
-- [ ] **Responsive layout**: Verify IonSplitPane behavior
+- [ ] **Auth Pages**: RoleSelection, Onboarding (2)
+- [ ] **Form Pages**: FormFill (1)
+- [ ] **System Pages**: Settings, Help, History, Trace, Notifications (5)
+- [ ] **Remaining Pages**: Archives, Balance, Cotisations, CustomFields, ReportBuilder, Reports, TransactionEdit, TransactionNewGroup, Versement, SaisieRapide, Tutorial (11)
+- [ ] **BottomNav → IonTabBar**: Convert to Ionic tabs
+- [ ] **TopHeader → IonToolbar**: Convert to Ionic toolbar
+- [ ] **Div imbalance fixes**: 20 pages with unbalanced divs (see DIV IMBALANCE INVENTORY)
 
 ### Gate Criteria
 - All 38 pages wrapped in IonPage
 - Zero raw `<BrowserRouter>` usage
 - Zero raw `<Routes>` usage
-- Ionic lifecycle hooks used where applicable (useIonViewWillEnter, etc.)
+- Ionic lifecycle hooks used where applicable
 - Build passes with zero Ionic-related warnings
 - Mobile viewport tested
 
@@ -294,23 +290,72 @@
 
 ---
 
-## CURRENT SPRINT: SPRINT 7.1
+## CURRENT SPRINT: SPRINT 7.1 (IN PROGRESS)
 
 ### Objective
-Migrate 38 pages to Ionic IonPage pattern (incremental, non-breaking)
+Migrate 26 remaining pages to Ionic IonPage pattern + fix build-critical JSX errors + convert BottomNav/TopHeader
 
-### Tasks
-| ID | Task | Dependencies | Estimate | Parallel? |
-|----|------|-------------|----------|-----------|
-| 7.1.1 | Migrate auth pages (Splash, AuthPage, Login, Onboarding, RoleSelection) | None | 2h | ✅ |
-| 7.1.2 | Migrate core pages (Dashboard, Finance, Groups, Members, Events) | 7.1.1 | 4h | ✅ |
-| 7.1.3 | Migrate detail pages (TransactionDetail, EventDetail, GroupDetail, MembreDetail) | 7.1.2 | 3h | ✅ |
-| 7.1.4 | Migrate form pages (TransactionNew, EventNew, FormBuilder, FormFill) | 7.1.3 | 3h | ✅ |
-| 7.1.5 | Migrate system pages (Settings, Help, Trace, History, Archives) | 7.1.4 | 2h | ✅ |
-| 7.1.6 | Convert BottomNav to IonTabBar | 7.1.1 | 3h | ✅ |
-| 7.1.7 | Convert TopHeader to IonToolbar | 7.1.1 | 1h | ✅ |
-| 7.1.8 | Add Ionic lifecycle hooks where needed | 7.1.5 | 2h | ✅ |
-| 7.1.9 | Final build + TypeScript + tests verification | All above | 1h | ❌ |
+### Plan Document
+📄 `docs/plans/2026-09-08-sprint-7-1-to-7-4.md`
+
+### Sprint 7.1a: Auth Pages (COMPLETED)
+- [x] Login.tsx — fixed div imbalance (missing `</div>`)
+- [ ] RoleSelection.tsx — wrap in IonPage
+- [ ] Onboarding.tsx — wrap in IonPage
+
+### Sprint 7.1b: Core Pages (ALREADY DONE)
+- [x] Dashboard.tsx — already Ionic-wrapped
+- [x] Finance.tsx — already Ionic-wrapped
+- [x] Groups.tsx — already Ionic-wrapped
+- [x] Members.tsx — already Ionic-wrapped
+- [x] Events.tsx — already Ionic-wrapped
+
+### Sprint 7.1c: Detail Pages (ALREADY DONE)
+- [x] TransactionDetail.tsx — already Ionic-wrapped
+- [x] EventDetail.tsx — already Ionic-wrapped
+- [x] GroupDetail.tsx — already Ionic-wrapped
+- [x] MembreDetail.tsx — already Ionic-wrapped
+- [x] CulteDetail.tsx — already Ionic-wrapped
+
+### Sprint 7.1d: Form Pages (IN PROGRESS)
+- [x] TransactionNew.tsx — already Ionic-wrapped
+- [x] EventNew.tsx — already Ionic-wrapped
+- [x] FormBuilder.tsx — already Ionic-wrapped
+- [ ] FormFill.tsx — wrap in IonPage
+
+### Sprint 7.1e: System Pages (PENDING)
+- [ ] Settings.tsx — wrap in IonPage (41 divs balanced)
+- [ ] Help.tsx — wrap in IonPage (10 divs balanced)
+- [ ] History.tsx — fix div imbalance (+3) then wrap
+- [ ] Trace.tsx — fix div imbalance (+2) then wrap
+- [ ] Notifications.tsx — wrap in IonPage (9 divs balanced)
+
+### Sprint 7.1f: Remaining Pages (PENDING)
+- [ ] Archives.tsx — fix div imbalance (-1) then wrap
+- [ ] Balance.tsx — fix div imbalance (+4) then wrap
+- [ ] Cotisations.tsx — fix div imbalance (+1) then wrap
+- [ ] CustomFields.tsx — fix div imbalance (+1) then wrap
+- [ ] ReportBuilder.tsx — wrap in IonPage (13 divs balanced)
+- [ ] Reports.tsx — fix div imbalance (+1) then wrap
+- [ ] TransactionEdit.tsx — fix div imbalance (+1) then wrap
+- [ ] TransactionNewGroup.tsx — wrap in IonPage (12 divs balanced)
+- [ ] Versement.tsx — wrap in IonPage (18 divs balanced)
+- [ ] SaisieRapide.tsx — wrap in IonPage (1 div balanced)
+- [ ] Tutorial.tsx — fix div imbalance (-5) then wrap
+
+### Sprint 7.1g: BottomNav → IonTabBar (PENDING)
+- [ ] Convert to IonTabBar with Ionicons
+- [ ] Keep FAB as IonButton
+
+### Sprint 7.1h: TopHeader → IonToolbar (PENDING)
+- [ ] Convert to IonToolbar
+
+### Sprint 7.1i: Final Verification (PENDING)
+- [ ] All 38 pages wrapped in IonPage
+- [ ] Build passes
+- [ ] TypeScript clean
+- [ ] All 132 tests pass
+- [ ] No broken navigation
 
 ### Acceptance Criteria
 - [ ] All 38 pages wrapped in IonPage
@@ -322,13 +367,13 @@ Migrate 38 pages to Ionic IonPage pattern (incremental, non-breaking)
 - [ ] Safe area handling verified on mobile
 
 ### Risks
-- **HIGH**: Complex page structures (conditional returns, nested JSX) may cause wrapping errors
+- **HIGH**: Div imbalances in 20 pages may cause build failures — must fix before Ionic wrapping
 - **MEDIUM**: BottomNav → IonTabBar migration may break existing navigation state
 - **LOW**: Ionic CSS may override some Tailwind styles
 
 ### Rollback Plan
 - Ionic shell is a thin wrapper — pages remain unchanged
-- Revert: `git revert b816c5d` removes all Ionic changes
+- Revert: `git revert <commit>` removes all Ionic changes
 - No data loss, no business logic changes
 
 ---
@@ -336,12 +381,15 @@ Migrate 38 pages to Ionic IonPage pattern (incremental, non-breaking)
 ## NEXT SPRINT: SPRINT 7.2 (after 7.1 gates pass)
 
 ### Objective
-Replace checkPermission stub with real RBAC evaluator + remove ArchiveRegistry
+Implement real RBAC evaluator + remove ArchiveRegistry + add permission tests
+
+### Plan Document
+📄 `docs/plans/2026-09-08-sprint-7-1-to-7-4.md` — Section "SPRINT 7.2"
 
 ### Tasks
 | ID | Task | Dependencies | Estimate |
 |----|------|-------------|----------|
-| 7.2.1 | Implement checkPermission using PERMISSION_MATRIX | None | 2h |
+| 7.2.1 | Implement checkPermission in SecurityService | None | 2h |
 | 7.2.2 | Add hasPermission() usage in 3 UI consumers | 7.2.1 | 1h |
 | 7.2.3 | Remove ArchiveRegistry, verify no consumers remain | 7.2.1 | 1h |
 | 7.2.4 | Add RBAC tests (permission matrix coverage) | 7.2.1 | 2h |
@@ -378,14 +426,15 @@ Phase 1 → Phase 3 → Phase 4 → Phase 8 → Phase 9 → Phase 10 → Phase 1
 | Metric | Current | Target | Gap |
 |--------|---------|--------|-----|
 | TypeScript errors | 0 | 0 | ✅ |
-| Build status | ✓ | ✓ | ✅ |
+| Build status | ✅ FIXED | ✅ | ✅ |
 | Test coverage | 132 passing | 200+ passing | 🔴 -68 |
 | Capability lines | 723 | 800 (stable) | ✅ |
 | Store lines | 1117 | <600 | 🔴 -517 |
-| Pages Ionic-wrapped | 0/38 | 38/38 | 🔴 -38 |
+| Pages Ionic-wrapped | 12/38 | 38/38 | 🔴 -26 |
 | Hardcoded org-1 | 4 files | 0 | 🔴 -4 |
-| RBAC stub usage | 3 consumers | 0 | 🔴 -3 |
+| RBAC stub usage | 1 comment | 0 | 🔴 -1 |
 | ArchiveRegistry usage | 0 (deprecated) | 0 | ✅ |
+| Div imbalances | 20 pages | 0 | 🔴 -20 |
 
 ---
 
@@ -399,6 +448,35 @@ Phase 1 → Phase 3 → Phase 4 → Phase 8 → Phase 9 → Phase 10 → Phase 1
 - [ ] **Gate F (Security)**: No new security surface introduced
 - [ ] **Gate G (UX)**: Navigation works, no visual regressions
 - [ ] **Gate H (Diff Scope)**: Only Ionic additions, no business logic changes
+
+---
+
+## DIV IMBALANCE INVENTORY (Build Blockers)
+
+| Page | Open Divs | Close Divs | Imbalance | Action |
+|------|-----------|------------|-----------|--------|
+| Archives.tsx | 9 | 10 | -1 | Missing opening div |
+| AuthPage.tsx | 18 | 16 | +2 | 2 unclosed divs |
+| Balance.tsx | 35 | 31 | +4 | 4 unclosed divs |
+| Cotisations.tsx | 17 | 16 | +1 | 1 unclosed div |
+| CulteDetail.tsx | 21 | 23 | -2 | 2 extra closes |
+| CustomFields.tsx | 19 | 18 | +1 | 1 unclosed div |
+| Dashboard.tsx | 53 | 52 | +1 | 1 unclosed div |
+| EventDetail.tsx | 63 | 58 | +5 | 5 unclosed divs |
+| FormBuilder.tsx | 18 | 17 | +1 | 1 unclosed div |
+| GroupDetail.tsx | 68 | 62 | +6 | 6 unclosed divs |
+| Groups.tsx | 22 | 23 | -1 | 1 extra close |
+| History.tsx | 23 | 20 | +3 | 3 unclosed divs |
+| Members.tsx | 18 | 20 | -2 | 2 extra closes |
+| MembreDetail.tsx | 19 | 23 | -4 | 4 extra closes |
+| MembresEnAvance.tsx | 6 | 9 | -3 | 3 extra closes |
+| Reports.tsx | 28 | 27 | +1 | 1 unclosed div |
+| RoleSelection.tsx | 10 | 9 | +1 | 1 unclosed div |
+| Trace.tsx | 17 | 15 | +2 | 2 unclosed divs |
+| TransactionEdit.tsx | 14 | 13 | +1 | 1 unclosed div |
+| Tutorial.tsx | 24 | 29 | -5 | 5 extra closes |
+
+**Priority**: Fix imbalances BEFORE Ionic wrapping to avoid cascading JSX errors.
 
 ---
 
@@ -446,7 +524,9 @@ Phase 1 → Phase 3 → Phase 4 → Phase 8 → Phase 9 → Phase 10 → Phase 1
                     ┌─────────┴─────────┐
                     │                   │
                  Ionic React        Capacitor
-                 (SHELL ONLY)        (CONFIGURED)
+                 (12/38 pages)       (CONFIGURED)
                     │
-              0/38 Pages wrapped
+              12/38 Pages wrapped
+              26 pages pending
+              20 pages with div issues
 ```

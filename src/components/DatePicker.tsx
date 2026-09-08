@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { IonButton } from '@ionic/react';
 
 const MONTHS_FR = [
   'Janvier','Février','Mars','Avril','Mai','Juin',
@@ -62,16 +63,17 @@ export default function DatePicker({ value, onChange, label, id }: Props) {
   return (
     <div ref={containerRef} className="relative">
       <label className="text-text-tertiary text-xs mb-1.5 block">{label}</label>
-      <button
+      <IonButton
+        expand="block"
         type="button"
         onClick={() => setOpen(!open)}
         id={id}
-        className="w-full px-4 py-3 rounded-xl text-text-primary text-sm outline-none text-left flex items-center justify-between"
-        style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
+        className="w-full px-4 py-3 rounded-xl text-text-primary text-sm outline-none text-left flex items-center justify-between !min-height:auto"
+        style={{ backgroundColor: '#212121', border: '1px solid #282828', color: 'inherit' }}
       >
         <span>{value ? new Date(value + 'T00:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Sélectionner…'}</span>
         <span className="text-text-tertiary text-xs">📅</span>
-      </button>
+      </IonButton>
 
       {open && (
         <div
@@ -80,15 +82,15 @@ export default function DatePicker({ value, onChange, label, id }: Props) {
         >
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3">
-            <button onClick={prevMonth} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: '#282828' }}>
+            <IonButton onClick={prevMonth} className="!w-8 !h-8 !rounded-full !p-0 !min-height:auto" style={{ backgroundColor: '#282828' }}>
               <ChevronLeft className="w-4 h-4 text-text-primary" />
-            </button>
+            </IonButton>
             <span className="text-text-primary font-semibold text-sm">
               {MONTHS_FR[month]} {year}
             </span>
-            <button onClick={nextMonth} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: '#282828' }}>
+            <IonButton onClick={nextMonth} className="!w-8 !h-8 !rounded-full !p-0 !min-height:auto" style={{ backgroundColor: '#282828' }}>
               <ChevronRight className="w-4 h-4 text-text-primary" />
-            </button>
+            </IonButton>
           </div>
 
           {/* Day labels */}

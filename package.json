@@ -17,6 +17,9 @@
   "dependencies": {
     "@capacitor/push-notifications": "^6.0.5",
     "@hookform/resolvers": "^3.10.0",
+    "@ionic/core": "^9.0.2",
+    "@ionic/react": "^9.0.2",
+    "@ionic/react-router": "^9.0.2",
     "@playwright/test": "^1.62.1",
     "@powersync/react": "^2.0.1",
     "@powersync/web": "^2.3.0",

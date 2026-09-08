@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useLocalStore } from '@/store/useLocalStore';
 import { usePowerSyncStatus } from '@/lib/dataLayer';
 import { Shield, User, Mail, Wifi, WifiOff } from 'lucide-react';
+import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar } from '@ionic/react';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -42,7 +43,14 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-[#121212] flex flex-col">
+    <IonPage>
+      <IonHeader>
+        <IonToolbar>
+          <IonTitle>Login</IonTitle>
+        </IonToolbar>
+      </IonHeader>
+      <IonContent className="bg-canvas">
+      <div className="min-h-screen bg-[#121212] flex flex-col">
       {/* Top bar */}
       <div className="flex items-center justify-between px-6 py-5">
         <img src="/lumina-logo.png" alt="Lumina" className="w-10 h-10 object-contain" />
@@ -105,6 +113,8 @@ export default function Login() {
           </button>
         </div>
       </div>
-    </div>
+      </div>
+      </IonContent>
+    </IonPage>
   );
 }

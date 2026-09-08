@@ -29,5 +29,18 @@ export default tseslint.config(
       "no-empty-pattern": "warn",
       "react-hooks/rules-of-hooks": "warn",
     },
+  },
+  {
+    files: ['src/capabilities/**/*.ts'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        patterns: [
+          {
+            group: ['@/pages/**', '@/components/**'],
+            message: 'Capabilities must not depend on UI components or pages',
+          },
+        ],
+      }],
+    },
   }
 );

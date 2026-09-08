@@ -140,12 +140,12 @@ vi.mock('@/lib/audit', () => ({
 }));
 
 // ─── dataLayer mock (relationship capability) ─────────────────────
-const _memberships: Array<{ id: string; group_id: string; member_id: string; role: string }> = [];
+const _memberships: Array<{ id: string; group_id: string; member_id: string; role: string; org_id?: string }> = [];
 
 vi.mock('@/lib/dataLayer', () => ({
   addGroupMembershipPS: async (groupId: string, memberId: string, role: string) => {
     const id = `mock-mem-${Date.now()}`;
-    _memberships.push({ id, group_id: groupId, member_id: memberId, role });
+    _memberships.push({ id, group_id: groupId, member_id: memberId, role, org_id: 'test-org-1' });
     return id;
   },
   removeGroupMembershipPS: async (id: string) => {

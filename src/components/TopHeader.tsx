@@ -1,4 +1,5 @@
 import { Bell, Settings } from 'lucide-react';
+import { IonButton } from '@ionic/react';
 import { useLocalStore } from '@/store/useLocalStore';
 import { useNavigate } from 'react-router-dom';
 
@@ -23,10 +24,11 @@ export default function TopHeader({ title }: { title?: string }) {
         </div>
       </div>
       <div className="flex items-center gap-2">
-        <button
+        <IonButton
           onClick={handleNotificationsClick}
-          className="relative w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-95"
+          className="!min-height:auto !p-0 !rounded-full !min-w-[36px] !w-9 !h-9"
           style={{ backgroundColor: '#212121' }}
+          aria-label="Notifications"
         >
           <Bell className="w-4 h-4 text-text-secondary" />
           {unreadCount > 0 && (
@@ -34,14 +36,15 @@ export default function TopHeader({ title }: { title?: string }) {
               {unreadCount > 9 ? '9+' : unreadCount}
             </span>
           )}
-        </button>
-        <button
+        </IonButton>
+        <IonButton
           onClick={() => navigate('/settings')}
-          className="w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-95"
+          className="!min-height:auto !p-0 !rounded-full !min-w-[36px] !w-9 !h-9"
           style={{ backgroundColor: '#212121' }}
+          aria-label="Settings"
         >
           <Settings className="w-4 h-4 text-text-secondary" />
-        </button>
+        </IonButton>
       </div>
     </div>
   );

@@ -12,6 +12,7 @@ import { PageSkeleton, ListSkeleton } from '@/components/Skeleton';
 import type { Account, Caisse } from '@/types';
 import { getRoleLabel } from '@/store/useLocalStore';
 import { getAccountBalance } from '@/lib/account';
+import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar } from '@ionic/react';
 
 function CaisseCard({ account, transactions, navigate }: { account: Account; transactions: any[]; navigate: ReturnType<typeof useNavigate> }) {
   const caisse = useLocalStore.getState().getCaisseForDisplay(account.id);
@@ -118,18 +119,34 @@ export default function Dashboard() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-canvas">
-        <TopHeader title="Lumina" />
-        <PageSkeleton />
-        <BottomNav />
-      </div>
+      <IonPage>
+        <IonHeader>
+          <IonToolbar>
+            <IonTitle>Lumina</IonTitle>
+          </IonToolbar>
+        </IonHeader>
+        <IonContent fullscreen>
+          <div className="min-h-screen bg-canvas">
+            <TopHeader title="Lumina" />
+            <PageSkeleton />
+            <BottomNav />
+          </div>
+        </IonContent>
+      </IonPage>
     );
   }
 
   return (
-    <div className="min-h-screen bg-canvas">
-      <TopHeader title="Lumina" />
-      <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
+    <IonPage>
+      <IonHeader>
+        <IonToolbar>
+          <IonTitle>Lumina</IonTitle>
+        </IonToolbar>
+      </IonHeader>
+      <IonContent fullscreen>
+        <div className="min-h-screen bg-canvas">
+          <TopHeader title="Lumina" />
+          <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
 
         {/* Church name + Notifications */}
         <div className="flex items-center justify-between mb-6">
@@ -394,6 +411,8 @@ export default function Dashboard() {
       </div>
 
       <BottomNav />
-    </div>
+        </div>
+      </IonContent>
+    </IonPage>
   );
 }

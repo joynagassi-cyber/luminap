@@ -3,12 +3,14 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useLocalStore } from '@/store/useLocalStore';
 import { useEvents, useTransactions, useCaisses } from '@/lib/dataLayer';
 import { formatCurrencyCompact, formatDate } from '@/lib/utils';
-import { ArrowLeft, Calendar, Clock, Tag, CheckCircle, Play, Flag, Trash2, AlertCircle, Plus, ArrowUp, ArrowDown, Edit3 } from 'lucide-react';
+import { Calendar, Clock, Tag, CheckCircle, Play, Flag, Trash2, AlertCircle, Plus, ArrowUp, ArrowDown, Edit3 } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
 import { FullPageSkeleton } from '@/components/Skeleton';
 import type { EventStatus } from '@/types';
 import { security } from '@/capabilities/security';
+import { getOrganizationId } from '@/lib/orgContext';
+import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar, IonButtons, IonBackButton } from '@ionic/react';
 
 type Tab = 'overview' | 'budget' | 'transactions';
 
@@ -130,13 +132,19 @@ export default function EventDetail() {
   const progressPct = (event.budget || 0) > 0 ? Math.min(100, Math.round((budgetSpent / event.budget) * 100)) : 0;
 
   return (
-    <div className="min-h-screen bg-canvas flex flex-col">
+    <IonPage>
+      <IonHeader>
+        <IonToolbar>
+          <IonButtons slot="start">
+            <IonBackButton defaultHref="/events" />
+          </IonButtons>
+          <IonTitle>{event.name}</IonTitle>
+        </IonToolbar>
+      </IonHeader>
+      <IonContent className="ion-padding">
       <TopHeader title={event.name} />
 
-      <div className="flex-1 overflow-y-auto px-5 pb-28 pt-16">
-        <button onClick={() => navigate('/events')} className="flex items-center gap-2 text-text-secondary text-sm mb-5">
-          <ArrowLeft className="w-4 h-4" /> Retour
-        </button>
+      <div className="flex-1 overflow-y-auto px-5 pb-28 pt-4">
 
         {success && (
           <div className="mb-4 p-3 rounded-xl text-sm" style={{ backgroundColor: '#1DB95420', color: '#1DB954' }}>{success}</div>
@@ -545,6 +553,7 @@ export default function EventDetail() {
           </div>
         </div>
       )}
-    </div>
+      </IonContent>
+    </IonPage>
   );
 }

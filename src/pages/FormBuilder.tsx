@@ -7,6 +7,7 @@ import { formDefinitionRepo } from '@/lib/formSystem';
 import { generateId } from '@/lib/utils';
 import { getOrganizationId } from '@/lib/orgContext';
 import type { FormDefinition, FormFieldDefinition } from '@/types';
+import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar, IonInput, IonButton } from '@ionic/react';
 
 const FIELD_TYPES: { value: FormFieldDefinition['type']; label: string }[] = [
   { value: 'text', label: 'Texte' },
@@ -89,7 +90,14 @@ export default function FormBuilder() {
   };
 
   return (
-    <div className="h-screen bg-canvas flex flex-col overflow-hidden">
+    <IonPage>
+      <IonHeader>
+        <IonToolbar>
+          <IonTitle>Formulaires</IonTitle>
+        </IonToolbar>
+      </IonHeader>
+      <IonContent className="bg-canvas">
+      <div className="h-screen bg-canvas flex flex-col overflow-hidden">
       <TopHeader title="Formulaires" />
       <div className="flex-1 overflow-y-auto px-5 pt-16 pb-6 max-w-lg mx-auto">
         <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-text-secondary text-sm mb-5">
@@ -163,21 +171,19 @@ export default function FormBuilder() {
             </div>
 
             <div className="space-y-3 mb-4">
-              <input
+              <IonInput
                 type="text"
                 value={formName}
-                onChange={(e) => setFormName(e.target.value)}
+                onIonChange={(e) => setFormName(e.detail.value!)}
                 placeholder="Nom du formulaire *"
-                className="w-full px-4 py-3 rounded-xl text-text-primary text-sm outline-none"
-                style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
+                className="w-full"
               />
-              <input
+              <IonInput
                 type="text"
                 value={formKey}
-                onChange={(e) => setFormKey(e.target.value.replace(/\s+/g, '_').toLowerCase())}
+                onIonChange={(e) => setFormKey(e.detail.value!.replace(/\s+/g, '_').toLowerCase())}
                 placeholder="Clé (ex: demande_cotisation) *"
-                className="w-full px-4 py-3 rounded-xl text-text-primary text-sm outline-none"
-                style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
+                className="w-full"
               />
               <textarea
                 value={formDescription}
@@ -210,13 +216,13 @@ export default function FormBuilder() {
                 <div key={index} className="rounded-xl p-3 mb-2" style={{ backgroundColor: '#212121' }}>
                   <div className="flex items-center gap-2 mb-2">
                     <GripVertical className="w-4 h-4 text-text-tertiary flex-shrink-0" />
-                    <input
-                      type="text"
-                      value={field.label}
-                      onChange={(e) => updateField(index, { label: e.target.value })}
-                      className="flex-1 px-3 py-1.5 rounded-lg text-sm outline-none"
-                      style={{ backgroundColor: '#181818', border: '1px solid #282828', color: '#fff' }}
-                    />
+              <input
+                type="text"
+                value={field.label}
+                onChange={(e) => updateField(index, { label: e.target.value })}
+                className="flex-1 px-3 py-1.5 rounded-lg text-sm outline-none"
+                style={{ backgroundColor: '#181818', border: '1px solid #282828', color: '#fff' }}
+              />
                     <select
                       value={field.type}
                       onChange={(e) => updateField(index, { type: e.target.value as FormFieldDefinition['type'] })}
@@ -247,17 +253,19 @@ export default function FormBuilder() {
             </div>
 
             {error && <p className="text-xs mb-3" style={{ color: '#E51332' }}>{error}</p>}
-            <button onClick={handleCreate} className="w-full py-3.5 rounded-full font-semibold text-white mb-3" style={{ backgroundColor: '#FF6B00' }}>
+            <IonButton onClick={handleCreate} expand="block" className="w-full mb-3" color="tertiary">
               Créer le formulaire
-            </button>
-            <button onClick={() => setShowCreate(false)} className="w-full py-3 rounded-full font-medium text-sm text-text-tertiary" style={{ backgroundColor: '#212121' }}>
+            </IonButton>
+            <IonButton onClick={() => setShowCreate(false)} expand="block" className="w-full" color="medium" fill="outline">
               Annuler
-            </button>
+            </IonButton>
           </div>
         </div>
       )}
 
       <BottomNav />
-    </div>
+      </div>
+      </IonContent>
+    </IonPage>
   );
 }

@@ -1,3 +1,8 @@
+/**
+ * @deprecated Use src/capabilities/lifecycle/index.ts (LifecycleService) instead.
+ * ArchiveRegistry is a legacy implementation superseded by LifecycleService.
+ * This file will be removed in a future stabilization phase.
+ */
 import { getPowerSyncDatabase } from '@/lib/powersync';
 import { generateId } from './utils';
 import { auditLogRepo } from './audit';

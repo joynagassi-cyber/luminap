@@ -1,3 +1,6 @@
+import { IonButton } from '@ionic/react';
+import React from 'react';
+
 interface EmptyStateProps {
   icon?: React.ReactNode;
   title: string;
@@ -17,13 +20,13 @@ export default function EmptyState({ icon, title, description, actionLabel, onAc
       <h3 className="text-lg font-semibold text-text-primary mb-2">{title}</h3>
       <p className="text-text-tertiary text-sm mb-6 max-w-xs">{description}</p>
       {actionLabel && onAction && (
-        <button
+        <IonButton
           onClick={onAction}
-          className="px-6 py-3 rounded-full font-semibold text-sm transition-all active:scale-95"
-          style={{ backgroundColor: '#FF6B00', color: '#FFFFFF' }}
+          className="!rounded-full !font-semibold !text-sm !py-3 !px-6 transition-all"
+          style={{ '--background': '#FF6B00', '--color': '#FFFFFF' }}
         >
           {actionLabel}
-        </button>
+        </IonButton>
       )}
     </div>
   );

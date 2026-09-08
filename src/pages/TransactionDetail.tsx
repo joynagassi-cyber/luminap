@@ -7,6 +7,7 @@ import { ArrowLeft, Check, X, Edit2, Trash2, AlertCircle, RotateCcw } from 'luci
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
 import { security } from '@/capabilities/security';
+import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar, IonButtons, IonBackButton } from '@ionic/react';
 
 export default function TransactionDetail() {
   const { id } = useParams<{ id: string }>();
@@ -33,9 +34,21 @@ export default function TransactionDetail() {
   const tx = transactions.find((t: any) => t.id === id);
   if (!tx) {
     return (
-      <div className="min-h-screen bg-canvas flex items-center justify-center">
-        <p className="text-text-tertiary">Transaction introuvable</p>
-      </div>
+      <IonPage>
+        <IonHeader>
+          <IonToolbar>
+            <IonButtons slot="start">
+              <IonBackButton defaultHref="/" />
+            </IonButtons>
+            <IonTitle>Transaction</IonTitle>
+          </IonToolbar>
+        </IonHeader>
+        <IonContent fullscreen className="bg-canvas">
+          <div className="min-h-screen bg-canvas flex items-center justify-center">
+            <p className="text-text-tertiary">Transaction introuvable</p>
+          </div>
+        </IonContent>
+      </IonPage>
     );
   }
 
@@ -76,13 +89,23 @@ export default function TransactionDetail() {
     : null;
 
   return (
-    <div className="min-h-screen bg-canvas">
-      <TopHeader title="Transaction" />
-      <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
-        <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-text-secondary text-sm mb-6">
-          <ArrowLeft className="w-4 h-4" />
-          <span>Retour</span>
-        </button>
+    <IonPage>
+      <IonHeader>
+        <IonToolbar>
+          <IonButtons slot="start">
+            <IonBackButton defaultHref="/" />
+          </IonButtons>
+          <IonTitle>Transaction</IonTitle>
+        </IonToolbar>
+      </IonHeader>
+      <IonContent fullscreen className="bg-canvas">
+        <div className="min-h-screen bg-canvas">
+          <TopHeader title="Transaction" />
+          <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
+            <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-text-secondary text-sm mb-6">
+              <ArrowLeft className="w-4 h-4" />
+              <span>Retour</span>
+            </button>
 
         {/* Amount */}
         <div className="text-center mb-8">
@@ -267,6 +290,8 @@ export default function TransactionDetail() {
         )}
       </div>
       <BottomNav />
-    </div>
+        </div>
+      </IonContent>
+    </IonPage>
   );
 }

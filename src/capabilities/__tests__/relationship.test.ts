@@ -2,12 +2,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { RelationshipService, type MembershipRole } from '../relationship';
 
 // Mock dataLayer
-const _memberships: Array<{ id: string; group_id: string; member_id: string; role: string }> = [];
+const _memberships: Array<{ id: string; group_id: string; member_id: string; role: string; org_id?: string }> = [];
 
 vi.mock('@/lib/dataLayer', () => ({
   addGroupMembershipPS: vi.fn(async (groupId: string, memberId: string, role: string) => {
     const id = `mem-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    _memberships.push({ id, group_id: groupId, member_id: memberId, role });
+    _memberships.push({ id, group_id: groupId, member_id: memberId, role, org_id: 'test-org-1' });
     return id;
   }),
   removeGroupMembershipPS: vi.fn(async (id: string) => {
@@ -15,6 +15,10 @@ vi.mock('@/lib/dataLayer', () => ({
     if (idx !== -1) _memberships.splice(idx, 1);
   }),
   getGroupMembershipsPS: vi.fn(async () => _memberships),
+}));
+
+vi.mock('@/lib/orgContext', () => ({
+  getOrganizationId: () => 'test-org-1',
 }));
 
 describe('relationship capability', () => {

@@ -233,15 +233,6 @@ export function getRolesWithPermission(permission: Permission): Role[] {
 }
 
 /**
- * Check if a user can perform an action on a resource
- * usage: canAccess(user.role, 'transaction', 'approve')
- */
-export function canAccess(role: Role, resource: string, action: string): boolean {
-  const permission = `${resource}:${action}` as Permission;
-  return hasPermission(role, permission);
-}
-
-/**
  * Check if user has the highest or equal hierarchy level
  * Used for approval chains (e.g., only higher roles can approve)
  */
@@ -259,14 +250,16 @@ export function parseRole(raw: string): Role | null {
 }
 
 /**
- * Check if a role is a spiritual leader
+ * CHURCH-SPECIFIC: Not portable to School/Company/NGO Business Packs.
+ * cotisation:manage permission is also church-specific — move to domain policy.
  */
 export function isSpiritualLeader(role: Role): boolean {
   return ['PASTEUR_PRINCIPAL', 'PASTEUR_ASSOCIE', 'PASTEUR_JEUNESSE', 'ANCIEN'].includes(role);
 }
 
 /**
- * Check if a role can manage finances
+ * CHURCH-SPECIFIC: Not portable to School/Company/NGO Business Packs.
+ * cotisation:manage permission is also church-specific — move to domain policy.
  */
 export function canManageFinance(role: Role): boolean {
   return ['PASTEUR_PRINCIPAL', 'ANCIEN', 'TREASURIER', 'TREASURIER_ADJOINT', 'DIACRE'].includes(role);

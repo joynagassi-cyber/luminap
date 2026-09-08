@@ -11,6 +11,7 @@ import { FullPageSkeleton, ListSkeleton } from '@/components/Skeleton';
 import { relationship } from '@/capabilities/relationship';
 import { lifecycle } from '@/capabilities/lifecycle';
 import type { Transaction, Account, Member, GroupMembership } from '@/types';
+import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar, IonButtons, IonBackButton } from '@ionic/react';
 
 type Tab = 'transactions' | 'membres' | 'historique' | 'parametres';
 
@@ -52,14 +53,23 @@ export default function GroupDetail() {
 
   if (isLoading || !orgUnit || !account) {
     return (
-      <div className="min-h-screen bg-canvas flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-text-primary font-semibold mb-2">Groupe introuvable</p>
-          <button onClick={() => navigate('/groups')} className="text-sm" style={{ color: '#FF6B00' }}>
-            Retour aux groupes
-          </button>
-        </div>
-      </div>
+      <IonPage>
+        <IonHeader>
+          <IonToolbar>
+            <IonTitle>Groupe</IonTitle>
+          </IonToolbar>
+        </IonHeader>
+        <IonContent fullscreen className="bg-canvas">
+          <div className="min-h-screen bg-canvas flex items-center justify-center">
+            <div className="text-center">
+              <p className="text-text-primary font-semibold mb-2">Groupe introuvable</p>
+              <button onClick={() => navigate('/groups')} className="text-sm" style={{ color: '#FF6B00' }}>
+                Retour aux groupes
+              </button>
+            </div>
+          </div>
+        </IonContent>
+      </IonPage>
     );
   }
 
@@ -142,12 +152,17 @@ export default function GroupDetail() {
   };
 
   return (
-    <div className="min-h-screen bg-canvas">
-      <TopHeader title={orgUnit.name} />
-      <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
-        <button onClick={() => navigate('/groups')} className="flex items-center gap-2 text-text-secondary text-sm mb-5">
-          <ArrowLeft className="w-4 h-4" /> Retour
-        </button>
+    <IonPage>
+      <IonHeader>
+        <IonToolbar>
+          <IonButtons slot="start">
+            <IonBackButton defaultHref="/groups" />
+          </IonButtons>
+          <IonTitle>{orgUnit.name}</IonTitle>
+        </IonToolbar>
+      </IonHeader>
+      <IonContent className="bg-canvas" fullscreen>
+        <div className="max-w-lg mx-auto px-5 pb-32 pt-4">
 
         {error && <div className="mb-4 p-3 rounded-xl text-sm" style={{ backgroundColor: '#E5133220', color: '#E51332' }}>{error}</div>}
         {success && <div className="mb-4 p-3 rounded-xl text-sm" style={{ backgroundColor: '#1DB95420', color: '#1DB954' }}>{success}</div>}
@@ -502,6 +517,7 @@ export default function GroupDetail() {
           </div>
         </div>
       )}
-    </div>
+      </IonContent>
+    </IonPage>
   );
 }

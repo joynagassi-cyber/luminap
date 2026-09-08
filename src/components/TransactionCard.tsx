@@ -2,6 +2,7 @@ import { ArrowUpRight, ArrowDownRight, Wallet, Users, Calendar } from 'lucide-re
 import { formatCurrencyCompact, formatDate, getStatusLabel, getStatusColor } from '@/lib/utils';
 import type { Transaction } from '@/types';
 import { useNavigate } from 'react-router-dom';
+import { IonButton } from '@ionic/react';
 
 export default function TransactionCard({ transaction, onPress }: { transaction: Transaction; onPress?: (id: string) => void }) {
   const navigate = useNavigate();
@@ -15,7 +16,11 @@ export default function TransactionCard({ transaction, onPress }: { transaction:
   const event = transaction.event;
 
   return (
-    <button onClick={handleClick} className="w-full text-left rounded-xl p-4 transition-all active:scale-95" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
+    <IonButton
+      onClick={handleClick}
+      className="w-full text-left rounded-xl transition-all active:scale-95 !min-height:auto"
+      style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
+    >
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: isIncome ? '#1DB95420' : '#E5133220' }}>
           {isIncome
@@ -61,6 +66,6 @@ export default function TransactionCard({ transaction, onPress }: { transaction:
           </div>
         </div>
       </div>
-    </button>
+    </IonButton>
   );
 }

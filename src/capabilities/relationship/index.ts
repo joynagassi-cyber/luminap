@@ -12,6 +12,7 @@
  */
 
 import { addGroupMembershipPS, removeGroupMembershipPS, getGroupMembershipsPS } from '@/lib/dataLayer';
+import { getOrganizationId } from '@/lib/orgContext';
 
 /** Membership role */
 export type MembershipRole = 'MEMBRE' | 'RESPONSABLE';
@@ -54,10 +55,17 @@ export class RelationshipService {
   /**
    * Check if a member is already in a group.
    */
+  /**
+   * Check if a member belongs to a group.
+   * NOTE: This is a subset of the full Relationship capability — currently limited to group_memberships.
+   * Future: generalize to support any entity-to-entity relationship (Student->Class, Employee->Dept, etc.)
+   */
   async isMember(groupId: string, memberId: string): Promise<boolean> {
+    // Filter by org_id to ensure cross-org isolation
+    const orgId = getOrganizationId();
     const memberships = await getGroupMembershipsPS();
     return memberships.some(
-      m => m.group_id === groupId && m.member_id === memberId
+      m => m.group_id === groupId && m.member_id === memberId && m.org_id === orgId
     );
   }
 }

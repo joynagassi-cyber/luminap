@@ -1,13 +1,10 @@
 /**
  * Security Capability — RBAC evaluation facade
  *
- * Wraps src/lib/rbac.ts to provide a capability-style API.
- * The source of truth for permissions lives in rbac.ts;
- * this module re-exports it through the security singleton.
- *
- * Usage:
- *   import { security } from '@/capabilities/security'
- *   const allowed = security.hasRole(user.role, 'transaction', 'approve')
+ * RULE: Single source of truth is src/lib/rbac.ts.
+ * This module re-exports constants and wraps functions for capability-style access.
+ * Do NOT redefine PERMISSION_MATRIX, ROLE_LABELS, or ROLE_HIERARCHY here.
+ * Do NOT add domain-specific permissions — they belong in a Business Pack.
  */
 
 import { getRolePermissions, hasPermission, hasHigherOrEqualRole, parseRole, ROLE_LABELS, ROLE_HIERARCHY, PERMISSION_MATRIX } from '@/lib/rbac';

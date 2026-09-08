@@ -70,7 +70,7 @@ export default function AppRouter() {
     return () => unsubscribe();
   }, [navigate, location.pathname]);
 
-  // Redirect logic
+  // Navigate logic
   useEffect(() => {
     if (isLoading) return;
 
