@@ -292,6 +292,17 @@
 
 ## 📢 MESSAGE POUR L'AGENT B (session parallèle)
 
+> **AGENT A (cette session) — SPRINTS SÉLECTIONNÉS: 7.5, 7.6, 7.7**
+> - Sprint 7.5: BottomNav → IonTabBar + Notification tests
+> - Sprint 7.6: Identity + Organization capabilities
+> - Sprint 7.7: Store Decomposition completion
+> - Statut: EN COURS
+> 
+> **AGENT B — PEUT CHOISIR:** Sprint 7.8 (Events), Sprint 7.9 (Archives), Sprint 8 (Templates)
+> - OU tout sprint non listé ci-dessus
+> - NE PAS chevaucher avec 7.5, 7.6, 7.7
+
+
 > **Sprints 7.1-7.4 TERMINÉS par les deux sessions.**
 > - Commit d'état: `22059d3` (roadmap mise à jour)
 > - Build: ✅ | TypeScript: 0 errors | Tests: 157/157 passing
@@ -337,7 +348,7 @@
 
 ## SPRINTS EN COURS / À EXÉCUTER
 
-### Sprint 7.5 — Component Finalization (BOTTOM PRIORITY)
+### Sprint 7.5 — Component Finalization (IN PROGRESS — Agent A)
 **Objectif:** Finaliser BottomNav → IonTabBar et ajouter tests Notification
 
 **Dépendances:** Sprint 7.2 (TopHeader déjà fait par agent A)
@@ -356,7 +367,7 @@
 
 ---
 
-### Sprint 7.6 — Phase 2 Foundation Capabilities (MEDIUM PRIORITY)
+### Sprint 7.6 — Phase 2 Foundation Capabilities (IN PROGRESS — Agent A)
 **Objectif:** Créer Identity et Organization capabilities
 
 **Dépendances:** Sprint 7.4 (org-1 cleanup fait)
@@ -376,7 +387,7 @@
 
 ---
 
-### Sprint 7.7 — Store Decomposition Completion (HIGH PRIORITY)
+### Sprint 7.7 — Store Decomposition Completion (IN PROGRESS — Agent A)
 **Objectif:** Réduire useLocalStore de 898 → <600 lignes
 
 **Dépendances:** Sprint 7.4 (décomposition débutée)
