@@ -160,6 +160,24 @@ export class ResourceService {
   }
 
   /**
+   * List entities by a specific status value.
+   * Returns only entities matching the given status (e.g. ACTIVE, ARCHIVED).
+   */
+  async listByStatus<T extends { id: string }>(
+    entityType: string,
+    status: string
+  ): Promise<T[]> {
+    const table = this.toTableName(entityType);
+    const db = getPowerSyncDatabase();
+    const result = await db.execute(
+      `SELECT * FROM ${table} WHERE org_id = ? AND status = ? ORDER BY name`,
+      [getOrganizationId(), status]
+    );
+    const rows = result?.result || [];
+    return rows.map((row: any) => this.toResource<T>(entityType, row));
+  }
+
+  /**
    * List archived/cancelled entities of a type.
    * Uses the appropriate status field per entity type.
    */

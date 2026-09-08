@@ -569,6 +569,15 @@ export async function removeGroupMembershipPS(id: string): Promise<void> {
   await executeWrite(`DELETE FROM group_memberships WHERE id = ?`, [id]);
 }
 
+/**
+ * Get all group memberships via PowerSync
+ */
+export async function getGroupMembershipsPS(): Promise<PSGroupMembership[]> {
+  const db = getPowerSyncDatabase();
+  const result = await db.execute(`SELECT * FROM group_memberships`);
+  return (result?.result || []) as PSGroupMembership[];
+}
+
 // ============================================================
 // Migration gate: signal when PowerSync is fully initialized
 // ============================================================

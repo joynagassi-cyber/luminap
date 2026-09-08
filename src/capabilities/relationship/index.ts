@@ -8,9 +8,10 @@
  *   import { relationship } from '@/capabilities/relationship'
  *   const id = await relationship.addMembership(groupId, memberId, 'MEMBRE', actorId)
  *   await relationship.removeMembership(membershipId, actorId)
+ *   const isMember = await relationship.isMember(groupId, memberId)
  */
 
-import { addGroupMembershipPS, removeGroupMembershipPS } from '@/lib/dataLayer';
+import { addGroupMembershipPS, removeGroupMembershipPS, getGroupMembershipsPS } from '@/lib/dataLayer';
 
 /** Membership role */
 export type MembershipRole = 'MEMBRE' | 'RESPONSABLE';
@@ -54,9 +55,10 @@ export class RelationshipService {
    * Check if a member is already in a group.
    */
   async isMember(groupId: string, memberId: string): Promise<boolean> {
-    // Soft check — PS query runs on next sync.
-    // For immediate UI feedback, caller should check local state.
-    return false;
+    const memberships = await getGroupMembershipsPS();
+    return memberships.some(
+      m => m.group_id === groupId && m.member_id === memberId
+    );
   }
 }
 
