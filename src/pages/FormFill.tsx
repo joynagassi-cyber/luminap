@@ -74,6 +74,9 @@ export default function FormFill() {
   }
 
   return (
+    <IonPage>
+      <IonHeader><IonToolbar><IonTitle>FormFill</IonTitle></IonToolbar></IonHeader>
+      <IonContent className="bg-canvas">
     <div className="min-h-screen bg-canvas flex flex-col">
       <TopHeader title={form.name} />
       <div className="flex-1 overflow-y-auto px-5 pt-16 pb-6 max-w-lg mx-auto">
@@ -158,5 +161,7 @@ export default function FormFill() {
       </div>
       <BottomNav />
     </div>
+      </IonContent>
+    </IonPage>
   );
 }
