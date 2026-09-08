@@ -11,7 +11,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "start": "node .output/server/index.mjs",
-    "test": "playwright test --config playwright-dyad.config.ts"
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@capacitor/push-notifications": "^6.0.5",
@@ -100,6 +101,7 @@
     "typescript-eslint": "^8.0.1",
     "vite": "^8.2.2",
     "vite-plugin-top-level-await": "^1.6.0",
-    "vite-plugin-wasm": "^3.6.0"
+    "vite-plugin-wasm": "^3.6.0",
+    "vitest": "^5.0.0"
   }
 }

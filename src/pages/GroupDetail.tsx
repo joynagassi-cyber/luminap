@@ -9,6 +9,7 @@ import TopHeader from '@/components/TopHeader';
 import TransactionCard from '@/components/TransactionCard';
 import { FullPageSkeleton, ListSkeleton } from '@/components/Skeleton';
 import { relationship } from '@/capabilities/relationship';
+import { lifecycle } from '@/capabilities/lifecycle';
 import type { Transaction, Account, Member, GroupMembership } from '@/types';
 
 type Tab = 'transactions' | 'membres' | 'historique' | 'parametres';
@@ -16,7 +17,7 @@ type Tab = 'transactions' | 'membres' | 'historique' | 'parametres';
 export default function GroupDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { orgUnits: idbOrgUnits, accounts: idbAccounts, transactions: idbTxs, members: idbMembers, createGroup, updateGroup, deleteGroup, archiveGroup, isLoading, createNotification } = useLocalStore();
+  const { orgUnits: idbOrgUnits, accounts: idbAccounts, transactions: idbTxs, members: idbMembers, createGroup, updateGroup, deleteGroup, isLoading, createNotification } = useLocalStore();
 
   // PowerSync with fallback
   const { data: psGroups } = useGroups();
@@ -109,7 +110,7 @@ export default function GroupDetail() {
 
   const handleArchive = async () => {
     try {
-      await archiveGroup(id!, 'Archive manuelle', 'local-user');
+      await lifecycle.archive('Group', id!, 'Archive manuelle', 'local-user');
       navigate('/groups');
     } catch (e: any) {
       setError("Nous n'avons pas pu archiver ce groupe. Veuillez réessayer.");
@@ -118,8 +119,8 @@ export default function GroupDetail() {
 
   const handleAddMember = async () => {
     if (!selectedMemberId) return;
-    const existing = groupMemberships.find((m: any) => m.member_id === selectedMemberId || m.memberId === selectedMemberId);
-    if (existing) {
+    const isMember = await relationship.isMember(id!, selectedMemberId);
+    if (isMember) {
       setError('Ce membre est déjà dans le groupe');
       return;
     }

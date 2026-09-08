@@ -14,6 +14,7 @@ import type { PowerSyncDatabase } from '@powersync/web';
 import { getPowerSyncDatabase } from '@/lib/powersync';
 import { useLocalStore } from '@/store/useLocalStore';
 import { useEffect, useState, useRef } from 'react';
+import type { CustomFieldDefinition, CustomFieldValue, FormDefinition, FormSubmission } from '@/types';
 
 // ============================================================
 // PowerSync entity types (snake_case columns)
@@ -967,3 +968,344 @@ export async function updateMemberPS(
     params
   );
 }
+
+// ============================================================
+// Custom Field Definitions (PowerSync)
+// ============================================================
+
+export async function createCustomFieldDefinitionPS(
+  def: Omit<CustomFieldDefinition, 'id' | 'createdAt' | 'updatedAt'>
+): Promise<CustomFieldDefinition> {
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  await executeWrite(
+    `INSERT INTO custom_field_definitions (id, org_id, entity_type, field_name, field_label, field_type, options, \`order\`, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      id,
+      def.orgId,
+      def.entityType,
+      def.key,
+      def.label,
+      def.type,
+      def.options ? JSON.stringify(def.options) : null,
+      def.order,
+      now,
+      now,
+    ]
+  );
+  return { ...def, id, createdAt: now, updatedAt: now };
+}
+
+export async function getCustomFieldDefinitionPS(id: string): Promise<CustomFieldDefinition | null> {
+  const db = getPowerSyncDatabase();
+  const result = await db.execute(
+    `SELECT * FROM custom_field_definitions WHERE id = ?`,
+    [id]
+  );
+  const row = result?.result?.[0] as any;
+  if (!row) return null;
+  return {
+    id: row.id,
+    orgId: row.org_id,
+    entityType: row.entity_type,
+    key: row.field_name,
+    label: row.field_label,
+    type: row.field_type,
+    options: row.options ? JSON.parse(row.options) : undefined,
+    order: row.order,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+export async function listCustomFieldDefinitionsPS(entityType?: string): Promise<CustomFieldDefinition[]> {
+  const db = getPowerSyncDatabase();
+  const sql = entityType
+    ? `SELECT * FROM custom_field_definitions WHERE entity_type = ?`
+    : `SELECT * FROM custom_field_definitions`;
+  const result = await db.execute(sql, entityType ? [entityType] : []);
+  const rows = (result?.result || []) as any[];
+  return rows.map(r => ({
+    id: r.id,
+    orgId: r.org_id,
+    entityType: r.entity_type,
+    key: r.field_name,
+    label: r.field_label,
+    type: r.field_type,
+    options: r.options ? JSON.parse(r.options) : undefined,
+    order: r.order,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+  }));
+}
+
+export async function updateCustomFieldDefinitionPS(
+  id: string,
+  data: Partial<CustomFieldDefinition>
+): Promise<CustomFieldDefinition | null> {
+  const existing = await getCustomFieldDefinitionPS(id);
+  if (!existing) return null;
+  const merged = { ...existing, ...data };
+  const setClauses: string[] = [];
+  const params: any[] = [];
+  if (data.entityType !== undefined) { setClauses.push('entity_type = ?'); params.push(data.entityType); }
+  if (data.key !== undefined) { setClauses.push('field_name = ?'); params.push(data.key); }
+  if (data.label !== undefined) { setClauses.push('field_label = ?'); params.push(data.label); }
+  if (data.type !== undefined) { setClauses.push('field_type = ?'); params.push(data.type); }
+  if (data.options !== undefined) { setClauses.push('options = ?'); params.push(JSON.stringify(data.options)); }
+  if (data.order !== undefined) { setClauses.push('order = ?'); params.push(data.order); }
+  setClauses.push('updated_at = ?');
+  params.push(new Date().toISOString());
+  params.push(id);
+  await executeWrite(
+    `UPDATE custom_field_definitions SET ${setClauses.join(', ')} WHERE id = ?`,
+    params
+  );
+  return merged;
+}
+
+export async function deleteCustomFieldDefinitionPS(id: string): Promise<void> {
+  await executeWrite('DELETE FROM custom_field_definitions WHERE id = ?', [id]);
+  await executeWrite('DELETE FROM custom_field_values WHERE custom_field_definition_id = ?', [id]);
+}
+
+// ============================================================
+// Custom Field Values (PowerSync)
+// ============================================================
+
+export async function upsertCustomFieldValuePS(
+  value: Omit<CustomFieldValue, 'id' | 'createdAt' | 'updatedAt'>
+): Promise<CustomFieldValue> {
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  const rowValue = typeof value.value === 'object' && value.value !== null
+    ? JSON.stringify(value.value)
+    : String(value.value ?? '');
+  await executeWrite(
+    `INSERT INTO custom_field_values (id, entity_type, entity_id, custom_field_definition_id, value, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [id, value.entityType, value.entityId, value.customFieldDefinitionId, rowValue, now, now]
+  );
+  return { ...value, id, createdAt: now, updatedAt: now, value: value.value };
+}
+
+export async function getCustomFieldValuesByEntityPS(entityType: string, entityId: string): Promise<CustomFieldValue[]> {
+  const db = getPowerSyncDatabase();
+  const result = await db.execute(
+    `SELECT * FROM custom_field_values WHERE entity_type = ? AND entity_id = ?`,
+    [entityType, entityId]
+  );
+  const rows = (result?.result || []) as any[];
+  return rows.map(r => ({
+    id: r.id,
+    entityType: r.entity_type,
+    entityId: r.entity_id,
+    customFieldDefinitionId: r.custom_field_definition_id,
+    value: r.value,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+  }));
+}
+
+export async function deleteCustomFieldValuePS(id: string): Promise<void> {
+  await executeWrite('DELETE FROM custom_field_values WHERE id = ?', [id]);
+}
+
+// ============================================================
+// Form Definitions (PowerSync)
+// ============================================================
+
+export async function createFormDefinitionPS(
+  def: Omit<FormDefinition, 'id' | 'createdAt' | 'updatedAt'>
+): Promise<FormDefinition> {
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  await executeWrite(
+    `INSERT INTO form_definitions (id, org_id, key, name, description, version, target_entity_type, fields, status, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      id,
+      def.orgId,
+      def.key,
+      def.name,
+      def.description ?? null,
+      def.version,
+      def.targetEntityType ?? null,
+      JSON.stringify(def.fields),
+      def.status,
+      now,
+      now,
+    ]
+  );
+  return { ...def, id, createdAt: now, updatedAt: now };
+}
+
+export async function getFormDefinitionPS(id: string): Promise<FormDefinition | null> {
+  const db = getPowerSyncDatabase();
+  const result = await db.execute(`SELECT * FROM form_definitions WHERE id = ?`, [id]);
+  const row = result?.result?.[0] as any;
+  if (!row) return null;
+  return {
+    id: row.id,
+    orgId: row.org_id,
+    key: row.key,
+    name: row.name,
+    description: row.description,
+    version: row.version,
+    targetEntityType: row.target_entity_type,
+    fields: JSON.parse(row.fields),
+    status: row.status,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+export async function listFormDefinitionsPS(filters?: { status?: string; orgId?: string }): Promise<FormDefinition[]> {
+  const db = getPowerSyncDatabase();
+  const conditions: string[] = [];
+  const params: any[] = [];
+  if (filters?.status) { conditions.push('status = ?'); params.push(filters.status); }
+  if (filters?.orgId) { conditions.push('org_id = ?'); params.push(filters.orgId); }
+  const sql = conditions.length > 0
+    ? `SELECT * FROM form_definitions WHERE ${conditions.join(' AND ')}`
+    : `SELECT * FROM form_definitions`;
+  const result = await db.execute(sql, params);
+  const rows = (result?.result || []) as any[];
+  return rows.map(r => ({
+    id: r.id,
+    orgId: r.org_id,
+    key: r.key,
+    name: r.name,
+    description: r.description,
+    version: r.version,
+    targetEntityType: r.target_entity_type,
+    fields: JSON.parse(r.fields),
+    status: r.status,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+  }));
+}
+
+export async function updateFormDefinitionPS(
+  id: string,
+  data: Partial<FormDefinition>
+): Promise<FormDefinition | null> {
+  const existing = await getFormDefinitionPS(id);
+  if (!existing) return null;
+  const merged = { ...existing, ...data, updatedAt: new Date().toISOString() };
+  const setClauses: string[] = [];
+  const params: any[] = [];
+  if (data.orgId !== undefined) { setClauses.push('org_id = ?'); params.push(data.orgId); }
+  if (data.key !== undefined) { setClauses.push('key = ?'); params.push(data.key); }
+  if (data.name !== undefined) { setClauses.push('name = ?'); params.push(data.name); }
+  if (data.description !== undefined) { setClauses.push('description = ?'); params.push(data.description); }
+  if (data.version !== undefined) { setClauses.push('version = ?'); params.push(data.version); }
+  if (data.targetEntityType !== undefined) { setClauses.push('target_entity_type = ?'); params.push(data.targetEntityType); }
+  if (data.fields !== undefined) { setClauses.push('fields = ?'); params.push(JSON.stringify(data.fields)); }
+  if (data.status !== undefined) { setClauses.push('status = ?'); params.push(data.status); }
+  setClauses.push('updated_at = ?');
+  params.push(new Date().toISOString());
+  params.push(id);
+  await executeWrite(`UPDATE form_definitions SET ${setClauses.join(', ')} WHERE id = ?`, params);
+  return merged;
+}
+
+export async function deleteFormDefinitionPS(id: string): Promise<void> {
+  await executeWrite('DELETE FROM form_definitions WHERE id = ?', [id]);
+}
+
+// ============================================================
+// Form Submissions (PowerSync)
+// ============================================================
+
+export async function createFormSubmissionPS(
+  sub: Omit<FormSubmission, 'id' | 'submittedAt' | 'createdAt'>
+): Promise<FormSubmission> {
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  await executeWrite(
+    `INSERT INTO form_submissions (id, org_id, form_definition_id, form_version, entity_type, entity_id, data, submitted_by, submitted_at, status, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      id,
+      sub.orgId,
+      sub.formDefinitionId,
+      sub.formVersion,
+      sub.linkedEntityType ?? null,
+      sub.linkedEntityId ?? null,
+      JSON.stringify(sub.data),
+      sub.submittedBy,
+      now,
+      sub.status,
+      now,
+    ]
+  );
+  return { ...sub, id, submittedAt: now, createdAt: now };
+}
+
+export async function getFormSubmissionPS(id: string): Promise<FormSubmission | null> {
+  const db = getPowerSyncDatabase();
+  const result = await db.execute(`SELECT * FROM form_submissions WHERE id = ?`, [id]);
+  const row = result?.result?.[0] as any;
+  if (!row) return null;
+  return {
+    id: row.id,
+    orgId: row.org_id,
+    formDefinitionId: row.form_definition_id,
+    formVersion: row.form_version,
+    submittedBy: row.submitted_by,
+    submittedAt: row.submitted_at,
+    data: JSON.parse(row.data),
+    linkedEntityType: row.entity_type,
+    linkedEntityId: row.entity_id,
+    status: row.status,
+    createdAt: row.created_at,
+  };
+}
+
+export async function listFormSubmissionsPS(filters?: { formDefinitionId?: string; status?: string; entityId?: string }): Promise<FormSubmission[]> {
+  const db = getPowerSyncDatabase();
+  const conditions: string[] = [];
+  const params: any[] = [];
+  if (filters?.formDefinitionId) { conditions.push('form_definition_id = ?'); params.push(filters.formDefinitionId); }
+  if (filters?.status) { conditions.push('status = ?'); params.push(filters.status); }
+  if (filters?.entityId) { conditions.push('entity_id = ?'); params.push(filters.entityId); }
+  const sql = conditions.length > 0
+    ? `SELECT * FROM form_submissions WHERE ${conditions.join(' AND ')}`
+    : `SELECT * FROM form_submissions`;
+  const result = await db.execute(sql, params);
+  const rows = (result?.result || []) as any[];
+  return rows.map(r => ({
+    id: r.id,
+    orgId: r.org_id,
+    formDefinitionId: r.form_definition_id,
+    formVersion: r.form_version,
+    submittedBy: r.submitted_by,
+    submittedAt: r.submitted_at,
+    data: JSON.parse(r.data),
+    linkedEntityType: r.entity_type,
+    linkedEntityId: r.entity_id,
+    status: r.status,
+    createdAt: r.created_at,
+  }));
+}
+
+export async function updateFormSubmissionPS(
+  id: string,
+  data: Partial<FormSubmission>
+): Promise<FormSubmission | null> {
+  const existing = await getFormSubmissionPS(id);
+  if (!existing) return null;
+  const merged = { ...existing, ...data };
+  const setClauses: string[] = [];
+  const params: any[] = [];
+  if (data.orgId !== undefined) { setClauses.push('org_id = ?'); params.push(data.orgId); }
+  if (data.formDefinitionId !== undefined) { setClauses.push('form_definition_id = ?'); params.push(data.formDefinitionId); }
+  if (data.formVersion !== undefined) { setClauses.push('form_version = ?'); params.push(data.formVersion); }
+  if (data.linkedEntityType !== undefined) { setClauses.push('entity_type = ?'); params.push(data.linkedEntityType); }
+  if (data.linkedEntityId !== undefined) { setClauses.push('entity_id = ?'); params.push(data.linkedEntityId); }
+  if (data.data !== undefined) { setClauses.push('data = ?'); params.push(JSON.stringify(data.data)); }
+  if (data.status !== undefined) { setClauses.push('status = ?'); params.push(data.status); }
+  await executeWrite(`UPDATE form_submissions SET ${setClauses.join(', ')} WHERE id = ?`, params);
+  return merged;
+}
+

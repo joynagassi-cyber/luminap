@@ -3,17 +3,24 @@ import { generateId } from './utils';
 import { writeAudit } from './audit';
 import type { FormDefinition, FormSubmission } from '@/types';
 import { getOrganizationId } from './orgContext';
-// StoreName removed - using PowerSync
+import {
+  createFormDefinitionPS,
+  getFormDefinitionPS,
+  listFormDefinitionsPS,
+  updateFormDefinitionPS,
+  deleteFormDefinitionPS,
+  createFormSubmissionPS,
+  getFormSubmissionPS,
+  listFormSubmissionsPS,
+  updateFormSubmissionPS,
+} from './dataLayer';
 
 /**
- * FormDefinitionRepository
+ * FormDefinitionRepository — PowerSync-backed
  */
 export const formDefinitionRepo = {
   async create(def: Omit<FormDefinition, 'id' | 'createdAt' | 'updatedAt'>): Promise<FormDefinition> {
-    const id = generateId();
-    const now = new Date().toISOString();
-    const entry: FormDefinition = { ...def, id, createdAt: now, updatedAt: now };
-    await db.put('form_definitions' as StoreName, entry);
+    const entry = await createFormDefinitionPS(def);
     await writeAudit({
       orgId: getOrganizationId(),
       transactionId: null,
@@ -21,7 +28,7 @@ export const formDefinitionRepo = {
       actorRoleAtTime: null,
       action: 'CREATE',
       entityType: 'FormDefinition',
-      entityId: id,
+      entityId: entry.id,
       beforeState: null,
       afterState: entry,
       comment: null,
@@ -30,23 +37,18 @@ export const formDefinitionRepo = {
   },
 
   async get(id: string): Promise<FormDefinition | null> {
-    return db.get<FormDefinition>('form_definitions' as StoreName, id).catch(() => null);
+    return getFormDefinitionPS(id);
   },
 
   async list(filters?: { status?: string; orgId?: string }): Promise<FormDefinition[]> {
-    const all = await db.getAll<FormDefinition>('form_definitions' as StoreName).catch(() => [] as FormDefinition[]);
-    return all.filter(f => {
-      if (filters?.status && f.status !== filters.status) return false;
-      if (filters?.orgId && f.orgId !== filters.orgId) return false;
-      return true;
-    });
+    return listFormDefinitionsPS(filters);
   },
 
   async update(id: string, data: Partial<FormDefinition>): Promise<FormDefinition | null> {
     const existing = await this.get(id);
     if (!existing) return null;
-    const updated: FormDefinition = { ...existing, ...data, updatedAt: new Date().toISOString() };
-    await db.put('form_definitions' as StoreName, updated);
+    const updated = await updateFormDefinitionPS(id, data);
+    if (!updated) return null;
     await writeAudit({
       orgId: existing.orgId,
       transactionId: null,
@@ -63,19 +65,30 @@ export const formDefinitionRepo = {
   },
 
   async delete(id: string): Promise<void> {
-    await db.delete('form_definitions' as StoreName, id);
+    const existing = await this.get(id);
+    if (!existing) return;
+    await deleteFormDefinitionPS(id);
+    await writeAudit({
+      orgId: existing.orgId,
+      transactionId: null,
+      userId: 'local-user',
+      actorRoleAtTime: null,
+      action: 'DELETE',
+      entityType: 'FormDefinition',
+      entityId: id,
+      beforeState: existing,
+      afterState: null,
+      comment: null,
+    });
   },
 };
 
 /**
- * FormSubmissionRepository
+ * FormSubmissionRepository — PowerSync-backed
  */
 export const formSubmissionRepo = {
   async create(sub: Omit<FormSubmission, 'id' | 'createdAt' | 'submittedAt'>): Promise<FormSubmission> {
-    const id = generateId();
-    const now = new Date().toISOString();
-    const entry: FormSubmission = { ...sub, id, submittedAt: now, createdAt: now };
-    await db.put('form_submissions' as StoreName, entry);
+    const entry = await createFormSubmissionPS(sub);
     await writeAudit({
       orgId: getOrganizationId(),
       transactionId: null,
@@ -83,7 +96,7 @@ export const formSubmissionRepo = {
       actorRoleAtTime: null,
       action: 'CREATE',
       entityType: 'FormSubmission',
-      entityId: id,
+      entityId: entry.id,
       beforeState: null,
       afterState: entry,
       comment: null,
@@ -92,25 +105,15 @@ export const formSubmissionRepo = {
   },
 
   async get(id: string): Promise<FormSubmission | null> {
-    return db.get<FormSubmission>('form_submissions' as StoreName, id).catch(() => null);
+    return getFormSubmissionPS(id);
   },
 
   async list(filters?: { formDefinitionId?: string; status?: string; entityId?: string }): Promise<FormSubmission[]> {
-    const all = await db.getAll<FormSubmission>('form_submissions' as StoreName).catch(() => [] as FormSubmission[]);
-    return all.filter(s => {
-      if (filters?.formDefinitionId && s.formDefinitionId !== filters.formDefinitionId) return false;
-      if (filters?.status && s.status !== filters.status) return false;
-      if (filters?.entityId && s.linkedEntityId !== filters.entityId) return false;
-      return true;
-    });
+    return listFormSubmissionsPS(filters);
   },
 
   async update(id: string, data: Partial<FormSubmission>): Promise<FormSubmission | null> {
-    const existing = await this.get(id);
-    if (!existing) return null;
-    const updated: FormSubmission = { ...existing, ...data };
-    await db.put('form_submissions' as StoreName, updated);
-    return updated;
+    return updateFormSubmissionPS(id, data);
   },
 };
 

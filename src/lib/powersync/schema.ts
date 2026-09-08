@@ -269,27 +269,36 @@ const config = new Table(
 
 const form_definitions = new Table(
   {
+    id: column.text,
     org_id: column.text,
+    key: column.text,
     name: column.text,
     description: column.text,
+    version: column.integer,
+    target_entity_type: column.text,
     fields: column.text,
     status: column.text,
     created_at: column.text,
     updated_at: column.text,
   },
-  { indexes: {} }
+  { indexes: { idx_form_defs_key: 'key', idx_form_defs_org: 'org_id' } }
 );
 
 const form_submissions = new Table(
   {
+    id: column.text,
+    org_id: column.text,
     form_definition_id: column.text,
+    form_version: column.integer,
     entity_type: column.text,
     entity_id: column.text,
     data: column.text,
     submitted_by: column.text,
     submitted_at: column.text,
+    status: column.text,
+    created_at: column.text,
   },
-  { indexes: {} }
+  { indexes: { idx_form_subs_def: 'form_definition_id', idx_form_subs_org: 'org_id' } }
 );
 
 const custom_field_definitions = new Table(

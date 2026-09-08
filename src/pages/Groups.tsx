@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLocalStore } from '@/store/useLocalStore';
 import { useGroups, useOrgUnits } from '@/lib/dataLayer';
+import { resource } from '@/capabilities/resource';
+import type { OrgUnit } from '@/types';
 import { Users, Plus, X, Palette, Edit3, Trash2 } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
@@ -20,7 +22,33 @@ export default function Groups() {
   const { data: psGroups } = useGroups();
   const { data: psOrgUnits } = useOrgUnits();
 
-  const orgUnits = psOrgUnits ?? idbOrgUnits;
+  const [activeGroups, setActiveGroups] = useState<OrgUnit[]>([]);
+
+  // Load active groups via Resource capability as primary source
+  useEffect(() => {
+    resource.list<OrgUnit>('Role', {
+      filter: [{ field: 'is_active', op: 'eq', value: 1 }],
+      sortBy: 'name',
+      sortOrder: 'asc',
+    })
+      .then(({ items }) => {
+        // resource returns camelCase (isActive), normalize to match OrgUnit type
+        const normalized = (items as any[]).map((g: any) => ({
+          id: g.id,
+          name: g.name,
+          type: g.type,
+          description: g.description || '',
+          orgId: g.org_id || g.orgId || '',
+          isActive: g.is_active ?? g.isActive ?? true,
+        }));
+        setActiveGroups(normalized);
+      })
+      .catch(() => {
+        // Fall through to fallback
+      });
+  }, []);
+
+  const orgUnits = activeGroups.length > 0 ? activeGroups : psOrgUnits ?? idbOrgUnits;
 
   const [showCreate, setShowCreate] = useState(false);
   const [showEdit, setShowEdit] = useState<string | null>(null);
