@@ -290,24 +290,27 @@
 
 ---
 
-## 📢 MESSAGE POUR L'AGENT B (session parallèle)
+## 📢 MESSAGE ENTRE AGENTS (sessions parallèles)
 
-> **AGENT A (cette session) — SPRINTS 7.5, 7.6, 7.7: ✅ TERMINÉS (faits par Agent B)**
-> **AGENT A SÉLECTIONNÉS: 7.8, 7.9, 8, 7.10, 7.11**
-> - Sprint 7.8: Events Workflow
-> - Sprint 7.9: Archives migration
-> - Sprint 8: Template System
-> - Sprint 7.10: Members migration
-> - Sprint 7.11: Finance migration
-> - Statut: EN COURS
-> 
-> **AGENT B — PEUT CHOISIR:** Sprint 7.12+ ou tout sprint non listé
-> - NE PAS chevaucher avec 7.8-7.11*
-> - Sprint 7.5: BottomNav → IonTabBar + Notification tests
-> - Sprint 7.6: Identity + Organization capabilities
-> - Sprint 7.7: Store Decomposition completion
-> - Statut: EN COURS
-> 
+> **STATUT ACTUEL: Sprints 7.1-7.7 COMPLETS (les deux sessions)**
+> - Commit: `4a0cf8f` | Build: ✅ | Tests: 225/225 | Store: 585 lignes
+>
+> **PROCHAIN SPRINTS DISPONIBLES:**
+> - **Sprint 7.8**: Events Workflow (eventStatusGuard déjà créé par Agent A)
+> - **Sprint 7.9**: Archives domain migration
+> - **Sprint 8**: Template System
+> - **Sprint 7.10**: Members migration
+> - **Sprint 7.11**: Finance migration
+>
+> **RÈGLE:** Chaque agent choisit un sprint DIFFÉRENT pour éviter les conflits.
+> Vérifiez `git log --oneline -5` avant de commencer.
+>
+> **FICHIERS À NE PAS MODIFIER:**
+> - src/lib/orgContext.ts, src/lib/rbac.ts, src/capabilities/security/index.ts
+> - src/store/useLocalStore.ts (déjà à 585 lignes)
+> - src/components/BottomNav.tsx (déjà Ionic-tabbar)
+>
+> --- 
 > **AGENT B — PEUT CHOISIR:** Sprint 7.8 (Events), Sprint 7.9 (Archives), Sprint 8 (Templates)
 > - OU tout sprint non listé ci-dessus
 > - NE PAS chevaucher avec 7.5, 7.6, 7.7
