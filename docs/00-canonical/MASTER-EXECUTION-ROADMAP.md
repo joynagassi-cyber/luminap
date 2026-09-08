@@ -432,17 +432,49 @@
 
 ## PROCHAIN SPRINTS (après 7.5-7.7)
 
-### Sprint 7.8 — Phase 5 Domain Migration: Events (IN PROGRESS — Agent A)
+### Sprint 7.8 — Phase 5 Domain Migration: Events ✅ COMPLETE (Agent A)
+- eventStatusGuard added to Workflow capability
+- INTEGRATED: EventDetail uses workflow.check()
+- Commit: 
+
+---
+
+### Sprint 7.9 — Phase 5 Domain Migration: Archives ✅ COMPLETE (Agent A)
+- archiveService.ts SUPPRIMÉ (0 consumers)
+- Archives page uses Resource + Lifecycle capabilities
+- Commit: 
+
+---
+
+### Sprint 8 — Template System ✅ COMPLETE (Agent A)
+- src/templates/schema.ts — Template definition interface
+- src/templates/church.ts — Church template as reference
+- Capabilities, workflows, permissions, branding defined
+- Commit: 
+
+---
+
+### Sprint 7.10 — Phase 5 Domain Migration: Members ✅ COMPLETE (Agent A)
+- member status workflow guard added
+- Members.tsx uses workflow.check()
+- Commit: 
+
+---
+
+### Sprint 7.11 — Phase 5 Domain Migration: Finance ✅ COMPLETE (Agent A)
+- Policy capability created (cotisation rules, transaction validation)
+- Transaction workflow verified (APPROVED immutable)
+- Commit: 
 **Objectif:** Workflow capability pour Events (PLANIFIED → ONGOING → COMPLETED)
 - Add Workflow capability for events (status: PLANIFIED → ONGOING → COMPLETED)
 - Files: src/pages/Events.tsx, src/pages/EventNew.tsx, src/capabilities/workflow/
 
-### Sprint 7.9 — Phase 5 Domain Migration: Archives (IN PROGRESS — Agent A)
+### Sprint 7.9 — Phase 5 Domain Migration: Archives ✅ COMPLETE (Agent A)
 **Objectif:** Migration complète, vérifier ArchiveRegistry supprimé
 - Complete migration, verify no ArchiveRegistry references
 - Files: src/pages/Archives.tsx, src/capabilities/lifecycle/
 
-### Sprint 8 — Template System (IN PROGRESS — Agent A)
+### Sprint 8 — Template System ✅ COMPLETE (Agent A)
 **Objectif:** Template definition schema, Church template as reference
 - Template definition schema
 - Template validation
