@@ -12,6 +12,7 @@ import {
   ComposedChart, Line,
 } from 'recharts';
 import { ChartContainer } from '@/components/ui/chart';
+import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar } from '@ionic/react';
 
 type TabKey = 'overview' | 'monthly' | 'caisse' | 'group' | 'event' | 'category';
 
@@ -123,6 +124,9 @@ export default function HistoryPage() {
   });
 
   return (
+    <IonPage>
+      <IonHeader><IonToolbar><IonTitle>Historique</IonTitle></IonToolbar></IonHeader>
+      <IonContent className="bg-canvas">
     <div className="min-h-screen bg-canvas">
       <TopHeader title="Historique" />
       <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
@@ -228,5 +232,7 @@ export default function HistoryPage() {
       </div>
       <BottomNav />
     </div>
+      </IonContent>
+    </IonPage>
   );
 }

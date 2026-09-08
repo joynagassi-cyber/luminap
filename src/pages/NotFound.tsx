@@ -1,8 +1,12 @@
 import { useNavigate } from 'react-router-dom';
+import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar } from '@ionic/react';
 
 export default function NotFound() {
   const navigate = useNavigate();
   return (
+    <IonPage>
+      <IonHeader><IonToolbar><IonTitle>NotFound</IonTitle></IonToolbar></IonHeader>
+      <IonContent className="bg-canvas">
     <div className="min-h-screen bg-canvas flex items-center justify-center px-5">
       <div className="text-center">
         <p className="text-6xl font-black mb-4" style={{ color: '#FF6B00' }}>404</p>
@@ -13,5 +17,7 @@ export default function NotFound() {
         </button>
       </div>
     </div>
+      </IonContent>
+    </IonPage>
   );
 }

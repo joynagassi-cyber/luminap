@@ -4,6 +4,7 @@ import { formatCurrencyCompact } from '@/lib/utils';
 import { ArrowLeft, TrendingUp } from 'lucide-react';
 import TopHeader from '@/components/TopHeader';
 import BottomNav from '@/components/BottomNav';
+import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar } from '@ionic/react';
 
 export default function MembresEnAvance() {
   const navigate = useNavigate();
@@ -13,6 +14,9 @@ export default function MembresEnAvance() {
   const totalEnAvance = membresEnAvance.reduce((sum, m) => sum + m.montant, 0);
 
   return (
+    <IonPage>
+      <IonHeader><IonToolbar><IonTitle>MembresEnAvance</IonTitle></IonToolbar></IonHeader>
+      <IonContent className="bg-canvas">
     <div className="min-h-screen" style={{ backgroundColor: '#121212' }}>
       <TopHeader title="En avance" />
       <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
@@ -95,5 +99,7 @@ export default function MembresEnAvance() {
       </div>
       <BottomNav />
     </div>
+      </IonContent>
+    </IonPage>
   );
 }

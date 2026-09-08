@@ -12,6 +12,7 @@ import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
 import { exportPDF, exportExcel, exportCSV } from '@/lib/export';
 import type { Transaction, Caisse, Event, Category, AppConfig, Account, Member, GroupMembership } from '@/types';
+import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar } from '@ionic/react';
 
 type Tab = 'global' | 'groupe' | 'evenement';
 type PeriodType = 'ce-mois' | 'cette-annee' | 'personnalise';
@@ -74,6 +75,9 @@ export default function Reports() {
   const netResult = totalIncome - totalExpense;
 
   return (
+    <IonPage>
+      <IonHeader><IonToolbar><IonTitle>Reports</IonTitle></IonToolbar></IonHeader>
+      <IonContent className="bg-canvas">
     <div className="min-h-screen bg-canvas">
       <TopHeader title="Rapports" />
       <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
@@ -241,5 +245,7 @@ export default function Reports() {
         </div>
       )}
     </div>
+      </IonContent>
+    </IonPage>
   );
 }

@@ -8,6 +8,7 @@ import TopHeader from '@/components/TopHeader';
 import LuminaLogo from '@/components/LuminaLogo';
 import { FullPageSkeleton } from '@/components/Skeleton';
 import { generateId } from '@/lib/utils';
+import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar } from '@ionic/react';
 
 export default function SettingsPage() {
   const navigate = useNavigate();
@@ -60,6 +61,9 @@ export default function SettingsPage() {
   const unreadCount = notifications?.filter(n => !n.is_read).length ?? 0;
 
   return (
+    <IonPage>
+      <IonHeader><IonToolbar><IonTitle>Settings</IonTitle></IonToolbar></IonHeader>
+      <IonContent className="bg-canvas">
     <div className="min-h-screen bg-canvas">
       <TopHeader title="Paramètres" />
       <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
@@ -275,5 +279,7 @@ export default function SettingsPage() {
       </div>
       <BottomNav />
     </div>
+      </IonContent>
+    </IonPage>
   );
 }

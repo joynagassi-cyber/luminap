@@ -7,6 +7,7 @@ import { reportEngine } from '@/lib/reporting';
 import { generateId } from '@/lib/utils';
 import { getOrganizationId } from '@/lib/orgContext';
 import type { ReportDefinition } from '@/types';
+import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar } from '@ionic/react';
 
 const METRICS = [
   { value: 'sum', label: 'Somme' },
@@ -76,6 +77,9 @@ export default function ReportBuilder() {
   };
 
   return (
+    <IonPage>
+      <IonHeader><IonToolbar><IonTitle>ReportBuilder</IonTitle></IonToolbar></IonHeader>
+      <IonContent className="bg-canvas">
     <div className="min-h-screen bg-canvas">
       <TopHeader title="Créer un rapport" />
       <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
@@ -194,5 +198,7 @@ export default function ReportBuilder() {
       </div>
       <BottomNav />
     </div>
+      </IonContent>
+    </IonPage>
   );
 }

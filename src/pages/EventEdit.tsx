@@ -7,6 +7,7 @@ import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
 import { generateId } from '@/lib/utils';
 import type { Event, Category } from '@/types';
+import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar } from '@ionic/react';
 
 export default function EventEdit() {
   const { id } = useParams<{ id: string }>();
@@ -87,6 +88,9 @@ export default function EventEdit() {
   };
 
   return (
+    <IonPage>
+      <IonHeader><IonToolbar><IonTitle>EventEdit</IonTitle></IonToolbar></IonHeader>
+      <IonContent className="bg-canvas">
     <div className="min-h-screen bg-canvas">
       <TopHeader title="Modifier l'événement" />
       <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
@@ -188,5 +192,7 @@ export default function EventEdit() {
       </div>
       <BottomNav />
     </div>
+      </IonContent>
+    </IonPage>
   );
 }

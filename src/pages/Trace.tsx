@@ -6,6 +6,7 @@ import { ArrowLeft, Clock, CheckCircle, XCircle, Trash2, Edit2, FileText, Users,
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
 import { formatDateTime, formatDate } from '@/lib/utils';
+import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar } from '@ionic/react';
 
 const ACTION_META: Record<string, { icon: typeof Clock; color: string; label: string }> = {
   CREATE: { icon: CheckCircle, color: '#1DB954', label: 'Créé' },
@@ -108,6 +109,9 @@ export default function TracePage() {
   });
 
   return (
+    <IonPage>
+      <IonHeader><IonToolbar><IonTitle>Trace</IonTitle></IonToolbar></IonHeader>
+      <IonContent className="bg-canvas">
     <div className="min-h-screen bg-canvas">
       <TopHeader title="Trace d'activité" />
       <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
@@ -176,5 +180,7 @@ export default function TracePage() {
       </div>
       <BottomNav />
     </div>
+      </IonContent>
+    </IonPage>
   );
 }

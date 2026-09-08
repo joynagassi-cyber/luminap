@@ -6,6 +6,7 @@ import { ArrowLeft, Wallet } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
 import type { Category } from '@/types';
+import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar } from '@ionic/react';
 
 export default function TransactionNewGroup() {
   const { id: groupId } = useParams<{ id: string }>();
@@ -90,6 +91,9 @@ export default function TransactionNewGroup() {
   };
 
   return (
+    <IonPage>
+      <IonHeader><IonToolbar><IonTitle>TransactionNewGroup</IonTitle></IonToolbar></IonHeader>
+      <IonContent className="bg-canvas">
     <div className="h-screen bg-canvas flex flex-col overflow-hidden">
       <TopHeader title="Nouvelle transaction" />
       <div className="flex-1 overflow-y-auto px-5 pt-16 pb-6">
@@ -238,5 +242,7 @@ export default function TransactionNewGroup() {
       </div>
       <BottomNav />
     </div>
+      </IonContent>
+    </IonPage>
   );
 }

@@ -7,6 +7,7 @@ import { TrendingUp, TrendingDown, BarChart3, Download, X, FileText, ClipboardLi
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
 import { exportPDF, exportExcel, exportCSV } from '@/lib/export';
+import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar } from '@ionic/react';
 
 export default function Balance() {
   const navigate = useNavigate();
@@ -59,6 +60,9 @@ export default function Balance() {
   const maxVal = Math.max(...byCategory.map((c: any) => Math.max(c.income, c.expense)), 1);
 
   return (
+    <IonPage>
+      <IonHeader><IonToolbar><IonTitle>Balance</IonTitle></IonToolbar></IonHeader>
+      <IonContent className="bg-canvas">
     <div className="min-h-screen bg-canvas">
       <TopHeader title="Bilan" />
       <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
@@ -199,5 +203,7 @@ export default function Balance() {
       </div>
       <BottomNav />
     </div>
+      </IonContent>
+    </IonPage>
   );
 }

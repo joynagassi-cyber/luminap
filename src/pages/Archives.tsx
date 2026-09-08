@@ -7,6 +7,7 @@ import { Users, Search, Archive, RefreshCw, ArrowLeft } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
 import { FullPageSkeleton } from '@/components/Skeleton';
+import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar } from '@ionic/react';
 
 export default function Archives() {
   const navigate = useNavigate();
@@ -63,6 +64,9 @@ export default function Archives() {
   };
 
   return (
+    <IonPage>
+      <IonHeader><IonToolbar><IonTitle>Archives</IonTitle></IonToolbar></IonHeader>
+      <IonContent className="bg-canvas">
     <div className="min-h-screen bg-canvas">
       <TopHeader title="Archives" />
       {loading ? (
@@ -151,5 +155,7 @@ export default function Archives() {
       )}
       <BottomNav />
     </div>
+      </IonContent>
+    </IonPage>
   );
 }

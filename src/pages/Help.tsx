@@ -4,6 +4,7 @@ import { useNotifications } from '@/lib/dataLayer';
 import { HelpCircle, Info, Shield, Database } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
+import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar } from '@ionic/react';
 
 export default function Help() {
   const navigate = useNavigate();
@@ -11,6 +12,9 @@ export default function Help() {
   const { data: notifications } = useNotifications();
 
   return (
+    <IonPage>
+      <IonHeader><IonToolbar><IonTitle>Help</IonTitle></IonToolbar></IonHeader>
+      <IonContent className="bg-canvas">
     <div className="min-h-screen bg-canvas">
       <TopHeader title="Aide" />
       <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
@@ -60,5 +64,7 @@ export default function Help() {
       </div>
       <BottomNav />
     </div>
+      </IonContent>
+    </IonPage>
   );
 }

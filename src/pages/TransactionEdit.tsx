@@ -5,6 +5,7 @@ import { useTransactions, useCategories, useOrgUnits, useEvents } from '@/lib/da
 import { ArrowUpRight, ArrowDownRight, X, Wallet, User } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
+import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar } from '@ionic/react';
 
 export default function TransactionEdit() {
   const { id } = useParams<{ id: string }>();
@@ -92,6 +93,9 @@ export default function TransactionEdit() {
   };
 
   return (
+    <IonPage>
+      <IonHeader><IonToolbar><IonTitle>TransactionEdit</IonTitle></IonToolbar></IonHeader>
+      <IonContent className="bg-canvas">
     <div className="h-screen bg-canvas flex flex-col overflow-hidden">
       <TopHeader title="Modifier" />
       <div className="flex-1 overflow-y-auto px-5 pt-16 pb-6 max-w-lg mx-auto">
@@ -226,5 +230,7 @@ export default function TransactionEdit() {
       </div>
       <BottomNav />
     </div>
+      </IonContent>
+    </IonPage>
   );
 }

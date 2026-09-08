@@ -6,6 +6,7 @@ import { formatCurrencyCompact, formatDate } from '@/lib/utils';
 import { Calendar, CheckCircle, Clock, Plus, Users } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
+import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar } from '@ionic/react';
 
 interface CulteStat {
   culteId: string;
@@ -68,6 +69,9 @@ export default function Cotisations() {
   }
 
   return (
+    <IonPage>
+      <IonHeader><IonToolbar><IonTitle>Cotisations</IonTitle></IonToolbar></IonHeader>
+      <IonContent className="bg-canvas">
     <div className="min-h-screen" style={{ background: '#121212' }}>
       <TopHeader title="Cotisations" />
       <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
@@ -169,5 +173,7 @@ export default function Cotisations() {
       </div>
       <BottomNav />
     </div>
+      </IonContent>
+    </IonPage>
   );
 }
