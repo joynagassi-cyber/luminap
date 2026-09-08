@@ -1,7 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLocalStore } from '@/store/useLocalStore';
 import { useMembers } from '@/lib/dataLayer';
+import { resource } from '@/capabilities/resource';
+import { lifecycle } from '@/capabilities/lifecycle';
 import { PlusCircle, Users, Search, Archive, RefreshCw, UserPlus, UserMinus } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
@@ -9,11 +11,18 @@ import type { Member } from '@/types';
 
 export default function MembersPage() {
   const navigate = useNavigate();
-  const { members: idbMembers, createMember, archiveMember, restoreMember, user } = useLocalStore();
+  const { members: idbMembers, createMember, user } = useLocalStore();
   const { data: psMembers } = useMembers();
 
   // Use PowerSync or fallback to local cache
   const members = psMembers ?? idbMembers;
+
+  const [archivedMembers, setArchivedMembers] = useState<Member[]>([]);
+
+  // Load archived members via Resource capability
+  useEffect(() => {
+    resource.listArchived<Member>('Member').then(({ items }) => setArchivedMembers(items));
+  }, []);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [showForm, setShowForm] = useState(false);
@@ -57,11 +66,17 @@ export default function MembersPage() {
   };
 
   const handleArchive = async (member: any) => {
-    await archiveMember(member.id, 'Archivé via la gestion des membres', user.id);
+    await lifecycle.archive('Member', member.id, 'Archivé via la gestion des membres', user.id);
+    // Refresh archived list
+    const { items } = await resource.listArchived<Member>('Member');
+    setArchivedMembers(items);
   };
 
   const handleRestore = async (member: any) => {
-    await restoreMember(member.id, 'Rétabli', user.id);
+    await lifecycle.restore('Member', member.id, 'Rétabli', user.id);
+    // Refresh archived list
+    const { items } = await resource.listArchived<Member>('Member');
+    setArchivedMembers(items);
   };
 
   return (
