@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar } from '@ionic/react';
 import {
   ArrowLeft, BookOpen, Home, Wallet, Landmark, Users, ArrowRightLeft,
   CalendarPlus, ClipboardList, History, BarChart3, LineChart, FileText,
@@ -792,224 +793,233 @@ export default function Tutorial() {
   };
 
   return (
-    <div className="min-h-screen bg-[#121212]">
-      <TopHeader title="Tutoriel" />
-      <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
-        {/* Back button */}
-        <button
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-text-secondary text-sm mb-5 transition-all duration-200 hover:text-text-primary"
-          aria-label="Retour"
-        >
-          <ArrowLeft className="w-4 h-4" /> Retour
-        </button>
+    <IonPage>
+      <IonHeader>
+        <IonToolbar>
+          <IonTitle>Tutoriel</IonTitle>
+        </IonToolbar>
+      </IonHeader>
+      <IonContent className="bg-canvas">
+        <div className="min-h-screen bg-[#121212]">
+          <TopHeader title="Tutoriel" />
+          <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
+            {/* Back button */}
+            <button
+              onClick={() => navigate(-1)}
+              className="flex items-center gap-2 text-text-secondary text-sm mb-5 transition-all duration-200 hover:text-text-primary"
+              aria-label="Retour"
+            >
+              <ArrowLeft className="w-4 h-4" /> Retour
+            </button>
 
-        {/* Tab navigation — horizontal scrollable */}
-        <div
-          ref={tabListRef}
-          className="flex gap-2 overflow-x-auto pb-3 mb-5 scrollbar-hide -mx-5 px-5"
-          role="tablist"
-          aria-label="Sections du tutoriel"
-        >
-          {SECTIONS.map((s) => {
-            const SIcon = s.icon;
-            const isActive = activeSection === s.id;
-            return (
+            {/* Tab navigation — horizontal scrollable */}
+            <div
+              ref={tabListRef}
+              className="flex gap-2 overflow-x-auto pb-3 mb-5 scrollbar-hide -mx-5 px-5"
+              role="tablist"
+              aria-label="Sections du tutoriel"
+            >
+              {SECTIONS.map((s) => {
+                const SIcon = s.icon;
+                const isActive = activeSection === s.id;
+                return (
+                  <button
+                    key={s.id}
+                    ref={(el) => setTabRef(s.id, el)}
+                    onClick={() => setActiveSection(s.id)}
+                    role="tab"
+                    aria-selected={isActive}
+                    aria-controls={`panel-${s.id}`}
+                    tabIndex={isActive ? 0 : -1}
+                    className="flex items-center gap-1.5 px-3 py-2.5 rounded-full text-xs font-medium whitespace-nowrap transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-dashed"
+                    style={isActive
+                      ? { backgroundColor: s.color + '20', color: s.color, outline: 'none' }
+                      : { backgroundColor: '#181818', color: '#B3B3B3', border: '1px solid #282828' }}
+                  >
+                    <SIcon className="w-3.5 h-3.5 flex-shrink-0" />
+                    <span className="max-w-[120px] overflow-hidden text-ellipsis whitespace-nowrap">
+                      {s.title}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Current section panel */}
+            <div
+              id={`panel-${current.id}`}
+              role="tabpanel"
+              aria-labelledby={`tab-${current.id}`}
+              className="mb-6 animate-in fade-in"
+            >
+              {/* Section header */}
+              <div className="flex items-center gap-3 mb-4">
+                <div
+                  className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-transform duration-300 hover:scale-105"
+                  style={{ backgroundColor: current.iconBg }}
+                >
+                  <current.icon className="w-5 h-5" style={{ color: current.color }} />
+                </div>
+                <h2
+                  tabIndex={-1}
+                  className="text-text-primary font-bold text-xl overflow-hidden text-ellipsis whitespace-nowrap max-w-[140px]"
+                >
+                  {current.title}
+                </h2>
+              </div>
+
+              {/* Paragraphs */}
+              <div className="space-y-3 mb-5">
+                {current.paragraphs.map((p, i) => (
+                  <p key={i} className="text-text-secondary text-sm leading-relaxed">
+                    {p}
+                  </p>
+                ))}
+              </div>
+
+              {/* SVG Diagram */}
+              {current.diagram && (
+                <div className="mb-5 rounded-xl overflow-hidden" style={{ backgroundColor: '#181818', border: '1px solid #282828' }}>
+                  <div className="px-4 pt-3 pb-2">
+                    <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider">
+                      Diagramme
+                    </p>
+                  </div>
+                  <div className="px-4 pb-4">
+                    {DiagramMap[current.diagram]}
+                  </div>
+                </div>
+              )}
+
+              {/* Recharts Chart */}
+              {current.chart && (
+                <div className="mb-5 rounded-xl overflow-hidden" style={{ backgroundColor: '#181818', border: '1px solid #282828' }}>
+                  <div className="px-4 pt-3 pb-2">
+                    <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider">
+                      Visualisation
+                    </p>
+                  </div>
+                  <div className="px-4 pb-4">
+                    {ChartMap[current.chart] || <p className="text-text-tertiary text-sm text-center py-6">Aucune donnée disponible</p>}
+                  </div>
+                </div>
+              )}
+
+              {/* Tips */}
+              {current.tips && current.tips.length > 0 && (
+                <div
+                  className="rounded-xl p-4 mb-5 transition-all duration-200"
+                  style={{ backgroundColor: current.iconBg }}
+                >
+                  <p className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: current.color }}>
+                    <Lightbulb className="w-4 h-4 flex-shrink-0" /> Conseils
+                  </p>
+                  <div className="space-y-2">
+                    {current.tips.map((tip, i) => (
+                      <div key={i} className="flex items-start gap-2">
+                        <CheckCircle className="w-4 h-4 text-[#1DB954] flex-shrink-0 mt-0.5" />
+                        <p className="text-text-secondary text-sm">{tip}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Warnings */}
+              {current.warnings && current.warnings.length > 0 && (
+                <div className="rounded-xl p-4 mb-5 transition-all duration-200" style={{ backgroundColor: '#E5133220' }}>
+                  <p className="text-sm font-semibold mb-3 flex items-center gap-2 text-[#E51332]">
+                    <AlertTriangle className="w-4 h-4 flex-shrink-0" /> Précautions
+                  </p>
+                  <div className="space-y-2">
+                    {current.warnings.map((w, i) => (
+                      <div key={i} className="flex items-start gap-2">
+                        <AlertCircle className="w-4 h-4 text-[#E51332] flex-shrink-0 mt-0.5" />
+                        <p className="text-text-secondary text-sm">{w}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Errors */}
+              {current.errors && current.errors.length > 0 && (
+                <div className="space-y-3 mb-5">
+                  {current.errors.map((err, i) => (
+                    <div
+                      key={i}
+                      className="rounded-xl p-4 transition-all duration-200"
+                      style={{ backgroundColor: '#181818' }}
+                    >
+                      <div className="flex items-start gap-2 mb-2">
+                        <AlertCircle className="w-4 h-4 text-[#E51332] flex-shrink-0 mt-0.5" />
+                        <p className="text-text-primary text-sm font-medium">{err.title}</p>
+                      </div>
+                      <p className="text-text-tertiary text-sm ml-6">{err.solution}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* FAQ */}
+              {current.faqs && current.faqs.length > 0 && (
+                <div className="space-y-3 mb-5">
+                  {current.faqs.map((faq, i) => (
+                    <div
+                      key={i}
+                      className="rounded-xl p-4 transition-all duration-200"
+                      style={{ backgroundColor: '#181818' }}
+                    >
+                      <div className="flex items-start gap-2 mb-1.5">
+                        <HelpCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: current.color }} />
+                        <p className="text-text-primary text-sm font-medium">{faq.q}</p>
+                      </div>
+                      <p className="text-text-tertiary text-sm ml-6">{faq.a}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Pagination */}
+            <div className="flex items-center justify-between">
               <button
-                key={s.id}
-                ref={(el) => setTabRef(s.id, el)}
-                onClick={() => setActiveSection(s.id)}
-                role="tab"
-                aria-selected={isActive}
-                aria-controls={`panel-${s.id}`}
-                tabIndex={isActive ? 0 : -1}
-                className="flex items-center gap-1.5 px-3 py-2.5 rounded-full text-xs font-medium whitespace-nowrap transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-dashed"
-                style={isActive
-                  ? { backgroundColor: s.color + '20', color: s.color, outline: 'none' }
-                  : { backgroundColor: '#181818', color: '#B3B3B3', border: '1px solid #282828' }}
+                onClick={prevSection}
+                disabled={activeSection === SECTIONS[0].id}
+                className="px-4 py-2.5 rounded-full text-sm font-medium transition-all duration-200 min-h-[44px] min-w-[44px] flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-dashed"
+                style={{
+                  backgroundColor: '#181818',
+                  color: activeSection === SECTIONS[0].id ? '#535353' : '#B3B3B3',
+                  border: activeSection === SECTIONS[0].id ? 'none' : '1px solid #282828',
+                  cursor: activeSection === SECTIONS[0].id ? 'default' : 'pointer',
+                }}
+                aria-label="Section précédente"
               >
-                <SIcon className="w-3.5 h-3.5 flex-shrink-0" />
-                <span className="max-w-[120px] overflow-hidden text-ellipsis whitespace-nowrap">
-                  {s.title}
-                </span>
+                ← Précédent
               </button>
-            );
-          })}
-        </div>
-
-        {/* Current section panel */}
-        <div
-          id={`panel-${current.id}`}
-          role="tabpanel"
-          aria-labelledby={`tab-${current.id}`}
-          className="mb-6 animate-in fade-in"
-        >
-          {/* Section header */}
-          <div className="flex items-center gap-3 mb-4">
-            <div
-              className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-transform duration-300 hover:scale-105"
-              style={{ backgroundColor: current.iconBg }}
-            >
-              <current.icon className="w-5 h-5" style={{ color: current.color }} />
+              <button
+                onClick={nextSection}
+                disabled={activeSection === SECTIONS[SECTIONS.length - 1].id}
+                className="px-4 py-2.5 rounded-full text-sm font-medium transition-all duration-200 min-h-[44px] min-w-[44px] flex items-center justify-center gap-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-dashed"
+                style={{
+                  backgroundColor: activeSection === SECTIONS[SECTIONS.length - 1].id ? '#181818' : current.color + '20',
+                  color: activeSection === SECTIONS[SECTIONS.length - 1].id ? '#535353' : current.color,
+                  border: activeSection === SECTIONS[SECTIONS.length - 1].id ? '1px solid #282828' : 'none',
+                  cursor: activeSection === SECTIONS[SECTIONS.length - 1].id ? 'default' : 'pointer',
+                }}
+                aria-label="Section suivante"
+              >
+                {activeSection === SECTIONS[SECTIONS.length - 1].id
+                  ? 'Terminé'
+                  : 'Suivant'}
+              </button>
             </div>
-            <h2
-              tabIndex={-1}
-              className="text-text-primary font-bold text-xl overflow-hidden text-ellipsis whitespace-nowrap max-w-[140px]"
-            >
-              {current.title}
-            </h2>
+
+            <p className="text-text-tertiary text-xs text-center mt-6">Lumina v2.0 · Guide d'utilisation complet</p>
           </div>
-
-          {/* Paragraphs */}
-          <div className="space-y-3 mb-5">
-            {current.paragraphs.map((p, i) => (
-              <p key={i} className="text-text-secondary text-sm leading-relaxed">
-                {p}
-              </p>
-            ))}
-          </div>
-
-          {/* SVG Diagram */}
-          {current.diagram && (
-            <div className="mb-5 rounded-xl overflow-hidden" style={{ backgroundColor: '#181818', border: '1px solid #282828' }}>
-              <div className="px-4 pt-3 pb-2">
-                <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider">
-                  Diagramme
-                </p>
-              </div>
-              <div className="px-4 pb-4">
-                {DiagramMap[current.diagram]}
-              </div>
-            </div>
-          )}
-
-          {/* Recharts Chart */}
-          {current.chart && (
-            <div className="mb-5 rounded-xl overflow-hidden" style={{ backgroundColor: '#181818', border: '1px solid #282828' }}>
-              <div className="px-4 pt-3 pb-2">
-                <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider">
-                  Visualisation
-                </p>
-              </div>
-              <div className="px-4 pb-4">
-                {ChartMap[current.chart] || <p className="text-text-tertiary text-sm text-center py-6">Aucune donnée disponible</p>}
-              </div>
-            </div>
-          )}
-
-          {/* Tips */}
-          {current.tips && current.tips.length > 0 && (
-            <div
-              className="rounded-xl p-4 mb-5 transition-all duration-200"
-              style={{ backgroundColor: current.iconBg }}
-            >
-              <p className="text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: current.color }}>
-                <Lightbulb className="w-4 h-4 flex-shrink-0" /> Conseils
-              </p>
-              <div className="space-y-2">
-                {current.tips.map((tip, i) => (
-                  <div key={i} className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 text-[#1DB954] flex-shrink-0 mt-0.5" />
-                    <p className="text-text-secondary text-sm">{tip}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Warnings */}
-          {current.warnings && current.warnings.length > 0 && (
-            <div className="rounded-xl p-4 mb-5 transition-all duration-200" style={{ backgroundColor: '#E5133220' }}>
-              <p className="text-sm font-semibold mb-3 flex items-center gap-2 text-[#E51332]">
-                <AlertTriangle className="w-4 h-4 flex-shrink-0" /> Précautions
-              </p>
-              <div className="space-y-2">
-                {current.warnings.map((w, i) => (
-                  <div key={i} className="flex items-start gap-2">
-                    <AlertCircle className="w-4 h-4 text-[#E51332] flex-shrink-0 mt-0.5" />
-                    <p className="text-text-secondary text-sm">{w}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Errors */}
-          {current.errors && current.errors.length > 0 && (
-            <div className="space-y-3 mb-5">
-              {current.errors.map((err, i) => (
-                <div
-                  key={i}
-                  className="rounded-xl p-4 transition-all duration-200"
-                  style={{ backgroundColor: '#181818' }}
-                >
-                  <div className="flex items-start gap-2 mb-2">
-                    <AlertCircle className="w-4 h-4 text-[#E51332] flex-shrink-0 mt-0.5" />
-                    <p className="text-text-primary text-sm font-medium">{err.title}</p>
-                  </div>
-                  <p className="text-text-tertiary text-sm ml-6">{err.solution}</p>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* FAQ */}
-          {current.faqs && current.faqs.length > 0 && (
-            <div className="space-y-3 mb-5">
-              {current.faqs.map((faq, i) => (
-                <div
-                  key={i}
-                  className="rounded-xl p-4 transition-all duration-200"
-                  style={{ backgroundColor: '#181818' }}
-                >
-                  <div className="flex items-start gap-2 mb-1.5">
-                    <HelpCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: current.color }} />
-                    <p className="text-text-primary text-sm font-medium">{faq.q}</p>
-                  </div>
-                  <p className="text-text-tertiary text-sm ml-6">{faq.a}</p>
-                </div>
-              ))}
-            </div>
-          )}
+          <BottomNav />
         </div>
-
-        {/* Pagination */}
-        <div className="flex items-center justify-between">
-          <button
-            onClick={prevSection}
-            disabled={activeSection === SECTIONS[0].id}
-            className="px-4 py-2.5 rounded-full text-sm font-medium transition-all duration-200 min-h-[44px] min-w-[44px] flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-dashed"
-            style={{
-              backgroundColor: '#181818',
-              color: activeSection === SECTIONS[0].id ? '#535353' : '#B3B3B3',
-              border: activeSection === SECTIONS[0].id ? 'none' : '1px solid #282828',
-              cursor: activeSection === SECTIONS[0].id ? 'default' : 'pointer',
-            }}
-            aria-label="Section précédente"
-          >
-            ← Précédent
-          </button>
-          <button
-            onClick={nextSection}
-            disabled={activeSection === SECTIONS[SECTIONS.length - 1].id}
-            className="px-4 py-2.5 rounded-full text-sm font-medium transition-all duration-200 min-h-[44px] min-w-[44px] flex items-center justify-center gap-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-dashed"
-            style={{
-              backgroundColor: activeSection === SECTIONS[SECTIONS.length - 1].id ? '#181818' : current.color + '20',
-              color: activeSection === SECTIONS[SECTIONS.length - 1].id ? '#535353' : current.color,
-              border: activeSection === SECTIONS[SECTIONS.length - 1].id ? '1px solid #282828' : 'none',
-              cursor: activeSection === SECTIONS[SECTIONS.length - 1].id ? 'default' : 'pointer',
-            }}
-            aria-label="Section suivante"
-          >
-            {activeSection === SECTIONS[SECTIONS.length - 1].id
-              ? 'Terminé'
-              : 'Suivant'}
-          </button>
-        </div>
-
-        <p className="text-text-tertiary text-xs text-center mt-6">Lumina v2.0 · Guide d'utilisation complet</p>
-      </div>
-      <BottomNav />
-    </div>
+      </IonContent>
+    </IonPage>
   );
 }

@@ -7,6 +7,7 @@ import { customFieldRepo, customFieldValueRepo } from '@/lib/customFields';
 import { generateId } from '@/lib/utils';
 import { getOrganizationId } from '@/lib/orgContext';
 import type { CustomFieldDefinition } from '@/types';
+import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar } from '@ionic/react';
 
 const ENTITY_TYPES = ['Transaction', 'Event', 'Group', 'Member', 'Account', 'Category'];
 const FIELD_TYPES: { value: CustomFieldDefinition['type']; label: string }[] = [
@@ -57,7 +58,14 @@ export default function CustomFields() {
   };
 
   return (
-    <div className="min-h-screen bg-canvas">
+    <IonPage>
+      <IonHeader>
+        <IonToolbar>
+          <IonTitle>Champs personnalisés</IonTitle>
+        </IonToolbar>
+      </IonHeader>
+      <IonContent className="ion-padding">
+      <div className="min-h-screen bg-canvas">
       <TopHeader title="Champs personnalisés" />
       <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
         <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-text-secondary text-sm mb-5">
@@ -190,6 +198,9 @@ export default function CustomFields() {
       )}
 
       <BottomNav />
-    </div>
+      </div>
+      </div>
+      </IonContent>
+    </IonPage>
   );
 }
