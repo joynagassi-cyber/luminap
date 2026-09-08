@@ -42,7 +42,6 @@ export default function MembersPage() {
   }, [members, searchQuery]);
 
   const activeMembers = filteredMembers.filter((m: any) => m.status === 'ACTIVE');
-  const archivedMembers = filteredMembers.filter((m: any) => m.status === 'ARCHIVED');
 
   const handleCreate = async () => {
     if (!firstName.trim() || !lastName.trim()) return;
