@@ -144,19 +144,22 @@ describe('relationship capability', () => {
     });
 
     it('isMember filters by org_id — cross-org isolation', async () => {
-      // Insert two memberships: same group and member, different org_ids
+      // Insert two memberships: same group/member but DIFFERENT org_ids
+      // The org-1 membership should be invisible when org context is org-2
       _memberships.push(
         { id: 'mem-org1', group_id: 'group-1', member_id: 'member-a', role: 'MEMBRE', org_id: 'org-1' },
-        { id: 'mem-org2', group_id: 'group-1', member_id: 'member-a', role: 'MEMBRE', org_id: 'org-2' },
+        { id: 'mem-diff', group_id: 'group-2', member_id: 'member-a', role: 'MEMBRE', org_id: 'org-2' },
       );
 
-      // With org-1 context: should find the membership
+      // With org-1 context: finds the membership in org-1
       mockGetOrgId.mockReturnValue('org-1');
       expect(await relationship.isMember('group-1', 'member-a')).toBe(true);
 
-      // With org-2 context: membership belongs to org-1, so returns false
+      // With org-2 context: membership is for group-2 only, group-1 is isolated
       mockGetOrgId.mockReturnValue('org-2');
       expect(await relationship.isMember('group-1', 'member-a')).toBe(false);
+      // group-2 membership IS visible in org-2
+      expect(await relationship.isMember('group-2', 'member-a')).toBe(true);
     });
   });
 });
