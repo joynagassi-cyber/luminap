@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useLocalStore } from '@/store/useLocalStore';
 import { authService, type Profile } from '@/lib/auth';
 import { oneSignalService } from '@/lib/authOneSignal';
-import { Loader2, Mail, Lock, User, Google } from 'lucide-react';
+import { Loader2, Mail, Lock, User,  } from 'lucide-react';
 
 type AuthMode = 'login' | 'signup';
 
@@ -153,8 +153,8 @@ export default function AuthPage() {
           className="w-full py-3.5 rounded-full font-medium text-sm flex items-center justify-center gap-3 mb-4 transition-all active:scale-95 disabled:opacity-50"
           style={{ backgroundColor: '#fff', color: '#333', border: '1px solid #ddd' }}
         >
-          <Google className="w-5 h-5" />
-          Continuer avec Google
+          <Mail className="w-5 h-5" />
+          Continuer avec email
         </button>
 
         <div className="flex items-center gap-3 mb-6">
