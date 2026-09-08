@@ -351,7 +351,7 @@ Migrate 26 remaining pages to Ionic IonPage pattern + fix build-critical JSX err
 - [ ] Convert to IonToolbar
 
 ### Sprint 7.1i: Final Verification (PENDING)
-- [ ] All 38 pages wrapped in IonPage
+- [ ] All 38 pages wrapped in IonPage (22/38 done)
 - [ ] Build passes
 - [ ] TypeScript clean
 - [ ] All 132 tests pass
