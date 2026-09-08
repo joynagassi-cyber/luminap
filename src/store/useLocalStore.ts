@@ -105,7 +105,7 @@ const DEFAULT_USER: User = {
   lastName: '',
   role: 'TREASURIER',
   org: {
-    id: 'org-1',
+    id: getOrganizationId(),
     name: 'Église MFE-JC Centrale',
     type: 'Eglise',
     accentColor: '#FF6B00',
@@ -129,7 +129,7 @@ const DEFAULT_CAISSES: Caisse[] = [
 ];
 
 const DEFAULT_ORG_UNITS: OrgUnit[] = [
-  { id: 'org-1', name: 'Église MFE-JC Centrale', type: 'eglise', description: 'Église mère', orgId: getOrganizationId(), isActive: true },
+  { id: getOrganizationId(), name: 'Église MFE-JC Centrale', type: 'eglise', description: 'Église mère', orgId: getOrganizationId(), isActive: true },
 ];
 
 const COLOR_PALETTE = ['#3B82F6', '#8B5CF6', '#EC4899', '#14B8A6', '#F59E0B', '#EF4444', '#22C55E', '#6366F1', '#F97316', '#06B6D4'];

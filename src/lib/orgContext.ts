@@ -4,11 +4,11 @@
  * All services should read the organization identifier from this module
  * instead of using a hardcoded string literal.
  *
- * Current source of truth: the default org-1 value.
+ * Current source of truth: dynamically resolved org ID.
  * Future: resolve from authenticated profile / Supabase.
  */
 
-const DEFAULT_ORG_ID = 'org-1';
+const DEFAULT_ORG_ID = 'default-org';
 
 let _orgId: string | null = null;
 
