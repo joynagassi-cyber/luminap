@@ -1,37 +1,177 @@
 /**
  * Legacy Store - PowerSync Migration Complete
  *
- * This store now uses PowerSync for all data operations.
- * Using PowerSync for all data operations.
+ * Business logic extracted to:
+ * - src/lib/cotisation-service.ts
+ * - src/lib/notification-service.ts
+ * - src/lib/transaction-service.ts
+ * - src/lib/event-service.ts
+ * - src/lib/group-lifecycle.ts
+ * - src/lib/member-service.ts
+ * This store focuses on state management and PowerSync delegation.
  */
 
 import { create } from 'zustand';
-import { workflow } from '@/capabilities/workflow';
 import { lifecycle } from '@/capabilities/lifecycle';
 import { relationship } from '@/capabilities/relationship';
-import { security } from '@/capabilities/security';
 import { getOrganizationId } from '@/lib/orgContext';
-import { writeAudit } from '@/lib/audit';
 import { createVersement as createVersementService } from '@/lib/versement-service';
 import { createGroup as createGroupService } from '@/lib/group-service';
-import type { User, Role, Transaction, Category, OrgUnit, Caisse, Event, BudgetItem, ShoppingItem, AppConfig, NotificationItem, Member, Group, Account, GroupMembership, Versement, EventBudget, BudgetLine, Cotisation, CotisationStatut } from '@/types';
-import { generateId } from '@/lib/utils';
-import { formatDate, formatCentsToFCFA } from '@/lib/utils';
-import { determinerStatutAvance, calculerDon, isPaiementVerrouille } from '@/lib/cotisation-logic';
+import {
+  buildAddTransaction,
+  persistAddTransaction,
+  auditAddTransaction,
+  validateUpdateTransaction,
+  applyUpdateTransaction,
+  validateDeleteTransaction,
+  applyDeleteTransaction,
+  validateBatchDeleteTransactions,
+  buildApproveTransaction,
+  buildBatchApproveTransactions,
+  buildReverseTransaction,
+  persistReverseTransaction,
+} from '@/lib/transaction-service';
+import {
+  buildAddEvent,
+  persistAddEvent,
+  applyUpdateEvent,
+  persistUpdateEvent,
+  applyDeleteEvent,
+  persistDeleteEvent,
+  applyUpdateEventStatus,
+  addBudgetItem,
+  removeBudgetItem,
+  updateShoppingItemStatus,
+} from '@/lib/event-service';
+import {
+  buildCreateMember,
+  persistCreateMember,
+  applyUpdateMember,
+  applyDeleteMember,
+} from '@/lib/member-service';
+import {
+  applyUpdateGroup,
+  applyDeleteGroup,
+  applyArchiveGroup,
+  applyRestoreGroup,
+  buildCreateEventBudget,
+  buildAddBudgetLine,
+  applyRemoveBudgetLine,
+} from '@/lib/group-lifecycle';
+import {
+  createCulte,
+  persistCulte,
+  markCotisationPaid,
+  persistMarkCotisationPaid,
+  markCotisationsAbsent,
+  persistMarkCotisationsAbsent,
+  updateCotisation as updateCotisationService,
+  persistUpdateCotisation,
+  getCotisationsForCulte as getCotisationsForCulteSvc,
+  getMembreHistorique as getMembreHistoriqueSvc,
+  getMembresEnAvance as getMembresEnAvanceSvc,
+} from '@/lib/cotisation-service';
+import {
+  createNotification,
+  markNotificationRead,
+  markAllNotificationsRead,
+} from '@/lib/notification-service';
 import {
   addTransactionPS,
   updateTransactionPS,
   deleteTransactionPS,
-  addEventPS,
   updateEventPS,
-  deleteEventPS,
-  addMemberPS,
   updateMemberPS,
-  addCotisationPS,
   updateCotisationPS,
-  executeWrite,
 } from '@/lib/dataLayer';
 import { getPowerSyncDatabase } from '@/lib/powersync';
+import type {
+  User,
+  Role,
+  Transaction,
+  Category,
+  OrgUnit,
+  Caisse,
+  Event,
+  BudgetItem,
+  ShoppingItem,
+  AppConfig,
+  NotificationItem,
+  Member,
+  Group,
+  Account,
+  GroupMembership,
+  Cotisation,
+} from '@/types';
+
+// --- Sub-types ---
+interface EventBudget {
+  id: string;
+  eventId: string;
+  currency: string;
+  revisedAt: string | null;
+  revisedBy: string | null;
+  createdAt: string;
+}
+
+interface BudgetLine {
+  id: string;
+  eventBudgetId: string;
+  categoryId: string;
+  plannedAmountCents: number;
+  actualAmountCents: number;
+  description: string | null;
+  createdAt: string;
+}
+
+const DEFAULT_USER: User = {
+  id: 'local-user',
+  email: '',
+  firstName: 'Utilisateur',
+  lastName: '',
+  role: 'TREASURIER',
+  org: {
+    id: getOrganizationId(),
+    name: 'Eglise MFE-JC Centrale',
+    type: 'Eglise',
+    accentColor: '#FF6B00',
+  },
+};
+
+const DEFAULT_CATEGORIES: Category[] = [
+  { id: 'cat-dime', key: 'dime', labelFr: 'Dime', type: 'INCOME', orgId: getOrganizationId() },
+  { id: 'cat-offrande', key: 'offrande', labelFr: 'Offrande', type: 'INCOME', orgId: getOrganizationId() },
+  { id: 'cat-offrande-mission', key: 'offrande_mission', labelFr: 'Offrande Mission', type: 'INCOME', orgId: getOrganizationId() },
+  { id: 'cat-don', key: 'don', labelFr: 'Don', type: 'INCOME', orgId: getOrganizationId() },
+  { id: 'cat-salaire-pasteur', key: 'salaire_pasteur', labelFr: 'Salaire Pasteur', type: 'EXPENSE', orgId: getOrganizationId() },
+  { id: 'cat-frais-fonc', key: 'frais_fonctionnement', labelFr: 'Frais de Fonctionnement', type: 'EXPENSE', orgId: getOrganizationId() },
+  { id: 'cat-mission', key: 'mission', labelFr: 'Mission', type: 'EXPENSE', orgId: getOrganizationId() },
+  { id: 'cat-entretien', key: 'entretien', labelFr: 'Entretien', type: 'EXPENSE', orgId: getOrganizationId() },
+  { id: 'cat-aumone', key: 'aumone', labelFr: 'Aumone', type: 'EXPENSE', orgId: getOrganizationId() },
+];
+
+const DEFAULT_CAISSES: Caisse[] = [
+  { id: 'main', name: 'Caisse principale', description: 'Fonds de l\'eglise', type: 'MAIN', color: '#FF6B00', orgId: getOrganizationId(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), archivedAt: null, archivedBy: null, archiveReason: null, status: 'ACTIVE' },
+];
+
+const DEFAULT_ORG_UNITS: OrgUnit[] = [
+  { id: getOrganizationId(), name: 'Eglise MFE-JC Centrale', type: 'eglise', description: 'Eglise mere', orgId: getOrganizationId(), isActive: true },
+];
+
+interface StoreSnapshot {
+  transactions: Transaction[];
+  events: Event[];
+  members: Member[];
+  orgUnits: OrgUnit[];
+  caisses: Caisse[];
+  groups: Group[];
+  accounts: Account[];
+  cotisations: Cotisation[];
+  eventBudgets: EventBudget[];
+  budgetLines: BudgetLine[];
+  notifications: NotificationItem[];
+  user: { role: string; id: string };
+}
 
 interface LocalStoreState {
   user: User;
@@ -50,13 +190,6 @@ interface LocalStoreState {
   eventBudgets: EventBudget[];
   budgetLines: BudgetLine[];
   cotisations: Cotisation[];
-  createCulte: (data: { name: string; startDate: string; montantCotisationCents?: number }) => Promise<void>;
-  markCotisationPaid: (cotisationId: string, montantPayeCents: number, datePaiement: string) => Promise<void>;
-  markCotisationsAbsent: (culteId: string, membreIds: string[]) => Promise<void>;
-  updateCotisation: (id: string, data: Partial<Cotisation>) => Promise<void>;
-  getCotisationsForCulte: (culteId: string) => Cotisation[];
-  getMembreHistorique: (membreId: string) => { cotisation: Cotisation; culte: Event | undefined }[];
-  getMembresEnAvance: () => { membre: Member; montant: number }[];
   isLoading: boolean;
   isOnline: boolean;
   selectRole: (role: Role) => Promise<void>;
@@ -100,797 +233,351 @@ interface LocalStoreState {
   loadInitialData: () => Promise<void>;
   setOnline: (online: boolean) => void;
   getCaisseForDisplay: (accountId: string) => { id: string; name: string; description: string; type: 'MAIN' | 'GROUP'; color: string; orgId: string; createdAt: string; updatedAt: string; archivedAt: string | null; archivedBy: string | null; archiveReason: string | null; status: 'ACTIVE' | 'ARCHIVED' } | null;
+  createCulte: (data: { name: string; startDate: string; montantCotisationCents?: number }) => Promise<void>;
+  markCotisationPaid: (cotisationId: string, montantPayeCents: number, datePaiement: string) => Promise<void>;
+  markCotisationsAbsent: (culteId: string, membreIds: string[]) => Promise<void>;
+  updateCotisation: (id: string, data: Partial<Cotisation>) => Promise<void>;
+  getCotisationsForCulte: (culteId: string) => Cotisation[];
+  getMembreHistorique: (membreId: string) => { cotisation: Cotisation; culte: Event | undefined }[];
+  getMembresEnAvance: () => { membre: Member; montant: number }[];
 }
 
-const DEFAULT_USER: User = {
-  id: 'local-user',
-  email: '',
-  firstName: 'Utilisateur',
-  lastName: '',
-  role: 'TREASURIER',
-  org: {
-    id: getOrganizationId(),
-    name: 'Église MFE-JC Centrale',
-    type: 'Eglise',
-    accentColor: '#FF6B00',
-  },
-};
-
-const DEFAULT_CATEGORIES: Category[] = [
-  { id: 'cat-dime', key: 'dime', labelFr: 'Dîme', type: 'INCOME', orgId: getOrganizationId() },
-  { id: 'cat-offrande', key: 'offrande', labelFr: 'Offrande', type: 'INCOME', orgId: getOrganizationId() },
-  { id: 'cat-offrande-mission', key: 'offrande_mission', labelFr: 'Offrande Mission', type: 'INCOME', orgId: getOrganizationId() },
-  { id: 'cat-don', key: 'don', labelFr: 'Don', type: 'INCOME', orgId: getOrganizationId() },
-  { id: 'cat-salaire-pasteur', key: 'salaire_pasteur', labelFr: 'Salaire Pasteur', type: 'EXPENSE', orgId: getOrganizationId() },
-  { id: 'cat-frais-fonc', key: 'frais_fonctionnement', labelFr: 'Frais de Fonctionnement', type: 'EXPENSE', orgId: getOrganizationId() },
-  { id: 'cat-mission', key: 'mission', labelFr: 'Mission', type: 'EXPENSE', orgId: getOrganizationId() },
-  { id: 'cat-entretien', key: 'entretien', labelFr: 'Entretien', type: 'EXPENSE', orgId: getOrganizationId() },
-  { id: 'cat-aumone', key: 'aumone', labelFr: 'Aumône', type: 'EXPENSE', orgId: getOrganizationId() },
-];
-
-const DEFAULT_CAISSES: Caisse[] = [
-  { id: 'main', name: 'Caisse principale', description: 'Fonds de l\'église', type: 'MAIN', color: '#FF6B00', orgId: getOrganizationId(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), archivedAt: null, archivedBy: null, archiveReason: null, status: 'ACTIVE' },
-];
-
-const DEFAULT_ORG_UNITS: OrgUnit[] = [
-  { id: getOrganizationId(), name: 'Église MFE-JC Centrale', type: 'eglise', description: 'Église mère', orgId: getOrganizationId(), isActive: true },
-];
-
 export const useLocalStore = create<LocalStoreState>()(
-  (set, get) => ({
-    user: DEFAULT_USER,
-    transactions: [],
-    categories: DEFAULT_CATEGORIES,
-    orgUnits: DEFAULT_ORG_UNITS,
-    caisses: DEFAULT_CAISSES,
-    events: [],
-    auditEntries: [],
-    notifications: [],
-    members: [],
-    groups: [],
-    accounts: [],
-    memberships: [],
-    eventBudgets: [],
-    budgetLines: [],
-    cotisations: [],
-    appConfig: { churchName: '', churchLogoUrl: '', userPhoto: '' },
-    isLoading: false,
-    isOnline: navigator.onLine,
+  (set, get) => {
+    const snap = (): StoreSnapshot => ({
+      transactions: get().transactions,
+      events: get().events,
+      members: get().members,
+      orgUnits: get().orgUnits,
+      caisses: get().caisses,
+      groups: get().groups,
+      accounts: get().accounts,
+      cotisations: get().cotisations,
+      eventBudgets: get().eventBudgets,
+      budgetLines: get().budgetLines,
+      notifications: get().notifications,
+      user: { role: get().user.role, id: get().user.id },
+    });
 
-    selectRole: async (role) => {
-      const sessionId = localStorage.getItem('lumina-session') ?? crypto.randomUUID();
-      localStorage.setItem('lumina-session', sessionId);
-      localStorage.setItem('lumina-role', role);
-      // Role is stored in localStorage, no need for database
-      set({ user: { ...get().user, role } });
-    },
+    return {
+      user: DEFAULT_USER,
+      transactions: [],
+      categories: DEFAULT_CATEGORIES,
+      orgUnits: DEFAULT_ORG_UNITS,
+      caisses: DEFAULT_CAISSES,
+      events: [],
+      auditEntries: [],
+      notifications: [],
+      members: [],
+      groups: [],
+      accounts: [],
+      memberships: [],
+      eventBudgets: [],
+      budgetLines: [],
+      cotisations: [],
+      appConfig: { churchName: '', churchLogoUrl: '', userPhoto: '' },
+      isLoading: false,
+      isOnline: navigator.onLine,
 
-    addTransaction: async (tx) => {
-      const id = generateId();
-      const now = new Date().toISOString();
-      const newTx: Transaction = { ...tx, id, createdAt: now, updatedAt: now, version: 1, reversalOfId: null };
+      selectRole: async (role) => {
+        const sessionId = localStorage.getItem('lumina-session') ?? crypto.randomUUID();
+        localStorage.setItem('lumina-session', sessionId);
+        localStorage.setItem('lumina-role', role);
+        set({ user: { ...get().user, role } });
+      },
 
-      // Write to PowerSync
-      try {
-        await addTransactionPS({
-          org_id: newTx.orgId,
-          type: newTx.type,
-          amount: newTx.amount,
-          description: newTx.description,
-          date: newTx.date,
-          status: newTx.status,
-          category_id: newTx.categoryId,
-          org_unit_id: newTx.orgUnitId,
-          compensates_for: newTx.compensatesFor,
-          comment: newTx.comment,
-          version: 1,
-          created_by_id: newTx.createdById,
-          approved_by_id: newTx.approvedById,
-          approved_at: newTx.approvedAt,
-          event_id: newTx.eventId,
-          source: newTx.source,
-          person_name: newTx.personName,
-          source_caisse_id: newTx.sourceCaisseId,
-          versement_id: newTx.versementId,
-          reversal_of_id: newTx.reversalOfId,
-        });
-      } catch (error) {
-        console.error('[Store] Failed to add transaction:', error);
-      }
+      // --- Notifications ---
+      createNotification: async (notif) => {
+        const newNotif = createNotification(notif, get());
+        set({ notifications: [newNotif, ...get().notifications] });
+      },
 
-      // Update local state
-      set({ transactions: [...get().transactions, newTx] });
+      markNotificationRead: async (id) => {
+        set({ notifications: markNotificationRead(id, get()) });
+      },
 
-      // Audit
-      await writeAudit({
-        orgId: getOrganizationId(),
-        transactionId: id,
-        userId: tx.createdById || 'local-user',
-        actorRoleAtTime: get().user.role,
-        action: 'CREATE',
-        entityType: 'Transaction',
-        entityId: id,
-        beforeState: null,
-        afterState: newTx,
-        comment: null,
-      });
-    },
+      markAllNotificationsRead: async () => {
+        set({ notifications: markAllNotificationsRead(get()) });
+      },
 
-    updateTransaction: async (id, data) => {
-      const oldTx = get().transactions.find(t => t.id === id);
-      const guardResult = workflow.check('transaction', oldTx?.status as any, data.status as any);
-      if (!guardResult.allowed) throw new Error(guardResult.reason ?? 'TRANSACTION_APPROVED_IMMUTABLE');
+      // --- Transactions ---
+      addTransaction: async (tx) => {
+        const { id, newTx } = buildAddTransaction(tx, snap());
+        await persistAddTransaction(newTx);
+        await auditAddTransaction(id, tx, newTx, snap().user.role);
+        set({ transactions: [...get().transactions, newTx] });
+      },
 
-      // Write to PowerSync
-      try {
+      updateTransaction: async (id, data) => {
+        const v = validateUpdateTransaction(snap().transactions, id, data);
+        if (!v.allowed) throw new Error(v.reason ?? 'TRANSACTION_APPROVED_IMMUTABLE');
         await updateTransactionPS(id, data);
-      } catch (error) {
-        console.error('[Store] Failed to update transaction:', error);
-      }
+        set({ transactions: applyUpdateTransaction(snap().transactions, id, data) });
+      },
 
-      // Update local state
-      const updated = get().transactions.map(t =>
-        t.id === id ? { ...t, ...data, updatedAt: new Date().toISOString(), version: t.version + 1 } : t
-      );
-      set({ transactions: updated });
-    },
-
-    deleteTransaction: async (id) => {
-      const oldTx = get().transactions.find(t => t.id === id);
-      const guardResult = workflow.check('transaction', oldTx?.status as any, 'DELETED' as any);
-      if (!guardResult.allowed) throw new Error(guardResult.reason ?? 'TRANSACTION_APPROVED_IMMUTABLE');
-
-      // Write to PowerSync
-      try {
+      deleteTransaction: async (id) => {
+        const v = validateDeleteTransaction(snap().transactions, id);
+        if (!v.allowed) throw new Error(v.reason ?? 'TRANSACTION_APPROVED_IMMUTABLE');
         await deleteTransactionPS(id);
-      } catch (error) {
-        console.error('[Store] Failed to delete transaction:', error);
-      }
+        set({ transactions: applyDeleteTransaction(snap().transactions, id) });
+      },
 
-      // Update local state
-      set({ transactions: get().transactions.filter(t => t.id !== id) });
-    },
-
-    batchDeleteTransactions: async (ids) => {
-      const approvedIds = ids.filter(id => {
-        const tx = get().transactions.find(t => t.id === id);
-        return workflow.check('transaction', tx?.status as any, 'DELETED' as any).allowed === false;
-      });
-      if (approvedIds.length > 0) {
-        throw new Error('TRANSACTION_APPROVED_IMMUTABLE');
-      }
-
-      for (const id of ids) {
-        try {
-          await deleteTransactionPS(id);
-        } catch (error) {
-          console.error('[Store] Failed to delete transaction:', id, error);
+      batchDeleteTransactions: async (ids) => {
+        const blocked = validateBatchDeleteTransactions(snap().transactions, ids);
+        if (blocked.length > 0) throw new Error('TRANSACTION_APPROVED_IMMUTABLE');
+        for (const id of ids) {
+          try { await deleteTransactionPS(id); } catch (e) { console.error('[Store] Failed to delete:', id, e); }
         }
-      }
+        set({ transactions: snap().transactions.filter(t => !ids.includes(t.id)) });
+      },
 
-      set({ transactions: get().transactions.filter(t => !ids.includes(t.id)) });
-    },
+      approveTransaction: async (id, userId) => {
+        const now = new Date().toISOString();
+        set({ transactions: buildApproveTransaction(snap().transactions, id, userId ?? snap().user.id, now) });
+        try { await updateTransactionPS(id, { status: 'APPROVED', approvedById: userId ?? snap().user.id, approvedAt: now }); }
+        catch (e) { console.error('[Store] Failed to approve:', e); }
+      },
 
-    approveTransaction: async (id, userId) => {
-      const now = new Date().toISOString();
-      const oldTx = get().transactions.find(t => t.id === id);
-      const updated = get().transactions.map(t =>
-        t.id === id ? { ...t, status: 'APPROVED' as const, approvedById: userId ?? get().user.id, approvedAt: now, updatedAt: now, version: t.version + 1 } : t
-      );
-      set({ transactions: updated });
-
-      // Write to PowerSync
-      try {
-        await updateTransactionPS(id, { status: 'APPROVED', approvedById: userId ?? get().user.id, approvedAt: now });
-      } catch (error) {
-        console.error('[Store] Failed to approve transaction:', error);
-      }
-    },
-
-    batchApproveTransactions: async (ids, userId) => {
-      const now = new Date().toISOString();
-      for (const txId of ids) {
-        try {
-          await updateTransactionPS(txId, { status: 'APPROVED', approvedById: userId ?? get().user.id, approvedAt: now });
-        } catch (error) {
-          console.error('[Store] Failed to approve transaction:', txId, error);
+      batchApproveTransactions: async (ids, userId) => {
+        const now = new Date().toISOString();
+        for (const txId of ids) {
+          try { await updateTransactionPS(txId, { status: 'APPROVED', approvedById: userId ?? snap().user.id, approvedAt: now }); }
+          catch (e) { console.error('[Store] Failed to approve:', txId, e); }
         }
-      }
-      const updated = get().transactions.map(t =>
-        ids.includes(t.id)
-          ? { ...t, status: 'APPROVED' as const, approvedById: userId ?? get().user.id, approvedAt: now, updatedAt: now, version: t.version + 1 }
-          : t
-      );
-      set({ transactions: updated });
-    },
+        set({ transactions: buildBatchApproveTransactions(snap().transactions, ids, userId ?? snap().user.id, now) });
+      },
 
-    reverseTransaction: async (id, reason) => {
-      const now = new Date().toISOString();
-      const tx = get().transactions.find(t => t.id === id);
-      if (!tx || tx.status !== 'APPROVED') {
-        throw new Error('Only approved transactions can be reversed');
-      }
-      const reversalId = generateId();
-      const reversalTx = {
-        ...tx,
-        id: reversalId,
-        type: tx.type === 'INCOME' ? 'EXPENSE' : 'INCOME',
-        reversalOfId: id,
-        status: 'APPROVED',
-        approvedById: get().user.id,
-        approvedAt: now,
-        comment: `Contre-transaction: ${reason}`,
-        createdAt: now,
-        updatedAt: now,
-        version: 1,
-      };
+      reverseTransaction: async (id, reason) => {
+        const result = buildReverseTransaction(snap().transactions, id, snap().user.id, reason);
+        if (!result) throw new Error('Only approved transactions can be reversed');
+        await persistReverseTransaction(result.reversalTx);
+        set({ transactions: [...get().transactions, result.reversalTx] });
+      },
 
-      try {
-        await addTransactionPS({
-          org_id: reversalTx.orgId,
-          type: reversalTx.type,
-          amount: reversalTx.amount,
-          description: reversalTx.description,
-          date: reversalTx.date,
-          status: reversalTx.status,
-          category_id: reversalTx.categoryId,
-          org_unit_id: reversalTx.orgUnitId,
-          compensates_for: reversalTx.compensatesFor,
-          comment: reversalTx.comment,
-          version: reversalTx.version,
-          created_by_id: reversalTx.createdById,
-          approved_by_id: reversalTx.approvedById,
-          approved_at: reversalTx.approvedAt,
-          event_id: reversalTx.eventId,
-          source: reversalTx.source,
-          person_name: reversalTx.personName,
-          source_caisse_id: reversalTx.sourceCaisseId,
-          versement_id: reversalTx.versementId,
-          reversal_of_id: reversalTx.reversalOfId,
-        });
-      } catch (error) {
-        console.error('[Store] Failed to reverse transaction:', error);
-      }
+      createVersement: async (data) => {
+        const result = await createVersementService(data);
+        set({ transactions: [...get().transactions, result.sourceTx, result.targetTx] });
+      },
 
-      set({ transactions: [...get().transactions, reversalTx] });
-    },
+      syncEventBudget: async (eventId: string) => {
+        console.log('[Store] Event budget sync triggered for:', eventId);
+      },
 
-    createVersement: async (data) => {
-      const result = await createVersementService(data);
-      set({ transactions: [...get().transactions, result.sourceTx, result.targetTx] });
-    },
+      // --- Events ---
+      addEvent: async (event) => {
+        const newEvent = buildAddEvent(event);
+        await persistAddEvent(newEvent);
+        set({ events: [...get().events, newEvent] });
+      },
 
-    syncEventBudget: async (eventId: string) => {
-      // Budget sync is handled by PowerSync triggers
-      console.log('[Store] Event budget sync triggered for:', eventId);
-    },
+      updateEvent: async (id, data) => {
+        await persistUpdateEvent(id, data);
+        set({ events: applyUpdateEvent(get().events, id, data) });
+      },
 
-    addEvent: async (event) => {
-      const id = generateId();
-      const now = new Date().toISOString();
-      const newEvent: Event = {
-        ...event,
-        id,
-        createdAt: now,
-        updatedAt: now,
-        budgetItems: event.budgetItems ?? [],
-        shoppingItems: event.shoppingItems ?? [],
-      };
+      deleteEvent: async (id) => {
+        await persistDeleteEvent(id);
+        set({ events: applyDeleteEvent(get().events, id) });
+      },
 
-      try {
-        await addEventPS({
-          org_id: newEvent.orgId,
-          name: newEvent.name,
-          description: newEvent.description,
-          start_date: newEvent.startDate,
-          end_date: newEvent.endDate,
-          status: newEvent.status,
-          budget: newEvent.budget,
-          budget_items: JSON.stringify(newEvent.budgetItems),
-        });
-      } catch (error) {
-        console.error('[Store] Failed to add event:', error);
-      }
-
-      set({ events: [...get().events, newEvent] });
-    },
-
-    updateEvent: async (id, data) => {
-      try {
-        await updateEventPS(id, data);
-      } catch (error) {
-        console.error('[Store] Failed to update event:', error);
-      }
-
-      const updated = get().events.map(e =>
-        e.id === id ? { ...e, ...data, updatedAt: new Date().toISOString() } : e
-      );
-      set({ events: updated });
-    },
-
-    deleteEvent: async (id) => {
-      try {
-        await deleteEventPS(id);
-      } catch (error) {
-        console.error('[Store] Failed to delete event:', error);
-      }
-
-      set({ events: get().events.filter(e => e.id !== id) });
-    },
-
-    updateEventStatus: async (id, status, userId) => {
-      try {
+      updateEventStatus: async (id, status) => {
         await updateEventPS(id, { status });
-      } catch (error) {
-        console.error('[Store] Failed to update event status:', error);
-      }
+        set({ events: applyUpdateEventStatus(get().events, id, status) });
+      },
 
-      const updated = get().events.map(e =>
-        e.id === id ? { ...e, status, updatedAt: new Date().toISOString() } : e
-      );
-      set({ events: updated });
-    },
+      addBudgetItem: async (eventId, item) => {
+        const event = get().events.find(e => e.id === eventId);
+        if (!event) return;
+        const { newItems, total } = addBudgetItem(event.budgetItems, eventId, item);
+        await get().updateEvent(eventId, { budgetItems: newItems, budget: total });
+      },
 
-    addBudgetItem: async (eventId, item) => {
-      const event = get().events.find(e => e.id === eventId);
-      if (!event) return;
-      const newItem = { id: generateId(), ...item };
-      const newItems = [...event.budgetItems, newItem];
-      const total = newItems.reduce((s, i) => s + i.allocated, 0);
-      await get().updateEvent(eventId, { budgetItems: newItems, budget: total });
-    },
+      removeBudgetItem: async (eventId, itemId) => {
+        const event = get().events.find(e => e.id === eventId);
+        if (!event) return;
+        const { newItems, total } = removeBudgetItem(event.budgetItems, itemId);
+        await get().updateEvent(eventId, { budgetItems: newItems, budget: total });
+      },
 
-    removeBudgetItem: async (eventId, itemId) => {
-      const event = get().events.find(e => e.id === eventId);
-      if (!event) return;
-      const newItems = event.budgetItems.filter(i => i.id !== itemId);
-      const total = newItems.reduce((s, i) => s + i.allocated, 0);
-      await get().updateEvent(eventId, { budgetItems: newItems, budget: total });
-    },
+      updateShoppingItemStatus: async (eventId, itemId, status) => {
+        const event = get().events.find(e => e.id === eventId);
+        if (!event) return;
+        const newItems = updateShoppingItemStatus(event.shoppingItems, itemId, status);
+        await get().updateEvent(eventId, { shoppingItems: newItems });
+      },
 
-    updateShoppingItemStatus: async (eventId, itemId, status) => {
-      const event = get().events.find(e => e.id === eventId);
-      if (!event) return;
-      const newItems = event.shoppingItems.map(i =>
-        i.id === itemId ? { ...i, status } : i
-      );
-      await get().updateEvent(eventId, { shoppingItems: newItems });
-    },
+      updateConfig: async (config) => {
+        const updated = { ...get().appConfig, ...config };
+        set({ appConfig: updated });
+        localStorage.setItem('lumina-config', JSON.stringify(updated));
+      },
 
-    updateConfig: async (config) => {
-      const current = get().appConfig;
-      const updated = { ...current, ...config };
-      set({ appConfig: updated });
-      // Config is stored in localStorage
-      localStorage.setItem('lumina-config', JSON.stringify(updated));
-    },
-
-    createNotification: async (notif) => {
-      const id = generateId();
-      const now = new Date().toISOString();
-      const newNotif = { ...notif, id, createdAt: now };
-      set({ notifications: [newNotif, ...get().notifications] });
-      // Notifications are stored in PowerSync
-    },
-
-    markNotificationRead: async (id) => {
-      const updated = get().notifications.map(n =>
-        n.id === id ? { ...n, isRead: true } : n
-      );
-      set({ notifications: updated });
-    },
-
-    markAllNotificationsRead: async () => {
-      const updated = get().notifications.map(n => ({ ...n, isRead: true }));
-      set({ notifications: updated });
-    },
-
-    createGroup: async (data) => {
-      const groupCount = get().caisses.filter(c => c.type === 'GROUP').length;
-      const result = createGroupService({ ...data, existingGroupCount: groupCount });
-      set({
-        orgUnits: [...get().orgUnits, result.orgUnit],
-        caisses: [...get().caisses, result.caisse],
-        groups: [...get().groups, result.group],
-        accounts: [...get().accounts, result.account],
-      });
-    },
-
-    updateGroup: async (id, data) => {
-      const now = new Date().toISOString();
-      const updatedOrgUnits = get().orgUnits.map(ou =>
-        ou.id === id ? { ...ou, ...data, updatedAt: now } : ou
-      );
-      const updatedGroups = get().groups.map(g =>
-        g.id === id ? { ...g, ...data, updatedAt: now } : g
-      );
-      const updatedAccounts = get().accounts.map(a =>
-        a.id === id ? { ...a, name: data.name ?? a.name, updatedAt: now } : a
-      );
-      const updatedCaisses = get().caisses.map(c =>
-        c.id === id ? { ...c, name: data.name ?? c.name, description: data.description ?? c.description, updatedAt: now } : c
-      );
-
-      set({
-        orgUnits: updatedOrgUnits,
-        caisses: updatedCaisses,
-        groups: updatedGroups,
-        accounts: updatedAccounts,
-      });
-    },
-
-    deleteGroup: async (id) => {
-      set({
-        orgUnits: get().orgUnits.filter(ou => ou.id !== id),
-        caisses: get().caisses.filter(c => c.id !== id),
-        groups: get().groups.filter(g => g.id !== id),
-        accounts: get().accounts.filter(a => a.id !== id),
-      });
-    },
-
-    archiveGroup: async (id, reason, actorId) => {
-      const now = new Date().toISOString();
-      // Delegate to Lifecycle capability (PS + audit)
-      await lifecycle.archive('Group', id, reason, actorId);
-      // Update local state for immediate UI feedback
-      const updatedGroups = get().groups.map(g =>
-        g.id === id ? { ...g, status: 'ARCHIVED' as const, archivedAt: now, archivedBy: actorId, archiveReason: reason, updatedAt: now } : g
-      );
-      const updatedAccounts = get().accounts.map(a =>
-        a.id === id ? { ...a, status: 'ARCHIVED' as const, archivedAt: now, archivedBy: actorId, archiveReason: reason, updatedAt: now } : a
-      );
-      const updatedCaisses = get().caisses.map(c =>
-        c.id === id ? { ...c, status: 'ARCHIVED' as const, archivedAt: now, archivedBy: actorId, archiveReason: reason, updatedAt: now } : c
-      );
-      set({ groups: updatedGroups, accounts: updatedAccounts, caisses: updatedCaisses });
-    },
-
-    restoreGroup: async (id, reason, actorId) => {
-      const now = new Date().toISOString();
-      // Delegate to Lifecycle capability (PS + audit)
-      await lifecycle.restore('Group', id, reason, actorId);
-      // Update local state for immediate UI feedback
-      const updatedGroups = get().groups.map(g =>
-        g.id === id ? { ...g, status: 'ACTIVE' as const, archivedAt: null, archivedBy: null, archiveReason: null, updatedAt: now } : g
-      );
-      const updatedAccounts = get().accounts.map(a =>
-        a.id === id ? { ...a, status: 'ACTIVE' as const, archivedAt: null, archivedBy: null, archiveReason: null, updatedAt: now } : a
-      );
-      const updatedCaisses = get().caisses.map(c =>
-        c.id === id ? { ...c, status: 'ACTIVE' as const, archivedAt: null, archivedBy: null, archiveReason: null, updatedAt: now } : c
-      );
-      set({ groups: updatedGroups, accounts: updatedAccounts, caisses: updatedCaisses });
-    },
-
-    createEventBudget: async (eventId, currency = 'XOF') => {
-      const now = new Date().toISOString();
-      const id = generateId();
-      const budget: EventBudget = { id, eventId, currency, revisedAt: null, revisedBy: null, createdAt: now };
-      set({ eventBudgets: [...get().eventBudgets, budget] });
-    },
-
-    addBudgetLine: async (eventBudgetId, line) => {
-      const now = new Date().toISOString();
-      const id = generateId();
-      const budgetLine: BudgetLine = { ...line, id, createdAt: now };
-      set({ budgetLines: [...get().budgetLines, budgetLine] });
-    },
-
-    removeBudgetLine: async (eventBudgetId, lineId) => {
-      set({ budgetLines: get().budgetLines.filter(bl => !(bl.eventBudgetId === eventBudgetId && bl.id === lineId)) });
-    },
-
-    getEventBudget: (eventId) => get().eventBudgets.find(eb => eb.eventId === eventId),
-    getBudgetLines: (eventBudgetId) => get().budgetLines.filter(bl => bl.eventBudgetId === eventBudgetId),
-
-    // === COTISATIONS ===
-    createCulte: async (data) => {
-      const now = new Date().toISOString();
-      const id = generateId();
-
-      // Create the culte as an Event with type='CULTE'
-      const culte: Event = {
-        id,
-        orgId: getOrganizationId(),
-        name: data.name,
-        description: '',
-        startDate: data.startDate,
-        endDate: null,
-        status: 'PLANIFIED',
-        type: 'CULTE' as const,
-        budget: 0,
-        budgetItems: [],
-        shoppingItems: [],
-        createdAt: now,
-        updatedAt: now,
-      };
-
-      // Create cotisations for ALL active members
-      const members = get().members.filter(m => m.status === 'ACTIVE');
-      const montantObligatoireCents = data.montantCotisationCents ?? 5000;
-
-      const newCotisations: Cotisation[] = members.map(m => ({
-        id: generateId(),
-        culteId: id,
-        membreId: m.id,
-        statut: 'NON_PAYE' as CotisationStatut,
-        montantObligatoire: montantObligatoireCents,
-        montantPaye: 0,
-        datePaiement: null,
-        notes: null,
-        createdAt: now,
-        updatedAt: now,
-      }));
-
-      const updatedCotisations = [...get().cotisations, ...newCotisations];
-      set({
-        events: [...get().events, culte],
-        cotisations: updatedCotisations,
-      });
-
-      // Write to PowerSync
-      await executeWrite(
-        'INSERT INTO events (id, org_id, name, description, start_date, end_date, status, type, budget, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [id, getOrganizationId(), data.name, '', data.startDate, null, 'PLANIFIED', 'CULTE', 0, now, now]
-      );
-
-      for (const cot of newCotisations) {
-        await executeWrite(
-          'INSERT INTO cotisations (id, culte_id, membre_id, statut, montantObligatoire, montantPaye, datePaiement, notes, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-          [cot.id, cot.culteId, cot.membreId, cot.statut, cot.montantObligatoire, cot.montantPaye, cot.datePaiement, cot.notes, cot.createdAt, cot.updatedAt]
-        );
-      }
-    },
-
-    markCotisationPaid: async (cotisationId, montantPayeCents, datePaiement) => {
-      const now = new Date().toISOString();
-      const cot = get().cotisations.find(c => c.id === cotisationId);
-      if (!cot) return;
-
-      const culte = get().events.find(e => e.id === cot.culteId);
-      const membre = get().members.find(m => m.id === cot.membreId);
-      if (!culte || !membre) return;
-
-      // === VALIDATIONS ===
-      if (isPaiementVerrouille({ dateCulte: culte.startDate, cotisationEstPaye: cot.statut === 'PAYE' || cot.statut === 'EN_AVANCE' })) {
-        throw new Error('PAIEMENT_VERROUILLE');
-      }
-      if (montantPayeCents < cot.montantObligatoire) {
-        throw new Error('MONTANT_INSUFFISANT');
-      }
-
-      const statut = determinerStatutAvance({ datePaiement, dateCulte: culte.startDate });
-      const donCents = calculerDon(montantPayeCents, cot.montantObligatoire);
-      const aAvance = (membre.montantEnAvance || 0) >= montantPayeCents;
-
-      let updatedCot: Cotisation;
-      let updatedMembre: Member | null = null;
-
-      if (aAvance) {
-        updatedCot = { ...cot, statut, montantPaye: montantPayeCents, datePaiement, updatedAt: now };
-        updatedMembre = { ...membre, montantEnAvance: membre.montantEnAvance - montantPayeCents, updatedAt: now };
-      } else {
-        updatedCot = { ...cot, statut, montantPaye: montantPayeCents, datePaiement, updatedAt: now };
-        const sessionId = localStorage.getItem('lumina-session') || 'local-user';
-        const tx = {
-          id: generateId(),
-          orgId: getOrganizationId(),
-          type: 'INCOME' as const,
-          amount: montantPayeCents,
-          description: `Cotisation ${membre.firstName} ${membre.lastName} -- Culte du ${formatDate(culte.startDate)}`,
-          date: datePaiement.split('T')[0],
-          status: 'APPROVED' as const,
-          categoryId: 'cat-dime',
-          orgUnitId: null,
-          eventId: cot.culteId,
-          source: 'COTISATION' as const,
-          personName: `${membre.firstName} ${membre.lastName}`,
-          compensatesFor: null,
-          comment: donCents > 0 ? `Cotisation + don ${formatCentsToFCFA(donCents)} FCFA` : 'Cotisation',
-          version: 1,
-          sourceCaisseId: 'main',
-          versementId: null,
-          reversalOfId: null,
-          cotisationId,
-          createdAt: now,
-          updatedAt: now,
-          createdById: sessionId,
-          approvedById: sessionId,
-          approvedAt: now,
-        };
-        set({ transactions: [...get().transactions, tx] });
-        await executeWrite(
-          'INSERT INTO transactions (id, org_id, type, amount, description, date, status, category_id, org_unit_id, event_id, source, person_name, comment, version, source_caisse_id, versement_id, reversal_of_id, cotisation_id, created_by_id, approved_by_id, created_at, updated_at, approved_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-          [tx.id, tx.orgId, tx.type, tx.amount, tx.description, tx.date, tx.status, tx.categoryId, tx.orgUnitId, tx.eventId, tx.source, tx.personName, tx.comment, tx.version, tx.sourceCaisseId, tx.versementId, tx.reversalOfId, tx.cotisationId, tx.createdById, tx.approvedById, tx.createdAt, tx.updatedAt, tx.approvedAt]
-        );
-      }
-
-      // Update cotisation
-      set({ cotisations: get().cotisations.map(c => c.id === cotisationId ? updatedCot : c) });
-      await updateCotisationPS(cotisationId, { statut: updatedCot.statut, montantPaye: updatedCot.montantPaye, datePaiement: updatedCot.datePaiement, updatedAt: now });
-
-      // Update member
-      if (updatedMembre) {
-        set({ members: get().members.map(m => m.id === membre.id ? updatedMembre! : m) });
-        await updateMemberPS(membre.id, { montant_en_avance: updatedMembre.montantEnAvance, updated_at: now });
-      } else if (donCents > 0) {
-        const newTotalDons = (membre.totalDons || 0) + donCents;
-        set({ members: get().members.map(m => m.id === membre.id ? { ...m, totalDons: newTotalDons, updatedAt: now } : m) });
-        await updateMemberPS(membre.id, { total_dons: newTotalDons, updated_at: now });
-      }
-    },
-
-    markCotisationsAbsent: async (culteId, membreIds) => {
-      const now = new Date().toISOString();
-      const updated = get().cotisations.map(c =>
-        c.culteId === culteId && membreIds.includes(c.membreId)
-          ? { ...c, statut: 'ABSENT' as CotisationStatut, updatedAt: now }
-          : c
-      );
-      set({ cotisations: updated });
-      for (const cot of updated.filter(c => c.culteId === culteId && membreIds.includes(c.membreId))) {
-        await updateCotisationPS(cot.id, { statut: 'ABSENT', updatedAt: now });
-      }
-    },
-
-    updateCotisation: async (id, data) => {
-      const now = new Date().toISOString();
-      const updated = get().cotisations.map(c => c.id === id ? { ...c, ...data, updatedAt: now } : c);
-      set({ cotisations: updated });
-      await updateCotisationPS(id, data);
-    },
-
-    getCotisationsForCulte: (culteId) => {
-      return get().cotisations.filter(c => c.culteId === culteId);
-    },
-
-    getMembreHistorique: (membreId) => {
-      const cotisations = get().cotisations.filter(c => c.membreId === membreId);
-      return cotisations
-        .map(cot => {
-          const culte = get().events.find(e => e.id === cot.culteId);
-          return { cotisation: cot, culte };
-        })
-        .filter(({ culte }) => culte !== undefined)
-        .sort((a, b) => new Date(b.culte!.startDate).getTime() - new Date(a.culte!.startDate).getTime());
-    },
-
-    getMembresEnAvance: () => {
-      return get().members
-        .filter(m => m.montantEnAvance > 0 && m.status === 'ACTIVE')
-        .map(m => ({ membre: m, montant: m.montantEnAvance }))
-        .sort((a, b) => b.montant - a.montant);
-    },
-
-    createMember: async (data) => {
-      const now = new Date().toISOString();
-      const id = generateId();
-      const member: Member = { ...data, id, createdAt: now, updatedAt: now };
-      try {
-        await addMemberPS({
-          org_id: member.orgId,
-          first_name: member.firstName,
-          last_name: member.lastName,
-          phone: member.phone,
-          email: member.email,
-          status: member.status,
-          joined_at: member.joinedAt,
-          archived_at: member.archivedAt,
-          archived_by: member.archivedBy,
-          archive_reason: member.archiveReason,
-        });
-      } catch (error) {
-        console.error('[Store] Failed to create member:', error);
-      }
-      set({ members: [...get().members, member] });
-    },
-
-    updateMember: async (id, data) => {
-      try {
-        await updateMemberPS(id, data);
-      } catch (error) {
-        console.error('[Store] Failed to update member:', error);
-      }
-      const updated = get().members.map(m =>
-        m.id === id ? { ...m, ...data, updatedAt: new Date().toISOString() } : m
-      );
-      set({ members: updated });
-    },
-
-    deleteMember: async (id) => {
-      set({ members: get().members.filter(m => m.id !== id) });
-    },
-
-    archiveMember: async (id, reason, actorId) => {
-      const now = new Date().toISOString();
-      // Delegate to Lifecycle capability (PS + audit)
-      await lifecycle.archive('Member', id, reason, actorId);
-      // Update local state for immediate UI feedback
-      const updated = get().members.map(m =>
-        m.id === id ? { ...m, status: 'ARCHIVED' as const, archivedAt: now, archivedBy: actorId, archiveReason: reason, updatedAt: now } : m
-      );
-      set({ members: updated });
-    },
-
-    restoreMember: async (id, reason, actorId) => {
-      const now = new Date().toISOString();
-      // Delegate to Lifecycle capability (PS + audit)
-      await lifecycle.restore('Member', id, reason, actorId);
-      // Update local state for immediate UI feedback
-      const updated = get().members.map(m =>
-        m.id === id ? { ...m, status: 'ACTIVE' as const, archivedAt: null, archivedBy: null, archiveReason: null, updatedAt: now } : m
-      );
-      set({ members: updated });
-    },
-
-    addMemberToGroup: async (membership) => {
-      // Delegate to Relationship capability (PS)
-      const id = await relationship.addMembership(membership.groupId, membership.memberId, membership.roleInGroup, 'local-user');
-      const now = new Date().toISOString();
-      // Update local state for immediate UI feedback
-      const fullMembership = { ...membership, id, createdAt: now };
-      set({ memberships: [...get().memberships, fullMembership] });
-    },
-
-    removeMemberFromGroup: async (id) => {
-      // Delegate to Relationship capability (PS)
-      await relationship.removeMembership(id, 'local-user');
-      // Update local state for immediate UI feedback
-      set({ memberships: get().memberships.filter(m => m.id !== id) });
-    },
-
-    loadInitialData: async () => {
-      set({ isLoading: true });
-      try {
-        // Load from localStorage
-        const storedConfig = localStorage.getItem('lumina-config');
-        const storedRole = localStorage.getItem('lumina-role') as Role;
-        const sessionId = localStorage.getItem('lumina-session');
-
-        // Load cotisations from PowerSync
-        const db = getPowerSyncDatabase();
-        const cotisations = await db.getAll<Cotisation>('cotisations').catch(() => [] as Cotisation[]);
-        set({ cotisations });
-
+      // --- Groups ---
+      createGroup: async (data) => {
+        const groupCount = get().caisses.filter(c => c.type === 'GROUP').length;
+        const result = createGroupService({ ...data, existingGroupCount: groupCount });
         set({
-          appConfig: storedConfig ? JSON.parse(storedConfig) : { churchName: '', churchLogoUrl: '', userPhoto: '' },
-          user: {
-            ...DEFAULT_USER,
-            role: storedRole || 'TREASURIER',
-          },
-          isLoading: false,
+          orgUnits: [...get().orgUnits, result.orgUnit],
+          caisses: [...get().caisses, result.caisse],
+          groups: [...get().groups, result.group],
+          accounts: [...get().accounts, result.account],
         });
-      } catch (e) {
-        console.error('[Store] loadInitialData failed', e);
-        set({ isLoading: false });
-      }
-    },
+      },
 
-    setOnline: (isOnline) => set({ isOnline }),
+      updateGroup: async (id, data) => {
+        const { orgUnits, caisses, groups, accounts } = applyUpdateGroup(snap(), id, data);
+        set({ orgUnits, caisses, groups, accounts });
+      },
 
-    getCaisseForDisplay: (accountId: string) => {
-      const state = get();
-      const acc = state.accounts.find(a => a.id === accountId);
-      if (acc) {
-        const caisse = state.caisses.find(c => c.id === accountId);
-        return {
-          id: acc.id,
-          name: acc.name,
-          description: state.orgUnits.find(o => o.id === acc.id)?.description || '',
-          type: acc.ownerType === 'ORGANIZATION' ? 'MAIN' : 'GROUP' as const,
-          color: caisse?.color || '#FF6B00',
-          orgId: acc.orgId,
-          createdAt: acc.createdAt,
-          updatedAt: acc.updatedAt,
-          archivedAt: acc.archivedAt,
-          archivedBy: acc.archivedBy,
-          archiveReason: acc.archiveReason,
-          status: acc.status,
-        };
-      }
-      return state.caisses.find(c => c.id === accountId) ?? null;
-    },
-  }),
+      deleteGroup: async (id) => {
+        const { orgUnits, caisses, groups, accounts } = applyDeleteGroup(snap(), id);
+        set({ orgUnits, caisses, groups, accounts });
+      },
+
+      archiveGroup: async (id, reason, actorId) => {
+        await lifecycle.archive('Group', id, reason, actorId);
+        const { groups, accounts, caisses } = applyArchiveGroup(snap(), id, reason, actorId);
+        set({ groups, accounts, caisses });
+      },
+
+      restoreGroup: async (id, reason, actorId) => {
+        await lifecycle.restore('Group', id, reason, actorId);
+        const { groups, accounts, caisses } = applyRestoreGroup(snap(), id, reason, actorId);
+        set({ groups, accounts, caisses });
+      },
+
+      // --- Budget ---
+      createEventBudget: async (eventId, currency = 'XOF') => {
+        set({ eventBudgets: [...get().eventBudgets, buildCreateEventBudget(eventId, currency)] });
+      },
+
+      addBudgetLine: async (eventBudgetId, line) => {
+        set({ budgetLines: [...get().budgetLines, buildAddBudgetLine(line)] });
+      },
+
+      removeBudgetLine: async (eventBudgetId, lineId) => {
+        set({ budgetLines: applyRemoveBudgetLine(get().budgetLines, eventBudgetId, lineId) });
+      },
+
+      getEventBudget: (eventId) => get().eventBudgets.find(eb => eb.eventId === eventId),
+      getBudgetLines: (eventBudgetId) => get().budgetLines.filter(bl => bl.eventBudgetId === eventBudgetId),
+
+      // --- Cotisations ---
+      createCulte: async (data) => {
+        const result = createCulte(data, snap());
+        set({ events: [...get().events, result.culte], cotisations: [...get().cotisations, ...result.cotisations] });
+        await persistCulte(result.culte, result.cotisations);
+      },
+
+      markCotisationPaid: async (cotisationId, montantPayeCents, datePaiement) => {
+        const result = markCotisationPaid(cotisationId, montantPayeCents, datePaiement, snap());
+        if (result.error) throw new Error(result.error);
+        set({ cotisations: get().cotisations.map(c => c.id === cotisationId ? result.updatedCot : c) });
+        if (result.updatedMembre) set({ members: get().members.map(m => m.id === result.updatedMembre!.id ? result.updatedMembre! : m) });
+        if (result.newTransaction) set({ transactions: [...get().transactions, result.newTransaction] });
+        await persistMarkCotisationPaid({ ...result, cotisationId, membreId: result.updatedMembre?.id });
+      },
+
+      markCotisationsAbsent: async (culteId, membreIds) => {
+        const result = markCotisationsAbsent(culteId, membreIds, snap());
+        set({ cotisations: result.updatedCotisations });
+        await persistMarkCotisationsAbsent(culteId, membreIds, snap());
+      },
+
+      updateCotisation: async (id, data) => {
+        set({ cotisations: updateCotisationService(id, data, snap()) });
+        await persistUpdateCotisation(id, data);
+      },
+
+      getCotisationsForCulte: (culteId) => getCotisationsForCulteSvc(culteId, snap()),
+      getMembreHistorique: (membreId) => getMembreHistoriqueSvc(membreId, snap()),
+      getMembresEnAvance: () => getMembresEnAvanceSvc(snap()),
+
+      // --- Members ---
+      createMember: async (data) => {
+        const member = buildCreateMember(data);
+        await persistCreateMember(member);
+        set({ members: [...get().members, member] });
+      },
+
+      updateMember: async (id, data) => {
+        await updateMemberPS(id, data);
+        set({ members: applyUpdateMember(get().members, id, data) });
+      },
+
+      deleteMember: async (id) => {
+        set({ members: applyDeleteMember(get().members, id) });
+      },
+
+      archiveMember: async (id, reason, actorId) => {
+        const now = new Date().toISOString();
+        await lifecycle.archive('Member', id, reason, actorId);
+        set({ members: get().members.map(m => m.id === id ? { ...m, status: 'ARCHIVED' as const, archivedAt: now, archivedBy: actorId, archiveReason: reason, updatedAt: now } : m) });
+      },
+
+      restoreMember: async (id, reason, actorId) => {
+        const now = new Date().toISOString();
+        await lifecycle.restore('Member', id, reason, actorId);
+        set({ members: get().members.map(m => m.id === id ? { ...m, status: 'ACTIVE' as const, archivedAt: null, archivedBy: null, archiveReason: null, updatedAt: now } : m) });
+      },
+
+      // --- Memberships ---
+      addMemberToGroup: async (membership) => {
+        const id = await relationship.addMembership(membership.groupId, membership.memberId, membership.roleInGroup, 'local-user');
+        set({ memberships: [...get().memberships, { ...membership, id, createdAt: new Date().toISOString() }] });
+      },
+
+      removeMemberFromGroup: async (id) => {
+        await relationship.removeMembership(id, 'local-user');
+        set({ memberships: get().memberships.filter(m => m.id !== id) });
+      },
+
+      // --- Data loading ---
+      loadInitialData: async () => {
+        set({ isLoading: true });
+        try {
+          const storedConfig = localStorage.getItem('lumina-config');
+          const storedRole = localStorage.getItem('lumina-role') as Role;
+          const db = getPowerSyncDatabase();
+          const cotisations = await db.getAll<Cotisation>('cotisations').catch(() => [] as Cotisation[]);
+          set({
+            cotisations,
+            appConfig: storedConfig ? JSON.parse(storedConfig) : { churchName: '', churchLogoUrl: '', userPhoto: '' },
+            user: { ...DEFAULT_USER, role: storedRole || 'TREASURIER' },
+            isLoading: false,
+          });
+        } catch (e) {
+          console.error('[Store] loadInitialData failed', e);
+          set({ isLoading: false });
+        }
+      },
+
+      setOnline: (isOnline) => set({ isOnline }),
+
+      getCaisseForDisplay: (accountId: string) => {
+        const state = get();
+        const acc = state.accounts.find(a => a.id === accountId);
+        if (acc) {
+          const caisse = state.caisses.find(c => c.id === accountId);
+          return {
+            id: acc.id,
+            name: acc.name,
+            description: state.orgUnits.find(o => o.id === acc.id)?.description || '',
+            type: acc.ownerType === 'ORGANIZATION' ? 'MAIN' : 'GROUP' as const,
+            color: caisse?.color || '#FF6B00',
+            orgId: acc.orgId,
+            createdAt: acc.createdAt,
+            updatedAt: acc.updatedAt,
+            archivedAt: acc.archivedAt,
+            archivedBy: acc.archivedBy,
+            archiveReason: acc.archiveReason,
+            status: acc.status,
+          };
+        }
+        return state.caisses.find(c => c.id === accountId) ?? null;
+      },
+    };
+  },
   {
     name: 'lumina-store',
     partialize: (state) => ({ user: state.user }),
