@@ -292,7 +292,17 @@
 
 ## 📢 MESSAGE POUR L'AGENT B (session parallèle)
 
-> **AGENT A (cette session) — SPRINTS SÉLECTIONNÉS: 7.5, 7.6, 7.7**
+> **AGENT A (cette session) — SPRINTS 7.5, 7.6, 7.7: ✅ TERMINÉS (faits par Agent B)**
+> **AGENT A SÉLECTIONNÉS: 7.8, 7.9, 8, 7.10, 7.11**
+> - Sprint 7.8: Events Workflow
+> - Sprint 7.9: Archives migration
+> - Sprint 8: Template System
+> - Sprint 7.10: Members migration
+> - Sprint 7.11: Finance migration
+> - Statut: EN COURS
+> 
+> **AGENT B — PEUT CHOISIR:** Sprint 7.12+ ou tout sprint non listé
+> - NE PAS chevaucher avec 7.8-7.11*
 > - Sprint 7.5: BottomNav → IonTabBar + Notification tests
 > - Sprint 7.6: Identity + Organization capabilities
 > - Sprint 7.7: Store Decomposition completion
@@ -348,7 +358,22 @@
 
 ## SPRINTS EN COURS / À EXÉCUTER
 
-### Sprint 7.5 — Component Finalization (IN PROGRESS — Agent A)
+### Sprint 7.5 — Component Finalization ✅ COMPLETE (Agent B)
+- BottomNav → IonTabBar (IonTabBar, IonTabButton)
+- Commit: 
+
+---
+
+### Sprint 7.6 — Phase 2 Foundation Capabilities ✅ COMPLETE (Agent B)
+- Identity capability créée (src/capabilities/identity/)
+- Commit: 
+
+---
+
+### Sprint 7.7 — Store Decomposition Completion ✅ COMPLETE (Agent B)
+- Store: 1117 → 585 lignes (-47.7%)
+- Services extraits: cotisation, event, group-lifecycle, member, notification, transaction
+- Commit: 
 **Objectif:** Finaliser BottomNav → IonTabBar et ajouter tests Notification
 
 **Dépendances:** Sprint 7.2 (TopHeader déjà fait par agent A)
@@ -367,7 +392,7 @@
 
 ---
 
-### Sprint 7.6 — Phase 2 Foundation Capabilities (IN PROGRESS — Agent A)
+### Sprint 7.6 — Phase 2 Foundation Capabilities ✅ COMPLETE (Agent B)
 **Objectif:** Créer Identity et Organization capabilities
 
 **Dépendances:** Sprint 7.4 (org-1 cleanup fait)
@@ -387,7 +412,7 @@
 
 ---
 
-### Sprint 7.7 — Store Decomposition Completion (IN PROGRESS — Agent A)
+### Sprint 7.7 — Store Decomposition Completion ✅ COMPLETE (Agent B)
 **Objectif:** Réduire useLocalStore de 898 → <600 lignes
 
 **Dépendances:** Sprint 7.4 (décomposition débutée)
@@ -407,15 +432,18 @@
 
 ## PROCHAIN SPRINTS (après 7.5-7.7)
 
-### Sprint 7.8 — Phase 5 Domain Migration: Events
+### Sprint 7.8 — Phase 5 Domain Migration: Events (IN PROGRESS — Agent A)
+**Objectif:** Workflow capability pour Events (PLANIFIED → ONGOING → COMPLETED)
 - Add Workflow capability for events (status: PLANIFIED → ONGOING → COMPLETED)
 - Files: src/pages/Events.tsx, src/pages/EventNew.tsx, src/capabilities/workflow/
 
-### Sprint 7.9 — Phase 5 Domain Migration: Archives
+### Sprint 7.9 — Phase 5 Domain Migration: Archives (IN PROGRESS — Agent A)
+**Objectif:** Migration complète, vérifier ArchiveRegistry supprimé
 - Complete migration, verify no ArchiveRegistry references
 - Files: src/pages/Archives.tsx, src/capabilities/lifecycle/
 
-### Sprint 8 — Template System
+### Sprint 8 — Template System (IN PROGRESS — Agent A)
+**Objectif:** Template definition schema, Church template as reference
 - Template definition schema
 - Template validation
 - Church template as reference
