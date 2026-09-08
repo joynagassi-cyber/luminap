@@ -28,6 +28,37 @@ export type WorkflowGuard = (
 ) => GuardResult;
 
 /**
+ * Default guard for events — status transitions PLANIFIED → ONGOING → COMPLETED
+ * Terminal states (COMPLETED, CANCELLED) are immutable.
+ */
+export const eventStatusGuard: WorkflowGuard = (
+  currentStatus,
+  targetStatus
+): GuardResult => {
+  // Terminal states are immutable
+  if (currentStatus === 'COMPLETED' && targetStatus !== 'COMPLETED') {
+    return { allowed: false, reason: 'EVENT_COMPLETED_IMMUTABLE' };
+  }
+  if (currentStatus === 'CANCELLED' && targetStatus !== 'CANCELLED') {
+    return { allowed: false, reason: 'EVENT_CANCELLED_IMMUTABLE' };
+  }
+  // Already at target — no-op, allowed
+  if (currentStatus === targetStatus) {
+    return { allowed: true };
+  }
+  // Define allowed transitions per current status
+  const allowedTransitions: Record<string, string[]> = {
+    PLANIFIED: ['ONGOING', 'CANCELLED'],
+    ONGOING: ['COMPLETED', 'CANCELLED'],
+  };
+  const allowed = allowedTransitions[currentStatus]?.includes(targetStatus) ?? false;
+  if (!allowed) {
+    return { allowed: false, reason: 'INVALID_EVENT_TRANSITION' };
+  }
+  return { allowed: true };
+};
+
+/**
  * Default guard for transactions (domain-agnostic core)
  */
 export const transactionGuard: WorkflowGuard = (
@@ -90,3 +121,4 @@ export const workflow = new WorkflowService();
 
 // Register default guards at module load
 workflow.register('transaction', transactionGuard);
+workflow.register('event', eventStatusGuard);

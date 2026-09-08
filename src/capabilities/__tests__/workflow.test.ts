@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { transactionGuard, WorkflowService, type GuardResult, type WorkflowGuard } from '../workflow';
+import { transactionGuard, eventStatusGuard, WorkflowService, type GuardResult, type WorkflowGuard } from '../workflow';
 
 describe('workflow capability', () => {
   let service: WorkflowService;
@@ -89,6 +89,64 @@ describe('workflow capability', () => {
       const result = svc.check('transaction', 'APPROVED', 'DRAFT');
       expect(result.allowed).toBe(false);
       expect(result.reason).toBe('TRANSACTION_APPROVED_IMMUTABLE');
+    });
+  });
+
+  // ─── eventStatusGuard ──────────────────────────────────────────
+
+  describe('eventStatusGuard', () => {
+    it('allows PLANIFIED → ONGOING', () => {
+      const result = eventStatusGuard('PLANIFIED', 'ONGOING');
+      expect(result).toEqual({ allowed: true });
+    });
+
+    it('allows PLANIFIED → CANCELLED', () => {
+      const result = eventStatusGuard('PLANIFIED', 'CANCELLED');
+      expect(result).toEqual({ allowed: true });
+    });
+
+    it('blocks PLANIFIED → COMPLETED (must go through ONGOING)', () => {
+      const result = eventStatusGuard('PLANIFIED', 'COMPLETED');
+      expect(result.allowed).toBe(false);
+      expect(result.reason).toBe('INVALID_EVENT_TRANSITION');
+    });
+
+    it('allows ONGOING → COMPLETED', () => {
+      const result = eventStatusGuard('ONGOING', 'COMPLETED');
+      expect(result).toEqual({ allowed: true });
+    });
+
+    it('allows ONGOING → CANCELLED', () => {
+      const result = eventStatusGuard('ONGOING', 'CANCELLED');
+      expect(result).toEqual({ allowed: true });
+    });
+
+    it('blocks ONGOING → PLANIFIED (no backward transition)', () => {
+      const result = eventStatusGuard('ONGOING', 'PLANIFIED');
+      expect(result.allowed).toBe(false);
+      expect(result.reason).toBe('INVALID_EVENT_TRANSITION');
+    });
+
+    it('blocks transition away from COMPLETED (terminal state)', () => {
+      const result = eventStatusGuard('COMPLETED', 'ONGOING');
+      expect(result.allowed).toBe(false);
+      expect(result.reason).toBe('EVENT_COMPLETED_IMMUTABLE');
+    });
+
+    it('blocks transition away from CANCELLED (terminal state)', () => {
+      const result = eventStatusGuard('CANCELLED', 'PLANIFIED');
+      expect(result.allowed).toBe(false);
+      expect(result.reason).toBe('EVENT_CANCELLED_IMMUTABLE');
+    });
+
+    it('allows same-status transition (no-op) for COMPLETED', () => {
+      const result = eventStatusGuard('COMPLETED', 'COMPLETED');
+      expect(result.allowed).toBe(true);
+    });
+
+    it('allows same-status transition (no-op) for CANCELLED', () => {
+      const result = eventStatusGuard('CANCELLED', 'CANCELLED');
+      expect(result.allowed).toBe(true);
     });
   });
 

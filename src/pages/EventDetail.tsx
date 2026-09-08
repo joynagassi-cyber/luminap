@@ -9,6 +9,7 @@ import TopHeader from '@/components/TopHeader';
 import { FullPageSkeleton } from '@/components/Skeleton';
 import type { EventStatus } from '@/types';
 import { security } from '@/capabilities/security';
+import { workflow } from '@/capabilities/workflow';
 import { getOrganizationId } from '@/lib/orgContext';
 import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar, IonButtons, IonBackButton } from '@ionic/react';
 
@@ -54,8 +55,14 @@ export default function EventDetail() {
   const eventTxs = transactions.filter((t: any) => t.event_id === event.id || t.eventId === event.id);
 
   const handleStatusChange = (newStatus: EventStatus) => {
+    const result = workflow.check('event', event.status, newStatus);
+    if (!result.allowed) {
+      setSuccess(`Transition bloquee : ${result.reason}`);
+      setTimeout(() => setSuccess(''), 3000);
+      return;
+    }
     updateEventStatus(id!, newStatus);
-    setSuccess(`Statut changé : ${STATUS_CONFIG[newStatus].label}`);
+    setSuccess(`Statut change : ${STATUS_CONFIG[newStatus].label}`);
     setTimeout(() => setSuccess(''), 3000);
   };
 
