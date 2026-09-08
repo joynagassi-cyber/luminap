@@ -7,7 +7,7 @@
  * Do NOT add domain-specific permissions — they belong in a Business Pack.
  */
 
-import { getRolePermissions, hasPermission, hasHigherOrEqualRole, parseRole, ROLE_LABELS, ROLE_HIERARCHY, PERMISSION_MATRIX } from '@/lib/rbac';
+import { getRolePermissions, hasPermission, hasHigherOrEqualRole, parseRole, ROLE_LABELS, ROLE_HIERARCHY, PERMISSION_MATRIX, checkPermission, getRolesWithPermission } from '@/lib/rbac';
 import type { Role, Permission } from '@/types';
 
 /** Re-export for convenience — same source of truth as rbac.ts */
@@ -21,6 +21,10 @@ export type { Permission };
 export class SecurityService {
   hasPermission(role: Role, permission: Permission): boolean {
     return hasPermission(role, permission);
+  }
+
+  checkPermission(role: Role, permission: Permission): boolean {
+    return checkPermission(role, permission);
   }
 
   hasRole(role: Role, resource: string, action: string): boolean {

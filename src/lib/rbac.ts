@@ -217,6 +217,14 @@ export function getRolePermissions(role: Role): Permission[] {
 }
 
 /**
+ * Check if a role has a specific permission.
+ * Returns false for unknown roles or permissions.
+ */
+export function checkPermission(role: Role, permission: Permission): boolean {
+  return PERMISSION_MATRIX[role]?.includes(permission) ?? false;
+}
+
+/**
  * Check if a role has a specific permission
  */
 export function hasPermission(role: Role, permission: Permission): boolean {

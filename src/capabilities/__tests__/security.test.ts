@@ -55,6 +55,35 @@ describe('security capability', () => {
     });
   });
 
+  // ─── checkPermission ───────────────────────────────────────────
+
+  describe('checkPermission', () => {
+    it('returns true for PASTEUR_PRINCIPAL with admin:settings', () => {
+      expect(security.checkPermission('PASTEUR_PRINCIPAL', 'admin:settings')).toBe(true);
+    });
+
+    it('returns false for MEMBRE with transaction:delete', () => {
+      expect(security.checkPermission('MEMBRE', 'transaction:delete')).toBe(false);
+    });
+
+    it('returns true for TREASURIER with transaction:approve', () => {
+      expect(security.checkPermission('TREASURIER', 'transaction:approve')).toBe(true);
+    });
+
+    it('returns false for COMPTABLE with event:create', () => {
+      expect(security.checkPermission('COMPTABLE', 'event:create')).toBe(false);
+    });
+
+    it('returns false for unknown role', () => {
+      expect(security.checkPermission('UNKNOWN_ROLE' as Role, 'transaction:read')).toBe(false);
+    });
+
+    it('returns empty array for unknown permission in getRolesWithPermission', () => {
+      const roles = security.getRolesWithPermission('nonexistent:perm' as Permission);
+      expect(roles).toHaveLength(0);
+    });
+  });
+
   // ─── hasRole ───────────────────────────────────────────────────
 
   describe('hasRole', () => {
