@@ -1,33 +1,44 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useLocalStore } from '@/store/useLocalStore';
-import { useMembers, useGroups, useEvents } from '@/lib/dataLayer';
+import { resource } from '@/capabilities/resource';
+import { lifecycle } from '@/capabilities/lifecycle';
+import type { Group, Member, Event } from '@/types';
 import { Users, Search, Archive, RefreshCw, ArrowLeft } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import TopHeader from '@/components/TopHeader';
-import { archiveRegistry } from '@/lib/archiveService';
+import { FullPageSkeleton } from '@/components/Skeleton';
 
 export default function Archives() {
   const navigate = useNavigate();
-  const { groups: idbGroups, members: idbMembers, events: idbEvents, accounts: idbAccounts } = useLocalStore();
 
-  // PowerSync with fallback
-  const { data: psGroups } = useGroups();
-  const { data: psMembers } = useMembers();
-  const { data: psEvents } = useEvents();
+  const [archivedGroups, setArchivedGroups] = useState<Group[]>([]);
+  const [archivedMembers, setArchivedMembers] = useState<Member[]>([]);
+  const [archivedEvents, setArchivedEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const groups = psGroups ?? idbGroups;
-  const members = psMembers ?? idbMembers;
-  const events = psEvents ?? idbEvents;
-
-  // Register archive policies if not already done
-  if (archiveRegistry) {
-    // Policy registered once at startup — idempotent
-  }
-
-  const archivedGroups = groups.filter((g: any) => g.status === 'ARCHIVED');
-  const archivedMembers = members.filter((m: any) => m.status === 'ARCHIVED');
-  const archivedEvents = events.filter((e: any) => e.status === 'CANCELLED');
+  // Load archived entities via Resource capability
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const [groups, members, events] = await Promise.all([
+          resource.listArchived<Group>('Group'),
+          resource.listArchived<Member>('Member'),
+          resource.listArchived<Event>('Event'),
+        ]);
+        if (!cancelled) {
+          setArchivedGroups(groups.items);
+          setArchivedMembers(members.items);
+          setArchivedEvents(events.items);
+        }
+      } catch (e) {
+        console.error('[Archives] Failed to load archived entities:', e);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'group' | 'member' | 'event'>('all');
@@ -46,17 +57,19 @@ export default function Archives() {
   });
 
   const handleRestore = async (type: 'group' | 'member' | 'event', id: string) => {
-    if (type === 'group') {
-      await useLocalStore.getState().restoreGroup(id, '', 'local-user');
-    } else if (type === 'member') {
-      await useLocalStore.getState().restoreMember(id, '', 'local-user');
-    }
+    const entityType = type === 'event' ? 'Event' : type.charAt(0).toUpperCase() + type.slice(1);
+    await lifecycle.restore(entityType as any, id, '', 'local-user');
     navigate(-1);
   };
 
   return (
     <div className="min-h-screen bg-canvas">
       <TopHeader title="Archives" />
+      {loading ? (
+        <div className="flex items-center justify-center py-20">
+          <FullPageSkeleton />
+        </div>
+      ) : (
       <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
         <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-text-secondary text-sm mb-5">
           <ArrowLeft className="w-4 h-4" /> Retour
@@ -135,6 +148,7 @@ export default function Archives() {
           )}
         </div>
       </div>
+      )}
       <BottomNav />
     </div>
   );
