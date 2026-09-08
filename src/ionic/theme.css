@@ -1,0 +1,103 @@
+/*
+ * Lumina Ionic Theme — generated from src/ionic/theme.ts tokens.
+ * Imported in main.tsx to ensure Ionic CSS variables are set at
+ * bundle time for SSR / Vite preflight compatibility.
+ *
+ * All values are duplicated from LUMINA_TOKENS for CSS-in-JS safety.
+ */
+:root {
+  /* Core */
+  --ion-color-primary: #FF6B00;
+  --ion-color-primary-rgb: 255, 107, 0;
+  --ion-color-secondary: #282828;
+  --ion-color-secondary-rgb: 40, 40, 40;
+  --ion-color-tertiary: #333333;
+  --ion-color-tertiary-rgb: 51, 51, 51;
+  --ion-color-success: #1DB954;
+  --ion-color-success-rgb: 29, 185, 84;
+  --ion-color-warning: #FFB800;
+  --ion-color-warning-rgb: 255, 184, 0;
+  --ion-color-danger: #E51332;
+  --ion-color-danger-rgb: 229, 19, 50;
+  --ion-color-medium: #808080;
+  --ion-color-medium-rgb: 128, 128, 128;
+  --ion-color-light: #212121;
+  --ion-color-light-rgb: 33, 33, 33;
+
+  /* Dark-mode defaults */
+  --ion-background-color: #121212;
+  --ion-background-color-rgb: 18, 18, 18;
+  --ion-text-color: #FFFFFF;
+  --ion-text-color-rgb: 255, 255, 255;
+  --ion-toolbar-background: #212121;
+  --ion-toolbar-color: #FFFFFF;
+  --ion-item-background: #212121;
+  --ion-item-color: #FFFFFF;
+  --ion-card-background: #212121;
+  --ion-card-color: #FFFFFF;
+  --ion-modal-background: #212121;
+  --ion-modal-color: #FFFFFF;
+  --ion-tab-bar-background: #212121;
+  --ion-tab-bar-color: #808080;
+  --ion-tab-bar-color-selected: #FF6B00;
+
+  /* Safe area insets (Capacitor mobile) */
+  --ion-safe-area-top: env(safe-area-inset-top, 0px);
+  --ion-safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --ion-safe-area-left: env(safe-area-inset-left, 0px);
+  --ion-safe-area-right: env(safe-area-inset-right, 0px);
+
+  /* Typography */
+  --ion-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --ion-text-color-step: 0.2222;
+  --ion-background-color-step: 0.04;
+}
+
+/* Force dark mode on Ionic components */
+ion-app,
+ion-header,
+ion-toolbar,
+ion-content,
+ion-card,
+ion-modal,
+ion-menu,
+ion-nav,
+ion-split-pane {
+  background-color: #121212 !important;
+  color: #FFFFFF !important;
+}
+
+ion-content {
+  --background: #121212;
+  --color: #FFFFFF;
+}
+
+ion-toolbar {
+  --background: #212121;
+  --color: #FFFFFF;
+}
+
+ion-item {
+  --background: #212121;
+  --color: #FFFFFF;
+  --border-color: #282828;
+}
+
+ion-card {
+  --background: #212121;
+  --color: #FFFFFF;
+}
+
+ion-modal {
+  --background: #212121;
+  --color: #FFFFFF;
+}
+
+/* Scrollbar hide for mobile feel */
+ion-content::-webkit-scrollbar {
+  display: none;
+}
+ion-content {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
