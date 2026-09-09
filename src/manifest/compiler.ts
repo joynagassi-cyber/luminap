@@ -42,8 +42,14 @@ export class ManifestCompilerService implements ManifestCompiler {
       policies: this.mergePolicies(template.policies, orgData.policies),
       vocabulary: this.mergeVocabulary(template.vocabulary, orgData.vocabulary),
       branding: {
-        primaryColor: orgData.branding?.primaryColor ?? template.branding?.primaryColor ?? '#FF6B00',
-        secondaryColor: orgData.branding?.secondaryColor ?? template.branding?.secondaryColor ?? '#1DB954',
+        primaryColor:
+          orgData.branding?.primaryColor ??
+          template.branding?.primaryColor ??
+          "#FF6B00",
+        secondaryColor:
+          orgData.branding?.secondaryColor ??
+          template.branding?.secondaryColor ??
+          "#1DB954",
         logoUrl: orgData.branding?.logoUrl ?? template.branding?.logoUrl,
       },
       compiledAt: new Date().toISOString(),
@@ -53,11 +59,12 @@ export class ManifestCompilerService implements ManifestCompiler {
   validate(manifest: Manifest): ValidationResult {
     const errors: string[] = [];
 
-    if (!manifest.id) errors.push('Manifest must have an id');
-    if (!manifest.orgId) errors.push('Manifest must have an orgId');
-    if (!manifest.templateId) errors.push('Manifest must have a templateId');
-    if (!Array.isArray(manifest.capabilities)) errors.push('Manifest must have capabilities array');
-    if (!manifest.branding) errors.push('Manifest must have branding');
+    if (!manifest.id) errors.push("Manifest must have an id");
+    if (!manifest.orgId) errors.push("Manifest must have an orgId");
+    if (!manifest.templateId) errors.push("Manifest must have a templateId");
+    if (!Array.isArray(manifest.capabilities))
+      errors.push("Manifest must have capabilities array");
+    if (!manifest.branding) errors.push("Manifest must have branding");
 
     return {
       valid: errors.length === 0,
@@ -65,11 +72,17 @@ export class ManifestCompilerService implements ManifestCompiler {
     };
   }
 
-  private mergePolicies(template: Record<string, any>, org: Record<string, any>): Record<string, any> {
+  private mergePolicies(
+    template: Record<string, any>,
+    org: Record<string, any>,
+  ): Record<string, any> {
     return { ...template, ...org };
   }
 
-  private mergeVocabulary(template: Record<string, string>, org: Record<string, string>): Record<string, string> {
+  private mergeVocabulary(
+    template: Record<string, string>,
+    org: Record<string, string>,
+  ): Record<string, string> {
     return { ...template, ...org };
   }
 }

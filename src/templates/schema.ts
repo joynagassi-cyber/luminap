@@ -17,8 +17,8 @@
  *   const brand = churchTemplate.branding     // { colors, labels, ... }
  */
 
-import type { Permission } from '@/types';
-import type { Role } from '@/types';
+import type { Permission } from "@/types";
+import type { Role } from "@/types";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Capability identifiers — domain-agnostic enum
@@ -29,14 +29,14 @@ import type { Role } from '@/types';
  * A template declares which of these it enables.
  */
 export type CapabilityKey =
-  | 'workflow'
-  | 'lifecycle'
-  | 'relationship'
-  | 'resource'
-  | 'security'
-  | 'notification'
-  | 'identity'
-  | 'organization';
+  | "workflow"
+  | "lifecycle"
+  | "relationship"
+  | "resource"
+  | "security"
+  | "notification"
+  | "identity"
+  | "organization";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Workflow definition
@@ -103,15 +103,15 @@ export interface RoleMeta {
  * Field type used in template form definitions.
  */
 export type FormFieldType =
-  | 'text'
-  | 'number'
-  | 'date'
-  | 'select'
-  | 'boolean'
-  | 'currency'
-  | 'reference'
-  | 'textarea'
-  | 'file';
+  | "text"
+  | "number"
+  | "date"
+  | "select"
+  | "boolean"
+  | "currency"
+  | "reference"
+  | "textarea"
+  | "file";
 
 /**
  * Single field in a template form definition.
@@ -249,8 +249,12 @@ export interface Template {
   policies?: Record<
     string,
     {
-      canArchive: (entityId: string) => Promise<{ ok: boolean; reason?: string }>;
-      canRestore: (entityId: string) => Promise<{ ok: boolean; reason?: string }>;
+      canArchive: (
+        entityId: string,
+      ) => Promise<{ ok: boolean; reason?: string }>;
+      canRestore: (
+        entityId: string,
+      ) => Promise<{ ok: boolean; reason?: string }>;
     }
   >;
 }
@@ -271,7 +275,7 @@ export function hasCapability(t: Template, capability: CapabilityKey): boolean {
  */
 export function getWorkflow<T extends Template>(
   t: T,
-  entityType: string
+  entityType: string,
 ): WorkflowDefinition | undefined {
   return t.workflows[entityType];
 }
@@ -282,23 +286,31 @@ export function getWorkflow<T extends Template>(
 export function getAvailableTransitions(
   t: Template,
   entityType: string,
-  currentStatus: string
+  currentStatus: string,
 ): WorkflowTransition[] {
   const wf = t.workflows[entityType];
   if (!wf) return [];
-  return wf.transitions.filter(tr => tr.from === currentStatus);
+  return wf.transitions.filter((tr) => tr.from === currentStatus);
 }
 
 /**
  * Check whether a status is terminal for a given entity type.
  */
-export function isTerminal(t: Template, entityType: string, status: string): boolean {
+export function isTerminal(
+  t: Template,
+  entityType: string,
+  status: string,
+): boolean {
   return t.workflows[entityType]?.terminalStatuses.includes(status) ?? false;
 }
 
 /**
  * Check whether a role has a given permission (delegates to permissions matrix).
  */
-export function hasPermission(t: Template, role: Role, permission: Permission): boolean {
+export function hasPermission(
+  t: Template,
+  role: Role,
+  permission: Permission,
+): boolean {
   return t.permissions[role]?.includes(permission) ?? false;
 }

@@ -1,8 +1,8 @@
-import { getPowerSyncDatabase } from '@/lib/powersync';
-import { generateId } from './utils';
-import type { AuditEntry } from '@/types';
-import { getOrganizationId } from './orgContext';
-import { get, set, invalidate } from './cache';
+import { getPowerSyncDatabase } from "@/lib/powersync";
+import { generateId } from "./utils";
+import type { AuditEntry } from "@/types";
+import { getOrganizationId } from "./orgContext";
+import { get, set, invalidate } from "./cache";
 
 /**
  * AuditLogRepository
@@ -10,7 +10,7 @@ import { get, set, invalidate } from './cache';
  * Invariant NeverBreak #6: AuditLog sur toute mutation.
  */
 export interface AuditLogRepository {
-  write(entry: Omit<AuditEntry, 'id' | 'createdAt'>): Promise<void>;
+  write(entry: Omit<AuditEntry, "id" | "createdAt">): Promise<void>;
   list(filters?: {
     entityType?: string;
     entityId?: string;
@@ -23,25 +23,30 @@ export interface AuditLogRepository {
 }
 
 const defaultAuditEntry = {
-  id: '',
+  id: "",
   orgId: getOrganizationId(),
   transactionId: null as string | null,
-  userId: 'local-user',
+  userId: "local-user",
   actorRoleAtTime: null as string | null,
-  action: 'CREATE' as const,
-  entityType: 'Transaction',
-  entityId: '',
+  action: "CREATE" as const,
+  entityType: "Transaction",
+  entityId: "",
   beforeState: null as any,
   afterState: null as any,
   comment: null as string | null,
-  createdAt: '',
+  createdAt: "",
 };
 
 export const auditLogRepo: AuditLogRepository = {
   async write(entry) {
     const db = getPowerSyncDatabase();
     const now = new Date().toISOString();
-    const fullEntry: AuditEntry = { ...defaultAuditEntry, ...entry, id: generateId(), createdAt: now };
+    const fullEntry: AuditEntry = {
+      ...defaultAuditEntry,
+      ...entry,
+      id: generateId(),
+      createdAt: now,
+    };
     await db.execute(
       `INSERT INTO audit_entries (id, org_id, transaction_id, user_id, actor_role_at_time, action, entity_type, entity_id, before_state, after_state, comment, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -58,9 +63,9 @@ export const auditLogRepo: AuditLogRepository = {
         JSON.stringify(fullEntry.afterState),
         fullEntry.comment,
         fullEntry.createdAt,
-      ]
+      ],
     );
-    invalidate('audit:');
+    invalidate("audit:");
     return Promise.resolve();
   },
 
@@ -71,37 +76,38 @@ export const auditLogRepo: AuditLogRepository = {
     if (cached) return cached;
 
     const db = getPowerSyncDatabase();
-    let query = 'SELECT id, org_id, transaction_id, user_id, actor_role_at_time, action, entity_type, entity_id, created_at FROM audit_entries';
+    let query =
+      "SELECT id, org_id, transaction_id, user_id, actor_role_at_time, action, entity_type, entity_id, created_at FROM audit_entries";
     const params: any[] = [orgId];
-    const conditions: string[] = ['org_id = ?'];
+    const conditions: string[] = ["org_id = ?"];
 
     if (filters.entityType) {
-      conditions.push('entity_type = ?');
+      conditions.push("entity_type = ?");
       params.push(filters.entityType);
     }
     if (filters.entityId) {
-      conditions.push('entity_id = ?');
+      conditions.push("entity_id = ?");
       params.push(filters.entityId);
     }
     if (filters.startDate) {
-      conditions.push('created_at >= ?');
+      conditions.push("created_at >= ?");
       params.push(filters.startDate);
     }
     if (filters.endDate) {
-      conditions.push('created_at <= ?');
+      conditions.push("created_at <= ?");
       params.push(filters.endDate);
     }
     if (filters.action) {
-      conditions.push('action = ?');
+      conditions.push("action = ?");
       params.push(filters.action);
     }
     if (filters.actorId) {
-      conditions.push('user_id = ?');
+      conditions.push("user_id = ?");
       params.push(filters.actorId);
     }
 
-    query += ' WHERE ' + conditions.join(' AND ');
-    query += ' ORDER BY created_at DESC';
+    query += " WHERE " + conditions.join(" AND ");
+    query += " ORDER BY created_at DESC";
 
     const result = await db.execute(query, params);
     const entries = (result?.result || []).map((a: any) => ({
@@ -118,7 +124,7 @@ export const auditLogRepo: AuditLogRepository = {
       comment: null,
       createdAt: a.created_at,
     }));
-    set(cacheKey, entries, { tier: 'cpu' });
+    set(cacheKey, entries, { tier: "cpu" });
     return entries;
   },
 
@@ -140,6 +146,8 @@ export const auditLogRepo: AuditLogRepository = {
  *     afterState: tx,
  *   });
  */
-export async function writeAudit(entry: Omit<AuditEntry, 'id' | 'createdAt'>): Promise<void> {
+export async function writeAudit(
+  entry: Omit<AuditEntry, "id" | "createdAt">,
+): Promise<void> {
   await auditLogRepo.write(entry);
 }

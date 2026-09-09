@@ -1,4 +1,4 @@
-import { Storage } from '@capacitor/storage';
+import { Storage } from "@capacitor/storage";
 
 /**
  * StorageAdapter — wraps Capacitor Storage plugin with a clean typed interface.
@@ -13,11 +13,11 @@ export class StorageAdapter {
   /** Set by tests to force capacitor env detection. */
   static __mockStorage: typeof Storage | null = null;
 
-  private constructor(group = 'app') {
+  private constructor(group = "app") {
     this.group = group;
   }
 
-  static getInstance(group = 'app'): StorageAdapter {
+  static getInstance(group = "app"): StorageAdapter {
     if (!StorageAdapter.instance) {
       StorageAdapter.instance = new StorageAdapter(group);
     }
@@ -108,7 +108,7 @@ export class StorageAdapter {
   private isCapacitorEnv(): boolean {
     if (StorageAdapter.__mockStorage) return true;
     try {
-      return typeof (window as any).Capacitor !== 'undefined';
+      return typeof (window as any).Capacitor !== "undefined";
     } catch {
       return false;
     }
@@ -144,10 +144,14 @@ export class StorageAdapter {
 
   private getLocalStorageKeys(): string[] {
     // Prefer localStorage.keys() if available (e.g. some browser/ Capacitor polyfills)
-    if (typeof (localStorage as any).keys === 'function') {
+    if (typeof (localStorage as any).keys === "function") {
       return (localStorage as any).keys();
     }
-    return Object.keys(localStorage as unknown as Record<string, unknown>)
-      .filter((k) => !['getItem', 'setItem', 'removeItem', 'clear', 'length'].includes(k));
+    return Object.keys(
+      localStorage as unknown as Record<string, unknown>,
+    ).filter(
+      (k) =>
+        !["getItem", "setItem", "removeItem", "clear", "length"].includes(k),
+    );
   }
 }

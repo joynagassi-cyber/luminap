@@ -12,7 +12,7 @@
  *   const units = await organization.getOrgUnits()
  */
 
-import { getOrganizationId, setOrganizationId } from '@/lib/orgContext';
+import { getOrganizationId, setOrganizationId } from "@/lib/orgContext";
 
 /** Organization context — the current organization identity for the user */
 export interface OrgContext {
@@ -63,7 +63,7 @@ export class OrganizationService {
     return {
       orgId,
       orgName: meta?.name ?? orgId,
-      role: 'member',
+      role: "member",
     };
   }
 
@@ -108,7 +108,7 @@ export class OrganizationService {
   removeOrgUnit(orgId: string, unitId: string): boolean {
     const units = this._orgUnits.get(orgId);
     if (!units) return false;
-    const idx = units.findIndex(u => u.id === unitId);
+    const idx = units.findIndex((u) => u.id === unitId);
     if (idx === -1) return false;
     units.splice(idx, 1);
     this._orgUnits.set(orgId, units);

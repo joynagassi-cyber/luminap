@@ -4,20 +4,31 @@
  * Integrates with OneSignal for push notifications
  */
 
-import { createClient } from '@supabase/supabase-js';
-import type { SupabaseClient, Session, User as SupabaseUser } from '@supabase/supabase-js';
-import type { Role } from '@/types';
-import { getOrganizationId } from './orgContext';
+import { createClient } from "@supabase/supabase-js";
+import type {
+  SupabaseClient,
+  Session,
+  User as SupabaseUser,
+} from "@supabase/supabase-js";
+import type { Role } from "@/types";
+import { getOrganizationId } from "./orgContext";
 
 // Use environment variables — never hardcode credentials
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl =
+  import.meta.env.VITE_SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const supabaseAnonKey =
+  import.meta.env.VITE_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase credentials. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+  throw new Error(
+    "Missing Supabase credentials. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.",
+  );
 }
 
-export const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase: SupabaseClient = createClient(
+  supabaseUrl,
+  supabaseAnonKey,
+);
 
 // Profile type from database
 export interface Profile {
@@ -97,14 +108,19 @@ class AuthService {
   // Validate current session and refresh if needed
   private async validateCurrentSession(): Promise<void> {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (session && this.isSessionExpiredOrExpiring(session)) {
-        const { error } = await supabase.auth.refreshSession({ refresh_token: session.refresh_token });
+        const { error } = await supabase.auth.refreshSession({
+          refresh_token: session.refresh_token,
+        });
         if (error) {
           this.handleSessionInvalidated();
         }
       }
     } catch (err) {
+      // Session validation failure - will retry on next check
     }
   }
 
@@ -113,13 +129,14 @@ class AuthService {
     try {
       await supabase.auth.signOut();
     } catch (err) {
+      // Sign-out failure is non-fatal; state is cleared below
     }
     this.setState({
       session: null,
       user: null,
       profile: null,
       isLoading: false,
-      error: 'Session expired. Please sign in again.',
+      error: "Session expired. Please sign in again.",
     });
     this.notifyListeners();
   }
@@ -127,7 +144,10 @@ class AuthService {
   // Get current session with validation
   async getSession(): Promise<Session | null> {
     try {
-      const { data: { session }, error } = await supabase.auth.getSession();
+      const {
+        data: { session },
+        error,
+      } = await supabase.auth.getSession();
       if (error) {
         return null;
       }
@@ -140,7 +160,10 @@ class AuthService {
   // Get current user with fresh metadata
   async getUser(): Promise<SupabaseUser | null> {
     try {
-      const { data: { user }, error } = await supabase.auth.getUser();
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
       if (error) {
         return null;
       }
@@ -153,7 +176,10 @@ class AuthService {
   // Fetch fresh user data (refreshes metadata)
   async fetchUser(): Promise<SupabaseUser | null> {
     try {
-      const { data: { user }, error } = await supabase.auth.getUser();
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
       if (error) {
         return null;
       }
@@ -169,9 +195,9 @@ class AuthService {
   async getProfile(userId: string): Promise<Profile | null> {
     try {
       const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
         .single();
 
       if (error) {
@@ -189,43 +215,43 @@ class AuthService {
     const profileData = {
       id: user.id,
       email: user.email,
-      first_name: metadata.first_name || user.email?.split('@')[0] || 'Utilisateur',
-      last_name: metadata.last_name || '',
+      first_name:
+        metadata.first_name || user.email?.split("@")[0] || "Utilisateur",
+      last_name: metadata.last_name || "",
       role: role,
       org_id: getOrganizationId(),
       updated_at: new Date().toISOString(),
     };
 
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .upsert(profileData, { onConflict: 'id' })
-        .select()
-        .single();
+    const { data, error } = await supabase
+      .from("profiles")
+      .upsert(profileData, { onConflict: "id" })
+      .select()
+      .single();
 
-      if (error) {
-        throw error;
-      }
-
-      return data as Profile;
-    } catch (err) {
-      throw err;
+    if (error) {
+      throw error;
     }
+
+    return data as Profile;
   }
 
   // Sign in with email and password
-  async signInWithEmail(email: string, password: string): Promise<{ error: string | null }> {
+  async signInWithEmail(
+    email: string,
+    password: string,
+  ): Promise<{ error: string | null }> {
     this.setState({ isLoading: true, error: null });
 
     // Input validation
     if (!email || !this.isValidEmail(email)) {
-      const errorMsg = 'Please enter a valid email address.';
+      const errorMsg = "Please enter a valid email address.";
       this.setState({ error: errorMsg, isLoading: false });
       return { error: errorMsg };
     }
 
     if (!password || !this.isValidPassword(password)) {
-      const errorMsg = 'Password must be at least 8 characters long.';
+      const errorMsg = "Password must be at least 8 characters long.";
       this.setState({ error: errorMsg, isLoading: false });
       return { error: errorMsg };
     }
@@ -239,14 +265,14 @@ class AuthService {
       if (error) {
         // Map Supabase error codes to user-friendly messages
         let userMessage = error.message;
-        if (error.message.includes('Invalid login credentials')) {
-          userMessage = 'Invalid email or password.';
-        } else if (error.message.includes('Email not confirmed')) {
-          userMessage = 'Please confirm your email address before signing in.';
-        } else if (error.message.includes('Too many requests')) {
-          userMessage = 'Too many login attempts. Please wait and try again.';
-        } else if (error.message.includes('User not found')) {
-          userMessage = 'No account found with this email address.';
+        if (error.message.includes("Invalid login credentials")) {
+          userMessage = "Invalid email or password.";
+        } else if (error.message.includes("Email not confirmed")) {
+          userMessage = "Please confirm your email address before signing in.";
+        } else if (error.message.includes("Too many requests")) {
+          userMessage = "Too many login attempts. Please wait and try again.";
+        } else if (error.message.includes("User not found")) {
+          userMessage = "No account found with this email address.";
         }
 
         this.setState({ error: userMessage, isLoading: false });
@@ -254,7 +280,7 @@ class AuthService {
       }
 
       if (data.user) {
-        const profile = await this.upsertProfile(data.user, 'TREASURIER');
+        const profile = await this.upsertProfile(data.user, "TREASURIER");
         this.setState({
           session: data.session,
           user: data.user,
@@ -267,31 +293,38 @@ class AuthService {
 
       return { error: null };
     } catch (err: any) {
-      const userMessage = err?.message || 'An unexpected error occurred during sign in.';
+      const userMessage =
+        err?.message || "An unexpected error occurred during sign in.";
       this.setState({ error: userMessage, isLoading: false });
       return { error: userMessage };
     }
   }
 
   // Sign up with email and password (no email confirmation)
-  async signUpWithEmail(email: string, password: string, firstName: string, lastName: string, role: Role): Promise<{ error: string | null }> {
+  async signUpWithEmail(
+    email: string,
+    password: string,
+    firstName: string,
+    lastName: string,
+    role: Role,
+  ): Promise<{ error: string | null }> {
     this.setState({ isLoading: true, error: null });
 
     // Input validation
     if (!email || !this.isValidEmail(email)) {
-      const errorMsg = 'Please enter a valid email address.';
+      const errorMsg = "Please enter a valid email address.";
       this.setState({ error: errorMsg, isLoading: false });
       return { error: errorMsg };
     }
 
     if (!password || !this.isValidPassword(password)) {
-      const errorMsg = 'Password must be at least 8 characters long.';
+      const errorMsg = "Password must be at least 8 characters long.";
       this.setState({ error: errorMsg, isLoading: false });
       return { error: errorMsg };
     }
 
     if (!firstName || firstName.trim().length === 0) {
-      const errorMsg = 'Please enter your first name.';
+      const errorMsg = "Please enter your first name.";
       this.setState({ error: errorMsg, isLoading: false });
       return { error: errorMsg };
     }
@@ -312,12 +345,16 @@ class AuthService {
       if (error) {
         // Map Supabase error codes to user-friendly messages
         let userMessage = error.message;
-        if (error.message.includes('already registered') || error.message.includes('User already registered')) {
-          userMessage = 'An account with this email already exists. Please sign in instead.';
-        } else if (error.message.includes('weak')) {
-          userMessage = 'Password is too weak. Please use a stronger password.';
-        } else if (error.message.includes('invalid email')) {
-          userMessage = 'Please enter a valid email address.';
+        if (
+          error.message.includes("already registered") ||
+          error.message.includes("User already registered")
+        ) {
+          userMessage =
+            "An account with this email already exists. Please sign in instead.";
+        } else if (error.message.includes("weak")) {
+          userMessage = "Password is too weak. Please use a stronger password.";
+        } else if (error.message.includes("invalid email")) {
+          userMessage = "Please enter a valid email address.";
         }
 
         this.setState({ error: userMessage, isLoading: false });
@@ -338,7 +375,8 @@ class AuthService {
 
       return { error: null };
     } catch (err: any) {
-      const userMessage = err?.message || 'An unexpected error occurred during sign up.';
+      const userMessage =
+        err?.message || "An unexpected error occurred during sign up.";
       this.setState({ error: userMessage, isLoading: false });
       return { error: userMessage };
     }
@@ -350,27 +388,29 @@ class AuthService {
 
     try {
       const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
+        provider: "google",
         options: {
-          redirectTo: window.location.origin + '/auth/callback',
+          redirectTo: window.location.origin + "/auth/callback",
           // For mobile apps, use a custom URL scheme
-          ...(typeof capacitor !== 'undefined' && (capacitor as any).isNativePlatform?.()
-            ? { redirectTo: 'lumina://auth/callback' }
+          ...(typeof capacitor !== "undefined" &&
+          (capacitor as any).isNativePlatform?.()
+            ? { redirectTo: "lumina://auth/callback" }
             : {}),
           // Request additional scopes for profile data
           queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
+            access_type: "offline",
+            prompt: "consent",
           },
         },
       });
 
       if (error) {
         let userMessage = error.message;
-        if (error.message.includes('redirect_uri')) {
-          userMessage = 'Invalid OAuth redirect configuration. Please contact support.';
-        } else if (error.message.includes('access_denied')) {
-          userMessage = 'Google sign-in was denied. Please try again.';
+        if (error.message.includes("redirect_uri")) {
+          userMessage =
+            "Invalid OAuth redirect configuration. Please contact support.";
+        } else if (error.message.includes("access_denied")) {
+          userMessage = "Google sign-in was denied. Please try again.";
         }
 
         this.setState({ error: userMessage, isLoading: false });
@@ -380,35 +420,43 @@ class AuthService {
       // The redirect will handle the rest
       return { error: null };
     } catch (err: any) {
-      const userMessage = err?.message || 'An unexpected error occurred during Google sign-in.';
+      const userMessage =
+        err?.message || "An unexpected error occurred during Google sign-in.";
       this.setState({ error: userMessage, isLoading: false });
       return { error: userMessage };
     }
   }
 
   // Handle OAuth callback (for web)
-  async handleOAuthCallback(): Promise<{ error: string | null; profile: Profile | null }> {
+  async handleOAuthCallback(): Promise<{
+    error: string | null;
+    profile: Profile | null;
+  }> {
     this.setState({ isLoading: true, error: null });
 
     try {
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
 
       if (sessionError || !session) {
-        const errorMsg = sessionError?.message || 'No session found after OAuth callback.';
+        const errorMsg =
+          sessionError?.message || "No session found after OAuth callback.";
         this.setState({ error: errorMsg, isLoading: false });
         return { error: errorMsg, profile: null };
       }
 
       // Validate session has required fields
       if (!session.user?.id) {
-        const errorMsg = 'Invalid session: user ID is missing.';
+        const errorMsg = "Invalid session: user ID is missing.";
         this.setState({ error: errorMsg, isLoading: false });
         return { error: errorMsg, profile: null };
       }
 
       // Validate access token is present
       if (!session.access_token) {
-        const errorMsg = 'Invalid session: access token is missing.';
+        const errorMsg = "Invalid session: access token is missing.";
         this.setState({ error: errorMsg, isLoading: false });
         return { error: errorMsg, profile: null };
       }
@@ -417,7 +465,7 @@ class AuthService {
 
       // If profile doesn't exist, this might be a new OAuth user - create it
       if (!profile) {
-        const newProfile = await this.upsertProfile(session.user, 'TREASURIER');
+        const newProfile = await this.upsertProfile(session.user, "TREASURIER");
         this.setState({
           session,
           user: session.user,
@@ -440,7 +488,8 @@ class AuthService {
 
       return { error: null, profile };
     } catch (err: any) {
-      const userMessage = err?.message || 'An unexpected error occurred during OAuth callback.';
+      const userMessage =
+        err?.message || "An unexpected error occurred during OAuth callback.";
       this.setState({ error: userMessage, isLoading: false });
       return { error: userMessage, profile: null };
     }
@@ -482,32 +531,50 @@ class AuthService {
   }
 
   // Update profile
-  async updateProfile(updates: Partial<Pick<Profile, 'first_name' | 'last_name' | 'role'>>): Promise<{ error: string | null }> {
+  async updateProfile(
+    updates: Partial<Pick<Profile, "first_name" | "last_name" | "role">>,
+  ): Promise<{ error: string | null }> {
     if (!this.state.user) {
-      return { error: 'No user logged in' };
+      return { error: "No user logged in" };
     }
 
     // Validate inputs
-    if (updates.first_name !== undefined && updates.first_name.trim().length === 0) {
-      return { error: 'First name cannot be empty.' };
+    if (
+      updates.first_name !== undefined &&
+      updates.first_name.trim().length === 0
+    ) {
+      return { error: "First name cannot be empty." };
     }
     if (updates.role !== undefined) {
-      const validRoles = ['PASTEUR_PRINCIPAL', 'PASTEUR_ASSOCIE', 'PASTEUR_JEUNESSE', 'ANCIEN', 'DIACRE',
-        'RESPONSABLE_DEPARTEMENT', 'SECRETAIRE', 'SECRETAIRE_ADJOINT', 'TREASURIER',
-        'TREASURIER_ADJOINT', 'COMPTABLE', 'RESPONSABLE_GROUPE', 'BENEVOLE', 'MEMBRE'];
+      const validRoles = [
+        "PASTEUR_PRINCIPAL",
+        "PASTEUR_ASSOCIE",
+        "PASTEUR_JEUNESSE",
+        "ANCIEN",
+        "DIACRE",
+        "RESPONSABLE_DEPARTEMENT",
+        "SECRETAIRE",
+        "SECRETAIRE_ADJOINT",
+        "TREASURIER",
+        "TREASURIER_ADJOINT",
+        "COMPTABLE",
+        "RESPONSABLE_GROUPE",
+        "BENEVOLE",
+        "MEMBRE",
+      ];
       if (!validRoles.includes(updates.role)) {
-        return { error: 'Invalid role specified.' };
+        return { error: "Invalid role specified." };
       }
     }
 
     try {
       const { error } = await supabase
-        .from('profiles')
+        .from("profiles")
         .update({
           ...updates,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', this.state.user.id);
+        .eq("id", this.state.user.id);
 
       if (error) {
         return { error: error.message };
@@ -549,7 +616,9 @@ class AuthService {
     this.listeners.add(callback);
 
     // Also listen to Supabase auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
         this.setState({
           session,
@@ -581,7 +650,7 @@ class AuthService {
 
   // Notify listeners
   private notifyListeners(): void {
-    this.listeners.forEach(cb => cb());
+    this.listeners.forEach((cb) => cb());
   }
 }
 

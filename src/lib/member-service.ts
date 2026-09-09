@@ -4,9 +4,9 @@
  * Handles all member business logic.
  */
 
-import { generateId } from './utils';
-import { addMemberPS, updateMemberPS } from './dataLayer';
-import type { Member } from '@/types';
+import { generateId } from "./utils";
+import { addMemberPS, updateMemberPS } from "./dataLayer";
+import type { Member } from "@/types";
 
 export interface MemberState {
   members: Member[];
@@ -15,16 +15,14 @@ export interface MemberState {
 // --- createMember ---
 
 export function buildCreateMember(
-  data: Omit<Member, 'id' | 'createdAt' | 'updatedAt'>
+  data: Omit<Member, "id" | "createdAt" | "updatedAt">,
 ): Member {
   const now = new Date().toISOString();
   const id = generateId();
   return { ...data, id, createdAt: now, updatedAt: now };
 }
 
-export async function persistCreateMember(
-  member: Member
-): Promise<void> {
+export async function persistCreateMember(member: Member): Promise<void> {
   try {
     await addMemberPS({
       org_id: member.orgId,
@@ -39,6 +37,7 @@ export async function persistCreateMember(
       archive_reason: member.archiveReason,
     });
   } catch (error) {
+    // Persist failure is non-fatal; offline queue will retry
   }
 }
 
@@ -47,28 +46,26 @@ export async function persistCreateMember(
 export function applyUpdateMember(
   members: Member[],
   id: string,
-  data: Partial<Member>
+  data: Partial<Member>,
 ): Member[] {
-  return members.map(m =>
-    m.id === id ? { ...m, ...data, updatedAt: new Date().toISOString() } : m
+  return members.map((m) =>
+    m.id === id ? { ...m, ...data, updatedAt: new Date().toISOString() } : m,
   );
 }
 
 export async function persistUpdateMember(
   id: string,
-  data: Partial<Member>
+  data: Partial<Member>,
 ): Promise<void> {
   try {
     await updateMemberPS(id, data);
   } catch (error) {
+    // Persist failure is non-fatal; offline queue will retry
   }
 }
 
 // --- deleteMember ---
 
-export function applyDeleteMember(
-  members: Member[],
-  id: string
-): Member[] {
-  return members.filter(m => m.id !== id);
+export function applyDeleteMember(members: Member[], id: string): Member[] {
+  return members.filter((m) => m.id !== id);
 }

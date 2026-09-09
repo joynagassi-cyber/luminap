@@ -11,11 +11,15 @@
  *   const isMember = await relationship.isMember(groupId, memberId)
  */
 
-import { addGroupMembershipPS, removeGroupMembershipPS, getGroupMembershipsPS } from '@/lib/dataLayer';
-import { getOrganizationId } from '@/lib/orgContext';
+import {
+  addGroupMembershipPS,
+  removeGroupMembershipPS,
+  getGroupMembershipsPS,
+} from "@/lib/dataLayer";
+import { getOrganizationId } from "@/lib/orgContext";
 
 /** Membership role */
-export type MembershipRole = 'MEMBRE' | 'RESPONSABLE';
+export type MembershipRole = "MEMBRE" | "RESPONSABLE";
 
 /** Membership record */
 export interface Membership {
@@ -40,7 +44,7 @@ export class RelationshipService {
     groupId: string,
     memberId: string,
     role: MembershipRole,
-    _actorId: string
+    _actorId: string,
   ): Promise<string> {
     return addGroupMembershipPS(groupId, memberId, role);
   }
@@ -48,7 +52,10 @@ export class RelationshipService {
   /**
    * Remove a member from a group.
    */
-  async removeMembership(membershipId: string, _actorId: string): Promise<void> {
+  async removeMembership(
+    membershipId: string,
+    _actorId: string,
+  ): Promise<void> {
     await removeGroupMembershipPS(membershipId);
   }
 
@@ -65,7 +72,10 @@ export class RelationshipService {
     const orgId = getOrganizationId();
     const memberships = await getGroupMembershipsPS();
     return memberships.some(
-      m => m.group_id === groupId && m.member_id === memberId && m.org_id === orgId
+      (m) =>
+        m.group_id === groupId &&
+        m.member_id === memberId &&
+        m.org_id === orgId,
     );
   }
 }

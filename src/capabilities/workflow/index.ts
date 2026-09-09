@@ -9,7 +9,6 @@
  *   await workflow.transition('transaction', tx.id, 'APPROVED', userId)
  */
 
-
 /**
  * Guard result — standardised across all workflow implementations
  */
@@ -24,7 +23,7 @@ export interface GuardResult {
 export type WorkflowGuard = (
   currentStatus: string,
   targetStatus: string,
-  context?: Record<string, any>
+  context?: Record<string, any>,
 ) => GuardResult;
 
 /**
@@ -33,14 +32,14 @@ export type WorkflowGuard = (
  */
 export const eventStatusGuard: WorkflowGuard = (
   currentStatus,
-  targetStatus
+  targetStatus,
 ): GuardResult => {
   // Terminal states are immutable
-  if (currentStatus === 'COMPLETED' && targetStatus !== 'COMPLETED') {
-    return { allowed: false, reason: 'EVENT_COMPLETED_IMMUTABLE' };
+  if (currentStatus === "COMPLETED" && targetStatus !== "COMPLETED") {
+    return { allowed: false, reason: "EVENT_COMPLETED_IMMUTABLE" };
   }
-  if (currentStatus === 'CANCELLED' && targetStatus !== 'CANCELLED') {
-    return { allowed: false, reason: 'EVENT_CANCELLED_IMMUTABLE' };
+  if (currentStatus === "CANCELLED" && targetStatus !== "CANCELLED") {
+    return { allowed: false, reason: "EVENT_CANCELLED_IMMUTABLE" };
   }
   // Already at target — no-op, allowed
   if (currentStatus === targetStatus) {
@@ -48,12 +47,13 @@ export const eventStatusGuard: WorkflowGuard = (
   }
   // Define allowed transitions per current status
   const allowedTransitions: Record<string, string[]> = {
-    PLANIFIED: ['ONGOING', 'CANCELLED'],
-    ONGOING: ['COMPLETED', 'CANCELLED'],
+    PLANIFIED: ["ONGOING", "CANCELLED"],
+    ONGOING: ["COMPLETED", "CANCELLED"],
   };
-  const allowed = allowedTransitions[currentStatus]?.includes(targetStatus) ?? false;
+  const allowed =
+    allowedTransitions[currentStatus]?.includes(targetStatus) ?? false;
   if (!allowed) {
-    return { allowed: false, reason: 'INVALID_EVENT_TRANSITION' };
+    return { allowed: false, reason: "INVALID_EVENT_TRANSITION" };
   }
   return { allowed: true };
 };
@@ -63,12 +63,15 @@ export const eventStatusGuard: WorkflowGuard = (
  */
 export const memberStatusGuard: WorkflowGuard = (
   currentStatus,
-  targetStatus
+  targetStatus,
 ): GuardResult => {
   // Valid member statuses
-  const validStatuses = ['ACTIVE', 'INACTIVE'];
-  if (!validStatuses.includes(currentStatus) || !validStatuses.includes(targetStatus)) {
-    return { allowed: false, reason: 'INVALID_MEMBER_STATUS' };
+  const validStatuses = ["ACTIVE", "INACTIVE"];
+  if (
+    !validStatuses.includes(currentStatus) ||
+    !validStatuses.includes(targetStatus)
+  ) {
+    return { allowed: false, reason: "INVALID_MEMBER_STATUS" };
   }
   // Already at target — no-op, allowed
   if (currentStatus === targetStatus) {
@@ -79,11 +82,11 @@ export const memberStatusGuard: WorkflowGuard = (
 };
 export const transactionGuard: WorkflowGuard = (
   currentStatus,
-  targetStatus
+  targetStatus,
 ): GuardResult => {
   // APPROVED transactions are immutable
-  if (currentStatus === 'APPROVED' && targetStatus !== 'APPROVED') {
-    return { allowed: false, reason: 'TRANSACTION_APPROVED_IMMUTABLE' };
+  if (currentStatus === "APPROVED" && targetStatus !== "APPROVED") {
+    return { allowed: false, reason: "TRANSACTION_APPROVED_IMMUTABLE" };
   }
   // Already at target — no-op, allowed
   if (currentStatus === targetStatus) {
@@ -106,7 +109,11 @@ export class WorkflowService {
   /**
    * Check if a transition is allowed (dry-run)
    */
-  check(resource: string, currentStatus: string, targetStatus: string): GuardResult {
+  check(
+    resource: string,
+    currentStatus: string,
+    targetStatus: string,
+  ): GuardResult {
     const guard = this.guards.get(resource);
     if (!guard) return { allowed: true }; // no guard = allow
     return guard(currentStatus, targetStatus);
@@ -120,7 +127,7 @@ export class WorkflowService {
     resource: string,
     entity: T,
     targetStatus: string,
-    context?: Record<string, any>
+    context?: Record<string, any>,
   ): Promise<{ success: boolean; reason?: string }> {
     const currentStatus = entity.status;
     const result = this.check(resource, currentStatus, targetStatus);
@@ -136,6 +143,6 @@ export class WorkflowService {
 export const workflow = new WorkflowService();
 
 // Register default guards at module load
-workflow.register('transaction', transactionGuard);
-workflow.register('event', eventStatusGuard);
-workflow.register('member', memberStatusGuard);
+workflow.register("transaction", transactionGuard);
+workflow.register("event", eventStatusGuard);
+workflow.register("member", memberStatusGuard);

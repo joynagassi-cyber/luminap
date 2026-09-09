@@ -24,7 +24,9 @@ export interface IdentityProfile {
 }
 
 /** Partial profile used for updates */
-export type IdentityProfileUpdate = Partial<Pick<IdentityProfile, 'email' | 'displayName' | 'metadata'>>;
+export type IdentityProfileUpdate = Partial<
+  Pick<IdentityProfile, "email" | "displayName" | "metadata">
+>;
 
 /**
  * Identity service — in-memory store for user profiles.
@@ -45,7 +47,12 @@ export class IdentityService {
    * Create a new profile if one does not exist.
    * Returns the created profile.
    */
-  createProfile(userId: string, email: string, displayName: string, metadata?: Record<string, unknown>): IdentityProfile {
+  createProfile(
+    userId: string,
+    email: string,
+    displayName: string,
+    metadata?: Record<string, unknown>,
+  ): IdentityProfile {
     const existing = this.profiles.get(userId);
     if (existing) {
       return existing;
@@ -64,7 +71,10 @@ export class IdentityService {
    * Update fields on an existing profile.
    * Returns the updated profile, or null if the profile does not exist.
    */
-  updateProfile(userId: string, updates: IdentityProfileUpdate): IdentityProfile | null {
+  updateProfile(
+    userId: string,
+    updates: IdentityProfileUpdate,
+  ): IdentityProfile | null {
     const existing = this.profiles.get(userId);
     if (!existing) {
       return null;
@@ -72,7 +82,9 @@ export class IdentityService {
     const updated: IdentityProfile = {
       ...existing,
       ...(updates.email !== undefined ? { email: updates.email } : {}),
-      ...(updates.displayName !== undefined ? { displayName: updates.displayName } : {}),
+      ...(updates.displayName !== undefined
+        ? { displayName: updates.displayName }
+        : {}),
       ...(updates.metadata !== undefined ? { metadata: updates.metadata } : {}),
     };
     this.profiles.set(userId, updated);

@@ -1,18 +1,50 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useLocalStore } from '@/store/useLocalStore';
-import { useNotifications, useAccounts } from '@/lib/dataLayer';
-import { Settings, Database, Cloud, CloudOff, RefreshCw, CreditCard, UserCircle, Camera, Building2, Image as ImageIcon, BookOpen, ScrollText, Check, ClipboardList, Tag, Archive, BarChart3, Clock } from 'lucide-react';
-import BottomNav from '@/components/BottomNav';
-import TopHeader from '@/components/TopHeader';
-import LuminaLogo from '@/components/LuminaLogo';
-import { FullPageSkeleton } from '@/components/Skeleton';
-import { generateId } from '@/lib/utils';
-import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar } from '@ionic/react';
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useLocalStore } from "@/store/useLocalStore";
+import { useNotifications, useAccounts } from "@/lib/dataLayer";
+import {
+  Settings,
+  Database,
+  Cloud,
+  CloudOff,
+  RefreshCw,
+  CreditCard,
+  UserCircle,
+  Camera,
+  Building2,
+  Image as ImageIcon,
+  BookOpen,
+  ScrollText,
+  Check,
+  ClipboardList,
+  Tag,
+  Archive,
+  BarChart3,
+  Clock,
+} from "lucide-react";
+import BottomNav from "@/components/BottomNav";
+import TopHeader from "@/components/TopHeader";
+import LuminaLogo from "@/components/LuminaLogo";
+import { FullPageSkeleton } from "@/components/Skeleton";
+import { generateId } from "@/lib/utils";
+import {
+  IonPage,
+  IonHeader,
+  IonContent,
+  IonTitle,
+  IonToolbar,
+} from "@ionic/react";
 
 export default function SettingsPage() {
   const navigate = useNavigate();
-  const { user, appConfig, updateConfig, loadInitialData, isOnline, auditEntries } = useLocalStore();
+  const {
+    user,
+    appConfig,
+    updateConfig,
+    loadInitialData,
+    isOnline,
+    auditEntries,
+  } = useLocalStore();
   const { data: notifications } = useNotifications();
   const { data: accounts } = useAccounts();
   const [churchName, setChurchName] = useState(appConfig.churchName);
@@ -23,7 +55,11 @@ export default function SettingsPage() {
 
   const handleSave = async () => {
     setSaving(true);
-    await updateConfig({ churchName: churchName.trim(), churchLogoUrl: churchLogo, userPhoto });
+    await updateConfig({
+      churchName: churchName.trim(),
+      churchLogoUrl: churchLogo,
+      userPhoto,
+    });
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -50,236 +86,515 @@ export default function SettingsPage() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('lumina-session');
-    localStorage.removeItem('lumina-role');
-    localStorage.removeItem('lumina-onboarded');
-    localStorage.removeItem('lumina-firstName');
-    navigate('/login');
+    localStorage.removeItem("lumina-session");
+    localStorage.removeItem("lumina-role");
+    localStorage.removeItem("lumina-onboarded");
+    localStorage.removeItem("lumina-firstName");
+    navigate("/login");
   };
 
   const totalActions = auditEntries.length;
-  const unreadCount = notifications?.filter(n => !n.is_read).length ?? 0;
+  const unreadCount = notifications?.filter((n) => !n.is_read).length ?? 0;
 
   return (
     <IonPage>
-      <IonHeader><IonToolbar><IonTitle>Settings</IonTitle></IonToolbar></IonHeader>
+      <IonHeader>
+        <IonToolbar>
+          <IonTitle>Settings</IonTitle>
+        </IonToolbar>
+      </IonHeader>
       <IonContent className="bg-canvas">
-    <div className="min-h-screen bg-canvas">
-      <TopHeader title="Paramètres" />
-      <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
-        <h1 className="text-text-primary font-bold text-xl mb-5">Paramètres</h1>
+        <div className="min-h-screen bg-canvas">
+          <TopHeader title="Paramètres" />
+          <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
+            <h1 className="text-text-primary font-bold text-xl mb-5">
+              Paramètres
+            </h1>
 
-        {/* Profile card */}
-        <div className="rounded-xl p-4 mb-5 flex items-center gap-4" style={{ backgroundColor: '#212121' }}>
-          <div className="relative">
-            {userPhoto ? (
-              <img src={userPhoto} alt={`Photo de profil de ${user.firstName}`} className="w-14 h-14 rounded-full object-cover" />
-            ) : (
-              <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ backgroundColor: '#FF6B0020' }}>
-                <UserCircle className="w-7 h-7" style={{ color: '#FF6B00' }} />
-              </div>
-            )}
-            <label className="absolute bottom-0 right-0 w-6 h-6 rounded-full flex items-center justify-center cursor-pointer transition-all active:scale-95" style={{ backgroundColor: '#FF6B00' }}>
-              <Camera className="w-3 h-3 text-white" />
-              <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
-            </label>
-          </div>
-          <div className="flex-1">
-            <p className="text-text-primary font-semibold text-base">{user.firstName} {user.lastName}</p>
-            <p className="text-text-tertiary text-sm">{user.role.replace(/_/g, ' ').toLowerCase()}</p>
-            <p className="text-text-tertiary text-xs mt-0.5">{user.org.name}</p>
-          </div>
-        </div>
-
-        {/* Church config */}
-        <div className="rounded-xl p-4 mb-5" style={{ backgroundColor: '#212121' }}>
-          <div className="flex items-center gap-2 mb-4">
-            <Building2 className="w-5 h-5" style={{ color: '#FF6B00' }} />
-            <span className="text-text-primary font-semibold">Configuration de l'église</span>
-          </div>
-          <div className="space-y-4">
-            <div>
-              <label className="text-text-tertiary text-xs mb-1.5 block">Nom complet de l'église</label>
-              <input
-                type="text"
-                value={churchName}
-                onChange={(e) => setChurchName(e.target.value)}
-                placeholder="Ex: Église MFE-JC Centrale de Douala"
-               
-className="w-full px-4 py-3 rounded-xl text-text-primary text-sm "
-                style={{ backgroundColor: '#181818', border: '1px solid #282828' }}
-              />
-            </div>
-            <div>
-              <label className="text-text-tertiary text-xs mb-1.5 block">Logo de l'église</label>
-              <div className="flex items-center gap-3">
-                {churchLogo ? (
-                  <img src={churchLogo} alt={`Logo de ${churchName || 'l\'église'}`} className="w-12 h-12 rounded-lg object-cover" style={{ border: '1px solid #282828' }} />
+            {/* Profile card */}
+            <div
+              className="rounded-xl p-4 mb-5 flex items-center gap-4"
+              style={{ backgroundColor: "#212121" }}
+            >
+              <div className="relative">
+                {userPhoto ? (
+                  <img
+                    src={userPhoto}
+                    alt={`Photo de profil de ${user.firstName}`}
+                    className="w-14 h-14 rounded-full object-cover"
+                  />
                 ) : (
-                  <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#181818', border: '1px solid #282828' }}>
-                    <ImageIcon className="w-5 h-5 text-text-tertiary" />
+                  <div
+                    className="w-14 h-14 rounded-full flex items-center justify-center"
+                    style={{ backgroundColor: "#FF6B0020" }}
+                  >
+                    <UserCircle
+                      className="w-7 h-7"
+                      style={{ color: "#FF6B00" }}
+                    />
                   </div>
                 )}
-                <label className="flex-1">
-                  <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
-                  <span className="text-xs font-medium text-center py-2 rounded-xl block cursor-pointer transition-all active:scale-95" style={{ backgroundColor: '#FF6B0020', color: '#FF6B00' }} aria-label="Choisir un logo">
-                    Choisir un logo
-                  </span>
+                <label
+                  className="absolute bottom-0 right-0 w-6 h-6 rounded-full flex items-center justify-center cursor-pointer transition-all active:scale-95"
+                  style={{ backgroundColor: "#FF6B00" }}
+                >
+                  <Camera className="w-3 h-3 text-white" />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoUpload}
+                    className="hidden"
+                  />
                 </label>
               </div>
+              <div className="flex-1">
+                <p className="text-text-primary font-semibold text-base">
+                  {user.firstName} {user.lastName}
+                </p>
+                <p className="text-text-tertiary text-sm">
+                  {user.role.replace(/_/g, " ").toLowerCase()}
+                </p>
+                <p className="text-text-tertiary text-xs mt-0.5">
+                  {user.org.name}
+                </p>
+              </div>
             </div>
-            <button onClick={handleSave} disabled={saving} className="w-full py-3 rounded-full font-semibold text-white text-sm transition-all active:scale-95 disabled:opacity-50" style={{ backgroundColor: '#FF6B00' }} aria-label="Sauvegarder la configuration">
-              {saving ? 'Sauvegarde...' : saved ? (
-                <span className="flex items-center justify-center gap-2"><Check className="w-4 h-4" /> Sauvegardé</span>
-              ) : 'Sauvegarder la configuration'}
+
+            {/* Church config */}
+            <div
+              className="rounded-xl p-4 mb-5"
+              style={{ backgroundColor: "#212121" }}
+            >
+              <div className="flex items-center gap-2 mb-4">
+                <Building2 className="w-5 h-5" style={{ color: "#FF6B00" }} />
+                <span className="text-text-primary font-semibold">
+                  Configuration de l'église
+                </span>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-text-tertiary text-xs mb-1.5 block">
+                    Nom complet de l'église
+                  </label>
+                  <input
+                    type="text"
+                    value={churchName}
+                    onChange={(e) => setChurchName(e.target.value)}
+                    placeholder="Ex: Église MFE-JC Centrale de Douala"
+                    className="w-full px-4 py-3 rounded-xl text-text-primary text-sm "
+                    style={{
+                      backgroundColor: "#181818",
+                      border: "1px solid #282828",
+                    }}
+                  />
+                </div>
+                <div>
+                  <label className="text-text-tertiary text-xs mb-1.5 block">
+                    Logo de l'église
+                  </label>
+                  <div className="flex items-center gap-3">
+                    {churchLogo ? (
+                      <img
+                        src={churchLogo}
+                        alt={`Logo de ${churchName || "l'église"}`}
+                        className="w-12 h-12 rounded-lg object-cover"
+                        style={{ border: "1px solid #282828" }}
+                      />
+                    ) : (
+                      <div
+                        className="w-12 h-12 rounded-lg flex items-center justify-center"
+                        style={{
+                          backgroundColor: "#181818",
+                          border: "1px solid #282828",
+                        }}
+                      >
+                        <ImageIcon className="w-5 h-5 text-text-tertiary" />
+                      </div>
+                    )}
+                    <label className="flex-1">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleLogoUpload}
+                        className="hidden"
+                      />
+                      <span
+                        className="text-xs font-medium text-center py-2 rounded-xl block cursor-pointer transition-all active:scale-95"
+                        style={{
+                          backgroundColor: "#FF6B0020",
+                          color: "#FF6B00",
+                        }}
+                        aria-label="Choisir un logo"
+                      >
+                        Choisir un logo
+                      </span>
+                    </label>
+                  </div>
+                </div>
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="w-full py-3 rounded-full font-semibold text-white text-sm transition-all active:scale-95 disabled:opacity-50"
+                  style={{ backgroundColor: "#FF6B00" }}
+                  aria-label="Sauvegarder la configuration"
+                >
+                  {saving ? (
+                    "Sauvegarde..."
+                  ) : saved ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <Check className="w-4 h-4" /> Sauvegardé
+                    </span>
+                  ) : (
+                    "Sauvegarder la configuration"
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Sync status */}
+            <div
+              className="rounded-xl p-4 mb-5"
+              style={{ backgroundColor: "#212121" }}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  {isOnline ? (
+                    <Cloud className="w-5 h-5" style={{ color: "#1DB954" }} />
+                  ) : (
+                    <CloudOff
+                      className="w-5 h-5"
+                      style={{ color: "#B3B3B3" }}
+                    />
+                  )}
+                  <span className="text-text-primary font-medium">
+                    Synchronisation
+                  </span>
+                </div>
+                <span
+                  className="text-xs px-2 py-0.5 rounded-full font-medium"
+                  style={{
+                    backgroundColor: isOnline ? "#1DB95420" : "#80808020",
+                    color: isOnline ? "#1DB954" : "#808080",
+                  }}
+                >
+                  {isOnline ? "Connecté" : "Hors ligne"}
+                </span>
+              </div>
+              <p className="text-text-tertiary text-xs">
+                Données synchronisées automatiquement quand la connexion est
+                disponible.
+              </p>
+            </div>
+
+            {/* Storage */}
+            <div
+              className="rounded-xl p-4 mb-5"
+              style={{ backgroundColor: "#212121" }}
+            >
+              <div className="flex items-center gap-2 mb-3">
+                <Database className="w-5 h-5" style={{ color: "#FF6B00" }} />
+                <span className="text-text-primary font-medium">
+                  Stockage local
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-sm mb-2">
+                <span className="text-text-tertiary">Base de données</span>
+                <span className="text-text-secondary">
+                  PowerSync + LocalStorage
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-sm mb-2">
+                <span className="text-text-tertiary">Actions enregistrées</span>
+                <span className="text-text-secondary">{totalActions}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm mb-2">
+                <span className="text-text-tertiary">Notifications</span>
+                <span className="text-text-secondary">
+                  {notifications?.length ?? 0}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-text-tertiary">Caisses / Comptes</span>
+                <span className="text-text-secondary">
+                  {accounts?.length ?? 0}
+                </span>
+              </div>
+            </div>
+
+            {/* Quick links */}
+            <div className="grid grid-cols-2 gap-3 mb-5">
+              <button
+                onClick={() => navigate("/forms")}
+                className="p-4 rounded-xl text-left active:scale-95 transition-transform w-full"
+                style={{
+                  backgroundColor: "#212121",
+                  border: "1px solid #282828",
+                }}
+                aria-label="Gérer les formulaires"
+              >
+                <div
+                  className="w-10 h-10 rounded-full flex items-center justify-center mb-2"
+                  style={{ backgroundColor: "#FF6B0020" }}
+                >
+                  <ClipboardList
+                    className="w-5 h-5"
+                    style={{ color: "#FF6B00" }}
+                  />
+                </div>
+                <p className="text-text-primary text-sm font-semibold">
+                  Formulaires
+                </p>
+                <p className="text-text-tertiary text-xs mt-0.5">
+                  Créer & gérer
+                </p>
+              </button>
+              <button
+                onClick={() => navigate("/custom-fields")}
+                className="p-4 rounded-xl text-left active:scale-95 transition-transform w-full"
+                style={{
+                  backgroundColor: "#212121",
+                  border: "1px solid #282828",
+                }}
+                aria-label="Champs personnalisés"
+              >
+                <div
+                  className="w-10 h-10 rounded-full flex items-center justify-center mb-2"
+                  style={{ backgroundColor: "#8B5CF620" }}
+                >
+                  <Tag className="w-5 h-5" style={{ color: "#8B5CF6" }} />
+                </div>
+                <p className="text-text-primary text-sm font-semibold">
+                  Champs pers.
+                </p>
+                <p className="text-text-tertiary text-xs mt-0.5">Customiser</p>
+              </button>
+              <button
+                onClick={() => navigate("/archives")}
+                className="p-4 rounded-xl text-left active:scale-95 transition-transform w-full"
+                style={{
+                  backgroundColor: "#212121",
+                  border: "1px solid #282828",
+                }}
+                aria-label="Gérer les archives"
+              >
+                <div
+                  className="w-10 h-10 rounded-full flex items-center justify-center mb-2"
+                  style={{ backgroundColor: "#3B82F620" }}
+                >
+                  <Archive className="w-5 h-5" style={{ color: "#3B82F6" }} />
+                </div>
+                <p className="text-text-primary text-sm font-semibold">
+                  Archives
+                </p>
+                <p className="text-text-tertiary text-xs mt-0.5">
+                  Gérer les archives
+                </p>
+              </button>
+              <button
+                onClick={() => navigate("/reports")}
+                className="p-4 rounded-xl text-left active:scale-95 transition-transform w-full"
+                style={{
+                  backgroundColor: "#212121",
+                  border: "1px solid #282828",
+                }}
+                aria-label="Voir les rapports"
+              >
+                <div
+                  className="w-10 h-10 rounded-full flex items-center justify-center mb-2"
+                  style={{ backgroundColor: "#1DB95420" }}
+                >
+                  <BarChart3 className="w-5 h-5" style={{ color: "#1DB954" }} />
+                </div>
+                <p className="text-text-primary text-sm font-semibold">
+                  Rapports
+                </p>
+                <p className="text-text-tertiary text-xs mt-0.5">
+                  Bilans & stats
+                </p>
+              </button>
+            </div>
+
+            {/* Actions */}
+            <div className="space-y-2 mb-6">
+              <button
+                onClick={handleRefresh}
+                className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform text-left"
+                style={{
+                  backgroundColor: "#212121",
+                  border: "1px solid #282828",
+                }}
+                aria-label="Actualiser les données"
+              >
+                <div
+                  className="w-10 h-10 rounded-full flex items-center justify-center"
+                  style={{ backgroundColor: "#FF6B0020" }}
+                >
+                  <RefreshCw className="w-5 h-5" style={{ color: "#FF6B00" }} />
+                </div>
+                <div>
+                  <p className="text-text-primary text-sm font-semibold">
+                    Actualiser les données
+                  </p>
+                  <p className="text-text-tertiary text-xs mt-0.5">
+                    Recharger depuis la base locale
+                  </p>
+                </div>
+              </button>
+
+              <button
+                onClick={() => navigate("/balance")}
+                className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform text-left"
+                style={{
+                  backgroundColor: "#212121",
+                  border: "1px solid #282828",
+                }}
+                aria-label="Voir le bilan financier"
+              >
+                <div
+                  className="w-10 h-10 rounded-full flex items-center justify-center"
+                  style={{ backgroundColor: "#1DB95420" }}
+                >
+                  <CreditCard
+                    className="w-5 h-5"
+                    style={{ color: "#1DB954" }}
+                  />
+                </div>
+                <div>
+                  <p className="text-text-primary text-sm font-semibold">
+                    Bilan financier
+                  </p>
+                  <p className="text-text-tertiary text-xs mt-0.5">
+                    Voir le rapport par période
+                  </p>
+                </div>
+              </button>
+
+              <button
+                onClick={() => navigate("/tutoriel")}
+                className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform text-left"
+                style={{
+                  backgroundColor: "#212121",
+                  border: "1px solid #282828",
+                }}
+                aria-label="Voir le tutoriel"
+              >
+                <div
+                  className="w-10 h-10 rounded-full flex items-center justify-center"
+                  style={{ backgroundColor: "#8B5CF620" }}
+                >
+                  <BookOpen className="text-lg" style={{ color: "#8B5CF6" }} />
+                </div>
+                <div>
+                  <p className="text-text-primary text-sm font-semibold">
+                    Tutoriel & Aide
+                  </p>
+                  <p className="text-text-tertiary text-xs mt-0.5">
+                    Guide complet d'utilisation
+                  </p>
+                </div>
+              </button>
+
+              <button
+                onClick={() => navigate("/trace")}
+                className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform text-left"
+                style={{
+                  backgroundColor: "#212121",
+                  border: "1px solid #282828",
+                }}
+                aria-label="Voir la trace d'activité"
+              >
+                <div
+                  className="w-10 h-10 rounded-full flex items-center justify-center"
+                  style={{ backgroundColor: "#3B82F620" }}
+                >
+                  <Clock className="w-5 h-5" style={{ color: "#3B82F6" }} />
+                </div>
+                <div>
+                  <p className="text-text-primary text-sm font-semibold">
+                    Trace d'activité
+                  </p>
+                  <p className="text-text-tertiary text-xs mt-0.5">
+                    Journal de toutes les opérations
+                  </p>
+                </div>
+              </button>
+              <button
+                onClick={() => navigate("/history")}
+                className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform text-left"
+                style={{
+                  backgroundColor: "#212121",
+                  border: "1px solid #282828",
+                }}
+                aria-label="Voir l'historique financier"
+              >
+                <div
+                  className="w-10 h-10 rounded-full flex items-center justify-center"
+                  style={{ backgroundColor: "#FFB80020" }}
+                >
+                  <BarChart3 className="w-5 h-5" style={{ color: "#FFB800" }} />
+                </div>
+                <div>
+                  <p className="text-text-primary text-sm font-semibold">
+                    Historique financier
+                  </p>
+                  <p className="text-text-tertiary text-xs mt-0.5">
+                    Graphiques et statistiques
+                  </p>
+                </div>
+              </button>
+
+              <button
+                onClick={() => navigate("/versement")}
+                className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform text-left"
+                style={{
+                  backgroundColor: "#212121",
+                  border: "1px solid #282828",
+                }}
+                aria-label="Nouveau versement"
+              >
+                <div
+                  className="w-10 h-10 rounded-full flex items-center justify-center"
+                  style={{ backgroundColor: "#FFB80020" }}
+                >
+                  <CreditCard
+                    className="text-lg"
+                    style={{ color: "#FFB800" }}
+                  />
+                </div>
+                <div>
+                  <p className="text-text-primary text-sm font-semibold">
+                    Versement
+                  </p>
+                  <p className="text-text-tertiary text-xs mt-0.5">
+                    Transférer vers la caisse principale
+                  </p>
+                </div>
+              </button>
+            </div>
+
+            {/* Logout */}
+            <button
+              onClick={handleLogout}
+              className="w-full py-3 rounded-full font-medium text-sm text-text-tertiary transition-all active:scale-95"
+              style={{ backgroundColor: "#212121" }}
+              aria-label="Se déconnecter"
+            >
+              Se déconnecter
             </button>
+
+            <div className="flex items-center justify-center gap-2 mt-6">
+              <img
+                src="/lumina-logo.png"
+                alt="Lumina"
+                className="w-5 h-5 rounded"
+              />
+              <p className="text-text-tertiary text-xs">
+                Lumina v2.0 · {appConfig.churchName || user.org.name}
+              </p>
+            </div>
           </div>
+          <BottomNav />
         </div>
-
-        {/* Sync status */}
-        <div className="rounded-xl p-4 mb-5" style={{ backgroundColor: '#212121' }}>
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              {isOnline ? <Cloud className="w-5 h-5" style={{ color: '#1DB954' }} /> : <CloudOff className="w-5 h-5" style={{ color: '#B3B3B3' }} />}
-              <span className="text-text-primary font-medium">Synchronisation</span>
-            </div>
-            <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: isOnline ? '#1DB95420' : '#80808020', color: isOnline ? '#1DB954' : '#808080' }}>
-              {isOnline ? 'Connecté' : 'Hors ligne'}
-            </span>
-          </div>
-          <p className="text-text-tertiary text-xs">Données synchronisées automatiquement quand la connexion est disponible.</p>
-        </div>
-
-        {/* Storage */}
-        <div className="rounded-xl p-4 mb-5" style={{ backgroundColor: '#212121' }}>
-          <div className="flex items-center gap-2 mb-3">
-            <Database className="w-5 h-5" style={{ color: '#FF6B00' }} />
-            <span className="text-text-primary font-medium">Stockage local</span>
-          </div>
-          <div className="flex items-center justify-between text-sm mb-2">
-            <span className="text-text-tertiary">Base de données</span>
-            <span className="text-text-secondary">PowerSync + LocalStorage</span>
-          </div>
-          <div className="flex items-center justify-between text-sm mb-2">
-            <span className="text-text-tertiary">Actions enregistrées</span>
-            <span className="text-text-secondary">{totalActions}</span>
-          </div>
-          <div className="flex items-center justify-between text-sm mb-2">
-            <span className="text-text-tertiary">Notifications</span>
-            <span className="text-text-secondary">{notifications?.length ?? 0}</span>
-          </div>
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-text-tertiary">Caisses / Comptes</span>
-            <span className="text-text-secondary">{accounts?.length ?? 0}</span>
-          </div>
-        </div>
-
-        {/* Quick links */}
-        <div className="grid grid-cols-2 gap-3 mb-5">
-          <button onClick={() => navigate('/forms')} className="p-4 rounded-xl text-left active:scale-95 transition-transform w-full" style={{ backgroundColor: '#212121', border: '1px solid #282828' }} aria-label="Gérer les formulaires">
-            <div className="w-10 h-10 rounded-full flex items-center justify-center mb-2" style={{ backgroundColor: '#FF6B0020' }}>
-              <ClipboardList className="w-5 h-5" style={{ color: '#FF6B00' }} />
-            </div>
-            <p className="text-text-primary text-sm font-semibold">Formulaires</p>
-            <p className="text-text-tertiary text-xs mt-0.5">Créer & gérer</p>
-          </button>
-          <button onClick={() => navigate('/custom-fields')} className="p-4 rounded-xl text-left active:scale-95 transition-transform w-full" style={{ backgroundColor: '#212121', border: '1px solid #282828' }} aria-label="Champs personnalisés">
-            <div className="w-10 h-10 rounded-full flex items-center justify-center mb-2" style={{ backgroundColor: '#8B5CF620' }}>
-              <Tag className="w-5 h-5" style={{ color: '#8B5CF6' }} />
-            </div>
-            <p className="text-text-primary text-sm font-semibold">Champs pers.</p>
-            <p className="text-text-tertiary text-xs mt-0.5">Customiser</p>
-          </button>
-          <button onClick={() => navigate('/archives')} className="p-4 rounded-xl text-left active:scale-95 transition-transform w-full" style={{ backgroundColor: '#212121', border: '1px solid #282828' }} aria-label="Gérer les archives">
-            <div className="w-10 h-10 rounded-full flex items-center justify-center mb-2" style={{ backgroundColor: '#3B82F620' }}>
-              <Archive className="w-5 h-5" style={{ color: '#3B82F6' }} />
-            </div>
-            <p className="text-text-primary text-sm font-semibold">Archives</p>
-            <p className="text-text-tertiary text-xs mt-0.5">Gérer les archives</p>
-          </button>
-          <button onClick={() => navigate('/reports')} className="p-4 rounded-xl text-left active:scale-95 transition-transform w-full" style={{ backgroundColor: '#212121', border: '1px solid #282828' }} aria-label="Voir les rapports">
-            <div className="w-10 h-10 rounded-full flex items-center justify-center mb-2" style={{ backgroundColor: '#1DB95420' }}>
-              <BarChart3 className="w-5 h-5" style={{ color: '#1DB954' }} />
-            </div>
-            <p className="text-text-primary text-sm font-semibold">Rapports</p>
-            <p className="text-text-tertiary text-xs mt-0.5">Bilans & stats</p>
-          </button>
-        </div>
-
-        {/* Actions */}
-        <div className="space-y-2 mb-6">
-          <button onClick={handleRefresh} className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121', border: '1px solid #282828' }} aria-label="Actualiser les données">
-            <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#FF6B0020' }}>
-              <RefreshCw className="w-5 h-5" style={{ color: '#FF6B00' }} />
-            </div>
-            <div>
-              <p className="text-text-primary text-sm font-semibold">Actualiser les données</p>
-              <p className="text-text-tertiary text-xs mt-0.5">Recharger depuis la base locale</p>
-            </div>
-          </button>
-
-          <button onClick={() => navigate('/balance')} className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121', border: '1px solid #282828' }} aria-label="Voir le bilan financier">
-            <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#1DB95420' }}>
-              <CreditCard className="w-5 h-5" style={{ color: '#1DB954' }} />
-            </div>
-            <div>
-              <p className="text-text-primary text-sm font-semibold">Bilan financier</p>
-              <p className="text-text-tertiary text-xs mt-0.5">Voir le rapport par période</p>
-            </div>
-          </button>
-
-          <button onClick={() => navigate('/tutoriel')} className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121', border: '1px solid #282828' }} aria-label="Voir le tutoriel">
-            <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#8B5CF620' }}>
-              <BookOpen className="text-lg" style={{ color: '#8B5CF6' }} />
-            </div>
-            <div>
-              <p className="text-text-primary text-sm font-semibold">Tutoriel & Aide</p>
-              <p className="text-text-tertiary text-xs mt-0.5">Guide complet d'utilisation</p>
-            </div>
-          </button>
-
-          <button onClick={() => navigate('/trace')} className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121', border: '1px solid #282828' }} aria-label="Voir la trace d'activité">
-            <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#3B82F620' }}>
-              <Clock className="w-5 h-5" style={{ color: '#3B82F6' }} />
-            </div>
-            <div>
-              <p className="text-text-primary text-sm font-semibold">Trace d'activité</p>
-              <p className="text-text-tertiary text-xs mt-0.5">Journal de toutes les opérations</p>
-            </div>
-          </button>
-          <button onClick={() => navigate('/history')} className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121', border: '1px solid #282828' }} aria-label="Voir l'historique financier">
-            <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#FFB80020' }}>
-              <BarChart3 className="w-5 h-5" style={{ color: '#FFB800' }} />
-            </div>
-            <div>
-              <p className="text-text-primary text-sm font-semibold">Historique financier</p>
-              <p className="text-text-tertiary text-xs mt-0.5">Graphiques et statistiques</p>
-            </div>
-          </button>
-
-          <button onClick={() => navigate('/versement')} className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121', border: '1px solid #282828' }} aria-label="Nouveau versement">
-            <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#FFB80020' }}>
-              <CreditCard className="text-lg" style={{ color: '#FFB800' }} />
-            </div>
-            <div>
-              <p className="text-text-primary text-sm font-semibold">Versement</p>
-              <p className="text-text-tertiary text-xs mt-0.5">Transférer vers la caisse principale</p>
-            </div>
-          </button>
-        </div>
-
-        {/* Logout */}
-        <button onClick={handleLogout} className="w-full py-3 rounded-full font-medium text-sm text-text-tertiary transition-all active:scale-95" style={{ backgroundColor: '#212121' }} aria-label="Se déconnecter">
-          Se déconnecter
-        </button>
-
-        <div className="flex items-center justify-center gap-2 mt-6">
-          <img src="/lumina-logo.png" alt="Lumina" className="w-5 h-5 rounded" />
-          <p className="text-text-tertiary text-xs">Lumina v2.0 · {appConfig.churchName || user.org.name}</p>
-        </div>
-      </div>
-      <BottomNav />
-    </div>
       </IonContent>
     </IonPage>
   );

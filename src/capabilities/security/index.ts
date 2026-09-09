@@ -7,8 +7,18 @@
  * Do NOT add domain-specific permissions — they belong in a Business Pack.
  */
 
-import { getRolePermissions, hasPermission, hasHigherOrEqualRole, parseRole, ROLE_LABELS, ROLE_HIERARCHY, PERMISSION_MATRIX, checkPermission, getRolesWithPermission } from '@/lib/rbac';
-import type { Role, Permission } from '@/types';
+import {
+  getRolePermissions,
+  hasPermission,
+  hasHigherOrEqualRole,
+  parseRole,
+  ROLE_LABELS,
+  ROLE_HIERARCHY,
+  PERMISSION_MATRIX,
+  checkPermission,
+  getRolesWithPermission,
+} from "@/lib/rbac";
+import type { Role, Permission } from "@/types";
 
 /** Re-export for convenience — same source of truth as rbac.ts */
 export { PERMISSION_MATRIX, ROLE_LABELS, ROLE_HIERARCHY };
@@ -41,8 +51,8 @@ export class SecurityService {
   }
 
   getRolesWithPermission(permission: Permission): Role[] {
-    return (Object.keys(PERMISSION_MATRIX) as Role[]).filter(
-      role => PERMISSION_MATRIX[role].includes(permission)
+    return (Object.keys(PERMISSION_MATRIX) as Role[]).filter((role) =>
+      PERMISSION_MATRIX[role].includes(permission),
     );
   }
 
@@ -56,7 +66,7 @@ export class SecurityService {
 
   getSortedRoles(): Role[] {
     return (Object.keys(PERMISSION_MATRIX) as Role[]).sort(
-      (a, b) => (ROLE_HIERARCHY[b] ?? 0) - (ROLE_HIERARCHY[a] ?? 0)
+      (a, b) => (ROLE_HIERARCHY[b] ?? 0) - (ROLE_HIERARCHY[a] ?? 0),
     );
   }
 

@@ -1,25 +1,69 @@
-import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { useLocalStore } from '@/store/useLocalStore';
-import { useGroups, useAccounts, useTransactions, useMembers, useOrgUnits, useGroupMemberships } from '@/lib/dataLayer';
-import { formatCurrencyCompact, formatDate } from '@/lib/utils';
-import { ArrowLeft, Wallet, TrendingUp, TrendingDown, Check, Edit3, Trash2, Users, Clock, ArrowUp, ArrowDown, RefreshCw, ArrowRightLeft, Plus, UserPlus, UserMinus, Archive } from 'lucide-react';
-import BottomNav from '@/components/BottomNav';
-import TopHeader from '@/components/TopHeader';
-import TransactionCard from '@/components/TransactionCard';
-import { FullPageSkeleton, ListSkeleton } from '@/components/Skeleton';
-import { relationship } from '@/capabilities/relationship';
-import { lifecycle } from '@/capabilities/lifecycle';
-import { security } from '@/capabilities/security';
-import type { Transaction, Account, Member, GroupMembership } from '@/types';
-import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar, IonButtons, IonBackButton } from '@ionic/react';
+import { useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { useLocalStore } from "@/store/useLocalStore";
+import {
+  useGroups,
+  useAccounts,
+  useTransactions,
+  useMembers,
+  useOrgUnits,
+  useGroupMemberships,
+} from "@/lib/dataLayer";
+import { formatCurrencyCompact, formatDate } from "@/lib/utils";
+import {
+  ArrowLeft,
+  Wallet,
+  TrendingUp,
+  TrendingDown,
+  Check,
+  Edit3,
+  Trash2,
+  Users,
+  Clock,
+  ArrowUp,
+  ArrowDown,
+  RefreshCw,
+  ArrowRightLeft,
+  Plus,
+  UserPlus,
+  UserMinus,
+  Archive,
+} from "lucide-react";
+import BottomNav from "@/components/BottomNav";
+import TopHeader from "@/components/TopHeader";
+import TransactionCard from "@/components/TransactionCard";
+import { FullPageSkeleton, ListSkeleton } from "@/components/Skeleton";
+import { relationship } from "@/capabilities/relationship";
+import { lifecycle } from "@/capabilities/lifecycle";
+import { security } from "@/capabilities/security";
+import type { Transaction, Account, Member, GroupMembership } from "@/types";
+import {
+  IonPage,
+  IonHeader,
+  IonContent,
+  IonTitle,
+  IonToolbar,
+  IonButtons,
+  IonBackButton,
+} from "@ionic/react";
 
-type Tab = 'transactions' | 'membres' | 'historique' | 'parametres';
+type Tab = "transactions" | "membres" | "historique" | "parametres";
 
 export default function GroupDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { orgUnits: idbOrgUnits, accounts: idbAccounts, transactions: idbTxs, members: idbMembers, createGroup, updateGroup, deleteGroup, isLoading, createNotification, user } = useLocalStore();
+  const {
+    orgUnits: idbOrgUnits,
+    accounts: idbAccounts,
+    transactions: idbTxs,
+    members: idbMembers,
+    createGroup,
+    updateGroup,
+    deleteGroup,
+    isLoading,
+    createNotification,
+    user,
+  } = useLocalStore();
 
   // PowerSync with fallback
   const { data: psGroups } = useGroups();
@@ -34,23 +78,29 @@ export default function GroupDetail() {
   const transactions = psTransactions ?? idbTxs;
   const members = psMembers ?? idbMembers;
 
-  const [activeTab, setActiveTab] = useState<Tab>('transactions');
+  const [activeTab, setActiveTab] = useState<Tab>("transactions");
   const [showEdit, setShowEdit] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [showArchive, setShowArchive] = useState(false);
-  const [editName, setEditName] = useState('');
-  const [editDesc, setEditDesc] = useState('');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [editName, setEditName] = useState("");
+  const [editDesc, setEditDesc] = useState("");
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [showAddMember, setShowAddMember] = useState(false);
-  const [selectedMemberId, setSelectedMemberId] = useState('');
+  const [selectedMemberId, setSelectedMemberId] = useState("");
 
   const orgUnit = orgUnits.find((o: any) => o.id === id);
   const account = accounts.find((a: any) => a.id === id) as Account | undefined;
 
-  const groupMemberships = (psMemberships || []).filter((m: any) => m.group_id === id || m.groupId === id);
-  const groupMemberIds = groupMemberships.map((m: any) => m.member_id || m.memberId);
-  const groupMembers = members.filter((m: any) => groupMemberIds.includes(m.id) && m.status !== 'ARCHIVED');
+  const groupMemberships = (psMemberships || []).filter(
+    (m: any) => m.group_id === id || m.groupId === id,
+  );
+  const groupMemberIds = groupMemberships.map(
+    (m: any) => m.member_id || m.memberId,
+  );
+  const groupMembers = members.filter(
+    (m: any) => groupMemberIds.includes(m.id) && m.status !== "ARCHIVED",
+  );
 
   if (isLoading || !orgUnit || !account) {
     return (
@@ -63,8 +113,14 @@ export default function GroupDetail() {
         <IonContent fullscreen className="bg-canvas">
           <div className="min-h-screen bg-canvas flex items-center justify-center">
             <div className="text-center">
-              <p className="text-text-primary font-semibold mb-2">Groupe introuvable</p>
-              <button onClick={() => navigate('/groups')} className="text-sm" style={{ color: '#FF6B00' }}>
+              <p className="text-text-primary font-semibold mb-2">
+                Groupe introuvable
+              </p>
+              <button
+                onClick={() => navigate("/groups")}
+                className="text-sm"
+                style={{ color: "#FF6B00" }}
+              >
                 Retour aux groupes
               </button>
             </div>
@@ -74,67 +130,103 @@ export default function GroupDetail() {
     );
   }
 
-  const color = account.color || '#FF6B00';
-  const txs = transactions.filter((t: any) => t.source_caisse_id === account.id || t.sourceCaisseId === account.id);
-  const approvedTxs = txs.filter((t: any) => t.status === 'APPROVED');
-  const income = approvedTxs.filter((t: any) => t.type === 'INCOME').reduce((s: number, t: any) => s + t.amount, 0);
-  const expense = approvedTxs.filter((t: any) => t.type === 'EXPENSE').reduce((s: number, t: any) => s + t.amount, 0);
+  const color = account.color || "#FF6B00";
+  const txs = transactions.filter(
+    (t: any) =>
+      t.source_caisse_id === account.id || t.sourceCaisseId === account.id,
+  );
+  const approvedTxs = txs.filter((t: any) => t.status === "APPROVED");
+  const income = approvedTxs
+    .filter((t: any) => t.type === "INCOME")
+    .reduce((s: number, t: any) => s + t.amount, 0);
+  const expense = approvedTxs
+    .filter((t: any) => t.type === "EXPENSE")
+    .reduce((s: number, t: any) => s + t.amount, 0);
   const balance = income - expense;
-  const pendingCount = txs.filter((t: any) => t.status === 'PENDING').length;
-  const pendingAmount = txs.filter((t: any) => t.status === 'PENDING').reduce((s: number, t: any) => s + (t.type === 'INCOME' ? t.amount : -t.amount), 0);
+  const pendingCount = txs.filter((t: any) => t.status === "PENDING").length;
+  const pendingAmount = txs
+    .filter((t: any) => t.status === "PENDING")
+    .reduce(
+      (s: number, t: any) => s + (t.type === "INCOME" ? t.amount : -t.amount),
+      0,
+    );
 
   const versementTxs = txs.filter((t: any) => t.versement_id || t.versementId);
-  const versements: Record<string, { amount: number; date: string; tx: Transaction }> = {};
+  const versements: Record<
+    string,
+    { amount: number; date: string; tx: Transaction }
+  > = {};
   for (const tx of versementTxs) {
     const versementId = tx.versement_id || tx.versementId;
     if (!versements[versementId]) {
-      versements[versementId] = { amount: tx.amount, date: tx.date, tx: tx as any };
+      versements[versementId] = {
+        amount: tx.amount,
+        date: tx.date,
+        tx: tx as any,
+      };
     }
   }
-  const versementList = Object.values(versements)
-    .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const versementList = Object.values(versements).sort(
+    (a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+  );
 
-  const timelineEvents: Array<{ date: string; label: string; type: 'info' | 'success' | 'warning' }> = [
-    { date: account.created_at || account.createdAt, label: 'Caisse créée', type: 'info' },
+  const timelineEvents: Array<{
+    date: string;
+    label: string;
+    type: "info" | "success" | "warning";
+  }> = [
+    {
+      date: account.created_at || account.createdAt,
+      label: "Caisse créée",
+      type: "info",
+    },
   ];
 
   const handleVersement = () => {
-    navigate('/versement', { state: { caisseId: account.id, defaultAmount: balance } });
+    navigate("/versement", {
+      state: { caisseId: account.id, defaultAmount: balance },
+    });
   };
 
   const handleUpdate = async () => {
-    if (!security.hasPermission(user.role, 'group:update')) {
-      setError('Permission insuffisante pour modifier ce groupe');
+    if (!security.hasPermission(user.role, "group:update")) {
+      setError("Permission insuffisante pour modifier ce groupe");
       return;
     }
-    if (!editName.trim()) { setError('Le nom est requis'); return; }
-    await updateGroup(id!, { name: editName.trim(), description: editDesc.trim() });
+    if (!editName.trim()) {
+      setError("Le nom est requis");
+      return;
+    }
+    await updateGroup(id!, {
+      name: editName.trim(),
+      description: editDesc.trim(),
+    });
     setShowEdit(false);
-    setSuccess('Groupe mis à jour avec succès');
-    setTimeout(() => setSuccess(''), 3000);
+    setSuccess("Groupe mis à jour avec succès");
+    setTimeout(() => setSuccess(""), 3000);
   };
 
   const handleDelete = async () => {
-    if (!security.hasPermission(user.role, 'group:delete')) {
-      setError('Permission insuffisante pour supprimer ce groupe');
+    if (!security.hasPermission(user.role, "group:delete")) {
+      setError("Permission insuffisante pour supprimer ce groupe");
       return;
     }
     try {
       await deleteGroup(id!);
-      navigate('/groups');
+      navigate("/groups");
     } catch (e: any) {
       setError("Nous n'avons pas pu supprimer ce groupe. Veuillez réessayer.");
     }
   };
 
   const handleArchive = async () => {
-    if (!security.hasPermission(user.role, 'group:delete')) {
-      setError('Permission insuffisante pour archiver ce groupe');
+    if (!security.hasPermission(user.role, "group:delete")) {
+      setError("Permission insuffisante pour archiver ce groupe");
       return;
     }
     try {
-      await lifecycle.archive('Group', id!, 'Archive manuelle', 'local-user');
-      navigate('/groups');
+      await lifecycle.archive("Group", id!, "Archive manuelle", "local-user");
+      navigate("/groups");
     } catch (e: any) {
       setError("Nous n'avons pas pu archiver ce groupe. Veuillez réessayer.");
     }
@@ -144,20 +236,20 @@ export default function GroupDetail() {
     if (!selectedMemberId) return;
     const isMember = await relationship.isMember(id!, selectedMemberId);
     if (isMember) {
-      setError('Ce membre est déjà dans le groupe');
+      setError("Ce membre est déjà dans le groupe");
       return;
     }
     await addMemberToGroup({
       memberId: selectedMemberId,
       groupId: id!,
-      roleInGroup: 'MEMBRE',
+      roleInGroup: "MEMBRE",
       joinedAt: new Date().toISOString(),
       leftAt: null,
     });
     setShowAddMember(false);
-    setSelectedMemberId('');
-    setSuccess('Membre ajouté au groupe');
-    setTimeout(() => setSuccess(''), 3000);
+    setSelectedMemberId("");
+    setSuccess("Membre ajouté au groupe");
+    setTimeout(() => setSuccess(""), 3000);
   };
 
   const handleRemoveMember = async (membershipId: string) => {
@@ -176,363 +268,755 @@ export default function GroupDetail() {
       </IonHeader>
       <IonContent className="bg-canvas" fullscreen>
         <div className="max-w-lg mx-auto px-5 pb-32 pt-4">
-
-        {error && <div className="mb-4 p-3 rounded-xl text-sm" style={{ backgroundColor: '#E5133220', color: '#E51332' }}>{error}</div>}
-        {success && <div className="mb-4 p-3 rounded-xl text-sm" style={{ backgroundColor: '#1DB95420', color: '#1DB954' }}>{success}</div>}
-
-        {/* Hero Card */}
-        <div className="rounded-2xl p-5 mb-5" style={{ backgroundColor: '#212121', border: `1px solid ${color}40` }}>
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: color + '20' }}>
-              <Wallet className="w-6 h-6" style={{ color }} />
-            </div>
-            <div className="flex-1">
-              <p className="text-text-primary font-bold text-lg">{account.name}</p>
-              <p className="text-text-tertiary text-xs">{orgUnit.description || ''}</p>
-            </div>
-            <span className="text-xs px-2 py-1 rounded-full font-medium" style={{ backgroundColor: color + '15', color }}>Caisse</span>
-          </div>
-
-          <div className="h-px mb-4" style={{ backgroundColor: '#282828' }} />
-
-          <div className="text-center mb-4">
-            <p className="text-text-tertiary text-xs mb-1">Solde actuel</p>
-            <p className="text-3xl font-black" style={{ color: balance >= 0 ? '#1DB954' : '#E51332' }}>
-              {balance >= 0 ? '' : '-'}{formatCurrencyCompact(Math.abs(balance))}
-              <span className="text-text-tertiary text-base font-medium ml-1">FCFA</span>
-            </p>
-            {pendingAmount !== 0 && (
-              <p className="text-xs mt-1" style={{ color: '#FFB800' }}>
-                {pendingAmount > 0 ? '+' : ''}{formatCurrencyCompact(Math.abs(pendingAmount))} FCFA en attente
-              </p>
-            )}
-          </div>
-
-          <div className="flex items-center justify-between text-sm">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ backgroundColor: '#1DB95420' }}>
-                <TrendingUp className="w-3 h-3" style={{ color: '#1DB954' }} />
-              </div>
-              <span className="text-text-tertiary">Entrées: <span style={{ color: '#1DB954' }}>+{formatCurrencyCompact(income)}</span></span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ backgroundColor: '#E5133220' }}>
-                <TrendingDown className="w-3 h-3 rotate-180" style={{ color: '#E51332' }} />
-              </div>
-              <span className="text-text-tertiary">Sorties: <span style={{ color: '#E51332' }}>-{formatCurrencyCompact(expense)}</span></span>
-            </div>
-          </div>
-        </div>
-
-        {/* Quick actions */}
-        <div className="flex gap-3 mb-6">
-          <button
-            onClick={() => navigate(`/groups/${id}/transaction/new`)}
-            className="flex-1 py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-95"
-            style={{ backgroundColor: '#1DB95420', color: '#1DB954', border: '1px solid #1DB95440' }}
-          >
-            <ArrowUp className="w-4 h-4" /> Entrée
-          </button>
-          <button
-            onClick={() => navigate(`/groups/${id}/transaction/new`, { state: { type: 'EXPENSE' } })}
-            className="flex-1 py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-95"
-            style={{ backgroundColor: '#E5133220', color: '#E51332', border: '1px solid #E5133240' }}
-          >
-            <ArrowDown className="w-4 h-4" /> Sortie
-          </button>
-          {balance > 0 && (
-            <button
-              onClick={handleVersement}
-              className="px-4 py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-95"
-              style={{ background: 'linear-gradient(135deg, #FF8533, #FF6B00)', color: '#fff' }}
+          {error && (
+            <div
+              className="mb-4 p-3 rounded-xl text-sm"
+              style={{ backgroundColor: "#E5133220", color: "#E51332" }}
             >
-              <Check className="w-4 h-4" />
-            </button>
-          )}
-        </div>
-
-        {/* Tabs */}
-        <div className="mt-6 mb-6 -mx-5 px-5">
-          <div className="flex rounded-2xl p-1.5 overflow-x-auto scrollbar-hide" style={{ backgroundColor: '#212121', border: '1px solid #282828', gap: '6px' }}>
-            {([
-              { id: 'transactions' as Tab, label: 'Transactions', icon: Wallet },
-              { id: 'membres' as Tab, label: 'Membres', icon: Users },
-              { id: 'historique' as Tab, label: 'Historique', icon: Clock },
-              { id: 'parametres' as Tab, label: 'Paramètres', icon: Edit3 },
-            ]).map(({ id: tabId, label, icon: TabIcon }) => (
-              <button
-                key={tabId}
-                onClick={() => setActiveTab(tabId)}
-                className="flex-shrink-0 py-3 px-4 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 min-w-fit"
-                style={activeTab === tabId
-                  ? { backgroundColor: '#FF6B00', color: '#fff', boxShadow: '0 2px 8px rgba(255,107,0,0.3)' }
-                  : { backgroundColor: 'transparent', color: '#808080' }
-                }
-              >
-                <TabIcon className="w-4 h-4 flex-shrink-0" />
-                <span className="whitespace-nowrap">{label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Tab content */}
-        {activeTab === 'transactions' && (
-          <>
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-text-primary font-semibold text-sm">Transactions récentes</p>
-              <button onClick={() => navigate('/finance', { state: { caisseId: account.id } })} className="text-xs font-medium" style={{ color: '#FF6B00' }}>Tout voir</button>
+              {error}
             </div>
-            <div className="space-y-2">
-              {txs.filter((t: any) => t.status === 'APPROVED' || t.status === 'PENDING')
-                .sort((a: any, b: any) => new Date(b.date || b.created_at).getTime() - new Date(a.date || a.created_at).getTime())
-                .slice(0, 10)
-                .map((tx: any) => (
-                  <TransactionCard key={tx.id} transaction={tx} onPress={(id) => navigate(`/transaction/${id}`)} />
-                ))}
-              {txs.length === 0 && (
-                <div className="text-center py-10 rounded-xl" style={{ backgroundColor: '#212121' }}>
-                  <Wallet className="w-8 h-8 mx-auto mb-3 text-text-tertiary opacity-40" />
-                  <p className="text-text-tertiary text-sm">Aucune transaction</p>
-                </div>
+          )}
+          {success && (
+            <div
+              className="mb-4 p-3 rounded-xl text-sm"
+              style={{ backgroundColor: "#1DB95420", color: "#1DB954" }}
+            >
+              {success}
+            </div>
+          )}
+
+          {/* Hero Card */}
+          <div
+            className="rounded-2xl p-5 mb-5"
+            style={{
+              backgroundColor: "#212121",
+              border: `1px solid ${color}40`,
+            }}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div
+                className="w-12 h-12 rounded-full flex items-center justify-center"
+                style={{ backgroundColor: color + "20" }}
+              >
+                <Wallet className="w-6 h-6" style={{ color }} />
+              </div>
+              <div className="flex-1">
+                <p className="text-text-primary font-bold text-lg">
+                  {account.name}
+                </p>
+                <p className="text-text-tertiary text-xs">
+                  {orgUnit.description || ""}
+                </p>
+              </div>
+              <span
+                className="text-xs px-2 py-1 rounded-full font-medium"
+                style={{ backgroundColor: color + "15", color }}
+              >
+                Caisse
+              </span>
+            </div>
+
+            <div className="h-px mb-4" style={{ backgroundColor: "#282828" }} />
+
+            <div className="text-center mb-4">
+              <p className="text-text-tertiary text-xs mb-1">Solde actuel</p>
+              <p
+                className="text-3xl font-black"
+                style={{ color: balance >= 0 ? "#1DB954" : "#E51332" }}
+              >
+                {balance >= 0 ? "" : "-"}
+                {formatCurrencyCompact(Math.abs(balance))}
+                <span className="text-text-tertiary text-base font-medium ml-1">
+                  FCFA
+                </span>
+              </p>
+              {pendingAmount !== 0 && (
+                <p className="text-xs mt-1" style={{ color: "#FFB800" }}>
+                  {pendingAmount > 0 ? "+" : ""}
+                  {formatCurrencyCompact(Math.abs(pendingAmount))} FCFA en
+                  attente
+                </p>
               )}
             </div>
-          </>
-        )}
 
-        {activeTab === 'membres' && (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-text-primary font-semibold text-sm">Membres du groupe</p>
-              <button
-                onClick={() => setShowAddMember(true)}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium"
-                style={{ backgroundColor: '#FF6B0020', color: '#FF6B00' }}
-              >
-                <UserPlus className="w-3.5 h-3.5" /> Ajouter
-              </button>
+            <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-6 h-6 rounded-full flex items-center justify-center"
+                  style={{ backgroundColor: "#1DB95420" }}
+                >
+                  <TrendingUp
+                    className="w-3 h-3"
+                    style={{ color: "#1DB954" }}
+                  />
+                </div>
+                <span className="text-text-tertiary">
+                  Entrées:{" "}
+                  <span style={{ color: "#1DB954" }}>
+                    +{formatCurrencyCompact(income)}
+                  </span>
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-6 h-6 rounded-full flex items-center justify-center"
+                  style={{ backgroundColor: "#E5133220" }}
+                >
+                  <TrendingDown
+                    className="w-3 h-3 rotate-180"
+                    style={{ color: "#E51332" }}
+                  />
+                </div>
+                <span className="text-text-tertiary">
+                  Sorties:{" "}
+                  <span style={{ color: "#E51332" }}>
+                    -{formatCurrencyCompact(expense)}
+                  </span>
+                </span>
+              </div>
             </div>
-            {groupMembers.length === 0 ? (
-              <div className="text-center py-10 rounded-xl" style={{ backgroundColor: '#212121' }}>
-                <Users className="w-8 h-8 mx-auto mb-3 text-text-tertiary opacity-40" />
-                <p className="text-text-tertiary text-sm">Aucun membre</p>
-                <p className="text-text-tertiary text-xs mt-1">Ajoutez des membres à ce groupe</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {groupMembers.map((member: any) => {
-                  const membership = groupMemberships.find((m: any) => m.member_id === member.id || m.memberId === member.id);
-                  return (
-                    <div key={member.id} className="rounded-xl p-4 flex items-center gap-3" style={{ backgroundColor: '#212121' }}>
-                      <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#FF6B0020' }}>
-                        <span className="text-sm font-bold" style={{ color: '#FF6B00' }}>{(member.first_name || member.firstName)?.charAt(0)}{(member.last_name || member.lastName)?.charAt(0)}</span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-text-primary text-sm font-semibold">{member.first_name || member.firstName} {member.last_name || member.lastName}</p>
-                        <p className="text-text-tertiary text-xs">{member.phone || member.email || 'Pas de contact'}</p>
-                      </div>
-                      {membership && (
-                        <button
-                          onClick={() => handleRemoveMember(membership.id)}
-                          className="w-8 h-8 rounded-full flex items-center justify-center"
-                          style={{ backgroundColor: '#E5133220' }}
-                        >
-                          <UserMinus className="w-4 h-4" style={{ color: '#E51332' }} />
-                        </button>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+          </div>
+
+          {/* Quick actions */}
+          <div className="flex gap-3 mb-6">
+            <button
+              onClick={() => navigate(`/groups/${id}/transaction/new`)}
+              className="flex-1 py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-95"
+              style={{
+                backgroundColor: "#1DB95420",
+                color: "#1DB954",
+                border: "1px solid #1DB95440",
+              }}
+            >
+              <ArrowUp className="w-4 h-4" /> Entrée
+            </button>
+            <button
+              onClick={() =>
+                navigate(`/groups/${id}/transaction/new`, {
+                  state: { type: "EXPENSE" },
+                })
+              }
+              className="flex-1 py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-95"
+              style={{
+                backgroundColor: "#E5133220",
+                color: "#E51332",
+                border: "1px solid #E5133240",
+              }}
+            >
+              <ArrowDown className="w-4 h-4" /> Sortie
+            </button>
+            {balance > 0 && (
+              <button
+                onClick={handleVersement}
+                className="px-4 py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-95"
+                style={{
+                  background: "linear-gradient(135deg, #FF8533, #FF6B00)",
+                  color: "#fff",
+                }}
+              >
+                <Check className="w-4 h-4" />
+              </button>
             )}
           </div>
-        )}
 
-        {activeTab === 'historique' && (
-          <div className="space-y-3">
-            {/* Versement history */}
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <ArrowRightLeft className="w-4 h-4" style={{ color: '#FF6B00' }} />
-                <p className="text-text-primary font-semibold text-sm">Versements</p>
-                {versementList.length > 0 && (
-                  <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: '#FF6B0020', color: '#FF6B00' }}>{versementList.length}</span>
+          {/* Tabs */}
+          <div className="mt-6 mb-6 -mx-5 px-5">
+            <div
+              className="flex rounded-2xl p-1.5 overflow-x-auto scrollbar-hide"
+              style={{
+                backgroundColor: "#212121",
+                border: "1px solid #282828",
+                gap: "6px",
+              }}
+            >
+              {[
+                {
+                  id: "transactions" as Tab,
+                  label: "Transactions",
+                  icon: Wallet,
+                },
+                { id: "membres" as Tab, label: "Membres", icon: Users },
+                { id: "historique" as Tab, label: "Historique", icon: Clock },
+                { id: "parametres" as Tab, label: "Paramètres", icon: Edit3 },
+              ].map(({ id: tabId, label, icon: TabIcon }) => (
+                <button
+                  key={tabId}
+                  onClick={() => setActiveTab(tabId)}
+                  className="flex-shrink-0 py-3 px-4 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 min-w-fit"
+                  style={
+                    activeTab === tabId
+                      ? {
+                          backgroundColor: "#FF6B00",
+                          color: "#fff",
+                          boxShadow: "0 2px 8px rgba(255,107,0,0.3)",
+                        }
+                      : { backgroundColor: "transparent", color: "#808080" }
+                  }
+                >
+                  <TabIcon className="w-4 h-4 flex-shrink-0" />
+                  <span className="whitespace-nowrap">{label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Tab content */}
+          {activeTab === "transactions" && (
+            <>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-text-primary font-semibold text-sm">
+                  Transactions récentes
+                </p>
+                <button
+                  onClick={() =>
+                    navigate("/finance", { state: { caisseId: account.id } })
+                  }
+                  className="text-xs font-medium"
+                  style={{ color: "#FF6B00" }}
+                >
+                  Tout voir
+                </button>
+              </div>
+              <div className="space-y-2">
+                {txs
+                  .filter(
+                    (t: any) =>
+                      t.status === "APPROVED" || t.status === "PENDING",
+                  )
+                  .sort(
+                    (a: any, b: any) =>
+                      new Date(b.date || b.created_at).getTime() -
+                      new Date(a.date || a.created_at).getTime(),
+                  )
+                  .slice(0, 10)
+                  .map((tx: any) => (
+                    <TransactionCard
+                      key={tx.id}
+                      transaction={tx}
+                      onPress={(id) => navigate(`/transaction/${id}`)}
+                    />
+                  ))}
+                {txs.length === 0 && (
+                  <div
+                    className="text-center py-10 rounded-xl"
+                    style={{ backgroundColor: "#212121" }}
+                  >
+                    <Wallet className="w-8 h-8 mx-auto mb-3 text-text-tertiary opacity-40" />
+                    <p className="text-text-tertiary text-sm">
+                      Aucune transaction
+                    </p>
+                  </div>
                 )}
               </div>
-              {versementList.length === 0 ? (
-                <div className="rounded-xl p-6 text-center" style={{ backgroundColor: '#212121' }}>
-                  <ArrowRightLeft className="w-6 h-6 mx-auto mb-2 text-text-tertiary opacity-40" />
-                  <p className="text-text-tertiary text-sm">Aucun versement effectué</p>
-                  <p className="text-text-tertiary text-xs mt-1">Les versements apparaîtront ici</p>
+            </>
+          )}
+
+          {activeTab === "membres" && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-text-primary font-semibold text-sm">
+                  Membres du groupe
+                </p>
+                <button
+                  onClick={() => setShowAddMember(true)}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium"
+                  style={{ backgroundColor: "#FF6B0020", color: "#FF6B00" }}
+                >
+                  <UserPlus className="w-3.5 h-3.5" /> Ajouter
+                </button>
+              </div>
+              {groupMembers.length === 0 ? (
+                <div
+                  className="text-center py-10 rounded-xl"
+                  style={{ backgroundColor: "#212121" }}
+                >
+                  <Users className="w-8 h-8 mx-auto mb-3 text-text-tertiary opacity-40" />
+                  <p className="text-text-tertiary text-sm">Aucun membre</p>
+                  <p className="text-text-tertiary text-xs mt-1">
+                    Ajoutez des membres à ce groupe
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {versementList.map((v: any, idx: number) => (
-                    <div key={idx} className="rounded-xl p-3 flex items-center gap-3" style={{ backgroundColor: '#212121' }}>
-                      <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#FF6B0020' }}>
-                        <ArrowRightLeft className="w-4 h-4" style={{ color: '#FF6B00' }} />
+                  {groupMembers.map((member: any) => {
+                    const membership = groupMemberships.find(
+                      (m: any) =>
+                        m.member_id === member.id || m.memberId === member.id,
+                    );
+                    return (
+                      <div
+                        key={member.id}
+                        className="rounded-xl p-4 flex items-center gap-3"
+                        style={{ backgroundColor: "#212121" }}
+                      >
+                        <div
+                          className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                          style={{ backgroundColor: "#FF6B0020" }}
+                        >
+                          <span
+                            className="text-sm font-bold"
+                            style={{ color: "#FF6B00" }}
+                          >
+                            {(member.first_name || member.firstName)?.charAt(0)}
+                            {(member.last_name || member.lastName)?.charAt(0)}
+                          </span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-text-primary text-sm font-semibold">
+                            {member.first_name || member.firstName}{" "}
+                            {member.last_name || member.lastName}
+                          </p>
+                          <p className="text-text-tertiary text-xs">
+                            {member.phone || member.email || "Pas de contact"}
+                          </p>
+                        </div>
+                        {membership && (
+                          <button
+                            onClick={() => handleRemoveMember(membership.id)}
+                            className="w-8 h-8 rounded-full flex items-center justify-center"
+                            style={{ backgroundColor: "#E5133220" }}
+                          >
+                            <UserMinus
+                              className="w-4 h-4"
+                              style={{ color: "#E51332" }}
+                            />
+                          </button>
+                        )}
                       </div>
-                      <div className="flex-1">
-                        <p className="text-text-primary text-sm font-medium">Versement vers caisse principale</p>
-                        <p className="text-text-tertiary text-xs">{formatDate(v.date)}</p>
-                      </div>
-                      <span className="text-sm font-bold text-[#E51332]">-{formatCurrencyCompact(v.amount)} F</span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
+          )}
 
-            {/* Group timeline */}
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <Clock className="w-4 h-4" style={{ color: '#B3B3B3' }} />
-                <p className="text-text-primary font-semibold text-sm">Timeline du groupe</p>
-              </div>
-              <div className="rounded-xl p-4" style={{ backgroundColor: '#212121' }}>
-                <div className="space-y-4">
-                  {timelineEvents.map((evt: any, idx: number) => (
-                    <div key={idx} className="flex items-start gap-3">
-                      <div className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ backgroundColor: evt.type === 'info' ? '#FF6B00' : evt.type === 'success' ? '#1DB954' : '#808080' }} />
-                      <div>
-                        <p className="text-text-primary text-xs font-medium">{evt.label}</p>
-                        <p className="text-text-tertiary text-xs">{formatDate(evt.date)}</p>
+          {activeTab === "historique" && (
+            <div className="space-y-3">
+              {/* Versement history */}
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <ArrowRightLeft
+                    className="w-4 h-4"
+                    style={{ color: "#FF6B00" }}
+                  />
+                  <p className="text-text-primary font-semibold text-sm">
+                    Versements
+                  </p>
+                  {versementList.length > 0 && (
+                    <span
+                      className="text-xs px-2 py-0.5 rounded-full"
+                      style={{ backgroundColor: "#FF6B0020", color: "#FF6B00" }}
+                    >
+                      {versementList.length}
+                    </span>
+                  )}
+                </div>
+                {versementList.length === 0 ? (
+                  <div
+                    className="rounded-xl p-6 text-center"
+                    style={{ backgroundColor: "#212121" }}
+                  >
+                    <ArrowRightLeft className="w-6 h-6 mx-auto mb-2 text-text-tertiary opacity-40" />
+                    <p className="text-text-tertiary text-sm">
+                      Aucun versement effectué
+                    </p>
+                    <p className="text-text-tertiary text-xs mt-1">
+                      Les versements apparaîtront ici
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {versementList.map((v: any, idx: number) => (
+                      <div
+                        key={idx}
+                        className="rounded-xl p-3 flex items-center gap-3"
+                        style={{ backgroundColor: "#212121" }}
+                      >
+                        <div
+                          className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+                          style={{ backgroundColor: "#FF6B0020" }}
+                        >
+                          <ArrowRightLeft
+                            className="w-4 h-4"
+                            style={{ color: "#FF6B00" }}
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-text-primary text-sm font-medium">
+                            Versement vers caisse principale
+                          </p>
+                          <p className="text-text-tertiary text-xs">
+                            {formatDate(v.date)}
+                          </p>
+                        </div>
+                        <span className="text-sm font-bold text-[#E51332]">
+                          -{formatCurrencyCompact(v.amount)} F
+                        </span>
                       </div>
-                    </div>
-                  ))}
-                  {approvedTxs
-                    .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                    .slice(0, 5)
-                    .map((tx: any) => (
-                      <div key={tx.id} className="flex items-start gap-3">
-                        <div className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ backgroundColor: tx.type === 'INCOME' ? '#1DB954' : '#E51332' }} />
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Group timeline */}
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <Clock className="w-4 h-4" style={{ color: "#B3B3B3" }} />
+                  <p className="text-text-primary font-semibold text-sm">
+                    Timeline du groupe
+                  </p>
+                </div>
+                <div
+                  className="rounded-xl p-4"
+                  style={{ backgroundColor: "#212121" }}
+                >
+                  <div className="space-y-4">
+                    {timelineEvents.map((evt: any, idx: number) => (
+                      <div key={idx} className="flex items-start gap-3">
+                        <div
+                          className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0"
+                          style={{
+                            backgroundColor:
+                              evt.type === "info"
+                                ? "#FF6B00"
+                                : evt.type === "success"
+                                  ? "#1DB954"
+                                  : "#808080",
+                          }}
+                        />
                         <div>
-                          <p className="text-text-primary text-xs font-medium">{tx.type === 'INCOME' ? 'Entrée' : 'Sortie'}: {tx.description}</p>
-                          <p className="text-text-tertiary text-xs">{formatDate(tx.date)} · {formatCurrencyCompact(tx.amount)} FCFA</p>
+                          <p className="text-text-primary text-xs font-medium">
+                            {evt.label}
+                          </p>
+                          <p className="text-text-tertiary text-xs">
+                            {formatDate(evt.date)}
+                          </p>
                         </div>
                       </div>
                     ))}
+                    {approvedTxs
+                      .sort(
+                        (a: any, b: any) =>
+                          new Date(b.date).getTime() -
+                          new Date(a.date).getTime(),
+                      )
+                      .slice(0, 5)
+                      .map((tx: any) => (
+                        <div key={tx.id} className="flex items-start gap-3">
+                          <div
+                            className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0"
+                            style={{
+                              backgroundColor:
+                                tx.type === "INCOME" ? "#1DB954" : "#E51332",
+                            }}
+                          />
+                          <div>
+                            <p className="text-text-primary text-xs font-medium">
+                              {tx.type === "INCOME" ? "Entrée" : "Sortie"}:{" "}
+                              {tx.description}
+                            </p>
+                            <p className="text-text-tertiary text-xs">
+                              {formatDate(tx.date)} ·{" "}
+                              {formatCurrencyCompact(tx.amount)} FCFA
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {activeTab === 'parametres' && (
-          <div className="space-y-3">
-            {showEdit ? (
-              <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: '#212121' }}>
-                <div>
-                  <label className="text-text-tertiary text-xs mb-1.5 block">Nom</label>
-                  <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)}
-className="w-full px-4 py-2.5 rounded-xl text-text-primary text-sm" style={{ backgroundColor: '#181818', border: '1px solid #282828' }} />
-                </div>
-                <div>
-                  <label className="text-text-tertiary text-xs mb-1.5 block">Description</label>
-                  <textarea value={editDesc} onChange={(e) => setEditDesc(e.target.value)} rows={2}
-className="w-full px-4 py-2.5 rounded-xl text-text-primary text-sm resize-none" style={{ backgroundColor: '#181818', border: '1px solid #282828' }} />
-                </div>
-                <div className="flex gap-2">
-                  <button onClick={handleUpdate} className="flex-1 py-2.5 rounded-full text-sm font-semibold text-white" style={{ backgroundColor: '#FF6B00' }}>Sauvegarder</button>
-                  <button onClick={() => setShowEdit(false)} className="flex-1 py-2.5 rounded-full text-sm font-medium" style={{ backgroundColor: '#212121', color: '#B3B3B3' }}>Annuler</button>
-                </div>
-              </div>
-            ) : (
-              <button onClick={() => { setShowEdit(true); setEditName(orgUnit.name); setEditDesc(orgUnit.description); }} className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
-                <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#FF6B0020' }}>
-                  <Edit3 className="w-5 h-5" style={{ color: '#FF6B00' }} />
-                </div>
-                <span className="text-text-primary text-sm font-medium">Modifier le groupe</span>
-              </button>
-            )}
-
-            <button onClick={() => setShowArchive(true)} className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
-              <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#80808020' }}>
-                <Archive className="w-5 h-5" style={{ color: '#B3B3B3' }} />
-              </div>
-              <span className="text-text-primary text-sm font-medium">Archiver le groupe</span>
-            </button>
-
-            <button onClick={() => setShowDelete(true)} className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
-              <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#E5133220' }}>
-                <Trash2 className="w-5 h-5" style={{ color: '#E51332' }} />
-              </div>
-              <span className="text-[#E51332] text-sm font-medium">Supprimer le groupe</span>
-            </button>
-          </div>
-        )}
-      </div>
-      <BottomNav />
-
-      {/* Archive Confirmation */}
-      {showArchive && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-5" onClick={() => setShowArchive(false)}>
-          <div className="absolute inset-0 bg-black/70" />
-          <div className="relative w-full max-w-sm rounded-2xl p-5 text-center" style={{ backgroundColor: '#181818' }} onClick={(e) => e.stopPropagation()}>
-            <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: '#80808020' }}>
-              <Archive className="w-6 h-6 text-text-tertiary" />
-            </div>
-            <h3 className="text-text-primary font-bold text-lg mb-2">Archiver {orgUnit.name} ?</h3>
-            <p className="text-text-tertiary text-sm mb-1">Le groupe sera archivée mais pas supprimée.</p>
-            <p className="text-text-tertiary text-xs mb-4">Vous pourrez le restaurer plus tard.</p>
-            <button onClick={handleArchive} className="w-full py-3.5 rounded-full font-semibold text-white mb-3" style={{ backgroundColor: '#808080' }}>Archiver</button>
-            <button onClick={() => setShowArchive(false)} className="w-full py-3 rounded-full font-medium text-sm text-text-tertiary" style={{ backgroundColor: '#212121' }}>Annuler</button>
-          </div>
-        </div>
-      )}
-
-      {/* Add Member Modal */}
-      {showAddMember && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={() => setShowAddMember(false)}>
-          <div className="absolute inset-0 bg-black/60" />
-          <div className="relative w-full max-w-lg rounded-t-2xl p-5 pb-8" style={{ backgroundColor: '#181818' }} onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-text-primary font-bold text-lg">Ajouter un membre</h2>
-              <button onClick={() => setShowAddMember(false)} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: '#282828' }}>
-                <span className="text-text-tertiary text-sm"><UserMinus className="w-4 h-4" /></span>
-              </button>
-            </div>
+          {activeTab === "parametres" && (
             <div className="space-y-3">
-              <select
-                value={selectedMemberId}
-                onChange={(e) => setSelectedMemberId(e.target.value)}
-               
-className="w-full px-4 py-3 rounded-xl text-text-primary text-sm appearance-none"
-                style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
+              {showEdit ? (
+                <div
+                  className="rounded-xl p-4 space-y-3"
+                  style={{ backgroundColor: "#212121" }}
+                >
+                  <div>
+                    <label className="text-text-tertiary text-xs mb-1.5 block">
+                      Nom
+                    </label>
+                    <input
+                      type="text"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl text-text-primary text-sm"
+                      style={{
+                        backgroundColor: "#181818",
+                        border: "1px solid #282828",
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-text-tertiary text-xs mb-1.5 block">
+                      Description
+                    </label>
+                    <textarea
+                      value={editDesc}
+                      onChange={(e) => setEditDesc(e.target.value)}
+                      rows={2}
+                      className="w-full px-4 py-2.5 rounded-xl text-text-primary text-sm resize-none"
+                      style={{
+                        backgroundColor: "#181818",
+                        border: "1px solid #282828",
+                      }}
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleUpdate}
+                      className="flex-1 py-2.5 rounded-full text-sm font-semibold text-white"
+                      style={{ backgroundColor: "#FF6B00" }}
+                    >
+                      Sauvegarder
+                    </button>
+                    <button
+                      onClick={() => setShowEdit(false)}
+                      className="flex-1 py-2.5 rounded-full text-sm font-medium"
+                      style={{ backgroundColor: "#212121", color: "#B3B3B3" }}
+                    >
+                      Annuler
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => {
+                    setShowEdit(true);
+                    setEditName(orgUnit.name);
+                    setEditDesc(orgUnit.description);
+                  }}
+                  className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform text-left"
+                  style={{
+                    backgroundColor: "#212121",
+                    border: "1px solid #282828",
+                  }}
+                >
+                  <div
+                    className="w-10 h-10 rounded-full flex items-center justify-center"
+                    style={{ backgroundColor: "#FF6B0020" }}
+                  >
+                    <Edit3 className="w-5 h-5" style={{ color: "#FF6B00" }} />
+                  </div>
+                  <span className="text-text-primary text-sm font-medium">
+                    Modifier le groupe
+                  </span>
+                </button>
+              )}
+
+              <button
+                onClick={() => setShowArchive(true)}
+                className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform text-left"
+                style={{
+                  backgroundColor: "#212121",
+                  border: "1px solid #282828",
+                }}
               >
-                <option value="">Sélectionner un membre...</option>
-                {members.filter((m: any) => m.status === 'ACTIVE' && !groupMemberIds.includes(m.id)).map((m: any) => (
-                  <option key={m.id} value={m.id}>{m.first_name || m.firstName} {m.last_name || m.lastName}</option>
-                ))}
-              </select>
-              {error && <p className="text-xs" style={{ color: '#E51332' }}>{error}</p>}
-              <button onClick={handleAddMember} disabled={!selectedMemberId} className="w-full py-3.5 rounded-full font-semibold text-white disabled:opacity-40" style={{ backgroundColor: '#FF6B00' }}>
-                Ajouter au groupe
+                <div
+                  className="w-10 h-10 rounded-full flex items-center justify-center"
+                  style={{ backgroundColor: "#80808020" }}
+                >
+                  <Archive className="w-5 h-5" style={{ color: "#B3B3B3" }} />
+                </div>
+                <span className="text-text-primary text-sm font-medium">
+                  Archiver le groupe
+                </span>
               </button>
-              <button onClick={() => { setShowAddMember(false); setError(''); setSelectedMemberId(''); }} className="w-full py-3 rounded-full font-medium text-sm text-text-tertiary" style={{ backgroundColor: '#212121' }}>
+
+              <button
+                onClick={() => setShowDelete(true)}
+                className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform text-left"
+                style={{
+                  backgroundColor: "#212121",
+                  border: "1px solid #282828",
+                }}
+              >
+                <div
+                  className="w-10 h-10 rounded-full flex items-center justify-center"
+                  style={{ backgroundColor: "#E5133220" }}
+                >
+                  <Trash2 className="w-5 h-5" style={{ color: "#E51332" }} />
+                </div>
+                <span className="text-[#E51332] text-sm font-medium">
+                  Supprimer le groupe
+                </span>
+              </button>
+            </div>
+          )}
+        </div>
+        <BottomNav />
+
+        {/* Archive Confirmation */}
+        {showArchive && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center px-5"
+            onClick={() => setShowArchive(false)}
+          >
+            <div className="absolute inset-0 bg-black/70" />
+            <div
+              className="relative w-full max-w-sm rounded-2xl p-5 text-center"
+              style={{ backgroundColor: "#181818" }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div
+                className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4"
+                style={{ backgroundColor: "#80808020" }}
+              >
+                <Archive className="w-6 h-6 text-text-tertiary" />
+              </div>
+              <h3 className="text-text-primary font-bold text-lg mb-2">
+                Archiver {orgUnit.name} ?
+              </h3>
+              <p className="text-text-tertiary text-sm mb-1">
+                Le groupe sera archivée mais pas supprimée.
+              </p>
+              <p className="text-text-tertiary text-xs mb-4">
+                Vous pourrez le restaurer plus tard.
+              </p>
+              <button
+                onClick={handleArchive}
+                className="w-full py-3.5 rounded-full font-semibold text-white mb-3"
+                style={{ backgroundColor: "#808080" }}
+              >
+                Archiver
+              </button>
+              <button
+                onClick={() => setShowArchive(false)}
+                className="w-full py-3 rounded-full font-medium text-sm text-text-tertiary"
+                style={{ backgroundColor: "#212121" }}
+              >
                 Annuler
               </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Delete Confirmation */}
-      {showDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-5" onClick={() => setShowDelete(false)}>
-          <div className="absolute inset-0 bg-black/70" />
-          <div className="relative w-full max-w-sm rounded-2xl p-5 text-center" style={{ backgroundColor: '#181818' }} onClick={(e) => e.stopPropagation()}>
-            <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: '#E5133220' }}>
-              <Trash2 className="w-6 h-6 text-[#E51332]" />
+        {/* Add Member Modal */}
+        {showAddMember && (
+          <div
+            className="fixed inset-0 z-50 flex items-end justify-center"
+            onClick={() => setShowAddMember(false)}
+          >
+            <div className="absolute inset-0 bg-black/60" />
+            <div
+              className="relative w-full max-w-lg rounded-t-2xl p-5 pb-8"
+              style={{ backgroundColor: "#181818" }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="text-text-primary font-bold text-lg">
+                  Ajouter un membre
+                </h2>
+                <button
+                  onClick={() => setShowAddMember(false)}
+                  className="w-8 h-8 rounded-full flex items-center justify-center"
+                  style={{ backgroundColor: "#282828" }}
+                >
+                  <span className="text-text-tertiary text-sm">
+                    <UserMinus className="w-4 h-4" />
+                  </span>
+                </button>
+              </div>
+              <div className="space-y-3">
+                <select
+                  value={selectedMemberId}
+                  onChange={(e) => setSelectedMemberId(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl text-text-primary text-sm appearance-none"
+                  style={{
+                    backgroundColor: "#212121",
+                    border: "1px solid #282828",
+                  }}
+                >
+                  <option value="">Sélectionner un membre...</option>
+                  {members
+                    .filter(
+                      (m: any) =>
+                        m.status === "ACTIVE" && !groupMemberIds.includes(m.id),
+                    )
+                    .map((m: any) => (
+                      <option key={m.id} value={m.id}>
+                        {m.first_name || m.firstName}{" "}
+                        {m.last_name || m.lastName}
+                      </option>
+                    ))}
+                </select>
+                {error && (
+                  <p className="text-xs" style={{ color: "#E51332" }}>
+                    {error}
+                  </p>
+                )}
+                <button
+                  onClick={handleAddMember}
+                  disabled={!selectedMemberId}
+                  className="w-full py-3.5 rounded-full font-semibold text-white disabled:opacity-40"
+                  style={{ backgroundColor: "#FF6B00" }}
+                >
+                  Ajouter au groupe
+                </button>
+                <button
+                  onClick={() => {
+                    setShowAddMember(false);
+                    setError("");
+                    setSelectedMemberId("");
+                  }}
+                  className="w-full py-3 rounded-full font-medium text-sm text-text-tertiary"
+                  style={{ backgroundColor: "#212121" }}
+                >
+                  Annuler
+                </button>
+              </div>
             </div>
-            <h3 className="text-text-primary font-bold text-lg mb-2">Supprimer {orgUnit.name} ?</h3>
-            <p className="text-text-tertiary text-sm mb-1">La caisse et toutes les transactions associées seront supprimées définitivement.</p>
-            <p className="text-text-tertiary text-xs mb-4">Cette action ne peut pas être annulée.</p>
-            <button onClick={handleDelete} className="w-full py-3.5 rounded-full font-semibold text-white mb-3" style={{ backgroundColor: '#E51332' }}>Supprimer définitivement</button>
-            <button onClick={() => setShowDelete(false)} className="w-full py-3 rounded-full font-medium text-sm text-text-tertiary" style={{ backgroundColor: '#212121' }}>Annuler</button>
           </div>
-        </div>
-      )}
+        )}
+
+        {/* Delete Confirmation */}
+        {showDelete && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center px-5"
+            onClick={() => setShowDelete(false)}
+          >
+            <div className="absolute inset-0 bg-black/70" />
+            <div
+              className="relative w-full max-w-sm rounded-2xl p-5 text-center"
+              style={{ backgroundColor: "#181818" }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div
+                className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4"
+                style={{ backgroundColor: "#E5133220" }}
+              >
+                <Trash2 className="w-6 h-6 text-[#E51332]" />
+              </div>
+              <h3 className="text-text-primary font-bold text-lg mb-2">
+                Supprimer {orgUnit.name} ?
+              </h3>
+              <p className="text-text-tertiary text-sm mb-1">
+                La caisse et toutes les transactions associées seront supprimées
+                définitivement.
+              </p>
+              <p className="text-text-tertiary text-xs mb-4">
+                Cette action ne peut pas être annulée.
+              </p>
+              <button
+                onClick={handleDelete}
+                className="w-full py-3.5 rounded-full font-semibold text-white mb-3"
+                style={{ backgroundColor: "#E51332" }}
+              >
+                Supprimer définitivement
+              </button>
+              <button
+                onClick={() => setShowDelete(false)}
+                className="w-full py-3 rounded-full font-medium text-sm text-text-tertiary"
+                style={{ backgroundColor: "#212121" }}
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
+        )}
       </IonContent>
     </IonPage>
   );

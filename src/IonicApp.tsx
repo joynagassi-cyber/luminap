@@ -1,16 +1,16 @@
-import { IonApp, setupIonicReact } from '@ionic/react';
-import { IonReactRouter } from '@ionic/react-router';
-import { IonRouterOutlet, IonSplitPane } from '@ionic/react';
-import { Route, Navigate } from 'react-router-dom';
-import { setupLuminaTheme } from './ionic/theme';
-import { luminaRoutes } from './ionic/routing';
+import { IonApp, setupIonicReact } from "@ionic/react";
+import { IonReactRouter } from "@ionic/react-router";
+import { IonRouterOutlet, IonSplitPane } from "@ionic/react";
+import { Route, Navigate } from "react-router-dom";
+import { setupLuminaTheme } from "./ionic/theme";
+import { luminaRoutes } from "./ionic/routing";
 
 // Configure Ionic React with dark theme
 setupIonicReact({
-  mode: 'ios',
+  mode: "ios",
   animated: true,
-  keyboardBehavior: 'ion-focus',
-  keyboardFillMode: 'overlap',
+  keyboardBehavior: "ion-focus",
+  keyboardFillMode: "overlap",
 });
 
 setupLuminaTheme();

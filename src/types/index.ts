@@ -1,40 +1,49 @@
-export type OrgType = 'Eglise' | 'Ecole' | 'ONG' | 'Entreprise' | 'Institution' | 'Custom';
+export type OrgType =
+  | "Eglise"
+  | "Ecole"
+  | "ONG"
+  | "Entreprise"
+  | "Institution"
+  | "Custom";
 
-export const ORG_PRESETS: Record<OrgType, { primary: string; light: string; dark: string }> = {
-  Eglise: { primary: '#FF6B00', light: '#FF8533', dark: '#CC5500' },
-  Ecole: { primary: '#00A896', light: '#00D4B6', dark: '#007F72' },
-  ONG: { primary: '#4CAF50', light: '#81C784', dark: '#388E3C' },
-  Entreprise: { primary: '#2196F3', light: '#64B5F6', dark: '#1976D2' },
-  Institution: { primary: '#3F51B5', light: '#7986CB', dark: '#303F9F' },
-  Custom: { primary: '#FF6B00', light: '#FF8533', dark: '#CC5500' },
+export const ORG_PRESETS: Record<
+  OrgType,
+  { primary: string; light: string; dark: string }
+> = {
+  Eglise: { primary: "#FF6B00", light: "#FF8533", dark: "#CC5500" },
+  Ecole: { primary: "#00A896", light: "#00D4B6", dark: "#007F72" },
+  ONG: { primary: "#4CAF50", light: "#81C784", dark: "#388E3C" },
+  Entreprise: { primary: "#2196F3", light: "#64B5F6", dark: "#1976D2" },
+  Institution: { primary: "#3F51B5", light: "#7986CB", dark: "#303F9F" },
+  Custom: { primary: "#FF6B00", light: "#FF8533", dark: "#CC5500" },
 };
 
 export type Role =
-  | 'PASTEUR_PRINCIPAL'
-  | 'PASTEUR_ASSOCIE'
-  | 'PASTEUR_JEUNESSE'
-  | 'ANCIEN'
-  | 'DIACRE'
-  | 'RESPONSABLE_DEPARTEMENT'
-  | 'SECRETAIRE'
-  | 'SECRETAIRE_ADJOINT'
-  | 'TREASURIER'
-  | 'TREASURIER_ADJOINT'
-  | 'COMPTABLE'
-  | 'RESPONSABLE_GROUPE'
-  | 'BENEVOLE'
-  | 'MEMBRE';
+  | "PASTEUR_PRINCIPAL"
+  | "PASTEUR_ASSOCIE"
+  | "PASTEUR_JEUNESSE"
+  | "ANCIEN"
+  | "DIACRE"
+  | "RESPONSABLE_DEPARTEMENT"
+  | "SECRETAIRE"
+  | "SECRETAIRE_ADJOINT"
+  | "TREASURIER"
+  | "TREASURIER_ADJOINT"
+  | "COMPTABLE"
+  | "RESPONSABLE_GROUPE"
+  | "BENEVOLE"
+  | "MEMBRE";
 
-export type TransactionStatus = 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED';
-export type TransactionType = 'INCOME' | 'EXPENSE';
-export type FundSource = 'CAISSE' | 'COTISATION' | 'PERSONNE' | 'AUTRE';
-export type CaisseType = 'MAIN' | 'GROUP';
-export type EventStatus = 'PLANIFIED' | 'ONGOING' | 'COMPLETED' | 'CANCELLED';
-export type MemberStatus = 'ACTIVE' | 'INACTIVE' | 'ARCHIVED';
-export type GroupStatus = 'ACTIVE' | 'ARCHIVED';
-export type AccountStatus = 'ACTIVE' | 'ARCHIVED';
-export type VersementStatus = 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED';
-export type CotisationStatut = 'NON_PAYE' | 'PAYE' | 'ABSENT' | 'EN_AVANCE';
+export type TransactionStatus = "DRAFT" | "PENDING" | "APPROVED" | "REJECTED";
+export type TransactionType = "INCOME" | "EXPENSE";
+export type FundSource = "CAISSE" | "COTISATION" | "PERSONNE" | "AUTRE";
+export type CaisseType = "MAIN" | "GROUP";
+export type EventStatus = "PLANIFIED" | "ONGOING" | "COMPLETED" | "CANCELLED";
+export type MemberStatus = "ACTIVE" | "INACTIVE" | "ARCHIVED";
+export type GroupStatus = "ACTIVE" | "ARCHIVED";
+export type AccountStatus = "ACTIVE" | "ARCHIVED";
+export type VersementStatus = "DRAFT" | "SUBMITTED" | "APPROVED" | "REJECTED";
+export type CotisationStatut = "NON_PAYE" | "PAYE" | "ABSENT" | "EN_AVANCE";
 
 export type Organization = {
   id: string;
@@ -84,7 +93,7 @@ export type Caisse = {
   archivedAt: string | null;
   archivedBy: string | null;
   archiveReason: string | null;
-  status: 'ACTIVE' | 'ARCHIVED';
+  status: "ACTIVE" | "ARCHIVED";
 };
 
 export type Transaction = {
@@ -124,7 +133,7 @@ export type BudgetItem = {
   label: string;
   allocated: number;
   spent: number;
-  fundedBy: 'main' | string;
+  fundedBy: "main" | string;
   categoryId?: string;
   isCustom?: boolean;
 };
@@ -135,7 +144,7 @@ export type ShoppingItem = {
   quantity: number;
   unitPrice: number;
   total: number;
-  status: 'PENDING' | 'ORDERED' | 'RECEIVED' | 'CANCELLED';
+  status: "PENDING" | "ORDERED" | "RECEIVED" | "CANCELLED";
   supplier?: string;
   notes?: string;
 };
@@ -148,7 +157,7 @@ export type Event = {
   startDate: string;
   endDate: string | null;
   status: EventStatus;
-  type: 'EVENT' | 'CULTE';
+  type: "EVENT" | "CULTE";
   budget: number;
   budgetItems: BudgetItem[];
   shoppingItems: ShoppingItem[];
@@ -162,7 +171,17 @@ export type AuditEntry = {
   transactionId: string | null;
   userId: string;
   actorRoleAtTime: string | null;
-  action: 'CREATE' | 'UPDATE' | 'DELETE' | 'APPROVE' | 'REJECT' | 'ARCHIVE' | 'RESTORE' | 'SUBMIT' | 'CLOSE' | 'REVISE';
+  action:
+    | "CREATE"
+    | "UPDATE"
+    | "DELETE"
+    | "APPROVE"
+    | "REJECT"
+    | "ARCHIVE"
+    | "RESTORE"
+    | "SUBMIT"
+    | "CLOSE"
+    | "REVISE";
   entityType: string;
   entityId: string;
   beforeState: any | null;
@@ -268,7 +287,7 @@ export type Group = {
 export type Account = {
   id: string;
   orgId: string;
-  ownerType: 'ORGANIZATION' | 'GROUP';
+  ownerType: "ORGANIZATION" | "GROUP";
   ownerId: string;
   name: string;
   currency: string;
@@ -285,7 +304,7 @@ export type GroupMembership = {
   id: string;
   memberId: string;
   groupId: string;
-  roleInGroup: 'MEMBRE' | 'RESPONSABLE';
+  roleInGroup: "MEMBRE" | "RESPONSABLE";
   joinedAt: string;
   leftAt: string | null;
   createdAt: string;
@@ -347,7 +366,16 @@ export type ReportDefinition = {
 export type FormFieldDefinition = {
   key: string;
   label: string;
-  type: 'text' | 'number' | 'date' | 'select' | 'boolean' | 'currency' | 'reference' | 'textarea' | 'file';
+  type:
+    | "text"
+    | "number"
+    | "date"
+    | "select"
+    | "boolean"
+    | "currency"
+    | "reference"
+    | "textarea"
+    | "file";
   required: boolean;
   validation?: { min?: number; max?: number; regex?: string; custom?: string };
   options?: string[];
@@ -366,7 +394,7 @@ export type FormDefinition = {
   description?: string;
   version: number;
   targetEntityType?: string;
-  status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+  status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   fields: FormFieldDefinition[];
   createdAt: string;
   updatedAt: string;
@@ -383,7 +411,7 @@ export type FormSubmission = {
   data: Record<string, any>;
   linkedEntityType?: string;
   linkedEntityId?: string;
-  status: 'SUBMITTED' | 'PROCESSED' | 'REJECTED';
+  status: "SUBMITTED" | "PROCESSED" | "REJECTED";
   createdAt: string;
 };
 
@@ -394,7 +422,7 @@ export type CustomFieldDefinition = {
   entityType: string;
   key: string;
   label: string;
-  type: 'text' | 'number' | 'date' | 'select' | 'boolean';
+  type: "text" | "number" | "date" | "select" | "boolean";
   options?: string[];
   order: number;
 };
@@ -411,7 +439,13 @@ export type CustomFieldValue = {
 };
 
 // === NEW TYPE: ArchivableEntity ===
-export type ArchivableEntity = 'Group' | 'Event' | 'Member' | 'Account' | 'Category' | 'Role';
+export type ArchivableEntity =
+  | "Group"
+  | "Event"
+  | "Member"
+  | "Account"
+  | "Category"
+  | "Role";
 
 // === NEW TYPE: Permission ===
 export type Permission = string;

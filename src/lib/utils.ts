@@ -1,8 +1,8 @@
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
-import type { Transaction } from '@/types';
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
+import type { Transaction } from "@/types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -23,14 +23,20 @@ export function cn(...inputs: ClassValue[]) {
  */
 export function formatCurrencyFull(cents: number): string {
   const ffa = cents / 100;
-  return new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(ffa);
+  return new Intl.NumberFormat("fr-FR", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(ffa);
 }
 
 export function formatCurrencyCompact(cents: number): string {
   const ffa = cents / 100;
   if (Math.abs(ffa) >= 1_000_000) return `${(ffa / 1_000_000).toFixed(1)}M`;
   if (Math.abs(ffa) >= 1_000) return `${(ffa / 1_000).toFixed(0)}K`;
-  return new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(ffa);
+  return new Intl.NumberFormat("fr-FR", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(ffa);
 }
 
 /**
@@ -51,55 +57,61 @@ export function formatCentsToFCFA(cents: number): string {
  */
 export function formatCentsFull(cents: number): string {
   const ffa = cents / 100;
-  return new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(ffa);
+  return new Intl.NumberFormat("fr-FR", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(ffa);
 }
 
 export function formatDate(date: string | Date): string {
-  const d = typeof date === 'string' ? new Date(date) : date;
-  return format(d, 'd MMM yyyy', { locale: fr });
+  const d = typeof date === "string" ? new Date(date) : date;
+  return format(d, "d MMM yyyy", { locale: fr });
 }
 
 export function formatDateTime(date: string | Date): string {
-  const d = typeof date === 'string' ? new Date(date) : date;
-  return format(d, 'd MMM yyyy à HH:mm', { locale: fr });
+  const d = typeof date === "string" ? new Date(date) : date;
+  return format(d, "d MMM yyyy à HH:mm", { locale: fr });
 }
 
-export function getStatusLabel(status: Transaction['status']): string {
-  const labels: Record<Transaction['status'], string> = {
-    DRAFT: 'Brouillon',
-    PENDING: 'En attente',
-    APPROVED: 'Approuvé',
-    REJECTED: 'Rejeté',
+export function getStatusLabel(status: Transaction["status"]): string {
+  const labels: Record<Transaction["status"], string> = {
+    DRAFT: "Brouillon",
+    PENDING: "En attente",
+    APPROVED: "Approuvé",
+    REJECTED: "Rejeté",
   };
   return labels[status];
 }
 
-export function getStatusColor(status: Transaction['status']): string {
-  const colors: Record<Transaction['status'], string> = {
-    DRAFT: '#808080',
-    PENDING: '#FFB800',
-    APPROVED: '#1DB954',
-    REJECTED: '#E51332',
+export function getStatusColor(status: Transaction["status"]): string {
+  const colors: Record<Transaction["status"], string> = {
+    DRAFT: "#808080",
+    PENDING: "#FFB800",
+    APPROVED: "#1DB954",
+    REJECTED: "#E51332",
   };
   return colors[status];
 }
 
-export function getPeriodRange(period: 'jour' | 'semaine' | 'mois' | 'annee'): { start: string; end: string } {
+export function getPeriodRange(period: "jour" | "semaine" | "mois" | "annee"): {
+  start: string;
+  end: string;
+} {
   const now = new Date();
   let start: Date;
   switch (period) {
-    case 'jour':
+    case "jour":
       start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       break;
-    case 'semaine':
+    case "semaine":
       start = new Date(now);
       start.setDate(start.getDate() - start.getDay() + 1);
       start.setHours(0, 0, 0, 0);
       break;
-    case 'mois':
+    case "mois":
       start = new Date(now.getFullYear(), now.getMonth(), 1);
       break;
-    case 'annee':
+    case "annee":
       start = new Date(now.getFullYear(), 0, 1);
       break;
   }
@@ -112,12 +124,12 @@ export function generateId(): string {
 
 export function getRoleLabel(role: string): string {
   const labels: Record<string, string> = {
-    PASTEUR: 'Pasteur',
-    SECRETAIRE: 'Secrétaire',
-    TREASURIER: 'Trésorier',
-    COMPTABLE: 'Comptable',
-    TREASURIER_ADJOINT: 'Trésorier Adjoint',
-    SECRETAIRE_ADJOINT: 'Secrétaire Adjoint',
+    PASTEUR: "Pasteur",
+    SECRETAIRE: "Secrétaire",
+    TREASURIER: "Trésorier",
+    COMPTABLE: "Comptable",
+    TREASURIER_ADJOINT: "Trésorier Adjoint",
+    SECRETAIRE_ADJOINT: "Secrétaire Adjoint",
   };
   return labels[role] ?? role;
 }

@@ -2,7 +2,11 @@ export function PageSkeleton() {
   return (
     <div className="space-y-4 p-5">
       {[1, 2, 3].map((i) => (
-        <div key={i} className="rounded-xl p-4 animate-pulse" style={{ backgroundColor: '#212121' }}>
+        <div
+          key={i}
+          className="rounded-xl p-4 animate-pulse"
+          style={{ backgroundColor: "#212121" }}
+        >
           <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 rounded-full bg-[#282828]" />
             <div className="flex-1">
@@ -19,7 +23,10 @@ export function PageSkeleton() {
 
 export function CardSkeleton() {
   return (
-    <div className="rounded-xl p-4 animate-pulse" style={{ backgroundColor: '#212121' }}>
+    <div
+      className="rounded-xl p-4 animate-pulse"
+      style={{ backgroundColor: "#212121" }}
+    >
       <div className="flex items-center gap-3 mb-3">
         <div className="w-10 h-10 rounded-full bg-[#282828]" />
         <div className="flex-1">
@@ -36,7 +43,11 @@ export function ListSkeleton({ count = 5 }: { count?: number }) {
   return (
     <div className="space-y-3">
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="rounded-xl p-4 animate-pulse" style={{ backgroundColor: '#212121' }}>
+        <div
+          key={i}
+          className="rounded-xl p-4 animate-pulse"
+          style={{ backgroundColor: "#212121" }}
+        >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-[#282828]" />
             <div className="flex-1 space-y-2">
@@ -52,7 +63,10 @@ export function ListSkeleton({ count = 5 }: { count?: number }) {
 
 export function StatCardSkeleton() {
   return (
-    <div className="rounded-xl p-4 animate-pulse text-center" style={{ backgroundColor: '#212121' }}>
+    <div
+      className="rounded-xl p-4 animate-pulse text-center"
+      style={{ backgroundColor: "#212121" }}
+    >
       <div className="w-8 h-8 rounded-full bg-[#282828] mx-auto mb-2" />
       <div className="h-3 bg-[#282828] rounded w-1/2 mx-auto mb-1" />
       <div className="h-5 bg-[#282828] rounded w-3/4 mx-auto" />

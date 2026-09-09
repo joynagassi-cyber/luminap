@@ -123,160 +123,311 @@ class OneSignalService {
     }
 
     // Create a proxy that uses Capacitor's exec
-    const exec = (success: any, error: any, service: string, action: string, args: any[]) => {
-      capacitor.plugin.callbackFromNative(service, true, args[0] || 0, args[1] || null, args[2] || null);
+    const exec = (
+      success: any,
+      error: any,
+      service: string,
+      action: string,
+      args: any[],
+    ) => {
+      capacitor.plugin.callbackFromNative(
+        service,
+        true,
+        args[0] || 0,
+        args[1] || null,
+        args[2] || null,
+      );
     };
 
     return {
       initialize: (appId: string) => {
-        capacitor.nativeCallback('OneSignalPush', 'init', { appId });
+        capacitor.nativeCallback("OneSignalPush", "init", { appId });
       },
       login: (playerId: string) => {
-        capacitor.nativeCallback('OneSignalPush', 'login', { playerId });
+        capacitor.nativeCallback("OneSignalPush", "login", { playerId });
       },
       logout: () => {
-        capacitor.nativeCallback('OneSignalPush', 'logout', {});
+        capacitor.nativeCallback("OneSignalPush", "logout", {});
       },
       setTag: (key: string, value: string) => {
-        capacitor.nativeCallback('OneSignalPush', 'addTags', { tags: { [key]: value } });
+        capacitor.nativeCallback("OneSignalPush", "addTags", {
+          tags: { [key]: value },
+        });
       },
       addTags: (tags: Record<string, string>) => {
-        capacitor.nativeCallback('OneSignalPush', 'addTags', { tags });
+        capacitor.nativeCallback("OneSignalPush", "addTags", { tags });
       },
       removeTag: (key: string) => {
-        capacitor.nativeCallback('OneSignalPush', 'removeTags', { tags: [key] });
+        capacitor.nativeCallback("OneSignalPush", "removeTags", {
+          tags: [key],
+        });
       },
       setEmail: (email: string) => {
-        capacitor.nativeCallback('OneSignalPush', 'addEmail', { email });
+        capacitor.nativeCallback("OneSignalPush", "addEmail", { email });
       },
       removeEmail: () => {
-        capacitor.nativeCallback('OneSignalPush', 'removeEmail', {});
+        capacitor.nativeCallback("OneSignalPush", "removeEmail", {});
       },
       getOnesignalId: () => {
         return new Promise<string | null>((resolve) => {
-          capacitor.nativeCallback('OneSignalPush', 'getOnesignalId', {}, resolve);
+          capacitor.nativeCallback(
+            "OneSignalPush",
+            "getOnesignalId",
+            {},
+            resolve,
+          );
         });
       },
       getExternalId: () => {
         return new Promise<string | null>((resolve) => {
-          capacitor.nativeCallback('OneSignalPush', 'getExternalId', {}, resolve);
+          capacitor.nativeCallback(
+            "OneSignalPush",
+            "getExternalId",
+            {},
+            resolve,
+          );
         });
       },
       trackEvent: (eventName: string, metrics?: Record<string, number>) => {
         const args = metrics ? [eventName, metrics] : [eventName];
-        capacitor.nativeCallback('OneSignalPush', 'trackEvent', args, () => {});
+        capacitor.nativeCallback("OneSignalPush", "trackEvent", args, () => {});
       },
       Notifications: {
         requestPermission: (foreground?: boolean) => {
           return new Promise<boolean>((resolve) => {
-            capacitor.nativeCallback('OneSignalPush', 'requestPermission', { foreground }, (result: any) => {
-              resolve(result?.granted || false);
-            });
+            capacitor.nativeCallback(
+              "OneSignalPush",
+              "requestPermission",
+              { foreground },
+              (result: any) => {
+                resolve(result?.granted || false);
+              },
+            );
           });
         },
         addEventListener: (event: string, callback: (data: any) => void) => {
-          capacitor.addListener('OneSignalPush', event, callback);
+          capacitor.addListener("OneSignalPush", event, callback);
         },
         removeEventListener: (event: string, callback: (data: any) => void) => {
-          capacitor.removeListener('OneSignalPush', event, callback);
+          capacitor.removeListener("OneSignalPush", event, callback);
         },
         clearAll: () => {
-          capacitor.nativeCallback('OneSignalPush', 'clearAll', {}, () => {});
+          capacitor.nativeCallback("OneSignalPush", "clearAll", {}, () => {});
         },
         removeNotification: (notificationId: string) => {
-          capacitor.nativeCallback('OneSignalPush', 'removeNotification', { notificationId }, () => {});
+          capacitor.nativeCallback(
+            "OneSignalPush",
+            "removeNotification",
+            { notificationId },
+            () => {},
+          );
         },
       },
       InAppMessages: {
         addEventListener: (event: string, callback: (data: any) => void) => {
-          capacitor.addListener('OneSignalPush', event, callback);
+          capacitor.addListener("OneSignalPush", event, callback);
         },
         removeEventListener: (event: string, callback: (data: any) => void) => {
-          capacitor.removeListener('OneSignalPush', event, callback);
+          capacitor.removeListener("OneSignalPush", event, callback);
         },
         promptAdditionalPermissions: () => {
-          capacitor.nativeCallback('OneSignalPush', 'promptAdditionalPermissions', {}, () => {});
+          capacitor.nativeCallback(
+            "OneSignalPush",
+            "promptAdditionalPermissions",
+            {},
+            () => {},
+          );
         },
       },
       User: {
         addAlias: (alias: string, name: string) => {
-          capacitor.nativeCallback('OneSignalPush', 'addAliases', { aliases: { [alias]: name } }, () => {});
+          capacitor.nativeCallback(
+            "OneSignalPush",
+            "addAliases",
+            { aliases: { [alias]: name } },
+            () => {},
+          );
         },
         addAliases: (aliases: Record<string, string>) => {
-          capacitor.nativeCallback('OneSignalPush', 'addAliases', { aliases }, () => {});
+          capacitor.nativeCallback(
+            "OneSignalPush",
+            "addAliases",
+            { aliases },
+            () => {},
+          );
         },
         removeAlias: (alias: string) => {
-          capacitor.nativeCallback('OneSignalPush', 'removeAliases', { aliases: [alias] }, () => {});
+          capacitor.nativeCallback(
+            "OneSignalPush",
+            "removeAliases",
+            { aliases: [alias] },
+            () => {},
+          );
         },
         removeAliases: (aliases: string[]) => {
-          capacitor.nativeCallback('OneSignalPush', 'removeAliases', { aliases }, () => {});
+          capacitor.nativeCallback(
+            "OneSignalPush",
+            "removeAliases",
+            { aliases },
+            () => {},
+          );
         },
         addEmail: (email: string) => {
-          capacitor.nativeCallback('OneSignalPush', 'addEmail', { email }, () => {});
+          capacitor.nativeCallback(
+            "OneSignalPush",
+            "addEmail",
+            { email },
+            () => {},
+          );
         },
         removeEmail: (email: string) => {
-          capacitor.nativeCallback('OneSignalPush', 'removeEmail', { email }, () => {});
+          capacitor.nativeCallback(
+            "OneSignalPush",
+            "removeEmail",
+            { email },
+            () => {},
+          );
         },
         addSms: (smsNumber: string) => {
-          capacitor.nativeCallback('OneSignalPush', 'addSms', { smsNumber }, () => {});
+          capacitor.nativeCallback(
+            "OneSignalPush",
+            "addSms",
+            { smsNumber },
+            () => {},
+          );
         },
         removeSms: (smsNumber: string) => {
-          capacitor.nativeCallback('OneSignalPush', 'removeSms', { smsNumber }, () => {});
+          capacitor.nativeCallback(
+            "OneSignalPush",
+            "removeSms",
+            { smsNumber },
+            () => {},
+          );
         },
         addTag: (key: string, value: string) => {
-          capacitor.nativeCallback('OneSignalPush', 'addTags', { tags: { [key]: value } }, () => {});
+          capacitor.nativeCallback(
+            "OneSignalPush",
+            "addTags",
+            { tags: { [key]: value } },
+            () => {},
+          );
         },
         addTags: (tags: Record<string, string>) => {
-          capacitor.nativeCallback('OneSignalPush', 'addTags', { tags }, () => {});
+          capacitor.nativeCallback(
+            "OneSignalPush",
+            "addTags",
+            { tags },
+            () => {},
+          );
         },
         removeTag: (key: string) => {
-          capacitor.nativeCallback('OneSignalPush', 'removeTags', { tags: [key] }, () => {});
+          capacitor.nativeCallback(
+            "OneSignalPush",
+            "removeTags",
+            { tags: [key] },
+            () => {},
+          );
         },
         removeTags: (keys: string[]) => {
-          capacitor.nativeCallback('OneSignalPush', 'removeTags', { tags: keys }, () => {});
+          capacitor.nativeCallback(
+            "OneSignalPush",
+            "removeTags",
+            { tags: keys },
+            () => {},
+          );
         },
         getTags: () => {
           return new Promise<Record<string, string>>((resolve) => {
-            capacitor.nativeCallback('OneSignalPush', 'getTags', {}, resolve);
+            capacitor.nativeCallback("OneSignalPush", "getTags", {}, resolve);
           });
         },
         addOutcome: (outcomeName: string) => {
-          capacitor.nativeCallback('OneSignalPush', 'addOutcome', { outcomeName }, () => {});
+          capacitor.nativeCallback(
+            "OneSignalPush",
+            "addOutcome",
+            { outcomeName },
+            () => {},
+          );
         },
         addUniqueOutcome: (outcomeName: string) => {
-          capacitor.nativeCallback('OneSignalPush', 'addUniqueOutcome', { outcomeName }, () => {});
+          capacitor.nativeCallback(
+            "OneSignalPush",
+            "addUniqueOutcome",
+            { outcomeName },
+            () => {},
+          );
         },
         addOutcomeWithValue: (outcomeName: string, value: number) => {
-          capacitor.nativeCallback('OneSignalPush', 'addOutcomeWithValue', { outcomeName, value }, () => {});
+          capacitor.nativeCallback(
+            "OneSignalPush",
+            "addOutcomeWithValue",
+            { outcomeName, value },
+            () => {},
+          );
         },
       },
       Debug: {
         setLogLevel: (logLevel: LogLevel) => {
-          capacitor.nativeCallback('OneSignalPush', 'setLogLevel', { logLevel }, () => {});
+          capacitor.nativeCallback(
+            "OneSignalPush",
+            "setLogLevel",
+            { logLevel },
+            () => {},
+          );
         },
       },
       Location: {
         requestPermission: () => {
-          capacitor.nativeCallback('OneSignalPush', 'requestLocationPermission', {}, () => {});
+          capacitor.nativeCallback(
+            "OneSignalPush",
+            "requestLocationPermission",
+            {},
+            () => {},
+          );
         },
         setShared: (shared: boolean) => {
-          capacitor.nativeCallback('OneSignalPush', 'setLocationShared', { shared }, () => {});
+          capacitor.nativeCallback(
+            "OneSignalPush",
+            "setLocationShared",
+            { shared },
+            () => {},
+          );
         },
         isShared: () => {
           return new Promise<boolean>((resolve) => {
-            capacitor.nativeCallback('OneSignalPush', 'isLocationShared', {}, resolve);
+            capacitor.nativeCallback(
+              "OneSignalPush",
+              "isLocationShared",
+              {},
+              resolve,
+            );
           });
         },
       },
       Session: {
         addOutcome: (outcomeName: string) => {
-          capacitor.nativeCallback('OneSignalPush', 'addOutcome', { outcomeName }, () => {});
+          capacitor.nativeCallback(
+            "OneSignalPush",
+            "addOutcome",
+            { outcomeName },
+            () => {},
+          );
         },
         addUniqueOutcome: (outcomeName: string) => {
-          capacitor.nativeCallback('OneSignalPush', 'addUniqueOutcome', { outcomeName }, () => {});
+          capacitor.nativeCallback(
+            "OneSignalPush",
+            "addUniqueOutcome",
+            { outcomeName },
+            () => {},
+          );
         },
         addOutcomeWithValue: (outcomeName: string, value: number) => {
-          capacitor.nativeCallback('OneSignalPush', 'addOutcomeWithValue', { outcomeName, value }, () => {});
+          capacitor.nativeCallback(
+            "OneSignalPush",
+            "addOutcomeWithValue",
+            { outcomeName, value },
+            () => {},
+          );
         },
       },
     };
@@ -290,25 +441,15 @@ class OneSignalService {
       return;
     }
 
-    try {
-      this.plugin = this.getPlugin();
+    // Initialize with app ID
+    this.plugin.initialize(this.appId);
 
-      if (!this.plugin) {
-        return;
-      }
-
-      // Initialize with app ID
-      this.plugin.initialize(this.appId);
-
-      // Enable verbose logging in development
-      if (import.meta.env.DEV) {
-        this.plugin.Debug.setLogLevel(LogLevel.Verbose);
-      }
-
-      this.isInitialized = true;
-    } catch (error) {
-      throw error;
+    // Enable verbose logging in development
+    if (import.meta.env.DEV) {
+      this.plugin.Debug.setLogLevel(LogLevel.Verbose);
     }
+
+    this.isInitialized = true;
   }
 
   /**
@@ -359,7 +500,9 @@ class OneSignalService {
     }
 
     try {
-      const token = await (this.plugin as any).Session?.getPushSubscriptionToken?.();
+      const token = await (
+        this.plugin as any
+      ).Session?.getPushSubscriptionToken?.();
       return token || null;
     } catch (error) {
       return null;
@@ -377,6 +520,7 @@ class OneSignalService {
     try {
       await this.plugin.User.addTag(key, value);
     } catch (error) {
+      // Tag set failed — non-fatal
     }
   }
 
@@ -391,6 +535,7 @@ class OneSignalService {
     try {
       await this.plugin.User.addTags(tags);
     } catch (error) {
+      // Tag set failed — non-fatal
     }
   }
 
@@ -405,6 +550,7 @@ class OneSignalService {
     try {
       await this.plugin.User.removeTag(key);
     } catch (error) {
+      // Tag removal failed — non-fatal
     }
   }
 
@@ -419,6 +565,7 @@ class OneSignalService {
     try {
       await this.plugin.User.addEmail(email);
     } catch (error) {
+      // Email set failed — non-fatal
     }
   }
 
@@ -433,6 +580,7 @@ class OneSignalService {
     try {
       await this.plugin.User.removeEmail();
     } catch (error) {
+      // Email removal failed — non-fatal
     }
   }
 
@@ -447,6 +595,7 @@ class OneSignalService {
     try {
       this.plugin.login(externalId);
     } catch (error) {
+      // Login failed — non-fatal
     }
   }
 
@@ -461,13 +610,17 @@ class OneSignalService {
     try {
       this.plugin.logout();
     } catch (error) {
+      // Logout failed — non-fatal
     }
   }
 
   /**
    * Track an event
    */
-  async trackEvent(eventName: string, metrics?: Record<string, number>): Promise<void> {
+  async trackEvent(
+    eventName: string,
+    metrics?: Record<string, number>,
+  ): Promise<void> {
     if (!this.plugin) {
       return;
     }
@@ -475,6 +628,7 @@ class OneSignalService {
     try {
       this.plugin.trackEvent(eventName, metrics);
     } catch (error) {
+      // Event tracking failed — non-fatal
     }
   }
 
@@ -487,8 +641,12 @@ class OneSignalService {
     }
 
     try {
-      this.plugin.Notifications.addEventListener('foregroundWillDisplay', callback);
+      this.plugin.Notifications.addEventListener(
+        "foregroundWillDisplay",
+        callback,
+      );
     } catch (error) {
+      // Listener registration failed — non-fatal
     }
   }
 
@@ -501,22 +659,29 @@ class OneSignalService {
     }
 
     try {
-      this.plugin.Notifications.addEventListener('click', callback);
+      this.plugin.Notifications.addEventListener("click", callback);
     } catch (error) {
+      // Listener registration failed — non-fatal
     }
   }
 
   /**
    * Remove notification received listener
    */
-  removeNotificationReceivedListener(callback: (notification: any) => void): void {
+  removeNotificationReceivedListener(
+    callback: (notification: any) => void,
+  ): void {
     if (!this.plugin) {
       return;
     }
 
     try {
-      this.plugin.Notifications.removeEventListener('foregroundWillDisplay', callback);
+      this.plugin.Notifications.removeEventListener(
+        "foregroundWillDisplay",
+        callback,
+      );
     } catch (error) {
+      // Listener removal failed — non-fatal
     }
   }
 
@@ -529,8 +694,9 @@ class OneSignalService {
     }
 
     try {
-      this.plugin.Notifications.removeEventListener('click', callback);
+      this.plugin.Notifications.removeEventListener("click", callback);
     } catch (error) {
+      // Listener removal failed — non-fatal
     }
   }
 
@@ -545,6 +711,7 @@ class OneSignalService {
     try {
       this.plugin.Notifications.clearAll();
     } catch (error) {
+      // Clear notifications failed — non-fatal
     }
   }
 
@@ -559,6 +726,7 @@ class OneSignalService {
     try {
       this.plugin.Notifications.removeNotification(notificationId);
     } catch (error) {
+      // Notification removal failed — non-fatal
     }
   }
 
@@ -573,6 +741,7 @@ class OneSignalService {
     try {
       this.plugin.Location.setShared(shared);
     } catch (error) {
+      // Location setting failed — non-fatal
     }
   }
 
@@ -600,7 +769,9 @@ let instance: OneSignalService | null = null;
  */
 export function getOneSignalService(): OneSignalService {
   if (!instance) {
-    const appId = import.meta.env.VITE_ONESIGNAL_APP_ID || '5482a4eb-a402-4612-ab5e-a72df7961b12';
+    const appId =
+      import.meta.env.VITE_ONESIGNAL_APP_ID ||
+      "5482a4eb-a402-4612-ab5e-a72df7961b12";
     instance = new OneSignalService(appId);
   }
   return instance;

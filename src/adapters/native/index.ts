@@ -1,12 +1,10 @@
 /** Barrel export for all native adapters. */
-export { NetworkAdapter } from './NetworkAdapter';
-export type { ConnectionStatus, ConnectionType } from './NetworkAdapter';
+export { NetworkAdapter } from "./NetworkAdapter";
+export type { ConnectionStatus, ConnectionType } from "./NetworkAdapter";
 
-export { StorageAdapter } from './StorageAdapter';
+export { StorageAdapter } from "./StorageAdapter";
 
-export {
-  NotificationAdapter,
-} from './NotificationAdapter';
+export { NotificationAdapter } from "./NotificationAdapter";
 export type {
   PermissionStatus,
   PushNotificationSchema,
@@ -15,4 +13,4 @@ export type {
   Token,
   PushRegistrationResult,
   ReceivedNotification,
-} from './NotificationAdapter';
+} from "./NotificationAdapter";

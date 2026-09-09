@@ -1,5 +1,5 @@
-import type { ConnectionStatus, ConnectionType } from '@capacitor/network';
-import { Network } from '@capacitor/network';
+import type { ConnectionStatus, ConnectionType } from "@capacitor/network";
+import { Network } from "@capacitor/network";
 
 export type { ConnectionStatus, ConnectionType };
 
@@ -50,16 +50,16 @@ export class NetworkAdapter {
         const status = await Network.getStatus();
         return status.connectionType;
       } catch {
-        return 'unknown';
+        return "unknown";
       }
     }
     if (navigator.onLine) {
       const ua = navigator.userAgent.toLowerCase();
-      return /wifi|cellular|ethernet/i.test(navigator.connection?.type ?? '')
-        ? 'cellular'
-        : 'wifi';
+      return /wifi|cellular|ethernet/i.test(navigator.connection?.type ?? "")
+        ? "cellular"
+        : "wifi";
     }
-    return 'none';
+    return "none";
   }
 
   /** Get the current full status object. */
@@ -73,23 +73,21 @@ export class NetworkAdapter {
    * Subscribe to network status change events.
    * Returns an unsubscribe function.
    */
-  addStatusListener(
-    callback: (status: ConnectionStatus) => void,
-  ): () => void {
+  addStatusListener(callback: (status: ConnectionStatus) => void): () => void {
     this.listeners.add(callback);
 
     if (this.isCapacitorEnv()) {
-      const handle = Network.addListener('networkStatusChange', callback);
+      const handle = Network.addListener("networkStatusChange", callback);
       this._listenerHandles.push(handle);
     } else {
       const onOnline = () => this.broadcastStatus();
       const onOffline = () => this.broadcastStatus();
-      window.addEventListener('online', onOnline);
-      window.addEventListener('offline', onOffline);
+      window.addEventListener("online", onOnline);
+      window.addEventListener("offline", onOffline);
       this._listenerHandles.push({
         remove: () => {
-          window.removeEventListener('online', onOnline);
-          window.removeEventListener('offline', onOffline);
+          window.removeEventListener("online", onOnline);
+          window.removeEventListener("offline", onOffline);
         },
       });
     }
@@ -97,9 +95,7 @@ export class NetworkAdapter {
     return () => this.removeStatusListener(callback);
   }
 
-  removeStatusListener(
-    callback: (status: ConnectionStatus) => void,
-  ): void {
+  removeStatusListener(callback: (status: ConnectionStatus) => void): void {
     this.listeners.delete(callback);
     // Find and remove the matching handle
     const handleIndex = this._listenerHandles.findIndex((h) => h !== null);

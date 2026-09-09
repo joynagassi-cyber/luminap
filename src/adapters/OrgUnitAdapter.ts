@@ -1,4 +1,4 @@
-import type { OrgUnit, Group } from '@/types';
+import type { OrgUnit, Group } from "@/types";
 
 /**
  * OrgUnitAdapter — bridge between legacy OrgUnit and canonical Group
@@ -12,10 +12,10 @@ export class OrgUnitAdapter {
     return {
       id: group.id,
       name: group.name,
-      type: 'groupe',
-      description: '',
+      type: "groupe",
+      description: "",
       orgId: group.orgId,
-      isActive: group.status === 'ACTIVE',
+      isActive: group.status === "ACTIVE",
     };
   }
 
@@ -25,7 +25,7 @@ export class OrgUnitAdapter {
       name: orgUnit.name,
       parentGroupId: null,
       responsableMemberId: null,
-      status: orgUnit.isActive ? 'ACTIVE' : 'ARCHIVED',
+      status: orgUnit.isActive ? "ACTIVE" : "ARCHIVED",
     };
   }
 

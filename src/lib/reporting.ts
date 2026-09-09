@@ -1,12 +1,20 @@
-import type { ReportDefinition, ReportResult } from '@/types';
-import { getPowerSyncDatabase } from '@/lib/powersync';
-import { generateId } from './utils';
-import { writeAudit } from './audit';
-import type { Transaction } from '@/types';
-import { getOrganizationId } from './orgContext';
-import { get, set, invalidate, asyncGetOrSet } from './cache';
+import type { ReportDefinition, ReportResult } from "@/types";
+import { getPowerSyncDatabase } from "@/lib/powersync";
+import { generateId } from "./utils";
+import { writeAudit } from "./audit";
+import type { Transaction } from "@/types";
+import { getOrganizationId } from "./orgContext";
+import { get, set, invalidate, asyncGetOrSet } from "./cache";
 
-export type FilterOp = 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte' | 'contains' | 'in';
+export type FilterOp =
+  | "eq"
+  | "neq"
+  | "gt"
+  | "gte"
+  | "lt"
+  | "lte"
+  | "contains"
+  | "in";
 
 export interface FilterExpr {
   field: string;
@@ -16,7 +24,15 @@ export interface FilterExpr {
 
 export interface MetricExpr {
   field: string;
-  fn: 'sum' | 'count' | 'avg' | 'min' | 'max' | 'planned' | 'actual' | 'variance';
+  fn:
+    | "sum"
+    | "count"
+    | "avg"
+    | "min"
+    | "max"
+    | "planned"
+    | "actual"
+    | "variance";
   alias?: string;
 }
 
@@ -24,22 +40,44 @@ export class QueryBuilder {
   private conditions: FilterExpr[] = [];
   private groupByFields: string[] = [];
   private metrics: MetricExpr[] = [];
-  private dataSource = 'transactions';
+  private dataSource = "transactions";
 
-  setDataSource(ds: string): this { this.dataSource = ds; return this; }
-  where(field: string, op: FilterOp, value: any): this { this.conditions.push({ field, op, value }); return this; }
-  groupBy(...fields: string[]): this { this.groupByFields = [...this.groupByFields, ...fields]; return this; }
-  metric(field: string, fn: MetricExpr['fn'], alias?: string): this { this.metrics.push({ field, fn, alias }); return this; }
-  build(): string { return JSON.stringify({ dataSource: this.dataSource, conditions: this.conditions, groupBy: this.groupByFields, metrics: this.metrics }); }
+  setDataSource(ds: string): this {
+    this.dataSource = ds;
+    return this;
+  }
+  where(field: string, op: FilterOp, value: any): this {
+    this.conditions.push({ field, op, value });
+    return this;
+  }
+  groupBy(...fields: string[]): this {
+    this.groupByFields = [...this.groupByFields, ...fields];
+    return this;
+  }
+  metric(field: string, fn: MetricExpr["fn"], alias?: string): this {
+    this.metrics.push({ field, fn, alias });
+    return this;
+  }
+  build(): string {
+    return JSON.stringify({
+      dataSource: this.dataSource,
+      conditions: this.conditions,
+      groupBy: this.groupByFields,
+      metrics: this.metrics,
+    });
+  }
 }
 
 export class AggregationEngine {
   async execute(reportDef: ReportDefinition): Promise<ReportResult> {
-    if (reportDef.dataSource === 'transactions') return this.aggregateTransactions(reportDef);
+    if (reportDef.dataSource === "transactions")
+      return this.aggregateTransactions(reportDef);
     throw new Error(`Unsupported data source: ${reportDef.dataSource}`);
   }
 
-  private async aggregateTransactions(reportDef: ReportDefinition): Promise<ReportResult> {
+  private async aggregateTransactions(
+    reportDef: ReportDefinition,
+  ): Promise<ReportResult> {
     const orgId = getOrganizationId();
     const cacheKey = `report:tx:${JSON.stringify({ filters: reportDef.filters, groupBy: reportDef.groupBy, metrics: reportDef.metrics })}`;
 
@@ -50,63 +88,103 @@ export class AggregationEngine {
     // Only fetch columns needed for aggregation - exclude large text fields not used in metrics
     const result = await db.execute(
       `SELECT id, org_id, type, amount, date, status, category_id, source_caisse_id, event_id, person_name FROM transactions WHERE org_id = ? AND status = ?`,
-      [orgId, 'APPROVED']
+      [orgId, "APPROVED"],
     );
-    const transactions: Transaction[] = (result?.result || []).map((t: any) => ({
-      id: t.id, orgId: t.org_id, type: t.type, amount: t.amount,
-      description: t.description ?? '', date: t.date, status: t.status,
-      createdAt: t.created_at ?? '', updatedAt: t.updated_at ?? '',
-      createdById: t.created_by_id ?? '', approvedById: t.approved_by_id ?? null,
-      approvedAt: t.approved_at ?? null, categoryId: t.category_id ?? null,
-      orgUnitId: t.org_unit_id ?? null, eventId: t.event_id ?? null,
-      source: t.source ?? null, personName: t.person_name ?? null,
-      compensatesFor: null, comment: null,
-      version: t.version ?? 1, sourceCaisseId: t.source_caisse_id ?? null,
-      versementId: t.versement_id ?? null, reversalOfId: null,
-      cotisationId: null,
-    }));
-    const approved = transactions.filter(t => t.status === 'APPROVED');
+    const transactions: Transaction[] = (result?.result || []).map(
+      (t: any) => ({
+        id: t.id,
+        orgId: t.org_id,
+        type: t.type,
+        amount: t.amount,
+        description: t.description ?? "",
+        date: t.date,
+        status: t.status,
+        createdAt: t.created_at ?? "",
+        updatedAt: t.updated_at ?? "",
+        createdById: t.created_by_id ?? "",
+        approvedById: t.approved_by_id ?? null,
+        approvedAt: t.approved_at ?? null,
+        categoryId: t.category_id ?? null,
+        orgUnitId: t.org_unit_id ?? null,
+        eventId: t.event_id ?? null,
+        source: t.source ?? null,
+        personName: t.person_name ?? null,
+        compensatesFor: null,
+        comment: null,
+        version: t.version ?? 1,
+        sourceCaisseId: t.source_caisse_id ?? null,
+        versementId: t.versement_id ?? null,
+        reversalOfId: null,
+        cotisationId: null,
+      }),
+    );
+    const approved = transactions.filter((t) => t.status === "APPROVED");
     let filtered = approved;
 
     const filters = (reportDef.filters as any[]) || [];
     for (const filter of filters) {
-      if (filter.field === 'date') filtered = filtered.filter(t => t.date >= filter.value.start && t.date <= filter.value.end);
-      if (filter.field === 'sourceCaisseId' && filter.value) filtered = filtered.filter(t => t.sourceCaisseId === filter.value);
-      if (filter.field === 'categoryId' && filter.value) filtered = filtered.filter(t => t.categoryId === filter.value);
-      if (filter.field === 'type' && filter.value) filtered = filtered.filter(t => t.type === filter.value);
+      if (filter.field === "date")
+        filtered = filtered.filter(
+          (t) => t.date >= filter.value.start && t.date <= filter.value.end,
+        );
+      if (filter.field === "sourceCaisseId" && filter.value)
+        filtered = filtered.filter((t) => t.sourceCaisseId === filter.value);
+      if (filter.field === "categoryId" && filter.value)
+        filtered = filtered.filter((t) => t.categoryId === filter.value);
+      if (filter.field === "type" && filter.value)
+        filtered = filtered.filter((t) => t.type === filter.value);
     }
 
     const grouped = new Map<string, Transaction[]>();
     const groupBy = reportDef.groupBy || [];
     for (const tx of filtered) {
-      const key = groupBy.map(g => {
-        if (g === 'month') return tx.date.substring(0, 7);
-        if (g === 'year') return tx.date.substring(0, 4);
-        if (g === 'sourceCaisseId') return tx.sourceCaisseId || 'unknown';
-        if (g === 'categoryId') return tx.categoryId;
-        return '';
-      }).join('|');
+      const key = groupBy
+        .map((g) => {
+          if (g === "month") return tx.date.substring(0, 7);
+          if (g === "year") return tx.date.substring(0, 4);
+          if (g === "sourceCaisseId") return tx.sourceCaisseId || "unknown";
+          if (g === "categoryId") return tx.categoryId;
+          return "";
+        })
+        .join("|");
       if (!grouped.has(key)) grouped.set(key, []);
       grouped.get(key)!.push(tx);
     }
 
     const rows: Record<string, any>[] = [];
-    const columns = new Set<string>(['key']);
-    const metrics = reportDef.metrics as unknown as MetricExpr[] || [];
+    const columns = new Set<string>(["key"]);
+    const metrics = (reportDef.metrics as unknown as MetricExpr[]) || [];
     for (const metric of metrics) columns.add(metric.alias || metric.field);
 
     for (const [key, txs] of grouped) {
       const row: Record<string, any> = { key };
       for (const metric of metrics) {
-        const values = txs.map((t: Transaction) => Number((t as any)[metric.field] || 0));
+        const values = txs.map((t: Transaction) =>
+          Number((t as any)[metric.field] || 0),
+        );
         const alias = metric.alias || metric.field;
         switch (metric.fn) {
-          case 'sum': row[alias] = values.reduce((a: number, b: number) => a + b, 0); break;
-          case 'count': row[alias] = values.length; break;
-          case 'avg': row[alias] = values.length > 0 ? values.reduce((a: number, b: number) => a + b, 0) / values.length : 0; break;
-          case 'min': row[alias] = Math.min(...values); break;
-          case 'max': row[alias] = Math.max(...values); break;
-          default: row[alias] = 0;
+          case "sum":
+            row[alias] = values.reduce((a: number, b: number) => a + b, 0);
+            break;
+          case "count":
+            row[alias] = values.length;
+            break;
+          case "avg":
+            row[alias] =
+              values.length > 0
+                ? values.reduce((a: number, b: number) => a + b, 0) /
+                  values.length
+                : 0;
+            break;
+          case "min":
+            row[alias] = Math.min(...values);
+            break;
+          case "max":
+            row[alias] = Math.max(...values);
+            break;
+          default:
+            row[alias] = 0;
         }
       }
       rows.push(row);
@@ -122,23 +200,44 @@ export const reportEngine = new AggregationEngine();
  * ReportDefinitionRepository — creates and persists report definitions with audit
  */
 export const reportDefinitionRepo = {
-  async create(def: Omit<ReportDefinition, 'id' | 'createdAt' | 'updatedAt'>): Promise<ReportDefinition> {
+  async create(
+    def: Omit<ReportDefinition, "id" | "createdAt" | "updatedAt">,
+  ): Promise<ReportDefinition> {
     const id = generateId();
     const now = new Date().toISOString();
-    const entry: ReportDefinition = { ...def, id, createdAt: now, updatedAt: now };
+    const entry: ReportDefinition = {
+      ...def,
+      id,
+      createdAt: now,
+      updatedAt: now,
+    };
     const db = getPowerSyncDatabase();
     await db.execute(
       `INSERT INTO report_definitions (id, org_id, name, data_source, dimensions, metrics, filters, group_by, sort_by, saved_by, is_template, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, getOrganizationId(), entry.name, entry.dataSource, JSON.stringify(entry.dimensions), JSON.stringify(entry.metrics), JSON.stringify(entry.filters), JSON.stringify(entry.groupBy), entry.sortBy, entry.savedBy, entry.isTemplate, now, now]
+      [
+        id,
+        getOrganizationId(),
+        entry.name,
+        entry.dataSource,
+        JSON.stringify(entry.dimensions),
+        JSON.stringify(entry.metrics),
+        JSON.stringify(entry.filters),
+        JSON.stringify(entry.groupBy),
+        entry.sortBy,
+        entry.savedBy,
+        entry.isTemplate,
+        now,
+        now,
+      ],
     );
     await writeAudit({
       orgId: getOrganizationId(),
       transactionId: null,
-      userId: 'local-user',
+      userId: "local-user",
       actorRoleAtTime: null,
-      action: 'CREATE',
-      entityType: 'ReportDefinition',
+      action: "CREATE",
+      entityType: "ReportDefinition",
       entityId: id,
       beforeState: null,
       afterState: entry,
@@ -149,31 +248,42 @@ export const reportDefinitionRepo = {
 
   async list(): Promise<ReportDefinition[]> {
     const db = getPowerSyncDatabase();
-    const result = await db.execute('SELECT id, org_id, name, data_source, dimensions, metrics, filters, group_by, sort_by, saved_by, is_template, created_at, updated_at FROM report_definitions WHERE org_id = ? ORDER BY created_at DESC', [getOrganizationId()]);
+    const result = await db.execute(
+      "SELECT id, org_id, name, data_source, dimensions, metrics, filters, group_by, sort_by, saved_by, is_template, created_at, updated_at FROM report_definitions WHERE org_id = ? ORDER BY created_at DESC",
+      [getOrganizationId()],
+    );
     return (result?.result || []).map((r: any) => ({
-      id: r.id, orgId: r.org_id, name: r.name, dataSource: r.data_source,
-      dimensions: JSON.parse(r.dimensions || '[]'), metrics: JSON.parse(r.metrics || '[]'),
-      filters: JSON.parse(r.filters || '[]'), groupBy: JSON.parse(r.group_by || '[]'),
-      sortBy: r.sort_by, savedBy: r.saved_by, isTemplate: r.is_template,
-      createdAt: r.created_at, updatedAt: r.updated_at,
+      id: r.id,
+      orgId: r.org_id,
+      name: r.name,
+      dataSource: r.data_source,
+      dimensions: JSON.parse(r.dimensions || "[]"),
+      metrics: JSON.parse(r.metrics || "[]"),
+      filters: JSON.parse(r.filters || "[]"),
+      groupBy: JSON.parse(r.group_by || "[]"),
+      sortBy: r.sort_by,
+      savedBy: r.saved_by,
+      isTemplate: r.is_template,
+      createdAt: r.created_at,
+      updatedAt: r.updated_at,
     }));
   },
 
   async delete(id: string): Promise<void> {
     const db = getPowerSyncDatabase();
-    await db.execute('DELETE FROM report_definitions WHERE id = ?', [id]);
+    await db.execute("DELETE FROM report_definitions WHERE id = ?", [id]);
     await writeAudit({
       orgId: getOrganizationId(),
       transactionId: null,
-      userId: 'local-user',
+      userId: "local-user",
       actorRoleAtTime: null,
-      action: 'DELETE',
-      entityType: 'ReportDefinition',
+      action: "DELETE",
+      entityType: "ReportDefinition",
       entityId: id,
       beforeState: null,
       afterState: null,
       comment: null,
     });
-    invalidate('report:');
+    invalidate("report:");
   },
 };

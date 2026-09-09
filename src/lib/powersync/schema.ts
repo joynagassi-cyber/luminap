@@ -1,4 +1,4 @@
-import { column, Schema, Table } from '@powersync/web';
+import { column, Schema, Table } from "@powersync/web";
 
 // ============================================================
 // Core Tables (déjà existants)
@@ -14,7 +14,7 @@ const profiles = new Table(
     created_at: column.text,
     updated_at: column.text,
   },
-  { indexes: {} }
+  { indexes: {} },
 );
 
 const members = new Table(
@@ -34,7 +34,7 @@ const members = new Table(
     created_at: column.text,
     updated_at: column.text,
   },
-  { indexes: {} }
+  { indexes: {} },
 );
 
 const transactions = new Table(
@@ -63,7 +63,7 @@ const transactions = new Table(
     reversal_of_id: column.text,
     cotisation_id: column.text,
   },
-  { indexes: {} }
+  { indexes: {} },
 );
 
 const events = new Table(
@@ -80,7 +80,7 @@ const events = new Table(
     updated_at: column.text,
     budget_items: column.text,
   },
-  { indexes: {} }
+  { indexes: {} },
 );
 
 const notifications = new Table(
@@ -93,7 +93,7 @@ const notifications = new Table(
     source_transaction_id: column.text,
     created_at: column.text,
   },
-  { indexes: {} }
+  { indexes: {} },
 );
 
 // ============================================================
@@ -108,7 +108,7 @@ const categories = new Table(
     org_id: column.text,
     created_at: column.text,
   },
-  { indexes: {} }
+  { indexes: {} },
 );
 
 const caisses = new Table(
@@ -125,7 +125,7 @@ const caisses = new Table(
     archive_reason: column.text,
     status: column.text,
   },
-  { indexes: {} }
+  { indexes: {} },
 );
 
 const accounts = new Table(
@@ -142,7 +142,7 @@ const accounts = new Table(
     created_at: column.text,
     updated_at: column.text,
   },
-  { indexes: {} }
+  { indexes: {} },
 );
 
 const versements = new Table(
@@ -159,7 +159,7 @@ const versements = new Table(
     comment: column.text,
     created_at: column.text,
   },
-  { indexes: {} }
+  { indexes: {} },
 );
 
 // ============================================================
@@ -176,7 +176,7 @@ const org_units = new Table(
     created_at: column.text,
     updated_at: column.text,
   },
-  { indexes: {} }
+  { indexes: {} },
 );
 
 const groups = new Table(
@@ -192,7 +192,7 @@ const groups = new Table(
     created_at: column.text,
     updated_at: column.text,
   },
-  { indexes: {} }
+  { indexes: {} },
 );
 
 const group_memberships = new Table(
@@ -202,7 +202,7 @@ const group_memberships = new Table(
     role: column.text,
     created_at: column.text,
   },
-  { indexes: {} }
+  { indexes: {} },
 );
 
 // ============================================================
@@ -217,7 +217,7 @@ const event_budgets = new Table(
     revised_by: column.text,
     created_at: column.text,
   },
-  { indexes: {} }
+  { indexes: {} },
 );
 
 const budget_lines = new Table(
@@ -229,7 +229,7 @@ const budget_lines = new Table(
     description: column.text,
     created_at: column.text,
   },
-  { indexes: {} }
+  { indexes: {} },
 );
 
 // ============================================================
@@ -250,7 +250,7 @@ const audit_entries = new Table(
     comment: column.text,
     created_at: column.text,
   },
-  { indexes: {} }
+  { indexes: {} },
 );
 
 const config = new Table(
@@ -260,7 +260,7 @@ const config = new Table(
     created_at: column.text,
     updated_at: column.text,
   },
-  { indexes: {} }
+  { indexes: {} },
 );
 
 // ============================================================
@@ -281,7 +281,7 @@ const form_definitions = new Table(
     created_at: column.text,
     updated_at: column.text,
   },
-  { indexes: { idx_form_defs_key: ['key'], idx_form_defs_org: ['org_id'] } }
+  { indexes: { idx_form_defs_key: ["key"], idx_form_defs_org: ["org_id"] } },
 );
 
 const form_submissions = new Table(
@@ -298,7 +298,12 @@ const form_submissions = new Table(
     status: column.text,
     created_at: column.text,
   },
-  { indexes: { idx_form_subs_def: ['form_definition_id'], idx_form_subs_org: ['org_id'] } }
+  {
+    indexes: {
+      idx_form_subs_def: ["form_definition_id"],
+      idx_form_subs_org: ["org_id"],
+    },
+  },
 );
 
 const custom_field_definitions = new Table(
@@ -310,7 +315,7 @@ const custom_field_definitions = new Table(
     field_type: column.text,
     created_at: column.text,
   },
-  { indexes: {} }
+  { indexes: {} },
 );
 
 const custom_field_values = new Table(
@@ -321,7 +326,7 @@ const custom_field_values = new Table(
     value: column.text,
     updated_at: column.text,
   },
-  { indexes: {} }
+  { indexes: {} },
 );
 
 const cotisations = new Table(
@@ -338,11 +343,11 @@ const cotisations = new Table(
   },
   {
     indexes: {
-      culte_id: ['culte_id'],
-      membre_id: ['membre_id'],
-      statut: ['statut'],
+      culte_id: ["culte_id"],
+      membre_id: ["membre_id"],
+      statut: ["statut"],
     },
-  }
+  },
 );
 
 const report_definitions = new Table(
@@ -354,7 +359,7 @@ const report_definitions = new Table(
     created_at: column.text,
     updated_at: column.text,
   },
-  { indexes: {} }
+  { indexes: {} },
 );
 
 export const AppSchema = new Schema({
@@ -382,4 +387,4 @@ export const AppSchema = new Schema({
   cotisations,
 });
 
-export type Database = (typeof AppSchema)['types'];
+export type Database = (typeof AppSchema)["types"];

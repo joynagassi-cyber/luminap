@@ -1,4 +1,4 @@
-import type { Versement } from '@/types';
+import type { Versement } from "@/types";
 
 /**
  * VersementLegacyAdapter — derives canonical Versement from paired transactions
@@ -17,8 +17,8 @@ export class VersementLegacyAdapter {
     const versementId = transactions[0].versement_id;
     if (!versementId) return null;
 
-    const incomeTx = transactions.find((t: any) => t.type === 'INCOME');
-    const expenseTx = transactions.find((t: any) => t.type === 'EXPENSE');
+    const incomeTx = transactions.find((t: any) => t.type === "INCOME");
+    const expenseTx = transactions.find((t: any) => t.type === "EXPENSE");
     if (!incomeTx || !expenseTx) return null;
 
     return {
@@ -28,7 +28,7 @@ export class VersementLegacyAdapter {
       toAccountId: incomeTx.source_caisse_id,
       amountCents: expenseTx.amount,
       date: transactions[0].date,
-      status: 'APPROVED' as const,
+      status: "APPROVED" as const,
       createdBy: transactions[0].created_by_id,
       approvedBy: transactions[0].approved_by_id,
       approvedAt: transactions[0].approved_at,

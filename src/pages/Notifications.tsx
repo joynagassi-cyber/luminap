@@ -1,33 +1,60 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useLocalStore } from '@/store/useLocalStore';
-import { useNotifications } from '@/lib/dataLayer';
-import { Bell, Check, Clock, AlertCircle, CheckCircle, TrendingUp } from 'lucide-react';
-import BottomNav from '@/components/BottomNav';
-import TopHeader from '@/components/TopHeader';
-import { formatDistanceToNow } from 'date-fns';
-import { fr } from 'date-fns/locale';
-import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar } from '@ionic/react';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useLocalStore } from "@/store/useLocalStore";
+import { useNotifications } from "@/lib/dataLayer";
+import {
+  Bell,
+  Check,
+  Clock,
+  AlertCircle,
+  CheckCircle,
+  TrendingUp,
+} from "lucide-react";
+import BottomNav from "@/components/BottomNav";
+import TopHeader from "@/components/TopHeader";
+import { formatDistanceToNow } from "date-fns";
+import { fr } from "date-fns/locale";
+import {
+  IonPage,
+  IonHeader,
+  IonContent,
+  IonTitle,
+  IonToolbar,
+} from "@ionic/react";
 
 function getNotifIcon(actionType: string) {
   switch (actionType) {
-    case 'TRANSACTION_PENDING': return <Bell className="w-4 h-4" style={{ color: '#FFB800' }} />;
-    case 'TRANSACTION_APPROVED': return <CheckCircle className="w-4 h-4" style={{ color: '#1DB954' }} />;
-    case 'BUDGET_EXCEEDED': return <AlertCircle className="w-4 h-4" style={{ color: '#E51332' }} />;
-    default: return <Bell className="w-4 h-4" style={{ color: '#B3B3B3' }} />;
+    case "TRANSACTION_PENDING":
+      return <Bell className="w-4 h-4" style={{ color: "#FFB800" }} />;
+    case "TRANSACTION_APPROVED":
+      return <CheckCircle className="w-4 h-4" style={{ color: "#1DB954" }} />;
+    case "BUDGET_EXCEEDED":
+      return <AlertCircle className="w-4 h-4" style={{ color: "#E51332" }} />;
+    default:
+      return <Bell className="w-4 h-4" style={{ color: "#B3B3B3" }} />;
   }
 }
 
 export default function NotificationsPage() {
   const navigate = useNavigate();
-  const { notifications: idbNotifs, markNotificationRead, markAllNotificationsRead } = useLocalStore();
+  const {
+    notifications: idbNotifs,
+    markNotificationRead,
+    markAllNotificationsRead,
+  } = useLocalStore();
   const { data: psNotifications } = useNotifications();
 
   // Use PowerSync or fallback to local cache
   const notifications = psNotifications ?? idbNotifs;
 
-  const sorted = [...notifications].sort((a: any, b: any) => new Date(b.created_at || b.createdAt).getTime() - new Date(a.created_at || a.createdAt).getTime());
-  const unread = notifications.filter((n: any) => !n.is_read && n.is_read !== undefined || !n.isRead).length;
+  const sorted = [...notifications].sort(
+    (a: any, b: any) =>
+      new Date(b.created_at || b.createdAt).getTime() -
+      new Date(a.created_at || a.createdAt).getTime(),
+  );
+  const unread = notifications.filter(
+    (n: any) => (!n.is_read && n.is_read !== undefined) || !n.isRead,
+  ).length;
 
   const handleMarkRead = async (id: string) => {
     await markNotificationRead(id);
@@ -48,65 +75,110 @@ export default function NotificationsPage() {
         <div className="min-h-screen bg-canvas">
           <TopHeader title="Notifications" />
           <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
-        <div className="flex items-center justify-between mb-5">
-          <h1 className="text-text-primary font-bold text-xl">Notifications</h1>
-          {unread > 0 && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs px-2.5 py-1 rounded-full font-medium" style={{ backgroundColor: '#E5133220', color: '#E51332' }}>
-                {unread} non lu{unread > 1 ? 's' : ''}
-              </span>
-              <button onClick={handleMarkAllRead} className="text-xs font-medium" style={{ color: '#FF6B00' }}>
-                Tout marquer lu
-              </button>
+            <div className="flex items-center justify-between mb-5">
+              <h1 className="text-text-primary font-bold text-xl">
+                Notifications
+              </h1>
+              {unread > 0 && (
+                <div className="flex items-center gap-2">
+                  <span
+                    className="text-xs px-2.5 py-1 rounded-full font-medium"
+                    style={{ backgroundColor: "#E5133220", color: "#E51332" }}
+                  >
+                    {unread} non lu{unread > 1 ? "s" : ""}
+                  </span>
+                  <button
+                    onClick={handleMarkAllRead}
+                    className="text-xs font-medium"
+                    style={{ color: "#FF6B00" }}
+                  >
+                    Tout marquer lu
+                  </button>
+                </div>
+              )}
             </div>
-          )}
-        </div>
 
-        {sorted.length === 0 ? (
-          <div className="text-center py-16 rounded-xl" style={{ backgroundColor: '#212121' }}>
-            <Bell className="w-12 h-12 mx-auto mb-4 text-text-tertiary opacity-50" />
-            <p className="text-text-primary font-medium text-sm mb-2">Pas encore de notification</p>
-            <p className="text-text-tertiary text-xs mt-1">Les notifications apparaîtront ici</p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {sorted.map((notif: any) => (
-              <button
-                key={notif.id}
-                onClick={async () => {
-                  const isRead = notif.is_read !== undefined ? notif.is_read : notif.isRead;
-                  if (!isRead) {
-                    await handleMarkRead(notif.id);
-                  }
-                  if (notif.source_transaction_id) navigate(`/transaction/${notif.source_transaction_id}`);
-                }}
-                className="w-full text-left rounded-xl p-4 flex items-start gap-3 transition-all active:scale-95"
-                style={{
-                  backgroundColor: (notif.is_read !== undefined ? notif.is_read : notif.isRead) ? '#212121' : '#282828',
-                  border: '1px solid #282828',
-                }}
+            {sorted.length === 0 ? (
+              <div
+                className="text-center py-16 rounded-xl"
+                style={{ backgroundColor: "#212121" }}
               >
-                <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                  {getNotifIcon(notif.action_type || notif.actionType)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2">
-                    <p className={`text-sm font-medium ${(notif.is_read !== undefined ? notif.is_read : notif.isRead) ? 'text-text-secondary' : 'text-text-primary'}`}>{notif.title}</p>
-                    {!notif.is_read && notif.is_read !== undefined && <span className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5" style={{ backgroundColor: '#FF6B00' }} />}
-                    {!notif.isRead && notif.isRead !== undefined && <span className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5" style={{ backgroundColor: '#FF6B00' }} />}
-                  </div>
-                  <p className="text-text-tertiary text-xs mt-0.5 line-clamp-2">{notif.message}</p>
-                  <p className="text-text-tertiary text-xs mt-1 flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
-                    {formatDistanceToNow(new Date(notif.created_at || notif.createdAt), { addSuffix: true, locale: fr })}
-                  </p>
-                </div>
-              </button>
-            ))}
+                <Bell className="w-12 h-12 mx-auto mb-4 text-text-tertiary opacity-50" />
+                <p className="text-text-primary font-medium text-sm mb-2">
+                  Pas encore de notification
+                </p>
+                <p className="text-text-tertiary text-xs mt-1">
+                  Les notifications apparaîtront ici
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {sorted.map((notif: any) => (
+                  <button
+                    key={notif.id}
+                    onClick={async () => {
+                      const isRead =
+                        notif.is_read !== undefined
+                          ? notif.is_read
+                          : notif.isRead;
+                      if (!isRead) {
+                        await handleMarkRead(notif.id);
+                      }
+                      if (notif.source_transaction_id)
+                        navigate(`/transaction/${notif.source_transaction_id}`);
+                    }}
+                    className="w-full text-left rounded-xl p-4 flex items-start gap-3 transition-all active:scale-95"
+                    style={{
+                      backgroundColor: (
+                        notif.is_read !== undefined
+                          ? notif.is_read
+                          : notif.isRead
+                      )
+                        ? "#212121"
+                        : "#282828",
+                      border: "1px solid #282828",
+                    }}
+                  >
+                    <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      {getNotifIcon(notif.action_type || notif.actionType)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <p
+                          className={`text-sm font-medium ${(notif.is_read !== undefined ? notif.is_read : notif.isRead) ? "text-text-secondary" : "text-text-primary"}`}
+                        >
+                          {notif.title}
+                        </p>
+                        {!notif.is_read && notif.is_read !== undefined && (
+                          <span
+                            className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5"
+                            style={{ backgroundColor: "#FF6B00" }}
+                          />
+                        )}
+                        {!notif.isRead && notif.isRead !== undefined && (
+                          <span
+                            className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5"
+                            style={{ backgroundColor: "#FF6B00" }}
+                          />
+                        )}
+                      </div>
+                      <p className="text-text-tertiary text-xs mt-0.5 line-clamp-2">
+                        {notif.message}
+                      </p>
+                      <p className="text-text-tertiary text-xs mt-1 flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {formatDistanceToNow(
+                          new Date(notif.created_at || notif.createdAt),
+                          { addSuffix: true, locale: fr },
+                        )}
+                      </p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
-        )}
-      </div>
-      <BottomNav />
+          <BottomNav />
         </div>
       </IonContent>
     </IonPage>

@@ -2,12 +2,12 @@
  * App Context - PowerSync Integration + Auth
  */
 
-import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useLocalStore } from '@/store/useLocalStore';
-import { usePowerSyncStatus } from '@/lib/dataLayer';
-import { authService } from '@/lib/auth';
-import { oneSignalService } from '@/lib/authOneSignal';
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useLocalStore } from "@/store/useLocalStore";
+import { usePowerSyncStatus } from "@/lib/dataLayer";
+import { authService } from "@/lib/auth";
+import { oneSignalService } from "@/lib/authOneSignal";
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
@@ -23,11 +23,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const handleOnline = () => setOnline(true);
     const handleOffline = () => setOnline(false);
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
     return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
     };
   }, [setOnline]);
 

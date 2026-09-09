@@ -11,15 +11,15 @@
     --popover: var(--surface);
     --popover-foreground: var(--text-primary);
     --primary: var(--accent-primary);
-    --primary-foreground: #FFFFFF;
+    --primary-foreground: #ffffff;
     --secondary: #282828;
-    --secondary-foreground: #B3B3B3;
+    --secondary-foreground: #b3b3b3;
     --muted: #282828;
     --muted-foreground: #808080;
     --accent: var(--accent-primary);
-    --accent-foreground: #FFFFFF;
+    --accent-foreground: #ffffff;
     --destructive: var(--data-expense);
-    --destructive-foreground: #FFFFFF;
+    --destructive-foreground: #ffffff;
     --border: #282828;
     --input: #282828;
     --ring: var(--accent-primary);
@@ -40,7 +40,9 @@
   body {
     @apply bg-canvas text-text-primary antialiased;
     min-height: 100vh;
-    font-feature-settings: "tnum" on, "ss01" on;
+    font-feature-settings:
+      "tnum" on,
+      "ss01" on;
   }
 }
 
@@ -73,7 +75,9 @@ textarea:focus-visible,
 
 /* Respect reduced motion preference */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
@@ -83,5 +87,8 @@ textarea:focus-visible,
 
 /* Respect reduced transparency preference */
 @media (prefers-reduced-transparency: reduce) {
-  * { backdrop-filter: none !important; background: var(--canvas) !important; }
+  * {
+    backdrop-filter: none !important;
+    background: var(--canvas) !important;
+  }
 }

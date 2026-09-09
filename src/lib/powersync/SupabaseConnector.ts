@@ -4,10 +4,10 @@ import {
   type CommonPowerSyncDatabase,
   type CrudEntry,
   type PowerSyncBackendConnector,
-  type PowerSyncCredentials
-} from '@powersync/web';
+  type PowerSyncCredentials,
+} from "@powersync/web";
 
-import { Session, SupabaseClient, createClient } from '@supabase/supabase-js';
+import { Session, SupabaseClient, createClient } from "@supabase/supabase-js";
 
 export type SupabaseConfig = {
   supabaseUrl: string;
@@ -18,11 +18,11 @@ export type SupabaseConfig = {
 /// Postgres Response codes that we cannot recover from by retrying.
 const FATAL_RESPONSE_CODES = [
   // Class 22 — Data Exception
-  new RegExp('^22...$'),
+  new RegExp("^22...$"),
   // Class 23 — Integrity Constraint Violation.
-  new RegExp('^23...$'),
+  new RegExp("^23...$"),
   // INSUFFICIENT PRIVILEGE - typically a row-level security violation
-  new RegExp('^42501$')
+  new RegExp("^42501$"),
 ];
 
 export type SupabaseConnectorListener = {
@@ -30,7 +30,10 @@ export type SupabaseConnectorListener = {
   sessionStarted: (session: Session) => void;
 };
 
-export class SupabaseConnector extends BaseObserver<SupabaseConnectorListener> implements PowerSyncBackendConnector {
+export class SupabaseConnector
+  extends BaseObserver<SupabaseConnectorListener>
+  implements PowerSyncBackendConnector
+{
   readonly client: SupabaseClient;
   readonly config: SupabaseConfig;
 
@@ -41,18 +44,26 @@ export class SupabaseConnector extends BaseObserver<SupabaseConnectorListener> i
   constructor() {
     super();
     this.config = {
-      supabaseUrl: import.meta.env.VITE_SUPABASE_URL || 'https://vvcdmqpbwfyhkzalwdli.supabase.co',
-      powersyncUrl: import.meta.env.VITE_POWERSYNC_URL || 'https://YOUR_INSTANCE_ID.powersync.journeyapps.com',
-      supabaseAnonKey: import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+      supabaseUrl:
+        import.meta.env.VITE_SUPABASE_URL ||
+        "https://vvcdmqpbwfyhkzalwdli.supabase.co",
+      powersyncUrl:
+        import.meta.env.VITE_POWERSYNC_URL ||
+        "https://YOUR_INSTANCE_ID.powersync.journeyapps.com",
+      supabaseAnonKey: import.meta.env.VITE_SUPABASE_ANON_KEY || "",
     };
 
-    this.client = createClient(this.config.supabaseUrl, this.config.supabaseAnonKey, {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: false
-      }
-    });
+    this.client = createClient(
+      this.config.supabaseUrl,
+      this.config.supabaseAnonKey,
+      {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: false,
+        },
+      },
+    );
     this.currentSession = null;
     this.ready = false;
   }
@@ -72,7 +83,7 @@ export class SupabaseConnector extends BaseObserver<SupabaseConnectorListener> i
   async login(email: string, password: string) {
     const { data, error } = await this.client.auth.signInWithPassword({
       email,
-      password
+      password,
     });
 
     if (error) {
@@ -87,8 +98,8 @@ export class SupabaseConnector extends BaseObserver<SupabaseConnectorListener> i
     const { error } = await this.client.auth.signInWithOtp({
       email,
       options: {
-        shouldCreateUser: false
-      }
+        shouldCreateUser: false,
+      },
     });
 
     if (error) {
@@ -100,7 +111,7 @@ export class SupabaseConnector extends BaseObserver<SupabaseConnectorListener> i
     const { data, error } = await this.client.auth.verifyOtp({
       email,
       token,
-      type: 'email'
+      type: "email",
     });
 
     if (error) {
@@ -113,10 +124,10 @@ export class SupabaseConnector extends BaseObserver<SupabaseConnectorListener> i
 
   async loginWithGoogle() {
     const { data, error } = await this.client.auth.signInWithOAuth({
-      provider: 'google',
+      provider: "google",
       options: {
-        redirectTo: window.location.origin + '/auth/callback'
-      }
+        redirectTo: window.location.origin + "/auth/callback",
+      },
     });
 
     if (error) {
@@ -129,35 +140,37 @@ export class SupabaseConnector extends BaseObserver<SupabaseConnectorListener> i
   async logout() {
     const { error } = await this.client.auth.signOut();
     if (error) {
+      // Sign-out failure is non-fatal; session is cleared regardless
     }
     this.updateSession(null);
   }
 
   async getSession() {
-    const { data: { session } } = await this.client.auth.getSession();
+    const {
+      data: { session },
+    } = await this.client.auth.getSession();
     return session;
   }
 
   async fetchCredentials() {
     const {
       data: { session },
-      error
+      error,
     } = await this.client.auth.getSession();
 
     if (!session || error) {
       // Pour le développement, retourner un token vide si pas de session
       return {
         endpoint: this.config.powersyncUrl,
-        token: '', // Token vide pour le dev
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
+        token: "", // Token vide pour le dev
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
       } satisfies PowerSyncCredentials;
     }
 
-
     return {
       endpoint: this.config.powersyncUrl,
-      token: session.access_token ?? '',
-      expiresAt: new Date(session.expires_at! * 1000)
+      token: session.access_token ?? "",
+      expiresAt: new Date(session.expires_at! * 1000),
     } satisfies PowerSyncCredentials;
   }
 
@@ -176,15 +189,16 @@ export class SupabaseConnector extends BaseObserver<SupabaseConnectorListener> i
         let result: any;
 
         switch (op.op) {
-          case UpdateType.PUT:
+          case UpdateType.PUT: {
             const record = { ...op.opData, id: op.id };
             result = await table.upsert(record);
             break;
+          }
           case UpdateType.PATCH:
-            result = await table.update(op.opData).eq('id', op.id);
+            result = await table.update(op.opData).eq("id", op.id);
             break;
           case UpdateType.DELETE:
-            result = await table.delete().eq('id', op.id);
+            result = await table.delete().eq("id", op.id);
             break;
         }
 
@@ -196,8 +210,10 @@ export class SupabaseConnector extends BaseObserver<SupabaseConnectorListener> i
 
       await transaction.complete(); // IMPORTANT!
     } catch (ex: any) {
-
-      if (typeof ex.code === 'string' && FATAL_RESPONSE_CODES.some((regex) => regex.test(ex.code))) {
+      if (
+        typeof ex.code === "string" &&
+        FATAL_RESPONSE_CODES.some((regex) => regex.test(ex.code))
+      ) {
         /**
          * Errors that cannot be recovered from - discard the transaction
          */
@@ -219,7 +235,9 @@ export class SupabaseConnector extends BaseObserver<SupabaseConnectorListener> i
 
   // Helper to get current user
   async getCurrentUser() {
-    const { data: { user } } = await this.client.auth.getUser();
+    const {
+      data: { user },
+    } = await this.client.auth.getUser();
     return user;
   }
 }

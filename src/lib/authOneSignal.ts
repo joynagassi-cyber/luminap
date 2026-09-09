@@ -5,11 +5,13 @@
  * Uses src/lib/onesignal.ts for the actual implementation,
  * which handles both Capacitor native and web environments.
  */
-import { getOneSignalService, initOneSignal } from './onesignal';
-import { authService } from './auth';
-import type { Role } from '@/types';
+import { getOneSignalService, initOneSignal } from "./onesignal";
+import { authService } from "./auth";
+import type { Role } from "@/types";
 
-const ONESIGNAL_APP_ID = import.meta.env.VITE_ONESIGNAL_APP_ID || '5482a4eb-a402-4612-ab5e-a72df7961b12';
+const ONESIGNAL_APP_ID =
+  import.meta.env.VITE_ONESIGNAL_APP_ID ||
+  "5482a4eb-a402-4612-ab5e-a72df7961b12";
 
 // OneSignal service class (delegates to src/lib/onesignal.ts)
 class OneSignalAuthService {
@@ -22,6 +24,7 @@ class OneSignalAuthService {
       await initOneSignal();
       this.isInitialized = true;
     } catch (error) {
+      // Initialization failed — will retry on next call
     }
   }
 
@@ -30,10 +33,11 @@ class OneSignalAuthService {
     try {
       const service = getOneSignalService();
       await service.login(userId);
-      await service.setTag('role', role);
-      await service.setTag('user_id', userId);
+      await service.setTag("role", role);
+      await service.setTag("user_id", userId);
       this.userId = userId;
     } catch (error) {
+      // Tag sync failure is non-fatal
     }
   }
 
@@ -44,6 +48,7 @@ class OneSignalAuthService {
       await service.logout();
       this.userId = null;
     } catch (error) {
+      // Logout failure is non-fatal
     }
   }
 
@@ -60,10 +65,17 @@ class OneSignalAuthService {
     return this.userId;
   }
 
-  async notifyRole(role: Role, title: string, message: string, data?: Record<string, any>): Promise<void> {
+  async notifyRole(
+    role: Role,
+    title: string,
+    message: string,
+    data?: Record<string, any>,
+  ): Promise<void> {
     // no-op: client-side stub; actual sends go through backend
   }
 }
 
 export const oneSignalService = new OneSignalAuthService();
-export function useOneSignal() { return oneSignalService; }
+export function useOneSignal() {
+  return oneSignalService;
+}

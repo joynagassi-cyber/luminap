@@ -14,10 +14,10 @@ import "./ionic/theme";
 
 // Initialize Ionic React (dark theme applied via setupLuminaTheme)
 setupIonicReact({
-  mode: 'ios',
+  mode: "ios",
   animated: true,
-  keyboardBehavior: 'ion-focus',
-  keyboardFillMode: 'overlap',
+  keyboardBehavior: "ion-focus",
+  keyboardFillMode: "overlap",
 });
 
 const queryClient = new QueryClient();

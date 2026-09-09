@@ -9,14 +9,19 @@
  * const { transactions, events, members } = useData();
  */
 
-import { useQuery, usePowerSync } from '@powersync/react';
-import type { PowerSyncDatabase } from '@powersync/web';
-import { getPowerSyncDatabase } from '@/lib/powersync';
-import { useLocalStore } from '@/store/useLocalStore';
-import { useEffect, useState, useRef } from 'react';
-import type { CustomFieldDefinition, CustomFieldValue, FormDefinition, FormSubmission } from '@/types';
-import { getOrganizationId } from './orgContext';
-import { get, set, invalidate, asyncGetOrSet } from './cache';
+import { useQuery, usePowerSync } from "@powersync/react";
+import type { PowerSyncDatabase } from "@powersync/web";
+import { getPowerSyncDatabase } from "@/lib/powersync";
+import { useLocalStore } from "@/store/useLocalStore";
+import { useEffect, useState, useRef } from "react";
+import type {
+  CustomFieldDefinition,
+  CustomFieldValue,
+  FormDefinition,
+  FormSubmission,
+} from "@/types";
+import { getOrganizationId } from "./orgContext";
+import { get, set, invalidate, asyncGetOrSet } from "./cache";
 
 // ============================================================
 // PowerSync entity types (snake_case columns)
@@ -263,21 +268,26 @@ export function useTransactions() {
   const orgId = getOrganizationId();
 
   // CPU-tier cache: 60s TTL, invalidates on transaction writes
-  const cached = get<PSTransaction[]>('txs:' + orgId);
-  if (cached) return { data: cached, isLoading: false, source: 'cached' as const };
+  const cached = get<PSTransaction[]>("txs:" + orgId);
+  if (cached)
+    return { data: cached, isLoading: false, source: "cached" as const };
 
   const { data: psData, status: psStatus } = useQuery<PSTransaction>(
-    'SELECT id, org_id, type, amount, description, date, status, category_id, org_unit_id, event_id, source, person_name, compensates_for, comment, version, source_caisse_id, versement_id, reversal_of_id, created_by_id, approved_by_id, created_at, updated_at, approved_at FROM transactions WHERE org_id = ? ORDER BY created_at DESC',
+    "SELECT id, org_id, type, amount, description, date, status, category_id, org_unit_id, event_id, source, person_name, compensates_for, comment, version, source_caisse_id, versement_id, reversal_of_id, created_by_id, approved_by_id, created_at, updated_at, approved_at FROM transactions WHERE org_id = ? ORDER BY created_at DESC",
     [orgId],
-    { reportFetching: true }
+    { reportFetching: true },
   );
 
   if (psData && psData.length > 0 && isPowerSyncReady()) {
-    set('txs:' + orgId, psData, { tier: 'cpu' });
-    return { data: psData, isLoading: false, source: 'powersync' as const };
+    set("txs:" + orgId, psData, { tier: "cpu" });
+    return { data: psData, isLoading: false, source: "powersync" as const };
   }
 
-  return { data: store.transactions, isLoading: store.isLoading, source: 'indexeddb' as const };
+  return {
+    data: store.transactions,
+    isLoading: store.isLoading,
+    source: "indexeddb" as const,
+  };
 }
 
 /**
@@ -285,17 +295,21 @@ export function useTransactions() {
  */
 export function useEvents() {
   const { data: psData, status: psStatus } = useQuery<PSEvent>(
-    'SELECT id, org_id, name, description, start_date, end_date, status, type, budget, budget_items, created_at, updated_at FROM events WHERE org_id = ? ORDER BY start_date ASC',
+    "SELECT id, org_id, name, description, start_date, end_date, status, type, budget, budget_items, created_at, updated_at FROM events WHERE org_id = ? ORDER BY start_date ASC",
     [getOrganizationId()],
-    { reportFetching: true }
+    { reportFetching: true },
   );
   const store = useLocalStore();
 
   if (psData && psData.length > 0 && isPowerSyncReady()) {
-    return { data: psData, isLoading: false, source: 'powersync' as const };
+    return { data: psData, isLoading: false, source: "powersync" as const };
   }
 
-  return { data: store.events, isLoading: store.isLoading, source: 'indexeddb' as const };
+  return {
+    data: store.events,
+    isLoading: store.isLoading,
+    source: "indexeddb" as const,
+  };
 }
 
 /**
@@ -303,17 +317,21 @@ export function useEvents() {
  */
 export function useMembers() {
   const { data: psData } = useQuery<PSMember>(
-    'SELECT id, org_id, first_name, last_name, phone, email, status, joined_at, archived_at, archived_by, archive_reason, total_dons, montant_en_avance, created_at, updated_at FROM members WHERE org_id = ? ORDER BY last_name, first_name',
+    "SELECT id, org_id, first_name, last_name, phone, email, status, joined_at, archived_at, archived_by, archive_reason, total_dons, montant_en_avance, created_at, updated_at FROM members WHERE org_id = ? ORDER BY last_name, first_name",
     [getOrganizationId()],
-    { reportFetching: true }
+    { reportFetching: true },
   );
   const store = useLocalStore();
 
   if (psData && psData.length > 0 && isPowerSyncReady()) {
-    return { data: psData, isLoading: false, source: 'powersync' as const };
+    return { data: psData, isLoading: false, source: "powersync" as const };
   }
 
-  return { data: store.members, isLoading: store.isLoading, source: 'indexeddb' as const };
+  return {
+    data: store.members,
+    isLoading: store.isLoading,
+    source: "indexeddb" as const,
+  };
 }
 
 /**
@@ -321,17 +339,21 @@ export function useMembers() {
  */
 export function useGroups() {
   const { data: psData } = useQuery<PSGroup>(
-    'SELECT id, org_id, name, parent_group_id, responsable_member_id, status, archived_at, archived_by, archive_reason, created_at, updated_at FROM groups WHERE org_id = ? ORDER BY name',
+    "SELECT id, org_id, name, parent_group_id, responsable_member_id, status, archived_at, archived_by, archive_reason, created_at, updated_at FROM groups WHERE org_id = ? ORDER BY name",
     [getOrganizationId()],
-    { reportFetching: true }
+    { reportFetching: true },
   );
   const store = useLocalStore();
 
   if (psData && psData.length > 0 && isPowerSyncReady()) {
-    return { data: psData, isLoading: false, source: 'powersync' as const };
+    return { data: psData, isLoading: false, source: "powersync" as const };
   }
 
-  return { data: store.groups, isLoading: store.isLoading, source: 'indexeddb' as const };
+  return {
+    data: store.groups,
+    isLoading: store.isLoading,
+    source: "indexeddb" as const,
+  };
 }
 
 /**
@@ -339,17 +361,21 @@ export function useGroups() {
  */
 export function useCaisses() {
   const { data: psData } = useQuery<PSCaisse>(
-    'SELECT id, name, description, type, color, org_id, created_at, updated_at, archived_at, archived_by, archive_reason, status FROM caisses WHERE org_id = ? ORDER BY name',
+    "SELECT id, name, description, type, color, org_id, created_at, updated_at, archived_at, archived_by, archive_reason, status FROM caisses WHERE org_id = ? ORDER BY name",
     [getOrganizationId()],
-    { reportFetching: true }
+    { reportFetching: true },
   );
   const store = useLocalStore();
 
   if (psData && psData.length > 0 && isPowerSyncReady()) {
-    return { data: psData, isLoading: false, source: 'powersync' as const };
+    return { data: psData, isLoading: false, source: "powersync" as const };
   }
 
-  return { data: store.caisses, isLoading: store.isLoading, source: 'indexeddb' as const };
+  return {
+    data: store.caisses,
+    isLoading: store.isLoading,
+    source: "indexeddb" as const,
+  };
 }
 
 /**
@@ -357,17 +383,21 @@ export function useCaisses() {
  */
 export function useAccounts() {
   const { data: psData } = useQuery<PSAccount>(
-    'SELECT id, org_id, owner_type, owner_id, name, currency, status, archived_at, archived_by, archive_reason, created_at, updated_at FROM accounts WHERE org_id = ? ORDER BY name',
+    "SELECT id, org_id, owner_type, owner_id, name, currency, status, archived_at, archived_by, archive_reason, created_at, updated_at FROM accounts WHERE org_id = ? ORDER BY name",
     [getOrganizationId()],
-    { reportFetching: true }
+    { reportFetching: true },
   );
   const store = useLocalStore();
 
   if (psData && psData.length > 0 && isPowerSyncReady()) {
-    return { data: psData, isLoading: false, source: 'powersync' as const };
+    return { data: psData, isLoading: false, source: "powersync" as const };
   }
 
-  return { data: store.accounts, isLoading: store.isLoading, source: 'indexeddb' as const };
+  return {
+    data: store.accounts,
+    isLoading: store.isLoading,
+    source: "indexeddb" as const,
+  };
 }
 
 /**
@@ -375,17 +405,21 @@ export function useAccounts() {
  */
 export function useNotifications() {
   const { data: psData } = useQuery<PSNotification>(
-    'SELECT id, org_id, action_type, title, message, is_read, source_transaction_id, created_at FROM notifications WHERE org_id = ? ORDER BY created_at DESC',
+    "SELECT id, org_id, action_type, title, message, is_read, source_transaction_id, created_at FROM notifications WHERE org_id = ? ORDER BY created_at DESC",
     [getOrganizationId()],
-    { reportFetching: true }
+    { reportFetching: true },
   );
   const store = useLocalStore();
 
   if (psData && psData.length > 0 && isPowerSyncReady()) {
-    return { data: psData, isLoading: false, source: 'powersync' as const };
+    return { data: psData, isLoading: false, source: "powersync" as const };
   }
 
-  return { data: store.notifications, isLoading: store.isLoading, source: 'indexeddb' as const };
+  return {
+    data: store.notifications,
+    isLoading: store.isLoading,
+    source: "indexeddb" as const,
+  };
 }
 
 /**
@@ -393,17 +427,21 @@ export function useNotifications() {
  */
 export function useCategories() {
   const { data: psData } = useQuery<PSCategory>(
-    'SELECT id, key, label_fr, type, org_id, created_at FROM categories WHERE org_id = ? ORDER BY label_fr',
+    "SELECT id, key, label_fr, type, org_id, created_at FROM categories WHERE org_id = ? ORDER BY label_fr",
     [getOrganizationId()],
-    { reportFetching: true }
+    { reportFetching: true },
   );
   const store = useLocalStore();
 
   if (psData && psData.length > 0 && isPowerSyncReady()) {
-    return { data: psData, isLoading: false, source: 'powersync' as const };
+    return { data: psData, isLoading: false, source: "powersync" as const };
   }
 
-  return { data: store.categories, isLoading: store.isLoading, source: 'indexeddb' as const };
+  return {
+    data: store.categories,
+    isLoading: store.isLoading,
+    source: "indexeddb" as const,
+  };
 }
 
 /**
@@ -411,17 +449,21 @@ export function useCategories() {
  */
 export function useOrgUnits() {
   const { data: psData } = useQuery<PSOrgUnit>(
-    'SELECT id, name, type, org_id, description, is_active, created_at, updated_at FROM org_units WHERE org_id = ? ORDER BY name',
+    "SELECT id, name, type, org_id, description, is_active, created_at, updated_at FROM org_units WHERE org_id = ? ORDER BY name",
     [getOrganizationId()],
-    { reportFetching: true }
+    { reportFetching: true },
   );
   const store = useLocalStore();
 
   if (psData && psData.length > 0 && isPowerSyncReady()) {
-    return { data: psData, isLoading: false, source: 'powersync' as const };
+    return { data: psData, isLoading: false, source: "powersync" as const };
   }
 
-  return { data: store.orgUnits, isLoading: store.isLoading, source: 'indexeddb' as const };
+  return {
+    data: store.orgUnits,
+    isLoading: store.isLoading,
+    source: "indexeddb" as const,
+  };
 }
 
 /**
@@ -429,14 +471,14 @@ export function useOrgUnits() {
  */
 export function useVersements() {
   const { data: psData } = useQuery<PSVersement>(
-    'SELECT id, org_id, from_account_id, to_account_id, amount_cents, date, status, created_by, approved_by, approved_at, comment, created_at FROM versements WHERE org_id = ? ORDER BY created_at DESC',
+    "SELECT id, org_id, from_account_id, to_account_id, amount_cents, date, status, created_by, approved_by, approved_at, comment, created_at FROM versements WHERE org_id = ? ORDER BY created_at DESC",
     [getOrganizationId()],
-    { reportFetching: true }
+    { reportFetching: true },
   );
   const store = useLocalStore();
 
   if (psData && psData.length > 0 && isPowerSyncReady()) {
-    return { data: psData, isLoading: false, source: 'powersync' as const };
+    return { data: psData, isLoading: false, source: "powersync" as const };
   }
 
   // Fallback: derive versements from transactions
@@ -446,20 +488,24 @@ export function useVersements() {
       versementsMap.set(tx.versementId, {
         id: tx.versementId,
         org_id: tx.orgId,
-        from_account_id: tx.sourceCaisseId ?? '',
-        to_account_id: 'main',
+        from_account_id: tx.sourceCaisseId ?? "",
+        to_account_id: "main",
         amount_cents: tx.amount,
         date: tx.date,
         status: tx.status,
         created_by: tx.createdById,
-        approved_by: tx.approvedById ?? '',
-        approved_at: tx.approvedAt ?? '',
+        approved_by: tx.approvedById ?? "",
+        approved_at: tx.approvedAt ?? "",
         comment: tx.comment,
         created_at: tx.createdAt,
       });
     }
   }
-  return { data: Array.from(versementsMap.values()), isLoading: false, source: 'derived' as const };
+  return {
+    data: Array.from(versementsMap.values()),
+    isLoading: false,
+    source: "derived" as const,
+  };
 }
 
 /**
@@ -467,17 +513,21 @@ export function useVersements() {
  */
 export function useEventBudgets() {
   const { data: psData } = useQuery<PSEventBudget>(
-    'SELECT id, event_id, currency, revised_at, revised_by, created_at FROM event_budgets ORDER BY created_at DESC',
+    "SELECT id, event_id, currency, revised_at, revised_by, created_at FROM event_budgets ORDER BY created_at DESC",
     [],
-    { reportFetching: true }
+    { reportFetching: true },
   );
   const store = useLocalStore();
 
   if (psData && psData.length > 0 && isPowerSyncReady()) {
-    return { data: psData, isLoading: false, source: 'powersync' as const };
+    return { data: psData, isLoading: false, source: "powersync" as const };
   }
 
-  return { data: store.eventBudgets, isLoading: store.isLoading, source: 'indexeddb' as const };
+  return {
+    data: store.eventBudgets,
+    isLoading: store.isLoading,
+    source: "indexeddb" as const,
+  };
 }
 
 /**
@@ -485,17 +535,21 @@ export function useEventBudgets() {
  */
 export function useBudgetLines() {
   const { data: psData } = useQuery<PSBudgetLine>(
-    'SELECT id, event_budget_id, category_id, planned_amount_cents, actual_amount_cents, description, created_at FROM budget_lines ORDER BY created_at DESC',
+    "SELECT id, event_budget_id, category_id, planned_amount_cents, actual_amount_cents, description, created_at FROM budget_lines ORDER BY created_at DESC",
     [],
-    { reportFetching: true }
+    { reportFetching: true },
   );
   const store = useLocalStore();
 
   if (psData && psData.length > 0 && isPowerSyncReady()) {
-    return { data: psData, isLoading: false, source: 'powersync' as const };
+    return { data: psData, isLoading: false, source: "powersync" as const };
   }
 
-  return { data: store.budgetLines, isLoading: store.isLoading, source: 'indexeddb' as const };
+  return {
+    data: store.budgetLines,
+    isLoading: store.isLoading,
+    source: "indexeddb" as const,
+  };
 }
 
 /**
@@ -503,17 +557,21 @@ export function useBudgetLines() {
  */
 export function useAuditEntries() {
   const { data: psData } = useQuery<PSAuditEntry>(
-    'SELECT id, org_id, transaction_id, user_id, actor_role_at_time, action, entity_type, entity_id, before_state, after_state, comment, created_at FROM audit_entries WHERE org_id = ? ORDER BY created_at DESC',
+    "SELECT id, org_id, transaction_id, user_id, actor_role_at_time, action, entity_type, entity_id, before_state, after_state, comment, created_at FROM audit_entries WHERE org_id = ? ORDER BY created_at DESC",
     [getOrganizationId()],
-    { reportFetching: true }
+    { reportFetching: true },
   );
   const store = useLocalStore();
 
   if (psData && psData.length > 0 && isPowerSyncReady()) {
-    return { data: psData, isLoading: false, source: 'powersync' as const };
+    return { data: psData, isLoading: false, source: "powersync" as const };
   }
 
-  return { data: store.auditEntries, isLoading: store.isLoading, source: 'indexeddb' as const };
+  return {
+    data: store.auditEntries,
+    isLoading: store.isLoading,
+    source: "indexeddb" as const,
+  };
 }
 
 /**
@@ -521,17 +579,21 @@ export function useAuditEntries() {
  */
 export function useCotisations() {
   const { data: psData } = useQuery<PSCotisation>(
-    'SELECT id, culte_id, membre_id, statut, montantObligatoire, montantPaye, datePaiement, notes, createdAt, updatedAt FROM cotisations WHERE org_id = ? ORDER BY createdAt DESC',
+    "SELECT id, culte_id, membre_id, statut, montantObligatoire, montantPaye, datePaiement, notes, createdAt, updatedAt FROM cotisations WHERE org_id = ? ORDER BY createdAt DESC",
     [getOrganizationId()],
-    { reportFetching: true }
+    { reportFetching: true },
   );
   const store = useLocalStore();
 
   if (psData && psData.length > 0 && isPowerSyncReady()) {
-    return { data: psData, isLoading: false, source: 'powersync' as const };
+    return { data: psData, isLoading: false, source: "powersync" as const };
   }
 
-  return { data: store.cotisations, isLoading: store.isLoading, source: 'indexeddb' as const };
+  return {
+    data: store.cotisations,
+    isLoading: store.isLoading,
+    source: "indexeddb" as const,
+  };
 }
 
 /**
@@ -539,17 +601,21 @@ export function useCotisations() {
  */
 export function useGroupMemberships() {
   const { data: psData } = useQuery<PSGroupMembership>(
-    'SELECT id, member_id, group_id, role, created_at FROM group_memberships',
+    "SELECT id, member_id, group_id, role, created_at FROM group_memberships",
     [],
-    { reportFetching: true }
+    { reportFetching: true },
   );
   const store = useLocalStore();
 
   if (psData && psData.length > 0 && isPowerSyncReady()) {
-    return { data: psData, isLoading: false, source: 'powersync' as const };
+    return { data: psData, isLoading: false, source: "powersync" as const };
   }
 
-  return { data: store.memberships, isLoading: store.isLoading, source: 'indexeddb' as const };
+  return {
+    data: store.memberships,
+    isLoading: store.isLoading,
+    source: "indexeddb" as const,
+  };
 }
 
 /**
@@ -558,13 +624,13 @@ export function useGroupMemberships() {
 export async function addGroupMembershipPS(
   groupId: string,
   memberId: string,
-  role: string
+  role: string,
 ): Promise<string> {
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
   await executeWrite(
     `INSERT INTO group_memberships (id, member_id, group_id, role, created_at) VALUES (?, ?, ?, ?, ?)`,
-    [id, memberId, groupId, role, now]
+    [id, memberId, groupId, role, now],
   );
   return id;
 }
@@ -581,7 +647,9 @@ export async function removeGroupMembershipPS(id: string): Promise<void> {
  */
 export async function getGroupMembershipsPS(): Promise<PSGroupMembership[]> {
   const db = getPowerSyncDatabase();
-  const result = await db.execute(`SELECT id, member_id, group_id, role, created_at FROM group_memberships`);
+  const result = await db.execute(
+    `SELECT id, member_id, group_id, role, created_at FROM group_memberships`,
+  );
   return (result?.result || []) as PSGroupMembership[];
 }
 
@@ -607,7 +675,7 @@ export function usePowerSyncStatus(): boolean {
   useEffect(() => {
     if (!sync) return;
 
-    const unsubscribe = sync.addListener('statusChanged', (status) => {
+    const unsubscribe = sync.addListener("statusChanged", (status) => {
       if (status.connected && status.hasSynced) {
         setReady(true);
         markPowerSyncReady();
@@ -637,7 +705,7 @@ export function usePowerSyncStatus(): boolean {
  */
 export async function executeWrite(
   sql: string,
-  params: any[] = []
+  params: any[] = [],
 ): Promise<number> {
   const sync = usePowerSync();
   const result = await sync.execute(sql, params);
@@ -648,7 +716,7 @@ export async function executeWrite(
  * Add a transaction via PowerSync
  */
 export async function addTransactionPS(
-  tx: Omit<PSTransaction, 'id' | 'created_at' | 'updated_at' | 'version'>
+  tx: Omit<PSTransaction, "id" | "created_at" | "updated_at" | "version">,
 ): Promise<string> {
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
@@ -685,7 +753,7 @@ export async function addTransactionPS(
       tx.source_caisse_id,
       tx.versement_id,
       tx.reversal_of_id,
-    ]
+    ],
   );
 
   return id;
@@ -696,33 +764,36 @@ export async function addTransactionPS(
  */
 export async function updateTransactionPS(
   id: string,
-  updates: Partial<PSTransaction>
+  updates: Partial<PSTransaction>,
 ): Promise<void> {
   // Guard: APPROVED transactions are immutable
   // Exception: allow status change TO APPROVED (approve flow)
   const db = getPowerSyncDatabase();
-  const statusResult = await db.execute(`SELECT status FROM transactions WHERE id = ?`, [id]);
+  const statusResult = await db.execute(
+    `SELECT status FROM transactions WHERE id = ?`,
+    [id],
+  );
   const tx = statusResult?.result?.[0] as any;
-  if (tx?.status === 'APPROVED' && updates.status !== 'APPROVED') {
-    throw new Error('TRANSACTION_APPROVED_IMMUTABLE');
+  if (tx?.status === "APPROVED" && updates.status !== "APPROVED") {
+    throw new Error("TRANSACTION_APPROVED_IMMUTABLE");
   }
 
   const setClauses: string[] = [];
   const params: any[] = [];
 
   const fieldMap: [keyof PSTransaction, string][] = [
-    ['type', 'type'],
-    ['amount', 'amount'],
-    ['description', 'description'],
-    ['date', 'date'],
-    ['status', 'status'],
-    ['category_id', 'category_id'],
-    ['org_unit_id', 'org_unit_id'],
-    ['event_id', 'event_id'],
-    ['comment', 'comment'],
-    ['version', 'version'],
-    ['approved_by_id', 'approved_by_id'],
-    ['approved_at', 'approved_at'],
+    ["type", "type"],
+    ["amount", "amount"],
+    ["description", "description"],
+    ["date", "date"],
+    ["status", "status"],
+    ["category_id", "category_id"],
+    ["org_unit_id", "org_unit_id"],
+    ["event_id", "event_id"],
+    ["comment", "comment"],
+    ["version", "version"],
+    ["approved_by_id", "approved_by_id"],
+    ["approved_at", "approved_at"],
   ];
 
   for (const [key, col] of fieldMap) {
@@ -732,13 +803,13 @@ export async function updateTransactionPS(
     }
   }
 
-  setClauses.push('updated_at = ?');
+  setClauses.push("updated_at = ?");
   params.push(new Date().toISOString());
   params.push(id);
 
   await executeWrite(
-    `UPDATE transactions SET ${setClauses.join(', ')} WHERE id = ?`,
-    params
+    `UPDATE transactions SET ${setClauses.join(", ")} WHERE id = ?`,
+    params,
   );
 }
 
@@ -748,20 +819,23 @@ export async function updateTransactionPS(
 export async function deleteTransactionPS(id: string): Promise<void> {
   // Guard: APPROVED transactions are immutable
   const db = getPowerSyncDatabase();
-  const statusResult = await db.execute(`SELECT status FROM transactions WHERE id = ?`, [id]);
+  const statusResult = await db.execute(
+    `SELECT status FROM transactions WHERE id = ?`,
+    [id],
+  );
   const tx = statusResult?.result?.[0] as any;
-  if (tx?.status === 'APPROVED') {
-    throw new Error('TRANSACTION_APPROVED_IMMUTABLE');
+  if (tx?.status === "APPROVED") {
+    throw new Error("TRANSACTION_APPROVED_IMMUTABLE");
   }
 
-  await executeWrite('DELETE FROM transactions WHERE id = ?', [id]);
+  await executeWrite("DELETE FROM transactions WHERE id = ?", [id]);
 }
 
 /**
  * Add a member via PowerSync
  */
 export async function addMemberPS(
-  member: Omit<PSMember, 'id' | 'created_at' | 'updated_at'>
+  member: Omit<PSMember, "id" | "created_at" | "updated_at">,
 ): Promise<string> {
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
@@ -786,7 +860,7 @@ export async function addMemberPS(
       member.archive_reason,
       now,
       now,
-    ]
+    ],
   );
 
   return id;
@@ -796,7 +870,7 @@ export async function addMemberPS(
  * Add an event via PowerSync
  */
 export async function addEventPS(
-  event: Omit<PSEvent, 'id' | 'created_at' | 'updated_at'>
+  event: Omit<PSEvent, "id" | "created_at" | "updated_at">,
 ): Promise<string> {
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
@@ -818,7 +892,7 @@ export async function addEventPS(
       now,
       now,
       event.budget_items,
-    ]
+    ],
   );
 
   return id;
@@ -829,19 +903,19 @@ export async function addEventPS(
  */
 export async function updateEventPS(
   id: string,
-  updates: Partial<PSEvent>
+  updates: Partial<PSEvent>,
 ): Promise<void> {
   const setClauses: string[] = [];
   const params: any[] = [];
 
   const fieldMap: [keyof PSEvent, string][] = [
-    ['name', 'name'],
-    ['description', 'description'],
-    ['start_date', 'start_date'],
-    ['end_date', 'end_date'],
-    ['status', 'status'],
-    ['budget', 'budget'],
-    ['budget_items', 'budget_items'],
+    ["name", "name"],
+    ["description", "description"],
+    ["start_date", "start_date"],
+    ["end_date", "end_date"],
+    ["status", "status"],
+    ["budget", "budget"],
+    ["budget_items", "budget_items"],
   ];
 
   for (const [key, col] of fieldMap) {
@@ -851,13 +925,13 @@ export async function updateEventPS(
     }
   }
 
-  setClauses.push('updated_at = ?');
+  setClauses.push("updated_at = ?");
   params.push(new Date().toISOString());
   params.push(id);
 
   await executeWrite(
-    `UPDATE events SET ${setClauses.join(', ')} WHERE id = ?`,
-    params
+    `UPDATE events SET ${setClauses.join(", ")} WHERE id = ?`,
+    params,
   );
 }
 
@@ -865,14 +939,14 @@ export async function updateEventPS(
  * Delete an event via PowerSync
  */
 export async function deleteEventPS(id: string): Promise<void> {
-  await executeWrite('DELETE FROM events WHERE id = ?', [id]);
+  await executeWrite("DELETE FROM events WHERE id = ?", [id]);
 }
 
 /**
  * Add a cotisation via PowerSync
  */
 export async function addCotisationPS(
-  cot: Omit<PSCotisation, 'id' | 'createdAt' | 'updatedAt'>
+  cot: Omit<PSCotisation, "id" | "createdAt" | "updatedAt">,
 ): Promise<string> {
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
@@ -893,7 +967,7 @@ export async function addCotisationPS(
       cot.notes,
       now,
       now,
-    ]
+    ],
   );
 
   return id;
@@ -904,16 +978,16 @@ export async function addCotisationPS(
  */
 export async function updateCotisationPS(
   id: string,
-  updates: Partial<PSCotisation>
+  updates: Partial<PSCotisation>,
 ): Promise<void> {
   const setClauses: string[] = [];
   const params: any[] = [];
 
   const fieldMap: [keyof PSCotisation, string][] = [
-    ['statut', 'statut'],
-    ['montantPaye', 'montantPaye'],
-    ['datePaiement', 'datePaiement'],
-    ['notes', 'notes'],
+    ["statut", "statut"],
+    ["montantPaye", "montantPaye"],
+    ["datePaiement", "datePaiement"],
+    ["notes", "notes"],
   ];
 
   for (const [key, col] of fieldMap) {
@@ -923,13 +997,13 @@ export async function updateCotisationPS(
     }
   }
 
-  setClauses.push('updatedAt = ?');
+  setClauses.push("updatedAt = ?");
   params.push(new Date().toISOString());
   params.push(id);
 
   await executeWrite(
-    `UPDATE cotisations SET ${setClauses.join(', ')} WHERE id = ?`,
-    params
+    `UPDATE cotisations SET ${setClauses.join(", ")} WHERE id = ?`,
+    params,
   );
 }
 
@@ -938,23 +1012,23 @@ export async function updateCotisationPS(
  */
 export async function updateMemberPS(
   id: string,
-  updates: Partial<PSMember>
+  updates: Partial<PSMember>,
 ): Promise<void> {
   const setClauses: string[] = [];
   const params: any[] = [];
 
   const fieldMap: [keyof PSMember, string][] = [
-    ['first_name', 'first_name'],
-    ['last_name', 'last_name'],
-    ['phone', 'phone'],
-    ['email', 'email'],
-    ['status', 'status'],
-    ['joined_at', 'joined_at'],
-    ['archived_at', 'archived_at'],
-    ['archived_by', 'archived_by'],
-    ['archive_reason', 'archive_reason'],
-    ['total_dons', 'total_dons'],
-    ['montant_en_avance', 'montant_en_avance'],
+    ["first_name", "first_name"],
+    ["last_name", "last_name"],
+    ["phone", "phone"],
+    ["email", "email"],
+    ["status", "status"],
+    ["joined_at", "joined_at"],
+    ["archived_at", "archived_at"],
+    ["archived_by", "archived_by"],
+    ["archive_reason", "archive_reason"],
+    ["total_dons", "total_dons"],
+    ["montant_en_avance", "montant_en_avance"],
   ];
 
   for (const [key, col] of fieldMap) {
@@ -964,13 +1038,13 @@ export async function updateMemberPS(
     }
   }
 
-  setClauses.push('updated_at = ?');
+  setClauses.push("updated_at = ?");
   params.push(new Date().toISOString());
   params.push(id);
 
   await executeWrite(
-    `UPDATE members SET ${setClauses.join(', ')} WHERE id = ?`,
-    params
+    `UPDATE members SET ${setClauses.join(", ")} WHERE id = ?`,
+    params,
   );
 }
 
@@ -979,7 +1053,7 @@ export async function updateMemberPS(
 // ============================================================
 
 export async function createCustomFieldDefinitionPS(
-  def: Omit<CustomFieldDefinition, 'id' | 'createdAt' | 'updatedAt'>
+  def: Omit<CustomFieldDefinition, "id" | "createdAt" | "updatedAt">,
 ): Promise<CustomFieldDefinition> {
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
@@ -996,16 +1070,18 @@ export async function createCustomFieldDefinitionPS(
       def.order,
       now,
       now,
-    ]
+    ],
   );
   return { ...def, id, createdAt: now, updatedAt: now };
 }
 
-export async function getCustomFieldDefinitionPS(id: string): Promise<CustomFieldDefinition | null> {
+export async function getCustomFieldDefinitionPS(
+  id: string,
+): Promise<CustomFieldDefinition | null> {
   const db = getPowerSyncDatabase();
   const result = await db.execute(
     `SELECT id, org_id, entity_type, field_name, field_label, field_type, options, \`order\`, created_at, updated_at FROM custom_field_definitions WHERE id = ?`,
-    [id]
+    [id],
   );
   const row = result?.result?.[0] as any;
   if (!row) return null;
@@ -1023,14 +1099,16 @@ export async function getCustomFieldDefinitionPS(id: string): Promise<CustomFiel
   };
 }
 
-export async function listCustomFieldDefinitionsPS(entityType?: string): Promise<CustomFieldDefinition[]> {
+export async function listCustomFieldDefinitionsPS(
+  entityType?: string,
+): Promise<CustomFieldDefinition[]> {
   const db = getPowerSyncDatabase();
   const sql = entityType
     ? `SELECT id, org_id, entity_type, field_name, field_label, field_type, options, \`order\`, created_at, updated_at FROM custom_field_definitions WHERE entity_type = ?`
     : `SELECT id, org_id, entity_type, field_name, field_label, field_type, options, \`order\`, created_at, updated_at FROM custom_field_definitions`;
   const result = await db.execute(sql, entityType ? [entityType] : []);
   const rows = (result?.result || []) as any[];
-  return rows.map(r => ({
+  return rows.map((r) => ({
     id: r.id,
     orgId: r.org_id,
     entityType: r.entity_type,
@@ -1046,32 +1124,53 @@ export async function listCustomFieldDefinitionsPS(entityType?: string): Promise
 
 export async function updateCustomFieldDefinitionPS(
   id: string,
-  data: Partial<CustomFieldDefinition>
+  data: Partial<CustomFieldDefinition>,
 ): Promise<CustomFieldDefinition | null> {
   const existing = await getCustomFieldDefinitionPS(id);
   if (!existing) return null;
   const merged = { ...existing, ...data };
   const setClauses: string[] = [];
   const params: any[] = [];
-  if (data.entityType !== undefined) { setClauses.push('entity_type = ?'); params.push(data.entityType); }
-  if (data.key !== undefined) { setClauses.push('field_name = ?'); params.push(data.key); }
-  if (data.label !== undefined) { setClauses.push('field_label = ?'); params.push(data.label); }
-  if (data.type !== undefined) { setClauses.push('field_type = ?'); params.push(data.type); }
-  if (data.options !== undefined) { setClauses.push('options = ?'); params.push(JSON.stringify(data.options)); }
-  if (data.order !== undefined) { setClauses.push('order = ?'); params.push(data.order); }
-  setClauses.push('updated_at = ?');
+  if (data.entityType !== undefined) {
+    setClauses.push("entity_type = ?");
+    params.push(data.entityType);
+  }
+  if (data.key !== undefined) {
+    setClauses.push("field_name = ?");
+    params.push(data.key);
+  }
+  if (data.label !== undefined) {
+    setClauses.push("field_label = ?");
+    params.push(data.label);
+  }
+  if (data.type !== undefined) {
+    setClauses.push("field_type = ?");
+    params.push(data.type);
+  }
+  if (data.options !== undefined) {
+    setClauses.push("options = ?");
+    params.push(JSON.stringify(data.options));
+  }
+  if (data.order !== undefined) {
+    setClauses.push("order = ?");
+    params.push(data.order);
+  }
+  setClauses.push("updated_at = ?");
   params.push(new Date().toISOString());
   params.push(id);
   await executeWrite(
-    `UPDATE custom_field_definitions SET ${setClauses.join(', ')} WHERE id = ?`,
-    params
+    `UPDATE custom_field_definitions SET ${setClauses.join(", ")} WHERE id = ?`,
+    params,
   );
   return merged;
 }
 
 export async function deleteCustomFieldDefinitionPS(id: string): Promise<void> {
-  await executeWrite('DELETE FROM custom_field_definitions WHERE id = ?', [id]);
-  await executeWrite('DELETE FROM custom_field_values WHERE custom_field_definition_id = ?', [id]);
+  await executeWrite("DELETE FROM custom_field_definitions WHERE id = ?", [id]);
+  await executeWrite(
+    "DELETE FROM custom_field_values WHERE custom_field_definition_id = ?",
+    [id],
+  );
 }
 
 // ============================================================
@@ -1079,28 +1178,40 @@ export async function deleteCustomFieldDefinitionPS(id: string): Promise<void> {
 // ============================================================
 
 export async function upsertCustomFieldValuePS(
-  value: Omit<CustomFieldValue, 'id' | 'createdAt' | 'updatedAt'>
+  value: Omit<CustomFieldValue, "id" | "createdAt" | "updatedAt">,
 ): Promise<CustomFieldValue> {
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
-  const rowValue = typeof value.value === 'object' && value.value !== null
-    ? JSON.stringify(value.value)
-    : String(value.value ?? '');
+  const rowValue =
+    typeof value.value === "object" && value.value !== null
+      ? JSON.stringify(value.value)
+      : String(value.value ?? "");
   await executeWrite(
     `INSERT INTO custom_field_values (id, entity_type, entity_id, custom_field_definition_id, value, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [id, value.entityType, value.entityId, value.customFieldDefinitionId, rowValue, now, now]
+    [
+      id,
+      value.entityType,
+      value.entityId,
+      value.customFieldDefinitionId,
+      rowValue,
+      now,
+      now,
+    ],
   );
   return { ...value, id, createdAt: now, updatedAt: now, value: value.value };
 }
 
-export async function getCustomFieldValuesByEntityPS(entityType: string, entityId: string): Promise<CustomFieldValue[]> {
+export async function getCustomFieldValuesByEntityPS(
+  entityType: string,
+  entityId: string,
+): Promise<CustomFieldValue[]> {
   const db = getPowerSyncDatabase();
   const result = await db.execute(
     `SELECT id, entity_type, entity_id, custom_field_definition_id, value, created_at, updated_at FROM custom_field_values WHERE entity_type = ? AND entity_id = ?`,
-    [entityType, entityId]
+    [entityType, entityId],
   );
   const rows = (result?.result || []) as any[];
-  return rows.map(r => ({
+  return rows.map((r) => ({
     id: r.id,
     entityType: r.entity_type,
     entityId: r.entity_id,
@@ -1112,7 +1223,7 @@ export async function getCustomFieldValuesByEntityPS(entityType: string, entityI
 }
 
 export async function deleteCustomFieldValuePS(id: string): Promise<void> {
-  await executeWrite('DELETE FROM custom_field_values WHERE id = ?', [id]);
+  await executeWrite("DELETE FROM custom_field_values WHERE id = ?", [id]);
 }
 
 // ============================================================
@@ -1120,7 +1231,7 @@ export async function deleteCustomFieldValuePS(id: string): Promise<void> {
 // ============================================================
 
 export async function createFormDefinitionPS(
-  def: Omit<FormDefinition, 'id' | 'createdAt' | 'updatedAt'>
+  def: Omit<FormDefinition, "id" | "createdAt" | "updatedAt">,
 ): Promise<FormDefinition> {
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
@@ -1139,14 +1250,19 @@ export async function createFormDefinitionPS(
       def.status,
       now,
       now,
-    ]
+    ],
   );
   return { ...def, id, createdAt: now, updatedAt: now };
 }
 
-export async function getFormDefinitionPS(id: string): Promise<FormDefinition | null> {
+export async function getFormDefinitionPS(
+  id: string,
+): Promise<FormDefinition | null> {
   const db = getPowerSyncDatabase();
-  const result = await db.execute(`SELECT id, org_id, key, name, description, version, target_entity_type, fields, status, created_at, updated_at FROM form_definitions WHERE id = ?`, [id]);
+  const result = await db.execute(
+    `SELECT id, org_id, key, name, description, version, target_entity_type, fields, status, created_at, updated_at FROM form_definitions WHERE id = ?`,
+    [id],
+  );
   const row = result?.result?.[0] as any;
   if (!row) return null;
   return {
@@ -1164,18 +1280,28 @@ export async function getFormDefinitionPS(id: string): Promise<FormDefinition | 
   };
 }
 
-export async function listFormDefinitionsPS(filters?: { status?: string; orgId?: string }): Promise<FormDefinition[]> {
+export async function listFormDefinitionsPS(filters?: {
+  status?: string;
+  orgId?: string;
+}): Promise<FormDefinition[]> {
   const db = getPowerSyncDatabase();
   const conditions: string[] = [];
   const params: any[] = [];
-  if (filters?.status) { conditions.push('status = ?'); params.push(filters.status); }
-  if (filters?.orgId) { conditions.push('org_id = ?'); params.push(filters.orgId); }
-  const sql = conditions.length > 0
-    ? `SELECT id, org_id, key, name, description, version, target_entity_type, fields, status, created_at, updated_at FROM form_definitions WHERE ${conditions.join(' AND ')}`
-    : `SELECT id, org_id, key, name, description, version, target_entity_type, fields, status, created_at, updated_at FROM form_definitions`;
+  if (filters?.status) {
+    conditions.push("status = ?");
+    params.push(filters.status);
+  }
+  if (filters?.orgId) {
+    conditions.push("org_id = ?");
+    params.push(filters.orgId);
+  }
+  const sql =
+    conditions.length > 0
+      ? `SELECT id, org_id, key, name, description, version, target_entity_type, fields, status, created_at, updated_at FROM form_definitions WHERE ${conditions.join(" AND ")}`
+      : `SELECT id, org_id, key, name, description, version, target_entity_type, fields, status, created_at, updated_at FROM form_definitions`;
   const result = await db.execute(sql, params);
   const rows = (result?.result || []) as any[];
-  return rows.map(r => ({
+  return rows.map((r) => ({
     id: r.id,
     orgId: r.org_id,
     key: r.key,
@@ -1192,30 +1318,57 @@ export async function listFormDefinitionsPS(filters?: { status?: string; orgId?:
 
 export async function updateFormDefinitionPS(
   id: string,
-  data: Partial<FormDefinition>
+  data: Partial<FormDefinition>,
 ): Promise<FormDefinition | null> {
   const existing = await getFormDefinitionPS(id);
   if (!existing) return null;
   const merged = { ...existing, ...data, updatedAt: new Date().toISOString() };
   const setClauses: string[] = [];
   const params: any[] = [];
-  if (data.orgId !== undefined) { setClauses.push('org_id = ?'); params.push(data.orgId); }
-  if (data.key !== undefined) { setClauses.push('key = ?'); params.push(data.key); }
-  if (data.name !== undefined) { setClauses.push('name = ?'); params.push(data.name); }
-  if (data.description !== undefined) { setClauses.push('description = ?'); params.push(data.description); }
-  if (data.version !== undefined) { setClauses.push('version = ?'); params.push(data.version); }
-  if (data.targetEntityType !== undefined) { setClauses.push('target_entity_type = ?'); params.push(data.targetEntityType); }
-  if (data.fields !== undefined) { setClauses.push('fields = ?'); params.push(JSON.stringify(data.fields)); }
-  if (data.status !== undefined) { setClauses.push('status = ?'); params.push(data.status); }
-  setClauses.push('updated_at = ?');
+  if (data.orgId !== undefined) {
+    setClauses.push("org_id = ?");
+    params.push(data.orgId);
+  }
+  if (data.key !== undefined) {
+    setClauses.push("key = ?");
+    params.push(data.key);
+  }
+  if (data.name !== undefined) {
+    setClauses.push("name = ?");
+    params.push(data.name);
+  }
+  if (data.description !== undefined) {
+    setClauses.push("description = ?");
+    params.push(data.description);
+  }
+  if (data.version !== undefined) {
+    setClauses.push("version = ?");
+    params.push(data.version);
+  }
+  if (data.targetEntityType !== undefined) {
+    setClauses.push("target_entity_type = ?");
+    params.push(data.targetEntityType);
+  }
+  if (data.fields !== undefined) {
+    setClauses.push("fields = ?");
+    params.push(JSON.stringify(data.fields));
+  }
+  if (data.status !== undefined) {
+    setClauses.push("status = ?");
+    params.push(data.status);
+  }
+  setClauses.push("updated_at = ?");
   params.push(new Date().toISOString());
   params.push(id);
-  await executeWrite(`UPDATE form_definitions SET ${setClauses.join(', ')} WHERE id = ?`, params);
+  await executeWrite(
+    `UPDATE form_definitions SET ${setClauses.join(", ")} WHERE id = ?`,
+    params,
+  );
   return merged;
 }
 
 export async function deleteFormDefinitionPS(id: string): Promise<void> {
-  await executeWrite('DELETE FROM form_definitions WHERE id = ?', [id]);
+  await executeWrite("DELETE FROM form_definitions WHERE id = ?", [id]);
 }
 
 // ============================================================
@@ -1223,7 +1376,7 @@ export async function deleteFormDefinitionPS(id: string): Promise<void> {
 // ============================================================
 
 export async function createFormSubmissionPS(
-  sub: Omit<FormSubmission, 'id' | 'submittedAt' | 'createdAt'>
+  sub: Omit<FormSubmission, "id" | "submittedAt" | "createdAt">,
 ): Promise<FormSubmission> {
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
@@ -1242,14 +1395,19 @@ export async function createFormSubmissionPS(
       now,
       sub.status,
       now,
-    ]
+    ],
   );
   return { ...sub, id, submittedAt: now, createdAt: now };
 }
 
-export async function getFormSubmissionPS(id: string): Promise<FormSubmission | null> {
+export async function getFormSubmissionPS(
+  id: string,
+): Promise<FormSubmission | null> {
   const db = getPowerSyncDatabase();
-  const result = await db.execute(`SELECT id, org_id, form_definition_id, form_version, entity_type, entity_id, data, submitted_by, submitted_at, status, created_at FROM form_submissions WHERE id = ?`, [id]);
+  const result = await db.execute(
+    `SELECT id, org_id, form_definition_id, form_version, entity_type, entity_id, data, submitted_by, submitted_at, status, created_at FROM form_submissions WHERE id = ?`,
+    [id],
+  );
   const row = result?.result?.[0] as any;
   if (!row) return null;
   return {
@@ -1267,19 +1425,33 @@ export async function getFormSubmissionPS(id: string): Promise<FormSubmission | 
   };
 }
 
-export async function listFormSubmissionsPS(filters?: { formDefinitionId?: string; status?: string; entityId?: string }): Promise<FormSubmission[]> {
+export async function listFormSubmissionsPS(filters?: {
+  formDefinitionId?: string;
+  status?: string;
+  entityId?: string;
+}): Promise<FormSubmission[]> {
   const db = getPowerSyncDatabase();
   const conditions: string[] = [];
   const params: any[] = [];
-  if (filters?.formDefinitionId) { conditions.push('form_definition_id = ?'); params.push(filters.formDefinitionId); }
-  if (filters?.status) { conditions.push('status = ?'); params.push(filters.status); }
-  if (filters?.entityId) { conditions.push('entity_id = ?'); params.push(filters.entityId); }
-  const sql = conditions.length > 0
-    ? `SELECT id, org_id, form_definition_id, form_version, entity_type, entity_id, data, submitted_by, submitted_at, status, created_at FROM form_submissions WHERE ${conditions.join(' AND ')}`
-    : `SELECT id, org_id, form_definition_id, form_version, entity_type, entity_id, data, submitted_by, submitted_at, status, created_at FROM form_submissions`;
+  if (filters?.formDefinitionId) {
+    conditions.push("form_definition_id = ?");
+    params.push(filters.formDefinitionId);
+  }
+  if (filters?.status) {
+    conditions.push("status = ?");
+    params.push(filters.status);
+  }
+  if (filters?.entityId) {
+    conditions.push("entity_id = ?");
+    params.push(filters.entityId);
+  }
+  const sql =
+    conditions.length > 0
+      ? `SELECT id, org_id, form_definition_id, form_version, entity_type, entity_id, data, submitted_by, submitted_at, status, created_at FROM form_submissions WHERE ${conditions.join(" AND ")}`
+      : `SELECT id, org_id, form_definition_id, form_version, entity_type, entity_id, data, submitted_by, submitted_at, status, created_at FROM form_submissions`;
   const result = await db.execute(sql, params);
   const rows = (result?.result || []) as any[];
-  return rows.map(r => ({
+  return rows.map((r) => ({
     id: r.id,
     orgId: r.org_id,
     formDefinitionId: r.form_definition_id,
@@ -1296,21 +1468,44 @@ export async function listFormSubmissionsPS(filters?: { formDefinitionId?: strin
 
 export async function updateFormSubmissionPS(
   id: string,
-  data: Partial<FormSubmission>
+  data: Partial<FormSubmission>,
 ): Promise<FormSubmission | null> {
   const existing = await getFormSubmissionPS(id);
   if (!existing) return null;
   const merged = { ...existing, ...data };
   const setClauses: string[] = [];
   const params: any[] = [];
-  if (data.orgId !== undefined) { setClauses.push('org_id = ?'); params.push(data.orgId); }
-  if (data.formDefinitionId !== undefined) { setClauses.push('form_definition_id = ?'); params.push(data.formDefinitionId); }
-  if (data.formVersion !== undefined) { setClauses.push('form_version = ?'); params.push(data.formVersion); }
-  if (data.linkedEntityType !== undefined) { setClauses.push('entity_type = ?'); params.push(data.linkedEntityType); }
-  if (data.linkedEntityId !== undefined) { setClauses.push('entity_id = ?'); params.push(data.linkedEntityId); }
-  if (data.data !== undefined) { setClauses.push('data = ?'); params.push(JSON.stringify(data.data)); }
-  if (data.status !== undefined) { setClauses.push('status = ?'); params.push(data.status); }
-  await executeWrite(`UPDATE form_submissions SET ${setClauses.join(', ')} WHERE id = ?`, params);
+  if (data.orgId !== undefined) {
+    setClauses.push("org_id = ?");
+    params.push(data.orgId);
+  }
+  if (data.formDefinitionId !== undefined) {
+    setClauses.push("form_definition_id = ?");
+    params.push(data.formDefinitionId);
+  }
+  if (data.formVersion !== undefined) {
+    setClauses.push("form_version = ?");
+    params.push(data.formVersion);
+  }
+  if (data.linkedEntityType !== undefined) {
+    setClauses.push("entity_type = ?");
+    params.push(data.linkedEntityType);
+  }
+  if (data.linkedEntityId !== undefined) {
+    setClauses.push("entity_id = ?");
+    params.push(data.linkedEntityId);
+  }
+  if (data.data !== undefined) {
+    setClauses.push("data = ?");
+    params.push(JSON.stringify(data.data));
+  }
+  if (data.status !== undefined) {
+    setClauses.push("status = ?");
+    params.push(data.status);
+  }
+  await executeWrite(
+    `UPDATE form_submissions SET ${setClauses.join(", ")} WHERE id = ?`,
+    params,
+  );
   return merged;
 }
-

@@ -1,4 +1,10 @@
-export default function LuminaLogo({ size = 40, className = '' }: { size?: number; className?: string }) {
+export default function LuminaLogo({
+  size = 40,
+  className = "",
+}: {
+  size?: number;
+  className?: string;
+}) {
   return (
     <svg
       width={size}
@@ -24,12 +30,42 @@ export default function LuminaLogo({ size = 40, className = '' }: { size?: numbe
         </filter>
       </defs>
       {/* L shape - main beam */}
-      <rect x="12" y="8" width="12" height="48" rx="3" fill="url(#luminaGrad)" filter="url(#luminaGlow)" />
+      <rect
+        x="12"
+        y="8"
+        width="12"
+        height="48"
+        rx="3"
+        fill="url(#luminaGrad)"
+        filter="url(#luminaGlow)"
+      />
       {/* L shape - cross beam */}
-      <rect x="12" y="44" width="44" height="12" rx="3" fill="url(#luminaGrad)" filter="url(#luminaGlow)" />
+      <rect
+        x="12"
+        y="44"
+        width="44"
+        height="12"
+        rx="3"
+        fill="url(#luminaGrad)"
+        filter="url(#luminaGlow)"
+      />
       {/* Highlight accent */}
-      <rect x="14" y="10" width="8" height="20" rx="2" fill="rgba(255,255,255,0.3)" />
-      <rect x="14" y="46" width="20" height="8" rx="2" fill="rgba(255,255,255,0.3)" />
+      <rect
+        x="14"
+        y="10"
+        width="8"
+        height="20"
+        rx="2"
+        fill="rgba(255,255,255,0.3)"
+      />
+      <rect
+        x="14"
+        y="46"
+        width="20"
+        height="8"
+        rx="2"
+        fill="rgba(255,255,255,0.3)"
+      />
       {/* Light rays */}
       <circle cx="48" cy="12" r="4" fill="#FFB800" opacity="0.8" />
       <circle cx="54" cy="18" r="2" fill="#FFB800" opacity="0.5" />

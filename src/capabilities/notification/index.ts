@@ -9,8 +9,8 @@
  * No church-specific concepts — all terms are generic.
  */
 
-import { getOneSignalService, initOneSignal } from '@/lib/onesignal';
-import type { Role } from '@/types';
+import { getOneSignalService, initOneSignal } from "@/lib/onesignal";
+import type { Role } from "@/types";
 
 export interface NotificationSendData {
   title: string;
@@ -44,8 +44,8 @@ export class NotificationCapability {
     if (!this.isInitialized) await this.initialize();
     const service = getOneSignalService();
     await service.login(userId);
-    await service.setTag('role', role);
-    await service.setTag('user_id', userId);
+    await service.setTag("role", role);
+    await service.setTag("user_id", userId);
   }
 
   /**
@@ -112,12 +112,12 @@ export class NotificationCapability {
     const service = getOneSignalService();
 
     // Retrieve existing topics, append new one, write back
-    const tags = await service.User.getTags?.() ?? {};
-    const existing: string[] = tags['topics'] ? JSON.parse(tags['topics']) : [];
+    const tags = (await service.User.getTags?.()) ?? {};
+    const existing: string[] = tags["topics"] ? JSON.parse(tags["topics"]) : [];
     if (!existing.includes(topic)) {
       existing.push(topic);
     }
-    await service.User.addTag('topics', JSON.stringify(existing));
+    await service.User.addTag("topics", JSON.stringify(existing));
   }
 
   /**
@@ -127,10 +127,10 @@ export class NotificationCapability {
     if (!this.isInitialized) await this.initialize();
     const service = getOneSignalService();
 
-    const tags = await service.User.getTags?.() ?? {};
-    const existing: string[] = tags['topics'] ? JSON.parse(tags['topics']) : [];
-    const filtered = existing.filter(t => t !== topic);
-    await service.User.addTag('topics', JSON.stringify(filtered));
+    const tags = (await service.User.getTags?.()) ?? {};
+    const existing: string[] = tags["topics"] ? JSON.parse(tags["topics"]) : [];
+    const filtered = existing.filter((t) => t !== topic);
+    await service.User.addTag("topics", JSON.stringify(filtered));
   }
 }
 

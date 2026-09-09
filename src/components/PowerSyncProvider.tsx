@@ -1,5 +1,5 @@
-import { PowerSyncContext } from '@powersync/react';
-import { getPowerSyncDatabase } from '@/lib/powersync';
+import { PowerSyncContext } from "@powersync/react";
+import { getPowerSyncDatabase } from "@/lib/powersync";
 
 export function PowerSyncProvider({ children }: { children: React.ReactNode }) {
   const db = getPowerSyncDatabase();
@@ -9,8 +9,6 @@ export function PowerSyncProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <PowerSyncContext.Provider value={db}>
-      {children}
-    </PowerSyncContext.Provider>
+    <PowerSyncContext.Provider value={db}>{children}</PowerSyncContext.Provider>
   );
 }

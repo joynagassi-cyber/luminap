@@ -12,11 +12,11 @@ interface CacheEntry<T> {
   expiresAt: number;
 }
 
-type CacheTier = 'cpu' | 'io';
+type CacheTier = "cpu" | "io";
 
 const DEFAULT_TTL_MS: Record<CacheTier, number> = {
-  cpu: 60_000,  // 1 min
-  io:  300_000, // 5 min
+  cpu: 60_000, // 1 min
+  io: 300_000, // 5 min
 };
 
 const store = new Map<string, CacheEntry<unknown>>();
@@ -47,7 +47,7 @@ export function get<T>(key: string, opts: CacheOpts = {}): T | undefined {
  * Set a cached value with optional TTL.
  */
 export function set<T>(key: string, value: T, opts: CacheOpts = {}): void {
-  const tier = opts.tier ?? 'io';
+  const tier = opts.tier ?? "io";
   const ttlMs = opts.ttlMs ?? defaultTtl(tier);
   store.set(key, { value, expiresAt: Date.now() + ttlMs });
 }

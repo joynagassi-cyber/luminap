@@ -8,7 +8,7 @@
  * Future: resolve from authenticated profile / Supabase.
  */
 
-const DEFAULT_ORG_ID = 'default-org';
+const DEFAULT_ORG_ID = "default-org";
 
 let _orgId: string | null = null;
 

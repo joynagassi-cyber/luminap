@@ -4,12 +4,16 @@
  * Handles all transaction business logic including audit logging.
  */
 
-import { workflow } from '@/capabilities/workflow';
-import { writeAudit } from '@/lib/audit';
-import { getOrganizationId } from '@/lib/orgContext';
-import { generateId } from '@/lib/utils';
-import { addTransactionPS, updateTransactionPS, deleteTransactionPS } from '@/lib/dataLayer';
-import type { Transaction } from '@/types';
+import { workflow } from "@/capabilities/workflow";
+import { writeAudit } from "@/lib/audit";
+import { getOrganizationId } from "@/lib/orgContext";
+import { generateId } from "@/lib/utils";
+import {
+  addTransactionPS,
+  updateTransactionPS,
+  deleteTransactionPS,
+} from "@/lib/dataLayer";
+import type { Transaction } from "@/types";
 
 export interface TransactionState {
   transactions: Transaction[];
@@ -19,18 +23,26 @@ export interface TransactionState {
 // --- addTransaction ---
 
 export function buildAddTransaction(
-  tx: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt' | 'version' | 'reversalOfId'>,
-  state: TransactionState
+  tx: Omit<
+    Transaction,
+    "id" | "createdAt" | "updatedAt" | "version" | "reversalOfId"
+  >,
+  state: TransactionState,
 ): { id: string; newTx: Transaction } {
   const id = generateId();
   const now = new Date().toISOString();
-  const newTx: Transaction = { ...tx, id, createdAt: now, updatedAt: now, version: 1, reversalOfId: null };
+  const newTx: Transaction = {
+    ...tx,
+    id,
+    createdAt: now,
+    updatedAt: now,
+    version: 1,
+    reversalOfId: null,
+  };
   return { id, newTx };
 }
 
-export async function persistAddTransaction(
-  newTx: Transaction
-): Promise<void> {
+export async function persistAddTransaction(newTx: Transaction): Promise<void> {
   try {
     await addTransactionPS({
       org_id: newTx.orgId,
@@ -55,22 +67,26 @@ export async function persistAddTransaction(
       reversal_of_id: newTx.reversalOfId,
     });
   } catch (error) {
+    // Persist failure is non-fatal; offline queue will retry
   }
 }
 
 export async function auditAddTransaction(
   id: string,
-  tx: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt' | 'version' | 'reversalOfId'>,
+  tx: Omit<
+    Transaction,
+    "id" | "createdAt" | "updatedAt" | "version" | "reversalOfId"
+  >,
   newTx: Transaction,
-  role: string
+  role: string,
 ): Promise<void> {
   await writeAudit({
     orgId: getOrganizationId(),
     transactionId: id,
-    userId: tx.createdById || 'local-user',
+    userId: tx.createdById || "local-user",
     actorRoleAtTime: role,
-    action: 'CREATE',
-    entityType: 'Transaction',
+    action: "CREATE",
+    entityType: "Transaction",
     entityId: id,
     beforeState: null,
     afterState: newTx,
@@ -83,20 +99,31 @@ export async function auditAddTransaction(
 export function validateUpdateTransaction(
   transactions: Transaction[],
   id: string,
-  data: Partial<Transaction>
+  data: Partial<Transaction>,
 ): { allowed: boolean; reason?: string } {
-  const oldTx = transactions.find(t => t.id === id);
-  const guardResult = workflow.check('transaction', oldTx?.status as any, data.status as any);
+  const oldTx = transactions.find((t) => t.id === id);
+  const guardResult = workflow.check(
+    "transaction",
+    oldTx?.status as any,
+    data.status as any,
+  );
   return guardResult;
 }
 
 export function applyUpdateTransaction(
   transactions: Transaction[],
   id: string,
-  data: Partial<Transaction>
+  data: Partial<Transaction>,
 ): Transaction[] {
-  return transactions.map(t =>
-    t.id === id ? { ...t, ...data, updatedAt: new Date().toISOString(), version: t.version + 1 } : t
+  return transactions.map((t) =>
+    t.id === id
+      ? {
+          ...t,
+          ...data,
+          updatedAt: new Date().toISOString(),
+          version: t.version + 1,
+        }
+      : t,
   );
 }
 
@@ -104,29 +131,36 @@ export function applyUpdateTransaction(
 
 export function validateDeleteTransaction(
   transactions: Transaction[],
-  id: string
+  id: string,
 ): { allowed: boolean; reason?: string } {
-  const oldTx = transactions.find(t => t.id === id);
-  const guardResult = workflow.check('transaction', oldTx?.status as any, 'DELETED' as any);
+  const oldTx = transactions.find((t) => t.id === id);
+  const guardResult = workflow.check(
+    "transaction",
+    oldTx?.status as any,
+    "DELETED" as any,
+  );
   return guardResult;
 }
 
 export function applyDeleteTransaction(
   transactions: Transaction[],
-  id: string
+  id: string,
 ): Transaction[] {
-  return transactions.filter(t => t.id !== id);
+  return transactions.filter((t) => t.id !== id);
 }
 
 // --- batchDeleteTransactions ---
 
 export function validateBatchDeleteTransactions(
   transactions: Transaction[],
-  ids: string[]
+  ids: string[],
 ): string[] {
-  const blockedIds = ids.filter(id => {
-    const tx = transactions.find(t => t.id === id);
-    return workflow.check('transaction', tx?.status as any, 'DELETED' as any).allowed === false;
+  const blockedIds = ids.filter((id) => {
+    const tx = transactions.find((t) => t.id === id);
+    return (
+      workflow.check("transaction", tx?.status as any, "DELETED" as any)
+        .allowed === false
+    );
   });
   return blockedIds;
 }
@@ -137,10 +171,19 @@ export function buildApproveTransaction(
   transactions: Transaction[],
   id: string,
   userId: string,
-  now: string
+  now: string,
 ): Transaction[] {
-  return transactions.map(t =>
-    t.id === id ? { ...t, status: 'APPROVED' as const, approvedById: userId, approvedAt: now, updatedAt: now, version: t.version + 1 } : t
+  return transactions.map((t) =>
+    t.id === id
+      ? {
+          ...t,
+          status: "APPROVED" as const,
+          approvedById: userId,
+          approvedAt: now,
+          updatedAt: now,
+          version: t.version + 1,
+        }
+      : t,
   );
 }
 
@@ -150,12 +193,19 @@ export function buildBatchApproveTransactions(
   transactions: Transaction[],
   ids: string[],
   userId: string,
-  now: string
+  now: string,
 ): Transaction[] {
-  return transactions.map(t =>
+  return transactions.map((t) =>
     ids.includes(t.id)
-      ? { ...t, status: 'APPROVED' as const, approvedById: userId, approvedAt: now, updatedAt: now, version: t.version + 1 }
-      : t
+      ? {
+          ...t,
+          status: "APPROVED" as const,
+          approvedById: userId,
+          approvedAt: now,
+          updatedAt: now,
+          version: t.version + 1,
+        }
+      : t,
   );
 }
 
@@ -169,10 +219,10 @@ export function buildReverseTransaction(
   transactions: Transaction[],
   id: string,
   userId: string,
-  reason: string
+  reason: string,
 ): ReverseTransactionResult | null {
-  const tx = transactions.find(t => t.id === id);
-  if (!tx || tx.status !== 'APPROVED') return null;
+  const tx = transactions.find((t) => t.id === id);
+  if (!tx || tx.status !== "APPROVED") return null;
 
   const now = new Date().toISOString();
   const reversalId = generateId();
@@ -180,9 +230,9 @@ export function buildReverseTransaction(
     reversalTx: {
       ...tx,
       id: reversalId,
-      type: tx.type === 'INCOME' ? 'EXPENSE' : 'INCOME',
+      type: tx.type === "INCOME" ? "EXPENSE" : "INCOME",
       reversalOfId: id,
-      status: 'APPROVED',
+      status: "APPROVED",
       approvedById: userId,
       approvedAt: now,
       comment: `Contre-transaction: ${reason}`,
@@ -194,7 +244,7 @@ export function buildReverseTransaction(
 }
 
 export async function persistReverseTransaction(
-  reversalTx: Transaction
+  reversalTx: Transaction,
 ): Promise<void> {
   try {
     await addTransactionPS({
@@ -220,5 +270,6 @@ export async function persistReverseTransaction(
       reversal_of_id: reversalTx.reversalOfId,
     });
   } catch (error) {
+    // Persist failure is non-fatal; offline queue will retry
   }
 }

@@ -1,55 +1,66 @@
-import { Bell, Settings } from 'lucide-react';
-import { IonButton, IonHeader, IonToolbar } from '@ionic/react';
-import { useLocalStore } from '@/store/useLocalStore';
-import { useNavigate } from 'react-router-dom';
+import { Bell, Settings } from "lucide-react";
+import { IonButton, IonHeader, IonToolbar } from "@ionic/react";
+import { useLocalStore } from "@/store/useLocalStore";
+import { useNavigate } from "react-router-dom";
 
 export default function TopHeader({ title }: { title?: string }) {
   const { notifications, markAllNotificationsRead } = useLocalStore();
   const navigate = useNavigate();
 
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   const handleNotificationsClick = async () => {
     await markAllNotificationsRead();
-    navigate('/notifications');
+    navigate("/notifications");
   };
 
   return (
     <IonHeader>
       <IonToolbar
         style={{
-          backgroundColor: 'rgba(18,18,18,0.97)',
-          backdropFilter: 'blur(12px)',
-          borderBottom: '1px solid #282828',
+          backgroundColor: "rgba(18,18,18,0.97)",
+          backdropFilter: "blur(12px)",
+          borderBottom: "1px solid #282828",
         }}
       >
         <div className="px-4 py-2.5 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <img src="/lumina-logo.png" alt="Lumina" className="w-8 h-8 rounded-lg" />
+            <img
+              src="/lumina-logo.png"
+              alt="Lumina"
+              className="w-8 h-8 rounded-lg"
+            />
             <div>
-              <p className="text-text-primary font-bold text-sm leading-none">{title || 'Lumina'}</p>
-              <p className="text-text-tertiary text-xs mt-0.5">{title ? 'Gestion financière' : 'Lumina'}</p>
+              <p className="text-text-primary font-bold text-sm leading-none">
+                {title || "Lumina"}
+              </p>
+              <p className="text-text-tertiary text-xs mt-0.5">
+                {title ? "Gestion financière" : "Lumina"}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <IonButton
               onClick={handleNotificationsClick}
               className="!min-height:auto !p-0 !rounded-full !min-w-[36px] !w-9 !h-9"
-              style={{ backgroundColor: '#212121' }}
+              style={{ backgroundColor: "#212121" }}
               aria-label="Notifications"
               aria-haspopup="dialog"
             >
               <Bell className="w-4 h-4 text-text-secondary" />
               {unreadCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center text-xs font-bold" style={{ backgroundColor: '#E51332', color: '#fff' }}>
-                  {unreadCount > 9 ? '9+' : unreadCount}
+                <span
+                  className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center text-xs font-bold"
+                  style={{ backgroundColor: "#E51332", color: "#fff" }}
+                >
+                  {unreadCount > 9 ? "9+" : unreadCount}
                 </span>
               )}
             </IonButton>
             <IonButton
-              onClick={() => navigate('/settings')}
+              onClick={() => navigate("/settings")}
               className="!min-height:auto !p-0 !rounded-full !min-w-[36px] !w-9 !h-9"
-              style={{ backgroundColor: '#212121' }}
+              style={{ backgroundColor: "#212121" }}
               aria-label="Paramètres"
             >
               <Settings className="w-4 h-4 text-text-secondary" />

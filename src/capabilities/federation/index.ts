@@ -8,7 +8,7 @@
 export interface Organization {
   id: string;
   name: string;
-  type: 'church' | 'school' | 'company' | 'ngo' | 'custom';
+  type: "church" | "school" | "company" | "ngo" | "custom";
   parentId?: string;
   config: Record<string, any>;
   createdAt: string;
@@ -32,8 +32,8 @@ export class FederationService {
   async createOrg(config: Partial<Organization>): Promise<Organization> {
     const org: Organization = {
       id: config.id ?? `org-${Date.now()}`,
-      name: config.name ?? 'Untitled',
-      type: config.type ?? 'custom',
+      name: config.name ?? "Untitled",
+      type: config.type ?? "custom",
       parentId: config.parentId,
       config: config.config ?? {},
       createdAt: new Date().toISOString(),
@@ -50,13 +50,16 @@ export class FederationService {
   }
 
   /** List organizations with optional filters */
-  async listOrgs(filter?: { type?: string; parentId?: string }): Promise<Organization[]> {
+  async listOrgs(filter?: {
+    type?: string;
+    parentId?: string;
+  }): Promise<Organization[]> {
     let orgs = Array.from(this.orgs.values());
     if (filter?.type) {
-      orgs = orgs.filter(o => o.type === filter.type);
+      orgs = orgs.filter((o) => o.type === filter.type);
     }
     if (filter?.parentId) {
-      orgs = orgs.filter(o => o.parentId === filter.parentId);
+      orgs = orgs.filter((o) => o.parentId === filter.parentId);
     }
     return orgs;
   }

@@ -1,4 +1,4 @@
-import type { Caisse, Account } from '@/types';
+import type { Caisse, Account } from "@/types";
 
 /**
  * CaisseAdapter — bridge between legacy Caisse and canonical Account
@@ -12,9 +12,9 @@ export class CaisseAdapter {
     return {
       id: account.id,
       name: account.name,
-      description: '',
-      type: account.ownerType === 'ORGANIZATION' ? 'MAIN' : 'GROUP',
-      color: '#FF6B00',
+      description: "",
+      type: account.ownerType === "ORGANIZATION" ? "MAIN" : "GROUP",
+      color: "#FF6B00",
       orgId: account.orgId,
       createdAt: account.createdAt,
       updatedAt: account.updatedAt,
@@ -30,10 +30,10 @@ export class CaisseAdapter {
     return {
       id: caisse.id,
       orgId: caisse.orgId,
-      ownerType: caisse.type === 'MAIN' ? 'ORGANIZATION' : 'GROUP',
+      ownerType: caisse.type === "MAIN" ? "ORGANIZATION" : "GROUP",
       ownerId: caisse.id,
       name: caisse.name,
-      currency: 'XOF',
+      currency: "XOF",
       status: caisse.status,
       archivedAt: caisse.archivedAt,
       archivedBy: caisse.archivedBy,
@@ -54,8 +54,8 @@ export class CaisseAdapter {
    */
   static merge(caisses: Caisse[], accounts: Account[]): Caisse[] {
     const map = new Map<string, Caisse>();
-    caisses.forEach(c => map.set(c.id, c));
-    accounts.forEach(a => {
+    caisses.forEach((c) => map.set(c.id, c));
+    accounts.forEach((a) => {
       if (!map.has(a.id)) {
         map.set(a.id, this.fromAccount(a));
       }

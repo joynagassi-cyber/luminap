@@ -7,7 +7,7 @@
 
 export interface OfflineWrite {
   id: string;
-  operation: 'insert' | 'update' | 'delete';
+  operation: "insert" | "update" | "delete";
   table: string;
   data: Record<string, any>;
   orgId: string;
@@ -16,7 +16,7 @@ export interface OfflineWrite {
 }
 
 export interface ConflictResolution {
-  strategy: 'last-write-wins' | 'server-wins' | 'manual';
+  strategy: "last-write-wins" | "server-wins" | "manual";
   timestampField: string;
 }
 
@@ -25,7 +25,9 @@ export class OfflineService {
   private conflicts: Map<string, ConflictResolution> = new Map();
 
   /** Queue a write for later sync */
-  queueWrite(write: Omit<OfflineWrite, 'id' | 'createdAt' | 'synced'>): OfflineWrite {
+  queueWrite(
+    write: Omit<OfflineWrite, "id" | "createdAt" | "synced">,
+  ): OfflineWrite {
     const offlineWrite: OfflineWrite = {
       ...write,
       id: `pending-${Date.now()}-${Math.random().toString(36).slice(2)}`,
@@ -38,12 +40,12 @@ export class OfflineService {
 
   /** Get all pending writes */
   getPendingWrites(): OfflineWrite[] {
-    return this.pendingWrites.filter(w => !w.synced);
+    return this.pendingWrites.filter((w) => !w.synced);
   }
 
   /** Mark a write as synced */
   markSynced(writeId: string): void {
-    const write = this.pendingWrites.find(w => w.id === writeId);
+    const write = this.pendingWrites.find((w) => w.id === writeId);
     if (write) {
       write.synced = true;
     }
@@ -61,12 +63,12 @@ export class OfflineService {
 
   /** Clear all pending writes (after successful sync) */
   clearSyncedWrites(): void {
-    this.pendingWrites = this.pendingWrites.filter(w => !w.synced);
+    this.pendingWrites = this.pendingWrites.filter((w) => !w.synced);
   }
 
   /** Count pending writes */
   pendingCount(): number {
-    return this.pendingWrites.filter(w => !w.synced).length;
+    return this.pendingWrites.filter((w) => !w.synced).length;
   }
 }
 

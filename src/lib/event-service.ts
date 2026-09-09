@@ -4,9 +4,9 @@
  * Handles all event and budget business logic.
  */
 
-import { generateId } from './utils';
-import { addEventPS, updateEventPS, deleteEventPS } from './dataLayer';
-import type { Event, BudgetItem, ShoppingItem } from '@/types';
+import { generateId } from "./utils";
+import { addEventPS, updateEventPS, deleteEventPS } from "./dataLayer";
+import type { Event, BudgetItem, ShoppingItem } from "@/types";
 
 export interface EventState {
   events: Event[];
@@ -15,7 +15,7 @@ export interface EventState {
 // --- addEvent ---
 
 export function buildAddEvent(
-  event: Omit<Event, 'id' | 'createdAt' | 'updatedAt'>
+  event: Omit<Event, "id" | "createdAt" | "updatedAt">,
 ): Event {
   const id = generateId();
   const now = new Date().toISOString();
@@ -29,9 +29,7 @@ export function buildAddEvent(
   };
 }
 
-export async function persistAddEvent(
-  newEvent: Event
-): Promise<void> {
+export async function persistAddEvent(newEvent: Event): Promise<void> {
   try {
     await addEventPS({
       org_id: newEvent.orgId,
@@ -44,6 +42,7 @@ export async function persistAddEvent(
       budget_items: JSON.stringify(newEvent.budgetItems),
     });
   } catch (error) {
+    // Persist failure is non-fatal; offline queue will retry
   }
 }
 
@@ -52,38 +51,35 @@ export async function persistAddEvent(
 export function applyUpdateEvent(
   events: Event[],
   id: string,
-  data: Partial<Event>
+  data: Partial<Event>,
 ): Event[] {
-  return events.map(e =>
-    e.id === id ? { ...e, ...data, updatedAt: new Date().toISOString() } : e
+  return events.map((e) =>
+    e.id === id ? { ...e, ...data, updatedAt: new Date().toISOString() } : e,
   );
 }
 
 export async function persistUpdateEvent(
   id: string,
-  data: Partial<Event>
+  data: Partial<Event>,
 ): Promise<void> {
   try {
     await updateEventPS(id, data);
   } catch (error) {
+    // Persist failure is non-fatal; offline queue will retry
   }
 }
 
 // --- deleteEvent ---
 
-export function applyDeleteEvent(
-  events: Event[],
-  id: string
-): Event[] {
-  return events.filter(e => e.id !== id);
+export function applyDeleteEvent(events: Event[], id: string): Event[] {
+  return events.filter((e) => e.id !== id);
 }
 
-export async function persistDeleteEvent(
-  id: string
-): Promise<void> {
+export async function persistDeleteEvent(id: string): Promise<void> {
   try {
     await deleteEventPS(id);
   } catch (error) {
+    // Persist failure is non-fatal; offline queue will retry
   }
 }
 
@@ -92,10 +88,10 @@ export async function persistDeleteEvent(
 export function applyUpdateEventStatus(
   events: Event[],
   id: string,
-  status: Event['status']
+  status: Event["status"],
 ): Event[] {
-  return events.map(e =>
-    e.id === id ? { ...e, status, updatedAt: new Date().toISOString() } : e
+  return events.map((e) =>
+    e.id === id ? { ...e, status, updatedAt: new Date().toISOString() } : e,
   );
 }
 
@@ -109,7 +105,7 @@ export interface BudgetResult {
 export function addBudgetItem(
   items: BudgetItem[],
   eventId: string,
-  item: Omit<BudgetItem, 'id'>
+  item: Omit<BudgetItem, "id">,
 ): BudgetResult {
   const newItem = { id: generateId(), ...item };
   const newItems = [...items, newItem];
@@ -119,9 +115,9 @@ export function addBudgetItem(
 
 export function removeBudgetItem(
   items: BudgetItem[],
-  itemId: string
+  itemId: string,
 ): BudgetResult {
-  const newItems = items.filter(i => i.id !== itemId);
+  const newItems = items.filter((i) => i.id !== itemId);
   const total = newItems.reduce((s, i) => s + i.allocated, 0);
   return { newItems, total };
 }
@@ -129,7 +125,7 @@ export function removeBudgetItem(
 export function updateShoppingItemStatus(
   items: ShoppingItem[],
   itemId: string,
-  status: ShoppingItem['status']
+  status: ShoppingItem["status"],
 ): ShoppingItem[] {
-  return items.map(i => i.id === itemId ? { ...i, status } : i);
+  return items.map((i) => (i.id === itemId ? { ...i, status } : i));
 }

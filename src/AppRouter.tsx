@@ -1,36 +1,36 @@
-import { useEffect, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { authService } from '@/lib/auth';
-import { oneSignalService } from '@/lib/authOneSignal';
+import { useEffect, useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { authService } from "@/lib/auth";
+import { oneSignalService } from "@/lib/authOneSignal";
 
 // Protected routes that require authentication
 const PROTECTED_ROUTES = [
-  '/dashboard',
-  '/finance',
-  '/transaction',
-  '/groups',
-  '/events',
-  '/versement',
-  '/members',
-  '/archives',
-  '/reports',
-  '/forms',
-  '/custom-fields',
-  '/report-builder',
-  '/cotisations',
-  '/saisie-rapide',
-  '/culte',
-  '/membres-en-avance',
-  '/membre',
-  '/trace',
-  '/history',
-  '/help',
-  '/settings',
-  '/notifications',
+  "/dashboard",
+  "/finance",
+  "/transaction",
+  "/groups",
+  "/events",
+  "/versement",
+  "/members",
+  "/archives",
+  "/reports",
+  "/forms",
+  "/custom-fields",
+  "/report-builder",
+  "/cotisations",
+  "/saisie-rapide",
+  "/culte",
+  "/membres-en-avance",
+  "/membre",
+  "/trace",
+  "/history",
+  "/help",
+  "/settings",
+  "/notifications",
 ];
 
 // Auth routes
-const AUTH_ROUTES = ['/auth', '/auth/callback'];
+const AUTH_ROUTES = ["/auth", "/auth/callback"];
 
 export default function AppRouter() {
   const navigate = useNavigate();
@@ -50,7 +50,7 @@ export default function AppRouter() {
 
       // If no session and not on auth page, redirect to auth
       if (!session && !AUTH_ROUTES.includes(location.pathname)) {
-        navigate('/auth', { replace: true });
+        navigate("/auth", { replace: true });
       }
     };
 
@@ -63,7 +63,7 @@ export default function AppRouter() {
 
       // If user logs out, redirect to auth
       if (!state.session && !AUTH_ROUTES.includes(location.pathname)) {
-        navigate('/auth', { replace: true });
+        navigate("/auth", { replace: true });
       }
     });
 
@@ -74,19 +74,19 @@ export default function AppRouter() {
   useEffect(() => {
     if (isLoading) return;
 
-    const isProtected = PROTECTED_ROUTES.some(route =>
-      location.pathname.startsWith(route)
+    const isProtected = PROTECTED_ROUTES.some((route) =>
+      location.pathname.startsWith(route),
     );
 
     // If on auth page but already authenticated, redirect to dashboard
     if (AUTH_ROUTES.includes(location.pathname) && isAuthenticated) {
-      navigate('/dashboard', { replace: true });
+      navigate("/dashboard", { replace: true });
       return;
     }
 
     // If on protected route but not authenticated, redirect to auth
     if (isProtected && !isAuthenticated) {
-      navigate('/auth', { replace: true });
+      navigate("/auth", { replace: true });
     }
   }, [isAuthenticated, isLoading, navigate, location.pathname]);
 

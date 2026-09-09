@@ -11,11 +11,19 @@
  *   const archived = await resource.listArchived('Group')
  */
 
-import { getPowerSyncDatabase } from '@/lib/powersync';
-import { getOrganizationId } from '@/lib/orgContext';
+import { getPowerSyncDatabase } from "@/lib/powersync";
+import { getOrganizationId } from "@/lib/orgContext";
 
 /** Filter operator for resource queries */
-export type FilterOp = 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte' | 'contains' | 'in';
+export type FilterOp =
+  | "eq"
+  | "neq"
+  | "gt"
+  | "gte"
+  | "lt"
+  | "lte"
+  | "contains"
+  | "in";
 
 /** Filter condition */
 export interface FilterCondition {
@@ -28,7 +36,7 @@ export interface FilterCondition {
 export interface ResourceQuery {
   filter?: FilterCondition[];
   sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
+  sortOrder?: "asc" | "desc";
   limit?: number;
   offset?: number;
 }
@@ -49,10 +57,15 @@ export class ResourceService {
    * Get a single entity by type and id.
    * Returns null if not found.
    */
-  async get<T extends { id: string }>(entityType: string, id: string): Promise<T | null> {
+  async get<T extends { id: string }>(
+    entityType: string,
+    id: string,
+  ): Promise<T | null> {
     const table = this.toTableName(entityType);
     const db = getPowerSyncDatabase();
-    const result = await db.execute(`SELECT * FROM ${table} WHERE id = ?`, [id]);
+    const result = await db.execute(`SELECT * FROM ${table} WHERE id = ?`, [
+      id,
+    ]);
     const row = result?.result?.[0] as any;
     if (!row) return null;
     return this.toResource<T>(entityType, row);
@@ -63,7 +76,7 @@ export class ResourceService {
    */
   async list<T extends { id: string }>(
     entityType: string,
-    query?: ResourceQuery
+    query?: ResourceQuery,
   ): Promise<ResourceResult<T>> {
     const table = this.toTableName(entityType);
     const db = getPowerSyncDatabase();
@@ -73,7 +86,7 @@ export class ResourceService {
     const params: any[] = [];
 
     // Always filter by org_id
-    conditions.push('org_id = ?');
+    conditions.push("org_id = ?");
     params.push(getOrganizationId());
 
     // Apply additional filters
@@ -81,54 +94,56 @@ export class ResourceService {
       for (const f of query.filter) {
         const paramIndex = params.length;
         switch (f.op) {
-          case 'eq':
+          case "eq":
             conditions.push(`${f.field} = ?`);
             params.push(f.value);
             break;
-          case 'neq':
+          case "neq":
             conditions.push(`${f.field} != ?`);
             params.push(f.value);
             break;
-          case 'gt':
+          case "gt":
             conditions.push(`${f.field} > ?`);
             params.push(f.value);
             break;
-          case 'gte':
+          case "gte":
             conditions.push(`${f.field} >= ?`);
             params.push(f.value);
             break;
-          case 'lt':
+          case "lt":
             conditions.push(`${f.field} < ?`);
             params.push(f.value);
             break;
-          case 'lte':
+          case "lte":
             conditions.push(`${f.field} <= ?`);
             params.push(f.value);
             break;
-          case 'contains':
+          case "contains":
             conditions.push(`${f.field} LIKE ?`);
             params.push(`%${f.value}%`);
             break;
-          case 'in':
-            const placeholders = (f.value as any[]).map(() => '?').join(',');
+          case "in": {
+            const placeholders = (f.value as any[]).map(() => "?").join(",");
             conditions.push(`${f.field} IN (${placeholders})`);
             params.push(...f.value);
             break;
+          }
         }
       }
     }
 
-    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    const whereClause =
+      conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
     // Build ORDER BY
-    let orderByClause = '';
+    let orderByClause = "";
     if (query?.sortBy) {
-      const order = query.sortOrder || 'asc';
+      const order = query.sortOrder || "asc";
       orderByClause = `ORDER BY ${query.sortBy} ${order}`;
     }
 
     // Build LIMIT/OFFSET
-    let limitClause = '';
+    let limitClause = "";
     if (query?.limit) {
       limitClause = `LIMIT ${query.limit}`;
       if (query?.offset) {
@@ -142,11 +157,11 @@ export class ResourceService {
     const rows = result?.result || [];
 
     // Get total count (without pagination)
-    const countSql = `SELECT COUNT(*) as total FROM ${table} ${conditions.length > 0 ? `WHERE ${conditions.slice(0, -1).join(' AND ')}` : ''}`;
+    const countSql = `SELECT COUNT(*) as total FROM ${table} ${conditions.length > 0 ? `WHERE ${conditions.slice(0, -1).join(" AND ")}` : ""}`;
     // Note: count query simplified — uses same conditions minus any LIMIT
     const countResult = await db.execute(
-      `SELECT COUNT(*) as total FROM ${table} ${conditions.length > 0 ? 'WHERE ' + conditions.slice(0, -1).join(' AND ') : ''}`,
-      params.slice(0, -1)
+      `SELECT COUNT(*) as total FROM ${table} ${conditions.length > 0 ? "WHERE " + conditions.slice(0, -1).join(" AND ") : ""}`,
+      params.slice(0, -1),
     );
     const totalCount = (countResult?.result?.[0]?.total as number) || 0;
 
@@ -165,13 +180,13 @@ export class ResourceService {
    */
   async listByStatus<T extends { id: string }>(
     entityType: string,
-    status: string
+    status: string,
   ): Promise<T[]> {
     const table = this.toTableName(entityType);
     const db = getPowerSyncDatabase();
     const result = await db.execute(
       `SELECT * FROM ${table} WHERE org_id = ? AND status = ? ORDER BY name`,
-      [getOrganizationId(), status]
+      [getOrganizationId(), status],
     );
     const rows = result?.result || [];
     return rows.map((row: any) => this.toResource<T>(entityType, row));
@@ -183,16 +198,16 @@ export class ResourceService {
    */
   async listArchived<T extends { id: string }>(
     entityType: string,
-    query?: ResourceQuery
+    query?: ResourceQuery,
   ): Promise<ResourceResult<T>> {
     const table = this.toTableName(entityType);
     const db = getPowerSyncDatabase();
 
     // Determine the archive status based on entity type
-    const isEvent = entityType === 'Event';
-    const archiveStatus = isEvent ? 'CANCELLED' : 'ARCHIVED';
+    const isEvent = entityType === "Event";
+    const archiveStatus = isEvent ? "CANCELLED" : "ARCHIVED";
 
-    const conditions = ['org_id = ?', `status = ?`];
+    const conditions = ["org_id = ?", `status = ?`];
     const params = [getOrganizationId(), archiveStatus];
 
     // Apply additional filters from query
@@ -204,7 +219,7 @@ export class ResourceService {
       }
     }
 
-    const whereClause = `WHERE ${conditions.join(' AND ')}`;
+    const whereClause = `WHERE ${conditions.join(" AND ")}`;
 
     // Execute query
     const sql = `SELECT * FROM ${table} ${whereClause}`;
@@ -226,7 +241,10 @@ export class ResourceService {
   async exists(entityType: string, id: string): Promise<boolean> {
     const table = this.toTableName(entityType);
     const db = getPowerSyncDatabase();
-    const result = await db.execute(`SELECT 1 FROM ${table} WHERE id = ? LIMIT 1`, [id]);
+    const result = await db.execute(
+      `SELECT 1 FROM ${table} WHERE id = ? LIMIT 1`,
+      [id],
+    );
     return (result?.result?.length || 0) > 0;
   }
 
@@ -235,12 +253,12 @@ export class ResourceService {
    */
   private toTableName(entityType: string): string {
     const tableMap: Record<string, string> = {
-      Group: 'groups',
-      Event: 'events',
-      Member: 'members',
-      Account: 'accounts',
-      Category: 'categories',
-      Role: 'org_units',
+      Group: "groups",
+      Event: "events",
+      Member: "members",
+      Account: "accounts",
+      Category: "categories",
+      Role: "org_units",
     };
     return tableMap[entityType] ?? entityType.toLowerCase();
   }

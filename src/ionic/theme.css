@@ -7,17 +7,17 @@
  */
 :root {
   /* Core */
-  --ion-color-primary: #FF6B00;
+  --ion-color-primary: #ff6b00;
   --ion-color-primary-rgb: 255, 107, 0;
   --ion-color-secondary: #282828;
   --ion-color-secondary-rgb: 40, 40, 40;
   --ion-color-tertiary: #333333;
   --ion-color-tertiary-rgb: 51, 51, 51;
-  --ion-color-success: #1DB954;
+  --ion-color-success: #1db954;
   --ion-color-success-rgb: 29, 185, 84;
-  --ion-color-warning: #FFB800;
+  --ion-color-warning: #ffb800;
   --ion-color-warning-rgb: 255, 184, 0;
-  --ion-color-danger: #E51332;
+  --ion-color-danger: #e51332;
   --ion-color-danger-rgb: 229, 19, 50;
   --ion-color-medium: #808080;
   --ion-color-medium-rgb: 128, 128, 128;
@@ -27,19 +27,19 @@
   /* Dark-mode defaults */
   --ion-background-color: #121212;
   --ion-background-color-rgb: 18, 18, 18;
-  --ion-text-color: #FFFFFF;
+  --ion-text-color: #ffffff;
   --ion-text-color-rgb: 255, 255, 255;
   --ion-toolbar-background: #212121;
-  --ion-toolbar-color: #FFFFFF;
+  --ion-toolbar-color: #ffffff;
   --ion-item-background: #212121;
-  --ion-item-color: #FFFFFF;
+  --ion-item-color: #ffffff;
   --ion-card-background: #212121;
-  --ion-card-color: #FFFFFF;
+  --ion-card-color: #ffffff;
   --ion-modal-background: #212121;
-  --ion-modal-color: #FFFFFF;
+  --ion-modal-color: #ffffff;
   --ion-tab-bar-background: #212121;
   --ion-tab-bar-color: #808080;
-  --ion-tab-bar-color-selected: #FF6B00;
+  --ion-tab-bar-color-selected: #ff6b00;
 
   /* Safe area insets (Capacitor mobile) */
   --ion-safe-area-top: env(safe-area-inset-top, 0px);
@@ -48,7 +48,9 @@
   --ion-safe-area-right: env(safe-area-inset-right, 0px);
 
   /* Typography */
-  --ion-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --ion-font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif;
   --ion-text-color-step: 0.2222;
   --ion-background-color-step: 0.04;
 }
@@ -64,33 +66,33 @@ ion-menu,
 ion-nav,
 ion-split-pane {
   background-color: #121212 !important;
-  color: #FFFFFF !important;
+  color: #ffffff !important;
 }
 
 ion-content {
   --background: #121212;
-  --color: #FFFFFF;
+  --color: #ffffff;
 }
 
 ion-toolbar {
   --background: #212121;
-  --color: #FFFFFF;
+  --color: #ffffff;
 }
 
 ion-item {
   --background: #212121;
-  --color: #FFFFFF;
+  --color: #ffffff;
   --border-color: #282828;
 }
 
 ion-card {
   --background: #212121;
-  --color: #FFFFFF;
+  --color: #ffffff;
 }
 
 ion-modal {
   --background: #212121;
-  --color: #FFFFFF;
+  --color: #ffffff;
 }
 
 /* Scrollbar hide for mobile feel */

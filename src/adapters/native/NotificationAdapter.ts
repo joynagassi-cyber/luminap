@@ -4,8 +4,8 @@ import type {
   ActionPerformed,
   Channel,
   Token,
-} from '@capacitor/push-notifications';
-import { PushNotifications } from '@capacitor/push-notifications';
+} from "@capacitor/push-notifications";
+import { PushNotifications } from "@capacitor/push-notifications";
 
 export type {
   PermissionStatus,
@@ -49,7 +49,7 @@ export class NotificationAdapter {
       !!NotificationAdapter.__mockPlugin ||
       (() => {
         try {
-          return typeof (window as any).Capacitor !== 'undefined';
+          return typeof (window as any).Capacitor !== "undefined";
         } catch {
           return false;
         }
@@ -76,7 +76,7 @@ export class NotificationAdapter {
     if (!this._isNative) return false;
     try {
       const permissions = await PushNotifications.requestPermissions();
-      return permissions.receive === 'GRANTED';
+      return permissions.receive === "GRANTED";
     } catch {
       return false;
     }
@@ -84,11 +84,11 @@ export class NotificationAdapter {
 
   /** Check current push notification permission status. */
   async checkPermission(): Promise<PermissionStatus> {
-    if (!this._isNative) return { receive: 'GRANTED' };
+    if (!this._isNative) return { receive: "GRANTED" };
     try {
       return await PushNotifications.checkPermissions();
     } catch {
-      return { receive: 'GRANTED' };
+      return { receive: "GRANTED" };
     }
   }
 
@@ -98,7 +98,7 @@ export class NotificationAdapter {
    */
   async register(): Promise<PushRegistrationResult> {
     if (!this._isNative) {
-      return { token: '', error: 'Not running in native environment' };
+      return { token: "", error: "Not running in native environment" };
     }
     return new Promise((resolve) => {
       const cleanup = () => {
@@ -107,18 +107,18 @@ export class NotificationAdapter {
       };
       const handleError = (error: any) => {
         cleanup();
-        resolve({ token: '', error: error.message || String(error) });
+        resolve({ token: "", error: error.message || String(error) });
       };
       const handleSuccess = (token: Token) => {
         cleanup();
         resolve({ token: token.value, error: null });
       };
       const errorHandle = PushNotifications.addListener(
-        'registrationError',
+        "registrationError",
         handleError,
       );
       const registrationHandle = PushNotifications.addListener(
-        'registration',
+        "registration",
         handleSuccess,
       );
       PushNotifications.register().catch(handleError);
@@ -142,7 +142,7 @@ export class NotificationAdapter {
   ): () => void {
     if (!this._isNative) return () => {};
     const handle = PushNotifications.addListener(
-      'pushNotificationReceived',
+      "pushNotificationReceived",
       (notification: PushNotificationSchema) => {
         callback({
           title: notification.title,
@@ -164,7 +164,7 @@ export class NotificationAdapter {
   ): () => void {
     if (!this._isNative) return () => {};
     const handle = PushNotifications.addListener(
-      'pushNotificationActionPerformed',
+      "pushNotificationActionPerformed",
       (action: ActionPerformed) => {
         callback({
           title: action.notification?.title,
@@ -184,7 +184,7 @@ export class NotificationAdapter {
    */
   addRegistrationListener(callback: (token: Token) => void): () => void {
     if (!this._isNative) return () => {};
-    const handle = PushNotifications.addListener('registration', callback);
+    const handle = PushNotifications.addListener("registration", callback);
     return () => handle.remove();
   }
 

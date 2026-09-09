@@ -1,19 +1,19 @@
-import type { Cotisation, Event, Member } from '@/types';
+import type { Cotisation, Event, Member } from "@/types";
 
-export type CotisationStatut = 'NON_PAYE' | 'PAYE' | 'ABSENT' | 'EN_AVANCE';
+export type CotisationStatut = "NON_PAYE" | "PAYE" | "ABSENT" | "EN_AVANCE";
 
 export const COTISATION_STATUT_LABELS: Record<CotisationStatut, string> = {
-  NON_PAYE: 'Non payé',
-  PAYE: 'Payé',
-  ABSENT: 'Absent',
-  EN_AVANCE: 'En avance',
+  NON_PAYE: "Non payé",
+  PAYE: "Payé",
+  ABSENT: "Absent",
+  EN_AVANCE: "En avance",
 };
 
 export const COTISATION_STATUT_COLORS: Record<CotisationStatut, string> = {
-  NON_PAYE: '#EF4444',
-  PAYE: '#10B981',
-  ABSENT: '#808080',
-  EN_AVANCE: '#3B82F6',
+  NON_PAYE: "#EF4444",
+  PAYE: "#10B981",
+  ABSENT: "#808080",
+  EN_AVANCE: "#3B82F6",
 };
 
 /**
@@ -28,7 +28,9 @@ export function isCulteVerrouille(dateCulte: string): boolean {
   const now = new Date();
   const culteDay = new Date(dateCulte);
   const nowDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const daysDiff = Math.floor((nowDay.getTime() - culteDay.getTime()) / (1000 * 60 * 60 * 24));
+  const daysDiff = Math.floor(
+    (nowDay.getTime() - culteDay.getTime()) / (1000 * 60 * 60 * 24),
+  );
   return daysDiff > JOURS_VERROUILLAGE_CULTE;
 }
 
@@ -54,7 +56,7 @@ export function calculerNombreRetards(params: {
 }): number {
   const { cultes, cotisations, dateAdhesion } = params;
   const adhesionDate = new Date(dateAdhesion);
-  const cotisationsMap = new Map(cotisations.map(c => [c.culteId, c]));
+  const cotisationsMap = new Map(cotisations.map((c) => [c.culteId, c]));
   let retards = 0;
 
   for (const culte of cultes) {
@@ -62,7 +64,7 @@ export function calculerNombreRetards(params: {
     const cotisation = cotisationsMap.get(culte.id);
     if (cotisation === undefined) {
       retards++;
-    } else if (cotisation.statut === 'NON_PAYE') {
+    } else if (cotisation.statut === "NON_PAYE") {
       retards++;
     }
   }
@@ -86,19 +88,30 @@ export function calculerMontantDu(
 export function determinerStatutAvance(params: {
   datePaiement: string;
   dateCulte: string;
-}): 'PAYE' | 'EN_AVANCE' {
+}): "PAYE" | "EN_AVANCE" {
   const paiementDay = new Date(params.datePaiement);
   const culteDay = new Date(params.dateCulte);
-  const paiementDate = new Date(paiementDay.getFullYear(), paiementDay.getMonth(), paiementDay.getDate());
-  const culteDate = new Date(culteDay.getFullYear(), culteDay.getMonth(), culteDay.getDate());
-  return paiementDate < culteDate ? 'EN_AVANCE' : 'PAYE';
+  const paiementDate = new Date(
+    paiementDay.getFullYear(),
+    paiementDay.getMonth(),
+    paiementDay.getDate(),
+  );
+  const culteDate = new Date(
+    culteDay.getFullYear(),
+    culteDay.getMonth(),
+    culteDay.getDate(),
+  );
+  return paiementDate < culteDate ? "EN_AVANCE" : "PAYE";
 }
 
 /**
  * Calcule l'excédent (don) d'un paiement.
  * Retourne 0 si le paiement est inférieur au montant obligatoire.
  */
-export function calculerDon(montantPaye: number, montantObligatoire: number): number {
+export function calculerDon(
+  montantPaye: number,
+  montantObligatoire: number,
+): number {
   return Math.max(0, montantPaye - montantObligatoire);
 }
 
@@ -116,13 +129,13 @@ export function calculerStatsCulte(params: {
   enAvance: number;
   totalCollecte: number;
 } {
-  const cots = params.cotisations.filter(c => c.culteId === params.culteId);
+  const cots = params.cotisations.filter((c) => c.culteId === params.culteId);
   return {
     total: cots.length,
-    paye: cots.filter(c => c.statut === 'PAYE').length,
-    absent: cots.filter(c => c.statut === 'ABSENT').length,
-    nonPaye: cots.filter(c => c.statut === 'NON_PAYE').length,
-    enAvance: cots.filter(c => c.statut === 'EN_AVANCE').length,
+    paye: cots.filter((c) => c.statut === "PAYE").length,
+    absent: cots.filter((c) => c.statut === "ABSENT").length,
+    nonPaye: cots.filter((c) => c.statut === "NON_PAYE").length,
+    enAvance: cots.filter((c) => c.statut === "EN_AVANCE").length,
     totalCollecte: cots.reduce((s, c) => s + c.montantPaye, 0),
   };
 }

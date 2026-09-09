@@ -7,18 +7,18 @@
  * These are thin, pure wrappers — zero business logic.
  */
 
-import { lifecycle } from '@/capabilities/lifecycle';
-import { getOrganizationId } from '@/lib/orgContext';
+import { lifecycle } from "@/capabilities/lifecycle";
+import { getOrganizationId } from "@/lib/orgContext";
 
 /**
  * Group lifecycle adapter — delegates to LifecycleCapability
  */
 export const groupLifecycle = {
   async archive(id: string, reason: string, actorId: string): Promise<void> {
-    await lifecycle.archive('Group', id, reason, actorId);
+    await lifecycle.archive("Group", id, reason, actorId);
   },
   async restore(id: string, reason: string, actorId: string): Promise<void> {
-    await lifecycle.restore('Group', id, reason, actorId);
+    await lifecycle.restore("Group", id, reason, actorId);
   },
 };
 
@@ -27,10 +27,10 @@ export const groupLifecycle = {
  */
 export const memberLifecycle = {
   async archive(id: string, reason: string, actorId: string): Promise<void> {
-    await lifecycle.archive('Member', id, reason, actorId);
+    await lifecycle.archive("Member", id, reason, actorId);
   },
   async restore(id: string, reason: string, actorId: string): Promise<void> {
-    await lifecycle.restore('Member', id, reason, actorId);
+    await lifecycle.restore("Member", id, reason, actorId);
   },
 };
 
@@ -39,10 +39,10 @@ export const memberLifecycle = {
  */
 export const eventLifecycle = {
   async cancel(id: string, reason: string, actorId: string): Promise<void> {
-    await lifecycle.archive('Event', id, reason, actorId);
+    await lifecycle.archive("Event", id, reason, actorId);
   },
   async restore(id: string, reason: string, actorId: string): Promise<void> {
-    await lifecycle.restore('Event', id, reason, actorId);
+    await lifecycle.restore("Event", id, reason, actorId);
   },
 };
 
@@ -51,10 +51,10 @@ export const eventLifecycle = {
  */
 export const accountLifecycle = {
   async archive(id: string, reason: string, actorId: string): Promise<void> {
-    await lifecycle.archive('Account', id, reason, actorId);
+    await lifecycle.archive("Account", id, reason, actorId);
   },
   async restore(id: string, reason: string, actorId: string): Promise<void> {
-    await lifecycle.restore('Account', id, reason, actorId);
+    await lifecycle.restore("Account", id, reason, actorId);
   },
 };
 
@@ -67,9 +67,12 @@ export async function archiveGroupWithState(
   id: string,
   reason: string,
   actorId: string,
-  updater: (groups: any[], accounts: any[]) => { groups: any[]; accounts: any[] }
+  updater: (
+    groups: any[],
+    accounts: any[],
+  ) => { groups: any[]; accounts: any[] },
 ): Promise<void> {
-  await lifecycle.archive('Group', id, reason, actorId);
+  await lifecycle.archive("Group", id, reason, actorId);
   const now = new Date().toISOString();
   // Caller provides the updater logic to avoid Zustand dependency here
   updater([], []); // placeholder — see GroupDetail.tsx for state update

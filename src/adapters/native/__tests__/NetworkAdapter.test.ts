@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { NetworkAdapter } from '../NetworkAdapter';
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { NetworkAdapter } from "../NetworkAdapter";
 
 // vi.hoisted runs before hoisted vi.mock, so mocks are available inside the factory
 const { mockNetworkPlugin } = vi.hoisted(() => ({
@@ -10,16 +10,16 @@ const { mockNetworkPlugin } = vi.hoisted(() => ({
   },
 }));
 
-vi.mock('@capacitor/network', () => ({
+vi.mock("@capacitor/network", () => ({
   Network: mockNetworkPlugin,
 }));
 
 // Stub window for node environment
-vi.stubGlobal('window', globalThis);
+vi.stubGlobal("window", globalThis);
 
 // ─── Tests ────────────────────────────────────────────────────
 
-describe('NetworkAdapter', () => {
+describe("NetworkAdapter", () => {
   beforeEach(() => {
     NetworkAdapter.injectMockPlugin(mockNetworkPlugin);
     vi.clearAllMocks();
@@ -30,11 +30,11 @@ describe('NetworkAdapter', () => {
     vi.restoreAllMocks();
   });
 
-  describe('isConnected', () => {
-    it('returns true when Network.getStatus reports connected', async () => {
+  describe("isConnected", () => {
+    it("returns true when Network.getStatus reports connected", async () => {
       mockNetworkPlugin.getStatus.mockResolvedValue({
         connected: true,
-        connectionType: 'wifi',
+        connectionType: "wifi",
       });
 
       const adapter = NetworkAdapter.getInstance();
@@ -42,10 +42,10 @@ describe('NetworkAdapter', () => {
       expect(result).toBe(true);
     });
 
-    it('returns false when Network.getStatus reports not connected', async () => {
+    it("returns false when Network.getStatus reports not connected", async () => {
       mockNetworkPlugin.getStatus.mockResolvedValue({
         connected: false,
-        connectionType: 'none',
+        connectionType: "none",
       });
 
       const adapter = NetworkAdapter.getInstance();
@@ -53,10 +53,10 @@ describe('NetworkAdapter', () => {
       expect(result).toBe(false);
     });
 
-    it('falls back to navigator.onLine when plugin throws', async () => {
-      mockNetworkPlugin.getStatus.mockRejectedValue(new Error('plugin error'));
+    it("falls back to navigator.onLine when plugin throws", async () => {
+      mockNetworkPlugin.getStatus.mockRejectedValue(new Error("plugin error"));
       const originalOnLine = navigator.onLine;
-      Object.defineProperty(navigator, 'onLine', {
+      Object.defineProperty(navigator, "onLine", {
         value: true,
         writable: true,
         configurable: true,
@@ -66,7 +66,7 @@ describe('NetworkAdapter', () => {
       const result = await adapter.isConnected();
       expect(result).toBe(true);
 
-      Object.defineProperty(navigator, 'onLine', {
+      Object.defineProperty(navigator, "onLine", {
         value: originalOnLine,
         writable: true,
         configurable: true,
@@ -74,56 +74,56 @@ describe('NetworkAdapter', () => {
     });
   });
 
-  describe('getConnectionType', () => {
-    it('returns the connection type from plugin', async () => {
+  describe("getConnectionType", () => {
+    it("returns the connection type from plugin", async () => {
       mockNetworkPlugin.getStatus.mockResolvedValue({
         connected: true,
-        connectionType: 'cellular',
+        connectionType: "cellular",
       });
 
       const adapter = NetworkAdapter.getInstance();
       const result = await adapter.getConnectionType();
-      expect(result).toBe('cellular');
+      expect(result).toBe("cellular");
     });
 
     it('returns "unknown" when plugin throws', async () => {
-      mockNetworkPlugin.getStatus.mockRejectedValue(new Error('fail'));
+      mockNetworkPlugin.getStatus.mockRejectedValue(new Error("fail"));
 
       const adapter = NetworkAdapter.getInstance();
       const result = await adapter.getConnectionType();
-      expect(result).toBe('unknown');
+      expect(result).toBe("unknown");
     });
   });
 
-  describe('getStatus', () => {
-    it('returns combined status object', async () => {
+  describe("getStatus", () => {
+    it("returns combined status object", async () => {
       mockNetworkPlugin.getStatus.mockResolvedValue({
         connected: true,
-        connectionType: 'wifi',
+        connectionType: "wifi",
       });
 
       const adapter = NetworkAdapter.getInstance();
       const status = await adapter.getStatus();
-      expect(status).toEqual({ connected: true, connectionType: 'wifi' });
+      expect(status).toEqual({ connected: true, connectionType: "wifi" });
     });
   });
 
-  describe('addStatusListener', () => {
-    it('registers listener via plugin in capacitor env', async () => {
+  describe("addStatusListener", () => {
+    it("registers listener via plugin in capacitor env", async () => {
       const callback = vi.fn();
       mockNetworkPlugin.addListener.mockReturnValue({ remove: vi.fn() });
 
       const adapter = NetworkAdapter.getInstance();
       const unsubscribe = adapter.addStatusListener(callback);
       expect(mockNetworkPlugin.addListener).toHaveBeenCalledWith(
-        'networkStatusChange',
+        "networkStatusChange",
         callback,
       );
-      expect(typeof unsubscribe).toBe('function');
+      expect(typeof unsubscribe).toBe("function");
       unsubscribe();
     });
 
-    it('removes listener when unsubscribe is called', () => {
+    it("removes listener when unsubscribe is called", () => {
       const removeMock = vi.fn();
       mockNetworkPlugin.addListener.mockReturnValue({ remove: removeMock });
 
@@ -134,7 +134,7 @@ describe('NetworkAdapter', () => {
       expect(removeMock).toHaveBeenCalled();
     });
 
-    it('falls back to window events when no mock plugin', () => {
+    it("falls back to window events when no mock plugin", () => {
       // Reset without injecting mock to test browser fallback
       NetworkAdapter.resetMockPlugin();
       const originalAddEventListener = window.addEventListener;
@@ -144,16 +144,22 @@ describe('NetworkAdapter', () => {
       const adapter = NetworkAdapter.getInstance();
       const callback = vi.fn();
       adapter.addStatusListener(callback);
-      expect(addEventListenerMock).toHaveBeenCalledWith('online', expect.any(Function));
-      expect(addEventListenerMock).toHaveBeenCalledWith('offline', expect.any(Function));
+      expect(addEventListenerMock).toHaveBeenCalledWith(
+        "online",
+        expect.any(Function),
+      );
+      expect(addEventListenerMock).toHaveBeenCalledWith(
+        "offline",
+        expect.any(Function),
+      );
 
       (window as any).addEventListener = originalAddEventListener;
       NetworkAdapter.injectMockPlugin(mockNetworkPlugin);
     });
   });
 
-  describe('singleton', () => {
-    it('returns the same instance', () => {
+  describe("singleton", () => {
+    it("returns the same instance", () => {
       const a = NetworkAdapter.getInstance();
       const b = NetworkAdapter.getInstance();
       expect(a).toBe(b);

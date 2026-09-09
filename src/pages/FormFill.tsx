@@ -1,13 +1,26 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, CheckCircle, AlertCircle } from 'lucide-react';
-import BottomNav from '@/components/BottomNav';
-import TopHeader from '@/components/TopHeader';
-import { formDefinitionRepo, formSubmissionRepo, validateFormSubmission, mapFormFields } from '@/lib/formSystem';
-import { generateId } from '@/lib/utils';
-import { getOrganizationId } from '@/lib/orgContext';
-import type { FormDefinition } from '@/types';
-import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar, IonInput, IonButton } from '@ionic/react';
+import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft, CheckCircle, AlertCircle } from "lucide-react";
+import BottomNav from "@/components/BottomNav";
+import TopHeader from "@/components/TopHeader";
+import {
+  formDefinitionRepo,
+  formSubmissionRepo,
+  validateFormSubmission,
+  mapFormFields,
+} from "@/lib/formSystem";
+import { generateId } from "@/lib/utils";
+import { getOrganizationId } from "@/lib/orgContext";
+import type { FormDefinition } from "@/types";
+import {
+  IonPage,
+  IonHeader,
+  IonContent,
+  IonTitle,
+  IonToolbar,
+  IonInput,
+  IonButton,
+} from "@ionic/react";
 
 export default function FormFill() {
   const { id } = useParams<{ id: string }>();
@@ -19,14 +32,14 @@ export default function FormFill() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    formDefinitionRepo.get(id!).then(f => {
+    formDefinitionRepo.get(id!).then((f) => {
       setForm(f);
       setLoading(false);
     });
   }, [id]);
 
   const handleChange = (key: string, value: any) => {
-    setData(prev => ({ ...prev, [key]: value }));
+    setData((prev) => ({ ...prev, [key]: value }));
     setErrors([]);
   };
 
@@ -42,12 +55,12 @@ export default function FormFill() {
       orgId: getOrganizationId(),
       formDefinitionId: form.id,
       formVersion: form.version,
-      submittedBy: 'local-user',
+      submittedBy: "local-user",
       data,
-      status: 'SUBMITTED',
+      status: "SUBMITTED",
     });
     setSubmitted(true);
-    setTimeout(() => navigate('/forms'), 2000);
+    setTimeout(() => navigate("/forms"), 2000);
   };
 
   if (loading) {
@@ -63,7 +76,10 @@ export default function FormFill() {
       <div className="min-h-screen bg-canvas flex flex-col">
         <TopHeader title="Formulaire" />
         <div className="flex-1 overflow-y-auto px-5 pt-16 pb-6 max-w-lg mx-auto">
-          <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-text-secondary text-sm mb-5">
+          <button
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-2 text-text-secondary text-sm mb-5"
+          >
             <ArrowLeft className="w-4 h-4" /> Retour
           </button>
           <p className="text-text-tertiary text-sm">Formulaire introuvable</p>
@@ -75,96 +91,144 @@ export default function FormFill() {
 
   return (
     <IonPage>
-      <IonHeader><IonToolbar><IonTitle>FormFill</IonTitle></IonToolbar></IonHeader>
+      <IonHeader>
+        <IonToolbar>
+          <IonTitle>FormFill</IonTitle>
+        </IonToolbar>
+      </IonHeader>
       <IonContent className="bg-canvas">
-    <div className="min-h-screen bg-canvas flex flex-col">
-      <TopHeader title={form.name} />
-      <div className="flex-1 overflow-y-auto px-5 pt-16 pb-6 max-w-lg mx-auto">
-        <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-text-secondary text-sm mb-5">
-          <ArrowLeft className="w-4 h-4" /> Retour
-        </button>
-
-        {form.description && (
-          <p className="text-text-tertiary text-sm mb-5">{form.description}</p>
-        )}
-
-        {errors.length > 0 && (
-          <div className="mb-4 p-3 rounded-xl text-sm" style={{ backgroundColor: '#E5133220', color: '#E51332' }}>
-            {errors[0]}
-          </div>
-        )}
-
-        {submitted ? (
-          <div className="text-center py-16">
-            <CheckCircle className="w-16 h-16 mx-auto mb-4" style={{ color: '#1DB954' }} />
-            <p className="text-text-primary font-bold text-lg mb-2">Soumis avec succès !</p>
-            <p className="text-text-tertiary text-sm">Redirection en cours...</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {form.fields.map((field) => (
-              <div key={field.key}>
-                <label className="text-text-tertiary text-xs mb-1.5 block">
-                  {field.label} {field.required && <span style={{ color: '#E51332' }}>*</span>}
-                </label>
-                {field.type === 'boolean' ? (
-                  <select
-                    value={data[field.key] ?? ''}
-                    onChange={(e) => handleChange(field.key, e.target.value === 'true')}
-                   
-className="w-full px-4 py-3 rounded-xl text-text-primary text-sm  appearance-none"
-                    style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
-                  >
-                    <option value="">— Sélectionner —</option>
-                    <option value="true">Oui</option>
-                    <option value="false">Non</option>
-                  </select>
-                ) : field.type === 'select' && field.options ? (
-                  <select
-                    value={data[field.key] ?? ''}
-                    onChange={(e) => handleChange(field.key, e.target.value)}
-                   
-className="w-full px-4 py-3 rounded-xl text-text-primary text-sm  appearance-none"
-                    style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
-                  >
-                    <option value="">— Sélectionner —</option>
-                    {field.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                  </select>
-                ) : field.type === 'textarea' ? (
-                  <textarea
-                    value={data[field.key] ?? ''}
-                    onChange={(e) => handleChange(field.key, e.target.value)}
-                    placeholder={field.label}
-                    rows={3}
-                   
-className="w-full px-4 py-3 rounded-xl text-text-primary text-sm  resize-none"
-                    style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
-                  />
-                ) : (
-                  <input
-                    type={field.type === 'number' || field.type === 'currency' ? 'number' : field.type === 'date' ? 'date' : 'text'}
-                    value={data[field.key] ?? ''}
-                    onChange={(e) => handleChange(field.key, e.target.value)}
-                    placeholder={field.label}
-                   
-className="w-full px-4 py-3 rounded-xl text-text-primary text-sm "
-                    style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
-                  />
-                )}
-              </div>
-            ))}
+        <div className="min-h-screen bg-canvas flex flex-col">
+          <TopHeader title={form.name} />
+          <div className="flex-1 overflow-y-auto px-5 pt-16 pb-6 max-w-lg mx-auto">
             <button
-              onClick={handleSubmit}
-              className="w-full py-4 rounded-full font-semibold text-white transition-all active:scale-95"
-              style={{ backgroundColor: '#FF6B00' }}
+              onClick={() => navigate(-1)}
+              className="flex items-center gap-2 text-text-secondary text-sm mb-5"
             >
-              Soumettre
+              <ArrowLeft className="w-4 h-4" /> Retour
             </button>
+
+            {form.description && (
+              <p className="text-text-tertiary text-sm mb-5">
+                {form.description}
+              </p>
+            )}
+
+            {errors.length > 0 && (
+              <div
+                className="mb-4 p-3 rounded-xl text-sm"
+                style={{ backgroundColor: "#E5133220", color: "#E51332" }}
+              >
+                {errors[0]}
+              </div>
+            )}
+
+            {submitted ? (
+              <div className="text-center py-16">
+                <CheckCircle
+                  className="w-16 h-16 mx-auto mb-4"
+                  style={{ color: "#1DB954" }}
+                />
+                <p className="text-text-primary font-bold text-lg mb-2">
+                  Soumis avec succès !
+                </p>
+                <p className="text-text-tertiary text-sm">
+                  Redirection en cours...
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {form.fields.map((field) => (
+                  <div key={field.key}>
+                    <label className="text-text-tertiary text-xs mb-1.5 block">
+                      {field.label}{" "}
+                      {field.required && (
+                        <span style={{ color: "#E51332" }}>*</span>
+                      )}
+                    </label>
+                    {field.type === "boolean" ? (
+                      <select
+                        value={data[field.key] ?? ""}
+                        onChange={(e) =>
+                          handleChange(field.key, e.target.value === "true")
+                        }
+                        className="w-full px-4 py-3 rounded-xl text-text-primary text-sm  appearance-none"
+                        style={{
+                          backgroundColor: "#212121",
+                          border: "1px solid #282828",
+                        }}
+                      >
+                        <option value="">— Sélectionner —</option>
+                        <option value="true">Oui</option>
+                        <option value="false">Non</option>
+                      </select>
+                    ) : field.type === "select" && field.options ? (
+                      <select
+                        value={data[field.key] ?? ""}
+                        onChange={(e) =>
+                          handleChange(field.key, e.target.value)
+                        }
+                        className="w-full px-4 py-3 rounded-xl text-text-primary text-sm  appearance-none"
+                        style={{
+                          backgroundColor: "#212121",
+                          border: "1px solid #282828",
+                        }}
+                      >
+                        <option value="">— Sélectionner —</option>
+                        {field.options.map((opt) => (
+                          <option key={opt} value={opt}>
+                            {opt}
+                          </option>
+                        ))}
+                      </select>
+                    ) : field.type === "textarea" ? (
+                      <textarea
+                        value={data[field.key] ?? ""}
+                        onChange={(e) =>
+                          handleChange(field.key, e.target.value)
+                        }
+                        placeholder={field.label}
+                        rows={3}
+                        className="w-full px-4 py-3 rounded-xl text-text-primary text-sm  resize-none"
+                        style={{
+                          backgroundColor: "#212121",
+                          border: "1px solid #282828",
+                        }}
+                      />
+                    ) : (
+                      <input
+                        type={
+                          field.type === "number" || field.type === "currency"
+                            ? "number"
+                            : field.type === "date"
+                              ? "date"
+                              : "text"
+                        }
+                        value={data[field.key] ?? ""}
+                        onChange={(e) =>
+                          handleChange(field.key, e.target.value)
+                        }
+                        placeholder={field.label}
+                        className="w-full px-4 py-3 rounded-xl text-text-primary text-sm "
+                        style={{
+                          backgroundColor: "#212121",
+                          border: "1px solid #282828",
+                        }}
+                      />
+                    )}
+                  </div>
+                ))}
+                <button
+                  onClick={handleSubmit}
+                  className="w-full py-4 rounded-full font-semibold text-white transition-all active:scale-95"
+                  style={{ backgroundColor: "#FF6B00" }}
+                >
+                  Soumettre
+                </button>
+              </div>
+            )}
           </div>
-        )}
-      </div>
-      <BottomNav />
-    </div>
+          <BottomNav />
+        </div>
       </IonContent>
     </IonPage>
   );

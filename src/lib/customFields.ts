@@ -1,8 +1,8 @@
 // Using PowerSync
-import { generateId } from './utils';
-import { writeAudit } from './audit';
-import type { CustomFieldDefinition, CustomFieldValue } from '@/types';
-import { getOrganizationId } from './orgContext';
+import { generateId } from "./utils";
+import { writeAudit } from "./audit";
+import type { CustomFieldDefinition, CustomFieldValue } from "@/types";
+import { getOrganizationId } from "./orgContext";
 import {
   createCustomFieldDefinitionPS,
   getCustomFieldDefinitionPS,
@@ -12,18 +12,20 @@ import {
   upsertCustomFieldValuePS,
   getCustomFieldValuesByEntityPS,
   deleteCustomFieldValuePS,
-} from '@/lib/dataLayer';
+} from "@/lib/dataLayer";
 
 export const customFieldRepo = {
-  async create(def: Omit<CustomFieldDefinition, 'id'>): Promise<CustomFieldDefinition> {
+  async create(
+    def: Omit<CustomFieldDefinition, "id">,
+  ): Promise<CustomFieldDefinition> {
     const entry = await createCustomFieldDefinitionPS(def);
     await writeAudit({
       orgId: getOrganizationId(),
       transactionId: null,
-      userId: 'local-user',
+      userId: "local-user",
       actorRoleAtTime: null,
-      action: 'CREATE',
-      entityType: 'CustomFieldDefinition',
+      action: "CREATE",
+      entityType: "CustomFieldDefinition",
       entityId: entry.id,
       beforeState: null,
       afterState: entry,
@@ -37,7 +39,10 @@ export const customFieldRepo = {
   async list(entityType?: string): Promise<CustomFieldDefinition[]> {
     return listCustomFieldDefinitionsPS(entityType);
   },
-  async update(id: string, data: Partial<CustomFieldDefinition>): Promise<CustomFieldDefinition | null> {
+  async update(
+    id: string,
+    data: Partial<CustomFieldDefinition>,
+  ): Promise<CustomFieldDefinition | null> {
     return updateCustomFieldDefinitionPS(id, data);
   },
   async delete(id: string): Promise<void> {
@@ -46,11 +51,14 @@ export const customFieldRepo = {
 };
 
 export const customFieldValueRepo = {
-  async upsert(value: Omit<CustomFieldValue, 'id'>): Promise<CustomFieldValue> {
+  async upsert(value: Omit<CustomFieldValue, "id">): Promise<CustomFieldValue> {
     const entry = await upsertCustomFieldValuePS(value);
     return entry;
   },
-  async getByEntity(entityType: string, entityId: string): Promise<CustomFieldValue[]> {
+  async getByEntity(
+    entityType: string,
+    entityId: string,
+  ): Promise<CustomFieldValue[]> {
     return getCustomFieldValuesByEntityPS(entityType, entityId);
   },
   async delete(id: string): Promise<void> {

@@ -8,7 +8,7 @@
  * - Managing the application lifecycle
  */
 
-import type { Manifest } from './compiler';
+import type { Manifest } from "./compiler";
 
 export interface Capability {
   name: string;
@@ -42,7 +42,7 @@ export class MinimalRuntime {
   /** Start the runtime */
   async start(): Promise<void> {
     if (!this.manifest) {
-      throw new Error('Runtime not loaded. Call load() first.');
+      throw new Error("Runtime not loaded. Call load() first.");
     }
     // Runtime started — capabilities are initialized
   }
