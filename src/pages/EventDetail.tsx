@@ -55,6 +55,9 @@ export default function EventDetail() {
   const eventTxs = transactions.filter((t: any) => t.event_id === event.id || t.eventId === event.id);
 
   const handleStatusChange = (newStatus: EventStatus) => {
+    if (!security.hasPermission(useLocalStore.getState().user.role, 'event:update')) {
+      return;
+    }
     const result = workflow.check('event', event.status, newStatus);
     if (!result.allowed) {
       setSuccess(`Transition bloquee : ${result.reason}`);
@@ -67,11 +70,18 @@ export default function EventDetail() {
   };
 
   const handleDelete = () => {
+    if (!security.hasPermission(useLocalStore.getState().user.role, 'event:delete')) {
+      return;
+    }
     deleteEvent(id!);
     navigate('/events');
   };
 
   const handleAddExpense = async () => {
+    if (!security.hasPermission(useLocalStore.getState().user.role, 'transaction:create')) {
+      setExpenseError('Permission insuffisante');
+      return;
+    }
     const trimmedAmount = (expenseAmount || '').trim();
     const trimmedDesc = (expenseDescription || '').trim();
     const trimmedItemId = (selectedBudgetItemId || '').trim();
@@ -383,17 +393,19 @@ export default function EventDetail() {
 
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-text-tertiary">Reste: <span style={{ color: remainingItem >= 0 ? '#1DB954' : '#E51332' }}>{formatCurrencyCompact(Math.max(0, remainingItem))} F</span></span>
-                      <button
-                        onClick={() => {
-                          setSelectedBudgetItemId(item.id);
-                          setShowAddExpense(true);
-                          setExpenseError('');
-                        }}
-                        className="px-3 py-1.5 rounded-lg font-medium"
-                        style={{ backgroundColor: '#FF6B0020', color: '#FF6B00' }}
-                      >
-                        <Plus className="w-3 h-3 inline mr-1" /> Dépenser
-                      </button>
+                      {security.hasPermission(useLocalStore.getState().user.role, 'transaction:create') && (
+                        <button
+                          onClick={() => {
+                            setSelectedBudgetItemId(item.id);
+                            setShowAddExpense(true);
+                            setExpenseError('');
+                          }}
+                          className="px-3 py-1.5 rounded-lg font-medium"
+                          style={{ backgroundColor: '#FF6B0020', color: '#FF6B00' }}
+                        >
+                          <Plus className="w-3 h-3 inline mr-1" /> Dépenser
+                        </button>
+                      )}
                     </div>
                   </div>
                 );
@@ -405,13 +417,15 @@ export default function EventDetail() {
         {/* Tab: Transactions */}
         {activeTab === 'transactions' && (
           <div className="space-y-2">
-            <button
-              onClick={() => navigate('/transaction/new', { state: { eventId: event.id } })}
-              className="w-full py-3 rounded-xl font-medium text-sm flex items-center justify-center gap-2 mb-3 transition-all active:scale-95"
-              style={{ backgroundColor: '#212121', border: '1px dashed #FF6B0040', color: '#FF6B00' }}
-            >
-              <Plus className="w-4 h-4" /> Ajouter une transaction
-            </button>
+            {security.hasPermission(useLocalStore.getState().user.role, 'transaction:create') && (
+              <button
+                onClick={() => navigate('/transaction/new', { state: { eventId: event.id } })}
+                className="w-full py-3 rounded-xl font-medium text-sm flex items-center justify-center gap-2 mb-3 transition-all active:scale-95"
+                style={{ backgroundColor: '#212121', border: '1px dashed #FF6B0040', color: '#FF6B00' }}
+              >
+                <Plus className="w-4 h-4" /> Ajouter une transaction
+              </button>
+            )}
             {eventTxs.length === 0 ? (
               <div className="text-center py-10 rounded-xl" style={{ backgroundColor: '#212121' }}>
                 <p className="text-text-tertiary text-sm">Aucune transaction liée</p>
@@ -446,10 +460,11 @@ export default function EventDetail() {
           </button>
         )}
 
-        {/* Edit button */}
-        <button onClick={() => navigate(`/event/${event.id}/edit`)} className="w-full py-3 rounded-full font-medium text-sm flex items-center justify-center gap-2 mb-4" style={{ backgroundColor: '#212121', color: '#FF6B00' }}>
-          <Edit3 className="w-4 h-4" /> Modifier l'événement
-        </button>
+        {security.hasPermission(useLocalStore.getState().user.role, 'event:update') && (
+          <button onClick={() => navigate(`/event/${event.id}/edit`)} className="w-full py-3 rounded-full font-medium text-sm flex items-center justify-center gap-2 mb-4" style={{ backgroundColor: '#212121', color: '#FF6B00' }}>
+            <Edit3 className="w-4 h-4" /> Modifier l'événement
+          </button>
+        )}
       </div>
 
       <BottomNav />

@@ -58,11 +58,17 @@ export default function TransactionDetail() {
   const event = tx.event || events.find((e: any) => e.id === tx.event_id || e.id === tx.eventId);
 
   const handleApprove = async () => {
+    if (!security.hasPermission(user.role, 'transaction:approve')) {
+      return;
+    }
     await approveTransaction(tx.id, user.id);
     navigate(-1);
   };
 
   const handleRejectConfirm = async () => {
+    if (!security.hasPermission(user.role, 'transaction:approve')) {
+      return;
+    }
     if (!rejectComment.trim()) return;
     await useLocalStore.getState().updateTransaction(tx.id, { status: 'REJECTED', comment: rejectComment.trim() });
     setShowRejectModal(false);
@@ -71,12 +77,18 @@ export default function TransactionDetail() {
   };
 
   const handleDelete = async () => {
+    if (!security.hasPermission(user.role, 'transaction:delete')) {
+      return;
+    }
     await deleteTransaction(tx.id);
     navigate(-1);
   };
 
   const handleReverse = async () => {
     if (!reverseReason.trim()) return;
+    if (!security.hasPermission(user.role, 'transaction:approve')) {
+      return;
+    }
     await useLocalStore.getState().reverseTransaction(tx.id, reverseReason.trim());
     setShowReverseModal(false);
     setReverseReason('');

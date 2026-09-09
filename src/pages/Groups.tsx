@@ -64,6 +64,10 @@ export default function Groups() {
   const [success, setSuccess] = useState('');
 
   const handleCreate = async () => {
+    if (!security.hasPermission(user.role, 'group:create')) {
+      setError('Permission insuffisante pour créer un groupe');
+      return;
+    }
     if (!createName.trim()) { setError('Le nom est requis'); return; }
     setError('');
     try {
@@ -78,6 +82,10 @@ export default function Groups() {
   };
 
   const handleUpdate = async (id: string) => {
+    if (!security.hasPermission(user.role, 'group:update')) {
+      setError('Permission insuffisante pour modifier ce groupe');
+      return;
+    }
     if (!editName.trim()) { setError('Le nom est requis'); return; }
     setError('');
     await updateGroup(id, { name: editName.trim(), description: editDesc.trim() });
@@ -87,6 +95,10 @@ export default function Groups() {
   };
 
   const handleDelete = async (id: string) => {
+    if (!security.hasPermission(user.role, 'group:delete')) {
+      setError('Permission insuffisante pour supprimer ce groupe');
+      return;
+    }
     setError('');
     try {
       await deleteGroup(id);
@@ -117,13 +129,15 @@ export default function Groups() {
             <h1 className="text-text-primary font-bold text-xl">Groupes</h1>
             <p className="text-text-tertiary text-xs mt-0.5">{orgUnits.length} groupe{orgUnits.length !== 1 ? 's' : ''}</p>
           </div>
-          <button
-            onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-semibold text-white transition-all active:scale-95"
-            style={{ background: 'linear-gradient(135deg, #FF8533, #FF6B00)', boxShadow: '0 4px 12px rgba(255,107,0,0.3)' }}
-          >
-            <Plus className="w-4 h-4" /> Créer
-          </button>
+          {security.hasPermission(user.role, 'group:create') && (
+            <button
+              onClick={() => setShowCreate(true)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-semibold text-white transition-all active:scale-95"
+              style={{ background: 'linear-gradient(135deg, #FF8533, #FF6B00)', boxShadow: '0 4px 12px rgba(255,107,0,0.3)' }}
+            >
+              <Plus className="w-4 h-4" /> Créer
+            </button>
+          )}
         </div>
 
         {/* Success/Error messages */}
@@ -214,20 +228,24 @@ export default function Groups() {
                   <p className="text-text-tertiary text-xs">{orgUnit.type}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => { setShowEdit(orgUnit.id); setEditName(orgUnit.name); setEditDesc(orgUnit.description || ''); }}
-                    className="p-2 rounded-full active:scale-95 transition-transform"
-                    style={{ backgroundColor: '#3B82F620' }}
-                  >
-                    <Edit3 className="w-4 h-4" style={{ color: '#3B82F6' }} />
-                  </button>
-                  <button
-                    onClick={() => security.hasRole(user.role, 'group', 'delete') && setShowDelete(orgUnit.id)}
-                    className="p-2 rounded-full active:scale-95 transition-transform"
-                    style={{ backgroundColor: '#E5133220' }}
-                  >
-                    <Trash2 className="w-4 h-4" style={{ color: '#E51332' }} />
-                  </button>
+                  {security.hasPermission(user.role, 'group:update') && (
+                    <button
+                      onClick={() => { setShowEdit(orgUnit.id); setEditName(orgUnit.name); setEditDesc(orgUnit.description || ''); }}
+                      className="p-2 rounded-full active:scale-95 transition-transform"
+                      style={{ backgroundColor: '#3B82F620' }}
+                    >
+                      <Edit3 className="w-4 h-4" style={{ color: '#3B82F6' }} />
+                    </button>
+                  )}
+                  {security.hasPermission(user.role, 'group:delete') && (
+                    <button
+                      onClick={() => setShowDelete(orgUnit.id)}
+                      className="p-2 rounded-full active:scale-95 transition-transform"
+                      style={{ backgroundColor: '#E5133220' }}
+                    >
+                      <Trash2 className="w-4 h-4" style={{ color: '#E51332' }} />
+                    </button>
+                  )}
                 </div>
               </div>
             ))

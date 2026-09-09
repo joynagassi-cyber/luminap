@@ -10,6 +10,7 @@ import TransactionCard from '@/components/TransactionCard';
 import { FullPageSkeleton, ListSkeleton } from '@/components/Skeleton';
 import { relationship } from '@/capabilities/relationship';
 import { lifecycle } from '@/capabilities/lifecycle';
+import { security } from '@/capabilities/security';
 import type { Transaction, Account, Member, GroupMembership } from '@/types';
 import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar, IonButtons, IonBackButton } from '@ionic/react';
 
@@ -18,7 +19,7 @@ type Tab = 'transactions' | 'membres' | 'historique' | 'parametres';
 export default function GroupDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { orgUnits: idbOrgUnits, accounts: idbAccounts, transactions: idbTxs, members: idbMembers, createGroup, updateGroup, deleteGroup, isLoading, createNotification } = useLocalStore();
+  const { orgUnits: idbOrgUnits, accounts: idbAccounts, transactions: idbTxs, members: idbMembers, createGroup, updateGroup, deleteGroup, isLoading, createNotification, user } = useLocalStore();
 
   // PowerSync with fallback
   const { data: psGroups } = useGroups();
@@ -102,6 +103,10 @@ export default function GroupDetail() {
   };
 
   const handleUpdate = async () => {
+    if (!security.hasPermission(user.role, 'group:update')) {
+      setError('Permission insuffisante pour modifier ce groupe');
+      return;
+    }
     if (!editName.trim()) { setError('Le nom est requis'); return; }
     await updateGroup(id!, { name: editName.trim(), description: editDesc.trim() });
     setShowEdit(false);
@@ -110,6 +115,10 @@ export default function GroupDetail() {
   };
 
   const handleDelete = async () => {
+    if (!security.hasPermission(user.role, 'group:delete')) {
+      setError('Permission insuffisante pour supprimer ce groupe');
+      return;
+    }
     try {
       await deleteGroup(id!);
       navigate('/groups');
@@ -119,6 +128,10 @@ export default function GroupDetail() {
   };
 
   const handleArchive = async () => {
+    if (!security.hasPermission(user.role, 'group:delete')) {
+      setError('Permission insuffisante pour archiver ce groupe');
+      return;
+    }
     try {
       await lifecycle.archive('Group', id!, 'Archive manuelle', 'local-user');
       navigate('/groups');
