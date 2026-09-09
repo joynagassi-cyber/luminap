@@ -39,6 +39,7 @@ export async function initPowerSync(): Promise<void> {
   // Écouter les changements de statut
   _db.registerListener({
     statusChanged: (status) => {
+      console.debug('[PowerSync] statusChanged:', {
         connected: status.connected,
         connecting: status.connecting,
         uploading: status.uploading,
