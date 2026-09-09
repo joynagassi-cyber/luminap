@@ -100,7 +100,7 @@ export default function TransactionEdit() {
       <TopHeader title="Modifier" />
       <div className="flex-1 overflow-y-auto px-5 pt-16 pb-6 max-w-lg mx-auto">
         <div className="flex items-center justify-between mb-6">
-          <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-text-secondary text-sm">
+          <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-text-secondary text-sm" aria-label="Retour">
             <ArrowUpRight className="w-4 h-4 rotate-180" /> Retour
           </button>
           <h1 className="text-text-primary font-bold text-lg">Modifier</h1>
@@ -109,8 +109,8 @@ export default function TransactionEdit() {
 
         <div className="space-y-4">
           <div className="flex rounded-xl p-1" style={{ backgroundColor: '#212121' }}>
-            <button onClick={() => setType('INCOME')} className="flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all" style={type === 'INCOME' ? { backgroundColor: '#1DB954', color: '#fff' } : { color: '#B3B3B3' }}>Entrée</button>
-            <button onClick={() => setType('EXPENSE')} className="flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all" style={type === 'EXPENSE' ? { backgroundColor: '#E51332', color: '#fff' } : { color: '#B3B3B3' }}>Sortie</button>
+            <button onClick={() => setType('INCOME')} className="flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all" style={type === 'INCOME' ? { backgroundColor: '#1DB954', color: '#fff' } : { color: '#B3B3B3' }} aria-label="Entrée">Entrée</button>
+            <button onClick={() => setType('EXPENSE')} className="flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all" style={type === 'EXPENSE' ? { backgroundColor: '#E51332', color: '#fff' } : { color: '#B3B3B3' }} aria-label="Sortie">Sortie</button>
           </div>
 
           <div>
@@ -120,7 +120,7 @@ export default function TransactionEdit() {
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="0"
-              className="w-full px-4 py-3 rounded-xl text-sm"
+              className="w-full px-4 py-3 rounded-xl text-lg font-bold outline-none text-center"
               style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
             />
           </div>
@@ -132,7 +132,7 @@ export default function TransactionEdit() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Description de la transaction"
-              className="w-full px-4 py-3 rounded-xl text-sm"
+              className="w-full px-4 py-3 rounded-xl text-sm outline-none"
               style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
             />
           </div>
@@ -143,7 +143,7 @@ export default function TransactionEdit() {
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl text-sm"
+              className="w-full px-4 py-3 rounded-xl text-sm outline-none"
               style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
             />
           </div>
@@ -153,7 +153,7 @@ export default function TransactionEdit() {
             <select
               value={categoryId}
               onChange={(e) => setCategoryId(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl text-sm"
+              className="w-full px-4 py-3 rounded-xl text-sm outline-none"
               style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
             >
               <option value="">Sélectionner une catégorie</option>
@@ -168,7 +168,7 @@ export default function TransactionEdit() {
             <select
               value={source}
               onChange={(e) => setSource(e.target.value as any)}
-              className="w-full px-4 py-3 rounded-xl text-sm"
+              className="w-full px-4 py-3 rounded-xl text-sm outline-none"
               style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
             >
               <option value="CAISSE">Caisse</option>
@@ -186,8 +186,7 @@ export default function TransactionEdit() {
                 value={personName}
                 onChange={(e) => setPersonName(e.target.value)}
                 placeholder="Nom de la personne"
-               
-className="
+                className="w-full px-4 py-3 rounded-xl text-sm outline-none"
                 style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
               />
             </div>
@@ -198,7 +197,7 @@ className="
             <select
               value={eventId}
               onChange={(e) => setEventId(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl text-sm"
+              className="w-full px-4 py-3 rounded-xl text-sm outline-none"
               style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
             >
               <option value="">Aucun événement</option>
@@ -215,7 +214,7 @@ className="
               onChange={(e) => setComment(e.target.value)}
               placeholder="Ajouter un commentaire..."
               rows={2}
-              className="w-full px-4 py-3 rounded-xl text-sm"
+              className="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none"
               style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
             />
           </div>
@@ -224,6 +223,7 @@ className="
             onClick={handleSubmit}
             className="w-full py-4 rounded-full font-semibold text-white text-sm transition-all active:scale-95"
             style={{ backgroundColor: type === 'INCOME' ? '#1DB954' : '#E51332' }}
+            aria-label="Sauvegarder la transaction"
           >
             Sauvegarder
           </button>
