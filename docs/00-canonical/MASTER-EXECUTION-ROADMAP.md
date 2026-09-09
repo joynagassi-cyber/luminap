@@ -41,18 +41,17 @@
 > - src/lib/orgContext.ts, src/lib/rbac.ts, src/capabilities/security/index.ts
 > - src/store/useLocalStore.ts (585 lignes)
 > - src/components/BottomNav.tsx, src/components/TopHeader.tsx
-> - src/capabilities/identity/, src/capabilities/organization/
+> - src/capabilities/identity/, src/capabilities/organization/, src/capabilities/policy/
 
 ---
+
+# MASTER EXECUTION ROADMAP — LUMINA PLATFORM
 
 > Last updated: 2026-09-08
-> Build: ✅ | TypeScript: 0 errors | Tests: 216/216 passing
-> Current Phase: 7 (Frontend Platform) — Sprints 7.1-7.7 COMPLETE
+> Build: ✅ | TypeScript: 0 errors | Tests: 261/261 passing
+> Current Phase: 12 (Legacy Elimination) — IN PROGRESS
 
 ---
-
-
-### Completed
 - ✅ **Workflow**: Status transition guards, 93 lines, 125 tests
 - ✅ **Lifecycle**: Archive/restore with audit, 218 lines, 340 tests
 - ✅ **Resource**: Generic entity access, 270 lines, 346 tests
