@@ -21,19 +21,11 @@ import { getPowerSyncDatabase } from '@/lib/powersync';
 import { security } from '@/capabilities/security';
 import type { Transaction, TransactionStatus } from '@/types';
 
-// ─── Mock orgContext (use vi.hoisted so the variable exists before vi.mock factory runs) ──
-const { _orgIdStore } = vi.hoisted(() => ({ _orgIdStore: 'e2e-tx-org-1' }));
+// ─── Mock orgContext (vi.hoisted runs before any module-level init) ──
+const _orgCtx = vi.hoisted(() => ({ value: 'e2e-tx-org-1' as string }));
 vi.mock('@/lib/orgContext', () => ({
-  getOrganizationId: () => _orgIdStore ?? 'default-org',
-  setOrganizationId: (id: string) => { Object.assign(_orgIdStore, { value: id }); },
-}));
-
-// Bridge: override the setter to mutate the hoisted variable properly
-const _orgIdRef = _orgIdStore;
-// Re-mock setOrganizationId via a proxy
-vi.doMock('@/lib/orgContext', () => ({
-  getOrganizationId: () => vi.hoisted(() => ({ value: 'e2e-tx-org-1' })).value,
-  setOrganizationId: (id: string) => {},
+  getOrganizationId: () => _orgCtx.value,
+  setOrganizationId: (id: string) => { _orgCtx.value = id; },
 }));
 
 // ─── Mock PowerSync with in-memory SQL store ───────────────────────
@@ -187,7 +179,7 @@ function seedTransaction(row: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'
 
 // ─── Cleanup between tests ─────────────────────────────────────────
 beforeEach(() => {
-  _orgIdStore[0] = 'e2e-tx-org-1';
+  _orgCtx.value = 'e2e-tx-org-1';
   Object.keys(_psRows).forEach(k => _psRows[k].length = 0);
   _auditEntries.length = 0;
   vi.clearAllMocks();
