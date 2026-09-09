@@ -4,6 +4,7 @@ import { generateId } from './utils';
 import { writeAudit } from './audit';
 import type { Transaction } from '@/types';
 import { getOrganizationId } from './orgContext';
+import { get, set, invalidate, asyncGetOrSet } from './cache';
 
 export type FilterOp = 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte' | 'contains' | 'in';
 
@@ -39,20 +40,30 @@ export class AggregationEngine {
   }
 
   private async aggregateTransactions(reportDef: ReportDefinition): Promise<ReportResult> {
+    const orgId = getOrganizationId();
+    const cacheKey = `report:tx:${JSON.stringify({ filters: reportDef.filters, groupBy: reportDef.groupBy, metrics: reportDef.metrics })}`;
+
+    const cached = get<ReportResult>(cacheKey);
+    if (cached) return cached;
+
     const db = getPowerSyncDatabase();
-    const result = await db.execute('SELECT * FROM transactions WHERE status = ?', ['APPROVED']);
+    // Only fetch columns needed for aggregation - exclude large text fields not used in metrics
+    const result = await db.execute(
+      `SELECT id, org_id, type, amount, date, status, category_id, source_caisse_id, event_id, person_name FROM transactions WHERE org_id = ? AND status = ?`,
+      [orgId, 'APPROVED']
+    );
     const transactions: Transaction[] = (result?.result || []).map((t: any) => ({
       id: t.id, orgId: t.org_id, type: t.type, amount: t.amount,
-      description: t.description, date: t.date, status: t.status,
-      createdAt: t.created_at, updatedAt: t.updated_at,
-      createdById: t.created_by_id, approvedById: t.approved_by_id,
-      approvedAt: t.approved_at, categoryId: t.category_id,
+      description: t.description ?? '', date: t.date, status: t.status,
+      createdAt: t.created_at ?? '', updatedAt: t.updated_at ?? '',
+      createdById: t.created_by_id ?? '', approvedById: t.approved_by_id ?? null,
+      approvedAt: t.approved_at ?? null, categoryId: t.category_id ?? null,
       orgUnitId: t.org_unit_id ?? null, eventId: t.event_id ?? null,
       source: t.source ?? null, personName: t.person_name ?? null,
-      compensatesFor: t.compensates_for ?? null, comment: t.comment ?? null,
-      version: t.version, sourceCaisseId: t.source_caisse_id ?? null,
-      versementId: t.versement_id ?? null, reversalOfId: t.reversal_of_id ?? null,
-      cotisationId: t.cotisation_id ?? null,
+      compensatesFor: null, comment: null,
+      version: t.version ?? 1, sourceCaisseId: t.source_caisse_id ?? null,
+      versementId: t.versement_id ?? null, reversalOfId: null,
+      cotisationId: null,
     }));
     const approved = transactions.filter(t => t.status === 'APPROVED');
     let filtered = approved;
@@ -138,7 +149,7 @@ export const reportDefinitionRepo = {
 
   async list(): Promise<ReportDefinition[]> {
     const db = getPowerSyncDatabase();
-    const result = await db.execute('SELECT * FROM report_definitions ORDER BY created_at DESC');
+    const result = await db.execute('SELECT id, org_id, name, data_source, dimensions, metrics, filters, group_by, sort_by, saved_by, is_template, created_at, updated_at FROM report_definitions WHERE org_id = ? ORDER BY created_at DESC', [getOrganizationId()]);
     return (result?.result || []).map((r: any) => ({
       id: r.id, orgId: r.org_id, name: r.name, dataSource: r.data_source,
       dimensions: JSON.parse(r.dimensions || '[]'), metrics: JSON.parse(r.metrics || '[]'),
@@ -163,5 +174,6 @@ export const reportDefinitionRepo = {
       afterState: null,
       comment: null,
     });
+    invalidate('report:');
   },
 };

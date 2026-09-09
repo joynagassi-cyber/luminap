@@ -26,6 +26,7 @@ import type {
   Member,
   Transaction,
 } from '@/types';
+import { get, set } from './cache';
 
 // ============================================================
 // State snapshot passed into service functions
@@ -349,9 +350,14 @@ export function getMembreHistorique(
   state: CotisationState
 ): { cotisation: Cotisation; culte: Event | undefined }[] {
   const cotisations = state.cotisations.filter(c => c.membreId === membreId);
+  // Build index for O(1) lookups instead of O(n) .find() per cotisation
+  const culteIndex = new Map<string, Event>();
+  for (const e of state.events) {
+    culteIndex.set(e.id, e);
+  }
   return cotisations
     .map(cot => {
-      const culte = state.events.find(e => e.id === cot.culteId);
+      const culte = culteIndex.get(cot.culteId);
       return { cotisation: cot, culte };
     })
     .filter(({ culte }) => culte !== undefined)

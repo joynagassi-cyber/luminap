@@ -15,6 +15,8 @@ import { getPowerSyncDatabase } from '@/lib/powersync';
 import { useLocalStore } from '@/store/useLocalStore';
 import { useEffect, useState, useRef } from 'react';
 import type { CustomFieldDefinition, CustomFieldValue, FormDefinition, FormSubmission } from '@/types';
+import { getOrganizationId } from './orgContext';
+import { get, set, invalidate, asyncGetOrSet } from './cache';
 
 // ============================================================
 // PowerSync entity types (snake_case columns)
@@ -258,19 +260,23 @@ function setPowerSyncReady(ready: boolean) {
 export function useTransactions() {
   const sync = usePowerSync();
   const store = useLocalStore();
+  const orgId = getOrganizationId();
+
+  // CPU-tier cache: 60s TTL, invalidates on transaction writes
+  const cached = get<PSTransaction[]>('txs:' + orgId);
+  if (cached) return { data: cached, isLoading: false, source: 'cached' as const };
 
   const { data: psData, status: psStatus } = useQuery<PSTransaction>(
-    'SELECT * FROM transactions ORDER BY created_at DESC',
-    [],
+    'SELECT id, org_id, type, amount, description, date, status, category_id, org_unit_id, event_id, source, person_name, compensates_for, comment, version, source_caisse_id, versement_id, reversal_of_id, created_by_id, approved_by_id, created_at, updated_at, approved_at FROM transactions WHERE org_id = ? ORDER BY created_at DESC',
+    [orgId],
     { reportFetching: true }
   );
 
-  // PowerSync has data and is ready → use it
   if (psData && psData.length > 0 && isPowerSyncReady()) {
+    set('txs:' + orgId, psData, { tier: 'cpu' });
     return { data: psData, isLoading: false, source: 'powersync' as const };
   }
 
-  // Fall back to local cache
   return { data: store.transactions, isLoading: store.isLoading, source: 'indexeddb' as const };
 }
 
@@ -279,8 +285,8 @@ export function useTransactions() {
  */
 export function useEvents() {
   const { data: psData, status: psStatus } = useQuery<PSEvent>(
-    'SELECT * FROM events ORDER BY start_date ASC',
-    [],
+    'SELECT id, org_id, name, description, start_date, end_date, status, type, budget, budget_items, created_at, updated_at FROM events WHERE org_id = ? ORDER BY start_date ASC',
+    [getOrganizationId()],
     { reportFetching: true }
   );
   const store = useLocalStore();
@@ -297,8 +303,8 @@ export function useEvents() {
  */
 export function useMembers() {
   const { data: psData } = useQuery<PSMember>(
-    'SELECT * FROM members ORDER BY last_name, first_name',
-    [],
+    'SELECT id, org_id, first_name, last_name, phone, email, status, joined_at, archived_at, archived_by, archive_reason, total_dons, montant_en_avance, created_at, updated_at FROM members WHERE org_id = ? ORDER BY last_name, first_name',
+    [getOrganizationId()],
     { reportFetching: true }
   );
   const store = useLocalStore();
@@ -315,8 +321,8 @@ export function useMembers() {
  */
 export function useGroups() {
   const { data: psData } = useQuery<PSGroup>(
-    'SELECT * FROM groups ORDER BY name',
-    [],
+    'SELECT id, org_id, name, parent_group_id, responsable_member_id, status, archived_at, archived_by, archive_reason, created_at, updated_at FROM groups WHERE org_id = ? ORDER BY name',
+    [getOrganizationId()],
     { reportFetching: true }
   );
   const store = useLocalStore();
@@ -333,8 +339,8 @@ export function useGroups() {
  */
 export function useCaisses() {
   const { data: psData } = useQuery<PSCaisse>(
-    'SELECT * FROM caisses ORDER BY name',
-    [],
+    'SELECT id, name, description, type, color, org_id, created_at, updated_at, archived_at, archived_by, archive_reason, status FROM caisses WHERE org_id = ? ORDER BY name',
+    [getOrganizationId()],
     { reportFetching: true }
   );
   const store = useLocalStore();
@@ -351,8 +357,8 @@ export function useCaisses() {
  */
 export function useAccounts() {
   const { data: psData } = useQuery<PSAccount>(
-    'SELECT * FROM accounts ORDER BY name',
-    [],
+    'SELECT id, org_id, owner_type, owner_id, name, currency, status, archived_at, archived_by, archive_reason, created_at, updated_at FROM accounts WHERE org_id = ? ORDER BY name',
+    [getOrganizationId()],
     { reportFetching: true }
   );
   const store = useLocalStore();
@@ -369,8 +375,8 @@ export function useAccounts() {
  */
 export function useNotifications() {
   const { data: psData } = useQuery<PSNotification>(
-    'SELECT * FROM notifications ORDER BY created_at DESC',
-    [],
+    'SELECT id, org_id, action_type, title, message, is_read, source_transaction_id, created_at FROM notifications WHERE org_id = ? ORDER BY created_at DESC',
+    [getOrganizationId()],
     { reportFetching: true }
   );
   const store = useLocalStore();
@@ -387,8 +393,8 @@ export function useNotifications() {
  */
 export function useCategories() {
   const { data: psData } = useQuery<PSCategory>(
-    'SELECT * FROM categories ORDER BY label_fr',
-    [],
+    'SELECT id, key, label_fr, type, org_id, created_at FROM categories WHERE org_id = ? ORDER BY label_fr',
+    [getOrganizationId()],
     { reportFetching: true }
   );
   const store = useLocalStore();
@@ -405,8 +411,8 @@ export function useCategories() {
  */
 export function useOrgUnits() {
   const { data: psData } = useQuery<PSOrgUnit>(
-    'SELECT * FROM org_units ORDER BY name',
-    [],
+    'SELECT id, name, type, org_id, description, is_active, created_at, updated_at FROM org_units WHERE org_id = ? ORDER BY name',
+    [getOrganizationId()],
     { reportFetching: true }
   );
   const store = useLocalStore();
@@ -423,8 +429,8 @@ export function useOrgUnits() {
  */
 export function useVersements() {
   const { data: psData } = useQuery<PSVersement>(
-    'SELECT * FROM versements ORDER BY created_at DESC',
-    [],
+    'SELECT id, org_id, from_account_id, to_account_id, amount_cents, date, status, created_by, approved_by, approved_at, comment, created_at FROM versements WHERE org_id = ? ORDER BY created_at DESC',
+    [getOrganizationId()],
     { reportFetching: true }
   );
   const store = useLocalStore();
@@ -461,7 +467,7 @@ export function useVersements() {
  */
 export function useEventBudgets() {
   const { data: psData } = useQuery<PSEventBudget>(
-    'SELECT * FROM event_budgets ORDER BY created_at DESC',
+    'SELECT id, event_id, currency, revised_at, revised_by, created_at FROM event_budgets ORDER BY created_at DESC',
     [],
     { reportFetching: true }
   );
@@ -479,7 +485,7 @@ export function useEventBudgets() {
  */
 export function useBudgetLines() {
   const { data: psData } = useQuery<PSBudgetLine>(
-    'SELECT * FROM budget_lines ORDER BY created_at DESC',
+    'SELECT id, event_budget_id, category_id, planned_amount_cents, actual_amount_cents, description, created_at FROM budget_lines ORDER BY created_at DESC',
     [],
     { reportFetching: true }
   );
@@ -497,8 +503,8 @@ export function useBudgetLines() {
  */
 export function useAuditEntries() {
   const { data: psData } = useQuery<PSAuditEntry>(
-    'SELECT * FROM audit_entries ORDER BY created_at DESC',
-    [],
+    'SELECT id, org_id, transaction_id, user_id, actor_role_at_time, action, entity_type, entity_id, before_state, after_state, comment, created_at FROM audit_entries WHERE org_id = ? ORDER BY created_at DESC',
+    [getOrganizationId()],
     { reportFetching: true }
   );
   const store = useLocalStore();
@@ -515,8 +521,8 @@ export function useAuditEntries() {
  */
 export function useCotisations() {
   const { data: psData } = useQuery<PSCotisation>(
-    'SELECT * FROM cotisations ORDER BY createdAt DESC',
-    [],
+    'SELECT id, culte_id, membre_id, statut, montantObligatoire, montantPaye, datePaiement, notes, createdAt, updatedAt FROM cotisations WHERE org_id = ? ORDER BY createdAt DESC',
+    [getOrganizationId()],
     { reportFetching: true }
   );
   const store = useLocalStore();
@@ -533,7 +539,7 @@ export function useCotisations() {
  */
 export function useGroupMemberships() {
   const { data: psData } = useQuery<PSGroupMembership>(
-    'SELECT * FROM group_memberships',
+    'SELECT id, member_id, group_id, role, created_at FROM group_memberships',
     [],
     { reportFetching: true }
   );
@@ -575,7 +581,7 @@ export async function removeGroupMembershipPS(id: string): Promise<void> {
  */
 export async function getGroupMembershipsPS(): Promise<PSGroupMembership[]> {
   const db = getPowerSyncDatabase();
-  const result = await db.execute(`SELECT * FROM group_memberships`);
+  const result = await db.execute(`SELECT id, member_id, group_id, role, created_at FROM group_memberships`);
   return (result?.result || []) as PSGroupMembership[];
 }
 
@@ -998,7 +1004,7 @@ export async function createCustomFieldDefinitionPS(
 export async function getCustomFieldDefinitionPS(id: string): Promise<CustomFieldDefinition | null> {
   const db = getPowerSyncDatabase();
   const result = await db.execute(
-    `SELECT * FROM custom_field_definitions WHERE id = ?`,
+    `SELECT id, org_id, entity_type, field_name, field_label, field_type, options, \`order\`, created_at, updated_at FROM custom_field_definitions WHERE id = ?`,
     [id]
   );
   const row = result?.result?.[0] as any;
@@ -1020,8 +1026,8 @@ export async function getCustomFieldDefinitionPS(id: string): Promise<CustomFiel
 export async function listCustomFieldDefinitionsPS(entityType?: string): Promise<CustomFieldDefinition[]> {
   const db = getPowerSyncDatabase();
   const sql = entityType
-    ? `SELECT * FROM custom_field_definitions WHERE entity_type = ?`
-    : `SELECT * FROM custom_field_definitions`;
+    ? `SELECT id, org_id, entity_type, field_name, field_label, field_type, options, \`order\`, created_at, updated_at FROM custom_field_definitions WHERE entity_type = ?`
+    : `SELECT id, org_id, entity_type, field_name, field_label, field_type, options, \`order\`, created_at, updated_at FROM custom_field_definitions`;
   const result = await db.execute(sql, entityType ? [entityType] : []);
   const rows = (result?.result || []) as any[];
   return rows.map(r => ({
@@ -1090,7 +1096,7 @@ export async function upsertCustomFieldValuePS(
 export async function getCustomFieldValuesByEntityPS(entityType: string, entityId: string): Promise<CustomFieldValue[]> {
   const db = getPowerSyncDatabase();
   const result = await db.execute(
-    `SELECT * FROM custom_field_values WHERE entity_type = ? AND entity_id = ?`,
+    `SELECT id, entity_type, entity_id, custom_field_definition_id, value, created_at, updated_at FROM custom_field_values WHERE entity_type = ? AND entity_id = ?`,
     [entityType, entityId]
   );
   const rows = (result?.result || []) as any[];
@@ -1140,7 +1146,7 @@ export async function createFormDefinitionPS(
 
 export async function getFormDefinitionPS(id: string): Promise<FormDefinition | null> {
   const db = getPowerSyncDatabase();
-  const result = await db.execute(`SELECT * FROM form_definitions WHERE id = ?`, [id]);
+  const result = await db.execute(`SELECT id, org_id, key, name, description, version, target_entity_type, fields, status, created_at, updated_at FROM form_definitions WHERE id = ?`, [id]);
   const row = result?.result?.[0] as any;
   if (!row) return null;
   return {
@@ -1165,8 +1171,8 @@ export async function listFormDefinitionsPS(filters?: { status?: string; orgId?:
   if (filters?.status) { conditions.push('status = ?'); params.push(filters.status); }
   if (filters?.orgId) { conditions.push('org_id = ?'); params.push(filters.orgId); }
   const sql = conditions.length > 0
-    ? `SELECT * FROM form_definitions WHERE ${conditions.join(' AND ')}`
-    : `SELECT * FROM form_definitions`;
+    ? `SELECT id, org_id, key, name, description, version, target_entity_type, fields, status, created_at, updated_at FROM form_definitions WHERE ${conditions.join(' AND ')}`
+    : `SELECT id, org_id, key, name, description, version, target_entity_type, fields, status, created_at, updated_at FROM form_definitions`;
   const result = await db.execute(sql, params);
   const rows = (result?.result || []) as any[];
   return rows.map(r => ({
@@ -1243,7 +1249,7 @@ export async function createFormSubmissionPS(
 
 export async function getFormSubmissionPS(id: string): Promise<FormSubmission | null> {
   const db = getPowerSyncDatabase();
-  const result = await db.execute(`SELECT * FROM form_submissions WHERE id = ?`, [id]);
+  const result = await db.execute(`SELECT id, org_id, form_definition_id, form_version, entity_type, entity_id, data, submitted_by, submitted_at, status, created_at FROM form_submissions WHERE id = ?`, [id]);
   const row = result?.result?.[0] as any;
   if (!row) return null;
   return {
@@ -1269,8 +1275,8 @@ export async function listFormSubmissionsPS(filters?: { formDefinitionId?: strin
   if (filters?.status) { conditions.push('status = ?'); params.push(filters.status); }
   if (filters?.entityId) { conditions.push('entity_id = ?'); params.push(filters.entityId); }
   const sql = conditions.length > 0
-    ? `SELECT * FROM form_submissions WHERE ${conditions.join(' AND ')}`
-    : `SELECT * FROM form_submissions`;
+    ? `SELECT id, org_id, form_definition_id, form_version, entity_type, entity_id, data, submitted_by, submitted_at, status, created_at FROM form_submissions WHERE ${conditions.join(' AND ')}`
+    : `SELECT id, org_id, form_definition_id, form_version, entity_type, entity_id, data, submitted_by, submitted_at, status, created_at FROM form_submissions`;
   const result = await db.execute(sql, params);
   const rows = (result?.result || []) as any[];
   return rows.map(r => ({

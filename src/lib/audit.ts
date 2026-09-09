@@ -2,6 +2,7 @@ import { getPowerSyncDatabase } from '@/lib/powersync';
 import { generateId } from './utils';
 import type { AuditEntry } from '@/types';
 import { getOrganizationId } from './orgContext';
+import { get, set, invalidate } from './cache';
 
 /**
  * AuditLogRepository
@@ -59,14 +60,20 @@ export const auditLogRepo: AuditLogRepository = {
         fullEntry.createdAt,
       ]
     );
+    invalidate('audit:');
     return Promise.resolve();
   },
 
   async list(filters = {}) {
+    const orgId = getOrganizationId();
+    const cacheKey = `audit:list:${JSON.stringify(filters)}`;
+    const cached = get<AuditEntry[]>(cacheKey);
+    if (cached) return cached;
+
     const db = getPowerSyncDatabase();
-    let query = 'SELECT * FROM audit_entries';
-    const params: any[] = [];
-    const conditions: string[] = [];
+    let query = 'SELECT id, org_id, transaction_id, user_id, actor_role_at_time, action, entity_type, entity_id, created_at FROM audit_entries';
+    const params: any[] = [orgId];
+    const conditions: string[] = ['org_id = ?'];
 
     if (filters.entityType) {
       conditions.push('entity_type = ?');
@@ -93,17 +100,26 @@ export const auditLogRepo: AuditLogRepository = {
       params.push(filters.actorId);
     }
 
-    if (conditions.length > 0) {
-      query += ' WHERE ' + conditions.join(' AND ');
-    }
+    query += ' WHERE ' + conditions.join(' AND ');
     query += ' ORDER BY created_at DESC';
 
     const result = await db.execute(query, params);
-    return (result?.result || []).map((a: any) => ({
-      ...a,
-      beforeState: a.before_state ? JSON.parse(a.before_state) : null,
-      afterState: a.after_state ? JSON.parse(a.after_state) : null,
+    const entries = (result?.result || []).map((a: any) => ({
+      id: a.id,
+      orgId: a.org_id,
+      transactionId: a.transaction_id,
+      userId: a.user_id,
+      actorRoleAtTime: a.actor_role_at_time,
+      action: a.action,
+      entityType: a.entity_type,
+      entityId: a.entity_id,
+      beforeState: null,
+      afterState: null,
+      comment: null,
+      createdAt: a.created_at,
     }));
+    set(cacheKey, entries, { tier: 'cpu' });
+    return entries;
   },
 
   async getByEntity(entityType, entityId) {
