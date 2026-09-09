@@ -98,7 +98,8 @@ export default function ReportBuilder() {
               value={report.name || ''}
               onChange={(e) => setReport(prev => ({ ...prev, name: e.target.value }))}
               placeholder="Ex: Revenus par groupe"
-              className="w-full px-4 py-3 rounded-xl text-text-primary text-sm outline-none"
+             
+className="w-full px-4 py-3 rounded-xl text-text-primary text-sm "
               style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
             />
           </div>

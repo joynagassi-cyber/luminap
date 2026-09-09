@@ -178,7 +178,8 @@ export default function TransactionNew() {
               <select
                 value={categoryId}
                 onChange={(e) => setCategoryId(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl text-sm outline-none"
+               
+className="w-full px-4 py-3 rounded-xl text-sm "
                 style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
               >
                 <option value="">Sélectionner une catégorie</option>
@@ -194,7 +195,8 @@ export default function TransactionNew() {
               <select
                 value={source}
                 onChange={(e) => setSource(e.target.value as any)}
-                className="w-full px-4 py-3 rounded-xl text-sm outline-none"
+               
+className="w-full px-4 py-3 rounded-xl text-sm "
                 style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
               >
                 <option value="CAISSE">Caisse</option>
@@ -211,7 +213,8 @@ export default function TransactionNew() {
                 <select
                   value={sourceCaisseId}
                   onChange={(e) => setSourceCaisseId(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl text-sm outline-none"
+                 
+className="w-full px-4 py-3 rounded-xl text-sm "
                   style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
                 >
                   {caisses.map((c: any) => (
@@ -241,7 +244,8 @@ export default function TransactionNew() {
               <select
                 value={eventId}
                 onChange={(e) => setEventId(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl text-sm outline-none"
+               
+className="w-full px-4 py-3 rounded-xl text-sm "
                 style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
               >
                 <option value="">Aucun événement</option>
@@ -259,7 +263,8 @@ export default function TransactionNew() {
                 onChange={(e) => setComment(e.target.value)}
                 placeholder="Ajouter un commentaire..."
                 rows={3}
-                className="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none"
+               
+className="w-full px-4 py-3 rounded-xl text-sm  resize-none"
                 style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
               />
             </div>

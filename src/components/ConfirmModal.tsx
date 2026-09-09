@@ -49,7 +49,7 @@ export default function ConfirmModal({
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center px-4 pb-4 sm:pb-0">
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative w-full max-w-sm rounded-t-2xl sm:rounded-2xl p-6 pb-8" style={{ backgroundColor: '#212121' }}>
-        <div className="w-12 h-1 rounded-full bg-surface-active mx-auto mb-4 sm:hidden" />
+        <div className="w-12 h-1 rounded-full bg-surface-active mx-auto mb-4 sm:hidden" aria-hidden="true" />
         <h3 className="text-lg font-bold text-text-primary mb-2 text-center">{title}</h3>
         <p className="text-text-tertiary text-sm text-center mb-4">{description}</p>
 
@@ -62,7 +62,7 @@ export default function ConfirmModal({
               type="text"
               value={inputValue}
               onIonChange={(e) => setInputValue(e.detail.value!)}
-              className="w-full px-4 py-3 rounded-lg text-text-primary text-sm outline-none text-center"
+              className="w-full px-4 py-3 rounded-lg text-text-primary text-sm text-center"
               style={{ backgroundColor: '#121212', border: '1px solid #282828' }}
               autoFocus
             />
@@ -77,6 +77,7 @@ export default function ConfirmModal({
             expand="block"
             className="!rounded-full !min-height:auto text-sm font-semibold"
             style={{ backgroundColor: '#282828', color: '#B3B3B3' }}
+            aria-label="Annuler"
           >
             Annuler
           </IonButton>
@@ -92,6 +93,7 @@ export default function ConfirmModal({
             disabled={isConfirmDisabled}
             className="!rounded-full !min-height:auto text-sm font-semibold !opacity-100 disabled:!opacity-40 disabled:!cursor-not-allowed active:scale-95 transition-transform"
             style={{ backgroundColor: confirmVariant === 'danger' ? '#E51332' : '#FF6B00', color: '#FFFFFF' }}
+            aria-label={confirmLabel}
           >
             {confirmLabel}
           </IonButton>

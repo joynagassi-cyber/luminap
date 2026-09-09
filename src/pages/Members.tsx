@@ -122,7 +122,8 @@ export default function MembersPage() {
                 placeholder="Rechercher un membre..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 rounded-xl text-sm outline-none"
+               
+className="w-full pl-10 pr-4 py-3 rounded-xl text-sm""
                 style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
               />
             </div>
@@ -138,7 +139,8 @@ export default function MembersPage() {
                       placeholder="Prénom"
                       value={firstName}
                       onChange={(e) => setFirstName(e.target.value)}
-                      className="px-4 py-3 rounded-xl text-sm outline-none"
+                     
+px-4 py-3 rounded-xl text-sm "
                       style={{ backgroundColor: '#181818', color: '#fff', border: '1px solid #282828' }}
                     />
                     <input
@@ -146,7 +148,8 @@ export default function MembersPage() {
                       placeholder="Nom"
                       value={lastName}
                       onChange={(e) => setLastName(e.target.value)}
-                      className="px-4 py-3 rounded-xl text-sm outline-none"
+                     
+px-4 py-3 rounded-xl text-sm "
                       style={{ backgroundColor: '#181818', color: '#fff', border: '1px solid #282828' }}
                     />
                   </div>
@@ -155,7 +158,8 @@ export default function MembersPage() {
                     placeholder="Téléphone"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl text-sm outline-none"
+                   
+w-full px-4 py-3 rounded-xl text-sm "
                     style={{ backgroundColor: '#181818', color: '#fff', border: '1px solid #282828' }}
                   />
                   <input
@@ -163,7 +167,8 @@ export default function MembersPage() {
                     placeholder="Email (optionnel)"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl text-sm outline-none"
+                   
+w-full px-4 py-3 rounded-xl text-sm "
                     style={{ backgroundColor: '#181818', color: '#fff', border: '1px solid #282828' }}
                   />
                   <div className="flex gap-2">

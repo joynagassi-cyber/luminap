@@ -56,7 +56,7 @@ export default function Events() {
                 <h1 className="text-text-primary font-bold text-xl">Événements</h1>
                 <p className="text-text-tertiary text-xs mt-0.5">{events.length} événement{events.length !== 1 ? 's' : ''}</p>
               </div>
-              <button onClick={() => navigate('/event/new')} className="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-semibold text-white transition-all active:scale-95" style={{ background: 'linear-gradient(135deg, #FF8533, #FF6B00)', boxShadow: '0 4px 12px rgba(255,107,0,0.3)' }}>
+              <button onClick={() => navigate('/event/new')} className="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-semibold text-white transition-all active:scale-95" style={{ background: 'linear-gradient(135deg, #FF8533, #FF6B00)', boxShadow: '0 4px 12px rgba(255,107,0,0.3)' }} aria-label="Créer un nouvel événement">
                 <Plus className="w-4 h-4" /> Créer
               </button>
             </div>
@@ -66,7 +66,7 @@ export default function Events() {
                 <Calendar className="w-12 h-12 mx-auto mb-4 text-text-tertiary opacity-40" />
                 <p className="text-text-tertiary text-sm mb-2">Aucun événement</p>
                 <p className="text-text-tertiary text-xs mb-4">Planifiez vos prochaines célébrations</p>
-                <button onClick={() => navigate('/event/new')} className="px-6 py-2.5 rounded-full text-sm font-medium text-white" style={{ backgroundColor: '#FF6B00' }}>
+                <button onClick={() => navigate('/event/new')} className="px-6 py-2.5 rounded-full text-sm font-medium text-white" style={{ backgroundColor: '#FF6B00' }} aria-label="Créer un événement">
                   Créer un événement
                 </button>
               </div>
@@ -79,7 +79,7 @@ export default function Events() {
                   const expense = eventTxs.filter((t: any) => t.type === 'EXPENSE' && t.status === 'APPROVED').reduce((s: number, t: any) => s + t.amount, 0);
                   const budgetItems = event.budget_items ? JSON.parse(event.budget_items) : [];
                   return (
-                    <button key={event.id} onClick={() => navigate(`/event/${event.id}`)} className="w-full text-left rounded-xl p-4 transition-all active:scale-95" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
+                    <button key={event.id} onClick={() => navigate(`/event/${event.id}`)} className="w-full text-left rounded-xl p-4 transition-all active:scale-95" style={{ backgroundColor: '#212121', border: '1px solid #282828' }} aria-label={`Voir les détails de ${event.name}`}>
                       <div className="flex items-start gap-3">
                         <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: color + '20' }}>
                           <Gift className="text-lg" style={{ color: '#FF6B00' }} />

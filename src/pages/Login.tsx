@@ -73,7 +73,8 @@ export default function Login() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Ex: Jean"
-              className="w-full px-4 py-3 rounded-xl text-white text-sm outline-none"
+             
+className="w-full px-4 py-3 rounded-xl text-white text-sm""
               style={{ backgroundColor: '#1E1E1E', border: '1px solid #282828' }}
             />
           </div>
@@ -90,6 +91,8 @@ export default function Login() {
                     ? { backgroundColor: '#FF6B00', color: '#fff' }
                     : { backgroundColor: '#1E1E1E', color: '#B3B3B3', border: '1px solid #282828' }
                   }
+                  aria-pressed={role === r.id}
+                  aria-label={r.label}
                 >
                   {r.label}
                 </button>
@@ -108,6 +111,7 @@ export default function Login() {
             disabled={loading || !name.trim() || !role}
             className="w-full py-4 rounded-full font-semibold text-white text-sm transition-all active:scale-95 disabled:opacity-50"
             style={{ backgroundColor: '#FF6B00' }}
+            aria-label="Continuer"
           >
             {loading ? 'Connexion...' : 'Continuer'}
           </button>

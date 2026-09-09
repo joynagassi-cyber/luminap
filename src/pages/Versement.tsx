@@ -124,7 +124,8 @@ export default function Versement() {
                   <select
                     value={selectedCaisse}
                     onChange={(e) => setSelectedCaisse(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl text-sm outline-none"
+                   
+className="w-full px-4 py-3 rounded-xl text-sm "
                     style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
                   >
                     <option value="">Choisir une caisse...</option>
@@ -156,7 +157,8 @@ export default function Versement() {
                     onChange={(e) => setAmount(e.target.value)}
                     placeholder="0"
                     max={maxAmount}
-                    className="w-full px-4 py-4 rounded-xl text-2xl font-bold outline-none text-center"
+                   
+className="w-full px-4 py-4 rounded-xl text-2xl font-bold  text-center"
                     style={{ backgroundColor: '#212121', color: '#fff', border: amountNum > maxAmount ? '1px solid #E51332' : '1px solid #282828' }}
                   />
                   {amountNum > maxAmount && (
@@ -175,7 +177,8 @@ export default function Versement() {
                     onChange={(e) => setComment(e.target.value)}
                     placeholder="Ajouter un commentaire..."
                     rows={2}
-                    className="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none"
+                   
+className="w-full px-4 py-3 rounded-xl text-sm  resize-none"
                     style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
                   />
                 </div>

@@ -68,6 +68,7 @@ export default function BottomNav() {
           boxShadow: `0 4px 16px ${fabAction.color}60`,
         }}
         aria-label={fabAction.label}
+        role="button"
       >
         {fabAction.icon === Check ? (
           <Check className="w-7 h-7 text-white" />
@@ -86,13 +87,18 @@ export default function BottomNav() {
           backdropFilter: 'blur(10px)',
           borderTop: '1px solid #282828',
         }}
+        role="navigation"
+        aria-label="Navigation principale"
       >
-        <div className="flex items-center justify-around max-w-lg mx-auto">
+        <div className="flex items-center justify-around max-w-lg mx-auto" role="tablist" aria-label="Navigation principale">
           {NAV_ITEMS.map(({ icon: Icon, label, path }) => (
             <IonTabButton
               key={path}
               href={path}
               className="!min-height:auto !p-0 flex flex-col items-center gap-0.5 px-3 py-2.5 rounded-xl transition-all min-w-0"
+              role="tab"
+              aria-selected={isActive(path)}
+              aria-label={label}
             >
               <Icon className="w-5 h-5" style={{ color: isActive(path) ? '#FF6B00' : '#B3B3B3', opacity: isActive(path) ? 1 : 0.7 }} />
               <span className="text-xs font-medium" style={{ color: isActive(path) ? '#FF6B00' : '#B3B3B3' }}>
@@ -107,6 +113,8 @@ export default function BottomNav() {
               fill="clear"
               onClick={() => setShowMore(!showMore)}
               className="!min-height:auto !p-0 flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-all min-w-0"
+              aria-label={showMore ? "Fermer le menu" : "Plus d'options"}
+              aria-expanded={showMore}
             >
               <MoreVertical className="w-5 h-5" style={{ color: showMore ? '#FF6B00' : '#B3B3B3' }} />
               <span className="text-xs font-medium" style={{ color: showMore ? '#FF6B00' : '#B3B3B3' }}>Plus</span>
@@ -126,6 +134,7 @@ export default function BottomNav() {
                       style={{ color: '#B3B3B3' }}
                       onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#282828')}
                       onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                      aria-label={label}
                     >
                       <Icon className="w-4 h-4 flex-shrink-0" style={{ color: '#B3B3B3' }} />
                       <span className="text-sm font-medium">{label}</span>

@@ -122,7 +122,8 @@ export default function TracePage() {
             placeholder="Rechercher..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl text-sm outline-none"
+           
+className="w-full px-4 py-3 rounded-xl text-sm "
             style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
           />
         </div>

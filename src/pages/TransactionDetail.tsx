@@ -260,7 +260,8 @@ export default function TransactionDetail() {
                 onChange={(e) => setRejectComment(e.target.value)}
                 placeholder="Raison du rejet (optionnel)"
                 rows={3}
-                className="w-full px-4 py-3 rounded-xl text-sm outline-none mb-4 resize-none"
+               
+className="w-full px-4 py-3 rounded-xl text-sm  mb-4 resize-none"
                 style={{ backgroundColor: '#282828', color: '#fff', border: '1px solid #383838' }}
               />
               <div className="flex gap-2">
@@ -286,7 +287,8 @@ export default function TransactionDetail() {
                 onChange={(e) => setReverseReason(e.target.value)}
                 placeholder="Ex: Erreur de montant"
                 rows={3}
-                className="w-full px-4 py-3 rounded-xl text-sm outline-none mb-4 resize-none"
+               
+className="w-full px-4 py-3 rounded-xl text-sm  mb-4 resize-none"
                 style={{ backgroundColor: '#282828', color: '#fff', border: '1px solid #383838' }}
               />
               <div className="flex gap-2">

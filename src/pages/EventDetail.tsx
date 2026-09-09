@@ -174,17 +174,17 @@ export default function EventDetail() {
           </span>
           <div className="flex items-center gap-2">
             {event.status === 'PLANIFIED' && (
-              <button onClick={() => handleStatusChange('ONGOING')} className="px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1" style={{ backgroundColor: '#1DB95420', color: '#1DB954' }}>
+              <button onClick={() => handleStatusChange('ONGOING')} className="px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1" style={{ backgroundColor: '#1DB95420', color: '#1DB954' }} aria-label="Démarrer l'événement">
                 <Play className="w-3 h-3" /> Démarrer
               </button>
             )}
             {event.status === 'ONGOING' && (
-              <button onClick={() => handleStatusChange('COMPLETED')} className="px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1" style={{ backgroundColor: '#80808020', color: '#B3B3B3' }}>
+              <button onClick={() => handleStatusChange('COMPLETED')} className="px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1" style={{ backgroundColor: '#80808020', color: '#B3B3B3' }} aria-label="Terminer l'événement">
                 <CheckCircle className="w-3 h-3" /> Terminer
               </button>
             )}
             {(event.status === 'PLANIFIED' || event.status === 'ONGOING') && (
-              <button onClick={() => handleStatusChange('CANCELLED')} className="px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1" style={{ backgroundColor: '#E5133220', color: '#E51332' }}>
+              <button onClick={() => handleStatusChange('CANCELLED')} className="px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1" style={{ backgroundColor: '#E5133220', color: '#E51332' }} aria-label="Annuler l'événement">
                 <Flag className="w-3 h-3" /> Annuler
               </button>
             )}
@@ -268,6 +268,9 @@ export default function EventDetail() {
                   ? { backgroundColor: '#FF6B00', color: '#fff', boxShadow: '0 2px 8px rgba(255,107,0,0.3)' }
                   : { backgroundColor: 'transparent', color: '#808080' }
                 }
+                aria-label={`Onglet ${label}`}
+                role="tab"
+                aria-selected={activeTab === tabId}
               >
                 {label}
               </button>
@@ -281,8 +284,9 @@ export default function EventDetail() {
             <div className="grid grid-cols-2 gap-3">
               <button
                 onClick={() => setActiveTab('budget')}
-                className="p-4 rounded-xl text-left transition-all active:scale-95"
+                className="p-4 rounded-xl text-left transition-all active:scale-95 w-full"
                 style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
+                aria-label="Gérer le budget"
               >
                 <div className="w-10 h-10 rounded-full flex items-center justify-center mb-2" style={{ backgroundColor: '#FF6B0020' }}>
                   <Tag className="w-5 h-5" style={{ color: '#FF6B00' }} />
@@ -292,8 +296,9 @@ export default function EventDetail() {
               </button>
               <button
                 onClick={() => setActiveTab('transactions')}
-                className="p-4 rounded-xl text-left transition-all active:scale-95"
+                className="p-4 rounded-xl text-left transition-all active:scale-95 w-full"
                 style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
+                aria-label="Voir les transactions"
               >
                 <div className="w-10 h-10 rounded-full flex items-center justify-center mb-2" style={{ backgroundColor: '#1DB95420' }}>
                   <ArrowDown className="w-5 h-5" style={{ color: '#1DB954' }} />
@@ -455,13 +460,13 @@ export default function EventDetail() {
 
         {/* Delete button */}
         {security.hasRole(useLocalStore.getState().user.role, 'event', 'delete') && (
-          <button onClick={() => setShowDelete(true)} className="w-full py-3 rounded-full font-medium text-sm flex items-center justify-center gap-2 mt-5 mb-4" style={{ backgroundColor: '#212121', color: '#E51332' }}>
+          <button onClick={() => setShowDelete(true)} className="w-full py-3 rounded-full font-medium text-sm flex items-center justify-center gap-2 mt-5 mb-4" style={{ backgroundColor: '#212121', color: '#E51332' }} aria-label="Supprimer l'événement">
             <Trash2 className="w-4 h-4" /> Supprimer l'événement
           </button>
         )}
 
         {security.hasPermission(useLocalStore.getState().user.role, 'event:update') && (
-          <button onClick={() => navigate(`/event/${event.id}/edit`)} className="w-full py-3 rounded-full font-medium text-sm flex items-center justify-center gap-2 mb-4" style={{ backgroundColor: '#212121', color: '#FF6B00' }}>
+          <button onClick={() => navigate(`/event/${event.id}/edit`)} className="w-full py-3 rounded-full font-medium text-sm flex items-center justify-center gap-2 mb-4" style={{ backgroundColor: '#212121', color: '#FF6B00' }} aria-label="Modifier l'événement">
             <Edit3 className="w-4 h-4" /> Modifier l'événement
           </button>
         )}
@@ -487,7 +492,7 @@ export default function EventDetail() {
                   <select
                     value={selectedBudgetItemId || ''}
                     onChange={(e) => setSelectedBudgetItemId(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl text-text-primary text-sm outline-none"
+                    className="w-full px-4 py-3 rounded-xl text-text-primary text-sm"
                     style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
                   >
                     <option value="">Sélectionner un poste...</option>
@@ -506,7 +511,7 @@ export default function EventDetail() {
                     value={expenseAmount}
                     onChange={(e) => setExpenseAmount(e.target.value)}
                     placeholder="0"
-                    className="w-full px-4 py-3 rounded-xl text-text-primary text-sm outline-none"
+                    className="w-full px-4 py-3 rounded-xl text-text-primary text-sm"
                     style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
                   />
                   {selectedBudgetItemId && (() => {
@@ -530,7 +535,7 @@ export default function EventDetail() {
                     value={expenseDescription}
                     onChange={(e) => setExpenseDescription(e.target.value)}
                     placeholder="Ex: Achat de chaises"
-                    className="w-full px-4 py-3 rounded-xl text-text-primary text-sm outline-none"
+                    className="w-full px-4 py-3 rounded-xl text-text-primary text-sm"
                     style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
                   />
                 </div>

@@ -73,7 +73,7 @@ export default function SettingsPage() {
         <div className="rounded-xl p-4 mb-5 flex items-center gap-4" style={{ backgroundColor: '#212121' }}>
           <div className="relative">
             {userPhoto ? (
-              <img src={userPhoto} alt="Photo" className="w-14 h-14 rounded-full object-cover" />
+              <img src={userPhoto} alt={`Photo de profil de ${user.firstName}`} className="w-14 h-14 rounded-full object-cover" />
             ) : (
               <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ backgroundColor: '#FF6B0020' }}>
                 <UserCircle className="w-7 h-7" style={{ color: '#FF6B00' }} />
@@ -105,7 +105,8 @@ export default function SettingsPage() {
                 value={churchName}
                 onChange={(e) => setChurchName(e.target.value)}
                 placeholder="Ex: Église MFE-JC Centrale de Douala"
-                className="w-full px-4 py-3 rounded-xl text-text-primary text-sm outline-none"
+               
+className="w-full px-4 py-3 rounded-xl text-text-primary text-sm "
                 style={{ backgroundColor: '#181818', border: '1px solid #282828' }}
               />
             </div>
@@ -113,7 +114,7 @@ export default function SettingsPage() {
               <label className="text-text-tertiary text-xs mb-1.5 block">Logo de l'église</label>
               <div className="flex items-center gap-3">
                 {churchLogo ? (
-                  <img src={churchLogo} alt="Logo" className="w-12 h-12 rounded-lg object-cover" style={{ border: '1px solid #282828' }} />
+                  <img src={churchLogo} alt={`Logo de ${churchName || 'l\'église'}`} className="w-12 h-12 rounded-lg object-cover" style={{ border: '1px solid #282828' }} />
                 ) : (
                   <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#181818', border: '1px solid #282828' }}>
                     <ImageIcon className="w-5 h-5 text-text-tertiary" />
@@ -121,13 +122,13 @@ export default function SettingsPage() {
                 )}
                 <label className="flex-1">
                   <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
-                  <span className="text-xs font-medium text-center py-2 rounded-xl block cursor-pointer transition-all active:scale-95" style={{ backgroundColor: '#FF6B0020', color: '#FF6B00' }}>
+                  <span className="text-xs font-medium text-center py-2 rounded-xl block cursor-pointer transition-all active:scale-95" style={{ backgroundColor: '#FF6B0020', color: '#FF6B00' }} aria-label="Choisir un logo">
                     Choisir un logo
                   </span>
                 </label>
               </div>
             </div>
-            <button onClick={handleSave} disabled={saving} className="w-full py-3 rounded-full font-semibold text-white text-sm transition-all active:scale-95 disabled:opacity-50" style={{ backgroundColor: '#FF6B00' }}>
+            <button onClick={handleSave} disabled={saving} className="w-full py-3 rounded-full font-semibold text-white text-sm transition-all active:scale-95 disabled:opacity-50" style={{ backgroundColor: '#FF6B00' }} aria-label="Sauvegarder la configuration">
               {saving ? 'Sauvegarde...' : saved ? (
                 <span className="flex items-center justify-center gap-2"><Check className="w-4 h-4" /> Sauvegardé</span>
               ) : 'Sauvegarder la configuration'}
@@ -175,28 +176,28 @@ export default function SettingsPage() {
 
         {/* Quick links */}
         <div className="grid grid-cols-2 gap-3 mb-5">
-          <button onClick={() => navigate('/forms')} className="p-4 rounded-xl text-left active:scale-95 transition-transform" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
+          <button onClick={() => navigate('/forms')} className="p-4 rounded-xl text-left active:scale-95 transition-transform w-full" style={{ backgroundColor: '#212121', border: '1px solid #282828' }} aria-label="Gérer les formulaires">
             <div className="w-10 h-10 rounded-full flex items-center justify-center mb-2" style={{ backgroundColor: '#FF6B0020' }}>
               <ClipboardList className="w-5 h-5" style={{ color: '#FF6B00' }} />
             </div>
             <p className="text-text-primary text-sm font-semibold">Formulaires</p>
             <p className="text-text-tertiary text-xs mt-0.5">Créer & gérer</p>
           </button>
-          <button onClick={() => navigate('/custom-fields')} className="p-4 rounded-xl text-left active:scale-95 transition-transform" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
+          <button onClick={() => navigate('/custom-fields')} className="p-4 rounded-xl text-left active:scale-95 transition-transform w-full" style={{ backgroundColor: '#212121', border: '1px solid #282828' }} aria-label="Champs personnalisés">
             <div className="w-10 h-10 rounded-full flex items-center justify-center mb-2" style={{ backgroundColor: '#8B5CF620' }}>
               <Tag className="w-5 h-5" style={{ color: '#8B5CF6' }} />
             </div>
             <p className="text-text-primary text-sm font-semibold">Champs pers.</p>
             <p className="text-text-tertiary text-xs mt-0.5">Customiser</p>
           </button>
-          <button onClick={() => navigate('/archives')} className="p-4 rounded-xl text-left active:scale-95 transition-transform" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
+          <button onClick={() => navigate('/archives')} className="p-4 rounded-xl text-left active:scale-95 transition-transform w-full" style={{ backgroundColor: '#212121', border: '1px solid #282828' }} aria-label="Gérer les archives">
             <div className="w-10 h-10 rounded-full flex items-center justify-center mb-2" style={{ backgroundColor: '#3B82F620' }}>
               <Archive className="w-5 h-5" style={{ color: '#3B82F6' }} />
             </div>
             <p className="text-text-primary text-sm font-semibold">Archives</p>
             <p className="text-text-tertiary text-xs mt-0.5">Gérer les archives</p>
           </button>
-          <button onClick={() => navigate('/reports')} className="p-4 rounded-xl text-left active:scale-95 transition-transform" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
+          <button onClick={() => navigate('/reports')} className="p-4 rounded-xl text-left active:scale-95 transition-transform w-full" style={{ backgroundColor: '#212121', border: '1px solid #282828' }} aria-label="Voir les rapports">
             <div className="w-10 h-10 rounded-full flex items-center justify-center mb-2" style={{ backgroundColor: '#1DB95420' }}>
               <BarChart3 className="w-5 h-5" style={{ color: '#1DB954' }} />
             </div>
@@ -207,7 +208,7 @@ export default function SettingsPage() {
 
         {/* Actions */}
         <div className="space-y-2 mb-6">
-          <button onClick={handleRefresh} className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
+          <button onClick={handleRefresh} className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121', border: '1px solid #282828' }} aria-label="Actualiser les données">
             <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#FF6B0020' }}>
               <RefreshCw className="w-5 h-5" style={{ color: '#FF6B00' }} />
             </div>
@@ -217,7 +218,7 @@ export default function SettingsPage() {
             </div>
           </button>
 
-          <button onClick={() => navigate('/balance')} className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
+          <button onClick={() => navigate('/balance')} className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121', border: '1px solid #282828' }} aria-label="Voir le bilan financier">
             <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#1DB95420' }}>
               <CreditCard className="w-5 h-5" style={{ color: '#1DB954' }} />
             </div>
@@ -227,7 +228,7 @@ export default function SettingsPage() {
             </div>
           </button>
 
-          <button onClick={() => navigate('/tutoriel')} className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
+          <button onClick={() => navigate('/tutoriel')} className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121', border: '1px solid #282828' }} aria-label="Voir le tutoriel">
             <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#8B5CF620' }}>
               <BookOpen className="text-lg" style={{ color: '#8B5CF6' }} />
             </div>
@@ -237,7 +238,7 @@ export default function SettingsPage() {
             </div>
           </button>
 
-          <button onClick={() => navigate('/trace')} className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
+          <button onClick={() => navigate('/trace')} className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121', border: '1px solid #282828' }} aria-label="Voir la trace d'activité">
             <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#3B82F620' }}>
               <Clock className="w-5 h-5" style={{ color: '#3B82F6' }} />
             </div>
@@ -246,7 +247,7 @@ export default function SettingsPage() {
               <p className="text-text-tertiary text-xs mt-0.5">Journal de toutes les opérations</p>
             </div>
           </button>
-          <button onClick={() => navigate('/history')} className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
+          <button onClick={() => navigate('/history')} className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121', border: '1px solid #282828' }} aria-label="Voir l'historique financier">
             <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#FFB80020' }}>
               <BarChart3 className="w-5 h-5" style={{ color: '#FFB800' }} />
             </div>
@@ -256,7 +257,7 @@ export default function SettingsPage() {
             </div>
           </button>
 
-          <button onClick={() => navigate('/versement')} className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121', border: '1px solid #282828' }}>
+          <button onClick={() => navigate('/versement')} className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform text-left" style={{ backgroundColor: '#212121', border: '1px solid #282828' }} aria-label="Nouveau versement">
             <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#FFB80020' }}>
               <CreditCard className="text-lg" style={{ color: '#FFB800' }} />
             </div>
@@ -268,7 +269,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Logout */}
-        <button onClick={handleLogout} className="w-full py-3 rounded-full font-medium text-sm text-text-tertiary transition-all active:scale-95" style={{ backgroundColor: '#212121' }}>
+        <button onClick={handleLogout} className="w-full py-3 rounded-full font-medium text-sm text-text-tertiary transition-all active:scale-95" style={{ backgroundColor: '#212121' }} aria-label="Se déconnecter">
           Se déconnecter
         </button>
 

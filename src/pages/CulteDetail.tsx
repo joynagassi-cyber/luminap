@@ -128,6 +128,7 @@ export default function CulteDetail() {
           onClick={() => navigate('/cotisations')}
           className="w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-95"
           style={{ backgroundColor: '#212121' }}
+          aria-label="Retour aux cultes"
         >
           <ArrowLeft className="w-4 h-4 text-text-secondary" />
         </button>
@@ -183,6 +184,7 @@ export default function CulteDetail() {
           onClick={() => setShowMassPay(true)}
           className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95"
           style={{ backgroundColor: '#FF6B00', color: '#fff' }}
+          aria-label="Effectuer un paiement massif"
         >
           Paiement massif
         </button>
@@ -190,6 +192,7 @@ export default function CulteDetail() {
           onClick={() => navigate(`/saisie-rapide/${id}`)}
           className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95"
           style={{ backgroundColor: '#212121', color: '#FF6B00', border: '1px solid #FF6B00' }}
+          aria-label="Saisie rapide des cotisations"
         >
           Saisie rapide
         </button>

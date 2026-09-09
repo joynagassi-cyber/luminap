@@ -190,7 +190,8 @@ export default function FormBuilder() {
                 onChange={(e) => setFormDescription(e.target.value)}
                 placeholder="Description (optionnel)"
                 rows={2}
-                className="w-full px-4 py-3 rounded-xl text-text-primary text-sm outline-none resize-none"
+               
+className="w-full px-4 py-3 rounded-xl text-text-primary text-sm  resize-none"
                 style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
               />
             </div>
@@ -220,13 +221,15 @@ export default function FormBuilder() {
                 type="text"
                 value={field.label}
                 onChange={(e) => updateField(index, { label: e.target.value })}
-                className="flex-1 px-3 py-1.5 rounded-lg text-sm outline-none"
+               
+flex-1 px-3 py-1.5 rounded-lg text-sm "
                 style={{ backgroundColor: '#181818', border: '1px solid #282828', color: '#fff' }}
               />
                     <select
                       value={field.type}
                       onChange={(e) => updateField(index, { type: e.target.value as FormFieldDefinition['type'] })}
-                      className="px-2 py-1.5 rounded-lg text-xs outline-none"
+                     
+px-2 py-1.5 rounded-lg text-xs "
                       style={{ backgroundColor: '#181818', color: '#B3B3B3', border: '1px solid #282828' }}
                     >
                       {FIELD_TYPES.map(ft => <option key={ft.value} value={ft.value}>{ft.label}</option>)}
@@ -244,7 +247,8 @@ export default function FormBuilder() {
                       onChange={(e) => updateField(index, { options: e.target.value.split('\n').filter(Boolean) })}
                       placeholder="Options (une par ligne)"
                       rows={2}
-                      className="w-full px-3 py-2 rounded-lg text-xs outline-none resize-none"
+                     
+className="w-full px-3 py-2 rounded-lg text-xs  resize-none"
                       style={{ backgroundColor: '#181818', border: '1px solid #282828', color: '#fff' }}
                     />
                   )}

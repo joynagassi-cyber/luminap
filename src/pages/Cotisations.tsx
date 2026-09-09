@@ -86,6 +86,7 @@ export default function Cotisations() {
             onClick={() => navigate('/event/new', { state: { defaultType: 'CULTE' } })}
             className="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-semibold text-white transition-all active:scale-95"
             style={{ background: 'linear-gradient(135deg, #FF8533, #FF6B00)', boxShadow: '0 4px 12px rgba(255,107,0,0.3)' }}
+            aria-label="Créer un nouveau culte"
           >
             <Plus className="w-4 h-4" />
             Nouveau culte
@@ -103,6 +104,7 @@ export default function Cotisations() {
               onClick={() => navigate('/event/new', { state: { defaultType: 'CULTE' } })}
               className="px-6 py-2.5 rounded-full text-sm font-medium text-white"
               style={{ background: '#FF6B00' }}
+              aria-label="Créer un culte"
             >
               Créer un culte
             </button>
@@ -117,6 +119,7 @@ export default function Cotisations() {
                   onClick={() => navigate(`/saisie-rapide/${stat.culteId}`)}
                   className="w-full text-left rounded-xl p-4 transition-all active:scale-95"
                   style={{ background: '#212121', border: '1px solid #282828' }}
+                  aria-label={`Culte ${stat.culteName || stat.culteId}`}
                 >
                   <div className="flex items-start gap-3">
                     <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(255,107,0,0.15)' }}>

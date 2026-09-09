@@ -120,7 +120,8 @@ export default function TransactionEdit() {
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="0"
-              className="w-full px-4 py-3 rounded-xl text-lg font-bold outline-none text-center"
+             
+w-full px-4 py-3 rounded-xl text-lg font-bold  text-center"
               style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
             />
           </div>
@@ -132,7 +133,8 @@ export default function TransactionEdit() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Description de la transaction"
-              className="w-full px-4 py-3 rounded-xl text-sm outline-none"
+             
+w-full px-4 py-3 rounded-xl text-sm "
               style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
             />
           </div>
@@ -143,7 +145,8 @@ export default function TransactionEdit() {
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl text-sm outline-none"
+             
+w-full px-4 py-3 rounded-xl text-sm "
               style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
             />
           </div>
@@ -153,7 +156,8 @@ export default function TransactionEdit() {
             <select
               value={categoryId}
               onChange={(e) => setCategoryId(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl text-sm outline-none"
+             
+w-full px-4 py-3 rounded-xl text-sm "
               style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
             >
               <option value="">Sélectionner une catégorie</option>
@@ -168,7 +172,8 @@ export default function TransactionEdit() {
             <select
               value={source}
               onChange={(e) => setSource(e.target.value as any)}
-              className="w-full px-4 py-3 rounded-xl text-sm outline-none"
+             
+w-full px-4 py-3 rounded-xl text-sm "
               style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
             >
               <option value="CAISSE">Caisse</option>
@@ -186,7 +191,8 @@ export default function TransactionEdit() {
                 value={personName}
                 onChange={(e) => setPersonName(e.target.value)}
                 placeholder="Nom de la personne"
-                className="w-full px-4 py-3 rounded-xl text-sm outline-none"
+               
+w-full px-4 py-3 rounded-xl text-sm "
                 style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
               />
             </div>
@@ -197,7 +203,8 @@ export default function TransactionEdit() {
             <select
               value={eventId}
               onChange={(e) => setEventId(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl text-sm outline-none"
+             
+w-full px-4 py-3 rounded-xl text-sm "
               style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
             >
               <option value="">Aucun événement</option>
@@ -214,7 +221,8 @@ export default function TransactionEdit() {
               onChange={(e) => setComment(e.target.value)}
               placeholder="Ajouter un commentaire..."
               rows={2}
-              className="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none"
+             
+w-full px-4 py-3 rounded-xl text-sm  resize-none"
               style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
             />
           </div>

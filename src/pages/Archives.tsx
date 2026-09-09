@@ -74,7 +74,7 @@ export default function Archives() {
         </div>
       ) : (
       <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
-        <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-text-secondary text-sm mb-5">
+        <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-text-secondary text-sm mb-5" aria-label="Retour à la page précédente">
           <ArrowLeft className="w-4 h-4" /> Retour
         </button>
 
@@ -88,7 +88,7 @@ export default function Archives() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Rechercher dans les archives..."
-            className="w-full pl-9 pr-4 py-2.5 rounded-xl text-text-primary text-sm outline-none"
+            className="w-full pl-9 pr-4 py-2.5 rounded-xl text-text-primary text-sm"
             style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
           />
         </div>
@@ -106,6 +106,8 @@ export default function Archives() {
               onClick={() => setFilterType(id)}
               className="px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-all"
               style={{ backgroundColor: filterType === id ? '#FF6B00' : '#212121', color: filterType === id ? '#fff' : '#B3B3B3' }}
+              aria-pressed={filterType === id}
+              aria-label={`Filtrer par ${label}`}
             >
               {label}
             </button>
@@ -143,6 +145,7 @@ export default function Archives() {
                   onClick={() => handleRestore(item.type as any, item.id)}
                   className="p-2 rounded-full active:scale-95 transition-transform"
                   style={{ backgroundColor: '#1DB95420' }}
+                  aria-label={`Restaurer ${item.name}`}
                 >
                   <RefreshCw className="w-4 h-4" style={{ color: '#1DB954' }} />
                 </button>

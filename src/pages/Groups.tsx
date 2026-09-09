@@ -162,13 +162,15 @@ export default function Groups() {
                 value={createName}
                 onChange={(e) => setCreateName(e.target.value)}
                 placeholder="Nom du groupe"
-                className="w-full px-4 py-3 rounded-xl text-sm outline-none"
+               
+className="w-full px-4 py-3 rounded-xl text-sm""
                 style={{ backgroundColor: '#181818', color: '#fff', border: '1px solid #282828' }}
               />
               <select
                 value={createType}
                 onChange={(e) => setCreateType(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl text-sm outline-none"
+               
+className="w-full px-4 py-3 rounded-xl text-sm""
                 style={{ backgroundColor: '#181818', color: '#fff', border: '1px solid #282828' }}
               >
                 {GROUP_TYPES.map(t => (
@@ -180,7 +182,8 @@ export default function Groups() {
                 onChange={(e) => setCreateDesc(e.target.value)}
                 placeholder="Description (optionnel)"
                 rows={2}
-                className="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none"
+               
+className="w-full px-4 py-3 rounded-xl text-sm" resize-none"
                 style={{ backgroundColor: '#181818', color: '#fff', border: '1px solid #282828' }}
               />
               <div className="flex gap-2">
@@ -262,7 +265,8 @@ export default function Groups() {
                   type="text"
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl text-sm outline-none"
+                 
+className="w-full px-4 py-3 rounded-xl text-sm""
                   style={{ backgroundColor: '#282828', color: '#fff', border: '1px solid #383838' }}
                 />
                 <textarea
@@ -270,7 +274,8 @@ export default function Groups() {
                   onChange={(e) => setEditDesc(e.target.value)}
                   placeholder="Description"
                   rows={2}
-                  className="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none"
+                 
+className="w-full px-4 py-3 rounded-xl text-sm" resize-none"
                   style={{ backgroundColor: '#282828', color: '#fff', border: '1px solid #383838' }}
                 />
               </div>

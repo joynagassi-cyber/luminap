@@ -68,7 +68,7 @@ export default function CustomFields() {
       <div className="min-h-screen bg-canvas">
       <TopHeader title="Champs personnalisés" />
       <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
-        <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-text-secondary text-sm mb-5">
+        <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-text-secondary text-sm mb-5" aria-label="Retour">
           <ArrowLeft className="w-4 h-4" /> Retour
         </button>
 
@@ -78,6 +78,7 @@ export default function CustomFields() {
             onClick={() => setShowCreate(true)}
             className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold text-white"
             style={{ background: 'linear-gradient(135deg, #FF8533, #FF6B00)' }}
+            aria-label="Créer un nouveau champ"
           >
             <Plus className="w-4 h-4" /> Créer
           </button>
@@ -101,7 +102,7 @@ export default function CustomFields() {
                   </div>
                   <p className="text-text-tertiary text-xs">Clé: {field.key} · {FIELD_TYPES.find(t => t.value === field.type)?.label}</p>
                 </div>
-                <button onClick={() => handleDelete(field.id)} style={{ color: '#E51332' }}>
+                <button onClick={() => handleDelete(field.id)} style={{ color: '#E51332' }} aria-label={`Supprimer le champ ${field.label}`}>
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
@@ -117,7 +118,7 @@ export default function CustomFields() {
           <div className="relative w-full max-w-lg rounded-t-2xl p-5 pb-8" style={{ backgroundColor: '#181818' }} onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-text-primary font-bold text-lg">Nouveau champ</h2>
-              <button onClick={() => setShowCreate(false)} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: '#282828' }}>
+              <button onClick={() => setShowCreate(false)} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: '#282828' }} aria-label="Fermer">
                 <X className="w-4 h-4 text-text-tertiary" />
               </button>
             </div>
@@ -128,7 +129,7 @@ export default function CustomFields() {
                 <select
                   value={entityType}
                   onChange={(e) => setEntityType(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl text-text-primary text-sm outline-none appearance-none"
+                  className="w-full px-4 py-3 rounded-xl text-text-primary text-sm appearance-none"
                   style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
                 >
                   {ENTITY_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
@@ -141,7 +142,7 @@ export default function CustomFields() {
                   value={label}
                   onChange={(e) => setLabel(e.target.value)}
                   placeholder="Ex: Montant estimé"
-                  className="w-full px-4 py-3 rounded-xl text-text-primary text-sm outline-none"
+                  className="w-full px-4 py-3 rounded-xl text-text-primary text-sm"
                   style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
                 />
               </div>
@@ -152,7 +153,7 @@ export default function CustomFields() {
                   value={key}
                   onChange={(e) => setKey(e.target.value.replace(/\s+/g, '_').toLowerCase())}
                   placeholder="montant_estime"
-                  className="w-full px-4 py-3 rounded-xl text-text-primary text-sm outline-none"
+                  className="w-full px-4 py-3 rounded-xl text-text-primary text-sm"
                   style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
                 />
               </div>
@@ -179,18 +180,19 @@ export default function CustomFields() {
                     onChange={(e) => setOptions(e.target.value)}
                     placeholder="Option 1\nOption 2"
                     rows={3}
-                    className="w-full px-4 py-3 rounded-xl text-text-primary text-sm outline-none resize-none"
+                    className="w-full px-4 py-3 rounded-xl text-text-primary text-sm resize-none"
                     style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
+                    aria-label="Options du champ (une par ligne)"
                   />
                 </div>
               )}
             </div>
 
             {error && <p className="text-xs mb-3" style={{ color: '#E51332' }}>{error}</p>}
-            <button onClick={handleCreate} className="w-full py-3.5 rounded-full font-semibold text-white mb-3" style={{ backgroundColor: '#FF6B00' }}>
+            <button onClick={handleCreate} className="w-full py-3.5 rounded-full font-semibold text-white mb-3" style={{ backgroundColor: '#FF6B00' }} aria-label="Créer le champ">
               Créer le champ
             </button>
-            <button onClick={() => setShowCreate(false)} className="w-full py-3 rounded-full font-medium text-sm text-text-tertiary" style={{ backgroundColor: '#212121' }}>
+            <button onClick={() => setShowCreate(false)} className="w-full py-3 rounded-full font-medium text-sm text-text-tertiary" style={{ backgroundColor: '#212121' }} aria-label="Annuler">
               Annuler
             </button>
           </div>

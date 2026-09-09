@@ -188,7 +188,7 @@ export default function EventNew() {
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Description de l'événement..."
               rows={3}
-              className="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none"
+              className="w-full px-4 py-3 rounded-xl text-sm resize-none"
               style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
             />
           </div>
@@ -220,7 +220,7 @@ export default function EventNew() {
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value as any)}
-              className="w-full px-4 py-3 rounded-xl text-sm outline-none"
+              className="w-full px-4 py-3 rounded-xl text-sm"
               style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
             >
               <option value="PLANIFIED">Planifié</option>

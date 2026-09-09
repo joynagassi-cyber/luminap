@@ -68,7 +68,7 @@ export default function DatePicker({ value, onChange, label, id }: Props) {
         type="button"
         onClick={() => setOpen(!open)}
         id={id}
-        className="w-full px-4 py-3 rounded-xl text-text-primary text-sm outline-none text-left flex items-center justify-between !min-height:auto"
+        className="w-full px-4 py-3 rounded-xl text-text-primary text-sm text-left flex items-center justify-between !min-height:auto"
         style={{ backgroundColor: '#212121', border: '1px solid #282828', color: 'inherit' }}
       >
         <span>{value ? new Date(value + 'T00:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Sélectionner…'}</span>

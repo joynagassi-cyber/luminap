@@ -69,9 +69,9 @@ export default function Balance() {
         <h1 className="text-text-primary font-bold text-xl mb-5">Bilan financier</h1>
 
         {/* Period toggle */}
-        <div className="flex rounded-xl p-1 mb-5" style={{ backgroundColor: '#212121' }}>
-          <button onClick={() => setPeriod('mois')} className="flex-1 py-2 rounded-lg text-sm font-medium transition-all" style={period === 'mois' ? { backgroundColor: '#FF6B00', color: '#fff' } : { color: '#B3B3B3' }}>Mois</button>
-          <button onClick={() => setPeriod('annee')} className="flex-1 py-2 rounded-lg text-sm font-medium transition-all" style={period === 'annee' ? { backgroundColor: '#FF6B00', color: '#fff' } : { color: '#B3B3B3' }}>Année</button>
+        <div className="flex rounded-xl p-1 mb-5" style={{ backgroundColor: '#212121' }} role="group" aria-label="Période">
+          <button onClick={() => setPeriod('mois')} className="flex-1 py-2 rounded-lg text-sm font-medium transition-all" style={period === 'mois' ? { backgroundColor: '#FF6B00', color: '#fff' } : { color: '#B3B3B3' }} aria-pressed={period === 'mois'} aria-label="Mois">Mois</button>
+          <button onClick={() => setPeriod('annee')} className="flex-1 py-2 rounded-lg text-sm font-medium transition-all" style={period === 'annee' ? { backgroundColor: '#FF6B00', color: '#fff' } : { color: '#B3B3B3' }} aria-pressed={period === 'annee'} aria-label="Année">Année</button>
         </div>
 
         {/* Caisse selector */}
@@ -80,7 +80,7 @@ export default function Balance() {
             {accounts.map((a: any) => {
               const color = a.color || '#FF6B00';
               return (
-                <button key={a.id} onClick={() => setSelectedCaisse(a.id)} className="px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-all" style={selectedCaisse === a.id ? { backgroundColor: color, color: '#fff' } : { backgroundColor: '#212121', color: '#B3B3B3' }}>
+                <button key={a.id} onClick={() => setSelectedCaisse(a.id)} className="px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-all" style={selectedCaisse === a.id ? { backgroundColor: color, color: '#fff' } : { backgroundColor: '#212121', color: '#B3B3B3' }} aria-pressed={selectedCaisse === a.id} aria-label={`Caisse ${a.name}`}>
                   {a.name}
                 </button>
               );
@@ -138,7 +138,7 @@ export default function Balance() {
           </div>
         </div>
 
-        <button onClick={() => setShowExport(true)} className="w-full py-3.5 rounded-full font-semibold text-white text-sm flex items-center justify-center gap-2 transition-all active:scale-95" style={{ background: 'linear-gradient(135deg, #FF8533, #FF6B00)' }}>
+        <button onClick={() => setShowExport(true)} className="w-full py-3.5 rounded-full font-semibold text-white text-sm flex items-center justify-center gap-2 transition-all active:scale-95" style={{ background: 'linear-gradient(135deg, #FF8533, #FF6B00)' }} aria-label="Exporter le rapport financier">
           <Download className="w-4 h-4" /> Exporter le rapport
         </button>
 
@@ -149,13 +149,13 @@ export default function Balance() {
             <div className="relative w-full max-w-lg rounded-t-2xl p-5 pb-8" style={{ backgroundColor: '#181818' }} onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-5">
                 <h2 className="text-text-primary font-bold text-lg">Exporter le rapport</h2>
-                <button onClick={() => setShowExport(false)} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: '#282828' }}>
+                <button onClick={() => setShowExport(false)} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: '#282828' }} aria-label="Fermer l'export">
                   <span className="text-text-tertiary text-sm"><X className="w-4 h-4" /></span>
                 </button>
               </div>
               {appConfig.churchName && (
                 <div className="flex items-center gap-2 mb-4 p-3 rounded-xl" style={{ backgroundColor: '#212121' }}>
-                  {appConfig.churchLogoUrl && <img src={appConfig.churchLogoUrl} alt="" className="w-6 h-6 rounded" />}
+                  {appConfig.churchLogoUrl && <img src={appConfig.churchLogoUrl} alt={`Logo de ${appConfig.churchName || 'église'}`} className="w-6 h-6 rounded" />}
                   <span className="text-text-tertiary text-xs">{appConfig.churchName}</span>
                 </div>
               )}

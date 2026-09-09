@@ -37,6 +37,7 @@ export default function TopHeader({ title }: { title?: string }) {
               className="!min-height:auto !p-0 !rounded-full !min-w-[36px] !w-9 !h-9"
               style={{ backgroundColor: '#212121' }}
               aria-label="Notifications"
+              aria-haspopup="dialog"
             >
               <Bell className="w-4 h-4 text-text-secondary" />
               {unreadCount > 0 && (
@@ -49,7 +50,7 @@ export default function TopHeader({ title }: { title?: string }) {
               onClick={() => navigate('/settings')}
               className="!min-height:auto !p-0 !rounded-full !min-w-[36px] !w-9 !h-9"
               style={{ backgroundColor: '#212121' }}
-              aria-label="Settings"
+              aria-label="Paramètres"
             >
               <Settings className="w-4 h-4 text-text-secondary" />
             </IonButton>

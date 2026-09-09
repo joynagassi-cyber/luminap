@@ -111,7 +111,7 @@ export default function EventEdit() {
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl text-sm outline-none"
+              className="w-full px-4 py-3 rounded-xl text-sm"
               style={{ backgroundColor: '#212121', color: '#fff', border: fieldErrors.name ? '1px solid #E51332' : '1px solid #282828' }}
             />
             {fieldErrors.name && <p className="text-[#E51332] text-xs mt-1">{fieldErrors.name}</p>}
@@ -123,7 +123,8 @@ export default function EventEdit() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
-              className="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none"
+             
+className="w-full px-4 py-3 rounded-xl text-sm  resize-none"
               style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
             />
           </div>
@@ -134,7 +135,7 @@ export default function EventEdit() {
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl text-sm outline-none"
+              className="w-full px-4 py-3 rounded-xl text-sm"
               style={{ backgroundColor: '#212121', color: '#fff', border: fieldErrors.startDate ? '1px solid #E51332' : '1px solid #282828' }}
             />
             {fieldErrors.startDate && <p className="text-[#E51332] text-xs mt-1">{fieldErrors.startDate}</p>}
@@ -146,7 +147,7 @@ export default function EventEdit() {
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl text-sm outline-none"
+              className="w-full px-4 py-3 rounded-xl text-sm"
               style={{ backgroundColor: '#212121', color: '#fff', border: fieldErrors.endDate ? '1px solid #E51332' : '1px solid #282828' }}
             />
             {fieldErrors.endDate && <p className="text-[#E51332] text-xs mt-1">{fieldErrors.endDate}</p>}
@@ -157,7 +158,7 @@ export default function EventEdit() {
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value as any)}
-              className="w-full px-4 py-3 rounded-xl text-sm outline-none"
+              className="w-full px-4 py-3 rounded-xl text-sm"
               style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
             >
               <option value="PLANIFIED">Planifié</option>
@@ -174,7 +175,7 @@ export default function EventEdit() {
               value={budget}
               onChange={(e) => setBudget(e.target.value)}
               placeholder="0"
-              className="w-full px-4 py-3 rounded-xl text-sm outline-none"
+              className="w-full px-4 py-3 rounded-xl text-sm"
               style={{ backgroundColor: '#212121', color: '#fff', border: fieldErrors.budget ? '1px solid #E51332' : '1px solid #282828' }}
             />
             {fieldErrors.budget && <p className="text-[#E51332] text-xs mt-1">{fieldErrors.budget}</p>}

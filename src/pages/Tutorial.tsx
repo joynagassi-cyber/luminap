@@ -831,7 +831,8 @@ export default function Tutorial() {
                     aria-selected={isActive}
                     aria-controls={`panel-${s.id}`}
                     tabIndex={isActive ? 0 : -1}
-                    className="flex items-center gap-1.5 px-3 py-2.5 rounded-full text-xs font-medium whitespace-nowrap transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-dashed"
+                   
+flex items-center gap-1.5 px-3 py-2.5 rounded-full text-xs font-medium whitespace-nowrap transition-all duration-200 focus: focus-visible:ring-2 focus-visible:ring-dashed"
                     style={isActive
                       ? { backgroundColor: s.color + '20', color: s.color, outline: 'none' }
                       : { backgroundColor: '#181818', color: '#B3B3B3', border: '1px solid #282828' }}
@@ -986,7 +987,8 @@ export default function Tutorial() {
               <button
                 onClick={prevSection}
                 disabled={activeSection === SECTIONS[0].id}
-                className="px-4 py-2.5 rounded-full text-sm font-medium transition-all duration-200 min-h-[44px] min-w-[44px] flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-dashed"
+               
+px-4 py-2.5 rounded-full text-sm font-medium transition-all duration-200 min-h-[44px] min-w-[44px] flex items-center justify-center focus: focus-visible:ring-2 focus-visible:ring-dashed"
                 style={{
                   backgroundColor: '#181818',
                   color: activeSection === SECTIONS[0].id ? '#535353' : '#B3B3B3',
@@ -1000,7 +1002,8 @@ export default function Tutorial() {
               <button
                 onClick={nextSection}
                 disabled={activeSection === SECTIONS[SECTIONS.length - 1].id}
-                className="px-4 py-2.5 rounded-full text-sm font-medium transition-all duration-200 min-h-[44px] min-w-[44px] flex items-center justify-center gap-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-dashed"
+               
+px-4 py-2.5 rounded-full text-sm font-medium transition-all duration-200 min-h-[44px] min-w-[44px] flex items-center justify-center gap-1 focus: focus-visible:ring-2 focus-visible:ring-dashed"
                 style={{
                   backgroundColor: activeSection === SECTIONS[SECTIONS.length - 1].id ? '#181818' : current.color + '20',
                   color: activeSection === SECTIONS[SECTIONS.length - 1].id ? '#535353' : current.color,

@@ -111,7 +111,8 @@ export default function FormFill() {
                   <select
                     value={data[field.key] ?? ''}
                     onChange={(e) => handleChange(field.key, e.target.value === 'true')}
-                    className="w-full px-4 py-3 rounded-xl text-text-primary text-sm outline-none appearance-none"
+                   
+className="w-full px-4 py-3 rounded-xl text-text-primary text-sm  appearance-none"
                     style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
                   >
                     <option value="">— Sélectionner —</option>
@@ -122,7 +123,8 @@ export default function FormFill() {
                   <select
                     value={data[field.key] ?? ''}
                     onChange={(e) => handleChange(field.key, e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl text-text-primary text-sm outline-none appearance-none"
+                   
+className="w-full px-4 py-3 rounded-xl text-text-primary text-sm  appearance-none"
                     style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
                   >
                     <option value="">— Sélectionner —</option>
@@ -134,7 +136,8 @@ export default function FormFill() {
                     onChange={(e) => handleChange(field.key, e.target.value)}
                     placeholder={field.label}
                     rows={3}
-                    className="w-full px-4 py-3 rounded-xl text-text-primary text-sm outline-none resize-none"
+                   
+className="w-full px-4 py-3 rounded-xl text-text-primary text-sm  resize-none"
                     style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
                   />
                 ) : (
@@ -143,7 +146,8 @@ export default function FormFill() {
                     value={data[field.key] ?? ''}
                     onChange={(e) => handleChange(field.key, e.target.value)}
                     placeholder={field.label}
-                    className="w-full px-4 py-3 rounded-xl text-text-primary text-sm outline-none"
+                   
+className="w-full px-4 py-3 rounded-xl text-text-primary text-sm "
                     style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
                   />
                 )}

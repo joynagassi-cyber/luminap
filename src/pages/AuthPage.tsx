@@ -160,6 +160,7 @@ export default function AuthPage() {
           disabled={loading}
           className="w-full py-3.5 rounded-full font-medium text-sm flex items-center justify-center gap-3 mb-4 transition-all active:scale-95 disabled:opacity-50"
           style={{ backgroundColor: '#fff', color: '#333', border: '1px solid #ddd' }}
+          aria-label="Continuer avec email"
         >
           <Mail className="w-5 h-5" />
           Continuer avec email
@@ -184,8 +185,9 @@ export default function AuthPage() {
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
                     placeholder="Jean"
-                    className="w-full pl-10 pr-4 py-3 rounded-xl text-white text-sm outline-none"
+                    className="w-full pl-10 pr-4 py-3 rounded-xl text-white text-sm"
                     style={{ backgroundColor: '#1E1E1E', border: '1px solid #282828' }}
+                    aria-label="Prénom"
                   />
                 </div>
               </div>
@@ -199,8 +201,9 @@ export default function AuthPage() {
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
                     placeholder="Dupont"
-                    className="w-full pl-10 pr-4 py-3 rounded-xl text-white text-sm outline-none"
+                    className="w-full pl-10 pr-4 py-3 rounded-xl text-white text-sm"
                     style={{ backgroundColor: '#1E1E1E', border: '1px solid #282828' }}
+                    aria-label="Nom"
                   />
                 </div>
               </div>
@@ -210,8 +213,9 @@ export default function AuthPage() {
                 <select
                   value={role}
                   onChange={(e) => setRole(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl text-white text-sm outline-none"
+                  className="w-full px-4 py-3 rounded-xl text-white text-sm"
                   style={{ backgroundColor: '#1E1E1E', border: '1px solid #282828' }}
+                  aria-label="Rôle"
                 >
                   <option value="">Sélectionner un rôle</option>
                   {roles.map(r => (
@@ -231,8 +235,10 @@ export default function AuthPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="jean@example.com"
-                className="w-full pl-10 pr-4 py-3 rounded-xl text-white text-sm outline-none"
+                className="w-full pl-10 pr-4 py-3 rounded-xl text-white text-sm"
                 style={{ backgroundColor: '#1E1E1E', border: '1px solid #282828' }}
+                aria-label="Adresse email"
+                required
               />
             </div>
           </div>
@@ -246,8 +252,10 @@ export default function AuthPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full pl-10 pr-4 py-3 rounded-xl text-white text-sm outline-none"
+                className="w-full pl-10 pr-4 py-3 rounded-xl text-white text-sm"
                 style={{ backgroundColor: '#1E1E1E', border: '1px solid #282828' }}
+                aria-label="Mot de passe"
+                required
               />
             </div>
           </div>
@@ -263,6 +271,7 @@ export default function AuthPage() {
             disabled={loading || !email || !password}
             className="w-full py-4 rounded-full font-semibold text-white text-sm transition-all active:scale-95 disabled:opacity-50"
             style={{ backgroundColor: '#FF6B00' }}
+            aria-label={mode === 'login' ? 'Se connecter' : 'Créer mon compte'}
           >
             {loading ? (
               <Loader2 className="w-5 h-5 animate-spin mx-auto" />
@@ -278,6 +287,7 @@ export default function AuthPage() {
               setError('');
             }}
             className="text-[#808080] text-sm hover:text-white transition-colors"
+            aria-label={mode === 'login' ? 'Passer à l\'inscription' : 'Passer à la connexion'}
           >
             {mode === 'login'
               ? 'Pas encore de compte ? Inscrire'

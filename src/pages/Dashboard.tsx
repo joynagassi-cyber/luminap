@@ -25,11 +25,12 @@ function CaisseCard({ account, transactions, navigate }: { account: Account; tra
   const pendingAmount = pending.reduce((s, t) => s + (t.type === 'INCOME' ? t.amount : -t.amount), 0);
 
   return (
-    <button
-      onClick={() => navigate('/finance', { state: { caisseId: account.id } })}
-      className="w-full text-left rounded-xl p-4 transition-all active:scale-95"
-      style={{ backgroundColor: '#1e1e1e', border: `1px solid ${color}30` }}
-    >
+        <button
+          onClick={() => navigate('/finance')}
+          className="w-full text-left rounded-xl p-4 transition-all active:scale-95"
+          style={{ backgroundColor: '#1e1e1e', border: `1px solid ${color}30` }}
+          aria-label={`Voir les détails de ${account.name}`}
+        >
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: color + '20' }}>
@@ -152,7 +153,7 @@ export default function Dashboard() {
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             {appConfig.churchLogoUrl ? (
-              <img src={appConfig.churchLogoUrl} alt="Logo" className="w-10 h-10 rounded-xl" />
+              <img src={appConfig.churchLogoUrl} alt={`Logo de ${churchName || 'Lumina'}`} className="w-10 h-10 rounded-xl" />
             ) : (
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center">
                 <span className="text-white font-bold text-lg">L</span>
@@ -167,6 +168,7 @@ export default function Dashboard() {
             onClick={() => navigate('/notifications')}
             className="relative w-10 h-10 rounded-full flex items-center justify-center"
             style={{ backgroundColor: '#212121' }}
+            aria-label="Notifications"
           >
             <Bell className="w-5 h-5 text-text-secondary" />
             {unreadNotifCount > 0 && (
@@ -181,13 +183,14 @@ export default function Dashboard() {
         </div>
 
         {/* Main Caisse Hero Card */}
-        <div
-          className="rounded-2xl p-5 mb-6 cursor-pointer transition-all active:scale-98"
+        <button
+          onClick={() => navigate('/finance')}
+          className="rounded-2xl p-5 mb-6 transition-all active:scale-98 text-left w-full"
           style={{
             background: 'linear-gradient(135deg, #FF6B0020 0%, #FF6B0010 100%)',
             border: '1px solid #FF6B0030',
           }}
-          onClick={() => navigate('/finance')}
+          aria-label="Voir les détails de la caisse principale"
         >
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
@@ -270,7 +273,12 @@ export default function Dashboard() {
                 <Calendar className="w-4 h-4" style={{ color: '#8B5CF6' }} />
                 <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider">Événements à venir</p>
               </div>
-              <button onClick={() => navigate('/events')} className="text-xs font-medium" style={{ color: '#FF6B00' }}>
+              <button
+              onClick={() => navigate('/events')}
+              className="text-xs font-medium"
+              style={{ color: '#FF6B00' }}
+              aria-label="Voir tous les événements"
+            >
                 Voir tout →
               </button>
             </div>
@@ -328,7 +336,12 @@ export default function Dashboard() {
           <div className="mb-6">
             <div className="flex items-center justify-between mb-3">
               <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider">Caisses des groupes</p>
-              <button onClick={() => navigate('/versement')} className="text-xs font-medium" style={{ color: '#FF6B00' }}>
+            <button
+              onClick={() => navigate('/versement')}
+              className="text-xs font-medium"
+              style={{ color: '#FF6B00' }}
+              aria-label="Verser dans les caisses de groupe"
+            >
                 Verser →
               </button>
             </div>
@@ -346,8 +359,9 @@ export default function Dashboard() {
           <div className="grid grid-cols-4 gap-3">
             <button
               onClick={() => navigate('/transaction/new', { state: { type: 'INCOME' } })}
-              className="flex flex-col items-center gap-2 p-3 rounded-xl active:scale-95 transition-transform text-left"
+              className="flex flex-col items-center gap-2 p-3 rounded-xl active:scale-95 transition-transform text-left w-full"
               style={{ backgroundColor: '#1e1e1e', border: '1px solid #282828' }}
+              aria-label="Nouvelle entrée"
             >
               <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#1DB95420' }}>
                 <ArrowUpRight className="w-5 h-5" style={{ color: '#1DB954' }} />
@@ -356,8 +370,9 @@ export default function Dashboard() {
             </button>
             <button
               onClick={() => navigate('/transaction/new', { state: { type: 'EXPENSE' } })}
-              className="flex flex-col items-center gap-2 p-3 rounded-xl active:scale-95 transition-transform text-left"
+              className="flex flex-col items-center gap-2 p-3 rounded-xl active:scale-95 transition-transform text-left w-full"
               style={{ backgroundColor: '#1e1e1e', border: '1px solid #282828' }}
+              aria-label="Nouvelle sortie"
             >
               <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#E5133220' }}>
                 <ArrowDownRight className="w-5 h-5" style={{ color: '#E51332' }} />
@@ -366,8 +381,9 @@ export default function Dashboard() {
             </button>
             <button
               onClick={() => navigate('/versement')}
-              className="flex flex-col items-center gap-2 p-3 rounded-xl active:scale-95 transition-transform text-left"
+              className="flex flex-col items-center gap-2 p-3 rounded-xl active:scale-95 transition-transform text-left w-full"
               style={{ backgroundColor: '#1e1e1e', border: '1px solid #282828' }}
+              aria-label="Nouveau versement"
             >
               <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#FF6B0020' }}>
                 <TrendingUp className="w-5 h-5" style={{ color: '#FF6B00' }} />
@@ -376,8 +392,9 @@ export default function Dashboard() {
             </button>
             <button
               onClick={() => navigate('/events')}
-              className="flex flex-col items-center gap-2 p-3 rounded-xl active:scale-95 transition-transform text-left"
+              className="flex flex-col items-center gap-2 p-3 rounded-xl active:scale-95 transition-transform text-left w-full"
               style={{ backgroundColor: '#1e1e1e', border: '1px solid #282828' }}
+              aria-label="Nouvel événement"
             >
               <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#8B5CF620' }}>
                 <Calendar className="w-5 h-5" style={{ color: '#8B5CF6' }} />
@@ -390,7 +407,7 @@ export default function Dashboard() {
         {/* Recent Transactions */}
         <div className="flex items-center justify-between mb-3">
           <p className="text-text-primary font-semibold text-base">Derniers mouvements</p>
-          <button onClick={() => navigate('/finance')} className="text-sm font-medium" style={{ color: '#FF6B00' }}>Tout voir</button>
+          <button onClick={() => navigate('/finance')} className="text-sm font-medium" style={{ color: '#FF6B00' }} aria-label="Voir toutes les transactions">Tout voir</button>
         </div>
         <div className="space-y-2 pb-4">
           {recentTransactions.length === 0 ? (
@@ -398,7 +415,7 @@ export default function Dashboard() {
               <PlusCircle className="w-8 h-8 mx-auto mb-3 text-text-tertiary" />
               <p className="text-text-primary font-medium text-sm mb-2">Pas encore de mouvement</p>
               <p className="text-text-tertiary text-xs mb-4">Commencez par enregistrer votre première transaction</p>
-              <button onClick={() => navigate('/transaction/new')} className="mt-3 text-sm font-medium" style={{ color: '#FF6B00' }}>
+              <button onClick={() => navigate('/transaction/new')} className="mt-3 text-sm font-medium" style={{ color: '#FF6B00' }} aria-label="Créer une transaction">
                 Créer une transaction
               </button>
             </div>
