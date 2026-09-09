@@ -1,8 +1,11 @@
 /**
- * Lumina Ionic Router Routes
+ * Lumina Ionic Router Routes (Lazy Loaded)
  *
  * Maps all 38 pages to Ionic <Route> elements.
  * Uses IonReactRouter-compatible paths (same as react-router).
+ *
+ * Heavy pages use React.lazy() for code-splitting.
+ * All routes are wrapped in a Suspense boundary with a loading fallback.
  *
  * Route groups:
  *   - Auth: splash, auth, login, onboarding, role-selection
@@ -17,63 +20,80 @@
  *   - System: trace, history, help, settings, not-found
  */
 
+import { lazy, Suspense } from 'react';
 import { Route, Navigate } from 'react-router-dom';
+import { IonPage, IonContent } from '@ionic/react';
+import { Skeleton } from '@/components/ui/skeleton';
 
-// Auth pages
+// ─── Suspense Fallback ─────────────────────────────────────────────────────────
+const PageSkeleton = () => (
+  <IonPage>
+    <IonContent fullscreen className="ion-padding ion-padding-top">
+      <div className="space-y-4 p-4">
+        <Skeleton className="h-8 w-3/4" />
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-5/6" />
+        <Skeleton className="h-32 w-full" />
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-4/5" />
+        <Skeleton className="h-32 w-full" />
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-3/4" />
+      </div>
+    </IonContent>
+  </IonPage>
+);
+
+// ─── Auth Pages (lightweight — load eagerly) ───────────────────────────────────
 import Splash from '@/pages/Splash';
 import AuthPage from '@/pages/AuthPage';
 import Login from '@/pages/Login';
-import Onboarding from '@/pages/Onboarding';
-import RoleSelection from '@/pages/RoleSelection';
 
-// Core pages
-import Dashboard from '@/pages/Dashboard';
-import Notifications from '@/pages/Notifications';
-import Tutorial from '@/pages/Tutorial';
+// ─── Heavy Pages (lazy-loaded) ─────────────────────────────────────────────────
+const Onboarding = lazy(() => import('@/pages/Onboarding'));
+const RoleSelection = lazy(() => import('@/pages/RoleSelection'));
+const Dashboard = lazy(() => import('@/pages/Dashboard'));
+const Notifications = lazy(() => import('@/pages/Notifications'));
+const Tutorial = lazy(() => import('@/pages/Tutorial'));
+const Finance = lazy(() => import('@/pages/Finance'));
+const TransactionNew = lazy(() => import('@/pages/TransactionNew'));
+const TransactionNewGroup = lazy(() => import('@/pages/TransactionNewGroup'));
+const TransactionDetail = lazy(() => import('@/pages/TransactionDetail'));
+const TransactionEdit = lazy(() => import('@/pages/TransactionEdit'));
+const Balance = lazy(() => import('@/pages/Balance'));
+const Versement = lazy(() => import('@/pages/Versement'));
+const SaisieRapide = lazy(() => import('@/pages/SaisieRapide'));
+const Groups = lazy(() => import('@/pages/Groups'));
+const GroupDetail = lazy(() => import('@/pages/GroupDetail'));
+const Events = lazy(() => import('@/pages/Events'));
+const EventNew = lazy(() => import('@/pages/EventNew'));
+const EventDetail = lazy(() => import('@/pages/EventDetail'));
+const EventEdit = lazy(() => import('@/pages/EventEdit'));
+const Members = lazy(() => import('@/pages/Members'));
+const MembresEnAvance = lazy(() => import('@/pages/MembresEnAvance'));
+const MembreDetail = lazy(() => import('@/pages/MembreDetail'));
+const CulteDetail = lazy(() => import('@/pages/CulteDetail'));
+const Archives = lazy(() => import('@/pages/Archives'));
+const Reports = lazy(() => import('@/pages/Reports'));
+const ReportBuilder = lazy(() => import('@/pages/ReportBuilder'));
+const Cotisations = lazy(() => import('@/pages/Cotisations'));
+const FormBuilder = lazy(() => import('@/pages/FormBuilder'));
+const FormFill = lazy(() => import('@/pages/FormFill'));
+const CustomFields = lazy(() => import('@/pages/CustomFields'));
+const Trace = lazy(() => import('@/pages/Trace'));
+const History = lazy(() => import('@/pages/History'));
+const Help = lazy(() => import('@/pages/Help'));
+const Settings = lazy(() => import('@/pages/Settings'));
+const NotFound = lazy(() => import('@/pages/NotFound'));
 
-// Finance pages
-import Finance from '@/pages/Finance';
-import TransactionNew from '@/pages/TransactionNew';
-import TransactionNewGroup from '@/pages/TransactionNewGroup';
-import TransactionDetail from '@/pages/TransactionDetail';
-import TransactionEdit from '@/pages/TransactionEdit';
-import Balance from '@/pages/Balance';
-import Versement from '@/pages/Versement';
-import SaisieRapide from '@/pages/SaisieRapide';
-
-// Groups
-import Groups from '@/pages/Groups';
-import GroupDetail from '@/pages/GroupDetail';
-
-// Events
-import Events from '@/pages/Events';
-import EventNew from '@/pages/EventNew';
-import EventDetail from '@/pages/EventDetail';
-import EventEdit from '@/pages/EventEdit';
-
-// Members
-import Members from '@/pages/Members';
-import MembresEnAvance from '@/pages/MembresEnAvance';
-import MembreDetail from '@/pages/MembreDetail';
-
-// Archives & Reports
-import Archives from '@/pages/Archives';
-import Reports from '@/pages/Reports';
-import ReportBuilder from '@/pages/ReportBuilder';
-import Cotisations from '@/pages/Cotisations';
-
-// Forms
-import FormBuilder from '@/pages/FormBuilder';
-import FormFill from '@/pages/FormFill';
-import CustomFields from '@/pages/CustomFields';
-
-// System
-import Trace from '@/pages/Trace';
-import History from '@/pages/History';
-import Help from '@/pages/Help';
-import Settings from '@/pages/Settings';
-import NotFound from '@/pages/NotFound';
-import CulteDetail from '@/pages/CulteDetail';
+// ─── Lazy Route Wrapper ────────────────────────────────────────────────────────
+function LazyRoute({ component: LazyComponent }: { component: React.LazyExoticComponent<() => JSX.Element> }) {
+  return (
+    <Suspense fallback={<PageSkeleton />}>
+      <LazyComponent />
+    </Suspense>
+  );
+}
 
 /**
  * All routes for the Ionic app.
@@ -86,59 +106,59 @@ export const luminaRoutes = (
     <Route path="/auth" element={<AuthPage />} />
     <Route path="/auth/callback" element={<AuthPage />} />
     <Route path="/login" element={<Login />} />
-    <Route path="/onboarding" element={<Onboarding />} />
-    <Route path="/role-selection" element={<RoleSelection />} />
+    <Route path="/onboarding" element={<LazyRoute component={Onboarding} />} />
+    <Route path="/role-selection" element={<LazyRoute component={RoleSelection} />} />
 
     {/* ── Core ─────────────────────────────────────────────────────── */}
-    <Route path="/dashboard" element={<Dashboard />} />
-    <Route path="/notifications" element={<Notifications />} />
-    <Route path="/tutoriel" element={<Tutorial />} />
+    <Route path="/dashboard" element={<LazyRoute component={Dashboard} />} />
+    <Route path="/notifications" element={<LazyRoute component={Notifications} />} />
+    <Route path="/tutoriel" element={<LazyRoute component={Tutorial} />} />
 
     {/* ── Finance ──────────────────────────────────────────────────── */}
-    <Route path="/finance" element={<Finance />} />
-    <Route path="/transaction/new" element={<TransactionNew />} />
-    <Route path="/groups/:id/transaction/new" element={<TransactionNewGroup />} />
-    <Route path="/transaction/:id" element={<TransactionDetail />} />
-    <Route path="/transaction/:id/edit" element={<TransactionEdit />} />
-    <Route path="/balance" element={<Balance />} />
-    <Route path="/versement" element={<Versement />} />
-    <Route path="/saisie-rapide/:id" element={<SaisieRapide />} />
+    <Route path="/finance" element={<LazyRoute component={Finance} />} />
+    <Route path="/transaction/new" element={<LazyRoute component={TransactionNew} />} />
+    <Route path="/groups/:id/transaction/new" element={<LazyRoute component={TransactionNewGroup} />} />
+    <Route path="/transaction/:id" element={<LazyRoute component={TransactionDetail} />} />
+    <Route path="/transaction/:id/edit" element={<LazyRoute component={TransactionEdit} />} />
+    <Route path="/balance" element={<LazyRoute component={Balance} />} />
+    <Route path="/versement" element={<LazyRoute component={Versement} />} />
+    <Route path="/saisie-rapide/:id" element={<LazyRoute component={SaisieRapide} />} />
 
     {/* ── Groups ───────────────────────────────────────────────────── */}
-    <Route path="/groups" element={<Groups />} />
-    <Route path="/groups/:id" element={<GroupDetail />} />
+    <Route path="/groups" element={<LazyRoute component={Groups} />} />
+    <Route path="/groups/:id" element={<LazyRoute component={GroupDetail} />} />
 
     {/* ── Events ───────────────────────────────────────────────────── */}
-    <Route path="/events" element={<Events />} />
-    <Route path="/event/new" element={<EventNew />} />
-    <Route path="/event/:id" element={<EventDetail />} />
-    <Route path="/event/:id/edit" element={<EventEdit />} />
+    <Route path="/events" element={<LazyRoute component={Events} />} />
+    <Route path="/event/new" element={<LazyRoute component={EventNew} />} />
+    <Route path="/event/:id" element={<LazyRoute component={EventDetail} />} />
+    <Route path="/event/:id/edit" element={<LazyRoute component={EventEdit} />} />
 
     {/* ── Members ──────────────────────────────────────────────────── */}
-    <Route path="/members" element={<Members />} />
-    <Route path="/membres-en-avance" element={<MembresEnAvance />} />
-    <Route path="/membre/:id" element={<MembreDetail />} />
-    <Route path="/culte/:id" element={<CulteDetail />} />
+    <Route path="/members" element={<LazyRoute component={Members} />} />
+    <Route path="/membres-en-avance" element={<LazyRoute component={MembresEnAvance} />} />
+    <Route path="/membre/:id" element={<LazyRoute component={MembreDetail} />} />
+    <Route path="/culte/:id" element={<LazyRoute component={CulteDetail} />} />
 
     {/* ── Archives ─────────────────────────────────────────────────── */}
-    <Route path="/archives" element={<Archives />} />
+    <Route path="/archives" element={<LazyRoute component={Archives} />} />
 
     {/* ── Reports ──────────────────────────────────────────────────── */}
-    <Route path="/reports" element={<Reports />} />
-    <Route path="/report-builder" element={<ReportBuilder />} />
-    <Route path="/cotisations" element={<Cotisations />} />
+    <Route path="/reports" element={<LazyRoute component={Reports} />} />
+    <Route path="/report-builder" element={<LazyRoute component={ReportBuilder} />} />
+    <Route path="/cotisations" element={<LazyRoute component={Cotisations} />} />
 
     {/* ── Forms ────────────────────────────────────────────────────── */}
-    <Route path="/forms" element={<FormBuilder />} />
-    <Route path="/form/fill/:id" element={<FormFill />} />
-    <Route path="/custom-fields" element={<CustomFields />} />
+    <Route path="/forms" element={<LazyRoute component={FormBuilder} />} />
+    <Route path="/form/fill/:id" element={<LazyRoute component={FormFill} />} />
+    <Route path="/custom-fields" element={<LazyRoute component={CustomFields} />} />
 
     {/* ── System ───────────────────────────────────────────────────── */}
-    <Route path="/trace" element={<Trace />} />
-    <Route path="/history" element={<History />} />
-    <Route path="/help" element={<Help />} />
-    <Route path="/settings" element={<Settings />} />
-    <Route path="*" element={<NotFound />} />
+    <Route path="/trace" element={<LazyRoute component={Trace} />} />
+    <Route path="/history" element={<LazyRoute component={History} />} />
+    <Route path="/help" element={<LazyRoute component={Help} />} />
+    <Route path="/settings" element={<LazyRoute component={Settings} />} />
+    <Route path="*" element={<LazyRoute component={NotFound} />} />
   </>
 );
 
