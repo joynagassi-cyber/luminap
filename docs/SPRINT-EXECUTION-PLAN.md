@@ -1,7 +1,7 @@
 # LUMINA — PLAN D'EXÉCUTION DES SPRINTS (MIS À JOUR)
 
 > Généré: 2026-09-09
-> État actuel: Build ✅ | TS: 0 errors | Tests: 378
+> État actuel: Build ✅ | TS: 0 errors | Tests: 405
 
 ---
 
@@ -16,6 +16,7 @@
 | 18 | Documentation | `7f76236`, `264f014`, `87090d7` | ✅ |
 | 19 | Cleanup | `56c8f12` | ✅ |
 | 21 | Mobile | `322e72c`, `a8efb09`, `5201ebe`, `56cb278`, `33fd862` | ✅ |
+| 22 | Accessibility | `ed33c5b`, `38a3d7e`, `4e6ac87`, `dc200a2`, `371ce9e` | ✅ |
 
 ---
 
@@ -23,7 +24,6 @@
 
 | # | Sprint | Description | Priorité |
 |---|--------|-------------|----------|
-| 22 | Accessibility | Full a11y audit, fixes, screen reader tests | Haute |
 | 23 | Data Layer | Query audit, index optimization, query optimization | Moyenne |
 | 24 | Security Review | Pen test, vulnerability fix, security tests | Moyenne |
 | 25 | E2E Complete | Auth E2E, Transaction E2E, Organization E2E | Haute |
@@ -37,20 +37,19 @@
 |--------|---------|--------|
 | Build | ✅ | ✅ |
 | TypeScript | 0 errors | 0 |
-| Tests | 378 | 350+ |
+| Tests | 405 | 350+ |
 | Pages Ionic | 38/38 | 38/38 |
 | Capabilities | 11 | 10+ |
 | Store lines | 585 | <600 |
 | RLS policies | 182 | all tables |
+| A11y tests | 27 | 15+ |
 
 ---
 
 ## DÉPENDANCES
 
 ```
-21 (DONE) → 22 (Accessibility)
-                ↓
-             23 (Data Layer)
+22 (DONE) → 23 (Data Layer)
                 ↓
              24 (Security Review)
                 ↓
@@ -62,12 +61,6 @@
 ---
 
 ## CRITÈRES D'ACCEPTATION PAR SPRINT
-
-### Sprint 22 — Accessibility
-- [ ] Full a11y audit report
-- [ ] Critical issues fixed (aria-labels, alt text, keyboard nav)
-- [ ] a11y tests created (15+ tests)
-- [ ] WCAG 2.1 AA compliance target
 
 ### Sprint 23 — Data Layer
 - [ ] Query audit report
@@ -91,8 +84,8 @@
 - [ ] All previous sprints verified
 - [ ] Final documentation
 - [ ] Deployment checklist
-- [ ] Build ✅ | TS: 0 errors | Tests: 400+
+- [ ] Build ✅ | TS: 0 errors | Tests: 450+
 
 ---
 
-*Lumina Platform — Sprint Execution In Progress*
+*Lumina Platform — Sprint Execution In Progress (Sprint 23 next)*
