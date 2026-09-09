@@ -15,16 +15,16 @@ The Security capability is a **facade over the RBAC system** defined in `src/lib
 ### Re-exported Constants
 
 ```typescript
-// From src/lib/rbac.ts — same objects, re-exported for convenience
+// From src/lib/rbac.ts -- same objects, re-exported for convenience
 export { PERMISSION_MATRIX, ROLE_LABELS, ROLE_HIERARCHY };
 export type { Permission };
 ```
 
 Where:
-- `PERMISSION_MATRIX`: `Readonly<Record<Role, Permission[]>>` — maps each role to its list of permissions
-- `ROLE_LABELS`: `Record<Role, string>` — French display labels for each role
-- `ROLE_HIERARCHY`: `Record<Role, number>` — numeric rank for hierarchy comparison
-- `Permission`: `string` — formatted as `resource:action` (e.g., `'transaction:approve'`)
+- `PERMISSION_MATRIX`: `Readonly<Record<Role, Permission[]>>` -- maps each role to its list of permissions
+- `ROLE_LABELS`: `Record<Role, string>` -- French display labels for each role
+- `ROLE_HIERARCHY`: `Record<Role, number>` -- numeric rank for hierarchy comparison
+- `Permission`: `string` -- formatted as `resource:action` (e.g., `'transaction:approve'`)
 
 ### SecurityService
 
@@ -85,7 +85,7 @@ Roles are ranked from highest (100) to lowest (10):
 
 ## Permissions
 
-Common permissions (partial list — see `rbac.ts` for full matrix):
+Common permissions (partial list -- see `rbac.ts` for full matrix):
 
 | Permission | Description |
 |---|---|
@@ -137,17 +137,17 @@ const pastorPerms = PERMISSION_MATRIX.PASTEUR_PRINCIPAL;
 
 | Test Suite | Tests |
 |---|---|
-| `hasPermission` | 7 — positive, negative, unknown perm, matrix consistency |
-| `checkPermission` | 6 — true/false cases, unknown role, getRolesWithPermission |
-| `hasRole` | 5 — resource:action mapping, event/member perms |
-| `hasHigherOrEqualRole` | 5 — equal, higher, lower, ANCIEN vs PASTEUR_ASSOCIE, full chain |
-| `getRolePermissions` | 3 — pastor full list, unknown role empty, membre count |
-| `getRolesWithPermission` | 3 — transaction:approve, admin:settings, nonexistent |
-| `getRoleLabel` | 3 — pastor, membre, unknown |
-| `getRoleLabels` | 2 — full copy, immutability (shallow copy) |
-| `getSortedRoles` | 3 — order, count, determinism |
-| `parseRole` | 4 — valid, invalid, empty, all valid roles |
-| `re-exported constants` | 3 — labels cover all roles, hierarchy has numbers, matrix non-empty |
+| `hasPermission` | 7 -- positive, negative, unknown perm, matrix consistency |
+| `checkPermission` | 6 -- true/false cases, unknown role, getRolesWithPermission |
+| `hasRole` | 5 -- resource:action mapping, event/member perms |
+| `hasHigherOrEqualRole` | 5 -- equal, higher, lower, ANCIEN vs PASTEUR_ASSOCIE, full chain |
+| `getRolePermissions` | 3 -- pastor full list, unknown role empty, membre count |
+| `getRolesWithPermission` | 3 -- transaction:approve, admin:settings, nonexistent |
+| `getRoleLabel` | 3 -- pastor, membre, unknown |
+| `getRoleLabels` | 2 -- full copy, immutability (shallow copy) |
+| `getSortedRoles` | 3 -- order, count, determinism |
+| `parseRole` | 4 -- valid, invalid, empty, all valid roles |
+| `re-exported constants` | 3 -- labels cover all roles, hierarchy has numbers, matrix non-empty |
 
 Total: **43 tests**
 
@@ -160,7 +160,7 @@ Total: **43 tests**
 
 ## Architecture Notes
 
-- This is a **facade only** — all logic lives in `src/lib/rbac.ts`
+- This is a **facade only** -- all logic lives in `src/lib/rbac.ts`
 - Do not add new permissions here; add them to `rbac.ts` and the matrix
 - `checkPermission` and `hasPermission` are aliases with identical behavior
 - The `hasRole(resource, action)` method is a convenience that constructs the `resource:action` permission string internally

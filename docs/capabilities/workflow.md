@@ -5,7 +5,7 @@
 
 ## Purpose and Responsibility
 
-The Workflow capability provides a **status transition guard system**. It enforces valid state machines for entities whose status can change over time (events, transactions, members). It does NOT perform the transition itself — it validates that a transition is allowed, then returns a result that the caller uses to decide whether to proceed.
+The Workflow capability provides a **status transition guard system**. It enforces valid state machines for entities whose status can change over time (events, transactions, members). It does NOT perform the transition itself -- it validates that a transition is allowed, then returns a result that the caller uses to decide whether to proceed.
 
 This is distinct from the Lifecycle capability, which handles archive/restore with audit logging. Workflow handles *active-state transitions* with immutability guards.
 
@@ -36,7 +36,7 @@ class WorkflowService {
   /** Check if a transition is allowed (dry-run) */
   check(resource: string, currentStatus: string, targetStatus: string): GuardResult
 
-  /** Perform a guarded transition — returns { success, reason? } */
+  /** Perform a guarded transition -- returns { success, reason? } */
   transition<T extends { id: string; status: string }>(
     resource: string,
     entity: T,
@@ -65,8 +65,8 @@ PLANIFIED --[start]--> ONGOING --[complete]--> COMPLETED (terminal)
 ```
 
 Rules:
-- `COMPLETED` is terminal — no outgoing transitions allowed (except self-transition)
-- `CANCELLED` is terminal — no outgoing transitions allowed (except self-transition)
+- `COMPLETED` is terminal -- no outgoing transitions allowed (except self-transition)
+- `CANCELLED` is terminal -- no outgoing transitions allowed (except self-transition)
 - `PLANIFIED` can only go to `ONGOING` or `CANCELLED`
 - `ONGOING` can only go to `COMPLETED` or `CANCELLED`
 
@@ -77,7 +77,7 @@ Any status --[approve]--> APPROVED (terminal)
 ```
 
 Rules:
-- `APPROVED` is terminal — no outgoing transitions allowed (except self-transition)
+- `APPROVED` is terminal -- no outgoing transitions allowed (except self-transition)
 - All other transitions are allowed
 
 #### memberStatusGuard
@@ -127,11 +127,11 @@ workflow.register('document', customGuard);
 
 | Test Suite | Coverage |
 |---|---|
-| `transactionGuard` | 9 tests — all transitions, immutability, no-op |
-| `WorkflowService.check` | 3 tests — no guard default, custom guard, registered guard |
-| `eventStatusGuard` | 10 tests — all valid/invalid transitions, terminal states |
-| `memberStatusGuard` | 7 tests — ACTIVE/INACTIVE, invalid statuses |
-| `WorkflowService.transition` | 6 tests — success, blocked, no-op, no guard, invalid member |
+| `transactionGuard` | 9 tests -- all transitions, immutability, no-op |
+| `WorkflowService.check` | 3 tests -- no guard default, custom guard, registered guard |
+| `eventStatusGuard` | 10 tests -- all valid/invalid transitions, terminal states |
+| `memberStatusGuard` | 7 tests -- ACTIVE/INACTIVE, invalid statuses |
+| `WorkflowService.transition` | 6 tests -- success, blocked, no-op, no guard, invalid member |
 
 Total: **35 tests**
 
@@ -151,7 +151,7 @@ Total: **35 tests**
 
 ## Architecture Notes
 
-- Guards are pure functions — no side effects
+- Guards are pure functions -- no side effects
 - `transition()` only validates; the caller is responsible for performing the actual state change
-- Guards are registered at module load time for built-in types
-- Adding a new guard: `workflow.register('myEntity', myGuard)`
+- Guards are registered per-resource-type string key
+- `check()` is the dry-run equivalent of `transition()` -- use it when you only need to validate without executing
