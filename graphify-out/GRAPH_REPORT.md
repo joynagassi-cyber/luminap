@@ -1,7 +1,7 @@
 # Graph Report - lumina  (2026-09-09)
 
 ## Corpus Check
-- 227 files · ~510,865 words
+- 227 files · ~510,516 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary

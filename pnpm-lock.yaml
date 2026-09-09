@@ -8,9 +8,15 @@ importers:
 
   .:
     dependencies:
+      '@capacitor/network':
+        specifier: ^8.0.1
+        version: 8.0.1(@capacitor/core@6.2.2)
       '@capacitor/push-notifications':
         specifier: ^6.0.5
         version: 6.0.5(@capacitor/core@6.2.2)
+      '@capacitor/storage':
+        specifier: ^1.2.5
+        version: 1.2.5(@capacitor/core@6.2.2)
       '@hookform/resolvers':
         specifier: ^3.10.0
         version: 3.10.0(react-hook-form@7.87.0(react@19.2.8))
@@ -320,10 +326,21 @@ packages:
   '@capacitor/core@6.2.2':
     resolution: {integrity: sha512-qEI3DcwJEPzhW+hVGKH8m4jbujtkdUiGkpMLHmpR8epACU7wEsV6NF8pCHzpsMYjc80oK7Cmpcw+MIienv/YRw==}
 
+  '@capacitor/network@8.0.1':
+    resolution: {integrity: sha512-9xK/FHFmzKGanB6BdoSZOzXk8vF0OFVQSQ4PAsIrzAzLuXHryO317qy8dcHVpgxYeuZq2noI0My9z1DvVDi/9w==}
+    peerDependencies:
+      '@capacitor/core': '>=8.0.0'
+
   '@capacitor/push-notifications@6.0.5':
     resolution: {integrity: sha512-CsRmb0cnZd9Uwx24ym4My5fNKrQvwI4D51aMEph5pUZy+LAjp6q0y4NJe8DEgwaVdAqVLbb4rqn75AZ4WSiFYg==}
     peerDependencies:
       '@capacitor/core': ^6.0.0
+
+  '@capacitor/storage@1.2.5':
+    resolution: {integrity: sha512-pWhnw4U7wN/zFV4lA4BLMypSufTktCbk548Yk4whSb0KAq3R0mLfSubRIHkGdcPqQWCsM6g/zUuszurhz6ncWQ==}
+    deprecated: package has been renamed to @capacitor/preferences
+    peerDependencies:
+      '@capacitor/core': ^3.0.0
 
   '@date-fns/tz@1.4.1':
     resolution: {integrity: sha512-P5LUNhtbj6YfI3iJjw5EL9eUAG6OitD0W3fWQcpQjDRc/QIsL0tRNuO1PcDvPccWL1fSTXXdE1ds+l95DV/OFA==}
@@ -4022,7 +4039,15 @@ snapshots:
     dependencies:
       tslib: 2.8.1
 
+  '@capacitor/network@8.0.1(@capacitor/core@6.2.2)':
+    dependencies:
+      '@capacitor/core': 6.2.2
+
   '@capacitor/push-notifications@6.0.5(@capacitor/core@6.2.2)':
+    dependencies:
+      '@capacitor/core': 6.2.2
+
+  '@capacitor/storage@1.2.5(@capacitor/core@6.2.2)':
     dependencies:
       '@capacitor/core': 6.2.2
 

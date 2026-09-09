@@ -10,7 +10,10 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    include: ['src/capabilities/__tests__/**/*.test.ts'],
+    include: [
+      'src/capabilities/__tests__/**/*.test.ts',
+      'src/adapters/native/__tests__/**/*.test.ts',
+    ],
     coverage: {
       reporter: ['text', 'json', 'html'],
     },

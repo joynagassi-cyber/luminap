@@ -15,7 +15,9 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@capacitor/network": "^8.0.1",
     "@capacitor/push-notifications": "^6.0.5",
+    "@capacitor/storage": "^1.2.5",
     "@hookform/resolvers": "^3.10.0",
     "@ionic/core": "^9.0.2",
     "@ionic/react": "^9.0.2",
