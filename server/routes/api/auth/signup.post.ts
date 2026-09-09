@@ -1,6 +1,6 @@
 import { defineHandler } from "nitro";
 import { readBody, createError, setCookie } from "nitro/h3";
-import { store, createUserRecord } from "../../store";
+import { store, createUserRecord } from "../../../store";
 import { generateSessionToken } from "../../../middleware/security";
 
 export default defineHandler(async (event) => {

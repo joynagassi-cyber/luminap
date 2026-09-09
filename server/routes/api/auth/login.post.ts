@@ -1,6 +1,6 @@
 import { defineHandler } from "nitro";
 import { readBody, getRouterParam, createError, getQuery } from "nitro/h3";
-import { store, findUserByEmail, verifyPassword } from "../../store";
+import { store, findUserByEmail, verifyPassword } from "../../../store";
 import { generateSessionToken } from "../../../middleware/security";
 
 export default defineHandler(async (event) => {

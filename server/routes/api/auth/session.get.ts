@@ -1,6 +1,6 @@
 import { defineHandler } from "nitro";
 import { getCookie, createError } from "nitro/h3";
-import { findUserByEmail, adminUser } from "../../store";
+import { findUserByEmail, adminUser } from "../../../store";
 import { verifyPassword } from "../../store";
 
 export default defineHandler((event) => {

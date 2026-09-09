@@ -155,3 +155,12 @@ export function applySecurityHeaders(event: H3Event): void {
 export function generateSessionToken(): string {
   return `lumina_sess_${randomBytes(32).toString("hex")}`;
 }
+
+/**
+ * Default export — no-op middleware passthrough so Nitro doesn't crash
+ * when it auto-discovers this file. Actual security logic lives in the
+ * plugin (server/plugins/security.ts) and is used explicitly by routes.
+ */
+export default function securityMiddleware() {
+  return {};
+}
