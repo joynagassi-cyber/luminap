@@ -20,8 +20,8 @@
 | 7 | Frontend Platform | 100% | ✅ DONE |
 | 8 | Template System | 100% | ✅ DONE |
 | 9-11 | Manifest→Business Packs | 0% | ⬜ NOT STARTED |
-| 12 | Legacy Elimination | 90% | 🟡 IN PROGRESS |
-| 13 | Hardening | 0% | ⬜ NOT STARTED |
+| 12 | Legacy Elimination | 100% | ✅ DONE |
+| 13 | Hardening | 100% | ✅ DONE |
 
 ---
 
