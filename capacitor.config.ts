@@ -12,8 +12,6 @@ const config: CapacitorConfig = {
   zoomEnabled: false,
   server: {
     androidScheme: 'https',
-    // Graceful error page if the web bundle fails to load
-    errorPath: 'error.html',
   },
   android: {
     // Explicitly disable mixed content (default false, but document intent)
