@@ -12,15 +12,15 @@
 |-------|-------|----------|--------|
 | 0 | Governance & Baseline | 100% | ✅ DONE |
 | 1 | Capability Foundation | 100% | ✅ DONE |
-| 2 | Foundation Capabilities | 50% | 🟡 PARTIAL |
+| 2 | Foundation Capabilities | 60% | 🟡 IN PROGRESS |
 | 3 | Data Canonicalization | 10% | 🔴 BLOCKED |
 | 4 | Organization Platform | 10% | 🟡 PARTIAL |
-| 5 | Domain Migration | 40% | 🟡 PARTIAL |
-| 6 | Store Decomposition | 60% | 🟡 IN PROGRESS |
+| 5 | Domain Migration | 50% | 🟡 IN PROGRESS |
+| 6 | Store Decomposition | 70% | 🟡 IN PROGRESS |
 | 7 | Frontend Platform | 100% | ✅ DONE |
 | 8 | Template System | 100% | ✅ DONE |
 | 9-11 | Manifest→Business Packs | 0% | ⬜ NOT STARTED |
-| 12 | Legacy Elimination | 80% | 🟡 IN PROGRESS |
+| 12 | Legacy Elimination | 90% | 🟡 IN PROGRESS |
 | 13 | Hardening | 0% | ⬜ NOT STARTED |
 
 ---
