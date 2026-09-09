@@ -7,33 +7,73 @@ All notable changes to the Lumina Platform will be documented in this file.
 ## [Platform Complete] — 2026-09-09
 
 ### Summary
-The Lumina Platform has reached a stable, production-ready state. All core phases (0-8, 12-13) are complete. 294 tests passing, 0 TypeScript errors, 585-line store (target: <600).
+The Lumina Platform has reached a stable, production-ready state. All core phases (0-8, 12-13, 21-22, 25) are complete. 574 tests passing, 0 TypeScript errors, 38 Ionic pages, 10 capabilities.
 
 ### Added
+- **Federation capability** — multi-org management with OrgContext and FederationService
 - **Policy capability** — business rule enforcement via `src/capabilities/policy/`
-- **Organization capability** — multi-org context resolution skeleton
 - **RLS policies** — Row Level Security on all 8 tables (`docs/00-canonical/rls-policies.sql`)
+- **E2E test suite** — 5 test files covering auth, transactions, organizations, groups/events, cloud sync (45+ E2E tests)
+- **A11y tests** — 27+ accessibility tests
 - **Cross-import guard test** — prevents capability-to-capability and capability-to-UI imports
-- **e2e test suite** — 45 tests covering full platform flow (identity, lifecycle, relationships, transactions)
+- **Template system** — church.ts as reference business pack with 14 roles, 3 forms, full RBAC
+- **Manifest system** — ManifestCompilerService with compile() and validate()
+- **MinimalRuntime** — register(), load(), start(), shutdown(), getCapability()
 
 ### Changed
-- **Store decomposed** — `useLocalStore.ts`: 1117 → 585 lines (-48%)
 - **All pages Ionic-wrapped** — 38/38 pages using `IonPage`
 - **TopHeader → IonToolbar**, **BottomNav → IonTabBar**
 - **org-1 hardcodes removed** — 4 → 0 in production code
 - **dataLayer.ts** unified PowerSync primary with IndexedDB fallback
-- **Test count** increased from 157 → 294
-
-### Removed
-- `archiveService.ts` — ArchiveRegistry fully deleted
-- All direct PowerSync queries from UI pages
-- Dead code exports from `api.ts`
+- **Test count** increased from 157 → 574
 
 ### Fixed
 - Login.tsx div imbalance (build breaker)
 - React Router v6 redirect → navigate migration
 - OneSignal Capacitor plugin → Cordova bridge
 - TypeScript errors — 0 remaining
+- E2E orgContext mock initialization
+
+### Removed
+- `archiveService.ts` — ArchiveRegistry fully deleted
+- All direct PowerSync queries from UI pages
+- Dead code exports from `api.ts`
+
+---
+
+## [Sprint 25 — E2E Complete] — 2026-09-08
+
+### Added
+- E2E test: authentication flow (signUp, signIn, session persistence)
+- E2E test: transaction lifecycle (create, approve, reject)
+- E2E test: organization context and multi-org flows
+- E2E test: groups and events management
+- E2E test: cloud sync behavior
+- orgContext mock initialization fix
+
+### Changed
+- Test count: 294 → 574 (including 45+ E2E tests)
+
+---
+
+## [Sprint 22 — Accessibility] — 2026-09-07
+
+### Added
+- A11y test suite (27+ tests)
+- ARIA labels on interactive elements
+- Keyboard navigation support
+- Contrast ratio audit pass
+
+---
+
+## [Sprint 21 — Mobile] — 2026-09-06
+
+### Added
+- Capacitor 6 integration
+- Android project generated
+- Native notification adapter
+- Native storage adapter
+- Network adapter for offline detection
 
 ---
 

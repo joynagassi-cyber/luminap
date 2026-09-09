@@ -1,11 +1,15 @@
 # Deployment Guide — Lumina Platform
 
+> Last updated: 2026-09-09
+> Status: Platform Complete
+
 ## Prerequisites
 
-- Node.js 20+
-- pnpm (preferred) or npm
+- Node.js 22+
+- pnpm 10+ (preferred)
 - Supabase project with PostgreSQL
-- Capacitor (for mobile builds)
+- Capacitor 6 (for mobile builds)
+- Git
 
 ---
 
@@ -45,7 +49,7 @@ psql -d your_database -f docs/00-canonical/rls-policies.sql
 # Start dev server
 pnpm dev
 
-# Run tests
+# Run unit tests
 pnpm test
 
 # Run E2E tests (requires Playwright browser)
@@ -126,8 +130,9 @@ npx cap open ios
 ## Monitoring
 
 - **Build health**: CI runs `tsc --noEmit` and `vitest run` on every PR
-- **Test coverage**: 294 tests across 11 test files
+- **Test coverage**: 574 tests across 18 test files
 - **TypeScript**: 0 errors target enforced
+- **E2E**: 5 test files covering critical user flows
 
 ---
 
@@ -152,3 +157,17 @@ Vercel deployments can be rolled back from the dashboard.
 | RLS policy errors | Ensure all tables have policies applied (`rls-policies.sql`) |
 | Capacitor sync fails | Run `pnpm run build` first, then `npx cap sync` |
 | TypeScript errors | Run `npx tsc --noEmit` to find exact locations |
+| Tests failing | Run `pnpm test --reporter=verbose` for detailed output |
+
+---
+
+## Post-Deployment Checklist
+
+- [ ] Environment variables configured on deployment platform
+- [ ] Supabase migrations applied
+- [ ] RLS policies applied
+- [ ] Onesignal app ID configured
+- [ ] Build passes without warnings
+- [ ] All 574 tests pass
+- [ ] E2E tests pass on staging
+- [ ] Manual smoke test: login → create transaction → approve → versement → group → event

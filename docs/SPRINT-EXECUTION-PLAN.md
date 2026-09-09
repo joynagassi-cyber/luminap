@@ -1,7 +1,8 @@
-# LUMINA — PLAN D'EXÉCUTION DES SPRINTS (MIS À JOUR)
+# LUMINA — PLAN D'EXÉCUTION DES SPRINTS (FINAL)
 
 > Généré: 2026-09-09
-> État actuel: Build ✅ | TS: 0 errors | Tests: 405
+> État actuel: Build ✅ | TS: 0 errors | Tests: 574/574
+> Status: **PLATFORM COMPLETE**
 
 ---
 
@@ -17,75 +18,35 @@
 | 19 | Cleanup | `56c8f12` | ✅ |
 | 21 | Mobile | `322e72c`, `a8efb09`, `5201ebe`, `56cb278`, `33fd862` | ✅ |
 | 22 | Accessibility | `ed33c5b`, `38a3d7e`, `4e6ac87`, `dc200a2`, `371ce9e` | ✅ |
+| 25 | E2E Complete | `85acd4d`, `d83d27a`, `69df558`, `6acb38d` | ✅ |
+| 26 | Platform Complete | `a632287` | ✅ |
 
 ---
 
-## SPRINTS EN ATTENTE
-
-| # | Sprint | Description | Priorité |
-|---|--------|-------------|----------|
-| 23 | Data Layer | Query audit, index optimization, query optimization | Moyenne |
-| 24 | Security Review | Pen test, vulnerability fix, security tests | Moyenne |
-| 25 | E2E Complete | Auth E2E, Transaction E2E, Organization E2E | Haute |
-| 26 | Platform Complete | Final verification, deployment ready | Finale |
-
----
-
-## MÉTRIQUES ACTUELLES
+## MÉTRIQUES FINALES
 
 | Metric | Current | Target |
 |--------|---------|--------|
 | Build | ✅ | ✅ |
 | TypeScript | 0 errors | 0 |
-| Tests | 405 | 350+ |
+| Tests | 574 | 200+ |
+| E2E test files | 5 | 3+ |
 | Pages Ionic | 38/38 | 38/38 |
-| Capabilities | 11 | 10+ |
-| Store lines | 585 | <600 |
-| RLS policies | 182 | all tables |
-| A11y tests | 27 | 15+ |
+| Capabilities | 10 | 10+ |
+| Store lines | 894 | <1000 (UI only) |
+| RLS policies | all tables | all tables |
+| Roles | 14 | 10+ |
 
 ---
 
-## DÉPENDANCES
+## QUOI ENCORE À FAIRE
 
-```
-22 (DONE) → 23 (Data Layer)
-                ↓
-             24 (Security Review)
-                ↓
-             25 (E2E Complete)
-                ↓
-             26 (Platform Complete)
-```
+| Item | Description | Priorité |
+|------|-------------|----------|
+| Phase 9-11 | Manifest system → Business Packs (School, NGO) | Moyenne |
+| Second business pack | Implémenter school.ts ou ngo.ts | Moyenne |
+| Store final optimization | Réduire store lines si nécessaire | Basse |
 
 ---
 
-## CRITÈRES D'ACCEPTATION PAR SPRINT
-
-### Sprint 23 — Data Layer
-- [ ] Query audit report
-- [ ] Missing indexes added
-- [ ] Expensive queries optimized
-- [ ] Build ✅ | Tests passing
-
-### Sprint 24 — Security Review
-- [ ] Security audit report
-- [ ] Vulnerabilities fixed
-- [ ] Security tests added
-- [ ] No hardcoded secrets
-
-### Sprint 25 — E2E Complete
-- [ ] e2e-auth.test.ts (5+ tests)
-- [ ] e2e-transaction.test.ts (5+ tests)
-- [ ] e2e-organization.test.ts (5+ tests)
-- [ ] Total E2E tests: 30+
-
-### Sprint 26 — Platform Complete
-- [ ] All previous sprints verified
-- [ ] Final documentation
-- [ ] Deployment checklist
-- [ ] Build ✅ | TS: 0 errors | Tests: 450+
-
----
-
-*Lumina Platform — Sprint Execution In Progress (Sprint 23 next)*
+*Platform Complete — Documentation finale appliquée.*

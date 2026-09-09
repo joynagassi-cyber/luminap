@@ -1,7 +1,33 @@
 # Lumina — Guide d'Intégration
 
 > Plateforme universelle d'organisation financière pour églises
-> Version: 1.0 | Dernière mise à jour: Septembre 2026
+> Version: 1.0 | Dernière mise à jour: 2026-09-09
+> Status: Platform Complete
+
+---
+
+## ZOOMOUT 2 SENTENCES
+
+Lumina is a local-first, offline-capable financial organization platform built on a capability-based architecture. All business logic lives in domain-agnostic capabilities with a template system for different organization types (church, school, NGO).
+
+---
+
+## ONE-SENTENCE CONTEXT
+
+Production-ready platform with 574 tests, 10 capabilities, 38 Ionic pages, full PowerSync sync, and a template-driven business pack system.
+
+---
+
+## TL;DR
+
+- **574 tests** passing, **0 TypeScript errors**, **build clean**
+- **10 capabilities**: identity, lifecycle, notification, organization, policy, relationship, resource, security, workflow, federation
+- **38 Ionic pages**, all wrapped in `IonPage`
+- **14 roles** with full RBAC
+- **PowerSync** with 20 streams → Supabase + IndexedDB fallback
+- **Template system** with church.ts as reference implementation
+- **Offline-first**: works without internet, syncs when connected
+- **E2E tests**: 45+ covering auth, transactions, organizations, groups/events, cloud sync
 
 ---
 
@@ -36,9 +62,10 @@ pnpm dev
 | `pnpm dev` | Démarrer le dev server (Vite + Nitro) |
 | `pnpm build` | Build production |
 | `pnpm build:cap` | Build pour Capacitor (Android) |
-| `pnpm lint` | Linter ESLint |
-| `pnpm test` | Tests E2E Playwright |
-| `supabase db pull --linked` | Pull le schema Supabase |
+| `pnpm test` | Tests unitaires (574 tests) |
+| `pnpm test:e2e` | Tests E2E Playwright |
+| `npx tsc --noEmit` | TypeScript type check |
+| `supabase db push` | Appliquer migrations Supabase |
 | `supabase functions list` | Lister les edge functions |
 
 ---
@@ -48,40 +75,63 @@ pnpm dev
 ### Vue d'Ensemble
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  BROWSER (React 19 + TypeScript)                            │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌────────────┐  │
-│  │ Pages/   │  │Components│  │  Store   │  │   Hooks    │  │
-│  │ (32)     │  │  (15)    │  │Zustand   │  │  (2)       │  │
-│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └─────┬──────┘  │
-│       │             │             │              │          │
-│       └─────────────┴─────────────┴──────────────┘          │
-│                          │                                   │
-│                    ┌─────▼─────┐                            │
-│                    │  lib/     │                            │
-│                    │  (13)     │                            │
-│                    └─────┬─────┘                            │
-│                          │                                   │
-│              ┌───────────┼───────────┐                       │
-│              │           │           │                       │
-│        ┌─────▼───┐ ┌─────▼───┐ ┌────▼────┐                  │
-│        │ Indexed │ │ Sync    │ │ Audit   │                  │
-│        │ DB      │ │ Engine  │ │ Logger  │                  │
-│        └─────┬───┘ └─────┬───┘ └────┬────┘                  │
-│              │           │           │                       │
-│              └───────────┴───────────┘                       │
-│                          │                                   │
-│                    ┌─────▼─────┐                            │
-│                    │ Supabase  │                            │
-│                    │ (Cloud)   │                            │
-│                    └───────────┘                            │
-└─────────────────────────────────────────────────────────────┘
-                          │
-                    ┌─────▼─────┐                            │
-                    │ Nitro     │                            │
-                    │ (Server)  │                            │
-                    │ API Routes│                            │
-                    └───────────┘                            │
+┌──────────────────────────────────────────────────────────────────┐
+│                        BROWSER (React 19 + Ionic)                │
+│                                                                  │
+│   ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────┐   │
+│   │  Pages   │  │Components│  │  Store   │  │    Hooks     │   │
+│   │ (38)     │  │ (15)     │  │  Zustand │  │  (2)         │   │
+│   │ IonPage  │  │ shadcn   │  │  894 lo  │  │  (toast)     │   │
+│   └────┬─────┘  └────┬─────┘  └────┬─────┘  └──────┬───────┘   │
+│        │             │             │               │             │
+│        └─────────────┴─────────────┴───────────────┘             │
+│                              │                                   │
+│                    ┌─────────▼─────────┐                        │
+│                    │    dataLayer.ts   │                        │
+│                    │ PowerSync primary │                        │
+│                    │ IndexedDB fallback│                        │
+│                    └─────────┬─────────┘                        │
+└──────────────────────────────┼──────────────────────────────────┘
+                               │
+                    ┌──────────▼──────────┐
+                    │   CAPABILITY LAYER  │
+                    │                     │
+                    │ identity  lifecycle │
+                    │ notification org    │
+                    │ policy    resource  │
+                    │ relationship security│
+                    │ workflow  federation│
+                    │                     │
+                    │ All domain-agnostic │
+                    │ Cross-import guard  │
+                    └──────────┬──────────┘
+                               │
+                    ┌──────────▼──────────┐
+                    │     ADAPTERS        │
+                    │ CaisseAdapter       │
+                    │ OrgUnitAdapter      │
+                    │ TransactionLegacy   │
+                    │ VersementLegacy     │
+                    │ EventBudgetAdapter  │
+                    └──────────┬──────────┘
+                               │
+                    ┌──────────▼──────────┐
+                    │    DATA LAYER       │
+                    │                     │
+                    │  PowerSync (20      │
+                    │   streams)          │
+                    │       ↓             │
+                    │  Supabase Postgres  │
+                    │       ↓             │
+                    │  RLS policies on    │
+                    │  all 8 tables       │
+                    └─────────────────────┘
+                               │
+                    ┌──────────▼──────────┐
+                    │      Nitro          │
+                    │  (Edge Server)      │
+                    │  API Routes         │
+                    └─────────────────────┘
 ```
 
 ### Stack Technique
@@ -94,11 +144,12 @@ pnpm dev
 | **State** | Zustand | 5.0.15 |
 | **ORM Local** | IndexedDB (native) | v14 |
 | **Cloud DB** | Supabase Postgres | - |
+| **Sync** | PowerSync | 20 streams |
 | **Server** | Nitro | 3.0.260610-beta |
 | **Styling** | Tailwind CSS | 3.4.19 |
 | **UI** | shadcn/ui + Radix UI | - |
 | **Mobile** | Capacitor | 6.2.2 |
-| **Tests** | Playwright | 1.62.1 |
+| **Tests** | Playwright + Vitest | - |
 
 ### Patterns Clés
 
@@ -107,6 +158,7 @@ pnpm dev
 3. **Pas d'auth**: Accès direct, RLS open sur Supabase
 4. **Montants en centimes**: Toutes les valeurs monétaires sont des entiers (ex: 50000 = 500 FCFA)
 5. **Transactions immuables**: DRAFT → PENDING → APPROVED/REJECTED
+6. **Capability-driven**: Toute la logique métier est dans `src/capabilities/`
 
 ---
 
@@ -127,7 +179,7 @@ src/
 │   ├── SyncIndicator.tsx  # Indicateur sync
 │   └── ui/                # Composants shadcn/ui
 │
-├── pages/                 # Pages de l'application (32)
+├── pages/                 # Pages de l'application (38)
 │   ├── Dashboard.tsx      # Vue d'ensemble + caisses
 │   ├── Finance.tsx        # Grand livre avec filtres
 │   ├── TransactionNew.tsx # Création transaction
@@ -156,9 +208,21 @@ src/
 │   └── Notifications.tsx  # Centre notifications
 │
 ├── store/
-│   └── useLocalStore.ts   # Store Zustand (1356 lignes)
+│   └── useLocalStore.ts   # Store Zustand (894 lignes — UI/session only)
 │
-├── lib/                   # Logique métier (13 modules)
+├── capabilities/          # 10 capabilities (domain-agnostic)
+│   ├── identity/          # User profiles
+│   ├── lifecycle/         # Archive/restore with audit
+│   ├── notification/      # OneSignal wrapper
+│   ├── organization/      # Org context management
+│   ├── policy/            # Business rules
+│   ├── relationship/      # Group memberships
+│   ├── resource/          # Generic CRUD
+│   ├── security/          # RBAC evaluation
+│   ├── workflow/          # Status transitions
+│   └── federation/        # Multi-org management
+│
+├── lib/                   # Utilities & services (13 modules)
 │   ├── db.ts             # IndexedDB wrapper
 │   ├── sync.ts           # Sync engine + retry
 │   ├── audit.ts          # Journal d'audit
@@ -169,14 +233,40 @@ src/
 │   ├── reporting.ts      # Moteur de rapports
 │   ├── formSystem.ts     # Système formulaires
 │   ├── customFields.ts   # Champs personnalisés
-│   ├── archiveService.ts # Service archivage
-│   └── cleanup.ts        # Nettoyage données
+│   ├── orgContext.ts     # Organization context
+│   ├── dataLayer.ts      # Unified data access (PowerSync primary)
+│   └── versement-service.ts
+│
+├── templates/
+│   ├── schema.ts         # Template interface definition
+│   └── church.ts         # Church template (14 roles, 3 forms)
+│
+├── manifest/
+│   ├── index.ts          # Manifest exports
+│   └── compiler.ts       # ManifestCompilerService
+│
+├── runtime/
+│   └── index.ts          # MinimalRuntime
+│
+├── adapters/
+│   ├── CaisseAdapter.ts
+│   ├── OrgUnitAdapter.ts
+│   ├── TransactionLegacyAdapter.ts
+│   ├── VersementLegacyAdapter.ts
+│   └── EventBudgetAdapter.ts
 │
 ├── types/
 │   └── index.ts          # Types TypeScript
 │
 ├── hooks/
 │   └── use-toast.ts      # Système notifications
+│
+├── ionic/
+│   ├── routing.tsx       # 48 Ionic routes
+│   ├── theme.ts          # Theme configuration
+│   └── theme.css         # CSS tokens
+│
+├── IonicApp.tsx           # Ionic app wrapper
 │
 └── integrations/
     └── supabase/
@@ -191,7 +281,7 @@ src/
 
 **Nom:** `lumina-db` | **Version:** 14 | **Schema:** 3
 
-**Stores (18):**
+**Stores (18+):**
 
 | Store | Clé | Description |
 |-------|-----|-------------|
@@ -219,11 +309,11 @@ src/
 
 ### Supabase (Cloud)
 
-**URL:** `https://hhgovvrnalibhgpakswi.supabase.co`
-
 **Tables syncées:** Même schéma qu'IndexedDB + tables auth/storage
 
 **RLS:** Open (tous les utilisateurs peuvent lire/écrire)
+
+**PowerSync:** 20 streams configurés dans `powersync/sync-config.yaml`
 
 **Edge Functions:**
 - `signup` — Création compte (v2)
@@ -245,6 +335,9 @@ IndexedDB (immédiat)
       │
       ▼
 Background Sync (si online)
+      │
+      ▼
+PowerSync (20 streams)
       │
       ▼
 Supabase (cloud)
@@ -325,7 +418,7 @@ DRAFT → PENDING → APPROVED
 ```typescript
 // Types
 MAIN    → Caisse principale de l'église
-GROUP   → Caisse de每个 groupe (diacres, jeunesse, etc.)
+GROUP   → Caisse de chaque groupe (diacres, jeunesse, etc.)
 
 // Versement
 Groupe → Caisse principale
@@ -343,6 +436,9 @@ Groupe → Caisse principale
 | **COMPTABLE** | Grand livre, bilans, rapports |
 | **TREASURIER_ADJOINT** | Assisté trésorier principal |
 | **SECRETAIRE_ADJOINT** | Assisté secrétaire |
+| *(+ 8 autres rôles)* | |
+
+**14 rôles au total** avec PERMISSION_MATRIX complète.
 
 ---
 
@@ -354,14 +450,37 @@ Groupe → Caisse principale
 # 1. Créer le fichier
 touch src/pages/NouvellePage.tsx
 
-# 2. Ajouter le route dans App.tsx
-<Route path="/nouvelle-page" element={<NouvellePage />} />
+# 2. Ajouter le route dans src/ionic/routing.tsx
+#    (Ionic IonRoute, pas React Router)
 
 # 3. Ajouter à la navigation si nécessaire
 # src/components/BottomNav.tsx
 ```
 
-### Créer un Nouveau Type
+### Créer une Nouvelle Capability
+
+```typescript
+// src/capabilities/my-capability/index.ts
+import type { Capability } from '../types';
+
+export const myCapability: Capability = {
+  name: 'my-capability',
+  async init() { /* ... */ },
+  // ... methods
+};
+```
+
+**Règle:** Une capability ne peut pas importer d'autres capabilities ni de UI.
+
+### Modifier le Store Zustand
+
+```typescript
+// src/store/useLocalStore.ts
+// NE PAS ajouter de logique métier ici
+// Ajouter seulement UI state (loading, form, pagination)
+```
+
+### Ajouter un Nouveau Type
 
 ```typescript
 // src/types/index.ts
@@ -370,34 +489,6 @@ export type NouveauType = {
   nom: string;
   // ...
 };
-```
-
-### Ajouter un Champ à IndexedDB
-
-```typescript
-// src/lib/db.ts
-// 1. Ajouter au type StoreName
-export type StoreName = 'transactions' | ... | 'nouveauStore';
-
-// 2. Ajouter dans le migration handler
-{ name: 'nouveauStore', keyPath: 'id' }
-
-// 3. Incrémenter DB_VERSION
-const DB_VERSION = 15; // +1
-```
-
-### Modifier le Store Zustand
-
-```typescript
-// src/store/useLocalStore.ts
-// Ajouter une action
-addNouvelleAction: async (data) => {
-  const id = generateId();
-  const newItem = { id, ...data, createdAt: new Date().toISOString() };
-  await db.put('nouveauStore', newItem);
-  await enqueueSync({ /* ... */ });
-  set(state => ({ nouveauStore: [...state.nouveauStore, newItem] }));
-}
 ```
 
 ---
@@ -438,7 +529,7 @@ console.log(state.transactions);
 |----------|-------|----------|
 | Données pas syncées | Offline + retry épuisé | Vérifier `syncQueue` |
 | DB migration bloquée | Version mismatch | Incrémenter `DB_VERSION` |
-| Page 404 | Route manquante | Ajouter dans `App.tsx` |
+| Page 404 | Route manquante | Ajouter dans `src/ionic/routing.tsx` |
 | Style cassé | clsx mal utilisé | Vérifier `tailwind-merge` |
 
 ---
@@ -451,6 +542,7 @@ console.log(state.transactions);
 - **Hooks:** camelCase avec préfixe `use` (`useLocalStore.ts`)
 - **Pages:** PascalCase (`Dashboard.tsx`)
 - **Lib:** camelCase (`db.ts`, `sync.ts`)
+- **Capabilities:** kebab-case directories (`src/capabilities/my-capability/`)
 
 ### Imports
 
@@ -458,15 +550,18 @@ console.log(state.transactions);
 // Priorité 1: Types du projet
 import type { Transaction } from '@/types';
 
-// Priorité 2: Lib interne
+// Priorité 2: Capabilities
+import { workflow } from '@/capabilities/workflow';
+
+// Priorité 3: Lib interne
 import { db } from '@/lib/db';
 import { useLocalStore } from '@/store/useLocalStore';
 
-// Priorité 3: UI Components
+// Priorité 4: UI Components
 import { Button } from '@/components/ui/button';
 import BottomNav from '@/components/BottomNav';
 
-// Priorité 4: External libs
+// Priorité 5: External libs
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 ```
@@ -490,33 +585,35 @@ try {
 
 ## 🧪 Tests
 
+### Tests Unitaires (Vitest)
+
+```bash
+# Lancer tous les tests
+pnpm test
+
+# Mode watch
+pnpm test --watch
+
+# Spécifique à un fichier
+pnpm test src/capabilities/__tests__/security.test.ts
+```
+
+**574 tests** répartis dans 18 fichiers de test.
+
 ### Tests E2E (Playwright)
 
 ```bash
 # Lancer les tests
-pnpm test
+pnpm test:e2e
 
 # Lancer en mode headed
-pnpm test --headed
+pnpm test:e2e --headed
 
 # Spécifique à un fichier
-pnpm test src/pages/Dashboard.spec.ts
+pnpm test:e2e src/pages/Dashboard.spec.ts
 ```
 
-### Testing Manual
-
-```bash
-# 1. Démarrer le dev server
-pnpm dev
-
-# 2. Ouvrir http://localhost:8080
-# 3. Tester les flux principaux:
-#    - Créer une transaction
-#    - Approver une transaction
-#    - Faire un versement
-#    - Créer un groupe
-#    - Ajouter un membre
-```
+**5 fichiers E2E:** auth, transactions, organizations, groups/events, cloud sync.
 
 ---
 
@@ -543,9 +640,35 @@ npx cap sync android
 npx cap open android
 ```
 
+### Supabase
+
+```bash
+# Appliquer les migrations
+supabase db push
+
+# Appliquer les RLS policies
+psql -d your_database -f docs/00-canonical/rls-policies.sql
+```
+
 ---
 
-## 📚 Ressources
+## 📚 Documentation
+
+### Fichiers Clés à Lire
+
+| Fichier | Pourquoi le lire |
+|---------|------------------|
+| `src/ionic/routing.tsx` | Routing Ionic (48 routes) |
+| `src/store/useLocalStore.ts` | State management et session UI |
+| `src/lib/dataLayer.ts` | Unified data access (PowerSync + IndexedDB) |
+| `src/lib/rbac.ts` | RBAC engine (source of truth) |
+| `src/capabilities/*/index.ts` | Interfaces des 10 capabilities |
+| `src/templates/church.ts` | Template church implementation |
+| `src/manifest/compiler.ts` | ManifestCompilerService |
+| `src/IonicApp.tsx` | Ionic app wrapper |
+| `docs/00-canonical/MASTER-EXECUTION-ROADMAP.md` | Architecture et phases complètes |
+| `docs/PLATFORM_COMPLETE.md` | Checklist de complétion plateforme |
+| `docs/DEPLOYMENT.md` | Guide de déploiement complet |
 
 ### Documentation Externe
 
@@ -554,19 +677,10 @@ npx cap open android
 - **Zustand:** https://docs.pmnd.rs/zustand
 - **Tailwind CSS:** https://tailwindcss.com/docs
 - **Supabase:** https://supabase.com/docs
+- **PowerSync:** https://powersync.com/docs
+- **Ionic:** https://ionicframework.com/docs
 - **Nitro:** https://nitro.unjs.io
 - **shadcn/ui:** https://ui.shadcn.com
-
-### Fichiers Clés à Lire
-
-| Fichier | Pourquoi le lire |
-|---------|------------------|
-| `src/App.tsx` | Routing et structure de l'app |
-| `src/store/useLocalStore.ts` | State management et logique métier |
-| `src/lib/db.ts` | Accès IndexedDB |
-| `src/lib/sync.ts` | Moteur de synchronisation |
-| `src/components/BottomNav.tsx` | Navigation principale |
-| `src/types/index.ts` | Types TypeScript |
 
 ---
 
@@ -589,10 +703,12 @@ git push origin feature/nom-de-la-feature
 
 - [ ] TypeScript compile sans erreur
 - [ ] ESLint passe sans warning
-- [ ] Tests manuels passés
+- [ ] Tests unitaires passent (`pnpm test`)
+- [ ] Tests E2E passent (`pnpm test:e2e`)
 - [ ] Pas de console.error
 - [ ] Accessibilité vérifiée (contraste, labels)
 - [ ] Mobile testing (si changement UI)
+- [ ] Une capability ne importe pas d'autres capabilities ni de UI
 
 ---
 
@@ -612,6 +728,12 @@ A: Oui, entièrement. La sync se fait dès que la connexion est disponible.
 
 **Q: Comment modifier le design system ?**
 A: Modifier `src/globals.css` pour les variables CSS, ou `tailwind.config.ts` pour les utilitaires.
+
+**Q: Comment créer un nouveau template business pack ?**
+A: Copier `src/templates/church.ts` et implémenter l'interface `Template` avec vos workflows, rôles, et formulaires.
+
+**Q: Quelle est la différence entre dataLayer et useLocalStore ?**
+A: `dataLayer.ts` est la couche d'accès aux données (PowerSync primary, IndexedDB fallback). `useLocalStore.ts` est le state UI/session (Zustand) — pas de logique métier.
 
 ---
 
