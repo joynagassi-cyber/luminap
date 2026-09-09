@@ -239,7 +239,7 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
-        </div>
+        </button>
 
         {/* Quick Stats Grid */}
         {(pendingCount > 0 || draftCount > 0 || upcomingEvents.length > 0 || groupAccounts.length > 0) && (

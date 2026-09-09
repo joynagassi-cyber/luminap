@@ -219,8 +219,7 @@ export default function Finance() {
                       type="date"
                       value={dateRange.from}
                       onChange={(e) => setDateRange({ ...dateRange, from: e.target.value })}
-                     
-px-3 py-2 rounded-lg text-xs "
+                      className="px-3 py-2 rounded-lg text-xs"
                       style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
                     />
                     <span className="text-text-tertiary text-xs self-center">→</span>
@@ -229,7 +228,7 @@ px-3 py-2 rounded-lg text-xs "
                       value={dateRange.to}
                       onChange={(e) => setDateRange({ ...dateRange, to: e.target.value })}
                      
-px-3 py-2 rounded-lg text-xs "
+className="
                       style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
                     />
                   </div>

@@ -425,12 +425,12 @@ export default function GroupDetail() {
                 <div>
                   <label className="text-text-tertiary text-xs mb-1.5 block">Nom</label>
                   <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)}
-w-full px-4 py-2.5 rounded-xl text-text-primary text-sm " style={{ backgroundColor: '#181818', border: '1px solid #282828' }} />
+className="w-full px-4 py-2.5 rounded-xl text-text-primary text-sm" style={{ backgroundColor: '#181818', border: '1px solid #282828' }} />
                 </div>
                 <div>
                   <label className="text-text-tertiary text-xs mb-1.5 block">Description</label>
                   <textarea value={editDesc} onChange={(e) => setEditDesc(e.target.value)} rows={2}
-w-full px-4 py-2.5 rounded-xl text-text-primary text-sm  resize-none" style={{ backgroundColor: '#181818', border: '1px solid #282828' }} />
+className="w-full px-4 py-2.5 rounded-xl text-text-primary text-sm resize-none" style={{ backgroundColor: '#181818', border: '1px solid #282828' }} />
                 </div>
                 <div className="flex gap-2">
                   <button onClick={handleUpdate} className="flex-1 py-2.5 rounded-full text-sm font-semibold text-white" style={{ backgroundColor: '#FF6B00' }}>Sauvegarder</button>
@@ -497,7 +497,7 @@ w-full px-4 py-2.5 rounded-xl text-text-primary text-sm  resize-none" style={{ b
                 value={selectedMemberId}
                 onChange={(e) => setSelectedMemberId(e.target.value)}
                
-className="w-full px-4 py-3 rounded-xl text-text-primary text-sm  appearance-none"
+className="w-full px-4 py-3 rounded-xl text-text-primary text-sm appearance-none"
                 style={{ backgroundColor: '#212121', border: '1px solid #282828' }}
               >
                 <option value="">Sélectionner un membre...</option>

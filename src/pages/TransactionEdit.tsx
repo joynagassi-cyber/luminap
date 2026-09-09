@@ -120,8 +120,7 @@ export default function TransactionEdit() {
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="0"
-             
-w-full px-4 py-3 rounded-xl text-lg font-bold  text-center"
+              className="w-full px-4 py-3 rounded-xl text-sm"
               style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
             />
           </div>
@@ -133,8 +132,7 @@ w-full px-4 py-3 rounded-xl text-lg font-bold  text-center"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Description de la transaction"
-             
-w-full px-4 py-3 rounded-xl text-sm "
+              className="w-full px-4 py-3 rounded-xl text-sm"
               style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
             />
           </div>
@@ -145,8 +143,7 @@ w-full px-4 py-3 rounded-xl text-sm "
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-             
-w-full px-4 py-3 rounded-xl text-sm "
+              className="w-full px-4 py-3 rounded-xl text-sm"
               style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
             />
           </div>
@@ -156,8 +153,7 @@ w-full px-4 py-3 rounded-xl text-sm "
             <select
               value={categoryId}
               onChange={(e) => setCategoryId(e.target.value)}
-             
-w-full px-4 py-3 rounded-xl text-sm "
+              className="w-full px-4 py-3 rounded-xl text-sm"
               style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
             >
               <option value="">Sélectionner une catégorie</option>
@@ -172,8 +168,7 @@ w-full px-4 py-3 rounded-xl text-sm "
             <select
               value={source}
               onChange={(e) => setSource(e.target.value as any)}
-             
-w-full px-4 py-3 rounded-xl text-sm "
+              className="w-full px-4 py-3 rounded-xl text-sm"
               style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
             >
               <option value="CAISSE">Caisse</option>
@@ -192,7 +187,7 @@ w-full px-4 py-3 rounded-xl text-sm "
                 onChange={(e) => setPersonName(e.target.value)}
                 placeholder="Nom de la personne"
                
-w-full px-4 py-3 rounded-xl text-sm "
+className="
                 style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
               />
             </div>
@@ -203,8 +198,7 @@ w-full px-4 py-3 rounded-xl text-sm "
             <select
               value={eventId}
               onChange={(e) => setEventId(e.target.value)}
-             
-w-full px-4 py-3 rounded-xl text-sm "
+              className="w-full px-4 py-3 rounded-xl text-sm"
               style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
             >
               <option value="">Aucun événement</option>
@@ -221,8 +215,7 @@ w-full px-4 py-3 rounded-xl text-sm "
               onChange={(e) => setComment(e.target.value)}
               placeholder="Ajouter un commentaire..."
               rows={2}
-             
-w-full px-4 py-3 rounded-xl text-sm  resize-none"
+              className="w-full px-4 py-3 rounded-xl text-sm"
               style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
             />
           </div>

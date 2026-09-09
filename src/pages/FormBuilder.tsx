@@ -221,15 +221,13 @@ className="w-full px-4 py-3 rounded-xl text-text-primary text-sm  resize-none"
                 type="text"
                 value={field.label}
                 onChange={(e) => updateField(index, { label: e.target.value })}
-               
-flex-1 px-3 py-1.5 rounded-lg text-sm "
+               className="flex-1 px-3 py-1.5 rounded-lg text-sm"
                 style={{ backgroundColor: '#181818', border: '1px solid #282828', color: '#fff' }}
               />
                     <select
                       value={field.type}
                       onChange={(e) => updateField(index, { type: e.target.value as FormFieldDefinition['type'] })}
-                     
-px-2 py-1.5 rounded-lg text-xs "
+               className="px-2 py-1.5 rounded-lg text-xs"
                       style={{ backgroundColor: '#181818', color: '#B3B3B3', border: '1px solid #282828' }}
                     >
                       {FIELD_TYPES.map(ft => <option key={ft.value} value={ft.value}>{ft.label}</option>)}
@@ -248,7 +246,7 @@ px-2 py-1.5 rounded-lg text-xs "
                       placeholder="Options (une par ligne)"
                       rows={2}
                      
-className="w-full px-3 py-2 rounded-lg text-xs  resize-none"
+              className="w-full px-3 py-2 rounded-lg text-xs resize-none"
                       style={{ backgroundColor: '#181818', border: '1px solid #282828', color: '#fff' }}
                     />
                   )}

@@ -122,8 +122,7 @@ export default function MembersPage() {
                 placeholder="Rechercher un membre..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-               
-className="w-full pl-10 pr-4 py-3 rounded-xl text-sm""
+                className="w-full pl-10 pr-4 py-3 rounded-xl text-sm"
                 style={{ backgroundColor: '#212121', color: '#fff', border: '1px solid #282828' }}
               />
             </div>
@@ -139,8 +138,8 @@ className="w-full pl-10 pr-4 py-3 rounded-xl text-sm""
                       placeholder="Prénom"
                       value={firstName}
                       onChange={(e) => setFirstName(e.target.value)}
-                     
-px-4 py-3 rounded-xl text-sm "
+
+                      className="px-4 py-3 rounded-xl text-sm"
                       style={{ backgroundColor: '#181818', color: '#fff', border: '1px solid #282828' }}
                     />
                     <input
@@ -148,8 +147,8 @@ px-4 py-3 rounded-xl text-sm "
                       placeholder="Nom"
                       value={lastName}
                       onChange={(e) => setLastName(e.target.value)}
-                     
-px-4 py-3 rounded-xl text-sm "
+
+                      className="px-4 py-3 rounded-xl text-sm"
                       style={{ backgroundColor: '#181818', color: '#fff', border: '1px solid #282828' }}
                     />
                   </div>
@@ -158,8 +157,7 @@ px-4 py-3 rounded-xl text-sm "
                     placeholder="Téléphone"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                   
-w-full px-4 py-3 rounded-xl text-sm "
+                    className="w-full px-4 py-3 rounded-xl text-sm"
                     style={{ backgroundColor: '#181818', color: '#fff', border: '1px solid #282828' }}
                   />
                   <input
@@ -167,8 +165,7 @@ w-full px-4 py-3 rounded-xl text-sm "
                     placeholder="Email (optionnel)"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                   
-w-full px-4 py-3 rounded-xl text-sm "
+                    className="w-full px-4 py-3 rounded-xl text-sm"
                     style={{ backgroundColor: '#181818', color: '#fff', border: '1px solid #282828' }}
                   />
                   <div className="flex gap-2">

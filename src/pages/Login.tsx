@@ -74,7 +74,7 @@ export default function Login() {
               onChange={(e) => setName(e.target.value)}
               placeholder="Ex: Jean"
              
-className="w-full px-4 py-3 rounded-xl text-white text-sm""
+className="w-full px-4 py-3 rounded-xl text-white text-sm"
               style={{ backgroundColor: '#1E1E1E', border: '1px solid #282828' }}
             />
           </div>
