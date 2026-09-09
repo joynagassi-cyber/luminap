@@ -4,8 +4,31 @@ const config: CapacitorConfig = {
   appId: 'com.lumina.mfejc',
   appName: 'Lumina',
   webDir: 'dist',
+  // Production hardening: suppress all JS logs in release builds
+  loggingBehavior: 'none',
+  // Root background color must match splash to avoid flash of white
+  backgroundColor: '#121212',
+  // Disable WebView zooming for production security
+  zoomEnabled: false,
   server: {
-    androidScheme: 'https'
+    androidScheme: 'https',
+    // Graceful error page if the web bundle fails to load
+    errorPath: 'error.html',
+  },
+  android: {
+    // Explicitly disable mixed content (default false, but document intent)
+    allowMixedContent: false,
+    // Disable remote debugging in release builds (default false, explicit)
+    webContentsDebuggingEnabled: false,
+    // Keep focus on webview for keyboard handling
+    initialFocus: true,
+  },
+  ios: {
+    // Mirror Android settings for when iOS project is scaffolded
+    allowMixedContent: false,
+    initialFocus: true,
+    scrollEnabled: true,
+    contentInset: 'never',
   },
   plugins: {
     SplashScreen: {
