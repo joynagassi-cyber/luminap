@@ -21,7 +21,6 @@ class OneSignalAuthService {
     try {
       await initOneSignal();
       this.isInitialized = true;
-      console.log('[OneSignal] Service initialized');
     } catch (error) {
       console.error('[OneSignal] Initialization error:', error);
     }
@@ -35,7 +34,6 @@ class OneSignalAuthService {
       await service.setTag('role', role);
       await service.setTag('user_id', userId);
       this.userId = userId;
-      console.log(`[OneSignal] User logged in: ${userId}, role: ${role}`);
     } catch (error) {
       console.error('[OneSignal] Login error:', error);
     }
@@ -47,7 +45,6 @@ class OneSignalAuthService {
       const service = getOneSignalService();
       await service.logout();
       this.userId = null;
-      console.log('[OneSignal] User logged out');
     } catch (error) {
       console.error('[OneSignal] Logout error:', error);
     }
@@ -68,8 +65,7 @@ class OneSignalAuthService {
   }
 
   async notifyRole(role: Role, title: string, message: string, data?: Record<string, any>): Promise<void> {
-    console.log(`[OneSignal] Would send notification to role ${role}: ${title}`);
-    console.log(`[OneSignal] Data:`, data);
+    // no-op: client-side stub; actual sends go through backend
   }
 }
 

@@ -62,7 +62,6 @@ vi.mock('@/lib/audit', () => ({
     },
   },
   writeAudit: vi.fn(),
-  writeAuditSummary: vi.fn(),
 }));
 
 vi.mock('@/lib/orgContext', () => ({

@@ -136,7 +136,6 @@ vi.mock('@/lib/audit', () => ({
     },
   },
   writeAudit: vi.fn(),
-  writeAuditSummary: vi.fn(),
 }));
 
 // ─── dataLayer mock (relationship capability) ─────────────────────

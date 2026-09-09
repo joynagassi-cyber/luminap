@@ -100,15 +100,6 @@ export class NotificationCapability {
       }
     }
     await service.setTags(tags);
-
-    // Log the send intent — the actual push is dispatched via the
-    // OneSignal dashboard or a backend call that uses this tag.
-    console.log('[NotificationCapability] Send intent:', {
-      title: data.title,
-      message: data.message,
-      targetRole: data.targetRole,
-      targetUserId: data.targetUserId,
-    });
   }
 
   /**
@@ -127,7 +118,6 @@ export class NotificationCapability {
       existing.push(topic);
     }
     await service.User.addTag('topics', JSON.stringify(existing));
-    console.log(`[NotificationCapability] Subscribed to topic: ${topic}`);
   }
 
   /**
@@ -141,7 +131,6 @@ export class NotificationCapability {
     const existing: string[] = tags['topics'] ? JSON.parse(tags['topics']) : [];
     const filtered = existing.filter(t => t !== topic);
     await service.User.addTag('topics', JSON.stringify(filtered));
-    console.log(`[NotificationCapability] Unsubscribed from topic: ${topic}`);
   }
 }
 

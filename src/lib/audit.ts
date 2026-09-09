@@ -127,28 +127,3 @@ export const auditLogRepo: AuditLogRepository = {
 export async function writeAudit(entry: Omit<AuditEntry, 'id' | 'createdAt'>): Promise<void> {
   await auditLogRepo.write(entry);
 }
-
-/**
- * Helper: write a summary audit entry (without full before/after state)
- */
-export async function writeAuditSummary(options: {
-  entityType: string;
-  entityId: string;
-  action: AuditEntry['action'];
-  actorId: string;
-  actorRoleAtTime?: string;
-  comment?: string | null;
-}): Promise<void> {
-  await auditLogRepo.write({
-    orgId: getOrganizationId(),
-    transactionId: null,
-    userId: options.actorId,
-    actorRoleAtTime: options.actorRoleAtTime ?? null,
-    action: options.action,
-    entityType: options.entityType,
-    entityId: options.entityId,
-    beforeState: null,
-    afterState: null,
-    comment: options.comment ?? null,
-  });
-}
