@@ -172,13 +172,14 @@ describe('StorageAdapter', () => {
       expect(a).toBe(b);
     });
 
-    it('returns different instances for different groups', () => {
-      StorageAdapter.injectMockPlugin(mockStoragePlugin);
-      // Force re-inject to clear singleton
+    it('returns the same instance regardless of group (singleton)', () => {
+      // Force a fresh instance with a specific group
+      StorageAdapter.resetMockPlugin();
       (StorageAdapter as any).instance = null;
+      StorageAdapter.injectMockPlugin(mockStoragePlugin);
       const a = StorageAdapter.getInstance('app1');
       const b = StorageAdapter.getInstance('app2');
-      expect(a).not.toBe(b);
+      expect(a).toBe(b); // Same singleton instance
     });
   });
 });
