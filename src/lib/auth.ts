@@ -9,9 +9,13 @@ import type { SupabaseClient, Session, User as SupabaseUser } from '@supabase/su
 import type { Role } from '@/types';
 import { getOrganizationId } from './orgContext';
 
-// Initialize Supabase client
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://hhgovvrnalibhgpakswi.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_kwbReVxSdHLx_u2IzQvGaA_Eegsf2Sh';
+// Use environment variables — never hardcode credentials
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Missing Supabase credentials. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+}
 
 export const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKey);
 
@@ -62,9 +66,9 @@ class AuthService {
     return emailRegex.test(email);
   }
 
-  // Validate password strength (min 6 characters)
+  // Validate password strength (min 8 characters)
   private isValidPassword(password: string): boolean {
-    return password.length >= 6;
+    return password.length >= 8;
   }
 
   // Check if session token is expired or expiring soon
@@ -221,7 +225,7 @@ class AuthService {
     }
 
     if (!password || !this.isValidPassword(password)) {
-      const errorMsg = 'Password must be at least 6 characters long.';
+      const errorMsg = 'Password must be at least 8 characters long.';
       this.setState({ error: errorMsg, isLoading: false });
       return { error: errorMsg };
     }
@@ -281,7 +285,7 @@ class AuthService {
     }
 
     if (!password || !this.isValidPassword(password)) {
-      const errorMsg = 'Password must be at least 6 characters long.';
+      const errorMsg = 'Password must be at least 8 characters long.';
       this.setState({ error: errorMsg, isLoading: false });
       return { error: errorMsg };
     }

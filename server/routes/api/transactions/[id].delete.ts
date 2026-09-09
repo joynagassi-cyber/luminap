@@ -1,5 +1,5 @@
 import { defineHandler } from "nitro";
-import { getRouterParam, createError } from "nitro/h3";
+import { createError, getRouterParam } from "nitro/h3";
 import { store } from "../../../store";
 
 export default defineHandler((event) => {
@@ -11,7 +11,6 @@ export default defineHandler((event) => {
   if (tx.status !== "REJECTED") {
     throw createError({ statusCode: 400, statusMessage: "Only rejected transactions can be deleted" });
   }
-
   store.transactions = store.transactions.filter(t => t.id !== id);
   return { ok: true };
 });

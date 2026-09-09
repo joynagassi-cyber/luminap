@@ -1,19 +1,39 @@
 import type { Category, OrgUnit, Transaction, AuditEntry, User, Organization, Event } from '../src/types';
-import { createHash } from 'node:crypto';
+import { randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
 
 // User storage for signup/login
 export interface UserRecord {
   id: string;
   email: string;
   hashedPassword: string;
+  passwordSalt: string;
   firstName: string;
   lastName: string;
   role: 'ADMIN' | 'TREASURER' | 'APPROVER';
   org: Organization;
 }
 
-function hashPassword(password: string): string {
-  return createHash('sha256').update(password).digest('hex');
+const SALT_BYTES = 16;
+const KEY_BYTES = 32;
+
+/**
+ * Hash password with a random salt using PBKDF2 via Node crypto.scryptSync.
+ * Produces a portable hex string: <salt_hex>:<hash_hex>
+ */
+export function hashPassword(password: string): string {
+  const salt = randomBytes(SALT_BYTES).toString('hex');
+  const hash = scryptSync(password, salt, KEY_BYTES).toString('hex');
+  return `${salt}:${hash}`;
+}
+
+export function verifyPassword(password: string, stored: string): boolean {
+  const [salt, storedHash] = stored.split(':');
+  if (!salt || !storedHash) return false;
+  const derived = scryptSync(password, salt, KEY_BYTES).toString('hex');
+  return timingSafeEqual(
+    Buffer.from(storedHash, 'hex'),
+    Buffer.from(derived, 'hex'),
+  );
 }
 
 const ORG: Organization = {
@@ -27,6 +47,7 @@ export const adminUser: UserRecord = {
   id: "user-1",
   email: "admin@mfe-jc.org",
   hashedPassword: hashPassword("lumina-admin-2026"),
+  passwordSalt: "", // deprecated — salt is now embedded in hashedPassword
   firstName: "Pasteur",
   lastName: "Jean",
   role: "ADMIN",
@@ -233,6 +254,7 @@ export function createUserRecord(firstName: string, lastName: string, email: str
     id,
     email,
     hashedPassword: hashPassword(password),
+    passwordSalt: "",
     firstName,
     lastName,
     role: "TREASURER",
@@ -245,15 +267,8 @@ export function createUserRecord(firstName: string, lastName: string, email: str
 const EVENTS: Event[] = [];
 
 export const store: Store = {
-  isAuthenticated: true,
-  user: {
-    id: "user-1",
-    email: "admin@mfe-jc.org",
-    firstName: "Pasteur",
-    lastName: "Jean",
-    role: "ADMIN",
-    org: ORG,
-  },
+  isAuthenticated: false,
+  user: null,
   transactions: TRANSACTIONS,
   categories: CATEGORIES,
   orgUnits: ORG_UNITS,

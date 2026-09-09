@@ -11,6 +11,10 @@
   <meta name="application-name" content="Lumina" />
   <meta name="msapplication-TileColor" content="#FF6B00" />
   <meta name="msapplication-tap-highlight" content="no" />
+  <!-- Security headers via meta (supplements server-side headers) -->
+  <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+  <meta http-equiv="X-Frame-Options" content="DENY" />
+  <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
   <title>Lumina · Gestion financière</title>
   <link rel="manifest" href="/manifest.json" />
 </head>

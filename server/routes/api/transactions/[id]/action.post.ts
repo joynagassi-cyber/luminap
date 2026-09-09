@@ -19,7 +19,8 @@ export default defineHandler(async (event) => {
   } else if (body.action === "REJECT") {
     if (tx.status !== "PENDING") throw createError({ statusCode: 400, statusMessage: "Transaction is not pending" });
     tx.status = "REJECTED";
-    tx.comment = body.comment || null;
+    // Sanitize comment
+    tx.comment = body.comment ? body.comment.replace(/</g, '&lt;').replace(/>/g, '&gt;') : null;
     tx.version = (tx.version || 0) + 1;
   } else {
     throw createError({ statusCode: 400, statusMessage: "Invalid action" });

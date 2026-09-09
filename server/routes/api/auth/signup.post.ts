@@ -1,6 +1,7 @@
 import { defineHandler } from "nitro";
 import { readBody, createError, setCookie } from "nitro/h3";
-import { createUserRecord, findUserByEmail } from "../../../store";
+import { store, createUserRecord } from "../../store";
+import { generateSessionToken } from "../../../middleware/security";
 
 export default defineHandler(async (event) => {
   const body = await readBody<{ firstName?: string; lastName?: string; email?: string; password?: string }>(event);
@@ -9,18 +10,29 @@ export default defineHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: "Tous les champs sont requis" });
   }
 
-  if (findUserByEmail(body.email.trim().toLowerCase())) {
+  // Enforce minimum password length
+  if (body.password.length < 8) {
+    throw createError({ statusCode: 400, statusMessage: "Le mot de passe doit contenir au moins 8 caracteres" });
+  }
+
+  if (store.user && store.user.email === body.email.trim().toLowerCase()) {
     throw createError({ statusCode: 409, statusMessage: "Cet email est déjà utilisé" });
   }
 
-  const user = createUserRecord(body.firstName.trim(), body.lastName.trim(), body.email.trim().toLowerCase(), body.password);
+  const user = createUserRecord(
+    body.firstName.trim(),
+    body.lastName.trim(),
+    body.email.trim().toLowerCase(),
+    body.password,
+  );
 
-  const token = `session_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+  const token = generateSessionToken();
   setCookie(event, "lumina_session_token", token, {
     httpOnly: true,
-    secure: false,
-    sameSite: "lax",
+    secure: true,
+    sameSite: "strict",
     maxAge: 60 * 60 * 24,
+    path: "/",
   });
 
   return {

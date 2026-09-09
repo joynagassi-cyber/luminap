@@ -1,5 +1,5 @@
 import { defineHandler } from "nitro";
-import { getRouterParam, createError } from "nitro/h3";
+import { createError, getRouterParam } from "nitro/h3";
 import { store } from "../../../store";
 
 export default defineHandler((event) => {

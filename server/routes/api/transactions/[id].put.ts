@@ -13,7 +13,14 @@ export default defineHandler(async (event) => {
   const allowedFields = ["type", "amount", "description", "date", "categoryId", "orgUnitId", "eventId", "source", "status"];
   const updates: Record<string, unknown> = {};
   for (const key of allowedFields) {
-    if (body[key] !== undefined) updates[key] = body[key];
+    if (body[key] !== undefined) {
+      // Sanitize string fields
+      if (typeof body[key] === 'string') {
+        updates[key] = body[key].replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      } else {
+        updates[key] = body[key];
+      }
+    }
   }
   updates.updatedAt = new Date().toISOString();
   updates.version = (tx.version || 0) + 1;

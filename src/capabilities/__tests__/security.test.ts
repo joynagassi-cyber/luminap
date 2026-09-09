@@ -313,7 +313,7 @@ describe('auth state persistence', () => {
 
     it('rejects short password in signInWithEmail', async () => {
       const result = await authService.signInWithEmail('test@example.com', '12345');
-      expect(result.error).toBe('Password must be at least 6 characters long.');
+      expect(result.error).toBe('Password must be at least 8 characters long.');
     });
 
     it('rejects empty email in signUpWithEmail', async () => {
@@ -328,7 +328,7 @@ describe('auth state persistence', () => {
 
     it('rejects short password in signUpWithEmail', async () => {
       const result = await authService.signUpWithEmail('test@example.com', '12345', 'John', 'Doe', 'MEMBRE');
-      expect(result.error).toBe('Password must be at least 6 characters long.');
+      expect(result.error).toBe('Password must be at least 8 characters long.');
     });
   });
 
@@ -525,10 +525,11 @@ describe('auth state persistence', () => {
       expect(authService['isValidEmail']('test@')).toBe(false);
     });
 
-    it('isValidPassword requires minimum 6 characters', () => {
+    it('isValidPassword requires minimum 8 characters', () => {
       expect(authService['isValidPassword']('')).toBe(false);
       expect(authService['isValidPassword']('12345')).toBe(false);
-      expect(authService['isValidPassword']('123456')).toBe(true);
+      expect(authService['isValidPassword']('123456')).toBe(false);
+      expect(authService['isValidPassword']('12345678')).toBe(true);
       expect(authService['isValidPassword']('longpassword')).toBe(true);
     });
   });

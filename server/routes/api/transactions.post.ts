@@ -1,21 +1,27 @@
 import { defineHandler } from "nitro";
-import { readBody } from "nitro/h3";
+import { readBody, createError } from "nitro/h3";
 import { store } from "../../store";
 
 export default defineHandler(async (event) => {
   const body = await readBody(event);
   const { type, amount, description, date, categoryId, orgUnitId, eventId, source, status } = body;
 
+  // Validate required fields
   if (!type || !amount || !description || !date || !categoryId || !status) {
-    return { ok: false, error: "Missing required fields" };
+    throw createError({ statusCode: 400, statusMessage: "Missing required fields" });
   }
+
+  // Sanitize string fields
+  const sanitizedDescription = typeof description === 'string'
+    ? description.replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    : String(description);
 
   const newTx = {
     id: `tx-${Date.now()}`,
     orgId: "org-1",
     type,
-    amount: Math.round(amount),
-    description,
+    amount: Math.round(Number(amount)),
+    description: sanitizedDescription,
     date,
     status,
     categoryId,

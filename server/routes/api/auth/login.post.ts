@@ -1,27 +1,25 @@
 import { defineHandler } from "nitro";
-import { readBody, createError, setCookie } from "nitro/h3";
-import { findUserByEmail } from "../../../store";
-import { createHash } from "node:crypto";
+import { readBody, getRouterParam, createError, getQuery } from "nitro/h3";
+import { store, findUserByEmail, verifyPassword } from "../../store";
+import { generateSessionToken } from "../../../middleware/security";
 
 export default defineHandler(async (event) => {
-  const body = await readBody<{ email?: string; password?: string }>(event);
+  // Parse query params for filtering
+  const query = getQuery(event);
+  const email = query.email as string;
+  const password = query.password as string;
 
-  if (!body?.email || !body?.password) {
+  if (!email || !password) {
     throw createError({ statusCode: 400, statusMessage: "email and password are required" });
   }
 
-  const user = findUserByEmail(body.email);
-  if (!user || user.hashedPassword !== createHash("sha256").update(body.password).digest("hex")) {
+  const user = findUserByEmail(email.trim().toLowerCase());
+  if (!user || !verifyPassword(password, user.hashedPassword)) {
     throw createError({ statusCode: 401, statusMessage: "Identifiants invalides" });
   }
 
-  const token = `session_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-  setCookie(event, "lumina_session_token", token, {
-    httpOnly: true,
-    secure: false,
-    sameSite: "lax",
-    maxAge: 60 * 60 * 24,
-  });
+  const token = generateSessionToken();
+  // Session cookie is set by the security plugin for authenticated requests
 
   return {
     ok: true,

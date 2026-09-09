@@ -1,5 +1,5 @@
 import { defineHandler } from "nitro";
-import { readBody } from "nitro/h3";
+import { readBody, createError } from "nitro/h3";
 import { store } from "../../store";
 
 export default defineHandler(async (event) => {
@@ -7,18 +7,24 @@ export default defineHandler(async (event) => {
   const { name, description, startDate, endDate, budget } = body;
 
   if (!name || !startDate || !budget) {
-    return { ok: false, error: "name, startDate, and budget are required" };
+    throw createError({ statusCode: 400, statusMessage: "name, startDate, and budget are required" });
   }
+
+  // Sanitize string fields
+  const sanitizedName = typeof name === 'string' ? name.replace(/</g, '&lt;').replace(/>/g, '&gt;') : String(name);
+  const sanitizedDescription = typeof description === 'string'
+    ? description.replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    : '';
 
   const newEvent: Record<string, any> = {
     id: `evt-${Date.now()}`,
     orgId: "org-1",
-    name,
-    description: description || "",
+    name: sanitizedName,
+    description: sanitizedDescription,
     startDate,
     endDate: endDate || null,
     status: "PLANIFIED",
-    budget: Math.round(budget),
+    budget: Math.round(Number(budget)),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
