@@ -39,7 +39,6 @@ export async function initPowerSync(): Promise<void> {
   // Écouter les changements de statut
   _db.registerListener({
     statusChanged: (status) => {
-      console.log('[PowerSync] Status changed:', {
         connected: status.connected,
         connecting: status.connecting,
         uploading: status.uploading,
@@ -55,12 +54,9 @@ export async function initPowerSync(): Promise<void> {
   // Attendre la première sync
   try {
     await _db.waitForFirstSync();
-    console.log('[PowerSync] First sync completed');
   } catch (error) {
-    console.error('[PowerSync] First sync failed (continuing anyway):', error);
   }
 
-  console.log('[PowerSync] Initialized successfully');
 }
 
 export async function disconnectPowerSync(): Promise<void> {
@@ -68,6 +64,5 @@ export async function disconnectPowerSync(): Promise<void> {
     await _db.disconnectAndClear();
     _db = null;
     _connector = null;
-    console.log('[PowerSync] Disconnected and cleared');
   }
 }

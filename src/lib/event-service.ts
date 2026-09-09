@@ -44,7 +44,6 @@ export async function persistAddEvent(
       budget_items: JSON.stringify(newEvent.budgetItems),
     });
   } catch (error) {
-    console.error('[EventService] Failed to add event:', error);
   }
 }
 
@@ -67,7 +66,6 @@ export async function persistUpdateEvent(
   try {
     await updateEventPS(id, data);
   } catch (error) {
-    console.error('[EventService] Failed to update event:', error);
   }
 }
 
@@ -86,7 +84,6 @@ export async function persistDeleteEvent(
   try {
     await deleteEventPS(id);
   } catch (error) {
-    console.error('[EventService] Failed to delete event:', error);
   }
 }
 

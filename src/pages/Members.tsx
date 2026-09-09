@@ -69,7 +69,6 @@ export default function MembersPage() {
   const handleArchive = async (member: any) => {
     const check = workflow.check('member', member.status, 'INACTIVE');
     if (!check.allowed) {
-      console.warn(`Member status transition blocked: ${check.reason}`);
       return;
     }
     await lifecycle.archive('Member', member.id, 'Archivé via la gestion des membres', user.id);
@@ -81,7 +80,6 @@ export default function MembersPage() {
   const handleRestore = async (member: any) => {
     const check = workflow.check('member', member.status, 'ACTIVE');
     if (!check.allowed) {
-      console.warn(`Member status transition blocked: ${check.reason}`);
       return;
     }
     await lifecycle.restore('Member', member.id, 'Rétabli', user.id);

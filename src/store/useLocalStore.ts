@@ -360,7 +360,6 @@ export const useLocalStore = create<LocalStoreState>()(
       },
 
       syncEventBudget: async (eventId: string) => {
-        console.log('[Store] Event budget sync triggered for:', eventId);
       },
 
       // --- Events ---
@@ -547,7 +546,6 @@ export const useLocalStore = create<LocalStoreState>()(
             isLoading: false,
           });
         } catch (e) {
-          console.error('[Store] loadInitialData failed', e);
           set({ isLoading: false });
         }
       },

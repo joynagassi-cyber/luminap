@@ -33,7 +33,6 @@ export default function Archives() {
           setArchivedEvents(events.items);
         }
       } catch (e) {
-        console.error('[Archives] Failed to load archived entities:', e);
       } finally {
         if (!cancelled) setLoading(false);
       }

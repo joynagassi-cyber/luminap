@@ -55,7 +55,6 @@ export async function persistAddTransaction(
       reversal_of_id: newTx.reversalOfId,
     });
   } catch (error) {
-    console.error('[TransactionService] Failed to add transaction:', error);
   }
 }
 
@@ -221,6 +220,5 @@ export async function persistReverseTransaction(
       reversal_of_id: reversalTx.reversalOfId,
     });
   } catch (error) {
-    console.error('[TransactionService] Failed to reverse transaction:', error);
   }
 }

@@ -129,7 +129,6 @@ export class SupabaseConnector extends BaseObserver<SupabaseConnectorListener> i
   async logout() {
     const { error } = await this.client.auth.signOut();
     if (error) {
-      console.error('[PowerSync] Logout error:', error);
     }
     this.updateSession(null);
   }
@@ -147,7 +146,6 @@ export class SupabaseConnector extends BaseObserver<SupabaseConnectorListener> i
 
     if (!session || error) {
       // Pour le développement, retourner un token vide si pas de session
-      console.warn('[PowerSync] No active session, using dev token');
       return {
         endpoint: this.config.powersyncUrl,
         token: '', // Token vide pour le dev
@@ -155,7 +153,6 @@ export class SupabaseConnector extends BaseObserver<SupabaseConnectorListener> i
       } satisfies PowerSyncCredentials;
     }
 
-    console.debug('[PowerSync] Session expires at', new Date(session.expires_at! * 1000));
 
     return {
       endpoint: this.config.powersyncUrl,
@@ -192,7 +189,6 @@ export class SupabaseConnector extends BaseObserver<SupabaseConnectorListener> i
         }
 
         if (result.error) {
-          console.error('[PowerSync] Upload error:', result.error);
           result.error.message = `Could not update Supabase: ${result.error.message}`;
           throw result.error;
         }
@@ -200,13 +196,11 @@ export class SupabaseConnector extends BaseObserver<SupabaseConnectorListener> i
 
       await transaction.complete(); // IMPORTANT!
     } catch (ex: any) {
-      console.debug('[PowerSync] Upload exception:', ex);
 
       if (typeof ex.code === 'string' && FATAL_RESPONSE_CODES.some((regex) => regex.test(ex.code))) {
         /**
          * Errors that cannot be recovered from - discard the transaction
          */
-        console.error('[PowerSync] Fatal upload error - discarding:', lastOp, ex);
         await transaction.complete();
       } else {
         // Error may be retryable - e.g. network error

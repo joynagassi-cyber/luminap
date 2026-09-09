@@ -42,7 +42,6 @@ export async function createVersement(params: CreateVersementParams): Promise<Ve
       [versementId, orgId, params.sourceCaisseId, 'main', params.amount, date, sessionId, sessionId, now, now]
     );
   } catch (error) {
-    console.error('[VersementService] Failed to create versement record:', error);
   }
 
   // Create paired transactions
@@ -108,7 +107,6 @@ export async function createVersement(params: CreateVersementParams): Promise<Ve
       [targetTx.id, targetTx.orgId, targetTx.type, targetTx.amount, targetTx.description, targetTx.date, targetTx.status, targetTx.categoryId, targetTx.orgUnitId, targetTx.eventId, targetTx.source, targetTx.personName, targetTx.comment, targetTx.version, targetTx.sourceCaisseId, targetTx.versementId, targetTx.reversalOfId, targetTx.createdById, targetTx.approvedById, targetTx.createdAt, targetTx.updatedAt, targetTx.approvedAt]
     );
   } catch (error) {
-    console.error('[VersementService] Failed to create versement transactions:', error);
   }
 
   return { versementId, sourceTx, targetTx };

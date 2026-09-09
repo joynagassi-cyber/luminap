@@ -51,7 +51,6 @@ export default function Versement() {
       });
       navigate('/');
     } catch (e) {
-      console.error('[Versement] failed', e);
     } finally {
       setIsLoading(false);
     }

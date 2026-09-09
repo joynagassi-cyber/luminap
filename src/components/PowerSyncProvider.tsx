@@ -5,7 +5,6 @@ export function PowerSyncProvider({ children }: { children: React.ReactNode }) {
   const db = getPowerSyncDatabase();
 
   if (!db) {
-    console.warn('[PowerSync] Database not initialized, rendering children without provider');
     return <>{children}</>;
   }
 

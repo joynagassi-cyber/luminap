@@ -39,7 +39,6 @@ export async function persistCreateMember(
       archive_reason: member.archiveReason,
     });
   } catch (error) {
-    console.error('[MemberService] Failed to create member:', error);
   }
 }
 
@@ -62,7 +61,6 @@ export async function persistUpdateMember(
   try {
     await updateMemberPS(id, data);
   } catch (error) {
-    console.error('[MemberService] Failed to update member:', error);
   }
 }
 

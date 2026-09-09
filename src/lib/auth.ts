@@ -97,12 +97,10 @@ class AuthService {
       if (session && this.isSessionExpiredOrExpiring(session)) {
         const { error } = await supabase.auth.refreshSession({ refresh_token: session.refresh_token });
         if (error) {
-          console.error('[Auth] Session refresh failed:', error);
           this.handleSessionInvalidated();
         }
       }
     } catch (err) {
-      console.error('[Auth] Session validation error:', err);
     }
   }
 
@@ -111,7 +109,6 @@ class AuthService {
     try {
       await supabase.auth.signOut();
     } catch (err) {
-      console.error('[Auth] Error during session invalidation:', err);
     }
     this.setState({
       session: null,
@@ -128,12 +125,10 @@ class AuthService {
     try {
       const { data: { session }, error } = await supabase.auth.getSession();
       if (error) {
-        console.error('[Auth] Error getting session:', error);
         return null;
       }
       return session;
     } catch (err) {
-      console.error('[Auth] Exception getting session:', err);
       return null;
     }
   }
@@ -143,12 +138,10 @@ class AuthService {
     try {
       const { data: { user }, error } = await supabase.auth.getUser();
       if (error) {
-        console.error('[Auth] Error getting user:', error);
         return null;
       }
       return user;
     } catch (err) {
-      console.error('[Auth] Exception getting user:', err);
       return null;
     }
   }
@@ -158,14 +151,12 @@ class AuthService {
     try {
       const { data: { user }, error } = await supabase.auth.getUser();
       if (error) {
-        console.error('[Auth] Error fetching user:', error);
         return null;
       }
       this.setState({ user });
       this.notifyListeners();
       return user;
     } catch (err) {
-      console.error('[Auth] Exception fetching user:', err);
       return null;
     }
   }
@@ -180,12 +171,10 @@ class AuthService {
         .single();
 
       if (error) {
-        console.error('[Auth] Error fetching profile:', error);
         return null;
       }
       return data as Profile;
     } catch (err) {
-      console.error('[Auth] Exception fetching profile:', err);
       return null;
     }
   }
@@ -211,13 +200,11 @@ class AuthService {
         .single();
 
       if (error) {
-        console.error('[Auth] Error upserting profile:', error);
         throw error;
       }
 
       return data as Profile;
     } catch (err) {
-      console.error('[Auth] Exception upserting profile:', err);
       throw err;
     }
   }

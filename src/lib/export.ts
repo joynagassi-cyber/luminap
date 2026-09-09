@@ -22,7 +22,7 @@ export interface ExportOptions {
 }
 
 function drawHeader(doc: jsPDF, options: ExportOptions, startY: number): number {
-  let y = startY;
+  const y = startY;
 
   // Church logo
   if (options.churchLogoUrl) {

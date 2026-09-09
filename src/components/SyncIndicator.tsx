@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Wifi, WifiOff, Cloud } from 'lucide-react';
+import { Wifi, WifiOff } from 'lucide-react';
 import { useLocalStore } from '@/store/useLocalStore';
 
 type SyncState = 'online' | 'offline' | 'syncing';

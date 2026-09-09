@@ -111,7 +111,6 @@ class OneSignalService {
       return win.OneSignal;
     }
 
-    console.warn('[OneSignal] Plugin not found. Make sure to run capacitor sync after installing the plugin.');
     return null;
   }
 
@@ -288,7 +287,6 @@ class OneSignalService {
    */
   async initialize(): Promise<void> {
     if (this.isInitialized) {
-      console.log('[OneSignal] Already initialized');
       return;
     }
 
@@ -296,7 +294,6 @@ class OneSignalService {
       this.plugin = this.getPlugin();
 
       if (!this.plugin) {
-        console.error('[OneSignal] Plugin not available. Run: npx cap sync');
         return;
       }
 
@@ -309,9 +306,7 @@ class OneSignalService {
       }
 
       this.isInitialized = true;
-      console.log('[OneSignal] Initialized successfully');
     } catch (error) {
-      console.error('[OneSignal] Initialization error:', error);
       throw error;
     }
   }
@@ -328,16 +323,13 @@ class OneSignalService {
    */
   async requestPermission(): Promise<boolean> {
     if (!this.plugin) {
-      console.error('[OneSignal] Not initialized');
       return false;
     }
 
     try {
       const granted = await this.plugin.Notifications.requestPermission(true);
-      console.log('[OneSignal] Permission granted:', granted);
       return granted;
     } catch (error) {
-      console.error('[OneSignal] Error requesting permission:', error);
       return false;
     }
   }
@@ -354,7 +346,6 @@ class OneSignalService {
       const playerId = await this.plugin.getOnesignalId();
       return playerId;
     } catch (error) {
-      console.error('[OneSignal] Error getting user ID:', error);
       return null;
     }
   }
@@ -371,7 +362,6 @@ class OneSignalService {
       const token = await (this.plugin as any).Session?.getPushSubscriptionToken?.();
       return token || null;
     } catch (error) {
-      console.error('[OneSignal] Error getting token:', error);
       return null;
     }
   }
@@ -381,15 +371,12 @@ class OneSignalService {
    */
   async setTag(key: string, value: string): Promise<void> {
     if (!this.plugin) {
-      console.error('[OneSignal] Not initialized');
       return;
     }
 
     try {
       await this.plugin.User.addTag(key, value);
-      console.log(`[OneSignal] Tag set: ${key} = ${value}`);
     } catch (error) {
-      console.error('[OneSignal] Error setting tag:', error);
     }
   }
 
@@ -398,15 +385,12 @@ class OneSignalService {
    */
   async setTags(tags: Record<string, string>): Promise<void> {
     if (!this.plugin) {
-      console.error('[OneSignal] Not initialized');
       return;
     }
 
     try {
       await this.plugin.User.addTags(tags);
-      console.log('[OneSignal] Tags set:', tags);
     } catch (error) {
-      console.error('[OneSignal] Error setting tags:', error);
     }
   }
 
@@ -421,7 +405,6 @@ class OneSignalService {
     try {
       await this.plugin.User.removeTag(key);
     } catch (error) {
-      console.error('[OneSignal] Error removing tag:', error);
     }
   }
 
@@ -430,15 +413,12 @@ class OneSignalService {
    */
   async setEmail(email: string): Promise<void> {
     if (!this.plugin) {
-      console.error('[OneSignal] Not initialized');
       return;
     }
 
     try {
       await this.plugin.User.addEmail(email);
-      console.log('[OneSignal] Email set:', email);
     } catch (error) {
-      console.error('[OneSignal] Error setting email:', error);
     }
   }
 
@@ -453,7 +433,6 @@ class OneSignalService {
     try {
       await this.plugin.User.removeEmail();
     } catch (error) {
-      console.error('[OneSignal] Error removing email:', error);
     }
   }
 
@@ -462,15 +441,12 @@ class OneSignalService {
    */
   async login(externalId: string): Promise<void> {
     if (!this.plugin) {
-      console.error('[OneSignal] Not initialized');
       return;
     }
 
     try {
       this.plugin.login(externalId);
-      console.log('[OneSignal] Logged in as:', externalId);
     } catch (error) {
-      console.error('[OneSignal] Error logging in:', error);
     }
   }
 
@@ -484,9 +460,7 @@ class OneSignalService {
 
     try {
       this.plugin.logout();
-      console.log('[OneSignal] Logged out');
     } catch (error) {
-      console.error('[OneSignal] Error logging out:', error);
     }
   }
 
@@ -495,15 +469,12 @@ class OneSignalService {
    */
   async trackEvent(eventName: string, metrics?: Record<string, number>): Promise<void> {
     if (!this.plugin) {
-      console.error('[OneSignal] Not initialized');
       return;
     }
 
     try {
       this.plugin.trackEvent(eventName, metrics);
-      console.log('[OneSignal] Event tracked:', eventName);
     } catch (error) {
-      console.error('[OneSignal] Error tracking event:', error);
     }
   }
 
@@ -512,15 +483,12 @@ class OneSignalService {
    */
   addNotificationReceivedListener(callback: (notification: any) => void): void {
     if (!this.plugin) {
-      console.error('[OneSignal] Not initialized');
       return;
     }
 
     try {
       this.plugin.Notifications.addEventListener('foregroundWillDisplay', callback);
-      console.log('[OneSignal] Notification received listener added');
     } catch (error) {
-      console.error('[OneSignal] Error adding listener:', error);
     }
   }
 
@@ -529,15 +497,12 @@ class OneSignalService {
    */
   addNotificationClickListener(callback: (notification: any) => void): void {
     if (!this.plugin) {
-      console.error('[OneSignal] Not initialized');
       return;
     }
 
     try {
       this.plugin.Notifications.addEventListener('click', callback);
-      console.log('[OneSignal] Notification click listener added');
     } catch (error) {
-      console.error('[OneSignal] Error adding click listener:', error);
     }
   }
 
@@ -552,7 +517,6 @@ class OneSignalService {
     try {
       this.plugin.Notifications.removeEventListener('foregroundWillDisplay', callback);
     } catch (error) {
-      console.error('[OneSignal] Error removing listener:', error);
     }
   }
 
@@ -567,7 +531,6 @@ class OneSignalService {
     try {
       this.plugin.Notifications.removeEventListener('click', callback);
     } catch (error) {
-      console.error('[OneSignal] Error removing click listener:', error);
     }
   }
 
@@ -582,7 +545,6 @@ class OneSignalService {
     try {
       this.plugin.Notifications.clearAll();
     } catch (error) {
-      console.error('[OneSignal] Error clearing notifications:', error);
     }
   }
 
@@ -597,7 +559,6 @@ class OneSignalService {
     try {
       this.plugin.Notifications.removeNotification(notificationId);
     } catch (error) {
-      console.error('[OneSignal] Error removing notification:', error);
     }
   }
 
@@ -612,7 +573,6 @@ class OneSignalService {
     try {
       this.plugin.Location.setShared(shared);
     } catch (error) {
-      console.error('[OneSignal] Error setting location:', error);
     }
   }
 
@@ -627,7 +587,6 @@ class OneSignalService {
     try {
       return await this.plugin.Location.isShared();
     } catch (error) {
-      console.error('[OneSignal] Error getting location status:', error);
       return false;
     }
   }
@@ -653,7 +612,6 @@ export function getOneSignalService(): OneSignalService {
 export async function initOneSignal(): Promise<void> {
   const service = getOneSignalService();
   await service.initialize();
-  console.log('[OneSignal] App ID:', service['appId']);
 }
 
 // Export the service class for advanced usage

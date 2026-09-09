@@ -22,7 +22,6 @@ class OneSignalAuthService {
       await initOneSignal();
       this.isInitialized = true;
     } catch (error) {
-      console.error('[OneSignal] Initialization error:', error);
     }
   }
 
@@ -35,7 +34,6 @@ class OneSignalAuthService {
       await service.setTag('user_id', userId);
       this.userId = userId;
     } catch (error) {
-      console.error('[OneSignal] Login error:', error);
     }
   }
 
@@ -46,7 +44,6 @@ class OneSignalAuthService {
       await service.logout();
       this.userId = null;
     } catch (error) {
-      console.error('[OneSignal] Logout error:', error);
     }
   }
 
@@ -55,7 +52,6 @@ class OneSignalAuthService {
       const service = getOneSignalService();
       return await service.requestPermission();
     } catch (error) {
-      console.error('[OneSignal] Permission error:', error);
       return false;
     }
   }

@@ -589,7 +589,6 @@ export async function getGroupMembershipsPS(): Promise<PSGroupMembership[]> {
  */
 export function markPowerSyncReady(): void {
   setPowerSyncReady(true);
-  console.log('[DataLayer] PowerSync marked as ready');
 }
 
 /**
