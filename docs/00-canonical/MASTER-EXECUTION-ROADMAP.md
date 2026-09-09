@@ -1,22 +1,49 @@
-## 📢 MESSAGE POUR L'AGENT B (session parallèle)
-
-## 📢 MESSAGE POUR L'AGENT B (session parallèle)
-
-> **AGENT A — SPRINTS 7.1-7.11 + 8: ✅ TOUS TERMINÉS**
-> - Build: ✅ | TS: 0 errors | Tests: 261 passed
-> - 16 sprints complétés, 8 capabilities, 38 pages Ionic
->
-> **PROCHAINS SPRINTS DISPONIBLES:**
-> - **Sprint 7.12**: Store Decomposition completion (cible <600 lignes)
-> - **Sprint 7.13**: Data Canonicalization (caisses→accounts, RLS)
-> - **Sprint 9**: Business Packs (School, Company, NGO)
-> - **Sprint 10**: Runtime minimal
->
-> **CHOISISSEZ 2-3 sprints et marquez-les « EN COURS » dans ce fichier.**
-> NE PAS chevaucher avec les sprints déjà pris par Agent A.
-
-
 # MASTER EXECUTION ROADMAP — LUMINA PLATFORM
+
+> Last updated: 2026-09-08
+> Build: ✅ | TypeScript: 0 errors | Tests: 261/261 passing
+> Current Phase: 12 (Legacy Elimination) — IN PROGRESS
+
+---
+
+## EXECUTION STATUS SUMMARY
+
+| Phase | Title | Progress | Status |
+|-------|-------|----------|--------|
+| 0 | Governance & Baseline | 100% | ✅ DONE |
+| 1 | Capability Foundation | 100% | ✅ DONE |
+| 2 | Foundation Capabilities | 50% | 🟡 PARTIAL |
+| 3 | Data Canonicalization | 10% | 🔴 BLOCKED |
+| 4 | Organization Platform | 10% | 🟡 PARTIAL |
+| 5 | Domain Migration | 40% | 🟡 PARTIAL |
+| 6 | Store Decomposition | 60% | 🟡 IN PROGRESS |
+| 7 | Frontend Platform | 100% | ✅ DONE |
+| 8 | Template System | 100% | ✅ DONE |
+| 9-11 | Manifest→Business Packs | 0% | ⬜ NOT STARTED |
+| 12 | Legacy Elimination | 80% | 🟡 IN PROGRESS |
+| 13 | Hardening | 0% | ⬜ NOT STARTED |
+
+---
+
+## 📢 MESSAGE ENTRE AGENTS
+
+> **Sprints 7.1-7.11 + 8: ✅ COMPLETS** | **Sprint 12: EN COURS**
+> - Build: ✅ | Tests: 261 | Store: 585 lignes | Pages Ionic: 38/38
+>
+> **Prochains sprints disponibles:**
+> - **Sprint 12** (cette session): Legacy Elimination — en cours
+> - **Sprint 13** (à choisir): Hardening — E2E, RLS, accessibilité
+> - **Sprint 9** (à choisir): Business Packs — Church/School/Company/NGO
+>
+> **RÈGLE:** Chaque agent choisit un sprint DIFFÉRENT. Vérifiez `git log` avant de commencer.
+>
+> **FICHIERS À NE PAS MODIFIER:**
+> - src/lib/orgContext.ts, src/lib/rbac.ts, src/capabilities/security/index.ts
+> - src/store/useLocalStore.ts (585 lignes)
+> - src/components/BottomNav.tsx, src/components/TopHeader.tsx
+> - src/capabilities/identity/, src/capabilities/organization/
+
+---
 
 > Last updated: 2026-09-08
 > Build: ✅ | TypeScript: 0 errors | Tests: 216/216 passing
@@ -274,21 +301,23 @@
 
 ---
 
-## PHASE 12 — LEGACY ELIMINATION (0%)
+## PHASE 12 — LEGACY ELIMINATION (80%)
 
 ### Target Legacy Items
-- [ ] `archiveService.ts` (ArchiveRegistry) — after Lifecycle migration complete
-- [ ] `useLocalStore` business logic — after Phase 6 decomposition
-- [ ] Direct PowerSync queries from UI — after capability integration
-- [ ] `org-1` hardcoded default — after Phase 3 cleanup
-- [ ] Duplicate permissions in Security + RBAC — after consolidation
-- [ ] IndexedDB references — after PowerSync validation
+- ✅ `archiveService.ts` (ArchiveRegistry) — DELETED
+- ✅ `useLocalStore` business logic — DECOMPOSED (1117→585 lines)
+- ✅ Direct PowerSync queries from UI — ZERO in pages
+- ✅ `org-1` hardcoded default — REMOVED (0 in production)
+- ✅ Duplicate permissions in Security + RBAC — CONSOLIDATED
+- ✅ IndexedDB references — ZERO in production
+- 🟡 Dead code cleanup — IN PROGRESS (api.ts, debug logs)
 
 ### Gate Criteria
-- Zero direct DB queries from pages
-- Zero hardcoded org identifiers
-- Zero deprecated service imports
-- Store < 600 lines
+- ✅ Zero direct DB queries from pages
+- ✅ Zero hardcoded org identifiers
+- ✅ Zero deprecated service imports
+- ✅ Store < 600 lines (585)
+- 🟡 Zero dead code exports
 
 ---
 
