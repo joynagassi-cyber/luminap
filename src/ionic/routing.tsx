@@ -1,7 +1,7 @@
 /**
  * Lumina Ionic Router Routes (Lazy Loaded)
  *
- * Maps all 38 pages to Ionic <Route> elements.
+ * Maps all 41 pages to Ionic <Route> elements.
  * Uses IonReactRouter-compatible paths (same as react-router).
  *
  * Heavy pages use React.lazy() for code-splitting.
@@ -84,6 +84,12 @@ const Trace = lazy(() => import("@/pages/Trace"));
 const History = lazy(() => import("@/pages/History"));
 const Help = lazy(() => import("@/pages/Help"));
 const Settings = lazy(() => import("@/pages/Settings"));
+const InvitationEmit = lazy(() => import("@/pages/InvitationEmit"));
+const InvitationClaim = lazy(() => import("@/pages/InvitationClaim"));
+const InviteClaim = lazy(() => import("@/pages/InviteClaim"));
+const Invitations = lazy(() => import("@/pages/Invitations"));
+const InvitationManage = lazy(() => import("@/pages/InvitationManage"));
+const Invite = lazy(() => import("@/pages/Invite"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
 // ─── Lazy Route Wrapper ────────────────────────────────────────────────────────
@@ -174,6 +180,10 @@ export const luminaRoutes = (
     />
     <Route path="/culte/:id" element={<LazyRoute component={CulteDetail} />} />
 
+    {/* ── Invite ─────────────────────────────────────────────────── */}
+    <Route path="/invite" element={<LazyRoute component={Invite} />} />
+    <Route path="/invite/claim" element={<LazyRoute component={InviteClaim} />} />
+
     {/* ── Archives ─────────────────────────────────────────────────── */}
     <Route path="/archives" element={<LazyRoute component={Archives} />} />
 
@@ -196,6 +206,12 @@ export const luminaRoutes = (
       element={<LazyRoute component={CustomFields} />}
     />
 
+    {/* ── Invitations ──────────────────────────────────────────── */}
+    <Route path="/invitation/emit" element={<LazyRoute component={InvitationEmit} />} />
+    <Route path="/invitation/claim" element={<LazyRoute component={InvitationClaim} />} />
+    <Route path="/invitation/manage" element={<LazyRoute component={InvitationManage} />} />
+    <Route path="/invitations" element={<LazyRoute component={Invitations} />} />
+
     {/* ── System ───────────────────────────────────────────────────── */}
     <Route path="/trace" element={<LazyRoute component={Trace} />} />
     <Route path="/history" element={<LazyRoute component={History} />} />
@@ -208,4 +224,4 @@ export const luminaRoutes = (
 /**
  * Total route count for verification.
  */
-export const ROUTE_COUNT = 38;
+export const ROUTE_COUNT = 41;

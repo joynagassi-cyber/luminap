@@ -1372,6 +1372,151 @@ export async function deleteFormDefinitionPS(id: string): Promise<void> {
 }
 
 // ============================================================
+// Invitation Hooks (PowerSync)
+// ============================================================
+
+export interface PSInvitation {
+  id: string;
+  org_id: string;
+  code: string;
+  target_role: string;
+  target_scope_type: string;
+  target_group_id: string | null;
+  target_member_id: string | null;
+  issued_by: string;
+  issued_at: string;
+  expires_at: string;
+  max_uses: number;
+  used_count: number;
+  status: string;
+}
+
+export interface PSInvitationClaim {
+  id: string;
+  invitation_id: string;
+  claimed_by_device_id: string | null;
+  claimed_at: string;
+  resulting_user_id: string | null;
+  status: string;
+  reject_reason: string | null;
+}
+
+/**
+ * Hook to get all invitations
+ */
+export function useInvitations() {
+  const { data: psData } = useQuery<PSInvitation>(
+    "SELECT id, org_id, code, target_role, target_scope_type, target_group_id, target_member_id, issued_by, issued_at, expires_at, max_uses, used_count, status FROM invitations WHERE org_id = ? ORDER BY created_at DESC",
+    [getOrganizationId()],
+    { reportFetching: true },
+  );
+  return { data: psData, isLoading: false, source: "powersync" as const };
+}
+
+/**
+ * Hook to get invitation claims for an invitation
+ */
+export function useInvitationClaims(invitationId: string | null) {
+  const { data: psData } = useQuery<PSInvitationClaim>(
+    "SELECT id, invitation_id, claimed_by_device_id, claimed_at, resulting_user_id, status, reject_reason FROM invitation_claims WHERE invitation_id = ? ORDER BY claimed_at ASC",
+    invitationId ? [invitationId] : [],
+    { reportFetching: false },
+  );
+  return { data: psData, isLoading: false };
+}
+
+// ============================================================
+// Invitation Write Operations (PowerSync)
+// ============================================================
+
+/**
+ * Create an invitation via PowerSync
+ */
+export async function createInvitationPS(
+  inv: Omit<
+    PSInvitation,
+    "id" | "issued_at" | "expires_at" | "used_count" | "status" | "created_at" | "updated_at"
+  >,
+  expiresAt: string,
+): Promise<string> {
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+
+  await executeWrite(
+    `INSERT INTO invitations (
+      id, org_id, code, target_role, target_scope_type, target_group_id, target_member_id,
+      issued_by, issued_at, expires_at, max_uses, used_count, status, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 'PENDING', ?, ?)`,
+    [
+      id,
+      inv.org_id,
+      inv.code,
+      inv.target_role,
+      inv.target_scope_type,
+      inv.target_group_id,
+      inv.target_member_id,
+      inv.issued_by,
+      now,
+      expiresAt,
+      inv.max_uses,
+      now,
+      now,
+    ],
+  );
+
+  return id;
+}
+
+/**
+ * Revoke an invitation via PowerSync
+ */
+export async function revokeInvitationPS(id: string): Promise<void> {
+  await executeWrite(
+    `UPDATE invitations SET status = 'REVOKED', updated_at = ? WHERE id = ?`,
+    [new Date().toISOString(), id],
+  );
+}
+
+/**
+ * Create an invitation claim via PowerSync
+ */
+export async function claimInvitationPS(
+  invitationId: string,
+  claimedByDeviceId: string | null,
+  resultingUserId: string | null,
+  status: string,
+  rejectReason: string | null,
+): Promise<string> {
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+
+  await executeWrite(
+    `INSERT INTO invitation_claims (
+      id, invitation_id, claimed_by_device_id, claimed_at, resulting_user_id, status, reject_reason, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      id,
+      invitationId,
+      claimedByDeviceId,
+      now,
+      resultingUserId,
+      status,
+      rejectReason,
+      now,
+      now,
+    ],
+  );
+
+  // Increment used_count on the invitation
+  await executeWrite(
+    `UPDATE invitations SET used_count = used_count + 1, updated_at = ? WHERE id = ?`,
+    [now, invitationId],
+  );
+
+  return id;
+}
+
+// ============================================================
 // Form Submissions (PowerSync)
 // ============================================================
 
@@ -1464,6 +1609,47 @@ export async function listFormSubmissionsPS(filters?: {
     status: r.status,
     createdAt: r.created_at,
   }));
+}
+
+/**
+ * Create a group (org unit, group, account, caisse) via PowerSync
+ */
+export async function createGroupPS(
+  params: { name: string; type: string; description: string },
+): Promise<string> {
+  const now = new Date().toISOString();
+  const orgId = getOrganizationId();
+  const id = crypto.randomUUID();
+
+  // org_units
+  await executeWrite(
+    `INSERT INTO org_units (id, name, type, org_id, description, is_active, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, 1, ?, ?)`,
+    [id, params.name, params.type, orgId, params.description ?? "", now, now],
+  );
+
+  // groups
+  await executeWrite(
+    `INSERT INTO groups (id, org_id, name, parent_group_id, responsable_member_id, status, archived_at, archived_by, archive_reason, created_at, updated_at)
+     VALUES (?, ?, ?, null, null, 'ACTIVE', null, null, null, ?, ?)`,
+    [id, orgId, params.name, now, now],
+  );
+
+  // accounts
+  await executeWrite(
+    `INSERT INTO accounts (id, org_id, owner_type, owner_id, name, currency, status, archived_at, archived_by, archive_reason, created_at, updated_at)
+     VALUES (?, ?, 'GROUP', ?, ?, 'XOF', 'ACTIVE', null, null, null, ?, ?)`,
+    [id, orgId, id, params.name, now, now],
+  );
+
+  // caisses
+  await executeWrite(
+    `INSERT INTO caisses (id, name, description, type, color, org_id, status, archived_at, archived_by, archive_reason, created_at, updated_at)
+     VALUES (?, ?, ?, 'GROUP', '#FF6B00', ?, 'ACTIVE', null, null, null, ?, ?)`,
+    [id, params.name, params.description ?? "", orgId, now, now],
+  );
+
+  return id;
 }
 
 export async function updateFormSubmissionPS(

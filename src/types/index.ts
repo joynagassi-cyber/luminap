@@ -53,12 +53,38 @@ export type Organization = {
   logoUrl?: string;
 };
 
+export type UserStatus = "PENDING" | "ACTIVE" | "INVITED" | "DISABLED";
+
+export type Invitation = {
+  id: string;
+  orgId: string;
+  email: string;
+  role: Role;
+  status: UserStatus;
+  token: string;
+  expiresAt: string;
+  invitedBy: string;
+  createdAt: string;
+  claimedAt: string | null;
+  claimedById: string | null;
+};
+
+export type InvitationClaim = {
+  id: string;
+  invitationId: string;
+  userId: string;
+  claimedAt: string;
+  ip: string | null;
+  userAgent: string | null;
+};
+
 export type User = {
   id: string;
   email: string;
   firstName: string;
   lastName: string;
   role: Role;
+  status: UserStatus;
   org: Organization;
 };
 

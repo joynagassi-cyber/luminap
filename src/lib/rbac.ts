@@ -29,7 +29,10 @@ export type Permission =
   | "member:delete"
   | "cotisation:manage"
   | "admin:settings"
-  | "admin:roles";
+  | "admin:roles"
+  | "invitation:create"
+  | "invitation:revoke"
+  | "invitation:manage";
 
 /**
  * checkPermission — stub pour la phase mono-église.

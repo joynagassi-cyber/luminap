@@ -1,4 +1,5 @@
 import { column, Schema, Table } from "@powersync/web";
+import { invitations, invitation_claims } from "./invitation-schema";
 
 // ============================================================
 // Core Tables (déjà existants)
@@ -385,6 +386,8 @@ export const AppSchema = new Schema({
   custom_field_values,
   report_definitions,
   cotisations,
+  invitations,
+  invitation_claims,
 });
 
 export type Database = (typeof AppSchema)["types"];
