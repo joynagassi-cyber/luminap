@@ -7,8 +7,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
-import { ZXingBrowserMultiFormatReader } from '@zxing/browser';
-import { BrowserMultiFormatReader } from '@zxing/library';
+import { BrowserMultiFormatReader } from '@zxing/browser';
 
 export interface ScanResult {
   text: string;
@@ -108,7 +107,7 @@ export function CameraScanner({ onScan, onError, enabled = true }: CameraScanner
       setScanning(true);
       
       // Create QR code reader
-      const codeReader = new ZXingBrowserMultiFormatReader();
+      const codeReader = new BrowserMultiFormatReader();
       analyzerRef.current = await codeReader.decodeFromVideoDevice(
         undefined,
         videoRef.current,

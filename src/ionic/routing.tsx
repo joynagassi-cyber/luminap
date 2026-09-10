@@ -86,10 +86,7 @@ const Help = lazy(() => import("@/pages/Help"));
 const Settings = lazy(() => import("@/pages/Settings"));
 const InvitationEmit = lazy(() => import("@/pages/InvitationEmit"));
 const InvitationClaim = lazy(() => import("@/pages/InvitationClaim"));
-const InviteClaim = lazy(() => import("@/pages/InviteClaim"));
-const Invitations = lazy(() => import("@/pages/Invitations"));
 const InvitationManage = lazy(() => import("@/pages/InvitationManage"));
-const Invite = lazy(() => import("@/pages/Invite"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
 // ─── Lazy Route Wrapper ────────────────────────────────────────────────────────
@@ -180,10 +177,6 @@ export const luminaRoutes = (
     />
     <Route path="/culte/:id" element={<LazyRoute component={CulteDetail} />} />
 
-    {/* ── Invite ─────────────────────────────────────────────────── */}
-    <Route path="/invite" element={<LazyRoute component={Invite} />} />
-    <Route path="/invite/claim" element={<LazyRoute component={InviteClaim} />} />
-
     {/* ── Archives ─────────────────────────────────────────────────── */}
     <Route path="/archives" element={<LazyRoute component={Archives} />} />
 
@@ -210,7 +203,6 @@ export const luminaRoutes = (
     <Route path="/invitation/emit" element={<LazyRoute component={InvitationEmit} />} />
     <Route path="/invitation/claim" element={<LazyRoute component={InvitationClaim} />} />
     <Route path="/invitation/manage" element={<LazyRoute component={InvitationManage} />} />
-    <Route path="/invitations" element={<LazyRoute component={Invitations} />} />
 
     {/* ── System ───────────────────────────────────────────────────── */}
     <Route path="/trace" element={<LazyRoute component={Trace} />} />
@@ -224,4 +216,4 @@ export const luminaRoutes = (
 /**
  * Total route count for verification.
  */
-export const ROUTE_COUNT = 41;
+export const ROUTE_COUNT = 38;
