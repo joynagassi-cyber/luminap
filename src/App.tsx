@@ -5,7 +5,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { IonApp, setupIonicReact } from "@ionic/react";
 import { IonReactRouter } from "@ionic/react-router";
 import { IonRouterOutlet } from "@ionic/react";
-import { Route, Navigate } from "react-router-dom";
+import { Route, Navigate, useLocation } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { authService } from "@/lib/auth";
 import { AppProvider } from "./context/AppContext";
 import SyncIndicator from "./components/SyncIndicator";
 import AppRouter from "./AppRouter";
@@ -22,9 +24,40 @@ setupIonicReact({
 
 const queryClient = new QueryClient();
 
+// Routes that don't require authentication
+const PUBLIC_ROUTES = ["/splash", "/auth", "/auth/callback", "/login"];
+
+/** Route guard — blocks access to protected routes when unauthenticated */
+function RouteGuard() {
+  const location = useLocation();
+  const [isAuthChecked, setIsAuthChecked] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    const check = async () => {
+      const session = await authService.getSession();
+      setIsAuthenticated(!!session);
+      setIsAuthChecked(true);
+    };
+    check();
+  }, []);
+
+  // While checking, render nothing to avoid flash of wrong page
+  if (!isAuthChecked) return null;
+
+  // Always allow public routes
+  if (PUBLIC_ROUTES.includes(location.pathname)) return null;
+
+  // Redirect unauthenticated users to /auth
+  if (!isAuthenticated) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  return null;
+}
+
 /**
  * App — wraps the entire Lumina application in IonApp + IonReactRouter.
- * Replaces BrowserRouter while preserving all existing route paths.
  */
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -33,6 +66,8 @@ const App = () => (
       <Sonner />
       <IonApp>
         <IonReactRouter>
+          <RouteGuard />
+          <AppRouter />
           <AppProvider>
             <SyncIndicator />
             <IonRouterOutlet>
