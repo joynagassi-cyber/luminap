@@ -128,6 +128,10 @@ export default function InvitationClaim() {
     setResult(null);
   };
 
+  const handleCameraScan = (result: { text: string; format: string }) => {
+    handleScan(result.text);
+  };
+
   return (
     <IonPage>
       <IonHeader>
