@@ -1832,3 +1832,78 @@ export async function reverseTransactionPS(
   );
 }
 
+
+// ============================================================
+// App config and auth hooks
+// ============================================================
+
+/**
+ * Hook to get app config from localStorage
+ */
+export function useAppConfig() {
+  const [config, setConfig] = useState({
+    churchName: "",
+    churchLogoUrl: "",
+    userPhoto: "",
+  });
+
+  useEffect(() => {
+    const stored = localStorage.getItem("lumina-config");
+    if (stored) {
+      setConfig(JSON.parse(stored));
+    }
+  }, []);
+
+  const updateConfig = async (newConfig: Partial<typeof config>) => {
+    const updated = { ...config, ...newConfig };
+    setConfig(updated);
+    localStorage.setItem("lumina-config", JSON.stringify(updated));
+  };
+
+  return { config, updateConfig };
+}
+
+/**
+ * Hook to get current user from localStorage
+ */
+export function useCurrentUser() {
+  const [user, setUser] = useState<{
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    role: string;
+    org: { id: string; name: string; type: string; accentColor: string };
+  } | null>(null);
+
+  useEffect(() => {
+    const stored = localStorage.getItem("lumina-user");
+    if (stored) {
+      setUser(JSON.parse(stored));
+    }
+  }, []);
+
+  return user;
+}
+
+/**
+ * Hook to check online status
+ */
+export function useOnlineStatus() {
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
+  return isOnline;
+}
