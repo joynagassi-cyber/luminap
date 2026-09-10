@@ -124,7 +124,7 @@ importers:
         version: 1.2.0(@types/react-dom@19.2.3(@types/react@19.2.8))(@types/react@19.2.8)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@supabase/server':
         specifier: ^1.5.3
-        version: 1.5.3(@supabase/supabase-js@2.114.0)(typescript@5.9.3)
+        version: 1.5.3(@supabase/supabase-js@2.114.0)(h3@2.0.1-rc.22(crossws@0.4.12(srvx@0.11.22)))(typescript@5.9.3)
       '@supabase/supabase-js':
         specifier: ^2.114.0
         version: 2.114.0
@@ -152,6 +152,9 @@ importers:
       embla-carousel-react:
         specifier: ^8.6.0
         version: 8.6.0(react@19.2.8)
+      h3:
+        specifier: 2.0.1-rc.22
+        version: 2.0.1-rc.22(crossws@0.4.12(srvx@0.11.22))
       input-otp:
         specifier: ^1.5.0
         version: 1.5.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -5332,11 +5335,13 @@ snapshots:
       '@supabase/phoenix': 0.4.5
       tslib: 2.8.1
 
-  '@supabase/server@1.5.3(@supabase/supabase-js@2.114.0)(typescript@5.9.3)':
+  '@supabase/server@1.5.3(@supabase/supabase-js@2.114.0)(h3@2.0.1-rc.22(crossws@0.4.12(srvx@0.11.22)))(typescript@5.9.3)':
     dependencies:
       '@supabase/middleware': 0.4.0(typescript@5.9.3)
       '@supabase/supabase-js': 2.114.0
       jose: 6.2.11
+    optionalDependencies:
+      h3: 2.0.1-rc.22(crossws@0.4.12(srvx@0.11.22))
     transitivePeerDependencies:
       - typescript
 
