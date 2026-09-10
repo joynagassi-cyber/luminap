@@ -17,15 +17,20 @@ END $$;
 -- 2. Create invitations table
 -- ============================================================
 
+-- NOTE: org_id is declared as plain TEXT (no FK), matching every other table
+-- in this project (transactions, members, events, ... all use `org_id TEXT
+-- DEFAULT 'org-1'` with no reference constraint). profiles.org_id is not
+-- unique, so it cannot be a FK target.
+
 CREATE TABLE IF NOT EXISTS public.invitations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  org_id TEXT NOT NULL REFERENCES public.profiles(org_id) ON DELETE CASCADE,
+  org_id TEXT NOT NULL,
   code TEXT NOT NULL UNIQUE,           -- Human-readable, e.g. "LUM-7F3K2Q"
   target_role TEXT NOT NULL,
   target_scope_type TEXT NOT NULL DEFAULT 'ORG' CHECK (target_scope_type IN ('ORG', 'GROUP')),
-  target_group_id UUID,               -- NULL when target_scope_type = 'ORG'
-  target_member_id UUID,              -- NULL when creating a new member
-  issued_by UUID NOT NULL REFERENCES public.profiles(id) ON DELETE RESTRICT,
+  target_group_id TEXT,               -- NULL when target_scope_type = 'ORG' (group id is TEXT in this project)
+  target_member_id TEXT,              -- NULL when creating a new member (member id is TEXT)
+  issued_by TEXT,                     -- profiles id; TEXT to tolerate offline "local-user" fallback ids (no FK)
   issued_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   expires_at TIMESTAMPTZ NOT NULL,
   max_uses INTEGER NOT NULL DEFAULT 1 CHECK (max_uses >= 1),
@@ -49,7 +54,7 @@ CREATE TABLE IF NOT EXISTS public.invitation_claims (
   invitation_id UUID NOT NULL REFERENCES public.invitations(id) ON DELETE CASCADE,
   claimed_by_device_id TEXT,           -- Push notification device ID or random UUID
   claimed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  resulting_user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  resulting_user_id UUID,             -- profiles.id (UUID). No FK: the resulting PENDING profile may not exist on the server when the claim arrives (offline first-connection, §5).
   status TEXT NOT NULL DEFAULT 'PENDING_SYNC'
     CHECK (status IN ('PENDING_SYNC', 'CONFIRMED', 'REJECTED_DUPLICATE', 'REJECTED_EXPIRED', 'REJECTED_EXHAUSTED', 'REJECTED_REVOKED')),
   reject_reason TEXT,

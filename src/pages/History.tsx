@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useLocalStore } from "@/store/useLocalStore";
 import {
   useTransactions,
   useAccounts,
@@ -130,16 +129,9 @@ function CustomTooltip({ active, payload, label }: any) {
 export default function HistoryPage() {
   const navigate = useNavigate();
   const {
-    accounts: idbAccounts,
-    orgUnits: idbOrgUnits,
-    events: idbEvents,
-    categories: idbCategories,
-    auditEntries: idbAudit,
-    isLoading,
-  } = useLocalStore();
-
-  // PowerSync with fallback
-  const { data: transactions } = useTransactions();
+    data: transactions,
+    isLoading: txLoading,
+  } = useTransactions();
   const { data: accounts } = useAccounts();
   const { data: orgUnits } = useOrgUnits();
   const { data: events } = useEvents();
@@ -149,7 +141,7 @@ export default function HistoryPage() {
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
   const [period, setPeriod] = useState<"all" | "month" | "year">("all");
 
-  if (isLoading) {
+  if (txLoading) {
     return (
       <div className="min-h-screen bg-[#121212]">
         <TopHeader title="Historique" />

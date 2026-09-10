@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useLocalStore } from "@/store/useLocalStore";
 import {
   useAuditEntries,
   useTransactions,
@@ -73,14 +72,6 @@ const FILTERS = [
 
 export default function TracePage() {
   const navigate = useNavigate();
-  const {
-    transactions: idbTxs,
-    orgUnits: idbOrgUnits,
-    events: idbEvents,
-    members: idbMembers,
-    isLoading,
-  } = useLocalStore();
-
   // PowerSync with fallback
   const { data: auditEntries } = useAuditEntries();
   const { data: transactions } = useTransactions();
@@ -90,34 +81,6 @@ export default function TracePage() {
 
   const [filter, setFilter] = useState("Tout");
   const [search, setSearch] = useState("");
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-[#121212]">
-        <TopHeader title="Trace" />
-        <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
-          <div className="space-y-3">
-            {[1, 2, 3, 4].map((i) => (
-              <div
-                key={i}
-                className="rounded-xl p-4 animate-pulse"
-                style={{ backgroundColor: "#181818" }}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-[#282828]" />
-                  <div className="flex-1">
-                    <div className="h-3 bg-[#282828] rounded w-3/4 mb-2" />
-                    <div className="h-3 bg-[#282828] rounded w-1/2" />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-        <BottomNav />
-      </div>
-    );
-  }
 
   const entityMap: Record<string, { label: string; type: string }> = {
     Transaction: { label: "Transaction", type: "Transaction" },

@@ -1,12 +1,14 @@
 import { useNavigate, useParams } from "react-router-dom";
-import { useLocalStore } from "@/store/useLocalStore";
-import { useEvents, useCotisations } from "@/lib/dataLayer";
+import {
+  useMembers,
+  useEvents,
+  useCotisations,
+} from "@/lib/dataLayer";
 import { formatCurrencyCompact, formatDate } from "@/lib/utils";
 import { CheckCircle, Clock, User } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
 import { Progress } from "@/components/ui/progress";
-import type { Member, Cotisation } from "@/types";
 import {
   IonPage,
   IonHeader,
@@ -34,15 +36,15 @@ const COTISATION_STATUT_COLOR: Record<string, string> = {
 export default function MembreDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const store = useLocalStore();
+  const { data: psMembers } = useMembers();
   const { data: psEvents } = useEvents();
   const { data: psCotisations } = useCotisations();
 
-  const allMembers = store.members;
-  const events = psEvents ?? store.events;
-  const cotisations = psCotisations ?? store.cotisations;
+  const allMembers = psMembers ?? [];
+  const events = psEvents ?? [];
+  const cotisations = psCotisations ?? [];
 
-  const member = allMembers.find((m: Member) => m.id === id) ?? null;
+  const member = allMembers.find((m: any) => m.id === id) ?? null;
 
   if (!member) {
     return (
@@ -74,8 +76,8 @@ export default function MembreDetail() {
     );
   }
 
-  const fullName = `${member.firstName || ""} ${member.lastName || ""}`.trim();
-  const memberCotisations = cotisations.filter((c) => c.membreId === member.id);
+  const fullName = `${(member as any).first_name || ""} ${(member as any).last_name || ""}`.trim();
+  const memberCotisations = cotisations.filter((c: any) => c.membre_id === member.id);
   const memberEvents = events.filter((e) => e.type === "CULTE");
 
   const payeCount = memberCotisations.filter(
@@ -84,12 +86,29 @@ export default function MembreDetail() {
   const absentCount = memberCotisations.filter(
     (c) => c.statut === "ABSENT",
   ).length;
-  const totalDons = member.totalDons || 0;
+  const totalDons = (member as any).total_dons ?? (member as any).totalDons ?? 0;
   const totalCultes = memberEvents.length;
   const cadence =
     totalCultes > 0 ? Math.round((payeCount / totalCultes) * 100) : 0;
 
-  const historique = store.getMembreHistorique(member.id);
+  // Inline getMembreHistorique logic adapted for PS snake_case rows
+  const membreCots = memberCotisations as any[];
+  const historique = membreCots
+    .map((cot: any) => {
+      const culteId = cot.culte_id || cot.culteId;
+      const culte = events.find((e: any) => e.id === culteId);
+      return { cotisation: cot, culte };
+    })
+    .filter(({ culte }: any) => culte !== undefined)
+    .sort((a: any, b: any) => {
+      const dateA = new Date(
+        a.culte.start_date || a.culte.startDate,
+      ).getTime();
+      const dateB = new Date(
+        b.culte.start_date || b.culte.startDate,
+      ).getTime();
+      return dateB - dateA;
+    });
 
   return (
     <IonPage>
@@ -121,14 +140,14 @@ export default function MembreDetail() {
                   }}
                 >
                   <span className="text-white text-base font-bold">
-                    {(member.firstName || "").charAt(0)}
-                    {(member.lastName || "").charAt(0)}
+                    {((member as any).first_name || "").charAt(0)}
+                    {((member as any).last_name || "").charAt(0)}
                   </span>
                 </div>
                 <div>
                   <p className="text-white font-bold text-lg">{fullName}</p>
-                  {member.phone && (
-                    <p className="text-text-tertiary text-xs">{member.phone}</p>
+                  {(member as any).phone && (
+                    <p className="text-text-tertiary text-xs">{(member as any).phone}</p>
                   )}
                 </div>
               </div>
@@ -252,7 +271,7 @@ export default function MembreDetail() {
                           </span>
                         </div>
                         <p className="text-text-tertiary text-xs">
-                          {formatDate(culte?.startDate || cotisation.createdAt)}
+                          {formatDate((culte as any)?.start_date || (culte as any)?.startDate || cotisation.createdAt)}
                         </p>
                       </div>
                       <div className="text-right flex-shrink-0">

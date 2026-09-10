@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useCaisses, useAccounts, useTransactions } from "@/lib/dataLayer";
-import { useLocalStore } from "@/store/useLocalStore";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useCaisses, useAccounts, useTransactions, createVersement } from "@/lib/dataLayer";
 import { formatCurrencyCompact } from "@/lib/utils";
 import { ArrowLeft, Check, AlertCircle, Wallet, RefreshCw } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
@@ -17,9 +16,6 @@ import {
 export default function Versement() {
   const navigate = useNavigate();
   const location = useLocation();
-  const {
-    createVersement,
-  } = useLocalStore();
 
   const { data: psCaisses } = useCaisses();
   const { data: psAccounts } = useAccounts();

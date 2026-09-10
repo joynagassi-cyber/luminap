@@ -1,17 +1,18 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useLocalStore } from "@/store/useLocalStore";
 import {
-  useGroups,
   useAccounts,
   useTransactions,
   useMembers,
+  useGroups,
   useOrgUnits,
   useGroupMemberships,
+  useCurrentUser,
+  updateGroupPS,
+  deleteGroupPS,
 } from "@/lib/dataLayer";
 import { formatCurrencyCompact, formatDate } from "@/lib/utils";
 import {
-  ArrowLeft,
   Wallet,
   TrendingUp,
   TrendingDown,
@@ -22,17 +23,13 @@ import {
   Clock,
   ArrowUp,
   ArrowDown,
-  RefreshCw,
   ArrowRightLeft,
-  Plus,
   UserPlus,
   UserMinus,
   Archive,
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
-import TopHeader from "@/components/TopHeader";
 import TransactionCard from "@/components/TransactionCard";
-import { FullPageSkeleton, ListSkeleton } from "@/components/Skeleton";
 import { relationship } from "@/capabilities/relationship";
 import { lifecycle } from "@/capabilities/lifecycle";
 import { security } from "@/capabilities/security";
@@ -52,31 +49,20 @@ type Tab = "transactions" | "membres" | "historique" | "parametres";
 export default function GroupDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const {
-    orgUnits: idbOrgUnits,
-    accounts: idbAccounts,
-    transactions: idbTxs,
-    members: idbMembers,
-    createGroup,
-    updateGroup,
-    deleteGroup,
-    isLoading,
-    createNotification,
-    user,
-  } = useLocalStore();
+  const user = useCurrentUser();
 
   // PowerSync with fallback
-  const { data: psGroups } = useGroups();
+  const { data: psOrgUnits } = useOrgUnits();
   const { data: psAccounts } = useAccounts();
   const { data: psTransactions } = useTransactions();
   const { data: psMembers } = useMembers();
-  const { data: psOrgUnits } = useOrgUnits();
+  const { data: psGroups } = useGroups();
   const { data: psMemberships } = useGroupMemberships();
 
-  const orgUnits = psOrgUnits ?? idbOrgUnits;
-  const accounts = psAccounts ?? idbAccounts;
-  const transactions = psTransactions ?? idbTxs;
-  const members = psMembers ?? idbMembers;
+  const orgUnits = psOrgUnits ?? [];
+  const accounts = psAccounts ?? [];
+  const transactions = psTransactions ?? [];
+  const members = psMembers ?? [];
 
   const [activeTab, setActiveTab] = useState<Tab>("transactions");
   const [showEdit, setShowEdit] = useState(false);
@@ -102,7 +88,7 @@ export default function GroupDetail() {
     (m: any) => groupMemberIds.includes(m.id) && m.status !== "ARCHIVED",
   );
 
-  if (isLoading || !orgUnit || !account) {
+  if (!orgUnit || !account) {
     return (
       <IonPage>
         <IonHeader>
@@ -197,7 +183,7 @@ export default function GroupDetail() {
       setError("Le nom est requis");
       return;
     }
-    await updateGroup(id!, {
+    await updateGroupPS(id!, {
       name: editName.trim(),
       description: editDesc.trim(),
     });
@@ -212,7 +198,7 @@ export default function GroupDetail() {
       return;
     }
     try {
-      await deleteGroup(id!);
+      await deleteGroupPS(id!);
       navigate("/groups");
     } catch (e: any) {
       setError("Nous n'avons pas pu supprimer ce groupe. Veuillez réessayer.");
@@ -239,13 +225,12 @@ export default function GroupDetail() {
       setError("Ce membre est déjà dans le groupe");
       return;
     }
-    await addMemberToGroup({
-      memberId: selectedMemberId,
-      groupId: id!,
-      roleInGroup: "MEMBRE",
-      joinedAt: new Date().toISOString(),
-      leftAt: null,
-    });
+    await relationship.addMembership(
+      id!,
+      selectedMemberId,
+      "MEMBRE",
+      user?.id ?? "local-user",
+    );
     setShowAddMember(false);
     setSelectedMemberId("");
     setSuccess("Membre ajouté au groupe");
@@ -253,7 +238,7 @@ export default function GroupDetail() {
   };
 
   const handleRemoveMember = async (membershipId: string) => {
-    await removeMemberFromGroup(membershipId);
+    await relationship.removeMembership(membershipId, "local-user");
   };
 
   return (

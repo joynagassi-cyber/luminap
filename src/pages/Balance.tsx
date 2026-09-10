@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useTransactions, useCategories, useAccounts } from "@/lib/dataLayer";
-import { useLocalStore } from "@/store/useLocalStore";
+import { useTransactions, useCategories, useAccounts, useAppConfig } from "@/lib/dataLayer";
 import { formatCurrencyCompact, getPeriodRange } from "@/lib/utils";
 import {
   TrendingUp,
@@ -28,7 +27,7 @@ export default function Balance() {
   const { transactions: psTransactions, isLoading: psLoading } = useTransactions();
   const { categories: psCategories } = useCategories();
   const { data: psAccounts } = useAccounts();
-  const { appConfig } = useLocalStore();
+  const { config: appConfig } = useAppConfig();
 
   const transactions = psTransactions;
   const categories = psCategories;

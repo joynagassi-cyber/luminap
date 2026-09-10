@@ -44,7 +44,7 @@ function drawHeader(
     doc.text("L", 22, y + 17, { align: "center" });
   }
 
-  const churchName = options.churchName || "Église MFE-JC Centrale";
+  const churchName = options.churchName || "Lumina";
   doc.setFont("helvetica", "bold");
   doc.setFontSize(16);
   doc.setTextColor(30, 30, 30);

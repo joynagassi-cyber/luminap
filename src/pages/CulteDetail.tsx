@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useLocalStore } from "@/store/useLocalStore";
-import { useEvents, useCotisations, useMembers } from "@/lib/dataLayer";
+import { useEvents, useCotisations, useMembers, updateCotisationPS } from "@/lib/dataLayer";
 import { formatCurrencyCompact, formatDate } from "@/lib/utils";
 import { calculerStatsCulte } from "@/lib/cotisation-logic";
 import {
@@ -26,7 +25,6 @@ import {
 export default function CulteDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { updateCotisation } = useLocalStore();
   const { data: psEvents } = useEvents();
   const { data: psCotisations } = useCotisations();
   const { data: psMembers } = useMembers();
@@ -102,11 +100,11 @@ export default function CulteDetail() {
   const handlePaye = async (cotId: string, montantPaye: number) => {
     const now = new Date().toISOString();
     const statut: CotisationStatut = "PAYE";
-    await updateCotisation(cotId, { statut, montantPaye, datePaiement: now });
+    await updateCotisationPS(cotId, { statut, montantPaye, datePaiement: now });
   };
 
   const handleAbsent = async (cotId: string) => {
-    await updateCotisation(cotId, { statut: "ABSENT" });
+    await updateCotisationPS(cotId, { statut: "ABSENT" });
   };
 
   const [showMassPay, setShowMassPay] = useState(false);
@@ -114,7 +112,7 @@ export default function CulteDetail() {
   const handleMassPay = async () => {
     for (const cot of cotisationsWithMember) {
       if (cot.statut === "NON_PAYE" || cot.statut === "ABSENT") {
-        await updateCotisation(cot.id, {
+        await updateCotisationPS(cot.id, {
           statut: "PAYE",
           montantPaye: cot.montantObligatoire || 0,
           datePaiement: new Date().toISOString(),

@@ -1,7 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useLocalStore } from "@/store/useLocalStore";
-import { useEvents, useTransactions, useCaisses, deleteEventPS, updateEventPS, addTransactionPS } from "@/lib/dataLayer";
+import { useEvents, useTransactions, useCaisses, deleteEventPS, updateEventPS, addTransactionPS, useCurrentUser } from "@/lib/dataLayer";
 import { formatCurrencyCompact, formatDate } from "@/lib/utils";
 import {
   Calendar,
@@ -59,16 +58,9 @@ const STATUS_CONFIG: Record<
 export default function EventDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { events: idbEvents, transactions: idbTxs, caisses: idbCaisses, user } = useLocalStore();
-
-  // PowerSync with fallback
-  const { data: psEvents } = useEvents();
-  const { data: psTransactions } = useTransactions();
-  const { data: psCaisses } = useCaisses();
-
-  const events = psEvents ?? idbEvents;
-  const transactions = psTransactions ?? idbTxs;
-  const caisses = psCaisses ?? idbCaisses;
+  const { data: events } = useEvents();
+  const { data: transactions } = useTransactions();
+  const user = useCurrentUser();
 
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [showDelete, setShowDelete] = useState(false);

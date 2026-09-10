@@ -1,7 +1,5 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useLocalStore } from "@/store/useLocalStore";
-import { useNotifications } from "@/lib/dataLayer";
+import { useNotifications, markNotificationRead, markAllNotificationsRead } from "@/lib/dataLayer";
 import {
   Bell,
   Check,
@@ -37,15 +35,7 @@ function getNotifIcon(actionType: string) {
 
 export default function NotificationsPage() {
   const navigate = useNavigate();
-  const {
-    notifications: idbNotifs,
-    markNotificationRead,
-    markAllNotificationsRead,
-  } = useLocalStore();
-  const { data: psNotifications } = useNotifications();
-
-  // Use PowerSync or fallback to local cache
-  const notifications = psNotifications ?? idbNotifs;
+  const { data: notifications } = useNotifications();
 
   const sorted = [...notifications].sort(
     (a: any, b: any) =>

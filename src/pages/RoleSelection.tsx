@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useLocalStore } from "@/store/useLocalStore";
 import { usePowerSyncStatus } from "@/lib/dataLayer";
+import { useCurrentUser, useAppConfig, selectRole } from "@/lib/dataLayer";
 import {
   Wallet,
   Church,
@@ -24,7 +24,8 @@ import {
 
 export default function RoleSelection() {
   const navigate = useNavigate();
-  const { user, selectRole, appConfig, loadInitialData } = useLocalStore();
+  const user = useCurrentUser();
+  const { config: appConfig } = useAppConfig();
   const isPowerSyncReady = usePowerSyncStatus();
   const [loading, setLoading] = useState<string | null>(null);
   const churchName = appConfig.churchName || "Église MFE-JC Centrale";
@@ -77,11 +78,8 @@ export default function RoleSelection() {
   const handleSelect = async (roleId: string) => {
     setLoading(roleId);
     try {
-      localStorage.setItem("lumina-session", crypto.randomUUID());
-      localStorage.setItem("lumina-role", roleId);
       localStorage.setItem("lumina-onboarded", "true");
-      await selectRole(roleId as any);
-      await loadInitialData();
+      await selectRole(roleId);
       navigate("/dashboard", { replace: true });
     } finally {
       setLoading(null);

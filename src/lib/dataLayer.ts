@@ -1652,6 +1652,56 @@ export async function createGroupPS(
   return id;
 }
 
+/**
+ * Update a group (org_unit, caisse, group, account) via PowerSync.
+ * Mirrors applyUpdateGroup from group-lifecycle: a group spans four rows
+ * sharing the same id.
+ */
+export async function updateGroupPS(
+  id: string,
+  data: { name?: string; description?: string; type?: string },
+): Promise<void> {
+  const now = new Date().toISOString();
+
+  // org_units
+  await executeWrite(
+    `UPDATE org_units SET name = ?, description = ?, updated_at = ? WHERE id = ?`,
+    [data.name ?? "", data.description ?? "", now, id],
+  );
+
+  // caisses
+  await executeWrite(
+    `UPDATE caisses SET name = ?, description = ?, updated_at = ? WHERE id = ?`,
+    [data.name ?? "", data.description ?? "", now, id],
+  );
+
+  // groups
+  await executeWrite(
+    `UPDATE groups SET name = ?, updated_at = ? WHERE id = ?`,
+    [data.name ?? "", now, id],
+  );
+
+  // accounts
+  await executeWrite(
+    `UPDATE accounts SET name = ?, updated_at = ? WHERE id = ?`,
+    [data.name ?? "", now, id],
+  );
+}
+
+/**
+ * Delete a group (and its memberships/caisse/account) via PowerSync.
+ * Mirrors applyDeleteGroup from group-lifecycle.
+ */
+export async function deleteGroupPS(id: string): Promise<void> {
+  // Memberships first (reference group_id)
+  await executeWrite(`DELETE FROM group_memberships WHERE group_id = ?`, [id]);
+  // Then the four entity rows
+  await executeWrite(`DELETE FROM caisses WHERE id = ?`, [id]);
+  await executeWrite(`DELETE FROM accounts WHERE id = ?`, [id]);
+  await executeWrite(`DELETE FROM groups WHERE id = ?`, [id]);
+  await executeWrite(`DELETE FROM org_units WHERE id = ?`, [id]);
+}
+
 export async function updateFormSubmissionPS(
   id: string,
   data: Partial<FormSubmission>,
@@ -1911,6 +1961,68 @@ export function useOnlineStatus() {
 // ============================================================
 // User and loading state hooks
 // ============================================================
+
+/**
+ * Hook to load initial app data (config + cotisations) from localStorage/PowerSync.
+ * Call once on app startup to prime the data layer.
+ */
+export interface LoadInitialDataResult {
+  loaded: boolean;
+  config: { churchName: string; churchLogoUrl: string; userPhoto: string };
+  role: string | null;
+}
+
+export function useLoadInitialData(): LoadInitialDataResult {
+  const [result, setResult] = useState<LoadInitialDataResult>({
+    loaded: false,
+    config: { churchName: "", churchLogoUrl: "", userPhoto: "" },
+    role: null,
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const storedConfig = localStorage.getItem("lumina-config");
+        const storedRole = localStorage.getItem("lumina-role");
+        if (!cancelled) {
+          setResult({
+            loaded: true,
+            config: storedConfig
+              ? JSON.parse(storedConfig)
+              : { churchName: "", churchLogoUrl: "", userPhoto: "" },
+            role: storedRole,
+          });
+        }
+      } catch {
+        if (!cancelled) {
+          setResult({
+            loaded: true,
+            config: { churchName: "", churchLogoUrl: "", userPhoto: "" },
+            role: null,
+          });
+        }
+      }
+    }
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return result;
+}
+
+/**
+ * Select a role and persist to localStorage.
+ * Returns a fresh session ID.
+ */
+export async function selectRole(role: string): Promise<string> {
+  const sessionId = localStorage.getItem("lumina-session") ?? crypto.randomUUID();
+  localStorage.setItem("lumina-session", sessionId);
+  localStorage.setItem("lumina-role", role);
+  return sessionId;
+}
 
 /**
  * Hook to get current user

@@ -1,4 +1,4 @@
-import { useLocalStore } from "@/store/useLocalStore";
+import { useMembers } from "@/lib/dataLayer";
 import { useNavigate } from "react-router-dom";
 import { formatCurrencyCompact } from "@/lib/utils";
 import { ArrowLeft, TrendingUp } from "lucide-react";
@@ -12,10 +12,26 @@ import {
   IonToolbar,
 } from "@ionic/react";
 
+type AvanceEntry = { membre: { id: string; firstName: string; lastName: string; phone: string | null }; montant: number };
+
 export default function MembresEnAvance() {
   const navigate = useNavigate();
-  const store = useLocalStore();
-  const membresEnAvance = store.getMembresEnAvance();
+  const { data: psData } = useMembers();
+
+  // Members with positive montant_en_avance, sorted descending by amount.
+  // PSMember uses snake_case columns; keep the existing camelCase fallback pattern.
+  const membresEnAvance: AvanceEntry[] = (psData ?? [])
+    .filter((m) => m.montant_en_avance > 0 && m.status === "ACTIVE")
+    .map((m) => ({
+      membre: {
+        id: m.id,
+        firstName: m.first_name,
+        lastName: m.last_name,
+        phone: m.phone,
+      },
+      montant: m.montant_en_avance,
+    }))
+    .sort((a, b) => b.montant - a.montant);
 
   const totalEnAvance = membresEnAvance.reduce((sum, m) => sum + m.montant, 0);
 
@@ -99,16 +115,13 @@ export default function MembresEnAvance() {
                         className="text-sm font-bold"
                         style={{ color: "#FF6B00" }}
                       >
-                        {(membre.firstName || membre.first_name || "").charAt(
-                          0,
-                        )}
-                        {(membre.lastName || membre.last_name || "").charAt(0)}
+                        {membre.firstName.charAt(0)}
+                        {membre.lastName.charAt(0)}
                       </span>
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-text-primary text-sm font-semibold truncate">
-                        {membre.firstName || membre.first_name}{" "}
-                        {membre.lastName || membre.last_name}
+                        {membre.firstName} {membre.lastName}
                       </p>
                       {membre.phone && (
                         <p className="text-text-tertiary text-xs">

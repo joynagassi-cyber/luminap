@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useLocalStore } from "@/store/useLocalStore";
-import { usePowerSyncStatus } from "@/lib/dataLayer";
+import { usePowerSyncStatus, useLoadInitialData } from "@/lib/dataLayer";
 import { Wifi, WifiOff } from "lucide-react";
 import {
   IonPage,
@@ -15,7 +14,7 @@ const SPLASH_DURATION = 2000;
 
 export default function Splash() {
   const navigate = useNavigate();
-  const { loadInitialData } = useLocalStore();
+  const { loaded: initialDataLoaded } = useLoadInitialData();
   const isPowerSyncReady = usePowerSyncStatus();
   const [phase, setPhase] = useState<"initializing" | "loading">(
     "initializing",
@@ -33,8 +32,9 @@ export default function Splash() {
       if (cancelled) return;
       setPhase("loading");
 
-      // Data already loaded by AppProvider — skip redundant load
-      // await loadInitialData();
+      // Wait for initial data load (config + cotisations) to complete
+      // The hook tracks readiness; we poll briefly or wait a tick
+      await new Promise((r) => setTimeout(r, 100));
 
       if (cancelled) return;
 

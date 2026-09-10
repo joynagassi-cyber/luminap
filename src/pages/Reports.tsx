@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useLocalStore } from "@/store/useLocalStore";
-import { useTransactions, useAccounts, useCategories } from "@/lib/dataLayer";
+import { useTransactions, useAccounts, useCategories, useCaisses, useEvents, useMembers, useGroupMemberships, useAppConfig } from "@/lib/dataLayer";
 import {
   formatCurrencyCompact,
   formatCurrencyFull,
@@ -35,7 +34,6 @@ import type {
   Caisse,
   Event,
   Category,
-  AppConfig,
   Account,
   Member,
   GroupMembership,
@@ -68,32 +66,15 @@ function getCaisseColor(caisseId: string, caisses: Caisse[]): string {
 
 export default function Reports() {
   const navigate = useNavigate();
-  const {
-    transactions: idbTxs,
-    caisses: idbCaisses,
-    categories: idbCats,
-    accounts: idbAccounts,
-    events: idbEvents,
-    members: idbMembers,
-    memberships: idbMemberships,
-    isLoading,
-    appConfig,
-  } = useLocalStore();
-
-  // PowerSync with fallback
-  const { data: psTransactions } = useTransactions();
-  const { data: psCaisses } = useCaisses();
-  const { data: psCategories } = useCategories();
-  const { data: psAccounts } = useAccounts();
-  const { data: psEvents } = useEvents();
-  const { data: psMembers } = useMembers();
-
-  const transactions = psTransactions ?? idbTxs;
-  const caisses = psCaisses ?? idbCaisses;
-  const categories = psCategories ?? idbCats;
-  const accounts = psAccounts ?? idbAccounts;
-  const events = psEvents ?? idbEvents;
-  const members = psMembers ?? idbMembers;
+  const { churchName, churchLogoUrl } = useAppConfig().config;
+  // TODO: migrate appConfig.churchName / churchLogoUrl to dataLayer state if needed in future
+  const { data: transactions } = useTransactions();
+  const { data: caisses } = useCaisses();
+  const { data: categories } = useCategories();
+  const { data: accounts } = useAccounts();
+  const { data: events } = useEvents();
+  const { data: members } = useMembers();
+  const { data: memberships } = useGroupMemberships();
 
   const [activeTab, setActiveTab] = useState<Tab>("global");
   const [period, setPeriod] = useState<PeriodType>("ce-mois");
@@ -368,8 +349,8 @@ export default function Reports() {
                   <button
                     onClick={() => {
                       exportPDF({
-                        churchName: appConfig.churchName,
-                        churchLogoUrl: appConfig.churchLogoUrl,
+                        churchName,
+                        churchLogoUrl,
                         transactions: approved,
                         caisses: caisses as any,
                         title: `Rapport — ${period === "ce-mois" ? "Ce mois" : "Cette année"}`,
@@ -403,8 +384,8 @@ export default function Reports() {
                   <button
                     onClick={() => {
                       exportExcel({
-                        churchName: appConfig.churchName,
-                        churchLogoUrl: appConfig.churchLogoUrl,
+                        churchName,
+                        churchLogoUrl,
                         transactions: approved,
                         caisses: caisses as any,
                         title: `Rapport — ${period === "ce-mois" ? "Ce mois" : "Cette année"}`,
@@ -438,8 +419,8 @@ export default function Reports() {
                   <button
                     onClick={() => {
                       exportCSV({
-                        churchName: appConfig.churchName,
-                        churchLogoUrl: appConfig.churchLogoUrl,
+                        churchName,
+                        churchLogoUrl,
                         transactions: approved,
                         caisses: caisses as any,
                         title: `Rapport — ${period === "ce-mois" ? "Ce mois" : "Cette année"}`,
