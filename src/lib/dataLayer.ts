@@ -1695,3 +1695,67 @@ export async function updateFormSubmissionPS(
   );
   return merged;
 }
+
+// ============================================================
+// Re-export business services for page migration
+// These wrap the existing service functions with PowerSync
+// ============================================================
+
+export { createVersement } from "./versement-service";
+export { createNotification, markNotificationRead, markAllNotificationsRead } from "./notification-service";
+export {
+  buildAddTransaction,
+  persistAddTransaction,
+  auditAddTransaction,
+  validateUpdateTransaction,
+  applyUpdateTransaction,
+  validateDeleteTransaction,
+  applyDeleteTransaction,
+  validateBatchDeleteTransactions,
+  buildApproveTransaction,
+  buildBatchApproveTransactions,
+  buildReverseTransaction,
+  persistReverseTransaction,
+} from "./transaction-service";
+export {
+  buildAddEvent,
+  persistAddEvent,
+  applyUpdateEvent,
+  persistUpdateEvent,
+  applyDeleteEvent,
+  persistDeleteEvent,
+  applyUpdateEventStatus,
+  addBudgetItem,
+  removeBudgetItem,
+  updateShoppingItemStatus,
+} from "./event-service";
+export {
+  buildCreateMember,
+  persistCreateMember,
+  applyUpdateMember,
+  persistUpdateMember,
+  applyDeleteMember,
+} from "./member-service";
+export { createGroup } from "./group-service";
+export {
+  applyUpdateGroup,
+  applyDeleteGroup,
+  applyArchiveGroup,
+  applyRestoreGroup,
+  buildCreateEventBudget,
+  buildAddBudgetLine,
+  applyRemoveBudgetLine,
+} from "./group-lifecycle";
+export {
+  createCulte,
+  persistCulte,
+  markCotisationPaid,
+  persistMarkCotisationPaid,
+  markCotisationsAbsent,
+  persistMarkCotisationsAbsent,
+  updateCotisation as updateCotisationService,
+  persistUpdateCotisation,
+  getCotisationsForCulte as getCotisationsForCulteSvc,
+  getMembreHistorique as getMembreHistoriqueSvc,
+  getMembresEnAvance as getMembresEnAvanceSvc,
+} from "./cotisation-service";
