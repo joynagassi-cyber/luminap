@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useLocalStore } from "@/store/useLocalStore";
+import { useCurrentUser } from "@/lib/dataLayer";
 import { useMembers, addMemberPS } from "@/lib/dataLayer";
 import { getOrganizationId } from "@/lib/orgContext";
 import { resource } from "@/capabilities/resource";
@@ -28,7 +28,7 @@ import {
 
 export default function MembersPage() {
   const navigate = useNavigate();
-  const { user } = useLocalStore();
+  const user = useCurrentUser();
   const { data: members } = useMembers();
 
   const [archivedMembers, setArchivedMembers] = useState<Member[]>([]);

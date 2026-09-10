@@ -34,7 +34,7 @@ import {
 } from "lucide-react";
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
-import { useLocalStore } from "@/store/useLocalStore";
+import { useCurrentUser } from "@/lib/dataLayer";
 import {
   invitation,
   parseQRPayload,
@@ -43,7 +43,7 @@ import {
 
 export default function InvitationClaim() {
   const navigate = useNavigate();
-  const { user } = useLocalStore();
+  const user = useCurrentUser();
 
   const [mode, setMode] = useState<"code" | "scan">("code");
   const [codeInput, setCodeInput] = useState("");

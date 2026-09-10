@@ -38,7 +38,7 @@ import {
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
 import { useMembers } from "@/lib/dataLayer";
-import { useLocalStore } from "@/store/useLocalStore";
+import { useCurrentUser } from "@/lib/dataLayer";
 import { invitation, generateCode, buildQRPayload } from "@/capabilities/invitation";
 import { getOrganizationId } from "@/lib/orgContext";
 import type { Member } from "@/types";
@@ -55,7 +55,7 @@ const ROLES = [
 
 export default function InvitationEmit() {
   const navigate = useNavigate();
-  const { user } = useLocalStore();
+  const user = useCurrentUser();
   const { data: psMembers } = useMembers();
   const members = psMembers ?? [];
 

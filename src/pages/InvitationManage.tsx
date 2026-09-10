@@ -37,7 +37,7 @@ import {
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
 import { useInvitations } from "@/lib/dataLayer";
-import { useLocalStore } from "@/store/useLocalStore";
+import { useCurrentUser } from "@/lib/dataLayer";
 import { invitation } from "@/capabilities/invitation";
 import type { Invitation } from "@/capabilities/invitation";
 
@@ -50,7 +50,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }>
 
 export default function InvitationManage() {
   const navigate = useNavigate();
-  const { user } = useLocalStore();
+  const user = useCurrentUser();
   const { data: invData } = useInvitations();
 
   const [invitations, setInvitations] = useState<Invitation[]>([]);

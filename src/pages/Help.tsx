@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { useLocalStore } from "@/store/useLocalStore";
+import { useCurrentUser } from "@/lib/dataLayer";
 import { useNotifications } from "@/lib/dataLayer";
 import { HelpCircle, Info, Shield, Database } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
@@ -14,7 +14,7 @@ import {
 
 export default function Help() {
   const navigate = useNavigate();
-  const { user } = useLocalStore();
+  const user = useCurrentUser();
   const { data: notifications } = useNotifications();
 
   return (

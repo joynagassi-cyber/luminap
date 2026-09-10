@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLocalStore } from "@/store/useLocalStore";
+import { useCurrentUser } from "@/lib/dataLayer";
 import { useGroups, useOrgUnits, createGroupPS } from "@/lib/dataLayer";
 import { getPowerSyncDatabase } from "@/lib/powersync";
 import { security } from "@/capabilities/security";
@@ -30,7 +30,7 @@ const COLOR_PALETTE = [
 const GROUP_TYPES = ["groupe", "commission", "comité", "diaconie", "service"];
 
 export default function Groups() {
-  const { user } = useLocalStore();
+  const user = useCurrentUser();
 
   const { data: psGroups } = useGroups();
   const { data: psOrgUnits } = useOrgUnits();
