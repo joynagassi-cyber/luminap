@@ -10,6 +10,8 @@ import {
   useCurrentUser,
   updateGroupPS,
   deleteGroupPS,
+  addGroupMembershipPS,
+  removeGroupMembershipPS,
 } from "@/lib/dataLayer";
 import { formatCurrencyCompact, formatDate } from "@/lib/utils";
 import {
@@ -116,7 +118,7 @@ export default function GroupDetail() {
     );
   }
 
-  const color = account.color || "#FF6B00";
+  const color = (account as any).color || "#FF6B00";
   const txs = transactions.filter(
     (t: any) =>
       t.source_caisse_id === account.id || t.sourceCaisseId === account.id,
@@ -143,7 +145,7 @@ export default function GroupDetail() {
     { amount: number; date: string; tx: Transaction }
   > = {};
   for (const tx of versementTxs) {
-    const versementId = tx.versement_id || tx.versementId;
+    const versementId = (tx as any).versement_id || (tx as any).versementId;
     if (!versements[versementId]) {
       versements[versementId] = {
         amount: tx.amount,
@@ -162,7 +164,7 @@ export default function GroupDetail() {
     type: "info" | "success" | "warning";
   }> = [
     {
-      date: account.created_at || account.createdAt,
+      date: (account as any).created_at || account.createdAt,
       label: "Caisse créée",
       type: "info",
     },
@@ -175,7 +177,7 @@ export default function GroupDetail() {
   };
 
   const handleUpdate = async () => {
-    if (!security.hasPermission(user.role, "group:update")) {
+    if (!security.hasPermission(user.role as any, "group:update")) {
       setError("Permission insuffisante pour modifier ce groupe");
       return;
     }
@@ -193,7 +195,7 @@ export default function GroupDetail() {
   };
 
   const handleDelete = async () => {
-    if (!security.hasPermission(user.role, "group:delete")) {
+    if (!security.hasPermission(user.role as any, "group:delete")) {
       setError("Permission insuffisante pour supprimer ce groupe");
       return;
     }
@@ -206,7 +208,7 @@ export default function GroupDetail() {
   };
 
   const handleArchive = async () => {
-    if (!security.hasPermission(user.role, "group:delete")) {
+    if (!security.hasPermission(user.role as any, "group:delete")) {
       setError("Permission insuffisante pour archiver ce groupe");
       return;
     }

@@ -23,6 +23,7 @@ import type {
 import { getOrganizationId } from "./orgContext";
 import { get, set, invalidate, asyncGetOrSet } from "./cache";
 
+
 // ============================================================
 // PowerSync entity types (snake_case columns)
 // ============================================================
@@ -50,6 +51,8 @@ export interface PSMember {
   archived_at: string | null;
   archived_by: string | null;
   archive_reason: string | null;
+  total_dons?: number;
+  montant_en_avance?: number;
   created_at: string;
   updated_at: string;
 }
@@ -272,7 +275,7 @@ export function useTransactions() {
   if (cached)
     return { data: cached, isLoading: false, source: "cached" as const };
 
-  const { data: psData, status: psStatus } = useQuery<PSTransaction>(
+  const { data: psData, isLoading: psStatus } = useQuery<PSTransaction>(
     "SELECT id, org_id, type, amount, description, date, status, category_id, org_unit_id, event_id, source, person_name, compensates_for, comment, version, source_caisse_id, versement_id, reversal_of_id, created_by_id, approved_by_id, created_at, updated_at, approved_at FROM transactions WHERE org_id = ? ORDER BY created_at DESC",
     [orgId],
     { reportFetching: true },
@@ -294,7 +297,7 @@ export function useTransactions() {
  * Hook to get all events
  */
 export function useEvents() {
-  const { data: psData, status: psStatus } = useQuery<PSEvent>(
+  const { data: psData, isLoading: psStatus } = useQuery<PSEvent>(
     "SELECT id, org_id, name, description, start_date, end_date, status, type, budget, budget_items, created_at, updated_at FROM events WHERE org_id = ? ORDER BY start_date ASC",
     [getOrganizationId()],
     { reportFetching: true },
@@ -650,7 +653,7 @@ export async function getGroupMembershipsPS(): Promise<PSGroupMembership[]> {
   const result = await db.execute(
     `SELECT id, member_id, group_id, role, created_at FROM group_memberships`,
   );
-  return (result?.result || []) as PSGroupMembership[];
+  return (result?.array || []) as any[] as PSGroupMembership[];
 }
 
 // ============================================================
@@ -675,21 +678,21 @@ export function usePowerSyncStatus(): boolean {
   useEffect(() => {
     if (!sync) return;
 
-    const unsubscribe = sync.addListener("statusChanged", (status) => {
-      if (status.connected && status.hasSynced) {
+    const unsubscribe = (sync as any).addListener?.("statusChanged", (status: any) => {
+      if (status?.connected && status?.hasSynced) {
         setReady(true);
         markPowerSyncReady();
       }
     });
 
     // Check initial status
-    const currentStatus = sync.getStatus();
-    if (currentStatus.connected && currentStatus.hasSynced) {
+    const currentStatus = (sync as any).getStatus?.();
+    if (currentStatus?.connected && currentStatus?.hasSynced) {
       setReady(true);
       markPowerSyncReady();
     }
 
-    return () => unsubscribe();
+    return () => { if (typeof unsubscribe === "function") unsubscribe(); };
   }, [sync]);
 
   return ready;
@@ -709,7 +712,7 @@ export async function executeWrite(
 ): Promise<number> {
   const sync = usePowerSync();
   const result = await sync.execute(sql, params);
-  return result.changes;
+  return result.rowsAffected ?? 1;
 }
 
 /**
@@ -741,7 +744,7 @@ export async function addTransactionPS(
       tx.org_unit_id,
       tx.compensates_for,
       tx.comment,
-      tx.version || 1,
+      1,
       tx.created_by_id,
       tx.approved_by_id,
       now,
@@ -773,7 +776,7 @@ export async function updateTransactionPS(
     `SELECT status FROM transactions WHERE id = ?`,
     [id],
   );
-  const tx = statusResult?.result?.[0] as any;
+  const tx = statusResult?.array?.[0] as any;
   if (tx?.status === "APPROVED" && updates.status !== "APPROVED") {
     throw new Error("TRANSACTION_APPROVED_IMMUTABLE");
   }
@@ -823,7 +826,7 @@ export async function deleteTransactionPS(id: string): Promise<void> {
     `SELECT status FROM transactions WHERE id = ?`,
     [id],
   );
-  const tx = statusResult?.result?.[0] as any;
+  const tx = statusResult?.array?.[0] as any;
   if (tx?.status === "APPROVED") {
     throw new Error("TRANSACTION_APPROVED_IMMUTABLE");
   }
@@ -1083,7 +1086,7 @@ export async function getCustomFieldDefinitionPS(
     `SELECT id, org_id, entity_type, field_name, field_label, field_type, options, \`order\`, created_at, updated_at FROM custom_field_definitions WHERE id = ?`,
     [id],
   );
-  const row = result?.result?.[0] as any;
+  const row = result?.array?.[0] as any;
   if (!row) return null;
   return {
     id: row.id,
@@ -1107,7 +1110,7 @@ export async function listCustomFieldDefinitionsPS(
     ? `SELECT id, org_id, entity_type, field_name, field_label, field_type, options, \`order\`, created_at, updated_at FROM custom_field_definitions WHERE entity_type = ?`
     : `SELECT id, org_id, entity_type, field_name, field_label, field_type, options, \`order\`, created_at, updated_at FROM custom_field_definitions`;
   const result = await db.execute(sql, entityType ? [entityType] : []);
-  const rows = (result?.result || []) as any[];
+  const rows = (result?.array || []) as any[];
   return rows.map((r) => ({
     id: r.id,
     orgId: r.org_id,
@@ -1210,7 +1213,7 @@ export async function getCustomFieldValuesByEntityPS(
     `SELECT id, entity_type, entity_id, custom_field_definition_id, value, created_at, updated_at FROM custom_field_values WHERE entity_type = ? AND entity_id = ?`,
     [entityType, entityId],
   );
-  const rows = (result?.result || []) as any[];
+  const rows = (result?.array || []) as any[];
   return rows.map((r) => ({
     id: r.id,
     entityType: r.entity_type,
@@ -1263,7 +1266,7 @@ export async function getFormDefinitionPS(
     `SELECT id, org_id, key, name, description, version, target_entity_type, fields, status, created_at, updated_at FROM form_definitions WHERE id = ?`,
     [id],
   );
-  const row = result?.result?.[0] as any;
+  const row = result?.array?.[0] as any;
   if (!row) return null;
   return {
     id: row.id,
@@ -1300,7 +1303,7 @@ export async function listFormDefinitionsPS(filters?: {
       ? `SELECT id, org_id, key, name, description, version, target_entity_type, fields, status, created_at, updated_at FROM form_definitions WHERE ${conditions.join(" AND ")}`
       : `SELECT id, org_id, key, name, description, version, target_entity_type, fields, status, created_at, updated_at FROM form_definitions`;
   const result = await db.execute(sql, params);
-  const rows = (result?.result || []) as any[];
+  const rows = (result?.array || []) as any[];
   return rows.map((r) => ({
     id: r.id,
     orgId: r.org_id,
@@ -1517,6 +1520,272 @@ export async function claimInvitationPS(
 }
 
 // ============================================================
+// Multi-org Administration (PowerSync)
+//   - organizations registry (lifecycle PENDING/ACTIVE/SUSPENDED/ARCHIVED)
+//   - org_admins grants (central admin → organisation)
+// ============================================================
+
+export type OrgStatus = "PENDING" | "ACTIVE" | "SUSPENDED" | "ARCHIVED";
+export type OrgType = "CENTRAL" | "CHURCH" | "SCHOOL" | "ENTERPRISE";
+
+/** User courant (identique à useCurrentUser : localStorage "lumina-user"). */
+function getCurrentUserId(): string {
+  try {
+    const stored = localStorage.getItem("lumina-user");
+    if (stored) return ((JSON.parse(stored) as { id?: string }).id) ?? "";
+  } catch {
+    // storage indisponible (SSR / test) → aucun utilisateur
+  }
+  return "";
+}
+
+export interface PSOrganization {
+  id: string;
+  name: string;
+  type: OrgType;
+  status: OrgStatus;
+  suspended_at: string | null;
+  suspended_by: string | null;
+  archived_at: string | null;
+  archived_by: string | null;
+  archive_reason: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PSOrgAdmin {
+  id: string;
+  admin_profile_id: string;
+  org_id: string;
+  status: "ACTIVE" | "REVOKED";
+  granted_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Hook to list organizations.
+ * - "mine"    : l'organisation courante (orgContext).
+ * - "central" : toutes les orgs gérées par l'admin central courant —
+ *               dérivées LOCALEMENT des tables synchronisées (org_admins +
+ *               profiles), car la fonction PG `is_org_member` n'existe pas
+ *               dans SQLite PowerSync. L'accès est ensuite garanti côté
+ *               serveur par RLS (le Sync Stream ne renvoie que les lignes
+ *               visibles par l'utilisateur connecté).
+ */
+export function useOrganizations(view: "mine" | "central" = "mine") {
+  const sql =
+    view === "central"
+      ? `SELECT o.id, o.name, o.type, o.status, o.suspended_at, o.suspended_by,
+                o.archived_at, o.archived_by, o.archive_reason, o.created_at, o.updated_at
+         FROM organizations o
+         WHERE EXISTS (SELECT 1 FROM org_admins ga
+                       WHERE ga.org_id = o.id AND ga.status = 'ACTIVE'
+                         AND ga.admin_profile_id = :uid)
+            OR EXISTS (SELECT 1 FROM profiles p
+                       WHERE p.org_id = o.id AND p.id = :uid)
+         ORDER BY o.name`
+      : `SELECT id, name, type, status, suspended_at, suspended_by,
+                archived_at, archived_by, archive_reason, created_at, updated_at
+         FROM organizations WHERE id = ?`;
+  const params: any =
+    view === "central" ? [{ uid: getCurrentUserId() }] : [getOrganizationId()];
+  const { data: psData } = useQuery<PSOrganization>(sql, params, {
+    reportFetching: true,
+  });
+  return { data: psData, isLoading: false, source: "powersync" as const };
+}
+
+/**
+ * Hook to list grants (org_admins) for the current user or for an organization.
+ */
+export function useOrgAdmins(orgId?: string | null) {
+  const { data: psData } = useQuery<PSOrgAdmin>(
+    orgId
+      ? "SELECT * FROM org_admins WHERE org_id = ? ORDER BY created_at DESC"
+      : "SELECT * FROM org_admins WHERE admin_profile_id = ? ORDER BY created_at DESC",
+    orgId ? [orgId] : [getCurrentUserId()],
+    { reportFetching: true },
+  );
+  return { data: psData, isLoading: false, source: "powersync" as const };
+}
+
+/**
+ * Grant check against local SQLite (PowerSync).
+ * TRUE only when a local ACTIVE grant exists for (user, org) — this is the
+ * reliable (non-UI) context-switch authorization, spec §9/§21.
+ * Async: PowerSync 2.x exposes no synchronous query API.
+ */
+export async function hasActiveOrgAdminGrant(
+  userId: string,
+  orgId: string,
+): Promise<boolean> {
+  if (!userId || !orgId) return false;
+  try {
+    const db = getPowerSyncDatabase();
+    return await db.readTransaction(async (tx) => {
+      const row = await tx.getOptional(
+        `SELECT 1 FROM org_admins WHERE admin_profile_id = ? AND org_id = ? AND status = 'ACTIVE' LIMIT 1`,
+        [userId, orgId],
+      );
+      return row !== null;
+    });
+  } catch {
+    // PowerSync not open yet (app startup) → refuse context entry, not allow.
+    return false;
+  }
+}
+
+// ─── Multi-org access (local, mirrors server `is_org_member`) ─────────────
+
+/**
+ * Local equivalent of PostgreSQL `public.is_org_member(uid, org_id)`:
+ * the user is a MEMBER of the org (profiles.org_id) OR holds an ACTIVE
+ * central grant (org_admins). This is what authorizes entering an org
+ * context. The server still re-enforces it via RLS on every real query.
+ */
+export async function canAccessOrganization(
+  userId: string,
+  orgId: string,
+): Promise<boolean> {
+  if (!userId || !orgId) return false;
+  try {
+    const db = getPowerSyncDatabase();
+    return await db.readTransaction(async (tx) => {
+      const row = await tx.getOptional(
+        `SELECT 1 FROM profiles WHERE id = ? AND org_id = ?
+         UNION SELECT 1 FROM org_admins WHERE admin_profile_id = ? AND org_id = ? AND status = 'ACTIVE'
+         LIMIT 1`,
+        [userId, orgId, userId, orgId],
+      );
+      return row !== null;
+    });
+  } catch {
+    return false;
+  }
+}
+
+export interface UserOrg {
+  orgId: string;
+  name: string;
+  status: OrgStatus;
+  /** How the user is linked to the org */
+  via: "MEMBER" | "GRANT" | "BOTH";
+}
+
+/**
+ * List all organizations the user may enter (member of, or granted admin on),
+ * joined with the registry for name + lifecycle status. Sorted by name.
+ */
+export async function listUserOrgs(userId: string): Promise<UserOrg[]> {
+  if (!userId) return [];
+  try {
+    const db = getPowerSyncDatabase();
+    const rows = await db.readTransaction(async (tx) => {
+      const res = await tx.execute(
+        `SELECT o.id AS orgId, o.name AS name, o.status AS status,
+                CASE WHEN m.id IS NOT NULL AND g.id IS NOT NULL THEN 'BOTH'
+                     WHEN m.id IS NOT NULL THEN 'MEMBER'
+                     ELSE 'GRANT' END AS via
+         FROM organizations o
+         LEFT JOIN profiles m ON m.org_id = o.id AND m.id = ?
+         LEFT JOIN org_admins g ON g.org_id = o.id AND g.admin_profile_id = ?
+                AND g.status = 'ACTIVE'
+         WHERE m.id IS NOT NULL OR g.id IS NOT NULL
+         ORDER BY o.name COLLATE NOCASE`,
+        [userId, userId],
+      );
+      return res.rows;
+    });
+    return rows.map((r) => ({
+      orgId: String(r.orgId),
+      name: String(r.name),
+      status: (r.status as OrgStatus) ?? "PENDING",
+      via: (r.via as UserOrg["via"]) ?? "MEMBER",
+    }));
+  } catch {
+    return [];
+  }
+}
+
+// ─── Multi-org write operations ─────────────────────────────────────────────
+
+/**
+ * Create a new organization (registry row).
+ * Server RLS restricts INSERT to admins holding an active grant (migration T3).
+ */
+export async function createOrganizationPS(input: {
+  id: string;
+  name: string;
+  type?: OrgType;
+}): Promise<string> {
+  const now = new Date().toISOString();
+  await executeWrite(
+    `INSERT INTO organizations (id, name, type, status, created_at, updated_at)
+     VALUES (?, ?, ?, 'PENDING', ?, ?)`,
+    [input.id, input.name, input.type ?? "CHURCH", now, now],
+  );
+  return input.id;
+}
+
+/**
+ * Suspend an organization (lifecycle). History is preserved (ARCHIVED ≠ DELETE).
+ */
+export async function setOrganizationStatusPS(
+  orgId: string,
+  status: Extract<OrgStatus, "ACTIVE" | "SUSPENDED" | "ARCHIVED">,
+  actorId: string,
+  reason?: string,
+): Promise<void> {
+  const now = new Date().toISOString();
+  if (status === "SUSPENDED") {
+    await executeWrite(
+      `UPDATE organizations SET status = 'SUSPENDED', suspended_at = ?, suspended_by = ?, updated_at = ? WHERE id = ?`,
+      [now, actorId, now, orgId],
+    );
+  } else if (status === "ARCHIVED") {
+    await executeWrite(
+      `UPDATE organizations SET status = 'ARCHIVED', archived_at = ?, archived_by = ?, archive_reason = ?, updated_at = ? WHERE id = ?`,
+      [now, actorId, reason ?? null, now, orgId],
+    );
+  } else {
+    // Reactivate: clear suspended flags
+    await executeWrite(
+      `UPDATE organizations SET status = 'ACTIVE', suspended_at = NULL, suspended_by = NULL, updated_at = ? WHERE id = ?`,
+      [now, orgId],
+    );
+  }
+}
+
+/**
+ * Grant a central admin on an organization.
+ */
+export async function grantOrgAdminPS(input: {
+  adminProfileId: string;
+  orgId: string;
+  grantedBy: string;
+}): Promise<string> {
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  await executeWrite(
+    `INSERT INTO org_admins (id, admin_profile_id, org_id, status, granted_by, created_at, updated_at)
+     VALUES (?, ?, ?, 'ACTIVE', ?, ?, ?)`,
+    [id, input.adminProfileId, input.orgId, input.grantedBy, now, now],
+  );
+  return id;
+}
+
+/**
+ * Revoke a central admin grant (status → REVOKED; RLS drops access instantly).
+ */
+export async function revokeOrgAdminPS(grantId: string): Promise<void> {
+  await executeWrite(
+    `UPDATE org_admins SET status = 'REVOKED', updated_at = ? WHERE id = ?`,
+    [new Date().toISOString(), grantId],
+  );
+}
+
+// ============================================================
 // Form Submissions (PowerSync)
 // ============================================================
 
@@ -1553,7 +1822,7 @@ export async function getFormSubmissionPS(
     `SELECT id, org_id, form_definition_id, form_version, entity_type, entity_id, data, submitted_by, submitted_at, status, created_at FROM form_submissions WHERE id = ?`,
     [id],
   );
-  const row = result?.result?.[0] as any;
+  const row = result?.array?.[0] as any;
   if (!row) return null;
   return {
     id: row.id,
@@ -1595,7 +1864,7 @@ export async function listFormSubmissionsPS(filters?: {
       ? `SELECT id, org_id, form_definition_id, form_version, entity_type, entity_id, data, submitted_by, submitted_at, status, created_at FROM form_submissions WHERE ${conditions.join(" AND ")}`
       : `SELECT id, org_id, form_definition_id, form_version, entity_type, entity_id, data, submitted_by, submitted_at, status, created_at FROM form_submissions`;
   const result = await db.execute(sql, params);
-  const rows = (result?.result || []) as any[];
+  const rows = (result?.array || []) as any[];
   return rows.map((r) => ({
     id: r.id,
     orgId: r.org_id,
@@ -1842,7 +2111,7 @@ export async function reverseTransactionPS(
   // Get original transaction
   const db = getPowerSyncDatabase();
   const result = await db.execute("SELECT * FROM transactions WHERE id = ?", [id]);
-  const tx = result?.result?.[0] as any;
+  const tx = result?.array?.[0] as any;
   if (!tx) throw new Error("Transaction not found");
   
   // Create reversal transaction

@@ -66,7 +66,7 @@ export class ResourceService {
     const result = await db.execute(`SELECT * FROM ${table} WHERE id = ?`, [
       id,
     ]);
-    const row = result?.result?.[0] as any;
+    const row = result?.array?.[0] as any;
     if (!row) return null;
     return this.toResource<T>(entityType, row);
   }
@@ -154,7 +154,7 @@ export class ResourceService {
     // Execute query
     const sql = `SELECT * FROM ${table} ${whereClause} ${orderByClause} ${limitClause}`;
     const result = await db.execute(sql, params);
-    const rows = result?.result || [];
+    const rows = result?.array || [];
 
     // Get total count (without pagination)
     const countSql = `SELECT COUNT(*) as total FROM ${table} ${conditions.length > 0 ? `WHERE ${conditions.slice(0, -1).join(" AND ")}` : ""}`;
@@ -163,7 +163,7 @@ export class ResourceService {
       `SELECT COUNT(*) as total FROM ${table} ${conditions.length > 0 ? "WHERE " + conditions.slice(0, -1).join(" AND ") : ""}`,
       params.slice(0, -1),
     );
-    const totalCount = (countResult?.result?.[0]?.total as number) || 0;
+    const totalCount = (countResult?.array?.[0]?.total as number) || 0;
 
     const items = rows.map((row: any) => this.toResource<T>(entityType, row));
 
@@ -188,7 +188,7 @@ export class ResourceService {
       `SELECT * FROM ${table} WHERE org_id = ? AND status = ? ORDER BY name`,
       [getOrganizationId(), status],
     );
-    const rows = result?.result || [];
+    const rows = result?.array || [];
     return rows.map((row: any) => this.toResource<T>(entityType, row));
   }
 
@@ -224,7 +224,7 @@ export class ResourceService {
     // Execute query
     const sql = `SELECT * FROM ${table} ${whereClause}`;
     const result = await db.execute(sql, params);
-    const rows = result?.result || [];
+    const rows = result?.array || [];
 
     const items = rows.map((row: any) => this.toResource<T>(entityType, row));
 
@@ -245,7 +245,7 @@ export class ResourceService {
       `SELECT 1 FROM ${table} WHERE id = ? LIMIT 1`,
       [id],
     );
-    return (result?.result?.length || 0) > 0;
+    return (result?.array?.length || 0) > 0;
   }
 
   /**

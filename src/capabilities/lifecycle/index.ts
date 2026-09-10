@@ -27,12 +27,12 @@ import { auditLogRepo } from "@/lib/audit";
  */
 export interface LifecyclePolicy {
   /** Check if the entity can be archived. Called before any mutation. */
-  canArchive(
+  canArchive?(
     entityId: string,
     context?: Record<string, any>,
   ): Promise<{ ok: boolean; reason?: string }>;
   /** Check if the entity can be restored. Called before any mutation. */
-  canRestore(
+  canRestore?(
     entityId: string,
     context?: Record<string, any>,
   ): Promise<{ ok: boolean; reason?: string }>;
@@ -87,8 +87,8 @@ export class LifecycleService {
   ): Promise<void> {
     const policy = this.policies.get(entityType);
     if (policy) {
-      const check = await policy.canArchive(entityId);
-      if (!check.ok)
+      const check = await policy.canArchive?.(entityId);
+      if (check && !check.ok)
         throw new Error(check.reason ?? `Cannot archive ${entityType}`);
     }
 
@@ -99,7 +99,7 @@ export class LifecycleService {
     const result = await db.execute(`SELECT * FROM ${table} WHERE id = ?`, [
       entityId,
     ]);
-    const entity: any = result?.result?.[0];
+    const entity: any = result?.array?.[0];
     if (!entity)
       throw new Error(`Entity ${entityType} with id ${entityId} not found`);
 
@@ -164,8 +164,8 @@ export class LifecycleService {
   ): Promise<void> {
     const policy = this.policies.get(entityType);
     if (policy) {
-      const check = await policy.canRestore(entityId);
-      if (!check.ok)
+      const check = await policy.canRestore?.(entityId);
+      if (check && !check.ok)
         throw new Error(check.reason ?? `Cannot restore ${entityType}`);
     }
 
@@ -176,7 +176,7 @@ export class LifecycleService {
     const result = await db.execute(`SELECT * FROM ${table} WHERE id = ?`, [
       entityId,
     ]);
-    const entity: any = result?.result?.[0];
+    const entity: any = result?.array?.[0];
     if (!entity)
       throw new Error(`Entity ${entityType} with id ${entityId} not found`);
 
@@ -264,7 +264,7 @@ export class LifecycleService {
       `SELECT status FROM ${table} WHERE id = ?`,
       [entityId],
     );
-    const entity: any = result?.result?.[0];
+    const entity: any = result?.array?.[0];
     if (!entity) return false;
     return entity.status !== "ARCHIVED" && entity.status !== "CANCELLED";
   }

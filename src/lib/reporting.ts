@@ -90,7 +90,7 @@ export class AggregationEngine {
       `SELECT id, org_id, type, amount, date, status, category_id, source_caisse_id, event_id, person_name FROM transactions WHERE org_id = ? AND status = ?`,
       [orgId, "APPROVED"],
     );
-    const transactions: Transaction[] = (result?.result || []).map(
+    const transactions: Transaction[] = (result?.array || []).map(
       (t: any) => ({
         id: t.id,
         orgId: t.org_id,
@@ -252,7 +252,7 @@ export const reportDefinitionRepo = {
       "SELECT id, org_id, name, data_source, dimensions, metrics, filters, group_by, sort_by, saved_by, is_template, created_at, updated_at FROM report_definitions WHERE org_id = ? ORDER BY created_at DESC",
       [getOrganizationId()],
     );
-    return (result?.result || []).map((r: any) => ({
+    return (result?.array || []).map((r: any) => ({
       id: r.id,
       orgId: r.org_id,
       name: r.name,

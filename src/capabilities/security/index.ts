@@ -30,11 +30,11 @@ export type { Permission };
  */
 export class SecurityService {
   hasPermission(role: Role, permission: Permission): boolean {
-    return hasPermission(role, permission);
+    return hasPermission(role, permission as any);
   }
 
   checkPermission(role: Role, permission: Permission): boolean {
-    return checkPermission(role, permission);
+    return checkPermission(role, permission as any);
   }
 
   hasRole(role: Role, resource: string, action: string): boolean {
@@ -52,7 +52,7 @@ export class SecurityService {
 
   getRolesWithPermission(permission: Permission): Role[] {
     return (Object.keys(PERMISSION_MATRIX) as Role[]).filter((role) =>
-      PERMISSION_MATRIX[role].includes(permission),
+      PERMISSION_MATRIX[role].includes(permission as any),
     );
   }
 

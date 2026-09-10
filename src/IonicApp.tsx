@@ -9,8 +9,7 @@ import { luminaRoutes } from "./ionic/routing";
 setupIonicReact({
   mode: "ios",
   animated: true,
-  keyboardBehavior: "ion-focus",
-  keyboardFillMode: "overlap",
+  ...({ keyboardBehavior: "ion-focus", keyboardFillMode: "overlap" } as any),
 });
 
 setupLuminaTheme();
@@ -41,10 +40,10 @@ function IonicApp() {
         {/* Mobile: single pane, no split */}
         <IonRouterOutlet id="main-content-mobile">
           {luminaRoutes}
-          <Route path="/" exact>
+          <Route path="/">
             <Navigate to="/splash" replace />
           </Route>
-          <Route path="*" exact>
+          <Route path="*">
             <Navigate to="/splash" replace />
           </Route>
         </IonRouterOutlet>

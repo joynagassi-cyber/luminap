@@ -110,7 +110,7 @@ export const auditLogRepo: AuditLogRepository = {
     query += " ORDER BY created_at DESC";
 
     const result = await db.execute(query, params);
-    const entries = (result?.result || []).map((a: any) => ({
+    const entries = (result?.array || []).map((a: any) => ({
       id: a.id,
       orgId: a.org_id,
       transactionId: a.transaction_id,

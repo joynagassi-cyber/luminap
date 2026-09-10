@@ -18,8 +18,7 @@ import "./ionic/theme";
 setupIonicReact({
   mode: "ios",
   animated: true,
-  keyboardBehavior: "ion-focus",
-  keyboardFillMode: "overlap",
+  ...({ keyboardBehavior: "ion-focus", keyboardFillMode: "overlap" } as any),
 });
 
 const queryClient = new QueryClient();

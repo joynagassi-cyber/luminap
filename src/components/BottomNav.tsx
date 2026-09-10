@@ -144,8 +144,8 @@ export default function BottomNav() {
               key={path}
               href={path}
               className="!min-height:auto !p-0 flex flex-col items-center gap-0.5 px-3 py-2.5 rounded-xl transition-all min-w-0"
-              role="tab"
-              aria-selected={isActive(path)}
+              {...({ role: "tab" } as any)}
+              aria-selected={isActive(path) as any}
               aria-label={label}
             >
               <Icon

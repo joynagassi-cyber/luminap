@@ -93,7 +93,7 @@ const NotFound = lazy(() => import("@/pages/NotFound"));
 function LazyRoute({
   component: LazyComponent,
 }: {
-  component: React.LazyExoticComponent<() => JSX.Element>;
+  component: React.LazyExoticComponent<React.ComponentType<any>>;
 }) {
   return (
     <Suspense fallback={<PageSkeleton />}>

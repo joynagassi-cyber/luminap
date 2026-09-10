@@ -8,6 +8,8 @@ import {
   useEvents,
   updateTransactionPS,
   deleteTransactionPS,
+  approveTransactionPS,
+  reverseTransactionPS,
 } from "@/lib/dataLayer";
 import {
   formatCurrencyCompact,
@@ -82,22 +84,22 @@ export default function TransactionDetail() {
 
   const isIncome = tx.type === "INCOME";
   const category =
-    tx.category ||
+    (tx as any).category ||
     categories.find(
-      (c: any) => c.id === tx.category_id || c.id === tx.categoryId,
+      (c: any) => c.id === (tx as any).category_id || c.id === (tx as any).categoryId,
     );
   const orgUnit =
-    tx.orgUnit ||
-    orgUnits.find((o: any) => o.id === tx.org_unit_id || o.id === tx.orgUnitId);
+    (tx as any).orgUnit ||
+    orgUnits.find((o: any) => o.id === (tx as any).org_unit_id || o.id === (tx as any).orgUnitId);
   const event =
-    tx.event ||
-    events.find((e: any) => e.id === tx.event_id || e.id === tx.eventId);
+    (tx as any).event ||
+    events.find((e: any) => e.id === (tx as any).event_id || e.id === (tx as any).eventId);
 
   const handleApprove = async () => {
-    if (!security.hasPermission(user.role, "transaction:approve")) {
+    if (!security.hasPermission(user.role as any, "transaction:approve")) {
       return;
     }
-    await approveTransactionPS(tx.id, user?.id || "");
+    await approveTransactionPS(tx.id, user?.id || "", user.role as any);
     navigate(-1);
   };
 
@@ -113,7 +115,7 @@ export default function TransactionDetail() {
   };
 
   const handleDelete = async () => {
-    if (!security.hasPermission(user.role, "transaction:delete")) {
+    if (!security.hasPermission(user.role as any, "transaction:delete")) {
       return;
     }
     await deleteTransactionPS(tx.id);
@@ -122,7 +124,7 @@ export default function TransactionDetail() {
 
   const handleReverse = async () => {
     if (!reverseReason.trim()) return;
-    if (!security.hasPermission(user.role, "transaction:approve")) {
+    if (!security.hasPermission(user.role as any, "transaction:approve")) {
       return;
     }
     await reverseTransactionPS(tx.id, user?.id || "", reverseReason.trim());
@@ -132,7 +134,7 @@ export default function TransactionDetail() {
   };
 
   // Find reversal transaction if exists
-  const reversal = tx.reversalOfId
+  const reversal = (tx as any).reversalOfId
     ? transactions.find(
         (t: any) => t.reversal_of_id === tx.id || t.reversalOfId === tx.id,
       )
@@ -221,11 +223,11 @@ export default function TransactionDetail() {
                 <span
                   className="text-xs px-2.5 py-1 rounded-full"
                   style={{
-                    backgroundColor: getStatusColor(tx.status) + "20",
-                    color: getStatusColor(tx.status),
+                    backgroundColor: getStatusColor(tx.status as any) + "20",
+                    color: getStatusColor(tx.status as any),
                   }}
                 >
-                  {getStatusLabel(tx.status)}
+                  {getStatusLabel(tx.status as any)}
                 </span>
               </div>
             </div>
@@ -245,7 +247,7 @@ export default function TransactionDetail() {
                 <div className="flex justify-between">
                   <span className="text-text-tertiary text-sm">Caisse</span>
                   <span className="text-text-primary text-sm font-medium">
-                    {tx.source_caisse_id || tx.sourceCaisseId || "Principale"}
+                    {(tx as any).source_caisse_id || (tx as any).sourceCaisseId || "Principale"}
                   </span>
                 </div>
                 {tx.comment && (
@@ -261,16 +263,16 @@ export default function TransactionDetail() {
                 <div className="flex justify-between">
                   <span className="text-text-tertiary text-sm">Créé le</span>
                   <span className="text-text-primary text-sm font-medium">
-                    {formatDate(tx.created_at || tx.createdAt)}
+                    {formatDate((tx as any).created_at || (tx as any).createdAt)}
                   </span>
                 </div>
-                {tx.approved_at && (
+                {(tx as any).approved_at && (
                   <div className="flex justify-between">
                     <span className="text-text-tertiary text-sm">
                       Approuvé le
                     </span>
                     <span className="text-text-primary text-sm font-medium">
-                      {formatDate(tx.approved_at)}
+                      {formatDate((tx as any).approved_at)}
                     </span>
                   </div>
                 )}
@@ -281,7 +283,7 @@ export default function TransactionDetail() {
             <div className="space-y-2 mb-6">
               {tx.status === "PENDING" && (
                 <>
-                  {security.hasRole(user.role, "transaction", "approve") && (
+                  {security.hasRole(user.role as any, "transaction", "approve") && (
                     <button
                       onClick={handleApprove}
                       className="w-full py-4 rounded-full font-semibold text-white text-sm transition-all active:scale-95"
@@ -290,7 +292,7 @@ export default function TransactionDetail() {
                       Approuver
                     </button>
                   )}
-                  {security.hasRole(user.role, "transaction", "reject") && (
+                  {security.hasRole(user.role as any, "transaction", "reject") && (
                     <button
                       onClick={() => setShowRejectModal(true)}
                       className="w-full py-4 rounded-full font-semibold text-sm transition-all active:scale-95"
@@ -332,7 +334,7 @@ export default function TransactionDetail() {
                 </button>
               )}
               {(tx.status === "DRAFT" || tx.status === "PENDING") &&
-                security.hasRole(user.role, "transaction", "delete") && (
+                security.hasRole(user.role as any, "transaction", "delete") && (
                   <button
                     onClick={handleDelete}
                     className="w-full py-4 rounded-full font-semibold text-sm transition-all active:scale-95"

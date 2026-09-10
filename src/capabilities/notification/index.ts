@@ -109,15 +109,15 @@ export class NotificationCapability {
    */
   async subscribeToTopic(topic: string): Promise<void> {
     if (!this.isInitialized) await this.initialize();
-    const service = getOneSignalService();
+    const service = getOneSignalService() as any;
 
     // Retrieve existing topics, append new one, write back
-    const tags = (await service.User.getTags?.()) ?? {};
+    const tags = (await service.User?.getTags?.()) ?? {};
     const existing: string[] = tags["topics"] ? JSON.parse(tags["topics"]) : [];
     if (!existing.includes(topic)) {
       existing.push(topic);
     }
-    await service.User.addTag("topics", JSON.stringify(existing));
+    await service.User?.addTag("topics", JSON.stringify(existing));
   }
 
   /**
@@ -125,12 +125,12 @@ export class NotificationCapability {
    */
   async unsubscribeFromTopic(topic: string): Promise<void> {
     if (!this.isInitialized) await this.initialize();
-    const service = getOneSignalService();
+    const service = getOneSignalService() as any;
 
-    const tags = (await service.User.getTags?.()) ?? {};
+    const tags = (await service.User?.getTags?.()) ?? {};
     const existing: string[] = tags["topics"] ? JSON.parse(tags["topics"]) : [];
     const filtered = existing.filter((t) => t !== topic);
-    await service.User.addTag("topics", JSON.stringify(filtered));
+    await service.User?.addTag("topics", JSON.stringify(filtered));
   }
 }
 

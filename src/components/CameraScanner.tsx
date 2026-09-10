@@ -115,8 +115,8 @@ export function CameraScanner({ onScan, onError, enabled = true }: CameraScanner
           if (result) {
             stopCamera();
             onScan({
-              text: result.text,
-              format: result.format?.formatName || 'QR_CODE',
+              text: (result as any).text,
+              format: (result as any).format?.formatName || 'QR_CODE',
             });
           }
           if (err && err.name !== 'NotFoundError') {
@@ -139,8 +139,8 @@ export function CameraScanner({ onScan, onError, enabled = true }: CameraScanner
       const result = await codeReader.decodeFromImageUrl(imagePath);
       
       onScan({
-        text: result.text,
-        format: result.format?.formatName || 'QR_CODE',
+        text: (result as any).text,
+        format: (result as any).format?.formatName || 'QR_CODE',
       });
     } catch (err) {
       setError('QR code non détecté');

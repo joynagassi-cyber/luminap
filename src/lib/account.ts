@@ -24,7 +24,7 @@ export async function getAccountBalance(accountId: string): Promise<number> {
     "SELECT type, amount FROM transactions WHERE source_caisse_id = ? AND org_id = ? AND status = ?",
     [accountId, orgId, "APPROVED"],
   );
-  const approved: any[] = result?.result || [];
+  const approved: any[] = result?.array || [];
   const income = approved
     .filter((t: any) => t.type === "INCOME")
     .reduce((s: number, t: any) => s + t.amount, 0);

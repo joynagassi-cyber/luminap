@@ -61,7 +61,7 @@ export default function TransactionNewGroup() {
 
   const [filteredCategories, setFilteredCategories] = useState<Category[]>([]);
   useEffect(() => {
-    setFilteredCategories(categories.filter((c: any) => c.type === type));
+    setFilteredCategories(categories.filter((c: any) => c.type === type) as any);
   }, [type, categories]);
 
   const handleSubmit = async () => {

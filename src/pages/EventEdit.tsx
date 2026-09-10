@@ -42,9 +42,9 @@ export default function EventEdit() {
   useEffect(() => {
     if (!event || psLoading) return;
     setDescription(event.description || "");
-    setStartDate(event.start_date || event.startDate);
-    setEndDate(event.end_date || event.endDate || "");
-    setStatus(event.status);
+    setStartDate((event as any).start_date || (event as any).startDate);
+    setEndDate((event as any).end_date || (event as any).endDate || "");
+    setStatus(event.status as any);
     setBudget(String(Math.round((event.budget || 0) / 100)));
     setLoading(false);
   }, [event, psLoading]);

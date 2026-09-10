@@ -18,6 +18,8 @@ export class NetworkAdapter {
   static __mockNetwork: typeof Network | null = null;
   /** Tracks listener handles for cleanup. */
   private _listenerHandles: Array<{ remove: () => void } | null> = [];
+  /** Tracks whether test mode is enabled */
+  _testMode: boolean = false;
 
   private constructor() {}
 
@@ -55,7 +57,8 @@ export class NetworkAdapter {
     }
     if (navigator.onLine) {
       const ua = navigator.userAgent.toLowerCase();
-      return /wifi|cellular|ethernet/i.test(navigator.connection?.type ?? "")
+      const conn = (navigator as any).connection;
+      return /wifi|cellular|ethernet/i.test(conn?.type ?? "")
         ? "cellular"
         : "wifi";
     }
@@ -73,12 +76,12 @@ export class NetworkAdapter {
    * Subscribe to network status change events.
    * Returns an unsubscribe function.
    */
-  addStatusListener(callback: (status: ConnectionStatus) => void): () => void {
+  async addStatusListener(callback: (status: ConnectionStatus) => void): Promise<() => void> {
     this.listeners.add(callback);
 
     if (this.isCapacitorEnv()) {
-      const handle = Network.addListener("networkStatusChange", callback);
-      this._listenerHandles.push(handle);
+      const handle = await Network.addListener("networkStatusChange", callback);
+      this._listenerHandles.push(handle as unknown as { remove: () => void });
     } else {
       const onOnline = () => this.broadcastStatus();
       const onOffline = () => this.broadcastStatus();
@@ -115,7 +118,7 @@ export class NetworkAdapter {
   static setTestMode(enabled: boolean): void {
     const adapter = NetworkAdapter.getInstance();
     adapter._capacitorOnline = enabled ? null : null; // reset
-    (adapter as { _testMode: boolean })._testMode = enabled;
+    adapter._testMode = enabled;
   }
 
   /**

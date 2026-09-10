@@ -58,7 +58,7 @@ export default function Groups() {
   const [success, setSuccess] = useState("");
 
   const handleCreate = async () => {
-    if (!security.hasPermission(user.role, "group:create")) {
+    if (!security.hasPermission(user.role as any, "group:create")) {
       setError("Permission insuffisante pour créer un groupe");
       return;
     }
@@ -88,7 +88,7 @@ export default function Groups() {
   };
 
   const handleUpdate = async (id: string) => {
-    if (!security.hasPermission(user.role, "group:update")) {
+    if (!security.hasPermission(user.role as any, "group:update")) {
       setError("Permission insuffisante pour modifier ce groupe");
       return;
     }
@@ -109,7 +109,7 @@ export default function Groups() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!security.hasPermission(user.role, "group:delete")) {
+    if (!security.hasPermission(user.role as any, "group:delete")) {
       setError("Permission insuffisante pour supprimer ce groupe");
       return;
     }
@@ -149,7 +149,7 @@ export default function Groups() {
                   {orgUnits.length} groupe{orgUnits.length !== 1 ? "s" : ""}
                 </p>
               </div>
-              {security.hasPermission(user.role, "group:create") && (
+              {security.hasPermission(user.role as any, "group:create") && (
                 <button
                   onClick={() => setShowCreate(true)}
                   className="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-semibold text-white transition-all active:scale-95"
@@ -308,7 +308,7 @@ export default function Groups() {
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
-                      {security.hasPermission(user.role, "group:update") && (
+                      {security.hasPermission(user.role as any, "group:update") && (
                         <button
                           onClick={() => {
                             setShowEdit(orgUnit.id);
@@ -324,7 +324,7 @@ export default function Groups() {
                           />
                         </button>
                       )}
-                      {security.hasPermission(user.role, "group:delete") && (
+                      {security.hasPermission(user.role as any, "group:delete") && (
                         <button
                           onClick={() => setShowDelete(orgUnit.id)}
                           className="p-2 rounded-full active:scale-95 transition-transform"

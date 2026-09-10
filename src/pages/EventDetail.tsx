@@ -78,7 +78,7 @@ export default function EventDetail() {
   if (!event) return <FullPageSkeleton />;
 
   const config = STATUS_CONFIG[event.status];
-  const budgetItems = event.budget_items ? JSON.parse(event.budget_items) : [];
+  const budgetItems = (event as any).budget_items ? JSON.parse((event as any).budget_items) : [];
   const budgetSpent = budgetItems.reduce(
     (s: number, i: any) => s + (i.spent || 0),
     0,
@@ -88,7 +88,7 @@ export default function EventDetail() {
   );
 
   const handleStatusChange = async (newStatus: EventStatus) => {
-    if (!security.hasPermission(user.role, "event:update")) return;
+    if (!security.hasPermission(user.role as any, "event:update")) return;
     const result = workflow.check("event", event.status, newStatus);
     if (!result.allowed) {
       setSuccess(`Transition bloquee : ${result.reason}`);
@@ -101,13 +101,13 @@ export default function EventDetail() {
   };
 
   const handleDelete = async () => {
-    if (!security.hasPermission(user.role, "event:delete")) return;
+    if (!security.hasPermission(user.role as any, "event:delete")) return;
     await deleteEventPS(id!);
     navigate("/events");
   };
 
   const handleAddExpense = async () => {
-    if (!security.hasPermission(user.role, "transaction:create")) {
+    if (!security.hasPermission(user.role as any, "transaction:create")) {
       setExpenseError("Permission insuffisante");
       return;
     }
@@ -149,7 +149,6 @@ export default function EventDetail() {
       org_unit_id: null,
       compensates_for: null,
       comment: `Dépense événement: ${expenseDescription}`,
-      version: 1,
       created_by_id: sessionId,
       approved_by_id: sessionId,
       approved_at: now,
@@ -280,15 +279,15 @@ export default function EventDetail() {
               <div className="flex items-center gap-1.5">
                 <Calendar className="w-3.5 h-3.5 text-text-tertiary" />
                 <span className="text-text-secondary">
-                  {formatDate(event.start_date || event.startDate)}
+                  {formatDate((event as any).start_date || (event as any).startDate)}
                 </span>
               </div>
-              {event.end_date ||
-                (event.endDate && (
+              {(event as any).end_date ||
+                ((event as any).endDate && (
                   <div className="flex items-center gap-1.5">
                     <Clock className="w-3.5 h-3.5 text-text-tertiary" />
                     <span className="text-text-secondary">
-                      {formatDate(event.end_date || event.endDate)}
+                      {formatDate((event as any).end_date || (event as any).endDate)}
                     </span>
                   </div>
                 ))}
@@ -701,7 +700,7 @@ export default function EventDetail() {
                           </span>
                         </span>
                         {security.hasPermission(
-                          user.role,
+                          user.role as any,
                           "transaction:create",
                         ) && (
                           <button
@@ -731,7 +730,7 @@ export default function EventDetail() {
           {activeTab === "transactions" && (
             <div className="space-y-2">
               {security.hasPermission(
-                user.role,
+                user.role as any,
                 "transaction:create",
               ) && (
                 <button
@@ -819,7 +818,7 @@ export default function EventDetail() {
 
           {/* Delete button */}
           {security.hasRole(
-            user.role,
+            user.role as any,
             "event",
             "delete",
           ) && (
@@ -834,7 +833,7 @@ export default function EventDetail() {
           )}
 
           {security.hasPermission(
-            user.role,
+            user.role as any,
             "event:update",
           ) && (
             <button

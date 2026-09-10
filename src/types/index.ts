@@ -84,7 +84,7 @@ export type User = {
   firstName: string;
   lastName: string;
   role: Role;
-  status: UserStatus;
+  status?: UserStatus;
   org: Organization;
 };
 
@@ -146,7 +146,7 @@ export type Transaction = {
   sourceCaisseId: string | null;
   versementId: string | null;
   reversalOfId: string | null;
-  cotisationId: string | null;
+  cotisationId?: string | null;
   category?: Category;
   orgUnit?: OrgUnit;
   event?: Event;
@@ -207,7 +207,9 @@ export type AuditEntry = {
     | "RESTORE"
     | "SUBMIT"
     | "CLOSE"
-    | "REVISE";
+    | "REVISE"
+    | "REVOKE"
+    | "CLAIM";
   entityType: string;
   entityId: string;
   beforeState: any | null;
@@ -451,6 +453,8 @@ export type CustomFieldDefinition = {
   type: "text" | "number" | "date" | "select" | "boolean";
   options?: string[];
   order: number;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 // === NEW TYPE: CustomFieldValue ===

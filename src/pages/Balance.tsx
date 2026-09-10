@@ -24,8 +24,8 @@ import {
 
 export default function Balance() {
   const navigate = useNavigate();
-  const { transactions: psTransactions, isLoading: psLoading } = useTransactions();
-  const { categories: psCategories } = useCategories();
+  const { data: psTransactions, isLoading: psLoading } = useTransactions();
+  const { data: psCategories } = useCategories();
   const { data: psAccounts } = useAccounts();
   const { config: appConfig } = useAppConfig();
 

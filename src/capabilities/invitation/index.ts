@@ -177,8 +177,6 @@ export class InvitationService {
         target_group_id: input.targetGroupId ?? null,
         target_member_id: input.targetMemberId ?? null,
         issued_by: input.issuedBy,
-        issued_at: now,
-        expires_at: expiresAt,
         max_uses: maxUses,
       },
       expiresAt,
@@ -213,7 +211,7 @@ export class InvitationService {
       "SELECT id, code, status FROM invitations WHERE id = ? AND org_id = ?",
       [invitationId, orgId],
     );
-    const inv = check?.result?.[0] as (Invitation & { code: string }) | undefined;
+    const inv = check?.array?.[0] as any;
     if (!inv || inv.status !== "ACTIVE") {
       throw new Error("INVITATION_NOT_FOUND_OR_NOT_ACTIVE");
     }
@@ -320,7 +318,7 @@ export class InvitationService {
 
     const sql = `SELECT id, org_id, code, target_role, target_scope_type, target_group_id, target_member_id, issued_by, issued_at, expires_at, max_uses, used_count, status FROM invitations WHERE ${conditions.join(" AND ")} ORDER BY created_at DESC`;
     const result = await db.execute(sql, params);
-    return (result?.result || []) as Invitation[];
+    return (result?.array || []) as any[] as Invitation[];
   }
 
   /**
@@ -332,7 +330,7 @@ export class InvitationService {
       "SELECT id, org_id, code, target_role, target_scope_type, target_group_id, target_member_id, issued_by, issued_at, expires_at, max_uses, used_count, status FROM invitations WHERE id = ?",
       [id],
     );
-    return (result?.result?.[0] as Invitation[]) ?? null;
+    return (result?.array?.[0] as any) ?? null;
   }
 
   /**
@@ -344,7 +342,7 @@ export class InvitationService {
       "SELECT id, org_id, code, target_role, target_scope_type, target_group_id, target_member_id, issued_by, issued_at, expires_at, max_uses, used_count, status FROM invitations WHERE code = ?",
       [code],
     );
-    return (result?.result?.[0] as Invitation[]) ?? null;
+    return (result?.array?.[0] as any) ?? null;
   }
 
   /**
@@ -356,7 +354,7 @@ export class InvitationService {
       "SELECT id, invitation_id, claimed_by_device_id, claimed_at, resulting_user_id, status, reject_reason FROM invitation_claims WHERE invitation_id = ? ORDER BY claimed_at ASC",
       [invitationId],
     );
-    return (result?.result || []) as InvitationClaim[];
+    return (result?.array || []) as any[] as InvitationClaim[];
   }
 
   /**
@@ -383,7 +381,7 @@ export class InvitationService {
       "SELECT status FROM profiles WHERE id = ?",
       [userId],
     );
-    const row = result?.result?.[0] as { status: string } | undefined;
+    const row = result?.array?.[0] as { status: string } | undefined;
     return row?.status === "PENDING";
   }
 }

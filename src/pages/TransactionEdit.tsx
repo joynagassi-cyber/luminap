@@ -59,18 +59,18 @@ export default function TransactionEdit() {
       return;
     }
     if (tx) {
-      setType(tx.type);
+      setType(tx.type as any);
       setAmount(Math.round((tx.amount || 0) / 100).toString());
       setDescription(tx.description);
       setDate(tx.date.split("T")[0]);
-      setCategoryId(tx.category_id || tx.categoryId);
-      setOrgUnitId(tx.org_unit_id || tx.orgUnitId || "");
-      setSourceCaisseId(tx.source_caisse_id || tx.sourceCaisseId || "main");
-      setSource(tx.source || "CAISSE");
-      setPersonName(tx.person_name || tx.personName || "");
-      setEventId(tx.event_id || tx.eventId || "");
-      setCompensatesFor(tx.compensates_for || tx.compensatesFor || "");
-      setComment(tx.comment || "");
+      setCategoryId((tx as any).category_id || (tx as any).categoryId || "");
+      setOrgUnitId((tx as any).org_unit_id || (tx as any).orgUnitId || "");
+      setSourceCaisseId((tx as any).source_caisse_id || (tx as any).sourceCaisseId || "main");
+      setSource((tx as any).source || "CAISSE");
+      setPersonName((tx as any).person_name || (tx as any).personName || "");
+      setEventId((tx as any).event_id || (tx as any).eventId || "");
+      setCompensatesFor((tx as any).compensates_for || (tx as any).compensatesFor || "");
+      setComment((tx as any).comment || "");
     }
   }, [id, transactions]);
 

@@ -76,7 +76,7 @@ export class NotificationAdapter {
     if (!this._isNative) return false;
     try {
       const permissions = await PushNotifications.requestPermissions();
-      return permissions.receive === "GRANTED";
+      return (permissions.receive as string) === "granted";
     } catch {
       return false;
     }
@@ -84,11 +84,11 @@ export class NotificationAdapter {
 
   /** Check current push notification permission status. */
   async checkPermission(): Promise<PermissionStatus> {
-    if (!this._isNative) return { receive: "GRANTED" };
+    if (!this._isNative) return { receive: "granted" as any };
     try {
       return await PushNotifications.checkPermissions();
     } catch {
-      return { receive: "GRANTED" };
+      return { receive: "granted" as any };
     }
   }
 
@@ -101,9 +101,11 @@ export class NotificationAdapter {
       return { token: "", error: "Not running in native environment" };
     }
     return new Promise((resolve) => {
+      let errorHandle: any;
+      let registrationHandle: any;
       const cleanup = () => {
-        errorHandle.remove?.();
-        registrationHandle?.remove();
+        errorHandle?.remove?.();
+        registrationHandle?.remove?.();
       };
       const handleError = (error: any) => {
         cleanup();
@@ -113,14 +115,12 @@ export class NotificationAdapter {
         cleanup();
         resolve({ token: token.value, error: null });
       };
-      const errorHandle = PushNotifications.addListener(
-        "registrationError",
-        handleError,
-      );
-      const registrationHandle = PushNotifications.addListener(
-        "registration",
-        handleSuccess,
-      );
+      PushNotifications.addListener("registrationError", handleError).then((h) => {
+        errorHandle = h;
+      });
+      PushNotifications.addListener("registration", handleSuccess).then((h) => {
+        registrationHandle = h;
+      });
       PushNotifications.register().catch(handleError);
     });
   }
@@ -137,11 +137,11 @@ export class NotificationAdapter {
    * Listen for incoming push notifications (foreground).
    * Returns an unsubscribe function.
    */
-  addEventListener(
+  async addEventListener(
     callback: (notification: ReceivedNotification) => void,
-  ): () => void {
+  ): Promise<() => void> {
     if (!this._isNative) return () => {};
-    const handle = PushNotifications.addListener(
+    const handle = await PushNotifications.addListener(
       "pushNotificationReceived",
       (notification: PushNotificationSchema) => {
         callback({
@@ -159,11 +159,11 @@ export class NotificationAdapter {
    * Listen for push notification action actions (taps / button presses).
    * Returns an unsubscribe function.
    */
-  addActionListener(
+  async addActionListener(
     callback: (action: ReceivedNotification) => void,
-  ): () => void {
+  ): Promise<() => void> {
     if (!this._isNative) return () => {};
-    const handle = PushNotifications.addListener(
+    const handle = await PushNotifications.addListener(
       "pushNotificationActionPerformed",
       (action: ActionPerformed) => {
         callback({
@@ -182,9 +182,9 @@ export class NotificationAdapter {
    * Listen for successful registration (push token).
    * Returns an unsubscribe function.
    */
-  addRegistrationListener(callback: (token: Token) => void): () => void {
+  async addRegistrationListener(callback: (token: Token) => void): Promise<() => void> {
     if (!this._isNative) return () => {};
-    const handle = PushNotifications.addListener("registration", callback);
+    const handle = await PushNotifications.addListener("registration", callback);
     return () => handle.remove();
   }
 

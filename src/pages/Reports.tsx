@@ -350,7 +350,7 @@ export default function Reports() {
                       exportPDF({
                         churchName,
                         churchLogoUrl,
-                        transactions: approved,
+                        transactions: approved as any,
                         caisses: caisses as any,
                         title: `Rapport — ${period === "ce-mois" ? "Ce mois" : "Cette année"}`,
                       });
@@ -385,7 +385,7 @@ export default function Reports() {
                       exportExcel({
                         churchName,
                         churchLogoUrl,
-                        transactions: approved,
+                        transactions: approved as any,
                         caisses: caisses as any,
                         title: `Rapport — ${period === "ce-mois" ? "Ce mois" : "Cette année"}`,
                       });
@@ -420,7 +420,7 @@ export default function Reports() {
                       exportCSV({
                         churchName,
                         churchLogoUrl,
-                        transactions: approved,
+                        transactions: approved as any,
                         caisses: caisses as any,
                         title: `Rapport — ${period === "ce-mois" ? "Ce mois" : "Cette année"}`,
                       });
