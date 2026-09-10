@@ -73,6 +73,27 @@ vi.mock("@/store/useLocalStore", () => ({
   })),
 }));
 
+// ─── Mock Supabase (deterministic, no real network) ─────────────────
+vi.mock("@supabase/supabase-js", () => ({
+  createClient: () => ({
+    auth: {
+      signInWithPassword: vi.fn().mockResolvedValue({
+        data: null,
+        error: { message: "offline-mock" },
+      }),
+      signUp: vi.fn().mockResolvedValue({ data: null, error: { message: "offline-mock" } }),
+      signInWithOAuth: vi.fn().mockResolvedValue({ data: null, error: { message: "offline-mock" } }),
+      getSession: vi.fn().mockResolvedValue({ data: { session: null }, error: null }),
+      getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
+      refreshSession: vi.fn().mockResolvedValue({ data: null, error: null }),
+      signOut: vi.fn().mockResolvedValue({ error: null }),
+      onAuthStateChange: vi.fn().mockReturnValue({
+        data: { subscription: { unsubscribe: vi.fn() } },
+      }),
+    },
+  }),
+}));
+
 // ─── Mock react-router-dom ───────────────────────────────────────────
 const _navigateTarget: string[] = ["/dashboard"];
 const _navigateFn = vi.fn((target: string, _opts?: any) => {

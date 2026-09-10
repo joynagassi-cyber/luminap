@@ -144,6 +144,7 @@ describe("NetworkAdapter", () => {
       const adapter = NetworkAdapter.getInstance();
       const callback = vi.fn();
       adapter.addStatusListener(callback);
+      expect(addEventListenerMock).toHaveBeenCalledWith(
         "online",
         expect.any(Function),
       );

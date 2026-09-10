@@ -119,9 +119,10 @@ describe("a11y — keyboard navigation", () => {
 
   it("BottomNav has no keyboard trap — all items are focusable", () => {
     const src = readTsFile("BottomNav.tsx");
-    // Tab bar items should have role="tab" (managed by Radix/Ionic)
+    // Ionic IonTabButton types don't accept arbitrary ARIA props, so role is
+    // applied via a spread — accept the literal form or the spread form.
     expect(
-      src.includes('role="tab"'),
+      src.includes('role="tab"') || src.includes('role: "tab"'),
       'BottomNav tabs should have role="tab"',
     ).toBe(true);
     // The nav landmark itself should have role="navigation"
@@ -224,9 +225,12 @@ describe("a11y — role attributes", () => {
       src.includes('role="tablist"'),
       'Tab list container should have role="tablist"',
     ).toBe(true);
-    expect(src.includes('role="tab"'), 'Each tab should have role="tab"').toBe(
-      true,
-    );
+    // Ionic IonTabButton types don't accept arbitrary ARIA props, so role is
+    // applied via a spread — accept the literal form or the spread form.
+    expect(
+      src.includes('role="tab"') || src.includes('role: "tab"'),
+      'Each tab should have role="tab"',
+    ).toBe(true);
     expect(
       src.includes("aria-selected"),
       "Tabs should expose aria-selected state",

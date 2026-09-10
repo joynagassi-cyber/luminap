@@ -59,7 +59,7 @@ describe("NotificationAdapter", () => {
   describe("requestPermission", () => {
     it("returns true when permission is granted", async () => {
       mockPushPlugin.requestPermissions.mockResolvedValue({
-        receive: "GRANTED",
+        receive: "granted",
       });
       const adapter = NotificationAdapter.getInstance();
       const result = await adapter.requestPermission();
@@ -100,7 +100,7 @@ describe("NotificationAdapter", () => {
       NotificationAdapter.resetMockPlugin();
       const adapter = NotificationAdapter.getInstance();
       const result = await adapter.checkPermission();
-      expect(result).toEqual({ receive: "GRANTED" });
+      expect(result).toEqual({ receive: "granted" });
       NotificationAdapter.injectMockPlugin(mockPushPlugin);
     });
 
@@ -125,7 +125,7 @@ describe("NotificationAdapter", () => {
 
     it("resolves with token on success", async () => {
       mockPushPlugin.register.mockResolvedValue(undefined);
-      mockPushPlugin.addListener.mockReturnValue({ remove: vi.fn() });
+      mockPushPlugin.addListener.mockReturnValue(Promise.resolve({ remove: vi.fn() }));
       const adapter = NotificationAdapter.getInstance();
       // Start register first to populate addListener calls
       const resultPromise = adapter.register();
@@ -143,7 +143,7 @@ describe("NotificationAdapter", () => {
 
     it("resolves with error on registration failure", async () => {
       mockPushPlugin.register.mockResolvedValue(undefined);
-      mockPushPlugin.addListener.mockReturnValue({ remove: vi.fn() });
+      mockPushPlugin.addListener.mockReturnValue(Promise.resolve({ remove: vi.fn() }));
       const adapter = NotificationAdapter.getInstance();
       // Start register first to populate addListener calls
       const resultPromise = adapter.register();
@@ -177,7 +177,7 @@ describe("NotificationAdapter", () => {
   describe("addEventListener", () => {
     it("registers pushNotificationReceived listener", async () => {
       const callback = vi.fn();
-      mockPushPlugin.addListener.mockReturnValue({ remove: vi.fn() });
+      mockPushPlugin.addListener.mockReturnValue(Promise.resolve({ remove: vi.fn() }));
 
       const adapter = NotificationAdapter.getInstance();
       const unsubscribe = await adapter.addEventListener(callback);
@@ -203,7 +203,7 @@ describe("NotificationAdapter", () => {
   describe("addActionListener", () => {
     it("registers pushNotificationActionPerformed listener", async () => {
       const callback = vi.fn();
-      mockPushPlugin.addListener.mockReturnValue({ remove: vi.fn() });
+      mockPushPlugin.addListener.mockReturnValue(Promise.resolve({ remove: vi.fn() }));
 
       const adapter = NotificationAdapter.getInstance();
       const unsubscribe = await adapter.addActionListener(callback);
@@ -218,7 +218,7 @@ describe("NotificationAdapter", () => {
   describe("addRegistrationListener", () => {
     it("registers registration listener", async () => {
       const callback = vi.fn();
-      mockPushPlugin.addListener.mockReturnValue({ remove: vi.fn() });
+      mockPushPlugin.addListener.mockReturnValue(Promise.resolve({ remove: vi.fn() }));
 
       const adapter = NotificationAdapter.getInstance();
       const unsubscribe = await adapter.addRegistrationListener(callback);
