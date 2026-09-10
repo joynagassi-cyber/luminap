@@ -41,7 +41,7 @@ vi.mock("@/lib/orgContext", () => ({
 // ─── Mock PowerSync with in-memory SQL store ───────────────────────
 const _psRows: Record<string, any[]> = {};
 
-function psExecute(sql: string, params: any[] = []): { result: any[] } {
+function psExecute(sql: string, params: any[] = []): { array: any[]; result: any[] } {
   const tableMatch = sql.match(/FROM\s+(\w+)/i);
   const table = tableMatch ? tableMatch[1] : "unknown";
   const rows = _psRows[table] ?? [];
@@ -49,29 +49,31 @@ function psExecute(sql: string, params: any[] = []): { result: any[] } {
   const idMatch = sql.match(/WHERE id = \?$/);
   if (idMatch) {
     const found = rows.find((r: any) => r.id === params[0]);
-    return { result: found ? [found] : [] };
+    const arr = found ? [found] : [];
+    return { array: arr, result: arr };
   }
 
   const orgStatusMatch = sql.match(/WHERE org_id = \? AND status = \?/);
   if (orgStatusMatch) {
-    return {
-      result: rows.filter(
-        (r: any) => r.org_id === params[0] && r.status === params[1],
-      ),
-    };
+    const arr = rows.filter(
+      (r: any) => r.org_id === params[0] && r.status === params[1],
+    );
+    return { array: arr, result: arr };
   }
 
   if (sql.includes("WHERE org_id = ?") && !sql.includes("status")) {
-    return { result: rows.filter((r: any) => r.org_id === params[0]) };
+    const arr = rows.filter((r: any) => r.org_id === params[0]);
+    return { array: arr, result: arr };
   }
 
   if (sql.includes("SELECT status FROM")) {
     const found = rows.find((r: any) => r.id === params[0]);
-    return { result: found ? [{ status: found.status }] : [] };
+    const arr = found ? [{ status: found.status }] : [];
+    return { array: arr, result: arr };
   }
 
   if (sql.startsWith("SELECT")) {
-    return { result: rows };
+    return { array: rows, result: rows };
   }
 
   const insertMatch = sql.match(/INSERT INTO (\w+)/i);
@@ -87,7 +89,7 @@ function psExecute(sql: string, params: any[] = []): { result: any[] } {
       });
     }
     _psRows[t].push(row);
-    return { result: [] };
+    return { array: [], result: [] };
   }
 
   const deleteMatch = sql.match(/DELETE FROM (\w+) WHERE id = \?/i);
@@ -95,7 +97,7 @@ function psExecute(sql: string, params: any[] = []): { result: any[] } {
     const t = deleteMatch[1];
     if (_psRows[t])
       _psRows[t] = _psRows[t].filter((r: any) => r.id !== params[0]);
-    return { result: [] };
+    return { array: [], result: [] };
   }
 
   const updateMatch = sql.match(/UPDATE (\w+)/i);
@@ -125,10 +127,10 @@ function psExecute(sql: string, params: any[] = []): { result: any[] } {
         _psRows[t][idx].updated_at = new Date().toISOString();
       }
     }
-    return { result: [] };
+    return { array: [], result: [] };
   }
 
-  return { result: [] };
+  return { array: [], result: [] };
 }
 
 vi.mock("@/lib/powersync", () => ({

@@ -16,7 +16,7 @@ const mockDb = {
     // SELECT WHERE id = ?
     if (sql.includes("WHERE id = ?")) {
       const row = data.find((r: any) => r.id === params[0]);
-      return { result: row ? [row] : [] };
+      return { array: row ? [row] : [] };
     }
 
     // SELECT WHERE org_id = ? AND status = ?
@@ -24,14 +24,14 @@ const mockDb = {
       const orgId = params[0];
       const status = params[1];
       return {
-        result: data.filter(
+        array: data.filter(
           (r: any) => r.org_id === orgId && r.status === status,
         ),
       };
     }
 
     // Generic SELECT
-    return { result: data };
+    return { array: data };
   },
 };
 

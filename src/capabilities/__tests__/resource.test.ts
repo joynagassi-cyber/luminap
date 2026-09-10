@@ -23,13 +23,13 @@ const mockDb = {
         orgId !== undefined
           ? data.filter((r: any) => r.org_id === orgId)
           : data;
-      return { result: [{ total: filtered.length }] };
+      return { array: [{ total: filtered.length }] };
     }
 
     // SELECT WHERE id = ?
     if (sql.includes("WHERE id = ?")) {
       const row = data.find((r: any) => r.id === params[0]);
-      return { result: row ? [row] : [] };
+      return { array: row ? [row] : [] };
     }
 
     // SELECT WHERE org_id = ? AND status = ? (with optional extra conditions)
@@ -74,7 +74,7 @@ const mockDb = {
           }
         }
       }
-      return { result: filtered };
+      return { array: filtered };
     }
 
     // SELECT WHERE org_id = ? (general list)
@@ -140,10 +140,10 @@ const mockDb = {
         filtered = filtered.slice(offset, offset + limit);
       }
 
-      return { result: filtered };
+      return { array: filtered };
     }
 
-    return { result: data };
+    return { array: data };
   },
 };
 
