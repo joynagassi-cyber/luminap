@@ -6,6 +6,8 @@ import {
   useCategories,
   useOrgUnits,
   useEvents,
+  updateTransactionPS,
+  deleteTransactionPS,
 } from "@/lib/dataLayer";
 import {
   formatCurrencyCompact,
@@ -38,15 +40,7 @@ import {
 export default function TransactionDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const {
-    transactions: idbTxs,
-    approveTransaction,
-    deleteTransaction,
-    user,
-    events: idbEvents,
-    orgUnits: idbOrgUnits,
-    categories: idbCategories,
-  } = useLocalStore();
+  const { user } = useLocalStore();
 
   // PowerSync with fallback
   const { data: psTransactions } = useTransactions();
@@ -54,10 +48,10 @@ export default function TransactionDetail() {
   const { data: psOrgUnits } = useOrgUnits();
   const { data: psCategories } = useCategories();
 
-  const transactions = psTransactions ?? idbTxs;
-  const events = psEvents ?? idbEvents;
-  const orgUnits = psOrgUnits ?? idbOrgUnits;
-  const categories = psCategories ?? idbCategories;
+  const transactions = psTransactions ?? [];
+  const events = psEvents ?? [];
+  const orgUnits = psOrgUnits ?? [];
+  const categories = psCategories ?? [];
 
   const [showActions, setShowActions] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
@@ -103,7 +97,7 @@ export default function TransactionDetail() {
     if (!security.hasPermission(user.role, "transaction:approve")) {
       return;
     }
-    await approveTransaction(tx.id, user.id);
+    await useLocalStore.getState().approveTransaction(tx.id, user.id);
     navigate(-1);
   };
 
@@ -127,7 +121,7 @@ export default function TransactionDetail() {
     if (!security.hasPermission(user.role, "transaction:delete")) {
       return;
     }
-    await deleteTransaction(tx.id);
+    await deleteTransactionPS(tx.id);
     navigate(-1);
   };
 

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useLocalStore } from "@/store/useLocalStore";
 import { useTransactions, useCategories, useAccounts } from "@/lib/dataLayer";
+import { useLocalStore } from "@/store/useLocalStore";
 import { formatCurrencyCompact, getPeriodRange } from "@/lib/utils";
 import {
   TrendingUp,
@@ -25,29 +25,20 @@ import {
 
 export default function Balance() {
   const navigate = useNavigate();
-  const {
-    transactions: idbTxs,
-    categories: idbCats,
-    caisses: idbCaisses,
-    accounts: idbAccounts,
-    isLoading,
-    appConfig,
-  } = useLocalStore();
-
-  // PowerSync with fallback
-  const { data: psTransactions } = useTransactions();
-  const { data: psCategories } = useCategories();
+  const { transactions: psTransactions, isLoading: psLoading } = useTransactions();
+  const { categories: psCategories } = useCategories();
   const { data: psAccounts } = useAccounts();
+  const { appConfig } = useLocalStore();
 
-  const transactions = psTransactions ?? idbTxs;
-  const categories = psCategories ?? idbCats;
-  const accounts = psAccounts ?? idbAccounts;
+  const transactions = psTransactions;
+  const categories = psCategories;
+  const accounts = psAccounts;
 
   const [period, setPeriod] = useState<"mois" | "annee">("mois");
   const [selectedCaisse, setSelectedCaisse] = useState<string>("main");
   const [showExport, setShowExport] = useState(false);
 
-  if (isLoading) {
+  if (psLoading) {
     return (
       <div className="min-h-screen bg-canvas">
         <TopHeader title="Bilan" />

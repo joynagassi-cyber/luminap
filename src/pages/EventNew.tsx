@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useLocalStore } from "@/store/useLocalStore";
-import { useCategories, useCaisses } from "@/lib/dataLayer";
+import { useCategories, useCaisses, useMembers, addEventPS } from "@/lib/dataLayer";
 import { ArrowLeft, Plus, X, Tag } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
@@ -43,20 +42,14 @@ const DEFAULT_BUDGET_ITEMS = [
 export default function EventNew() {
   const navigate = useNavigate();
   const location = useLocation();
-  const {
-    addEvent,
-    members,
-    createCulte,
-    caisses: idbCaisses,
-    accounts,
-  } = useLocalStore();
+  const { members } = useMembers();
 
   // PowerSync with fallback
   const { data: psCategories } = useCategories();
   const { data: psCaisses } = useCaisses();
 
   const categories = psCategories ?? [];
-  const caisses = psCaisses ?? idbCaisses;
+  const caisses = psCaisses ?? [];
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -121,27 +114,20 @@ export default function EventNew() {
     setError("");
 
     if (eventType === "CULTE") {
-      const montantCotisationCents = Math.round(
-        parseFloat(montantCotisation || "50") * 100,
-      );
-      await createCulte({
-        name: name.trim(),
-        startDate,
-        montantCotisationCents,
-      });
       navigate("/cotisations");
       return;
     }
 
-    await addEvent({
-      orgId: getOrganizationId(),
+    await addEventPS({
+      org_id: getOrganizationId(),
       name: name.trim(),
       description: description.trim(),
-      startDate,
-      endDate: endDate || null,
+      start_date: startDate,
+      end_date: endDate || null,
       status,
+      type: "EVENT",
       budget: totalBudget,
-      budgetItems,
+      budget_items: JSON.stringify(budgetItems),
     });
     navigate("/events");
   };

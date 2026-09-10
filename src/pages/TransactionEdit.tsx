@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useLocalStore } from "@/store/useLocalStore";
 import {
   useTransactions,
   useCategories,
   useOrgUnits,
   useEvents,
+  useAccounts,
+  updateTransactionPS,
 } from "@/lib/dataLayer";
 import { ArrowUpRight, ArrowDownRight, X, Wallet, User } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
@@ -21,24 +22,18 @@ import {
 export default function TransactionEdit() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const {
-    transactions: idbTxs,
-    categories: idbCats,
-    orgUnits,
-    caisses: idbCaisses,
-    accounts,
-    events: idbEvents,
-    updateTransaction,
-  } = useLocalStore();
 
   // PowerSync with fallback
   const { data: psTransactions } = useTransactions();
   const { data: psCategories } = useCategories();
   const { data: psEvents } = useEvents();
+  const { data: psOrgUnits } = useOrgUnits();
+  const { data: psAccounts } = useAccounts();
 
-  const transactions = psTransactions ?? idbTxs;
-  const categories = psCategories ?? idbCats;
-  const events = psEvents ?? idbEvents;
+  const transactions = psTransactions ?? [];
+  const categories = psCategories ?? [];
+  const events = psEvents ?? [];
+  const orgUnits = psOrgUnits ?? [];
 
   const [type, setType] = useState<"INCOME" | "EXPENSE">("INCOME");
   const [amount, setAmount] = useState("");
@@ -84,7 +79,7 @@ export default function TransactionEdit() {
   const handleOrgUnitChange = (ouId: string) => {
     setOrgUnitId(ouId);
     if (ouId) {
-      const account = accounts.find((a: any) => a.id === ouId);
+      const account = psAccounts.find((a: any) => a.id === ouId);
       if (account) setSourceCaisseId(account.id);
     } else {
       setSourceCaisseId("main");
@@ -96,18 +91,18 @@ export default function TransactionEdit() {
     const trimmedDesc = description?.trim();
     const trimmedCatId = categoryId?.toString().trim();
     if (!trimmedAmount || !trimmedDesc || !trimmedCatId) return;
-    await updateTransaction(id!, {
+    await updateTransactionPS(id!, {
       type,
       amount: Math.round(parseFloat(amount) * 100),
       description,
       date,
-      categoryId,
-      orgUnitId: orgUnitId || null,
-      sourceCaisseId,
+      category_id: categoryId,
+      org_unit_id: orgUnitId || null,
+      source_caisse_id: sourceCaisseId,
       source,
-      personName: source === "PERSONNE" ? personName || null : null,
-      eventId: eventId || null,
-      compensatesFor: compensatesFor || null,
+      person_name: source === "PERSONNE" ? personName || null : null,
+      event_id: eventId || null,
+      compensates_for: compensatesFor || null,
       comment: comment || null,
     });
     navigate(`/transaction/${id}`);

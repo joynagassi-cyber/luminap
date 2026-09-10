@@ -1,7 +1,6 @@
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { useLocalStore } from "@/store/useLocalStore";
-import { useCotisations, useEvents } from "@/lib/dataLayer";
+import { useEvents, useCotisations } from "@/lib/dataLayer";
 import { formatCurrencyCompact, formatDate } from "@/lib/utils";
 import { Calendar, CheckCircle, Clock, Plus, Users } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
@@ -29,12 +28,11 @@ interface CulteStat {
 
 export default function Cotisations() {
   const navigate = useNavigate();
-  const { members, isLoading: storeLoading } = useLocalStore();
-  const { data: psEvents } = useEvents();
+  const { data: psEvents, isLoading: eventsLoading } = useEvents();
   const { data: psCotisations } = useCotisations();
 
-  const events = psEvents ?? [];
-  const cotisations = psCotisations ?? [];
+  const events = psEvents;
+  const cotisations = psCotisations;
 
   const culteStats = useMemo(() => {
     const culteEvents = events.filter((e: any) => e.type === "CULTE");
@@ -80,7 +78,7 @@ export default function Cotisations() {
     });
   }, [events, cotisations]);
 
-  if (storeLoading) {
+  if (eventsLoading) {
     return (
       <div
         className="min-h-screen flex items-center justify-center"

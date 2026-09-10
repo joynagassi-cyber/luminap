@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
-import { useLocalStore } from "@/store/useLocalStore";
 import {
   useTransactions,
   useCategories,
   useCaisses,
   useEvents,
+  addTransactionPS,
 } from "@/lib/dataLayer";
 import { ArrowLeft, Wallet, Calendar } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
@@ -25,27 +25,19 @@ import {
 export default function TransactionNew() {
   const navigate = useNavigate();
   const location = useLocation();
-  const {
-    categories: idbCats,
-    orgUnits,
-    caisses: idbCaisses,
-    accounts,
-    events: idbEvents,
-    addTransaction,
-  } = useLocalStore();
+
+  const preselectedCaisse = (location.state as any)?.caisseId || "";
+  const preselectedType = (location.state as any)?.type || "";
+  const preselectedEvent = (location.state as any)?.eventId || "";
 
   // PowerSync with fallback
   const { data: psCategories } = useCategories();
   const { data: psCaisses } = useCaisses();
   const { data: psEvents } = useEvents();
 
-  const categories = psCategories ?? idbCats;
-  const caisses = psCaisses ?? idbCaisses;
-  const events = psEvents ?? idbEvents;
-
-  const preselectedCaisse = (location.state as any)?.caisseId || "";
-  const preselectedType = (location.state as any)?.type || "";
-  const preselectedEvent = (location.state as any)?.eventId || "";
+  const categories = psCategories ?? [];
+  const caisses = psCaisses ?? [];
+  const events = psEvents ?? [];
 
   const [type, setType] = useState<"INCOME" | "EXPENSE">(
     (preselectedType as any) || "INCOME",
@@ -54,7 +46,6 @@ export default function TransactionNew() {
   const [description, setDescription] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [categoryId, setCategoryId] = useState(categories[0]?.id || "");
-  const [orgUnitId, setOrgUnitId] = useState("");
   const [sourceCaisseId, setSourceCaisseId] = useState(
     preselectedCaisse || "main",
   );
@@ -83,16 +74,6 @@ export default function TransactionNew() {
 
   const filteredCategories = categories.filter((c: any) => c.type === type);
 
-  const handleOrgUnitChange = (ouId: string) => {
-    setOrgUnitId(ouId);
-    if (ouId) {
-      const account = accounts.find((a: any) => a.id === ouId);
-      if (account) setSourceCaisseId(account.id);
-    } else {
-      setSourceCaisseId("main");
-    }
-  };
-
   const handleSubmit = async () => {
     const trimmedAmount = amount.trim();
     const trimmedDesc = description.trim();
@@ -106,25 +87,26 @@ export default function TransactionNew() {
     const sessionId = localStorage.getItem("lumina-session") || "local-user";
     const isExpense = type === "EXPENSE";
 
-    await addTransaction({
-      orgId: getOrganizationId(),
+    await addTransactionPS({
+      org_id: getOrganizationId(),
       type,
       amount: Math.round(parseFloat(amount) * 100),
       description,
       date,
       status: isExpense ? "PENDING" : "DRAFT",
-      categoryId,
-      orgUnitId: orgUnitId || null,
-      sourceCaisseId: sourceCaisseId || "main",
-      eventId: eventId || null,
+      category_id: categoryId,
+      org_unit_id: null,
+      source_caisse_id: sourceCaisseId || "main",
+      event_id: eventId || null,
       source: source || "CAISSE",
-      personName: source === "PERSONNE" ? personName || null : null,
-      compensatesFor: null,
+      person_name: source === "PERSONNE" ? personName || null : null,
+      compensates_for: null,
       comment: comment || null,
-      createdById: sessionId,
-      approvedById: null,
-      approvedAt: null,
-      versementId: null,
+      created_by_id: sessionId,
+      approved_by_id: null,
+      approved_at: null,
+      versement_id: null,
+      reversal_of_id: null,
     });
     navigate("/");
   };

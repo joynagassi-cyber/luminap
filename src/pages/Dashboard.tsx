@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLocalStore } from "@/store/useLocalStore";
 import {
@@ -46,29 +46,35 @@ import {
 function CaisseCard({
   account,
   transactions,
+  caisses,
   navigate,
 }: {
   account: Account;
   transactions: any[];
+  caisses: any[];
   navigate: ReturnType<typeof useNavigate>;
 }) {
-  const caisse = useLocalStore.getState().getCaisseForDisplay(account.id);
+  const caisse = caisses.find((c) => c.id === account.id);
   const color = caisse?.color || "#FF6B00";
   const approvedTxs = transactions.filter(
-    (t) => t.sourceCaisseId === account.id && t.status === "APPROVED",
+    (t: any) =>
+      (t.source_caisse_id === account.id || t.sourceCaisseId === account.id) &&
+      t.status === "APPROVED",
   );
   const income = approvedTxs
-    .filter((t) => t.type === "INCOME")
-    .reduce((s, t) => s + t.amount, 0);
+    .filter((t: any) => t.type === "INCOME")
+    .reduce((s: number, t: any) => s + t.amount, 0);
   const expense = approvedTxs
-    .filter((t) => t.type === "EXPENSE")
-    .reduce((s, t) => s + t.amount, 0);
+    .filter((t: any) => t.type === "EXPENSE")
+    .reduce((s: number, t: any) => s + t.amount, 0);
   const balance = income - expense;
   const pending = transactions.filter(
-    (t) => t.sourceCaisseId === account.id && t.status === "PENDING",
+    (t: any) =>
+      (t.source_caisse_id === account.id || t.sourceCaisseId === account.id) &&
+      t.status === "PENDING",
   );
   const pendingAmount = pending.reduce(
-    (s, t) => s + (t.type === "INCOME" ? t.amount : -t.amount),
+    (s: number, t: any) => s + (t.type === "INCOME" ? t.amount : -t.amount),
     0,
   );
 
@@ -133,33 +139,14 @@ function CaisseCard({
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const {
-    transactions: idbTxs,
-    categories,
-    orgUnits,
-    caisses: idbCaisses,
-    accounts: idbAccounts,
-    events: idbEvents,
-    isLoading,
-    user,
-    appConfig,
-    notifications: idbNotifs,
-  } = useLocalStore();
+  const { user, appConfig, isLoading } = useLocalStore();
 
-  // PowerSync hooks with fallback to local cache
-  const { data: psTransactions } = useTransactions();
-  const { data: psEvents } = useEvents();
-  const { data: psNotifications } = useNotifications();
-  const { data: psAccounts } = useAccounts();
-  const { data: psCaisses } = useCaisses();
-
-  // Use PowerSync data if available, fallback to local cache
-  const transactions = psTransactions ?? idbTxs;
-  const events = psEvents ?? idbEvents;
-  const notifications = psNotifications ?? idbNotifs;
-  const accounts = psAccounts ?? idbAccounts;
-  const caisses = psCaisses ?? idbCaisses;
-  const isSyncReady = psTransactions !== undefined;
+  // DataLayer hooks (PowerSync primary, IndexedDB fallback handled internally)
+  const { data: transactions } = useTransactions();
+  const { data: events } = useEvents();
+  const { data: notifications } = useNotifications();
+  const { data: accounts } = useAccounts();
+  const { data: caisses } = useCaisses();
 
   const churchName = appConfig.churchName || user.org.name;
 
@@ -171,11 +158,11 @@ export default function Dashboard() {
   }, []);
 
   const { start, end } = getPeriodRange("mois");
-  const mainAccount = accounts.find((a) => a.ownerType === "ORGANIZATION");
+  const mainAccount = accounts.find((a: any) => a.owner_type === "ORGANIZATION");
   const groupAccounts = accounts.filter(
-    (a) => a.ownerType === "GROUP" && a.status === "ACTIVE",
+    (a: any) => a.owner_type === "GROUP" && a.status === "ACTIVE",
   );
-  const mainTxs = transactions.filter((t) => t.sourceCaisseId === "main");
+  const mainTxs = transactions.filter((t: any) => t.source_caisse_id === "main");
 
   const approvedTransactions = mainTxs.filter(
     (t) => t.status === "APPROVED" && t.date >= start && t.date <= end,
@@ -198,15 +185,18 @@ export default function Dashboard() {
 
   // Upcoming events (PLANIFIED or ONGOING, sorted by date)
   const upcomingEvents = events
-    .filter((e) => e.status === "PLANIFIED" || e.status === "ONGOING")
+    .filter((e: any) => e.status === "PLANIFIED" || e.status === "ONGOING")
     .sort(
-      (a, b) =>
-        new Date(a.startDate).getTime() - new Date(b.startDate).getTime(),
+      (a: any, b: any) =>
+        new Date(a.start_date || a.startDate).getTime() -
+        new Date(b.start_date || b.startDate).getTime(),
     )
     .slice(0, 3);
 
   // Unread notifications count
-  const unreadNotifCount = notifications.filter((n) => !n.isRead).length;
+  const unreadNotifCount = notifications.filter(
+    (n: any) => !n.is_read,
+  ).length;
 
   if (isLoading) {
     return (
@@ -443,9 +433,11 @@ export default function Dashboard() {
                   </button>
                 </div>
                 <div className="space-y-2">
-                  {upcomingEvents.map((event) => {
-                    const budgetSpent = (event.budgetItems || []).reduce(
-                      (s, i) => s + i.spent,
+                  {upcomingEvents.map((event: any) => {
+                    const budgetSpent = (event.budget_items
+                      ? JSON.parse(event.budget_items)
+                      : event.budgetItems || []).reduce(
+                      (s: number, i: any) => s + i.spent,
                       0,
                     );
                     const overBudget =
@@ -479,9 +471,9 @@ export default function Dashboard() {
                               {event.name}
                             </p>
                             <p className="text-text-tertiary text-xs mt-0.5">
-                              {event.startDate === event.endDate
-                                ? formatDate(event.startDate)
-                                : `${formatDate(event.startDate)} → ${formatDate(event.endDate!)}`}
+                              {event.start_date === event.end_date
+                                ? formatDate(event.start_date)
+                                : `${formatDate(event.start_date)} → ${formatDate(event.end_date)}`}
                             </p>
                             {event.budget > 0 && (
                               <div className="flex items-center gap-2 mt-1">
@@ -548,6 +540,7 @@ export default function Dashboard() {
                       key={account.id}
                       account={account}
                       transactions={transactions}
+                      caisses={caisses}
                       navigate={navigate}
                     />
                   ))}

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useLocalStore } from "@/store/useLocalStore";
-import { useEvents, useTransactions, useCaisses } from "@/lib/dataLayer";
+import { useEvents, useTransactions, useCaisses, deleteEventPS, updateEventPS, addTransactionPS } from "@/lib/dataLayer";
 import { formatCurrencyCompact, formatDate } from "@/lib/utils";
 import {
   Calendar,
@@ -59,16 +59,7 @@ const STATUS_CONFIG: Record<
 export default function EventDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const {
-    events: idbEvents,
-    updateEventStatus,
-    deleteEvent,
-    transactions: idbTxs,
-    caisses: idbCaisses,
-    accounts,
-    addTransaction,
-    updateEvent,
-  } = useLocalStore();
+  const { events: idbEvents, transactions: idbTxs, caisses: idbCaisses, user } = useLocalStore();
 
   // PowerSync with fallback
   const { data: psEvents } = useEvents();
@@ -104,46 +95,27 @@ export default function EventDetail() {
     (t: any) => t.event_id === event.id || t.eventId === event.id,
   );
 
-  const handleStatusChange = (newStatus: EventStatus) => {
-    if (
-      !security.hasPermission(
-        useLocalStore.getState().user.role,
-        "event:update",
-      )
-    ) {
-      return;
-    }
+  const handleStatusChange = async (newStatus: EventStatus) => {
+    if (!security.hasPermission(user.role, "event:update")) return;
     const result = workflow.check("event", event.status, newStatus);
     if (!result.allowed) {
       setSuccess(`Transition bloquee : ${result.reason}`);
       setTimeout(() => setSuccess(""), 3000);
       return;
     }
-    updateEventStatus(id!, newStatus);
+    await updateEventPS(id!, { status: newStatus });
     setSuccess(`Statut change : ${STATUS_CONFIG[newStatus].label}`);
     setTimeout(() => setSuccess(""), 3000);
   };
 
-  const handleDelete = () => {
-    if (
-      !security.hasPermission(
-        useLocalStore.getState().user.role,
-        "event:delete",
-      )
-    ) {
-      return;
-    }
-    deleteEvent(id!);
+  const handleDelete = async () => {
+    if (!security.hasPermission(user.role, "event:delete")) return;
+    await deleteEventPS(id!);
     navigate("/events");
   };
 
   const handleAddExpense = async () => {
-    if (
-      !security.hasPermission(
-        useLocalStore.getState().user.role,
-        "transaction:create",
-      )
-    ) {
+    if (!security.hasPermission(user.role, "transaction:create")) {
       setExpenseError("Permission insuffisante");
       return;
     }
@@ -174,27 +146,27 @@ export default function EventDetail() {
       budgetItem.fundedBy === "main" ? "main" : budgetItem.fundedBy;
     const categoryId = budgetItem.categoryId || "cat-frais-fonc";
 
-    await addTransaction({
-      orgId: getOrganizationId(),
+    await addTransactionPS({
+      org_id: getOrganizationId(),
       type: "EXPENSE",
       amount: amountCents,
       description: `${event.name} — ${expenseDescription}`,
       date: now.split("T")[0],
       status: "APPROVED",
-      categoryId,
-      orgUnitId: null,
-      eventId: event.id,
-      source: "CAISSE",
-      personName: null,
-      compensatesFor: null,
+      category_id: categoryId,
+      org_unit_id: null,
+      compensates_for: null,
       comment: `Dépense événement: ${expenseDescription}`,
       version: 1,
-      createdById: sessionId,
-      approvedById: sessionId,
-      approvedAt: now,
-      sourceCaisseId,
-      versementId: null,
-      reversalOfId: null,
+      created_by_id: sessionId,
+      approved_by_id: sessionId,
+      approved_at: now,
+      event_id: event.id,
+      source: "CAISSE",
+      person_name: null,
+      source_caisse_id: sourceCaisseId,
+      versement_id: null,
+      reversal_of_id: null,
     });
 
     const updatedItems = budgetItems.map((item: any) =>
@@ -203,7 +175,7 @@ export default function EventDetail() {
         : item,
     );
 
-    await updateEvent(event.id, { budgetItems: updatedItems });
+    await updateEventPS(event.id, { budget_items: JSON.stringify(updatedItems) });
 
     setSuccess(
       `Dépense de ${formatCurrencyCompact(amountCents)} FCFA enregistrée`,
@@ -737,7 +709,7 @@ export default function EventDetail() {
                           </span>
                         </span>
                         {security.hasPermission(
-                          useLocalStore.getState().user.role,
+                          user.role,
                           "transaction:create",
                         ) && (
                           <button
@@ -767,7 +739,7 @@ export default function EventDetail() {
           {activeTab === "transactions" && (
             <div className="space-y-2">
               {security.hasPermission(
-                useLocalStore.getState().user.role,
+                user.role,
                 "transaction:create",
               ) && (
                 <button
@@ -855,7 +827,7 @@ export default function EventDetail() {
 
           {/* Delete button */}
           {security.hasRole(
-            useLocalStore.getState().user.role,
+            user.role,
             "event",
             "delete",
           ) && (
@@ -870,7 +842,7 @@ export default function EventDetail() {
           )}
 
           {security.hasPermission(
-            useLocalStore.getState().user.role,
+            user.role,
             "event:update",
           ) && (
             <button

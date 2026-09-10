@@ -1,12 +1,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useLocalStore } from "@/store/useLocalStore";
-import { useEvents, useCategories } from "@/lib/dataLayer";
-import { ArrowLeft, Calendar, Plus, X } from "lucide-react";
+import { useEvents, useCategories, updateEventPS } from "@/lib/dataLayer";
+import { ArrowLeft } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
-import { generateId } from "@/lib/utils";
-import type { Event, Category } from "@/types";
+import { getOrganizationId } from "@/lib/orgContext";
+import type { Event } from "@/types";
 import {
   IonPage,
   IonHeader,
@@ -18,19 +17,13 @@ import {
 export default function EventEdit() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const {
-    events: idbEvents,
-    categories: idbCategories,
-    updateEvent,
-    isLoading,
-  } = useLocalStore();
 
   // PowerSync with fallback
-  const { data: psEvents } = useEvents();
+  const { data: psEvents, isLoading: psLoading } = useEvents();
   const { data: psCategories } = useCategories();
 
-  const events = psEvents ?? idbEvents;
-  const categories = psCategories ?? idbCategories;
+  const events = psEvents ?? [];
+  const categories = psCategories ?? [];
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -47,15 +40,14 @@ export default function EventEdit() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (!event || isLoading) return;
-    setName(event.name);
+    if (!event || psLoading) return;
     setDescription(event.description || "");
     setStartDate(event.start_date || event.startDate);
     setEndDate(event.end_date || event.endDate || "");
     setStatus(event.status);
     setBudget(String(Math.round((event.budget || 0) / 100)));
     setLoading(false);
-  }, [event, isLoading]);
+  }, [event, psLoading]);
 
   if (loading || !event) {
     return (
@@ -83,11 +75,11 @@ export default function EventEdit() {
     setSubmitting(true);
 
     try {
-      await updateEvent(id!, {
+      await updateEventPS(id!, {
         name: name.trim(),
         description: description.trim(),
-        startDate,
-        endDate: endDate || null,
+        start_date: startDate,
+        end_date: endDate || null,
         status,
         budget: Math.round(parseFloat(budget) * 100),
       });

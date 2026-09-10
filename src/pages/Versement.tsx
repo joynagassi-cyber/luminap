@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useCaisses, useAccounts, useTransactions } from "@/lib/dataLayer";
 import { useLocalStore } from "@/store/useLocalStore";
-import { useCaisses, useAccounts } from "@/lib/dataLayer";
 import { formatCurrencyCompact } from "@/lib/utils";
 import { ArrowLeft, Check, AlertCircle, Wallet, RefreshCw } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
@@ -18,20 +18,16 @@ export default function Versement() {
   const navigate = useNavigate();
   const location = useLocation();
   const {
-    caisses: idbCaisses,
-    accounts: idbAccounts,
-    transactions: idbTxs,
     createVersement,
   } = useLocalStore();
 
-  // PowerSync with fallback
   const { data: psCaisses } = useCaisses();
   const { data: psAccounts } = useAccounts();
   const { data: psTransactions } = useTransactions();
 
-  const caisses = psCaisses ?? idbCaisses;
-  const accounts = psAccounts ?? idbAccounts;
-  const transactions = psTransactions ?? idbTxs;
+  const caisses = psCaisses ?? [];
+  const accounts = psAccounts ?? [];
+  const transactions = psTransactions ?? [];
 
   const [selectedCaisse, setSelectedCaisse] = useState<string>(
     (location.state as any)?.caisseId || "",

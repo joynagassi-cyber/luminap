@@ -6,11 +6,8 @@ import {
   IonContent,
   IonTitle,
   IonToolbar,
-  IonButtons,
-  IonBackButton,
 } from "@ionic/react";
-import { useLocalStore } from "@/store/useLocalStore";
-import { useEvents, useTransactions } from "@/lib/dataLayer";
+import { useEvents, useTransactions, useMembers } from "@/lib/dataLayer";
 import { Calendar, Plus, Clock, Gift, ArrowUp, ArrowDown } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
@@ -33,13 +30,11 @@ const STATUS_LABELS: Record<string, string> = {
 
 export default function Events() {
   const navigate = useNavigate();
-  const { transactions: idbTxs, isLoading } = useLocalStore();
-  const { data: psEvents } = useEvents();
+  const { data: psEvents, isLoading: psLoading } = useEvents();
   const { data: psTransactions } = useTransactions();
 
-  // Use PowerSync or fallback to local cache
   const events = psEvents ?? [];
-  const transactions = psTransactions ?? idbTxs;
+  const transactions = psTransactions ?? [];
 
   const sortedEvents = useMemo(() => {
     return [...events].sort(
@@ -56,7 +51,7 @@ export default function Events() {
           <IonTitle>Événements</IonTitle>
         </IonToolbar>
       </IonHeader>
-      {isLoading ? (
+      {psLoading ? (
         <IonContent fullscreen>
           <FullPageSkeleton />
         </IonContent>

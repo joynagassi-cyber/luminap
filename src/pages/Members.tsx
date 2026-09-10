@@ -1,7 +1,8 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLocalStore } from "@/store/useLocalStore";
-import { useMembers } from "@/lib/dataLayer";
+import { useMembers, addMemberPS } from "@/lib/dataLayer";
+import { getOrganizationId } from "@/lib/orgContext";
 import { resource } from "@/capabilities/resource";
 import { lifecycle } from "@/capabilities/lifecycle";
 import { workflow } from "@/capabilities/workflow";
@@ -27,11 +28,8 @@ import {
 
 export default function MembersPage() {
   const navigate = useNavigate();
-  const { members: idbMembers, createMember, user } = useLocalStore();
-  const { data: psMembers } = useMembers();
-
-  // Use PowerSync or fallback to local cache
-  const members = psMembers ?? idbMembers;
+  const { user } = useLocalStore();
+  const { data: members } = useMembers();
 
   const [archivedMembers, setArchivedMembers] = useState<Member[]>([]);
 
@@ -70,17 +68,17 @@ export default function MembersPage() {
 
   const handleCreate = async () => {
     if (!firstName.trim() || !lastName.trim()) return;
-    await createMember({
-      orgId: getOrganizationId(),
-      firstName: firstName.trim(),
-      lastName: lastName.trim(),
+    await addMemberPS({
+      org_id: getOrganizationId(),
+      first_name: firstName.trim(),
+      last_name: lastName.trim(),
       phone: phone.trim() || null,
       email: email.trim() || null,
       status: "ACTIVE",
-      joinedAt: new Date().toISOString(),
-      archivedAt: null,
-      archivedBy: null,
-      archiveReason: null,
+      joined_at: new Date().toISOString(),
+      archived_at: null,
+      archived_by: null,
+      archive_reason: null,
     });
     setFirstName("");
     setLastName("");

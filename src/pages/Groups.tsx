@@ -1,15 +1,12 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import { useLocalStore } from "@/store/useLocalStore";
-import { useGroups, useOrgUnits } from "@/lib/dataLayer";
-import { resource } from "@/capabilities/resource";
+import { useGroups, useOrgUnits, createGroupPS } from "@/lib/dataLayer";
+import { getPowerSyncDatabase } from "@/lib/powersync";
+import { security } from "@/capabilities/security";
 import type { OrgUnit } from "@/types";
-import { Users, Plus, X, Palette, Edit3, Trash2 } from "lucide-react";
+import { Users, Plus, Edit3, Trash2 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
-import { FullPageSkeleton } from "@/components/Skeleton";
-import { getRoleLabel } from "@/lib/utils";
-import { security } from "@/capabilities/security";
 import {
   IonPage,
   IonHeader,
@@ -33,52 +30,20 @@ const COLOR_PALETTE = [
 const GROUP_TYPES = ["groupe", "commission", "comité", "diaconie", "service"];
 
 export default function Groups() {
-  const navigate = useNavigate();
-  const {
-    orgUnits: idbOrgUnits,
-    caisses,
-    accounts,
-    createGroup,
-    updateGroup,
-    deleteGroup,
-    isLoading,
-    appConfig,
-    user,
-  } = useLocalStore();
+  const { user } = useLocalStore();
 
-  // PowerSync with fallback
   const { data: psGroups } = useGroups();
   const { data: psOrgUnits } = useOrgUnits();
 
-  const [activeGroups, setActiveGroups] = useState<OrgUnit[]>([]);
-
-  // Load active groups via Resource capability as primary source
-  useEffect(() => {
-    resource
-      .list<OrgUnit>("Role", {
-        filter: [{ field: "is_active", op: "eq", value: 1 }],
-        sortBy: "name",
-        sortOrder: "asc",
-      })
-      .then(({ items }) => {
-        // resource returns camelCase (isActive), normalize to match OrgUnit type
-        const normalized = (items as any[]).map((g: any) => ({
-          id: g.id,
-          name: g.name,
-          type: g.type,
-          description: g.description || "",
-          orgId: g.org_id || g.orgId || "",
-          isActive: g.is_active ?? g.isActive ?? true,
-        }));
-        setActiveGroups(normalized);
-      })
-      .catch(() => {
-        // Fall through to fallback
-      });
-  }, []);
-
-  const orgUnits =
-    activeGroups.length > 0 ? activeGroups : (psOrgUnits ?? idbOrgUnits);
+  // Convert PS org units to OrgUnit[] for consistent rendering
+  const orgUnits: OrgUnit[] = (psOrgUnits ?? []).map((ou) => ({
+    id: ou.id,
+    name: ou.name,
+    type: ou.type,
+    description: ou.description,
+    orgId: ou.org_id,
+    isActive: !!ou.is_active,
+  }));
 
   const [showCreate, setShowCreate] = useState(false);
   const [showEdit, setShowEdit] = useState<string | null>(null);
@@ -103,11 +68,10 @@ export default function Groups() {
     }
     setError("");
     try {
-      await createGroup({
+      await createGroupPS({
         name: createName.trim(),
         type: createType,
         description: createDesc.trim(),
-        color: createColor,
       });
       setCreateName("");
       setCreateType("groupe");
@@ -133,10 +97,12 @@ export default function Groups() {
       return;
     }
     setError("");
-    await updateGroup(id, {
-      name: editName.trim(),
-      description: editDesc.trim(),
-    });
+    // Update via raw SQL for org_units (name + description)
+    const db = getPowerSyncDatabase();
+    await db.execute(
+      `UPDATE org_units SET name = ?, description = ?, updated_at = ? WHERE id = ?`,
+      [editName.trim(), editDesc.trim(), new Date().toISOString(), id],
+    );
     setShowEdit(null);
     setSuccess("Groupe modifié");
     setTimeout(() => setSuccess(""), 3000);
@@ -149,7 +115,13 @@ export default function Groups() {
     }
     setError("");
     try {
-      await deleteGroup(id);
+      // Delete from all related tables
+      const db = getPowerSyncDatabase();
+      await db.execute(`DELETE FROM group_memberships WHERE group_id = ?`, [id]);
+      await db.execute(`DELETE FROM accounts WHERE id = ?`, [id]);
+      await db.execute(`DELETE FROM caisses WHERE id = ?`, [id]);
+      await db.execute(`DELETE FROM groups WHERE id = ?`, [id]);
+      await db.execute(`DELETE FROM org_units WHERE id = ?`, [id]);
       setShowDelete(null);
       setSuccess("Groupe supprimé");
       setTimeout(() => setSuccess(""), 3000);
@@ -157,8 +129,6 @@ export default function Groups() {
       setError("Nous n'avons pas pu supprimer ce groupe. Veuillez réessayer.");
     }
   };
-
-  if (isLoading) return <FullPageSkeleton />;
 
   return (
     <IonPage>
@@ -314,7 +284,7 @@ export default function Groups() {
                   </p>
                 </div>
               ) : (
-                orgUnits.map((orgUnit: any) => (
+                orgUnits.map((orgUnit) => (
                   <div
                     key={orgUnit.id}
                     className="rounded-xl p-4 flex items-center gap-3"

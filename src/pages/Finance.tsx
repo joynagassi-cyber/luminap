@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useLocalStore } from "@/store/useLocalStore";
-import { useAccounts, useCaisses } from "@/lib/dataLayer";
+import { useCategories, useAccounts, useCaisses } from "@/lib/dataLayer";
 import { resource } from "@/capabilities/resource";
 import type { Transaction } from "@/types";
 import { formatCentsToFCFA } from "@/lib/utils";
@@ -33,7 +32,7 @@ export default function Finance() {
   const location = useLocation();
   const preselectedCaisse = location.state?.caisseId;
 
-  const { categories, isLoading } = useLocalStore();
+  const { categories } = useCategories();
   const { data: accounts } = useAccounts();
   const { data: caisses } = useCaisses();
 
@@ -110,7 +109,7 @@ export default function Finance() {
     navigate("/transaction/new", { state: { type } });
   };
 
-  if (isLoading || loading) {
+  if (loading) {
     return (
       <IonPage>
         <IonHeader>

@@ -1,16 +1,16 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
-import { useLocalStore } from "@/store/useLocalStore";
 import {
-  useTransactions,
   useCategories,
   useAccounts,
   useCaisses,
+  addTransactionPS,
 } from "@/lib/dataLayer";
 import { ArrowLeft, Wallet } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
 import type { Category } from "@/types";
+import { getOrganizationId } from "@/lib/orgContext";
 import {
   IonPage,
   IonHeader,
@@ -23,21 +23,15 @@ export default function TransactionNewGroup() {
   const { id: groupId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const {
-    categories: idbCats,
-    addTransaction,
-    caisses: idbCaisses,
-    accounts: idbAccounts,
-  } = useLocalStore();
 
   // PowerSync with fallback
   const { data: psCategories } = useCategories();
   const { data: psAccounts } = useAccounts();
   const { data: psCaisses } = useCaisses();
 
-  const categories = psCategories ?? idbCats;
-  const accounts = psAccounts ?? idbAccounts;
-  const caisses = psCaisses ?? idbCaisses;
+  const categories = psCategories ?? [];
+  const accounts = psAccounts ?? [];
+  const caisses = psCaisses ?? [];
 
   const groupAccount = accounts.find((a: any) => a.id === groupId);
   const caisse = caisses.find((c: any) => c.id === groupId);
@@ -84,26 +78,26 @@ export default function TransactionNewGroup() {
     const sessionId = localStorage.getItem("lumina-session") || "local-user";
     const isExpense = type === "EXPENSE";
 
-    await addTransaction({
-      orgId: getOrganizationId(),
+    await addTransactionPS({
+      org_id: getOrganizationId(),
       type,
       amount: Math.round(parseFloat(amount) * 100),
       description,
       date,
       status: isExpense ? "PENDING" : "DRAFT",
-      categoryId,
-      orgUnitId: null,
-      sourceCaisseId: groupId || "main",
-      eventId: null,
+      category_id: categoryId,
+      org_unit_id: null,
+      source_caisse_id: groupId || "main",
+      event_id: null,
       source: source || "CAISSE",
-      personName: source === "PERSONNE" ? personName || null : null,
-      compensatesFor: null,
+      person_name: source === "PERSONNE" ? personName || null : null,
+      compensates_for: null,
       comment: comment || null,
-      createdById: sessionId,
-      approvedById: null,
-      approvedAt: null,
-      versementId: null,
-      reversalOfId: null,
+      created_by_id: sessionId,
+      approved_by_id: null,
+      approved_at: null,
+      versement_id: null,
+      reversal_of_id: null,
     });
     navigate(`/groups/${groupId}`);
   };
