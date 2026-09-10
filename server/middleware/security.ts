@@ -123,6 +123,9 @@ export function requireAdmin(event: H3Event) {
  * Apply security headers to the response.
  */
 export function applySecurityHeaders(event: H3Event): void {
+  // Guard: skip if headers object is not present (plugin init edge case)
+  if (!event.headers) return;
+
   setHeader(event, "X-Content-Type-Options", "nosniff");
   setHeader(event, "X-Frame-Options", "DENY");
   setHeader(event, "X-XSS-Protection", "0");

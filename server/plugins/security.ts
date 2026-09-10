@@ -12,10 +12,15 @@ import { store } from "../store";
  * See server/plugins/security.ts instead for the plugin approach.
  */
 export default defineEventHandler((event) => {
-  applySecurityHeaders(event);
+  // Guard: skip header application if the event is not a real HTTP request
+  // (Nitro plugin init may run with a minimal event lacking headers)
+  if (event.headers) {
+    applySecurityHeaders(event);
+  }
 
-  // Only rate-limit mutating / auth-sensitive endpoints
   const method = event.method;
+  if (!method) return;
+
   if (method !== "GET" && !event.path.startsWith("/api/hello")) {
     rateLimit(event);
   }
@@ -25,7 +30,6 @@ export default defineEventHandler((event) => {
     try {
       requireAuth(event);
     } catch (e: any) {
-      // Return 401 without extra detail
       throw e;
     }
   }
