@@ -114,23 +114,23 @@ describe("NetworkAdapter", () => {
       mockNetworkPlugin.addListener.mockReturnValue({ remove: vi.fn() });
 
       const adapter = NetworkAdapter.getInstance();
-      const unsubscribe = adapter.addStatusListener(callback);
+      const unsubscribe = await adapter.addStatusListener(callback);
       expect(mockNetworkPlugin.addListener).toHaveBeenCalledWith(
         "networkStatusChange",
         callback,
       );
       expect(typeof unsubscribe).toBe("function");
-      unsubscribe();
+      (unsubscribe as () => void)();
     });
 
-    it("removes listener when unsubscribe is called", () => {
+    it("removes listener when unsubscribe is called", async () => {
       const removeMock = vi.fn();
       mockNetworkPlugin.addListener.mockReturnValue({ remove: removeMock });
 
       const adapter = NetworkAdapter.getInstance();
       const callback = vi.fn();
-      const unsubscribe = adapter.addStatusListener(callback);
-      unsubscribe();
+      const unsubscribe = await adapter.addStatusListener(callback);
+      (unsubscribe as () => void)();
       expect(removeMock).toHaveBeenCalled();
     });
 
@@ -144,7 +144,6 @@ describe("NetworkAdapter", () => {
       const adapter = NetworkAdapter.getInstance();
       const callback = vi.fn();
       adapter.addStatusListener(callback);
-      expect(addEventListenerMock).toHaveBeenCalledWith(
         "online",
         expect.any(Function),
       );

@@ -392,8 +392,8 @@ class AuthService {
         options: {
           redirectTo: window.location.origin + "/auth/callback",
           // For mobile apps, use a custom URL scheme
-          ...(typeof capacitor !== "undefined" &&
-          (capacitor as any).isNativePlatform?.()
+          ...(typeof (globalThis as any).capacitor !== "undefined" &&
+          ((globalThis as any).capacitor as any).isNativePlatform?.()
             ? { redirectTo: "lumina://auth/callback" }
             : {}),
           // Request additional scopes for profile data

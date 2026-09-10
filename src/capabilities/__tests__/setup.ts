@@ -130,20 +130,20 @@ function createMockDb() {
   };
 }
 
-vi.mock("@/lib/powersync", () => ({
+(vi as any).mock("@/lib/powersync", () => ({
   getPowerSyncDatabase: () => createMockDb(),
 }));
 
 // ─── orgContext mock ──────────────────────────────────────────────
 const _orgId = "test-org-1";
-vi.mock("@/lib/orgContext", () => ({
+(vi as any).mock("@/lib/orgContext", () => ({
   getOrganizationId: () => _orgId,
   setOrganizationId: (id: string) => {},
 }));
 
 // ─── auditLogRepo mock ────────────────────────────────────────────
 const _auditEntries: any[] = [];
-vi.mock("@/lib/audit", () => ({
+(vi as any).mock("@/lib/audit", () => ({
   auditLogRepo: {
     async write(entry: any) {
       _auditEntries.push(entry);
@@ -155,7 +155,7 @@ vi.mock("@/lib/audit", () => ({
       return [];
     },
   },
-  writeAudit: vi.fn(),
+  writeAudit: (vi as any).fn(),
 }));
 
 // ─── dataLayer mock (relationship capability) ─────────────────────
@@ -167,7 +167,7 @@ const _memberships: Array<{
   org_id?: string;
 }> = [];
 
-vi.mock("@/lib/dataLayer", () => ({
+(vi as any).mock("@/lib/dataLayer", () => ({
   addGroupMembershipPS: async (
     groupId: string,
     memberId: string,
@@ -196,5 +196,5 @@ beforeEach(() => {
   Object.keys(mockRows).forEach((k) => delete mockRows[k]);
   _auditEntries.length = 0;
   _memberships.length = 0;
-  vi.clearAllMocks();
+  (vi as any).clearAllMocks();
 });

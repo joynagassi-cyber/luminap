@@ -171,12 +171,12 @@ describe("resource capability", () => {
         id: "g1",
         org_id: "org-test-1",
         name: "Alpha",
-        status: "ACTIVE",
+        status: "ACTIVE" as any,
       });
       const result = await resource.get("Group", "g1");
       expect(result).not.toBeNull();
       expect(result!.id).toBe("g1");
-      expect(result!.name).toBe("Alpha");
+      expect((result as any).name).toBe("Alpha");
     });
 
     it("returns null when entity not found", async () => {
@@ -190,7 +190,7 @@ describe("resource capability", () => {
         id: "g1",
         org_id: "org-test-1",
         name: "Beta",
-        status: "ACTIVE",
+        status: "ACTIVE" as any,
       });
       const result = await resource.get("Group", "g1");
       expect(result!).toHaveProperty("orgId");
@@ -232,7 +232,7 @@ describe("resource capability", () => {
         filter: [{ field: "status", op: "neq", value: "ACTIVE" }],
       });
       expect(result.items).toHaveLength(1);
-      expect(result.items[0].status).toBe("ARCHIVED");
+      expect((result.items[0] as any).status).toBe("ARCHIVED");
     });
 
     it("filters by contains condition", async () => {
@@ -241,7 +241,7 @@ describe("resource capability", () => {
         filter: [{ field: "name", op: "contains", value: "Al" }],
       });
       expect(result.items).toHaveLength(1);
-      expect(result.items[0].name).toBe("Alpha");
+      expect((result.items[0] as any).name).toBe("Alpha");
     });
 
     it("sorts by field in ascending order", async () => {
@@ -250,9 +250,9 @@ describe("resource capability", () => {
         sortBy: "name",
         sortOrder: "asc",
       });
-      expect(result.items[0].name).toBe("Alpha");
-      expect(result.items[1].name).toBe("Beta");
-      expect(result.items[2].name).toBe("Gamma");
+      expect((result.items[0] as any).name).toBe("Alpha");
+      expect((result.items[1] as any).name).toBe("Beta");
+      expect((result.items[2] as any).name).toBe("Gamma");
     });
 
     it("sorts by field in descending order", async () => {
@@ -261,8 +261,8 @@ describe("resource capability", () => {
         sortBy: "name",
         sortOrder: "desc",
       });
-      expect(result.items[0].name).toBe("Gamma");
-      expect(result.items[2].name).toBe("Alpha");
+      expect((result.items[0] as any).name).toBe("Gamma");
+      expect((result.items[2] as any).name).toBe("Alpha");
     });
 
     it("paginates with limit and offset", async () => {
@@ -308,7 +308,7 @@ describe("resource capability", () => {
       seedGroups();
       const result = await resource.listByStatus("Group", "ARCHIVED");
       expect(result).toHaveLength(1);
-      expect(result[0].name).toBe("Gamma");
+      expect((result[0] as any).name).toBe("Gamma");
     });
 
     it("returns empty array for non-existent status", async () => {
@@ -356,7 +356,7 @@ describe("resource capability", () => {
       seedEvents();
       const result = await resource.listArchived("Event");
       expect(result.items).toHaveLength(1);
-      expect(result.items[0].status).toBe("CANCELLED");
+      expect((result.items[0] as any).status).toBe("CANCELLED");
     });
 
     it("returns empty when no archived entities", async () => {
@@ -371,7 +371,7 @@ describe("resource capability", () => {
         filter: [{ field: "name", op: "eq", value: "Beta" }],
       });
       expect(result.items).toHaveLength(1);
-      expect(result.items[0].name).toBe("Beta");
+      expect((result.items[0] as any).name).toBe("Beta");
     });
 
     it("returns total equal to items length and hasNext=false", async () => {
@@ -387,7 +387,7 @@ describe("resource capability", () => {
   describe("exists", () => {
     it("returns true for an existing entity", async () => {
       if (!mockRows["groups"]) mockRows["groups"] = [];
-      mockRows["groups"].push({ id: "g1", org_id: "org-test-1" });
+      mockRows["groups"].push({ id: "g1", org_id: "org-test-1" } as any);
       const result = await resource.exists("Group", "g1");
       expect(result).toBe(true);
     });

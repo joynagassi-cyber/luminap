@@ -31,9 +31,8 @@ describe("Capability Architecture Boundaries", () => {
     it(`'${cap}' must not import from another capability`, () => {
       for (const otherCap of capabilities) {
         if (otherCap !== cap) {
-          expect(content).not.toContain(
+          expect(content, `'${cap}' must not import from '@/capabilities/${otherCap}'`).not.toContain(
             `@/capabilities/${otherCap}`,
-            `'${cap}' must not import from '@/capabilities/${otherCap}'`,
           );
         }
       }

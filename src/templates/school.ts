@@ -151,7 +151,7 @@ const branding: Template["branding"] = {
 // Role metadata
 // ─────────────────────────────────────────────────────────────────────────────
 
-const roleMeta: Template["roleMeta"] = {
+const roleMeta: Record<string, { label: string; hierarchy: number; category: string }> = {
   DIRECTEUR: { label: "Directeur", hierarchy: 100, category: "Direction" },
   ADMINISTRATION: { label: "Administrateur", hierarchy: 80, category: "Administratif" },
   PROFESSEUR: { label: "Professeur", hierarchy: 60, category: "Enseignement" },
@@ -227,7 +227,7 @@ export const schoolTemplate: Template = {
       "class:read",
     ] as Permission[],
   } as unknown as Template["permissions"],
-  roleMeta: roleMeta as unknown as Template["roleMeta"],
+  roleMeta: roleMeta as any,
   forms: {
     student_enrollment: studentForm,
     expense_entry: expenseForm,

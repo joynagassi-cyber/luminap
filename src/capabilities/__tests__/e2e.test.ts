@@ -259,8 +259,8 @@ describe("e2e: authentication → organization → dashboard", () => {
       "SELECT * FROM transactions WHERE org_id = ?",
       [currentOrg],
     );
-    expect(result.result).toHaveLength(1);
-    expect(result.result[0].org_id).toBe(currentOrg);
+    expect((result as any).result).toHaveLength(1);
+    expect((result as any).result[0].org_id).toBe(currentOrg);
   });
 });
 
@@ -289,12 +289,12 @@ describe("e2e: transaction create → workflow → approval → immutability", (
       ],
     );
 
-    const { result } = await db.execute(
+    const rows = await db.execute(
       "SELECT * FROM transactions WHERE id = ?",
       [txId],
     );
-    expect(result).toHaveLength(1);
-    expect(result[0].status).toBe("DRAFT");
+    expect((rows as any).result).toHaveLength(1);
+    expect((rows as any).result[0].status).toBe("DRAFT");
 
     const guardResult = transactionGuard("DRAFT", "PENDING");
     expect(guardResult.allowed).toBe(true);
@@ -354,11 +354,11 @@ describe("e2e: transaction create → workflow → approval → immutability", (
       ],
     );
 
-    const { result } = await db.execute(
+    const rows = await db.execute(
       "SELECT status FROM transactions WHERE id = ?",
       [txId],
     );
-    expect(result[0].status).toBe("APPROVED");
+    expect((rows as any).result[0].status).toBe("APPROVED");
   });
 });
 

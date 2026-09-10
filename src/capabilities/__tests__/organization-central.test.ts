@@ -64,7 +64,7 @@ describe("central org lifecycle", () => {
   });
 
   it("suspendOrganization → SUSPENDED op + audit UPDATE", async () => {
-    await suspendOrganization("org-A", "actor-1", { id: "org-A", status: "ACTIVE" });
+    await suspendOrganization("org-A", "actor-1", { id: "org-A", status: "ACTIVE" } as any);
     expect(calls).toContainEqual(["status", "org-A", "SUSPENDED", "actor-1", undefined]);
     expect(auditEntries[0]).toMatchObject({
       orgId: "org-A",

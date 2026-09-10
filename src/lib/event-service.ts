@@ -38,6 +38,7 @@ export async function persistAddEvent(newEvent: Event): Promise<void> {
       start_date: newEvent.startDate,
       end_date: newEvent.endDate,
       status: newEvent.status,
+      type: newEvent.type,
       budget: newEvent.budget,
       budget_items: JSON.stringify(newEvent.budgetItems),
     });

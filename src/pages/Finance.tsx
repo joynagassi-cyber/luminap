@@ -32,7 +32,7 @@ export default function Finance() {
   const location = useLocation();
   const preselectedCaisse = location.state?.caisseId;
 
-  const { categories } = useCategories();
+  const { data: categories } = useCategories();
   const { data: accounts } = useAccounts();
   const { data: caisses } = useCaisses();
 

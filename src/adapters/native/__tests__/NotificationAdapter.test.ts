@@ -105,7 +105,7 @@ describe("NotificationAdapter", () => {
     });
 
     it("delegates to plugin in native env", async () => {
-      const expected: PermissionStatus = { receive: "LIMITED" };
+      const expected: PermissionStatus = { receive: "LIMITED" as any };
       mockPushPlugin.checkPermissions.mockResolvedValue(expected);
       const adapter = NotificationAdapter.getInstance();
       const result = await adapter.checkPermission();
@@ -180,21 +180,21 @@ describe("NotificationAdapter", () => {
       mockPushPlugin.addListener.mockReturnValue({ remove: vi.fn() });
 
       const adapter = NotificationAdapter.getInstance();
-      const unsubscribe = adapter.addEventListener(callback);
+      const unsubscribe = await adapter.addEventListener(callback);
       expect(mockPushPlugin.addListener).toHaveBeenCalledWith(
         "pushNotificationReceived",
         expect.any(Function),
       );
       expect(typeof unsubscribe).toBe("function");
-      unsubscribe();
+      (unsubscribe as () => void)();
     });
 
     it("returns no-op in browser env", async () => {
       NotificationAdapter.resetMockPlugin();
       const adapter = NotificationAdapter.getInstance();
       const callback = vi.fn();
-      const unsubscribe = adapter.addEventListener(callback);
-      unsubscribe();
+      const unsubscribe = await adapter.addEventListener(callback);
+      (unsubscribe as () => void)();
       expect(callback).not.toHaveBeenCalled();
       NotificationAdapter.injectMockPlugin(mockPushPlugin);
     });
@@ -206,12 +206,12 @@ describe("NotificationAdapter", () => {
       mockPushPlugin.addListener.mockReturnValue({ remove: vi.fn() });
 
       const adapter = NotificationAdapter.getInstance();
-      const unsubscribe = adapter.addActionListener(callback);
+      const unsubscribe = await adapter.addActionListener(callback);
       expect(mockPushPlugin.addListener).toHaveBeenCalledWith(
         "pushNotificationActionPerformed",
         expect.any(Function),
       );
-      unsubscribe();
+      (unsubscribe as () => void)();
     });
   });
 
@@ -221,20 +221,20 @@ describe("NotificationAdapter", () => {
       mockPushPlugin.addListener.mockReturnValue({ remove: vi.fn() });
 
       const adapter = NotificationAdapter.getInstance();
-      const unsubscribe = adapter.addRegistrationListener(callback);
+      const unsubscribe = await adapter.addRegistrationListener(callback);
       expect(mockPushPlugin.addListener).toHaveBeenCalledWith(
         "registration",
         callback,
       );
-      unsubscribe();
+      (unsubscribe as () => void)();
     });
 
     it("returns no-op in browser env", async () => {
       NotificationAdapter.resetMockPlugin();
       const adapter = NotificationAdapter.getInstance();
       const callback = vi.fn();
-      const unsubscribe = adapter.addRegistrationListener(callback);
-      unsubscribe();
+      const unsubscribe = await adapter.addRegistrationListener(callback);
+      (unsubscribe as () => void)();
       expect(callback).not.toHaveBeenCalled();
       NotificationAdapter.injectMockPlugin(mockPushPlugin);
     });
@@ -265,7 +265,7 @@ describe("NotificationAdapter", () => {
   describe("delivered notifications", () => {
     it("getDeliveredNotifications returns list from plugin", async () => {
       const mockNotifs: PushNotificationSchema[] = [
-        { title: "notif1", body: "body1" },
+        { id: "notif1", title: "notif1", body: "body1", data: {} },
       ];
       mockPushPlugin.getDeliveredNotifications.mockResolvedValue({
         notifications: mockNotifs,
@@ -284,7 +284,7 @@ describe("NotificationAdapter", () => {
     });
 
     it("removeDeliveredNotifications delegates to plugin", async () => {
-      const notifs: PushNotificationSchema[] = [{ title: "x", body: "y" }];
+      const notifs: PushNotificationSchema[] = [{ id: "x", title: "x", body: "y", data: {} }];
       const adapter = NotificationAdapter.getInstance();
       await adapter.removeDeliveredNotifications(notifs);
       expect(mockPushPlugin.removeDeliveredNotifications).toHaveBeenCalled();

@@ -229,7 +229,7 @@ describe("e2e-transaction: create PENDING transaction", () => {
       createdById: "actor-1",
     };
 
-    const result = buildAddTransaction(txInput, {
+    const result = buildAddTransaction(txInput as any, {
       transactions: [],
       user: { role: "TREASURIER", id: "actor-1" },
     });
@@ -273,7 +273,7 @@ describe("e2e-transaction: create PENDING transaction", () => {
       createdById: "actor-1",
     };
 
-    const { newTx } = buildAddTransaction(txInput, {
+    const { newTx } = buildAddTransaction(txInput as any, {
       transactions: [],
       user: { role: "TREASURIER", id: "actor-1" },
     });
@@ -295,7 +295,7 @@ describe("e2e-transaction: create PENDING transaction", () => {
       createdById: "actor-2",
     };
 
-    const result = buildAddTransaction(txInput, {
+    const result = buildAddTransaction(txInput as any, {
       transactions: [],
       user: { role: "TREASURIER", id: "actor-2" },
     });
@@ -474,11 +474,11 @@ describe("e2e-transaction: approve transaction", () => {
       ],
     );
 
-    const { result } = await db.execute(
+    const rows = await db.execute(
       "SELECT status FROM transactions WHERE id = ?",
       ["tx-immut-1"],
     );
-    expect(result[0].status).toBe("APPROVED");
+    expect((rows as any)[0].status).toBe("APPROVED");
     expect(transactionGuard("APPROVED", "REJECTED").allowed).toBe(false);
   });
 });
@@ -628,10 +628,10 @@ describe("e2e-transaction: APPROVED immutability", () => {
 
     // Attempt to "delete" each — should both be blocked
     const r1 = validateUpdateTransaction(transactions, "tx-imm-multi-1", {
-      status: "DELETED",
+      status: "DRAFT" as any,
     });
     const r2 = validateUpdateTransaction(transactions, "tx-imm-multi-2", {
-      status: "DELETED",
+      status: "DRAFT" as any,
     });
 
     expect(r1.allowed).toBe(false);

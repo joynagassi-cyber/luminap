@@ -9,7 +9,10 @@ const { mockStoragePlugin } = vi.hoisted(() => ({
     remove: vi.fn(),
     clear: vi.fn(),
     keys: vi.fn(),
-  },
+    configure: vi.fn(),
+    migrate: vi.fn(),
+    removeOld: vi.fn(),
+  } as any,
 }));
 
 vi.mock("@capacitor/storage", () => ({

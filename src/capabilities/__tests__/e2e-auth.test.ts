@@ -661,7 +661,7 @@ describe("e2e-auth: logout flow", () => {
 
     // Set up a logged-in state
     authService["state"].session = { user: { id: "user-logout-1" } } as any;
-    authService["state"].user = { id: "user-logout-1" };
+    authService["state"].user = { id: "user-logout-1" } as any;
     authService["state"].profile = {
       id: "user-logout-1",
       email: "logout@test.com",
@@ -717,7 +717,7 @@ describe("e2e-auth: logout flow", () => {
 
     // Set state and sign out
     authService["state"].session = { user: { id: "user-listener-1" } } as any;
-    authService["state"].user = { id: "user-listener-1" };
+    authService["state"].user = { id: "user-listener-1" } as any;
     await authService.signOut();
 
     // Listener should have been called at least once (on auth state change + on signOut notify)
@@ -751,7 +751,7 @@ describe("e2e-auth: logout flow", () => {
     authService["stopSessionValidation"]();
 
     authService["state"].session = { user: { id: "user-cleared-1" } } as any;
-    authService["state"].user = { id: "user-cleared-1" };
+    authService["state"].user = { id: "user-cleared-1" } as any;
     expect(authService.isAuthenticated()).toBe(true);
 
     await authService.signOut();
@@ -840,7 +840,7 @@ describe("e2e-auth: full authentication journey", () => {
       access_token: "token",
       expires_at: Math.floor(Date.now() / 1000) + 3600,
     } as any;
-    authService["state"].user = { id: "login-flow-user" };
+    authService["state"].user = { id: "login-flow-user" } as any;
     authService["state"].profile = {
       id: "login-flow-user",
       email: "login@example.com",

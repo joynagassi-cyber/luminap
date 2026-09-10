@@ -72,7 +72,7 @@ export class RelationshipService {
     const orgId = getOrganizationId();
     const memberships = await getGroupMembershipsPS();
     return memberships.some(
-      (m) =>
+      (m: any) =>
         m.group_id === groupId &&
         m.member_id === memberId &&
         m.org_id === orgId,

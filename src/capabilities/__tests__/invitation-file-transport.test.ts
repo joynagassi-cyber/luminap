@@ -21,7 +21,7 @@ const persistedInvitation: any = {
   target_member_id: null,
   issued_by: "root-1",
   issued_at: "2026-09-01T00:00:00.000Z",
-  expires_at: "2026-09-08T00:00:00.000Z",
+  expires_at: "2099-09-08T00:00:00.000Z", // far future so claim doesn't reject
   max_uses: 1,
   used_count: 0,
   status: "ACTIVE",

@@ -99,12 +99,12 @@ export default function TransactionDetail() {
     if (!security.hasPermission(user.role as any, "transaction:approve")) {
       return;
     }
-    await approveTransactionPS(tx.id, user?.id || "", user.role as any);
+    await approveTransactionPS(tx.id, user?.id || "");
     navigate(-1);
   };
 
   const handleRejectConfirm = async () => {
-    if (!security.hasPermission(user.role, "transaction:approve")) {
+    if (!security.hasPermission(user?.role as any, "transaction:approve")) {
       return;
     }
     if (!rejectComment.trim()) return;

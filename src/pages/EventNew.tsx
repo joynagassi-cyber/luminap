@@ -42,7 +42,7 @@ const DEFAULT_BUDGET_ITEMS = [
 export default function EventNew() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { members } = useMembers();
+  const { data: members } = useMembers();
 
   // PowerSync with fallback
   const { data: psCategories } = useCategories();

@@ -578,7 +578,7 @@ class OneSignalService {
     }
 
     try {
-      await this.plugin.User.removeEmail();
+      await (this.plugin.User as any).removeEmail();
     } catch (error) {
       // Email removal failed — non-fatal
     }

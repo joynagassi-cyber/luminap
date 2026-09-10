@@ -406,23 +406,31 @@ export const invitation = new InvitationService();
 export async function exportInvitationToFile(
   invitationId: string,
 ): Promise<string> {
-  const inv = await invitation.getInvitation(invitationId);
+  // getInvitation returns the raw sync row (snake_case columns), not a
+  // camelCase Invitation — map fields explicitly.
+  const inv: any = await invitation.getInvitation(invitationId);
   if (!inv) throw new Error("INVITATION_NOT_FOUND");
+
+  const targetScopeType: "ORG" | "GROUP" =
+    inv.target_scope_type ?? inv.targetScopeType ?? "ORG";
+  const targetGroupId: string | null =
+    inv.target_group_id ?? inv.targetGroupId ?? null;
+
   const payload: ClaimPayload = {
     v: 1,
-    orgId: inv.orgId,
-    invitationId: inv.id,
+    orgId: inv.org_id ?? inv.orgId,
+    invitationId: inv.id ?? inv.invitationId,
     code: inv.code,
-    role: inv.targetRole,
+    role: inv.target_role ?? inv.targetRole,
     scope: {
-      type: inv.targetScopeType as "ORG" | "GROUP",
-      ...(inv.targetScopeType === "GROUP" && inv.targetGroupId
-        ? { groupId: inv.targetGroupId }
+      type: targetScopeType,
+      ...(targetScopeType === "GROUP" && targetGroupId
+        ? { groupId: targetGroupId }
         : {}),
     },
-    memberId: inv.targetMemberId,
-    issuedAt: inv.issuedAt,
-    expiresAt: inv.expiresAt,
+    memberId: inv.target_member_id ?? inv.targetMemberId ?? null,
+    issuedAt: inv.issued_at ?? inv.issuedAt,
+    expiresAt: inv.expires_at ?? inv.expiresAt,
   };
   return JSON.stringify(payload, null, 2);
 }

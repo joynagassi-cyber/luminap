@@ -60,7 +60,7 @@ function createMockPlugin() {
   };
 
   // service.requestPermission delegates to Notifications.requestPermission(true)
-  plugin.requestPermission = vi.fn().mockImplementation(async () => {
+  (plugin as any).requestPermission = vi.fn().mockImplementation(async () => {
     return plugin.Notifications.requestPermission(true);
   });
 

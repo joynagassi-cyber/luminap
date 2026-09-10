@@ -342,11 +342,11 @@ export default function Balance() {
                     <button
                       onClick={() => {
                         exportPDF({
-                          churchName: appConfig.churchName,
-                          churchLogoUrl: appConfig.churchLogoUrl,
-                          transactions: approved,
-                          caisses: [],
-                          title: `Bilan financier — ${period === "mois" ? "Ce mois" : "Cette année"}`,
+                            churchName: appConfig.churchName,
+                            churchLogoUrl: appConfig.churchLogoUrl,
+                            transactions: approved as any,
+                            caisses: [],
+                            title: `Bilan financier — ${period === "mois" ? "Ce mois" : "Cette année"}`,
                         });
                         setShowExport(false);
                       }}
@@ -377,11 +377,11 @@ export default function Balance() {
                     <button
                       onClick={() => {
                         exportExcel({
-                          churchName: appConfig.churchName,
-                          churchLogoUrl: appConfig.churchLogoUrl,
-                          transactions: approved,
-                          caisses: [],
-                          title: `Bilan financier — ${period === "mois" ? "Ce mois" : "Cette année"}`,
+                            churchName: appConfig.churchName,
+                            churchLogoUrl: appConfig.churchLogoUrl,
+                            transactions: approved as any,
+                            caisses: [],
+                            title: `Bilan financier — ${period === "mois" ? "Ce mois" : "Cette année"}`,
                         });
                         setShowExport(false);
                       }}
@@ -412,11 +412,11 @@ export default function Balance() {
                     <button
                       onClick={() => {
                         exportCSV({
-                          churchName: appConfig.churchName,
-                          churchLogoUrl: appConfig.churchLogoUrl,
-                          transactions: approved,
-                          caisses: [],
-                          title: `Bilan financier — ${period === "mois" ? "Ce mois" : "Cette année"}`,
+                            churchName: appConfig.churchName,
+                            churchLogoUrl: appConfig.churchLogoUrl,
+                            transactions: approved as any,
+                            caisses: [],
+                            title: `Bilan financier — ${period === "mois" ? "Ce mois" : "Cette année"}`,
                         });
                         setShowExport(false);
                       }}

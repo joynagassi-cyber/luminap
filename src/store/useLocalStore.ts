@@ -786,8 +786,5 @@ export const useLocalStore = create<LocalStoreState>()(
       },
     };
   },
-  {
-    name: "lumina-store",
-    partialize: (state) => ({ user: state.user }),
-  } as any,
+  undefined as any,
 );

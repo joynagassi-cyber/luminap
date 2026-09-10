@@ -129,15 +129,8 @@ export class OrganizationService {
 /** Singleton instance */
 export const organization = new OrganizationService();
 
-export {
-  suspendOrganization,
-  reactivateOrganization,
-  archiveOrganization,
-  createOrganization,
-  assignOrgAdmin,
-  revokeOrgAdmin,
-  getOrgStats,
-  getRecentActivity,
-  type OrgStats,
-  type RecentActivity,
-} from "./central";
+// Les actions d'administration centrale vivent dans `./central` et sont
+// importées directement depuis `@/capabilities/organization/central` (pas de
+// re-export ici : ce module serait chargé — et donc `@/lib/audit` exécuté au
+// module level — dès que n'importe qui importe `organization`, ce qui casse
+// les tests qui mockent `@/lib/orgContext`).
