@@ -3,6 +3,10 @@
  * run in isolation without a real PowerSync database.
  */
 
+// Import vitest globals (available at runtime but not type-checked)
+declare const vi: any;
+declare const beforeEach: any;
+
 // ─── PowerSync mock ───────────────────────────────────────────────
 const mockRows: Record<string, any[]> = {};
 

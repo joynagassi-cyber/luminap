@@ -786,5 +786,4 @@ export const useLocalStore = create<LocalStoreState>()(
       },
     };
   },
-  undefined as any,
 );
