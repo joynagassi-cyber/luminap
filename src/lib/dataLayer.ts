@@ -1759,3 +1759,117 @@ export {
   getMembreHistorique as getMembreHistoriqueSvc,
   getMembresEnAvance as getMembresEnAvanceSvc,
 } from "./cotisation-service";
+
+// ============================================================
+// Additional write operations for remaining pages
+// ============================================================
+
+/**
+ * Approve a transaction via PowerSync
+ */
+export async function approveTransactionPS(
+  id: string,
+  userId: string,
+): Promise<void> {
+  const now = new Date().toISOString();
+  await executeWrite(
+    `UPDATE transactions SET status = 'APPROVED', approved_by_id = ?, approved_at = ?, updated_at = ? WHERE id = ?`,
+    [userId, now, now, id],
+  );
+}
+
+/**
+ * Reverse a transaction via PowerSync
+ */
+export async function reverseTransactionPS(
+  id: string,
+  userId: string,
+  reason: string,
+): Promise<void> {
+  const now = new Date().toISOString();
+  const reversalId = crypto.randomUUID();
+  
+  // Get original transaction
+  const db = getPowerSyncDatabase();
+  const result = await db.execute("SELECT * FROM transactions WHERE id = ?", [id]);
+  const tx = result?.result?.[0] as any;
+  if (!tx) throw new Error("Transaction not found");
+  
+  // Create reversal transaction
+  await executeWrite(
+    `INSERT INTO transactions (
+      id, org_id, type, amount, description, date, status,
+      category_id, org_unit_id, compensates_for, comment,
+      version, created_by_id, approved_by_id, created_at,
+      updated_at, approved_at, event_id, source, person_name,
+      source_caisse_id, versement_id, reversal_of_id
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      reversalId,
+      tx.org_id,
+      tx.type === "INCOME" ? "EXPENSE" : "INCOME",
+      tx.amount,
+      tx.description || "Réversal",
+      now,
+      "PENDING",
+      tx.category_id,
+      tx.org_unit_id,
+      tx.id,
+      reason,
+      1,
+      userId,
+      null,
+      now,
+      now,
+      null,
+      tx.event_id,
+      tx.source,
+      tx.person_name,
+      tx.source_caisse_id,
+      tx.versement_id,
+      id,
+    ],
+  );
+}
+
+/**
+ * Update a cotisation via PowerSync
+ */
+export async function updateCotisationPS(
+  id: string,
+  data: {
+    statut?: string;
+    montantPaye?: number;
+    datePaiement?: string;
+    notes?: string;
+  },
+): Promise<void> {
+  const setClauses: string[] = [];
+  const params: any[] = [];
+  
+  if (data.statut !== undefined) {
+    setClauses.push("statut = ?");
+    params.push(data.statut);
+  }
+  if (data.montantPaye !== undefined) {
+    setClauses.push("montantPaye = ?");
+    params.push(data.montantPaye);
+  }
+  if (data.datePaiement !== undefined) {
+    setClauses.push("datePaiement = ?");
+    params.push(data.datePaiement);
+  }
+  if (data.notes !== undefined) {
+    setClauses.push("notes = ?");
+    params.push(data.notes);
+  }
+  
+  setClauses.push("updatedAt = ?");
+  params.push(new Date().toISOString());
+  params.push(id);
+  
+  await executeWrite(
+    `UPDATE cotisations SET ${setClauses.join(", ")} WHERE id = ?`,
+    params,
+  );
+}
