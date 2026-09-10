@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
+import CameraScanner from "@/components/CameraScanner";
 import { useCurrentUser } from "@/lib/dataLayer";
 import {
   invitation,
@@ -205,15 +206,11 @@ export default function InvitationClaim() {
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="bg-card rounded-xl p-6 text-center">
-                  <QrCode className="w-16 h-16 text-primary mx-auto mb-3" />
-                  <p className="text-text-secondary text-sm">
-                    Scanner un QR code
-                  </p>
-                  <p className="text-text-tertiary text-xs mt-1">
-                    Fonctionnalité à implémenter avec le plugin caméra Capacitor
-                  </p>
-                </div>
+                {/* Native QR scanner (Capacitor Camera + ZXing) */}
+                <CameraScanner onScan={handleCameraScan} onError={(msg) => {
+                  setResult({ ok: false, message: msg });
+                }} />
+
                 {/* Manual raw input fallback */}
                 <IonItem lines="none" className="bg-card rounded-xl">
                   <IonLabel position="floating">JSON brut (débogage)</IonLabel>

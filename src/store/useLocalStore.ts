@@ -103,6 +103,12 @@ import type {
   GroupMembership,
   Cotisation,
 } from "@/types";
+// Church-specific seed data & role helpers — extracted from lib into the
+// church Business Pack. `DEFAULT_USER` is re-exported here for backward
+// compatibility (e2e-auth.test.ts mocks @/store/useLocalStore and expects it).
+// Seed data is read via churchSeedData() (lazy org context).
+import { DEFAULT_USER, churchSeedData } from "@/packs/church";
+export { DEFAULT_USER };
 
 // --- Sub-types ---
 interface EventBudget {
@@ -123,114 +129,6 @@ interface BudgetLine {
   description: string | null;
   createdAt: string;
 }
-
-const DEFAULT_USER: User = {
-  id: "local-user",
-  email: "",
-  firstName: "Utilisateur",
-  lastName: "",
-  role: "TREASURIER",
-  org: {
-    id: getOrganizationId(),
-    name: "Eglise MFE-JC Centrale",
-    type: "Eglise",
-    accentColor: "#FF6B00",
-  },
-};
-
-const DEFAULT_CATEGORIES: Category[] = [
-  {
-    id: "cat-dime",
-    key: "dime",
-    labelFr: "Dime",
-    type: "INCOME",
-    orgId: getOrganizationId(),
-  },
-  {
-    id: "cat-offrande",
-    key: "offrande",
-    labelFr: "Offrande",
-    type: "INCOME",
-    orgId: getOrganizationId(),
-  },
-  {
-    id: "cat-offrande-mission",
-    key: "offrande_mission",
-    labelFr: "Offrande Mission",
-    type: "INCOME",
-    orgId: getOrganizationId(),
-  },
-  {
-    id: "cat-don",
-    key: "don",
-    labelFr: "Don",
-    type: "INCOME",
-    orgId: getOrganizationId(),
-  },
-  {
-    id: "cat-salaire-pasteur",
-    key: "salaire_pasteur",
-    labelFr: "Salaire Pasteur",
-    type: "EXPENSE",
-    orgId: getOrganizationId(),
-  },
-  {
-    id: "cat-frais-fonc",
-    key: "frais_fonctionnement",
-    labelFr: "Frais de Fonctionnement",
-    type: "EXPENSE",
-    orgId: getOrganizationId(),
-  },
-  {
-    id: "cat-mission",
-    key: "mission",
-    labelFr: "Mission",
-    type: "EXPENSE",
-    orgId: getOrganizationId(),
-  },
-  {
-    id: "cat-entretien",
-    key: "entretien",
-    labelFr: "Entretien",
-    type: "EXPENSE",
-    orgId: getOrganizationId(),
-  },
-  {
-    id: "cat-aumone",
-    key: "aumone",
-    labelFr: "Aumone",
-    type: "EXPENSE",
-    orgId: getOrganizationId(),
-  },
-];
-
-const DEFAULT_CAISSES: Caisse[] = [
-  {
-    id: "main",
-    name: "Caisse principale",
-    description: "Fonds de l'eglise",
-    type: "MAIN",
-    color: "#FF6B00",
-    orgId: getOrganizationId(),
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    archivedAt: null,
-    archivedBy: null,
-    archiveReason: null,
-    status: "ACTIVE",
-  },
-];
-
-const DEFAULT_ORG_UNITS: OrgUnit[] = [
-  {
-    id: getOrganizationId(),
-    name: "Eglise MFE-JC Centrale",
-    type: "eglise",
-    description: "Eglise mere",
-    orgId: getOrganizationId(),
-    isActive: true,
-  },
-];
 
 interface StoreSnapshot {
   transactions: Transaction[];
@@ -397,12 +295,13 @@ export const useLocalStore = create<LocalStoreState>()(
       user: { role: get().user.role, id: get().user.id },
     });
 
+    const seed = churchSeedData();
     return {
-      user: DEFAULT_USER,
+      user: seed.user,
       transactions: [],
-      categories: DEFAULT_CATEGORIES,
-      orgUnits: DEFAULT_ORG_UNITS,
-      caisses: DEFAULT_CAISSES,
+      categories: seed.categories,
+      orgUnits: seed.orgUnits,
+      caisses: seed.caisses,
       events: [],
       auditEntries: [],
       notifications: [],
@@ -851,7 +750,7 @@ export const useLocalStore = create<LocalStoreState>()(
             appConfig: storedConfig
               ? JSON.parse(storedConfig)
               : { churchName: "", churchLogoUrl: "", userPhoto: "" },
-            user: { ...DEFAULT_USER, role: storedRole || "TREASURIER" },
+            user: { ...churchSeedData().user, role: storedRole || "TREASURIER" },
             isLoading: false,
           });
         } catch (e) {

@@ -325,28 +325,9 @@ export function parseRole(raw: string): Role | null {
 }
 
 /**
- * CHURCH-SPECIFIC: Not portable to School/Company/NGO Business Packs.
- * cotisation:manage permission is also church-specific — move to domain policy.
+ * CHURCH-SPECIFIC role helpers.
+ * Extracted to the church Business Pack (@/packs/church) — kept re-exported
+ * here for backward compatibility. cotisation:manage permission is also
+ * church-specific — move to domain policy.
  */
-export function isSpiritualLeader(role: Role): boolean {
-  return [
-    "PASTEUR_PRINCIPAL",
-    "PASTEUR_ASSOCIE",
-    "PASTEUR_JEUNESSE",
-    "ANCIEN",
-  ].includes(role);
-}
-
-/**
- * CHURCH-SPECIFIC: Not portable to School/Company/NGO Business Packs.
- * cotisation:manage permission is also church-specific — move to domain policy.
- */
-export function canManageFinance(role: Role): boolean {
-  return [
-    "PASTEUR_PRINCIPAL",
-    "ANCIEN",
-    "TREASURIER",
-    "TREASURIER_ADJOINT",
-    "DIACRE",
-  ].includes(role);
-}
+export { isSpiritualLeader, canManageFinance } from "@/packs/church";
