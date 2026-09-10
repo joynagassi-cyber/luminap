@@ -396,8 +396,8 @@ export const useLocalStore = create<LocalStoreState>()(
         try {
           await updateTransactionPS(id, {
             status: "APPROVED",
-            approvedById: userId ?? snap().user.id,
-            approvedAt: now,
+            approved_by_id: userId ?? snap().user.id,
+            approved_at: now,
           });
         } catch (e) {
           console.error("[Store] Failed to approve:", e);
@@ -410,8 +410,8 @@ export const useLocalStore = create<LocalStoreState>()(
           try {
             await updateTransactionPS(txId, {
               status: "APPROVED",
-              approvedById: userId ?? snap().user.id,
-              approvedAt: now,
+              approved_by_id: userId ?? snap().user.id,
+              approved_at: now,
             });
           } catch (e) {
             console.error("[Store] Failed to approve:", txId, e);
@@ -583,7 +583,7 @@ export const useLocalStore = create<LocalStoreState>()(
       },
 
       addBudgetLine: async (eventBudgetId, line) => {
-        set({ budgetLines: [...get().budgetLines, buildAddBudgetLine(line)] });
+        set({ budgetLines: [...get().budgetLines, buildAddBudgetLine(line)] as any });
       },
 
       removeBudgetLine: async (eventBudgetId, lineId) => {
@@ -592,7 +592,7 @@ export const useLocalStore = create<LocalStoreState>()(
             get().budgetLines,
             eventBudgetId,
             lineId,
-          ),
+          ) as any,
         });
       },
 
@@ -789,5 +789,5 @@ export const useLocalStore = create<LocalStoreState>()(
   {
     name: "lumina-store",
     partialize: (state) => ({ user: state.user }),
-  },
+  } as any,
 );

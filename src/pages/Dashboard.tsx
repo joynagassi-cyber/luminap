@@ -143,7 +143,7 @@ export default function Dashboard() {
   const { config: appConfig } = useAppConfig();
 
   // DataLayer hooks (PowerSync primary, IndexedDB fallback handled internally)
-  const { data: transactions } = useTransactions();
+  const { data: transactions, isLoading } = useTransactions();
   const { data: events } = useEvents();
   const { data: notifications } = useNotifications();
   const { data: accounts } = useAccounts();
@@ -539,9 +539,9 @@ export default function Dashboard() {
                   {groupAccounts.map((account) => (
                     <CaisseCard
                       key={account.id}
-                      account={account}
-                      transactions={transactions}
-                      caisses={caisses}
+                      account={account as any}
+                      transactions={transactions as any}
+                      caisses={caisses as any}
                       navigate={navigate}
                     />
                   ))}
@@ -693,7 +693,7 @@ export default function Dashboard() {
                 recentTransactions.map((tx) => (
                   <TransactionCard
                     key={tx.id}
-                    transaction={tx}
+                    transaction={tx as any}
                     onPress={(id) => navigate(`/transaction/${id}`)}
                   />
                 ))

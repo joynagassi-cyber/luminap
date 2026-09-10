@@ -34,12 +34,18 @@ import {
   Users,
   Building2,
   Shield,
+  FileDown,
 } from "lucide-react";
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
 import { useMembers } from "@/lib/dataLayer";
 import { useCurrentUser } from "@/lib/dataLayer";
-import { invitation, generateCode, buildQRPayload } from "@/capabilities/invitation";
+import {
+  invitation,
+  generateCode,
+  buildQRPayload,
+  exportInvitationToFile,
+} from "@/capabilities/invitation";
 import { getOrganizationId } from "@/lib/orgContext";
 import type { Member } from "@/types";
 
@@ -121,6 +127,25 @@ export default function InvitationEmit() {
       setShowCopy(true);
       setTimeout(() => setShowCopy(false), 2000);
     });
+  };
+
+  /** 4ᵉ transport : exporter l'invitation en fichier JSON (transfert local). */
+  const handleExportFile = async () => {
+    try {
+      const json = await exportInvitationToFile(generatedId);
+      const blob = new Blob([json], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `lumina-invitation-${generatedCode}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      setAlertMessage(err?.message ?? "Export impossible");
+      setShowAlert(true);
+    }
   };
 
   const payload = useMemo(() => {
@@ -225,7 +250,7 @@ export default function InvitationEmit() {
                     onIonChange={(e) => setTargetMemberId(e.detail.value!)}
                   >
                     <IonSelectOption value="">-- Nouveau membre --</IonSelectOption>
-                    {members.map((m: Member) => (
+                    {members.map((m: any) => (
                       <IonSelectOption key={m.id} value={m.id}>
                         {m.firstName} {m.lastName}
                       </IonSelectOption>
@@ -301,6 +326,16 @@ export default function InvitationEmit() {
                     {targetRole} · {scopeType === "ORG" ? "Organisation" : "Groupe"}
                   </IonBadge>
                 </div>
+
+                <IonButton
+                  expand="block"
+                  fill="outline"
+                  onClick={handleExportFile}
+                  className="mt-3"
+                >
+                  <FileDown className="w-4 h-4 mr-2" />
+                  Exporter en fichier JSON
+                </IonButton>
 
                 <IonButton expand="block" fill="outline" onClick={() => setStep("configure")}>
                   Créer une autre invitation

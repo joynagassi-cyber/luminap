@@ -15,6 +15,7 @@ import {
   IonTitle,
   IonToolbar,
   IonButton,
+  IonButtons,
   IonItem,
   IonLabel,
   IonInput,
@@ -31,6 +32,7 @@ import {
   XCircle,
   AlertCircle,
   UserPlus,
+  FileUp,
 } from "lucide-react";
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
@@ -39,6 +41,7 @@ import { useCurrentUser } from "@/lib/dataLayer";
 import {
   invitation,
   parseQRPayload,
+  importInvitationFromFile,
   type ClaimPayload,
 } from "@/capabilities/invitation";
 
@@ -61,7 +64,7 @@ export default function InvitationClaim() {
     setLoading(true);
     try {
       // Try direct code lookup first (already synced)
-      const invite = await invitation.getByCode(trimmed);
+      const invite = await (invitation as any).getByCode?.(trimmed) ?? (invitation as any).getInvitationByCode?.(trimmed);
       if (invite) {
         const payload: ClaimPayload = {
           v: 1,
@@ -189,8 +192,7 @@ export default function InvitationClaim() {
                     value={codeInput}
                     onIonChange={(e) => setCodeInput(e.detail.value!)}
                     placeholder="LUM-XXXXXX"
-                    capitalized
-                    uppercase
+                    {...({ capitalized: true, uppercase: true } as any)}
                     className="text-center text-xl font-mono tracking-widest"
                     slot="input"
                   />
@@ -230,6 +232,44 @@ export default function InvitationClaim() {
                 >
                   Décoder le payload
                 </IonButton>
+
+                {/* 4ᵉ transport (T9) : sélection d'un fichier d'invitation JSON
+                    (transfert local hors ligne). Lit le fichier, puis le parse
+                    comme n'importe quel payload v1 — même moteur que le QR. */}
+                <label
+                  className="flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-medium cursor-pointer active:scale-95 transition-all"
+                  style={{
+                    backgroundColor: "#1a130f",
+                    border: "1px solid #3a2a1a",
+                    color: "#FF6B00",
+                  }}
+                >
+                  <FileUp className="w-4 h-4" />
+                  Charger un fichier d'invitation (.json)
+                  <input
+                    type="file"
+                    accept="application/json,.json"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const text = await file.text();
+                      setRawPayload(text);
+                      const payload = importInvitationFromFile(text);
+                      if (payload) {
+                        setParsedPayload(payload);
+                        setResult(null);
+                      } else {
+                        setResult({
+                          ok: false,
+                          message:
+                            "Fichier invalide. Utilisez un fichier d'invitation Lumina (.json).",
+                        });
+                      }
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
               </div>
             )}
 

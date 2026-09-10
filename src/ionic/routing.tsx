@@ -87,6 +87,7 @@ const Settings = lazy(() => import("@/pages/Settings"));
 const InvitationEmit = lazy(() => import("@/pages/InvitationEmit"));
 const InvitationClaim = lazy(() => import("@/pages/InvitationClaim"));
 const InvitationManage = lazy(() => import("@/pages/InvitationManage"));
+const CentralAdmin = lazy(() => import("@/pages/CentralAdmin"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
 // ─── Lazy Route Wrapper ────────────────────────────────────────────────────────
@@ -203,6 +204,13 @@ export const luminaRoutes = (
     <Route path="/invitation/emit" element={<LazyRoute component={InvitationEmit} />} />
     <Route path="/invitation/claim" element={<LazyRoute component={InvitationClaim} />} />
     <Route path="/invitation/manage" element={<LazyRoute component={InvitationManage} />} />
+
+    {/* ── Central Administration (multi-org) ─────────────────────── */}
+    <Route path="/admin" element={<LazyRoute component={CentralAdmin} />} />
+    <Route
+      path="/admin/organizations/:id"
+      element={<LazyRoute component={CentralAdmin} />}
+    />
 
     {/* ── System ───────────────────────────────────────────────────── */}
     <Route path="/trace" element={<LazyRoute component={Trace} />} />

@@ -47,11 +47,11 @@ export default function NotificationsPage() {
   ).length;
 
   const handleMarkRead = async (id: string) => {
-    await markNotificationRead(id);
+    await markNotificationRead(id, {} as any);
   };
 
   const handleMarkAllRead = async () => {
-    await markAllNotificationsRead();
+    await markAllNotificationsRead({} as any);
   };
 
   return (

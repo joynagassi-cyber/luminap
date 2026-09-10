@@ -388,3 +388,60 @@ export class InvitationService {
 
 /** Singleton instance */
 export const invitation = new InvitationService();
+
+// ─────────────────────────────────────────────────────────────────────────────
+// File transport (T9) — 4ᵉ canal, même moteur
+//
+// Même payload que le QR (JSON v1). L'export produit un fichier partageable
+// (transfert local hors ligne) ; l'import parse + revendique exactement
+// comme un scan QR. Idempotence garantie par le trigger serveur
+// `settle_invitation_claim` — ne PAS réimplémenter.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Export an invitation as a shareable JSON file payload.
+ * Reads the persisted invitation (its real code), fills the payload's
+ * invitationId, and returns a JSON string ready to save/share.
+ */
+export async function exportInvitationToFile(
+  invitationId: string,
+): Promise<string> {
+  const inv = await invitation.getInvitation(invitationId);
+  if (!inv) throw new Error("INVITATION_NOT_FOUND");
+  const payload: ClaimPayload = {
+    v: 1,
+    orgId: inv.orgId,
+    invitationId: inv.id,
+    code: inv.code,
+    role: inv.targetRole,
+    scope: {
+      type: inv.targetScopeType as "ORG" | "GROUP",
+      ...(inv.targetScopeType === "GROUP" && inv.targetGroupId
+        ? { groupId: inv.targetGroupId }
+        : {}),
+    },
+    memberId: inv.targetMemberId,
+    issuedAt: inv.issuedAt,
+    expiresAt: inv.expiresAt,
+  };
+  return JSON.stringify(payload, null, 2);
+}
+
+/** Parse an imported JSON file back into a claim payload (null if invalid). */
+export function importInvitationFromFile(raw: string): ClaimPayload | null {
+  return parseQRPayload(raw);
+}
+
+/**
+ * Claim an invitation from an imported file. Delegates to the SAME engine as
+ * the QR flow — duplicate handling is the server trigger's job, not ours.
+ */
+export async function claimInvitationFromFile(
+  raw: string,
+  claimedByDeviceId: string,
+  actorProfileId: string,
+): Promise<{ userId: string; claimId: string }> {
+  const payload = importInvitationFromFile(raw);
+  if (!payload) throw new Error("INVALID_INVITATION_FILE");
+  return invitation.claimInvitation(payload, claimedByDeviceId, actorProfileId);
+}

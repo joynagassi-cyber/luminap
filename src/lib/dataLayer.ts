@@ -1623,13 +1623,11 @@ export async function hasActiveOrgAdminGrant(
   if (!userId || !orgId) return false;
   try {
     const db = getPowerSyncDatabase();
-    return await db.readTransaction(async (tx) => {
-      const row = await tx.getOptional(
-        `SELECT 1 FROM org_admins WHERE admin_profile_id = ? AND org_id = ? AND status = 'ACTIVE' LIMIT 1`,
-        [userId, orgId],
-      );
-      return row !== null;
-    });
+    const row = await db.getOptional<number>(
+      `SELECT 1 FROM org_admins WHERE admin_profile_id = ? AND org_id = ? AND status = 'ACTIVE' LIMIT 1`,
+      [userId, orgId],
+    );
+    return row !== null && row !== undefined;
   } catch {
     // PowerSync not open yet (app startup) → refuse context entry, not allow.
     return false;
@@ -1651,15 +1649,14 @@ export async function canAccessOrganization(
   if (!userId || !orgId) return false;
   try {
     const db = getPowerSyncDatabase();
-    return await db.readTransaction(async (tx) => {
-      const row = await tx.getOptional(
-        `SELECT 1 FROM profiles WHERE id = ? AND org_id = ?
-         UNION SELECT 1 FROM org_admins WHERE admin_profile_id = ? AND org_id = ? AND status = 'ACTIVE'
-         LIMIT 1`,
-        [userId, orgId, userId, orgId],
-      );
-      return row !== null;
-    });
+    const row = await db.getOptional<number>(
+      `SELECT 1 FROM profiles WHERE id = ? AND org_id = ?
+       UNION SELECT 1 FROM org_admins
+         WHERE admin_profile_id = ? AND org_id = ? AND status = 'ACTIVE'
+       LIMIT 1`,
+      [userId, orgId, userId, orgId],
+    );
+    return row !== null && row !== undefined;
   } catch {
     return false;
   }
@@ -1695,7 +1692,7 @@ export async function listUserOrgs(userId: string): Promise<UserOrg[]> {
          ORDER BY o.name COLLATE NOCASE`,
         [userId, userId],
       );
-      return res.rows;
+      return res.array ?? [];
     });
     return rows.map((r) => ({
       orgId: String(r.orgId),

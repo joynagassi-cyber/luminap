@@ -169,7 +169,7 @@ export default function Cotisations() {
                         background: "#212121",
                         border: "1px solid #282828",
                       }}
-                      aria-label={`Culte ${stat.culteName || stat.culteId}`}
+                      aria-label={`Culte ${(stat as any).culteName || stat.culteId}`}
                     >
                       <div className="flex items-start gap-3">
                         <div

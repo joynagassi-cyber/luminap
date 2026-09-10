@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppConfig, useCurrentUser } from "@/lib/dataLayer";
 import { usePowerSyncStatus } from "@/lib/dataLayer";
+import { useLocalStore } from "@/store/useLocalStore";
 import { Shield, User, Mail, Wifi, WifiOff } from "lucide-react";
 import {
   IonPage,
@@ -16,6 +17,8 @@ export default function Login() {
   const user = useCurrentUser();
   const { config: appConfig } = useAppConfig();
   const isPowerSyncReady = usePowerSyncStatus();
+  const selectRole = useLocalStore((s) => s.selectRole);
+  const loadInitialData = useLocalStore((s) => s.loadInitialData);
 
   const [name, setName] = useState("");
   const [role, setRole] = useState("");

@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useAppConfig, useCurrentUser } from "@/lib/dataLayer";
 import { authService, type Profile } from "@/lib/auth";
 import { oneSignalService } from "@/lib/authOneSignal";
+import { useLocalStore } from "@/store/useLocalStore";
 import { Loader2, Mail, Lock, User } from "lucide-react";
 import {
   IonPage,
@@ -19,6 +20,8 @@ export default function AuthPage() {
   const location = useLocation();
   const user = useCurrentUser();
   const { config: appConfig } = useAppConfig();
+  const selectRole = useLocalStore((s) => s.selectRole);
+  const loadInitialData = useLocalStore((s) => s.loadInitialData);
 
   const [mode, setMode] = useState<AuthMode>("login");
   const [email, setEmail] = useState("");

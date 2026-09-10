@@ -34,6 +34,7 @@ import {
   IonTitle,
   IonToolbar,
 } from "@ionic/react";
+import { useLocalStore } from "@/store/useLocalStore";
 
 export default function SettingsPage() {
   const navigate = useNavigate();
@@ -42,6 +43,8 @@ export default function SettingsPage() {
   const isOnline = useOnlineStatus();
   const { data: notifications } = useNotifications();
   const { data: accounts } = useAccounts();
+  const loadInitialData = useLocalStore((s) => s.loadInitialData);
+  const auditEntries = useLocalStore((s) => s.auditEntries);
   const [churchName, setChurchName] = useState(appConfig.churchName);
   const [churchLogo, setChurchLogo] = useState(appConfig.churchLogoUrl);
   const [userPhoto, setUserPhoto] = useState(appConfig.userPhoto);
@@ -89,7 +92,7 @@ export default function SettingsPage() {
   };
 
   const totalActions = auditEntries.length;
-  const unreadCount = notifications?.filter((n) => !n.is_read).length ?? 0;
+  const unreadCount = notifications?.filter((n) => !(n as any).is_read).length ?? 0;
 
   return (
     <IonPage>
@@ -318,6 +321,35 @@ export default function SettingsPage() {
 
             {/* Quick links */}
             <div className="grid grid-cols-2 gap-3 mb-5">
+              {user.role === "CENTRAL_ADMIN" && (
+                <button
+                  onClick={() => navigate("/admin")}
+                  className="p-4 rounded-xl text-left active:scale-95 transition-transform w-full col-span-2"
+                  style={{
+                    backgroundColor: "#1a130f",
+                    border: "1px solid #3a2a1a",
+                  }}
+                  aria-label="Administration centrale multi-organisation"
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-10 h-10 rounded-full flex items-center justify-center"
+                      style={{ backgroundColor: "#FF6B0020" }}
+                    >
+                      <Building2 className="w-5 h-5" style={{ color: "#FF6B00" }} />
+                    </div>
+                    <div>
+                      <p className="text-text-primary text-sm font-semibold">
+                        Administration centrale
+                      </p>
+                      <p className="text-text-tertiary text-xs mt-0.5">
+                        Gérer plusieurs organisations · cycle de vie ·
+                        grants d'admin
+                      </p>
+                    </div>
+                  </div>
+                </button>
+              )}
               <button
                 onClick={() => navigate("/forms")}
                 className="p-4 rounded-xl text-left active:scale-95 transition-transform w-full"

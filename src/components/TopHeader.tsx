@@ -1,11 +1,29 @@
-import { Bell, Settings } from "lucide-react";
+import { Bell, Settings, LayoutDashboard } from "lucide-react";
 import { IonButton, IonHeader, IonToolbar } from "@ionic/react";
 import { useLocalStore } from "@/store/useLocalStore";
 import { useNavigate } from "react-router-dom";
+import { useCurrentUser, useOrganizations } from "@/lib/dataLayer";
+import {
+  useOrganizationContext,
+  exitToCentral,
+} from "@/lib/organization-context";
 
 export default function TopHeader({ title }: { title?: string }) {
   const { notifications, markAllNotificationsRead } = useLocalStore();
   const navigate = useNavigate();
+  const user = useCurrentUser();
+  const ctx = useOrganizationContext();
+  const { data: orgData } = useOrganizations("mine");
+
+  const isCentralAdmin = user?.role === "CENTRAL_ADMIN";
+  const inOrgContext = ctx.mode === "ORG";
+  const orgName =
+    orgData?.find((o) => o.id === ctx.orgId)?.name ?? ctx.orgId;
+
+  const handleReturnToCentral = () => {
+    exitToCentral();
+    navigate("/admin");
+  };
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
@@ -68,6 +86,41 @@ export default function TopHeader({ title }: { title?: string }) {
           </div>
         </div>
       </IonToolbar>
+
+      {/* Contexte organisationnel (T8) : bandeau « Organisation : X » + retour central.
+          Visible pour un admin central (grant actif) ou un utilisateur en
+          contexte organisationnelle. La navigation n'est qu'UI : le serveur
+          RLS arbitre l'accès réel aux données. */}
+      {(inOrgContext || isCentralAdmin) && (
+        <div
+          style={{
+            backgroundColor: isCentralAdmin ? "#1a130f" : "#1a1f2b",
+            borderTop: "1px solid #282828",
+          }}
+        >
+          <div className="px-4 py-1.5 flex items-center justify-between gap-2">
+            <span
+              className="text-xs truncate"
+              style={{ color: isCentralAdmin ? "#FF6B00" : "#7aa2ff" }}
+            >
+              {inOrgContext
+                ? `Organisation : ${orgName}`
+                : "Administration centrale"}
+            </span>
+            {isCentralAdmin && (
+              <IonButton
+                onClick={handleReturnToCentral}
+                className="!min-height:auto !p-1 !rounded-full !min-w-[24px] !h-6 !text-xs"
+                style={{ backgroundColor: "#2a2a2a", color: "#B3B3B3" }}
+                aria-label="Retour à l'administration centrale"
+              >
+                <LayoutDashboard className="w-3 h-3 mr-1" />
+                {inOrgContext ? "Retour au central" : "Ouvrir le dashboard"}
+              </IonButton>
+            )}
+          </div>
+        </div>
+      )}
     </IonHeader>
   );
 }

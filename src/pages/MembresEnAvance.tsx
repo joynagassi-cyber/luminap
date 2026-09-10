@@ -21,8 +21,8 @@ export default function MembresEnAvance() {
   // Members with positive montant_en_avance, sorted descending by amount.
   // PSMember uses snake_case columns; keep the existing camelCase fallback pattern.
   const membresEnAvance: AvanceEntry[] = (psData ?? [])
-    .filter((m) => m.montant_en_avance > 0 && m.status === "ACTIVE")
-    .map((m) => ({
+    .filter((m: any) => m.montant_en_avance > 0 && m.status === "ACTIVE")
+    .map((m: any) => ({
       membre: {
         id: m.id,
         firstName: m.first_name,

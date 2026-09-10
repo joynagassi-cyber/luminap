@@ -18,7 +18,9 @@ const { mockPushPlugin } = vi.hoisted(() => ({
     getDeliveredNotifications: vi.fn(),
     removeDeliveredNotifications: vi.fn(),
     removeAllDeliveredNotifications: vi.fn(),
-  },
+    listChannels: vi.fn(),
+    removeAllListeners: vi.fn(),
+  } as any,
 }));
 
 vi.mock("@capacitor/push-notifications", () => ({
