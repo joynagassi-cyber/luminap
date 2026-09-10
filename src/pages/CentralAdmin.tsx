@@ -49,7 +49,7 @@ import {
   archiveOrganization,
   type OrgStats,
   type RecentActivity,
-} from "@/capabilities/organization";
+} from "@/capabilities/organization/central";
 import { useOrganizations, type PSOrganization } from "@/lib/dataLayer";
 import {
   useOrganizationContext,
