@@ -67,7 +67,6 @@ function getCaisseColor(caisseId: string, caisses: Caisse[]): string {
 export default function Reports() {
   const navigate = useNavigate();
   const { churchName, churchLogoUrl } = useAppConfig().config;
-  // TODO: migrate appConfig.churchName / churchLogoUrl to dataLayer state if needed in future
   const { data: transactions } = useTransactions();
   const { data: caisses } = useCaisses();
   const { data: categories } = useCategories();
