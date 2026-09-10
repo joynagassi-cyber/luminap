@@ -1907,3 +1907,11 @@ export function useOnlineStatus() {
 
   return isOnline;
 }
+
+// ============================================================
+// User and loading state hooks
+// ============================================================
+
+/**
+ * Hook to get current user
+ */

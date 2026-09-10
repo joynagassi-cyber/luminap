@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useLocalStore } from "@/store/useLocalStore";
+import { useAppConfig, useCurrentUser } from "@/lib/dataLayer";
 import { authService, type Profile } from "@/lib/auth";
 import { oneSignalService } from "@/lib/authOneSignal";
 import { Loader2, Mail, Lock, User } from "lucide-react";
@@ -17,7 +17,8 @@ type AuthMode = "login" | "signup";
 export default function AuthPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { selectRole, loadInitialData } = useLocalStore();
+  const user = useCurrentUser();
+  const { config: appConfig } = useAppConfig();
 
   const [mode, setMode] = useState<AuthMode>("login");
   const [email, setEmail] = useState("");

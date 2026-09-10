@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useLocalStore } from "@/store/useLocalStore";
+import { useAppConfig, useCurrentUser, useOnlineStatus } from "@/lib/dataLayer";
 import { useNotifications, useAccounts } from "@/lib/dataLayer";
 import {
   Settings,
@@ -37,14 +37,9 @@ import {
 
 export default function SettingsPage() {
   const navigate = useNavigate();
-  const {
-    user,
-    appConfig,
-    updateConfig,
-    loadInitialData,
-    isOnline,
-    auditEntries,
-  } = useLocalStore();
+  const { config: appConfig, updateConfig } = useAppConfig();
+  const user = useCurrentUser();
+  const isOnline = useOnlineStatus();
   const { data: notifications } = useNotifications();
   const { data: accounts } = useAccounts();
   const [churchName, setChurchName] = useState(appConfig.churchName);

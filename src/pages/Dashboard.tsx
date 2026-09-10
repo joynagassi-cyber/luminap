@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { useLocalStore } from "@/store/useLocalStore";
+import { useAppConfig, useCurrentUser } from "@/lib/dataLayer";
 import {
   useTransactions,
   useEvents,
@@ -139,7 +139,8 @@ function CaisseCard({
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { user, appConfig, isLoading } = useLocalStore();
+  const user = useCurrentUser();
+  const { config: appConfig } = useAppConfig();
 
   // DataLayer hooks (PowerSync primary, IndexedDB fallback handled internally)
   const { data: transactions } = useTransactions();

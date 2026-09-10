@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useLocalStore } from "@/store/useLocalStore";
+import { useCurrentUser } from "@/lib/dataLayer";
 import {
   useTransactions,
   useCategories,
@@ -40,7 +40,7 @@ import {
 export default function TransactionDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user } = useLocalStore();
+  const user = useCurrentUser();
 
   // PowerSync with fallback
   const { data: psTransactions } = useTransactions();
@@ -97,7 +97,7 @@ export default function TransactionDetail() {
     if (!security.hasPermission(user.role, "transaction:approve")) {
       return;
     }
-    await useLocalStore.getState().approveTransaction(tx.id, user.id);
+    await approveTransactionPS(tx.id, user?.id || "");
     navigate(-1);
   };
 
@@ -106,12 +106,7 @@ export default function TransactionDetail() {
       return;
     }
     if (!rejectComment.trim()) return;
-    await useLocalStore
-      .getState()
-      .updateTransaction(tx.id, {
-        status: "REJECTED",
-        comment: rejectComment.trim(),
-      });
+    await updateTransactionPS(tx.id, { status: "REJECTED", comment: rejectComment.trim() });
     setShowRejectModal(false);
     setRejectComment("");
     navigate(-1);
@@ -130,9 +125,7 @@ export default function TransactionDetail() {
     if (!security.hasPermission(user.role, "transaction:approve")) {
       return;
     }
-    await useLocalStore
-      .getState()
-      .reverseTransaction(tx.id, reverseReason.trim());
+    await reverseTransactionPS(tx.id, user?.id || "", reverseReason.trim());
     setShowReverseModal(false);
     setReverseReason("");
     navigate(-1);

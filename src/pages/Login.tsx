@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useLocalStore } from "@/store/useLocalStore";
+import { useAppConfig, useCurrentUser } from "@/lib/dataLayer";
 import { usePowerSyncStatus } from "@/lib/dataLayer";
 import { Shield, User, Mail, Wifi, WifiOff } from "lucide-react";
 import {
@@ -13,7 +13,8 @@ import {
 
 export default function Login() {
   const navigate = useNavigate();
-  const { selectRole, loadInitialData } = useLocalStore();
+  const user = useCurrentUser();
+  const { config: appConfig } = useAppConfig();
   const isPowerSyncReady = usePowerSyncStatus();
 
   const [name, setName] = useState("");
