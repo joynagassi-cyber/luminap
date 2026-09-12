@@ -50,3 +50,7 @@ android/app/lumina-keystore.b64
 
 # Legacy pnpm lockfile (superseded by package-lock.json — safe to delete)
 pnpm-lock.yaml
+
+# Reversa framework artifacts (analysis output only)
+.reversa/
+_reversa_sdd/
