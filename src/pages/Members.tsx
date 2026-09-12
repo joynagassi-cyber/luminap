@@ -138,7 +138,7 @@ export default function MembersPage() {
                 onClick={() => setShowForm(!showForm)}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-semibold text-white transition-all active:scale-95"
                 style={{
-                  background: "linear-gradient(135deg, #FF8533, #FF6B00)",
+                  background: "linear-gradient(135deg, #FF8533, var(--accent-primary))",
                   boxShadow: "0 4px 12px rgba(255,107,0,0.3)",
                 }}
               >
@@ -169,7 +169,7 @@ export default function MembersPage() {
                 className="rounded-xl p-4 mb-4"
                 style={{
                   backgroundColor: "#212121",
-                  border: "1px solid #FF6B0030",
+                  border: "1px solid color-mix(in srgb, var(--accent-primary) 19%, transparent)",
                 }}
               >
                 <h3 className="text-text-primary font-semibold text-sm mb-3">
@@ -230,7 +230,7 @@ export default function MembersPage() {
                     <button
                       onClick={handleCreate}
                       className="flex-1 py-3 rounded-full font-semibold text-white text-sm"
-                      style={{ backgroundColor: "#FF6B00" }}
+                      style={{ backgroundColor: "var(--accent-primary)" }}
                     >
                       Ajouter
                     </button>
@@ -271,11 +271,11 @@ export default function MembersPage() {
                   >
                     <div
                       className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                      style={{ backgroundColor: "#FF6B0020" }}
+                      style={{ backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)" }}
                     >
                       <span
                         className="text-sm font-bold"
-                        style={{ color: "#FF6B00" }}
+                        style={{ color: "var(--accent-primary)" }}
                       >
                         {(member.first_name || member.firstName)?.charAt(0)}
                         {(member.last_name || member.lastName)?.charAt(0)}

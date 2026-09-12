@@ -19,9 +19,11 @@ import {
   setOrganizationStatusPS,
   grantOrgAdminPS,
   revokeOrgAdminPS,
+  getOrgAdminsFull,
   type OrgStatus,
   type OrgType,
   type PSOrganization,
+  type PSOrgAdminWithProfile,
 } from "@/lib/dataLayer";
 import { writeAudit } from "@/lib/audit";
 import { getPowerSyncDatabase } from "@/lib/powersync";
@@ -278,5 +280,50 @@ export async function getRecentActivity(
     comment: (r.comment as string | null) ?? null,
     createdAt: String(r.created_at),
     actorId: String(r.user_id),
+  }));
+}
+
+// ─── Org Report Card ───────────────────────────────────────────────────────
+
+export interface OrgReportCard {
+  /** Total members in the org */
+  memberCount: number;
+  /** Active admin count */
+  activeAdminCount: number;
+  /** Revoked admin count */
+  revokedAdminCount: number;
+}
+
+export async function getOrgReportCard(orgId: string): Promise<OrgReportCard> {
+  const db = getPowerSyncDatabase();
+
+  const memberRes = await db.execute(
+    `SELECT COUNT(*) AS n FROM members WHERE org_id = ? AND archived_at IS NULL`,
+    [orgId],
+  );
+  const memberCount = Number(memberRes?.array?.[0]?.n) ?? 0;
+
+  const adminRes = await getOrgAdminsFull(orgId);
+  const activeAdminCount = adminRes.filter((a) => a.status === "ACTIVE").length;
+  const revokedAdminCount = adminRes.filter((a) => a.status === "REVOKED").length;
+
+  return { memberCount, activeAdminCount, revokedAdminCount };
+}
+
+// ─── Admin List with Profiles ──────────────────────────────────────────────
+
+export interface OrgAdminDetail extends PSOrgAdminWithProfile {
+  displayName: string;
+}
+
+export async function getOrgAdminDetails(
+  orgId: string,
+): Promise<OrgAdminDetail[]> {
+  const admins = await getOrgAdminsFull(orgId);
+  return admins.map((a) => ({
+    ...a,
+    displayName: a.last_name
+      ? `${a.first_name} ${a.last_name}`.trim()
+      : a.email || a.admin_profile_id.slice(0, 8),
   }));
 }
