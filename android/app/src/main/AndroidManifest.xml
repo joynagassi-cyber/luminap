@@ -22,6 +22,18 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- Supabase / Google OAuth deep-link callback.
+                 When signInWithOAuth() is called with redirectTo =
+                 "lumina://auth/callback", Google hands the browser/WebView
+                 back to this scheme and Android routes it straight into the
+                 app instead of opening the system browser. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="lumina" />
+            </intent-filter>
+
         </activity>
 
         <provider
@@ -41,6 +53,9 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <!-- FCM (Firebase Cloud Messaging) — required by OneSignal for in-app
+         push delivery on modern Android. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <!-- OneSignal Push Notification Receiver -->
     <receiver android:name="com.onesignal.GcmBroadcastReceiver" android:exported="false">
@@ -48,4 +63,15 @@
             <action android:name="com.google.android.c2dm.intent.RECEIVE" />
         </intent-filter>
     </receiver>
+
+    <!-- Firebase Cloud Messaging — FCM is required for OneSignal in-app
+         push on API 26+. -->
+    <service
+        android:name="com.google.firebase.messaging.FirebaseMessagingService"
+        android:enabled="true"
+        android:exported="true">
+        <intent-filter>
+            <action android:name="com.google.firebase.MESSAGING_EVENT" />
+        </intent-filter>
+    </service>
 </manifest>

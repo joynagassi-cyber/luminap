@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "218221449305",
+    "project_id": "lumina-mfe-jc",
+    "storage_bucket": "lumina-mfe-jc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:218221449305:android:80e276cf6a52b0339c2148",
+        "android_client_info": {
+          "package_name": "com.lumina.mfejc"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "218221449305-b1i1b2qisd1ntuf0dhhli0tueqijokgm.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.lumina.mfejc",
+            "certificate_hash": "2586585f1accb7a3066939a7072099f8efd04a30"
+          }
+        },
+        {
+          "client_id": "218221449305-7olfoebatnvchjdcsok262teo16mppff.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDfFOCLomFiSoM-NO44kZmJMECpWhdQpUw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "218221449305-7olfoebatnvchjdcsok262teo16mppff.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
