@@ -14,11 +14,17 @@ import { resolve } from "path";
 
 describe("Capability Architecture Boundaries", () => {
   const capabilities = [
-    "workflow",
+    "cotisation",
+    "federation",
+    "invitation",
     "lifecycle",
+    "notification",
+    "organization",
+    "policy",
     "relationship",
     "resource",
     "security",
+    "workflow",
   ];
   const root = resolve(__dirname, "../../..");
 
