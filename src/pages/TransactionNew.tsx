@@ -12,6 +12,7 @@ import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
 import { generateId } from "@/lib/utils";
 import { getOrganizationId } from "@/lib/orgContext";
+import { policy } from "@/capabilities/policy";
 import {
   IonPage,
   IonHeader,
@@ -87,10 +88,16 @@ export default function TransactionNew() {
     const sessionId = localStorage.getItem("lumina-session") || "local-user";
     const isExpense = type === "EXPENSE";
 
+    const amountCents = Math.round(parseFloat(trimmedAmount) * 100);
+    const amountCheck = policy.transaction.validateAmount(amountCents);
+    if (!amountCheck.ok) {
+      setError(amountCheck.message ?? "Veuillez entrer un montant valide");
+      return;
+    }
     await addTransactionPS({
       org_id: getOrganizationId(),
       type,
-      amount: Math.round(parseFloat(amount) * 100),
+      amount: Math.round(parseFloat(trimmedAmount) * 100),
       description,
       date,
       status: isExpense ? "PENDING" : "DRAFT",

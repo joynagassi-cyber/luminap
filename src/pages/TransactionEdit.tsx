@@ -11,6 +11,7 @@ import {
 import { ArrowUpRight, ArrowDownRight, X, Wallet, User } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
+import { policy } from "@/capabilities/policy";
 import {
   IonPage,
   IonHeader,
@@ -49,6 +50,7 @@ export default function TransactionEdit() {
   const [eventId, setEventId] = useState("");
   const [compensatesFor, setCompensatesFor] = useState("");
   const [comment, setComment] = useState("");
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const tx = transactions.find((t: any) => t.id === id);
@@ -90,7 +92,17 @@ export default function TransactionEdit() {
     const trimmedAmount = amount?.toString().trim();
     const trimmedDesc = description?.trim();
     const trimmedCatId = categoryId?.toString().trim();
-    if (!trimmedAmount || !trimmedDesc || !trimmedCatId) return;
+    if (!trimmedAmount || !trimmedDesc || !trimmedCatId) {
+      setError("请填完整必填项");
+      return;
+    }
+    const amountCents = Math.round(parseFloat(amount) * 100);
+    const amountCheck = policy.transaction.validateAmount(amountCents);
+    if (!amountCheck.ok) {
+      setError(amountCheck.message ?? "金额无效");
+      return;
+    }
+    setError(null);
     await updateTransactionPS(id!, {
       type,
       amount: Math.round(parseFloat(amount) * 100),
@@ -319,6 +331,15 @@ export default function TransactionEdit() {
                   }}
                 />
               </div>
+
+              {error && (
+                <div
+                  className="mb-4 p-3 rounded-xl text-sm text-center"
+                  style={{ backgroundColor: "#E5133220", color: "#ff8fa3" }}
+                >
+                  {error}
+                </div>
+              )}
 
               <button
                 onClick={handleSubmit}
