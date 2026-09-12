@@ -24,6 +24,7 @@ function createMockPlugin() {
     addTags: vi.fn(), // alias, delegates to setTags in the service
     getOnesignalId: vi.fn().mockResolvedValue("mock-player-id"),
     getExternalId: vi.fn().mockResolvedValue(null),
+    getToken: vi.fn().mockResolvedValue("mock-device-token"),
     trackEvent: vi.fn(),
     Notifications: {
       requestPermission: vi.fn().mockResolvedValue(true),
@@ -77,12 +78,27 @@ vi.mock("@/lib/onesignal", () => ({
   OneSignalService: class {},
 }));
 
+// ─── PowerSync mock (notifications persistence, audit O4) ───────
+const mockExecutions: Array<{ sql: string; params: any[] }> = [];
+vi.mock("@/lib/powersync", () => ({
+  getPowerSyncDatabase: () => ({
+    execute: async (sql: string, params: any[] = []) => {
+      mockExecutions.push({ sql, params });
+      return { array: [] };
+    },
+  }),
+}));
+vi.mock("@/lib/orgContext", () => ({
+  getOrganizationId: () => "org-test-1",
+}));
+
 describe("notification capability", () => {
   let notif: NotificationCapability;
 
   beforeEach(() => {
     notif = new NotificationCapability();
     vi.clearAllMocks();
+    mockExecutions.length = 0;
     // Reassign the shared reference so the plugin's getTags() call reads the clean state
     Object.keys(mockTags).forEach((k) => delete mockTags[k]);
   });
@@ -207,6 +223,38 @@ describe("notification capability", () => {
       const fresh = new NotificationCapability();
       await fresh.sendNotification(baseData);
       expect(mockPlugin.initialize).toHaveBeenCalled();
+    });
+
+    it("persists the notification to the PowerSync notifications table (O4)", async () => {
+      await notif.initialize();
+      await notif.sendNotification({
+        ...baseData,
+        targetRole: "TREASURIER",
+        targetUserId: "user-42",
+      });
+      const insert = mockExecutions.find((e) =>
+        /INSERT INTO notifications/i.test(e.sql),
+      );
+      expect(insert).toBeDefined();
+      expect(insert!.params).toEqual([
+        "org-test-1",
+        "TREASURIER",
+        "Hello",
+        expect.stringContaining('"targetUserId":"user-42"'),
+        "user-42",
+        expect.stringMatching(/^\d{4}-/),
+      ]);
+      // The OneSignal tag path still runs alongside persistence
+      expect(mockPlugin.setTags).toHaveBeenCalled();
+    });
+
+    it("stamps action_type PUSH when no targetRole is given", async () => {
+      await notif.initialize();
+      await notif.sendNotification(baseData);
+      const insert = mockExecutions.find((e) =>
+        /INSERT INTO notifications/i.test(e.sql),
+      );
+      expect(insert!.params[1]).toBe("PUSH");
     });
   });
 
