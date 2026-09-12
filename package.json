@@ -12,9 +12,14 @@
     "preview": "vite preview",
     "start": "node .output/server/index.mjs",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "audit": "node --experimental-strip-types scripts/audit-lumina.ts",
+    "cypress:open": "cypress open",
+    "cypress:run": "cypress run",
+    "cypress:chrome": "CYPRESS_BROWSER=chrome cypress run"
   },
   "dependencies": {
+    "@capacitor/app": "^6.0.3",
     "@capacitor/camera": "^8.2.4",
     "@capacitor/network": "^8.0.1",
     "@capacitor/push-notifications": "^6.0.5",
@@ -23,7 +28,6 @@
     "@ionic/core": "^9.0.2",
     "@ionic/react": "^9.0.2",
     "@ionic/react-router": "^9.0.2",
-    "@playwright/test": "^1.62.1",
     "@powersync/react": "^2.0.1",
     "@powersync/web": "^2.3.0",
     "@radix-ui/react-accordion": "^1.2.0",
@@ -96,6 +100,9 @@
     "@dyad-sh/react-vite-component-tagger": "^0.9.0",
     "@eslint/js": "^9.9.0",
     "@tailwindcss/typography": "^0.5.15",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
     "@types/node": "^22.5.5",
     "@types/react": "^19.2.8",
     "@types/react-dom": "^19.2.3",
@@ -105,6 +112,7 @@
     "eslint-plugin-react-hooks": "^5.1.0-rc.0",
     "eslint-plugin-react-refresh": "^0.4.9",
     "globals": "^15.9.0",
+    "jsdom": "^29.1.1",
     "postcss": "^8.5.27",
     "rollup-plugin-visualizer": "^7.1.1",
     "tailwindcss": "^3.4.19",
@@ -113,6 +121,7 @@
     "vite": "^8.2.2",
     "vite-plugin-top-level-await": "^1.6.0",
     "vite-plugin-wasm": "^3.6.0",
-    "vitest": "^5.0.0"
+    "vitest": "^5.0.0",
+    "cypress": "^16.0.0"
   }
 }
