@@ -25,6 +25,12 @@ export function getPowerSyncConnector(): SupabaseConnector {
 }
 
 export async function initPowerSync(): Promise<void> {
+  // Idempotent: a second call is a no-op so repeated boots / HMR do not
+  // create a second database handle.
+  if (_db) {
+    return;
+  }
+
   // Créer le connector
   _connector = new SupabaseConnector();
 
@@ -56,12 +62,15 @@ export async function initPowerSync(): Promise<void> {
     },
   });
 
-  // Attendre la première sync
-  try {
-    await _db.waitForFirstSync();
-  } catch (error) {
-    // First sync failure is non-fatal; PowerSync will retry
-  }
+  // Kick off the first sync in the background. We deliberately do NOT await
+  // it here: without an auth session (fresh browser, pre-login) the PowerSync
+  // service will reject the empty token and `waitForFirstSync` could hang,
+  // which would freeze the app boot. PowerSync retries automatically, and the
+  // connector re-syncs as soon as a Supabase session exists (logged in in the
+  // UI). initPowerSync resolves as soon as the database handle is ready.
+  _db.waitForFirstSync().catch((error) => {
+    console.debug("[PowerSync] first sync failed (will retry):", error);
+  });
 }
 
 export async function disconnectPowerSync(): Promise<void> {

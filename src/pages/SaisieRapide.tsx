@@ -35,6 +35,7 @@ import {
 import { useLocalStore } from "@/store/useLocalStore";
 import { formatDate, formatCurrencyCompact } from "@/lib/utils";
 import { isCulteVerrouille } from "@/lib/cotisation-logic";
+import { policy } from "@/capabilities/policy";
 import type { CotisationStatut } from "@/types";
 
 export default function SaisieRapide() {
@@ -68,6 +69,11 @@ export default function SaisieRapide() {
 
   const handlePay = async (cot: any, montantPaye: number) => {
     if (!id) return;
+    const policyCheck = policy.cotisation.validateAmount(montantPaye);
+    if (!policyCheck.ok) {
+      setError(policyCheck.message ?? "Paiement refusé");
+      return;
+    }
     const memberId = cot.membre_id ?? cot.membreId;
     setBusy(memberId);
     setError(null);

@@ -220,7 +220,7 @@ export default function FormFill() {
                 <button
                   onClick={handleSubmit}
                   className="w-full py-4 rounded-full font-semibold text-white transition-all active:scale-95"
-                  style={{ backgroundColor: "#FF6B00" }}
+                  style={{ backgroundColor: "var(--accent-primary)" }}
                 >
                   Soumettre
                 </button>

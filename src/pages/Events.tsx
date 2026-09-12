@@ -71,7 +71,7 @@ export default function Events() {
                 onClick={() => navigate("/event/new")}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-semibold text-white transition-all active:scale-95"
                 style={{
-                  background: "linear-gradient(135deg, #FF8533, #FF6B00)",
+                  background: "linear-gradient(135deg, #FF8533, var(--accent-primary))",
                   boxShadow: "0 4px 12px rgba(255,107,0,0.3)",
                 }}
                 aria-label="Créer un nouvel événement"
@@ -95,7 +95,7 @@ export default function Events() {
                 <button
                   onClick={() => navigate("/event/new")}
                   className="px-6 py-2.5 rounded-full text-sm font-medium text-white"
-                  style={{ backgroundColor: "#FF6B00" }}
+                  style={{ backgroundColor: "var(--accent-primary)" }}
                   aria-label="Créer un événement"
                 >
                   Créer un événement
@@ -142,7 +142,7 @@ export default function Events() {
                         >
                           <Gift
                             className="text-lg"
-                            style={{ color: "#FF6B00" }}
+                            style={{ color: "var(--accent-primary)" }}
                           />
                         </div>
                         <div className="flex-1 min-w-0">

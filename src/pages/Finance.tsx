@@ -222,7 +222,7 @@ export default function Finance() {
                         className="px-3 py-1.5 rounded-lg text-xs font-medium"
                         style={{
                           backgroundColor:
-                            selectedType === f ? "#FF6B00" : "#212121",
+                            selectedType === f ? "var(--accent-primary)" : "#212121",
                           color: selectedType === f ? "#fff" : "#B3B3B3",
                         }}
                       >
@@ -266,7 +266,7 @@ export default function Finance() {
                       className="px-3 py-1.5 rounded-lg text-xs font-medium"
                       style={{
                         backgroundColor:
-                          selectedCaisse === "ALL" ? "#FF6B00" : "#212121",
+                          selectedCaisse === "ALL" ? "var(--accent-primary)" : "#212121",
                         color: selectedCaisse === "ALL" ? "#fff" : "#B3B3B3",
                       }}
                     >
@@ -279,7 +279,7 @@ export default function Finance() {
                         className="px-3 py-1.5 rounded-lg text-xs font-medium"
                         style={{
                           backgroundColor:
-                            selectedCaisse === c.id ? "#FF6B00" : "#212121",
+                            selectedCaisse === c.id ? "var(--accent-primary)" : "#212121",
                           color: selectedCaisse === c.id ? "#fff" : "#B3B3B3",
                         }}
                       >

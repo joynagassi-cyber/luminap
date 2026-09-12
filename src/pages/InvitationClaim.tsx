@@ -37,7 +37,11 @@ import {
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
 import CameraScanner from "@/components/CameraScanner";
-import { useCurrentUser } from "@/lib/dataLayer";
+import { useCurrentUser, selectRole } from "@/lib/dataLayer";
+import {
+  loadOnboardingState,
+  completeOnboarding,
+} from "@/lib/onboardingState";
 import {
   invitation,
   parseQRPayload,
@@ -106,6 +110,19 @@ export default function InvitationClaim() {
         crypto.randomUUID(),
         user.id,
       );
+
+      // The invitation carries the role the inviter assigned — apply it to
+      // the local session so the app unlocks the corresponding capabilities,
+      // and mark the onboarding flow done so Splash routes to the dashboard
+      // instead of re-running onboarding on the next launch.
+      if (parsedPayload.role) {
+        await selectRole(parsedPayload.role);
+        const state = loadOnboardingState();
+        state.branch = "member";
+        state.role = parsedPayload.role;
+        completeOnboarding(state);
+      }
+
       setResult({
         ok: true,
         message: `Bienvenue ! Votre compte a été créé (status: PENDING). Vous pourrez utiliser l'application immédiatement. La confirmation finale arrivera dès qu'une connexion sera disponible.`,
@@ -241,7 +258,7 @@ export default function InvitationClaim() {
                   style={{
                     backgroundColor: "#1a130f",
                     border: "1px solid #3a2a1a",
-                    color: "#FF6B00",
+                    color: "var(--accent-primary)",
                   }}
                 >
                   <FileUp className="w-4 h-4" />

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePowerSyncStatus, useLoadInitialData } from "@/lib/dataLayer";
+import { needsOnboarding } from "@/lib/onboardingState";
 import { Wifi, WifiOff } from "lucide-react";
 import {
   IonPage,
@@ -38,16 +39,12 @@ export default function Splash() {
 
       if (cancelled) return;
 
-      const storedRole = localStorage.getItem("lumina-role");
-      const storedOnboarded = localStorage.getItem("lumina-onboarded");
-
-      if (storedRole && storedOnboarded === "true") {
-        navigate("/dashboard", { replace: true });
-      } else {
-        navigate("/onboarding", { replace: true });
-      }
+      // Onboarding (new or legacy flow) finished → straight to the
+      // dashboard; otherwise resume the onboarding where the user left off.
+      navigate(needsOnboarding() ? "/onboarding" : "/dashboard", {
+        replace: true,
+      });
     }
-
     init();
 
     return () => {
@@ -89,7 +86,7 @@ export default function Splash() {
           </div>
           <h1
             className="text-white font-bold text-3xl tracking-wide mb-2"
-            style={{ color: "#FF6B00" }}
+            style={{ color: "var(--accent-primary)" }}
           >
             Lumina
           </h1>
@@ -98,7 +95,7 @@ export default function Splash() {
           </p>
           {phase === "loading" && (
             <div className="flex flex-col items-center gap-3">
-              <div className="w-8 h-8 rounded-full border-2 border-[#FF6B00] border-t-transparent animate-spin" />
+              <div className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: "var(--accent-primary)", borderTopColor: "transparent" }} />
               <p className="text-[#808080] text-xs">Chargement en cours…</p>
             </div>
           )}

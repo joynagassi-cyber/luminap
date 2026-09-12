@@ -60,16 +60,16 @@ export default function MembresEnAvance() {
               className="rounded-2xl p-5 mb-5"
               style={{
                 background: "linear-gradient(135deg, #1a1a2e 0%, #121212 100%)",
-                border: "1px solid #FF6B0030",
+                border: "1px solid color-mix(in srgb, var(--accent-primary) 19%, transparent)",
               }}
             >
               <div className="flex items-center gap-2 mb-2">
-                <TrendingUp className="w-4 h-4" style={{ color: "#FF6B00" }} />
+                <TrendingUp className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
                 <span className="text-text-tertiary text-xs font-medium uppercase tracking-wider">
                   Total en avance
                 </span>
               </div>
-              <p className="text-3xl font-black" style={{ color: "#FF6B00" }}>
+              <p className="text-3xl font-black" style={{ color: "var(--accent-primary)" }}>
                 {formatCurrencyCompact(totalEnAvance)}
                 <span className="text-text-tertiary text-base font-medium ml-1">
                   FCFA
@@ -109,11 +109,11 @@ export default function MembresEnAvance() {
                   >
                     <div
                       className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                      style={{ backgroundColor: "#FF6B0020" }}
+                      style={{ backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)" }}
                     >
                       <span
                         className="text-sm font-bold"
-                        style={{ color: "#FF6B00" }}
+                        style={{ color: "var(--accent-primary)" }}
                       >
                         {membre.firstName.charAt(0)}
                         {membre.lastName.charAt(0)}

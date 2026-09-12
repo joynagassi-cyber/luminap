@@ -13,7 +13,7 @@ import {
   addGroupMembershipPS,
   removeGroupMembershipPS,
 } from "@/lib/dataLayer";
-import { formatCurrencyCompact, formatDate } from "@/lib/utils";
+import { formatCurrencyCompact, formatDate, tint } from "@/lib/utils";
 import {
   Wallet,
   TrendingUp,
@@ -29,6 +29,7 @@ import {
   UserPlus,
   UserMinus,
   Archive,
+  Coins,
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TransactionCard from "@/components/TransactionCard";
@@ -107,7 +108,7 @@ export default function GroupDetail() {
               <button
                 onClick={() => navigate("/groups")}
                 className="text-sm"
-                style={{ color: "#FF6B00" }}
+                style={{ color: "var(--accent-primary)" }}
               >
                 Retour aux groupes
               </button>
@@ -118,7 +119,7 @@ export default function GroupDetail() {
     );
   }
 
-  const color = (account as any).color || "#FF6B00";
+  const color = (account as any).color || "var(--accent-primary)";
   const txs = transactions.filter(
     (t: any) =>
       t.source_caisse_id === account.id || t.sourceCaisseId === account.id,
@@ -277,13 +278,13 @@ export default function GroupDetail() {
             className="rounded-2xl p-5 mb-5"
             style={{
               backgroundColor: "#212121",
-              border: `1px solid ${color}40`,
+              border: `1px solid ${tint(color, 25)}`,
             }}
           >
             <div className="flex items-center gap-3 mb-4">
               <div
                 className="w-12 h-12 rounded-full flex items-center justify-center"
-                style={{ backgroundColor: color + "20" }}
+                style={{ backgroundColor: tint(color, 12) }}
               >
                 <Wallet className="w-6 h-6" style={{ color }} />
               </div>
@@ -297,7 +298,7 @@ export default function GroupDetail() {
               </div>
               <span
                 className="text-xs px-2 py-1 rounded-full font-medium"
-                style={{ backgroundColor: color + "15", color }}
+                style={{ backgroundColor: tint(color, 8), color }}
               >
                 Caisse
               </span>
@@ -392,18 +393,17 @@ export default function GroupDetail() {
             >
               <ArrowDown className="w-4 h-4" /> Sortie
             </button>
-            {balance > 0 && (
-              <button
-                onClick={handleVersement}
-                className="px-4 py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-95"
-                style={{
-                  background: "linear-gradient(135deg, #FF8533, #FF6B00)",
-                  color: "#fff",
-                }}
-              >
-                <Check className="w-4 h-4" />
-              </button>
-            )}
+            <button
+              onClick={() => navigate(`/groups/${id}/cotisation`)}
+              className="flex-1 py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-95"
+              style={{
+                backgroundColor: "color-mix(in srgb, var(--accent-primary) 15%, transparent)",
+                color: "var(--accent-primary)",
+                border: "1px solid color-mix(in srgb, var(--accent-primary) 30%, transparent)",
+              }}
+            >
+              <Coins className="w-4 h-4" /> Cotisation
+            </button>
           </div>
 
           {/* Tabs */}
@@ -433,7 +433,7 @@ export default function GroupDetail() {
                   style={
                     activeTab === tabId
                       ? {
-                          backgroundColor: "#FF6B00",
+                          backgroundColor: "var(--accent-primary)",
                           color: "#fff",
                           boxShadow: "0 2px 8px rgba(255,107,0,0.3)",
                         }
@@ -459,7 +459,7 @@ export default function GroupDetail() {
                     navigate("/finance", { state: { caisseId: account.id } })
                   }
                   className="text-xs font-medium"
-                  style={{ color: "#FF6B00" }}
+                  style={{ color: "var(--accent-primary)" }}
                 >
                   Tout voir
                 </button>
@@ -507,7 +507,7 @@ export default function GroupDetail() {
                 <button
                   onClick={() => setShowAddMember(true)}
                   className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium"
-                  style={{ backgroundColor: "#FF6B0020", color: "#FF6B00" }}
+                  style={{ backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)", color: "var(--accent-primary)" }}
                 >
                   <UserPlus className="w-3.5 h-3.5" /> Ajouter
                 </button>
@@ -538,11 +538,11 @@ export default function GroupDetail() {
                       >
                         <div
                           className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                          style={{ backgroundColor: "#FF6B0020" }}
+                          style={{ backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)" }}
                         >
                           <span
                             className="text-sm font-bold"
-                            style={{ color: "#FF6B00" }}
+                            style={{ color: "var(--accent-primary)" }}
                           >
                             {(member.first_name || member.firstName)?.charAt(0)}
                             {(member.last_name || member.lastName)?.charAt(0)}
@@ -584,7 +584,7 @@ export default function GroupDetail() {
                 <div className="flex items-center gap-2 mb-3">
                   <ArrowRightLeft
                     className="w-4 h-4"
-                    style={{ color: "#FF6B00" }}
+                    style={{ color: "var(--accent-primary)" }}
                   />
                   <p className="text-text-primary font-semibold text-sm">
                     Versements
@@ -592,7 +592,7 @@ export default function GroupDetail() {
                   {versementList.length > 0 && (
                     <span
                       className="text-xs px-2 py-0.5 rounded-full"
-                      style={{ backgroundColor: "#FF6B0020", color: "#FF6B00" }}
+                      style={{ backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)", color: "var(--accent-primary)" }}
                     >
                       {versementList.length}
                     </span>
@@ -621,11 +621,11 @@ export default function GroupDetail() {
                       >
                         <div
                           className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-                          style={{ backgroundColor: "#FF6B0020" }}
+                          style={{ backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)" }}
                         >
                           <ArrowRightLeft
                             className="w-4 h-4"
-                            style={{ color: "#FF6B00" }}
+                            style={{ color: "var(--accent-primary)" }}
                           />
                         </div>
                         <div className="flex-1">
@@ -665,7 +665,7 @@ export default function GroupDetail() {
                           style={{
                             backgroundColor:
                               evt.type === "info"
-                                ? "#FF6B00"
+                                ? "var(--accent-primary)"
                                 : evt.type === "success"
                                   ? "#1DB954"
                                   : "#808080",
@@ -756,7 +756,7 @@ export default function GroupDetail() {
                     <button
                       onClick={handleUpdate}
                       className="flex-1 py-2.5 rounded-full text-sm font-semibold text-white"
-                      style={{ backgroundColor: "#FF6B00" }}
+                      style={{ backgroundColor: "var(--accent-primary)" }}
                     >
                       Sauvegarder
                     </button>
@@ -784,9 +784,9 @@ export default function GroupDetail() {
                 >
                   <div
                     className="w-10 h-10 rounded-full flex items-center justify-center"
-                    style={{ backgroundColor: "#FF6B0020" }}
+                    style={{ backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)" }}
                   >
-                    <Edit3 className="w-5 h-5" style={{ color: "#FF6B00" }} />
+                    <Edit3 className="w-5 h-5" style={{ color: "var(--accent-primary)" }} />
                   </div>
                   <span className="text-text-primary text-sm font-medium">
                     Modifier le groupe
@@ -939,7 +939,7 @@ export default function GroupDetail() {
                   onClick={handleAddMember}
                   disabled={!selectedMemberId}
                   className="w-full py-3.5 rounded-full font-semibold text-white disabled:opacity-40"
-                  style={{ backgroundColor: "#FF6B00" }}
+                  style={{ backgroundColor: "var(--accent-primary)" }}
                 >
                   Ajouter au groupe
                 </button>

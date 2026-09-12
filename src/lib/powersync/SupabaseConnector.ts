@@ -43,15 +43,15 @@ export class SupabaseConnector
 
   constructor() {
     super();
-    this.config = {
-      supabaseUrl:
-        import.meta.env.VITE_SUPABASE_URL ||
-        "https://vvcdmqpbwfyhkzalwdli.supabase.co",
-      powersyncUrl:
-        import.meta.env.VITE_POWERSYNC_URL ||
-        "https://YOUR_INSTANCE_ID.powersync.journeyapps.com",
-      supabaseAnonKey: import.meta.env.VITE_SUPABASE_ANON_KEY || "",
-    };
+    const supabaseUrl =
+      import.meta.env.VITE_SUPABASE_URL ||
+      "https://vvcdmqpbwfyhkzalwdli.supabase.co";
+    const powersyncUrl =
+      import.meta.env.VITE_POWERSYNC_URL ||
+      "https://YOUR_INSTANCE_ID.powersync.journeyapps.com";
+    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
+
+    this.config = { supabaseUrl, powersyncUrl, supabaseAnonKey };
 
     this.client = createClient(
       this.config.supabaseUrl,

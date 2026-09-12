@@ -57,9 +57,9 @@ export default function Help() {
                 >
                   <div
                     className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                    style={{ backgroundColor: "#FF6B0020" }}
+                    style={{ backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)" }}
                   >
-                    <Icon className="w-5 h-5" style={{ color: "#FF6B00" }} />
+                    <Icon className="w-5 h-5" style={{ color: "var(--accent-primary)" }} />
                   </div>
                   <div>
                     <p className="text-text-primary font-semibold text-sm">
@@ -76,7 +76,7 @@ export default function Help() {
               style={{ backgroundColor: "#212121" }}
             >
               <div className="flex items-center gap-2 mb-3">
-                <HelpCircle className="w-5 h-5" style={{ color: "#FF6B00" }} />
+                <HelpCircle className="w-5 h-5" style={{ color: "var(--accent-primary)" }} />
                 <span className="text-text-primary font-semibold">
                   Rôles disponibles
                 </span>

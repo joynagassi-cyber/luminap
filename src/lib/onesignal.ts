@@ -441,11 +441,19 @@ class OneSignalService {
       return;
     }
 
+    // In a plain browser there is no Capacitor bridge, no Cordova plugin and
+    // no OneSignal web SDK loaded — getPlugin() returns null. Guard against
+    // it: calling `.initialize` on a null plugin is what crashed the app at
+    // startup ("Cannot read properties of null (reading 'initialize')").
+    if (!this.plugin) {
+      return;
+    }
+
     // Initialize with app ID
     this.plugin.initialize(this.appId);
 
     // Enable verbose logging in development
-    if (import.meta.env.DEV) {
+    if (import.meta.env.DEV && this.plugin.Debug) {
       this.plugin.Debug.setLogLevel(LogLevel.Verbose);
     }
 

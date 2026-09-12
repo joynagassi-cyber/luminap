@@ -84,7 +84,7 @@ const COLORS = {
   income: "#1DB954",
   expense: "#E51332",
   pending: "#FFB800",
-  accent: "#FF6B00",
+  accent: "var(--accent-primary)",
   purple: "#8B5CF6",
   blue: "#3B82F6",
   teal: "#14B8A6",
@@ -228,7 +228,7 @@ export default function HistoryPage() {
                   onClick={() => setPeriod(p.key as any)}
                   className="flex-1 py-2 rounded-full text-xs font-medium transition-all"
                   style={{
-                    backgroundColor: period === p.key ? "#FF6B00" : "#212121",
+                    backgroundColor: period === p.key ? "var(--accent-primary)" : "#212121",
                     color: period === p.key ? "#fff" : "#B3B3B3",
                   }}
                 >
@@ -284,7 +284,7 @@ export default function HistoryPage() {
                   className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-all"
                   style={{
                     backgroundColor:
-                      activeTab === tab.key ? "#FF6B00" : "#212121",
+                      activeTab === tab.key ? "var(--accent-primary)" : "#212121",
                     color: activeTab === tab.key ? "#fff" : "#B3B3B3",
                   }}
                 >
@@ -337,7 +337,7 @@ export default function HistoryPage() {
               <button
                 onClick={() => navigate("/trace")}
                 className="text-xs"
-                style={{ color: "#FF6B00" }}
+                style={{ color: "var(--accent-primary)" }}
               >
                 Voir tout →
               </button>

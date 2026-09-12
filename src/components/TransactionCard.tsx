@@ -56,7 +56,7 @@ export default function TransactionCard({
                 <span className="text-text-tertiary text-xs">·</span>
                 <span
                   className="text-xs px-1.5 py-0.5 rounded-full"
-                  style={{ backgroundColor: "#FF6B0015", color: "#FF6B00" }}
+                  style={{ backgroundColor: "color-mix(in srgb, var(--accent-primary) 8%,  transparent)", color: "var(--accent-primary)" }}
                 >
                   {category.labelFr}
                 </span>

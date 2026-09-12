@@ -81,6 +81,7 @@ export interface PSTransaction {
   source_caisse_id: string | null;
   versement_id: string | null;
   reversal_of_id: string | null;
+  cotisation_id: string | null;
 }
 
 export interface PSEvent {
@@ -224,6 +225,10 @@ export interface PSAuditEntry {
 
 export interface PSCotisation {
   id: string;
+  // Optional on the TS side: addCotisationPS fills it via getOrganizationId()
+  // and Omit<PSCotisation, "id"|"org_id"|...> keeps callers from having to
+  // supply it explicitly. The DB column is NOT NULL with a default.
+  org_id: string;
   culte_id: string;
   membre_id: string;
   statut: string;
@@ -582,7 +587,7 @@ export function useAuditEntries() {
  */
 export function useCotisations() {
   const { data: psData } = useQuery<PSCotisation>(
-    "SELECT id, culte_id, membre_id, statut, montantObligatoire, montantPaye, datePaiement, notes, createdAt, updatedAt FROM cotisations WHERE org_id = ? ORDER BY createdAt DESC",
+    "SELECT id, org_id, culte_id, membre_id, statut, montantObligatoire, montantPaye, datePaiement, notes, createdAt, updatedAt FROM cotisations WHERE org_id = ? ORDER BY createdAt DESC",
     [getOrganizationId()],
     { reportFetching: true },
   );
@@ -949,18 +954,21 @@ export async function deleteEventPS(id: string): Promise<void> {
  * Add a cotisation via PowerSync
  */
 export async function addCotisationPS(
-  cot: Omit<PSCotisation, "id" | "createdAt" | "updatedAt">,
+  cot: Omit<PSCotisation, "id" | "org_id" | "createdAt" | "updatedAt">,
+  orgId?: string,
 ): Promise<string> {
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
+  const effOrgId = orgId ?? getOrganizationId();
 
   await executeWrite(
     `INSERT INTO cotisations (
-      id, culte_id, membre_id, statut, montantObligatoire, montantPaye,
+      id, org_id, culte_id, membre_id, statut, montantObligatoire, montantPaye,
       datePaiement, notes, createdAt, updatedAt
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
+      effOrgId,
       cot.culte_id,
       cot.membre_id,
       cot.statut,
@@ -1608,6 +1616,46 @@ export function useOrgAdmins(orgId?: string | null) {
     { reportFetching: true },
   );
   return { data: psData, isLoading: false, source: "powersync" as const };
+}
+
+/**
+ * Fetch org admins with their profile info (first/last name, email).
+ * Returns rows joined against profiles so the central admin sees
+ * WHO the admins are, not just UUIDs.
+ */
+export interface PSOrgAdminWithProfile extends PSOrgAdmin {
+  first_name: string;
+  last_name: string;
+  email: string;
+}
+
+export async function getOrgAdminsFull(
+  orgId: string,
+): Promise<PSOrgAdminWithProfile[]> {
+  const db = getPowerSyncDatabase();
+  const res = await db.execute(
+    `SELECT ga.id, ga.admin_profile_id, ga.org_id, ga.status, ga.granted_by,
+            ga.created_at, ga.updated_at,
+            p.first_name, p.last_name, p.email
+     FROM org_admins ga
+     LEFT JOIN profiles p ON p.id = ga.admin_profile_id
+     WHERE ga.org_id = ?
+     ORDER BY ga.created_at DESC`,
+    [orgId],
+  );
+  const rows = res?.array ?? [];
+  return rows.map((r: any) => ({
+    id: String(r.id),
+    admin_profile_id: String(r.admin_profile_id),
+    org_id: String(r.org_id),
+    status: String(r.status),
+    granted_by: (r.granted_by as string | null) ?? null,
+    created_at: String(r.created_at),
+    updated_at: String(r.updated_at),
+    first_name: String(r.first_name ?? ""),
+    last_name: String(r.last_name ?? ""),
+    email: String(r.email ?? ""),
+  }));
 }
 
 /**

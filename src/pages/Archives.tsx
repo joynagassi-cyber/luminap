@@ -156,7 +156,7 @@ export default function Archives() {
                     className="px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-all"
                     style={{
                       backgroundColor:
-                        filterType === id ? "#FF6B00" : "#212121",
+                        filterType === id ? "var(--accent-primary)" : "#212121",
                       color: filterType === id ? "#fff" : "#B3B3B3",
                     }}
                     aria-pressed={filterType === id}

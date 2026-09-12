@@ -1,3 +1,8 @@
+/**
+ * @deprecated DEAD CODE — never mounted by any entrypoint.
+ * Navigation to /splash is handled by the `<Route path="/">` redirect inside
+ * src/App.tsx instead. Kept for history only; do not import it.
+ */
 import { useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 

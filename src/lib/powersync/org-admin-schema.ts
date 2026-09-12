@@ -12,6 +12,7 @@ const organizations = new Table(
     name: column.text,
     type: column.text,
     status: column.text,
+    parent_org_id: column.text,
     suspended_at: column.text,
     suspended_by: column.text,
     archived_at: column.text,
@@ -24,6 +25,7 @@ const organizations = new Table(
     indexes: {
       idx_org_status: ["status"],
       idx_org_type: ["type"],
+      idx_organizations_parent: ["parent_org_id"],
     },
   },
 );

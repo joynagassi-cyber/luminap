@@ -54,7 +54,7 @@ export default function CulteDetail() {
               <button
                 onClick={() => navigate("/cotisations")}
                 className="text-sm"
-                style={{ color: "#FF6B00" }}
+                style={{ color: "var(--accent-primary)" }}
               >
                 Retour aux cultes
               </button>
@@ -114,7 +114,7 @@ export default function CulteDetail() {
       if (cot.statut === "NON_PAYE" || cot.statut === "ABSENT") {
         await updateCotisationPS(cot.id, {
           statut: "PAYE",
-          montantPaye: cot.montantObligatoire || 0,
+          montantPaye: cot.montantObligatoire,
           datePaiement: new Date().toISOString(),
         });
       }
@@ -229,7 +229,7 @@ export default function CulteDetail() {
             <button
               onClick={() => setShowMassPay(true)}
               className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95"
-              style={{ backgroundColor: "#FF6B00", color: "#fff" }}
+              style={{ backgroundColor: "var(--accent-primary)", color: "#fff" }}
               aria-label="Effectuer un paiement massif"
             >
               Paiement massif
@@ -239,8 +239,8 @@ export default function CulteDetail() {
               className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95"
               style={{
                 backgroundColor: "#212121",
-                color: "#FF6B00",
-                border: "1px solid #FF6B00",
+                color: "var(--accent-primary)",
+                border: "1px solid var(--accent-primary)",
               }}
               aria-label="Saisie rapide des cotisations"
             >
@@ -300,7 +300,7 @@ export default function CulteDetail() {
                   {(cot.statut === "NON_PAYE" || cot.statut === "ABSENT") && (
                     <button
                       onClick={async () => {
-                        await handlePaye(cot.id, cot.montantObligatoire || 0);
+                        await handlePaye(cot.id, cot.montantObligatoire);
                       }}
                       className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all active:scale-95"
                       style={{ backgroundColor: "#10B981", color: "#fff" }}

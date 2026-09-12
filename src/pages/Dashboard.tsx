@@ -8,7 +8,7 @@ import {
   useAccounts,
   useCaisses,
 } from "@/lib/dataLayer";
-import { formatCentsToFCFA, getPeriodRange, formatDate } from "@/lib/utils";
+import { formatCentsToFCFA, getPeriodRange, formatDate, tint } from "@/lib/utils";
 import {
   ArrowUpRight,
   ArrowDownRight,
@@ -55,7 +55,7 @@ function CaisseCard({
   navigate: ReturnType<typeof useNavigate>;
 }) {
   const caisse = caisses.find((c) => c.id === account.id);
-  const color = caisse?.color || "#FF6B00";
+  const color = caisse?.color || "var(--accent-primary)";
   const approvedTxs = transactions.filter(
     (t: any) =>
       (t.source_caisse_id === account.id || t.sourceCaisseId === account.id) &&
@@ -82,14 +82,14 @@ function CaisseCard({
     <button
       onClick={() => navigate("/finance")}
       className="w-full text-left rounded-xl p-4 transition-all active:scale-95"
-      style={{ backgroundColor: "#1e1e1e", border: `1px solid ${color}30` }}
+      style={{ backgroundColor: "#1e1e1e", border: `1px solid ${tint(color, 19)}` }}
       aria-label={`Voir les détails de ${account.name}`}
     >
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-3">
           <div
             className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-            style={{ backgroundColor: color + "20" }}
+            style={{ backgroundColor: tint(color, 12) }}
           >
             <span className="text-sm font-bold" style={{ color }}>
               {account.name.charAt(0)}
@@ -149,7 +149,7 @@ export default function Dashboard() {
   const { data: accounts } = useAccounts();
   const { data: caisses } = useCaisses();
 
-  const churchName = appConfig.churchName || user.org.name;
+  const churchName = appConfig.churchName || user?.org?.name || "Lumina";
 
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
@@ -276,8 +276,8 @@ export default function Dashboard() {
               className="rounded-2xl p-5 mb-6 transition-all active:scale-98 text-left w-full"
               style={{
                 background:
-                  "linear-gradient(135deg, #FF6B0020 0%, #FF6B0010 100%)",
-                border: "1px solid #FF6B0030",
+                  "linear-gradient(135deg, color-mix(in srgb, var(--accent-primary) 12%, transparent) 0%, color-mix(in srgb, var(--accent-primary) 6%,  transparent) 100%)",
+                border: "1px solid color-mix(in srgb, var(--accent-primary) 19%, transparent)",
               }}
               aria-label="Voir les détails de la caisse principale"
             >
@@ -289,7 +289,7 @@ export default function Dashboard() {
                       {greeting}{" "}
                       <Sparkles
                         className="w-5 h-5 inline"
-                        style={{ color: "#FF6B00" }}
+                        style={{ color: "var(--accent-primary)" }}
                       />
                     </p>
                     <p className="text-text-tertiary text-xs mt-0.5">
@@ -427,7 +427,7 @@ export default function Dashboard() {
                   <button
                     onClick={() => navigate("/events")}
                     className="text-xs font-medium"
-                    style={{ color: "#FF6B00" }}
+                    style={{ color: "var(--accent-primary)" }}
                     aria-label="Voir tous les événements"
                   >
                     Voir tout →
@@ -463,7 +463,7 @@ export default function Dashboard() {
                         <div className="flex items-center gap-3">
                           <div
                             className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                            style={{ backgroundColor: color + "20" }}
+                            style={{ backgroundColor: tint(color, 12) }}
                           >
                             <Calendar className="w-5 h-5" style={{ color }} />
                           </div>
@@ -488,7 +488,7 @@ export default function Dashboard() {
                                       width: `${Math.min(100, (budgetSpent / event.budget) * 100)}%`,
                                       backgroundColor: overBudget
                                         ? "#E51332"
-                                        : "#FF6B00",
+                                        : "var(--accent-primary)",
                                     }}
                                   />
                                 </div>
@@ -503,7 +503,7 @@ export default function Dashboard() {
                           </div>
                           <span
                             className="text-xs px-2 py-1 rounded-full font-medium"
-                            style={{ backgroundColor: color + "20", color }}
+                            style={{ backgroundColor: tint(color, 12), color }}
                           >
                             {event.status === "PLANIFIED"
                               ? "Planifié"
@@ -529,7 +529,7 @@ export default function Dashboard() {
                   <button
                     onClick={() => navigate("/versement")}
                     className="text-xs font-medium"
-                    style={{ color: "#FF6B00" }}
+                    style={{ color: "var(--accent-primary)" }}
                     aria-label="Verser dans les caisses de groupe"
                   >
                     Verser →
@@ -614,11 +614,11 @@ export default function Dashboard() {
                 >
                   <div
                     className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                    style={{ backgroundColor: "#FF6B0020" }}
+                    style={{ backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)" }}
                   >
                     <TrendingUp
                       className="w-5 h-5"
-                      style={{ color: "#FF6B00" }}
+                      style={{ color: "var(--accent-primary)" }}
                     />
                   </div>
                   <span className="text-text-primary text-xs font-medium text-center">
@@ -658,7 +658,7 @@ export default function Dashboard() {
               <button
                 onClick={() => navigate("/finance")}
                 className="text-sm font-medium"
-                style={{ color: "#FF6B00" }}
+                style={{ color: "var(--accent-primary)" }}
                 aria-label="Voir toutes les transactions"
               >
                 Tout voir
@@ -683,7 +683,7 @@ export default function Dashboard() {
                   <button
                     onClick={() => navigate("/transaction/new")}
                     className="mt-3 text-sm font-medium"
-                    style={{ color: "#FF6B00" }}
+                    style={{ color: "var(--accent-primary)" }}
                     aria-label="Créer une transaction"
                   >
                     Créer une transaction

@@ -4,7 +4,7 @@ import {
   useEvents,
   useCotisations,
 } from "@/lib/dataLayer";
-import { formatCurrencyCompact, formatDate } from "@/lib/utils";
+import { formatCurrencyCompact, formatDate, tint } from "@/lib/utils";
 import { CheckCircle, Clock, User } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
@@ -178,7 +178,7 @@ export default function MembreDetail() {
                 </div>
                 <div
                   className="text-center p-2 rounded-xl"
-                  style={{ backgroundColor: "#FF6B0015" }}
+                  style={{ backgroundColor: "color-mix(in srgb, var(--accent-primary) 8%,  transparent)" }}
                 >
                   <p className="text-white font-bold text-sm">
                     {formatCurrencyCompact(totalDons)}
@@ -228,9 +228,11 @@ export default function MembreDetail() {
                       <div
                         className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
                         style={{
-                          backgroundColor:
-                            (COTISATION_STATUT_COLOR[cotisation.statut] ||
-                              "#808080") + "20",
+                          backgroundColor: tint(
+                            COTISATION_STATUT_COLOR[cotisation.statut] ||
+                              "#808080",
+                            12,
+                          ),
                         }}
                       >
                         {cotisation.statut === "PAYE" ||
@@ -258,9 +260,11 @@ export default function MembreDetail() {
                           <span
                             className="text-xs px-1.5 py-0.5 rounded-full flex-shrink-0"
                             style={{
-                              backgroundColor:
-                                (COTISATION_STATUT_COLOR[cotisation.statut] ||
-                                  "#808080") + "20",
+                              backgroundColor: tint(
+                                COTISATION_STATUT_COLOR[cotisation.statut] ||
+                                  "#808080",
+                                12,
+                              ),
                               color:
                                 COTISATION_STATUT_COLOR[cotisation.statut] ||
                                 "#808080",
@@ -280,7 +284,7 @@ export default function MembreDetail() {
                         </p>
                         {cotisation.montantPaye >
                           cotisation.montantObligatoire && (
-                          <p className="text-xs" style={{ color: "#FF6B00" }}>
+                          <p className="text-xs" style={{ color: "var(--accent-primary)" }}>
                             +
                             {formatCurrencyCompact(
                               cotisation.montantPaye -

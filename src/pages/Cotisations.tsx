@@ -117,7 +117,7 @@ export default function Cotisations() {
                 }
                 className="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-semibold text-white transition-all active:scale-95"
                 style={{
-                  background: "linear-gradient(135deg, #FF8533, #FF6B00)",
+                  background: "linear-gradient(135deg, #FF8533, var(--accent-primary))",
                   boxShadow: "0 4px 12px rgba(255,107,0,0.3)",
                 }}
                 aria-label="Créer un nouveau culte"
@@ -147,7 +147,7 @@ export default function Cotisations() {
                     navigate("/event/new", { state: { defaultType: "CULTE" } })
                   }
                   className="px-6 py-2.5 rounded-full text-sm font-medium text-white"
-                  style={{ background: "#FF6B00" }}
+                  style={{ background: "var(--accent-primary)" }}
                   aria-label="Créer un culte"
                 >
                   Créer un culte
@@ -178,7 +178,7 @@ export default function Cotisations() {
                         >
                           <Calendar
                             className="w-5 h-5"
-                            style={{ color: "#FF6B00" }}
+                            style={{ color: "var(--accent-primary)" }}
                           />
                         </div>
                         <div className="flex-1 min-w-0">
@@ -205,7 +205,7 @@ export default function Cotisations() {
                               {stat.paid}/{stat.totalMembers}
                             </span>
                             {stat.unpaid > 0 && (
-                              <span style={{ color: "#FF6B00" }}>
+                              <span style={{ color: "var(--accent-primary)" }}>
                                 {stat.unpaid} impayés
                               </span>
                             )}
@@ -235,7 +235,7 @@ export default function Cotisations() {
                                 style={{
                                   width: `${Math.min(progress, 100)}%`,
                                   background:
-                                    progress >= 100 ? "#1DB954" : "#FF6B00",
+                                    progress >= 100 ? "#1DB954" : "var(--accent-primary)",
                                 }}
                               />
                             </div>

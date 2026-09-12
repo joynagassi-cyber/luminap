@@ -80,7 +80,7 @@ export default function NotificationsPage() {
                   <button
                     onClick={handleMarkAllRead}
                     className="text-xs font-medium"
-                    style={{ color: "#FF6B00" }}
+                    style={{ color: "var(--accent-primary)" }}
                   >
                     Tout marquer lu
                   </button>
@@ -142,13 +142,13 @@ export default function NotificationsPage() {
                         {!notif.is_read && notif.is_read !== undefined && (
                           <span
                             className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5"
-                            style={{ backgroundColor: "#FF6B00" }}
+                            style={{ backgroundColor: "var(--accent-primary)" }}
                           />
                         )}
                         {!notif.isRead && notif.isRead !== undefined && (
                           <span
                             className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5"
-                            style={{ backgroundColor: "#FF6B00" }}
+                            style={{ backgroundColor: "var(--accent-primary)" }}
                           />
                         )}
                       </div>

@@ -21,6 +21,7 @@ import {
 import { useNavigate, useLocation } from "react-router-dom";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { IonButton, IonTabBar, IonTabButton } from "@ionic/react";
+import { tint } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { icon: Home, label: "Accueil", path: "/" },
@@ -76,14 +77,14 @@ export default function BottomNav() {
         icon: ArrowRightLeft,
         label: "Verser",
         action: () => navigate("/versement"),
-        color: "#FF6B00",
+        color: "var(--accent-primary)",
       };
     }
     return {
       icon: Plus,
       label: "Transaction",
       action: () => navigate("/transaction/new"),
-      color: "#FF6B00",
+      color: "var(--accent-primary)",
     };
   }, [location.pathname, navigate]);
 
@@ -108,8 +109,8 @@ export default function BottomNav() {
         onClick={fabAction.action}
         className="fixed bottom-20 right-5 z-40 !w-14 !h-14 !rounded-full !p-0 !shadow-lg !min-height:auto"
         style={{
-          background: `linear-gradient(135deg, ${fabAction.color}dd, ${fabAction.color})`,
-          boxShadow: `0 4px 16px ${fabAction.color}60`,
+          background: `linear-gradient(135deg, ${fabAction.color}, ${fabAction.color})`,
+          boxShadow: `0 4px 16px ${tint(fabAction.color, 38)}`,
         }}
         aria-label={fabAction.label}
         role="button"
@@ -151,13 +152,13 @@ export default function BottomNav() {
               <Icon
                 className="w-5 h-5"
                 style={{
-                  color: isActive(path) ? "#FF6B00" : "#B3B3B3",
+                  color: isActive(path) ? "var(--accent-primary)" : "#B3B3B3",
                   opacity: isActive(path) ? 1 : 0.7,
                 }}
               />
               <span
                 className="text-xs font-medium"
-                style={{ color: isActive(path) ? "#FF6B00" : "#B3B3B3" }}
+                style={{ color: isActive(path) ? "var(--accent-primary)" : "#B3B3B3" }}
               >
                 {label}
               </span>
@@ -175,11 +176,11 @@ export default function BottomNav() {
             >
               <MoreVertical
                 className="w-5 h-5"
-                style={{ color: showMore ? "#FF6B00" : "#B3B3B3" }}
+                style={{ color: showMore ? "var(--accent-primary)" : "#B3B3B3" }}
               />
               <span
                 className="text-xs font-medium"
-                style={{ color: showMore ? "#FF6B00" : "#B3B3B3" }}
+                style={{ color: showMore ? "var(--accent-primary)" : "#B3B3B3" }}
               >
                 Plus
               </span>

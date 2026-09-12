@@ -154,7 +154,7 @@ export default function Groups() {
                   onClick={() => setShowCreate(true)}
                   className="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-semibold text-white transition-all active:scale-95"
                   style={{
-                    background: "linear-gradient(135deg, #FF8533, #FF6B00)",
+                    background: "linear-gradient(135deg, #FF8533, var(--accent-primary))",
                     boxShadow: "0 4px 12px rgba(255,107,0,0.3)",
                   }}
                 >
@@ -187,7 +187,7 @@ export default function Groups() {
                 className="mb-5 p-4 rounded-xl"
                 style={{
                   backgroundColor: "#212121",
-                  border: "1px solid #FF6B0030",
+                  border: "1px solid color-mix(in srgb, var(--accent-primary) 19%, transparent)",
                 }}
               >
                 <h3 className="text-text-primary font-semibold text-sm mb-4">
@@ -254,7 +254,7 @@ export default function Groups() {
                     <button
                       onClick={handleCreate}
                       className="flex-1 py-3 rounded-full font-semibold text-white text-sm"
-                      style={{ backgroundColor: "#FF6B00" }}
+                      style={{ backgroundColor: "var(--accent-primary)" }}
                     >
                       Créer
                     </button>
@@ -295,9 +295,9 @@ export default function Groups() {
                   >
                     <div
                       className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                      style={{ backgroundColor: "#FF6B0020" }}
+                      style={{ backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)" }}
                     >
-                      <Users className="w-5 h-5" style={{ color: "#FF6B00" }} />
+                      <Users className="w-5 h-5" style={{ color: "var(--accent-primary)" }} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-text-primary text-sm font-semibold truncate">
@@ -384,7 +384,7 @@ export default function Groups() {
                     <button
                       onClick={() => handleUpdate(showEdit)}
                       className="flex-1 py-3 rounded-full font-semibold text-white text-sm"
-                      style={{ backgroundColor: "#FF6B00" }}
+                      style={{ backgroundColor: "var(--accent-primary)" }}
                     >
                       Sauvegarder
                     </button>

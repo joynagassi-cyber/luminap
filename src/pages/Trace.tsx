@@ -150,7 +150,7 @@ export default function TracePage() {
                   onClick={() => setFilter(f)}
                   className="px-3 py-1.5 rounded-full text-xs font-medium transition-all"
                   style={{
-                    backgroundColor: filter === f ? "#FF6B00" : "#212121",
+                    backgroundColor: filter === f ? "var(--accent-primary)" : "#212121",
                     color: filter === f ? "#fff" : "#B3B3B3",
                   }}
                 >

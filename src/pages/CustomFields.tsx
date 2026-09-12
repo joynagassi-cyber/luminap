@@ -101,7 +101,7 @@ export default function CustomFields() {
                 onClick={() => setShowCreate(true)}
                 className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold text-white"
                 style={{
-                  background: "linear-gradient(135deg, #FF8533, #FF6B00)",
+                  background: "linear-gradient(135deg, #FF8533, var(--accent-primary))",
                 }}
                 aria-label="Créer un nouveau champ"
               >
@@ -138,8 +138,8 @@ export default function CustomFields() {
                         <span
                           className="text-xs px-2 py-0.5 rounded-full"
                           style={{
-                            backgroundColor: "#FF6B0020",
-                            color: "#FF6B00",
+                            backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)",
+                            color: "var(--accent-primary)",
                           }}
                         >
                           {field.entityType}
@@ -258,7 +258,7 @@ export default function CustomFields() {
                           className="px-3 py-1.5 rounded-full text-xs font-medium"
                           style={
                             type === ft.value
-                              ? { backgroundColor: "#FF6B00", color: "#fff" }
+                              ? { backgroundColor: "var(--accent-primary)", color: "#fff" }
                               : {
                                   backgroundColor: "#212121",
                                   color: "#B3B3B3",
@@ -300,7 +300,7 @@ export default function CustomFields() {
                 <button
                   onClick={handleCreate}
                   className="w-full py-3.5 rounded-full font-semibold text-white mb-3"
-                  style={{ backgroundColor: "#FF6B00" }}
+                  style={{ backgroundColor: "var(--accent-primary)" }}
                   aria-label="Créer le champ"
                 >
                   Créer le champ

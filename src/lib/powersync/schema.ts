@@ -315,7 +315,15 @@ const custom_field_definitions = new Table(
     field_name: column.text,
     field_label: column.text,
     field_type: column.text,
+    // Free-form options (choices, defaults) and sort order. These are
+    // stored as JSON text on the Postgres side and read back verbatim by
+    // the data layer (dataLayer.ts) — omitting them from the schema made
+    // the local SQLite table lack the columns and `SELECT ... options`
+    // throw "no such column".
+    options: column.text,
+    order: column.text,
     created_at: column.text,
+    updated_at: column.text,
   },
   { indexes: {} },
 );
@@ -333,6 +341,7 @@ const custom_field_values = new Table(
 
 const cotisations = new Table(
   {
+    org_id: column.text,
     culte_id: column.text,
     membre_id: column.text,
     statut: column.text,
@@ -345,6 +354,7 @@ const cotisations = new Table(
   },
   {
     indexes: {
+      org_id: ["org_id"],
       culte_id: ["culte_id"],
       membre_id: ["membre_id"],
       statut: ["statut"],

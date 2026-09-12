@@ -156,9 +156,9 @@ export default function DatePicker({ value, onChange, label, id }: Props) {
                   className="h-9 rounded-full text-sm font-medium transition-all flex items-center justify-center"
                   style={
                     isSelected
-                      ? { backgroundColor: "#FF6B00", color: "#fff" }
+                      ? { backgroundColor: "var(--accent-primary)", color: "#fff" }
                       : isToday
-                        ? { backgroundColor: "#282828", color: "#FF6B00" }
+                        ? { backgroundColor: "#282828", color: "var(--accent-primary)" }
                         : { backgroundColor: "transparent", color: "#FFFFFF" }
                   }
                 >

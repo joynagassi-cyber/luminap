@@ -18,7 +18,7 @@ export default function LuminaLogo({
       <defs>
         <linearGradient id="luminaGrad" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#FF8533" />
-          <stop offset="50%" stopColor="#FF6B00" />
+          <stop offset="50%" stopColor="var(--accent-primary)" />
           <stop offset="100%" stopColor="#CC5500" />
         </linearGradient>
         <filter id="luminaGlow">

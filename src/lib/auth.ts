@@ -5,6 +5,7 @@
  */
 
 import { createClient } from "@supabase/supabase-js";
+import { Capacitor } from "@capacitor/core";
 import type {
   SupabaseClient,
   Session,
@@ -209,30 +210,37 @@ class AuthService {
     }
   }
 
-  // Create or update profile after auth
-  async upsertProfile(user: SupabaseUser, role: Role): Promise<Profile> {
-    const metadata = user.user_metadata || {};
-    const profileData = {
-      id: user.id,
-      email: user.email,
-      first_name:
-        metadata.first_name || user.email?.split("@")[0] || "Utilisateur",
-      last_name: metadata.last_name || "",
-      role: role,
-      org_id: getOrganizationId(),
-      updated_at: new Date().toISOString(),
-    };
+  // Read the profile the trigger already created, or create it on demand
+  // (RPC without forcing a role). Never called with a forced role — that
+  // path lives in `setProfileRole` so sign-in doesn't clobber the user's
+  // role that an inviter/creator may have assigned.
+  async ensureProfile(user: SupabaseUser): Promise<Profile> {
+    const existing = await this.getProfile(user.id);
+    if (existing) return existing;
 
-    const { data, error } = await supabase
-      .from("profiles")
-      .upsert(profileData, { onConflict: "id" })
-      .select()
-      .single();
-
-    if (error) {
-      throw error;
+    const { data, error } = await supabase.rpc("upsert_profile", {
+      p_user_id: user.id,
+      p_first_name: user.user_metadata?.first_name ?? null,
+      p_last_name: user.user_metadata?.last_name ?? null,
+      p_org_id: getOrganizationId(),
+    });
+    if (error || !data) {
+      throw error ?? new Error("Unable to resolve user profile");
     }
+    return data as Profile;
+  }
 
+  // Persist the role chosen during onboarding / settings. Uses the
+  // SECURITY DEFINER RPC, guarded on the server side by p_user_id = auth.uid().
+  async setProfileRole(user: SupabaseUser, role: Role): Promise<Profile> {
+    const { data, error } = await supabase.rpc("upsert_profile", {
+      p_user_id: user.id,
+      p_role: role,
+      p_org_id: getOrganizationId(),
+    });
+    if (error || !data) {
+      throw error ?? new Error("Unable to update user role");
+    }
     return data as Profile;
   }
 
@@ -280,7 +288,9 @@ class AuthService {
       }
 
       if (data.user) {
-        const profile = await this.upsertProfile(data.user, "TREASURIER");
+        // Profile row already exists (server trigger). Read it — no forced
+        // role; the effective role is resolved during onboarding / claim.
+        const profile = await this.ensureProfile(data.user);
         this.setState({
           session: data.session,
           user: data.user,
@@ -300,13 +310,17 @@ class AuthService {
     }
   }
 
-  // Sign up with email and password (no email confirmation)
+  // Sign up with email and password (no email confirmation).
+  // `role` is optional and NOT part of the sign-up form: the sign-up flow
+  // never asks for a role. It is kept only for legacy/test compatibility;
+  // when omitted the server trigger assigns the default role and the real
+  // role is resolved later during onboarding / invitation claim.
   async signUpWithEmail(
     email: string,
     password: string,
     firstName: string,
     lastName: string,
-    role: Role,
+    role?: Role,
   ): Promise<{ error: string | null }> {
     this.setState({ isLoading: true, error: null });
 
@@ -337,7 +351,9 @@ class AuthService {
           data: {
             first_name: firstName.trim(),
             last_name: lastName.trim(),
-            role: role,
+            // Only carried when a legacy caller supplied one; the form never
+            // sets a role at sign-up.
+            ...(role ? { role } : {}),
           },
         },
       });
@@ -362,7 +378,11 @@ class AuthService {
       }
 
       if (data.user) {
-        const profile = await this.upsertProfile(data.user, role);
+        // No forced role at sign-up. The server trigger `handle_new_user`
+        // already created the profile (default role) when the auth user was
+        // inserted; read it back here. The effective role is resolved later
+        // during onboarding (creator) or by invitation claim (member).
+        const profile = await this.ensureProfile(data.user);
         this.setState({
           session: data.session,
           user: data.user,
@@ -391,15 +411,26 @@ class AuthService {
         provider: "google",
         options: {
           redirectTo: window.location.origin + "/auth/callback",
-          // For mobile apps, use a custom URL scheme
-          ...(typeof (globalThis as any).capacitor !== "undefined" &&
-          ((globalThis as any).capacitor as any).isNativePlatform?.()
+          // Native: use our custom `lumina://` scheme so Google hands the
+          // user back into the app instead of the system browser.
+          // `Capacitor.isNativePlatform()` is the authoritative check — it
+          // reads the `window.Capacitor` bridge object that Capacitor injects
+          // into the WebView at load time.
+          ...(Capacitor.isNativePlatform()
             ? { redirectTo: "lumina://auth/callback" }
             : {}),
-          // Request additional scopes for profile data
+          // PKCE flow (mobile / native) — no client secret on the client.
+          // Supabase Auth holds the Web client secret server-side and
+          // validates the code_challenge on exchange.
           queryParams: {
             access_type: "offline",
             prompt: "consent",
+            code_challenge: "lumina-pkce",
+            code_challenge_method: "S256",
+            // `state` is forwarded by Supabase back on the redirect URI so
+            // `exchangeCodeForSession` can verify the callback is one the app
+            // initiated.
+            state: "lumina",
           },
         },
       });
@@ -463,9 +494,10 @@ class AuthService {
 
       const profile = await this.getProfile(session.user.id);
 
-      // If profile doesn't exist, this might be a new OAuth user - create it
+      // The server trigger already created the profile for this user; read it
+      // back. Only create on demand if it is genuinely missing (legacy rows).
       if (!profile) {
-        const newProfile = await this.upsertProfile(session.user, "TREASURIER");
+        const newProfile = await this.ensureProfile(session.user);
         this.setState({
           session,
           user: session.user,
@@ -490,6 +522,70 @@ class AuthService {
     } catch (err: any) {
       const userMessage =
         err?.message || "An unexpected error occurred during OAuth callback.";
+      this.setState({ error: userMessage, isLoading: false });
+      return { error: userMessage, profile: null };
+    }
+  }
+
+  /**
+   * Native OAuth finalization.
+   *
+   * On Capacitor (Android/iOS) `signInWithGoogle()` opens Google in the
+   * system browser / WebView with `redirectTo = "lumina://auth/callback"`.
+   * Google hands the user back to our app via that scheme (captured by the
+   * `lumina://` intent-filter in AndroidManifest.xml). The URL carries the
+   * OAuth `code` (or a Supabase PKCE `state`). This method exchanges it for
+   * a real session so the sign-in "holds" inside the app instead of dropping
+   * into the browser. No-op-safe on the web where the browser callback path
+   * already handles it.
+   */
+  async handleOAuthDeepLink(url: string | null | undefined): Promise<{
+    error: string | null;
+    profile: Profile | null;
+  }> {
+    if (!url) {
+      this.setState({ isLoading: false, error: null });
+      return { error: null, profile: null };
+    }
+
+    this.setState({ isLoading: true, error: null });
+
+    try {
+      const parsed = new URL(url);
+      const code = parsed.searchParams.get("code");
+      if (!code) {
+        // Not an OAuth callback (e.g. the app's own lumina:// launch URL).
+        this.setState({ isLoading: false, error: null });
+        return { error: null, profile: null };
+      }
+
+      const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+      if (error) {
+        const userMessage =
+          "Google sign-in could not be completed. Please try again.";
+        this.setState({ error: userMessage, isLoading: false });
+        return { error: userMessage, profile: null };
+      }
+
+      const session = data.session;
+      if (!session?.user) {
+        this.setState({ isLoading: false, error: null });
+        return { error: null, profile: null };
+      }
+
+      const profile = await this.ensureProfile(session.user);
+      this.setState({
+        session,
+        user: session.user,
+        profile,
+        isLoading: false,
+      });
+      this.startSessionValidation();
+      this.notifyListeners();
+      return { error: null, profile };
+    } catch (err: any) {
+      const userMessage =
+        err?.message || "An unexpected error occurred during Google sign-in.";
       this.setState({ error: userMessage, isLoading: false });
       return { error: userMessage, profile: null };
     }

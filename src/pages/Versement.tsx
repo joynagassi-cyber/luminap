@@ -5,6 +5,7 @@ import { formatCurrencyCompact } from "@/lib/utils";
 import { ArrowLeft, Check, AlertCircle, Wallet, RefreshCw } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
+import { policy } from "@/capabilities/policy";
 import {
   IonPage,
   IonHeader,
@@ -36,6 +37,7 @@ export default function Versement() {
   const [comment, setComment] = useState("");
   const [showConfirm, setShowConfirm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const groupAccounts = accounts.filter(
     (a: any) => a.owner_type === "GROUP" && a.status === "ACTIVE",
@@ -64,7 +66,18 @@ export default function Versement() {
   const handleConfirm = async () => {
     if (!isValid || !selectedCaisse) return;
     setIsLoading(true);
+    setFormError(null);
     try {
+      const amountCents = amountNum * 100;
+      const balanceCheck = policy.versement.checkBalance({
+        balanceCents: Math.round(balance),
+        amountCents,
+      });
+      if (!balanceCheck.ok) {
+        setFormError(balanceCheck.message ?? "余额检查失败");
+        setIsLoading(false);
+        return;
+      }
       await createVersement({
         sourceCaisseId: selectedCaisse,
         amount: amountNum * 100,
@@ -101,6 +114,14 @@ export default function Versement() {
 
             {showConfirm ? (
               <div className="space-y-4">
+                {formError && (
+                  <div
+                    className="p-3 rounded-xl text-sm text-center"
+                    style={{ backgroundColor: "#E5133220", color: "#ff8fa3" }}
+                  >
+                    {formError}
+                  </div>
+                )}
                 <div
                   className="rounded-xl p-5"
                   style={{ backgroundColor: "#212121" }}
@@ -112,7 +133,7 @@ export default function Versement() {
                     <p className="text-text-tertiary text-sm mb-1">
                       Montant à verser
                     </p>
-                    <p className="text-3xl font-black text-[#FF6B00]">
+                    <p className="text-3xl font-black text-[var(--accent-primary)]">
                       {formatCurrencyCompact(amountNum)} F
                     </p>
                   </div>
@@ -152,7 +173,7 @@ export default function Versement() {
                     onClick={handleConfirm}
                     disabled={isLoading || !isValid}
                     className="flex-1 py-3.5 rounded-full font-semibold text-white text-sm disabled:opacity-50"
-                    style={{ backgroundColor: "#FF6B00" }}
+                    style={{ backgroundColor: "var(--accent-primary)" }}
                   >
                     {isLoading ? "Traitement..." : "Confirmer le versement"}
                   </button>
@@ -283,7 +304,7 @@ export default function Versement() {
                   onClick={() => setShowConfirm(true)}
                   disabled={!isValid}
                   className="w-full py-4 rounded-full font-semibold text-white text-sm disabled:opacity-50 transition-all active:scale-95"
-                  style={{ backgroundColor: "#FF6B00" }}
+                  style={{ backgroundColor: "var(--accent-primary)" }}
                 >
                   Continuer
                 </button>

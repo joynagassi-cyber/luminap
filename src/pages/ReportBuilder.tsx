@@ -162,7 +162,7 @@ export default function ReportBuilder() {
                               color: "#B3B3B3",
                               cursor: "default",
                             }
-                          : { backgroundColor: "#FF6B0020", color: "#FF6B00" }
+                          : { backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)", color: "var(--accent-primary)" }
                       }
                     >
                       {dim === "month"
@@ -232,7 +232,7 @@ export default function ReportBuilder() {
                   <button
                     onClick={() => addMetric("amount", "sum", "")}
                     className="w-full py-2 rounded-lg text-xs font-medium"
-                    style={{ backgroundColor: "#282828", color: "#FF6B00" }}
+                    style={{ backgroundColor: "#282828", color: "var(--accent-primary)" }}
                   >
                     <Plus className="w-3 h-3 inline mr-1" /> Ajouter une
                     métrique
@@ -250,7 +250,7 @@ export default function ReportBuilder() {
                 onClick={runPreview}
                 className="w-full py-3.5 rounded-full font-semibold text-white transition-all active:scale-95"
                 style={{
-                  background: "linear-gradient(135deg, #FF8533, #FF6B00)",
+                  background: "linear-gradient(135deg, #FF8533, var(--accent-primary))",
                 }}
               >
                 <BarChart3 className="w-4 h-4 inline mr-2" /> Aperçu du rapport

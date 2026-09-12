@@ -128,7 +128,7 @@ export default function Balance() {
                 className="flex-1 py-2 rounded-lg text-sm font-medium transition-all"
                 style={
                   period === "mois"
-                    ? { backgroundColor: "#FF6B00", color: "#fff" }
+                    ? { backgroundColor: "var(--accent-primary)", color: "#fff" }
                     : { color: "#B3B3B3" }
                 }
                 aria-pressed={period === "mois"}
@@ -141,7 +141,7 @@ export default function Balance() {
                 className="flex-1 py-2 rounded-lg text-sm font-medium transition-all"
                 style={
                   period === "annee"
-                    ? { backgroundColor: "#FF6B00", color: "#fff" }
+                    ? { backgroundColor: "var(--accent-primary)", color: "#fff" }
                     : { color: "#B3B3B3" }
                 }
                 aria-pressed={period === "annee"}
@@ -155,7 +155,7 @@ export default function Balance() {
             <div className="-mx-5 px-5 mb-5">
               <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
                 {accounts.map((a: any) => {
-                  const color = a.color || "#FF6B00";
+                  const color = a.color || "var(--accent-primary)";
                   return (
                     <button
                       key={a.id}
@@ -220,9 +220,9 @@ export default function Balance() {
               >
                 <div
                   className="w-8 h-8 rounded-full flex items-center justify-center mx-auto mb-2"
-                  style={{ backgroundColor: "#FF6B0020" }}
+                  style={{ backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)" }}
                 >
-                  <BarChart3 className="w-4 h-4" style={{ color: "#FF6B00" }} />
+                  <BarChart3 className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
                 </div>
                 <p className="text-text-tertiary text-xs">Résultat</p>
                 <p
@@ -287,7 +287,7 @@ export default function Balance() {
               onClick={() => setShowExport(true)}
               className="w-full py-3.5 rounded-full font-semibold text-white text-sm flex items-center justify-center gap-2 transition-all active:scale-95"
               style={{
-                background: "linear-gradient(135deg, #FF8533, #FF6B00)",
+                background: "linear-gradient(135deg, #FF8533, var(--accent-primary))",
               }}
               aria-label="Exporter le rapport financier"
             >

@@ -21,12 +21,20 @@ import {
   Archive,
   BarChart3,
   Clock,
+  Palette,
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
 import LuminaLogo from "@/components/LuminaLogo";
+import ThemePicker from "@/components/ThemePicker";
 import { FullPageSkeleton } from "@/components/Skeleton";
 import { generateId } from "@/lib/utils";
+import {
+  getStoredThemeId,
+  applyTheme,
+  getThemeById,
+  type ThemeId,
+} from "@/ionic/themes";
 import {
   IonPage,
   IonHeader,
@@ -50,6 +58,16 @@ export default function SettingsPage() {
   const [userPhoto, setUserPhoto] = useState(appConfig.userPhoto);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [themeId, setThemeId] = useState<ThemeId>(
+    () => getStoredThemeId() ?? "fire",
+  );
+
+  // The ThemePicker applies the palette to the live document and persists it.
+  // We mirror the choice here so the swatch ring + label stay in sync.
+  const handleThemeChange = (id: ThemeId) => {
+    setThemeId(id);
+    applyTheme(getThemeById(id));
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -88,7 +106,7 @@ export default function SettingsPage() {
     localStorage.removeItem("lumina-role");
     localStorage.removeItem("lumina-onboarded");
     localStorage.removeItem("lumina-firstName");
-    navigate("/login");
+    navigate("/auth");
   };
 
   const totalActions = auditEntries.length;
@@ -118,23 +136,23 @@ export default function SettingsPage() {
                 {userPhoto ? (
                   <img
                     src={userPhoto}
-                    alt={`Photo de profil de ${user.firstName}`}
+                    alt={`Photo de profil de ${user?.firstName ?? ""}`}
                     className="w-14 h-14 rounded-full object-cover"
                   />
                 ) : (
                   <div
                     className="w-14 h-14 rounded-full flex items-center justify-center"
-                    style={{ backgroundColor: "#FF6B0020" }}
+                    style={{ backgroundColor: "color-mix(in srgb, var(--accent-primary) 15%, transparent)" }}
                   >
                     <UserCircle
                       className="w-7 h-7"
-                      style={{ color: "#FF6B00" }}
+                      style={{ color: "var(--accent-primary)" }}
                     />
                   </div>
                 )}
                 <label
                   className="absolute bottom-0 right-0 w-6 h-6 rounded-full flex items-center justify-center cursor-pointer transition-all active:scale-95"
-                  style={{ backgroundColor: "#FF6B00" }}
+                  style={{ backgroundColor: "var(--accent-primary)" }}
                 >
                   <Camera className="w-3 h-3 text-white" />
                   <input
@@ -147,13 +165,13 @@ export default function SettingsPage() {
               </div>
               <div className="flex-1">
                 <p className="text-text-primary font-semibold text-base">
-                  {user.firstName} {user.lastName}
+                  {user?.firstName} {user?.lastName}
                 </p>
                 <p className="text-text-tertiary text-sm">
-                  {user.role.replace(/_/g, " ").toLowerCase()}
+                  {user?.role?.replace(/_/g, " ").toLowerCase()}
                 </p>
                 <p className="text-text-tertiary text-xs mt-0.5">
-                  {user.org.name}
+                  {user?.org?.name}
                 </p>
               </div>
             </div>
@@ -164,7 +182,7 @@ export default function SettingsPage() {
               style={{ backgroundColor: "#212121" }}
             >
               <div className="flex items-center gap-2 mb-4">
-                <Building2 className="w-5 h-5" style={{ color: "#FF6B00" }} />
+                <Building2 className="w-5 h-5" style={{ color: "var(--accent-primary)" }} />
                 <span className="text-text-primary font-semibold">
                   Configuration de l'église
                 </span>
@@ -219,8 +237,8 @@ export default function SettingsPage() {
                       <span
                         className="text-xs font-medium text-center py-2 rounded-xl block cursor-pointer transition-all active:scale-95"
                         style={{
-                          backgroundColor: "#FF6B0020",
-                          color: "#FF6B00",
+                          backgroundColor: "color-mix(in srgb, var(--accent-primary) 15%, transparent)",
+                          color: "var(--accent-primary)",
                         }}
                         aria-label="Choisir un logo"
                       >
@@ -233,7 +251,7 @@ export default function SettingsPage() {
                   onClick={handleSave}
                   disabled={saving}
                   className="w-full py-3 rounded-full font-semibold text-white text-sm transition-all active:scale-95 disabled:opacity-50"
-                  style={{ backgroundColor: "#FF6B00" }}
+                  style={{ backgroundColor: "var(--accent-primary)" }}
                   aria-label="Sauvegarder la configuration"
                 >
                   {saving ? (
@@ -247,6 +265,25 @@ export default function SettingsPage() {
                   )}
                 </button>
               </div>
+            </div>
+
+            {/* Theme / branding */}
+            <div
+              className="rounded-xl p-4 mb-5"
+              style={{ backgroundColor: "#212121" }}
+            >
+              <div className="flex items-center gap-2 mb-4">
+                <Palette className="w-5 h-5" style={{ color: "var(--accent-primary)" }} />
+                <span className="text-text-primary font-semibold">
+                  Thème & apparence
+                </span>
+              </div>
+              <p className="text-text-tertiary text-xs mb-4">
+                Choisissez la couleur de marque de votre organisation. Elle
+                s'applique immédiatement à toute l'application et se conserve
+                entre les sessions.
+              </p>
+              <ThemePicker value={themeId} onChange={handleThemeChange} />
             </div>
 
             {/* Sync status */}
@@ -290,7 +327,7 @@ export default function SettingsPage() {
               style={{ backgroundColor: "#212121" }}
             >
               <div className="flex items-center gap-2 mb-3">
-                <Database className="w-5 h-5" style={{ color: "#FF6B00" }} />
+                <Database className="w-5 h-5" style={{ color: "var(--accent-primary)" }} />
                 <span className="text-text-primary font-medium">
                   Stockage local
                 </span>
@@ -321,7 +358,7 @@ export default function SettingsPage() {
 
             {/* Quick links */}
             <div className="grid grid-cols-2 gap-3 mb-5">
-              {user.role === "CENTRAL_ADMIN" && (
+              {user?.role === "CENTRAL_ADMIN" && (
                 <button
                   onClick={() => navigate("/admin")}
                   className="p-4 rounded-xl text-left active:scale-95 transition-transform w-full col-span-2"
@@ -334,9 +371,9 @@ export default function SettingsPage() {
                   <div className="flex items-center gap-3">
                     <div
                       className="w-10 h-10 rounded-full flex items-center justify-center"
-                      style={{ backgroundColor: "#FF6B0020" }}
+                      style={{ backgroundColor: "color-mix(in srgb, var(--accent-primary) 15%, transparent)" }}
                     >
-                      <Building2 className="w-5 h-5" style={{ color: "#FF6B00" }} />
+                      <Building2 className="w-5 h-5" style={{ color: "var(--accent-primary)" }} />
                     </div>
                     <div>
                       <p className="text-text-primary text-sm font-semibold">
@@ -361,11 +398,11 @@ export default function SettingsPage() {
               >
                 <div
                   className="w-10 h-10 rounded-full flex items-center justify-center mb-2"
-                  style={{ backgroundColor: "#FF6B0020" }}
+                  style={{ backgroundColor: "color-mix(in srgb, var(--accent-primary) 15%, transparent)" }}
                 >
                   <ClipboardList
                     className="w-5 h-5"
-                    style={{ color: "#FF6B00" }}
+                    style={{ color: "var(--accent-primary)" }}
                   />
                 </div>
                 <p className="text-text-primary text-sm font-semibold">
@@ -454,9 +491,9 @@ export default function SettingsPage() {
               >
                 <div
                   className="w-10 h-10 rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: "#FF6B0020" }}
+                  style={{ backgroundColor: "color-mix(in srgb, var(--accent-primary) 15%, transparent)" }}
                 >
-                  <RefreshCw className="w-5 h-5" style={{ color: "#FF6B00" }} />
+                  <RefreshCw className="w-5 h-5" style={{ color: "var(--accent-primary)" }} />
                 </div>
                 <div>
                   <p className="text-text-primary text-sm font-semibold">
@@ -616,7 +653,7 @@ export default function SettingsPage() {
                 className="w-5 h-5 rounded"
               />
               <p className="text-text-tertiary text-xs">
-                Lumina v2.0 · {appConfig.churchName || user.org.name}
+                Lumina v2.0 · {appConfig.churchName || user?.org?.name || "Lumina"}
               </p>
             </div>
           </div>

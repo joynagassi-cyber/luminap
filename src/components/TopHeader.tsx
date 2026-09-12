@@ -101,7 +101,7 @@ export default function TopHeader({ title }: { title?: string }) {
           <div className="px-4 py-1.5 flex items-center justify-between gap-2">
             <span
               className="text-xs truncate"
-              style={{ color: isCentralAdmin ? "#FF6B00" : "#7aa2ff" }}
+              style={{ color: isCentralAdmin ? "var(--accent-primary)" : "#7aa2ff" }}
             >
               {inOrgContext
                 ? `Organisation : ${orgName}`

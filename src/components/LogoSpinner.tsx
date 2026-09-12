@@ -20,7 +20,7 @@ export default function LogoSpinner({ size = 80 }: { size?: number }) {
               y2="100%"
             >
               <stop offset="0%" stopColor="#FF8533" />
-              <stop offset="100%" stopColor="#FF6B00" />
+              <stop offset="100%" stopColor="var(--accent-primary)" />
             </linearGradient>
           </defs>
           {/* Main L shape with gradient */}

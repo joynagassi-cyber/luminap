@@ -1,3 +1,9 @@
+/**
+ * @deprecated DEAD CODE — not referenced by any entrypoint.
+ * The live entrypoint is src/App.tsx (used by src/main.tsx). This competing
+ * shell (IonSplitPane layout) was superseded during the multi-org
+ * migration and is kept only for history. Do not import it.
+ */
 import { IonApp, setupIonicReact } from "@ionic/react";
 import { IonReactRouter } from "@ionic/react-router";
 import { IonRouterOutlet, IonSplitPane } from "@ionic/react";

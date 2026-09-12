@@ -73,10 +73,13 @@ export function calculerNombreRetards(params: {
 
 /**
  * Calcule le montant total dû en FCFA à partir du nombre de retards.
+ * `montantParCulteCents` DOIT être fourni par l'appelant : aucun montant
+ * n'est plus hardcodé — le montant par culte est choisi par l'utilisateur
+ * lors de la création du culte.
  */
 export function calculerMontantDu(
   nombreRetards: number,
-  montantParCulteCents = 5000,
+  montantParCulteCents: number,
 ): number {
   return nombreRetards * montantParCulteCents;
 }

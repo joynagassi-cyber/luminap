@@ -93,6 +93,23 @@ export function getStatusColor(status: Transaction["status"]): string {
   return colors[status];
 }
 
+/**
+ * Tint a colour to `opacity`% strength, returning a valid CSS colour value.
+ *
+ * Old code did `hexColor + "20"` (appended an alpha byte to a 6-digit hex).
+ * That is INVALID when the colour is a CSS variable or any non-#RRGGBB value
+ * — e.g. the theme fallback `"var(--accent-primary)"` used for caisses/groups
+ * that store no colour. `color-mix()` mixes the colour with transparent so it
+ * works for hex, `var(...)`, `rgb(...)`, and any currentColour.
+ *
+ * @param color   The CSS colour to tint (hex, var(--…), rgb(…), …).
+ * @param opacity  Target opacity in percent (0–100). Default 12.
+ */
+export function tint(color: string, opacity = 12): string {
+  return `color-mix(in srgb, ${color} ${opacity}%, transparent)`;
+}
+
+
 export function getPeriodRange(period: "jour" | "semaine" | "mois" | "annee"): {
   start: string;
   end: string;

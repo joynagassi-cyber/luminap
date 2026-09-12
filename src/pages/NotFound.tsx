@@ -21,7 +21,7 @@ export default function NotFound() {
           <div className="text-center">
             <p
               className="text-6xl font-black mb-4"
-              style={{ color: "#FF6B00" }}
+              style={{ color: "var(--accent-primary)" }}
             >
               404
             </p>
@@ -34,7 +34,7 @@ export default function NotFound() {
             <button
               onClick={() => navigate("/")}
               className="px-8 py-3 rounded-full font-semibold text-white"
-              style={{ backgroundColor: "#FF6B00" }}
+              style={{ backgroundColor: "var(--accent-primary)" }}
             >
               Retour à l'accueil
             </button>

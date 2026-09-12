@@ -25,7 +25,7 @@ export default function EmptyState({
         <IonButton
           onClick={onAction}
           className="!rounded-full !font-semibold !text-sm !py-3 !px-6 transition-all"
-          style={{ "--background": "#FF6B00", "--color": "#FFFFFF" }}
+          style={{ "--background": "var(--accent-primary)", "--color": "#FFFFFF" }}
         >
           {actionLabel}
         </IonButton>

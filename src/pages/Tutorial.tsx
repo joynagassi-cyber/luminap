@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { tint } from "@/lib/utils";
 import {
   IonPage,
   IonHeader,
@@ -76,7 +77,7 @@ const CATEGORY_COLORS = [
   "#8B5CF6",
   "#14B8A6",
   "#EC4899",
-  "#FF6B00",
+  "var(--accent-primary)",
   "#808080",
 ];
 
@@ -117,7 +118,7 @@ const GROUP_BAR_DATA = [
   { name: "Jeunesse", solde: 1920000, color: "#8B5CF6" },
   { name: "Dames", solde: 3100000, color: "#EC4899" },
   { name: "Messieurs", solde: 1750000, color: "#14B8A6" },
-  { name: "Chorale", solde: 2200000, color: "#FF6B00" },
+  { name: "Chorale", solde: 2200000, color: "var(--accent-primary)" },
 ];
 
 // ─── Sections data ──────────────────────────────────────────────────────────────
@@ -126,9 +127,9 @@ const SECTIONS: SectionData[] = [
     id: "overview",
     title: "Vue d'ensemble",
     icon: BookOpen,
-    color: "#FF6B00",
-    iconBg: "#FF6B0020",
-    titleColor: "#FF6B00",
+    color: "var(--accent-primary)",
+    iconBg: "color-mix(in srgb, var(--accent-primary) 12%, transparent)",
+    titleColor: "var(--accent-primary)",
     paragraphs: [
       "Lumina est une application de gestion financière conçue pour les églises et organisations chrétiennes.",
       "Elle permet de suivre les entrées et sorties d'argent, de gérer les caisses par groupe, de planifier des événements avec leur budget, et de produire des rapports financiers.",
@@ -476,9 +477,9 @@ const SECTIONS: SectionData[] = [
     id: "roles",
     title: "Rôles & Permissions",
     icon: Users,
-    color: "#FF6B00",
-    iconBg: "#FF6B0020",
-    titleColor: "#FF6B00",
+    color: "var(--accent-primary)",
+    iconBg: "color-mix(in srgb, var(--accent-primary) 12%, transparent)",
+    titleColor: "var(--accent-primary)",
     paragraphs: [
       "Chaque utilisateur choisit son rôle au premier démarrage : Trésorier, Pasteur, Secrétaire, Comptable, Trésorier Adjoint ou Secrétaire Adjoint.",
       "Le trésorier a les permissions complètes : créer, approuver, modifier, supprimer, annuler les transactions et créer des versements.",
@@ -986,15 +987,15 @@ function GroupTreeDiagram() {
         width="140"
         height="48"
         rx="10"
-        fill="#FF6B0020"
-        stroke="#FF6B00"
+        stroke="var(--accent-primary)"
         strokeWidth="1.5"
+        style={{ fill: "color-mix(in srgb, var(--accent-primary) 12%, transparent)" }}
       />
       <text
         x="200"
         y="28"
         textAnchor="middle"
-        fill="#FF6B00"
+        fill="var(--accent-primary)"
         fontSize="12"
         fontWeight="700"
       >
@@ -1376,7 +1377,7 @@ export default function Tutorial() {
                     style={
                       isActive
                         ? {
-                            backgroundColor: s.color + "20",
+                            backgroundColor: tint(s.color, 12),
                             color: s.color,
                             outline: "none",
                           }
@@ -1597,7 +1598,7 @@ export default function Tutorial() {
                   backgroundColor:
                     activeSection === SECTIONS[SECTIONS.length - 1].id
                       ? "#181818"
-                      : current.color + "20",
+                      : tint(current.color, 12),
                   color:
                     activeSection === SECTIONS[SECTIONS.length - 1].id
                       ? "#535353"

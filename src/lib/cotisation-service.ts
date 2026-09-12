@@ -55,7 +55,10 @@ export function createCulte(
   const now = new Date().toISOString();
   const id = generateId();
   const members = state.members.filter((m) => m.status === "ACTIVE");
-  const montantObligatoireCents = params.montantCotisationCents ?? 5000;
+  if (params.montantCotisationCents === undefined || params.montantCotisationCents <= 0) {
+    throw new Error("MONTANT_COTISATION_REQUIS");
+  }
+  const montantObligatoireCents = params.montantCotisationCents;
 
   const culte: Event = {
     id,
@@ -113,9 +116,10 @@ export async function persistCulte(
 
   for (const cot of cotisations) {
     await executeWrite(
-      "INSERT INTO cotisations (id, culte_id, membre_id, statut, montantObligatoire, montantPaye, datePaiement, notes, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO cotisations (id, org_id, culte_id, membre_id, statut, montantObligatoire, montantPaye, datePaiement, notes, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       [
         cot.id,
+        culte.orgId,
         cot.culteId,
         cot.membreId,
         cot.statut,

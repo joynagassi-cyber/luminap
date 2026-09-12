@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useCategories, useCaisses, useMembers, addEventPS } from "@/lib/dataLayer";
+import { useLocalStore } from "@/store/useLocalStore";
 import { ArrowLeft, Plus, X, Tag } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
@@ -43,6 +44,7 @@ export default function EventNew() {
   const navigate = useNavigate();
   const location = useLocation();
   const { data: members } = useMembers();
+  const createCulte = useLocalStore((s) => s.createCulte);
 
   // PowerSync with fallback
   const { data: psCategories } = useCategories();
@@ -61,7 +63,7 @@ export default function EventNew() {
   const [eventType, setEventType] = useState<"EVENT" | "CULTE">(
     location.state?.defaultType === "CULTE" ? "CULTE" : "EVENT",
   );
-  const [montantCotisation, setMontantCotisation] = useState("50");
+  const [montantCotisation, setMontantCotisation] = useState("");
   const [budgetItems, setBudgetItems] = useState<BudgetItem[]>([]);
   const [showBudget, setShowBudget] = useState(false);
   const [newBudgetLabel, setNewBudgetLabel] = useState("");
@@ -114,6 +116,21 @@ export default function EventNew() {
     setError("");
 
     if (eventType === "CULTE") {
+      // Le montant de cotisation est requis et doit être choisi par l'utilisateur.
+      // L'UI le saisit en FCFA ; on convertit en cents (1 FCFA = 100 cents)
+      // pour transmettre au service `createCulte`.
+      const fcfa = parseFloat(montantCotisation);
+      if (!Number.isFinite(fcfa) || fcfa <= 0) {
+        setError("Le montant de cotisation est requis (en FCFA).");
+        return;
+      }
+      const montantCents = Math.round(fcfa * 100);
+
+      await createCulte({
+        name: name.trim(),
+        startDate,
+        montantCotisationCents: montantCents,
+      });
       navigate("/cotisations");
       return;
     }
@@ -161,7 +178,7 @@ export default function EventNew() {
               className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${eventType === "EVENT" ? "text-white" : "text-text-tertiary"}`}
               style={
                 eventType === "EVENT"
-                  ? { backgroundColor: "#FF6B00" }
+                  ? { backgroundColor: "var(--accent-primary)" }
                   : { backgroundColor: "#212121" }
               }
             >
@@ -172,7 +189,7 @@ export default function EventNew() {
               className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${eventType === "CULTE" ? "text-white" : "text-text-tertiary"}`}
               style={
                 eventType === "CULTE"
-                  ? { backgroundColor: "#FF6B00" }
+                  ? { backgroundColor: "var(--accent-primary)" }
                   : { backgroundColor: "#212121" }
               }
             >
@@ -192,7 +209,7 @@ export default function EventNew() {
               <div className="flex items-center gap-3">
                 <div className="flex-1">
                   <label className="text-text-tertiary text-xs mb-1.5 block">
-                    Montant obligatoire (FCFA)
+                    Montant obligatoire (FCFA) *
                   </label>
                   <IonInput
                     type="number"
@@ -323,7 +340,7 @@ export default function EventNew() {
               <button
                 onClick={() => setShowBudget(!showBudget)}
                 className="text-xs font-medium"
-                style={{ color: "#FF6B00" }}
+                style={{ color: "var(--accent-primary)" }}
               >
                 {showBudget ? "Masquer" : "Gérer le budget"}
               </button>
@@ -385,7 +402,7 @@ export default function EventNew() {
                   <button
                     onClick={handleAddBudget}
                     className="px-4 py-3 rounded-xl text-sm font-medium"
-                    style={{ backgroundColor: "#FF6B00", color: "#fff" }}
+                    style={{ backgroundColor: "var(--accent-primary)", color: "#fff" }}
                   >
                     <Plus className="w-4 h-4" />
                   </button>
@@ -428,7 +445,7 @@ export default function EventNew() {
                 className="p-4 rounded-xl text-center"
                 style={{
                   backgroundColor: "#212121",
-                  border: "1px solid #FF6B0030",
+                  border: "1px solid color-mix(in srgb, var(--accent-primary) 19%, transparent)",
                 }}
               >
                 <p className="text-text-tertiary text-xs">Budget total</p>
@@ -442,7 +459,7 @@ export default function EventNew() {
           <IonButton
             onClick={handleSubmit}
             expand="block"
-            style={{ backgroundColor: "#FF6B00" }}
+            style={{ backgroundColor: "var(--accent-primary)" }}
           >
             Créer l'événement
           </IonButton>

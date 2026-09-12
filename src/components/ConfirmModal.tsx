@@ -73,7 +73,7 @@ export default function ConfirmModal({
               <span
                 className="font-bold"
                 style={{
-                  color: confirmVariant === "danger" ? "#E51332" : "#FF6B00",
+                  color: confirmVariant === "danger" ? "#E51332" : "var(--accent-primary)",
                 }}
               >
                 "{requiredText}"
@@ -119,7 +119,7 @@ export default function ConfirmModal({
             className="!rounded-full !min-height:auto text-sm font-semibold !opacity-100 disabled:!opacity-40 disabled:!cursor-not-allowed active:scale-95 transition-transform"
             style={{
               backgroundColor:
-                confirmVariant === "danger" ? "#E51332" : "#FF6B00",
+                confirmVariant === "danger" ? "#E51332" : "var(--accent-primary)",
               color: "#FFFFFF",
             }}
             aria-label={confirmLabel}
