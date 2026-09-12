@@ -135,7 +135,7 @@ export default function FormBuilder() {
                 onClick={() => setShowCreate(true)}
                 className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold text-white"
                 style={{
-                  background: "linear-gradient(135deg, #FF8533, #FF6B00)",
+                  background: "linear-gradient(135deg, #FF8533, var(--accent-primary))",
                 }}
               >
                 <Plus className="w-4 h-4" /> Créer
@@ -188,11 +188,18 @@ export default function FormBuilder() {
                         onClick={() => navigate(`/form/fill/${form.id}`)}
                         className="flex-1 py-2 rounded-full text-xs font-medium"
                         style={{
-                          backgroundColor: "#FF6B0020",
-                          color: "#FF6B00",
+                          backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)",
+                          color: "var(--accent-primary)",
                         }}
                       >
                         Remplir
+                      </button>
+                      <button
+                        onClick={() => navigate(`/forms/${form.id}/submissions`)}
+                        className="flex-1 py-2 rounded-full text-xs font-medium"
+                        style={{ backgroundColor: "#282828", color: "#B3B3B3" }}
+                      >
+                        Soumissions
                       </button>
                       <button
                         onClick={async () => {
@@ -289,8 +296,8 @@ export default function FormBuilder() {
                         }}
                         className="text-xs px-3 py-1.5 rounded-full font-medium"
                         style={{
-                          backgroundColor: "#FF6B0020",
-                          color: "#FF6B00",
+                          backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)",
+                          color: "var(--accent-primary)",
                         }}
                       >
                         <Plus className="w-3 h-3 inline mr-1" /> Ajouter
@@ -342,7 +349,7 @@ export default function FormBuilder() {
                         <button
                           onClick={() => toggleRequired(index)}
                           style={{
-                            color: field.required ? "#FF6B00" : "#808080",
+                            color: field.required ? "var(--accent-primary)" : "#808080",
                           }}
                         >
                           <span className="text-xs font-bold">*</span>
