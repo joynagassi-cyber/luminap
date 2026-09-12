@@ -6,6 +6,16 @@ import type { Transaction } from "@/types";
 import { getOrganizationId } from "./orgContext";
 import { get, set, invalidate, asyncGetOrSet } from "./cache";
 
+/** Parse JSON defensively — returns the input unchanged on failure. */
+function safeParse(raw: string | object): Record<string, any> {
+  if (typeof raw === "object" && raw !== null) return raw as Record<string, any>;
+  try {
+    return JSON.parse(raw as string) ?? {};
+  } catch {
+    return {};
+  }
+}
+
 export type FilterOp =
   | "eq"
   | "neq"
@@ -72,7 +82,141 @@ export class AggregationEngine {
   async execute(reportDef: ReportDefinition): Promise<ReportResult> {
     if (reportDef.dataSource === "transactions")
       return this.aggregateTransactions(reportDef);
+    if (reportDef.dataSource === "form_submissions")
+      return this.aggregateFormSubmissions(reportDef);
     throw new Error(`Unsupported data source: ${reportDef.dataSource}`);
+  }
+
+  /**
+   * `form_submissions` data source — aggregates the JSON responses of
+   * dynamic-form submissions (e.g. number of baptisms per month).
+   *
+   * `metrics[].field` is resolved against:
+   *   - a column of `form_submissions` directly (id, org_id, status,
+   *     form_definition_id, submitted_at, …), or
+   *   - a JSON path inside `data` if the field starts with `data.`
+   *     (SQLite JSON extraction: `json_extract(data, '$.field')`).
+   *
+   * `groupBy` supports `month` / `year` (on `submitted_at`), `status`,
+   * and `form_definition_id`.
+   */
+  private async aggregateFormSubmissions(
+    reportDef: ReportDefinition,
+  ): Promise<ReportResult> {
+    const orgId = getOrganizationId();
+    const cacheKey = `report:form:${JSON.stringify({
+      filters: reportDef.filters,
+      groupBy: reportDef.groupBy,
+      metrics: reportDef.metrics,
+    })}`;
+
+    const cached = get<ReportResult>(cacheKey);
+    if (cached) return cached;
+
+    const db = getPowerSyncDatabase();
+    const result = await db.execute(
+      `SELECT id, org_id, form_definition_id, status, submitted_by, submitted_at, data
+       FROM form_submissions WHERE org_id = ? AND status = ?`,
+      [orgId, "SUBMITTED"],
+    );
+    const rows: any[] = (result?.array ?? []).map((r: any) => ({
+      id: r.id,
+      orgId: r.org_id,
+      formDefinitionId: r.form_definition_id,
+      status: r.status,
+      submittedBy: r.submitted_by,
+      submittedAt: r.submitted_at ?? r.created_at ?? "",
+      data: typeof r.data === "string" ? safeParse(r.data) : r.data ?? {},
+    }));
+
+    const filters = (reportDef.filters as any[]) || [];
+    let filtered = rows;
+    for (const filter of filters) {
+      if (filter.field === "formDefinitionId" && filter.value)
+        filtered = filtered.filter((r) => r.formDefinitionId === filter.value);
+      if (filter.field === "status" && filter.value)
+        filtered = filtered.filter((r) => r.status === filter.value);
+      if (filter.field === "submittedBy" && filter.value)
+        filtered = filtered.filter((r) => r.submittedBy === filter.value);
+      if (filter.field === "date")
+        filtered = filtered.filter(
+          (r) =>
+            r.submittedAt >= filter.value.start &&
+            r.submittedAt <= filter.value.end,
+        );
+    }
+
+    // Resolve the metric value from the row.
+    const resolveValue = (row: any, field: string): any => {
+      if (field.startsWith("data.")) {
+        const key = field.slice("data.".length);
+        return row.data?.[key];
+      }
+      return row[field];
+    };
+
+    const grouped = new Map<string, any[]>();
+    const groupBy = reportDef.groupBy || [];
+    for (const row of filtered) {
+      const key = groupBy
+        .map((g) => {
+          if (g === "month") return row.submittedAt.substring(0, 7);
+          if (g === "year") return row.submittedAt.substring(0, 4);
+          if (g === "status") return row.status;
+          if (g === "formDefinitionId")
+            return row.formDefinitionId || "unknown";
+          if (g.startsWith("data.")) return String(resolveValue(row, g));
+          return "";
+        })
+        .join("|");
+      if (!grouped.has(key)) grouped.set(key, []);
+      grouped.get(key)!.push(row);
+    }
+
+    const outRows: Record<string, any>[] = [];
+    const columns = new Set<string>(["key"]);
+    const metrics = (reportDef.metrics as unknown as MetricExpr[]) || [];
+    for (const metric of metrics) columns.add(metric.alias || metric.field);
+
+    for (const [key, items] of grouped) {
+      const outRow: Record<string, any> = { key };
+      for (const metric of metrics) {
+        const values = items.map((r) => resolveValue(r, metric.field));
+        const nums = values.map((v) => Number(v ?? 0));
+        const alias = metric.alias || metric.field;
+        switch (metric.fn) {
+          case "sum":
+            outRow[alias] = nums.reduce((a, b) => a + b, 0);
+            break;
+          case "count":
+            outRow[alias] = nums.length;
+            break;
+          case "avg":
+            outRow[alias] =
+              nums.length > 0
+                ? nums.reduce((a, b) => a + b, 0) / nums.length
+                : 0;
+            break;
+          case "min":
+            outRow[alias] = nums.length ? Math.min(...nums) : 0;
+            break;
+          case "max":
+            outRow[alias] = nums.length ? Math.max(...nums) : 0;
+            break;
+          default:
+            outRow[alias] = 0;
+        }
+      }
+      outRows.push(outRow);
+    }
+
+    const out: ReportResult = {
+      rows: outRows,
+      columns: Array.from(columns),
+      total: filtered.length,
+    };
+    set(cacheKey, out);
+    return out;
   }
 
   private async aggregateTransactions(
