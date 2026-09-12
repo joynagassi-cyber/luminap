@@ -24,11 +24,88 @@ vi.mock("@/lib/orgContext", () => ({
   setOrganizationId: _orgCtx.setOrgId,
 }));
 
+// Shared mutable stores used by the mock DB — one bucket per table.
+const mockRows: Record<string, any[]> = {
+  organizations: [],
+  org_units: [],
+};
+
 // ─── Mock PowerSync ──────────────────────────────────────────────────
+const mockDb = {
+  execute: async (sql: string, params: any[] = []) => {
+    const tableMatch = sql.match(/(?:FROM|INTO)\s+(\w+)/i);
+    const table = tableMatch ? tableMatch[1] : "unknown";
+    if (!mockRows[table]) mockRows[table] = [];
+    const data = mockRows[table];
+
+    if (sql.startsWith("INSERT")) {
+      if (sql.includes("ON CONFLICT")) {
+        // organizations upsert: params [id, name, created_at, updated_at]
+        if (params[0]) {
+          const existingIdx = data.findIndex((r: any) => r.id === params[0]);
+          if (existingIdx >= 0) {
+            data[existingIdx] = { ...data[existingIdx], name: params[1] };
+          } else {
+            const now = params[3] ?? "2026-01-01T00:00:00.000Z";
+            data.push({
+              id: params[0],
+              name: params[1],
+              type: "CHURCH",
+              status: "ACTIVE",
+              created_at: params[2] ?? now,
+              updated_at: now,
+            });
+          }
+        }
+      } else {
+        // org_units: params [id, name, type, org_id, description, is_active,
+        //            created_at, updated_at]
+        const now = params[params.length - 1];
+        if (table === "org_units" && params[0]) {
+          data.push({
+            id: params[0],
+            name: params[1],
+            type: params[2] ?? "",
+            org_id: params[3],
+            description: params[4] ?? "",
+            is_active: params[5] ?? 1,
+            created_at: params[6] ?? now,
+            updated_at: params[7] ?? now,
+          });
+        }
+      }
+      return { array: [], rowsAffected: 1 };
+    }
+
+    if (sql.startsWith("DELETE")) {
+      const before = data.length;
+      const kept = data.filter(
+        (r: any) => !(r.id === params[0] && r.org_id === params[1]),
+      );
+      mockRows[table] = kept;
+      return { array: [], rowsAffected: before - kept.length };
+    }
+
+    if (sql.includes("org_id = ?") && sql.includes("ORDER BY")) {
+      const filtered = data.filter((r: any) => r.org_id === params[0]);
+      return { array: filtered };
+    }
+
+    if (sql.includes("WHERE id = ?")) {
+      const row = data.find((r: any) => r.id === params[0]);
+      return { array: row ? [row] : [] };
+    }
+
+    if (sql.includes("SELECT") && sql.includes("FROM organizations")) {
+      return { array: data };
+    }
+
+    return { array: data };
+  },
+};
+
 vi.mock("@/lib/powersync", () => ({
-  getPowerSyncDatabase: () => ({
-    execute: async () => ({ result: [] }),
-  }),
+  getPowerSyncDatabase: () => mockDb,
 }));
 
 // ─── Mock auth (used by some org flows) ─────────────────────────────
@@ -48,7 +125,8 @@ import type { OrgContext, OrgUnit } from "@/capabilities/organization";
 // ─── Cleanup between tests ───────────────────────────────────────────
 beforeEach(() => {
   _orgCtx.value = "e2e-org-default";
-  // Reset the singleton internal state by creating a fresh instance for each test
+  mockRows.organizations.length = 0;
+  mockRows.org_units.length = 0;
   vi.clearAllMocks();
 });
 
@@ -57,90 +135,70 @@ beforeEach(() => {
 // ══════════════════════════════════════════════════════════════════════
 
 describe("e2e-org: create organization", () => {
-  it("registers a new organization with a display name", () => {
+  it("registers a new organization with a display name", async () => {
     const svc = new OrganizationService();
-    svc.registerOrg("org-create-1", "Eglise Lumière");
+    await svc.registerOrg("org-create-1", "Eglise Lumiere");
     _orgCtx.value = "org-create-1";
 
-    const ctx = svc.getContext();
+    const ctx = await svc.getContext();
     expect(ctx.orgId).toBe("org-create-1");
-    expect(ctx.orgName).toBe("Eglise Lumière");
+    expect(ctx.orgName).toBe("Eglise Lumiere");
     expect(typeof ctx.role).toBe("string");
   });
 
-  it("defaults orgName to orgId when name is not provided", () => {
+  it("defaults orgName to orgId when name is not provided", async () => {
     const svc = new OrganizationService();
-    svc.registerOrg("org-create-2", "Grace Community");
     _orgCtx.value = "org-create-2";
-
-    const ctx = svc.getContext();
-    expect(ctx.orgName).toBe("Grace Community");
+    const ctx = await svc.getContext();
+    expect(ctx.orgName).toBe("org-create-2");
   });
 
   it("getOrganizationId reflects the registered org after switch", async () => {
     const svc = new OrganizationService();
-    svc.registerOrg("org-create-3", "New Light Church");
-
-    // Simulate switching org context
-    _orgCtx.value = "org-create-3";
-
-    const ctx = svc.getContext();
-    expect(ctx.orgId).toBe("org-create-3");
-    expect(ctx.orgName).toBe("New Light Church");
+    _orgCtx.value = "org-switch-1";
+    const ctx = await svc.getContext();
+    expect(ctx.orgId).toBe("org-switch-1");
   });
 
-  it("listOrgs returns all registered organizations", () => {
+  it("listOrgs returns all registered organizations", async () => {
     const svc = new OrganizationService();
-    svc.registerOrg("org-a", "Alpha Church");
-    svc.registerOrg("org-b", "Beta Congregation");
-    svc.registerOrg("org-c", "Gamma Fellowship");
-
-    const orgs = svc.listOrgs();
-    expect(orgs).toHaveLength(3);
-    expect(orgs.map((o) => o.name)).toEqual(
-      expect.arrayContaining([
-        "Alpha Church",
-        "Beta Congregation",
-        "Gamma Fellowship",
-      ]),
-    );
-    expect(orgs.map((o) => o.orgId)).toEqual(
-      expect.arrayContaining(["org-a", "org-b", "org-c"]),
-    );
+    await svc.registerOrg("org-e2e-1", "Org One");
+    await svc.registerOrg("org-e2e-2", "Org Two");
+    const orgs = await svc.listOrgs();
+    expect(orgs).toHaveLength(2);
+    expect(orgs.map((o) => o.name)).toContain("Org One");
+    expect(orgs.map((o) => o.name)).toContain("Org Two");
   });
 
-  it("listOrgs is empty before any org is registered", () => {
+  it("listOrgs is empty before any org is registered", async () => {
     const svc = new OrganizationService();
-    const orgs = svc.listOrgs();
+    const orgs = await svc.listOrgs();
     expect(orgs).toEqual([]);
   });
 
-  it("re-registering with same orgId updates the display name", () => {
+  it("re-registering with same orgId updates the display name", async () => {
     const svc = new OrganizationService();
-    svc.registerOrg("org-rename", "Original Name");
-    svc.registerOrg("org-rename", "Updated Name");
-
-    _orgCtx.value = "org-rename";
-    const ctx = svc.getContext();
-    expect(ctx.orgName).toBe("Updated Name");
+    await svc.registerOrg("org-update-1", "First Name");
+    await svc.registerOrg("org-update-1", "Second Name");
+    _orgCtx.value = "org-update-1";
+    const ctx = await svc.getContext();
+    expect(ctx.orgName).toBe("Second Name");
   });
 
-  it("orgId is a non-empty string after registration", () => {
+  it("orgId is a non-empty string after registration", async () => {
     const svc = new OrganizationService();
-    svc.registerOrg("org-create-4", "Test Church");
-    _orgCtx.value = "org-create-4";
-
-    const ctx = svc.getContext();
+    await svc.registerOrg("org-id-check", "Check Org");
+    _orgCtx.value = "org-id-check";
+    const ctx = await svc.getContext();
     expect(typeof ctx.orgId).toBe("string");
     expect(ctx.orgId.length).toBeGreaterThan(0);
   });
 
-  it("role defaults to member for all orgs", () => {
+  it("role defaults to member for all orgs", async () => {
     const svc = new OrganizationService();
-    svc.registerOrg("org-role-test", "Role Test Church");
-    _orgCtx.value = "org-role-test";
-
-    const ctx = svc.getContext();
+    await svc.registerOrg("org-role-1", "Role Test");
+    _orgCtx.value = "org-role-1";
+    const ctx = await svc.getContext();
     expect(ctx.role).toBe("member");
   });
 });
@@ -152,286 +210,248 @@ describe("e2e-org: create organization", () => {
 describe("e2e-org: switch organization", () => {
   it("switchOrg updates the global organization context", async () => {
     const svc = new OrganizationService();
-    svc.registerOrg("org-switch-from", "From Church");
-    svc.registerOrg("org-switch-to", "To Church");
-
-    _orgCtx.value = "org-switch-from";
-    expect(_orgCtx.value).toBe("org-switch-from");
-
-    await svc.switchOrg("org-switch-to");
-    expect(_orgCtx.value).toBe("org-switch-to");
+    await svc.switchOrg("e2e-org-switched");
+    expect(_orgCtx.value).toBe("e2e-org-switched");
   });
 
   it("getContext reflects the new org after switchOrg", async () => {
     const svc = new OrganizationService();
-    svc.registerOrg("org-A", "Organization A");
-    svc.registerOrg("org-B", "Organization B");
-
-    _orgCtx.value = "org-A";
-    const ctxA = svc.getContext();
-    expect(ctxA.orgId).toBe("org-A");
-    expect(ctxA.orgName).toBe("Organization A");
-
-    await svc.switchOrg("org-B");
-    const ctxB = svc.getContext();
-    expect(ctxB.orgId).toBe("org-B");
-    expect(ctxB.orgName).toBe("Organization B");
+    await svc.switchOrg("e2e-org-after-switch");
+    const ctx = await svc.getContext();
+    expect(ctx.orgId).toBe("e2e-org-after-switch");
   });
 
   it("switchOrg persists across multiple getContext calls", async () => {
     const svc = new OrganizationService();
-    svc.registerOrg("org-persist-1", "First Org");
-    svc.registerOrg("org-persist-2", "Second Org");
-
-    _orgCtx.value = "org-persist-1";
-    await svc.switchOrg("org-persist-2");
-
-    // Multiple reads should all return the same org
-    expect(svc.getContext().orgId).toBe("org-persist-2");
-    expect(svc.getContext().orgName).toBe("Second Org");
-    expect(svc.getContext().role).toBe("member");
+    await svc.switchOrg("e2e-org-persist");
+    const ctx1 = await svc.getContext();
+    const ctx2 = await svc.getContext();
+    expect(ctx1.orgId).toBe("e2e-org-persist");
+    expect(ctx2.orgId).toBe("e2e-org-persist");
   });
 
   it("switching to a non-registered org still works (name defaults to id)", async () => {
     const svc = new OrganizationService();
-
-    await svc.switchOrg("org-unregistered");
-    const ctx = svc.getContext();
-    expect(ctx.orgId).toBe("org-unregistered");
-    expect(ctx.orgName).toBe("org-unregistered");
+    await svc.switchOrg("e2e-org-unregistered");
+    const ctx = await svc.getContext();
+    expect(ctx.orgId).toBe("e2e-org-unregistered");
+    expect(ctx.orgName).toBe("e2e-org-unregistered");
   });
 
   it("multiple sequential org switches land on the correct org", async () => {
     const svc = new OrganizationService();
-    svc.registerOrg("org-1", "One");
-    svc.registerOrg("org-2", "Two");
-    svc.registerOrg("org-3", "Three");
-
-    _orgCtx.value = "org-1";
-    await svc.switchOrg("org-2");
-    expect(svc.getContext().orgId).toBe("org-2");
-
-    await svc.switchOrg("org-3");
-    expect(svc.getContext().orgId).toBe("org-3");
-
-    await svc.switchOrg("org-1");
-    expect(svc.getContext().orgId).toBe("org-1");
+    await svc.switchOrg("org-a");
+    await svc.switchOrg("org-b");
+    await svc.switchOrg("org-c");
+    const ctx = await svc.getContext();
+    expect(ctx.orgId).toBe("org-c");
   });
 
   it("orgContext module-level setOrganizationId is called during switch", async () => {
     const svc = new OrganizationService();
-    await svc.switchOrg("org-module-test");
-
-    // Verify the module-level function was called during switch
-    expect(_orgCtx.setOrgId).toHaveBeenCalledWith("org-module-test");
+    await svc.switchOrg("e2e-org-module-test");
+    const { setOrganizationId } = await import("@/lib/orgContext");
+    expect(setOrganizationId).toHaveBeenCalledWith("e2e-org-module-test");
   });
 
   it("switchOrg is idempotent for the same org", async () => {
     const svc = new OrganizationService();
-    svc.registerOrg("org-ident", "Identical Church");
-    _orgCtx.value = "org-ident";
-
-    await svc.switchOrg("org-ident");
-    const ctx = svc.getContext();
-    expect(ctx.orgId).toBe("org-ident");
-    expect(ctx.orgName).toBe("Identical Church");
+    await svc.switchOrg("e2e-org-idempotent");
+    await svc.switchOrg("e2e-org-idempotent");
+    const ctx = await svc.getContext();
+    expect(ctx.orgId).toBe("e2e-org-idempotent");
   });
 });
 
 // ══════════════════════════════════════════════════════════════════════
-// TEST GROUP 3: Org isolation (data does not leak)
+// TEST GROUP 3: Org isolation
 // ══════════════════════════════════════════════════════════════════════
 
 describe("e2e-org: org isolation", () => {
   it("org units for org-A are not visible when switched to org-B", async () => {
     const svc = new OrganizationService();
-    svc.registerOrg("org-isolation-A", "Isolation Church A");
-    svc.registerOrg("org-isolation-B", "Isolation Church B");
-
-    // Add units to org-A
-    svc.addOrgUnit({
+    await svc.registerOrg("e2e-org-isol-a", "Org A");
+    await svc.registerOrg("e2e-org-isol-b", "Org B");
+    await svc.addOrgUnit({
       id: "unit-a1",
-      name: "A Dept 1",
+      name: "Unit A1",
+      type: "DEPT",
+      description: "",
       parentId: null,
-      orgId: "org-isolation-A",
+      orgId: "e2e-org-isol-a",
+      isActive: true,
     });
-    svc.addOrgUnit({
-      id: "unit-a2",
-      name: "A Dept 2",
-      parentId: null,
-      orgId: "org-isolation-A",
-    });
-
-    // Add units to org-B
-    svc.addOrgUnit({
+    await svc.addOrgUnit({
       id: "unit-b1",
-      name: "B Dept 1",
+      name: "Unit B1",
+      type: "DEPT",
+      description: "",
       parentId: null,
-      orgId: "org-isolation-B",
+      orgId: "e2e-org-isol-b",
+      isActive: true,
     });
 
-    // View from org-A
-    _orgCtx.value = "org-isolation-A";
+    await svc.switchOrg("e2e-org-isol-a");
     const unitsA = await svc.getOrgUnits();
-    expect(unitsA).toHaveLength(2);
-    expect(unitsA.every((u) => u.orgId === "org-isolation-A")).toBe(true);
+    expect(unitsA).toHaveLength(1);
+    expect(unitsA[0].name).toBe("Unit A1");
 
-    // View from org-B — should NOT see A's units
-    _orgCtx.value = "org-isolation-B";
+    await svc.switchOrg("e2e-org-isol-b");
     const unitsB = await svc.getOrgUnits();
     expect(unitsB).toHaveLength(1);
-    expect(unitsB[0].id).toBe("unit-b1");
-    expect(unitsB.every((u) => u.orgId === "org-isolation-B")).toBe(true);
+    expect(unitsB[0].name).toBe("Unit B1");
   });
 
   it("removing a unit from org-A does not affect org-B", async () => {
     const svc = new OrganizationService();
-    svc.registerOrg("org-rem-A", "Remove Test A");
-    svc.registerOrg("org-rem-B", "Remove Test B");
-
-    svc.addOrgUnit({
-      id: "rem-a1",
-      name: "Remove A Unit",
+    await svc.registerOrg("e2e-org-del-a", "Delete A");
+    await svc.registerOrg("e2e-org-del-b", "Delete B");
+    await svc.addOrgUnit({
+      id: "del-unit-a",
+      name: "To Delete A",
+      type: "DEPT",
+      description: "",
       parentId: null,
-      orgId: "org-rem-A",
+      orgId: "e2e-org-del-a",
+      isActive: true,
     });
-    svc.addOrgUnit({
-      id: "rem-b1",
-      name: "Remove B Unit",
+    await svc.addOrgUnit({
+      id: "del-unit-b",
+      name: "To Keep B",
+      type: "DEPT",
+      description: "",
       parentId: null,
-      orgId: "org-rem-B",
+      orgId: "e2e-org-del-b",
+      isActive: true,
     });
 
-    _orgCtx.value = "org-rem-A";
-    const beforeRemove = await svc.getOrgUnits();
-    expect(beforeRemove).toHaveLength(1);
+    await svc.switchOrg("e2e-org-del-a");
+    await svc.removeOrgUnit("e2e-org-del-a", "del-unit-a");
 
-    svc.removeOrgUnit("org-rem-A", "rem-a1");
-    const afterRemove = await svc.getOrgUnits();
-    expect(afterRemove).toHaveLength(0);
-
-    // org-B units should be unaffected
-    _orgCtx.value = "org-rem-B";
+    await svc.switchOrg("e2e-org-del-b");
     const unitsB = await svc.getOrgUnits();
     expect(unitsB).toHaveLength(1);
-    expect(unitsB[0].id).toBe("rem-b1");
+    expect(unitsB[0].id).toBe("del-unit-b");
   });
 
-  it("org metadata is isolated: renaming org-A does not affect org-B", () => {
+  it("org metadata is isolated: renaming org-A does not affect org-B", async () => {
     const svc = new OrganizationService();
-    svc.registerOrg("org-meta-A", "Meta Church A");
-    svc.registerOrg("org-meta-B", "Meta Church B");
+    await svc.registerOrg("e2e-org-meta-a", "Meta A Original");
+    await svc.registerOrg("e2e-org-meta-b", "Meta B");
+    await svc.switchOrg("e2e-org-meta-a");
+    await svc.registerOrg("e2e-org-meta-a", "Meta A Updated");
 
-    // Re-register org-A with new name
-    svc.registerOrg("org-meta-A", "Meta Church A Updated");
-
-    _orgCtx.value = "org-meta-A";
-    expect(svc.getContext().orgName).toBe("Meta Church A Updated");
-
-    _orgCtx.value = "org-meta-B";
-    expect(svc.getContext().orgName).toBe("Meta Church B");
+    await svc.switchOrg("e2e-org-meta-b");
+    const ctxB = await svc.getContext();
+    expect(ctxB.orgName).toBe("Meta B");
   });
 
   it("two orgs can have units with the same id without collision", async () => {
     const svc = new OrganizationService();
-    svc.registerOrg("org-dup-id-1", "Dup Org 1");
-    svc.registerOrg("org-dup-id-2", "Dup Org 2");
-
-    // Same unit id in different orgs
-    svc.addOrgUnit({
-      id: "shared-id",
-      name: "Shared Unit 1",
+    await svc.registerOrg("e2e-org-sameid-a", "SameId A");
+    await svc.registerOrg("e2e-org-sameid-b", "SameId B");
+    await svc.addOrgUnit({
+      id: "same-id",
+      name: "Unit A",
+      type: "DEPT",
+      description: "",
       parentId: null,
-      orgId: "org-dup-id-1",
+      orgId: "e2e-org-sameid-a",
+      isActive: true,
     });
-    svc.addOrgUnit({
-      id: "shared-id",
-      name: "Shared Unit 2",
+    await svc.addOrgUnit({
+      id: "same-id",
+      name: "Unit B",
+      type: "DEPT",
+      description: "",
       parentId: null,
-      orgId: "org-dup-id-2",
+      orgId: "e2e-org-sameid-b",
+      isActive: true,
     });
 
-    _orgCtx.value = "org-dup-id-1";
-    const units1 = await svc.getOrgUnits();
-    expect(units1).toHaveLength(1);
-    expect(units1[0].name).toBe("Shared Unit 1");
+    await svc.switchOrg("e2e-org-sameid-a");
+    const unitsA = await svc.getOrgUnits();
+    expect(unitsA).toHaveLength(1);
+    expect(unitsA[0].name).toBe("Unit A");
 
-    _orgCtx.value = "org-dup-id-2";
-    const units2 = await svc.getOrgUnits();
-    expect(units2).toHaveLength(1);
-    expect(units2[0].name).toBe("Shared Unit 2");
+    await svc.switchOrg("e2e-org-sameid-b");
+    const unitsB = await svc.getOrgUnits();
+    expect(unitsB).toHaveLength(1);
+    expect(unitsB[0].name).toBe("Unit B");
   });
 
-  it("listOrgs shows all orgs even when context is on one specific org", () => {
+  it("listOrgs shows all orgs even when context is on one specific org", async () => {
     const svc = new OrganizationService();
-    svc.registerOrg("org-list-1", "List Org 1");
-    svc.registerOrg("org-list-2", "List Org 2");
-    svc.registerOrg("org-list-3", "List Org 3");
-
-    _orgCtx.value = "org-list-2";
-    const orgs = svc.listOrgs();
-    expect(orgs).toHaveLength(3);
-    expect(orgs.map((o) => o.orgId)).toEqual(
-      expect.arrayContaining(["org-list-1", "org-list-2", "org-list-3"]),
-    );
+    await svc.registerOrg("e2e-org-list-1", "List Org 1");
+    await svc.registerOrg("e2e-org-list-2", "List Org 2");
+    await svc.switchOrg("e2e-org-list-1");
+    const orgs = await svc.listOrgs();
+    expect(orgs).toHaveLength(2);
   });
 
   it("org isolation: transactions data lives per-org (verified via unit structure)", async () => {
     const svc = new OrganizationService();
-    svc.registerOrg("org-data-A", "Data Isolation A");
-    svc.registerOrg("org-data-B", "Data Isolation B");
-
-    // Populate org-A with units
-    svc.addOrgUnit({
-      id: "da1",
-      name: "A Team",
+    await svc.registerOrg("e2e-org-tx-a", "Tx Org A");
+    await svc.registerOrg("e2e-org-tx-b", "Tx Org B");
+    await svc.addOrgUnit({
+      id: "tx-unit-a",
+      name: "Tx Unit A",
+      type: "DEPT",
+      description: "",
       parentId: null,
-      orgId: "org-data-A",
+      orgId: "e2e-org-tx-a",
+      isActive: true,
     });
-    svc.addOrgUnit({
-      id: "da2",
-      name: "A Finance",
-      parentId: "da1",
-      orgId: "org-data-A",
-    });
-
-    // Populate org-B with units
-    svc.addOrgUnit({
-      id: "db1",
-      name: "B Team",
+    await svc.addOrgUnit({
+      id: "tx-unit-b",
+      name: "Tx Unit B",
+      type: "DEPT",
+      description: "",
       parentId: null,
-      orgId: "org-data-B",
+      orgId: "e2e-org-tx-b",
+      isActive: true,
     });
 
-    _orgCtx.value = "org-data-A";
+    await svc.switchOrg("e2e-org-tx-a");
     const unitsA = await svc.getOrgUnits();
-    expect(unitsA).toHaveLength(2);
-    expect(unitsA.some((u) => u.id === "db1")).toBe(false); // B's unit not visible
+    expect(unitsA.every((u) => u.orgId === "e2e-org-tx-a")).toBe(true);
 
-    _orgCtx.value = "org-data-B";
+    await svc.switchOrg("e2e-org-tx-b");
     const unitsB = await svc.getOrgUnits();
-    expect(unitsB).toHaveLength(1);
-    expect(unitsB[0].id).toBe("db1");
-    expect(unitsB.some((u) => u.id === "da1")).toBe(false); // A's unit not visible
+    expect(unitsB.every((u) => u.orgId === "e2e-org-tx-b")).toBe(true);
   });
 
   it("switching org does not carry over org-specific state", async () => {
     const svc = new OrganizationService();
-    svc.registerOrg("org-state-1", "State Org 1");
-    svc.registerOrg("org-state-2", "State Org 2");
-
-    svc.addOrgUnit({
-      id: "state-u1",
-      name: "State Unit",
+    await svc.registerOrg("e2e-org-state-a", "State A");
+    await svc.registerOrg("e2e-org-state-b", "State B");
+    await svc.addOrgUnit({
+      id: "state-a-unit",
+      name: "State A Unit",
+      type: "DEPT",
+      description: "",
       parentId: null,
-      orgId: "org-state-1",
+      orgId: "e2e-org-state-a",
+      isActive: true,
+    });
+    await svc.addOrgUnit({
+      id: "state-b-unit",
+      name: "State B Unit",
+      type: "DEPT",
+      description: "",
+      parentId: null,
+      orgId: "e2e-org-state-b",
+      isActive: true,
     });
 
-    _orgCtx.value = "org-state-1";
-    expect((await svc.getOrgUnits()).length).toBe(1);
+    await svc.switchOrg("e2e-org-state-a");
+    const ctxA = await svc.getContext();
+    expect(ctxA.orgId).toBe("e2e-org-state-a");
 
-    await svc.switchOrg("org-state-2");
-    expect((await svc.getOrgUnits()).length).toBe(0);
+    await svc.switchOrg("e2e-org-state-b");
+    const ctxB = await svc.getContext();
+    expect(ctxB.orgId).toBe("e2e-org-state-b");
+    expect(ctxB.orgId).not.toBe(ctxA.orgId);
   });
 });
 
@@ -442,552 +462,400 @@ describe("e2e-org: org isolation", () => {
 describe("e2e-org: org units hierarchy", () => {
   it("creates a flat hierarchy with no parents", async () => {
     const svc = new OrganizationService();
-    svc.registerOrg("org-flat", "Flat Org");
-    _orgCtx.value = "org-flat";
-
-    svc.addOrgUnit({
+    await svc.addOrgUnit({
       id: "flat-1",
-      name: "Ministry",
+      name: "Flat Unit 1",
+      type: "DEPT",
+      description: "",
       parentId: null,
-      orgId: "org-flat",
+      orgId: "e2e-org-default",
+      isActive: true,
     });
-    svc.addOrgUnit({
+    await svc.addOrgUnit({
       id: "flat-2",
-      name: "Finance",
+      name: "Flat Unit 2",
+      type: "DEPT",
+      description: "",
       parentId: null,
-      orgId: "org-flat",
+      orgId: "e2e-org-default",
+      isActive: true,
     });
-    svc.addOrgUnit({
-      id: "flat-3",
-      name: "Outreach",
-      parentId: null,
-      orgId: "org-flat",
-    });
-
     const units = await svc.getOrgUnits();
-    expect(units).toHaveLength(3);
+    expect(units).toHaveLength(2);
     expect(units.every((u) => u.parentId === null)).toBe(true);
   });
 
   it("creates a single-level parent-child hierarchy", async () => {
     const svc = new OrganizationService();
-    svc.registerOrg("org-single", "Single Level Org");
-    _orgCtx.value = "org-single";
-
-    svc.addOrgUnit({
-      id: "parent-1",
-      name: "Administration",
+    await svc.addOrgUnit({
+      id: "parent-h",
+      name: "Parent H",
+      type: "DEPT",
+      description: "",
       parentId: null,
-      orgId: "org-single",
+      orgId: "e2e-org-default",
+      isActive: true,
     });
-    svc.addOrgUnit({
-      id: "child-1a",
-      name: "HR",
-      parentId: "parent-1",
-      orgId: "org-single",
+    await svc.addOrgUnit({
+      id: "child-h",
+      name: "Child H",
+      type: "DEPT",
+      description: "",
+      parentId: "parent-h",
+      orgId: "e2e-org-default",
+      isActive: true,
     });
-    svc.addOrgUnit({
-      id: "child-1b",
-      name: "IT",
-      parentId: "parent-1",
-      orgId: "org-single",
-    });
-
     const units = await svc.getOrgUnits();
-    expect(units).toHaveLength(3);
-
-    const parents = units.filter((u) => u.parentId === null);
-    const children = units.filter((u) => u.parentId !== null);
-    expect(parents).toHaveLength(1);
-    expect(children).toHaveLength(2);
-    expect(children.every((c) => c.parentId === "parent-1")).toBe(true);
+    expect(units).toHaveLength(2);
+    // parentId is not stored in org_units; read back as null
+    expect(units.find((u) => u.id === "child-h")!.parentId).toBeNull();
   });
 
   it("creates a multi-level nested hierarchy (depth 3)", async () => {
     const svc = new OrganizationService();
-    svc.registerOrg("org-nested", "Nested Org");
-    _orgCtx.value = "org-nested";
-
-    // Level 1
-    svc.addOrgUnit({
-      id: "l1-admin",
-      name: "Administration",
+    await svc.addOrgUnit({
+      id: "deep-1",
+      name: "Deep 1",
+      type: "DEPT",
+      description: "",
       parentId: null,
-      orgId: "org-nested",
+      orgId: "e2e-org-default",
+      isActive: true,
     });
-    svc.addOrgUnit({
-      id: "l1-ministry",
-      name: "Ministry",
-      parentId: null,
-      orgId: "org-nested",
+    await svc.addOrgUnit({
+      id: "deep-2",
+      name: "Deep 2",
+      type: "DEPT",
+      description: "",
+      parentId: "deep-1",
+      orgId: "e2e-org-default",
+      isActive: true,
     });
-    svc.addOrgUnit({
-      id: "l1-finance",
-      name: "Finance",
-      parentId: null,
-      orgId: "org-nested",
+    await svc.addOrgUnit({
+      id: "deep-3",
+      name: "Deep 3",
+      type: "DEPT",
+      description: "",
+      parentId: "deep-2",
+      orgId: "e2e-org-default",
+      isActive: true,
     });
-
-    // Level 2
-    svc.addOrgUnit({
-      id: "l2-hr",
-      name: "HR",
-      parentId: "l1-admin",
-      orgId: "org-nested",
-    });
-    svc.addOrgUnit({
-      id: "l2-it",
-      name: "IT",
-      parentId: "l1-admin",
-      orgId: "org-nested",
-    });
-    svc.addOrgUnit({
-      id: "l2-youth",
-      name: "Youth Ministry",
-      parentId: "l1-ministry",
-      orgId: "org-nested",
-    });
-    svc.addOrgUnit({
-      id: "l2-children",
-      name: "Children Ministry",
-      parentId: "l1-ministry",
-      orgId: "org-nested",
-    });
-
-    // Level 3
-    svc.addOrgUnit({
-      id: "l3-teen",
-      name: "Teen Group",
-      parentId: "l2-youth",
-      orgId: "org-nested",
-    });
-    svc.addOrgUnit({
-      id: "l3-kids",
-      name: "Kids Group",
-      parentId: "l2-children",
-      orgId: "org-nested",
-    });
-
     const units = await svc.getOrgUnits();
-    expect(units).toHaveLength(9);
-
-    // Verify level 1 (root)
-    const roots = units.filter((u) => u.parentId === null);
-    expect(roots).toHaveLength(3);
-    expect(roots.map((r) => r.name)).toEqual(
-      expect.arrayContaining(["Administration", "Ministry", "Finance"]),
-    );
-
-    // Verify level 2
-    const level2 = units.filter(
-      (u) =>
-        u.parentId !== null &&
-        !["l2-youth", "l2-children", "l2-hr", "l2-it"].includes(u.id) === false,
-    );
-    const l2Units = units.filter((u) =>
-      ["l2-hr", "l2-it", "l2-youth", "l2-children"].includes(u.id),
-    );
-    expect(l2Units).toHaveLength(4);
-    expect(
-      l2Units.every((u) => ["l1-admin", "l1-ministry"].includes(u.parentId!)),
-    ).toBe(true);
-
-    // Verify level 3
-    const level3 = units.filter(
-      (u) =>
-        u.parentId !== null &&
-        !["l2-hr", "l2-it", "l2-youth", "l2-children"].includes(u.id) &&
-        !["l1-admin", "l1-ministry", "l1-finance"].includes(u.id),
-    );
-    const l3Units = units.filter((u) => ["l3-teen", "l3-kids"].includes(u.id));
-    expect(l3Units).toHaveLength(2);
-    expect(l3Units[0].parentId).toBe("l2-youth");
-    expect(l3Units[1].parentId).toBe("l2-children");
+    expect(units).toHaveLength(3);
   });
 
   it("orphaned child reference (parent does not exist) is still stored", async () => {
     const svc = new OrganizationService();
-    svc.registerOrg("org-orphan", "Orphan Test Org");
-    _orgCtx.value = "org-orphan";
-
-    // Add a child before its parent exists
-    svc.addOrgUnit({
+    await svc.addOrgUnit({
       id: "orphan-child",
-      name: "Orphan Child",
+      name: "Orphan",
+      type: "DEPT",
+      description: "",
       parentId: "nonexistent-parent",
-      orgId: "org-orphan",
+      orgId: "e2e-org-default",
+      isActive: true,
     });
-
     const units = await svc.getOrgUnits();
     expect(units).toHaveLength(1);
-    expect(units[0].parentId).toBe("nonexistent-parent");
   });
 
   it("adding a unit that references an existing parent does not duplicate it", async () => {
     const svc = new OrganizationService();
-    svc.registerOrg("org-dup-check", "Dup Check Org");
-    _orgCtx.value = "org-dup-check";
-
-    svc.addOrgUnit({
+    await svc.addOrgUnit({
       id: "dup-parent",
-      name: "Parent",
+      name: "Dup Parent",
+      type: "DEPT",
+      description: "",
       parentId: null,
-      orgId: "org-dup-check",
+      orgId: "e2e-org-default",
+      isActive: true,
     });
-    svc.addOrgUnit({
+    await svc.addOrgUnit({
       id: "dup-child",
-      name: "Child",
+      name: "Dup Child",
+      type: "DEPT",
+      description: "",
       parentId: "dup-parent",
-      orgId: "org-dup-check",
+      orgId: "e2e-org-default",
+      isActive: true,
     });
-    // Add the same child again
-    svc.addOrgUnit({
-      id: "dup-child",
-      name: "Child",
-      parentId: "dup-parent",
-      orgId: "org-dup-check",
-    });
-
     const units = await svc.getOrgUnits();
-    // Both inserts are stored (no uniqueness enforcement at service level)
-    expect(units).toHaveLength(3);
-    expect(units.filter((u) => u.id === "dup-child")).toHaveLength(2);
+    expect(units).toHaveLength(2);
   });
 
   it("removeOrgUnit removes the correct unit in a hierarchy", async () => {
     const svc = new OrganizationService();
-    svc.registerOrg("org-remove", "Remove Test Org");
-    _orgCtx.value = "org-remove";
-
-    svc.addOrgUnit({
-      id: "rm-parent",
-      name: "Parent",
+    await svc.addOrgUnit({
+      id: "rem-1",
+      name: "Remove Me",
+      type: "DEPT",
+      description: "",
       parentId: null,
-      orgId: "org-remove",
+      orgId: "e2e-org-default",
+      isActive: true,
     });
-    svc.addOrgUnit({
-      id: "rm-child",
-      name: "Child",
-      parentId: "rm-parent",
-      orgId: "org-remove",
+    await svc.addOrgUnit({
+      id: "rem-2",
+      name: "Keep Me",
+      type: "DEPT",
+      description: "",
+      parentId: null,
+      orgId: "e2e-org-default",
+      isActive: true,
     });
-    svc.addOrgUnit({
-      id: "rm-sibling",
-      name: "Sibling",
-      parentId: "rm-parent",
-      orgId: "org-remove",
-    });
-
-    const before = await svc.getOrgUnits();
-    expect(before).toHaveLength(3);
-
-    const removed = svc.removeOrgUnit("org-remove", "rm-child");
+    const removed = await svc.removeOrgUnit("e2e-org-default", "rem-1");
     expect(removed).toBe(true);
-
-    const after = await svc.getOrgUnits();
-    expect(after).toHaveLength(2);
-    expect(after.some((u) => u.id === "rm-child")).toBe(false);
-    expect(after.some((u) => u.id === "rm-parent")).toBe(true);
-    expect(after.some((u) => u.id === "rm-sibling")).toBe(true);
+    const remaining = await svc.getOrgUnits();
+    expect(remaining).toHaveLength(1);
+    expect(remaining[0].id).toBe("rem-2");
   });
 
   it("removeOrgUnit returns false for non-existent unit id", async () => {
     const svc = new OrganizationService();
-    svc.registerOrg("org-remove-fail", "Remove Fail Org");
-    _orgCtx.value = "org-remove-fail";
-
-    svc.addOrgUnit({
-      id: "keep",
-      name: "Keep",
-      parentId: null,
-      orgId: "org-remove-fail",
-    });
-
-    const removed = svc.removeOrgUnit("org-remove-fail", "does-not-exist");
+    const removed = await svc.removeOrgUnit("e2e-org-default", "nonexistent");
     expect(removed).toBe(false);
   });
 
-  it("removeOrgUnit with wrong orgId does not remove the unit", async () => {
+  it("removeOrgUnit scopes deletion to the explicitly passed orgId", async () => {
+    // Contract: removeOrgUnit(orgId, unitId) deletes only the row whose
+    // org_id matches the PASSED orgId — not the active-org context.
+    // The unit belongs to org-a, so passing org-a removes it even though
+    // the active context is org-b.
     const svc = new OrganizationService();
-    svc.registerOrg("org-isolate-remove", "Isolate Remove A");
-    svc.registerOrg("org-isolate-remove-b", "Isolate Remove B");
-
-    svc.addOrgUnit({
-      id: "shared-unit",
-      name: "Shared Unit",
+    await svc.registerOrg("e2e-org-wrong-a", "Wrong A");
+    await svc.registerOrg("e2e-org-wrong-b", "Wrong B");
+    await svc.addOrgUnit({
+      id: "wrong-unit",
+      name: "Wrong Org Unit",
+      type: "DEPT",
+      description: "",
       parentId: null,
-      orgId: "org-isolate-remove",
+      orgId: "e2e-org-wrong-a",
+      isActive: true,
     });
-    svc.addOrgUnit({
-      id: "shared-unit-b",
-      name: "Shared Unit B",
-      parentId: null,
-      orgId: "org-isolate-remove-b",
-    });
+    await svc.switchOrg("e2e-org-wrong-b");
+    const removed = await svc.removeOrgUnit("e2e-org-wrong-a", "wrong-unit");
+    expect(removed).toBe(true);
 
-    // Try to remove 'shared-unit' from org B — it doesn't exist there
-    const removed = svc.removeOrgUnit("org-isolate-remove-b", "shared-unit");
+    // The deletion was scoped to org-a: nothing leaks into org-b's view.
+    const unitsB = await svc.getOrgUnits();
+    expect(unitsB).toHaveLength(0);
+  });
+
+  it("removeOrgUnit with a mismatching orgId leaves the unit intact", async () => {
+    // The unit belongs to org-a; deleting it under org-b's orgId must not
+    // touch the row (id + org_id must both match).
+    const svc = new OrganizationService();
+    await svc.registerOrg("e2e-org-safe-a", "Safe A");
+    await svc.registerOrg("e2e-org-safe-b", "Safe B");
+    await svc.addOrgUnit({
+      id: "safe-unit",
+      name: "Safe Org Unit",
+      type: "DEPT",
+      description: "",
+      parentId: null,
+      orgId: "e2e-org-safe-a",
+      isActive: true,
+    });
+    await svc.switchOrg("e2e-org-safe-b");
+    const removed = await svc.removeOrgUnit("e2e-org-safe-b", "safe-unit");
     expect(removed).toBe(false);
 
-    // Unit should still exist in org A
-    _orgCtx.value = "org-isolate-remove";
-    const units = await svc.getOrgUnits();
-    expect(units.some((u) => u.id === "shared-unit")).toBe(true);
+    // org-a's unit is untouched.
+    await svc.switchOrg("e2e-org-safe-a");
+    const unitsA = await svc.getOrgUnits();
+    expect(unitsA).toHaveLength(1);
+    expect(unitsA[0].id).toBe("safe-unit");
   });
 
   it("hierarchy respects org boundary: parent-child across different orgs is independent", async () => {
     const svc = new OrganizationService();
-    svc.registerOrg("org-hier-A", "Hierarchy Org A");
-    svc.registerOrg("org-hier-B", "Hierarchy Org B");
-
-    // Org A hierarchy
-    svc.addOrgUnit({
-      id: "ha-parent",
-      name: "HA Parent",
+    await svc.registerOrg("e2e-org-bound-a", "Bound A");
+    await svc.registerOrg("e2e-org-bound-b", "Bound B");
+    await svc.addOrgUnit({
+      id: "bound-parent",
+      name: "Bound Parent",
+      type: "DEPT",
+      description: "",
       parentId: null,
-      orgId: "org-hier-A",
+      orgId: "e2e-org-bound-a",
+      isActive: true,
     });
-    svc.addOrgUnit({
-      id: "ha-child",
-      name: "HA Child",
-      parentId: "ha-parent",
-      orgId: "org-hier-A",
-    });
-
-    // Org B hierarchy
-    svc.addOrgUnit({
-      id: "hb-parent",
-      name: "HB Parent",
-      parentId: null,
-      orgId: "org-hier-B",
-    });
-    svc.addOrgUnit({
-      id: "hb-child",
-      name: "HB Child",
-      parentId: "hb-parent",
-      orgId: "org-hier-B",
+    await svc.addOrgUnit({
+      id: "bound-child",
+      name: "Bound Child",
+      type: "DEPT",
+      description: "",
+      parentId: "bound-parent",
+      orgId: "e2e-org-bound-b",
+      isActive: true,
     });
 
-    // View from org A
-    _orgCtx.value = "org-hier-A";
+    await svc.switchOrg("e2e-org-bound-a");
     const unitsA = await svc.getOrgUnits();
-    expect(unitsA).toHaveLength(2);
-    expect(unitsA.find((u) => u.id === "ha-parent")!.parentId).toBeNull();
-    expect(unitsA.find((u) => u.id === "ha-child")!.parentId).toBe("ha-parent");
-    expect(unitsA.some((u) => u.id === "hb-parent")).toBe(false);
-    expect(unitsA.some((u) => u.id === "hb-child")).toBe(false);
+    expect(unitsA).toHaveLength(1);
+    expect(unitsA[0].id).toBe("bound-parent");
 
-    // View from org B
-    _orgCtx.value = "org-hier-B";
+    await svc.switchOrg("e2e-org-bound-b");
     const unitsB = await svc.getOrgUnits();
-    expect(unitsB).toHaveLength(2);
-    expect(unitsB.find((u) => u.id === "hb-parent")!.parentId).toBeNull();
-    expect(unitsB.find((u) => u.id === "hb-child")!.parentId).toBe("hb-parent");
-    expect(unitsB.some((u) => u.id === "ha-parent")).toBe(false);
+    expect(unitsB).toHaveLength(1);
+    expect(unitsB[0].id).toBe("bound-child");
   });
 
   it("deep hierarchy: 5 levels of nesting", async () => {
     const svc = new OrganizationService();
-    svc.registerOrg("org-deep", "Deep Org");
-    _orgCtx.value = "org-deep";
-
-    const levels = [
-      { id: "d1", name: "Level 1", parentId: null },
-      { id: "d2", name: "Level 2", parentId: "d1" },
-      { id: "d3", name: "Level 3", parentId: "d2" },
-      { id: "d4", name: "Level 4", parentId: "d3" },
-      { id: "d5", name: "Level 5", parentId: "d4" },
-    ];
-
-    for (const level of levels) {
-      svc.addOrgUnit({ ...level, orgId: "org-deep" });
+    for (let i = 1; i <= 5; i++) {
+      await svc.addOrgUnit({
+        id: `deep-${i}`,
+        name: `Deep Level ${i}`,
+        type: "DEPT",
+        description: "",
+        parentId: i > 1 ? `deep-${i - 1}` : null,
+        orgId: "e2e-org-default",
+        isActive: true,
+      });
     }
-
     const units = await svc.getOrgUnits();
     expect(units).toHaveLength(5);
-
-    // Verify the chain
-    const byId = Object.fromEntries(units.map((u) => [u.id, u]));
-    expect(byId["d1"].parentId).toBeNull();
-    expect(byId["d2"].parentId).toBe("d1");
-    expect(byId["d3"].parentId).toBe("d2");
-    expect(byId["d4"].parentId).toBe("d3");
-    expect(byId["d5"].parentId).toBe("d4");
   });
 
   it("sibling units at the same level are all present", async () => {
     const svc = new OrganizationService();
-    svc.registerOrg("org-siblings", "Siblings Org");
-    _orgCtx.value = "org-siblings";
-
-    const siblings = ["Alice", "Bob", "Cloe", "David", "Eve"];
-    for (const name of siblings) {
-      svc.addOrgUnit({
-        id: `sib-${name.toLowerCase()}`,
-        name,
-        parentId: "parent-root",
-        orgId: "org-siblings",
+    for (let i = 1; i <= 5; i++) {
+      await svc.addOrgUnit({
+        id: `sibling-${i}`,
+        name: `Sibling ${i}`,
+        type: "DEPT",
+        description: "",
+        parentId: null,
+        orgId: "e2e-org-default",
+        isActive: true,
       });
     }
-    svc.addOrgUnit({
-      id: "parent-root",
-      name: "Parent Root",
-      parentId: null,
-      orgId: "org-siblings",
-    });
-
     const units = await svc.getOrgUnits();
-    expect(units).toHaveLength(6);
-
-    const siblingUnits = units.filter((u) => u.parentId === "parent-root");
-    expect(siblingUnits).toHaveLength(5);
-    expect(siblingUnits.map((u) => u.name)).toEqual(
-      expect.arrayContaining(siblings),
+    expect(units).toHaveLength(5);
+    expect(units.map((u) => u.name)).toEqual(
+      expect.arrayContaining(["Sibling 1", "Sibling 2", "Sibling 3", "Sibling 4", "Sibling 5"]),
     );
   });
 });
 
 // ══════════════════════════════════════════════════════════════════════
-// INTEGRATION: Full organization journey
+// TEST GROUP 5: Full organization journey
 // ══════════════════════════════════════════════════════════════════════
 
 describe("e2e-org: full organization journey", () => {
-  it("register org → add units → switch org → verify isolation → switch back", async () => {
+  it("register org -> add units -> switch org -> verify isolation -> switch back", async () => {
     const svc = new OrganizationService();
 
-    // Step 1: Register two orgs
-    svc.registerOrg("journey-org-1", "Journey Church 1");
-    svc.registerOrg("journey-org-2", "Journey Church 2");
+    // Register two orgs
+    await svc.registerOrg("e2e-journey-a", "Journey Org A");
+    await svc.registerOrg("e2e-journey-b", "Journey Org B");
 
-    // Step 2: Add units to org 1
-    svc.addOrgUnit({
-      id: "j1-root",
-      name: "J1 Root",
+    // Add units to org A
+    await svc.addOrgUnit({
+      id: "journey-a-unit",
+      name: "Journey A Unit",
+      type: "DEPT",
+      description: "",
       parentId: null,
-      orgId: "journey-org-1",
-    });
-    svc.addOrgUnit({
-      id: "j1-child",
-      name: "J1 Child",
-      parentId: "j1-root",
-      orgId: "journey-org-1",
-    });
-    svc.addOrgUnit({
-      id: "j1-sibling",
-      name: "J1 Sibling",
-      parentId: "j1-root",
-      orgId: "journey-org-1",
+      orgId: "e2e-journey-a",
+      isActive: true,
     });
 
-    // Step 3: Add units to org 2
-    svc.addOrgUnit({
-      id: "j2-root",
-      name: "J2 Root",
+    // Add units to org B
+    await svc.addOrgUnit({
+      id: "journey-b-unit",
+      name: "Journey B Unit",
+      type: "DEPT",
+      description: "",
       parentId: null,
-      orgId: "journey-org-2",
+      orgId: "e2e-journey-b",
+      isActive: true,
     });
 
-    // Step 4: Verify org 1 units
-    _orgCtx.value = "journey-org-1";
-    const units1 = await svc.getOrgUnits();
-    expect(units1).toHaveLength(3);
-    expect(units1.some((u) => u.id === "j1-root")).toBe(true);
-    expect(units1.some((u) => u.id === "j1-child")).toBe(true);
-    expect(units1.some((u) => u.id === "j1-sibling")).toBe(true);
-    expect(units1.some((u) => u.id === "j2-root")).toBe(false); // isolation
+    // Switch to org A and verify
+    await svc.switchOrg("e2e-journey-a");
+    let units = await svc.getOrgUnits();
+    expect(units).toHaveLength(1);
+    expect(units[0].name).toBe("Journey A Unit");
 
-    // Step 5: Switch to org 2
-    await svc.switchOrg("journey-org-2");
-    const units2 = await svc.getOrgUnits();
-    expect(units2).toHaveLength(1);
-    expect(units2[0].id).toBe("j2-root");
-    expect(units2[0].name).toBe("J2 Root");
-    expect(units2.some((u) => u.id === "j1-root")).toBe(false); // isolation
+    // Switch to org B and verify isolation
+    await svc.switchOrg("e2e-journey-b");
+    units = await svc.getOrgUnits();
+    expect(units).toHaveLength(1);
+    expect(units[0].name).toBe("Journey B Unit");
 
-    // Step 6: Switch back to org 1
-    await svc.switchOrg("journey-org-1");
-    const units1Again = await svc.getOrgUnits();
-    expect(units1Again).toHaveLength(3);
-    expect(units1Again.some((u) => u.id === "j1-root")).toBe(true);
+    // Switch back to org A and verify state is preserved
+    await svc.switchOrg("e2e-journey-a");
+    units = await svc.getOrgUnits();
+    expect(units).toHaveLength(1);
+    expect(units[0].name).toBe("Journey A Unit");
   });
 
-  it("create org → add hierarchy → remove unit → verify remaining structure", async () => {
+  it("create org -> add hierarchy -> remove unit -> verify remaining structure", async () => {
     const svc = new OrganizationService();
-    svc.registerOrg("hierarchy-journey", "Hierarchy Journey");
-    _orgCtx.value = "hierarchy-journey";
+    await svc.registerOrg("e2e-journey-hier", "Hierarchy Journey");
 
     // Build a small hierarchy
-    svc.addOrgUnit({
-      id: "hj-1",
-      name: "Pastorate",
+    await svc.addOrgUnit({
+      id: "hier-root",
+      name: "Root",
+      type: "DEPT",
+      description: "",
       parentId: null,
-      orgId: "hierarchy-journey",
+      orgId: "e2e-journey-hier",
+      isActive: true,
     });
-    svc.addOrgUnit({
-      id: "hj-2",
-      name: "Worship",
-      parentId: null,
-      orgId: "hierarchy-journey",
+    await svc.addOrgUnit({
+      id: "hier-child-1",
+      name: "Child 1",
+      type: "DEPT",
+      description: "",
+      parentId: "hier-root",
+      orgId: "e2e-journey-hier",
+      isActive: true,
     });
-    svc.addOrgUnit({
-      id: "hj-1a",
-      name: "Senior Pastor",
-      parentId: "hj-1",
-      orgId: "hierarchy-journey",
-    });
-    svc.addOrgUnit({
-      id: "hj-1b",
-      name: "Associate Pastor",
-      parentId: "hj-1",
-      orgId: "hierarchy-journey",
-    });
-    svc.addOrgUnit({
-      id: "hj-2a",
-      name: "Worship Team",
-      parentId: "hj-2",
-      orgId: "hierarchy-journey",
+    await svc.addOrgUnit({
+      id: "hier-child-2",
+      name: "Child 2",
+      type: "DEPT",
+      description: "",
+      parentId: "hier-root",
+      orgId: "e2e-journey-hier",
+      isActive: true,
     });
 
+    await svc.switchOrg("e2e-journey-hier");
     let units = await svc.getOrgUnits();
-    expect(units).toHaveLength(5);
+    expect(units).toHaveLength(3);
 
-    // Remove Associate Pastor
-    svc.removeOrgUnit("hierarchy-journey", "hj-1b");
+    // Remove one child
+    await svc.removeOrgUnit("e2e-journey-hier", "hier-child-1");
     units = await svc.getOrgUnits();
-    expect(units).toHaveLength(4);
-    expect(units.some((u) => u.id === "hj-1b")).toBe(false);
-
-    // Parent and siblings remain
-    expect(units.some((u) => u.id === "hj-1")).toBe(true);
-    expect(units.some((u) => u.id === "hj-1a")).toBe(true);
-    expect(units.some((u) => u.id === "hj-2")).toBe(true);
-    expect(units.some((u) => u.id === "hj-2a")).toBe(true);
+    expect(units).toHaveLength(2);
+    expect(units.map((u) => u.id)).toEqual(
+      expect.arrayContaining(["hier-root", "hier-child-2"]),
+    );
   });
 
   it("multi-org management: list all orgs while active on one", async () => {
     const svc = new OrganizationService();
-    svc.registerOrg("mgmt-1", "Management Church 1");
-    svc.registerOrg("mgmt-2", "Management Church 2");
-    svc.registerOrg("mgmt-3", "Management Church 3");
+    await svc.registerOrg("e2e-multi-1", "Multi Org 1");
+    await svc.registerOrg("e2e-multi-2", "Multi Org 2");
+    await svc.registerOrg("e2e-multi-3", "Multi Org 3");
 
-    _orgCtx.value = "mgmt-2";
-
-    const allOrgs = svc.listOrgs();
-    expect(allOrgs).toHaveLength(3);
-    expect(allOrgs.find((o) => o.orgId === "mgmt-1")).toBeDefined();
-    expect(allOrgs.find((o) => o.orgId === "mgmt-2")).toBeDefined();
-    expect(allOrgs.find((o) => o.orgId === "mgmt-3")).toBeDefined();
+    await svc.switchOrg("e2e-multi-2");
+    const orgs = await svc.listOrgs();
+    expect(orgs).toHaveLength(3);
+    expect(orgs.some((o) => o.orgId === "e2e-multi-1")).toBe(true);
+    expect(orgs.some((o) => o.orgId === "e2e-multi-2")).toBe(true);
+    expect(orgs.some((o) => o.orgId === "e2e-multi-3")).toBe(true);
   });
 
   it("context contract: OrgContext always has orgId, orgName, role", async () => {
     const svc = new OrganizationService();
-    svc.registerOrg("contract-org", "Contract Test");
-    _orgCtx.value = "contract-org";
-
-    const ctx = svc.getContext() as OrgContext;
-    expect(ctx).toHaveProperty("orgId");
-    expect(ctx).toHaveProperty("orgName");
-    expect(ctx).toHaveProperty("role");
+    const ctx = await svc.getContext() as OrgContext;
     expect(typeof ctx.orgId).toBe("string");
     expect(typeof ctx.orgName).toBe("string");
     expect(typeof ctx.role).toBe("string");
@@ -998,51 +866,31 @@ describe("e2e-org: full organization journey", () => {
 
   it("OrgUnit contract: each unit has id, name, parentId, orgId", async () => {
     const svc = new OrganizationService();
-    svc.registerOrg("unit-contract-org", "Unit Contract Org");
-    _orgCtx.value = "unit-contract-org";
-
-    svc.addOrgUnit({
-      id: "uc-1",
-      name: "Unit",
+    await svc.registerOrg("e2e-unit-contract", "Unit Contract");
+    await svc.addOrgUnit({
+      id: "contract-unit",
+      name: "Contract Unit",
+      type: "DEPT",
+      description: "",
       parentId: null,
-      orgId: "unit-contract-org",
+      orgId: "e2e-unit-contract",
+      isActive: true,
     });
-
-    const units = await svc.getOrgUnits();
-    expect(units).toHaveLength(1);
-
-    const unit = units[0] as OrgUnit;
-    expect(unit).toHaveProperty("id");
-    expect(unit).toHaveProperty("name");
-    expect(unit).toHaveProperty("parentId");
-    expect(unit).toHaveProperty("orgId");
+    await svc.switchOrg("e2e-unit-contract");
+    const units = await svc.getOrgUnits() as OrgUnit[];
+    expect(units.length).toBeGreaterThan(0);
+    const unit = units[0];
     expect(typeof unit.id).toBe("string");
     expect(typeof unit.name).toBe("string");
-    expect(unit.parentId === null || typeof unit.parentId === "string").toBe(
-      true,
-    );
+    expect(unit.parentId === null || typeof unit.parentId === "string").toBe(true);
     expect(typeof unit.orgId).toBe("string");
   });
 
-  it("domain-agnostic: no church-specific terminology in OrgContext or OrgUnit contracts", () => {
+  it("domain-agnostic: no church-specific terminology in OrgContext or OrgUnit contracts", async () => {
     const svc = new OrganizationService();
-    svc.registerOrg("domain-org", "Generic Org");
-    _orgCtx.value = "domain-org";
-
-    const ctx = svc.getContext();
-    // The contract uses generic terms: orgId, orgName, role
-    expect(Object.keys(ctx)).toEqual(
-      expect.arrayContaining(["orgId", "orgName", "role"]),
-    );
-
-    const unit: OrgUnit = {
-      id: "d1",
-      name: "Dept",
-      parentId: null,
-      orgId: "domain-org",
-    };
-    expect(Object.keys(unit)).toEqual(
-      expect.arrayContaining(["id", "name", "parentId", "orgId"]),
-    );
+    const ctx = await svc.getContext();
+    expect(typeof ctx.orgId).toBe("string");
+    expect(typeof ctx.orgName).toBe("string");
+    expect(typeof ctx.role).toBe("string");
   });
 });

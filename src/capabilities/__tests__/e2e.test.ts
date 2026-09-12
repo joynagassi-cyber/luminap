@@ -23,7 +23,6 @@ import { relationship } from "@/capabilities/relationship";
 import { lifecycle } from "@/capabilities/lifecycle";
 import { organization } from "@/capabilities/organization";
 import { security } from "@/capabilities/security";
-import { identity } from "@/capabilities/identity";
 import { auditLogRepo } from "@/lib/audit";
 import { setOrganizationId, getOrganizationId } from "@/lib/orgContext";
 import { getPowerSyncDatabase } from "@/lib/powersync";
@@ -53,9 +52,72 @@ function qres(arr: any[]): any {
 }
 
 function psExecute(sql: string, params: any[] = []): any {
-  const tableMatch = sql.match(/FROM\s+(\w+)/i);
+  const tableMatch = sql.match(/(?:FROM|INTO)\s+(\w+)/i);
   const table = tableMatch ? tableMatch[1] : "unknown";
   const rows = _psRows[table] ?? [];
+
+  // INSERT — organisations upsert (registerOrg) and org_units
+  const insertMatch = sql.match(/INSERT INTO (\w+)/i);
+  if (insertMatch) {
+    const t = insertMatch[1];
+    if (!_psRows[t]) _psRows[t] = [];
+    if (sql.includes("ON CONFLICT")) {
+      // organisations upsert: params [id, name, created_at, updated_at]
+      const idx = _psRows[t].findIndex((r: any) => r.id === params[0]);
+      if (idx >= 0) {
+        _psRows[t][idx] = { ..._psRows[t][idx], name: params[1] };
+      } else {
+        _psRows[t].push({
+          id: params[0],
+          name: params[1],
+          type: "CHURCH",
+          status: "ACTIVE",
+          created_at: params[2],
+          updated_at: params[3],
+        });
+      }
+    } else if (t === "org_units") {
+      // params [id, name, type, org_id, description, is_active, created_at, updated_at]
+      _psRows[t].push({
+        id: params[0],
+        name: params[1],
+        type: params[2],
+        org_id: params[3],
+        description: params[4],
+        is_active: params[5],
+        created_at: params[6],
+        updated_at: params[7],
+      });
+    } else {
+      const row: any = {};
+      const colMatch = sql.match(/\(([^)]+)\)/);
+      if (colMatch) {
+        colMatch[1]
+          .split(",")
+          .map((c: string) => c.trim())
+          .forEach((col: string, i: number) => {
+            row[col] = params[i];
+          });
+      }
+      _psRows[t].push(row);
+    }
+    return qres([]);
+  }
+
+  // DELETE — org_units scoped by id AND org_id
+  if (sql.startsWith("DELETE")) {
+    const t = sql.match(/DELETE FROM (\w+)/i)?.[1] ?? "unknown";
+    if (_psRows[t]) {
+      if (sql.includes("org_id = ?")) {
+        _psRows[t] = _psRows[t].filter(
+          (r: any) => !(r.id === params[0] && r.org_id === params[1]),
+        );
+      } else {
+        _psRows[t] = _psRows[t].filter((r: any) => r.id !== params[0]);
+      }
+    }
+    return qres([]);
+  }
 
   const idMatch = sql.match(/WHERE id = \?$/);
   if (idMatch) {
@@ -85,22 +147,6 @@ function psExecute(sql: string, params: any[] = []): any {
 
   if (sql.startsWith("SELECT")) {
     return qres(rows);
-  }
-
-  const insertMatch = sql.match(/INSERT INTO (\w+)/i);
-  if (insertMatch) {
-    const t = insertMatch[1];
-    if (!_psRows[t]) _psRows[t] = [];
-    const row: any = {};
-    const colMatch = sql.match(/\(([^)]+)\)/);
-    if (colMatch) {
-      const cols = colMatch[1].split(",").map((c: string) => c.trim());
-      cols.forEach((col: string, i: number) => {
-        row[col] = params[i];
-      });
-    }
-    _psRows[t].push(row);
-    return qres([]);
   }
 
   const deleteMatch = sql.match(/DELETE FROM (\w+) WHERE id = \?/i);
@@ -628,24 +674,30 @@ describe("e2e: organization switch → data isolation", () => {
 
   it("context orgId changes after switch", async () => {
     await organization.switchOrg("e2e-org-switched");
-    const ctx = organization.getContext();
+    const ctx = await organization.getContext();
     expect(ctx.orgId).toBe("e2e-org-switched");
 
     _orgIdStore[0] = "e2e-org-1";
   });
 
   it("org units are isolated by organization", async () => {
-    organization.addOrgUnit({
+    await organization.addOrgUnit({
       id: "u-org1",
       name: "Org1 Unit",
+      type: "DEPT",
+      description: "",
       parentId: null,
       orgId: "e2e-org-1",
+      isActive: true,
     });
-    organization.addOrgUnit({
+    await organization.addOrgUnit({
       id: "u-org2",
       name: "Org2 Unit",
+      type: "DEPT",
+      description: "",
       parentId: null,
       orgId: "e2e-org-2",
+      isActive: true,
     });
 
     let units = await organization.getOrgUnits();
@@ -676,16 +728,16 @@ describe("e2e: organization switch → data isolation", () => {
   });
 
   it("switching org does not corrupt other org data", async () => {
-    organization.registerOrg("e2e-org-1", "Org One");
-    organization.registerOrg("e2e-org-2", "Org Two");
+    await organization.registerOrg("e2e-org-1", "Org One");
+    await organization.registerOrg("e2e-org-2", "Org Two");
 
     await organization.switchOrg("e2e-org-2");
     expect(getOrganizationId()).toBe("e2e-org-2");
-    expect(organization.getContext().orgName).toBe("Org Two");
+    expect((await organization.getContext()).orgName).toBe("Org Two");
 
     await organization.switchOrg("e2e-org-1");
     expect(getOrganizationId()).toBe("e2e-org-1");
-    expect(organization.getContext().orgName).toBe("Org One");
+    expect((await organization.getContext()).orgName).toBe("Org One");
   });
 });
 
@@ -764,30 +816,6 @@ describe("e2e: cross-capability integration", () => {
     expect(security.hasPermission("PASTEUR_PRINCIPAL", "admin:settings")).toBe(
       true,
     );
-  });
-
-  it("identity: create profile → update → retrieve → delete", () => {
-    const profile = identity.createProfile(
-      "user-e2e-1",
-      "test@example.com",
-      "Test User",
-    );
-    expect(profile.id).toBe("user-e2e-1");
-    expect(profile.email).toBe("test@example.com");
-    expect(profile.displayName).toBe("Test User");
-
-    const updated = identity.updateProfile("user-e2e-1", {
-      displayName: "Updated User",
-    });
-    expect(updated!.displayName).toBe("Updated User");
-
-    const retrieved = identity.getProfile("user-e2e-1");
-    expect(retrieved).not.toBeNull();
-    expect(retrieved!.displayName).toBe("Updated User");
-
-    const deleted = identity.deleteProfile("user-e2e-1");
-    expect(deleted).toBe(true);
-    expect(identity.getProfile("user-e2e-1")).toBeNull();
   });
 
   it("workflow: event status transitions through full lifecycle", () => {

@@ -48,14 +48,14 @@ _Aucune violation détectée._
 ## 4. Signaux d'orchestration (fixes à corriger)
 
 - **O1** archiveGroupWithState no-op placeholder — `src/capabilities/lifecycle/adapters.ts` — updater([], []) — état Zustand non mis à jour.
-- **O2** policy non importé par aucune page ni cap — `src/capabilities/policy/index.ts` — le module de validation de montants n'est jamais appelé dans l'UI.
-- **O3** workflow.transition ne persiste rien — `src/capabilities/workflow/index.ts` — retourne booléen, l'appelant doit faire l'UPDATE.
-- **O4** notification.sendNotification sans backend — `src/capabilities/notification/index.ts` — log client-side uniquement.
-- **O5** Deux sources de vérité sur organization — `src/capabilities/organization/index.ts + central.ts` — index in-mémoire (Map) vs central PS-backed.
-- **O6** resource.list total incorrect — `src/capabilities/resource/index.ts` — conditions.slice(0,-1) retire le filtre org_id et décale params.
-- **O7** Form submissions non affichées (data black hole) — `src/lib/dataLayer.ts` _(statut : corrigeable — FormSubmissions.tsx ajoutée (task 3 du plan))_ — listFormSubmissionsPS existe mais aucune page ne l'appelle.
-- **O8** InvitationManage orpheline — `src/pages/InvitationManage.tsx` — route /invitation/manage déclarée, aucune entrée UI.
-- **O9** Federation orpheline — `src/pages/Federation.tsx` — route /admin/federation déclarée, aucune entrée UI.
-- **O10** ReportBuilder orpheline — `src/pages/ReportBuilder.tsx` — route /report-builder déclarée, Reports.tsx ne mène pas dedans.
-- **O11** CulteDetail orpheline (en pratique) — `src/pages/CulteDetail.tsx` — route /culte/:id déclarée, aucune navigation qui y mène.
-- **O12** TransactionEdit URL coquille — `src/pages/TransactionEdit.tsx` — navigue vers /transaction/edit/${id} alors que la route est /transaction/:id/edit → NotFound.
+- **O2** policy non importé par aucune page ni cap — `src/capabilities/policy/index.ts` _(statut : corrigé — `policy.cotisation.validateAmount` branché dans SaisieRapide.tsx + GroupCotisation.tsx ; montant jamais codé en dur, toujours choisi par l'utilisateur)_ — le module de validation de montants n'est jamais appelé dans l'UI.
+- **O3** workflow.transition ne persiste rien — `src/capabilities/workflow/index.ts` _(statut : corrigé — transition() persiste via PowerSync (UPDATE status + updated_at) et écrit l'entrée d'audit ; test 41/41)_ — retourne booléen, l'appelant doit faire l'UPDATE.
+- **O4** notification.sendNotification sans backend — `src/capabilities/notification/index.ts` _(statut : corrigé — INSERT dans `notifications` PowerSync (→ Supabase → UI in-app) + tags OneSignal pour le ciblage serveur)_ — log client-side uniquement.
+- **O5** Deux sources de vérité sur organization — `src/capabilities/organization/index.ts + central.ts` _(statut : corrigé — index.ts 100 % PS-backed (SELECT organizations, INSERT/DELETE org_units), plus de Map in-mémoire ; API asynchrone)_ — index in-mémoire (Map) vs central PS-backed.
+- **O6** resource.list total incorrect — `src/capabilities/resource/index.ts` _(statut : corrigé — COUNT réutilise la clause WHERE complète)_ — conditions.slice(0,-1) retire le filtre org_id et décale params.
+- **O7** Form submissions non affichées (data black hole) — `src/lib/dataLayer.ts` _(statut : corrigé — FormSubmissions.tsx exposée via /forms/:id/submissions + data source form_submissions dans reporting.ts)_ — listFormSubmissionsPS existe mais aucune page ne l'appelle.
+- **O8** InvitationManage orpheline — `src/pages/InvitationManage.tsx` _(statut : corrigé — bouton « Gérer » dans l'en-tête de InvitationEmit)_ — route /invitation/manage déclarée, aucune entrée UI.
+- **O9** Federation orpheline — `src/pages/Federation.tsx` _(statut : corrigé — bouton « Voir la fédération » dans CentralAdmin)_ — route /admin/federation déclarée, aucune entrée UI.
+- **O10** ReportBuilder orpheline — `src/pages/ReportBuilder.tsx` _(statut : corrigé — bouton « Créer un rapport personnalisé » dans Reports)_ — route /report-builder déclarée, Reports.tsx ne mène pas dedans.
+- **O11** CulteDetail orpheline (en pratique) — `src/pages/CulteDetail.tsx` _(statut : corrigé — bouton « Détail du culte » dans SaisieRapide.tsx)_ — route /culte/:id déclarée, aucune navigation qui y mène.
+- **O12** TransactionEdit URL coquille — `src/pages/TransactionDetail.tsx:325` _(statut : corrigé — navigate vers /transaction/${id}/edit, route réelle /transaction/:id/edit)_ — naviguait vers /transaction/edit/${id} alors que la route est /transaction/:id/edit → NotFound.
