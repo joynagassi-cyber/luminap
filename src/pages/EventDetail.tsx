@@ -89,13 +89,18 @@ export default function EventDetail() {
 
   const handleStatusChange = async (newStatus: EventStatus) => {
     if (!security.hasPermission(user.role as any, "event:update")) return;
-    const result = workflow.check("event", event.status, newStatus);
-    if (!result.allowed) {
+    const result = await workflow.transition(
+      "event",
+      event,
+      newStatus,
+      user.id,
+      { comment: `Changement de statut: ${event.status} -> ${newStatus}` },
+    );
+    if (!result.success) {
       setSuccess(`Transition bloquee : ${result.reason}`);
       setTimeout(() => setSuccess(""), 3000);
       return;
     }
-    await updateEventPS(id!, { status: newStatus });
     setSuccess(`Statut change : ${STATUS_CONFIG[newStatus].label}`);
     setTimeout(() => setSuccess(""), 3000);
   };
@@ -369,7 +374,7 @@ export default function EventDetail() {
                   style={{
                     width: `${progressPct}%`,
                     backgroundColor:
-                      budgetSpent > (event.budget || 0) ? "#E51332" : "#FF6B00",
+                      budgetSpent > (event.budget || 0) ? "#E51332" : "var(--accent-primary)",
                   }}
                 />
               </div>
@@ -410,7 +415,7 @@ export default function EventDetail() {
                   style={
                     activeTab === tabId
                       ? {
-                          backgroundColor: "#FF6B00",
+                          backgroundColor: "var(--accent-primary)",
                           color: "#fff",
                           boxShadow: "0 2px 8px rgba(255,107,0,0.3)",
                         }
@@ -441,9 +446,9 @@ export default function EventDetail() {
                 >
                   <div
                     className="w-10 h-10 rounded-full flex items-center justify-center mb-2"
-                    style={{ backgroundColor: "#FF6B0020" }}
+                    style={{ backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)" }}
                   >
-                    <Tag className="w-5 h-5" style={{ color: "#FF6B00" }} />
+                    <Tag className="w-5 h-5" style={{ color: "var(--accent-primary)" }} />
                   </div>
                   <p className="text-text-primary text-sm font-semibold">
                     Gérer le budget
@@ -518,7 +523,7 @@ export default function EventDetail() {
                               style={{
                                 width: `${pct}%`,
                                 backgroundColor:
-                                  pct >= 100 ? "#E51332" : "#FF6B00",
+                                  pct >= 100 ? "#E51332" : "var(--accent-primary)",
                               }}
                             />
                           </div>
@@ -546,7 +551,7 @@ export default function EventDetail() {
                     <button
                       onClick={() => setActiveTab("transactions")}
                       className="text-xs"
-                      style={{ color: "#FF6B00" }}
+                      style={{ color: "var(--accent-primary)" }}
                     >
                       Tout voir
                     </button>
@@ -711,8 +716,8 @@ export default function EventDetail() {
                             }}
                             className="px-3 py-1.5 rounded-lg font-medium"
                             style={{
-                              backgroundColor: "#FF6B0020",
-                              color: "#FF6B00",
+                              backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)",
+                              color: "var(--accent-primary)",
                             }}
                           >
                             <Plus className="w-3 h-3 inline mr-1" /> Dépenser
@@ -742,8 +747,8 @@ export default function EventDetail() {
                   className="w-full py-3 rounded-xl font-medium text-sm flex items-center justify-center gap-2 mb-3 transition-all active:scale-95"
                   style={{
                     backgroundColor: "#212121",
-                    border: "1px dashed #FF6B0040",
-                    color: "#FF6B00",
+                    border: "1px dashed color-mix(in srgb, var(--accent-primary) 25%, transparent)",
+                    color: "var(--accent-primary)",
                   }}
                 >
                   <Plus className="w-4 h-4" /> Ajouter une transaction
@@ -839,7 +844,7 @@ export default function EventDetail() {
             <button
               onClick={() => navigate(`/event/${event.id}/edit`)}
               className="w-full py-3 rounded-full font-medium text-sm flex items-center justify-center gap-2 mb-4"
-              style={{ backgroundColor: "#212121", color: "#FF6B00" }}
+              style={{ backgroundColor: "#212121", color: "var(--accent-primary)" }}
               aria-label="Modifier l'événement"
             >
               <Edit3 className="w-4 h-4" /> Modifier l'événement
@@ -965,7 +970,7 @@ export default function EventDetail() {
                   <button
                     onClick={handleAddExpense}
                     className="flex-1 py-3 rounded-full font-semibold text-white transition-all active:scale-95"
-                    style={{ backgroundColor: "#FF6B00" }}
+                    style={{ backgroundColor: "var(--accent-primary)" }}
                   >
                     Enregistrer
                   </button>

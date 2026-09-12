@@ -2,12 +2,17 @@
  * Workflow Capability — status transitions with immutability guards
  *
  * Universal pattern: any resource can have a status lifecycle with
- * protected transitions. No domain-specific concepts.
+ * protected transitions. Guards run first; on success the transition
+ * is persisted via PowerSync and logged in the audit log.
  *
  * Usage:
  *   import { workflow } from '@/capabilities/workflow'
- *   await workflow.transition('transaction', tx.id, 'APPROVED', userId)
+ *   await workflow.transition('transaction', tx, 'APPROVED', userId)
  */
+
+import { getPowerSyncDatabase } from "@/lib/powersync";
+import { auditLogRepo } from "@/lib/audit";
+import { getOrganizationId } from "@/lib/orgContext";
 
 /**
  * Guard result — standardised across all workflow implementations
@@ -95,6 +100,13 @@ export const transactionGuard: WorkflowGuard = (
   return { allowed: true };
 };
 
+/** Map resource type to PowerSync table name */
+const RESOURCE_TABLE: Record<string, string> = {
+  transaction: "transactions",
+  event: "events",
+  member: "members",
+};
+
 /**
  * Workflow service — applies guards then performs transition
  */
@@ -120,13 +132,15 @@ export class WorkflowService {
   }
 
   /**
-   * Perform a guarded status transition
-   * Returns null if transition is blocked
+   * Perform a guarded status transition and persist it via PowerSync.
+   * Writes an audit entry on success.
+   * Returns null if transition is blocked by the guard.
    */
   async transition<T extends { id: string; status: string }>(
     resource: string,
     entity: T,
     targetStatus: string,
+    actorId?: string,
     context?: Record<string, any>,
   ): Promise<{ success: boolean; reason?: string }> {
     const currentStatus = entity.status;
@@ -134,7 +148,38 @@ export class WorkflowService {
     if (!result.allowed) {
       return { success: false, reason: result.reason };
     }
-    // Transition allowed — caller performs the actual state change
+    // Same-status no-op — still worth auditing
+    const sameStatus = currentStatus === targetStatus;
+
+    const table = RESOURCE_TABLE[resource];
+    if (!table) {
+      // Unknown resource — guard passed but we can't persist
+      return { success: true };
+    }
+
+    const db = getPowerSyncDatabase();
+    const now = new Date().toISOString();
+
+    await db.execute(
+      `UPDATE ${table} SET status = ?, updated_at = ? WHERE id = ?`,
+      [targetStatus, now, entity.id],
+    );
+
+    if (!sameStatus) {
+      await auditLogRepo.write({
+        orgId: getOrganizationId(),
+        transactionId: null,
+        userId: actorId ?? "local-user",
+        actorRoleAtTime: context?.actorRoleAtTime ?? null,
+        action: "STATUS_CHANGE",
+        entityType: resource.charAt(0).toUpperCase() + resource.slice(1),
+        entityId: entity.id,
+        beforeState: { status: currentStatus },
+        afterState: { status: targetStatus },
+        comment: context?.comment ?? null,
+      });
+    }
+
     return { success: true };
   }
 }

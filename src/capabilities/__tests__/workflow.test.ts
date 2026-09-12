@@ -8,11 +8,34 @@ import {
   type WorkflowGuard,
 } from "../workflow";
 
+// ─── In-memory PowerSync mock ──────────────────────────────────────────────
+const mockExecute = vi.fn(async (_sql: string, _params?: any[]) => ({
+  array: [] as any[],
+}));
+
+vi.mock("@/lib/powersync", () => ({
+  getPowerSyncDatabase: () => ({ execute: mockExecute }),
+}));
+
+vi.mock("@/lib/audit", () => ({
+  auditLogRepo: { write: vi.fn(async () => {}), list: vi.fn(async () => []) },
+}));
+
+vi.mock("@/lib/orgContext", () => ({
+  getOrganizationId: () => "test-org",
+}));
+
+// Re-import to get mocked auditLogRepo
+import { auditLogRepo } from "@/lib/audit";
+
 describe("workflow capability", () => {
   let service: WorkflowService;
+  const mockWrite = vi.mocked(auditLogRepo.write);
 
   beforeEach(() => {
     service = new WorkflowService();
+    mockExecute.mockClear();
+    mockWrite.mockClear();
   });
 
   // ─── transactionGuard ──────────────────────────────────────────
@@ -268,6 +291,99 @@ describe("workflow capability", () => {
         "INACTIVE",
       );
       expect(result.success).toBe(true);
+    });
+
+    // ─── Persistence tests ──────────────────────────────────────────────
+
+    it("ACTIVE→INACTIVE member writes UPDATE SQL with correct params", async () => {
+      const makeMember = (status: string) => ({ id: "m-1", status });
+      service.register("member", memberStatusGuard);
+      const result = await service.transition(
+        "member",
+        makeMember("ACTIVE"),
+        "INACTIVE",
+        "user-1",
+      );
+      expect(result.success).toBe(true);
+      const sql = mockExecute.mock.calls[0][0] as string;
+      const params = mockExecute.mock.calls[0][1] as any[];
+      expect(sql).toMatch(/UPDATE members SET status = \?, updated_at = \?/);
+      expect(params[0]).toBe("INACTIVE");
+      expect(params[2]).toBe("m-1");
+    });
+
+    it("blocked transition writes NOTHING to database", async () => {
+      const makeMember = (status: string) => ({ id: "m-1", status });
+      service.register("member", memberStatusGuard);
+      const result = await service.transition(
+        "member",
+        makeMember("ACTIVE"),
+        "ARCHIVED",
+      );
+      expect(result.success).toBe(false);
+      expect(mockExecute).not.toHaveBeenCalled();
+    });
+
+    it("audit entry is written on successful transition", async () => {
+      const makeMember = (status: string) => ({ id: "m-1", status });
+      service.register("member", memberStatusGuard);
+      await service.transition(
+        "member",
+        makeMember("ACTIVE"),
+        "INACTIVE",
+        "user-1",
+        { comment: "test comment" },
+      );
+      expect(mockWrite).toHaveBeenCalled();
+      const auditCall = mockWrite.mock.calls[0][0];
+      expect(auditCall.action).toBe("STATUS_CHANGE");
+      expect(auditCall.entityType).toBe("Member");
+      expect(auditCall.entityId).toBe("m-1");
+      expect(auditCall.beforeState).toEqual({ status: "ACTIVE" });
+      expect(auditCall.afterState).toEqual({ status: "INACTIVE" });
+      expect(auditCall.userId).toBe("user-1");
+    });
+
+    it("same-status transition does NOT write audit entry but still updates SQL", async () => {
+      const makeMember = (status: string) => ({ id: "m-1", status });
+      service.register("member", memberStatusGuard);
+      const result = await service.transition(
+        "member",
+        makeMember("ACTIVE"),
+        "ACTIVE",
+      );
+      expect(result.success).toBe(true);
+      expect(mockExecute).toHaveBeenCalled();
+      expect(mockWrite).not.toHaveBeenCalled();
+    });
+
+    it("event transition writes UPDATE events SQL", async () => {
+      const makeEvent = (status: string) => ({ id: "e-1", status });
+      service.register("event", eventStatusGuard);
+      const result = await service.transition(
+        "event",
+        makeEvent("PLANIFIED"),
+        "ONGOING",
+        "user-1",
+      );
+      expect(result.success).toBe(true);
+      const sql = mockExecute.mock.calls[0][0] as string;
+      expect(sql).toMatch(/UPDATE events SET status = \?, updated_at = \?/);
+      const params = mockExecute.mock.calls[0][1] as any[];
+      expect(params[0]).toBe("ONGOING");
+    });
+
+    it("unknown resource writes SQL but no table mapping blocks it", async () => {
+      service.register("unknown", (_c, _t) => ({ allowed: true }));
+      const result = await service.transition(
+        "unknown",
+        { id: "x-1", status: "A" },
+        "B",
+        "user-1",
+      );
+      // No table mapping → returns success but writes nothing
+      expect(result.success).toBe(true);
+      expect(mockExecute).not.toHaveBeenCalled();
     });
   });
 });
