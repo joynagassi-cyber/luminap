@@ -58,26 +58,9 @@ export const accountLifecycle = {
   },
 };
 
-/**
- * @deprecated This function is dead code: no caller remains (GroupDetail
- * now uses `lifecycle.archive` directly). The `updater([], [])` line was
- * always a no-op placeholder. Prefer `lifecycle.archive("Group", id,
- * reason, actorId)` and update local Zustand state in the calling page.
- *
- * Kept for backward compatibility only.
- */
-export async function archiveGroupWithState(
-  id: string,
-  reason: string,
-  actorId: string,
-  updater?: (
-    groups: any[],
-    accounts: any[],
-  ) => { groups: any[]; accounts: any[] },
-): Promise<void> {
-  await lifecycle.archive("Group", id, reason, actorId);
-  // No-op placeholder retained for API compatibility. Callers that need
-  // local-state invalidation should call it themselves or refresh via
-  // useGroups() (PowerSync local reactivity).
-  updater?.([], []);
-}
+// O1 closed: `archiveGroupWithState` was a no-op placeholder whose
+// `updater([], [])` mutated nothing. No caller remained (GroupDetail uses
+// `lifecycle.archive` directly and PowerSync local reactivity for
+// refresh), so the dead function has been removed. Archival is always
+// persisted via PowerSync + audit — there is no local-only state to
+// update.

@@ -47,7 +47,7 @@ _Aucune violation détectée._
 
 ## 4. Signaux d'orchestration (fixes à corriger)
 
-- **O1** archiveGroupWithState no-op placeholder — `src/capabilities/lifecycle/adapters.ts` — updater([], []) — état Zustand non mis à jour.
+- **O1** archiveGroupWithState no-op placeholder — `src/capabilities/lifecycle/adapters.ts` _(statut : corrigé — fonction morte supprimée (aucun appelant) ; l'archivage passe exclusivement par `lifecycle.archive` qui persiste via PowerSync + audit ; garde-régression `lifecycle-adapters.test.ts` 7/7)_ — updater([], []) — état Zustand non mis à jour.
 - **O2** policy non importé par aucune page ni cap — `src/capabilities/policy/index.ts` _(statut : corrigé — `policy.cotisation.validateAmount` branché dans SaisieRapide.tsx + GroupCotisation.tsx ; montant jamais codé en dur, toujours choisi par l'utilisateur)_ — le module de validation de montants n'est jamais appelé dans l'UI.
 - **O3** workflow.transition ne persiste rien — `src/capabilities/workflow/index.ts` _(statut : corrigé — transition() persiste via PowerSync (UPDATE status + updated_at) et écrit l'entrée d'audit ; test 41/41)_ — retourne booléen, l'appelant doit faire l'UPDATE.
 - **O4** notification.sendNotification sans backend — `src/capabilities/notification/index.ts` _(statut : corrigé — INSERT dans `notifications` PowerSync (→ Supabase → UI in-app) + tags OneSignal pour le ciblage serveur)_ — log client-side uniquement.
