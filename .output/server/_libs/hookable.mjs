@@ -1,4 +1,4 @@
-//#region node_modules/.pnpm/hookable@6.1.1/node_modules/hookable/dist/index.mjs
+//#region node_modules/hookable/dist/index.mjs
 function callHooks(hooks, args, startIndex, task) {
 	for (let i = startIndex; i < hooks.length; i += 1) try {
 		const result = task ? task.run(() => hooks[i](...args)) : hooks[i](...args);
