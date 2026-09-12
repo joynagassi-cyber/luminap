@@ -6,6 +6,11 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "https://hhgovvrnalibhgpakswi.supabase.co"
+const publishableKey = Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? "sb_publishable_kwbReVxSdHLx_u2IzQvGaA_Eegsf2Sh"
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -21,10 +26,14 @@ serve(async (req) => {
       )
     }
 
-    const supabaseClient = createClient(
-      'https://hhgovvrnalibhgpakswi.supabase.co',
-      'sb_publishable_kwbReVxSdHLx_u2IzQvGaA_Eegsf2Sh'
-    )
+    if (!EMAIL_RE.test(String(email))) {
+      return new Response(
+        JSON.stringify({ error: 'Adresse email invalide' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const supabaseClient = createClient(supabaseUrl, publishableKey)
 
     const { data, error } = await supabaseClient.auth.signInWithPassword({
       email,

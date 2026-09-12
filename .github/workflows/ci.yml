@@ -135,3 +135,63 @@ jobs:
       - name: Check for critical vulnerabilities
         run: pnpm audit --audit-level=critical
         continue-on-error: false
+
+  e2e:
+    name: E2E (Cypress)
+    runs-on: ubuntu-latest
+    # The full suite requires a Supabase test account; in CI we run the
+    # credential-free smoke spec (render-only) so the job stays green.
+    # Add secrets E2E_TEST_EMAIL / E2E_TEST_PASSWORD to run the full suite.
+    env:
+      E2E_RUN_FULL: ${{ vars.E2E_RUN_FULL == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Create .env.local
+        run: |
+          echo "VITE_SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > .env.local
+          echo "VITE_SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}" >> .env.local
+          echo "VITE_SUPABASE_JWKS_URL=${{ secrets.SUPABASE_JWKS_URL }}" >> .env.local
+          echo "VITE_POWERSYNC_URL=${{ secrets.POWERSYNC_URL }}" >> .env.local
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Start dev server
+        run: |
+          pnpm run dev > /dev/null 2>&1 &
+          # Wait for the Vite dev server on :8080
+          for i in $(seq 1 30); do
+            curl -sf -o /dev/null http://localhost:8080/ && break
+            sleep 2
+          done
+          curl -sf http://localhost:8080/ > /dev/null || { echo "dev server did not start"; exit 1; }
+
+      - name: Run Cypress smoke spec
+        run: npx cypress run --spec "cypress/e2e/simple-check.cy.ts"
+        env:
+          CYPRESS_BASE_URL: http://localhost:8080
+          CYPRESS_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
+          CYPRESS_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
+        # Without credentials the smoke spec verifies the AuthPage render
+        # and passes; with credentials it also walks login → onboarding →
+        # bottom nav. Both outcomes must be green here.
+
+      - name: Run full Cypress suite (when E2E_TEST_* secrets are set)
+        if: ${{ vars.E2E_RUN_FULL == 'true' || env.E2E_TEST_EMAIL != '' }}
+        run: npx cypress run --spec "cypress/e2e/{groups-events,persistence,comprehensive-flow,cloud-sync}.cy.ts"
+        env:
+          CYPRESS_BASE_URL: http://localhost:8080
+          CYPRESS_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
+          CYPRESS_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
+          CYPRESS_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          CYPRESS_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}

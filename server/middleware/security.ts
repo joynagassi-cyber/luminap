@@ -160,10 +160,31 @@ export function generateSessionToken(): string {
 }
 
 /**
- * Default export — no-op middleware passthrough so Nitro doesn't crash
- * when it auto-discovers this file. Actual security logic lives in the
- * plugin (server/plugins/security.ts) and is used explicitly by routes.
+ * Default export — global security middleware applied to EVERY response by
+ * Nitro's auto-discovery of `server/middleware/*`.
+ *
+ * Sets the response security headers on the underlying Node response so they
+ * are honored by the browser (browser-ignorable meta tags such as
+ * `X-Frame-Options` inside `index.html` are not — that is what produced the
+ * "X-Frame-Options may only be set via an HTTP header" console warning).
+ *
+ * IMPORTANT: this MUST return `undefined`, NOT an object. In the h3 engine
+ * (`callMiddleware`), a middleware whose return value is not `undefined` (or
+ * the internal `kNotFound`) is treated as the *final response* and
+ * short-circuits the entire route chain — returning `{}` here made every
+ * dynamic route (`/`, `/splash`, `/api/*`) respond with JSON `{}` (blank
+ * screen) instead of the SPA. Setting headers and returning `void 0` passes
+ * control to the next handler in the chain.
  */
-export default function securityMiddleware() {
-  return {};
+export default function securityMiddleware(event: H3Event): void {
+  setHeader(event, "X-Content-Type-Options", "nosniff");
+  setHeader(event, "X-Frame-Options", "DENY");
+  setHeader(event, "X-XSS-Protection", "0");
+  setHeader(event, "Referrer-Policy", "strict-origin-when-cross-origin");
+  setHeader(
+    event,
+    "Permissions-Policy",
+    "camera=(self), microphone=(self), geolocation=(self)",
+  );
+  return void 0;
 }

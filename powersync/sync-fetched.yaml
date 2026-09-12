@@ -1,10 +1,168 @@
 # Adds YAML Schema support for VSCode users with the YAML extension installed. This enables features like validation and autocompletion based on the provided schema.
 # yaml-language-server: $schema=https://unpkg.com/@powersync/service-sync-rules@latest/schema/sync_rules.json
+# Lumina — PowerSync Sync Streams (édition 3, multi-organisation).
+#
+# Conventions
+#   - `auth.uid()`          : Supabase user ID (UUID) du stream requesté par le
+#                            client PowerSync. Côté service, il est résolu
+#                            contre `profiles.id` pour récupérer l'organisation
+#                            de l'utilisateur.
+#   - `auth.email()`        : email du profil (fallback : user email).
+#   - `auto_subscribe: true`: le client s'abonne automatiquement au stream à
+#                            l'initialisation (utile pour les streams globaux
+#                            ou partagés par toute l'organisation).
+#
+# Pattern de filtrage par organisation
+#   Pour toute table qui porte une colonne `org_id` (text, pas uuid), le
+#   filtre est :
+#       WHERE org_id = (SELECT org_id FROM profiles WHERE id = auth.uid())
+#   Cela garantit qu'un utilisateur connecté ne voit QUE les données de son
+#   propre organisation — sans fuite cross-org.
+#
+# Pattern pour les tables LIAISON sans `org_id`
+#   `group_memberships`     : liée à `groups` (a `org_id`) → filtre par group_id
+#   `event_budgets`         : liée à `events`  (a `org_id`) → filtre par event_id
+#   `budget_lines`          : liée à `event_budgets` → filtre transitif
+#   `custom_field_values`   : liée à `custom_field_definitions` (a `org_id`)
+#
+# Les streams GLOBAUX (mêmes pour tous les utilisateurs, aucune col
+# organisationnelle) restent en `auto_subscribe: true` sans filtre.
+
 config:
   edition: 3
 
 streams:
-  dev_stream:
+  # ── Données globales / partagées ────────────────────────────────────────
+  categories:
     auto_subscribe: true
-    queries:
-      - SELECT * FROM "%"
+    query: SELECT * FROM categories
+
+  org_units:
+    auto_subscribe: true
+    query: SELECT * FROM org_units
+
+  caisses:
+    auto_subscribe: true
+    query: SELECT * FROM caisses
+
+  # ── Profil de l'utilisateur connecté ───────────────────────────────────
+  profiles:
+    auto_subscribe: true
+    query: SELECT * FROM profiles WHERE email = auth.email()
+
+  # ── Données de l'organisation de l'utilisateur connecté ───────────────
+  transactions:
+    auto_subscribe: true
+    query: SELECT * FROM transactions WHERE org_id = (SELECT org_id FROM profiles WHERE id = auth.uid())
+
+  events:
+    auto_subscribe: true
+    query: SELECT * FROM events WHERE org_id = (SELECT org_id FROM profiles WHERE id = auth.uid())
+
+  cotisations:
+    auto_subscribe: true
+    query: SELECT * FROM cotisations WHERE org_id = (SELECT org_id FROM profiles WHERE id = auth.uid())
+
+  members:
+    auto_subscribe: true
+    query: SELECT * FROM members WHERE org_id = (SELECT org_id FROM profiles WHERE id = auth.uid())
+
+  groups:
+    auto_subscribe: true
+    query: SELECT * FROM groups WHERE org_id = (SELECT org_id FROM profiles WHERE id = auth.uid())
+
+  versements:
+    auto_subscribe: true
+    query: SELECT * FROM versements WHERE org_id = (SELECT org_id FROM profiles WHERE id = auth.uid())
+
+  notifications:
+    auto_subscribe: true
+    query: SELECT * FROM notifications WHERE org_id = (SELECT org_id FROM profiles WHERE id = auth.uid())
+
+  # Modèle canonique de comptes
+  accounts:
+    auto_subscribe: true
+    query: SELECT * FROM accounts WHERE org_id = (SELECT org_id FROM profiles WHERE id = auth.uid())
+
+  # Liaisons sans org_id direct → filtre transitif via le parent
+  group_memberships:
+    auto_subscribe: true
+    query: SELECT gm.* FROM group_memberships gm
+           JOIN groups g ON g.id = gm.group_id
+           WHERE g.org_id = (SELECT org_id FROM profiles WHERE id = auth.uid())
+
+  event_budgets:
+    auto_subscribe: true
+    query: SELECT eb.* FROM event_budgets eb
+           JOIN events e ON e.id = eb.event_id
+           WHERE e.org_id = (SELECT org_id FROM profiles WHERE id = auth.uid())
+
+  budget_lines:
+    auto_subscribe: true
+    query: SELECT bl.* FROM budget_lines bl
+           JOIN event_budgets eb ON eb.id = bl.event_budget_id
+           JOIN events e ON e.id = eb.event_id
+           WHERE e.org_id = (SELECT org_id FROM profiles WHERE id = auth.uid())
+
+  custom_field_values:
+    auto_subscribe: true
+    query: SELECT cv.* FROM custom_field_values cv
+           JOIN custom_field_definitions cfd ON cfd.id = cv.custom_field_definition_id
+           WHERE cfd.org_id = (SELECT org_id FROM profiles WHERE id = auth.uid())
+
+  # Formulaires
+  form_definitions:
+    auto_subscribe: true
+    query: SELECT * FROM form_definitions WHERE org_id = (SELECT org_id FROM profiles WHERE id = auth.uid())
+
+  form_submissions:
+    auto_subscribe: true
+    query: SELECT * FROM form_submissions WHERE org_id = (SELECT org_id FROM profiles WHERE id = auth.uid())
+
+  # Champs personnalisés
+  custom_field_definitions:
+    auto_subscribe: true
+    query: SELECT * FROM custom_field_definitions WHERE org_id = (SELECT org_id FROM profiles WHERE id = auth.uid())
+
+  # ── Invitations ─────────────────────────────────────────────────────────
+  # Les invitations sont créées par un admin et validées par un utilisateur.
+  # On synchronise :
+  #   - les invitations émises par l'organisation de l'utilisateur courant
+  #     (l'admin émetteur voit les siennes)
+  #   - les invitations réclamées par le profil de l'utilisateur courant
+  #     (le membre invité voit celles qu'il a réclamées)
+  # Ce n'est PAS un stream auto_subscribe : un utilisateur ne lit que ces
+  # deux vues, pas tout ce que tout le monde a émis. Le client (InvitationEmit /
+  # InvitationClaim / InvitationManage) crée explicitement le stream pour
+  # chaque vue.
+  invitations:
+    auto_subscribe: false
+    query: SELECT * FROM invitations WHERE org_id = (SELECT org_id FROM profiles WHERE id = auth.uid())
+
+  invitation_claims:
+    auto_subscribe: false
+    query: SELECT * FROM invitation_claims
+           WHERE invitation_id IN (SELECT id FROM invitations
+                                   WHERE org_id = (SELECT org_id FROM profiles WHERE id = auth.uid()))
+
+  # ── Administration centrale multi-org ──────────────────────────────────
+  organizations:
+    auto_subscribe: false
+    # Un admin central voit les organisations qu'il gère (via org_admins,
+    # colonne `admin_profile_id` = id du profil Supabase = `auth.uid()`).
+    # Un admin local ne voit que la sienne (via profiles.org_id).
+    # La vue `org_federation` pré-agrège parent + child_count pour la fédération.
+    # Le stream est créé explicitement côté client (CentralAdmin / Federation).
+    query: SELECT o.id, o.name, o.type, o.status, o.parent_org_id,
+                  o.suspended_at, o.suspended_by,
+                  o.archived_at, o.archived_by, o.archive_reason,
+                  o.created_at, o.updated_at
+           FROM organizations o
+           WHERE o.id IN (SELECT org_id FROM org_admins WHERE admin_profile_id = auth.uid())
+              OR o.id = (SELECT org_id FROM profiles WHERE id = auth.uid())
+
+  org_admins:
+    auto_subscribe: false
+    query: SELECT * FROM org_admins
+           WHERE admin_profile_id = auth.uid()
+              OR org_id = (SELECT org_id FROM profiles WHERE id = auth.uid())

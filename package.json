@@ -16,7 +16,9 @@
     "audit": "node --experimental-strip-types scripts/audit-lumina.ts",
     "cypress:open": "cypress open",
     "cypress:run": "cypress run",
-    "cypress:chrome": "CYPRESS_BROWSER=chrome cypress run"
+    "cypress:chrome": "CYPRESS_BROWSER=chrome cypress run",
+    "e2e:smoke": "npx cypress run --spec cypress/e2e/simple-check.cy.ts",
+    "e2e:full": "bash scripts/run-cypress.sh"
   },
   "dependencies": {
     "@capacitor/app": "^6.0.3",

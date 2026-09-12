@@ -23,10 +23,13 @@ dist-ssr
 *.sln
 *.sw?
 
-# Playwright test artifacts
+# Playwright / Cypress test artifacts
 /test-results/
 /playwright-report/
 /playwright/.cache/
+/cypress/videos/
+/cypress/screenshots/
+.cypress/
 .last-run.json
 .dyad/
 
@@ -40,7 +43,10 @@ dist-ssr
 *.keystore
 android/app/lumina-keystore.jks
 
-# Playwright test artifacts
+# Playwright / Dyad test artifacts
 /e2e-tests/fixtures/dyad/
 /e2e-tests/tsconfig.json
 android/app/lumina-keystore.b64
+
+# Legacy pnpm lockfile (superseded by package-lock.json — safe to delete)
+pnpm-lock.yaml

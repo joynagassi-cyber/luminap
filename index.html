@@ -11,9 +11,12 @@
   <meta name="application-name" content="Lumina" />
   <meta name="msapplication-TileColor" content="#FF6B00" />
   <meta name="msapplication-tap-highlight" content="no" />
-  <!-- Security headers via meta (supplements server-side headers) -->
+  <!-- Security headers: X-Frame-Options & co are set by the Nitro global
+       middleware (server/middleware/security.ts). A <meta X-Frame-Options>
+       is ignored by browsers and only triggers a console warning, so it is
+       not duplicated here. X-Content-Type-Options / Referrer-Policy via
+       meta remain as a server-less fallback. -->
   <meta http-equiv="X-Content-Type-Options" content="nosniff" />
-  <meta http-equiv="X-Frame-Options" content="DENY" />
   <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
   <title>Lumina · Gestion financière</title>
   <link rel="manifest" href="/manifest.json" />

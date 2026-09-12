@@ -24,7 +24,7 @@ replication:
   connections:
     - type: postgresql
       # [optional] Connection string (recommended). Omit and use hostname/port/database/username/password instead.
-      uri: postgresql://postgres:mum33%23i9%3F*zaFTN@db.hhgovvrnalibhgpakswi.supabase.co:5432/postgres
+      uri: postgresql://postgres@db.hhgovvrnalibhgpakswi.supabase.co:5432/postgres
       password:
         secret_ref: default_password
         #secret: !env POWERSYNC_DATABASE_PASSWORD
