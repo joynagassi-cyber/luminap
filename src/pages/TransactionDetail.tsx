@@ -199,7 +199,7 @@ export default function TransactionDetail() {
                 {category && (
                   <span
                     className="text-xs px-2.5 py-1 rounded-full"
-                    style={{ backgroundColor: "#FF6B0020", color: "#FF6B00" }}
+                    style={{ backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)", color: "var(--accent-primary)" }}
                   >
                     {category.label_fr || category.label}
                   </span>
@@ -322,7 +322,7 @@ export default function TransactionDetail() {
               )}
               {(tx.status === "DRAFT" || tx.status === "PENDING") && (
                 <button
-                  onClick={() => navigate(`/transaction/edit/${id}`)}
+                  onClick={() => navigate(`/transaction/${id}/edit`)}
                   className="w-full py-4 rounded-full font-semibold text-sm transition-all active:scale-95"
                   style={{
                     backgroundColor: "#212121",

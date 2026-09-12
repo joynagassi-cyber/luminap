@@ -16,13 +16,46 @@ const mockDb = {
     const table = tableMatch ? tableMatch[1] : "unknown";
     const data = mockRows[table] ?? [];
 
-    // COUNT query
+    // COUNT query — now receives ALL WHERE params (same as main query),
+    // so parse conditions properly instead of assuming params[0]=org_id,
+    // params[1]=status.
     if (sql.includes("COUNT")) {
-      const orgId = params[0];
-      const filtered =
-        orgId !== undefined
-          ? data.filter((r: any) => r.org_id === orgId)
-          : data;
+      const condRegex = /(\w+)\s*(=|!=|>|>=|<|<=|LIKE)\s*\?/g;
+      let filtered = data.slice();
+      let m;
+      let paramIdx = 0;
+      while ((m = condRegex.exec(sql)) !== null) {
+        const col = m[1];
+        const op = m[2];
+        const val = params[paramIdx++];
+        switch (op) {
+          case "=":
+            filtered = filtered.filter((r: any) => r[col] === val);
+            break;
+          case "!=":
+            filtered = filtered.filter((r: any) => r[col] !== val);
+            break;
+          case ">":
+            filtered = filtered.filter((r: any) => r[col] > val);
+            break;
+          case ">=":
+            filtered = filtered.filter((r: any) => r[col] >= val);
+            break;
+          case "<":
+            filtered = filtered.filter((r: any) => r[col] < val);
+            break;
+          case "<=":
+            filtered = filtered.filter((r: any) => r[col] <= val);
+            break;
+          case "LIKE": {
+            const search = String(val).replace(/%/g, "");
+            filtered = filtered.filter((r: any) =>
+              String(r[col]).includes(search),
+            );
+            break;
+          }
+        }
+      }
       return { array: [{ total: filtered.length }] };
     }
 
@@ -224,6 +257,10 @@ describe("resource capability", () => {
       });
       expect(result.items).toHaveLength(2);
       expect(result.items.every((i: any) => i.status === "ACTIVE")).toBe(true);
+      // Regression: the COUNT query must use the SAME where-clause + params
+      // as the main query (the old slice(0,-1) dropped org_id and shifted
+      // every parameter → wrong total).
+      expect(result.total).toBe(2);
     });
 
     it("filters by neq condition", async () => {

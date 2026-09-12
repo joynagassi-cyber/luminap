@@ -59,21 +59,25 @@ export const accountLifecycle = {
 };
 
 /**
- * Archive a group and update local Zustand state (for immediate UI feedback).
- * This is the legacy-compatible path used by GroupDetail.tsx.
- * Note: This function is kept for backward compatibility. Prefer using lifecycle.archive() directly.
+ * @deprecated This function is dead code: no caller remains (GroupDetail
+ * now uses `lifecycle.archive` directly). The `updater([], [])` line was
+ * always a no-op placeholder. Prefer `lifecycle.archive("Group", id,
+ * reason, actorId)` and update local Zustand state in the calling page.
+ *
+ * Kept for backward compatibility only.
  */
 export async function archiveGroupWithState(
   id: string,
   reason: string,
   actorId: string,
-  updater: (
+  updater?: (
     groups: any[],
     accounts: any[],
   ) => { groups: any[]; accounts: any[] },
 ): Promise<void> {
   await lifecycle.archive("Group", id, reason, actorId);
-  const now = new Date().toISOString();
-  // Caller provides the updater logic to avoid Zustand dependency here
-  updater([], []); // placeholder — see GroupDetail.tsx for state update
+  // No-op placeholder retained for API compatibility. Callers that need
+  // local-state invalidation should call it themselves or refresh via
+  // useGroups() (PowerSync local reactivity).
+  updater?.([], []);
 }

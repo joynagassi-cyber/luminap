@@ -156,13 +156,13 @@ export class ResourceService {
     const result = await db.execute(sql, params);
     const rows = result?.array || [];
 
-    // Get total count (without pagination)
-    const countSql = `SELECT COUNT(*) as total FROM ${table} ${conditions.length > 0 ? `WHERE ${conditions.slice(0, -1).join(" AND ")}` : ""}`;
-    // Note: count query simplified — uses same conditions minus any LIMIT
-    const countResult = await db.execute(
-      `SELECT COUNT(*) as total FROM ${table} ${conditions.length > 0 ? "WHERE " + conditions.slice(0, -1).join(" AND ") : ""}`,
-      params.slice(0, -1),
-    );
+    // Get total count (without pagination): reuse the same WHERE clause
+    // as the main query (all conditions + all params) — the old
+    // `conditions.slice(0, -1)` + `params.slice(0, -1)` pair dropped
+    // the org_id filter and shifted every parameter, producing a wrong
+    // total.
+    const countSql = `SELECT COUNT(*) as total FROM ${table} ${whereClause}`;
+    const countResult = await db.execute(countSql, params);
     const totalCount = (countResult?.array?.[0]?.total as number) || 0;
 
     const items = rows.map((row: any) => this.toResource<T>(entityType, row));

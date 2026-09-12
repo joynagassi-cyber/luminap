@@ -176,6 +176,11 @@ export default function InvitationEmit() {
             <IonBackButton defaultHref="/settings" />
           </IonButtons>
           <IonTitle>Créer une invitation</IonTitle>
+          <IonButtons slot="end">
+            <IonButton fill="clear" onClick={() => navigate("/invitation/manage")}>
+              Gérer
+            </IonButton>
+          </IonButtons>
         </IonToolbar>
       </IonHeader>
       <IonContent fullscreen>

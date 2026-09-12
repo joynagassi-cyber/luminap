@@ -9,6 +9,7 @@ import {
 } from "@/lib/utils";
 import {
   ArrowLeft,
+  Plus,
   TrendingUp,
   TrendingDown,
   BarChart3,
@@ -60,7 +61,7 @@ function getCaisseLabel(caisseId: string, caisses: Caisse[]): string {
 }
 
 function getCaisseColor(caisseId: string, caisses: Caisse[]): string {
-  if (caisseId === "main") return "#FF6B00";
+  if (caisseId === "main") return "var(--accent-primary)";
   return caisses.find((c) => c.id === caisseId)?.color || "#808080";
 }
 
@@ -117,6 +118,13 @@ export default function Reports() {
           <TopHeader title="Rapports" />
           <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
             <button
+              onClick={() => navigate("/report-builder")}
+              className="mb-2 flex items-center gap-2 text-sm"
+              style={{ color: "var(--accent-primary)" }}
+            >
+              <Plus className="w-4 h-4" /> Créer un rapport personnalisé
+            </button>
+            <button
               onClick={() => navigate(-1)}
               className="flex items-center gap-2 text-text-secondary text-sm mb-6"
             >
@@ -139,7 +147,7 @@ export default function Reports() {
                   className="flex-1 py-2 rounded-lg text-sm font-medium transition-all"
                   style={
                     activeTab === tab.id
-                      ? { backgroundColor: "#FF6B00", color: "#fff" }
+                      ? { backgroundColor: "var(--accent-primary)", color: "#fff" }
                       : { color: "#B3B3B3" }
                   }
                 >
@@ -162,8 +170,8 @@ export default function Reports() {
                     period === p.id
                       ? {
                           backgroundColor: "#212121",
-                          color: "#FF6B00",
-                          border: "1px solid #FF6B00",
+                          color: "var(--accent-primary)",
+                          border: "1px solid var(--accent-primary)",
                         }
                       : { backgroundColor: "#181818", color: "#B3B3B3" }
                   }
@@ -217,9 +225,9 @@ export default function Reports() {
               >
                 <div
                   className="w-8 h-8 rounded-full flex items-center justify-center mx-auto mb-2"
-                  style={{ backgroundColor: "#FF6B0020" }}
+                  style={{ backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)" }}
                 >
-                  <BarChart3 className="w-4 h-4" style={{ color: "#FF6B00" }} />
+                  <BarChart3 className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
                 </div>
                 <p className="text-text-tertiary text-xs">Résultat</p>
                 <p
@@ -237,7 +245,7 @@ export default function Reports() {
               onClick={() => setShowExport(true)}
               className="w-full py-3.5 rounded-full font-semibold text-white text-sm flex items-center justify-center gap-2 transition-all active:scale-95 mb-6"
               style={{
-                background: "linear-gradient(135deg, #FF8533, #FF6B00)",
+                background: "linear-gradient(135deg, #FF8533, var(--accent-primary))",
               }}
             >
               <Download className="w-4 h-4" /> Exporter le rapport

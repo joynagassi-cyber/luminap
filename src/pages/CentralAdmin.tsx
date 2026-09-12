@@ -37,18 +37,26 @@ import {
   History,
   ArrowLeft,
   LayoutDashboard,
+  UserMinus,
+  UserCheck,
 } from "lucide-react";
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
 import { useCurrentUser } from "@/lib/dataLayer";
+import { tint } from "@/lib/utils";
 import {
   getOrgStats,
   getRecentActivity,
   suspendOrganization,
   reactivateOrganization,
   archiveOrganization,
+  getOrgReportCard,
+  getOrgAdminDetails,
+  revokeOrgAdmin,
   type OrgStats,
   type RecentActivity,
+  type OrgAdminDetail,
+  type OrgReportCard,
 } from "@/capabilities/organization/central";
 import { useOrganizations, type PSOrganization } from "@/lib/dataLayer";
 import {
@@ -67,7 +75,7 @@ const STATUS_LABEL: Record<string, string> = {
 const STATUS_COLOR: Record<string, string> = {
   PENDING: "#FFB800",
   ACTIVE: "#1DB954",
-  SUSPENDED: "#FF6B00",
+  SUSPENDED: "var(--accent-primary)",
   ARCHIVED: "#808080",
 };
 
@@ -84,12 +92,48 @@ function useCanAccessCentral() {
 // ─── Org detail view ────────────────────────────────────────────────────────
 
 function OrgDetail({ orgId, onBack }: { orgId: string; onBack: () => void }) {
+  const user = useCurrentUser();
   const [stats, setStats] = useState<OrgStats | null>(null);
   const [activity, setActivity] = useState<RecentActivity[]>([]);
+  const [reportCard, setReportCard] = useState<OrgReportCard | null>(null);
+  const [admins, setAdmins] = useState<OrgAdminDetail[]>([]);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    getRecentActivity(orgId, 15).then(setActivity).catch(() => setActivity([]));
+    Promise.all([
+      getRecentActivity(orgId, 15),
+      getOrgReportCard(orgId),
+      getOrgAdminDetails(orgId),
+    ]).then(([act, card, adm]) => {
+      setActivity(act);
+      setReportCard(card);
+      setAdmins(adm);
+    }).catch(() => {
+      setActivity([]);
+      setReportCard(null);
+      setAdmins([]);
+    });
   }, [orgId]);
+
+  const handleRevoke = async (admin: OrgAdminDetail) => {
+    if (!user?.id) return;
+    setBusy(admin.id);
+    setError(null);
+    try {
+      await revokeOrgAdmin(admin.id, orgId, user.id, admin);
+      setAdmins((prev) => prev.filter((a) => a.id !== admin.id));
+      setReportCard((prev) => prev ? {
+        ...prev,
+        activeAdminCount: prev.activeAdminCount - 1,
+        revokedAdminCount: prev.revokedAdminCount + 1,
+      } : null);
+    } catch (e: any) {
+      setError(e?.message ?? "Opération refusée");
+    } finally {
+      setBusy(null);
+    }
+  };
 
   return (
     <div>
@@ -97,23 +141,88 @@ function OrgDetail({ orgId, onBack }: { orgId: string; onBack: () => void }) {
         <ArrowLeft className="w-4 h-4 mr-1" /> Retour à la liste
       </IonButton>
 
+      {/* Report card */}
+      {reportCard && (
+        <div
+          className="rounded-xl p-4 mb-4"
+          style={{ backgroundColor: "#212121", border: "1px solid #282828" }}
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <Building2 className="w-5 h-5" style={{ color: "var(--accent-primary)" }} />
+            <span className="text-text-primary font-semibold">{orgId}</span>
+          </div>
+          <div className="grid grid-cols-3 gap-3 mt-3">
+            <div className="text-center">
+              <p className="text-2xl font-bold text-text-primary">{reportCard.memberCount}</p>
+              <p className="text-text-tertiary text-xs">Membres</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold" style={{ color: "#1DB954" }}>{reportCard.activeAdminCount}</p>
+              <p className="text-text-tertiary text-xs">Admins actifs</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold" style={{ color: "#808080" }}>{reportCard.revokedAdminCount}</p>
+              <p className="text-text-tertiary text-xs">Révoqués</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Admin list */}
       <div
         className="rounded-xl p-4 mb-4"
         style={{ backgroundColor: "#212121", border: "1px solid #282828" }}
       >
-        <div className="flex items-center gap-2 mb-1">
-          <Building2 className="w-5 h-5" style={{ color: "#FF6B00" }} />
-          <span className="text-text-primary font-semibold">{orgId}</span>
+        <div className="flex items-center gap-2 mb-3">
+          <UserCheck className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
+          <span className="text-text-primary font-semibold text-sm">Liste des admins</span>
         </div>
-        <p className="text-text-tertiary text-xs">
-          Activité récente (journal d'audit)
-        </p>
+        {admins.length === 0 ? (
+          <p className="text-text-tertiary text-sm py-3 text-center">Aucun administrateur</p>
+        ) : (
+          <div className="space-y-2">
+            {admins.filter((a) => a.status === "ACTIVE").map((admin) => (
+              <div
+                key={admin.id}
+                className="flex items-center gap-3 p-3 rounded-lg"
+                style={{ backgroundColor: "#1a1a1a" }}
+              >
+                <div
+                  className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+                  style={{ backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)" }}
+                >
+                  <span className="text-xs font-bold" style={{ color: "var(--accent-primary)" }}>
+                    {(admin.first_name || "").charAt(0)}{(admin.last_name || "").charAt(0)}
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-text-primary text-sm font-medium truncate">{admin.displayName}</p>
+                  <p className="text-text-tertiary text-xs truncate">{admin.email}</p>
+                </div>
+                <IonButton
+                  size="small"
+                  fill="outline"
+                  color="danger"
+                  disabled={busy === admin.id}
+                  onClick={() => handleRevoke(admin)}
+                >
+                  <UserMinus className="w-3 h-3 mr-1" /> Révoquer
+                </IonButton>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
+      {/* Recent activity */}
       <div className="space-y-2">
+        <div className="flex items-center gap-2 mb-2">
+          <History className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
+          <span className="text-text-primary font-semibold text-sm">Activité récente</span>
+        </div>
         {activity.length === 0 ? (
           <p className="text-text-tertiary text-sm py-4 text-center">
-            Aucune activité enregistrée pour cette organisation.
+            Aucune activité enregistrée
           </p>
         ) : (
           activity.map((a, i) => (
@@ -140,6 +249,19 @@ function OrgDetail({ orgId, onBack }: { orgId: string; onBack: () => void }) {
           ))
         )}
       </div>
+
+      {error && (
+        <div
+          className="mt-4 p-3 rounded-xl text-sm"
+          style={{
+            backgroundColor: "#E5133220",
+            border: "1px solid #E5133240",
+            color: "#ff8fa3",
+          }}
+        >
+          {error}
+        </div>
+      )}
     </div>
   );
 }
@@ -163,10 +285,10 @@ export default function CentralAdmin() {
   }, [allowed, id, user?.id]);
 
   const kpis = [
-    { label: "Total", value: stats?.total ?? managedOrgs?.length ?? 0, color: "#FF6B00", icon: Building2 },
+    { label: "Total", value: stats?.total ?? managedOrgs?.length ?? 0, color: "var(--accent-primary)", icon: Building2 },
     { label: "Actives", value: stats?.byStatus.ACTIVE ?? 0, color: "#1DB954", icon: ShieldCheck },
     { label: "En attente", value: stats?.byStatus.PENDING ?? 0, color: "#FFB800", icon: Clock },
-    { label: "Suspendues", value: stats?.byStatus.SUSPENDED ?? 0, color: "#FF6B00", icon: ShieldOff },
+    { label: "Suspendues", value: stats?.byStatus.SUSPENDED ?? 0, color: "var(--accent-primary)", icon: ShieldOff },
     { label: "Archivées", value: stats?.byStatus.ARCHIVED ?? 0, color: "#808080", icon: Archive },
   ];
 
@@ -254,10 +376,10 @@ export default function CentralAdmin() {
             }}
           >
             <div className="max-w-lg mx-auto flex items-center gap-2">
-              <LayoutDashboard className="w-5 h-5" style={{ color: "#FF6B00" }} />
+              <LayoutDashboard className="w-5 h-5" style={{ color: "var(--accent-primary)" }} />
               <span
                 className="text-xs font-bold tracking-widest"
-                style={{ color: "#FF6B00" }}
+                style={{ color: "var(--accent-primary)" }}
               >
                 ADMINISTRATION CENTRALE
               </span>
@@ -274,7 +396,7 @@ export default function CentralAdmin() {
               <>
                 {/* Context switch action */}
                 {ctx.mode === "CENTRAL" && (
-                  <div className="mb-4">
+                  <div className="mb-4 space-y-2">
                     <IonButton
                       expand="block"
                       fill="outline"
@@ -284,6 +406,13 @@ export default function CentralAdmin() {
                       }}
                     >
                       <Play className="w-4 h-4 mr-1" /> Revenir à mon organisation
+                    </IonButton>
+                    <IonButton
+                      expand="block"
+                      fill="clear"
+                      onClick={() => navigate("/admin/federation")}
+                    >
+                      <Users className="w-4 h-4 mr-1" /> Voir la fédération
                     </IonButton>
                   </div>
                 )}
@@ -298,7 +427,7 @@ export default function CentralAdmin() {
                     >
                       <div
                         className="w-9 h-9 rounded-full flex items-center justify-center mb-2"
-                        style={{ backgroundColor: `${k.color}20` }}
+                        style={{ backgroundColor: tint(k.color, 12) }}
                       >
                         <k.icon className="w-5 h-5" style={{ color: k.color }} />
                       </div>
@@ -312,7 +441,7 @@ export default function CentralAdmin() {
 
                 {/* Org list */}
                 <p className="text-text-primary font-semibold mb-3 flex items-center gap-2">
-                  <Users className="w-4 h-4" style={{ color: "#FF6B00" }} />
+                  <Users className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
                   Organisations gérées
                 </p>
 
