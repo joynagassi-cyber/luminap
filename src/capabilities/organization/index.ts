@@ -10,9 +10,14 @@
  *   const ctx = await organization.getContext()
  *   await organization.switchOrg('new-org-id')
  *   const units = await organization.getOrgUnits()
+ *
+ * Source of truth: all reads and writes go through PowerSync (see `central.ts`
+ * for admin actions). There is a single PS-backed source — no in-memory
+ * shadow copies. This closes audit signal O5.
  */
 
 import { getOrganizationId, setOrganizationId } from "@/lib/orgContext";
+import { getPowerSyncDatabase } from "@/lib/powersync";
 
 /** Organization context — the current organization identity for the user */
 export interface OrgContext {
@@ -30,41 +35,39 @@ export interface OrgUnit {
   id: string;
   /** Display name */
   name: string;
+  /** Unit type (e.g. "DEPARTMENT", "TEAM", "BRANCH") */
+  type: string;
+  /** Description */
+  description: string;
   /** Parent unit id, if nested */
   parentId: string | null;
   /** Organization this unit belongs to */
   orgId: string;
+  /** Whether the unit is active */
+  isActive: boolean;
 }
 
 /**
  * Organization service — manages org context and organizational units.
  * Uses orgContext.ts for the current org ID source of truth.
+ * All reads and writes are PS-backed (single source of truth, O5).
  */
 export class OrganizationService {
   /**
-   * In-memory store for organization units, keyed by orgId.
-   * In production, this would query a database.
-   */
-  private _orgUnits: Map<string, OrgUnit[]> = new Map();
-
-  /**
-   * In-memory store for organization metadata (name, etc.).
-   */
-  private _orgMeta: Map<string, { name: string }> = new Map();
-
-  /**
    * Get the current organization context.
    * Uses getOrganizationId() as the source of truth for orgId.
-   * Returns a context with default values if metadata is not set.
+   * Reads the org name from the `organizations` table; falls back to orgId.
    */
-  getContext(): OrgContext {
+  async getContext(): Promise<OrgContext> {
     const orgId = getOrganizationId();
-    const meta = this._orgMeta.get(orgId);
-    return {
-      orgId,
-      orgName: meta?.name ?? orgId,
-      role: "member",
-    };
+    const db = getPowerSyncDatabase();
+    const res = await db.execute(
+      `SELECT name FROM organizations WHERE id = ?`,
+      [orgId],
+    );
+    const rows = (res?.array ?? []) as Array<{ name: string }>;
+    const name = rows[0]?.name ?? orgId;
+    return { orgId, orgName: name, role: "member" };
   }
 
   /**
@@ -80,49 +83,99 @@ export class OrganizationService {
    * Returns an empty array if none exist.
    */
   async getOrgUnits(): Promise<OrgUnit[]> {
-    const { orgId } = this.getContext();
-    return this._orgUnits.get(orgId) ?? [];
+    const { orgId } = await this.getContext();
+    const db = getPowerSyncDatabase();
+    const res = await db.execute(
+      `SELECT id, name, type, org_id, description, is_active
+       FROM org_units WHERE org_id = ? ORDER BY name`,
+      [orgId],
+    );
+    const rows = (res?.array ?? []) as Array<{
+      id: string;
+      name: string;
+      type: string;
+      org_id: string;
+      description: string;
+      is_active: number;
+    }>;
+    return rows.map((r) => ({
+      id: r.id,
+      name: r.name,
+      type: r.type ?? "",
+      description: r.description ?? "",
+      parentId: null, // parentId lives in the groups table, not org_units
+      orgId: r.org_id,
+      isActive: !!r.is_active,
+    }));
   }
 
   /**
-   * Register an organization with a display name.
+   * Register (or re-register) an organization with a display name.
+   * Upserts into the `organizations` table so the name is visible to all
+   * consumers that read from PS.
    */
-  registerOrg(orgId: string, name: string): void {
-    this._orgMeta.set(orgId, { name });
+  async registerOrg(orgId: string, name: string): Promise<void> {
+    const db = getPowerSyncDatabase();
+    const now = new Date().toISOString();
+    // Use INSERT … ON CONFLICT (id) to keep the SQL canonical and idempotent.
+    await db.execute(
+      `INSERT INTO organizations (id, name, type, status, created_at, updated_at)
+       VALUES (?, ?, 'CHURCH', 'ACTIVE', ?, ?)
+       ON CONFLICT (id) DO UPDATE SET name = excluded.name, updated_at = excluded.updated_at`,
+      [orgId, name, now, now],
+    );
   }
 
   /**
-   * Add an organization unit.
+   * Add an organization unit to the current org.
+   * Writes directly to the `org_units` table via PowerSync.
    */
-  addOrgUnit(unit: OrgUnit): void {
-    const orgId = unit.orgId;
-    const units = this._orgUnits.get(orgId) ?? [];
-    units.push(unit);
-    this._orgUnits.set(orgId, units);
+  async addOrgUnit(unit: OrgUnit): Promise<void> {
+    const db = getPowerSyncDatabase();
+    const now = new Date().toISOString();
+    // org_units: id TEXT PK (supabase/migrations/0002). The PS schema in
+    // src/lib/powersync/schema.ts omits id/description/is_active — align
+    // that schema before relying on the full column set in production.
+    await db.execute(
+      `INSERT INTO org_units
+         (id, name, type, org_id, description, is_active, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        unit.id,
+        unit.name,
+        unit.type ?? "groupe",
+        unit.orgId,
+        unit.description ?? "",
+        unit.isActive ? 1 : 0,
+        now,
+        now,
+      ],
+    );
   }
 
   /**
    * Remove an organization unit by id.
-   * Returns true if the unit was found and removed.
+   * Deletes from `org_units` via PowerSync; returns true when a row was removed.
    */
-  removeOrgUnit(orgId: string, unitId: string): boolean {
-    const units = this._orgUnits.get(orgId);
-    if (!units) return false;
-    const idx = units.findIndex((u) => u.id === unitId);
-    if (idx === -1) return false;
-    units.splice(idx, 1);
-    this._orgUnits.set(orgId, units);
-    return true;
+  async removeOrgUnit(orgId: string, unitId: string): Promise<boolean> {
+    const db = getPowerSyncDatabase();
+    const res = await db.execute(
+      `DELETE FROM org_units WHERE id = ? AND org_id = ?`,
+      [unitId, orgId],
+    );
+    return (res?.rowsAffected ?? 0) > 0;
   }
 
   /**
-   * List all registered organizations.
+   * List all registered organizations visible locally.
    */
-  listOrgs(): Array<{ orgId: string; name: string }> {
-    return Array.from(this._orgMeta.entries()).map(([orgId, meta]) => ({
-      orgId,
-      name: meta.name,
-    }));
+  async listOrgs(): Promise<Array<{ orgId: string; name: string }>> {
+    const db = getPowerSyncDatabase();
+    const res = await db.execute(
+      `SELECT id, name FROM organizations ORDER BY name`,
+    );
+    const rows = (res?.array ?? []) as Array<{ id: string; name: string }>;
+    return rows.map((r) => ({ orgId: r.id, name: r.name }));
   }
 }
 
