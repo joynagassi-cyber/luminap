@@ -29,4 +29,21 @@ applyStoredTheme();
 // Initialize OneSignal after app mounts
 initOneSignal();
 
+// Best effort : précharger les définitions d'éléments personnalisés Ionic.
+// Avec React 19, monter un custom element NON encore défini peut faire
+// perdre ses enfants React (barre d'onglets / boutons ionic vides). Les
+// composants critiques (BottomNav, boutons du header) sont désormais en
+// HTML natif — ce préchargement couvre les autres éléments ionic.
+import("@ionic/core")
+  .then((m) => {
+    const loader = (
+      m as {
+        loadIonicDefinitions?: () => Promise<void>;
+        registerIonContent?: () => void;
+      }
+    ).loadIonicDefinitions;
+    return loader?.();
+  })
+  .catch(() => {});
+
 createRoot(document.getElementById("root")!).render(<App />);

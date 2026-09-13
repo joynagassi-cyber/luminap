@@ -46,6 +46,19 @@
 - **UI** : upload de documents dans `Archives` (nom + objet) ; photos-preuve dans le formulaire de dépense (`TransactionNew`, section « Preuve de la dépense ») et affichées dans `TransactionDetail` ; upload du logo dans `Settings` (bucket `logos`, repli base64 hors ligne) ; logo affichée dans `TopHeader`.
 - **Bornière uuid** : `SupabaseConnector.uploadData` coerce `documents.uploaded_by` et `transactions.created_by_id/approved_by_id` vers `null` si non-UUID.
 
+## Features configurables (nav & menu « Plus »)
+- `src/lib/features.ts` : registre `FEATURES` (id/libellé/route/icone, `kind` core|feature) + store zustand `useFeatureConfig` (persisté `localStorage["lumina-features"]`).
+- `navTabs` : 4 emplacements — slots 0-1 verrouillés (Accueil, Finances), slots 2-3 remplaçables par l'utilisateur (`setNavTab(2|3, id)`).
+- `visible` : bascule par feature (masque du menu « Plus ») ; une feature épinglée dans la barre n'apparaît pas dans le menu (`featuresForMoreMenu`).
+- Config UI : Settings → carte « Features & navigation » (selects emplacements 3-4 + toggles + reset). Réactif partout (zustand) + sync inter-onglets (event `storage`).
+
+## ⚠️ React 19 + custom elements Ionic — PIÈGE (barre nav / boutons vides)
+- **Réglé** : avec React 19, les *enfants React* de certains custom elements Ionic (`ion-tab-bar`, `ion-button`, `ion-tab-button`) peuvent ne PAS être rendus dans le light DOM (selon l'ordre de définition des éléments) → barre d'onglets **vide** et boutons **sans icône**. Le diagnostic DOM : `ion-tab-bar` présent mais `innerHTML` vide (shadow = `<slot>` seul), 0 `ion-tab-button`.
+- **Règle** : pour tout élément dont le contenu compte (nav, FAB, boutons du header) → **HTML natif** (`<button>`, `<nav>`), pas `IonButton`/`IonTabBar`/`IonTabButton`. `BottomNav` (barre + FAB + menu Plus) et les boutons du `TopHeader` sont en natif (`data-testid="bottom-nav"`).
+- `IonPage`/`IonContent`/`IonHeader`/`IonTitle` restent OK (leurs enfants s'affichent).
+- Best-effort : `main.tsx` tente de précharger les définitions Ionic avant le premier render.
+- Si un bouton `ion-*` ressort vide → le convertir en bouton natif (même style/ARIA), ne pas « réparer » Ionic.
+
 ## Architecture Caisses & Versement
 - **Caisse principale** (`id: 'main'`) : fonds de l'église, visible dans le dashboard
 - **Caisse groupe** (`id: orgUnitId`) : fonds de chaque groupe

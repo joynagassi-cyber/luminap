@@ -1,58 +1,43 @@
 import {
-  Home,
-  Wallet,
-  Users,
-  CalendarPlus,
-  MoreVertical,
-  Wallet as WalletIcon,
-  BarChart3,
-  LineChart,
-  ClipboardList,
-  History,
-  Settings,
-  Plus,
   Check,
+  Plus,
   ArrowRightLeft,
-  FileText,
-  Archive,
-  HelpCircle,
-  ListChecks,
+  MoreVertical,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useState, useRef, useEffect, useMemo } from "react";
-import { IonButton, IonTabBar, IonTabButton } from "@ionic/react";
 import { tint } from "@/lib/utils";
+import {
+  useFeatureConfig,
+  featuresForNav,
+  featuresForMoreMenu,
+  type FeatureDef,
+} from "@/lib/features";
 
-const NAV_ITEMS = [
-  { icon: Home, label: "Accueil", path: "/" },
-  { icon: Wallet, label: "Finances", path: "/finance" },
-  { icon: Users, label: "Groupes", path: "/groups" },
-  { icon: CalendarPlus, label: "Cultes", path: "/cotisations" },
-];
-
-const MORE_ACTIONS = [
-  { icon: WalletIcon, label: "Versement", path: "/versement" },
-  { icon: BarChart3, label: "Rapports", path: "/reports" },
-  { icon: LineChart, label: "Bilan", path: "/balance" },
-  { icon: ClipboardList, label: "Membres", path: "/members" },
-  {
-    icon: CalendarPlus,
-    label: "Membres en avance",
-    path: "/membres-en-avance",
-  },
-  { icon: History, label: "Historique", path: "/history" },
-  { icon: Archive, label: "Archives", path: "/archives" },
-  { icon: ListChecks, label: "Trace", path: "/trace" },
-  { icon: FileText, label: "Formulaires", path: "/forms" },
-  { icon: Settings, label: "Paramètres", path: "/settings" },
-  { icon: HelpCircle, label: "Aide", path: "/help" },
-];
-
+/**
+ * Barre de navigation basse — HTML natif.
+ *
+ * Historiquement construite sur IonTabBar/IonTabButton/IonButton
+ * (custom elements Ionic) : avec React 19, les enfants React de ces
+ * éléments pouvaient ne pas être rendus dans le light DOM (barre vide,
+ * boutons sans icône) selon l'ordre de définition des custom elements.
+ * On passe donc à des <button> natifs : rendu déterministe, mêmes styles
+ * et mêmes sémantiques ARIA (tablist / tab / switch-free toggles).
+ */
 export default function BottomNav() {
   const navigate = useNavigate();
   const location = useLocation();
   const [showMore, setShowMore] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
+
+  // Les emplacements de la barre et le contenu du menu « Plus » sont
+  // configurables par l'utilisateur (Settings → Features & navigation).
+  const { navTabs, visible } = useFeatureConfig();
+  const navFeatures = useMemo(() => featuresForNav(navTabs), [navTabs]);
+  const moreFeatures = useMemo(
+    () => featuresForMoreMenu(navTabs, visible),
+    [navTabs, visible],
+  );
 
   const fabAction = useMemo(() => {
     const path = location.pathname;
@@ -102,93 +87,149 @@ export default function BottomNav() {
     location.pathname === path ||
     (path !== "/" && location.pathname.startsWith(path));
 
+  const go = (feature: FeatureDef) => {
+    navigate(feature.route);
+    setShowMore(false);
+  };
+
+  const tabStyle = (active: boolean): React.CSSProperties => ({
+    background: active
+      ? "color-mix(in srgb, var(--accent-primary) 12%, transparent)"
+      : "transparent",
+    border: "none",
+    cursor: "pointer",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: 2,
+    padding: "10px 12px",
+    borderRadius: 12,
+    minWidth: 0,
+    transition: "all 150ms",
+    color: "inherit",
+  });
+
   return (
     <>
-      {/* FAB — Contextual action button */}
-      <IonButton
+      {/* FAB — Contextual action button (bouton natif) */}
+      <button
+        type="button"
         onClick={fabAction.action}
-        className="fixed bottom-20 right-5 z-40 !w-14 !h-14 !rounded-full !p-0 !shadow-lg !min-height:auto"
         style={{
+          position: "fixed",
+          bottom: 80,
+          right: 20,
+          zIndex: 40,
+          width: 56,
+          height: 56,
+          borderRadius: "50%",
+          border: "none",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
           background: `linear-gradient(135deg, ${fabAction.color}, ${fabAction.color})`,
           boxShadow: `0 4px 16px ${tint(fabAction.color, 38)}`,
+          color: "#fff",
+          padding: 0,
         }}
         aria-label={fabAction.label}
-        role="button"
       >
         {fabAction.icon === Check ? (
-          <Check className="w-7 h-7 text-white" />
+          <Check className="w-7 h-7" />
         ) : fabAction.icon === ArrowRightLeft ? (
-          <ArrowRightLeft className="w-7 h-7 text-white" />
+          <ArrowRightLeft className="w-7 h-7" />
         ) : (
-          <Plus className="w-7 h-7 text-white" />
+          <Plus className="w-7 h-7" />
         )}
-      </IonButton>
+      </button>
 
-      {/* Ionic TabBar — dark theme */}
-      <IonTabBar
-        className="fixed bottom-0 left-0 right-0 z-50 px-2 pb-2 pt-1"
-        style={{
-          backgroundColor: "rgba(18,18,18,0.97)",
-          backdropFilter: "blur(10px)",
-          borderTop: "1px solid #282828",
-        }}
+      {/* Barre d'onglets (nav natif) — emplacements pilotés par le
+          réglage utilisateur (Settings → Features & navigation) */}
+      <nav
+        data-testid="bottom-nav"
         role="navigation"
         aria-label="Navigation principale"
+        style={{
+          position: "fixed",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          zIndex: 50,
+          background: "rgba(18,18,18,0.97)",
+          backdropFilter: "blur(10px)",
+          borderTop: "1px solid #282828",
+          padding: "4px 8px 8px",
+        }}
       >
         <div
           className="flex items-center justify-around max-w-lg mx-auto"
           role="tablist"
           aria-label="Navigation principale"
         >
-          {NAV_ITEMS.map(({ icon: Icon, label, path }) => (
-            <IonTabButton
-              key={path}
-              href={path}
-              className="!min-height:auto !p-0 flex flex-col items-center gap-0.5 px-3 py-2.5 rounded-xl transition-all min-w-0"
-              {...({ role: "tab" } as any)}
-              aria-selected={isActive(path) as any}
-              aria-label={label}
+          {navFeatures.map((f) => {
+            const Icon = f.icon;
+            const active = isActive(f.route);
+            return (
+              <button
+                key={f.id}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                aria-label={f.label}
+                onClick={() => go(f)}
+                className="flex flex-col items-center gap-0.5 px-3 py-2.5 rounded-xl transition-all min-w-0"
+                style={tabStyle(active)}
+              >
+                <Icon
+                  className="w-5 h-5"
+                  style={{
+                    color: active ? "var(--accent-primary)" : "#B3B3B3",
+                    opacity: active ? 1 : 0.7,
+                  }}
+                />
+                <span
+                  className="text-xs font-medium"
+                  style={{
+                    color: active ? "var(--accent-primary)" : "#B3B3B3",
+                  }}
+                >
+                  {f.label}
+                </span>
+              </button>
+            );
+          })}
+
+          {/* Bouton « Plus » — les features non épinglées dans la barre */}
+          <div className="relative" ref={moreRef}>
+            <button
+              type="button"
+              onClick={() => setShowMore(!showMore)}
+              aria-label={showMore ? "Fermer le menu" : "Plus d'options"}
+              aria-expanded={showMore}
+              style={tabStyle(showMore)}
+              className="flex flex-col items-center gap-0.5 px-3 py-2.5 rounded-xl transition-all min-w-0"
             >
-              <Icon
+              <MoreVertical
                 className="w-5 h-5"
                 style={{
-                  color: isActive(path) ? "var(--accent-primary)" : "#B3B3B3",
-                  opacity: isActive(path) ? 1 : 0.7,
+                  color: showMore ? "var(--accent-primary)" : "#B3B3B3",
                 }}
               />
               <span
                 className="text-xs font-medium"
-                style={{ color: isActive(path) ? "var(--accent-primary)" : "#B3B3B3" }}
-              >
-                {label}
-              </span>
-            </IonTabButton>
-          ))}
-
-          {/* More button */}
-          <div className="relative" ref={moreRef}>
-            <IonButton
-              fill="clear"
-              onClick={() => setShowMore(!showMore)}
-              className="!min-height:auto !p-0 flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-all min-w-0"
-              aria-label={showMore ? "Fermer le menu" : "Plus d'options"}
-              aria-expanded={showMore}
-            >
-              <MoreVertical
-                className="w-5 h-5"
-                style={{ color: showMore ? "var(--accent-primary)" : "#B3B3B3" }}
-              />
-              <span
-                className="text-xs font-medium"
-                style={{ color: showMore ? "var(--accent-primary)" : "#B3B3B3" }}
+                style={{
+                  color: showMore ? "var(--accent-primary)" : "#B3B3B3",
+                }}
               >
                 Plus
               </span>
-            </IonButton>
+            </button>
 
-            {/* More menu */}
+            {/* Menu « Plus » */}
             {showMore && (
               <div
+                data-testid="more-menu"
                 className="absolute bottom-12 right-0 w-48 rounded-2xl overflow-hidden z-50"
                 style={{
                   backgroundColor: "#181818",
@@ -197,38 +238,45 @@ export default function BottomNav() {
                 }}
               >
                 <div className="p-2">
-                  {MORE_ACTIONS.map(({ icon: Icon, label, path }) => (
-                    <IonButton
-                      key={path}
-                      fill="clear"
-                      expand="block"
-                      onClick={() => {
-                        navigate(path);
-                        setShowMore(false);
-                      }}
-                      className="w-full !min-height:auto !p-0 flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all active:scale-95"
-                      style={{ color: "#B3B3B3" }}
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.backgroundColor = "#282828")
-                      }
-                      onMouseLeave={(e) =>
-                        (e.currentTarget.style.backgroundColor = "transparent")
-                      }
-                      aria-label={label}
+                  {moreFeatures.length === 0 ? (
+                    <p
+                      className="px-3 py-2 text-xs text-center"
+                      style={{ color: "#808080" }}
                     >
-                      <Icon
-                        className="w-4 h-4 flex-shrink-0"
-                        style={{ color: "#B3B3B3" }}
-                      />
-                      <span className="text-sm font-medium">{label}</span>
-                    </IonButton>
-                  ))}
+                      Aucune feature activée
+                    </p>
+                  ) : (
+                    moreFeatures.map((f) => {
+                      const Icon = f.icon;
+                      return (
+                        <button
+                          key={f.id}
+                          type="button"
+                          onClick={() => go(f)}
+                          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all active:scale-95"
+                          style={{
+                            background: "transparent",
+                            border: "none",
+                            cursor: "pointer",
+                            color: "#B3B3B3",
+                          }}
+                          aria-label={f.label}
+                        >
+                          <Icon
+                            className="w-4 h-4 flex-shrink-0"
+                            style={{ color: "#B3B3B3" }}
+                          />
+                          <span className="text-sm font-medium">{f.label}</span>
+                        </button>
+                      );
+                    })
+                  )}
                 </div>
               </div>
             )}
           </div>
         </div>
-      </IonTabBar>
+      </nav>
     </>
   );
 }

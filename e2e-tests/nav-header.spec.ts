@@ -37,7 +37,7 @@ test.describe("Régularité nav bar + header", () => {
     await loginAsTestUser(page);
     await page.goto("/dashboard");
 
-    const nav = page.locator("ion-tab-bar").first();
+    const nav = page.locator('nav[data-testid="bottom-nav"]').first();
     await expect(nav).toBeVisible({ timeout: 20_000 });
 
     // Collé en bas du viewport (pas décalé sous le pli).
@@ -64,7 +64,9 @@ test.describe("Régularité nav bar + header", () => {
 
     // Attendre que le corps du dashboard soit monté (la nav n'existe que dans
     // le rendu principal, pas dans la rampe de splash).
-    await expect(page.locator("ion-tab-bar")).toBeVisible({ timeout: 20_000 });
+    await expect(
+      page.locator('nav[data-testid="bottom-nav"]'),
+    ).toBeVisible({ timeout: 20_000 });
 
     const headers = page.locator("ion-header");
     const headerCount = await headers.count();

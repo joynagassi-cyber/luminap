@@ -24,7 +24,16 @@ import {
   BarChart3,
   Clock,
   Palette,
+  Puzzle,
+  Lock,
+  RotateCcw,
 } from "lucide-react";
+import {
+  useFeatureConfig,
+  FEATURES,
+  featureById,
+  NAV_TAB_COUNT,
+} from "@/lib/features";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
 import LuminaLogo from "@/components/LuminaLogo";
@@ -55,6 +64,15 @@ export default function SettingsPage() {
   const { data: accounts, isLoading: accountsLoading } = useAccounts();
   const loadInitialData = useLocalStore((s) => s.loadInitialData);
   const auditEntries = useLocalStore((s) => s.auditEntries);
+
+  // Features & navigation (réglable par l'utilisateur)
+  const {
+    navTabs,
+    visible: featureVisible,
+    setNavTab,
+    setFeatureVisible,
+    resetFeatures,
+  } = useFeatureConfig();
   const [churchName, setChurchName] = useState(appConfig.churchName);
   const [churchLogo, setChurchLogo] = useState(appConfig.churchLogoUrl);
   const [userPhoto, setUserPhoto] = useState(appConfig.userPhoto);
@@ -303,6 +321,166 @@ export default function SettingsPage() {
                 entre les sessions.
               </p>
               <ThemePicker value={themeId} onChange={handleThemeChange} />
+            </div>
+
+            {/* Features & navigation */}
+            <div
+              className="rounded-xl p-4 mb-5"
+              style={{ backgroundColor: "#212121" }}
+            >
+              <div className="flex items-center gap-2 mb-3">
+                <Puzzle className="w-5 h-5" style={{ color: "var(--accent-primary)" }} />
+                <span className="text-text-primary font-semibold">
+                  Features &amp; navigation
+                </span>
+              </div>
+              <p className="text-text-tertiary text-xs mb-4">
+                Choisissez les features de la barre de navigation et celles
+                affichées dans le menu « Plus ». Les changements
+                s'appliquent immédiatement.
+              </p>
+
+              {/* Barre de navigation — 4 emplacements */}
+              <p
+                className="text-text-secondary text-xs font-medium mb-2"
+              >
+                Barre de navigation
+              </p>
+              <div className="space-y-2 mb-4">
+                {Array.from({ length: NAV_TAB_COUNT }).map((_, i) => {
+                  const current = featureById(navTabs[i]);
+                  const locked = i < 2;
+                  if (locked) {
+                    return (
+                      <div
+                        key={i}
+                        className="flex items-center gap-3 rounded-xl px-3 py-2.5"
+                        style={{ backgroundColor: "#181818", border: "1px solid #282828", opacity: 0.85 }}
+                      >
+                        {(() => {
+                          const Icon = current?.icon ?? Puzzle;
+                          return (
+                            <Icon className="w-4 h-4" style={{ color: "#808080" }} />
+                          );
+                        })()}
+                        <span className="text-text-tertiary text-sm flex-1">
+                          {current?.label ?? "—"}
+                        </span>
+                        <Lock className="w-3.5 h-3.5 text-text-tertiary" aria-label="Verrouillé" />
+                      </div>
+                    );
+                  }
+                  return (
+                    <div key={i} className="flex items-center gap-3">
+                      <label
+                        className="text-text-tertiary text-xs w-16 flex-shrink-0"
+                        htmlFor={`nav-slot-${i + 1}`}
+                      >
+                        Empl. {i + 1}
+                      </label>
+                      <select
+                        id={`nav-slot-${i + 1}`}
+                        value={navTabs[i]}
+                        onChange={(e) =>
+                          setNavTab(i as 2 | 3, e.target.value)
+                        }
+                        className="flex-1 px-3 py-2.5 rounded-xl text-sm "
+                        style={{
+                          backgroundColor: "#181818",
+                          color: "#fff",
+                          border: "1px solid #282828",
+                        }}
+                        aria-label={`Feature de l'emplacement ${i + 1}`}
+                      >
+                        {FEATURES.map((f) => {
+                          // Une feature déjà épinglée ailleurs est indisponible.
+                          const used = navTabs.includes(f.id) && navTabs[i] !== f.id;
+                          return (
+                            <option key={f.id} value={f.id} disabled={used}>
+                              {used ? `${f.label} (déjà choisi)` : f.label}
+                            </option>
+                          );
+                        })}
+                      </select>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Features affichées (menu « Plus ») */}
+              <p
+                className="text-text-secondary text-xs font-medium mb-2"
+              >
+                Features affichées
+              </p>
+              <p className="text-text-tertiary text-xs mb-3">
+                Non affichées ici = masquées du menu « Plus » de la
+                navigation. Une feature épinglée dans la barre n'apparaît pas
+                dans cette liste de bascule.
+              </p>
+              <div className="space-y-1 mb-4">
+                {FEATURES.filter((f) => f.kind === "feature").map((f) => {
+                  const Icon = f.icon;
+                  const pinned = navTabs.includes(f.id);
+                  const on = pinned || featureVisible[f.id];
+                  return (
+                    <button
+                      key={f.id}
+                      onClick={() => {
+                        if (!pinned) setFeatureVisible(f.id, !featureVisible[f.id]);
+                      }}
+                      disabled={pinned}
+                      className="flex items-center gap-3 w-full px-3 py-2 rounded-xl transition-all active:scale-95 disabled:opacity-50 text-left"
+                      style={{ backgroundColor: "#181818", border: "1px solid #282828" }}
+                      role="switch"
+                      aria-checked={on}
+                      aria-label={
+                        pinned
+                          ? `${f.label} (épinglée dans la barre)`
+                          : `Afficher ${f.label}`
+                      }
+                    >
+                      <Icon
+                        className="w-4 h-4 flex-shrink-0"
+                        style={{
+                          color: on ? "var(--accent-primary)" : "#808080",
+                        }}
+                      />
+                      <span
+                        className="text-sm flex-1"
+                        style={{ color: on ? "#fff" : "#808080" }}
+                      >
+                        {f.label}
+                      </span>
+                      {pinned ? (
+                        <Lock className="w-3.5 h-3.5 text-text-tertiary" />
+                      ) : (
+                        <span
+                          className="w-10 h-6 rounded-full relative flex-shrink-0 transition-colors"
+                          style={{
+                            backgroundColor: on ? "var(--accent-primary)" : "#282828",
+                          }}
+                        >
+                          <span
+                            className="absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all"
+                            style={{ left: on ? "22px" : "2px" }}
+                          />
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                onClick={resetFeatures}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-full text-sm font-medium transition-all active:scale-95"
+                style={{ backgroundColor: "#181818", border: "1px solid #282828", color: "#B3B3B3" }}
+                aria-label="Restaurer les features par défaut"
+              >
+                <RotateCcw className="w-4 h-4" />
+                Restaurer les réglages par défaut
+              </button>
             </div>
 
             {/* Sync status */}

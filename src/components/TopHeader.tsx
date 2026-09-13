@@ -1,5 +1,5 @@
 import { Bell, Settings, LayoutDashboard } from "lucide-react";
-import { IonButton, IonHeader, IonToolbar } from "@ionic/react";
+import { IonHeader, IonToolbar } from "@ionic/react";
 import { useLocalStore } from "@/store/useLocalStore";
 import { useNavigate } from "react-router-dom";
 import {
@@ -74,11 +74,26 @@ export default function TopHeader({ title }: { title?: string }) {
               </p>
             </div>
           </div>
+          {/* Boutons d'action en HTML natif (pas de IonButton) : les
+              enfants React des custom elements Ionic pouvaient ne pas
+              être rendus (boutons vides) avec React 19. */}
           <div className="flex items-center gap-2">
-            <IonButton
+            <button
+              type="button"
               onClick={handleNotificationsClick}
-              className="!min-height:auto !p-0 !rounded-full !min-w-[36px] !w-9 !h-9"
-              style={{ backgroundColor: "#212121", border: "1px solid #282828" }}
+              style={{
+                position: "relative",
+                width: 36,
+                height: 36,
+                borderRadius: "50%",
+                border: "1px solid #282828",
+                backgroundColor: "#212121",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+                padding: 0,
+              }}
               aria-label="Notifications"
               title="Notifications"
               aria-haspopup="dialog"
@@ -92,16 +107,27 @@ export default function TopHeader({ title }: { title?: string }) {
                   {unreadCount > 9 ? "9+" : unreadCount}
                 </span>
               )}
-            </IonButton>
-            <IonButton
+            </button>
+            <button
+              type="button"
               onClick={() => navigate("/settings")}
-              className="!min-height:auto !p-0 !rounded-full !min-w-[36px] !w-9 !h-9"
-              style={{ backgroundColor: "#212121", border: "1px solid #282828" }}
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: "50%",
+                border: "1px solid #282828",
+                backgroundColor: "#212121",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+                padding: 0,
+              }}
               aria-label="Paramètres"
               title="Paramètres"
             >
               <Settings className="w-4 h-4 text-text-secondary" />
-            </IonButton>
+            </button>
           </div>
         </div>
       </IonToolbar>
@@ -127,15 +153,25 @@ export default function TopHeader({ title }: { title?: string }) {
                 : "Administration centrale"}
             </span>
             {isCentralAdmin && (
-              <IonButton
+              <button
+                type="button"
                 onClick={handleReturnToCentral}
-                className="!min-height:auto !p-1 !rounded-full !min-w-[24px] !h-6 !text-xs"
-                style={{ backgroundColor: "#2a2a2a", color: "#B3B3B3" }}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  padding: "4px 8px",
+                  borderRadius: 999,
+                  border: "none",
+                  cursor: "pointer",
+                  backgroundColor: "#2a2a2a",
+                  color: "#B3B3B3",
+                  fontSize: 12,
+                }}
                 aria-label="Retour à l'administration centrale"
               >
                 <LayoutDashboard className="w-3 h-3 mr-1" />
                 {inOrgContext ? "Retour au central" : "Ouvrir le dashboard"}
-              </IonButton>
+              </button>
             )}
           </div>
         </div>
