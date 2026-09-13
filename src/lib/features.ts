@@ -1,10 +1,9 @@
 /**
  * Features configurables de Lumina.
  *
- * L'utilisateur choisit :
- *  - quelles features remplacent les emplacements 3 & 4 de la barre de
- *    navigation (« Groupes » et « Cultes/Événements » par défaut) ;
- *  - quelles features sont affichées (menu « Plus » des pages).
+ * La barre de navigation n'est PAS hardcodée : l'utilisateur compose lui-même
+ * sa liste d'onglets (ajout, retrait, réordonnancement — min 1, max 4 items)
+ * et choisit quelles features s'affichent dans le menu « Plus ».
  *
  * Le réglage est local-first (localStorage `lumina-features`) : il s'applique
  * instantanément partout (BottomNav, Settings) via le store zustand.
@@ -39,8 +38,8 @@ export interface FeatureDef {
   route: string;
   icon: LucideIcon;
   /**
-   * `core` : emplacements 1-2 de la nav, verrouillés (Accueil, Finances).
-   * `feature` : remplaçable / masquable par l'utilisateur.
+   * `core` : features de base recommandées (Accueil, Finances) — mais comme
+   * les autres, elles peuvent être retirées de la nav par l'utilisateur.
    */
   kind: "core" | "feature";
 }
@@ -157,11 +156,10 @@ export const FEATURES: FeatureDef[] = [
 export const featureById = (id: string): FeatureDef | undefined =>
   FEATURES.find((f) => f.id === id);
 
-/** Nombre d'emplacements de la barre de navigation. */
-export const NAV_TAB_COUNT = 4;
-/** Emplacements verrouillés (Accueil, Finances). */
-export const LOCKED_NAV_TABS: readonly string[] = ["dashboard", "finance"];
-/** Réglage par défaut des 4 emplacements. */
+/** Bornes de la liste de navigation (l'utilisateur compose sa liste). */
+export const MIN_NAV_TABS = 1;
+export const MAX_NAV_TABS = 4;
+/** Liste de navigation par défaut (point de départ, modifiable). */
 export const DEFAULT_NAV_TABS: string[] = [
   "dashboard",
   "finance",
@@ -176,31 +174,39 @@ interface StoredFeatures {
   visible?: Record<string, boolean>;
 }
 
+/** Filtre une liste brute : ids connus uniquement, sans doublon, ≤ MAX. */
+function sanitizeNavTabs(raw: unknown): string[] | null {
+  if (!Array.isArray(raw)) return null;
+  const out: string[] = [];
+  for (const id of raw) {
+    if (typeof id === "string" && featureById(id) && !out.includes(id)) {
+      out.push(id);
+    }
+  }
+  return out.slice(0, MAX_NAV_TABS);
+}
+
 function loadStored(): { navTabs: string[]; visible: Record<string, boolean> } {
   const visible: Record<string, boolean> = {};
   for (const f of FEATURES) visible[f.id] = true;
+  const result = { navTabs: [...DEFAULT_NAV_TABS], visible };
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { navTabs: [...DEFAULT_NAV_TABS], visible };
+    if (!raw) return result;
     const parsed = JSON.parse(raw) as StoredFeatures;
-    // Emplacements : on ne garde que des ids connus ; slots 0-1 verrouillés.
-    const navTabs: string[] = [...DEFAULT_NAV_TABS];
-    if (Array.isArray(parsed.navTabs)) {
-      for (const i of [2, 3] as const) {
-        const id = parsed.navTabs[i];
-        if (typeof id === "string" && featureById(id)) navTabs[i] = id;
-      }
-    }
+    const navTabs = sanitizeNavTabs(parsed.navTabs);
+    if (navTabs && navTabs.length >= MIN_NAV_TABS) result.navTabs = navTabs;
     if (parsed.visible && typeof parsed.visible === "object") {
       for (const f of FEATURES) {
         const v = parsed.visible[f.id];
         if (typeof v === "boolean") visible[f.id] = v;
       }
     }
-    return { navTabs, visible };
   } catch {
-    return { navTabs: [...DEFAULT_NAV_TABS], visible };
+    /* JSON invalide — réglages par défaut */
   }
+  result.visible = visible;
+  return result;
 }
 
 function persist(navTabs: string[], visible: Record<string, boolean>) {
@@ -215,13 +221,17 @@ function persist(navTabs: string[], visible: Record<string, boolean>) {
 }
 
 export interface FeatureConfigState {
-  /** 4 ids de features (slots 0-1 = core verrouillés). */
+  /** Liste dynamique des onglets de la barre (1 à MAX_NAV_TABS ids). */
   navTabs: string[];
   /** featureId -> affichée (menu « Plus ») ou non. */
   visible: Record<string, boolean>;
-  /** Remplacer l'emplacement 3 ou 4 (index 2/3) par une feature. */
-  setNavTab: (slot: 2 | 3, featureId: string) => void;
-  /** Afficher / masquer une feature. */
+  /** Ajouter une feature à la barre (max 4 items, pas de doublon). */
+  addNavTab: (featureId: string) => void;
+  /** Retirer une feature de la barre (min 1 item). */
+  removeNavTab: (featureId: string) => void;
+  /** Déplacer un onglet d'une position (delta = -1 ou +1). */
+  moveNavTab: (index: number, delta: -1 | 1) => void;
+  /** Afficher / masquer une feature du menu « Plus ». */
   setFeatureVisible: (featureId: string, on: boolean) => void;
   /** Remettre les réglages par défaut. */
   resetFeatures: () => void;
@@ -234,17 +244,32 @@ export const useFeatureConfig = create<FeatureConfigState>((set, get) => ({
   navTabs: initial.navTabs,
   visible: initial.visible,
 
-  setNavTab: (slot, featureId) => {
+  addNavTab: (featureId) => {
     const state = get();
-    if (slot !== 2 && slot !== 3) return;
-    const f = featureById(featureId);
-    if (!f) return;
-    // Interdit : mettre une feature déjà placée dans un autre slot.
-    if (state.navTabs.includes(featureId) && state.navTabs[slot] !== featureId) {
-      return;
-    }
+    if (state.navTabs.length >= MAX_NAV_TABS) return;
+    if (state.navTabs.includes(featureId)) return;
+    if (!featureById(featureId)) return;
+    const navTabs = [...state.navTabs, featureId];
+    persist(navTabs, state.visible);
+    set({ navTabs });
+  },
+
+  removeNavTab: (featureId) => {
+    const state = get();
+    if (state.navTabs.length <= MIN_NAV_TABS) return;
+    if (!state.navTabs.includes(featureId)) return;
+    const navTabs = state.navTabs.filter((id) => id !== featureId);
+    persist(navTabs, state.visible);
+    set({ navTabs });
+  },
+
+  moveNavTab: (index, delta) => {
+    const state = get();
+    const target = index + delta;
+    if (target < 0 || target >= state.navTabs.length) return;
     const navTabs = [...state.navTabs];
-    navTabs[slot] = featureId;
+    const [id] = navTabs.splice(index, 1);
+    navTabs.splice(target, 0, id);
     persist(navTabs, state.visible);
     set({ navTabs });
   },
@@ -272,13 +297,6 @@ if (typeof window !== "undefined") {
     if (e.key === STORAGE_KEY && e.newValue) {
       try {
         const parsed = JSON.parse(e.newValue) as StoredFeatures;
-        const navTabs = [...DEFAULT_NAV_TABS];
-        if (Array.isArray(parsed.navTabs)) {
-          for (const i of [2, 3] as const) {
-            const id = parsed.navTabs[i];
-            if (typeof id === "string" && featureById(id)) navTabs[i] = id;
-          }
-        }
         const visible: Record<string, boolean> = {};
         for (const f of FEATURES) visible[f.id] = true;
         if (parsed.visible && typeof parsed.visible === "object") {
@@ -287,7 +305,14 @@ if (typeof window !== "undefined") {
             if (typeof v === "boolean") visible[f.id] = v;
           }
         }
-        useFeatureConfig.setState({ navTabs, visible });
+        const navTabs = sanitizeNavTabs(parsed.navTabs);
+        useFeatureConfig.setState({
+          navTabs:
+            navTabs && navTabs.length >= MIN_NAV_TABS
+              ? navTabs
+              : [...DEFAULT_NAV_TABS],
+          visible,
+        });
       } catch {
         /* JSON invalide — on ignore */
       }
@@ -297,8 +322,8 @@ if (typeof window !== "undefined") {
 
 /**
  * Features à afficher dans le menu « Plus » : celles qui sont activées
- * (`visible`) et qui ne sont pas déjà épinglées dans la barre de
- * navigation (pas de doublon).
+ * (`visible`) et qui ne sont pas déjà dans la barre de navigation
+ * (pas de doublon).
  */
 export function featuresForMoreMenu(
   navTabs: string[],
@@ -310,17 +335,14 @@ export function featuresForMoreMenu(
 }
 
 /**
- * Résout les 4 emplacements de la barre en FeatureDef, en éliminant les
- * doublons (une feature mise deux fois ne s'affiche qu'une seule fois, le
- * slot dupliqué retombe sur l'option par défaut de ce slot).
+ * Résout la liste de navigation (1 à 4 features) en FeatureDef, en
+ * éliminant les doublons et les ids inconnus.
  */
 export function featuresForNav(navTabs: string[]): FeatureDef[] {
-  const seen = new Set<string>();
-  return navTabs.map((id, i) => {
+  const out: FeatureDef[] = [];
+  for (const id of navTabs) {
     const f = featureById(id);
-    const fallback = featureById(DEFAULT_NAV_TABS[i]) ?? featureById("groups")!;
-    if (!f || seen.has(f.id)) return fallback;
-    seen.add(f.id);
-    return f;
-  });
+    if (f && !out.some((o) => o.id === f.id)) out.push(f);
+  }
+  return out;
 }

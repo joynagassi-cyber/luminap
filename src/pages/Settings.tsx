@@ -27,12 +27,16 @@ import {
   Puzzle,
   Lock,
   RotateCcw,
+  ChevronUp,
+  ChevronDown,
+  Plus,
+  X,
 } from "lucide-react";
 import {
   useFeatureConfig,
   FEATURES,
   featureById,
-  NAV_TAB_COUNT,
+  MAX_NAV_TABS,
 } from "@/lib/features";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
@@ -69,7 +73,9 @@ export default function SettingsPage() {
   const {
     navTabs,
     visible: featureVisible,
-    setNavTab,
+    addNavTab,
+    removeNavTab,
+    moveNavTab,
     setFeatureVisible,
     resetFeatures,
   } = useFeatureConfig();
@@ -340,71 +346,109 @@ export default function SettingsPage() {
                 s'appliquent immédiatement.
               </p>
 
-              {/* Barre de navigation — 4 emplacements */}
+              {/* Barre de navigation — liste dynamique (non hardcodée) */}
               <p
                 className="text-text-secondary text-xs font-medium mb-2"
               >
                 Barre de navigation
               </p>
+              <p className="text-text-tertiary text-xs mb-3">
+                Composez votre liste : ajoutez, retirez ou réordonnez les
+                onglets ({navTabs.length}/{MAX_NAV_TABS} maximum). Le bouton
+                « Plus » reste toujours disponible.
+              </p>
               <div className="space-y-2 mb-4">
-                {Array.from({ length: NAV_TAB_COUNT }).map((_, i) => {
-                  const current = featureById(navTabs[i]);
-                  const locked = i < 2;
-                  if (locked) {
-                    return (
-                      <div
-                        key={i}
-                        className="flex items-center gap-3 rounded-xl px-3 py-2.5"
-                        style={{ backgroundColor: "#181818", border: "1px solid #282828", opacity: 0.85 }}
-                      >
-                        {(() => {
-                          const Icon = current?.icon ?? Puzzle;
-                          return (
-                            <Icon className="w-4 h-4" style={{ color: "#808080" }} />
-                          );
-                        })()}
-                        <span className="text-text-tertiary text-sm flex-1">
-                          {current?.label ?? "—"}
-                        </span>
-                        <Lock className="w-3.5 h-3.5 text-text-tertiary" aria-label="Verrouillé" />
-                      </div>
-                    );
-                  }
+                {navTabs.map((id, i) => {
+                  const f = featureById(id);
+                  const Icon = f?.icon ?? Puzzle;
                   return (
-                    <div key={i} className="flex items-center gap-3">
-                      <label
-                        className="text-text-tertiary text-xs w-16 flex-shrink-0"
-                        htmlFor={`nav-slot-${i + 1}`}
+                    <div
+                      key={id}
+                      data-testid="nav-tab-item"
+                      className="flex items-center gap-2 rounded-xl px-3 py-2.5"
+                      style={{
+                        backgroundColor: "#181818",
+                        border: "1px solid #282828",
+                      }}
+                    >
+                      <Icon
+                        className="w-4 h-4 flex-shrink-0"
+                        style={{ color: "var(--accent-primary)" }}
+                      />
+                      <span className="text-sm text-text-primary flex-1">
+                        {f?.label ?? id}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => moveNavTab(i, -1)}
+                        disabled={i === 0}
+                        className="w-7 h-7 rounded-full flex items-center justify-center disabled:opacity-30 active:scale-95 transition-all"
+                        style={{ border: "1px solid #282828" }}
+                        aria-label={`Monter ${f?.label ?? "l'onglet"}`}
                       >
-                        Empl. {i + 1}
-                      </label>
-                      <select
-                        id={`nav-slot-${i + 1}`}
-                        value={navTabs[i]}
-                        onChange={(e) =>
-                          setNavTab(i as 2 | 3, e.target.value)
-                        }
-                        className="flex-1 px-3 py-2.5 rounded-xl text-sm "
-                        style={{
-                          backgroundColor: "#181818",
-                          color: "#fff",
-                          border: "1px solid #282828",
-                        }}
-                        aria-label={`Feature de l'emplacement ${i + 1}`}
+                        <ChevronUp className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveNavTab(i, 1)}
+                        disabled={i === navTabs.length - 1}
+                        className="w-7 h-7 rounded-full flex items-center justify-center disabled:opacity-30 active:scale-95 transition-all"
+                        style={{ border: "1px solid #282828" }}
+                        aria-label={`Descendre ${f?.label ?? "l'onglet"}`}
                       >
-                        {FEATURES.map((f) => {
-                          // Une feature déjà épinglée ailleurs est indisponible.
-                          const used = navTabs.includes(f.id) && navTabs[i] !== f.id;
-                          return (
-                            <option key={f.id} value={f.id} disabled={used}>
-                              {used ? `${f.label} (déjà choisi)` : f.label}
-                            </option>
-                          );
-                        })}
-                      </select>
+                        <ChevronDown className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeNavTab(id)}
+                        disabled={navTabs.length <= 1}
+                        className="w-7 h-7 rounded-full flex items-center justify-center disabled:opacity-30 active:scale-95 transition-all"
+                        style={{ border: "1px solid #282828" }}
+                        aria-label={`Retirer ${f?.label ?? "l'onglet"}`}
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
                     </div>
                   );
                 })}
+
+                {/* Ajouter une feature à la barre */}
+                <div className="flex items-center gap-3">
+                  <Plus
+                    className="w-4 h-4 flex-shrink-0"
+                    style={{ color: "var(--accent-primary)" }}
+                  />
+                  <select
+                    id="nav-tab-select"
+                    data-testid="nav-tab-select"
+                    value=""
+                    disabled={navTabs.length >= MAX_NAV_TABS}
+                    onChange={(e) => {
+                      if (e.target.value) addNavTab(e.target.value);
+                    }}
+                    className="px-3 py-2.5 rounded-xl text-sm"
+                    style={{
+                      backgroundColor: "#181818",
+                      color: "#fff",
+                      border: "1px solid #282828",
+                      maxWidth: 190,
+                    }}
+                    aria-label="Ajouter une feature à la barre de navigation"
+                  >
+                    <option value="">
+                      {navTabs.length >= MAX_NAV_TABS
+                        ? `Maximum ${MAX_NAV_TABS} onglets`
+                        : "Choisir…"}
+                    </option>
+                    {FEATURES.filter((f) => !navTabs.includes(f.id)).map(
+                      (f) => (
+                        <option key={f.id} value={f.id}>
+                          {f.label}
+                        </option>
+                      ),
+                    )}
+                  </select>
+                </div>
               </div>
 
               {/* Features affichées (menu « Plus ») */}

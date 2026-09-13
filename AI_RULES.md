@@ -48,7 +48,7 @@
 
 ## Features configurables (nav & menu « Plus »)
 - `src/lib/features.ts` : registre `FEATURES` (id/libellé/route/icone, `kind` core|feature) + store zustand `useFeatureConfig` (persisté `localStorage["lumina-features"]`).
-- `navTabs` : 4 emplacements — slots 0-1 verrouillés (Accueil, Finances), slots 2-3 remplaçables par l'utilisateur (`setNavTab(2|3, id)`).
+- `navTabs` : liste **dynamique, non hardcodée** — l'utilisateur ajoute/retire/réordonne librement les onglets (`addNavTab`/`removeNavTab`/`moveNavTab`), min 1 / max 4, sans slot verrouillé ; défaut `["dashboard","finance","groups","cotisations"]`.
 - `visible` : bascule par feature (masque du menu « Plus ») ; une feature épinglée dans la barre n'apparaît pas dans le menu (`featuresForMoreMenu`).
 - Config UI : Settings → carte « Features & navigation » (selects emplacements 3-4 + toggles + reset). Réactif partout (zustand) + sync inter-onglets (event `storage`).
 
