@@ -54,7 +54,8 @@
 
 ## ⚠️ React 19 + custom elements Ionic — PIÈGE (barre nav / boutons vides)
 - **Réglé** : avec React 19, les *enfants React* de certains custom elements Ionic (`ion-tab-bar`, `ion-button`, `ion-tab-button`) peuvent ne PAS être rendus dans le light DOM (selon l'ordre de définition des éléments) → barre d'onglets **vide** et boutons **sans icône**. Le diagnostic DOM : `ion-tab-bar` présent mais `innerHTML` vide (shadow = `<slot>` seul), 0 `ion-tab-button`.
-- **Règle** : pour tout élément dont le contenu compte (nav, FAB, boutons du header) → **HTML natif** (`<button>`, `<nav>`), pas `IonButton`/`IonTabBar`/`IonTabButton`. `BottomNav` (barre + FAB + menu Plus) et les boutons du `TopHeader` sont en natif (`data-testid="bottom-nav"`).
+- **Règle** : pour tout élément dont le contenu compte (nav, FAB, boutons du header, **selects**) → **HTML natif** (`<button>`, `<nav>`, `<select>`), pas `IonButton`/`IonTabBar`/`IonTabButton`/`IonSelect`. `BottomNav` (barre + FAB + menu Plus) et les boutons du `TopHeader` sont en natif (`data-testid="bottom-nav"`).
+- **`IonSelect`/`IonSelectOption` aussi touchés** : le picker s'ouvre **blanc et vide** (options non rendues) → impossible de sélectionner. Convertir en `<select>` + `<option>` natifs (fond `#181818`, texte `#fff`, bordure `#282828`, radius `rounded-xl`). Fait dans `Federation` (formulaire de création d'organisation : Nom / Type / Parente + boutons des nœuds).
 - `IonPage`/`IonContent`/`IonHeader`/`IonTitle` restent OK (leurs enfants s'affichent).
 - Best-effort : `main.tsx` tente de précharger les définitions Ionic avant le premier render.
 - Si un bouton `ion-*` ressort vide → le convertir en bouton natif (même style/ARIA), ne pas « réparer » Ionic.

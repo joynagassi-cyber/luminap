@@ -17,15 +17,8 @@ import {
   IonContent,
   IonTitle,
   IonToolbar,
-  IonButton,
   IonButtons,
   IonBackButton,
-  IonBadge,
-  IonItem,
-  IonLabel,
-  IonInput,
-  IonSelect,
-  IonSelectOption,
 } from "@ionic/react";
 import {
   Network,
@@ -100,22 +93,26 @@ function OrgNode({
           <p className="text-text-tertiary text-xs truncate">{org.type}</p>
         </div>
         <div className="flex items-center gap-1">
-          <IonButton
-            size="small"
-            fill="clear"
+          <button
+            type="button"
             onClick={() => onOpen(org.id)}
             title="Voir les enfants"
+            aria-label="Voir les enfants"
+            className="w-8 h-8 rounded-lg flex items-center justify-center transition-all active:scale-95"
+            style={{ color: "#B3B3B3", border: "none", background: "transparent", cursor: "pointer" }}
           >
             <ChevronRight className="w-4 h-4" />
-          </IonButton>
-          <IonButton
-            size="small"
-            fill="clear"
+          </button>
+          <button
+            type="button"
             onClick={() => onReparent(org.id)}
             title="Changer de parent"
+            aria-label="Changer de parent"
+            className="w-8 h-8 rounded-lg flex items-center justify-center transition-all active:scale-95"
+            style={{ color: "#B3B3B3", border: "none", background: "transparent", cursor: "pointer" }}
           >
             <GitBranch className="w-4 h-4" />
-          </IonButton>
+          </button>
         </div>
       </div>
 
@@ -251,53 +248,110 @@ export default function Federation() {
         <div className="min-h-screen bg-canvas">
           <TopHeader title="Gestion de la fédération" />
           <div className="max-w-lg mx-auto px-5 pb-32 pt-24">
-            {/* Create button */}
-            <IonButton
-              expand="block"
-              fill="solid"
-              className="mb-4"
+            {/* Create button (bouton natif — les enfants d'IonButton ne sont
+                pas rendus fiablement sous React 19) */}
+            <button
+              type="button"
               onClick={() => setShowCreate(!showCreate)}
+              className="w-full flex items-center justify-center gap-1.5 py-3 rounded-full font-semibold text-white text-sm transition-all active:scale-95 mb-4"
+              style={{ backgroundColor: "var(--accent-primary)" }}
+              aria-label="Créer une organisation"
             >
-              <Plus className="w-4 h-4 mr-1" /> Créer une organisation
-            </IonButton>
+              <Plus className="w-4 h-4" /> Créer une organisation
+            </button>
 
-            {/* Create form */}
+            {/* Create form — contrôles natifs : les IonSelect ouvrent un
+                picker blanc vide sous React 19 (enfants non rendus), illisible
+                pour sélectionner. Le <select> natif garantit les options. */}
             {showCreate && (
               <div
-                className="rounded-xl p-4 mb-4 space-y-3"
+                className="rounded-xl p-4 mb-4 space-y-4"
                 style={{ backgroundColor: "#212121", border: "1px solid #282828" }}
               >
-                <IonItem>
-                  <IonLabel position="floating">Nom</IonLabel>
-                  <IonInput
+                <div>
+                  <label
+                    className="block text-text-tertiary text-xs uppercase tracking-wide mb-1.5"
+                    htmlFor="org-name"
+                  >
+                    Nom
+                  </label>
+                  <input
+                    id="org-name"
+                    data-testid="org-name"
+                    type="text"
                     value={newName}
-                    onIonChange={(e) => setNewName(e.detail.value ?? "")}
+                    onChange={(e) => setNewName(e.target.value)}
                     placeholder="Ex: Paroisse Sainte-Marie"
+                    className="w-full px-3 py-2.5 rounded-xl text-sm"
+                    style={{
+                      backgroundColor: "#181818",
+                      color: "#fff",
+                      border: "1px solid #282828",
+                    }}
                   />
-                </IonItem>
-                <IonItem>
-                  <IonLabel position="floating">Type</IonLabel>
-                  <IonSelect value={newType} onIonChange={(e) => setNewType(e.detail.value)}>
-                    <IonSelectOption value="CHURCH">Église</IonSelectOption>
-                    <IonSelectOption value="SCHOOL">École</IonSelectOption>
-                    <IonSelectOption value="ENTERPRISE">Entreprise</IonSelectOption>
-                    <IonSelectOption value="CENTRAL">Centrale</IonSelectOption>
-                  </IonSelect>
-                </IonItem>
-                <IonItem>
-                  <IonLabel position="floating">Organisation parente (optionnel)</IonLabel>
-                  <IonSelect value={newParent} onIonChange={(e) => setNewParent(e.detail.value)}>
-                    <IonSelectOption value="">Aucune (racine)</IonSelectOption>
+                </div>
+                <div>
+                  <label
+                    className="block text-text-tertiary text-xs uppercase tracking-wide mb-1.5"
+                    htmlFor="org-type"
+                  >
+                    Type d'organisation
+                  </label>
+                  <select
+                    id="org-type"
+                    data-testid="org-type"
+                    value={newType}
+                    onChange={(e) => setNewType(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-xl text-sm"
+                    style={{
+                      backgroundColor: "#181818",
+                      color: "#fff",
+                      border: "1px solid #282828",
+                    }}
+                  >
+                    <option value="CHURCH">Église</option>
+                    <option value="SCHOOL">École</option>
+                    <option value="ENTERPRISE">Entreprise</option>
+                    <option value="CENTRAL">Centrale</option>
+                  </select>
+                </div>
+                <div>
+                  <label
+                    className="block text-text-tertiary text-xs uppercase tracking-wide mb-1.5"
+                    htmlFor="org-parent"
+                  >
+                    Organisation parente (optionnel)
+                  </label>
+                  <select
+                    id="org-parent"
+                    data-testid="org-parent"
+                    value={newParent}
+                    onChange={(e) => setNewParent(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-xl text-sm"
+                    style={{
+                      backgroundColor: "#181818",
+                      color: "#fff",
+                      border: "1px solid #282828",
+                    }}
+                  >
+                    <option value="">Aucune (racine)</option>
                     {rootOrgs.map((o) => (
-                      <IonSelectOption key={o.id} value={o.id}>
+                      <option key={o.id} value={o.id}>
                         {o.name}
-                      </IonSelectOption>
+                      </option>
                     ))}
-                  </IonSelect>
-                </IonItem>
-                <IonButton expand="block" onClick={handleCreate} disabled={creating || !newName.trim()}>
+                  </select>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCreate}
+                  disabled={creating || !newName.trim()}
+                  className="w-full py-3 rounded-full font-semibold text-white text-sm transition-all active:scale-95 disabled:opacity-50"
+                  style={{ backgroundColor: "var(--accent-primary)" }}
+                  aria-label="Créer l'organisation"
+                >
                   {creating ? "Création..." : "Créer"}
-                </IonButton>
+                </button>
               </div>
             )}
 
