@@ -546,9 +546,7 @@ export default function Dashboard() {
               </p>
               <div className="grid grid-cols-4 gap-3">
                 <button
-                  onClick={() =>
-                    navigate("/transaction/new", { state: { type: "INCOME" } })
-                  }
+                  onClick={() => navigate("/transaction/new?type=INCOME")}
                   className="flex flex-col items-center gap-2 p-3 rounded-xl active:scale-95 transition-transform text-left w-full"
                   style={{
                     backgroundColor: "#1e1e1e",
@@ -570,9 +568,7 @@ export default function Dashboard() {
                   </span>
                 </button>
                 <button
-                  onClick={() =>
-                    navigate("/transaction/new", { state: { type: "EXPENSE" } })
-                  }
+                  onClick={() => navigate("/transaction/new?type=EXPENSE")}
                   className="flex flex-col items-center gap-2 p-3 rounded-xl active:scale-95 transition-transform text-left w-full"
                   style={{
                     backgroundColor: "#1e1e1e",

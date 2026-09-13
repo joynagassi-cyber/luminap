@@ -41,6 +41,12 @@ export default function BottomNav() {
 
   const fabAction = useMemo(() => {
     const path = location.pathname;
+    // Le FAB est masqué sur la liste des finances : les boutons
+    // « Nouvelle entrée » / « Nouvelle dépense » de la page font la même
+    // chose — le FAB rouge se superposait à eux.
+    if (path === "/finance") {
+      return null;
+    }
     if (path.startsWith("/transaction/") && !path.endsWith("/edit")) {
       return {
         icon: Check,
@@ -111,38 +117,41 @@ export default function BottomNav() {
 
   return (
     <>
-      {/* FAB — Contextual action button (bouton natif) */}
-      <button
-        type="button"
-        onClick={fabAction.action}
-        style={{
-          position: "fixed",
-          bottom: 80,
-          right: 20,
-          zIndex: 40,
-          width: 56,
-          height: 56,
-          borderRadius: "50%",
-          border: "none",
-          cursor: "pointer",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: `linear-gradient(135deg, ${fabAction.color}, ${fabAction.color})`,
-          boxShadow: `0 4px 16px ${tint(fabAction.color, 38)}`,
-          color: "#fff",
-          padding: 0,
-        }}
-        aria-label={fabAction.label}
-      >
-        {fabAction.icon === Check ? (
-          <Check className="w-7 h-7" />
-        ) : fabAction.icon === ArrowRightLeft ? (
-          <ArrowRightLeft className="w-7 h-7" />
-        ) : (
-          <Plus className="w-7 h-7" />
-        )}
-      </button>
+      {/* FAB — Contextual action button (bouton natif). Masqué sur certaines
+          pages (ex : /finance, où les boutons de la page font la même chose). */}
+      {fabAction && (
+        <button
+          type="button"
+          onClick={fabAction.action}
+          style={{
+            position: "fixed",
+            bottom: 80,
+            right: 20,
+            zIndex: 40,
+            width: 56,
+            height: 56,
+            borderRadius: "50%",
+            border: "none",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: `linear-gradient(135deg, ${fabAction.color}, ${fabAction.color})`,
+            boxShadow: `0 4px 16px ${tint(fabAction.color, 38)}`,
+            color: "#fff",
+            padding: 0,
+          }}
+          aria-label={fabAction.label}
+        >
+          {fabAction.icon === Check ? (
+            <Check className="w-7 h-7" />
+          ) : fabAction.icon === ArrowRightLeft ? (
+            <ArrowRightLeft className="w-7 h-7" />
+          ) : (
+            <Plus className="w-7 h-7" />
+          )}
+        </button>
+      )}
 
       {/* Barre d'onglets (nav natif) — emplacements pilotés par le
           réglage utilisateur (Settings → Features & navigation) */}

@@ -773,6 +773,16 @@ describe("BottomNav", () => {
     expect(fab).toBeInTheDocument();
   });
 
+  it("hides the FAB on /finance (page buttons handle the same actions)", () => {
+    setPath("/finance");
+    const { container } = render(<BottomNav />);
+    expect(container.querySelector('[aria-label="Transaction"]')).toBeNull();
+    // La barre de navigation elle-même reste présente.
+    expect(
+      container.querySelector('nav[data-testid="bottom-nav"]'),
+    ).toBeInTheDocument();
+  });
+
   it("opens the More menu on 'Plus d'options' click", () => {
     setPath("/dashboard");
     render(<BottomNav />);

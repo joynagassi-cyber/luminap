@@ -60,6 +60,11 @@
 - Best-effort : `main.tsx` tente de précharger les définitions Ionic avant le premier render.
 - Si un bouton `ion-*` ressort vide → le convertir en bouton natif (même style/ARIA), ne pas « réparer » Ionic.
 
+## ⚠️ Routeur Ionic + état de navigation (query param, pas location.state)
+- Le routeur Ionic (`IonReactRouter`/`IonRouterOutlet`/`LazyRoute`) **ne préserve pas** le `location.state` de React Router entre les vues → une navigation `navigate("/x", { state: { type } })` arrive avec `state = undefined` (le formulaire retombait sur le défaut).
+- **Règle** : pour passer des données d'une page à une autre (ex. le type de transaction ENTRÉE/SORTIE), utiliser un **query param** `?type=` (fiable, dans l'URL) et le lire via `new URLSearchParams(location.search).get("type")`. Fait : `Finance`/`Dashboard` → `TransactionNew` (`?type=`).
+- **FAB** : masqué sur `/finance` (`BottomNav` rend le FAB uniquement si `fabAction` non nul) — les boutons « Nouvelle entrée »/« Nouvelle dépense » de la page font la même chose, le FAB rouge se superposait.
+
 ## Architecture Caisses & Versement
 - **Caisse principale** (`id: 'main'`) : fonds de l'église, visible dans le dashboard
 - **Caisse groupe** (`id: orgUnitId`) : fonds de chaque groupe

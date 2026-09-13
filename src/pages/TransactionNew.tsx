@@ -38,7 +38,13 @@ export default function TransactionNew() {
   const location = useLocation();
 
   const preselectedCaisse = (location.state as any)?.caisseId || "";
-  const preselectedType = (location.state as any)?.type || "";
+  // Le type arrive en priorité par query param (`?type=`) : fiable à travers
+  // le routeur Ionic (le `location.state` de React Router n'est pas préservé
+  // entre les vues de l'IonRouterOutlet). Fallback sur location.state.
+  const preselectedType =
+    new URLSearchParams(location.search).get("type") ||
+    (location.state as any)?.type ||
+    "";
   const preselectedEvent = (location.state as any)?.eventId || "";
 
   // PowerSync with fallback

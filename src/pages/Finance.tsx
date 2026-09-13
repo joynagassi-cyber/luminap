@@ -106,7 +106,9 @@ export default function Finance() {
     .reduce((s: number, t: any) => s + t.amount, 0);
 
   const handleAddTransaction = (type: "INCOME" | "EXPENSE") => {
-    navigate("/transaction/new", { state: { type } });
+    // Query param (pas de location.state) : le routeur Ionic ne préserve pas
+    // le `state` de React Router, le type doit donc voyager dans l'URL.
+    navigate(`/transaction/new?type=${type}`);
   };
 
   if (loading) {
