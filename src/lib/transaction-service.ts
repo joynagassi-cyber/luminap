@@ -64,6 +64,7 @@ export async function persistAddTransaction(newTx: Transaction): Promise<void> {
       source_caisse_id: newTx.sourceCaisseId,
       versement_id: newTx.versementId,
       reversal_of_id: newTx.reversalOfId,
+      cotisation_id: null,
     });
   } catch (error) {
     // Persist failure is non-fatal; offline queue will retry
@@ -266,6 +267,7 @@ export async function persistReverseTransaction(
       source_caisse_id: reversalTx.sourceCaisseId,
       versement_id: reversalTx.versementId,
       reversal_of_id: reversalTx.reversalOfId,
+      cotisation_id: null,
     });
   } catch (error) {
     // Persist failure is non-fatal; offline queue will retry

@@ -337,9 +337,13 @@ export default function GroupCotisation() {
               {sessionCots.map((cot: any) => {
                 const memberId = cot.membre_id ?? cot.membreId;
                 const member = (members ?? []).find((m: any) => m.id === memberId);
+                const memberAny = member as
+                  | Record<string, unknown>
+                  | undefined;
                 const name = member
-                  ? `${member.last_name ?? member.lastName ?? ""} ${member.first_name ?? member.firstName ?? ""}`.trim() ||
-                    "Inconnu"
+                  ? `${String(memberAny?.last_name ?? memberAny?.lastName ?? "")} ${String(
+                      memberAny?.first_name ?? memberAny?.firstName ?? "",
+                    )}`.trim() || "Inconnu"
                   : "Inconnu";
                 const oblig = cot.montantObligatoire ?? cot.montant_obligatoire ?? 0;
                 const isPaid =

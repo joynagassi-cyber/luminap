@@ -86,7 +86,9 @@ vi.mock("@/store/useLocalStore", () => ({
   useLocalStore: (selector?: (s: Record<string, unknown>) => unknown) => {
     const state = (globalThis as Record<string, unknown>).__storeState as Record<string, unknown>;
     // Inject a spy for markAllNotificationsRead so tests can assert on it
-    const result: Record<string, unknown> = selector ? { ...selector(state) } : { ...state };
+    const result: Record<string, unknown> = selector
+      ? { ...(selector(state) as Record<string, unknown>) }
+      : { ...state };
     result.markAllNotificationsRead = (globalThis as Record<string, unknown>).__markAllSpy;
     return result;
   },
@@ -162,7 +164,7 @@ vi.mock("@ionic/react", () => {
   function makeWrapper(
     tag: string,
     props: Record<string, unknown>,
-    children: unknown[],
+    children?: React.ReactNode,
   ) {
     if (tag === "ion-tab-button") {
       // ion-tab-button is treated as an interactive tab; pass through all
@@ -184,8 +186,8 @@ vi.mock("@ionic/react", () => {
           className={className as string | undefined}
           style={style as React.CSSProperties | undefined}
           role={role as string | undefined}
-          aria-selected={ariaSelected}
-          aria-label={ariaLabel}
+          aria-selected={ariaSelected as any}
+          aria-label={ariaLabel as string | undefined}
           {...rest}
         >
           {children}
@@ -356,12 +358,12 @@ function resetState() {
   vi.mocked(useCurrentUser).mockReset();
   vi.mocked(useCurrentUser).mockReturnValue({
     id: "user-1", role: "ADMIN", email: "t@t",
-  });
+  } as any);
 
   vi.mocked(useOrganizations).mockReset();
   vi.mocked(useOrganizations).mockReturnValue({
-    data: [{ id: "org-1", name: "Test" }],
-  });
+    data: [{ id: "org-1", name: "Test" }] as any,
+  } as any);
 
   vi.mocked(markAllNotificationsRead).mockReset();
   vi.mocked(markAllNotificationsRead).mockResolvedValue(undefined);
@@ -587,8 +589,8 @@ describe("TopHeader", () => {
       label: "Test",
     });
     vi.mocked(useOrganizations).mockReturnValue({
-      data: [{ id: "org-1", name: "My Org" }],
-    });
+      data: [{ id: "org-1", name: "My Org" }] as any,
+    } as any);
     setNotifications([]);
     render(<TopHeader />);
     expect(screen.getByText(/Organisation/)).toBeInTheDocument();
@@ -598,7 +600,7 @@ describe("TopHeader", () => {
   it("shows 'Administration centrale' banner when isCentralAdmin", () => {
     vi.mocked(useCurrentUser).mockReturnValue({
       id: "user-1", role: "CENTRAL_ADMIN", email: "t@t",
-    });
+    } as any);
     vi.mocked(useOrganizationContext).mockReturnValue({
       mode: "CENTRAL",
       orgId: "org-central",
@@ -612,7 +614,7 @@ describe("TopHeader", () => {
   it("hides the banner for a plain ADMIN user in CENTRAL mode", () => {
     vi.mocked(useCurrentUser).mockReturnValue({
       id: "user-1", role: "ADMIN", email: "t@t",
-    });
+    } as any);
     vi.mocked(useOrganizationContext).mockReturnValue({
       mode: "CENTRAL",
       orgId: "org-central",
@@ -650,7 +652,7 @@ describe("TopHeader", () => {
   it("calls exitToCentral + navigate('/admin') on 'Retour au central' click", () => {
     vi.mocked(useCurrentUser).mockReturnValue({
       id: "user-1", role: "CENTRAL_ADMIN", email: "t@t",
-    });
+    } as any);
     vi.mocked(useOrganizationContext).mockReturnValue({
       mode: "ORG",
       orgId: "org-1",
@@ -671,7 +673,7 @@ describe("TopHeader", () => {
   it("shows 'Ouvrir le dashboard' when CENTRAL_ADMIN in CENTRAL mode", () => {
     vi.mocked(useCurrentUser).mockReturnValue({
       id: "user-1", role: "CENTRAL_ADMIN", email: "t@t",
-    });
+    } as any);
     vi.mocked(useOrganizationContext).mockReturnValue({
       mode: "CENTRAL",
       orgId: "org-central",
@@ -693,7 +695,7 @@ describe("TopHeader", () => {
     });
     vi.mocked(useCurrentUser).mockReturnValue({
       id: "user-1", role: "ADMIN", email: "t@t",
-    });
+    } as any);
     setNotifications([]);
 
     const { unmount } = render(<TopHeader title="Custom Title" />);

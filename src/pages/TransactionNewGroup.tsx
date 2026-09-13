@@ -98,6 +98,7 @@ export default function TransactionNewGroup() {
       approved_at: null,
       versement_id: null,
       reversal_of_id: null,
+      cotisation_id: null,
     });
     navigate(`/groups/${groupId}`);
   };

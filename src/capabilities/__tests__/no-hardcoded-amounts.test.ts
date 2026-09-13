@@ -47,10 +47,10 @@ describe("No hardcoded default amounts in capabilities", () => {
       //
       // A zero-initialisation (e.g. `montantPaye: 0`) is a safe starting
       // value, not a hard default — allowed.
-      const forbidden = content.match(
+      const matches: string[] = content.match(
         /\b(?:DEFAULT_[A-Z_]*AMOUNT[A-Z_]*|AMOUNT_DEFAULT|montant[A-Z]\w*|amount\w*|montant)\w*\s*[:=]\s*\d+(?:\.\d+)?/g,
-      );
-      const nonZero = (forbidden ?? []).filter((m) => {
+      ) ?? [];
+      const nonZero = matches.filter((m) => {
         const num = m.split(/[:=]/).pop()?.trim() ?? "0";
         return Number(num) > 0;
       });

@@ -188,7 +188,10 @@ describe("e2e-auth: login with valid credentials", () => {
     const mockUser = {
       id: "user-e2e-1",
       email: "jean@example.com",
+      app_metadata: {},
       user_metadata: { first_name: "Jean", last_name: "Dupont" },
+      aud: "authenticated",
+      created_at: new Date().toISOString(),
     };
     const mockSession = {
       user: mockUser,
@@ -226,7 +229,14 @@ describe("e2e-auth: login with valid credentials", () => {
     authService["stopSessionValidation"]();
 
     const mockSession = {
-      user: { id: "user-flow-1", email: "flow@example.com" },
+      user: {
+        id: "user-flow-1",
+        email: "flow@example.com",
+        app_metadata: {},
+        user_metadata: {},
+        aud: "authenticated",
+        created_at: new Date().toISOString(),
+      },
       access_token: "token",
       expires_at: Math.floor(Date.now() / 1000) + 3600,
     };
@@ -815,7 +825,14 @@ describe("e2e-auth: full authentication journey", () => {
     expect(signUpResult).toBeDefined();
 
     // Step 2: Simulate Supabase returning a session
-    const mockUser = { id: "journey-user-1", email: "journey@example.com" };
+    const mockUser = {
+      id: "journey-user-1",
+      email: "journey@example.com",
+      app_metadata: {},
+      user_metadata: {},
+      aud: "authenticated",
+      created_at: new Date().toISOString(),
+    };
     const mockSession = {
       user: mockUser,
       access_token: "journey-token",

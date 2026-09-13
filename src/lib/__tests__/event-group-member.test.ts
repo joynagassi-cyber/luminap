@@ -661,10 +661,10 @@ describe("addBudgetItem / removeBudgetItem", () => {
   it("addBudgetItem recalculates total as sum of allocated", () => {
     const items = [makeBudgetItem({ allocated: 100_000 })];
     const { newItems, total } = addBudgetItem(items, "ev-1", {
-      eventId: "ev-1",
       label: "New",
       allocated: 400_000,
       spent: 0,
+      fundedBy: "main",
     });
     expect(newItems).toHaveLength(2);
     expect(total).toBe(500_000);

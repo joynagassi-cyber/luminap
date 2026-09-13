@@ -293,7 +293,7 @@ export function useTransactions() {
 
   return {
     data: store.transactions,
-    isLoading: store.isLoading,
+    isLoading: false,
     source: "indexeddb" as const,
   };
 }
@@ -315,7 +315,7 @@ export function useEvents() {
 
   return {
     data: store.events,
-    isLoading: store.isLoading,
+    isLoading: false,
     source: "indexeddb" as const,
   };
 }
@@ -337,7 +337,7 @@ export function useMembers() {
 
   return {
     data: store.members,
-    isLoading: store.isLoading,
+    isLoading: false,
     source: "indexeddb" as const,
   };
 }
@@ -359,7 +359,7 @@ export function useGroups() {
 
   return {
     data: store.groups,
-    isLoading: store.isLoading,
+    isLoading: false,
     source: "indexeddb" as const,
   };
 }
@@ -381,7 +381,7 @@ export function useCaisses() {
 
   return {
     data: store.caisses,
-    isLoading: store.isLoading,
+    isLoading: false,
     source: "indexeddb" as const,
   };
 }
@@ -403,7 +403,7 @@ export function useAccounts() {
 
   return {
     data: store.accounts,
-    isLoading: store.isLoading,
+    isLoading: false,
     source: "indexeddb" as const,
   };
 }
@@ -425,7 +425,7 @@ export function useNotifications() {
 
   return {
     data: store.notifications,
-    isLoading: store.isLoading,
+    isLoading: false,
     source: "indexeddb" as const,
   };
 }
@@ -447,7 +447,7 @@ export function useCategories() {
 
   return {
     data: store.categories,
-    isLoading: store.isLoading,
+    isLoading: false,
     source: "indexeddb" as const,
   };
 }
@@ -469,7 +469,7 @@ export function useOrgUnits() {
 
   return {
     data: store.orgUnits,
-    isLoading: store.isLoading,
+    isLoading: false,
     source: "indexeddb" as const,
   };
 }
@@ -533,7 +533,7 @@ export function useEventBudgets() {
 
   return {
     data: store.eventBudgets,
-    isLoading: store.isLoading,
+    isLoading: false,
     source: "indexeddb" as const,
   };
 }
@@ -555,7 +555,7 @@ export function useBudgetLines() {
 
   return {
     data: store.budgetLines,
-    isLoading: store.isLoading,
+    isLoading: false,
     source: "indexeddb" as const,
   };
 }
@@ -577,7 +577,7 @@ export function useAuditEntries() {
 
   return {
     data: store.auditEntries,
-    isLoading: store.isLoading,
+    isLoading: false,
     source: "indexeddb" as const,
   };
 }
@@ -599,7 +599,7 @@ export function useCotisations() {
 
   return {
     data: store.cotisations,
-    isLoading: store.isLoading,
+    isLoading: false,
     source: "indexeddb" as const,
   };
 }
@@ -621,7 +621,7 @@ export function useGroupMemberships() {
 
   return {
     data: store.memberships,
-    isLoading: store.isLoading,
+    isLoading: false,
     source: "indexeddb" as const,
   };
 }
@@ -1648,7 +1648,7 @@ export async function getOrgAdminsFull(
     id: String(r.id),
     admin_profile_id: String(r.admin_profile_id),
     org_id: String(r.org_id),
-    status: String(r.status),
+    status: String(r.status) === "REVOKED" ? ("REVOKED" as const) : ("ACTIVE" as const),
     granted_by: (r.granted_by as string | null) ?? null,
     created_at: String(r.created_at),
     updated_at: String(r.updated_at),

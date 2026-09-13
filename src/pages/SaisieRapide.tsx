@@ -129,7 +129,7 @@ export default function SaisieRapide() {
     );
   }
 
-  const culteDate = culte.start_date ?? culte.startDate;
+  const culteDate = "start_date" in culte ? culte.start_date : culte.startDate;
   const isLocked = culteDate ? isCulteVerrouille(culteDate) : false;
 
   return (

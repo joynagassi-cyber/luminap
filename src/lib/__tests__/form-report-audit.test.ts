@@ -283,9 +283,9 @@ function makeFormDef(overrides: Partial<FormDefinition> = {}): FormDefinition {
     version: 1,
     status: "PUBLISHED",
     fields: [
-      { key: "nom", label: "Nom", type: "text", required: true },
-      { key: "montant", label: "Montant", type: "number", required: true, validation: { min: 100, max: 1000000 } },
-      { key: "dateDon", label: "Date", type: "date", required: false },
+      { key: "nom", label: "Nom", type: "text", required: true, order: 0 },
+      { key: "montant", label: "Montant", type: "number", required: true, order: 1, validation: { min: 100, max: 1000000 } },
+      { key: "dateDon", label: "Date", type: "date", required: false, order: 2 },
     ],
     createdAt: "2026-01-01T00:00:00.000Z",
     updatedAt: "2026-01-01T00:00:00.000Z",
@@ -417,8 +417,8 @@ describe("mapFormFields", () => {
   it("maps data to entity fields via mapsToEntityField", () => {
     const def = makeFormDef({
       fields: [
-        { key: "nom", label: "Nom", type: "text", required: false, mapsToEntityField: "personName" },
-        { key: "montant", label: "Montant", type: "number", required: false, mapsToEntityField: "amount" },
+        { key: "nom", label: "Nom", type: "text", required: false, mapsToEntityField: "personName", order: 0 },
+        { key: "montant", label: "Montant", type: "number", required: false, mapsToEntityField: "amount", order: 1 },
       ],
     });
     const mapped = mapFormFields(def, { nom: "Aya", montant: 5000 });
@@ -1162,7 +1162,6 @@ describe("exportExcel", () => {
       budgetItems: [
         {
           id: "bi-1",
-          eventId: "ev-1",
           label: "Déco",
           allocated: 100000,
           spent: 50000,

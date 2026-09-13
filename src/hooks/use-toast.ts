@@ -46,7 +46,7 @@ type Action =
       toastId?: ToasterToast["id"];
     };
 
-interface State {
+export interface State {
   toasts: ToasterToast[];
 }
 

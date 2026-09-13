@@ -132,7 +132,7 @@ vi.mock("@/store/useLocalStore", () => {
     };
     return selector(state);
   });
-  useLocalStore.getState = () => ({
+  (useLocalStore as { getState?: () => Record<string, unknown> }).getState = () => ({
     markCotisationPaid: mockMarkCotisationPaidFromStore,
     markCotisationsAbsent: vi.fn(async () => {}),
   });
@@ -212,17 +212,17 @@ describe("Policy wiring in pages", () => {
     vi.clearAllMocks();
     _params = {};
     (globalThis as Record<string, unknown>).__sharedNavigate = vi.fn();
-    vi.mocked(useCurrentUser).mockReturnValue({ id: "user-1", role: "ADMIN" });
-    vi.mocked(useGroups).mockReturnValue({ data: [{ id: "g1", name: "Test Group" }] });
-    vi.mocked(useGroupMemberships).mockReturnValue({ data: [] });
-    vi.mocked(useMembers).mockReturnValue({ data: [] });
-    vi.mocked(useEvents).mockReturnValue({ data: [] });
-    vi.mocked(useCotisations).mockReturnValue({ data: [] });
-    vi.mocked(useCaisses).mockReturnValue({ data: [{ id: "c1", name: "Main" }] });
-    vi.mocked(useAccounts).mockReturnValue({ data: [{ id: "c1", name: "Main", owner_type: "GROUP", status: "ACTIVE" }] });
-    vi.mocked(useTransactions).mockReturnValue({ data: [] });
-    vi.mocked(useCategories).mockReturnValue({ data: [] });
-    vi.mocked(useOrgUnits).mockReturnValue({ data: [] });
+    vi.mocked(useCurrentUser).mockReturnValue({ id: "user-1", role: "ADMIN" } as any);
+    vi.mocked(useGroups).mockReturnValue({ data: [{ id: "g1", name: "Test Group" }] } as any);
+    vi.mocked(useGroupMemberships).mockReturnValue({ data: [] } as any);
+    vi.mocked(useMembers).mockReturnValue({ data: [] } as any);
+    vi.mocked(useEvents).mockReturnValue({ data: [] } as any);
+    vi.mocked(useCotisations).mockReturnValue({ data: [] } as any);
+    vi.mocked(useCaisses).mockReturnValue({ data: [{ id: "c1", name: "Main" }] } as any);
+    vi.mocked(useAccounts).mockReturnValue({ data: [{ id: "c1", name: "Main", owner_type: "GROUP", status: "ACTIVE" }] } as any);
+    vi.mocked(useTransactions).mockReturnValue({ data: [] } as any);
+    vi.mocked(useCategories).mockReturnValue({ data: [] } as any);
+    vi.mocked(useOrgUnits).mockReturnValue({ data: [] } as any);
   });
 
   // ─── GroupCotisation ────────────────────────────────────────────────────
@@ -286,16 +286,16 @@ describe("Policy wiring in pages", () => {
     it("blocks payment when amount is below policy minimum", async () => {
       _params = { id: "e1" };
       vi.mocked(useEvents).mockReturnValue({
-        data: [{ id: "e1", name: "Test Culte", start_date: "2026-09-01" }],
-      });
+        data: [{ id: "e1", name: "Test Culte", start_date: "2026-09-01" }] as any,
+      } as any);
       vi.mocked(useCotisations).mockReturnValue({
         data: [
           { id: "cot-1", culte_id: "e1", membre_id: "m1", statut: "NON_PAYE", montantObligatoire: 500000 },
-        ],
-      });
+        ] as any,
+      } as any);
       vi.mocked(useMembers).mockReturnValue({
-        data: [{ id: "m1", last_name: "张", first_name: "三" }],
-      });
+        data: [{ id: "m1", last_name: "张", first_name: "三" }] as any,
+      } as any);
 
       render(
         <MemoryRouter initialEntries={["/saisie-rapide/e1"]}>
@@ -325,12 +325,12 @@ describe("Policy wiring in pages", () => {
   describe("TransactionNew page", () => {
     it("blocks submission when transaction amount is zero (policy rejects)", async () => {
       vi.mocked(useCategories).mockReturnValue({
-        data: [{ id: "cat-1", label: "Test", type: "INCOME" }],
-      });
+        data: [{ id: "cat-1", label: "Test", type: "INCOME" }] as any,
+      } as any);
       vi.mocked(useCaisses).mockReturnValue({
-        data: [{ id: "c1", name: "Main" }],
-      });
-      vi.mocked(useEvents).mockReturnValue({ data: [] });
+        data: [{ id: "c1", name: "Main" }] as any,
+      } as any);
+      vi.mocked(useEvents).mockReturnValue({ data: [] } as any);
 
       render(
         <MemoryRouter initialEntries={["/transaction/new"]}>
@@ -370,14 +370,14 @@ describe("Policy wiring in pages", () => {
           id: "tx-1", type: "INCOME", amount: 500000,
           description: "Old", date: "2026-01-01", category_id: "cat-1",
           source_caisse_id: "c1", status: "DRAFT",
-        }],
-      });
+        }] as any,
+      } as any);
       vi.mocked(useCategories).mockReturnValue({
-        data: [{ id: "cat-1", label: "Test", type: "INCOME" }],
-      });
-      vi.mocked(useEvents).mockReturnValue({ data: [] });
-      vi.mocked(useOrgUnits).mockReturnValue({ data: [] });
-      vi.mocked(useAccounts).mockReturnValue({ data: [] });
+        data: [{ id: "cat-1", label: "Test", type: "INCOME" }] as any,
+      } as any);
+      vi.mocked(useEvents).mockReturnValue({ data: [] } as any);
+      vi.mocked(useOrgUnits).mockReturnValue({ data: [] } as any);
+      vi.mocked(useAccounts).mockReturnValue({ data: [] } as any);
 
       _params = { id: "tx-1" };
 
@@ -408,8 +408,8 @@ describe("Policy wiring in pages", () => {
         data: [
           { source_caisse_id: "c1", type: "INCOME", amount: 500000, status: "APPROVED" },
           { source_caisse_id: "c1", type: "EXPENSE", amount: 0, status: "APPROVED" },
-        ],
-      });
+        ] as any,
+      } as any);
 
       render(
         <MemoryRouter initialEntries={["/versement"]}>

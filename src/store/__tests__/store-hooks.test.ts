@@ -280,13 +280,13 @@ describe("useLocalStore", () => {
 
   // ── selectRole ──
   it("selectRole writes role to localStorage and updates store.user.role", async () => {
-    await useLocalStore.getState().selectRole("ADMIN");
-    expect(localStorage.getItem("lumina-role")).toBe("ADMIN");
-    expect(storeSnapshot().user.role).toBe("ADMIN");
+    await useLocalStore.getState().selectRole("TREASURIER");
+    expect(localStorage.getItem("lumina-role")).toBe("TREASURIER");
+    expect(storeSnapshot().user.role).toBe("TREASURIER");
   });
 
   it("selectRole persists a session id in localStorage", async () => {
-    await useLocalStore.getState().selectRole("ADMIN");
+    await useLocalStore.getState().selectRole("TREASURIER");
     expect(localStorage.getItem("lumina-session")).toBeTruthy();
   });
 
@@ -302,6 +302,8 @@ describe("useLocalStore", () => {
       categoryId: "cat-dime",
       sourceCaisseId: "caisse-main",
       createdById: "user-1",
+      approvedById: null,
+      approvedAt: null,
       orgUnitId: null,
       eventId: null,
       versementId: null,
@@ -326,6 +328,8 @@ describe("useLocalStore", () => {
       categoryId: "cat-frais_fonctionnement",
       sourceCaisseId: "caisse-main",
       createdById: "user-1",
+      approvedById: null,
+      approvedAt: null,
       orgUnitId: null,
       eventId: null,
       versementId: null,
@@ -471,23 +475,46 @@ describe("useLocalStore", () => {
   // ── Notifications ──
   it("createNotification prepends a new notification", async () => {
     await useLocalStore.getState().createNotification({
-      type: "info" as any,
+      orgId: "test-org-1",
+      actionType: "info",
+      title: "Info",
       message: "Hello",
-      read: false,
+      isRead: false,
+      sourceTransactionId: null,
     });
     expect(storeSnapshot().notifications).toHaveLength(1);
     expect(storeSnapshot().notifications[0]!.message).toBe("Hello");
   });
 
-  it("markNotificationRead sets read=true on matching id", async () => {
-    useLocalStore.setState({ notifications: [
-      { id: "n1", message: "A", read: false },
-      { id: "n2", message: "B", read: false },
-    ] as any });
+  it("markNotificationRead sets isRead=true on matching id", async () => {
+    useLocalStore.setState({
+      notifications: [
+        {
+          id: "n1",
+          orgId: "test-org-1",
+          actionType: "info",
+          title: "A",
+          message: "A",
+          isRead: false,
+          sourceTransactionId: null,
+          createdAt: new Date().toISOString(),
+        },
+        {
+          id: "n2",
+          orgId: "test-org-1",
+          actionType: "info",
+          title: "B",
+          message: "B",
+          isRead: false,
+          sourceTransactionId: null,
+          createdAt: new Date().toISOString(),
+        },
+      ],
+    });
     await useLocalStore.getState().markNotificationRead("n1");
     const ns = storeSnapshot().notifications;
-    expect(ns[0]!.read).toBe(true);
-    expect(ns[1]!.read).toBe(false);
+    expect(ns[0]!.isRead).toBe(true);
+    expect(ns[1]!.isRead).toBe(false);
   });
 
   it("markAllNotificationsRead sets read=true on all", async () => {

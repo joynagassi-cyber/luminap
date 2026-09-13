@@ -102,7 +102,9 @@ export default function FormSubmissions() {
                     ? sub.data
                     : (() => {
                         try {
-                          return JSON.parse(sub.data ?? "{}");
+                          return JSON.parse(
+                            typeof sub.data === "string" ? sub.data : "{}",
+                          );
                         } catch {
                           return { _raw: String(sub.data) };
                         }

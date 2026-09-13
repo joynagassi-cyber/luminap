@@ -50,6 +50,27 @@ type StoreState = Record<string, unknown> & {
   organizations: [] as unknown[],
 };
 
+// Typed views over the globalThis mock data (accessed lazily inside hoisted
+// vi.mock factories, which is why the data lives on globalThis).
+type CotDataLayer = {
+  events: unknown[];
+  members: unknown[];
+  cotisations: unknown[];
+  transactions: unknown[];
+  caisses: unknown[];
+  categories: unknown[];
+  currentUser: unknown;
+  organizations: unknown[];
+};
+
+function getCotDataLayer(): CotDataLayer {
+  return (globalThis as Record<string, unknown>).__cotDataLayer as CotDataLayer;
+}
+
+function getNavigateFn(): unknown {
+  return ((globalThis as Record<string, unknown>).__cotNavigateRef as { fn: unknown }).fn;
+}
+
 // ─── vi.mock blocks ───────────────────────────────────────────────────────────
 
 vi.mock("@/store/useLocalStore", () => ({
@@ -60,14 +81,14 @@ vi.mock("@/store/useLocalStore", () => ({
 }));
 
 vi.mock("@/lib/dataLayer", () => ({
-  useEvents: () => ({ data: (globalThis as Record<string, unknown>).__cotDataLayer.events }),
-  useMembers: () => ({ data: (globalThis as Record<string, unknown>).__cotDataLayer.members }),
-  useCotisations: () => ({ data: (globalThis as Record<string, unknown>).__cotDataLayer.cotisations }),
-  useTransactions: () => ({ data: (globalThis as Record<string, unknown>).__cotDataLayer.transactions }),
-  useCaisses: () => ({ data: (globalThis as Record<string, unknown>).__cotDataLayer.caisses }),
-  useCategories: () => ({ data: (globalThis as Record<string, unknown>).__cotDataLayer.categories }),
-  useCurrentUser: () => (globalThis as Record<string, unknown>).__cotDataLayer.currentUser,
-  useOrganizations: () => ({ data: (globalThis as Record<string, unknown>).__cotDataLayer.organizations }),
+  useEvents: () => ({ data: getCotDataLayer().events }),
+  useMembers: () => ({ data: getCotDataLayer().members }),
+  useCotisations: () => ({ data: getCotDataLayer().cotisations }),
+  useTransactions: () => ({ data: getCotDataLayer().transactions }),
+  useCaisses: () => ({ data: getCotDataLayer().caisses }),
+  useCategories: () => ({ data: getCotDataLayer().categories }),
+  useCurrentUser: () => getCotDataLayer().currentUser,
+  useOrganizations: () => ({ data: getCotDataLayer().organizations }),
 }));
 
 vi.mock("@/lib/orgContext", () => ({
@@ -77,11 +98,11 @@ vi.mock("@/lib/orgContext", () => ({
 
 vi.mock("react-router-dom", () => ({
   useParams: () => (globalThis as Record<string, unknown>).__cotParams as any,
-  useNavigate: () => (globalThis as Record<string, unknown>).__cotNavigateRef.fn,
+  useNavigate: () => getNavigateFn(),
 }));
 
 vi.mock("@ionic/react", () => {
-  function makeWrapper(tag: string, props: Record<string, unknown>, children: unknown[]) {
+  function makeWrapper(tag: string, props: Record<string, unknown>, children?: React.ReactNode) {
     if (tag === "ion-button") {
       const { onClick, disabled, ...rest } = props as Record<string, unknown>;
       return React.createElement("button", { type: "button", onClick, disabled, ...rest }, children);
@@ -89,18 +110,19 @@ vi.mock("@ionic/react", () => {
     // ion-input: wrap the DOM input so onIonChange fires with { detail: { value } }
     // (matching Ionic's real event shape) rather than the plain DOM Event.
     if (tag === "ion-input") {
-      const { onIonChange, onChange, ...rest } = props as Record<string, unknown>;
+      const { onIonChange, onChange, ...rest } = props as Record<string, unknown> & {
+        onIonChange?: (e: unknown) => void;
+        onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+      };
       return React.createElement("input", {
         ...rest,
         onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-          if (onIonChange) {
-            onIonChange({
-              detail: { value: e.target.value },
-              currentTarget: e.currentTarget,
-              target: e.target,
-            } as any);
-          }
-          if (onChange) onChange(e);
+          onIonChange?.({
+            detail: { value: e.target.value },
+            currentTarget: e.currentTarget,
+            target: e.target,
+          } as any);
+          onChange?.(e);
         },
       });
     }
@@ -148,19 +170,19 @@ import SaisieRapide from "@/pages/SaisieRapide";
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function setEvents(events: unknown[]) {
-  (globalThis as Record<string, unknown>).__cotDataLayer.events = events;
+  getCotDataLayer().events = events;
 }
 
 function setMembers(members: unknown[]) {
-  (globalThis as Record<string, unknown>).__cotDataLayer.members = members;
+  getCotDataLayer().members = members;
 }
 
 function setCotisations(cots: unknown[]) {
-  (globalThis as Record<string, unknown>).__cotDataLayer.cotisations = cots;
+  getCotDataLayer().cotisations = cots;
 }
 
 function navigateRef(): ReturnType<typeof vi.fn> {
-  return (globalThis as Record<string, unknown>).__cotNavigateRef.fn;
+  return getNavigateFn() as ReturnType<typeof vi.fn>;
 }
 
 function storeState(): StoreState {

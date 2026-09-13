@@ -114,6 +114,7 @@ export default function TransactionNew() {
       approved_at: null,
       versement_id: null,
       reversal_of_id: null,
+      cotisation_id: null,
     });
     navigate("/");
   };

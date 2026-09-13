@@ -296,6 +296,49 @@ export const useLocalStore = create<LocalStoreState>()(
     });
 
     const seed = churchSeedData();
+    const seedOrgId = seed.orgUnits[0]?.id ?? getOrganizationId();
+    const seedNow = seed.caisses[0]?.createdAt ?? new Date().toISOString();
+
+    // Seed the root organization account + group so the offline fallback
+    // (source: "indexeddb") has shell data when PowerSync has not synced.
+    // This mirrors the createGroupPS four-row convention (org_units /
+    // groups / accounts / caisses share the org id for the root org).
+    // When PowerSync online data arrives, the `psData && length > 0 &&
+    // isPowerSyncReady()` guard in dataLayer.ts short-circuits and these
+    // seed rows are never surfaced.
+    const seedAccounts: Account[] = [
+      {
+        id: "main",
+        orgId: seedOrgId,
+        ownerType: "ORGANIZATION",
+        ownerId: seedOrgId,
+        name: seed.caisses[0]?.name ?? "Caisse principale",
+        currency: "XOF",
+        status: "ACTIVE",
+        archivedAt: null,
+        archivedBy: null,
+        archiveReason: null,
+        createdAt: seedNow,
+        updatedAt: seedNow,
+      },
+    ];
+
+    const seedGroups: Group[] = [
+      {
+        id: seedOrgId,
+        orgId: seedOrgId,
+        name: seed.orgUnits[0]?.name ?? "Eglise MFE-JC Centrale",
+        parentGroupId: null,
+        responsableMemberId: null,
+        status: "ACTIVE",
+        archivedAt: null,
+        archivedBy: null,
+        archiveReason: null,
+        createdAt: seedNow,
+        updatedAt: seedNow,
+      },
+    ];
+
     return {
       user: seed.user,
       transactions: [],
@@ -306,8 +349,8 @@ export const useLocalStore = create<LocalStoreState>()(
       auditEntries: [],
       notifications: [],
       members: [],
-      groups: [],
-      accounts: [],
+      groups: seedGroups,
+      accounts: seedAccounts,
       memberships: [],
       eventBudgets: [],
       budgetLines: [],

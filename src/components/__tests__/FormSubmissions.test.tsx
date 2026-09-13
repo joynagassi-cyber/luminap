@@ -15,7 +15,7 @@ import { formSubmissionRepo } from "@/lib/formSystem";
 
 describe("FormSubmissions page", () => {
   it("renders a list of submissions with their data fields", async () => {
-    formSubmissionRepo.list.mockResolvedValue([
+    vi.mocked(formSubmissionRepo.list).mockResolvedValue([
       {
         id: "sub-1",
         orgId: "org-1",
@@ -63,7 +63,7 @@ describe("FormSubmissions page", () => {
   });
 
   it("renders an empty state when there are no submissions", async () => {
-    formSubmissionRepo.list.mockResolvedValue([]);
+    vi.mocked(formSubmissionRepo.list).mockResolvedValue([]);
 
     render(
       <MemoryRouter initialEntries={["/forms/form-1/submissions"]}>

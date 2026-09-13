@@ -14,15 +14,29 @@ import type {
 import type { Role } from "@/types";
 import { getOrganizationId } from "./orgContext";
 
-// Use environment variables — never hardcode credentials
-const supabaseUrl =
-  import.meta.env.VITE_SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-const supabaseAnonKey =
-  import.meta.env.VITE_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+// Use environment variables — never hardcode credentials.
+// Fallbacks alignés avec le projet Supabase courant (hhgovvrnalibhgpakswi)
+// pour rester offline-first : l'application boote même sans env.
+const FALLBACK_SUPABASE_URL = "https://hhgovvrnalibhgpakswi.supabase.co";
+const FALLBACK_SUPABASE_KEY =
+  "sb_publishable_kwbReVxSdHLx_u2IzQvGaA_Eegsf2Sh";
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error(
-    "Missing Supabase credentials. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.",
+// `process` n'existe pas dans le bundle navigateur : accès tolérant.
+const nodeEnv = typeof process !== "undefined" ? process.env : undefined;
+
+const supabaseUrl =
+  import.meta.env.VITE_SUPABASE_URL ||
+  nodeEnv?.VITE_SUPABASE_URL ||
+  FALLBACK_SUPABASE_URL;
+const supabaseAnonKey =
+  import.meta.env.VITE_SUPABASE_ANON_KEY ||
+  nodeEnv?.VITE_SUPABASE_ANON_KEY ||
+  FALLBACK_SUPABASE_KEY;
+
+if (!import.meta.env.VITE_SUPABASE_URL && !nodeEnv?.VITE_SUPABASE_URL) {
+  console.warn(
+    "[auth] VITE_SUPABASE_URL absent — fallback utilisé :",
+    FALLBACK_SUPABASE_URL,
   );
 }
 

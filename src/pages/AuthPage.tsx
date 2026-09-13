@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useAppConfig, useCurrentUser } from "@/lib/dataLayer";
 import { authService, type Profile } from "@/lib/auth";
 import { oneSignalService } from "@/lib/authOneSignal";
+import type { Role } from "@/types";
 import { needsOnboarding } from "@/lib/onboardingState";
 import { useLocalStore } from "@/store/useLocalStore";
 import { Loader2, Mail, Lock, User } from "lucide-react";
@@ -78,7 +79,7 @@ export default function AuthPage() {
   ) => {
     await loadInitialData();
     await oneSignalService.login(
-      profile?.role ?? "MEMBRE",
+      (profile?.role ?? "MEMBRE") as Role,
       profile?.id ?? user?.id ?? "",
     );
     navigate(needsOnboarding() ? "/onboarding" : "/dashboard", {
@@ -214,10 +215,12 @@ export default function AuthPage() {
     })
       .then((sub) => {
         if (!active) {
-          sub.removeSubscription();
+          void sub.remove();
           return;
         }
-        cleanup = () => sub.removeSubscription();
+        cleanup = () => {
+          void sub.remove();
+        };
       })
       .catch(() => {
         /* ignore */

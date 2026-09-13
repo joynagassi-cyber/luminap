@@ -143,7 +143,7 @@ export interface RestoreGroupResult {
 }
 
 export function applyRestoreGroup(
-  state: GroupState,
+  state: Pick<GroupState, "groups" | "accounts" | "caisses">,
   id: string,
   reason: string,
   actorId: string,

@@ -104,6 +104,8 @@ export type OrgUnit = {
   description: string;
   orgId: string;
   isActive: boolean;
+  // Local-only enrichment (org_units has no updated_at column in the DB).
+  updatedAt?: string;
 };
 
 export type Caisse = {
@@ -209,7 +211,8 @@ export type AuditEntry = {
     | "CLOSE"
     | "REVISE"
     | "REVOKE"
-    | "CLAIM";
+    | "CLAIM"
+    | "STATUS_CHANGE";
   entityType: string;
   entityId: string;
   beforeState: any | null;
@@ -380,7 +383,9 @@ export type ReportDefinition = {
   name: string;
   dataSource: string;
   dimensions: string[];
-  metrics: string[];
+  // Metrics are stored as MetricExpr[] objects ({ field, fn, alias }) in the
+  // report engine / DB JSON column; the legacy string[] declaration was a drift.
+  metrics: any[];
   filters: any[];
   groupBy: string[];
   sortBy: string | null;

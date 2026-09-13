@@ -43,13 +43,33 @@ export class SupabaseConnector
 
   constructor() {
     super();
-    const supabaseUrl =
-      import.meta.env.VITE_SUPABASE_URL ||
-      "https://vvcdmqpbwfyhkzalwdli.supabase.co";
+    // Fallbacks alignés avec le projet Supabase courant
+    // (hhgovvrnalibhgpakswi) et l'instance PowerSync (voir docs/POWERSYNC_READY.md).
+    const FALLBACK_SUPABASE_URL =
+      "https://hhgovvrnalibhgpakswi.supabase.co";
+    const FALLBACK_POWERSYNC_URL =
+      "https://6a9dd96302481fb31b945823.powersync.journeyapps.com";
+    const FALLBACK_SUPABASE_KEY =
+      "sb_publishable_kwbReVxSdHLx_u2IzQvGaA_Eegsf2Sh";
+
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || FALLBACK_SUPABASE_URL;
     const powersyncUrl =
-      import.meta.env.VITE_POWERSYNC_URL ||
-      "https://YOUR_INSTANCE_ID.powersync.journeyapps.com";
-    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
+      import.meta.env.VITE_POWERSYNC_URL || FALLBACK_POWERSYNC_URL;
+    const supabaseAnonKey =
+      import.meta.env.VITE_SUPABASE_ANON_KEY || FALLBACK_SUPABASE_KEY;
+
+    if (!import.meta.env.VITE_SUPABASE_URL) {
+      console.warn(
+        "[SupabaseConnector] VITE_SUPABASE_URL absent — fallback utilisé :",
+        FALLBACK_SUPABASE_URL,
+      );
+    }
+    if (!import.meta.env.VITE_POWERSYNC_URL) {
+      console.warn(
+        "[SupabaseConnector] VITE_POWERSYNC_URL absent — fallback utilisé :",
+        FALLBACK_POWERSYNC_URL,
+      );
+    }
 
     this.config = { supabaseUrl, powersyncUrl, supabaseAnonKey };
 
@@ -159,12 +179,9 @@ export class SupabaseConnector
     } = await this.client.auth.getSession();
 
     if (!session || error) {
-      // Pour le développement, retourner un token vide si pas de session
-      return {
-        endpoint: this.config.powersyncUrl,
-        token: "", // Token vide pour le dev
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-      } satisfies PowerSyncCredentials;
+      // Pas de session : PowerSync reste en retry idle (aucun token vide,
+      // qui ferait échouer le sync avec une 401 au gateway).
+      return null;
     }
 
     return {

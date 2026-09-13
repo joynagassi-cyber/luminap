@@ -163,6 +163,7 @@ export default function EventDetail() {
       source_caisse_id: sourceCaisseId,
       versement_id: null,
       reversal_of_id: null,
+      cotisation_id: null,
     });
 
     const updatedItems = budgetItems.map((item: any) =>
