@@ -25,6 +25,11 @@
 - Boutons pill shape, cartes 8px radius
 - Navigation bottom tab bar fixe
 
+## Scroll & viewport (global)
+- **Pas de barre de défilement visible** : `globals.css` masque les scrollbars sur tous les éléments (`scrollbar-width:none` + `*::-webkit-scrollbar{display:none}`), le défilement reste fluide. Ne pas réintroduire de scrollbars visibles.
+- **Conteneurs pleine hauteur** : `.h-screen`/`.min-h-screen` sont surchargés en `100dvh` (repli `100vh`) pour que le bas de page soit atteignable sur mobile (100vh dépasse le viewport réel).
+- **`BottomNav` fixe (~64px) + FAB** : dans un conteneur qui scrolle (`overflow-y-auto` ou `IonContent`), la zone de contenu doit avoir un padding-bottom ≥ `pb-28`, sinon le dernier contenu (bouton d'envoi…) est masqué sous la nav.
+
 ## Règles Métier
 - Montants en centimes (multiples de 100)
 - Transactions approuvées immuables

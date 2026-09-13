@@ -108,7 +108,7 @@ export default function TransactionNewGroup() {
       <IonContent className="bg-canvas">
         <div className="h-screen bg-canvas flex flex-col overflow-hidden">
           <TopHeader title="Nouvelle transaction" />
-          <div className="flex-1 overflow-y-auto px-5 pt-16 pb-6">
+          <div className="flex-1 overflow-y-auto px-5 pt-16 pb-28">
             <button
               onClick={() => navigate(-1)}
               className="flex items-center gap-2 text-text-secondary text-sm mb-5"

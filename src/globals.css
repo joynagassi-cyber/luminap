@@ -56,6 +56,36 @@
   }
 }
 
+/* ============================================================
+   Défilement global (toutes les pages)
+   - Les barres de défilement sont masquées partout, mais le
+     défilement (roue, tactile, clavier) reste pleinement fluide.
+   - Les conteneurs pleine hauteur (h-screen / min-h-screen)
+     suivent la hauteur RÉELLE du viewport (100dvh, repli 100vh) :
+     sur mobile, 100vh dépasse le viewport visible et empêchait
+     d'atteindre le bas de page. Règles hors couche → prioritaires.
+   ============================================================ */
+* {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE / ancien Edge */
+}
+*::-webkit-scrollbar {
+  display: none; /* Chrome / Safari / Edge */
+  width: 0;
+  height: 0;
+}
+html {
+  scroll-behavior: smooth;
+}
+.h-screen {
+  height: 100vh;
+  height: 100dvh;
+}
+.min-h-screen {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
 /* Focus visibility for keyboard navigation */
 :focus-visible {
   outline: 2px solid var(--accent-primary);

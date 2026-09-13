@@ -125,7 +125,7 @@ export default function TransactionEdit() {
       <IonContent className="bg-canvas">
         <div className="h-screen bg-canvas flex flex-col overflow-hidden">
           <TopHeader title="Modifier" />
-          <div className="flex-1 overflow-y-auto px-5 pt-16 pb-6 max-w-lg mx-auto">
+          <div className="flex-1 overflow-y-auto px-5 pt-16 pb-28 max-w-lg mx-auto">
             <div className="flex items-center justify-between mb-6">
               <button
                 onClick={() => navigate(-1)}
