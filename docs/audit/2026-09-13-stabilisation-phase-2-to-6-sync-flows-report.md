@@ -150,6 +150,32 @@ Pour le drift **B (uuid created_by)** : soit générer un vrai `auth.users`
 
 ---
 
+## Cycle live G3 — résultats partiels (2026-09-13, preview en réseau)
+
+Vérifié via les logs client de la session live :
+
+- **Boot sync** ✅ : `hasSynced: true` dès le premier `statusChanged` ;
+  `lastSyncedAt` progresse à chaque connect (15:00 → 18:50 → 18:52) ;
+  cycle `connecting → downloading → lastSyncedAt` stable.
+- **Erreurs** ✅ : 0 erreur client ; aucune erreur d'upload uuid
+  (« invalid input syntax for type uuid » n'apparaît pas — cohérent,
+  pas encore d'écritures offline faites dans la session).
+- **Bug schéma PowerSync trouvé et corrigé** ⚠️→✅ : warning
+  `Schema validation failed — An id column is automatically added, custom id
+  columns are not supported`. Cause : 6 tables déclaraient `id: column.text`
+  explicitement (`form_definitions`, `form_submissions` dans `schema.ts` ;
+  `invitations`, `invitation_claims` dans `invitation-schema.ts` ;
+  `organizations`, `org_admins` dans `org-admin-schema.ts`). Les 4 tables
+  PG concernées ont bien une colonne `id` pkey → PowerSync l'ajoute
+  automatiquement ; les 6 déclarations sont retirées (comment ajouté).
+  **Après ce fix, le preview doit être rafraîchi** pour re-initialiser la
+  base locale avec le schéma valide (et les colonnes bas-casse
+  `cotisations` d'Option A).
+- **Restant (nécessite l'UI)** : stabilité login/logout (Pitfall 5), 8 flux
+  cloud (G4) — la checklist §Phase 4 reste applicable ; les événements
+  `uploading: true` confirmeront le passage de la bornière uuid et du
+  naming cotisations au moment des écritures offline.
+
 ## Phase 4 — 8 flux métier (chemins offline vérifiés, tests live restants)
 
 Chaque flux a ses **services + capacités** câblés côté offline (PowerSync/SQLite)
@@ -186,11 +212,15 @@ et son bouton de page. Ce qui reste = validation bout-en-bout **en cloud**
 |---|---|---|
 | G1 | 0 erreur type + build de prod | ✅ (vérifié cette session : 0 erreur type) |
 | G2 | Audit base écrit, dérives documentées + SQL | ✅ (Phase 1 + §De drifts ci-dessus) |
-| G3 | Sync : `hasSynced` au boot, cycle offline, stabilité login/logout | ⚠️ logique ✅ ; **cycle live ⬜** |
-| G4 | Les 8 flux passent offline + cloud | offline ✅ ; **cloud ⬜** (2 drifts bloquants) |
+| G3 | Sync : `hasSynced` au boot, cycle offline, stabilité login/logout | ⚠️ boot sync + cycle de connexion **vérifiés en live** ✅ ; stabilité login/logout **⬜** (requiert l'UI) |
+| G4 | Les 8 flux passent offline + cloud | offline ✅ ; 2 drifts résolus (Option A + bornière uuid) ; **upload cloud ⬜** (à confirmer via écritures offline en live) |
 | G5 | Skeleton structuré par page (shimmer) au 1er chargement | ✅ 12 pages câblées + 19 structures prêtes |
 | G6 | Boucle test autonome + rapport final | ✅ ce rapport ; suite vitest/cypress ⬜ (outillage à dispo) |
 
-**Prochaine action conseillée** : trancher la DECISION ci-dessus (Option A vs B,
-+ drift B), puis lancer le **cycle live** (section Phase 4) une fois le preview
-en réseau pour clôturer G3/G4.
+**Prochaine action conseillée** : DECISION tranchée (Option A + bornière uuid,
+§ RÉSOLU). Il reste : (1) rafraîchir le preview pour re-initialiser la base
+locale avec le schéma PowerSync corrigé (`id` auto, cotisations bas-casse) ;
+(2) faire 1-2 écritures offline (ex. payer une cotisation, créer une
+transaction) puis recharger en réseau → contrôler les événements
+`uploading: true` et l'absence d'erreurs Supabase pour clôturer G4 ;
+(3) test login/logout (Pitfall 5) pour clôturer G3.

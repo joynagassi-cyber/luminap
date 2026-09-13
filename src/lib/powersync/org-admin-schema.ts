@@ -6,9 +6,10 @@ import { column, Table } from "@powersync/web";
 //   - org_admins    : grants « admin central → organisation »
 // ============================================================
 
+// NOTE : `id` n'est PAS déclaré — PowerSync l'ajoute automatiquement comme
+// pkey (les tables PostgreSQL ont toutes une colonne `id` pkey).
 const organizations = new Table(
   {
-    id: column.text,
     name: column.text,
     type: column.text,
     status: column.text,
@@ -32,7 +33,6 @@ const organizations = new Table(
 
 const org_admins = new Table(
   {
-    id: column.text,
     admin_profile_id: column.text,
     org_id: column.text,
     status: column.text,

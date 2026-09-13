@@ -4,9 +4,11 @@ import { column, Table } from "@powersync/web";
 // Invitation Tables
 // ============================================================
 
+// NOTE : `id` n'est PAS déclaré — PowerSync l'ajoute automatiquement comme
+// pkey (les 4 tables (invitations, invitation_claims, organizations,
+// org_admins) ont toutes une colonne `id` pkey côté PostgreSQL).
 const invitations = new Table(
   {
-    id: column.text,
     org_id: column.text,
     code: column.text,
     target_role: column.text,
@@ -33,7 +35,6 @@ const invitations = new Table(
 
 const invitation_claims = new Table(
   {
-    id: column.text,
     invitation_id: column.text,
     claimed_by_device_id: column.text,
     claimed_at: column.text,

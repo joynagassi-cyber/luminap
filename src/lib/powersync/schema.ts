@@ -269,9 +269,12 @@ const config = new Table(
 // Form & Custom Field Tables
 // ============================================================
 
+// NOTE : `id` n'est JAMAIS déclaré explicitement — PowerSync l'ajoute
+// automatiquement comme colonne pkey ; une déclaration `id: column.text`
+// fait échouer la validation du schéma (« custom id columns are not
+// supported ») et peut corrompre la sync.
 const form_definitions = new Table(
   {
-    id: column.text,
     org_id: column.text,
     key: column.text,
     name: column.text,
@@ -288,7 +291,6 @@ const form_definitions = new Table(
 
 const form_submissions = new Table(
   {
-    id: column.text,
     org_id: column.text,
     form_definition_id: column.text,
     form_version: column.integer,
