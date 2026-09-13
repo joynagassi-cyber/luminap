@@ -248,7 +248,7 @@ export default function Dashboard() {
                     {churchName}
                   </p>
                   <p className="text-text-tertiary text-xs">
-                    {getRoleLabel(user.role)}
+                    {user ? getRoleLabel(user.role) : "Membre"}
                   </p>
                 </div>
               </div>

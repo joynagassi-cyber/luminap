@@ -2247,6 +2247,33 @@ export function useCurrentUser() {
     }
   }, []);
 
+  // Definitive fallback: if `lumina-user` is missing, build the shape from
+  // the live `lumina-role` + `lumina-config` + church seed so the dashboard
+  // header still renders instead of crashing on `user.role` over `null`.
+  if (!user) {
+    try {
+      const role = localStorage.getItem("lumina-role") ?? "TREASURIER";
+      const cfg = JSON.parse(
+        localStorage.getItem("lumina-config") ?? "{}",
+      );
+      setUser({
+        id: "local-user",
+        email: "",
+        firstName: "Utilisateur",
+        lastName: "",
+        role,
+        org: {
+          id: getOrganizationId(),
+          name: cfg?.churchName || "Lumina",
+          type: "Eglise",
+          accentColor: "#FF6B00",
+        },
+      });
+    } catch {
+      /* storage unavailable (SSR / test) — stay null */
+    }
+  }
+
   return user;
 }
 

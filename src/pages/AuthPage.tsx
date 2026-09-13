@@ -133,6 +133,13 @@ export default function AuthPage() {
     );
     if (result.error) {
       setError(result.error);
+      // UX: if the e-mail already has an account, switch the user back to the
+      // login tab so they can sign in with the same e-mail. This is what was
+      // missing — previously the error was shown but the form stayed in
+      // "signup" mode with first/last name fields still visible.
+      if (/already exists/i.test(result.error)) {
+        setMode("login");
+      }
       setLoading(false);
       return;
     }

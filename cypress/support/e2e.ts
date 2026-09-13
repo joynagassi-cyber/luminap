@@ -11,10 +11,12 @@
  * `cypress/support/local.ts` and are registered below via `import './local'`.
  *
  * Auth model (offline-first):
- *   supabase-js persists the session in localStorage under the key
- *   `sb-lumina-auth`. `authService.getSession()` reads it WITHOUT a network
- *   call when the token is present and unexpired, so a seeded localStorage
- *   session passes the `RouteGuard` (src/App.tsx) entirely offline.
+ *   supabase-js persists the session in localStorage under a key derived from
+ *   the Supabase PROJECT id (see `auth.ts` — `createClient(url, key)` with no
+ *   `storage` option): `sb-<projectId>-auth-token`.
+ *   `authService.getSession()` reads it WITHOUT a network call when the token
+ *   is present and unexpired, so a seeded localStorage session passes the
+ *   `RouteGuard` (src/App.tsx) entirely offline.
  *   Every data scenario then runs against local PowerSync/IndexedDB + the
  *   Zustand store — no Supabase/PowerSync network needed.
  *

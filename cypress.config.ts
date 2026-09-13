@@ -28,6 +28,11 @@ export default defineConfig({
       SUPABASE_ANON_KEY:
         process.env.CYPRESS_SUPABASE_ANON_KEY ||
         'sb_publishable_kwbReVxSdHLx_u2IzQvGaA_Eegsf2Sh',
+      // PowerSync worker URL — used by `cy.interceptCloud()` to prove
+      // offline specs never hit the sync worker (cypress/support/local.ts).
+      POWERSYNC_URL:
+        process.env.CYPRESS_POWERSYNC_URL ||
+        'https://6a9dd96302481fb31b945823.powersync.journeyapps.com',
     },
     // Same testDir shape as before; specs live under cypress/e2e.
     specPattern: 'cypress/e2e/**/*.cy.{ts,tsx}',
