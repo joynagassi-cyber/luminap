@@ -15,6 +15,7 @@ import { getPowerSyncDatabase } from "@/lib/powersync";
 import { useLocalStore } from "@/store/useLocalStore";
 import { useEffect, useState, useRef } from "react";
 import type {
+  Cotisation,
   CustomFieldDefinition,
   CustomFieldValue,
   FormDefinition,
@@ -223,6 +224,9 @@ export interface PSAuditEntry {
   created_at: string;
 }
 
+// NOTE : colonnes en bas-casse pour coller aux noms réels de PostgreSQL
+// (source de vérité = la base). `useCotisations` normalise ces lignes en
+// `Cotisation` (camelCase) pour la UI — voir mapping ci-dessous.
 export interface PSCotisation {
   id: string;
   // Optional on the TS side: addCotisationPS fills it via getOrganizationId()
@@ -232,12 +236,12 @@ export interface PSCotisation {
   culte_id: string;
   membre_id: string;
   statut: string;
-  montantObligatoire: number;
-  montantPaye: number;
-  datePaiement: string | null;
+  montantobligatoire: number;
+  montantpaye: number;
+  datepaiement: string | null;
   notes: string | null;
-  createdAt: string;
-  updatedAt: string;
+  createdat: string;
+  updatedat: string;
 }
 
 export interface PSGroupMembership {
@@ -585,16 +589,36 @@ export function useAuditEntries() {
 /**
  * Hook to get all cotisations
  */
+/** Normalise une ligne PS (colonnes bas-casse) en `Cotisation` (camelCase). */
+function psToCotisation(r: PSCotisation): Cotisation {
+  return {
+    id: r.id,
+    culteId: r.culte_id,
+    membreId: r.membre_id,
+    statut: r.statut as Cotisation["statut"],
+    montantObligatoire: Number(r.montantobligatoire ?? 0),
+    montantPaye: Number(r.montantpaye ?? 0),
+    datePaiement: r.datepaiement ?? null,
+    notes: r.notes ?? null,
+    createdAt: r.createdat ?? "",
+    updatedAt: r.updatedat ?? "",
+  };
+}
+
 export function useCotisations() {
   const { data: psData } = useQuery<PSCotisation>(
-    "SELECT id, org_id, culte_id, membre_id, statut, montantObligatoire, montantPaye, datePaiement, notes, createdAt, updatedAt FROM cotisations WHERE org_id = ? ORDER BY createdAt DESC",
+    "SELECT id, org_id, culte_id, membre_id, statut, montantobligatoire, montantpaye, datepaiement, notes, createdat, updatedat FROM cotisations WHERE org_id = ? ORDER BY createdat DESC",
     [getOrganizationId()],
     { reportFetching: true },
   );
   const store = useLocalStore();
 
   if (psData && psData.length > 0 && isPowerSyncReady()) {
-    return { data: psData, isLoading: false, source: "powersync" as const };
+    return {
+      data: psData.map(psToCotisation),
+      isLoading: false,
+      source: "powersync" as const,
+    };
   }
 
   return {
@@ -954,7 +978,7 @@ export async function deleteEventPS(id: string): Promise<void> {
  * Add a cotisation via PowerSync
  */
 export async function addCotisationPS(
-  cot: Omit<PSCotisation, "id" | "org_id" | "createdAt" | "updatedAt">,
+  cot: Omit<PSCotisation, "id" | "org_id" | "createdat" | "updatedat">,
   orgId?: string,
 ): Promise<string> {
   const id = crypto.randomUUID();
@@ -963,8 +987,8 @@ export async function addCotisationPS(
 
   await executeWrite(
     `INSERT INTO cotisations (
-      id, org_id, culte_id, membre_id, statut, montantObligatoire, montantPaye,
-      datePaiement, notes, createdAt, updatedAt
+      id, org_id, culte_id, membre_id, statut, montantobligatoire, montantpaye,
+      datepaiement, notes, createdat, updatedat
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
@@ -972,9 +996,9 @@ export async function addCotisationPS(
       cot.culte_id,
       cot.membre_id,
       cot.statut,
-      cot.montantObligatoire,
-      cot.montantPaye,
-      cot.datePaiement,
+      cot.montantobligatoire,
+      cot.montantpaye,
+      cot.datepaiement,
       cot.notes,
       now,
       now,
@@ -996,8 +1020,8 @@ export async function updateCotisationPS(
 
   const fieldMap: [keyof PSCotisation, string][] = [
     ["statut", "statut"],
-    ["montantPaye", "montantPaye"],
-    ["datePaiement", "datePaiement"],
+    ["montantpaye", "montantpaye"],
+    ["datepaiement", "datepaiement"],
     ["notes", "notes"],
   ];
 
@@ -1008,7 +1032,7 @@ export async function updateCotisationPS(
     }
   }
 
-  setClauses.push("updatedAt = ?");
+  setClauses.push("updatedat = ?");
   params.push(new Date().toISOString());
   params.push(id);
 

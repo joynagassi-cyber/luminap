@@ -339,18 +339,24 @@ const custom_field_values = new Table(
   { indexes: {} },
 );
 
+// NOTE : les colonnes de `cotisations` en PostgreSQL sont en bas-casse
+// (créées sans guillemets, PG plie en minuscule) : `montantobligatoire`,
+// `montantpaye`, `datepaiement`, `createdat`, `updatedat`. Le connecteur
+// Supabase de PowerSync mappe local→cloud par nom de colonne, donc la table
+// locale doit porter exactement les mêmes noms (sinon la synchro cloud de
+// cette table échoue). Source de vérité = la base.
 const cotisations = new Table(
   {
     org_id: column.text,
     culte_id: column.text,
     membre_id: column.text,
     statut: column.text,
-    montantObligatoire: column.integer,
-    montantPaye: column.integer,
-    datePaiement: column.text,
+    montantobligatoire: column.integer,
+    montantpaye: column.integer,
+    datepaiement: column.text,
     notes: column.text,
-    createdAt: column.text,
-    updatedAt: column.text,
+    createdat: column.text,
+    updatedat: column.text,
   },
   {
     indexes: {

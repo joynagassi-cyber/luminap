@@ -77,7 +77,7 @@ export default function MembreDetail() {
   }
 
   const fullName = `${(member as any).first_name || ""} ${(member as any).last_name || ""}`.trim();
-  const memberCotisations = cotisations.filter((c: any) => c.membre_id === member.id);
+  const memberCotisations = cotisations.filter((c: any) => c.membreId === member.id);
   const memberEvents = events.filter((e) => e.type === "CULTE");
 
   const payeCount = memberCotisations.filter(

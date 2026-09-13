@@ -67,18 +67,19 @@ export default function CulteDetail() {
   }
 
   const stats = calculerStatsCulte({
+    // `useCotisations` renvoie du canonique camelCase (`Cotisation[]`).
     cotisations: cotisations.map((c: any) => ({
       ...c,
-      culteId: c.culte_id,
-      membreId: c.membre_id,
+      culteId: c.culteId,
+      membreId: c.membreId,
     })),
     culteId: id!,
   });
 
-  const cotisationsForCulte = cotisations.filter((c: any) => c.culte_id === id);
+  const cotisationsForCulte = cotisations.filter((c: any) => c.culteId === id);
 
   const cotisationsWithMember = cotisationsForCulte.map((cot: any) => {
-    const member = members.find((m: any) => m.id === cot.membre_id);
+    const member = members.find((m: any) => m.id === cot.membreId);
     return {
       ...cot,
       memberName: member
@@ -100,7 +101,11 @@ export default function CulteDetail() {
   const handlePaye = async (cotId: string, montantPaye: number) => {
     const now = new Date().toISOString();
     const statut: CotisationStatut = "PAYE";
-    await updateCotisationPS(cotId, { statut, montantPaye, datePaiement: now });
+    await updateCotisationPS(cotId, {
+      statut,
+      montantpaye: montantPaye,
+      datepaiement: now,
+    });
   };
 
   const handleAbsent = async (cotId: string) => {
@@ -114,8 +119,8 @@ export default function CulteDetail() {
       if (cot.statut === "NON_PAYE" || cot.statut === "ABSENT") {
         await updateCotisationPS(cot.id, {
           statut: "PAYE",
-          montantPaye: cot.montantObligatoire,
-          datePaiement: new Date().toISOString(),
+          montantpaye: cot.montantObligatoire,
+          datepaiement: new Date().toISOString(),
         });
       }
     }

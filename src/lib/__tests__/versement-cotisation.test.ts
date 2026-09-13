@@ -490,7 +490,8 @@ describe("createCulte", () => {
     for (const row of rows) {
       expect(row.culte_id).toBe(culte.id);
       expect(row.statut).toBe("NON_PAYE");
-      expect(row.montantObligatoire).toBe(5000);
+      // Colonne en bas-casse (nom réel PostgreSQL) — la ligne parse le SQL.
+      expect(row.montantobligatoire).toBe(5000);
     }
     expect(rows.map((r) => r.membre_id).sort()).toEqual(["mem-1", "mem-2"]);
   });

@@ -40,7 +40,7 @@ export default function Cotisations() {
 
     return culteEvents.map((culte: any) => {
       const culteCotisations = cotisations.filter(
-        (c: any) => c.culte_id === culte.id,
+        (c: any) => c.culteId === culte.id,
       );
       const totalMembers = culteCotisations.length;
       const paid = culteCotisations.filter(

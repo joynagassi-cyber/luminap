@@ -93,8 +93,7 @@ export default function GroupCotisation() {
   const sessionCots = useMemo(
     () =>
       (cotisations ?? []).filter(
-        (c: any) =>
-          c.culte_id === selected?.id || c.culteId === selected?.id,
+        (c: any) => c.culteId === selected?.id,
       ),
     [cotisations, selected],
   );
@@ -246,7 +245,7 @@ export default function GroupCotisation() {
               <div className="space-y-2">
                 {groupSessions.map((s: any) => {
                   const sCots = (cotisations ?? []).filter(
-                    (c: any) => c.culte_id === s.id,
+                    (c: any) => c.culteId === s.id,
                   );
                   const sPaid = sCots.filter(
                     (c: any) =>

@@ -25,6 +25,32 @@ const FATAL_RESPONSE_CODES = [
   new RegExp("^42501$"),
 ];
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * `transactions.created_by_id` / `approved_by_id` sont des `uuid` (FK →
+ * auth.users) en PostgreSQL, mais les flux offline peuvent y écrire des
+ * identifiants de session texte ("local-user", UUID de session locale…).
+ * Bornière d'upload : toute valeur qui n'est pas un UUID valide est coercée
+ * à `null` (colonnes nullable) — sinon chaque upload échouerait avec
+ * « invalid input syntax for type uuid » et boucherait la file d'upload.
+ */
+function sanitizeTransactionsOpData(
+  opData: Record<string, unknown>,
+): Record<string, unknown> {
+  let changed = false;
+  const out = { ...opData };
+  for (const key of ["created_by_id", "approved_by_id"]) {
+    const v = out[key];
+    if (v !== undefined && v !== null && !UUID_RE.test(String(v))) {
+      out[key] = null;
+      changed = true;
+    }
+  }
+  return changed ? out : opData;
+}
+
 export type SupabaseConnectorListener = {
   initialized: () => void;
   sessionStarted: (session: Session) => void;
@@ -203,16 +229,23 @@ export class SupabaseConnector
       for (const op of transaction.crud) {
         lastOp = op;
         const table = this.client.from(op.table);
+        // Bornière uuid : les écritures offline peuvent porter des ids de
+        // session texte dans created_by_id/approved_by_id — on les coercée à
+        // null avant l'upload (colonnes uuid nullable côté PostgreSQL).
+        const opData =
+          op.table === "transactions"
+            ? sanitizeTransactionsOpData(op.opData as Record<string, unknown>)
+            : op.opData;
         let result: any;
 
         switch (op.op) {
           case UpdateType.PUT: {
-            const record = { ...op.opData, id: op.id };
+            const record = { ...opData, id: op.id };
             result = await table.upsert(record);
             break;
           }
           case UpdateType.PATCH:
-            result = await table.update(op.opData).eq("id", op.id);
+            result = await table.update(opData).eq("id", op.id);
             break;
           case UpdateType.DELETE:
             result = await table.delete().eq("id", op.id);

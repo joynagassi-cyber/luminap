@@ -115,8 +115,10 @@ export async function persistCulte(
   );
 
   for (const cot of cotisations) {
+    // Colonnes en bas-casse : noms réels en PostgreSQL (source de vérité),
+    // repris à l'identique dans la table locale PowerSync.
     await executeWrite(
-      "INSERT INTO cotisations (id, org_id, culte_id, membre_id, statut, montantObligatoire, montantPaye, datePaiement, notes, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO cotisations (id, org_id, culte_id, membre_id, statut, montantobligatoire, montantpaye, datepaiement, notes, createdat, updatedat) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       [
         cot.id,
         culte.orgId,
@@ -242,9 +244,9 @@ export async function persistMarkCotisationPaid(
 
   await updateCotisationPS(result.cotisationId, {
     statut: result.updatedCot.statut,
-    montantPaye: result.updatedCot.montantPaye,
-    datePaiement: result.updatedCot.datePaiement,
-    updatedAt: now,
+    montantpaye: result.updatedCot.montantPaye,
+    datepaiement: result.updatedCot.datePaiement,
+    updatedat: now,
   });
 
   if (result.updatedMembre) {
@@ -315,7 +317,7 @@ export async function persistMarkCotisationsAbsent(
   const now = new Date().toISOString();
   for (const cot of state.cotisations) {
     if (cot.culteId === culteId && membreIds.includes(cot.membreId)) {
-      await updateCotisationPS(cot.id, { statut: "ABSENT", updatedAt: now });
+      await updateCotisationPS(cot.id, { statut: "ABSENT", updatedat: now });
     }
   }
 }
@@ -339,7 +341,17 @@ export async function persistUpdateCotisation(
   id: string,
   data: Partial<Cotisation>,
 ): Promise<void> {
-  await updateCotisationPS(id, data);
+  // Traduction canonique camelCase → colonnes PS bas-casse.
+  const updates: Parameters<typeof updateCotisationPS>[1] = {};
+  if (data.statut !== undefined) updates.statut = data.statut;
+  if (data.montantObligatoire !== undefined) {
+    updates.montantobligatoire = data.montantObligatoire;
+  }
+  if (data.montantPaye !== undefined) updates.montantpaye = data.montantPaye;
+  if (data.datePaiement !== undefined) updates.datepaiement = data.datePaiement;
+  if (data.notes !== undefined) updates.notes = data.notes;
+  if (data.updatedAt !== undefined) updates.updatedat = data.updatedAt;
+  await updateCotisationPS(id, updates);
 }
 
 // ============================================================

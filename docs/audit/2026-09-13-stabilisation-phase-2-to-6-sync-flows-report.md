@@ -41,9 +41,9 @@ Notes :
 | **Pitfall 2 — token PowerSync = `sub` (UUID), pas `email`** | ✅ Le `SupabaseConnector.getSyncCredentials` renvoie `session.access_token` (JWT → `sub` côté service PowerSync). Aucune utilisation de `email` comme identifiant de session PowerSync. L'identité locale (`lumina-session` = `crypto.randomUUID()`) est un concept séparé (hors-ligne), pas le token de sync. |
 | **Tolérance au boot / offline** | ✅ Sans session, `getSyncCredentials` renvoie `null` → PowerSync reste en retry idle, aucun token vide (pas de 401 au gateway), le boot ne bloque pas (`initPowerSync` résout dès que le handle DB est prêt ; `waitForFirstSync` non-awaited). |
 | **Pitfall 4 — Realtime Supabase** | ✅ Non requis pour un app offline-first : **c'est le push PowerSync qui joue le rôle de temps réel** (les changements pushés dans SQLite déclenchent les listeners de l'app). La publication `supabase_realtime` (transactions, notifications, …) existe en DB et reste disponible si un canal temps réel explicite est un jour souhaité. |
-| **Pitfall 1 — schéma PowerSync ↔ colonnes réelles** | ⚠️ `transactions` ✅ aligné (colonnes vérifiées contre la DB). **`cotisations` DÉRIVE** → voir §Décision. |
+| **Pitfall 1 — schéma PowerSync ↔ colonnes réelles** | ✅ `transactions` aligné (colonnes vérifiées contre la DB). `cotisations` DÉRIVAIT → **résolu par l'Option A** (§ RÉSOLU ci-dessous). |
 
-### De drifts de sync cloud (non corrigeables sans environnement live)
+### De drifts de sync cloud (historique — les deux sont résolus, voir § RÉSOLU)
 
 **A. Naming `cotisations` (camelCase app ↔ bas-casse DB).**
 La table locale PowerSync (selon `schema.ts`) est en camelCase
@@ -63,17 +63,61 @@ Les deux sont déjà documentés en Phase 1 (§4 et §6). **Décision requise** 
 
 ---
 
-## DECISION REQUISE (à trancher)
+## RÉSOLU — Décision de l'utilisateur : Option A (2026-09-13)
 
-Le **sens par défaut** recommandé (cohérent avec « DB = source de vérité, pas de
-migration manuelle ») est de **corriger l'application**, pas la base :
+Le **sens retenu** (cohérent avec « DB = source de vérité, pas de migration
+manuelle ») : **corriger l'application**, pas la base. Implémenté :
 
-- **Option A (recommandée, sans migration DB)** : aligner l'app sur les noms
-  bas-casse réels de la DB. Blast radius ≈ 155 occurrences (SQL brute locale dans
-  `cotisation-service.ts` + `capabilities/cotisation`, type `PSCotisation`/
-  `Cotisation`, pages `Cotisations`/`GroupCotisation`, tests). Risque : du code
-  SQL brut non couvert par le type-check ; à valider par la suite de tests +
-  un cycle live.
+- **Option A (applied)** — alignement complet sur les noms bas-casse réels de la DB :
+  - `src/lib/powersync/schema.ts` : table `cotisations` en colonnes
+    `montantobligatoire, montantpaye, datepaiement, notes, createdat, updatedat`
+    (comment de contexte ajouté).
+  - `src/lib/dataLayer.ts` : `PSCotisation` bas-casse ; `useCotisations`
+    normalise les lignes PS vers le type canonique `Cotisation` (camelCase) —
+    les deux branches du hook renvoient désormais `Cotisation[]` (UI inchangée) ;
+    `addCotisationPS`/`updateCotisationPS` : colonnes + clés bas-casse.
+  - `src/lib/cotisation-service.ts` : INSERT `persistCulte` en bas-casse
+    (corrige au passage un bug latent : le SQL disait `created_at`/`updated_at`
+    alors que la table locale n'a que `createdat`/`updatedat`) ; persistance
+    canonique→PS traduite explicitement.
+  - `src/capabilities/cotisation/index.ts` : SQL brute (INSERT/UPDATE/SELECT/
+    GROUP BY/ORDER BY) en bas-casse ; `rowToCotisation` bas-casse en priorité,
+    repli camelCase pour lignes locales héritées.
+  - Pages : `CulteDetail` (normalisation `culteId`/`membreId` + clés PS
+    `updateCotisationPS`), `Cotisations` (L43 `c.culteId`), `MembreDetail`
+    (L80 `c.membreId`), `GroupCotisation` (L97/L249 `c.culteId`).
+    Les lectures restantes (SaisieRapide, GroupCotisation L347/387) utilisent
+    déjà des motifs de double-lecture `canon ?? snake` → compatibles.
+  - Tests : `versement-cotisation.test.ts` L494 → `row.montantobligatoire`
+    (le store factice PARSE les colonnes du SQL, donc suit le rename).
+- **Note migration locale** : le changement de schéma PowerSync reconstruit la
+  table locale `cotisations` au prochain boot (les lignes locales dev sont
+  perdues et re-synchronisées depuis le cloud) — attendu, sans action.
+- Option B (migration DB) : **non retenue**. Le SQL alternatif reste documenté
+  dans `2026-09-13-stabilisation-phase-1-db-audit.md` §4 si on change d'avis.
+
+## RÉSOLU — Drift uuid `created_by_id`/`approved_by_id` (2026-09-13)
+
+Approche « judicieuse » retenue = **bornière d'upload**, zéro changement de
+comportement offline :
+
+- `src/lib/powersync/SupabaseConnector.ts` : `sanitizeTransactionsOpData()`
+  coercée `created_by_id`/`approved_by_id` à `null` si la valeur n'est pas un
+  UUID valide (regex stricte), appliquée sur PUT + PATCH de `uploadData` pour
+  la table `transactions` (seul le cas des FK uuid). Colonnes nullable en PG →
+  jamais d'« invalid input syntax for type uuid », plus de file d'upload
+  bouchée. Les écritures locales conservent l'identité de session texte
+  (`"local-user"`), utile pour l'audit offline.
+- Aucune migration DB, aucun changement de type TS, aucun flow cassé.
+- Conséquence documentée : côté cloud, les acteurs offline non authentifiés
+  apparaîtront avec `created_by_id = null` (pas d'altération d'audit : la
+  table `audit_entries.user_id` reste en `text`).
+
+Les deux sections « Option B (migration DB) » / « option B2 camelCase guillé »
+ci-dessous sont archivées.
+
+## ————— (archive de l'option B, non retenue) —————
+
 - **Option B (migration DB)** : renommer les colonnes PG en snake_case standard
   (`montant_obligatoire`, `created_at`, …) **ou** en camelCase guillé. SQL prêt
   ci-dessous. Nécessite validation (changement de schéma, `service.yaml` PowerSync

@@ -101,15 +101,17 @@ async function getActiveOrgMemberIds(orgId: string): Promise<string[]> {
 function rowToCotisation(r: any): Cotisation & { id: string } {
   return {
     id: String(r.id ?? ""),
-    culteId: String(r.culte_id),
-    membreId: String(r.membre_id),
+    culteId: String(r.culte_id ?? r.culteId),
+    membreId: String(r.membre_id ?? r.membreId),
     statut: (r.statut ?? "NON_PAYE") as CotisationStatut,
-    montantObligatoire: Number(r.montantObligatoire ?? r.montantobligatoire ?? 0),
-    montantPaye: Number(r.montantPaye ?? r.montantpaye ?? 0),
-    datePaiement: r.datePaiement ?? r.datepaiement ?? null,
+    // Colonnes réelles PG (bas-casse) d'abord ; repli camelCase pour les
+    // lignes locales rédigées avant la bascule.
+    montantObligatoire: Number(r.montantobligatoire ?? r.montantObligatoire ?? 0),
+    montantPaye: Number(r.montantpaye ?? r.montantPaye ?? 0),
+    datePaiement: r.datepaiement ?? r.datePaiement ?? null,
     notes: r.notes ?? null,
-    createdAt: String(r.createdAt ?? r.createdat ?? ""),
-    updatedAt: String(r.updatedAt ?? r.updatedat ?? ""),
+    createdAt: String(r.createdat ?? r.createdAt ?? ""),
+    updatedAt: String(r.updatedat ?? r.updatedAt ?? ""),
   };
 }
 
@@ -181,7 +183,7 @@ export async function createCotisationSession(
   for (const mId of memberId) {
     const cotId = generateId();
     await db.execute(
-      `INSERT INTO cotisations (id, org_id, culte_id, membre_id, statut, montantObligatoire, montantPaye, datePaiement, notes, createdAt, updatedAt)
+      `INSERT INTO cotisations (id, org_id, culte_id, membre_id, statut, montantobligatoire, montantpaye, datepaiement, notes, createdat, updatedat)
        VALUES (?, ?, ?, ?, 'NON_PAYE', ?, 0, NULL, NULL, ?, ?)`,
       [cotId, params.orgId, eventId, mId, params.montantCotisationCents, now, now],
     );
@@ -281,7 +283,7 @@ export async function collectCotisation(
     resteAPayer <= 0 ? "EN_AVANCE" : "PAYE";
 
   await db.execute(
-    `UPDATE cotisations SET statut = ?, montantPaye = ?, datePaiement = ? WHERE id = ?`,
+    `UPDATE cotisations SET statut = ?, montantpaye = ?, datepaiement = ? WHERE id = ?`,
     [newStatut, montantPayeCents, datePaiement, cot.id],
   );
 
@@ -326,7 +328,7 @@ export async function markCotisationAbsent(
   const db = getPowerSyncDatabase();
   const now = new Date().toISOString();
   await db.execute(
-    `UPDATE cotisations SET statut = 'ABSENT', updatedAt = ? WHERE id = ?`,
+    `UPDATE cotisations SET statut = 'ABSENT', updatedat = ? WHERE id = ?`,
     [now, cotisationId],
   );
   await writeAudit({
@@ -371,9 +373,9 @@ export async function getCotisationStats(
 ): Promise<CotisationStats> {
   const db = getPowerSyncDatabase();
   const res = await db.execute(
-    `SELECT c.statut, c.montantObligatoire, c.montantPaye, COUNT(*) AS n
+    `SELECT c.statut, c.montantobligatoire, c.montantpaye, COUNT(*) AS n
      FROM cotisations c WHERE c.culte_id = ?
-     GROUP BY c.statut, c.montantObligatoire, c.montantPaye`,
+     GROUP BY c.statut, c.montantobligatoire, c.montantpaye`,
     [culteId],
   );
   const rows: any[] = res?.array ?? [];
@@ -393,8 +395,8 @@ export async function getCotisationStats(
     total += n;
     const s = (r.statut as CotisationStatut) ?? "NON_PAYE";
     byStatus[s] = (byStatus[s] ?? 0) + n;
-    totalCollecteCents += n * Number(r.montantPaye ?? 0);
-    attenduCents += n * Number(r.montantObligatoire ?? 0);
+    totalCollecteCents += n * Number(r.montantpaye ?? 0);
+    attenduCents += n * Number(r.montantobligatoire ?? 0);
   }
 
   return {
@@ -416,7 +418,7 @@ export async function getMembreHistoriqueCotisations(
   const db = getPowerSyncDatabase();
   const res = await db.execute(
     `SELECT c.* FROM cotisations c WHERE c.membre_id = ?
-     ORDER BY c.createdAt DESC LIMIT ?`,
+     ORDER BY c.createdat DESC LIMIT ?`,
     [membreId, limit],
   );
   return (res?.array ?? []).map(rowToCotisation);
