@@ -36,12 +36,13 @@ const UUID_RE =
  * à `null` (colonnes nullable) — sinon chaque upload échouerait avec
  * « invalid input syntax for type uuid » et boucherait la file d'upload.
  */
-function sanitizeTransactionsOpData(
+function coerceUuidKeys(
   opData: Record<string, unknown>,
+  keys: string[],
 ): Record<string, unknown> {
   let changed = false;
   const out = { ...opData };
-  for (const key of ["created_by_id", "approved_by_id"]) {
+  for (const key of keys) {
     const v = out[key];
     if (v !== undefined && v !== null && !UUID_RE.test(String(v))) {
       out[key] = null;
@@ -49,6 +50,27 @@ function sanitizeTransactionsOpData(
     }
   }
   return changed ? out : opData;
+}
+
+/**
+ * `transactions.created_by_id` / `approved_by_id` et
+ * `documents.uploaded_by` sont des `uuid` (FK → auth.users / user id) en
+ * PostgreSQL, mais les flux offline peuvent y écrire des identifiants de
+ * session texte ("local-user", UUID de session locale…). Bornière d'upload :
+ * toute valeur qui n'est pas un UUID valide est coercée à `null` (colonnes
+ * nullable) — sinon chaque upload échouerait avec « invalid input syntax for
+ * type uuid » et boucherait la file d'upload.
+ */
+function sanitizeTransactionsOpData(
+  opData: Record<string, unknown>,
+): Record<string, unknown> {
+  return coerceUuidKeys(opData, ["created_by_id", "approved_by_id"]);
+}
+
+function sanitizeDocumentsOpData(
+  opData: Record<string, unknown>,
+): Record<string, unknown> {
+  return coerceUuidKeys(opData, ["uploaded_by"]);
 }
 
 export type SupabaseConnectorListener = {
@@ -235,7 +257,9 @@ export class SupabaseConnector
         const opData =
           op.table === "transactions"
             ? sanitizeTransactionsOpData(op.opData as Record<string, unknown>)
-            : op.opData;
+            : op.table === "documents"
+              ? sanitizeDocumentsOpData(op.opData as Record<string, unknown>)
+              : op.opData;
         let result: any;
 
         switch (op.op) {

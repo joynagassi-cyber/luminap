@@ -93,11 +93,6 @@ export default function EventEdit() {
 
   return (
     <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>EventEdit</IonTitle>
-        </IonToolbar>
-      </IonHeader>
       <IonContent className="bg-canvas">
         <div className="min-h-screen bg-canvas">
           <TopHeader title="Modifier l'événement" />

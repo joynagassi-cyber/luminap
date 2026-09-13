@@ -121,11 +121,6 @@ export default function MembersPage() {
 
   return (
     <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>Membres</IonTitle>
-        </IonToolbar>
-      </IonHeader>
       <IonContent fullscreen>
         <div className="min-h-screen bg-canvas">
           <TopHeader title="Membres" />

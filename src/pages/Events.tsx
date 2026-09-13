@@ -46,11 +46,6 @@ export default function Events() {
 
   return (
     <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>Événements</IonTitle>
-        </IonToolbar>
-      </IonHeader>
       {psLoading ? (
         <IonContent fullscreen>
           <EventsSkeleton />

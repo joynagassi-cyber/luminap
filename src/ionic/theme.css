@@ -103,3 +103,12 @@ ion-content {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* TopHeader (IonHeader dans le contenu scrollable) reste en tête de page.
+   Les IonHeader "jumeaux" de page (sibling de ion-content) ne sont pas
+   concernés : ils sont déjà fixes par Ionic. */
+ion-content ion-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}

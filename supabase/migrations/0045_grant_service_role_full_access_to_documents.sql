@@ -1,0 +1,1 @@
+grant select, insert, update, delete on table public.documents to service_role;

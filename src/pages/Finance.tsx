@@ -112,11 +112,6 @@ export default function Finance() {
   if (loading) {
     return (
       <IonPage>
-        <IonHeader>
-          <IonToolbar>
-            <IonTitle>Finance</IonTitle>
-          </IonToolbar>
-        </IonHeader>
         <IonContent className="bg-canvas">
           <div className="min-h-screen bg-canvas">
             <TopHeader title="Finance" />
@@ -130,11 +125,6 @@ export default function Finance() {
 
   return (
     <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>Finance</IonTitle>
-        </IonToolbar>
-      </IonHeader>
       <IonContent className="bg-canvas">
         <div className="min-h-screen bg-canvas">
           <TopHeader title="Finance" />

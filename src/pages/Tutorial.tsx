@@ -1336,11 +1336,6 @@ export default function Tutorial() {
 
   return (
     <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>Tutoriel</IonTitle>
-        </IonToolbar>
-      </IonHeader>
       <IonContent className="bg-canvas">
         <div className="min-h-screen bg-[#121212]">
           <TopHeader title="Tutoriel" />

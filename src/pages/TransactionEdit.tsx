@@ -122,11 +122,6 @@ export default function TransactionEdit() {
 
   return (
     <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>TransactionEdit</IonTitle>
-        </IonToolbar>
-      </IonHeader>
       <IonContent className="bg-canvas">
         <div className="h-screen bg-canvas flex flex-col overflow-hidden">
           <TopHeader title="Modifier" />

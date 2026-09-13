@@ -111,11 +111,6 @@ export default function FormBuilder() {
 
   return (
     <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>Formulaires</IonTitle>
-        </IonToolbar>
-      </IonHeader>
       <IonContent className="bg-canvas">
         <div className="h-screen bg-canvas flex flex-col overflow-hidden">
           <TopHeader title="Formulaires" />

@@ -1,0 +1,1 @@
+create index if not exists idx_documents_entity on public.documents (entity_type, entity_id);

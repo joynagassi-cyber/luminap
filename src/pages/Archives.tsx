@@ -3,7 +3,23 @@ import { useNavigate } from "react-router-dom";
 import { resource } from "@/capabilities/resource";
 import { lifecycle } from "@/capabilities/lifecycle";
 import type { Group, Member, Event } from "@/types";
-import { Users, Search, Archive, RefreshCw, ArrowLeft } from "lucide-react";
+import {
+  useDocuments,
+  addDocumentPS,
+  updateDocumentPS,
+  type PSDocument,
+} from "@/lib/dataLayer";
+import { uploadLuminaFile, getDocumentUrl } from "@/lib/storageService";
+import {
+  Users,
+  Search,
+  Archive,
+  RefreshCw,
+  ArrowLeft,
+  FileText,
+  Upload,
+  Download,
+} from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
 import { ArchivesSkeleton } from "@/components/PageSkeletons";
@@ -22,6 +38,63 @@ export default function Archives() {
   const [archivedMembers, setArchivedMembers] = useState<Member[]>([]);
   const [archivedEvents, setArchivedEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // ── Documents (upload / archivage via bucket `archives`) ─────────────
+  const { data: allDocuments } = useDocuments();
+  const documents = (allDocuments ?? []).filter(
+    (d) => d.bucket === "archives",
+  );
+  const [docTitle, setDocTitle] = useState("");
+  const [docPurpose, setDocPurpose] = useState("");
+  const [docFile, setDocFile] = useState<File | null>(null);
+  const [docUploading, setDocUploading] = useState(false);
+  const [docError, setDocError] = useState("");
+
+  const handleDocumentUpload = async () => {
+    if (!docFile || !docTitle.trim()) {
+      setDocError("Nom du document et fichier requis.");
+      return;
+    }
+    setDocUploading(true);
+    setDocError("");
+    try {
+      const path = await uploadLuminaFile("archives", docFile);
+      await addDocumentPS({
+        title: docTitle.trim(),
+        purpose: docPurpose.trim() || null,
+        bucket: "archives",
+        file_path: path,
+        file_size: docFile.size,
+        mime_type: docFile.type || null,
+        entity_type: "ARCHIVE_DOC",
+        status: "ACTIVE",
+      });
+      setDocTitle("");
+      setDocPurpose("");
+      setDocFile(null);
+    } catch (e) {
+      setDocError(
+        "Envoi impossible (hors ligne ou accès refusé). Le document n'a pas été archivé.",
+      );
+    } finally {
+      setDocUploading(false);
+    }
+  };
+
+  const handleDownloadDocument = async (doc: PSDocument) => {
+    try {
+      const url = await getDocumentUrl("archives", doc.file_path);
+      window.open(url, "_blank");
+    } catch {
+      setDocError("Téléchargement impossible (hors ligne ?).");
+    }
+  };
+
+  const handleToggleArchiveDocument = async (doc: PSDocument) => {
+    await updateDocumentPS(doc.id, {
+      status: doc.status === "ARCHIVED" ? "ACTIVE" : "ARCHIVED",
+    });
+  };
 
   // Load archived entities via Resource capability
   useEffect(() => {
@@ -51,7 +124,7 @@ export default function Archives() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<
-    "all" | "group" | "member" | "event"
+    "all" | "group" | "member" | "event" | "document"
   >("all");
 
   const allArchived = [
@@ -100,11 +173,6 @@ export default function Archives() {
 
   return (
     <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>Archives</IonTitle>
-        </IonToolbar>
-      </IonHeader>
       <IonContent className="bg-canvas">
         <div className="min-h-screen bg-canvas">
           <TopHeader title="Archives" />
@@ -149,6 +217,7 @@ export default function Archives() {
                   { id: "group" as const, label: "Groupes" },
                   { id: "member" as const, label: "Membres" },
                   { id: "event" as const, label: "Événements" },
+                  { id: "document" as const, label: "Documents" },
                 ].map(({ id, label }) => (
                   <button
                     key={id}
@@ -167,7 +236,149 @@ export default function Archives() {
                 ))}
               </div>
 
-              {/* Archived items */}
+              {/* Documents : upload + liste */}
+              {(filterType === "all" || filterType === "document") && (
+                <div className="mb-6">
+                  <h2 className="text-sm font-bold text-text-primary mb-3 flex items-center gap-2">
+                    <Upload className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
+                    Documents
+                  </h2>
+
+                  {/* Formulaire d'upload */}
+                  <div
+                    className="rounded-xl p-4 mb-4 space-y-3"
+                    style={{ backgroundColor: "#1e1e1e", border: "1px solid #282828" }}
+                  >
+                    <input
+                      type="text"
+                      value={docTitle}
+                      onChange={(e) => setDocTitle(e.target.value)}
+                      placeholder="Nom du document *"
+                      className="w-full px-4 py-3 rounded-xl text-sm"
+                      style={{ backgroundColor: "#212121", color: "#fff", border: "1px solid #282828" }}
+                      aria-label="Nom du document"
+                    />
+                    <input
+                      type="text"
+                      value={docPurpose}
+                      onChange={(e) => setDocPurpose(e.target.value)}
+                      placeholder="Objet / à quoi il s'applique (ex: PV assemblée, reçu...)"
+                      className="w-full px-4 py-3 rounded-xl text-sm"
+                      style={{ backgroundColor: "#212121", color: "#fff", border: "1px solid #282828" }}
+                      aria-label="Objet du document"
+                    />
+                    <label
+                      className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm cursor-pointer"
+                      style={{ backgroundColor: "#282828", color: "#fff" }}
+                    >
+                      <FileText className="w-4 h-4" />
+                      {docFile ? docFile.name : "Choisir le fichier (PDF, image...)*"}
+                      <input
+                        type="file"
+                        accept=".pdf,.png,.jpg,.jpeg,.webp,.doc,.docx"
+                        className="hidden"
+                        onChange={(e) => {
+                          setDocFile(e.target.files?.[0] ?? null);
+                          e.target.value = "";
+                        }}
+                      />
+                    </label>
+                    {docError && (
+                      <p className="text-xs" style={{ color: "#E51332" }}>
+                        {docError}
+                      </p>
+                    )}
+                    <button
+                      onClick={handleDocumentUpload}
+                      disabled={docUploading || !docFile || !docTitle.trim()}
+                      className="w-full py-3 rounded-full text-sm font-semibold text-white transition-all disabled:opacity-40"
+                      style={{
+                        backgroundColor: "var(--accent-primary)",
+                      }}
+                    >
+                      {docUploading ? "Archivage..." : "Archiver le document"}
+                    </button>
+                  </div>
+
+                  {/* Liste des documents */}
+                  <div className="space-y-2">
+                    {documents.length === 0 ? (
+                      <p className="text-center text-text-tertiary text-xs py-4">
+                        Aucun document archivé
+                      </p>
+                    ) : (
+                      documents.map((doc) => (
+                        <div
+                          key={doc.id}
+                          className="rounded-xl p-3 flex items-center gap-3"
+                          style={{
+                            backgroundColor: "#212121",
+                            border: "1px solid #282828",
+                          }}
+                        >
+                          <div
+                            className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                            style={{ backgroundColor: "#282828" }}
+                          >
+                            <FileText className="w-5 h-5 text-text-tertiary" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-text-secondary text-sm font-medium truncate">
+                              {doc.title}
+                              {doc.status === "ARCHIVED" && (
+                                <span className="ml-2 text-xs text-text-tertiary">
+                                  (archivé)
+                                </span>
+                              )}
+                            </p>
+                            {doc.purpose && (
+                              <p className="text-text-tertiary text-xs mt-0.5 truncate">
+                                {doc.purpose}
+                              </p>
+                            )}
+                            <p className="text-text-tertiary text-xs mt-0.5">
+                              {new Date(doc.created_at).toLocaleDateString("fr-FR")}
+                              {doc.file_size
+                                ? ` · ${(doc.file_size / 1024).toFixed(0)} Ko`
+                                : ""}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => handleDownloadDocument(doc)}
+                            className="p-2 rounded-full active:scale-95"
+                            style={{ backgroundColor: "#1DB95420" }}
+                            aria-label={`Télécharger ${doc.title}`}
+                          >
+                            <Download className="w-4 h-4" style={{ color: "#1DB954" }} />
+                          </button>
+                          <button
+                            onClick={() => handleToggleArchiveDocument(doc)}
+                            className="p-2 rounded-full active:scale-95"
+                            style={{
+                              backgroundColor: doc.status === "ARCHIVED" ? "#FFB80020" : "#E5133220",
+                            }}
+                            aria-label={
+                              doc.status === "ARCHIVED"
+                                ? `Rétablir ${doc.title}`
+                                : `Supprimer ${doc.title}`
+                            }
+                          >
+                            <Archive
+                              className="w-4 h-4"
+                              style={{
+                                color: doc.status === "ARCHIVED" ? "#FFB800" : "#E51332",
+                              }}
+                            />
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Archived items (entités) — masqué quand l'onglet Documents est actif */}
+              {filterType !== "document" && (
               <div className="space-y-2">
                 {filtered.length === 0 ? (
                   <div
@@ -237,6 +448,7 @@ export default function Archives() {
                   ))
                 )}
               </div>
+              )}
             </div>
           )}
           <BottomNav />

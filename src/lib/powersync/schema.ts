@@ -382,6 +382,29 @@ const report_definitions = new Table(
   { indexes: {} },
 );
 
+// Documents / preuves (logos, archives, pièces jointes de dépenses).
+// Les fichiers eux-mêmes vivent dans les buckets Supabase Storage
+// (`logos`, `archives`, `expense_proofs`) ; cette table porte la
+// métadonnée synchronisable (titre, objet, chemin, statut…).
+const documents = new Table(
+  {
+    org_id: column.text,
+    title: column.text,
+    purpose: column.text,
+    bucket: column.text,
+    file_path: column.text,
+    file_size: column.integer,
+    mime_type: column.text,
+    entity_type: column.text,
+    entity_id: column.text,
+    status: column.text,
+    uploaded_by: column.text,
+    created_at: column.text,
+    updated_at: column.text,
+  },
+  { indexes: {} },
+);
+
 export const AppSchema = new Schema({
   profiles,
   members,
@@ -404,6 +427,7 @@ export const AppSchema = new Schema({
   custom_field_definitions,
   custom_field_values,
   report_definitions,
+  documents,
   cotisations,
   invitations,
   invitation_claims,

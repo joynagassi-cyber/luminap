@@ -10,7 +10,9 @@ import {
   deleteTransactionPS,
   approveTransactionPS,
   reverseTransactionPS,
+  useDocuments,
 } from "@/lib/dataLayer";
+import { getDocumentUrl } from "@/lib/storageService";
 import {
   formatCurrencyCompact,
   formatDate,
@@ -25,6 +27,7 @@ import {
   Trash2,
   AlertCircle,
   RotateCcw,
+  Download,
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
@@ -60,6 +63,23 @@ export default function TransactionDetail() {
   const [rejectComment, setRejectComment] = useState("");
   const [showReverseModal, setShowReverseModal] = useState(false);
   const [reverseReason, setReverseReason] = useState("");
+
+  // Preuves de dépense (photos dans le bucket `expense_proofs`).
+  const { data: docData } = useDocuments();
+  const proofs = (docData ?? []).filter(
+    (d) => d.entity_id === id && d.entity_type === "EXPENSE_PROOF",
+  );
+  const [proofUrls, setProofUrls] = useState<Record<string, string>>({});
+  useEffect(() => {
+    proofs.forEach(async (d) => {
+      try {
+        const u = await getDocumentUrl("expense_proofs", d.file_path);
+        setProofUrls((p) => ({ ...p, [d.id]: u }));
+      } catch {
+        /* hors ligne — l'aperçu reste indisponible, le bouton Télécharger aussi */
+      }
+    });
+  }, [proofs.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const tx = transactions.find((t: any) => t.id === id);
   if (!tx) {
@@ -367,6 +387,91 @@ export default function TransactionDetail() {
                 <p className="text-text-tertiary text-xs mt-1">
                   {formatDate(reversal.date)}
                 </p>
+              </div>
+            )}
+
+            {/* Preuve de la dépense */}
+            {(tx as any).type === "EXPENSE" && (
+              <div
+                className="rounded-xl p-4 mb-6"
+                style={{
+                  backgroundColor: "#1e1e1e",
+                  border: "1px solid #282828",
+                }}
+              >
+                <p className="text-text-tertiary text-xs mb-2 font-medium">
+                  Preuve de la dépense
+                </p>
+                {proofs.length === 0 ? (
+                  <p className="text-text-tertiary text-xs">
+                    Aucune preuve fournie
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2">
+                    {proofs.map((d) =>
+                      proofUrls[d.id] ? (
+                        <a
+                          key={d.id}
+                          href={proofUrls[d.id]}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="relative rounded-lg overflow-hidden block"
+                          style={{
+                            height: "7rem",
+                            border: "1px solid #282828",
+                          }}
+                          aria-label={`Voir la preuve : ${d.title}`}
+                        >
+                          <img
+                            src={proofUrls[d.id]}
+                            alt={d.title}
+                            className="w-full h-full object-cover"
+                          />
+                        </a>
+                      ) : (
+                        <div
+                          key={d.id}
+                          className="rounded-lg overflow-hidden flex items-center justify-center"
+                          style={{
+                            height: "7rem",
+                            border: "1px solid #282828",
+                            backgroundColor: "#212121",
+                          }}
+                          aria-label={`Preuve indisponible hors ligne : ${d.title}`}
+                        >
+                          <Download className="w-5 h-5 text-text-tertiary" />
+                        </div>
+                      ),
+                    )}
+                  </div>
+                )}
+                {proofs.length > 0 && (
+                  <div className="flex gap-2 mt-3">
+                    {proofs.map((d) => (
+                      <button
+                        key={d.id}
+                        onClick={async () => {
+                          try {
+                            const u =
+                              proofUrls[d.id] ||
+                              (await getDocumentUrl("expense_proofs", d.file_path));
+                            window.open(u, "_blank");
+                          } catch {
+                            /* hors ligne */
+                          }
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs"
+                        style={{
+                          backgroundColor: "#282828",
+                          color: "#fff",
+                        }}
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        Télécharger
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 

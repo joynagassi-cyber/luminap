@@ -105,11 +105,6 @@ export default function TransactionNewGroup() {
 
   return (
     <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>TransactionNewGroup</IonTitle>
-        </IonToolbar>
-      </IonHeader>
       <IonContent className="bg-canvas">
         <div className="h-screen bg-canvas flex flex-col overflow-hidden">
           <TopHeader title="Nouvelle transaction" />

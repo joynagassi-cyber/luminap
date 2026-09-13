@@ -38,6 +38,14 @@
 - **Groupes** : 5 (diacres, jeunesse, dames, messieurs, chorale)
 - **Caisses** : Chaque groupe a sa propre caisse (`sourceCaisseId`). La caisse principale (`id: 'main'`) reçoit les versements.
 
+## Stockage fichiers (buckets Supabase)
+- **3 buckets** : `logos` (PUBLIC — logos de l'église/organisation), `archives` (privé — documents nommés + objet), `expense_proofs` (privé — photos-preuves de dépenses).
+- **Table `documents`** (Postgres + PowerSync, publication `powersync`) : métadonnée des fichiers — `org_id`, `title`, `purpose` (objet), `bucket`, `file_path`, `file_size`, `mime_type`, `entity_type` ∈ {ARCHIVE_DOC, EXPENSE_PROOF, LOGO, OTHER}, `entity_id`, `status` ∈ {ACTIVE, ARCHIVED, DELETED} (soft-delete par UPDATE, pas de DELETE côté client), `uploaded_by` (uuid, nullable).
+- **Accès** : `src/lib/storageService.ts` → `uploadLuminaFile(bucket, file, subpath?)`, `getDocumentUrl(bucket, path)` (public → URL stable ; privé → URL signée 30 min), `deleteLuminaFile()`. Les uploads nécessitent le réseau (pas de binaire offline) ; la métadonnée `documents` est PowerSync (offline ok).
+- **RLS storage** : `lumina_storage_read` / `lumina_storage_write` (anon + authenticated, restreintes aux 3 buckets) ; `lumina_storage_delete` (authenticated).
+- **UI** : upload de documents dans `Archives` (nom + objet) ; photos-preuve dans le formulaire de dépense (`TransactionNew`, section « Preuve de la dépense ») et affichées dans `TransactionDetail` ; upload du logo dans `Settings` (bucket `logos`, repli base64 hors ligne) ; logo affichée dans `TopHeader`.
+- **Bornière uuid** : `SupabaseConnector.uploadData` coerce `documents.uploaded_by` et `transactions.created_by_id/approved_by_id` vers `null` si non-UUID.
+
 ## Architecture Caisses & Versement
 - **Caisse principale** (`id: 'main'`) : fonds de l'église, visible dans le dashboard
 - **Caisse groupe** (`id: orgUnitId`) : fonds de chaque groupe

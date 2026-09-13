@@ -1,0 +1,1 @@
+grant select on table public.documents to powersync_role;

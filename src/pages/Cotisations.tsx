@@ -85,11 +85,6 @@ export default function Cotisations() {
 
   return (
     <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>Cotisations</IonTitle>
-        </IonToolbar>
-      </IonHeader>
       <IonContent className="bg-canvas">
         <div className="min-h-screen" style={{ background: "#121212" }}>
           <TopHeader title="Cotisations" />

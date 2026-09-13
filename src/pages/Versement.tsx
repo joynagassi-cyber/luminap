@@ -95,11 +95,6 @@ export default function Versement() {
   if (accountsLoading) {
     return (
       <IonPage>
-        <IonHeader>
-          <IonToolbar>
-            <IonTitle>Versement</IonTitle>
-          </IonToolbar>
-        </IonHeader>
         <IonContent className="bg-canvas" fullscreen>
           <VersementSkeleton />
         </IonContent>
@@ -109,11 +104,6 @@ export default function Versement() {
 
   return (
     <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>Versement</IonTitle>
-        </IonToolbar>
-      </IonHeader>
       <IonContent fullscreen>
         <div className="min-h-screen bg-canvas">
           <TopHeader title="Versement" />

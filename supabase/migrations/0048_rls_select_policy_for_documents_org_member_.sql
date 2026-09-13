@@ -1,0 +1,1 @@
+create policy "documents_select" on public.documents for select to authenticated using (is_org_member(auth.uid(), org_id));

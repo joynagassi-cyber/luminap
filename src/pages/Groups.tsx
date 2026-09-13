@@ -134,11 +134,6 @@ export default function Groups() {
   if (groupsLoading) {
     return (
       <IonPage>
-        <IonHeader>
-          <IonToolbar>
-            <IonTitle>Groupes</IonTitle>
-          </IonToolbar>
-        </IonHeader>
         <IonContent className="bg-canvas" fullscreen>
           <GroupsSkeleton />
         </IonContent>
@@ -148,11 +143,6 @@ export default function Groups() {
 
   return (
     <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>Groupes</IonTitle>
-        </IonToolbar>
-      </IonHeader>
       <IonContent className="bg-canvas">
         <div className="min-h-screen bg-canvas flex flex-col">
           <TopHeader title="Groupes" />

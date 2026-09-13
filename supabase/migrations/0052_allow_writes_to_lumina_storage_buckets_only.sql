@@ -1,0 +1,1 @@
+create policy "lumina_storage_write" on storage.objects for insert to anon, authenticated with check (bucket_id in ('logos','archives','expense_proofs'));

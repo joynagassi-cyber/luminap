@@ -6,12 +6,22 @@ import {
   useCaisses,
   useEvents,
   addTransactionPS,
+  addDocumentPS,
 } from "@/lib/dataLayer";
-import { ArrowLeft, Wallet, Calendar } from "lucide-react";
+import { uploadLuminaFile } from "@/lib/storageService";
+import {
+  ArrowLeft,
+  Wallet,
+  Calendar,
+  Camera,
+  ImagePlus,
+  X,
+} from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
 import { generateId } from "@/lib/utils";
 import { getOrganizationId } from "@/lib/orgContext";
+import { useOnlineStatus } from "@/lib/dataLayer";
 import { policy } from "@/capabilities/policy";
 import {
   IonPage,
@@ -58,6 +68,10 @@ export default function TransactionNew() {
   const [comment, setComment] = useState("");
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  // Photos de preuve de dépense (montées dans le bucket `expense_proofs`).
+  const [proofPhotos, setProofPhotos] = useState<File[]>([]);
+  const [proofUploading, setProofUploading] = useState(false);
+  const isOnline = useOnlineStatus();
 
   const validateAmount = (val: string): string => {
     const num = parseFloat(val);
@@ -94,7 +108,7 @@ export default function TransactionNew() {
       setError(amountCheck.message ?? "Veuillez entrer un montant valide");
       return;
     }
-    await addTransactionPS({
+    const txId = await addTransactionPS({
       org_id: getOrganizationId(),
       type,
       amount: Math.round(parseFloat(trimmedAmount) * 100),
@@ -116,16 +130,49 @@ export default function TransactionNew() {
       reversal_of_id: null,
       cotisation_id: null,
     });
-    navigate("/");
+
+    // Preuves de la dépense : montée des photos dans le bucket privé
+    // `expense_proofs` + métadonnée `documents` (liée à la transaction).
+    if (isExpense && proofPhotos.length > 0) {
+      setProofUploading(true);
+      try {
+        for (const photo of proofPhotos) {
+          const path = await uploadLuminaFile(
+            "expense_proofs",
+            photo,
+            txId,
+          );
+          await addDocumentPS({
+            title: `Preuve de dépense — ${trimmedDesc}`,
+            purpose: "Attestation irréfutable de la dépense",
+            bucket: "expense_proofs",
+            file_path: path,
+            file_size: photo.size,
+            mime_type: photo.type || "image/*",
+            entity_type: "EXPENSE_PROOF",
+            entity_id: txId,
+            status: "ACTIVE",
+            uploaded_by: sessionId,
+          });
+        }
+        setProofPhotos([]);
+      } catch {
+        // Hors ligne / refus du bucket : la transaction est déjà créée,
+        // la preuve restera accessible une fois rebranché.
+        setError(
+          "Transaction enregistrée. L'envoi de la photo a échoué (hors ligne ?). La preuve pourra être relancée depuis le détail.",
+        );
+        setProofPhotos([]);
+      } finally {
+        setProofUploading(false);
+      }
+    }
+
+    navigate(`/transaction/${txId}`);
   };
 
   return (
     <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>Nouvelle transaction</IonTitle>
-        </IonToolbar>
-      </IonHeader>
       <IonContent fullscreen>
         <div className="h-screen bg-canvas flex flex-col overflow-hidden">
           <TopHeader title="Nouvelle transaction" />
@@ -360,6 +407,113 @@ export default function TransactionNew() {
                 }}
               />
             </div>
+
+            {/* Preuve photo de la dépense (Sortie uniquement) */}
+            {type === "EXPENSE" && (
+              <div className="mb-6 rounded-xl p-4"
+                style={{ backgroundColor: "#1e1e1e", border: "1px solid #282828" }}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-semibold text-text-primary">
+                    Preuve de la dépense
+                  </p>
+                  {proofUploading && (
+                    <span className="text-xs text-text-tertiary">
+                      Envoi...
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-text-tertiary mb-3">
+                  Prenez ou choisissez une photo pour attester la dépense
+                  (reçu, facture, matériel...). Elle est archivée de manière
+                  irrévocable.
+                </p>
+
+                {/* Aperçus */}
+                {proofPhotos.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {proofPhotos.map((p, i) => (
+                      <div
+                        key={i}
+                        className="relative w-20 h-20 rounded-lg overflow-hidden"
+                        style={{ border: "1px solid #282828" }}
+                      >
+                        <img
+                          src={URL.createObjectURL(p)}
+                          alt={`Preuve ${i + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setProofPhotos((prev) =>
+                              prev.filter((_, idx) => idx !== i),
+                            )
+                          }
+                          className="absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center"
+                          style={{ backgroundColor: "rgba(0,0,0,0.7)" }}
+                          aria-label={`Supprimer la preuve ${i + 1}`}
+                        >
+                          <X className="w-3 h-3 text-white" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex gap-2">
+                  <label
+                    className="flex-1 py-2.5 rounded-full text-sm font-medium text-center cursor-pointer flex items-center justify-center gap-1.5"
+                    style={{
+                      backgroundColor: "#282828",
+                      color: "#fff",
+                    }}
+                  >
+                    <Camera className="w-4 h-4" />
+                    Prendre une photo
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) setProofPhotos((prev) => [...prev, f]);
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+                  <label
+                    className="flex-1 py-2.5 rounded-full text-sm font-medium text-center cursor-pointer flex items-center justify-center gap-1.5"
+                    style={{
+                      backgroundColor: "#282828",
+                      color: "#fff",
+                    }}
+                  >
+                    <ImagePlus className="w-4 h-4" />
+                    Depuis la galerie
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files ?? []);
+                        if (files.length)
+                          setProofPhotos((prev) => [...prev, ...files]);
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+                </div>
+                {!isOnline && proofPhotos.length === 0 && (
+                  <p className="text-xs text-[#FFB800] mt-2">
+                    Hors ligne : la photo ne pourra pas être envoyée avant
+                    reconnexion.
+                  </p>
+                )}
+              </div>
+            )}
 
             {error && (
               <div

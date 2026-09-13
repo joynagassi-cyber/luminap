@@ -1,0 +1,1 @@
+create index if not exists idx_documents_org on public.documents (org_id);

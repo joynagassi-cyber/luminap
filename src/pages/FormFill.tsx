@@ -91,11 +91,6 @@ export default function FormFill() {
 
   return (
     <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>FormFill</IonTitle>
-        </IonToolbar>
-      </IonHeader>
       <IonContent className="bg-canvas">
         <div className="min-h-screen bg-canvas flex flex-col">
           <TopHeader title={form.name} />

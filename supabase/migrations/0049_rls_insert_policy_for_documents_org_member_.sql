@@ -1,0 +1,1 @@
+create policy "documents_insert" on public.documents for insert to authenticated with check (is_org_member(auth.uid(), org_id));

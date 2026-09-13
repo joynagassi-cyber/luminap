@@ -76,11 +76,6 @@ export default function CustomFields() {
 
   return (
     <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>Champs personnalisés</IonTitle>
-        </IonToolbar>
-      </IonHeader>
       <IonContent className="ion-padding">
         <div className="min-h-screen bg-canvas">
           <TopHeader title="Champs personnalisés" />

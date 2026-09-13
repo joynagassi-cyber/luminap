@@ -1,0 +1,1 @@
+create policy "documents_update" on public.documents for update to authenticated using (is_org_member(auth.uid(), org_id));

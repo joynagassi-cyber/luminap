@@ -252,6 +252,26 @@ export interface PSGroupMembership {
   created_at: string;
 }
 
+// Métadonnée des fichiers Storage (logos, archives, preuves de dépenses).
+// Les fichiers vivent dans les buckets Supabase ; cette table est
+// synchronisable et porte le titre / objet / chemin / statut.
+export interface PSDocument {
+  id: string;
+  org_id: string;
+  title: string;
+  purpose: string | null;
+  bucket: string;
+  file_path: string;
+  file_size: number | null;
+  mime_type: string | null;
+  entity_type: string | null;
+  entity_id: string | null;
+  status: string;
+  uploaded_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 // ============================================================
 // Internal helper: check if PowerSync is initialized
 // ============================================================
@@ -625,6 +645,28 @@ export function useCotisations() {
     data: store.cotisations,
     isLoading: false,
     source: "indexeddb" as const,
+  };
+}
+
+/**
+ * Hook to get all documents / attached files (archives, expense proofs, logos)
+ * PowerSync only — pas de fallback IndexedDB (les fichiers sont cloud).
+ */
+export function useDocuments(opts?: { entity?: string; entityType?: string }) {
+  const { data: psData } = useQuery<PSDocument>(
+    "SELECT id, org_id, title, purpose, bucket, file_path, file_size, mime_type, entity_type, entity_id, status, uploaded_by, created_at, updated_at FROM documents WHERE org_id = ? AND status != 'DELETED' ORDER BY created_at DESC",
+    [getOrganizationId()],
+    { reportFetching: true },
+  );
+  const filtered = (psData ?? []).filter((d) => {
+    if (opts?.entity && d.entity_id !== opts.entity) return false;
+    if (opts?.entityType && d.entity_type !== opts.entityType) return false;
+    return true;
+  });
+  return {
+    data: filtered,
+    isLoading: psData === undefined,
+    source: "powersync" as const,
   };
 }
 
@@ -1038,6 +1080,84 @@ export async function updateCotisationPS(
 
   await executeWrite(
     `UPDATE cotisations SET ${setClauses.join(", ")} WHERE id = ?`,
+    params,
+  );
+}
+
+/**
+ * Enregistrer la métadonnée d'un fichier (après upload Storage).
+ * `id` optionnel (généré sinon) pour contrôler l'insert locale.
+ */
+export async function addDocumentPS(doc: {
+  id?: string;
+  org_id?: string;
+  title: string;
+  purpose?: string | null;
+  bucket: string;
+  file_path: string;
+  file_size?: number | null;
+  mime_type?: string | null;
+  entity_type?: string | null;
+  entity_id?: string | null;
+  status?: string;
+  uploaded_by?: string | null;
+}): Promise<void> {
+  const now = new Date().toISOString();
+  const id = doc.id ?? crypto.randomUUID();
+  await executeWrite(
+    `INSERT INTO documents
+      (id, org_id, title, purpose, bucket, file_path, file_size, mime_type, entity_type, entity_id, status, uploaded_by, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      id,
+      doc.org_id ?? getOrganizationId(),
+      doc.title,
+      doc.purpose ?? null,
+      doc.bucket,
+      doc.file_path,
+      doc.file_size ?? null,
+      doc.mime_type ?? null,
+      doc.entity_type ?? null,
+      doc.entity_id ?? null,
+      doc.status ?? "ACTIVE",
+      doc.uploaded_by ?? null,
+      now,
+      now,
+    ],
+  );
+}
+
+/**
+ * Mettre à jour un document (ex. statut → ARCHIVED / DELETED).
+ */
+export async function updateDocumentPS(
+  id: string,
+  updates: {
+    title?: string;
+    purpose?: string | null;
+    status?: string;
+  },
+): Promise<void> {
+  const setClauses: string[] = [];
+  const params: any[] = [];
+  if (updates.title !== undefined) {
+    setClauses.push("title = ?");
+    params.push(updates.title);
+  }
+  if (updates.purpose !== undefined) {
+    setClauses.push("purpose = ?");
+    params.push(updates.purpose);
+  }
+  if (updates.status !== undefined) {
+    setClauses.push("status = ?");
+    params.push(updates.status);
+  }
+  setClauses.push("updated_at = ?");
+  params.push(new Date().toISOString());
+  params.push(id);
+
+  await executeWrite(
+    `UPDATE documents SET ${setClauses.join(", ")} WHERE id = ?`,
     params,
   );
 }

@@ -58,11 +58,6 @@ export default function NotificationsPage() {
   if (notificationsLoading) {
     return (
       <IonPage>
-        <IonHeader>
-          <IonToolbar>
-            <IonTitle>Notifications</IonTitle>
-          </IonToolbar>
-        </IonHeader>
         <IonContent fullscreen>
           <div className="min-h-screen bg-canvas">
             <NotificationsSkeleton />
@@ -74,11 +69,6 @@ export default function NotificationsPage() {
 
   return (
     <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>Notifications</IonTitle>
-        </IonToolbar>
-      </IonHeader>
       <IonContent fullscreen>
         <div className="min-h-screen bg-canvas">
           <TopHeader title="Notifications" />

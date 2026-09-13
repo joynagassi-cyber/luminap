@@ -101,6 +101,10 @@ vi.mock("@/lib/dataLayer", () => ({
   useEvents: vi.fn(() => ({ data: [] })),
   useCotisations: vi.fn(() => ({ data: [] })),
   useNotifications: vi.fn(() => ({ data: [] })),
+  useAppConfig: vi.fn(() => ({
+    config: { churchName: "", churchLogoUrl: "", userPhoto: "" },
+    updateConfig: vi.fn(async () => {}),
+  })),
   markAllNotificationsRead: vi.fn(async () => {}),
 }));
 

@@ -2,7 +2,11 @@ import { Bell, Settings, LayoutDashboard } from "lucide-react";
 import { IonButton, IonHeader, IonToolbar } from "@ionic/react";
 import { useLocalStore } from "@/store/useLocalStore";
 import { useNavigate } from "react-router-dom";
-import { useCurrentUser, useOrganizations } from "@/lib/dataLayer";
+import {
+  useCurrentUser,
+  useOrganizations,
+  useAppConfig,
+} from "@/lib/dataLayer";
 import {
   useOrganizationContext,
   exitToCentral,
@@ -14,6 +18,8 @@ export default function TopHeader({ title }: { title?: string }) {
   const user = useCurrentUser();
   const ctx = useOrganizationContext();
   const { data: orgData } = useOrganizations("mine");
+  const { config: appConfig } = useAppConfig();
+  const churchLogo = appConfig?.churchLogoUrl;
 
   const isCentralAdmin = user?.role === "CENTRAL_ADMIN";
   const inOrgContext = ctx.mode === "ORG";
@@ -43,11 +49,22 @@ export default function TopHeader({ title }: { title?: string }) {
       >
         <div className="px-4 py-2.5 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
+            {/* Logo Lumina (marque) */}
             <img
               src="/lumina-logo.png"
               alt="Lumina"
               className="w-8 h-8 rounded-lg"
+              style={{ border: "1px solid #282828" }}
             />
+            {/* Logo de l'église / organisation (uploadé, bucket « logos ») */}
+            {churchLogo && (
+              <img
+                src={churchLogo}
+                alt={`Logo de ${appConfig?.churchName || "l'organisation"}`}
+                className="w-8 h-8 rounded-lg object-cover"
+                style={{ border: "1px solid #282828" }}
+              />
+            )}
             <div>
               <p className="text-text-primary font-bold text-sm leading-none">
                 {title || "Lumina"}
@@ -61,8 +78,9 @@ export default function TopHeader({ title }: { title?: string }) {
             <IonButton
               onClick={handleNotificationsClick}
               className="!min-height:auto !p-0 !rounded-full !min-w-[36px] !w-9 !h-9"
-              style={{ backgroundColor: "#212121" }}
+              style={{ backgroundColor: "#212121", border: "1px solid #282828" }}
               aria-label="Notifications"
+              title="Notifications"
               aria-haspopup="dialog"
             >
               <Bell className="w-4 h-4 text-text-secondary" />
@@ -78,8 +96,9 @@ export default function TopHeader({ title }: { title?: string }) {
             <IonButton
               onClick={() => navigate("/settings")}
               className="!min-height:auto !p-0 !rounded-full !min-w-[36px] !w-9 !h-9"
-              style={{ backgroundColor: "#212121" }}
+              style={{ backgroundColor: "#212121", border: "1px solid #282828" }}
               aria-label="Paramètres"
+              title="Paramètres"
             >
               <Settings className="w-4 h-4 text-text-secondary" />
             </IonButton>

@@ -116,6 +116,8 @@ vi.mock("@/lib/dataLayer", () => ({
   markCotisationPaid: mockMarkCotisationPaid,
   collectCotisation: mockCollectCotisation,
   createCotisationSession: mockCreateCotisationSession,
+  useOnlineStatus: vi.fn(() => true),
+  addDocumentPS: vi.fn(async () => {}),
 }));
 
 // ─── Mock orgContext ───────────────────────────────────────────────────────

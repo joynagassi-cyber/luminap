@@ -1,0 +1,1 @@
+create policy "lumina_storage_read" on storage.objects for select to anon, authenticated using (bucket_id in ('logos','archives','expense_proofs'));

@@ -1,0 +1,1 @@
+create policy "lumina_storage_delete" on storage.objects for delete to authenticated using (bucket_id in ('logos','archives','expense_proofs'));

@@ -37,11 +37,6 @@ export default function MembresEnAvance() {
 
   return (
     <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>MembresEnAvance</IonTitle>
-        </IonToolbar>
-      </IonHeader>
       <IonContent className="bg-canvas">
         <div className="min-h-screen" style={{ backgroundColor: "#121212" }}>
           <TopHeader title="En avance" />

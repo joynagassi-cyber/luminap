@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppConfig, useCurrentUser, useOnlineStatus } from "@/lib/dataLayer";
+import { uploadLuminaFile } from "@/lib/storageService";
+import { supabase } from "@/integrations/supabase/client";
 import { useNotifications, useAccounts } from "@/lib/dataLayer";
 import {
   Settings,
@@ -89,12 +91,21 @@ export default function SettingsPage() {
     reader.readAsDataURL(file);
   };
 
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = "";
     if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => setChurchLogo(reader.result as string);
-    reader.readAsDataURL(file);
+    // Logos : upload dans le bucket public `logos` (URL stable) ;
+    // repli base64 si hors-ligne pour rester fonctionnel.
+    try {
+      const path = await uploadLuminaFile("logos", file);
+      const { data } = supabase.storage.from("logos").getPublicUrl(path);
+      setChurchLogo(data.publicUrl);
+    } catch {
+      const reader = new FileReader();
+      reader.onloadend = () => setChurchLogo(reader.result as string);
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleRefresh = async () => {
@@ -115,11 +126,6 @@ export default function SettingsPage() {
   if (accountsLoading) {
     return (
       <IonPage>
-        <IonHeader>
-          <IonToolbar>
-            <IonTitle>Paramètres</IonTitle>
-          </IonToolbar>
-        </IonHeader>
         <IonContent className="bg-canvas" fullscreen>
           <SettingsSkeleton />
         </IonContent>
@@ -129,11 +135,6 @@ export default function SettingsPage() {
 
   return (
     <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>Settings</IonTitle>
-        </IonToolbar>
-      </IonHeader>
       <IonContent className="bg-canvas">
         <div className="min-h-screen bg-canvas">
           <TopHeader title="Paramètres" />
@@ -222,6 +223,9 @@ export default function SettingsPage() {
                 <div>
                   <label className="text-text-tertiary text-xs mb-1.5 block">
                     Logo de l'église
+                    <span className="block text-[11px] opacity-70 mt-0.5">
+                      Envoyé dans le bucket « logos » (repli local hors ligne)
+                    </span>
                   </label>
                   <div className="flex items-center gap-3">
                     {churchLogo ? (

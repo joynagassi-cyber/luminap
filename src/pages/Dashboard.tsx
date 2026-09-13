@@ -202,11 +202,6 @@ export default function Dashboard() {
   if (isLoading) {
     return (
       <IonPage>
-        <IonHeader>
-          <IonToolbar>
-            <IonTitle>Lumina</IonTitle>
-          </IonToolbar>
-        </IonHeader>
         <IonContent fullscreen>
           <div className="min-h-screen bg-canvas">
             <TopHeader title="Lumina" />
@@ -220,11 +215,6 @@ export default function Dashboard() {
 
   return (
     <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>Lumina</IonTitle>
-        </IonToolbar>
-      </IonHeader>
       <IonContent fullscreen>
         <div className="min-h-screen bg-canvas">
           <TopHeader title="Lumina" />
