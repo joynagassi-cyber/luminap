@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
-import { FullPageSkeleton } from "@/components/Skeleton";
+import { EventDetailSkeleton } from "@/components/PageSkeletons";
 import type { EventStatus } from "@/types";
 import { security } from "@/capabilities/security";
 import { workflow } from "@/capabilities/workflow";
@@ -75,7 +75,7 @@ export default function EventDetail() {
 
   const event = events.find((e: any) => e.id === id);
 
-  if (!event) return <FullPageSkeleton />;
+  if (!event) return <EventDetailSkeleton />;
 
   const config = STATUS_CONFIG[event.status];
   const budgetItems = (event as any).budget_items ? JSON.parse((event as any).budget_items) : [];

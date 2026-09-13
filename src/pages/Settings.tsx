@@ -27,7 +27,7 @@ import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
 import LuminaLogo from "@/components/LuminaLogo";
 import ThemePicker from "@/components/ThemePicker";
-import { FullPageSkeleton } from "@/components/Skeleton";
+import { SettingsSkeleton } from "@/components/PageSkeletons";
 import { generateId } from "@/lib/utils";
 import {
   getStoredThemeId,
@@ -50,7 +50,7 @@ export default function SettingsPage() {
   const user = useCurrentUser();
   const isOnline = useOnlineStatus();
   const { data: notifications } = useNotifications();
-  const { data: accounts } = useAccounts();
+  const { data: accounts, isLoading: accountsLoading } = useAccounts();
   const loadInitialData = useLocalStore((s) => s.loadInitialData);
   const auditEntries = useLocalStore((s) => s.auditEntries);
   const [churchName, setChurchName] = useState(appConfig.churchName);
@@ -111,6 +111,21 @@ export default function SettingsPage() {
 
   const totalActions = auditEntries.length;
   const unreadCount = notifications?.filter((n) => !(n as any).is_read).length ?? 0;
+
+  if (accountsLoading) {
+    return (
+      <IonPage>
+        <IonHeader>
+          <IonToolbar>
+            <IonTitle>Paramètres</IonTitle>
+          </IonToolbar>
+        </IonHeader>
+        <IonContent className="bg-canvas" fullscreen>
+          <SettingsSkeleton />
+        </IonContent>
+      </IonPage>
+    );
+  }
 
   return (
     <IonPage>

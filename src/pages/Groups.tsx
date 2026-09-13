@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useCurrentUser } from "@/lib/dataLayer";
 import { useGroups, useOrgUnits, createGroupPS } from "@/lib/dataLayer";
+import { GroupsSkeleton } from "@/components/PageSkeletons";
 import { getPowerSyncDatabase } from "@/lib/powersync";
 import { security } from "@/capabilities/security";
 import type { OrgUnit } from "@/types";
@@ -32,7 +33,7 @@ const GROUP_TYPES = ["groupe", "commission", "comité", "diaconie", "service"];
 export default function Groups() {
   const user = useCurrentUser();
 
-  const { data: psGroups } = useGroups();
+  const { data: psGroups, isLoading: groupsLoading } = useGroups();
   const { data: psOrgUnits } = useOrgUnits();
 
   // Convert PS org units to OrgUnit[] for consistent rendering
@@ -129,6 +130,21 @@ export default function Groups() {
       setError("Nous n'avons pas pu supprimer ce groupe. Veuillez réessayer.");
     }
   };
+
+  if (groupsLoading) {
+    return (
+      <IonPage>
+        <IonHeader>
+          <IonToolbar>
+            <IonTitle>Groupes</IonTitle>
+          </IonToolbar>
+        </IonHeader>
+        <IonContent className="bg-canvas" fullscreen>
+          <GroupsSkeleton />
+        </IonContent>
+      </IonPage>
+    );
+  }
 
   return (
     <IonPage>

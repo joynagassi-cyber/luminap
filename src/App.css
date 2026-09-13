@@ -14,6 +14,11 @@
   --accent-primary: #ff6b00;
   --accent-light: #ff8533;
   --accent-dark: #cc5500;
+
+  /* Skeleton shimmer tokens (Lumina design system) */
+  --skeleton-base: #212121;
+  --skeleton-highlight: #2b2b2b;
+  --skeleton-radius: 4px;
 }
 
 *,
@@ -101,5 +106,43 @@ textarea:focus-visible,
   100% {
     transform: scale(2);
     opacity: 0;
+  }
+}
+
+/* ── Skeleton shimmer ────────────────────────────────────────────────
+ * Balayage lumineux via translateX (aucun reflow du conteneur).
+ * Le bandeau a une largeur 3× le bloc ; l'animation le fait glisser
+ * d'un bout à l'autre en ~1400 ms.
+ */
+.shimmer {
+  position: relative;
+  overflow: hidden;
+  background: var(--skeleton-base);
+  border-radius: var(--skeleton-radius);
+  will-change: transform;
+}
+.shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    var(--skeleton-base) 0%,
+    var(--skeleton-highlight) 50%,
+    var(--skeleton-base) 100%
+  );
+  animation: shimmer-sweep 1400ms ease-in-out infinite;
+}
+@keyframes shimmer-sweep {
+  100% {
+    transform: translateX(100%);
+  }
+}
+/* Respect prefers-reduced-motion : shimmer désactivé → bloc statique. */
+@media (prefers-reduced-motion: reduce) {
+  .shimmer::after {
+    animation: none;
+    background: var(--surface-hover);
   }
 }

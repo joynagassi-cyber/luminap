@@ -11,7 +11,7 @@ import { useEvents, useTransactions, useMembers } from "@/lib/dataLayer";
 import { Calendar, Plus, Clock, Gift, ArrowUp, ArrowDown } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
-import { FullPageSkeleton, ListSkeleton } from "@/components/Skeleton";
+import { EventsSkeleton } from "@/components/PageSkeletons";
 import { formatDate, formatCurrencyCompact } from "@/lib/utils";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -53,7 +53,7 @@ export default function Events() {
       </IonHeader>
       {psLoading ? (
         <IonContent fullscreen>
-          <FullPageSkeleton />
+          <EventsSkeleton />
         </IonContent>
       ) : (
         <IonContent className="bg-canvas" fullscreen>

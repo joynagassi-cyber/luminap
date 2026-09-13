@@ -36,6 +36,7 @@ import TransactionCard from "@/components/TransactionCard";
 import { relationship } from "@/capabilities/relationship";
 import { lifecycle } from "@/capabilities/lifecycle";
 import { security } from "@/capabilities/security";
+import { GroupDetailSkeleton } from "@/components/PageSkeletons";
 import type { Transaction, Account, Member, GroupMembership } from "@/types";
 import {
   IonPage,
@@ -55,7 +56,7 @@ export default function GroupDetail() {
   const user = useCurrentUser();
 
   // PowerSync with fallback
-  const { data: psOrgUnits } = useOrgUnits();
+  const { data: psOrgUnits, isLoading: orgUnitsLoading } = useOrgUnits();
   const { data: psAccounts } = useAccounts();
   const { data: psTransactions } = useTransactions();
   const { data: psMembers } = useMembers();
@@ -90,6 +91,10 @@ export default function GroupDetail() {
   const groupMembers = members.filter(
     (m: any) => groupMemberIds.includes(m.id) && m.status !== "ARCHIVED",
   );
+
+  if (orgUnitsLoading) {
+    return <GroupDetailSkeleton />;
+  }
 
   if (!orgUnit || !account) {
     return (

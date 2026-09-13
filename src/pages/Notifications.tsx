@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useNotifications, markNotificationRead, markAllNotificationsRead } from "@/lib/dataLayer";
+import { NotificationsSkeleton } from "@/components/PageSkeletons";
 import {
   Bell,
   Check,
@@ -35,7 +36,7 @@ function getNotifIcon(actionType: string) {
 
 export default function NotificationsPage() {
   const navigate = useNavigate();
-  const { data: notifications } = useNotifications();
+  const { data: notifications, isLoading: notificationsLoading } = useNotifications();
 
   const sorted = [...notifications].sort(
     (a: any, b: any) =>
@@ -53,6 +54,23 @@ export default function NotificationsPage() {
   const handleMarkAllRead = async () => {
     await markAllNotificationsRead({} as any);
   };
+
+  if (notificationsLoading) {
+    return (
+      <IonPage>
+        <IonHeader>
+          <IonToolbar>
+            <IonTitle>Notifications</IonTitle>
+          </IonToolbar>
+        </IonHeader>
+        <IonContent fullscreen>
+          <div className="min-h-screen bg-canvas">
+            <NotificationsSkeleton />
+          </div>
+        </IonContent>
+      </IonPage>
+    );
+  }
 
   return (
     <IonPage>

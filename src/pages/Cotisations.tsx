@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useEvents, useCotisations } from "@/lib/dataLayer";
+import { CotisationsSkeleton } from "@/components/PageSkeletons";
 import { formatCurrencyCompact, formatDate } from "@/lib/utils";
 import { Calendar, CheckCircle, Clock, Plus, Users } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
@@ -79,16 +80,7 @@ export default function Cotisations() {
   }, [events, cotisations]);
 
   if (eventsLoading) {
-    return (
-      <div
-        className="min-h-screen flex items-center justify-center"
-        style={{ background: "#121212" }}
-      >
-        <div className="text-center">
-          <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto" />
-        </div>
-      </div>
-    );
+    return <CotisationsSkeleton />;
   }
 
   return (

@@ -31,7 +31,7 @@ import TransactionCard from "@/components/TransactionCard";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
 import LuminaLogo from "@/components/LuminaLogo";
-import { PageSkeleton, ListSkeleton } from "@/components/Skeleton";
+import { DashboardSkeleton } from "@/components/PageSkeletons";
 import type { Account, Caisse } from "@/types";
 import { getRoleLabel } from "@/lib/utils";
 import { getAccountBalance } from "@/lib/account";
@@ -210,7 +210,7 @@ export default function Dashboard() {
         <IonContent fullscreen>
           <div className="min-h-screen bg-canvas">
             <TopHeader title="Lumina" />
-            <PageSkeleton />
+            <DashboardSkeleton />
             <BottomNav />
           </div>
         </IonContent>

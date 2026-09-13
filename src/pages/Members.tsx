@@ -6,6 +6,7 @@ import { getOrganizationId } from "@/lib/orgContext";
 import { resource } from "@/capabilities/resource";
 import { lifecycle } from "@/capabilities/lifecycle";
 import { workflow } from "@/capabilities/workflow";
+import { MembersSkeleton } from "@/components/PageSkeletons";
 import {
   PlusCircle,
   Users,
@@ -29,7 +30,7 @@ import {
 export default function MembersPage() {
   const navigate = useNavigate();
   const user = useCurrentUser();
-  const { data: members } = useMembers();
+  const { data: members, isLoading: membersLoading } = useMembers();
 
   const [archivedMembers, setArchivedMembers] = useState<Member[]>([]);
 
@@ -113,6 +114,10 @@ export default function MembersPage() {
     const { items } = await resource.listArchived<Member>("Member");
     setArchivedMembers(items);
   };
+
+  if (membersLoading) {
+    return <MembersSkeleton />;
+  }
 
   return (
     <IonPage>

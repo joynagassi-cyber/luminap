@@ -5,6 +5,7 @@ import { formatCurrencyCompact } from "@/lib/utils";
 import { ArrowLeft, Check, AlertCircle, Wallet, RefreshCw } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
+import { VersementSkeleton } from "@/components/PageSkeletons";
 import { policy } from "@/capabilities/policy";
 import {
   IonPage,
@@ -19,7 +20,7 @@ export default function Versement() {
   const location = useLocation();
 
   const { data: psCaisses } = useCaisses();
-  const { data: psAccounts } = useAccounts();
+  const { data: psAccounts, isLoading: accountsLoading } = useAccounts();
   const { data: psTransactions } = useTransactions();
 
   const caisses = psCaisses ?? [];
@@ -90,6 +91,21 @@ export default function Versement() {
       setIsLoading(false);
     }
   };
+
+  if (accountsLoading) {
+    return (
+      <IonPage>
+        <IonHeader>
+          <IonToolbar>
+            <IonTitle>Versement</IonTitle>
+          </IonToolbar>
+        </IonHeader>
+        <IonContent className="bg-canvas" fullscreen>
+          <VersementSkeleton />
+        </IonContent>
+      </IonPage>
+    );
+  }
 
   return (
     <IonPage>

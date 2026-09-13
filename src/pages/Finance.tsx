@@ -18,7 +18,7 @@ import {
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
 import TransactionCard from "@/components/TransactionCard";
-import { PageSkeleton } from "@/components/Skeleton";
+import { FinanceSkeleton } from "@/components/PageSkeletons";
 import {
   IonPage,
   IonHeader,
@@ -120,7 +120,7 @@ export default function Finance() {
         <IonContent className="bg-canvas">
           <div className="min-h-screen bg-canvas">
             <TopHeader title="Finance" />
-            <PageSkeleton />
+            <FinanceSkeleton />
             <BottomNav />
           </div>
         </IonContent>

@@ -6,7 +6,7 @@ import type { Group, Member, Event } from "@/types";
 import { Users, Search, Archive, RefreshCw, ArrowLeft } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
-import { FullPageSkeleton } from "@/components/Skeleton";
+import { ArchivesSkeleton } from "@/components/PageSkeletons";
 import {
   IonPage,
   IonHeader,
@@ -110,7 +110,7 @@ export default function Archives() {
           <TopHeader title="Archives" />
           {loading ? (
             <div className="flex items-center justify-center py-20">
-              <FullPageSkeleton />
+              <ArchivesSkeleton />
             </div>
           ) : (
             <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
