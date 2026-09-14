@@ -32,7 +32,7 @@ export default function NotFound() {
               La page que vous recherchez n'existe pas.
             </p>
             <button
-              onClick={() => navigate("/")}
+              onClick={() => navigate("/dashboard")}
               className="px-8 py-3 rounded-full font-semibold text-white"
               style={{ backgroundColor: "var(--accent-primary)" }}
             >

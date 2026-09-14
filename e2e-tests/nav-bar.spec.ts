@@ -72,7 +72,9 @@ test("la nav est présente sur les routes principales (navigation SPA)", async (
   );
   // Budget global généreux : démarrage à froid (login + rampe de splash +
   // montage de la nav) pouvant dépasser 180 s sur un serveur lent.
-  test.setTimeout(240_000);
+  // 360 s : couvre le démarrage + les 3 navigations SPA (Finances /
+  // Accueil / Archives) dont la dernière a été ajoutée (régression Accueil).
+  test.setTimeout(360_000);
 
   await page.setViewportSize({ width: 390, height: 844 });
   await loginAsTestUser(page);
@@ -88,6 +90,14 @@ test("la nav est présente sur les routes principales (navigation SPA)", async (
   let nav = await visibleNav(page);
   await nav.getByRole("tab", { name: "Finances" }).click();
   await expect(page).toHaveURL(/\/finance/, { timeout: 45_000 });
+  await expectNavVisible(page);
+
+  // Régression : l'onglet « Accueil » mène directement à /dashboard,
+  // et non à /splash (le /splash noir de chargement). Depuis /finance,
+  // cliquer « Accueil » doit donc ramener sur /dashboard.
+  nav = await visibleNav(page);
+  await nav.getByRole("tab", { name: "Accueil" }).click();
+  await expect(page).toHaveURL(/\/dashboard$/, { timeout: 45_000 });
   await expectNavVisible(page);
 
   // Menu « Plus » → « Archives » → /archives (SPA).

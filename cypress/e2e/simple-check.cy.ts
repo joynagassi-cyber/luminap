@@ -31,8 +31,8 @@ describe('Lumina — login → finance bottom nav', () => {
       // reaching the dashboard — cy.login + cy.skipOnboarding cover both.
       cy.skipOnboarding();
 
-      // Bottom nav: Finance tab.
-      cy.get('nav [aria-label="Finances"]').click();
+      // Bottom nav: Finance tab (Ionic 9 renders ion-tab-button elements).
+      cy.get('ion-tab-button[aria-label="Finances"]').click();
       cy.location('pathname').should('include', 'finance');
     }
 

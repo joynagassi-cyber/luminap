@@ -84,7 +84,7 @@ export default function Versement() {
         amount: amountNum * 100,
         comment: comment.trim() || undefined,
       });
-      navigate("/");
+      navigate("/dashboard");
     } catch (e) {
       // Versement creation failed — non-fatal
     } finally {
@@ -107,7 +107,7 @@ export default function Versement() {
       <IonContent fullscreen>
         <div className="min-h-screen bg-canvas">
           <TopHeader title="Versement" />
-          <div className="max-w-lg mx-auto px-5 pb-6 pt-16">
+          <div className="max-w-lg mx-auto px-5 pb-28 pt-16">
             <button
               onClick={() => navigate(-1)}
               className="flex items-center gap-2 text-text-secondary text-sm mb-6"

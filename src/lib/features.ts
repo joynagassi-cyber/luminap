@@ -45,7 +45,15 @@ export interface FeatureDef {
 }
 
 export const FEATURES: FeatureDef[] = [
-  { id: "dashboard", label: "Accueil", route: "/", icon: Home, kind: "core" },
+  {
+    id: "dashboard",
+    label: "Accueil",
+    // Cible la page Dashboard réelle (/dashboard). Ne PAS "/" : "/" redirige
+    // vers /splash (écran noir de chargement) et l'onglet ne s'allumait jamais.
+    route: "/dashboard",
+    icon: Home,
+    kind: "core",
+  },
   {
     id: "finance",
     label: "Finances",

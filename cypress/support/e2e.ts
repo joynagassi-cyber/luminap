@@ -78,37 +78,60 @@ Cypress.Commands.add('login', function (email: string, password: string) {
  *
  * Idempotent: a no-op when already on /dashboard.
  */
+/**
+ * Completes onboarding for a fresh session WITHOUT walking the wizard.
+ *
+ * The onboarding completion flag lives in localStorage
+ * (`lumina-onboarding`, `lumina-onboarded`, `lumina-role` — see
+ * src/lib/onboardingState.ts). Writing `completed: true` makes
+ * `needsOnboarding()` return false, so the next navigation lands on the
+ * dashboard instead of resuming the wizard.
+ *
+ * Trade-off vs. the wizard walkthrough: no real organisation row is created
+ * in Supabase. Specs that assert cloud-synced data (cloud-sync) still work
+ * because the entities they create are new (account / custom field /
+ * transaction / event / form), not the organisation itself.
+ */
 Cypress.Commands.add('skipOnboarding', function () {
-  cy.location('pathname', { timeout: 15_000 }).then((loc) => {
-    if (loc === '/dashboard') return; // already onboarded
-
-    // 8 presentation screens: the bottom bar shows
-    // "Ignorer | Suivant" on screen 0 and "Précédent | Suivant" after —
-    // "Suivant" is the right button on every screen.
-    for (let i = 0; i < 8; i++) {
-      cy.contains('button', 'Suivant', { timeout: 8_000 }).click();
-    }
-
-    // Step 9 — branch choice.
-    cy.contains('button', 'Je crée mon organisation').click({ timeout: 15_000 });
-
-    // /org-setup — identity.
-    cy.location('pathname', { timeout: 15_000 }).should('include', 'org-setup');
-    cy.get('input').first().type('Org Test E2E');
-    cy.get('input').eq(1).type('E2E');
-
-    // /org-setup — pick an organisation type (first template, e.g. Église).
-    cy.contains('button', 'Église', { timeout: 8_000 }).click();
-
-    // /org-setup — pick a creator role. The Église template exposes
-    // 'Pasteur principal', 'Trésorier', 'Comptable', 'Secrétaire',
-    // 'Resp. département' — pick Trésorier (full finance rights).
-    cy.contains('button', 'Trésorier').click();
-
-    // Confirm — creates the org and navigates to the dashboard.
-    cy.contains('button', "Créer l'organisation").click({ force: true });
-    cy.location('pathname', { timeout: 60_000 }).should('include', 'dashboard');
+  // The onboarding state lives in localStorage (`lumina-onboarding`), so a
+  // browser-context write completes it immediately — no wizard walkthrough.
+  // The app checks `needsOnboarding()` on every navigation / page render.
+  cy.window().then((win) => {
+    const ls = win.localStorage;
+    // Legacy flags read by Splash / RouteGuard.
+    ls.setItem('lumina-onboarded', 'true');
+    ls.setItem('lumina-role', 'TREASURIER');
+    // New onboarding state (src/lib/onboardingState.ts reads this key).
+    ls.setItem(
+      'lumina-onboarding',
+      JSON.stringify({
+        screen: 0,
+        branch: 'creator',
+        org: {
+          name: 'Org Test E2E',
+          sigle: 'E2E',
+          type: 'Eglise',
+          theme: 'orange',
+          features: [],
+        },
+        role: 'TREASURIER',
+        completed: true,
+      }),
+    );
   });
+
+  // Re-route: from /onboarding (or anywhere) to the dashboard.
+  cy.visit('/');
+  cy.location('pathname', { timeout: 60_000 }).should((path) => {
+    expect(['/', '/splash', '/dashboard']).to.include(path as string);
+  });
+  // If we're on / or /splash, follow the splash redirect to dashboard.
+  cy.location('pathname').then((loc) => {
+    if (loc !== '/dashboard') {
+      cy.visit('/dashboard');
+    }
+  });
+  cy.location('pathname', { timeout: 60_000 }).should('include', 'dashboard');
 });
 
 Cypress.Commands.add('prepareSession', function (email: string, password: string) {
