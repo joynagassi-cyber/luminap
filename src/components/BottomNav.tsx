@@ -3,6 +3,7 @@ import {
   Plus,
   ArrowRightLeft,
   MoreVertical,
+  Settings,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useState, useRef, useEffect, useMemo } from "react";
@@ -11,6 +12,7 @@ import {
   useFeatureConfig,
   featuresForNav,
   featuresForMoreMenu,
+  DEFAULT_NAV_TABS,
   type FeatureDef,
 } from "@/lib/features";
 
@@ -34,9 +36,17 @@ export default function BottomNav() {
   // configurables par l'utilisateur (Settings → Features & navigation).
   const { navTabs, visible } = useFeatureConfig();
   const navFeatures = useMemo(() => featuresForNav(navTabs), [navTabs]);
+  // Réglage persisté corrompu / obsolète (0 onglet résolvable) : on retombe
+  // sur la liste valide par défaut plutôt que d'afficher une barre vide.
+  const activeNavFeatures =
+    navFeatures.length > 0 ? navFeatures : featuresForNav(DEFAULT_NAV_TABS);
+  const activeNavIds = useMemo(
+    () => activeNavFeatures.map((f) => f.id),
+    [activeNavFeatures],
+  );
   const moreFeatures = useMemo(
-    () => featuresForMoreMenu(navTabs, visible),
-    [navTabs, visible],
+    () => featuresForMoreMenu(activeNavIds, visible),
+    [activeNavIds, visible],
   );
 
   const fabAction = useMemo(() => {
@@ -176,7 +186,7 @@ export default function BottomNav() {
           role="tablist"
           aria-label="Navigation principale"
         >
-          {navFeatures.map((f) => {
+          {activeNavFeatures.map((f) => {
             const Icon = f.icon;
             const active = isActive(f.route);
             return (
@@ -248,12 +258,29 @@ export default function BottomNav() {
               >
                 <div className="p-2">
                   {moreFeatures.length === 0 ? (
-                    <p
-                      className="px-3 py-2 text-xs text-center"
-                      style={{ color: "#808080" }}
+                    /* Le menu ne doit jamais rester « mort » : on renvoie
+                       vers la section « Features & navigation » de
+                       Paramètres pour réactiver des features. */
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowMore(false);
+                        navigate("/settings");
+                      }}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all active:scale-95"
+                      style={{
+                        background: "transparent",
+                        border: "none",
+                        cursor: "pointer",
+                        color: "#B3B3B3",
+                      }}
+                      aria-label="Gérer les features dans Paramètres"
                     >
-                      Aucune feature activée
-                    </p>
+                      <Settings className="w-4 h-4 flex-shrink-0" style={{ color: "#808080" }} />
+                      <span className="text-sm font-medium">
+                        Aucune feature activée — gérer
+                      </span>
+                    </button>
                   ) : (
                     moreFeatures.map((f) => {
                       const Icon = f.icon;

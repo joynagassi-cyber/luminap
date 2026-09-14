@@ -19,7 +19,9 @@ async function loginAsTestUser(page: Page): Promise<void> {
     localStorage.setItem("lumina-role", "TREASURIER");
   });
 
-  await page.goto("/auth", { waitUntil: "domcontentloaded", timeout: 20_000 });
+  // 60 s : un démarrage à froid (re-optimisation des dépendances Vite)
+  // peut dépasser 20 s ; le budget global du test reste de 360 s.
+  await page.goto("/auth", { waitUntil: "domcontentloaded", timeout: 60_000 });
   await page.getByPlaceholder("jean@example.com").fill(TEST_EMAIL!);
   await page.getByPlaceholder("••••••••").fill(TEST_PASSWORD!);
   await page.getByRole("button", { name: "Se connecter" }).click();
@@ -113,10 +115,66 @@ test("la nav est présente sur les routes principales (navigation SPA)", async (
   // Le FAB reste présent et flotte au-dessus de la barre.
   const fab = page.locator('button[aria-label="Transaction"]').first();
   const fbox = await fab.boundingBox();
-  const nbox = (await visibleNav(page)).boundingBox();
+  const nbox = await (await visibleNav(page)).boundingBox();
   if (fbox && nbox) {
     expect(fbox.y, "le FAB doit flotter au-dessus de la barre").toBeLessThan(
       nbox.y,
     );
   }
+});
+
+test("état persisté corrompu : la nav retombe sur les onglets par défaut et le menu « Plus » reste actionnable", async ({
+  page,
+}) => {
+  test.skip(
+    !TEST_EMAIL || !TEST_PASSWORD,
+    "test-user non provisionné (variables d'env absentes)",
+  );
+  test.setTimeout(360_000);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await loginAsTestUser(page);
+
+  // Premier passage en état propre : l'app persiste `lumina-features`
+  // (navTabs + visible) dans le localStorage du navigateur.
+  await page.goto("/dashboard", { waitUntil: "domcontentloaded", timeout: 60_000 });
+  await visibleNav(page);
+
+  const persisted = await page.evaluate(() =>
+    localStorage.getItem("lumina-features"),
+  );
+  if (persisted) {
+    // Corrompt le réglage : onglets inconnus (obsolètes) + toutes les
+    // features désactivées. Un rechargement doit retrouver une barre
+    // utilisable (défauts) et un « Plus » qui ne reste pas mort.
+    await page.evaluate((raw) => {
+      const obj = JSON.parse(raw) as {
+        navTabs?: string[];
+        visible?: Record<string, boolean>;
+      };
+      const allOff: Record<string, boolean> = {};
+      for (const k in obj.visible) allOff[k] = false;
+      localStorage.setItem(
+        "lumina-features",
+        JSON.stringify({ navTabs: ["unknown-legacy-tab"], visible: allOff }),
+      );
+    }, persisted);
+  }
+
+  // Rechargement complet : le réglage corrompu est relu au démarrage.
+  await page.goto("/dashboard", { waitUntil: "domcontentloaded", timeout: 60_000 });
+  const nav = await visibleNav(page);
+
+  // 1) Barre retombée sur les onglets valides par défaut (pas une barre vide).
+  await expect(nav.getByRole("tab", { name: "Accueil" })).toBeVisible();
+  await expect(nav.getByRole("tab", { name: "Finances" })).toBeVisible();
+
+  // 2) Menu « Plus » vide → item actionnable vers Paramètres (jamais d'écran mort).
+  await nav.getByText("Plus", { exact: true }).click();
+  const menu = page.locator('[data-testid="more-menu"]');
+  await expect(menu.getByText(/Aucune feature activée/)).toBeVisible();
+  await menu
+    .getByRole("button", { name: "Gérer les features dans Paramètres" })
+    .click();
+  await expect(page).toHaveURL(/\/settings/, { timeout: 45_000 });
 });
