@@ -373,7 +373,7 @@ export function featuresForMoreMenu(
 }
 
 /**
- * Résout la liste de navigation (1 à 4 features) en FeatureDef, en
+ * Résous la liste de navigation (1 à 4 features) en FeatureDef, en
  * éliminant les doublons et les ids inconnus.
  */
 export function featuresForNav(navTabs: string[]): FeatureDef[] {
@@ -383,4 +383,51 @@ export function featuresForNav(navTabs: string[]): FeatureDef[] {
     if (f && !out.some((o) => o.id === f.id)) out.push(f);
   }
   return out;
+}
+
+// ─── Préchargement fluide des vues de la nav ───────────────────────────────
+
+/**
+ * Mapping feature (id de nav) → module lazy de sa page. C'est la même liste
+ * de chunks que le routeur charge à la demande : les précharger au repos
+ * fait que le premier clic sur un onglet n'affiche JAMAIS le squelette de
+ * chargement — la page apparaît d'un seul coup, fluide.
+ */
+const NAV_VIEW_CHUNKS: Record<string, () => Promise<unknown>> = {
+  dashboard: () => import("@/pages/Dashboard"),
+  finance: () => import("@/pages/Finance"),
+  groups: () => import("@/pages/Groups"),
+  cotisations: () => import("@/pages/Cotisations"),
+  events: () => import("@/pages/Events"),
+};
+
+/**
+ * Précharge (au repos, hors du chemin critique de rendu) les chunks des
+ * onglets de navigation active + les vues core. Idempotent et sans effet
+ * de bord : un import() déjà résolu est servi depuis le cache module.
+ */
+export function prefetchNavViews(navTabs?: string[]): void {
+  const ids = new Set<string>(
+    navTabs && navTabs.length > 0 ? navTabs : DEFAULT_NAV_TABS,
+  );
+  // Les vues core restent toujours chaudes : le basculement onglet → « Plus »
+  // reste fluide quelle que soit la composition de la barre.
+  for (const id of Object.keys(NAV_VIEW_CHUNKS)) ids.add(id);
+  for (const id of ids) {
+    const loader = NAV_VIEW_CHUNKS[id];
+    if (!loader) continue;
+    if (
+      typeof window === "undefined" ||
+      typeof window.requestIdleCallback !== "function"
+    ) {
+      loader().catch(() => {});
+      continue;
+    }
+    window.requestIdleCallback(
+      () => {
+        loader().catch(() => {});
+      },
+      { timeout: 4000 },
+    );
+  }
 }

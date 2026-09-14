@@ -69,9 +69,15 @@ test("composer la nav bar et les features depuis les paramètres", async ({
   await addSelect.selectOption({ label: "Membres" });
   await expect(tab("Membres")).toBeVisible();
 
-  // 3) « Membres » est dans la barre : il n'apparaît plus dans le menu « Plus ».
+  // 3) « Membres » est dans la barre : le menu « Plus » liste TOUS les
+  //    features visibles — le item épinglé reste listé mais marqué
+  //    « Dans la barre » (jamais retiré du menu : aucune feature
+  //    inaccessible depuis la navigation basse).
   await plusToggle.click();
-  await expect(moreMenu.getByText("Membres", { exact: true })).toHaveCount(0);
+  await expect(
+    moreMenu.locator('button[aria-label="Membres (déjà dans la barre)"]'),
+    "l'item épinglé reste listé dans le menu « Plus », marqué « Dans la barre »",
+  ).toBeVisible();
   await plusToggle.click();
 
   // 4) Désactiver « Archives » : elle quitte le menu « Plus ».

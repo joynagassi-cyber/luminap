@@ -37,6 +37,7 @@ import {
   FEATURES,
   featureById,
   MAX_NAV_TABS,
+  prefetchNavViews,
 } from "@/lib/features";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
@@ -79,6 +80,13 @@ export default function SettingsPage() {
     setFeatureVisible,
     resetFeatures,
   } = useFeatureConfig();
+
+  // Fluidité : dès qu'un réglage de la nav change (ajout / retrait /
+  // réordonnancement / reset), on préchauffe les chunks des vues ciblées
+  // pour que le premier clic sur un onglet ne montre jamais le squelette.
+  useEffect(() => {
+    prefetchNavViews(navTabs);
+  }, [navTabs]);
   const [churchName, setChurchName] = useState(appConfig.churchName);
   const [churchLogo, setChurchLogo] = useState(appConfig.churchLogoUrl);
   const [userPhoto, setUserPhoto] = useState(appConfig.userPhoto);

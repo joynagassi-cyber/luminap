@@ -11,6 +11,7 @@ import "./ionic/theme.css";
 import { applyStoredTheme } from "./ionic/themes";
 import { initOneSignal } from "@/lib/onesignal";
 import { initPowerSync } from "@/lib/powersync";
+import { prefetchNavViews, useFeatureConfig } from "@/lib/features";
 
 // Initialize PowerSync before React mounts. This is fire-and-forget: it
 // registers the shared database/connector singletons synchronously so the
@@ -47,3 +48,9 @@ import("@ionic/core")
   .catch(() => {});
 
 createRoot(document.getElementById("root")!).render(<App />);
+
+// Affichage fluide : dès le départ, on préchauffe (hors du chemin critique
+// de rendu, au repos du navigateur) les chunks des vues de la nav que
+// l'utilisateur a configurée (défaut sinon). Le premier clic sur un onglet
+// n'affiche alors plus le squelette de chargement.
+prefetchNavViews(useFeatureConfig.getState().navTabs);
