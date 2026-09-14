@@ -454,6 +454,22 @@ export default function Federation() {
                 <span className="text-text-primary font-semibold text-sm">
                   Arborescence des organisations
                 </span>
+                <button
+                  type="button"
+                  onClick={() => navigate("/admin/federation/tree")}
+                  className="ml-auto flex items-center gap-1 text-xs font-semibold transition-all active:scale-95"
+                  style={{
+                    color: "var(--accent-primary)",
+                    background: "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: "4px 8px",
+                    borderRadius: 999,
+                  }}
+                  aria-label="Voir en diagramme"
+                >
+                  <GitBranch className="w-3.5 h-3.5" /> Diagramme
+                </button>
               </div>
 
               {loading ? (

@@ -4,7 +4,6 @@ import { useAppConfig, useCurrentUser } from "@/lib/dataLayer";
 import {
   useTransactions,
   useEvents,
-  useNotifications,
   useAccounts,
   useCaisses,
 } from "@/lib/dataLayer";
@@ -16,7 +15,6 @@ import {
   TrendingUp,
   Wallet,
   PlusCircle,
-  Bell,
   Sparkles,
   ArrowUp,
   ArrowDown,
@@ -145,7 +143,6 @@ export default function Dashboard() {
   // DataLayer hooks (PowerSync primary, IndexedDB fallback handled internally)
   const { data: transactions, isLoading } = useTransactions();
   const { data: events } = useEvents();
-  const { data: notifications } = useNotifications();
   const { data: accounts } = useAccounts();
   const { data: caisses } = useCaisses();
 
@@ -194,10 +191,11 @@ export default function Dashboard() {
     )
     .slice(0, 3);
 
-  // Unread notifications count
-  const unreadNotifCount = notifications.filter(
-    (n: any) => !n.is_read,
-  ).length;
+  // Identité de l'utilisateur (avatar + nom + rôle)
+  const userName =
+    `${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim() || "Utilisateur";
+  const userInitials =
+    ((user?.firstName?.[0] || "U") + (user?.lastName?.[0] || "")).toUpperCase();
 
   if (isLoading) {
     return (
@@ -219,45 +217,25 @@ export default function Dashboard() {
         <div className="min-h-screen bg-canvas">
           <TopHeader title="Lumina" />
           <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
-            {/* Church name + Notifications */}
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                {appConfig.churchLogoUrl ? (
-                  <img
-                    src={appConfig.churchLogoUrl}
-                    alt={`Logo de ${churchName || "Lumina"}`}
-                    className="w-10 h-10 rounded-xl"
-                  />
-                ) : (
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center">
-                    <span className="text-white font-bold text-lg">L</span>
-                  </div>
-                )}
-                <div>
-                  <p className="text-text-primary font-semibold text-sm">
-                    {churchName}
-                  </p>
-                  <p className="text-text-tertiary text-xs">
-                    {user ? getRoleLabel(user.role) : "Membre"}
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => navigate("/notifications")}
-                className="relative w-10 h-10 rounded-full flex items-center justify-center"
-                style={{ backgroundColor: "#212121" }}
-                aria-label="Notifications"
+            {/* Utilisateur : profil + nom + rôle */}
+            <div className="flex items-center gap-3 mb-6">
+              <div
+                className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0"
+                style={{ backgroundColor: "color-mix(in srgb, var(--accent-primary) 16%, transparent)" }}
+                aria-label={`Profil de ${userName}`}
               >
-                <Bell className="w-5 h-5 text-text-secondary" />
-                {unreadNotifCount > 0 && (
-                  <span
-                    className="absolute -top-1 -right-1 w-5 h-5 rounded-full text-xs font-bold flex items-center justify-center"
-                    style={{ backgroundColor: "#E51332", color: "#fff" }}
-                  >
-                    {unreadNotifCount > 9 ? "9+" : unreadNotifCount}
-                  </span>
-                )}
-              </button>
+                <span className="text-sm font-bold" style={{ color: "var(--accent-primary)" }}>
+                  {userInitials}
+                </span>
+              </div>
+              <div className="min-w-0">
+                <p className="text-text-primary font-semibold text-sm truncate">
+                  {userName}
+                </p>
+                <p className="text-text-tertiary text-xs truncate">
+                  {user ? getRoleLabel(user.role) : "Membre"}
+                </p>
+              </div>
             </div>
 
             {/* Main Caisse Hero Card */}

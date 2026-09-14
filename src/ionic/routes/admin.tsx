@@ -10,6 +10,8 @@ import { LazyRoute } from "./lazy-route";
 const CentralAdmin = lazy(() => import("@/pages/CentralAdmin"));
 const OrgSetup = lazy(() => import("@/pages/OrgSetup"));
 const Federation = lazy(() => import("@/pages/Federation"));
+const FederationTree = lazy(() => import("@/pages/FederationTree"));
+const OrgUnits = lazy(() => import("@/pages/OrgUnits"));
 
 export const adminRoutes: ReactElement[] = [
   <Route
@@ -26,6 +28,11 @@ export const adminRoutes: ReactElement[] = [
     key="/admin/federation"
     path="/admin/federation"
     element={<LazyRoute component={Federation} />}
+  />,
+  <Route
+    key="/admin/federation/tree"
+    path="/admin/federation/tree"
+    element={<LazyRoute component={FederationTree} />}
   />,
   <Route
     key="/admin/organizations/:id"

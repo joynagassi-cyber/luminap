@@ -432,6 +432,32 @@ export function SettingsSkeleton() {
   );
 }
 
+/* ── Federation Tree : diagramme React Flow (nœuds en cascade) ── */
+export function FederationTreeSkeleton() {
+  const node = (w = "100%") => (
+    <div style={{ flex: 1 }}>
+      <ShimmerBlock width={w} height={64} radius={8} />
+    </div>
+  );
+  return (
+    <div aria-busy="true">
+      <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>{node()}</div>
+      <div
+        style={{
+          display: "flex",
+          gap: 12,
+          marginBottom: 16,
+          marginLeft: 28,
+        }}
+      >
+        {node()}
+        {node()}
+      </div>
+      <div style={{ marginLeft: 56 }}>{node()}</div>
+    </div>
+  );
+}
+
 /* ── Invitations (emit/claim/manage) : cards + liste ── */
 export function InvitationsSkeleton() {
   return (
