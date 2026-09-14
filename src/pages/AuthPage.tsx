@@ -76,15 +76,21 @@ export default function AuthPage() {
    */
   const proceedAfterAuth = async (
     profile: Pick<Profile, "role" | "id"> | null | undefined,
+    opts?: { forceOnboarding?: boolean },
   ) => {
     await loadInitialData();
     await oneSignalService.login(
       (profile?.role ?? "MEMBRE") as Role,
       profile?.id ?? user?.id ?? "",
     );
-    navigate(needsOnboarding() ? "/onboarding" : "/dashboard", {
-      replace: true,
-    });
+    // Une inscription (nouveau compte) passe TOUJOURS par la première page
+    // (onboarding : accueil + config) — et non directement au dashboard
+    // principal — même si ce navigateur a déjà configuré un autre compte.
+    // La connexion d'un compte existant reste conditionnelle (onboarding
+    // uniquement s'il n'est pas encore finalisé pour ce navigateur).
+    const to =
+      opts?.forceOnboarding || needsOnboarding() ? "/onboarding" : "/dashboard";
+    navigate(to, { replace: true });
   };
 
   // Handle OAuth callback
@@ -147,7 +153,9 @@ export default function AuthPage() {
 
     const state = authService.getState();
     setLoading(false);
-    await proceedAfterAuth(state.profile);
+    // Nouveau compte → toujours la première page (onboarding), jamais
+    // directement le dashboard principal.
+    await proceedAfterAuth(state.profile, { forceOnboarding: true });
   };
 
   // Handle Google OAuth login
