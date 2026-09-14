@@ -53,10 +53,13 @@ import {
   getOrgReportCard,
   getOrgAdminDetails,
   revokeOrgAdmin,
+  assignOrgAdmin,
+  listAdminCandidates,
   type OrgStats,
   type RecentActivity,
   type OrgAdminDetail,
   type OrgReportCard,
+  type AdminCandidate,
 } from "@/capabilities/organization/central";
 import { useOrganizations, type PSOrganization } from "@/lib/dataLayer";
 import {
@@ -97,6 +100,8 @@ function OrgDetail({ orgId, onBack }: { orgId: string; onBack: () => void }) {
   const [activity, setActivity] = useState<RecentActivity[]>([]);
   const [reportCard, setReportCard] = useState<OrgReportCard | null>(null);
   const [admins, setAdmins] = useState<OrgAdminDetail[]>([]);
+  const [candidates, setCandidates] = useState<AdminCandidate[]>([]);
+  const [delegated, setDelegated] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -105,16 +110,42 @@ function OrgDetail({ orgId, onBack }: { orgId: string; onBack: () => void }) {
       getRecentActivity(orgId, 15),
       getOrgReportCard(orgId),
       getOrgAdminDetails(orgId),
-    ]).then(([act, card, adm]) => {
-      setActivity(act);
-      setReportCard(card);
-      setAdmins(adm);
-    }).catch(() => {
-      setActivity([]);
-      setReportCard(null);
-      setAdmins([]);
-    });
+      listAdminCandidates(orgId),
+    ])
+      .then(([act, card, adm, cand]) => {
+        setActivity(act);
+        setReportCard(card);
+        setAdmins(adm);
+        setCandidates(cand);
+      })
+      .catch(() => {
+        setActivity([]);
+        setReportCard(null);
+        setAdmins([]);
+        setCandidates([]);
+      });
   }, [orgId]);
+
+  const handleDelegate = async () => {
+    if (!user?.id || !delegated) return;
+    setBusy("delegate");
+    setError(null);
+    try {
+      await assignOrgAdmin({
+        adminProfileId: delegated,
+        orgId,
+        grantedBy: user.id,
+      });
+      setDelegated("");
+      setAdmins(await getOrgAdminDetails(orgId));
+      setReportCard(await getOrgReportCard(orgId));
+      setCandidates(await listAdminCandidates(orgId));
+    } catch (e: any) {
+      setError(e?.message ?? "Opération refusée");
+    } finally {
+      setBusy(null);
+    }
+  };
 
   const handleRevoke = async (admin: OrgAdminDetail) => {
     if (!user?.id) return;
@@ -214,6 +245,59 @@ function OrgDetail({ orgId, onBack }: { orgId: string; onBack: () => void }) {
         )}
       </div>
 
+      {/* Déléguer l'admin central */}
+      <div
+        className="rounded-xl p-4 mb-4"
+        style={{ backgroundColor: "#212121", border: "1px solid #282828" }}
+      >
+        <div className="flex items-center gap-2 mb-3">
+          <Users className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
+          <span className="text-text-primary font-semibold text-sm">
+            Déléguer l&apos;admin central
+          </span>
+        </div>
+        {candidates.length === 0 ? (
+          <p className="text-text-tertiary text-sm py-2 text-center">
+            Aucun profil éligible (tous les membres sont déjà admins actifs)
+          </p>
+        ) : (
+          <div className="space-y-3">
+            <select
+              data-testid="delegate-candidate"
+              value={delegated}
+              onChange={(e) => setDelegated(e.target.value)}
+              className="w-full px-3 py-2.5 rounded-xl text-sm"
+              style={{
+                backgroundColor: "#181818",
+                color: "#fff",
+                border: "1px solid #282828",
+              }}
+            >
+              <option value="">Choisir un profil…</option>
+              {candidates.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.displayName}
+                  {c.email ? ` (${c.email})` : ""}
+                </option>
+              ))}
+            </select>
+            <IonButton
+              expand="block"
+              color="primary"
+              disabled={!delegated || busy === "delegate"}
+              onClick={handleDelegate}
+            >
+              <UserCheck className="w-4 h-4 mr-1" />
+              {busy === "delegate" ? "Délégation…" : "Conférer l'admin"}
+            </IonButton>
+          </div>
+        )}
+        <p className="text-[11px] text-text-tertiary mt-2 leading-snug">
+          Confère un grant admin central actif sur cette organisation. Le
+          serveur ré-applique le RLS à la synchronisation.
+        </p>
+      </div>
+
       {/* Recent activity */}
       <div className="space-y-2">
         <div className="flex items-center gap-2 mb-2">
@@ -277,12 +361,29 @@ export default function CentralAdmin() {
   const [stats, setStats] = useState<OrgStats | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [archiveTarget, setArchiveTarget] = useState<string | null>(null);
+  const [archiveReason, setArchiveReason] = useState("");
 
   useEffect(() => {
     if (allowed && !id) {
       getOrgStats(user?.id ?? "").then(setStats).catch(() => setStats(null));
     }
   }, [allowed, id, user?.id]);
+
+  const confirmArchive = (o: PSOrganization) =>
+    act(
+      async () => {
+        await archiveOrganization(
+          o.id,
+          user?.id ?? "",
+          archiveReason.trim() || "Archivée depuis l'administration centrale",
+          o,
+        );
+        setArchiveTarget(null);
+        setArchiveReason("");
+      },
+      o.id,
+    );
 
   const kpis = [
     { label: "Total", value: stats?.total ?? managedOrgs?.length ?? 0, color: "var(--accent-primary)", icon: Building2 },
@@ -528,30 +629,60 @@ export default function CentralAdmin() {
                           ) : null}
 
                           {o.status !== "ARCHIVED" && (
-                            <IonButton
-                              size="small"
-                              fill="outline"
-                              color="dark"
-                              disabled={busy === o.id}
-                              onClick={() =>
-                                act(
-                                  async () => {
-                                    const reason = window.prompt(
-                                      "Raison de l'archivage (optionnel) :",
-                                    );
-                                    await archiveOrganization(
-                                      o.id,
-                                      user?.id ?? "",
-                                      reason ?? "Archivée depuis l'administration centrale",
-                                      o,
-                                    );
-                                  },
-                                  o.id,
-                                )
-                              }
-                            >
-                              <Archive className="w-3 h-3 mr-1" /> Archiver
-                            </IonButton>
+                            archiveTarget === o.id ? (
+                              <div className="flex items-center gap-1.5 mt-2 w-full">
+                                <input
+                                  data-testid="archive-reason"
+                                  value={archiveReason}
+                                  onChange={(e) => setArchiveReason(e.target.value)}
+                                  placeholder="Raison (optionnel)"
+                                  className="flex-1 min-w-0 px-2 py-1.5 rounded-lg text-xs"
+                                  style={{
+                                    backgroundColor: "#181818",
+                                    color: "#fff",
+                                    border: "1px solid #282828",
+                                  }}
+                                />
+                                <button
+                                  type="button"
+                                  data-testid="archive-confirm"
+                                  onClick={() => confirmArchive(o)}
+                                  disabled={busy === o.id}
+                                  className="px-2.5 py-1.5 rounded-full text-[11px] font-semibold text-white transition-all active:scale-95 disabled:opacity-50"
+                                  style={{ backgroundColor: "var(--accent-primary)" }}
+                                >
+                                  Valider
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setArchiveTarget(null);
+                                    setArchiveReason("");
+                                  }}
+                                  className="px-2 py-1.5 text-[11px] font-semibold"
+                                  style={{
+                                    color: "#B3B3B3",
+                                    background: "transparent",
+                                    border: "none",
+                                  }}
+                                >
+                                  Annuler
+                                </button>
+                              </div>
+                            ) : (
+                              <IonButton
+                                size="small"
+                                fill="outline"
+                                color="dark"
+                                disabled={busy === o.id}
+                                onClick={() => {
+                                  setArchiveTarget(o.id);
+                                  setArchiveReason("");
+                                }}
+                              >
+                                <Archive className="w-3 h-3 mr-1" /> Archiver
+                              </IonButton>
+                            )
                           )}
                         </div>
                       </div>

@@ -358,18 +358,70 @@ export class InvitationService {
   }
 
   /**
-   * Update a claim status (called after server-side confirmation).
+   * Update a claim status — local mirror of the server trigger
+   * `settle_invitation_claim`.
+   *
+   * - CONFIRMED : also promotes the resulting PENDING profile to ACTIVE so
+   *   the user is unlocked offline. Idempotent — a later sync re-running the
+   *   server trigger is a no-op (claim already CONFIRMED, profile already
+   *   ACTIVE).
+   * - REJECTED_*: records the reason; the profile stays PENDING.
+   * Writes an audit entry for traceability.
    */
   async updateClaimStatus(
     claimId: string,
     status: ClaimStatus,
     rejectReason?: string,
+    actorId?: string,
   ): Promise<void> {
     const db = getPowerSyncDatabase();
+    const now = new Date().toISOString();
+
+    const res = await db.execute(
+      "SELECT invitation_id, resulting_user_id FROM invitation_claims WHERE id = ?",
+      [claimId],
+    );
+    const claim = res?.array?.[0] as
+      | { invitation_id: string; resulting_user_id: string | null }
+      | undefined;
+
     await db.execute(
       "UPDATE invitation_claims SET status = ?, reject_reason = ?, updated_at = ? WHERE id = ?",
-      [status, rejectReason ?? null, new Date().toISOString(), claimId],
+      [status, rejectReason ?? null, now, claimId],
     );
+
+    // Local settlement: unlock the PENDING user on confirmation.
+    if (status === "CONFIRMED" && claim?.resulting_user_id) {
+      await db.execute(
+        "UPDATE profiles SET status = 'ACTIVE', updated_at = ? WHERE id = ? AND status = 'PENDING'",
+        [now, claim.resulting_user_id],
+      );
+    }
+
+    if (claim?.invitation_id) {
+      const invRes = await db.execute(
+        "SELECT org_id FROM invitations WHERE id = ?",
+        [claim.invitation_id],
+      );
+      const orgId = String(
+        invRes?.array?.[0]?.org_id ?? getOrganizationId(),
+      );
+      const confirming = status === "CONFIRMED";
+      await auditLogRepo.write({
+        orgId,
+        transactionId: null,
+        userId: actorId ?? "",
+        actorRoleAtTime: null,
+        action: confirming ? "APPROVE" : "REJECT",
+        entityType: "InvitationClaim",
+        entityId: claimId,
+        beforeState: null,
+        afterState: { status, rejectReason: rejectReason ?? null },
+        comment: confirming
+          ? `Demande d'invitation confirmée (${claimId})`
+          : `Demande d'invitation rejetée : ${rejectReason ?? "non précisée"} (${claimId})`,
+      });
+    }
   }
 
   /**

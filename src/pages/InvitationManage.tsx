@@ -39,7 +39,10 @@ import BottomNav from "@/components/BottomNav";
 import { useInvitations } from "@/lib/dataLayer";
 import { useCurrentUser } from "@/lib/dataLayer";
 import { invitation } from "@/capabilities/invitation";
-import type { Invitation } from "@/capabilities/invitation";
+import type {
+  Invitation,
+  InvitationClaim,
+} from "@/capabilities/invitation";
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
   ACTIVE: { label: "Actif", color: "#10B981", icon: CheckCircle },
@@ -48,16 +51,33 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }>
   EXHAUSTED: { label: "Épuisé", color: "#9CA3AF", icon: Users },
 };
 
+const CLAIM_CONFIG: Record<string, { label: string; color: string }> = {
+  PENDING_SYNC: { label: "En attente", color: "#FFB800" },
+  CONFIRMED: { label: "Confirmée", color: "#1DB954" },
+  REJECTED_DUPLICATE: { label: "Rejetée (doublon)", color: "#E51332" },
+  REJECTED_EXPIRED: { label: "Rejetée (expirée)", color: "#E51332" },
+  REJECTED_EXHAUSTED: { label: "Rejetée (épuisée)", color: "#E51332" },
+  REJECTED_REVOKED: { label: "Rejetée", color: "#E51332" },
+};
+
 export default function InvitationManage() {
   const navigate = useNavigate();
   const user = useCurrentUser();
   const { data: invData } = useInvitations();
 
   const [invitations, setInvitations] = useState<Invitation[]>([]);
+  const [claims, setClaims] = useState<Record<string, InvitationClaim[]>>({});
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("ALL");
   const [showRevokeAlert, setShowRevokeAlert] = useState(false);
   const [revokeTarget, setRevokeTarget] = useState<Invitation | null>(null);
+  const [rejecting, setRejecting] = useState<{
+    invId: string;
+    claim: InvitationClaim;
+  } | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
+  const [claimBusy, setClaimBusy] = useState<string | null>(null);
+  const [claimError, setClaimError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -69,6 +89,55 @@ export default function InvitationManage() {
       })
       .catch(() => setIsLoading(false));
   }, []);
+
+  // Load the claims (demandes) of every ACTIVE invitation.
+  useEffect(() => {
+    invitations
+      .filter((i) => i.status === "ACTIVE")
+      .forEach((inv) => {
+        invitation
+          .getClaims(inv.id)
+          .then((list) => setClaims((prev) => ({ ...prev, [inv.id]: list })))
+          .catch(() => {});
+      });
+  }, [invitations]);
+
+  const handleConfirmClaim = async (invId: string, claimId: string) => {
+    if (!user) return;
+    setClaimBusy(claimId);
+    setClaimError(null);
+    try {
+      await invitation.updateClaimStatus(claimId, "CONFIRMED", undefined, user.id);
+      const list = await invitation.getClaims(invId);
+      setClaims((prev) => ({ ...prev, [invId]: list }));
+    } catch (err: any) {
+      setClaimError(err?.message ?? "Erreur lors de la confirmation");
+    } finally {
+      setClaimBusy(null);
+    }
+  };
+
+  const handleRejectClaim = async () => {
+    if (!rejecting || !user) return;
+    setClaimBusy(rejecting.claim.id);
+    setClaimError(null);
+    try {
+      await invitation.updateClaimStatus(
+        rejecting.claim.id,
+        "REJECTED_REVOKED",
+        rejectReason.trim() || "Non précisée",
+        user.id,
+      );
+      const list = await invitation.getClaims(rejecting.invId);
+      setClaims((prev) => ({ ...prev, [rejecting.invId]: list }));
+      setRejecting(null);
+      setRejectReason("");
+    } catch (err: any) {
+      setClaimError(err?.message ?? "Erreur lors du rejet");
+    } finally {
+      setClaimBusy(null);
+    }
+  };
 
   const filtered = invitations.filter((inv) => {
     const matchSearch =
@@ -220,6 +289,84 @@ export default function InvitationManage() {
                             </span>
                           </div>
                         </div>
+
+                        {claimError && (
+                          <p className="mt-2 text-xs" style={{ color: "#ff8fa3" }}>
+                            {claimError}
+                          </p>
+                        )}
+
+                        {inv.status === "ACTIVE" &&
+                          (claims[inv.id]?.length ?? 0) > 0 && (
+                            <div className="mt-3 space-y-2">
+                              <p className="text-xs font-semibold uppercase tracking-wide text-text-tertiary">
+                                Demandes ({claims[inv.id].length})
+                              </p>
+                              {claims[inv.id].map((cl) => {
+                                const cfg =
+                                  CLAIM_CONFIG[cl.status] ?? CLAIM_CONFIG.PENDING_SYNC;
+                                return (
+                                  <div
+                                    key={cl.id}
+                                    className="rounded-lg p-2.5"
+                                    style={{ backgroundColor: "#1a1a1a" }}
+                                  >
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-xs" style={{ color: "#B3B3B3" }}>
+                                        {new Date(cl.claimedAt).toLocaleString("fr-FR")}
+                                      </span>
+                                      <span
+                                        className="text-[11px] px-1.5 py-0.5 rounded-full font-medium"
+                                        style={{
+                                          backgroundColor: `${cfg.color}20`,
+                                          color: cfg.color,
+                                        }}
+                                      >
+                                        {cfg.label}
+                                      </span>
+                                    </div>
+                                    {cl.rejectReason && (
+                                      <p className="text-xs mt-1" style={{ color: "#ff8fa3" }}>
+                                        {cl.rejectReason}
+                                      </p>
+                                    )}
+                                    {cl.status === "PENDING_SYNC" && (
+                                      <div className="flex gap-2 mt-2">
+                                        <button
+                                          type="button"
+                                          data-testid={`claim-confirm-${cl.id}`}
+                                          onClick={() => handleConfirmClaim(inv.id, cl.id)}
+                                          disabled={claimBusy === cl.id}
+                                          className="px-3 py-1.5 rounded-full text-xs font-semibold text-white transition-all active:scale-95 disabled:opacity-50"
+                                          style={{ backgroundColor: "#1DB954" }}
+                                        >
+                                          {claimBusy === cl.id ? "..." : "Confirmer"}
+                                        </button>
+                                        <button
+                                          type="button"
+                                          data-testid={`claim-reject-${cl.id}`}
+                                          onClick={() => {
+                                            setRejecting({ invId: inv.id, claim: cl });
+                                            setRejectReason("");
+                                          }}
+                                          disabled={claimBusy === cl.id}
+                                          className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all active:scale-95 disabled:opacity-50"
+                                          style={{
+                                            color: "#E51332",
+                                            border: "1px solid #E51332",
+                                            background: "transparent",
+                                          }}
+                                        >
+                                          Rejeter
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+
                         {inv.status === "ACTIVE" && (
                           <IonButton
                             size="small"
@@ -261,6 +408,55 @@ export default function InvitationManage() {
           },
         ]}
       />
+
+      {/* Modal de rejet d'une demande (raison + confirmation, sans prompt) */}
+      {rejecting && (
+        <div className="fixed inset-0 flex items-end justify-center" style={{ zIndex: 50, backgroundColor: "rgba(0,0,0,0.7)" }}>
+          <div
+            className="w-full max-w-lg rounded-t-2xl p-6 space-y-4"
+            style={{ backgroundColor: "#181818" }}
+            role="dialog"
+            aria-label="Rejeter la demande"
+          >
+            <p className="text-text-primary font-semibold text-sm">
+              Rejeter la demande d&apos;invitation
+            </p>
+            <textarea
+              data-testid="reject-reason"
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              placeholder="Raison (optionnel)…"
+              rows={2}
+              className="w-full px-3 py-2.5 rounded-xl text-sm resize-none"
+              style={{
+                backgroundColor: "#1a1a1a",
+                color: "#fff",
+                border: "1px solid #282828",
+              }}
+            />
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setRejecting(null)}
+                className="flex-1 py-3 rounded-full text-sm font-semibold transition-all active:scale-95"
+                style={{ color: "#B3B3B3", border: "1px solid #282828", background: "transparent" }}
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                data-testid="reject-confirm"
+                onClick={handleRejectClaim}
+                disabled={claimBusy !== null}
+                className="flex-1 py-3 rounded-full text-sm font-semibold text-white transition-all active:scale-95 disabled:opacity-50"
+                style={{ backgroundColor: "#E51332" }}
+              >
+                {claimBusy ? "Traitement…" : "Rejeter"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </IonPage>
   );
 }

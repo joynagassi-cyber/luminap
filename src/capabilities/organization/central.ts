@@ -327,3 +327,54 @@ export async function getOrgAdminDetails(
       : a.email || a.admin_profile_id.slice(0, 8),
   }));
 }
+
+// ─── Admin Delegation Candidates ────────────────────────────────────────────
+
+export interface AdminCandidate {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  displayName: string;
+}
+
+/**
+ * Profils de l'organisation éligibles à la délégation d'admin central :
+ * membres (profiles) rattachés à l'org qui ne sont pas déjà admins
+ * centraux actifs. Utilisé par le panneau « Déléguer l'admin central ».
+ */
+export async function listAdminCandidates(
+  orgId: string,
+): Promise<AdminCandidate[]> {
+  const db = getPowerSyncDatabase();
+  const activeAdmins = await getOrgAdminsFull(orgId);
+  const excluded = new Set(
+    activeAdmins
+      .filter((a) => a.status === "ACTIVE")
+      .map((a) => a.admin_profile_id),
+  );
+
+  const res = await db.execute(
+    `SELECT id, first_name, last_name, email
+     FROM profiles
+     WHERE org_id = ?
+     ORDER BY first_name, last_name`,
+    [orgId],
+  );
+  const rows = res?.array ?? [];
+  return rows
+    .map((r: any) => ({
+      id: String(r.id),
+      first_name: String(r.first_name ?? ""),
+      last_name: String(r.last_name ?? ""),
+      email: String(r.email ?? ""),
+      displayName: "",
+    }))
+    .filter((c) => !excluded.has(c.id))
+    .map((c) => ({
+      ...c,
+      displayName: c.last_name
+        ? `${c.first_name} ${c.last_name}`.trim()
+        : c.email || c.id.slice(0, 8),
+    }));
+}

@@ -168,6 +168,11 @@ export default function Federation() {
   const [newParent, setNewParent] = useState<string | "">("");
   const [creating, setCreating] = useState(false);
 
+  // Re-parenting inline (remplace le window.prompt)
+  const [reparentOrg, setReparentOrg] = useState<string | null>(null);
+  const [reparentTarget, setReparentTarget] = useState("");
+  const [reparenting, setReparenting] = useState(false);
+
   const loadOrgs = async () => {
     if (!user?.id) return;
     setLoading(true);
@@ -251,18 +256,27 @@ export default function Federation() {
     }
   };
 
-  const handleReparent = async (orgId: string) => {
-    if (!user?.id) return;
-    const target = window.prompt(
-      "Nouvelle organisation parente (id, ou laissez vide pour détacher) :",
-    );
-    if (target === null) return;
+  const openReparent = (orgId: string) => {
+    setReparentOrg(orgId);
+    setReparentTarget("");
+  };
+
+  const applyReparent = async () => {
+    if (!user?.id || !reparentOrg) return;
+    setReparenting(true);
     setError(null);
     try {
-      await federation.setParentOrg(orgId, target.trim() || null, user.id);
+      await federation.setParentOrg(
+        reparentOrg,
+        reparentTarget || null,
+        user.id,
+      );
+      setReparentOrg(null);
       await loadOrgs();
     } catch (e: any) {
       setError(e?.message ?? "Erreur lors du re-parenting");
+    } finally {
+      setReparenting(false);
     }
   };
 
@@ -484,7 +498,7 @@ export default function Federation() {
                           children={children}
                           onOpen={handleOpenOrg}
                           onCreate={() => setShowCreate(true)}
-                          onReparent={handleReparent}
+                          onReparent={openReparent}
                         />
                       </div>
                     ) : (
@@ -493,13 +507,79 @@ export default function Federation() {
                         children={[]}
                         onOpen={handleOpenOrg}
                         onCreate={() => setShowCreate(true)}
-                        onReparent={handleReparent}
+                        onReparent={openReparent}
                       />
                     )}
                   </div>
                 ))
               )}
             </div>
+
+            {/* Re-parenting inline (sans prompt) */}
+            {reparentOrg && (
+              <div
+                className="rounded-xl p-4 mt-4 space-y-3"
+                style={{
+                  backgroundColor: "#1a130f",
+                  border: "1px solid #3a2a1a",
+                }}
+              >
+                <div className="flex items-center gap-2">
+                  <GitBranch
+                    className="w-4 h-4"
+                    style={{ color: "var(--accent-primary)" }}
+                  />
+                  <span className="text-text-primary font-semibold text-sm">
+                    Changer de parent —{" "}
+                    {allOrgs.find((o) => o.id === reparentOrg)?.name ?? reparentOrg}
+                  </span>
+                </div>
+                <select
+                  data-testid="reparent-target"
+                  value={reparentTarget}
+                  onChange={(e) => setReparentTarget(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl text-sm"
+                  style={{
+                    backgroundColor: "#181818",
+                    color: "#fff",
+                    border: "1px solid #282828",
+                  }}
+                >
+                  <option value="">Détacher (aucun parent)</option>
+                  {rootOrgs
+                    .filter((o) => o.id !== reparentOrg)
+                    .map((o) => (
+                      <option key={o.id} value={o.id}>
+                        {o.name}
+                      </option>
+                    ))}
+                </select>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    data-testid="reparent-apply"
+                    onClick={applyReparent}
+                    disabled={reparenting}
+                    className="flex-1 py-2.5 rounded-full text-sm font-semibold text-white transition-all active:scale-95 disabled:opacity-50"
+                    style={{ backgroundColor: "var(--accent-primary)" }}
+                  >
+                    {reparenting ? "Application…" : "Appliquer"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setReparentOrg(null)}
+                    className="px-4 py-2.5 rounded-full text-sm font-semibold transition-all active:scale-95"
+                    style={{
+                      color: "#B3B3B3",
+                      border: "1px solid #282828",
+                      background: "transparent",
+                    }}
+                  >
+                    Annuler
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Error */}
             {error && (
