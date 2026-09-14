@@ -19,9 +19,10 @@ async function loginAsTestUser(page: Page): Promise<void> {
     localStorage.setItem("lumina-role", "TREASURIER");
   });
 
-  // 60 s : un démarrage à froid (re-optimisation des dépendances Vite)
-  // peut dépasser 20 s ; le budget global du test reste de 360 s.
-  await page.goto("/auth", { waitUntil: "domcontentloaded", timeout: 60_000 });
+  // 180 s : un démarrage à froid (re-optimisation des dépendances Vite,
+  // qui bloque la première navigation) peut prendre plusieurs minutes ;
+  // le budget global du test reste de 360 s.
+  await page.goto("/auth", { waitUntil: "domcontentloaded", timeout: 180_000 });
   await page.getByPlaceholder("jean@example.com").fill(TEST_EMAIL!);
   await page.getByPlaceholder("••••••••").fill(TEST_PASSWORD!);
   await page.getByRole("button", { name: "Se connecter" }).click();

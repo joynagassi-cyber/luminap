@@ -32,7 +32,7 @@ import {
 } from "lucide-react";
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
-import { useCurrentUser, useOrganizations } from "@/lib/dataLayer";
+import { useCurrentUser } from "@/lib/dataLayer";
 import {
   federation,
   type FederationOrg,
@@ -153,7 +153,6 @@ function OrgNode({
 export default function Federation() {
   const user = useCurrentUser();
   const navigate = useNavigate();
-  const { data: managedOrgs } = useOrganizations("central");
   const [bootstrapping, setBootstrapping] = useState(false);
   const [createdOrg, setCreatedOrg] = useState<{ orgId: string; name: string } | null>(null);
   const [selectedOrg, setSelectedOrg] = useState<string | null>(null);
@@ -446,9 +445,35 @@ export default function Federation() {
               {loading ? (
                 <p className="text-text-tertiary text-sm py-4 text-center">Chargement...</p>
               ) : rootOrgs.length === 0 ? (
-                <p className="text-text-tertiary text-sm py-6 text-center">
-                  Aucune organisation racine. Créez-en une pour démarrer.
-                </p>
+                <div
+                  className="rounded-xl p-4 text-sm text-center space-y-2"
+                  style={{ backgroundColor: "#212121", border: "1px solid #282828" }}
+                >
+                  <p className="text-text-tertiary">
+                    Aucune organisation visible pour votre compte.
+                  </p>
+                  <p className="text-text-tertiary text-xs leading-relaxed">
+                    La création d&apos;organisation opérationnelle et la gestion de
+                    la fédération sont réservées aux <strong>admins centraux</strong>{" "}
+                    (détenteurs d&apos;un grant <code>org_admins</code> actif). Si
+                    vous n&apos;y voyez rien, votre compte n&apos;a pas encore le
+                    rôle admin central — demandez-le à l&apos;administrateur de
+                    Lumina.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/admin")}
+                    className="mt-1 text-xs font-semibold"
+                    style={{
+                      color: "var(--accent-primary)",
+                      background: "transparent",
+                      border: "none",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Voir mon accès admin central
+                  </button>
+                </div>
               ) : (
                 rootOrgs.map((org) => (
                   <div key={org.id}>
@@ -487,6 +512,41 @@ export default function Federation() {
                 }}
               >
                 {error}
+              </div>
+            )}
+
+            {/* 403 explicite : le compte n'est pas admin central */}
+            {error?.includes("Admin central requis") && (
+              <div
+                className="mt-3 p-3 rounded-xl text-xs space-y-2"
+                style={{
+                  backgroundColor: "#FFB80015",
+                  border: "1px solid #FFB80040",
+                  color: "#FFB800",
+                }}
+              >
+                <p className="font-semibold">
+                  Votre compte n&apos;est pas administrateur central.
+                </p>
+                <p className="leading-relaxed" style={{ color: "#B3B3B3" }}>
+                  Seuls les détenteurs d&apos;un grant admin central actif peuvent
+                  créer une organisation opérationnelle. Connectez-vous avec le
+                  compte admin central (ex. <code>admin@mfe-jc.org</code>) ou
+                  demandez qu&apos;on vous attribue ce rôle.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => navigate("/admin")}
+                  className="font-semibold"
+                  style={{
+                    color: "var(--accent-primary)",
+                    background: "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                  }}
+                >
+                  Voir mon accès admin central
+                </button>
               </div>
             )}
           </div>

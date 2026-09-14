@@ -11,7 +11,7 @@ import { tint } from "@/lib/utils";
 import {
   useFeatureConfig,
   featuresForNav,
-  featuresForMoreMenu,
+  FEATURES,
   DEFAULT_NAV_TABS,
   type FeatureDef,
 } from "@/lib/features";
@@ -44,9 +44,12 @@ export default function BottomNav() {
     () => activeNavFeatures.map((f) => f.id),
     [activeNavFeatures],
   );
+  // Le menu « Plus » liste TOUS les features visibles — y compris celles déjà
+  // épinglées dans la barre (marquées « Dans la barre ») — pour qu'aucune
+  // feature ne soit jamais inaccessible depuis la navigation basse.
   const moreFeatures = useMemo(
-    () => featuresForMoreMenu(activeNavIds, visible),
-    [activeNavIds, visible],
+    () => FEATURES.filter((f) => visible[f.id] ?? true),
+    [visible],
   );
 
   const fabAction = useMemo(() => {
@@ -219,7 +222,7 @@ export default function BottomNav() {
             );
           })}
 
-          {/* Bouton « Plus » — les features non épinglées dans la barre */}
+          {/* Bouton « Plus » — accès à toutes les features (barre + menu) */}
           <div className="relative" ref={moreRef}>
             <button
               type="button"
@@ -245,15 +248,19 @@ export default function BottomNav() {
               </span>
             </button>
 
-            {/* Menu « Plus » */}
+            {/* Menu « Plus » — liste toutes les features visibles ; celles
+                déjà épinglées dans la barre sont marquées « Dans la barre ».
+                La liste peut être longue → scroll vertical borné. */}
             {showMore && (
               <div
                 data-testid="more-menu"
-                className="absolute bottom-12 right-0 w-48 rounded-2xl overflow-hidden z-50"
+                className="absolute bottom-12 right-0 w-56 rounded-2xl overflow-hidden z-50"
                 style={{
                   backgroundColor: "#181818",
                   border: "1px solid #282828",
                   boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
+                  maxHeight: "45vh",
+                  overflowY: "auto",
                 }}
               >
                 <div className="p-2">
@@ -284,6 +291,7 @@ export default function BottomNav() {
                   ) : (
                     moreFeatures.map((f) => {
                       const Icon = f.icon;
+                      const pinned = activeNavIds.includes(f.id);
                       return (
                         <button
                           key={f.id}
@@ -291,18 +299,35 @@ export default function BottomNav() {
                           onClick={() => go(f)}
                           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all active:scale-95"
                           style={{
-                            background: "transparent",
+                            background: pinned
+                              ? "color-mix(in srgb, var(--accent-primary) 8%, transparent)"
+                              : "transparent",
                             border: "none",
                             cursor: "pointer",
-                            color: "#B3B3B3",
+                            color: pinned ? "var(--accent-primary)" : "#B3B3B3",
                           }}
-                          aria-label={f.label}
+                          aria-label={
+                            pinned ? `${f.label} (déjà dans la barre)` : f.label
+                          }
                         >
                           <Icon
                             className="w-4 h-4 flex-shrink-0"
-                            style={{ color: "#B3B3B3" }}
+                            style={{ color: pinned ? "var(--accent-primary)" : "#B3B3B3" }}
                           />
-                          <span className="text-sm font-medium">{f.label}</span>
+                          <span
+                            className="text-sm font-medium flex-1 truncate"
+                          >
+                            {f.label}
+                          </span>
+                          {pinned && (
+                            <span
+                              className="flex items-center gap-1 text-[10px] font-medium flex-shrink-0"
+                              style={{ color: "#808080" }}
+                            >
+                              <Check className="w-3 h-3" />
+                              Dans la barre
+                            </span>
+                          )}
                         </button>
                       );
                     })
