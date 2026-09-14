@@ -52,23 +52,27 @@ export default function BottomNav() {
     [visible],
   );
 
+  // Le FAB est un bouton de la barre : sa destination doit être DÉTERMINISTE.
+  // Chaque contexte ci-dessous mène à EXACTEMENT une page claire, et le FAB
+  // est masqué (null) sur les pages qui exposent déjà leurs propres actions
+  // claires — un FAB no-op ou ambigu n'y est jamais affiché.
+  //
+  //   /finance            → masqué  (boutons « Nouvelle entrée/dépense » de la page)
+  //   /transaction/*      → masqué  (Approuver / Modifier / Sauvegarder de la page)
+  //   /event/new          → masqué  (le formulaire « nouveau culte » se soumet sur la page)
+  //   /event/:id          → « Nouveau »   → /event/new
+  //   /groups/:id         → « Verser »    → /versement
+  //   par défaut          → « Transaction »→ /transaction/new
   const fabAction = useMemo(() => {
     const path = location.pathname;
-    // Le FAB est masqué sur la liste des finances : les boutons
-    // « Nouvelle entrée » / « Nouvelle dépense » de la page font la même
-    // chose — le FAB rouge se superposait à eux.
-    if (path === "/finance") {
+
+    if (path === "/finance" || path.startsWith("/transaction/")) {
       return null;
     }
-    if (path.startsWith("/transaction/") && !path.endsWith("/edit")) {
-      return {
-        icon: Check,
-        label: "Valider",
-        action: () => {},
-        color: "#1DB954",
-      };
+    if (path === "/event/new" || (path.startsWith("/event/") && path.endsWith("/edit"))) {
+      return null;
     }
-    if (path.startsWith("/event")) {
+    if (path.startsWith("/event/")) {
       return {
         icon: Plus,
         label: "Nouveau",
@@ -106,8 +110,15 @@ export default function BottomNav() {
     location.pathname === path ||
     (path !== "/" && location.pathname.startsWith(path));
 
+  // Garde déterministe : chaque bouton de feature mène à une page claire.
+  // Si la destination n'est pas une route absolue connue (route absente ou
+  // corrompue), on retombe sur l'accueil — jamais d'écran mort / 404.
   const go = (feature: FeatureDef) => {
-    navigate(feature.route);
+    const target =
+      typeof feature?.route === "string" && feature.route.startsWith("/")
+        ? feature.route
+        : "/dashboard";
+    navigate(target);
     setShowMore(false);
   };
 
@@ -156,9 +167,7 @@ export default function BottomNav() {
           }}
           aria-label={fabAction.label}
         >
-          {fabAction.icon === Check ? (
-            <Check className="w-7 h-7" />
-          ) : fabAction.icon === ArrowRightLeft ? (
+          {fabAction.icon === ArrowRightLeft ? (
             <ArrowRightLeft className="w-7 h-7" />
           ) : (
             <Plus className="w-7 h-7" />
