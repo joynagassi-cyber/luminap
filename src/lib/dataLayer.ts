@@ -2384,38 +2384,59 @@ export function useCurrentUser() {
     org: { id: string; name: string; type: string; accentColor: string };
   } | null>(null);
 
+  // Charge l'utilisateur persisté APRÈS montage (l'état démarre à null).
+  // Le PREMIER rendu ne peut donc pas compter sur cet effet : le repli
+  // synchrone ci-dessous est le seul garant d'un utilisateur non-null.
   useEffect(() => {
     const stored = localStorage.getItem("lumina-user");
     if (stored) {
-      setUser(JSON.parse(stored));
+      try {
+        setUser(JSON.parse(stored));
+      } catch {
+        /* JSON corrompu — le repli synchrone prend le relais au rendu courant */
+      }
     }
   }, []);
 
-  // Definitive fallback: if `lumina-user` is missing, build the shape from
-  // the live `lumina-role` + `lumina-config` + church seed so the dashboard
-  // header still renders instead of crashing on `user.role` over `null`.
+  // Repli SYNCHRONE et DÉTERMINISTE : tant que `lumina-user` n'est pas
+  // encore chargé (1er rendu), on CONSTRUIT l'objet ici et on le RETOURNE
+  // directement. Le repli précédent utilisait un setState en phase de
+  // rendu (appliqué au rendu SUIVANT) : le 1er rendu renvoyait null et
+  // crashait toute page lisant `user.role` à son montage (écran noir).
+  // Ce hook ne renvoie donc JAMAIS null.
   if (!user) {
+    let role = "TREASURIER";
+    let orgName = "Lumina";
+    let orgId = "org-1";
     try {
-      const role = localStorage.getItem("lumina-role") ?? "TREASURIER";
+      const storedRole = localStorage.getItem("lumina-role");
+      if (storedRole) role = storedRole;
       const cfg = JSON.parse(
         localStorage.getItem("lumina-config") ?? "{}",
       );
-      setUser({
-        id: "local-user",
-        email: "",
-        firstName: "Utilisateur",
-        lastName: "",
-        role,
-        org: {
-          id: getOrganizationId(),
-          name: cfg?.churchName || "Lumina",
-          type: "Eglise",
-          accentColor: "#FF6B00",
-        },
-      });
+      if (cfg?.churchName) orgName = cfg.churchName;
     } catch {
-      /* storage unavailable (SSR / test) — stay null */
+      /* stockage indisponible (SSR / test) — valeurs par défaut */
     }
+    try {
+      const ctx = getOrganizationId();
+      if (ctx) orgId = ctx;
+    } catch {
+      /* contexte d'organisation indisponible — repli org-1 */
+    }
+    return {
+      id: "local-user",
+      email: "",
+      firstName: "Utilisateur",
+      lastName: "",
+      role,
+      org: {
+        id: orgId,
+        name: orgName,
+        type: "Eglise",
+        accentColor: "#FF6B00",
+      },
+    };
   }
 
   return user;
