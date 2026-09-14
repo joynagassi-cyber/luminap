@@ -11,6 +11,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   IonPage,
   IonHeader,
@@ -27,6 +28,7 @@ import {
   GitBranch,
   ChevronRight,
   ArrowLeft,
+  UserPlus,
 } from "lucide-react";
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
@@ -35,6 +37,7 @@ import {
   federation,
   type FederationOrg,
 } from "@/capabilities/federation";
+import { bootstrapOrganization } from "@/lib/orgBootstrap";
 
 const STATUS_LABEL: Record<string, string> = {
   PENDING: "En attente",
@@ -149,7 +152,10 @@ function OrgNode({
 
 export default function Federation() {
   const user = useCurrentUser();
+  const navigate = useNavigate();
   const { data: managedOrgs } = useOrganizations("central");
+  const [bootstrapping, setBootstrapping] = useState(false);
+  const [createdOrg, setCreatedOrg] = useState<{ orgId: string; name: string } | null>(null);
   const [selectedOrg, setSelectedOrg] = useState<string | null>(null);
   const [children, setChildren] = useState<FederationOrg[]>([]);
   const [allOrgs, setAllOrgs] = useState<FederationOrg[]>([]);
@@ -214,6 +220,35 @@ export default function Federation() {
       setError(e?.message ?? "Erreur lors de la création");
     } finally {
       setCreating(false);
+    }
+  };
+
+  /**
+   * Créer une organisation OPÉRATIONNELLE (service_role) : l'organisation est
+   * ACTIVE et le créateur devient son admin. Le client seul ne peut pas le
+   * faire (RLS), c'est le rôle de la fonction `create_org`. Ensuite on peut
+   * inviter des membres (RBAC) sur cette organisation.
+   */
+  const handleBootstrap = async () => {
+    if (!newName.trim()) return;
+    setBootstrapping(true);
+    setError(null);
+    try {
+      const res = await bootstrapOrganization({
+        name: newName.trim(),
+        type: newType,
+        parentOrgId: newParent || null,
+      });
+      setCreatedOrg({ orgId: res.orgId, name: res.name });
+      setNewName("");
+      setNewType("CHURCH");
+      setNewParent("");
+      setShowCreate(false);
+      await loadOrgs();
+    } catch (e: any) {
+      setError(e?.message ?? "Erreur lors de la création opérationnelle");
+    } finally {
+      setBootstrapping(false);
     }
   };
 
@@ -351,6 +386,50 @@ export default function Federation() {
                   aria-label="Créer l'organisation"
                 >
                   {creating ? "Création..." : "Créer"}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleBootstrap}
+                  disabled={bootstrapping || !newName.trim()}
+                  className="w-full py-3 rounded-full font-semibold text-sm transition-all active:scale-95 disabled:opacity-50"
+                  style={{
+                    backgroundColor: "transparent",
+                    color: "var(--accent-primary)",
+                    border: "1px solid var(--accent-primary)",
+                  }}
+                  aria-label="Créer une organisation opérationnelle"
+                >
+                  {bootstrapping
+                    ? "Création opérationnelle..."
+                    : "Créer opérationnelle (admin + ACTIVE)"}
+                </button>
+                <p className="text-[11px] text-text-tertiary leading-snug">
+                  « Opérationnelle » = organisation ACTIVE dont vous êtes
+                  l'admin (via la fonction serveur), prête à recevoir des
+                  membres par invitation. Nécessite un grant admin central.
+                </p>
+              </div>
+            )}
+
+            {/* Organisation opérationnelle créée → inviter des membres (RBAC) */}
+            {createdOrg && (
+              <div
+                className="rounded-xl p-4 mb-4 space-y-3"
+                style={{ backgroundColor: "#1DB95418", border: "1px solid #1DB95440" }}
+              >
+                <div className="flex items-center gap-2">
+                  <UserPlus className="w-4 h-4" style={{ color: "#1DB954" }} />
+                  <p className="text-sm font-medium" style={{ color: "#1DB954" }}>
+                    « {createdOrg.name} » créée (opérationnelle). Vous êtes son admin.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => navigate(`/invitation/emit?org=${createdOrg.orgId}`)}
+                  className="w-full py-3 rounded-full font-semibold text-white text-sm transition-all active:scale-95"
+                  style={{ backgroundColor: "var(--accent-primary)" }}
+                >
+                  Inviter des membres (rôle + organisation)
                 </button>
               </div>
             )}

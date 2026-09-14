@@ -106,6 +106,20 @@
 - **Offline-first** : fonctionne sans internet, sync auto à la reconnexion
 - **Network events** : écoute `online`/`offline` + `visibilitychange` pour relancer la sync
 
+## Authentification & routage post-login
+- **Toute inscription → `/onboarding` d'abord** (jamais le dashboard direct) ; une **connexion** (compte existant) peut aller direct au dashboard.
+- Email : `AuthPage` force l'onboarding à la signature (`forceOnboarding: true`).
+- Google (web OAuth **et** deep-link natif) : détection du **nouveau compte** via `user.created_at` < 5 min (`isBrandNewUser` dans `src/lib/auth.ts`, exposé `isNewUser` par `handleOAuthCallback`/`handleOAuthDeepLink`). Nouveau → onboarding ; retour → dashboard.
+- L'état d'onboarding est **par navigateur** (localStorage `lumina-onboarded`) : un compte existant sur un nouvel appareil repasse l'onboarding (limitation connue, acceptable).
+
+## Multi-organisation & RBAC (bootstrap)
+- **Grille RLS (vérifiée)** : `organizations` INSERT et `org_admins` INSERT exigent un **grant central actif** (`org_admins`) → on ne peut PAS créer la 1ʳᵉ organisation côté client.
+- **Bootstrap serveur** : edge function `supabase/functions/create_org` (service_role) — vérifie la session JWT, exige un grant `org_admins` actif, crée l'org (status `ACTIVE`) + donne l'admin au créateur. Wrapper client : `src/lib/orgBootstrap.ts` → `bootstrapOrganization()`.
+- **1ʳ admin seedé par SQL** (service_role) : `admin@mfe-jc.org` sur `org-central`. Sans lui, tout « créer une org opérationnelle » renvoie 403. Pour changer d'admin → insérer un autre grant `org_admins` (DELETE/re-INSERT).
+- **Flux complet** : Fédération → « Créer opérationnelle » (edge fn) → l'org est ACTIVE + vous êtes admin → bouton « Inviter des membres » → `/invitation/emit?org=<id>` → le destinataire claim (`/invitation/claim`) → `profiles.role` + `profiles.org_id` attribués (RBAC).
+- **Invitations** : capabilité `@/capabilities/invitation` (QR / code / fichier) + `InvitationEmit` (supporte `?org=`) / `InvitationClaim` / `InvitationManage`.
+- **Menu « Plus »** : features `invitations` (`/invitation/manage`), `federation` (`/admin/federation`), `admin` (`/admin`) ajoutées (visibilité bornée par RLS sur les pages).
+
 <!-- nitro:start -->
 
 ## Nitro Server Layer

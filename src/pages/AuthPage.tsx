@@ -101,7 +101,12 @@ export default function AuthPage() {
         if (result.error) {
           setError(result.error);
         } else if (result.profile) {
-          void proceedAfterAuth(result.profile);
+          // Google sign-up (compte créé à l'instant) → toujours onboarding d'abord.
+          // Google connexion (compte existant, isNewUser false) → dashboard
+          // direct (sauf si l'onboarding de ce navigateur reste à finaliser).
+          void proceedAfterAuth(result.profile, {
+            forceOnboarding: result.isNewUser,
+          });
         }
       }
     };
@@ -201,7 +206,11 @@ export default function AuthPage() {
         return;
       }
       if (result.profile) {
-        void proceedAfterAuth(result.profile);
+        // Même règle que le callback web : inscription Google (nouveau
+        // compte) → onboarding d'abord ; connexion existante → dashboard.
+        void proceedAfterAuth(result.profile, {
+          forceOnboarding: result.isNewUser,
+        });
       }
     };
 

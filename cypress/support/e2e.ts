@@ -93,77 +93,91 @@ Cypress.Commands.add('login', function (email: string, password: string) {
  * transaction / event / form), not the organisation itself.
  */
 Cypress.Commands.add('skipOnboarding', function () {
-  // ── 1. Read the supabase session token from localStorage ──────────
   // After a real cloud login, supabase-js persists the session under
-  // `sb-<projectId>-auth-token`. We read it, mark onboarding complete,
-  // and hand it back to the app via a full page reload — so the
-  // RouteGuard in src/App.tsx (authService.getSession) authenticates
-  // without needing a new network call, and the localStorage onboarding
-  // flags are already `completed: true`.
-  const session = cy.window().then((win) => {
+  // `sb-<projectId>-auth-token`. The app's RouteGuard (src/App.tsx)
+  // trusts `authService.getSession()` — which re-validates the token
+  // via a network call to /auth/v1/token. If that call fails (rate
+  // limit, transient 401, etc.), the guard bounces us back to /auth,
+  // even though the login itself just succeeded.
+  //
+  // Strategy:
+  //   1. Read the real session token from localStorage (key verified at
+  //      runtime: `sb-hhgovvrnalibhgpakswi-auth-token`).
+  //   2. Mark onboarding complete (`lumina-onboarding` → completed: true)
+  //      so the next navigation lands on /dashboard, not /onboarding.
+  //   3. Re-visit /splash — the app boots, the guard reads the
+  //      still-present token, and Splash's own `needsOnboarding()` check
+  //      (now false) routes to /dashboard.
+  //
+  // This mirrors what `cy.seedLocalSession()` does in local.ts, but
+  // keeps the *real* cloud session so the auth is genuine.
+  cy.window().then((win) => {
     const ls = win.localStorage;
-    const keys = Object.keys(ls);
-    const sbKey = keys.find((k) => k.endsWith('-auth-token'));
-    if (!sbKey) return null;
-    try {
-      return JSON.parse(ls.getItem(sbKey)!);
-    } catch {
-      return null;
+    const sbKey = Object.keys(ls).find((k) => /-auth-token$/.test(k));
+    let user: any = null;
+    if (sbKey) {
+      try {
+        const raw = JSON.parse(ls.getItem(sbKey)!);
+        user = raw?.user;
+      } catch {
+        user = null;
+      }
     }
+    const userId = user?.id ?? 'local-user';
+
+    // Mark onboarding complete + write local user/role/config.
+    ls.setItem('lumina-onboarded', 'true');
+    ls.setItem('lumina-role', 'TREASURIER');
+    ls.setItem(
+      'lumina-onboarding',
+      JSON.stringify({
+        screen: 0,
+        branch: 'creator',
+        org: {
+          name: 'Org Test E2E',
+          sigle: 'E2E',
+          type: 'Eglise',
+          theme: 'orange',
+          features: [],
+        },
+        role: 'TREASURIER',
+        completed: true,
+      }),
+    );
+    ls.setItem(
+      'lumina-user',
+      JSON.stringify({
+        id: userId,
+        email: user?.email ?? '',
+        firstName: 'E2E',
+        role: 'TREASURIER',
+        org: { id: 'default-org', name: 'Org Test E2E', type: 'Eglise' },
+      }),
+    );
+    ls.setItem('lumina-config', JSON.stringify({ churchName: 'Org Test E2E' }));
+    ls.setItem('lumina-session', userId);
   });
 
-  session.then((raw) => {
-    // ── 2. Mark onboarding complete + write user/role/config ──────────
-    cy.window().then((win) => {
-      const ls = win.localStorage;
-      const sbKey = Object.keys(ls).find((k) => k.endsWith('-auth-token'));
-      if (sbKey && raw) {
-        const user = raw.user;
-        const userId = user?.id ?? 'local-user';
-        // Onboarding completion (src/lib/onboardingState.ts).
-        ls.setItem('lumina-onboarded', 'true');
-        ls.setItem('lumina-role', 'TREASURIER');
-        ls.setItem(
-          'lumina-onboarding',
-          JSON.stringify({
-            screen: 0,
-            branch: 'creator',
-            org: {
-              name: 'Org Test E2E',
-              sigle: 'E2E',
-              type: 'Eglise',
-              theme: 'orange',
-              features: [],
-            },
-            role: 'TREASURIER',
-            completed: true,
-          }),
-        );
-        // Local user + config (read by loadInitialData / useCurrentUser).
-        ls.setItem(
-          'lumina-user',
-          JSON.stringify({
-            id: userId,
-            email: user?.email ?? '',
-            firstName: 'E2E',
-            role: 'TREASURIER',
-            org: { id: 'default-org', name: 'Org Test E2E', type: 'Eglise' },
-          }),
-        );
-        ls.setItem('lumina-config', JSON.stringify({ churchName: 'Org Test E2E' }));
-        ls.setItem('lumina-session', userId);
-      }
-    });
-
-    // ── 3. Full reload → /splash → /dashboard ─────────────────────────
-    // A hard visit re-mounts the app. The RouteGuard re-checks
-    // authService.getSession() — which reads the token we just kept in
-    // localStorage — and passes. With onboarding completed, Splash's
-    // own `needsOnboarding()` check routes to /dashboard (not
-    // /onboarding). This mirrors what `cy.seedLocalSession()` does in
-    // local.ts, but with the real cloud session instead of a fake one.
-    cy.visit('/splash');
-    cy.location('pathname', { timeout: 60_000 }).should('include', 'dashboard');
+  // Re-route: full reload on /splash. The guard re-checks the token
+  // (network call to /auth/v1/token — fast, same-origin), and Splash's
+  // needsOnboarding() check (now false) navigates to /dashboard.
+  cy.visit('/splash');
+  cy.location('pathname', { timeout: 60_000 }).then((loc) => {
+    if (!['/dashboard', '/splash'].includes(loc)) {
+      // Retry once — the first reload may race a session re-validation.
+      cy.visit('/splash');
+    }
+  });
+  cy.location('pathname', { timeout: 60_000 }).should((path) => {
+    expect(['/dashboard', '/splash']).to.include(path as string);
+  });
+  // If we landed on /splash, follow the splash → dashboard redirect
+  // (Splash waits ~2 s + data layer init before navigating).
+  cy.location('pathname').then((loc) => {
+    if (loc === '/splash') {
+      cy.wait(3000);
+      cy.location('pathname', { timeout: 60_000 }).should('include', 'dashboard');
+    }
   });
 });
 

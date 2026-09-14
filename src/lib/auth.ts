@@ -72,6 +72,27 @@ const TOKEN_RENEWAL_BUFFER_MS = 5 * 60 * 1000;
 // Session validation interval (check every 60 seconds)
 const SESSION_CHECK_INTERVAL_MS = 60 * 1000;
 
+// Brand-new sign-up window. A Google OAuth round-trip that just created the
+// auth user (user.created_at within this window) is the user's FIRST login —
+// i.e. a sign-up — so it must land on onboarding. A returning login (account
+// created minutes/hours/days ago) is a connection and may go straight to the
+// dashboard. The window is a few minutes: long enough to cover a slow OAuth
+// redirect, short enough that a re-login after finishing onboarding is no
+// longer "new".
+const NEW_SIGNUP_WINDOW_MS = 5 * 60 * 1000;
+
+/**
+ * True when the auth user was created within NEW_SIGNUP_WINDOW_MS — i.e. this
+ * session is a first-time login (sign-up) rather than a returning connection.
+ * Used to force onboarding for brand-new Google accounts.
+ */
+function isBrandNewUser(user: SupabaseUser | null | undefined): boolean {
+  if (!user?.created_at) return false;
+  const created = new Date(user.created_at).getTime();
+  if (Number.isNaN(created)) return false;
+  return Date.now() - created <= NEW_SIGNUP_WINDOW_MS;
+}
+
 // Auth service class
 class AuthService {
   private state: AuthState = {
@@ -500,6 +521,7 @@ class AuthService {
   async handleOAuthCallback(): Promise<{
     error: string | null;
     profile: Profile | null;
+    isNewUser: boolean;
   }> {
     this.setState({ isLoading: true, error: null });
 
@@ -513,21 +535,21 @@ class AuthService {
         const errorMsg =
           sessionError?.message || "No session found after OAuth callback.";
         this.setState({ error: errorMsg, isLoading: false });
-        return { error: errorMsg, profile: null };
+        return { error: errorMsg, profile: null, isNewUser: false };
       }
 
       // Validate session has required fields
       if (!session.user?.id) {
         const errorMsg = "Invalid session: user ID is missing.";
         this.setState({ error: errorMsg, isLoading: false });
-        return { error: errorMsg, profile: null };
+        return { error: errorMsg, profile: null, isNewUser: false };
       }
 
       // Validate access token is present
       if (!session.access_token) {
         const errorMsg = "Invalid session: access token is missing.";
         this.setState({ error: errorMsg, isLoading: false });
-        return { error: errorMsg, profile: null };
+        return { error: errorMsg, profile: null, isNewUser: false };
       }
 
       const profile = await this.getProfile(session.user.id);
@@ -544,7 +566,11 @@ class AuthService {
         });
         this.startSessionValidation();
         this.notifyListeners();
-        return { error: null, profile: newProfile };
+        return {
+          error: null,
+          profile: newProfile,
+          isNewUser: isBrandNewUser(session.user),
+        };
       }
 
       this.setState({
@@ -556,12 +582,16 @@ class AuthService {
       this.startSessionValidation();
       this.notifyListeners();
 
-      return { error: null, profile };
+      return {
+        error: null,
+        profile,
+        isNewUser: isBrandNewUser(session.user),
+      };
     } catch (err: any) {
       const userMessage =
         err?.message || "An unexpected error occurred during OAuth callback.";
       this.setState({ error: userMessage, isLoading: false });
-      return { error: userMessage, profile: null };
+      return { error: userMessage, profile: null, isNewUser: false };
     }
   }
 
@@ -580,10 +610,11 @@ class AuthService {
   async handleOAuthDeepLink(url: string | null | undefined): Promise<{
     error: string | null;
     profile: Profile | null;
+    isNewUser: boolean;
   }> {
     if (!url) {
       this.setState({ isLoading: false, error: null });
-      return { error: null, profile: null };
+      return { error: null, profile: null, isNewUser: false };
     }
 
     this.setState({ isLoading: true, error: null });
@@ -594,7 +625,7 @@ class AuthService {
       if (!code) {
         // Not an OAuth callback (e.g. the app's own lumina:// launch URL).
         this.setState({ isLoading: false, error: null });
-        return { error: null, profile: null };
+        return { error: null, profile: null, isNewUser: false };
       }
 
       const { data, error } = await supabase.auth.exchangeCodeForSession(code);
@@ -602,13 +633,13 @@ class AuthService {
         const userMessage =
           "Google sign-in could not be completed. Please try again.";
         this.setState({ error: userMessage, isLoading: false });
-        return { error: userMessage, profile: null };
+        return { error: userMessage, profile: null, isNewUser: false };
       }
 
       const session = data.session;
       if (!session?.user) {
         this.setState({ isLoading: false, error: null });
-        return { error: null, profile: null };
+        return { error: null, profile: null, isNewUser: false };
       }
 
       const profile = await this.ensureProfile(session.user);
@@ -620,12 +651,16 @@ class AuthService {
       });
       this.startSessionValidation();
       this.notifyListeners();
-      return { error: null, profile };
+      return {
+        error: null,
+        profile,
+        isNewUser: isBrandNewUser(session.user),
+      };
     } catch (err: any) {
       const userMessage =
         err?.message || "An unexpected error occurred during Google sign-in.";
       this.setState({ error: userMessage, isLoading: false });
-      return { error: userMessage, profile: null };
+      return { error: userMessage, profile: null, isNewUser: false };
     }
   }
 

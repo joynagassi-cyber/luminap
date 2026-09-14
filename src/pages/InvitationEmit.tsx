@@ -5,7 +5,7 @@
  */
 
 import { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   IonPage,
   IonHeader,
@@ -61,9 +61,15 @@ const ROLES = [
 
 export default function InvitationEmit() {
   const navigate = useNavigate();
+  const location = useLocation();
   const user = useCurrentUser();
   const { data: psMembers } = useMembers();
   const members = psMembers ?? [];
+
+  // Organisation ciblée : `?org=<id>` (ex. venue de la page Fédération après
+  // avoir créé une organisation opérationnelle) ; sinon l'organisation courante.
+  const orgParam = new URLSearchParams(location.search).get("org");
+  const targetOrgId = orgParam ?? getOrganizationId();
 
   const [step, setStep] = useState<"configure" | "qr">("configure");
   const [targetRole, setTargetRole] = useState("MEMBRE");
@@ -86,7 +92,7 @@ export default function InvitationEmit() {
       ).toISOString();
 
       const id = await invitation.createInvitation({
-        orgId: getOrganizationId(),
+        orgId: targetOrgId,
         targetRole,
         targetScopeType: scopeType,
         targetGroupId: scopeType === "GROUP" ? targetGroupId : undefined,
@@ -99,7 +105,7 @@ export default function InvitationEmit() {
       const code = generateCode();
       const payload = buildQRPayload(
         {
-          orgId: getOrganizationId(),
+          orgId: targetOrgId,
           targetRole,
           targetScopeType: scopeType,
           targetGroupId: scopeType === "GROUP" ? targetGroupId : undefined,
@@ -152,7 +158,7 @@ export default function InvitationEmit() {
     if (!generatedId) return null;
     return {
       v: 1,
-      orgId: getOrganizationId(),
+      orgId: targetOrgId,
       invitationId: generatedId,
       code: generatedCode,
       role: targetRole,
@@ -166,7 +172,7 @@ export default function InvitationEmit() {
         Date.now() + expiresDays * 24 * 60 * 60 * 1000,
       ).toISOString(),
     };
-  }, [generatedId, generatedCode, targetRole, scopeType, targetGroupId, targetMemberId, expiresDays]);
+  }, [generatedId, generatedCode, targetOrgId, targetRole, scopeType, targetGroupId, targetMemberId, expiresDays]);
 
   return (
     <IonPage>

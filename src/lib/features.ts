@@ -25,6 +25,9 @@ import {
   Archive,
   ListChecks,
   FileText,
+  Ticket,
+  Network,
+  ShieldCheck,
   Settings as SettingsIcon,
   HelpCircle,
 } from "lucide-react";
@@ -143,6 +146,33 @@ export const FEATURES: FeatureDef[] = [
     label: "Formulaires",
     route: "/forms",
     icon: FileText,
+    kind: "feature",
+  },
+  // RBAC / multi-organisation : ces pages n'étaient accessibles que via
+  // l'onboarding (branche membre) et leurs liens internes — aucune entrée
+  // principale. On les expose dans le menu « Plus » pour qu'elles soient
+  // visibles/utilisables. Chacune reste elle-même bornée par les RLS
+  // (invitations pour tout membre ; fédération / admin central pour un
+  // détenteur de grant central).
+  {
+    id: "invitations",
+    label: "Invitations",
+    route: "/invitation/manage",
+    icon: Ticket,
+    kind: "feature",
+  },
+  {
+    id: "federation",
+    label: "Fédération",
+    route: "/admin/federation",
+    icon: Network,
+    kind: "feature",
+  },
+  {
+    id: "admin",
+    label: "Admin central",
+    route: "/admin",
+    icon: ShieldCheck,
     kind: "feature",
   },
   {
