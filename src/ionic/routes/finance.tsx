@@ -15,6 +15,10 @@ const TransactionEdit = lazy(() => import("@/pages/TransactionEdit"));
 const Balance = lazy(() => import("@/pages/Balance"));
 const Versement = lazy(() => import("@/pages/Versement"));
 const SaisieRapide = lazy(() => import("@/pages/SaisieRapide"));
+const Budgets = lazy(() => import("@/pages/Budgets"));
+const BudgetDetail = lazy(() => import("@/pages/BudgetDetail"));
+const Giving = lazy(() => import("@/pages/Giving"));
+const GivingCampaign = lazy(() => import("@/pages/GivingCampaign"));
 
 export const financeRoutes: ReactElement[] = [
   <Route
@@ -56,5 +60,25 @@ export const financeRoutes: ReactElement[] = [
     key="/saisie-rapide/:id"
     path="/saisie-rapide/:id"
     element={<LazyRoute component={SaisieRapide} />}
+  />,
+  <Route
+    key="/budgets"
+    path="/budgets"
+    element={<LazyRoute component={Budgets} />}
+  />,
+  <Route
+    key="/budgets/:id"
+    path="/budgets/:id"
+    element={<LazyRoute component={BudgetDetail} />}
+  />,
+  <Route
+    key="/giving"
+    path="/giving"
+    element={<LazyRoute component={Giving} />}
+  />,
+  <Route
+    key="/giving/campaigns/:id"
+    path="/giving/campaigns/:id"
+    element={<LazyRoute component={GivingCampaign} />}
   />,
 ];

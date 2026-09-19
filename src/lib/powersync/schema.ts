@@ -405,6 +405,133 @@ const documents = new Table(
   { indexes: {} },
 );
 
+// ============================================================
+// P0 — Budgets (budget par centre de coûts + écart prévu/réel)
+// Distinct des budgets d'événement (`event_budgets`/`budget_lines`) :
+// `org_budgets` porte un budget organisationnel par exercice/période/centre
+// de coûts ; le « réel » est calculé côté client depuis `transactions`.
+// ============================================================
+
+const org_budgets = new Table(
+  {
+    org_id: column.text,
+    fiscal_year: column.integer,
+    period: column.text,
+    cost_center_id: column.text,
+    cost_center_label: column.text,
+    name: column.text,
+    total_budgeted_cents: column.integer,
+    status: column.text,
+    currency: column.text,
+    note: column.text,
+    created_at: column.text,
+    updated_at: column.text,
+  },
+  {
+    indexes: {
+      idx_org_budgets_org: ["org_id"],
+      idx_org_budgets_year: ["fiscal_year"],
+    },
+  },
+);
+
+const org_budget_lines = new Table(
+  {
+    org_id: column.text,
+    budget_id: column.text,
+    category_id: column.text,
+    planned_amount_cents: column.integer,
+    note: column.text,
+    created_at: column.text,
+    updated_at: column.text,
+  },
+  { indexes: { idx_org_bl_budget: ["budget_id"] } },
+);
+
+// ============================================================
+// P0 — Giving (dons, campagnes, pledges, reçus fiscaux)
+// `tax_receipt_enabled` est un 0/1 (integer) pour rester compatible avec
+// le jeu de types PowerSync (text/integer).
+// ============================================================
+
+const giving_donors = new Table(
+  {
+    org_id: column.text,
+    full_name: column.text,
+    email: column.text,
+    phone: column.text,
+    address: column.text,
+    member_id: column.text,
+    tax_receipt_enabled: column.integer,
+    notes: column.text,
+    created_at: column.text,
+    updated_at: column.text,
+  },
+  { indexes: { idx_giving_donors_org: ["org_id"] } },
+);
+
+const giving_campaigns = new Table(
+  {
+    org_id: column.text,
+    name: column.text,
+    purpose: column.text,
+    fund: column.text,
+    target_amount_cents: column.integer,
+    start_date: column.text,
+    end_date: column.text,
+    status: column.text,
+    notes: column.text,
+    created_at: column.text,
+    updated_at: column.text,
+  },
+  { indexes: { idx_giving_campaigns_org: ["org_id"] } },
+);
+
+const pledges = new Table(
+  {
+    org_id: column.text,
+    campaign_id: column.text,
+    donor_id: column.text,
+    pledged_amount_cents: column.integer,
+    schedule: column.text,
+    amount_per_period_cents: column.integer,
+    start_date: column.text,
+    end_date: column.text,
+    status: column.text,
+    notes: column.text,
+    created_at: column.text,
+    updated_at: column.text,
+  },
+  { indexes: { idx_pledges_campaign: ["campaign_id"], idx_pledges_donor: ["donor_id"] } },
+);
+
+const tax_receipts = new Table(
+  {
+    org_id: column.text,
+    donor_id: column.text,
+    year: column.integer,
+    receipt_no: column.text,
+    total_amount_cents: column.integer,
+    issued_at: column.text,
+    created_at: column.text,
+    updated_at: column.text,
+  },
+  { indexes: { idx_tax_receipts_donor: ["donor_id"] } },
+);
+
+const transaction_giving = new Table(
+  {
+    org_id: column.text,
+    transaction_id: column.text,
+    donor_id: column.text,
+    campaign_id: column.text,
+    recorded_at: column.text,
+    created_at: column.text,
+    updated_at: column.text,
+  },
+  { indexes: { idx_txn_giving_donor: ["donor_id"] } },
+);
+
 export const AppSchema = new Schema({
   profiles,
   members,
@@ -433,6 +560,13 @@ export const AppSchema = new Schema({
   invitation_claims,
   organizations,
   org_admins,
+  org_budgets,
+  org_budget_lines,
+  giving_donors,
+  giving_campaigns,
+  pledges,
+  tax_receipts,
+  transaction_giving,
 });
 
 export type Database = (typeof AppSchema)["types"];

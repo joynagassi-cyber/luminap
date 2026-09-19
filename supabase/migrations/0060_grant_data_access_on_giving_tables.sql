@@ -1,0 +1,2 @@
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.giving_donors, public.giving_campaigns, public.pledges, public.tax_receipts, public.transaction_giving TO anon, authenticated, service_role;
+GRANT SELECT ON public.giving_donors, public.giving_campaigns, public.pledges, public.tax_receipts, public.transaction_giving TO powersync_role;

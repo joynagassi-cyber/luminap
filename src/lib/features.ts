@@ -30,6 +30,8 @@ import {
   ShieldCheck,
   Settings as SettingsIcon,
   HelpCircle,
+  PieChart,
+  HandCoins,
 } from "lucide-react";
 
 export interface FeatureDef {
@@ -104,6 +106,20 @@ export const FEATURES: FeatureDef[] = [
     label: "Bilan",
     route: "/balance",
     icon: LineChart,
+    kind: "feature",
+  },
+  {
+    id: "budgets",
+    label: "Budgets",
+    route: "/budgets",
+    icon: PieChart,
+    kind: "feature",
+  },
+  {
+    id: "giving",
+    label: "Dons & Campagnes",
+    route: "/giving",
+    icon: HandCoins,
     kind: "feature",
   },
   {

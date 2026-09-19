@@ -37,6 +37,7 @@
 
 ## Données
 - **Supabase** : tables `transactions`, `categories`, `org_units`, `audit_entries`, `caisses`
+- **P0 (grandes églises)** : `org_budgets`, `org_budget_lines` (budget par centre de coûts) ; `giving_donors`, `giving_campaigns`, `pledges`, `tax_receipts`, `transaction_giving` (dons/campagnes). Toutes RLS par `is_org_member(auth.uid(), org_id)` (TO authenticated, INSERT `WITH CHECK`), grants `anon`/`authenticated`/`service_role` (CRUD) + `powersync_role` (SELECT). Publication `powersync` est `FOR ALL TABLES` → toute nouvelle table `public` est auto-synchronisée (pas d'`ALTER PUBLICATION`).
 - **IndexedDB** : `lumina-db` v7 avec stores `transactions`, `categories`, `orgUnits`, `auditEntries`, `events`, `syncQueue`, `config`, `caisses`
 - **Organisation** : Église MFE-JC Centrale (org-1)
 - **Catégories** : 9 (dîme, offrande, offrande mission, don, salaire pasteur, frais fonctionnement, mission, entretien, aumône)
@@ -90,6 +91,8 @@
 - `/transaction/:id` — Détail transaction
 - `/transaction/:id/edit` — Modifier (draft/rejeté seulement)
 - `/balance` — Bilan financier par période
+- `/budgets` — Budgets (liste + filtres exercice/période/centre de coûts) ; `/budgets/:id` — détail (écart prévu/réel par ligne, rapport conseil, clôturer)
+- `/giving` — Dons & campagnes (onglets Campagnes / Donateurs / Pledges / Reçus) ; `/giving/campaigns/:id` — détail campagne (progression, pledges, rattachement tx, reçu fiscal)
 - `/groups` — Groupes organisationnels
 - `/groups/:id` — Détail groupe (solde caisse + bouton verser)
 - `/events` — Événements (dans menu Plus)
@@ -97,6 +100,13 @@
 - `/event/:id` — Détail événement
 - `/versement` — Page de versement (caisse groupe → caisse principale)
 - `/settings` — Paramètres (status sync, stockage local)
+
+## Capabilités P0 (grandes églises) — budgets & giving
+- **`src/capabilities/budgets/index.ts`** : service `budgets` (CRUD `org_budgets`/`org_budget_lines`) + helpers purs **testables** : `budgetWindow(budget)` (fenêtre date par exercice/période) et `computeBudgetReport(budget, lines, transactions, categories)` → prévu/réel/écart par ligne + totaux. Le « réel » est **toujours dérivé** des transactions APPROVED (jamais stocké).
+- **`src/capabilities/giving/index.ts`** : service `giving` (donors, campaigns, pledges, tax receipts, liens tx↔donneur) + helpers purs : `givenForCampaign`, `pledgedForCampaign`, `campaignProgress` (réel + engagements vs objectif), `annualDonorTotal`, `generateTaxReceipt` (idempotent : 1 reçu par (org, donateur, année), total recomputé depuis les tx liées).
+- **Data layer** : types `PSOrgBudget`, `PSOrgBudgetLine`, `PSGivingDonor`, `PSGivingCampaign`, `PSPledge`, `PSTaxReceipt`, `PSTransactionGiving` + hooks de lecture PS-only (`useOrgBudgets`, `useOrgBudgetLines`, `useGivingDonors`, `useGivingCampaigns`, `usePledges`, `useTaxReceipts`, `useTransactionGiving`) + écritures (`addOrgBudgetPS`/`addOrgBudgetLinePS`/…, `addGivingDonorPS`/`addGivingCampaignPS`/`addPledgePS`/`addTaxReceiptPS`/`linkTransactionGivingPS`). Pas de fallback IndexedDB (comme `useDocuments`).
+- **Pages** : `Budgets` (liste/filtres/création), `BudgetDetail` (lignes + rapport conseil + clôturer), `Giving` (hub 4 onglets), `GivingCampaign` (progression + pledges + rattachement + reçu fiscal). Routes dans `src/ionic/routes/finance.tsx` ; features `budgets`/`giving` au menu « Plus » (`src/lib/features.ts`).
+- Convention montants : saisie en FCFA dans les formulaires → ×100 en centimes à l'écriture (`*_amount_cents`). `tax_receipt_enabled` = 0/1 (integer) en PG **et** PowerSync.
 
 ## Architecture Local-First
 - **IndexedDB** (`src/lib/db.ts`) : source de vérité locale, persiste aux crashs/reloads

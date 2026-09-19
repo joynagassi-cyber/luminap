@@ -775,15 +775,20 @@ export function usePowerSyncStatus(): boolean {
 
 /**
  * Execute a raw SQL write via PowerSync
- * Returns the number of rows affected
+ * Returns the number of rows affected.
+ *
+ * Uses the `getPowerSyncDatabase()` singleton (not the `usePowerSync()`
+ * hook) so writes work from ANY context — event handlers, services, async
+ * callbacks — not only during a React render. The audit flagged the
+ * hook-in-function call as a fragile path.
  */
 export async function executeWrite(
   sql: string,
   params: any[] = [],
 ): Promise<number> {
-  const sync = usePowerSync();
-  const result = await sync.execute(sql, params);
-  return result.rowsAffected ?? 1;
+  const db = getPowerSyncDatabase();
+  const result = await db.execute(sql, params);
+  return (result as { rowsAffected?: number })?.rowsAffected ?? 1;
 }
 
 /**
@@ -2528,6 +2533,458 @@ export async function selectRole(role: string): Promise<string> {
   localStorage.setItem("lumina-session", sessionId);
   localStorage.setItem("lumina-role", role);
   return sessionId;
+}
+
+// ============================================================
+// P0 — Budgets (budget organisationnel par centre de coûts)
+// PowerSync only (pas de fallback IndexedDB, comme `useDocuments`).
+// Le « réel » n'est pas stocké : il est calculé côté client depuis
+// `transactions` (voir capability budgets — computeBudgetReport).
+// ============================================================
+
+export type BudgetPeriod = "ANNUAL" | "Q1" | "Q2" | "Q3" | "Q4";
+export type BudgetStatus = "DRAFT" | "ACTIVE" | "CLOSED";
+
+export interface PSOrgBudget {
+  id: string;
+  org_id: string;
+  fiscal_year: number;
+  period: string;
+  cost_center_id: string | null;
+  cost_center_label: string | null;
+  name: string;
+  total_budgeted_cents: number;
+  status: string;
+  currency: string;
+  note: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PSOrgBudgetLine {
+  id: string;
+  org_id: string;
+  budget_id: string;
+  category_id: string | null;
+  planned_amount_cents: number;
+  note: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export function useOrgBudgets() {
+  const { data: psData } = useQuery<PSOrgBudget>(
+    "SELECT id, org_id, fiscal_year, period, cost_center_id, cost_center_label, name, total_budgeted_cents, status, currency, note, created_at, updated_at FROM org_budgets WHERE org_id = ? ORDER BY fiscal_year DESC, created_at DESC",
+    [getOrganizationId()],
+    { reportFetching: true },
+  );
+  return { data: psData ?? [], isLoading: psData === undefined, source: "powersync" as const };
+}
+
+export function useOrgBudgetLines(budgetId?: string | null) {
+  const { data: psData } = useQuery<PSOrgBudgetLine>(
+    budgetId
+      ? "SELECT id, org_id, budget_id, category_id, planned_amount_cents, note, created_at, updated_at FROM org_budget_lines WHERE budget_id = ? ORDER BY created_at ASC"
+      : "SELECT id, org_id, budget_id, category_id, planned_amount_cents, note, created_at, updated_at FROM org_budget_lines ORDER BY created_at DESC",
+    budgetId ? [budgetId] : [],
+    { reportFetching: true },
+  );
+  return { data: psData ?? [], isLoading: psData === undefined, source: "powersync" as const };
+}
+
+export async function addOrgBudgetPS(
+  budget: Omit<PSOrgBudget, "id" | "org_id" | "created_at" | "updated_at">,
+): Promise<string> {
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  await executeWrite(
+    `INSERT INTO org_budgets
+      (id, org_id, fiscal_year, period, cost_center_id, cost_center_label, name, total_budgeted_cents, status, currency, note, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      id,
+      getOrganizationId(),
+      budget.fiscal_year,
+      budget.period,
+      budget.cost_center_id ?? null,
+      budget.cost_center_label ?? null,
+      budget.name,
+      budget.total_budgeted_cents,
+      budget.status,
+      budget.currency,
+      budget.note ?? null,
+      now,
+      now,
+    ],
+  );
+  return id;
+}
+
+export async function updateOrgBudgetPS(
+  id: string,
+  updates: Partial<
+    Omit<PSOrgBudget, "id" | "org_id" | "created_at" | "updated_at">
+  >,
+): Promise<void> {
+  const setClauses: string[] = [];
+  const params: any[] = [];
+  const fieldMap: [keyof PSOrgBudget, string][] = [
+    ["fiscal_year", "fiscal_year"],
+    ["period", "period"],
+    ["cost_center_id", "cost_center_id"],
+    ["cost_center_label", "cost_center_label"],
+    ["name", "name"],
+    ["total_budgeted_cents", "total_budgeted_cents"],
+    ["status", "status"],
+    ["currency", "currency"],
+    ["note", "note"],
+  ];
+  for (const [key, col] of fieldMap) {
+    if (updates[key] !== undefined) {
+      setClauses.push(`${col} = ?`);
+      params.push(updates[key]);
+    }
+  }
+  setClauses.push("updated_at = ?");
+  params.push(new Date().toISOString(), id);
+  await executeWrite(`UPDATE org_budgets SET ${setClauses.join(", ")} WHERE id = ?`, params);
+}
+
+export async function deleteOrgBudgetPS(id: string): Promise<void> {
+  await executeWrite("DELETE FROM org_budget_lines WHERE budget_id = ?", [id]);
+  await executeWrite("DELETE FROM org_budgets WHERE id = ?", [id]);
+}
+
+export async function addOrgBudgetLinePS(
+  line: Omit<PSOrgBudgetLine, "id" | "org_id" | "created_at" | "updated_at">,
+): Promise<string> {
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  await executeWrite(
+    `INSERT INTO org_budget_lines
+      (id, org_id, budget_id, category_id, planned_amount_cents, note, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      id,
+      getOrganizationId(),
+      line.budget_id,
+      line.category_id ?? null,
+      line.planned_amount_cents,
+      line.note ?? null,
+      now,
+      now,
+    ],
+  );
+  return id;
+}
+
+export async function updateOrgBudgetLinePS(
+  id: string,
+  updates: Partial<Omit<PSOrgBudgetLine, "id" | "org_id" | "created_at">>,
+): Promise<void> {
+  const setClauses: string[] = [];
+  const params: any[] = [];
+  if (updates.category_id !== undefined) {
+    setClauses.push("category_id = ?");
+    params.push(updates.category_id);
+  }
+  if (updates.planned_amount_cents !== undefined) {
+    setClauses.push("planned_amount_cents = ?");
+    params.push(updates.planned_amount_cents);
+  }
+  if (updates.note !== undefined) {
+    setClauses.push("note = ?");
+    params.push(updates.note);
+  }
+  setClauses.push("updated_at = ?");
+  params.push(new Date().toISOString(), id);
+  await executeWrite(`UPDATE org_budget_lines SET ${setClauses.join(", ")} WHERE id = ?`, params);
+}
+
+export async function deleteOrgBudgetLinePS(id: string): Promise<void> {
+  await executeWrite("DELETE FROM org_budget_lines WHERE id = ?", [id]);
+}
+
+// ============================================================
+// P0 — Giving (dons, campagnes, pledges, reçus fiscaux)
+// ============================================================
+
+export interface PSGivingDonor {
+  id: string;
+  org_id: string;
+  full_name: string;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  member_id: string | null;
+  tax_receipt_enabled: number;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PSGivingCampaign {
+  id: string;
+  org_id: string;
+  name: string;
+  purpose: string | null;
+  fund: string | null;
+  target_amount_cents: number;
+  start_date: string | null;
+  end_date: string | null;
+  status: string;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PSPledge {
+  id: string;
+  org_id: string;
+  campaign_id: string;
+  donor_id: string;
+  pledged_amount_cents: number;
+  schedule: string;
+  amount_per_period_cents: number;
+  start_date: string | null;
+  end_date: string | null;
+  status: string;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PSTaxReceipt {
+  id: string;
+  org_id: string;
+  donor_id: string;
+  year: number;
+  receipt_no: string;
+  total_amount_cents: number;
+  issued_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PSTransactionGiving {
+  id: string;
+  org_id: string;
+  transaction_id: string;
+  donor_id: string;
+  campaign_id: string | null;
+  recorded_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export function useGivingDonors() {
+  const { data: psData } = useQuery<PSGivingDonor>(
+    "SELECT id, org_id, full_name, email, phone, address, member_id, tax_receipt_enabled, notes, created_at, updated_at FROM giving_donors WHERE org_id = ? ORDER BY full_name",
+    [getOrganizationId()],
+    { reportFetching: true },
+  );
+  return { data: psData ?? [], isLoading: psData === undefined, source: "powersync" as const };
+}
+
+export function useGivingCampaigns() {
+  const { data: psData } = useQuery<PSGivingCampaign>(
+    "SELECT id, org_id, name, purpose, fund, target_amount_cents, start_date, end_date, status, notes, created_at, updated_at FROM giving_campaigns WHERE org_id = ? ORDER BY start_date DESC, created_at DESC",
+    [getOrganizationId()],
+    { reportFetching: true },
+  );
+  return { data: psData ?? [], isLoading: psData === undefined, source: "powersync" as const };
+}
+
+export function usePledges() {
+  const { data: psData } = useQuery<PSPledge>(
+    "SELECT id, org_id, campaign_id, donor_id, pledged_amount_cents, schedule, amount_per_period_cents, start_date, end_date, status, notes, created_at, updated_at FROM pledges WHERE org_id = ? ORDER BY created_at DESC",
+    [getOrganizationId()],
+    { reportFetching: true },
+  );
+  return { data: psData ?? [], isLoading: psData === undefined, source: "powersync" as const };
+}
+
+export function useTaxReceipts() {
+  const { data: psData } = useQuery<PSTaxReceipt>(
+    "SELECT id, org_id, donor_id, year, receipt_no, total_amount_cents, issued_at, created_at, updated_at FROM tax_receipts WHERE org_id = ? ORDER BY year DESC, donor_id",
+    [getOrganizationId()],
+    { reportFetching: true },
+  );
+  return { data: psData ?? [], isLoading: psData === undefined, source: "powersync" as const };
+}
+
+export function useTransactionGiving() {
+  const { data: psData } = useQuery<PSTransactionGiving>(
+    "SELECT id, org_id, transaction_id, donor_id, campaign_id, recorded_at, created_at, updated_at FROM transaction_giving WHERE org_id = ? ORDER BY recorded_at DESC",
+    [getOrganizationId()],
+    { reportFetching: true },
+  );
+  return { data: psData ?? [], isLoading: psData === undefined, source: "powersync" as const };
+}
+
+export async function addGivingDonorPS(
+  donor: Omit<PSGivingDonor, "id" | "org_id" | "created_at" | "updated_at">,
+): Promise<string> {
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  await executeWrite(
+    `INSERT INTO giving_donors
+      (id, org_id, full_name, email, phone, address, member_id, tax_receipt_enabled, notes, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      id,
+      getOrganizationId(),
+      donor.full_name,
+      donor.email ?? null,
+      donor.phone ?? null,
+      donor.address ?? null,
+      donor.member_id ?? null,
+      donor.tax_receipt_enabled,
+      donor.notes ?? null,
+      now,
+      now,
+    ],
+  );
+  return id;
+}
+
+export async function addGivingCampaignPS(
+  campaign: Omit<PSGivingCampaign, "id" | "org_id" | "created_at" | "updated_at">,
+): Promise<string> {
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  await executeWrite(
+    `INSERT INTO giving_campaigns
+      (id, org_id, name, purpose, fund, target_amount_cents, start_date, end_date, status, notes, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      id,
+      getOrganizationId(),
+      campaign.name,
+      campaign.purpose ?? null,
+      campaign.fund ?? null,
+      campaign.target_amount_cents,
+      campaign.start_date ?? null,
+      campaign.end_date ?? null,
+      campaign.status,
+      campaign.notes ?? null,
+      now,
+      now,
+    ],
+  );
+  return id;
+}
+
+export async function updateGivingCampaignPS(
+  id: string,
+  updates: Partial<Omit<PSGivingCampaign, "id" | "org_id" | "created_at">>,
+): Promise<void> {
+  const setClauses: string[] = [];
+  const params: any[] = [];
+  const fieldMap: [keyof PSGivingCampaign, string][] = [
+    ["name", "name"],
+    ["purpose", "purpose"],
+    ["fund", "fund"],
+    ["target_amount_cents", "target_amount_cents"],
+    ["start_date", "start_date"],
+    ["end_date", "end_date"],
+    ["status", "status"],
+    ["notes", "notes"],
+  ];
+  for (const [key, col] of fieldMap) {
+    if (updates[key] !== undefined) {
+      setClauses.push(`${col} = ?`);
+      params.push(updates[key]);
+    }
+  }
+  setClauses.push("updated_at = ?");
+  params.push(new Date().toISOString(), id);
+  await executeWrite(`UPDATE giving_campaigns SET ${setClauses.join(", ")} WHERE id = ?`, params);
+}
+
+export async function addPledgePS(
+  pledge: Omit<PSPledge, "id" | "org_id" | "created_at" | "updated_at">,
+): Promise<string> {
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  await executeWrite(
+    `INSERT INTO pledges
+      (id, org_id, campaign_id, donor_id, pledged_amount_cents, schedule, amount_per_period_cents, start_date, end_date, status, notes, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      id,
+      getOrganizationId(),
+      pledge.campaign_id,
+      pledge.donor_id,
+      pledge.pledged_amount_cents,
+      pledge.schedule,
+      pledge.amount_per_period_cents,
+      pledge.start_date ?? null,
+      pledge.end_date ?? null,
+      pledge.status,
+      pledge.notes ?? null,
+      now,
+      now,
+    ],
+  );
+  return id;
+}
+
+export async function addTaxReceiptPS(
+  receipt: Omit<PSTaxReceipt, "id" | "org_id" | "created_at" | "updated_at">,
+): Promise<string> {
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  await executeWrite(
+    `INSERT INTO tax_receipts
+      (id, org_id, donor_id, year, receipt_no, total_amount_cents, issued_at, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      id,
+      getOrganizationId(),
+      receipt.donor_id,
+      receipt.year,
+      receipt.receipt_no,
+      receipt.total_amount_cents,
+      receipt.issued_at,
+      now,
+      now,
+    ],
+  );
+  return id;
+}
+
+/**
+ * Rattacher une transaction (entrée/dîme) à un donateur + campagne.
+ * Idempotent : une seule liaison par transaction (contrainte unique).
+ */
+export async function linkTransactionGivingPS(input: {
+  transaction_id: string;
+  donor_id: string;
+  campaign_id?: string | null;
+}): Promise<string> {
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  await executeWrite(
+    `INSERT INTO transaction_giving
+      (id, org_id, transaction_id, donor_id, campaign_id, recorded_at, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      id,
+      getOrganizationId(),
+      input.transaction_id,
+      input.donor_id,
+      input.campaign_id ?? null,
+      now,
+      now,
+      now,
+    ],
+  );
+  return id;
+}
+
+export async function deleteTransactionGivingPS(id: string): Promise<void> {
+  await executeWrite("DELETE FROM transaction_giving WHERE id = ?", [id]);
 }
 
 /**
