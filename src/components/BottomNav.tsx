@@ -77,7 +77,7 @@ export default function BottomNav() {
         icon: Plus,
         label: "Nouveau",
         action: () => navigate("/event/new"),
-        color: "#8B5CF6",
+        color: "var(--data-advance)",
       };
     }
     if (path.startsWith("/groups/")) {

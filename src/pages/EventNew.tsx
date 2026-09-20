@@ -66,6 +66,7 @@ export default function EventNew() {
   const [montantCotisation, setMontantCotisation] = useState("");
   const [budgetItems, setBudgetItems] = useState<BudgetItem[]>([]);
   const [showBudget, setShowBudget] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [newBudgetLabel, setNewBudgetLabel] = useState("");
   const [newBudgetAmount, setNewBudgetAmount] = useState("");
   const [newBudgetFundedBy, setNewBudgetFundedBy] = useState("main");
@@ -114,39 +115,43 @@ export default function EventNew() {
       return;
     }
     setError("");
+    setSubmitting(true);
+    try {
+      if (eventType === "CULTE") {
+        // Le montant de cotisation est requis et doit être choisi par l'utilisateur.
+        // L'UI le saisit en FCFA ; on convertit en cents (1 FCFA = 100 cents)
+        // pour transmettre au service `createCulte`.
+        const fcfa = parseFloat(montantCotisation);
+        if (!Number.isFinite(fcfa) || fcfa <= 0) {
+          setError("Le montant de cotisation est requis (en FCFA).");
+          return;
+        }
+        const montantCents = Math.round(fcfa * 100);
 
-    if (eventType === "CULTE") {
-      // Le montant de cotisation est requis et doit être choisi par l'utilisateur.
-      // L'UI le saisit en FCFA ; on convertit en cents (1 FCFA = 100 cents)
-      // pour transmettre au service `createCulte`.
-      const fcfa = parseFloat(montantCotisation);
-      if (!Number.isFinite(fcfa) || fcfa <= 0) {
-        setError("Le montant de cotisation est requis (en FCFA).");
+        await createCulte({
+          name: name.trim(),
+          startDate,
+          montantCotisationCents: montantCents,
+        });
+        navigate("/cotisations");
         return;
       }
-      const montantCents = Math.round(fcfa * 100);
 
-      await createCulte({
+      await addEventPS({
+        org_id: getOrganizationId(),
         name: name.trim(),
-        startDate,
-        montantCotisationCents: montantCents,
+        description: description.trim(),
+        start_date: startDate,
+        end_date: endDate || null,
+        status,
+        type: "EVENT",
+        budget: totalBudget,
+        budget_items: JSON.stringify(budgetItems),
       });
-      navigate("/cotisations");
-      return;
+      navigate("/events");
+    } finally {
+      setSubmitting(false);
     }
-
-    await addEventPS({
-      org_id: getOrganizationId(),
-      name: name.trim(),
-      description: description.trim(),
-      start_date: startDate,
-      end_date: endDate || null,
-      status,
-      type: "EVENT",
-      budget: totalBudget,
-      budget_items: JSON.stringify(budgetItems),
-    });
-    navigate("/events");
   };
 
   return (
@@ -213,6 +218,7 @@ export default function EventNew() {
                   </label>
                   <IonInput
                     type="number"
+                    aria-label="Montant de cotisation obligatoire en FCFA"
                     value={montantCotisation}
                     onIonChange={(e) =>
                       setMontantCotisation((e.detail.value as string) ?? "")
@@ -246,6 +252,7 @@ export default function EventNew() {
             </label>
             <IonInput
               type="text"
+              aria-label="Nom de l'événement"
               value={name}
               onIonChange={(e) => setName((e.detail.value as string) ?? "")}
               placeholder="Ex: Noël 2026"
@@ -263,6 +270,7 @@ export default function EventNew() {
               Description
             </label>
             <textarea
+              aria-label="Description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Description de l'événement..."
@@ -459,9 +467,10 @@ export default function EventNew() {
           <IonButton
             onClick={handleSubmit}
             expand="block"
+            disabled={submitting}
             style={{ backgroundColor: "var(--accent-primary)" }}
           >
-            Créer l'événement
+            {submitting ? "Création…" : "Créer l'événement"}
           </IonButton>
         </div>
         <BottomNav />

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 import { useNavigate } from "react-router-dom";
 import {
   useGivingDonors,
@@ -436,12 +437,14 @@ function CampaignSheet({
 }
 
 function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(panelRef, true);
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/60" />
-      <div className="relative w-full max-w-lg rounded-t-2xl p-5 pb-28 space-y-3" style={{ backgroundColor: "var(--card)" }} onClick={(e) => e.stopPropagation()}>
+      <div className="absolute inset-0 bg-black/60" aria-hidden="true" />
+      <div ref={panelRef} role="dialog" aria-modal="true" aria-labelledby="giving-sheet-title" className="relative w-full max-w-lg rounded-t-2xl p-5 pb-28 space-y-3 outline-none" style={{ backgroundColor: "var(--card)" }} onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-2">
-          <h2 className="text-text-primary font-bold text-lg">{title}</h2>
+          <h2 id="giving-sheet-title" className="text-text-primary font-bold text-lg">{title}</h2>
           <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: "var(--surface-hover)" }} aria-label="Fermer">
             <X className="w-4 h-4 text-text-tertiary" />
           </button>

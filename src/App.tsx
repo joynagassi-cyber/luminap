@@ -64,17 +64,28 @@ const App = () => (
       <Toaster />
       <Sonner />
       <IonApp>
+        {/* Lien « sauter au contenu » — premier élément focalisable, masqué
+            visuellement jusqu'au focus clavier (a11y : parcours du clavier). */}
+        <a
+          href="#main"
+          className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-[100] focus:px-4 focus:py-2 focus:rounded-lg focus:text-sm focus:font-semibold focus:outline-none"
+          style={{ backgroundColor: "var(--accent-primary)", color: "#fff" }}
+        >
+          Aller au contenu principal
+        </a>
         <IonReactRouter>
           <RouteGuard />
           <AppRouter />
           <AppProvider>
             <SyncIndicator />
-            <IonRouterOutlet>
-              {luminaRoutes}
-              <Route path="/">
-                <Navigate to="/splash" replace />
-              </Route>
-            </IonRouterOutlet>
+            <main id="main" style={{ height: "100%" }}>
+              <IonRouterOutlet>
+                {luminaRoutes}
+                <Route path="/">
+                  <Navigate to="/splash" replace />
+                </Route>
+              </IonRouterOutlet>
+            </main>
           </AppProvider>
         </IonReactRouter>
       </IonApp>

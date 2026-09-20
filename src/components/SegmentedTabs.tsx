@@ -37,16 +37,19 @@ export default function SegmentedTabs({ tabs, active, onChange }: Props) {
             aria-selected={on}
             data-testid={t.testId ?? `tab-${t.id}`}
             onClick={() => onChange(t.id)}
-            className="flex-1 h-9 rounded-full text-xs font-semibold transition-all active:scale-95 whitespace-nowrap px-2"
-            style={{
-              backgroundColor: on ? "var(--surface)" : "transparent",
-              color: on ? "var(--text-primary)" : "var(--text-tertiary)",
-              boxShadow: on ? "var(--shadow-card)" : "none",
-              border: "none",
-              cursor: "pointer",
-            }}
+            className="flex-1 min-h-11 flex items-center justify-center text-xs font-semibold transition-all active:scale-95 whitespace-nowrap px-2 border-none cursor-pointer"
+            style={{ backgroundColor: "transparent", cursor: "pointer" }}
           >
-            {t.label}
+            <span
+              className="h-9 w-full rounded-full flex items-center justify-center"
+              style={{
+                backgroundColor: on ? "var(--surface)" : "transparent",
+                color: on ? "var(--text-primary)" : "var(--text-tertiary)",
+                boxShadow: on ? "var(--shadow-card)" : "none",
+              }}
+            >
+              {t.label}
+            </span>
           </button>
         );
       })}

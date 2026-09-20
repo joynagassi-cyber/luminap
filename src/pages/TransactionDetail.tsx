@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 import { useNavigate, useParams } from "react-router-dom";
 import { useCurrentUser } from "@/lib/dataLayer";
 import {
@@ -63,6 +64,11 @@ export default function TransactionDetail() {
   const [rejectComment, setRejectComment] = useState("");
   const [showReverseModal, setShowReverseModal] = useState(false);
   const [reverseReason, setReverseReason] = useState("");
+
+  const rejectModalRef = useRef<HTMLDivElement>(null);
+  const reverseModalRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(rejectModalRef, showRejectModal);
+  useFocusTrap(reverseModalRef, showReverseModal);
 
   // Preuves de dépense (photos dans le bucket `expense_proofs`).
   const { data: docData } = useDocuments();
@@ -478,7 +484,10 @@ export default function TransactionDetail() {
             {/* Reject Modal */}
             {showRejectModal && (
               <div
-                className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                ref={rejectModalRef}
+                role="dialog"
+                aria-modal="true"
+                className="fixed inset-0 z-50 flex items-center justify-center p-4 outline-none"
                 style={{ backgroundColor: "rgba(0,0,0,0.8)" }}
               >
                 <div
@@ -523,7 +532,10 @@ export default function TransactionDetail() {
             {/* Reverse Modal */}
             {showReverseModal && (
               <div
-                className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                ref={reverseModalRef}
+                role="dialog"
+                aria-modal="true"
+                className="fixed inset-0 z-50 flex items-center justify-center p-4 outline-none"
                 style={{ backgroundColor: "rgba(0,0,0,0.8)" }}
               >
                 <div

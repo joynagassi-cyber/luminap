@@ -151,6 +151,7 @@ export default function MembersPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
               <input
                 type="text"
+                aria-label="Rechercher un membre"
                 placeholder="Rechercher un membre..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -179,6 +180,8 @@ export default function MembersPage() {
                   <div className="grid grid-cols-2 gap-3">
                     <input
                       type="text"
+                      aria-label="Prénom"
+                      autoComplete="given-name"
                       placeholder="Prénom"
                       value={firstName}
                       onChange={(e) => setFirstName(e.target.value)}
@@ -191,6 +194,8 @@ export default function MembersPage() {
                     />
                     <input
                       type="text"
+                      aria-label="Nom"
+                      autoComplete="family-name"
                       placeholder="Nom"
                       value={lastName}
                       onChange={(e) => setLastName(e.target.value)}
@@ -204,6 +209,8 @@ export default function MembersPage() {
                   </div>
                   <input
                     type="tel"
+                    aria-label="Téléphone"
+                    autoComplete="tel"
                     placeholder="Téléphone"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
@@ -216,6 +223,8 @@ export default function MembersPage() {
                   />
                   <input
                     type="email"
+                    aria-label="Email"
+                    autoComplete="email"
                     placeholder="Email (optionnel)"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}

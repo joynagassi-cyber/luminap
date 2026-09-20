@@ -78,16 +78,17 @@ export default function TopHeader({ title }: { title?: string }) {
               enfants React des custom elements Ionic pouvaient ne pas
               être rendus (boutons vides) avec React 19. */}
           <div className="flex items-center gap-2">
+            {/* Zone tactile ≥ 44 px (bouton transparent) autour d'un cercle
+                36 px inchangé visuellement (a11y : cible tactile WCAG). */}
             <button
               type="button"
               onClick={handleNotificationsClick}
               style={{
-                position: "relative",
-                width: 36,
-                height: 36,
+                width: 44,
+                height: 44,
                 borderRadius: "50%",
-                border: "1px solid var(--border)",
-                backgroundColor: "var(--surface)",
+                border: "none",
+                backgroundColor: "transparent",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -98,25 +99,39 @@ export default function TopHeader({ title }: { title?: string }) {
               title="Notifications"
               aria-haspopup="dialog"
             >
-              <Bell className="w-4 h-4 text-text-secondary" />
-              {unreadCount > 0 && (
-                <span
-                  className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center text-xs font-bold"
-                  style={{ backgroundColor: "#E51332", color: "#fff" }}
-                >
-                  {unreadCount > 9 ? "9+" : unreadCount}
-                </span>
-              )}
+              <span
+                style={{
+                  position: "relative",
+                  width: 36,
+                  height: 36,
+                  borderRadius: "50%",
+                  border: "1px solid var(--border)",
+                  backgroundColor: "var(--surface)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Bell className="w-4 h-4 text-text-secondary" />
+                {unreadCount > 0 && (
+                  <span
+                    className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center text-xs font-bold"
+                    style={{ backgroundColor: "var(--data-expense)", color: "#fff" }}
+                  >
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
+              </span>
             </button>
             <button
               type="button"
               onClick={() => navigate("/settings")}
               style={{
-                width: 36,
-                height: 36,
+                width: 44,
+                height: 44,
                 borderRadius: "50%",
-                border: "1px solid var(--border)",
-                backgroundColor: "var(--surface)",
+                border: "none",
+                backgroundColor: "transparent",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -126,7 +141,20 @@ export default function TopHeader({ title }: { title?: string }) {
               aria-label="Paramètres"
               title="Paramètres"
             >
-              <Settings className="w-4 h-4 text-text-secondary" />
+              <span
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: "50%",
+                  border: "1px solid var(--border)",
+                  backgroundColor: "var(--surface)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Settings className="w-4 h-4 text-text-secondary" />
+              </span>
             </button>
           </div>
         </div>
@@ -139,14 +167,14 @@ export default function TopHeader({ title }: { title?: string }) {
       {(inOrgContext || isCentralAdmin) && (
         <div
           style={{
-            backgroundColor: isCentralAdmin ? "#1a130f" : "#1a1f2b",
+            backgroundColor: isCentralAdmin ? "var(--band-central)" : "var(--band-org)",
             borderTop: "1px solid var(--border)",
           }}
         >
           <div className="px-4 py-1.5 flex items-center justify-between gap-2">
             <span
               className="text-xs truncate"
-              style={{ color: isCentralAdmin ? "var(--accent-primary)" : "#7aa2ff" }}
+              style={{ color: isCentralAdmin ? "var(--accent-primary)" : "var(--band-org-ink)" }}
             >
               {inOrgContext
                 ? `Organisation : ${orgName}`

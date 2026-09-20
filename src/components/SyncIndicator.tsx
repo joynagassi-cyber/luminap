@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Wifi, WifiOff } from "lucide-react";
 import { useLocalStore } from "@/store/useLocalStore";
+import { tint } from "@/lib/utils";
 
 type SyncState = "online" | "offline" | "syncing";
 
@@ -24,14 +25,14 @@ export default function SyncIndicator() {
   const config = {
     online: {
       icon: Wifi,
-      color: "#1DB954",
-      bg: "rgba(29,185,84,0.15)",
+      color: "var(--data-income)",
+      bg: tint("var(--data-income)", 15),
       label: "Connecté",
     },
     offline: {
       icon: WifiOff,
-      color: "#FFB800",
-      bg: "rgba(255,184,0,0.15)",
+      color: "var(--data-pending)",
+      bg: tint("var(--data-pending)", 15),
       label: "Hors ligne",
     },
   }[state];

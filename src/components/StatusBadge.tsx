@@ -1,5 +1,5 @@
 import type { TransactionStatus } from "@/types";
-import { getStatusColor, getStatusLabel } from "@/lib/utils";
+import { getStatusColor, getStatusLabel, tint } from "@/lib/utils";
 
 interface StatusBadgeProps {
   status: TransactionStatus;
@@ -15,7 +15,7 @@ export default function StatusBadge({ status, size = "sm" }: StatusBadgeProps) {
   return (
     <span
       className={`inline-flex items-center font-medium rounded-full ${sizeClasses}`}
-      style={{ backgroundColor: color + "20", color }}
+      style={{ backgroundColor: tint(color, 12), color }}
     >
       {label}
     </span>

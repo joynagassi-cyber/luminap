@@ -15,10 +15,10 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variants = {
-  primary: "bg-[var(--accent-primary)] hover:bg-[#FF8533] text-white font-semibold",
+  primary: "bg-[var(--accent-primary)] hover:bg-[var(--accent-light)] text-white font-semibold",
   secondary:
     "bg-[var(--surface)] hover:bg-[var(--surface-hover)] text-[var(--text-secondary)] font-medium border border-[var(--border)]",
-  danger: "bg-[#E51332] hover:bg-[#c4102b] text-white font-semibold",
+  danger: "bg-[var(--data-expense)] hover:bg-[var(--data-expense-hover)] text-white font-semibold",
   ghost: "bg-transparent hover:bg-[var(--surface)] text-[var(--text-secondary)] font-medium",
 };
 

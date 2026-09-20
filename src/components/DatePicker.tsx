@@ -112,7 +112,7 @@ export default function DatePicker({ value, onChange, label, id }: Props) {
           <div className="flex items-center justify-between px-4 py-3">
             <IonButton
               onClick={prevMonth}
-              className="!w-8 !h-8 !rounded-full !p-0 !min-height:auto"
+              className="!w-11 !h-11 !rounded-full !p-0 !min-height:auto"
               style={{ backgroundColor: "var(--surface-hover)" }}
             >
               <ChevronLeft className="w-4 h-4 text-text-primary" />
@@ -122,7 +122,7 @@ export default function DatePicker({ value, onChange, label, id }: Props) {
             </span>
             <IonButton
               onClick={nextMonth}
-              className="!w-8 !h-8 !rounded-full !p-0 !min-height:auto"
+              className="!w-11 !h-11 !rounded-full !p-0 !min-height:auto"
               style={{ backgroundColor: "var(--surface-hover)" }}
             >
               <ChevronRight className="w-4 h-4 text-text-primary" />
@@ -153,7 +153,7 @@ export default function DatePicker({ value, onChange, label, id }: Props) {
                   key={dateStr}
                   type="button"
                   onClick={() => selectDay(day)}
-                  className="h-9 rounded-full text-sm font-medium transition-all flex items-center justify-center"
+                  className="min-h-11 rounded-full text-sm font-medium transition-all flex items-center justify-center"
                   style={
                     isSelected
                       ? { backgroundColor: "var(--accent-primary)", color: "#fff" }

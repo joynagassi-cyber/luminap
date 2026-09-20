@@ -847,8 +847,10 @@ export default function GroupDetail() {
             className="fixed inset-0 z-50 flex items-center justify-center px-5"
             onClick={() => setShowArchive(false)}
           >
-            <div className="absolute inset-0 bg-black/70" />
+            <div className="absolute inset-0 bg-black/70" aria-hidden="true" />
             <div
+              role="dialog"
+              aria-modal="true"
               className="relative w-full max-w-sm rounded-2xl p-5 text-center"
               style={{ backgroundColor: "var(--card)" }}
               onClick={(e) => e.stopPropagation()}
@@ -892,8 +894,10 @@ export default function GroupDetail() {
             className="fixed inset-0 z-50 flex items-end justify-center"
             onClick={() => setShowAddMember(false)}
           >
-            <div className="absolute inset-0 bg-black/60" />
+            <div className="absolute inset-0 bg-black/60" aria-hidden="true" />
             <div
+              role="dialog"
+              aria-modal="true"
               className="relative w-full max-w-lg rounded-t-2xl p-5 pb-8"
               style={{ backgroundColor: "var(--card)" }}
               onClick={(e) => e.stopPropagation()}
@@ -970,8 +974,10 @@ export default function GroupDetail() {
             className="fixed inset-0 z-50 flex items-center justify-center px-5"
             onClick={() => setShowDelete(false)}
           >
-            <div className="absolute inset-0 bg-black/70" />
+            <div className="absolute inset-0 bg-black/70" aria-hidden="true" />
             <div
+              role="dialog"
+              aria-modal="true"
               className="relative w-full max-w-sm rounded-2xl p-5 text-center"
               style={{ backgroundColor: "var(--card)" }}
               onClick={(e) => e.stopPropagation()}

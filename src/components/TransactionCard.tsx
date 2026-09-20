@@ -4,6 +4,7 @@ import {
   formatDate,
   getStatusLabel,
   getStatusColor,
+  tint,
 } from "@/lib/utils";
 import type { Transaction } from "@/types";
 import { useNavigate } from "react-router-dom";
@@ -35,12 +36,12 @@ export default function TransactionCard({
       <div className="flex items-center gap-3">
         <div
           className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-          style={{ backgroundColor: isIncome ? "#1DB95420" : "#E5133220" }}
+          style={{ backgroundColor: isIncome ? tint("var(--data-income)", 12) : tint("var(--data-expense)", 12) }}
         >
           {isIncome ? (
-            <ArrowUpRight className="w-5 h-5" style={{ color: "#1DB954" }} />
+            <ArrowUpRight className="w-5 h-5" style={{ color: "var(--data-income)" }} />
           ) : (
-            <ArrowDownRight className="w-5 h-5" style={{ color: "#E51332" }} />
+            <ArrowDownRight className="w-5 h-5" style={{ color: "var(--data-expense)" }} />
           )}
         </div>
         <div className="flex-1 min-w-0">
@@ -67,7 +68,7 @@ export default function TransactionCard({
                 <span className="text-text-tertiary text-xs">·</span>
                 <span
                   className="text-xs px-1.5 py-0.5 rounded-full flex items-center gap-1"
-                  style={{ backgroundColor: "#3B82F615", color: "#3B82F6" }}
+                  style={{ backgroundColor: tint("var(--data-planified)", 15), color: "var(--data-planified)" }}
                 >
                   <Users className="w-3 h-3" /> {orgUnit.name}
                 </span>
@@ -78,7 +79,7 @@ export default function TransactionCard({
                 <span className="text-text-tertiary text-xs">·</span>
                 <span
                   className="text-xs px-1.5 py-0.5 rounded-full flex items-center gap-1"
-                  style={{ backgroundColor: "#8B5CF615", color: "#8B5CF6" }}
+                  style={{ backgroundColor: tint("var(--data-advance)", 15), color: "var(--data-advance)" }}
                 >
                   <Calendar className="w-3 h-3" /> {event.name}
                 </span>
@@ -97,7 +98,7 @@ export default function TransactionCard({
           <div
             className="mt-1 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium"
             style={{
-              backgroundColor: getStatusColor(transaction.status) + "20",
+              backgroundColor: tint(getStatusColor(transaction.status), 12),
               color: getStatusColor(transaction.status),
             }}
           >

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import {
   useTransactions,
@@ -77,6 +77,8 @@ export default function TransactionNew() {
   // Photos de preuve de dépense (montées dans le bucket `expense_proofs`).
   const [proofPhotos, setProofPhotos] = useState<File[]>([]);
   const [proofUploading, setProofUploading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const amountRef = useRef<any>(null);
   const isOnline = useOnlineStatus();
 
   const validateAmount = (val: string): string => {
@@ -102,6 +104,10 @@ export default function TransactionNew() {
 
     if (!trimmedAmount || !trimmedDesc || !trimmedCatId) {
       setError("Veuillez remplir tous les champs obligatoires");
+      // Focus le premier champ manquant (montant) pour l'utilisateur clavier.
+      if (!trimmedAmount) {
+        setTimeout(() => amountRef.current?.focus?.(), 0);
+      }
       return;
     }
     setError("");
@@ -114,6 +120,7 @@ export default function TransactionNew() {
       setError(amountCheck.message ?? "Veuillez entrer un montant valide");
       return;
     }
+    setSubmitting(true);
     const txId = await addTransactionPS({
       org_id: getOrganizationId(),
       type,
@@ -174,6 +181,7 @@ export default function TransactionNew() {
       }
     }
 
+    setSubmitting(false);
     navigate(`/transaction/${txId}`);
   };
 
@@ -220,7 +228,12 @@ export default function TransactionNew() {
                 Montant (FCFA)
               </label>
               <IonInput
+                ref={amountRef}
                 type="number"
+                inputMode="decimal"
+                aria-label="Montant en francs CFA"
+                aria-invalid={!!fieldErrors.amount}
+                aria-describedby={fieldErrors.amount ? "tx-amount-error" : undefined}
                 value={amount}
                 onIonChange={(e) =>
                   handleAmountChange((e.detail.value as string) ?? "")
@@ -230,12 +243,15 @@ export default function TransactionNew() {
                   backgroundColor: "var(--surface)",
                   color: "var(--text-primary)",
                   border: fieldErrors.amount
-                    ? "1px solid #E51332"
+                    ? "1px solid var(--data-expense)"
                     : "1px solid var(--surface-hover)",
                 }}
               />
               {fieldErrors.amount && (
-                <p className="text-[#E51332] text-xs mt-1">
+                <p
+                  id="tx-amount-error"
+                  className="text-[var(--data-expense)] text-xs mt-1"
+                >
                   {fieldErrors.amount}
                 </p>
               )}
@@ -248,6 +264,7 @@ export default function TransactionNew() {
               </label>
               <IonInput
                 type="text"
+                aria-label="Description"
                 value={description}
                 onIonChange={(e) =>
                   setDescription((e.detail.value as string) ?? "")
@@ -268,6 +285,7 @@ export default function TransactionNew() {
               </label>
               <IonInput
                 type="date"
+                aria-label="Date"
                 value={date}
                 onIonChange={(e) => setDate((e.detail.value as string) ?? "")}
                 style={{
@@ -284,6 +302,7 @@ export default function TransactionNew() {
                 Catégorie
               </label>
               <select
+                aria-label="Catégorie"
                 value={categoryId}
                 onChange={(e) => setCategoryId(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl text-sm "
@@ -308,6 +327,7 @@ export default function TransactionNew() {
                 Source
               </label>
               <select
+                aria-label="Source"
                 value={source}
                 onChange={(e) => setSource(e.target.value as any)}
                 className="w-full px-4 py-3 rounded-xl text-sm "
@@ -331,6 +351,7 @@ export default function TransactionNew() {
                   Caisse
                 </label>
                 <select
+                  aria-label="Caisse"
                   value={sourceCaisseId}
                   onChange={(e) => setSourceCaisseId(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl text-sm "
@@ -357,6 +378,7 @@ export default function TransactionNew() {
                 </label>
                 <IonInput
                   type="text"
+                  aria-label="Nom de la personne"
                   value={personName}
                   onIonChange={(e) =>
                     setPersonName((e.detail.value as string) ?? "")
@@ -377,6 +399,7 @@ export default function TransactionNew() {
                 Événement (optionnel)
               </label>
               <select
+                aria-label="Événement"
                 value={eventId}
                 onChange={(e) => setEventId(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl text-sm "
@@ -401,6 +424,7 @@ export default function TransactionNew() {
                 Commentaire (optionnel)
               </label>
               <textarea
+                aria-label="Commentaire"
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
                 placeholder="Ajouter un commentaire..."
@@ -533,11 +557,13 @@ export default function TransactionNew() {
             <IonButton
               expand="block"
               onClick={handleSubmit}
+              disabled={submitting}
               style={{
-                backgroundColor: type === "INCOME" ? "#1DB954" : "#E51332",
+                backgroundColor:
+                  type === "INCOME" ? "var(--data-income)" : "var(--data-expense)",
               }}
             >
-              Enregistrer la transaction
+              {submitting ? "Enregistrement…" : "Enregistrer la transaction"}
             </IonButton>
           </div>
           <BottomNav />

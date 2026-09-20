@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { IonButton, IonInput } from "@ionic/react";
 
 interface ModalProps {
@@ -27,6 +27,8 @@ export default function ConfirmModal({
   children,
 }: ModalProps) {
   const [inputValue, setInputValue] = useState("");
+  const panelRef = useRef<HTMLDivElement>(null);
+  const lastFocused = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (open) setInputValue("");
@@ -41,6 +43,54 @@ export default function ConfirmModal({
     return () => window.removeEventListener("keydown", handleKey);
   }, [open, onClose]);
 
+  // Focus : porte le focus dans le dialog à l'ouverture, le piège (Tab /
+  // Maj+Tab) pendant qu'il est ouvert, et le restitue à la fermeture.
+  useEffect(() => {
+    if (!open) return;
+    lastFocused.current = document.activeElement as HTMLElement | null;
+    const timer = setTimeout(() => {
+      const first = panelRef.current?.querySelector<HTMLElement>(
+        "button, [href], input, select, textarea"
+      );
+      first?.focus();
+    }, 0);
+    return () => {
+      clearTimeout(timer);
+      lastFocused.current?.focus?.();
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleTab = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") return;
+      const panel = panelRef.current;
+      if (!panel) return;
+      const focusables = Array.from(
+        panel.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        )
+      ).filter((el) => !el.hasAttribute("disabled"));
+      if (focusables.length === 0) {
+        e.preventDefault();
+        panel.focus();
+        return;
+      }
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement as HTMLElement;
+      if (e.shiftKey && active === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    window.addEventListener("keydown", handleTab);
+    return () => window.removeEventListener("keydown", handleTab);
+  }, [open]);
+
   if (!open) return null;
 
   const isConfirmDisabled = requiredText ? inputValue !== requiredText : false;
@@ -50,16 +100,25 @@ export default function ConfirmModal({
       <div
         className="fixed inset-0 bg-black/60 backdrop-blur-sm"
         onClick={onClose}
+        aria-hidden="true"
       />
       <div
-        className="relative w-full max-w-sm rounded-t-2xl sm:rounded-2xl p-6 pb-8"
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="confirm-modal-title"
+        tabIndex={-1}
+        className="relative w-full max-w-sm rounded-t-2xl sm:rounded-2xl p-6 pb-8 outline-none"
         style={{ backgroundColor: "var(--surface)" }}
       >
         <div
           className="w-12 h-1 rounded-full bg-surface-active mx-auto mb-4 sm:hidden"
           aria-hidden="true"
         />
-        <h3 className="text-lg font-bold text-text-primary mb-2 text-center">
+        <h3
+          id="confirm-modal-title"
+          className="text-lg font-bold text-text-primary mb-2 text-center"
+        >
           {title}
         </h3>
         <p className="text-text-tertiary text-sm text-center mb-4">
@@ -73,7 +132,7 @@ export default function ConfirmModal({
               <span
                 className="font-bold"
                 style={{
-                  color: confirmVariant === "danger" ? "#E51332" : "var(--accent-primary)",
+                  color: confirmVariant === "danger" ? "var(--data-expense)" : "var(--accent-primary)",
                 }}
               >
                 "{requiredText}"
@@ -119,7 +178,7 @@ export default function ConfirmModal({
             className="!rounded-full !min-height:auto text-sm font-semibold !opacity-100 disabled:!opacity-40 disabled:!cursor-not-allowed active:scale-95 transition-transform"
             style={{
               backgroundColor:
-                confirmVariant === "danger" ? "#E51332" : "var(--accent-primary)",
+                confirmVariant === "danger" ? "var(--data-expense)" : "var(--accent-primary)",
               color: "var(--text-primary)",
             }}
             aria-label={confirmLabel}

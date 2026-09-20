@@ -5,12 +5,24 @@
  * et l'accent sont INVIOLABLES : elles ne changent jamais avec le mode.
  */
 :root {
+  /* Couleurs financières — invariantes (le langage de l'argent ne change
+     jamais, ni avec le mode ni avec le thème d'organisation). */
   --data-income: #1db954;
   --data-expense: #e51332;
+  --data-expense-hover: #c4102b;
   --data-pending: #ffb800;
+  /* Couleurs sémantiques de statut (hors finances) — invariants. */
+  --data-planified: #3b82f6;
+  --data-advance: #8b5cf6;
+  /* Marque (poussée au runtime par applyTheme ; défaut = Orange Fire). */
   --accent-primary: #ff6b00;
   --accent-light: #ff8533;
   --accent-dark: #cc5500;
+  /* Ruban de contexte organisationnelle (TopHeader) — ruban sombre,
+     inchangé entre les modes (choix de design, non un fond de page). */
+  --band-central: #1a130f;
+  --band-org: #1a1f2b;
+  --band-org-ink: #7aa2ff;
 
   /* Skeleton radius (invariant) */
   --skeleton-radius: 4px;
@@ -83,25 +95,20 @@ a {
   color: inherit;
   text-decoration: none;
 }
-a:focus-visible {
-  outline: 2px solid var(--accent-primary);
-  outline-offset: 2px;
-  border-radius: 4px;
-}
-
-/* Focus visibility for keyboard navigation */
-:focus-visible {
-  outline: 2px solid var(--accent-primary);
-  outline-offset: 2px;
-  border-radius: 4px;
-}
-
+/* Focus visibility clavier (WCAG 2.4.7). `!important` : le ring prime les
+   utilitaires Tailwind `outline-none` / `focus:outline-none` qui le masquaient
+   sur les formulaires de pages. Couvre les rôles ARIA utilisés dans l'app
+   (tab, switch, button sur div cliquables). */
+a:focus-visible,
 button:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible,
-[tabindex]:focus-visible {
-  outline: 2px solid var(--accent-primary);
+[tabindex]:focus-visible,
+[role="tab"]:focus-visible,
+[role="switch"]:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid var(--accent-primary) !important;
   outline-offset: 2px;
   border-radius: 4px;
 }
