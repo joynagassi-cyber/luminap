@@ -129,6 +129,7 @@ export default function Finance() {
     <IonPage>
       <IonContent className="bg-canvas">
         <div className="min-h-screen bg-canvas">
+          <h1 className="sr-only">Finance — grand livre</h1>
           <TopHeader title="Finance" />
           <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
             {/* Summary Cards */}

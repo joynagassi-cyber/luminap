@@ -215,6 +215,10 @@ export default function Dashboard() {
     <IonPage>
       <IonContent fullscreen>
         <div className="min-h-screen bg-canvas">
+          <h1 className="sr-only">Accueil — tableau de bord financier</h1>
+          <div className="sr-only" role="status" aria-live="polite">
+            Données financières à jour
+          </div>
           <TopHeader title="Lumina" />
           <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
             {/* Utilisateur : profil + nom + rôle */}

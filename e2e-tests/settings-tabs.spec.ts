@@ -29,7 +29,9 @@ async function loginAsTestUser(page: Page): Promise<void> {
     }
   });
 
-  await page.goto("/auth", { waitUntil: "domcontentloaded", timeout: 20_000 });
+  // 120 s : absorber le démarrage à froid (re-optimisation Vite) de la
+  // première navigation, comme les autres specs (convention 240 s).
+  await page.goto("/auth", { waitUntil: "domcontentloaded", timeout: 120_000 });
   await page.getByPlaceholder("jean@example.com").fill(TEST_EMAIL!);
   await page.getByPlaceholder("••••••••").fill(TEST_PASSWORD!);
   await page.getByRole("button", { name: "Se connecter" }).click();
@@ -55,12 +57,14 @@ test.describe("Paramètres en 3 onglets + thème clair/sombre", () => {
       !TEST_EMAIL || !TEST_PASSWORD,
       "test-user non provisionné (variables d'env absentes)",
     );
-    test.setTimeout(180_000);
+    test.setTimeout(300_000);
 
     await page.setViewportSize({ width: 390, height: 844 });
     await loginAsTestUser(page);
 
-    await page.goto("/settings", { waitUntil: "domcontentloaded", timeout: 20_000 });
+    // 60 s : laisser le temps au routeur (Ionic + DB isolé) de charger
+    // /settings sur un serveur en charge.
+    await page.goto("/settings", { waitUntil: "domcontentloaded", timeout: 60_000 });
 
     // Sombre par défaut, sans interaction.
     await expect(page.locator("html[data-theme='dark']")).toHaveCount(1);

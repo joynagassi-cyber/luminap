@@ -189,6 +189,7 @@ export default function TransactionNew() {
     <IonPage>
       <IonContent fullscreen>
         <div className="h-screen bg-canvas flex flex-col overflow-hidden">
+          <h1 className="sr-only">Nouvelle transaction</h1>
           <TopHeader title="Nouvelle transaction" />
           <div className="flex-1 overflow-y-auto px-5 pt-16 pb-28">
             <button

@@ -95,7 +95,11 @@ export default function TopHeader({ title }: { title?: string }) {
                 cursor: "pointer",
                 padding: 0,
               }}
-              aria-label="Notifications"
+              aria-label={
+                unreadCount > 0
+                  ? `Notifications (${unreadCount} non lues)`
+                  : "Notifications"
+              }
               title="Notifications"
               aria-haspopup="dialog"
             >
@@ -115,6 +119,7 @@ export default function TopHeader({ title }: { title?: string }) {
                 <Bell className="w-4 h-4 text-text-secondary" />
                 {unreadCount > 0 && (
                   <span
+                    aria-hidden="true"
                     className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center text-xs font-bold"
                     style={{ backgroundColor: "var(--data-expense)", color: "#fff" }}
                   >

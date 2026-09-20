@@ -209,7 +209,7 @@ export default function BottomNav() {
                 aria-selected={active}
                 aria-label={f.label}
                 onClick={() => go(f)}
-                className="flex flex-col items-center gap-0.5 px-3 py-2.5 rounded-xl transition-all min-w-0"
+                className="flex flex-col items-center gap-0.5 px-3 py-2.5 rounded-xl transition-[transform,background-color,color,opacity] min-w-0"
                 style={tabStyle(active)}
               >
                 <Icon
@@ -239,7 +239,7 @@ export default function BottomNav() {
               aria-label={showMore ? "Fermer le menu" : "Plus d'options"}
               aria-expanded={showMore}
               style={tabStyle(showMore)}
-              className="flex flex-col items-center gap-0.5 px-3 py-2.5 rounded-xl transition-all min-w-0"
+              className="flex flex-col items-center gap-0.5 px-3 py-2.5 rounded-xl transition-[transform,background-color,color,opacity] min-w-0"
             >
               <MoreVertical
                 className="w-5 h-5"
@@ -283,7 +283,7 @@ export default function BottomNav() {
                         setShowMore(false);
                         navigate("/settings");
                       }}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all active:scale-95"
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-[transform,background-color,color,opacity] active:scale-95"
                       style={{
                         background: "transparent",
                         border: "none",
@@ -306,7 +306,7 @@ export default function BottomNav() {
                           key={f.id}
                           type="button"
                           onClick={() => go(f)}
-                          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all active:scale-95"
+                          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-[transform,background-color,color,opacity] active:scale-95"
                           style={{
                             background: pinned
                               ? "color-mix(in srgb, var(--accent-primary) 8%, transparent)"
