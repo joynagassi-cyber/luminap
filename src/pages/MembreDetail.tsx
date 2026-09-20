@@ -58,12 +58,12 @@ export default function MembreDetail() {
           </IonToolbar>
         </IonHeader>
         <IonContent fullscreen>
-          <div className="min-h-screen" style={{ backgroundColor: "#121212" }}>
+          <div className="min-h-screen" style={{ backgroundColor: "var(--canvas)" }}>
             <TopHeader title="" />
             <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
               <div
                 className="text-center py-10 rounded-xl"
-                style={{ backgroundColor: "#1e1e1e" }}
+                style={{ backgroundColor: "var(--surface)" }}
               >
                 <User className="w-10 h-10 mx-auto mb-3 text-text-tertiary opacity-30" />
                 <p className="text-text-tertiary text-sm">Membre introuvable</p>
@@ -121,15 +121,17 @@ export default function MembreDetail() {
         </IonToolbar>
       </IonHeader>
       <IonContent fullscreen>
-        <div className="min-h-screen" style={{ backgroundColor: "#121212" }}>
+        <div className="min-h-screen" style={{ backgroundColor: "var(--canvas)" }}>
           <TopHeader title="Membre" />
           <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
             {/* Header gradient card */}
             <div
               className="rounded-2xl p-5 mb-5 relative overflow-hidden"
               style={{
+                // Carte « hero » : sombre dans les deux modes (le texte blanc
+                // interne reste lisible) — le gradient ne suit pas le canvas.
                 background: "linear-gradient(135deg, #1e3a5f 0%, #121212 60%)",
-                border: "1px solid #282828",
+                border: "1px solid var(--border)",
               }}
             >
               <div className="flex items-center gap-3 mb-4">
@@ -167,11 +169,13 @@ export default function MembreDetail() {
                 </div>
                 <div
                   className="text-center p-2 rounded-xl"
-                  style={{ backgroundColor: "#80808015" }}
+                  style={{
+                    backgroundColor: "color-mix(in srgb, var(--text-tertiary) 15%, transparent)",
+                  }}
                 >
                   <Clock
                     className="w-4 h-4 mx-auto mb-1"
-                    style={{ color: "#808080" }}
+                    style={{ color: "var(--text-tertiary)" }}
                   />
                   <p className="text-white font-bold text-sm">{absentCount}</p>
                   <p className="text-text-tertiary text-xs">Absences</p>
@@ -207,7 +211,7 @@ export default function MembreDetail() {
               {historique.length === 0 ? (
                 <div
                   className="rounded-xl p-6 text-center"
-                  style={{ backgroundColor: "#1e1e1e" }}
+                  style={{ backgroundColor: "var(--surface)" }}
                 >
                   <Clock className="w-8 h-8 mx-auto mb-2 text-text-tertiary opacity-30" />
                   <p className="text-text-tertiary text-sm">
@@ -221,8 +225,8 @@ export default function MembreDetail() {
                       key={cotisation.id}
                       className="rounded-xl p-3.5 flex items-center gap-3"
                       style={{
-                        backgroundColor: "#1e1e1e",
-                        border: "1px solid #282828",
+                        backgroundColor: "var(--surface)",
+                        border: "1px solid var(--border)",
                       }}
                     >
                       <div
@@ -230,7 +234,7 @@ export default function MembreDetail() {
                         style={{
                           backgroundColor: tint(
                             COTISATION_STATUT_COLOR[cotisation.statut] ||
-                              "#808080",
+                              "var(--text-tertiary)",
                             12,
                           ),
                         }}
@@ -262,12 +266,12 @@ export default function MembreDetail() {
                             style={{
                               backgroundColor: tint(
                                 COTISATION_STATUT_COLOR[cotisation.statut] ||
-                                  "#808080",
+                                  "var(--text-tertiary)",
                                 12,
                               ),
                               color:
                                 COTISATION_STATUT_COLOR[cotisation.statut] ||
-                                "#808080",
+                                "var(--text-tertiary)",
                             }}
                           >
                             {COTISATION_STATUT_LABEL[cotisation.statut] ||

@@ -71,13 +71,13 @@ const handleStyle: React.CSSProperties = {
   width: 8,
   height: 8,
   background: "var(--accent-primary)",
-  border: "2px solid #121212",
+  border: "2px solid var(--canvas)",
 };
 
 /* ── Nœud personnalisé (carte organisation) ── */
 function OrgFlowNode({ data, selected }: NodeProps) {
   const { org } = data as unknown as OrgNodeData;
-  const color = STATUS_COLOR[org.status] ?? "#808080";
+  const color = STATUS_COLOR[org.status] ?? "var(--text-tertiary)";
   return (
     <div
       style={{
@@ -115,7 +115,7 @@ function OrgFlowNode({ data, selected }: NodeProps) {
         <div style={{ flex: 1, minWidth: 0 }}>
           <div
             style={{
-              color: "#fff",
+              color: "var(--text-primary)",
               fontWeight: 600,
               fontSize: 14,
               overflow: "hidden",
@@ -133,7 +133,7 @@ function OrgFlowNode({ data, selected }: NodeProps) {
               marginTop: 3,
             }}
           >
-            <span style={{ color: "#808080", fontSize: 11 }}>
+            <span style={{ color: "var(--text-tertiary)", fontSize: 11 }}>
               {TYPE_LABEL[org.type] ?? org.type}
             </span>
             <span
@@ -279,17 +279,17 @@ function FederationTreeInner() {
         <style>{`
           .react-flow__controls { background: transparent; }
           .react-flow__controls button {
-            background: #181818;
-            border: 1px solid #282828;
-            color: #fff;
+            background: var(--card);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
             width: 28px;
             height: 28px;
             line-height: 28px;
             margin: 0;
             padding: 0;
           }
-          .react-flow__controls button:hover { background: #282828; }
-          .react-flow__minimap { background: #181818; border: 1px solid #282828; }
+          .react-flow__controls button:hover { background: var(--surface-hover); }
+          .react-flow__minimap { background: var(--card); border: 1px solid var(--border); }
         `}</style>
         <div style={{ minHeight: "100dvh" }}>
           <TopHeader title="Arborescence" />
@@ -311,7 +311,7 @@ function FederationTreeInner() {
               <Network
                 style={{ width: 18, height: 18, color: "var(--accent-primary)" }}
               />
-              <span style={{ color: "#fff", fontWeight: 700, fontSize: 16 }}>
+              <span style={{ color: "var(--text-primary)", fontWeight: 700, fontSize: 16 }}>
                 Arborescence des organisations
               </span>
               {hasContent && (
@@ -319,7 +319,7 @@ function FederationTreeInner() {
                   <span
                     style={{
                       marginLeft: "auto",
-                      color: "#808080",
+                      color: "var(--text-tertiary)",
                       fontSize: 12,
                       display: "inline-flex",
                       alignItems: "center",
@@ -354,8 +354,8 @@ function FederationTreeInner() {
                 height: "calc(100dvh - 320px)",
                 minHeight: 420,
                 borderRadius: 12,
-                border: "1px solid #282828",
-                background: "#121212",
+                border: "1px solid var(--border)",
+                background: "var(--canvas)",
                 overflow: "hidden",
                 position: "relative",
               }}
@@ -368,7 +368,7 @@ function FederationTreeInner() {
                 <div
                   style={{
                     padding: 20,
-                    color: "#B3B3B3",
+                    color: "var(--text-secondary)",
                     fontSize: 14,
                     textAlign: "center",
                     marginTop: 24,
@@ -380,17 +380,17 @@ function FederationTreeInner() {
                 <div
                   style={{
                     padding: 20,
-                    color: "#B3B3B3",
+                    color: "var(--text-secondary)",
                     fontSize: 14,
                     textAlign: "center",
                     marginTop: 24,
                     lineHeight: 1.5,
                   }}
                 >
-                  <p style={{ color: "#fff", fontWeight: 600, marginBottom: 8 }}>
+                  <p style={{ color: "var(--text-primary)", fontWeight: 600, marginBottom: 8 }}>
                     Aucune organisation visible pour votre compte.
                   </p>
-                  <p style={{ color: "#808080", fontSize: 12 }}>
+                  <p style={{ color: "var(--text-tertiary)", fontSize: 12 }}>
                     La vue diagramme est réservée aux admins centraux
                     (détenteurs d&apos;un grant <code>org_admins</code> actif).
                   </p>
@@ -416,14 +416,14 @@ function FederationTreeInner() {
                     variant={BackgroundVariant.Dots}
                     gap={24}
                     size={1.5}
-                    color="#2a2a2a"
+                    color="var(--surface-hover)"
                   />
                   <Controls position="bottom-right" showInteractive={false} />
                   <MiniMap
                     position="top-right"
                     nodeColor="#3a3a3a"
                     maskColor="rgba(18,18,18,0.6)"
-                    style={{ background: "#181818" }}
+                    style={{ background: "var(--card)" }}
                   />
                 </ReactFlow>
               )}
@@ -446,7 +446,7 @@ function FederationTreeInner() {
                     alignItems: "center",
                     gap: 6,
                     fontSize: 11,
-                    color: "#B3B3B3",
+                    color: "var(--text-secondary)",
                   }}
                 >
                   <span

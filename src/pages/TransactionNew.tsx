@@ -196,8 +196,8 @@ export default function TransactionNew() {
                 onClick={() => setType("INCOME")}
                 className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all"
                 style={{
-                  backgroundColor: type === "INCOME" ? "#1DB954" : "#212121",
-                  color: type === "INCOME" ? "#fff" : "#B3B3B3",
+                  backgroundColor: type === "INCOME" ? "#1DB954" : "var(--surface)",
+                  color: type === "INCOME" ? "var(--text-primary)" : "var(--text-secondary)",
                 }}
               >
                 Entrée
@@ -206,8 +206,8 @@ export default function TransactionNew() {
                 onClick={() => setType("EXPENSE")}
                 className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all"
                 style={{
-                  backgroundColor: type === "EXPENSE" ? "#E51332" : "#212121",
-                  color: type === "EXPENSE" ? "#fff" : "#B3B3B3",
+                  backgroundColor: type === "EXPENSE" ? "#E51332" : "var(--surface)",
+                  color: type === "EXPENSE" ? "var(--text-primary)" : "var(--text-secondary)",
                 }}
               >
                 Sortie
@@ -227,11 +227,11 @@ export default function TransactionNew() {
                 }
                 placeholder="0"
                 style={{
-                  backgroundColor: "#212121",
-                  color: "#fff",
+                  backgroundColor: "var(--surface)",
+                  color: "var(--text-primary)",
                   border: fieldErrors.amount
                     ? "1px solid #E51332"
-                    : "1px solid #282828",
+                    : "1px solid var(--surface-hover)",
                 }}
               />
               {fieldErrors.amount && (
@@ -254,9 +254,9 @@ export default function TransactionNew() {
                 }
                 placeholder="Ex: Dîme du mois"
                 style={{
-                  backgroundColor: "#212121",
-                  color: "#fff",
-                  border: "1px solid #282828",
+                  backgroundColor: "var(--surface)",
+                  color: "var(--text-primary)",
+                  border: "1px solid var(--border)",
                 }}
               />
             </div>
@@ -271,9 +271,9 @@ export default function TransactionNew() {
                 value={date}
                 onIonChange={(e) => setDate((e.detail.value as string) ?? "")}
                 style={{
-                  backgroundColor: "#212121",
-                  color: "#fff",
-                  border: "1px solid #282828",
+                  backgroundColor: "var(--surface)",
+                  color: "var(--text-primary)",
+                  border: "1px solid var(--border)",
                 }}
               />
             </div>
@@ -288,9 +288,9 @@ export default function TransactionNew() {
                 onChange={(e) => setCategoryId(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl text-sm "
                 style={{
-                  backgroundColor: "#212121",
-                  color: "#fff",
-                  border: "1px solid #282828",
+                  backgroundColor: "var(--surface)",
+                  color: "var(--text-primary)",
+                  border: "1px solid var(--border)",
                 }}
               >
                 <option value="">Sélectionner une catégorie</option>
@@ -312,9 +312,9 @@ export default function TransactionNew() {
                 onChange={(e) => setSource(e.target.value as any)}
                 className="w-full px-4 py-3 rounded-xl text-sm "
                 style={{
-                  backgroundColor: "#212121",
-                  color: "#fff",
-                  border: "1px solid #282828",
+                  backgroundColor: "var(--surface)",
+                  color: "var(--text-primary)",
+                  border: "1px solid var(--border)",
                 }}
               >
                 <option value="CAISSE">Caisse</option>
@@ -335,9 +335,9 @@ export default function TransactionNew() {
                   onChange={(e) => setSourceCaisseId(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl text-sm "
                   style={{
-                    backgroundColor: "#212121",
-                    color: "#fff",
-                    border: "1px solid #282828",
+                    backgroundColor: "var(--surface)",
+                    color: "var(--text-primary)",
+                    border: "1px solid var(--border)",
                   }}
                 >
                   {caisses.map((c: any) => (
@@ -363,9 +363,9 @@ export default function TransactionNew() {
                   }
                   placeholder="Nom de la personne"
                   style={{
-                    backgroundColor: "#212121",
-                    color: "#fff",
-                    border: "1px solid #282828",
+                    backgroundColor: "var(--surface)",
+                    color: "var(--text-primary)",
+                    border: "1px solid var(--border)",
                   }}
                 />
               </div>
@@ -381,9 +381,9 @@ export default function TransactionNew() {
                 onChange={(e) => setEventId(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl text-sm "
                 style={{
-                  backgroundColor: "#212121",
-                  color: "#fff",
-                  border: "1px solid #282828",
+                  backgroundColor: "var(--surface)",
+                  color: "var(--text-primary)",
+                  border: "1px solid var(--border)",
                 }}
               >
                 <option value="">Aucun événement</option>
@@ -407,9 +407,9 @@ export default function TransactionNew() {
                 rows={3}
                 className="w-full px-4 py-3 rounded-xl text-sm  resize-none"
                 style={{
-                  backgroundColor: "#212121",
-                  color: "#fff",
-                  border: "1px solid #282828",
+                  backgroundColor: "var(--surface)",
+                  color: "var(--text-primary)",
+                  border: "1px solid var(--border)",
                 }}
               />
             </div>
@@ -417,7 +417,7 @@ export default function TransactionNew() {
             {/* Preuve photo de la dépense (Sortie uniquement) */}
             {type === "EXPENSE" && (
               <div className="mb-6 rounded-xl p-4"
-                style={{ backgroundColor: "#1e1e1e", border: "1px solid #282828" }}
+                style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
               >
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-sm font-semibold text-text-primary">
@@ -442,7 +442,7 @@ export default function TransactionNew() {
                       <div
                         key={i}
                         className="relative w-20 h-20 rounded-lg overflow-hidden"
-                        style={{ border: "1px solid #282828" }}
+                        style={{ border: "1px solid var(--border)" }}
                       >
                         <img
                           src={URL.createObjectURL(p)}
@@ -471,8 +471,8 @@ export default function TransactionNew() {
                   <label
                     className="flex-1 py-2.5 rounded-full text-sm font-medium text-center cursor-pointer flex items-center justify-center gap-1.5"
                     style={{
-                      backgroundColor: "#282828",
-                      color: "#fff",
+                      backgroundColor: "var(--surface-hover)",
+                      color: "var(--text-primary)",
                     }}
                   >
                     <Camera className="w-4 h-4" />
@@ -492,8 +492,8 @@ export default function TransactionNew() {
                   <label
                     className="flex-1 py-2.5 rounded-full text-sm font-medium text-center cursor-pointer flex items-center justify-center gap-1.5"
                     style={{
-                      backgroundColor: "#282828",
-                      color: "#fff",
+                      backgroundColor: "var(--surface-hover)",
+                      color: "var(--text-primary)",
                     }}
                   >
                     <ImagePlus className="w-4 h-4" />

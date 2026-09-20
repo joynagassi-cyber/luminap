@@ -42,9 +42,9 @@ export default function TopHeader({ title }: { title?: string }) {
     <IonHeader>
       <IonToolbar
         style={{
-          backgroundColor: "rgba(18,18,18,0.97)",
+          backgroundColor: "var(--nav-bg)",
           backdropFilter: "blur(12px)",
-          borderBottom: "1px solid #282828",
+          borderBottom: "1px solid var(--border)",
         }}
       >
         <div className="px-4 py-2.5 flex items-center justify-between">
@@ -54,7 +54,7 @@ export default function TopHeader({ title }: { title?: string }) {
               src="/lumina-logo.png"
               alt="Lumina"
               className="w-8 h-8 rounded-lg"
-              style={{ border: "1px solid #282828" }}
+              style={{ border: "1px solid var(--border)" }}
             />
             {/* Logo de l'église / organisation (uploadé, bucket « logos ») */}
             {churchLogo && (
@@ -62,7 +62,7 @@ export default function TopHeader({ title }: { title?: string }) {
                 src={churchLogo}
                 alt={`Logo de ${appConfig?.churchName || "l'organisation"}`}
                 className="w-8 h-8 rounded-lg object-cover"
-                style={{ border: "1px solid #282828" }}
+                style={{ border: "1px solid var(--border)" }}
               />
             )}
             <div>
@@ -86,8 +86,8 @@ export default function TopHeader({ title }: { title?: string }) {
                 width: 36,
                 height: 36,
                 borderRadius: "50%",
-                border: "1px solid #282828",
-                backgroundColor: "#212121",
+                border: "1px solid var(--border)",
+                backgroundColor: "var(--surface)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -115,8 +115,8 @@ export default function TopHeader({ title }: { title?: string }) {
                 width: 36,
                 height: 36,
                 borderRadius: "50%",
-                border: "1px solid #282828",
-                backgroundColor: "#212121",
+                border: "1px solid var(--border)",
+                backgroundColor: "var(--surface)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -140,7 +140,7 @@ export default function TopHeader({ title }: { title?: string }) {
         <div
           style={{
             backgroundColor: isCentralAdmin ? "#1a130f" : "#1a1f2b",
-            borderTop: "1px solid #282828",
+            borderTop: "1px solid var(--border)",
           }}
         >
           <div className="px-4 py-1.5 flex items-center justify-between gap-2">
@@ -163,8 +163,8 @@ export default function TopHeader({ title }: { title?: string }) {
                   borderRadius: 999,
                   border: "none",
                   cursor: "pointer",
-                  backgroundColor: "#2a2a2a",
-                  color: "#B3B3B3",
+                  backgroundColor: "var(--surface-hover)",
+                  color: "var(--text-secondary)",
                   fontSize: 12,
                 }}
                 aria-label="Retour à l'administration centrale"

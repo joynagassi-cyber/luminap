@@ -140,7 +140,7 @@ export default function FormBuilder() {
             {forms.length === 0 ? (
               <div
                 className="text-center py-16 rounded-xl"
-                style={{ backgroundColor: "#212121" }}
+                style={{ backgroundColor: "var(--surface)" }}
               >
                 <p className="text-text-primary font-medium text-sm mb-2">
                   Pas encore de formulaire
@@ -155,7 +155,7 @@ export default function FormBuilder() {
                   <div
                     key={form.id}
                     className="rounded-xl p-4"
-                    style={{ backgroundColor: "#212121" }}
+                    style={{ backgroundColor: "var(--surface)" }}
                   >
                     <div className="flex items-center justify-between mb-1">
                       <p className="text-text-primary text-sm font-semibold">
@@ -192,7 +192,7 @@ export default function FormBuilder() {
                       <button
                         onClick={() => navigate(`/forms/${form.id}/submissions`)}
                         className="flex-1 py-2 rounded-full text-xs font-medium"
-                        style={{ backgroundColor: "#282828", color: "#B3B3B3" }}
+                        style={{ backgroundColor: "var(--surface-hover)", color: "var(--text-secondary)" }}
                       >
                         Soumissions
                       </button>
@@ -207,7 +207,7 @@ export default function FormBuilder() {
                           await loadForms();
                         }}
                         className="flex-1 py-2 rounded-full text-xs font-medium"
-                        style={{ backgroundColor: "#282828", color: "#B3B3B3" }}
+                        style={{ backgroundColor: "var(--surface-hover)", color: "var(--text-secondary)" }}
                       >
                         {form.status === "PUBLISHED" ? "Brouillon" : "Publier"}
                       </button>
@@ -227,7 +227,7 @@ export default function FormBuilder() {
               <div className="absolute inset-0 bg-black/60" />
               <div
                 className="relative w-full max-w-lg rounded-t-2xl p-5 pb-8"
-                style={{ backgroundColor: "#181818" }}
+                style={{ backgroundColor: "var(--card)" }}
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="flex items-center justify-between mb-5">
@@ -237,7 +237,7 @@ export default function FormBuilder() {
                   <button
                     onClick={() => setShowCreate(false)}
                     className="w-8 h-8 rounded-full flex items-center justify-center"
-                    style={{ backgroundColor: "#282828" }}
+                    style={{ backgroundColor: "var(--surface-hover)" }}
                   >
                     <X className="w-4 h-4 text-text-tertiary" />
                   </button>
@@ -269,8 +269,8 @@ export default function FormBuilder() {
                     rows={2}
                     className="w-full px-4 py-3 rounded-xl text-text-primary text-sm  resize-none"
                     style={{
-                      backgroundColor: "#212121",
-                      border: "1px solid #282828",
+                      backgroundColor: "var(--surface)",
+                      border: "1px solid var(--border)",
                     }}
                   />
                 </div>
@@ -303,7 +303,7 @@ export default function FormBuilder() {
                     <div
                       key={index}
                       className="rounded-xl p-3 mb-2"
-                      style={{ backgroundColor: "#212121" }}
+                      style={{ backgroundColor: "var(--surface)" }}
                     >
                       <div className="flex items-center gap-2 mb-2">
                         <GripVertical className="w-4 h-4 text-text-tertiary flex-shrink-0" />
@@ -315,9 +315,9 @@ export default function FormBuilder() {
                           }
                           className="flex-1 px-3 py-1.5 rounded-lg text-sm"
                           style={{
-                            backgroundColor: "#181818",
-                            border: "1px solid #282828",
-                            color: "#fff",
+                            backgroundColor: "var(--card)",
+                            border: "1px solid var(--border)",
+                            color: "var(--text-primary)",
                           }}
                         />
                         <select
@@ -330,9 +330,9 @@ export default function FormBuilder() {
                           }
                           className="px-2 py-1.5 rounded-lg text-xs"
                           style={{
-                            backgroundColor: "#181818",
-                            color: "#B3B3B3",
-                            border: "1px solid #282828",
+                            backgroundColor: "var(--card)",
+                            color: "var(--text-secondary)",
+                            border: "1px solid var(--border)",
                           }}
                         >
                           {FIELD_TYPES.map((ft) => (
@@ -344,7 +344,7 @@ export default function FormBuilder() {
                         <button
                           onClick={() => toggleRequired(index)}
                           style={{
-                            color: field.required ? "var(--accent-primary)" : "#808080",
+                            color: field.required ? "var(--accent-primary)" : "var(--text-tertiary)",
                           }}
                         >
                           <span className="text-xs font-bold">*</span>
@@ -370,9 +370,9 @@ export default function FormBuilder() {
                           rows={2}
                           className="w-full px-3 py-2 rounded-lg text-xs resize-none"
                           style={{
-                            backgroundColor: "#181818",
-                            border: "1px solid #282828",
-                            color: "#fff",
+                            backgroundColor: "var(--card)",
+                            border: "1px solid var(--border)",
+                            color: "var(--text-primary)",
                           }}
                         />
                       )}

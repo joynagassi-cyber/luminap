@@ -78,7 +78,7 @@ const CATEGORY_COLORS = [
   "#14B8A6",
   "#EC4899",
   "var(--accent-primary)",
-  "#808080",
+  "var(--text-tertiary)",
 ];
 
 const DONUT_DATA = [
@@ -437,9 +437,9 @@ const SECTIONS: SectionData[] = [
     id: "archives",
     title: "Archives",
     icon: Archive,
-    color: "#808080",
+    color: "var(--text-tertiary)",
     iconBg: "#80808020",
-    titleColor: "#808080",
+    titleColor: "var(--text-tertiary)",
     paragraphs: [
       "L'archivage permet de masquer les éléments inactifs sans les supprimer définitivement : groupes, comptes, membres et événements.",
       "Un groupe est archivé quand il n'a plus d'activité. Un événement devient « Archivé » quand il est annulé.",
@@ -457,9 +457,9 @@ const SECTIONS: SectionData[] = [
     id: "parametres",
     title: "Paramètres",
     icon: Settings,
-    color: "#B3B3B3",
+    color: "var(--text-secondary)",
     iconBg: "#80808020",
-    titleColor: "#808080",
+    titleColor: "var(--text-tertiary)",
     paragraphs: [
       "Les Paramètres permettent de configurer l'identité de l'église : nom complet, logo, et photo de profil utilisateur.",
       "Le statut de synchronisation indique si l'appareil est connecté au cloud et si les données sont à jour.",
@@ -618,7 +618,7 @@ function TransactionFlowDiagram() {
           refY="3.5"
           orient="auto"
         >
-          <polygon points="0 0, 10 3.5, 0 7" fill="#808080" />
+          <polygon points="0 0, 10 3.5, 0 7" fill="var(--text-tertiary)" />
         </marker>
         <style>{`
           @keyframes dash { to { stroke-dashoffset: -16; } }
@@ -715,12 +715,12 @@ function TransactionFlowDiagram() {
         y1="80"
         x2="138"
         y2="80"
-        stroke="#808080"
+        stroke="var(--text-tertiary)"
         strokeWidth="1.5"
         markerEnd="url(#arrowhead)"
         className="flow-line"
       />
-      <text x="113" y="72" textAnchor="middle" fill="#808080" fontSize="9">
+      <text x="113" y="72" textAnchor="middle" fill="var(--text-tertiary)" fontSize="9">
         Soumettre
       </text>
       <line
@@ -728,7 +728,7 @@ function TransactionFlowDiagram() {
         y1="80"
         x2="268"
         y2="33"
-        stroke="#808080"
+        stroke="var(--text-tertiary)"
         strokeWidth="1.5"
         markerEnd="url(#arrowhead)"
         className="flow-line"
@@ -748,7 +748,7 @@ function TransactionFlowDiagram() {
         y1="80"
         x2="268"
         y2="127"
-        stroke="#808080"
+        stroke="var(--text-tertiary)"
         strokeWidth="1.5"
         markerEnd="url(#arrowhead)"
         className="flow-line"
@@ -777,7 +777,7 @@ function TransactionFlowDiagram() {
         x="250"
         y="59"
         textAnchor="middle"
-        fill="#fff"
+        fill="var(--text-primary)"
         fontSize="8"
         fontWeight="600"
       >
@@ -796,7 +796,7 @@ function TransactionFlowDiagram() {
         x="250"
         y="99"
         textAnchor="middle"
-        fill="#fff"
+        fill="var(--text-primary)"
         fontSize="8"
         fontWeight="600"
       >
@@ -817,12 +817,12 @@ function TransactionFlowDiagram() {
       <path
         d="M 312 152 L 312 158 L 48 158 L 48 107"
         fill="none"
-        stroke="#808080"
+        stroke="var(--text-tertiary)"
         strokeWidth="1.5"
         markerEnd="url(#arrowhead)"
         className="flow-line"
       />
-      <text x="180" y="156" textAnchor="middle" fill="#808080" fontSize="9">
+      <text x="180" y="156" textAnchor="middle" fill="var(--text-tertiary)" fontSize="9">
         Modifier
       </text>
     </svg>
@@ -874,7 +874,7 @@ function VersementFlowDiagram() {
       >
         Caisse Groupe
       </text>
-      <text x="80" y="82" textAnchor="middle" fill="#808080" fontSize="9">
+      <text x="80" y="82" textAnchor="middle" fill="var(--text-tertiary)" fontSize="9">
         sourceCaisseId
       </text>
       <text x="80" y="96" textAnchor="middle" fill="#E51332" fontSize="9">
@@ -918,7 +918,7 @@ function VersementFlowDiagram() {
       >
         Caisse Principale
       </text>
-      <text x="320" y="82" textAnchor="middle" fill="#808080" fontSize="9">
+      <text x="320" y="82" textAnchor="middle" fill="var(--text-tertiary)" fontSize="9">
         id: main
       </text>
       <text x="320" y="96" textAnchor="middle" fill="#1DB954" fontSize="9">
@@ -940,7 +940,7 @@ function VersementFlowDiagram() {
         x="220"
         y="64"
         textAnchor="middle"
-        fill="#fff"
+        fill="var(--text-primary)"
         fontSize="9"
         fontWeight="600"
       >
@@ -1001,7 +1001,7 @@ function GroupTreeDiagram() {
       >
         Église MFE-JC
       </text>
-      <text x="200" y="44" textAnchor="middle" fill="#808080" fontSize="9">
+      <text x="200" y="44" textAnchor="middle" fill="var(--text-tertiary)" fontSize="9">
         Caisse principale (main)
       </text>
       {/* Ligne verticale */}
@@ -1010,7 +1010,7 @@ function GroupTreeDiagram() {
         y1="56"
         x2="200"
         y2="90"
-        stroke="#808080"
+        stroke="var(--text-tertiary)"
         strokeWidth="1.5"
       />
       {/* Ligne horizontale */}
@@ -1019,7 +1019,7 @@ function GroupTreeDiagram() {
         y1="90"
         x2="350"
         y2="90"
-        stroke="#808080"
+        stroke="var(--text-tertiary)"
         strokeWidth="1.5"
       />
       {/* Niveau 2 — Groupes */}
@@ -1033,7 +1033,7 @@ function GroupTreeDiagram() {
               y1="90"
               x2={x + 50}
               y2="110"
-              stroke="#808080"
+              stroke="var(--text-tertiary)"
               strokeWidth="1.5"
             />
             <rect
@@ -1060,7 +1060,7 @@ function GroupTreeDiagram() {
               x={x + 50}
               y="146"
               textAnchor="middle"
-              fill="#808080"
+              fill="var(--text-tertiary)"
               fontSize="9"
             >
               Caisse groupe
@@ -1078,7 +1078,7 @@ function CustomTooltip({ active, payload, label }: any) {
   return (
     <div
       className="rounded-xl p-3 shadow-2xl"
-      style={{ backgroundColor: "#1E1E1E", border: "1px solid #282828" }}
+      style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
     >
       <p className="text-text-tertiary text-xs mb-2 font-medium">{label}</p>
       {payload.map((entry: any, idx: number) => (
@@ -1135,9 +1135,9 @@ function HistoryLineChart() {
         data={HISTORY_LINE_DATA}
         aria-label="Revenus vs dépenses sur 12 mois"
       >
-        <CartesianGrid strokeDasharray="3 3" stroke="#282828" />
-        <XAxis dataKey="name" stroke="#808080" tick={{ fontSize: 10 }} />
-        <YAxis stroke="#808080" tick={{ fontSize: 10 }} hide />
+        <CartesianGrid strokeDasharray="3 3" stroke="var(--surface-hover)" />
+        <XAxis dataKey="name" stroke="var(--text-tertiary)" tick={{ fontSize: 10 }} />
+        <YAxis stroke="var(--text-tertiary)" tick={{ fontSize: 10 }} hide />
         <Tooltip content={<CustomTooltip />} />
         <Line
           type="monotone"
@@ -1170,9 +1170,9 @@ function BalanceAreaChart() {
             <stop offset="95%" stopColor="#06B6D4" stopOpacity={0} />
           </linearGradient>
         </defs>
-        <CartesianGrid strokeDasharray="3 3" stroke="#282828" />
-        <XAxis dataKey="name" stroke="#808080" tick={{ fontSize: 10 }} />
-        <YAxis stroke="#808080" tick={{ fontSize: 10 }} hide />
+        <CartesianGrid strokeDasharray="3 3" stroke="var(--surface-hover)" />
+        <XAxis dataKey="name" stroke="var(--text-tertiary)" tick={{ fontSize: 10 }} />
+        <YAxis stroke="var(--text-tertiary)" tick={{ fontSize: 10 }} hide />
         <Tooltip content={<CustomTooltip />} />
         <Area
           type="monotone"
@@ -1197,14 +1197,14 @@ function GroupBarChart() {
       >
         <CartesianGrid
           strokeDasharray="3 3"
-          stroke="#282828"
+          stroke="var(--surface-hover)"
           orientation="right"
         />
-        <XAxis type="number" stroke="#808080" tick={{ fontSize: 10 }} hide />
+        <XAxis type="number" stroke="var(--text-tertiary)" tick={{ fontSize: 10 }} hide />
         <YAxis
           type="category"
           dataKey="name"
-          stroke="#808080"
+          stroke="var(--text-tertiary)"
           tick={{ fontSize: 10 }}
           width={70}
         />
@@ -1215,7 +1215,7 @@ function GroupBarChart() {
           label={{
             position: "right",
             fontSize: 10,
-            fill: "#B3B3B3",
+            fill: "var(--text-secondary)",
             formatter: (v: number) => `${(v / 100).toLocaleString()} F`,
           }}
         >
@@ -1337,7 +1337,7 @@ export default function Tutorial() {
   return (
     <IonPage>
       <IonContent className="bg-canvas">
-        <div className="min-h-screen bg-[#121212]">
+        <div className="min-h-screen bg-[var(--canvas)]">
           <TopHeader title="Tutoriel" />
           <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
             {/* Back button */}
@@ -1377,9 +1377,9 @@ export default function Tutorial() {
                             outline: "none",
                           }
                         : {
-                            backgroundColor: "#181818",
-                            color: "#B3B3B3",
-                            border: "1px solid #282828",
+                            backgroundColor: "var(--card)",
+                            color: "var(--text-secondary)",
+                            border: "1px solid var(--border)",
                           }
                     }
                   >
@@ -1435,8 +1435,8 @@ export default function Tutorial() {
                 <div
                   className="mb-5 rounded-xl overflow-hidden"
                   style={{
-                    backgroundColor: "#181818",
-                    border: "1px solid #282828",
+                    backgroundColor: "var(--card)",
+                    border: "1px solid var(--border)",
                   }}
                 >
                   <div className="px-4 pt-3 pb-2">
@@ -1453,8 +1453,8 @@ export default function Tutorial() {
                 <div
                   className="mb-5 rounded-xl overflow-hidden"
                   style={{
-                    backgroundColor: "#181818",
-                    border: "1px solid #282828",
+                    backgroundColor: "var(--card)",
+                    border: "1px solid var(--border)",
                   }}
                 >
                   <div className="px-4 pt-3 pb-2">
@@ -1523,7 +1523,7 @@ export default function Tutorial() {
                     <div
                       key={i}
                       className="rounded-xl p-4 transition-all duration-200"
-                      style={{ backgroundColor: "#181818" }}
+                      style={{ backgroundColor: "var(--card)" }}
                     >
                       <div className="flex items-start gap-2 mb-2">
                         <AlertCircle className="w-4 h-4 text-[#E51332] flex-shrink-0 mt-0.5" />
@@ -1546,7 +1546,7 @@ export default function Tutorial() {
                     <div
                       key={i}
                       className="rounded-xl p-4 transition-all duration-200"
-                      style={{ backgroundColor: "#181818" }}
+                      style={{ backgroundColor: "var(--card)" }}
                     >
                       <div className="flex items-start gap-2 mb-1.5">
                         <HelpCircle
@@ -1571,13 +1571,13 @@ export default function Tutorial() {
                 disabled={activeSection === SECTIONS[0].id}
                 className="px-4 py-2.5 rounded-full text-sm font-medium transition-all duration-200 min-h-[44px] min-w-[44px] flex items-center justify-center focus-visible:ring-2 focus-visible:ring-dashed"
                 style={{
-                  backgroundColor: "#181818",
+                  backgroundColor: "var(--card)",
                   color:
-                    activeSection === SECTIONS[0].id ? "#535353" : "#B3B3B3",
+                    activeSection === SECTIONS[0].id ? "var(--text-placeholder)" : "var(--text-secondary)",
                   border:
                     activeSection === SECTIONS[0].id
                       ? "none"
-                      : "1px solid #282828",
+                      : "1px solid var(--surface-hover)",
                   cursor:
                     activeSection === SECTIONS[0].id ? "default" : "pointer",
                 }}
@@ -1592,15 +1592,15 @@ export default function Tutorial() {
                 style={{
                   backgroundColor:
                     activeSection === SECTIONS[SECTIONS.length - 1].id
-                      ? "#181818"
+                      ? "var(--card)"
                       : tint(current.color, 12),
                   color:
                     activeSection === SECTIONS[SECTIONS.length - 1].id
-                      ? "#535353"
+                      ? "var(--text-placeholder)"
                       : current.color,
                   border:
                     activeSection === SECTIONS[SECTIONS.length - 1].id
-                      ? "1px solid #282828"
+                      ? "1px solid var(--surface-hover)"
                       : "none",
                   cursor:
                     activeSection === SECTIONS[SECTIONS.length - 1].id

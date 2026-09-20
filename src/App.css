@@ -1,13 +1,10 @@
-/* Lumina Design System — Color Tokens */
+/* Lumina Design System — Color Tokens
+ *
+ * Deux modes (data-theme="dark" par défaut / data-theme="light") basculés sur
+ * <html> par `applyThemeMode` (src/ionic/themes.ts). Les couleurs financières
+ * et l'accent sont INVIOLABLES : elles ne changent jamais avec le mode.
+ */
 :root {
-  --canvas: #121212;
-  --surface: #212121;
-  --surface-hover: #282828;
-  --surface-active: #333333;
-  --text-primary: #ffffff;
-  --text-secondary: #b3b3b3;
-  --text-tertiary: #808080;
-  --text-placeholder: #535353;
   --data-income: #1db954;
   --data-expense: #e51332;
   --data-pending: #ffb800;
@@ -15,10 +12,47 @@
   --accent-light: #ff8533;
   --accent-dark: #cc5500;
 
-  /* Skeleton shimmer tokens (Lumina design system) */
+  /* Skeleton radius (invariant) */
+  --skeleton-radius: 4px;
+}
+
+/* ── Mode sombre (défaut — s'applique aussi sans data-theme) ─────────────── */
+:root,
+[data-theme="dark"] {
+  --canvas: #121212;
+  --surface: #212121;
+  --card: #181818;
+  --surface-hover: #282828;
+  --surface-active: #333333;
+  --border: #282828;
+  --text-primary: #ffffff;
+  --text-secondary: #b3b3b3;
+  --text-tertiary: #808080;
+  --text-placeholder: #535353;
+  --nav-bg: rgba(18, 18, 18, 0.97);
   --skeleton-base: #212121;
   --skeleton-highlight: #2b2b2b;
-  --skeleton-radius: 4px;
+  --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+/* ── Mode clair ───────────────────────────────────────────────────────────── */
+[data-theme="light"] {
+  --canvas: #f5f6f8;
+  --surface: #ffffff;
+  --card: #ffffff;
+  --surface-hover: #eef0f2;
+  --surface-active: #e4e6e9;
+  --border: #e3e5e8;
+  --text-primary: #1a1a1a;
+  --text-secondary: #555a60;
+  --text-tertiary: #8a8f96;
+  --text-placeholder: #9aa0a8;
+  --nav-bg: rgba(255, 255, 255, 0.97);
+  --skeleton-base: #eef0f2;
+  --skeleton-highlight: #e0e3e7;
+  --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
 
 *,

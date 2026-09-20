@@ -112,14 +112,14 @@ export default function OrgUnits() {
     padding: "10px 12px",
     borderRadius: 12,
     fontSize: 14,
-    backgroundColor: "#181818",
-    color: "#fff",
-    border: "1px solid #282828",
+    backgroundColor: "var(--card)",
+    color: "var(--text-primary)",
+    border: "1px solid var(--border)",
     boxSizing: "border-box",
   };
   const labelStyle: React.CSSProperties = {
     display: "block",
-    color: "#808080",
+    color: "var(--text-tertiary)",
     fontSize: 12,
     textTransform: "uppercase",
     letterSpacing: "0.05em",
@@ -150,7 +150,7 @@ export default function OrgUnits() {
                 style={{
                   width: 18,
                   height: 18,
-                  color: "#808080",
+                  color: "var(--text-tertiary)",
                   cursor: "pointer",
                 }}
                 onClick={() => navigate("/admin/federation")}
@@ -163,14 +163,14 @@ export default function OrgUnits() {
                   color: "var(--accent-primary)",
                 }}
               />
-              <span style={{ color: "#fff", fontWeight: 700, fontSize: 16 }}>
+              <span style={{ color: "var(--text-primary)", fontWeight: 700, fontSize: 16 }}>
                 Unités internes
               </span>
               {!loading && (
                 <span
                   style={{
                     marginLeft: "auto",
-                    color: "#808080",
+                    color: "var(--text-tertiary)",
                     fontSize: 12,
                   }}
                 >
@@ -179,8 +179,8 @@ export default function OrgUnits() {
               )}
             </div>
 
-            <p style={{ color: "#808080", fontSize: 12, marginBottom: 16 }}>
-              Organisation : <code style={{ color: "#B3B3B3" }}>{orgId}</code>
+            <p style={{ color: "var(--text-tertiary)", fontSize: 12, marginBottom: 16 }}>
+              Organisation : <code style={{ color: "var(--text-secondary)" }}>{orgId}</code>
             </p>
 
             {/* Bouton création (natif) */}
@@ -198,8 +198,8 @@ export default function OrgUnits() {
               <div
                 className="rounded-xl p-4 mb-4 space-y-4"
                 style={{
-                  backgroundColor: "#212121",
-                  border: "1px solid #282828",
+                  backgroundColor: "var(--surface)",
+                  border: "1px solid var(--border)",
                 }}
               >
                 <div>
@@ -268,19 +268,19 @@ export default function OrgUnits() {
               <div
                 className="rounded-xl p-6 text-center space-y-2"
                 style={{
-                  backgroundColor: "#212121",
-                  border: "1px solid #282828",
+                  backgroundColor: "var(--surface)",
+                  border: "1px solid var(--border)",
                 }}
               >
                 <Boxes
                   style={{
                     width: 24,
                     height: 24,
-                    color: "#808080",
+                    color: "var(--text-tertiary)",
                     margin: "0 auto",
                   }}
                 />
-                <p style={{ color: "#B3B3B3", fontSize: 14 }}>
+                <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>
                   Aucune unité interne pour cette organisation.
                 </p>
               </div>
@@ -292,7 +292,7 @@ export default function OrgUnits() {
                     className="flex items-center gap-3 p-3 rounded-xl"
                     style={{
                       backgroundColor: "#1f1f1f",
-                      border: "1px solid #282828",
+                      border: "1px solid var(--border)",
                     }}
                   >
                     <div
@@ -316,7 +316,7 @@ export default function OrgUnits() {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p
                         style={{
-                          color: "#fff",
+                          color: "var(--text-primary)",
                           fontWeight: 600,
                           fontSize: 14,
                           overflow: "hidden",
@@ -326,7 +326,7 @@ export default function OrgUnits() {
                       >
                         {u.name}
                       </p>
-                      <p style={{ color: "#808080", fontSize: 11 }}>{u.type}</p>
+                      <p style={{ color: "var(--text-tertiary)", fontSize: 11 }}>{u.type}</p>
                     </div>
                     <button
                       type="button"

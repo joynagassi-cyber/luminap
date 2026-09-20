@@ -53,7 +53,7 @@ export default function ConfirmModal({
       />
       <div
         className="relative w-full max-w-sm rounded-t-2xl sm:rounded-2xl p-6 pb-8"
-        style={{ backgroundColor: "#212121" }}
+        style={{ backgroundColor: "var(--surface)" }}
       >
         <div
           className="w-12 h-1 rounded-full bg-surface-active mx-auto mb-4 sm:hidden"
@@ -86,8 +86,8 @@ export default function ConfirmModal({
               onIonChange={(e) => setInputValue(e.detail.value!)}
               className="w-full px-4 py-3 rounded-lg text-text-primary text-sm text-center"
               style={{
-                backgroundColor: "#121212",
-                border: "1px solid #282828",
+                backgroundColor: "var(--canvas)",
+                border: "1px solid var(--border)",
               }}
               autoFocus
             />
@@ -101,7 +101,7 @@ export default function ConfirmModal({
             onClick={onClose}
             expand="block"
             className="!rounded-full !min-height:auto text-sm font-semibold"
-            style={{ backgroundColor: "#282828", color: "#B3B3B3" }}
+            style={{ backgroundColor: "var(--surface-hover)", color: "var(--text-secondary)" }}
             aria-label="Annuler"
           >
             Annuler
@@ -120,7 +120,7 @@ export default function ConfirmModal({
             style={{
               backgroundColor:
                 confirmVariant === "danger" ? "#E51332" : "var(--accent-primary)",
-              color: "#FFFFFF",
+              color: "var(--text-primary)",
             }}
             aria-label={confirmLabel}
           >

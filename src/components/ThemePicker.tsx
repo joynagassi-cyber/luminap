@@ -51,7 +51,7 @@ export default function ThemePicker({ value, onChange, columns = 5 }: Props) {
                 style={{
                   background: t.primary,
                   boxShadow: selected
-                    ? `0 0 0 3px #121212, 0 0 0 5px ${t.primary}`
+                    ? `0 0 0 3px var(--canvas), 0 0 0 5px ${t.primary}`
                     : "none",
                 }}
               >
@@ -60,7 +60,7 @@ export default function ThemePicker({ value, onChange, columns = 5 }: Props) {
               {columns === 5 && (
                 <span
                   className="text-[10px] leading-tight text-center"
-                  style={{ color: selected ? t.primary : "#808080" }}
+                  style={{ color: selected ? t.primary : "var(--text-tertiary)" }}
                 >
                   {t.name.split(" ")[0]}
                 </span>
@@ -70,7 +70,7 @@ export default function ThemePicker({ value, onChange, columns = 5 }: Props) {
         })}
       </div>
       <div className="flex items-center justify-between mt-3 px-1">
-        <p className="text-xs text-[#808080]">
+        <p className="text-xs text-[var(--text-tertiary)]">
           {active.name} — {active.inspiration}
         </p>
       </div>

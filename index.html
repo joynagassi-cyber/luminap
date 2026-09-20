@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <link rel="icon" type="image/x-icon" href="/favicon.ico" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <meta name="theme-color" content="#FF6B00" />
+  <meta name="theme-color" content="#121212" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="mobile-web-app-capable" content="yes" />
@@ -22,6 +22,20 @@
   <link rel="manifest" href="/manifest.json" />
 </head>
 <body>
+  <!-- Pose data-theme AVANT le premier paint (sombre par défaut) : les
+       tokens de src/App.css et les vars Ionic (theme.css) suivent cette
+       valeur dès le chargement, sans flash. Le choix est persisté par
+       applyThemeMode (src/ionic/themes.ts, localStorage `lumina-theme-mode`). -->
+  <script>
+    (function () {
+      try {
+        var mode = localStorage.getItem("lumina-theme-mode");
+        document.documentElement.dataset.theme = mode === "light" ? "light" : "dark";
+      } catch (e) {
+        document.documentElement.dataset.theme = "dark";
+      }
+    })();
+  </script>
   <div id="root"></div>
   <script type="module" src="/src/main.tsx"></script>
 </body>

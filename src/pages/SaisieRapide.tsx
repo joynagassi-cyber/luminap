@@ -202,8 +202,8 @@ export default function SaisieRapide() {
                       key={cot.id}
                       className="rounded-xl p-4"
                       style={{
-                        backgroundColor: "#212121",
-                        border: "1px solid #282828",
+                        backgroundColor: "var(--surface)",
+                        border: "1px solid var(--border)",
                       }}
                     >
                       <div className="flex items-center justify-between mb-2">
@@ -229,8 +229,8 @@ export default function SaisieRapide() {
                           placeholder="Montant (F)"
                           min="0"
                           style={{
-                            backgroundColor: "#181818",
-                            border: "1px solid #282828",
+                            backgroundColor: "var(--card)",
+                            border: "1px solid var(--border)",
                           }}
                         />
                         {useCustom && (

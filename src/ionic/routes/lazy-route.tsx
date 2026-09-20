@@ -87,7 +87,7 @@ class LazyRouteErrorBoundary extends Component<
                 <p className="text-base font-semibold text-white">
                   Impossible d&apos;afficher cette page
                 </p>
-                <p className="mt-1 text-xs" style={{ color: "#808080" }}>
+                <p className="mt-1 text-xs" style={{ color: "var(--text-tertiary)" }}>
                   Une erreur est survenue pendant le chargement de la vue.
                   Essayez à nouveau ou rechargez l&apos;application.
                 </p>

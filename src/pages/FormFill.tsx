@@ -148,8 +148,8 @@ export default function FormFill() {
                         }
                         className="w-full px-4 py-3 rounded-xl text-text-primary text-sm  appearance-none"
                         style={{
-                          backgroundColor: "#212121",
-                          border: "1px solid #282828",
+                          backgroundColor: "var(--surface)",
+                          border: "1px solid var(--border)",
                         }}
                       >
                         <option value="">— Sélectionner —</option>
@@ -164,8 +164,8 @@ export default function FormFill() {
                         }
                         className="w-full px-4 py-3 rounded-xl text-text-primary text-sm  appearance-none"
                         style={{
-                          backgroundColor: "#212121",
-                          border: "1px solid #282828",
+                          backgroundColor: "var(--surface)",
+                          border: "1px solid var(--border)",
                         }}
                       >
                         <option value="">— Sélectionner —</option>
@@ -185,8 +185,8 @@ export default function FormFill() {
                         rows={3}
                         className="w-full px-4 py-3 rounded-xl text-text-primary text-sm  resize-none"
                         style={{
-                          backgroundColor: "#212121",
-                          border: "1px solid #282828",
+                          backgroundColor: "var(--surface)",
+                          border: "1px solid var(--border)",
                         }}
                       />
                     ) : (
@@ -205,8 +205,8 @@ export default function FormFill() {
                         placeholder={field.label}
                         className="w-full px-4 py-3 rounded-xl text-text-primary text-sm "
                         style={{
-                          backgroundColor: "#212121",
-                          border: "1px solid #282828",
+                          backgroundColor: "var(--surface)",
+                          border: "1px solid var(--border)",
                         }}
                       />
                     )}

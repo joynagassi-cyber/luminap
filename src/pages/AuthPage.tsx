@@ -258,7 +258,7 @@ export default function AuthPage() {
         </IonToolbar>
       </IonHeader>
       <IonContent className="bg-canvas">
-        <div className="min-h-screen bg-[#121212] flex flex-col">
+        <div className="min-h-screen bg-[var(--canvas)] flex flex-col">
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-5">
             <img
@@ -266,17 +266,17 @@ export default function AuthPage() {
               alt="Lumina"
               className="w-10 h-10 object-contain"
             />
-            <div className="text-xs text-[#808080]">
+            <div className="text-xs text-[var(--text-tertiary)]">
               {authState?.user ? "Connecté" : "Déconnecté"}
             </div>
           </div>
 
           {/* Content */}
           <div className="flex-1 px-6 flex flex-col justify-center max-w-sm mx-auto w-full pb-12">
-            <h1 className="text-white font-bold text-2xl mb-1">
+            <h1 className="text-text-primary font-bold text-2xl mb-1">
               {mode === "login" ? "Bon retour" : "Créer un compte"}
             </h1>
-            <p className="text-[#808080] text-sm mb-8">
+            <p className="text-[var(--text-tertiary)] text-sm mb-8">
               {mode === "login"
                 ? "Connectez-vous pour accéder à Lumina"
                 : "Inscrivez-vous pour commencer à utiliser Lumina"}
@@ -288,7 +288,9 @@ export default function AuthPage() {
               disabled={loading}
               className="w-full py-3.5 rounded-full font-medium text-sm flex items-center justify-center gap-3 mb-4 transition-all active:scale-95 disabled:opacity-50"
               style={{
-                backgroundColor: "#fff",
+                // Bouton Google : blanc fixe dans les deux modes (contraste
+                // préservé sur canvas clair comme sombre).
+                backgroundColor: "#FFFFFF",
                 color: "#333",
                 border: "1px solid #ddd",
               }}
@@ -299,9 +301,9 @@ export default function AuthPage() {
             </button>
 
             <div className="flex items-center gap-3 mb-6">
-              <div className="flex-1 h-px bg-[#282828]" />
-              <span className="text-[#808080] text-xs">ou</span>
-              <div className="flex-1 h-px bg-[#282828]" />
+              <div className="flex-1 h-px bg-[var(--surface-hover)]" />
+              <span className="text-[var(--text-tertiary)] text-xs">ou</span>
+              <div className="flex-1 h-px bg-[var(--surface-hover)]" />
             </div>
 
             {/* Email/Password Form */}
@@ -312,20 +314,20 @@ export default function AuthPage() {
               {mode === "signup" && (
                 <>
                   <div>
-                    <label className="text-[#B3B3B3] text-xs font-medium mb-2 block">
+                    <label className="text-[var(--text-secondary)] text-xs font-medium mb-2 block">
                       Prénom
                     </label>
                     <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#808080]" />
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-tertiary)]" />
                       <input
                         type="text"
                         value={firstName}
                         onChange={(e) => setFirstName(e.target.value)}
                         placeholder="Jean"
-                        className="w-full pl-10 pr-4 py-3 rounded-xl text-white text-sm"
+                        className="w-full pl-10 pr-4 py-3 rounded-xl text-text-primary text-sm"
                         style={{
-                          backgroundColor: "#1E1E1E",
-                          border: "1px solid #282828",
+                          backgroundColor: "var(--surface)",
+                          border: "1px solid var(--border)",
                         }}
                         aria-label="Prénom"
                         required
@@ -334,20 +336,20 @@ export default function AuthPage() {
                   </div>
 
                   <div>
-                    <label className="text-[#B3B3B3] text-xs font-medium mb-2 block">
+                    <label className="text-[var(--text-secondary)] text-xs font-medium mb-2 block">
                       Nom
                     </label>
                     <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#808080]" />
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-tertiary)]" />
                       <input
                         type="text"
                         value={lastName}
                         onChange={(e) => setLastName(e.target.value)}
                         placeholder="Dupont"
-                        className="w-full pl-10 pr-4 py-3 rounded-xl text-white text-sm"
+                        className="w-full pl-10 pr-4 py-3 rounded-xl text-text-primary text-sm"
                         style={{
-                          backgroundColor: "#1E1E1E",
-                          border: "1px solid #282828",
+                          backgroundColor: "var(--surface)",
+                          border: "1px solid var(--border)",
                         }}
                         aria-label="Nom"
                       />
@@ -357,20 +359,20 @@ export default function AuthPage() {
               )}
 
               <div>
-                <label className="text-[#B3B3B3] text-xs font-medium mb-2 block">
+                <label className="text-[var(--text-secondary)] text-xs font-medium mb-2 block">
                   Email
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#808080]" />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-tertiary)]" />
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="jean@example.com"
-                    className="w-full pl-10 pr-4 py-3 rounded-xl text-white text-sm"
+                    className="w-full pl-10 pr-4 py-3 rounded-xl text-text-primary text-sm"
                     style={{
-                      backgroundColor: "#1E1E1E",
-                      border: "1px solid #282828",
+                      backgroundColor: "var(--surface)",
+                      border: "1px solid var(--border)",
                     }}
                     aria-label="Adresse email"
                     required
@@ -379,20 +381,20 @@ export default function AuthPage() {
               </div>
 
               <div>
-                <label className="text-[#B3B3B3] text-xs font-medium mb-2 block">
+                <label className="text-[var(--text-secondary)] text-xs font-medium mb-2 block">
                   Mot de passe
                 </label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#808080]" />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-tertiary)]" />
                   <input
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full pl-10 pr-4 py-3 rounded-xl text-white text-sm"
+                    className="w-full pl-10 pr-4 py-3 rounded-xl text-text-primary text-sm"
                     style={{
-                      backgroundColor: "#1E1E1E",
-                      border: "1px solid #282828",
+                      backgroundColor: "var(--surface)",
+                      border: "1px solid var(--border)",
                     }}
                     aria-label="Mot de passe"
                     required
@@ -440,7 +442,7 @@ export default function AuthPage() {
                   setMode(mode === "login" ? "signup" : "login");
                   setError("");
                 }}
-                className="text-[#808080] text-sm hover:text-white transition-colors"
+                className="text-[var(--text-tertiary)] text-sm hover:text-white transition-colors"
                 aria-label={
                   mode === "login"
                     ? "Passer à l'inscription"

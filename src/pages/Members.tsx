@@ -156,9 +156,9 @@ export default function MembersPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 rounded-xl text-sm"
                 style={{
-                  backgroundColor: "#212121",
-                  color: "#fff",
-                  border: "1px solid #282828",
+                  backgroundColor: "var(--surface)",
+                  color: "var(--text-primary)",
+                  border: "1px solid var(--border)",
                 }}
               />
             </div>
@@ -168,7 +168,7 @@ export default function MembersPage() {
               <div
                 className="rounded-xl p-4 mb-4"
                 style={{
-                  backgroundColor: "#212121",
+                  backgroundColor: "var(--surface)",
                   border: "1px solid color-mix(in srgb, var(--accent-primary) 19%, transparent)",
                 }}
               >
@@ -184,9 +184,9 @@ export default function MembersPage() {
                       onChange={(e) => setFirstName(e.target.value)}
                       className="px-4 py-3 rounded-xl text-sm"
                       style={{
-                        backgroundColor: "#181818",
-                        color: "#fff",
-                        border: "1px solid #282828",
+                        backgroundColor: "var(--card)",
+                        color: "var(--text-primary)",
+                        border: "1px solid var(--border)",
                       }}
                     />
                     <input
@@ -196,9 +196,9 @@ export default function MembersPage() {
                       onChange={(e) => setLastName(e.target.value)}
                       className="px-4 py-3 rounded-xl text-sm"
                       style={{
-                        backgroundColor: "#181818",
-                        color: "#fff",
-                        border: "1px solid #282828",
+                        backgroundColor: "var(--card)",
+                        color: "var(--text-primary)",
+                        border: "1px solid var(--border)",
                       }}
                     />
                   </div>
@@ -209,9 +209,9 @@ export default function MembersPage() {
                     onChange={(e) => setPhone(e.target.value)}
                     className="w-full px-4 py-3 rounded-xl text-sm"
                     style={{
-                      backgroundColor: "#181818",
-                      color: "#fff",
-                      border: "1px solid #282828",
+                      backgroundColor: "var(--card)",
+                      color: "var(--text-primary)",
+                      border: "1px solid var(--border)",
                     }}
                   />
                   <input
@@ -221,9 +221,9 @@ export default function MembersPage() {
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full px-4 py-3 rounded-xl text-sm"
                     style={{
-                      backgroundColor: "#181818",
-                      color: "#fff",
-                      border: "1px solid #282828",
+                      backgroundColor: "var(--card)",
+                      color: "var(--text-primary)",
+                      border: "1px solid var(--border)",
                     }}
                   />
                   <div className="flex gap-2">
@@ -237,7 +237,7 @@ export default function MembersPage() {
                     <button
                       onClick={() => setShowForm(false)}
                       className="px-4 py-3 rounded-full font-medium text-sm"
-                      style={{ backgroundColor: "#282828" }}
+                      style={{ backgroundColor: "var(--surface-hover)" }}
                     >
                       Annuler
                     </button>
@@ -251,7 +251,7 @@ export default function MembersPage() {
               {activeMembers.length === 0 ? (
                 <div
                   className="text-center py-10 rounded-xl"
-                  style={{ backgroundColor: "#1e1e1e" }}
+                  style={{ backgroundColor: "var(--surface)" }}
                 >
                   <Users className="w-12 h-12 mx-auto mb-4 text-text-tertiary opacity-40" />
                   <p className="text-text-tertiary text-sm">Aucun membre</p>
@@ -265,8 +265,8 @@ export default function MembersPage() {
                     key={member.id}
                     className="rounded-xl p-4 flex items-center gap-3"
                     style={{
-                      backgroundColor: "#212121",
-                      border: "1px solid #282828",
+                      backgroundColor: "var(--surface)",
+                      border: "1px solid var(--border)",
                     }}
                   >
                     <div
@@ -320,13 +320,13 @@ export default function MembersPage() {
                       key={member.id}
                       className="rounded-xl p-4 flex items-center gap-3 opacity-60"
                       style={{
-                        backgroundColor: "#181818",
-                        border: "1px solid #282828",
+                        backgroundColor: "var(--card)",
+                        border: "1px solid var(--border)",
                       }}
                     >
                       <div
                         className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                        style={{ backgroundColor: "#282828" }}
+                        style={{ backgroundColor: "var(--surface-hover)" }}
                       >
                         <span className="text-sm font-bold text-text-tertiary">
                           {(member.first_name || member.firstName)?.charAt(0)}

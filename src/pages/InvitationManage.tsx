@@ -237,8 +237,8 @@ export default function InvitationManage() {
               <div className="space-y-3">
                 {[1, 2, 3].map((i) => (
                   <div key={i} className="bg-card rounded-xl p-4 animate-pulse">
-                    <div className="h-4 bg-[#282828] rounded w-1/3 mb-3" />
-                    <div className="h-3 bg-[#282828] rounded w-2/3" />
+                    <div className="h-4 bg-[var(--surface-hover)] rounded w-1/3 mb-3" />
+                    <div className="h-3 bg-[var(--surface-hover)] rounded w-2/3" />
                   </div>
                 ))}
               </div>
@@ -312,7 +312,7 @@ export default function InvitationManage() {
                                     style={{ backgroundColor: "#1a1a1a" }}
                                   >
                                     <div className="flex items-center justify-between">
-                                      <span className="text-xs" style={{ color: "#B3B3B3" }}>
+                                      <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
                                         {new Date(cl.claimedAt).toLocaleString("fr-FR")}
                                       </span>
                                       <span
@@ -414,7 +414,7 @@ export default function InvitationManage() {
         <div className="fixed inset-0 flex items-end justify-center" style={{ zIndex: 50, backgroundColor: "rgba(0,0,0,0.7)" }}>
           <div
             className="w-full max-w-lg rounded-t-2xl p-6 space-y-4"
-            style={{ backgroundColor: "#181818" }}
+            style={{ backgroundColor: "var(--card)" }}
             role="dialog"
             aria-label="Rejeter la demande"
           >
@@ -430,8 +430,8 @@ export default function InvitationManage() {
               className="w-full px-3 py-2.5 rounded-xl text-sm resize-none"
               style={{
                 backgroundColor: "#1a1a1a",
-                color: "#fff",
-                border: "1px solid #282828",
+                color: "var(--text-primary)",
+                border: "1px solid var(--border)",
               }}
             />
             <div className="flex gap-3">
@@ -439,7 +439,7 @@ export default function InvitationManage() {
                 type="button"
                 onClick={() => setRejecting(null)}
                 className="flex-1 py-3 rounded-full text-sm font-semibold transition-all active:scale-95"
-                style={{ color: "#B3B3B3", border: "1px solid #282828", background: "transparent" }}
+                style={{ color: "var(--text-secondary)", border: "1px solid var(--border)", background: "transparent" }}
               >
                 Annuler
               </button>

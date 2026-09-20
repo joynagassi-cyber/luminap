@@ -70,7 +70,7 @@ function OrgNode({
     <div>
       <div
         className="flex items-center gap-3 p-3 rounded-xl"
-        style={{ backgroundColor: "#212121", border: "1px solid #282828" }}
+        style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
       >
         <div
           className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
@@ -102,7 +102,7 @@ function OrgNode({
             title="Voir les enfants"
             aria-label="Voir les enfants"
             className="w-8 h-8 rounded-lg flex items-center justify-center transition-all active:scale-95"
-            style={{ color: "#B3B3B3", border: "none", background: "transparent", cursor: "pointer" }}
+            style={{ color: "var(--text-secondary)", border: "none", background: "transparent", cursor: "pointer" }}
           >
             <ChevronRight className="w-4 h-4" />
           </button>
@@ -112,7 +112,7 @@ function OrgNode({
             title="Changer de parent"
             aria-label="Changer de parent"
             className="w-8 h-8 rounded-lg flex items-center justify-center transition-all active:scale-95"
-            style={{ color: "#B3B3B3", border: "none", background: "transparent", cursor: "pointer" }}
+            style={{ color: "var(--text-secondary)", border: "none", background: "transparent", cursor: "pointer" }}
           >
             <GitBranch className="w-4 h-4" />
           </button>
@@ -120,7 +120,7 @@ function OrgNode({
       </div>
 
       {children.length > 0 && (
-        <div className="ml-6 mt-2 space-y-2 border-l border-[#282828] pl-4">
+        <div className="ml-6 mt-2 space-y-2 border-l border-[var(--border)] pl-4">
           {children.map((child) => (
             <div
               key={child.id}
@@ -314,7 +314,7 @@ export default function Federation() {
             {showCreate && (
               <div
                 className="rounded-xl p-4 mb-4 space-y-4"
-                style={{ backgroundColor: "#212121", border: "1px solid #282828" }}
+                style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
               >
                 <div>
                   <label
@@ -332,9 +332,9 @@ export default function Federation() {
                     placeholder="Ex: Paroisse Sainte-Marie"
                     className="w-full px-3 py-2.5 rounded-xl text-sm"
                     style={{
-                      backgroundColor: "#181818",
-                      color: "#fff",
-                      border: "1px solid #282828",
+                      backgroundColor: "var(--card)",
+                      color: "var(--text-primary)",
+                      border: "1px solid var(--border)",
                     }}
                   />
                 </div>
@@ -352,9 +352,9 @@ export default function Federation() {
                     onChange={(e) => setNewType(e.target.value)}
                     className="w-full px-3 py-2.5 rounded-xl text-sm"
                     style={{
-                      backgroundColor: "#181818",
-                      color: "#fff",
-                      border: "1px solid #282828",
+                      backgroundColor: "var(--card)",
+                      color: "var(--text-primary)",
+                      border: "1px solid var(--border)",
                     }}
                   >
                     <option value="CHURCH">Église</option>
@@ -377,9 +377,9 @@ export default function Federation() {
                     onChange={(e) => setNewParent(e.target.value)}
                     className="w-full px-3 py-2.5 rounded-xl text-sm"
                     style={{
-                      backgroundColor: "#181818",
-                      color: "#fff",
-                      border: "1px solid #282828",
+                      backgroundColor: "var(--card)",
+                      color: "var(--text-primary)",
+                      border: "1px solid var(--border)",
                     }}
                   >
                     <option value="">Aucune (racine)</option>
@@ -477,7 +477,7 @@ export default function Federation() {
               ) : rootOrgs.length === 0 ? (
                 <div
                   className="rounded-xl p-4 text-sm text-center space-y-2"
-                  style={{ backgroundColor: "#212121", border: "1px solid #282828" }}
+                  style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
                 >
                   <p className="text-text-tertiary">
                     Aucune organisation visible pour votre compte.
@@ -556,9 +556,9 @@ export default function Federation() {
                   onChange={(e) => setReparentTarget(e.target.value)}
                   className="w-full px-3 py-2.5 rounded-xl text-sm"
                   style={{
-                    backgroundColor: "#181818",
-                    color: "#fff",
-                    border: "1px solid #282828",
+                    backgroundColor: "var(--card)",
+                    color: "var(--text-primary)",
+                    border: "1px solid var(--border)",
                   }}
                 >
                   <option value="">Détacher (aucun parent)</option>
@@ -586,8 +586,8 @@ export default function Federation() {
                     onClick={() => setReparentOrg(null)}
                     className="px-4 py-2.5 rounded-full text-sm font-semibold transition-all active:scale-95"
                     style={{
-                      color: "#B3B3B3",
-                      border: "1px solid #282828",
+                      color: "var(--text-secondary)",
+                      border: "1px solid var(--border)",
                       background: "transparent",
                     }}
                   >
@@ -624,7 +624,7 @@ export default function Federation() {
                 <p className="font-semibold">
                   Votre compte n&apos;est pas administrateur central.
                 </p>
-                <p className="leading-relaxed" style={{ color: "#B3B3B3" }}>
+                <p className="leading-relaxed" style={{ color: "var(--text-secondary)" }}>
                   Seuls les détenteurs d&apos;un grant admin central actif peuvent
                   créer une organisation opérationnelle. Connectez-vous avec le
                   compte admin central (ex. <code>admin@mfe-jc.org</code>) ou

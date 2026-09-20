@@ -30,7 +30,7 @@ export default function TransactionCard({
     <IonButton
       onClick={handleClick}
       className="w-full text-left rounded-xl transition-all active:scale-95 !min-height:auto"
-      style={{ backgroundColor: "#212121", border: "1px solid #282828" }}
+      style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
     >
       <div className="flex items-center gap-3">
         <div

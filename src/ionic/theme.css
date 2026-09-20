@@ -1,45 +1,43 @@
 /*
- * Lumina Ionic Theme — generated from src/ionic/theme.ts tokens.
- * Imported in main.tsx to ensure Ionic CSS variables are set at
- * bundle time for SSR / Vite preflight compatibility.
+ * Lumina Ionic Theme — variables Ionic liées aux tokens sémantiques
+ * de src/App.css.
  *
- * All values are duplicated from LUMINA_TOKENS for CSS-in-JS safety.
+ * Les neutrals pointent vers var(--canvas), var(--surface)… qui basculent
+ * automatiquement dark/light via [data-theme] sur <html> (appliqué par
+ * applyThemeMode, src/ionic/themes.ts). L'accent reste forcé à runtime
+ * par applyTheme.
  */
 :root {
-  /* Core */
-  --ion-color-primary: #ff6b00;
+  /* Accent + couleurs financières (invariantes par mode) */
+  --ion-color-primary: var(--accent-primary);
   --ion-color-primary-rgb: 255, 107, 0;
-  --ion-color-secondary: #282828;
-  --ion-color-secondary-rgb: 40, 40, 40;
-  --ion-color-tertiary: #333333;
-  --ion-color-tertiary-rgb: 51, 51, 51;
   --ion-color-success: #1db954;
   --ion-color-success-rgb: 29, 185, 84;
   --ion-color-warning: #ffb800;
   --ion-color-warning-rgb: 255, 184, 0;
   --ion-color-danger: #e51332;
   --ion-color-danger-rgb: 229, 19, 50;
-  --ion-color-medium: #808080;
-  --ion-color-medium-rgb: 128, 128, 128;
-  --ion-color-light: #212121;
-  --ion-color-light-rgb: 33, 33, 33;
 
-  /* Dark-mode defaults */
-  --ion-background-color: #121212;
-  --ion-background-color-rgb: 18, 18, 18;
-  --ion-text-color: #ffffff;
-  --ion-text-color-rgb: 255, 255, 255;
-  --ion-toolbar-background: #212121;
-  --ion-toolbar-color: #ffffff;
-  --ion-item-background: #212121;
-  --ion-item-color: #ffffff;
-  --ion-card-background: #212121;
-  --ion-card-color: #ffffff;
-  --ion-modal-background: #212121;
-  --ion-modal-color: #ffffff;
-  --ion-tab-bar-background: #212121;
-  --ion-tab-bar-color: #808080;
-  --ion-tab-bar-color-selected: #ff6b00;
+  /* Neutres — suivent le mode courant */
+  --ion-color-secondary: var(--surface-hover);
+  --ion-color-tertiary: var(--surface-active);
+  --ion-color-medium: var(--text-tertiary);
+  --ion-color-light: var(--surface);
+
+  /* Fond / texte / surfaces Ionic */
+  --ion-background-color: var(--canvas);
+  --ion-text-color: var(--text-primary);
+  --ion-toolbar-background: var(--surface);
+  --ion-toolbar-color: var(--text-primary);
+  --ion-item-background: var(--surface);
+  --ion-item-color: var(--text-primary);
+  --ion-card-background: var(--surface);
+  --ion-card-color: var(--text-primary);
+  --ion-modal-background: var(--surface);
+  --ion-modal-color: var(--text-primary);
+  --ion-tab-bar-background: var(--surface);
+  --ion-tab-bar-color: var(--text-tertiary);
+  --ion-tab-bar-color-selected: var(--accent-primary);
 
   /* Safe area insets (Capacitor mobile) */
   --ion-safe-area-top: env(safe-area-inset-top, 0px);
@@ -48,14 +46,13 @@
   --ion-safe-area-right: env(safe-area-inset-right, 0px);
 
   /* Typography */
-  --ion-font-family:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
-    sans-serif;
+  --ion-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
   --ion-text-color-step: 0.2222;
   --ion-background-color-step: 0.04;
 }
 
-/* Force dark mode on Ionic components */
+/* Les éléments Ionic suivent le thème courant (dark par défaut) */
 ion-app,
 ion-header,
 ion-toolbar,
@@ -65,34 +62,34 @@ ion-modal,
 ion-menu,
 ion-nav,
 ion-split-pane {
-  background-color: #121212 !important;
-  color: #ffffff !important;
+  background-color: var(--canvas) !important;
+  color: var(--text-primary) !important;
 }
 
 ion-content {
-  --background: #121212;
-  --color: #ffffff;
+  --background: var(--canvas);
+  --color: var(--text-primary);
 }
 
 ion-toolbar {
-  --background: #212121;
-  --color: #ffffff;
+  --background: var(--surface);
+  --color: var(--text-primary);
 }
 
 ion-item {
-  --background: #212121;
-  --color: #ffffff;
-  --border-color: #282828;
+  --background: var(--surface);
+  --color: var(--text-primary);
+  --border-color: var(--border);
 }
 
 ion-card {
-  --background: #212121;
-  --color: #ffffff;
+  --background: var(--surface);
+  --color: var(--text-primary);
 }
 
 ion-modal {
-  --background: #212121;
-  --color: #ffffff;
+  --background: var(--surface);
+  --color: var(--text-primary);
 }
 
 /* Scrollbar hide for mobile feel */

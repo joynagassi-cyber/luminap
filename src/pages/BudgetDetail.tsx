@@ -78,7 +78,7 @@ export default function BudgetDetail() {
           <TopHeader title="Budget" />
           <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
             {/* En-tête */}
-            <div className="rounded-xl p-4 mb-4" style={{ backgroundColor: "#181818" }} data-testid="budget-detail-header">
+            <div className="rounded-xl p-4 mb-4" style={{ backgroundColor: "var(--card)" }} data-testid="budget-detail-header">
               <div className="flex items-start justify-between">
                 <div>
                   <h1 className="text-text-primary font-bold text-lg">{budget.name}</h1>
@@ -89,8 +89,8 @@ export default function BudgetDetail() {
                 <span
                   className="text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0"
                   style={{
-                    backgroundColor: budget.status === "CLOSED" ? "#333333" : "color-mix(in srgb, var(--accent-primary) 15%, transparent)",
-                    color: budget.status === "CLOSED" ? "#808080" : "var(--accent-primary)",
+                    backgroundColor: budget.status === "CLOSED" ? "var(--surface-active)" : "color-mix(in srgb, var(--accent-primary) 15%, transparent)",
+                    color: budget.status === "CLOSED" ? "var(--text-tertiary)" : "var(--accent-primary)",
                   }}
                 >
                   {budget.status === "CLOSED" ? "Clôturé" : "Actif"}
@@ -101,15 +101,15 @@ export default function BudgetDetail() {
 
             {/* Résumé prévu / réel / écart */}
             <div className="grid grid-cols-3 gap-3 mb-4">
-              <div className="rounded-xl p-3 text-center" style={{ backgroundColor: "#212121" }}>
+              <div className="rounded-xl p-3 text-center" style={{ backgroundColor: "var(--surface)" }}>
                 <p className="text-text-tertiary text-[11px]">Prévu</p>
                 <p className="text-text-primary font-bold text-sm mt-1">{formatCurrencyCompact(report.totalPlanned)}</p>
               </div>
-              <div className="rounded-xl p-3 text-center" style={{ backgroundColor: "#212121" }}>
+              <div className="rounded-xl p-3 text-center" style={{ backgroundColor: "var(--surface)" }}>
                 <p className="text-text-tertiary text-[11px]">Réel</p>
                 <p className="text-income font-bold text-sm mt-1">{formatCurrencyCompact(report.totalActual)}</p>
               </div>
-              <div className="rounded-xl p-3 text-center" style={{ backgroundColor: "#212121" }}>
+              <div className="rounded-xl p-3 text-center" style={{ backgroundColor: "var(--surface)" }}>
                 <p className="text-text-tertiary text-[11px]">Écart</p>
                 <p className="font-bold text-sm mt-1" style={{ color: over ? "#E51332" : "#1DB954" }}>
                   {report.totalVariance >= 0 ? "+" : "-"}{formatCurrencyCompact(Math.abs(report.totalVariance))}
@@ -118,7 +118,7 @@ export default function BudgetDetail() {
             </div>
 
             {/* Rapport conseil (par ligne) */}
-            <div className="rounded-xl p-4 mb-4" style={{ backgroundColor: "#181818" }} data-testid="council-report">
+            <div className="rounded-xl p-4 mb-4" style={{ backgroundColor: "var(--card)" }} data-testid="council-report">
               <div className="flex items-center gap-2 mb-3">
                 <FileText className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
                 <p className="text-text-primary font-semibold text-sm">Rapport conseil · prévu / réel</p>
@@ -145,7 +145,7 @@ export default function BudgetDetail() {
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
-                        <div className="h-2 rounded-full overflow-hidden mb-1" style={{ backgroundColor: "#282828" }}>
+                        <div className="h-2 rounded-full overflow-hidden mb-1" style={{ backgroundColor: "var(--surface-hover)" }}>
                           <div
                             className="h-full rounded-full"
                             style={{ width: `${Math.min(100, bar)}%`, backgroundColor: lOver ? "#E51332" : "var(--accent-primary)" }}
@@ -169,7 +169,7 @@ export default function BudgetDetail() {
 
             {/* Ajouter une ligne */}
             {budget.status !== "CLOSED" && (
-              <div className="rounded-xl p-4 mb-4" style={{ backgroundColor: "#181818" }}>
+              <div className="rounded-xl p-4 mb-4" style={{ backgroundColor: "var(--card)" }}>
                 {showAdd ? (
                   <div className="space-y-3">
                     <p className="text-text-primary font-semibold text-sm">Nouvelle ligne</p>
@@ -177,7 +177,7 @@ export default function BudgetDetail() {
                       value={cat}
                       onChange={(e) => setCat(e.target.value)}
                       className="w-full px-3 py-3 rounded-lg text-sm outline-none"
-                      style={{ backgroundColor: "#212121", color: "#fff", border: "1px solid #282828" }}
+                      style={{ backgroundColor: "var(--surface)", color: "var(--text-primary)", border: "1px solid var(--border)" }}
                       aria-label="Catégorie"
                       data-testid="line-category"
                     >
@@ -193,7 +193,7 @@ export default function BudgetDetail() {
                       onChange={(e) => setAmount(e.target.value)}
                       placeholder="Montant prévu (FCFA)"
                       className="w-full px-3 py-3 rounded-lg text-sm outline-none"
-                      style={{ backgroundColor: "#212121", color: "#fff", border: "1px solid #282828" }}
+                      style={{ backgroundColor: "var(--surface)", color: "var(--text-primary)", border: "1px solid var(--border)" }}
                       data-testid="line-amount"
                     />
                     <div className="flex gap-2">
@@ -208,7 +208,7 @@ export default function BudgetDetail() {
                       <button
                         onClick={() => setShowAdd(false)}
                         className="px-4 py-3 rounded-full text-xs font-medium text-text-tertiary"
-                        style={{ backgroundColor: "#282828" }}
+                        style={{ backgroundColor: "var(--surface-hover)" }}
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -229,7 +229,7 @@ export default function BudgetDetail() {
               <button
                 onClick={closeBudget}
                 className="w-full flex items-center justify-center gap-2 py-3.5 rounded-full font-semibold text-sm active:scale-95 transition-transform"
-                style={{ backgroundColor: "#212121", color: "#E51332" }}
+                style={{ backgroundColor: "var(--surface)", color: "#E51332" }}
               >
                 <Lock className="w-4 h-4" /> Clôturer le budget
               </button>

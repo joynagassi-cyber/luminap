@@ -120,7 +120,7 @@ export default function TransactionNewGroup() {
             {groupAccount && (
               <div
                 className="rounded-xl p-4 mb-5"
-                style={{ backgroundColor: "#212121" }}
+                style={{ backgroundColor: "var(--surface)" }}
               >
                 <p className="text-text-tertiary text-xs mb-1">Groupe</p>
                 <p className="text-text-primary font-semibold">
@@ -135,8 +135,8 @@ export default function TransactionNewGroup() {
                 onClick={() => setType("INCOME")}
                 className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all"
                 style={{
-                  backgroundColor: type === "INCOME" ? "#1DB954" : "#212121",
-                  color: type === "INCOME" ? "#fff" : "#B3B3B3",
+                  backgroundColor: type === "INCOME" ? "#1DB954" : "var(--surface)",
+                  color: type === "INCOME" ? "var(--text-primary)" : "var(--text-secondary)",
                 }}
               >
                 Entrée
@@ -145,8 +145,8 @@ export default function TransactionNewGroup() {
                 onClick={() => setType("EXPENSE")}
                 className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all"
                 style={{
-                  backgroundColor: type === "EXPENSE" ? "#E51332" : "#212121",
-                  color: type === "EXPENSE" ? "#fff" : "#B3B3B3",
+                  backgroundColor: type === "EXPENSE" ? "#E51332" : "var(--surface)",
+                  color: type === "EXPENSE" ? "var(--text-primary)" : "var(--text-secondary)",
                 }}
               >
                 Sortie
@@ -165,9 +165,9 @@ export default function TransactionNewGroup() {
                 placeholder="0"
                 className="w-full px-4 py-4 rounded-xl text-2xl font-bold  text-center"
                 style={{
-                  backgroundColor: "#212121",
-                  color: "#fff",
-                  border: "1px solid #282828",
+                  backgroundColor: "var(--surface)",
+                  color: "var(--text-primary)",
+                  border: "1px solid var(--border)",
                 }}
               />
             </div>
@@ -184,9 +184,9 @@ export default function TransactionNewGroup() {
                 placeholder="Ex: Dîme du groupe"
                 className="w-full px-4 py-3 rounded-xl text-sm "
                 style={{
-                  backgroundColor: "#212121",
-                  color: "#fff",
-                  border: "1px solid #282828",
+                  backgroundColor: "var(--surface)",
+                  color: "var(--text-primary)",
+                  border: "1px solid var(--border)",
                 }}
               />
             </div>
@@ -202,9 +202,9 @@ export default function TransactionNewGroup() {
                 onChange={(e) => setDate(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl text-sm "
                 style={{
-                  backgroundColor: "#212121",
-                  color: "#fff",
-                  border: "1px solid #282828",
+                  backgroundColor: "var(--surface)",
+                  color: "var(--text-primary)",
+                  border: "1px solid var(--border)",
                 }}
               />
             </div>
@@ -219,9 +219,9 @@ export default function TransactionNewGroup() {
                 onChange={(e) => setCategoryId(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl text-sm "
                 style={{
-                  backgroundColor: "#212121",
-                  color: "#fff",
-                  border: "1px solid #282828",
+                  backgroundColor: "var(--surface)",
+                  color: "var(--text-primary)",
+                  border: "1px solid var(--border)",
                 }}
               >
                 <option value="">Sélectionner une catégorie</option>
@@ -243,9 +243,9 @@ export default function TransactionNewGroup() {
                 onChange={(e) => setSource(e.target.value as any)}
                 className="w-full px-4 py-3 rounded-xl text-sm "
                 style={{
-                  backgroundColor: "#212121",
-                  color: "#fff",
-                  border: "1px solid #282828",
+                  backgroundColor: "var(--surface)",
+                  color: "var(--text-primary)",
+                  border: "1px solid var(--border)",
                 }}
               >
                 <option value="CAISSE">Caisse</option>
@@ -268,9 +268,9 @@ export default function TransactionNewGroup() {
                   placeholder="Nom de la personne"
                   className="w-full px-4 py-3 rounded-xl text-sm "
                   style={{
-                    backgroundColor: "#212121",
-                    color: "#fff",
-                    border: "1px solid #282828",
+                    backgroundColor: "var(--surface)",
+                    color: "var(--text-primary)",
+                    border: "1px solid var(--border)",
                   }}
                 />
               </div>
@@ -288,9 +288,9 @@ export default function TransactionNewGroup() {
                 rows={2}
                 className="w-full px-4 py-3 rounded-xl text-sm  resize-none"
                 style={{
-                  backgroundColor: "#212121",
-                  color: "#fff",
-                  border: "1px solid #282828",
+                  backgroundColor: "var(--surface)",
+                  color: "var(--text-primary)",
+                  border: "1px solid var(--border)",
                 }}
               />
             </div>

@@ -210,7 +210,7 @@ export default function TransactionDetail() {
             {/* Description */}
             <div
               className="rounded-xl p-4 mb-4"
-              style={{ backgroundColor: "#212121" }}
+              style={{ backgroundColor: "var(--surface)" }}
             >
               <p className="text-text-primary font-medium text-base">
                 {tx.description}
@@ -255,7 +255,7 @@ export default function TransactionDetail() {
             {/* Details */}
             <div
               className="rounded-xl p-4 mb-6"
-              style={{ backgroundColor: "#212121" }}
+              style={{ backgroundColor: "var(--surface)" }}
             >
               <div className="space-y-3">
                 <div className="flex justify-between">
@@ -317,7 +317,7 @@ export default function TransactionDetail() {
                       onClick={() => setShowRejectModal(true)}
                       className="w-full py-4 rounded-full font-semibold text-sm transition-all active:scale-95"
                       style={{
-                        backgroundColor: "#212121",
+                        backgroundColor: "var(--surface)",
                         color: "#E51332",
                         border: "1px solid #E5133230",
                       }}
@@ -332,7 +332,7 @@ export default function TransactionDetail() {
                   onClick={() => setShowReverseModal(true)}
                   className="w-full py-4 rounded-full font-semibold text-sm transition-all active:scale-95"
                   style={{
-                    backgroundColor: "#212121",
+                    backgroundColor: "var(--surface)",
                     color: "#FFB800",
                     border: "1px solid #FFB80030",
                   }}
@@ -345,7 +345,7 @@ export default function TransactionDetail() {
                   onClick={() => navigate(`/transaction/${id}/edit`)}
                   className="w-full py-4 rounded-full font-semibold text-sm transition-all active:scale-95"
                   style={{
-                    backgroundColor: "#212121",
+                    backgroundColor: "var(--surface)",
                     color: "#3B82F6",
                     border: "1px solid #3B82F630",
                   }}
@@ -359,7 +359,7 @@ export default function TransactionDetail() {
                     onClick={handleDelete}
                     className="w-full py-4 rounded-full font-semibold text-sm transition-all active:scale-95"
                     style={{
-                      backgroundColor: "#212121",
+                      backgroundColor: "var(--surface)",
                       color: "#E51332",
                       border: "1px solid #E5133230",
                     }}
@@ -374,7 +374,7 @@ export default function TransactionDetail() {
               <div
                 className="rounded-xl p-4 mb-6"
                 style={{
-                  backgroundColor: "#212121",
+                  backgroundColor: "var(--surface)",
                   border: "1px solid #FFB80030",
                 }}
               >
@@ -395,8 +395,8 @@ export default function TransactionDetail() {
               <div
                 className="rounded-xl p-4 mb-6"
                 style={{
-                  backgroundColor: "#1e1e1e",
-                  border: "1px solid #282828",
+                  backgroundColor: "var(--surface)",
+                  border: "1px solid var(--border)",
                 }}
               >
                 <p className="text-text-tertiary text-xs mb-2 font-medium">
@@ -418,7 +418,7 @@ export default function TransactionDetail() {
                           className="relative rounded-lg overflow-hidden block"
                           style={{
                             height: "7rem",
-                            border: "1px solid #282828",
+                            border: "1px solid var(--border)",
                           }}
                           aria-label={`Voir la preuve : ${d.title}`}
                         >
@@ -434,8 +434,8 @@ export default function TransactionDetail() {
                           className="rounded-lg overflow-hidden flex items-center justify-center"
                           style={{
                             height: "7rem",
-                            border: "1px solid #282828",
-                            backgroundColor: "#212121",
+                            border: "1px solid var(--border)",
+                            backgroundColor: "var(--surface)",
                           }}
                           aria-label={`Preuve indisponible hors ligne : ${d.title}`}
                         >
@@ -462,8 +462,8 @@ export default function TransactionDetail() {
                         }}
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs"
                         style={{
-                          backgroundColor: "#282828",
-                          color: "#fff",
+                          backgroundColor: "var(--surface-hover)",
+                          color: "var(--text-primary)",
                         }}
                       >
                         <Download className="w-3.5 h-3.5" />
@@ -483,7 +483,7 @@ export default function TransactionDetail() {
               >
                 <div
                   className="w-full max-w-sm rounded-2xl p-5"
-                  style={{ backgroundColor: "#1e1e1e" }}
+                  style={{ backgroundColor: "var(--surface)" }}
                 >
                   <h3 className="text-text-primary font-semibold text-lg mb-4">
                     Rejeter la transaction
@@ -495,8 +495,8 @@ export default function TransactionDetail() {
                     rows={3}
                     className="w-full px-4 py-3 rounded-xl text-sm  mb-4 resize-none"
                     style={{
-                      backgroundColor: "#282828",
-                      color: "#fff",
+                      backgroundColor: "var(--surface-hover)",
+                      color: "var(--text-primary)",
                       border: "1px solid #383838",
                     }}
                   />
@@ -511,7 +511,7 @@ export default function TransactionDetail() {
                     <button
                       onClick={() => setShowRejectModal(false)}
                       className="px-4 py-3 rounded-full font-medium text-sm"
-                      style={{ backgroundColor: "#282828" }}
+                      style={{ backgroundColor: "var(--surface-hover)" }}
                     >
                       Annuler
                     </button>
@@ -528,7 +528,7 @@ export default function TransactionDetail() {
               >
                 <div
                   className="w-full max-w-sm rounded-2xl p-5"
-                  style={{ backgroundColor: "#1e1e1e" }}
+                  style={{ backgroundColor: "var(--surface)" }}
                 >
                   <h3 className="text-text-primary font-semibold text-lg mb-4">
                     Contre-transagir
@@ -543,8 +543,8 @@ export default function TransactionDetail() {
                     rows={3}
                     className="w-full px-4 py-3 rounded-xl text-sm  mb-4 resize-none"
                     style={{
-                      backgroundColor: "#282828",
-                      color: "#fff",
+                      backgroundColor: "var(--surface-hover)",
+                      color: "var(--text-primary)",
                       border: "1px solid #383838",
                     }}
                   />
@@ -559,7 +559,7 @@ export default function TransactionDetail() {
                     <button
                       onClick={() => setShowReverseModal(false)}
                       className="px-4 py-3 rounded-full font-medium text-sm"
-                      style={{ backgroundColor: "#282828" }}
+                      style={{ backgroundColor: "var(--surface-hover)" }}
                     >
                       Annuler
                     </button>

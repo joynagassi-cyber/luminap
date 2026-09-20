@@ -1,16 +1,26 @@
 /**
  * Lumina Ionic Theme Configuration
  *
- * Maps existing Lumina CSS design tokens to Ionic CSS variables.
- * Dark mode by default. Safe-area insets handled via CSS env().
+ * Maps Lumina CSS design tokens to Ionic CSS variables. Dark mode by
+ * default; the light mode is a parallel palette.
+ *
+ * Since src/ionic/theme.css already points every `--ion-*` neutral at the
+ * semantic CSS tokens (`var(--canvas)`, `var(--surface)`…), switching
+ * `[data-theme]` on <html> flips the whole Ionic surface automatically.
+ * The JS layer below only re-sets the vars that theme.css cannot express
+ * as CSS vars (the `-rgb` triplets and the `ion-theme`/`color-theme`
+ * attributes) and stays idempotent / SSR-safe.
  */
 
-// Lumina design tokens — must match src/globals.css
+import type { ThemeMode } from "./themes";
+
+// Lumina design tokens — dark mode (default).
 const LUMINA_TOKENS = {
   canvas: "#121212",
   surface: "#212121",
   surfaceHover: "#282828",
   surfaceActive: "#333333",
+  border: "#282828",
   textPrimary: "#FFFFFF",
   textSecondary: "#B3B3B3",
   textTertiary: "#808080",
@@ -23,59 +33,75 @@ const LUMINA_TOKENS = {
   accentDark: "#CC5500",
 } as const;
 
-export function setupLuminaTheme(): void {
+type ModeTokens = { [K in keyof typeof LUMINA_TOKENS]: string };
+
+/** Lumina design tokens — light mode. Les couleurs financières + accent sont inchangées. */
+const LUMINA_LIGHT_TOKENS: ModeTokens = {
+  ...LUMINA_TOKENS,
+  canvas: "#F5F6F8",
+  surface: "#FFFFFF",
+  surfaceHover: "#EEF0F2",
+  surfaceActive: "#E4E6E9",
+  border: "#E3E5E8",
+  textPrimary: "#1A1A1A",
+  textSecondary: "#555A60",
+  textTertiary: "#8A8F96",
+  textPlaceholder: "#9AA0A8",
+};
+
+const MODE_TOKENS: Record<ThemeMode, ModeTokens> = {
+  dark: LUMINA_TOKENS,
+  light: LUMINA_LIGHT_TOKENS,
+};
+
+function hexToRgbTriplets(hexes: string[]): string {
+  return hexes
+    .map((hex) => {
+      const h = hex.replace("#", "");
+      const n = parseInt(h, 16);
+      return `${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}`;
+    })
+    .join(" ");
+}
+
+/**
+ * Apply the mode-specific Ionic variables (rgb triplets + theme attributes).
+ * Idempotent, SSR-safe no-op when `document` is unavailable.
+ */
+export function applyIonicThemeMode(mode: ThemeMode = "dark"): void {
+  if (typeof document === "undefined") return;
+  const t = MODE_TOKENS[mode];
   const root = document.documentElement;
+  const set = (k: string, v: string) => root.style.setProperty(k, v);
 
-  // Map Ionic CSS variables to Lumina tokens
-  const setVar = (ionicVar: string, luminaToken: string) => {
-    root.style.setProperty(`--ion-color-${ionicVar}`, luminaToken);
-  };
+  root.setAttribute("ion-theme", mode);
+  root.setAttribute("color-theme", mode);
 
-  // Core colors
-  setVar("primary", LUMINA_TOKENS.accentPrimary);
-  setVar("primary-rgb", "255,107,0");
-  setVar("secondary", LUMINA_TOKENS.surfaceHover);
-  setVar("secondary-rgb", "40,40,40");
-  setVar("tertiary", LUMINA_TOKENS.surfaceActive);
-  setVar("tertiary-rgb", "51,51,51");
-  setVar("success", LUMINA_TOKENS.dataIncome);
-  setVar("success-rgb", "29,185,84");
-  setVar("warning", LUMINA_TOKENS.dataPending);
-  setVar("warning-rgb", "255,184,0");
-  setVar("danger", LUMINA_TOKENS.dataExpense);
-  setVar("danger-rgb", "229,19,50");
-  setVar("medium", LUMINA_TOKENS.textTertiary);
-  setVar("medium-rgb", "128,128,128");
-  setVar("light", LUMINA_TOKENS.surface);
-  setVar("light-rgb", "33,33,33");
+  set("--ion-color-secondary", t.surfaceHover);
+  set("--ion-color-secondary-rgb", hexToRgbTriplets([t.surfaceHover]));
+  set("--ion-color-tertiary", t.surfaceActive);
+  set("--ion-color-tertiary-rgb", hexToRgbTriplets([t.surfaceActive]));
+  set("--ion-color-medium", t.textTertiary);
+  set("--ion-color-medium-rgb", hexToRgbTriplets([t.textTertiary]));
+  set("--ion-color-light", t.surface);
+  set("--ion-color-light-rgb", hexToRgbTriplets([t.surface]));
 
-  // Dark mode defaults
-  root.setAttribute("ion-theme", "dark");
-  root.setAttribute("color-theme", "dark");
+  set("--ion-background-color", t.canvas);
+  set("--ion-background-color-rgb", hexToRgbTriplets([t.canvas]));
+  set("--ion-text-color", t.textPrimary);
+  set("--ion-text-color-rgb", hexToRgbTriplets([t.textPrimary]));
+}
 
-  // Ionic dark palette overrides
-  root.style.setProperty("--ion-background-color", LUMINA_TOKENS.canvas);
-  root.style.setProperty("--ion-text-color", LUMINA_TOKENS.textPrimary);
-  root.style.setProperty("--ion-toolbar-background", LUMINA_TOKENS.surface);
-  root.style.setProperty("--ion-toolbar-color", LUMINA_TOKENS.textPrimary);
-  root.style.setProperty("--ion-item-background", LUMINA_TOKENS.surface);
-  root.style.setProperty("--ion-item-color", LUMINA_TOKENS.textPrimary);
-  root.style.setProperty("--ion-card-background", LUMINA_TOKENS.surface);
-  root.style.setProperty("--ion-card-color", LUMINA_TOKENS.textPrimary);
-  root.style.setProperty("--ion-modal-background", LUMINA_TOKENS.surface);
-  root.style.setProperty("--ion-modal-color", LUMINA_TOKENS.textPrimary);
-  root.style.setProperty("--ion-tab-bar-background", LUMINA_TOKENS.surface);
-  root.style.setProperty("--ion-tab-bar-color", LUMINA_TOKENS.textTertiary);
-  root.style.setProperty(
-    "--ion-tab-bar-color-selected",
-    LUMINA_TOKENS.accentPrimary,
-  );
+export function setupLuminaTheme(mode?: ThemeMode): void {
+  // Les couleurs statiques (accent, success/warning/danger) vivent en CSS
+  // (theme.css) et sont poussées par applyTheme (accent) / les tokens
+  // App.css (neutres). Il ne reste qu'à lier les variables au mode courant.
+  applyIonicThemeMode(mode);
 
   // Safe area insets — used by Capacitor on mobile
-  root.style.setProperty(
-    "--ion-safe-area-top",
-    "env(safe-area-inset-top, 0px)",
-  );
+  if (typeof document === "undefined") return;
+  const root = document.documentElement;
+  root.style.setProperty("--ion-safe-area-top", "env(safe-area-inset-top, 0px)");
   root.style.setProperty(
     "--ion-safe-area-bottom",
     "env(safe-area-inset-bottom, 0px)",
@@ -88,15 +114,7 @@ export function setupLuminaTheme(): void {
     "--ion-safe-area-right",
     "env(safe-area-inset-right, 0px)",
   );
-
-  // Typography
-  root.style.setProperty(
-    "--ion-font-family",
-    '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-  );
-  root.style.setProperty("--ion-text-color-step", "0.2222");
-  root.style.setProperty("--ion-background-color-step", "0.04");
 }
 
-export { LUMINA_TOKENS };
-export type LuminaTokens = typeof LUMINA_TOKENS;
+export { LUMINA_TOKENS, LUMINA_LIGHT_TOKENS };
+export type LuminaTokens = ModeTokens;

@@ -82,8 +82,8 @@ export default function DatePicker({ value, onChange, label, id }: Props) {
         id={id}
         className="w-full px-4 py-3 rounded-xl text-text-primary text-sm text-left flex items-center justify-between !min-height:auto"
         style={{
-          backgroundColor: "#212121",
-          border: "1px solid #282828",
+          backgroundColor: "var(--surface)",
+          border: "1px solid var(--border)",
           color: "inherit",
         }}
       >
@@ -103,8 +103,8 @@ export default function DatePicker({ value, onChange, label, id }: Props) {
         <div
           className="absolute z-50 top-full left-0 mt-2 rounded-2xl overflow-hidden shadow-2xl"
           style={{
-            backgroundColor: "#181818",
-            border: "1px solid #282828",
+            backgroundColor: "var(--card)",
+            border: "1px solid var(--border)",
             minWidth: 280,
           }}
         >
@@ -113,7 +113,7 @@ export default function DatePicker({ value, onChange, label, id }: Props) {
             <IonButton
               onClick={prevMonth}
               className="!w-8 !h-8 !rounded-full !p-0 !min-height:auto"
-              style={{ backgroundColor: "#282828" }}
+              style={{ backgroundColor: "var(--surface-hover)" }}
             >
               <ChevronLeft className="w-4 h-4 text-text-primary" />
             </IonButton>
@@ -123,7 +123,7 @@ export default function DatePicker({ value, onChange, label, id }: Props) {
             <IonButton
               onClick={nextMonth}
               className="!w-8 !h-8 !rounded-full !p-0 !min-height:auto"
-              style={{ backgroundColor: "#282828" }}
+              style={{ backgroundColor: "var(--surface-hover)" }}
             >
               <ChevronRight className="w-4 h-4 text-text-primary" />
             </IonButton>
@@ -158,8 +158,8 @@ export default function DatePicker({ value, onChange, label, id }: Props) {
                     isSelected
                       ? { backgroundColor: "var(--accent-primary)", color: "#fff" }
                       : isToday
-                        ? { backgroundColor: "#282828", color: "var(--accent-primary)" }
-                        : { backgroundColor: "transparent", color: "#FFFFFF" }
+                        ? { backgroundColor: "var(--surface-hover)", color: "var(--accent-primary)" }
+                        : { backgroundColor: "transparent", color: "var(--text-primary)" }
                   }
                 >
                   {day}

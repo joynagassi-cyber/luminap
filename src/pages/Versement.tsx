@@ -130,7 +130,7 @@ export default function Versement() {
                 )}
                 <div
                   className="rounded-xl p-5"
-                  style={{ backgroundColor: "#212121" }}
+                  style={{ backgroundColor: "var(--surface)" }}
                 >
                   <p className="text-text-tertiary text-xs font-medium mb-3 text-center uppercase tracking-wider">
                     Aperçu du versement
@@ -171,7 +171,7 @@ export default function Versement() {
                   <button
                     onClick={() => setShowConfirm(false)}
                     className="flex-1 py-3.5 rounded-full font-semibold text-sm"
-                    style={{ backgroundColor: "#212121", color: "#B3B3B3" }}
+                    style={{ backgroundColor: "var(--surface)", color: "var(--text-secondary)" }}
                   >
                     Retour
                   </button>
@@ -197,9 +197,9 @@ export default function Versement() {
                     onChange={(e) => setSelectedCaisse(e.target.value)}
                     className="w-full px-4 py-3 rounded-xl text-sm "
                     style={{
-                      backgroundColor: "#212121",
-                      color: "#fff",
-                      border: "1px solid #282828",
+                      backgroundColor: "var(--surface)",
+                      color: "var(--text-primary)",
+                      border: "1px solid var(--border)",
                     }}
                   >
                     <option value="">Choisir une caisse...</option>
@@ -215,7 +215,7 @@ export default function Versement() {
                 {selected && (
                   <div
                     className="rounded-xl p-4"
-                    style={{ backgroundColor: "#212121" }}
+                    style={{ backgroundColor: "var(--surface)" }}
                   >
                     <div className="flex items-center justify-between">
                       <div>
@@ -244,12 +244,12 @@ export default function Versement() {
                     max={maxAmount}
                     className="w-full px-4 py-4 rounded-xl text-2xl font-bold  text-center"
                     style={{
-                      backgroundColor: "#212121",
-                      color: "#fff",
+                      backgroundColor: "var(--surface)",
+                      color: "var(--text-primary)",
                       border:
                         amountNum > maxAmount
                           ? "1px solid #E51332"
-                          : "1px solid #282828",
+                          : "1px solid var(--surface-hover)",
                     }}
                   />
                   {amountNum > maxAmount && (
@@ -276,9 +276,9 @@ export default function Versement() {
                     rows={2}
                     className="w-full px-4 py-3 rounded-xl text-sm  resize-none"
                     style={{
-                      backgroundColor: "#212121",
-                      color: "#fff",
-                      border: "1px solid #282828",
+                      backgroundColor: "var(--surface)",
+                      color: "var(--text-primary)",
+                      border: "1px solid var(--border)",
                     }}
                   />
                 </div>
@@ -294,9 +294,9 @@ export default function Versement() {
                         }
                         className="flex-1 py-2 rounded-lg text-xs font-medium"
                         style={{
-                          backgroundColor: "#212121",
-                          color: "#B3B3B3",
-                          border: "1px solid #282828",
+                          backgroundColor: "var(--surface)",
+                          color: "var(--text-secondary)",
+                          border: "1px solid var(--border)",
                         }}
                       >
                         {Math.round(pct * 100)}%

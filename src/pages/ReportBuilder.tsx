@@ -50,8 +50,8 @@ const GROUP_DIMS: { key: string; label: string }[] = [
 
 const COLORS = {
   accent: "var(--accent-primary)",
-  grid: "#282828",
-  text: "#808080",
+  grid: "var(--surface-hover)",
+  text: "var(--text-tertiary)",
 };
 
 function monthFr(ym: string): string {
@@ -97,7 +97,7 @@ function ReportTooltip({ active, payload, label, format }: any) {
   return (
     <div
       className="rounded-xl p-3 shadow-2xl"
-      style={{ backgroundColor: "#1E1E1E", border: "1px solid #282828" }}
+      style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
     >
       <p className="text-text-tertiary text-xs mb-1 font-medium">{label}</p>
       {payload.map((entry: any, idx: number) => (
@@ -424,7 +424,7 @@ export default function ReportBuilder() {
           {loadedId && (
             <span
               className="text-[10px] font-medium px-2 py-0.5 rounded-full"
-              style={{ backgroundColor: "#282828", color: "#B3B3B3" }}
+              style={{ backgroundColor: "var(--surface-hover)", color: "var(--text-secondary)" }}
             >
               Chargé
             </span>
@@ -444,7 +444,7 @@ export default function ReportBuilder() {
                 value={f.period}
                 onChange={(e) => setFilter("period", e.target.value)}
                 className="w-full px-3 py-2.5 rounded-xl text-xs"
-                style={{ backgroundColor: "#181818", color: "#fff", border: "1px solid #282828" }}
+                style={{ backgroundColor: "var(--card)", color: "var(--text-primary)", border: "1px solid var(--border)" }}
               >
                 <option value="month">Ce mois</option>
                 <option value="year">Cette année</option>
@@ -457,7 +457,7 @@ export default function ReportBuilder() {
                 value={f.type}
                 onChange={(e) => setFilter("type", e.target.value)}
                 className="w-full px-3 py-2.5 rounded-xl text-xs"
-                style={{ backgroundColor: "#181818", color: "#fff", border: "1px solid #282828" }}
+                style={{ backgroundColor: "var(--card)", color: "var(--text-primary)", border: "1px solid var(--border)" }}
               >
                 <option value="">Tous</option>
                 <option value="INCOME">Entrées</option>
@@ -470,7 +470,7 @@ export default function ReportBuilder() {
                 value={f.categoryId}
                 onChange={(e) => setFilter("categoryId", e.target.value)}
                 className="w-full px-3 py-2.5 rounded-xl text-xs"
-                style={{ backgroundColor: "#181818", color: "#fff", border: "1px solid #282828" }}
+                style={{ backgroundColor: "var(--card)", color: "var(--text-primary)", border: "1px solid var(--border)" }}
               >
                 <option value="">Toutes</option>
                 {(categories || []).map((c) => (
@@ -484,7 +484,7 @@ export default function ReportBuilder() {
                 value={f.sourceCaisseId}
                 onChange={(e) => setFilter("sourceCaisseId", e.target.value)}
                 className="w-full px-3 py-2.5 rounded-xl text-xs"
-                style={{ backgroundColor: "#181818", color: "#fff", border: "1px solid #282828" }}
+                style={{ backgroundColor: "var(--card)", color: "var(--text-primary)", border: "1px solid var(--border)" }}
               >
                 <option value="">Toutes</option>
                 {(caisses || []).map((c) => (
@@ -504,7 +504,7 @@ export default function ReportBuilder() {
             onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))}
             placeholder="Ex : Revenus par groupe"
             className="w-full px-4 py-3 rounded-xl text-text-primary text-sm"
-            style={{ backgroundColor: "#212121", border: "1px solid #282828" }}
+            style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
           />
         </div>
 
@@ -550,7 +550,7 @@ export default function ReportBuilder() {
             <div
               key={i}
               className="flex items-center gap-2 p-2.5 rounded-lg mb-2"
-              style={{ backgroundColor: "#212121" }}
+              style={{ backgroundColor: "var(--surface)" }}
             >
               <span className="text-text-primary text-xs flex-1 truncate">
                 {METRIC_FNS.find((x) => x.value === m.fn)?.label || m.fn} · {m.alias || m.field}
@@ -567,7 +567,7 @@ export default function ReportBuilder() {
               value={draft.metric?.field}
               onChange={(e) => updateMetricDraft({ field: e.target.value })}
               className="px-2 py-2 rounded-lg text-xs"
-              style={{ backgroundColor: "#181818", color: "#fff", border: "1px solid #282828" }}
+              style={{ backgroundColor: "var(--card)", color: "var(--text-primary)", border: "1px solid var(--border)" }}
             >
               <option value="amount">Montant</option>
             </select>
@@ -575,7 +575,7 @@ export default function ReportBuilder() {
               value={draft.metric?.fn}
               onChange={(e) => updateMetricDraft({ fn: e.target.value as MetricExpr["fn"] })}
               className="px-2 py-2 rounded-lg text-xs"
-              style={{ backgroundColor: "#181818", color: "#fff", border: "1px solid #282828" }}
+              style={{ backgroundColor: "var(--card)", color: "var(--text-primary)", border: "1px solid var(--border)" }}
             >
               {METRIC_FNS.map((fn) => (
                 <option key={fn.value} value={fn.value}>{fn.label}</option>
@@ -587,13 +587,13 @@ export default function ReportBuilder() {
               onChange={(e) => updateMetricDraft({ alias: e.target.value })}
               placeholder="Alias"
               className="px-2 py-2 rounded-lg text-xs"
-              style={{ backgroundColor: "#181818", color: "#fff", border: "1px solid #282828" }}
+              style={{ backgroundColor: "var(--card)", color: "var(--text-primary)", border: "1px solid var(--border)" }}
             />
           </div>
           <button
             onClick={addMetric}
             className="w-full py-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1"
-            style={{ backgroundColor: "#282828", color: "var(--accent-primary)" }}
+            style={{ backgroundColor: "var(--surface-hover)", color: "var(--accent-primary)" }}
           >
             <Plus className="w-3 h-3" /> Ajouter la métrique
           </button>
@@ -615,7 +615,7 @@ export default function ReportBuilder() {
             onClick={save}
             disabled={saving}
             className="py-3 rounded-full font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-40"
-            style={{ backgroundColor: "#212121", color: "var(--accent-primary)", border: "1px solid #282828" }}
+            style={{ backgroundColor: "var(--surface)", color: "var(--accent-primary)", border: "1px solid var(--border)" }}
           >
             <Save className="w-4 h-4" /> {saving ? "…" : "Enregistrer"}
           </button>
@@ -632,7 +632,7 @@ export default function ReportBuilder() {
             </div>
 
             {chartData.length > 0 && firstMetric && (
-              <div className="rounded-xl p-3 mb-4" style={{ backgroundColor: "#212121" }}>
+              <div className="rounded-xl p-3 mb-4" style={{ backgroundColor: "var(--surface)" }}>
                 <ChartContainer config={{}} className="h-44">
                   <BarChart data={chartData} margin={{ top: 4, right: 4, left: -12, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke={COLORS.grid} vertical={false} />
@@ -650,11 +650,11 @@ export default function ReportBuilder() {
             )}
 
             {previewResult.rows.length === 0 ? (
-              <div className="text-center py-8 rounded-xl" style={{ backgroundColor: "#212121" }}>
+              <div className="text-center py-8 rounded-xl" style={{ backgroundColor: "var(--surface)" }}>
                 <p className="text-text-tertiary text-sm">Aucune donnée pour ces filtres</p>
               </div>
             ) : (
-              <div className="overflow-x-auto rounded-xl" style={{ backgroundColor: "#212121" }}>
+              <div className="overflow-x-auto rounded-xl" style={{ backgroundColor: "var(--surface)" }}>
                 <table className="w-full text-xs">
                   <thead>
                     <tr>
@@ -670,7 +670,7 @@ export default function ReportBuilder() {
                   </thead>
                   <tbody>
                     {previewResult.rows.map((row, i) => (
-                      <tr key={i} className="border-t" style={{ borderColor: "#282828" }}>
+                      <tr key={i} className="border-t" style={{ borderColor: "var(--border)" }}>
                         {previewResult.columns.map((col, j) => (
                           <td key={col} className="py-2 px-3 text-text-primary tabular-nums">
                             {j === 0
@@ -689,7 +689,7 @@ export default function ReportBuilder() {
               onClick={exportCSV}
               disabled={!canExport}
               className="w-full mt-3 py-2.5 rounded-full text-xs font-medium flex items-center justify-center gap-2 disabled:opacity-40"
-              style={{ backgroundColor: "#212121", color: canExport ? "var(--accent-primary)" : "#808080", border: "1px solid #282828" }}
+              style={{ backgroundColor: "var(--surface)", color: canExport ? "var(--accent-primary)" : "var(--text-tertiary)", border: "1px solid var(--border)" }}
             >
               <Download className="w-3.5 h-3.5" /> Exporter les résultats (CSV)
             </button>
@@ -713,7 +713,7 @@ export default function ReportBuilder() {
                 <div
                   key={r.id}
                   className="rounded-xl p-3 flex items-center gap-3"
-                  style={{ backgroundColor: "#212121", border: "1px solid #282828" }}
+                  style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
                 >
                   <div className="flex-1 min-w-0">
                     <p className="text-text-primary text-sm font-medium truncate">{r.name}</p>
@@ -735,7 +735,7 @@ export default function ReportBuilder() {
                     <button
                       onClick={() => del(r.id)}
                       className="w-7 h-7 rounded-full flex items-center justify-center"
-                      style={{ backgroundColor: "#282828", color: "#E51332" }}
+                      style={{ backgroundColor: "var(--surface-hover)", color: "#E51332" }}
                       aria-label="Supprimer"
                     >
                       <X className="w-3.5 h-3.5" />

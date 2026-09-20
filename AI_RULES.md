@@ -17,13 +17,19 @@
 - Nitro (server API routes)
 
 ## Design System
-- Fond principal: `#121212` (canvas)
-- Surface: `#181818`, hover: `#282828`, active: `#333333`
-- Text: primary `#FFFFFF`, secondary `#B3B3B3`, tertiary `#808080`, placeholder `#535353`
-- Couleurs financières fixes: income `#1DB954`, expense `#E51332`, pending `#FFB800`
-- Accent brand: `#FF6B00` (orange église)
+- **Tokens sémantiques CSS** (src/App.css) : `--canvas, --surface, --card, --surface-hover, --surface-active, --border, --text-primary/secondary/tertiary/placeholder, --nav-bg, --shadow-card/pop` définis en **deux blocs** `[data-theme="dark"]` (défaut) et `[data-theme="light"]`. Dark : canvas `#121212`, surface `#212121`, card `#181818`… Light : canvas `#F5F6F8`, surface/card `#FFFFFF`, hover `#EEF0F2`…
+- **JAMAIS de hex neutre en dur dans les composants** : toujours `var(--…)` (inline `style` ou Tailwind arbitrary `bg-[var(--surface)]`, `text-[var(--text-tertiary)]`, `border-[var(--border)]`). Tailwind (tailwind.config.ts) pointe ses couleurs vers ces vars.
+- **Invariantes (inchangées dark/light)** : couleurs financières income `#1DB954`, expense `#E51332`, pending `#FFB800` (tokens `--data-*`) ; accent brand `#FF6B00` (tokens `--accent-*`, poussé au runtime par `applyTheme` — 10 palettes) ; couleurs sémantiques de statut (`#808080` DRAFT, `#3B82F6` planifié/EN_AVANCE, `#8B5CF6`…).
 - Boutons pill shape, cartes 8px radius
 - Navigation bottom tab bar fixe
+
+## Thème clair/sombre + double splash + 3 onglets Paramètres
+- **Mode clair/sombre** : `applyThemeMode` / `getStoredThemeMode` / `persistThemeMode` / `applyStoredThemeMode` (src/ionic/themes.ts, type `ThemeMode`), localStorage `lumina-theme-mode` (sombre par défaut). `index.html` pose `data-theme` **avant le premier paint** (script inline) ; `main.tsx` relance `applyStoredThemeMode()` au boot. Le store React : `src/store/useThemeModeStore.ts` (zustand, `mode`/`setMode`/`toggleMode`). `src/ionic/theme.ts` expose `applyIonicThemeMode` (vars `--ion-*` par mode) ; `theme.css` pointe tous les `--ion-*` neutres vers les tokens `var(--…)` (ils basculent tout seuls avec le mode).
+- **Bascule UI** : `src/components/ThemeToggle.tsx` (switch Sombre/Clair, `data-testid="theme-mode-toggle"`), visible dans Paramètres → onglet « Paramètres » → carte Thème & apparence.
+- **Paramètres en 3 onglets** (`/settings`) : `SegmentedTabs` (onglets HTML natifs, ARIA tablist/tab, `data-testid="settings-tabs"`, onglets `tab-parameters`/`tab-practical`/`tab-profile`, actif = accent) ; onglet 1 « Paramètres » = config org + Thème & apparence (ThemeToggle + ThemePicker) + Features & navigation ; onglet 2 « Pratique » = raccourcis + actions rapides ; onglet 3 « Profil » = carte profil + stats/données + déconnexion + version. État `activeTab` = useState, défaut onglet 1.
+- **Double splash** (`/splash`) : phase `logo` (~1,2 s, `LuminaLogo`) → phase `illustration` (~1,5 s, `src/components/SplashIllustration.tsx` : SVG plate statique, fond transparent, couleurs via vars sémantiques — thème-adaptative) + logo en bas ; gate existant conservé (si `useLoadInitialData` pas prêt à ~2,7 s → spinner `splash-loading`), puis `/onboarding` ou `/dashboard`. Testids : `splash-phase-logo`, `splash-phase-illustration`, `splash-illustration`, `splash-loading`.
+- **Pièges de migration (respecter en ajoutant des styles)** : (1) `color: #fff` reste blanc **sur fond accent/colore** (boutons pill, FAB, badges), devient `var(--text-primary)` sur fond neutre ; (2) les hex à 8 chiffres (`#80808020`, `#1DB95420`…) ne se remplacent JAMAIS ; (3) les maps de statut conservent leurs hex ; (4) limitation native : le fond du splash Capacitor reste `#121212` (capacitor.config.ts) — le mode clair n'est appliqué que web/webview.
+- **Note portage Versyflow** : les pièces portables = blocs tokens `[data-theme=…]` App.css + `applyThemeMode`/store + `ThemeToggle` + `SegmentedTabs` + motif « 3 onglets Paramètres » + double-splash + `SplashIllustration` (adapter le motif au branding Versyflow) + le bulk-replace de ses propres hex neutres (mapping : `#121212`→`var(--canvas)`, `#181818`→`var(--card)`, `#1e1e1e`/`#212121`→`var(--surface)`, `#282828`→`var(--surface-hover)` en fond / `var(--border)` en bordure, `#333333`→`var(--surface-active)`, `#B3B3B3`→`var(--text-secondary)`, `#808080`→`var(--text-tertiary)`, `rgba(18,18,18,.97)`→`var(--nav-bg)`, `#fff`→`var(--text-primary)` sauf sur accent).
 
 ## Scroll & viewport (global)
 - **Pas de barre de défilement visible** : `globals.css` masque les scrollbars sur tous les éléments (`scrollbar-width:none` + `*::-webkit-scrollbar{display:none}`), le défilement reste fluide. Ne pas réintroduire de scrollbars visibles.
@@ -99,7 +105,8 @@
 - `/event/new` — Nouvel événement
 - `/event/:id` — Détail événement
 - `/versement` — Page de versement (caisse groupe → caisse principale)
-- `/settings` — Paramètres (status sync, stockage local)
+- `/settings` — Paramètres en 3 onglets (Paramètres / Pratique / Profil ; tabuleur `SegmentedTabs` + bascule de thème `ThemeToggle` dans l'onglet 1)
+- `/splash` — Rampe double phase (logo → illustration plate), puis onboarding/dashboard
 
 ## Capabilités P0 (grandes églises) — budgets & giving
 - **`src/capabilities/budgets/index.ts`** : service `budgets` (CRUD `org_budgets`/`org_budget_lines`) + helpers purs **testables** : `budgetWindow(budget)` (fenêtre date par exercice/période) et `computeBudgetReport(budget, lines, transactions, categories)` → prévu/réel/écart par ligne + totaux. Le « réel » est **toujours dérivé** des transactions APPROVED (jamais stocké).

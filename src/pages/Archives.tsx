@@ -204,8 +204,8 @@ export default function Archives() {
                   placeholder="Rechercher dans les archives..."
                   className="w-full pl-9 pr-4 py-2.5 rounded-xl text-text-primary text-sm"
                   style={{
-                    backgroundColor: "#212121",
-                    border: "1px solid #282828",
+                    backgroundColor: "var(--surface)",
+                    border: "1px solid var(--border)",
                   }}
                 />
               </div>
@@ -225,8 +225,8 @@ export default function Archives() {
                     className="px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-all"
                     style={{
                       backgroundColor:
-                        filterType === id ? "var(--accent-primary)" : "#212121",
-                      color: filterType === id ? "#fff" : "#B3B3B3",
+                        filterType === id ? "var(--accent-primary)" : "var(--surface)",
+                      color: filterType === id ? "var(--text-primary)" : "var(--text-secondary)",
                     }}
                     aria-pressed={filterType === id}
                     aria-label={`Filtrer par ${label}`}
@@ -247,7 +247,7 @@ export default function Archives() {
                   {/* Formulaire d'upload */}
                   <div
                     className="rounded-xl p-4 mb-4 space-y-3"
-                    style={{ backgroundColor: "#1e1e1e", border: "1px solid #282828" }}
+                    style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
                   >
                     <input
                       type="text"
@@ -255,7 +255,7 @@ export default function Archives() {
                       onChange={(e) => setDocTitle(e.target.value)}
                       placeholder="Nom du document *"
                       className="w-full px-4 py-3 rounded-xl text-sm"
-                      style={{ backgroundColor: "#212121", color: "#fff", border: "1px solid #282828" }}
+                      style={{ backgroundColor: "var(--surface)", color: "var(--text-primary)", border: "1px solid var(--border)" }}
                       aria-label="Nom du document"
                     />
                     <input
@@ -264,12 +264,12 @@ export default function Archives() {
                       onChange={(e) => setDocPurpose(e.target.value)}
                       placeholder="Objet / à quoi il s'applique (ex: PV assemblée, reçu...)"
                       className="w-full px-4 py-3 rounded-xl text-sm"
-                      style={{ backgroundColor: "#212121", color: "#fff", border: "1px solid #282828" }}
+                      style={{ backgroundColor: "var(--surface)", color: "var(--text-primary)", border: "1px solid var(--border)" }}
                       aria-label="Objet du document"
                     />
                     <label
                       className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm cursor-pointer"
-                      style={{ backgroundColor: "#282828", color: "#fff" }}
+                      style={{ backgroundColor: "var(--surface-hover)", color: "var(--text-primary)" }}
                     >
                       <FileText className="w-4 h-4" />
                       {docFile ? docFile.name : "Choisir le fichier (PDF, image...)*"}
@@ -312,13 +312,13 @@ export default function Archives() {
                           key={doc.id}
                           className="rounded-xl p-3 flex items-center gap-3"
                           style={{
-                            backgroundColor: "#212121",
-                            border: "1px solid #282828",
+                            backgroundColor: "var(--surface)",
+                            border: "1px solid var(--border)",
                           }}
                         >
                           <div
                             className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                            style={{ backgroundColor: "#282828" }}
+                            style={{ backgroundColor: "var(--surface-hover)" }}
                           >
                             <FileText className="w-5 h-5 text-text-tertiary" />
                           </div>
@@ -383,7 +383,7 @@ export default function Archives() {
                 {filtered.length === 0 ? (
                   <div
                     className="text-center py-10 rounded-xl"
-                    style={{ backgroundColor: "#1e1e1e" }}
+                    style={{ backgroundColor: "var(--surface)" }}
                   >
                     <Archive className="w-12 h-12 mx-auto mb-4 text-text-tertiary opacity-40" />
                     <p className="text-text-tertiary text-sm">
@@ -399,13 +399,13 @@ export default function Archives() {
                       key={item.id}
                       className="rounded-xl p-4 flex items-center gap-3"
                       style={{
-                        backgroundColor: "#212121",
-                        border: "1px solid #282828",
+                        backgroundColor: "var(--surface)",
+                        border: "1px solid var(--border)",
                       }}
                     >
                       <div
                         className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                        style={{ backgroundColor: "#282828" }}
+                        style={{ backgroundColor: "var(--surface-hover)" }}
                       >
                         {item.type === "group" && (
                           <Users className="w-5 h-5 text-text-tertiary" />

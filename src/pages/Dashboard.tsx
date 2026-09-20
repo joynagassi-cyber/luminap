@@ -80,7 +80,7 @@ function CaisseCard({
     <button
       onClick={() => navigate("/finance")}
       className="w-full text-left rounded-xl p-4 transition-all active:scale-95"
-      style={{ backgroundColor: "#1e1e1e", border: `1px solid ${tint(color, 19)}` }}
+      style={{ backgroundColor: "var(--surface)", border: `1px solid ${tint(color, 19)}` }}
       aria-label={`Voir les détails de ${account.name}`}
     >
       <div className="flex items-center justify-between mb-3">
@@ -282,7 +282,7 @@ export default function Dashboard() {
 
               <div
                 className="h-px mb-4"
-                style={{ backgroundColor: "#282828" }}
+                style={{ backgroundColor: "var(--surface-hover)" }}
               />
 
               <div className="flex items-center justify-between">
@@ -342,7 +342,7 @@ export default function Dashboard() {
                 {pendingCount > 0 && (
                   <div
                     className="rounded-xl p-4 text-center"
-                    style={{ backgroundColor: "#1e1e1e" }}
+                    style={{ backgroundColor: "var(--surface)" }}
                   >
                     <p className="text-text-tertiary text-xs mb-1">
                       En attente
@@ -355,7 +355,7 @@ export default function Dashboard() {
                 {upcomingEvents.length > 0 && (
                   <div
                     className="rounded-xl p-4 text-center"
-                    style={{ backgroundColor: "#1e1e1e" }}
+                    style={{ backgroundColor: "var(--surface)" }}
                   >
                     <p className="text-text-tertiary text-xs mb-1">
                       Événements
@@ -368,7 +368,7 @@ export default function Dashboard() {
                 {groupAccounts.length > 0 && (
                   <div
                     className="rounded-xl p-4 text-center"
-                    style={{ backgroundColor: "#1e1e1e" }}
+                    style={{ backgroundColor: "var(--surface)" }}
                   >
                     <p className="text-text-tertiary text-xs mb-1">Groupes</p>
                     <p className="text-blue-500 font-bold text-xl">
@@ -424,8 +424,8 @@ export default function Dashboard() {
                         onClick={() => navigate(`/event/${event.id}`)}
                         className="w-full text-left rounded-xl p-4 transition-all active:scale-95"
                         style={{
-                          backgroundColor: "#1e1e1e",
-                          border: `1px solid ${overBudget ? "#E5133240" : "#282828"}`,
+                          backgroundColor: "var(--surface)",
+                          border: `1px solid ${overBudget ? "#E5133240" : "var(--border)"}`,
                         }}
                       >
                         <div className="flex items-center gap-3">
@@ -448,7 +448,7 @@ export default function Dashboard() {
                               <div className="flex items-center gap-2 mt-1">
                                 <div
                                   className="flex-1 h-1 rounded-full overflow-hidden"
-                                  style={{ backgroundColor: "#282828" }}
+                                  style={{ backgroundColor: "var(--surface-hover)" }}
                                 >
                                   <div
                                     className="h-full rounded-full"
@@ -527,8 +527,8 @@ export default function Dashboard() {
                   onClick={() => navigate("/transaction/new?type=INCOME")}
                   className="flex flex-col items-center gap-2 p-3 rounded-xl active:scale-95 transition-transform text-left w-full"
                   style={{
-                    backgroundColor: "#1e1e1e",
-                    border: "1px solid #282828",
+                    backgroundColor: "var(--surface)",
+                    border: "1px solid var(--border)",
                   }}
                   aria-label="Nouvelle entrée"
                 >
@@ -549,8 +549,8 @@ export default function Dashboard() {
                   onClick={() => navigate("/transaction/new?type=EXPENSE")}
                   className="flex flex-col items-center gap-2 p-3 rounded-xl active:scale-95 transition-transform text-left w-full"
                   style={{
-                    backgroundColor: "#1e1e1e",
-                    border: "1px solid #282828",
+                    backgroundColor: "var(--surface)",
+                    border: "1px solid var(--border)",
                   }}
                   aria-label="Nouvelle sortie"
                 >
@@ -571,8 +571,8 @@ export default function Dashboard() {
                   onClick={() => navigate("/versement")}
                   className="flex flex-col items-center gap-2 p-3 rounded-xl active:scale-95 transition-transform text-left w-full"
                   style={{
-                    backgroundColor: "#1e1e1e",
-                    border: "1px solid #282828",
+                    backgroundColor: "var(--surface)",
+                    border: "1px solid var(--border)",
                   }}
                   aria-label="Nouveau versement"
                 >
@@ -593,8 +593,8 @@ export default function Dashboard() {
                   onClick={() => navigate("/events")}
                   className="flex flex-col items-center gap-2 p-3 rounded-xl active:scale-95 transition-transform text-left w-full"
                   style={{
-                    backgroundColor: "#1e1e1e",
-                    border: "1px solid #282828",
+                    backgroundColor: "var(--surface)",
+                    border: "1px solid var(--border)",
                   }}
                   aria-label="Nouvel événement"
                 >
@@ -633,8 +633,8 @@ export default function Dashboard() {
                 <div
                   className="text-center py-10 rounded-xl"
                   style={{
-                    backgroundColor: "#1e1e1e",
-                    border: "1px solid #282828",
+                    backgroundColor: "var(--surface)",
+                    border: "1px solid var(--border)",
                   }}
                 >
                   <PlusCircle className="w-8 h-8 mx-auto mb-3 text-text-tertiary" />

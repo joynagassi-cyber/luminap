@@ -89,8 +89,8 @@ const COLORS = {
   blue: "#3B82F6",
   teal: "#14B8A6",
   pink: "#EC4899",
-  grid: "#282828",
-  text: "#808080",
+  grid: "var(--surface-hover)",
+  text: "var(--text-tertiary)",
 };
 
 function formatTooltipValue(value: number) {
@@ -102,7 +102,7 @@ function CustomTooltip({ active, payload, label }: any) {
   return (
     <div
       className="rounded-xl p-3 shadow-2xl"
-      style={{ backgroundColor: "#1E1E1E", border: "1px solid #282828" }}
+      style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
     >
       <p className="text-text-tertiary text-xs mb-2 font-medium">{label}</p>
       {payload.map((entry: any, idx: number) => (
@@ -143,7 +143,7 @@ export default function HistoryPage() {
 
   if (txLoading) {
     return (
-      <div className="min-h-screen bg-[#121212]">
+      <div className="min-h-screen bg-[var(--canvas)]">
         <TopHeader title="Historique" />
         <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
           <div className="space-y-4">
@@ -151,10 +151,10 @@ export default function HistoryPage() {
               <div
                 key={i}
                 className="rounded-xl p-4 animate-pulse"
-                style={{ backgroundColor: "#181818" }}
+                style={{ backgroundColor: "var(--card)" }}
               >
-                <div className="h-4 bg-[#282828] rounded w-1/3 mb-3" />
-                <div className="h-20 bg-[#282828] rounded" />
+                <div className="h-4 bg-[var(--surface-hover)] rounded w-1/3 mb-3" />
+                <div className="h-20 bg-[var(--surface-hover)] rounded" />
               </div>
             ))}
           </div>
@@ -223,8 +223,8 @@ export default function HistoryPage() {
                   onClick={() => setPeriod(p.key as any)}
                   className="flex-1 py-2 rounded-full text-xs font-medium transition-all"
                   style={{
-                    backgroundColor: period === p.key ? "var(--accent-primary)" : "#212121",
-                    color: period === p.key ? "#fff" : "#B3B3B3",
+                    backgroundColor: period === p.key ? "var(--accent-primary)" : "var(--surface)",
+                    color: period === p.key ? "var(--text-primary)" : "var(--text-secondary)",
                   }}
                 >
                   {p.label}
@@ -236,7 +236,7 @@ export default function HistoryPage() {
             <div className="grid grid-cols-3 gap-3 mb-5">
               <div
                 className="rounded-xl p-4 text-center"
-                style={{ backgroundColor: "#212121" }}
+                style={{ backgroundColor: "var(--surface)" }}
               >
                 <p className="text-text-tertiary text-xs mb-1">Entrées</p>
                 <p className="text-[#1DB954] font-bold text-base">
@@ -245,7 +245,7 @@ export default function HistoryPage() {
               </div>
               <div
                 className="rounded-xl p-4 text-center"
-                style={{ backgroundColor: "#212121" }}
+                style={{ backgroundColor: "var(--surface)" }}
               >
                 <p className="text-text-tertiary text-xs mb-1">Sorties</p>
                 <p className="text-[#E51332] font-bold text-base">
@@ -254,7 +254,7 @@ export default function HistoryPage() {
               </div>
               <div
                 className="rounded-xl p-4 text-center"
-                style={{ backgroundColor: "#212121" }}
+                style={{ backgroundColor: "var(--surface)" }}
               >
                 <p className="text-text-tertiary text-xs mb-1">Résultat</p>
                 <p
@@ -279,8 +279,8 @@ export default function HistoryPage() {
                   className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-all"
                   style={{
                     backgroundColor:
-                      activeTab === tab.key ? "var(--accent-primary)" : "#212121",
-                    color: activeTab === tab.key ? "#fff" : "#B3B3B3",
+                      activeTab === tab.key ? "var(--accent-primary)" : "var(--surface)",
+                    color: activeTab === tab.key ? "var(--text-primary)" : "var(--text-secondary)",
                   }}
                 >
                   <tab.icon className="w-3 h-3" />
@@ -292,7 +292,7 @@ export default function HistoryPage() {
             {/* Chart area */}
             <div
               className="rounded-xl p-4 mb-5"
-              style={{ backgroundColor: "#212121" }}
+              style={{ backgroundColor: "var(--surface)" }}
             >
               <ChartContainer config={{}} className="h-48">
                 <AreaChart data={monthlyData}>
@@ -344,8 +344,8 @@ export default function HistoryPage() {
                   onClick={() => navigate(`/transaction/${tx.id}`)}
                   className="w-full text-left rounded-xl p-4 flex items-center gap-3"
                   style={{
-                    backgroundColor: "#212121",
-                    border: "1px solid #282828",
+                    backgroundColor: "var(--surface)",
+                    border: "1px solid var(--border)",
                   }}
                 >
                   <div

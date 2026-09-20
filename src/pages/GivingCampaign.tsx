@@ -77,7 +77,7 @@ export default function GivingCampaign() {
 
   const donorName = (id: string) => donors.find((d) => d.id === id)?.full_name ?? "Donateur";
   const tx = (tid: string) => incomeTx.find((t) => t.id === tid);
-  const inputStyle = { backgroundColor: "#212121", color: "#fff", border: "1px solid #282828" } as const;
+  const inputStyle = { backgroundColor: "var(--surface)", color: "var(--text-primary)", border: "1px solid var(--border)" } as const;
 
   const addPledge = async () => {
     if (!pledgeDonor || !pledgeAmount || pledgeBusy) return;
@@ -139,10 +139,10 @@ export default function GivingCampaign() {
           <TopHeader title="Campagne" />
           <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
             {/* Progression */}
-            <div className="rounded-xl p-4 mb-4" style={{ backgroundColor: "#181818" }} data-testid="campaign-progress">
+            <div className="rounded-xl p-4 mb-4" style={{ backgroundColor: "var(--card)" }} data-testid="campaign-progress">
               <h1 className="text-text-primary font-bold text-lg mb-1">{campaign.name}</h1>
               {campaign.purpose && <p className="text-text-tertiary text-xs mb-3">{campaign.purpose}</p>}
-              <div className="h-3 rounded-full overflow-hidden mb-2" style={{ backgroundColor: "#282828" }}>
+              <div className="h-3 rounded-full overflow-hidden mb-2" style={{ backgroundColor: "var(--surface-hover)" }}>
                 <div
                   className="h-full rounded-full"
                   style={{
@@ -170,7 +170,7 @@ export default function GivingCampaign() {
             </div>
 
             {/* Pledges */}
-            <div className="rounded-xl p-4 mb-4" style={{ backgroundColor: "#181818" }} data-testid="campaign-pledges">
+            <div className="rounded-xl p-4 mb-4" style={{ backgroundColor: "var(--card)" }} data-testid="campaign-pledges">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <Handshake className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
@@ -185,7 +185,7 @@ export default function GivingCampaign() {
                 )}
               </div>
               {showPledge && (
-                <div className="space-y-3 mb-3 p-3 rounded-lg" style={{ backgroundColor: "#212121" }}>
+                <div className="space-y-3 mb-3 p-3 rounded-lg" style={{ backgroundColor: "var(--surface)" }}>
                   <select value={pledgeDonor} onChange={(e) => setPledgeDonor(e.target.value)} className="w-full px-3 py-2.5 rounded-lg text-sm outline-none" style={inputStyle} aria-label="Donateur" data-testid="pledge-donor">
                     <option value="">Choisir un donateur…</option>
                     {donors.map((d) => <option key={d.id} value={d.id}>{d.full_name}</option>)}
@@ -222,7 +222,7 @@ export default function GivingCampaign() {
             </div>
 
             {/* Rattachements */}
-            <div className="rounded-xl p-4 mb-4" style={{ backgroundColor: "#181818" }} data-testid="campaign-links">
+            <div className="rounded-xl p-4 mb-4" style={{ backgroundColor: "var(--card)" }} data-testid="campaign-links">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <Link2 className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
@@ -237,7 +237,7 @@ export default function GivingCampaign() {
                 )}
               </div>
               {showLink && (
-                <div className="space-y-3 mb-3 p-3 rounded-lg" style={{ backgroundColor: "#212121" }}>
+                <div className="space-y-3 mb-3 p-3 rounded-lg" style={{ backgroundColor: "var(--surface)" }}>
                   <select value={linkTx} onChange={(e) => setLinkTx(e.target.value)} className="w-full px-3 py-2.5 rounded-lg text-sm outline-none" style={inputStyle} aria-label="Transaction" data-testid="link-transaction">
                     <option value="">Choisir une transaction…</option>
                     {availableTx.map((t) => (
@@ -280,7 +280,7 @@ export default function GivingCampaign() {
             </div>
 
             {/* Reçu fiscal */}
-            <div className="rounded-xl p-4" style={{ backgroundColor: "#181818" }} data-testid="campaign-receipt">
+            <div className="rounded-xl p-4" style={{ backgroundColor: "var(--card)" }} data-testid="campaign-receipt">
               <div className="flex items-center gap-2 mb-3">
                 <Receipt className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
                 <p className="text-text-primary font-semibold text-sm">Reçu fiscal annuel</p>

@@ -11,6 +11,8 @@
  * there is no `document` (server / SSR preflight).
  */
 
+import { applyIonicThemeMode } from "./theme";
+
 export type ThemeId =
   | "fire"
   | "spirit"
@@ -143,11 +145,11 @@ export function hexToRgb(hex: string): string {
 }
 
 /**
- * Push the theme into every CSS variable surface — Ionic vars and the Lumina
- * design tokens from src/App.css / src/globals.css.
+ * Push the brand accent into every CSS variable surface — Ionic vars and
+ * the Lumina design tokens from src/App.css.
  *
- * Idempotent. No-op when called in SSR (no `document`) or when the theme
- * object is invalid.
+ * The accent is INDEPENDANT du mode clair/sombre : il est invariant.
+ * Idempotent. No-op when called in SSR (no `document`).
  */
 export function applyTheme(theme?: LuminaTheme): void {
   if (typeof document === "undefined") return;
@@ -165,12 +167,52 @@ export function applyTheme(theme?: LuminaTheme): void {
   set("--accent-light", t.light);
   set("--accent-dark", t.dark);
 
-  // ── shadcn-ish tokens in globals.css ────────────────────────────────────
+  // ── shadcn-ish tokens (consommés par tailwind.config.ts) ───────────────
   set("--primary", t.primary);
   set("--accent", t.primary);
   set("--ring", t.primary);
 
   persistThemeId(t.id);
+}
+
+// ── Theme mode (dark / light) ───────────────────────────────────────────────
+//
+// Orthogonal to the brand accent above: the accent is invariant between
+// modes, only the neutral surfaces / texts / borders flip. The mode is
+// applied on <html> via `data-theme` (tokens live in src/App.css),
+// mirrored onto the Ionic vars that cannot be CSS vars (src/ionic/theme.ts),
+// and persisted in localStorage.
+
+export type ThemeMode = "dark" | "light";
+
+export const THEME_MODE_STORAGE_KEY = "lumina-theme-mode";
+
+export function getStoredThemeMode(): ThemeMode {
+  if (typeof localStorage === "undefined") return "dark";
+  const v = localStorage.getItem(THEME_MODE_STORAGE_KEY);
+  return v === "light" ? "light" : "dark";
+}
+
+export function persistThemeMode(mode: ThemeMode): void {
+  if (typeof localStorage === "undefined") return;
+  localStorage.setItem(THEME_MODE_STORAGE_KEY, mode);
+}
+
+/**
+ * Apply the light/dark mode: sets `data-theme` on <html>, pushes the
+ * mode-specific Ionic vars, persists the choice. Idempotent and SSR-safe.
+ */
+export function applyThemeMode(mode?: ThemeMode): void {
+  if (typeof document === "undefined") return;
+  const m: ThemeMode = mode === "light" ? "light" : "dark";
+  document.documentElement.dataset.theme = m;
+  applyIonicThemeMode(m);
+  persistThemeMode(m);
+}
+
+/** Convenience: read the stored mode and apply it (safe on first paint). */
+export function applyStoredThemeMode(): void {
+  applyThemeMode(getStoredThemeMode());
 }
 
 /** Convenience: read the stored theme and apply it (safe on first paint). */

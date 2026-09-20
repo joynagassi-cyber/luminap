@@ -179,7 +179,7 @@ export default function EventNew() {
               style={
                 eventType === "EVENT"
                   ? { backgroundColor: "var(--accent-primary)" }
-                  : { backgroundColor: "#212121" }
+                  : { backgroundColor: "var(--surface)" }
               }
             >
               Événement
@@ -190,7 +190,7 @@ export default function EventNew() {
               style={
                 eventType === "CULTE"
                   ? { backgroundColor: "var(--accent-primary)" }
-                  : { backgroundColor: "#212121" }
+                  : { backgroundColor: "var(--surface)" }
               }
             >
               Culte dominical
@@ -201,7 +201,7 @@ export default function EventNew() {
           {eventType === "CULTE" && (
             <div
               className="rounded-xl p-4 mb-5"
-              style={{ backgroundColor: "#212121" }}
+              style={{ backgroundColor: "var(--surface)" }}
             >
               <p className="text-text-tertiary text-xs font-medium mb-3 uppercase tracking-wider">
                 Paramètres de cotisation
@@ -219,8 +219,8 @@ export default function EventNew() {
                     }
                     min="0"
                     style={{
-                      backgroundColor: "#181818",
-                      border: "1px solid #282828",
+                      backgroundColor: "var(--card)",
+                      border: "1px solid var(--border)",
                     }}
                   />
                 </div>
@@ -250,9 +250,9 @@ export default function EventNew() {
               onIonChange={(e) => setName((e.detail.value as string) ?? "")}
               placeholder="Ex: Noël 2026"
               style={{
-                backgroundColor: "#212121",
-                color: "#fff",
-                border: "1px solid #282828",
+                backgroundColor: "var(--surface)",
+                color: "var(--text-primary)",
+                border: "1px solid var(--border)",
               }}
             />
           </div>
@@ -269,9 +269,9 @@ export default function EventNew() {
               rows={3}
               className="w-full px-4 py-3 rounded-xl text-sm resize-none"
               style={{
-                backgroundColor: "#212121",
-                color: "#fff",
-                border: "1px solid #282828",
+                backgroundColor: "var(--surface)",
+                color: "var(--text-primary)",
+                border: "1px solid var(--border)",
               }}
             />
           </div>
@@ -288,9 +288,9 @@ export default function EventNew() {
                 setStartDate((e.detail.value as string) ?? "")
               }
               style={{
-                backgroundColor: "#212121",
-                color: "#fff",
-                border: "1px solid #282828",
+                backgroundColor: "var(--surface)",
+                color: "var(--text-primary)",
+                border: "1px solid var(--border)",
               }}
             />
           </div>
@@ -304,9 +304,9 @@ export default function EventNew() {
               value={endDate}
               onIonChange={(e) => setEndDate((e.detail.value as string) ?? "")}
               style={{
-                backgroundColor: "#212121",
-                color: "#fff",
-                border: "1px solid #282828",
+                backgroundColor: "var(--surface)",
+                color: "var(--text-primary)",
+                border: "1px solid var(--border)",
               }}
             />
           </div>
@@ -321,9 +321,9 @@ export default function EventNew() {
               onChange={(e) => setStatus(e.target.value as any)}
               className="w-full px-4 py-3 rounded-xl text-sm"
               style={{
-                backgroundColor: "#212121",
-                color: "#fff",
-                border: "1px solid #282828",
+                backgroundColor: "var(--surface)",
+                color: "var(--text-primary)",
+                border: "1px solid var(--border)",
               }}
             >
               <option value="PLANIFIED">Planifié</option>
@@ -361,8 +361,8 @@ export default function EventNew() {
                         onClick={() => handleAddDefaultBudget(item)}
                         className="w-full text-left px-4 py-3 rounded-xl text-sm transition-all active:scale-95"
                         style={{
-                          backgroundColor: "#181818",
-                          border: "1px solid #282828",
+                          backgroundColor: "var(--card)",
+                          border: "1px solid var(--border)",
                         }}
                       >
                         {item.label}
@@ -381,9 +381,9 @@ export default function EventNew() {
                     }
                     placeholder="Poste"
                     style={{
-                      backgroundColor: "#181818",
-                      color: "#fff",
-                      border: "1px solid #282828",
+                      backgroundColor: "var(--card)",
+                      color: "var(--text-primary)",
+                      border: "1px solid var(--border)",
                     }}
                   />
                   <IonInput
@@ -394,9 +394,9 @@ export default function EventNew() {
                     }
                     placeholder="Montant"
                     style={{
-                      backgroundColor: "#181818",
-                      color: "#fff",
-                      border: "1px solid #282828",
+                      backgroundColor: "var(--card)",
+                      color: "var(--text-primary)",
+                      border: "1px solid var(--border)",
                     }}
                   />
                   <button
@@ -415,7 +415,7 @@ export default function EventNew() {
                       <div
                         key={item.id}
                         className="flex items-center justify-between px-4 py-3 rounded-xl"
-                        style={{ backgroundColor: "#181818" }}
+                        style={{ backgroundColor: "var(--card)" }}
                       >
                         <div>
                           <p className="text-text-primary text-sm font-medium">
@@ -444,7 +444,7 @@ export default function EventNew() {
               <div
                 className="p-4 rounded-xl text-center"
                 style={{
-                  backgroundColor: "#212121",
+                  backgroundColor: "var(--surface)",
                   border: "1px solid color-mix(in srgb, var(--accent-primary) 19%, transparent)",
                 }}
               >

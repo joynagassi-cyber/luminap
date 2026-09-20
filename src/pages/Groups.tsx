@@ -192,7 +192,7 @@ export default function Groups() {
               <div
                 className="mb-5 p-4 rounded-xl"
                 style={{
-                  backgroundColor: "#212121",
+                  backgroundColor: "var(--surface)",
                   border: "1px solid color-mix(in srgb, var(--accent-primary) 19%, transparent)",
                 }}
               >
@@ -207,9 +207,9 @@ export default function Groups() {
                     placeholder="Nom du groupe"
                     className="w-full px-4 py-3 rounded-xl text-sm"
                     style={{
-                      backgroundColor: "#181818",
-                      color: "#fff",
-                      border: "1px solid #282828",
+                      backgroundColor: "var(--card)",
+                      color: "var(--text-primary)",
+                      border: "1px solid var(--border)",
                     }}
                   />
                   <select
@@ -217,9 +217,9 @@ export default function Groups() {
                     onChange={(e) => setCreateType(e.target.value)}
                     className="w-full px-4 py-3 rounded-xl text-sm"
                     style={{
-                      backgroundColor: "#181818",
-                      color: "#fff",
-                      border: "1px solid #282828",
+                      backgroundColor: "var(--card)",
+                      color: "var(--text-primary)",
+                      border: "1px solid var(--border)",
                     }}
                   >
                     {GROUP_TYPES.map((t) => (
@@ -235,9 +235,9 @@ export default function Groups() {
                     rows={2}
                     className="w-full px-4 py-3 rounded-xl text-sm resize-none"
                     style={{
-                      backgroundColor: "#181818",
-                      color: "#fff",
-                      border: "1px solid #282828",
+                      backgroundColor: "var(--card)",
+                      color: "var(--text-primary)",
+                      border: "1px solid var(--border)",
                     }}
                   />
                   <div className="flex gap-2">
@@ -250,7 +250,7 @@ export default function Groups() {
                           backgroundColor: color,
                           border:
                             createColor === color
-                              ? "2px solid #fff"
+                              ? "2px solid var(--text-primary)"
                               : "2px solid transparent",
                         }}
                       />
@@ -267,7 +267,7 @@ export default function Groups() {
                     <button
                       onClick={() => setShowCreate(false)}
                       className="px-4 py-3 rounded-full font-medium text-sm"
-                      style={{ backgroundColor: "#282828" }}
+                      style={{ backgroundColor: "var(--surface-hover)" }}
                     >
                       Annuler
                     </button>
@@ -281,7 +281,7 @@ export default function Groups() {
               {orgUnits.length === 0 ? (
                 <div
                   className="text-center py-10 rounded-xl"
-                  style={{ backgroundColor: "#1e1e1e" }}
+                  style={{ backgroundColor: "var(--surface)" }}
                 >
                   <Users className="w-12 h-12 mx-auto mb-4 text-text-tertiary opacity-40" />
                   <p className="text-text-tertiary text-sm">Aucun groupe</p>
@@ -295,8 +295,8 @@ export default function Groups() {
                     key={orgUnit.id}
                     className="rounded-xl p-4 flex items-center gap-3"
                     style={{
-                      backgroundColor: "#212121",
-                      border: "1px solid #282828",
+                      backgroundColor: "var(--surface)",
+                      border: "1px solid var(--border)",
                     }}
                   >
                     <div
@@ -356,7 +356,7 @@ export default function Groups() {
               >
                 <div
                   className="w-full max-w-sm rounded-2xl p-5"
-                  style={{ backgroundColor: "#1e1e1e" }}
+                  style={{ backgroundColor: "var(--surface)" }}
                 >
                   <h3 className="text-text-primary font-semibold text-lg mb-4">
                     Modifier le groupe
@@ -368,8 +368,8 @@ export default function Groups() {
                       onChange={(e) => setEditName(e.target.value)}
                       className="w-full px-4 py-3 rounded-xl text-sm"
                       style={{
-                        backgroundColor: "#282828",
-                        color: "#fff",
+                        backgroundColor: "var(--surface-hover)",
+                        color: "var(--text-primary)",
                         border: "1px solid #383838",
                       }}
                     />
@@ -380,8 +380,8 @@ export default function Groups() {
                       rows={2}
                       className="w-full px-4 py-3 rounded-xl text-sm resize-none"
                       style={{
-                        backgroundColor: "#282828",
-                        color: "#fff",
+                        backgroundColor: "var(--surface-hover)",
+                        color: "var(--text-primary)",
                         border: "1px solid #383838",
                       }}
                     />
@@ -397,7 +397,7 @@ export default function Groups() {
                     <button
                       onClick={() => setShowEdit(null)}
                       className="px-4 py-3 rounded-full font-medium text-sm"
-                      style={{ backgroundColor: "#282828" }}
+                      style={{ backgroundColor: "var(--surface-hover)" }}
                     >
                       Annuler
                     </button>
@@ -414,7 +414,7 @@ export default function Groups() {
               >
                 <div
                   className="w-full max-w-sm rounded-2xl p-5 text-center"
-                  style={{ backgroundColor: "#1e1e1e" }}
+                  style={{ backgroundColor: "var(--surface)" }}
                 >
                   <Trash2 className="w-12 h-12 mx-auto mb-4 text-text-tertiary" />
                   <h3 className="text-text-primary font-semibold text-lg mb-2">
@@ -434,7 +434,7 @@ export default function Groups() {
                     <button
                       onClick={() => setShowDelete(null)}
                       className="px-4 py-3 rounded-full font-medium text-sm"
-                      style={{ backgroundColor: "#282828" }}
+                      style={{ backgroundColor: "var(--surface-hover)" }}
                     >
                       Annuler
                     </button>

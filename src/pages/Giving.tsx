@@ -58,7 +58,7 @@ export default function Giving() {
             </h1>
 
             {/* Onglets */}
-            <div className="flex rounded-xl p-1 mb-5" style={{ backgroundColor: "#212121" }} role="tablist" aria-label="Sections dons">
+            <div className="flex rounded-xl p-1 mb-5" style={{ backgroundColor: "var(--surface)" }} role="tablist" aria-label="Sections dons">
               {TABS.map((t) => (
                 <button
                   key={t.id}
@@ -69,7 +69,7 @@ export default function Giving() {
                   style={
                     tab === t.id
                       ? { backgroundColor: "var(--accent-primary)", color: "#fff" }
-                      : { color: "#B3B3B3" }
+                      : { color: "var(--text-secondary)" }
                   }
                 >
                   {t.label}
@@ -100,7 +100,7 @@ export default function Giving() {
                           key={c.id}
                           onClick={() => navigate(`/giving/campaigns/${c.id}`)}
                           className="w-full text-left rounded-xl p-4 active:scale-[0.99] transition-transform"
-                          style={{ backgroundColor: "#181818" }}
+                          style={{ backgroundColor: "var(--card)" }}
                           data-testid={`campaign-card-${c.id}`}
                         >
                           <div className="flex items-center justify-between mb-2">
@@ -112,7 +112,7 @@ export default function Giving() {
                             </div>
                             <ChevronRight className="w-4 h-4 text-text-tertiary" />
                           </div>
-                          <div className="h-2 rounded-full overflow-hidden mb-1.5" style={{ backgroundColor: "#282828" }}>
+                          <div className="h-2 rounded-full overflow-hidden mb-1.5" style={{ backgroundColor: "var(--surface-hover)" }}>
                             <div
                               className="h-full rounded-full"
                               style={{
@@ -153,7 +153,7 @@ export default function Giving() {
                       <div
                         key={d.id}
                         className="rounded-xl p-3 flex items-center justify-between"
-                        style={{ backgroundColor: "#181818" }}
+                        style={{ backgroundColor: "var(--card)" }}
                         data-testid={`donor-card-${d.id}`}
                       >
                         <div>
@@ -187,7 +187,7 @@ export default function Giving() {
                       const donor = donors.find((d) => d.id === p.donor_id);
                       const campaign = campaigns.find((c) => c.id === p.campaign_id);
                       return (
-                        <div key={p.id} className="rounded-xl p-3" style={{ backgroundColor: "#181818" }}>
+                        <div key={p.id} className="rounded-xl p-3" style={{ backgroundColor: "var(--card)" }}>
                           <div className="flex items-center justify-between">
                             <p className="text-text-primary font-medium text-sm">
                               {donor?.full_name ?? "Donateur"}
@@ -222,7 +222,7 @@ export default function Giving() {
                         <div
                           key={r.id}
                           className="rounded-xl p-3 flex items-center justify-between"
-                          style={{ backgroundColor: "#181818" }}
+                          style={{ backgroundColor: "var(--card)" }}
                           data-testid={`receipt-card-${r.id}`}
                         >
                           <div>
@@ -282,7 +282,7 @@ export default function Giving() {
 
 function Empty({ label, sub }: { label: string; sub: string }) {
   return (
-    <div className="rounded-xl p-8 text-center" style={{ backgroundColor: "#181818" }}>
+    <div className="rounded-xl p-8 text-center" style={{ backgroundColor: "var(--card)" }}>
       <Users className="w-8 h-8 mx-auto mb-3 opacity-30" style={{ color: "var(--accent-primary)" }} />
       <p className="text-text-secondary text-sm font-medium">{label}</p>
       <p className="text-text-tertiary text-xs mt-1">{sub}</p>
@@ -316,9 +316,9 @@ function GiveSheet({
 }) {
   const [saving, setSaving] = useState(false);
   const inputStyle = {
-    backgroundColor: "#212121",
-    color: "#fff",
-    border: "1px solid #282828",
+    backgroundColor: "var(--surface)",
+    color: "var(--text-primary)",
+    border: "1px solid var(--border)",
   } as const;
 
   if (kind === "donor") return <DonorSheet inputStyle={inputStyle} onClose={onClose} onCreate={onCreateDonor} saving={saving} setSaving={setSaving} />;
@@ -369,11 +369,11 @@ function DonorSheet({
       <button
         onClick={() => setTax(!tax)}
         className="flex items-center justify-between py-3 px-3 rounded-lg"
-        style={{ backgroundColor: "#212121", border: "1px solid #282828" }}
+        style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
         data-testid="donor-tax-toggle"
       >
         <span className="text-text-secondary text-xs">Reçu fiscal annuel</span>
-        <span className="text-xs font-semibold" style={{ color: tax ? "#1DB954" : "#808080" }}>
+        <span className="text-xs font-semibold" style={{ color: tax ? "#1DB954" : "var(--text-tertiary)" }}>
           {tax ? "Oui" : "Non"}
         </span>
       </button>
@@ -439,10 +439,10 @@ function Sheet({ title, onClose, children }: { title: string; onClose: () => voi
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={onClose}>
       <div className="absolute inset-0 bg-black/60" />
-      <div className="relative w-full max-w-lg rounded-t-2xl p-5 pb-28 space-y-3" style={{ backgroundColor: "#181818" }} onClick={(e) => e.stopPropagation()}>
+      <div className="relative w-full max-w-lg rounded-t-2xl p-5 pb-28 space-y-3" style={{ backgroundColor: "var(--card)" }} onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-text-primary font-bold text-lg">{title}</h2>
-          <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: "#282828" }} aria-label="Fermer">
+          <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: "var(--surface-hover)" }} aria-label="Fermer">
             <X className="w-4 h-4 text-text-tertiary" />
           </button>
         </div>

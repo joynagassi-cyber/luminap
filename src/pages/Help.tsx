@@ -48,7 +48,7 @@ export default function Help() {
                 <div
                   key={title}
                   className="rounded-xl p-4 flex items-start gap-3"
-                  style={{ backgroundColor: "#212121" }}
+                  style={{ backgroundColor: "var(--surface)" }}
                 >
                   <div
                     className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
@@ -68,7 +68,7 @@ export default function Help() {
 
             <div
               className="rounded-xl p-4 mb-6"
-              style={{ backgroundColor: "#212121" }}
+              style={{ backgroundColor: "var(--surface)" }}
             >
               <div className="flex items-center gap-2 mb-3">
                 <HelpCircle className="w-5 h-5" style={{ color: "var(--accent-primary)" }} />

@@ -47,7 +47,7 @@ export default function CulteDetail() {
           </IonToolbar>
         </IonHeader>
         <IonContent>
-          <div className="min-h-screen bg-[#121212]" style={{ paddingTop: 64 }}>
+          <div className="min-h-screen bg-[var(--canvas)]" style={{ paddingTop: 64 }}>
             <TopHeader />
             <div className="p-4 text-center text-text-tertiary">
               <p className="font-semibold mb-2">Culte introuvable</p>
@@ -139,17 +139,17 @@ export default function CulteDetail() {
       </IonHeader>
       <IonContent>
         <div
-          className="min-h-screen bg-[#121212]"
+          className="min-h-screen bg-[var(--canvas)]"
           style={{ paddingTop: 64, paddingBottom: 72 }}
         >
           <TopHeader title="Détail du Culte" />
 
           {/* Header */}
-          <div className="px-4 py-3 flex items-center gap-3 border-b border-[#282828]">
+          <div className="px-4 py-3 flex items-center gap-3 border-b border-[var(--border)]">
             <button
               onClick={() => navigate("/cotisations")}
               className="w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-95"
-              style={{ backgroundColor: "#212121" }}
+              style={{ backgroundColor: "var(--surface)" }}
               aria-label="Retour aux cultes"
             >
               <ArrowLeft className="w-4 h-4 text-text-secondary" />
@@ -170,7 +170,7 @@ export default function CulteDetail() {
           <div className="px-4 py-3 grid grid-cols-2 gap-2">
             <div
               className="rounded-xl p-3"
-              style={{ backgroundColor: "#212121" }}
+              style={{ backgroundColor: "var(--surface)" }}
             >
               <div className="flex items-center gap-2 mb-1">
                 <Users className="w-4 h-4 text-text-tertiary" />
@@ -184,7 +184,7 @@ export default function CulteDetail() {
             </div>
             <div
               className="rounded-xl p-3"
-              style={{ backgroundColor: "#212121" }}
+              style={{ backgroundColor: "var(--surface)" }}
             >
               <div className="flex items-center gap-2 mb-1">
                 <CheckCircle className="w-4 h-4 text-[#10B981]" />
@@ -194,17 +194,17 @@ export default function CulteDetail() {
             </div>
             <div
               className="rounded-xl p-3"
-              style={{ backgroundColor: "#212121" }}
+              style={{ backgroundColor: "var(--surface)" }}
             >
               <div className="flex items-center gap-2 mb-1">
-                <Clock className="w-4 h-4 text-[#808080]" />
+                <Clock className="w-4 h-4 text-[var(--text-tertiary)]" />
                 <span className="text-text-tertiary text-xs">Absents</span>
               </div>
-              <p className="text-[#808080] font-bold text-lg">{stats.absent}</p>
+              <p className="text-[var(--text-tertiary)] font-bold text-lg">{stats.absent}</p>
             </div>
             <div
               className="rounded-xl p-3"
-              style={{ backgroundColor: "#212121" }}
+              style={{ backgroundColor: "var(--surface)" }}
             >
               <div className="flex items-center gap-2 mb-1">
                 <CheckCircle className="w-4 h-4 text-[#EF4444]" />
@@ -216,7 +216,7 @@ export default function CulteDetail() {
             </div>
             <div
               className="col-span-2 rounded-xl p-3"
-              style={{ backgroundColor: "#212121" }}
+              style={{ backgroundColor: "var(--surface)" }}
             >
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-text-tertiary text-xs">
@@ -243,7 +243,7 @@ export default function CulteDetail() {
               onClick={() => navigate(`/saisie-rapide/${id}`)}
               className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95"
               style={{
-                backgroundColor: "#212121",
+                backgroundColor: "var(--surface)",
                 color: "var(--accent-primary)",
                 border: "1px solid var(--accent-primary)",
               }}
@@ -262,16 +262,16 @@ export default function CulteDetail() {
               <div
                 key={cot.id}
                 className="rounded-xl p-3 flex items-center gap-3"
-                style={{ backgroundColor: "#212121" }}
+                style={{ backgroundColor: "var(--surface)" }}
               >
                 <div
                   className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
                   style={{
-                    backgroundColor: "#2a2a2a",
+                    backgroundColor: "var(--surface-hover)",
                     color:
                       COTISATION_STATUT_COLORS[
                         cot.statut as CotisationStatut
-                      ] || "#808080",
+                      ] || "var(--text-tertiary)",
                   }}
                 >
                   {(cot.memberName || "?").charAt(0).toUpperCase()}
@@ -287,7 +287,7 @@ export default function CulteDetail() {
                         color:
                           COTISATION_STATUT_COLORS[
                             cot.statut as CotisationStatut
-                          ] || "#808080",
+                          ] || "var(--text-tertiary)",
                       }}
                     >
                       {COTISATION_STATUT_LABELS[
@@ -308,7 +308,7 @@ export default function CulteDetail() {
                         await handlePaye(cot.id, cot.montantObligatoire);
                       }}
                       className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all active:scale-95"
-                      style={{ backgroundColor: "#10B981", color: "#fff" }}
+                      style={{ backgroundColor: "#10B981", color: "var(--text-primary)" }}
                     >
                       Payé
                     </button>
@@ -320,8 +320,8 @@ export default function CulteDetail() {
                       }}
                       className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all active:scale-95"
                       style={{
-                        backgroundColor: "#2a2a2a",
-                        color: "#808080",
+                        backgroundColor: "var(--surface-hover)",
+                        color: "var(--text-tertiary)",
                         border: "1px solid #3a3a3a",
                       }}
                     >

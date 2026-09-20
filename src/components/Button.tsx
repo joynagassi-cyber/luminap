@@ -17,9 +17,9 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 const variants = {
   primary: "bg-[var(--accent-primary)] hover:bg-[#FF8533] text-white font-semibold",
   secondary:
-    "bg-[#212121] hover:bg-[#282828] text-[#B3B3B3] font-medium border border-[#282828]",
+    "bg-[var(--surface)] hover:bg-[var(--surface-hover)] text-[var(--text-secondary)] font-medium border border-[var(--border)]",
   danger: "bg-[#E51332] hover:bg-[#c4102b] text-white font-semibold",
-  ghost: "bg-transparent hover:bg-[#212121] text-[#B3B3B3] font-medium",
+  ghost: "bg-transparent hover:bg-[var(--surface)] text-[var(--text-secondary)] font-medium",
 };
 
 const sizes = {

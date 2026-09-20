@@ -47,7 +47,7 @@ export default function Balance() {
               <div
                 key={i}
                 className="h-16 rounded-xl animate-pulse"
-                style={{ backgroundColor: "#212121" }}
+                style={{ backgroundColor: "var(--surface)" }}
               />
             ))}
           </div>
@@ -114,7 +114,7 @@ export default function Balance() {
             {/* Period toggle */}
             <div
               className="flex rounded-xl p-1 mb-5"
-              style={{ backgroundColor: "#212121" }}
+              style={{ backgroundColor: "var(--surface)" }}
               role="group"
               aria-label="Période"
             >
@@ -124,7 +124,7 @@ export default function Balance() {
                 style={
                   period === "mois"
                     ? { backgroundColor: "var(--accent-primary)", color: "#fff" }
-                    : { color: "#B3B3B3" }
+                    : { color: "var(--text-secondary)" }
                 }
                 aria-pressed={period === "mois"}
                 aria-label="Mois"
@@ -137,7 +137,7 @@ export default function Balance() {
                 style={
                   period === "annee"
                     ? { backgroundColor: "var(--accent-primary)", color: "#fff" }
-                    : { color: "#B3B3B3" }
+                    : { color: "var(--text-secondary)" }
                 }
                 aria-pressed={period === "annee"}
                 aria-label="Année"
@@ -158,8 +158,8 @@ export default function Balance() {
                       className="px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-all"
                       style={
                         selectedCaisse === a.id
-                          ? { backgroundColor: color, color: "#fff" }
-                          : { backgroundColor: "#212121", color: "#B3B3B3" }
+                          ? { backgroundColor: color, color: "var(--text-primary)" }
+                          : { backgroundColor: "var(--surface)", color: "var(--text-secondary)" }
                       }
                       aria-pressed={selectedCaisse === a.id}
                       aria-label={`Caisse ${a.name}`}
@@ -175,7 +175,7 @@ export default function Balance() {
             <div className="grid grid-cols-3 gap-3 mb-6">
               <div
                 className="rounded-xl p-4 text-center"
-                style={{ backgroundColor: "#212121" }}
+                style={{ backgroundColor: "var(--surface)" }}
               >
                 <div
                   className="w-8 h-8 rounded-full flex items-center justify-center mx-auto mb-2"
@@ -193,7 +193,7 @@ export default function Balance() {
               </div>
               <div
                 className="rounded-xl p-4 text-center"
-                style={{ backgroundColor: "#212121" }}
+                style={{ backgroundColor: "var(--surface)" }}
               >
                 <div
                   className="w-8 h-8 rounded-full flex items-center justify-center mx-auto mb-2"
@@ -211,7 +211,7 @@ export default function Balance() {
               </div>
               <div
                 className="rounded-xl p-4 text-center"
-                style={{ backgroundColor: "#212121" }}
+                style={{ backgroundColor: "var(--surface)" }}
               >
                 <div
                   className="w-8 h-8 rounded-full flex items-center justify-center mx-auto mb-2"
@@ -233,7 +233,7 @@ export default function Balance() {
             {/* By category */}
             <div
               className="rounded-xl p-4 mb-6"
-              style={{ backgroundColor: "#212121" }}
+              style={{ backgroundColor: "var(--surface)" }}
             >
               <p className="text-text-tertiary text-xs font-medium mb-4">
                 Par catégorie
@@ -252,7 +252,7 @@ export default function Balance() {
                     </div>
                     <div
                       className="flex gap-1 h-2 rounded-full overflow-hidden"
-                      style={{ backgroundColor: "#282828" }}
+                      style={{ backgroundColor: "var(--surface-hover)" }}
                     >
                       {cat.income > 0 && (
                         <div
@@ -298,7 +298,7 @@ export default function Balance() {
                 <div className="absolute inset-0 bg-black/60" />
                 <div
                   className="relative w-full max-w-lg rounded-t-2xl p-5 pb-8"
-                  style={{ backgroundColor: "#181818" }}
+                  style={{ backgroundColor: "var(--card)" }}
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="flex items-center justify-between mb-5">
@@ -308,7 +308,7 @@ export default function Balance() {
                     <button
                       onClick={() => setShowExport(false)}
                       className="w-8 h-8 rounded-full flex items-center justify-center"
-                      style={{ backgroundColor: "#282828" }}
+                      style={{ backgroundColor: "var(--surface-hover)" }}
                       aria-label="Fermer l'export"
                     >
                       <span className="text-text-tertiary text-sm">
@@ -319,7 +319,7 @@ export default function Balance() {
                   {appConfig.churchName && (
                     <div
                       className="flex items-center gap-2 mb-4 p-3 rounded-xl"
-                      style={{ backgroundColor: "#212121" }}
+                      style={{ backgroundColor: "var(--surface)" }}
                     >
                       {appConfig.churchLogoUrl && (
                         <img
@@ -347,8 +347,8 @@ export default function Balance() {
                       }}
                       className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform"
                       style={{
-                        backgroundColor: "#212121",
-                        border: "1px solid #282828",
+                        backgroundColor: "var(--surface)",
+                        border: "1px solid var(--border)",
                       }}
                     >
                       <div
@@ -382,8 +382,8 @@ export default function Balance() {
                       }}
                       className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform"
                       style={{
-                        backgroundColor: "#212121",
-                        border: "1px solid #282828",
+                        backgroundColor: "var(--surface)",
+                        border: "1px solid var(--border)",
                       }}
                     >
                       <div
@@ -417,8 +417,8 @@ export default function Balance() {
                       }}
                       className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform"
                       style={{
-                        backgroundColor: "#212121",
-                        border: "1px solid #282828",
+                        backgroundColor: "var(--surface)",
+                        border: "1px solid var(--border)",
                       }}
                     >
                       <div

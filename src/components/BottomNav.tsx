@@ -162,7 +162,7 @@ export default function BottomNav() {
             justifyContent: "center",
             background: `linear-gradient(135deg, ${fabAction.color}, ${fabAction.color})`,
             boxShadow: `0 4px 16px ${tint(fabAction.color, 38)}`,
-            color: "#fff",
+            color: "var(--text-primary)",
             padding: 0,
           }}
           aria-label={fabAction.label}
@@ -187,9 +187,9 @@ export default function BottomNav() {
           left: 0,
           right: 0,
           zIndex: 50,
-          background: "rgba(18,18,18,0.97)",
+          background: "var(--nav-bg)",
           backdropFilter: "blur(10px)",
-          borderTop: "1px solid #282828",
+          borderTop: "1px solid var(--border)",
           padding: "4px 8px 8px",
         }}
       >
@@ -215,14 +215,14 @@ export default function BottomNav() {
                 <Icon
                   className="w-5 h-5"
                   style={{
-                    color: active ? "var(--accent-primary)" : "#B3B3B3",
+                    color: active ? "var(--accent-primary)" : "var(--text-secondary)",
                     opacity: active ? 1 : 0.7,
                   }}
                 />
                 <span
                   className="text-xs font-medium"
                   style={{
-                    color: active ? "var(--accent-primary)" : "#B3B3B3",
+                    color: active ? "var(--accent-primary)" : "var(--text-secondary)",
                   }}
                 >
                   {f.label}
@@ -244,13 +244,13 @@ export default function BottomNav() {
               <MoreVertical
                 className="w-5 h-5"
                 style={{
-                  color: showMore ? "var(--accent-primary)" : "#B3B3B3",
+                  color: showMore ? "var(--accent-primary)" : "var(--text-secondary)",
                 }}
               />
               <span
                 className="text-xs font-medium"
                 style={{
-                  color: showMore ? "var(--accent-primary)" : "#B3B3B3",
+                  color: showMore ? "var(--accent-primary)" : "var(--text-secondary)",
                 }}
               >
                 Plus
@@ -265,9 +265,9 @@ export default function BottomNav() {
                 data-testid="more-menu"
                 className="absolute bottom-12 right-0 w-56 rounded-2xl overflow-hidden z-50"
                 style={{
-                  backgroundColor: "#181818",
-                  border: "1px solid #282828",
-                  boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
+                  backgroundColor: "var(--card)",
+                  border: "1px solid var(--border)",
+                  boxShadow: "var(--shadow-pop)",
                   maxHeight: "45vh",
                   overflowY: "auto",
                 }}
@@ -288,11 +288,11 @@ export default function BottomNav() {
                         background: "transparent",
                         border: "none",
                         cursor: "pointer",
-                        color: "#B3B3B3",
+                        color: "var(--text-secondary)",
                       }}
                       aria-label="Gérer les features dans Paramètres"
                     >
-                      <Settings className="w-4 h-4 flex-shrink-0" style={{ color: "#808080" }} />
+                      <Settings className="w-4 h-4 flex-shrink-0" style={{ color: "var(--text-tertiary)" }} />
                       <span className="text-sm font-medium">
                         Aucune feature activée — gérer
                       </span>
@@ -313,7 +313,7 @@ export default function BottomNav() {
                               : "transparent",
                             border: "none",
                             cursor: "pointer",
-                            color: pinned ? "var(--accent-primary)" : "#B3B3B3",
+                            color: pinned ? "var(--accent-primary)" : "var(--text-secondary)",
                           }}
                           aria-label={
                             pinned ? `${f.label} (déjà dans la barre)` : f.label
@@ -321,7 +321,7 @@ export default function BottomNav() {
                         >
                           <Icon
                             className="w-4 h-4 flex-shrink-0"
-                            style={{ color: pinned ? "var(--accent-primary)" : "#B3B3B3" }}
+                            style={{ color: pinned ? "var(--accent-primary)" : "var(--text-secondary)" }}
                           />
                           <span
                             className="text-sm font-medium flex-1 truncate"
@@ -331,7 +331,7 @@ export default function BottomNav() {
                           {pinned && (
                             <span
                               className="flex items-center gap-1 text-[10px] font-medium flex-shrink-0"
-                              style={{ color: "#808080" }}
+                              style={{ color: "var(--text-tertiary)" }}
                             >
                               <Check className="w-3 h-3" />
                               Dans la barre

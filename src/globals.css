@@ -3,26 +3,11 @@
 @tailwind utilities;
 
 @layer base {
+  /* Les tokens de couleur pointent désormais vers les variables sémantiques
+     de src/App.css (basculées dark/light via [data-theme]) : le mapping
+     Tailwind (tailwind.config.ts) consomme var(--canvas), var(--surface)…
+     directement. Seuls les tokens non-couleur restent ici. */
   :root {
-    --background: var(--canvas);
-    --foreground: var(--text-primary);
-    --card: var(--surface);
-    --card-foreground: var(--text-primary);
-    --popover: var(--surface);
-    --popover-foreground: var(--text-primary);
-    --primary: var(--accent-primary);
-    --primary-foreground: #ffffff;
-    --secondary: #282828;
-    --secondary-foreground: #b3b3b3;
-    --muted: #282828;
-    --muted-foreground: #808080;
-    --accent: var(--accent-primary);
-    --accent-foreground: #ffffff;
-    --destructive: var(--data-expense);
-    --destructive-foreground: #ffffff;
-    --border: #282828;
-    --input: #282828;
-    --ring: var(--accent-primary);
     --radius: 0.5rem;
   }
 }

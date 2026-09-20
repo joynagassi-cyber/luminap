@@ -107,7 +107,7 @@ export default function CustomFields() {
             {fields.length === 0 ? (
               <div
                 className="text-center py-16 rounded-xl"
-                style={{ backgroundColor: "#212121" }}
+                style={{ backgroundColor: "var(--surface)" }}
               >
                 <p className="text-text-primary font-medium text-sm mb-2">
                   Pas encore de champ personnalisé
@@ -123,7 +123,7 @@ export default function CustomFields() {
                   <div
                     key={field.id}
                     className="rounded-xl p-4 flex items-center gap-3"
-                    style={{ backgroundColor: "#212121" }}
+                    style={{ backgroundColor: "var(--surface)" }}
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
@@ -167,7 +167,7 @@ export default function CustomFields() {
               <div className="absolute inset-0 bg-black/60" />
               <div
                 className="relative w-full max-w-lg rounded-t-2xl p-5 pb-8"
-                style={{ backgroundColor: "#181818" }}
+                style={{ backgroundColor: "var(--card)" }}
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="flex items-center justify-between mb-5">
@@ -177,7 +177,7 @@ export default function CustomFields() {
                   <button
                     onClick={() => setShowCreate(false)}
                     className="w-8 h-8 rounded-full flex items-center justify-center"
-                    style={{ backgroundColor: "#282828" }}
+                    style={{ backgroundColor: "var(--surface-hover)" }}
                     aria-label="Fermer"
                   >
                     <X className="w-4 h-4 text-text-tertiary" />
@@ -194,8 +194,8 @@ export default function CustomFields() {
                       onChange={(e) => setEntityType(e.target.value)}
                       className="w-full px-4 py-3 rounded-xl text-text-primary text-sm appearance-none"
                       style={{
-                        backgroundColor: "#212121",
-                        border: "1px solid #282828",
+                        backgroundColor: "var(--surface)",
+                        border: "1px solid var(--border)",
                       }}
                     >
                       {ENTITY_TYPES.map((t) => (
@@ -216,8 +216,8 @@ export default function CustomFields() {
                       placeholder="Ex: Montant estimé"
                       className="w-full px-4 py-3 rounded-xl text-text-primary text-sm"
                       style={{
-                        backgroundColor: "#212121",
-                        border: "1px solid #282828",
+                        backgroundColor: "var(--surface)",
+                        border: "1px solid var(--border)",
                       }}
                     />
                   </div>
@@ -236,8 +236,8 @@ export default function CustomFields() {
                       placeholder="montant_estime"
                       className="w-full px-4 py-3 rounded-xl text-text-primary text-sm"
                       style={{
-                        backgroundColor: "#212121",
-                        border: "1px solid #282828",
+                        backgroundColor: "var(--surface)",
+                        border: "1px solid var(--border)",
                       }}
                     />
                   </div>
@@ -255,9 +255,9 @@ export default function CustomFields() {
                             type === ft.value
                               ? { backgroundColor: "var(--accent-primary)", color: "#fff" }
                               : {
-                                  backgroundColor: "#212121",
-                                  color: "#B3B3B3",
-                                  border: "1px solid #282828",
+                                  backgroundColor: "var(--surface)",
+                                  color: "var(--text-secondary)",
+                                  border: "1px solid var(--border)",
                                 }
                           }
                         >
@@ -278,8 +278,8 @@ export default function CustomFields() {
                         rows={3}
                         className="w-full px-4 py-3 rounded-xl text-text-primary text-sm resize-none"
                         style={{
-                          backgroundColor: "#212121",
-                          border: "1px solid #282828",
+                          backgroundColor: "var(--surface)",
+                          border: "1px solid var(--border)",
                         }}
                         aria-label="Options du champ (une par ligne)"
                       />
@@ -303,7 +303,7 @@ export default function CustomFields() {
                 <button
                   onClick={() => setShowCreate(false)}
                   className="w-full py-3 rounded-full font-medium text-sm text-text-tertiary"
-                  style={{ backgroundColor: "#212121" }}
+                  style={{ backgroundColor: "var(--surface)" }}
                   aria-label="Annuler"
                 >
                   Annuler

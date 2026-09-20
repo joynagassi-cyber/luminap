@@ -30,7 +30,7 @@ function getNotifIcon(actionType: string) {
     case "BUDGET_EXCEEDED":
       return <AlertCircle className="w-4 h-4" style={{ color: "#E51332" }} />;
     default:
-      return <Bell className="w-4 h-4" style={{ color: "#B3B3B3" }} />;
+      return <Bell className="w-4 h-4" style={{ color: "var(--text-secondary)" }} />;
   }
 }
 
@@ -99,7 +99,7 @@ export default function NotificationsPage() {
             {sorted.length === 0 ? (
               <div
                 className="text-center py-16 rounded-xl"
-                style={{ backgroundColor: "#212121" }}
+                style={{ backgroundColor: "var(--surface)" }}
               >
                 <Bell className="w-12 h-12 mx-auto mb-4 text-text-tertiary opacity-50" />
                 <p className="text-text-primary font-medium text-sm mb-2">
@@ -132,9 +132,9 @@ export default function NotificationsPage() {
                           ? notif.is_read
                           : notif.isRead
                       )
-                        ? "#212121"
-                        : "#282828",
-                      border: "1px solid #282828",
+                        ? "var(--surface)"
+                        : "var(--surface-hover)",
+                      border: "1px solid var(--border)",
                     }}
                   >
                     <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">

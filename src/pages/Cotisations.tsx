@@ -86,12 +86,12 @@ export default function Cotisations() {
   return (
     <IonPage>
       <IonContent className="bg-canvas">
-        <div className="min-h-screen" style={{ background: "#121212" }}>
+        <div className="min-h-screen" style={{ background: "var(--canvas)" }}>
           <TopHeader title="Cotisations" />
           <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
             <div className="flex items-center justify-between mb-5">
               <div>
-                <h1 className="font-bold text-xl" style={{ color: "#FFFFFF" }}>
+                <h1 className="font-bold text-xl" style={{ color: "var(--text-primary)" }}>
                   Cotisations
                 </h1>
                 <p className="text-xs mt-0.5" style={{ color: "#888888" }}>
@@ -117,7 +117,7 @@ export default function Cotisations() {
             {culteStats.length === 0 ? (
               <div
                 className="text-center py-16 rounded-xl"
-                style={{ background: "#212121" }}
+                style={{ background: "var(--surface)" }}
               >
                 <Calendar
                   className="w-12 h-12 mx-auto mb-4 opacity-40"
@@ -153,8 +153,8 @@ export default function Cotisations() {
                       onClick={() => navigate(`/saisie-rapide/${stat.culteId}`)}
                       className="w-full text-left rounded-xl p-4 transition-all active:scale-95"
                       style={{
-                        background: "#212121",
-                        border: "1px solid #282828",
+                        background: "var(--surface)",
+                        border: "1px solid var(--border)",
                       }}
                       aria-label={`Culte ${(stat as any).culteName || stat.culteId}`}
                     >
@@ -171,7 +171,7 @@ export default function Cotisations() {
                         <div className="flex-1 min-w-0">
                           <p
                             className="font-semibold text-sm truncate"
-                            style={{ color: "#FFFFFF" }}
+                            style={{ color: "var(--text-primary)" }}
                           >
                             {stat.name}
                           </p>
@@ -197,7 +197,7 @@ export default function Cotisations() {
                               </span>
                             )}
                             {stat.absent > 0 && (
-                              <span style={{ color: "#808080" }}>
+                              <span style={{ color: "var(--text-tertiary)" }}>
                                 {stat.absent} absent
                               </span>
                             )}
@@ -215,7 +215,7 @@ export default function Cotisations() {
                             </div>
                             <div
                               className="h-1.5 rounded-full overflow-hidden"
-                              style={{ background: "#333333" }}
+                              style={{ background: "var(--surface-active)" }}
                             >
                               <div
                                 className="h-full rounded-full transition-all"

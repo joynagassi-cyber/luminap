@@ -124,11 +124,11 @@ export default function EventEdit() {
                   onChange={(e) => setName(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl text-sm"
                   style={{
-                    backgroundColor: "#212121",
-                    color: "#fff",
+                    backgroundColor: "var(--surface)",
+                    color: "var(--text-primary)",
                     border: fieldErrors.name
                       ? "1px solid #E51332"
-                      : "1px solid #282828",
+                      : "1px solid var(--surface-hover)",
                   }}
                 />
                 {fieldErrors.name && (
@@ -148,9 +148,9 @@ export default function EventEdit() {
                   rows={3}
                   className="w-full px-4 py-3 rounded-xl text-sm  resize-none"
                   style={{
-                    backgroundColor: "#212121",
-                    color: "#fff",
-                    border: "1px solid #282828",
+                    backgroundColor: "var(--surface)",
+                    color: "var(--text-primary)",
+                    border: "1px solid var(--border)",
                   }}
                 />
               </div>
@@ -165,11 +165,11 @@ export default function EventEdit() {
                   onChange={(e) => setStartDate(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl text-sm"
                   style={{
-                    backgroundColor: "#212121",
-                    color: "#fff",
+                    backgroundColor: "var(--surface)",
+                    color: "var(--text-primary)",
                     border: fieldErrors.startDate
                       ? "1px solid #E51332"
-                      : "1px solid #282828",
+                      : "1px solid var(--surface-hover)",
                   }}
                 />
                 {fieldErrors.startDate && (
@@ -189,11 +189,11 @@ export default function EventEdit() {
                   onChange={(e) => setEndDate(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl text-sm"
                   style={{
-                    backgroundColor: "#212121",
-                    color: "#fff",
+                    backgroundColor: "var(--surface)",
+                    color: "var(--text-primary)",
                     border: fieldErrors.endDate
                       ? "1px solid #E51332"
-                      : "1px solid #282828",
+                      : "1px solid var(--surface-hover)",
                   }}
                 />
                 {fieldErrors.endDate && (
@@ -212,9 +212,9 @@ export default function EventEdit() {
                   onChange={(e) => setStatus(e.target.value as any)}
                   className="w-full px-4 py-3 rounded-xl text-sm"
                   style={{
-                    backgroundColor: "#212121",
-                    color: "#fff",
-                    border: "1px solid #282828",
+                    backgroundColor: "var(--surface)",
+                    color: "var(--text-primary)",
+                    border: "1px solid var(--border)",
                   }}
                 >
                   <option value="PLANIFIED">Planifié</option>
@@ -235,11 +235,11 @@ export default function EventEdit() {
                   placeholder="0"
                   className="w-full px-4 py-3 rounded-xl text-sm"
                   style={{
-                    backgroundColor: "#212121",
-                    color: "#fff",
+                    backgroundColor: "var(--surface)",
+                    color: "var(--text-primary)",
                     border: fieldErrors.budget
                       ? "1px solid #E51332"
-                      : "1px solid #282828",
+                      : "1px solid var(--surface-hover)",
                   }}
                 />
                 {fieldErrors.budget && (

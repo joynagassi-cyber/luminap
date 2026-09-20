@@ -39,16 +39,16 @@ const SCREENS = [
           width="220"
           height="160"
           rx="16"
-          fill="#1E1E1E"
-          stroke="#282828"
+          fill="var(--surface)"
+          stroke="var(--surface-hover)"
           strokeWidth="1"
         />
         <rect x="50" y="40" width="180" height="8" rx="4" fill="var(--accent-primary)" />
-        <rect x="50" y="60" width="120" height="6" rx="3" fill="#282828" />
+        <rect x="50" y="60" width="120" height="6" rx="3" fill="var(--surface-hover)" />
         <rect x="50" y="80" width="70" height="40" rx="8" fill="#1DB95420" />
-        <rect x="130" y="80" width="100" height="40" rx="8" fill="#282828" />
-        <rect x="50" y="135" width="180" height="6" rx="3" fill="#282828" />
-        <rect x="50" y="150" width="130" height="6" rx="3" fill="#282828" />
+        <rect x="130" y="80" width="100" height="40" rx="8" fill="var(--surface-hover)" />
+        <rect x="50" y="135" width="180" height="6" rx="3" fill="var(--surface-hover)" />
+        <rect x="50" y="150" width="130" height="6" rx="3" fill="var(--surface-hover)" />
         <circle cx="220" cy="44" r="3" fill="#E51332" />
         <circle cx="210" cy="44" r="3" fill="#FFB800" />
         <circle cx="200" cy="44" r="3" fill="#1DB954" />
@@ -93,43 +93,43 @@ const SCREENS = [
           width="110"
           height="70"
           rx="12"
-          fill="#1E1E1E"
-          stroke="#282828"
+          fill="var(--surface)"
+          stroke="var(--surface-hover)"
           strokeWidth="1"
         />
         <rect x="35" y="35" width="50" height="8" rx="4" fill="#1DB954" />
-        <rect x="35" y="50" width="80" height="4" rx="2" fill="#282828" />
-        <rect x="35" y="60" width="60" height="4" rx="2" fill="#282828" />
-        <rect x="35" y="80" width="40" height="4" rx="2" fill="#282828" />
+        <rect x="35" y="50" width="80" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect x="35" y="60" width="60" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect x="35" y="80" width="40" height="4" rx="2" fill="var(--surface-hover)" />
         <rect
           x="150"
           y="20"
           width="110"
           height="70"
           rx="12"
-          fill="#1E1E1E"
-          stroke="#282828"
+          fill="var(--surface)"
+          stroke="var(--surface-hover)"
           strokeWidth="1"
         />
         <rect x="165" y="35" width="50" height="8" rx="4" fill="#FFB800" />
-        <rect x="165" y="50" width="80" height="4" rx="2" fill="#282828" />
-        <rect x="165" y="60" width="60" height="4" rx="2" fill="#282828" />
-        <rect x="165" y="80" width="40" height="4" rx="2" fill="#282828" />
+        <rect x="165" y="50" width="80" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect x="165" y="60" width="60" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect x="165" y="80" width="40" height="4" rx="2" fill="var(--surface-hover)" />
         <rect
           x="20"
           y="105"
           width="240"
           height="75"
           rx="12"
-          fill="#1E1E1E"
-          stroke="#282828"
+          fill="var(--surface)"
+          stroke="var(--surface-hover)"
           strokeWidth="1"
         />
-        <rect x="35" y="120" width="30" height="40" rx="4" fill="#282828" />
+        <rect x="35" y="120" width="30" height="40" rx="4" fill="var(--surface-hover)" />
         <rect x="75" y="135" width="30" height="25" rx="4" fill="var(--accent-primary)" />
-        <rect x="115" y="125" width="30" height="35" rx="4" fill="#282828" />
-        <rect x="155" y="140" width="30" height="20" rx="4" fill="#282828" />
-        <rect x="195" y="115" width="30" height="45" rx="4" fill="#282828" />
+        <rect x="115" y="125" width="30" height="35" rx="4" fill="var(--surface-hover)" />
+        <rect x="155" y="140" width="30" height="20" rx="4" fill="var(--surface-hover)" />
+        <rect x="195" y="115" width="30" height="45" rx="4" fill="var(--surface-hover)" />
       </svg>
     ),
   },
@@ -152,41 +152,41 @@ const SCREENS = [
           width="160"
           height="170"
           rx="16"
-          fill="#1E1E1E"
-          stroke="#282828"
+          fill="var(--surface)"
+          stroke="var(--surface-hover)"
           strokeWidth="1"
         />
-        <rect x="80" y="35" width="120" height="6" rx="3" fill="#282828" />
+        <rect x="80" y="35" width="120" height="6" rx="3" fill="var(--surface-hover)" />
         <rect
           x="80"
           y="55"
           width="90"
           height="50"
           rx="8"
-          fill="#1E1E1E"
-          stroke="#282828"
+          fill="var(--surface)"
+          stroke="var(--surface-hover)"
           strokeWidth="1"
         />
         <circle cx="95" cy="70" r="10" fill="#1DB95420" />
         <rect x="88" y="67" width="14" height="6" rx="1" fill="#1DB954" />
-        <rect x="115" y="63" width="60" height="4" rx="2" fill="#282828" />
-        <rect x="115" y="73" width="40" height="4" rx="2" fill="#282828" />
-        <rect x="115" y="83" width="30" height="4" rx="2" fill="#282828" />
+        <rect x="115" y="63" width="60" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect x="115" y="73" width="40" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect x="115" y="83" width="30" height="4" rx="2" fill="var(--surface-hover)" />
         <rect
           x="80"
           y="115"
           width="90"
           height="50"
           rx="8"
-          fill="#1E1E1E"
-          stroke="#282828"
+          fill="var(--surface)"
+          stroke="var(--surface-hover)"
           strokeWidth="1"
         />
         <circle cx="95" cy="130" r="10" fill="#E5133220" />
         <rect x="88" y="127" width="14" height="6" rx="1" fill="#E51332" />
-        <rect x="115" y="123" width="60" height="4" rx="2" fill="#282828" />
-        <rect x="115" y="133" width="40" height="4" rx="2" fill="#282828" />
-        <rect x="115" y="143" width="30" height="4" rx="2" fill="#282828" />
+        <rect x="115" y="123" width="60" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect x="115" y="133" width="40" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect x="115" y="143" width="30" height="4" rx="2" fill="var(--surface-hover)" />
         <circle cx="230" cy="170" r="18" fill="var(--accent-primary)" />
         <path
           d="M222 170h16M230 162v16"
@@ -216,56 +216,56 @@ const SCREENS = [
           width="100"
           height="70"
           rx="12"
-          fill="#1E1E1E"
-          stroke="#282828"
+          fill="var(--surface)"
+          stroke="var(--surface-hover)"
           strokeWidth="1"
         />
         <rect x="35" y="30" width="70" height="6" rx="3" fill="var(--accent-primary)" />
-        <rect x="35" y="45" width="50" height="4" rx="2" fill="#282828" />
-        <rect x="35" y="55" width="40" height="4" rx="2" fill="#282828" />
-        <rect x="35" y="75" width="70" height="4" rx="2" fill="#282828" />
+        <rect x="35" y="45" width="50" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect x="35" y="55" width="40" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect x="35" y="75" width="70" height="4" rx="2" fill="var(--surface-hover)" />
         <rect
           x="160"
           y="15"
           width="100"
           height="70"
           rx="12"
-          fill="#1E1E1E"
-          stroke="#282828"
+          fill="var(--surface)"
+          stroke="var(--surface-hover)"
           strokeWidth="1"
         />
         <rect x="175" y="30" width="70" height="6" rx="3" fill="#8B5CF6" />
-        <rect x="175" y="45" width="50" height="4" rx="2" fill="#282828" />
-        <rect x="175" y="55" width="40" height="4" rx="2" fill="#282828" />
-        <rect x="175" y="75" width="70" height="4" rx="2" fill="#282828" />
+        <rect x="175" y="45" width="50" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect x="175" y="55" width="40" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect x="175" y="75" width="70" height="4" rx="2" fill="var(--surface-hover)" />
         <rect
           x="20"
           y="105"
           width="100"
           height="70"
           rx="12"
-          fill="#1E1E1E"
-          stroke="#282828"
+          fill="var(--surface)"
+          stroke="var(--surface-hover)"
           strokeWidth="1"
         />
         <rect x="35" y="120" width="70" height="6" rx="3" fill="#1DB954" />
-        <rect x="35" y="135" width="50" height="4" rx="2" fill="#282828" />
-        <rect x="35" y="145" width="40" height="4" rx="2" fill="#282828" />
-        <rect x="35" y="165" width="70" height="4" rx="2" fill="#282828" />
+        <rect x="35" y="135" width="50" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect x="35" y="145" width="40" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect x="35" y="165" width="70" height="4" rx="2" fill="var(--surface-hover)" />
         <rect
           x="160"
           y="105"
           width="100"
           height="70"
           rx="12"
-          fill="#1E1E1E"
-          stroke="#282828"
+          fill="var(--surface)"
+          stroke="var(--surface-hover)"
           strokeWidth="1"
         />
         <rect x="175" y="120" width="70" height="6" rx="3" fill="#FFB800" />
-        <rect x="175" y="135" width="50" height="4" rx="2" fill="#282828" />
-        <rect x="175" y="145" width="40" height="4" rx="2" fill="#282828" />
-        <rect x="175" y="165" width="70" height="4" rx="2" fill="#282828" />
+        <rect x="175" y="135" width="50" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect x="175" y="145" width="40" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect x="175" y="165" width="70" height="4" rx="2" fill="var(--surface-hover)" />
         <path
           d="M120 50h40M120 140h40"
           stroke="var(--accent-primary)"
@@ -309,29 +309,29 @@ const SCREENS = [
           width="220"
           height="170"
           rx="16"
-          fill="#1E1E1E"
-          stroke="#282828"
+          fill="var(--surface)"
+          stroke="var(--surface-hover)"
           strokeWidth="1"
         />
         <rect x="50" y="30" width="60" height="8" rx="4" fill="#EC4899" />
-        <rect x="120" y="30" width="40" height="8" rx="4" fill="#282828" />
-        <rect x="170" y="30" width="40" height="8" rx="4" fill="#282828" />
-        <rect x="50" y="55" width="180" height="1" fill="#282828" />
-        <rect x="50" y="70" width="120" height="6" rx="3" fill="#282828" />
-        <rect x="50" y="85" width="80" height="6" rx="3" fill="#282828" />
-        <rect x="50" y="100" width="100" height="6" rx="3" fill="#282828" />
+        <rect x="120" y="30" width="40" height="8" rx="4" fill="var(--surface-hover)" />
+        <rect x="170" y="30" width="40" height="8" rx="4" fill="var(--surface-hover)" />
+        <rect x="50" y="55" width="180" height="1" fill="var(--surface-hover)" />
+        <rect x="50" y="70" width="120" height="6" rx="3" fill="var(--surface-hover)" />
+        <rect x="50" y="85" width="80" height="6" rx="3" fill="var(--surface-hover)" />
+        <rect x="50" y="100" width="100" height="6" rx="3" fill="var(--surface-hover)" />
         <rect
           x="50"
           y="125"
           width="180"
           height="40"
           rx="8"
-          fill="#181818"
-          stroke="#282828"
+          fill="var(--card)"
+          stroke="var(--surface-hover)"
           strokeWidth="1"
         />
-        <rect x="60" y="135" width="60" height="4" rx="2" fill="#282828" />
-        <rect x="60" y="145" width="40" height="4" rx="2" fill="#282828" />
+        <rect x="60" y="135" width="60" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect x="60" y="145" width="40" height="4" rx="2" fill="var(--surface-hover)" />
         <rect x="180" y="135" width="40" height="14" rx="4" fill="#EC489920" />
         <rect x="240" y="70" width="10" height="40" rx="2" fill="#EC4899" />
         <rect
@@ -374,14 +374,14 @@ const SCREENS = [
           width="130"
           height="170"
           rx="12"
-          fill="#1E1E1E"
-          stroke="#282828"
+          fill="var(--surface)"
+          stroke="var(--surface-hover)"
           strokeWidth="1"
         />
         <rect x="35" y="35" width="100" height="6" rx="3" fill="#3B82F6" />
-        <rect x="35" y="55" width="70" height="4" rx="2" fill="#282828" />
-        <rect x="35" y="65" width="50" height="4" rx="2" fill="#282828" />
-        <rect x="35" y="85" width="100" height="50" rx="6" fill="#181818" />
+        <rect x="35" y="55" width="70" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect x="35" y="65" width="50" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect x="35" y="85" width="100" height="50" rx="6" fill="var(--card)" />
         <rect x="45" y="110" width="20" height="20" rx="3" fill="#3B82F6" />
         <rect
           x="70"
@@ -410,23 +410,23 @@ const SCREENS = [
           fill="#3B82F6"
           opacity="0.3"
         />
-        <rect x="35" y="150" width="100" height="6" rx="3" fill="#282828" />
-        <rect x="35" y="162" width="70" height="4" rx="2" fill="#282828" />
+        <rect x="35" y="150" width="100" height="6" rx="3" fill="var(--surface-hover)" />
+        <rect x="35" y="162" width="70" height="4" rx="2" fill="var(--surface-hover)" />
         <rect
           x="170"
           y="30"
           width="80"
           height="140"
           rx="12"
-          fill="#1E1E1E"
-          stroke="#282828"
+          fill="var(--surface)"
+          stroke="var(--surface-hover)"
           strokeWidth="1"
         />
-        <rect x="185" y="50" width="50" height="6" rx="3" fill="#282828" />
-        <rect x="185" y="70" width="50" height="4" rx="2" fill="#282828" />
-        <rect x="185" y="80" width="50" height="4" rx="2" fill="#282828" />
-        <rect x="185" y="100" width="50" height="4" rx="2" fill="#282828" />
-        <rect x="185" y="110" width="50" height="4" rx="2" fill="#282828" />
+        <rect x="185" y="50" width="50" height="6" rx="3" fill="var(--surface-hover)" />
+        <rect x="185" y="70" width="50" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect x="185" y="80" width="50" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect x="185" y="100" width="50" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect x="185" y="110" width="50" height="4" rx="2" fill="var(--surface-hover)" />
         <rect x="185" y="130" width="50" height="20" rx="4" fill="#3B82F6" />
         <rect x="195" y="137" width="30" height="6" rx="2" fill="white" />
       </svg>
@@ -451,20 +451,20 @@ const SCREENS = [
           width="240"
           height="80"
           rx="14"
-          fill="#1E1E1E"
-          stroke="#282828"
+          fill="var(--surface)"
+          stroke="var(--surface-hover)"
           strokeWidth="1"
         />
         <circle cx="48" cy="48" r="14" fill="var(--accent-primary)" />
         <rect x="70" y="40" width="110" height="8" rx="4" fill="#333" />
-        <rect x="70" y="56" width="70" height="6" rx="3" fill="#282828" />
+        <rect x="70" y="56" width="70" height="6" rx="3" fill="var(--surface-hover)" />
         <rect
           x="196"
           y="36"
           width="52"
           height="24"
           rx="6"
-          fill="#181818"
+          fill="var(--card)"
           stroke="var(--accent-primary)"
           strokeWidth="1.5"
         />
@@ -484,8 +484,8 @@ const SCREENS = [
           width="52"
           height="24"
           rx="6"
-          fill="#181818"
-          stroke="#282828"
+          fill="var(--card)"
+          stroke="var(--surface-hover)"
           strokeWidth="1.5"
         />
         <text
@@ -493,7 +493,7 @@ const SCREENS = [
           y="82"
           textAnchor="middle"
           fontSize="9"
-          fill="#808080"
+          fill="var(--text-tertiary)"
         >
           ONG
         </text>
@@ -504,11 +504,11 @@ const SCREENS = [
           width="240"
           height="70"
           rx="14"
-          fill="#1E1E1E"
-          stroke="#282828"
+          fill="var(--surface)"
+          stroke="var(--surface-hover)"
           strokeWidth="1"
         />
-        <rect x="36" y="128" width="60" height="6" rx="3" fill="#808080" />
+        <rect x="36" y="128" width="60" height="6" rx="3" fill="var(--text-tertiary)" />
         <circle cx="42" cy="156" r="10" fill="var(--accent-primary)" />
         <circle cx="72" cy="156" r="10" fill="#7C3AED" />
         <circle cx="102" cy="156" r="10" fill="#2563EB" />
@@ -539,11 +539,11 @@ const SCREENS = [
           width="140"
           height="160"
           rx="14"
-          fill="#1E1E1E"
-          stroke="#282828"
+          fill="var(--surface)"
+          stroke="var(--surface-hover)"
           strokeWidth="1"
         />
-        <rect x="35" y="38" width="80" height="6" rx="3" fill="#808080" />
+        <rect x="35" y="38" width="80" height="6" rx="3" fill="var(--text-tertiary)" />
         {[0, 1, 2, 3].map((i) => (
           <g key={i}>
             <rect
@@ -552,15 +552,15 @@ const SCREENS = [
               width="110"
               height="18"
               rx="9"
-              fill="#181818"
-              stroke="#282828"
+              fill="var(--card)"
+              stroke="var(--surface-hover)"
               strokeWidth="1"
             />
             <circle
               cx="134"
               cy={69 + i * 26}
               r="7"
-              fill={i < 3 ? "var(--accent-primary)" : "#282828"}
+              fill={i < 3 ? "var(--accent-primary)" : "var(--surface-hover)"}
             />
             <circle cx="134" cy={69 + i * 26} r="7" fill="none" />
           </g>
@@ -571,11 +571,11 @@ const SCREENS = [
           width="85"
           height="74"
           rx="12"
-          fill="#1E1E1E"
-          stroke="#282828"
+          fill="var(--surface)"
+          stroke="var(--surface-hover)"
           strokeWidth="1"
         />
-        <rect x="188" y="34" width="59" height="46" rx="4" fill="#181818" />
+        <rect x="188" y="34" width="59" height="46" rx="4" fill="var(--card)" />
         <rect x="188" y="86" width="59" height="6" rx="3" fill="var(--accent-primary)" />
         <rect
           x="175"
@@ -583,14 +583,14 @@ const SCREENS = [
           width="85"
           height="76"
           rx="12"
-          fill="#1E1E1E"
-          stroke="#282828"
+          fill="var(--surface)"
+          stroke="var(--surface-hover)"
           strokeWidth="1"
         />
         <circle cx="200" cy="130" r="10" fill="var(--accent-primary)" />
-        <rect x="216" y="124" width="34" height="5" rx="2" fill="#808080" />
-        <rect x="216" y="134" width="24" height="4" rx="2" fill="#282828" />
-        <rect x="188" y="150" width="59" height="4" rx="2" fill="#282828" />
+        <rect x="216" y="124" width="34" height="5" rx="2" fill="var(--text-tertiary)" />
+        <rect x="216" y="134" width="24" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect x="188" y="150" width="59" height="4" rx="2" fill="var(--surface-hover)" />
       </svg>
     ),
   },
@@ -666,7 +666,7 @@ export default function Onboarding() {
         </IonToolbar>
       </IonHeader>
       <IonContent className="bg-canvas">
-        <div className="min-h-screen bg-[#121212] flex flex-col">
+        <div className="min-h-screen bg-[var(--canvas)] flex flex-col">
           {/* Header with logo */}
           <div className="flex items-center justify-between px-6 py-5">
             <img
@@ -677,21 +677,21 @@ export default function Onboarding() {
             {!isBranchStep && current > 0 ? (
               <button
                 onClick={handleBack}
-                className="text-[#808080] text-sm font-medium"
+                className="text-[var(--text-tertiary)] text-sm font-medium"
               >
                 Précédent
               </button>
             ) : !isBranchStep ? (
               <button
                 onClick={handleBack}
-                className="text-[#808080] text-sm font-medium"
+                className="text-[var(--text-tertiary)] text-sm font-medium"
               >
                 Passer
               </button>
             ) : (
               <button
                 onClick={handleBack}
-                className="text-[#808080] text-sm font-medium"
+                className="text-[var(--text-tertiary)] text-sm font-medium"
               >
                 Précédent
               </button>
@@ -716,13 +716,13 @@ export default function Onboarding() {
                     >
                       Votre parcours
                     </p>
-                    <h1 className="text-white font-bold text-2xl leading-tight">
+                    <h1 className="text-text-primary font-bold text-2xl leading-tight">
                       Comment démarrer ?
                     </h1>
                   </div>
                 </div>
 
-                <p className="text-[#B3B3B3] text-sm leading-relaxed mb-8">
+                <p className="text-[var(--text-secondary)] text-sm leading-relaxed mb-8">
                   Vous avez 2 portes d'entrée. Le premier créateur fonde son
                   organisation&nbsp;; les autres s'y joignent par invitation.
                 </p>
@@ -733,11 +733,11 @@ export default function Onboarding() {
                   disabled={branchLoading !== null}
                   className="w-full text-left rounded-2xl p-5 mb-4 transition-all active:scale-[0.98] disabled:opacity-50"
                   style={{
-                    background: "#1E1E1E",
+                    background: "var(--surface)",
                     border:
                       branchLoading === "creator"
                         ? "2px solid var(--accent-primary)"
-                        : "1px solid #282828",
+                        : "1px solid var(--surface-hover)",
                   }}
                 >
                   <div className="flex items-start gap-4">
@@ -753,10 +753,10 @@ export default function Onboarding() {
                       />
                     </div>
                     <div className="flex-1">
-                      <p className="text-white font-semibold">
+                      <p className="text-text-primary font-semibold">
                         Je crée mon organisation
                       </p>
-                      <p className="text-[#808080] text-xs mt-1 leading-relaxed">
+                      <p className="text-[var(--text-tertiary)] text-xs mt-1 leading-relaxed">
                         Administrateur — vous fondez l'organisation&nbsp;:
                         nom, type, thème et modules.
                       </p>
@@ -779,11 +779,11 @@ export default function Onboarding() {
                   disabled={branchLoading !== null}
                   className="w-full text-left rounded-2xl p-5 transition-all active:scale-[0.98] disabled:opacity-50"
                   style={{
-                    background: "#1E1E1E",
+                    background: "var(--surface)",
                     border:
                       branchLoading === "member"
                         ? "2px solid var(--accent-primary)"
-                        : "1px solid #282828",
+                        : "1px solid var(--surface-hover)",
                   }}
                 >
                   <div className="flex items-start gap-4">
@@ -800,10 +800,10 @@ export default function Onboarding() {
                       />
                     </div>
                     <div className="flex-1">
-                      <p className="text-white font-semibold">
+                      <p className="text-text-primary font-semibold">
                         Je rejoins par invitation
                       </p>
-                      <p className="text-[#808080] text-xs mt-1 leading-relaxed">
+                      <p className="text-[var(--text-tertiary)] text-xs mt-1 leading-relaxed">
                         Membre / collaborateur — code, QR, fichier ou
                         proximité. Vous êtes intégré au rôle qui vous a été
                         attribué.
@@ -828,7 +828,7 @@ export default function Onboarding() {
               <div className="flex-shrink-0 px-8 pt-4 pb-2">
                 <div
                   className="rounded-2xl overflow-hidden"
-                  style={{ background: "#181818" }}
+                  style={{ background: "var(--card)" }}
                 >
                   {screen.illustration}
                 </div>
@@ -842,15 +842,15 @@ export default function Onboarding() {
                     color:
                       screen.id === "welcome"
                         ? "var(--accent-primary)"
-                        : "#808080",
+                        : "var(--text-tertiary)",
                   }}
                 >
                   {screen.subtitle}
                 </p>
-                <h1 className="text-white font-bold text-2xl leading-tight mb-3">
+                <h1 className="text-text-primary font-bold text-2xl leading-tight mb-3">
                   {screen.title}
                 </h1>
-                <p className="text-[#B3B3B3] text-sm leading-relaxed">
+                <p className="text-[var(--text-secondary)] text-sm leading-relaxed">
                   {screen.description}
                 </p>
               </div>
@@ -871,7 +871,7 @@ export default function Onboarding() {
                     backgroundColor:
                       i === current
                         ? "var(--accent-primary)"
-                        : "#282828",
+                        : "var(--surface-hover)",
                   }}
                 />
               ))}
@@ -884,9 +884,9 @@ export default function Onboarding() {
                   onClick={handleBack}
                   className="flex-1 py-3.5 rounded-full font-semibold text-sm transition-all active:scale-95"
                   style={{
-                    backgroundColor: "#1E1E1E",
-                    color: "#B3B3B3",
-                    border: "1px solid #282828",
+                    backgroundColor: "var(--surface)",
+                    color: "var(--text-secondary)",
+                    border: "1px solid var(--border)",
                   }}
                 >
                   Précédent
@@ -898,9 +898,9 @@ export default function Onboarding() {
                   onClick={handleBack}
                   className="flex-1 py-3.5 rounded-full font-semibold text-sm transition-all active:scale-95"
                   style={{
-                    backgroundColor: "#1E1E1E",
-                    color: "#B3B3B3",
-                    border: "1px solid #282828",
+                    backgroundColor: "var(--surface)",
+                    color: "var(--text-secondary)",
+                    border: "1px solid var(--border)",
                   }}
                 >
                   {current > 0 ? "Précédent" : "Ignorer"}

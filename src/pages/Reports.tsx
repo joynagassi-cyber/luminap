@@ -48,7 +48,7 @@ type Tab = "global" | "groupes" | "evenements";
 type Period = "month" | "year" | "all";
 
 const PIE_COLORS = ["#FF6B00", "#3B82F6", "#1DB954", "#8B5CF6", "#EC4899", "#14B8A6", "#F59E0B", "#E51332"];
-const COLORS = { grid: "#282828", text: "#808080", income: "#1DB954", expense: "#E51332", accent: "var(--accent-primary)" };
+const COLORS = { grid: "var(--surface-hover)", text: "var(--text-tertiary)", income: "#1DB954", expense: "#E51332", accent: "var(--accent-primary)" };
 
 // La couche de données renvoie snake_case (PowerSync) OU camelCase (IndexedDB) :
 // on normalise à la lecture pour rester correct dans les deux modes.
@@ -60,7 +60,7 @@ const catLabel = (c: any) => c.labelFr ?? c.label_fr ?? c.key ?? "Autre";
 function ChartTooltip({ active, payload, label, money }: any) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-xl p-3 shadow-2xl" style={{ backgroundColor: "#1E1E1E", border: "1px solid #282828" }}>
+    <div className="rounded-xl p-3 shadow-2xl" style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}>
       {label != null && <p className="text-text-tertiary text-xs mb-2 font-medium">{label}</p>}
       {payload.map((entry: any, idx: number) => (
         <div key={idx} className="flex items-center justify-between gap-6 min-w-[140px]">
@@ -251,7 +251,7 @@ export default function Reports() {
                   style={
                     period === p.id
                       ? { backgroundColor: "var(--accent-primary)", color: "#fff" }
-                      : { backgroundColor: "#212121", color: "#B3B3B3" }
+                      : { backgroundColor: "var(--surface)", color: "var(--text-secondary)" }
                   }
                 >
                   {p.label}
@@ -260,7 +260,7 @@ export default function Reports() {
             </div>
 
             {/* Onglets */}
-            <div className="flex rounded-xl p-1 mb-5" style={{ backgroundColor: "#212121" }}>
+            <div className="flex rounded-xl p-1 mb-5" style={{ backgroundColor: "var(--surface)" }}>
               {([
                 { id: "global" as Tab, label: "Global", icon: Layers },
                 { id: "groupes" as Tab, label: "Groupes", icon: Building2 },
@@ -273,7 +273,7 @@ export default function Reports() {
                   style={
                     activeTab === tab.id
                       ? { backgroundColor: "var(--accent-primary)", color: "#fff" }
-                      : { color: "#B3B3B3" }
+                      : { color: "var(--text-secondary)" }
                   }
                 >
                   <tab.icon className="w-3.5 h-3.5" />
@@ -286,21 +286,21 @@ export default function Reports() {
             {activeTab === "global" && (
               <div className="space-y-5">
                 <div className="grid grid-cols-3 gap-3">
-                  <div className="rounded-xl p-4 text-center" style={{ backgroundColor: "#212121" }}>
+                  <div className="rounded-xl p-4 text-center" style={{ backgroundColor: "var(--surface)" }}>
                     <div className="w-8 h-8 rounded-full flex items-center justify-center mx-auto mb-2" style={{ backgroundColor: "#1DB95420" }}>
                       <TrendingUp className="w-4 h-4" style={{ color: "#1DB954" }} />
                     </div>
                     <p className="text-text-tertiary text-xs">Entrées</p>
                     <p className="text-income font-bold text-sm mt-1">+{formatCentsToFCFA(totalIncome)}</p>
                   </div>
-                  <div className="rounded-xl p-4 text-center" style={{ backgroundColor: "#212121" }}>
+                  <div className="rounded-xl p-4 text-center" style={{ backgroundColor: "var(--surface)" }}>
                     <div className="w-8 h-8 rounded-full flex items-center justify-center mx-auto mb-2" style={{ backgroundColor: "#E5133220" }}>
                       <TrendingDown className="w-4 h-4" style={{ color: "#E51332" }} />
                     </div>
                     <p className="text-text-tertiary text-xs">Sorties</p>
                     <p className="text-expense font-bold text-sm mt-1">-{formatCentsToFCFA(totalExpense)}</p>
                   </div>
-                  <div className="rounded-xl p-4 text-center" style={{ backgroundColor: "#212121" }}>
+                  <div className="rounded-xl p-4 text-center" style={{ backgroundColor: "var(--surface)" }}>
                     <div className="w-8 h-8 rounded-full flex items-center justify-center mx-auto mb-2" style={{ backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)" }}>
                       <BarChart3 className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
                     </div>
@@ -311,7 +311,7 @@ export default function Reports() {
                   </div>
                 </div>
 
-                <div className="rounded-xl p-3" style={{ backgroundColor: "#212121" }}>
+                <div className="rounded-xl p-3" style={{ backgroundColor: "var(--surface)" }}>
                   <p className="text-text-tertiary text-xs mb-2">Évolution (12 mois)</p>
                   <ChartContainer config={{}} className="h-40">
                     <AreaChart data={monthlyData}>
@@ -325,7 +325,7 @@ export default function Reports() {
                   </ChartContainer>
                 </div>
 
-                <div className="rounded-xl p-3" style={{ backgroundColor: "#212121" }}>
+                <div className="rounded-xl p-3" style={{ backgroundColor: "var(--surface)" }}>
                   <p className="text-text-tertiary text-xs mb-2">Sorties par catégorie</p>
                   {pieData.length === 0 ? (
                     <p className="text-text-tertiary text-xs py-6 text-center">Aucune sortie sur la période</p>
@@ -357,7 +357,7 @@ export default function Reports() {
             {/* ── GROUPES ── */}
             {activeTab === "groupes" && (
               <div className="space-y-4">
-                <div className="rounded-xl p-3" style={{ backgroundColor: "#212121" }}>
+                <div className="rounded-xl p-3" style={{ backgroundColor: "var(--surface)" }}>
                   <p className="text-text-tertiary text-xs mb-2">Solde par caisse</p>
                   <ChartContainer config={{}} className="h-44">
                     <BarChart data={caisseData} margin={{ top: 4, right: 4, left: -8, bottom: 0 }}>
@@ -371,7 +371,7 @@ export default function Reports() {
                 </div>
                 <div className="space-y-2">
                   {caisseData.map((c) => (
-                    <div key={c.id} className="rounded-xl p-3 flex items-center gap-3" style={{ backgroundColor: "#212121" }}>
+                    <div key={c.id} className="rounded-xl p-3 flex items-center gap-3" style={{ backgroundColor: "var(--surface)" }}>
                       <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)" }}>
                         <Building2 className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
                       </div>
@@ -394,12 +394,12 @@ export default function Reports() {
             {activeTab === "evenements" && (
               <div className="space-y-4">
                 {eventData.length === 0 ? (
-                  <div className="text-center py-10 rounded-xl" style={{ backgroundColor: "#212121" }}>
+                  <div className="text-center py-10 rounded-xl" style={{ backgroundColor: "var(--surface)" }}>
                     <p className="text-text-tertiary text-sm">Aucun événement</p>
                   </div>
                 ) : (
                   <>
-                    <div className="rounded-xl p-3" style={{ backgroundColor: "#212121" }}>
+                    <div className="rounded-xl p-3" style={{ backgroundColor: "var(--surface)" }}>
                       <p className="text-text-tertiary text-xs mb-2">Entrées / sorties par événement</p>
                       <ChartContainer config={{}} className="h-44">
                         <BarChart data={eventData.filter((e) => e.active)} margin={{ top: 4, right: 4, left: -8, bottom: 0 }}>
@@ -418,7 +418,7 @@ export default function Reports() {
                           key={e.id}
                           onClick={() => navigate(`/event/${e.id}`)}
                           className="w-full text-left rounded-xl p-3 flex items-center gap-3"
-                          style={{ backgroundColor: "#212121" }}
+                          style={{ backgroundColor: "var(--surface)" }}
                         >
                           <div className="flex-1 min-w-0">
                             <p className="text-text-primary text-sm font-medium truncate">{e.name}</p>
@@ -455,7 +455,7 @@ export default function Reports() {
                   </button>
                 </div>
                 {savedReports.length === 0 ? (
-                  <div className="rounded-xl p-4 text-center" style={{ backgroundColor: "#212121" }}>
+                  <div className="rounded-xl p-4 text-center" style={{ backgroundColor: "var(--surface)" }}>
                     <p className="text-text-tertiary text-xs">
                       Aucun rapport personnalisé. Créez-en un avec le constructeur.
                     </p>
@@ -467,7 +467,7 @@ export default function Reports() {
                         key={r.id}
                         onClick={() => navigate(`/report-builder?open=${r.id}`)}
                         className="w-full text-left rounded-xl p-3 flex items-center gap-3"
-                        style={{ backgroundColor: "#212121", border: "1px solid #282828" }}
+                        style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
                       >
                         <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)" }}>
                           <FileText className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
@@ -502,10 +502,10 @@ export default function Reports() {
           {showExport && (
             <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={() => setShowExport(false)}>
               <div className="absolute inset-0 bg-black/60" />
-              <div className="relative w-full max-w-lg rounded-t-2xl p-5 pb-8" style={{ backgroundColor: "#181818" }} onClick={(e) => e.stopPropagation()}>
+              <div className="relative w-full max-w-lg rounded-t-2xl p-5 pb-8" style={{ backgroundColor: "var(--card)" }} onClick={(e) => e.stopPropagation()}>
                 <div className="flex items-center justify-between mb-5">
                   <h2 className="text-text-primary font-bold text-lg">Exporter le rapport</h2>
-                  <button onClick={() => setShowExport(false)} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: "#282828" }}>
+                  <button onClick={() => setShowExport(false)} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: "var(--surface-hover)" }}>
                     <X className="w-4 h-4" />
                   </button>
                 </div>
@@ -519,7 +519,7 @@ export default function Reports() {
                       key={o.fmt}
                       onClick={() => doExport(o.fmt)}
                       className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform"
-                      style={{ backgroundColor: "#212121", border: "1px solid #282828" }}
+                      style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
                     >
                       <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: `${o.color}20` }}>
                         <FileText className="text-lg" style={{ color: o.color }} />

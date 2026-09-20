@@ -81,7 +81,7 @@ export default function FormSubmissions() {
           ) : sorted.length === 0 ? (
             <div
               className="rounded-xl p-5 text-center"
-              style={{ backgroundColor: "#212121" }}
+              style={{ backgroundColor: "var(--surface)" }}
             >
               <Inbox className="w-8 h-8 mx-auto text-text-tertiary mb-2" />
               <p className="text-text-primary text-sm">
@@ -113,8 +113,8 @@ export default function FormSubmissions() {
                   <IonCard
                     key={sub.id}
                     style={{
-                      backgroundColor: "#212121",
-                      border: "1px solid #282828",
+                      backgroundColor: "var(--surface)",
+                      border: "1px solid var(--border)",
                     }}
                   >
                     <IonCardContent>

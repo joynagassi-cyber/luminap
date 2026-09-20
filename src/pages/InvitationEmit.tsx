@@ -316,7 +316,7 @@ export default function InvitationEmit() {
                       <QRCodeSVG
                         value={JSON.stringify(payload)}
                         size={220}
-                        bgColor="#ffffff"
+                        bgColor="var(--text-primary)"
                         fgColor="#000000"
                       />
                     )}

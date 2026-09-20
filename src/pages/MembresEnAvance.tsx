@@ -38,14 +38,14 @@ export default function MembresEnAvance() {
   return (
     <IonPage>
       <IonContent className="bg-canvas">
-        <div className="min-h-screen" style={{ backgroundColor: "#121212" }}>
+        <div className="min-h-screen" style={{ backgroundColor: "var(--canvas)" }}>
           <TopHeader title="En avance" />
           <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
             {/* Back button */}
             <button
               onClick={() => navigate("/members")}
               className="flex items-center gap-2 text-text-secondary text-sm mb-5"
-              style={{ color: "#B3B3B3" }}
+              style={{ color: "var(--text-secondary)" }}
             >
               <ArrowLeft className="w-4 h-4" /> Retour
             </button>
@@ -54,7 +54,7 @@ export default function MembresEnAvance() {
             <div
               className="rounded-2xl p-5 mb-5"
               style={{
-                background: "linear-gradient(135deg, #1a1a2e 0%, #121212 100%)",
+                background: "linear-gradient(135deg, #1a1a2e 0%, var(--canvas) 100%)",
                 border: "1px solid color-mix(in srgb, var(--accent-primary) 19%, transparent)",
               }}
             >
@@ -80,7 +80,7 @@ export default function MembresEnAvance() {
             {membresEnAvance.length === 0 ? (
               <div
                 className="rounded-xl p-8 text-center"
-                style={{ backgroundColor: "#1e1e1e" }}
+                style={{ backgroundColor: "var(--surface)" }}
               >
                 <TrendingUp className="w-10 h-10 mx-auto mb-3 text-text-tertiary opacity-30" />
                 <p className="text-text-tertiary text-sm">
@@ -98,8 +98,8 @@ export default function MembresEnAvance() {
                     onClick={() => navigate(`/membre/${membre.id}`)}
                     className="w-full rounded-xl p-4 flex items-center gap-3 text-left active:scale-[0.98] transition-transform"
                     style={{
-                      backgroundColor: "#1e1e1e",
-                      border: "1px solid #282828",
+                      backgroundColor: "var(--surface)",
+                      border: "1px solid var(--border)",
                     }}
                   >
                     <div

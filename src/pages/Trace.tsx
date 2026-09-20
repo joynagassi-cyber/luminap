@@ -39,7 +39,7 @@ const ACTION_META: Record<
   DELETE: { icon: Trash2, color: "#E51332", label: "Supprimé" },
   APPROVE: { icon: CheckCircle, color: "#1DB954", label: "Approuvé" },
   REJECT: { icon: XCircle, color: "#E51332", label: "Rejeté" },
-  ARCHIVE: { icon: FileText, color: "#B3B3B3", label: "Archivé" },
+  ARCHIVE: { icon: FileText, color: "var(--text-secondary)", label: "Archivé" },
   RESTORE: { icon: CheckCircle, color: "#1DB954", label: "Rétabli" },
   REVISE: { icon: Edit2, color: "#FFB800", label: "Révisé" },
   CANCEL: { icon: XCircle, color: "#E51332", label: "Annulé" },
@@ -130,9 +130,9 @@ export default function TracePage() {
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl text-sm "
                 style={{
-                  backgroundColor: "#212121",
-                  color: "#fff",
-                  border: "1px solid #282828",
+                  backgroundColor: "var(--surface)",
+                  color: "var(--text-primary)",
+                  border: "1px solid var(--border)",
                 }}
               />
             </div>
@@ -145,8 +145,8 @@ export default function TracePage() {
                   onClick={() => setFilter(f)}
                   className="px-3 py-1.5 rounded-full text-xs font-medium transition-all"
                   style={{
-                    backgroundColor: filter === f ? "var(--accent-primary)" : "#212121",
-                    color: filter === f ? "#fff" : "#B3B3B3",
+                    backgroundColor: filter === f ? "var(--accent-primary)" : "var(--surface)",
+                    color: filter === f ? "var(--text-primary)" : "var(--text-secondary)",
                   }}
                 >
                   {f}
@@ -159,7 +159,7 @@ export default function TracePage() {
               {filteredEntries.length === 0 ? (
                 <div
                   className="text-center py-10 rounded-xl"
-                  style={{ backgroundColor: "#1e1e1e" }}
+                  style={{ backgroundColor: "var(--surface)" }}
                 >
                   <p className="text-text-tertiary text-sm">
                     Aucune entrée trouvée
@@ -174,8 +174,8 @@ export default function TracePage() {
                       key={entry.id}
                       className="rounded-xl p-4 flex items-center gap-3"
                       style={{
-                        backgroundColor: "#212121",
-                        border: "1px solid #282828",
+                        backgroundColor: "var(--surface)",
+                        border: "1px solid var(--border)",
                       }}
                     >
                       <div

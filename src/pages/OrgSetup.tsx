@@ -194,13 +194,13 @@ export default function OrgSetup() {
         </IonToolbar>
       </IonHeader>
       <IonContent className="bg-canvas">
-        <div className="min-h-screen bg-[#121212] flex flex-col">
+        <div className="min-h-screen bg-[var(--canvas)] flex flex-col">
           {/* Top bar */}
           <div className="flex items-center justify-between px-6 py-4">
             <img src="/lumina-logo.png" alt="Lumina" className="w-10 h-10 object-contain" />
             <button
               onClick={() => navigate(-1)}
-              className="text-[#808080] text-sm font-medium"
+              className="text-[var(--text-tertiary)] text-sm font-medium"
             >
               Annuler
             </button>
@@ -208,33 +208,33 @@ export default function OrgSetup() {
 
           <div className="flex-1 px-6 pb-24 pt-2 overflow-y-auto">
             <div className="max-w-sm mx-auto">
-              <h1 className="text-white font-bold text-xl mb-1">
+              <h1 className="text-text-primary font-bold text-xl mb-1">
                 Votre organisation
               </h1>
-              <p className="text-[#808080] text-sm mb-6">
+              <p className="text-[var(--text-tertiary)] text-sm mb-6">
                 Configurez son identité avant de lancer votre tableau de bord.
               </p>
 
               {/* ── 1. Identity ─────────────────────────────────────────── */}
-              <p className="text-xs font-semibold text-[#808080] uppercase tracking-wide mb-3">
+              <p className="text-xs font-semibold text-[var(--text-tertiary)] uppercase tracking-wide mb-3">
                 Identité
               </p>
               <label className="block mb-4">
-                <span className="text-sm text-[#B3B3B3] mb-1.5 block">
+                <span className="text-sm text-[var(--text-secondary)] mb-1.5 block">
                   Nom complet de l'organisation
                 </span>
                 <input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Église MFE-JC Centrale"
-                  className="w-full bg-[#1E1E1E] border border-[#282828] rounded-xl px-4 py-3.5 text-white text-lg font-semibold placeholder-[#535353] focus:outline-none transition-colors"
-                  style={{ borderColor: canCreate ? "var(--accent-primary)" : "#282828" }}
+                  className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-xl px-4 py-3.5 text-text-primary text-lg font-semibold placeholder-[var(--text-placeholder)] focus:outline-none transition-colors"
+                  style={{ borderColor: canCreate ? "var(--accent-primary)" : "var(--border)" }}
                 />
               </label>
               <label className="block mb-6">
-                <span className="text-sm text-[#B3B3B3] mb-1.5 block">
+                <span className="text-sm text-[var(--text-secondary)] mb-1.5 block">
                   Sigle{" "}
-                  <span className="text-[#535353] text-xs">
+                  <span className="text-[var(--text-placeholder)] text-xs">
                     (affiché dans les menus, le nom complet reste dans les rapports)
                   </span>
                 </span>
@@ -242,12 +242,12 @@ export default function OrgSetup() {
                   value={sigle}
                   onChange={(e) => setSigle(e.target.value.toUpperCase().slice(0, 12))}
                   placeholder="MFE"
-                  className="w-full bg-[#1E1E1E] border border-[#282828] rounded-xl px-4 py-3 font-mono text-lg tracking-[0.3em] text-white placeholder-[#535353] focus:outline-none"
+                  className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-xl px-4 py-3 font-mono text-lg tracking-[0.3em] text-text-primary placeholder-[var(--text-placeholder)] focus:outline-none"
                 />
               </label>
 
               {/* ── 2. Type (available templates) ──────────────────────── */}
-              <p className="text-xs font-semibold text-[#808080] uppercase tracking-wide mb-3">
+              <p className="text-xs font-semibold text-[var(--text-tertiary)] uppercase tracking-wide mb-3">
                 Type d'organisation
               </p>
               <div className="space-y-2 mb-6">
@@ -261,10 +261,10 @@ export default function OrgSetup() {
                       onClick={() => pickType(t)}
                       className="w-full text-left rounded-xl p-4 transition-all active:scale-[0.98]"
                       style={{
-                        background: "#1E1E1E",
+                        background: "var(--surface)",
                         border: active
                           ? "2px solid var(--accent-primary)"
-                          : "1px solid #282828",
+                          : "1px solid var(--surface-hover)",
                       }}
                     >
                       <div className="flex items-center gap-3">
@@ -273,16 +273,16 @@ export default function OrgSetup() {
                           style={{
                             background: active
                               ? "color-mix(in srgb, var(--accent-primary) 20%, transparent)"
-                              : "#282828",
+                              : "var(--surface-hover)",
                           }}
                         >
                           <Icon
                             className="w-5 h-5"
-                            style={{ color: active ? "var(--accent-primary)" : "#808080" }}
+                            style={{ color: active ? "var(--accent-primary)" : "var(--text-tertiary)" }}
                           />
                         </div>
                         <div className="flex-1">
-                          <p className="text-white font-semibold text-sm">
+                          <p className="text-text-primary font-semibold text-sm">
                             {t.label}{" "}
                             {active && (
                               <Check
@@ -291,7 +291,7 @@ export default function OrgSetup() {
                               />
                             )}
                           </p>
-                          <p className="text-[#808080] text-xs mt-0.5">{t.desc}</p>
+                          <p className="text-[var(--text-tertiary)] text-xs mt-0.5">{t.desc}</p>
                         </div>
                       </div>
                     </button>
@@ -300,7 +300,7 @@ export default function OrgSetup() {
               </div>
 
               {/* ── 3. Branding — 10 themes, applied live ─────────────── */}
-              <p className="text-xs font-semibold text-[#808080] uppercase tracking-wide mb-3">
+              <p className="text-xs font-semibold text-[var(--text-tertiary)] uppercase tracking-wide mb-3">
                 Thème de votre organisation
               </p>
               <div className="mb-6">
@@ -308,7 +308,7 @@ export default function OrgSetup() {
               </div>
 
               {/* ── 4. Modules ─────────────────────────────────────────── */}
-              <p className="text-xs font-semibold text-[#808080] uppercase tracking-wide mb-3">
+              <p className="text-xs font-semibold text-[var(--text-tertiary)] uppercase tracking-wide mb-3">
                 Modules à activer
               </p>
               <div className="grid grid-cols-2 gap-2 mb-6">
@@ -321,18 +321,18 @@ export default function OrgSetup() {
                       onClick={() => toggleFeature(key)}
                       className="rounded-xl p-3 text-left transition-all active:scale-[0.97]"
                       style={{
-                        background: "#1E1E1E",
+                        background: "var(--surface)",
                         border: on
                           ? "1.5px solid var(--accent-primary)"
-                          : "1px solid #282828",
+                          : "1px solid var(--surface-hover)",
                         opacity: on ? 1 : 0.6,
                       }}
                     >
                       <Icon
                         className="w-4 h-4 mb-1.5"
-                        style={{ color: on ? "var(--accent-primary)" : "#808080" }}
+                        style={{ color: on ? "var(--accent-primary)" : "var(--text-tertiary)" }}
                       />
-                      <p className="text-xs font-medium text-white leading-tight">
+                      <p className="text-xs font-medium text-text-primary leading-tight">
                         {label}
                       </p>
                     </button>
@@ -341,7 +341,7 @@ export default function OrgSetup() {
               </div>
 
               {/* ── 5. Creator role ────────────────────────────────────── */}
-              <p className="text-xs font-semibold text-[#808080] uppercase tracking-wide mb-3">
+              <p className="text-xs font-semibold text-[var(--text-tertiary)] uppercase tracking-wide mb-3">
                 Votre rôle
               </p>
               {chosen && (
@@ -355,16 +355,16 @@ export default function OrgSetup() {
                         onClick={() => setRole(r.id)}
                         className="rounded-xl p-3 text-left transition-all active:scale-[0.97]"
                         style={{
-                          background: "#1E1E1E",
+                          background: "var(--surface)",
                           border: on
                             ? "1.5px solid var(--accent-primary)"
-                            : "1px solid #282828",
+                            : "1px solid var(--surface-hover)",
                           opacity: on ? 1 : 0.6,
                         }}
                       >
                         <p
                           className="text-xs font-semibold"
-                          style={{ color: on ? "var(--accent-primary)" : "#fff" }}
+                          style={{ color: on ? "var(--accent-primary)" : "var(--text-primary)" }}
                         >
                           {r.label}
                         </p>
@@ -398,7 +398,7 @@ export default function OrgSetup() {
             </button>
             <button
               onClick={() => navigate(-1)}
-              className="w-full mt-3 py-3 rounded-full text-sm font-medium text-[#808080]"
+              className="w-full mt-3 py-3 rounded-full text-sm font-medium text-[var(--text-tertiary)]"
             >
               <ChevronLeft className="w-4 h-4 inline mr-1" />
               Retour

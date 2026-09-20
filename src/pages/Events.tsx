@@ -78,7 +78,7 @@ export default function Events() {
             {sortedEvents.length === 0 ? (
               <div
                 className="text-center py-16 rounded-xl"
-                style={{ backgroundColor: "#212121" }}
+                style={{ backgroundColor: "var(--surface)" }}
               >
                 <Calendar className="w-12 h-12 mx-auto mb-4 text-text-tertiary opacity-40" />
                 <p className="text-text-tertiary text-sm mb-2">
@@ -125,8 +125,8 @@ export default function Events() {
                       onClick={() => navigate(`/event/${event.id}`)}
                       className="w-full text-left rounded-xl p-4 transition-all active:scale-95"
                       style={{
-                        backgroundColor: "#212121",
-                        border: "1px solid #282828",
+                        backgroundColor: "var(--surface)",
+                        border: "1px solid var(--border)",
                       }}
                       aria-label={`Voir les détails de ${event.name}`}
                     >

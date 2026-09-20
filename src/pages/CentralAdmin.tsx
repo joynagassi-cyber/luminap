@@ -176,7 +176,7 @@ function OrgDetail({ orgId, onBack }: { orgId: string; onBack: () => void }) {
       {reportCard && (
         <div
           className="rounded-xl p-4 mb-4"
-          style={{ backgroundColor: "#212121", border: "1px solid #282828" }}
+          style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
         >
           <div className="flex items-center gap-2 mb-3">
             <Building2 className="w-5 h-5" style={{ color: "var(--accent-primary)" }} />
@@ -192,7 +192,7 @@ function OrgDetail({ orgId, onBack }: { orgId: string; onBack: () => void }) {
               <p className="text-text-tertiary text-xs">Admins actifs</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold" style={{ color: "#808080" }}>{reportCard.revokedAdminCount}</p>
+              <p className="text-2xl font-bold" style={{ color: "var(--text-tertiary)" }}>{reportCard.revokedAdminCount}</p>
               <p className="text-text-tertiary text-xs">Révoqués</p>
             </div>
           </div>
@@ -202,7 +202,7 @@ function OrgDetail({ orgId, onBack }: { orgId: string; onBack: () => void }) {
       {/* Admin list */}
       <div
         className="rounded-xl p-4 mb-4"
-        style={{ backgroundColor: "#212121", border: "1px solid #282828" }}
+        style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
       >
         <div className="flex items-center gap-2 mb-3">
           <UserCheck className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
@@ -248,7 +248,7 @@ function OrgDetail({ orgId, onBack }: { orgId: string; onBack: () => void }) {
       {/* Déléguer l'admin central */}
       <div
         className="rounded-xl p-4 mb-4"
-        style={{ backgroundColor: "#212121", border: "1px solid #282828" }}
+        style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
       >
         <div className="flex items-center gap-2 mb-3">
           <Users className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
@@ -268,9 +268,9 @@ function OrgDetail({ orgId, onBack }: { orgId: string; onBack: () => void }) {
               onChange={(e) => setDelegated(e.target.value)}
               className="w-full px-3 py-2.5 rounded-xl text-sm"
               style={{
-                backgroundColor: "#181818",
-                color: "#fff",
-                border: "1px solid #282828",
+                backgroundColor: "var(--card)",
+                color: "var(--text-primary)",
+                border: "1px solid var(--border)",
               }}
             >
               <option value="">Choisir un profil…</option>
@@ -409,7 +409,7 @@ export default function CentralAdmin() {
           <div className="min-h-screen bg-canvas">
             <TopHeader title="Administration centrale" />
             <div className="max-w-lg mx-auto px-5 pb-32 pt-24">
-              <div className="p-6 rounded-xl text-center" style={{ backgroundColor: "#212121" }}>
+              <div className="p-6 rounded-xl text-center" style={{ backgroundColor: "var(--surface)" }}>
                 <Shield className="w-10 h-10 text-text-tertiary mx-auto mb-3" />
                 <p className="text-text-primary font-semibold mb-1">
                   Accès réservé
@@ -524,7 +524,7 @@ export default function CentralAdmin() {
                     <div
                       key={k.label}
                       className="rounded-xl p-4"
-                      style={{ backgroundColor: "#212121" }}
+                      style={{ backgroundColor: "var(--surface)" }}
                     >
                       <div
                         className="w-9 h-9 rounded-full flex items-center justify-center mb-2"
@@ -557,8 +557,8 @@ export default function CentralAdmin() {
                         key={o.id}
                         className="rounded-xl p-4"
                         style={{
-                          backgroundColor: "#212121",
-                          border: "1px solid #282828",
+                          backgroundColor: "var(--surface)",
+                          border: "1px solid var(--border)",
                         }}
                       >
                         <div className="flex items-center justify-between mb-2">
@@ -638,9 +638,9 @@ export default function CentralAdmin() {
                                   placeholder="Raison (optionnel)"
                                   className="flex-1 min-w-0 px-2 py-1.5 rounded-lg text-xs"
                                   style={{
-                                    backgroundColor: "#181818",
-                                    color: "#fff",
-                                    border: "1px solid #282828",
+                                    backgroundColor: "var(--card)",
+                                    color: "var(--text-primary)",
+                                    border: "1px solid var(--border)",
                                   }}
                                 />
                                 <button
@@ -661,7 +661,7 @@ export default function CentralAdmin() {
                                   }}
                                   className="px-2 py-1.5 text-[11px] font-semibold"
                                   style={{
-                                    color: "#B3B3B3",
+                                    color: "var(--text-secondary)",
                                     background: "transparent",
                                     border: "none",
                                   }}

@@ -282,7 +282,7 @@ export default function GroupDetail() {
           <div
             className="rounded-2xl p-5 mb-5"
             style={{
-              backgroundColor: "#212121",
+              backgroundColor: "var(--surface)",
               border: `1px solid ${tint(color, 25)}`,
             }}
           >
@@ -309,7 +309,7 @@ export default function GroupDetail() {
               </span>
             </div>
 
-            <div className="h-px mb-4" style={{ backgroundColor: "#282828" }} />
+            <div className="h-px mb-4" style={{ backgroundColor: "var(--surface-hover)" }} />
 
             <div className="text-center mb-4">
               <p className="text-text-tertiary text-xs mb-1">Solde actuel</p>
@@ -416,8 +416,8 @@ export default function GroupDetail() {
             <div
               className="flex rounded-2xl p-1.5 overflow-x-auto scrollbar-hide"
               style={{
-                backgroundColor: "#212121",
-                border: "1px solid #282828",
+                backgroundColor: "var(--surface)",
+                border: "1px solid var(--border)",
                 gap: "6px",
               }}
             >
@@ -439,10 +439,10 @@ export default function GroupDetail() {
                     activeTab === tabId
                       ? {
                           backgroundColor: "var(--accent-primary)",
-                          color: "#fff",
+                          color: "var(--text-primary)",
                           boxShadow: "0 2px 8px rgba(255,107,0,0.3)",
                         }
-                      : { backgroundColor: "transparent", color: "#808080" }
+                      : { backgroundColor: "transparent", color: "var(--text-tertiary)" }
                   }
                 >
                   <TabIcon className="w-4 h-4 flex-shrink-0" />
@@ -491,7 +491,7 @@ export default function GroupDetail() {
                 {txs.length === 0 && (
                   <div
                     className="text-center py-10 rounded-xl"
-                    style={{ backgroundColor: "#212121" }}
+                    style={{ backgroundColor: "var(--surface)" }}
                   >
                     <Wallet className="w-8 h-8 mx-auto mb-3 text-text-tertiary opacity-40" />
                     <p className="text-text-tertiary text-sm">
@@ -520,7 +520,7 @@ export default function GroupDetail() {
               {groupMembers.length === 0 ? (
                 <div
                   className="text-center py-10 rounded-xl"
-                  style={{ backgroundColor: "#212121" }}
+                  style={{ backgroundColor: "var(--surface)" }}
                 >
                   <Users className="w-8 h-8 mx-auto mb-3 text-text-tertiary opacity-40" />
                   <p className="text-text-tertiary text-sm">Aucun membre</p>
@@ -539,7 +539,7 @@ export default function GroupDetail() {
                       <div
                         key={member.id}
                         className="rounded-xl p-4 flex items-center gap-3"
-                        style={{ backgroundColor: "#212121" }}
+                        style={{ backgroundColor: "var(--surface)" }}
                       >
                         <div
                           className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
@@ -606,7 +606,7 @@ export default function GroupDetail() {
                 {versementList.length === 0 ? (
                   <div
                     className="rounded-xl p-6 text-center"
-                    style={{ backgroundColor: "#212121" }}
+                    style={{ backgroundColor: "var(--surface)" }}
                   >
                     <ArrowRightLeft className="w-6 h-6 mx-auto mb-2 text-text-tertiary opacity-40" />
                     <p className="text-text-tertiary text-sm">
@@ -622,7 +622,7 @@ export default function GroupDetail() {
                       <div
                         key={idx}
                         className="rounded-xl p-3 flex items-center gap-3"
-                        style={{ backgroundColor: "#212121" }}
+                        style={{ backgroundColor: "var(--surface)" }}
                       >
                         <div
                           className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
@@ -653,14 +653,14 @@ export default function GroupDetail() {
               {/* Group timeline */}
               <div>
                 <div className="flex items-center gap-2 mb-3">
-                  <Clock className="w-4 h-4" style={{ color: "#B3B3B3" }} />
+                  <Clock className="w-4 h-4" style={{ color: "var(--text-secondary)" }} />
                   <p className="text-text-primary font-semibold text-sm">
                     Timeline du groupe
                   </p>
                 </div>
                 <div
                   className="rounded-xl p-4"
-                  style={{ backgroundColor: "#212121" }}
+                  style={{ backgroundColor: "var(--surface)" }}
                 >
                   <div className="space-y-4">
                     {timelineEvents.map((evt: any, idx: number) => (
@@ -673,7 +673,7 @@ export default function GroupDetail() {
                                 ? "var(--accent-primary)"
                                 : evt.type === "success"
                                   ? "#1DB954"
-                                  : "#808080",
+                                  : "var(--text-tertiary)",
                           }}
                         />
                         <div>
@@ -725,7 +725,7 @@ export default function GroupDetail() {
               {showEdit ? (
                 <div
                   className="rounded-xl p-4 space-y-3"
-                  style={{ backgroundColor: "#212121" }}
+                  style={{ backgroundColor: "var(--surface)" }}
                 >
                   <div>
                     <label className="text-text-tertiary text-xs mb-1.5 block">
@@ -737,8 +737,8 @@ export default function GroupDetail() {
                       onChange={(e) => setEditName(e.target.value)}
                       className="w-full px-4 py-2.5 rounded-xl text-text-primary text-sm"
                       style={{
-                        backgroundColor: "#181818",
-                        border: "1px solid #282828",
+                        backgroundColor: "var(--card)",
+                        border: "1px solid var(--border)",
                       }}
                     />
                   </div>
@@ -752,8 +752,8 @@ export default function GroupDetail() {
                       rows={2}
                       className="w-full px-4 py-2.5 rounded-xl text-text-primary text-sm resize-none"
                       style={{
-                        backgroundColor: "#181818",
-                        border: "1px solid #282828",
+                        backgroundColor: "var(--card)",
+                        border: "1px solid var(--border)",
                       }}
                     />
                   </div>
@@ -768,7 +768,7 @@ export default function GroupDetail() {
                     <button
                       onClick={() => setShowEdit(false)}
                       className="flex-1 py-2.5 rounded-full text-sm font-medium"
-                      style={{ backgroundColor: "#212121", color: "#B3B3B3" }}
+                      style={{ backgroundColor: "var(--surface)", color: "var(--text-secondary)" }}
                     >
                       Annuler
                     </button>
@@ -783,8 +783,8 @@ export default function GroupDetail() {
                   }}
                   className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform text-left"
                   style={{
-                    backgroundColor: "#212121",
-                    border: "1px solid #282828",
+                    backgroundColor: "var(--surface)",
+                    border: "1px solid var(--border)",
                   }}
                 >
                   <div
@@ -803,15 +803,15 @@ export default function GroupDetail() {
                 onClick={() => setShowArchive(true)}
                 className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform text-left"
                 style={{
-                  backgroundColor: "#212121",
-                  border: "1px solid #282828",
+                  backgroundColor: "var(--surface)",
+                  border: "1px solid var(--border)",
                 }}
               >
                 <div
                   className="w-10 h-10 rounded-full flex items-center justify-center"
                   style={{ backgroundColor: "#80808020" }}
                 >
-                  <Archive className="w-5 h-5" style={{ color: "#B3B3B3" }} />
+                  <Archive className="w-5 h-5" style={{ color: "var(--text-secondary)" }} />
                 </div>
                 <span className="text-text-primary text-sm font-medium">
                   Archiver le groupe
@@ -822,8 +822,8 @@ export default function GroupDetail() {
                 onClick={() => setShowDelete(true)}
                 className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform text-left"
                 style={{
-                  backgroundColor: "#212121",
-                  border: "1px solid #282828",
+                  backgroundColor: "var(--surface)",
+                  border: "1px solid var(--border)",
                 }}
               >
                 <div
@@ -850,7 +850,7 @@ export default function GroupDetail() {
             <div className="absolute inset-0 bg-black/70" />
             <div
               className="relative w-full max-w-sm rounded-2xl p-5 text-center"
-              style={{ backgroundColor: "#181818" }}
+              style={{ backgroundColor: "var(--card)" }}
               onClick={(e) => e.stopPropagation()}
             >
               <div
@@ -871,14 +871,14 @@ export default function GroupDetail() {
               <button
                 onClick={handleArchive}
                 className="w-full py-3.5 rounded-full font-semibold text-white mb-3"
-                style={{ backgroundColor: "#808080" }}
+                style={{ backgroundColor: "var(--text-tertiary)" }}
               >
                 Archiver
               </button>
               <button
                 onClick={() => setShowArchive(false)}
                 className="w-full py-3 rounded-full font-medium text-sm text-text-tertiary"
-                style={{ backgroundColor: "#212121" }}
+                style={{ backgroundColor: "var(--surface)" }}
               >
                 Annuler
               </button>
@@ -895,7 +895,7 @@ export default function GroupDetail() {
             <div className="absolute inset-0 bg-black/60" />
             <div
               className="relative w-full max-w-lg rounded-t-2xl p-5 pb-8"
-              style={{ backgroundColor: "#181818" }}
+              style={{ backgroundColor: "var(--card)" }}
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between mb-5">
@@ -905,7 +905,7 @@ export default function GroupDetail() {
                 <button
                   onClick={() => setShowAddMember(false)}
                   className="w-8 h-8 rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: "#282828" }}
+                  style={{ backgroundColor: "var(--surface-hover)" }}
                 >
                   <span className="text-text-tertiary text-sm">
                     <UserMinus className="w-4 h-4" />
@@ -918,8 +918,8 @@ export default function GroupDetail() {
                   onChange={(e) => setSelectedMemberId(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl text-text-primary text-sm appearance-none"
                   style={{
-                    backgroundColor: "#212121",
-                    border: "1px solid #282828",
+                    backgroundColor: "var(--surface)",
+                    border: "1px solid var(--border)",
                   }}
                 >
                   <option value="">Sélectionner un membre...</option>
@@ -955,7 +955,7 @@ export default function GroupDetail() {
                     setSelectedMemberId("");
                   }}
                   className="w-full py-3 rounded-full font-medium text-sm text-text-tertiary"
-                  style={{ backgroundColor: "#212121" }}
+                  style={{ backgroundColor: "var(--surface)" }}
                 >
                   Annuler
                 </button>
@@ -973,7 +973,7 @@ export default function GroupDetail() {
             <div className="absolute inset-0 bg-black/70" />
             <div
               className="relative w-full max-w-sm rounded-2xl p-5 text-center"
-              style={{ backgroundColor: "#181818" }}
+              style={{ backgroundColor: "var(--card)" }}
               onClick={(e) => e.stopPropagation()}
             >
               <div
@@ -1002,7 +1002,7 @@ export default function GroupDetail() {
               <button
                 onClick={() => setShowDelete(false)}
                 className="w-full py-3 rounded-full font-medium text-sm text-text-tertiary"
-                style={{ backgroundColor: "#212121" }}
+                style={{ backgroundColor: "var(--surface)" }}
               >
                 Annuler
               </button>

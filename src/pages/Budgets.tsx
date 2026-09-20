@@ -82,7 +82,7 @@ export default function Budgets() {
                 value={fiscalYear}
                 onChange={(e) => setFiscalYear(Number(e.target.value))}
                 className="px-3 py-2 rounded-xl text-xs font-medium outline-none"
-                style={{ backgroundColor: "#212121", color: "#fff", border: "1px solid #282828" }}
+                style={{ backgroundColor: "var(--surface)", color: "var(--text-primary)", border: "1px solid var(--border)" }}
                 aria-label="Exercice"
               >
                 {yearOptions.map((y) => (
@@ -93,7 +93,7 @@ export default function Budgets() {
                 value={period}
                 onChange={(e) => setPeriod(e.target.value as "" | BudgetPeriod)}
                 className="px-3 py-2 rounded-xl text-xs font-medium outline-none"
-                style={{ backgroundColor: "#212121", color: "#fff", border: "1px solid #282828" }}
+                style={{ backgroundColor: "var(--surface)", color: "var(--text-primary)", border: "1px solid var(--border)" }}
                 aria-label="Période"
               >
                 <option value="">Toutes périodes</option>
@@ -105,7 +105,7 @@ export default function Budgets() {
                 value={costCenter}
                 onChange={(e) => setCostCenter(e.target.value)}
                 className="px-3 py-2 rounded-xl text-xs font-medium outline-none"
-                style={{ backgroundColor: "#212121", color: "#fff", border: "1px solid #282828" }}
+                style={{ backgroundColor: "var(--surface)", color: "var(--text-primary)", border: "1px solid var(--border)" }}
                 aria-label="Centre de coûts"
               >
                 <option value="all">Tous centres</option>
@@ -117,21 +117,21 @@ export default function Budgets() {
 
             {/* Résumé */}
             <div className="grid grid-cols-3 gap-3 mb-6">
-              <div className="rounded-xl p-4" style={{ backgroundColor: "#212121" }}>
+              <div className="rounded-xl p-4" style={{ backgroundColor: "var(--surface)" }}>
                 <Wallet className="w-4 h-4 mb-2" style={{ color: "var(--accent-primary)" }} />
                 <p className="text-text-tertiary text-xs">Prévu</p>
                 <p className="text-text-primary font-bold text-sm mt-1">
                   {formatCurrencyCompact(activeTotals.planned)}
                 </p>
               </div>
-              <div className="rounded-xl p-4" style={{ backgroundColor: "#212121" }}>
+              <div className="rounded-xl p-4" style={{ backgroundColor: "var(--surface)" }}>
                 <PieChart className="w-4 h-4 mb-2" style={{ color: "#1DB954" }} />
                 <p className="text-text-tertiary text-xs">Réel</p>
                 <p className="text-income font-bold text-sm mt-1">
                   {formatCurrencyCompact(activeTotals.actual)}
                 </p>
               </div>
-              <div className="rounded-xl p-4" style={{ backgroundColor: "#212121" }}>
+              <div className="rounded-xl p-4" style={{ backgroundColor: "var(--surface)" }}>
                 <Target className="w-4 h-4 mb-2" style={{ color: "#FFB800" }} />
                 <p className="text-text-tertiary text-xs">Restant</p>
                 <p
@@ -145,7 +145,7 @@ export default function Budgets() {
 
             {/* Liste des budgets */}
             {filtered.length === 0 ? (
-              <div className="rounded-xl p-8 text-center" style={{ backgroundColor: "#181818" }} data-testid="budgets-empty">
+              <div className="rounded-xl p-8 text-center" style={{ backgroundColor: "var(--card)" }} data-testid="budgets-empty">
                 <Target className="w-8 h-8 mx-auto mb-3 opacity-30" style={{ color: "var(--accent-primary)" }} />
                 <p className="text-text-secondary text-sm font-medium">Aucun budget</p>
                 <p className="text-text-tertiary text-xs mt-1">
@@ -168,7 +168,7 @@ export default function Budgets() {
                       key={budget.id}
                       onClick={() => navigate(`/budgets/${budget.id}`)}
                       className="w-full text-left rounded-xl p-4 active:scale-[0.99] transition-transform"
-                      style={{ backgroundColor: "#181818" }}
+                      style={{ backgroundColor: "var(--card)" }}
                       data-testid={`budget-card-${budget.id}`}
                     >
                       <div className="flex items-center justify-between mb-2">
@@ -182,8 +182,8 @@ export default function Budgets() {
                           <span
                             className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
                             style={{
-                              backgroundColor: budget.status === "CLOSED" ? "#333333" : "color-mix(in srgb, var(--accent-primary) 15%, transparent)",
-                              color: budget.status === "CLOSED" ? "#808080" : "var(--accent-primary)",
+                              backgroundColor: budget.status === "CLOSED" ? "var(--surface-active)" : "color-mix(in srgb, var(--accent-primary) 15%, transparent)",
+                              color: budget.status === "CLOSED" ? "var(--text-tertiary)" : "var(--accent-primary)",
                             }}
                           >
                             {budget.status === "CLOSED" ? "Clôturé" : "Actif"}
@@ -197,7 +197,7 @@ export default function Budgets() {
                           Réel {formatCurrencyCompact(r.totalActual)}
                         </span>
                       </div>
-                      <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: "#282828" }}>
+                      <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: "var(--surface-hover)" }}>
                         <div
                           className="h-full rounded-full"
                           style={{ width: `${Math.min(100, bar)}%`, backgroundColor: over ? "#E51332" : "var(--accent-primary)" }}
@@ -270,9 +270,9 @@ function CreateBudgetSheet({
   };
 
   const inputStyle = {
-    backgroundColor: "#212121",
-    color: "#fff",
-    border: "1px solid #282828",
+    backgroundColor: "var(--surface)",
+    color: "var(--text-primary)",
+    border: "1px solid var(--border)",
   } as const;
 
   return (
@@ -280,7 +280,7 @@ function CreateBudgetSheet({
       <div className="absolute inset-0 bg-black/60" />
       <div
         className="relative w-full max-w-lg rounded-t-2xl p-5 pb-28"
-        style={{ backgroundColor: "#181818" }}
+        style={{ backgroundColor: "var(--card)" }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4">
@@ -288,7 +288,7 @@ function CreateBudgetSheet({
           <button
             onClick={onClose}
             className="w-8 h-8 rounded-full flex items-center justify-center"
-            style={{ backgroundColor: "#282828" }}
+            style={{ backgroundColor: "var(--surface-hover)" }}
             aria-label="Fermer"
           >
             <X className="w-4 h-4 text-text-tertiary" />

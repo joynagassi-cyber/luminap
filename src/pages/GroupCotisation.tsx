@@ -260,8 +260,8 @@ export default function GroupCotisation() {
                       }
                       className="w-full flex items-center justify-between p-3.5 rounded-xl transition-all active:scale-95 text-left"
                       style={{
-                        backgroundColor: isActive ? "#2a2a2a" : "#212121",
-                        border: `1px solid ${isActive ? "var(--accent-primary)" : "#282828"}`,
+                        backgroundColor: isActive ? "var(--surface-hover)" : "var(--surface)",
+                        border: `1px solid ${isActive ? "var(--accent-primary)" : "var(--border)"}`,
                       }}
                     >
                       <div>
@@ -298,7 +298,7 @@ export default function GroupCotisation() {
             <div className="mb-5">
               <div
                 className="rounded-xl p-4 mb-3"
-                style={{ backgroundColor: "#212121" }}
+                style={{ backgroundColor: "var(--surface)" }}
               >
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-text-primary text-sm font-medium">
@@ -357,15 +357,15 @@ export default function GroupCotisation() {
                       backgroundColor: isPaid
                         ? "#1DB95410"
                         : isAbsent
-                          ? "#80808010"
-                          : "#212121",
-                      border: `1px solid ${isPaid ? "#1DB95430" : isAbsent ? "#80808030" : "#282828"}`,
+                          ? "color-mix(in srgb, var(--text-tertiary) 10%, transparent)"
+                          : "var(--surface)",
+                      border: `1px solid ${isPaid ? "#1DB95430" : isAbsent ? "color-mix(in srgb, var(--text-tertiary) 30%, transparent)" : "var(--border)"}`,
                     }}
                   >
                     <div
                       className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
                       style={{
-                        backgroundColor: isPaid ? "#1DB95420" : "#2a2a2a",
+                        backgroundColor: isPaid ? "#1DB95420" : "var(--surface-hover)",
                       }}
                     >
                       <span
@@ -433,7 +433,7 @@ export default function GroupCotisation() {
             <div
               className="rounded-xl p-4 space-y-3"
               style={{
-                backgroundColor: "#212121",
+                backgroundColor: "var(--surface)",
                 border: "1px solid var(--accent-primary)",
               }}
             >
@@ -455,8 +455,8 @@ export default function GroupCotisation() {
                 onIonChange={(e: any) => setSessionName(e.detail.value ?? "")}
                 placeholder="Nom de la session (ex: Cagnotte janvier)"
                 style={{
-                  backgroundColor: "#181818",
-                  border: "1px solid #282828",
+                  backgroundColor: "var(--card)",
+                  border: "1px solid var(--border)",
                 }}
               />
 
@@ -465,8 +465,8 @@ export default function GroupCotisation() {
                 value={sessionDate}
                 onIonChange={(e: any) => setSessionDate(e.detail.value ?? "")}
                 style={{
-                  backgroundColor: "#181818",
-                  border: "1px solid #282828",
+                  backgroundColor: "var(--card)",
+                  border: "1px solid var(--border)",
                 }}
               />
 
@@ -483,8 +483,8 @@ export default function GroupCotisation() {
                   placeholder="Ex: 2000"
                   min="0"
                   style={{
-                    backgroundColor: "#181818",
-                    border: "1px solid #282828",
+                    backgroundColor: "var(--card)",
+                    border: "1px solid var(--border)",
                   }}
                 />
                 <p className="text-text-tertiary text-xs mt-1">

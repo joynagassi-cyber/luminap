@@ -48,7 +48,7 @@ const STATUS_CONFIG: Record<
   ONGOING: { label: "En cours", color: "#1DB954", bg: "#1DB95420", icon: Play },
   COMPLETED: {
     label: "Terminé",
-    color: "#B3B3B3",
+    color: "var(--text-secondary)",
     bg: "#80808020",
     icon: CheckCircle,
   },
@@ -216,7 +216,7 @@ export default function EventDetail() {
           {/* Status badge */}
           <div
             className="flex items-center justify-between mb-6 p-4 rounded-xl"
-            style={{ backgroundColor: "#212121", border: "1px solid #282828" }}
+            style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
           >
             <span
               className="flex items-center gap-2 text-sm px-3 py-1.5 rounded-full font-medium"
@@ -239,7 +239,7 @@ export default function EventDetail() {
                 <button
                   onClick={() => handleStatusChange("COMPLETED")}
                   className="px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1"
-                  style={{ backgroundColor: "#80808020", color: "#B3B3B3" }}
+                  style={{ backgroundColor: "#80808020", color: "var(--text-secondary)" }}
                   aria-label="Terminer l'événement"
                 >
                   <CheckCircle className="w-3 h-3" /> Terminer
@@ -261,7 +261,7 @@ export default function EventDetail() {
           {/* Hero Card */}
           <div
             className="rounded-2xl p-5 mb-5 text-center"
-            style={{ backgroundColor: "#212121", border: "1px solid #282828" }}
+            style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
           >
             <div
               className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3"
@@ -304,7 +304,7 @@ export default function EventDetail() {
           <div className="grid grid-cols-3 gap-3 mb-6">
             <div
               className="rounded-xl p-3 text-center"
-              style={{ backgroundColor: "#212121" }}
+              style={{ backgroundColor: "var(--surface)" }}
             >
               <p className="text-text-tertiary text-xs mb-1">Budget</p>
               <p className="text-text-primary font-bold text-sm">
@@ -316,7 +316,7 @@ export default function EventDetail() {
             </div>
             <div
               className="rounded-xl p-3 text-center"
-              style={{ backgroundColor: "#212121" }}
+              style={{ backgroundColor: "var(--surface)" }}
             >
               <p className="text-text-tertiary text-xs mb-1">Dépensé</p>
               <p
@@ -334,7 +334,7 @@ export default function EventDetail() {
             </div>
             <div
               className="rounded-xl p-3 text-center"
-              style={{ backgroundColor: "#212121" }}
+              style={{ backgroundColor: "var(--surface)" }}
             >
               <p className="text-text-tertiary text-xs mb-1">Reste</p>
               <p
@@ -354,8 +354,8 @@ export default function EventDetail() {
             <div
               className="rounded-xl p-4 mb-6"
               style={{
-                backgroundColor: "#212121",
-                border: "1px solid #282828",
+                backgroundColor: "var(--surface)",
+                border: "1px solid var(--border)",
               }}
             >
               <div className="flex items-center justify-between mb-2">
@@ -368,7 +368,7 @@ export default function EventDetail() {
               </div>
               <div
                 className="h-2 rounded-full overflow-hidden"
-                style={{ backgroundColor: "#282828" }}
+                style={{ backgroundColor: "var(--surface-hover)" }}
               >
                 <div
                   className="h-full rounded-full transition-all"
@@ -399,8 +399,8 @@ export default function EventDetail() {
             <div
               className="flex rounded-2xl p-1.5 overflow-x-auto scrollbar-hide"
               style={{
-                backgroundColor: "#212121",
-                border: "1px solid #282828",
+                backgroundColor: "var(--surface)",
+                border: "1px solid var(--border)",
                 gap: "6px",
               }}
             >
@@ -417,10 +417,10 @@ export default function EventDetail() {
                     activeTab === tabId
                       ? {
                           backgroundColor: "var(--accent-primary)",
-                          color: "#fff",
+                          color: "var(--text-primary)",
                           boxShadow: "0 2px 8px rgba(255,107,0,0.3)",
                         }
-                      : { backgroundColor: "transparent", color: "#808080" }
+                      : { backgroundColor: "transparent", color: "var(--text-tertiary)" }
                   }
                   aria-label={`Onglet ${label}`}
                   role="tab"
@@ -440,8 +440,8 @@ export default function EventDetail() {
                   onClick={() => setActiveTab("budget")}
                   className="p-4 rounded-xl text-left transition-all active:scale-95 w-full"
                   style={{
-                    backgroundColor: "#212121",
-                    border: "1px solid #282828",
+                    backgroundColor: "var(--surface)",
+                    border: "1px solid var(--border)",
                   }}
                   aria-label="Gérer le budget"
                 >
@@ -462,8 +462,8 @@ export default function EventDetail() {
                   onClick={() => setActiveTab("transactions")}
                   className="p-4 rounded-xl text-left transition-all active:scale-95 w-full"
                   style={{
-                    backgroundColor: "#212121",
-                    border: "1px solid #282828",
+                    backgroundColor: "var(--surface)",
+                    border: "1px solid var(--border)",
                   }}
                   aria-label="Voir les transactions"
                 >
@@ -488,7 +488,7 @@ export default function EventDetail() {
               {budgetItems.length > 0 && (
                 <div
                   className="rounded-xl p-4"
-                  style={{ backgroundColor: "#212121" }}
+                  style={{ backgroundColor: "var(--surface)" }}
                 >
                   <p className="text-text-tertiary text-xs font-medium mb-3">
                     Répartition du budget
@@ -517,7 +517,7 @@ export default function EventDetail() {
                           </div>
                           <div
                             className="h-1.5 rounded-full overflow-hidden"
-                            style={{ backgroundColor: "#282828" }}
+                            style={{ backgroundColor: "var(--surface-hover)" }}
                           >
                             <div
                               className="h-full rounded-full"
@@ -543,7 +543,7 @@ export default function EventDetail() {
               {eventTxs.length > 0 && (
                 <div
                   className="rounded-xl p-4"
-                  style={{ backgroundColor: "#212121" }}
+                  style={{ backgroundColor: "var(--surface)" }}
                 >
                   <div className="flex items-center justify-between mb-3">
                     <p className="text-text-tertiary text-xs font-medium">
@@ -568,7 +568,7 @@ export default function EventDetail() {
                       <div
                         key={tx.id}
                         className="flex items-center gap-3 py-2 border-b last:border-0"
-                        style={{ borderColor: "#282828" }}
+                        style={{ borderColor: "var(--border)" }}
                       >
                         <div
                           className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
@@ -619,7 +619,7 @@ export default function EventDetail() {
               {budgetItems.length === 0 ? (
                 <div
                   className="text-center py-10 rounded-xl"
-                  style={{ backgroundColor: "#212121" }}
+                  style={{ backgroundColor: "var(--surface)" }}
                 >
                   <Tag className="w-8 h-8 mx-auto mb-3 text-text-tertiary opacity-40" />
                   <p className="text-text-tertiary text-sm">
@@ -647,10 +647,10 @@ export default function EventDetail() {
                       key={item.id}
                       className="rounded-xl p-4"
                       style={{
-                        backgroundColor: "#212121",
+                        backgroundColor: "var(--surface)",
                         border: isExceeded
                           ? "1px solid #E5133240"
-                          : "1px solid #282828",
+                          : "1px solid var(--surface-hover)",
                       }}
                     >
                       <div className="flex items-center justify-between mb-3">
@@ -678,7 +678,7 @@ export default function EventDetail() {
 
                       <div
                         className="h-1.5 rounded-full overflow-hidden mb-3"
-                        style={{ backgroundColor: "#282828" }}
+                        style={{ backgroundColor: "var(--surface-hover)" }}
                       >
                         <div
                           className="h-full rounded-full transition-all"
@@ -747,7 +747,7 @@ export default function EventDetail() {
                   }
                   className="w-full py-3 rounded-xl font-medium text-sm flex items-center justify-center gap-2 mb-3 transition-all active:scale-95"
                   style={{
-                    backgroundColor: "#212121",
+                    backgroundColor: "var(--surface)",
                     border: "1px dashed color-mix(in srgb, var(--accent-primary) 25%, transparent)",
                     color: "var(--accent-primary)",
                   }}
@@ -758,7 +758,7 @@ export default function EventDetail() {
               {eventTxs.length === 0 ? (
                 <div
                   className="text-center py-10 rounded-xl"
-                  style={{ backgroundColor: "#212121" }}
+                  style={{ backgroundColor: "var(--surface)" }}
                 >
                   <p className="text-text-tertiary text-sm">
                     Aucune transaction liée
@@ -778,7 +778,7 @@ export default function EventDetail() {
                     <div
                       key={tx.id}
                       className="rounded-xl p-3 flex items-center gap-3"
-                      style={{ backgroundColor: "#212121" }}
+                      style={{ backgroundColor: "var(--surface)" }}
                     >
                       <div
                         className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
@@ -831,7 +831,7 @@ export default function EventDetail() {
             <button
               onClick={() => setShowDelete(true)}
               className="w-full py-3 rounded-full font-medium text-sm flex items-center justify-center gap-2 mt-5 mb-4"
-              style={{ backgroundColor: "#212121", color: "#E51332" }}
+              style={{ backgroundColor: "var(--surface)", color: "#E51332" }}
               aria-label="Supprimer l'événement"
             >
               <Trash2 className="w-4 h-4" /> Supprimer l'événement
@@ -845,7 +845,7 @@ export default function EventDetail() {
             <button
               onClick={() => navigate(`/event/${event.id}/edit`)}
               className="w-full py-3 rounded-full font-medium text-sm flex items-center justify-center gap-2 mb-4"
-              style={{ backgroundColor: "#212121", color: "var(--accent-primary)" }}
+              style={{ backgroundColor: "var(--surface)", color: "var(--accent-primary)" }}
               aria-label="Modifier l'événement"
             >
               <Edit3 className="w-4 h-4" /> Modifier l'événement
@@ -864,7 +864,7 @@ export default function EventDetail() {
             />
             <div
               className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl"
-              style={{ backgroundColor: "#181818" }}
+              style={{ backgroundColor: "var(--card)" }}
             >
               <div className="p-5">
                 <h3 className="text-text-primary font-bold text-lg mb-4">
@@ -890,8 +890,8 @@ export default function EventDetail() {
                       onChange={(e) => setSelectedBudgetItemId(e.target.value)}
                       className="w-full px-4 py-3 rounded-xl text-text-primary text-sm"
                       style={{
-                        backgroundColor: "#212121",
-                        border: "1px solid #282828",
+                        backgroundColor: "var(--surface)",
+                        border: "1px solid var(--border)",
                       }}
                     >
                       <option value="">Sélectionner un poste...</option>
@@ -918,8 +918,8 @@ export default function EventDetail() {
                       placeholder="0"
                       className="w-full px-4 py-3 rounded-xl text-text-primary text-sm"
                       style={{
-                        backgroundColor: "#212121",
-                        border: "1px solid #282828",
+                        backgroundColor: "var(--surface)",
+                        border: "1px solid var(--border)",
                       }}
                     />
                     {selectedBudgetItemId &&
@@ -953,8 +953,8 @@ export default function EventDetail() {
                       placeholder="Ex: Achat de chaises"
                       className="w-full px-4 py-3 rounded-xl text-text-primary text-sm"
                       style={{
-                        backgroundColor: "#212121",
-                        border: "1px solid #282828",
+                        backgroundColor: "var(--surface)",
+                        border: "1px solid var(--border)",
                       }}
                     />
                   </div>
@@ -964,7 +964,7 @@ export default function EventDetail() {
                   <button
                     onClick={() => setShowAddExpense(false)}
                     className="flex-1 py-3 rounded-full font-medium text-sm"
-                    style={{ backgroundColor: "#212121", color: "#B3B3B3" }}
+                    style={{ backgroundColor: "var(--surface)", color: "var(--text-secondary)" }}
                   >
                     Annuler
                   </button>
@@ -990,7 +990,7 @@ export default function EventDetail() {
             <div className="absolute inset-0 bg-black/70" />
             <div
               className="relative w-full max-w-sm rounded-2xl p-5 text-center"
-              style={{ backgroundColor: "#181818" }}
+              style={{ backgroundColor: "var(--card)" }}
               onClick={(e) => e.stopPropagation()}
             >
               <div
@@ -1022,7 +1022,7 @@ export default function EventDetail() {
               <button
                 onClick={() => setShowDelete(false)}
                 className="w-full py-3 rounded-full font-medium text-sm text-text-tertiary"
-                style={{ backgroundColor: "#212121" }}
+                style={{ backgroundColor: "var(--surface)" }}
               >
                 Annuler
               </button>

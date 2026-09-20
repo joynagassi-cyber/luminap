@@ -164,9 +164,9 @@ export default function Finance() {
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-10 pr-4 py-3 rounded-xl text-sm outline-none"
                   style={{
-                    backgroundColor: "#212121",
-                    color: "#fff",
-                    border: "1px solid #282828",
+                    backgroundColor: "var(--surface)",
+                    color: "var(--text-primary)",
+                    border: "1px solid var(--border)",
                   }}
                 />
               </div>
@@ -174,8 +174,8 @@ export default function Finance() {
                 onClick={() => setFilterOpen(!filterOpen)}
                 className="px-4 rounded-xl flex items-center gap-2"
                 style={{
-                  backgroundColor: "#212121",
-                  border: "1px solid #282828",
+                  backgroundColor: "var(--surface)",
+                  border: "1px solid var(--border)",
                 }}
                 aria-label="Filtres"
                 aria-expanded={filterOpen}
@@ -188,7 +188,7 @@ export default function Finance() {
             {filterOpen && (
               <div
                 className="rounded-xl p-4 mb-4 space-y-3"
-                style={{ backgroundColor: "#1e1e1e" }}
+                style={{ backgroundColor: "var(--surface)" }}
               >
                 <div className="flex items-center justify-between">
                   <p className="text-text-primary text-sm font-medium">
@@ -196,7 +196,7 @@ export default function Finance() {
                   </p>
                   <button
                     onClick={() => setFilterOpen(false)}
-                    style={{ color: "#B3B3B3" }}
+                    style={{ color: "var(--text-secondary)" }}
                     aria-label="Fermer les filtres"
                   >
                     <X className="w-4 h-4" />
@@ -214,8 +214,8 @@ export default function Finance() {
                         className="px-3 py-1.5 rounded-lg text-xs font-medium"
                         style={{
                           backgroundColor:
-                            selectedType === f ? "var(--accent-primary)" : "#212121",
-                          color: selectedType === f ? "#fff" : "#B3B3B3",
+                            selectedType === f ? "var(--accent-primary)" : "var(--surface)",
+                          color: selectedType === f ? "var(--text-primary)" : "var(--text-secondary)",
                         }}
                       >
                         {f === "ALL"
@@ -239,8 +239,8 @@ export default function Finance() {
                         className="px-3 py-1.5 rounded-lg text-xs font-medium"
                         style={{
                           backgroundColor:
-                            selectedStatus === f ? "#3B82F6" : "#212121",
-                          color: selectedStatus === f ? "#fff" : "#B3B3B3",
+                            selectedStatus === f ? "#3B82F6" : "var(--surface)",
+                          color: selectedStatus === f ? "var(--text-primary)" : "var(--text-secondary)",
                         }}
                       >
                         {f === "ALL" ? "Tout" : f}
@@ -258,8 +258,8 @@ export default function Finance() {
                       className="px-3 py-1.5 rounded-lg text-xs font-medium"
                       style={{
                         backgroundColor:
-                          selectedCaisse === "ALL" ? "var(--accent-primary)" : "#212121",
-                        color: selectedCaisse === "ALL" ? "#fff" : "#B3B3B3",
+                          selectedCaisse === "ALL" ? "var(--accent-primary)" : "var(--surface)",
+                        color: selectedCaisse === "ALL" ? "var(--text-primary)" : "var(--text-secondary)",
                       }}
                     >
                       Toutes
@@ -271,8 +271,8 @@ export default function Finance() {
                         className="px-3 py-1.5 rounded-lg text-xs font-medium"
                         style={{
                           backgroundColor:
-                            selectedCaisse === c.id ? "var(--accent-primary)" : "#212121",
-                          color: selectedCaisse === c.id ? "#fff" : "#B3B3B3",
+                            selectedCaisse === c.id ? "var(--accent-primary)" : "var(--surface)",
+                          color: selectedCaisse === c.id ? "var(--text-primary)" : "var(--text-secondary)",
                         }}
                       >
                         {c.name}
@@ -293,9 +293,9 @@ export default function Finance() {
                       }
                       className="px-3 py-2 rounded-lg text-xs outline-none"
                       style={{
-                        backgroundColor: "#212121",
-                        color: "#fff",
-                        border: "1px solid #282828",
+                        backgroundColor: "var(--surface)",
+                        color: "var(--text-primary)",
+                        border: "1px solid var(--border)",
                       }}
                     />
                     <span className="text-text-tertiary text-xs self-center">
@@ -309,9 +309,9 @@ export default function Finance() {
                       }
                       className="px-3 py-2 rounded-lg text-xs outline-none"
                       style={{
-                        backgroundColor: "#212121",
-                        color: "#fff",
-                        border: "1px solid #282828",
+                        backgroundColor: "var(--surface)",
+                        color: "var(--text-primary)",
+                        border: "1px solid var(--border)",
                       }}
                     />
                   </div>
@@ -324,7 +324,7 @@ export default function Finance() {
               {filteredTransactions.length === 0 ? (
                 <div
                   className="text-center py-10 rounded-xl"
-                  style={{ backgroundColor: "#1e1e1e" }}
+                  style={{ backgroundColor: "var(--surface)" }}
                 >
                   <p className="text-text-tertiary text-sm">
                     Aucune transaction trouvée
