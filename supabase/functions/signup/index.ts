@@ -19,7 +19,7 @@ serve(async (req) => {
   }
 
   try {
-    const { firstName, lastName, email, password } = await req.json()
+    const { firstName, lastName, email, password, role, orgId } = await req.json()
 
     if (!firstName || !lastName || !email || !password) {
       return new Response(
@@ -42,6 +42,11 @@ serve(async (req) => {
       )
     }
 
+    // B.5 : l'invitation claimée (ou le form d'onboarding) porte le rôle/organisation
+    // cible. Sans ces champs (rétro-compat), on retombe sur les défauts legacy.
+    const effectiveRole = role || 'TREASURER'
+    const effectiveOrgId = orgId || 'org-1'
+
     const supabaseClient = createClient(supabaseUrl, publishableKey)
 
     // Sign up with Supabase
@@ -52,7 +57,8 @@ serve(async (req) => {
         data: {
           first_name: firstName,
           last_name: lastName,
-          role: 'TREASURER',
+          role: effectiveRole,
+          org_id: effectiveOrgId,
         },
       },
     })
@@ -85,8 +91,8 @@ serve(async (req) => {
             email: signUpData.user?.email,
             firstName,
             lastName,
-            role: "TREASURER",
-            org: { id: "org-1", name: "Église MFE-JC Centrale", type: "Eglise", accentColor: "#FF6B00" },
+            role: effectiveRole,
+            org: { id: effectiveOrgId, name: "Église MFE-JC Centrale", type: "Eglise", accentColor: "#FF6B00" },
           },
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -113,8 +119,8 @@ serve(async (req) => {
           email: signUpData.user?.email,
           firstName,
           lastName,
-          role: 'TREASURER',
-          org: { id: 'org-1', name: 'Église MFE-JC Centrale', type: 'Eglise', accentColor: '#FF6B00' }
+          role: effectiveRole,
+          org: { id: effectiveOrgId, name: 'Église MFE-JC Centrale', type: 'Eglise', accentColor: '#FF6B00' }
         }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

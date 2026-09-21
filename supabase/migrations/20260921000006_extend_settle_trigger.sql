@@ -125,10 +125,16 @@ BEGIN
 
   UPDATE public.invitation_claims SET status = 'CONFIRMED', updated_at = now_ts WHERE id = c.id;
 
-  -- Promouvoir le profil PENDING → ACTIVE (comportement EXISTANT)
+  -- Promouvoir le profil PENDING → ACTIVE + le réconcilier avec l'invitation
+  -- (B.5) : le claimant doit devenir member de l'org invitée avec le rôle cible.
+  -- L'UPDATE est idempotent (ré-écrire les mêmes valeurs = pas de bug).
   IF c.resulting_user_id IS NOT NULL THEN
-    UPDATE public.profiles SET status = 'ACTIVE', updated_at = now_ts
-     WHERE id = c.resulting_user_id AND status = 'PENDING';
+    UPDATE public.profiles SET
+      status   = 'ACTIVE',
+      role     = inv.target_role,
+      org_id   = inv.org_id,
+      updated_at = now_ts
+     WHERE id = c.resulting_user_id;
   END IF;
 
   -- issued_by : TEXT (tolère les ids "local-user" hors Supabase) → UUID nullable
