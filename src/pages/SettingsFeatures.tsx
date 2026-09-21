@@ -223,7 +223,7 @@ export default function SettingsFeatures() {
             border: "1px solid var(--border)",
             color: "var(--text-secondary)",
           }}
-          aria-label="Restaurer les features par défaut"
+          aria-label="Restaurer les réglages par défaut"
         >
           <RotateCcw className="w-4 h-4" /> Restaurer les réglages par défaut
         </button>

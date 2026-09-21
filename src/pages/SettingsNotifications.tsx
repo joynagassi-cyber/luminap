@@ -76,7 +76,11 @@ export default function SettingsNotifications() {
   const [prefs, setPrefs] = useState<NotifPrefs>(loadPrefs);
   const [marked, setMarked] = useState(false);
 
-  const unread = (notifications?.filter((n) => !n.isRead).length ?? 0);
+  // Deux formes possibles selon la source : PowerSync expose `is_read` (0/1),
+  // IndexedDB expose `isRead` (boolean). Le prédicat normalise les deux.
+  const isUnread = (n: any): boolean =>
+    n.is_read !== undefined ? n.is_read === 0 : n.isRead === false;
+  const unread = (notifications ?? []).filter((n) => isUnread(n)).length;
 
   useEffect(() => {
     localStorage.setItem(PREF_KEY, JSON.stringify(prefs));

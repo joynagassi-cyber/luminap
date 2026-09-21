@@ -1,12 +1,12 @@
 import { test, expect, type Page } from "@playwright/test";
 
 /**
- * Page Paramètres en 3 onglets + bascule de thème :
- *  - les 3 onglets (Paramètres / Pratique / Profil) existent et basculent ;
- *  - l'onglet 1 est actif par défaut (contenu existant : #nav-tab-select) ;
- *  - le mode sombre est le défaut sans interaction ;
- *  - la bascule theme-mode-toggle passe dark → light (tokens clairs) puis
- *    revient en dark (tokens sombres).
+ * Page Paramètres — hub de cartes + sous-pages :
+ *  - /settings liste les options (cartes) : chaque option ouvre SA page ;
+ *  - « Thème & apparence » (/settings/theme) : la bascule theme-mode-toggle
+ *    passe dark → light (tokens clairs) puis revient en dark (tokens
+ *    sombres), avec persistance au rechargement ;
+ *  - « Profil » (/settings/profil) : bouton de déconnexion.
  *
  * Connexion avec le test-user provisionné (process.env.DYAD_TEST_USER_*).
  */
@@ -49,8 +49,8 @@ const canvasVar = async (page: Page) =>
     )
   ).toUpperCase();
 
-test.describe("Paramètres en 3 onglets + thème clair/sombre", () => {
-  test("les 3 onglets basculent ; la bascule de thème passe light puis dark", async ({
+test.describe("Page Paramètres — hub + sous-pages (thème, profil)", () => {
+  test("le hub liste les options ; le thème et le profil sont configurables", async ({
     page,
   }) => {
     test.skip(
@@ -62,62 +62,36 @@ test.describe("Paramètres en 3 onglets + thème clair/sombre", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await loginAsTestUser(page);
 
-    // 60 s : laisser le temps au routeur (Ionic + DB isolé) de charger
-    // /settings sur un serveur en charge.
-    await page.goto("/settings", { waitUntil: "domcontentloaded", timeout: 60_000 });
+    // 1) Hub — la liste de cartes d'options (60 s : routeur Ionic + DB isolé
+    //    sur un serveur en charge).
+    await page.goto("/settings", {
+      waitUntil: "domcontentloaded",
+      timeout: 60_000,
+    });
+    await expect(page.getByTestId("settings-opt-theme")).toBeVisible();
+    await expect(page.getByTestId("settings-opt-profil")).toBeVisible();
+    await expect(page.getByTestId("settings-opt-about")).toBeVisible();
+
+    // 2) Sous-page « Thème & apparence » : dark → light puis retour dark.
+    await page.getByTestId("settings-opt-theme").click();
+    const toggle = page.getByTestId("theme-mode-toggle");
+    await expect(toggle).toBeVisible({ timeout: 30_000 });
 
     // Sombre par défaut, sans interaction.
     await expect(page.locator("html[data-theme='dark']")).toHaveCount(1);
     expect(await canvasVar(page)).toBe("#121212");
 
-    // Les 3 onglets existent ; l'onglet 1 est actif par défaut.
-    const tabs = page.locator('[data-testid="settings-tabs"] [role="tab"]');
-    await expect(tabs).toHaveCount(3);
-    await expect(page.getByTestId("tab-parameters")).toHaveAttribute(
-      "aria-selected",
-      "true",
-    );
-
-    // Onglet 1 — le réglage features & navigation est ici (testid existant).
-    await expect(page.locator("#nav-tab-select")).toBeVisible({
-      timeout: 30_000,
-    });
-
-    // Onglet 2 « Pratique » — raccourcis + actions.
-    await page.getByTestId("tab-practical").click();
-    await expect(
-      page.getByRole("button", { name: "Voir le bilan financier" }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: "Nouveau versement" }),
-    ).toBeVisible();
-    // Le contenu de l'onglet 1 n'est plus affiché.
-    await expect(page.locator("#nav-tab-select")).toHaveCount(0);
-
-    // Onglet 3 « Profil » — profil + stats + déconnexion.
-    await page.getByTestId("tab-profile").click();
-    await expect(
-      page.getByRole("button", { name: "Se déconnecter" }),
-    ).toBeVisible();
-
-    // Bascule de thème (onglet Paramètres) : dark → light.
-    await page.getByTestId("tab-parameters").click();
-    const toggle = page.getByTestId("theme-mode-toggle");
+    // Bascule dark → light (tokens clairs).
     await toggle.click();
-
     await expect(page.locator("html[data-theme='light']")).toHaveCount(1);
     await expect(toggle).toHaveAttribute("aria-checked", "true");
     expect(await canvasVar(page)).toBe("#F5F6F8");
 
-    // Les surfaces deviennent claires (cartes blanches, fond canvas clair).
-    await expect(page.locator("html[data-theme='light']")).toHaveCount(1);
-
-    // Persistance du choix : le mode survit à une rechargement.
+    // Persistance du choix : le mode survit à un rechargement (deep link).
     await page.reload({ waitUntil: "domcontentloaded" });
     await expect(page.locator("html[data-theme='light']")).toHaveCount(1);
 
     // Retour en sombre.
-    await page.getByTestId("tab-parameters").click();
     await page.getByTestId("theme-mode-toggle").click();
     await expect(page.locator("html[data-theme='dark']")).toHaveCount(1);
     expect(await canvasVar(page)).toBe("#121212");
@@ -125,5 +99,12 @@ test.describe("Paramètres en 3 onglets + thème clair/sombre", () => {
       "aria-checked",
       "false",
     );
+
+    // 3) Sous-page « Profil » : le bouton de déconnexion existe.
+    await page.goto("/settings", { waitUntil: "domcontentloaded", timeout: 60_000 });
+    await page.getByTestId("settings-opt-profil").click();
+    await expect(
+      page.getByRole("button", { name: "Se déconnecter" }).first(),
+    ).toBeVisible({ timeout: 30_000 });
   });
 });

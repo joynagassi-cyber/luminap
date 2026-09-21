@@ -40,22 +40,28 @@ test("composer la nav bar et les features depuis les paramètres", async ({
     waitUntil: "domcontentloaded",
     timeout: 20_000,
   });
-  const nav = page.locator('nav[data-testid="bottom-nav"]').first();
-  await nav.waitFor({ state: "attached", timeout: 90_000 });
+  // Plusieurs barres peuvent coexister dans le DOM après une navigation SPA
+  // (la barre de la vue précédente reste un instant, masquée) : on ne cible
+  // que la barre VISIBLE via l'extension `:visible` de Playwright.
+  const nav = page.locator('nav[data-testid="bottom-nav"]:visible');
+  await nav.waitFor({ state: "visible", timeout: 90_000 });
 
   // La barre est en HTML natif (boutons role=tab) : filtre par texte direct.
   const tab = (label: string) =>
     nav.locator('[role="tab"]').filter({ hasText: label });
-  const moreMenu = page.locator('[data-testid="more-menu"]');
-  // Le bouton « Plus » (bouton natif) : on clique sur son libellé visible.
+  // Le menu « Plus » et son bouton sont des descendants de la barre visible.
+  const moreMenu = nav.locator('[data-testid="more-menu"]');
   const plusToggle = nav.getByText("Plus", { exact: true });
 
   // Réglage par défaut : « Groupes » et « Cultes » sont dans la barre.
   await expect(tab("Groupes")).toBeVisible();
   await expect(tab("Cultes")).toBeVisible();
 
-  // Settings → section « Features & navigation ».
-  await page.goto("/settings", { waitUntil: "domcontentloaded", timeout: 20_000 });
+  // Settings → hub → clic sur la carte « Features & navigation ».
+  // (Navigation SPA depuis le hub : un cold-load direct de /settings/features
+  // serait intercepté par la rampe de démarrage — on passe par le hub.)
+  await page.goto("/settings", { waitUntil: "domcontentloaded", timeout: 60_000 });
+  await page.getByTestId("settings-opt-features").click();
   const addSelect = page.locator("#nav-tab-select");
   await expect(addSelect, "la section features doit être visible").toBeVisible({
     timeout: 90_000,
@@ -98,7 +104,7 @@ test("composer la nav bar et les features depuis les paramètres", async ({
   // 6) Restaurer les réglages par défaut : « Cultes » revient, « Archives »
   //    réapparaît dans le menu « Plus ».
   await page
-    .locator('button[aria-label="Restaurer les features par défaut"]')
+    .locator('button[aria-label="Restaurer les réglages par défaut"]')
     .click();
   await expect(tab("Cultes")).toBeVisible();
   await expect(tab("Membres")).toHaveCount(0);

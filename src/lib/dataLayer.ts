@@ -22,7 +22,7 @@ import type {
   FormSubmission,
 } from "@/types";
 import { getOrganizationId } from "./orgContext";
-import { get, set, invalidate, asyncGetOrSet } from "./cache";
+import { get, set, invalidate, clear, asyncGetOrSet } from "./cache";
 
 
 // ============================================================
@@ -2374,6 +2374,85 @@ export function useAppConfig() {
   };
 
   return { config, updateConfig };
+}
+
+// ============================================================
+// Local data utilities (Paramètres → Données locales)
+// ============================================================
+
+/**
+ * Hook to read the local audit log (activity entries) plus a total count.
+ * Returns a plain, testable shape consumed by the local-data settings page.
+ */
+export function useAuditLog() {
+  const { data } = useAuditEntries();
+  return { data: data ?? [], count: data?.length ?? 0 };
+}
+
+/**
+ * Export the local-first application data (store snapshot + config) as a JSON
+ * file download. Purely client-side — no cloud round-trip.
+ */
+export function exportCausesData(): void {
+  const s = useLocalStore.getState();
+  const payload = {
+    exportedAt: new Date().toISOString(),
+    source: "lumina-local",
+    appConfig: s.appConfig,
+    user: { id: s.user.id, role: s.user.role },
+    transactions: s.transactions,
+    events: s.events,
+    members: s.members,
+    groups: s.groups,
+    caisses: s.caisses,
+    cotisations: s.cotisations,
+    notifications: s.notifications,
+    auditEntries: s.auditEntries,
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {
+    type: "application/json",
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `lumina-export-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * Reset ALL local application data on this device: every `lumina-*` key in
+ * localStorage, the in-memory local-first store, and the in-memory data
+ * cache. This intentionally does NOT touch the cloud (PowerSync/Supabase) —
+ * it makes this device behave like a fresh install while leaving the synced
+ * source of truth intact.
+ */
+export async function deleteAllLocalData(): Promise<void> {
+  try {
+    for (const key of Object.keys(localStorage)) {
+      if (key.startsWith("lumina-")) localStorage.removeItem(key);
+    }
+    useLocalStore.setState({
+      transactions: [],
+      events: [],
+      members: [],
+      groups: [],
+      caisses: [],
+      accounts: [],
+      cotisations: [],
+      notifications: [],
+      auditEntries: [],
+      memberships: [],
+      eventBudgets: [],
+      budgetLines: [],
+      appConfig: { churchName: "", churchLogoUrl: "", userPhoto: "" },
+    });
+    clear();
+  } catch (e) {
+    console.error("[dataLayer] deleteAllLocalData failed", e);
+  }
 }
 
 /**
