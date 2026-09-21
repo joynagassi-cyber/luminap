@@ -791,6 +791,195 @@ export async function executeWrite(
   return (result as { rowsAffected?: number })?.rowsAffected ?? 1;
 }
 
+// ============================================================
+// Modèle agnostique (Vague 2) — grants, tags, multi-org helpers
+// ============================================================
+
+/** PowerSync view of `grants` (snake_case columns, id is implicit). */
+export interface PSGrant {
+  id: string;
+  subject_type: string;
+  subject_id: string;
+  resource: string;
+  action: string;
+  scope_resource: string | null;
+  scope_id: string | null;
+  granted_by: string | null;
+  granted_at: string;
+  revoked_at: string | null;
+}
+
+/** PowerSync view of `tags`. */
+export interface PSTag {
+  id: string;
+  org_id: string;
+  name: string;
+  description: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** PowerSync view of `tag_assignments`. */
+export interface PSTagAssignment {
+  id: string;
+  tag_id: string;
+  user_id: string;
+  org_id: string;
+  assigned_at: string;
+  assigned_by: string | null;
+}
+
+/**
+ * Insert a grant via PowerSync (subject/user/… — agnostique).
+ * Invariant 5/9 : resource/action LIBRES, pas de validation du vocabulaire.
+ */
+export async function createGrantPS(
+  grant: Omit<
+    PSGrant,
+    "id" | "granted_at" | "revoked_at"
+  > & { id?: string },
+): Promise<string> {
+  const id = grant.id ?? crypto.randomUUID();
+  const now = new Date().toISOString();
+  await executeWrite(
+    `INSERT INTO grants (
+      id, subject_type, subject_id, resource, action,
+      scope_resource, scope_id, granted_by, granted_at, revoked_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)`,
+    [
+      id,
+      grant.subject_type,
+      grant.subject_id,
+      grant.resource,
+      grant.action,
+      grant.scope_resource ?? null,
+      grant.scope_id ?? null,
+      grant.granted_by ?? null,
+      now,
+    ],
+  );
+  return id;
+}
+
+/**
+ * Revoke a grant (soft delete) via PowerSync.
+ */
+export async function revokeGrantPS(grantId: string): Promise<void> {
+  await executeWrite(
+    `UPDATE grants SET revoked_at = ? WHERE id = ?`,
+    [new Date().toISOString(), grantId],
+  );
+}
+
+/**
+ * List the active grants that resolve for a user in an org (5 sources).
+ * Used by the `federation.canAccess` union (Vague 2.4) in sync mode.
+ */
+export async function listGrantsForUserPS(
+  userId: string,
+  orgId: string,
+): Promise<PSGrant[]> {
+  const db = getPowerSyncDatabase();
+  const res = await db.execute(
+    `SELECT * FROM grants WHERE revoked_at IS NULL AND (
+        (subject_type = 'user' AND subject_id = ?)
+        OR (subject_type = 'org_member' AND subject_id IN
+             (SELECT id FROM org_memberships
+              WHERE user_id = ? AND org_id = ? AND status IN ('ACTIVE','PENDING')))
+        OR (subject_type = 'group_member' AND subject_id IN
+             (SELECT gm.id FROM group_memberships gm
+              JOIN members m ON m.id = gm.member_id
+              WHERE m.org_id = ?))
+        OR (subject_type = 'tag' AND subject_id IN
+             (SELECT tag_id FROM tag_assignments
+              WHERE user_id = ? AND org_id = ?))
+        OR (subject_type = 'role')
+      )`,
+    [userId, userId, orgId, orgId, userId, orgId],
+  );
+  return ((res?.array ?? []) as unknown as PSGrant[]).map((g) => ({
+    ...g,
+    id: String(g.id),
+    subject_type: String(g.subject_type),
+    subject_id: String(g.subject_id),
+    resource: String(g.resource),
+    action: String(g.action),
+  }));
+}
+
+/**
+ * Multi-org list of the orgs a user belongs to (legacy profiles +
+ * org_memberships + org_admins). Idempotent, safe for 1-org and N-org.
+ */
+export async function listUserOrgsMultiPS(userId: string): Promise<string[]> {
+  const db = getPowerSyncDatabase();
+  const res = await db.execute(
+    `SELECT DISTINCT org_id FROM (
+       SELECT org_id FROM profiles WHERE id = ?
+       UNION
+       SELECT org_id FROM org_memberships
+         WHERE user_id = ? AND status IN ('ACTIVE','PENDING')
+       UNION
+       SELECT org_id FROM org_admins
+         WHERE admin_profile_id = ? AND status = 'ACTIVE'
+     )`,
+    [userId, userId, userId],
+  );
+  return ((res?.array ?? []) as { org_id: string }[]).map((r) => String(r.org_id));
+}
+
+/**
+ * Create a tag in an org.
+ */
+export async function createTagPS(
+  orgId: string,
+  name: string,
+  description?: string,
+): Promise<string> {
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  await executeWrite(
+    `INSERT INTO tags (id, org_id, name, description, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [id, orgId, name, description ?? null, now, now],
+  );
+  return id;
+}
+
+/**
+ * Assign a user to a tag (populates the dynamic population).
+ */
+export async function assignTagPS(
+  tagId: string,
+  userId: string,
+  orgId: string,
+  assignedBy?: string,
+): Promise<string> {
+  const id = crypto.randomUUID();
+  await executeWrite(
+    `INSERT INTO tag_assignments (id, tag_id, user_id, org_id, assigned_by)
+     VALUES (?, ?, ?, ?, ?)`,
+    [id, tagId, userId, orgId, assignedBy ?? null],
+  );
+  return id;
+}
+
+/**
+ * List the tag_ids a user belongs to in an org.
+ */
+export async function listUserTagsPS(
+  userId: string,
+  orgId: string,
+): Promise<string[]> {
+  const db = getPowerSyncDatabase();
+  const res = await db.execute(
+    `SELECT tag_id FROM tag_assignments WHERE user_id = ? AND org_id = ?`,
+    [userId, orgId],
+  );
+  return ((res?.array ?? []) as { tag_id: string }[]).map((r) => String(r.tag_id));
+}
+
+
 /**
  * Add a transaction via PowerSync
  */

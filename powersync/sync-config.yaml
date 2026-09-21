@@ -181,3 +181,27 @@ streams:
     query: SELECT * FROM org_admins
            WHERE admin_profile_id = auth.uid()
               OR org_id = (SELECT org_id FROM profiles WHERE id = auth.uid())
+
+  # ── Modèle agnostique (Vague 2) : grants + tags ─────────────────────────
+  # Streams créés explicitement côté client ; le filtrage fort passe par
+  # `canAccess` (Vague 2.4), le scoping RLS reste `is_org_member`.
+  grants:
+    auto_subscribe: false
+    query: SELECT * FROM grants
+           WHERE subject_id = auth.uid()::text
+              OR subject_type = 'tag' AND subject_id IN
+                 (SELECT ta.tag_id::text FROM tag_assignments ta
+                  WHERE ta.user_id = auth.uid())
+
+  tags:
+    auto_subscribe: false
+    query: SELECT * FROM tags
+           WHERE org_id = (SELECT org_id FROM profiles WHERE id = auth.uid())
+              OR org_id IN (SELECT org_id FROM org_memberships
+                            WHERE user_id = auth.uid()
+                              AND status IN ('ACTIVE','PENDING'))
+
+  tag_assignments:
+    auto_subscribe: false
+    query: SELECT * FROM tag_assignments
+           WHERE user_id = auth.uid()
