@@ -15,6 +15,13 @@ const Trace = lazy(() => import("@/pages/Trace"));
 const History = lazy(() => import("@/pages/History"));
 const Help = lazy(() => import("@/pages/Help"));
 const Settings = lazy(() => import("@/pages/Settings"));
+const SettingsProfile = lazy(() => import("@/pages/SettingsProfile"));
+const SettingsTheme = lazy(() => import("@/pages/SettingsTheme"));
+const SettingsPersonalisation = lazy(() => import("@/pages/SettingsPersonalisation"));
+const SettingsFeatures = lazy(() => import("@/pages/SettingsFeatures"));
+const SettingsNotifications = lazy(() => import("@/pages/SettingsNotifications"));
+const SettingsGestion = lazy(() => import("@/pages/SettingsGestion"));
+const SettingsAbout = lazy(() => import("@/pages/SettingsAbout"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
 export const systemRoutes: ReactElement[] = [
@@ -37,6 +44,41 @@ export const systemRoutes: ReactElement[] = [
     key="/settings"
     path="/settings"
     element={<LazyRoute component={Settings} />}
+  />,
+  <Route
+    key="/settings/profil"
+    path="/settings/profil"
+    element={<LazyRoute component={SettingsProfile} />}
+  />,
+  <Route
+    key="/settings/theme"
+    path="/settings/theme"
+    element={<LazyRoute component={SettingsTheme} />}
+  />,
+  <Route
+    key="/settings/personnalisation"
+    path="/settings/personnalisation"
+    element={<LazyRoute component={SettingsPersonalisation} />}
+  />,
+  <Route
+    key="/settings/features"
+    path="/settings/features"
+    element={<LazyRoute component={SettingsFeatures} />}
+  />,
+  <Route
+    key="/settings/notifications"
+    path="/settings/notifications"
+    element={<LazyRoute component={SettingsNotifications} />}
+  />,
+  <Route
+    key="/settings/gestion"
+    path="/settings/gestion"
+    element={<LazyRoute component={SettingsGestion} />}
+  />,
+  <Route
+    key="/settings/about"
+    path="/settings/about"
+    element={<LazyRoute component={SettingsAbout} />}
   />,
   <Route
     key="*"
