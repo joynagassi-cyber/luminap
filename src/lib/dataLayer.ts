@@ -1738,6 +1738,11 @@ export interface PSInvitation {
   max_uses: number;
   used_count: number;
   status: string;
+  // Vague 3 — scope granulaire (libre) + grants/tags au claim
+  target_scope_resource?: string | null;
+  target_scope_id?: string | null;
+  grants_payload?: string; // JSONB: Grant[] (agnostique)
+  tags_payload?: string;   // JSONB: tag_id[]
 }
 
 export interface PSInvitationClaim {
@@ -1779,7 +1784,14 @@ export function useInvitationClaims(invitationId: string | null) {
 // ============================================================
 
 /**
- * Create an invitation via PowerSync
+ * Create an invitation via PowerSync.
+ *
+ * Vague 3 (correction §8) : le champ `status` est aligné sur PG
+ * (`'ACTIVE'`, PAS `'PENDING'` — PENDING est un état de claim, pas
+ * d'invitation). Les colonnes `grants_payload` / `tags_payload` /
+ * `target_scope_resource` / `target_scope_id` sont optionnelles : elles
+ * partent vides par défaut et sont chargées au claim par le trigger
+ * `settle_invitation_claim` (migration 20260921000006).
  */
 export async function createInvitationPS(
   inv: Omit<
@@ -1790,12 +1802,22 @@ export async function createInvitationPS(
 ): Promise<string> {
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
+  // Payloads déjà sérialisés (string) côté UI : on ne double-encode JAMAIS.
+  const grantsPayload =
+    typeof inv.grants_payload === "string"
+      ? inv.grants_payload
+      : JSON.stringify(inv.grants_payload ?? []);
+  const tagsPayload =
+    typeof inv.tags_payload === "string"
+      ? inv.tags_payload
+      : JSON.stringify(inv.tags_payload ?? []);
 
   await executeWrite(
     `INSERT INTO invitations (
       id, org_id, code, target_role, target_scope_type, target_group_id, target_member_id,
-      issued_by, issued_at, expires_at, max_uses, used_count, status, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 'ACTIVE', ?, ?)`,
+      issued_by, issued_at, expires_at, max_uses, used_count, status, created_at, updated_at,
+      target_scope_resource, target_scope_id, grants_payload, tags_payload
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 'ACTIVE', ?, ?, ?, ?, ?, ?)`,
     [
       id,
       inv.org_id,
@@ -1810,6 +1832,10 @@ export async function createInvitationPS(
       inv.max_uses,
       now,
       now,
+      inv.target_scope_resource ?? null,
+      inv.target_scope_id ?? null,
+      grantsPayload,
+      tagsPayload,
     ],
   );
 
@@ -1827,7 +1853,12 @@ export async function revokeInvitationPS(id: string): Promise<void> {
 }
 
 /**
- * Create an invitation claim via PowerSync
+ * Create an invitation claim via PowerSync.
+ *
+ * Vague 3 (correction §8, point 2) : le client crée UNIQUEMENT la claim.
+ * L'incrément de `invitations.used_count` est réservé au trigger
+ * `settle_invitation_claim` (une seule fois, côté serveur) — le double-
+ * incrément ancien client+trigger est supprimé.
  */
 export async function claimInvitationPS(
   invitationId: string,
@@ -1856,11 +1887,8 @@ export async function claimInvitationPS(
     ],
   );
 
-  // Increment used_count on the invitation
-  await executeWrite(
-    `UPDATE invitations SET used_count = used_count + 1, updated_at = ? WHERE id = ?`,
-    [now, invitationId],
-  );
+  // Le trigger `settle_invitation_claim` fait le `used_count++` (invariant 5)
+  // : le client n'incrémente JAMAIS — fin du double-incrément §8.2.
 
   return id;
 }

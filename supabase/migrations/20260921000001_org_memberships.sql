@@ -38,18 +38,17 @@ CREATE TABLE public.org_memberships (
   UNIQUE (user_id, org_id, role, status)
 );
 
--- Ajustement du cahier : UNIQUE sur 4 colonnes (status inclus) pour que le
--- DO UPDATE du trigger Vague 3 puisse réactiver une ligne PENDING.
--- Le backfill (20260921000002) utilise ON CONFLICT (user_id, org_id, role)
--- qui exige cet index : on crée l'index UNIQUE correspondant (le status est
--- en position 4, donc la préfixe (user_id,org_id,role) n'est PAS unique à
--- elle seule si 2 statuts coexistent — c'est attendu et résolu par le
--- trigger qui ne laisse qu'UN statut actif par rôle).
--- On utilise donc une contrainte UNIQUE partielle pour garantir la
--- cardinalité 1:1 du backfill :
-CREATE UNIQUE INDEX uq_org_memberships_user_org_role_active
-  ON public.org_memberships (user_id, org_id, role)
-  WHERE status IN ('ACTIVE','PENDING');
+-- UNIQUE (user_id, org_id, role) :
+--   * Permet le backfill 1:1 (20260921000002) via ON CONFLICT DO NOTHING.
+--   * Permet au trigger Vague 3 (20260921000006) d'écrire via
+--     ON CONFLICT (user_id, org_id, role) DO UPDATE SET status='ACTIVE'.
+-- Le `ON CONFLICT` de PG exige une UNIQUE/EXCL correspondante, et une
+-- UNIQUE partielle (avec WHERE status IN …) ne suffit PAS au trigger :
+-- il faut donc l'unique simple ici. L'invariant "1 statut actif par rôle"
+-- est garanti par le trigger (DO UPDATE, jamais de 2ᵉ ligne pour le même
+-- (user_id, org_id, role)).
+CREATE UNIQUE INDEX uq_org_memberships_user_org_role
+  ON public.org_memberships (user_id, org_id, role);
 
 CREATE INDEX idx_org_memberships_org   ON public.org_memberships (org_id);
 CREATE INDEX idx_org_memberships_user  ON public.org_memberships (user_id);

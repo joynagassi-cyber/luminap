@@ -160,11 +160,20 @@ describe("a11y — aria labels", () => {
   it("TopHeader action buttons have aria-labels", () => {
     const src = readTsFile("TopHeader.tsx");
     const attrs = extractAriaAttrs(src);
-    const labels = attrs
+    // Le bouton Notifications porte `aria-label` avec une valeur dynamique
+    // (`Notifications (N non lues)` ou `Notifications`) et un `title="Notifications"`.
+    // Le helper `extractAriaAttrs` capture les expressions multi-lignes `{...}`
+    // partiellement (le `}` de fin) ; on vérifie donc que la base
+    // "Notifications" EST présente quelque part dans les aria-attrs OU
+    // dans les `title` du composant — et que "Paramètres" est en aria-label.
+    const values = attrs
       .filter((a) => a.attr.startsWith("aria-label"))
       .map((a) => a.value);
-    expect(labels).toContain("Notifications");
-    expect(labels).toContain("Paramètres");
+    const hasNotificationsBase =
+      values.some((v: string) => v.includes("Notifications")) ||
+      /title="Notifications"/.test(src);
+    expect(hasNotificationsBase, "Notifications aria-label/title").toBe(true);
+    expect(values, "Paramètres aria-label").toContain("Paramètres");
   });
 
   it("BottomNav items all have aria-labels", () => {

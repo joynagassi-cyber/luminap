@@ -50,6 +50,14 @@ function resolveGrants(params: unknown[]): Row[] {
   //  A. canAccess scope===undefined : [resource, action, u, u, o, o, u, o]
   //  B. canAccess scope défini      : [resource, action, res, id, u, u, o, o, u, o]
   //  C. listEffectiveGrants         : [u, u, o, o, u, o]
+  // Séquences de paramètres (voir federation/index.ts) :
+  //  A. canAccess scope===undefined : [resource, action, u, u, o, o, u, o]      (8)
+  //  B. canAccess scope défini      : [resource, action, sr, si, u, u, o, o, u, o] (10)
+  //  C. listEffectiveGrants         : [u, u, o, o, u, o]                        (6)
+  //
+  // Disambiguation : dans B, p[2]/p[3] sont les colonnes du scope (scope_res,
+  // scope_id) ; dans A, p[0]/p[1] sont la ressource/action. Comme le mock ne
+  // reçoit que l'array `params` (pas le SQL), on distingue par la longueur.
   let resource: string | null = null;
   let action: string | null = null;
   let requireGlobalScope = false;
@@ -57,16 +65,19 @@ function resolveGrants(params: unknown[]): Row[] {
   let scopeId: string | null = null;
   let listMode = false;
 
-  if (params.length === 8 && params[0] !== USER && params[1] !== USER) {
+  if (params.length === 8) {
+    // A : [resource, action, userId, userId, orgId, orgId, userId, orgId]
     resource = String(params[0]);
     action = String(params[1]);
-    requireGlobalScope = true; // séquence A : scope undefined
+    requireGlobalScope = true;
   } else if (params.length === 10) {
+    // B : [resource, action, scopeRes, scopeId, userId, userId, orgId, orgId, userId, orgId]
     resource = String(params[0]);
     action = String(params[1]);
-    scopeRes = String(params[3]);
-    scopeId = String(params[4]);
+    scopeRes = String(params[2]);
+    scopeId = String(params[3]);
   } else if (params.length === 6) {
+    // C : listEffectiveGrants — on renvoie tous les grants actifs.
     listMode = true;
   }
 
@@ -167,31 +178,30 @@ describe("Vague 2.6 — canAccess (5 sources)", () => {
 
   it("(b) grant scopé ne permet PAS la même action au niveau org", async () => {
     seedAll();
+    // On utilise une permission que l'union canonique (COMPTABLE ∪ BENEVOLE)
+    // ne couvre PAS — sinon le grant ne serait pas isolable.
+    // `admin:settings` n'appartient à aucune des deux matrices.
     dbState.grants = [
       {
         id: "g1",
         subject_type: "user",
         subject_id: "u1",
-        resource: "report",
-        action: "read",
+        resource: "admin",
+        action: "settings",
         scope_resource: "group",
         scope_id: "G1",
         revoked_at: null,
       },
     ];
-    // `report:read` SANS scope (org-level) : le grant est scopé sur group
-    // G1 → au niveau org il ne couvre PAS (le plan §2.6 le dit explicitement).
-    //
-    // NB : l'implémentation locale de canAccess filtre par
-    // `(scope_resource IS NULL OR scope_resource = ? AND scope_id = ?)` ;
-    // sans scope fourni, seuls les grants NULL-scope (globaux) sont retenus.
+    // `admin:settings` SANS scope (org-level) : le grant est scopé sur group
+    // G1 → au niveau org il ne couvre PAS (plan §2.6, test b).
     expect(
-      await federation.canAccess("u1", "org-A", "report", "read"),
+      await federation.canAccess("u1", "org-A", "admin", "settings"),
     ).toBe(false);
     // Avec le bon scope → autorisé.
     const scope: AccessScope = { resource: "group", id: "G1" };
     expect(
-      await federation.canAccess("u1", "org-A", "report", "read", scope),
+      await federation.canAccess("u1", "org-A", "admin", "settings", scope),
     ).toBe(true);
   });
 

@@ -193,10 +193,10 @@ vi.mock("@/lib/notification-service", async (importOriginal) => {
     ...actual,
     createNotification: vi.fn((n: any, _s: any) => ({ ...n, id: "notif-1", createdAt: new Date().toISOString() })),
     markNotificationRead: vi.fn((id: string, s: any) =>
-      s.notifications.map((n: any) => (n.id === id ? { ...n, read: true } : n))
+      s.notifications.map((n: any) => (n.id === id ? { ...n, isRead: true } : n))
     ),
     markAllNotificationsRead: vi.fn((s: any) =>
-      s.notifications.map((n: any) => ({ ...n, read: true }))
+      s.notifications.map((n: any) => ({ ...n, isRead: true }))
     ),
   };
 });
@@ -487,6 +487,10 @@ describe("useLocalStore", () => {
   });
 
   it("markNotificationRead sets isRead=true on matching id", async () => {
+    // On part d'un état vide pour éviter l'influence de l'état initial du
+    // store (notifications pré-remplies par les tests précédents) et ne
+    // tester QUE le comportement de markNotificationRead.
+    useLocalStore.setState({ notifications: [] });
     useLocalStore.setState({
       notifications: [
         {
@@ -518,12 +522,13 @@ describe("useLocalStore", () => {
   });
 
   it("markAllNotificationsRead sets read=true on all", async () => {
+    useLocalStore.setState({ notifications: [] });
     useLocalStore.setState({ notifications: [
-      { id: "n1", read: false },
-      { id: "n2", read: false },
+      { id: "n1", isRead: false },
+      { id: "n2", isRead: false },
     ] as any });
     await useLocalStore.getState().markAllNotificationsRead();
-    expect(storeSnapshot().notifications.every((n: any) => n.read)).toBe(true);
+    expect(storeSnapshot().notifications.every((n: any) => n.isRead)).toBe(true);
   });
 
   // ── Cotisations ──

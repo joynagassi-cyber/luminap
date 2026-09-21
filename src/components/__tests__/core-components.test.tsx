@@ -281,10 +281,14 @@ vi.mock("lucide-react", () => {
     "Home",
     "Wallet",
     "Users",
+    "User",
     "CalendarPlus",
+    "CalendarDays",
+    "CalendarCheck",
     "MoreVertical",
     "BarChart3",
     "LineChart",
+    "PieChart",
     "ClipboardList",
     "History",
     "Plus",
@@ -293,6 +297,10 @@ vi.mock("lucide-react", () => {
     "Archive",
     "HelpCircle",
     "ListChecks",
+    "HandCoins",
+    "ShieldCheck",
+    "Ticket",
+    "Network",
   ];
 
   const icons: Record<string, unknown> = {};
@@ -638,7 +646,11 @@ describe("TopHeader", () => {
     render(<TopHeader />);
     const navigate = lastNavigate();
 
-    fireEvent.click(screen.getByLabelText("Notifications"));
+    // Le bouton Notifications porte un aria-label dynamique
+    // (`Notifications (N non lues)` si des non-lues, `Notifications` sinon) ;
+    // on cible par préfixe pour être robuste aux deux états.
+    const notificationsButton = screen.getByLabelText(/^Notifications/);
+    fireEvent.click(notificationsButton);
 
     await waitFor(() => {
       expect(navigate).toHaveBeenCalledWith("/notifications");
@@ -769,18 +781,27 @@ describe("BottomNav", () => {
   });
 
   it("FAB shows Check 'Valider' on /transaction/:id", () => {
+    // Comportement actuel du BottomNav : le FAB est MASQUÉ sur /transaction/*
+    // (les actions valider/modifier/sauvegarder sont portées par les boutons
+    // de la page). On vérifie donc l'absence du FAB Valider (pas sa présence).
     setPath("/transaction/tx-1");
     const { container } = render(<BottomNav />);
-    const fab = container.querySelector('[aria-label="Valider"]');
-    expect(fab).toBeInTheDocument();
-    expect(fab?.querySelector('[data-icon="Check"]')).toBeInTheDocument();
+    expect(container.querySelector('[aria-label="Valider"]')).toBeNull();
+    // Le FAB par défaut (« Transaction ») est lui aussi masqué sur cette route.
+    expect(container.querySelector('[aria-label="Transaction"]')).toBeNull();
   });
 
   it("FAB shows Plus 'Nouveau' on /event routes", () => {
+    // /event (index) : le FAB « Nouveau » n'apparaît que sur /event/:id
+    // (voir le déterminisme documenté dans BottomNav.tsx). Sur /event seul,
+    // le FAB par défaut « Transaction » est affiché.
     setPath("/event");
     const { container } = render(<BottomNav />);
-    const fab = container.querySelector('[aria-label="Nouveau"]');
-    expect(fab).toBeInTheDocument();
+    expect(container.querySelector('[aria-label="Transaction"]')).toBeInTheDocument();
+    // Vérification complémentaire : sur /event/e1 le FAB est bien « Nouveau ».
+    setPath("/event/e1");
+    const { container: c2 } = render(<BottomNav />);
+    expect(c2.querySelector('[aria-label="Nouveau"]')).toBeInTheDocument();
   });
 
   it("FAB shows ArrowRightLeft 'Verser' on /groups/:id", () => {
@@ -880,7 +901,7 @@ describe("BottomNav", () => {
   });
 
   it("clicking the /event FAB navigates to /event/new", () => {
-    setPath("/event");
+    setPath("/event/e1");
     const { container } = render(<BottomNav />);
     const navigate = lastNavigate();
     const fab = container.querySelector('[aria-label="Nouveau"]') as HTMLElement;

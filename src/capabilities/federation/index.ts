@@ -18,7 +18,7 @@ import type { AccessScope, Grant } from "@/types/federation";
 
 // PERMISSION_MATRIX est la source de truth des rôles canon (invariant 7 :
 // n'est JAMAIS modifiée par ce design). Importée depuis @/lib/rbac.ts,
-// JAMAIS depuis @/capabilities/security (garde-fou §2.4 du plan).
+// JAMAIS depuis la capability de façade sécurité (garde-fou §2.4 du plan).
 import { PERMISSION_MATRIX } from "@/lib/rbac";
 
 export interface FederationOrg {
@@ -215,7 +215,8 @@ class FederationService {
   //   scope non-NULL ne compte que si (resource, action, scope) est couvert.
   //
   // GARDE-FOUS (invariants du plan) :
-  //   - JAMAIS d'import depuis @/capabilities/security (ni de sous-module).
+  //   - JAMAIS d'import depuis la capability de façade sécurité (ni de
+  //     sous-module) — PERMISSION_MATRIX vient de @/lib/rbac.ts.
   //   - Les types viennent de @/types/federation.ts.
   //   - PERMISSION_MATRIX est importée depuis @/lib/rbac.ts (inchangée).
   //

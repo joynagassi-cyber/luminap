@@ -23,6 +23,11 @@ const invitations = new Table(
     status: column.text,
     created_at: column.text,
     updated_at: column.text,
+    // Vague 3 — scope granulaire (libre) + grants/tags au claim
+    target_scope_resource: column.text,
+    target_scope_id: column.text,
+    grants_payload: column.text,
+    tags_payload: column.text,
   },
   {
     indexes: {
