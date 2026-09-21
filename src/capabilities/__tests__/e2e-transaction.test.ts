@@ -24,6 +24,7 @@ import { auditLogRepo } from "@/lib/audit";
 import { getOrganizationId } from "@/lib/orgContext";
 import { getPowerSyncDatabase } from "@/lib/powersync";
 import { security } from "@/capabilities/security";
+import { updateTransactionPS } from "@/lib/dataLayer";
 import type { Transaction, TransactionStatus } from "@/types";
 
 // ─── Mock orgContext (vi.hoisted runs before any module-level init) ──
@@ -54,12 +55,8 @@ function psExecute(sql: string, params: any[] = []): any {
   const table = tableMatch ? tableMatch[1] : "unknown";
   const rows = _psRows[table] ?? [];
 
-  const idMatch = sql.match(/WHERE id = \?$/);
-  if (idMatch) {
-    const found = rows.find((r: any) => r.id === params[0]);
-    const arr = found ? [found] : [];
-    return qres(arr);
-  }
+  // NOTE: the `WHERE id = \?$` fast path is intentionally omitted — it
+  // also matches UPDATE ... WHERE id = ?, which would swallow the write.
 
   const orgStatusMatch = sql.match(/WHERE org_id = \? AND status = \?/);
   if (orgStatusMatch) {
@@ -72,6 +69,18 @@ function psExecute(sql: string, params: any[] = []): any {
   if (sql.includes("WHERE org_id = ?") && !sql.includes("status")) {
     const arr = rows.filter((r: any) => r.org_id === params[0]);
     return qres(arr);
+  }
+
+  // Fast path: SELECT <cols> FROM <table> WHERE id = ? (any column set).
+  // MUST run before the `SELECT status FROM` fast path, which would
+  // otherwise misread the last `?` param as a status value.
+  const selectIdMatch = sql.match(
+    /^SELECT .+ FROM (\w+) WHERE id = \?$/i,
+  );
+  if (selectIdMatch) {
+    const t = selectIdMatch[1];
+    const found = (_psRows[t] ?? []).find((r: any) => r.id === params[0]);
+    return qres(found ? [found] : []);
   }
 
   if (sql.includes("SELECT status FROM")) {
@@ -117,19 +126,34 @@ function psExecute(sql: string, params: any[] = []): any {
       if (idx !== -1) {
         const setMatch = sql.match(/SET (.+) WHERE/);
         if (setMatch) {
+          // Replace "col = ?" placeholders with the bound params BEFORE
+          // splitting on "," — splitting raw "SET a = ?, b = ?" yields
+          // fragments whose first token is the wrong column.
+          let setExpr = setMatch[1];
           let pi = 0;
-          setMatch[1].split(",").forEach((clause: string) => {
+          while (setExpr.includes("?")) {
+            const i = setExpr.indexOf("?");
+            const eqBefore =
+              i > 0 && setExpr[i - 1] === "=" && setExpr[i - 2] === " ";
+            const col =
+              eqBefore
+                ? setExpr.substring(0, i - 1).trim()
+                : setExpr.substring(0, i).trim();
+            setExpr =
+              col +
+              " " +
+              (pi < params.length ? String(params[pi++]) : "NULL") +
+              setExpr.slice(i + 1);
+          }
+          setExpr.split(",").forEach((clause: string) => {
             const eqIdx = clause.indexOf("=");
             const col =
               eqIdx > 0
                 ? clause.substring(0, eqIdx).trim()
                 : clause.split(/\s+/)[0];
+            if (!col || col === "id") return;
             const val = clause.substring(eqIdx + 1).trim();
-            if (col && col !== "id" && val !== "NULL" && val !== "?") {
-              _psRows[t][idx][col] = val;
-            } else if (val === "?" && pi < params.length) {
-              _psRows[t][idx][col] = params[pi++];
-            }
+            _psRows[t][idx][col] = val;
           });
         }
         _psRows[t][idx].updated_at = new Date().toISOString();
@@ -146,6 +170,9 @@ vi.mock("@/lib/powersync", () => ({
 }));
 
 // ─── Mock auditLogRepo ─────────────────────────────────────────────
+// NOTE: `@/lib/dataLayer` is intentionally NOT mocked here (B.6) — the
+// real `updateTransactionPS` must run against the in-memory `psExecute`
+// engine above so the data-layer guard is verified for real, not via a stub.
 const _auditEntries: any[] = [];
 vi.mock("@/lib/audit", () => ({
   auditLogRepo: {
@@ -1093,5 +1120,164 @@ describe("e2e-transaction: reversal flow", () => {
     expect(transactionGuard("PENDING", "APPROVED").allowed).toBe(true);
     // Reversal creates a NEW APPROVED transaction — original stays APPROVED
     expect(transactionGuard("APPROVED", "APPROVED").allowed).toBe(true);
+  });
+});
+
+// ════════════════════════════════════════════════════════════════════
+// TEST 6: updateTransactionPS data-layer status guard (B.6)
+// ════════════════════════════════════════════════════════════════════
+
+describe("e2e-transaction: updateTransactionPS status guard (B.6)", () => {
+  it("allows PENDING → REJECTED (rejection of a submitted tx)", async () => {
+    seedTransaction({
+      id: "tx-b6-pending",
+      orgId: "e2e-tx-org-1",
+      type: "EXPENSE",
+      amount: 1000,
+      description: "Pending expense",
+      date: "2024-06-10",
+      status: "PENDING",
+      createdById: "actor-1",
+    });
+
+    await expect(
+      updateTransactionPS("tx-b6-pending", {
+        status: "REJECTED",
+        comment: "Insufficient documentation",
+      }),
+    ).resolves.toBeUndefined();
+
+    // The in-memory PS row actually reflects the transition
+    const rows = await getPowerSyncDatabase().execute(
+      "SELECT * FROM transactions WHERE id = ?",
+      ["tx-b6-pending"],
+    );
+    expect((rows as any)[0].status).toBe("REJECTED");
+  });
+
+  it("blocks APPROVED → REJECTED with TRANSACTION_APPROVED_IMMUTABLE", async () => {
+    seedTransaction({
+      id: "tx-b6-approved",
+      orgId: "e2e-tx-org-1",
+      type: "INCOME",
+      amount: 1000,
+      description: "Approved donation",
+      date: "2024-06-10",
+      status: "APPROVED",
+      createdById: "actor-1",
+    });
+
+    await expect(
+      updateTransactionPS("tx-b6-approved", { status: "REJECTED" }),
+    ).rejects.toThrow("TRANSACTION_APPROVED_IMMUTABLE");
+    // (status stays APPROVED — the guard throws before any write)
+  });
+
+  it("allows APPROVED → APPROVED (no-op)", async () => {
+    seedTransaction({
+      id: "tx-b6-noop",
+      orgId: "e2e-tx-org-1",
+      type: "INCOME",
+      amount: 500,
+      description: "Already approved",
+      date: "2024-06-10",
+      status: "APPROVED",
+      createdById: "actor-1",
+    });
+
+    await expect(
+      updateTransactionPS("tx-b6-noop", { status: "APPROVED" }),
+    ).resolves.toBeUndefined();
+  });
+
+  it("guard + data layer are coherent: transactionGuard mirrors updateTransactionPS", () => {
+    // PENDING → REJECTED: guard allows, data layer allows
+    expect(transactionGuard("PENDING", "REJECTED").allowed).toBe(true);
+    // DRAFT → REJECTED: guard allows (direct rejection of a draft)
+    expect(transactionGuard("DRAFT", "REJECTED").allowed).toBe(true);
+    // APPROVED → REJECTED: guard blocks, data layer blocks
+    expect(transactionGuard("APPROVED", "REJECTED").allowed).toBe(false);
+    expect(transactionGuard("APPROVED", "REJECTED").reason).toBe(
+      "TRANSACTION_APPROVED_IMMUTABLE",
+    );
+    // REJECTED → APPROVED: guard blocks (no re-approval), data layer blocks
+    expect(transactionGuard("REJECTED", "APPROVED").allowed).toBe(false);
+    expect(transactionGuard("REJECTED", "APPROVED").reason).toBe(
+      "TRANSACTION_REJECTED_INVALID_TRANSITION",
+    );
+    // APPROVED → APPROVED: guard allows no-op, data layer allows no-op
+    expect(transactionGuard("APPROVED", "APPROVED").allowed).toBe(true);
+  });
+
+  it("allows PENDING → PENDING (no-op) at data layer", async () => {
+    seedTransaction({
+      id: "tx-b6-pending-noop",
+      orgId: "e2e-tx-org-1",
+      type: "INCOME",
+      amount: 300,
+      description: "Pending no-op",
+      date: "2024-06-10",
+      status: "PENDING",
+      createdById: "actor-1",
+    });
+
+    await expect(
+      updateTransactionPS("tx-b6-pending-noop", { status: "PENDING" }),
+    ).resolves.toBeUndefined();
+
+    const rows = await getPowerSyncDatabase().execute(
+      "SELECT * FROM transactions WHERE id = ?",
+      ["tx-b6-pending-noop"],
+    );
+    expect((rows as any)[0].status).toBe("PENDING");
+  });
+
+  it("allows DRAFT → REJECTED (direct rejection of a draft) at data layer", async () => {
+    seedTransaction({
+      id: "tx-b6-draft",
+      orgId: "e2e-tx-org-1",
+      type: "EXPENSE",
+      amount: 200,
+      description: "Draft expense",
+      date: "2024-06-10",
+      status: "DRAFT",
+      createdById: "actor-1",
+    });
+
+    await expect(
+      updateTransactionPS("tx-b6-draft", {
+        status: "REJECTED",
+        comment: "Rejected before submission",
+      }),
+    ).resolves.toBeUndefined();
+
+    const rows = await getPowerSyncDatabase().execute(
+      "SELECT * FROM transactions WHERE id = ?",
+      ["tx-b6-draft"],
+    );
+    expect((rows as any)[0].status).toBe("REJECTED");
+  });
+
+  it("blocks REJECTED → APPROVED (terminal-ish state, no re-approval)", async () => {
+    seedTransaction({
+      id: "tx-b6-rejected",
+      orgId: "e2e-tx-org-1",
+      type: "INCOME",
+      amount: 150,
+      description: "Rejected tx",
+      date: "2024-06-10",
+      status: "REJECTED",
+      createdById: "actor-1",
+    });
+
+    await expect(
+      updateTransactionPS("tx-b6-rejected", { status: "APPROVED" }),
+    ).rejects.toThrow("TRANSACTION_REJECTED_INVALID_TRANSITION");
+
+    const rows = await getPowerSyncDatabase().execute(
+      "SELECT * FROM transactions WHERE id = ?",
+      ["tx-b6-rejected"],
+    );
+    expect((rows as any)[0].status).toBe("REJECTED");
   });
 });

@@ -1045,6 +1045,21 @@ export async function updateTransactionPS(
   if (tx?.status === "APPROVED" && updates.status !== "APPROVED") {
     throw new Error("TRANSACTION_APPROVED_IMMUTABLE");
   }
+  // B.6: REJECTED is a terminal-ish state — only DRAFT/PENDING may transition
+  // TO it, and a REJECTED tx cannot be re-approved (retry goes back to DRAFT).
+  if (
+    updates.status === "APPROVED" &&
+    tx?.status === "REJECTED"
+  ) {
+    throw new Error("TRANSACTION_REJECTED_INVALID_TRANSITION");
+  }
+  if (
+    updates.status === "REJECTED" &&
+    tx?.status &&
+    !["DRAFT", "PENDING"].includes(tx.status)
+  ) {
+    throw new Error("TRANSACTION_REJECTED_INVALID_TRANSITION");
+  }
 
   const setClauses: string[] = [];
   const params: any[] = [];

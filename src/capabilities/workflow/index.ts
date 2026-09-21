@@ -93,6 +93,26 @@ export const transactionGuard: WorkflowGuard = (
   if (currentStatus === "APPROVED" && targetStatus !== "APPROVED") {
     return { allowed: false, reason: "TRANSACTION_APPROVED_IMMUTABLE" };
   }
+  // B.6: REJECTED is a terminal-ish status — only DRAFT/PENDING → REJECTED
+  // and the REJECTED → REJECTED no-op are allowed. Keep coherent with the
+  // data-layer guard in `updateTransactionPS` (dataLayer.ts).
+  if (
+    targetStatus === "REJECTED" &&
+    !["DRAFT", "PENDING"].includes(currentStatus)
+  ) {
+    return {
+      allowed: false,
+      reason: "TRANSACTION_REJECTED_INVALID_TRANSITION",
+    };
+  }
+  // B.6: a REJECTED tx cannot be re-approved — the retry flow goes back to
+  // DRAFT first (REJECTED → DRAFT is allowed, then DRAFT → PENDING → APPROVED).
+  if (currentStatus === "REJECTED" && targetStatus === "APPROVED") {
+    return {
+      allowed: false,
+      reason: "TRANSACTION_REJECTED_INVALID_TRANSITION",
+    };
+  }
   // Already at target — no-op, allowed
   if (currentStatus === targetStatus) {
     return { allowed: true };
