@@ -106,9 +106,25 @@ export default function BottomNav() {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  const isActive = (path: string) =>
-    location.pathname === path ||
-    (path !== "/" && location.pathname.startsWith(path));
+  // Route la PLUS spécifique (la plus longue) correspondant à la page courante.
+  // Seul l'onglet qui pointe dessus est actif : avec l'ancien test « startsWith »,
+  // les préfixes imbriqués (/admin vs /admin/federation) allumaient DEUX onglets
+  // à la fois (double encadré / « cercles ensemble ») et le box apparaissait
+  // sur-large. Ici, l'onglet le plus précis gagne — toujours un seul actif.
+  const activeRoute = useMemo(() => {
+    const p = location.pathname;
+    let best: string | null = null;
+    let bestLen = -1;
+    for (const f of activeNavFeatures) {
+      const r = f.route;
+      const matches = p === r || (r !== "/" && p.startsWith(r));
+      if (matches && r.length > bestLen) {
+        best = r;
+        bestLen = r.length;
+      }
+    }
+    return best;
+  }, [location.pathname, activeNavFeatures]);
 
   // Garde déterministe : chaque bouton de feature mène à une page claire.
   // Si la destination n'est pas une route absolue connue (route absente ou
@@ -128,14 +144,7 @@ export default function BottomNav() {
       : "transparent",
     border: "none",
     cursor: "pointer",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    gap: 2,
-    padding: "10px 12px",
-    borderRadius: 12,
-    minWidth: 0,
-    transition: "all 150ms",
+    transition: "background-color 150ms ease-out, color 150ms ease-out",
     color: "inherit",
   });
 
@@ -194,13 +203,13 @@ export default function BottomNav() {
         }}
       >
         <div
-          className="flex items-center justify-around max-w-lg mx-auto"
+          className="flex items-center gap-1.5 max-w-lg mx-auto"
           role="tablist"
           aria-label="Navigation principale"
         >
           {activeNavFeatures.map((f) => {
             const Icon = f.icon;
-            const active = isActive(f.route);
+            const active = activeRoute === f.route;
             return (
               <button
                 key={f.id}
@@ -209,18 +218,18 @@ export default function BottomNav() {
                 aria-selected={active}
                 aria-label={f.label}
                 onClick={() => go(f)}
-                className="flex flex-col items-center gap-0.5 px-3 py-2.5 rounded-xl transition-[transform,background-color,color,opacity] min-w-0"
+                className="flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5 px-1 py-2 rounded-xl overflow-hidden transition-[transform,background-color,color,opacity]"
                 style={tabStyle(active)}
               >
                 <Icon
-                  className="w-5 h-5"
+                  className="w-5 h-5 flex-shrink-0"
                   style={{
                     color: active ? "var(--accent-primary)" : "var(--text-secondary)",
                     opacity: active ? 1 : 0.7,
                   }}
                 />
                 <span
-                  className="text-xs font-medium"
+                  className="text-xs font-medium whitespace-nowrap"
                   style={{
                     color: active ? "var(--accent-primary)" : "var(--text-secondary)",
                   }}
@@ -232,17 +241,17 @@ export default function BottomNav() {
           })}
 
           {/* Bouton « Plus » — accès à toutes les features (barre + menu) */}
-          <div className="relative" ref={moreRef}>
+          <div className="relative flex-1 min-w-0" ref={moreRef}>
             <button
               type="button"
               onClick={() => setShowMore(!showMore)}
               aria-label={showMore ? "Fermer le menu" : "Plus d'options"}
               aria-expanded={showMore}
               style={tabStyle(showMore)}
-              className="flex flex-col items-center gap-0.5 px-3 py-2.5 rounded-xl transition-[transform,background-color,color,opacity] min-w-0"
+              className="w-full flex flex-col items-center justify-center gap-0.5 px-1 py-2 rounded-xl overflow-hidden transition-[transform,background-color,color,opacity]"
             >
               <MoreVertical
-                className="w-5 h-5"
+                className="w-5 h-5 flex-shrink-0"
                 style={{
                   color: showMore ? "var(--accent-primary)" : "var(--text-secondary)",
                 }}

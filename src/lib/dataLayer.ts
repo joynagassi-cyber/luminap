@@ -1606,7 +1606,7 @@ export async function createInvitationPS(
     `INSERT INTO invitations (
       id, org_id, code, target_role, target_scope_type, target_group_id, target_member_id,
       issued_by, issued_at, expires_at, max_uses, used_count, status, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 'PENDING', ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 'ACTIVE', ?, ?)`,
     [
       id,
       inv.org_id,

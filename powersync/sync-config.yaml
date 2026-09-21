@@ -43,15 +43,32 @@ streams:
     auto_subscribe: true
     query: SELECT * FROM caisses
 
+  # ── Socle multi-org (Vague 1) ──────────────────────────────────────────
+  # Les memberships multi-org sont créés côté client (pas auto_subscribe) :
+  # l'UI en a besoin pour afficher les rôles / orgs multiples de l'user.
+  org_memberships:
+    auto_subscribe: false
+    query: SELECT * FROM org_memberships
+           WHERE user_id = auth.uid()
+              OR org_id IN (SELECT org_id FROM profiles WHERE id = auth.uid())
+
   # ── Profil de l'utilisateur connecté ───────────────────────────────────
   profiles:
     auto_subscribe: true
     query: SELECT * FROM profiles WHERE email = auth.email()
 
   # ── Données de l'organisation de l'utilisateur connecté ───────────────
+  # Double-scope (Vague 1, réversible) : tant que le backfill 1:1 est exact,
+  # `legacy ∪ memberships` = l'ancien jeu de données pour un user 1-org.
+  # Modèle à répliquer aux 22 autres streams en Étape 2.
   transactions:
     auto_subscribe: true
-    query: SELECT * FROM transactions WHERE org_id = (SELECT org_id FROM profiles WHERE id = auth.uid())
+    query: SELECT * FROM transactions WHERE org_id IN (
+      SELECT org_id FROM org_memberships
+      WHERE user_id = auth.uid() AND status IN ('ACTIVE','PENDING')
+      UNION
+      SELECT org_id FROM profiles WHERE id = auth.uid()
+    )
 
   events:
     auto_subscribe: true

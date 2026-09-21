@@ -307,6 +307,7 @@ import SyncIndicator from "@/components/SyncIndicator";
 import StatusBadge from "@/components/StatusBadge";
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
+import { useFeatureConfig, DEFAULT_NAV_TABS } from "@/lib/features";
 
 // ─── Per-test overrides ──────────────────────────────────────────────────────
 
@@ -732,13 +733,39 @@ describe("BottomNav", () => {
     expect(homeTab?.getAttribute("aria-selected")).toBe("false");
   });
 
-  it("home tab is active on '/' (exact match)", () => {
-    setPath("/");
+  it("home tab is active on its route /dashboard (exact match)", () => {
+    setPath("/dashboard");
     const { container } = render(<BottomNav />);
     const homeTab = container.querySelector(
       '[aria-label="Accueil"]'
     ) as HTMLElement;
     expect(homeTab.getAttribute("aria-selected")).toBe("true");
+  });
+
+  it("only ONE tab is active on nested /admin/federation (pas de double encadré)", () => {
+    // Régression : l'ancien test « startsWith » allumait À LA FOIS « Admin
+    // central » (/admin, préfixe) et « Fédération » (/admin/federation,
+    // exact) → deux encadrés adjacents. La règle « route la plus spécifique »
+    // ne doit en marquer qu'UN (le plus précis = Fédération).
+    const prevNavTabs = useFeatureConfig.getState().navTabs;
+    useFeatureConfig.setState({ navTabs: ["admin", "federation"] });
+    try {
+      setPath("/admin/federation");
+      const { container } = render(<BottomNav />);
+
+      const active = Array.from(
+        container.querySelectorAll('[role="tab"][aria-selected="true"]')
+      );
+      expect(active.length).toBe(1);
+      expect(active[0]?.getAttribute("aria-label")).toBe("Fédération");
+
+      const adminTab = container.querySelector(
+        '[aria-label="Admin central"]'
+      ) as HTMLElement;
+      expect(adminTab.getAttribute("aria-selected")).toBe("false");
+    } finally {
+      useFeatureConfig.setState({ navTabs: prevNavTabs });
+    }
   });
 
   it("FAB shows Check 'Valider' on /transaction/:id", () => {
