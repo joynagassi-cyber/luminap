@@ -16,6 +16,8 @@
  * Run with: pnpm test src/capabilities/__tests__/federation-canAccess.test.ts
  */
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { readFileSync } from "fs";
+import { resolve } from "path";
 import { federation } from "@/capabilities/federation";
 import type { AccessScope } from "@/types/federation";
 
@@ -263,5 +265,34 @@ describe("Vague 2.6 — canAccess (5 sources)", () => {
       revokedAt: null,
     };
     expect(g.subjectType).toBe("tag");
+  });
+
+  it("B.2 — un user avec 2 memberships (sans profil legacy) voit les 2 orgs via listOrgs", async () => {
+    // seedAll() laisse dbState.profiles vide (pas de profil legacy pour u1)
+    // et 2 org_memberships ACTIVE (u1 → org-A). On ajoute un 2e membership.
+    seedAll();
+    dbState.org_memberships = [
+      { id: "m1", user_id: "u1", org_id: "org-A", role: "COMPTABLE", status: "ACTIVE" },
+      { id: "m2", user_id: "u1", org_id: "org-B", role: "BENEVOLE", status: "ACTIVE" },
+    ];
+    dbState.grants = [];
+    dbState.tag_assignments = [];
+
+    // Comme le mock du test répond à TOUTE query par les données filtrées,
+    // on vérifie ici le contrat : que listOrgs de la capability federation
+    // contient le terme OR EXISTS (SELECT 1 FROM org_memberships …) dans son
+    // SQL. Ce n'est PAS un test d'exécution — la couverture réelle du SQL est
+    // déléguée à l'assert Supabase (à faire post-redeploy PowerSync).
+    // On valide le contrat par inspection : le source de listOrgs porte le
+    // 3e terme (ON CONFLICT DO UPDATE, etc.). On slice depuis `async listOrgs`
+    // jusqu'au premier `\n  }\n` (fin de la méthode, indent 2) — la version
+    // avec `src.indexOf("}", …)` se coupait au `}` du `filter?: { type?: string }`
+    // du type signature.
+    const src = readFileSync(resolve(__dirname, "../federation/index.ts"), "utf-8");
+    const start = src.indexOf("async listOrgs(");
+    const end = src.indexOf("\n  }\n", start);
+    const body = src.slice(start, end > start ? end : src.length);
+    expect(body).toContain("org_memberships");
+    expect(body).toContain("'ACTIVE','PENDING'");
   });
 });

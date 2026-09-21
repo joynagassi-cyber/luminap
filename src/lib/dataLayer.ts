@@ -2067,9 +2067,12 @@ export async function hasActiveOrgAdminGrant(
 
 /**
  * Local equivalent of PostgreSQL `public.is_org_member(uid, org_id)`:
- * the user is a MEMBER of the org (profiles.org_id) OR holds an ACTIVE
- * central grant (org_admins). This is what authorizes entering an org
- * context. The server still re-enforces it via RLS on every real query.
+ * the user is a MEMBER of the org via one of 3 sources (B.2 — multi-org):
+ *   1. `profiles.org_id`         (legacy 1:1)
+ *   2. `org_memberships`         (multi-org, statuts ACTIVE|PENDING)
+ *   3. `org_admins`              (admin central avec grant actif)
+ * This is what authorizes entering an org context. The server still
+ * re-enforces it via RLS on every real query.
  */
 export async function canAccessOrganization(
   userId: string,
@@ -2080,10 +2083,13 @@ export async function canAccessOrganization(
     const db = getPowerSyncDatabase();
     const row = await db.getOptional<number>(
       `SELECT 1 FROM profiles WHERE id = ? AND org_id = ?
+       UNION SELECT 1 FROM org_memberships
+         WHERE user_id = ? AND org_id = ?
+           AND status IN ('ACTIVE','PENDING')
        UNION SELECT 1 FROM org_admins
          WHERE admin_profile_id = ? AND org_id = ? AND status = 'ACTIVE'
        LIMIT 1`,
-      [userId, orgId, userId, orgId],
+      [userId, orgId, userId, orgId, userId, orgId],
     );
     return row !== null && row !== undefined;
   } catch {
@@ -2096,12 +2102,17 @@ export interface UserOrg {
   name: string;
   status: OrgStatus;
   /** How the user is linked to the org */
-  via: "MEMBER" | "GRANT" | "BOTH";
+  via: "MEMBER" | "GRANT" | "BOTH" | "LEGACY";
 }
 
 /**
  * List all organizations the user may enter (member of, or granted admin on),
  * joined with the registry for name + lifecycle status. Sorted by name.
+ *
+ * B.2 — multi-org : union de 3 sources :
+ *   1. `profiles`        (legacy 1:1) → via: LEGACY
+ *   2. `org_memberships` (multi-org)  → via: MEMBER
+ *   3. `org_admins`      (admin central) → via: GRANT / BOTH
  */
 export async function listUserOrgs(userId: string): Promise<UserOrg[]> {
   if (!userId) return [];
@@ -2110,16 +2121,20 @@ export async function listUserOrgs(userId: string): Promise<UserOrg[]> {
     const rows = await db.readTransaction(async (tx) => {
       const res = await tx.execute(
         `SELECT o.id AS orgId, o.name AS name, o.status AS status,
-                CASE WHEN m.id IS NOT NULL AND g.id IS NOT NULL THEN 'BOTH'
-                     WHEN m.id IS NOT NULL THEN 'MEMBER'
-                     ELSE 'GRANT' END AS via
+                CASE WHEN p.id IS NOT NULL AND g.id IS NOT NULL THEN 'BOTH'
+                     WHEN p.id IS NOT NULL THEN 'LEGACY'
+                     WHEN m.id IS NOT NULL AND g.id IS NOT NULL THEN 'BOTH'
+                     WHEN g.id IS NOT NULL THEN 'GRANT'
+                     ELSE 'MEMBER' END AS via
          FROM organizations o
-         LEFT JOIN profiles m ON m.org_id = o.id AND m.id = ?
-         LEFT JOIN org_admins g ON g.org_id = o.id AND g.admin_profile_id = ?
-                AND g.status = 'ACTIVE'
-         WHERE m.id IS NOT NULL OR g.id IS NOT NULL
+         LEFT JOIN profiles p ON p.org_id = o.id AND p.id = ?
+         LEFT JOIN org_memberships m
+           ON m.org_id = o.id AND m.user_id = ? AND m.status IN ('ACTIVE','PENDING')
+         LEFT JOIN org_admins g
+           ON g.org_id = o.id AND g.admin_profile_id = ? AND g.status = 'ACTIVE'
+         WHERE p.id IS NOT NULL OR m.id IS NOT NULL OR g.id IS NOT NULL
          ORDER BY o.name COLLATE NOCASE`,
-        [userId, userId],
+        [userId, userId, userId],
       );
       return res.array ?? [];
     });

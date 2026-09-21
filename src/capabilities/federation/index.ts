@@ -128,6 +128,11 @@ class FederationService {
 
   /**
    * List all organizations visible to the user (managed via grants or membership).
+   * Union of 3 sources (B.2 — multi-org) :
+   *   1. `org_admins`   : admin central avec grant actif sur l'org
+   *   2. `profiles`     : profil legacy 1:1 (rétro-compat, mono-org)
+   *   3. `org_memberships` : memberships multi-org (ACTIVE|PENDING) — le socle
+   *      Vague 1. Sans ce terme, un user N-org sans profil legacy ne voit rien.
    */
   async listOrgs(actorId: string, filter?: { type?: string }): Promise<FederationOrg[]> {
     const db = getPowerSyncDatabase();
@@ -139,8 +144,13 @@ class FederationService {
        )
        OR EXISTS (
          SELECT 1 FROM profiles WHERE profiles.org_id = o.id AND profiles.id = ?
+       )
+       OR EXISTS (
+         SELECT 1 FROM org_memberships WHERE org_memberships.org_id = o.id
+           AND org_memberships.user_id = ?
+           AND org_memberships.status IN ('ACTIVE','PENDING')
        )`;
-    const params: any[] = [actorId, actorId];
+    const params: any[] = [actorId, actorId, actorId];
     if (filter?.type) {
       sql += ` AND o.type = ?`;
       params.push(filter.type);
