@@ -1,4 +1,4 @@
-name: Android Build & Release
+name: Lumina Android Build & Release
 
 on:
   push:
