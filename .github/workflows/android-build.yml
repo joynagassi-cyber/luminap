@@ -87,23 +87,19 @@ jobs:
       - name: Grant execute permission to gradlew
         run: chmod +x android/gradlew
 
-      - name: Purge ALL Gradle caches + wrapper dists
-        # « Failed to create Jar file ... bcprov-jdk18on » = le binaire
-        # Gradle téléchargé par le wrapper et/ou son cache jars est
-        # corrompu sur le disque des runners (recyclage entre runs).
-        # On purge complet (caches ET wrapper/dists) et on relance le
-        # wrapper qui re-télécharge un binaire propre.
-        run: |
-          if [ -d "$HOME/.gradle" ]; then
-            echo "Purging ~/.gradle (caches + wrapper dists)"
-            rm -rf "$HOME/.gradle"
-          fi
-          # Force re-download of the Gradle distribution (clean binary)
-          echo "Gradle will be re-downloaded by the wrapper"
-
-      - name: Build debug APK
-        run: ./gradlew assembleDebug --no-daemon
-        working-directory: android
+      - name: Build debug APK (retry: classpath jar race in runners)
+        # « Failed to create Jar file ... bcprov-jdk18on » persiste même
+        # après purge complète ~/.gradle + re-téléchargement du binaire
+        # Gradle + plugins alignés AGP 8.2.1. Le bon diagnostic est une
+        # course d'écriture du cache classpath dans les runners récents
+        # (cf. android-build-cl #2) — le correctif standard est le retry.
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 30
+          retry_wait_seconds: 30
+          retry_on: error
+          max_attempts: 3
+          command: cd android && ./gradlew assembleDebug --no-daemon
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
@@ -112,9 +108,14 @@ jobs:
           path: android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 14
 
-      - name: Build release APK (unsigned)
-        run: ./gradlew assembleRelease --no-daemon
-        working-directory: android
+      - name: Build release APK unsigned (retry: classpath jar race)
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 30
+          retry_wait_seconds: 30
+          retry_on: error
+          max_attempts: 3
+          command: cd android && ./gradlew assembleRelease --no-daemon
 
       - name: Upload unsigned release APK
         uses: actions/upload-artifact@v4
