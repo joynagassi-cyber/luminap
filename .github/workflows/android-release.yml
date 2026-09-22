@@ -236,7 +236,7 @@ jobs:
   deploy:
     name: Deploy to GitHub Releases
     needs: sign
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -249,10 +249,10 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ github.event.inputs.version || '1.0.0' }}
-          name: Lumina v${{ github.event.inputs.version || '1.0.0' }}
+          tag_name: v1.0.0
+          name: Lumina v1.0.0
           files: app-release-signed.apk
-          prerelease: ${{ github.event.inputs.release_type == 'debug' }}
+          prerelease: false
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
