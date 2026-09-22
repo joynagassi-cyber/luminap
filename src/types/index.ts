@@ -55,28 +55,9 @@ export type Organization = {
 
 export type UserStatus = "PENDING" | "ACTIVE" | "INVITED" | "DISABLED";
 
-export type Invitation = {
-  id: string;
-  orgId: string;
-  email: string;
-  role: Role;
-  status: UserStatus;
-  token: string;
-  expiresAt: string;
-  invitedBy: string;
-  createdAt: string;
-  claimedAt: string | null;
-  claimedById: string | null;
-};
-
-export type InvitationClaim = {
-  id: string;
-  invitationId: string;
-  userId: string;
-  claimedAt: string;
-  ip: string | null;
-  userAgent: string | null;
-};
+// Les types v1 `Invitation` / `InvitationClaim` (email + token, statique)
+// sont remplacés par `src/types/federation.ts` (Invitation Vague 3 :
+// scope granulaire, grants, tags, payload v2). Ne pas réintroduire ici.
 
 export type User = {
   id: string;

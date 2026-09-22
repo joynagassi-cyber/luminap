@@ -68,7 +68,7 @@ export default function InvitationClaim() {
     setLoading(true);
     try {
       // Try direct code lookup first (already synced)
-      const invite = await (invitation as any).getByCode?.(trimmed) ?? (invitation as any).getInvitationByCode?.(trimmed);
+      const invite = await invitation.getInvitationByCode(trimmed);
       if (invite) {
         const payload: ClaimPayload = {
           v: 1,
@@ -76,8 +76,11 @@ export default function InvitationClaim() {
           invitationId: invite.id,
           code: invite.code,
           role: invite.targetRole,
+          // B.3 — le scope peut être ORG/GROUP/EVENT/REPORT (invitations
+          // granulaires) : on ne force plus le cast ORG|GROUP (le cast
+          // précédent tronquait le scope granulaire au claim code-manuel).
           scope: {
-            type: invite.targetScopeType as "ORG" | "GROUP",
+            type: invite.targetScopeType,
             ...(invite.targetScopeType === "GROUP" && invite.targetGroupId
               ? { groupId: invite.targetGroupId }
               : {}),

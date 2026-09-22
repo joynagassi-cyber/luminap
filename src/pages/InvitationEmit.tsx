@@ -91,10 +91,15 @@ export default function InvitationEmit() {
   const [showCopy, setShowCopy] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
+  // Timestamps de l'invitation courante — conservés pour le payload affiché
+  // (le QR recalcule sinon expiresAt au render, et le claimant peut être
+  // rejeté côté serveur alors que le scan local n'était pas expiré).
+  const [createdAt, setCreatedAt] = useState<string | null>(null);
+  const [expiresAt, setExpiresAt] = useState<string | null>(null);
 
   const handleCreate = async () => {
     try {
-      const expiresAt = new Date(
+      const expiresAtMs = new Date(
         Date.now() + expiresDays * 24 * 60 * 60 * 1000,
       ).toISOString();
 
@@ -105,7 +110,7 @@ export default function InvitationEmit() {
         targetGroupId: scopeType === "GROUP" ? targetGroupId : undefined,
         targetMemberId: targetMemberId || undefined,
         issuedBy: user.id,
-        expiresAt,
+        expiresAt: expiresAtMs,
         maxUses,
         // B.3 — scope granulaire (Vague 3) : le trigger le matérialise au claim
         targetScopeResource: targetScopeResource || undefined,
@@ -121,7 +126,7 @@ export default function InvitationEmit() {
           targetGroupId: scopeType === "GROUP" ? targetGroupId : undefined,
           targetMemberId: targetMemberId || undefined,
           issuedBy: user.id,
-          expiresAt,
+          expiresAt: expiresAtMs,
           maxUses: maxUses,
           // B.3 — transport du scope granulaire dans le QR (payload v2)
           targetScopeResource: targetScopeResource || undefined,
@@ -130,6 +135,8 @@ export default function InvitationEmit() {
         code,
       );
 
+      setCreatedAt(new Date().toISOString());
+      setExpiresAt(expiresAtMs);
       setGeneratedCode(code);
       setGeneratedId(id);
       setStep("qr");
@@ -168,7 +175,7 @@ export default function InvitationEmit() {
   };
 
   const payload = useMemo(() => {
-    if (!generatedId) return null;
+    if (!generatedId || !createdAt || !expiresAt) return null;
     return {
       v: 1,
       orgId: targetOrgId,
@@ -180,12 +187,23 @@ export default function InvitationEmit() {
         ...(scopeType === "GROUP" ? { groupId: targetGroupId } : {}),
       },
       memberId: targetMemberId || null,
-      issuedAt: new Date().toISOString(),
-      expiresAt: new Date(
-        Date.now() + expiresDays * 24 * 60 * 60 * 1000,
-      ).toISOString(),
+      issuedAt: createdAt,
+      // Réutilise la valeur PERSISTÉE (pas recalculée au render) — sinon le
+      // claimant peut être rejeté côté serveur alors que le scan local
+      // n'était pas expiré (le trigger compare contre invitations.expires_at).
+      expiresAt,
     };
-  }, [generatedId, generatedCode, targetOrgId, targetRole, scopeType, targetGroupId, targetMemberId, expiresDays]);
+  }, [
+    generatedId,
+    generatedCode,
+    targetOrgId,
+    targetRole,
+    scopeType,
+    targetGroupId,
+    targetMemberId,
+    createdAt,
+    expiresAt,
+  ]);
 
   return (
     <IonPage>

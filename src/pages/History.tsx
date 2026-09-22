@@ -2,11 +2,6 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   useTransactions,
-  useAccounts,
-  useOrgUnits,
-  useEvents,
-  useCategories,
-  useAuditEntries,
 } from "@/lib/dataLayer";
 import {
   ArrowLeft,
@@ -132,12 +127,6 @@ export default function HistoryPage() {
     data: transactions,
     isLoading: txLoading,
   } = useTransactions();
-  const { data: accounts } = useAccounts();
-  const { data: orgUnits } = useOrgUnits();
-  const { data: events } = useEvents();
-  const { data: categories } = useCategories();
-  const { data: auditEntries } = useAuditEntries();
-
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
   const [period, setPeriod] = useState<"all" | "month" | "year">("all");
 

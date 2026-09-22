@@ -1,7 +1,7 @@
 // Using PowerSync
 import { generateId } from "./utils";
 import { writeAudit } from "./audit";
-import type { FormDefinition, FormSubmission } from "@/types";
+import type { FormDefinition, FormFieldDefinition, FormSubmission } from "@/types";
 import { getOrganizationId } from "./orgContext";
 import {
   createFormDefinitionPS,
@@ -142,7 +142,14 @@ export function validateFormSubmission(
   data: Record<string, any>,
 ): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
-  for (const field of formDef.fields) {
+  // Un champ conditionnellement MASQUÉ (showIf ne se déclenche pas) n'est
+  // ni rendu ni validé — même s'il est `required` : l'UI pré-filtre les
+  // champs cachés avant soumission, la lib doit honorer le même contrat.
+  const isFieldShown = (field: FormFieldDefinition) =>
+    !field.conditional ||
+    String(data[field.conditional.showIfField]) ===
+      String(field.conditional.showIfValue);
+  for (const field of formDef.fields.filter(isFieldShown)) {
     if (
       field.required &&
       (data[field.key] === undefined ||
