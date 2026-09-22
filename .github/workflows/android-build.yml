@@ -88,7 +88,7 @@ jobs:
         run: chmod +x android/gradlew
 
       - name: Build debug APK
-        run: ./android/gradlew assembleDebug
+        run: ./gradlew assembleDebug
         working-directory: android
 
       - name: Upload debug APK
@@ -99,7 +99,7 @@ jobs:
           retention-days: 14
 
       - name: Build release APK (unsigned)
-        run: ./android/gradlew assembleRelease
+        run: ./gradlew assembleRelease
         working-directory: android
 
       - name: Upload unsigned release APK
