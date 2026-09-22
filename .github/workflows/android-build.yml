@@ -87,20 +87,22 @@ jobs:
       - name: Grant execute permission to gradlew
         run: chmod +x android/gradlew
 
-      - name: Verify gradle cache integrity (bcprov-jdk18on.jar)
-        # Les runners GitHub sont recyclés entre runs : un jar du cache Gradle
-        # de la config AGP (bcprov-jdk18on) est régulièrement corrompu sur le
-        # disque partagé → « Failed to create Jar file ... bcprov-jdk18on ».
-        # On purge seulement ce cache avant le build (les dists Gradle
-        # téléchargées restent).
+      - name: Purge ALL Gradle caches + wrapper dists
+        # « Failed to create Jar file ... bcprov-jdk18on » = le binaire
+        # Gradle téléchargé par le wrapper et/ou son cache jars est
+        # corrompu sur le disque des runners (recyclage entre runs).
+        # On purge complet (caches ET wrapper/dists) et on relance le
+        # wrapper qui re-télécharge un binaire propre.
         run: |
-          if [ -d "$HOME/.gradle/caches/jars-9" ]; then
-            echo "Purgeing Gradle jars-9 cache (potentially corrupt)"
-            rm -rf "$HOME/.gradle/caches/jars-9"
+          if [ -d "$HOME/.gradle" ]; then
+            echo "Purging ~/.gradle (caches + wrapper dists)"
+            rm -rf "$HOME/.gradle"
           fi
+          # Force re-download of the Gradle distribution (clean binary)
+          echo "Gradle will be re-downloaded by the wrapper"
 
       - name: Build debug APK
-        run: ./gradlew assembleDebug
+        run: ./gradlew assembleDebug --no-daemon
         working-directory: android
 
       - name: Upload debug APK
@@ -111,7 +113,7 @@ jobs:
           retention-days: 14
 
       - name: Build release APK (unsigned)
-        run: ./gradlew assembleRelease
+        run: ./gradlew assembleRelease --no-daemon
         working-directory: android
 
       - name: Upload unsigned release APK
