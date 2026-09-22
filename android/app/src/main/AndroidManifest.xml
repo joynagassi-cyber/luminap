@@ -45,6 +45,24 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
+
+        <!-- OneSignal GCM receiver — doit rester dans <application> (AAPT) -->
+        <receiver android:name="com.onesignal.GcmBroadcastReceiver" android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.android.c2dm.intent.RECEIVE" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Firebase Cloud Messaging — FCM is required for OneSignal in-app
+             push on API 26+. -->
+        <service
+            android:name="com.google.firebase.messaging.FirebaseMessagingService"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
     </application>
 
     <!-- Permissions -->
@@ -57,21 +75,4 @@
          push delivery on modern Android. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <!-- OneSignal Push Notification Receiver -->
-    <receiver android:name="com.onesignal.GcmBroadcastReceiver" android:exported="false">
-        <intent-filter>
-            <action android:name="com.google.android.c2dm.intent.RECEIVE" />
-        </intent-filter>
-    </receiver>
-
-    <!-- Firebase Cloud Messaging — FCM is required for OneSignal in-app
-         push on API 26+. -->
-    <service
-        android:name="com.google.firebase.messaging.FirebaseMessagingService"
-        android:enabled="true"
-        android:exported="true">
-        <intent-filter>
-            <action android:name="com.google.firebase.MESSAGING_EVENT" />
-        </intent-filter>
-    </service>
 </manifest>
