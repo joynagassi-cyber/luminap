@@ -11,7 +11,7 @@ on:
         type: string
         default: '1.0.0'
       make_release:
-        description: 'Créer une GitHub Release avec l'APK signée'
+        description: "Créer une GitHub Release avec l'APK signée"
         required: false
         type: boolean
         default: false
@@ -71,6 +71,8 @@ jobs:
           retry_on: error
           max_attempts: 3
           command: cd android && ./gradlew assembleDebug --no-daemon
+        # NOTE: si l'erreur bcprov persiste même avec le retry, forcer
+        # re-download du binaire Gradle : rm -rf ~/.gradle avant gradlew.
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
