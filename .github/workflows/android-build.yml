@@ -87,6 +87,18 @@ jobs:
       - name: Grant execute permission to gradlew
         run: chmod +x android/gradlew
 
+      - name: Verify gradle cache integrity (bcprov-jdk18on.jar)
+        # Les runners GitHub sont recyclés entre runs : un jar du cache Gradle
+        # de la config AGP (bcprov-jdk18on) est régulièrement corrompu sur le
+        # disque partagé → « Failed to create Jar file ... bcprov-jdk18on ».
+        # On purge seulement ce cache avant le build (les dists Gradle
+        # téléchargées restent).
+        run: |
+          if [ -d "$HOME/.gradle/caches/jars-9" ]; then
+            echo "Purgeing Gradle jars-9 cache (potentially corrupt)"
+            rm -rf "$HOME/.gradle/caches/jars-9"
+          fi
+
       - name: Build debug APK
         run: ./gradlew assembleDebug
         working-directory: android
@@ -135,16 +147,42 @@ jobs:
 
       - name: Sign APK with apksigner
         run: |
-          ${JAVA_HOME}/bin/jarsigner \
-            -keystore signing.keystore \
-            -storepass ${{ secrets.ANDROID_KEYSTORE_PASSWORD }} \
-            -keypass ${{ secrets.ANDROID_KEYSTORE_KEY_PASSWORD }} \
-            -signedjar app-release-signed.apk \
-            app-release-unsigned.apk \
-            ${{ secrets.ANDROID_KEYSTORE_ALIAS }}
+          ANDROID_SDK_ROOT=/usr/lib/android/sdk
+          APKSIG="$ANDROID_SDK_ROOT/build-tools/latest/apksigner"
+          if [ ! -f "$APKSIG" ]; then
+            # Fallback : si apksigner n'est pas dispo, on garde jarsigner
+            # (signature v1 seulement — suffisant pour le sideload debug)
+            echo "apksigner not found, falling back to jarsigner (v1 only)"
+            ${JAVA_HOME}/bin/jarsigner \
+              -keystore signing.keystore \
+              -storepass ${{ secrets.ANDROID_KEYSTORE_PASSWORD }} \
+              -keypass ${{ secrets.ANDROID_KEYSTORE_KEY_PASSWORD }} \
+              -signedjar app-release-signed.apk \
+              app-release-unsigned.apk \
+              ${{ secrets.ANDROID_KEYSTORE_ALIAS }}
+          else
+            # apksigner v2/v3 — signé correctement pour Play + APK sideload
+            "$APKSIG" sign \
+              --ks signing.keystore \
+              --ks-pass pass:${{ secrets.ANDROID_KEYSTORE_PASSWORD }} \
+              --key-pass pass:${{ secrets.ANDROID_KEYSTORE_KEY_PASSWORD }} \
+              --ks-key-alias ${{ secrets.ANDROID_KEYSTORE_ALIAS }} \
+              --v1-signing-enabled false \
+              --v2-signing-enabled true \
+              --v3-signing-enabled true \
+              --out app-release-signed.apk \
+              app-release-unsigned.apk
+          fi
 
       - name: Verify signature
-        run: ${JAVA_HOME}/bin/jarsigner -verify app-release-signed.apk
+        run: |
+          ANDROID_SDK_ROOT=/usr/lib/android/sdk
+          APKSIG="$ANDROID_SDK_ROOT/build-tools/latest/apksigner"
+          if [ -f "$APKSIG" ]; then
+            "$APKSIG" verify --verbose app-release-signed.apk
+          else
+            ${JAVA_HOME}/bin/jarsigner -verify app-release-signed.apk
+          fi
 
       - name: Upload signed APK
         uses: actions/upload-artifact@v4
