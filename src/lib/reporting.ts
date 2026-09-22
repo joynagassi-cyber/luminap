@@ -5,6 +5,7 @@ import { writeAudit } from "./audit";
 import type { Transaction } from "@/types";
 import { getOrganizationId } from "./orgContext";
 import { get, set, invalidate, asyncGetOrSet } from "./cache";
+import { FEATURES } from "./features";
 
 /** Parse JSON defensively — returns the input unchanged on failure. */
 function safeParse(raw: string | object): Record<string, any> {
@@ -78,13 +79,233 @@ export class QueryBuilder {
   }
 }
 
+/**
+ * Correspondance feature (registre `FEATURES`) → types d'entités d'audit
+ * qui signalent une activité de cette feature. Mapping minimal et
+ * documenté : les entrées d'audit sans correspondance tombent dans la
+ * feature « autres » (côté client, non incluse dans le registre `FEATURES`).
+ */
+const FEATURE_AUDIT_MAP: Record<string, string[]> = {
+  membres: ["Member", "org_memberships", "MemberArchive"],
+  "membres-avance": ["Member", "org_memberships"],
+  invitations: ["Invitation", "org_invitations"],
+  finance: ["Transaction", "Caisse"],
+  cotisations: ["Cotisation"],
+  events: ["Event"],
+  versement: ["Versement", "Transaction"],
+  rapports: ["ReportDefinition"],
+  bilan: ["ReportDefinition"],
+  budgets: ["Budget", "ReportDefinition"],
+  giving: ["Campaign", "Don"],
+  groups: ["Group"],
+  archives: ["ArchivableEntity"],
+  trace: ["AuditEntry"],
+  formulaires: ["FormDefinition", "FormSubmission"],
+  historique: ["Transaction", "Event", "Member"],
+};
+
 export class AggregationEngine {
   async execute(reportDef: ReportDefinition): Promise<ReportResult> {
     if (reportDef.dataSource === "transactions")
       return this.aggregateTransactions(reportDef);
     if (reportDef.dataSource === "form_submissions")
       return this.aggregateFormSubmissions(reportDef);
+    if (reportDef.dataSource === "audit")
+      return this.aggregateAudit(reportDef);
+    if (reportDef.dataSource === "features")
+      return this.aggregateFeatures(reportDef);
     throw new Error(`Unsupported data source: ${reportDef.dataSource}`);
+  }
+
+  /**
+   * `audit` data source — journal d'audit de l'org.
+   *
+   * Une seule requête bornée `WHERE org_id = ?` (+ filtre sur la date de
+   * `reportDef.filters` si fourni), puis regroupement côté client sur la
+   * dimension demandée (défaut `action`), métriques count/sum/avg/min/max.
+   * Colonnes snake_case → camelCase. Cache préfixe `audit:`.
+   */
+  private async aggregateAudit(
+    reportDef: ReportDefinition,
+  ): Promise<ReportResult> {
+    const orgId = getOrganizationId();
+    const cacheKey = `audit:${JSON.stringify({
+      filters: reportDef.filters,
+      groupBy: reportDef.groupBy,
+      metrics: reportDef.metrics,
+    })}`;
+
+    const cached = get<ReportResult>(cacheKey);
+    if (cached) return cached;
+
+    const db = getPowerSyncDatabase();
+    const result = await db.execute(
+      `SELECT id, org_id, action, entity_type, user_id, created_at FROM audit_entries WHERE org_id = ?`,
+      [orgId],
+    );
+    const rows: any[] = (result?.array ?? []).map((r: any) => ({
+      id: r.id,
+      orgId: r.org_id,
+      action: r.action,
+      entityType: r.entity_type,
+      userId: r.user_id,
+      createdAt: r.created_at ?? "",
+    }));
+
+    const filters = (reportDef.filters as any[]) || [];
+    let filtered = rows;
+    for (const filter of filters) {
+      if (filter.field === "date" && filter.value) {
+        const { start, end } = filter.value;
+        filtered = filtered.filter(
+          (r) => r.createdAt >= start && r.createdAt <= end,
+        );
+      }
+      if (filter.field === "action" && filter.value)
+        filtered = filtered.filter((r) => r.action === filter.value);
+      if (filter.field === "entityType" && filter.value)
+        filtered = filtered.filter((r) => r.entityType === filter.value);
+      if (filter.field === "userId" && filter.value)
+        filtered = filtered.filter((r) => r.userId === filter.value);
+    }
+
+    const grouped = new Map<string, any[]>();
+    const groupBy = reportDef.groupBy || ["action"];
+    for (const row of filtered) {
+      const key = groupBy
+        .map((g) => {
+          if (g === "action") return row.action;
+          if (g === "entityType") return row.entityType || "unknown";
+          if (g === "userId") return row.userId || "unknown";
+          if (g === "month") return row.createdAt.substring(0, 7);
+          if (g === "year") return row.createdAt.substring(0, 4);
+          return "";
+        })
+        .join("|");
+      if (!grouped.has(key)) grouped.set(key, []);
+      grouped.get(key)!.push(row);
+    }
+
+    // Dimension affichée = première clé de groupBy (ex. "action").
+    const dimensionCol = groupBy[0] || "action";
+    const outRows: Record<string, any>[] = [];
+    const columns = new Set<string>([dimensionCol]);
+    const metrics = (reportDef.metrics as unknown as MetricExpr[]) || [];
+    for (const metric of metrics) columns.add(metric.alias || metric.field);
+
+    for (const [key, items] of grouped) {
+      const outRow: Record<string, any> = { [dimensionCol]: key };
+      for (const metric of metrics) {
+        const values = items.map((r) => r[metric.field] ?? r.id);
+        const nums = values.map((v) => Number(v ?? 0));
+        const alias = metric.alias || metric.field;
+        switch (metric.fn) {
+          case "sum":
+            outRow[alias] = nums.reduce((a, b) => a + b, 0);
+            break;
+          case "count":
+            outRow[alias] = items.length;
+            break;
+          case "avg":
+            outRow[alias] =
+              nums.length > 0 ? nums.reduce((a, b) => a + b, 0) / nums.length : 0;
+            break;
+          case "min":
+            outRow[alias] = nums.length ? Math.min(...nums) : 0;
+            break;
+          case "max":
+            outRow[alias] = nums.length ? Math.max(...nums) : 0;
+            break;
+          default:
+            outRow[alias] = 0;
+        }
+      }
+      outRows.push(outRow);
+    }
+
+    const out: ReportResult = {
+      rows: outRows,
+      columns: Array.from(columns),
+      total: filtered.length,
+    };
+    set(cacheKey, out);
+    return out;
+  }
+
+  /**
+   * `features` data source — état de chaque feature du registre `FEATURES`,
+   * calculé côté client à partir d'une seule requête `audit_entries` bornée.
+   *
+   * Par feature : nombre d'entrées d'audit correspondantes (via
+   * `FEATURE_AUDIT_MAP`, les autres entrées vont dans « autres ») +
+   * dernière activité. Retourne
+   * `{ rows: [{feature, label, count, lastActivity}], columns, total }`.
+   */
+  private async aggregateFeatures(
+    reportDef: ReportDefinition,
+  ): Promise<ReportResult> {
+    const orgId = getOrganizationId();
+    const cacheKey = `audit:features:${JSON.stringify({
+      filters: reportDef.filters,
+    })}`;
+
+    const cached = get<ReportResult>(cacheKey);
+    if (cached) return cached;
+
+    const db = getPowerSyncDatabase();
+    const result = await db.execute(
+      `SELECT action, entity_type, user_id, created_at FROM audit_entries WHERE org_id = ?`,
+      [orgId],
+    );
+    const entries: any[] = (result?.array ?? []).map((r: any) => ({
+      action: r.action,
+      entityType: r.entity_type,
+      userId: r.user_id,
+      createdAt: r.created_at ?? "",
+    }));
+
+    const outRows: Record<string, any>[] = FEATURES.map((f) => ({
+      feature: f.id,
+      label: f.label,
+      count: 0,
+      lastActivity: null as string | null,
+    }));
+    const byFeature = new Map(outRows.map((r) => [r.feature, r]));
+    let otherCount = 0;
+    let otherLast: string | null = null;
+
+    for (const e of entries) {
+      let featureId: string | undefined;
+      for (const [id, types] of Object.entries(FEATURE_AUDIT_MAP)) {
+        if (types.includes(e.entityType)) {
+          featureId = id;
+          break;
+        }
+      }
+      if (featureId && byFeature.has(featureId)) {
+        const row = byFeature.get(featureId)!;
+        row.count += 1;
+        if (!row.lastActivity || e.createdAt > row.lastActivity)
+          row.lastActivity = e.createdAt;
+      } else {
+        otherCount += 1;
+        if (!otherLast || e.createdAt > otherLast) otherLast = e.createdAt;
+      }
+    }
+    outRows.push({
+      feature: "autres",
+      label: "Autres",
+      count: otherCount,
+      lastActivity: otherLast,
+    });
+
+    const out: ReportResult = {
+      rows: outRows,
+      columns: ["feature", "label", "count", "lastActivity"],
+      total: entries.length,
+    };
+    set(cacheKey, out);
+    return out;
   }
 
   /**

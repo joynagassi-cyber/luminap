@@ -722,8 +722,95 @@ function makeReportDef(overrides: Partial<ReportDefinition> = {}): ReportDefinit
 describe("AggregationEngine.execute", () => {
   it("throws on unsupported data sources", async () => {
     await expect(
-      reportEngine.execute(makeReportDef({ dataSource: "events" })),
+      reportEngine.execute(makeReportDef({ dataSource: "bogus" })),
     ).rejects.toThrow("Unsupported data source");
+  });
+
+  it("execute({dataSource:'audit'}) compte les entrées d'audit par action", async () => {
+    const auditFixtures = [
+      {
+        id: "a1", org_id: "test-org", action: "CREATE",
+        entity_type: "Member", user_id: "u1", created_at: "2026-01-03",
+      },
+      {
+        id: "a2", org_id: "test-org", action: "UPDATE",
+        entity_type: "Member", user_id: "u2", created_at: "2026-01-10",
+      },
+      {
+        id: "a3", org_id: "test-org", action: "UPDATE",
+        entity_type: "Caisse", user_id: "u1", created_at: "2026-02-01",
+      },
+    ];
+    const psMocked = vi.mocked(getPowerSyncDatabase);
+    psMocked.mockImplementation(() => ({
+      execute: (sql: string, params: any[] = []) => {
+        recordSql(sql, params);
+        if (/^\s*SELECT/i.test(sql)) {
+          if (/FROM transactions/i.test(sql)) return { array: txFixtures };
+          if (/FROM audit_entries/i.test(sql))
+            return { array: auditFixtures };
+          return { array: [] };
+        }
+        return { rowsAffected: 1 };
+      },
+      getOptional: async () => null,
+    }) as any);
+
+    const res = await reportEngine.execute(
+      makeReportDef({
+        dataSource: "audit",
+        metrics: [{ field: "id", fn: "count", alias: "count" }],
+        groupBy: ["action"],
+      }),
+    );
+    expect(res.rows.length).toBeGreaterThan(0);
+    expect(res.columns).toContain("action");
+    psMocked.mockRestore();
+  });
+
+  it("execute({dataSource:'features'}) renvoie l'état de chaque feature", async () => {
+    const auditFixtures = [
+      {
+        id: "a1", org_id: "test-org", action: "CREATE",
+        entity_type: "Member", user_id: "u1", created_at: "2026-01-03",
+      },
+      {
+        id: "a2", org_id: "test-org", action: "CREATE",
+        entity_type: "Invitation", user_id: "u2", created_at: "2026-01-11",
+      },
+      {
+        id: "a3", org_id: "test-org", action: "UPDATE",
+        entity_type: "ReportDefinition", user_id: "u1", created_at: "2026-02-01",
+      },
+    ];
+    const psMocked = vi.mocked(getPowerSyncDatabase);
+    psMocked.mockImplementation(() => ({
+      execute: (sql: string, params: any[] = []) => {
+        recordSql(sql, params);
+        if (/^\s*SELECT/i.test(sql)) {
+          if (/FROM transactions/i.test(sql)) return { array: txFixtures };
+          if (/FROM audit_entries/i.test(sql))
+            return { array: auditFixtures };
+          return { array: [] };
+        }
+        return { rowsAffected: 1 };
+      },
+      getOptional: async () => null,
+    }) as any);
+
+    const res = await reportEngine.execute(
+      makeReportDef({
+        dataSource: "features",
+        metrics: [{ field: "id", fn: "count", alias: "count" }],
+      }),
+    );
+    // Au moins les 20 features du registre FEATURES.
+    expect(res.rows.length).toBeGreaterThan(0);
+    expect(res.rows.length).toBeGreaterThanOrEqual(20);
+    expect(res.columns).toContain("feature");
+    const membres = res.rows.find((r) => r.feature === "membres");
+    expect(membres?.count).toBe(1);
+    psMocked.mockRestore();
   });
 
   it("aggregates form_submissions with month grouping and a data.* metric", async () => {
