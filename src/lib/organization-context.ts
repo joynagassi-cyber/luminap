@@ -39,7 +39,7 @@ export const CENTRAL_ORG_ID = "org-central";
 // ─── State + reactivity ─────────────────────────────────────────────────────
 
 let _mode: ContextMode = "ORG";
-let _listeners = new Set<() => void>();
+const _listeners = new Set<() => void>();
 let _version = 0;
 
 function emit(): void {

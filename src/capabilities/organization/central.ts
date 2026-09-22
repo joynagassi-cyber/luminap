@@ -325,7 +325,7 @@ export async function getOrgReportCard(orgId: string): Promise<OrgReportCard> {
     `SELECT COUNT(*) AS n FROM members WHERE org_id = ? AND archived_at IS NULL`,
     [orgId],
   );
-  const memberCount = Number(memberRes?.array?.[0]?.n) ?? 0;
+  const memberCount = Number(memberRes?.array?.[0]?.n ?? 0);
 
   const adminRes = await getOrgAdminsFull(orgId);
   const activeAdminCount = adminRes.filter((a) => a.status === "ACTIVE").length;

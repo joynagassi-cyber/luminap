@@ -37,6 +37,8 @@
  *   lumina-session       — session id (cotisation / versement services)
  */
 
+// Extends the Cypress namespace — the standard idiom for custom commands.
+/* eslint-disable @typescript-eslint/no-namespace */
 declare global {
   namespace Cypress {
     interface Chainable {

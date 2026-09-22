@@ -37,7 +37,7 @@ export async function uploadLuminaFile(
 ): Promise<string> {
   assertKnownBucket(bucket);
   const orgId = getOrganizationId();
-  const safeName = (file.name || "fichier").replace(/[^\w.\-]/g, "_");
+  const safeName = (file.name || "fichier").replace(/[^\w.]/g, "_");
   const ts = Date.now();
   const ext = (safeName.split(".").pop() || "").slice(0, 10);
   const path = subpath
