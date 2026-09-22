@@ -9,6 +9,11 @@ vi.mock("@/lib/formSystem", () => ({
   formSubmissionRepo: {
     list: vi.fn(async () => []),
   },
+  formDefinitionRepo: {
+    // Le mock pré-F.1c prédatait le chargement du FormDefinition par la page ;
+    // renvoyer null (pas de définition) garde l'affichage sur les clés brutes.
+    get: vi.fn(async () => null),
+  },
 }));
 
 import { formSubmissionRepo } from "@/lib/formSystem";

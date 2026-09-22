@@ -25,7 +25,36 @@ const FIELD_TYPES: { value: FormFieldDefinition["type"]; label: string }[] = [
   { value: "boolean", label: "Vrai/Faux" },
   { value: "currency", label: "Montant (FCFA)" },
   { value: "textarea", label: "Texte long" },
+  { value: "reference", label: "Référence (entité)" },
+  { value: "file", label: "Fichier" },
 ];
+
+const REFERENCE_ENTITY_TYPES = ["member", "group", "event", "account"] as const;
+
+export function addField(
+  typeOrField:
+    | FormFieldDefinition["type"]
+    | { type: FormFieldDefinition["type"] },
+  overrides?: Partial<FormFieldDefinition>,
+): FormFieldDefinition {
+  // Testable en pur : `addField({ type: "reference" })` ou `addField("reference")`.
+  const type =
+    typeof typeOrField === "string" ? typeOrField : typeOrField.type;
+  return {
+    key: generateId(),
+    label: `Nouveau champ ${type}`,
+    type,
+    required: false,
+    order: 0,
+    options: type === "select" ? ["Option 1", "Option 2"] : undefined,
+    validation: undefined,
+    // Type reference : défaut raisonné (sélection parmi les membres de l'organisation).
+    referenceEntityType: type === "reference" ? "member" : undefined,
+    conditional: undefined,
+    mapsToEntityField: undefined,
+    ...overrides,
+  };
+}
 
 export default function FormBuilder() {
   const navigate = useNavigate();
@@ -74,19 +103,8 @@ export default function FormBuilder() {
     setFields([]);
   };
 
-  const addField = (type: FormFieldDefinition["type"]) => {
-    const newField: FormFieldDefinition = {
-      key: generateId(),
-      label: `Nouveau champ ${type}`,
-      type,
-      required: false,
-      order: fields.length,
-      options: type === "select" ? ["Option 1", "Option 2"] : undefined,
-      validation: undefined,
-      referenceEntityType: undefined,
-      conditional: undefined,
-      mapsToEntityField: undefined,
-    };
+  const addFieldInline = (type: FormFieldDefinition["type"]) => {
+    const newField = addField(type, { order: fields.length });
     setFields((prev) => [...prev, newField]);
   };
 
@@ -287,7 +305,7 @@ export default function FormBuilder() {
                           const type =
                             FIELD_TYPES[fields.length % FIELD_TYPES.length]
                               .value;
-                          addField(type);
+                          addFieldInline(type);
                         }}
                         className="text-xs px-3 py-1.5 rounded-full font-medium"
                         style={{
@@ -376,6 +394,110 @@ export default function FormBuilder() {
                           }}
                         />
                       )}
+                      {field.type === "reference" && (
+                        <div className="flex items-center gap-2 mb-2">
+                          <label className="text-xs text-text-tertiary flex-shrink-0">
+                            Entité cible
+                          </label>
+                          <select
+                            value={field.referenceEntityType ?? "member"}
+                            onChange={(e) =>
+                              updateField(index, {
+                                referenceEntityType: e.target.value,
+                              })
+                            }
+                            className="px-2 py-1.5 rounded-lg text-xs"
+                            style={{
+                              backgroundColor: "var(--card)",
+                              color: "var(--text-secondary)",
+                              border: "1px solid var(--border)",
+                            }}
+                          >
+                            {REFERENCE_ENTITY_TYPES.map((et) => (
+                              <option key={et} value={et}>
+                                {et}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                      <div className="grid grid-cols-2 gap-2 mb-1">
+                        <input
+                          type="text"
+                          value={field.conditional?.showIfField ?? ""}
+                          onChange={(e) =>
+                            updateField(index, {
+                              conditional: {
+                                showIfField: e.target.value,
+                                showIfValue:
+                                  field.conditional?.showIfValue ?? "",
+                              },
+                            })
+                          }
+                          placeholder="Afficher si champ (showIfField)"
+                          className="px-2 py-1.5 rounded-lg text-xs w-full"
+                          style={{
+                            backgroundColor: "var(--card)",
+                            border: "1px solid var(--border)",
+                            color: "var(--text-primary)",
+                          }}
+                        />
+                        <input
+                          type="text"
+                          value={String(field.conditional?.showIfValue ?? "")}
+                          onChange={(e) =>
+                            updateField(index, {
+                              conditional: {
+                                showIfField:
+                                  field.conditional?.showIfField ?? "",
+                                showIfValue: e.target.value,
+                              },
+                            })
+                          }
+                          placeholder="= valeur (showIfValue)"
+                          className="px-2 py-1.5 rounded-lg text-xs w-full"
+                          style={{
+                            backgroundColor: "var(--card)",
+                            border: "1px solid var(--border)",
+                            color: "var(--text-primary)",
+                          }}
+                        />
+                        <input
+                          type="text"
+                          value={field.validation?.regex ?? ""}
+                          onChange={(e) =>
+                            updateField(index, {
+                              validation: {
+                                ...field.validation,
+                                regex: e.target.value || undefined,
+                              },
+                            })
+                          }
+                          placeholder="Validation regex (optionnel)"
+                          className="px-2 py-1.5 rounded-lg text-xs w-full"
+                          style={{
+                            backgroundColor: "var(--card)",
+                            border: "1px solid var(--border)",
+                            color: "var(--text-primary)",
+                          }}
+                        />
+                        <input
+                          type="text"
+                          value={field.mapsToEntityField ?? ""}
+                          onChange={(e) =>
+                            updateField(index, {
+                              mapsToEntityField: e.target.value || undefined,
+                            })
+                          }
+                          placeholder="Mappage entité (mapsToEntityField)"
+                          className="px-2 py-1.5 rounded-lg text-xs w-full"
+                          style={{
+                            backgroundColor: "var(--card)",
+                            border: "1px solid var(--border)",
+                            color: "var(--text-primary)",
+                          }}
+                        />
+                      </div>
                     </div>
                   ))}
                 </div>
