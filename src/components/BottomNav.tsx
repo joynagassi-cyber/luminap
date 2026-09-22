@@ -15,6 +15,7 @@ import {
   DEFAULT_NAV_TABS,
   type FeatureDef,
 } from "@/lib/features";
+import HomeIndicator from "@/components/HomeIndicator";
 
 /**
  * Barre de navigation basse — HTML natif.
@@ -356,6 +357,10 @@ export default function BottomNav() {
           </div>
         </div>
       </nav>
+
+      {/* Indicateur d'accueil : pastille blanche au-dessus de la nav qui ouvre
+          la modale de raccourcis utiles (fermable en glissant vers le bas). */}
+      <HomeIndicator />
     </>
   );
 }
