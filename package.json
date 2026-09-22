@@ -3,6 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "pnpm": {
+    "version": "11"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -99,7 +102,7 @@
   },
   "devDependencies": {
     "@capacitor/android": "^6.2.2",
-    "@capacitor/cli": "^6.2.2",
+    "@capacitor/cli": "^8.5.2",
     "@capacitor/core": "^6.2.2",
     "@dyad-sh/react-vite-component-tagger": "^0.9.0",
     "@eslint/js": "^9.9.0",

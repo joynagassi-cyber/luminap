@@ -327,6 +327,8 @@ export default function FormFill() {
                         }}
                       />
                     ) : (
+                      <input
+                        type="text"
                         value={data[field.key] ?? ""}
                         onChange={(e) =>
                           handleChange(field.key, e.target.value)
