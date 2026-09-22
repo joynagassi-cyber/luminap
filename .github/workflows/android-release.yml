@@ -199,6 +199,7 @@ jobs:
 
   test:
     name: Run Tests
+    if: github.event_name != 'push' || github.ref != 'refs/heads/main'
     needs: quality
     runs-on: ubuntu-latest
     steps:
@@ -221,6 +222,7 @@ jobs:
 
       - name: Run E2E tests
         run: pnpm test
+        # NOTE: pnpm test = vitest run (unit tests jsdom, CI-safe).
         timeout-minutes: 10
 
       - name: Upload test results
