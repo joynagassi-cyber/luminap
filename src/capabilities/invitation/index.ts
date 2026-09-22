@@ -71,12 +71,19 @@ export interface InvitationClaim {
 export interface CreateInvitationInput {
   orgId: string;
   targetRole: string;
-  targetScopeType: "ORG" | "GROUP";
+  targetScopeType: "ORG" | "GROUP" | "EVENT" | "REPORT";
   targetGroupId?: string;
   targetMemberId?: string;
   issuedBy: string;
   expiresAt?: string; // default: 7 days from now
   maxUses?: number; // default: 1
+  // B.3 — scope granulaire (Vague 3) : les champs sont LIBRES (invariant 8/9),
+  // ils ne sont validés QUE par le type Grant[] (agnostique) et le CHECK
+  // PG sur `subject_type` (5 sources : user|org_member|group_member|role|tag).
+  targetScopeResource?: string;
+  targetScopeId?: string;
+  grantsPayload?: import("@/types/federation").Grant[];
+  tagsPayload?: string[];
 }
 
 export interface ClaimPayload {
@@ -115,13 +122,22 @@ export function buildQRPayload(input: CreateInvitationInput, code: string): Clai
   const now = new Date().toISOString();
   const expiresAt = input.expiresAt ?? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
   return {
-    v: 1,
+    v: 2,
     orgId: input.orgId,
     invitationId: "", // filled after PS write
     code,
     role: input.targetRole,
-    scope: { type: input.targetScopeType, ...(input.targetScopeType === "GROUP" && input.targetGroupId ? { groupId: input.targetGroupId } : {}) },
+    scope: {
+      type: input.targetScopeType,
+      ...(input.targetScopeType === "GROUP" && input.targetGroupId ? { groupId: input.targetGroupId } : {}),
+      // B.3 — scope granulaire libre (invariant 8 : toute ressource, tout ID)
+      ...(input.targetScopeResource ? { resource: input.targetScopeResource } : {}),
+      ...(input.targetScopeId ? { resourceId: input.targetScopeId } : {}),
+    },
     memberId: input.targetMemberId ?? null,
+    // B.3 — transport du payload scopé dans le QR (claim hors-ligne, B.4)
+    grants: input.grantsPayload ?? [],
+    tags: input.tagsPayload ?? [],
     issuedAt: now,
     expiresAt,
   };
@@ -178,6 +194,11 @@ export class InvitationService {
         target_member_id: input.targetMemberId ?? null,
         issued_by: input.issuedBy,
         max_uses: maxUses,
+        // B.3 — scope granulaire (grants + tags + cible libre)
+        target_scope_resource: input.targetScopeResource ?? null,
+        target_scope_id: input.targetScopeId ?? null,
+        grants_payload: JSON.stringify(input.grantsPayload ?? []),
+        tags_payload: JSON.stringify(input.tagsPayload ?? []),
       },
       expiresAt,
     );

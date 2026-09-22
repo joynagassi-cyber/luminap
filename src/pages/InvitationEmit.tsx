@@ -4,7 +4,7 @@
  * Flow: select role → select scope (org/group) → generate → display QR + code
  */
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   IonPage,
@@ -38,7 +38,7 @@ import {
 } from "lucide-react";
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
-import { useMembers } from "@/lib/dataLayer";
+import { useMembers, useGroups, useInvitations } from "@/lib/dataLayer";
 import { useCurrentUser } from "@/lib/dataLayer";
 import {
   invitation,
@@ -64,7 +64,9 @@ export default function InvitationEmit() {
   const location = useLocation();
   const user = useCurrentUser();
   const { data: psMembers } = useMembers();
+  const { data: psGroups } = useGroups();
   const members = psMembers ?? [];
+  const groups = (psGroups ?? []).filter((g: any) => g.org_id === targetOrgId);
 
   // Organisation ciblée : `?org=<id>` (ex. venue de la page Fédération après
   // avoir créé une organisation opérationnelle) ; sinon l'organisation courante.
@@ -78,6 +80,10 @@ export default function InvitationEmit() {
   const [targetMemberId, setTargetMemberId] = useState("");
   const [expiresDays, setExpiresDays] = useState(7);
   const [maxUses, setMaxUses] = useState(1);
+  // B.3 — scope granulaire : l'admin peut préciser une ressource cible libre
+  // (ex. "event", "report") + son id, plutôt que de se limiter à ORG|GROUP.
+  const [targetScopeResource, setTargetScopeResource] = useState("");
+  const [targetScopeId, setTargetScopeId] = useState("");
 
   const [generatedCode, setGeneratedCode] = useState("");
   const [generatedId, setGeneratedId] = useState("");
@@ -100,6 +106,9 @@ export default function InvitationEmit() {
         issuedBy: user.id,
         expiresAt,
         maxUses,
+        // B.3 — scope granulaire (Vague 3) : le trigger le matérialise au claim
+        targetScopeResource: targetScopeResource || undefined,
+        targetScopeId: targetScopeId || undefined,
       });
 
       const code = generateCode();
@@ -113,6 +122,9 @@ export default function InvitationEmit() {
           issuedBy: user.id,
           expiresAt,
           maxUses: maxUses,
+          // B.3 — transport du scope granulaire dans le QR (payload v2)
+          targetScopeResource: targetScopeResource || undefined,
+          targetScopeId: targetScopeId || undefined,
         },
         code,
       );
@@ -241,7 +253,11 @@ export default function InvitationEmit() {
                       onIonChange={(e) => setTargetGroupId(e.detail.value!)}
                     >
                       <IonSelectOption value="">-- Aucun --</IonSelectOption>
-                      {/* Groups would be loaded here */}
+                      {groups.map((g: any) => (
+                        <IonSelectOption key={g.id} value={g.id}>
+                          {g.name}
+                        </IonSelectOption>
+                      ))}
                     </IonSelect>
                   </IonItem>
                 )}
