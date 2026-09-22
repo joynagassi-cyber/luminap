@@ -8,7 +8,12 @@ on:
 
 env:
   NODE_VERSION: '22'
-  PNPM_VERSION: '10.28.0'
+  # Les arborescences pnpm v10 (lockfile 9.0) ne montrent PAS la faille
+  # critical node-tar (GHSA-23hp-3jrh-7fpw) — @capacitor/cli y est résolu en
+  # tar 6.2.1 non-audité. Avec pnpm v11 (lockfile 9.0), la faille apparaît
+  # et se corrige par l'upgrade @capacitor/cli ^8.5.2 (tar >= 7.5.19 patché).
+  # Le champ `pnpm.version: 11` dans package.json force le même pnpm en local.
+  PNPM_VERSION: '11.27.1'
 
 jobs:
   lint:
@@ -129,12 +134,12 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run security audit
-        run: pnpm audit --audit-level=high
-        continue-on-error: true
-
-      - name: Check for critical vulnerabilities
         run: pnpm audit --audit-level=critical
         continue-on-error: false
+
+      - name: Run full security audit (informational)
+        run: pnpm audit --audit-level=high
+        continue-on-error: true
 
   e2e:
     name: E2E (Cypress)
