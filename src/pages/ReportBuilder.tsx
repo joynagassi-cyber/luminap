@@ -48,6 +48,23 @@ const GROUP_DIMS: { key: string; label: string }[] = [
   { key: "type", label: "Type" },
 ];
 
+/** Dimensions de groupement disponibles selon la source de données. */
+const GROUP_DIMS_BY_SOURCE: Record<string, { key: string; label: string }[]> = {
+  transactions: GROUP_DIMS,
+  features: [
+    { key: "feature", label: "Feature" },
+    { key: "lastActivity", label: "Dernière activité" },
+  ],
+  audit: [
+    { key: "action", label: "Action" },
+    { key: "entityType", label: "Type d'entité" },
+    { key: "actor", label: "Auteur" },
+  ],
+};
+
+const groupDimsFor = (dataSource: string) =>
+  GROUP_DIMS_BY_SOURCE[dataSource] || GROUP_DIMS;
+
 const COLORS = {
   accent: "var(--accent-primary)",
   grid: "var(--surface-hover)",
@@ -132,13 +149,22 @@ interface Draft {
   };
 }
 
-function emptyDraft(): Draft {
+export function emptyDraft(kind: string = "FINANCE"): Draft {
+  // Brancher la source de données selon la famille de rapport (F.2c) :
+  // FEATURE → état des features, AUDIT → journal d'audit, sinon transactions.
+  const dataSource = kind === "FEATURE" ? "features" : kind === "AUDIT" ? "audit" : "transactions";
+  const defaultGroupBy =
+    kind === "FEATURE"
+      ? ["feature", "lastActivity"]
+      : kind === "AUDIT"
+        ? ["action", "entityType", "actor"]
+        : [];
   return {
     name: "",
-    dataSource: "transactions",
-    groupBy: [],
+    dataSource,
+    groupBy: defaultGroupBy,
     metrics: [],
-    metric: { field: "amount", fn: "sum" },
+    metric: { field: "amount", fn: dataSource === "transactions" ? "sum" : "count" },
     filterState: { period: "month", type: "", categoryId: "", sourceCaisseId: "" },
   };
 }
@@ -153,7 +179,13 @@ export default function ReportBuilder() {
   const canExport = security.hasPermission(user.role as any, "report:export");
   const canRead = security.hasPermission(user.role as any, "report:read");
 
-  const [draft, setDraft] = useState(emptyDraft());
+  // Famille de rapport demandée par la page qui navigue vers ici
+  // (/report-builder?kind=FEATURE|AUDIT) — défaut FINANCE.
+  const kindParam = new URLSearchParams(location.search).get("kind");
+  const kind: "FINANCE" | "FEATURE" | "AUDIT" =
+    kindParam === "FEATURE" || kindParam === "AUDIT" ? kindParam : "FINANCE";
+
+  const [draft, setDraft] = useState(emptyDraft(kind));
   const [previewResult, setPreviewResult] = useState<ReportResult | null>(null);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState("");
@@ -333,6 +365,7 @@ export default function ReportBuilder() {
       const entry = await reportDefinitionRepo.create({
         orgId: getOrganizationId(),
         name: draft.name!.trim(),
+        kind: draft.dataSource === "features" ? "FEATURE" : draft.dataSource === "audit" ? "AUDIT" : "FINANCE",
         dataSource: draft.dataSource || "transactions",
         dimensions: groupBy,
         metrics,
@@ -516,7 +549,7 @@ export default function ReportBuilder() {
             <span className="text-text-tertiary text-[11px]">(optionnel)</span>
           </div>
           <div className="flex flex-wrap gap-2">
-            {GROUP_DIMS.map((dim) => {
+            {groupDimsFor(draft.dataSource).map((dim) => {
               const on = draft.groupBy?.includes(dim.key);
               return (
                 <button

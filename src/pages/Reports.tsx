@@ -442,23 +442,15 @@ export default function Reports() {
               </div>
             )}
 
-            {/* Mes rapports */}
+            {/* Mes rapports (regroupés par famille — F.2c) */}
             {canRead && (
               <section className="mt-6">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <FileText className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
-                    <p className="text-text-primary font-semibold text-sm">Mes rapports</p>
-                    <span className="text-text-tertiary text-[11px]">({savedReports.length})</span>
-                  </div>
-                  <button
-                    onClick={() => navigate("/report-builder")}
-                    className="flex items-center gap-1 text-xs font-medium"
-                    style={{ color: "var(--accent-primary)" }}
-                  >
-                    <Plus className="w-3.5 h-3.5" /> Nouveau
-                  </button>
+                <div className="flex items-center gap-2 mb-3">
+                  <FileText className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
+                  <p className="text-text-primary font-semibold text-sm">Mes rapports</p>
+                  <span className="text-text-tertiary text-[11px]">({savedReports.length})</span>
                 </div>
+
                 {savedReports.length === 0 ? (
                   <div className="rounded-xl p-4 text-center" style={{ backgroundColor: "var(--surface)" }}>
                     <p className="text-text-tertiary text-xs">
@@ -466,25 +458,53 @@ export default function Reports() {
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-2">
-                    {savedReports.map((r) => (
-                      <button
-                        key={r.id}
-                        onClick={() => navigate(`/report-builder?open=${r.id}`)}
-                        className="w-full text-left rounded-xl p-3 flex items-center gap-3"
-                        style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
-                      >
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)" }}>
-                          <FileText className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
+                  <div className="space-y-4">
+                    {([
+                      { kind: "FINANCE", label: "Rapports financiers", newPath: "/report-builder" },
+                      { kind: "FEATURE", label: "État des features", newPath: "/report-builder?kind=FEATURE" },
+                      { kind: "AUDIT", label: "Journal / modifications", newPath: "/report-builder?kind=AUDIT" },
+                    ] as const).map((block) => {
+                      const reports = savedReports.filter(
+                        (r) => (r.kind || "FINANCE") === block.kind,
+                      );
+                      return (
+                        <div key={block.kind} className="rounded-xl p-3 space-y-2" style={{ backgroundColor: "var(--surface)" }}>
+                          <div className="flex items-center justify-between">
+                            <p className="text-text-secondary text-[11px] font-semibold uppercase tracking-wide">
+                              {block.label}
+                            </p>
+                            <button
+                              onClick={() => navigate(block.newPath)}
+                              className="flex items-center gap-1 text-xs font-medium"
+                              style={{ color: "var(--accent-primary)" }}
+                            >
+                              <Plus className="w-3.5 h-3.5" /> Nouveau
+                            </button>
+                          </div>
+                          {reports.length === 0 ? (
+                            <p className="text-text-tertiary text-[11px]">Aucun rapport.</p>
+                          ) : (
+                            reports.map((r) => (
+                              <button
+                                key={r.id}
+                                onClick={() => navigate(`/report-builder?open=${r.id}`)}
+                                className="w-full text-left flex items-center gap-3"
+                              >
+                                <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)" }}>
+                                  <FileText className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-text-primary text-sm font-medium truncate">{r.name}</p>
+                                  <p className="text-text-tertiary text-[11px]">
+                                    {(r.groupBy?.length || 0) > 0 ? `Grouper : ${(r.groupBy || []).join(", ")}` : "Sans groupement"}
+                                  </p>
+                                </div>
+                              </button>
+                            ))
+                          )}
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-text-primary text-sm font-medium truncate">{r.name}</p>
-                          <p className="text-text-tertiary text-[11px]">
-                            {(r.groupBy?.length || 0) > 0 ? `Grouper : ${(r.groupBy || []).join(", ")}` : "Sans groupement"}
-                          </p>
-                        </div>
-                      </button>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </section>

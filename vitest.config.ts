@@ -20,6 +20,7 @@ export default defineConfig({
       'src/adapters/native/__tests__/**/*.test.ts',
       'src/lib/__tests__/**/*.test.ts',
       'src/components/__tests__/**/*.test.tsx',
+      'src/pages/__tests__/**/*.test.tsx',
       'src/store/__tests__/**/*.test.ts',
       'src/hooks/__tests__/**/*.test.tsx',
     ],
