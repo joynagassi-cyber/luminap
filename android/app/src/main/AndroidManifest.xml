@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <application
         android:allowBackup="true"
@@ -54,11 +55,14 @@
         </receiver>
 
         <!-- Firebase Cloud Messaging — FCM is required for OneSignal in-app
-             push on API 26+. -->
+             push on API 26+. Le service est déjà déclaré par la lib
+             firebase-messaging (exported=false) ; on surcharge via
+             tools:replace pour activer l'export sur API 26+. -->
         <service
             android:name="com.google.firebase.messaging.FirebaseMessagingService"
             android:enabled="true"
-            android:exported="true">
+            android:exported="true"
+            tools:replace="android:exported">
             <intent-filter>
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
