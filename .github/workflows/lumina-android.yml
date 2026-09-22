@@ -1,0 +1,203 @@
+name: Lumina Android
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g. 1.0.0)'
+        required: false
+        type: string
+        default: '1.0.0'
+      make_release:
+        description: 'Créer une GitHub Release avec l'APK signée'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  NODE_VERSION: '22'
+  JAVA_VERSION: '21'
+  PNPM_VERSION: '11.27.1'
+
+jobs:
+  # ---------------------------------------------------------------
+  # BUILD DEBUG — à chaque push sur main : APK debug compilé + signé
+  # automatiquement par Gradle (debug.keystore), téléchargeable dans
+  # les artifacts du run. Utile pour tester la plateforme en sideload.
+  # ---------------------------------------------------------------
+  debug-apk:
+    name: Build Debug APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build web app
+        run: pnpm run build:cap
+
+      - name: Sync Capacitor
+        run: npx cap sync android
+
+      - name: Grant execute permission to gradlew
+        run: chmod +x android/gradlew
+
+      - name: Build debug APK
+        # Le retry couvre la course d'écriture du cache classpath
+        # connue sur les runners GitHub (« Failed to create Jar file
+        # ... bcprov-jdk18on »).
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 30
+          retry_wait_seconds: 30
+          retry_on: error
+          max_attempts: 3
+          command: cd android && ./gradlew assembleDebug --no-daemon
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: lumina-debug
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 14
+
+  # ---------------------------------------------------------------
+  # BUILD RELEASE — uniquement sur workflow_dispatch (bouton Run
+  # workflow) : APK release SANS signature (signé par défaut via
+  # lumina-keystore.jks dans android/app/build.gradle), puis signé
+  # avec le keystore du repo et poussé en GitHub Release si demandé.
+  # ---------------------------------------------------------------
+  release-apk:
+    name: Build & Sign Release APK
+    needs: debug-apk
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build web app
+        run: pnpm run build:cap
+
+      - name: Sync Capacitor
+        run: npx cap sync android
+
+      - name: Grant execute permission to gradlew
+        run: chmod +x android/gradlew
+
+      - name: Build release APK
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 30
+          retry_wait_seconds: 30
+          retry_on: error
+          max_attempts: 3
+          command: cd android && ./gradlew assembleRelease --no-daemon
+
+      - name: Prepare signing keystore
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > signing.keystore
+
+      - name: Sign APK with apksigner
+        run: |
+          APKSIG="$(find /usr/lib/android/sdk/build-tools -name apksigner -print -quit 2>/dev/null)"
+          if [ -n "$APKSIG" ]; then
+            "$APKSIG" sign \
+              --ks signing.keystore \
+              --ks-pass pass:${{ secrets.ANDROID_KEYSTORE_PASSWORD }} \
+              --key-pass pass:${{ secrets.ANDROID_KEYSTORE_KEY_PASSWORD }} \
+              --ks-key-alias ${{ secrets.ANDROID_KEYSTORE_ALIAS }} \
+              --v1-signing-enabled false \
+              --v2-signing-enabled true \
+              --v3-signing-enabled true \
+              --out app-release-signed.apk \
+              android/app/build/outputs/apk/release/app-release-*.apk
+            echo "Signé avec apksigner (v2+v3)"
+          else
+            echo "apksigner introuvable — fallback jarsigner (v1)"
+            ${JAVA_HOME}/bin/jarsigner \
+              -keystore signing.keystore \
+              -storepass ${{ secrets.ANDROID_KEYSTORE_PASSWORD }} \
+              -keypass ${{ secrets.ANDROID_KEYSTORE_KEY_PASSWORD }} \
+              -signedjar app-release-signed.apk \
+              $(ls android/app/build/outputs/apk/release/*.apk) \
+              ${{ secrets.ANDROID_KEYSTORE_ALIAS }}
+          fi
+
+      - name: Verify signature
+        run: |
+          APKSIG="$(find /usr/lib/android/sdk/build-tools -name apksigner -print -quit 2>/dev/null)"
+          if [ -n "$APKSIG" ]; then
+            "$APKSIG" verify --verbose app-release-signed.apk
+          else
+            ${JAVA_HOME}/bin/jarsigner -verify app-release-signed.apk
+          fi
+
+      - name: Upload signed APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: lumina-release-signed
+          path: app-release-signed.apk
+          retention-days: 30
+
+  # ---------------------------------------------------------------
+  # GITHUB RELEASE — seulement si make_release == true : pousse
+  # l'APK signé sur la release v<version> (tag v<version>).
+  # ---------------------------------------------------------------
+  github-release:
+    name: Create GitHub Release
+    needs: [release-apk]
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.make_release == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download signed APK
+        uses: actions/download-artifact@v4
+        with:
+          name: lumina-release-signed
+
+      - name: Create or update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ inputs.version || '1.0.0' }}
+          name: Lumina v${{ inputs.version || '1.0.0' }}
+          files: app-release-signed.apk
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
