@@ -60,19 +60,24 @@ jobs:
       - name: Grant execute permission to gradlew
         run: chmod +x android/gradlew
 
-      - name: Purge Gradle caches (bcprov-jdk18on fix)
-        # « Failed to create Jar file ... bcprov-jdk18on » : le
-        # plugin cordova pin AGP 8.13.0, incompatible avec Gradle 8.2.1.
-        # Un alignement manuel est déjà fait dans
-        # android/capacitor-cordova-android-plugins/build.gradle
-        # (AGP 8.2.1) — ce commit doit être re-synchronisé si cap sync
-        # régénère le fichier.
+      - name: Purge Gradle caches + aligne cordova plugin à AGP 8.2.1
+        # « Failed to create Jar file ... bcprov-jdk18on » : le plugin
+        # cordova généré par cap sync pin AGP 8.13.0 (incompatible avec
+        # le wrapper Gradle 8.2.1). On le force manuellement en CI
+        # AVANT chaque build (cap sync régénère le fichier à chaque run,
+        # donc le fix local du commit 596a3fc est écrasé).
         run: |
           if [ -d "$HOME/.gradle" ]; then
-            echo "Purging ~/.gradle (caches + wrapper dists)"
+            echo "Purging ~/.gradle"
             rm -rf "$HOME/.gradle"
           fi
-          echo "Gradle will be re-downloaded by the wrapper"
+          # Force l'AGP du plugin cordova sur 8.2.1 (aligné wrapper)
+          sed -i "s/com.android.tools.build:gradle:8.13.0/com.android.tools.build:gradle:8.2.1/" \
+            android/capacitor-cordova-android-plugins/build.gradle
+          # compileSdk 36 n'est pas supporté par AGP 8.2.1 — passe à 34
+          sed -i "s/compileSdkVersion') ? rootProject.ext.compileSdkVersion : 36/compileSdkVersion') ? rootProject.ext.compileSdkVersion : 34/" \
+            android/capacitor-cordova-android-plugins/build.gradle
+          echo "cordova plugin aligné AGP 8.2.1 / SDK 34"
 
       - name: Build debug APK
         # Le retry couvre une éventuelle course résiduelle, mais le
