@@ -61,11 +61,12 @@ jobs:
         run: chmod +x android/gradlew
 
       - name: Purge Gradle caches (bcprov-jdk18on fix)
-        # « Failed to create Jar file ... bcprov-jdk18on » est un défaut
-        # permanent du binaire Gradle 8.2.1 sur les runners GitHub
-        # (InPlaceClasspathBuilder → BouncyCastleProvider jar). Le re-trier
-        # ne résout pas — le binaire est le même. On purge le cache +
-        # la distribution wrapper, le wrapper re-télécharge proprement.
+        # « Failed to create Jar file ... bcprov-jdk18on » : le
+        # plugin cordova pin AGP 8.13.0, incompatible avec Gradle 8.2.1.
+        # Un alignement manuel est déjà fait dans
+        # android/capacitor-cordova-android-plugins/build.gradle
+        # (AGP 8.2.1) — ce commit doit être re-synchronisé si cap sync
+        # régénère le fichier.
         run: |
           if [ -d "$HOME/.gradle" ]; then
             echo "Purging ~/.gradle (caches + wrapper dists)"
