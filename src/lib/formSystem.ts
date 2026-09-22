@@ -214,3 +214,46 @@ export function mapFormFields(
   }
   return mapped;
 }
+
+/**
+ * buildSubmissionsCSV — exports form submissions as a ";"-separated CSV
+ * with BOM prefix. Headers are the labels of the form definition fields
+ * (falling back to the field keys); one row per submission. Values
+ * containing the separator or a quote are wrapped in quotes, with
+ * embedded quotes doubled (same escaping as exportCSV).
+ */
+export function buildSubmissionsCSV(
+  rows: FormSubmission[],
+  formDef: FormDefinition,
+): string {
+  const fields = [...formDef.fields].sort(
+    (a, b) => (a.order ?? 0) - (b.order ?? 0),
+  );
+  const header = fields.map((f) => f.label || f.key);
+
+  const escapeValue = (v: unknown): string => {
+    if (v == null) return "";
+    const text =
+      typeof v === "object" ? JSON.stringify(v) : String(v);
+    if (/[";]/.test(text)) {
+      return `"${text.replace(/"/g, '""')}"`;
+    }
+    return text;
+  };
+
+  const parseData = (sub: FormSubmission): Record<string, any> => {
+    if (sub.data && typeof sub.data === "object") return sub.data;
+    try {
+      return JSON.parse(typeof sub.data === "string" ? sub.data : "{}");
+    } catch {
+      return {};
+    }
+  };
+
+  const body = rows.map((sub) => {
+    const data = parseData(sub);
+    return fields.map((f) => escapeValue(data[f.key])).join(";");
+  });
+
+  return "﻿" + [header.join(";"), ...body].join("\n");
+}

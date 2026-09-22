@@ -192,6 +192,7 @@ import {
   formSubmissionRepo,
   validateFormSubmission,
   mapFormFields,
+  buildSubmissionsCSV,
 } from "@/lib/formSystem";
 import { QueryBuilder, reportEngine, reportDefinitionRepo } from "@/lib/reporting";
 import { auditLogRepo, writeAudit } from "@/lib/audit";
@@ -464,6 +465,38 @@ describe("mapFormFields", () => {
     expect(mapFormFields(formDefWithMappings, { name: "A", code: "B" })).toEqual(
       { firstName: "A" },
     );
+  });
+});
+
+// ─── formSystem: buildSubmissionsCSV ───────────────────────────────────────
+describe("buildSubmissionsCSV", () => {
+  const subFixture = makeSubmission();
+  const formDefWithLabels = makeFormDef();
+
+  it("buildSubmissionsCSV mappe keys → labels et utilise ; comme séparateur", () => {
+    const csv = buildSubmissionsCSV([subFixture], formDefWithLabels);
+    expect(csv).toContain("Nom;");
+    expect(csv).toContain(";");
+  });
+
+  it("préfixe le CSV avec un BOM", () => {
+    const csv = buildSubmissionsCSV([subFixture], formDefWithLabels);
+    expect(csv.startsWith("﻿")).toBe(true);
+  });
+
+  it("échappe les valeurs contenant des séparateurs ou guillemets entre guillemets", () => {
+    const sub = makeSubmission({
+      data: { nom: 'A;ya "X"', montant: 100 },
+    });
+    const csv = buildSubmissionsCSV([sub], formDefWithLabels);
+    expect(csv).toContain('"A;ya ""X"""');
+  });
+
+  it("renvoie un CSV avec entêtes seulement et lignes vides quand aucune soumission", () => {
+    const csv = buildSubmissionsCSV([], formDefWithLabels);
+    const lines = csv.replace("﻿", "").split("\n").filter((l) => l.length > 0);
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toBe("Nom;Montant;Date");
   });
 });
 
