@@ -14,8 +14,8 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Register OneSignal plugin
-        registerPlugin(com.onesignal.cordova.OneSignalPush.class);
+        // OneSignal est configuré côté web via @capacitor/push-notifications
+        // (voir src/lib/notifications) — aucun plugin Cordova natif requis.
 
         // Handle deep link / OAuth callback
         handleIntent(getIntent());
@@ -54,10 +54,6 @@ public class MainActivity extends BridgeActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-
-        // Handle OneSignal / Google sign in result
-        if (requestCode == GOOGLE_SIGN_IN_REQUEST_CODE) {
-            // OneSignal plugin will handle this internally
-        }
+        // OneSignal / Google sign-in gérés nativement par leurs SDK
     }
 }
