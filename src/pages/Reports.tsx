@@ -26,7 +26,7 @@ import TopHeader from "@/components/TopHeader";
 import { ReportsSkeleton } from "@/components/PageSkeletons";
 import { exportPDF, exportExcel, exportCSV } from "@/lib/export";
 import { reportDefinitionRepo } from "@/lib/reporting";
-import { security } from "@/capabilities/security";
+import { useCanAccessMulti } from "@/hooks/useCanAccessMulti";
 import { IonPage, IonContent } from "@ionic/react";
 import { ChartContainer } from "@/components/ui/chart";
 import {
@@ -91,8 +91,13 @@ export default function Reports() {
   const [showExport, setShowExport] = useState(false);
   const [savedReports, setSavedReports] = useState<ReportDefinition[]>([]);
 
-  const canExport = security.hasPermission(user.role as any, "report:export");
-  const canRead = security.hasPermission(user.role as any, "report:read");
+  // B.1 — le hook fait l'union : `allowed` est vrai si le chemin fédéré
+  // (`federation.canAccess` : grants + rôles canon) OU le chemin legacy
+  // (`security.hasPermission(role, "report:…")`) accorde.
+  const multiExport = useCanAccessMulti(user?.id, user?.org?.id, "report", "export", undefined, user?.role as any);
+  const multiRead = useCanAccessMulti(user?.id, user?.org?.id, "report", "read", undefined, user?.role as any);
+  const canExport = multiExport.allowed;
+  const canRead = multiRead.allowed;
 
   useEffect(() => {
     reportDefinitionRepo

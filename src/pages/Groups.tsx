@@ -3,7 +3,7 @@ import { useCurrentUser } from "@/lib/dataLayer";
 import { useGroups, useOrgUnits, createGroupPS } from "@/lib/dataLayer";
 import { GroupsSkeleton } from "@/components/PageSkeletons";
 import { getPowerSyncDatabase } from "@/lib/powersync";
-import { security } from "@/capabilities/security";
+import { useCanAccessMulti } from "@/hooks/useCanAccessMulti";
 import type { OrgUnit } from "@/types";
 import { Users, Plus, Edit3, Trash2 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
@@ -58,8 +58,15 @@ export default function Groups() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
+  // B.1 — le hook fait l'union fédération (grants + rôles canon de l'org) +
+  // legacy `security.hasPermission(user.role, "group:…")` : `allowed` est
+  // vrai si l'un ou l'autre chemin accorde (transition multi-org).
+  const canCreateMulti = useCanAccessMulti(user?.id, user?.org?.id, "group", "create", undefined, user?.role as any);
+  const canUpdateMulti = useCanAccessMulti(user?.id, user?.org?.id, "group", "update", undefined, user?.role as any);
+  const canDeleteMulti = useCanAccessMulti(user?.id, user?.org?.id, "group", "delete", undefined, user?.role as any);
+
   const handleCreate = async () => {
-    if (!security.hasPermission(user.role as any, "group:create")) {
+    if (!canCreateMulti.allowed) {
       setError("Permission insuffisante pour créer un groupe");
       return;
     }
@@ -89,7 +96,7 @@ export default function Groups() {
   };
 
   const handleUpdate = async (id: string) => {
-    if (!security.hasPermission(user.role as any, "group:update")) {
+    if (!canUpdateMulti.allowed) {
       setError("Permission insuffisante pour modifier ce groupe");
       return;
     }
@@ -110,7 +117,7 @@ export default function Groups() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!security.hasPermission(user.role as any, "group:delete")) {
+    if (!canDeleteMulti.allowed) {
       setError("Permission insuffisante pour supprimer ce groupe");
       return;
     }
@@ -155,7 +162,7 @@ export default function Groups() {
                   {orgUnits.length} groupe{orgUnits.length !== 1 ? "s" : ""}
                 </p>
               </div>
-              {security.hasPermission(user.role as any, "group:create") && (
+              {canCreateMulti.allowed && (
                 <button
                   onClick={() => setShowCreate(true)}
                   className="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-semibold text-white transition-all active:scale-95"
@@ -314,7 +321,7 @@ export default function Groups() {
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
-                      {security.hasPermission(user.role as any, "group:update") && (
+                      {canUpdateMulti.allowed && (
                         <button
                           onClick={() => {
                             setShowEdit(orgUnit.id);
@@ -330,7 +337,7 @@ export default function Groups() {
                           />
                         </button>
                       )}
-                      {security.hasPermission(user.role as any, "group:delete") && (
+                      {canDeleteMulti.allowed && (
                         <button
                           onClick={() => setShowDelete(orgUnit.id)}
                           className="p-2 rounded-full active:scale-95 transition-transform"

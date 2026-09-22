@@ -32,7 +32,7 @@ import {
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
-import { security } from "@/capabilities/security";
+import { useCanAccessMulti } from "@/hooks/useCanAccessMulti";
 import {
   IonPage,
   IonHeader,
@@ -65,6 +65,13 @@ export default function TransactionDetail() {
   const [showReverseModal, setShowReverseModal] = useState(false);
   const [reverseReason, setReverseReason] = useState("");
 
+  // B.1 — branchement du gate multi-org (union fédération + legacy).
+  // Montés AVANT tout `return` conditionnel (règle des hooks).
+  const canApproveMulti = useCanAccessMulti(user?.id, user?.org?.id, "transaction", "approve", undefined, user?.role as any);
+  const canRejectMulti = useCanAccessMulti(user?.id, user?.org?.id, "transaction", "reject", undefined, user?.role as any);
+  const canDeleteMulti = useCanAccessMulti(user?.id, user?.org?.id, "transaction", "delete", undefined, user?.role as any);
+  const canReverseMulti = useCanAccessMulti(user?.id, user?.org?.id, "transaction", "reverse", undefined, user?.role as any);
+
   const rejectModalRef = useRef<HTMLDivElement>(null);
   const reverseModalRef = useRef<HTMLDivElement>(null);
   useFocusTrap(rejectModalRef, showRejectModal);
@@ -88,6 +95,7 @@ export default function TransactionDetail() {
   }, [proofs.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const tx = transactions.find((t: any) => t.id === id);
+
   if (!tx) {
     return (
       <IonPage>
@@ -122,7 +130,7 @@ export default function TransactionDetail() {
     events.find((e: any) => e.id === (tx as any).event_id || e.id === (tx as any).eventId);
 
   const handleApprove = async () => {
-    if (!security.hasPermission(user.role as any, "transaction:approve")) {
+    if (!canApproveMulti.allowed) {
       return;
     }
     await approveTransactionPS(tx.id, user?.id || "");
@@ -130,7 +138,7 @@ export default function TransactionDetail() {
   };
 
   const handleRejectConfirm = async () => {
-    if (!security.hasPermission(user?.role as any, "transaction:approve")) {
+    if (!canRejectMulti.allowed) {
       return;
     }
     if (!rejectComment.trim()) return;
@@ -141,7 +149,7 @@ export default function TransactionDetail() {
   };
 
   const handleDelete = async () => {
-    if (!security.hasPermission(user.role as any, "transaction:delete")) {
+    if (!canDeleteMulti.allowed) {
       return;
     }
     await deleteTransactionPS(tx.id);
@@ -150,7 +158,7 @@ export default function TransactionDetail() {
 
   const handleReverse = async () => {
     if (!reverseReason.trim()) return;
-    if (!security.hasPermission(user.role as any, "transaction:approve")) {
+    if (!canReverseMulti.allowed) {
       return;
     }
     await reverseTransactionPS(tx.id, user?.id || "", reverseReason.trim());
@@ -309,7 +317,7 @@ export default function TransactionDetail() {
             <div className="space-y-2 mb-6">
               {tx.status === "PENDING" && (
                 <>
-                  {security.hasRole(user.role as any, "transaction", "approve") && (
+                  {canApproveMulti.allowed && (
                     <button
                       onClick={handleApprove}
                       className="w-full py-4 rounded-full font-semibold text-white text-sm transition-all active:scale-95"
@@ -318,7 +326,7 @@ export default function TransactionDetail() {
                       Approuver
                     </button>
                   )}
-                  {security.hasRole(user.role as any, "transaction", "reject") && (
+                  {canRejectMulti.allowed && (
                     <button
                       onClick={() => setShowRejectModal(true)}
                       className="w-full py-4 rounded-full font-semibold text-sm transition-all active:scale-95"
@@ -360,7 +368,7 @@ export default function TransactionDetail() {
                 </button>
               )}
               {(tx.status === "DRAFT" || tx.status === "PENDING") &&
-                security.hasRole(user.role as any, "transaction", "delete") && (
+                canDeleteMulti.allowed && (
                   <button
                     onClick={handleDelete}
                     className="w-full py-4 rounded-full font-semibold text-sm transition-all active:scale-95"

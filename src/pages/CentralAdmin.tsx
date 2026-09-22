@@ -61,6 +61,7 @@ import {
   type OrgReportCard,
   type AdminCandidate,
 } from "@/capabilities/organization/central";
+import { useCanAccessMulti } from "@/hooks/useCanAccessMulti";
 import { useOrganizations, type PSOrganization } from "@/lib/dataLayer";
 import {
   useOrganizationContext,
@@ -90,6 +91,32 @@ function useCanAccessCentral() {
   const isCentralRole = user?.role === "CENTRAL_ADMIN";
   const hasGrant = (managedOrgs?.length ?? 0) > 0;
   return { allowed: isCentralRole || hasGrant, isCentralRole, managedOrgs };
+}
+
+/**
+ * B.1 — Gate multi-org : union du `useCanAccessCentral` legacy (rôle
+ * CENTRAL_ADMIN ou grant admin central) avec `federation.canAccess`
+ * (rôles canon de l'org + grants user/tag/org_member/group_member).
+ * Combiné en OR pour la transition : ni l'UI ni le serveur n'est jamais
+ * plus restrictif que le chemin le plus permissif en vigueur.
+ */
+function useCentralAccessMulti(orgId: string) {
+  const user = useCurrentUser();
+  const legacy = useCanAccessCentral();
+  const multi = useCanAccessMulti(
+    user?.id,
+    orgId,
+    "org",
+    "manage",
+    undefined,
+    user?.role as any,
+  );
+  return {
+    allowed: legacy.allowed || multi.allowed,
+    isCentralRole: legacy.isCentralRole,
+    managedOrgs: legacy.managedOrgs,
+    source: multi.source,
+  };
 }
 
 // ─── Org detail view ────────────────────────────────────────────────────────
@@ -357,7 +384,7 @@ export default function CentralAdmin() {
   const { id } = useParams();
   const user = useCurrentUser();
   const ctx = useOrganizationContext();
-  const { allowed, isCentralRole, managedOrgs } = useCanAccessCentral();
+  const { allowed, isCentralRole, managedOrgs, source: centralSource } = useCentralAccessMulti(ctx.orgId);
   const [stats, setStats] = useState<OrgStats | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -486,6 +513,12 @@ export default function CentralAdmin() {
               </span>
               {isCentralRole && (
                 <IonBadge color="light">CENTRAL_ADMIN</IonBadge>
+              )}
+              {/* B.1 — debug : quel chemin a accordé l'accès (transition legacy → fédération) */}
+              {centralSource !== "neither" && (
+                <IonBadge color="light" title={`Accès via chemin ${centralSource}`}>
+                  via {centralSource}
+                </IonBadge>
               )}
             </div>
           </div>
