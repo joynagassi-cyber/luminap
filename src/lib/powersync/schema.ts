@@ -376,16 +376,31 @@ const cotisations = new Table(
   },
 );
 
+// Note : PowerSync v2 ne modélise pas les FK côté client (TableOptions ne
+// connaît que `indexes`) ; l'FK org_id → organizations(id) est portée côté
+// PostgreSQL (migrations). La pkey `id` reste implicite côté PowerSync.
 const report_definitions = new Table(
   {
+    id: column.text,
     org_id: column.text,
     name: column.text,
-    type: column.text,
-    config: column.text,
+    kind: column.text,
+    data_source: column.text,
+    dimensions: column.text,
+    metrics: column.text,
+    filters: column.text,
+    group_by: column.text,
+    sort_by: column.text,
+    saved_by: column.text,
+    is_template: column.integer,
     created_at: column.text,
     updated_at: column.text,
   },
-  { indexes: {} },
+  {
+    indexes: {
+      org_id: ["org_id"],
+    },
+  },
 );
 
 // Documents / preuves (logos, archives, pièces jointes de dépenses).

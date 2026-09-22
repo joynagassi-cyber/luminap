@@ -970,6 +970,67 @@ describe("reportDefinitionRepo", () => {
     expect(defs[0].isTemplate).toBe(1);
   });
 
+  it("create() persiste la colonne kind (défaut FINANCE si absent)", async () => {
+    await reportDefinitionRepo.create({
+      orgId: "test-org",
+      name: "Rapport feature",
+      kind: "FEATURE",
+      dataSource: "features",
+      dimensions: [],
+      metrics: [],
+      filters: [],
+      groupBy: [],
+      sortBy: null,
+      savedBy: "user-1",
+      isTemplate: false,
+    } as any);
+    const insertCalls = psStore.calls.filter((c) =>
+      /INSERT INTO report_definitions/i.test(c.sql),
+    );
+    const last = insertCalls[insertCalls.length - 1]!;
+    expect(last.sql).toMatch(/kind/i);
+    expect(last.params).toContain("FEATURE");
+  });
+
+  it("list() retourne kind", async () => {
+    vi.mocked(getPowerSyncDatabase).mockReturnValue(
+      {
+        execute: vi.fn(async (sql: string, params: any[] = []) => {
+          recordSql(sql, params);
+          if (/FROM report_definitions/i.test(sql)) {
+            return {
+              array: [
+                {
+                  id: "rep-2",
+                  org_id: "test-org",
+                  name: "Rapport kind",
+                  kind: "AUDIT",
+                  data_source: "audit",
+                  dimensions: "[]",
+                  metrics: "[]",
+                  filters: "[]",
+                  group_by: "[]",
+                  sort_by: null,
+                  saved_by: "user-1",
+                  is_template: 0,
+                  created_at: "2026-01-01",
+                  updated_at: "2026-01-01",
+                },
+              ],
+            };
+          }
+          return { array: [] };
+        }),
+        getOptional: vi.fn(async () => null),
+      } as any,
+    );
+    const defs = await reportDefinitionRepo.list();
+    expect(defs).toHaveLength(1);
+    expect(defs[0]).toHaveProperty("kind");
+    expect(defs[0].kind).toBe("AUDIT");
+    vi.mocked(getPowerSyncDatabase).mockRestore();
+  });
+
   it("delete removes the row and invalidates the report cache", async () => {
     await reportDefinitionRepo.delete("rep-1");
     const delCalls = psStore.calls.filter((c) =>

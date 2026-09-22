@@ -357,12 +357,13 @@ export const reportDefinitionRepo = {
     };
     const db = getPowerSyncDatabase();
     await db.execute(
-      `INSERT INTO report_definitions (id, org_id, name, data_source, dimensions, metrics, filters, group_by, sort_by, saved_by, is_template, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO report_definitions (id, org_id, name, kind, data_source, dimensions, metrics, filters, group_by, sort_by, saved_by, is_template, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         getOrganizationId(),
         entry.name,
+        entry.kind ?? "FINANCE",
         entry.dataSource,
         JSON.stringify(entry.dimensions),
         JSON.stringify(entry.metrics),
@@ -393,13 +394,14 @@ export const reportDefinitionRepo = {
   async list(): Promise<ReportDefinition[]> {
     const db = getPowerSyncDatabase();
     const result = await db.execute(
-      "SELECT id, org_id, name, data_source, dimensions, metrics, filters, group_by, sort_by, saved_by, is_template, created_at, updated_at FROM report_definitions WHERE org_id = ? ORDER BY created_at DESC",
+      "SELECT id, org_id, name, kind, data_source, dimensions, metrics, filters, group_by, sort_by, saved_by, is_template, created_at, updated_at FROM report_definitions WHERE org_id = ? ORDER BY created_at DESC",
       [getOrganizationId()],
     );
     return (result?.array || []).map((r: any) => ({
       id: r.id,
       orgId: r.org_id,
       name: r.name,
+      kind: r.kind,
       dataSource: r.data_source,
       dimensions: JSON.parse(r.dimensions || "[]"),
       metrics: JSON.parse(r.metrics || "[]"),

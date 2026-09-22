@@ -381,6 +381,8 @@ export type ReportDefinition = {
   id: string;
   orgId: string;
   name: string;
+  /** Famille du rapport : financier classique, état de feature, ou journal d'audit. */
+  kind?: "FINANCE" | "FEATURE" | "AUDIT";
   dataSource: string;
   dimensions: string[];
   // Metrics are stored as MetricExpr[] objects ({ field, fn, alias }) in the
