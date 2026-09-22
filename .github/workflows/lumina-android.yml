@@ -60,10 +60,22 @@ jobs:
       - name: Grant execute permission to gradlew
         run: chmod +x android/gradlew
 
+      - name: Purge Gradle caches (bcprov-jdk18on fix)
+        # « Failed to create Jar file ... bcprov-jdk18on » est un défaut
+        # permanent du binaire Gradle 8.2.1 sur les runners GitHub
+        # (InPlaceClasspathBuilder → BouncyCastleProvider jar). Le re-trier
+        # ne résout pas — le binaire est le même. On purge le cache +
+        # la distribution wrapper, le wrapper re-télécharge proprement.
+        run: |
+          if [ -d "$HOME/.gradle" ]; then
+            echo "Purging ~/.gradle (caches + wrapper dists)"
+            rm -rf "$HOME/.gradle"
+          fi
+          echo "Gradle will be re-downloaded by the wrapper"
+
       - name: Build debug APK
-        # Le retry couvre la course d'écriture du cache classpath
-        # connue sur les runners GitHub (« Failed to create Jar file
-        # ... bcprov-jdk18on »).
+        # Le retry couvre une éventuelle course résiduelle, mais le
+        # build doit s'appuyer sur le cache purgé ci-dessus.
         uses: nick-fields/retry@v3
         with:
           timeout_minutes: 30
@@ -71,8 +83,6 @@ jobs:
           retry_on: error
           max_attempts: 3
           command: cd android && ./gradlew assembleDebug --no-daemon
-        # NOTE: si l'erreur bcprov persiste même avec le retry, forcer
-        # re-download du binaire Gradle : rm -rf ~/.gradle avant gradlew.
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
@@ -122,7 +132,17 @@ jobs:
       - name: Grant execute permission to gradlew
         run: chmod +x android/gradlew
 
+      - name: Purge Gradle caches (bcprov-jdk18on fix)
+        run: |
+          if [ -d "$HOME/.gradle" ]; then
+            echo "Purging ~/.gradle (caches + wrapper dists)"
+            rm -rf "$HOME/.gradle"
+          fi
+          echo "Gradle will be re-downloaded by the wrapper"
+
       - name: Build release APK
+        # Purge du cache obligatoire avant (cf. étape ci-dessus) ;
+        # le retry couvre une course résiduelle.
         uses: nick-fields/retry@v3
         with:
           timeout_minutes: 30
