@@ -266,8 +266,20 @@ export default function AuthPage() {
               alt="Lumina"
               className="w-10 h-10 object-contain"
             />
-            <div className="text-xs text-[var(--text-tertiary)]">
-              {authState?.user ? "Connecté" : "Déconnecté"}
+            <div className="flex items-center gap-4">
+              {/* Retour « Mes comptes » : après une déconnexion volontaire,
+                  les comptes restent listés ici — un clic re-ouvre la session. */}
+              <button
+                type="button"
+                onClick={() => navigate("/sessions", { replace: true })}
+                className="text-[var(--accent-primary)] text-xs font-medium flex items-center gap-1 active:opacity-70"
+                aria-label="Retour à mes comptes"
+              >
+                ← Mes comptes
+              </button>
+              <div className="text-xs text-[var(--text-tertiary)]">
+                {authState?.user ? "Connecté" : "Déconnecté"}
+              </div>
             </div>
           </div>
 

@@ -9,6 +9,7 @@ import {
   BookOpen,
   Clock,
   RefreshCw,
+  KeyRound,
   type LucideIcon,
 } from "lucide-react";
 import SettingsShell from "@/components/SettingsShell";
@@ -30,6 +31,13 @@ const SHORTCUTS: ActionItem[] = [
     icon: ClipboardList,
     color: "var(--accent-primary)",
     to: "/forms",
+  },
+  {
+    label: "Mes comptes",
+    hint: "Session & reconnexion",
+    icon: KeyRound,
+    color: "#14B8A6",
+    to: "/sessions",
   },
   {
     label: "Champs pers.",

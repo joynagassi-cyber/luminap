@@ -24,7 +24,7 @@ setupIonicReact({
 const queryClient = new QueryClient();
 
 // Routes that don't require authentication
-const PUBLIC_ROUTES = ["/splash", "/auth", "/auth/callback"];
+const PUBLIC_ROUTES = ["/splash", "/auth", "/auth/callback", "/sessions"];
 
 /** Route guard — blocks access to protected routes when unauthenticated */
 function RouteGuard() {

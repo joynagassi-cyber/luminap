@@ -19,6 +19,7 @@ import {
   useAccounts,
 } from "@/lib/dataLayer";
 import { useLocalStore } from "@/store/useLocalStore";
+import { authService } from "@/lib/auth";
 
 const ROLE_LABEL: Record<string, string> = {
   CENTRAL_ADMIN: "Administration centrale",
@@ -101,10 +102,13 @@ export default function SettingsProfile() {
   }, [firstName, lastName, user?.firstName, user?.lastName]);
 
   const handleLogout = () => {
-    ["lumina-session", "lumina-role", "lumina-onboarded", "lumina-firstName", "lumina-lastName"].forEach((k) =>
-      localStorage.removeItem(k),
-    );
-    navigate("/auth");
+    // Déconnexion volontaire : les comptes restent listés dans « Mes
+    // comptes » (/sessions) — il suffit d'un clic pour re-s'authentifier.
+    localStorage.removeItem("lumina-session");
+    localStorage.removeItem("lumina-role");
+    localStorage.removeItem("lumina-onboarded");
+    authService.signOut().catch(() => undefined);
+    navigate("/sessions");
   };
 
   return (

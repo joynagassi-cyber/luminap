@@ -16,6 +16,7 @@ import { LazyRoute } from "./lazy-route";
 
 import Splash from "@/pages/Splash";
 import AuthPage from "@/pages/AuthPage";
+import Sessions from "@/pages/Sessions";
 
 const Onboarding = lazy(() => import("@/pages/Onboarding"));
 
@@ -23,6 +24,9 @@ export const authRoutes: ReactElement[] = [
   <Route key="/splash" path="/splash" element={<Splash />} />,
   <Route key="/auth" path="/auth" element={<AuthPage />} />,
   <Route key="/auth/callback" path="/auth/callback" element={<AuthPage />} />,
+  // « Mes comptes » : hub de persistance de session — les comptes y restent
+  // après déconnexion ; un clic re-ouvre la session. Page légère (eager).
+  <Route key="/sessions" path="/sessions" element={<Sessions />} />,
   <Route
     key="/onboarding"
     path="/onboarding"
