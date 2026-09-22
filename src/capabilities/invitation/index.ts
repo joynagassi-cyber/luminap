@@ -151,7 +151,7 @@ export function parseQRPayload(raw: string): ClaimPayload | null {
   try {
     const parsed = JSON.parse(raw);
     if (
-      parsed?.v === 1 &&
+      (parsed?.v === 1 || parsed?.v === 2) &&
       parsed?.orgId &&
       parsed?.invitationId &&
       parsed?.code &&
@@ -256,6 +256,15 @@ export class InvitationService {
   /**
    * Claim an invitation locally. Creates a PENDING user + InvitationClaim.
    * Returns the new user id and claim id.
+   *
+   * B.4 — design hors-ligne (design §5 du module) : la claim est créée en
+   * `PENDING_SYNC` LOCALEMENT, même si l'invitation cible n'est pas encore
+   * synchronisée sur cet appareil. La `ON CONFLICT` du claim (PK inv+device)
+   * + le moteur d'idempotence du trigger `settle_invitation_claim` (il ne
+   * rejoue que les claims PENDING_SYNC, et attend l'invitation avant de
+   * confirmer) garantissent que le settlement n'arrive QUAND L'INVITATION EST
+   * DISPO. On n'échoue donc PAS le claim si `getInvitationByCode` retourne
+   * null — on crée la claim de toute façon et on laisse le serveur trancher.
    */
   async claimInvitation(
     payload: ClaimPayload,

@@ -89,9 +89,20 @@ export default function InvitationClaim() {
         setParsedPayload(payload);
         setMode("scan"); // reuse scan view for detail
       } else {
+        // B.4 — le code est inconnu LOCALEMENT (l'invitation n'a pas encore
+        // sync'dé sur cet appareil). On ne refuse PAS le claim : on crée une
+        // claim PENDING_SYNC locale qui sera résolue par le trigger serveur
+        // dès que l'invitation arrivera (design §5 du module invitation).
+        // Le code seul ne suffit pas à reconstruire le ClaimPayload (il ne
+        // porte ni invitationId ni rôle/org/scope) — donc on demande au
+        // claimant de coller le payload JSON complet (fichier exporté de
+        // l'émetteur, ou QR) dans la zone « Collez le JSON » plus bas.
         setResult({
           ok: false,
-          message: "Code introuvable. L'invité et l'émetteur n'ont jamais été synchronisés. Demandez à l'émetteur de vous envoyer le QR code.",
+          message:
+            "Code inconnu localement : l'invitation n'a pas encore sync'dé sur cet appareil. " +
+            "Pour continuer hors-ligne, collez le JSON complet de l'invitation dans la zone « Collez le JSON », " +
+            "ou laissez la claim se synchroniser (le déclencheur serveur la confirmera dès que l'invitation sera reçue).",
         });
       }
     } catch (err: any) {
