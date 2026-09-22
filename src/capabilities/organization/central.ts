@@ -20,6 +20,7 @@ import {
   grantOrgAdminPS,
   revokeOrgAdminPS,
   getOrgAdminsFull,
+  canAccessOrganization,
   type OrgStatus,
   type OrgType,
   type PSOrganization,
@@ -63,6 +64,20 @@ function buildAudit(
 }
 
 /**
+ * B.8 — garde-fou local : on refuse l'action si l'acteur n'a pas le
+ * droit d'accéder à l'org (canAccessOrganization = union 3 sources).
+ * Le RLS serveur reste la barrière finale, mais un refus local évite
+ * de pusher une mutation qui échouerait à l'upload (file qui sature,
+ * UI qui montre « réactivé » alors que le serveur n'a pas arbitré).
+ */
+async function assertOrgAccess(orgId: string, actorId: string): Promise<void> {
+  const ok = await canAccessOrganization(actorId, orgId);
+  if (!ok) {
+    throw new Error("GRANT_MISSING");
+  }
+}
+
+/**
  * Suspend une organisation (lifecycle). L'historique est conservé.
  * Le serveur rejette si l'acteur n'a pas le droit (RLS org_admins).
  */
@@ -71,6 +86,7 @@ export async function suspendOrganization(
   actorId: string,
   before?: PSOrganization,
 ): Promise<void> {
+  await assertOrgAccess(orgId, actorId);
   await setOrganizationStatusPS(orgId, "SUSPENDED", actorId);
   await writeAudit(
     buildAudit(
@@ -92,6 +108,7 @@ export async function reactivateOrganization(
   actorId: string,
   before?: PSOrganization,
 ): Promise<void> {
+  await assertOrgAccess(orgId, actorId);
   await setOrganizationStatusPS(orgId, "ACTIVE", actorId);
   await writeAudit(
     buildAudit(
@@ -114,6 +131,7 @@ export async function archiveOrganization(
   reason: string,
   before?: PSOrganization,
 ): Promise<void> {
+  await assertOrgAccess(orgId, actorId);
   await setOrganizationStatusPS(orgId, "ARCHIVED", actorId, reason);
   await writeAudit(
     buildAudit(
@@ -167,6 +185,10 @@ export async function assignOrgAdmin(input: {
   orgId: string;
   grantedBy: string;
 }): Promise<string> {
+  // B.8 : le grantedBy doit avoir le droit de gérer l'org (admin central
+  // de cette org, ou membership — union 3 sources). Le serveur reste la
+  // barrière finale (RLS org_admins).
+  await assertOrgAccess(input.orgId, input.grantedBy);
   const grantId = await grantOrgAdminPS(input);
   await writeAudit(
     buildAudit(
@@ -195,6 +217,8 @@ export async function revokeOrgAdmin(
   actorId: string,
   before?: unknown,
 ): Promise<void> {
+  // B.8 : l'acteur doit avoir le droit sur l'org (union 3 sources) pour révoquer.
+  await assertOrgAccess(orgId, actorId);
   await revokeOrgAdminPS(grantId);
   await writeAudit(
     buildAudit(

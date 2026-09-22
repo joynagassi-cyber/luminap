@@ -27,6 +27,9 @@ vi.mock("@/lib/dataLayer", () => ({
   revokeOrgAdminPS: vi.fn(async (grantId: string) => {
     calls.push(["revoke", grantId]);
   }),
+  // B.8 — le central.ts vérifie le grant local avant chaque mutation.
+  // Par défaut on autorise (le cas de refus est couvert par un test dédié).
+  canAccessOrganization: vi.fn(async () => true),
 }));
 
 const auditEntries: any[] = [];
@@ -124,6 +127,16 @@ describe("admin grants", () => {
   beforeEach(() => {
     calls.length = 0;
     auditEntries.length = 0;
+  });
+
+  it("B.8 — refuse la mutation si l'acteur n'a pas le grant local (GRANT_MISSING)", async () => {
+    const { canAccessOrganization } = await import("@/lib/dataLayer");
+    vi.mocked(canAccessOrganization).mockResolvedValueOnce(false);
+    await expect(
+      suspendOrganization("org-forbidden", "actor-no-grant"),
+    ).rejects.toThrow("GRANT_MISSING");
+    // Pas d'écriture PowerSync (le guard est local, avant la mutation)
+    expect(calls).toEqual([]);
   });
 
   it("assignOrgAdmin → ACTIVE grant + audit", async () => {

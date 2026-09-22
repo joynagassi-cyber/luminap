@@ -34,6 +34,12 @@ export const adminRoutes: ReactElement[] = [
     path="/admin/federation/tree"
     element={<LazyRoute component={FederationTree} />}
   />,
+  // B.8 — route OrgUnits (précédemment inatteignable : déclarée mais jamais montée)
+  <Route
+    key="/admin/units"
+    path="/admin/units"
+    element={<LazyRoute component={OrgUnits} />}
+  />,
   <Route
     key="/admin/organizations/:id"
     path="/admin/organizations/:id"
