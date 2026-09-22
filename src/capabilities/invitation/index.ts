@@ -47,7 +47,7 @@ export interface Invitation {
   orgId: string;
   code: string;
   targetRole: string;
-  targetScopeType: "ORG" | "GROUP";
+  targetScopeType: "ORG" | "GROUP" | "EVENT" | "REPORT";
   targetGroupId: string | null;
   targetMemberId: string | null;
   issuedBy: string;
@@ -56,6 +56,11 @@ export interface Invitation {
   maxUses: number;
   usedCount: number;
   status: InvitationStatus;
+  // B.3 — scope granulaire (Vague 3) : colonnes scopées de la table `invitations`
+  targetScopeResource?: string | null;
+  targetScopeId?: string | null;
+  grantsPayload?: string;
+  tagsPayload?: string;
 }
 
 export interface InvitationClaim {
@@ -87,13 +92,24 @@ export interface CreateInvitationInput {
 }
 
 export interface ClaimPayload {
-  v: number;
+  v: 1 | 2;
   orgId: string;
   invitationId: string;
   code: string;
   role: string;
-  scope: { type: "ORG" | "GROUP"; groupId?: string };
+  scope: {
+    type: "ORG" | "GROUP" | "EVENT" | "REPORT";
+    groupId?: string;
+    /** B.3 — ressource cible libre (invariant 8 : toute ressource, tout ID). */
+    resource?: string;
+    /** B.3 — id de la ressource cible (harmonisé sur AccessScope.id). */
+    id?: string;
+  };
   memberId: string | null;
+  /** B.3 — grants agnostiques transportés dans le QR/fichier (v2). */
+  grants?: import("@/types/federation").Grant[];
+  /** B.3 — tag_ids transportés dans le QR/fichier (v2). */
+  tags?: string[];
   issuedAt: string;
   expiresAt: string;
 }
@@ -132,7 +148,9 @@ export function buildQRPayload(input: CreateInvitationInput, code: string): Clai
       ...(input.targetScopeType === "GROUP" && input.targetGroupId ? { groupId: input.targetGroupId } : {}),
       // B.3 — scope granulaire libre (invariant 8 : toute ressource, tout ID)
       ...(input.targetScopeResource ? { resource: input.targetScopeResource } : {}),
-      ...(input.targetScopeId ? { resourceId: input.targetScopeId } : {}),
+      // Harmonisé sur AccessScope.id (pas "resourceId") : l'UI/claim lit
+      // payload.scope.id pour le passer à federation.canAccess.
+      ...(input.targetScopeId ? { id: input.targetScopeId } : {}),
     },
     memberId: input.targetMemberId ?? null,
     // B.3 — transport du payload scopé dans le QR (claim hors-ligne, B.4)
@@ -346,7 +364,7 @@ export class InvitationService {
       params.push(filters.roleId);
     }
 
-    const sql = `SELECT id, org_id, code, target_role, target_scope_type, target_group_id, target_member_id, issued_by, issued_at, expires_at, max_uses, used_count, status FROM invitations WHERE ${conditions.join(" AND ")} ORDER BY created_at DESC`;
+    const sql = `SELECT id, org_id, code, target_role, target_scope_type, target_group_id, target_member_id, issued_by, issued_at, expires_at, max_uses, used_count, status, target_scope_resource, target_scope_id, grants_payload, tags_payload FROM invitations WHERE ${conditions.join(" AND ")} ORDER BY created_at DESC`;
     const result = await db.execute(sql, params);
     return (result?.array || []) as any[] as Invitation[];
   }
@@ -357,7 +375,7 @@ export class InvitationService {
   async getInvitation(id: string): Promise<Invitation | null> {
     const db = getPowerSyncDatabase();
     const result = await db.execute(
-      "SELECT id, org_id, code, target_role, target_scope_type, target_group_id, target_member_id, issued_by, issued_at, expires_at, max_uses, used_count, status FROM invitations WHERE id = ?",
+      "SELECT id, org_id, code, target_role, target_scope_type, target_group_id, target_member_id, issued_by, issued_at, expires_at, max_uses, used_count, status, target_scope_resource, target_scope_id, grants_payload, tags_payload FROM invitations WHERE id = ?",
       [id],
     );
     return (result?.array?.[0] as any) ?? null;
@@ -369,7 +387,7 @@ export class InvitationService {
   async getInvitationByCode(code: string): Promise<Invitation | null> {
     const db = getPowerSyncDatabase();
     const result = await db.execute(
-      "SELECT id, org_id, code, target_role, target_scope_type, target_group_id, target_member_id, issued_by, issued_at, expires_at, max_uses, used_count, status FROM invitations WHERE code = ?",
+      "SELECT id, org_id, code, target_role, target_scope_type, target_group_id, target_member_id, issued_by, issued_at, expires_at, max_uses, used_count, status, target_scope_resource, target_scope_id, grants_payload, tags_payload FROM invitations WHERE code = ?",
       [code],
     );
     return (result?.array?.[0] as any) ?? null;

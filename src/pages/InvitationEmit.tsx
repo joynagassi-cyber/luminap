@@ -38,7 +38,7 @@ import {
 } from "lucide-react";
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
-import { useMembers, useGroups, useInvitations } from "@/lib/dataLayer";
+import { useMembers, useGroups } from "@/lib/dataLayer";
 import { useCurrentUser } from "@/lib/dataLayer";
 import {
   invitation,
@@ -66,12 +66,13 @@ export default function InvitationEmit() {
   const { data: psMembers } = useMembers();
   const { data: psGroups } = useGroups();
   const members = psMembers ?? [];
-  const groups = (psGroups ?? []).filter((g: any) => g.org_id === targetOrgId);
 
   // Organisation ciblée : `?org=<id>` (ex. venue de la page Fédération après
   // avoir créé une organisation opérationnelle) ; sinon l'organisation courante.
+  // DOIT être déclaré AVANT `groups` (line ci-dessous) — sinon TDZ.
   const orgParam = new URLSearchParams(location.search).get("org");
   const targetOrgId = orgParam ?? getOrganizationId();
+  const groups = (psGroups ?? []).filter((g: any) => g.org_id === targetOrgId);
 
   const [step, setStep] = useState<"configure" | "qr">("configure");
   const [targetRole, setTargetRole] = useState("MEMBRE");

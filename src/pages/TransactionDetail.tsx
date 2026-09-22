@@ -33,6 +33,7 @@ import {
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
 import { useCanAccessMulti } from "@/hooks/useCanAccessMulti";
+import { notification } from "@/capabilities/notification";
 import {
   IonPage,
   IonHeader,
@@ -134,6 +135,17 @@ export default function TransactionDetail() {
       return;
     }
     await approveTransactionPS(tx.id, user?.id || "");
+    // B.7 — notification locale app (persistée dans `notifications` PowerSync,
+    // visible dans l'UI in-app. L'audit APPROVED est géré côté trigger serveur.
+    await notification.sendNotification({
+      title: "Transaction approuvée",
+      message: `${tx.description || tx.id} a été approuvée.`,
+      targetRole: "TREASURIER",
+      extraData: {
+        source: "transaction-detail",
+        txId: tx.id,
+      },
+    });
     navigate(-1);
   };
 
@@ -143,6 +155,16 @@ export default function TransactionDetail() {
     }
     if (!rejectComment.trim()) return;
     await updateTransactionPS(tx.id, { status: "REJECTED", comment: rejectComment.trim() });
+    await notification.sendNotification({
+      title: "Transaction rejetée",
+      message: `${tx.description || tx.id} a été rejetée : ${rejectComment.trim()}`,
+      targetRole: "TREASURIER",
+      extraData: {
+        source: "transaction-detail",
+        txId: tx.id,
+        reason: rejectComment.trim(),
+      },
+    });
     setShowRejectModal(false);
     setRejectComment("");
     navigate(-1);
@@ -153,6 +175,15 @@ export default function TransactionDetail() {
       return;
     }
     await deleteTransactionPS(tx.id);
+    await notification.sendNotification({
+      title: "Transaction supprimée",
+      message: `${tx.description || tx.id} a été supprimée.`,
+      targetRole: "ADMIN",
+      extraData: {
+        source: "transaction-detail",
+        txId: tx.id,
+      },
+    });
     navigate(-1);
   };
 
@@ -162,6 +193,16 @@ export default function TransactionDetail() {
       return;
     }
     await reverseTransactionPS(tx.id, user?.id || "", reverseReason.trim());
+    await notification.sendNotification({
+      title: "Transaction inversée",
+      message: `${tx.description || tx.id} a été inversée : ${reverseReason.trim()}`,
+      targetRole: "TREASURIER",
+      extraData: {
+        source: "transaction-detail",
+        txId: tx.id,
+        reversalReason: reverseReason.trim(),
+      },
+    });
     setShowReverseModal(false);
     setReverseReason("");
     navigate(-1);
