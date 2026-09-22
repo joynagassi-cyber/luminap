@@ -179,6 +179,22 @@ export function validateFormSubmission(
     ) {
       errors.push(`Field ${field.label} must be <= ${field.validation.max}`);
     }
+    const val = data[field.key];
+    if (val !== undefined && val !== null && val !== "") {
+      if (field.validation?.regex) {
+        try {
+          if (!new RegExp(field.validation.regex).test(String(val))) {
+            errors.push(`Field ${field.label} format invalide`);
+          }
+        } catch {
+          /* regex invalide — on ne bloque pas la soumission */
+        }
+      }
+      if (typeof field.validation?.custom === "function") {
+        const err = field.validation.custom(val, data);
+        if (err) errors.push(err);
+      }
+    }
   }
   return { valid: errors.length === 0, errors };
 }

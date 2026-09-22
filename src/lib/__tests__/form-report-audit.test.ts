@@ -410,6 +410,22 @@ describe("validateFormSubmission", () => {
     expect(valid).toBe(true);
     expect(errors).toHaveLength(0);
   });
+
+  const formDefWithRegex = makeFormDef({
+    fields: [
+      { key: "email", label: "Email", type: "text", required: false, validation: { regex: "^.+@.+$" }, order: 0 },
+    ],
+  });
+
+  it("rejette une valeur qui ne passe pas la regex de validation", () => {
+    const res = validateFormSubmission(formDefWithRegex, { email: "pas-un-email" });
+    expect(res.valid).toBe(false);
+  });
+
+  it("accepte une valeur qui passe la regex", () => {
+    const res = validateFormSubmission(formDefWithRegex, { email: "a@b.cd" });
+    expect(res.valid).toBe(true);
+  });
 });
 
 // ─── formSystem: mapFormFields ──────────────────────────────────────────────
@@ -429,6 +445,25 @@ describe("mapFormFields", () => {
     const def = makeFormDef();
     const mapped = mapFormFields(def, { nom: "Aya", montant: 5000 });
     expect(mapped).toEqual({});
+  });
+
+  it("mapFormFields ne retient que les champs mappes", () => {
+    const formDefWithMappings = makeFormDef({
+      fields: [
+        {
+          key: "name",
+          label: "Nom",
+          type: "text",
+          required: false,
+          mapsToEntityField: "firstName",
+          order: 0,
+        },
+        { key: "code", label: "Code", type: "text", required: false, order: 1 },
+      ],
+    });
+    expect(mapFormFields(formDefWithMappings, { name: "A", code: "B" })).toEqual(
+      { firstName: "A" },
+    );
   });
 });
 

@@ -410,7 +410,12 @@ export type FormFieldDefinition = {
     | "textarea"
     | "file";
   required: boolean;
-  validation?: { min?: number; max?: number; regex?: string; custom?: string };
+  validation?: {
+    min?: number;
+    max?: number;
+    regex?: string;
+    custom?: (value: any, data: Record<string, any>) => string | null;
+  };
   options?: string[];
   referenceEntityType?: string;
   conditional?: { showIfField: string; showIfValue: any };

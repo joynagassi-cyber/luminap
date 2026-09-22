@@ -9,9 +9,16 @@ import {
   validateFormSubmission,
   mapFormFields,
 } from "@/lib/formSystem";
+import {
+  useMembers,
+  useGroups,
+  useEvents,
+  useAccounts,
+} from "@/lib/dataLayer";
 import { generateId } from "@/lib/utils";
 import { getOrganizationId } from "@/lib/orgContext";
-import type { FormDefinition } from "@/types";
+import { addMemberPS, addEventPS } from "@/lib/dataLayer";
+import type { FormDefinition, FormFieldDefinition } from "@/types";
 import {
   IonPage,
   IonHeader,
@@ -21,6 +28,48 @@ import {
   IonInput,
   IonButton,
 } from "@ionic/react";
+
+function ReferenceSelect({
+  field,
+  data,
+  onChange,
+}: {
+  field: FormFieldDefinition;
+  data: Record<string, any>;
+  onChange: (key: string, value: any) => void;
+}) {
+  const { data: members } = useMembers();
+  const { data: groups } = useGroups();
+  const { data: events } = useEvents();
+  const { data: accounts } = useAccounts();
+  const entities =
+    field.referenceEntityType === "group"
+      ? groups
+      : field.referenceEntityType === "event"
+        ? events
+        : field.referenceEntityType === "account"
+          ? accounts
+          : (members ?? []);
+  const labelOf = (e: any) => e?.name ?? e?.fullName ?? e?.id ?? String(e);
+  return (
+    <select
+      value={data[field.key] ?? ""}
+      onChange={(e) => onChange(field.key, e.target.value)}
+      className="w-full px-4 py-3 rounded-xl text-text-primary text-sm  appearance-none"
+      style={{
+        backgroundColor: "var(--surface)",
+        border: "1px solid var(--border)",
+      }}
+    >
+      <option value="">— Sélectionner —</option>
+      {(Array.isArray(entities) ? entities : []).map((e: any, i: number) => (
+        <option key={e?.id ?? i} value={e?.id ?? i}>
+          {labelOf(e)}
+        </option>
+      ))}
+    </select>
+  );
+}
 
 export default function FormFill() {
   const { id } = useParams<{ id: string }>();
@@ -59,6 +108,27 @@ export default function FormFill() {
       data,
       status: "SUBMITTED",
     });
+    // F.1b — dispatch les champs mappés vers l'entité cible du formulaire.
+    // S'il n'y a pas de targetEntityType, ou aucun champ mappé, le résultat
+    // reste dans form_submissions (rien n'est écrit ailleurs).
+    if (form.targetEntityType && Object.keys(mapped).length > 0) {
+      const dispatchers: Record<string, (p: any) => Promise<void>> = {
+        member: async (p) => {
+          await addMemberPS(p);
+        },
+        event: async (p) => {
+          await addEventPS(p);
+        },
+      };
+      const dispatcher = dispatchers[form.targetEntityType];
+      if (dispatcher) {
+        await dispatcher({
+          orgId: getOrganizationId(),
+          ...mapped,
+          createdFromFormSubmissionId: submission.id,
+        });
+      }
+    }
     setSubmitted(true);
     setTimeout(() => navigate("/forms"), 2000);
   };
@@ -132,7 +202,14 @@ export default function FormFill() {
               </div>
             ) : (
               <div className="space-y-4">
-                {form.fields.map((field) => (
+                {form.fields
+                  .filter(
+                    (field) =>
+                      !field.conditional ||
+                      String(data[field.conditional.showIfField]) ===
+                        String(field.conditional.showIfValue),
+                  )
+                  .map((field) => (
                   <div key={field.key}>
                     <label className="text-text-tertiary text-xs mb-1.5 block">
                       {field.label}{" "}
@@ -189,15 +266,22 @@ export default function FormFill() {
                           border: "1px solid var(--border)",
                         }}
                       />
-                    ) : (
+                    ) : field.type === "reference" ? (
+                      <ReferenceSelect field={field} data={data} onChange={handleChange} />
+                    ) : field.type === "file" ? (
                       <input
-                        type={
-                          field.type === "number" || field.type === "currency"
-                            ? "number"
-                            : field.type === "date"
-                              ? "date"
-                              : "text"
+                        type="file"
+                        value={String(data[field.key] ?? "")}
+                        onChange={(e) =>
+                          handleChange(field.key, e.target.files?.[0]?.name ?? "")
                         }
+                        className="w-full px-4 py-3 rounded-xl text-text-primary text-sm "
+                        style={{
+                          backgroundColor: "var(--surface)",
+                          border: "1px solid var(--border)",
+                        }}
+                      />
+                    ) : (
                         value={data[field.key] ?? ""}
                         onChange={(e) =>
                           handleChange(field.key, e.target.value)
