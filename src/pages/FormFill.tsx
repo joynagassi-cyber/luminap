@@ -18,8 +18,7 @@ import {
 import { generateId } from "@/lib/utils";
 import { getOrganizationId } from "@/lib/orgContext";
 import { addMemberPS, addEventPS } from "@/lib/dataLayer";
-import type { FormDefinition, FormFieldDefinition } from "@/types";
-import {
+import type { FormDefinition, FormFieldDefinition } from "@/types";import {
   IonPage,
   IonHeader,
   IonContent,
@@ -50,7 +49,17 @@ function ReferenceSelect({
         : field.referenceEntityType === "account"
           ? accounts
           : (members ?? []);
-  const labelOf = (e: any) => e?.name ?? e?.fullName ?? e?.id ?? String(e);
+  // Les listes PS (membres) sont en snake_case ; les listes fallback (IndexedDB)
+  // sont en camelCase → on gère les deux pour éviter d'afficher l'id brut.
+  const labelOf = (e: any) => {
+    if (e?.name) return e.name;
+    if (e?.fullName) return e.fullName;
+    const snake = [e?.first_name, e?.last_name].filter(Boolean).join(" ");
+    if (snake) return snake;
+    const camel = [e?.firstName, e?.lastName].filter(Boolean).join(" ");
+    if (camel) return camel;
+    return e?.id ?? String(e);
+  };
   return (
     <select
       value={data[field.key] ?? ""}
@@ -94,12 +103,28 @@ export default function FormFill() {
 
   const handleSubmit = async () => {
     if (!form) return;
-    const validation = validateFormSubmission(form, data);
+    // F.1b — le dispatcher attend des colonnes snake_case (PSMember / PSEvent)
+    // alors que mapFormFields produit du camelCase : on convertit avant l'écriture.
+    const toSnakeCase = (key: string) =>
+      key.replace(/([A-Z])/g, (m) => "_" + m.toLowerCase());
+
+    // F.1a — visibilité conditionnelle : un champ caché (condition non remplie)
+    // ne doit PAS rester « required » sinon il bloquerait la soumission.
+    const isFieldShown = (field: FormFieldDefinition) =>
+      !field.conditional ||
+      String(data[field.conditional.showIfField]) ===
+        String(field.conditional.showIfValue);
+    const shownForm: FormDefinition = {
+      ...form,
+      fields: form.fields.filter(isFieldShown),
+    };
+
+    const validation = validateFormSubmission(shownForm, data);
     if (!validation.valid) {
       setErrors(validation.errors);
       return;
     }
-    const mapped = mapFormFields(form, data);
+    const mapped = mapFormFields(shownForm, data);
     const submission = await formSubmissionRepo.create({
       orgId: getOrganizationId(),
       formDefinitionId: form.id,
@@ -108,25 +133,45 @@ export default function FormFill() {
       data,
       status: "SUBMITTED",
     });
-    // F.1b — dispatch les champs mappés vers l'entité cible du formulaire.
+    // F.1b — dispatch des champs mappés vers l'entité cible du formulaire.
     // S'il n'y a pas de targetEntityType, ou aucun champ mappé, le résultat
     // reste dans form_submissions (rien n'est écrit ailleurs).
     if (form.targetEntityType && Object.keys(mapped).length > 0) {
-      const dispatchers: Record<string, (p: any) => Promise<void>> = {
+      const dispatchers: Record<string, (p: Record<string, any>) => Promise<string>> = {
         member: async (p) => {
-          await addMemberPS(p);
+          const snake: Record<string, any> = {};
+          for (const [k, v] of Object.entries(p)) snake[toSnakeCase(k)] = v;
+          // PSMember attend des valeurs par défaut valides.
+          snake.status ??= "ACTIVE";
+          snake.joined_at ??= new Date().toISOString();
+          snake.archived_at ??= null;
+          snake.archived_by ??= null;
+          snake.archive_reason ??= null;
+          return addMemberPS(snake as any);
         },
         event: async (p) => {
-          await addEventPS(p);
+          const snake: Record<string, any> = {};
+          for (const [k, v] of Object.entries(p)) snake[toSnakeCase(k)] = v;
+          snake.status ??= "PLANIFIED";
+          snake.type ??= "GENERIC";
+          snake.budget ??= 0;
+          snake.description ??= "";
+          snake.budget_items ??= null;
+          return addEventPS(snake as any);
         },
       };
       const dispatcher = dispatchers[form.targetEntityType];
       if (dispatcher) {
-        await dispatcher({
-          orgId: getOrganizationId(),
-          ...mapped,
-          createdFromFormSubmissionId: submission.id,
-        });
+        try {
+          await dispatcher({
+            org_id: getOrganizationId(),
+            ...mapped,
+            created_from_form_submission_id: submission.id,
+          });
+        } catch {
+          // La soumission est déjà écrite : un échec de dispatch ne doit pas
+          // bloquer l'utilisateur, il reste retraceable dans form_submissions.
+        }
       }
     }
     setSubmitted(true);

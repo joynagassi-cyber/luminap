@@ -177,6 +177,8 @@ export class AggregationEngine {
           if (g === "action") return row.action;
           if (g === "entityType") return row.entityType || "unknown";
           if (g === "userId") return row.userId || "unknown";
+          // "actor" est l'alias UI de "userId" (ReportBuilder propose les deux).
+          if (g === "actor") return row.userId || "unknown";
           if (g === "month") return row.createdAt.substring(0, 7);
           if (g === "year") return row.createdAt.substring(0, 4);
           return "";

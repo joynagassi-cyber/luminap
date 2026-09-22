@@ -427,6 +427,25 @@ describe("validateFormSubmission", () => {
     const res = validateFormSubmission(formDefWithRegex, { email: "a@b.cd" });
     expect(res.valid).toBe(true);
   });
+
+  it("un champ conditionnellement caché ne reste pas required", () => {
+    const def = makeFormDef({
+      fields: [
+        { key: "nom", label: "Nom", type: "text", required: false, order: 0 },
+        {
+          key: "motif",
+          label: "Motif",
+          type: "text",
+          required: true,
+          conditional: { showIfField: "nom", showIfValue: "exceptionnel" },
+          order: 1,
+        },
+      ],
+    });
+    // Le motif est caché (nom ≠ "exceptionnel") → il ne doit pas bloquer.
+    const res = validateFormSubmission(def, { nom: "normal", motif: "" });
+    expect(res.valid).toBe(true);
+  });
 });
 
 // ─── formSystem: mapFormFields ──────────────────────────────────────────────
@@ -765,6 +784,45 @@ describe("AggregationEngine.execute", () => {
     );
     expect(res.rows.length).toBeGreaterThan(0);
     expect(res.columns).toContain("action");
+    psMocked.mockRestore();
+  });
+
+  it("execute({dataSource:'audit'}) gère la dimension 'actor' (alias de userId)", async () => {
+    const auditFixtures = [
+      {
+        id: "a1", org_id: "test-org", action: "CREATE",
+        entity_type: "Member", user_id: "u1", created_at: "2026-01-03",
+      },
+      {
+        id: "a2", org_id: "test-org", action: "UPDATE",
+        entity_type: "Caisse", user_id: "u2", created_at: "2026-02-01",
+      },
+    ];
+    const psMocked = vi.mocked(getPowerSyncDatabase);
+    psMocked.mockImplementation(() => ({
+      execute: (sql: string, params: any[] = []) => {
+        recordSql(sql, params);
+        if (/^\s*SELECT/i.test(sql)) {
+          if (/FROM audit_entries/i.test(sql))
+            return { array: auditFixtures };
+          return { array: [] };
+        }
+        return { rowsAffected: 1 };
+      },
+      getOptional: async () => null,
+    }) as any);
+
+    // "actor" est la dimension UI du ReportBuilder — elle doit produire
+    // autant de groupes que d'auteurs distincts (2 ici), pas un groupe vide.
+    const res = await reportEngine.execute(
+      makeReportDef({
+        dataSource: "audit",
+        metrics: [{ field: "id", fn: "count", alias: "count" }],
+        groupBy: ["actor"],
+      }),
+    );
+    expect(res.columns).toContain("actor");
+    expect(res.rows.length).toBe(2);
     psMocked.mockRestore();
   });
 
