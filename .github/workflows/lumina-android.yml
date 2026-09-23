@@ -144,17 +144,30 @@ jobs:
       - name: Grant execute permission to gradlew
         run: chmod +x android/gradlew
 
-      - name: Purge Gradle caches (bcprov-jdk18on fix)
+      - name: Align Gradle (purge + AGP 8.2.1 + namespaces)
+        # Même étape que le job debug : le plugin cordova est
+        # régénéré par cap sync et doit être aligné avant chaque build.
         run: |
           if [ -d "$HOME/.gradle" ]; then
-            echo "Purging ~/.gradle (caches + wrapper dists)"
+            echo "Purging ~/.gradle"
             rm -rf "$HOME/.gradle"
           fi
-          echo "Gradle will be re-downloaded by the wrapper"
+          # 1. Force AGP 8.2.1 sur le plugin cordova (pin 8.13.0)
+          sed -i "s/com.android.tools.build:gradle:8.13.0/com.android.tools.build:gradle:8.2.1/g" \
+            android/capacitor-cordova-android-plugins/build.gradle
+          # 2. compileSdk 36 n'existe pas en AGP 8.2.1 → 34
+          sed -i "s/compileSdkVersion') ? rootProject.ext.compileSdkVersion : 36/compileSdkVersion') ? rootProject.ext.compileSdkVersion : 34/g" \
+            android/capacitor-cordova-android-plugins/build.gradle
+          # 3. Ajoute namespace au plugin storage (v1.2.5, très ancien)
+          if ! grep -q "^    namespace " node_modules/@capacitor/storage/android/build.gradle; then
+            sed -i '/^android {/a\    namespace "com.capacitorjs.plugins.storage"' \
+              node_modules/@capacitor/storage/android/build.gradle
+          fi
+          echo "Gradle aligné : AGP 8.2.1 + SDK 34 + namespace storage"
 
       - name: Build release APK
-        # Purge du cache obligatoire avant (cf. étape ci-dessus) ;
-        # le retry couvre une course résiduelle.
+        # Retry : couvre une éventuelle course résiduelle sur le cache
+        # classpath après l'alignement.
         uses: nick-fields/retry@v3
         with:
           timeout_minutes: 30
