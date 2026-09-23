@@ -47,17 +47,8 @@
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
 
-        <!-- OneSignal GCM receiver — doit rester dans <application> (AAPT) -->
-        <receiver android:name="com.onesignal.GcmBroadcastReceiver" android:exported="false">
-            <intent-filter>
-                <action android:name="com.google.android.c2dm.intent.RECEIVE" />
-            </intent-filter>
-        </receiver>
-
-        <!-- Firebase Cloud Messaging — FCM is required for OneSignal in-app
-             push on API 26+. Le service est déjà déclaré par la lib
-             firebase-messaging (exported=false) ; on surcharge via
-             tools:replace pour activer l'export sur API 26+. -->
+        <!-- FCM (Firebase Cloud Messaging) — required by OneSignal for in-app
+             push delivery on modern Android. -->
         <service
             android:name="com.google.firebase.messaging.FirebaseMessagingService"
             android:enabled="true"

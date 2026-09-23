@@ -60,12 +60,12 @@ jobs:
       - name: Grant execute permission to gradlew
         run: chmod +x android/gradlew
 
-      - name: Align Gradle (restore repo versions + namespace + OneSignal purge)
+      - name: Align Gradle (restore repo versions + namespace + OneSignal + Cordova purge)
         # Le cap sync régénère les fichiers Gradle du projet avec des valeurs
         # incompatibles avec le wrapper Gradle 8.2.1 / AGP 8.2.1 (AGP 8.13.0
         # par défaut, compileSdk 36). On restaure strictement les versions
         # commitées du repo, qui sont déjà alignées :
-        # - android/variables.gradle (AGP 8.2.1, SDK 34, Java 17)
+        # - android/variables.gradle (AGP 8.2.1, SDK 34, Java 17, minSdk 21)
         # Le build.gradle du plugin cordova est généré par cap sync (ignoré
         # par git) — on l'aligne par sed : AGP 8.13.0 → 8.2.1, SDK 36 → 34.
         run: |
@@ -75,7 +75,7 @@ jobs:
           fi
           # 1. Restaure variables.gradle à sa version commitée
           git checkout -- android/variables.gradle
-          echo "Restauré variables.gradle (AGP 8.2.1 / SDK 34 / Java 17)"
+          echo "Restauré variables.gradle (AGP 8.2.1 / SDK 34 / Java 17 / minSdk 21)"
           # 2. Align le build.gradle du plugin cordova généré par cap sync
           # (AGP 8.13.0 + SDK 36 par défaut — incompatibles avec le
           #  wrapper Gradle 8.2.1 du projet)
@@ -83,7 +83,12 @@ jobs:
             android/capacitor-cordova-android-plugins/build.gradle
           sed -i "s/compileSdkVersion') ? rootProject.ext.compileSdkVersion : 36/compileSdkVersion') ? rootProject.ext.compileSdkVersion : 34/g" \
             android/capacitor-cordova-android-plugins/build.gradle
-          echo "Aligné cordova plugins build.gradle (AGP 8.2.1 / SDK 34)"
+          # 2a. Purge de la dépendance Cordova framework (impose minSdk 22,
+          #  bloquerait le minSdk 21 voulu). Aucun plugin Cordova n'est
+          #  installé — les 5 plugins sont natifs Capacitor.
+          sed -i '\|implementation "org.apache.cordova:framework:$cordovaAndroidVersion"|d' \
+            android/capacitor-cordova-android-plugins/build.gradle
+          echo "Aligné cordova plugins build.gradle (AGP 8.2.1 / SDK 34 / sans framework Cordova)"
           # 2b. Même alignement SDK 34 sur variables.gradle (au cas où cap sync
           # l'a régénéré en 36)
           sed -i 's/compileSdkVersion = 36/compileSdkVersion = 34/' android/variables.gradle
@@ -103,7 +108,7 @@ jobs:
             find android/capacitor-cordova-android-plugins -name "*.gradle" \
               -exec sed -i '/com.onesignal.cordova.OneSignalPush/d' {} \;
           fi
-          echo "Gradle aligné : AGP 8.2.1 + SDK 34 + Java 17 + namespace storage"
+          echo "Gradle aligné : AGP 8.2.1 + SDK 34 + Java 17 + minSdk 21 + sans framework Cordova"
 
       - name: Build debug APK
         # Le retry couvre une éventuelle course résiduelle, mais le
@@ -164,7 +169,7 @@ jobs:
       - name: Grant execute permission to gradlew
         run: chmod +x android/gradlew
 
-      - name: Align Gradle (restore variables.gradle + AGP 8.2.1 + namespaces)
+      - name: Align Gradle (restore variables.gradle + AGP 8.2.1 + namespace + Cordova purge)
         # Même étape que le job debug : le plugin cordova est
         # régénéré par cap sync et doit être aligné avant chaque build.
         run: |
@@ -179,6 +184,11 @@ jobs:
           sed -i "s/com.android.tools.build:gradle:8.13.0/com.android.tools.build:gradle:8.2.1/g" \
             android/capacitor-cordova-android-plugins/build.gradle
           sed -i "s/compileSdkVersion') ? rootProject.ext.compileSdkVersion : 36/compileSdkVersion') ? rootProject.ext.compileSdkVersion : 34/g" \
+            android/capacitor-cordova-android-plugins/build.gradle
+          # 2a. Purge de la dépendance Cordova framework (impose minSdk 22,
+          #  bloquerait le minSdk 21 voulu). Aucun plugin Cordova n'est
+          #  installé — les 5 plugins sont natifs Capacitor.
+          sed -i '\|implementation "org.apache.cordova:framework:$cordovaAndroidVersion"|d' \
             android/capacitor-cordova-android-plugins/build.gradle
           # 2b. Même alignement SDK 34 sur variables.gradle (au cas où cap sync
           # l'a régénéré en 36)
@@ -199,7 +209,7 @@ jobs:
             find android/capacitor-cordova-android-plugins -name "*.gradle" \
               -exec sed -i '/com.onesignal.cordova.OneSignalPush/d' {} \;
           fi
-          echo "Gradle aligné : AGP 8.2.1 + SDK 34 + namespace storage"
+          echo "Gradle aligné : AGP 8.2.1 + SDK 34 + minSdk 21 + sans framework Cordova"
 
       - name: Build release APK
         # Retry : couvre une éventuelle course résiduelle sur le cache
