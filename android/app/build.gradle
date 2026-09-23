@@ -18,22 +18,14 @@ android {
         resValue "string", "onesignal_app_id", "5482a4eb-a402-4612-ab5e-a72df7961b12"
         resValue "string", "onesignal_google_project_number", "remote"
     }
-    signingConfigs {
-        release {
-            storeFile file('lumina-keystore.jks')
-            storePassword 'lumina2024'
-            keyAlias 'lumina'
-            keyPassword 'lumina2024'
-        }
-    }
     buildTypes {
         release {
+            // Unsigned by Gradle — la signature réelle est faite en CI
+            // par apksigner (job "Sign APK") avec le keystore
+            // ANDROID_KEYSTORE_BASE64. Absence de signingConfig génère
+            // un app-release-unsigned.apk.
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            signingConfig signingConfigs.release
-        }
-        debug {
-            signingConfig signingConfigs.debug
         }
     }
 }
