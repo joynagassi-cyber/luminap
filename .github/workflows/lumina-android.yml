@@ -66,16 +66,28 @@ jobs:
         # par défaut, compileSdk 36). On restaure strictement les versions
         # commitées du repo, qui sont déjà alignées :
         # - android/variables.gradle (AGP 8.2.1, SDK 34, Java 17)
-        # - android/capacitor-cordova-android-plugins/build.gradle (AGP 8.2.1,
-        #   namespace, SDK 34)
+        # Le build.gradle du plugin cordova est généré par cap sync (ignoré
+        # par git) — on l'aligne par sed : AGP 8.13.0 → 8.2.1, SDK 36 → 34.
         run: |
           if [ -d "$HOME/.gradle" ]; then
             echo "Purging ~/.gradle"
             rm -rf "$HOME/.gradle"
           fi
+          # 1. Restaure variables.gradle à sa version commitée
           git checkout -- android/variables.gradle
-          git checkout -- android/capacitor-cordova-android-plugins/build.gradle
-          echo "Restauré variables.gradle + cordova plugins build.gradle (AGP 8.2.1 / SDK 34)"
+          echo "Restauré variables.gradle (AGP 8.2.1 / SDK 34 / Java 17)"
+          # 2. Align le build.gradle du plugin cordova généré par cap sync
+          # (AGP 8.13.0 + SDK 36 par défaut — incompatibles avec le
+          #  wrapper Gradle 8.2.1 du projet)
+          sed -i "s/com.android.tools.build:gradle:8.13.0/com.android.tools.build:gradle:8.2.1/g" \
+            android/capacitor-cordova-android-plugins/build.gradle
+          sed -i "s/compileSdkVersion') ? rootProject.ext.compileSdkVersion : 36/compileSdkVersion') ? rootProject.ext.compileSdkVersion : 34/g" \
+            android/capacitor-cordova-android-plugins/build.gradle
+          echo "Aligné cordova plugins build.gradle (AGP 8.2.1 / SDK 34)"
+          # 2b. Même alignement SDK 34 sur variables.gradle (au cas où cap sync
+          # l'a régénéré en 36)
+          sed -i 's/compileSdkVersion = 36/compileSdkVersion = 34/' android/variables.gradle
+          sed -i 's/targetSdkVersion = 36/targetSdkVersion = 34/' android/variables.gradle
           # Patch namespace au plugin storage v1.2.5 (sans namespace dans le
           # build.gradle, cap sync génère une erreur « Namespace not specified »)
           if ! grep -q "^    namespace " node_modules/@capacitor/storage/android/build.gradle; then
@@ -152,7 +164,7 @@ jobs:
       - name: Grant execute permission to gradlew
         run: chmod +x android/gradlew
 
-      - name: Align Gradle (purge + AGP 8.2.1 + namespaces)
+      - name: Align Gradle (restore variables.gradle + AGP 8.2.1 + namespaces)
         # Même étape que le job debug : le plugin cordova est
         # régénéré par cap sync et doit être aligné avant chaque build.
         run: |
@@ -160,19 +172,18 @@ jobs:
             echo "Purging ~/.gradle"
             rm -rf "$HOME/.gradle"
           fi
-          # 1. Force AGP 8.2.1 sur le plugin cordova (pin 8.13.0)
+          # 1. Restaure variables.gradle à sa version commitée
+          git checkout -- android/variables.gradle
+          # 2. Force AGP 8.2.1 + SDK 34 sur le build.gradle du plugin cordova
+          # (généré par cap sync avec AGP 8.13.0 / SDK 36 par défaut)
           sed -i "s/com.android.tools.build:gradle:8.13.0/com.android.tools.build:gradle:8.2.1/g" \
             android/capacitor-cordova-android-plugins/build.gradle
-          # 2. compileSdk 36 n'existe pas en AGP 8.2.1 → 34
           sed -i "s/compileSdkVersion') ? rootProject.ext.compileSdkVersion : 36/compileSdkVersion') ? rootProject.ext.compileSdkVersion : 34/g" \
             android/capacitor-cordova-android-plugins/build.gradle
-          # 2b. Même alignement côté racine (cap sync régénère variables.gradle
-          # avec compileSdkVersion = 36 que AGP 8.2.1 ne connaît pas)
-          if [ -f android/variables.gradle ]; then
-            sed -i 's/compileSdkVersion = 36/compileSdkVersion = 34/' android/variables.gradle
-            sed -i 's/targetSdkVersion = 36/targetSdkVersion = 34/' android/variables.gradle
-            echo "variables.gradle aligné : SDK 34"
-          fi
+          # 2b. Même alignement SDK 34 sur variables.gradle (au cas où cap sync
+          # l'a régénéré en 36)
+          sed -i 's/compileSdkVersion = 36/compileSdkVersion = 34/' android/variables.gradle
+          sed -i 's/targetSdkVersion = 36/targetSdkVersion = 34/' android/variables.gradle
           # 3. Ajoute namespace au plugin storage (v1.2.5, très ancien)
           if ! grep -q "^    namespace " node_modules/@capacitor/storage/android/build.gradle; then
             sed -i '/^android {/a\    namespace "com.capacitorjs.plugins.storage"' \
