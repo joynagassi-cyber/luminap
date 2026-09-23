@@ -78,6 +78,13 @@ jobs:
           # 2. compileSdk 36 n'existe pas en AGP 8.2.1 → 34
           sed -i "s/compileSdkVersion') ? rootProject.ext.compileSdkVersion : 36/compileSdkVersion') ? rootProject.ext.compileSdkVersion : 34/g" \
             android/capacitor-cordova-android-plugins/build.gradle
+          # 2b. Même alignement côté racine (cap sync régénère variables.gradle
+          # avec compileSdkVersion = 36 que AGP 8.2.1 ne connaît pas)
+          if [ -f android/variables.gradle ]; then
+            sed -i 's/compileSdkVersion = 36/compileSdkVersion = 34/' android/variables.gradle
+            sed -i 's/targetSdkVersion = 36/targetSdkVersion = 34/' android/variables.gradle
+            echo "variables.gradle aligné : SDK 34"
+          fi
           # 3. Ajoute namespace au plugin storage (v1.2.5, très ancien)
           if ! grep -q "^    namespace " node_modules/@capacitor/storage/android/build.gradle; then
             sed -i '/^android {/a\    namespace "com.capacitorjs.plugins.storage"' \
@@ -168,6 +175,13 @@ jobs:
           # 2. compileSdk 36 n'existe pas en AGP 8.2.1 → 34
           sed -i "s/compileSdkVersion') ? rootProject.ext.compileSdkVersion : 36/compileSdkVersion') ? rootProject.ext.compileSdkVersion : 34/g" \
             android/capacitor-cordova-android-plugins/build.gradle
+          # 2b. Même alignement côté racine (cap sync régénère variables.gradle
+          # avec compileSdkVersion = 36 que AGP 8.2.1 ne connaît pas)
+          if [ -f android/variables.gradle ]; then
+            sed -i 's/compileSdkVersion = 36/compileSdkVersion = 34/' android/variables.gradle
+            sed -i 's/targetSdkVersion = 36/targetSdkVersion = 34/' android/variables.gradle
+            echo "variables.gradle aligné : SDK 34"
+          fi
           # 3. Ajoute namespace au plugin storage (v1.2.5, très ancien)
           if ! grep -q "^    namespace " node_modules/@capacitor/storage/android/build.gradle; then
             sed -i '/^android {/a\    namespace "com.capacitorjs.plugins.storage"' \
@@ -201,8 +215,24 @@ jobs:
           echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > signing.keystore
 
       - name: Sign APK with apksigner
+        # L'APK est le build unsigned produit par le Gradle CI
+        # (assembleRelease sans signingConfig). Le keystore ci-dessus
+        # est restauré depuis le secret ANDROID_KEYSTORE_BASE64.
         run: |
-          APKSIG="$(find /usr/lib/android/sdk/build-tools -name apksigner -print -quit 2>/dev/null)"
+          APK_SRC="android/app/build/outputs/apk/release/app-release-unsigned.apk"
+          if [ ! -f "$APK_SRC" ]; then
+            # fallback si assembleDebug a un output nommé différemment
+            APK_SRC=$(ls android/app/build/outputs/apk/release/app-release-*.apk | head -1)
+            echo "Fallback APK source : $APK_SRC"
+          fi
+          APKSIG=""
+          for d in /usr/lib/android/sdk /opt/android-sdk /usr/local/android-sdk; do
+            for c in /build-tools/*/apksigner; do
+              if [ -x "$d/$c" ]; then APKSIG="$d/$c"; break; fi
+            done
+            [ -n "$APKSIG" ] && break
+          done
+          echo "apksigner : ${APKSIG:-non trouvé}"
           if [ -n "$APKSIG" ]; then
             "$APKSIG" sign \
               --ks signing.keystore \
@@ -213,7 +243,7 @@ jobs:
               --v2-signing-enabled true \
               --v3-signing-enabled true \
               --out app-release-signed.apk \
-              android/app/build/outputs/apk/release/app-release-*.apk
+              "$APK_SRC"
             echo "Signé avec apksigner (v2+v3)"
           else
             echo "apksigner introuvable — fallback jarsigner (v1)"
@@ -222,13 +252,19 @@ jobs:
               -storepass ${{ secrets.ANDROID_KEYSTORE_PASSWORD }} \
               -keypass ${{ secrets.ANDROID_KEYSTORE_KEY_PASSWORD }} \
               -signedjar app-release-signed.apk \
-              $(ls android/app/build/outputs/apk/release/*.apk) \
+              "$APK_SRC" \
               ${{ secrets.ANDROID_KEYSTORE_ALIAS }}
           fi
 
       - name: Verify signature
         run: |
-          APKSIG="$(find /usr/lib/android/sdk/build-tools -name apksigner -print -quit 2>/dev/null)"
+          APKSIG=""
+          for d in /usr/lib/android/sdk /opt/android-sdk /usr/local/android-sdk; do
+            for c in /build-tools/*/apksigner; do
+              if [ -x "$d/$c" ]; then APKSIG="$d/$c"; break; fi
+            done
+            [ -n "$APKSIG" ] && break
+          done
           if [ -n "$APKSIG" ]; then
             "$APKSIG" verify --verbose app-release-signed.apk
           else
