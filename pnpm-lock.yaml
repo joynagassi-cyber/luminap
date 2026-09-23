@@ -182,9 +182,6 @@ importers:
       nitro:
         specifier: 3.0.260610-beta
         version: 3.0.260610-beta(jiti@2.7.0)(lru-cache@11.5.2)(rollup@4.63.1)(vite@8.2.2(@types/node@22.14.1)(esbuild@0.27.7)(jiti@2.7.0)(yaml@2.7.1))(xml2js@0.6.2)
-      onesignal-cordova-plugin:
-        specifier: ^5.5.4
-        version: 5.5.4
       qrcode.react:
         specifier: ^4.2.0
         version: 4.2.0(react@19.2.8)
@@ -3699,9 +3696,6 @@ packages:
   once@1.4.0:
     resolution: {integrity: sha512-lNaJgI+2Q5URQBkccEKHTQOPaXdUxnZZElQTZY0MFUAuaEqe1E+Nyvgdz/aIyNi6Z9MzO5dv1H8n58/GELp3+w==}
 
-  onesignal-cordova-plugin@5.5.4:
-    resolution: {integrity: sha512-7mhLx28YCije9+FHnnsZ2Sn38uZG9n/W77wKItPgMnTxAQBOWNBQixtlPYnkZK99oMVfZigT+RlS1gBtzDzI5A==}
-    engines: {'0': {name: cordova-android, version: '>=4.0.0'}, '1': {name: apple-xcode, version: '>=8.0.0'}, '2': {name: apple-ios, version: '>=7.0.0'}, '3': {name: cordova, version: '>=6.4.0'}, '4': {name: cordova-ios, version: '>=4.3.0'}}
 
   onetime@5.1.2:
     resolution: {integrity: sha512-kbpaSSGJTWdAY5KPVeMOKXSrPtr8C8C7wodJbcsd51jRnmD+GZu8Y0VoU6Dm5Z4vWr0Ig/1NKuWRKf7j5aaYSg==}
@@ -8061,7 +8055,6 @@ snapshots:
     dependencies:
       wrappy: 1.0.2
 
-  onesignal-cordova-plugin@5.5.4: {}
 
   onetime@5.1.2:
     dependencies:
