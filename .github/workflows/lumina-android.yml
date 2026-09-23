@@ -83,6 +83,16 @@ jobs:
             sed -i '/^android {/a\    namespace "com.capacitorjs.plugins.storage"' \
               node_modules/@capacitor/storage/android/build.gradle
           fi
+          # 4. Retire les références au plugin Cordova OneSignal non
+          # résolu (com.onesignal.cordova.OneSignalPush) qui casse
+          # compileJavaWithJavac. Le support OneSignal est natif via
+          # @capacitor/push-notifications (cf. src/lib/notifications).
+          if grep -rq "com.onesignal.cordova.OneSignalPush" \
+            android/capacitor-cordova-android-plugins/ 2>/dev/null; then
+            echo "OneSignalPush references détectées — purge"
+            find android/capacitor-cordova-android-plugins -name "*.gradle" \
+              -exec sed -i '/com.onesignal.cordova.OneSignalPush/d' {} \;
+          fi
           echo "Gradle aligné : AGP 8.2.1 + SDK 34 + namespace storage"
 
       - name: Build debug APK
@@ -162,6 +172,16 @@ jobs:
           if ! grep -q "^    namespace " node_modules/@capacitor/storage/android/build.gradle; then
             sed -i '/^android {/a\    namespace "com.capacitorjs.plugins.storage"' \
               node_modules/@capacitor/storage/android/build.gradle
+          fi
+          # 4. Retire les références au plugin Cordova OneSignal non
+          # résolu (com.onesignal.cordova.OneSignalPush) qui casse
+          # compileJavaWithJavac. Le support OneSignal est natif via
+          # @capacitor/push-notifications (cf. src/lib/notifications).
+          if grep -rq "com.onesignal.cordova.OneSignalPush" \
+            android/capacitor-cordova-android-plugins/ 2>/dev/null; then
+            echo "OneSignalPush references détectées — purge"
+            find android/capacitor-cordova-android-plugins -name "*.gradle" \
+              -exec sed -i '/com.onesignal.cordova.OneSignalPush/d' {} \;
           fi
           echo "Gradle aligné : AGP 8.2.1 + SDK 34 + namespace storage"
 
