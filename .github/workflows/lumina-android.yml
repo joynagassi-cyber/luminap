@@ -297,12 +297,17 @@ jobs:
         with:
           name: lumina-release-signed
 
+      - name: Rename APK
+        run: |
+          mv app-release-signed.apk "lumina-v${{ inputs.version || '1.0.0' }}-android.apk"
+          ls -la
+
       - name: Create or update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ inputs.version || '1.0.0' }}
           name: Lumina v${{ inputs.version || '1.0.0' }}
-          files: app-release-signed.apk
+          files: lumina-v${{ inputs.version || '1.0.0' }}-android.apk
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
