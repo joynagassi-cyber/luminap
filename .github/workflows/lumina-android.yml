@@ -303,20 +303,28 @@ jobs:
           ls -la
 
       - name: Create or update GitHub Release
-        # Les runs 35811612186 / 35812457480 échouent sur l'appel REST
-        # "Resource not accessible by integration" avec softprops/action-gh-release
-        # (GITHUB_TOKEN runner). Solution : gh CLI préinstallé sur les
-        # runners (token = GITHUB_TOKEN, scope releases écrit) qui a accès
-        # complet à l'API releases via le binary plutôt que le REST natif.
+        # Les runs 35811612186 / 35812457480 / 35813363057 échouent avec
+        # "Resource not accessible by integration" (HTTP 403) sur l'API
+        # releases — le GITHUB_TOKEN de l'intégration n'a pas le scope
+        # release. Un PAT (LUMINA_GITHUB_PAT, scope contents:write) résoud
+        # le problème : c'est le token du propriétaire du repo, pas celui
+        # du runner.
+        # Si le secret LUMINA_GITHUB_PAT n'est pas encore créé, le job échoue
+        # avec un message clair → il suffit de le créer dans
+        # Settings → Secrets and variables → Actions, scope repo.
         run: |
+          if [ -z "${{ secrets.LUMINA_GITHUB_PAT }}" ]; then
+            echo "::error::Le secret LUMINA_GITHUB_PAT n'est pas défini."
+            echo "Créer un PAT (scope contents:write pour ce repo) et le"
+            echo "stocker dans Settings → Secrets and variables → Actions → New repository secret."
+            exit 1
+          fi
           VERSION="${{ inputs.version || '1.0.0' }}"
           TAG="v${VERSION}"
           FILE="lumina-v${VERSION}-android.apk"
           if gh release view "$TAG" &>/dev/null; then
-            # Release existe déjà → upload l'APK (clobber si asset présent)
             gh release upload "$TAG" "$FILE" --clobber
           else
-            # Création (la tag v1.0.0 existe déjà depuis le run 35807464472)
             gh release create "$TAG" \
               --title "Lumina ${VERSION}" \
               --notes "Lumina v${VERSION} — APK Android signé (v2+v3, keystore MFE-JC)." \
@@ -324,4 +332,4 @@ jobs:
               "$FILE"
           fi
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.LUMINA_GITHUB_PAT }}
