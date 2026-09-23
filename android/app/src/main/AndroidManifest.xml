@@ -2,6 +2,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Le AAR OneSignal (com.onesignal:OneSignal) déclare minSdk 22.
+         Lumina vise minSdk 21 (téléphones simples / anciens) : OneSignal
+         v4+ est compatible API 21 au runtime, on force l'override. -->
+    <uses-sdk tools:overrideLibrary="com.onesignal" />
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"

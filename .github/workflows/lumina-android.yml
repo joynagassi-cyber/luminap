@@ -86,8 +86,22 @@ jobs:
           # 2a. Purge de la dépendance Cordova framework (impose minSdk 22,
           #  bloquerait le minSdk 21 voulu). Aucun plugin Cordova n'est
           #  installé — les 5 plugins sont natifs Capacitor.
-          sed -i '\|implementation "org.apache.cordova:framework:$cordovaAndroidVersion"|d' \
-            android/capacitor-cordova-android-plugins/build.gradle
+          # Format cap sync vérifié : "    implementation "org.apache.cordova:framework:$cordovaAndroidVersion""
+          if grep -q 'implementation "org.apache.cordova:framework:' android/capacitor-cordova-android-plugins/build.gradle; then
+            echo "framework Cordova détecté — purge"
+            sed -i '/implementation "org.apache.cordova:framework:/d' \
+              android/capacitor-cordova-android-plugins/build.gradle
+          else
+            echo "framework Cordova déjà absent (plugin purgé)"
+          fi
+          # 2a-bis. Le manifest app (commité) contient déjà :
+          #   <uses-sdk tools:overrideLibrary="com.onesignal" />
+          # qui force le minSdk 21 malgré le AAR OneSignal (minSdk 22).
+          # On vérifie simplement sa présence ; rien à régénérer.
+          if ! grep -q "tools:overrideLibrary" android/app/src/main/AndroidManifest.xml; then
+            echo "::error::tools:overrideLibrary manquant dans android/app/src/main/AndroidManifest.xml (commité) — re-committer le manifest."
+            exit 1
+          fi
           echo "Aligné cordova plugins build.gradle (AGP 8.2.1 / SDK 34 / sans framework Cordova)"
           # 2b. Même alignement SDK 34 sur variables.gradle (au cas où cap sync
           # l'a régénéré en 36)
@@ -188,8 +202,22 @@ jobs:
           # 2a. Purge de la dépendance Cordova framework (impose minSdk 22,
           #  bloquerait le minSdk 21 voulu). Aucun plugin Cordova n'est
           #  installé — les 5 plugins sont natifs Capacitor.
-          sed -i '\|implementation "org.apache.cordova:framework:$cordovaAndroidVersion"|d' \
-            android/capacitor-cordova-android-plugins/build.gradle
+          # Format cap sync vérifié : "    implementation "org.apache.cordova:framework:$cordovaAndroidVersion""
+          if grep -q 'implementation "org.apache.cordova:framework:' android/capacitor-cordova-android-plugins/build.gradle; then
+            echo "framework Cordova détecté — purge"
+            sed -i '/implementation "org.apache.cordova:framework:/d' \
+              android/capacitor-cordova-android-plugins/build.gradle
+          else
+            echo "framework Cordova déjà absent (plugin purgé)"
+          fi
+          # 2a-bis. Le manifest app (commité) contient déjà :
+          #   <uses-sdk tools:overrideLibrary="com.onesignal" />
+          # qui force le minSdk 21 malgré le AAR OneSignal (minSdk 22).
+          # On vérifie simplement sa présence ; rien à régénérer.
+          if ! grep -q "tools:overrideLibrary" android/app/src/main/AndroidManifest.xml; then
+            echo "::error::tools:overrideLibrary manquant dans android/app/src/main/AndroidManifest.xml (commité) — re-committer le manifest."
+            exit 1
+          fi
           # 2b. Même alignement SDK 34 sur variables.gradle (au cas où cap sync
           # l'a régénéré en 36)
           sed -i 's/compileSdkVersion = 36/compileSdkVersion = 34/' android/variables.gradle
