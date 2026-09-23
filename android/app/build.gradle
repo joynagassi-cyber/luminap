@@ -25,7 +25,11 @@ android {
             // ANDROID_KEYSTORE_BASE64. Absence de signingConfig génère
             // un app-release-unsigned.apk.
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            shrinkResources false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt')
+            // Pas de R8 : le build doit rester compatible avec les
+            // téléphones simples / anciens (mémoire limitée, pas de
+            // re-bouclage d'annotations à la compilation).
         }
     }
 }

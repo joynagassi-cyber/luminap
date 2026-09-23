@@ -1,7 +1,10 @@
 ext {
-    minSdkVersion = 22
+    minSdkVersion = 21
     compileSdkVersion = 34
-    targetSdkVersion = 34
+    // targetSdk 30 (non 34) : meilleur confort d'installation / compat
+    // sur les téléphones simples et anciens (Android 8–12), sans perdre
+    // Play Store (minimum actuel : 24, on reste au-dessus).
+    targetSdkVersion = 30
     androidxActivityVersion = '1.8.0'
     androidxAppCompatVersion = '1.6.1'
     androidxCoordinatorLayoutVersion = '1.2.0'

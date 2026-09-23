@@ -87,7 +87,7 @@ jobs:
           # 2b. Même alignement SDK 34 sur variables.gradle (au cas où cap sync
           # l'a régénéré en 36)
           sed -i 's/compileSdkVersion = 36/compileSdkVersion = 34/' android/variables.gradle
-          sed -i 's/targetSdkVersion = 36/targetSdkVersion = 34/' android/variables.gradle
+          sed -i 's/targetSdkVersion = 36/targetSdkVersion = 30/' android/variables.gradle
           # Patch namespace au plugin storage v1.2.5 (sans namespace dans le
           # build.gradle, cap sync génère une erreur « Namespace not specified »)
           if ! grep -q "^    namespace " node_modules/@capacitor/storage/android/build.gradle; then
@@ -183,7 +183,7 @@ jobs:
           # 2b. Même alignement SDK 34 sur variables.gradle (au cas où cap sync
           # l'a régénéré en 36)
           sed -i 's/compileSdkVersion = 36/compileSdkVersion = 34/' android/variables.gradle
-          sed -i 's/targetSdkVersion = 36/targetSdkVersion = 34/' android/variables.gradle
+          sed -i 's/targetSdkVersion = 36/targetSdkVersion = 30/' android/variables.gradle
           # 3. Ajoute namespace au plugin storage (v1.2.5, très ancien)
           if ! grep -q "^    namespace " node_modules/@capacitor/storage/android/build.gradle; then
             sed -i '/^android {/a\    namespace "com.capacitorjs.plugins.storage"' \
@@ -241,12 +241,12 @@ jobs:
               --ks-pass pass:${{ secrets.ANDROID_KEYSTORE_PASSWORD }} \
               --key-pass pass:${{ secrets.ANDROID_KEYSTORE_KEY_PASSWORD }} \
               --ks-key-alias ${{ secrets.ANDROID_KEYSTORE_ALIAS }} \
-              --v1-signing-enabled false \
+              --v1-signing-enabled true \
               --v2-signing-enabled true \
               --v3-signing-enabled true \
               --out app-release-signed.apk \
               "$APK_SRC"
-            echo "Signé avec apksigner (v2+v3)"
+            echo "Signé avec apksigner (v1+v2+v3 — v1 pour Android < 7.0)"
           else
             echo "apksigner introuvable — fallback jarsigner (v1)"
             ${JAVA_HOME}/bin/jarsigner \
