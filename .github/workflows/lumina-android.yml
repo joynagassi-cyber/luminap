@@ -94,14 +94,18 @@ jobs:
           else
             echo "framework Cordova déjà absent (plugin purgé)"
           fi
-          # 2a-bis. Le manifest app (commité) contient déjà :
-          #   <uses-sdk tools:overrideLibrary="com.onesignal" />
-          # qui force le minSdk 21 malgré le AAR OneSignal (minSdk 22).
-          # On vérifie simplement sa présence ; rien à régénérer.
-          if ! grep -q "tools:overrideLibrary" android/app/src/main/AndroidManifest.xml; then
-            echo "::error::tools:overrideLibrary manquant dans android/app/src/main/AndroidManifest.xml (commité) — re-committer le manifest."
+          # Vérification : le manifest app doit contenir l'override minSdk
+          # 21 (com.onesignal + org.apache.cordova résiduel).
+          if ! grep -q 'tools:overrideLibrary="com.onesignal,org.apache.cordova"' \
+            android/app/src/main/AndroidManifest.xml; then
+            echo "::error::tools:overrideLibrary manquant dans le manifest app (commité) — re-committer android/app/src/main/AndroidManifest.xml."
             exit 1
           fi
+          echo "Manifest override OK"
+          # 2a-bis. Le manifest app (commité) contient :
+          #   <uses-sdk tools:overrideLibrary="com.onesignal,org.apache.cordova" />
+          # qui force le minSdk 21 malgré le AAR OneSignal / framework Cordova
+          #  résiduel (minSdk 22). Vérifié ci-dessous ; rien à régénérer.
           echo "Aligné cordova plugins build.gradle (AGP 8.2.1 / SDK 34 / sans framework Cordova)"
           # 2b. Même alignement SDK 34 sur variables.gradle (au cas où cap sync
           # l'a régénéré en 36)
@@ -210,14 +214,18 @@ jobs:
           else
             echo "framework Cordova déjà absent (plugin purgé)"
           fi
-          # 2a-bis. Le manifest app (commité) contient déjà :
-          #   <uses-sdk tools:overrideLibrary="com.onesignal" />
-          # qui force le minSdk 21 malgré le AAR OneSignal (minSdk 22).
-          # On vérifie simplement sa présence ; rien à régénérer.
-          if ! grep -q "tools:overrideLibrary" android/app/src/main/AndroidManifest.xml; then
-            echo "::error::tools:overrideLibrary manquant dans android/app/src/main/AndroidManifest.xml (commité) — re-committer le manifest."
+          # Vérification : le manifest app doit contenir l'override minSdk
+          # 21 (com.onesignal + org.apache.cordova résiduel).
+          if ! grep -q 'tools:overrideLibrary="com.onesignal,org.apache.cordova"' \
+            android/app/src/main/AndroidManifest.xml; then
+            echo "::error::tools:overrideLibrary manquant dans le manifest app (commité) — re-committer android/app/src/main/AndroidManifest.xml."
             exit 1
           fi
+          echo "Manifest override OK"
+          # 2a-bis. Le manifest app (commité) contient :
+          #   <uses-sdk tools:overrideLibrary="com.onesignal,org.apache.cordova" />
+          # qui force le minSdk 21 malgré le AAR OneSignal / framework Cordova
+          #  résiduel (minSdk 22). Vérifié ci-dessous ; rien à régénérer.
           # 2b. Même alignement SDK 34 sur variables.gradle (au cas où cap sync
           # l'a régénéré en 36)
           sed -i 's/compileSdkVersion = 36/compileSdkVersion = 34/' android/variables.gradle

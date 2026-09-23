@@ -2,10 +2,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Le AAR OneSignal (com.onesignal:OneSignal) déclare minSdk 22.
-         Lumina vise minSdk 21 (téléphones simples / anciens) : OneSignal
-         v4+ est compatible API 21 au runtime, on force l'override. -->
-    <uses-sdk tools:overrideLibrary="com.onesignal" />
+    <!-- Lumina vise minSdk 21 (téléphones simples / anciens). Le AAR
+         OneSignal et le framework Cordova résiduel déclarent minSdk 22 :
+         force l'override pour que le manifest merger n'échoue pas. -->
+    <uses-sdk tools:overrideLibrary="com.onesignal,org.apache.cordova" />
 
     <application
         android:allowBackup="true"
