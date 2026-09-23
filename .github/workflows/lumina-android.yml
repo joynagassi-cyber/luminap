@@ -322,14 +322,15 @@ jobs:
           VERSION="${{ inputs.version || '1.0.0' }}"
           TAG="v${VERSION}"
           FILE="lumina-v${VERSION}-android.apk"
-          if gh release view "$TAG" &>/dev/null; then
-            gh release upload "$TAG" "$FILE" --clobber
+          if gh release create "$TAG" \
+            --title "Lumina ${VERSION}" \
+            --notes "Lumina v${VERSION} — APK Android signé (v2+v3, keystore MFE-JC)." \
+            --target main \
+            "$FILE" 2>/dev/null; then
+            echo "Release ${TAG} créée avec l'APK ${FILE}."
           else
-            gh release create "$TAG" \
-              --title "Lumina ${VERSION}" \
-              --notes "Lumina v${VERSION} — APK Android signé (v2+v3, keystore MFE-JC)." \
-              --target main \
-              "$FILE"
+            echo "Release ${TAG} existe déjà — upload de l'APK (clobber)."
+            gh release upload "$TAG" "$FILE" --clobber
           fi
         env:
           GH_TOKEN: ${{ secrets.LUMINA_GITHUB_PAT }}
