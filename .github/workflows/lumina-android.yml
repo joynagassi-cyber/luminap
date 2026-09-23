@@ -303,16 +303,25 @@ jobs:
           ls -la
 
       - name: Create or update GitHub Release
-        # generate_release_notes nécessite le scope issues:write que le
-        # GITHUB_TOKEN par défaut n'a pas (run 35811612186 : "Resource not
-        # accessible by integration" sur le generateReleaseNotes endpoint).
-        # Solution : désactivé, notes de release écrites manuellement au
-        # besoin sur l'UI GitHub.
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v${{ inputs.version || '1.0.0' }}
-          name: Lumina v${{ inputs.version || '1.0.0' }}
-          files: lumina-v${{ inputs.version || '1.0.0' }}-android.apk
-          generate_release_notes: false
+        # Les runs 35811612186 / 35812457480 échouent sur l'appel REST
+        # "Resource not accessible by integration" avec softprops/action-gh-release
+        # (GITHUB_TOKEN runner). Solution : gh CLI préinstallé sur les
+        # runners (token = GITHUB_TOKEN, scope releases écrit) qui a accès
+        # complet à l'API releases via le binary plutôt que le REST natif.
+        run: |
+          VERSION="${{ inputs.version || '1.0.0' }}"
+          TAG="v${VERSION}"
+          FILE="lumina-v${VERSION}-android.apk"
+          if gh release view "$TAG" &>/dev/null; then
+            # Release existe déjà → upload l'APK (clobber si asset présent)
+            gh release upload "$TAG" "$FILE" --clobber
+          else
+            # Création (la tag v1.0.0 existe déjà depuis le run 35807464472)
+            gh release create "$TAG" \
+              --title "Lumina ${VERSION}" \
+              --notes "Lumina v${VERSION} — APK Android signé (v2+v3, keystore MFE-JC)." \
+              --target main \
+              "$FILE"
+          fi
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
