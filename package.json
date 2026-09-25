@@ -21,7 +21,9 @@
     "cypress:run": "cypress run",
     "cypress:chrome": "CYPRESS_BROWSER=chrome cypress run",
     "e2e:smoke": "npx cypress run --spec cypress/e2e/simple-check.cy.ts",
-    "e2e:full": "bash scripts/run-cypress.sh"
+    "e2e:full": "bash scripts/run-cypress.sh",
+    "debug": "bash scripts/logcat-debug.sh",
+    "debug:save": "bash scripts/logcat-debug.sh --save"
   },
   "dependencies": {
     "@capacitor/app": "^6.0.3",
