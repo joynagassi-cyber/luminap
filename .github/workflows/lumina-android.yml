@@ -274,13 +274,31 @@ jobs:
             echo "Fallback APK source : $APK_SRC"
           fi
           APKSIG=""
-          for d in /usr/lib/android/sdk /opt/android-sdk /usr/local/android-sdk; do
-            for c in /build-tools/*/apksigner; do
-              if [ -x "$d/$c" ]; then APKSIG="$d/$c"; break; fi
-            done
-            [ -n "$APKSIG" ] && break
+          # Android SDK est installé par actions/setup-java + le runner ;
+          # le chemin est exposé via ANDROID_HOME ou un emplacement standard.
+          # Sur les runners ubuntu-latest GitHub Actions, l'Android SDK
+          # préinstallé se trouve à $ANDROID_HOME (typiquement
+          # /usr/local/lib/android/sdk). Apksigner est dans
+          # $ANDROID_HOME/build-tools/*/apksigner.
+          SDK_ROOT=""
+          for c in /usr/local/lib/android /opt/android-sdk /usr/lib/android-sdk /usr/local/android-sdk "$HOME/.android-sdk" "${ANDROID_HOME:-}"; do
+            if [ -n "$c" ] && [ -d "$c" ]; then SDK_ROOT="$c"; break; fi
           done
-          echo "apksigner : ${APKSIG:-non trouvé}"
+          echo "Android SDK root : ${SDK_ROOT:-non trouvé (ANDROID_HOME=${ANDROID_HOME:-vide})}"
+          if [ -n "$SDK_ROOT" ]; then
+            # build-tools est versionné : on prend le premier apksigner exécutable
+            for bt in "$SDK_ROOT"/build-tools/*/apksigner; do
+              if [ -x "$bt" ]; then APKSIG="$bt"; break; fi
+            done
+            if [ -z "$APKSIG" ] && [ -x "$SDK_ROOT/tools/bin/apksigner" ]; then
+              APKSIG="$SDK_ROOT/tools/bin/apksigner"
+            fi
+          fi
+          # Dernier recours : apksigner sur le PATH global
+          if [ -z "$APKSIG" ] && command -v apksigner >/dev/null 2>&1; then
+            APKSIG="$(command -v apksigner)"
+          fi
+          echo "apksigner : ${APKSIG:-non trouvé — fallback jarsigner v1 uniquement}"
           if [ -n "$APKSIG" ]; then
             "$APKSIG" sign \
               --ks signing.keystore \
@@ -307,12 +325,18 @@ jobs:
       - name: Verify signature
         run: |
           APKSIG=""
-          for d in /usr/lib/android/sdk /opt/android-sdk /usr/local/android-sdk; do
-            for c in /build-tools/*/apksigner; do
-              if [ -x "$d/$c" ]; then APKSIG="$d/$c"; break; fi
-            done
-            [ -n "$APKSIG" ] && break
+          SDK_ROOT=""
+          for c in /usr/local/lib/android /opt/android-sdk /usr/lib/android-sdk /usr/local/android-sdk "$HOME/.android-sdk" "${ANDROID_HOME:-}"; do
+            if [ -n "$c" ] && [ -d "$c" ]; then SDK_ROOT="$c"; break; fi
           done
+          if [ -n "$SDK_ROOT" ]; then
+            for bt in "$SDK_ROOT"/build-tools/*/apksigner; do
+              if [ -x "$bt" ]; then APKSIG="$bt"; break; fi
+            done
+          fi
+          if [ -z "$APKSIG" ] && command -v apksigner >/dev/null 2>&1; then
+            APKSIG="$(command -v apksigner)"
+          fi
           if [ -n "$APKSIG" ]; then
             "$APKSIG" verify --verbose app-release-signed.apk
           else
