@@ -121,8 +121,35 @@ function useCentralAccessMulti(orgId: string) {
 
 // ─── Org detail view ────────────────────────────────────────────────────────
 
+// Labels FR pour le journal d'audit (codes bruts DB → lisible).
+const ACTION_LABEL: Record<string, string> = {
+  CREATE: "Création",
+  UPDATE: "Modification",
+  DELETE: "Suppression",
+  ARCHIVE: "Archivage",
+  RESTORE: "Restauration",
+  LOGIN: "Connexion",
+  LOGOUT: "Déconnexion",
+};
+const ENTITY_LABEL: Record<string, string> = {
+  Transaction: "Transaction",
+  transaction: "Transaction",
+  Group: "Groupe",
+  group: "Groupe",
+  Member: "Membre",
+  member: "Membre",
+  Culte: "Culte",
+  culte: "Culte",
+  Event: "Événement",
+  event: "Événement",
+  Organization: "Organisation",
+  organization: "Organisation",
+};
+
 function OrgDetail({ orgId, onBack }: { orgId: string; onBack: () => void }) {
   const user = useCurrentUser();
+  const { data: orgData } = useOrganizations("central");
+  const orgName = orgData?.find((o) => o.id === orgId)?.name;
   const [stats, setStats] = useState<OrgStats | null>(null);
   const [activity, setActivity] = useState<RecentActivity[]>([]);
   const [reportCard, setReportCard] = useState<OrgReportCard | null>(null);
@@ -207,7 +234,7 @@ function OrgDetail({ orgId, onBack }: { orgId: string; onBack: () => void }) {
         >
           <div className="flex items-center gap-2 mb-3">
             <Building2 className="w-5 h-5" style={{ color: "var(--accent-primary)" }} />
-            <span className="text-text-primary font-semibold">{orgId}</span>
+            <span className="text-text-primary font-semibold">{orgName ?? "Organisation"}</span>
           </div>
           <div className="grid grid-cols-3 gap-3 mt-3">
             <div className="text-center">
@@ -347,7 +374,7 @@ function OrgDetail({ orgId, onBack }: { orgId: string; onBack: () => void }) {
               />
               <div className="flex-1">
                 <p className="text-text-primary text-sm font-medium">
-                  {a.action} · {a.entityType}
+                  {ACTION_LABEL[a.action] ?? a.action} · {ENTITY_LABEL[a.entityType] ?? a.entityType}
                 </p>
                 {a.comment && (
                   <p className="text-text-tertiary text-xs mt-0.5">{a.comment}</p>
@@ -384,7 +411,7 @@ export default function CentralAdmin() {
   const { id } = useParams();
   const user = useCurrentUser();
   const ctx = useOrganizationContext();
-  const { allowed, isCentralRole, managedOrgs, source: centralSource } = useCentralAccessMulti(ctx.orgId);
+  const { allowed, isCentralRole, managedOrgs } = useCentralAccessMulti(ctx.orgId);
   const [stats, setStats] = useState<OrgStats | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -512,13 +539,7 @@ export default function CentralAdmin() {
                 ADMINISTRATION CENTRALE
               </span>
               {isCentralRole && (
-                <IonBadge color="light">CENTRAL_ADMIN</IonBadge>
-              )}
-              {/* B.1 — debug : quel chemin a accordé l'accès (transition legacy → fédération) */}
-              {centralSource !== "neither" && (
-                <IonBadge color="light" title={`Accès via chemin ${centralSource}`}>
-                  via {centralSource}
-                </IonBadge>
+                <IonBadge color="light">Admin central</IonBadge>
               )}
             </div>
           </div>

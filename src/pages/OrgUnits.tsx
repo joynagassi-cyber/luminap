@@ -33,6 +33,7 @@ import {
 } from "@/capabilities/federation";
 import { organization } from "@/capabilities/organization";
 import { getOrganizationId } from "@/lib/orgContext";
+import { useOrganizations } from "@/lib/dataLayer";
 
 const UNIT_TYPES = ["groupe", "service", "départment", "branche"];
 
@@ -41,6 +42,8 @@ export default function OrgUnits() {
   const location = useLocation();
   const orgId =
     new URLSearchParams(location.search).get("org") || getOrganizationId();
+  const { data: orgData } = useOrganizations("mine");
+  const orgName = orgData?.find((o) => o.id === orgId)?.name;
 
   const [units, setUnits] = useState<FederationOrgUnit[]>([]);
   const [loading, setLoading] = useState(true);
@@ -180,7 +183,7 @@ export default function OrgUnits() {
             </div>
 
             <p style={{ color: "var(--text-tertiary)", fontSize: 12, marginBottom: 16 }}>
-              Organisation : <code style={{ color: "var(--text-secondary)" }}>{orgId}</code>
+              Organisation : <span style={{ color: "var(--text-secondary)" }}>{orgName ?? "chargement…"}</span>
             </p>
 
             {/* Bouton création (natif) */}

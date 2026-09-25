@@ -392,7 +392,7 @@ function FederationTreeInner() {
                   </p>
                   <p style={{ color: "var(--text-tertiary)", fontSize: 12 }}>
                     La vue diagramme est réservée aux admins centraux
-                    (détenteurs d&apos;un grant <code>org_admins</code> actif).
+                    (détenteurs d&apos;un accès admin central actif).
                   </p>
                 </div>
               ) : (

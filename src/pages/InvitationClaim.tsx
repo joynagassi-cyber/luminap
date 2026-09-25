@@ -38,6 +38,7 @@ import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
 import CameraScanner from "@/components/CameraScanner";
 import { useCurrentUser, selectRole } from "@/lib/dataLayer";
+import { getRoleLabel } from "@/lib/utils";
 import {
   loadOnboardingState,
   completeOnboarding,
@@ -139,7 +140,7 @@ export default function InvitationClaim() {
 
       setResult({
         ok: true,
-        message: `Bienvenue ! Votre compte a été créé (status: PENDING). Vous pourrez utiliser l'application immédiatement. La confirmation finale arrivera dès qu'une connexion sera disponible.`,
+        message: `Bienvenue ! Votre compte a été créé. Vous pourrez utiliser l'application immédiatement — la confirmation finale arrivera dès qu'une connexion sera disponible.`,
       });
     } catch (err: any) {
       setResult({
@@ -246,12 +247,12 @@ export default function InvitationClaim() {
 
                 {/* Manual raw input fallback */}
                 <IonItem lines="none" className="bg-card rounded-xl">
-                  <IonLabel position="floating">JSON brut (débogage)</IonLabel>
+                  <IonLabel position="floating">Coller le code d'invitation</IonLabel>
                   <IonInput
                     value={rawPayload}
                     onIonChange={(e) => setRawPayload(e.detail.value!)}
-                    placeholder='{"v":1,"orgId":"..."}'
-                    className="text-xs font-mono"
+                    placeholder="Collez ici le code reçu (texte ou JSON)"
+                    className="text-xs"
                     slot="input"
                   />
                 </IonItem>
@@ -317,7 +318,7 @@ export default function InvitationClaim() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-text-tertiary">Rôle</span>
-                    <span className="font-medium">{parsedPayload.role}</span>
+                    <span className="font-medium capitalize">{getRoleLabel(parsedPayload.role)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-text-tertiary">Portée</span>

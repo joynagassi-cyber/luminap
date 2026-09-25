@@ -426,6 +426,39 @@ class AuthService {
         });
         this.startSessionValidation();
         this.notifyListeners();
+      } else {
+        // Fallback : Supabase n'a pas retourné de session immédiate (ex.
+        // "Confirm email" encore actif, ou confirmation expirée sur un
+        // compte créé plus tôt). On tente une connexion directe par
+        // email + mot de passe : si le compte est confirmé (ce qui est le
+        // cas par défaut — tous les comptes du projet sont confirmés
+        // instantanément), la session se crée et l'utilisateur avance.
+        // Si la confirmation est encore requise, on informe clairement
+        // plutôt que de bloquer silencieusement sur le formulaire.
+        const { data: loginData, error: loginError } =
+          await supabase.auth.signInWithPassword({
+            email: email.trim().toLowerCase(),
+            password,
+          });
+        if (loginError) {
+          const msg =
+            /email not confirmed|confirm/i.test(loginError.message)
+              ? "Veuillez confirmer votre adresse e-mail avant de continuer (un lien de confirmation a été envoyé)."
+              : "Inscription effectuée — veuillez vérifier votre boîte de réception et confirmer votre adresse, puis connectez-vous.";
+          this.setState({ error: msg, isLoading: false });
+          return { error: msg };
+        }
+        if (loginData.session && loginData.user) {
+          const profile = await this.ensureProfile(loginData.user);
+          this.setState({
+            session: loginData.session,
+            user: loginData.user,
+            profile,
+            isLoading: false,
+          });
+          this.startSessionValidation();
+          this.notifyListeners();
+        }
       }
 
       return { error: null };

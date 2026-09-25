@@ -8,7 +8,10 @@
  * Future: resolve from authenticated profile / Supabase.
  */
 
-const DEFAULT_ORG_ID = "default-org";
+// Le "no-org" est un marqueur explicite (pas un faux ID ressemblant à une
+// organisation réelle). Les UI en tirent l'affichage "chargement…" plutôt
+// qu'un ID technique.
+const NO_ORG_SELECTED = "__no_org__";
 
 let _orgId: string | null = null;
 
@@ -17,5 +20,11 @@ export function setOrganizationId(orgId: string): void {
 }
 
 export function getOrganizationId(): string {
-  return _orgId ?? DEFAULT_ORG_ID;
+  // N'exposer JAMAIS un ID brut inconnu ("default-org", UUID, …) dans l'UI :
+  // on signale explicitement l'absence d'organisation résolue.
+  return _orgId ?? NO_ORG_SELECTED;
+}
+
+export function hasResolvedOrganization(): boolean {
+  return _orgId !== null && _orgId !== "" && _orgId !== NO_ORG_SELECTED;
 }

@@ -9,10 +9,7 @@ import { useLocalStore } from "@/store/useLocalStore";
 import { Loader2, Mail, Lock, User } from "lucide-react";
 import {
   IonPage,
-  IonHeader,
   IonContent,
-  IonTitle,
-  IonToolbar,
 } from "@ionic/react";
 import { Capacitor } from "@capacitor/core";
 import { App as CapacitorApp } from "@capacitor/app";
@@ -252,11 +249,6 @@ export default function AuthPage() {
 
   return (
     <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>AuthPage</IonTitle>
-        </IonToolbar>
-      </IonHeader>
       <IonContent className="bg-canvas">
         <div className="min-h-screen bg-[var(--canvas)] flex flex-col">
           {/* Header */}

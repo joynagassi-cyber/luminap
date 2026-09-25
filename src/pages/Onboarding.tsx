@@ -8,10 +8,7 @@ import {
 } from "lucide-react";
 import {
   IonPage,
-  IonHeader,
   IonContent,
-  IonTitle,
-  IonToolbar,
 } from "@ionic/react";
 import {
   loadOnboardingState,
@@ -660,11 +657,6 @@ export default function Onboarding() {
 
   return (
     <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>Onboarding</IonTitle>
-        </IonToolbar>
-      </IonHeader>
       <IonContent className="bg-canvas">
         <div className="min-h-screen bg-[var(--canvas)] flex flex-col">
           {/* Header with logo */}

@@ -485,7 +485,7 @@ export default function Federation() {
                   <p className="text-text-tertiary text-xs leading-relaxed">
                     La création d&apos;organisation opérationnelle et la gestion de
                     la fédération sont réservées aux <strong>admins centraux</strong>{" "}
-                    (détenteurs d&apos;un grant <code>org_admins</code> actif). Si
+                    (détenteurs d&apos;un accès admin central actif). Si
                     vous n&apos;y voyez rien, votre compte n&apos;a pas encore le
                     rôle admin central — demandez-le à l&apos;administrateur de
                     Lumina.
@@ -547,7 +547,7 @@ export default function Federation() {
                   />
                   <span className="text-text-primary font-semibold text-sm">
                     Changer de parent —{" "}
-                    {allOrgs.find((o) => o.id === reparentOrg)?.name ?? reparentOrg}
+                    {allOrgs.find((o) => o.id === reparentOrg)?.name ?? "chargement…"}
                   </span>
                 </div>
                 <select
@@ -625,10 +625,9 @@ export default function Federation() {
                   Votre compte n&apos;est pas administrateur central.
                 </p>
                 <p className="leading-relaxed" style={{ color: "var(--text-secondary)" }}>
-                  Seuls les détenteurs d&apos;un grant admin central actif peuvent
-                  créer une organisation opérationnelle. Connectez-vous avec le
-                  compte admin central (ex. <code>admin@mfe-jc.org</code>) ou
-                  demandez qu&apos;on vous attribue ce rôle.
+                  Seuls les détenteurs d&apos;un accès admin central actif peuvent
+                  créer une organisation opérationnelle. Connectez-vous avec un
+                  compte admin central ou demandez qu&apos;on vous attribue ce rôle.
                 </p>
                 <button
                   type="button"

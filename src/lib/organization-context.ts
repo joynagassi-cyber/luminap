@@ -14,7 +14,7 @@
  */
 
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { getOrganizationId, setOrganizationId } from "./orgContext";
+import { getOrganizationId, setOrganizationId, hasResolvedOrganization } from "./orgContext";
 import {
   canAccessOrganization,
   listUserOrgs,
@@ -87,6 +87,11 @@ export function currentContext(): OrganizationContext {
     return { mode: "CENTRAL", orgId: CENTRAL_ORG_ID, label: "Administration centrale" };
   }
   const orgId = getOrganizationId();
+  // Aucune organisation résolue pour cet utilisateur → label humain neutre,
+  // jamais un ID technique brut.
+  if (!hasResolvedOrganization()) {
+    return { mode: "ORG", orgId, label: "Votre organisation" };
+  }
   return { mode: "ORG", orgId, label: orgId };
 }
 

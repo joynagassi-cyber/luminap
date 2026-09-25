@@ -191,10 +191,19 @@ export class SupabaseConnector
   }
 
   async loginWithGoogle() {
+    const { Capacitor } = await import("@capacitor/core");
+    const { isNativePlatform } = Capacitor;
+
     const { data, error } = await this.client.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: window.location.origin + "/auth/callback",
+        // Native (Capacitor Android/iOS) : Google renvoie l'utilisateur
+        // dans l'app via le scheme `lumina://` (intent-filter du
+        // AndroidManifest.xml), pas dans le navigateur système.
+        // Web : redirection vers l'URL du site.
+        redirectTo: isNativePlatform()
+          ? "lumina://auth/callback"
+          : window.location.origin + "/auth/callback",
       },
     });
 

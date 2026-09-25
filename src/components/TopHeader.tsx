@@ -23,8 +23,10 @@ export default function TopHeader({ title }: { title?: string }) {
 
   const isCentralAdmin = user?.role === "CENTRAL_ADMIN";
   const inOrgContext = ctx.mode === "ORG";
-  const orgName =
-    orgData?.find((o) => o.id === ctx.orgId)?.name ?? ctx.orgId;
+  // Le nom de l'org courante. Si la liste des orgs n'a pas encore été
+  // chargée, on n'affiche pas un ID technique brut (ex. "default-org") :
+  // on masque le bandeau ou on montre un label générique.
+  const orgName = orgData?.find((o) => o.id === ctx.orgId)?.name;
 
   const handleReturnToCentral = () => {
     exitToCentral();
@@ -182,7 +184,7 @@ export default function TopHeader({ title }: { title?: string }) {
               style={{ color: isCentralAdmin ? "var(--accent-primary)" : "var(--band-org-ink)" }}
             >
               {inOrgContext
-                ? `Organisation : ${orgName}`
+                ? `Organisation : ${orgName ?? "chargement…"}`
                 : "Administration centrale"}
             </span>
             {isCentralAdmin && (

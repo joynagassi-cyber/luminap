@@ -61,7 +61,14 @@ const VIA_LABEL: Record<UserOrg["via"], string> = {
   BOTH: "Membre + admin",
   GRANT: "Admin (grant)",
   MEMBER: "Membre",
-  LEGACY: "Membre (legacy)",
+  LEGACY: "Membre",
+};
+
+const STATUS_LABEL: Record<string, string> = {
+  PENDING: "En attente",
+  ACTIVE: "Active",
+  SUSPENDED: "Suspendue",
+  ARCHIVED: "Archivée",
 };
 
 export default function SessionsPage() {
@@ -202,7 +209,7 @@ export default function SessionsPage() {
                           )}
                         </div>
                         <p className="text-text-tertiary text-xs mt-0.5">
-                          {VIA_LABEL[org.via]} · {org.status}
+                          {VIA_LABEL[org.via]} · {STATUS_LABEL[org.status] ?? org.status}
                         </p>
                       </div>
                       <LogIn className="w-4 h-4 flex-shrink-0" style={{ color: "var(--text-tertiary)" }} />

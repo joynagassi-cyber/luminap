@@ -234,13 +234,17 @@ export default function FormSubmissions() {
                               className="flex justify-between gap-3 text-xs"
                             >
                               <dt className="text-text-tertiary flex-shrink-0 max-w-[40%] break-words">
-                                {labelMap.get(k) ?? k}
+                                {labelMap.get(k) ?? k.replace(/_/g, " ")}
                               </dt>
                               <dd className="text-text-primary text-right break-words">
                                 {v == null
                                   ? "—"
                                   : typeof v === "object"
-                                    ? JSON.stringify(v)
+                                    ? (
+                                        Array.isArray(v)
+                                          ? v.map((item) => String((item as any)?.label ?? (item as any)?.name ?? item)).join(", ")
+                                          : String((v as any)?.label ?? (v as any)?.name ?? JSON.stringify(v))
+                                      )
                                     : String(v)}
                               </dd>
                             </div>
