@@ -777,9 +777,12 @@ let instance: OneSignalService | null = null;
  */
 export function getOneSignalService(): OneSignalService {
   if (!instance) {
-    const appId =
-      import.meta.env.VITE_ONESIGNAL_APP_ID ||
-      "5482a4eb-a402-4612-ab5e-a72df7961b12";
+    const appId = import.meta.env.VITE_ONESIGNAL_APP_ID;
+    if (!appId) {
+      throw new Error(
+        "[onesignal] VITE_ONESIGNAL_APP_ID manquante : les notifications push ne peuvent pas fonctionner sans OneSignal.",
+      );
+    }
     instance = new OneSignalService(appId);
   }
   return instance;

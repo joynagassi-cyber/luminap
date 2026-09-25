@@ -9,9 +9,12 @@ import { getOneSignalService, initOneSignal } from "./onesignal";
 import { authService } from "./auth";
 import type { Role } from "@/types";
 
-const ONESIGNAL_APP_ID =
-  import.meta.env.VITE_ONESIGNAL_APP_ID ||
-  "5482a4eb-a402-4612-ab5e-a72df7961b12";
+const ONESIGNAL_APP_ID = import.meta.env.VITE_ONESIGNAL_APP_ID;
+if (!ONESIGNAL_APP_ID) {
+  throw new Error(
+    "[authOneSignal] VITE_ONESIGNAL_APP_ID manquante : la synchronisation auth/OneSignal ne peut pas fonctionner sans OneSignal.",
+  );
+}
 
 // OneSignal service class (delegates to src/lib/onesignal.ts)
 class OneSignalAuthService {
