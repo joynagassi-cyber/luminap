@@ -110,7 +110,7 @@ jobs:
           # 2b. Même alignement SDK 34 sur variables.gradle (au cas où cap sync
           # l'a régénéré en 36)
           sed -i 's/compileSdkVersion = 36/compileSdkVersion = 34/' android/variables.gradle
-          sed -i 's/targetSdkVersion = 36/targetSdkVersion = 30/' android/variables.gradle
+          sed -i 's/targetSdkVersion = 36/targetSdkVersion = 34/' android/variables.gradle
           # Patch namespace au plugin storage v1.2.5 (sans namespace dans le
           # build.gradle, cap sync génère une erreur « Namespace not specified »)
           if ! grep -q "^    namespace " node_modules/@capacitor/storage/android/build.gradle; then
@@ -229,7 +229,7 @@ jobs:
           # 2b. Même alignement SDK 34 sur variables.gradle (au cas où cap sync
           # l'a régénéré en 36)
           sed -i 's/compileSdkVersion = 36/compileSdkVersion = 34/' android/variables.gradle
-          sed -i 's/targetSdkVersion = 36/targetSdkVersion = 30/' android/variables.gradle
+          sed -i 's/targetSdkVersion = 36/targetSdkVersion = 34/' android/variables.gradle
           # 3. Ajoute namespace au plugin storage (v1.2.5, très ancien)
           if ! grep -q "^    namespace " node_modules/@capacitor/storage/android/build.gradle; then
             sed -i '/^android {/a\    namespace "com.capacitorjs.plugins.storage"' \
@@ -261,6 +261,40 @@ jobs:
       - name: Prepare signing keystore
         run: |
           echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > signing.keystore
+
+      - name: Ensure apksigner is available
+        # Sur les runners ubuntu-latest, l'Android SDK sous /usr/local/lib/android
+        # ne contient ni build-tools (apksigner) ni cmdline-tools (sdkmanager).
+        # On télécharge cmdline-tools (~150 Mo) pour pouvoir installer
+        # build-tools;34.0.0 qui fournit apksigner (v1+v2+v3).
+        # Si l'installation échoue, l'étape Sign bascule sur jarsigner (v1).
+        run: |
+          ANDROID_SDK_ROOT="/usr/local/lib/android"
+          if [ ! -d "$ANDROID_SDK_ROOT" ] && [ -n "${ANDROID_HOME:-}" ]; then
+            ANDROID_SDK_ROOT="$ANDROID_HOME"
+          fi
+          echo "SDK root : $ANDROID_SDK_ROOT"
+          # apksigner déjà présent ?
+          if ls "$ANDROID_SDK_ROOT"/build-tools/*/apksigner >/dev/null 2>&1; then
+            echo "apksigner déjà présent — rien à faire"
+            exit 0
+          fi
+          # sdkmanager absent ? → télécharge cmdline-tools
+          if [ ! -x "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" ]; then
+            echo "Téléchargement de cmdline-tools (pour sdkmanager)..."
+            mkdir -p /tmp/cmdtools-dl
+            curl -fsSL -o /tmp/cmdtools-dl/cmdline-tools.zip \
+              "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip"
+            unzip -q /tmp/cmdtools-dl/cmdline-tools.zip -d /tmp/cmdtools-dl
+            # Le zip extrait "cmdline-tools/" — on l'installe en "latest/"
+            mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools"
+            mv /tmp/cmdtools-dl/cmdline-tools "$ANDROID_SDK_ROOT/cmdline-tools/latest"
+          fi
+          echo "Installation de build-tools;34.0.0 (apksigner)..."
+          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "build-tools;34.0.0" 2>&1 || true
+          ls "$ANDROID_SDK_ROOT"/build-tools/*/apksigner 2>/dev/null \
+            && echo "apksigner installé" \
+            || echo "apksigner non installé (fallback jarsigner v1)"
 
       - name: Sign APK with apksigner
         # L'APK est le build unsigned produit par le Gradle CI
@@ -294,16 +328,6 @@ jobs:
             done
             if [ -z "$APKSIG" ] && [ -x "$SDK_ROOT/tools/bin/apksigner" ]; then
               APKSIG="$SDK_ROOT/tools/bin/apksigner"
-            fi
-            # Si apksigner n'existe pas, on l'installe via sdkmanager
-            # (nécessite l'acceptation des licences : déjà faites par
-            #  le runner ; le fallback à v1 reste disponible sinon)
-            if [ -z "$APKSIG" ] && [ -x "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" ]; then
-              echo "Apksigner absent — installation via sdkmanager (build-tools;34.0.0)..."
-              yes | "$SDK_ROOT"/cmdline-tools/latest/bin/sdkmanager "build-tools;34.0.0" 2>&1 || true
-              for bt in "$SDK_ROOT"/build-tools/*/apksigner; do
-                if [ -x "$bt" ]; then APKSIG="$bt"; break; fi
-              done
             fi
           fi
           # Dernier recours : apksigner sur le PATH global
