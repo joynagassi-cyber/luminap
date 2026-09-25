@@ -280,11 +280,13 @@ jobs:
           # préinstallé se trouve à $ANDROID_HOME (typiquement
           # /usr/local/lib/android/sdk). Apksigner est dans
           # $ANDROID_HOME/build-tools/*/apksigner.
+          # Si build-tools est absente, on l'installe via sdkmanager.
           SDK_ROOT=""
           for c in /usr/local/lib/android /opt/android-sdk /usr/lib/android-sdk /usr/local/android-sdk "$HOME/.android-sdk" "${ANDROID_HOME:-}"; do
             if [ -n "$c" ] && [ -d "$c" ]; then SDK_ROOT="$c"; break; fi
           done
           echo "Android SDK root : ${SDK_ROOT:-non trouvé (ANDROID_HOME=${ANDROID_HOME:-vide})}"
+          APKSIG=""
           if [ -n "$SDK_ROOT" ]; then
             # build-tools est versionné : on prend le premier apksigner exécutable
             for bt in "$SDK_ROOT"/build-tools/*/apksigner; do
@@ -292,6 +294,16 @@ jobs:
             done
             if [ -z "$APKSIG" ] && [ -x "$SDK_ROOT/tools/bin/apksigner" ]; then
               APKSIG="$SDK_ROOT/tools/bin/apksigner"
+            fi
+            # Si apksigner n'existe pas, on l'installe via sdkmanager
+            # (nécessite l'acceptation des licences : déjà faites par
+            #  le runner ; le fallback à v1 reste disponible sinon)
+            if [ -z "$APKSIG" ] && [ -x "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" ]; then
+              echo "Apksigner absent — installation via sdkmanager (build-tools;34.0.0)..."
+              yes | "$SDK_ROOT"/cmdline-tools/latest/bin/sdkmanager "build-tools;34.0.0" 2>&1 || true
+              for bt in "$SDK_ROOT"/build-tools/*/apksigner; do
+                if [ -x "$bt" ]; then APKSIG="$bt"; break; fi
+              done
             fi
           fi
           # Dernier recours : apksigner sur le PATH global
