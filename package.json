@@ -26,6 +26,7 @@
     "debug:save": "bash scripts/logcat-debug.sh --save"
   },
   "dependencies": {
+    "@autonoma-ai/sdk": "^0.2.9",
     "@capacitor/app": "^6.0.3",
     "@capacitor/camera": "^6.1.0",
     "@capacitor/network": "^6.0.4",
@@ -102,6 +103,7 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@autonoma-ai/server-node": "^0.2.9",
     "@capacitor/android": "^6.2.2",
     "@capacitor/cli": "^8.5.2",
     "@capacitor/core": "^6.2.2",
