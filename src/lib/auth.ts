@@ -235,6 +235,13 @@ class AuthService {
   // (RPC without forcing a role). Never called with a forced role — that
   // path lives in `setProfileRole` so sign-in doesn't clobber the user's
   // role that an inviter/creator may have assigned.
+  //
+  // RÉSILIENT : si `upsert_profile` échoue (trigger `handle_new_user`
+  // inopérant, RLS, org_id = 'no-org'…), on ne fait pas échouer le
+  // sign-in/sign-up : Supabase a bien créé l'utilisateur et la session,
+  // on construit un profil local minimal pour laisser l'app démarrer, et
+  // on logue l'erreur pour diagnostic. Le rôle réel sera résolu pendant
+  // l'onboarding (creator) ou par invitation claim (member).
   async ensureProfile(user: SupabaseUser): Promise<Profile> {
     const existing = await this.getProfile(user.id);
     if (existing) return existing;
@@ -246,7 +253,29 @@ class AuthService {
       p_org_id: getOrganizationId(),
     });
     if (error || !data) {
-      throw error ?? new Error("Unable to resolve user profile");
+      // Le trigger a peut-être déjà créé la ligne mais le RPC a échoué
+      // (RLS sur la lecture, ou le claim organization-id = 'no-org').
+      // On tente une lecture directe du profil pour ne pas bloquer.
+      const fallback = await this.getProfile(user.id);
+      if (fallback) return fallback;
+
+      // Profil minimal local — garantit que l'app peut démarrer même si
+      // la table profiles n'a pas pu être créée. Le rôle est résolu plus
+      // tard ; on ne bloque jamais l'auth pour ça.
+      console.warn(
+        "[auth] ensureProfile: upsert_profile a échoué, profil local minimal:",
+        error?.message ?? "RPC sans donnée",
+      );
+      return {
+        id: user.id,
+        email: user.email ?? null,
+        first_name: user.user_metadata?.first_name ?? null,
+        last_name: user.user_metadata?.last_name ?? null,
+        role: "MEMBRE",
+        org_id: getOrganizationId(),
+        created_at: user.created_at ?? new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
     }
     return data as Profile;
   }
@@ -502,7 +531,7 @@ class AuthService {
           // validates the code_challenge on exchange.
           queryParams: {
             access_type: "offline",
-            prompt: "consent",
+            prompt: "select_account",
             code_challenge: codeChallenge,
             code_challenge_method: "S256",
             // `state` is forwarded by Supabase back on the redirect URI so
@@ -545,16 +574,39 @@ class AuthService {
     this.setState({ isLoading: true, error: null });
 
     try {
-      const {
-        data: { session },
-        error: sessionError,
-      } = await supabase.auth.getSession();
+      // PKCE callback : Supabase redirige vers /auth/callback?code=...&state=...
+      // avec un `code` à échanger contre une session. On ne peut PAS s'en
+      // tenir à `getSession()` : le cookie d'auth est HTTP-only et peut ne
+      // pas être disponible (ex. PWA, service worker, sandbox de preview),
+      // ce qui laisse `session = null` alors que le `code` est bien présent.
+      const code = new URLSearchParams(window.location.search).get("code");
+      let session: Session | null = null;
 
-      if (sessionError || !session) {
-        const errorMsg =
-          sessionError?.message || "No session found after OAuth callback.";
-        this.setState({ error: errorMsg, isLoading: false });
-        return { error: errorMsg, profile: null, isNewUser: false };
+      if (code) {
+        // Échange le code OAuth contre une vraie session — ça marche même
+        // quand le cookie n'est pas accessible.
+        const { data, error: exchangeError } =
+          await supabase.auth.exchangeCodeForSession(code);
+        if (exchangeError) {
+          const errorMsg = `OAuth callback failed: ${exchangeError.message}`;
+          this.setState({ error: errorMsg, isLoading: false });
+          return { error: errorMsg, profile: null, isNewUser: false };
+        }
+        session = data.session;
+      }
+
+      // Fallback : si pas de `code` dans l'URL, on tente la session existante
+      // (ex. redirigé après déconnexion, ou code déjà consommé).
+      if (!session) {
+        const { data, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError || !data.session) {
+          const errorMsg =
+            sessionError?.message ||
+            "No session found after OAuth callback. Le code d'authentification a peut-être expiré ou été consommé.";
+          this.setState({ error: errorMsg, isLoading: false });
+          return { error: errorMsg, profile: null, isNewUser: false };
+        }
+        session = data.session;
       }
 
       // Validate session has required fields
@@ -569,6 +621,13 @@ class AuthService {
         const errorMsg = "Invalid session: access token is missing.";
         this.setState({ error: errorMsg, isLoading: false });
         return { error: errorMsg, profile: null, isNewUser: false };
+      }
+
+      // Nettoyer l'URL de paramètres OAuth (code, state) pour ne pas les
+      // laisser dans la barre d'adresse ni les réexposer au rechargement.
+      if (window.location.search) {
+        const cleanUrl = window.location.pathname + window.location.hash;
+        window.history.replaceState(null, "", cleanUrl);
       }
 
       const profile = await this.getProfile(session.user.id);

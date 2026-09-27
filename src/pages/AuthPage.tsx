@@ -56,6 +56,19 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [authState, setAuthState] = useState<any>(null);
 
+  // Le bouton « Mes comptes » n'est visible QUE si des comptes ont déjà
+  // été connectés dans ce navigateur (donc uniquement après une déconnexion).
+  // On lit la clé Supabase JS (sessions persistées) au montage.
+  const [hasPersistedSessions, setHasPersistedSessions] = useState(false);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("sb-hhgovvrnalibhgpakswi-auth-token");
+      setHasPersistedSessions(!!raw);
+    } catch {
+      setHasPersistedSessions(false);
+    }
+  }, []);
+
   // Listen to auth state changes
   useEffect(() => {
     const unsubscribe = authService.subscribe(() => {
@@ -259,16 +272,18 @@ export default function AuthPage() {
               className="w-10 h-10 object-contain"
             />
             <div className="flex items-center gap-4">
-              {/* Retour « Mes comptes » : après une déconnexion volontaire,
-                  les comptes restent listés ici — un clic re-ouvre la session. */}
-              <button
-                type="button"
-                onClick={() => navigate("/sessions", { replace: true })}
-                className="text-[var(--accent-primary)] text-xs font-medium flex items-center gap-1 active:opacity-70"
-                aria-label="Retour à mes comptes"
-              >
-                ← Mes comptes
-              </button>
+              {/* « Mes comptes » : visible uniquement après une déconnexion
+                  (des sessions sont déjà persistées en local). */}
+              {hasPersistedSessions && (
+                <button
+                  type="button"
+                  onClick={() => navigate("/sessions", { replace: true })}
+                  className="text-[var(--accent-primary)] text-xs font-medium flex items-center gap-1 active:opacity-70"
+                  aria-label="Retour à mes comptes"
+                >
+                  ← Mes comptes
+                </button>
+              )}
               <div className="text-xs text-[var(--text-tertiary)]">
                 {authState?.user ? "Connecté" : "Déconnecté"}
               </div>
