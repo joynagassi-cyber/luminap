@@ -1,46 +1,62 @@
 -- =============================================================================
 -- Lumina — Supabase Free-tier anti-pause : heartbeat pg_cron
 -- =============================================================================
--- Appliqué le 2026-09-26 via MCP supabase (instance hhgovvrnalibhgpakswi)
--- Jobid live : 1
+-- Historique :
+--   2026-09-26 : version initiale (jobid 1) — DELETE + INSERT sans PK.
+--                Échec au 1er 00:00 UTC : "cannot delete from table
+--                keep_alive because it does not have a replica identity
+--                and publishes deletes" (publication Supabase active).
+--   2026-09-27 : correction — ajout d'une PK (id) + UPSERT atomique.
+--                Jobid live actuel : 3
 --
--- Méthode : 1 table keep_alive (1 ligne) + 1 job pg_cron quotidien à 00:00 UTC
--- qui fait DELETE + INSERT. Charge négligeable, 100 % native Postgres.
--- L'inactivité "d'activité API" ne compte pas : le heartbeat garde le
--- compteur d'activité de l'instance à zéro, évitant la pause auto Free
--- (90 jours max de pause restaurable, sans sauvegarde auto sur Free).
+-- Méthode : 1 table keep_alive (1 ligne, PK id=1) + 1 job pg_cron quotidien
+-- à 00:00 UTC qui fait un UPSERT. Charge négligeable, 100 % native
+-- Postgres. L'inactivité API ne compte pas : le heartbeat garde le
+-- compteur d'activité de l'instance à zéro, évitant la pause auto Free.
 --
--- NOTE IMPORTANTE : le job est créé via cron.schedule() et NON via
--- INSERT INTO cron.job — le rôle MCP n'a pas le GRANT d'écriture direct
--- sur cron.job, mais a le droit sur la fonction wrapper cron.schedule().
+-- NOTE IMPORTANTE :
+--  - Le job est créé via cron.schedule() et NON via INSERT INTO cron.job
+--    (le rôle MCP n'a pas le GRANT d'écriture direct sur cron.job).
+--  - La table SUPABASE (publiquée pour la réplication) exige une
+--    PRIMARY KEY sur toute DML : DELETE et UPDATE sont bloqués
+--    ("no replica identity"), seul l'UPSERT (INSERT ... ON CONFLICT
+--    DO UPDATE) passe — d'où la forme actuelle du command body.
 -- =============================================================================
 
--- 1. Table heartbeat (1 ligne, jamais plus)
+-- 1. Table heartbeat (1 ligne, PK pour satisfair la publication Supabase)
 CREATE TABLE IF NOT EXISTS public.keep_alive (
-  last_ping timestamptz NOT NULL DEFAULT now()
+  id        integer  NOT NULL DEFAULT 1,
+  last_ping timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (id)
 );
 
 -- 2. Job pg_cron quotidien 00:00 UTC (wrapper — le piège documenté)
 SELECT cron.schedule(
   'keep_alive_daily',
   '0 0 * * *',
-  'DELETE FROM public.keep_alive; INSERT INTO public.keep_alive DEFAULT VALUES;'
+  'INSERT INTO public.keep_alive (id, last_ping) VALUES (1, now()) ON CONFLICT (id) DO UPDATE SET last_ping = now();'
 );
 
 -- 3. Amorçage (garanti 1 ligne, même si le premier 00:00 UTC est encore loin)
-INSERT INTO public.keep_alive (last_ping)
-VALUES (now())
-ON CONFLICT DO NOTHING;
+INSERT INTO public.keep_alive (id, last_ping)
+VALUES (1, now())
+ON CONFLICT (id) DO UPDATE SET last_ping = now();
 
 -- =============================================================================
--- APPLICATION STATUS (2026-09-26)
+-- APPLICATION STATUS (2026-09-27)
 -- =============================================================================
--- Extension pg_cron : v1.6.4 (absente avant application → CREATE EXTENSION ok)
--- Table keep_alive : présente, 1 ligne, dernier ping = 2026-09-26 21:53:58 UTC
--- Job keep_alive_daily : jobid 1, schedule "0 0 * * *", active = true
+-- Extension pg_cron : v1.6.4
+-- Table keep_alive : présente, 1 ligne, PK(id), dernier ping = 2026-09-27 18:57 UTC
+-- Job keep_alive_daily : jobid 3, schedule "0 0 * * *", active = true
 -- Commande du job (vérifiée verbatim dans cron.job) :
---   DELETE FROM public.keep_alive; INSERT INTO public.keep_alive DEFAULT VALUES;
+--   INSERT INTO public.keep_alive (id, last_ping) VALUES (1, now())
+--   ON CONFLICT (id) DO UPDATE SET last_ping = now();
 -- Statut : OUI — le projet est immunisé contre la pause auto.
+--
+-- Échec historique documenté :
+--   jobid 1 (DELETE+INSERT sans PK) a échoué au 2026-09-27 00:00 UTC :
+--   "cannot delete from table keep_alive because it does not have a
+--   replica identity and publishes deletes" — corrigé par la PK ci-dessus.
 -- =============================================================================
 
 -- =============================================================================
@@ -56,4 +72,8 @@ ON CONFLICT DO NOTHING;
 --   → date dans les dernières 24 h = heartbeat a tourné sans erreur ;
 --     date très ancienne = l'instance s'est mise en pause quand même
 --     (le job s'arrête avec l'instance, rien de réparable depuis l'extérieur).
+--
+-- SURVEILLANCE (optionnel) :
+--   SELECT jobid, start_time, end_time, status, return_message
+--   FROM cron.job_run_details WHERE jobid = 3 ORDER BY start_time DESC LIMIT 5;
 -- =============================================================================
