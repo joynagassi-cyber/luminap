@@ -499,35 +499,44 @@ class AuthService {
   }
 
   // Sign in with Google OAuth
+  //
+  // Web : redirection pleine page. Le SDK (flowType: "pkce") génère le
+  // code_verifier et le code_challenge automatiquement, les stocke dans
+  // localStorage, puis redirige vers l'URL GoTrue d'autorisation. Au
+  // retour, GoTrue redirige vers `redirectTo` (window.location.origin +
+  // "/auth/callback") avec `?code=…&state=…`. La page /auth/callback
+  // appelle handleOAuthCallback → exchangeCodeForSession.
+  //
+  // IMPORTANT : l'URL de callback web doit figurer dans la liste des
+  // Redirect URLs du projet Supabase (dashboard → Authentication → URL
+  // Configuration → Redirect URLs). Pour les previews Autonoma, ajouter :
+  //   https://*.preview.autonoma.app/auth/callback
+  // La Site URL doit correspondre au domaine courant (ou être un wildcard).
+  //
+  // Mobile (Capacitor) : deep link système lumina://auth/callback.
+
   async signInWithGoogle(): Promise<{ error: string | null }> {
     this.setState({ isLoading: true, error: null });
 
     try {
       // PKCE : le client (flowType: "pkce") génère le code_verifier et le
-      // code_challenge automatiquement, et les stocke pour l'échange au
-      // callback. Plus besoin de les calculer ici.
+      // code_challenge automatiquement, et les stocke dans localStorage
+      // pour l'échange final au callback. Rien à calculer ici.
+
+      const isNative = Capacitor.isNativePlatform();
 
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          // Web : revient sur /auth/callback?code=…&state=… (PKCE) puis
-          // exchangeCodeForSession. Le `code_challenge` est généré/géré
-          // automatiquement par le client (flowType: "pkce") — plus besoin
-          // de le calculer manuellement.
-          redirectTo:
-            Capacitor.isNativePlatform()
-              ? "lumina://auth/callback"
-              : window.location.origin + "/auth/callback",
-          // PKCE flow (mobile / native) — no client secret on the client.
-          // Supabase Auth holds the Web client secret server-side and
-          // validates the code_challenge on exchange.
+          // Web : /auth/callback sur le domaine courant.
+          // Mobile : deep link lumina://auth/callback (capturé par le
+          // intent-filter AndroidManifest).
+          redirectTo: isNative
+            ? "lumina://auth/callback"
+            : window.location.origin + "/auth/callback",
           queryParams: {
             access_type: "offline",
             prompt: "select_account",
-            // `state` is forwarded by Supabase back on the redirect URI so
-            // `exchangeCodeForSession` can verify the callback is one the app
-            // initiated.
-            state: "lumina",
           },
         },
       });
@@ -540,18 +549,19 @@ class AuthService {
         } else if (error.message.includes("access_denied")) {
           userMessage = "Google sign-in was denied. Please try again.";
         }
-
         this.setState({ error: userMessage, isLoading: false });
         return { error: userMessage };
       }
 
-      // The redirect will handle the rest
+      // La redirection est lancée (web : page entière, mobile : system
+      // browser). Le reste est géré par handleOAuthCallback (web) ou
+      // handleOAuthDeepLink (mobile).
       return { error: null };
     } catch (err: any) {
       const userMessage =
         err?.message || "An unexpected error occurred during Google sign-in.";
       this.setState({ error: userMessage, isLoading: false });
-      return { error: userMessage };
+      return { userMessage };
     }
   }
 
