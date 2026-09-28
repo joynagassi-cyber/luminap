@@ -29,6 +29,19 @@ if (!supabaseUrl || !supabaseAnonKey) {
 export const supabase: SupabaseClient = createClient(
   supabaseUrl,
   supabaseAnonKey,
+  {
+    auth: {
+      // PKCE : le client stocke le code_verifier et l'échange contre une
+      // session. Sans ça, flowType reste "implicit" par défaut et
+      // exchangeCodeForSession (utilisé au callback /auth/callback) échoue.
+      flowType: "pkce",
+      // Persiste la session (localStorage) pour « Mes comptes ».
+      persistSession: true,
+      // Auto-détecte les tokens dans l'URL au rechargement.
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+    },
+  },
 );
 
 // Profile type from database
@@ -490,50 +503,27 @@ class AuthService {
     this.setState({ isLoading: true, error: null });
 
     try {
-      // Generate a true PKCE pair (RFC 7636):
-      //   code_verifier  — 64 random ASCII chars
-      //   code_challenge — base64url( SHA-256(code_verifier) ), no padding
-      // We can't store the verifier for the round-trip (Supabase signs us back
-      // at `redirectTo` without it), so the verifier is ephemeral and the
-      // challenge is all we send to Google; on the callback Supabase holds
-      // the secret side and validates it server-side.
-      const randomBytes = new Uint8Array(32);
-      crypto.getRandomValues(randomBytes);
-      const codeVerifier = btoa(
-        String.fromCharCode(...randomBytes),
-      )
-        .replace(/\+/g, "-")
-        .replace(/\//g, "_")
-        .replace(/=+$/, "");
-      const digest = await crypto.subtle.digest(
-        "SHA-256",
-        new TextEncoder().encode(codeVerifier),
-      );
-      const codeChallenge = btoa(String.fromCharCode(...new Uint8Array(digest)))
-        .replace(/\+/g, "-")
-        .replace(/\//g, "_")
-        .replace(/=+$/, "");
+      // PKCE : le client (flowType: "pkce") génère le code_verifier et le
+      // code_challenge automatiquement, et les stocke pour l'échange au
+      // callback. Plus besoin de les calculer ici.
 
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: window.location.origin + "/auth/callback",
-          // Native: use our custom `lumina://` scheme so Google hands the
-          // user back into the app instead of the system browser.
-          // `Capacitor.isNativePlatform()` is the authoritative check — it
-          // reads the `window.Capacitor` bridge object that Capacitor injects
-          // into the WebView at load time.
-          ...(Capacitor.isNativePlatform()
-            ? { redirectTo: "lumina://auth/callback" }
-            : {}),
+          // Web : revient sur /auth/callback?code=…&state=… (PKCE) puis
+          // exchangeCodeForSession. Le `code_challenge` est généré/géré
+          // automatiquement par le client (flowType: "pkce") — plus besoin
+          // de le calculer manuellement.
+          redirectTo:
+            Capacitor.isNativePlatform()
+              ? "lumina://auth/callback"
+              : window.location.origin + "/auth/callback",
           // PKCE flow (mobile / native) — no client secret on the client.
           // Supabase Auth holds the Web client secret server-side and
           // validates the code_challenge on exchange.
           queryParams: {
             access_type: "offline",
             prompt: "select_account",
-            code_challenge: codeChallenge,
-            code_challenge_method: "S256",
             // `state` is forwarded by Supabase back on the redirect URI so
             // `exchangeCodeForSession` can verify the callback is one the app
             // initiated.
