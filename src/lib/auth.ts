@@ -233,9 +233,9 @@ class AuthService {
         .from("profiles")
         .select("*")
         .eq("id", userId)
-        .single();
+        .maybeSingle();
 
-      if (error) {
+      if (error || !data) {
         return null;
       }
       return data as Profile;
@@ -585,18 +585,44 @@ class AuthService {
       if (code) {
         // Échange le code OAuth contre une vraie session — ça marche même
         // quand le cookie n'est pas accessible.
-        const { data, error: exchangeError } =
-          await supabase.auth.exchangeCodeForSession(code);
-        if (exchangeError) {
-          const errorMsg = `OAuth callback failed: ${exchangeError.message}`;
-          this.setState({ error: errorMsg, isLoading: false });
-          return { error: errorMsg, profile: null, isNewUser: false };
+        let exchangeOk = false;
+        try {
+          const { data, error: exchangeError } =
+            await supabase.auth.exchangeCodeForSession(code);
+          if (exchangeError) {
+            console.warn(
+              "[auth] exchangeCodeForSession échoué, tentative getSession fallback:",
+              exchangeError.message,
+            );
+          } else {
+            session = data.session;
+            exchangeOk = true;
+          }
+        } catch (exchangeErr) {
+          // Garde-fou déterministe : ne jamais laisser l'app bloquée sur un
+          // écran noir si l'échange levé (réseau, code déjà consommé, PKCE
+          // mismatch…). On retombe sur getSession ci-dessous.
+          console.warn(
+            "[auth] exchangeCodeForSession a levé, fallback getSession:",
+            exchangeErr,
+          );
         }
-        session = data.session;
+
+        // Si l'échange a échoué (code expiré / consommé), on retire la
+        // recherche URL AVANT le getSession, pour que le rechargement
+        // n'essaie pas de rééchanger un code déjà mort.
+        if (!exchangeOk) {
+          window.history.replaceState(
+            null,
+            "",
+            window.location.pathname + window.location.hash,
+          );
+        }
       }
 
-      // Fallback : si pas de `code` dans l'URL, on tente la session existante
-      // (ex. redirigé après déconnexion, ou code déjà consommé).
+      // Fallback : si pas de `code` dans l'URL, ou échange échoué, on tente
+      // la session existante (ex. redirigé après déconnexion, ou code déjà
+      // consommé).
       if (!session) {
         const { data, error: sessionError } = await supabase.auth.getSession();
         if (sessionError || !data.session) {

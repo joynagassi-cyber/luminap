@@ -109,7 +109,11 @@ export default function AuthPage() {
       if (location.pathname === "/auth/callback") {
         const result = await authService.handleOAuthCallback();
         if (result.error) {
+          // Fallback : le callback a échoué (code expiré, consommé, ou
+          // échange impossible). Ne pas rester bloqué sur un écran noir —
+          // afficher le message d'erreur sur la page de login.
           setError(result.error);
+          navigate("/auth", { replace: true });
         } else if (result.profile) {
           // Google sign-up (compte créé à l'instant) → toujours onboarding d'abord.
           // Google connexion (compte existant, isNewUser false) → dashboard
@@ -117,6 +121,16 @@ export default function AuthPage() {
           void proceedAfterAuth(result.profile, {
             forceOnboarding: result.isNewUser,
           });
+        } else {
+          // Aucun profil après le callback : le compte est probablement
+          // déjà signé (getSession a trouvé une session). Rediriger vers
+          // le dashboard plutôt que de rester bloqué.
+          const state = authService.getState();
+          if (state.profile) {
+            void proceedAfterAuth(state.profile);
+          } else {
+            navigate("/auth", { replace: true });
+          }
         }
       }
     };
