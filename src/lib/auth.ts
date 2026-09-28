@@ -500,151 +500,69 @@ class AuthService {
 
   // Sign in with Google OAuth
   //
-  // Web : flux POPUP (skipBrowserRedirect). L'URL d'autorisation GoTrue est
-  // ouverte dans une fenêtre popup de 900×640. L'utilisateur sélectionne son
-  // compte Google dans la popup ; au retour, le SDK fait l'échange PKCE
-  // DANS LA POPUP (domaine supabase.co) et persiste la session dans le
-  // localStorage — accessible depuis l'opener (même domaine).
+  // Web : redirection pleine page. Le SDK (flowType: "pkce") génère le
+  // code_verifier et le code_challenge automatiquement, les stocke dans
+  // localStorage, puis redirige vers l'URL GoTrue d'autorisation. Au
+  // retour, GoTrue redirige vers `redirectTo` (window.location.origin +
+  // "/auth/callback") avec `?code=…&state=…`. La page /auth/callback
+  // appelle handleOAuthCallback → exchangeCodeForSession.
   //
-  // Avantage : aucune URL de l'app n'est déclarée dans la liste des
-  // Redirect URLs de GoTrue. Le wildcard `https://*.preview.autonoma.app/`
-  // reste utile pour le fallback handleOAuthCallback (rechargement, etc.)
-  // mais n'est plus requis pour que le flux principal marche.
+  // IMPORTANT : l'URL de callback web doit figurer dans la liste des
+  // Redirect URLs du projet Supabase (dashboard → Authentication → URL
+  // Configuration → Redirect URLs). Pour les previews Autonoma, ajouter :
+  //   https://*.preview.autonoma.app/auth/callback
+  // La Site URL doit correspondre au domaine courant (ou être un wildcard).
   //
-  // Mobile (Capacitor) : deep link système lumina://auth/callback, inchangé.
+  // Mobile (Capacitor) : deep link système lumina://auth/callback.
 
   async signInWithGoogle(): Promise<{ error: string | null }> {
     this.setState({ isLoading: true, error: null });
 
     try {
       // PKCE : le client (flowType: "pkce") génère le code_verifier et le
-      // code_challenge automatiquement, les stocke dans localStorage pour
-      // l'échange final. Rien à calculer ici.
+      // code_challenge automatiquement, et les stocke dans localStorage
+      // pour l'échange final au callback. Rien à calculer ici.
 
       const isNative = Capacitor.isNativePlatform();
 
-      if (isNative) {
-        // ---- Mobile : deep link système ----
-        const { data, error } = await supabase.auth.signInWithOAuth({
-          provider: "google",
-          options: {
-            redirectTo: "lumina://auth/callback",
-            queryParams: { access_type: "offline", prompt: "select_account" },
-          },
-        });
-        if (error) {
-          this.setState({ error: error.message, isLoading: false });
-          return { error: error.message };
-        }
-        return { error: null };
-      }
-
-      // ---- Web : flux popup ----
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          // Le SDK renvoie l'URL d'autorisation GoTrue au lieu de naviguer.
-          skipBrowserRedirect: true,
-          queryParams: { access_type: "offline", prompt: "select_account" },
+          // Web : /auth/callback sur le domaine courant.
+          // Mobile : deep link lumina://auth/callback (capturé par le
+          // intent-filter AndroidManifest).
+          redirectTo: isNative
+            ? "lumina://auth/callback"
+            : window.location.origin + "/auth/callback",
+          queryParams: {
+            access_type: "offline",
+            prompt: "select_account",
+          },
         },
       });
-      if (error || !data?.url) {
-        const msg = error?.message ?? "Unable to initiate Google sign-in.";
-        this.setState({ error: msg, isLoading: false });
-        return { error: msg };
+
+      if (error) {
+        let userMessage = error.message;
+        if (error.message.includes("redirect_uri")) {
+          userMessage =
+            "Invalid OAuth redirect configuration. Please contact support.";
+        } else if (error.message.includes("access_denied")) {
+          userMessage = "Google sign-in was denied. Please try again.";
+        }
+        this.setState({ error: userMessage, isLoading: false });
+        return { error: userMessage };
       }
 
-      // Ouvre la fenêtre Google (900×640, centrée).
-      const popupW = 900;
-      const popupH = 640;
-      const left = window.screenX + Math.max(0, (window.innerWidth - popupW) / 2);
-      const top = window.screenY + Math.max(0, (window.innerHeight - popupH) / 2);
-      const popup = window.open(
-        data.url,
-        "lumina_google_oauth",
-        `width=${popupW},height=${popupH},left=${left},top=${top}`,
-      );
-
-      if (!popup) {
-        const msg =
-          "La connexion Google a été bloquée par le navigateur. " +
-          "Veuillez autoriser les popups pour ce site et réessayer.";
-        this.setState({ error: msg, isLoading: false });
-        return { error: msg };
-      }
-
-      // Attend que le popup se ferme (fin du flux dans tous les cas),
-      // puis récupère la session que le SDK a persistée pendant l'échange
-      // PKCE (localStorage, même domaine que l'opener).
-      const poll = setInterval(() => {
-        if (popup.closed) {
-          clearInterval(poll);
-          void this._adoptSessionFromOAuthPopup().then((res) => {
-            if (res.error) {
-              // Popup fermé sans flux terminé (annulation, fermeture
-              // manuelle) : on renvoie l'utilisateur sur /auth.
-              window.location.assign("/auth");
-            }
-            // Sinon AuthPage détecte la session active et navigue vers
-            // /onboarding ou /dashboard.
-          });
-        }
-      }, 500);
-
-      // Garde-fou : après 10 min, on arrête le polling si le popup est
-      // toujours ouvert et on réinitialise l'état.
-      setTimeout(() => {
-        clearInterval(poll);
-        if (!popup.closed) {
-          try { popup.close(); } catch { /* le popup peut refuser */ }
-          this.setState({
-            error:
-              "La connexion Google n'a pas pu être finalisée. " +
-              "Veuillez réessayer.",
-            isLoading: false,
-          });
-        }
-      }, 10 * 60 * 1000);
-
+      // La redirection est lancée (web : page entière, mobile : system
+      // browser). Le reste est géré par handleOAuthCallback (web) ou
+      // handleOAuthDeepLink (mobile).
       return { error: null };
     } catch (err: any) {
-      const msg =
+      const userMessage =
         err?.message || "An unexpected error occurred during Google sign-in.";
-      this.setState({ error: msg, isLoading: false });
-      return { error: msg };
+      this.setState({ error: userMessage, isLoading: false });
+      return { userMessage };
     }
-  }
-
-  /**
-   * Après fermeture du popup Google, récupère la session que le SDK a
-   * persistée pendant l'échange PKCE (localStorage, même domaine que
-   * l'opener). Retourne une erreur si la session n'est pas là.
-   */
-  private async _adoptSessionFromOAuthPopup(): Promise<{
-    error: string | null;
-  }> {
-    const {
-      data: { session },
-      error,
-    } = await supabase.auth.getSession();
-    if (error || !session) {
-      return {
-        error:
-          "Le popup de connexion Google s'est fermé sans réussir le flux. " +
-          "Veuillez réessayer.",
-      };
-    }
-    const profile = await this.ensureProfile(session.user);
-    this.setState({
-      session,
-      user: session.user,
-      profile,
-      isLoading: false,
-      error: null,
-    });
-    this.startSessionValidation();
-    this.notifyListeners();
-    return { error: null };
   }
 
   // Handle OAuth callback (for web)
