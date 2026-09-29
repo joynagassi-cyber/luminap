@@ -54,9 +54,22 @@ export async function autDb(): Promise<PooledClient> {
     client = null;
   }
   if (!client) {
-    const c = new Client(buildConfig());
-    await c.connect();
-    client = c;
+    const c = new Client({
+      ...buildConfig(),
+      connectTimeout: 15_000, // échoue vite si le pooler n'est pas joignable
+      idleTimeoutMillis: 30_000,
+      query_timeout: 120_000, // 120 s max par requête (up complet)
+    });
+    try {
+      await c.connect();
+      client = c;
+    } catch (e) {
+      throw new Error(
+        `[autonoma] Connexion PG échouée : ${e instanceof Error ? e.message : String(e)}. ` +
+          "Vérifier que SUPABASE_DB_URL (ou PS_DB_HOST + PS_DATABASE_PASSWORD) est configuré " +
+          "et que le pooler Supabase autorise le connecteur de la preview (IP/allowlist).",
+      );
+    }
   }
   return client;
 }
