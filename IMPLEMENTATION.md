@@ -163,3 +163,17 @@ avant `event_budgets`).
   ne peuvent pas s'exécuter en local (la base Supabase n'est pas
   joignable par TCP depuis le poste de dev). Elles doivent être
   lancées depuis un environnement qui a accès à `SUPABASE_DB_URL`.
+
+- **504 sur le dashboard Autonoma (step preview-environment)** :
+  le dashboard est bloqué car l'upload du recipe n'a pas pu se faire
+  (l'`AUTONOMA_API_TOKEN` / `AUTONOMA_GENERATION_ID` ne sont pas
+  configurés dans le shell local — ils sont gérés par l'environnement
+  Autonoma lui-même pendant le pairing). Pour débloquer :
+  1. Reconfigurer l'application dans l'UI Autonoma (cliquer sur
+     « Configure with coding agent »), OU
+  2. S'assurer que le preview Vercel a bien les env vars
+     `SUPABASE_DB_URL` + `AUTONOMA_TEST_EMAIL` + `AUTONOMA_TEST_PASSWORD`
+     provisionnées (le dashboard les détecte pendant la setup).
+  Le fix `connectTimeout: 15s` dans `pg-db.ts` (commit `59e7515`)
+  fait que les appels au endpoint qui n'ont pas les secrets renvoient
+  une erreur 500 lisible au lieu de hang jusqu'au timeout du dashboard.
