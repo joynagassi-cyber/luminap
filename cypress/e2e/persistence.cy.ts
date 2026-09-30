@@ -74,7 +74,9 @@ describe('Lumina — F5 persistence (transaction, event, form)', () => {
 
     // ── 4. Reload and verify all three entities persist ───────────────
     cy.reload();
-    cy.contains('button', 'Plus').should('be.visible', { timeout: 30_000 });
+    cy.get('button[aria-label="Plus d\'options"]').should('be.visible', {
+      timeout: 30_000,
+    });
 
     cy.visit('/finance');
     cy.contains('Persistante Tx F5').should('be.visible', { timeout: 20_000 });
