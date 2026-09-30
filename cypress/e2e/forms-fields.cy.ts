@@ -24,6 +24,7 @@ describe('Lumina — Forms & Custom Fields', () => {
     const formName = 'E2e Form ' + Date.now().toString().slice(-6);
     const formKey = 'e2e_form_' + Date.now().toString().slice(-6);
 
+    cy.ensureAuth();
     cy.visit('/forms');
     cy.get('h1, h2, h3').contains('Formulaires', { timeout: 30_000 }).should('be.visible');
 
@@ -46,6 +47,7 @@ describe('Lumina — Forms & Custom Fields', () => {
   it('renders the form-submissions page', function () {
     this.timeout(90_000);
 
+    cy.ensureAuth();
     cy.visit('/forms');
     // Click the form card → navigates to /forms/:id/submissions
     cy.get('button')
@@ -66,6 +68,7 @@ describe('Lumina — Forms & Custom Fields', () => {
     const fieldLabel = 'E2e CF ' + Date.now().toString().slice(-6);
     const fieldKey = 'e2e_cf_' + Date.now().toString().slice(-6);
 
+    cy.ensureAuth();
     cy.visit('/custom-fields');
     cy.get('h1, h2, h3').contains('Champs personnalisés', { timeout: 30_000 }).should('be.visible');
 
@@ -85,6 +88,7 @@ describe('Lumina — Forms & Custom Fields', () => {
   it('deletes a custom field via its trash button', function () {
     this.timeout(90_000);
 
+    cy.ensureAuth();
     cy.visit('/custom-fields');
     cy.contains(/E2e CF/i).parent().within(() => {
       cy.get('button[aria-label^="Supprimer"]').click();

@@ -23,6 +23,7 @@ describe('Lumina — Reports & Budgets', () => {
   it('renders /reports with period buttons and tabs', function () {
     this.timeout(90_000);
 
+    cy.ensureAuth();
     cy.visit('/reports');
     cy.get('h1, h2, h3, header').contains('Rapports', { timeout: 30_000 }).should('be.visible');
 
@@ -40,6 +41,7 @@ describe('Lumina — Reports & Budgets', () => {
   it('opens the export modal and shows the PDF option', function () {
     this.timeout(90_000);
 
+    cy.ensureAuth();
     cy.visit('/reports');
     cy.contains('button', 'Exporter le rapport', { timeout: 30_000 }).click();
     cy.get('h2').contains('Exporter le rapport').should('be.visible');
@@ -51,6 +53,7 @@ describe('Lumina — Reports & Budgets', () => {
   it('renders /report-builder with metric and group controls', function () {
     this.timeout(90_000);
 
+    cy.ensureAuth();
     cy.visit('/report-builder');
     // Metric buttons
     cy.contains('button', /Somme|Comptage|Moyenne/i, { timeout: 30_000 }).should('exist');
@@ -61,6 +64,7 @@ describe('Lumina — Reports & Budgets', () => {
 
     const budgetName = 'E2e Budget ' + Date.now().toString().slice(-6);
 
+    cy.ensureAuth();
     cy.visit('/budgets');
     cy.get('[data-testid="budgets-title"]').contains('Budgets').should('be.visible');
 
@@ -77,6 +81,7 @@ describe('Lumina — Reports & Budgets', () => {
     this.timeout(120_000);
 
     // Grab the last budget from the list (our E2e one)
+    cy.ensureAuth();
     cy.visit('/budgets');
     cy.contains('button', /Budgets|E2e Budget/i)
       .last()

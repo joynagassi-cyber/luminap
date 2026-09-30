@@ -108,6 +108,35 @@ declare global {
         role?: string;
       }): Chainable<{ email: string; password: string }>;
       loginOrgAccount(): Chainable;
+      /**
+       * Re-affirme la session Supabase du compte org courant AVANT chaque
+       * cy.visit() sur une route protégée, dans les specs multi-visit.
+       *
+       * Contexte (cluster AUTH_SESSION du test-mapper, ~40–45 issues) :
+       * le token Supabase est persisté dans localStorage via le key
+       * `sb-hhgovvrnalibhgpakswi-auth-token`. Chaque cy.visit() sur une
+       * route protégée re-sert la SPA fresh — si le token est expiré,
+       * le RouteGuard (App.tsx) rebat sur /auth avant même le premier
+       * cy.get(). Sur mobile, le user ne peut pas recharger : le refresh
+       * échoue, écran noir.
+       *
+       * Le pattern « loginOrgAccount + ensureAuth avant CHAQUE cy.visit() »
+       * est le correctif déterministe : on ré-hydrate via /splash
+       * (public route — Splash.tsx appelle authService.getSession() qui
+       * fait le refresh si le refresh_token est encore valide). Si
+       * /splash rebatte sur /auth, on échoue ICI avec un message clair
+       * plutôt qu'en cascade plus loin.
+       *
+       * Usage dans les specs multi-visit :
+       *   it('…', () => {
+       *     cy.loginOrgAccount();
+       *     cy.ensureAuth();  // ← avant le 1er cy.visit() protégé
+       *     cy.visit('/finance');
+       *     cy.ensureAuth();  // ← avant chaque cy.visit() protégé suivant
+       *     cy.visit('/balance');
+       *   });
+       */
+      ensureAuth(): Chainable;
     }
   }
 }

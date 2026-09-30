@@ -22,6 +22,7 @@ describe('Lumina — Finance deep flow', () => {
   it('renders /finance with the Grand livre header', function () {
     this.timeout(90_000);
 
+    cy.ensureAuth();
     cy.visit('/finance');
     cy.get('h1, h2, h3').contains('Grand livre', { timeout: 30_000 }).should('be.visible');
   });
@@ -31,6 +32,7 @@ describe('Lumina — Finance deep flow', () => {
 
     const txLabel = 'E2e Tx ' + Date.now().toString().slice(-6);
 
+    cy.ensureAuth();
     cy.visit('/transaction/new');
     cy.get('h1, h2, h3').contains('Nouvelle transaction').should('be.visible');
 
@@ -47,6 +49,7 @@ describe('Lumina — Finance deep flow', () => {
   it('renders /balance with period toggles', function () {
     this.timeout(90_000);
 
+    cy.ensureAuth();
     cy.visit('/balance');
     cy.get('h1, h2, h3').contains('Bilan financier', { timeout: 30_000 }).should('be.visible');
     cy.contains('button', 'Année').should('be.visible');
@@ -57,9 +60,9 @@ describe('Lumina — Finance deep flow', () => {
     this.timeout(90_000);
 
     // Find the first transaction card on /finance and click it
+    cy.ensureAuth();
     cy.visit('/finance');
     cy.contains('Grand livre', { timeout: 30_000 }).should('be.visible');
-
     // Click the first transaction row/card (assumes the list renders card buttons)
     cy.get('button, a').then(($items) => {
       const target = $items
@@ -89,6 +92,7 @@ describe('Lumina — Finance deep flow', () => {
   it('renders /versement page', function () {
     this.timeout(90_000);
 
+    cy.ensureAuth();
     cy.visit('/versement');
     cy.get('h1, h2, h3, header, [data-testid]').should('exist', { timeout: 30_000 });
   });

@@ -23,6 +23,7 @@ describe('Lumina — Members', () => {
     const lastName = 'E2e' + Date.now().toString().slice(-5);
     const phone = '0700' + Date.now().toString().slice(-6);
 
+    cy.ensureAuth();
     cy.visit('/members');
     cy.get('h1, h2, h3').contains('Membres').should('be.visible');
 
@@ -42,6 +43,7 @@ describe('Lumina — Members', () => {
   it('searches and filters members by name', function () {
     this.timeout(60_000);
 
+    cy.ensureAuth();
     cy.visit('/members');
     cy.get('h1, h2, h3').contains('Membres').should('be.visible');
 
@@ -53,6 +55,7 @@ describe('Lumina — Members', () => {
   it('renders the MembresEnAvance page with total banner', function () {
     this.timeout(60_000);
 
+    cy.ensureAuth();
     cy.visit('/membres-en-avance');
     cy.contains('Total en avance', { timeout: 20_000 }).should('be.visible');
 

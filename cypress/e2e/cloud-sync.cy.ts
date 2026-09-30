@@ -45,6 +45,7 @@ describe('Lumina — cloud sync (offline → online)', () => {
     }).as('offlinePost');
 
     // ── 2. Create group (account) while offline ───────────────────────
+    cy.ensureAuth();
     cy.visit('/groups');
     cy.get('h1, h2, h3').contains('Groupes').should('be.visible');
     cy.contains('button', 'Créer').click();

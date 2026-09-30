@@ -62,6 +62,7 @@ describe('Lumina — comprehensive navigation & finance flow', () => {
     cy.get('[data-testid="sync-indicator"]').click();
 
     // ── Direct balance navigation ──────────────────────────────────────
+    cy.ensureAuth();
     cy.visit('/balance');
     cy.get('[data-testid="sync-indicator"]').should('be.visible');
 
@@ -69,6 +70,7 @@ describe('Lumina — comprehensive navigation & finance flow', () => {
     //    /transaction/new, puis on ouvre son edit par son vrai id. L'ancienne
     //    version hardcodait /transaction/1/edit sur un seed qui n'existe pas
     //    (l'org est vrac au boot), et le edit ne montrait qu'un écran vide.
+    cy.ensureAuth();
     cy.visit('/transaction/new');
     cy.get('input[aria-label="Montant en francs CFA"]').type('7500');
     cy.get('input[aria-label="Description"]').type('E2E Comprehensive Tx');
@@ -85,6 +87,7 @@ describe('Lumina — comprehensive navigation & finance flow', () => {
     cy.url({ timeout: 30_000 }).then((url) => {
       const id = url.split('/transaction/')[1]?.split('/')[0];
       expect(id, 'id transaction dans l\'URL').to.be.a('string');
+      cy.ensureAuth();
       cy.visit(`/transaction/${id}/edit`);
       cy.get('h1, h2, h3').contains('Modifier').should('be.visible');
       cy.contains('button', 'Sauvegarder').click();
