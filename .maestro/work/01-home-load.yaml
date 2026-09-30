@@ -1,0 +1,20 @@
+url: "http://localhost:8080"
+name: "Lumina - Home Load"
+tags:
+  - smoke
+  - web
+---
+- openLink:
+    link: "http://localhost:8080"
+    autoVerify: true
+
+- assertVisible:
+    id: "splash-phase-logo"
+    label: "Splash screen logo visible"
+
+- assertVisible:
+    id: "top-header"
+    label: "Top header visible"
+
+- takeScreenshot:
+    path: "./.maestro/work/shots/home-load.png"

@@ -1,0 +1,1 @@
+var e=(e,t,n)=>e===`ios`&&t===`radio`&&n!==`modal`?`start`:`end`,t=(e,t,n)=>e===`ios`&&t===`radio`&&n!==`modal`?`space-between`:`start`;export{e as n,t};

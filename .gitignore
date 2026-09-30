@@ -54,3 +54,7 @@ pnpm-lock.yaml
 # Reversa framework artifacts (analysis output only)
 .reversa/
 _reversa_sdd/
+
+# e2e-min / Magnitude test artifacts (run logs, traces, screenshots)
+e2e-min/logs/
+test-results/

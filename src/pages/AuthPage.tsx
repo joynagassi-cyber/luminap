@@ -487,6 +487,20 @@ export default function AuthPage() {
                   : "Déjà un compte ? Se connecter"}
               </button>
             </div>
+
+            {/* Entrée invitation : le claim est la porte d'entrée des membres
+                invités (code / JSON / fichier / QR). Page protégée (Route
+                Guard) : un visiteur non connecté est renvoyé vers /auth,
+                ce qui rend le parcours découverte → login → claim fluide. */}
+            <div className="mt-3 text-center">
+              <button
+                onClick={() => navigate("/invitation/claim")}
+                className="text-[var(--text-tertiary)] text-xs hover:text-white transition-colors"
+                aria-label="J'ai un code d'invitation"
+              >
+                J'ai un code d'invitation
+              </button>
+            </div>
           </div>
         </div>
       </IonContent>
