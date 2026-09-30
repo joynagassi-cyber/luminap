@@ -13,6 +13,7 @@ import {
   featuresForNav,
   FEATURES,
   DEFAULT_NAV_TABS,
+  ensureNavViewChunk,
   type FeatureDef,
 } from "@/lib/features";
 import HomeIndicator from "@/components/HomeIndicator";
@@ -139,11 +140,22 @@ export default function BottomNav() {
   // Garde déterministe : chaque bouton de feature mène à une page claire.
   // Si la destination n'est pas une route absolue connue (route absente ou
   // corrompue), on retombe sur l'accueil — jamais d'écran mort / 404.
-  const go = (feature: FeatureDef) => {
+  //
+  // await ensureNavViewChunk(feature.id) AVANT navigate() : le chunk du
+  // tab de navigation doit être résolu avant le changement de view
+  // React Router, sinon le view entrant est le fallback de Suspense et
+  // la transition Ionic rejoue avec un DOM différent (écran noir).
+  // L'import() est servi instantanément depuis le cache module s'il est
+  // déjà chargé — l'await n'a un coût que sur le tout-premier clic
+  // sur ce tab (typique en mobile après l'onboarding).
+  const go = async (feature: FeatureDef) => {
     const target =
       typeof feature?.route === "string" && feature.route.startsWith("/")
         ? feature.route
         : "/dashboard";
+    if (typeof feature.id === "string" && feature.id.length > 0) {
+      await ensureNavViewChunk(feature.id);
+    }
     navigate(target);
     setShowMore(false);
   };

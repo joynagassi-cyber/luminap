@@ -453,3 +453,23 @@ export function prefetchNavViews(navTabs?: string[]): void {
     );
   }
 }
+
+/**
+ * Attend que le chunk du tab de navigation `id` soit résolu avant de
+ * naviguer. Le `requestIdleCallback` de `prefetchNavViews` peut ne pas
+ * avoir fini quand le user clique un onglet de la BottomNav : si on
+ * navigue avant que le chunk soit là, le `<IonPage>` du view entrant
+ * est le fallback de Suspense (skeleton), puis la vraie page est montée
+ * avec un DOM différent → la transition Ionic rejoue et laisse le
+ * view stuck en `ion-page-invisible` (écran noir). Avec un `await`
+ * du chunk avant `navigate()`, la page cible existe déjà au moment
+ * de la transition : le commit est propre, pas d'écran noir.
+ *
+ * Sans effet de bord sur le cache : un import() déjà résolu est servi
+ * instantanément depuis le module cache de Vite (0 ms).
+ */
+export function ensureNavViewChunk(id: string): Promise<unknown> {
+  const loader = NAV_VIEW_CHUNKS[id];
+  if (!loader) return Promise.resolve();
+  return loader().catch(() => {});
+}

@@ -111,27 +111,23 @@ export default function Finance() {
     navigate(`/transaction/new?type=${type}`);
   };
 
-  if (loading) {
-    return (
-      <IonPage>
-        <IonContent className="bg-canvas">
-          <div className="min-h-screen bg-canvas">
-            <TopHeader title="Finance" />
-            <FinanceSkeleton />
-            <BottomNav />
-          </div>
-        </IonContent>
-      </IonPage>
-    );
-  }
-
+  // UN SEUL <IonPage> à la racine (corrigé écran noir BottomNav) : le
+  // view-stack d'Ionic s'enregistre via registerIonPage sur la DOM
+  // identité de l'élément — si on change de <IonPage> à chaque branche
+  // (loading vs chargé), l'élément est démonté/remonté, la transition
+  // est rejouée et le view entrant reste stuck en ion-page-invisible.
+  // On garde le MÊME <IonPage> et on bascule uniquement le contenu.
   return (
     <IonPage>
       <IonContent className="bg-canvas">
         <div className="min-h-screen bg-canvas">
-          <h1 className="sr-only">Finance — Grand livre</h1>
-          <TopHeader title="Finance" />
-          <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
+          {loading ? (
+            <FinanceSkeleton />
+          ) : (
+            <>
+              <h1 className="sr-only">Finance — Grand livre</h1>
+              <TopHeader title="Finance" />
+              <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
             {/* Summary Cards */}
             <div className="grid grid-cols-2 gap-3 mb-6">
               <div
@@ -361,7 +357,8 @@ export default function Finance() {
                 <ArrowDownRight className="w-6 h-6 text-white" />
               </button>
             </div>
-          </div>
+            </>
+          )}
           <BottomNav />
         </div>
       </IonContent>
