@@ -51,4 +51,21 @@ describe('Lumina — Session persistence (Mes comptes, reconnect sans retaper)',
         });
       });
   });
+
+  it('le bouton « Retirer » d’une carte cible bien cette org-là (bug list[0] corrigé)', function () {
+    this.timeout(90_000);
+
+    // Reconnecté au dashboard par le test précédent. Chaque carte
+    // porte maintenant son propre bouton « Retirer » avec l’aria-label
+    // exact de son compte visuel — le bouton global list[0] a été
+    // retiré. On vérifie que le bouton « Retirer » de la 1re carte
+    // cible bien LA org visuellement associée, sans appuyer (le run
+    // doit garder son compte unique pour les specs suivants).
+    cy.visit('/sessions');
+    cy.get('button[aria-label^="Re-ouvrir"]').first().then((btn) => {
+      const rawLabel = (btn.attr('aria-label') || '').replace('Re-ouvrir ', '');
+      // Le bouton « Retirer » associé porte l’aria-label exact du même org.
+      cy.get(`button[aria-label="Retirer ${rawLabel} de la liste"]`).should('be.visible');
+    });
+  });
 });

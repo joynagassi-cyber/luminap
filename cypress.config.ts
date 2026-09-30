@@ -14,7 +14,9 @@ import { defineConfig } from 'cypress';
  */
 export default defineConfig({
   e2e: {
-    baseUrl: process.env.CYPRESS_BASE_URL || 'http://localhost:8080',
+    baseUrl:
+      process.env.CYPRESS_BASE_URL ||
+      'https://lumina-76un.onrender.com',
     // Expose credentials to the browser test context via Cypress.config().env.
     // In Cypress 16, process.env is not directly available in the
     // Node-context Mocha runner. Use `expose` (a plain object) to whitelist

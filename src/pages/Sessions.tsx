@@ -25,7 +25,7 @@ import {
 } from "@/lib/organization-context";
 import { authService } from "@/lib/auth";
 import { useLocalStore } from "@/store/useLocalStore";
-import { LogIn, Building2, Check, Loader2, LogOut, Trash2 } from "lucide-react";
+import { Building2, Check, Loader2, LogOut, Trash2 } from "lucide-react";
 import { getOrganizationId } from "@/lib/orgContext";
 
 /** Paire « retiré » — un user ne retire un compte que pour LUI-MÊME. */
@@ -192,20 +192,26 @@ export default function SessionsPage() {
                   const busyThis =
                     busy === org.orgId || busy === org.orgId + "__remove__";
                   return (
-                    <button
+                    <div
                       key={org.orgId}
-                      type="button"
-                      disabled={busyThis}
-                      onClick={() => handleEnter(org)}
-                      className="w-full text-left rounded-xl p-4 flex items-center gap-3 transition-[transform,background-color] active:scale-[0.99] disabled:opacity-60"
+                      className="rounded-xl p-4 flex items-center gap-3 transition-[background-color]"
                       style={{
                         backgroundColor: isCurrent
                           ? "color-mix(in srgb, var(--accent-primary) 10%, var(--surface))"
                           : "var(--surface)",
                         border: "1px solid var(--border)",
                       }}
-                      aria-label={`Re-ouvrir ${org.name}`}
                     >
+                      {/* Re-ouvrir la session — la carte entière est cliquable,
+                          à l'exception de la zone « Retirer » (stopPropagation). */}
+                      <button
+                        type="button"
+                        disabled={busyThis}
+                        onClick={() => handleEnter(org)}
+                        className="flex-1 min-w-0 flex items-center gap-3 text-left rounded-lg active:scale-[0.99] transition-transform disabled:opacity-60"
+                        style={{ border: "none", backgroundColor: "transparent", cursor: "pointer" }}
+                        aria-label={`Re-ouvrir ${org.name}`}
+                      >
                       <div
                         className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0"
                         style={{
@@ -234,8 +240,25 @@ export default function SessionsPage() {
                           {VIA_LABEL[org.via]} · {STATUS_LABEL[org.status] ?? org.status}
                         </p>
                       </div>
-                      <LogIn className="w-4 h-4 flex-shrink-0" style={{ color: "var(--text-tertiary)" }} />
-                    </button>
+                      {/* « Retirer » : agit sur le compte visuel associé à la
+                          carte (org), jamais sur list[0] — avec plusieurs
+                          comptes, le bouton retire LA org cliquée, pas la
+                          1re de la liste. */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRemoveAccount(org);
+                        }}
+                        disabled={busyThis}
+                        className="flex items-center gap-1.5 p-2 rounded-lg text-text-tertiary text-xs hover:text-text-secondary transition-colors disabled:opacity-50"
+                        style={{ border: "none", backgroundColor: "transparent", cursor: "pointer" }}
+                        aria-label={`Retirer ${org.name} de la liste`}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        Retirer
+                      </button>
+                    </div>
                   );
                 })}
               </div>
@@ -269,25 +292,6 @@ export default function SessionsPage() {
                       Vos comptes restent listés ici pour reconnecter plus tard
                     </p>
                   </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleRemoveAccount(list[0])}
-                  disabled={list.length === 0 || busy !== null}
-                  className="w-full flex items-center gap-3 p-3 rounded-xl text-left disabled:opacity-50"
-                  style={{
-                    backgroundColor: "transparent",
-                    border: "1px dashed var(--border)",
-                  }}
-                  aria-label={list[0] ? `Retirer ${list[0].name} de la liste` : "Retirer ce compte de la liste"}
-                >
-                  <Trash2 className="w-4 h-4 flex-shrink-0" style={{ color: "var(--text-tertiary)" }} />
-                  <span className="text-text-tertiary text-xs">
-                    {list[0]
-                      ? `Retirer ${list[0].name} de la liste`
-                      : "Retirer ce compte de la liste"}
-                  </span>
                 </button>
               </div>
             )}
