@@ -58,3 +58,6 @@ _reversa_sdd/
 # e2e-min / Magnitude test artifacts (run logs, traces, screenshots)
 e2e-min/logs/
 test-results/
+
+# Nitro build output (server bundle — committed by accident in 6f94396)
+.output/

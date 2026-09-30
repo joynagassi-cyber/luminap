@@ -1,1 +1,0 @@
-import{Tr as e}from"./index-BAHNZKvo.js";var t=e(`https://hhgovvrnalibhgpakswi.supabase.co`,`sb_publishable_kwbReVxSdHLx_u2IzQvGaA_Eegsf2Sh`);export{t};

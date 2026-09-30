@@ -67,16 +67,7 @@ export default defineConfig(() => ({
   optimizeDeps: {
     exclude: ["@journeyapps/wa-sqlite", "@powersync/web"],
   },
-  build: {
-    // @autonoma-ai/server-node est un module CJS/Node 18+ (utilise
-    // `require('http')`, `node:crypto`) — Rolldown ne peut pas le
-    // bundler pour le worker Nitro (ESM-only, sandbox sans accès
-    // système Node). On l'externalise pour que le Nitro runtime le
-    // resolve via `node_modules/` à l'exécution.
-    rolldownOptions: {
-      external: ["@autonoma-ai/server-node", "@autonoma-ai/sdk"],
-    },
-  },
+  build: {},
   worker: {
     format: "es",
     plugins: () => [wasm()],

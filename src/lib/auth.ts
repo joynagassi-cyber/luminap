@@ -509,9 +509,8 @@ class AuthService {
   //
   // IMPORTANT : l'URL de callback web doit figurer dans la liste des
   // Redirect URLs du projet Supabase (dashboard → Authentication → URL
-  // Configuration → Redirect URLs). Pour les previews Autonoma, ajouter :
-  //   https://*.preview.autonoma.app/auth/callback
-  // La Site URL doit correspondre au domaine courant (ou être un wildcard).
+  // Configuration → Redirect URLs). La Site URL doit correspondre au
+  // domaine courant (ou être un wildcard).
   //
   // Mobile (Capacitor) : deep link système lumina://auth/callback.
 

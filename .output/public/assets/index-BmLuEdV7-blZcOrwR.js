@@ -1,1 +1,0 @@
-import"./gesture-controller-B_gJaBk0-CbQXEwjd.js";import{j as e}from"./dist-0vnC2M5Q.js";export{e as createGesture};
