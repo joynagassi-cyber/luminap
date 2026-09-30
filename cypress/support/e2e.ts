@@ -27,16 +27,13 @@
  */
 
 /**
- * Setter 2-args de l'env Cypress (API publique, absent des .d.ts de
- * cypress@16 — le global `Cypress` de l'API ne porte pas cet overload).
- * Usage : `luminaCypressEnvSet('orgCreds', { email, password })`.
+ * Persistance inter-spec des credentials du compte d'organisation UNIQUE
+ * du run (pattern signupOrgAccount → loginOrgAccount). Voir
+ * `cypress/support/orgCreds.ts` pour le design (cache in-mem + config
+ * Node comme source de vérité).
  */
-function luminaCypressEnvSet(key: string, value: unknown): void {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (Cypress as any).env(key, value);
-}
+import { getOrgCreds, setOrgCreds } from './orgCreds';
 
-// Extends the Cypress namespace — the standard idiom for custom commands.
 /* eslint-disable @typescript-eslint/no-namespace */
 declare global {
   namespace Cypress {
@@ -534,9 +531,7 @@ Cypress.Commands.add(
       role?: string;
     },
   ): Cypress.Chainable<{ email: string; password: string }> {
-    const fresh = (Cypress as any).env('orgCreds') as
-      | { email: string; password: string }
-      | undefined;
+    const fresh = getOrgCreds();
     if (fresh?.email && fresh?.password) {
       // Un compte existe déjà sur cette machine (run précédent non
       // nettoyé) — on réutilise ces credentials plutôt que d'en créer
@@ -579,7 +574,7 @@ Cypress.Commands.add(
       role: overrides?.role ?? 'PASTEUR_PRINCIPAL',
     });
 
-    luminaCypressEnvSet('orgCreds', { email, password });
+    setOrgCreds({ email, password });
     cy.window().then((win) => {
       const sbKey = Object.keys(win.localStorage).find(
         (k) => /-auth-token$/.test(k),
@@ -599,24 +594,25 @@ Cypress.Commands.add(
  * Log-in du compte d'organisation UNIQUE du run (le même que
  * cy.signupOrgAccount() a créé au 1er spec).
  *
- *   1. Lit Cypress.env.orgCreds (posé par le 1er spec).
+ *   1. Lit les credentials via le module de persistance inter-spec
+ *      (`getOrgCreds()` — cache in-mem + config Node, voir
+ *      cypress/support/orgCreds.ts).
  *   2. cy.visit('/auth') + submit du form login → /dashboard.
  *   3. Post-condition : /dashboard (pas /onboarding — l'org existe,
  *      onboarding déjà complété par le wizard du 1er spec).
  *
- * Si Cypress.env.orgCreds n'est pas posé (le 1er spec n'a pas tourné,
- * ou l'env a été perdu), ce spec échoue avec un message clair plutôt
- * que de recréer silencieusement un compte.
+ * Si les credentials ne sont pas posés (le 1er spec n'a pas tourné,
+ * ou le run a été nettoyé), ce spec échoue avec un message clair
+ * plutôt que de recréer silencieusement un compte.
  */
 Cypress.Commands.add('loginOrgAccount', function (): Cypress.Chainable {
-  const creds = (Cypress as any).env('orgCreds') as
-    | { email: string; password: string }
-    | undefined;
+  const creds = getOrgCreds();
   if (!creds?.email || !creds?.password) {
     throw new Error(
-      'loginOrgAccount: Cypress.env.orgCreds absent — le 1er spec ' +
-        '(cy.signupOrgAccount()) n\'a pas tourné ou l\'env a été perdu. ' +
-        'Toujours lancer le spec d\'auth d\'abord dans le run.',
+      'loginOrgAccount: credentials du compte d\'organisation absents — ' +
+        'le 1er spec (cy.signupOrgAccount()) n\'a pas tourné ou le run ' +
+        'a été nettoyé. Toujours lancer le spec d\'auth d\'abord dans ' +
+        'le run (il pose le compte partagé pour la suite).',
     );
   }
   cy.clearLocalStorage();

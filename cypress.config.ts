@@ -35,6 +35,12 @@ export default defineConfig({
       POWERSYNC_URL:
         process.env.CYPRESS_POWERSYNC_URL ||
         'https://6a9dd96302481fb31b945823.powersync.journeyapps.com',
+      // Compte d'organisation UNIQUE du run (pattern signupOrgAccount →
+      // loginOrgAccount, voir cypress/support/orgCreds.ts) : le 1er spec
+      // (auth-real.cy.ts) l'écrit via Cypress.expose('orgCreds', {...}) ;
+      // tous les specs suivants le relisent via loginOrgAccount().
+      // Pré-déclaré ici (null) pour que la clé soit lisible au boot.
+      orgCreds: null,
     },
     // Same testDir shape as before; specs live under cypress/e2e.
     specPattern: 'cypress/e2e/**/*.cy.{ts,tsx}',
