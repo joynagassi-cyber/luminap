@@ -26,6 +26,16 @@
  *   POWERSYNC_URL — PowerSync worker URL (for offline interception)
  */
 
+/**
+ * Setter 2-args de l'env Cypress (API publique, absent des .d.ts de
+ * cypress@16 — le global `Cypress` de l'API ne porte pas cet overload).
+ * Usage : `luminaCypressEnvSet('orgCreds', { email, password })`.
+ */
+function luminaCypressEnvSet(key: string, value: unknown): void {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (Cypress as any).env(key, value);
+}
+
 // Extends the Cypress namespace — the standard idiom for custom commands.
 /* eslint-disable @typescript-eslint/no-namespace */
 declare global {
@@ -49,6 +59,58 @@ declare global {
         firstName?: string;
         lastName?: string;
       }): Chainable;
+      /**
+       * Garantit qu'une session Supabase est persistée dans localStorage
+       * avant un cy.visit() sur route protégée ; sinon re-route via
+       * /splash pour re-hydrater. A appeler après freshSignup si le
+       * spec fait des cy.visit() multiples sur des routes protégées.
+       */
+      ensureAuth(): Chainable;
+      /**
+       * Parcours l'onboarding COMPLET par l'UI (pas le contournement par
+       * localStorage de skipOnboarding()) :
+       *   1. /onboarding : 8 écrans de présentation × « Suivant », puis
+       *      l'écran de branch → « Je crée mon organisation »
+       *   2. /org-setup : nom + type + thème + modules + rôle
+       *      → « Créer l'organisation »
+       *   3. atterrit sur /dashboard
+       *
+       * Créer une vraie organisation (lumina-config + onboardingState
+       * complets) — nécessaire pour les specs qui testent l'invitation
+       * ou les features qui exigent une org créée (RBAC par org).
+       *
+       * Précondition : cy.freshSignup() déjà appelé (session Supabase).
+       */
+      runOnboarding(overrides?: {
+        orgName?: string;
+        orgSigle?: string;
+        orgType?: 'Église' | 'École' | 'Entreprise';
+        role?: string;
+      }): Chainable;
+      /**
+       * Le flow d'auth DÉTERMINISTE demandé par l'utilisateur :
+       *
+       *   1. Un seul compte d'organisation est créé au 1er run de la
+       *      session via cy.signupOrgAccount() (freshSignup + runOnboarding
+       *      complet par l'UI, SANS raccourci localStorage). Ses credentials
+       *      sont écrits dans `Cypress.env` (key `orgCreds`) — persistance
+       *      inter-spec sur la même machine.
+       *   2. Dès le run suivant, cy.loginOrgAccount() loggue directement
+       *      avec ces credentials (pas de re-signup) et atterrit sur
+       *      /dashboard (l'org existe déjà, onboarding déjà complété).
+       *
+       * C'est LE pattern à utiliser dans TOUTES les specs cloud : le
+       * même compte d'organisation est partagé sur l'ensemble du run,
+       * ce qui garantit le déterminisme demandé par l'utilisateur
+       * (pas de fresh signup par spec, pas de contournement, un seul
+       * org = une seule session de référence pour les tests).
+       */
+      signupOrgAccount(overrides?: {
+        orgName?: string;
+        orgType?: 'Église' | 'École' | 'Entreprise';
+        role?: string;
+      }): Chainable<{ email: string; password: string }>;
+      loginOrgAccount(): Chainable;
     }
   }
 }
@@ -198,6 +260,88 @@ Cypress.Commands.add('prepareSession', function (email: string, password: string
   cy.skipOnboarding();
 });
 
+Cypress.Commands.add('runOnboarding', function (overrides: {
+  orgName?: string;
+  orgSigle?: string;
+  orgType?: 'Église' | 'École' | 'Entreprise';
+  role?: string;
+} = {}) {
+  const orgName = overrides.orgName ?? 'Org E2E ' + Date.now().toString().slice(-6);
+  const orgSigle =
+    overrides.orgSigle ??
+    orgName
+      .split(' ')
+      .map((w) => (w ? w[0] : ''))
+      .join('')
+      .toUpperCase()
+      .slice(0, 12);
+  const orgType = overrides.orgType ?? 'Église';
+  // Par défaut on prend le 1er rôle de la template Église (PASTEUR_PRINCIPAL)
+  // qui a group/event/transaction/form/invitation:create.
+  const role = overrides.role ?? 'PASTEUR_PRINCIPAL';
+
+  // freshSignup a pré-set lumina-onboarded=true + lumina-role=TREASURIER
+  // (voir le commentaire dans cy.freshSignup). Le Splash ne redirige
+  // donc PAS vers /onboarding. On doit naviguer DIRECTEMENT sur
+  // /onboarding (la route est publique pour les users auth).
+  cy.visit('/onboarding');
+  cy.contains('button', /Suivant|Passer/, { timeout: 30_000 }).should('be.visible');
+
+  // 8 écrans de présentation. Le bouton du bas gauche est :
+  //   - écran 0 : « Ignorer » (skip) → avance à l'écran 1
+  //   - écrans 1-7 : « Précédent »
+  // Le bouton du bas droit est toujours « Suivant » (avance à l'écran
+  // suivant, jusqu'à l'écran 8 = branch).
+  //
+  // Stratégie la plus robuste : 8 × « Suivant » pour arriver à l'écran
+  // branch, sans ambiguïté de sélecteur.
+  cy.get('button').contains('Suivant', { timeout: 30_000 }).should('exist');
+  for (let i = 0; i < 8; i++) {
+    cy.get('button').contains('Suivant', { timeout: 15_000 }).click();
+  }
+  // On est maintenant sur l'écran 8 = branch (pas de « Suivant »).
+  cy.contains('button', 'Je crée mon organisation', { timeout: 30_000 })
+    .click();
+  cy.location('pathname', { timeout: 30_000 }).should('eq', '/org-setup');
+
+  // Org setup : nom + sigle. Les inputs de OrgSetup sont des <input>
+  // natifs dans le light DOM — ciblés par leur placeholder (uniques).
+  cy.get('input[placeholder="Église MFE-JC Centrale"]', { timeout: 30_000 })
+    .clear()
+    .type(orgName);
+  cy.get('input[placeholder="MFE"]')
+    .clear()
+    .type(orgSigle);
+
+  // Type : le label affiché (ex. « Église ») est dans le template card,
+  // on clique dessus.
+  cy.contains('button', orgType, { timeout: 15_000 }).click();
+
+  // Rôle : le label (ex. « Pasteur principal ») est dans la role card.
+  const roleLabel: Record<string, string> = {
+    PASTEUR_PRINCIPAL: 'Pasteur principal',
+    TREASURIER: 'Trésorier',
+    COMPTABLE: 'Comptable',
+    SECRETAIRE: 'Secrétaire',
+    RESPONSABLE_DEPARTEMENT: 'Resp. département',
+    DIRECTEUR: 'Directeur',
+  };
+  const roleText = roleLabel[role] ?? role;
+  cy.contains('button', roleText, { timeout: 15_000 }).click();
+
+  // CTA. Le submit fait updateConfig + selectRole (PowerSync) —
+  // peut prendre quelques secondes.
+  cy.contains('button', "Créer l'organisation", { timeout: 30_000 }).click();
+
+  // Post-condition : on est sur /dashboard et lumina-onboarded est true.
+  cy.location('pathname', { timeout: 90_000 }).should('eq', '/dashboard');
+  cy.window().then((win) => {
+    expect(win.localStorage.getItem('lumina-onboarded'), 'lumina-onboarded').to.eq('true');
+    const cfg = JSON.parse(win.localStorage.getItem('lumina-config') || '{}');
+    expect(cfg.churchName ?? '', 'churchName in lumina-config').to.eq(orgName);
+  });
+});
+
 Cypress.Commands.add('requireCredentials', function (): Cypress.Chainable {
   const email = getExposed('TEST_EMAIL');
   const password = getExposed('TEST_PASSWORD');
@@ -209,6 +353,55 @@ Cypress.Commands.add('requireCredentials', function (): Cypress.Chainable {
     );
   }
   return cy.wrap(null);
+});
+
+/**
+ * Garantit qu'une session Supabase authentifiée est présente dans
+ * localStorage (key `sb-hhgovvrnalibhgpakswi-auth-token` — le
+ * key est HARCODÉ dans src/pages/AuthPage.tsx et est unique à
+ * l'instance Supabase « Lumina »). Le RouteGuard (App.tsx) rebat
+ * sur /auth à CHAQUE cy.visit() sur route protégée si ce token
+ * n'existe pas ou est expiré.
+ *
+ * Usage : au début de chaque spec qui fait plusieurs cy.visit()
+ * sur des routes protégées, après cy.freshSignup(). Ne crée PAS
+ * de nouveau compte — si le token est absent, repasse par
+ * /splash pour re-hydrater (authService.getSession() →
+ * /auth/v1/token si le cookie http-only persiste), sinon c'est
+ * vraiment perdue et le spec doit re-sign.
+ */
+Cypress.Commands.add('ensureAuth', function () {
+  cy.window().then((win) => {
+    // Le key est `sb-<projectId>-auth-token` — `hhgovvrnalibhgpakswi`
+    // est le projectRef de l'instance Supabase Lumina (voir
+    // cypress.config.ts SUPABASE_URL et src/pages/AuthPage.tsx:65).
+    const SB_TOKEN_KEY = 'sb-hhgovvrnalibhgpakswi-auth-token';
+    const raw = win.localStorage.getItem(SB_TOKEN_KEY);
+    let tokenValid = false;
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        const exp = parsed?.expires_at; // epoch seconds
+        tokenValid = !!parsed?.access_token && (!exp || exp * 1000 > Date.now());
+      } catch {
+        tokenValid = false;
+      }
+    }
+    if (tokenValid) return;
+    // Token absent/expiré → re-route via /splash. La page public
+    // /splash permet à Splash.tsx de re-appeler
+    // authService.getSession() (qui lit le token + s'il est
+    // expiré, refreshSession via le refresh_token).
+    cy.visit('/splash');
+    cy.location('pathname', { timeout: 60_000 }).should((path: string) => {
+      // Re-route vers /onboarding si le token a perdu le flag
+      // lumina-onboarded ; sinon /dashboard. Si on rebata sur
+      // /auth, le token est Perte et le spec va échouer (on
+      // préfère échouer ici que plus tard en cascade).
+      expect(path, `ensureAuth: /splash a rebattu sur ${path} — le token Supabase a expiré et le refresh a échoué`).to.not.include('/auth');
+      return true;
+    });
+  });
 });
 
 /**
@@ -234,6 +427,11 @@ Cypress.Commands.add('freshSignup', function (overrides?: {
 
   cy.clearLocalStorage();
   cy.visit('/auth');
+  // Laisser la page d'auth s'hydrater complètement : le blocage
+  // « Continuer avec Google » + form email/password n'est utilisable
+  // qu'après l'init supabase. Sans ce stabilisateur, le click « Pas
+  // encore de compte » peut atterrir sur le form login vide.
+  cy.contains('button', 'Pas encore de compte', { timeout: 30_000 }).should('be.visible');
 
   // Pré-set des flags onboarding AVANT le submit (même pattern que
   // auth-real.cy.ts) : sans ça, le nouveau compte atterrit sur
@@ -243,6 +441,10 @@ Cypress.Commands.add('freshSignup', function (overrides?: {
   // transactions et formulaires — toutes ces actions exigent les
   // permissions du rôle TREASURIER (group:create, event:create, etc.).
   // Un rôle MEMBRE n'y a pas accès et les boutons « Créer » ne s'afficheraient pas.
+  //
+  // NOTE : ces flags ne PASSENT pas la route guard (RouteGuard dans
+  // App.tsx check le token Supabase via authService.getSession(), PAS
+  // localStorage). Ils servent à splash → /dashboard post-login.
   cy.window().then((win) => {
     win.localStorage.setItem('lumina-onboarded', 'true');
     win.localStorage.setItem('lumina-role', 'TREASURIER');
@@ -266,7 +468,168 @@ Cypress.Commands.add('freshSignup', function (overrides?: {
     expect(['/dashboard', '/splash']).to.include(path);
   });
 
+  // POST-CONDITION de freshSignup : le session Supabase est PERSISTÉ
+  // dans localStorage (key sb-<projectId>-auth-token) par supabase-js
+  // lors du submit du form sign-up. On le vérifie ici pour s'assurer
+  // que le spec qui suit ne sera PAS rebatté sur /auth par le
+  // RouteGuard à son cy.visit(...).
+  cy.window().then((win) => {
+    const sbKey = Object.keys(win.localStorage).find((k) => /-auth-token$/.test(k));
+    if (!sbKey) {
+      throw new Error(
+        'freshSignup: supabase session token absent de localStorage — ' +
+          'le sign-up UI a échoué silencieusement (rate-limit, email ' +
+          'doublon, ou page non-hydratée au submit).',
+      );
+    }
+    try {
+      const parsed = JSON.parse(win.localStorage.getItem(sbKey) || 'null');
+      if (!parsed?.access_token) {
+        throw new Error(
+          'freshSignup: session token présente mais access_token manquant — ' +
+            'le form sign-up a retourné une réponse non conforme.',
+        );
+      }
+    } catch (e) {
+      // JSON invalide = session non écrite → même diagnostic.
+      throw new Error(
+        'freshSignup: localStorage sb-*-auth-token malformé: ' +
+          (e instanceof Error ? e.message : String(e)),
+      );
+    }
+  });
+
   return cy.wrap({ email, password });
+});
+
+/**
+ * Sign-up du compte d'organisation UNIQUE du run, avec parcours
+ * COMPLET par l'UI (pas de raccourci localStorage) :
+ *
+ *   1. cy.freshSignup() — crée le compte Supabase via le formulaire
+ *      /auth (email unique par run, persisté dans Cypress.env.orgCreds
+ *      pour les specs suivantes).
+ *   2. cy.runOnboarding() — le wizard UI : 8 écrans de présentation,
+ *      branch « Je crée mon organisation », /org-setup (nom + type +
+ *      thème + modules + rôle) → « Créer l'organisation » → /dashboard.
+ *
+ * Post-condition : un compte d'organisation existe (Supabase + org
+ * créée via le wizard), le token est dans localStorage, les flags
+ * onboarding sont complets. Cypress.env.orgCreds est posé pour que
+ * les specs suivantes fassent cy.loginOrgAccount() au lieu de
+ * recréer un compte.
+ *
+ * À n'appeler QUE dans le 1er spec du run (ex. auth-real.cy.ts ou
+ * un dedicated org-setup spec). Tous les autres specs utilisent
+ * cy.loginOrgAccount() qui LOGGIN (pas re-signup) et atterrit
+ * directement sur /dashboard (needsOnboarding() = false, l'org
+ * existe déjà).
+ */
+Cypress.Commands.add(
+  'signupOrgAccount',
+  function (
+    overrides?: {
+      orgName?: string;
+      orgType?: 'Église' | 'École' | 'Entreprise';
+      role?: string;
+    },
+  ): Cypress.Chainable<{ email: string; password: string }> {
+    const fresh = (Cypress as any).env('orgCreds') as
+      | { email: string; password: string }
+      | undefined;
+    if (fresh?.email && fresh?.password) {
+      // Un compte existe déjà sur cette machine (run précédent non
+      // nettoyé) — on réutilise ces credentials plutôt que d'en créer
+      // un nouveau (l'utilisateur veut 1 seul org partagée).
+      cy.log('signupOrgAccount: réutilisation des credentials existants');
+      cy.clearLocalStorage();
+      cy.visit('/auth');
+      cy.get('input[type="email"]').first().type(fresh.email);
+      cy.get('input[type="password"]').first().type(fresh.password);
+      cy.contains('button[type="submit"]', 'Se connecter').click();
+      cy.location('pathname', { timeout: 90_000 }).should('eq', '/dashboard');
+      return cy.wrap(fresh);
+    }
+
+    const email = `org.${Date.now()}@lumina.dev`;
+    const password = `E2e-${Math.random().toString(36).slice(2, 10)}!a`;
+    const firstName = 'Org';
+    const lastName = 'E2E';
+
+    cy.visit('/auth');
+    cy.contains('button', 'Pas encore de compte', { timeout: 30_000 }).should(
+      'be.visible',
+    );
+    cy.contains('button', 'Pas encore de compte').click();
+    cy.get('input[aria-label="Prénom"]').type(firstName);
+    cy.get('input[aria-label="Nom"]').type(lastName);
+    cy.get('input[type="email"]').type(email);
+    cy.get('input[type="password"]').type(password);
+    cy.contains('button[type="submit"]', 'Créer mon compte').click();
+
+    // Le signup crée l'account Supabase. Pas de localStorage shortcut
+    // ici : le spec est le 1er, l'org n'existe pas encore, on doit
+    // passer par le wizard COMPLET (l'exigence stricte de l'utilisateur).
+    cy.location('pathname', { timeout: 120_000 }).should((path: string) => {
+      expect(path, `after signup: ${path}`).to.eq('/onboarding');
+    });
+    cy.runOnboarding({
+      orgName: overrides?.orgName ?? 'Org E2E ' + Date.now().toString().slice(-6),
+      orgType: overrides?.orgType ?? 'Église',
+      role: overrides?.role ?? 'PASTEUR_PRINCIPAL',
+    });
+
+    luminaCypressEnvSet('orgCreds', { email, password });
+    cy.window().then((win) => {
+      const sbKey = Object.keys(win.localStorage).find(
+        (k) => /-auth-token$/.test(k),
+      );
+      if (!sbKey || !win.localStorage.getItem(sbKey)) {
+        throw new Error(
+          'signupOrgAccount: token Supabase absent — le wizard a atterri ' +
+            'sur /dashboard mais la session n\'est pas persistée.',
+        );
+      }
+    });
+    return cy.wrap({ email, password });
+  },
+);
+
+/**
+ * Log-in du compte d'organisation UNIQUE du run (le même que
+ * cy.signupOrgAccount() a créé au 1er spec).
+ *
+ *   1. Lit Cypress.env.orgCreds (posé par le 1er spec).
+ *   2. cy.visit('/auth') + submit du form login → /dashboard.
+ *   3. Post-condition : /dashboard (pas /onboarding — l'org existe,
+ *      onboarding déjà complété par le wizard du 1er spec).
+ *
+ * Si Cypress.env.orgCreds n'est pas posé (le 1er spec n'a pas tourné,
+ * ou l'env a été perdu), ce spec échoue avec un message clair plutôt
+ * que de recréer silencieusement un compte.
+ */
+Cypress.Commands.add('loginOrgAccount', function (): Cypress.Chainable {
+  const creds = (Cypress as any).env('orgCreds') as
+    | { email: string; password: string }
+    | undefined;
+  if (!creds?.email || !creds?.password) {
+    throw new Error(
+      'loginOrgAccount: Cypress.env.orgCreds absent — le 1er spec ' +
+        '(cy.signupOrgAccount()) n\'a pas tourné ou l\'env a été perdu. ' +
+        'Toujours lancer le spec d\'auth d\'abord dans le run.',
+    );
+  }
+  cy.clearLocalStorage();
+  cy.visit('/auth');
+  cy.get('input[type="email"]').first().type(creds.email);
+  cy.get('input[type="password"]').first().type(creds.password);
+  cy.contains('button[type="submit"]', 'Se connecter').click();
+  // Le compte est déjà onboardé (l'org est créée par le wizard du
+  // 1er spec) → Splash redirige direct sur /dashboard, PAS sur
+  // /onboarding. Si l'app rebat sur /onboarding, c'est un bug
+  // produit (needsOnboarding() mal géré sur l'org existante).
+  cy.location('pathname', { timeout: 90_000 }).should('eq', '/dashboard');
+  return cy.wrap(null);
 });
 
 // Register the offline/local helpers (seedLocalSession, interceptCloud,

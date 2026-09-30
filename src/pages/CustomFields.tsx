@@ -169,6 +169,9 @@ export default function CustomFields() {
                 className="relative w-full max-w-lg rounded-t-2xl p-5 pb-8"
                 style={{ backgroundColor: "var(--card)" }}
                 onClick={(e) => e.stopPropagation()}
+                role="dialog"
+                aria-modal="true"
+                aria-label="Nouveau champ"
               >
                 <div className="flex items-center justify-between mb-5">
                   <h2 className="text-text-primary font-bold text-lg">

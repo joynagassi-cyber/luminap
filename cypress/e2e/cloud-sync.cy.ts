@@ -17,11 +17,12 @@
 
 describe('Lumina — cloud sync (offline → online)', () => {
   before(function () {
-    this.timeout(180_000);
-    // Fresh sign-up via /auth — the spec needs a real Supabase session
-    // (cloud-sync proves offline writes reach Supabase on reconnect, so
-    // the credentials must be genuine). No pre-existing account needed.
-    cy.freshSignup();
+    this.timeout(90_000);
+    // Login du compte d'organisation UNIQUE du run (créé par
+    // cy.signupOrgAccount() dans le spec d'auth). Pas de fresh signup :
+    // l'org existe déjà, on atterrit direct sur /dashboard (needsOnboarding()
+    // = false car l'org a déjà passé le wizard).
+    cy.loginOrgAccount();
   });
 
   it('group and custom field created offline reach Supabase after reconnect', function () {
@@ -63,8 +64,10 @@ describe('Lumina — cloud sync (offline → online)', () => {
     // ── 4. Restore online mode ────────────────────────────────────────
     // Cypress 16 a retiré `cy.unrouteAll()` — `cy.restore()` est le
     // repli documenté : il retire toutes les routes interceptées
-    // (GET/POST Supabase ci-dessus) et restaure le réseau.
-    cy.restore();
+    // (GET/POST Supabase ci-dessus) et restaure le réseau. Absent des
+    // .d.ts de cypress@16 : cast explicite.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (cy as any).restore();
 
     // ── 5. Wait for the sync cycle (runs every ~30 s) ────────────────
     // The sync wait is an external timing constraint, not a flaky

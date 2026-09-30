@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { IonApp, setupIonicReact } from "@ionic/react";
 import { IonReactRouter } from "@ionic/react-router";
 import { IonRouterOutlet } from "@ionic/react";
-import { Route, Navigate, useLocation } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { authService } from "@/lib/auth";
 import { AppProvider } from "./context/AppContext";
@@ -62,14 +62,54 @@ function RouteGuard() {
     return unsubscribe;
   }, []);
 
-  // While checking, render nothing to avoid flash of wrong page
-  if (!isAuthChecked) return null;
+  // Pendant le check, on affiche un spinner plein écran plutôt que null :
+  // le fond --canvas (noir) restait seul visible pendant 2-3s (la
+  // revalidation réseau du token) et ressemblait à un « écran noir »
+  // permanent — en particulier sur mobile où le user ne peut pas recharger.
+  if (!isAuthChecked) {
+    return (
+      <div
+        aria-busy="true"
+        style={{
+          position: "absolute",
+          inset: 0,
+          background: "var(--canvas)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexDirection: "column",
+          gap: 12,
+        }}
+      >
+        <div
+          className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin"
+          style={{
+            borderColor: "var(--accent-primary)",
+            borderTopColor: "transparent",
+          }}
+        />
+        <p style={{ color: "var(--text-tertiary)", fontSize: 12 }}>
+          Chargement…
+        </p>
+      </div>
+    );
+  }
 
   // Always allow public routes
   if (PUBLIC_ROUTES.includes(location.pathname)) return null;
 
-  // Redirect unauthenticated users to /auth
+  // Redirect unauthenticated users to /auth.
+  // Log pour diagnostiquer le cas où un clic BottomNav déclenche ce
+  // Navigate PENDANT une transition Ionic : le view entrant peut rester
+  // stuck en `ion-page-invisible` (écran noir permanent jusqu'au
+  // reload). On corrige la racine (le wrapper <Routes>, voir plus bas)
+  // et on log ici pour confirmer que le cas ne survient plus.
   if (!isAuthenticated) {
+    console.warn(
+      `[RouteGuard] Unauthenticated at ${location.pathname} — redirecting to /auth. ` +
+        `Si le user a juste cliqué un onglet de la BottomNav, cette navigation ` +
+        `a pu casser la transition Ionic (écran noir).`,
+    );
     return <Navigate to="/auth" replace />;
   }
 
@@ -100,11 +140,26 @@ const App = () => (
           <AppProvider>
             <SyncIndicator />
             <main id="main" style={{ height: "100%" }}>
-              <IonRouterOutlet>
-                {luminaRoutes}
-                <Route path="/">
-                  <Navigate to="/splash" replace />
-                </Route>
+              {/*
+                Le <Routes> est OBLIGATOIRE : @ionic/react-router
+                (view-stack) appelle getRoutesChildren() qui ne trouve
+                que les routes À L'INTÉRIEUR d'un <Routes> enfant direct
+                de <IonRouterOutlet>. Sans lui, le matching ad-hoc de
+                matchComponent() échoue sur les routes absolues au root
+                outlet et les clics BottomNav laissent le view entrant
+                stuck en ion-page-invisible → écran noir permanent
+                (mobile : impossible de recharger, l'app est PWA).
+                Le key stable force un remount propre du StackManager
+                si React re-monte le parent (QueryClientProvider /
+                AppProvider re-render) — pas de view-item obsolète.
+              */}
+              <IonRouterOutlet key="lumina-root-outlet">
+                <Routes>
+                  {luminaRoutes}
+                  <Route path="/">
+                    <Navigate to="/splash" replace />
+                  </Route>
+                </Routes>
               </IonRouterOutlet>
             </main>
           </AppProvider>

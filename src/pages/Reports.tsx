@@ -530,7 +530,7 @@ export default function Reports() {
               <div className="relative w-full max-w-lg rounded-t-2xl p-5 pb-8" style={{ backgroundColor: "var(--card)" }} onClick={(e) => e.stopPropagation()}>
                 <div className="flex items-center justify-between mb-5">
                   <h2 className="text-text-primary font-bold text-lg">Exporter le rapport</h2>
-                  <button onClick={() => setShowExport(false)} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: "var(--surface-hover)" }}>
+                  <button onClick={() => setShowExport(false)} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: "var(--surface-hover)" }} aria-label="Fermer">
                     <X className="w-4 h-4" />
                   </button>
                 </div>

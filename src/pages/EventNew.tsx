@@ -409,10 +409,12 @@ export default function EventNew() {
                   />
                   <button
                     onClick={handleAddBudget}
-                    className="px-4 py-3 rounded-xl text-sm font-medium"
+                    className="px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-1.5"
                     style={{ backgroundColor: "var(--accent-primary)", color: "#fff" }}
+                    aria-label="Ajouter au budget"
                   >
                     <Plus className="w-4 h-4" />
+                    Ajouter au budget
                   </button>
                 </div>
 

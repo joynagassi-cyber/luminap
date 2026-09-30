@@ -183,9 +183,7 @@ export default function TopHeader({ title }: { title?: string }) {
               className="text-xs truncate"
               style={{ color: isCentralAdmin ? "var(--accent-primary)" : "var(--band-org-ink)" }}
             >
-              {inOrgContext
-                ? `Organisation : ${orgName ?? "chargement…"}`
-                : "Administration centrale"}
+              {inOrgContext ? ctx.label : "Administration centrale"}
             </span>
             {isCentralAdmin && (
               <button

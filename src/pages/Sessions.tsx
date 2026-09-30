@@ -89,27 +89,49 @@ export default function SessionsPage() {
   const handleEnter = async (org: UserOrg) => {
     setBusy(org.orgId);
     setEntering(org.orgId);
-    // 1. Re-s'authentifier si on est déconnecté (token expiré / nouveau
-    //    rechargement) : on tente de restaurer la session Supabase.
-    const session = await authService.getSession();
-    if (!session && user?.email) {
-      // Le rechargement après déconnexion : le token local peut encore être
-      // valide (Supabase persiste dans localStorage). On re-hydrate.
-      await authService.fetchUser().catch(() => undefined);
-    }
-    // 2. Entrer dans le contexte org (vérifie membership/grant local).
-    const ctx = await enterOrganization(org.orgId);
-    setEntering(null);
-    if (!ctx) {
-      // Accès refusé (ni membre ni grant) : on reste sur la page, l'org n'est
-      // simplement pas ré-entrant. Le compte reste affiché.
+    try {
+      // 1. Re-s'authentifier si déconnecté (token expiré / rechargement) :
+      //    on tente de restaurer la session Supabase depuis le localStorage.
+      let session = await authService.getSession();
+      if (!session) {
+        // Le token local peut encore être valide : re-hydrate via
+        // fetchUser() qui re-lit sb-*-auth-token et revalide silencieusement.
+        const rehydrated = await authService.fetchUser().catch(() => null);
+        if (!rehydrated) {
+          // Impossible de restaurer la session : le refresh token est mort.
+          // On renvoie vers /auth pour un re-login explicite — SANS laisser
+          // l'utilisateur atterrir sur un dashboard vide (RouteGuard
+          // rebattrait dans 1 tick, ou pire, crash).
+          setBusy(null);
+          setEntering(null);
+          navigate("/auth", { replace: true });
+          return;
+        }
+        session = await authService.getSession();
+        if (!session) {
+          setBusy(null);
+          setEntering(null);
+          navigate("/auth", { replace: true });
+          return;
+        }
+      }
+      // 2. Entrer dans le contexte org (vérifie membership/grant local).
+      const ctx = await enterOrganization(org.orgId);
+      setEntering(null);
+      if (!ctx) {
+        // Accès refusé (ni membre ni grant) : on reste sur la page, l'org n'est
+        // simplement pas ré-entrant. Le compte reste affiché.
+        setBusy(null);
+        return;
+      }
+      // 3. Recharger les données locales de cet org pour l'accueil.
+      await loadInitialData();
       setBusy(null);
-      return;
+      navigate("/dashboard", { replace: true });
+    } catch {
+      setBusy(null);
+      setEntering(null);
     }
-    // 3. Recharger les données locales de cet org pour l'accueil.
-    await loadInitialData();
-    setBusy(null);
-    navigate("/dashboard", { replace: true });
   };
 
   const handleSignOut = async () => {

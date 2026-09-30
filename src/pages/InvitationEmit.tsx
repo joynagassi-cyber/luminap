@@ -229,11 +229,14 @@ export default function InvitationEmit() {
               <div className="space-y-6">
                 {/* Role selection */}
                 <IonItem lines="none" className="bg-card rounded-xl">
-                  <IonLabel className="text-sm text-text-secondary mb-1">Rôle cible</IonLabel>
+                  <IonLabel className="text-sm text-text-secondary mb-1" slot="label">Rôle cible</IonLabel>
                   <IonSelect
                     value={targetRole}
                     onIonChange={(e) => setTargetRole(e.detail.value!)}
                     placeholder="Sélectionner un rôle"
+                    interface="popover"
+                    aria-label="Sélectionner un rôle"
+                    style={{ "--placeholder-color": "var(--text-tertiary)" }}
                   >
                     {ROLES.map((r) => (
                       <IonSelectOption key={r.value} value={r.value}>

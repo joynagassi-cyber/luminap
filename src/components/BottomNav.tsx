@@ -58,6 +58,9 @@ export default function BottomNav() {
   // est masqué (null) sur les pages qui exposent déjà leurs propres actions
   // claires — un FAB no-op ou ambigu n'y est jamais affiché.
   //
+  //   /dashboard          → masqué  (les « Actions rapides » du dashboard font
+  //                                        le travail d'entrée rapide — le +
+  //                                        flottant y est redondant)
   //   /finance            → masqué  (boutons « Nouvelle entrée/dépense » de la page)
   //   /transaction/*      → masqué  (Approuver / Modifier / Sauvegarder de la page)
   //   /event/new          → masqué  (le formulaire « nouveau culte » se soumet sur la page)
@@ -68,6 +71,12 @@ export default function BottomNav() {
     const path = location.pathname;
 
     if (path === "/finance" || path.startsWith("/transaction/")) {
+      return null;
+    }
+    // /dashboard : les « Actions rapides » (Entrée / Sortie / Versement /
+    // Événement) assurent déjà l'entrée rapide. Le + flottant serait un
+    // doublon visuel et « se perd » sur une page hors sujet.
+    if (path === "/dashboard") {
       return null;
     }
     if (path === "/event/new" || (path.startsWith("/event/") && path.endsWith("/edit"))) {

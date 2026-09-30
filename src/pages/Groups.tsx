@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useCurrentUser } from "@/lib/dataLayer";
 import { useGroups, useOrgUnits, createGroupPS } from "@/lib/dataLayer";
 import { GroupsSkeleton } from "@/components/PageSkeletons";
@@ -32,6 +33,7 @@ const GROUP_TYPES = ["groupe", "commission", "comité", "diaconie", "service"];
 
 export default function Groups() {
   const user = useCurrentUser();
+  const navigate = useNavigate();
 
   const { data: psGroups, isLoading: groupsLoading } = useGroups();
   const { data: psOrgUnits } = useOrgUnits();
@@ -269,7 +271,7 @@ export default function Groups() {
                       className="flex-1 py-3 rounded-full font-semibold text-white text-sm"
                       style={{ backgroundColor: "var(--accent-primary)" }}
                     >
-                      Créer
+                      Créer le groupe
                     </button>
                     <button
                       onClick={() => setShowCreate(false)}
@@ -298,12 +300,17 @@ export default function Groups() {
                 </div>
               ) : (
                 orgUnits.map((orgUnit) => (
-                  <div
+                  <button
+                    type="button"
                     key={orgUnit.id}
-                    className="rounded-xl p-4 flex items-center gap-3"
+                    onClick={() => navigate(`/groups/${orgUnit.id}`)}
+                    className="rounded-xl p-4 flex items-center gap-3 w-full text-left"
                     style={{
                       backgroundColor: "var(--surface)",
                       border: "1px solid var(--border)",
+                      cursor: "pointer",
+                      appearance: "none",
+                      fontFamily: "inherit",
                     }}
                   >
                     <div
@@ -323,7 +330,8 @@ export default function Groups() {
                     <div className="flex items-center gap-2">
                       {canUpdateMulti.allowed && (
                         <button
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             setShowEdit(orgUnit.id);
                             setEditName(orgUnit.name);
                             setEditDesc(orgUnit.description || "");
@@ -339,7 +347,10 @@ export default function Groups() {
                       )}
                       {canDeleteMulti.allowed && (
                         <button
-                          onClick={() => setShowDelete(orgUnit.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowDelete(orgUnit.id);
+                          }}
                           className="p-2 rounded-full active:scale-95 transition-transform"
                           style={{ backgroundColor: "#E5133220" }}
                         >
@@ -350,7 +361,7 @@ export default function Groups() {
                         </button>
                       )}
                     </div>
-                  </div>
+                  </button>
                 ))
               )}
             </div>

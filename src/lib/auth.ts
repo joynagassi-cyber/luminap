@@ -384,26 +384,26 @@ class AuthService {
     firstName: string,
     lastName: string,
     role?: Role,
-  ): Promise<{ error: string | null }> {
+  ): Promise<{ error: string | null; isNewUser: boolean }> {
     this.setState({ isLoading: true, error: null });
 
     // Input validation
     if (!email || !this.isValidEmail(email)) {
       const errorMsg = "Please enter a valid email address.";
       this.setState({ error: errorMsg, isLoading: false });
-      return { error: errorMsg };
+      return { error: errorMsg, isNewUser: false };
     }
 
     if (!password || !this.isValidPassword(password)) {
       const errorMsg = "Password must be at least 8 characters long.";
       this.setState({ error: errorMsg, isLoading: false });
-      return { error: errorMsg };
+      return { error: errorMsg, isNewUser: false };
     }
 
     if (!firstName || firstName.trim().length === 0) {
       const errorMsg = "Please enter your first name.";
       this.setState({ error: errorMsg, isLoading: false });
-      return { error: errorMsg };
+      return { error: errorMsg, isNewUser: false };
     }
 
     try {
@@ -437,7 +437,7 @@ class AuthService {
         }
 
         this.setState({ error: userMessage, isLoading: false });
-        return { error: userMessage };
+        return { error: userMessage, isNewUser: false };
       }
 
       if (data.user) {
@@ -454,6 +454,8 @@ class AuthService {
         });
         this.startSessionValidation();
         this.notifyListeners();
+        // Nouveau sign-up propre → le caller doit forcer l'onboarding.
+        return { error: null, isNewUser: true };
       } else {
         // Fallback : Supabase n'a pas retourné de session immédiate (ex.
         // "Confirm email" encore actif, ou confirmation expirée sur un
@@ -463,6 +465,12 @@ class AuthService {
         // instantanément), la session se crée et l'utilisateur avance.
         // Si la confirmation est encore requise, on informe clairement
         // plutôt que de bloquer silencieusement sur le formulaire.
+        //
+        // IMPORTANT : ce chemin est un LOGIN D'UN COMPTE EXISTANT
+        // (email déjà inscrit) — PAS un sign-up. `isNewUser=false` pour
+        // que le caller respecte needsOnboarding() au lieu de forcer
+        // l'onboarding : un login retour d'org atterrit direct sur le
+        // dashboard sans re-montrer le wizard.
         const { data: loginData, error: loginError } =
           await supabase.auth.signInWithPassword({
             email: email.trim().toLowerCase(),
@@ -474,7 +482,7 @@ class AuthService {
               ? "Veuillez confirmer votre adresse e-mail avant de continuer (un lien de confirmation a été envoyé)."
               : "Inscription effectuée — veuillez vérifier votre boîte de réception et confirmer votre adresse, puis connectez-vous.";
           this.setState({ error: msg, isLoading: false });
-          return { error: msg };
+          return { error: msg, isNewUser: false };
         }
         if (loginData.session && loginData.user) {
           const profile = await this.ensureProfile(loginData.user);
@@ -486,15 +494,18 @@ class AuthService {
           });
           this.startSessionValidation();
           this.notifyListeners();
+          // Login retour d'un compte existant → PAS un sign-up.
+          return { error: null, isNewUser: false };
         }
+        return { error: null, isNewUser: false };
       }
 
-      return { error: null };
+      // (unreachable — chaque branche ci-dessus retourne explicitement)
     } catch (err: any) {
       const userMessage =
         err?.message || "An unexpected error occurred during sign up.";
       this.setState({ error: userMessage, isLoading: false });
-      return { error: userMessage };
+      return { error: userMessage, isNewUser: false };
     }
   }
 

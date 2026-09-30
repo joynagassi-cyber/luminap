@@ -13,6 +13,7 @@ import {
 import {
   loadOnboardingState,
   saveOnboardingState,
+  completeOnboarding,
   type OnboardingState,
 } from "@/lib/onboardingState";
 
@@ -649,7 +650,14 @@ export default function Onboarding() {
       setCurrent((c) => c - 1);
       persist(current - 1, branch);
     } else {
-      navigate("/auth", { replace: true });
+      // « Passer » / « Ignorer » à l'écran 0 — ne renvoie PAS vers /auth :
+      // c'est un comportement de log-out qui ferait perdre la session courante
+      // (et oblige le user à retaper ses identifiants). Ici on finalize
+      // l'onboarding SANS configurer d'organisation : le user retombe sur
+      // /dashboard avec le profil par défaut, et needsOnboarding() retourne
+      // false pour toute connexion future sur ce navigateur.
+      completeOnboarding(loadOnboardingState());
+      navigate("/dashboard", { replace: true });
     }
   };
 

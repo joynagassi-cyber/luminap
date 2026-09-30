@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAppConfig, useCurrentUser } from "@/lib/dataLayer";
 import { authService, type Profile } from "@/lib/auth";
@@ -115,39 +115,44 @@ export default function AuthPage() {
     navigate(to, { replace: true });
   };
 
-  // Handle OAuth callback
+  // Handle OAuth callback — one-shot par mount (useRef) pour éviter que
+  // l'effet ne se re-exécute à chaque changement de user?.id (qui arrive
+  // après proceedAfterAuth) et ne déclenche un 2e loadInitialData
+  // concurrent avec Splash.tsx. Dépendance minimale : location.pathname.
+  const callbackHandledRef = useRef(false);
   useEffect(() => {
+    if (callbackHandledRef.current) return;
+    if (location.pathname !== "/auth/callback") return;
+    callbackHandledRef.current = true;
     const handleCallback = async () => {
-      if (location.pathname === "/auth/callback") {
-        const result = await authService.handleOAuthCallback();
-        if (result.error) {
-          // Fallback : le callback a échoué (code expiré, consommé, ou
-          // échange impossible). Ne pas rester bloqué sur un écran noir —
-          // afficher le message d'erreur sur la page de login.
-          setError(result.error);
-          navigate("/auth", { replace: true });
-        } else if (result.profile) {
-          // Google sign-up (compte créé à l'instant) → toujours onboarding d'abord.
-          // Google connexion (compte existant, isNewUser false) → dashboard
-          // direct (sauf si l'onboarding de ce navigateur reste à finaliser).
-          void proceedAfterAuth(result.profile, {
-            forceOnboarding: result.isNewUser,
-          });
+      const result = await authService.handleOAuthCallback();
+      if (result.error) {
+        // Fallback : le callback a échoué (code expiré, consommé, ou
+        // échange impossible). Ne pas rester bloqué sur un écran noir —
+        // afficher le message d'erreur sur la page de login.
+        setError(result.error);
+        navigate("/auth", { replace: true });
+      } else if (result.profile) {
+        // Google sign-up (compte créé à l'instant) → toujours onboarding d'abord.
+        // Google connexion (compte existant, isNewUser false) → dashboard
+        // direct (sauf si l'onboarding de ce navigateur reste à finaliser).
+        void proceedAfterAuth(result.profile, {
+          forceOnboarding: result.isNewUser,
+        });
+      } else {
+        // Aucun profil après le callback : le compte est probablement
+        // déjà signé (getSession a trouvé une session). Rediriger vers
+        // le dashboard plutôt que de rester bloqué.
+        const state = authService.getState();
+        if (state.profile) {
+          void proceedAfterAuth(state.profile);
         } else {
-          // Aucun profil après le callback : le compte est probablement
-          // déjà signé (getSession a trouvé une session). Rediriger vers
-          // le dashboard plutôt que de rester bloqué.
-          const state = authService.getState();
-          if (state.profile) {
-            void proceedAfterAuth(state.profile);
-          } else {
-            navigate("/auth", { replace: true });
-          }
+          navigate("/auth", { replace: true });
         }
       }
     };
-    handleCallback();
-  }, [location, navigate, loadInitialData, user?.id]);
+    void handleCallback();
+  }, [location.pathname, navigate]);
 
   // Handle email/password login
   const handleLogin = async (e: React.FormEvent) => {
@@ -194,9 +199,16 @@ export default function AuthPage() {
 
     const state = authService.getState();
     setLoading(false);
-    // Nouveau compte → toujours la première page (onboarding), jamais
-    // directement le dashboard principal.
-    await proceedAfterAuth(state.profile, { forceOnboarding: true });
+    // result.isNewUser pilote la force de l'onboarding :
+    //   - true  → sign-up propre (nouveau compte Supabase) : le wizard est
+    //             OBLIGATOIRE, même si ce navigateur a déjà configuré un
+    //             autre compte (needsOnboarding() peut être false mais on
+    //             ignore : un nouveau compte n'a pas encore d'organisation).
+    //   - false → fallback login (l'email était déjà inscrit) : ce n'est
+    //             PAS un sign-up. On respecte needsOnboarding() : un login
+    //             retour d'org (onboarding déjà complet) atterrit direct
+    //             sur /dashboard SANS re-montrer le wizard.
+    await proceedAfterAuth(state.profile, { forceOnboarding: result.isNewUser });
   };
 
   // Handle Google OAuth login

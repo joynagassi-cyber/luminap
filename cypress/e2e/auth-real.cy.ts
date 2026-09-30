@@ -1,5 +1,5 @@
 /**
- * Cypress E2E — Real auth flow against the live Supabase project.
+ * Cypress E2E — Real auth flows against the live Supabase project.
  *
  * These tests cover the named e2e scenarios from the stabilization plan:
  *   1. Create account with email and password (signup)
@@ -7,10 +7,13 @@
  *   3. Resume a session after returning to the app (persisted session)
  *   4. Invitation entry point is discoverable on /auth
  *
- * They use a fresh, unique email address on each run so they never collide
- * with real user data. The signup creates a real Supabase auth user +
- * profile row (via the on_auth_user_created trigger) — that is the point:
- * we are validating the RLS trigger + upsert_profile path end to end.
+ * This is the FIRST spec of the run: it calls cy.signupOrgAccount()
+ * (real UI signup + the full onboarding wizard with a real organization
+ * creation — no localStorage shortcuts), which persists the org's
+ * credentials in `Cypress.env.orgCreds`. Every subsequent cloud spec
+ * logs back in with cy.loginOrgAccount() instead of re-signing up, so
+ * all specs share exactly one organization — the deterministic pattern
+ * the user asked for.
  *
  * No cloud intercept: the real Supabase/PowerSync REST is used.
  */
@@ -22,77 +25,50 @@ function uniqueEmail() {
 }
 
 describe('Lumina — real auth flows (cloud)', () => {
-  const email = uniqueEmail();
   const password = `E2e-${Math.random().toString(36).slice(2, 10)}!a`;
 
-  it('Create account with email and password', function () {
-    this.timeout(180_000);
-    cy.clearLocalStorage();
+  it('Create account with email and password (signup → full onboarding)', function () {
+    this.timeout(300_000);
 
-    cy.visit('/auth');
-
-    // Pré-marcher l'état onboarding AVANT le submit du form : le flag
-    // `lumina-onboarded` est lu par `needsOnboarding()` dans
-    // `proceedAfterAuth`. Sans ce pré-set, le nouveau compte atterrit sur
-    // `/onboarding` (comportement correct) et le test 2 (login) serait
-    // bloqué par le wizard 9-étapes. En pré-écrivant le flag, on simule
-    // un utilisateur qui a déjà complété l'onboarding à l'inscription et
-    // on teste le parcours "login → dashboard" isolément.
-    cy.window().then((win) => {
-      win.localStorage.setItem('lumina-onboarded', 'true');
-      win.localStorage.setItem('lumina-role', 'MEMBRE');
-    });
-
-    // Switch to signup mode.
-    cy.contains('button', 'Pas encore de compte').click();
-    cy.get('input[aria-label="Prénom"]').type('E2e');
-    cy.get('input[aria-label="Nom"]').type('Test');
-    cy.get('input[type="email"]').type(email);
-    cy.get('input[type="password"]').type(password);
-    cy.contains('button[type="submit"]', 'Créer mon compte').click();
-
-    // After signup the app routes through proceedAfterAuth(forceOnboarding)
-    // → /onboarding (new account always goes through onboarding first).
-    // If the RLS trigger + upsert_profile path is broken, the user stays on
-    // /auth with an error — assert we LEFT /auth instead.
-    cy.location('pathname', { timeout: 120_000 }).should((path) => {
-      expect(path, `unexpected path ${path}`).not.to.include('auth');
+    // Le 1er spec du run : signup COMPLET par l'UI (wizard onboarding +
+    // création réelle de l'organisation). Pas de raccourci localStorage :
+    // c'est l'exigence stricte de l'utilisateur (signup → onboarding →
+    // setup org → dashboard, enchaînement non-faisable par un flag).
+    //
+    // L'organization qui sort ici (nom unique par run, rôle
+    // PASTEUR_PRINCIPAL) est l'org de référence de TOUT le run : les
+    // specs suivantes font cy.loginOrgAccount() et atterrissent direct
+    // sur /dashboard de cette org.
+    const email = uniqueEmail();
+    cy.signupOrgAccount({
+      orgName: 'Org E2E ' + Date.now().toString().slice(-6),
+      orgType: 'Église',
+      role: 'PASTEUR_PRINCIPAL',
+    }).then((creds) => {
+      expect(creds?.email).to.eq(email);
     });
   });
 
-  it('Sign in with existing email account', function () {
+  it('Sign in with existing email account (login → dashboard, NOT onboarding)', function () {
     this.timeout(120_000);
-    cy.clearLocalStorage();
 
-    cy.visit('/auth');
-
-    // Re-pré-set du flag onboarding : le test 1 a déjà validé le signup ;
-    // ici on isole le login d'un compte EXISTANT (le wizard onboarding
-    // serait 9 étapes et sortirait du scope du test). Le flag n'existe
-    // plus après cy.clearLocalStorage() — on le rétablit après cy.visit.
-    cy.window().then((win) => {
-      win.localStorage.setItem('lumina-onboarded', 'true');
-      win.localStorage.setItem('lumina-role', 'MEMBRE');
-    });
-
-    cy.get('input[type="email"]').type(email);
-    cy.get('input[type="password"]').type(password);
-    cy.contains('button[type="submit"]', 'Se connecter').click();
-
-    // Existing account with onboarding already done in test 1 → dashboard.
-    // Allow for /splash or /dashboard (Splash auto-redirects).
-    cy.location('pathname', { timeout: 90_000 }).should((path) => {
-      expect(
-        ['/dashboard', '/splash'].includes(path),
-        `unexpected path ${path}`,
-      ).to.be.true;
-    });
+    // Login du MÊME compte d'org (Cypress.env.orgCreds, posé par le
+    // test 1). L'org EXISTE déjà, l'onboarding EST déjà complété par le
+    // wizard du test 1 → Splash redirige DIRECTEMENT vers /dashboard.
+    //
+    // C'est la vérification explicite de l'exigence de l'utilisateur :
+    // « si pour un flux de connexion l'onboarding réapparaît, il y a un
+    // bug produit à corriger ». On échoue si Splash nous renvoie sur
+    // /onboarding ou /org-setup au lieu de /dashboard.
+    cy.loginOrgAccount();
   });
 
   it('Resume a session after returning to the app', function () {
     this.timeout(120_000);
-    // Do NOT clear localStorage: the persisted session from test 2 should
-    // survive a hard reload and land back in the app (not /auth).
+
+    // Do NOT clear localStorage : la session persistée du test 2 doit
+    // survivre à un rechargement dur et atterrir de nouveau dans l'app
+    // (et PAS sur /auth).
     cy.visit('/splash');
     cy.location('pathname', { timeout: 90_000 }).should((path) => {
       expect(
@@ -106,8 +82,9 @@ describe('Lumina — real auth flows (cloud)', () => {
     this.timeout(90_000);
     cy.clearLocalStorage();
     cy.visit('/auth');
-    // The "J'ai un code d'invitation" button (added 2026-09-30) must be
-    // visible on the auth screen — the discoverable invitation entry point.
+    // Le bouton « J'ai un code d'invitation » (ajouté 2026-09-30) doit
+    // être visible sur l'écran d'auth — point d'entrée découvert de
+    // l'invitation.
     cy.contains('button', "J'ai un code d'invitation", {
       timeout: 30_000,
     }).should('be.visible');
