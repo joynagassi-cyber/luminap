@@ -2,28 +2,12 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 // Use environment variables — never hardcode credentials.
-// Fallbacks alignés avec le projet Supabase courant (hhgovvrnalibhgpakswi)
-// pour rester offline-first : l'application boote même sans env.
-const FALLBACK_SUPABASE_URL = "https://hhgovvrnalibhgpakswi.supabase.co";
-const FALLBACK_SUPABASE_KEY =
-  "sb_publishable_kwbReVxSdHLx_u2IzQvGaA_Eegsf2Sh";
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// `process` n'existe pas dans le bundle navigateur : accès tolérant.
-const nodeEnv = typeof process !== "undefined" ? process.env : undefined;
-
-const SUPABASE_URL =
-  import.meta.env.VITE_SUPABASE_URL ||
-  nodeEnv?.VITE_SUPABASE_URL ||
-  FALLBACK_SUPABASE_URL;
-const SUPABASE_PUBLISHABLE_KEY =
-  import.meta.env.VITE_SUPABASE_ANON_KEY ||
-  nodeEnv?.VITE_SUPABASE_ANON_KEY ||
-  FALLBACK_SUPABASE_KEY;
-
-if (!import.meta.env.VITE_SUPABASE_URL && !nodeEnv?.VITE_SUPABASE_URL) {
-  console.warn(
-    "[supabase/client] VITE_SUPABASE_URL absent — fallback utilisé :",
-    FALLBACK_SUPABASE_URL,
+if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+  throw new Error(
+    "[supabase/client] VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY manquantes : l'application ne peut pas démarrer sans Supabase.",
   );
 }
 

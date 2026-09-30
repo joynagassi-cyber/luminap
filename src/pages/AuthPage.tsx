@@ -56,6 +56,19 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [authState, setAuthState] = useState<any>(null);
 
+  // Le bouton « Mes comptes » n'est visible QUE si des comptes ont déjà
+  // été connectés dans ce navigateur (donc uniquement après une déconnexion).
+  // On lit la clé Supabase JS (sessions persistées) au montage.
+  const [hasPersistedSessions, setHasPersistedSessions] = useState(false);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("sb-hhgovvrnalibhgpakswi-auth-token");
+      setHasPersistedSessions(!!raw);
+    } catch {
+      setHasPersistedSessions(false);
+    }
+  }, []);
+
   // Listen to auth state changes
   useEffect(() => {
     const unsubscribe = authService.subscribe(() => {
@@ -75,11 +88,23 @@ export default function AuthPage() {
     profile: Pick<Profile, "role" | "id"> | null | undefined,
     opts?: { forceOnboarding?: boolean },
   ) => {
-    await loadInitialData();
-    await oneSignalService.login(
-      (profile?.role ?? "MEMBRE") as Role,
-      profile?.id ?? user?.id ?? "",
-    );
+    try {
+      await loadInitialData();
+    } catch (e) {
+      // loadInitialData doit JAMAIS bloquer la navigation post-auth :
+      // le fallback PowerSync est non critique (le store a déjà ses
+      // données seed locales). On logue et on continue.
+      console.warn("[auth] loadInitialData failed, continuing:", e);
+    }
+    try {
+      await oneSignalService.login(
+        (profile?.role ?? "MEMBRE") as Role,
+        profile?.id ?? user?.id ?? "",
+      );
+    } catch (e) {
+      // OneSignal non critique pour la navigation.
+      console.warn("[auth] oneSignalService.login failed:", e);
+    }
     // Une inscription (nouveau compte) passe TOUJOURS par la première page
     // (onboarding : accueil + config) — et non directement au dashboard
     // principal — même si ce navigateur a déjà configuré un autre compte.
@@ -96,7 +121,11 @@ export default function AuthPage() {
       if (location.pathname === "/auth/callback") {
         const result = await authService.handleOAuthCallback();
         if (result.error) {
+          // Fallback : le callback a échoué (code expiré, consommé, ou
+          // échange impossible). Ne pas rester bloqué sur un écran noir —
+          // afficher le message d'erreur sur la page de login.
           setError(result.error);
+          navigate("/auth", { replace: true });
         } else if (result.profile) {
           // Google sign-up (compte créé à l'instant) → toujours onboarding d'abord.
           // Google connexion (compte existant, isNewUser false) → dashboard
@@ -104,6 +133,16 @@ export default function AuthPage() {
           void proceedAfterAuth(result.profile, {
             forceOnboarding: result.isNewUser,
           });
+        } else {
+          // Aucun profil après le callback : le compte est probablement
+          // déjà signé (getSession a trouvé une session). Rediriger vers
+          // le dashboard plutôt que de rester bloqué.
+          const state = authService.getState();
+          if (state.profile) {
+            void proceedAfterAuth(state.profile);
+          } else {
+            navigate("/auth", { replace: true });
+          }
         }
       }
     };
@@ -259,16 +298,18 @@ export default function AuthPage() {
               className="w-10 h-10 object-contain"
             />
             <div className="flex items-center gap-4">
-              {/* Retour « Mes comptes » : après une déconnexion volontaire,
-                  les comptes restent listés ici — un clic re-ouvre la session. */}
-              <button
-                type="button"
-                onClick={() => navigate("/sessions", { replace: true })}
-                className="text-[var(--accent-primary)] text-xs font-medium flex items-center gap-1 active:opacity-70"
-                aria-label="Retour à mes comptes"
-              >
-                ← Mes comptes
-              </button>
+              {/* « Mes comptes » : visible uniquement après une déconnexion
+                  (des sessions sont déjà persistées en local). */}
+              {hasPersistedSessions && (
+                <button
+                  type="button"
+                  onClick={() => navigate("/sessions", { replace: true })}
+                  className="text-[var(--accent-primary)] text-xs font-medium flex items-center gap-1 active:opacity-70"
+                  aria-label="Retour à mes comptes"
+                >
+                  ← Mes comptes
+                </button>
+              )}
               <div className="text-xs text-[var(--text-tertiary)]">
                 {authState?.user ? "Connecté" : "Déconnecté"}
               </div>
@@ -456,6 +497,20 @@ export default function AuthPage() {
                 {mode === "login"
                   ? "Pas encore de compte ? Inscrire"
                   : "Déjà un compte ? Se connecter"}
+              </button>
+            </div>
+
+            {/* Entrée invitation : le claim est la porte d'entrée des membres
+                invités (code / JSON / fichier / QR). Page protégée (Route
+                Guard) : un visiteur non connecté est renvoyé vers /auth,
+                ce qui rend le parcours découverte → login → claim fluide. */}
+            <div className="mt-3 text-center">
+              <button
+                onClick={() => navigate("/invitation/claim")}
+                className="text-[var(--text-tertiary)] text-xs hover:text-white transition-colors"
+                aria-label="J'ai un code d'invitation"
+              >
+                J'ai un code d'invitation
               </button>
             </div>
           </div>

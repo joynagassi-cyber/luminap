@@ -1,0 +1,1 @@
+import"./index-C23AVPx9-BIfMTubQ.js";var e=(e,t,n=[`item-multiple-inputs`])=>{let r=e.closest(`ion-item`);if(!r||typeof MutationObserver>`u`)return;let i=()=>n.map(e=>r.classList.contains(e)).join(`,`),a=i(),o=new MutationObserver(()=>{let e=i();e!==a&&(a=e,t())});return o.observe(r,{attributes:!0,attributeFilter:[`class`]}),o};export{e as t};

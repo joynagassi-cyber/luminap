@@ -15,34 +15,33 @@ import type { Role } from "@/types";
 import { getOrganizationId } from "./orgContext";
 
 // Use environment variables — never hardcode credentials.
-// Fallbacks alignés avec le projet Supabase courant (hhgovvrnalibhgpakswi)
-// pour rester offline-first : l'application boote même sans env.
-const FALLBACK_SUPABASE_URL = "https://hhgovvrnalibhgpakswi.supabase.co";
-const FALLBACK_SUPABASE_KEY =
-  "sb_publishable_kwbReVxSdHLx_u2IzQvGaA_Eegsf2Sh";
+// L'application exige explicitement VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY
+// (plus de fallback silencieux vers le projet de dev).
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// `process` n'existe pas dans le bundle navigateur : accès tolérant.
-const nodeEnv = typeof process !== "undefined" ? process.env : undefined;
-
-const supabaseUrl =
-  import.meta.env.VITE_SUPABASE_URL ||
-  nodeEnv?.VITE_SUPABASE_URL ||
-  FALLBACK_SUPABASE_URL;
-const supabaseAnonKey =
-  import.meta.env.VITE_SUPABASE_ANON_KEY ||
-  nodeEnv?.VITE_SUPABASE_ANON_KEY ||
-  FALLBACK_SUPABASE_KEY;
-
-if (!import.meta.env.VITE_SUPABASE_URL && !nodeEnv?.VITE_SUPABASE_URL) {
-  console.warn(
-    "[auth] VITE_SUPABASE_URL absent — fallback utilisé :",
-    FALLBACK_SUPABASE_URL,
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error(
+    "[auth] VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY manquantes : l'authentification ne peut pas fonctionner sans Supabase.",
   );
 }
 
 export const supabase: SupabaseClient = createClient(
   supabaseUrl,
   supabaseAnonKey,
+  {
+    auth: {
+      // PKCE : le client stocke le code_verifier et l'échange contre une
+      // session. Sans ça, flowType reste "implicit" par défaut et
+      // exchangeCodeForSession (utilisé au callback /auth/callback) échoue.
+      flowType: "pkce",
+      // Persiste la session (localStorage) pour « Mes comptes ».
+      persistSession: true,
+      // Auto-détecte les tokens dans l'URL au rechargement.
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+    },
+  },
 );
 
 // Profile type from database
@@ -234,9 +233,9 @@ class AuthService {
         .from("profiles")
         .select("*")
         .eq("id", userId)
-        .single();
+        .maybeSingle();
 
-      if (error) {
+      if (error || !data) {
         return null;
       }
       return data as Profile;
@@ -249,6 +248,13 @@ class AuthService {
   // (RPC without forcing a role). Never called with a forced role — that
   // path lives in `setProfileRole` so sign-in doesn't clobber the user's
   // role that an inviter/creator may have assigned.
+  //
+  // RÉSILIENT : si `upsert_profile` échoue (trigger `handle_new_user`
+  // inopérant, RLS, org_id = 'no-org'…), on ne fait pas échouer le
+  // sign-in/sign-up : Supabase a bien créé l'utilisateur et la session,
+  // on construit un profil local minimal pour laisser l'app démarrer, et
+  // on logue l'erreur pour diagnostic. Le rôle réel sera résolu pendant
+  // l'onboarding (creator) ou par invitation claim (member).
   async ensureProfile(user: SupabaseUser): Promise<Profile> {
     const existing = await this.getProfile(user.id);
     if (existing) return existing;
@@ -260,7 +266,29 @@ class AuthService {
       p_org_id: getOrganizationId(),
     });
     if (error || !data) {
-      throw error ?? new Error("Unable to resolve user profile");
+      // Le trigger a peut-être déjà créé la ligne mais le RPC a échoué
+      // (RLS sur la lecture, ou le claim organization-id = 'no-org').
+      // On tente une lecture directe du profil pour ne pas bloquer.
+      const fallback = await this.getProfile(user.id);
+      if (fallback) return fallback;
+
+      // Profil minimal local — garantit que l'app peut démarrer même si
+      // la table profiles n'a pas pu être créée. Le rôle est résolu plus
+      // tard ; on ne bloque jamais l'auth pour ça.
+      console.warn(
+        "[auth] ensureProfile: upsert_profile a échoué, profil local minimal:",
+        error?.message ?? "RPC sans donnée",
+      );
+      return {
+        id: user.id,
+        email: user.email ?? null,
+        first_name: user.user_metadata?.first_name ?? null,
+        last_name: user.user_metadata?.last_name ?? null,
+        role: "MEMBRE",
+        org_id: getOrganizationId(),
+        created_at: user.created_at ?? new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
     }
     return data as Profile;
   }
@@ -471,58 +499,44 @@ class AuthService {
   }
 
   // Sign in with Google OAuth
+  //
+  // Web : redirection pleine page. Le SDK (flowType: "pkce") génère le
+  // code_verifier et le code_challenge automatiquement, les stocke dans
+  // localStorage, puis redirige vers l'URL GoTrue d'autorisation. Au
+  // retour, GoTrue redirige vers `redirectTo` (window.location.origin +
+  // "/auth/callback") avec `?code=…&state=…`. La page /auth/callback
+  // appelle handleOAuthCallback → exchangeCodeForSession.
+  //
+  // IMPORTANT : l'URL de callback web doit figurer dans la liste des
+  // Redirect URLs du projet Supabase (dashboard → Authentication → URL
+  // Configuration → Redirect URLs). Pour les previews Autonoma, ajouter :
+  //   https://*.preview.autonoma.app/auth/callback
+  // La Site URL doit correspondre au domaine courant (ou être un wildcard).
+  //
+  // Mobile (Capacitor) : deep link système lumina://auth/callback.
+
   async signInWithGoogle(): Promise<{ error: string | null }> {
     this.setState({ isLoading: true, error: null });
 
     try {
-      // Generate a true PKCE pair (RFC 7636):
-      //   code_verifier  — 64 random ASCII chars
-      //   code_challenge — base64url( SHA-256(code_verifier) ), no padding
-      // We can't store the verifier for the round-trip (Supabase signs us back
-      // at `redirectTo` without it), so the verifier is ephemeral and the
-      // challenge is all we send to Google; on the callback Supabase holds
-      // the secret side and validates it server-side.
-      const randomBytes = new Uint8Array(32);
-      crypto.getRandomValues(randomBytes);
-      const codeVerifier = btoa(
-        String.fromCharCode(...randomBytes),
-      )
-        .replace(/\+/g, "-")
-        .replace(/\//g, "_")
-        .replace(/=+$/, "");
-      const digest = await crypto.subtle.digest(
-        "SHA-256",
-        new TextEncoder().encode(codeVerifier),
-      );
-      const codeChallenge = btoa(String.fromCharCode(...new Uint8Array(digest)))
-        .replace(/\+/g, "-")
-        .replace(/\//g, "_")
-        .replace(/=+$/, "");
+      // PKCE : le client (flowType: "pkce") génère le code_verifier et le
+      // code_challenge automatiquement, et les stocke dans localStorage
+      // pour l'échange final au callback. Rien à calculer ici.
+
+      const isNative = Capacitor.isNativePlatform();
 
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: window.location.origin + "/auth/callback",
-          // Native: use our custom `lumina://` scheme so Google hands the
-          // user back into the app instead of the system browser.
-          // `Capacitor.isNativePlatform()` is the authoritative check — it
-          // reads the `window.Capacitor` bridge object that Capacitor injects
-          // into the WebView at load time.
-          ...(Capacitor.isNativePlatform()
-            ? { redirectTo: "lumina://auth/callback" }
-            : {}),
-          // PKCE flow (mobile / native) — no client secret on the client.
-          // Supabase Auth holds the Web client secret server-side and
-          // validates the code_challenge on exchange.
+          // Web : /auth/callback sur le domaine courant.
+          // Mobile : deep link lumina://auth/callback (capturé par le
+          // intent-filter AndroidManifest).
+          redirectTo: isNative
+            ? "lumina://auth/callback"
+            : window.location.origin + "/auth/callback",
           queryParams: {
             access_type: "offline",
-            prompt: "consent",
-            code_challenge: codeChallenge,
-            code_challenge_method: "S256",
-            // `state` is forwarded by Supabase back on the redirect URI so
-            // `exchangeCodeForSession` can verify the callback is one the app
-            // initiated.
-            state: "lumina",
+            prompt: "select_account",
           },
         },
       });
@@ -535,18 +549,19 @@ class AuthService {
         } else if (error.message.includes("access_denied")) {
           userMessage = "Google sign-in was denied. Please try again.";
         }
-
         this.setState({ error: userMessage, isLoading: false });
         return { error: userMessage };
       }
 
-      // The redirect will handle the rest
+      // La redirection est lancée (web : page entière, mobile : system
+      // browser). Le reste est géré par handleOAuthCallback (web) ou
+      // handleOAuthDeepLink (mobile).
       return { error: null };
     } catch (err: any) {
       const userMessage =
         err?.message || "An unexpected error occurred during Google sign-in.";
       this.setState({ error: userMessage, isLoading: false });
-      return { error: userMessage };
+      return { userMessage };
     }
   }
 
@@ -559,16 +574,65 @@ class AuthService {
     this.setState({ isLoading: true, error: null });
 
     try {
-      const {
-        data: { session },
-        error: sessionError,
-      } = await supabase.auth.getSession();
+      // PKCE callback : Supabase redirige vers /auth/callback?code=...&state=...
+      // avec un `code` à échanger contre une session. On ne peut PAS s'en
+      // tenir à `getSession()` : le cookie d'auth est HTTP-only et peut ne
+      // pas être disponible (ex. PWA, service worker, sandbox de preview),
+      // ce qui laisse `session = null` alors que le `code` est bien présent.
+      const code = new URLSearchParams(window.location.search).get("code");
+      let session: Session | null = null;
 
-      if (sessionError || !session) {
-        const errorMsg =
-          sessionError?.message || "No session found after OAuth callback.";
-        this.setState({ error: errorMsg, isLoading: false });
-        return { error: errorMsg, profile: null, isNewUser: false };
+      if (code) {
+        // Échange le code OAuth contre une vraie session — ça marche même
+        // quand le cookie n'est pas accessible.
+        let exchangeOk = false;
+        try {
+          const { data, error: exchangeError } =
+            await supabase.auth.exchangeCodeForSession(code);
+          if (exchangeError) {
+            console.warn(
+              "[auth] exchangeCodeForSession échoué, tentative getSession fallback:",
+              exchangeError.message,
+            );
+          } else {
+            session = data.session;
+            exchangeOk = true;
+          }
+        } catch (exchangeErr) {
+          // Garde-fou déterministe : ne jamais laisser l'app bloquée sur un
+          // écran noir si l'échange levé (réseau, code déjà consommé, PKCE
+          // mismatch…). On retombe sur getSession ci-dessous.
+          console.warn(
+            "[auth] exchangeCodeForSession a levé, fallback getSession:",
+            exchangeErr,
+          );
+        }
+
+        // Si l'échange a échoué (code expiré / consommé), on retire la
+        // recherche URL AVANT le getSession, pour que le rechargement
+        // n'essaie pas de rééchanger un code déjà mort.
+        if (!exchangeOk) {
+          window.history.replaceState(
+            null,
+            "",
+            window.location.pathname + window.location.hash,
+          );
+        }
+      }
+
+      // Fallback : si pas de `code` dans l'URL, ou échange échoué, on tente
+      // la session existante (ex. redirigé après déconnexion, ou code déjà
+      // consommé).
+      if (!session) {
+        const { data, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError || !data.session) {
+          const errorMsg =
+            sessionError?.message ||
+            "No session found after OAuth callback. Le code d'authentification a peut-être expiré ou été consommé.";
+          this.setState({ error: errorMsg, isLoading: false });
+          return { error: errorMsg, profile: null, isNewUser: false };
+        }
+        session = data.session;
       }
 
       // Validate session has required fields
@@ -583,6 +647,13 @@ class AuthService {
         const errorMsg = "Invalid session: access token is missing.";
         this.setState({ error: errorMsg, isLoading: false });
         return { error: errorMsg, profile: null, isNewUser: false };
+      }
+
+      // Nettoyer l'URL de paramètres OAuth (code, state) pour ne pas les
+      // laisser dans la barre d'adresse ni les réexposer au rechargement.
+      if (window.location.search) {
+        const cleanUrl = window.location.pathname + window.location.hash;
+        window.history.replaceState(null, "", cleanUrl);
       }
 
       const profile = await this.getProfile(session.user.id);

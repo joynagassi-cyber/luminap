@@ -1,0 +1,1 @@
+var e=e=>{for(let t=e;t;t=t.parentElement){let e=t.getAttribute(`dir`)?.toLowerCase();if(e===`rtl`)return!0;if(e===`ltr`)return!1}return document?.dir?.toLowerCase()===`rtl`};export{e as t};

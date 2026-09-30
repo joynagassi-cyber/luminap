@@ -3,7 +3,7 @@ import { PassThrough, Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import nodeHTTPS from "node:https";
 import nodeHTTP2 from "node:http2";
-//#region node_modules/srvx/dist/_chunks/_url.mjs
+//#region node_modules/.pnpm/srvx@0.11.22/node_modules/srvx/dist/_chunks/_url.mjs
 function lazyInherit(target, source, sourceKey) {
 	for (const key of [...Object.getOwnPropertyNames(source), ...Object.getOwnPropertySymbols(source)]) {
 		if (key === "constructor") continue;
@@ -138,7 +138,7 @@ var FastURL = /* @__PURE__ */ (() => {
 	return FastURL;
 })();
 //#endregion
-//#region node_modules/srvx/dist/_chunks/_utils2.mjs
+//#region node_modules/.pnpm/srvx@0.11.22/node_modules/srvx/dist/_chunks/_utils2.mjs
 function resolvePortAndHost(opts) {
 	const _port = opts.port ?? globalThis.process?.env.PORT ?? 3e3;
 	const port = typeof _port === "number" ? _port : Number.parseInt(_port, 10);
@@ -209,7 +209,7 @@ function createWaitUntil() {
 	};
 }
 //#endregion
-//#region node_modules/srvx/dist/_chunks/_utils.mjs
+//#region node_modules/.pnpm/srvx@0.11.22/node_modules/srvx/dist/_chunks/_utils.mjs
 var noColor = /* @__PURE__ */ (() => {
 	const env = globalThis.process?.env ?? {};
 	return env.NO_COLOR === "1" || env.TERM === "dumb";
@@ -220,7 +220,7 @@ var red = /* @__PURE__ */ _c(31);
 var green = /* @__PURE__ */ _c(32);
 var gray = /* @__PURE__ */ _c(90);
 //#endregion
-//#region node_modules/srvx/dist/_chunks/_plugins.mjs
+//#region node_modules/.pnpm/srvx@0.11.22/node_modules/srvx/dist/_chunks/_plugins.mjs
 function wrapFetch(server) {
 	const fetchHandler = server.options.fetch;
 	const middleware = server.options.middleware || [];
@@ -276,7 +276,7 @@ var gracefulShutdownPlugin = (server) => {
 	for (const sig of ["SIGINT", "SIGTERM"]) globalThis.process.on(sig, shutdown);
 };
 //#endregion
-//#region node_modules/srvx/dist/_chunks/_trust-proxy.mjs
+//#region node_modules/.pnpm/srvx@0.11.22/node_modules/srvx/dist/_chunks/_trust-proxy.mjs
 function isTrustedProxy(trustProxy, remoteAddress) {
 	if (trustProxy === void 0 || trustProxy === false) return false;
 	if (trustProxy === true) return true;
@@ -298,7 +298,7 @@ function firstForwardedValue(value) {
 	return (Array.isArray(value) ? value[0] : value).split(",")[0].trim() || void 0;
 }
 //#endregion
-//#region node_modules/srvx/dist/_chunks/_body-limit.mjs
+//#region node_modules/.pnpm/srvx@0.11.22/node_modules/srvx/dist/_chunks/_body-limit.mjs
 function createBodyTooLargeError(maxRequestBodySize) {
 	return Object.assign(/* @__PURE__ */ new Error(`Request body exceeds the maximum allowed size of ${maxRequestBodySize} bytes.`), {
 		code: "ERR_BODY_TOO_LARGE",
@@ -331,7 +331,7 @@ function limitBodyStream(stream, maxRequestBodySize) {
 	});
 }
 //#endregion
-//#region node_modules/srvx/dist/adapters/node.mjs
+//#region node_modules/.pnpm/srvx@0.11.22/node_modules/srvx/dist/adapters/node.mjs
 function sendNodeResponseDetached(nodeRes, webRes) {
 	try {
 		return _sendNodeResponse(nodeRes, webRes, true);
@@ -656,7 +656,7 @@ var NodeRequest = /* @__PURE__ */ (() => {
 			return this.#bodyStream;
 		}
 		#readBuffered() {
-			return readBody$1(this.#req, this.#maxRequestBodySize);
+			return readBody(this.#req, this.#maxRequestBodySize);
 		}
 		text() {
 			if (this.#request) return this.#request.text();
@@ -688,7 +688,7 @@ var NodeRequest = /* @__PURE__ */ (() => {
 	Object.setPrototypeOf(Request.prototype, NativeRequest.prototype);
 	return Request;
 })();
-function readBody$1(req, maxRequestBodySize) {
+function readBody(req, maxRequestBodySize) {
 	if ("rawBody" in req && Buffer.isBuffer(req.rawBody)) {
 		if (maxRequestBodySize !== void 0 && req.rawBody.length > maxRequestBodySize) return Promise.reject(createBodyTooLargeError(maxRequestBodySize));
 		return Promise.resolve(req.rawBody);
@@ -952,13 +952,13 @@ var NodeServer = class {
 	}
 };
 //#endregion
-//#region node_modules/rou3/dist/index.mjs
+//#region node_modules/.pnpm/rou3@0.8.1/node_modules/rou3/dist/index.mjs
 var NullProtoObj = /* @__PURE__ */ (() => {
 	const e = function() {};
 	return e.prototype = Object.create(null), Object.freeze(e.prototype), e;
 })();
 //#endregion
-//#region node_modules/h3/dist/h3.mjs
+//#region node_modules/.pnpm/h3@2.0.1-rc.22_crossws@0.4.12_srvx@0.11.22_/node_modules/h3/dist/h3.mjs
 function decodePathname(pathname) {
 	return decodeURI(pathname.includes("%25") ? pathname.replace(/%25/g, "%2525") : pathname);
 }
@@ -1092,13 +1092,6 @@ var HTTPError = class HTTPError extends Error {
 		};
 	}
 };
-function hasProp(obj, prop) {
-	try {
-		return prop in obj;
-	} catch {
-		return false;
-	}
-}
 function isJSONSerializable(value, _type) {
 	if (value === null || value === void 0) return true;
 	if (_type !== "object") return _type === "boolean" || _type === "number" || _type === "string";
@@ -1247,6 +1240,9 @@ function errorResponse(error, debug, errHeaders) {
 		headers
 	});
 }
+function defineMiddleware(input) {
+	return input;
+}
 function callMiddleware(event, middleware, handler, index = 0) {
 	if (index === middleware.length) return handler(event);
 	const fn = middleware[index];
@@ -1263,86 +1259,6 @@ function callMiddleware(event, middleware, handler, index = 0) {
 }
 function isUnhandledResponse(val) {
 	return val === void 0 || val === kNotFound;
-}
-var plusRegex = /\+/g;
-function parseQuery(input) {
-	const params = new NullProtoObj();
-	if (!input || input === "?") return params;
-	const inputLength = input.length;
-	let key = "";
-	let value = "";
-	let startingIndex = -1;
-	let equalityIndex = -1;
-	let shouldDecodeKey = false;
-	let shouldDecodeValue = false;
-	let keyHasPlus = false;
-	let valueHasPlus = false;
-	let hasBothKeyValuePair = false;
-	let c = 0;
-	for (let i = 0; i < inputLength + 1; i++) {
-		c = i === inputLength ? 38 : input.charCodeAt(i);
-		switch (c) {
-			case 38:
-				hasBothKeyValuePair = equalityIndex > startingIndex;
-				if (!hasBothKeyValuePair) equalityIndex = i;
-				key = input.slice(startingIndex + 1, equalityIndex);
-				if (hasBothKeyValuePair || key.length > 0) {
-					if (keyHasPlus) key = key.replace(plusRegex, " ");
-					if (shouldDecodeKey) try {
-						key = decodeURIComponent(key);
-					} catch {}
-					if (hasBothKeyValuePair) {
-						value = input.slice(equalityIndex + 1, i);
-						if (valueHasPlus) value = value.replace(plusRegex, " ");
-						if (shouldDecodeValue) try {
-							value = decodeURIComponent(value);
-						} catch {}
-					}
-					const currentValue = params[key];
-					if (currentValue === void 0) params[key] = value;
-					else if (Array.isArray(currentValue)) currentValue.push(value);
-					else params[key] = [currentValue, value];
-				}
-				value = "";
-				startingIndex = i;
-				equalityIndex = i;
-				shouldDecodeKey = false;
-				shouldDecodeValue = false;
-				keyHasPlus = false;
-				valueHasPlus = false;
-				break;
-			case 61:
-				if (equalityIndex <= startingIndex) equalityIndex = i;
-				else shouldDecodeValue = true;
-				break;
-			case 43:
-				if (equalityIndex > startingIndex) valueHasPlus = true;
-				else keyHasPlus = true;
-				break;
-			case 37: if (equalityIndex > startingIndex) shouldDecodeValue = true;
-			else shouldDecodeKey = true;
-		}
-	}
-	return params;
-}
-function getEventContext(event) {
-	if (event.context) return event.context;
-	event.req.context ??= {};
-	return event.req.context;
-}
-function getQuery(event) {
-	return parseQuery((event.url || new URL(event.req.url)).search.slice(1));
-}
-function getRouterParams(event, opts = {}) {
-	let params = getEventContext(event).params || {};
-	if (opts.decode) {
-		params = { ...params };
-		for (const key in params) params[key] = decodeURIComponent(params[key]);
-	}
-	return params;
-}
-function getRouterParam(event, name, opts = {}) {
-	return getRouterParams(event, opts)[name];
 }
 function defineHandler(input) {
 	if (typeof input === "function") return handlerWithFetch(input);
@@ -1432,342 +1348,5 @@ var H3Core = class {
 		return routeMiddleware ? [...globalMiddleware, ...routeMiddleware] : globalMiddleware;
 	}
 };
-function parseURLEncodedBody(body) {
-	const form = new URLSearchParams(body);
-	const parsedForm = new NullProtoObj();
-	for (const [key, value] of form.entries()) if (hasProp(parsedForm, key)) {
-		if (!Array.isArray(parsedForm[key])) parsedForm[key] = [parsedForm[key]];
-		parsedForm[key].push(value);
-	} else parsedForm[key] = value;
-	return parsedForm;
-}
-async function readBody(event) {
-	const text = await event.req.text();
-	if (!text) return;
-	if ((event.req.headers.get("content-type") || "").startsWith("application/x-www-form-urlencoded")) return parseURLEncodedBody(text);
-	try {
-		return JSON.parse(text);
-	} catch {
-		throw new HTTPError({
-			status: 400,
-			statusText: "Bad Request",
-			message: "Invalid JSON body"
-		});
-	}
-}
-var COOKIE_MAX_AGE_LIMIT = 3456e4;
-function endIndex(str, min, len) {
-	const index = str.indexOf(";", min);
-	return index === -1 ? len : index;
-}
-function eqIndex(str, min, max) {
-	const index = str.indexOf("=", min);
-	return index < max ? index : -1;
-}
-function valueSlice(str, min, max) {
-	if (min === max) return "";
-	let start = min;
-	let end = max;
-	do {
-		const code = str.charCodeAt(start);
-		if (code !== 32 && code !== 9) break;
-	} while (++start < end);
-	while (end > start) {
-		const code = str.charCodeAt(end - 1);
-		if (code !== 32 && code !== 9) break;
-		end--;
-	}
-	return str.slice(start, end);
-}
-var NullObject = /* @__PURE__ */ (() => {
-	const C = function() {};
-	C.prototype = Object.create(null);
-	return C;
-})();
-function parse(str, options) {
-	const obj = new NullObject();
-	const len = str.length;
-	if (len < 2) return obj;
-	const dec = options?.decode || decode;
-	const allowMultiple = options?.allowMultiple || false;
-	let index = 0;
-	do {
-		const eqIdx = eqIndex(str, index, len);
-		if (eqIdx === -1) break;
-		const endIdx = endIndex(str, index, len);
-		if (eqIdx > endIdx) {
-			index = str.lastIndexOf(";", eqIdx - 1) + 1;
-			continue;
-		}
-		const key = valueSlice(str, index, eqIdx);
-		if (options?.filter && !options.filter(key)) {
-			index = endIdx + 1;
-			continue;
-		}
-		const val = dec(valueSlice(str, eqIdx + 1, endIdx));
-		if (allowMultiple) {
-			const existing = obj[key];
-			if (existing === void 0) obj[key] = val;
-			else if (Array.isArray(existing)) existing.push(val);
-			else obj[key] = [existing, val];
-		} else if (obj[key] === void 0) obj[key] = val;
-		index = endIdx + 1;
-	} while (index < len);
-	return obj;
-}
-function decode(str) {
-	if (!str.includes("%")) return str;
-	try {
-		return decodeURIComponent(str);
-	} catch {
-		return str;
-	}
-}
-var cookieNameRegExp = /^[\u0021-\u003A\u003C\u003E-\u007E]+$/;
-var cookieValueRegExp = /^[\u0021-\u003A\u003C-\u007E]*$/;
-var domainValueRegExp = /^([.]?[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)([.][a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$/i;
-var pathValueRegExp = /^[\u0020-\u003A\u003C-\u007E]*$/;
-var __toString = Object.prototype.toString;
-function serialize(_a0, _a1, _a2) {
-	const isObj = typeof _a0 === "object" && _a0 !== null;
-	const options = isObj ? _a1 : _a2;
-	const stringify = options?.stringify || JSON.stringify;
-	const cookie = isObj ? _a0 : {
-		..._a2,
-		name: _a0,
-		value: _a1 == void 0 ? "" : typeof _a1 === "string" ? _a1 : stringify(_a1)
-	};
-	const enc = options?.encode || encodeURIComponent;
-	if (!cookieNameRegExp.test(cookie.name)) throw new TypeError(`argument name is invalid: ${cookie.name}`);
-	const value = cookie.value ? enc(cookie.value) : "";
-	if (!cookieValueRegExp.test(value)) throw new TypeError(`argument val is invalid: ${cookie.value}`);
-	if (!cookie.secure) {
-		if (cookie.partitioned) throw new TypeError(`Partitioned cookies must have the Secure attribute`);
-		if (cookie.sameSite && String(cookie.sameSite).toLowerCase() === "none") throw new TypeError(`SameSite=None cookies must have the Secure attribute`);
-		if (cookie.name.length > 9 && cookie.name.charCodeAt(0) === 95 && cookie.name.charCodeAt(1) === 95) {
-			const nameLower = cookie.name.toLowerCase();
-			if (nameLower.startsWith("__secure-") || nameLower.startsWith("__host-")) throw new TypeError(`${cookie.name} cookies must have the Secure attribute`);
-		}
-	}
-	if (cookie.name.length > 7 && cookie.name.charCodeAt(0) === 95 && cookie.name.charCodeAt(1) === 95 && cookie.name.toLowerCase().startsWith("__host-")) {
-		if (cookie.path !== "/") throw new TypeError(`__Host- cookies must have Path=/`);
-		if (cookie.domain) throw new TypeError(`__Host- cookies must not have a Domain attribute`);
-	}
-	let str = cookie.name + "=" + value;
-	if (cookie.maxAge !== void 0) {
-		if (!Number.isInteger(cookie.maxAge)) throw new TypeError(`option maxAge is invalid: ${cookie.maxAge}`);
-		str += "; Max-Age=" + Math.max(0, Math.min(cookie.maxAge, COOKIE_MAX_AGE_LIMIT));
-	}
-	if (cookie.domain) {
-		if (!domainValueRegExp.test(cookie.domain)) throw new TypeError(`option domain is invalid: ${cookie.domain}`);
-		str += "; Domain=" + cookie.domain;
-	}
-	if (cookie.path) {
-		if (!pathValueRegExp.test(cookie.path)) throw new TypeError(`option path is invalid: ${cookie.path}`);
-		str += "; Path=" + cookie.path;
-	}
-	if (cookie.expires) {
-		if (!isDate(cookie.expires) || !Number.isFinite(cookie.expires.valueOf())) throw new TypeError(`option expires is invalid: ${cookie.expires}`);
-		str += "; Expires=" + cookie.expires.toUTCString();
-	}
-	if (cookie.httpOnly) str += "; HttpOnly";
-	if (cookie.secure) str += "; Secure";
-	if (cookie.partitioned) str += "; Partitioned";
-	if (cookie.priority) switch (typeof cookie.priority === "string" ? cookie.priority.toLowerCase() : void 0) {
-		case "low":
-			str += "; Priority=Low";
-			break;
-		case "medium":
-			str += "; Priority=Medium";
-			break;
-		case "high":
-			str += "; Priority=High";
-			break;
-		default: throw new TypeError(`option priority is invalid: ${cookie.priority}`);
-	}
-	if (cookie.sameSite) switch (typeof cookie.sameSite === "string" ? cookie.sameSite.toLowerCase() : cookie.sameSite) {
-		case true:
-		case "strict":
-			str += "; SameSite=Strict";
-			break;
-		case "lax":
-			str += "; SameSite=Lax";
-			break;
-		case "none":
-			str += "; SameSite=None";
-			break;
-		default: throw new TypeError(`option sameSite is invalid: ${cookie.sameSite}`);
-	}
-	return str;
-}
-function isDate(val) {
-	return __toString.call(val) === "[object Date]";
-}
-var maxAgeRegExp = /^-?\d+$/;
-var _nullProto = /* @__PURE__ */ Object.getPrototypeOf({});
-function parseSetCookie(str, options) {
-	const len = str.length;
-	let _endIdx = len;
-	let eqIdx = -1;
-	for (let i = 0; i < len; i++) {
-		const c = str.charCodeAt(i);
-		if (c === 59) {
-			_endIdx = i;
-			break;
-		}
-		if (c === 61 && eqIdx === -1) eqIdx = i;
-	}
-	if (eqIdx >= _endIdx) eqIdx = -1;
-	const name = eqIdx === -1 ? "" : _trim(str, 0, eqIdx);
-	if (name && name in _nullProto) return void 0;
-	let value = eqIdx === -1 ? _trim(str, 0, _endIdx) : _trim(str, eqIdx + 1, _endIdx);
-	if (!name && !value) return void 0;
-	if (name.length + value.length > 4096) return void 0;
-	if (options?.decode !== false) value = _decode(value, options?.decode);
-	const setCookie = {
-		name,
-		value
-	};
-	let index = _endIdx + 1;
-	while (index < len) {
-		let endIdx = len;
-		let attrEqIdx = -1;
-		for (let i = index; i < len; i++) {
-			const c = str.charCodeAt(i);
-			if (c === 59) {
-				endIdx = i;
-				break;
-			}
-			if (c === 61 && attrEqIdx === -1) attrEqIdx = i;
-		}
-		if (attrEqIdx >= endIdx) attrEqIdx = -1;
-		const attr = attrEqIdx === -1 ? _trim(str, index, endIdx) : _trim(str, index, attrEqIdx);
-		const val = attrEqIdx === -1 ? void 0 : _trim(str, attrEqIdx + 1, endIdx);
-		if (val === void 0 || val.length <= 1024) switch (attr.toLowerCase()) {
-			case "httponly":
-				setCookie.httpOnly = true;
-				break;
-			case "secure":
-				setCookie.secure = true;
-				break;
-			case "partitioned":
-				setCookie.partitioned = true;
-				break;
-			case "domain":
-				if (val) setCookie.domain = (val.charCodeAt(0) === 46 ? val.slice(1) : val).toLowerCase();
-				break;
-			case "path":
-				setCookie.path = val;
-				break;
-			case "max-age":
-				if (val && maxAgeRegExp.test(val)) setCookie.maxAge = Math.min(Number(val), COOKIE_MAX_AGE_LIMIT);
-				break;
-			case "expires": {
-				if (!val) break;
-				const date = new Date(val);
-				if (Number.isFinite(date.valueOf())) {
-					const maxDate = new Date(Date.now() + COOKIE_MAX_AGE_LIMIT * 1e3);
-					setCookie.expires = date > maxDate ? maxDate : date;
-				}
-				break;
-			}
-			case "priority": {
-				if (!val) break;
-				const priority = val.toLowerCase();
-				if (priority === "low" || priority === "medium" || priority === "high") setCookie.priority = priority;
-				break;
-			}
-			case "samesite": {
-				if (!val) break;
-				const sameSite = val.toLowerCase();
-				if (sameSite === "lax" || sameSite === "strict" || sameSite === "none") setCookie.sameSite = sameSite;
-				else setCookie.sameSite = "lax";
-				break;
-			}
-			default: {
-				const attrLower = attr.toLowerCase();
-				if (attrLower && !(attrLower in _nullProto)) setCookie[attrLower] = val;
-			}
-		}
-		index = endIdx + 1;
-	}
-	return setCookie;
-}
-function _trim(str, start, end) {
-	if (start === end) return "";
-	let s = start;
-	let e = end;
-	while (s < e && (str.charCodeAt(s) === 32 || str.charCodeAt(s) === 9)) s++;
-	while (e > s && (str.charCodeAt(e - 1) === 32 || str.charCodeAt(e - 1) === 9)) e--;
-	return str.slice(s, e);
-}
-function _decode(value, decode) {
-	if (!decode && !value.includes("%")) return value;
-	try {
-		return (decode || decodeURIComponent)(value);
-	} catch {
-		return value;
-	}
-}
-function parseCookies(event) {
-	return parse(event.req.headers.get("cookie") || "");
-}
-function getCookie(event, name) {
-	return parseCookies(event)[name];
-}
-function setCookie(event, name, value, options) {
-	const { encode, stringify, ...attrs } = options ?? {};
-	const newCookie = serialize({
-		name,
-		value,
-		path: "/",
-		...attrs
-	}, {
-		encode,
-		stringify
-	});
-	const currentCookies = event.res.headers.getSetCookie();
-	if (currentCookies.length === 0) {
-		event.res.headers.set("set-cookie", newCookie);
-		return;
-	}
-	const newCookieKey = _getDistinctCookieKey(name, options || {});
-	event.res.headers.delete("set-cookie");
-	for (const cookie of currentCookies) {
-		const parsed = parseSetCookie(cookie);
-		if (!parsed) continue;
-		if (_getDistinctCookieKey(cookie.split("=")?.[0], parsed) === newCookieKey) continue;
-		event.res.headers.append("set-cookie", cookie);
-	}
-	event.res.headers.append("set-cookie", newCookie);
-}
-function deleteCookie(event, name, serializeOptions) {
-	setCookie(event, name, "", {
-		...serializeOptions,
-		maxAge: 0
-	});
-}
-function _getDistinctCookieKey(name, options) {
-	return [
-		name,
-		options.domain || "",
-		options.path || "/"
-	].join(";");
-}
-function createError(arg1, arg2) {
-	return new HTTPError(arg1, arg2);
-}
-function getRequestHeader(event, name) {
-	return event.req.headers.get(name) || void 0;
-}
-var getHeader = getRequestHeader;
-function setResponseHeader(event, name, value) {
-	if (Array.isArray(value)) {
-		event.res.headers.delete(name);
-		for (const valueItem of value) event.res.headers.append(name, valueItem);
-	} else event.res.headers.set(name, value);
-}
-var setHeader = setResponseHeader;
-var defineEventHandler = defineHandler;
 //#endregion
-export { NodeResponse as _, defineEventHandler as a, deleteCookie as c, getQuery as d, getRouterParam as f, toEventHandler as g, setHeader as h, createError as i, getCookie as l, setCookie as m, HTTPError as n, defineHandler as o, readBody as p, HTTPResponse as r, defineLazyEventHandler as s, H3Core as t, getHeader as u, serve as v };
+export { defineLazyEventHandler as a, NodeResponse as c, defineHandler as i, serve as l, HTTPError as n, defineMiddleware as o, HTTPResponse as r, toEventHandler as s, H3Core as t };

@@ -415,6 +415,12 @@ const NAV_VIEW_CHUNKS: Record<string, () => Promise<unknown>> = {
   groups: () => import("@/pages/Groups"),
   cotisations: () => import("@/pages/Cotisations"),
   events: () => import("@/pages/Events"),
+  versement: () => import("@/pages/Versement"),
+  rapports: () => import("@/pages/Reports"),
+  membres: () => import("@/pages/Members"),
+  historique: () => import("@/pages/History"),
+  archives: () => import("@/pages/Archives"),
+  bilan: () => import("@/pages/Balance"),
 };
 
 /**
