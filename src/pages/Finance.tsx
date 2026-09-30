@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { Fragment, useState, useMemo, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useCategories, useAccounts, useCaisses } from "@/lib/dataLayer";
 import { resource } from "@/capabilities/resource";
@@ -124,7 +124,7 @@ export default function Finance() {
           {loading ? (
             <FinanceSkeleton />
           ) : (
-            <>
+            <Fragment>
               <h1 className="sr-only">Finance — Grand livre</h1>
               <TopHeader title="Finance" />
               <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
@@ -357,7 +357,8 @@ export default function Finance() {
                 <ArrowDownRight className="w-6 h-6 text-white" />
               </button>
             </div>
-            </>
+            </div>
+            </Fragment>
           )}
           <BottomNav />
         </div>

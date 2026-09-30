@@ -202,7 +202,7 @@ export default function SessionsPage() {
                         border: "1px solid var(--border)",
                       }}
                     >
-                      {/* Re-ouvrir la session — la carte entière est cliquable,
+                      {/* Re-ouvrir la session — le contenu de la carte est cliquable,
                           à l'exception de la zone « Retirer » (stopPropagation). */}
                       <button
                         type="button"
@@ -212,34 +212,35 @@ export default function SessionsPage() {
                         style={{ border: "none", backgroundColor: "transparent", cursor: "pointer" }}
                         aria-label={`Re-ouvrir ${org.name}`}
                       >
-                      <div
-                        className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0"
-                        style={{
-                          backgroundColor:
-                            "color-mix(in srgb, var(--accent-primary) 15%, transparent)",
-                        }}
-                      >
-                        {entering === org.orgId || busyThis ? (
-                          <Loader2 className="w-5 h-5 animate-spin" style={{ color: "var(--accent-primary)" }} />
-                        ) : (
-                          <Building2 className="w-5 h-5" style={{ color: "var(--accent-primary)" }} />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="text-text-primary text-sm font-semibold truncate">
-                            {org.name}
-                          </p>
-                          {isCurrent && (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-medium text-income flex-shrink-0">
-                              <Check className="w-3 h-3" /> Actif
-                            </span>
+                        <div
+                          className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0"
+                          style={{
+                            backgroundColor:
+                              "color-mix(in srgb, var(--accent-primary) 15%, transparent)",
+                          }}
+                        >
+                          {entering === org.orgId || busyThis ? (
+                            <Loader2 className="w-5 h-5 animate-spin" style={{ color: "var(--accent-primary)" }} />
+                          ) : (
+                            <Building2 className="w-5 h-5" style={{ color: "var(--accent-primary)" }} />
                           )}
                         </div>
-                        <p className="text-text-tertiary text-xs mt-0.5">
-                          {VIA_LABEL[org.via]} · {STATUS_LABEL[org.status] ?? org.status}
-                        </p>
-                      </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="text-text-primary text-sm font-semibold truncate">
+                              {org.name}
+                            </p>
+                            {isCurrent && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-income flex-shrink-0">
+                                <Check className="w-3 h-3" /> Actif
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-text-tertiary text-xs mt-0.5">
+                            {VIA_LABEL[org.via]} · {STATUS_LABEL[org.status] ?? org.status}
+                          </p>
+                        </div>
+                      </button>
                       {/* « Retirer » : agit sur le compte visuel associé à la
                           carte (org), jamais sur list[0] — avec plusieurs
                           comptes, le bouton retire LA org cliquée, pas la
