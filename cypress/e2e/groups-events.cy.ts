@@ -10,10 +10,8 @@
 
 describe('Lumina — Groups & Events', () => {
   before(function () {
-    cy.requireCredentials();
-    const email = Cypress.expose('TEST_EMAIL') as string;
-    const password = Cypress.expose('TEST_PASSWORD') as string;
-    cy.prepareSession(email, password);
+    this.timeout(180_000);
+    cy.freshSignup();
   });
 
   it('creates a group, shows its detail tabs, and returns to list', function () {

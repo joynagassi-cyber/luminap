@@ -9,17 +9,15 @@
 
 describe('Lumina — comprehensive navigation & finance flow', () => {
   before(function () {
-    cy.requireCredentials();
-    const email = Cypress.expose('TEST_EMAIL') as string;
-    const password = Cypress.expose('TEST_PASSWORD') as string;
-    cy.prepareSession(email, password);
+    this.timeout(180_000);
+    cy.freshSignup();
   });
 
   it('navigates Settings, Balance, History, Events, and Transaction edit', function () {
     this.timeout(180_000);
 
     // ── Open More menu → Settings ──────────────────────────────────────
-    cy.contains('button', 'Plus').click();
+    cy.get('button[aria-label="Plus d\'options"]').click();
     cy.contains('button', 'Paramètres').click();
     cy.get('h1, h2, h3').contains('Paramètres').should('be.visible');
 
@@ -45,7 +43,7 @@ describe('Lumina — comprehensive navigation & finance flow', () => {
     cy.contains('button', 'PDF').first().click();
 
     // ── History ────────────────────────────────────────────────────────
-    cy.contains('button', 'Plus').click();
+    cy.get('button[aria-label="Plus d\'options"]').click();
     cy.contains('button', 'Historique').click();
     cy.get('h1, h2, h3').contains('Historique').should('be.visible');
 
@@ -56,7 +54,7 @@ describe('Lumina — comprehensive navigation & finance flow', () => {
     cy.contains('button', 'Retour').click();
 
     // ── Events ─────────────────────────────────────────────────────────
-    cy.contains('button', 'Plus').click();
+    cy.get('button[aria-label="Plus d\'options"]').click();
     cy.contains('button', 'Événements').click();
     cy.get('h1, h2, h3').contains('Événements').should('be.visible');
 

@@ -15,10 +15,8 @@
 
 describe('Lumina — F5 persistence (transaction, event, form)', () => {
   before(function () {
-    cy.requireCredentials();
-    const email = Cypress.expose('TEST_EMAIL') as string;
-    const password = Cypress.expose('TEST_PASSWORD') as string;
-    cy.prepareSession(email, password);
+    this.timeout(180_000);
+    cy.freshSignup();
   });
 
   it('transaction, event budget line, and form submission survive a reload', function () {

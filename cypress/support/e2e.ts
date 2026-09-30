@@ -39,6 +39,16 @@ declare global {
       prepareSession(email: string, password: string): Chainable;
       /** Throws a clear error when CYPRESS_TEST_* credentials are not set. */
       requireCredentials(): Chainable;
+      /**
+       * Fresh Supabase sign-up via /auth → /dashboard (unique email per
+       * call). Use when no pre-existing test account is available.
+       */
+      freshSignup(overrides?: {
+        email?: string;
+        password?: string;
+        firstName?: string;
+        lastName?: string;
+      }): Chainable;
     }
   }
 }
@@ -199,6 +209,64 @@ Cypress.Commands.add('requireCredentials', function (): Cypress.Chainable {
     );
   }
   return cy.wrap(null);
+});
+
+/**
+ * Signs up a brand-new Supabase user via the /auth UI, completes
+ * onboarding, and lands on /dashboard. The email is unique per call
+ * so re-runs never collide with real data. This is the inverse of
+ * `prepareSession` (which logs in an existing account).
+ *
+ * Use this when the spec needs a session but no pre-existing account
+ * is guaranteed to exist (or the password is unknown).
+ */
+Cypress.Commands.add('freshSignup', function (overrides?: {
+  email?: string;
+  password?: string;
+  firstName?: string;
+  lastName?: string;
+}): Cypress.Chainable {
+  const email =
+    overrides?.email ?? `e2e.${Date.now()}.${Math.floor(Math.random() * 10000)}@lumina.dev`;
+  const password = overrides?.password ?? `E2e-${Math.random().toString(36).slice(2, 10)}!a`;
+  const firstName = overrides?.firstName ?? 'E2e';
+  const lastName = overrides?.lastName ?? 'Test';
+
+  cy.clearLocalStorage();
+  cy.visit('/auth');
+
+  // Pré-set des flags onboarding AVANT le submit (même pattern que
+  // auth-real.cy.ts) : sans ça, le nouveau compte atterrit sur
+  // /onboarding et cy.skipOnboarding() (qui attend /dashboard) échoue.
+  //
+  // Rôle TREASURIER : les spécimens créent des groupes, événements,
+  // transactions et formulaires — toutes ces actions exigent les
+  // permissions du rôle TREASURIER (group:create, event:create, etc.).
+  // Un rôle MEMBRE n'y a pas accès et les boutons « Créer » ne s'afficheraient pas.
+  cy.window().then((win) => {
+    win.localStorage.setItem('lumina-onboarded', 'true');
+    win.localStorage.setItem('lumina-role', 'TREASURIER');
+  });
+
+  cy.contains('button', 'Pas encore de compte').click();
+  cy.get('input[aria-label="Prénom"]').type(firstName);
+  cy.get('input[aria-label="Nom"]').type(lastName);
+  cy.get('input[type="email"]').type(email);
+  cy.get('input[type="password"]').type(password);
+  cy.contains('button[type="submit"]', 'Créer mon compte').click();
+
+  // Le sign-up + RLS trigger + upsert_profile peuvent prendre quelques
+  // secondes ; Splash redirige vers /dashboard (ou /onboarding si le
+  // flag n'a pas été lu à temps — on le gère via skipOnboarding).
+  cy.location('pathname', { timeout: 120_000 }).should((path: string) => {
+    expect(path, `unexpected path after signup: ${path}`).not.to.include('auth');
+  });
+  cy.skipOnboarding();
+  cy.location('pathname', { timeout: 60_000 }).should((path: string) => {
+    expect(['/dashboard', '/splash']).to.include(path);
+  });
+
+  return cy.wrap({ email, password });
 });
 
 // Register the offline/local helpers (seedLocalSession, interceptCloud,

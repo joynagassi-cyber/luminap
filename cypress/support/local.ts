@@ -201,8 +201,10 @@ Cypress.Commands.add('interceptCloud', function () {
 });
 
 Cypress.Commands.add('restoreCloud', function () {
-  // Remove all registered routes (Supabase/PowerSync aborts + any UI intercepts).
-  (cy as any).unrouteAll();
+  // Cypress 16 a retiré `cy.unrouteAll()` : le repli documenté est
+  // `cy.restore()`, qui retire toutes les routes interceptées
+  // (Supabase/PowerSync aborts + intercepts UI) et restaure le réseau.
+  cy.restore();
 });
 
 export {};
