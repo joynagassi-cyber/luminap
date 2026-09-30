@@ -42,7 +42,8 @@ export default function Splash() {
     });
   };
 
-  // Timers des deux phases (affichage minimum ~2,7 s).
+  // Les deux timers pilotent la rampe minimum (logo → illustration →
+  // transition) ; `goToNext` est idempotent via `navigatingRef`.
   useEffect(() => {
     const t1 = setTimeout(() => setPhase("illustration"), PHASE_LOGO_MS);
     const t2 = setTimeout(() => {
@@ -61,10 +62,10 @@ export default function Splash() {
   }, []);
 
   // Les données ont fini de charger PENDANT le spinner « loading » (après
-  // la rampe minimum de ~2,7 s) : on part. Tant que la rampe n'est pas
-  // finie, on respecte l'affichage minimum des deux phases (logo puis
-  // illustration) — le timer t2 relance goToNext si les données étaient
-  // déjà prêtes.
+  // la rampe minimum de ~2,7 s) : on part. La garde `phase === "loading"`
+  // est indispensable — sans elle, l'effet s'exécuterait au 1er rendu avec
+  // `initialDataLoaded` déjà true (cas PowerSync prêt au montage) et
+  // court-circuiterait la rampe minimum.
   useEffect(() => {
     if (initialDataLoaded && phase === "loading") goToNext();
     // eslint-disable-next-line react-hooks/exhaustive-deps

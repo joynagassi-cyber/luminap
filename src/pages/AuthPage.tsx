@@ -88,11 +88,23 @@ export default function AuthPage() {
     profile: Pick<Profile, "role" | "id"> | null | undefined,
     opts?: { forceOnboarding?: boolean },
   ) => {
-    await loadInitialData();
-    await oneSignalService.login(
-      (profile?.role ?? "MEMBRE") as Role,
-      profile?.id ?? user?.id ?? "",
-    );
+    try {
+      await loadInitialData();
+    } catch (e) {
+      // loadInitialData doit JAMAIS bloquer la navigation post-auth :
+      // le fallback PowerSync est non critique (le store a déjà ses
+      // données seed locales). On logue et on continue.
+      console.warn("[auth] loadInitialData failed, continuing:", e);
+    }
+    try {
+      await oneSignalService.login(
+        (profile?.role ?? "MEMBRE") as Role,
+        profile?.id ?? user?.id ?? "",
+      );
+    } catch (e) {
+      // OneSignal non critique pour la navigation.
+      console.warn("[auth] oneSignalService.login failed:", e);
+    }
     // Une inscription (nouveau compte) passe TOUJOURS par la première page
     // (onboarding : accueil + config) — et non directement au dashboard
     // principal — même si ce navigateur a déjà configuré un autre compte.

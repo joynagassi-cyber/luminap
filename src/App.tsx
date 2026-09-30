@@ -26,12 +26,24 @@ const queryClient = new QueryClient();
 // Routes that don't require authentication
 const PUBLIC_ROUTES = ["/splash", "/auth", "/auth/callback", "/sessions"];
 
-/** Route guard — blocks access to protected routes when unauthenticated */
+/** Route guard — blocks access to protected routes when unauthenticated.
+
+ *  Two-layer auth check:
+ *   1. **Mount check** — async `authService.getSession()` on first render
+ *      (covers cold start, hard reload, direct URL entry).
+ *   2. **Live subscription** — `authService.subscribe()` keeps
+ *      `isAuthenticated` in sync with in-app sign-in / sign-out / session
+ *      invalidation (without this, a `proceedAfterAuth` navigation from
+ *      AuthPage → /onboarding or /dashboard would see the stale
+ *      `isAuthenticated === false` set at mount and immediately bounce
+ *      back to /auth via the `<Navigate>` guard).
+ */
 function RouteGuard() {
   const location = useLocation();
   const [isAuthChecked, setIsAuthChecked] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  // Layer 1: initial check on mount (cold start / hard reload / direct URL).
   useEffect(() => {
     const check = async () => {
       const session = await authService.getSession();
@@ -39,6 +51,15 @@ function RouteGuard() {
       setIsAuthChecked(true);
     };
     check();
+  }, []);
+
+  // Layer 2: keep in sync with live auth state changes (sign-in, sign-out,
+  // session invalidated, OAuth callback success).
+  useEffect(() => {
+    const unsubscribe = authService.subscribe(() => {
+      setIsAuthenticated(!!authService.getState().session);
+    });
+    return unsubscribe;
   }, []);
 
   // While checking, render nothing to avoid flash of wrong page
