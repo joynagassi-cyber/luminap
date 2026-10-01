@@ -21,6 +21,7 @@ import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
 import { generateId } from "@/lib/utils";
 import { getOrganizationId } from "@/lib/orgContext";
+import { useKeyboardAvoidance } from "@/hooks/useKeyboardAvoidance";
 import { useOnlineStatus } from "@/lib/dataLayer";
 import { policy } from "@/capabilities/policy";
 import {
@@ -80,6 +81,7 @@ export default function TransactionNew() {
   const [proofUploading, setProofUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const amountRef = useRef<any>(null);
+  const keyboardHeight = useKeyboardAvoidance();
   const isOnline = useOnlineStatus();
 
   const validateAmount = (val: string): string => {
@@ -191,7 +193,12 @@ export default function TransactionNew() {
       <IonContent fullscreen>
         <h1 className="sr-only">Nouvelle transaction</h1>
         <TopHeader title="Nouvelle transaction" />
-        <div className="px-5 pt-safe-calc pb-safe-calc">
+        <div
+          className="px-5 pt-safe-calc pb-safe-calc"
+          style={{
+            paddingBottom: keyboardHeight > 0 ? `${keyboardHeight}px` : undefined,
+          }}
+        >
             <button
               onClick={() => navigate(-1)}
               className="flex items-center gap-2 text-text-secondary text-sm mb-5"
