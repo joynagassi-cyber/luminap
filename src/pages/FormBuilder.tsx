@@ -4,6 +4,7 @@ import { ArrowLeft, Plus, X, Trash2, GripVertical } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
 import { formDefinitionRepo } from "@/lib/formSystem";
+import { FORM_TEMPLATES, materializeTemplate } from "@/lib/formTemplates";
 import { generateId } from "@/lib/utils";
 import { getOrganizationId } from "@/lib/orgContext";
 import type { FormDefinition, FormFieldDefinition } from "@/types";
@@ -66,6 +67,7 @@ export default function FormBuilder() {
   const [formKey, setFormKey] = useState("");
   const [fields, setFields] = useState<FormFieldDefinition[]>([]);
   const [error, setError] = useState("");
+  const [creating, setCreating] = useState(false);
 
   const loadForms = async () => {
     const list = await formDefinitionRepo.list({ orgId: getOrganizationId() });
@@ -81,6 +83,7 @@ export default function FormBuilder() {
       setError("Nom et clé requis");
       return;
     }
+    if (creating) return;
     const def: FormDefinition = {
       id: generateId(),
       orgId: getOrganizationId(),
@@ -94,13 +97,31 @@ export default function FormBuilder() {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    await formDefinitionRepo.create(def);
-    await loadForms();
-    setShowCreate(false);
-    setFormName("");
-    setFormDescription("");
-    setFormKey("");
-    setFields([]);
+    setCreating(true);
+    try {
+      await formDefinitionRepo.create(def);
+      await loadForms();
+      setShowCreate(false);
+      setFormName("");
+      setFormDescription("");
+      setFormKey("");
+      setFields([]);
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  /** Duplique un template : pré-remplit le modal de création. */
+  const duplicateTemplate = (templateKey: string) => {
+    const tpl = FORM_TEMPLATES.find((t) => t.key === templateKey);
+    if (!tpl) return;
+    const def = materializeTemplate(tpl, getOrganizationId());
+    setFormName(def.name);
+    setFormKey(def.key);
+    setFormDescription(def.description ?? "");
+    setFields(def.fields);
+    setShowCreate(true);
+    setError("");
   };
 
   const addFieldInline = (type: FormFieldDefinition["type"]) => {
@@ -130,9 +151,8 @@ export default function FormBuilder() {
   return (
     <IonPage>
       <IonContent className="bg-canvas">
-        <div className="h-screen bg-canvas flex flex-col overflow-hidden">
-          <TopHeader title="Formulaires" />
-          <div className="flex-1 overflow-y-auto px-5 pt-16 pb-28 max-w-lg mx-auto">
+        <TopHeader title="Formulaires" />
+        <div className="px-5 pt-16 pb-28 max-w-lg mx-auto">
             <button
               onClick={() => navigate(-1)}
               className="flex items-center gap-2 text-text-secondary text-sm mb-5"
@@ -234,6 +254,46 @@ export default function FormBuilder() {
                 ))}
               </div>
             )}
+
+            <div className="mt-8 mb-2">
+              <h2 className="text-text-primary font-semibold text-sm mb-3">
+                Templates
+              </h2>
+              <p className="text-text-tertiary text-xs mb-2">
+                Dupliquez un modèle pré-rempli pour démarrer plus vite.
+              </p>
+              <div className="space-y-2">
+                {FORM_TEMPLATES.map((tpl) => (
+                  <div
+                    key={tpl.key}
+                    className="rounded-xl p-4"
+                    style={{ backgroundColor: "var(--surface)" }}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-text-primary text-sm font-semibold">
+                        {tpl.name}
+                      </p>
+                      <span className="text-xs text-text-tertiary">
+                        {tpl.fields.length} champs
+                      </span>
+                    </div>
+                    <p className="text-text-tertiary text-xs mb-3">
+                      {tpl.description}
+                    </p>
+                    <button
+                      onClick={() => duplicateTemplate(tpl.key)}
+                      className="w-full py-2 rounded-full text-xs font-medium"
+                      style={{
+                        backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)",
+                        color: "var(--accent-primary)",
+                      }}
+                    >
+                      Dupliquer ce modèle
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
           {/* Create Modal */}
@@ -512,8 +572,9 @@ export default function FormBuilder() {
                   expand="block"
                   className="w-full mb-3"
                   color="tertiary"
+                  disabled={creating}
                 >
-                  Créer le formulaire
+                  {creating ? "Création..." : "Créer le formulaire"}
                 </IonButton>
                 <IonButton
                   onClick={() => setShowCreate(false)}
@@ -529,7 +590,6 @@ export default function FormBuilder() {
           )}
 
           <BottomNav />
-        </div>
       </IonContent>
     </IonPage>
   );
