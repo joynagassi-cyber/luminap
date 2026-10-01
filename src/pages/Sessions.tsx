@@ -9,7 +9,7 @@
  * quelles l'utilisateur courant est lié (membres, grants, legacy) et propose
  * de re-entrer dans chacune, ou de tout déconnecter.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   IonPage,
