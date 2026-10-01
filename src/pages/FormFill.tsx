@@ -14,6 +14,7 @@ import {
   useGroups,
   useEvents,
   useAccounts,
+  useCurrentUser,
 } from "@/lib/dataLayer";
 import { generateId } from "@/lib/utils";
 import { getOrganizationId } from "@/lib/orgContext";
@@ -83,6 +84,9 @@ function ReferenceSelect({
 export default function FormFill() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  // T2 Forms v2 — soumetteur réel : useCurrentUser ne renvoie jamais null
+  // (repli synchrone `id: "local-user"`), le `?? "local-user"` est un garde-fou.
+  const currentUser = useCurrentUser();
   const [form, setForm] = useState<FormDefinition | null>(null);
   const [data, setData] = useState<Record<string, any>>({});
   const [errors, setErrors] = useState<string[]>([]);
@@ -129,7 +133,7 @@ export default function FormFill() {
       orgId: getOrganizationId(),
       formDefinitionId: form.id,
       formVersion: form.version,
-      submittedBy: "local-user",
+      submittedBy: currentUser?.id ?? "local-user",
       data,
       status: "SUBMITTED",
     });
@@ -175,7 +179,9 @@ export default function FormFill() {
       }
     }
     setSubmitted(true);
-    setTimeout(() => navigate("/forms"), 2000);
+    // Naviguer rapidement pour ne pas laisser « Soumis avec succès ! »
+    // clignoter sous la nouvelle page (délai réduit à 600 ms).
+    setTimeout(() => navigate("/forms"), 600);
   };
 
   if (loading) {
@@ -188,28 +194,29 @@ export default function FormFill() {
 
   if (!form) {
     return (
-      <div className="min-h-screen bg-canvas flex flex-col">
-        <TopHeader title="Formulaire" />
-        <div className="flex-1 overflow-y-auto px-5 pt-16 pb-28 max-w-lg mx-auto">
-          <button
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-2 text-text-secondary text-sm mb-5"
-          >
-            <ArrowLeft className="w-4 h-4" /> Retour
-          </button>
-          <p className="text-text-tertiary text-sm">Formulaire introuvable</p>
-        </div>
-        <BottomNav />
-      </div>
+      <IonPage>
+        <IonContent className="bg-canvas">
+          <TopHeader title="Formulaire" />
+          <div className="px-5 pt-16 pb-28 max-w-lg mx-auto">
+            <button
+              onClick={() => navigate(-1)}
+              className="flex items-center gap-2 text-text-secondary text-sm mb-5"
+            >
+              <ArrowLeft className="w-4 h-4" /> Retour
+            </button>
+            <p className="text-text-tertiary text-sm">Formulaire introuvable</p>
+          </div>
+          <BottomNav />
+        </IonContent>
+      </IonPage>
     );
   }
 
   return (
     <IonPage>
       <IonContent className="bg-canvas">
-        <div className="min-h-screen bg-canvas flex flex-col">
-          <TopHeader title={form.name} />
-          <div className="flex-1 overflow-y-auto px-5 pt-16 pb-28 max-w-lg mx-auto">
+        <TopHeader title={form.name} />
+        <div className="px-5 pt-16 pb-28 max-w-lg mx-auto">
             <button
               onClick={() => navigate(-1)}
               className="flex items-center gap-2 text-text-secondary text-sm mb-5"
@@ -354,7 +361,6 @@ export default function FormFill() {
             )}
           </div>
           <BottomNav />
-        </div>
       </IonContent>
     </IonPage>
   );
