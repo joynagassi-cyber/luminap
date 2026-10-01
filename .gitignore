@@ -1,2 +1,23 @@
 out/
 results.json
+
+# ── Build / runtime ──────────────────────────────────────────────────
+node_modules/
+dist/
+test-results/
+cypress/screenshots/
+e2e-min/logs/
+e2e-tests/fixtures/
+cypress-sessions-diag.log
+hs_err_pid*.log
+replay_pid*.log
+
+# ── Secrets / env locaux (JAMAIS commités) ────────────────────────────
+.env
+.env.local
+android/app/lumina-keystore.b64
+android/app/lumina-keystore.jks
+
+# ── Artefacts agents / dev ───────────────────────────────────────────
+.dyad/
+.reversa/
