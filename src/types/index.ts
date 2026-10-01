@@ -433,6 +433,8 @@ export type FormSubmission = {
   linkedEntityType?: string;
   linkedEntityId?: string;
   status: "SUBMITTED" | "PROCESSED" | "REJECTED";
+  rejectedBy?: string;
+  rejectionReason?: string;
   createdAt: string;
 };
 
