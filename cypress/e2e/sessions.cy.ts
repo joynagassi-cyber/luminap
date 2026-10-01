@@ -11,28 +11,39 @@
  */
 
 describe('Lumina — Session persistence (Mes comptes, reconnect sans retaper)', () => {
-  // ── Diagnostic : capture complète du console (app side) dans la session
-  //    Node de Cypress, imprimée à la fin du spec (passant ou non). ─────
-  const diagLines: string[] = [];
-  const isDiag = (s: string) =>
-    /loginOrgAccount|org\] refetch|auth\] hydrateProfile|sessions-diag|handleNewUser|upsert_profile|ensureProfile/.test(s);
-
-  beforeEach(() => {
-    cy.on('window:console', (event) => {
-      const s = event.args.map((a: unknown) => (typeof a === 'string' ? a : JSON.stringify(a))).join(' ');
-      if (isDiag(s)) {
-        diagLines.push(`[${event.type}] ${s}`);
-      }
-    });
-  });
-
-  afterEach(() => {
-    if (diagLines.length > 0) {
-      console.info(`[sessions-diag-dump] ${diagLines.length} trace(s) capturée(s):`);
-      diagLines.slice(0, 80).forEach((l) => console.info(`[sessions-diag-dump] ${l}`));
-      diagLines.length = 0;
+  // ── Diagnostic : capture du localStorage + des traces produit émises
+  //    dans la console de l'app, imprimées dans le terminal Cypress.
+  //    Mécanisme : un spy sur console (installé après chaque cy.visit)
+  //    pousse les lignes qui match nos marqueurs dans (win).__diag ;
+  //    dumpDiag() les relit et les repousse dans le terminal Cypress via
+  //    console.info (Cypress capture les console du context Node).
+  const dumpDiag = (win: Window) => {
+    const cap = ((win as any).__diag as string[]) ?? [];
+    const flags = Object.keys(win.localStorage)
+      .map((k) => {
+        const v = win.localStorage.getItem(k);
+        return v && v.length > 120 ? `${k}=${v.slice(0, 80)}…` : `${k}=${v}`;
+      })
+      .join(' ');
+    console.info(`[sessions-diag] flags: ${flags}`);
+    for (const c of cap) console.info(`[sessions-diag] ${c}`);
+    (win as any).__diag = [];
+  };
+  const installSpy = (win: Window) => {
+    (win as any).__diag = [];
+    for (const lvl of ['info', 'warn', 'error', 'log'] as const) {
+      const orig = win.console[lvl];
+      win.console[lvl] = (...args: unknown[]) => {
+        const s = args
+          .map((a) => (typeof a === 'string' ? a : JSON.stringify(a)))
+          .join(' ');
+        if (/loginOrgAccount|org\] refetch|auth\] hydrateProfile|dataLayer|listUserOrgs|sessions-diag/.test(s)) {
+          ((win as any).__diag as string[]).push(`[${lvl}] ${s}`);
+        }
+        orig.apply(win.console, args);
+      };
     }
-  });
+  };
 
   before(function () {
     this.timeout(90_000);
@@ -42,42 +53,12 @@ describe('Lumina — Session persistence (Mes comptes, reconnect sans retaper)',
   it('logout → /sessions shows the active account → click reconnects without re-login', function () {
     this.timeout(120_000);
 
-    // Spy post-login (avant tout cy.visit) — capture les traces produit
-    // émises pendant la phase login (onboarding, etc.).
-    cy.window().then((win) => {
-      (win as any).__diag = [];
-      for (const lvl of ['info', 'warn', 'error', 'log'] as const) {
-        const orig = win.console[lvl];
-        win.console[lvl] = (...args: unknown[]) => {
-          const s = args
-            .map((a) => (typeof a === 'string' ? a : JSON.stringify(a)))
-            .join(' ');
-          if (/loginOrgAccount|org\] refetch|auth\] hydrateProfile|sessions-diag/.test(s)) {
-            (win as any).__diag.push(`[${lvl}] ${s}`);
-          }
-          orig.apply(win.console, args);
-        };
-      }
-    });
-    const dumpDiag = () => {
-      cy.window().then((win) => {
-        const cap = ((win as any).__diag as string[]) ?? [];
-        const flags = Object.keys(win.localStorage)
-          .map((k) => {
-            const v = win.localStorage.getItem(k);
-            return v && v.length > 120 ? `${k}=${v.slice(0, 80)}…` : `${k}=${v}`;
-          })
-          .join(' ');
-        console.info(`[sessions-diag] flags: ${flags}`);
-        for (const c of cap) console.info(`[sessions-diag] ${c}`);
-      });
-    };
-
     // ── 1. Se déconnecter depuis le hub /sessions ────────────────────
     cy.visit('/sessions');
+    cy.window().then(installSpy);
     cy.get('button[aria-label^="Re-ouvrir"]').should('exist');
     cy.contains('Actif').should('be.visible');
-    dumpDiag();
+    cy.window().then((win) => dumpDiag(win));
 
     cy.contains('button', 'Se déconnecter').click();
     // Le sign-out navigue vers /auth (la session Supabase est effacée,
@@ -87,24 +68,9 @@ describe('Lumina — Session persistence (Mes comptes, reconnect sans retaper)',
 
     // ── 2. Retourner au hub /sessions (route publique) ──────────────
     cy.visit('/sessions');
-    // Re-spied après le reload (le window a été rechargé).
-    cy.window().then((win) => {
-      (win as any).__diag = [];
-      for (const lvl of ['info', 'warn', 'error', 'log'] as const) {
-        const orig = win.console[lvl];
-        win.console[lvl] = (...args: unknown[]) => {
-          const s = args
-            .map((a) => (typeof a === 'string' ? a : JSON.stringify(a)))
-            .join(' ');
-          if (/loginOrgAccount|org\] refetch|auth\] hydrateProfile|sessions-diag/.test(s)) {
-            (win as any).__diag.push(`[${lvl}] ${s}`);
-          }
-          orig.apply(win.console, args);
-        };
-      }
-    });
+    cy.window().then(installSpy);
     cy.get('button[aria-label^="Re-ouvrir"]').should('exist');
-    dumpDiag();
+    cy.window().then((win) => dumpDiag(win));
 
     // ── 3. Cliquer sur le compte : reconnexion SANS retaper ────────
     // `handleEnter` re-hydrate la session Supabase depuis le token

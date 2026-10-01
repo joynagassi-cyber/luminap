@@ -2115,7 +2115,10 @@ export interface UserOrg {
  *   3. `org_admins`      (admin central) → via: GRANT / BOTH
  */
 export async function listUserOrgs(userId: string): Promise<UserOrg[]> {
-  if (!userId) return [];
+  if (!userId) {
+    console.info(`[dataLayer] listUserOrgs: userId vide → retourne [] (liste des orgs sera vide)`);
+    return [];
+  }
   try {
     const db = getPowerSyncDatabase();
     const rows = await db.readTransaction(async (tx) => {
@@ -2138,13 +2141,16 @@ export async function listUserOrgs(userId: string): Promise<UserOrg[]> {
       );
       return res.array ?? [];
     });
-    return rows.map((r) => ({
+    const mapped = rows.map((r) => ({
       orgId: String(r.orgId),
       name: String(r.name),
       status: (r.status as OrgStatus) ?? "PENDING",
       via: (r.via as UserOrg["via"]) ?? "MEMBER",
     }));
-  } catch {
+    console.info(`[dataLayer] listUserOrgs(${userId}) → ${mapped.length} org(s): ${mapped.map((o) => o.name).join(', ')}`);
+    return mapped;
+  } catch (err) {
+    console.info(`[dataLayer] listUserOrgs a levé: ${String(err)}`);
     return [];
   }
 }
