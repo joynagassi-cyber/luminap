@@ -525,25 +525,53 @@ class AuthService {
   //
   // Mobile (Capacitor) : deep link système lumina://auth/callback.
 
+  // ────────────────────────────────────────────────────────────────────────
+  // OAuth redirect URL
+  // ────────────────────────────────────────────────────────────────────────
+  // Web  : VITE_OAUTH_REDIRECT_URL (ex. https://lumina-76un.onrender.com/auth/callback)
+  //        ou, à défaut, window.location.origin + "/auth/callback".
+  //        Il correspond EXACTEMENT à l'URL déclarée dans le dashboard
+  //        Supabase (Authentication → URL Configuration → Redirect URLs).
+  //        Ne PAS mélanger avec le scheme Android (lumina://auth/callback)
+  //        : Supabase autorise un SEUL type de redirect par plateforme ;
+  //        si les deux sont déclarés mais que le web callback n'est pas
+  //        listé, l'échange PKCE échoue et l'utilisateur reste sur /auth.
+  //
+  // Mobile : le scheme custom (ex. lumina://auth/callback), capturé par le
+  //         intent-filter de AndroidManifest.xml.
+  private getOauthRedirectUrl(): string {
+    const isNative = Capacitor.isNativePlatform();
+    if (isNative) {
+      return "lumina://auth/callback";
+    }
+    // En priorité : URL absolue fournie par l'environnement.
+    // Ex: VITE_OAUTH_REDIRECT_URL=https://lumina-76un.onrender.com/auth/callback
+    const envUrl = import.meta.env.VITE_OAUTH_REDIRECT_URL;
+    if (envUrl && typeof envUrl === "string") return envUrl;
+    // Fallback : origine courante. Correct si l'app est servie sur le même
+    // domaine que l'URL déclarée dans Supabase (ex. Render subdomain).
+    return window.location.origin + "/auth/callback";
+  }
+
   async signInWithGoogle(): Promise<{ error: string | null }> {
     this.setState({ isLoading: true, error: null });
 
     try {
-      // PKCE : le client (flowType: "pkce") génère le code_verifier et le
+      // PKCE : le SDK (flowType: "pkce") génère le code_verifier et le
       // code_challenge automatiquement, et les stocke dans localStorage
       // pour l'échange final au callback. Rien à calculer ici.
+      //
+      // Le `redirectTo` DOIT correspondre exactement à l'URL listée dans
+      // Supabase → Authentication → URL Configuration → Redirect URLs,
+      // sinon l'échange PKCE échoue (mismatch redirect_uri) et le user
+      // retombe sur /auth avec une erreur sans session.
 
-      const isNative = Capacitor.isNativePlatform();
+      const redirectTo = this.getOauthRedirectUrl();
 
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          // Web : /auth/callback sur le domaine courant.
-          // Mobile : deep link lumina://auth/callback (capturé par le
-          // intent-filter AndroidManifest).
-          redirectTo: isNative
-            ? "lumina://auth/callback"
-            : window.location.origin + "/auth/callback",
+          redirectTo,
           queryParams: {
             access_type: "offline",
             prompt: "select_account",
@@ -632,17 +660,28 @@ class AuthService {
 
       // Fallback : si pas de `code` dans l'URL, ou échange échoué, on tente
       // la session existante (ex. redirigé après déconnexion, ou code déjà
-      // consommé).
+      // consommé). On DOIT aussi tenter le rechargement de la session
+      // persistée dans localStorage : un user qui a déjà connecté via
+      // Google au moins une fois a une session persistée, même si le code
+      // PKCE de ce round-trip est expiré (la page a été rechargée avant
+      // que le code soit consommé, ex. user revient 10 min plus tard).
       if (!session) {
         const { data, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError || !data.session) {
+        if (!sessionError && data.session) {
+          session = data.session;
+          // Log : le code a échoué mais une session persistée a été
+          // trouvée — on l'utilise, l'utilisateur ne reste pas bloqué.
+          console.info(
+            "[auth] handleOAuthCallback: exchangeCodeForSession échoué, " +
+              "fallback sur session persistée — user non bloqué.",
+          );
+        } else {
           const errorMsg =
             sessionError?.message ||
             "No session found after OAuth callback. Le code d'authentification a peut-être expiré ou été consommé.";
           this.setState({ error: errorMsg, isLoading: false });
           return { error: errorMsg, profile: null, isNewUser: false };
         }
-        session = data.session;
       }
 
       // Validate session has required fields

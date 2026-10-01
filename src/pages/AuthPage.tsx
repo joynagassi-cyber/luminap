@@ -130,7 +130,14 @@ export default function AuthPage() {
         // Fallback : le callback a échoué (code expiré, consommé, ou
         // échange impossible). Ne pas rester bloqué sur un écran noir —
         // afficher le message d'erreur sur la page de login.
+        //
+        // IMPORTANT : on garde `loading = false` ici pour réactiver le
+        // bouton Google (sinon il reste disabled à l'infini). Le user peut
+        // retenter le flow OAuth, ce qui relance une redirection Google
+        // complète et un nouvel échange PKCE — c'est la voie de sortie
+        // quand le code du premier passage était expiré.
         setError(result.error);
+        setLoading(false);
         navigate("/auth", { replace: true });
       } else if (result.profile) {
         // Google sign-up (compte créé à l'instant) → toujours onboarding d'abord.
@@ -146,6 +153,13 @@ export default function AuthPage() {
         const state = authService.getState();
         if (state.profile) {
           void proceedAfterAuth(state.profile);
+        } else if (state.user?.id) {
+          // La session existe mais le profil n'est pas encore résolu
+          // (ex. RPC upsert_profile a échoué au callback). On tente de
+          // le lire maintenant ; s'il est toujours absent, on continue
+          // avec le profile minimal de state (rôle par défaut MEMBRE).
+          // L'onboarding / invitation claim résoudra le rôle réel.
+          void proceedAfterAuth({ id: state.user.id, role: "MEMBRE" });
         } else {
           navigate("/auth", { replace: true });
         }
