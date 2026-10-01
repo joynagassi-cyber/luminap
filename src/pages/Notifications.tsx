@@ -16,10 +16,8 @@ import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 import {
   IonPage,
-  IonHeader,
   IonContent,
-  IonTitle,
-  IonToolbar,
+  IonInfiniteScroll,
 } from "@ionic/react";
 
 function getNotifIcon(actionType: string) {
@@ -37,7 +35,12 @@ function getNotifIcon(actionType: string) {
 
 export default function NotificationsPage() {
   const navigate = useNavigate();
-  const { data: notifications, isLoading: notificationsLoading } = useNotifications();
+  const {
+    data: notifications,
+    isLoading: notificationsLoading,
+    error: notificationsError,
+    retry: retryNotifications,
+  } = useNotifications();
 
   const [visibleCount, setVisibleCount] = useState(50);
 
@@ -50,6 +53,13 @@ export default function NotificationsPage() {
       ),
     [notifications],
   );
+
+  const loadNext = () => {
+    if (visibleCount < sorted.length) {
+      setVisibleCount((c) => c + 50);
+    }
+  };
+
   const unread = sorted.filter(
     (n: any) => (!n.is_read && n.is_read !== undefined) || !n.isRead,
   ).length;
@@ -180,20 +190,45 @@ export default function NotificationsPage() {
                     </div>
                   </button>
                 ))}
-                {sorted.length > visibleCount && (
-                  <button
-                    onClick={() => setVisibleCount((c) => c + 50)}
-                    className="w-full py-3 rounded-xl text-sm font-medium"
-                    aria-label="Afficher plus de notifications"
-                    style={{
-                      backgroundColor: "var(--surface)",
-                      color: "var(--text-secondary)",
-                      border: "1px solid var(--border)",
-                    }}
+                {sorted.length > visibleCount && !notificationsError && (
+                  <IonInfiniteScroll
+                    position="bottom"
+                    threshold="150px"
+                    onIonInfinite={loadNext}
                   >
-                    Afficher plus
-                  </button>
+                    <div className="py-3">
+                      <p className="text-text-tertiary text-xs">
+                        Chargement…
+                      </p>
+                    </div>
+                  </IonInfiniteScroll>
                 )}
+                {sorted.length > 0 && sorted.length <= visibleCount && !notificationsError && (
+                  <p className="text-text-tertiary text-xs text-center py-3">
+                    Fin de la liste — {sorted.length} notification
+                    {sorted.length !== 1 ? "s" : ""} affichée
+                    {sorted.length !== 1 ? "s" : ""}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {notificationsError && (
+              <div
+                className="text-center py-6 rounded-xl"
+                style={{ backgroundColor: "var(--surface)" }}
+              >
+                <p className="text-text-tertiary text-sm">
+                  Impossible de charger les notifications.
+                </p>
+                <button
+                  onClick={retryNotifications}
+                  aria-label="Réessayer le chargement des notifications"
+                  className="mt-2 px-4 py-2 rounded-full text-sm font-semibold text-white transition-all active:scale-95"
+                  style={{ backgroundColor: "var(--accent-primary)" }}
+                >
+                  Réessayer
+                </button>
               </div>
             )}
           </div>

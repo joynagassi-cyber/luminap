@@ -15,7 +15,13 @@ import { formatCurrencyFull } from "@/lib/utils";
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
 import { Plus, Link2, Trash2, Handshake, Receipt, X, Check } from "lucide-react";
-import { IonPage, IonContent, IonSpinner } from "@ionic/react";
+import {
+  IonPage,
+  IonContent,
+  IonSpinner,
+  IonSelect,
+  IonSelectOption,
+} from "@ionic/react";
 
 export default function GivingCampaign() {
   const { id } = useParams();
@@ -186,18 +192,18 @@ export default function GivingCampaign() {
               </div>
               {showPledge && (
                 <div className="space-y-3 mb-3 p-3 rounded-lg" style={{ backgroundColor: "var(--surface)" }}>
-                  <select value={pledgeDonor} onChange={(e) => setPledgeDonor(e.target.value)} className="w-full px-3 py-2.5 rounded-lg text-sm outline-none" style={inputStyle} aria-label="Donateur" data-testid="pledge-donor">
-                    <option value="">Choisir un donateur…</option>
-                    {donors.map((d) => <option key={d.id} value={d.id}>{d.full_name}</option>)}
-                  </select>
+                  <IonSelect value={pledgeDonor} onIonChange={(e) => setPledgeDonor(e.detail.value)} className="w-full px-3 py-2.5 rounded-lg text-sm outline-none" style={inputStyle} aria-label="Donateur" data-testid="pledge-donor">
+                    <IonSelectOption value="">Choisir un donateur…</IonSelectOption>
+                    {donors.map((d) => <IonSelectOption key={d.id} value={d.id}>{d.full_name}</IonSelectOption>)}
+                  </IonSelect>
                   <div className="grid grid-cols-2 gap-2">
                     <input type="number" inputMode="numeric" value={pledgeAmount} onChange={(e) => setPledgeAmount(e.target.value)} placeholder="Montant (FCFA)" className="px-3 py-2.5 rounded-lg text-sm outline-none" style={inputStyle} aria-label="Montant" data-testid="pledge-amount" />
-                    <select value={pledgeSchedule} onChange={(e) => setPledgeSchedule(e.target.value)} className="px-3 py-2.5 rounded-lg text-sm outline-none" style={inputStyle} aria-label="Fréquence">
-                      <option value="ONCE">Une fois</option>
-                      <option value="MONTHLY">Mensuel</option>
-                      <option value="QUARTERLY">Trimestriel</option>
-                      <option value="YEARLY">Annuel</option>
-                    </select>
+                    <IonSelect value={pledgeSchedule} onIonChange={(e) => setPledgeSchedule(e.detail.value)} className="px-3 py-2.5 rounded-lg text-sm outline-none" style={inputStyle} aria-label="Fréquence">
+                      <IonSelectOption value="ONCE">Une fois</IonSelectOption>
+                      <IonSelectOption value="MONTHLY">Mensuel</IonSelectOption>
+                      <IonSelectOption value="QUARTERLY">Trimestriel</IonSelectOption>
+                      <IonSelectOption value="YEARLY">Annuel</IonSelectOption>
+                    </IonSelect>
                   </div>
                   <button onClick={addPledge} disabled={pledgeBusy || !pledgeDonor || !pledgeAmount} className="w-full py-3 rounded-full font-semibold text-white text-sm active:scale-95 transition-transform disabled:opacity-40" style={{ backgroundColor: "var(--accent-primary)" }}>
                     {pledgeBusy ? (
@@ -245,18 +251,18 @@ export default function GivingCampaign() {
               </div>
               {showLink && (
                 <div className="space-y-3 mb-3 p-3 rounded-lg" style={{ backgroundColor: "var(--surface)" }}>
-                  <select value={linkTx} onChange={(e) => setLinkTx(e.target.value)} className="w-full px-3 py-2.5 rounded-lg text-sm outline-none" style={inputStyle} aria-label="Transaction" data-testid="link-transaction">
-                    <option value="">Choisir une transaction…</option>
+                  <IonSelect value={linkTx} onIonChange={(e) => setLinkTx(e.detail.value)} className="w-full px-3 py-2.5 rounded-lg text-sm outline-none" style={inputStyle} aria-label="Transaction" data-testid="link-transaction">
+                    <IonSelectOption value="">Choisir une transaction…</IonSelectOption>
                     {availableTx.map((t) => (
-                      <option key={t.id} value={t.id}>
+                      <IonSelectOption key={t.id} value={t.id}>
                         {(t.description || "Dîme/don") + " · " + formatCurrencyFull(t.amount)}
-                      </option>
+                      </IonSelectOption>
                     ))}
-                  </select>
-                  <select value={linkDonor} onChange={(e) => setLinkDonor(e.target.value)} className="w-full px-3 py-2.5 rounded-lg text-sm outline-none" style={inputStyle} aria-label="Donateur" data-testid="link-donor">
-                    <option value="">Choisir un donateur…</option>
-                    {donors.map((d) => <option key={d.id} value={d.id}>{d.full_name}</option>)}
-                  </select>
+                  </IonSelect>
+                  <IonSelect value={linkDonor} onIonChange={(e) => setLinkDonor(e.detail.value)} className="w-full px-3 py-2.5 rounded-lg text-sm outline-none" style={inputStyle} aria-label="Donateur" data-testid="link-donor">
+                    <IonSelectOption value="">Choisir un donateur…</IonSelectOption>
+                    {donors.map((d) => <IonSelectOption key={d.id} value={d.id}>{d.full_name}</IonSelectOption>)}
+                  </IonSelect>
                   <button onClick={linkTxNow} disabled={linkBusy || !linkTx || !linkDonor} className="w-full py-3 rounded-full font-semibold text-white text-sm active:scale-95 transition-transform disabled:opacity-40" style={{ backgroundColor: "var(--accent-primary)" }}>
                     {linkBusy ? (
                       <>
@@ -301,15 +307,15 @@ export default function GivingCampaign() {
               </div>
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-2">
-                  <select value={receiptDonor} onChange={(e) => setReceiptDonor(e.target.value)} className="px-3 py-2.5 rounded-lg text-sm outline-none" style={inputStyle} aria-label="Donateur" data-testid="receipt-donor">
-                    <option value="">Donateur…</option>
-                    {donors.map((d) => <option key={d.id} value={d.id}>{d.full_name}</option>)}
-                  </select>
-                  <select value={receiptYear} onChange={(e) => setReceiptYear(e.target.value)} className="px-3 py-2.5 rounded-lg text-sm outline-none" style={inputStyle} aria-label="Année">
+                  <IonSelect value={receiptDonor} onIonChange={(e) => setReceiptDonor(e.detail.value)} className="px-3 py-2.5 rounded-lg text-sm outline-none" style={inputStyle} aria-label="Donateur" data-testid="receipt-donor">
+                    <IonSelectOption value="">Donateur…</IonSelectOption>
+                    {donors.map((d) => <IonSelectOption key={d.id} value={d.id}>{d.full_name}</IonSelectOption>)}
+                  </IonSelect>
+                  <IonSelect value={receiptYear} onIonChange={(e) => setReceiptYear(e.detail.value)} className="px-3 py-2.5 rounded-lg text-sm outline-none" style={inputStyle} aria-label="Année">
                     {[new Date().getFullYear(), new Date().getFullYear() - 1, new Date().getFullYear() - 2].map((y) => (
-                      <option key={y} value={y}>{y}</option>
+                      <IonSelectOption key={y} value={y}>{y}</IonSelectOption>
                     ))}
-                  </select>
+                  </IonSelect>
                 </div>
                 <button onClick={generateReceipt} disabled={receiptBusy || !receiptDonor} className="w-full py-3 rounded-full font-semibold text-white text-sm active:scale-95 transition-transform disabled:opacity-40" style={{ backgroundColor: "var(--accent-primary)" }}>
                   <span className="inline-flex items-center gap-2">
