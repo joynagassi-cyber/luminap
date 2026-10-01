@@ -132,8 +132,7 @@ function sortValue(sub: FormSubmission, key: SortKey): string {
       return sub.rejectionReason ?? "";
     default: {
       const fieldKey = key.slice("field:".length);
-      const field = undefined;
-      return formatFieldValue(parseSubmissionData(sub)[fieldKey], field);
+      return formatFieldValue(parseSubmissionData(sub)[fieldKey]);
     }
   }
 }
