@@ -51,6 +51,7 @@ export default function TransactionEdit() {
   const [compensatesFor, setCompensatesFor] = useState("");
   const [comment, setComment] = useState("");
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     const tx = transactions.find((t: any) => t.id === id);
@@ -102,30 +103,36 @@ export default function TransactionEdit() {
       setError(amountCheck.message ?? "金额无效");
       return;
     }
+    if (submitting) return;
     setError(null);
-    await updateTransactionPS(id!, {
-      type,
-      amount: Math.round(parseFloat(amount) * 100),
-      description,
-      date,
-      category_id: categoryId,
-      org_unit_id: orgUnitId || null,
-      source_caisse_id: sourceCaisseId,
-      source,
-      person_name: source === "PERSONNE" ? personName || null : null,
-      event_id: eventId || null,
-      compensates_for: compensatesFor || null,
-      comment: comment || null,
-    });
-    navigate(`/transaction/${id}`);
+    setSubmitting(true);
+    try {
+      await updateTransactionPS(id!, {
+        type,
+        amount: Math.round(parseFloat(amount) * 100),
+        description,
+        date,
+        category_id: categoryId,
+        org_unit_id: orgUnitId || null,
+        source_caisse_id: sourceCaisseId,
+        source,
+        person_name: source === "PERSONNE" ? personName || null : null,
+        event_id: eventId || null,
+        compensates_for: compensatesFor || null,
+        comment: comment || null,
+      });
+      navigate(`/transaction/${id}`);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
     <IonPage>
       <IonContent className="bg-canvas">
-        <div className="h-screen bg-canvas flex flex-col overflow-hidden">
+        <div className="min-h-screen bg-canvas">
           <TopHeader title="Modifier" />
-          <div className="flex-1 overflow-y-auto px-5 pt-16 pb-28 max-w-lg mx-auto">
+          <div className="px-5 pt-16 pb-28 max-w-lg mx-auto">
             <div className="flex items-center justify-between mb-6">
               <button
                 onClick={() => navigate(-1)}
@@ -338,13 +345,14 @@ export default function TransactionEdit() {
 
               <button
                 onClick={handleSubmit}
+                disabled={submitting}
                 className="w-full py-4 rounded-full font-semibold text-white text-sm transition-all active:scale-95"
                 style={{
                   backgroundColor: type === "INCOME" ? "#1DB954" : "#E51332",
                 }}
                 aria-label="Sauvegarder la transaction"
               >
-                Sauvegarder
+                {submitting ? "Sauvegarde..." : "Sauvegarder"}
               </button>
             </div>
           </div>

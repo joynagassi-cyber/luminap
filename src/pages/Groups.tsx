@@ -18,16 +18,16 @@ import {
 } from "@ionic/react";
 
 const COLOR_PALETTE = [
-  "#3B82F6",
-  "#8B5CF6",
-  "#EC4899",
-  "#14B8A6",
-  "#F59E0B",
-  "#EF4444",
-  "#22C55E",
-  "#6366F1",
-  "#F97316",
-  "#06B6D4",
+  "var(--data-planified)",
+  "var(--data-advance)",
+  "var(--data-expense)",
+  "var(--data-income)",
+  "var(--data-pending)",
+  "var(--accent-primary)",
+  "var(--accent-light)",
+  "var(--accent-dark)",
+  "var(--ion-color-success)",
+  "var(--ion-color-warning)",
 ];
 const GROUP_TYPES = ["groupe", "commission", "comité", "diaconie", "service"];
 
@@ -59,6 +59,7 @@ export default function Groups() {
   const [editDesc, setEditDesc] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [creating, setCreating] = useState(false);
 
   // B.1 — le hook fait l'union fédération (grants + rôles canon de l'org) +
   // legacy `security.hasPermission(user.role, "group:…")` : `allowed` est
@@ -77,6 +78,8 @@ export default function Groups() {
       return;
     }
     setError("");
+    if (creating) return;
+    setCreating(true);
     try {
       await createGroupPS({
         name: createName.trim(),
@@ -94,6 +97,8 @@ export default function Groups() {
       setError(
         "Nous n'avons pas pu créer ce groupe. Veuillez vérifier les informations puis réessayer.",
       );
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -153,9 +158,9 @@ export default function Groups() {
   return (
     <IonPage>
       <IonContent className="bg-canvas">
-        <div className="min-h-screen bg-canvas flex flex-col">
+        <div className="min-h-screen bg-canvas">
           <TopHeader title="Groupes" />
-          <div className="flex-1 overflow-y-auto px-5 pt-16 pb-32 max-w-lg mx-auto">
+          <div className="px-5 pt-16 pb-32 max-w-lg mx-auto">
             {/* Header */}
             <div className="flex items-center justify-between mb-5">
               <div>
@@ -169,8 +174,8 @@ export default function Groups() {
                   onClick={() => setShowCreate(true)}
                   className="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-semibold text-white transition-all active:scale-95"
                   style={{
-                    background: "linear-gradient(135deg, #FF8533, var(--accent-primary))",
-                    boxShadow: "0 4px 12px rgba(255,107,0,0.3)",
+                    background: "linear-gradient(135deg, var(--accent-light), var(--accent-primary))",
+                    boxShadow: "0 4px 12px color-mix(in srgb, var(--accent-primary) 30%, transparent)",
                   }}
                 >
                   <Plus className="w-4 h-4" /> Créer
@@ -182,7 +187,10 @@ export default function Groups() {
             {success && (
               <div
                 className="mb-4 p-3 rounded-xl text-sm text-center"
-                style={{ backgroundColor: "#1DB95420", color: "#1DB954" }}
+                style={{
+                  backgroundColor: "color-mix(in srgb, var(--data-income) 12%, transparent)",
+                  color: "var(--data-income)",
+                }}
               >
                 {success}
               </div>
@@ -190,7 +198,10 @@ export default function Groups() {
             {error && (
               <div
                 className="mb-4 p-3 rounded-xl text-sm text-center"
-                style={{ backgroundColor: "#E5133220", color: "#E51332" }}
+                style={{
+                  backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)",
+                  color: "var(--data-expense)",
+                }}
               >
                 {error}
               </div>
@@ -268,10 +279,11 @@ export default function Groups() {
                   <div className="flex gap-2">
                     <button
                       onClick={handleCreate}
+                      disabled={creating}
                       className="flex-1 py-3 rounded-full font-semibold text-white text-sm"
                       style={{ backgroundColor: "var(--accent-primary)" }}
                     >
-                      Créer le groupe
+                      {creating ? "Création..." : "Créer le groupe"}
                     </button>
                     <button
                       onClick={() => setShowCreate(false)}
@@ -337,11 +349,13 @@ export default function Groups() {
                             setEditDesc(orgUnit.description || "");
                           }}
                           className="p-2 rounded-full active:scale-95 transition-transform"
-                          style={{ backgroundColor: "#3B82F620" }}
+                          style={{
+                            backgroundColor: "color-mix(in srgb, var(--data-planified) 12%, transparent)",
+                          }}
                         >
                           <Edit3
                             className="w-4 h-4"
-                            style={{ color: "#3B82F6" }}
+                            style={{ color: "var(--data-planified)" }}
                           />
                         </button>
                       )}
@@ -352,11 +366,13 @@ export default function Groups() {
                             setShowDelete(orgUnit.id);
                           }}
                           className="p-2 rounded-full active:scale-95 transition-transform"
-                          style={{ backgroundColor: "#E5133220" }}
+                          style={{
+                            backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)",
+                          }}
                         >
                           <Trash2
                             className="w-4 h-4"
-                            style={{ color: "#E51332" }}
+                            style={{ color: "var(--data-expense)" }}
                           />
                         </button>
                       )}
@@ -388,7 +404,7 @@ export default function Groups() {
                       style={{
                         backgroundColor: "var(--surface-hover)",
                         color: "var(--text-primary)",
-                        border: "1px solid #383838",
+                        border: "1px solid var(--border)",
                       }}
                     />
                     <textarea
@@ -400,7 +416,7 @@ export default function Groups() {
                       style={{
                         backgroundColor: "var(--surface-hover)",
                         color: "var(--text-primary)",
-                        border: "1px solid #383838",
+                        border: "1px solid var(--border)",
                       }}
                     />
                   </div>
@@ -445,7 +461,7 @@ export default function Groups() {
                     <button
                       onClick={() => handleDelete(showDelete)}
                       className="flex-1 py-3 rounded-full font-semibold text-white text-sm"
-                      style={{ backgroundColor: "#E51332" }}
+                      style={{ backgroundColor: "var(--data-expense)" }}
                     >
                       Supprimer
                     </button>

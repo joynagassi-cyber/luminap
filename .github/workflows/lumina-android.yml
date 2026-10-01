@@ -51,11 +51,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build web app
-        run: pnpm run build:cap
-
-      - name: Sync Capacitor
-        run: npx cap sync android
+      - name: Build web app + sync Capacitor
+        # Preflight : build:cap, puis cap sync android (recopie dist/ dans
+        # le webview — garantit qu'un dist périmé ne peut pas s'embarquer).
+        run: pnpm run sync:cap
 
       - name: Grant execute permission to gradlew
         run: chmod +x android/gradlew
@@ -178,11 +177,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build web app
-        run: pnpm run build:cap
-
-      - name: Sync Capacitor
-        run: npx cap sync android
+      - name: Build web app + sync Capacitor
+        # Preflight : build:cap, puis cap sync android (recopie dist/ dans
+        # le webview — garantit qu'un dist périmé ne peut pas s'embarquer).
+        run: pnpm run sync:cap
 
       - name: Grant execute permission to gradlew
         run: chmod +x android/gradlew

@@ -194,7 +194,7 @@ export default function OrgSetup() {
         </IonToolbar>
       </IonHeader>
       <IonContent className="bg-canvas">
-        <div className="min-h-screen bg-[var(--canvas)] flex flex-col">
+        <div className="min-h-screen bg-[var(--canvas)]">
           {/* Top bar */}
           <div className="flex items-center justify-between px-6 py-4">
             <img src="/lumina-logo.png" alt="Lumina" className="w-10 h-10 object-contain" />
@@ -206,7 +206,7 @@ export default function OrgSetup() {
             </button>
           </div>
 
-          <div className="flex-1 px-6 pb-24 pt-2 overflow-y-auto">
+          <div className="px-6 pb-24 pt-2">
             <div className="max-w-sm mx-auto">
               <h1 className="text-text-primary font-bold text-xl mb-1">
                 Votre organisation

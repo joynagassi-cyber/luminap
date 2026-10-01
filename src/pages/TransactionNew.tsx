@@ -188,10 +188,9 @@ export default function TransactionNew() {
   return (
     <IonPage>
       <IonContent fullscreen>
-        <div className="h-screen bg-canvas flex flex-col overflow-hidden">
-          <h1 className="sr-only">Nouvelle transaction</h1>
-          <TopHeader title="Nouvelle transaction" />
-          <div className="flex-1 overflow-y-auto px-5 pt-16 pb-28">
+        <h1 className="sr-only">Nouvelle transaction</h1>
+        <TopHeader title="Nouvelle transaction" />
+        <div className="px-5 pt-16 pb-28">
             <button
               onClick={() => navigate(-1)}
               className="flex items-center gap-2 text-text-secondary text-sm mb-5"
@@ -568,7 +567,6 @@ export default function TransactionNew() {
             </IonButton>
           </div>
           <BottomNav />
-        </div>
       </IonContent>
     </IonPage>
   );

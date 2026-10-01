@@ -84,11 +84,11 @@ function OrgFlowNode({ data, selected }: NodeProps) {
         width: 220,
         minWidth: 220,
         padding: 12,
-        background: "#1f1f1f",
-        border: `1px solid ${selected ? "var(--accent-primary)" : "#2e2e2e"}`,
+        background: "var(--surface)",
+        border: `1px solid ${selected ? "var(--accent-primary)" : "var(--border)"}`,
         borderRadius: 8,
         boxShadow: selected
-          ? "0 0 0 3px rgba(255,107,0,0.15)"
+          ? "0 0 0 3px color-mix(in srgb, var(--accent-primary) 15%, transparent)"
           : "0 4px 12px rgba(0,0,0,0.3)",
         cursor: "pointer",
       }}

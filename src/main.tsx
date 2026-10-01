@@ -9,7 +9,6 @@ import "./globals.css";
 import "@ionic/core/css/ionic.bundle.css";
 import "./ionic/theme.css";
 import { applyStoredTheme, applyStoredThemeMode } from "./ionic/themes";
-import { initOneSignal } from "@/lib/onesignal";
 import { initPowerSync } from "@/lib/powersync";
 import { prefetchNavViews, useFeatureConfig } from "@/lib/features";
 
@@ -32,8 +31,10 @@ applyStoredTheme();
 // already in the right state (index.html also primes it pre-bundle).
 applyStoredThemeMode();
 
-// Initialize OneSignal after app mounts
-initOneSignal();
+// OneSignal est initialisé à la demande (flux déclenché par l'utilisateur,
+// ex. SettingsNotifications), jamais au boot : le plugin a
+// promptForNotifications:true, donc l'init au premier lancement demanderait
+// la permission push avant tout usage des notifications.
 
 // Best effort : précharger les définitions d'éléments personnalisés Ionic.
 // Avec React 19, monter un custom element NON encore défini peut faire

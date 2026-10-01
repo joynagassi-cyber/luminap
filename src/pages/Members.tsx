@@ -33,13 +33,17 @@ export default function MembersPage() {
   const { data: members, isLoading: membersLoading } = useMembers();
 
   const [archivedMembers, setArchivedMembers] = useState<Member[]>([]);
+  const [archivedError, setArchivedError] = useState(false);
+  const [retryArchived, setRetryArchived] = useState(0);
 
   // Load archived members via Resource capability
   useEffect(() => {
+    setArchivedError(false);
     resource
       .listArchived<Member>("Member")
-      .then(({ items }) => setArchivedMembers(items));
-  }, []);
+      .then(({ items }) => setArchivedMembers(items))
+      .catch(() => setArchivedError(true));
+  }, [retryArchived]);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [showForm, setShowForm] = useState(false);
@@ -47,6 +51,8 @@ export default function MembersPage() {
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(50);
 
   const filteredMembers = useMemo(() => {
     return members.filter((m: any) => {
@@ -67,25 +73,41 @@ export default function MembersPage() {
     (m: any) => m.status === "ACTIVE",
   );
 
+  // Un nouveau membre créé revient en tête de liste : on repart du premier écran.
+  useEffect(() => {
+    setVisibleCount(50);
+  }, [searchQuery]);
+
+  const visibleMembers = activeMembers.slice(0, visibleCount);
+
   const handleCreate = async () => {
     if (!firstName.trim() || !lastName.trim()) return;
-    await addMemberPS({
-      org_id: getOrganizationId(),
-      first_name: firstName.trim(),
-      last_name: lastName.trim(),
-      phone: phone.trim() || null,
-      email: email.trim() || null,
-      status: "ACTIVE",
-      joined_at: new Date().toISOString(),
-      archived_at: null,
-      archived_by: null,
-      archive_reason: null,
-    });
-    setFirstName("");
-    setLastName("");
-    setPhone("");
-    setEmail("");
-    setShowForm(false);
+    if (saving) return;
+    setSaving(true);
+    try {
+      await addMemberPS({
+        org_id: getOrganizationId(),
+        first_name: firstName.trim(),
+        last_name: lastName.trim(),
+        phone: phone.trim() || null,
+        email: email.trim() || null,
+        status: "ACTIVE",
+        joined_at: new Date().toISOString(),
+        archived_at: null,
+        archived_by: null,
+        archive_reason: null,
+      });
+      setFirstName("");
+      setLastName("");
+      setPhone("");
+      setEmail("");
+      setShowForm(false);
+    } catch {
+      // Échec silencieux : le rechargement de la liste PS refait émerger
+      // l'état ; on laisse le formulaire ouvert pour réessayer.
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleArchive = async (member: any) => {
@@ -238,10 +260,11 @@ export default function MembersPage() {
                   <div className="flex gap-2">
                     <button
                       onClick={handleCreate}
+                      disabled={saving || !firstName.trim() || !lastName.trim()}
                       className="flex-1 py-3 rounded-full font-semibold text-white text-sm"
                       style={{ backgroundColor: "var(--accent-primary)" }}
                     >
-                      Ajouter
+                      {saving ? "Ajout..." : "Ajouter"}
                     </button>
                     <button
                       onClick={() => setShowForm(false)}
@@ -269,7 +292,8 @@ export default function MembersPage() {
                   </p>
                 </div>
               ) : (
-                activeMembers.map((member: any) => (
+                <>
+                  {visibleMembers.map((member: any) => (
                   <div
                     key={member.id}
                     className="rounded-xl p-4 flex items-center gap-3"
@@ -310,11 +334,40 @@ export default function MembersPage() {
                       />
                     </button>
                   </div>
-                ))
+                  ))}
+                  {activeMembers.length > visibleCount && (
+                    <button
+                      onClick={() => setVisibleCount((c) => c + 50)}
+                      className="w-full py-3 rounded-xl text-sm font-medium text-text-secondary"
+                      aria-label="Afficher plus de membres"
+                      style={{ backgroundColor: "var(--surface)" }}
+                    >
+                      Afficher plus
+                    </button>
+                  )}
+                </>
               )}
             </div>
 
             {/* Archived members */}
+            {archivedError && (
+              <div
+                className="text-center py-6 rounded-xl"
+                style={{ backgroundColor: "var(--surface)" }}
+              >
+                <p className="text-text-tertiary text-sm">
+                  Impossible de charger les membres archivés.
+                </p>
+                <button
+                  onClick={() => setRetryArchived((n) => n + 1)}
+                  className="mt-2 px-4 py-2 rounded-full text-sm font-semibold text-white transition-all active:scale-95"
+                  style={{ backgroundColor: "var(--accent-primary)" }}
+                  aria-label="Réessayer le chargement des membres archivés"
+                >
+                  Réessayer
+                </button>
+              </div>
+            )}
             {archivedMembers.length > 0 && (
               <div>
                 <div className="flex items-center gap-2 mb-3">

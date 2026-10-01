@@ -14,6 +14,10 @@
   /* Couleurs sémantiques de statut (hors finances) — invariants. */
   --data-planified: #3b82f6;
   --data-advance: #8b5cf6;
+  /* Couleurs des raccourcis (HomeIndicator) — invariants. */
+  --shortcut-events: #ff6b00;
+  --shortcut-forms: #14b8a6;
+  --shortcut-reports: #f59e0b;
   /* Marque (poussée au runtime par applyTheme ; défaut = Orange Fire). */
   --accent-primary: #ff6b00;
   --accent-light: #ff8533;
@@ -23,6 +27,10 @@
   --band-central: #1a130f;
   --band-org: #1a1f2b;
   --band-org-ink: #7aa2ff;
+  /* Texte « inversé » affiché sur --accent-primary. Tous les thèmes Lumina
+     ont un accent foncé (YIQ > 128), donc texte blanc. Si un accent clair
+     est un jour ajouté, repasser ce token en noir. */
+  --on-accent: #ffffff;
 
   /* Skeleton radius (invariant) */
   --skeleton-radius: 4px;

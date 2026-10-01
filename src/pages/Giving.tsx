@@ -195,7 +195,11 @@ export default function Giving() {
                             </p>
                             <span
                               className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                              style={{ backgroundColor: "#FFB80020", color: "#FFB800" }}
+                              style={{
+                                backgroundColor:
+                                  "color-mix(in srgb, var(--data-pending) 12%, transparent)",
+                                color: "var(--data-pending)",
+                              }}
                             >
                               {p.schedule}
                             </span>

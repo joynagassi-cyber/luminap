@@ -79,15 +79,26 @@ export default function InvitationManage() {
   const [claimBusy, setClaimBusy] = useState<string | null>(null);
   const [claimError, setClaimError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [listError, setListError] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(50);
 
-  useEffect(() => {
+  const loadInvitations = () => {
+    setIsLoading(true);
+    setListError(false);
     invitation
       .getInvitations()
       .then((list) => {
         setInvitations(list);
         setIsLoading(false);
       })
-      .catch(() => setIsLoading(false));
+      .catch(() => {
+        setListError(true);
+        setIsLoading(false);
+      });
+  };
+
+  useEffect(() => {
+    loadInvitations();
   }, []);
 
   // Load the claims (demandes) of every ACTIVE invitation.
@@ -148,6 +159,8 @@ export default function InvitationManage() {
     return matchSearch && matchStatus;
   });
 
+  const visibleInvitations = filtered.slice(0, visibleCount);
+
   const handleRevoke = async () => {
     if (!revokeTarget) return;
     try {
@@ -176,8 +189,8 @@ export default function InvitationManage() {
           </IonButtons>
           <IonTitle>Gestion des invitations</IonTitle>
           <IonButtons slot="end">
-            <IonButton fill="clear" onClick={handleGoClaim}>
-              <QrCode className="w-5 h-5" />
+            <IonButton fill="clear" onClick={handleGoClaim} aria-label="Aller au scan d'invitation">
+              <QrCode className="w-5 h-5" aria-hidden="true" />
             </IonButton>
           </IonButtons>
         </IonToolbar>
@@ -242,6 +255,21 @@ export default function InvitationManage() {
                   </div>
                 ))}
               </div>
+            ) : listError ? (
+              <div className="text-center py-12 text-text-tertiary">
+                <AlertCircle className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                <p>Impossible de charger les invitations</p>
+                <p className="text-sm">Vérifiez votre connexion, puis réessayez.</p>
+                <IonButton
+                  fill="outline"
+                  size="small"
+                  className="mt-3"
+                  onClick={loadInvitations}
+                  aria-label="Réessayer le chargement des invitations"
+                >
+                  Réessayer
+                </IonButton>
+              </div>
             ) : filtered.length === 0 ? (
               <div className="text-center py-12 text-text-tertiary">
                 <Shield className="w-12 h-12 mx-auto mb-3 opacity-30" />
@@ -249,8 +277,9 @@ export default function InvitationManage() {
                 <p className="text-sm">Créez votre première invitation</p>
               </div>
             ) : (
+              <>
               <IonList lines="none" className="space-y-3">
-                {filtered.map((inv) => {
+                {visibleInvitations.map((inv) => {
                   const StatusIcon = STATUS_CONFIG[inv.status]?.icon ?? AlertCircle;
                   const statusColor = STATUS_CONFIG[inv.status]?.color ?? "#6B7280";
                   return (
@@ -387,6 +416,19 @@ export default function InvitationManage() {
                   );
                 })}
               </IonList>
+              {filtered.length > visibleCount && (
+                <IonButton
+                  expand="block"
+                  fill="outline"
+                  size="small"
+                  className="mt-3"
+                  onClick={() => setVisibleCount((c) => c + 50)}
+                  aria-label="Afficher plus d'invitations"
+                >
+                  Afficher plus
+                </IonButton>
+              )}
+              </>
             )}
           </div>
           <BottomNav />
@@ -414,7 +456,7 @@ export default function InvitationManage() {
         <div className="fixed inset-0 flex items-end justify-center" style={{ zIndex: 50, backgroundColor: "rgba(0,0,0,0.7)" }}>
           <div
             className="w-full max-w-lg rounded-t-2xl p-6 space-y-4"
-            style={{ backgroundColor: "var(--card)" }}
+            style={{ backgroundColor: "var(--card)", paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 24px)" }}
             role="dialog"
             aria-label="Rejeter la demande"
           >

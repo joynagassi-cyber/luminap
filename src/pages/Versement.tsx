@@ -123,7 +123,10 @@ export default function Versement() {
                 {formError && (
                   <div
                     className="p-3 rounded-xl text-sm text-center"
-                    style={{ backgroundColor: "#E5133220", color: "#ff8fa3" }}
+                    style={{
+                      backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)",
+                      color: "var(--data-expense)",
+                    }}
                   >
                     {formError}
                   </div>
@@ -248,12 +251,12 @@ export default function Versement() {
                       color: "var(--text-primary)",
                       border:
                         amountNum > maxAmount
-                          ? "1px solid #E51332"
+                          ? "1px solid var(--data-expense)"
                           : "1px solid var(--surface-hover)",
                     }}
                   />
                   {amountNum > maxAmount && (
-                    <p className="text-[#E51332] text-xs mt-1 text-center">
+                    <p className="text-[var(--data-expense)] text-xs mt-1 text-center">
                       Montant supérieur au solde disponible
                     </p>
                   )}

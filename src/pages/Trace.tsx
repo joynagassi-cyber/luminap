@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   useAuditEntries,
@@ -81,6 +81,12 @@ export default function TracePage() {
 
   const [filter, setFilter] = useState("Tout");
   const [search, setSearch] = useState("");
+  const [visibleCount, setVisibleCount] = useState(50);
+
+  // Un changement de filtre ou de recherche ramène la fenêtre au premier écran.
+  useEffect(() => {
+    setVisibleCount(50);
+  }, [filter, search]);
 
   const entityMap: Record<string, { label: string; type: string }> = {
     Transaction: { label: "Transaction", type: "Transaction" },
@@ -166,7 +172,8 @@ export default function TracePage() {
                   </p>
                 </div>
               ) : (
-                filteredEntries.map((entry: any) => {
+                <>
+                  {filteredEntries.slice(0, visibleCount).map((entry: any) => {
                   const meta = ACTION_META[entry.action] || ACTION_META.UPDATE;
                   const EntityLabel = meta.icon;
                   return (
@@ -198,7 +205,21 @@ export default function TracePage() {
                       <ChevronRight className="w-4 h-4 text-text-tertiary" />
                     </div>
                   );
-                })
+                  })}
+                  {filteredEntries.length > visibleCount && (
+                    <button
+                      onClick={() => setVisibleCount((c) => c + 50)}
+                      className="w-full py-3 rounded-xl text-sm font-medium"
+                      aria-label="Afficher plus d'entrées de trace"
+                      style={{
+                        backgroundColor: "var(--surface)",
+                        color: "var(--text-secondary)",
+                      }}
+                    >
+                      Afficher plus
+                    </button>
+                  )}
+                </>
               )}
             </div>
           </div>

@@ -130,7 +130,7 @@ export default function MembreDetail() {
               style={{
                 // Carte « hero » : sombre dans les deux modes (le texte blanc
                 // interne reste lisible) — le gradient ne suit pas le canvas.
-                background: "linear-gradient(135deg, #1e3a5f 0%, #121212 60%)",
+                background: "linear-gradient(135deg, var(--surface) 0%, var(--card) 60%)",
                 border: "1px solid var(--border)",
               }}
             >
@@ -138,7 +138,7 @@ export default function MembreDetail() {
                 <div
                   className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0"
                   style={{
-                    background: "linear-gradient(135deg, #3B82F6, #FF8533)",
+                    background: "linear-gradient(135deg, var(--data-planified), var(--accent-light))",
                   }}
                 >
                   <span className="text-white text-base font-bold">

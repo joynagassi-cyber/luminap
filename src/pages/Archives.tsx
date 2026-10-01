@@ -38,6 +38,8 @@ export default function Archives() {
   const [archivedMembers, setArchivedMembers] = useState<Member[]>([]);
   const [archivedEvents, setArchivedEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   // ── Documents (upload / archivage via bucket `archives`) ─────────────
   const { data: allDocuments } = useDocuments();
@@ -100,6 +102,8 @@ export default function Archives() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      setLoading(true);
+      setLoadError(false);
       try {
         const [groups, members, events] = await Promise.all([
           resource.listArchived<Group>("Group"),
@@ -112,7 +116,7 @@ export default function Archives() {
           setArchivedEvents(events.items);
         }
       } catch (e) {
-        // Load archived entities failed — non-fatal
+        if (!cancelled) setLoadError(true);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -120,7 +124,7 @@ export default function Archives() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [retryCount]);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<
@@ -380,7 +384,28 @@ export default function Archives() {
               {/* Archived items (entités) — masqué quand l'onglet Documents est actif */}
               {filterType !== "document" && (
               <div className="space-y-2">
-                {filtered.length === 0 ? (
+                {loadError ? (
+                  <div
+                    className="text-center py-10 rounded-xl"
+                    style={{ backgroundColor: "var(--surface)" }}
+                  >
+                    <Archive className="w-12 h-12 mx-auto mb-4 text-text-tertiary opacity-40" />
+                    <p className="text-text-tertiary text-sm">
+                      Impossible de charger les entités archivées.
+                    </p>
+                    <p className="text-text-tertiary text-xs mt-1">
+                      Vérifiez votre connexion, puis réessayez.
+                    </p>
+                    <button
+                      onClick={() => setRetryCount((n) => n + 1)}
+                      className="mt-3 px-4 py-2 rounded-full text-xs font-semibold text-white transition-all active:scale-95"
+                      style={{ backgroundColor: "var(--accent-primary)" }}
+                      aria-label="Réessayer le chargement des entités archivées"
+                    >
+                      Réessayer
+                    </button>
+                  </div>
+                ) : filtered.length === 0 ? (
                   <div
                     className="text-center py-10 rounded-xl"
                     style={{ backgroundColor: "var(--surface)" }}

@@ -112,6 +112,7 @@ export default function DatePicker({ value, onChange, label, id }: Props) {
           <div className="flex items-center justify-between px-4 py-3">
             <IonButton
               onClick={prevMonth}
+              aria-label="Mois précédent"
               className="!w-11 !h-11 !rounded-full !p-0 !min-height:auto"
               style={{ backgroundColor: "var(--surface-hover)" }}
             >
@@ -122,6 +123,7 @@ export default function DatePicker({ value, onChange, label, id }: Props) {
             </span>
             <IonButton
               onClick={nextMonth}
+              aria-label="Mois suivant"
               className="!w-11 !h-11 !rounded-full !p-0 !min-height:auto"
               style={{ backgroundColor: "var(--surface-hover)" }}
             >
@@ -156,7 +158,7 @@ export default function DatePicker({ value, onChange, label, id }: Props) {
                   className="min-h-11 rounded-full text-sm font-medium transition-all flex items-center justify-center"
                   style={
                     isSelected
-                      ? { backgroundColor: "var(--accent-primary)", color: "#fff" }
+                      ? { backgroundColor: "var(--accent-primary)", color: "var(--on-accent)" }
                       : isToday
                         ? { backgroundColor: "var(--surface-hover)", color: "var(--accent-primary)" }
                         : { backgroundColor: "transparent", color: "var(--text-primary)" }

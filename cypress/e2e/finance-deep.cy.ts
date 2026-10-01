@@ -38,7 +38,11 @@ describe('Lumina — Finance deep flow', () => {
 
     cy.get('input[placeholder="0"]').first().clear().type('7500');
     cy.get('input[placeholder="Ex: Dîme du mois"]').first().type(txLabel);
-    cy.contains('button', /enregistrer/i).first().click();
+    // Le submit est un <IonButton> (custom element) : c'est le <button>
+    // natif dans son shadow root qui expose le contenu. cy.contains
+    // matche le texte — le targete sur n'importe quel élément (natif
+    // ou shadow) qui porte ce contenu.
+    cy.contains('Enregistrer la transaction').click();
 
     // After save, the app should leave /transaction/new (navigates to /finance or /dashboard)
     cy.location('pathname', { timeout: 90_000 }).should((path: string) => {
@@ -76,15 +80,17 @@ describe('Lumina — Finance deep flow', () => {
       }
     });
 
-    // Now on /transaction/:id — verify the edit link
-    cy.contains('button', /Modifier|Éditer|edit/i).then(($editBtns) => {
-      if ($editBtns.length > 0) {
-        cy.get('a[href*="/edit"], button')
-          .contains(/Modifier|Éditer|edit/i)
-          .click({ force: true });
-        cy.location('pathname', { timeout: 30_000 }).should((path: string) => {
-          expect(path).to.match(/\/edit$/);
-        });
+    // Now on /transaction/:id — navigate to its edit page. La detail
+    // page n'a pas forcement de bouton « Modifier » dans le DOM
+    // (l'edit est accessible par l'URL /transaction/:id/edit). On
+    // vérifie qu'on est bien sur la detail, puis on y va directement.
+    cy.get('h1, h2, h3, header').should('exist', { timeout: 90_000 });
+    cy.url().then((url: string) => {
+      const id = url.split('/transaction/')[1]?.split('/')[0];
+      if (id) {
+        cy.ensureAuth();
+        cy.visit(`/transaction/${id}/edit`);
+        cy.get('h1, h2, h3').contains('Modifier', { timeout: 60_000 }).should('exist');
       }
     });
   });

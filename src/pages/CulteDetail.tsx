@@ -10,7 +10,6 @@ import {
 import type { CotisationStatut } from "@/lib/cotisation-logic";
 import { ArrowLeft, Users, CheckCircle, Clock } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
-import TopHeader from "@/components/TopHeader";
 import ConfirmModal from "@/components/ConfirmModal";
 import {
   IonPage,
@@ -47,20 +46,17 @@ export default function CulteDetail() {
           </IonToolbar>
         </IonHeader>
         <IonContent>
-          <div className="min-h-screen bg-[var(--canvas)]" style={{ paddingTop: 64 }}>
-            <TopHeader />
-            <div className="p-4 text-center text-text-tertiary">
-              <p className="font-semibold mb-2">Culte introuvable</p>
-              <button
-                onClick={() => navigate("/cotisations")}
-                className="text-sm"
-                style={{ color: "var(--accent-primary)" }}
-              >
-                Retour aux cultes
-              </button>
-            </div>
-            <BottomNav />
+          <div className="p-4 text-center text-text-tertiary">
+            <p className="font-semibold mb-2">Culte introuvable</p>
+            <button
+              onClick={() => navigate("/cotisations")}
+              className="text-sm"
+              style={{ color: "var(--accent-primary)" }}
+            >
+              Retour aux cultes
+            </button>
           </div>
+          <BottomNav />
         </IonContent>
       </IonPage>
     );
@@ -98,6 +94,19 @@ export default function CulteDetail() {
       30 * 24 * 60 * 60 * 1000
     : false;
 
+  const [showMassPay, setShowMassPay] = useState(false);
+  const [busyRowId, setBusyRowId] = useState<string | null>(null);
+
+  const runRowMutation = async (cotId: string, action: () => Promise<void>) => {
+    if (busyRowId) return;
+    setBusyRowId(cotId);
+    try {
+      await action();
+    } finally {
+      setBusyRowId(null);
+    }
+  };
+
   const handlePaye = async (cotId: string, montantPaye: number) => {
     const now = new Date().toISOString();
     const statut: CotisationStatut = "PAYE";
@@ -111,8 +120,6 @@ export default function CulteDetail() {
   const handleAbsent = async (cotId: string) => {
     await updateCotisationPS(cotId, { statut: "ABSENT" });
   };
-
-  const [showMassPay, setShowMassPay] = useState(false);
 
   const handleMassPay = async () => {
     for (const cot of cotisationsWithMember) {
@@ -138,14 +145,7 @@ export default function CulteDetail() {
         </IonToolbar>
       </IonHeader>
       <IonContent>
-        <div
-          className="min-h-screen bg-[var(--canvas)]"
-          style={{ paddingTop: 64, paddingBottom: 72 }}
-        >
-          <TopHeader title="Détail du Culte" />
-
-          {/* Header */}
-          <div className="px-4 py-3 flex items-center gap-3 border-b border-[var(--border)]">
+        <div className="px-4 py-3 flex items-center gap-3 border-b border-[var(--border)]">
             <button
               onClick={() => navigate("/cotisations")}
               className="w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-95"
@@ -304,28 +304,32 @@ export default function CulteDetail() {
                 <div className="flex flex-col gap-1.5 flex-shrink-0">
                   {(cot.statut === "NON_PAYE" || cot.statut === "ABSENT") && (
                     <button
-                      onClick={async () => {
-                        await handlePaye(cot.id, cot.montantObligatoire);
-                      }}
-                      className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all active:scale-95"
+                      onClick={() =>
+                        runRowMutation(cot.id, () =>
+                          handlePaye(cot.id, cot.montantObligatoire),
+                        )
+                      }
+                      disabled={busyRowId !== null}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all active:scale-95 disabled:opacity-50"
                       style={{ backgroundColor: "#10B981", color: "var(--text-primary)" }}
                     >
-                      Payé
+                      {busyRowId === cot.id ? "..." : "Payé"}
                     </button>
                   )}
                   {cot.statut === "NON_PAYE" && !isVerouille && (
                     <button
-                      onClick={async () => {
-                        await handleAbsent(cot.id);
-                      }}
-                      className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all active:scale-95"
+                      onClick={() =>
+                        runRowMutation(cot.id, () => handleAbsent(cot.id))
+                      }
+                      disabled={busyRowId !== null}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all active:scale-95 disabled:opacity-50"
                       style={{
                         backgroundColor: "var(--surface-hover)",
                         color: "var(--text-tertiary)",
                         border: "1px solid #3a3a3a",
                       }}
                     >
-                      Absent
+                      {busyRowId === cot.id ? "..." : "Absent"}
                     </button>
                   )}
                 </div>
@@ -345,7 +349,6 @@ export default function CulteDetail() {
           />
 
           <BottomNav />
-        </div>
       </IonContent>
     </IonPage>
   );

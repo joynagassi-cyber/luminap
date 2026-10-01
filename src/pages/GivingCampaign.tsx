@@ -158,7 +158,7 @@ export default function GivingCampaign() {
                 </div>
                 <div>
                   <p className="text-text-tertiary text-[11px]">Pledges</p>
-                  <p className="text-text-secondary font-bold text-sm" style={{ color: "#FFB800" }}>
+                  <p className="text-text-secondary font-bold text-sm" style={{ color: "var(--data-pending)" }}>
                     {formatCurrencyFull(p.pledged)}
                   </p>
                 </div>

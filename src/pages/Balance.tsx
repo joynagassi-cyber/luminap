@@ -39,21 +39,23 @@ export default function Balance() {
 
   if (psLoading) {
     return (
-      <div className="min-h-screen bg-canvas">
-        <TopHeader title="Bilan" />
-        <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
-          <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="h-16 rounded-xl animate-pulse"
-                style={{ backgroundColor: "var(--surface)" }}
-              />
-            ))}
+      <IonPage>
+        <IonContent className="bg-canvas">
+          <TopHeader title="Bilan" />
+          <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="h-16 rounded-xl animate-pulse"
+                  style={{ backgroundColor: "var(--surface)" }}
+                />
+              ))}
+            </div>
           </div>
-        </div>
-        <BottomNav />
-      </div>
+          <BottomNav />
+        </IonContent>
+      </IonPage>
     );
   }
 
@@ -179,11 +181,11 @@ export default function Balance() {
               >
                 <div
                   className="w-8 h-8 rounded-full flex items-center justify-center mx-auto mb-2"
-                  style={{ backgroundColor: "#1DB95420" }}
+                  style={{ backgroundColor: "color-mix(in srgb, var(--data-income) 12%, transparent)" }}
                 >
                   <TrendingUp
                     className="w-4 h-4"
-                    style={{ color: "#1DB954" }}
+                    style={{ color: "var(--data-income)" }}
                   />
                 </div>
                 <p className="text-text-tertiary text-xs">Entrées</p>
@@ -197,11 +199,11 @@ export default function Balance() {
               >
                 <div
                   className="w-8 h-8 rounded-full flex items-center justify-center mx-auto mb-2"
-                  style={{ backgroundColor: "#E5133220" }}
+                  style={{ backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)" }}
                 >
                   <TrendingDown
                     className="w-4 h-4"
-                    style={{ color: "#E51332" }}
+                    style={{ color: "var(--data-expense)" }}
                   />
                 </div>
                 <p className="text-text-tertiary text-xs">Sorties</p>
@@ -222,7 +224,7 @@ export default function Balance() {
                 <p className="text-text-tertiary text-xs">Résultat</p>
                 <p
                   className="font-bold text-sm mt-1"
-                  style={{ color: netResult >= 0 ? "#1DB954" : "#E51332" }}
+                  style={{ color: netResult >= 0 ? "var(--data-income)" : "var(--data-expense)" }}
                 >
                   {netResult >= 0 ? "+" : "-"}
                   {formatCurrencyCompact(Math.abs(netResult))}
@@ -259,7 +261,7 @@ export default function Balance() {
                           className="rounded-full"
                           style={{
                             width: `${(cat.income / maxVal) * 50}%`,
-                            backgroundColor: "#1DB954",
+                            backgroundColor: "var(--data-income)",
                           }}
                         />
                       )}
@@ -268,7 +270,7 @@ export default function Balance() {
                           className="rounded-full ml-auto"
                           style={{
                             width: `${(cat.expense / maxVal) * 50}%`,
-                            backgroundColor: "#E51332",
+                            backgroundColor: "var(--data-expense)",
                           }}
                         />
                       )}
@@ -282,7 +284,7 @@ export default function Balance() {
               onClick={() => setShowExport(true)}
               className="w-full py-3.5 rounded-full font-semibold text-white text-sm flex items-center justify-center gap-2 transition-all active:scale-95"
               style={{
-                background: "linear-gradient(135deg, #FF8533, var(--accent-primary))",
+                background: "linear-gradient(135deg, var(--accent-light), var(--accent-primary))",
               }}
               aria-label="Exporter le rapport financier"
             >
@@ -355,11 +357,11 @@ export default function Balance() {
                     >
                       <div
                         className="w-10 h-10 rounded-full flex items-center justify-center"
-                        style={{ backgroundColor: "#E5133220" }}
+                        style={{ backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)" }}
                       >
                         <FileText
                           className="text-lg"
-                          style={{ color: "#E51332" }}
+                          style={{ color: "var(--data-expense)" }}
                         />
                       </div>
                       <div className="text-left">
@@ -390,11 +392,11 @@ export default function Balance() {
                     >
                       <div
                         className="w-10 h-10 rounded-full flex items-center justify-center"
-                        style={{ backgroundColor: "#1DB95420" }}
+                        style={{ backgroundColor: "color-mix(in srgb, var(--data-income) 12%, transparent)" }}
                       >
                         <BarChart3
                           className="text-lg"
-                          style={{ color: "#1DB954" }}
+                          style={{ color: "var(--data-income)" }}
                         />
                       </div>
                       <div className="text-left">
@@ -425,11 +427,11 @@ export default function Balance() {
                     >
                       <div
                         className="w-10 h-10 rounded-full flex items-center justify-center"
-                        style={{ backgroundColor: "#3B82F620" }}
+                        style={{ backgroundColor: "color-mix(in srgb, var(--data-planified) 12%, transparent)" }}
                       >
                         <ClipboardList
                           className="text-lg"
-                          style={{ color: "#3B82F6" }}
+                          style={{ color: "var(--data-planified)" }}
                         />
                       </div>
                       <div className="text-left">

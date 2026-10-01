@@ -8,10 +8,12 @@ import {
   Calendar,
   RefreshCw,
   TrendingUp,
+  Loader2,
 } from "lucide-react";
 import SettingsShell from "@/components/SettingsShell";
 import { useNotifications } from "@/lib/dataLayer";
 import { useLocalStore } from "@/store/useLocalStore";
+import { notification } from "@/capabilities/notification";
 
 interface NotifPrefs {
   transactions: boolean;
@@ -75,6 +77,9 @@ export default function SettingsNotifications() {
   const { markAllNotificationsRead } = useLocalStore();
   const [prefs, setPrefs] = useState<NotifPrefs>(loadPrefs);
   const [marked, setMarked] = useState(false);
+  // Permission push : demandée à la demande (just-in-time), jamais au boot.
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushPending, setPushPending] = useState(false);
 
   // Deux formes possibles selon la source : PowerSync expose `is_read` (0/1),
   // IndexedDB expose `isRead` (boolean). Le prédicat normalise les deux.
@@ -93,6 +98,25 @@ export default function SettingsNotifications() {
     await markAllNotificationsRead();
     setMarked(true);
     setTimeout(() => setMarked(false), 2000);
+  };
+
+  // Activer / désactiver les notifications push : c'est ici (flux déclenché
+  // par l'utilisateur) que le SDK OneSignal est initialisé et que la
+  // permission push est demandée — plus jamais au boot de l'app.
+  const handleTogglePush = async () => {
+    if (pushPending) return;
+    setPushPending(true);
+    try {
+      if (pushEnabled) {
+        setPushEnabled(false);
+      } else {
+        await notification.initialize();
+        const granted = await notification.requestPermission();
+        setPushEnabled(granted);
+      }
+    } finally {
+      setPushPending(false);
+    }
   };
 
   return (
@@ -144,6 +168,39 @@ export default function SettingsNotifications() {
           ) : (
             "Tout marquer lu"
           )}
+        </button>
+      </div>
+
+      {/* Notifications push : demandées à la demande (just-in-time) */}
+      <div
+        className="rounded-xl p-4 mb-4 flex items-center justify-between gap-3"
+        style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          <BellOff className="w-4 h-4 flex-shrink-0" style={{ color: pushEnabled ? "var(--accent-primary)" : "var(--text-tertiary)" }} />
+          <div className="min-w-0">
+            <p className="text-text-primary text-sm font-semibold">Notifications activées</p>
+            <p className="text-text-tertiary text-xs">
+              {pushEnabled ? "Notifications push activées sur cet appareil." : "Activez pour recevoir des notifications push."}
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={handleTogglePush}
+          disabled={pushPending}
+          role="switch"
+          aria-checked={pushEnabled}
+          aria-label="Notifications activées"
+          className="relative flex-shrink-0 w-10 h-6 rounded-full transition-colors disabled:opacity-40"
+          style={{ backgroundColor: pushEnabled ? "var(--accent-primary)" : "var(--surface-hover)" }}
+        >
+          <span
+            className="absolute top-0.5 w-5 h-5 rounded-full bg-white flex items-center justify-center"
+            style={{ left: pushEnabled ? "22px" : "2px" }}
+          >
+            {pushPending && <Loader2 className="w-3 h-3 animate-spin" style={{ color: "var(--accent-primary)" }} />}
+          </span>
         </button>
       </div>
 

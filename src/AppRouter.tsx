@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { authService } from "@/lib/auth";
-import { oneSignalService } from "@/lib/authOneSignal";
 
 /**
  * AppRouter — auth state monitor (no routing logic).
@@ -12,8 +11,10 @@ export default function AppRouter() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Initialize OneSignal
-    oneSignalService.initialize();
+    // OneSignal n'est plus initialisé au boot : le SDK (plugin Cordova
+    // promptForNotifications:true) doit être branché par un flux
+    // déclenché par l'utilisateur (ex. SettingsNotifications, toggle
+    // « Notifications activées »).
 
     const checkAuth = async () => {
       const session = await authService.getSession();

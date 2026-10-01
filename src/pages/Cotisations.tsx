@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useEvents, useCotisations } from "@/lib/dataLayer";
 import { CotisationsSkeleton } from "@/components/PageSkeletons";
@@ -38,31 +38,33 @@ export default function Cotisations() {
   const culteStats = useMemo(() => {
     const culteEvents = events.filter((e: any) => e.type === "CULTE");
 
-    return culteEvents.map((culte: any) => {
-      const culteCotisations = cotisations.filter(
-        (c: any) => c.culteId === culte.id,
-      );
-      const totalMembers = culteCotisations.length;
-      const paid = culteCotisations.filter(
-        (c: any) => c.statut === "PAYE",
-      ).length;
-      const absent = culteCotisations.filter(
-        (c: any) => c.statut === "ABSENT",
-      ).length;
-      const unpaid = culteCotisations.filter(
-        (c: any) => c.statut === "NON_PAYE",
-      ).length;
-      const inAdvance = culteCotisations.filter(
-        (c: any) => c.statut === "EN_AVANCE",
-      ).length;
-      const totalCollected = culteCotisations.reduce(
-        (s: number, c: any) => s + (c.montantPaye || 0),
-        0,
-      );
-      const expectedTotal = culteCotisations.reduce(
-        (s: number, c: any) => s + (c.montantObligatoire || 0),
-        0,
-      );
+    // Grouper une seule passe : O(cultes + cotisations) au lieu de
+    // O(cultes × cotisations) avec 4 filtres par culte.
+    const byCulteId = new Map<string, any[]>();
+    for (const c of cotisations ?? []) {
+      const arr = byCulteId.get(c.culteId);
+      if (arr) arr.push(c);
+      else byCulteId.set(c.culteId, [c]);
+    }
+
+    const stats = culteEvents.map((culte: any) => {
+      const culteCotisations = byCulteId.get(culte.id) ?? [];
+      let totalMembers = 0;
+      let paid = 0;
+      let absent = 0;
+      let unpaid = 0;
+      let inAdvance = 0;
+      let totalCollected = 0;
+      let expectedTotal = 0;
+      for (const c of culteCotisations) {
+        totalMembers += 1;
+        if (c.statut === "PAYE") paid += 1;
+        else if (c.statut === "ABSENT") absent += 1;
+        else if (c.statut === "NON_PAYE") unpaid += 1;
+        else if (c.statut === "EN_AVANCE") inAdvance += 1;
+        totalCollected += c.montantPaye || 0;
+        expectedTotal += c.montantObligatoire || 0;
+      }
 
       return {
         culteId: culte.id,
@@ -77,7 +79,16 @@ export default function Cotisations() {
         expectedTotal,
       };
     });
+
+    return stats;
   }, [events, cotisations]);
+
+  // Plafonner l'affichage pour éviter de monter 100+ cartes.
+  const [showAll, setShowAll] = useState(false);
+  const culteStatsCapped = useMemo(
+    () => (showAll ? culteStats : culteStats.slice(0, 50)),
+    [culteStats, showAll],
+  );
 
   if (eventsLoading) {
     return <CotisationsSkeleton />;
@@ -142,7 +153,7 @@ export default function Cotisations() {
               </div>
             ) : (
               <div className="space-y-3">
-                {culteStats.map((stat) => {
+                {culteStatsCapped.map((stat) => {
                   const progress =
                     stat.expectedTotal > 0
                       ? (stat.totalCollected / stat.expectedTotal) * 100
@@ -238,6 +249,20 @@ export default function Cotisations() {
                     </button>
                   );
                 })}
+                {!showAll && culteStats.length > 50 && (
+                  <button
+                    onClick={() => setShowAll(true)}
+                    className="w-full py-2.5 rounded-xl text-sm font-medium transition-all active:scale-95"
+                    style={{
+                      background: "var(--surface)",
+                      border: "1px solid var(--border)",
+                      color: "var(--text-primary)",
+                    }}
+                    aria-label="Afficher tous les cultes"
+                  >
+                    Afficher plus ({culteStats.length - 50} restants)
+                  </button>
+                )}
               </div>
             )}
           </div>

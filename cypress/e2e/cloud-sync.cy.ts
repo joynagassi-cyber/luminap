@@ -37,40 +37,61 @@ describe('Lumina — cloud sync (offline → online)', () => {
     const cfKey = 'test_sync_cf_' + now;
 
     // ── 1. Simulate offline: intercept Supabase REST ───────────────────
+    // Cypress 16 a retiré `cy.unrouteAll()` ET `cy.restore()`/
+    // `cy.clearAllIntercepts()` (vérifié dans les .d.ts de cypress@16 :
+    // seule API de suppression d'intercepts = aucune, on ne "retire"
+    // plus un intercept, on le rend inactif). On remplace le "retirer le
+    // stub à la réconnexion" par un TOGGLE mutable `offline` : le
+    // handler appelle `req.destroy()` (réseau coupé) pendant offline et
+    // fait le no-op (continue vers Supabase) en mode online. L'intercept
+    // lui-même reste routé mais inactif — l'API réseau est de nouveau
+    // fonctionnelle, qui est le goal du scénario offline→online.
+    let offline = true;
     cy.intercept({ method: 'GET', url: `${SUPABASE_URL}/**` }, (req: any) => {
-      req.abort('network-error');
-    }).as('offlineGet');
+      if (offline) {
+        req.destroy();
+      }
+    }).as('supabaseGet');
     cy.intercept({ method: 'POST', url: `${SUPABASE_URL}/**` }, (req: any) => {
-      req.abort('network-error');
-    }).as('offlinePost');
+      if (offline) {
+        req.destroy();
+      }
+    }).as('supabasePost');
 
     // ── 2. Create group (account) while offline ───────────────────────
     cy.ensureAuth();
     cy.visit('/groups');
-    cy.get('h1, h2, h3').contains('Groupes').should('be.visible');
-    cy.contains('button', 'Créer').click();
-    cy.get('input[placeholder*="groupe"], input[placeholder*="nom"]')
-      .first()
-      .type(accountName);
-    cy.contains('button', /créer le groupe/i).click();
+    // « Groupes » est le titre du TopHeader (Ionic). Le form de création
+    // est derrière le bouton « Créer » (aria-label du + Créé). On ouvre
+    // le form si besoin (idempotent : le placeholder est déjà visible
+    // si showCreate est déjà true).
+    cy.get('input[placeholder="Nom du groupe"]').then(($in) => {
+      if ($in.length === 0) {
+        cy.contains('button', 'Créer').first().click();
+      }
+    });
+    cy.get('input[placeholder="Nom du groupe"]').type(accountName);
+    cy.contains('button', 'Créer le groupe').click();
 
     // ── 3. Create custom field while offline ──────────────────────────
     cy.visit('/custom-fields');
-    cy.get('h1, h2, h3').contains('Champs personnalisés').should('be.visible');
+    // « Champs personnalisés » est le titre du TopHeader (Ionic) — le
+    // placeholder du Label du modal est le marqueur de présence le plus
+    // robuste. Le bouton « Créer » ouvre un modale (role=dialog,
+    // aria-label="Nouveau champ").
     cy.contains('button', 'Créer').click();
-    cy.get('.fixed input').first().type('TestSync Custom Field ' + now);
-    cy.get('.fixed input').eq(1).type(cfKey);
-    cy.contains('button', /créer le champ/i).click();
+    cy.get('input[placeholder="Ex: Montant estimé"]').type('TestSync Custom Field ' + now);
+    cy.get('input[placeholder="montant_estime"]').type(cfKey);
+    cy.get('button[aria-label="Créer le champ"]').click();
 
     // ── 4. Restore online mode ────────────────────────────────────────
-    // Les intercepts ci-dessus n'ont pas d'alias, on ne peut donc pas
-    // les cibler avec cy.restore(alias). Cypress 16 expose
-    // `cy.clearAllIntercepts()` pour remonter tout le réseau (remplace
-    // l'API `cy.unrouteAll()` de Cypress 15). Cast explicite : ce
-    // command est ajouté par Cypress au runtime et n'existe pas encore
-    // dans les .d.ts de la version installée ici.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (cy as any).clearAllIntercepts();
+    // Pas de cy.restore() / clearAllIntercepts() (inexistants dans
+    // cypress@16) : le toggle `offline` ci-dessus suffit — les
+    // intercepts Supabase (GET/POST) continuent à être routés mais
+    // deviennent INACTIFS (pas de destroy), donc le réseau est de
+    // nouveau fonctionnel pour les cycles de sync PowerSync +
+    // assertions REST ci-dessous.
+    offline = false;
 
     // ── 5. Wait for the sync cycle (runs every ~30 s) ────────────────
     // The sync wait is an external timing constraint, not a flaky

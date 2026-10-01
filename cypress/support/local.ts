@@ -201,13 +201,20 @@ Cypress.Commands.add('interceptCloud', function () {
 });
 
 Cypress.Commands.add('restoreCloud', function () {
-  // Cypress 16 a retiré `cy.unrouteAll()` : le repli documenté est
-  // `cy.restore()`, qui retire toutes les routes interceptées
-  // (Supabase/PowerSync aborts + intercepts UI) et restaure le réseau.
-  // `cy.restore()` n'est pas dans les .d.ts de cypress@16 — on passe
-  // par un cast explicite.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (cy as any).restore();
+  // Cypress 16 a retiré `cy.unrouteAll()` ET (vérifié dans les .d.ts de
+  // cypress@16) `cy.restore()` / `cy.clearAllIntercepts()` — il n'y a
+  // plus d'API de SUPPRESSION d'un intercept une fois décliné. Les
+  // specs qui utilisent interceptCloud() (offline local seed, pas de
+  // cloud) ne réactivent jamais le réseau pendant leur durée de
+  // vie : ce command est donc devenu un NO-OP documenté.
+  //
+  // Pour un scénario offline→online (cloud-sync), ne PAS s'appuyer
+  // sur ce command : déclarer un toggle mutable `let offline = true`
+  // dans le spec, le handler d'intercept fait `if (offline)
+  // req.destroy()` (pas `req.abort` — inexistant en cypress@16) et
+  // le spec recale le toggle à false pour réactiver le réseau.
+  // C'est exactement ce que fait cypress/e2e/cloud-sync.cy.ts.
+  cy.log('restoreCloud: no-op — cypress@16 n\'a plus d\'API de suppression d\'intercepts (voir le commentaire du command)');
 });
 
 export {};

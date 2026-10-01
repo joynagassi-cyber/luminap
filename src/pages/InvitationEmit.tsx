@@ -91,6 +91,7 @@ export default function InvitationEmit() {
   const [showCopy, setShowCopy] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
+  const [busy, setBusy] = useState(false);
   // Timestamps de l'invitation courante — conservés pour le payload affiché
   // (le QR recalcule sinon expiresAt au render, et le claimant peut être
   // rejeté côté serveur alors que le scan local n'était pas expiré).
@@ -98,6 +99,9 @@ export default function InvitationEmit() {
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
 
   const handleCreate = async () => {
+    if (busy) return;
+    if (scopeType === "GROUP" && !targetGroupId) return;
+    setBusy(true);
     try {
       const expiresAtMs = new Date(
         Date.now() + expiresDays * 24 * 60 * 60 * 1000,
@@ -145,6 +149,8 @@ export default function InvitationEmit() {
     } catch (err: any) {
       setAlertMessage(err?.message ?? "Erreur lors de la création");
       setShowAlert(true);
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -335,9 +341,10 @@ export default function InvitationEmit() {
                   color="primary"
                   onClick={handleCreate}
                   className="mt-4"
+                  disabled={busy || (scopeType === "GROUP" && !targetGroupId)}
                 >
                   <QrCode className="w-4 h-4 mr-2" />
-                  Générer l'invitation
+                  {busy ? "Génération..." : "Générer l'invitation"}
                 </IonButton>
               </div>
             ) : (

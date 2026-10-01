@@ -33,14 +33,15 @@ type Shortcut = {
 };
 
 /** Features utiles regroupées dans la capsule — une sélection courte et
-    déterministe (6 items, toutes des routes stables du registre FEATURES). */
+    déterministe (6 items, toutes des routes stables du registre FEATURES).
+    Couleurs : tokens CSS (invariants, déclarés dans src/App.css). */
 const SHORTCUT_FEATURES: Shortcut[] = [
-  { key: "finance", label: "Finances", desc: "Entrées & sorties", icon: Wallet, color: "#1DB954", route: "/finance" },
-  { key: "membres", label: "Membres", desc: "Liste du groupe", icon: Users, color: "#3B82F6", route: "/members" },
-  { key: "events", label: "Événements", desc: "Cultes & budgets", icon: CalendarPlus, color: "#FF6B00", route: "/events" },
-  { key: "giving", label: "Dons", desc: "Campagnes en cours", icon: Ticket, color: "#8B5CF6", route: "/giving" },
-  { key: "formulaires", label: "Formulaires", desc: "Collecter des infos", icon: FileText, color: "#14B8A6", route: "/forms" },
-  { key: "rapports", label: "Rapports", desc: "Bilan & états", icon: BarChart3, color: "#F59E0B", route: "/reports" },
+  { key: "finance", label: "Finances", desc: "Entrées & sorties", icon: Wallet, color: "var(--data-income)", route: "/finance" },
+  { key: "membres", label: "Membres", desc: "Liste du groupe", icon: Users, color: "var(--data-planified)", route: "/members" },
+  { key: "events", label: "Événements", desc: "Cultes & budgets", icon: CalendarPlus, color: "var(--shortcut-events)", route: "/events" },
+  { key: "giving", label: "Dons", desc: "Campagnes en cours", icon: Ticket, color: "var(--data-advance)", route: "/giving" },
+  { key: "formulaires", label: "Formulaires", desc: "Collecter des infos", icon: FileText, color: "var(--shortcut-forms)", route: "/forms" },
+  { key: "rapports", label: "Rapports", desc: "Bilan & états", icon: BarChart3, color: "var(--shortcut-reports)", route: "/reports" },
 ];
 
 const SHEET_MAX_DRAG = 140; // px de glisse avant fermeture
@@ -109,7 +110,7 @@ export default function HomeIndicator() {
             style={{ background: "rgba(0,0,0,0.45)" }}
           />
           <div
-            className="absolute left-0 right-0 bottom-0 rounded-t-2xl overflow-hidden"
+            className="absolute left-0 right-0 bottom-0 rounded-t-2xl"
             style={{
               background: "var(--card)",
               border: "1px solid var(--border)",

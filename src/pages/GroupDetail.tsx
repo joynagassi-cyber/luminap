@@ -264,7 +264,11 @@ export default function GroupDetail() {
           {error && (
             <div
               className="mb-4 p-3 rounded-xl text-sm"
-              style={{ backgroundColor: "#E5133220", color: "#E51332" }}
+              style={{
+                backgroundColor:
+                  "color-mix(in srgb, var(--data-expense) 12%, transparent)",
+                color: "var(--data-expense)",
+              }}
             >
               {error}
             </div>
@@ -272,7 +276,11 @@ export default function GroupDetail() {
           {success && (
             <div
               className="mb-4 p-3 rounded-xl text-sm"
-              style={{ backgroundColor: "#1DB95420", color: "#1DB954" }}
+              style={{
+                backgroundColor:
+                  "color-mix(in srgb, var(--data-income) 12%, transparent)",
+                color: "var(--data-income)",
+              }}
             >
               {success}
             </div>

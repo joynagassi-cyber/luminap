@@ -77,10 +77,10 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 const STATUS_COLOR: Record<string, string> = {
-  PENDING: "#FFB800",
-  ACTIVE: "#1DB954",
+  PENDING: "var(--data-pending)",
+  ACTIVE: "var(--data-income)",
   SUSPENDED: "var(--accent-primary)",
-  ARCHIVED: "#808080",
+  ARCHIVED: "var(--text-tertiary)",
 };
 
 /** Determine whether the current user may access the central dashboard. */
@@ -242,7 +242,7 @@ function OrgDetail({ orgId, onBack }: { orgId: string; onBack: () => void }) {
               <p className="text-text-tertiary text-xs">Membres</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold" style={{ color: "#1DB954" }}>{reportCard.activeAdminCount}</p>
+              <p className="text-2xl font-bold" style={{ color: "var(--data-income)" }}>{reportCard.activeAdminCount}</p>
               <p className="text-text-tertiary text-xs">Admins actifs</p>
             </div>
             <div className="text-center">
@@ -392,9 +392,9 @@ function OrgDetail({ orgId, onBack }: { orgId: string; onBack: () => void }) {
         <div
           className="mt-4 p-3 rounded-xl text-sm"
           style={{
-            backgroundColor: "#E5133220",
-            border: "1px solid #E5133240",
-            color: "#ff8fa3",
+            backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--data-expense) 25%, transparent)",
+            color: "var(--data-expense)",
           }}
         >
           {error}
@@ -441,10 +441,10 @@ export default function CentralAdmin() {
 
   const kpis = [
     { label: "Total", value: stats?.total ?? managedOrgs?.length ?? 0, color: "var(--accent-primary)", icon: Building2 },
-    { label: "Actives", value: stats?.byStatus.ACTIVE ?? 0, color: "#1DB954", icon: ShieldCheck },
-    { label: "En attente", value: stats?.byStatus.PENDING ?? 0, color: "#FFB800", icon: Clock },
+    { label: "Actives", value: stats?.byStatus.ACTIVE ?? 0, color: "var(--data-income)", icon: ShieldCheck },
+    { label: "En attente", value: stats?.byStatus.PENDING ?? 0, color: "var(--data-pending)", icon: Clock },
     { label: "Suspendues", value: stats?.byStatus.SUSPENDED ?? 0, color: "var(--accent-primary)", icon: ShieldOff },
-    { label: "Archivées", value: stats?.byStatus.ARCHIVED ?? 0, color: "#808080", icon: Archive },
+    { label: "Archivées", value: stats?.byStatus.ARCHIVED ?? 0, color: "var(--text-tertiary)", icon: Archive },
   ];
 
   // Access gate — a non-central user never sees the dashboard.
@@ -526,8 +526,8 @@ export default function CentralAdmin() {
           <div
             className="px-5 pt-4 pb-2"
             style={{
-              backgroundColor: "#1a130f",
-              borderBottom: "1px solid #3a2a1a",
+              backgroundColor: "color-mix(in srgb, var(--accent-primary) 8%, var(--surface))",
+              borderBottom: "1px solid var(--border)",
             }}
           >
             <div className="max-w-lg mx-auto flex items-center gap-2">
@@ -750,9 +750,9 @@ export default function CentralAdmin() {
               <div
                 className="mt-4 p-3 rounded-xl text-sm"
                 style={{
-                  backgroundColor: "#E5133220",
-                  border: "1px solid #E5133240",
-                  color: "#ff8fa3",
+                  backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)",
+                  border: "1px solid color-mix(in srgb, var(--data-expense) 25%, transparent)",
+                  color: "var(--data-expense)",
                 }}
               >
                 {error}

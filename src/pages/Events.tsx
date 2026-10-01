@@ -15,10 +15,10 @@ import { EventsSkeleton } from "@/components/PageSkeletons";
 import { formatDate, formatCurrencyCompact } from "@/lib/utils";
 
 const STATUS_COLORS: Record<string, string> = {
-  PLANIFIED: "#3B82F6",
-  ONGOING: "#1DB954",
-  COMPLETED: "#808080",
-  CANCELLED: "#E51332",
+  PLANIFIED: "var(--data-planified)",
+  ONGOING: "var(--data-income)",
+  COMPLETED: "var(--text-tertiary)",
+  CANCELLED: "var(--data-expense)",
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -36,6 +36,8 @@ export default function Events() {
   const events = psEvents ?? [];
   const transactions = psTransactions ?? [];
 
+  const [visibleCount, setVisibleCount] = useState(50);
+
   const sortedEvents = useMemo(() => {
     return [...events].sort(
       (a: any, b: any) =>
@@ -43,6 +45,21 @@ export default function Events() {
         new Date(a.start_date || a.startDate).getTime(),
     );
   }, [events]);
+
+  // groupBy : évite le .filter par ligne (O(n×m) → O(n+m)).
+  const txsByEvent = useMemo(() => {
+    const map = new Map<string, any[]>();
+    for (const t of transactions) {
+      const eid = t.event_id || t.eventId;
+      if (!eid) continue;
+      const list = map.get(eid);
+      if (list) list.push(t);
+      else map.set(eid, [t]);
+    }
+    return map;
+  }, [transactions]);
+
+  const visibleEvents = sortedEvents.slice(0, visibleCount);
 
   return (
     <IonPage>
@@ -98,12 +115,9 @@ export default function Events() {
               </div>
             ) : (
               <div className="space-y-3">
-                {sortedEvents.map((event: any) => {
-                  const color = STATUS_COLORS[event.status] || "#808080";
-                  const eventTxs = transactions.filter(
-                    (t: any) =>
-                      t.event_id === event.id || t.eventId === event.id,
-                  );
+                {visibleEvents.map((event: any) => {
+                  const color = STATUS_COLORS[event.status] || "var(--text-tertiary)";
+                  const eventTxs = txsByEvent.get(event.id) ?? [];
                   const income = eventTxs
                     .filter(
                       (t: any) =>
@@ -189,6 +203,20 @@ export default function Events() {
                     </button>
                   );
                 })}
+                {sortedEvents.length > visibleCount && (
+                  <button
+                    onClick={() => setVisibleCount((c) => c + 50)}
+                    className="w-full py-3 rounded-xl text-sm font-medium"
+                    aria-label="Afficher plus d'événements"
+                    style={{
+                      backgroundColor: "var(--surface)",
+                      color: "var(--text-secondary)",
+                      border: "1px solid var(--border)",
+                    }}
+                  >
+                    Afficher plus
+                  </button>
+                )}
               </div>
             )}
           </div>

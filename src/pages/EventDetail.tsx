@@ -17,7 +17,6 @@ import {
   Edit3,
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
-import TopHeader from "@/components/TopHeader";
 import { EventDetailSkeleton } from "@/components/PageSkeletons";
 import type { EventStatus } from "@/types";
 import { security } from "@/capabilities/security";
@@ -201,8 +200,6 @@ export default function EventDetail() {
         </IonToolbar>
       </IonHeader>
       <IonContent className="ion-padding">
-        <TopHeader title={event.name} />
-
         <div className="flex-1 overflow-y-auto px-5 pb-28 pt-4">
           {success && (
             <div

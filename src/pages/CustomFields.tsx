@@ -41,6 +41,7 @@ export default function CustomFields() {
   const [type, setType] = useState<CustomFieldDefinition["type"]>("text");
   const [options, setOptions] = useState("");
   const [error, setError] = useState("");
+  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     customFieldRepo.list().then(setFields);
@@ -51,22 +52,30 @@ export default function CustomFields() {
       setError("Label et clé requis");
       return;
     }
-    const def = await customFieldRepo.create({
-      orgId: getOrganizationId(),
-      entityType,
-      key: key.trim().toLowerCase().replace(/\s+/g, "_"),
-      label: label.trim(),
-      type,
-      options:
-        type === "select" ? options.split("\n").filter(Boolean) : undefined,
-      order: fields.length,
-    });
-    setFields((prev) => [...prev, def]);
-    setShowCreate(false);
-    setLabel("");
-    setKey("");
-    setOptions("");
-    setError("");
+    if (creating) return;
+    setCreating(true);
+    try {
+      const def = await customFieldRepo.create({
+        orgId: getOrganizationId(),
+        entityType,
+        key: key.trim().toLowerCase().replace(/\s+/g, "_"),
+        label: label.trim(),
+        type,
+        options:
+          type === "select" ? options.split("\n").filter(Boolean) : undefined,
+        order: fields.length,
+      });
+      setFields((prev) => [...prev, def]);
+      setShowCreate(false);
+      setLabel("");
+      setKey("");
+      setOptions("");
+      setError("");
+    } catch {
+      setError("Impossible de créer le champ");
+    } finally {
+      setCreating(false);
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -96,7 +105,7 @@ export default function CustomFields() {
                 onClick={() => setShowCreate(true)}
                 className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold text-white"
                 style={{
-                  background: "linear-gradient(135deg, #FF8533, var(--accent-primary))",
+                  background: "linear-gradient(135deg, var(--accent-light), var(--accent-primary))",
                 }}
                 aria-label="Créer un nouveau champ"
               >
@@ -147,7 +156,7 @@ export default function CustomFields() {
                     </div>
                     <button
                       onClick={() => handleDelete(field.id)}
-                      style={{ color: "#E51332" }}
+                      style={{ color: "var(--data-expense)" }}
                       aria-label={`Supprimer le champ ${field.label}`}
                     >
                       <Trash2 className="w-4 h-4" />
@@ -256,7 +265,10 @@ export default function CustomFields() {
                           className="px-3 py-1.5 rounded-full text-xs font-medium"
                           style={
                             type === ft.value
-                              ? { backgroundColor: "var(--accent-primary)", color: "#fff" }
+                              ? {
+                                  backgroundColor: "var(--accent-primary)",
+                                  color: "#fff",
+                                }
                               : {
                                   backgroundColor: "var(--surface)",
                                   color: "var(--text-secondary)",
@@ -291,17 +303,18 @@ export default function CustomFields() {
                 </div>
 
                 {error && (
-                  <p className="text-xs mb-3" style={{ color: "#E51332" }}>
+                  <p className="text-xs mb-3" style={{ color: "var(--data-expense)" }}>
                     {error}
                   </p>
                 )}
                 <button
                   onClick={handleCreate}
+                  disabled={creating}
                   className="w-full py-3.5 rounded-full font-semibold text-white mb-3"
-                  style={{ backgroundColor: "var(--accent-primary)" }}
-                  aria-label="Créer le champ"
+                  style={{ backgroundColor: "var(--accent-primary)", opacity: creating ? 0.6 : 1 }}
+                  aria-label={creating ? "Création du champ en cours" : "Créer le champ"}
                 >
-                  Créer le champ
+                  {creating ? "Création…" : "Créer le champ"}
                 </button>
                 <button
                   onClick={() => setShowCreate(false)}

@@ -31,33 +31,31 @@ export default function SettingsShell({
   return (
     <IonPage>
       <IonContent className="bg-canvas">
-        <div className="min-h-screen bg-canvas">
-          <TopHeader title={title} />
-          <div className="max-w-lg mx-auto px-5 pt-16 pb-28">
-            <button
-              type="button"
-              onClick={() => navigate(backTo)}
-              className="flex items-center gap-2 text-text-secondary text-sm mb-4 active:opacity-70"
-              style={{ background: "none", border: "none", cursor: "pointer" }}
-              aria-label={`Retour aux paramètres`}
-            >
-              <ArrowLeft className="w-4 h-4" /> Retour
-            </button>
+        <TopHeader title={title} />
+        <div className="max-w-lg mx-auto px-5 pt-16 pb-28">
+          <button
+            type="button"
+            onClick={() => navigate(backTo)}
+            className="flex items-center gap-2 text-text-secondary text-sm mb-4 active:opacity-70"
+            style={{ background: "none", border: "none", cursor: "pointer" }}
+            aria-label={`Retour aux paramètres`}
+          >
+            <ArrowLeft className="w-4 h-4" /> Retour
+          </button>
 
-            <h1
-              className="text-text-primary font-bold text-xl mb-1"
-              data-testid={`settings-${title.toLowerCase().replace(/\s+/g, "-")}`}
-            >
-              {title}
-            </h1>
-            {subtitle && (
-              <p className="text-text-tertiary text-xs mb-5">{subtitle}</p>
-            )}
+          <h1
+            className="text-text-primary font-bold text-xl mb-1"
+            data-testid={`settings-${title.toLowerCase().replace(/\s+/g, "-")}`}
+          >
+            {title}
+          </h1>
+          {subtitle && (
+            <p className="text-text-tertiary text-xs mb-5">{subtitle}</p>
+          )}
 
-            {children}
-          </div>
-          <BottomNav />
+          {children}
         </div>
+        <BottomNav />
       </IonContent>
     </IonPage>
   );

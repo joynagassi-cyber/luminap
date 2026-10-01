@@ -17,10 +17,15 @@ describe('Lumina — comprehensive navigation & finance flow', () => {
   it('navigates Settings, Balance, History, Events, and Transaction edit', function () {
     this.timeout(180_000);
 
-    // ── Open More menu → Settings ──────────────────────────────────────
+    // ── Open More menu → Settings hub → Gestion ────────────────────────
+    // Le hub /settings n'est qu'une liste de sections : « Actualiser
+    // les données » (loadInitialData) et les actions (Bilan financier,
+    // Historique…) vivent dans /settings/gestion (SettingsGestion.tsx).
     cy.get('button[aria-label="Plus d\'options"]').click();
     cy.contains('button', 'Paramètres').click();
     cy.get('h1, h2, h3').contains('Paramètres').should('exist');
+    cy.contains('button', 'Gérer').click();
+    cy.location('pathname').should('eq', '/settings/gestion');
 
     // Refresh data
     cy.contains('button', 'Actualiser les données').click();
@@ -70,14 +75,24 @@ describe('Lumina — comprehensive navigation & finance flow', () => {
     //    /transaction/new, puis on ouvre son edit par son vrai id. L'ancienne
     //    version hardcodait /transaction/1/edit sur un seed qui n'existe pas
     //    (l'org est vrac au boot), et le edit ne montrait qu'un écran vide.
+    // Les inputs de TransactionNew.tsx sont des <IonInput> (Ionic custom
+    // elements) : l'input natif à l'intérieur hérite de l'aria-label mais
+    // le sélecteur `input[aria-label=...]` ne matche PAS le custom
+    // element lui-même. On cible l'input natif directement via la
+    // placeholder (héritée par ion-input + l'input interne) ou via
+    // l'aria-label de l'ion-input.
     cy.ensureAuth();
     cy.visit('/transaction/new');
-    cy.get('input[aria-label="Montant en francs CFA"]').type('7500');
-    cy.get('input[aria-label="Description"]').type('E2E Comprehensive Tx');
+    cy.get('ion-input[aria-label="Montant en francs CFA"] input, input[placeholder="0"]')
+      .first()
+      .type('7500');
+    cy.get('ion-input[aria-label="Description"] input, input[placeholder="Ex: Dîme du mois"]')
+      .first()
+      .type('E2E Comprehensive Tx');
     // Catégorie : le shell seed 9 catégories ; on choisit la 1re (pré-remplie
     // par défaut dans l'UI, ici on redéclare explicitement via aria-label).
-    cy.get('select[aria-label="Catégorie"]').select(1);
-    cy.contains('button', 'Enregistrer la transaction', { timeout: 30_000 }).click();
+    cy.get('select[aria-label="Catégorie"], ion-select[aria-label="Catégorie"] input, select').first().select(1);
+    cy.contains('Enregistrer la transaction', { timeout: 30_000 }).click();
     cy.location('pathname', { timeout: 30_000 }).should('include', '/transaction/');
     cy.location('pathname').should('not.include', '/new');
 

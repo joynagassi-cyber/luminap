@@ -25,7 +25,10 @@ import {
   IonContent,
   IonTitle,
   IonToolbar,
+  IonInfiniteScroll,
 } from "@ionic/react";
+
+export const FINANCE_PAGE_SIZE = 50;
 
 export default function Finance() {
   const navigate = useNavigate();
@@ -38,6 +41,7 @@ export default function Finance() {
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [visibleCount, setVisibleCount] = useState(FINANCE_PAGE_SIZE);
 
   // Load transactions via Resource capability
   useEffect(() => {
@@ -97,6 +101,13 @@ export default function Finance() {
     selectedCaisse,
     dateRange,
   ]);
+
+  // Un changement de filtre ramène la fenêtre visible au premier écran.
+  useEffect(() => {
+    setVisibleCount(FINANCE_PAGE_SIZE);
+  }, [searchTerm, selectedType, selectedStatus, selectedCaisse, dateRange]);
+
+  const visibleTransactions = filteredTransactions.slice(0, visibleCount);
 
   const totalIncome = filteredTransactions
     .filter((t: any) => t.type === "INCOME" && t.status === "APPROVED")
@@ -328,13 +339,30 @@ export default function Finance() {
                   </p>
                 </div>
               ) : (
-                filteredTransactions.map((tx: any) => (
-                  <TransactionCard
-                    key={tx.id}
-                    transaction={tx}
-                    onPress={(id) => navigate(`/transaction/${id}`)}
-                  />
-                ))
+                <>
+                  {visibleTransactions.map((tx: any) => (
+                    <TransactionCard
+                      key={tx.id}
+                      transaction={tx}
+                      onPress={(id) => navigate(`/transaction/${id}`)}
+                    />
+                  ))}
+                  {visibleCount < filteredTransactions.length && (
+                    <IonInfiniteScroll
+                      position="bottom"
+                      threshold="300px"
+                      onIonInfinite={() =>
+                        setVisibleCount((c) => c + FINANCE_PAGE_SIZE)
+                      }
+                    >
+                      <div className="py-3">
+                        <p className="text-text-tertiary text-xs">
+                          Chargement…
+                        </p>
+                      </div>
+                    </IonInfiniteScroll>
+                  )}
+                </>
               )}
             </div>
 
@@ -343,7 +371,7 @@ export default function Finance() {
               <button
                 onClick={() => handleAddTransaction("INCOME")}
                 className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform"
-                style={{ backgroundColor: "#1DB954" }}
+                style={{ backgroundColor: "var(--data-income)" }}
                 aria-label="Nouvelle entrée"
               >
                 <ArrowUpRight className="w-6 h-6 text-white" />
@@ -351,7 +379,7 @@ export default function Finance() {
               <button
                 onClick={() => handleAddTransaction("EXPENSE")}
                 className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform"
-                style={{ backgroundColor: "#E51332" }}
+                style={{ backgroundColor: "var(--data-expense)" }}
                 aria-label="Nouvelle dépense"
               >
                 <ArrowDownRight className="w-6 h-6 text-white" />

@@ -632,7 +632,11 @@ export default function ReportBuilder() {
           </button>
         </section>
 
-        {error && <p className="text-xs mb-3" style={{ color: "#E51332" }}>{error}</p>}
+        {error && (
+          <p className="text-xs mb-3" style={{ color: "var(--data-expense)" }}>
+            {error}
+          </p>
+        )}
 
         {/* Actions */}
         <div className="grid grid-cols-2 gap-2 mb-6">
@@ -640,7 +644,10 @@ export default function ReportBuilder() {
             onClick={run}
             disabled={running}
             className="py-3 rounded-full font-semibold text-white text-sm flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-40"
-            style={{ background: "linear-gradient(135deg, #FF8533, var(--accent-primary))" }}
+            style={{
+              background:
+                "linear-gradient(135deg, var(--accent-light), var(--accent-primary))",
+            }}
           >
             <Play className="w-4 h-4" /> {running ? "Exécution…" : "Exécuter"}
           </button>

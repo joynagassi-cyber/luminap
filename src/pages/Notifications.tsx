@@ -1,3 +1,4 @@
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useNotifications, markNotificationRead, markAllNotificationsRead } from "@/lib/dataLayer";
 import { NotificationsSkeleton } from "@/components/PageSkeletons";
@@ -38,12 +39,18 @@ export default function NotificationsPage() {
   const navigate = useNavigate();
   const { data: notifications, isLoading: notificationsLoading } = useNotifications();
 
-  const sorted = [...notifications].sort(
-    (a: any, b: any) =>
-      new Date(b.created_at || b.createdAt).getTime() -
-      new Date(a.created_at || a.createdAt).getTime(),
+  const [visibleCount, setVisibleCount] = useState(50);
+
+  const sorted = useMemo(
+    () =>
+      [...(notifications ?? [])].sort(
+        (a: any, b: any) =>
+          new Date(b.created_at || b.createdAt).getTime() -
+          new Date(a.created_at || a.createdAt).getTime(),
+      ),
+    [notifications],
   );
-  const unread = notifications.filter(
+  const unread = sorted.filter(
     (n: any) => (!n.is_read && n.is_read !== undefined) || !n.isRead,
   ).length;
 
@@ -111,7 +118,7 @@ export default function NotificationsPage() {
               </div>
             ) : (
               <div className="space-y-2">
-                {sorted.map((notif: any) => (
+                {sorted.slice(0, visibleCount).map((notif: any) => (
                   <button
                     key={notif.id}
                     onClick={async () => {
@@ -173,6 +180,20 @@ export default function NotificationsPage() {
                     </div>
                   </button>
                 ))}
+                {sorted.length > visibleCount && (
+                  <button
+                    onClick={() => setVisibleCount((c) => c + 50)}
+                    className="w-full py-3 rounded-xl text-sm font-medium"
+                    aria-label="Afficher plus de notifications"
+                    style={{
+                      backgroundColor: "var(--surface)",
+                      color: "var(--text-secondary)",
+                      border: "1px solid var(--border)",
+                    }}
+                  >
+                    Afficher plus
+                  </button>
+                )}
               </div>
             )}
           </div>
