@@ -1,7 +1,9 @@
+// Fixed: Capacitor — keyboard-avoidance on the form page (Android/iOS hardware keyboard)
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useCategories, useCaisses, useMembers, addEventPS } from "@/lib/dataLayer";
 import { useLocalStore } from "@/store/useLocalStore";
+import { useKeyboardAvoidance } from "@/hooks/useKeyboardAvoidance";
 import { ArrowLeft, Plus, X, Tag } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
@@ -43,6 +45,7 @@ const DEFAULT_BUDGET_ITEMS = [
 export default function EventNew() {
   const navigate = useNavigate();
   const location = useLocation();
+  const keyboardHeight = useKeyboardAvoidance();
   const { data: members } = useMembers();
   const createCulte = useLocalStore((s) => s.createCulte);
 
@@ -166,7 +169,7 @@ export default function EventNew() {
       </IonHeader>
 
       <IonContent className="bg-canvas" fullscreen>
-        <div className="max-w-lg mx-auto px-5 pb-32 pt-4">
+        <div className="max-w-lg mx-auto px-5 pb-32 pt-4" style={keyboardHeight > 0 ? { paddingBottom: `${keyboardHeight}px` } : undefined}>
           {error && (
             <div
               className="mb-4 p-3 rounded-xl text-sm text-center"

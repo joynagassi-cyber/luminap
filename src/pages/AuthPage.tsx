@@ -1,3 +1,4 @@
+// Fixed: Capacitor — keyboard-avoidance on the form page (Android/iOS hardware keyboard)
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAppConfig, useCurrentUser } from "@/lib/dataLayer";
@@ -6,6 +7,7 @@ import { oneSignalService } from "@/lib/authOneSignal";
 import type { Role } from "@/types";
 import { needsOnboarding } from "@/lib/onboardingState";
 import { useLocalStore } from "@/store/useLocalStore";
+import { useKeyboardAvoidance } from "@/hooks/useKeyboardAvoidance";
 import { Loader2, Mail, Lock, User } from "lucide-react";
 import {
   IonPage,
@@ -44,6 +46,7 @@ export default function AuthPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const user = useCurrentUser();
+  const keyboardHeight = useKeyboardAvoidance();
   const { config: appConfig } = useAppConfig();
   const loadInitialData = useLocalStore((s) => s.loadInitialData);
 
@@ -343,7 +346,7 @@ export default function AuthPage() {
           </div>
 
           {/* Content */}
-          <div className="flex-1 px-6 flex flex-col justify-center max-w-sm mx-auto w-full pb-12">
+          <div className="flex-1 px-6 flex flex-col justify-center max-w-sm mx-auto w-full pb-12" style={keyboardHeight > 0 ? { paddingBottom: `${keyboardHeight}px` } : undefined}>
             <h1 className="text-text-primary font-bold text-2xl mb-1">
               {mode === "login" ? "Bon retour" : "Créer un compte"}
             </h1>

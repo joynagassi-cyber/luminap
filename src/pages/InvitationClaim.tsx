@@ -1,4 +1,5 @@
 /**
+ * Fixed: Capacitor — keyboard-avoidance on the form page (Android/iOS hardware keyboard)
  * Invitation Claim Page — scan QR or enter code to join an organization
  *
  * Two-step flow:
@@ -37,6 +38,7 @@ import {
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
 import CameraScanner from "@/components/CameraScanner";
+import { useKeyboardAvoidance } from "@/hooks/useKeyboardAvoidance";
 import { useCurrentUser, selectRole } from "@/lib/dataLayer";
 import { getRoleLabel } from "@/lib/utils";
 import {
@@ -53,6 +55,7 @@ import {
 export default function InvitationClaim() {
   const navigate = useNavigate();
   const user = useCurrentUser();
+  const keyboardHeight = useKeyboardAvoidance();
 
   const [mode, setMode] = useState<"code" | "scan">("code");
   const [codeInput, setCodeInput] = useState("");
@@ -183,7 +186,7 @@ export default function InvitationClaim() {
       <IonContent fullscreen>
         <div className="min-h-screen bg-canvas">
           <TopHeader title="" />
-          <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
+          <div className="max-w-lg mx-auto px-5 pb-32 pt-16" style={keyboardHeight > 0 ? { paddingBottom: `${keyboardHeight}px` } : undefined}>
             <div className="text-center mb-8">
               <UserPlus className="w-12 h-12 text-primary mx-auto mb-3" />
               <h1 className="text-xl font-bold text-text-primary">
