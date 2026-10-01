@@ -13,6 +13,10 @@ import {
   getFormSubmissionPS,
   listFormSubmissionsPS,
   updateFormSubmissionPS,
+  addMemberPS,
+  addEventPS,
+  createGroupPS,
+  executeWrite,
 } from "./dataLayer";
 
 /**
@@ -263,4 +267,150 @@ export function buildSubmissionsCSV(
   });
 
   return "﻿" + [header.join(";"), ...body].join("\n");
+}
+
+/**
+ * dispatchFormSubmission — écrit le résultat d'une soumission dans l'entité
+ * cible du formulaire (si `definition.targetEntityType` est défini et que
+ * des champs sont mappés via `mapsToEntityField`, cf. `mapFormFields`).
+ *
+ * Le `submission` est l'enregistrement déjà écrit dans form_submissions ;
+ * le champ mappé est recalculé ici via `mapFormFields` (DRY avec le
+ * calcul de FormFill) puis converti en colonnes snake_case des tables PS.
+ *
+ * Retour : { linkedEntityType, linkedEntityId } — identifiants de l'entité
+ * créée (si dispatch réussi), null sinon. Le résultat est aussi réécrit
+ * dans la soumission (statut PROCESSED) via `updateFormSubmissionPS`
+ * pour la traçabilité ; en cas d'échec (base hors-ligne, type inconnu)
+ * la soumission reste retraceable dans form_submissions.
+ */
+export async function dispatchFormSubmission(
+  submission: FormSubmission,
+  definition: FormDefinition,
+): Promise<{ linkedEntityType: string | null; linkedEntityId: string | null }> {
+  const none = { linkedEntityType: null, linkedEntityId: null };
+
+  if (!definition.targetEntityType) return none;
+
+  // Recompose le mapping champs → entité à partir de la définition :
+  // les données du formulaire vivent dans submission.data.
+  const mapped = mapFormFields(definition, submission.data ?? {});
+  if (Object.keys(mapped).length === 0) return none;
+
+  // La soumission porte déjà org_id + created_from_form_submission_id en
+  // camelCase (FormFill) : on convertit tout le payload en snake_case
+  // pour coller aux tables PowerSync.
+  const toSnakeCase = (key: string) =>
+    key.replace(/([A-Z])/g, (m) => "_" + m.toLowerCase());
+  const snake: Record<string, any> = {};
+  for (const [k, v] of Object.entries({
+    orgId: getOrganizationId(),
+    ...mapped,
+    createdFromFormSubmissionId: submission.id,
+  })) {
+    snake[toSnakeCase(k)] = v;
+  }
+
+  let linkedEntityId: string | null = null;
+  try {
+    switch (definition.targetEntityType) {
+      case "member": {
+        const params: Record<string, any> = {
+          ...snake,
+          first_name: snake.first_name ?? "",
+          last_name: snake.last_name ?? "",
+          phone: snake.phone ?? "",
+          email: snake.email ?? "",
+          status: snake.status ?? "ACTIVE",
+          joined_at: snake.joined_at ?? new Date().toISOString(),
+          archived_at: snake.archived_at ?? null,
+          archived_by: snake.archived_by ?? null,
+          archive_reason: snake.archive_reason ?? null,
+        };
+        linkedEntityId = await addMemberPS(params as any);
+        break;
+      }
+      case "event": {
+        const params: Record<string, any> = {
+          ...snake,
+          name: snake.name ?? "",
+          description: snake.description ?? "",
+          start_date: snake.start_date ?? null,
+          end_date: snake.end_date ?? null,
+          status: snake.status ?? "PLANIFIED",
+          type: snake.type ?? "GENERIC",
+          budget: snake.budget ?? 0,
+          budget_items: snake.budget_items ?? null,
+        };
+        linkedEntityId = await addEventPS(params as any);
+        break;
+      }
+      case "group": {
+        // Cascade complète (org_units + groups + accounts + caisses) dans
+        // createGroupPS ; le nom du groupe vient du champ mappé `name`
+        // (snake_case) et la description du champ mappé `description`.
+        linkedEntityId = await createGroupPS({
+          name: String(snake.name ?? ""),
+          type: "GROUP",
+          description: String(snake.description ?? ""),
+        });
+        break;
+      }
+      case "account": {
+        // Pas de createAccountPS dans dataLayer : INSERT direct via
+        // executeWrite (colonnes conformes au schéma de la table
+        // `accounts` : owner_type IN ('ORGANIZATION','GROUP')).
+        const id = generateId();
+        const now = new Date().toISOString();
+        await executeWrite(
+          `INSERT INTO accounts (
+            id, org_id, owner_type, owner_id, name, currency, status,
+            archived_at, archived_by, archive_reason, created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            id,
+            snake.org_id ?? getOrganizationId(),
+            snake.owner_type ?? "ORGANIZATION",
+            snake.owner_id ?? getOrganizationId(),
+            snake.name ?? "",
+            snake.currency ?? "XOF",
+            "ACTIVE",
+            null,
+            null,
+            null,
+            now,
+            now,
+          ],
+        );
+        linkedEntityId = id;
+        break;
+      }
+      default:
+        console.error(
+          `[formSystem] targetEntityType inconnu : ${definition.targetEntityType}`,
+        );
+        return none;
+    }
+  } catch (e) {
+    // Pas bloquant — la soumission reste dans form_submissions.
+    console.error("[formSystem] dispatch failed", e);
+    return none;
+  }
+
+  // Traçabilité : on relie l'entité créée à la soumission.
+  try {
+    await updateFormSubmissionPS(submission.id, {
+      linkedEntityType: definition.targetEntityType,
+      linkedEntityId,
+      status: "PROCESSED",
+    });
+  } catch (e) {
+    // Non bloquant : le dispatch lui-même a réussi.
+    console.error("[formSystem] mise à jour de la soumission (traçabilité) échouée", e);
+  }
+
+  return {
+    linkedEntityType: definition.targetEntityType,
+    linkedEntityId,
+  };
 }

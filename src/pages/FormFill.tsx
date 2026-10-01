@@ -7,7 +7,7 @@ import {
   formDefinitionRepo,
   formSubmissionRepo,
   validateFormSubmission,
-  mapFormFields,
+  dispatchFormSubmission,
 } from "@/lib/formSystem";
 import {
   useMembers,
@@ -16,9 +16,7 @@ import {
   useAccounts,
   useCurrentUser,
 } from "@/lib/dataLayer";
-import { generateId } from "@/lib/utils";
 import { getOrganizationId } from "@/lib/orgContext";
-import { addMemberPS, addEventPS } from "@/lib/dataLayer";
 import type { FormDefinition, FormFieldDefinition } from "@/types";import {
   IonPage,
   IonHeader,
@@ -107,11 +105,6 @@ export default function FormFill() {
 
   const handleSubmit = async () => {
     if (!form) return;
-    // F.1b — le dispatcher attend des colonnes snake_case (PSMember / PSEvent)
-    // alors que mapFormFields produit du camelCase : on convertit avant l'écriture.
-    const toSnakeCase = (key: string) =>
-      key.replace(/([A-Z])/g, (m) => "_" + m.toLowerCase());
-
     // F.1a — visibilité conditionnelle : un champ caché (condition non remplie)
     // ne doit PAS rester « required » sinon il bloquerait la soumission.
     const isFieldShown = (field: FormFieldDefinition) =>
@@ -128,7 +121,6 @@ export default function FormFill() {
       setErrors(validation.errors);
       return;
     }
-    const mapped = mapFormFields(shownForm, data);
     const submission = await formSubmissionRepo.create({
       orgId: getOrganizationId(),
       formDefinitionId: form.id,
@@ -137,46 +129,11 @@ export default function FormFill() {
       data,
       status: "SUBMITTED",
     });
-    // F.1b — dispatch des champs mappés vers l'entité cible du formulaire.
-    // S'il n'y a pas de targetEntityType, ou aucun champ mappé, le résultat
-    // reste dans form_submissions (rien n'est écrit ailleurs).
-    if (form.targetEntityType && Object.keys(mapped).length > 0) {
-      const dispatchers: Record<string, (p: Record<string, any>) => Promise<string>> = {
-        member: async (p) => {
-          const snake: Record<string, any> = {};
-          for (const [k, v] of Object.entries(p)) snake[toSnakeCase(k)] = v;
-          // PSMember attend des valeurs par défaut valides.
-          snake.status ??= "ACTIVE";
-          snake.joined_at ??= new Date().toISOString();
-          snake.archived_at ??= null;
-          snake.archived_by ??= null;
-          snake.archive_reason ??= null;
-          return addMemberPS(snake as any);
-        },
-        event: async (p) => {
-          const snake: Record<string, any> = {};
-          for (const [k, v] of Object.entries(p)) snake[toSnakeCase(k)] = v;
-          snake.status ??= "PLANIFIED";
-          snake.type ??= "GENERIC";
-          snake.budget ??= 0;
-          snake.description ??= "";
-          snake.budget_items ??= null;
-          return addEventPS(snake as any);
-        },
-      };
-      const dispatcher = dispatchers[form.targetEntityType];
-      if (dispatcher) {
-        try {
-          await dispatcher({
-            org_id: getOrganizationId(),
-            ...mapped,
-            created_from_form_submission_id: submission.id,
-          });
-        } catch {
-          // La soumission est déjà écrite : un échec de dispatch ne doit pas
-          // bloquer l'utilisateur, il reste retraceable dans form_submissions.
-        }
-      }
+    // F.1b — dispatch des champs mappés vers l'entité cible du formulaire
+    // (member / event / group / account) : la logique vit dans formSystem
+    // (DRY avec les tests + réutilisable par les rapports).
+    if (form.targetEntityType) {
+      await dispatchFormSubmission(submission, shownForm);
     }
     setSubmitted(true);
     // Naviguer rapidement pour ne pas laisser « Soumis avec succès ! »
