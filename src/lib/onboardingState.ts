@@ -67,6 +67,26 @@ const ONBOARD_KEY = "lumina-onboarding";
 export const LEGACY_ONBOARDED_KEY = "lumina-onboarded";
 export const LEGACY_ROLE_KEY = "lumina-role";
 
+/**
+ * Efface l'état d'onboarding COMPLET pour le navigateur courant.
+ *
+ * Cas d'usage : un user déjà inscrit en base (email/mot de passe existants)
+ * qui n'a JAMAIS passé le setup d'organisation veut RE-REJOUER le wizard
+ * dans ce navigateur (ex. il l'a quitté avant de configurer son org, ou il
+ * change de machine). On efface les 3 flags (`lumina-onboarding`,
+ * `lumina-onboarded`, `lumina-role`) pour que `needsOnboarding()` revienne
+ * à `true` et que la prochaine navigation (splash / post-login) redirige
+ * vers /onboarding au lieu de /dashboard.
+ *
+ * À n'utiliser QUE pour réinitialiser le wizard sur le navigateur courant —
+ * le compte en base reste intact (email, rôle, org). C'est l'inverse de
+ * `completeOnboarding` ; `resetOnboarding` (sans préfixe) est le nom
+ * historique de cette fonction (gardé pour rétro-compat).
+ */
+export function resetOnboardingState(): void {
+  resetOnboarding();
+}
+
 function safeGet<T>(key: string): T | null {
   if (typeof localStorage === "undefined") return null;
   try {

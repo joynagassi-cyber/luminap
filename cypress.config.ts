@@ -41,6 +41,13 @@ export default defineConfig({
       // tous les specs suivants le relisent via loginOrgAccount().
       // Pré-déclaré ici (null) pour que la clé soit lisible au boot.
       orgCreds: null,
+      // IDENTIFIANT UNIQUE du compte d'organisation de test (source de
+      // vérité : CYPRESS_ORG_EMAIL / CYPRESS_ORG_PASSWORD, jamais
+      // éphémère). Par défaut = lumina-org-e2e@lumina.dev / E2e-Lumina!1
+      // (voir cypress/support/orgCreds.ts). Le 1er run absolu fait le
+      // sign-up COMPLET par l'UI ; les runs suivants font login direct.
+      ORG_EMAIL: process.env.CYPRESS_ORG_EMAIL || 'lumina-org-e2e@lumina.dev',
+      ORG_PASSWORD: process.env.CYPRESS_ORG_PASSWORD || 'E2e-Lumina!1',
     },
     // Same testDir shape as before; specs live under cypress/e2e.
     specPattern: 'cypress/e2e/**/*.cy.{ts,tsx}',

@@ -616,10 +616,28 @@ Cypress.Commands.add('signupOrgAccount', function (
     //     propre → /onboarding (wizard COMPLET, l'exigence stricte de
     //     l'utilisateur — pas de raccourci localStorage).
     //  b. Run suivant : le compte EXISTAIT déjà (identifiant unique) →
-    //     l'app détecte qu'il est non configuré pour ce navigateur et
-    //     redirige /onboarding (cas que le user a explicitement décrit :
-    //     "l'user s'était inscrit et n'a pas pu passer au setup, il doit
-    //     pouvoir revenir après en mode login et passer par onboarding").
+    //     l'app détecte "already exists", bascule AUTOMATIQUEMENT en
+    //     mode login (voir handleSignup de AuthPage.tsx) et reste sur
+    //     /auth avec la bannière d'erreur. On capte ce cas, on
+    //     resubmit via login (même email/mot de passe) → /onboarding
+    //     (le compte est enregistré mais non configuré pour ce
+    //     navigateur — le cas EXACT demandé par l'utilisateur).
+    cy.get('button[type="submit"]').then(($btns) => {
+      const texts = $btns.map((_, el) => el.textContent).get();
+      const signupStillThere = texts.some((t) =>
+        t?.includes('Créer mon compte'),
+      );
+      if (!signupStillThere) {
+        // L'app a basculé en mode login (compte préexistant) : on
+        // resubmit avec le même email/mot de passe → /onboarding.
+        cy.get('input[type="email"]').clear().type(fixed.email);
+        cy.get('input[type="password"]').clear().type(fixed.password);
+        cy.contains('button[type="submit"]', 'Se connecter').click();
+      }
+      // Sinon (signup abouti, redirect /onboarding en cours) : on laisse
+      // la navigation se faire, le should() ci-dessous la capte.
+    });
+
     cy.location('pathname', { timeout: 120_000 }).should((path: string) => {
       expect(path, `after signup/login: ${path}`).to.eq('/onboarding');
     });

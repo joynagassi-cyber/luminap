@@ -82,11 +82,13 @@ describe('Lumina — real auth flows (cloud)', () => {
     // survivre à un rechargement dur et atterrir de nouveau dans l'app
     // (et PAS sur /auth).
     cy.visit('/splash');
+    // La session persistée du test 2 doit survivre au rechargement dur
+    // et atterrir de nouveau dans l'app (et PAS sur /auth).
     cy.location('pathname', { timeout: 90_000 }).should((path) => {
-      expect(
-        ['/dashboard', '/splash'].includes(path),
-        `session lost — bounced to ${path}`,
-      ).to.be.true;
+      expect(path, `session lost — bounced to ${path}`).to.be.oneOf([
+        '/dashboard',
+        '/splash',
+      ]);
     });
   });
 
