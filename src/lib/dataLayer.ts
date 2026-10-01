@@ -348,21 +348,30 @@ export function useEvents() {
  * Hook to get all members
  */
 export function useMembers() {
-  const { data: psData } = useQuery<PSMember>(
+  const [retryKey, setRetryKey] = useState(0);
+  const { data: psData, error: psError } = useQuery<PSMember>(
     "SELECT id, org_id, first_name, last_name, phone, email, status, joined_at, archived_at, archived_by, archive_reason, total_dons, montant_en_avance, created_at, updated_at FROM members WHERE org_id = ? ORDER BY last_name, first_name",
-    [getOrganizationId()],
+    [getOrganizationId(), retryKey],
     { reportFetching: true },
   );
   const store = useLocalStore();
 
   if (psData && psData.length > 0 && isPowerSyncReady()) {
-    return { data: psData, isLoading: false, source: "powersync" as const };
+    return {
+      data: psData,
+      isLoading: false,
+      error: undefined,
+      source: "powersync" as const,
+      retry: () => setRetryKey((k) => k + 1),
+    };
   }
 
   return {
     data: store.members,
     isLoading: false,
+    error: isPowerSyncReady() && psError ? psError : undefined,
     source: "indexeddb" as const,
+    retry: () => setRetryKey((k) => k + 1),
   };
 }
 
@@ -436,21 +445,30 @@ export function useAccounts() {
  * Hook to get all notifications
  */
 export function useNotifications() {
-  const { data: psData } = useQuery<PSNotification>(
+  const [retryKey, setRetryKey] = useState(0);
+  const { data: psData, error: psError } = useQuery<PSNotification>(
     "SELECT id, org_id, action_type, title, message, is_read, source_transaction_id, created_at FROM notifications WHERE org_id = ? ORDER BY created_at DESC",
-    [getOrganizationId()],
+    [getOrganizationId(), retryKey],
     { reportFetching: true },
   );
   const store = useLocalStore();
 
   if (psData && psData.length > 0 && isPowerSyncReady()) {
-    return { data: psData, isLoading: false, source: "powersync" as const };
+    return {
+      data: psData,
+      isLoading: false,
+      error: undefined,
+      source: "powersync" as const,
+      retry: () => setRetryKey((k) => k + 1),
+    };
   }
 
   return {
     data: store.notifications,
     isLoading: false,
+    error: isPowerSyncReady() && psError ? psError : undefined,
     source: "indexeddb" as const,
+    retry: () => setRetryKey((k) => k + 1),
   };
 }
 

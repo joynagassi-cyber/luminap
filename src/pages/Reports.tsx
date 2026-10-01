@@ -47,8 +47,7 @@ import type { ReportDefinition } from "@/types";
 type Tab = "global" | "groupes" | "evenements";
 type Period = "month" | "year" | "all";
 
-const PIE_COLORS = ["var(--accent-primary)", "var(--data-planified)", "var(--data-income)", "var(--data-advance)", "#EC4899", "var(--shortcut-forms)", "var(--shortcut-reports)", "var(--data-expense)"];
-// TODO(design-tokens): aucun token pour le rose #EC4899 (5e teinte du nuancier)
+const PIE_COLORS = ["var(--accent-primary)", "var(--data-planified)", "var(--data-income)", "var(--data-advance)", "var(--data-pink)", "var(--shortcut-forms)", "var(--shortcut-reports)", "var(--data-expense)"];
 const COLORS = { grid: "var(--surface-hover)", text: "var(--text-tertiary)", income: "var(--data-income)", expense: "var(--data-expense)", accent: "var(--accent-primary)" };
 
 // La couche de données renvoie snake_case (PowerSync) OU camelCase (IndexedDB) :

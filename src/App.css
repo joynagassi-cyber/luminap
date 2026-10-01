@@ -14,6 +14,10 @@
   /* Couleurs sémantiques de statut (hors finances) — invariants. */
   --data-planified: #3b82f6;
   --data-advance: #8b5cf6;
+  /* 5e teinte du nuancier des graphiques (rose) et état « Épuisé »
+     (gris clair) — invariants, ajoutés pour les TODO design-tokens. */
+  --data-pink: #ec4899;
+  --data-exhausted: #9ca3af;
   /* Statuts partagés (approuvé/payé, expiré/brouillon, rejeté/anormal) —
      invariants, en plus des 3 couleurs financières ci-dessus. */
   --data-success: #10b981;

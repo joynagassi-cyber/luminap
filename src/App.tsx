@@ -8,6 +8,7 @@ import { IonRouterOutlet } from "@ionic/react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { authService } from "@/lib/auth";
+import { useAppUrlOpen } from "@/hooks/useAppUrlOpen";
 import { AppProvider } from "./context/AppContext";
 import SyncIndicator from "./components/SyncIndicator";
 import AppRouter from "./AppRouter";
@@ -117,6 +118,17 @@ function RouteGuard() {
 }
 
 /**
+ * AppUrlOpenBridge — renders nothing but registers the app-level
+ * `appUrlOpen` deep-link listener (see useAppUrlOpen) for the whole app
+ * lifetime, so a `lumina://` OAuth callback arriving on ANY screen is
+ * captured — not just when AuthPage is mounted.
+ */
+const AppUrlOpenBridge = () => {
+  useAppUrlOpen();
+  return null;
+};
+
+/**
  * App — wraps the entire Lumina application in IonApp + IonReactRouter.
  */
 const App = () => (
@@ -125,6 +137,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <IonApp>
+        <AppUrlOpenBridge />
         {/* Lien « sauter au contenu » — premier élément focalisable, masqué
             visuellement jusqu'au focus clavier (a11y : parcours du clavier). */}
         <a
