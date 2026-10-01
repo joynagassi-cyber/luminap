@@ -782,7 +782,31 @@ Cypress.Commands.add('loginOrgAccount', function (): Cypress.Chainable {
     }
     // Case a (default) : path === '/dashboard', déjà conforme.
   });
-  cy.location('pathname', { timeout: 90_000 }).should('eq', '/dashboard');
+
+  // 7e run (4m11s, listReopen jamais vue) : capture du state du /sessions
+  // post-login — le bug 'Mes comptes' vide EST ici ; le spy console
+  // (sessions.cy.ts) ne démarre qu'au 1er it → trop tard pour le montage
+  // /sessions du before(). Trace local au lieu.
+  cy.window().then((win) => {
+    const ls = Object.keys(win.localStorage).map((k) => {
+      const v = win.localStorage.getItem(k) || '';
+      return `${k}=${v.length > 60 ? v.slice(0, 55) + '…' : v}`;
+    }).join(' ');
+    console.info(`[loginOrgAccount] at /${path}: ${ls}`);
+  });
+  cy.visit('/sessions');
+  cy.window().then((win) => {
+    const btns = Array.from(win.document.querySelectorAll('button'))
+      .map((b) => (b.getAttribute('aria-label') || b.textContent || '?').trim().slice(0, 48))
+      .join(' | ');
+    const flags = ['lumina-user', 'my-orgs', 'lumina-onboarding', 'lumina-onboarded']
+      .map((k) => `${k}=${(win.localStorage.getItem(k) || '(absent)').slice(0, 60)}`)
+      .join(' ');
+    console.info(`[loginOrgAccount] /sessions post-login — flags: ${flags}`);
+    console.info(`[loginOrgAccount] /sessions boutons: ${btns || '(aucun)'}`);
+  });
+  // Fin de la capture : on ne change PLUS d'état (plus de
+  // clearLocalStorage ni de redirection) — le spec gère le reste.
   return cy.wrap(null);
 });
 
