@@ -140,6 +140,63 @@ export const formSubmissionRepo = {
 };
 
 /**
+ * parseCurrencyAmount — parse une saisie de montant en nombre (T7 Forms v2).
+ *
+ * Règles (FR + US) :
+ * - Virgule suivie de 1-2 chiffres -> virgule décimale FR ("1,50" => 1.50).
+ * - Virgule suivie de 3 chiffres   -> séparateur de milliers ("1,500" => 1500).
+ * - Point avec 3 chiffres après    -> séparateur de milliers ("1.500" => 1500).
+ * - Deux séparateurs ("1.234,56" / "1,234.56") -> le dernier est le décimal.
+ * - Résultat toujours borné à 2 décimales (arrondi).
+ *
+ * Retourne `null` si la saisie n'est pas un montant valide (ex. "abc").
+ * Les entrées déjà numériques (number) sont bornées aux 2 décimales.
+ */
+export function parseCurrencyAmount(
+  raw: unknown,
+): number | null {
+  if (raw == null) return null;
+  if (typeof raw === "number") {
+    return isNaN(raw) ? null : Math.round(raw * 100) / 100;
+  }
+  const s = String(raw).trim();
+  if (s === "") return null;
+  if (!/^[\d.,]+$/.test(s)) return null;
+
+  const lastComma = s.lastIndexOf(",");
+  const lastDot = s.lastIndexOf(".");
+  let normalized: string;
+  if (lastComma !== -1 && lastDot !== -1) {
+    // Les deux sont présents : le dernier est le séparateur décimal,
+    // le premier le séparateur de milliers.
+    const decimalSep = lastComma > lastDot ? "," : ".";
+    const thousandsSep = decimalSep === "," ? "." : ",";
+    normalized = s
+      .split(thousandsSep)
+      .join("")
+      .split(decimalSep)
+      .join(".");
+  } else if (lastComma !== -1) {
+    const tail = s.slice(lastComma + 1);
+    // 1-2 chiffres après => décimal ; 3+ chiffres => séparateurs de
+    // milliers ("1,500" => 1500, "1,234,567" => 1234567).
+    normalized =
+      tail.length <= 2 ? s.split(",").join(".") : s.split(",").join("");
+  } else if (lastDot !== -1) {
+    const tail = s.slice(lastDot + 1);
+    // Même règle avec un point seul : 3+ chiffres après => milliers
+    // ("1.500" => 1500, "1.234.567" => 1234567) ; 1-2 => décimal.
+    normalized =
+      tail.length <= 2 ? s : s.split(".").join("");
+  } else {
+    normalized = s;
+  }
+  const n = parseFloat(normalized);
+  if (isNaN(n)) return null;
+  return Math.round(n * 100) / 100;
+}
+
+/**
  * validateFormSubmission — validates data against form definition schema
  */
 export function validateFormSubmission(
@@ -169,6 +226,19 @@ export function validateFormSubmission(
       isNaN(Number(data[field.key]))
     ) {
       errors.push(`Field ${field.label} must be a number`);
+    }
+    // T7 Forms v2 — currency : la saisie (virgule FR ou point US, séparateurs
+    // de milliers) doit se parser en nombre. « abc » est rejeté ici. Les
+    // valeurs déjà normalisées en number (normalisation de FormFill avant
+    // soumission) sont validées via `parseCurrencyAmount` (bornage décimal).
+    if (
+      field.type === "currency" &&
+      data[field.key] != null &&
+      data[field.key] !== ""
+    ) {
+      if (parseCurrencyAmount(data[field.key]) === null) {
+        errors.push(`Champ « ${field.label} » : montant invalide (ex. 1500 ou 1,50)`);
+      }
     }
     if (
       field.type === "date" &&
