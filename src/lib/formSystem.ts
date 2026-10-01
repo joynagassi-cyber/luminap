@@ -3,6 +3,7 @@ import { generateId } from "./utils";
 import { writeAudit } from "./audit";
 import type { FormDefinition, FormFieldDefinition, FormSubmission } from "@/types";
 import { getOrganizationId } from "./orgContext";
+import * as XLSX from "xlsx";
 import {
   createFormDefinitionPS,
   getFormDefinitionPS,
@@ -413,4 +414,79 @@ export async function dispatchFormSubmission(
     linkedEntityType: definition.targetEntityType,
     linkedEntityId,
   };
+}
+
+/**
+ * parseSubmissionData — extrait le contenu de `data` d'une soumission,
+ * quel que soit son format : objet natif (PowerSync JSONB déserialisé) ou
+ * string JSON (legacy / repli).
+ */
+function parseSubmissionData(sub: FormSubmission): Record<string, any> {
+  if (sub.data && typeof sub.data === "object") return sub.data;
+  try {
+    return JSON.parse(typeof sub.data === "string" ? sub.data : "{}");
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * exportSubmissionsAsXLSX — exporte des soumissions au format .xlsx.
+ *
+ * Une feuille ("Soumissions") : une ligne par soumission. Colonnes =
+ * métadonnées (Soumetteur, Date, Statut, Rejeté par, Raison du rejet)
+ * + union triée des clés de `data` (clés du FormDefinition en priorité,
+ * puis clés ad hoc observées dans les soumissions) — cohérent avec le
+ * contenu du `data` exporté, pas seulement la définition.
+ */
+export function exportSubmissionsAsXLSX(
+  rows: FormSubmission[],
+  formDef: FormDefinition,
+  filenamePrefix: string,
+): void {
+  const dataKeys = new Set<string>();
+  for (const sub of rows) {
+    for (const key of Object.keys(parseSubmissionData(sub))) {
+      dataKeys.add(key);
+    }
+  }
+  const sortedFieldKeys = [...formDef.fields]
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+    .map((f) => f.key);
+  const extraKeys = [...dataKeys]
+    .filter((k) => !sortedFieldKeys.includes(k))
+    .sort();
+  const fieldKeys = [...sortedFieldKeys, ...extraKeys];
+
+  const header = [
+    "Soumetteur",
+    "Date",
+    ...fieldKeys.map((k) => {
+      const f = formDef.fields.find((fd) => fd.key === k);
+      return (f?.label || k).toString();
+    }),
+    "Statut",
+    "Rejeté par",
+    "Raison du rejet",
+  ];
+
+  const body = rows.map((sub) => {
+    const data = parseSubmissionData(sub);
+    return [
+      sub.submittedBy ?? "",
+      sub.submittedAt ?? "",
+      ...fieldKeys.map((k) => {
+        const v = data[k];
+        return v == null ? "" : typeof v === "object" ? JSON.stringify(v) : v;
+      }),
+      sub.status ?? "",
+      sub.rejectedBy ?? "",
+      sub.rejectionReason ?? "",
+    ];
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet([header, ...body]);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Soumissions");
+  XLSX.writeFile(wb, `${filenamePrefix}.xlsx`);
 }
