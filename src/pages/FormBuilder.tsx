@@ -68,6 +68,7 @@ export default function FormBuilder() {
   const [fields, setFields] = useState<FormFieldDefinition[]>([]);
   const [error, setError] = useState("");
   const [creating, setCreating] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const loadForms = async () => {
     const list = await formDefinitionRepo.list({ orgId: getOrganizationId() });
@@ -83,6 +84,31 @@ export default function FormBuilder() {
       setError("Nom et clé requis");
       return;
     }
+
+    // Mode édition (modal réutilisé) : un DRAFT se modifie en place ;
+    // PUBLISHED/ARCHIVÉ n'est pas modifiable (versioning hors périmètre).
+    if (editingForm) {
+      if (editingForm.status !== "DRAFT") {
+        setError("Seuls les formulaires en brouillon peuvent être modifiés");
+        return;
+      }
+      setSaving(true);
+      try {
+        await formDefinitionRepo.update(editingForm.id, {
+          name: formName.trim(),
+          key: formKey.trim(),
+          description: formDescription.trim(),
+          fields: fields.map((f, i) => ({ ...f, order: i })),
+          version: editingForm.version + 1,
+        });
+        await loadForms();
+        closeCreateModal();
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
     if (creating) return;
     const def: FormDefinition = {
       id: generateId(),
@@ -101,14 +127,40 @@ export default function FormBuilder() {
     try {
       await formDefinitionRepo.create(def);
       await loadForms();
-      setShowCreate(false);
-      setFormName("");
-      setFormDescription("");
-      setFormKey("");
-      setFields([]);
+      closeCreateModal();
     } finally {
       setCreating(false);
     }
+  };
+
+  /** Ferme le modal et réinitialise les états du formulaire. */
+  const closeCreateModal = () => {
+    setShowCreate(false);
+    setEditingForm(null);
+    setFormName("");
+    setFormDescription("");
+    setFormKey("");
+    setFields([]);
+  };
+
+  /** Pré-remplit le modal (réutilisé pour création et édition DRAFT). */
+  const openCreateModal = () => {
+    setEditingForm(null);
+    setShowCreate(true);
+    setError("");
+  };
+
+  /** Ouvre le modal pré-rempli pour modifier un formulaire DRAFT. */
+  const openEditModal = (form: FormDefinition) => {
+    if (form.status !== "DRAFT") return;
+    setEditingForm(form);
+    setFormName(form.name);
+    setFormKey(form.key);
+    setFormDescription(form.description ?? "");
+    // Copie profonde des champs : pas de mutation du state partagé.
+    setFields(form.fields.map((f) => ({ ...f })));
+    setShowCreate(true);
+    setError("");
   };
 
   /** Duplique un template : pré-remplit le modal de création. */
@@ -152,7 +204,7 @@ export default function FormBuilder() {
     <IonPage>
       <IonContent className="bg-canvas">
         <TopHeader title="Formulaires" />
-        <div className="px-5 pt-16 pb-28 max-w-lg mx-auto">
+        <div className="px-5 pt-safe-calc pb-safe-calc max-w-lg mx-auto">
             <button
               onClick={() => navigate(-1)}
               className="flex items-center gap-2 text-text-secondary text-sm mb-5"
@@ -165,10 +217,10 @@ export default function FormBuilder() {
                 Formulaires
               </h1>
               <button
-                onClick={() => setShowCreate(true)}
+                onClick={openCreateModal}
                 className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold text-white"
                 style={{
-                  background: "linear-gradient(135deg, #FF8533, var(--accent-primary))",
+                  background: "linear-gradient(135deg, var(--accent-light), var(--accent-primary))",
                 }}
               >
                 <Plus className="w-4 h-4" /> Créer
@@ -204,10 +256,10 @@ export default function FormBuilder() {
                         style={{
                           backgroundColor:
                             form.status === "PUBLISHED"
-                              ? "#1DB95420"
-                              : "#FFB80020",
+                              ? "color-mix(in srgb, var(--data-income) 12%, transparent)"
+                              : "color-mix(in srgb, var(--data-pending) 12%, transparent)",
                           color:
-                            form.status === "PUBLISHED" ? "#1DB954" : "#FFB800",
+                            form.status === "PUBLISHED" ? "var(--data-income)" : "var(--data-pending)",
                         }}
                       >
                         {form.status}
@@ -216,7 +268,16 @@ export default function FormBuilder() {
                     <p className="text-text-tertiary text-xs mb-2">
                       {form.fields.length} champs · Clé: {form.key}
                     </p>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
+                      {form.status === "DRAFT" && (
+                        <button
+                          onClick={() => openEditModal(form)}
+                          className="flex-1 py-2 rounded-full text-xs font-medium"
+                          style={{ backgroundColor: "var(--surface-hover)", color: "var(--text-secondary)" }}
+                        >
+                          Modifier
+                        </button>
+                      )}
                       <button
                         onClick={() => navigate(`/form/fill/${form.id}`)}
                         className="flex-1 py-2 rounded-full text-xs font-medium"
@@ -300,7 +361,7 @@ export default function FormBuilder() {
           {showCreate && (
             <div
               className="fixed inset-0 z-50 flex items-end justify-center"
-              onClick={() => setShowCreate(false)}
+              onClick={closeCreateModal}
             >
               <div className="absolute inset-0 bg-black/60" />
               <div
@@ -310,10 +371,10 @@ export default function FormBuilder() {
               >
                 <div className="flex items-center justify-between mb-5">
                   <h2 className="text-text-primary font-bold text-lg">
-                    Nouveau formulaire
+                    {editingForm ? "Modifier le formulaire" : "Nouveau formulaire"}
                   </h2>
                   <button
-                    onClick={() => setShowCreate(false)}
+                    onClick={closeCreateModal}
                     className="w-8 h-8 rounded-full flex items-center justify-center"
                     style={{ backgroundColor: "var(--surface-hover)" }}
                   >
@@ -429,7 +490,7 @@ export default function FormBuilder() {
                         </button>
                         <button
                           onClick={() => removeField(index)}
-                          style={{ color: "#E51332" }}
+                          style={{ color: "var(--data-expense)" }}
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -563,7 +624,7 @@ export default function FormBuilder() {
                 </div>
 
                 {error && (
-                  <p className="text-xs mb-3" style={{ color: "#E51332" }}>
+                  <p className="text-xs mb-3" style={{ color: "var(--data-expense)" }}>
                     {error}
                   </p>
                 )}
@@ -572,12 +633,18 @@ export default function FormBuilder() {
                   expand="block"
                   className="w-full mb-3"
                   color="tertiary"
-                  disabled={creating}
+                  disabled={creating || saving}
                 >
-                  {creating ? "Création..." : "Créer le formulaire"}
+                  {editingForm
+                    ? saving
+                      ? "Enregistrement..."
+                      : "Enregistrer"
+                    : creating
+                      ? "Création..."
+                      : "Créer le formulaire"}
                 </IonButton>
                 <IonButton
-                  onClick={() => setShowCreate(false)}
+                  onClick={closeCreateModal}
                   expand="block"
                   className="w-full"
                   color="medium"
