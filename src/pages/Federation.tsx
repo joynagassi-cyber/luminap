@@ -47,10 +47,10 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 const STATUS_COLOR: Record<string, string> = {
-  PENDING: "#FFB800",
-  ACTIVE: "#1DB954",
+  PENDING: "var(--data-pending)",
+  ACTIVE: "var(--data-income)",
   SUSPENDED: "var(--accent-primary)",
-  ARCHIVED: "#808080",
+  ARCHIVED: "var(--text-tertiary)",
 };
 
 function OrgNode({
@@ -125,7 +125,7 @@ function OrgNode({
             <div
               key={child.id}
               className="flex items-center gap-2 p-2 rounded-lg"
-              style={{ backgroundColor: "#1a1a1a" }}
+              style={{ backgroundColor: "var(--surface)" }}
             >
               <Building2
                 className="w-4 h-4 text-text-tertiary flex-shrink-0"
@@ -295,7 +295,7 @@ export default function Federation() {
       <IonContent className="bg-canvas">
         <div className="min-h-screen bg-canvas">
           <TopHeader title="Gestion de la fédération" />
-          <div className="max-w-lg mx-auto px-5 pb-32 pt-24">
+          <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             {/* Create button (bouton natif — les enfants d'IonButton ne sont
                 pas rendus fiablement sous React 19) */}
             <button
@@ -428,11 +428,14 @@ export default function Federation() {
             {createdOrg && (
               <div
                 className="rounded-xl p-4 mb-4 space-y-3"
-                style={{ backgroundColor: "#1DB95418", border: "1px solid #1DB95440" }}
+                style={{
+                  backgroundColor: "color-mix(in srgb, var(--data-income) 10%, transparent)",
+                  border: "1px solid color-mix(in srgb, var(--data-income) 25%, transparent)",
+                }}
               >
                 <div className="flex items-center gap-2">
-                  <UserPlus className="w-4 h-4" style={{ color: "#1DB954" }} />
-                  <p className="text-sm font-medium" style={{ color: "#1DB954" }}>
+                  <UserPlus className="w-4 h-4" style={{ color: "var(--data-income)" }} />
+                  <p className="text-sm font-medium" style={{ color: "var(--data-income)" }}>
                     « {createdOrg.name} » créée (opérationnelle). Vous êtes son admin.
                   </p>
                 </div>
@@ -536,8 +539,8 @@ export default function Federation() {
               <div
                 className="rounded-xl p-4 mt-4 space-y-3"
                 style={{
-                  backgroundColor: "#1a130f",
-                  border: "1px solid #3a2a1a",
+                  backgroundColor: "var(--band-central)",
+                  border: "1px solid var(--surface-active)",
                 }}
               >
                 <div className="flex items-center gap-2">
@@ -602,9 +605,9 @@ export default function Federation() {
               <div
                 className="mt-4 p-3 rounded-xl text-sm"
                 style={{
-                  backgroundColor: "#E5133220",
-                  border: "1px solid #E5133240",
-                  color: "#ff8fa3",
+                  backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)",
+                  border: "1px solid color-mix(in srgb, var(--data-expense) 25%, transparent)",
+                  color: "var(--data-expense)",
                 }}
               >
                 {error}
@@ -616,9 +619,9 @@ export default function Federation() {
               <div
                 className="mt-3 p-3 rounded-xl text-xs space-y-2"
                 style={{
-                  backgroundColor: "#FFB80015",
-                  border: "1px solid #FFB80040",
-                  color: "#FFB800",
+                  backgroundColor: "color-mix(in srgb, var(--data-pending) 10%, transparent)",
+                  border: "1px solid color-mix(in srgb, var(--data-pending) 25%, transparent)",
+                  color: "var(--data-pending)",
                 }}
               >
                 <p className="font-semibold">

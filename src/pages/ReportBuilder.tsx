@@ -442,7 +442,7 @@ export default function ReportBuilder() {
       <IonContent className="bg-canvas">
         <div className="min-h-screen bg-canvas">
           <TopHeader title="Constructeur de rapport" />
-          <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
+          <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
         <button
           onClick={() => navigate("/reports")}
           className="flex items-center gap-2 text-text-secondary text-sm mb-5"
@@ -558,7 +558,7 @@ export default function ReportBuilder() {
                   className="px-3 py-1.5 rounded-full text-xs font-medium"
                   style={
                     on
-                      ? { backgroundColor: "var(--accent-primary)", color: "#fff" }
+                      ? { backgroundColor: "var(--accent-primary)", color: "var(--on-accent)" }
                       : {
                           backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)",
                           color: "var(--accent-primary)",
@@ -588,7 +588,7 @@ export default function ReportBuilder() {
               <span className="text-text-primary text-xs flex-1 truncate">
                 {METRIC_FNS.find((x) => x.value === m.fn)?.label || m.fn} · {m.alias || m.field}
               </span>
-              <button onClick={() => removeMetric(i)} style={{ color: "#E51332" }} aria-label="Retirer">
+              <button onClick={() => removeMetric(i)} style={{ color: "var(--data-expense)" }} aria-label="Retirer">
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -767,7 +767,7 @@ export default function ReportBuilder() {
                   <button
                     onClick={() => runSaved(r)}
                     className="text-xs font-medium px-2.5 py-1.5 rounded-full"
-                    style={{ backgroundColor: "var(--accent-primary)", color: "#fff" }}
+                    style={{ backgroundColor: "var(--accent-primary)", color: "var(--on-accent)" }}
                   >
                     Ouvrir
                   </button>
@@ -775,7 +775,7 @@ export default function ReportBuilder() {
                     <button
                       onClick={() => del(r.id)}
                       className="w-7 h-7 rounded-full flex items-center justify-center"
-                      style={{ backgroundColor: "var(--surface-hover)", color: "#E51332" }}
+                      style={{ backgroundColor: "var(--surface-hover)", color: "var(--data-expense)" }}
                       aria-label="Supprimer"
                     >
                       <X className="w-3.5 h-3.5" />

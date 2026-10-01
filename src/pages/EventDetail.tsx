@@ -40,18 +40,18 @@ const STATUS_CONFIG: Record<
 > = {
   PLANIFIED: {
     label: "Planifié",
-    color: "#3B82F6",
-    bg: "#3B82F620",
+    color: "var(--data-planified)",
+    bg: "color-mix(in srgb, var(--data-planified) 12%, transparent)",
     icon: Calendar,
   },
-  ONGOING: { label: "En cours", color: "#1DB954", bg: "#1DB95420", icon: Play },
+  ONGOING: { label: "En cours", color: "var(--data-income)", bg: "color-mix(in srgb, var(--data-income) 12%, transparent)", icon: Play },
   COMPLETED: {
     label: "Terminé",
     color: "var(--text-secondary)",
-    bg: "#80808020",
+    bg: "color-mix(in srgb, var(--text-tertiary) 12%, transparent)",
     icon: CheckCircle,
   },
-  CANCELLED: { label: "Annulé", color: "#E51332", bg: "#E5133220", icon: Flag },
+  CANCELLED: { label: "Annulé", color: "var(--data-expense)", bg: "color-mix(in srgb, var(--data-expense) 12%, transparent)", icon: Flag },
 };
 
 export default function EventDetail() {
@@ -200,11 +200,11 @@ export default function EventDetail() {
         </IonToolbar>
       </IonHeader>
       <IonContent className="ion-padding">
-        <div className="flex-1 overflow-y-auto px-5 pb-28 pt-4">
+        <div className="flex-1 overflow-y-auto px-5 pb-safe pt-safe">
           {success && (
             <div
               className="mb-4 p-3 rounded-xl text-sm"
-              style={{ backgroundColor: "#1DB95420", color: "#1DB954" }}
+              style={{ backgroundColor: "color-mix(in srgb, var(--data-income) 12%, transparent)", color: "var(--data-income)" }}
             >
               {success}
             </div>
@@ -226,7 +226,7 @@ export default function EventDetail() {
                 <button
                   onClick={() => handleStatusChange("ONGOING")}
                   className="px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1"
-                  style={{ backgroundColor: "#1DB95420", color: "#1DB954" }}
+                  style={{ backgroundColor: "color-mix(in srgb, var(--data-income) 12%, transparent)", color: "var(--data-income)" }}
                   aria-label="Démarrer l'événement"
                 >
                   <Play className="w-3 h-3" /> Démarrer
@@ -236,7 +236,7 @@ export default function EventDetail() {
                 <button
                   onClick={() => handleStatusChange("COMPLETED")}
                   className="px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1"
-                  style={{ backgroundColor: "#80808020", color: "var(--text-secondary)" }}
+                  style={{ backgroundColor: "color-mix(in srgb, var(--text-tertiary) 12%, transparent)", color: "var(--text-secondary)" }}
                   aria-label="Terminer l'événement"
                 >
                   <CheckCircle className="w-3 h-3" /> Terminer
@@ -246,7 +246,7 @@ export default function EventDetail() {
                 <button
                   onClick={() => handleStatusChange("CANCELLED")}
                   className="px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1"
-                  style={{ backgroundColor: "#E5133220", color: "#E51332" }}
+                  style={{ backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)", color: "var(--data-expense)" }}
                   aria-label="Annuler l'événement"
                 >
                   <Flag className="w-3 h-3" /> Annuler
@@ -320,7 +320,7 @@ export default function EventDetail() {
                 className="font-bold text-sm"
                 style={{
                   color:
-                    budgetSpent > (event.budget || 0) ? "#E51332" : "#FFB800",
+                    budgetSpent > (event.budget || 0) ? "var(--data-expense)" : "var(--data-pending)",
                 }}
               >
                 {formatCurrencyCompact(budgetSpent)}{" "}
@@ -336,7 +336,7 @@ export default function EventDetail() {
               <p className="text-text-tertiary text-xs mb-1">Reste</p>
               <p
                 className="font-bold text-sm"
-                style={{ color: remaining >= 0 ? "#1DB954" : "#E51332" }}
+                style={{ color: remaining >= 0 ? "var(--data-income)" : "var(--data-expense)" }}
               >
                 {formatCurrencyCompact(Math.max(0, remaining))}{" "}
                 <span className="text-text-tertiary text-xs font-normal">
@@ -372,14 +372,14 @@ export default function EventDetail() {
                   style={{
                     width: `${progressPct}%`,
                     backgroundColor:
-                      budgetSpent > (event.budget || 0) ? "#E51332" : "var(--accent-primary)",
+                      budgetSpent > (event.budget || 0) ? "var(--data-expense)" : "var(--accent-primary)",
                   }}
                 />
               </div>
               {budgetSpent > (event.budget || 0) && (
                 <div
                   className="flex items-center gap-2 mt-2 text-xs"
-                  style={{ color: "#E51332" }}
+                  style={{ color: "var(--data-expense)" }}
                 >
                   <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
                   <span>
@@ -466,11 +466,11 @@ export default function EventDetail() {
                 >
                   <div
                     className="w-10 h-10 rounded-full flex items-center justify-center mb-2"
-                    style={{ backgroundColor: "#1DB95420" }}
+                    style={{ backgroundColor: "color-mix(in srgb, var(--data-income) 12%, transparent)" }}
                   >
                     <ArrowDown
                       className="w-5 h-5"
-                      style={{ color: "#1DB954" }}
+                      style={{ color: "var(--data-income)" }}
                     />
                   </div>
                   <p className="text-text-primary text-sm font-semibold">
@@ -521,7 +521,7 @@ export default function EventDetail() {
                               style={{
                                 width: `${pct}%`,
                                 backgroundColor:
-                                  pct >= 100 ? "#E51332" : "var(--accent-primary)",
+                                  pct >= 100 ? "var(--data-expense)" : "var(--accent-primary)",
                               }}
                             />
                           </div>
@@ -571,18 +571,18 @@ export default function EventDetail() {
                           className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
                           style={{
                             backgroundColor:
-                              tx.type === "INCOME" ? "#1DB95420" : "#E5133220",
+                              tx.type === "INCOME" ? "color-mix(in srgb, var(--data-income) 12%, transparent)" : "color-mix(in srgb, var(--data-expense) 12%, transparent)",
                           }}
                         >
                           {tx.type === "INCOME" ? (
                             <ArrowUp
                               className="w-4 h-4"
-                              style={{ color: "#1DB954" }}
+                              style={{ color: "var(--data-income)" }}
                             />
                           ) : (
                             <ArrowDown
                               className="w-4 h-4"
-                              style={{ color: "#E51332" }}
+                              style={{ color: "var(--data-expense)" }}
                             />
                           )}
                         </div>
@@ -597,7 +597,7 @@ export default function EventDetail() {
                         <span
                           className="text-sm font-bold"
                           style={{
-                            color: tx.type === "INCOME" ? "#1DB954" : "#E51332",
+                            color: tx.type === "INCOME" ? "var(--data-income)" : "var(--data-expense)",
                           }}
                         >
                           {tx.type === "INCOME" ? "+" : "-"}
@@ -646,7 +646,7 @@ export default function EventDetail() {
                       style={{
                         backgroundColor: "var(--surface)",
                         border: isExceeded
-                          ? "1px solid #E5133240"
+                          ? "1px solid color-mix(in srgb, var(--data-expense) 25%, transparent)"
                           : "1px solid var(--surface-hover)",
                       }}
                     >
@@ -666,7 +666,7 @@ export default function EventDetail() {
                             {formatCurrencyCompact(item.allocated)} F
                           </p>
                           <p
-                            className={`text-xs ${isExceeded ? "text-[#E51332]" : "text-text-tertiary"}`}
+                            className={`text-xs ${isExceeded ? "text-[var(--data-expense)]" : "text-text-tertiary"}`}
                           >
                             {formatCurrencyCompact(item.spent || 0)} F dépensé
                           </p>
@@ -682,10 +682,10 @@ export default function EventDetail() {
                           style={{
                             width: `${pct}%`,
                             backgroundColor: isExceeded
-                              ? "#E51332"
+                              ? "var(--data-expense)"
                               : pct >= 75
-                                ? "#FFB800"
-                                : "#1DB954",
+                                ? "var(--data-pending)"
+                                : "var(--data-income)",
                           }}
                         />
                       </div>
@@ -695,7 +695,7 @@ export default function EventDetail() {
                           Reste:{" "}
                           <span
                             style={{
-                              color: remainingItem >= 0 ? "#1DB954" : "#E51332",
+                              color: remainingItem >= 0 ? "var(--data-income)" : "var(--data-expense)",
                             }}
                           >
                             {formatCurrencyCompact(Math.max(0, remainingItem))}{" "}
@@ -781,18 +781,18 @@ export default function EventDetail() {
                         className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
                         style={{
                           backgroundColor:
-                            tx.type === "INCOME" ? "#1DB95420" : "#E5133220",
+                            tx.type === "INCOME" ? "color-mix(in srgb, var(--data-income) 12%, transparent)" : "color-mix(in srgb, var(--data-expense) 12%, transparent)",
                         }}
                       >
                         {tx.type === "INCOME" ? (
                           <ArrowUp
                             className="w-4 h-4"
-                            style={{ color: "#1DB954" }}
+                            style={{ color: "var(--data-income)" }}
                           />
                         ) : (
                           <ArrowDown
                             className="w-4 h-4"
-                            style={{ color: "#E51332" }}
+                            style={{ color: "var(--data-expense)" }}
                           />
                         )}
                       </div>
@@ -807,7 +807,7 @@ export default function EventDetail() {
                       <span
                         className="text-sm font-bold"
                         style={{
-                          color: tx.type === "INCOME" ? "#1DB954" : "#E51332",
+                          color: tx.type === "INCOME" ? "var(--data-income)" : "var(--data-expense)",
                         }}
                       >
                         {tx.type === "INCOME" ? "+" : "-"}
@@ -828,7 +828,7 @@ export default function EventDetail() {
             <button
               onClick={() => setShowDelete(true)}
               className="w-full py-3 rounded-full font-medium text-sm flex items-center justify-center gap-2 mt-5 mb-4"
-              style={{ backgroundColor: "var(--surface)", color: "#E51332" }}
+              style={{ backgroundColor: "var(--surface)", color: "var(--data-expense)" }}
               aria-label="Supprimer l'événement"
             >
               <Trash2 className="w-4 h-4" /> Supprimer l'événement
@@ -871,7 +871,7 @@ export default function EventDetail() {
                 {expenseError && (
                   <div
                     className="mb-4 p-3 rounded-xl text-sm"
-                    style={{ backgroundColor: "#E5133220", color: "#E51332" }}
+                    style={{ backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)", color: "var(--data-expense)" }}
                   >
                     {expenseError}
                   </div>
@@ -930,7 +930,7 @@ export default function EventDetail() {
                         const overBudget = entered > remaining / 100;
                         return (
                           <p
-                            className={`text-xs mt-1 ${overBudget ? "text-[#E51332]" : "text-text-tertiary"}`}
+                            className={`text-xs mt-1 ${overBudget ? "text-[var(--data-expense)]" : "text-text-tertiary"}`}
                           >
                             Reste disponible: {formatCurrencyCompact(remaining)}{" "}
                             F{overBudget && " ⚠️ Montant insuffisant"}
@@ -992,9 +992,9 @@ export default function EventDetail() {
             >
               <div
                 className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4"
-                style={{ backgroundColor: "#E5133220" }}
+                style={{ backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)" }}
               >
-                <Trash2 className="w-6 h-6 text-[#E51332]" />
+                <Trash2 className="w-6 h-6 text-[var(--data-expense)]" />
               </div>
               <h3 className="text-text-primary font-bold text-lg mb-2">
                 Supprimer cet événement ?
@@ -1012,7 +1012,7 @@ export default function EventDetail() {
               <button
                 onClick={handleDelete}
                 className="w-full py-3.5 rounded-full font-semibold text-white mb-3"
-                style={{ backgroundColor: "#E51332" }}
+                style={{ backgroundColor: "var(--data-expense)" }}
               >
                 Supprimer
               </button>

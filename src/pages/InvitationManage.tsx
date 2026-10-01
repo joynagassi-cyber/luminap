@@ -22,6 +22,7 @@ import {
   IonAlert,
   IonInput,
   IonSearchbar,
+  IonSpinner,
 } from "@ionic/react";
 import {
   QrCode,
@@ -45,19 +46,20 @@ import type {
 } from "@/capabilities/invitation";
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
-  ACTIVE: { label: "Actif", color: "#10B981", icon: CheckCircle },
-  EXPIRED: { label: "Expiré", color: "#6B7280", icon: Clock },
-  REVOKED: { label: "Révoqué", color: "#EF4444", icon: XCircle },
+  ACTIVE: { label: "Actif", color: "var(--data-success)", icon: CheckCircle },
+  EXPIRED: { label: "Expiré", color: "var(--data-muted)", icon: Clock },
+  REVOKED: { label: "Révoqué", color: "var(--data-alert)", icon: XCircle },
+  // TODO(design-tokens): pas de token pour le gris clair #9CA3AF (état « Épuisé »)
   EXHAUSTED: { label: "Épuisé", color: "#9CA3AF", icon: Users },
 };
 
 const CLAIM_CONFIG: Record<string, { label: string; color: string }> = {
-  PENDING_SYNC: { label: "En attente", color: "#FFB800" },
-  CONFIRMED: { label: "Confirmée", color: "#1DB954" },
-  REJECTED_DUPLICATE: { label: "Rejetée (doublon)", color: "#E51332" },
-  REJECTED_EXPIRED: { label: "Rejetée (expirée)", color: "#E51332" },
-  REJECTED_EXHAUSTED: { label: "Rejetée (épuisée)", color: "#E51332" },
-  REJECTED_REVOKED: { label: "Rejetée", color: "#E51332" },
+  PENDING_SYNC: { label: "En attente", color: "var(--data-pending)" },
+  CONFIRMED: { label: "Confirmée", color: "var(--data-income)" },
+  REJECTED_DUPLICATE: { label: "Rejetée (doublon)", color: "var(--data-expense)" },
+  REJECTED_EXPIRED: { label: "Rejetée (expirée)", color: "var(--data-expense)" },
+  REJECTED_EXHAUSTED: { label: "Rejetée (épuisée)", color: "var(--data-expense)" },
+  REJECTED_REVOKED: { label: "Rejetée", color: "var(--data-expense)" },
 };
 
 export default function InvitationManage() {
@@ -198,13 +200,13 @@ export default function InvitationManage() {
       <IonContent fullscreen>
         <div className="min-h-screen bg-canvas">
           <TopHeader title="" />
-          <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
+          <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             {/* Stats */}
             <div className="grid grid-cols-3 gap-3 mb-6">
               {[
-                { label: "Actives", count: invitations.filter((i) => i.status === "ACTIVE").length, color: "#10B981" },
-                { label: "Expirées", count: invitations.filter((i) => i.status === "EXPIRED").length, color: "#6B7280" },
-                { label: "Révoquées", count: invitations.filter((i) => i.status === "REVOKED").length, color: "#EF4444" },
+                { label: "Actives", count: invitations.filter((i) => i.status === "ACTIVE").length, color: "var(--data-success)" },
+                { label: "Expirées", count: invitations.filter((i) => i.status === "EXPIRED").length, color: "var(--data-muted)" },
+                { label: "Révoquées", count: invitations.filter((i) => i.status === "REVOKED").length, color: "var(--data-alert)" },
               ].map((stat) => (
                 <div key={stat.label} className="bg-card rounded-xl p-3 text-center">
                   <p className="text-2xl font-bold" style={{ color: stat.color }}>{stat.count}</p>
@@ -281,7 +283,7 @@ export default function InvitationManage() {
               <IonList lines="none" className="space-y-3">
                 {visibleInvitations.map((inv) => {
                   const StatusIcon = STATUS_CONFIG[inv.status]?.icon ?? AlertCircle;
-                  const statusColor = STATUS_CONFIG[inv.status]?.color ?? "#6B7280";
+                  const statusColor = STATUS_CONFIG[inv.status]?.color ?? "var(--data-muted)";
                   return (
                     <IonCard key={inv.id} className="bg-card border-none">
                       <IonCardHeader className="pb-2">
@@ -320,7 +322,7 @@ export default function InvitationManage() {
                         </div>
 
                         {claimError && (
-                          <p className="mt-2 text-xs" style={{ color: "#ff8fa3" }}>
+                          <p className="mt-2 text-xs" style={{ color: "var(--data-expense)" }}>
                             {claimError}
                           </p>
                         )}
@@ -338,7 +340,7 @@ export default function InvitationManage() {
                                   <div
                                     key={cl.id}
                                     className="rounded-lg p-2.5"
-                                    style={{ backgroundColor: "#1a1a1a" }}
+                                    style={{ backgroundColor: "var(--surface)" }}
                                   >
                                     <div className="flex items-center justify-between">
                                       <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
@@ -355,7 +357,7 @@ export default function InvitationManage() {
                                       </span>
                                     </div>
                                     {cl.rejectReason && (
-                                      <p className="text-xs mt-1" style={{ color: "#ff8fa3" }}>
+                                      <p className="text-xs mt-1" style={{ color: "var(--data-expense)" }}>
                                         {cl.rejectReason}
                                       </p>
                                     )}
@@ -367,9 +369,16 @@ export default function InvitationManage() {
                                           onClick={() => handleConfirmClaim(inv.id, cl.id)}
                                           disabled={claimBusy === cl.id}
                                           className="px-3 py-1.5 rounded-full text-xs font-semibold text-white transition-all active:scale-95 disabled:opacity-50"
-                                          style={{ backgroundColor: "#1DB954" }}
+                                          style={{ backgroundColor: "var(--data-income)" }}
                                         >
-                                          {claimBusy === cl.id ? "..." : "Confirmer"}
+                                          {claimBusy === cl.id ? (
+                                            <>
+                                              <IonSpinner name="lines" style={{ width: 12, height: 12, marginRight: 4 }} />
+                                              ...
+                                            </>
+                                          ) : (
+                                            "Confirmer"
+                                          )}
                                         </button>
                                         <button
                                           type="button"
@@ -381,8 +390,8 @@ export default function InvitationManage() {
                                           disabled={claimBusy === cl.id}
                                           className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all active:scale-95 disabled:opacity-50"
                                           style={{
-                                            color: "#E51332",
-                                            border: "1px solid #E51332",
+                                            color: "var(--data-expense)",
+                                            border: "1px solid var(--data-expense)",
                                             background: "transparent",
                                           }}
                                         >
@@ -471,7 +480,7 @@ export default function InvitationManage() {
               rows={2}
               className="w-full px-3 py-2.5 rounded-xl text-sm resize-none"
               style={{
-                backgroundColor: "#1a1a1a",
+                backgroundColor: "var(--surface)",
                 color: "var(--text-primary)",
                 border: "1px solid var(--border)",
               }}
@@ -491,9 +500,16 @@ export default function InvitationManage() {
                 onClick={handleRejectClaim}
                 disabled={claimBusy !== null}
                 className="flex-1 py-3 rounded-full text-sm font-semibold text-white transition-all active:scale-95 disabled:opacity-50"
-                style={{ backgroundColor: "#E51332" }}
+                style={{ backgroundColor: "var(--data-expense)" }}
               >
-                {claimBusy ? "Traitement…" : "Rejeter"}
+                {claimBusy ? (
+                  <>
+                    <IonSpinner name="lines" style={{ width: 14, height: 14, marginRight: 6 }} />
+                    Traitement…
+                  </>
+                ) : (
+                  "Rejeter"
+                )}
               </button>
             </div>
           </div>

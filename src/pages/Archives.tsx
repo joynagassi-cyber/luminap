@@ -185,7 +185,7 @@ export default function Archives() {
               <ArchivesSkeleton />
             </div>
           ) : (
-            <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
+            <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
               <button
                 onClick={() => navigate(-1)}
                 className="flex items-center gap-2 text-text-secondary text-sm mb-5"
@@ -288,7 +288,7 @@ export default function Archives() {
                       />
                     </label>
                     {docError && (
-                      <p className="text-xs" style={{ color: "#E51332" }}>
+                      <p className="text-xs" style={{ color: "var(--data-expense)" }}>
                         {docError}
                       </p>
                     )}
@@ -350,16 +350,16 @@ export default function Archives() {
                           <button
                             onClick={() => handleDownloadDocument(doc)}
                             className="p-2 rounded-full active:scale-95"
-                            style={{ backgroundColor: "#1DB95420" }}
+                            style={{ backgroundColor: "color-mix(in srgb, var(--data-income) 12%, transparent)" }}
                             aria-label={`Télécharger ${doc.title}`}
                           >
-                            <Download className="w-4 h-4" style={{ color: "#1DB954" }} />
+                            <Download className="w-4 h-4" style={{ color: "var(--data-income)" }} />
                           </button>
                           <button
                             onClick={() => handleToggleArchiveDocument(doc)}
                             className="p-2 rounded-full active:scale-95"
                             style={{
-                              backgroundColor: doc.status === "ARCHIVED" ? "#FFB80020" : "#E5133220",
+                              backgroundColor: doc.status === "ARCHIVED" ? "color-mix(in srgb, var(--data-pending) 12%, transparent)" : "color-mix(in srgb, var(--data-expense) 12%, transparent)",
                             }}
                             aria-label={
                               doc.status === "ARCHIVED"
@@ -370,7 +370,7 @@ export default function Archives() {
                             <Archive
                               className="w-4 h-4"
                               style={{
-                                color: doc.status === "ARCHIVED" ? "#FFB800" : "#E51332",
+                                color: doc.status === "ARCHIVED" ? "var(--data-pending)" : "var(--data-expense)",
                               }}
                             />
                           </button>
@@ -461,12 +461,12 @@ export default function Archives() {
                       <button
                         onClick={() => handleRestore(item.type as any, item.id)}
                         className="p-2 rounded-full active:scale-95 transition-transform"
-                        style={{ backgroundColor: "#1DB95420" }}
+                        style={{ backgroundColor: "color-mix(in srgb, var(--data-income) 12%, transparent)" }}
                         aria-label={`Restaurer ${item.name}`}
                       >
                         <RefreshCw
                           className="w-4 h-4"
-                          style={{ color: "#1DB954" }}
+                          style={{ color: "var(--data-income)" }}
                         />
                       </button>
                     </div>

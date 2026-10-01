@@ -27,10 +27,10 @@ const COTISATION_STATUT_LABEL: Record<string, string> = {
 };
 
 const COTISATION_STATUT_COLOR: Record<string, string> = {
-  NON_PAYE: "#EF4444",
-  PAYE: "#10B981",
-  ABSENT: "#808080",
-  EN_AVANCE: "#3B82F6",
+  NON_PAYE: "var(--data-alert)",
+  PAYE: "var(--data-success)",
+  ABSENT: "var(--text-tertiary)",
+  EN_AVANCE: "var(--data-planified)",
 };
 
 export default function MembreDetail() {
@@ -60,7 +60,7 @@ export default function MembreDetail() {
         <IonContent fullscreen>
           <div className="min-h-screen" style={{ backgroundColor: "var(--canvas)" }}>
             <TopHeader title="" />
-            <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
+            <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
               <div
                 className="text-center py-10 rounded-xl"
                 style={{ backgroundColor: "var(--surface)" }}
@@ -123,7 +123,7 @@ export default function MembreDetail() {
       <IonContent fullscreen>
         <div className="min-h-screen" style={{ backgroundColor: "var(--canvas)" }}>
           <TopHeader title="Membre" />
-          <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
+          <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             {/* Header gradient card */}
             <div
               className="rounded-2xl p-5 mb-5 relative overflow-hidden"
@@ -158,11 +158,11 @@ export default function MembreDetail() {
               <div className="grid grid-cols-3 gap-2">
                 <div
                   className="text-center p-2 rounded-xl"
-                  style={{ backgroundColor: "#10B98115" }}
+                  style={{ backgroundColor: "color-mix(in srgb, var(--data-success) 9%, transparent)" }}
                 >
                   <CheckCircle
                     className="w-4 h-4 mx-auto mb-1"
-                    style={{ color: "#10B981" }}
+                    style={{ color: "var(--data-success)" }}
                   />
                   <p className="text-white font-bold text-sm">{payeCount}</p>
                   <p className="text-text-tertiary text-xs">Cultes</p>

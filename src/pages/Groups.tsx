@@ -160,7 +160,7 @@ export default function Groups() {
       <IonContent className="bg-canvas">
         <div className="min-h-screen bg-canvas">
           <TopHeader title="Groupes" />
-          <div className="px-5 pt-16 pb-32 max-w-lg mx-auto">
+          <div className="px-5 pt-safe-calc pb-safe-calc max-w-lg mx-auto">
             {/* Header */}
             <div className="flex items-center justify-between mb-5">
               <div>

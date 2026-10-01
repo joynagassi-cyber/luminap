@@ -228,7 +228,7 @@ export default function TransactionDetail() {
       <IonContent fullscreen className="bg-canvas">
         <div className="min-h-screen bg-canvas">
           <TopHeader title="Transaction" />
-          <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
+          <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             <button
               onClick={() => navigate(-1)}
               className="flex items-center gap-2 text-text-secondary text-sm mb-6"
@@ -242,13 +242,13 @@ export default function TransactionDetail() {
               <div
                 className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
                 style={{
-                  backgroundColor: isIncome ? "#1DB95420" : "#E5133220",
+                  backgroundColor: isIncome ? "color-mix(in srgb, var(--data-income) 12%, transparent)" : "color-mix(in srgb, var(--data-expense) 12%, transparent)",
                 }}
               >
                 {isIncome ? (
-                  <Check className="w-8 h-8" style={{ color: "#1DB954" }} />
+                  <Check className="w-8 h-8" style={{ color: "var(--data-income)" }} />
                 ) : (
-                  <X className="w-8 h-8" style={{ color: "#E51332" }} />
+                  <X className="w-8 h-8" style={{ color: "var(--data-expense)" }} />
                 )}
               </div>
               <p
@@ -282,7 +282,7 @@ export default function TransactionDetail() {
                 {orgUnit && (
                   <span
                     className="text-xs px-2.5 py-1 rounded-full"
-                    style={{ backgroundColor: "#3B82F620", color: "#3B82F6" }}
+                    style={{ backgroundColor: "color-mix(in srgb, var(--data-planified) 12%, transparent)", color: "var(--data-planified)" }}
                   >
                     {orgUnit.name}
                   </span>
@@ -290,7 +290,7 @@ export default function TransactionDetail() {
                 {event && (
                   <span
                     className="text-xs px-2.5 py-1 rounded-full"
-                    style={{ backgroundColor: "#8B5CF620", color: "#8B5CF6" }}
+                    style={{ backgroundColor: "color-mix(in srgb, var(--data-advance) 12%, transparent)", color: "var(--data-advance)" }}
                   >
                     {event.name}
                   </span>
@@ -362,7 +362,7 @@ export default function TransactionDetail() {
                     <button
                       onClick={handleApprove}
                       className="w-full py-4 rounded-full font-semibold text-white text-sm transition-all active:scale-95"
-                      style={{ backgroundColor: "#1DB954" }}
+                      style={{ backgroundColor: "var(--data-income)" }}
                     >
                       Approuver
                     </button>
@@ -373,8 +373,8 @@ export default function TransactionDetail() {
                       className="w-full py-4 rounded-full font-semibold text-sm transition-all active:scale-95"
                       style={{
                         backgroundColor: "var(--surface)",
-                        color: "#E51332",
-                        border: "1px solid #E5133230",
+                        color: "var(--data-expense)",
+                        border: "1px solid color-mix(in srgb, var(--data-expense) 20%, transparent)",
                       }}
                     >
                       Rejeter
@@ -388,8 +388,8 @@ export default function TransactionDetail() {
                   className="w-full py-4 rounded-full font-semibold text-sm transition-all active:scale-95"
                   style={{
                     backgroundColor: "var(--surface)",
-                    color: "#FFB800",
-                    border: "1px solid #FFB80030",
+                    color: "var(--data-pending)",
+                    border: "1px solid color-mix(in srgb, var(--data-pending) 20%, transparent)",
                   }}
                 >
                   Contre-transagir
@@ -401,8 +401,8 @@ export default function TransactionDetail() {
                   className="w-full py-4 rounded-full font-semibold text-sm transition-all active:scale-95"
                   style={{
                     backgroundColor: "var(--surface)",
-                    color: "#3B82F6",
-                    border: "1px solid #3B82F630",
+                    color: "var(--data-planified)",
+                    border: "1px solid color-mix(in srgb, var(--data-planified) 20%, transparent)",
                   }}
                 >
                   Modifier
@@ -415,8 +415,8 @@ export default function TransactionDetail() {
                     className="w-full py-4 rounded-full font-semibold text-sm transition-all active:scale-95"
                     style={{
                       backgroundColor: "var(--surface)",
-                      color: "#E51332",
-                      border: "1px solid #E5133230",
+                      color: "var(--data-expense)",
+                      border: "1px solid color-mix(in srgb, var(--data-expense) 20%, transparent)",
                     }}
                   >
                     Supprimer
@@ -430,7 +430,7 @@ export default function TransactionDetail() {
                 className="rounded-xl p-4 mb-6"
                 style={{
                   backgroundColor: "var(--surface)",
-                  border: "1px solid #FFB80030",
+                  border: "1px solid color-mix(in srgb, var(--data-pending) 20%, transparent)",
                 }}
               >
                 <p className="text-text-tertiary text-xs mb-2">
@@ -555,14 +555,14 @@ export default function TransactionDetail() {
                     style={{
                       backgroundColor: "var(--surface-hover)",
                       color: "var(--text-primary)",
-                      border: "1px solid #383838",
+                      border: "1px solid var(--surface-active)",
                     }}
                   />
                   <div className="flex gap-2">
                     <button
                       onClick={handleRejectConfirm}
                       className="flex-1 py-3 rounded-full font-semibold text-white text-sm"
-                      style={{ backgroundColor: "#E51332" }}
+                      style={{ backgroundColor: "var(--data-expense)" }}
                     >
                       Rejeter
                     </button>
@@ -606,14 +606,14 @@ export default function TransactionDetail() {
                     style={{
                       backgroundColor: "var(--surface-hover)",
                       color: "var(--text-primary)",
-                      border: "1px solid #383838",
+                      border: "1px solid var(--surface-active)",
                     }}
                   />
                   <div className="flex gap-2">
                     <button
                       onClick={handleReverse}
                       className="flex-1 py-3 rounded-full font-semibold text-white text-sm"
-                      style={{ backgroundColor: "#FFB800" }}
+                      style={{ backgroundColor: "var(--data-pending)" }}
                     >
                       Confirmer
                     </button>

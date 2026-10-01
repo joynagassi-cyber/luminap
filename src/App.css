@@ -14,6 +14,11 @@
   /* Couleurs sémantiques de statut (hors finances) — invariants. */
   --data-planified: #3b82f6;
   --data-advance: #8b5cf6;
+  /* Statuts partagés (approuvé/payé, expiré/brouillon, rejeté/anormal) —
+     invariants, en plus des 3 couleurs financières ci-dessus. */
+  --data-success: #10b981;
+  --data-muted: #6b7280;
+  --data-alert: #ef4444;
   /* Couleurs des raccourcis (HomeIndicator) — invariants. */
   --shortcut-events: #ff6b00;
   --shortcut-forms: #14b8a6;
@@ -139,6 +144,36 @@ textarea:focus-visible,
     backdrop-filter: none !important;
     background: var(--canvas) !important;
   }
+}
+
+/* ── Utilitaires safe-area ───────────────────────────────────────────────
+ * Remplacent les paddings Tailwind fixes (pb-32 / pt-16 / pb-28) qui
+ * masquent le contenu derrière l'encoche iOS / l'indicateur d'accueil.
+ * Le viewport utilise `viewport-fit=cover` (index.html) donc
+ * env(safe-area-inset-*) est renseigné sur les appareils encochés.
+ *
+ * Usage :
+ * - .pb-safe     : fin de liste / page SCROLLABLE (le dernier élément
+ *   doit pouvoir défiler par-dessus l'indicateur d'accueil).
+ * - .pb-safe-calc : page AVEC BottomNav fixe (8rem = 128px = hauteur de
+ *   la nav) — remplace pb-32. Sur une nav IonTabBar (64px), préférer
+ *   un style inline `calc(env(safe-area-inset-bottom, 0px) + 64px)`.
+ * - .pt-safe     : haut de page SCROLLABLE (défile par-dessus la
+ *   barre de statut) — remplace pt-16.
+ * - .pt-safe-calc : haut de page AVEC TopHeader fixe (~4rem = 64px) —
+ *   remplace pt-16 devant un TopHeader.
+ */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.pb-safe-calc {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 8rem);
+}
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.pt-safe-calc {
+  padding-top: calc(env(safe-area-inset-top, 0px) + 4rem);
 }
 
 @keyframes spin {

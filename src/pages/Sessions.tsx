@@ -219,7 +219,7 @@ export default function SessionsPage() {
       <IonContent className="bg-canvas">
         <div className="min-h-screen bg-canvas">
           <TopHeader title="Mes comptes" />
-          <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
+          <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             <p className="text-text-tertiary text-xs mb-5">
               Vos comptes restent ici même après déconnexion. Cliquez sur
               l'un d'eux pour re-ouvrir votre session.

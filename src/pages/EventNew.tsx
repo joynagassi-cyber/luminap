@@ -169,11 +169,16 @@ export default function EventNew() {
       </IonHeader>
 
       <IonContent className="bg-canvas" fullscreen>
-        <div className="max-w-lg mx-auto px-5 pb-32 pt-4" style={keyboardHeight > 0 ? { paddingBottom: `${keyboardHeight}px` } : undefined}>
+        <div
+          className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe"
+          style={{
+            paddingBottom: keyboardHeight > 0 ? `${keyboardHeight}px` : undefined,
+          }}
+        >
           {error && (
             <div
               className="mb-4 p-3 rounded-xl text-sm text-center"
-              style={{ backgroundColor: "#E5133220", color: "#E51332" }}
+              style={{ backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)", color: "var(--data-expense)" }}
             >
               {error}
             </div>
@@ -413,7 +418,7 @@ export default function EventNew() {
                   <button
                     onClick={handleAddBudget}
                     className="px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-1.5"
-                    style={{ backgroundColor: "var(--accent-primary)", color: "#fff" }}
+                    style={{ backgroundColor: "var(--accent-primary)", color: "var(--on-accent)" }}
                     aria-label="Ajouter au budget"
                   >
                     <Plus className="w-4 h-4" />
@@ -441,9 +446,9 @@ export default function EventNew() {
                         <button
                           onClick={() => handleRemoveBudget(item.id)}
                           className="p-1 rounded-full"
-                          style={{ backgroundColor: "#E5133220" }}
+                          style={{ backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)" }}
                         >
-                          <X className="w-4 h-4" style={{ color: "#E51332" }} />
+                          <X className="w-4 h-4" style={{ color: "var(--data-expense)" }} />
                         </button>
                       </div>
                     ))}

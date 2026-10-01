@@ -42,7 +42,7 @@ export default function Balance() {
       <IonPage>
         <IonContent className="bg-canvas">
           <TopHeader title="Bilan" />
-          <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
+          <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
                 <div
@@ -108,7 +108,7 @@ export default function Balance() {
       <IonContent className="bg-canvas">
         <div className="min-h-screen bg-canvas">
           <TopHeader title="Bilan" />
-          <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
+          <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             <h1 className="text-text-primary font-bold text-xl mb-5">
               Bilan financier
             </h1>
@@ -125,7 +125,7 @@ export default function Balance() {
                 className="flex-1 py-2 rounded-lg text-sm font-medium transition-all"
                 style={
                   period === "mois"
-                    ? { backgroundColor: "var(--accent-primary)", color: "#fff" }
+                    ? { backgroundColor: "var(--accent-primary)", color: "var(--on-accent)" }
                     : { color: "var(--text-secondary)" }
                 }
                 aria-pressed={period === "mois"}
@@ -138,7 +138,7 @@ export default function Balance() {
                 className="flex-1 py-2 rounded-lg text-sm font-medium transition-all"
                 style={
                   period === "annee"
-                    ? { backgroundColor: "var(--accent-primary)", color: "#fff" }
+                    ? { backgroundColor: "var(--accent-primary)", color: "var(--on-accent)" }
                     : { color: "var(--text-secondary)" }
                 }
                 aria-pressed={period === "annee"}

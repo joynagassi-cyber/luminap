@@ -146,7 +146,7 @@ export default function MembersPage() {
       <IonContent fullscreen>
         <div className="min-h-screen bg-canvas">
           <TopHeader title="Membres" />
-          <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
+          <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             {/* Header */}
             <div className="flex items-center justify-between mb-5">
               <div>
@@ -160,7 +160,7 @@ export default function MembersPage() {
                 onClick={() => setShowForm(!showForm)}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-semibold text-white transition-all active:scale-95"
                 style={{
-                  background: "linear-gradient(135deg, #FF8533, var(--accent-primary))",
+                  background: "linear-gradient(135deg, var(--accent-light), var(--accent-primary))",
                   boxShadow: "0 4px 12px rgba(255,107,0,0.3)",
                 }}
               >
@@ -326,11 +326,11 @@ export default function MembersPage() {
                     <button
                       onClick={() => handleArchive(member)}
                       className="p-2 rounded-full active:scale-95 transition-transform"
-                      style={{ backgroundColor: "#E5133220" }}
+                      style={{ backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)" }}
                     >
                       <Archive
                         className="w-4 h-4"
-                        style={{ color: "#E51332" }}
+                        style={{ color: "var(--data-expense)" }}
                       />
                     </button>
                   </div>
@@ -404,11 +404,11 @@ export default function MembersPage() {
                       <button
                         onClick={() => handleRestore(member)}
                         className="p-2 rounded-full active:scale-95 transition-transform"
-                        style={{ backgroundColor: "#1DB95420" }}
+                        style={{ backgroundColor: "color-mix(in srgb, var(--data-income) 12%, transparent)" }}
                       >
                         <RefreshCw
                           className="w-4 h-4"
-                          style={{ color: "#1DB954" }}
+                          style={{ color: "var(--data-income)" }}
                         />
                       </button>
                     </div>

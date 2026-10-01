@@ -36,28 +36,28 @@ const SHORTCUTS: ActionItem[] = [
     label: "Mes comptes",
     hint: "Session & reconnexion",
     icon: KeyRound,
-    color: "#14B8A6",
+    color: "var(--shortcut-forms)",
     to: "/sessions",
   },
   {
     label: "Champs pers.",
     hint: "Customiser",
     icon: Tag,
-    color: "#8B5CF6",
+    color: "var(--data-advance)",
     to: "/custom-fields",
   },
   {
     label: "Archives",
     hint: "Gérer les archives",
     icon: Archive,
-    color: "#3B82F6",
+    color: "var(--data-planified)",
     to: "/archives",
   },
   {
     label: "Rapports",
     hint: "Bilans & stats",
     icon: BarChart3,
-    color: "#1DB954",
+    color: "var(--data-income)",
     to: "/reports",
   },
 ];
@@ -67,35 +67,35 @@ const ACTIONS: ActionItem[] = [
     label: "Bilan financier",
     hint: "Voir le rapport par période",
     icon: CreditCard,
-    color: "#1DB954",
+    color: "var(--data-income)",
     to: "/balance",
   },
   {
     label: "Historique financier",
     hint: "Graphiques et statistiques",
     icon: BarChart3,
-    color: "#FFB800",
+    color: "var(--data-pending)",
     to: "/history",
   },
   {
     label: "Trace d'activité",
     hint: "Journal de toutes les opérations",
     icon: Clock,
-    color: "#3B82F6",
+    color: "var(--data-planified)",
     to: "/trace",
   },
   {
     label: "Versement",
     hint: "Transférer vers la caisse principale",
     icon: CreditCard,
-    color: "#FFB800",
+    color: "var(--data-pending)",
     to: "/versement",
   },
   {
     label: "Tutoriel & Aide",
     hint: "Guide complet d'utilisation",
     icon: BookOpen,
-    color: "#8B5CF6",
+    color: "var(--data-advance)",
     to: "/tutoriel",
   },
 ];
@@ -117,8 +117,8 @@ export default function SettingsGestion() {
           onClick={() => navigate("/admin")}
           className="w-full p-4 rounded-xl text-left active:scale-[0.99] transition-transform mb-4"
           style={{
-            backgroundColor: "#1a130f",
-            border: "1px solid #3a2a1a",
+            backgroundColor: "var(--band-central)",
+            border: "1px solid var(--surface-active)",
           }}
           aria-label="Administration centrale multi-organisation"
         >

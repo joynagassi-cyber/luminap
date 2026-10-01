@@ -8,6 +8,7 @@ import {
   formSubmissionRepo,
   validateFormSubmission,
   dispatchFormSubmission,
+  parseCurrencyAmount,
 } from "@/lib/formSystem";
 import {
   useMembers,
@@ -116,7 +117,21 @@ export default function FormFill() {
       fields: form.fields.filter(isFieldShown),
     };
 
-    const validation = validateFormSubmission(shownForm, data);
+    // T7 Forms v2 — normalisation des champs currency : la saisie brute
+    // (ex. « 1,500 ») est convertie en nombre (1500) avant l'écriture de
+    // la soumission (la valeur stockée est le nombre, jamais la chaîne).
+    // Une saisie NON parseable est laissée telle quelle : la règle currency
+    // de `validateFormSubmission` la rejette alors avec un message dédié.
+    const normalizedData: Record<string, any> = { ...data };
+    for (const field of shownForm.fields) {
+      if (field.type !== "currency") continue;
+      const raw = normalizedData[field.key];
+      if (raw === undefined || raw === null || raw === "") continue;
+      const parsed = parseCurrencyAmount(raw);
+      if (parsed !== null) normalizedData[field.key] = parsed;
+    }
+
+    const validation = validateFormSubmission(shownForm, normalizedData);
     if (!validation.valid) {
       setErrors(validation.errors);
       return;
@@ -126,14 +141,18 @@ export default function FormFill() {
       formDefinitionId: form.id,
       formVersion: form.version,
       submittedBy: currentUser?.id ?? "local-user",
-      data,
+      data: normalizedData,
       status: "SUBMITTED",
     });
     // F.1b — dispatch des champs mappés vers l'entité cible du formulaire
     // (member / event / group / account) : la logique vit dans formSystem
-    // (DRY avec les tests + réutilisable par les rapports).
+    // (DRY avec les tests + réutilisable par les rapports). Les valeurs
+    // normalisées (currency en number) sont propagées au dispatch.
     if (form.targetEntityType) {
-      await dispatchFormSubmission(submission, shownForm);
+      await dispatchFormSubmission(
+        { ...submission, data: normalizedData },
+        shownForm,
+      );
     }
     setSubmitted(true);
     // Naviguer rapidement pour ne pas laisser « Soumis avec succès ! »
@@ -154,7 +173,7 @@ export default function FormFill() {
       <IonPage>
         <IonContent className="bg-canvas">
           <TopHeader title="Formulaire" />
-          <div className="px-5 pt-16 pb-28 max-w-lg mx-auto">
+          <div className="px-5 pt-safe-calc pb-safe-calc max-w-lg mx-auto">
             <button
               onClick={() => navigate(-1)}
               className="flex items-center gap-2 text-text-secondary text-sm mb-5"
@@ -173,7 +192,7 @@ export default function FormFill() {
     <IonPage>
       <IonContent className="bg-canvas">
         <TopHeader title={form.name} />
-        <div className="px-5 pt-16 pb-28 max-w-lg mx-auto">
+        <div className="px-5 pt-safe-calc pb-safe-calc max-w-lg mx-auto">
             <button
               onClick={() => navigate(-1)}
               className="flex items-center gap-2 text-text-secondary text-sm mb-5"
@@ -190,7 +209,7 @@ export default function FormFill() {
             {errors.length > 0 && (
               <div
                 className="mb-4 p-3 rounded-xl text-sm"
-                style={{ backgroundColor: "#E5133220", color: "#E51332" }}
+                style={{ backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)", color: "var(--data-expense)" }}
               >
                 {errors[0]}
               </div>
@@ -200,7 +219,7 @@ export default function FormFill() {
               <div className="text-center py-16">
                 <CheckCircle
                   className="w-16 h-16 mx-auto mb-4"
-                  style={{ color: "#1DB954" }}
+                  style={{ color: "var(--data-income)" }}
                 />
                 <p className="text-text-primary font-bold text-lg mb-2">
                   Soumis avec succès !
@@ -223,7 +242,7 @@ export default function FormFill() {
                     <label className="text-text-tertiary text-xs mb-1.5 block">
                       {field.label}{" "}
                       {field.required && (
-                        <span style={{ color: "#E51332" }}>*</span>
+                        <span style={{ color: "var(--data-expense)" }}>*</span>
                       )}
                     </label>
                     {field.type === "boolean" ? (
@@ -277,6 +296,33 @@ export default function FormFill() {
                       />
                     ) : field.type === "reference" ? (
                       <ReferenceSelect field={field} data={data} onChange={handleChange} />
+                    ) : field.type === "currency" ? (
+                      // T7 Forms v2 — rendu dédié currency : préfixe du symbole
+                      // de devise ($ par défaut) + parsing en nombre safe
+                      // (virgule FR / point US / séparateurs de milliers,
+                      // `parseCurrencyAmount` borne à 2 décimales). La valeur
+                      // stockée dans `data` reste la saisie brute (string) ;
+                      // la normalisation en number se fait juste avant la
+                      // soumission (voir handleSubmit).
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-text-tertiary text-sm pointer-events-none select-none">
+                          $
+                        </span>
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          value={data[field.key] ?? ""}
+                          onChange={(e) =>
+                            handleChange(field.key, e.target.value)
+                          }
+                          placeholder={field.label || "Montant"}
+                          className="w-full pl-9 pr-4 py-3 rounded-xl text-text-primary text-sm "
+                          style={{
+                            backgroundColor: "var(--surface)",
+                            border: "1px solid var(--border)",
+                          }}
+                        />
+                      </div>
                     ) : field.type === "file" ? (
                       <input
                         type="file"

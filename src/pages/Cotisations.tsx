@@ -99,13 +99,13 @@ export default function Cotisations() {
       <IonContent className="bg-canvas">
         <div className="min-h-screen" style={{ background: "var(--canvas)" }}>
           <TopHeader title="Cotisations" />
-          <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
+          <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             <div className="flex items-center justify-between mb-5">
               <div>
                 <h1 className="font-bold text-xl" style={{ color: "var(--text-primary)" }}>
                   Cotisations
                 </h1>
-                <p className="text-xs mt-0.5" style={{ color: "#888888" }}>
+                <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>
                   {culteStats.length} culte{culteStats.length !== 1 ? "s" : ""}
                 </p>
               </div>
@@ -115,8 +115,8 @@ export default function Cotisations() {
                 }
                 className="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-semibold text-white transition-all active:scale-95"
                 style={{
-                  background: "linear-gradient(135deg, #FF8533, var(--accent-primary))",
-                  boxShadow: "0 4px 12px rgba(255,107,0,0.3)",
+                  background: "linear-gradient(135deg, var(--accent-light), var(--accent-primary))",
+                  boxShadow: "0 4px 12px color-mix(in srgb, var(--accent-primary) 30%, transparent)",
                 }}
                 aria-label="Créer un nouveau culte"
               >
@@ -132,12 +132,12 @@ export default function Cotisations() {
               >
                 <Calendar
                   className="w-12 h-12 mx-auto mb-4 opacity-40"
-                  style={{ color: "#888888" }}
+                  style={{ color: "var(--text-tertiary)" }}
                 />
-                <p className="text-sm mb-2" style={{ color: "#888888" }}>
+                <p className="text-sm mb-2" style={{ color: "var(--text-tertiary)" }}>
                   Aucun culte
                 </p>
-                <p className="text-xs mb-4" style={{ color: "#666666" }}>
+                <p className="text-xs mb-4" style={{ color: "var(--text-placeholder)" }}>
                   Créez votre premier culte pour suivre les cotisations
                 </p>
                 <button
@@ -188,7 +188,7 @@ export default function Cotisations() {
                           </p>
                           <p
                             className="text-xs mt-0.5"
-                            style={{ color: "#888888" }}
+                            style={{ color: "var(--text-tertiary)" }}
                           >
                             <Clock className="w-3 h-3 inline mr-1" />
                             {formatDate(stat.startDate)}
@@ -197,7 +197,7 @@ export default function Cotisations() {
                           <div className="flex items-center gap-3 mt-2 text-xs">
                             <span
                               className="flex items-center gap-1"
-                              style={{ color: "#1DB954" }}
+                              style={{ color: "var(--data-income)" }}
                             >
                               <CheckCircle className="w-3 h-3" />
                               {stat.paid}/{stat.totalMembers}
@@ -216,10 +216,10 @@ export default function Cotisations() {
 
                           <div className="mt-2">
                             <div className="flex items-center justify-between text-xs mb-1">
-                              <span style={{ color: "#888888" }}>Collecté</span>
+                              <span style={{ color: "var(--text-tertiary)" }}>Collecté</span>
                               <span
                                 className="font-semibold"
-                                style={{ color: "#1DB954" }}
+                                style={{ color: "var(--data-income)" }}
                               >
                                 {formatCurrencyCompact(stat.totalCollected)} F
                               </span>
@@ -233,13 +233,13 @@ export default function Cotisations() {
                                 style={{
                                   width: `${Math.min(progress, 100)}%`,
                                   background:
-                                    progress >= 100 ? "#1DB954" : "var(--accent-primary)",
+                                    progress >= 100 ? "var(--data-income)" : "var(--accent-primary)",
                                 }}
                               />
                             </div>
                             <div className="flex items-center justify-between text-xs mt-1">
-                              <span style={{ color: "#666666" }}>Objectif</span>
-                              <span style={{ color: "#666666" }}>
+                              <span style={{ color: "var(--text-placeholder)" }}>Objectif</span>
+                              <span style={{ color: "var(--text-placeholder)" }}>
                                 {formatCurrencyCompact(stat.expectedTotal)} F
                               </span>
                             </div>

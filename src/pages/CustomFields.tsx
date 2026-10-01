@@ -88,7 +88,7 @@ export default function CustomFields() {
       <IonContent className="ion-padding">
         <div className="min-h-screen bg-canvas">
           <TopHeader title="Champs personnalisés" />
-          <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
+          <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             <button
               onClick={() => navigate(-1)}
               className="flex items-center gap-2 text-text-secondary text-sm mb-5"
@@ -267,7 +267,7 @@ export default function CustomFields() {
                             type === ft.value
                               ? {
                                   backgroundColor: "var(--accent-primary)",
-                                  color: "#fff",
+                                  color: "var(--text-primary)",
                                 }
                               : {
                                   backgroundColor: "var(--surface)",

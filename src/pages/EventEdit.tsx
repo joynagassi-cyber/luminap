@@ -96,7 +96,7 @@ export default function EventEdit() {
       <IonContent className="bg-canvas">
         <div className="min-h-screen bg-canvas">
           <TopHeader title="Modifier l'événement" />
-          <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
+          <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             <button
               onClick={() => navigate(-1)}
               className="flex items-center gap-2 text-text-secondary text-sm mb-5"
@@ -107,7 +107,7 @@ export default function EventEdit() {
             {error && (
               <div
                 className="mb-4 p-3 rounded-xl text-sm text-center"
-                style={{ backgroundColor: "#E5133220", color: "#E51332" }}
+                style={{ backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)", color: "var(--data-expense)" }}
               >
                 {error}
               </div>
@@ -127,12 +127,12 @@ export default function EventEdit() {
                     backgroundColor: "var(--surface)",
                     color: "var(--text-primary)",
                     border: fieldErrors.name
-                      ? "1px solid #E51332"
+                      ? "1px solid var(--data-expense)"
                       : "1px solid var(--surface-hover)",
                   }}
                 />
                 {fieldErrors.name && (
-                  <p className="text-[#E51332] text-xs mt-1">
+                  <p className="text-[var(--data-expense)] text-xs mt-1">
                     {fieldErrors.name}
                   </p>
                 )}
@@ -168,12 +168,12 @@ export default function EventEdit() {
                     backgroundColor: "var(--surface)",
                     color: "var(--text-primary)",
                     border: fieldErrors.startDate
-                      ? "1px solid #E51332"
+                      ? "1px solid var(--data-expense)"
                       : "1px solid var(--surface-hover)",
                   }}
                 />
                 {fieldErrors.startDate && (
-                  <p className="text-[#E51332] text-xs mt-1">
+                  <p className="text-[var(--data-expense)] text-xs mt-1">
                     {fieldErrors.startDate}
                   </p>
                 )}
@@ -192,12 +192,12 @@ export default function EventEdit() {
                     backgroundColor: "var(--surface)",
                     color: "var(--text-primary)",
                     border: fieldErrors.endDate
-                      ? "1px solid #E51332"
+                      ? "1px solid var(--data-expense)"
                       : "1px solid var(--surface-hover)",
                   }}
                 />
                 {fieldErrors.endDate && (
-                  <p className="text-[#E51332] text-xs mt-1">
+                  <p className="text-[var(--data-expense)] text-xs mt-1">
                     {fieldErrors.endDate}
                   </p>
                 )}
@@ -238,12 +238,12 @@ export default function EventEdit() {
                     backgroundColor: "var(--surface)",
                     color: "var(--text-primary)",
                     border: fieldErrors.budget
-                      ? "1px solid #E51332"
+                      ? "1px solid var(--data-expense)"
                       : "1px solid var(--surface-hover)",
                   }}
                 />
                 {fieldErrors.budget && (
-                  <p className="text-[#E51332] text-xs mt-1">
+                  <p className="text-[var(--data-expense)] text-xs mt-1">
                     {fieldErrors.budget}
                   </p>
                 )}

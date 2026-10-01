@@ -60,7 +60,7 @@ export default function Budgets() {
       <IonContent className="bg-canvas">
         <div className="min-h-screen bg-canvas">
           <TopHeader title="Budgets" />
-          <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
+          <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             <div className="flex items-center justify-between mb-5">
               <h1 className="text-text-primary font-bold text-xl" data-testid="budgets-title">
                 Budgets
@@ -125,18 +125,18 @@ export default function Budgets() {
                 </p>
               </div>
               <div className="rounded-xl p-4" style={{ backgroundColor: "var(--surface)" }}>
-                <PieChart className="w-4 h-4 mb-2" style={{ color: "#1DB954" }} />
+                <PieChart className="w-4 h-4 mb-2" style={{ color: "var(--data-income)" }} />
                 <p className="text-text-tertiary text-xs">Réel</p>
                 <p className="text-income font-bold text-sm mt-1">
                   {formatCurrencyCompact(activeTotals.actual)}
                 </p>
               </div>
               <div className="rounded-xl p-4" style={{ backgroundColor: "var(--surface)" }}>
-                <Target className="w-4 h-4 mb-2" style={{ color: "#FFB800" }} />
+                <Target className="w-4 h-4 mb-2" style={{ color: "var(--data-pending)" }} />
                 <p className="text-text-tertiary text-xs">Restant</p>
                 <p
                   className="font-bold text-sm mt-1"
-                  style={{ color: activeTotals.planned - activeTotals.actual >= 0 ? "#1DB954" : "#E51332" }}
+                  style={{ color: activeTotals.planned - activeTotals.actual >= 0 ? "var(--data-income)" : "var(--data-expense)" }}
                 >
                   {formatCurrencyCompact(Math.max(0, activeTotals.planned - activeTotals.actual))}
                 </p>
@@ -200,7 +200,7 @@ export default function Budgets() {
                       <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: "var(--surface-hover)" }}>
                         <div
                           className="h-full rounded-full"
-                          style={{ width: `${Math.min(100, bar)}%`, backgroundColor: over ? "#E51332" : "var(--accent-primary)" }}
+                          style={{ width: `${Math.min(100, bar)}%`, backgroundColor: over ? "var(--data-expense)" : "var(--accent-primary)" }}
                         />
                       </div>
                       <p className="text-text-tertiary text-[11px] mt-1.5">{win.start} → {win.end}</p>
@@ -281,7 +281,7 @@ function CreateBudgetSheet({
       <div
         role="dialog"
         aria-modal="true"
-        className="relative w-full max-w-lg rounded-t-2xl p-5 pb-28"
+        className="relative w-full max-w-lg rounded-t-2xl p-5 pb-safe"
         style={{ backgroundColor: "var(--card)" }}
         onClick={(e) => e.stopPropagation()}
       >

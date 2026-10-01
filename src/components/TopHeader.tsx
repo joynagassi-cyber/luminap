@@ -123,7 +123,7 @@ export default function TopHeader({ title }: { title?: string }) {
                   <span
                     aria-hidden="true"
                     className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center text-xs font-bold"
-                    style={{ backgroundColor: "var(--data-expense)", color: "#fff" }}
+                    style={{ backgroundColor: "var(--data-expense)", color: "var(--on-accent)" }}
                   >
                     {unreadCount > 9 ? "9+" : unreadCount}
                   </span>

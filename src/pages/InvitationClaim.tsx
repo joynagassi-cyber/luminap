@@ -11,20 +11,16 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   IonPage,
-  IonHeader,
   IonContent,
   IonTitle,
-  IonToolbar,
   IonButton,
-  IonButtons,
   IonItem,
   IonLabel,
   IonInput,
   IonCard,
   IonCardHeader,
   IonCardContent,
-  IonAlert,
-  IonToast,
+  IonSpinner,
 } from "@ionic/react";
 import {
   QrCode,
@@ -63,7 +59,6 @@ export default function InvitationClaim() {
   const [parsedPayload, setParsedPayload] = useState<ClaimPayload | null>(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);
-  const [showAlert, setShowAlert] = useState(false);
 
   const handleCodeSubmit = async () => {
     const trimmed = codeInput.trim().toUpperCase();
@@ -173,20 +168,15 @@ export default function InvitationClaim() {
 
   return (
     <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonButtons slot="start">
-            <IonButton fill="clear" onClick={() => navigate(-1)}>
-              ← Retour
-            </IonButton>
-          </IonButtons>
-          <IonTitle>Invitation</IonTitle>
-        </IonToolbar>
-      </IonHeader>
       <IonContent fullscreen>
         <div className="min-h-screen bg-canvas">
           <TopHeader title="" />
-          <div className="max-w-lg mx-auto px-5 pb-32 pt-16" style={keyboardHeight > 0 ? { paddingBottom: `${keyboardHeight}px` } : undefined}>
+          <div
+            className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc"
+            style={{
+              paddingBottom: keyboardHeight > 0 ? `${keyboardHeight}px` : undefined,
+            }}
+          >
             <div className="text-center mb-8">
               <UserPlus className="w-12 h-12 text-primary mx-auto mb-3" />
               <h1 className="text-xl font-bold text-text-primary">
@@ -238,7 +228,14 @@ export default function InvitationClaim() {
                   onClick={handleCodeSubmit}
                   disabled={loading || codeInput.trim().length < 4}
                 >
-                  {loading ? "Recherche…" : "Rechercher"}
+                  {loading ? (
+                    <>
+                      <IonSpinner name="lines" style={{ marginRight: 6 }} />
+                      Recherche…
+                    </>
+                  ) : (
+                    "Rechercher"
+                  )}
                 </IonButton>
               </div>
             ) : (
@@ -274,8 +271,8 @@ export default function InvitationClaim() {
                 <label
                   className="flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-medium cursor-pointer active:scale-95 transition-all"
                   style={{
-                    backgroundColor: "#1a130f",
-                    border: "1px solid #3a2a1a",
+                    backgroundColor: "var(--band-central)",
+                    border: "1px solid var(--surface-active)",
                     color: "var(--accent-primary)",
                   }}
                 >
@@ -343,7 +340,14 @@ export default function InvitationClaim() {
                     onClick={handleConfirm}
                     disabled={loading}
                   >
-                    {loading ? "Création…" : "Confirmer et rejoindre"}
+                    {loading ? (
+                      <>
+                        <IonSpinner name="lines" style={{ marginRight: 6 }} />
+                        Création…
+                      </>
+                    ) : (
+                      "Confirmer et rejoindre"
+                    )}
                   </IonButton>
                 </IonCardContent>
               </IonCard>

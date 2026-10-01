@@ -187,10 +187,10 @@ export default function CulteDetail() {
               style={{ backgroundColor: "var(--surface)" }}
             >
               <div className="flex items-center gap-2 mb-1">
-                <CheckCircle className="w-4 h-4 text-[#10B981]" />
+                <CheckCircle className="w-4 h-4 text-[var(--data-success)]" />
                 <span className="text-text-tertiary text-xs">Payés</span>
               </div>
-              <p className="text-[#10B981] font-bold text-lg">{stats.paye}</p>
+              <p className="text-[var(--data-success)] font-bold text-lg">{stats.paye}</p>
             </div>
             <div
               className="rounded-xl p-3"
@@ -207,10 +207,10 @@ export default function CulteDetail() {
               style={{ backgroundColor: "var(--surface)" }}
             >
               <div className="flex items-center gap-2 mb-1">
-                <CheckCircle className="w-4 h-4 text-[#EF4444]" />
+                <CheckCircle className="w-4 h-4 text-[var(--data-alert)]" />
                 <span className="text-text-tertiary text-xs">Non payés</span>
               </div>
-              <p className="text-[#EF4444] font-bold text-lg">
+              <p className="text-[var(--data-alert)] font-bold text-lg">
                 {stats.nonPaye}
               </p>
             </div>
@@ -234,7 +234,7 @@ export default function CulteDetail() {
             <button
               onClick={() => setShowMassPay(true)}
               className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95"
-              style={{ backgroundColor: "var(--accent-primary)", color: "#fff" }}
+              style={{ backgroundColor: "var(--accent-primary)", color: "var(--text-primary)" }}
               aria-label="Effectuer un paiement massif"
             >
               Paiement massif
@@ -311,7 +311,7 @@ export default function CulteDetail() {
                       }
                       disabled={busyRowId !== null}
                       className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all active:scale-95 disabled:opacity-50"
-                      style={{ backgroundColor: "#10B981", color: "var(--text-primary)" }}
+                      style={{ backgroundColor: "var(--data-success)", color: "var(--text-primary)" }}
                     >
                       {busyRowId === cot.id ? "..." : "Payé"}
                     </button>
@@ -326,7 +326,7 @@ export default function CulteDetail() {
                       style={{
                         backgroundColor: "var(--surface-hover)",
                         color: "var(--text-tertiary)",
-                        border: "1px solid #3a3a3a",
+                        border: "1px solid var(--surface-active)",
                       }}
                     >
                       {busyRowId === cot.id ? "..." : "Absent"}

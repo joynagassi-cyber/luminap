@@ -146,7 +146,7 @@ export default function SettingsPage() {
       <IonContent className="bg-canvas">
         <div className="min-h-screen bg-canvas">
           <TopHeader title="Paramètres" />
-          <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
+          <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             <h1 className="text-text-primary font-bold text-xl mb-1">
               Paramètres
             </h1>

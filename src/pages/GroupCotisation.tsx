@@ -37,6 +37,7 @@ import {
   IonBackButton,
   IonButton,
   IonInput,
+  IonSpinner,
 } from "@ionic/react";
 
 export default function GroupCotisation() {
@@ -222,7 +223,7 @@ export default function GroupCotisation() {
         </IonToolbar>
       </IonHeader>
       <IonContent className="bg-canvas" fullscreen>
-        <div className="max-w-lg mx-auto px-5 pb-32 pt-4">
+        <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe">
           <p className="text-text-tertiary text-xs mb-4">
             {groupMembers.length} membre(s) dans ce groupe
           </p>
@@ -230,7 +231,7 @@ export default function GroupCotisation() {
           {formError && (
             <div
               className="mb-4 p-3 rounded-xl text-sm"
-              style={{ backgroundColor: "#E5133220", color: "#ff8fa3" }}
+              style={{ backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)", color: "var(--data-expense)" }}
             >
               {formError}
             </div>
@@ -306,7 +307,7 @@ export default function GroupCotisation() {
                   </p>
                   <span
                     className="text-xs px-2 py-0.5 rounded-full"
-                    style={{ backgroundColor: "#3B82F620", color: "#3B82F6" }}
+                    style={{ backgroundColor: "color-mix(in srgb, var(--data-planified) 12%, transparent)", color: "var(--data-planified)" }}
                   >
                     {stats.paye}/{stats.total} payés
                   </span>
@@ -314,7 +315,7 @@ export default function GroupCotisation() {
                 <div className="flex gap-4 text-xs">
                   <div>
                     <p className="text-text-tertiary">Collecté</p>
-                    <p className="text-[#1DB954] font-bold text-sm">
+                    <p className="text-[var(--data-income)] font-bold text-sm">
                       {formatCurrencyCompact(stats.totalCollecte)} F
                     </p>
                   </div>
@@ -326,7 +327,7 @@ export default function GroupCotisation() {
                   </div>
                   <div>
                     <p className="text-text-tertiary">En retard</p>
-                    <p className="text-[#FFB800] font-bold text-sm">
+                    <p className="text-[var(--data-pending)] font-bold text-sm">
                       {stats.nonPaye}
                     </p>
                   </div>
@@ -355,23 +356,23 @@ export default function GroupCotisation() {
                     className="rounded-xl p-3.5 mb-2 flex items-center gap-3"
                     style={{
                       backgroundColor: isPaid
-                        ? "#1DB95410"
+                        ? "color-mix(in srgb, var(--data-income) 6%, transparent)"
                         : isAbsent
                           ? "color-mix(in srgb, var(--text-tertiary) 10%, transparent)"
                           : "var(--surface)",
-                      border: `1px solid ${isPaid ? "#1DB95430" : isAbsent ? "color-mix(in srgb, var(--text-tertiary) 30%, transparent)" : "var(--border)"}`,
+                      border: `1px solid ${isPaid ? "color-mix(in srgb, var(--data-income) 20%, transparent)" : isAbsent ? "color-mix(in srgb, var(--text-tertiary) 30%, transparent)" : "var(--border)"}`,
                     }}
                   >
                     <div
                       className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
                       style={{
-                        backgroundColor: isPaid ? "#1DB95420" : "var(--surface-hover)",
+                        backgroundColor: isPaid ? "color-mix(in srgb, var(--data-income) 12%, transparent)" : "var(--surface-hover)",
                       }}
                     >
                       <span
                         className="text-xs font-bold"
                         style={{
-                          color: isPaid ? "#1DB954" : "var(--accent-primary)",
+                          color: isPaid ? "var(--data-income)" : "var(--accent-primary)",
                         }}
                       >
                         {name.charAt(0)}
@@ -393,7 +394,7 @@ export default function GroupCotisation() {
                         <IonButton
                           size="small"
                           fill="solid"
-                          style={{ backgroundColor: "#1DB954" }}
+                          style={{ backgroundColor: "var(--data-income)" }}
                           disabled={busy}
                           onClick={() => handlePay(cot, oblig)}
                         >
@@ -410,7 +411,7 @@ export default function GroupCotisation() {
                         </IonButton>
                       </div>
                     )}
-                    {isPaid && <Check className="w-4 h-4 text-[#1DB954]" />}
+                    {isPaid && <Check className="w-4 h-4 text-[var(--data-income)]" />}
                     {isAbsent && (
                       <Clock className="w-4 h-4 text-text-tertiary" />
                     )}
@@ -499,7 +500,14 @@ export default function GroupCotisation() {
                 disabled={busy}
                 style={{ backgroundColor: "var(--accent-primary)" }}
               >
-                {busy ? "Création..." : "Créer la session"}
+                {busy ? (
+                  <>
+                    <IonSpinner name="lines" style={{ marginRight: 6 }} />
+                    Création...
+                  </>
+                ) : (
+                  "Créer la session"
+                )}
               </IonButton>
             </div>
           )}

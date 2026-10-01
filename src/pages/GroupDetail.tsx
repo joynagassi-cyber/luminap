@@ -260,7 +260,7 @@ export default function GroupDetail() {
         </IonToolbar>
       </IonHeader>
       <IonContent className="bg-canvas" fullscreen>
-        <div className="max-w-lg mx-auto px-5 pb-32 pt-4">
+        <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe">
           {error && (
             <div
               className="mb-4 p-3 rounded-xl text-sm"
@@ -323,7 +323,7 @@ export default function GroupDetail() {
               <p className="text-text-tertiary text-xs mb-1">Solde actuel</p>
               <p
                 className="text-3xl font-black"
-                style={{ color: balance >= 0 ? "#1DB954" : "#E51332" }}
+                style={{ color: balance >= 0 ? "var(--data-income)" : "var(--data-expense)" }}
               >
                 {balance >= 0 ? "" : "-"}
                 {formatCurrencyCompact(Math.abs(balance))}
@@ -332,7 +332,7 @@ export default function GroupDetail() {
                 </span>
               </p>
               {pendingAmount !== 0 && (
-                <p className="text-xs mt-1" style={{ color: "#FFB800" }}>
+                <p className="text-xs mt-1" style={{ color: "var(--data-pending)" }}>
                   {pendingAmount > 0 ? "+" : ""}
                   {formatCurrencyCompact(Math.abs(pendingAmount))} FCFA en
                   attente
@@ -344,16 +344,16 @@ export default function GroupDetail() {
               <div className="flex items-center gap-2">
                 <div
                   className="w-6 h-6 rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: "#1DB95420" }}
+                  style={{ backgroundColor: "color-mix(in srgb, var(--data-income) 12%, transparent)" }}
                 >
                   <TrendingUp
                     className="w-3 h-3"
-                    style={{ color: "#1DB954" }}
+                    style={{ color: "var(--data-income)" }}
                   />
                 </div>
                 <span className="text-text-tertiary">
                   Entrées:{" "}
-                  <span style={{ color: "#1DB954" }}>
+                  <span style={{ color: "var(--data-income)" }}>
                     +{formatCurrencyCompact(income)}
                   </span>
                 </span>
@@ -361,16 +361,16 @@ export default function GroupDetail() {
               <div className="flex items-center gap-2">
                 <div
                   className="w-6 h-6 rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: "#E5133220" }}
+                  style={{ backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)" }}
                 >
                   <TrendingDown
                     className="w-3 h-3 rotate-180"
-                    style={{ color: "#E51332" }}
+                    style={{ color: "var(--data-expense)" }}
                   />
                 </div>
                 <span className="text-text-tertiary">
                   Sorties:{" "}
-                  <span style={{ color: "#E51332" }}>
+                  <span style={{ color: "var(--data-expense)" }}>
                     -{formatCurrencyCompact(expense)}
                   </span>
                 </span>
@@ -384,9 +384,9 @@ export default function GroupDetail() {
               onClick={() => navigate(`/groups/${id}/transaction/new`)}
               className="flex-1 py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-95"
               style={{
-                backgroundColor: "#1DB95420",
-                color: "#1DB954",
-                border: "1px solid #1DB95440",
+                backgroundColor: "color-mix(in srgb, var(--data-income) 12%, transparent)",
+                color: "var(--data-income)",
+                border: "1px solid color-mix(in srgb, var(--data-income) 25%, transparent)",
               }}
             >
               <ArrowUp className="w-4 h-4" /> Entrée
@@ -399,9 +399,9 @@ export default function GroupDetail() {
               }
               className="flex-1 py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-95"
               style={{
-                backgroundColor: "#E5133220",
-                color: "#E51332",
-                border: "1px solid #E5133240",
+                backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)",
+                color: "var(--data-expense)",
+                border: "1px solid color-mix(in srgb, var(--data-expense) 25%, transparent)",
               }}
             >
               <ArrowDown className="w-4 h-4" /> Sortie
@@ -574,11 +574,11 @@ export default function GroupDetail() {
                           <button
                             onClick={() => handleRemoveMember(membership.id)}
                             className="w-8 h-8 rounded-full flex items-center justify-center"
-                            style={{ backgroundColor: "#E5133220" }}
+                            style={{ backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)" }}
                           >
                             <UserMinus
                               className="w-4 h-4"
-                              style={{ color: "#E51332" }}
+                              style={{ color: "var(--data-expense)" }}
                             />
                           </button>
                         )}
@@ -649,7 +649,7 @@ export default function GroupDetail() {
                             {formatDate(v.date)}
                           </p>
                         </div>
-                        <span className="text-sm font-bold text-[#E51332]">
+                        <span className="text-sm font-bold text-[var(--data-expense)]">
                           -{formatCurrencyCompact(v.amount)} F
                         </span>
                       </div>
@@ -680,7 +680,7 @@ export default function GroupDetail() {
                               evt.type === "info"
                                 ? "var(--accent-primary)"
                                 : evt.type === "success"
-                                  ? "#1DB954"
+                                  ? "var(--data-income)"
                                   : "var(--text-tertiary)",
                           }}
                         />
@@ -707,7 +707,7 @@ export default function GroupDetail() {
                             className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0"
                             style={{
                               backgroundColor:
-                                tx.type === "INCOME" ? "#1DB954" : "#E51332",
+                                tx.type === "INCOME" ? "var(--data-income)" : "var(--data-expense)",
                             }}
                           />
                           <div>
@@ -817,7 +817,7 @@ export default function GroupDetail() {
               >
                 <div
                   className="w-10 h-10 rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: "#80808020" }}
+                  style={{ backgroundColor: "color-mix(in srgb, var(--text-tertiary) 12%, transparent)" }}
                 >
                   <Archive className="w-5 h-5" style={{ color: "var(--text-secondary)" }} />
                 </div>
@@ -836,11 +836,11 @@ export default function GroupDetail() {
               >
                 <div
                   className="w-10 h-10 rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: "#E5133220" }}
+                  style={{ backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)" }}
                 >
-                  <Trash2 className="w-5 h-5" style={{ color: "#E51332" }} />
+                  <Trash2 className="w-5 h-5" style={{ color: "var(--data-expense)" }} />
                 </div>
-                <span className="text-[#E51332] text-sm font-medium">
+                <span className="text-[var(--data-expense)] text-sm font-medium">
                   Supprimer le groupe
                 </span>
               </button>
@@ -865,7 +865,7 @@ export default function GroupDetail() {
             >
               <div
                 className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4"
-                style={{ backgroundColor: "#80808020" }}
+                style={{ backgroundColor: "color-mix(in srgb, var(--text-tertiary) 12%, transparent)" }}
               >
                 <Archive className="w-6 h-6 text-text-tertiary" />
               </div>
@@ -948,7 +948,7 @@ export default function GroupDetail() {
                     ))}
                 </select>
                 {error && (
-                  <p className="text-xs" style={{ color: "#E51332" }}>
+                  <p className="text-xs" style={{ color: "var(--data-expense)" }}>
                     {error}
                   </p>
                 )}
@@ -992,9 +992,9 @@ export default function GroupDetail() {
             >
               <div
                 className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4"
-                style={{ backgroundColor: "#E5133220" }}
+                style={{ backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)" }}
               >
-                <Trash2 className="w-6 h-6 text-[#E51332]" />
+                <Trash2 className="w-6 h-6 text-[var(--data-expense)]" />
               </div>
               <h3 className="text-text-primary font-bold text-lg mb-2">
                 Supprimer {orgUnit.name} ?
@@ -1009,7 +1009,7 @@ export default function GroupDetail() {
               <button
                 onClick={handleDelete}
                 className="w-full py-3.5 rounded-full font-semibold text-white mb-3"
-                style={{ backgroundColor: "#E51332" }}
+                style={{ backgroundColor: "var(--data-expense)" }}
               >
                 Supprimer définitivement
               </button>

@@ -15,7 +15,7 @@ import { formatCurrencyFull } from "@/lib/utils";
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
 import { Plus, Link2, Trash2, Handshake, Receipt, X, Check } from "lucide-react";
-import { IonPage, IonContent } from "@ionic/react";
+import { IonPage, IonContent, IonSpinner } from "@ionic/react";
 
 export default function GivingCampaign() {
   const { id } = useParams();
@@ -65,7 +65,7 @@ export default function GivingCampaign() {
         <IonContent className="bg-canvas">
           <div className="min-h-screen bg-canvas">
             <TopHeader title="Campagne" />
-            <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
+            <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
               <p className="text-text-tertiary text-sm">Campagne introuvable.</p>
             </div>
             <BottomNav />
@@ -137,7 +137,7 @@ export default function GivingCampaign() {
       <IonContent className="bg-canvas">
         <div className="min-h-screen bg-canvas">
           <TopHeader title="Campagne" />
-          <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
+          <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             {/* Progression */}
             <div className="rounded-xl p-4 mb-4" style={{ backgroundColor: "var(--card)" }} data-testid="campaign-progress">
               <h1 className="text-text-primary font-bold text-lg mb-1">{campaign.name}</h1>
@@ -147,7 +147,7 @@ export default function GivingCampaign() {
                   className="h-full rounded-full"
                   style={{
                     width: `${Math.min(100, p.pctOfTarget ?? 0)}%`,
-                    backgroundColor: done ? "#1DB954" : "var(--accent-primary)",
+                    backgroundColor: done ? "var(--data-income)" : "var(--accent-primary)",
                   }}
                 />
               </div>
@@ -200,7 +200,14 @@ export default function GivingCampaign() {
                     </select>
                   </div>
                   <button onClick={addPledge} disabled={pledgeBusy || !pledgeDonor || !pledgeAmount} className="w-full py-3 rounded-full font-semibold text-white text-sm active:scale-95 transition-transform disabled:opacity-40" style={{ backgroundColor: "var(--accent-primary)" }}>
-                    {pledgeBusy ? "…" : "Ajouter le pledge"}
+                    {pledgeBusy ? (
+                      <>
+                        <IonSpinner name="lines" style={{ width: 14, height: 14, marginRight: 6 }} />
+                        Ajout…
+                      </>
+                    ) : (
+                      "Ajouter le pledge"
+                    )}
                   </button>
                 </div>
               )}
@@ -251,7 +258,14 @@ export default function GivingCampaign() {
                     {donors.map((d) => <option key={d.id} value={d.id}>{d.full_name}</option>)}
                   </select>
                   <button onClick={linkTxNow} disabled={linkBusy || !linkTx || !linkDonor} className="w-full py-3 rounded-full font-semibold text-white text-sm active:scale-95 transition-transform disabled:opacity-40" style={{ backgroundColor: "var(--accent-primary)" }}>
-                    {linkBusy ? "…" : "Rattacher"}
+                    {linkBusy ? (
+                      <>
+                        <IonSpinner name="lines" style={{ width: 14, height: 14, marginRight: 6 }} />
+                        Rattachement…
+                      </>
+                    ) : (
+                      "Rattacher"
+                    )}
                   </button>
                 </div>
               )}
@@ -298,7 +312,14 @@ export default function GivingCampaign() {
                   </select>
                 </div>
                 <button onClick={generateReceipt} disabled={receiptBusy || !receiptDonor} className="w-full py-3 rounded-full font-semibold text-white text-sm active:scale-95 transition-transform disabled:opacity-40" style={{ backgroundColor: "var(--accent-primary)" }}>
-                  <span className="inline-flex items-center gap-2"><Check className="w-4 h-4" /> {receiptBusy ? "Génération…" : "Générer le reçu"}</span>
+                  <span className="inline-flex items-center gap-2">
+                    {receiptBusy ? (
+                      <IonSpinner name="lines" style={{ width: 14, height: 14 }} />
+                    ) : (
+                      <Check className="w-4 h-4" />
+                    )}
+                    {receiptBusy ? "Génération…" : "Générer le reçu"}
+                  </span>
                 </button>
                 {receiptMsg && <p className="text-income text-xs text-center">{receiptMsg}</p>}
               </div>

@@ -76,13 +76,14 @@ const MONTHS_FR = [
   "Déc",
 ];
 const COLORS = {
-  income: "#1DB954",
-  expense: "#E51332",
-  pending: "#FFB800",
+  income: "var(--data-income)",
+  expense: "var(--data-expense)",
+  pending: "var(--data-pending)",
   accent: "var(--accent-primary)",
-  purple: "#8B5CF6",
-  blue: "#3B82F6",
-  teal: "#14B8A6",
+  purple: "var(--data-advance)",
+  blue: "var(--data-planified)",
+  teal: "var(--shortcut-forms)",
+  // TODO(design-tokens): aucun token pour le rose #EC4899 (nuancier)
   pink: "#EC4899",
   grid: "var(--surface-hover)",
   text: "var(--text-tertiary)",
@@ -134,7 +135,7 @@ export default function HistoryPage() {
     return (
       <div className="min-h-screen bg-[var(--canvas)]">
         <TopHeader title="Historique" />
-        <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
+        <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
           <div className="space-y-4">
             {[1, 2, 3, 4, 5].map((i) => (
               <div
@@ -199,7 +200,7 @@ export default function HistoryPage() {
       <IonContent className="bg-canvas">
         <div className="min-h-screen bg-canvas">
           <TopHeader title="Historique" />
-          <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
+          <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             {/* Period selector */}
             <div className="flex gap-2 mb-5">
               {[
@@ -228,7 +229,7 @@ export default function HistoryPage() {
                 style={{ backgroundColor: "var(--surface)" }}
               >
                 <p className="text-text-tertiary text-xs mb-1">Entrées</p>
-                <p className="text-[#1DB954] font-bold text-base">
+                <p className="text-[var(--data-income)] font-bold text-base">
                   +{formatCentsToFCFA(totalIncome)}
                 </p>
               </div>
@@ -237,7 +238,7 @@ export default function HistoryPage() {
                 style={{ backgroundColor: "var(--surface)" }}
               >
                 <p className="text-text-tertiary text-xs mb-1">Sorties</p>
-                <p className="text-[#E51332] font-bold text-base">
+                <p className="text-[var(--data-expense)] font-bold text-base">
                   -{formatCentsToFCFA(totalExpense)}
                 </p>
               </div>
@@ -250,7 +251,7 @@ export default function HistoryPage() {
                   className="font-bold text-base"
                   style={{
                     color:
-                      totalIncome - totalExpense >= 0 ? "#1DB954" : "#E51332",
+                      totalIncome - totalExpense >= 0 ? "var(--data-income)" : "var(--data-expense)",
                   }}
                 >
                   {totalIncome - totalExpense >= 0 ? "+" : "-"}
@@ -341,18 +342,20 @@ export default function HistoryPage() {
                     className="w-10 h-10 rounded-full flex items-center justify-center"
                     style={{
                       backgroundColor:
-                        tx.type === "INCOME" ? "#1DB95420" : "#E5133220",
+                        tx.type === "INCOME"
+                          ? "color-mix(in srgb, var(--data-income) 12%, transparent)"
+                          : "color-mix(in srgb, var(--data-expense) 12%, transparent)",
                     }}
                   >
                     {tx.type === "INCOME" ? (
                       <ArrowUpRight
                         className="w-5 h-5"
-                        style={{ color: "#1DB954" }}
+                        style={{ color: "var(--data-income)" }}
                       />
                     ) : (
                       <ArrowDownRight
                         className="w-5 h-5"
-                        style={{ color: "#E51332" }}
+                        style={{ color: "var(--data-expense)" }}
                       />
                     )}
                   </div>
@@ -367,7 +370,7 @@ export default function HistoryPage() {
                   <span
                     className="font-bold text-sm"
                     style={{
-                      color: tx.type === "INCOME" ? "#1DB954" : "#E51332",
+                      color: tx.type === "INCOME" ? "var(--data-income)" : "var(--data-expense)",
                     }}
                   >
                     {tx.type === "INCOME" ? "+" : "-"}

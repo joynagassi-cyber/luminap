@@ -138,12 +138,12 @@ export default function Finance() {
             <Fragment>
               <h1 className="sr-only">Finance — Grand livre</h1>
               <TopHeader title="Finance" />
-              <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
+              <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             {/* Summary Cards */}
             <div className="grid grid-cols-2 gap-3 mb-6">
               <div
                 className="rounded-xl p-4"
-                style={{ backgroundColor: "#1DB95420" }}
+                style={{ backgroundColor: "color-mix(in srgb, var(--data-income) 12%, transparent)" }}
               >
                 <p className="text-text-tertiary text-xs">Revenus</p>
                 <p className="text-text-primary font-bold text-lg mt-1">
@@ -152,7 +152,7 @@ export default function Finance() {
               </div>
               <div
                 className="rounded-xl p-4"
-                style={{ backgroundColor: "#E5133220" }}
+                style={{ backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)" }}
               >
                 <p className="text-text-tertiary text-xs">Dépenses</p>
                 <p className="text-text-primary font-bold text-lg mt-1">
@@ -247,7 +247,7 @@ export default function Finance() {
                         className="px-3 py-1.5 rounded-lg text-xs font-medium"
                         style={{
                           backgroundColor:
-                            selectedStatus === f ? "#3B82F6" : "var(--surface)",
+                            selectedStatus === f ? "var(--data-planified)" : "var(--surface)",
                           color: selectedStatus === f ? "var(--text-primary)" : "var(--text-secondary)",
                         }}
                       >

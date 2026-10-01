@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, memo, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   useTransactions,
@@ -47,8 +47,9 @@ import type { ReportDefinition } from "@/types";
 type Tab = "global" | "groupes" | "evenements";
 type Period = "month" | "year" | "all";
 
-const PIE_COLORS = ["#FF6B00", "#3B82F6", "#1DB954", "#8B5CF6", "#EC4899", "#14B8A6", "#F59E0B", "#E51332"];
-const COLORS = { grid: "var(--surface-hover)", text: "var(--text-tertiary)", income: "#1DB954", expense: "#E51332", accent: "var(--accent-primary)" };
+const PIE_COLORS = ["var(--accent-primary)", "var(--data-planified)", "var(--data-income)", "var(--data-advance)", "#EC4899", "var(--shortcut-forms)", "var(--shortcut-reports)", "var(--data-expense)"];
+// TODO(design-tokens): aucun token pour le rose #EC4899 (5e teinte du nuancier)
+const COLORS = { grid: "var(--surface-hover)", text: "var(--text-tertiary)", income: "var(--data-income)", expense: "var(--data-expense)", accent: "var(--accent-primary)" };
 
 // La couche de données renvoie snake_case (PowerSync) OU camelCase (IndexedDB) :
 // on normalise à la lecture pour rester correct dans les deux modes.
@@ -77,6 +78,186 @@ function ChartTooltip({ active, payload, label, money }: any) {
   );
 }
 
+// ── Panneaux d'onglets (mémoïsés) ─────────────────────────────────────────────
+// Le contenu de chaque onglet est monté/démonté selon `activeTab` ; on l'extrait
+// en sous-composants mémoïsés pour que la commutation d'onglets ne ré-exécute pas
+// l'intégralité de la page (re-runs des hooks et des calculs) à chaque re-render.
+
+interface GlobalPanelProps {
+  totalIncome: number;
+  totalExpense: number;
+  netResult: number;
+  monthlyData: { name: string; income: number; expense: number }[];
+  pieData: { id: string; name: string; value: number }[];
+}
+
+const GlobalPanel = memo(function GlobalPanel({ totalIncome, totalExpense, netResult, monthlyData, pieData }: GlobalPanelProps) {
+  return (
+    <div className="space-y-5">
+      <div className="grid grid-cols-3 gap-3">
+        <div className="rounded-xl p-4 text-center" style={{ backgroundColor: "var(--surface)" }}>
+          <div className="w-8 h-8 rounded-full flex items-center justify-center mx-auto mb-2" style={{ backgroundColor: "color-mix(in srgb, var(--data-income) 12%, transparent)" }}>
+            <TrendingUp className="w-4 h-4" style={{ color: "var(--data-income)" }} />
+          </div>
+          <p className="text-text-tertiary text-xs">Entrées</p>
+          <p className="text-income font-bold text-sm mt-1">+{formatCentsToFCFA(totalIncome)}</p>
+        </div>
+        <div className="rounded-xl p-4 text-center" style={{ backgroundColor: "var(--surface)" }}>
+          <div className="w-8 h-8 rounded-full flex items-center justify-center mx-auto mb-2" style={{ backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)" }}>
+            <TrendingDown className="w-4 h-4" style={{ color: "var(--data-expense)" }} />
+          </div>
+          <p className="text-text-tertiary text-xs">Sorties</p>
+          <p className="text-expense font-bold text-sm mt-1">-{formatCentsToFCFA(totalExpense)}</p>
+        </div>
+        <div className="rounded-xl p-4 text-center" style={{ backgroundColor: "var(--surface)" }}>
+          <div className="w-8 h-8 rounded-full flex items-center justify-center mx-auto mb-2" style={{ backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)" }}>
+            <BarChart3 className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
+          </div>
+          <p className="text-text-tertiary text-xs">Résultat</p>
+          <p className="font-bold text-sm mt-1" style={{ color: netResult >= 0 ? "var(--data-income)" : "var(--data-expense)" }}>
+            {netResult >= 0 ? "+" : "-"}{formatCentsToFCFA(Math.abs(netResult))}
+          </p>
+        </div>
+      </div>
+
+      <div className="rounded-xl p-3" style={{ backgroundColor: "var(--surface)" }}>
+        <p className="text-text-tertiary text-xs mb-2">Évolution (12 mois)</p>
+        <ChartContainer config={{}} className="h-40">
+          <AreaChart data={monthlyData}>
+            <CartesianGrid strokeDasharray="3 3" stroke={COLORS.grid} vertical={false} />
+            <XAxis dataKey="name" stroke={COLORS.text} tick={{ fontSize: 10 }} />
+            <YAxis stroke={COLORS.text} tick={{ fontSize: 10 }} tickFormatter={(v: number) => formatCentsToFCFA(v)} />
+            <Tooltip content={<ChartTooltip money />} />
+            <Area type="monotone" dataKey="income" name="Entrées" stroke={COLORS.income} fill={COLORS.income} fillOpacity={0.3} stackId="1" />
+            <Area type="monotone" dataKey="expense" name="Sorties" stroke={COLORS.expense} fill={COLORS.expense} fillOpacity={0.3} stackId="1" />
+          </AreaChart>
+        </ChartContainer>
+      </div>
+
+      <div className="rounded-xl p-3" style={{ backgroundColor: "var(--surface)" }}>
+        <p className="text-text-tertiary text-xs mb-2">Sorties par catégorie</p>
+        {pieData.length === 0 ? (
+          <p className="text-text-tertiary text-xs py-6 text-center">Aucune sortie sur la période</p>
+        ) : (
+          <ChartContainer config={{}} className="h-56">
+            <PieChart>
+              <Pie data={pieData} dataKey="value" nameKey="name" innerRadius={40} outerRadius={70} paddingAngle={2}>
+                {pieData.map((_, i) => (
+                  <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip content={<ChartTooltip money />} />
+            </PieChart>
+          </ChartContainer>
+        )}
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 mt-2">
+          {pieData.map((d, i) => (
+            <div key={d.id} className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
+              <span className="text-text-secondary text-[11px] flex-1 truncate">{d.name}</span>
+              <span className="text-text-tertiary text-[11px] tabular-nums">{formatCentsToFCFA(d.value)}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+});
+
+interface GroupPanelProps {
+  caisseData: { id: string; name: string; income: number; expense: number; solde: number }[];
+}
+
+const GroupPanel = memo(function GroupPanel({ caisseData }: GroupPanelProps) {
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl p-3" style={{ backgroundColor: "var(--surface)" }}>
+        <p className="text-text-tertiary text-xs mb-2">Solde par caisse</p>
+        <ChartContainer config={{}} className="h-44">
+          <BarChart data={caisseData} margin={{ top: 4, right: 4, left: -8, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke={COLORS.grid} vertical={false} />
+            <XAxis dataKey="name" stroke={COLORS.text} tick={{ fontSize: 10 }} interval={0} />
+            <YAxis stroke={COLORS.text} tick={{ fontSize: 10 }} tickFormatter={(v: number) => formatCentsToFCFA(v)} />
+            <Tooltip content={<ChartTooltip money />} />
+            <Bar dataKey="solde" name="Solde" fill={COLORS.accent} radius={[4, 4, 0, 0]} barSize={20} />
+          </BarChart>
+        </ChartContainer>
+      </div>
+      <div className="space-y-2">
+        {caisseData.map((c) => (
+          <div key={c.id} className="rounded-xl p-3 flex items-center gap-3" style={{ backgroundColor: "var(--surface)" }}>
+            <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)" }}>
+              <Building2 className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-text-primary text-sm font-medium truncate">{c.name}</p>
+              <p className="text-text-tertiary text-[11px]">
+                {formatCentsToFCFA(c.income)} entrées · {formatCentsToFCFA(c.expense)} sorties
+              </p>
+            </div>
+            <span className="text-sm font-bold tabular-nums" style={{ color: c.solde >= 0 ? "var(--data-income)" : "var(--data-expense)" }}>
+              {c.solde >= 0 ? "+" : "-"}{formatCentsToFCFA(Math.abs(c.solde))}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+});
+
+interface EventPanelProps {
+  eventData: { id: string; name: string; budget: number; income: number; expense: number; net: number; active: boolean }[];
+  onOpen: (id: string) => void;
+}
+
+const EventPanel = memo(function EventPanel({ eventData, onOpen }: EventPanelProps) {
+  return (
+    <div className="space-y-4">
+      {eventData.length === 0 ? (
+        <div className="text-center py-10 rounded-xl" style={{ backgroundColor: "var(--surface)" }}>
+          <p className="text-text-tertiary text-sm">Aucun événement</p>
+        </div>
+      ) : (
+        <>
+          <div className="rounded-xl p-3" style={{ backgroundColor: "var(--surface)" }}>
+            <p className="text-text-tertiary text-xs mb-2">Entrées / sorties par événement</p>
+            <ChartContainer config={{}} className="h-44">
+              <BarChart data={eventData.filter((e) => e.active)} margin={{ top: 4, right: 4, left: -8, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={COLORS.grid} vertical={false} />
+                <XAxis dataKey="name" stroke={COLORS.text} tick={{ fontSize: 9 }} interval={0} />
+                <YAxis stroke={COLORS.text} tick={{ fontSize: 10 }} tickFormatter={(v: number) => formatCentsToFCFA(v)} />
+                <Tooltip content={<ChartTooltip money />} />
+                <Bar dataKey="income" name="Entrées" fill={COLORS.income} radius={[4, 4, 0, 0]} barSize={14} />
+                <Bar dataKey="expense" name="Sorties" fill={COLORS.expense} radius={[4, 4, 0, 0]} barSize={14} />
+              </BarChart>
+            </ChartContainer>
+          </div>
+          <div className="space-y-2">
+            {eventData.map((e) => (
+              <button
+                key={e.id}
+                onClick={() => onOpen(e.id)}
+                className="w-full text-left rounded-xl p-3 flex items-center gap-3"
+                style={{ backgroundColor: "var(--surface)" }}
+              >
+                <div className="flex-1 min-w-0">
+                  <p className="text-text-primary text-sm font-medium truncate">{e.name}</p>
+                  <p className="text-text-tertiary text-[11px]">
+                    Budget {formatCentsToFCFA(e.budget)} · Net {formatCentsToFCFA(Math.abs(e.net))}
+                  </p>
+                </div>
+                <span className="text-sm font-bold tabular-nums" style={{ color: e.net >= 0 ? "var(--data-income)" : "var(--data-expense)" }}>
+                  {e.net >= 0 ? "+" : "-"}{formatCentsToFCFA(Math.abs(e.net))}
+                </span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+});
+
 export default function Reports() {
   const navigate = useNavigate();
   const user = useCurrentUser();
@@ -85,6 +266,8 @@ export default function Reports() {
   const { data: caisses } = useCaisses();
   const { data: categories } = useCategories();
   const { data: events } = useEvents();
+
+  const openEvent = useCallback((id: string) => navigate(`/event/${id}`), [navigate]);
 
   const [activeTab, setActiveTab] = useState<Tab>("global");
   const [period, setPeriod] = useState<Period>("month");
@@ -131,17 +314,20 @@ export default function Reports() {
   const totalExpense = approved.filter((t: any) => t.type === "EXPENSE").reduce((s: number, t: any) => s + t.amount, 0);
   const netResult = totalIncome - totalExpense;
 
-  const MONTHS_FR = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Août", "Sep", "Oct", "Nov", "Déc"];
-  const monthlyData = MONTHS_FR.map((m, i) => {
-    const txs = ((transactions as any[]) || []).filter((t: any) => {
-      if (t.status !== "APPROVED") return false;
-      const d = new Date(t.date);
-      return d.getMonth() === i && d.getFullYear() === now.getFullYear();
+  const monthlyData = useMemo(() => {
+    const MONTHS_FR = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Août", "Sep", "Oct", "Nov", "Déc"];
+    return MONTHS_FR.map((m, i) => {
+      const txs = ((transactions as any[]) || []).filter((t: any) => {
+        if (t.status !== "APPROVED") return false;
+        const d = new Date(t.date);
+        return d.getMonth() === i && d.getFullYear() === now.getFullYear();
+      });
+      const income = txs.filter((t: any) => t.type === "INCOME").reduce((s: number, t: any) => s + t.amount, 0);
+      const expense = txs.filter((t: any) => t.type === "EXPENSE").reduce((s: number, t: any) => s + t.amount, 0);
+      return { name: m, income, expense };
     });
-    const income = txs.filter((t: any) => t.type === "INCOME").reduce((s: number, t: any) => s + t.amount, 0);
-    const expense = txs.filter((t: any) => t.type === "EXPENSE").reduce((s: number, t: any) => s + t.amount, 0);
-    return { name: m, income, expense };
-  });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transactions]);
 
   const pieData = useMemo(() => {
     const map: Record<string, number> = {};
@@ -226,7 +412,7 @@ export default function Reports() {
         <IonContent className="bg-canvas">
           <div className="min-h-screen bg-canvas">
             <TopHeader title="Rapports" />
-            <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
+            <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
               <ReportsSkeleton />
             </div>
             <BottomNav />
@@ -241,7 +427,7 @@ export default function Reports() {
       <IonContent className="bg-canvas">
         <div className="min-h-screen bg-canvas">
           <TopHeader title="Rapports" />
-          <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
+          <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             {/* Période */}
             <div className="flex gap-2 mb-5">
               {([
@@ -255,7 +441,7 @@ export default function Reports() {
                   className="flex-1 py-2 rounded-full text-xs font-medium transition-all"
                   style={
                     period === p.id
-                      ? { backgroundColor: "var(--accent-primary)", color: "#fff" }
+                      ? { backgroundColor: "var(--accent-primary)", color: "var(--on-accent)" }
                       : { backgroundColor: "var(--surface)", color: "var(--text-secondary)" }
                   }
                 >
@@ -277,7 +463,7 @@ export default function Reports() {
                   className="flex-1 py-2 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1.5"
                   style={
                     activeTab === tab.id
-                      ? { backgroundColor: "var(--accent-primary)", color: "#fff" }
+                      ? { backgroundColor: "var(--accent-primary)", color: "var(--on-accent)" }
                       : { color: "var(--text-secondary)" }
                   }
                 >
@@ -289,158 +475,20 @@ export default function Reports() {
 
             {/* ── GLOBAL ── */}
             {activeTab === "global" && (
-              <div className="space-y-5">
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="rounded-xl p-4 text-center" style={{ backgroundColor: "var(--surface)" }}>
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center mx-auto mb-2" style={{ backgroundColor: "#1DB95420" }}>
-                      <TrendingUp className="w-4 h-4" style={{ color: "#1DB954" }} />
-                    </div>
-                    <p className="text-text-tertiary text-xs">Entrées</p>
-                    <p className="text-income font-bold text-sm mt-1">+{formatCentsToFCFA(totalIncome)}</p>
-                  </div>
-                  <div className="rounded-xl p-4 text-center" style={{ backgroundColor: "var(--surface)" }}>
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center mx-auto mb-2" style={{ backgroundColor: "#E5133220" }}>
-                      <TrendingDown className="w-4 h-4" style={{ color: "#E51332" }} />
-                    </div>
-                    <p className="text-text-tertiary text-xs">Sorties</p>
-                    <p className="text-expense font-bold text-sm mt-1">-{formatCentsToFCFA(totalExpense)}</p>
-                  </div>
-                  <div className="rounded-xl p-4 text-center" style={{ backgroundColor: "var(--surface)" }}>
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center mx-auto mb-2" style={{ backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)" }}>
-                      <BarChart3 className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
-                    </div>
-                    <p className="text-text-tertiary text-xs">Résultat</p>
-                    <p className="font-bold text-sm mt-1" style={{ color: netResult >= 0 ? "#1DB954" : "#E51332" }}>
-                      {netResult >= 0 ? "+" : "-"}{formatCentsToFCFA(Math.abs(netResult))}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="rounded-xl p-3" style={{ backgroundColor: "var(--surface)" }}>
-                  <p className="text-text-tertiary text-xs mb-2">Évolution (12 mois)</p>
-                  <ChartContainer config={{}} className="h-40">
-                    <AreaChart data={monthlyData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke={COLORS.grid} vertical={false} />
-                      <XAxis dataKey="name" stroke={COLORS.text} tick={{ fontSize: 10 }} />
-                      <YAxis stroke={COLORS.text} tick={{ fontSize: 10 }} tickFormatter={(v: number) => formatCentsToFCFA(v)} />
-                      <Tooltip content={<ChartTooltip money />} />
-                      <Area type="monotone" dataKey="income" name="Entrées" stroke={COLORS.income} fill={COLORS.income} fillOpacity={0.3} stackId="1" />
-                      <Area type="monotone" dataKey="expense" name="Sorties" stroke={COLORS.expense} fill={COLORS.expense} fillOpacity={0.3} stackId="1" />
-                    </AreaChart>
-                  </ChartContainer>
-                </div>
-
-                <div className="rounded-xl p-3" style={{ backgroundColor: "var(--surface)" }}>
-                  <p className="text-text-tertiary text-xs mb-2">Sorties par catégorie</p>
-                  {pieData.length === 0 ? (
-                    <p className="text-text-tertiary text-xs py-6 text-center">Aucune sortie sur la période</p>
-                  ) : (
-                    <ChartContainer config={{}} className="h-56">
-                      <PieChart>
-                        <Pie data={pieData} dataKey="value" nameKey="name" innerRadius={40} outerRadius={70} paddingAngle={2}>
-                          {pieData.map((_, i) => (
-                            <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip content={<ChartTooltip money />} />
-                      </PieChart>
-                    </ChartContainer>
-                  )}
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 mt-2">
-                    {pieData.map((d, i) => (
-                      <div key={d.id} className="flex items-center gap-2">
-                        <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
-                        <span className="text-text-secondary text-[11px] flex-1 truncate">{d.name}</span>
-                        <span className="text-text-tertiary text-[11px] tabular-nums">{formatCentsToFCFA(d.value)}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
+              <GlobalPanel
+                totalIncome={totalIncome}
+                totalExpense={totalExpense}
+                netResult={netResult}
+                monthlyData={monthlyData}
+                pieData={pieData}
+              />
             )}
 
             {/* ── GROUPES ── */}
-            {activeTab === "groupes" && (
-              <div className="space-y-4">
-                <div className="rounded-xl p-3" style={{ backgroundColor: "var(--surface)" }}>
-                  <p className="text-text-tertiary text-xs mb-2">Solde par caisse</p>
-                  <ChartContainer config={{}} className="h-44">
-                    <BarChart data={caisseData} margin={{ top: 4, right: 4, left: -8, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke={COLORS.grid} vertical={false} />
-                      <XAxis dataKey="name" stroke={COLORS.text} tick={{ fontSize: 10 }} interval={0} />
-                      <YAxis stroke={COLORS.text} tick={{ fontSize: 10 }} tickFormatter={(v: number) => formatCentsToFCFA(v)} />
-                      <Tooltip content={<ChartTooltip money />} />
-                      <Bar dataKey="solde" name="Solde" fill={COLORS.accent} radius={[4, 4, 0, 0]} barSize={20} />
-                    </BarChart>
-                  </ChartContainer>
-                </div>
-                <div className="space-y-2">
-                  {caisseData.map((c) => (
-                    <div key={c.id} className="rounded-xl p-3 flex items-center gap-3" style={{ backgroundColor: "var(--surface)" }}>
-                      <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)" }}>
-                        <Building2 className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-text-primary text-sm font-medium truncate">{c.name}</p>
-                        <p className="text-text-tertiary text-[11px]">
-                          {formatCentsToFCFA(c.income)} entrées · {formatCentsToFCFA(c.expense)} sorties
-                        </p>
-                      </div>
-                      <span className="text-sm font-bold tabular-nums" style={{ color: c.solde >= 0 ? "#1DB954" : "#E51332" }}>
-                        {c.solde >= 0 ? "+" : "-"}{formatCentsToFCFA(Math.abs(c.solde))}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            {activeTab === "groupes" && <GroupPanel caisseData={caisseData} />}
 
             {/* ── ÉVÉNEMENTS ── */}
-            {activeTab === "evenements" && (
-              <div className="space-y-4">
-                {eventData.length === 0 ? (
-                  <div className="text-center py-10 rounded-xl" style={{ backgroundColor: "var(--surface)" }}>
-                    <p className="text-text-tertiary text-sm">Aucun événement</p>
-                  </div>
-                ) : (
-                  <>
-                    <div className="rounded-xl p-3" style={{ backgroundColor: "var(--surface)" }}>
-                      <p className="text-text-tertiary text-xs mb-2">Entrées / sorties par événement</p>
-                      <ChartContainer config={{}} className="h-44">
-                        <BarChart data={eventData.filter((e) => e.active)} margin={{ top: 4, right: 4, left: -8, bottom: 0 }}>
-                          <CartesianGrid strokeDasharray="3 3" stroke={COLORS.grid} vertical={false} />
-                          <XAxis dataKey="name" stroke={COLORS.text} tick={{ fontSize: 9 }} interval={0} />
-                          <YAxis stroke={COLORS.text} tick={{ fontSize: 10 }} tickFormatter={(v: number) => formatCentsToFCFA(v)} />
-                          <Tooltip content={<ChartTooltip money />} />
-                          <Bar dataKey="income" name="Entrées" fill={COLORS.income} radius={[4, 4, 0, 0]} barSize={14} />
-                          <Bar dataKey="expense" name="Sorties" fill={COLORS.expense} radius={[4, 4, 0, 0]} barSize={14} />
-                        </BarChart>
-                      </ChartContainer>
-                    </div>
-                    <div className="space-y-2">
-                      {eventData.map((e) => (
-                        <button
-                          key={e.id}
-                          onClick={() => navigate(`/event/${e.id}`)}
-                          className="w-full text-left rounded-xl p-3 flex items-center gap-3"
-                          style={{ backgroundColor: "var(--surface)" }}
-                        >
-                          <div className="flex-1 min-w-0">
-                            <p className="text-text-primary text-sm font-medium truncate">{e.name}</p>
-                            <p className="text-text-tertiary text-[11px]">
-                              Budget {formatCentsToFCFA(e.budget)} · Net {formatCentsToFCFA(Math.abs(e.net))}
-                            </p>
-                          </div>
-                          <span className="text-sm font-bold tabular-nums" style={{ color: e.net >= 0 ? "#1DB954" : "#E51332" }}>
-                            {e.net >= 0 ? "+" : "-"}{formatCentsToFCFA(Math.abs(e.net))}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
+            {activeTab === "evenements" && <EventPanel eventData={eventData} onOpen={openEvent} />}
 
             {/* Mes rapports (regroupés par famille — F.2c) */}
             {canRead && (
@@ -515,7 +563,7 @@ export default function Reports() {
               <button
                 onClick={() => setShowExport(true)}
                 className="w-full mt-5 py-3.5 rounded-full font-semibold text-white text-sm flex items-center justify-center gap-2 transition-all active:scale-95"
-                style={{ background: "linear-gradient(135deg, #FF8533, var(--accent-primary))" }}
+                style={{ background: "linear-gradient(135deg, var(--accent-light), var(--accent-primary))" }}
               >
                 <Download className="w-4 h-4" /> Exporter le rapport
               </button>
@@ -536,9 +584,9 @@ export default function Reports() {
                 </div>
                 <div className="space-y-3">
                   {([
-                    { fmt: "pdf" as const, label: "PDF", desc: "Document professionnel", color: "#E51332" },
-                    { fmt: "excel" as const, label: "Excel", desc: "Feuilles multiples", color: "#1DB954" },
-                    { fmt: "csv" as const, label: "CSV", desc: "Compatible tableurs", color: "#3B82F6" },
+                    { fmt: "pdf" as const, label: "PDF", desc: "Document professionnel", color: "var(--data-expense)" },
+                    { fmt: "excel" as const, label: "Excel", desc: "Feuilles multiples", color: "var(--data-income)" },
+                    { fmt: "csv" as const, label: "CSV", desc: "Compatible tableurs", color: "var(--data-planified)" },
                   ]).map((o) => (
                     <button
                       key={o.fmt}

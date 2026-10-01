@@ -31,6 +31,7 @@ import {
   IonToolbar,
   IonInput,
   IonButton,
+  IonSpinner,
 } from "@ionic/react";
 
 export default function TransactionNew() {
@@ -190,7 +191,7 @@ export default function TransactionNew() {
       <IonContent fullscreen>
         <h1 className="sr-only">Nouvelle transaction</h1>
         <TopHeader title="Nouvelle transaction" />
-        <div className="px-5 pt-16 pb-28">
+        <div className="px-5 pt-safe-calc pb-safe-calc">
             <button
               onClick={() => navigate(-1)}
               className="flex items-center gap-2 text-text-secondary text-sm mb-5"
@@ -204,7 +205,7 @@ export default function TransactionNew() {
                 onClick={() => setType("INCOME")}
                 className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all"
                 style={{
-                  backgroundColor: type === "INCOME" ? "#1DB954" : "var(--surface)",
+                  backgroundColor: type === "INCOME" ? "var(--data-income)" : "var(--surface)",
                   color: type === "INCOME" ? "var(--text-primary)" : "var(--text-secondary)",
                 }}
               >
@@ -214,7 +215,7 @@ export default function TransactionNew() {
                 onClick={() => setType("EXPENSE")}
                 className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all"
                 style={{
-                  backgroundColor: type === "EXPENSE" ? "#E51332" : "var(--surface)",
+                  backgroundColor: type === "EXPENSE" ? "var(--data-expense)" : "var(--surface)",
                   color: type === "EXPENSE" ? "var(--text-primary)" : "var(--text-secondary)",
                 }}
               >
@@ -537,7 +538,7 @@ export default function TransactionNew() {
                   </label>
                 </div>
                 {!isOnline && proofPhotos.length === 0 && (
-                  <p className="text-xs text-[#FFB800] mt-2">
+                  <p className="text-xs text-[var(--data-pending)] mt-2">
                     Hors ligne : la photo ne pourra pas être envoyée avant
                     reconnexion.
                   </p>
@@ -548,7 +549,7 @@ export default function TransactionNew() {
             {error && (
               <div
                 className="mb-4 p-3 rounded-xl text-sm text-center"
-                style={{ backgroundColor: "#E5133220", color: "#E51332" }}
+                style={{ backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)", color: "var(--data-expense)" }}
               >
                 {error}
               </div>
@@ -563,7 +564,14 @@ export default function TransactionNew() {
                   type === "INCOME" ? "var(--data-income)" : "var(--data-expense)",
               }}
             >
-              {submitting ? "Enregistrement…" : "Enregistrer la transaction"}
+              {submitting ? (
+                <>
+                  <IonSpinner name="lines" style={{ marginRight: 6 }} />
+                  Enregistrement…
+                </>
+              ) : (
+                "Enregistrer la transaction"
+              )}
             </IonButton>
           </div>
           <BottomNav />

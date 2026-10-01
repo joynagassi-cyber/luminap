@@ -105,7 +105,7 @@ function CaisseCard({
         <div className="text-right">
           <p
             className="text-text-primary font-bold text-lg"
-            style={{ color: balance >= 0 ? "#1DB954" : "#E51332" }}
+            style={{ color: balance >= 0 ? "var(--data-income)" : "var(--data-expense)" }}
           >
             {balance >= 0 ? "" : "-"}
             {formatCentsToFCFA(Math.abs(balance))}
@@ -116,17 +116,17 @@ function CaisseCard({
       <div className="flex items-center justify-between text-xs">
         <span className="text-text-tertiary">
           Entrées:{" "}
-          <span style={{ color: "#1DB954" }}>+{formatCentsToFCFA(income)}</span>
+          <span style={{ color: "var(--data-income)" }}>+{formatCentsToFCFA(income)}</span>
         </span>
         <span className="text-text-tertiary">
           Sorties:{" "}
-          <span style={{ color: "#E51332" }}>
+          <span style={{ color: "var(--data-expense)" }}>
             -{formatCentsToFCFA(expense)}
           </span>
         </span>
       </div>
       {pendingAmount !== 0 && (
-        <div className="mt-2 text-xs" style={{ color: "#FFB800" }}>
+        <div className="mt-2 text-xs" style={{ color: "var(--data-pending)" }}>
           {pendingAmount > 0 ? "+" : "-"}
           {formatCentsToFCFA(Math.abs(pendingAmount))} en attente
         </div>
@@ -220,7 +220,7 @@ export default function Dashboard() {
             Données financières à jour
           </div>
           <TopHeader title="Lumina" />
-          <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
+          <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             {/* Utilisateur : profil + nom + rôle */}
             <div className="flex items-center gap-3 mb-6">
               <div
@@ -274,7 +274,7 @@ export default function Dashboard() {
                   <div className="flex items-baseline gap-1 mt-1">
                     <span
                       className="text-2xl font-black tabular-nums"
-                      style={{ color: netResult >= 0 ? "#1DB954" : "#E51332" }}
+                      style={{ color: netResult >= 0 ? "var(--data-income)" : "var(--data-expense)" }}
                     >
                       {netResult >= 0 ? "" : "-"}
                       {formatCentsToFCFA(Math.abs(netResult))}
@@ -293,11 +293,11 @@ export default function Dashboard() {
                 <div className="flex items-center gap-3">
                   <div
                     className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                    style={{ backgroundColor: "#1DB95420" }}
+                    style={{ backgroundColor: tint("var(--data-income)", 12) }}
                   >
                     <ArrowUpRight
                       className="w-5 h-5"
-                      style={{ color: "#1DB954" }}
+                      style={{ color: "var(--data-income)" }}
                     />
                   </div>
                   <div>
@@ -306,7 +306,7 @@ export default function Dashboard() {
                     </p>
                     <p
                       className="text-sm font-semibold tabular-nums"
-                      style={{ color: "#1DB954" }}
+                      style={{ color: "var(--data-income)" }}
                     >
                       +{formatCentsToFCFA(totalIncome)}
                     </p>
@@ -315,11 +315,11 @@ export default function Dashboard() {
                 <div className="flex items-center gap-3">
                   <div
                     className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                    style={{ backgroundColor: "#E5133220" }}
+                    style={{ backgroundColor: tint("var(--data-expense)", 12) }}
                   >
                     <ArrowDownRight
                       className="w-5 h-5"
-                      style={{ color: "#E51332" }}
+                      style={{ color: "var(--data-expense)" }}
                     />
                   </div>
                   <div className="text-right">
@@ -328,7 +328,7 @@ export default function Dashboard() {
                     </p>
                     <p
                       className="text-sm font-semibold tabular-nums"
-                      style={{ color: "#E51332" }}
+                      style={{ color: "var(--data-expense)" }}
                     >
                       -{formatCentsToFCFA(totalExpense)}
                     </p>
@@ -390,7 +390,7 @@ export default function Dashboard() {
                   <div className="flex items-center gap-2">
                     <Calendar
                       className="w-4 h-4"
-                      style={{ color: "#8B5CF6" }}
+                      style={{ color: "var(--data-advance)" }}
                     />
                     <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider">
                       Événements à venir
@@ -416,12 +416,12 @@ export default function Dashboard() {
                     const overBudget =
                       event.budget > 0 && budgetSpent > event.budget;
                     const EVENT_COLORS: Record<string, string> = {
-                      PLANIFIED: "#3B82F6",
-                      ONGOING: "#1DB954",
-                      COMPLETED: "#808080",
-                      CANCELLED: "#E51332",
+                      PLANIFIED: "var(--data-planified)",
+                      ONGOING: "var(--data-income)",
+                      COMPLETED: "var(--text-tertiary)",
+                      CANCELLED: "var(--data-expense)",
                     };
-                    const color = EVENT_COLORS[event.status] || "#808080";
+                    const color = EVENT_COLORS[event.status] || "var(--text-tertiary)";
                     return (
                       <button
                         key={event.id}
@@ -429,7 +429,7 @@ export default function Dashboard() {
                         className="w-full text-left rounded-xl p-4 transition-all active:scale-95"
                         style={{
                           backgroundColor: "var(--surface)",
-                          border: `1px solid ${overBudget ? "#E5133240" : "var(--border)"}`,
+                          border: `1px solid ${overBudget ? tint("var(--data-expense)", 25) : "var(--border)"}`,
                         }}
                       >
                         <div className="flex items-center gap-3">
@@ -459,13 +459,13 @@ export default function Dashboard() {
                                     style={{
                                       width: `${Math.min(100, (budgetSpent / event.budget) * 100)}%`,
                                       backgroundColor: overBudget
-                                        ? "#E51332"
+                                        ? "var(--data-expense)"
                                         : "var(--accent-primary)",
                                     }}
                                   />
                                 </div>
                                 <span
-                                  className={`text-xs ${overBudget ? "text-[#E51332]" : "text-text-tertiary"}`}
+                                  className={`text-xs ${overBudget ? "text-[var(--data-expense)]" : "text-text-tertiary"}`}
                                 >
                                   {formatCentsToFCFA(budgetSpent)}/
                                   {formatCentsToFCFA(event.budget)}
@@ -538,11 +538,11 @@ export default function Dashboard() {
                 >
                   <div
                     className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                    style={{ backgroundColor: "#1DB95420" }}
+                    style={{ backgroundColor: tint("var(--data-income)", 12) }}
                   >
                     <ArrowUpRight
                       className="w-5 h-5"
-                      style={{ color: "#1DB954" }}
+                      style={{ color: "var(--data-income)" }}
                     />
                   </div>
                   <span className="text-text-primary text-xs font-medium text-center">
@@ -560,11 +560,11 @@ export default function Dashboard() {
                 >
                   <div
                     className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                    style={{ backgroundColor: "#E5133220" }}
+                    style={{ backgroundColor: tint("var(--data-expense)", 12) }}
                   >
                     <ArrowDownRight
                       className="w-5 h-5"
-                      style={{ color: "#E51332" }}
+                      style={{ color: "var(--data-expense)" }}
                     />
                   </div>
                   <span className="text-text-primary text-xs font-medium text-center">
@@ -604,11 +604,11 @@ export default function Dashboard() {
                 >
                   <div
                     className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                    style={{ backgroundColor: "#8B5CF620" }}
+                    style={{ backgroundColor: tint("var(--data-advance)", 12) }}
                   >
                     <Calendar
                       className="w-5 h-5"
-                      style={{ color: "#8B5CF6" }}
+                      style={{ color: "var(--data-advance)" }}
                     />
                   </div>
                   <span className="text-text-primary text-xs font-medium text-center">

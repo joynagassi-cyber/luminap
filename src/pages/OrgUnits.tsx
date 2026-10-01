@@ -294,7 +294,7 @@ export default function OrgUnits() {
                     key={u.id}
                     className="flex items-center gap-3 p-3 rounded-xl"
                     style={{
-                      backgroundColor: "#1f1f1f",
+                      backgroundColor: "var(--surface)",
                       border: "1px solid var(--border)",
                     }}
                   >
@@ -337,7 +337,7 @@ export default function OrgUnits() {
                       aria-label={`Supprimer ${u.name}`}
                       className="flex-shrink-0 transition-all active:scale-95"
                       style={{
-                        color: "#E51332",
+                        color: "var(--data-expense)",
                         background: "transparent",
                         border: "none",
                         cursor: "pointer",
@@ -356,9 +356,9 @@ export default function OrgUnits() {
               <div
                 className="mt-4 p-3 rounded-xl text-sm"
                 style={{
-                  backgroundColor: "#E5133220",
-                  border: "1px solid #E5133240",
-                  color: "#ff8fa3",
+                  backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)",
+                  border: "1px solid color-mix(in srgb, var(--data-expense) 25%, transparent)",
+                  color: "var(--data-expense)",
                 }}
               >
                 {error}

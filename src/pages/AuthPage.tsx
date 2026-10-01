@@ -18,7 +18,8 @@ import { App as CapacitorApp } from "@capacitor/app";
 
 type AuthMode = "login" | "signup";
 
-/** Official 4-colour Google "G" mark. */
+/** Official 4-colour Google "G" mark — couleurs de marque Google,
+    volontairement en hex (pas des design tokens Lumina). */
 function GoogleIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 48 48" className={className} aria-hidden="true">
@@ -363,10 +364,10 @@ export default function AuthPage() {
               className="w-full py-3.5 rounded-full font-medium text-sm flex items-center justify-center gap-3 mb-4 transition-all active:scale-95 disabled:opacity-50"
               style={{
                 // Bouton Google : blanc fixe dans les deux modes (contraste
-                // préservé sur canvas clair comme sombre).
-                backgroundColor: "#FFFFFF",
-                color: "#333",
-                border: "1px solid #ddd",
+                // préservé sur canvas clair comme sombre) — couleurs de marque.
+                backgroundColor: "var(--surface)",
+                color: "var(--text-secondary)",
+                border: "1px solid var(--border)",
               }}
               aria-label="Continuer avec Google"
             >
@@ -479,7 +480,7 @@ export default function AuthPage() {
               {error && (
                 <div
                   className="p-3 rounded-xl text-sm text-center"
-                  style={{ backgroundColor: "#E5133220", color: "#E51332" }}
+                  style={{ backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)", color: "var(--data-expense)" }}
                 >
                   {error}
                 </div>

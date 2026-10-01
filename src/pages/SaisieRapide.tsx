@@ -145,12 +145,12 @@ export default function SaisieRapide() {
       <IonContent className="bg-canvas">
         <div className="min-h-screen bg-canvas">
           <TopHeader title="Saisie rapide" />
-          <div className="max-w-lg mx-auto px-5 pb-32 pt-24">
+          <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             {culteDate && (
               <p className="text-text-tertiary text-xs mb-3">
                 Culte du {formatDate(culteDate)}
                 {isLocked && (
-                  <span className="ml-2 text-[#EF4444]">
+                  <span className="ml-2 text-[var(--data-alert)]">
                     (verrouillé : +30 jours)
                   </span>
                 )}
@@ -161,9 +161,9 @@ export default function SaisieRapide() {
               <div
                 className="mb-3 p-3 rounded-xl text-sm"
                 style={{
-                  backgroundColor: "#E5133220",
-                  border: "1px solid #E5133240",
-                  color: "#ff8fa3",
+                  backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)",
+                  border: "1px solid color-mix(in srgb, var(--data-expense) 25%, transparent)",
+                  color: "var(--data-expense)",
                 }}
               >
                 {error}
@@ -172,7 +172,7 @@ export default function SaisieRapide() {
 
             {culteCots.length === 0 ? (
               <div className="text-center py-10">
-                <CheckCircle className="w-12 h-12 mx-auto mb-3 text-[#10B981]" />
+                <CheckCircle className="w-12 h-12 mx-auto mb-3 text-[var(--data-success)]" />
                 <p className="text-text-primary font-medium">
                   Toutes les cotisations sont traitées.
                 </p>
@@ -237,8 +237,8 @@ export default function SaisieRapide() {
                           <span
                             className="text-[10px] px-1.5 py-0.5 rounded-full"
                             style={{
-                              backgroundColor: "#3B82F620",
-                              color: "#3B82F6",
+                              backgroundColor: "color-mix(in srgb, var(--data-planified) 12%, transparent)",
+                              color: "var(--data-planified)",
                             }}
                           >
                             Surplus: {formatCurrencyCompact(customCents - montantOblig)} F

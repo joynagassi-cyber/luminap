@@ -25,11 +25,11 @@ import {
 function getNotifIcon(actionType: string) {
   switch (actionType) {
     case "TRANSACTION_PENDING":
-      return <Bell className="w-4 h-4" style={{ color: "#FFB800" }} />;
+      return <Bell className="w-4 h-4" style={{ color: "var(--data-pending)" }} />;
     case "TRANSACTION_APPROVED":
-      return <CheckCircle className="w-4 h-4" style={{ color: "#1DB954" }} />;
+      return <CheckCircle className="w-4 h-4" style={{ color: "var(--data-income)" }} />;
     case "BUDGET_EXCEEDED":
-      return <AlertCircle className="w-4 h-4" style={{ color: "#E51332" }} />;
+      return <AlertCircle className="w-4 h-4" style={{ color: "var(--data-expense)" }} />;
     default:
       return <Bell className="w-4 h-4" style={{ color: "var(--text-secondary)" }} />;
   }
@@ -79,7 +79,7 @@ export default function NotificationsPage() {
       <IonContent fullscreen>
         <div className="min-h-screen bg-canvas">
           <TopHeader title="Notifications" />
-          <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
+          <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             <div className="flex items-center justify-between mb-5">
               <h1 className="text-text-primary font-bold text-xl">
                 Notifications
@@ -88,7 +88,7 @@ export default function NotificationsPage() {
                 <div className="flex items-center gap-2">
                   <span
                     className="text-xs px-2.5 py-1 rounded-full font-medium"
-                    style={{ backgroundColor: "#E5133220", color: "#E51332" }}
+                    style={{ backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)", color: "var(--data-expense)" }}
                   >
                     {unread} non lu{unread > 1 ? "s" : ""}
                   </span>

@@ -40,7 +40,7 @@ export default function MembresEnAvance() {
       <IonContent className="bg-canvas">
         <div className="min-h-screen" style={{ backgroundColor: "var(--canvas)" }}>
           <TopHeader title="En avance" />
-          <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
+          <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             {/* Back button */}
             <button
               onClick={() => navigate("/members")}
@@ -54,7 +54,7 @@ export default function MembresEnAvance() {
             <div
               className="rounded-2xl p-5 mb-5"
               style={{
-                background: "linear-gradient(135deg, #1a1a2e 0%, var(--canvas) 100%)",
+                background: "linear-gradient(135deg, var(--surface) 0%, var(--canvas) 100%)",
                 border: "1px solid color-mix(in srgb, var(--accent-primary) 19%, transparent)",
               }}
             >
@@ -127,7 +127,7 @@ export default function MembresEnAvance() {
                     <div className="text-right flex-shrink-0">
                       <p
                         className="text-sm font-bold"
-                        style={{ color: "#3B82F6" }}
+                        style={{ color: "var(--data-planified)" }}
                       >
                         {formatCurrencyCompact(montant)} F
                       </p>

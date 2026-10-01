@@ -565,16 +565,16 @@ export default function FormSubmissions() {
                                   style={{
                                     backgroundColor:
                                       sub.status === "PROCESSED"
-                                        ? "rgba(34,197,94,0.15)"
+                                        ? "color-mix(in srgb, var(--data-success) 15%, transparent)"
                                         : sub.status === "REJECTED"
-                                          ? "rgba(239,68,68,0.15)"
-                                          : "rgba(59,130,246,0.15)",
+                                          ? "color-mix(in srgb, var(--data-alert) 15%, transparent)"
+                                          : "color-mix(in srgb, var(--data-planified) 15%, transparent)",
                                     color:
                                       sub.status === "PROCESSED"
-                                        ? "#16a34a"
+                                        ? "var(--data-success)"
                                         : sub.status === "REJECTED"
-                                          ? "#dc2626"
-                                          : "#2563eb",
+                                          ? "var(--data-alert)"
+                                          : "var(--data-planified)",
                                   }}
                                 >
                                   {STATUS_LABELS[sub.status] ?? sub.status}

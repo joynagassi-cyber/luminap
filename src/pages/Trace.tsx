@@ -34,15 +34,15 @@ const ACTION_META: Record<
   string,
   { icon: typeof Clock; color: string; label: string }
 > = {
-  CREATE: { icon: CheckCircle, color: "#1DB954", label: "Créé" },
-  UPDATE: { icon: Edit2, color: "#3B82F6", label: "Modifié" },
-  DELETE: { icon: Trash2, color: "#E51332", label: "Supprimé" },
-  APPROVE: { icon: CheckCircle, color: "#1DB954", label: "Approuvé" },
-  REJECT: { icon: XCircle, color: "#E51332", label: "Rejeté" },
+  CREATE: { icon: CheckCircle, color: "var(--data-income)", label: "Créé" },
+  UPDATE: { icon: Edit2, color: "var(--data-planified)", label: "Modifié" },
+  DELETE: { icon: Trash2, color: "var(--data-expense)", label: "Supprimé" },
+  APPROVE: { icon: CheckCircle, color: "var(--data-income)", label: "Approuvé" },
+  REJECT: { icon: XCircle, color: "var(--data-expense)", label: "Rejeté" },
   ARCHIVE: { icon: FileText, color: "var(--text-secondary)", label: "Archivé" },
-  RESTORE: { icon: CheckCircle, color: "#1DB954", label: "Rétabli" },
-  REVISE: { icon: Edit2, color: "#FFB800", label: "Révisé" },
-  CANCEL: { icon: XCircle, color: "#E51332", label: "Annulé" },
+  RESTORE: { icon: CheckCircle, color: "var(--data-income)", label: "Rétabli" },
+  REVISE: { icon: Edit2, color: "var(--data-pending)", label: "Révisé" },
+  CANCEL: { icon: XCircle, color: "var(--data-expense)", label: "Annulé" },
 };
 
 const ENTITY_LABELS: Record<string, string> = {
@@ -126,7 +126,7 @@ export default function TracePage() {
       <IonContent className="bg-canvas">
         <div className="min-h-screen bg-canvas">
           <TopHeader title="Trace d'activité" />
-          <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
+          <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             {/* Search */}
             <div className="relative mb-4">
               <input

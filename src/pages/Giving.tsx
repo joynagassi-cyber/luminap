@@ -53,7 +53,7 @@ export default function Giving() {
       <IonContent className="bg-canvas">
         <div className="min-h-screen bg-canvas">
           <TopHeader title="Dons & Campagnes" />
-          <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
+          <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             <h1 className="text-text-primary font-bold text-xl mb-4" data-testid="giving-title">
               Dons & Campagnes
             </h1>
@@ -69,7 +69,7 @@ export default function Giving() {
                   className="flex-1 py-2 rounded-lg text-xs font-medium transition-all"
                   style={
                     tab === t.id
-                      ? { backgroundColor: "var(--accent-primary)", color: "#fff" }
+                      ? { backgroundColor: "var(--accent-primary)", color: "var(--text-primary)" }
                       : { color: "var(--text-secondary)" }
                   }
                 >
@@ -118,7 +118,7 @@ export default function Giving() {
                               className="h-full rounded-full"
                               style={{
                                 width: `${Math.min(100, bar)}%`,
-                                backgroundColor: done ? "#1DB954" : "var(--accent-primary)",
+                                backgroundColor: done ? "var(--data-income)" : "var(--accent-primary)",
                               }}
                             />
                           </div>
@@ -166,7 +166,7 @@ export default function Giving() {
                         {d.tax_receipt_enabled === 1 && (
                           <span
                             className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                            style={{ backgroundColor: "#1DB95420", color: "#1DB954" }}
+                            style={{ backgroundColor: "color-mix(in srgb, var(--data-income) 12%, transparent)", color: "var(--data-income)" }}
                           >
                             Reçu fiscal
                           </span>
@@ -378,7 +378,7 @@ function DonorSheet({
         data-testid="donor-tax-toggle"
       >
         <span className="text-text-secondary text-xs">Reçu fiscal annuel</span>
-        <span className="text-xs font-semibold" style={{ color: tax ? "#1DB954" : "var(--text-tertiary)" }}>
+        <span className="text-xs font-semibold" style={{ color: tax ? "var(--data-income)" : "var(--text-tertiary)" }}>
           {tax ? "Oui" : "Non"}
         </span>
       </button>
@@ -446,7 +446,7 @@ function Sheet({ title, onClose, children }: { title: string; onClose: () => voi
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={onClose}>
       <div className="absolute inset-0 bg-black/60" aria-hidden="true" />
-      <div ref={panelRef} role="dialog" aria-modal="true" aria-labelledby="giving-sheet-title" className="relative w-full max-w-lg rounded-t-2xl p-5 pb-28 space-y-3 outline-none" style={{ backgroundColor: "var(--card)" }} onClick={(e) => e.stopPropagation()}>
+      <div ref={panelRef} role="dialog" aria-modal="true" aria-labelledby="giving-sheet-title" className="relative w-full max-w-lg rounded-t-2xl p-5 pb-safe space-y-3 outline-none" style={{ backgroundColor: "var(--card)" }} onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-2">
           <h2 id="giving-sheet-title" className="text-text-primary font-bold text-lg">{title}</h2>
           <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: "var(--surface-hover)" }} aria-label="Fermer">

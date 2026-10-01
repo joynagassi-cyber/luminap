@@ -46,7 +46,7 @@ export function StatCardSkeleton() {
 export function FullPageSkeleton() {
   return (
     <div
-      className="max-w-lg mx-auto px-5 pb-24 pt-16"
+      className="max-w-lg mx-auto px-5 pb-safe pt-safe"
       aria-busy="true"
       style={{ display: "grid", gap: 16 }}
     >

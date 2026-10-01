@@ -132,7 +132,7 @@ export default function TransactionEdit() {
       <IonContent className="bg-canvas">
         <div className="min-h-screen bg-canvas">
           <TopHeader title="Modifier" />
-          <div className="px-5 pt-16 pb-28 max-w-lg mx-auto">
+          <div className="px-5 pt-safe-calc pb-safe-calc max-w-lg mx-auto">
             <div className="flex items-center justify-between mb-6">
               <button
                 onClick={() => navigate(-1)}
@@ -155,7 +155,7 @@ export default function TransactionEdit() {
                   className="flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all"
                   style={
                     type === "INCOME"
-                      ? { backgroundColor: "#1DB954", color: "#fff" }
+                      ? { backgroundColor: "var(--data-income)", color: "var(--text-primary)" }
                       : { color: "var(--text-secondary)" }
                   }
                   aria-label="Entrée"
@@ -167,7 +167,7 @@ export default function TransactionEdit() {
                   className="flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all"
                   style={
                     type === "EXPENSE"
-                      ? { backgroundColor: "#E51332", color: "#fff" }
+                      ? { backgroundColor: "var(--data-expense)", color: "var(--text-primary)" }
                       : { color: "var(--text-secondary)" }
                   }
                   aria-label="Sortie"
@@ -337,7 +337,7 @@ export default function TransactionEdit() {
               {error && (
                 <div
                   className="mb-4 p-3 rounded-xl text-sm text-center"
-                  style={{ backgroundColor: "#E5133220", color: "#ff8fa3" }}
+                  style={{ backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)", color: "var(--data-expense)" }}
                 >
                   {error}
                 </div>
@@ -348,7 +348,7 @@ export default function TransactionEdit() {
                 disabled={submitting}
                 className="w-full py-4 rounded-full font-semibold text-white text-sm transition-all active:scale-95"
                 style={{
-                  backgroundColor: type === "INCOME" ? "#1DB954" : "#E51332",
+                  backgroundColor: type === "INCOME" ? "var(--data-income)" : "var(--data-expense)",
                 }}
                 aria-label="Sauvegarder la transaction"
               >

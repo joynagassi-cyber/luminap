@@ -32,7 +32,7 @@ export default function SettingsShell({
     <IonPage>
       <IonContent className="bg-canvas">
         <TopHeader title={title} />
-        <div className="max-w-lg mx-auto px-5 pt-16 pb-28">
+        <div className="max-w-lg mx-auto px-5 pt-safe-calc pb-safe-calc">
           <button
             type="button"
             onClick={() => navigate(backTo)}

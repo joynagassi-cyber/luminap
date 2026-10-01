@@ -270,7 +270,7 @@ function OrgDetail({ orgId, onBack }: { orgId: string; onBack: () => void }) {
               <div
                 key={admin.id}
                 className="flex items-center gap-3 p-3 rounded-lg"
-                style={{ backgroundColor: "#1a1a1a" }}
+                style={{ backgroundColor: "var(--surface)" }}
               >
                 <div
                   className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
@@ -367,7 +367,7 @@ function OrgDetail({ orgId, onBack }: { orgId: string; onBack: () => void }) {
             <div
               key={i}
               className="flex items-start gap-3 p-3 rounded-xl"
-              style={{ backgroundColor: "#1a1a1a" }}
+              style={{ backgroundColor: "var(--surface)" }}
             >
               <History
                 className="w-4 h-4 text-text-tertiary mt-0.5 flex-shrink-0"
@@ -462,7 +462,7 @@ export default function CentralAdmin() {
         <IonContent className="bg-canvas">
           <div className="min-h-screen bg-canvas">
             <TopHeader title="Administration centrale" />
-            <div className="max-w-lg mx-auto px-5 pb-32 pt-24">
+            <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
               <div className="p-6 rounded-xl text-center" style={{ backgroundColor: "var(--surface)" }}>
                 <Shield className="w-10 h-10 text-text-tertiary mx-auto mb-3" />
                 <p className="text-text-primary font-semibold mb-1">
@@ -544,7 +544,7 @@ export default function CentralAdmin() {
             </div>
           </div>
 
-          <div className="max-w-lg mx-auto px-5 pb-32 pt-4">
+          <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe">
             {id ? (
               <OrgDetail orgId={id} onBack={() => navigate("/admin")} />
             ) : (

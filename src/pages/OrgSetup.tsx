@@ -206,7 +206,7 @@ export default function OrgSetup() {
             </button>
           </div>
 
-          <div className="px-6 pb-24 pt-2">
+          <div className="px-6 pb-safe pt-safe">
             <div className="max-w-sm mx-auto">
               <h1 className="text-text-primary font-bold text-xl mb-1">
                 Votre organisation

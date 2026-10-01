@@ -130,7 +130,7 @@ const App = () => (
         <a
           href="#main"
           className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-[100] focus:px-4 focus:py-2 focus:rounded-lg focus:text-sm focus:font-semibold focus:outline-none"
-          style={{ backgroundColor: "var(--accent-primary)", color: "#fff" }}
+          style={{ backgroundColor: "var(--accent-primary)", color: "var(--on-accent)" }}
         >
           Aller au contenu principal
         </a>

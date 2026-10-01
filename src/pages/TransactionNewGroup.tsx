@@ -108,7 +108,7 @@ export default function TransactionNewGroup() {
       <IonContent className="bg-canvas">
         <div className="min-h-screen bg-canvas">
           <TopHeader title="Nouvelle transaction" />
-          <div className="px-5 pt-16 pb-28">
+          <div className="px-5 pt-safe-calc pb-safe-calc">
             <button
               onClick={() => navigate(-1)}
               className="flex items-center gap-2 text-text-secondary text-sm mb-5"
@@ -135,7 +135,7 @@ export default function TransactionNewGroup() {
                 onClick={() => setType("INCOME")}
                 className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all"
                 style={{
-                  backgroundColor: type === "INCOME" ? "#1DB954" : "var(--surface)",
+                  backgroundColor: type === "INCOME" ? "var(--data-income)" : "var(--surface)",
                   color: type === "INCOME" ? "var(--text-primary)" : "var(--text-secondary)",
                 }}
               >
@@ -145,7 +145,7 @@ export default function TransactionNewGroup() {
                 onClick={() => setType("EXPENSE")}
                 className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all"
                 style={{
-                  backgroundColor: type === "EXPENSE" ? "#E51332" : "var(--surface)",
+                  backgroundColor: type === "EXPENSE" ? "var(--data-expense)" : "var(--surface)",
                   color: type === "EXPENSE" ? "var(--text-primary)" : "var(--text-secondary)",
                 }}
               >
@@ -298,7 +298,7 @@ export default function TransactionNewGroup() {
             {error && (
               <div
                 className="mb-4 p-3 rounded-xl text-sm text-center"
-                style={{ backgroundColor: "#E5133220", color: "#E51332" }}
+                style={{ backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)", color: "var(--data-expense)" }}
               >
                 {error}
               </div>
@@ -309,7 +309,7 @@ export default function TransactionNewGroup() {
               disabled={submitting}
               className="w-full py-4 rounded-full font-semibold text-white text-sm transition-all active:scale-95 disabled:opacity-50"
               style={{
-                backgroundColor: type === "INCOME" ? "#1DB954" : "#E51332",
+                backgroundColor: type === "INCOME" ? "var(--data-income)" : "var(--data-expense)",
               }}
             >
               {submitting ? "Enregistrement..." : "Enregistrer la transaction"}

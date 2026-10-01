@@ -230,7 +230,7 @@ export default function InvitationEmit() {
         <div className="min-h-screen bg-canvas">
           <TopHeader title="" />
 
-          <div className="max-w-lg mx-auto px-5 pb-32 pt-16">
+          <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             {step === "configure" ? (
               <div className="space-y-6">
                 {/* Role selection */}
@@ -279,6 +279,7 @@ export default function InvitationEmit() {
                     <IonSelect
                       value={targetGroupId}
                       onIonChange={(e) => setTargetGroupId(e.detail.value!)}
+                      aria-label="Groupe"
                     >
                       <IonSelectOption value="">-- Aucun --</IonSelectOption>
                       {groups.map((g: any) => (
@@ -303,6 +304,7 @@ export default function InvitationEmit() {
                   <IonSelect
                     value={targetMemberId}
                     onIonChange={(e) => setTargetMemberId(e.detail.value!)}
+                    aria-label="Membre"
                   >
                     <IonSelectOption value="">-- Nouveau membre --</IonSelectOption>
                     {members.map((m: any) => (
@@ -374,7 +376,7 @@ export default function InvitationEmit() {
                     <code className="text-2xl font-mono font-bold text-primary tracking-widest">
                       {generatedCode}
                     </code>
-                    <IonButton size="small" fill="outline" onClick={handleCopyCode}>
+                    <IonButton size="small" fill="outline" onClick={handleCopyCode} aria-label="Copier le code">
                       {showCopy ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                     </IonButton>
                   </div>
