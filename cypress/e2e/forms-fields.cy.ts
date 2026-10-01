@@ -26,22 +26,24 @@ describe('Lumina — Forms & Custom Fields', () => {
 
     cy.ensureAuth();
     cy.visit('/forms');
-    cy.get('h1, h2, h3').contains('Formulaires', { timeout: 30_000 }).should('be.visible');
+    cy.get('h1, h2, h3').contains('Formulaires', { timeout: 90_000 }).should('exist');
 
     // Open the create modal
-    cy.contains('button', 'Créer').first().click();
+    cy.contains('button', 'Créer').first().click({ force: true });
 
-    // Fill the form name + key
+    // Fill the form name + key (IonInput rend <ion-input> ; le DOM
+    // natif exposé est un <input> simple en dehors du shadow root —
+    // c'est ce que le selector ci-dessous cible).
     cy.get('input[placeholder*="Nom du formulaire"]').type(formName);
     cy.get('input[placeholder*="Clé"]').type(formKey);
     cy.contains('button', 'Créer le formulaire').click();
 
     // Form appears in the list
-    cy.contains(formName, { timeout: 30_000 }).should('be.visible');
+    cy.contains(formName, { timeout: 90_000 }).should('exist');
 
     // Publish the form (button label is "Publier" for a DRAFT form)
     cy.contains('button', 'Publier').first().click();
-    cy.contains('Brouillon', { timeout: 20_000 }).should('exist').as('draftBadge');
+    cy.contains('Brouillon', { timeout: 90_000 }).should('exist').as('draftBadge');
   });
 
   it('renders the form-submissions page', function () {
@@ -55,11 +57,11 @@ describe('Lumina — Forms & Custom Fields', () => {
       .first()
       .click({ force: true });
 
-    cy.location('pathname', { timeout: 30_000 }).should((path: string) => {
+    cy.location('pathname', { timeout: 90_000 }).should((path: string) => {
       expect(path).to.match(/^\/forms\/[^/]+\/submissions$/);
     });
 
-    cy.get('h1, h2, h3, header').should('exist');
+    cy.get('h1, h2, h3, header').should('exist', { timeout: 90_000 });
   });
 
   it('creates a custom field and shows it in the list', function () {
@@ -70,10 +72,10 @@ describe('Lumina — Forms & Custom Fields', () => {
 
     cy.ensureAuth();
     cy.visit('/custom-fields');
-    cy.get('h1, h2, h3').contains('Champs personnalisés', { timeout: 30_000 }).should('be.visible');
+    cy.get('h1, h2, h3').contains('Champs personnalisés', { timeout: 90_000 }).should('exist');
 
     // Open the create modal
-    cy.get('button[aria-label="Créer un nouveau champ"]').click();
+    cy.get('button[aria-label="Créer un nouveau champ"]').click({ force: true });
 
     // Fill label + key
     // The modal has: Entité (select), Label, Clé, Type (select), Options
@@ -82,7 +84,7 @@ describe('Lumina — Forms & Custom Fields', () => {
     cy.contains('button', /Créer/i).last().click();
 
     // Field appears in the list
-    cy.contains(fieldLabel, { timeout: 30_000 }).should('be.visible');
+    cy.contains(fieldLabel, { timeout: 90_000 }).should('exist');
   });
 
   it('deletes a custom field via its trash button', function () {

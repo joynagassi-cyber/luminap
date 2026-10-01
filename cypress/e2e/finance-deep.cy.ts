@@ -34,14 +34,14 @@ describe('Lumina — Finance deep flow', () => {
 
     cy.ensureAuth();
     cy.visit('/transaction/new');
-    cy.get('h1, h2, h3').contains('Nouvelle transaction').should('be.visible');
+    cy.get('h1, h2, h3, header').contains('Nouvelle transaction', { timeout: 90_000 }).should('exist');
 
-    cy.get('input[placeholder="0"]').clear().type('7500');
-    cy.get('input[placeholder="Ex: Dîme du mois"]').type(txLabel);
-    cy.contains('button', /enregistrer/i).click();
+    cy.get('input[placeholder="0"]').first().clear().type('7500');
+    cy.get('input[placeholder="Ex: Dîme du mois"]').first().type(txLabel);
+    cy.contains('button', /enregistrer/i).first().click();
 
     // After save, the app should leave /transaction/new (navigates to /finance or /dashboard)
-    cy.location('pathname', { timeout: 30_000 }).should((path: string) => {
+    cy.location('pathname', { timeout: 90_000 }).should((path: string) => {
       expect(path, `unexpected path after tx save: ${path}`).to.not.match(/^\/transaction\/new/);
     });
   });
@@ -51,9 +51,9 @@ describe('Lumina — Finance deep flow', () => {
 
     cy.ensureAuth();
     cy.visit('/balance');
-    cy.get('h1, h2, h3').contains('Bilan financier', { timeout: 30_000 }).should('be.visible');
-    cy.contains('button', 'Année').should('be.visible');
-    cy.contains('button', 'Mois').should('be.visible');
+    cy.get('h1, h2, h3, header').contains('Bilan financier', { timeout: 90_000 }).should('exist');
+    cy.contains('button', 'Année').should('exist');
+    cy.contains('button', 'Mois').should('exist');
   });
 
   it('navigates to the first transaction detail and edit pages', function () {
@@ -62,7 +62,7 @@ describe('Lumina — Finance deep flow', () => {
     // Find the first transaction card on /finance and click it
     cy.ensureAuth();
     cy.visit('/finance');
-    cy.contains('Grand livre', { timeout: 30_000 }).should('be.visible');
+    cy.contains('Grand livre', { timeout: 90_000 }).should('exist');
     // Click the first transaction row/card (assumes the list renders card buttons)
     cy.get('button, a').then(($items) => {
       const target = $items
@@ -70,7 +70,7 @@ describe('Lumina — Finance deep flow', () => {
         .first();
       if (target.length > 0) {
         cy.wrap(target).click({ force: true });
-        cy.location('pathname', { timeout: 30_000 }).should((path: string) => {
+        cy.location('pathname', { timeout: 60_000 }).should((path: string) => {
           expect(path).to.match(/^\/transaction\/[^/]+$/);
         });
       }

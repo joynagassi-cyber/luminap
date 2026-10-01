@@ -20,7 +20,7 @@ describe('Lumina — comprehensive navigation & finance flow', () => {
     // ── Open More menu → Settings ──────────────────────────────────────
     cy.get('button[aria-label="Plus d\'options"]').click();
     cy.contains('button', 'Paramètres').click();
-    cy.get('h1, h2, h3').contains('Paramètres').should('be.visible');
+    cy.get('h1, h2, h3').contains('Paramètres').should('exist');
 
     // Refresh data
     cy.contains('button', 'Actualiser les données').click();

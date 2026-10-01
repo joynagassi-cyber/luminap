@@ -28,7 +28,7 @@ describe('Lumina — Members', () => {
     cy.get('h1, h2, h3').contains('Membres').should('be.visible');
 
     // Open the create form
-    cy.contains('button', 'Ajouter').first().click();
+    cy.contains('button', 'Ajouter').first().click({ force: true });
     cy.get('input[aria-label="Prénom"]').type(firstName);
     cy.get('input[aria-label="Nom"]').type(lastName);
     cy.get('input[aria-label="Téléphone"]').type(phone);

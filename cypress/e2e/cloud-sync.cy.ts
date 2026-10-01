@@ -63,12 +63,14 @@ describe('Lumina — cloud sync (offline → online)', () => {
     cy.contains('button', /créer le champ/i).click();
 
     // ── 4. Restore online mode ────────────────────────────────────────
-    // Cypress 16 a retiré `cy.unrouteAll()` — `cy.restore()` est le
-    // repli documenté : il retire toutes les routes interceptées
-    // (GET/POST Supabase ci-dessus) et restaure le réseau. Absent des
-    // .d.ts de cypress@16 : cast explicite.
+    // Les intercepts ci-dessus n'ont pas d'alias, on ne peut donc pas
+    // les cibler avec cy.restore(alias). Cypress 16 expose
+    // `cy.clearAllIntercepts()` pour remonter tout le réseau (remplace
+    // l'API `cy.unrouteAll()` de Cypress 15). Cast explicite : ce
+    // command est ajouté par Cypress au runtime et n'existe pas encore
+    // dans les .d.ts de la version installée ici.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (cy as any).restore();
+    (cy as any).clearAllIntercepts();
 
     // ── 5. Wait for the sync cycle (runs every ~30 s) ────────────────
     // The sync wait is an external timing constraint, not a flaky
