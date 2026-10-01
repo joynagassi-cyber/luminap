@@ -2266,7 +2266,7 @@ export async function getFormSubmissionPS(
 ): Promise<FormSubmission | null> {
   const db = getPowerSyncDatabase();
   const result = await db.execute(
-    `SELECT id, org_id, form_definition_id, form_version, entity_type, entity_id, data, submitted_by, submitted_at, status, created_at FROM form_submissions WHERE id = ?`,
+    `SELECT id, org_id, form_definition_id, form_version, entity_type, entity_id, data, submitted_by, submitted_at, status, rejected_by, rejection_reason, created_at FROM form_submissions WHERE id = ?`,
     [id],
   );
   const row = result?.array?.[0] as any;
@@ -2282,6 +2282,8 @@ export async function getFormSubmissionPS(
     linkedEntityType: row.entity_type,
     linkedEntityId: row.entity_id,
     status: row.status,
+    rejectedBy: row.rejected_by ?? null,
+    rejectionReason: row.rejection_reason ?? null,
     createdAt: row.created_at,
   };
 }
@@ -2308,8 +2310,8 @@ export async function listFormSubmissionsPS(filters?: {
   }
   const sql =
     conditions.length > 0
-      ? `SELECT id, org_id, form_definition_id, form_version, entity_type, entity_id, data, submitted_by, submitted_at, status, created_at FROM form_submissions WHERE ${conditions.join(" AND ")}`
-      : `SELECT id, org_id, form_definition_id, form_version, entity_type, entity_id, data, submitted_by, submitted_at, status, created_at FROM form_submissions`;
+      ? `SELECT id, org_id, form_definition_id, form_version, entity_type, entity_id, data, submitted_by, submitted_at, status, rejected_by, rejection_reason, created_at FROM form_submissions WHERE ${conditions.join(" AND ")}`
+      : `SELECT id, org_id, form_definition_id, form_version, entity_type, entity_id, data, submitted_by, submitted_at, status, rejected_by, rejection_reason, created_at FROM form_submissions`;
   const result = await db.execute(sql, params);
   const rows = (result?.array || []) as any[];
   return rows.map((r) => ({
@@ -2323,6 +2325,8 @@ export async function listFormSubmissionsPS(filters?: {
     linkedEntityType: r.entity_type,
     linkedEntityId: r.entity_id,
     status: r.status,
+    rejectedBy: r.rejected_by ?? null,
+    rejectionReason: r.rejection_reason ?? null,
     createdAt: r.created_at,
   }));
 }
@@ -2454,6 +2458,14 @@ export async function updateFormSubmissionPS(
   if (data.status !== undefined) {
     setClauses.push("status = ?");
     params.push(data.status);
+  }
+  if (data.rejectedBy !== undefined) {
+    setClauses.push("rejected_by = ?");
+    params.push(data.rejectedBy);
+  }
+  if (data.rejectionReason !== undefined) {
+    setClauses.push("rejection_reason = ?");
+    params.push(data.rejectionReason);
   }
   await executeWrite(
     `UPDATE form_submissions SET ${setClauses.join(", ")} WHERE id = ?`,
