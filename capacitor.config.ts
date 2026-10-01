@@ -39,7 +39,10 @@ const config: CapacitorConfig = {
     },
     OneSignal: {
       appId: '5482a4eb-a402-4612-ab5e-a72df7961b12',
-      promptForNotifications: true,
+      // false : la permission push est demandée juste-à-temps dans SettingsNotifications.tsx
+      // (initialize + requestPermission au toggle utilisateur) ; un prompt à l'init du SDK
+      // (promptForNotifications:true) courrait contre ce flux juste-à-temps.
+      promptForNotifications: false,
       notifyWhenConfirmation: true,
     }
   }
