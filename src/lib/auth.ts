@@ -291,13 +291,23 @@ class AuthService {
     }
     if (!uid || this.state.profile?.id === uid) return;
     try {
+      // Diagnostic temporaire : le « Mes comptes » vide persiste malgré
+      // getSession() 200 — tracer pourquoi hydrateProfile n'hydrate pas
+      // le profile.
+      console.info(
+        `[auth] hydrateProfile: user.state = ${this.state.user?.id ?? "(null)"} uid = ${uid} hasSession = ${this.state.session ? "oui" : "non"} profile.state = ${this.state.profile?.id ?? "(null)"}`,
+      );
       const profile = await this.getProfile(uid);
+      console.info(
+        `[auth] hydrateProfile: getProfile(${uid}) → ${profile ? "OK" : "null/échec"}`,
+      );
       if (profile) {
         this.setState({ profile });
         this.notifyListeners();
+        console.info(`[auth] hydrateProfile: profile hydraté, listeners notifiés`);
       }
-    } catch {
-      /* silencieux — le re-render suivra au prochain event */
+    } catch (err) {
+      console.error("[auth] hydrateProfile a levé:", err);
     }
   }
 
