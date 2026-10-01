@@ -148,7 +148,11 @@ export function useMyOrgs(): {
   const [data, setData] = useState<UserOrg[] | null>(null);
 
   const refetch = async () => {
-    const rows = await listUserOrgs(resolveCurrentUserId());
+    const uid = resolveCurrentUserId();
+    const rows = await listUserOrgs(uid);
+    console.info(
+      `[org] refetch: uid = ${uid || "(vide)"} → ${rows.length} org(s): ${rows.map((r) => r.name).join(", ")}`,
+    );
     setData(rows);
     return rows;
   };
