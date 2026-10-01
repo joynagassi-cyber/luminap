@@ -11,6 +11,29 @@
  */
 
 describe('Lumina — Session persistence (Mes comptes, reconnect sans retaper)', () => {
+  // ── Diagnostic : capture complète du console (app side) dans la session
+  //    Node de Cypress, imprimée à la fin du spec (passant ou non). ─────
+  const diagLines: string[] = [];
+  const isDiag = (s: string) =>
+    /loginOrgAccount|org\] refetch|auth\] hydrateProfile|sessions-diag|handleNewUser|upsert_profile|ensureProfile/.test(s);
+
+  beforeEach(() => {
+    cy.on('window:console', (event) => {
+      const s = event.args.map((a: unknown) => (typeof a === 'string' ? a : JSON.stringify(a))).join(' ');
+      if (isDiag(s)) {
+        diagLines.push(`[${event.type}] ${s}`);
+      }
+    });
+  });
+
+  afterEach(() => {
+    if (diagLines.length > 0) {
+      console.info(`[sessions-diag-dump] ${diagLines.length} trace(s) capturée(s):`);
+      diagLines.slice(0, 80).forEach((l) => console.info(`[sessions-diag-dump] ${l}`));
+      diagLines.length = 0;
+    }
+  });
+
   before(function () {
     this.timeout(90_000);
     cy.loginOrgAccount();
