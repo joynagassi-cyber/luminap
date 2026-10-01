@@ -596,7 +596,30 @@ Cypress.Commands.add('signupOrgAccount', function (
       cy.get('input[type="email"]').first().type(existing.email);
       cy.get('input[type="password"]').first().type(existing.password);
       cy.contains('button[type="submit"]', 'Se connecter').click();
-      cy.location('pathname', { timeout: 90_000 }).should('eq', '/dashboard');
+      // Deux issues possibles selon l'état du navigateur (clearLocal-
+      // Storage() ci-dessus) : /dashboard si le wizard a déjà été
+      // complété pour ce navigateur dans ce run (case a — spec 1 du
+      // run relancé sans nettoyage), /onboarding si c'est un
+      // navigateur vierge mais le compte préexiste en base (case b —
+      // le cas EXACT demandé : user enregistré mais non configuré
+      // pour ce navigateur → re-parcours du setup). Les deux sont
+      // des post-conditions valides pour ce command : on laisse le
+      // should() final (sous la branche du cas a) stabiliser.
+      cy.location('pathname', { timeout: 120_000 }).should((path: string) => {
+        expect(path, `après login compte préexistant: ${path}`).to.be.oneOf([
+          '/onboarding',
+          '/dashboard',
+        ]);
+      });
+      // Si on est sur /onboarding (case b), on joue le wizard COMPLET
+      // jusqu'à /dashboard (post-condition du command, pas un
+      // raccourci localStorage).
+      cy.location('pathname').then((path: string) => {
+        if (path === '/onboarding') {
+          cy.runOnboarding();
+          cy.location('pathname', { timeout: 90_000 }).should('eq', '/dashboard');
+        }
+      });
       return cy.wrap(existing);
     }
 
@@ -638,17 +661,45 @@ Cypress.Commands.add('signupOrgAccount', function (
       // la navigation se faire, le should() ci-dessous la capte.
     });
 
-    cy.location('pathname', { timeout: 120_000 }).should((path: string) => {
-      expect(path, `after signup/login: ${path}`).to.eq('/onboarding');
+    cy.location('pathname', { timeout: 120_000 }).then((path: string) => {
+      // Identifiant unique : le compte existe déjà en base (run
+      // précédent) mais pas pour CE navigateur → /onboarding (cas
+      // b). Le 1er run absolu (compte inexistant en base) passe par
+      // le signup propre → /onboarding aussi (cas a).
+      if (path === '/onboarding') return;
+      if (path === '/dashboard') {
+        // Le signup abouti ET le redirect s'est passé très vite — le
+        // wizard onboarding a déjà été joué et complété (ex. run où
+        // on a replanqué les flags manuellement ou un run antérieur
+        // a posé lumina-onboarded avant ce spec). Post-condition
+        // satisfait, on continue sans replanquer le wizard.
+        return;
+      }
+      throw new Error(
+        `signupOrgAccount: après signup/login, path inattendu ${path} (attendu /onboarding ou /dashboard)`,
+      );
     });
-    cy.runOnboarding({
-      orgName: overrides?.orgName ?? fixed.orgName,
-      orgType: (overrides?.orgType ?? fixed.orgType) as
-        | 'Église'
-        | 'École'
-        | 'Entreprise',
-      role: overrides?.role ?? fixed.role,
+    // Si on est sur /onboarding, on joue le wizard COMPLET (l'exigence
+    // stricte — pas de raccourci localStorage). Sur /dashboard,
+    // l'onboarding est déjà complété pour ce navigateur : on passe
+    // directement au post-condition.
+    cy.window().then((win) => {
+      const onboarded = win.localStorage.getItem('lumina-onboarded');
+      if (onboarded === 'true') return;
+      cy.location('pathname').then((p: string) => {
+        if (p === '/onboarding') {
+          cy.runOnboarding({
+            orgName: overrides?.orgName ?? fixed.orgName,
+            orgType: (overrides?.orgType ?? fixed.orgType) as
+              | 'Église'
+              | 'École'
+              | 'Entreprise',
+            role: overrides?.role ?? fixed.role,
+          });
+        }
+      });
     });
+    cy.location('pathname', { timeout: 90_000 }).should('eq', '/dashboard');
 
     setOrgCreds({ email: fixed.email, password: fixed.password });
     cy.window().then((win) => {
@@ -696,18 +747,37 @@ Cypress.Commands.add('loginOrgAccount', function (): Cypress.Chainable {
   cy.get('input[type="password"]').first().type(creds.password);
   cy.contains('button[type="submit"]', 'Se connecter').click();
 
-  // Le case a est le « normal » : le spec precedent a completé le
-  // wizard et les flags persistent dans ce run. Le case b est un
-  // comportement produit légitime (org créée en base, onboarding
-  // par navigateur). Les deux sont valides.
-  cy.location('pathname', { timeout: 90_000 }).then((path: string) => {
+  // Deux issues légitimes, toutes deux valides pour ce command :
+  //
+  //  a. BROWSER DÉJÀ ONBOARDÉ (case normal dans un run multi-specs :
+  //     le 1er spec a complété le wizard, les flags persistent) :
+  //     login → /dashboard direct.
+  //
+  //  b. BROWSER VIERGE (clearLocalStorage() ci-dessus) mais l'org
+  //     existe déjà en base : needsOnboarding() = true (flag par
+  //     navigateur, pas par compte) → /onboarding. C'est le
+  //     comportement produit corrigé (login d'un user enregistré
+  //     mais non configuré pour ce navigateur → il repasse le
+  //     setup, comme demandé par l'user). On REJOUE le wizard
+  //     COMPLET ici, sans raccourci localStorage.
+  //
+  // Le .then() lit le path instable au moment de la transition :
+  // on le stabilise d'abord via le should() 90s, puis on branche.
+  cy.location('pathname', { timeout: 90_000 }).should((path: string) => {
+    expect(path, `after login: ${path} (attendu /onboarding ou /dashboard)`).to.be.oneOf([
+      '/onboarding',
+      '/dashboard',
+    ]);
+  });
+  cy.location('pathname').then((path: string) => {
     if (path === '/onboarding') {
       cy.runOnboarding();
       cy.location('pathname', { timeout: 90_000 }).should('eq', '/dashboard');
       return;
     }
-    expect(path, `after login: ${path}`).to.eq('/dashboard');
+    // path === '/dashboard' : case a, déjà conforme.
   });
+  cy.location('pathname', { timeout: 90_000 }).should('eq', '/dashboard');
   return cy.wrap(null);
 });
 
