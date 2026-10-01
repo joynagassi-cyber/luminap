@@ -19,11 +19,42 @@ describe('Lumina — Session persistence (Mes comptes, reconnect sans retaper)',
   it('logout → /sessions shows the active account → click reconnects without re-login', function () {
     this.timeout(120_000);
 
+    // Spy post-login (avant tout cy.visit) — capture les traces produit
+    // émises pendant la phase login (onboarding, etc.).
+    cy.window().then((win) => {
+      (win as any).__diag = [];
+      for (const lvl of ['info', 'warn', 'error', 'log'] as const) {
+        const orig = win.console[lvl];
+        win.console[lvl] = (...args: unknown[]) => {
+          const s = args
+            .map((a) => (typeof a === 'string' ? a : JSON.stringify(a)))
+            .join(' ');
+          if (/loginOrgAccount|org\] refetch|auth\] hydrateProfile|sessions-diag/.test(s)) {
+            (win as any).__diag.push(`[${lvl}] ${s}`);
+          }
+          orig.apply(win.console, args);
+        };
+      }
+    });
+    const dumpDiag = () => {
+      cy.window().then((win) => {
+        const cap = ((win as any).__diag as string[]) ?? [];
+        const flags = Object.keys(win.localStorage)
+          .map((k) => {
+            const v = win.localStorage.getItem(k);
+            return v && v.length > 120 ? `${k}=${v.slice(0, 80)}…` : `${k}=${v}`;
+          })
+          .join(' ');
+        console.info(`[sessions-diag] flags: ${flags}`);
+        for (const c of cap) console.info(`[sessions-diag] ${c}`);
+      });
+    };
+
     // ── 1. Se déconnecter depuis le hub /sessions ────────────────────
     cy.visit('/sessions');
-    // Le compte actif est affiché avec son badge « Actif ».
     cy.get('button[aria-label^="Re-ouvrir"]').should('exist');
     cy.contains('Actif').should('be.visible');
+    dumpDiag();
 
     cy.contains('button', 'Se déconnecter').click();
     // Le sign-out navigue vers /auth (la session Supabase est effacée,
@@ -33,7 +64,24 @@ describe('Lumina — Session persistence (Mes comptes, reconnect sans retaper)',
 
     // ── 2. Retourner au hub /sessions (route publique) ──────────────
     cy.visit('/sessions');
+    // Re-spied après le reload (le window a été rechargé).
+    cy.window().then((win) => {
+      (win as any).__diag = [];
+      for (const lvl of ['info', 'warn', 'error', 'log'] as const) {
+        const orig = win.console[lvl];
+        win.console[lvl] = (...args: unknown[]) => {
+          const s = args
+            .map((a) => (typeof a === 'string' ? a : JSON.stringify(a)))
+            .join(' ');
+          if (/loginOrgAccount|org\] refetch|auth\] hydrateProfile|sessions-diag/.test(s)) {
+            (win as any).__diag.push(`[${lvl}] ${s}`);
+          }
+          orig.apply(win.console, args);
+        };
+      }
+    });
     cy.get('button[aria-label^="Re-ouvrir"]').should('exist');
+    dumpDiag();
 
     // ── 3. Cliquer sur le compte : reconnexion SANS retaper ────────
     // `handleEnter` re-hydrate la session Supabase depuis le token
