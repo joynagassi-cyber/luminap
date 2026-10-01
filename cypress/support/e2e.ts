@@ -747,20 +747,25 @@ Cypress.Commands.add('loginOrgAccount', function (): Cypress.Chainable {
   cy.get('input[type="password"]').first().type(creds.password);
   cy.contains('button[type="submit"]', 'Se connecter').click();
 
-  // Diagnostic (5e run, 'Mes comptes' vide) : tracer quel branch le
+  // Diagnostic (6e run, 'Mes comptes' vide) : tracer quel branch le
   // login prend — /onboarding (wizard rejoué, flags vides) ou
   // /dashboard (onboarding déjà complété).
+  // NB : jamais de commande (cy.window) DANS le callback should() —
+  // should() re-exécute la fonction à chaque retry et rejoue alors
+  // la commande. Assertion pure ici ; le trace suit dans le .then().
   cy.location('pathname', { timeout: 90_000 }).should((path: string) => {
-    cy.window().then((win) => {
+    expect(
+      path,
+      `after login: ${path} (attendu /onboarding ou /dashboard — le POST login nav a pas completé en 90 s : vérifier le 503 Render / la rate limit GoTrue / le timeout du form)`,
+    ).to.be.oneOf(['/onboarding', '/dashboard']);
+  });
+  cy.location('pathname').then((path: string) => {
+    return cy.window().then((win) => {
       const flags = ['lumina-onboarding', 'lumina-onboarded', 'lumina-role', 'lumina-user']
         .map((k) => `${k}=${win.localStorage.getItem(k)}`)
         .join(' ');
       console.info(`[loginOrgAccount] post-login path=${path} flags: ${flags}`);
     });
-    expect(
-      path,
-      `after login: ${path} (attendu /onboarding ou /dashboard — le POST login nav a pas completé en 90 s : vérifier le 503 Render / la rate limit GoTrue / le timeout du form)`,
-    ).to.be.oneOf(['/onboarding', '/dashboard']);
   });
 
   // Retouche 2 (same 4e run) : le .then() ci-dessous re-lit le path APRES
