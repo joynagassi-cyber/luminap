@@ -14,7 +14,10 @@ import {
   IonContent,
 } from "@ionic/react";
 import { Capacitor } from "@capacitor/core";
-import { App as CapacitorApp } from "@capacitor/app";
+import {
+  LUMINA_DEEPLINK_EVENT,
+  type LuminaDeepLinkDetail,
+} from "@/hooks/useAppUrlOpen";
 
 type AuthMode = "login" | "signup";
 
@@ -246,72 +249,36 @@ export default function AuthPage() {
   /**
    * Native OAuth deep-link (Android / iOS).
    *
-   * When Google returns the user to the app via `lumina://auth/callback?code=...`
-   * (captured by the `lumina://` intent-filter in AndroidManifest.xml), we
-   * exchange the code for a real session so the sign-in completes in-app and
-   * "holds" — instead of silently dropping into the system browser.
-   *
-   * We listen on both the cold-launch URL and the "app re-opened" event.
+   * The generic `appUrlOpen` listener now lives at the app root (useAppUrlOpen
+   * in App.tsx), which exchanges the `lumina://` callback code for a session
+   * and dispatches a `lumina:deeplink` event. This screen keeps ONLY its
+   * screen-specific intent — routing to onboarding / dashboard and surfacing
+   * an OAuth error on the login form — so no listener is registered twice.
    */
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
 
-    const onNativeDeepLink = async (url: string) => {
-      let parsed: URL;
-      try {
-        parsed = new URL(url);
-      } catch {
+    const onNativeDeepLink = (
+      evt: Event,
+    ) => {
+      const detail = (evt as CustomEvent<LuminaDeepLinkDetail>).detail;
+      if (!detail) return;
+      if (detail.error) {
+        setError(detail.error);
         return;
       }
-      const code = parsed.searchParams.get("code");
-      if (!code) return; // not an OAuth callback (plain lumina:// launch)
-
-      const result = await authService.handleOAuthDeepLink(url);
-      if (result.error) {
-        setError(result.error);
-        return;
-      }
-      if (result.profile) {
+      if (detail.profile) {
         // Même règle que le callback web : inscription Google (nouveau
         // compte) → onboarding d'abord ; connexion existante → dashboard.
-        void proceedAfterAuth(result.profile, {
-          forceOnboarding: result.isNewUser,
+        void proceedAfterAuth(detail.profile, {
+          forceOnboarding: detail.isNewUser,
         });
       }
     };
 
-    let cleanup: (() => void) | undefined;
-    let active = true;
-
-    // Cold launch: read the URL the app was started with.
-    void CapacitorApp.getLaunchUrl()
-      .then((launch) => {
-        if (active && launch?.url) void onNativeDeepLink(launch.url);
-      })
-      .catch(() => {
-        /* plugin unavailable (web / SSR) — ignore */
-      });
-
-    // Warm re-open: Google hands the user back into a running app.
-    void CapacitorApp.addListener("appUrlOpen", (evt) => {
-      if (active) void onNativeDeepLink(evt.url);
-    })
-      .then((sub) => {
-        if (!active) {
-          void sub.remove();
-          return;
-        }
-        cleanup = () => {
-          void sub.remove();
-        };
-      })
-      .catch(() => {
-        /* ignore */
-      });
-
+    window.addEventListener(LUMINA_DEEPLINK_EVENT, onNativeDeepLink);
     return () => {
-      active = false;
-      cleanup?.();
+      window.removeEventListener(LUMINA_DEEPLINK_EVENT, onNativeDeepLink);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

@@ -49,8 +49,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }>
   ACTIVE: { label: "Actif", color: "var(--data-success)", icon: CheckCircle },
   EXPIRED: { label: "Expiré", color: "var(--data-muted)", icon: Clock },
   REVOKED: { label: "Révoqué", color: "var(--data-alert)", icon: XCircle },
-  // TODO(design-tokens): pas de token pour le gris clair #9CA3AF (état « Épuisé »)
-  EXHAUSTED: { label: "Épuisé", color: "#9CA3AF", icon: Users },
+  EXHAUSTED: { label: "Épuisé", color: "var(--data-exhausted)", icon: Users },
 };
 
 const CLAIM_CONFIG: Record<string, { label: string; color: string }> = {

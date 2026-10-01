@@ -21,16 +21,13 @@ import TopHeader from "@/components/TopHeader";
 import type { Member } from "@/types";
 import {
   IonPage,
-  IonHeader,
   IonContent,
-  IonTitle,
-  IonToolbar,
+  IonInfiniteScroll,
 } from "@ionic/react";
 
 export default function MembersPage() {
   const navigate = useNavigate();
   const user = useCurrentUser();
-  const { data: members, isLoading: membersLoading } = useMembers();
 
   const [archivedMembers, setArchivedMembers] = useState<Member[]>([]);
   const [archivedError, setArchivedError] = useState(false);
@@ -53,6 +50,13 @@ export default function MembersPage() {
   const [email, setEmail] = useState("");
   const [saving, setSaving] = useState(false);
   const [visibleCount, setVisibleCount] = useState(50);
+
+  const {
+    data: members,
+    isLoading: membersLoading,
+    error: membersError,
+    retry: retryMembers,
+  } = useMembers();
 
   const filteredMembers = useMemo(() => {
     return members.filter((m: any) => {
@@ -77,6 +81,12 @@ export default function MembersPage() {
   useEffect(() => {
     setVisibleCount(50);
   }, [searchQuery]);
+
+  const loadNext = () => {
+    if (visibleCount < activeMembers.length) {
+      setVisibleCount((c) => c + 50);
+    }
+  };
 
   const visibleMembers = activeMembers.slice(0, visibleCount);
 
@@ -279,7 +289,7 @@ export default function MembersPage() {
             )}
 
             {/* Members list */}
-            <div className="space-y-2 mb-6">
+            <div className="space-y-2">
               {activeMembers.length === 0 ? (
                 <div
                   className="text-center py-10 rounded-xl"
@@ -335,19 +345,49 @@ export default function MembersPage() {
                     </button>
                   </div>
                   ))}
-                  {activeMembers.length > visibleCount && (
-                    <button
-                      onClick={() => setVisibleCount((c) => c + 50)}
-                      className="w-full py-3 rounded-xl text-sm font-medium text-text-secondary"
-                      aria-label="Afficher plus de membres"
-                      style={{ backgroundColor: "var(--surface)" }}
+                  {activeMembers.length > visibleCount && !membersError && (
+                    <IonInfiniteScroll
+                      position="bottom"
+                      threshold="150px"
+                      onIonInfinite={loadNext}
                     >
-                      Afficher plus
-                    </button>
+                      <div className="py-3">
+                        <p className="text-text-tertiary text-xs">
+                          Chargement…
+                        </p>
+                      </div>
+                    </IonInfiniteScroll>
                   )}
                 </>
               )}
+              {activeMembers.length > 0 && activeMembers.length <= visibleCount && !membersError && (
+                <p className="text-text-tertiary text-xs text-center py-3">
+                  Fin de la liste — {activeMembers.length} membre
+                  {activeMembers.length !== 1 ? "s" : ""} affiché
+                  {activeMembers.length !== 1 ? "s" : ""}
+                </p>
+              )}
             </div>
+
+            {/* Error retry on the main list */}
+            {membersError && (
+              <div
+                className="mb-4 rounded-xl p-4 text-center"
+                style={{ backgroundColor: "var(--surface)" }}
+              >
+                <p className="text-text-tertiary text-sm mb-2">
+                  Impossible de charger les membres.
+                </p>
+                <button
+                  onClick={retryMembers}
+                  aria-label="Réessayer le chargement des membres"
+                  className="px-4 py-2 rounded-full text-sm font-semibold text-white transition-all active:scale-95"
+                  style={{ backgroundColor: "var(--accent-primary)" }}
+                >
+                  Réessayer
+                </button>
+              </div>
+            )}
 
             {/* Archived members */}
             {archivedError && (

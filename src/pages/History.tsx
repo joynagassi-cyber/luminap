@@ -83,8 +83,7 @@ const COLORS = {
   purple: "var(--data-advance)",
   blue: "var(--data-planified)",
   teal: "var(--shortcut-forms)",
-  // TODO(design-tokens): aucun token pour le rose #EC4899 (nuancier)
-  pink: "#EC4899",
+  pink: "var(--data-pink)",
   grid: "var(--surface-hover)",
   text: "var(--text-tertiary)",
 };
