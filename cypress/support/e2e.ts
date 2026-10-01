@@ -32,7 +32,11 @@
  * `cypress/support/orgCreds.ts` pour le design (cache in-mem + config
  * Node comme source de vérité).
  */
-import { getOrgCreds, setOrgCreds } from './orgCreds';
+import {
+  getOrgCreds,
+  getOrgCredentials,
+  setOrgCreds,
+} from './orgCreds';
 
 /* eslint-disable @typescript-eslint/no-namespace */
 declare global {
@@ -108,6 +112,21 @@ declare global {
         role?: string;
       }): Chainable<{ email: string; password: string }>;
       loginOrgAccount(): Chainable;
+      /**
+       * Déclenche l'ONBOARDING COMPLET (le wizard réel, sans raccourci
+       * localStorage) pour le compte d'organisation courant — le cas
+       * exact demandé par l'utilisateur : user déjà inscrit en base
+       * (email/mot de passe existants) mais qui n'a JAMAIS passé le
+       * setup d'organisation (pas de lumina-onboarded en localStorage).
+       *
+       * Entraîné par : sign-out + sign-in dans le navigateur courant.
+       * La route guard redirige /splash → /onboarding (needsOnboarding()
+       * = true car le flag localStorage est absent pour ce navigateur).
+       *
+       * Précondition : le compte d'org existe déjà (cy.loginOrgAccount()
+       * ou le 1er spec du run). Ne crée PAS de nouveau compte.
+       */
+      resumeOnboardingForOrgAccount(): Chainable;
       /**
        * Re-affirme la session Supabase du compte org courant AVANT chaque
        * cy.visit() sur une route protégée, dans les specs multi-visit.
@@ -551,59 +570,69 @@ Cypress.Commands.add('freshSignup', function (overrides?: {
  * directement sur /dashboard (needsOnboarding() = false, l'org
  * existe déjà).
  */
-Cypress.Commands.add(
-  'signupOrgAccount',
-  function (
+Cypress.Commands.add('signupOrgAccount', function (
     overrides?: {
       orgName?: string;
       orgType?: 'Église' | 'École' | 'Entreprise';
       role?: string;
     },
   ): Cypress.Chainable<{ email: string; password: string }> {
-    const fresh = getOrgCreds();
-    if (fresh?.email && fresh?.password) {
-      // Un compte existe déjà sur cette machine (run précédent non
-      // nettoyé) — on réutilise ces credentials plutôt que d'en créer
-      // un nouveau (l'utilisateur veut 1 seul org partagée).
-      cy.log('signupOrgAccount: réutilisation des credentials existants');
+    // IDENTIFIANT UNIQUE (source de vérité) : le compte est FIXE
+    // (getOrgCredentials — CYPRESS_ORG_EMAIL / CYPRESS_ORG_PASSWORD,
+    // valeur par défaut lumina-org-e2e@lumina.dev), réutilisé à chaque
+    // run. Jamais d'email éphémère.
+    const fixed = getOrgCredentials();
+
+    // Run précédent : le compte a déjà son onboarding complété (flag
+    // exposé par le 1er spec du run). On n'essaie PAS de re-signup :
+    // login direct, l'org existe déjà en base → /dashboard.
+    const existing = getOrgCreds();
+    if (existing?.email && existing?.password) {
+      cy.log(
+        `signupOrgAccount: compte ${existing.email} déjà positionné pour ce run — login direct`,
+      );
       cy.clearLocalStorage();
       cy.visit('/auth');
-      cy.get('input[type="email"]').first().type(fresh.email);
-      cy.get('input[type="password"]').first().type(fresh.password);
+      cy.get('input[type="email"]').first().type(existing.email);
+      cy.get('input[type="password"]').first().type(existing.password);
       cy.contains('button[type="submit"]', 'Se connecter').click();
       cy.location('pathname', { timeout: 90_000 }).should('eq', '/dashboard');
-      return cy.wrap(fresh);
+      return cy.wrap(existing);
     }
-
-    const email = `org.${Date.now()}@lumina.dev`;
-    const password = `E2e-${Math.random().toString(36).slice(2, 10)}!a`;
-    const firstName = 'Org';
-    const lastName = 'E2E';
 
     cy.visit('/auth');
     cy.contains('button', 'Pas encore de compte', { timeout: 30_000 }).should(
       'be.visible',
     );
     cy.contains('button', 'Pas encore de compte').click();
-    cy.get('input[aria-label="Prénom"]').type(firstName);
-    cy.get('input[aria-label="Nom"]').type(lastName);
-    cy.get('input[type="email"]').type(email);
-    cy.get('input[type="password"]').type(password);
+    cy.get('input[aria-label="Prénom"]').type(fixed.email.split('@')[0].slice(0, 10));
+    cy.get('input[aria-label="Nom"]').type('E2E');
+    cy.get('input[type="email"]').type(fixed.email);
+    cy.get('input[type="password"]').type(fixed.password);
     cy.contains('button[type="submit"]', 'Créer mon compte').click();
 
-    // Le signup crée l'account Supabase. Pas de localStorage shortcut
-    // ici : le spec est le 1er, l'org n'existe pas encore, on doit
-    // passer par le wizard COMPLET (l'exigence stricte de l'utilisateur).
+    // Deux issues possibles :
+    //  a. 1er run absolu : le compte n'existait pas en base → sign-up
+    //     propre → /onboarding (wizard COMPLET, l'exigence stricte de
+    //     l'utilisateur — pas de raccourci localStorage).
+    //  b. Run suivant : le compte EXISTAIT déjà (identifiant unique) →
+    //     l'app détecte qu'il est non configuré pour ce navigateur et
+    //     redirige /onboarding (cas que le user a explicitement décrit :
+    //     "l'user s'était inscrit et n'a pas pu passer au setup, il doit
+    //     pouvoir revenir après en mode login et passer par onboarding").
     cy.location('pathname', { timeout: 120_000 }).should((path: string) => {
-      expect(path, `after signup: ${path}`).to.eq('/onboarding');
+      expect(path, `after signup/login: ${path}`).to.eq('/onboarding');
     });
     cy.runOnboarding({
-      orgName: overrides?.orgName ?? 'Org E2E ' + Date.now().toString().slice(-6),
-      orgType: overrides?.orgType ?? 'Église',
-      role: overrides?.role ?? 'PASTEUR_PRINCIPAL',
+      orgName: overrides?.orgName ?? fixed.orgName,
+      orgType: (overrides?.orgType ?? fixed.orgType) as
+        | 'Église'
+        | 'École'
+        | 'Entreprise',
+      role: overrides?.role ?? fixed.role,
     });
 
-    setOrgCreds({ email, password });
+    setOrgCreds({ email: fixed.email, password: fixed.password });
     cy.window().then((win) => {
       const sbKey = Object.keys(win.localStorage).find(
         (k) => /-auth-token$/.test(k),
@@ -615,9 +644,8 @@ Cypress.Commands.add(
         );
       }
     });
-    return cy.wrap({ email, password });
-  },
-);
+    return cy.wrap({ email: fixed.email, password: fixed.password });
+  });
 
 /**
  * Log-in du compte d'organisation UNIQUE du run (le même que
@@ -656,6 +684,57 @@ Cypress.Commands.add('loginOrgAccount', function (): Cypress.Chainable {
   cy.location('pathname', { timeout: 90_000 }).should('eq', '/dashboard');
   return cy.wrap(null);
 });
+
+/**
+ * Resume l'ONBOARDING COMPLET pour le compte d'organisation courant,
+ * dans le scénario réel demandé : l'user est déjà enregistré en base
+ * (email/mot de passe existants) mais n'a JAMAIS passé le setup
+ * d'organisation pour ce navigateur.
+ *
+ * 1. Sign-out complet + nettoyage localStorage (état "nouveau
+ *    navigateur" — le compte existe en base, pas ici).
+ * 2. Re-signin avec le même compte : la route guard redirige
+ *    /splash → /onboarding (needsOnboarding() = true).
+ * 3. Le wizard COMPLET (runOnboarding, sans raccourci localStorage)
+ *    est rejoué jusqu'à /dashboard.
+ *
+ * Post-condition : /dashboard + lumina-onboarded=true pour le compte.
+ * Ce n'est PAS une re-création du compte — c'est le re-parcours du
+ * setup pour un utilisateur existant.
+ */
+Cypress.Commands.add('resumeOnboardingForOrgAccount', function (): Cypress.Chainable {
+    const creds = getOrgCreds();
+    if (!creds?.email || !creds?.password) {
+      throw new Error(
+        'resumeOnboardingForOrgAccount: credentials du compte d\'organisation ' +
+          'absents — cy.loginOrgAccount() n\'a pas tourné avant ce call.',
+      );
+    }
+
+    // 1. État "nouveau navigateur" : sign-out + nettoyage des flags.
+    cy.clearLocalStorage();
+    cy.visit('/auth');
+
+    // 2. Signin du MÊME compte (déjà en base). needsOnboarding() = true
+    //    → /onboarding (et non /dashboard). C'est le cas exact demandé :
+    //    user enregistré mais pas encore configuré.
+    cy.get('input[type="email"]').first().type(creds.email);
+    cy.get('input[type="password"]').first().type(creds.password);
+    cy.contains('button[type="submit"]', 'Se connecter').click();
+    cy.location('pathname', { timeout: 90_000 }).should('eq', '/onboarding');
+
+    // 3. Le wizard COMPLET (présentation → branch → org-setup → dashboard),
+    //    SANS raccourci localStorage. Le compte est le même que celui du
+    //    1er spec ; l'org est créée / reliée au rôle choisi ici.
+    cy.runOnboarding();
+
+    // Post-condition.
+    cy.location('pathname', { timeout: 90_000 }).should('eq', '/dashboard');
+    cy.window().then((win) => {
+      expect(win.localStorage.getItem('lumina-onboarded')).to.eq('true');
+    });
+    return cy.wrap(null);
+  });
 
 // Register the offline/local helpers (seedLocalSession, interceptCloud,
 // restoreCloud) so they are available to every spec.

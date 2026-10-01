@@ -38,10 +38,43 @@
  * — `getOrgCreds()` le lit alors au boot sans tourner le 1er spec.
  */
 
+/**
+ * Identité de test UNIQUE (source de vérité : env vars).
+ *
+ * Le user l'a demandé : un seul compte d'organisation, réutilisé à chaque
+ * run — jamais un fresh signup `org.<ts>@lumina.dev`. Cet identifiant est
+ * déclaré une fois (CYPRESS_ORG_EMAIL / CYPRESS_ORG_PASSWORD dans
+ * cypress/run.sh ou l'environnement de l'agent) et lu ici : le 1er spec
+ * du run fait le sign-up COMPLET par l'UI (wizard onboarding + création
+ * réelle de l'org) si le compte n'existe pas encore ; les runs suivants
+ * login directement (l'org est déjà créée, onboarding complété en base).
+ */
+export interface OrgCredentials {
+  /** Email fixe du compte d'organisation de test (jamais d'identifiant éphémère). */
+  email: string;
+  /** Mot de passe fixe (déclaré par l'agent, exposé via cypress.config.ts). */
+  password: string;
+  /** Nom de l'organisation créée par le wizard (stable entre runs). */
+  orgName: string;
+  /** Type d'organisation du wizard. */
+  orgType: 'Église' | 'École' | 'Entreprise';
+  /** Rôle choisi au wizard (PASTEUR_PRINCIPAL couvre les permissions de test). */
+  role: string;
+}
+
 export interface OrgCreds {
   email: string;
   password: string;
 }
+
+/** Identité par défaut — override par CYPRESS_ORG_* dans cypress.config.ts. */
+const DEFAULT_ORG: OrgCredentials = {
+  email: 'lumina-org-e2e@lumina.dev',
+  password: 'E2e-Lumina!1',
+  orgName: 'Lumina E2E',
+  orgType: 'Église',
+  role: 'PASTEUR_PRINCIPAL',
+};
 
 /** Cache in-mem (même session) — évite le round-trip expose(). */
 let _cache: OrgCreds | null = null;
@@ -58,15 +91,36 @@ function _isCreds(v: unknown): v is OrgCreds {
 }
 
 /**
+ * Identité fixe du run, assemblée depuis les clés `expose` de
+ * cypress.config.ts (CYPRESS_ORG_EMAIL / CYPRESS_ORG_PASSWORD) avec les
+ * valeurs par défaut de l'identifiant unique de test. C'est la source
+ * unique de vérité — aucun échantillon ne génère un email aléatoire.
+ */
+export function getOrgCredentials(): OrgCredentials {
+  let email = DEFAULT_ORG.email;
+  let password = DEFAULT_ORG.password;
+  try {
+    const e = Cypress.expose('ORG_EMAIL');
+    const p = Cypress.expose('ORG_PASSWORD');
+    if (typeof e === 'string' && e.trim() !== '') email = e.trim();
+    if (typeof p === 'string' && p.trim() !== '') password = p.trim();
+  } catch {
+    /* context Node indisponible — valeurs par défaut */
+  }
+  return { ...DEFAULT_ORG, email, password };
+}
+
+/**
  * Lit les credentials du compte d'organisation unique du run.
  *
  * Ordre de résolution :
  *   1. cache in-mem (le 1er spec a tourné dans cette session) ;
  *   2. `Cypress.expose('orgCreds')` (le store exposé, pré-déclaré
  *      dans cypress.config.ts et/ou écrit par le 1er spec) ;
- *   3. `undefined` (le compte n'a pas encore été posé).
+ *   3. l'identifiant FIXE (getOrgCredentials()) — la boucle de secours :
+ *      le compte est connu, pas besoin que le 1er spec ait tourné.
  */
-export function getOrgCreds(): OrgCreds | undefined {
+export function getOrgCreds(): OrgCreds {
   if (_cache) return _cache;
 
   try {
@@ -78,7 +132,9 @@ export function getOrgCreds(): OrgCreds | undefined {
   } catch {
     /* store expose non initialisé (spec lancé hors contexte Cypress) */
   }
-  return undefined;
+  const fixed = getOrgCredentials();
+  _cache = { email: fixed.email, password: fixed.password };
+  return _cache;
 }
 
 /**
