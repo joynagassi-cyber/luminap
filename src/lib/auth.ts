@@ -256,11 +256,39 @@ class AuthService {
    * cy.clearLocalStorage()) → '' → listUserOrgs('') = [] →
    * « Mes comptes » vide alors que l'user est bien lié à son org.
    *
-   * Appelé depuis Sessions.tsx (handleEnter / montage) dès que la session
-   * est disponible ; idempotent, silencieux si la lecture RLS échoue.
+   * Appelé au MONTAGE de Sessions.tsx (hook useEffect) : on lit le token
+   * DIRECTEMENT depuis localStorage (jamais `this.state.user`, qui est
+   * vide au boot sur la route publique /sessions — le state n'est
+   * réhydraté que par la page /splash, jamais par /sessions).
+   * Idempotent (garded par profile.id === uid), silencieux si la lecture
+   * RLS échoue.
    */
   async hydrateProfile(): Promise<void> {
-    const uid = this.state.user?.id;
+    let uid = this.state.user?.id;
+    if (!uid) {
+      // Repli : le token Supabase est toujours persisté en localStorage
+      // (sb-<projectRef>-auth-token — voir `createClient` sans option
+      // storage, et le commentaire de `resolveCurrentUserId`). On en
+      // extrait user.id SANS passer par getUser() (qui ferait le
+      // round-trip réseau que ce chemin cherche à éviter au montage).
+      try {
+        const keys = Object.keys(localStorage).filter((k) =>
+          k.endsWith("-auth-token"),
+        );
+        for (const key of keys) {
+          const raw = localStorage.getItem(key);
+          if (!raw) continue;
+          const parsed = JSON.parse(raw);
+          const tokenUid = parsed?.user?.id;
+          if (typeof tokenUid === "string" && tokenUid) {
+            uid = tokenUid;
+            break;
+          }
+        }
+      } catch {
+        /* localStorage indisponible / token malformé */
+      }
+    }
     if (!uid || this.state.profile?.id === uid) return;
     try {
       const profile = await this.getProfile(uid);

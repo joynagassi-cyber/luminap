@@ -109,17 +109,21 @@ export default function SessionsPage() {
     }
   }, [profile?.id, refetch]);
 
-  // HYDRATE : la session peut être présente (getUser 200, /splash au boot,
-  // reconnexion /sessions) SANS que le profile soit chargé —
-  // fetchUser() charge seulement `user`, jamais `profile` (voir le
-  // commentaire de auth.ts). Dès que user.id est connu, on hydrate le
-  // profile : c'est ce qui rend resolveCurrentUserId() fiable pour
-  // listUserOrgs et débloque la liste « Mes comptes ».
-  const userId = authService.getState().user?.id;
+  // HYDRATE au montage : le token Supabase est persisté en localStorage
+  // (jamais effacé par un visite de /sessions — clearLocalStorage du
+  // Cypress est un événement de SPEC, pas de l'app). hydrateProfile()
+  // en lit user.id si le state auth n'est pas encore réhydraté (cas
+  // /sessions ouverte directement après login, sans passage par
+  // /splash), puis charge le profile via getProfile → setState +
+  // notifyListeners. C'est ce dernier event qui déclenche le refetch
+  // de useMyOrgs (souscription authService.subscribe ajoutée au
+  // commit précédent) et débloquent la liste « Mes comptes ».
+  const hydrated = useRef(false);
   useEffect(() => {
-    if (!userId || profile) return;
+    if (hydrated.current) return;
+    hydrated.current = true;
     authService.hydrateProfile();
-  }, [userId, profile]);
+  }, []);
 
   // Re-runs à chaque refetch (la dépendance [refetch] s'exécute à
   // CHAQUE rendu car refetch est une fonction inline du hook parent
