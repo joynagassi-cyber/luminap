@@ -747,35 +747,35 @@ Cypress.Commands.add('loginOrgAccount', function (): Cypress.Chainable {
   cy.get('input[type="password"]').first().type(creds.password);
   cy.contains('button[type="submit"]', 'Se connecter').click();
 
-  // Deux issues légitimes, toutes deux valides pour ce command :
-  //
-  //  a. BROWSER DÉJÀ ONBOARDÉ (case normal dans un run multi-specs :
-  //     le 1er spec a complété le wizard, les flags persistent) :
-  //     login → /dashboard direct.
-  //
-  //  b. BROWSER VIERGE (clearLocalStorage() ci-dessus) mais l'org
-  //     existe déjà en base : needsOnboarding() = true (flag par
-  //     navigateur, pas par compte) → /onboarding. C'est le
-  //     comportement produit corrigé (login d'un user enregistré
-  //     mais non configuré pour ce navigateur → il repasse le
-  //     setup, comme demandé par l'user). On REJOUE le wizard
-  //     COMPLET ici, sans raccourci localStorage.
-  //
-  // Le .then() lit le path instable au moment de la transition :
-  // on le stabilise d'abord via le should() 90s, puis on branche.
+  // Diagnostic (5e run, 'Mes comptes' vide) : tracer quel branch le
+  // login prend — /onboarding (wizard rejoué, flags vides) ou
+  // /dashboard (onboarding déjà complété).
   cy.location('pathname', { timeout: 90_000 }).should((path: string) => {
-    expect(path, `after login: ${path} (attendu /onboarding ou /dashboard)`).to.be.oneOf([
-      '/onboarding',
-      '/dashboard',
-    ]);
+    cy.window().then((win) => {
+      const flags = ['lumina-onboarding', 'lumina-onboarded', 'lumina-role', 'lumina-user']
+        .map((k) => `${k}=${win.localStorage.getItem(k)}`)
+        .join(' ');
+      console.info(`[loginOrgAccount] post-login path=${path} flags: ${flags}`);
+    });
+    expect(
+      path,
+      `after login: ${path} (attendu /onboarding ou /dashboard — le POST login nav a pas completé en 90 s : vérifier le 503 Render / la rate limit GoTrue / le timeout du form)`,
+    ).to.be.oneOf(['/onboarding', '/dashboard']);
   });
+
+  // Retouche 2 (same 4e run) : le .then() ci-dessous re-lit le path APRES
+  // que le should() ci-dessus a déjà validé → plus de race : le branch
+  // est déterministe.
   cy.location('pathname').then((path: string) => {
     if (path === '/onboarding') {
+      // Case b : le navigateur a été nettoyé (cy.clearLocalStorage()
+      // ci-dessus), needsOnboarding() = true → le wizard COMPLET se
+      // rejoue (runOnboarding), sans raccourci localStorage.
       cy.runOnboarding();
       cy.location('pathname', { timeout: 90_000 }).should('eq', '/dashboard');
       return;
     }
-    // path === '/dashboard' : case a, déjà conforme.
+    // Case a (default) : path === '/dashboard', déjà conforme.
   });
   cy.location('pathname', { timeout: 90_000 }).should('eq', '/dashboard');
   return cy.wrap(null);
