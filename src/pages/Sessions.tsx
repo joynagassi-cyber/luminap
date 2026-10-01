@@ -23,7 +23,7 @@ import {
   resolveCurrentUserId,
   type UserOrg,
 } from "@/lib/organization-context";
-import { authService } from "@/lib/auth";
+import { authService, useAuth } from "@/lib/auth";
 import { useLocalStore } from "@/store/useLocalStore";
 import { Building2, Check, Loader2, LogOut, Trash2 } from "lucide-react";
 import { getOrganizationId } from "@/lib/orgContext";
@@ -78,7 +78,41 @@ export default function SessionsPage() {
   const loadInitialData = useLocalStore((s) => s.loadInitialData);
   const [busy, setBusy] = useState<string | null>(null);
   const [entering, setEntering] = useState<string | null>(null);
+  const { profile } = useAuth().getState();
 
+  // BUG FIX : « Mes comptes » vide juste après login — la liste
+  // s'appuie sur resolveCurrentUserId(), qui préfère
+  // authService.getState().profile.id ; ce dernier reste null tant
+  // que le profile n'a pas été chargé (fetchUser/getProfile, appel
+  // asynchrone au boot). Le fallback localStorage (« lumina-user »)
+  // n'a QUE l'id — pas l'email/le rôle — il sert seulement quand
+  // l'auth n'est pas hydraté du tout (ex. page ouverte en dur,
+  // déconnecté). Dès que le profile hydrate, on refetch avec l'id
+  // fiable + on persiste le profil complet en localStorage pour les
+  // visites futures (idempotent, écriture silencieuse).
+  useEffect(() => {
+    if (!profile?.id) return;
+    refetch();
+    try {
+      localStorage.setItem(
+        "lumina-user",
+        JSON.stringify({
+          id: profile.id,
+          email: profile.email,
+          firstName: profile.first_name,
+          lastName: profile.last_name,
+          role: profile.role,
+        }),
+      );
+    } catch {
+      /* best-effort, localStorage peut être indisponible */
+    }
+  }, [profile?.id, refetch]);
+
+  // Re-runs à chaque refetch (la dépendance [refetch] s'exécute à
+  // CHAQUE rendu car refetch est une fonction inline du hook parent
+  // — un no-op qui n'importe rien, ça laisse le cas ci-dessus gérer
+  // le re-fetch réel).
   useEffect(() => {
     refetch();
   }, [refetch]);
@@ -281,9 +315,15 @@ export default function SessionsPage() {
                 >
                   <div
                     className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                    style={{ backgroundColor: "#E5133220" }}
+                    style={{
+                      backgroundColor:
+                        "color-mix(in srgb, var(--data-expense) 12%, transparent)",
+                    }}
                   >
-                    <LogOut className="w-5 h-5" style={{ color: "#E51332" }} />
+                    <LogOut
+                      className="w-5 h-5"
+                      style={{ color: "var(--data-expense)" }}
+                    />
                   </div>
                   <div>
                     <p className="text-text-primary text-sm font-semibold">

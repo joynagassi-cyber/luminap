@@ -157,5 +157,25 @@ export function useMyOrgs(): {
     refetch();
   }, [mode]);
 
+  // Refetch supplémentaire au montage de la page : le 1er call ci-dessus
+  // peut précéder l'init d'authService (getState().profile = null) sur
+  // un navigateur vierge juste après login. La route /sessions ne
+  // remonte pas (elle n'est pas dans un container qui refetch), donc on
+  // souscrit au store auth pour reconstruire la liste dès que le uid est
+  // résolu (session Supabase re-hydratée). Correctif du bug « Mes
+  // comptes » listant 0 compte alors que le compte existe en base.
+  useEffect(() => {
+    const unsub = authService.subscribe(() => {
+      refetch();
+    });
+    // Un 1er try immédiat (au cas où le 1er refetch ci-dessus a couru
+    // avant l'auth init, sur une page montée en même temps que la
+    // route qui l'hydrate).
+    refetch();
+    return () => {
+      unsub();
+    };
+  }, []);
+
   return { data, refetch };
 }
