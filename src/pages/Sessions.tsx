@@ -109,6 +109,18 @@ export default function SessionsPage() {
     }
   }, [profile?.id, refetch]);
 
+  // HYDRATE : la session peut être présente (getUser 200, /splash au boot,
+  // reconnexion /sessions) SANS que le profile soit chargé —
+  // fetchUser() charge seulement `user`, jamais `profile` (voir le
+  // commentaire de auth.ts). Dès que user.id est connu, on hydrate le
+  // profile : c'est ce qui rend resolveCurrentUserId() fiable pour
+  // listUserOrgs et débloque la liste « Mes comptes ».
+  const userId = authService.getState().user?.id;
+  useEffect(() => {
+    if (!userId || profile) return;
+    authService.hydrateProfile();
+  }, [userId, profile]);
+
   // Re-runs à chaque refetch (la dépendance [refetch] s'exécute à
   // CHAQUE rendu car refetch est une fonction inline du hook parent
   // — un no-op qui n'importe rien, ça laisse le cas ci-dessus gérer
@@ -149,19 +161,22 @@ export default function SessionsPage() {
           return;
         }
       }
-      // 2. Entrer dans le contexte org (vérifie membership/grant local).
-      const ctx = await enterOrganization(org.orgId);
-      setEntering(null);
-      if (!ctx) {
-        // Accès refusé (ni membre ni grant) : on reste sur la page, l'org n'est
-        // simplement pas ré-entrant. Le compte reste affiché.
+      // 2. Entre dans le contexte org (vérifie membership/grant local) et
+      //    hydrate le profile si besoin (résout le « Mes comptes » vide
+      //    post-login : resolveCurrentUserId() dépend de profile.id).
+      await enterOrganization(org.orgId).then(async (ctx) => {
+        setEntering(null);
+        if (!ctx) {
+          // Accès refusé (ni membre ni grant) : on reste sur la page,
+          // l'org n'est pas ré-entrant. Le compte reste affiché.
+          setBusy(null);
+          return;
+        }
+        // 3. Recharger les données locales de cet org pour l'accueil.
+        await loadInitialData();
         setBusy(null);
-        return;
-      }
-      // 3. Recharger les données locales de cet org pour l'accueil.
-      await loadInitialData();
-      setBusy(null);
-      navigate("/dashboard", { replace: true });
+        navigate("/dashboard", { replace: true });
+      });
     } catch {
       setBusy(null);
       setEntering(null);

@@ -228,6 +228,7 @@ class AuthService {
 
   // Get user profile
   async getProfile(userId: string): Promise<Profile | null> {
+    if (!userId) return null;
     try {
       const { data, error } = await supabase
         .from("profiles")
@@ -241,6 +242,34 @@ class AuthService {
       return data as Profile;
     } catch (err) {
       return null;
+    }
+  }
+
+  /**
+   * Hydrate le profil complet (authService.state.profile) à partir de la
+   * session courante. C'est le chemin qui manque : signInWithPassword/
+   * signInWithEmail appellent ensureProfile, mais RESTAURER une session
+   * existante (fetchUser → getUser, ex. /splash au boot, reconnexion
+   * depuis /sessions) charge seulement `user`, jamais `profile`. Résultat :
+   * resolveCurrentUserId() (organization-context) lit
+   * getState().profile.id → null → fallback localStorage (vide si
+   * cy.clearLocalStorage()) → '' → listUserOrgs('') = [] →
+   * « Mes comptes » vide alors que l'user est bien lié à son org.
+   *
+   * Appelé depuis Sessions.tsx (handleEnter / montage) dès que la session
+   * est disponible ; idempotent, silencieux si la lecture RLS échoue.
+   */
+  async hydrateProfile(): Promise<void> {
+    const uid = this.state.user?.id;
+    if (!uid || this.state.profile?.id === uid) return;
+    try {
+      const profile = await this.getProfile(uid);
+      if (profile) {
+        this.setState({ profile });
+        this.notifyListeners();
+      }
+    } catch {
+      /* silencieux — le re-render suivra au prochain event */
     }
   }
 
