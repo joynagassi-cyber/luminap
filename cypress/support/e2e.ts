@@ -786,13 +786,17 @@ Cypress.Commands.add('loginOrgAccount', function (): Cypress.Chainable {
   // 7e run (4m11s, listReopen jamais vue) : capture du state du /sessions
   // post-login — le bug 'Mes comptes' vide EST ici ; le spy console
   // (sessions.cy.ts) ne démarre qu'au 1er it → trop tard pour le montage
-  // /sessions du before(). Trace local au lieu.
-  cy.window().then((win) => {
-    const ls = Object.keys(win.localStorage).map((k) => {
-      const v = win.localStorage.getItem(k) || '';
-      return `${k}=${v.length > 60 ? v.slice(0, 55) + '…' : v}`;
-    }).join(' ');
-    console.info(`[loginOrgAccount] at /${path}: ${ls}`);
+  // /sessions du before(). Trace local au lieu. NB : on re-lit le path
+  // (variable locale `postPath` — jamais le `path` du .then() ci-dessus,
+  // hors scope ici) pour l'étiquette, SANS en dépendre pour l'action.
+  cy.location('pathname').then((postPath: string) => {
+    return cy.window().then((win) => {
+      const ls = Object.keys(win.localStorage).map((k) => {
+        const v = win.localStorage.getItem(k) || '';
+        return `${k}=${v.length > 60 ? v.slice(0, 55) + '…' : v}`;
+      }).join(' ');
+      console.info(`[loginOrgAccount] at /${postPath}: ${ls}`);
+    });
   });
   cy.visit('/sessions');
   cy.window().then((win) => {
