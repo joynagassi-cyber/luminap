@@ -8,12 +8,15 @@ import * as types from "@/types";
 vi.mock("@/lib/formSystem", () => ({
   formSubmissionRepo: {
     list: vi.fn(async () => []),
+    update: vi.fn(async () => null),
   },
   formDefinitionRepo: {
     // Le mock pré-F.1c prédatait le chargement du FormDefinition par la page ;
     // renvoyer null (pas de définition) garde l'affichage sur les clés brutes.
     get: vi.fn(async () => null),
   },
+  buildSubmissionsCSV: vi.fn(() => "a;b\n1;2"),
+  exportSubmissionsAsXLSX: vi.fn(),
 }));
 
 import { formSubmissionRepo } from "@/lib/formSystem";
@@ -60,11 +63,13 @@ describe("FormSubmissions page", () => {
     await waitFor(() =>
       expect(screen.getByText("2 soumission(s)")).toBeInTheDocument(),
     );
-    // Le nom et la date de baptême (clés du data JSONB) sont affichés.
-    expect(screen.getAllByText("nom").length).toBe(2);
-    expect(screen.getAllByText("baptême").length).toBe(2);
-    expect(screen.getAllByText("A").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText("B").length).toBeGreaterThanOrEqual(1);
+    // Vue tableau : les clés du data JSONB sont des colonnes (en-têtes, 1 fois
+    // au lieu d'1 par carte) et les valeurs sont dans les cellules du corps.
+    expect(screen.getByText("nom")).toBeInTheDocument();
+    expect(screen.getByText("baptême")).toBeInTheDocument();
+    const cells = screen.getAllByRole("cell").map((c) => c.textContent);
+    expect(cells).toContain("A");
+    expect(cells).toContain("B");
   });
 
   it("renders an empty state when there are no submissions", async () => {

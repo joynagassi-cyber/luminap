@@ -10,6 +10,11 @@
  *
  * Lot F.1c : affichage structuré (labels du FormDefinition), export CSV
  * (buildSubmissionsCSV + Blob) et filtre par statut.
+ *
+ * Forms v2 (T5) : rendu en tableau HTML de base de données — colonnes =
+ * métadonnées (Soumetteur, Date, Statut, Rejeté par, Raison du rejet) +
+ * union triée des champs du formulaire et des clés data observées ;
+ * tri par colonne, recherche plein-texte débouncée, export CSV + Excel.
  */
 import { useEffect, useState, useMemo } from "react";
 import { useParams } from "react-router-dom";
@@ -24,17 +29,16 @@ import {
   IonButton,
   IonSelect,
   IonSelectOption,
-  IonCard,
-  IonCardContent,
   IonInfiniteScroll,
 } from "@ionic/react";
-import { Inbox, Clock, User, Download, CheckCircle2 } from "lucide-react";
+import { Inbox, Download, CheckCircle2, Search, X } from "lucide-react";
 import {
   formDefinitionRepo,
   formSubmissionRepo,
   buildSubmissionsCSV,
+  exportSubmissionsAsXLSX,
 } from "@/lib/formSystem";
-import type { FormDefinition, FormSubmission } from "@/types";
+import type { FormDefinition, FormFieldDefinition, FormSubmission } from "@/types";
 
 const STATUS_FILTERS: Array<{ value: string; label: string }> = [
   { value: "ALL", label: "Tous les statuts" },
@@ -44,6 +48,95 @@ const STATUS_FILTERS: Array<{ value: string; label: string }> = [
 ];
 
 const PAGE_SIZE = 50;
+const SEARCH_DEBOUNCE_MS = 300;
+
+type SortDir = "asc" | "desc";
+type SortKey =
+  | "submittedBy"
+  | "submittedAt"
+  | "status"
+  | "rejectedBy"
+  | "rejectionReason"
+  | `field:${string}`;
+
+const STATUS_LABELS: Record<string, string> = {
+  SUBMITTED: "Soumise",
+  PROCESSED: "Traitée",
+  REJECTED: "Rejetée",
+};
+
+/** parseSubmissionData — objet JSONB natif ou string JSON (legacy). */
+function parseSubmissionData(sub: FormSubmission): Record<string, any> {
+  if (sub.data && typeof sub.data === "object") return sub.data;
+  try {
+    return JSON.parse(typeof sub.data === "string" ? sub.data : "{}");
+  } catch {
+    return { _raw: String(sub.data) };
+  }
+}
+
+/** Formatage d'une valeur de champ pour l'affichage dans le tableau. */
+function formatFieldValue(
+  value: unknown,
+  field?: FormFieldDefinition,
+): string {
+  if (value == null || value === "") return "—";
+  if (field?.type === "currency" && value !== "") {
+    const n = Number(value);
+    if (!isNaN(n)) {
+      try {
+        return new Intl.NumberFormat("fr-FR", {
+          style: "currency",
+          currency: "XOF",
+        }).format(n);
+      } catch {
+        /* fallback au rendu brut ci-dessous */
+      }
+    }
+  }
+  if (field?.type === "date") {
+    const d = new Date(String(value));
+    if (!isNaN(d.getTime())) return d.toLocaleDateString("fr-FR");
+  }
+  if (field?.type === "number") {
+    const n = Number(value);
+    if (!isNaN(n)) return String(n);
+  }
+  if (typeof value === "object") {
+    const obj = value as any;
+    if (Array.isArray(obj)) {
+      return obj
+        .map((item) => String(item?.label ?? item?.name ?? item))
+        .join(", ");
+    }
+    return String(obj?.label ?? obj?.name ?? JSON.stringify(obj));
+  }
+  if (field?.type === "boolean") {
+    return String(value) === "true" ? "Oui" : "Non";
+  }
+  return String(value);
+}
+
+/** Sort accessor for a table column. */
+function sortValue(sub: FormSubmission, key: SortKey): string {
+  switch (key) {
+    case "submittedBy":
+      return sub.submittedBy ?? "";
+    case "submittedAt":
+      return new Date(sub.submittedAt ?? sub.createdAt).getTime().toString();
+    case "status":
+      return sub.status ?? "";
+    case "rejectedBy":
+      return sub.rejectedBy ?? "";
+    case "rejectionReason":
+      return sub.rejectionReason ?? "";
+    default: {
+      const fieldKey = key.slice("field:".length);
+      const field = undefined;
+      return formatFieldValue(parseSubmissionData(sub)[fieldKey], field);
+    }
+  }
+}
 
 export default function FormSubmissions() {
   const { id } = useParams<{ id: string }>();
@@ -54,6 +147,11 @@ export default function FormSubmissions() {
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [busy, setBusy] = useState(false);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sort, setSort] = useState<{ key: SortKey; dir: SortDir } | null>(
+    { key: "submittedAt", dir: "desc" },
+  );
 
   useEffect(() => {
     if (!id) return;
@@ -87,29 +185,67 @@ export default function FormSubmissions() {
     };
   }, [id]);
 
-  // Labels : key du champ du formulaire → label d'affichage.
-  const labelMap = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const field of formDef?.fields ?? []) {
-      map.set(field.key, field.label || field.key);
-    }
-    return map;
-  }, [formDef]);
+  // Débounce de la recherche (~300 ms).
+  useEffect(() => {
+    const t = setTimeout(() => setSearchQuery(searchInput), SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(t);
+  }, [searchInput]);
 
   // Reset du plafonnement à chaque changement de filtre.
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
-  }, [statusFilter]);
+  }, [statusFilter, searchQuery]);
 
-  const sorted = useMemo(
-    () =>
-      [...rows].sort(
-        (a, b) =>
-          new Date(b.submittedAt ?? b.createdAt).getTime() -
-          new Date(a.submittedAt ?? a.createdAt).getTime(),
-      ),
-    [rows],
+  /**
+   * Colonnes du tableau : métadonnées + union triée des clés data
+   * (définition du formulaire en priorité, puis clés observées, DRY avec
+   * l'export XLSX).
+   */
+  const dataColumns = useMemo(() => {
+    const fieldKeys = [...(formDef?.fields ?? [])]
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+      .map((f) => f.key);
+    const observed = new Set<string>();
+    for (const sub of rows) {
+      for (const k of Object.keys(parseSubmissionData(sub))) observed.add(k);
+    }
+    const extra = [...observed].filter((k) => !fieldKeys.includes(k)).sort();
+    const all = [...fieldKeys, ...extra];
+    const fieldByKey = new Map((formDef?.fields ?? []).map((f) => [f.key, f]));
+    return all.map((key) => ({
+      key,
+      label: fieldByKey.get(key)?.label || key.replace(/_/g, " "),
+      field: fieldByKey.get(key),
+    }));
+  }, [formDef, rows]);
+
+  const allColumns = useMemo(
+    () => [
+      { key: "submittedBy" as SortKey, label: "Soumetteur" },
+      { key: "submittedAt" as SortKey, label: "Date" },
+      ...dataColumns.map((c) => ({
+        key: `field:${c.key}` as SortKey,
+        label: c.label,
+      })),
+      { key: "status" as SortKey, label: "Statut" },
+      { key: "rejectedBy" as SortKey, label: "Rejeté par" },
+      { key: "rejectionReason" as SortKey, label: "Raison du rejet" },
+    ],
+    [dataColumns],
   );
+
+  const sorted = useMemo(() => {
+    const arr = [...rows];
+    if (sort) {
+      arr.sort((a, b) => {
+        const av = sortValue(a, sort.key);
+        const bv = sortValue(b, sort.key);
+        const cmp = av.localeCompare(bv, "fr", { numeric: true });
+        return sort.dir === "asc" ? cmp : -cmp;
+      });
+    }
+    return arr;
+  }, [rows, sort]);
 
   const visible = useMemo(
     () =>
@@ -119,11 +255,31 @@ export default function FormSubmissions() {
     [sorted, statusFilter],
   );
 
-  // Pagination : plafonner le nombre de cartes montées (le dataset complet
-  // reste disponible pour l'export CSV ; IonInfiniteScroll charge plus).
+  const filtered = useMemo(() => {
+    if (!searchQuery.trim()) return visible;
+    const q = searchQuery.trim().toLowerCase();
+    return visible.filter((sub) => {
+      const data = parseSubmissionData(sub);
+      const haystack = [
+        sub.submittedBy,
+        sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString("fr-FR") : "",
+        sub.status,
+        sub.rejectedBy,
+        sub.rejectionReason,
+        ...dataColumns.map((c) => formatFieldValue(data[c.key], c.field)),
+      ]
+        .filter((v) => v != null)
+        .join(" | ")
+        .toLowerCase();
+      return haystack.includes(q);
+    });
+  }, [visible, searchQuery, dataColumns]);
+
+  // Pagination : plafonner le nombre de lignes montées (le dataset complet
+  // reste disponible pour l'export ; IonInfiniteScroll charge plus).
   const visibleCapped = useMemo(
-    () => visible.slice(0, visibleCount),
-    [visible, visibleCount],
+    () => filtered.slice(0, visibleCount),
+    [filtered, visibleCount],
   );
 
   /**
@@ -132,8 +288,8 @@ export default function FormSubmissions() {
    * ReportBuilder.exportCSV : Blob + URL.createObjectURL + a.click()).
    */
   const exportCSV = () => {
-    if (!formDef || visible.length === 0) return;
-    const csv = buildSubmissionsCSV(visible, formDef);
+    if (!formDef || filtered.length === 0) return;
+    const csv = buildSubmissionsCSV(filtered, formDef);
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -143,26 +299,37 @@ export default function FormSubmissions() {
     URL.revokeObjectURL(url);
   };
 
+  /** Export Excel (.xlsx) — trigger de téléchargement côté client. */
+  const exportXLSX = () => {
+    if (!formDef || filtered.length === 0) return;
+    exportSubmissionsAsXLSX(
+      filtered,
+      formDef,
+      `soumissions_${formDef.key || formDef.id}`,
+    );
+  };
+
   const markAsProcessed = async (sub: FormSubmission) => {
     if (busy) return;
     setBusy(true);
     try {
-      const updated = await formSubmissionRepo.update(sub.id, { status: "PROCESSED" });
+      const updated = await formSubmissionRepo.update(sub.id, {
+        status: "PROCESSED",
+      });
       if (updated) {
         setRows((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
       }
     } finally {
       setBusy(false);
-    }
+    };
   };
 
-  const parseFields = (sub: FormSubmission): Record<string, any> => {
-    if (sub.data && typeof sub.data === "object") return sub.data;
-    try {
-      return JSON.parse(typeof sub.data === "string" ? sub.data : "{}");
-    } catch {
-      return { _raw: String(sub.data) };
-    }
+  const toggleSort = (key: SortKey) => {
+    setSort((prev) =>
+      prev?.key === key
+        ? { key, dir: prev.dir === "asc" ? "desc" : "asc" }
+        : { key, dir: "asc" },
+    );
   };
 
   return (
@@ -176,7 +343,7 @@ export default function FormSubmissions() {
         </IonToolbar>
       </IonHeader>
       <IonContent className="bg-canvas" fullscreen>
-        <div className="max-w-lg mx-auto px-5 py-4 space-y-3">
+        <div className="max-w-[1200px] mx-auto px-4 py-4 space-y-3">
           {loading ? (
             <div className="p-4 text-center text-text-tertiary text-sm">
               Chargement…
@@ -216,7 +383,7 @@ export default function FormSubmissions() {
                 Réessayer
               </IonButton>
             </div>
-          ) : sorted.length === 0 ? (
+          ) : rows.length === 0 ? (
             <div
               className="rounded-xl p-5 text-center"
               style={{ backgroundColor: "var(--surface)" }}
@@ -231,118 +398,237 @@ export default function FormSubmissions() {
             </div>
           ) : (
             <>
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-text-tertiary text-xs">
-                  {visible.length} soumission(s)
-                </p>
-                <div className="flex items-center gap-2">
-                  <IonSelect
-                    value={statusFilter}
-                    onIonChange={(e: any) =>
-                      setStatusFilter(String(e.detail.value ?? "ALL"))
-                    }
-                    interface="popover"
+              {/* Barre : filtre statut + recherche + exports */}
+              <div className="flex flex-wrap items-center gap-2">
+                <IonSelect
+                  value={statusFilter}
+                  onIonChange={(e: any) =>
+                    setStatusFilter(String(e.detail.value ?? "ALL"))
+                  }
+                  interface="popover"
+                  aria-label="Filtrer par statut"
+                  style={{
+                    width: "9.5rem",
+                    backgroundColor: "var(--surface)",
+                    border: "1px solid var(--border)",
+                  }}
+                >
+                  {STATUS_FILTERS.map((f) => (
+                    <IonSelectOption key={f.value} value={f.value}>
+                      {f.label}
+                    </IonSelectOption>
+                  ))}
+                </IonSelect>
+                <div
+                  className="relative flex-1 min-w-[10rem]"
+                  style={{ backgroundColor: "var(--surface)" }}
+                >
+                  <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary pointer-events-none" />
+                  <input
+                    type="search"
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
+                    placeholder="Rechercher dans les soumissions…"
+                    aria-label="Rechercher dans les soumissions"
+                    className="w-full pl-9 pr-8 py-2 text-sm text-text-primary outline-none"
                     style={{
-                      width: "9.5rem",
                       backgroundColor: "var(--surface)",
                       border: "1px solid var(--border)",
+                      borderRadius: "0.75rem",
                     }}
-                  >
-                    {STATUS_FILTERS.map((f) => (
-                      <IonSelectOption key={f.value} value={f.value}>
-                        {f.label}
-                      </IonSelectOption>
-                    ))}
-                  </IonSelect>
-                  <IonButton
-                    size="small"
-                    fill="outline"
-                    disabled={busy || visible.length === 0}
-                    onClick={exportCSV}
-                  >
-                    <Download className="w-3 h-3 mr-1" />
-                    Exporter CSV
-                  </IonButton>
+                  />
+                  {searchInput && (
+                    <button
+                      type="button"
+                      aria-label="Effacer la recherche"
+                      onClick={() => setSearchInput("")}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-text-tertiary"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
+                <IonButton
+                  size="small"
+                  fill="outline"
+                  disabled={busy || filtered.length === 0}
+                  onClick={exportCSV}
+                  aria-label="Exporter en CSV"
+                >
+                  <Download className="w-3 h-3 mr-1" />
+                  Exporter CSV
+                </IonButton>
+                <IonButton
+                  size="small"
+                  fill="outline"
+                  disabled={busy || filtered.length === 0}
+                  onClick={exportXLSX}
+                  aria-label="Exporter en Excel"
+                >
+                  <Download className="w-3 h-3 mr-1" />
+                  Exporter Excel
+                </IonButton>
               </div>
-              {visible.length === 0 ? (
+
+              <p className="text-text-tertiary text-xs">
+                {filtered.length} soumission(s)
+              </p>
+
+              {filtered.length === 0 ? (
                 <div className="text-center text-text-tertiary text-xs py-4">
-                  Aucune soumission dans ce statut.
+                  Aucune soumission ne correspond aux filtres.
                 </div>
               ) : (
                 <>
-                  {visibleCapped.map((sub) => {
-                  const fields = parseFields(sub);
-                  return (
-                    <IonCard
-                      key={sub.id}
-                      style={{
-                        backgroundColor: "var(--surface)",
-                        border: "1px solid var(--border)",
-                      }}
-                    >
-                      <IonCardContent>
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <User className="w-4 h-4 text-text-tertiary flex-shrink-0" />
-                            <span className="text-text-primary text-sm truncate">
-                              {sub.submittedBy || "Anonyme"}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1 text-text-tertiary text-xs flex-shrink-0">
-                            <Clock className="w-3 h-3" />
-                            {(sub.submittedAt ?? sub.createdAt)
-                              ? new Date(sub.submittedAt ?? sub.createdAt).toLocaleDateString("fr-FR")
-                              : "—"}
-                          </div>
-                        </div>
-                        <dl className="space-y-1.5">
-                          {Object.entries(fields).map(([k, v]) => (
-                            <div
-                              key={k}
-                              className="flex justify-between gap-3 text-xs"
+                  <div className="overflow-x-auto rounded-xl" style={{ border: "1px solid var(--border)" }}>
+                    <table className="w-full text-xs" role="table">
+                      <thead>
+                        <tr>
+                          {allColumns.map((col) => (
+                            <th
+                              key={col.key}
+                              role="columnheader"
+                              tabIndex={0}
+                              aria-sort={
+                                sort?.key === col.key
+                                  ? sort.dir === "asc"
+                                    ? "ascending"
+                                    : "descending"
+                                  : "none"
+                              }
+                              className="text-left px-3 py-2.5 font-medium text-text-primary whitespace-nowrap cursor-pointer select-none"
+                              style={{
+                                borderBottom: "1px solid var(--border)",
+                                backgroundColor: "var(--surface)",
+                              }}
+                              onClick={() => toggleSort(col.key as SortKey)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  e.preventDefault();
+                                  toggleSort(col.key as SortKey);
+                                }
+                              }}
                             >
-                              <dt className="text-text-tertiary flex-shrink-0 max-w-[40%] break-words">
-                                {labelMap.get(k) ?? k.replace(/_/g, " ")}
-                              </dt>
-                              <dd className="text-text-primary text-right break-words">
-                                {v == null
-                                  ? "—"
-                                  : typeof v === "object"
-                                    ? (
-                                        Array.isArray(v)
-                                          ? v.map((item) => String((item as any)?.label ?? (item as any)?.name ?? item)).join(", ")
-                                          : String((v as any)?.label ?? (v as any)?.name ?? JSON.stringify(v))
-                                      )
-                                    : String(v)}
-                              </dd>
-                            </div>
+                              {col.label}
+                              {sort?.key === col.key &&
+                                (sort.dir === "asc" ? " ↑" : " ↓")}
+                            </th>
                           ))}
-                        </dl>
-                        {sub.status !== "PROCESSED" && (
-                          <div className="mt-3 flex justify-end">
-                            <IonButton
-                              size="small"
-                              fill="solid"
-                              disabled={busy}
-                              onClick={() => markAsProcessed(sub)}
-                            >
-                              {busy ? (
-                                "Mise à jour…"
-                              ) : (
-                                <>
-                                  <CheckCircle2 className="w-3 h-3 mr-1" />
-                                  Marquer comme traitée
-                                </>
-                              )}
-                            </IonButton>
-                          </div>
-                        )}
-                      </IonCardContent>
-                    </IonCard>
-                  );
-                })}
-                  {visibleCapped.length < visible.length && (
+                          <th
+                            role="columnheader"
+                            className="text-right px-3 py-2.5 font-medium text-text-primary whitespace-nowrap"
+                            style={{
+                              borderBottom: "1px solid var(--border)",
+                              backgroundColor: "var(--surface)",
+                            }}
+                          >
+                            Actions
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {visibleCapped.map((sub) => {
+                          const data = parseSubmissionData(sub);
+                          return (
+                            <tr key={sub.id}>
+                              <td
+                                className="px-3 py-2 text-text-primary whitespace-nowrap"
+                                style={{ borderBottom: "1px solid var(--border)" }}
+                              >
+                                {sub.submittedBy || "Anonyme"}
+                              </td>
+                              <td
+                                className="px-3 py-2 text-text-primary whitespace-nowrap"
+                                style={{ borderBottom: "1px solid var(--border)" }}
+                              >
+                                {(sub.submittedAt ?? sub.createdAt)
+                                  ? new Date(
+                                      sub.submittedAt ?? sub.createdAt,
+                                    ).toLocaleDateString("fr-FR")
+                                  : "—"}
+                              </td>
+                              {dataColumns.map((col) => (
+                                <td
+                                  key={col.key}
+                                  role="cell"
+                                  className="px-3 py-2 text-text-primary break-words"
+                                  style={{ borderBottom: "1px solid var(--border)" }}
+                                >
+                                  {formatFieldValue(data[col.key], col.field)}
+                                </td>
+                              ))}
+                              <td
+                                className="px-3 py-2 whitespace-nowrap"
+                                style={{ borderBottom: "1px solid var(--border)" }}
+                              >
+                                <span
+                                  className="px-2 py-0.5 rounded-full text-[11px] font-medium"
+                                  style={{
+                                    backgroundColor:
+                                      sub.status === "PROCESSED"
+                                        ? "rgba(34,197,94,0.15)"
+                                        : sub.status === "REJECTED"
+                                          ? "rgba(239,68,68,0.15)"
+                                          : "rgba(59,130,246,0.15)",
+                                    color:
+                                      sub.status === "PROCESSED"
+                                        ? "#16a34a"
+                                        : sub.status === "REJECTED"
+                                          ? "#dc2626"
+                                          : "#2563eb",
+                                  }}
+                                >
+                                  {STATUS_LABELS[sub.status] ?? sub.status}
+                                </span>
+                                {sub.status === "REJECTED" &&
+                                  sub.rejectionReason && (
+                                    <div className="text-text-tertiary mt-1 text-left text-[11px]">
+                                      {sub.rejectionReason}
+                                    </div>
+                                  )}
+                              </td>
+                              <td
+                                className="px-3 py-2 text-text-tertiary whitespace-nowrap text-left"
+                                style={{ borderBottom: "1px solid var(--border)" }}
+                              >
+                                {sub.rejectedBy ?? "—"}
+                              </td>
+                              <td
+                                className="px-3 py-2 text-text-tertiary break-words text-left"
+                                style={{ borderBottom: "1px solid var(--border)" }}
+                              >
+                                {sub.rejectionReason ?? "—"}
+                              </td>
+                              <td
+                                className="px-3 py-2 text-right whitespace-nowrap"
+                                style={{ borderBottom: "1px solid var(--border)" }}
+                              >
+                                {sub.status !== "PROCESSED" && (
+                                  <IonButton
+                                    size="small"
+                                    fill="solid"
+                                    disabled={busy}
+                                    onClick={() => markAsProcessed(sub)}
+                                    aria-label={`Marquer la soumission ${sub.id} comme traitée`}
+                                  >
+                                    {busy ? (
+                                      "Mise à jour…"
+                                    ) : (
+                                      <>
+                                        <CheckCircle2 className="w-3 h-3 mr-1" />
+                                        Traiter
+                                      </>
+                                    )}
+                                  </IonButton>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  {visibleCapped.length < filtered.length && (
                     <IonInfiniteScroll
                       position="bottom"
                       threshold="300px"
