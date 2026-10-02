@@ -252,7 +252,7 @@ export default function EventEdit() {
               <button
                 onClick={handleSave}
                 disabled={submitting}
-                className="w-full py-4 rounded-full font-semibold text-white text-sm transition-all active:scale-95 disabled:opacity-50"
+                className="w-full py-4 rounded-full font-semibold text-on-accent text-sm transition-all active:scale-95 disabled:opacity-50"
                 style={{ backgroundColor: "var(--accent-primary)" }}
               >
                 {submitting ? "Sauvegarde..." : "Sauvegarder les modifications"}

@@ -190,7 +190,7 @@ export default function OrgUnits() {
             <button
               type="button"
               onClick={() => setShowCreate(!showCreate)}
-              className="w-full flex items-center justify-center gap-1.5 py-3 rounded-full font-semibold text-white text-sm transition-all active:scale-95 mb-4"
+              className="w-full flex items-center justify-center gap-1.5 py-3 rounded-full font-semibold text-on-accent text-sm transition-all active:scale-95 mb-4"
               style={{ backgroundColor: "var(--accent-primary)" }}
               aria-label="Créer une unité interne"
             >
@@ -255,7 +255,7 @@ export default function OrgUnits() {
                   type="button"
                   onClick={handleCreate}
                   disabled={creating || !name.trim()}
-                  className="w-full py-3 rounded-full font-semibold text-white text-sm transition-all active:scale-95 disabled:opacity-50"
+                  className="w-full py-3 rounded-full font-semibold text-on-accent text-sm transition-all active:scale-95 disabled:opacity-50"
                   style={{ backgroundColor: "var(--accent-primary)" }}
                   aria-label="Créer l'unité"
                 >

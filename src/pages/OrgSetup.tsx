@@ -381,7 +381,7 @@ export default function OrgSetup() {
             <button
               onClick={handleCreate}
               disabled={!canCreate || creating}
-              className="w-full py-4 rounded-full font-semibold text-sm text-white transition-all active:scale-95 disabled:opacity-40 flex items-center justify-center gap-2"
+              className="w-full py-4 rounded-full font-semibold text-sm text-on-accent transition-all active:scale-95 disabled:opacity-40 flex items-center justify-center gap-2"
               style={{ backgroundColor: "var(--accent-primary)" }}
             >
               {creating ? (

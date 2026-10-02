@@ -218,7 +218,7 @@ export default function FormBuilder() {
               </h1>
               <button
                 onClick={openCreateModal}
-                className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold text-white"
+                className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold text-on-accent"
                 style={{
                   background: "linear-gradient(135deg, var(--accent-light), var(--accent-primary))",
                 }}

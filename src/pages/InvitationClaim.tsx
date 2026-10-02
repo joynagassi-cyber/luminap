@@ -182,10 +182,10 @@ export default function InvitationClaim() {
   return (
     <IonPage>
       <IonContent fullscreen>
-        <div className="min-h-screen bg-canvas">
+        <div className="flex flex-col min-h-dvh bg-canvas">
           <TopHeader title="" />
           <div
-            className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc"
+            className="flex-1 max-w-lg w-full mx-auto px-5 pb-safe-calc pt-safe-calc"
             style={{
               paddingBottom: keyboardHeight > 0 ? `${keyboardHeight}px` : undefined,
             }}
@@ -282,10 +282,9 @@ export default function InvitationClaim() {
                     (transfert local hors ligne). Lit le fichier, puis le parse
                     comme n'importe quel payload v1 — même moteur que le QR. */}
                 <label
-                  className="flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-medium cursor-pointer active:scale-95 transition-all"
+                  className="flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-medium cursor-pointer active:scale-95 transition-all border border-border"
                   style={{
-                    backgroundColor: "var(--band-central)",
-                    border: "1px solid var(--surface-active)",
+                    backgroundColor: "var(--surface)",
                     color: "var(--accent-primary)",
                   }}
                 >

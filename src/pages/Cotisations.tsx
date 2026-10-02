@@ -113,10 +113,9 @@ export default function Cotisations() {
                 onClick={() =>
                   navigate("/event/new", { state: { defaultType: "CULTE" } })
                 }
-                className="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-semibold text-white transition-all active:scale-95"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-semibold text-on-accent transition-all active:scale-95 shadow-accent"
                 style={{
                   background: "linear-gradient(135deg, var(--accent-light), var(--accent-primary))",
-                  boxShadow: "0 4px 12px color-mix(in srgb, var(--accent-primary) 30%, transparent)",
                 }}
                 aria-label="Créer un nouveau culte"
               >
@@ -144,7 +143,7 @@ export default function Cotisations() {
                   onClick={() =>
                     navigate("/event/new", { state: { defaultType: "CULTE" } })
                   }
-                  className="px-6 py-2.5 rounded-full text-sm font-medium text-white"
+                  className="px-6 py-2.5 rounded-full text-sm font-medium text-on-accent"
                   style={{ background: "var(--accent-primary)" }}
                   aria-label="Créer un culte"
                 >

@@ -361,7 +361,7 @@ export default function TransactionDetail() {
                   {canApproveMulti.allowed && (
                     <button
                       onClick={handleApprove}
-                      className="w-full py-4 rounded-full font-semibold text-white text-sm transition-all active:scale-95"
+                      className="w-full py-4 rounded-full font-semibold text-on-accent text-sm transition-all active:scale-95"
                       style={{ backgroundColor: "var(--data-income)" }}
                     >
                       Approuver
@@ -561,7 +561,7 @@ export default function TransactionDetail() {
                   <div className="flex gap-2">
                     <button
                       onClick={handleRejectConfirm}
-                      className="flex-1 py-3 rounded-full font-semibold text-white text-sm"
+                      className="flex-1 py-3 rounded-full font-semibold text-on-accent text-sm"
                       style={{ backgroundColor: "var(--data-expense)" }}
                     >
                       Rejeter
@@ -612,7 +612,7 @@ export default function TransactionDetail() {
                   <div className="flex gap-2">
                     <button
                       onClick={handleReverse}
-                      className="flex-1 py-3 rounded-full font-semibold text-white text-sm"
+                      className="flex-1 py-3 rounded-full font-semibold text-on-accent text-sm"
                       style={{ backgroundColor: "var(--data-pending)" }}
                     >
                       Confirmer

@@ -143,7 +143,7 @@ export default function SettingsPersonalisation() {
             type="button"
             onClick={handleSave}
             disabled={saving || !dirty}
-            className="w-full py-3 rounded-full font-semibold text-white text-sm transition-transform active:scale-95 disabled:opacity-50"
+            className="w-full py-3 rounded-full font-semibold text-on-accent text-sm transition-transform active:scale-95 disabled:opacity-50"
             style={{ backgroundColor: "var(--accent-primary)" }}
             aria-label="Sauvegarder la personnalisation"
           >

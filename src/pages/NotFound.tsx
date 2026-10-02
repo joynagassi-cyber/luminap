@@ -25,7 +25,7 @@ export default function NotFound() {
             </p>
             <button
               onClick={() => navigate("/dashboard")}
-              className="px-8 py-3 rounded-full font-semibold text-white"
+              className="px-8 py-3 rounded-full font-semibold text-on-accent"
               style={{ backgroundColor: "var(--accent-primary)" }}
             >
               Retour à l'accueil

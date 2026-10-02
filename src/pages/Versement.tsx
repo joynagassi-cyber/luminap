@@ -191,7 +191,7 @@ export default function Versement() {
                   <button
                     onClick={handleConfirm}
                     disabled={isLoading || !isValid}
-                    className="flex-1 py-3.5 rounded-full font-semibold text-white text-sm disabled:opacity-50"
+                    className="flex-1 py-3.5 rounded-full font-semibold text-on-accent text-sm disabled:opacity-50"
                     style={{ backgroundColor: "var(--accent-primary)" }}
                   >
                     {isLoading ? "Traitement..." : "Confirmer le versement"}
@@ -322,7 +322,7 @@ export default function Versement() {
                 <button
                   onClick={() => setShowConfirm(true)}
                   disabled={!isValid}
-                  className="w-full py-4 rounded-full font-semibold text-white text-sm disabled:opacity-50 transition-all active:scale-95"
+                  className="w-full py-4 rounded-full font-semibold text-on-accent text-sm disabled:opacity-50 transition-all active:scale-95"
                   style={{ backgroundColor: "var(--accent-primary)" }}
                 >
                   Continuer

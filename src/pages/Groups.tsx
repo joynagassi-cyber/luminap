@@ -172,10 +172,9 @@ export default function Groups() {
               {canCreateMulti.allowed && (
                 <button
                   onClick={() => setShowCreate(true)}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-semibold text-white transition-all active:scale-95"
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-semibold text-on-accent transition-all active:scale-95 shadow-accent"
                   style={{
                     background: "linear-gradient(135deg, var(--accent-light), var(--accent-primary))",
-                    boxShadow: "0 4px 12px color-mix(in srgb, var(--accent-primary) 30%, transparent)",
                   }}
                 >
                   <Plus className="w-4 h-4" /> Créer
@@ -280,7 +279,7 @@ export default function Groups() {
                     <button
                       onClick={handleCreate}
                       disabled={creating}
-                      className="flex-1 py-3 rounded-full font-semibold text-white text-sm"
+                      className="flex-1 py-3 rounded-full font-semibold text-on-accent text-sm"
                       style={{ backgroundColor: "var(--accent-primary)" }}
                     >
                       {creating ? "Création..." : "Créer le groupe"}
@@ -423,7 +422,7 @@ export default function Groups() {
                   <div className="flex gap-2 mt-4">
                     <button
                       onClick={() => handleUpdate(showEdit)}
-                      className="flex-1 py-3 rounded-full font-semibold text-white text-sm"
+                      className="flex-1 py-3 rounded-full font-semibold text-on-accent text-sm"
                       style={{ backgroundColor: "var(--accent-primary)" }}
                     >
                       Sauvegarder
@@ -460,7 +459,7 @@ export default function Groups() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleDelete(showDelete)}
-                      className="flex-1 py-3 rounded-full font-semibold text-white text-sm"
+                      className="flex-1 py-3 rounded-full font-semibold text-on-accent text-sm"
                       style={{ backgroundColor: "var(--data-expense)" }}
                     >
                       Supprimer

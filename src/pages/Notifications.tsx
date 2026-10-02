@@ -224,7 +224,7 @@ export default function NotificationsPage() {
                 <button
                   onClick={retryNotifications}
                   aria-label="Réessayer le chargement des notifications"
-                  className="mt-2 px-4 py-2 rounded-full text-sm font-semibold text-white transition-all active:scale-95"
+                  className="mt-2 px-4 py-2 rounded-full text-sm font-semibold text-on-accent transition-all active:scale-95"
                   style={{ backgroundColor: "var(--accent-primary)" }}
                 >
                   Réessayer

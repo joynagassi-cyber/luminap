@@ -168,10 +168,9 @@ export default function MembersPage() {
               </div>
               <button
                 onClick={() => setShowForm(!showForm)}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-semibold text-white transition-all active:scale-95"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-semibold text-on-accent transition-all active:scale-95 shadow-accent"
                 style={{
                   background: "linear-gradient(135deg, var(--accent-light), var(--accent-primary))",
-                  boxShadow: "0 4px 12px rgba(255,107,0,0.3)",
                 }}
               >
                 <PlusCircle className="w-4 h-4" /> Ajouter
@@ -271,7 +270,7 @@ export default function MembersPage() {
                     <button
                       onClick={handleCreate}
                       disabled={saving || !firstName.trim() || !lastName.trim()}
-                      className="flex-1 py-3 rounded-full font-semibold text-white text-sm"
+                      className="flex-1 py-3 rounded-full font-semibold text-on-accent text-sm"
                       style={{ backgroundColor: "var(--accent-primary)" }}
                     >
                       {saving ? "Ajout..." : "Ajouter"}
@@ -381,7 +380,7 @@ export default function MembersPage() {
                 <button
                   onClick={retryMembers}
                   aria-label="Réessayer le chargement des membres"
-                  className="px-4 py-2 rounded-full text-sm font-semibold text-white transition-all active:scale-95"
+                  className="px-4 py-2 rounded-full text-sm font-semibold text-on-accent transition-all active:scale-95"
                   style={{ backgroundColor: "var(--accent-primary)" }}
                 >
                   Réessayer
@@ -400,7 +399,7 @@ export default function MembersPage() {
                 </p>
                 <button
                   onClick={() => setRetryArchived((n) => n + 1)}
-                  className="mt-2 px-4 py-2 rounded-full text-sm font-semibold text-white transition-all active:scale-95"
+                  className="mt-2 px-4 py-2 rounded-full text-sm font-semibold text-on-accent transition-all active:scale-95"
                   style={{ backgroundColor: "var(--accent-primary)" }}
                   aria-label="Réessayer le chargement des membres archivés"
                 >

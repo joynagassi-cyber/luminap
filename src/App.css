@@ -43,6 +43,15 @@
 
   /* Skeleton radius (invariant) */
   --skeleton-radius: 4px;
+
+  /* Élévation « accentuée » (FAB / tabs actives) : teinte d'accent invariante
+     entre modes — remplaçant les formules ad-hoc par page (rgba(255,107,0,.3)). */
+  --shadow-accent: 0 4px 12px color-mix(in srgb, var(--accent-primary) 30%, transparent);
+  --shadow-accent-sm: 0 2px 8px color-mix(in srgb, var(--accent-primary) 30%, transparent);
+
+  /* Voile (scrim) des overlays de page. En clair, un voile noir 60–70 %
+     écrase les surfaces blanches : on passe à un voile gris 35 %. */
+  --scrim: rgba(0, 0, 0, 0.6);
 }
 
 /* ── Mode sombre (défaut — s'applique aussi sans data-theme) ─────────────── */
@@ -67,6 +76,7 @@
 
 /* ── Mode clair ───────────────────────────────────────────────────────────── */
 [data-theme="light"] {
+  --scrim: rgba(26, 26, 26, 0.35);
   --canvas: #f5f6f8;
   --surface: #ffffff;
   --card: #ffffff;

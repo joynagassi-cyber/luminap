@@ -295,7 +295,7 @@ export default function Archives() {
                     <button
                       onClick={handleDocumentUpload}
                       disabled={docUploading || !docFile || !docTitle.trim()}
-                      className="w-full py-3 rounded-full text-sm font-semibold text-white transition-all disabled:opacity-40"
+                      className="w-full py-3 rounded-full text-sm font-semibold text-on-accent transition-all disabled:opacity-40"
                       style={{
                         backgroundColor: "var(--accent-primary)",
                       }}
@@ -398,7 +398,7 @@ export default function Archives() {
                     </p>
                     <button
                       onClick={() => setRetryCount((n) => n + 1)}
-                      className="mt-3 px-4 py-2 rounded-full text-xs font-semibold text-white transition-all active:scale-95"
+                      className="mt-3 px-4 py-2 rounded-full text-xs font-semibold text-on-accent transition-all active:scale-95"
                       style={{ backgroundColor: "var(--accent-primary)" }}
                       aria-label="Réessayer le chargement des entités archivées"
                     >

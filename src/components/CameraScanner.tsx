@@ -181,10 +181,21 @@ export function CameraScanner({ onScan, onError, enabled = true }: CameraScanner
         </div>
       )}
 
-      {/* Error message */}
+      {/* Error message — H2 : token --data-alert, pas l'échelle red-500
+          (dérive en thème org et ne suit pas la pipeline de thème). */}
       {error && (
-        <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30">
-          <p className="text-red-400 text-sm">{error}</p>
+        <div
+          className="p-3 rounded-lg border"
+          style={{
+            backgroundColor:
+              "color-mix(in srgb, var(--data-alert) 12%, transparent)",
+            borderColor:
+              "color-mix(in srgb, var(--data-alert) 35%, transparent)",
+          }}
+        >
+          <p className="text-sm" style={{ color: "var(--data-alert)" }}>
+            {error}
+          </p>
         </div>
       )}
 
@@ -194,7 +205,7 @@ export function CameraScanner({ onScan, onError, enabled = true }: CameraScanner
           onClick={startCamera}
           disabled={!enabled || scanning}
           aria-label="Scanner un code QR"
-          className="flex-1 px-4 py-3 rounded-xl bg-primary text-white font-medium disabled:opacity-50"
+          className="flex-1 px-4 py-3 rounded-xl bg-primary text-on-accent font-medium disabled:opacity-50"
         >
           {scanning ? 'Scan en cours...' : 'Scanner QR'}
         </button>

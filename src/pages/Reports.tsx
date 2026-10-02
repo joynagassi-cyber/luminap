@@ -561,7 +561,7 @@ export default function Reports() {
             {canExport && (
               <button
                 onClick={() => setShowExport(true)}
-                className="w-full mt-5 py-3.5 rounded-full font-semibold text-white text-sm flex items-center justify-center gap-2 transition-all active:scale-95"
+                className="w-full mt-5 py-3.5 rounded-full font-semibold text-on-accent text-sm flex items-center justify-center gap-2 transition-all active:scale-95"
                 style={{ background: "linear-gradient(135deg, var(--accent-light), var(--accent-primary))" }}
               >
                 <Download className="w-4 h-4" /> Exporter le rapport

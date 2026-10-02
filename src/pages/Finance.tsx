@@ -374,7 +374,7 @@ export default function Finance() {
                 style={{ backgroundColor: "var(--data-income)" }}
                 aria-label="Nouvelle entrée"
               >
-                <ArrowUpRight className="w-6 h-6 text-white" />
+                <ArrowUpRight className="w-6 h-6 text-on-accent" />
               </button>
               <button
                 onClick={() => handleAddTransaction("EXPENSE")}
@@ -382,7 +382,7 @@ export default function Finance() {
                 style={{ backgroundColor: "var(--data-expense)" }}
                 aria-label="Nouvelle dépense"
               >
-                <ArrowDownRight className="w-6 h-6 text-white" />
+                <ArrowDownRight className="w-6 h-6 text-on-accent" />
               </button>
             </div>
             </div>

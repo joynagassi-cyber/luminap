@@ -281,7 +281,7 @@ export default function Balance() {
 
             <button
               onClick={() => setShowExport(true)}
-              className="w-full py-3.5 rounded-full font-semibold text-white text-sm flex items-center justify-center gap-2 transition-all active:scale-95"
+              className="w-full py-3.5 rounded-full font-semibold text-on-accent text-sm flex items-center justify-center gap-2 transition-all active:scale-95"
               style={{
                 background: "linear-gradient(135deg, var(--accent-light), var(--accent-primary))",
               }}

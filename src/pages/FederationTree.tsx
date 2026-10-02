@@ -466,7 +466,7 @@ function FederationTreeInner() {
             <button
               type="button"
               onClick={() => navigate("/admin/federation")}
-              className="mt-4 flex w-full items-center justify-center gap-2 py-3 rounded-full font-semibold text-white text-sm transition-all active:scale-95"
+              className="mt-4 flex w-full items-center justify-center gap-2 py-3 rounded-full font-semibold text-on-accent text-sm transition-all active:scale-95"
               style={{
                 backgroundColor: "transparent",
                 color: "var(--accent-primary)",

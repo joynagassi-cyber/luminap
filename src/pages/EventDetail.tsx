@@ -415,7 +415,7 @@ export default function EventDetail() {
                       ? {
                           backgroundColor: "var(--accent-primary)",
                           color: "var(--text-primary)",
-                          boxShadow: "0 2px 8px rgba(255,107,0,0.3)",
+                          boxShadow: "var(--shadow-accent-sm)",
                         }
                       : { backgroundColor: "transparent", color: "var(--text-tertiary)" }
                   }
@@ -967,7 +967,7 @@ export default function EventDetail() {
                   </button>
                   <button
                     onClick={handleAddExpense}
-                    className="flex-1 py-3 rounded-full font-semibold text-white transition-all active:scale-95"
+                    className="flex-1 py-3 rounded-full font-semibold text-on-accent transition-all active:scale-95"
                     style={{ backgroundColor: "var(--accent-primary)" }}
                   >
                     Enregistrer
@@ -1011,7 +1011,7 @@ export default function EventDetail() {
               )}
               <button
                 onClick={handleDelete}
-                className="w-full py-3.5 rounded-full font-semibold text-white mb-3"
+                className="w-full py-3.5 rounded-full font-semibold text-on-accent mb-3"
                 style={{ backgroundColor: "var(--data-expense)" }}
               >
                 Supprimer

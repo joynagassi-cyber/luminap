@@ -643,7 +643,7 @@ export default function ReportBuilder() {
           <button
             onClick={run}
             disabled={running}
-            className="py-3 rounded-full font-semibold text-white text-sm flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-40"
+            className="py-3 rounded-full font-semibold text-on-accent text-sm flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-40"
             style={{
               background:
                 "linear-gradient(135deg, var(--accent-light), var(--accent-primary))",

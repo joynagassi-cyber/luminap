@@ -200,7 +200,7 @@ export default function BudgetDetail() {
                       <button
                         onClick={addLine}
                         disabled={adding || !amount}
-                        className="flex-1 py-3 rounded-full font-semibold text-white text-sm flex items-center justify-center gap-2 active:scale-95 transition-transform disabled:opacity-40"
+                        className="flex-1 py-3 rounded-full font-semibold text-on-accent text-sm flex items-center justify-center gap-2 active:scale-95 transition-transform disabled:opacity-40"
                         style={{ backgroundColor: "var(--accent-primary)" }}
                       >
                         <Plus className="w-4 h-4" /> Ajouter

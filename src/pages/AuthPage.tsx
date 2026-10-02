@@ -461,7 +461,7 @@ export default function AuthPage() {
                   !password ||
                   (mode === "signup" && !firstName.trim())
                 }
-                className="w-full py-4 rounded-full font-semibold text-white text-sm transition-all active:scale-95 disabled:opacity-50"
+                className="w-full py-4 rounded-full font-semibold text-on-accent text-sm transition-all active:scale-95 disabled:opacity-50"
                 style={{ backgroundColor: "var(--accent-primary)" }}
                 aria-label={
                   mode === "login" ? "Se connecter" : "Créer mon compte"
@@ -484,7 +484,7 @@ export default function AuthPage() {
                   setMode(mode === "login" ? "signup" : "login");
                   setError("");
                 }}
-                className="text-[var(--text-tertiary)] text-sm hover:text-white transition-colors"
+                className="text-[var(--text-tertiary)] text-sm hover:text-on-accent transition-colors"
                 aria-label={
                   mode === "login"
                     ? "Passer à l'inscription"
@@ -504,7 +504,7 @@ export default function AuthPage() {
             <div className="mt-3 text-center">
               <button
                 onClick={() => navigate("/invitation/claim")}
-                className="text-[var(--text-tertiary)] text-xs hover:text-white transition-colors"
+                className="text-[var(--text-tertiary)] text-xs hover:text-on-accent transition-colors"
                 aria-label="J'ai un code d'invitation"
               >
                 J'ai un code d'invitation

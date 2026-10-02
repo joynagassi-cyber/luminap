@@ -82,7 +82,7 @@ export default function Giving() {
               <div data-testid="giving-campaigns">
                 <button
                   onClick={() => setSheet("campaign")}
-                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold text-white mb-4 active:scale-95 transition-transform"
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold text-on-accent mb-4 active:scale-95 transition-transform"
                   style={{ backgroundColor: "var(--accent-primary)" }}
                   data-testid="new-campaign-btn"
                 >
@@ -140,7 +140,7 @@ export default function Giving() {
               <div data-testid="giving-donors">
                 <button
                   onClick={() => setSheet("donor")}
-                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold text-white mb-4 active:scale-95 transition-transform"
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold text-on-accent mb-4 active:scale-95 transition-transform"
                   style={{ backgroundColor: "var(--accent-primary)" }}
                   data-testid="new-donor-btn"
                 >
@@ -464,7 +464,7 @@ function PrimaryButton({ onClick, disabled, label }: { onClick: () => void; disa
     <button
       onClick={onClick}
       disabled={disabled}
-      className="w-full py-3.5 rounded-full font-semibold text-white text-sm transition-all active:scale-95 disabled:opacity-40"
+      className="w-full py-3.5 rounded-full font-semibold text-on-accent text-sm transition-all active:scale-95 disabled:opacity-40"
       style={{ backgroundColor: "var(--accent-primary)" }}
     >
       {label}

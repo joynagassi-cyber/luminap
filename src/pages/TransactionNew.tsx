@@ -512,7 +512,7 @@ export default function TransactionNew() {
                           style={{ backgroundColor: "rgba(0,0,0,0.7)" }}
                           aria-label={`Supprimer la preuve ${i + 1}`}
                         >
-                          <X className="w-3 h-3 text-white" />
+                          <X className="w-3 h-3 text-on-accent" />
                         </button>
                       </div>
                     ))}

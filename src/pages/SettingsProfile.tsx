@@ -141,7 +141,7 @@ export default function SettingsProfile() {
               border: "2px solid var(--canvas)",
             }}
           >
-            <Camera className="w-4 h-4 text-white" />
+            <Camera className="w-4 h-4 text-on-accent" />
             <input
               type="file"
               accept="image/*"
@@ -217,7 +217,7 @@ export default function SettingsProfile() {
           type="button"
           onClick={handleSaveNames}
           disabled={!namesDirty}
-          className="w-full mt-3 py-3 rounded-full font-semibold text-white text-sm transition-transform active:scale-95 disabled:opacity-40"
+          className="w-full mt-3 py-3 rounded-full font-semibold text-on-accent text-sm transition-transform active:scale-95 disabled:opacity-40"
           style={{ backgroundColor: "var(--accent-primary)" }}
           aria-label="Enregistrer le nom"
         >

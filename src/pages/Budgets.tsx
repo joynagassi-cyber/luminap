@@ -67,7 +67,7 @@ export default function Budgets() {
               </h1>
               <button
                 onClick={() => setShowCreate(true)}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold text-white active:scale-95 transition-transform"
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold text-on-accent active:scale-95 transition-transform"
                 style={{ backgroundColor: "var(--accent-primary)" }}
                 data-testid="new-budget-btn"
                 aria-label="Nouveau budget"
@@ -368,7 +368,7 @@ function CreateBudgetSheet({
           <button
             onClick={submit}
             disabled={saving || !name.trim()}
-            className="w-full py-3.5 rounded-full font-semibold text-white text-sm flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-40"
+            className="w-full py-3.5 rounded-full font-semibold text-on-accent text-sm flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-40"
             style={{ backgroundColor: "var(--accent-primary)" }}
           >
             {saving ? "Création…" : "Créer le budget"}

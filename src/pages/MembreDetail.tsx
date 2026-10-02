@@ -141,13 +141,13 @@ export default function MembreDetail() {
                     background: "linear-gradient(135deg, var(--data-planified), var(--accent-light))",
                   }}
                 >
-                  <span className="text-white text-base font-bold">
+                  <span className="text-on-accent text-base font-bold">
                     {((member as any).first_name || "").charAt(0)}
                     {((member as any).last_name || "").charAt(0)}
                   </span>
                 </div>
                 <div>
-                  <p className="text-white font-bold text-lg">{fullName}</p>
+                  <p className="text-on-accent font-bold text-lg">{fullName}</p>
                   {(member as any).phone && (
                     <p className="text-text-tertiary text-xs">{(member as any).phone}</p>
                   )}
@@ -164,7 +164,7 @@ export default function MembreDetail() {
                     className="w-4 h-4 mx-auto mb-1"
                     style={{ color: "var(--data-success)" }}
                   />
-                  <p className="text-white font-bold text-sm">{payeCount}</p>
+                  <p className="text-on-accent font-bold text-sm">{payeCount}</p>
                   <p className="text-text-tertiary text-xs">Cultes</p>
                 </div>
                 <div
@@ -177,14 +177,14 @@ export default function MembreDetail() {
                     className="w-4 h-4 mx-auto mb-1"
                     style={{ color: "var(--text-tertiary)" }}
                   />
-                  <p className="text-white font-bold text-sm">{absentCount}</p>
+                  <p className="text-on-accent font-bold text-sm">{absentCount}</p>
                   <p className="text-text-tertiary text-xs">Absences</p>
                 </div>
                 <div
                   className="text-center p-2 rounded-xl"
                   style={{ backgroundColor: "color-mix(in srgb, var(--accent-primary) 8%,  transparent)" }}
                 >
-                  <p className="text-white font-bold text-sm">
+                  <p className="text-on-accent font-bold text-sm">
                     {formatCurrencyCompact(totalDons)}
                   </p>
                   <p className="text-text-tertiary text-xs">Dons</p>
@@ -195,7 +195,7 @@ export default function MembreDetail() {
               <div className="mt-4">
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="text-text-tertiary text-xs">Cadence</span>
-                  <span className="text-white text-xs font-bold">
+                  <span className="text-on-accent text-xs font-bold">
                     {cadence}%
                   </span>
                 </div>

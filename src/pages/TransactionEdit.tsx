@@ -346,7 +346,7 @@ export default function TransactionEdit() {
               <button
                 onClick={handleSubmit}
                 disabled={submitting}
-                className="w-full py-4 rounded-full font-semibold text-white text-sm transition-all active:scale-95"
+                className="w-full py-4 rounded-full font-semibold text-on-accent text-sm transition-all active:scale-95"
                 style={{
                   backgroundColor: type === "INCOME" ? "var(--data-income)" : "var(--data-expense)",
                 }}

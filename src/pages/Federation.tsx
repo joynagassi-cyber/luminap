@@ -301,7 +301,7 @@ export default function Federation() {
             <button
               type="button"
               onClick={() => setShowCreate(!showCreate)}
-              className="w-full flex items-center justify-center gap-1.5 py-3 rounded-full font-semibold text-white text-sm transition-all active:scale-95 mb-4"
+              className="w-full flex items-center justify-center gap-1.5 py-3 rounded-full font-semibold text-on-accent text-sm transition-all active:scale-95 mb-4"
               style={{ backgroundColor: "var(--accent-primary)" }}
               aria-label="Créer une organisation"
             >
@@ -394,7 +394,7 @@ export default function Federation() {
                   type="button"
                   onClick={handleCreate}
                   disabled={creating || !newName.trim()}
-                  className="w-full py-3 rounded-full font-semibold text-white text-sm transition-all active:scale-95 disabled:opacity-50"
+                  className="w-full py-3 rounded-full font-semibold text-on-accent text-sm transition-all active:scale-95 disabled:opacity-50"
                   style={{ backgroundColor: "var(--accent-primary)" }}
                   aria-label="Créer l'organisation"
                 >
@@ -442,7 +442,7 @@ export default function Federation() {
                 <button
                   type="button"
                   onClick={() => navigate(`/invitation/emit?org=${createdOrg.orgId}`)}
-                  className="w-full py-3 rounded-full font-semibold text-white text-sm transition-all active:scale-95"
+                  className="w-full py-3 rounded-full font-semibold text-on-accent text-sm transition-all active:scale-95"
                   style={{ backgroundColor: "var(--accent-primary)" }}
                 >
                   Inviter des membres (rôle + organisation)
@@ -579,7 +579,7 @@ export default function Federation() {
                     data-testid="reparent-apply"
                     onClick={applyReparent}
                     disabled={reparenting}
-                    className="flex-1 py-2.5 rounded-full text-sm font-semibold text-white transition-all active:scale-95 disabled:opacity-50"
+                    className="flex-1 py-2.5 rounded-full text-sm font-semibold text-on-accent transition-all active:scale-95 disabled:opacity-50"
                     style={{ backgroundColor: "var(--accent-primary)" }}
                   >
                     {reparenting ? "Application…" : "Appliquer"}

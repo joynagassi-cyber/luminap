@@ -34,6 +34,21 @@ export default {
         income: "var(--data-income)",
         expense: "var(--data-expense)",
         pending: "var(--data-pending)",
+        // Statuts sémantiques (hors finances) — invariants (DESIGN.md §2)
+        planified: "var(--data-planified)",
+        advance: "var(--data-advance)",
+        success: "var(--data-success)",
+        alert: "var(--data-alert)",
+        muted: "var(--data-muted)",
+        // Texte « inversé » sur accent — bascule si un thème org pousse
+        // un accent clair (H1 : plus de text-white hard-codée)
+        "on-accent": "var(--on-accent)",
+        // Élévations nommées (H3 / M16) : shadow-card & shadow-pop suivent
+        // les modes, shadow-accent/Sm sont invariants (teinte d'accent)
+        "shadow-card": "var(--shadow-card)",
+        "shadow-pop": "var(--shadow-pop)",
+        "shadow-accent": "var(--shadow-accent)",
+        "shadow-accent-sm": "var(--shadow-accent-sm)",
         // Lumina brand
         lumina: {
           DEFAULT: "#FF6B00",
@@ -75,6 +90,14 @@ export default {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+      },
+      // Élévations : shadow-card/shadow-pop suivent les tokens (mode clair =
+      // ombres 0.08/0.12), shadow-accent = teinte d'accent invariante (H3/M16)
+      boxShadow: {
+        card: "var(--shadow-card)",
+        pop: "var(--shadow-pop)",
+        accent: "var(--shadow-accent)",
+        "accent-sm": "var(--shadow-accent-sm)",
       },
       keyframes: {
         "accordion-down": {

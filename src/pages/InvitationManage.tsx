@@ -367,7 +367,7 @@ export default function InvitationManage() {
                                           data-testid={`claim-confirm-${cl.id}`}
                                           onClick={() => handleConfirmClaim(inv.id, cl.id)}
                                           disabled={claimBusy === cl.id}
-                                          className="px-3 py-1.5 rounded-full text-xs font-semibold text-white transition-all active:scale-95 disabled:opacity-50"
+                                          className="px-3 py-1.5 rounded-full text-xs font-semibold text-on-accent transition-all active:scale-95 disabled:opacity-50"
                                           style={{ backgroundColor: "var(--data-income)" }}
                                         >
                                           {claimBusy === cl.id ? (
@@ -498,7 +498,7 @@ export default function InvitationManage() {
                 data-testid="reject-confirm"
                 onClick={handleRejectClaim}
                 disabled={claimBusy !== null}
-                className="flex-1 py-3 rounded-full text-sm font-semibold text-white transition-all active:scale-95 disabled:opacity-50"
+                className="flex-1 py-3 rounded-full text-sm font-semibold text-on-accent transition-all active:scale-95 disabled:opacity-50"
                 style={{ backgroundColor: "var(--data-expense)" }}
               >
                 {claimBusy ? (

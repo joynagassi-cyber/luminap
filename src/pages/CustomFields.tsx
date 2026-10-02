@@ -103,7 +103,7 @@ export default function CustomFields() {
               </h1>
               <button
                 onClick={() => setShowCreate(true)}
-                className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold text-white"
+                className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold text-on-accent"
                 style={{
                   background: "linear-gradient(135deg, var(--accent-light), var(--accent-primary))",
                 }}
@@ -310,7 +310,7 @@ export default function CustomFields() {
                 <button
                   onClick={handleCreate}
                   disabled={creating}
-                  className="w-full py-3.5 rounded-full font-semibold text-white mb-3"
+                  className="w-full py-3.5 rounded-full font-semibold text-on-accent mb-3"
                   style={{ backgroundColor: "var(--accent-primary)", opacity: creating ? 0.6 : 1 }}
                   aria-label={creating ? "Création du champ en cours" : "Créer le champ"}
                 >

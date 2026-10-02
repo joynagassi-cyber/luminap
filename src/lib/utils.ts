@@ -84,11 +84,15 @@ export function getStatusLabel(status: Transaction["status"]): string {
 }
 
 export function getStatusColor(status: Transaction["status"]): string {
+  // H5 — toujours des TOKENS, jamais de hex brut : les statuts sont
+  // invariants (DESIGN.md §2) mais passent par la pipeline de thème
+  // (color-mix/tint() et les pushes d'org-theme continuent de s'appliquer).
+  // DRAFT pointe vers --text-tertiary (suive le mode) et non #808080 brut.
   const colors: Record<Transaction["status"], string> = {
-    DRAFT: "#808080",
-    PENDING: "#FFB800",
-    APPROVED: "#1DB954",
-    REJECTED: "#E51332",
+    DRAFT: "var(--text-tertiary)",
+    PENDING: "var(--data-pending)",
+    APPROVED: "var(--data-income)",
+    REJECTED: "var(--data-expense)",
   };
   return colors[status];
 }

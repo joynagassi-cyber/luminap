@@ -222,7 +222,7 @@ export default function GivingCampaign() {
                       <IonSelectOption value="YEARLY">Annuel</IonSelectOption>
                     </IonSelect>
                   </div>
-                  <button onClick={addPledge} disabled={pledgeBusy || !pledgeDonor || !pledgeAmount} className="w-full py-3 rounded-full font-semibold text-white text-sm active:scale-95 transition-transform disabled:opacity-40" style={{ backgroundColor: "var(--accent-primary)" }}>
+                  <button onClick={addPledge} disabled={pledgeBusy || !pledgeDonor || !pledgeAmount} className="w-full py-3 rounded-full font-semibold text-on-accent text-sm active:scale-95 transition-transform disabled:opacity-40" style={{ backgroundColor: "var(--accent-primary)" }}>
                     {pledgeBusy ? (
                       <>
                         <IonSpinner name="lines" style={{ width: 14, height: 14, marginRight: 6 }} />
@@ -280,7 +280,7 @@ export default function GivingCampaign() {
                     <IonSelectOption value="">Choisir un donateur…</IonSelectOption>
                     {donors.map((d) => <IonSelectOption key={d.id} value={d.id}>{d.full_name}</IonSelectOption>)}
                   </IonSelect>
-                  <button onClick={linkTxNow} disabled={linkBusy || !linkTx || !linkDonor} className="w-full py-3 rounded-full font-semibold text-white text-sm active:scale-95 transition-transform disabled:opacity-40" style={{ backgroundColor: "var(--accent-primary)" }}>
+                  <button onClick={linkTxNow} disabled={linkBusy || !linkTx || !linkDonor} className="w-full py-3 rounded-full font-semibold text-on-accent text-sm active:scale-95 transition-transform disabled:opacity-40" style={{ backgroundColor: "var(--accent-primary)" }}>
                     {linkBusy ? (
                       <>
                         <IonSpinner name="lines" style={{ width: 14, height: 14, marginRight: 6 }} />
@@ -334,7 +334,7 @@ export default function GivingCampaign() {
                     ))}
                   </IonSelect>
                 </div>
-                <button onClick={generateReceipt} disabled={receiptBusy || !receiptDonor} className="w-full py-3 rounded-full font-semibold text-white text-sm active:scale-95 transition-transform disabled:opacity-40" style={{ backgroundColor: "var(--accent-primary)" }}>
+                <button onClick={generateReceipt} disabled={receiptBusy || !receiptDonor} className="w-full py-3 rounded-full font-semibold text-on-accent text-sm active:scale-95 transition-transform disabled:opacity-40" style={{ backgroundColor: "var(--accent-primary)" }}>
                   <span className="inline-flex items-center gap-2">
                     {receiptBusy ? (
                       <IonSpinner name="lines" style={{ width: 14, height: 14 }} />

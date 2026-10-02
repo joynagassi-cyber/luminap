@@ -448,7 +448,7 @@ export default function GroupDetail() {
                       ? {
                           backgroundColor: "var(--accent-primary)",
                           color: "var(--text-primary)",
-                          boxShadow: "0 2px 8px rgba(255,107,0,0.3)",
+                          boxShadow: "var(--shadow-accent-sm)",
                         }
                       : { backgroundColor: "transparent", color: "var(--text-tertiary)" }
                   }
@@ -768,7 +768,7 @@ export default function GroupDetail() {
                   <div className="flex gap-2">
                     <button
                       onClick={handleUpdate}
-                      className="flex-1 py-2.5 rounded-full text-sm font-semibold text-white"
+                      className="flex-1 py-2.5 rounded-full text-sm font-semibold text-on-accent"
                       style={{ backgroundColor: "var(--accent-primary)" }}
                     >
                       Sauvegarder
@@ -880,7 +880,7 @@ export default function GroupDetail() {
               </p>
               <button
                 onClick={handleArchive}
-                className="w-full py-3.5 rounded-full font-semibold text-white mb-3"
+                className="w-full py-3.5 rounded-full font-semibold text-on-accent mb-3"
                 style={{ backgroundColor: "var(--text-tertiary)" }}
               >
                 Archiver
@@ -955,7 +955,7 @@ export default function GroupDetail() {
                 <button
                   onClick={handleAddMember}
                   disabled={!selectedMemberId}
-                  className="w-full py-3.5 rounded-full font-semibold text-white disabled:opacity-40"
+                  className="w-full py-3.5 rounded-full font-semibold text-on-accent disabled:opacity-40"
                   style={{ backgroundColor: "var(--accent-primary)" }}
                 >
                   Ajouter au groupe
@@ -1008,7 +1008,7 @@ export default function GroupDetail() {
               </p>
               <button
                 onClick={handleDelete}
-                className="w-full py-3.5 rounded-full font-semibold text-white mb-3"
+                className="w-full py-3.5 rounded-full font-semibold text-on-accent mb-3"
                 style={{ backgroundColor: "var(--data-expense)" }}
               >
                 Supprimer définitivement

@@ -702,7 +702,7 @@ export default function CentralAdmin() {
                                   data-testid="archive-confirm"
                                   onClick={() => confirmArchive(o)}
                                   disabled={busy === o.id}
-                                  className="px-2.5 py-1.5 rounded-full text-[11px] font-semibold text-white transition-all active:scale-95 disabled:opacity-50"
+                                  className="px-2.5 py-1.5 rounded-full text-[11px] font-semibold text-on-accent transition-all active:scale-95 disabled:opacity-50"
                                   style={{ backgroundColor: "var(--accent-primary)" }}
                                 >
                                   Valider

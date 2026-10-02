@@ -707,7 +707,7 @@ export default function Onboarding() {
                     className="w-11 h-11 rounded-2xl flex items-center justify-center"
                     style={{ background: "var(--accent-primary)" }}
                   >
-                    <Info className="w-6 h-6 text-white" />
+                    <Info className="w-6 h-6 text-on-accent" />
                   </div>
                   <div>
                     <p
@@ -907,7 +907,7 @@ export default function Onboarding() {
                 </button>
                 <button
                   onClick={handleNext}
-                  className="flex-1 py-3.5 rounded-full font-semibold text-sm text-white transition-all active:scale-95 flex items-center justify-center gap-2"
+                  className="flex-1 py-3.5 rounded-full font-semibold text-sm text-on-accent transition-all active:scale-95 flex items-center justify-center gap-2"
                   style={{ backgroundColor: "var(--accent-primary)" }}
                 >
                   Suivant

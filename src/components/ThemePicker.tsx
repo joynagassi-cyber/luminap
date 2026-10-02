@@ -55,7 +55,7 @@ export default function ThemePicker({ value, onChange, columns = 5 }: Props) {
                     : "none",
                 }}
               >
-                {selected && <Check className="w-5 h-5 text-white" />}
+                {selected && <Check className="w-5 h-5 text-on-accent" />}
               </div>
               {columns === 5 && (
                 <span

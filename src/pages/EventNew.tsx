@@ -198,7 +198,7 @@ export default function EventNew() {
           <div className="flex gap-2 mb-5">
             <button
               onClick={() => setEventType("EVENT")}
-              className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${eventType === "EVENT" ? "text-white" : "text-text-tertiary"}`}
+              className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${eventType === "EVENT" ? "text-on-accent" : "text-text-tertiary"}`}
               style={
                 eventType === "EVENT"
                   ? { backgroundColor: "var(--accent-primary)" }
@@ -209,7 +209,7 @@ export default function EventNew() {
             </button>
             <button
               onClick={() => setEventType("CULTE")}
-              className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${eventType === "CULTE" ? "text-white" : "text-text-tertiary"}`}
+              className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${eventType === "CULTE" ? "text-on-accent" : "text-text-tertiary"}`}
               style={
                 eventType === "CULTE"
                   ? { backgroundColor: "var(--accent-primary)" }
