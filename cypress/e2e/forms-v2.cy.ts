@@ -26,16 +26,16 @@
  */
 
 describe('Lumina — Forms v2 (currency, table view, DRAFT edit)', () => {
-  // ── Setup : formulaire E2E partagé (DRAFT, 1 champ currency) ─────────
+  // ── Setup : formulaire E2E partagé (DRAFT, 6 champs dont currency) ───
   const FORM_NAME = 'E2e Forms v2';
   const FORM_KEY = 'e2e_forms_v2';
-  // Label générique du 1er champ créé par addField (formSystem.ts)
-  // — le label par défaut est `Nouveau champ currency` pour le type
-  // currency. On n'assert PAS le label par défaut si l'org a déjà
-  // créé le formulaire avec un label différent (idempotence) : on
-  // retrouve l'input par inputMode="decimal" (seul le champ
-  // currency porte ce attribut).
-  const CURRENCY_LABEL = 'Nouveau champ currency';
+  // Le label par défaut du type currency est « Montant (FCFA) »
+  // (FormBuilder.tsx:27 — FIELD_TYPES). On n'assert PAS le label par
+  // défaut si l'org a déjà créé le formulaire avec un label différent
+  // (idempotence) : on retrouve l'input par inputMode="decimal"
+  // (seul le champ currency porte cet attribut — le 6e du modal,
+  // rotation FIELD_TYPES[5]).
+  const CURRENCY_LABEL = 'Montant (FCFA)';
 
   before(function () {
     this.timeout(120_000);
@@ -63,17 +63,27 @@ describe('Lumina — Forms v2 (currency, table view, DRAFT edit)', () => {
         return;
       }
       cy.contains('button', 'Créer').first().click({ force: true });
+      // Les placeholders réels du modal (FormBuilder.tsx:390/401) :
+      // « Nom du formulaire * » et « Clé (ex: demande_cotisation) * ».
       cy.get('input[placeholder*="Nom du formulaire"]').type(FORM_NAME);
       cy.get('input[placeholder*="Clé"]').type(FORM_KEY);
-      // Le 1er « Ajouter » du modal crée FIELD_TYPES[0] = « Texte »
-      // (rotation par index — FormBuilder.tsx §addFieldInline) ; on
-      // le transforme en currency via le <select> du champ (un par
-      // champ, le 1er est celui du type). Pas de [role="dialog"] sur
-      // le modal (div.fixed.inset-0) — on scope à tous les <select>
-      // de la page (le modal est le seul conteneur de <select> à ce
-      // stade de l'UI de /forms).
+      // Le 1er « Ajouter » du modal crée FIELD_TYPES[0] = « texte »
+      // (rotation par index — FormBuilder.tsx §addFieldInline) ; le
+      // label par défaut est « Nouveau champ texte ».
+      // Le 2e « Ajouter » crée FIELD_TYPES[1] = « number ».
+      // Le 3e « Ajouter » crée FIELD_TYPES[2] = « date ».
+      // Le 4e « Ajouter » crée FIELD_TYPES[3] = « select ».
+      // Le 5e « Ajouter » crée FIELD_TYPES[4] = « boolean ».
+      // Le 6e « Ajouter » crée FIELD_TYPES[5] = « currency »
+      // (label par défaut « Nouveau champ currency »). On s'arrête
+      // donc au 6e champ, sans passer par le <select> de type
+      // (plus de 6 champs = rotation complète du cycle — inutile).
       cy.contains('button', 'Ajouter').click({ force: true });
-      cy.get('select').first().select('currency');
+      cy.contains('button', 'Ajouter').click({ force: true });
+      cy.contains('button', 'Ajouter').click({ force: true });
+      cy.contains('button', 'Ajouter').click({ force: true });
+      cy.contains('button', 'Ajouter').click({ force: true });
+      cy.contains('button', 'Ajouter').click({ force: true });
       cy.contains('button', 'Créer le formulaire').click();
       cy.contains('p', FORM_NAME, { timeout: 90_000 }).should('exist');
     });
@@ -282,8 +292,10 @@ describe('Lumina — Forms v2 (currency, table view, DRAFT edit)', () => {
     cy.contains('h2', 'Modifier le formulaire', { timeout: 90_000 }).should('exist');
     cy.contains('button', 'Enregistrer').should('exist');
     // Le champ currency du form est pré-rempli (copy des fields
-    // du state partagé — pas de mutation, openEditModal).
-    cy.get('select').first().should('have.value', 'currency');
+    // du state partagé — pas de mutation, openEditModal). Le
+    // champ currency est le 6e <select> du modal (rotation
+    // FIELD_TYPES : texte, number, date, select, boolean, currency).
+    cy.get('select').eq(5).should('have.value', 'currency');
     // Fermeture (on ne sauvegarde PAS : version++ ne doit PAS se
     // produire — c'est le 2e test T6 qui le vérifie après le
     // passage en PUBLISHED).
