@@ -1,8 +1,0 @@
-[vite:react-swc] We recommend switching to `@vitejs/plugin-react` for improved performance as no swc plugins are used. More information at https://vite.dev/rolldown
-[33mPort 8080 is in use on a wildcard addr
-  [32m[1mVITE[22m v8.2.2[39m  [2mready in [0m[1m49279[22m[2m[0m ms[22m
-
-  [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m8081[22m/[39m
-  [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.1.101:[1m8081[22m/[39m  [2mWi-Fi[22m
-[2m12:16:49[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [optimizer] scanning dependencies...
-[2m12:19:39[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [optimizer] bundling dependenci

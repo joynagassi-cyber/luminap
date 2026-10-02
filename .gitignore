@@ -21,3 +21,4 @@ android/app/lumina-keystore.jks
 # ── Artefacts agents / dev ───────────────────────────────────────────
 .dyad/
 .reversa/
+.stitch/devserver.log
