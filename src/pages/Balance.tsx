@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
+import { ShimmerCard } from "@/components/Shimmer";
 import { exportPDF, exportExcel, exportCSV } from "@/lib/export";
 import {
   IonPage,
@@ -45,11 +46,7 @@ export default function Balance() {
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className="h-16 rounded-xl animate-pulse"
-                  style={{ backgroundColor: "var(--surface)" }}
-                />
+                <ShimmerCard key={i} minHeight={64} />
               ))}
             </div>
           </div>
@@ -172,15 +169,18 @@ export default function Balance() {
               </div>
             </div>
 
-            {/* Summary cards */}
+            {/* Summary cards — M1/L6 : tuiles de données alignées à gauche
+                (libellé en haut, valeur en bas) ; icône de repère en
+                absolute top-right (les 3 tuiles partagent le même fond). */}
             <div className="grid grid-cols-3 gap-3 mb-6">
               <div
-                className="rounded-xl p-4 text-center"
+                className="relative rounded-xl p-4"
                 style={{ backgroundColor: "var(--surface)" }}
               >
                 <div
-                  className="w-8 h-8 rounded-full flex items-center justify-center mx-auto mb-2"
+                  className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center"
                   style={{ backgroundColor: "color-mix(in srgb, var(--data-income) 12%, transparent)" }}
+                  aria-hidden="true"
                 >
                   <TrendingUp
                     className="w-4 h-4"
@@ -188,17 +188,18 @@ export default function Balance() {
                   />
                 </div>
                 <p className="text-text-tertiary text-xs">Entrées</p>
-                <p className="text-income font-bold text-sm mt-1">
+                <p className="text-income font-black text-base tabular-nums mt-2">
                   +{formatCurrencyCompact(totalIncome)}
                 </p>
               </div>
               <div
-                className="rounded-xl p-4 text-center"
+                className="relative rounded-xl p-4"
                 style={{ backgroundColor: "var(--surface)" }}
               >
                 <div
-                  className="w-8 h-8 rounded-full flex items-center justify-center mx-auto mb-2"
+                  className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center"
                   style={{ backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)" }}
+                  aria-hidden="true"
                 >
                   <TrendingDown
                     className="w-4 h-4"
@@ -206,23 +207,24 @@ export default function Balance() {
                   />
                 </div>
                 <p className="text-text-tertiary text-xs">Sorties</p>
-                <p className="text-expense font-bold text-sm mt-1">
+                <p className="text-expense font-black text-base tabular-nums mt-2">
                   -{formatCurrencyCompact(totalExpense)}
                 </p>
               </div>
               <div
-                className="rounded-xl p-4 text-center"
+                className="relative rounded-xl p-4"
                 style={{ backgroundColor: "var(--surface)" }}
               >
                 <div
-                  className="w-8 h-8 rounded-full flex items-center justify-center mx-auto mb-2"
+                  className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center"
                   style={{ backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)" }}
+                  aria-hidden="true"
                 >
                   <BarChart3 className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
                 </div>
                 <p className="text-text-tertiary text-xs">Résultat</p>
                 <p
-                  className="font-bold text-sm mt-1"
+                  className="font-black text-base tabular-nums mt-2"
                   style={{ color: netResult >= 0 ? "var(--data-income)" : "var(--data-expense)" }}
                 >
                   {netResult >= 0 ? "+" : "-"}

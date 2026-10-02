@@ -37,6 +37,7 @@ import {
 } from "lucide-react";
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
+import { ShimmerCard } from "@/components/Shimmer";
 import { useInvitations } from "@/lib/dataLayer";
 import { useCurrentUser } from "@/lib/dataLayer";
 import { invitation } from "@/capabilities/invitation";
@@ -250,10 +251,7 @@ export default function InvitationManage() {
             {isLoading ? (
               <div className="space-y-3">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="bg-card rounded-xl p-4 animate-pulse">
-                    <div className="h-4 bg-[var(--surface-hover)] rounded w-1/3 mb-3" />
-                    <div className="h-3 bg-[var(--surface-hover)] rounded w-2/3" />
-                  </div>
+                  <ShimmerCard key={i} rows={2} />
                 ))}
               </div>
             ) : listError ? (

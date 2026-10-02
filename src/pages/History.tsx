@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
+import { ShimmerList } from "@/components/Shimmer";
 import { formatCentsToFCFA, formatDate } from "@/lib/utils";
 import {
   AreaChart,
@@ -131,25 +132,23 @@ export default function HistoryPage() {
   const [period, setPeriod] = useState<"all" | "month" | "year">("all");
 
   if (txLoading) {
+    // M25/H4 — le skeleton reste dans IonPage/IonContent (transitions de vue
+    // ioniques + conteneur de scroll unique) ; shimmer en lieu et place de
+    // animate-pulse (DESIGN.md §4).
     return (
-      <div className="min-h-screen bg-[var(--canvas)]">
-        <TopHeader title="Historique" />
-        <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
-          <div className="space-y-4">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div
-                key={i}
-                className="rounded-xl p-4 animate-pulse"
-                style={{ backgroundColor: "var(--card)" }}
-              >
-                <div className="h-4 bg-[var(--surface-hover)] rounded w-1/3 mb-3" />
-                <div className="h-20 bg-[var(--surface-hover)] rounded" />
+      <IonPage>
+        <IonContent className="bg-canvas">
+          <TopHeader title="Historique" />
+          <div className="min-h-dvh flex flex-col">
+            <div className="flex-1 max-w-lg w-full mx-auto px-5 pb-safe-calc pt-safe-calc">
+              <div className="space-y-4">
+                <ShimmerList count={5} gap={16} minHeight={88} />
               </div>
-            ))}
+            </div>
+            <BottomNav />
           </div>
-        </div>
-        <BottomNav />
-      </div>
+        </IonContent>
+      </IonPage>
     );
   }
 

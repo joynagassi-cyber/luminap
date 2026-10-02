@@ -345,37 +345,37 @@ export default function Dashboard() {
               <div className="grid grid-cols-3 gap-3 mb-6">
                 {pendingCount > 0 && (
                   <div
-                    className="rounded-xl p-4 text-center"
+                    className="rounded-xl p-4"
                     style={{ backgroundColor: "var(--surface)" }}
                   >
                     <p className="text-text-tertiary text-xs mb-1">
                       En attente
                     </p>
-                    <p className="font-bold text-xl tabular-nums" style={{ color: "var(--data-pending)" }}>
+                    <p className="font-black text-2xl tabular-nums" style={{ color: "var(--data-pending)" }}>
                       {pendingCount}
                     </p>
                   </div>
                 )}
                 {upcomingEvents.length > 0 && (
                   <div
-                    className="rounded-xl p-4 text-center"
+                    className="rounded-xl p-4"
                     style={{ backgroundColor: "var(--surface)" }}
                   >
                     <p className="text-text-tertiary text-xs mb-1">
                       Événements
                     </p>
-                    <p className="font-bold text-xl tabular-nums" style={{ color: "var(--data-planified)" }}>
+                    <p className="font-black text-2xl tabular-nums" style={{ color: "var(--data-planified)" }}>
                       {upcomingEvents.length}
                     </p>
                   </div>
                 )}
                 {groupAccounts.length > 0 && (
                   <div
-                    className="rounded-xl p-4 text-center"
+                    className="rounded-xl p-4"
                     style={{ backgroundColor: "var(--surface)" }}
                   >
                     <p className="text-text-tertiary text-xs mb-1">Groupes</p>
-                    <p className="font-bold text-xl tabular-nums" style={{ color: "var(--data-planified)" }}>
+                    <p className="font-black text-2xl tabular-nums" style={{ color: "var(--data-advance)" }}>
                       {groupAccounts.length}
                     </p>
                   </div>
