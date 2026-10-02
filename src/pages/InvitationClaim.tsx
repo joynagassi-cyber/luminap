@@ -355,15 +355,21 @@ export default function InvitationClaim() {
 
             {/* Result */}
             {result && (
-              <div className={`mt-4 p-4 rounded-xl ${result.ok ? "bg-green-500/10 border border-green-500/30" : "bg-red-500/10 border border-red-500/30"}`}>
+              <div
+                className="mt-4 p-4 rounded-xl border"
+                style={{
+                  backgroundColor: `color-mix(in srgb, ${result.ok ? "var(--data-success)" : "var(--data-alert)"} 10%, transparent)`,
+                  borderColor: `color-mix(in srgb, ${result.ok ? "var(--data-success)" : "var(--data-alert)"} 30%, transparent)`,
+                }}
+              >
                 <div className="flex items-start gap-3">
                   {result.ok ? (
-                    <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                    <CheckCircle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: "var(--data-success)" }} />
                   ) : (
-                    <XCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                    <XCircle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: "var(--data-alert)" }} />
                   )}
                   <div>
-                    <p className={`text-sm ${result.ok ? "text-green-400" : "text-red-400"}`}>
+                    <p className="text-sm" style={{ color: result.ok ? "var(--data-success)" : "var(--data-alert)" }}>
                       {result.message}
                     </p>
                     {result.ok && (

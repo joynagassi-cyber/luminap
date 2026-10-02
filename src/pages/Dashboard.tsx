@@ -351,7 +351,7 @@ export default function Dashboard() {
                     <p className="text-text-tertiary text-xs mb-1">
                       En attente
                     </p>
-                    <p className="text-yellow-500 font-bold text-xl">
+                    <p className="font-bold text-xl tabular-nums" style={{ color: "var(--data-pending)" }}>
                       {pendingCount}
                     </p>
                   </div>
@@ -364,7 +364,7 @@ export default function Dashboard() {
                     <p className="text-text-tertiary text-xs mb-1">
                       Événements
                     </p>
-                    <p className="text-purple-500 font-bold text-xl">
+                    <p className="font-bold text-xl tabular-nums" style={{ color: "var(--data-planified)" }}>
                       {upcomingEvents.length}
                     </p>
                   </div>
@@ -375,7 +375,7 @@ export default function Dashboard() {
                     style={{ backgroundColor: "var(--surface)" }}
                   >
                     <p className="text-text-tertiary text-xs mb-1">Groupes</p>
-                    <p className="text-blue-500 font-bold text-xl">
+                    <p className="font-bold text-xl tabular-nums" style={{ color: "var(--data-planified)" }}>
                       {groupAccounts.length}
                     </p>
                   </div>
