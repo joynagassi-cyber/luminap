@@ -16,7 +16,7 @@ import {
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
 import EmptyState from "@/components/EmptyState";
-import { IonPage, IonContent, IonSelect, IonSelectOption } from "@ionic/react";
+import { IonPage, IonContent, IonSelect, IonSelectOption, IonChangeCustomEvent } from "@ionic/react";
 import { ChartContainer } from "@/components/ui/chart";
 import { Bar, BarChart, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import {
@@ -29,6 +29,7 @@ import { useCaisses, useCategories, useCurrentUser } from "@/lib/dataLayer";
 import { security } from "@/capabilities/security";
 import { formatCentsToFCFA, formatCentsFull, generateId } from "@/lib/utils";
 import { getOrganizationId } from "@/lib/orgContext";
+import { downloadBlob } from "@/lib/download";
 import type { ReportDefinition, ReportResult } from "@/types";
 
 type PeriodKey = "all" | "month" | "year";
@@ -410,12 +411,7 @@ export default function ReportBuilder() {
     );
     const csv = "\uFEFF" + [header, ...body].join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `rapport_${(draft.name || "rapport").replace(/\s+/g, "_")}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadBlob(blob, `rapport_${(draft.name || "rapport").replace(/\s+/g, "_")}.csv`);
   };
 
   // Données du graphique (1ʳᵉ métrique, par clé décodée).
@@ -476,7 +472,7 @@ export default function ReportBuilder() {
               <label className="text-text-tertiary text-[11px] mb-1 block">Période</label>
               <IonSelect
                 value={f.period}
-                onIonChange={(e: any) => setFilter("period", e.detail.value)}
+                onIonChange={(e: IonChangeCustomEvent<string>) => setFilter("period", e.detail.value)}
                 interface="popover"
               >
                 <IonSelectOption value="month">Ce mois</IonSelectOption>
@@ -488,7 +484,7 @@ export default function ReportBuilder() {
               <label className="text-text-tertiary text-[11px] mb-1 block">Type</label>
               <IonSelect
                 value={f.type}
-                onIonChange={(e: any) => setFilter("type", e.detail.value)}
+                onIonChange={(e: IonChangeCustomEvent<string>) => setFilter("type", e.detail.value)}
                 interface="popover"
               >
                 <IonSelectOption value="">Tous</IonSelectOption>
@@ -500,7 +496,7 @@ export default function ReportBuilder() {
               <label className="text-text-tertiary text-[11px] mb-1 block">Catégorie</label>
               <IonSelect
                 value={f.categoryId}
-                onIonChange={(e: any) => setFilter("categoryId", e.detail.value)}
+                onIonChange={(e: IonChangeCustomEvent<string>) => setFilter("categoryId", e.detail.value)}
                 interface="popover"
               >
                 <IonSelectOption value="">Toutes</IonSelectOption>
@@ -513,7 +509,7 @@ export default function ReportBuilder() {
               <label className="text-text-tertiary text-[11px] mb-1 block">Caisse</label>
               <IonSelect
                 value={f.sourceCaisseId}
-                onIonChange={(e: any) => setFilter("sourceCaisseId", e.detail.value)}
+                onIonChange={(e: IonChangeCustomEvent<string>) => setFilter("sourceCaisseId", e.detail.value)}
                 interface="popover"
               >
                 <IonSelectOption value="">Toutes</IonSelectOption>
@@ -595,14 +591,14 @@ export default function ReportBuilder() {
           <div className="grid grid-cols-3 gap-2 mb-2">
             <IonSelect
               value={draft.metric?.field}
-              onIonChange={(e: any) => updateMetricDraft({ field: e.detail.value })}
+              onIonChange={(e: IonChangeCustomEvent<string>) => updateMetricDraft({ field: e.detail.value })}
               interface="popover"
             >
               <IonSelectOption value="amount">Montant</IonSelectOption>
             </IonSelect>
             <IonSelect
               value={draft.metric?.fn}
-              onIonChange={(e: any) => updateMetricDraft({ fn: e.detail.value as MetricExpr["fn"] })}
+              onIonChange={(e: IonChangeCustomEvent<string>) => updateMetricDraft({ fn: e.detail.value as MetricExpr["fn"] })}
               interface="popover"
             >
               {METRIC_FNS.map((fn) => (

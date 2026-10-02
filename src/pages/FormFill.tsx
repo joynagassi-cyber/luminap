@@ -31,6 +31,7 @@ import {
   IonButton,
   IonSelect,
   IonSelectOption,
+  IonChangeCustomEvent,
 } from "@ionic/react";
 
 function ReferenceSelect({
@@ -68,7 +69,7 @@ function ReferenceSelect({
   return (
     <IonSelect
       value={data[field.key] ?? ""}
-      onIonChange={(e: any) => onChange(field.key, e.detail.value)}
+      onIonChange={(e: IonChangeCustomEvent<string>) => onChange(field.key, e.detail.value)}
       interface="popover"
     >
       <IonSelectOption value="">— Sélectionner —</IonSelectOption>
@@ -269,7 +270,7 @@ export default function FormFill() {
                     {field.type === "boolean" ? (
                       <IonSelect
                         value={data[field.key] ?? ""}
-                        onIonChange={(e: any) =>
+                        onIonChange={(e: IonChangeCustomEvent<string>) =>
                           handleChange(field.key, e.detail.value === "true")
                         }
                         interface="popover"
@@ -281,7 +282,7 @@ export default function FormFill() {
                     ) : field.type === "select" && field.options ? (
                       <IonSelect
                         value={data[field.key] ?? ""}
-                        onIonChange={(e: any) =>
+                        onIonChange={(e: IonChangeCustomEvent<string>) =>
                           handleChange(field.key, e.detail.value)
                         }
                         interface="popover"

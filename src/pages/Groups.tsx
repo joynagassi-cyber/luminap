@@ -18,6 +18,7 @@ import {
   IonToolbar,
   IonSelect,
   IonSelectOption,
+  IonChangeCustomEvent,
 } from "@ionic/react";
 import EmptyState from "@/components/EmptyState";
 
@@ -234,7 +235,7 @@ export default function Groups() {
                   />
                   <IonSelect
                     value={createType}
-                    onIonChange={(e: any) => setCreateType(e.detail.value)}
+                    onIonChange={(e: IonChangeCustomEvent<string>) => setCreateType(e.detail.value)}
                     interface="popover"
                   >
                     {GROUP_TYPES.map((t) => (

@@ -48,6 +48,7 @@ import {
   IonBackButton,
   IonSelect,
   IonSelectOption,
+  IonChangeCustomEvent,
 } from "@ionic/react";
 import EmptyState from "@/components/EmptyState";
 
@@ -918,7 +919,7 @@ export default function GroupDetail() {
               <div className="space-y-3">
                 <IonSelect
                   value={selectedMemberId}
-                  onIonChange={(e: any) => setSelectedMemberId(e.detail.value)}
+                  onIonChange={(e: IonChangeCustomEvent<string>) => setSelectedMemberId(e.detail.value)}
                   interface="popover"
                 >
                   <IonSelectOption value="">Sélectionner un membre...</IonSelectOption>

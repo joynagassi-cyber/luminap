@@ -18,6 +18,7 @@ import {
   IonLabel,
   IonSelect,
   IonSelectOption,
+  IonChangeCustomEvent,
 } from "@ionic/react";
 
 export default function Versement() {
@@ -210,7 +211,7 @@ export default function Versement() {
                   <IonLabel position="floating">Sélectionner une caisse</IonLabel>
                   <IonSelect
                     value={selectedCaisse}
-                    onIonChange={(e: any) => setSelectedCaisse(e.detail.value)}
+                    onIonChange={(e: IonChangeCustomEvent<string>) => setSelectedCaisse(e.detail.value)}
                     interface="popover"
                     style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}
                   >

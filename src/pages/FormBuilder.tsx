@@ -19,6 +19,7 @@ import {
   IonButton,
   IonSelect,
   IonSelectOption,
+  IonChangeCustomEvent,
 } from "@ionic/react";
 
 const FIELD_TYPES: { value: FormFieldDefinition["type"]; label: string }[] = [
@@ -470,10 +471,9 @@ export default function FormBuilder() {
                         />
                         <IonSelect
                           value={field.type}
-                          onIonChange={(e: any) =>
+                          onIonChange={(e: IonChangeCustomEvent<string>) =>
                             updateField(field.key, {
-                              type: e.detail
-                                .value as FormFieldDefinition["type"],
+                              type: e.detail.value as FormFieldDefinition["type"],
                             })
                           }
                           interface="popover"
@@ -526,7 +526,7 @@ export default function FormBuilder() {
                           </label>
                           <IonSelect
                             value={field.referenceEntityType ?? "member"}
-                            onIonChange={(e: any) =>
+                            onIonChange={(e: IonChangeCustomEvent<string>) =>
                               updateField(field.key, {
                                 referenceEntityType: e.detail.value,
                               })

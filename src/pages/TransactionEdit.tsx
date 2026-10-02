@@ -13,6 +13,7 @@ import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
 import { policy } from "@/capabilities/policy";
 import { useKeyboardAvoidance } from "@/hooks/useKeyboardAvoidance";
+import type { FundSource, Transaction } from "@/types";
 import {
   IonPage,
   IonHeader,
@@ -21,6 +22,7 @@ import {
   IonToolbar,
   IonSelect,
   IonSelectOption,
+  IonChangeCustomEvent,
 } from "@ionic/react";
 
 export default function TransactionEdit() {
@@ -244,7 +246,7 @@ export default function TransactionEdit() {
                 </label>
                 <IonSelect
                   value={categoryId}
-                  onIonChange={(e: any) => setCategoryId(e.detail.value)}
+                  onIonChange={(e: IonChangeCustomEvent<string>) => setCategoryId(e.detail.value)}
                   interface="popover"
                 >
                   <IonSelectOption value="">Sélectionner une catégorie</IonSelectOption>
@@ -262,7 +264,7 @@ export default function TransactionEdit() {
                 </label>
                 <IonSelect
                   value={source}
-                  onIonChange={(e: any) => setSource(e.detail.value as any)}
+                  onIonChange={(e: IonChangeCustomEvent<string>) => setSource(e.detail.value as FundSource)}
                   interface="popover"
                 >
                   <IonSelectOption value="CAISSE">Caisse</IonSelectOption>
@@ -298,7 +300,7 @@ export default function TransactionEdit() {
                 </label>
                 <IonSelect
                   value={eventId}
-                  onIonChange={(e: any) => setEventId(e.detail.value)}
+                  onIonChange={(e: IonChangeCustomEvent<string>) => setEventId(e.detail.value)}
                   interface="popover"
                 >
                   <IonSelectOption value="">Aucun événement</IonSelectOption>

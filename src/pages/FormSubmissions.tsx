@@ -30,6 +30,7 @@ import {
   IonSelect,
   IonSelectOption,
   IonInfiniteScroll,
+  IonChangeCustomEvent,
 } from "@ionic/react";
 import { Inbox, Download, CheckCircle2, Search, X } from "lucide-react";
 import {
@@ -39,6 +40,7 @@ import {
   exportSubmissionsAsXLSX,
 } from "@/lib/formSystem";
 import type { FormDefinition, FormFieldDefinition, FormSubmission } from "@/types";
+import { downloadBlob } from "@/lib/download";
 
 const STATUS_FILTERS: Array<{ value: string; label: string }> = [
   { value: "ALL", label: "Tous les statuts" },
@@ -283,19 +285,14 @@ export default function FormSubmissions() {
 
   /**
    * Export CSV des soumissions affichées : entêtes = labels du
-   * FormDefinition, séparateur ";", BOM utf-8 (pattern
-   * ReportBuilder.exportCSV : Blob + URL.createObjectURL + a.click()).
+   * FormDefinition, séparateur ";", BOM utf-8 (M13 : via downloadBlob,
+   * pattern unique partagé avec ReportBuilder.exportCSV).
    */
   const exportCSV = () => {
     if (!formDef || filtered.length === 0) return;
     const csv = buildSubmissionsCSV(filtered, formDef);
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `soumissions_${formDef.key || formDef.id}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadBlob(blob, `soumissions_${formDef.key || formDef.id}.csv`);
   };
 
   /** Export Excel (.xlsx) — trigger de téléchargement côté client. */
@@ -401,7 +398,7 @@ export default function FormSubmissions() {
               <div className="flex flex-wrap items-center gap-2">
                 <IonSelect
                   value={statusFilter}
-                  onIonChange={(e: any) =>
+                  onIonChange={(e: IonChangeCustomEvent<string>) =>
                     setStatusFilter(String(e.detail.value ?? "ALL"))
                   }
                   interface="popover"

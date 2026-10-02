@@ -41,6 +41,7 @@ import {
   IonSpinner,
   IonItem,
   IonLabel,
+  IonChangeCustomEvent,
 } from "@ionic/react";
 
 export default function GroupCotisation() {
@@ -467,7 +468,7 @@ export default function GroupCotisation() {
                   <IonInput
                     type="text"
                     value={sessionName}
-                    onIonChange={(e: any) =>
+                    onIonChange={(e: IonChangeCustomEvent<string>) =>
                       setSessionName(e.detail.value ?? "")
                     }
                     placeholder="Ex: Cagnotte janvier"
@@ -481,7 +482,7 @@ export default function GroupCotisation() {
                   <IonInput
                     type="date"
                     value={sessionDate}
-                    onIonChange={(e: any) =>
+                    onIonChange={(e: IonChangeCustomEvent<string>) =>
                       setSessionDate(e.detail.value ?? "")
                     }
                   />
@@ -494,7 +495,7 @@ export default function GroupCotisation() {
                   <IonInput
                     type="number"
                     value={sessionMontant}
-                    onIonChange={(e: any) =>
+                    onIonChange={(e: IonChangeCustomEvent<string>) =>
                       setSessionMontant(e.detail.value ?? "")
                     }
                     placeholder="Ex: 2000"

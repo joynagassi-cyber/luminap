@@ -22,6 +22,7 @@ import {
   IonBackButton,
   IonSelect,
   IonSelectOption,
+  IonChangeCustomEvent,
 } from "@ionic/react";
 import {
   Network,
@@ -351,7 +352,7 @@ export default function Federation() {
                     id="org-type"
                     data-testid="org-type"
                     value={newType}
-                    onIonChange={(e: any) => setNewType(e.detail.value)}
+                    onIonChange={(e: IonChangeCustomEvent<string>) => setNewType(e.detail.value)}
                     interface="popover"
                   >
                     <IonSelectOption value="CHURCH">Église</IonSelectOption>
@@ -371,7 +372,7 @@ export default function Federation() {
                     id="org-parent"
                     data-testid="org-parent"
                     value={newParent}
-                    onIonChange={(e: any) => setNewParent(e.detail.value)}
+                    onIonChange={(e: IonChangeCustomEvent<string>) => setNewParent(e.detail.value)}
                     interface="popover"
                   >
                     <IonSelectOption value="">Aucune (racine)</IonSelectOption>
@@ -548,7 +549,7 @@ export default function Federation() {
                 <IonSelect
                   data-testid="reparent-target"
                   value={reparentTarget}
-                  onIonChange={(e: any) => setReparentTarget(e.detail.value)}
+                  onIonChange={(e: IonChangeCustomEvent<string>) => setReparentTarget(e.detail.value)}
                   interface="popover"
                 >
                   <IonSelectOption value="">Détacher (aucun parent)</IonSelectOption>

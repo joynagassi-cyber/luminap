@@ -10,7 +10,7 @@ import { ArrowLeft, Wallet } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
 import { useKeyboardAvoidance } from "@/hooks/useKeyboardAvoidance";
-import type { Category } from "@/types";
+import type { Category, FundSource } from "@/types";
 import { getOrganizationId } from "@/lib/orgContext";
 import {
   IonPage,
@@ -20,6 +20,7 @@ import {
   IonToolbar,
   IonSelect,
   IonSelectOption,
+  IonChangeCustomEvent,
 } from "@ionic/react";
 
 export default function TransactionNewGroup() {
@@ -225,7 +226,7 @@ export default function TransactionNewGroup() {
               </label>
               <IonSelect
                 value={categoryId}
-                onIonChange={(e: any) => setCategoryId(e.detail.value)}
+                onIonChange={(e: IonChangeCustomEvent<string>) => setCategoryId(e.detail.value)}
                 interface="popover"
               >
                 <IonSelectOption value="">Sélectionner une catégorie</IonSelectOption>
@@ -244,7 +245,7 @@ export default function TransactionNewGroup() {
               </label>
               <IonSelect
                 value={source}
-                onIonChange={(e: any) => setSource(e.detail.value as any)}
+                onIonChange={(e: IonChangeCustomEvent<string>) => setSource(e.detail.value as FundSource)}
                 interface="popover"
               >
                 <IonSelectOption value="CAISSE">Caisse</IonSelectOption>

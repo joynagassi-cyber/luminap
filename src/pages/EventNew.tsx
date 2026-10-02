@@ -9,7 +9,7 @@ import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
 import DatePicker from "@/components/DatePicker";
 import { generateId, formatCurrencyCompact } from "@/lib/utils";
-import type { BudgetItem } from "@/types";
+import type { BudgetItem, Event } from "@/types";
 import { getOrganizationId } from "@/lib/orgContext";
 import { notification } from "@/capabilities/notification";
 import {
@@ -24,6 +24,7 @@ import {
   IonButton,
   IonSelect,
   IonSelectOption,
+  IonChangeCustomEvent,
 } from "@ionic/react";
 
 const DEFAULT_BUDGET_ITEMS = [
@@ -346,7 +347,7 @@ export default function EventNew() {
             </label>
             <IonSelect
               value={status}
-              onIonChange={(e: any) => setStatus(e.detail.value as any)}
+              onIonChange={(e: IonChangeCustomEvent<string>) => setStatus(e.detail.value as Event["status"])}
               interface="popover"
             >
               <IonSelectOption value="PLANIFIED">Planifié</IonSelectOption>

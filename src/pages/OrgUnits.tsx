@@ -16,7 +16,7 @@
 
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { IonPage, IonContent, IonSelect, IonSelectOption } from "@ionic/react";
+import { IonPage, IonContent, IonSelect, IonSelectOption, IonChangeCustomEvent } from "@ionic/react";
 import {
   Boxes,
   Plus,
@@ -227,7 +227,7 @@ export default function OrgUnits() {
                     id="unit-type"
                     data-testid="unit-type"
                     value={type}
-                    onIonChange={(e: any) => setType(e.detail.value)}
+                    onIonChange={(e: IonChangeCustomEvent<string>) => setType(e.detail.value)}
                     interface="popover"
                   >
                     {UNIT_TYPES.map((t) => (

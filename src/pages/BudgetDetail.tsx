@@ -6,7 +6,7 @@ import { formatCurrencyCompact, formatCurrencyFull } from "@/lib/utils";
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
 import { Plus, Trash2, Lock, FileText, X } from "lucide-react";
-import { IonPage, IonContent, IonItem, IonLabel, IonInput, IonSelect, IonSelectOption } from "@ionic/react";
+import { IonPage, IonContent, IonItem, IonLabel, IonInput, IonSelect, IonSelectOption, IonChangeCustomEvent } from "@ionic/react";
 
 export default function BudgetDetail() {
   const { id } = useParams();
@@ -177,7 +177,7 @@ export default function BudgetDetail() {
                       <IonLabel position="floating" className="w-auto text-xs text-text-tertiary">Catégorie</IonLabel>
                       <IonSelect
                         value={cat}
-                        onIonChange={(e: any) => setCat(e.detail.value)}
+                        onIonChange={(e: IonChangeCustomEvent<string>) => setCat(e.detail.value)}
                         interface="popover"
                         aria-label="Catégorie"
                         data-testid="line-category"
@@ -194,7 +194,7 @@ export default function BudgetDetail() {
                       <IonInput
                         type="number"
                         value={amount}
-                        onIonChange={(e: any) => setAmount(e.detail.value ?? "")}
+                        onIonChange={(e: IonChangeCustomEvent<string>) => setAmount(e.detail.value ?? "")}
                         aria-label="Montant prévu (FCFA)"
                         data-testid="line-amount"
                         style={{ backgroundColor: "var(--card)" }}

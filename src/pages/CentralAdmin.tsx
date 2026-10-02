@@ -27,6 +27,7 @@ import {
   IonSelect,
   IonSelectOption,
   IonInput,
+  IonChangeCustomEvent,
 } from "@ionic/react";
 import {
   Building2,
@@ -329,7 +330,7 @@ function OrgDetail({ orgId, onBack }: { orgId: string; onBack: () => void }) {
             <IonSelect
               data-testid="delegate-candidate"
               value={delegated}
-              onIonChange={(e: any) => setDelegated(e.detail.value)}
+              onIonChange={(e: IonChangeCustomEvent<string>) => setDelegated(e.detail.value)}
               interface="popover"
             >
               <IonSelectOption value="">Choisir un profil…</IonSelectOption>

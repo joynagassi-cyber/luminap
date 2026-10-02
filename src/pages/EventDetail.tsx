@@ -32,6 +32,7 @@ import {
   IonBackButton,
   IonSelect,
   IonSelectOption,
+  IonChangeCustomEvent,
 } from "@ionic/react";
 import EmptyState from "@/components/EmptyState";
 
@@ -874,7 +875,7 @@ export default function EventDetail() {
                     </label>
                     <IonSelect
                       value={selectedBudgetItemId || ""}
-                      onIonChange={(e: any) => setSelectedBudgetItemId(e.detail.value)}
+                      onIonChange={(e: IonChangeCustomEvent<string>) => setSelectedBudgetItemId(e.detail.value)}
                       interface="popover"
                     >
                       <IonSelectOption value="">Sélectionner un poste...</IonSelectOption>

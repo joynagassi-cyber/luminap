@@ -15,6 +15,7 @@ import {
   IonToolbar,
   IonSelect,
   IonSelectOption,
+  IonChangeCustomEvent,
 } from "@ionic/react";
 
 export default function EventEdit() {
@@ -218,7 +219,7 @@ export default function EventEdit() {
                 </label>
                 <IonSelect
                   value={status}
-                  onIonChange={(e: any) => setStatus(e.detail.value as any)}
+                  onIonChange={(e: IonChangeCustomEvent<string>) => setStatus(e.detail.value as Event["status"])}
                   interface="popover"
                 >
                   <IonSelectOption value="PLANIFIED">Planifié</IonSelectOption>

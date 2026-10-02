@@ -15,6 +15,7 @@ import {
   IonToolbar,
   IonSelect,
   IonSelectOption,
+  IonChangeCustomEvent,
 } from "@ionic/react";
 
 const ENTITY_TYPES = [
@@ -205,7 +206,7 @@ export default function CustomFields() {
                     </label>
                     <IonSelect
                       value={entityType}
-                      onIonChange={(e: any) => setEntityType(e.detail.value)}
+                      onIonChange={(e: IonChangeCustomEvent<string>) => setEntityType(e.detail.value)}
                       interface="popover"
                     >
                       {ENTITY_TYPES.map((t) => (

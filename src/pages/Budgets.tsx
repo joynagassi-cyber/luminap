@@ -6,7 +6,7 @@ import { formatCurrencyCompact } from "@/lib/utils";
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
 import { Plus, Target, Wallet, PieChart, X, ChevronRight } from "lucide-react";
-import { IonPage, IonContent, IonSelect, IonSelectOption } from "@ionic/react";
+import { IonPage, IonContent, IonSelect, IonSelectOption, IonChangeCustomEvent } from "@ionic/react";
 import EmptyState from "@/components/EmptyState";
 
 const PERIODS: Array<{ value: BudgetPeriod; label: string }> = [
@@ -81,7 +81,7 @@ export default function Budgets() {
             <div className="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-hide" role="group" aria-label="Filtres budget">
               <IonSelect
                 value={fiscalYear}
-                onIonChange={(e: any) => setFiscalYear(Number(e.detail.value))}
+                onIonChange={(e: IonChangeCustomEvent<string>) => setFiscalYear(Number(e.detail.value))}
                 interface="popover"
                 aria-label="Exercice"
               >
@@ -91,7 +91,7 @@ export default function Budgets() {
               </IonSelect>
               <IonSelect
                 value={period}
-                onIonChange={(e: any) => setPeriod(e.detail.value as "" | BudgetPeriod)}
+                onIonChange={(e: IonChangeCustomEvent<string>) => setPeriod(e.detail.value as "" | BudgetPeriod)}
                 interface="popover"
                 aria-label="Période"
               >
@@ -102,7 +102,7 @@ export default function Budgets() {
               </IonSelect>
               <IonSelect
                 value={costCenter}
-                onIonChange={(e: any) => setCostCenter(e.detail.value)}
+                onIonChange={(e: IonChangeCustomEvent<string>) => setCostCenter(e.detail.value)}
                 interface="popover"
                 aria-label="Centre de coûts"
               >
@@ -323,7 +323,7 @@ function CreateBudgetSheet({
               <span className="text-text-tertiary text-xs uppercase tracking-wide block mb-1">Période</span>
               <IonSelect
                 value={period}
-                onIonChange={(e: any) => setPPeriod(e.detail.value as BudgetPeriod)}
+                onIonChange={(e: IonChangeCustomEvent<string>) => setPPeriod(e.detail.value as BudgetPeriod)}
                 interface="popover"
               >
                 {PERIODS.map((p) => (
@@ -337,7 +337,7 @@ function CreateBudgetSheet({
             <span className="text-text-tertiary text-xs uppercase tracking-wide block mb-1">Centre de coûts</span>
             <IonSelect
               value={cc}
-              onIonChange={(e: any) => setCc(e.detail.value)}
+              onIonChange={(e: IonChangeCustomEvent<string>) => setCc(e.detail.value)}
               interface="popover"
             >
               <IonSelectOption value="">Tous (aucun)</IonSelectOption>

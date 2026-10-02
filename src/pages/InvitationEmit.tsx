@@ -47,6 +47,7 @@ import {
   exportInvitationToFile,
 } from "@/capabilities/invitation";
 import { getOrganizationId } from "@/lib/orgContext";
+import { downloadBlob } from "@/lib/download";
 import { notification } from "@/capabilities/notification";
 import type { Member } from "@/types";
 
@@ -176,14 +177,7 @@ export default function InvitationEmit() {
     try {
       const json = await exportInvitationToFile(generatedId);
       const blob = new Blob([json], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `lumina-invitation-${generatedCode}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      downloadBlob(blob, `lumina-invitation-${generatedCode}.json`);
     } catch (err: any) {
       setAlertMessage(err?.message ?? "Export impossible");
       setShowAlert(true);

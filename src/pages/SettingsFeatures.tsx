@@ -16,7 +16,7 @@ import {
   prefetchNavViews,
 } from "@/lib/features";
 import { useEffect } from "react";
-import { IonSelect, IonSelectOption } from "@ionic/react";
+import { IonSelect, IonSelectOption, IonChangeCustomEvent } from "@ionic/react";
 
 export default function SettingsFeatures() {
   const {
@@ -117,7 +117,7 @@ export default function SettingsFeatures() {
               data-testid="nav-tab-select"
               value=""
               disabled={navTabs.length >= MAX_NAV_TABS}
-              onIonChange={(e: any) => {
+              onIonChange={(e: IonChangeCustomEvent<string>) => {
                 if (e.detail.value) addNavTab(e.detail.value);
               }}
               interface="popover"

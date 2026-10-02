@@ -20,6 +20,7 @@ import {
   IonBackButton,
   IonButton,
   IonInput,
+  IonChangeCustomEvent,
 } from "@ionic/react";
 import { ArrowLeft, CheckCircle, Clock, Plus, X } from "lucide-react";
 import TopHeader from "@/components/TopHeader";
@@ -220,10 +221,10 @@ export default function SaisieRapide() {
                         <IonInput
                           type="number"
                           value={customMontants[cot.id] ?? String(montantOblig / 100)}
-                          onIonChange={(e: any) =>
+                          onIonChange={(e: IonChangeCustomEvent<string>) =>
                             setCustomMontants((prev) => ({
                               ...prev,
-                              [cot.id]: e.detail.value,
+                              [cot.id]: e.detail.value ?? "",
                             }))
                           }
                           placeholder="Montant (F)"
