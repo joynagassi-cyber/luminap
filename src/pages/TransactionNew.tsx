@@ -24,6 +24,7 @@ import { getOrganizationId } from "@/lib/orgContext";
 import { useKeyboardAvoidance } from "@/hooks/useKeyboardAvoidance";
 import { useOnlineStatus } from "@/lib/dataLayer";
 import { policy } from "@/capabilities/policy";
+import { notification } from "@/capabilities/notification";
 import {
   IonPage,
   IonHeader,
@@ -187,6 +188,17 @@ export default function TransactionNew() {
     }
 
     setSubmitting(false);
+
+    // Notify the treasurers that a transaction is pending approval
+    if (isExpense && status === "PENDING") {
+      notification.sendNotification({
+        title: "Transaction en attente d'approbation",
+        message: `Nouvelle dépense de ${trimmedAmount} FCFA — ${trimmedDesc}`,
+        targetRole: "TREASURIER" as any,
+        extraData: { transactionId: txId },
+      }).catch(() => {});
+    }
+
     navigate(`/transaction/${txId}`);
   };
 

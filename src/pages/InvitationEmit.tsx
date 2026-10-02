@@ -47,6 +47,7 @@ import {
   exportInvitationToFile,
 } from "@/capabilities/invitation";
 import { getOrganizationId } from "@/lib/orgContext";
+import { notification } from "@/capabilities/notification";
 import type { Member } from "@/types";
 
 const ROLES = [
@@ -146,6 +147,14 @@ export default function InvitationEmit() {
       setStep("qr");
       setShowAlert(true);
       setAlertMessage("Invitation créée et sauvegardée. L'appareil de l'invité devra scanner le QR ou entrer le code.");
+
+      // Notify the inviter's org (in-app UI + OneSignal tags for server targeting)
+      notification.sendNotification({
+        title: "Invitation émise",
+        message: `Invitation ${code} pour le rôle ${targetRole}`,
+        targetRole: "ADMIN" as any,
+        extraData: { invitationId: id, code, targetRole },
+      }).catch(() => {});
     } catch (err: any) {
       setAlertMessage(err?.message ?? "Erreur lors de la création");
       setShowAlert(true);

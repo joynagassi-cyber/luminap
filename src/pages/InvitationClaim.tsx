@@ -47,6 +47,7 @@ import {
   importInvitationFromFile,
   type ClaimPayload,
 } from "@/capabilities/invitation";
+import { notification } from "@/capabilities/notification";
 
 export default function InvitationClaim() {
   const navigate = useNavigate();
@@ -140,6 +141,18 @@ export default function InvitationClaim() {
         ok: true,
         message: `Bienvenue ! Votre compte a été créé. Vous pourrez utiliser l'application immédiatement — la confirmation finale arrivera dès qu'une connexion sera disponible.`,
       });
+
+      // Notify the org admin that an invitation was claimed (in-app + tags)
+      notification.sendNotification({
+        title: "Invitation acceptée",
+        message: `Nouveau membre : ${parsedPayload.role ?? "membre"} a rejoint l'organisation`,
+        targetRole: "ADMIN" as any,
+        extraData: {
+          claimId,
+          role: parsedPayload.role,
+          orgId: parsedPayload.orgId,
+        },
+      }).catch(() => {});
     } catch (err: any) {
       setResult({
         ok: false,

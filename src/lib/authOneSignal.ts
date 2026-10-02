@@ -74,7 +74,36 @@ class OneSignalAuthService {
     message: string,
     data?: Record<string, any>,
   ): Promise<void> {
-    // no-op: client-side stub; actual sends go through backend
+    // Delegate to the OneSignal edge function for server-side push.
+    // The edge function resolves targeting from OneSignal tags (role, user_id)
+    // already set on the current player during login.
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    if (!supabaseUrl || !anonKey) return; // Silent no-op if Supabase env missing
+
+    const res = await fetch(
+      `${supabaseUrl}/functions/v1/onesignal-notify`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: anonKey,
+          Authorization: `Bearer ${this.getUserId() ?? ""}`,
+        },
+        body: JSON.stringify({
+          actionType: "ROLE_NOTIFY",
+          title,
+          message,
+          targetRole: role,
+          data,
+        }),
+      },
+    );
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      console.warn("[authOneSignal] notifyRole failed:", body?.error ?? res.status);
+    }
   }
 }
 

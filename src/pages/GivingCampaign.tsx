@@ -11,6 +11,7 @@ import {
   deleteTransactionGivingPS,
 } from "@/lib/dataLayer";
 import { campaignProgress, giving } from "@/capabilities/giving";
+import { notification } from "@/capabilities/notification";
 import { formatCurrencyFull } from "@/lib/utils";
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
@@ -102,6 +103,14 @@ export default function GivingCampaign() {
       });
       setPledgeAmount("");
       setShowPledge(false);
+
+      // Notify the treasurers that a new pledge was recorded
+      notification.sendNotification({
+        title: "Nouvel engagement de don",
+        message: `${donorName(pledgeDonor)} — ${pledgeAmount} FCFA (${pledgeSchedule})`,
+        targetRole: "TREASURIER" as any,
+        extraData: { campaignId: campaign.id, donorId: pledgeDonor },
+      }).catch(() => {});
     } finally {
       setPledgeBusy(false);
     }
@@ -131,6 +140,14 @@ export default function GivingCampaign() {
     try {
       await giving.generateTaxReceipt(receiptDonor, Number(receiptYear));
       setReceiptMsg(`Reçu fiscal ${receiptYear} généré pour ${donorName(receiptDonor)}.`);
+
+      // Notify the donor (in-app + OneSignal email if subscribed)
+      notification.sendNotification({
+        title: "Reçu fiscal généré",
+        message: `Votre reçu fiscal ${receiptYear} est disponible.`,
+        targetUserId: receiptDonor,
+        extraData: { campaignId: campaign.id, donorId: receiptDonor, year: receiptYear },
+      }).catch(() => {});
     } finally {
       setReceiptBusy(false);
     }

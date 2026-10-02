@@ -7,6 +7,7 @@ import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
 import { VersementSkeleton } from "@/components/PageSkeletons";
 import { policy } from "@/capabilities/policy";
+import { notification } from "@/capabilities/notification";
 import {
   IonPage,
   IonHeader,
@@ -84,9 +85,18 @@ export default function Versement() {
         amount: amountNum * 100,
         comment: comment.trim() || undefined,
       });
+
+      // Notify the treasurers that a versement was recorded
+      notification.sendNotification({
+        title: "Versement enregistré",
+        message: `${amountNum.toLocaleString()} FCFA versés dans ${selectedCaisse}`,
+        targetRole: "TREASURIER" as any,
+        extraData: { caisseId: selectedCaisse, amount: amountNum },
+      }).catch(() => {});
+
       navigate("/dashboard");
     } catch (e) {
-      // Versement creation failed — non-fatal
+      setFormError((e as Error)?.message ?? "Échec de la création du versement");
     } finally {
       setIsLoading(false);
     }

@@ -11,6 +11,7 @@ import DatePicker from "@/components/DatePicker";
 import { generateId, formatCurrencyCompact } from "@/lib/utils";
 import type { BudgetItem } from "@/types";
 import { getOrganizationId } from "@/lib/orgContext";
+import { notification } from "@/capabilities/notification";
 import {
   IonPage,
   IonHeader,
@@ -151,6 +152,15 @@ export default function EventNew() {
         budget: totalBudget,
         budget_items: JSON.stringify(budgetItems),
       });
+
+      // Notify the treasurers / admins that a new event was planned
+      notification.sendNotification({
+        title: "Nouvel événement planifié",
+        message: `« ${name.trim()} » — ${startDate}${endDate ? ` → ${endDate}` : ""}${totalBudget ? ` — budget ${totalBudget.toLocaleString()} FCFA` : ""}`,
+        targetRole: "TREASURIER" as any,
+        extraData: { eventName: name.trim(), startDate },
+      }).catch(() => {});
+
       navigate("/events");
     } finally {
       setSubmitting(false);
