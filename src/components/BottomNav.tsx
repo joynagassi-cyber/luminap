@@ -2,9 +2,9 @@ import {
   Check,
   Plus,
   ArrowRightLeft,
-  MoreVertical,
   Settings,
 } from "lucide-react";
+import { MoreVerticalSwoosh } from "@/components/icons/MoreVerticalSwoosh";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { tint } from "@/lib/utils";
@@ -272,7 +272,7 @@ export default function BottomNav() {
               style={tabStyle(showMore)}
               className="w-full flex flex-col items-center justify-center gap-0.5 px-1 py-2 rounded-xl overflow-hidden transition-[transform,background-color,color,opacity]"
             >
-              <MoreVertical
+              <MoreVerticalSwoosh
                 className="w-5 h-5 flex-shrink-0"
                 style={{
                   color: showMore ? "var(--accent-primary)" : "var(--text-secondary)",
