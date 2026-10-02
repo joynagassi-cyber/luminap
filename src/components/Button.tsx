@@ -15,6 +15,10 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variants = {
+  // M2 résiduel — accent-light / expense-hover n'existent pas comme alias
+  // Tailwind plats (accent = objet shadcn {DEFAULT,foreground}, pas d'alias
+  // -hover) : on garde ces deux tokens CSS en valeur arbitraire, usage
+  // légitime réservé des [var(--…)].
   primary: "bg-[var(--accent-primary)] hover:bg-[var(--accent-light)] text-on-accent font-semibold",
   secondary:
     "bg-surface hover:bg-surface-hover text-text-secondary font-medium border border-border",
