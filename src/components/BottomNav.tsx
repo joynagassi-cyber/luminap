@@ -1,22 +1,20 @@
 import {
-  Check,
   Plus,
   ArrowRightLeft,
-  Settings,
 } from "lucide-react";
 import { MoreVerticalSwoosh } from "@/components/icons/MoreVerticalSwoosh";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { tint } from "@/lib/utils";
 import {
   useFeatureConfig,
   featuresForNav,
-  FEATURES,
   DEFAULT_NAV_TABS,
   ensureNavViewChunk,
   type FeatureDef,
 } from "@/lib/features";
 import HomeIndicator from "@/components/HomeIndicator";
+import FeatureSidebar from "@/components/FeatureSidebar";
 
 /**
  * Barre de navigation basse — HTML natif.
@@ -27,32 +25,24 @@ import HomeIndicator from "@/components/HomeIndicator";
  * boutons sans icône) selon l'ordre de définition des custom elements.
  * On passe donc à des <button> natifs : rendu déterministe, mêmes styles
  * et mêmes sémantiques ARIA (tablist / tab / switch-free toggles).
+ *
+ * Le bouton « Plus » (glyphe voilier) n'ouvre plus une liste plate : il
+ * ouvre le menu latéral `FeatureSidebar` — features classées par catégorie
+ * dépliables, avatar + nom en tête, Profil / Paramètres en pied.
  */
 export default function BottomNav() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [showMore, setShowMore] = useState(false);
-  const moreRef = useRef<HTMLDivElement>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Les emplacements de la barre et le contenu du menu « Plus » sont
-  // configurables par l'utilisateur (Settings → Features & navigation).
-  const { navTabs, visible } = useFeatureConfig();
+  // Les emplacements de la barre sont configurables par l'utilisateur
+  // (Settings → Features & navigation).
+  const { navTabs } = useFeatureConfig();
   const navFeatures = useMemo(() => featuresForNav(navTabs), [navTabs]);
   // Réglage persisté corrompu / obsolète (0 onglet résolvable) : on retombe
   // sur la liste valide par défaut plutôt que d'afficher une barre vide.
   const activeNavFeatures =
     navFeatures.length > 0 ? navFeatures : featuresForNav(DEFAULT_NAV_TABS);
-  const activeNavIds = useMemo(
-    () => activeNavFeatures.map((f) => f.id),
-    [activeNavFeatures],
-  );
-  // Le menu « Plus » liste TOUS les features visibles — y compris celles déjà
-  // épinglées dans la barre (marquées « Dans la barre ») — pour qu'aucune
-  // feature ne soit jamais inaccessible depuis la navigation basse.
-  const moreFeatures = useMemo(
-    () => FEATURES.filter((f) => visible[f.id] ?? true),
-    [visible],
-  );
 
   // Le FAB est un bouton de la barre : sa destination doit être DÉTERMINISTE.
   // Chaque contexte ci-dessous mène à EXACTEMENT une page claire, et le FAB
@@ -107,16 +97,6 @@ export default function BottomNav() {
     };
   }, [location.pathname, navigate]);
 
-  useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      if (moreRef.current && !moreRef.current.contains(e.target as Node)) {
-        setShowMore(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, []);
-
   // Route la PLUS spécifique (la plus longue) correspondant à la page courante.
   // Seul l'onglet qui pointe dessus est actif : avec l'ancien test « startsWith »,
   // les préfixes imbriqués (/admin vs /admin/federation) allumaient DEUX onglets
@@ -146,7 +126,7 @@ export default function BottomNav() {
   // React Router, sinon le view entrant est le fallback de Suspense et
   // la transition Ionic rejoue avec un DOM différent (écran noir).
   // L'import() est servi instantanément depuis le cache module s'il est
-  // déjà chargé — l'await n'a un coût que sur le tout-premier clic
+  // déjà chargé — le `await` n'a un coût que sur le tout-premier clic
   // sur ce tab (typique en mobile après l'onboarding).
   const go = async (feature: FeatureDef) => {
     const target =
@@ -157,7 +137,6 @@ export default function BottomNav() {
       await ensureNavViewChunk(feature.id);
     }
     navigate(target);
-    setShowMore(false);
   };
 
   const tabStyle = (active: boolean): React.CSSProperties => ({
@@ -262,122 +241,35 @@ export default function BottomNav() {
             );
           })}
 
-          {/* Bouton « Plus » — accès à toutes les features (barre + menu) */}
-          <div className="relative flex-1 min-w-0" ref={moreRef}>
+          {/* Bouton « Plus » (glyphe voilier) — ouvre le menu latéral. */}
+          <div className="flex-1 min-w-0">
             <button
               type="button"
-              onClick={() => setShowMore(!showMore)}
-              aria-label={showMore ? "Fermer le menu" : "Plus d'options"}
-              aria-expanded={showMore}
-              style={tabStyle(showMore)}
+              onClick={() => setSidebarOpen(true)}
+              aria-label="Ouvrir le menu"
+              aria-haspopup="dialog"
+              style={tabStyle(sidebarOpen)}
               className="w-full flex flex-col items-center justify-center gap-0.5 px-1 py-2 rounded-xl overflow-hidden transition-[transform,background-color,color,opacity]"
             >
               <MoreVerticalSwoosh
                 className="w-5 h-5 flex-shrink-0"
                 style={{
-                  color: showMore ? "var(--accent-primary)" : "var(--text-secondary)",
+                  color: "var(--text-secondary)",
                 }}
               />
               <span
                 className="text-xs font-medium"
-                style={{
-                  color: showMore ? "var(--accent-primary)" : "var(--text-secondary)",
-                }}
+                style={{ color: "var(--text-secondary)" }}
               >
-                Plus
+                Menu
               </span>
             </button>
-
-            {/* Menu « Plus » — liste toutes les features visibles ; celles
-                déjà épinglées dans la barre sont marquées « Dans la barre ».
-                La liste peut être longue → scroll vertical borné. */}
-            {showMore && (
-              <div
-                data-testid="more-menu"
-                className="absolute bottom-12 right-0 w-56 rounded-2xl overflow-hidden z-50"
-                style={{
-                  backgroundColor: "var(--card)",
-                  border: "1px solid var(--border)",
-                  boxShadow: "var(--shadow-pop)",
-                  maxHeight: "45vh",
-                  overflowY: "auto",
-                }}
-              >
-                <div className="p-2">
-                  {moreFeatures.length === 0 ? (
-                    /* Le menu ne doit jamais rester « mort » : on renvoie
-                       vers la section « Features & navigation » de
-                       Paramètres pour réactiver des features. */
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowMore(false);
-                        navigate("/settings");
-                      }}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-[transform,background-color,color,opacity] active:scale-95"
-                      style={{
-                        background: "transparent",
-                        border: "none",
-                        cursor: "pointer",
-                        color: "var(--text-secondary)",
-                      }}
-                      aria-label="Gérer les features dans Paramètres"
-                    >
-                      <Settings className="w-4 h-4 flex-shrink-0" style={{ color: "var(--text-tertiary)" }} />
-                      <span className="text-sm font-medium">
-                        Aucune feature activée — gérer
-                      </span>
-                    </button>
-                  ) : (
-                    moreFeatures.map((f) => {
-                      const Icon = f.icon;
-                      const pinned = activeNavIds.includes(f.id);
-                      return (
-                        <button
-                          key={f.id}
-                          type="button"
-                          onClick={() => go(f)}
-                          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-[transform,background-color,color,opacity] active:scale-95"
-                          style={{
-                            background: pinned
-                              ? "color-mix(in srgb, var(--accent-primary) 8%, transparent)"
-                              : "transparent",
-                            border: "none",
-                            cursor: "pointer",
-                            color: pinned ? "var(--accent-primary)" : "var(--text-secondary)",
-                          }}
-                          aria-label={
-                            pinned ? `${f.label} (déjà dans la barre)` : f.label
-                          }
-                        >
-                          <Icon
-                            className="w-4 h-4 flex-shrink-0"
-                            style={{ color: pinned ? "var(--accent-primary)" : "var(--text-secondary)" }}
-                          />
-                          <span
-                            className="text-sm font-medium flex-1 truncate"
-                          >
-                            {f.label}
-                          </span>
-                          {pinned && (
-                            <span
-                              className="flex items-center gap-1 text-[10px] font-medium flex-shrink-0"
-                              style={{ color: "var(--text-tertiary)" }}
-                            >
-                              <Check className="w-3 h-3" />
-                              Dans la barre
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </nav>
+
+      {/* Menu latéral — features par catégorie, avatar + nom, Profil/Param. */}
+      <FeatureSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       {/* Indicateur d'accueil : pastille blanche au-dessus de la nav qui ouvre
           la modale de raccourcis utiles (fermable en glissant vers le bas). */}
