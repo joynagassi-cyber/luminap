@@ -22,3 +22,6 @@ android/app/lumina-keystore.jks
 .dyad/
 .reversa/
 .stitch/devserver.log
+
+# Build output dir (Vite Stitch dev server) — not project state
+.output/
