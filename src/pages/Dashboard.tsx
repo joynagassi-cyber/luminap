@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppConfig, useCurrentUser } from "@/lib/dataLayer";
 import {
@@ -137,6 +137,8 @@ function CaisseCard({
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  // M6 — stable pour les enfants memo (TransactionCard)
+  const openTransaction = useCallback((id: string) => navigate(`/transaction/${id}`), [navigate]);
   const user = useCurrentUser();
   const { config: appConfig } = useAppConfig();
 
@@ -662,7 +664,7 @@ export default function Dashboard() {
                   <TransactionCard
                     key={tx.id}
                     transaction={tx as any}
-                    onPress={(id) => navigate(`/transaction/${id}`)}
+                    onPress={openTransaction}
                   />
                 ))
               )}

@@ -36,7 +36,6 @@ import {
   Shield,
   FileDown,
 } from "lucide-react";
-import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
 import { useMembers, useGroups } from "@/lib/dataLayer";
 import { useCurrentUser } from "@/lib/dataLayer";
@@ -236,9 +235,9 @@ export default function InvitationEmit() {
         </IonToolbar>
       </IonHeader>
       <IonContent fullscreen>
+        {/* M9 — TopHeader supprimé : la barre IonHeader (back + « Gérer »)
+            porte déjà le contexte ; un 2ᵉ chrome 64px en double coquin. */}
         <div className="min-h-screen bg-canvas">
-          <TopHeader title="" />
-
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             {step === "configure" ? (
               <div className="space-y-6">

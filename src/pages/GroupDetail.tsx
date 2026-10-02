@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   useAccounts,
@@ -53,6 +53,8 @@ type Tab = "transactions" | "membres" | "historique" | "parametres";
 export default function GroupDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  // M6 — stable pour les enfants memo (TransactionCard)
+  const openTransaction = useCallback((tid: string) => navigate(`/transaction/${tid}`), [navigate]);
   const user = useCurrentUser();
 
   // PowerSync with fallback
@@ -493,7 +495,7 @@ export default function GroupDetail() {
                     <TransactionCard
                       key={tx.id}
                       transaction={tx}
-                      onPress={(id) => navigate(`/transaction/${id}`)}
+                      onPress={openTransaction}
                     />
                   ))}
                 {txs.length === 0 && (
@@ -626,9 +628,9 @@ export default function GroupDetail() {
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {versementList.map((v: any, idx: number) => (
+                    {versementList.map((v: any) => (
                       <div
-                        key={idx}
+                        key={v.id}
                         className="rounded-xl p-3 flex items-center gap-3"
                         style={{ backgroundColor: "var(--surface)" }}
                       >
@@ -671,8 +673,8 @@ export default function GroupDetail() {
                   style={{ backgroundColor: "var(--surface)" }}
                 >
                   <div className="space-y-4">
-                    {timelineEvents.map((evt: any, idx: number) => (
-                      <div key={idx} className="flex items-start gap-3">
+                    {timelineEvents.map((evt) => (
+                      <div key={`${evt.type}-${evt.label}-${evt.date}`} className="flex items-start gap-3">
                         <div
                           className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0"
                           style={{

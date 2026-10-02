@@ -363,9 +363,9 @@ function OrgDetail({ orgId, onBack }: { orgId: string; onBack: () => void }) {
             Aucune activité enregistrée
           </p>
         ) : (
-          activity.map((a, i) => (
+          activity.map((a) => (
             <div
-              key={i}
+              key={`${a.action}-${a.entityType}-${a.createdAt}`}
               className="flex items-start gap-3 p-3 rounded-xl"
               style={{ backgroundColor: "var(--surface)" }}
             >

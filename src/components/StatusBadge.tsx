@@ -1,3 +1,4 @@
+import { memo } from "react";
 import type { TransactionStatus } from "@/types";
 import { getStatusColor, getStatusLabel, tint } from "@/lib/utils";
 
@@ -6,7 +7,8 @@ interface StatusBadgeProps {
   size?: "sm" | "md";
 }
 
-export default function StatusBadge({ status, size = "sm" }: StatusBadgeProps) {
+// M6 — memo : badge re-rendu à chaque tick du store sinon.
+const StatusBadge = memo(function StatusBadge({ status, size = "sm" }: StatusBadgeProps) {
   const color = getStatusColor(status);
   const label = getStatusLabel(status);
   const sizeClasses =
@@ -20,4 +22,6 @@ export default function StatusBadge({ status, size = "sm" }: StatusBadgeProps) {
       {label}
     </span>
   );
-}
+});
+
+export default StatusBadge;

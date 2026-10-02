@@ -101,9 +101,9 @@ function CustomTooltip({ active, payload, label }: any) {
       style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
     >
       <p className="text-text-tertiary text-xs mb-2 font-medium">{label}</p>
-      {payload.map((entry: any, idx: number) => (
+      {payload.map((entry: any) => (
         <div
-          key={idx}
+          key={entry.name}
           className="flex items-center justify-between gap-6 min-w-[140px]"
         >
           <div className="flex items-center gap-2">

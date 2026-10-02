@@ -35,7 +35,6 @@ import {
   Users,
   Shield,
 } from "lucide-react";
-import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
 import { ShimmerCard } from "@/components/Shimmer";
 import { useInvitations } from "@/lib/dataLayer";
@@ -199,7 +198,6 @@ export default function InvitationManage() {
       </IonHeader>
       <IonContent fullscreen>
         <div className="min-h-screen bg-canvas">
-          <TopHeader title="" />
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             {/* Stats */}
             <div className="grid grid-cols-3 gap-3 mb-6">
@@ -439,27 +437,28 @@ export default function InvitationManage() {
           </div>
           <BottomNav />
         </div>
-      </IonContent>
 
-      <IonAlert
-        isOpen={showRevokeAlert}
-        onDidDismiss={() => setShowRevokeAlert(false)}
-        header="Révoquer l'invitation"
-        message={`Êtes-vous sûr de vouloir révoquer l'invitation ${revokeTarget?.code} ? Cette action est irréversible.`}
-        buttons={[
-          { text: "Annuler", role: "cancel" },
-          {
-            text: "Révoquer",
-            role: "confirm",
-            handler: handleRevoke,
-            cssClass: "ion-color-danger",
-          },
-        ]}
-      />
+        {/* M10 — IonAlert DANS IonContent (portale au body sinon, la vue
+            animerait la disparition de l'alerte en navigation). */}
+        <IonAlert
+          isOpen={showRevokeAlert}
+          onDidDismiss={() => setShowRevokeAlert(false)}
+          header="Révoquer l'invitation"
+          message={`Êtes-vous sûr de vouloir révoquer l'invitation ${revokeTarget?.code} ? Cette action est irréversible.`}
+          buttons={[
+            { text: "Annuler", role: "cancel" },
+            {
+              text: "Révoquer",
+              role: "confirm",
+              handler: handleRevoke,
+              cssClass: "ion-color-danger",
+            },
+          ]}
+        />
 
-      {/* Modal de rejet d'une demande (raison + confirmation, sans prompt) */}
-      {rejecting && (
-        <div className="fixed inset-0 flex items-end justify-center" style={{ zIndex: 50, backgroundColor: "rgba(0,0,0,0.7)" }}>
+        {/* Modal de rejet d'une demande (raison + confirmation, sans prompt) */}
+        {rejecting && (
+          <div className="fixed inset-0 flex items-end justify-center" style={{ zIndex: 50, backgroundColor: "rgba(0,0,0,0.7)" }}>
           <div
             className="w-full max-w-lg rounded-t-2xl p-6 space-y-4"
             style={{ backgroundColor: "var(--card)", paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 24px)" }}
@@ -512,6 +511,7 @@ export default function InvitationManage() {
           </div>
         </div>
       )}
+      </IonContent>
     </IonPage>
   );
 }

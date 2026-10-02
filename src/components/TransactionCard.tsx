@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { ArrowUpRight, ArrowDownRight, Users, Calendar } from "lucide-react";
 import {
   formatCurrencyCompact,
@@ -10,7 +11,7 @@ import type { Transaction } from "@/types";
 import { useNavigate } from "react-router-dom";
 import { IonButton } from "@ionic/react";
 
-export default function TransactionCard({
+export const TransactionCard = memo(function TransactionCard({
   transaction,
   onPress,
 }: {
@@ -108,4 +109,6 @@ export default function TransactionCard({
       </div>
     </IonButton>
   );
-}
+});
+
+export default TransactionCard;

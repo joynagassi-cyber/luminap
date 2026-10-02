@@ -182,21 +182,21 @@ export default function FormBuilder() {
   };
 
   const updateField = (
-    index: number,
+    key: string,
     updates: Partial<FormFieldDefinition>,
   ) => {
     setFields((prev) =>
-      prev.map((f, i) => (i === index ? { ...f, ...updates } : f)),
+      prev.map((f) => (f.key === key ? { ...f, ...updates } : f)),
     );
   };
 
-  const removeField = (index: number) => {
-    setFields((prev) => prev.filter((_, i) => i !== index));
+  const removeField = (key: string) => {
+    setFields((prev) => prev.filter((f) => f.key !== key));
   };
 
-  const toggleRequired = (index: number) => {
+  const toggleRequired = (key: string) => {
     setFields((prev) =>
-      prev.map((f, i) => (i === index ? { ...f, required: !f.required } : f)),
+      prev.map((f) => (f.key === key ? { ...f, required: !f.required } : f)),
     );
   };
 
@@ -438,9 +438,9 @@ export default function FormBuilder() {
                       </button>
                     </div>
                   </div>
-                  {fields.map((field, index) => (
+                  {fields.map((field) => (
                     <div
-                      key={index}
+                      key={field.key}
                       className="rounded-xl p-3 mb-2"
                       style={{ backgroundColor: "var(--surface)" }}
                     >
@@ -450,7 +450,7 @@ export default function FormBuilder() {
                           type="text"
                           value={field.label}
                           onChange={(e) =>
-                            updateField(index, { label: e.target.value })
+                            updateField(field.key, { label: e.target.value })
                           }
                           className="flex-1 px-3 py-1.5 rounded-lg text-sm"
                           style={{
@@ -462,7 +462,7 @@ export default function FormBuilder() {
                         <select
                           value={field.type}
                           onChange={(e) =>
-                            updateField(index, {
+                            updateField(field.key, {
                               type: e.target
                                 .value as FormFieldDefinition["type"],
                             })
@@ -481,7 +481,7 @@ export default function FormBuilder() {
                           ))}
                         </select>
                         <button
-                          onClick={() => toggleRequired(index)}
+                          onClick={() => toggleRequired(field.key)}
                           style={{
                             color: field.required ? "var(--accent-primary)" : "var(--text-tertiary)",
                           }}
@@ -489,7 +489,7 @@ export default function FormBuilder() {
                           <span className="text-xs font-bold">*</span>
                         </button>
                         <button
-                          onClick={() => removeField(index)}
+                          onClick={() => removeField(field.key)}
                           style={{ color: "var(--data-expense)" }}
                         >
                           <Trash2 className="w-4 h-4" />
@@ -499,7 +499,7 @@ export default function FormBuilder() {
                         <textarea
                           value={field.options?.join("\n") || ""}
                           onChange={(e) =>
-                            updateField(index, {
+                            updateField(field.key, {
                               options: e.target.value
                                 .split("\n")
                                 .filter(Boolean),
@@ -523,7 +523,7 @@ export default function FormBuilder() {
                           <select
                             value={field.referenceEntityType ?? "member"}
                             onChange={(e) =>
-                              updateField(index, {
+                              updateField(field.key, {
                                 referenceEntityType: e.target.value,
                               })
                             }
@@ -547,7 +547,7 @@ export default function FormBuilder() {
                           type="text"
                           value={field.conditional?.showIfField ?? ""}
                           onChange={(e) =>
-                            updateField(index, {
+                            updateField(field.key, {
                               conditional: {
                                 showIfField: e.target.value,
                                 showIfValue:
@@ -567,7 +567,7 @@ export default function FormBuilder() {
                           type="text"
                           value={String(field.conditional?.showIfValue ?? "")}
                           onChange={(e) =>
-                            updateField(index, {
+                            updateField(field.key, {
                               conditional: {
                                 showIfField:
                                   field.conditional?.showIfField ?? "",
@@ -587,7 +587,7 @@ export default function FormBuilder() {
                           type="text"
                           value={field.validation?.regex ?? ""}
                           onChange={(e) =>
-                            updateField(index, {
+                            updateField(field.key, {
                               validation: {
                                 ...field.validation,
                                 regex: e.target.value || undefined,
@@ -606,7 +606,7 @@ export default function FormBuilder() {
                           type="text"
                           value={field.mapsToEntityField ?? ""}
                           onChange={(e) =>
-                            updateField(index, {
+                            updateField(field.key, {
                               mapsToEntityField: e.target.value || undefined,
                             })
                           }

@@ -1,4 +1,4 @@
-import { Fragment, useState, useMemo, useEffect } from "react";
+import { Fragment, useCallback, useState, useMemo, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useCategories, useAccounts, useCaisses } from "@/lib/dataLayer";
 import { resource } from "@/capabilities/resource";
@@ -32,6 +32,8 @@ export const FINANCE_PAGE_SIZE = 50;
 
 export default function Finance() {
   const navigate = useNavigate();
+  // M6 — stable pour les enfants memo (TransactionCard)
+  const openTransaction = useCallback((id: string) => navigate(`/transaction/${id}`), [navigate]);
   const location = useLocation();
   const preselectedCaisse = location.state?.caisseId;
 
@@ -344,7 +346,7 @@ export default function Finance() {
                     <TransactionCard
                       key={tx.id}
                       transaction={tx}
-                      onPress={(id) => navigate(`/transaction/${id}`)}
+                      onPress={openTransaction}
                     />
                   ))}
                   {visibleCount < filteredTransactions.length && (
