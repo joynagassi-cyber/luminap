@@ -12,6 +12,8 @@ interface Props {
   subtitle?: string;
   /** Action « Retour » par défaut : navigation vers /settings (le hub). */
   backTo?: string;
+  /** Style inline appliqué au wrapper scrollable (ex. paddingBottom dynamique pour keyboard-avoidance). */
+  contentStyle?: React.CSSProperties;
   children: React.ReactNode;
 }
 
@@ -25,6 +27,7 @@ export default function SettingsShell({
   title,
   subtitle,
   backTo = "/settings",
+  contentStyle,
   children,
 }: Props) {
   const navigate = useNavigate();
@@ -32,12 +35,17 @@ export default function SettingsShell({
     <IonPage>
       <IonContent className="bg-canvas">
         <TopHeader title={title} />
-        <div className="max-w-lg mx-auto px-5 pt-safe-calc pb-safe-calc">
+        <div
+          className="max-w-lg mx-auto px-5 pt-safe-calc pb-safe-calc"
+          style={contentStyle}
+        >
+          {/* L25 — hitzone tactile 44px (DESIGN.md §5) : bouton text-sm seul
+              faisait ~24px de hauteur, sous la cible minimale. */}
           <button
             type="button"
             onClick={() => navigate(backTo)}
             className="flex items-center gap-2 text-text-secondary text-sm mb-4 active:opacity-70"
-            style={{ background: "none", border: "none", cursor: "pointer" }}
+            style={{ background: "none", border: "none", cursor: "pointer", height: 44 }}
             aria-label={`Retour aux paramètres`}
           >
             <ArrowLeft className="w-4 h-4" /> Retour
