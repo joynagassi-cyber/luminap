@@ -16,6 +16,7 @@ import {
   prefetchNavViews,
 } from "@/lib/features";
 import { useEffect } from "react";
+import { IonSelect, IonSelectOption } from "@ionic/react";
 
 export default function SettingsFeatures() {
   const {
@@ -111,34 +112,28 @@ export default function SettingsFeatures() {
 
           <div className="flex items-center gap-3">
             <Plus className="w-4 h-4 flex-shrink-0" style={{ color: "var(--accent-primary)" }} />
-            <select
+            <IonSelect
               id="nav-tab-select"
               data-testid="nav-tab-select"
               value=""
               disabled={navTabs.length >= MAX_NAV_TABS}
-              onChange={(e) => {
-                if (e.target.value) addNavTab(e.target.value);
+              onIonChange={(e: any) => {
+                if (e.detail.value) addNavTab(e.detail.value);
               }}
-              className="px-3 py-2.5 rounded-xl text-sm"
-              style={{
-                backgroundColor: "var(--card)",
-                color: "var(--text-primary)",
-                border: "1px solid var(--border)",
-                maxWidth: 190,
-              }}
+              interface="popover"
               aria-label="Ajouter une feature à la barre de navigation"
             >
-              <option value="">
+              <IonSelectOption value="">
                 {navTabs.length >= MAX_NAV_TABS
                   ? `Maximum ${MAX_NAV_TABS} onglets`
                   : "Choisir…"}
-              </option>
+              </IonSelectOption>
               {FEATURES.filter((f) => !navTabs.includes(f.id)).map((f) => (
-                <option key={f.id} value={f.id}>
+                <IonSelectOption value={f.id}>
                   {f.label}
-                </option>
+                </IonSelectOption>
               ))}
-            </select>
+            </IonSelect>
           </div>
         </div>
       </div>

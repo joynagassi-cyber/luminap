@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
+import EmptyState from "@/components/EmptyState";
 import { ReportsSkeleton } from "@/components/PageSkeletons";
 import { exportPDF, exportExcel, exportCSV } from "@/lib/export";
 import { reportDefinitionRepo } from "@/lib/reporting";
@@ -213,9 +214,11 @@ const EventPanel = memo(function EventPanel({ eventData, onOpen }: EventPanelPro
   return (
     <div className="space-y-4">
       {eventData.length === 0 ? (
-        <div className="text-center py-10 rounded-xl" style={{ backgroundColor: "var(--surface)" }}>
-          <p className="text-text-tertiary text-sm">Aucun événement</p>
-        </div>
+        <EmptyState
+          title="Aucun événement"
+          description="Aucun événement avec activité sur la période"
+          icon={<Calendar className="w-6 h-6" />}
+        />
       ) : (
         <>
           <div className="rounded-xl p-3" style={{ backgroundColor: "var(--surface)" }}>
@@ -499,11 +502,13 @@ export default function Reports() {
                 </div>
 
                 {savedReports.length === 0 ? (
-                  <div className="rounded-xl p-4 text-center" style={{ backgroundColor: "var(--surface)" }}>
-                    <p className="text-text-tertiary text-xs">
-                      Aucun rapport personnalisé. Créez-en un avec le constructeur.
-                    </p>
-                  </div>
+                  <EmptyState
+                    title="Aucun rapport personnalisé"
+                    description="Créez-en un avec le constructeur"
+                    icon={<FileText className="w-6 h-6" />}
+                    actionLabel="Nouveau rapport"
+                    onAction={() => navigate("/report-builder")}
+                  />
                 ) : (
                   <div className="space-y-4">
                     {([
@@ -529,7 +534,13 @@ export default function Reports() {
                             </button>
                           </div>
                           {reports.length === 0 ? (
-                            <p className="text-text-tertiary text-[11px]">Aucun rapport.</p>
+                            <EmptyState
+                              title="Aucun rapport"
+                              description={`Aucun rapport ${block.label.toLowerCase()}`}
+                              icon={<FileText className="w-6 h-6" />}
+                              actionLabel="Nouveau"
+                              onAction={() => navigate(block.newPath)}
+                            />
                           ) : (
                             reports.map((r) => (
                               <button

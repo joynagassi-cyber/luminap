@@ -634,7 +634,7 @@ function TransactionFlowDiagram() {
         width="80"
         height="50"
         rx="8"
-        fill="#F59E0B20"
+        fill="color-mix(in srgb, var(--data-pending) 12%, transparent)"
         stroke={CHART_COLORS.pending}
         strokeWidth="1.5"
       />
@@ -655,15 +655,15 @@ function TransactionFlowDiagram() {
         width="80"
         height="50"
         rx="8"
-        fill="#3B82F620"
-        stroke="#3B82F6"
+        fill="color-mix(in srgb, var(--data-planified) 12%, transparent)"
+        stroke={CHART_COLORS.planified}
         strokeWidth="1.5"
       />
       <text
         x="180"
         y="78"
         textAnchor="middle"
-        fill="#3B82F6"
+        fill={CHART_COLORS.planified}
         fontSize="11"
         fontWeight="600"
       >
@@ -676,15 +676,15 @@ function TransactionFlowDiagram() {
         width="80"
         height="50"
         rx="8"
-        fill="#1DB95420"
-        stroke="#1DB954"
+        fill="color-mix(in srgb, var(--data-income) 12%, transparent)"
+        stroke={CHART_COLORS.income}
         strokeWidth="1.5"
       />
       <text
         x="312"
         y="31"
         textAnchor="middle"
-        fill="#1DB954"
+        fill={CHART_COLORS.income}
         fontSize="11"
         fontWeight="600"
       >
@@ -697,15 +697,15 @@ function TransactionFlowDiagram() {
         width="80"
         height="50"
         rx="8"
-        fill="#E5133220"
-        stroke="#E51332"
+        fill="color-mix(in srgb, var(--data-expense) 12%, transparent)"
+        stroke={CHART_COLORS.expense}
         strokeWidth="1.5"
       />
       <text
         x="312"
         y="125"
         textAnchor="middle"
-        fill="#E51332"
+        fill={CHART_COLORS.expense}
         fontSize="11"
         fontWeight="600"
       >
@@ -739,7 +739,7 @@ function TransactionFlowDiagram() {
         x="250"
         y="58"
         textAnchor="middle"
-        fill="#1DB954"
+        fill={CHART_COLORS.income}
         fontSize="9"
         fontWeight="600"
       >
@@ -759,7 +759,7 @@ function TransactionFlowDiagram() {
         x="250"
         y="95"
         textAnchor="middle"
-        fill="#E51332"
+        fill={CHART_COLORS.expense}
         fontSize="9"
         fontWeight="600"
       >
@@ -772,7 +772,7 @@ function TransactionFlowDiagram() {
         width="44"
         height="16"
         rx="4"
-        fill="#1DB954"
+        fill={CHART_COLORS.income}
         opacity="0.8"
       />
       <text
@@ -791,7 +791,7 @@ function TransactionFlowDiagram() {
         width="44"
         height="16"
         rx="4"
-        fill="#E51332"
+        fill={CHART_COLORS.expense}
         opacity="0.8"
       />
       <text
@@ -809,7 +809,7 @@ function TransactionFlowDiagram() {
         x="356"
         y="28"
         textAnchor="middle"
-        fill="#1DB954"
+        fill={CHART_COLORS.income}
         fontSize="8"
         fontWeight="500"
       >
@@ -847,8 +847,8 @@ function VersementFlowDiagram() {
         width="120"
         height="80"
         rx="10"
-        fill="#FFB80020"
-        stroke="#FFB800"
+        fill="color-mix(in srgb, var(--data-pending) 12%, transparent)"
+        stroke={CHART_COLORS.pending}
         strokeWidth="1.5"
       />
       <rect
@@ -857,12 +857,12 @@ function VersementFlowDiagram() {
         width="24"
         height="24"
         rx="4"
-        fill="#FFB800"
+        fill={CHART_COLORS.pending}
         opacity="0.2"
       />
       <path
         d="M62 44 L62 56 M56 48 L68 48"
-        stroke="#FFB800"
+        stroke={CHART_COLORS.pending}
         strokeWidth="2"
         strokeLinecap="round"
       />
@@ -870,7 +870,7 @@ function VersementFlowDiagram() {
         x="80"
         y="65"
         textAnchor="middle"
-        fill="#FFB800"
+        fill={CHART_COLORS.pending}
         fontSize="11"
         fontWeight="600"
       >
@@ -879,7 +879,7 @@ function VersementFlowDiagram() {
       <text x="80" y="82" textAnchor="middle" fill="var(--text-tertiary)" fontSize="9">
         sourceCaisseId
       </text>
-      <text x="80" y="96" textAnchor="middle" fill="#E51332" fontSize="9">
+      <text x="80" y="96" textAnchor="middle" fill={CHART_COLORS.expense} fontSize="9">
         Sortie (-montant)
       </text>
       {/* Caisse Principale */}
@@ -889,8 +889,8 @@ function VersementFlowDiagram() {
         width="120"
         height="80"
         rx="10"
-        fill="#1DB95420"
-        stroke="#1DB954"
+        fill="color-mix(in srgb, var(--data-income) 12%, transparent)"
+        stroke={CHART_COLORS.income}
         strokeWidth="1.5"
       />
       <rect
@@ -899,12 +899,12 @@ function VersementFlowDiagram() {
         width="24"
         height="24"
         rx="4"
-        fill="#1DB954"
+        fill={CHART_COLORS.income}
         opacity="0.2"
       />
       <path
         d="M296 50 L302 44 L308 50 M302 44 L302 56"
-        stroke="#1DB954"
+        stroke={CHART_COLORS.income}
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -914,7 +914,7 @@ function VersementFlowDiagram() {
         x="320"
         y="65"
         textAnchor="middle"
-        fill="#1DB954"
+        fill={CHART_COLORS.income}
         fontSize="11"
         fontWeight="600"
       >
@@ -923,7 +923,7 @@ function VersementFlowDiagram() {
       <text x="320" y="82" textAnchor="middle" fill="var(--text-tertiary)" fontSize="9">
         id: main
       </text>
-      <text x="320" y="96" textAnchor="middle" fill="#1DB954" fontSize="9">
+      <text x="320" y="96" textAnchor="middle" fill={CHART_COLORS.income} fontSize="9">
         Entrée (+montant)
       </text>
       {/* Flèche épaisse */}
@@ -932,12 +932,12 @@ function VersementFlowDiagram() {
         y1="70"
         x2="256"
         y2="70"
-        stroke="#FFB800"
+        stroke={CHART_COLORS.pending}
         strokeWidth="3"
         markerEnd="url(#arrowhead)"
         className="flow-line"
       />
-      <rect x="180" y="52" width="80" height="18" rx="4" fill="#FFB800" />
+      <rect x="180" y="52" width="80" height="18" rx="4" fill={CHART_COLORS.pending} />
       <text
         x="220"
         y="64"
@@ -955,15 +955,15 @@ function VersementFlowDiagram() {
         width="120"
         height="20"
         rx="4"
-        fill="#3B82F620"
-        stroke="#3B82F6"
+        fill="color-mix(in srgb, var(--data-planified) 12%, transparent)"
+        stroke={CHART_COLORS.planified}
         strokeWidth="1"
       />
       <text
         x="200"
         y="113"
         textAnchor="middle"
-        fill="#3B82F6"
+        fill={CHART_COLORS.planified}
         fontSize="9"
         fontWeight="600"
       >
@@ -1027,7 +1027,7 @@ function GroupTreeDiagram() {
       {/* Niveau 2 — Groupes */}
       {["Diacres", "Jeunesse", "Dames"].map((name, i) => {
         const x = 50 + i * 150;
-        const colors = ["#3B82F6", "#8B5CF6", "#EC4899"];
+        const colors = [CHART_COLORS.planified, CHART_COLORS.advance, CHART_COLORS.pink];
         return (
           <g key={name}>
             <line
@@ -1144,7 +1144,7 @@ function HistoryLineChart() {
         <Line
           type="monotone"
           dataKey="revenus"
-          stroke="#1DB954"
+          stroke={CHART_COLORS.income}
           strokeWidth={2}
           dot={{ r: 3 }}
           name="Revenus"
@@ -1152,7 +1152,7 @@ function HistoryLineChart() {
         <Line
           type="monotone"
           dataKey="dépenses"
-          stroke="#E51332"
+          stroke={CHART_COLORS.expense}
           strokeWidth={2}
           dot={{ r: 3 }}
           name="Dépenses"
@@ -1168,8 +1168,9 @@ function BalanceAreaChart() {
       <AreaChart data={BALANCE_AREA_DATA} aria-label="Solde cumulé sur 12 mois">
         <defs>
           <linearGradient id="balanceGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="#06B6D4" stopOpacity={0.3} />
-            <stop offset="95%" stopColor="#06B6D4" stopOpacity={0} />
+            {/* Solde : cyan 06B6D4 hors palette → .planified */}
+            <stop offset="5%" stopColor={CHART_COLORS.planified} stopOpacity={0.3} />
+            <stop offset="95%" stopColor={CHART_COLORS.planified} stopOpacity={0} />
           </linearGradient>
         </defs>
         <CartesianGrid strokeDasharray="3 3" stroke="var(--surface-hover)" />
@@ -1179,7 +1180,7 @@ function BalanceAreaChart() {
         <Area
           type="monotone"
           dataKey="solde"
-          stroke="#06B6D4"
+          stroke={CHART_COLORS.planified}
           strokeWidth={2}
           fill="url(#balanceGrad)"
           name="Solde"
@@ -1489,7 +1490,7 @@ export default function Tutorial() {
                   <div className="space-y-2">
                     {current.tips.map((tip, i) => (
                       <div key={i} className="flex items-start gap-2">
-                        <CheckCircle className="w-4 h-4 text-[#1DB954] flex-shrink-0 mt-0.5" />
+                        <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: CHART_COLORS.income }} />
                         <p className="text-text-secondary text-sm">{tip}</p>
                       </div>
                     ))}
@@ -1501,16 +1502,19 @@ export default function Tutorial() {
               {current.warnings && current.warnings.length > 0 && (
                 <div
                   className="rounded-xl p-4 mb-5 transition-all duration-200"
-                  style={{ backgroundColor: "#E5133220" }}
+                  style={{ backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)" }}
                 >
-                  <p className="text-sm font-semibold mb-3 flex items-center gap-2 text-[#E51332]">
+                  <p
+                    className="text-sm font-semibold mb-3 flex items-center gap-2"
+                    style={{ color: CHART_COLORS.expense }}
+                  >
                     <AlertTriangle className="w-4 h-4 flex-shrink-0" />{" "}
                     Précautions
                   </p>
                   <div className="space-y-2">
                     {current.warnings.map((w, i) => (
                       <div key={i} className="flex items-start gap-2">
-                        <AlertCircle className="w-4 h-4 text-[#E51332] flex-shrink-0 mt-0.5" />
+                        <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: CHART_COLORS.expense }} />
                         <p className="text-text-secondary text-sm">{w}</p>
                       </div>
                     ))}
@@ -1528,7 +1532,7 @@ export default function Tutorial() {
                       style={{ backgroundColor: "var(--card)" }}
                     >
                       <div className="flex items-start gap-2 mb-2">
-                        <AlertCircle className="w-4 h-4 text-[#E51332] flex-shrink-0 mt-0.5" />
+                        <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: CHART_COLORS.expense }} />
                         <p className="text-text-primary text-sm font-medium">
                           {err.title}
                         </p>

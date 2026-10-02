@@ -16,6 +16,7 @@ import {
   IonContent,
 } from "@ionic/react";
 import TopHeader from "@/components/TopHeader";
+import EmptyState from "@/components/EmptyState";
 import { useCurrentUser } from "@/lib/dataLayer";
 import {
   useMyOrgs,
@@ -226,18 +227,11 @@ export default function SessionsPage() {
             </p>
 
             {list.length === 0 ? (
-              <div
-                className="rounded-xl p-6 text-center"
-                style={{ backgroundColor: "var(--surface)" }}
-              >
-                <Building2 className="w-8 h-8 mx-auto mb-2 text-text-tertiary" />
-                <p className="text-text-primary text-sm">
-                  Aucun compte lié pour l'instant.
-                </p>
-                <p className="text-text-tertiary text-xs mt-1">
-                  {user?.email ?? "Connectez-vous pour voir vos organisations."}
-                </p>
-              </div>
+              <EmptyState
+                title="Aucun compte lié pour l'instant"
+                description={user?.email ?? "Connectez-vous pour voir vos organisations."}
+                icon={<Building2 className="w-6 h-6" />}
+              />
             ) : (
               <div className="space-y-3">
                 {list.map((org) => {

@@ -16,6 +16,7 @@ import {
   completeOnboarding,
   type OnboardingState,
 } from "@/lib/onboardingState";
+import { CHART_COLORS } from "@/lib/utils";
 
 const SCREENS = [
   {
@@ -43,21 +44,21 @@ const SCREENS = [
         />
         <rect x="50" y="40" width="180" height="8" rx="4" fill="var(--accent-primary)" />
         <rect x="50" y="60" width="120" height="6" rx="3" fill="var(--surface-hover)" />
-        <rect x="50" y="80" width="70" height="40" rx="8" fill="#1DB95420" />
+        <rect x="50" y="80" width="70" height="40" rx="8" fill="color-mix(in srgb, var(--data-income) 12%, transparent)" />
         <rect x="130" y="80" width="100" height="40" rx="8" fill="var(--surface-hover)" />
         <rect x="50" y="135" width="180" height="6" rx="3" fill="var(--surface-hover)" />
         <rect x="50" y="150" width="130" height="6" rx="3" fill="var(--surface-hover)" />
-        <circle cx="220" cy="44" r="3" fill="#E51332" />
-        <circle cx="210" cy="44" r="3" fill="#FFB800" />
-        <circle cx="200" cy="44" r="3" fill="#1DB954" />
-        <rect x="60" y="90" width="20" height="20" rx="4" fill="#1DB954" />
+        <circle cx="220" cy="44" r="3" fill={CHART_COLORS.expense} />
+        <circle cx="210" cy="44" r="3" fill={CHART_COLORS.pending} />
+        <circle cx="200" cy="44" r="3" fill={CHART_COLORS.income} />
+        <rect x="60" y="90" width="20" height="20" rx="4" fill={CHART_COLORS.income} />
         <rect
           x="72"
           y="96"
           width="30"
           height="4"
           rx="2"
-          fill="#1DB954"
+          fill={CHART_COLORS.income}
           opacity="0.6"
         />
         <rect
@@ -66,7 +67,7 @@ const SCREENS = [
           width="20"
           height="4"
           rx="2"
-          fill="#1DB954"
+          fill={CHART_COLORS.income}
           opacity="0.4"
         />
       </svg>
@@ -95,7 +96,7 @@ const SCREENS = [
           stroke="var(--surface-hover)"
           strokeWidth="1"
         />
-        <rect x="35" y="35" width="50" height="8" rx="4" fill="#1DB954" />
+        <rect x="35" y="35" width="50" height="8" rx="4" fill={CHART_COLORS.income} />
         <rect x="35" y="50" width="80" height="4" rx="2" fill="var(--surface-hover)" />
         <rect x="35" y="60" width="60" height="4" rx="2" fill="var(--surface-hover)" />
         <rect x="35" y="80" width="40" height="4" rx="2" fill="var(--surface-hover)" />
@@ -109,7 +110,7 @@ const SCREENS = [
           stroke="var(--surface-hover)"
           strokeWidth="1"
         />
-        <rect x="165" y="35" width="50" height="8" rx="4" fill="#FFB800" />
+        <rect x="165" y="35" width="50" height="8" rx="4" fill={CHART_COLORS.pending} />
         <rect x="165" y="50" width="80" height="4" rx="2" fill="var(--surface-hover)" />
         <rect x="165" y="60" width="60" height="4" rx="2" fill="var(--surface-hover)" />
         <rect x="165" y="80" width="40" height="4" rx="2" fill="var(--surface-hover)" />
@@ -165,8 +166,8 @@ const SCREENS = [
           stroke="var(--surface-hover)"
           strokeWidth="1"
         />
-        <circle cx="95" cy="70" r="10" fill="#1DB95420" />
-        <rect x="88" y="67" width="14" height="6" rx="1" fill="#1DB954" />
+        <circle cx="95" cy="70" r="10" fill="color-mix(in srgb, var(--data-income) 12%, transparent)" />
+        <rect x="88" y="67" width="14" height="6" rx="1" fill={CHART_COLORS.income} />
         <rect x="115" y="63" width="60" height="4" rx="2" fill="var(--surface-hover)" />
         <rect x="115" y="73" width="40" height="4" rx="2" fill="var(--surface-hover)" />
         <rect x="115" y="83" width="30" height="4" rx="2" fill="var(--surface-hover)" />
@@ -180,8 +181,8 @@ const SCREENS = [
           stroke="var(--surface-hover)"
           strokeWidth="1"
         />
-        <circle cx="95" cy="130" r="10" fill="#E5133220" />
-        <rect x="88" y="127" width="14" height="6" rx="1" fill="#E51332" />
+        <circle cx="95" cy="130" r="10" fill="color-mix(in srgb, var(--data-expense) 12%, transparent)" />
+        <rect x="88" y="127" width="14" height="6" rx="1" fill={CHART_COLORS.expense} />
         <rect x="115" y="123" width="60" height="4" rx="2" fill="var(--surface-hover)" />
         <rect x="115" y="133" width="40" height="4" rx="2" fill="var(--surface-hover)" />
         <rect x="115" y="143" width="30" height="4" rx="2" fill="var(--surface-hover)" />
@@ -232,7 +233,7 @@ const SCREENS = [
           stroke="var(--surface-hover)"
           strokeWidth="1"
         />
-        <rect x="175" y="30" width="70" height="6" rx="3" fill="#8B5CF6" />
+        <rect x="175" y="30" width="70" height="6" rx="3" fill={CHART_COLORS.advance} />
         <rect x="175" y="45" width="50" height="4" rx="2" fill="var(--surface-hover)" />
         <rect x="175" y="55" width="40" height="4" rx="2" fill="var(--surface-hover)" />
         <rect x="175" y="75" width="70" height="4" rx="2" fill="var(--surface-hover)" />
@@ -246,7 +247,7 @@ const SCREENS = [
           stroke="var(--surface-hover)"
           strokeWidth="1"
         />
-        <rect x="35" y="120" width="70" height="6" rx="3" fill="#1DB954" />
+        <rect x="35" y="120" width="70" height="6" rx="3" fill={CHART_COLORS.income} />
         <rect x="35" y="135" width="50" height="4" rx="2" fill="var(--surface-hover)" />
         <rect x="35" y="145" width="40" height="4" rx="2" fill="var(--surface-hover)" />
         <rect x="35" y="165" width="70" height="4" rx="2" fill="var(--surface-hover)" />
@@ -260,7 +261,7 @@ const SCREENS = [
           stroke="var(--surface-hover)"
           strokeWidth="1"
         />
-        <rect x="175" y="120" width="70" height="6" rx="3" fill="#FFB800" />
+        <rect x="175" y="120" width="70" height="6" rx="3" fill={CHART_COLORS.pending} />
         <rect x="175" y="135" width="50" height="4" rx="2" fill="var(--surface-hover)" />
         <rect x="175" y="145" width="40" height="4" rx="2" fill="var(--surface-hover)" />
         <rect x="175" y="165" width="70" height="4" rx="2" fill="var(--surface-hover)" />
@@ -311,7 +312,7 @@ const SCREENS = [
           stroke="var(--surface-hover)"
           strokeWidth="1"
         />
-        <rect x="50" y="30" width="60" height="8" rx="4" fill="#EC4899" />
+        <rect x="50" y="30" width="60" height="8" rx="4" fill={CHART_COLORS.pink} />
         <rect x="120" y="30" width="40" height="8" rx="4" fill="var(--surface-hover)" />
         <rect x="170" y="30" width="40" height="8" rx="4" fill="var(--surface-hover)" />
         <rect x="50" y="55" width="180" height="1" fill="var(--surface-hover)" />
@@ -330,15 +331,15 @@ const SCREENS = [
         />
         <rect x="60" y="135" width="60" height="4" rx="2" fill="var(--surface-hover)" />
         <rect x="60" y="145" width="40" height="4" rx="2" fill="var(--surface-hover)" />
-        <rect x="180" y="135" width="40" height="14" rx="4" fill="#EC489920" />
-        <rect x="240" y="70" width="10" height="40" rx="2" fill="#EC4899" />
+        <rect x="180" y="135" width="40" height="14" rx="4" fill="color-mix(in srgb, var(--data-pink) 12%, transparent)" />
+        <rect x="240" y="70" width="10" height="40" rx="2" fill={CHART_COLORS.pink} />
         <rect
           x="225"
           y="85"
           width="10"
           height="25"
           rx="2"
-          fill="#EC4899"
+          fill={CHART_COLORS.pink}
           opacity="0.6"
         />
         <rect
@@ -347,7 +348,7 @@ const SCREENS = [
           width="10"
           height="15"
           rx="2"
-          fill="#EC4899"
+          fill={CHART_COLORS.pink}
           opacity="0.4"
         />
       </svg>
@@ -376,18 +377,18 @@ const SCREENS = [
           stroke="var(--surface-hover)"
           strokeWidth="1"
         />
-        <rect x="35" y="35" width="100" height="6" rx="3" fill="#3B82F6" />
+        <rect x="35" y="35" width="100" height="6" rx="3" fill={CHART_COLORS.planified} />
         <rect x="35" y="55" width="70" height="4" rx="2" fill="var(--surface-hover)" />
         <rect x="35" y="65" width="50" height="4" rx="2" fill="var(--surface-hover)" />
         <rect x="35" y="85" width="100" height="50" rx="6" fill="var(--card)" />
-        <rect x="45" y="110" width="20" height="20" rx="3" fill="#3B82F6" />
+        <rect x="45" y="110" width="20" height="20" rx="3" fill={CHART_COLORS.planified} />
         <rect
           x="70"
           y="100"
           width="20"
           height="30"
           rx="3"
-          fill="#3B82F6"
+          fill={CHART_COLORS.planified}
           opacity="0.7"
         />
         <rect
@@ -396,7 +397,7 @@ const SCREENS = [
           width="20"
           height="40"
           rx="3"
-          fill="#3B82F6"
+          fill={CHART_COLORS.planified}
           opacity="0.5"
         />
         <rect
@@ -405,7 +406,7 @@ const SCREENS = [
           width="20"
           height="25"
           rx="3"
-          fill="#3B82F6"
+          fill={CHART_COLORS.planified}
           opacity="0.3"
         />
         <rect x="35" y="150" width="100" height="6" rx="3" fill="var(--surface-hover)" />
@@ -425,7 +426,7 @@ const SCREENS = [
         <rect x="185" y="80" width="50" height="4" rx="2" fill="var(--surface-hover)" />
         <rect x="185" y="100" width="50" height="4" rx="2" fill="var(--surface-hover)" />
         <rect x="185" y="110" width="50" height="4" rx="2" fill="var(--surface-hover)" />
-        <rect x="185" y="130" width="50" height="20" rx="4" fill="#3B82F6" />
+        <rect x="185" y="130" width="50" height="20" rx="4" fill={CHART_COLORS.planified} />
         <rect x="195" y="137" width="30" height="6" rx="2" fill="white" />
       </svg>
     ),
@@ -454,7 +455,7 @@ const SCREENS = [
           strokeWidth="1"
         />
         <circle cx="48" cy="48" r="14" fill="var(--accent-primary)" />
-        <rect x="70" y="40" width="110" height="8" rx="4" fill="#333" />
+        <rect x="70" y="40" width="110" height="8" rx="4" fill="var(--text-tertiary)" />
         <rect x="70" y="56" width="70" height="6" rx="3" fill="var(--surface-hover)" />
         <rect
           x="196"
@@ -507,14 +508,16 @@ const SCREENS = [
           strokeWidth="1"
         />
         <rect x="36" y="128" width="60" height="6" rx="3" fill="var(--text-tertiary)" />
+        {/* pastilles de thème ; mapping M17 : 7C3AED→.advance, 2563EB→.planified, 10B981→.success,
+            DB2777→.pink, B45309→.pending, 4F46E5→.advance, DC2626→.expense */}
         <circle cx="42" cy="156" r="10" fill="var(--accent-primary)" />
-        <circle cx="72" cy="156" r="10" fill="#7C3AED" />
-        <circle cx="102" cy="156" r="10" fill="#2563EB" />
-        <circle cx="132" cy="156" r="10" fill="#10B981" />
-        <circle cx="162" cy="156" r="10" fill="#DB2777" />
-        <circle cx="192" cy="156" r="10" fill="#B45309" />
-        <circle cx="222" cy="156" r="10" fill="#4F46E5" />
-        <circle cx="252" cy="156" r="10" fill="#DC2626" />
+        <circle cx="72" cy="156" r="10" fill={CHART_COLORS.advance} />
+        <circle cx="102" cy="156" r="10" fill={CHART_COLORS.planified} />
+        <circle cx="132" cy="156" r="10" fill={CHART_COLORS.success} />
+        <circle cx="162" cy="156" r="10" fill={CHART_COLORS.pink} />
+        <circle cx="192" cy="156" r="10" fill={CHART_COLORS.pending} />
+        <circle cx="222" cy="156" r="10" fill={CHART_COLORS.advance} />
+        <circle cx="252" cy="156" r="10" fill={CHART_COLORS.expense} />
       </svg>
     ),
   },

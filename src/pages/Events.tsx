@@ -8,9 +8,10 @@ import {
   IonToolbar,
 } from "@ionic/react";
 import { useEvents, useTransactions, useMembers } from "@/lib/dataLayer";
-import { Calendar, Plus, Clock, Gift, ArrowUp, ArrowDown } from "lucide-react";
+import { Plus, Clock, Gift, ArrowUp, ArrowDown } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
+import CircleAction from "@/components/CircleAction";
 import { EventsSkeleton } from "@/components/PageSkeletons";
 import EmptyState from "@/components/EmptyState";
 import { formatDate, formatCurrencyCompact } from "@/lib/utils";
@@ -80,16 +81,12 @@ export default function Events() {
                   {events.length} événement{events.length !== 1 ? "s" : ""}
                 </p>
               </div>
-              <button
-                onClick={() => navigate("/event/new")}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-semibold text-on-accent transition-all active:scale-95 shadow-accent"
-                style={{
-                  background: "linear-gradient(135deg, var(--accent-light), var(--accent-primary))",
-                }}
+              <CircleAction
                 aria-label="Créer un nouvel événement"
+                onClick={() => navigate("/event/new")}
               >
-                <Plus className="w-4 h-4" /> Créer
-              </button>
+                <Plus className="w-5 h-5" />
+              </CircleAction>
             </div>
 
             {sortedEvents.length === 0 ? (

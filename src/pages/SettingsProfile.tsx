@@ -147,7 +147,8 @@ export default function SettingsProfile() {
             className="absolute bottom-0 right-0 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer transition-transform active:scale-90"
             style={{
               backgroundColor: "var(--accent-primary)",
-              border: "2px solid var(--canvas)",
+              // M21 : bordure repos 1px --border (le focus 2px accent est géré par :focus-visible global)
+              border: "1px solid var(--border)",
             }}
           >
             <Camera className="w-4 h-4 text-on-accent" />

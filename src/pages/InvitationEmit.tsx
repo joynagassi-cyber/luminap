@@ -375,12 +375,15 @@ export default function InvitationEmit() {
                   </IonCardHeader>
                   <IonCardContent className="flex justify-center py-6">
                     {payload && (
-                      <QRCodeSVG
-                        value={JSON.stringify(payload)}
-                        size={220}
-                        bgColor="var(--text-primary)"
-                        fgColor="#000000"
-                      />
+                      /* fond blanc fixe : vérité d'impression/scannage, indépendant du thème */
+                      <div style={{ backgroundColor: "#fff" }} className="inline-block">
+                        <QRCodeSVG
+                          value={JSON.stringify(payload)}
+                          size={220}
+                          bgColor="var(--text-primary)"
+                          fgColor="#000000"
+                        />
+                      </div>
                     )}
                   </IonCardContent>
                 </IonCard>

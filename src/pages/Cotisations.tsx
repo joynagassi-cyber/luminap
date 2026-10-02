@@ -3,9 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { useEvents, useCotisations } from "@/lib/dataLayer";
 import { CotisationsSkeleton } from "@/components/PageSkeletons";
 import { formatCurrencyCompact, formatDate } from "@/lib/utils";
-import { Calendar, CheckCircle, Clock, Plus, Users } from "lucide-react";
+import { Calendar, CheckCircle, Clock, Plus } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
+import CircleAction from "@/components/CircleAction";
 import {
   IonPage,
   IonHeader,
@@ -110,19 +111,14 @@ export default function Cotisations() {
                   {culteStats.length} culte{culteStats.length !== 1 ? "s" : ""}
                 </p>
               </div>
-              <button
+              <CircleAction
+                aria-label="Créer un nouveau culte"
                 onClick={() =>
                   navigate("/event/new", { state: { defaultType: "CULTE" } })
                 }
-                className="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-semibold text-on-accent transition-all active:scale-95 shadow-accent"
-                style={{
-                  background: "linear-gradient(135deg, var(--accent-light), var(--accent-primary))",
-                }}
-                aria-label="Créer un nouveau culte"
               >
-                <Plus className="w-4 h-4" />
-                Nouveau culte
-              </button>
+                <Plus className="w-6 h-6" />
+              </CircleAction>
             </div>
 
             {culteStats.length === 0 ? (

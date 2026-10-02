@@ -18,6 +18,8 @@ import {
   IonContent,
   IonTitle,
   IonToolbar,
+  IonSelect,
+  IonSelectOption,
 } from "@ionic/react";
 
 export default function TransactionNewGroup() {
@@ -221,23 +223,18 @@ export default function TransactionNewGroup() {
               <label className="text-text-tertiary text-xs mb-2 block">
                 Catégorie
               </label>
-              <select
+              <IonSelect
                 value={categoryId}
-                onChange={(e) => setCategoryId(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl text-sm "
-                style={{
-                  backgroundColor: "var(--surface)",
-                  color: "var(--text-primary)",
-                  border: "1px solid var(--border)",
-                }}
+                onIonChange={(e: any) => setCategoryId(e.detail.value)}
+                interface="popover"
               >
-                <option value="">Sélectionner une catégorie</option>
+                <IonSelectOption value="">Sélectionner une catégorie</IonSelectOption>
                 {filteredCategories.map((cat: any) => (
-                  <option key={cat.id} value={cat.id}>
+                  <IonSelectOption value={cat.id}>
                     {cat.label_fr || cat.label}
-                  </option>
+                  </IonSelectOption>
                 ))}
-              </select>
+              </IonSelect>
             </div>
 
             {/* Source */}
@@ -245,21 +242,16 @@ export default function TransactionNewGroup() {
               <label className="text-text-tertiary text-xs mb-2 block">
                 Source
               </label>
-              <select
+              <IonSelect
                 value={source}
-                onChange={(e) => setSource(e.target.value as any)}
-                className="w-full px-4 py-3 rounded-xl text-sm "
-                style={{
-                  backgroundColor: "var(--surface)",
-                  color: "var(--text-primary)",
-                  border: "1px solid var(--border)",
-                }}
+                onIonChange={(e: any) => setSource(e.detail.value as any)}
+                interface="popover"
               >
-                <option value="CAISSE">Caisse</option>
-                <option value="COTISATION">Cotisation</option>
-                <option value="PERSONNE">Personne</option>
-                <option value="AUTRE">Autre</option>
-              </select>
+                <IonSelectOption value="CAISSE">Caisse</IonSelectOption>
+                <IonSelectOption value="COTISATION">Cotisation</IonSelectOption>
+                <IonSelectOption value="PERSONNE">Personne</IonSelectOption>
+                <IonSelectOption value="AUTRE">Autre</IonSelectOption>
+              </IonSelect>
             </div>
 
             {/* Person name */}

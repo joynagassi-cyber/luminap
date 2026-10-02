@@ -14,6 +14,10 @@ import {
   IonContent,
   IonTitle,
   IonToolbar,
+  IonItem,
+  IonLabel,
+  IonSelect,
+  IonSelectOption,
 } from "@ionic/react";
 
 export default function Versement() {
@@ -200,29 +204,24 @@ export default function Versement() {
               </div>
             ) : (
               <div className="space-y-5">
-                {/* Caisse selector */}
-                <div>
-                  <label className="text-text-tertiary text-xs mb-2 block">
-                    Sélectionner une caisse
-                  </label>
-                  <select
+                {/* M3 — Caisse selector : IonSelect + IonLabel (remplace le
+                    label/div ad-hoc du pattern M24 pour rester cohérent) */}
+                <IonItem lines="none" className="bg-card rounded-xl">
+                  <IonLabel position="floating">Sélectionner une caisse</IonLabel>
+                  <IonSelect
                     value={selectedCaisse}
-                    onChange={(e) => setSelectedCaisse(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl text-sm "
-                    style={{
-                      backgroundColor: "var(--surface)",
-                      color: "var(--text-primary)",
-                      border: "1px solid var(--border)",
-                    }}
+                    onIonChange={(e: any) => setSelectedCaisse(e.detail.value)}
+                    interface="popover"
+                    style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}
                   >
-                    <option value="">Choisir une caisse...</option>
+                    <IonSelectOption value="">Choisir une caisse...</IonSelectOption>
                     {groupAccounts.map((account: any) => (
-                      <option key={account.id} value={account.id}>
+                      <IonSelectOption value={account.id}>
                         {account.name}
-                      </option>
+                      </IonSelectOption>
                     ))}
-                  </select>
-                </div>
+                  </IonSelect>
+                </IonItem>
 
                 {/* Balance display */}
                 {selected && (

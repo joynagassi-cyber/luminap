@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
+import CircleAction from "@/components/CircleAction";
 import type { Member } from "@/types";
 import {
   IonPage,
@@ -25,6 +26,7 @@ import {
   IonInfiniteScroll,
   IonInput,
 } from "@ionic/react";
+import EmptyState from "@/components/EmptyState";
 
 export default function MembersPage() {
   const navigate = useNavigate();
@@ -167,15 +169,12 @@ export default function MembersPage() {
                   {activeMembers.length !== 1 ? "s" : ""}
                 </p>
               </div>
-              <button
+              <CircleAction
+                aria-label="Ajouter un membre"
                 onClick={() => setShowForm(!showForm)}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-semibold text-on-accent transition-all active:scale-95 shadow-accent"
-                style={{
-                  background: "linear-gradient(135deg, var(--accent-light), var(--accent-primary))",
-                }}
               >
-                <PlusCircle className="w-4 h-4" /> Ajouter
-              </button>
+                <PlusCircle className="w-6 h-6" />
+              </CircleAction>
             </div>
 
             {/* Search */}
@@ -260,16 +259,13 @@ export default function MembersPage() {
             {/* Members list */}
             <div className="space-y-2">
               {activeMembers.length === 0 ? (
-                <div
-                  className="text-center py-10 rounded-xl"
-                  style={{ backgroundColor: "var(--surface)" }}
-                >
-                  <Users className="w-12 h-12 mx-auto mb-4 text-text-tertiary opacity-40" />
-                  <p className="text-text-tertiary text-sm">Aucun membre</p>
-                  <p className="text-text-tertiary text-xs mt-1">
-                    Ajoutez votre premier membre
-                  </p>
-                </div>
+                <EmptyState
+                  title="Aucun membre"
+                  description="Ajoutez votre premier membre"
+                  icon={<Users className="w-6 h-6" />}
+                  actionLabel="Ajouter"
+                  onAction={() => setShowForm(true)}
+                />
               ) : (
                 <>
                   {visibleMembers.map((member: any) => (

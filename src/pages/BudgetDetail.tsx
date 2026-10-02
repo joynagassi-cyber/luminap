@@ -6,7 +6,7 @@ import { formatCurrencyCompact, formatCurrencyFull } from "@/lib/utils";
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
 import { Plus, Trash2, Lock, FileText, X } from "lucide-react";
-import { IonPage, IonContent } from "@ionic/react";
+import { IonPage, IonContent, IonItem, IonLabel, IonInput, IonSelect, IonSelectOption } from "@ionic/react";
 
 export default function BudgetDetail() {
   const { id } = useParams();
@@ -173,29 +173,33 @@ export default function BudgetDetail() {
                 {showAdd ? (
                   <div className="space-y-3">
                     <p className="text-text-primary font-semibold text-sm">Nouvelle ligne</p>
-                    <select
-                      value={cat}
-                      onChange={(e) => setCat(e.target.value)}
-                      className="w-full px-3 py-3 rounded-lg text-sm outline-none"
-                      style={{ backgroundColor: "var(--surface)", color: "var(--text-primary)", border: "1px solid var(--border)" }}
-                      aria-label="Catégorie"
-                      data-testid="line-category"
-                    >
-                      <option value="">Toutes (non catégorisé)</option>
-                      {categories.map((c) => (
-                        <option key={c.id} value={c.id}>{c.label_fr || c.label}</option>
-                      ))}
-                    </select>
-                    <input
-                      type="number"
-                      inputMode="numeric"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      placeholder="Montant prévu (FCFA)"
-                      className="w-full px-3 py-3 rounded-lg text-sm outline-none"
-                      style={{ backgroundColor: "var(--surface)", color: "var(--text-primary)", border: "1px solid var(--border)" }}
-                      data-testid="line-amount"
-                    />
+                    <IonItem lines="none" className="bg-card rounded-xl">
+                      <IonLabel position="floating" className="w-auto text-xs text-text-tertiary">Catégorie</IonLabel>
+                      <IonSelect
+                        value={cat}
+                        onIonChange={(e: any) => setCat(e.detail.value)}
+                        interface="popover"
+                        aria-label="Catégorie"
+                        data-testid="line-category"
+                        style={{ backgroundColor: "var(--card)" }}
+                      >
+                        <IonSelectOption value="">Toutes (non catégorisé)</IonSelectOption>
+                        {categories.map((c) => (
+                          <IonSelectOption value={c.id}>{c.label_fr || c.label}</IonSelectOption>
+                        ))}
+                      </IonSelect>
+                    </IonItem>
+                    <IonItem lines="none" className="bg-card rounded-xl">
+                      <IonLabel position="floating" className="w-auto text-xs text-text-tertiary">Montant prévu (FCFA)</IonLabel>
+                      <IonInput
+                        type="number"
+                        value={amount}
+                        onIonChange={(e: any) => setAmount(e.detail.value ?? "")}
+                        aria-label="Montant prévu (FCFA)"
+                        data-testid="line-amount"
+                        style={{ backgroundColor: "var(--card)" }}
+                      />
+                    </IonItem>
                     <div className="flex gap-2">
                       <button
                         onClick={addLine}

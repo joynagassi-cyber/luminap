@@ -4,6 +4,7 @@ import { formatCurrencyCompact } from "@/lib/utils";
 import { ArrowLeft, TrendingUp } from "lucide-react";
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
+import EmptyState from "@/components/EmptyState";
 import {
   IonPage,
   IonHeader,
@@ -78,18 +79,11 @@ export default function MembresEnAvance() {
 
             {/* Members list */}
             {membresEnAvance.length === 0 ? (
-              <div
-                className="rounded-xl p-8 text-center"
-                style={{ backgroundColor: "var(--surface)" }}
-              >
-                <TrendingUp className="w-10 h-10 mx-auto mb-3 text-text-tertiary opacity-30" />
-                <p className="text-text-tertiary text-sm">
-                  Aucun membre en avance
-                </p>
-                <p className="text-text-tertiary text-xs mt-1">
-                  Tous les membres sont à jour
-                </p>
-              </div>
+              <EmptyState
+                title="Aucun membre en avance"
+                description="Tous les membres sont à jour"
+                icon={<TrendingUp className="w-6 h-6" />}
+              />
             ) : (
               <div className="space-y-2">
                 {membresEnAvance.map(({ membre, montant }) => (

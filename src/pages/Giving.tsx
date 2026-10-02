@@ -15,6 +15,7 @@ import { campaignProgress } from "@/capabilities/giving";
 import { formatCurrencyCompact, formatCurrencyFull } from "@/lib/utils";
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
+import EmptyState from "@/components/EmptyState";
 import {
   Plus,
   ChevronRight,
@@ -287,11 +288,11 @@ export default function Giving() {
 
 function Empty({ label, sub }: { label: string; sub: string }) {
   return (
-    <div className="rounded-xl p-8 text-center" style={{ backgroundColor: "var(--card)" }}>
-      <Users className="w-8 h-8 mx-auto mb-3 opacity-30" style={{ color: "var(--accent-primary)" }} />
-      <p className="text-text-secondary text-sm font-medium">{label}</p>
-      <p className="text-text-tertiary text-xs mt-1">{sub}</p>
-    </div>
+    <EmptyState
+      title={label}
+      description={sub}
+      icon={<Users className="w-6 h-6" />}
+    />
   );
 }
 

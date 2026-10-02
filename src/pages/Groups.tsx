@@ -9,6 +9,7 @@ import type { OrgUnit } from "@/types";
 import { Users, Plus, Edit3, Trash2 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
+import CircleAction from "@/components/CircleAction";
 import {
   IonPage,
   IonHeader,
@@ -18,6 +19,7 @@ import {
   IonSelect,
   IonSelectOption,
 } from "@ionic/react";
+import EmptyState from "@/components/EmptyState";
 
 const COLOR_PALETTE = [
   "var(--data-planified)",
@@ -172,15 +174,12 @@ export default function Groups() {
                 </p>
               </div>
               {canCreateMulti.allowed && (
-                <button
+                <CircleAction
+                  aria-label="Créer un groupe"
                   onClick={() => setShowCreate(true)}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-semibold text-on-accent transition-all active:scale-95 shadow-accent"
-                  style={{
-                    background: "linear-gradient(135deg, var(--accent-light), var(--accent-primary))",
-                  }}
                 >
-                  <Plus className="w-4 h-4" /> Créer
-                </button>
+                  <Plus className="w-6 h-6" />
+                </CircleAction>
               )}
             </div>
 
@@ -296,16 +295,15 @@ export default function Groups() {
             {/* Groups list */}
             <div className="space-y-2 mb-6">
               {orgUnits.length === 0 ? (
-                <div
-                  className="text-center py-10 rounded-xl"
-                  style={{ backgroundColor: "var(--surface)" }}
-                >
-                  <Users className="w-12 h-12 mx-auto mb-4 text-text-tertiary opacity-40" />
-                  <p className="text-text-tertiary text-sm">Aucun groupe</p>
-                  <p className="text-text-tertiary text-xs mt-1">
-                    Créez votre premier groupe
-                  </p>
-                </div>
+                <EmptyState
+                  title="Aucun groupe"
+                  description="Créez votre premier groupe"
+                  icon={<Users className="w-6 h-6" />}
+                  actionLabel="Créer"
+                  onAction={() => {
+                    if (canCreateMulti.allowed) setShowCreate(true);
+                  }}
+                />
               ) : (
                 orgUnits.map((orgUnit) => (
                   <button

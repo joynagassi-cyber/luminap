@@ -19,6 +19,8 @@ import {
   IonContent,
   IonTitle,
   IonToolbar,
+  IonSelect,
+  IonSelectOption,
 } from "@ionic/react";
 
 export default function TransactionEdit() {
@@ -240,44 +242,34 @@ export default function TransactionEdit() {
                 <label className="text-text-tertiary text-xs mb-2 block">
                   Catégorie
                 </label>
-                <select
+                <IonSelect
                   value={categoryId}
-                  onChange={(e) => setCategoryId(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl text-sm outline-none"
-                  style={{
-                    backgroundColor: "var(--surface)",
-                    color: "var(--text-primary)",
-                    border: "1px solid var(--border)",
-                  }}
+                  onIonChange={(e: any) => setCategoryId(e.detail.value)}
+                  interface="popover"
                 >
-                  <option value="">Sélectionner une catégorie</option>
+                  <IonSelectOption value="">Sélectionner une catégorie</IonSelectOption>
                   {filteredCategories.map((cat: any) => (
-                    <option key={cat.id} value={cat.id}>
+                    <IonSelectOption value={cat.id}>
                       {cat.label_fr || cat.label}
-                    </option>
+                    </IonSelectOption>
                   ))}
-                </select>
+                </IonSelect>
               </div>
 
               <div>
                 <label className="text-text-tertiary text-xs mb-2 block">
                   Source
                 </label>
-                <select
+                <IonSelect
                   value={source}
-                  onChange={(e) => setSource(e.target.value as any)}
-                  className="w-full px-4 py-3 rounded-xl text-sm outline-none"
-                  style={{
-                    backgroundColor: "var(--surface)",
-                    color: "var(--text-primary)",
-                    border: "1px solid var(--border)",
-                  }}
+                  onIonChange={(e: any) => setSource(e.detail.value as any)}
+                  interface="popover"
                 >
-                  <option value="CAISSE">Caisse</option>
-                  <option value="COTISATION">Cotisation</option>
-                  <option value="PERSONNE">Personne</option>
-                  <option value="AUTRE">Autre</option>
-                </select>
+                  <IonSelectOption value="CAISSE">Caisse</IonSelectOption>
+                  <IonSelectOption value="COTISATION">Cotisation</IonSelectOption>
+                  <IonSelectOption value="PERSONNE">Personne</IonSelectOption>
+                  <IonSelectOption value="AUTRE">Autre</IonSelectOption>
+                </IonSelect>
               </div>
 
               {source === "PERSONNE" && (
@@ -304,23 +296,18 @@ export default function TransactionEdit() {
                 <label className="text-text-tertiary text-xs mb-2 block">
                   Événement (optionnel)
                 </label>
-                <select
+                <IonSelect
                   value={eventId}
-                  onChange={(e) => setEventId(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl text-sm outline-none"
-                  style={{
-                    backgroundColor: "var(--surface)",
-                    color: "var(--text-primary)",
-                    border: "1px solid var(--border)",
-                  }}
+                  onIonChange={(e: any) => setEventId(e.detail.value)}
+                  interface="popover"
                 >
-                  <option value="">Aucun événement</option>
+                  <IonSelectOption value="">Aucun événement</IonSelectOption>
                   {events.map((ev: any) => (
-                    <option key={ev.id} value={ev.id}>
+                    <IonSelectOption value={ev.id}>
                       {ev.name}
-                    </option>
+                    </IonSelectOption>
                   ))}
-                </select>
+                </IonSelect>
               </div>
 
               <div>

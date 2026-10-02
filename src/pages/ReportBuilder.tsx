@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
+import EmptyState from "@/components/EmptyState";
 import { IonPage, IonContent, IonSelect, IonSelectOption } from "@ionic/react";
 import { ChartContainer } from "@/components/ui/chart";
 import { Bar, BarChart, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
@@ -510,17 +511,16 @@ export default function ReportBuilder() {
             </div>
             <div>
               <label className="text-text-tertiary text-[11px] mb-1 block">Caisse</label>
-              <select
+              <IonSelect
                 value={f.sourceCaisseId}
-                onChange={(e) => setFilter("sourceCaisseId", e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl text-xs"
-                style={{ backgroundColor: "var(--card)", color: "var(--text-primary)", border: "1px solid var(--border)" }}
+                onIonChange={(e: any) => setFilter("sourceCaisseId", e.detail.value)}
+                interface="popover"
               >
-                <option value="">Toutes</option>
+                <IonSelectOption value="">Toutes</IonSelectOption>
                 {(caisses || []).map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
+                  <IonSelectOption value={c.id}>{c.name}</IonSelectOption>
                 ))}
-              </select>
+              </IonSelect>
             </div>
           </div>
         </section>
@@ -593,24 +593,22 @@ export default function ReportBuilder() {
 
           {/* Éditeur de nouvelle métrique */}
           <div className="grid grid-cols-3 gap-2 mb-2">
-            <select
+            <IonSelect
               value={draft.metric?.field}
-              onChange={(e) => updateMetricDraft({ field: e.target.value })}
-              className="px-2 py-2 rounded-lg text-xs"
-              style={{ backgroundColor: "var(--card)", color: "var(--text-primary)", border: "1px solid var(--border)" }}
+              onIonChange={(e: any) => updateMetricDraft({ field: e.detail.value })}
+              interface="popover"
             >
-              <option value="amount">Montant</option>
-            </select>
-            <select
+              <IonSelectOption value="amount">Montant</IonSelectOption>
+            </IonSelect>
+            <IonSelect
               value={draft.metric?.fn}
-              onChange={(e) => updateMetricDraft({ fn: e.target.value as MetricExpr["fn"] })}
-              className="px-2 py-2 rounded-lg text-xs"
-              style={{ backgroundColor: "var(--card)", color: "var(--text-primary)", border: "1px solid var(--border)" }}
+              onIonChange={(e: any) => updateMetricDraft({ fn: e.detail.value as MetricExpr["fn"] })}
+              interface="popover"
             >
               {METRIC_FNS.map((fn) => (
-                <option key={fn.value} value={fn.value}>{fn.label}</option>
+                <IonSelectOption value={fn.value}>{fn.label}</IonSelectOption>
               ))}
-            </select>
+            </IonSelect>
             <input
               type="text"
               value={draft.metric?.alias || ""}
@@ -741,9 +739,11 @@ export default function ReportBuilder() {
             <span className="text-text-tertiary text-[11px]">({savedReports.length})</span>
           </div>
           {savedReports.length === 0 ? (
-            <p className="text-text-tertiary text-xs">
-              Aucun rapport sauvegardé. Configurez un rapport puis « Enregistrer ».
-            </p>
+            <EmptyState
+              title="Aucun rapport sauvegardé"
+              description="Configurez un rapport puis « Enregistrer »"
+              icon={<FileText className="w-6 h-6" />}
+            />
           ) : (
             <div className="space-y-2">
               {savedReports.map((r) => (

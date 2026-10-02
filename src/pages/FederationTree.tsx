@@ -218,7 +218,7 @@ function layoutForest(orgs: FederationOrg[]) {
       source: o.parentOrgId as string,
       target: o.id,
       type: "smoothstep",
-      style: { stroke: "#4a4a4a", strokeWidth: 1.5 },
+      style: { stroke: "var(--text-tertiary)", strokeWidth: 1.5 }, // M17 : arêtes grises → token texte
     }));
 
   return { nodes, edges };
@@ -421,7 +421,7 @@ function FederationTreeInner() {
                   <Controls position="bottom-right" showInteractive={false} />
                   <MiniMap
                     position="top-right"
-                    nodeColor="#3a3a3a"
+                    nodeColor="var(--surface-hover)"
                     maskColor="rgba(18,18,18,0.6)"
                     style={{ background: "var(--card)" }}
                   />

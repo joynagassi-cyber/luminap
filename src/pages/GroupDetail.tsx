@@ -502,15 +502,11 @@ export default function GroupDetail() {
                     />
                   ))}
                 {txs.length === 0 && (
-                  <div
-                    className="text-center py-10 rounded-xl"
-                    style={{ backgroundColor: "var(--surface)" }}
-                  >
-                    <Wallet className="w-8 h-8 mx-auto mb-3 text-text-tertiary opacity-40" />
-                    <p className="text-text-tertiary text-sm">
-                      Aucune transaction
-                    </p>
-                  </div>
+                  <EmptyState
+                    title="Aucune transaction"
+                    description="Aucune transaction sur cette caisse pour l'instant"
+                    icon={<Wallet className="w-6 h-6" />}
+                  />
                 )}
               </div>
             </>
@@ -531,16 +527,13 @@ export default function GroupDetail() {
                 </button>
               </div>
               {groupMembers.length === 0 ? (
-                <div
-                  className="text-center py-10 rounded-xl"
-                  style={{ backgroundColor: "var(--surface)" }}
-                >
-                  <Users className="w-8 h-8 mx-auto mb-3 text-text-tertiary opacity-40" />
-                  <p className="text-text-tertiary text-sm">Aucun membre</p>
-                  <p className="text-text-tertiary text-xs mt-1">
-                    Ajoutez des membres à ce groupe
-                  </p>
-                </div>
+                <EmptyState
+                  title="Aucun membre"
+                  description="Ajoutez des membres à ce groupe"
+                  icon={<Users className="w-6 h-6" />}
+                  actionLabel="Ajouter"
+                  onAction={() => setShowAddMember(true)}
+                />
               ) : (
                 <div className="space-y-2">
                   {groupMembers.map((member: any) => {
@@ -617,18 +610,11 @@ export default function GroupDetail() {
                   )}
                 </div>
                 {versementList.length === 0 ? (
-                  <div
-                    className="rounded-xl p-6 text-center"
-                    style={{ backgroundColor: "var(--surface)" }}
-                  >
-                    <ArrowRightLeft className="w-6 h-6 mx-auto mb-2 text-text-tertiary opacity-40" />
-                    <p className="text-text-tertiary text-sm">
-                      Aucun versement effectué
-                    </p>
-                    <p className="text-text-tertiary text-xs mt-1">
-                      Les versements apparaîtront ici
-                    </p>
-                  </div>
+                  <EmptyState
+                    title="Aucun versement effectué"
+                    description="Les versements apparaîtront ici"
+                    icon={<ArrowRightLeft className="w-6 h-6" />}
+                  />
                 ) : (
                   <div className="space-y-2">
                     {versementList.map((v: any) => (
