@@ -113,7 +113,7 @@ function ReportTooltip({ active, payload, label, format }: any) {
   if (!active || !payload?.length) return null;
   return (
     <div
-      className="rounded-xl p-3 shadow-2xl"
+      className="rounded-xl p-3 shadow-pop"
       style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
     >
       <p className="text-text-tertiary text-xs mb-1 font-medium">{label}</p>

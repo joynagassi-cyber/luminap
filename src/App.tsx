@@ -140,10 +140,12 @@ const App = () => (
         <AppUrlOpenBridge />
         {/* Lien « sauter au contenu » — premier élément focalisable, masqué
             visuellement jusqu'au focus clavier (a11y : parcours du clavier). */}
+        {/* M15 — z-index nommé : --z-toast (70) / --z-skip (100) coordonnés
+            avec le nav (40) et les modales (60) ; fin des z-[100] ad-hoc. */}
         <a
           href="#main"
-          className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-[100] focus:px-4 focus:py-2 focus:rounded-lg focus:text-sm focus:font-semibold focus:outline-none"
-          style={{ backgroundColor: "var(--accent-primary)", color: "var(--on-accent)" }}
+          className="sr-only focus:not-sr-only focus:px-4 focus:py-2 focus:rounded-lg focus:text-sm focus:font-semibold focus:outline-none"
+          style={{ position: "absolute", left: 12, top: 12, zIndex: 100, backgroundColor: "var(--accent-primary)", color: "var(--on-accent)" }}
         >
           Aller au contenu principal
         </a>

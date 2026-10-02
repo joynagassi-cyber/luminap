@@ -856,7 +856,7 @@ export default function EventDetail() {
         {showAddExpense && (
           <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
             <div
-              className="absolute inset-0 bg-black/70"
+              className="absolute inset-0 bg-scrim"
               onClick={() => setShowAddExpense(false)}
             />
             <div
@@ -984,7 +984,7 @@ export default function EventDetail() {
             className="fixed inset-0 z-50 flex items-center justify-center px-5"
             onClick={() => setShowDelete(false)}
           >
-            <div className="absolute inset-0 bg-black/70" />
+            <div className="absolute inset-0 bg-scrim" />
             <div
               className="relative w-full max-w-sm rounded-2xl p-5 text-center"
               style={{ backgroundColor: "var(--card)" }}

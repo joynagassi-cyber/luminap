@@ -60,7 +60,7 @@ const catLabel = (c: any) => c.labelFr ?? c.label_fr ?? c.key ?? "Autre";
 function ChartTooltip({ active, payload, label, money }: any) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-xl p-3 shadow-2xl" style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}>
+    <div className="rounded-xl p-3 shadow-pop" style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}>
       {label != null && <p className="text-text-tertiary text-xs mb-2 font-medium">{label}</p>}
       {payload.map((entry: any, idx: number) => (
         <div key={idx} className="flex items-center justify-between gap-6 min-w-[140px]">
@@ -573,7 +573,7 @@ export default function Reports() {
           {/* Modale d'export */}
           {showExport && (
             <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={() => setShowExport(false)}>
-              <div className="absolute inset-0 bg-black/60" />
+              <div className="absolute inset-0 bg-scrim" />
               <div className="relative w-full max-w-lg rounded-t-2xl p-5 pb-8" style={{ backgroundColor: "var(--card)" }} onClick={(e) => e.stopPropagation()}>
                 <div className="flex items-center justify-between mb-5">
                   <h2 className="text-text-primary font-bold text-lg">Exporter le rapport</h2>

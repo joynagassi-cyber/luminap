@@ -484,7 +484,7 @@ export default function AuthPage() {
                   setMode(mode === "login" ? "signup" : "login");
                   setError("");
                 }}
-                className="text-[var(--text-tertiary)] text-sm hover:text-on-accent transition-colors"
+                className="text-[var(--text-tertiary)] text-sm hover:text-accent transition-colors"
                 aria-label={
                   mode === "login"
                     ? "Passer à l'inscription"
@@ -504,7 +504,7 @@ export default function AuthPage() {
             <div className="mt-3 text-center">
               <button
                 onClick={() => navigate("/invitation/claim")}
-                className="text-[var(--text-tertiary)] text-xs hover:text-on-accent transition-colors"
+                className="text-[var(--text-tertiary)] text-xs hover:text-accent transition-colors"
                 aria-label="J'ai un code d'invitation"
               >
                 J'ai un code d'invitation

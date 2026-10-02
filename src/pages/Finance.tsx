@@ -372,7 +372,7 @@ export default function Finance() {
             <div className="fixed bottom-24 right-5 flex flex-col gap-3">
               <button
                 onClick={() => handleAddTransaction("INCOME")}
-                className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform"
+                className="w-14 h-14 rounded-full flex items-center justify-center shadow-accent active:scale-95 transition-transform"
                 style={{ backgroundColor: "var(--data-income)" }}
                 aria-label="Nouvelle entrée"
               >
@@ -380,7 +380,7 @@ export default function Finance() {
               </button>
               <button
                 onClick={() => handleAddTransaction("EXPENSE")}
-                className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform"
+                className="w-14 h-14 rounded-full flex items-center justify-center shadow-accent active:scale-95 transition-transform"
                 style={{ backgroundColor: "var(--data-expense)" }}
                 aria-label="Nouvelle dépense"
               >

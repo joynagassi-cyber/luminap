@@ -363,7 +363,7 @@ export default function FormBuilder() {
               className="fixed inset-0 z-50 flex items-end justify-center"
               onClick={closeCreateModal}
             >
-              <div className="absolute inset-0 bg-black/60" />
+              <div className="absolute inset-0 bg-scrim" />
               <div
                 className="relative w-full max-w-lg rounded-t-2xl p-5 pb-8"
                 style={{ backgroundColor: "var(--card)" }}

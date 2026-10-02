@@ -39,7 +39,8 @@ export default {
         advance: "var(--data-advance)",
         success: "var(--data-success)",
         alert: "var(--data-alert)",
-        muted: "var(--data-muted)",
+        // « data-muted » (état de statut, ci-dessous) ≠ alias shadcn `muted`
+        // (objet { DEFAULT, foreground }) pour les composantes ui/*.
         // Texte « inversé » sur accent — bascule si un thème org pousse
         // un accent clair (H1 : plus de text-white hard-codée)
         "on-accent": "var(--on-accent)",
@@ -76,10 +77,18 @@ export default {
           DEFAULT: "var(--surface-hover)",
           foreground: "var(--text-tertiary)",
         },
+        // Voile (scrim) — suit le mode (60 % sombre / 35 % clair, App.css)
+        // pour ne pas écraser les surfaces blanches en light mode (M14).
+        scrim: "var(--scrim)",
         accent: {
           DEFAULT: "var(--accent-primary)",
           foreground: "#FFFFFF",
         },
+        // Couleurs de statut sémantiques (invariantes, DESIGN.md §2) — nommées
+        // sans préfixe pour ne pas coller avec le token `muted` shadcn.
+        "data-muted": "var(--data-muted)",
+        "data-pink": "var(--data-pink)",
+        "data-exhausted": "var(--data-exhausted)",
         popover: {
           DEFAULT: "var(--surface)",
           foreground: "var(--text-primary)",

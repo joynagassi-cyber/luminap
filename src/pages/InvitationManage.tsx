@@ -458,7 +458,7 @@ export default function InvitationManage() {
 
         {/* Modal de rejet d'une demande (raison + confirmation, sans prompt) */}
         {rejecting && (
-          <div className="fixed inset-0 flex items-end justify-center" style={{ zIndex: 50, backgroundColor: "rgba(0,0,0,0.7)" }}>
+          <div className="fixed inset-0 flex items-end justify-center" style={{ zIndex: 60, backgroundColor: "var(--scrim)" }}>
           <div
             className="w-full max-w-lg rounded-t-2xl p-6 space-y-4"
             style={{ backgroundColor: "var(--card)", paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 24px)" }}

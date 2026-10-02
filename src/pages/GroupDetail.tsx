@@ -857,7 +857,7 @@ export default function GroupDetail() {
             className="fixed inset-0 z-50 flex items-center justify-center px-5"
             onClick={() => setShowArchive(false)}
           >
-            <div className="absolute inset-0 bg-black/70" aria-hidden="true" />
+            <div className="absolute inset-0 bg-scrim" aria-hidden="true" />
             <div
               role="dialog"
               aria-modal="true"
@@ -904,7 +904,7 @@ export default function GroupDetail() {
             className="fixed inset-0 z-50 flex items-end justify-center"
             onClick={() => setShowAddMember(false)}
           >
-            <div className="absolute inset-0 bg-black/60" aria-hidden="true" />
+            <div className="absolute inset-0 bg-scrim" aria-hidden="true" />
             <div
               role="dialog"
               aria-modal="true"
@@ -984,7 +984,7 @@ export default function GroupDetail() {
             className="fixed inset-0 z-50 flex items-center justify-center px-5"
             onClick={() => setShowDelete(false)}
           >
-            <div className="absolute inset-0 bg-black/70" aria-hidden="true" />
+            <div className="absolute inset-0 bg-scrim" aria-hidden="true" />
             <div
               role="dialog"
               aria-modal="true"

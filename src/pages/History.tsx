@@ -97,7 +97,7 @@ function CustomTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
   return (
     <div
-      className="rounded-xl p-3 shadow-2xl"
+      className="rounded-xl p-3 shadow-pop"
       style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
     >
       <p className="text-text-tertiary text-xs mb-2 font-medium">{label}</p>

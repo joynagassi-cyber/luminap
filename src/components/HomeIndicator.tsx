@@ -97,9 +97,12 @@ export default function HomeIndicator() {
   return (
     <>
       {/* ── Modale (sheet) des raccourcis utiles ── */}
+      {/* M15 — z-index nommé : --z-modal (60) coordonné avec le nav (40)
+          et les toasts (70) ; fin des z-[70] ad-hoc. */}
       {sheetOpen && (
         <div
-          className="fixed inset-0 z-[70]"
+          className="fixed inset-0"
+          style={{ zIndex: 60 }}
           role="dialog"
           aria-modal="true"
           aria-label="Raccourcis utiles"

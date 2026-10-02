@@ -153,10 +153,12 @@ textarea:focus-visible,
 }
 
 /* Respect reduced transparency preference */
+/* L42 — on ne force PAS `background` sur `*` (écraseait chaque carte/
+   surface de l'app) : on retire seulement le flou (backdrop-filter),
+   qui EST la préférence de transparence. Les fonds restent en place. */
 @media (prefers-reduced-transparency: reduce) {
   * {
     backdrop-filter: none !important;
-    background: var(--canvas) !important;
   }
 }
 

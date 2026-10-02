@@ -277,7 +277,7 @@ function CreateBudgetSheet({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/60" aria-hidden="true" />
+      <div className="absolute inset-0 bg-scrim" aria-hidden="true" />
       <div
         role="dialog"
         aria-modal="true"
