@@ -62,7 +62,20 @@ describe('Lumina — Forms v2 (currency, table view, DRAFT edit)', () => {
         .get()
         .some((t) => t === FORM_NAME);
       if (present) {
-        cy.log('Formulaire e2e déjà présent — pas de création');
+        cy.log('Formulaire e2e déjà présent — on normalise le status en DRAFT');
+        // Un run précédent a pu laisser le formulaire en PUBLISHED
+        // (T6.2 clique « Publier » sans jamais le remettre en DRAFT).
+        // Si le bouton « Brouillon » est présent, on clique pour
+        // revenir en DRAFT avant de continuer.
+        cy.get('button', { timeout: 30_000 }).then(($btns) => {
+          const texts = $btns.map((_, el) => (el.textContent || '').trim()).get();
+          if (texts.includes('Brouillon')) {
+            cy.contains('button', 'Brouillon').click({ force: true });
+            // Attendre le re-render : le bouton « Publier » re-apparaît
+            // quand le status repasse DRAFT.
+            cy.contains('button', 'Publier', { timeout: 60_000 }).should('exist');
+          }
+        });
         return;
       }
       // Branche de création : clic « Créer » ouvre le modal, on saisit
@@ -80,7 +93,21 @@ describe('Lumina — Forms v2 (currency, table view, DRAFT edit)', () => {
       for (let i = 0; i < 6; i += 1) {
         cy.contains('button', 'Ajouter').click({ force: true });
       }
-      cy.contains('button', 'Créer le formulaire').click();
+      // Le bouton « Créer le formulaire » est un IonButton (Ionic 9 =
+      // Shadow DOM) : cy.contains('button', ...) ne le traverse pas.
+      // On cible ion-button via le light DOM, ou son <button> interne
+      // accessible après le shadowRoot pierce.
+      cy.get('ion-button', { timeout: 30_000 })
+        .then(($ion) => {
+          const match = $ion
+            .map((_, el) => (el.textContent || '').trim())
+            .get()
+            .findIndex((t) => t === 'Créer le formulaire');
+          if (match === -1) {
+            throw new Error('Bouton « Créer le formulaire » absent du modal');
+          }
+          return cy.wrap($ion.eq(match)).click({ force: true });
+        });
       cy.contains('p', FORM_NAME, { timeout: 90_000 }).should('exist');
     });
   });
@@ -180,7 +207,12 @@ describe('Lumina — Forms v2 (currency, table view, DRAFT edit)', () => {
     // (role="table" — FormSubmissions.tsx §T5) est présent avec
     // ses colonnes de métadonnées.
     cy.get('table[role="table"]', { timeout: 90_000 }).should('exist');
+    // Colonne « Date » (5e colonne de métadonnées — FormSubmissions.tsx
+    // §COLUMNS : { key: 'submittedAt', label: 'Date' }). Les assertions
+    // sont partielles (cy.contains) : le suffixe de tri « ↑/↓ » est
+    // compatible (sous-chaîne).
     cy.contains('th', 'Soumetteur').should('exist');
+    cy.contains('th', 'Date').should('exist');
     cy.contains('th', 'Statut').should('exist');
     cy.contains('th', 'Rejeté par').should('exist');
     cy.contains('th', 'Raison du rejet').should('exist');
@@ -210,11 +242,36 @@ describe('Lumina — Forms v2 (currency, table view, DRAFT edit)', () => {
     // Le regex accepte l'espace ASCII ET l'espace fine U+00A0.
     cy.get('td', { timeout: 90_000 }).contains(/1[  ]?500/).should('exist');
 
+    // Garanti que la soumission T7.1 est synchronisée (PowerSync
+    // local-first : la sync cloud est asynchrone, le rechargement de
+    // la page /forms/:id/submissions peut arriver avant la sync →
+    // filtered.length === 0 → boutons disabled). Attendre un <td>
+    // dans le tableau avant d'asserter les boutons.
+    cy.get('table[role="table"] td', { timeout: 90_000 }).should('exist');
     // Boutons d'export (disabled si filtered.length === 0 — après
     // le submit T7.1, au moins une soumission est filtrée, ils
     // sont actifs).
-    cy.contains('button', 'Exporter CSV').should('not.be.disabled');
-    cy.contains('button', 'Exporter Excel').should('not.be.disabled');
+    // Les boutons d'export sont des IonButton (Ionic 9 = Shadow DOM) :
+    // cy.contains('button', ...) ne les capte pas. On cible ion-button
+    // et on vérifie l'attribut disabled sur l'ion-button lui-même.
+    cy.get('ion-button', { timeout: 30_000 }).then(($ion) => {
+      const texts = $ion
+        .map((_, el) => (el.textContent || '').trim())
+        .get();
+      expect(
+        texts,
+        'boutons ion-button d export absents de la page',
+      ).to.include('Exporter CSV');
+      expect(texts).to.include('Exporter Excel');
+      // Le disabled est sur l ion-button (pas sur le <button> interne
+      // Shadow DOM).
+      cy.wrap($ion)
+        .filter((_, el) => (el.textContent || '').trim() === 'Exporter CSV')
+        .should('not.have.attr', 'disabled');
+      cy.wrap($ion)
+        .filter((_, el) => (el.textContent || '').trim() === 'Exporter Excel')
+        .should('not.have.attr', 'disabled');
+    });
   });
 
   it('T5 — clicking « Exporter CSV » triggers a .csv file download', function () {
@@ -228,7 +285,15 @@ describe('Lumina — Forms v2 (currency, table view, DRAFT edit)', () => {
       });
     });
     cy.location('pathname').should('match', /^\/forms\/[^/]+\/submissions$/);
-    cy.contains('button', 'Exporter CSV').should('not.be.disabled');
+    // Le bouton « Exporter CSV » est un IonButton (Ionic 9 = Shadow
+    // DOM) : cy.contains('button', ...) ne le capte pas. On cible
+    // ion-button et on vérifie l absence de l attribut disabled.
+    cy.get('table[role="table"] td', { timeout: 90_000 }).should('exist');
+    cy.get('ion-button', { timeout: 30_000 }).then(($ion) => {
+      cy.wrap($ion)
+        .filter((_, el) => (el.textContent || '').trim() === 'Exporter CSV')
+        .should('not.have.attr', 'disabled');
+    });
 
     // Cypress 16 : pas d'API `cy.on('download')` (supprimé) — on
     // stub `URL.createObjectURL` côté window AVANT le clic, on
@@ -271,7 +336,11 @@ describe('Lumina — Forms v2 (currency, table view, DRAFT edit)', () => {
       };
     });
 
-    cy.contains('button', 'Exporter CSV').click();
+    cy.get('ion-button', { timeout: 30_000 }).then(($ion) => {
+      cy.wrap($ion)
+        .filter((_, el) => (el.textContent || '').trim() === 'Exporter CSV')
+        .click({ force: true });
+    });
     // Le blob click + createObjectURL se fait synchrone dans le
     // handler React — on laisse 1 tick passer pour que
     // l'assertion voie l'état.
