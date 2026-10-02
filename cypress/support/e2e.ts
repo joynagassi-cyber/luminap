@@ -35,6 +35,7 @@
 import {
   getOrgCreds,
   getOrgCredentials,
+  getUnconfiguredOrgCredentials,
   setOrgCreds,
 } from './orgCreds';
 
@@ -832,30 +833,47 @@ Cypress.Commands.add('loginOrgAccount', function (): Cypress.Chainable {
  * setup pour un utilisateur existant.
  */
 Cypress.Commands.add('resumeOnboardingForOrgAccount', function (): Cypress.Chainable {
-    const creds = getOrgCreds();
-    if (!creds?.email || !creds?.password) {
-      throw new Error(
-        'resumeOnboardingForOrgAccount: credentials du compte d\'organisation ' +
-          'absents — cy.loginOrgAccount() n\'a pas tourné avant ce call.',
-      );
-    }
+    // Option A : le scénario "registered but unconfigured" est joué sur un
+    // compte ISOLÉ (getUnconfiguredOrgCredentials — lumina-org-unconfigured
+    // par défaut), jamais sur le compte principal des specs 2/4. Cela
+    // permet de répéter le setup sans corrompre le login → dashboard du
+    // compte org principal. Option B : le re-parcours est FORCÉ par
+    // resetOnboardingState() (supprime lumina-onboarding/-onboarded/-role)
+    // plutôt que par cy.clearLocalStorage() qui détruirait aussi le token
+    // Supabase et obligerait à rejouer un login complet.
+    const creds = getUnconfiguredOrgCredentials();
 
-    // 1. État "nouveau navigateur" : sign-out + nettoyage des flags.
-    cy.clearLocalStorage();
+    // 1. Signin du compte unconfigured (déjà en base depuis le 1er run
+    //    ou créé ici si 1er run absolu). La session Supabase est conservée.
     cy.visit('/auth');
-
-    // 2. Signin du MÊME compte (déjà en base). needsOnboarding() = true
-    //    → /onboarding (et non /dashboard). C'est le cas exact demandé :
-    //    user enregistré mais pas encore configuré.
     cy.get('input[type="email"]').first().type(creds.email);
     cy.get('input[type="password"]').first().type(creds.password);
     cy.contains('button[type="submit"]', 'Se connecter').click();
+
+    // 2. FORCER le re-parcours : effacer les flags d'onboarding du
+    //    navigateur courant (lumina-onboarding / -onboarded / -role)
+    //    pour que needsOnboarding() revienne à true → /onboarding.
+    //    (Option B — sans toucher au token Supabase ni à l'état PowerSync.)
+    cy.window().then((win) => {
+      win.localStorage.removeItem('lumina-onboarding');
+      win.localStorage.removeItem('lumina-onboarded');
+      win.localStorage.removeItem('lumina-role');
+    });
+
+    // 3. Splash redirige /splash → /onboarding (needsOnboarding() = true,
+    //    voir src/pages/Splash.tsx:40 et src/lib/onboardingState.ts:140).
+    cy.visit('/splash');
     cy.location('pathname', { timeout: 90_000 }).should('eq', '/onboarding');
 
-    // 3. Le wizard COMPLET (présentation → branch → org-setup → dashboard),
-    //    SANS raccourci localStorage. Le compte est le même que celui du
-    //    1er spec ; l'org est créée / reliée au rôle choisi ici.
-    cy.runOnboarding();
+    // 4. Le wizard COMPLET (présentation → branch → org-setup → dashboard),
+    //    SANS raccourci localStorage. Org nommée + typée + rôlée de façon
+    //    déterministe (le défaut de runOnboarding est dynamique en
+    //    Date.now() — hors du périmètre du déterminisme demandé).
+    cy.runOnboarding({
+      orgName: 'Lumina E2E Unconfigured',
+      orgType: 'Église',
+      role: 'PASTEUR_PRINCIPAL',
+    });
 
     // Post-condition.
     cy.location('pathname', { timeout: 90_000 }).should('eq', '/dashboard');

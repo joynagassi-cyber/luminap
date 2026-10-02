@@ -69,9 +69,15 @@ describe('Lumina — real auth flows (cloud)', () => {
     // repasser par l'onboarding + le setup de l'organisation, pas
     // rester bloqué sans rôle ni organisation.
     //
-    // Ici le compte est le même qu'au test 1 (identifiant unique) ; on
-    // simule le « nouveau navigateur » en effaçant les flags locaux
-    // (lumina-onboarded etc.) et on rejoue le wizard COMPLET.
+    // Ce scénario est joué sur un compte ISOLÉ (lumina-org-unconfigured@
+    // par défaut, override CYPRESS_ORG_UNCONFIGURED_*) — JAMAIS le compte
+    // principal des specs 2/4 (lumina-org-e2e@). Ainsi on peut répéter le
+    // re-parcours sans corrompre le login → dashboard du compte org
+    // partagé. Le re-parcours est forcé en effaçant les 3 flags
+    // lumina-onboarding/-onboarded/-role (needsOnboarding() → true) puis
+    // Splash redirige /onboarding ; le wizard COMPLET est rejoué jusqu'à
+    // /dashboard. Voir cypress/support/e2e.ts (resumeOnboardingForOrgAccount)
+    // et cypress/support/orgCreds.ts (getUnconfiguredOrgCredentials).
     cy.resumeOnboardingForOrgAccount();
   });
 

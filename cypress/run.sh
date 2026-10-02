@@ -32,6 +32,11 @@ CYPRESS_POWERSYNC_URL=${CYPRESS_POWERSYNC_URL:-https://6a9dd96302481fb31b945823.
 # Runs suivants : login direct (l'org existe déjà en base).
 CYPRESS_ORG_EMAIL=${CYPRESS_ORG_EMAIL:-lumina-org-e2e@lumina.dev}
 CYPRESS_ORG_PASSWORD=${CYPRESS_ORG_PASSWORD:-E2e-Lumina!1}
+# Compte d'org dédié au scénario "registered but unconfigured" (spec 3
+# auth-real) — ISOLÉ du compte principal pour qu'on puisse répéter le
+# re-parcours d'onboarding sans impacter les specs 2/4 (login → dashboard).
+CYPRESS_ORG_UNCONFIGURED_EMAIL=${CYPRESS_ORG_UNCONFIGURED_EMAIL:-lumina-org-unconfigured@lumina.dev}
+CYPRESS_ORG_UNCONFIGURED_PASSWORD=${CYPRESS_ORG_UNCONFIGURED_PASSWORD:-E2e-Unconfigured!1}
 
 # Run all specs (default)
 npx cypress run --browser chrome \
@@ -43,4 +48,6 @@ npx cypress run --browser chrome \
     CYPRESS_SUPABASE_ANON_KEY="${CYPRESS_SUPABASE_ANON_KEY}", \
     CYPRESS_POWERSYNC_URL="${CYPRESS_POWERSYNC_URL}", \
     CYPRESS_ORG_EMAIL="${CYPRESS_ORG_EMAIL}", \
-    CYPRESS_ORG_PASSWORD="${CYPRESS_ORG_PASSWORD}"
+    CYPRESS_ORG_PASSWORD="${CYPRESS_ORG_PASSWORD}", \
+    CYPRESS_ORG_UNCONFIGURED_EMAIL="${CYPRESS_ORG_UNCONFIGURED_EMAIL}", \
+    CYPRESS_ORG_UNCONFIGURED_PASSWORD="${CYPRESS_ORG_UNCONFIGURED_PASSWORD}"

@@ -111,6 +111,33 @@ export function getOrgCredentials(): OrgCredentials {
 }
 
 /**
+ * Identifiant UNIQUE dédié au scénario "registered but unconfigured"
+ * (spec 3 auth-real : user déjà inscrit mais onboarding jamais passé).
+ *
+ * ISOLÉ du compte principal (getOrgCredentials) : ce compte ne sert
+ * QU'au spec 3, pour qu'on puisse forcer son onboarding à répéter sans
+ * impacter les specs 2/4 (login → dashboard du compte principal).
+ * Source de vérité : CYPRESS_ORG_UNCONFIGURED_EMAIL / _PASSWORD via le
+ * bloc expose de cypress.config.ts, défaut lumina-org-unconfigured@.
+ */
+export function getUnconfiguredOrgCredentials(): OrgCredentials {
+  const main = getOrgCredentials();
+  let email = 'lumina-org-unconfigured@lumina.dev';
+  let password = 'E2e-Unconfigured!1';
+  try {
+    const e = Cypress.expose('ORG_UNCONFIGURED_EMAIL');
+    const p = Cypress.expose('ORG_UNCONFIGURED_PASSWORD');
+    if (typeof e === 'string' && e.trim() !== '') email = e.trim();
+    if (typeof p === 'string' && p.trim() !== '') password = p.trim();
+  } catch {
+    /* context Node indisponible — valeurs par défaut */
+  }
+  // Le nom/type/rôle d'org restent ceux du principal : c'est la même
+  // sémantique de setup, juste un compte utilisateur différent.
+  return { ...main, email, password };
+}
+
+/**
  * Lit les credentials du compte d'organisation unique du run.
  *
  * Ordre de résolution :

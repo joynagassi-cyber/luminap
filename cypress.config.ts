@@ -48,6 +48,17 @@ export default defineConfig({
       // sign-up COMPLET par l'UI ; les runs suivants font login direct.
       ORG_EMAIL: process.env.CYPRESS_ORG_EMAIL || 'lumina-org-e2e@lumina.dev',
       ORG_PASSWORD: process.env.CYPRESS_ORG_PASSWORD || 'E2e-Lumina!1',
+      // Compte d'organisation dédié au scénario "registered but
+      // unconfigured" (spec 3 auth-real) : ISOLÉ du compte principal
+      // (lumina-org-e2e@...) pour que son onboarding puisse être
+      // répété sans corrompre les specs 2/4 (login → dashboard).
+      // Override : CYPRESS_ORG_UNCONFIGURED_EMAIL / _PASSWORD.
+      ORG_UNCONFIGURED_EMAIL:
+        process.env.CYPRESS_ORG_UNCONFIGURED_EMAIL ||
+        'lumina-org-unconfigured@lumina.dev',
+      ORG_UNCONFIGURED_PASSWORD:
+        process.env.CYPRESS_ORG_UNCONFIGURED_PASSWORD ||
+        'E2e-Unconfigured!1',
     },
     // Same testDir shape as before; specs live under cypress/e2e.
     specPattern: 'cypress/e2e/**/*.cy.{ts,tsx}',
