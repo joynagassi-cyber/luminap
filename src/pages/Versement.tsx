@@ -152,7 +152,7 @@ export default function Versement() {
                     <p className="text-text-tertiary text-sm mb-1">
                       Montant à verser
                     </p>
-                    <p className="text-3xl font-black text-[var(--accent-primary)]">
+                    <p className="text-3xl font-black text-accent">
                       {formatCurrencyCompact(amountNum)} F
                     </p>
                   </div>
@@ -266,7 +266,7 @@ export default function Versement() {
                     }}
                   />
                   {amountNum > maxAmount && (
-                    <p className="text-[var(--data-expense)] text-xs mt-1 text-center">
+                    <p className="text-expense text-xs mt-1 text-center">
                       Montant supérieur au solde disponible
                     </p>
                   )}

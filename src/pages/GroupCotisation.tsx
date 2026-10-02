@@ -315,7 +315,7 @@ export default function GroupCotisation() {
                 <div className="flex gap-4 text-xs">
                   <div>
                     <p className="text-text-tertiary">Collecté</p>
-                    <p className="text-[var(--data-income)] font-bold text-sm">
+                    <p className="text-income font-bold text-sm">
                       {formatCurrencyCompact(stats.totalCollecte)} F
                     </p>
                   </div>
@@ -327,7 +327,7 @@ export default function GroupCotisation() {
                   </div>
                   <div>
                     <p className="text-text-tertiary">En retard</p>
-                    <p className="text-[var(--data-pending)] font-bold text-sm">
+                    <p className="text-pending font-bold text-sm">
                       {stats.nonPaye}
                     </p>
                   </div>
@@ -411,7 +411,7 @@ export default function GroupCotisation() {
                         </IonButton>
                       </div>
                     )}
-                    {isPaid && <Check className="w-4 h-4 text-[var(--data-income)]" />}
+                    {isPaid && <Check className="w-4 h-4 text-income" />}
                     {isAbsent && (
                       <Clock className="w-4 h-4 text-text-tertiary" />
                     )}

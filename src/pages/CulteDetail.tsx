@@ -145,7 +145,7 @@ export default function CulteDetail() {
         </IonToolbar>
       </IonHeader>
       <IonContent>
-        <div className="px-4 py-3 flex items-center gap-3 border-b border-[var(--border)]">
+        <div className="px-4 py-3 flex items-center gap-3 border-b border-border">
             <button
               onClick={() => navigate("/cotisations")}
               className="w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-95"
@@ -187,30 +187,30 @@ export default function CulteDetail() {
               style={{ backgroundColor: "var(--surface)" }}
             >
               <div className="flex items-center gap-2 mb-1">
-                <CheckCircle className="w-4 h-4 text-[var(--data-success)]" />
+                <CheckCircle className="w-4 h-4 text-success" />
                 <span className="text-text-tertiary text-xs">Payés</span>
               </div>
-              <p className="text-[var(--data-success)] font-bold text-lg">{stats.paye}</p>
+              <p className="text-success font-bold text-lg">{stats.paye}</p>
             </div>
             <div
               className="rounded-xl p-3"
               style={{ backgroundColor: "var(--surface)" }}
             >
               <div className="flex items-center gap-2 mb-1">
-                <Clock className="w-4 h-4 text-[var(--text-tertiary)]" />
+                <Clock className="w-4 h-4 text-text-tertiary" />
                 <span className="text-text-tertiary text-xs">Absents</span>
               </div>
-              <p className="text-[var(--text-tertiary)] font-bold text-lg">{stats.absent}</p>
+              <p className="text-text-tertiary font-bold text-lg">{stats.absent}</p>
             </div>
             <div
               className="rounded-xl p-3"
               style={{ backgroundColor: "var(--surface)" }}
             >
               <div className="flex items-center gap-2 mb-1">
-                <CheckCircle className="w-4 h-4 text-[var(--data-alert)]" />
+                <CheckCircle className="w-4 h-4 text-alert" />
                 <span className="text-text-tertiary text-xs">Non payés</span>
               </div>
-              <p className="text-[var(--data-alert)] font-bold text-lg">
+              <p className="text-alert font-bold text-lg">
                 {stats.nonPaye}
               </p>
             </div>

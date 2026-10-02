@@ -120,7 +120,7 @@ function OrgNode({
       </div>
 
       {children.length > 0 && (
-        <div className="ml-6 mt-2 space-y-2 border-l border-[var(--border)] pl-4">
+        <div className="ml-6 mt-2 space-y-2 border-l border-border pl-4">
           {children.map((child) => (
             <div
               key={child.id}

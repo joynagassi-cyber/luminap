@@ -1337,7 +1337,7 @@ export default function Tutorial() {
   return (
     <IonPage>
       <IonContent className="bg-canvas">
-        <div className="min-h-screen bg-[var(--canvas)]">
+        <div className="min-h-screen bg-canvas">
           <TopHeader title="Tutoriel" />
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             {/* Back button */}

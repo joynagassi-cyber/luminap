@@ -132,7 +132,7 @@ export default function EventEdit() {
                   }}
                 />
                 {fieldErrors.name && (
-                  <p className="text-[var(--data-expense)] text-xs mt-1">
+                  <p className="text-expense text-xs mt-1">
                     {fieldErrors.name}
                   </p>
                 )}
@@ -173,7 +173,7 @@ export default function EventEdit() {
                   }}
                 />
                 {fieldErrors.startDate && (
-                  <p className="text-[var(--data-expense)] text-xs mt-1">
+                  <p className="text-expense text-xs mt-1">
                     {fieldErrors.startDate}
                   </p>
                 )}
@@ -197,7 +197,7 @@ export default function EventEdit() {
                   }}
                 />
                 {fieldErrors.endDate && (
-                  <p className="text-[var(--data-expense)] text-xs mt-1">
+                  <p className="text-expense text-xs mt-1">
                     {fieldErrors.endDate}
                   </p>
                 )}
@@ -243,7 +243,7 @@ export default function EventEdit() {
                   }}
                 />
                 {fieldErrors.budget && (
-                  <p className="text-[var(--data-expense)] text-xs mt-1">
+                  <p className="text-expense text-xs mt-1">
                     {fieldErrors.budget}
                   </p>
                 )}

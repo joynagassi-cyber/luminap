@@ -150,7 +150,7 @@ export default function SaisieRapide() {
               <p className="text-text-tertiary text-xs mb-3">
                 Culte du {formatDate(culteDate)}
                 {isLocked && (
-                  <span className="ml-2 text-[var(--data-alert)]">
+                  <span className="ml-2 text-alert">
                     (verrouillé : +30 jours)
                   </span>
                 )}
@@ -172,7 +172,7 @@ export default function SaisieRapide() {
 
             {culteCots.length === 0 ? (
               <div className="text-center py-10">
-                <CheckCircle className="w-12 h-12 mx-auto mb-3 text-[var(--data-success)]" />
+                <CheckCircle className="w-12 h-12 mx-auto mb-3 text-success" />
                 <p className="text-text-primary font-medium">
                   Toutes les cotisations sont traitées.
                 </p>

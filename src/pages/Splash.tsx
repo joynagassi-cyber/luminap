@@ -97,7 +97,7 @@ export default function Splash() {
               >
                 Lumina
               </h1>
-              <p className="text-[var(--text-tertiary)] text-sm mt-1">
+              <p className="text-text-tertiary text-sm mt-1">
                 Gestion financière des églises
               </p>
             </div>
@@ -135,7 +135,7 @@ export default function Splash() {
                   borderTopColor: "transparent",
                 }}
               />
-              <p className="text-[var(--text-tertiary)] text-xs">
+              <p className="text-text-tertiary text-xs">
                 Chargement en cours…
               </p>
             </div>

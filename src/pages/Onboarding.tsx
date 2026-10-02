@@ -666,7 +666,7 @@ export default function Onboarding() {
   return (
     <IonPage>
       <IonContent className="bg-canvas">
-        <div className="min-h-screen bg-[var(--canvas)] flex flex-col">
+        <div className="min-h-screen bg-canvas flex flex-col">
           {/* Header with logo */}
           <div className="flex items-center justify-between px-6 py-5">
             <img
@@ -677,21 +677,21 @@ export default function Onboarding() {
             {!isBranchStep && current > 0 ? (
               <button
                 onClick={handleBack}
-                className="text-[var(--text-tertiary)] text-sm font-medium"
+                className="text-text-tertiary text-sm font-medium"
               >
                 Précédent
               </button>
             ) : !isBranchStep ? (
               <button
                 onClick={handleBack}
-                className="text-[var(--text-tertiary)] text-sm font-medium"
+                className="text-text-tertiary text-sm font-medium"
               >
                 Passer
               </button>
             ) : (
               <button
                 onClick={handleBack}
-                className="text-[var(--text-tertiary)] text-sm font-medium"
+                className="text-text-tertiary text-sm font-medium"
               >
                 Précédent
               </button>
@@ -722,7 +722,7 @@ export default function Onboarding() {
                   </div>
                 </div>
 
-                <p className="text-[var(--text-secondary)] text-sm leading-relaxed mb-8">
+                <p className="text-text-secondary text-sm leading-relaxed mb-8">
                   Vous avez 2 portes d'entrée. Le premier créateur fonde son
                   organisation&nbsp;; les autres s'y joignent par invitation.
                 </p>
@@ -756,7 +756,7 @@ export default function Onboarding() {
                       <p className="text-text-primary font-semibold">
                         Je crée mon organisation
                       </p>
-                      <p className="text-[var(--text-tertiary)] text-xs mt-1 leading-relaxed">
+                      <p className="text-text-tertiary text-xs mt-1 leading-relaxed">
                         Administrateur — vous fondez l'organisation&nbsp;:
                         nom, type, thème et modules.
                       </p>
@@ -803,7 +803,7 @@ export default function Onboarding() {
                       <p className="text-text-primary font-semibold">
                         Je rejoins par invitation
                       </p>
-                      <p className="text-[var(--text-tertiary)] text-xs mt-1 leading-relaxed">
+                      <p className="text-text-tertiary text-xs mt-1 leading-relaxed">
                         Membre / collaborateur — code, QR, fichier ou
                         proximité. Vous êtes intégré au rôle qui vous a été
                         attribué.
@@ -850,7 +850,7 @@ export default function Onboarding() {
                 <h1 className="text-text-primary font-bold text-2xl leading-tight mb-3">
                   {screen.title}
                 </h1>
-                <p className="text-[var(--text-secondary)] text-sm leading-relaxed">
+                <p className="text-text-secondary text-sm leading-relaxed">
                   {screen.description}
                 </p>
               </div>

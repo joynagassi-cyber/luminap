@@ -666,7 +666,7 @@ export default function EventDetail() {
                             {formatCurrencyCompact(item.allocated)} F
                           </p>
                           <p
-                            className={`text-xs ${isExceeded ? "text-[var(--data-expense)]" : "text-text-tertiary"}`}
+                            className={`text-xs ${isExceeded ? "text-expense" : "text-text-tertiary"}`}
                           >
                             {formatCurrencyCompact(item.spent || 0)} F dépensé
                           </p>
@@ -930,7 +930,7 @@ export default function EventDetail() {
                         const overBudget = entered > remaining / 100;
                         return (
                           <p
-                            className={`text-xs mt-1 ${overBudget ? "text-[var(--data-expense)]" : "text-text-tertiary"}`}
+                            className={`text-xs mt-1 ${overBudget ? "text-expense" : "text-text-tertiary"}`}
                           >
                             Reste disponible: {formatCurrencyCompact(remaining)}{" "}
                             F{overBudget && " ⚠️ Montant insuffisant"}
@@ -994,7 +994,7 @@ export default function EventDetail() {
                 className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4"
                 style={{ backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)" }}
               >
-                <Trash2 className="w-6 h-6 text-[var(--data-expense)]" />
+                <Trash2 className="w-6 h-6 text-expense" />
               </div>
               <h3 className="text-text-primary font-bold text-lg mb-2">
                 Supprimer cet événement ?

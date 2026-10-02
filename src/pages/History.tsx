@@ -227,7 +227,7 @@ export default function HistoryPage() {
                 style={{ backgroundColor: "var(--surface)" }}
               >
                 <p className="text-text-tertiary text-xs mb-1">Entrées</p>
-                <p className="text-[var(--data-income)] font-bold text-base">
+                <p className="text-income font-bold text-base">
                   +{formatCentsToFCFA(totalIncome)}
                 </p>
               </div>
@@ -236,7 +236,7 @@ export default function HistoryPage() {
                 style={{ backgroundColor: "var(--surface)" }}
               >
                 <p className="text-text-tertiary text-xs mb-1">Sorties</p>
-                <p className="text-[var(--data-expense)] font-bold text-base">
+                <p className="text-expense font-bold text-base">
                   -{formatCentsToFCFA(totalExpense)}
                 </p>
               </div>

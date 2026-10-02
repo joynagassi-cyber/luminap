@@ -467,7 +467,7 @@ export default function Dashboard() {
                                   />
                                 </div>
                                 <span
-                                  className={`text-xs ${overBudget ? "text-[var(--data-expense)]" : "text-text-tertiary"}`}
+                                  className={`text-xs ${overBudget ? "text-expense" : "text-text-tertiary"}`}
                                 >
                                   {formatCentsToFCFA(budgetSpent)}/
                                   {formatCentsToFCFA(event.budget)}

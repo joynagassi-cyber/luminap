@@ -70,7 +70,7 @@ export default function ThemePicker({ value, onChange, columns = 5 }: Props) {
         })}
       </div>
       <div className="flex items-center justify-between mt-3 px-1">
-        <p className="text-xs text-[var(--text-tertiary)]">
+        <p className="text-xs text-text-tertiary">
           {active.name} — {active.inspiration}
         </p>
       </div>

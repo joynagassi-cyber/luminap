@@ -651,7 +651,7 @@ export default function GroupDetail() {
                             {formatDate(v.date)}
                           </p>
                         </div>
-                        <span className="text-sm font-bold text-[var(--data-expense)]">
+                        <span className="text-sm font-bold text-expense">
                           -{formatCurrencyCompact(v.amount)} F
                         </span>
                       </div>
@@ -842,7 +842,7 @@ export default function GroupDetail() {
                 >
                   <Trash2 className="w-5 h-5" style={{ color: "var(--data-expense)" }} />
                 </div>
-                <span className="text-[var(--data-expense)] text-sm font-medium">
+                <span className="text-expense text-sm font-medium">
                   Supprimer le groupe
                 </span>
               </button>
@@ -996,7 +996,7 @@ export default function GroupDetail() {
                 className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4"
                 style={{ backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)" }}
               >
-                <Trash2 className="w-6 h-6 text-[var(--data-expense)]" />
+                <Trash2 className="w-6 h-6 text-expense" />
               </div>
               <h3 className="text-text-primary font-bold text-lg mb-2">
                 Supprimer {orgUnit.name} ?

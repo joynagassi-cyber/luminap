@@ -272,7 +272,7 @@ export default function TransactionNew() {
               {fieldErrors.amount && (
                 <p
                   id="tx-amount-error"
-                  className="text-[var(--data-expense)] text-xs mt-1"
+                  className="text-expense text-xs mt-1"
                 >
                   {fieldErrors.amount}
                 </p>
@@ -565,7 +565,7 @@ export default function TransactionNew() {
                   </label>
                 </div>
                 {!isOnline && proofPhotos.length === 0 && (
-                  <p className="text-xs text-[var(--data-pending)] mt-2">
+                  <p className="text-xs text-pending mt-2">
                     Hors ligne : la photo ne pourra pas être envoyée avant
                     reconnexion.
                   </p>

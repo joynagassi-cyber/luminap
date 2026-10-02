@@ -194,13 +194,13 @@ export default function OrgSetup() {
         </IonToolbar>
       </IonHeader>
       <IonContent className="bg-canvas">
-        <div className="min-h-screen bg-[var(--canvas)]">
+        <div className="min-h-screen bg-canvas">
           {/* Top bar */}
           <div className="flex items-center justify-between px-6 py-4">
             <img src="/lumina-logo.png" alt="Lumina" className="w-10 h-10 object-contain" />
             <button
               onClick={() => navigate(-1)}
-              className="text-[var(--text-tertiary)] text-sm font-medium"
+              className="text-text-tertiary text-sm font-medium"
             >
               Annuler
             </button>
@@ -211,30 +211,30 @@ export default function OrgSetup() {
               <h1 className="text-text-primary font-bold text-xl mb-1">
                 Votre organisation
               </h1>
-              <p className="text-[var(--text-tertiary)] text-sm mb-6">
+              <p className="text-text-tertiary text-sm mb-6">
                 Configurez son identité avant de lancer votre tableau de bord.
               </p>
 
               {/* ── 1. Identity ─────────────────────────────────────────── */}
-              <p className="text-xs font-semibold text-[var(--text-tertiary)] uppercase tracking-wide mb-3">
+              <p className="text-xs font-semibold text-text-tertiary uppercase tracking-wide mb-3">
                 Identité
               </p>
               <label className="block mb-4">
-                <span className="text-sm text-[var(--text-secondary)] mb-1.5 block">
+                <span className="text-sm text-text-secondary mb-1.5 block">
                   Nom complet de l'organisation
                 </span>
                 <input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Église MFE-JC Centrale"
-                  className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-xl px-4 py-3.5 text-text-primary text-lg font-semibold placeholder-[var(--text-placeholder)] focus:outline-none transition-colors"
+                  className="w-full bg-surface border border-border rounded-xl px-4 py-3.5 text-text-primary text-lg font-semibold placeholder-[var(--text-placeholder)] focus:outline-none transition-colors"
                   style={{ borderColor: canCreate ? "var(--accent-primary)" : "var(--border)" }}
                 />
               </label>
               <label className="block mb-6">
-                <span className="text-sm text-[var(--text-secondary)] mb-1.5 block">
+                <span className="text-sm text-text-secondary mb-1.5 block">
                   Sigle{" "}
-                  <span className="text-[var(--text-placeholder)] text-xs">
+                  <span className="text-text-placeholder text-xs">
                     (affiché dans les menus, le nom complet reste dans les rapports)
                   </span>
                 </span>
@@ -242,12 +242,12 @@ export default function OrgSetup() {
                   value={sigle}
                   onChange={(e) => setSigle(e.target.value.toUpperCase().slice(0, 12))}
                   placeholder="MFE"
-                  className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-xl px-4 py-3 font-mono text-lg tracking-[0.3em] text-text-primary placeholder-[var(--text-placeholder)] focus:outline-none"
+                  className="w-full bg-surface border border-border rounded-xl px-4 py-3 font-mono text-lg tracking-[0.3em] text-text-primary placeholder-[var(--text-placeholder)] focus:outline-none"
                 />
               </label>
 
               {/* ── 2. Type (available templates) ──────────────────────── */}
-              <p className="text-xs font-semibold text-[var(--text-tertiary)] uppercase tracking-wide mb-3">
+              <p className="text-xs font-semibold text-text-tertiary uppercase tracking-wide mb-3">
                 Type d'organisation
               </p>
               <div className="space-y-2 mb-6">
@@ -291,7 +291,7 @@ export default function OrgSetup() {
                               />
                             )}
                           </p>
-                          <p className="text-[var(--text-tertiary)] text-xs mt-0.5">{t.desc}</p>
+                          <p className="text-text-tertiary text-xs mt-0.5">{t.desc}</p>
                         </div>
                       </div>
                     </button>
@@ -300,7 +300,7 @@ export default function OrgSetup() {
               </div>
 
               {/* ── 3. Branding — 10 themes, applied live ─────────────── */}
-              <p className="text-xs font-semibold text-[var(--text-tertiary)] uppercase tracking-wide mb-3">
+              <p className="text-xs font-semibold text-text-tertiary uppercase tracking-wide mb-3">
                 Thème de votre organisation
               </p>
               <div className="mb-6">
@@ -308,7 +308,7 @@ export default function OrgSetup() {
               </div>
 
               {/* ── 4. Modules ─────────────────────────────────────────── */}
-              <p className="text-xs font-semibold text-[var(--text-tertiary)] uppercase tracking-wide mb-3">
+              <p className="text-xs font-semibold text-text-tertiary uppercase tracking-wide mb-3">
                 Modules à activer
               </p>
               <div className="grid grid-cols-2 gap-2 mb-6">
@@ -341,7 +341,7 @@ export default function OrgSetup() {
               </div>
 
               {/* ── 5. Creator role ────────────────────────────────────── */}
-              <p className="text-xs font-semibold text-[var(--text-tertiary)] uppercase tracking-wide mb-3">
+              <p className="text-xs font-semibold text-text-tertiary uppercase tracking-wide mb-3">
                 Votre rôle
               </p>
               {chosen && (
@@ -398,7 +398,7 @@ export default function OrgSetup() {
             </button>
             <button
               onClick={() => navigate(-1)}
-              className="w-full mt-3 py-3 rounded-full text-sm font-medium text-[var(--text-tertiary)]"
+              className="w-full mt-3 py-3 rounded-full text-sm font-medium text-text-tertiary"
             >
               <ChevronLeft className="w-4 h-4 inline mr-1" />
               Retour

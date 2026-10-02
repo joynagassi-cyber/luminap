@@ -286,7 +286,7 @@ export default function AuthPage() {
   return (
     <IonPage>
       <IonContent className="bg-canvas">
-        <div className="min-h-screen bg-[var(--canvas)] flex flex-col">
+        <div className="min-h-screen bg-canvas flex flex-col">
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-5">
             <img
@@ -301,13 +301,13 @@ export default function AuthPage() {
                 <button
                   type="button"
                   onClick={() => navigate("/sessions", { replace: true })}
-                  className="text-[var(--accent-primary)] text-xs font-medium flex items-center gap-1 active:opacity-70"
+                  className="text-accent text-xs font-medium flex items-center gap-1 active:opacity-70"
                   aria-label="Retour à mes comptes"
                 >
                   ← Mes comptes
                 </button>
               )}
-              <div className="text-xs text-[var(--text-tertiary)]">
+              <div className="text-xs text-text-tertiary">
                 {authState?.user ? "Connecté" : "Déconnecté"}
               </div>
             </div>
@@ -318,7 +318,7 @@ export default function AuthPage() {
             <h1 className="text-text-primary font-bold text-2xl mb-1">
               {mode === "login" ? "Bon retour" : "Créer un compte"}
             </h1>
-            <p className="text-[var(--text-tertiary)] text-sm mb-8">
+            <p className="text-text-tertiary text-sm mb-8">
               {mode === "login"
                 ? "Connectez-vous pour accéder à Lumina"
                 : "Inscrivez-vous pour commencer à utiliser Lumina"}
@@ -343,9 +343,9 @@ export default function AuthPage() {
             </button>
 
             <div className="flex items-center gap-3 mb-6">
-              <div className="flex-1 h-px bg-[var(--surface-hover)]" />
-              <span className="text-[var(--text-tertiary)] text-xs">ou</span>
-              <div className="flex-1 h-px bg-[var(--surface-hover)]" />
+              <div className="flex-1 h-px bg-surface-hover" />
+              <span className="text-text-tertiary text-xs">ou</span>
+              <div className="flex-1 h-px bg-surface-hover" />
             </div>
 
             {/* Email/Password Form */}
@@ -356,11 +356,11 @@ export default function AuthPage() {
               {mode === "signup" && (
                 <>
                   <div>
-                    <label className="text-[var(--text-secondary)] text-xs font-medium mb-2 block">
+                    <label className="text-text-secondary text-xs font-medium mb-2 block">
                       Prénom
                     </label>
                     <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-tertiary)]" />
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
                       <input
                         type="text"
                         value={firstName}
@@ -378,11 +378,11 @@ export default function AuthPage() {
                   </div>
 
                   <div>
-                    <label className="text-[var(--text-secondary)] text-xs font-medium mb-2 block">
+                    <label className="text-text-secondary text-xs font-medium mb-2 block">
                       Nom
                     </label>
                     <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-tertiary)]" />
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
                       <input
                         type="text"
                         value={lastName}
@@ -401,11 +401,11 @@ export default function AuthPage() {
               )}
 
               <div>
-                <label className="text-[var(--text-secondary)] text-xs font-medium mb-2 block">
+                <label className="text-text-secondary text-xs font-medium mb-2 block">
                   Email
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-tertiary)]" />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
                   <input
                     type="email"
                     value={email}
@@ -423,11 +423,11 @@ export default function AuthPage() {
               </div>
 
               <div>
-                <label className="text-[var(--text-secondary)] text-xs font-medium mb-2 block">
+                <label className="text-text-secondary text-xs font-medium mb-2 block">
                   Mot de passe
                 </label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-tertiary)]" />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
                   <input
                     type="password"
                     value={password}
@@ -484,7 +484,7 @@ export default function AuthPage() {
                   setMode(mode === "login" ? "signup" : "login");
                   setError("");
                 }}
-                className="text-[var(--text-tertiary)] text-sm hover:text-accent transition-colors"
+                className="text-text-tertiary text-sm hover:text-accent transition-colors"
                 aria-label={
                   mode === "login"
                     ? "Passer à l'inscription"
@@ -504,7 +504,7 @@ export default function AuthPage() {
             <div className="mt-3 text-center">
               <button
                 onClick={() => navigate("/invitation/claim")}
-                className="text-[var(--text-tertiary)] text-xs hover:text-accent transition-colors"
+                className="text-text-tertiary text-xs hover:text-accent transition-colors"
                 aria-label="J'ai un code d'invitation"
               >
                 J'ai un code d'invitation
