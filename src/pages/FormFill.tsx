@@ -18,7 +18,9 @@ import {
   useCurrentUser,
 } from "@/lib/dataLayer";
 import { getOrganizationId } from "@/lib/orgContext";
-import type { FormDefinition, FormFieldDefinition } from "@/types";import {
+import { notification } from "@/capabilities/notification";
+import type { FormDefinition, FormFieldDefinition } from "@/types";
+import {
   IonPage,
   IonHeader,
   IonContent,
@@ -155,6 +157,15 @@ export default function FormFill() {
       );
     }
     setSubmitted(true);
+
+    // Notify the form organizer that a submission was received
+    notification.sendNotification({
+      title: "Nouvelle soumission de formulaire",
+      message: `« ${form.name ?? "Formulaire"} » a été soumis`,
+      targetRole: "ADMIN" as any,
+      extraData: { formId: form.id, submissionId: submission.id },
+    }).catch(() => {});
+
     // Naviguer rapidement pour ne pas laisser « Soumis avec succès ! »
     // clignoter sous la nouvelle page (délai réduit à 600 ms).
     setTimeout(() => navigate("/forms"), 600);
@@ -162,9 +173,14 @@ export default function FormFill() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-canvas flex items-center justify-center">
-        <p className="text-text-tertiary text-sm">Chargement...</p>
-      </div>
+      <IonPage>
+        <IonContent className="bg-canvas">
+          <TopHeader title="Formulaire" />
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <p className="text-text-tertiary text-sm">Chargement...</p>
+          </div>
+        </IonContent>
+      </IonPage>
     );
   }
 

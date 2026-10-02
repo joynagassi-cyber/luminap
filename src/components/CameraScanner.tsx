@@ -70,14 +70,26 @@ export function CameraScanner({ onScan, onError, enabled = true }: CameraScanner
       setError(null);
       
       if (isNativePlatform()) {
-        // Native platform: use Capacitor Camera
+        // Native platform: use Capacitor Camera.
+        // Permission just-in-time (jamais demandée au boot) — API v6 :
+        // requestPermissions({ permissions: [...] }) renvoie par clé.
+        const perms = await Camera.requestPermissions({
+          permissions: ['camera'],
+        });
+        if (perms.camera === 'denied') {
+          const msg = "Accès à la caméra refusé";
+          setError(msg);
+          onError?.(msg);
+          return;
+        }
+
         const image = await Camera.getPhoto({
           quality: 90,
           allowEditing: false,
           resultType: CameraResultType.Uri,
           source: CameraSource.Camera,
         });
-        
+
         await processImage(image.webPath || image.path);
       } else {
         // Web platform: use browser camera
@@ -181,6 +193,7 @@ export function CameraScanner({ onScan, onError, enabled = true }: CameraScanner
         <button
           onClick={startCamera}
           disabled={!enabled || scanning}
+          aria-label="Scanner un code QR"
           className="flex-1 px-4 py-3 rounded-xl bg-primary text-white font-medium disabled:opacity-50"
         >
           {scanning ? 'Scan en cours...' : 'Scanner QR'}
@@ -188,6 +201,7 @@ export function CameraScanner({ onScan, onError, enabled = true }: CameraScanner
         {scanning && (
           <button
             onClick={stopCamera}
+            aria-label="Annuler le scan"
             className="px-4 py-3 rounded-xl bg-secondary text-text-primary"
           >
             Annuler
