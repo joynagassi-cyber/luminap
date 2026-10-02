@@ -184,6 +184,26 @@ describe('Lumina — Forms v2 (currency, table view, DRAFT edit)', () => {
     cy.contains('th', 'Statut').should('exist');
     cy.contains('th', 'Rejeté par').should('exist');
     cy.contains('th', 'Raison du rejet').should('exist');
+    // Colonne « Soumetteur » : on assert la VALEUR de la cellule (pas
+    // juste l'en-tête) — le défaut historique affichait l'ID du
+    // soumetteur (UUID Supabase) plutôt que son nom. La source de
+    // vérité du nom est le localStorage lumina-user (écrit par le
+    // post-login de loginOrgAccount, profil complet) : on lit le
+    // nom attendu côté window sans hardcoder le compte.
+    cy.window().then((win) => {
+      const raw = win.localStorage.getItem('lumina-user');
+      expect(raw, 'lumina-user devrait être persisté par loginOrgAccount').to.not.be.null;
+      const user = JSON.parse(raw!);
+      const expectedName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
+      expect(expectedName, 'nom du compte').to.not.equal('');
+      // La 1re <td> de chaque ligne du tableau = colonne « Soumetteur ».
+      cy.get('table[role="table"] td', { timeout: 90_000 })
+        .first()
+        .invoke('text')
+        .then((txt) => {
+          expect(txt.trim(), "valeur de la cellule « Soumetteur »").to.equal(expectedName);
+        });
+    });
     // Colonne du champ currency du formulaire : le montant stocké
     // (1500) est formaté Intl fr-FR XOF → « 1 500 » (séparateur de
     // milliers = espace fine U+00A0, code devise absente si XOF).
