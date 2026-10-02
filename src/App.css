@@ -192,6 +192,33 @@ textarea:focus-visible,
   padding-top: calc(env(safe-area-inset-top, 0px) + 4rem);
 }
 
+/* ── L22 — TopHeader : classes nommées pour le bouton d'action iconique
+   (44 px de hitzone tactile autour d'un cercle visuel 36 px) — remplace
+   les objets style inline 25-lignes dans src/components/TopHeader.tsx. */
+.topheader-action {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+.topheader-action > .topheader-action-visual {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 @keyframes spin {
   from {
     transform: rotate(0deg);

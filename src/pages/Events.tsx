@@ -12,6 +12,7 @@ import { Calendar, Plus, Clock, Gift, ArrowUp, ArrowDown } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
 import { EventsSkeleton } from "@/components/PageSkeletons";
+import EmptyState from "@/components/EmptyState";
 import { formatDate, formatCurrencyCompact } from "@/lib/utils";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -92,26 +93,12 @@ export default function Events() {
             </div>
 
             {sortedEvents.length === 0 ? (
-              <div
-                className="text-center py-16 rounded-xl"
-                style={{ backgroundColor: "var(--surface)" }}
-              >
-                <Calendar className="w-12 h-12 mx-auto mb-4 text-text-tertiary opacity-40" />
-                <p className="text-text-tertiary text-sm mb-2">
-                  Aucun événement
-                </p>
-                <p className="text-text-tertiary text-xs mb-4">
-                  Planifiez vos prochaines célébrations
-                </p>
-                <button
-                  onClick={() => navigate("/event/new")}
-                  className="px-6 py-2.5 rounded-full text-sm font-medium text-on-accent"
-                  style={{ backgroundColor: "var(--accent-primary)" }}
-                  aria-label="Créer un événement"
-                >
-                  Créer un événement
-                </button>
-              </div>
+              <EmptyState
+                title="Aucun événement"
+                description="Planifiez vos prochaines célébrations"
+                actionLabel="Créer un événement"
+                onAction={() => navigate("/event/new")}
+              />
             ) : (
               <div className="space-y-3">
                 {visibleEvents.map((event: any) => {

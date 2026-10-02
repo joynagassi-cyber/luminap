@@ -6,6 +6,7 @@ import TopHeader from "@/components/TopHeader";
 import { formDefinitionRepo } from "@/lib/formSystem";
 import { FORM_TEMPLATES, materializeTemplate } from "@/lib/formTemplates";
 import { generateId } from "@/lib/utils";
+import { useKeyboardAvoidance } from "@/hooks/useKeyboardAvoidance";
 import { getOrganizationId } from "@/lib/orgContext";
 import type { FormDefinition, FormFieldDefinition } from "@/types";
 import {
@@ -16,6 +17,8 @@ import {
   IonToolbar,
   IonInput,
   IonButton,
+  IonSelect,
+  IonSelectOption,
 } from "@ionic/react";
 
 const FIELD_TYPES: { value: FormFieldDefinition["type"]; label: string }[] = [
@@ -59,6 +62,7 @@ export function addField(
 
 export default function FormBuilder() {
   const navigate = useNavigate();
+  const keyboardHeight = useKeyboardAvoidance();
   const [forms, setForms] = useState<FormDefinition[]>([]);
   const [editingForm, setEditingForm] = useState<FormDefinition | null>(null);
   const [showCreate, setShowCreate] = useState(false);
@@ -204,7 +208,12 @@ export default function FormBuilder() {
     <IonPage>
       <IonContent className="bg-canvas">
         <TopHeader title="Formulaires" />
-        <div className="px-5 pt-safe-calc pb-safe-calc max-w-lg mx-auto">
+        <div
+          className="px-5 pt-safe-calc pb-safe-calc max-w-lg mx-auto"
+          style={{
+            paddingBottom: keyboardHeight > 0 ? `${keyboardHeight}px` : undefined,
+          }}
+        >
             <button
               onClick={() => navigate(-1)}
               className="flex items-center gap-2 text-text-secondary text-sm mb-5"
@@ -459,27 +468,22 @@ export default function FormBuilder() {
                             color: "var(--text-primary)",
                           }}
                         />
-                        <select
+                        <IonSelect
                           value={field.type}
-                          onChange={(e) =>
+                          onIonChange={(e: any) =>
                             updateField(field.key, {
-                              type: e.target
+                              type: e.detail
                                 .value as FormFieldDefinition["type"],
                             })
                           }
-                          className="px-2 py-1.5 rounded-lg text-xs"
-                          style={{
-                            backgroundColor: "var(--card)",
-                            color: "var(--text-secondary)",
-                            border: "1px solid var(--border)",
-                          }}
+                          interface="popover"
                         >
                           {FIELD_TYPES.map((ft) => (
-                            <option key={ft.value} value={ft.value}>
+                            <IonSelectOption value={ft.value}>
                               {ft.label}
-                            </option>
+                            </IonSelectOption>
                           ))}
-                        </select>
+                        </IonSelect>
                         <button
                           onClick={() => toggleRequired(field.key)}
                           style={{
@@ -520,26 +524,21 @@ export default function FormBuilder() {
                           <label className="text-xs text-text-tertiary flex-shrink-0">
                             Entité cible
                           </label>
-                          <select
+                          <IonSelect
                             value={field.referenceEntityType ?? "member"}
-                            onChange={(e) =>
+                            onIonChange={(e: any) =>
                               updateField(field.key, {
-                                referenceEntityType: e.target.value,
+                                referenceEntityType: e.detail.value,
                               })
                             }
-                            className="px-2 py-1.5 rounded-lg text-xs"
-                            style={{
-                              backgroundColor: "var(--card)",
-                              color: "var(--text-secondary)",
-                              border: "1px solid var(--border)",
-                            }}
+                            interface="popover"
                           >
                             {REFERENCE_ENTITY_TYPES.map((et) => (
-                              <option key={et} value={et}>
+                              <IonSelectOption value={et}>
                                 {et}
-                              </option>
+                              </IonSelectOption>
                             ))}
-                          </select>
+                          </IonSelect>
                         </div>
                       )}
                       <div className="grid grid-cols-2 gap-2 mb-1">

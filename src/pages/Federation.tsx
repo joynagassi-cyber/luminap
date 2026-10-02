@@ -20,6 +20,8 @@ import {
   IonToolbar,
   IonButtons,
   IonBackButton,
+  IonSelect,
+  IonSelectOption,
 } from "@ionic/react";
 import {
   Network,
@@ -308,9 +310,9 @@ export default function Federation() {
               <Plus className="w-4 h-4" /> Créer une organisation
             </button>
 
-            {/* Create form — contrôles natifs : les IonSelect ouvrent un
-                picker blanc vide sous React 19 (enfants non rendus), illisible
-                pour sélectionner. Le <select> natif garantit les options. */}
+            {/* Converti en IonSelect (popover) : l'ancien commentaire justifiait
+                un <select> natif (picker IonSelect illisible sous React 19) ;
+                le popover Ionic rend bien les options. */}
             {showCreate && (
               <div
                 className="rounded-xl p-4 mb-4 space-y-4"
@@ -345,23 +347,18 @@ export default function Federation() {
                   >
                     Type d'organisation
                   </label>
-                  <select
+                  <IonSelect
                     id="org-type"
                     data-testid="org-type"
                     value={newType}
-                    onChange={(e) => setNewType(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl text-sm"
-                    style={{
-                      backgroundColor: "var(--card)",
-                      color: "var(--text-primary)",
-                      border: "1px solid var(--border)",
-                    }}
+                    onIonChange={(e: any) => setNewType(e.detail.value)}
+                    interface="popover"
                   >
-                    <option value="CHURCH">Église</option>
-                    <option value="SCHOOL">École</option>
-                    <option value="ENTERPRISE">Entreprise</option>
-                    <option value="CENTRAL">Centrale</option>
-                  </select>
+                    <IonSelectOption value="CHURCH">Église</IonSelectOption>
+                    <IonSelectOption value="SCHOOL">École</IonSelectOption>
+                    <IonSelectOption value="ENTERPRISE">Entreprise</IonSelectOption>
+                    <IonSelectOption value="CENTRAL">Centrale</IonSelectOption>
+                  </IonSelect>
                 </div>
                 <div>
                   <label
@@ -370,25 +367,20 @@ export default function Federation() {
                   >
                     Organisation parente (optionnel)
                   </label>
-                  <select
+                  <IonSelect
                     id="org-parent"
                     data-testid="org-parent"
                     value={newParent}
-                    onChange={(e) => setNewParent(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl text-sm"
-                    style={{
-                      backgroundColor: "var(--card)",
-                      color: "var(--text-primary)",
-                      border: "1px solid var(--border)",
-                    }}
+                    onIonChange={(e: any) => setNewParent(e.detail.value)}
+                    interface="popover"
                   >
-                    <option value="">Aucune (racine)</option>
+                    <IonSelectOption value="">Aucune (racine)</IonSelectOption>
                     {rootOrgs.map((o) => (
-                      <option key={o.id} value={o.id}>
+                      <IonSelectOption value={o.id}>
                         {o.name}
-                      </option>
+                      </IonSelectOption>
                     ))}
-                  </select>
+                  </IonSelect>
                 </div>
                 <button
                   type="button"
@@ -553,26 +545,21 @@ export default function Federation() {
                     {allOrgs.find((o) => o.id === reparentOrg)?.name ?? "chargement…"}
                   </span>
                 </div>
-                <select
+                <IonSelect
                   data-testid="reparent-target"
                   value={reparentTarget}
-                  onChange={(e) => setReparentTarget(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl text-sm"
-                  style={{
-                    backgroundColor: "var(--card)",
-                    color: "var(--text-primary)",
-                    border: "1px solid var(--border)",
-                  }}
+                  onIonChange={(e: any) => setReparentTarget(e.detail.value)}
+                  interface="popover"
                 >
-                  <option value="">Détacher (aucun parent)</option>
+                  <IonSelectOption value="">Détacher (aucun parent)</IonSelectOption>
                   {rootOrgs
                     .filter((o) => o.id !== reparentOrg)
                     .map((o) => (
-                      <option key={o.id} value={o.id}>
+                      <IonSelectOption value={o.id}>
                         {o.name}
-                      </option>
+                      </IonSelectOption>
                     ))}
-                </select>
+                </IonSelect>
                 <div className="flex gap-2">
                   <button
                     type="button"

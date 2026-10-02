@@ -29,7 +29,9 @@ import {
   IonContent,
   IonTitle,
   IonToolbar,
+  IonInput,
 } from "@ionic/react";
+import EmptyState from "@/components/EmptyState";
 
 export default function Archives() {
   const navigate = useNavigate();
@@ -201,16 +203,11 @@ export default function Archives() {
               {/* Search */}
               <div className="relative mb-4">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
-                <input
-                  type="text"
+                {/* M4 */}
+                <IonInput
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onIonChange={(e) => setSearchQuery((e.detail.value as string) ?? "")}
                   placeholder="Rechercher dans les archives..."
-                  className="w-full pl-9 pr-4 py-2.5 rounded-xl text-text-primary text-sm"
-                  style={{
-                    backgroundColor: "var(--surface)",
-                    border: "1px solid var(--border)",
-                  }}
                 />
               </div>
 
@@ -253,22 +250,17 @@ export default function Archives() {
                     className="rounded-xl p-4 mb-4 space-y-3"
                     style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
                   >
-                    <input
-                      type="text"
+                    {/* M4 */}
+                    <IonInput
                       value={docTitle}
-                      onChange={(e) => setDocTitle(e.target.value)}
+                      onIonChange={(e) => setDocTitle((e.detail.value as string) ?? "")}
                       placeholder="Nom du document *"
-                      className="w-full px-4 py-3 rounded-xl text-sm"
-                      style={{ backgroundColor: "var(--surface)", color: "var(--text-primary)", border: "1px solid var(--border)" }}
                       aria-label="Nom du document"
                     />
-                    <input
-                      type="text"
+                    <IonInput
                       value={docPurpose}
-                      onChange={(e) => setDocPurpose(e.target.value)}
+                      onIonChange={(e) => setDocPurpose((e.detail.value as string) ?? "")}
                       placeholder="Objet / à quoi il s'applique (ex: PV assemblée, reçu...)"
-                      className="w-full px-4 py-3 rounded-xl text-sm"
-                      style={{ backgroundColor: "var(--surface)", color: "var(--text-primary)", border: "1px solid var(--border)" }}
                       aria-label="Objet du document"
                     />
                     <label
@@ -307,9 +299,11 @@ export default function Archives() {
                   {/* Liste des documents */}
                   <div className="space-y-2">
                     {documents.length === 0 ? (
-                      <p className="text-center text-text-tertiary text-xs py-4">
-                        Aucun document archivé
-                      </p>
+                      <EmptyState
+                        title="Aucun document archivé"
+                        description="Les documents archivés apparaîtront ici"
+                        icon={<FileText className="w-6 h-6" />}
+                      />
                     ) : (
                       documents.map((doc) => (
                         <div
@@ -406,18 +400,11 @@ export default function Archives() {
                     </button>
                   </div>
                 ) : filtered.length === 0 ? (
-                  <div
-                    className="text-center py-10 rounded-xl"
-                    style={{ backgroundColor: "var(--surface)" }}
-                  >
-                    <Archive className="w-12 h-12 mx-auto mb-4 text-text-tertiary opacity-40" />
-                    <p className="text-text-tertiary text-sm">
-                      Aucun élément archivé
-                    </p>
-                    <p className="text-text-tertiary text-xs mt-1">
-                      Les éléments archivés apparaîtront ici
-                    </p>
-                  </div>
+                  <EmptyState
+                    title="Aucun élément archivé"
+                    description="Les éléments archivés apparaîtront ici"
+                    icon={<Archive className="w-6 h-6" />}
+                  />
                 ) : (
                   filtered.map((item: any) => (
                     <div

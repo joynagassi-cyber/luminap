@@ -24,7 +24,7 @@ import {
   Handshake,
   Receipt,
 } from "lucide-react";
-import { IonPage, IonContent } from "@ionic/react";
+import { IonPage, IonContent, IonInput } from "@ionic/react";
 
 const TABS = [
   { id: "campaigns", label: "Campagnes", icon: Target },
@@ -320,24 +320,17 @@ function GiveSheet({
   }) => Promise<void>;
 }) {
   const [saving, setSaving] = useState(false);
-  const inputStyle = {
-    backgroundColor: "var(--surface)",
-    color: "var(--text-primary)",
-    border: "1px solid var(--border)",
-  } as const;
 
-  if (kind === "donor") return <DonorSheet inputStyle={inputStyle} onClose={onClose} onCreate={onCreateDonor} saving={saving} setSaving={setSaving} />;
-  return <CampaignSheet inputStyle={inputStyle} campaigns={campaigns} onClose={onClose} onCreate={onCreateCampaign} saving={saving} setSaving={setSaving} />;
+  if (kind === "donor") return <DonorSheet onClose={onClose} onCreate={onCreateDonor} saving={saving} setSaving={setSaving} />;
+  return <CampaignSheet campaigns={campaigns} onClose={onClose} onCreate={onCreateCampaign} saving={saving} setSaving={setSaving} />;
 }
 
 function DonorSheet({
-  inputStyle,
   onClose,
   onCreate,
   saving,
   setSaving,
 }: {
-  inputStyle: React.CSSProperties;
   onClose: () => void;
   onCreate: (i: { fullName: string; email?: string; phone?: string; address?: string; taxReceiptEnabled: boolean }) => Promise<void>;
   saving: boolean;
@@ -361,15 +354,16 @@ function DonorSheet({
     <Sheet title="Nouveau donateur" onClose={onClose}>
       <label className="block">
         <span className="text-text-tertiary text-xs uppercase tracking-wide block mb-1">Nom complet</span>
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex : Marie A." className="w-full px-3 py-3 rounded-lg text-sm outline-none" style={inputStyle} data-testid="donor-name" />
+        {/* M4 */}
+        <IonInput value={name} onIonChange={(e) => setName((e.detail.value as string) ?? "")} placeholder="Ex : Marie A." data-testid="donor-name" />
       </label>
       <label className="block">
         <span className="text-text-tertiary text-xs uppercase tracking-wide block mb-1">Email</span>
-        <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@…" className="w-full px-3 py-3 rounded-lg text-sm outline-none" style={inputStyle} />
+        <IonInput value={email} onIonChange={(e) => setEmail((e.detail.value as string) ?? "")} placeholder="email@…" />
       </label>
       <label className="block">
         <span className="text-text-tertiary text-xs uppercase tracking-wide block mb-1">Téléphone</span>
-        <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+225 …" className="w-full px-3 py-3 rounded-lg text-sm outline-none" style={inputStyle} />
+        <IonInput value={phone} onIonChange={(e) => setPhone((e.detail.value as string) ?? "")} placeholder="+225 …" />
       </label>
       <button
         onClick={() => setTax(!tax)}
@@ -388,14 +382,12 @@ function DonorSheet({
 }
 
 function CampaignSheet({
-  inputStyle,
   campaigns,
   onClose,
   onCreate,
   saving,
   setSaving,
 }: {
-  inputStyle: React.CSSProperties;
   campaigns: Array<{ id: string; name: string }>;
   onClose: () => void;
   onCreate: (i: { name: string; purpose?: string; fund?: string; target: string }) => Promise<void>;
@@ -421,19 +413,20 @@ function CampaignSheet({
     <Sheet title="Nouvelle campagne" onClose={onClose}>
       <label className="block">
         <span className="text-text-tertiary text-xs uppercase tracking-wide block mb-1">Nom</span>
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex : Fonds mission 2026" className="w-full px-3 py-3 rounded-lg text-sm outline-none" style={inputStyle} data-testid="campaign-name" />
+        {/* M4 */}
+        <IonInput value={name} onIonChange={(e) => setName((e.detail.value as string) ?? "")} placeholder="Ex : Fonds mission 2026" data-testid="campaign-name" />
       </label>
       <label className="block">
         <span className="text-text-tertiary text-xs uppercase tracking-wide block mb-1">But</span>
-        <input value={purpose} onChange={(e) => setPurpose(e.target.value)} placeholder="Objectif de la campagne" className="w-full px-3 py-3 rounded-lg text-sm outline-none" style={inputStyle} />
+        <IonInput value={purpose} onIonChange={(e) => setPurpose((e.detail.value as string) ?? "")} placeholder="Objectif de la campagne" />
       </label>
       <label className="block">
         <span className="text-text-tertiary text-xs uppercase tracking-wide block mb-1">Fonds / caisse</span>
-        <input value={fund} onChange={(e) => setFund(e.target.value)} placeholder="Ex : Caisse mission" className="w-full px-3 py-3 rounded-lg text-sm outline-none" style={inputStyle} />
+        <IonInput value={fund} onIonChange={(e) => setFund((e.detail.value as string) ?? "")} placeholder="Ex : Caisse mission" />
       </label>
       <label className="block">
         <span className="text-text-tertiary text-xs uppercase tracking-wide block mb-1">Objectif (FCFA)</span>
-        <input type="number" inputMode="numeric" value={target} onChange={(e) => setTarget(e.target.value)} placeholder="Ex : 5000000" className="w-full px-3 py-3 rounded-lg text-sm outline-none" style={inputStyle} data-testid="campaign-target" />
+        <IonInput type="number" value={target} onIonChange={(e) => setTarget((e.detail.value as string) ?? "")} placeholder="Ex : 5000000" data-testid="campaign-target" />
       </label>
       <PrimaryButton onClick={submit} disabled={saving || !name.trim()} label={saving ? "Création…" : "Créer la campagne"} />
     </Sheet>

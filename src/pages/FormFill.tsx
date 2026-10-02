@@ -18,6 +18,7 @@ import {
   useCurrentUser,
 } from "@/lib/dataLayer";
 import { getOrganizationId } from "@/lib/orgContext";
+import { useKeyboardAvoidance } from "@/hooks/useKeyboardAvoidance";
 import { notification } from "@/capabilities/notification";
 import type { FormDefinition, FormFieldDefinition } from "@/types";
 import {
@@ -28,6 +29,8 @@ import {
   IonToolbar,
   IonInput,
   IonButton,
+  IonSelect,
+  IonSelectOption,
 } from "@ionic/react";
 
 function ReferenceSelect({
@@ -63,28 +66,25 @@ function ReferenceSelect({
     return e?.id ?? String(e);
   };
   return (
-    <select
+    <IonSelect
       value={data[field.key] ?? ""}
-      onChange={(e) => onChange(field.key, e.target.value)}
-      className="w-full px-4 py-3 rounded-xl text-text-primary text-sm  appearance-none"
-      style={{
-        backgroundColor: "var(--surface)",
-        border: "1px solid var(--border)",
-      }}
+      onIonChange={(e: any) => onChange(field.key, e.detail.value)}
+      interface="popover"
     >
-      <option value="">— Sélectionner —</option>
+      <IonSelectOption value="">— Sélectionner —</IonSelectOption>
       {(Array.isArray(entities) ? entities : []).map((e: any, i: number) => (
-        <option key={e?.id ?? i} value={e?.id ?? i}>
+        <IonSelectOption value={e?.id ?? i}>
           {labelOf(e)}
-        </option>
+        </IonSelectOption>
       ))}
-    </select>
+    </IonSelect>
   );
 }
 
 export default function FormFill() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const keyboardHeight = useKeyboardAvoidance();
   // T2 Forms v2 — soumetteur réel : useCurrentUser ne renvoie jamais null
   // (repli synchrone `id: "local-user"`), le `?? "local-user"` est un garde-fou.
   const currentUser = useCurrentUser();
@@ -208,7 +208,12 @@ export default function FormFill() {
     <IonPage>
       <IonContent className="bg-canvas">
         <TopHeader title={form.name} />
-        <div className="px-5 pt-safe-calc pb-safe-calc max-w-lg mx-auto">
+        <div
+          className="px-5 pt-safe-calc pb-safe-calc max-w-lg mx-auto"
+          style={{
+            paddingBottom: keyboardHeight > 0 ? `${keyboardHeight}px` : undefined,
+          }}
+        >
             <button
               onClick={() => navigate(-1)}
               className="flex items-center gap-2 text-text-secondary text-sm mb-5"
@@ -262,40 +267,32 @@ export default function FormFill() {
                       )}
                     </label>
                     {field.type === "boolean" ? (
-                      <select
+                      <IonSelect
                         value={data[field.key] ?? ""}
-                        onChange={(e) =>
-                          handleChange(field.key, e.target.value === "true")
+                        onIonChange={(e: any) =>
+                          handleChange(field.key, e.detail.value === "true")
                         }
-                        className="w-full px-4 py-3 rounded-xl text-text-primary text-sm  appearance-none"
-                        style={{
-                          backgroundColor: "var(--surface)",
-                          border: "1px solid var(--border)",
-                        }}
+                        interface="popover"
                       >
-                        <option value="">— Sélectionner —</option>
-                        <option value="true">Oui</option>
-                        <option value="false">Non</option>
-                      </select>
+                        <IonSelectOption value="">— Sélectionner —</IonSelectOption>
+                        <IonSelectOption value="true">Oui</IonSelectOption>
+                        <IonSelectOption value="false">Non</IonSelectOption>
+                      </IonSelect>
                     ) : field.type === "select" && field.options ? (
-                      <select
+                      <IonSelect
                         value={data[field.key] ?? ""}
-                        onChange={(e) =>
-                          handleChange(field.key, e.target.value)
+                        onIonChange={(e: any) =>
+                          handleChange(field.key, e.detail.value)
                         }
-                        className="w-full px-4 py-3 rounded-xl text-text-primary text-sm  appearance-none"
-                        style={{
-                          backgroundColor: "var(--surface)",
-                          border: "1px solid var(--border)",
-                        }}
+                        interface="popover"
                       >
-                        <option value="">— Sélectionner —</option>
+                        <IonSelectOption value="">— Sélectionner —</IonSelectOption>
                         {field.options.map((opt) => (
-                          <option key={opt} value={opt}>
+                          <IonSelectOption value={opt}>
                             {opt}
-                          </option>
+                          </IonSelectOption>
                         ))}
-                      </select>
+                      </IonSelect>
                     ) : field.type === "textarea" ? (
                       <textarea
                         value={data[field.key] ?? ""}

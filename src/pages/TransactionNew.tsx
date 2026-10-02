@@ -36,6 +36,9 @@ import {
   IonSpinner,
   IonSelect,
   IonSelectOption,
+  IonItem,
+  IonLabel,
+  IonTextarea,
 } from "@ionic/react";
 
 export default function TransactionNew() {
@@ -245,10 +248,16 @@ export default function TransactionNew() {
             </div>
 
             {/* Amount */}
-            <div className="mb-5">
-              <label className="text-text-tertiary text-xs mb-2 block">
-                Montant (FCFA)
-              </label>
+            <IonItem
+              lines="none"
+              className="mb-5 bg-card rounded-xl"
+              style={
+                fieldErrors.amount
+                  ? { border: "1px solid var(--data-expense)" }
+                  : undefined
+              }
+            >
+              <IonLabel position="floating">Montant (FCFA)</IonLabel>
               <IonInput
                 ref={amountRef}
                 type="number"
@@ -261,13 +270,7 @@ export default function TransactionNew() {
                   handleAmountChange((e.detail.value as string) ?? "")
                 }
                 placeholder="0"
-                style={{
-                  backgroundColor: "var(--surface)",
-                  color: "var(--text-primary)",
-                  border: fieldErrors.amount
-                    ? "1px solid var(--data-expense)"
-                    : "1px solid var(--surface-hover)",
-                }}
+                slot="input"
               />
               {fieldErrors.amount && (
                 <p
@@ -277,13 +280,11 @@ export default function TransactionNew() {
                   {fieldErrors.amount}
                 </p>
               )}
-            </div>
+            </IonItem>
 
             {/* Description */}
-            <div className="mb-5">
-              <label className="text-text-tertiary text-xs mb-2 block">
-                Description
-              </label>
+            <IonItem lines="none" className="mb-5 bg-card rounded-xl">
+              <IonLabel position="floating">Description</IonLabel>
               <IonInput
                 type="text"
                 aria-label="Description"
@@ -292,47 +293,30 @@ export default function TransactionNew() {
                   setDescription((e.detail.value as string) ?? "")
                 }
                 placeholder="Ex: Dîme du mois"
-                style={{
-                  backgroundColor: "var(--surface)",
-                  color: "var(--text-primary)",
-                  border: "1px solid var(--border)",
-                }}
+                slot="input"
               />
-            </div>
+            </IonItem>
 
             {/* Date */}
-            <div className="mb-5">
-              <label className="text-text-tertiary text-xs mb-2 block">
-                Date
-              </label>
+            <IonItem lines="none" className="mb-5 bg-card rounded-xl">
+              <IonLabel position="floating">Date</IonLabel>
               <IonInput
                 type="date"
                 aria-label="Date"
                 value={date}
                 onIonChange={(e) => setDate((e.detail.value as string) ?? "")}
-                style={{
-                  backgroundColor: "var(--surface)",
-                  color: "var(--text-primary)",
-                  border: "1px solid var(--border)",
-                }}
+                slot="input"
               />
-            </div>
+            </IonItem>
 
             {/* Category */}
-            <div className="mb-5">
-              <label className="text-text-tertiary text-xs mb-2 block">
-                Catégorie
-              </label>
+            <IonItem lines="none" className="mb-5 bg-card rounded-xl">
+              <IonLabel position="floating">Catégorie</IonLabel>
               <IonSelect
                 aria-label="Catégorie"
                 value={categoryId}
                 onIonChange={(e) => setCategoryId(e.detail.value)}
-                className="w-full px-4 py-3 rounded-xl text-sm "
-                style={{
-                  backgroundColor: "var(--surface)",
-                  color: "var(--text-primary)",
-                  border: "1px solid var(--border)",
-                }}
+                slot="input"
               >
                 <IonSelectOption value="">
                   Sélectionner une catégorie
@@ -343,23 +327,16 @@ export default function TransactionNew() {
                   </IonSelectOption>
                 ))}
               </IonSelect>
-            </div>
+            </IonItem>
 
             {/* Source */}
-            <div className="mb-5">
-              <label className="text-text-tertiary text-xs mb-2 block">
-                Source
-              </label>
+            <IonItem lines="none" className="mb-5 bg-card rounded-xl">
+              <IonLabel position="floating">Source</IonLabel>
               <IonSelect
                 aria-label="Source"
                 value={source}
                 onIonChange={(e) => setSource(e.detail.value as any)}
-                className="w-full px-4 py-3 rounded-xl text-sm "
-                style={{
-                  backgroundColor: "var(--surface)",
-                  color: "var(--text-primary)",
-                  border: "1px solid var(--border)",
-                }}
+                slot="input"
               >
                 <IonSelectOption value="CAISSE">Caisse</IonSelectOption>
                 <IonSelectOption value="COTISATION">
@@ -368,24 +345,17 @@ export default function TransactionNew() {
                 <IonSelectOption value="PERSONNE">Personne</IonSelectOption>
                 <IonSelectOption value="AUTRE">Autre</IonSelectOption>
               </IonSelect>
-            </div>
+            </IonItem>
 
             {/* Caisse */}
             {source === "CAISSE" && (
-              <div className="mb-5">
-                <label className="text-text-tertiary text-xs mb-2 block">
-                  Caisse
-                </label>
+              <IonItem lines="none" className="mb-5 bg-card rounded-xl">
+                <IonLabel position="floating">Caisse</IonLabel>
                 <IonSelect
                   aria-label="Caisse"
                   value={sourceCaisseId}
                   onIonChange={(e) => setSourceCaisseId(e.detail.value)}
-                  className="w-full px-4 py-3 rounded-xl text-sm "
-                  style={{
-                    backgroundColor: "var(--surface)",
-                    color: "var(--text-primary)",
-                    border: "1px solid var(--border)",
-                  }}
+                  slot="input"
                 >
                   {caisses.map((c: any) => (
                     <IonSelectOption key={c.id} value={c.id}>
@@ -393,15 +363,13 @@ export default function TransactionNew() {
                     </IonSelectOption>
                   ))}
                 </IonSelect>
-              </div>
+              </IonItem>
             )}
 
             {/* Person name */}
             {source === "PERSONNE" && (
-              <div className="mb-5">
-                <label className="text-text-tertiary text-xs mb-2 block">
-                  Nom de la personne
-                </label>
+              <IonItem lines="none" className="mb-5 bg-card rounded-xl">
+                <IonLabel position="floating">Nom de la personne</IonLabel>
                 <IonInput
                   type="text"
                   aria-label="Nom de la personne"
@@ -410,30 +378,19 @@ export default function TransactionNew() {
                     setPersonName((e.detail.value as string) ?? "")
                   }
                   placeholder="Nom de la personne"
-                  style={{
-                    backgroundColor: "var(--surface)",
-                    color: "var(--text-primary)",
-                    border: "1px solid var(--border)",
-                  }}
+                  slot="input"
                 />
-              </div>
+              </IonItem>
             )}
 
             {/* Event */}
-            <div className="mb-5">
-              <label className="text-text-tertiary text-xs mb-2 block">
-                Événement (optionnel)
-              </label>
+            <IonItem lines="none" className="mb-5 bg-card rounded-xl">
+              <IonLabel position="floating">Événement</IonLabel>
               <IonSelect
                 aria-label="Événement"
                 value={eventId}
                 onIonChange={(e) => setEventId(e.detail.value)}
-                className="w-full px-4 py-3 rounded-xl text-sm "
-                style={{
-                  backgroundColor: "var(--surface)",
-                  color: "var(--text-primary)",
-                  border: "1px solid var(--border)",
-                }}
+                slot="input"
               >
                 <IonSelectOption value="">
                   Aucun événement
@@ -444,27 +401,22 @@ export default function TransactionNew() {
                   </IonSelectOption>
                 ))}
               </IonSelect>
-            </div>
+            </IonItem>
 
             {/* Comment */}
-            <div className="mb-6">
-              <label className="text-text-tertiary text-xs mb-2 block">
-                Commentaire (optionnel)
-              </label>
-              <textarea
+            <IonItem lines="none" className="mb-6 bg-card rounded-xl">
+              <IonLabel position="floating">Commentaire</IonLabel>
+              <IonTextarea
                 aria-label="Commentaire"
                 value={comment}
-                onChange={(e) => setComment(e.target.value)}
+                onIonChange={(e) =>
+                  setComment((e.detail.value as string) ?? "")
+                }
                 placeholder="Ajouter un commentaire..."
                 rows={3}
-                className="w-full px-4 py-3 rounded-xl text-sm  resize-none"
-                style={{
-                  backgroundColor: "var(--surface)",
-                  color: "var(--text-primary)",
-                  border: "1px solid var(--border)",
-                }}
+                slot="input"
               />
-            </div>
+            </IonItem>
 
             {/* Preuve photo de la dépense (Sortie uniquement) */}
             {type === "EXPENSE" && (

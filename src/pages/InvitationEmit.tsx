@@ -37,6 +37,7 @@ import {
   FileDown,
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
+import { useKeyboardAvoidance } from "@/hooks/useKeyboardAvoidance";
 import { useMembers, useGroups } from "@/lib/dataLayer";
 import { useCurrentUser } from "@/lib/dataLayer";
 import {
@@ -61,6 +62,7 @@ const ROLES = [
 
 export default function InvitationEmit() {
   const navigate = useNavigate();
+  const keyboardHeight = useKeyboardAvoidance();
   const location = useLocation();
   const user = useCurrentUser();
   const { data: psMembers } = useMembers();
@@ -238,7 +240,12 @@ export default function InvitationEmit() {
         {/* M9 — TopHeader supprimé : la barre IonHeader (back + « Gérer »)
             porte déjà le contexte ; un 2ᵉ chrome 64px en double coquin. */}
         <div className="min-h-screen bg-canvas">
-          <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
+          <div
+            className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc"
+            style={{
+              paddingBottom: keyboardHeight > 0 ? `${keyboardHeight}px` : undefined,
+            }}
+          >
             {step === "configure" ? (
               <div className="space-y-6">
                 {/* Role selection */}

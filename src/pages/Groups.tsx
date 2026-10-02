@@ -15,6 +15,8 @@ import {
   IonContent,
   IonTitle,
   IonToolbar,
+  IonSelect,
+  IonSelectOption,
 } from "@ionic/react";
 
 const COLOR_PALETTE = [
@@ -231,22 +233,17 @@ export default function Groups() {
                       border: "1px solid var(--border)",
                     }}
                   />
-                  <select
+                  <IonSelect
                     value={createType}
-                    onChange={(e) => setCreateType(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl text-sm"
-                    style={{
-                      backgroundColor: "var(--card)",
-                      color: "var(--text-primary)",
-                      border: "1px solid var(--border)",
-                    }}
+                    onIonChange={(e: any) => setCreateType(e.detail.value)}
+                    interface="popover"
                   >
                     {GROUP_TYPES.map((t) => (
-                      <option key={t} value={t}>
+                      <IonSelectOption value={t}>
                         {t.charAt(0).toUpperCase() + t.slice(1)}
-                      </option>
+                      </IonSelectOption>
                     ))}
-                  </select>
+                  </IonSelect>
                   <textarea
                     value={createDesc}
                     onChange={(e) => setCreateDesc(e.target.value)}

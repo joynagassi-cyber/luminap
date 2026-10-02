@@ -97,6 +97,19 @@ export function getStatusColor(status: Transaction["status"]): string {
   return colors[status];
 }
 
+/** Palette des graphiques financiers — pointeurs sur les tokens CSS
+ *  invariants (DESIGN.md §2), jamais hardcodés en hex dans les composants. */
+export const CHART_COLORS = {
+  income: "var(--data-income)",
+  expense: "var(--data-expense)",
+  pending: "var(--data-pending)",
+  planified: "var(--data-planified)",
+  advance: "var(--data-advance)",
+  pink: "var(--data-pink)",
+  exhausted: "var(--data-exhausted)",
+  success: "var(--data-success)",
+} as const;
+
 /**
  * Tint a colour to `opacity`% strength, returning a valid CSS colour value.
  *

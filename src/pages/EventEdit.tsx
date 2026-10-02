@@ -4,6 +4,7 @@ import { useEvents, useCategories, updateEventPS } from "@/lib/dataLayer";
 import { ArrowLeft } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
+import { useKeyboardAvoidance } from "@/hooks/useKeyboardAvoidance";
 import { getOrganizationId } from "@/lib/orgContext";
 import type { Event } from "@/types";
 import {
@@ -12,11 +13,14 @@ import {
   IonContent,
   IonTitle,
   IonToolbar,
+  IonSelect,
+  IonSelectOption,
 } from "@ionic/react";
 
 export default function EventEdit() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const keyboardHeight = useKeyboardAvoidance();
 
   // PowerSync with fallback
   const { data: psEvents, isLoading: psLoading } = useEvents();
@@ -96,7 +100,12 @@ export default function EventEdit() {
       <IonContent className="bg-canvas">
         <div className="min-h-screen bg-canvas">
           <TopHeader title="Modifier l'événement" />
-          <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
+          <div
+            className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc"
+            style={{
+              paddingBottom: keyboardHeight > 0 ? `${keyboardHeight}px` : undefined,
+            }}
+          >
             <button
               onClick={() => navigate(-1)}
               className="flex items-center gap-2 text-text-secondary text-sm mb-5"
@@ -207,21 +216,16 @@ export default function EventEdit() {
                 <label className="text-text-tertiary text-xs mb-2 block">
                   Statut
                 </label>
-                <select
+                <IonSelect
                   value={status}
-                  onChange={(e) => setStatus(e.target.value as any)}
-                  className="w-full px-4 py-3 rounded-xl text-sm"
-                  style={{
-                    backgroundColor: "var(--surface)",
-                    color: "var(--text-primary)",
-                    border: "1px solid var(--border)",
-                  }}
+                  onIonChange={(e: any) => setStatus(e.detail.value as any)}
+                  interface="popover"
                 >
-                  <option value="PLANIFIED">Planifié</option>
-                  <option value="ONGOING">En cours</option>
-                  <option value="COMPLETED">Terminé</option>
-                  <option value="CANCELLED">Annulé</option>
-                </select>
+                  <IonSelectOption value="PLANIFIED">Planifié</IonSelectOption>
+                  <IonSelectOption value="ONGOING">En cours</IonSelectOption>
+                  <IonSelectOption value="COMPLETED">Terminé</IonSelectOption>
+                  <IonSelectOption value="CANCELLED">Annulé</IonSelectOption>
+                </IonSelect>
               </div>
 
               <div>

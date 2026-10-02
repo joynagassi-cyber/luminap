@@ -8,6 +8,8 @@ interface EmptyStateProps {
   description: string;
   actionLabel?: string;
   onAction?: () => void;
+  /** Attribut passé au conteneur (ex: data-testid conservé d'un état vide legacy). */
+  "data-testid"?: string;
 }
 
 export default function EmptyState({
@@ -16,9 +18,13 @@ export default function EmptyState({
   description,
   actionLabel,
   onAction,
+  "data-testid": testid,
 }: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+    <div
+      className="flex flex-col items-center justify-center py-16 px-6 text-center"
+      data-testid={testid}
+    >
       {icon ? (
         <div className="w-16 h-16 mb-4 text-text-tertiary">{icon}</div>
       ) : (

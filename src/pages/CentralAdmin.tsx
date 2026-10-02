@@ -24,6 +24,9 @@ import {
   IonBackButton,
   IonSpinner,
   IonBadge,
+  IonSelect,
+  IonSelectOption,
+  IonInput,
 } from "@ionic/react";
 import {
   Building2,
@@ -42,6 +45,7 @@ import {
 } from "lucide-react";
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
+import EmptyState from "@/components/EmptyState";
 import { useCurrentUser } from "@/lib/dataLayer";
 import { tint } from "@/lib/utils";
 import {
@@ -263,7 +267,11 @@ function OrgDetail({ orgId, onBack }: { orgId: string; onBack: () => void }) {
           <span className="text-text-primary font-semibold text-sm">Liste des admins</span>
         </div>
         {admins.length === 0 ? (
-          <p className="text-text-tertiary text-sm py-3 text-center">Aucun administrateur</p>
+          <EmptyState
+            title="Aucun administrateur"
+            description="Les admins actifs de cette organisation apparaîtront ici"
+            icon={<UserCheck className="w-6 h-6" />}
+          />
         ) : (
           <div className="space-y-2">
             {admins.filter((a) => a.status === "ACTIVE").map((admin) => (
@@ -311,30 +319,27 @@ function OrgDetail({ orgId, onBack }: { orgId: string; onBack: () => void }) {
           </span>
         </div>
         {candidates.length === 0 ? (
-          <p className="text-text-tertiary text-sm py-2 text-center">
-            Aucun profil éligible (tous les membres sont déjà admins actifs)
-          </p>
+          <EmptyState
+            title="Aucun profil éligible"
+            description="Tous les membres sont déjà admins actifs"
+            icon={<Users className="w-6 h-6" />}
+          />
         ) : (
           <div className="space-y-3">
-            <select
+            <IonSelect
               data-testid="delegate-candidate"
               value={delegated}
-              onChange={(e) => setDelegated(e.target.value)}
-              className="w-full px-3 py-2.5 rounded-xl text-sm"
-              style={{
-                backgroundColor: "var(--card)",
-                color: "var(--text-primary)",
-                border: "1px solid var(--border)",
-              }}
+              onIonChange={(e: any) => setDelegated(e.detail.value)}
+              interface="popover"
             >
-              <option value="">Choisir un profil…</option>
+              <IonSelectOption value="">Choisir un profil…</IonSelectOption>
               {candidates.map((c) => (
-                <option key={c.id} value={c.id}>
+                <IonSelectOption value={c.id}>
                   {c.displayName}
                   {c.email ? ` (${c.email})` : ""}
-                </option>
+                </IonSelectOption>
               ))}
-            </select>
+            </IonSelect>
             <IonButton
               expand="block"
               color="primary"
@@ -359,9 +364,11 @@ function OrgDetail({ orgId, onBack }: { orgId: string; onBack: () => void }) {
           <span className="text-text-primary font-semibold text-sm">Activité récente</span>
         </div>
         {activity.length === 0 ? (
-          <p className="text-text-tertiary text-sm py-4 text-center">
-            Aucune activité enregistrée
-          </p>
+          <EmptyState
+            title="Aucune activité enregistrée"
+            description="Les actions récentes de cette organisation apparaîtront ici"
+            icon={<History className="w-6 h-6" />}
+          />
         ) : (
           activity.map((a) => (
             <div
@@ -601,9 +608,11 @@ export default function CentralAdmin() {
                 </p>
 
                 {managedOrgs && managedOrgs.length === 0 ? (
-                  <p className="text-text-tertiary text-sm py-6 text-center">
-                    Aucune organisation gérée pour le moment.
-                  </p>
+                  <EmptyState
+                    title="Aucune organisation gérée"
+                    description="Aucune organisation gérée pour le moment"
+                    icon={<Building2 className="w-6 h-6" />}
+                  />
                 ) : (
                   <div className="space-y-3">
                     {(managedOrgs ?? []).map((o) => (
@@ -685,17 +694,13 @@ export default function CentralAdmin() {
                           {o.status !== "ARCHIVED" && (
                             archiveTarget === o.id ? (
                               <div className="flex items-center gap-1.5 mt-2 w-full">
-                                <input
+                                {/* M4 */}
+                                <IonInput
                                   data-testid="archive-reason"
                                   value={archiveReason}
-                                  onChange={(e) => setArchiveReason(e.target.value)}
+                                  onIonChange={(e) => setArchiveReason((e.detail.value as string) ?? "")}
                                   placeholder="Raison (optionnel)"
-                                  className="flex-1 min-w-0 px-2 py-1.5 rounded-lg text-xs"
-                                  style={{
-                                    backgroundColor: "var(--card)",
-                                    color: "var(--text-primary)",
-                                    border: "1px solid var(--border)",
-                                  }}
+                                  className="flex-1 min-w-0"
                                 />
                                 <button
                                   type="button"

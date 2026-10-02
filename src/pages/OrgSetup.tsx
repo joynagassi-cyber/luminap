@@ -21,6 +21,7 @@ import {
   IonContent,
   IonTitle,
   IonToolbar,
+  IonInput,
 } from "@ionic/react";
 import ThemePicker from "@/components/ThemePicker";
 import { LUMINA_THEMES, applyTheme } from "@/ionic/themes";
@@ -223,12 +224,11 @@ export default function OrgSetup() {
                 <span className="text-sm text-text-secondary mb-1.5 block">
                   Nom complet de l'organisation
                 </span>
-                <input
+                {/* M4 */}
+                <IonInput
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onIonChange={(e) => setName((e.detail.value as string) ?? "")}
                   placeholder="Église MFE-JC Centrale"
-                  className="w-full bg-surface border border-border rounded-xl px-4 py-3.5 text-text-primary text-lg font-semibold placeholder-[var(--text-placeholder)] focus:outline-none transition-colors"
-                  style={{ borderColor: canCreate ? "var(--accent-primary)" : "var(--border)" }}
                 />
               </label>
               <label className="block mb-6">
@@ -238,11 +238,10 @@ export default function OrgSetup() {
                     (affiché dans les menus, le nom complet reste dans les rapports)
                   </span>
                 </span>
-                <input
+                <IonInput
                   value={sigle}
-                  onChange={(e) => setSigle(e.target.value.toUpperCase().slice(0, 12))}
+                  onIonChange={(e) => setSigle(((e.detail.value as string) ?? "").toUpperCase().slice(0, 12))}
                   placeholder="MFE"
-                  className="w-full bg-surface border border-border rounded-xl px-4 py-3 font-mono text-lg tracking-[0.3em] text-text-primary placeholder-[var(--text-placeholder)] focus:outline-none"
                 />
               </label>
 

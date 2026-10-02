@@ -23,6 +23,7 @@ import {
   IonPage,
   IonContent,
   IonInfiniteScroll,
+  IonInput,
 } from "@ionic/react";
 
 export default function MembersPage() {
@@ -180,18 +181,12 @@ export default function MembersPage() {
             {/* Search */}
             <div className="relative mb-4">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
-              <input
-                type="text"
+              {/* M4 */}
+              <IonInput
                 aria-label="Rechercher un membre"
                 placeholder="Rechercher un membre..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 rounded-xl text-sm"
-                style={{
-                  backgroundColor: "var(--surface)",
-                  color: "var(--text-primary)",
-                  border: "1px solid var(--border)",
-                }}
+                onIonChange={(e) => setSearchQuery((e.detail.value as string) ?? "")}
               />
             </div>
 
@@ -209,62 +204,37 @@ export default function MembersPage() {
                 </h3>
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-3">
-                    <input
-                      type="text"
+                    {/* M4 */}
+                    <IonInput
                       aria-label="Prénom"
                       autoComplete="given-name"
                       placeholder="Prénom"
                       value={firstName}
-                      onChange={(e) => setFirstName(e.target.value)}
-                      className="px-4 py-3 rounded-xl text-sm"
-                      style={{
-                        backgroundColor: "var(--card)",
-                        color: "var(--text-primary)",
-                        border: "1px solid var(--border)",
-                      }}
+                      onIonChange={(e) => setFirstName((e.detail.value as string) ?? "")}
                     />
-                    <input
-                      type="text"
+                    <IonInput
                       aria-label="Nom"
                       autoComplete="family-name"
                       placeholder="Nom"
                       value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
-                      className="px-4 py-3 rounded-xl text-sm"
-                      style={{
-                        backgroundColor: "var(--card)",
-                        color: "var(--text-primary)",
-                        border: "1px solid var(--border)",
-                      }}
+                      onIonChange={(e) => setLastName((e.detail.value as string) ?? "")}
                     />
                   </div>
-                  <input
+                  <IonInput
                     type="tel"
                     aria-label="Téléphone"
                     autoComplete="tel"
                     placeholder="Téléphone"
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl text-sm"
-                    style={{
-                      backgroundColor: "var(--card)",
-                      color: "var(--text-primary)",
-                      border: "1px solid var(--border)",
-                    }}
+                    onIonChange={(e) => setPhone((e.detail.value as string) ?? "")}
                   />
-                  <input
+                  <IonInput
                     type="email"
                     aria-label="Email"
                     autoComplete="email"
                     placeholder="Email (optionnel)"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl text-sm"
-                    style={{
-                      backgroundColor: "var(--card)",
-                      color: "var(--text-primary)",
-                      border: "1px solid var(--border)",
-                    }}
+                    onIonChange={(e) => setEmail((e.detail.value as string) ?? "")}
                   />
                   <div className="flex gap-2">
                     <button

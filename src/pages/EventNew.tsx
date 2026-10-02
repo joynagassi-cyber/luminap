@@ -22,6 +22,8 @@ import {
   IonBackButton,
   IonInput,
   IonButton,
+  IonSelect,
+  IonSelectOption,
 } from "@ionic/react";
 
 const DEFAULT_BUDGET_ITEMS = [
@@ -342,19 +344,14 @@ export default function EventNew() {
             <label className="text-text-tertiary text-xs mb-2 block">
               Statut
             </label>
-            <select
+            <IonSelect
               value={status}
-              onChange={(e) => setStatus(e.target.value as any)}
-              className="w-full px-4 py-3 rounded-xl text-sm"
-              style={{
-                backgroundColor: "var(--surface)",
-                color: "var(--text-primary)",
-                border: "1px solid var(--border)",
-              }}
+              onIonChange={(e: any) => setStatus(e.detail.value as any)}
+              interface="popover"
             >
-              <option value="PLANIFIED">Planifié</option>
-              <option value="ONGOING">En cours</option>
-            </select>
+              <IonSelectOption value="PLANIFIED">Planifié</IonSelectOption>
+              <IonSelectOption value="ONGOING">En cours</IonSelectOption>
+            </IonSelect>
           </div>
 
           {/* Budget */}

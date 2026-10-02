@@ -4,6 +4,7 @@ import SettingsShell from "@/components/SettingsShell";
 import { useAppConfig } from "@/lib/dataLayer";
 import { uploadLuminaFile } from "@/lib/storageService";
 import { supabase } from "@/integrations/supabase/client";
+import { IonInput } from "@ionic/react";
 
 export default function SettingsPersonalisation() {
   const { config, updateConfig } = useAppConfig();
@@ -70,20 +71,16 @@ export default function SettingsPersonalisation() {
             >
               Nom de l'organisation
             </label>
-            <input
+            {/* M4 */}
+            <IonInput
               id="org-name"
-              type="text"
               value={churchName}
-              onChange={(e) => {
-                setChurchName(e.target.value);
+              onIonChange={(e) => {
+                const v = (e.detail.value as string) ?? "";
+                setChurchName(v);
                 setDirty(true);
               }}
               placeholder="Ex: Église MFE-JC Centrale de Douala"
-              className="w-full px-4 py-3 rounded-xl text-text-primary text-sm"
-              style={{
-                backgroundColor: "var(--card)",
-                border: "1px solid var(--border)",
-              }}
               data-testid="org-name-input"
             />
             <p className="text-text-tertiary text-[11px] mt-1.5">

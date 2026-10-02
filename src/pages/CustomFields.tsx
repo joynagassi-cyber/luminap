@@ -13,6 +13,8 @@ import {
   IonContent,
   IonTitle,
   IonToolbar,
+  IonSelect,
+  IonSelectOption,
 } from "@ionic/react";
 
 const ENTITY_TYPES = [
@@ -201,21 +203,17 @@ export default function CustomFields() {
                     <label className="text-text-tertiary text-xs mb-1.5 block">
                       Entité
                     </label>
-                    <select
+                    <IonSelect
                       value={entityType}
-                      onChange={(e) => setEntityType(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl text-text-primary text-sm appearance-none"
-                      style={{
-                        backgroundColor: "var(--surface)",
-                        border: "1px solid var(--border)",
-                      }}
+                      onIonChange={(e: any) => setEntityType(e.detail.value)}
+                      interface="popover"
                     >
                       {ENTITY_TYPES.map((t) => (
-                        <option key={t} value={t}>
+                        <IonSelectOption value={t}>
                           {t}
-                        </option>
+                        </IonSelectOption>
                       ))}
-                    </select>
+                    </IonSelect>
                   </div>
                   <div>
                     <label className="text-text-tertiary text-xs mb-1.5 block">

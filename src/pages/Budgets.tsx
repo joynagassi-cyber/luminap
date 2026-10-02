@@ -6,7 +6,8 @@ import { formatCurrencyCompact } from "@/lib/utils";
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
 import { Plus, Target, Wallet, PieChart, X, ChevronRight } from "lucide-react";
-import { IonPage, IonContent } from "@ionic/react";
+import { IonPage, IonContent, IonSelect, IonSelectOption } from "@ionic/react";
+import EmptyState from "@/components/EmptyState";
 
 const PERIODS: Array<{ value: BudgetPeriod; label: string }> = [
   { value: "ANNUAL", label: "Annuel" },
@@ -78,41 +79,38 @@ export default function Budgets() {
 
             {/* Filtres */}
             <div className="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-hide" role="group" aria-label="Filtres budget">
-              <select
+              <IonSelect
                 value={fiscalYear}
-                onChange={(e) => setFiscalYear(Number(e.target.value))}
-                className="px-3 py-2 rounded-xl text-xs font-medium outline-none"
-                style={{ backgroundColor: "var(--surface)", color: "var(--text-primary)", border: "1px solid var(--border)" }}
+                onIonChange={(e: any) => setFiscalYear(Number(e.detail.value))}
+                interface="popover"
                 aria-label="Exercice"
               >
                 {yearOptions.map((y) => (
-                  <option key={y} value={y}>Exercice {y}</option>
+                  <IonSelectOption value={y}>Exercice {y}</IonSelectOption>
                 ))}
-              </select>
-              <select
+              </IonSelect>
+              <IonSelect
                 value={period}
-                onChange={(e) => setPeriod(e.target.value as "" | BudgetPeriod)}
-                className="px-3 py-2 rounded-xl text-xs font-medium outline-none"
-                style={{ backgroundColor: "var(--surface)", color: "var(--text-primary)", border: "1px solid var(--border)" }}
+                onIonChange={(e: any) => setPeriod(e.detail.value as "" | BudgetPeriod)}
+                interface="popover"
                 aria-label="Période"
               >
-                <option value="">Toutes périodes</option>
+                <IonSelectOption value="">Toutes périodes</IonSelectOption>
                 {PERIODS.map((p) => (
-                  <option key={p.value} value={p.value}>{p.label}</option>
+                  <IonSelectOption value={p.value}>{p.label}</IonSelectOption>
                 ))}
-              </select>
-              <select
+              </IonSelect>
+              <IonSelect
                 value={costCenter}
-                onChange={(e) => setCostCenter(e.target.value)}
-                className="px-3 py-2 rounded-xl text-xs font-medium outline-none"
-                style={{ backgroundColor: "var(--surface)", color: "var(--text-primary)", border: "1px solid var(--border)" }}
+                onIonChange={(e: any) => setCostCenter(e.detail.value)}
+                interface="popover"
                 aria-label="Centre de coûts"
               >
-                <option value="all">Tous centres</option>
+                <IonSelectOption value="all">Tous centres</IonSelectOption>
                 {orgUnits.map((u) => (
-                  <option key={u.id} value={u.id}>{u.name}</option>
+                  <IonSelectOption value={u.id}>{u.name}</IonSelectOption>
                 ))}
-              </select>
+              </IonSelect>
             </div>
 
             {/* Résumé */}
@@ -145,13 +143,13 @@ export default function Budgets() {
 
             {/* Liste des budgets */}
             {filtered.length === 0 ? (
-              <div className="rounded-xl p-8 text-center" style={{ backgroundColor: "var(--card)" }} data-testid="budgets-empty">
-                <Target className="w-8 h-8 mx-auto mb-3 opacity-30" style={{ color: "var(--accent-primary)" }} />
-                <p className="text-text-secondary text-sm font-medium">Aucun budget</p>
-                <p className="text-text-tertiary text-xs mt-1">
-                  Créez votre premier budget pour cet exercice et centre de coûts.
-                </p>
-              </div>
+              <EmptyState
+                title="Aucun budget"
+                description="Créez votre premier budget pour cet exercice et centre de coûts."
+                actionLabel="Nouveau budget"
+                onAction={() => setShowCreate(true)}
+                data-testid="budgets-empty"
+              />
             ) : (
               <div className="space-y-3">
                 {filtered.map((r) => {
@@ -323,32 +321,30 @@ function CreateBudgetSheet({
             </label>
             <label className="block">
               <span className="text-text-tertiary text-xs uppercase tracking-wide block mb-1">Période</span>
-              <select
+              <IonSelect
                 value={period}
-                onChange={(e) => setPPeriod(e.target.value as BudgetPeriod)}
-                className="w-full px-3 py-3 rounded-lg text-sm outline-none"
-                style={inputStyle}
+                onIonChange={(e: any) => setPPeriod(e.detail.value as BudgetPeriod)}
+                interface="popover"
               >
                 {PERIODS.map((p) => (
-                  <option key={p.value} value={p.value}>{p.label}</option>
+                  <IonSelectOption value={p.value}>{p.label}</IonSelectOption>
                 ))}
-              </select>
+              </IonSelect>
             </label>
           </div>
 
           <label className="block">
             <span className="text-text-tertiary text-xs uppercase tracking-wide block mb-1">Centre de coûts</span>
-            <select
+            <IonSelect
               value={cc}
-              onChange={(e) => setCc(e.target.value)}
-              className="w-full px-3 py-3 rounded-lg text-sm outline-none"
-              style={inputStyle}
+              onIonChange={(e: any) => setCc(e.detail.value)}
+              interface="popover"
             >
-              <option value="">Tous (aucun)</option>
+              <IonSelectOption value="">Tous (aucun)</IonSelectOption>
               {orgUnits.map((u) => (
-                <option key={u.id} value={u.id}>{u.name}</option>
+                <IonSelectOption value={u.id}>{u.name}</IonSelectOption>
               ))}
-            </select>
+            </IonSelect>
           </label>
 
           <label className="block">

@@ -12,6 +12,7 @@ import { ArrowUpRight, ArrowDownRight, X, Wallet, User } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
 import { policy } from "@/capabilities/policy";
+import { useKeyboardAvoidance } from "@/hooks/useKeyboardAvoidance";
 import {
   IonPage,
   IonHeader,
@@ -23,6 +24,7 @@ import {
 export default function TransactionEdit() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const keyboardHeight = useKeyboardAvoidance();
 
   // PowerSync with fallback
   const { data: psTransactions } = useTransactions();
@@ -132,7 +134,12 @@ export default function TransactionEdit() {
       <IonContent className="bg-canvas">
         <div className="min-h-screen bg-canvas">
           <TopHeader title="Modifier" />
-          <div className="px-5 pt-safe-calc pb-safe-calc max-w-lg mx-auto">
+          <div
+            className="px-5 pt-safe-calc pb-safe-calc max-w-lg mx-auto"
+            style={{
+              paddingBottom: keyboardHeight > 0 ? `${keyboardHeight}px` : undefined,
+            }}
+          >
             <div className="flex items-center justify-between mb-6">
               <button
                 onClick={() => navigate(-1)}

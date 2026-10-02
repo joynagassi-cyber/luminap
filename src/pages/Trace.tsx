@@ -28,6 +28,7 @@ import {
   IonContent,
   IonTitle,
   IonToolbar,
+  IonInput,
 } from "@ionic/react";
 
 const ACTION_META: Record<
@@ -129,17 +130,11 @@ export default function TracePage() {
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             {/* Search */}
             <div className="relative mb-4">
-              <input
-                type="text"
+              {/* M4 */}
+              <IonInput
                 placeholder="Rechercher..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl text-sm "
-                style={{
-                  backgroundColor: "var(--surface)",
-                  color: "var(--text-primary)",
-                  border: "1px solid var(--border)",
-                }}
+                onIonChange={(e) => setSearch((e.detail.value as string) ?? "")}
               />
             </div>
 

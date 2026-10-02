@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { tint } from "@/lib/utils";
+import { tint, CHART_COLORS } from "@/lib/utils";
 import {
   IonPage,
   IonHeader,
@@ -69,14 +69,16 @@ interface SectionData {
 }
 
 // ─── Recharts color palette ─────────────────────────────────────────────────────
+// M17 : pointeurs sur les tokens --data-* (CHART_COLORS, DESIGN.md §2) ;
+// #14B8A6 (teal-500, hors palette) remappé sur .advance (violet 8B5CF6, famille planifié).
 const CATEGORY_COLORS = [
-  "#1DB954",
-  "#E51332",
-  "#FFB800",
-  "#3B82F6",
-  "#8B5CF6",
-  "#14B8A6",
-  "#EC4899",
+  CHART_COLORS.income,
+  CHART_COLORS.expense,
+  CHART_COLORS.pending,
+  CHART_COLORS.planified,
+  CHART_COLORS.advance,
+  CHART_COLORS.advance,
+  CHART_COLORS.pink,
   "var(--accent-primary)",
   "var(--text-tertiary)",
 ];
@@ -114,10 +116,10 @@ const BALANCE_AREA_DATA = HISTORY_LINE_DATA.map((d) => ({
 }));
 
 const GROUP_BAR_DATA = [
-  { name: "Diacres", solde: 2850000, color: "#3B82F6" },
-  { name: "Jeunesse", solde: 1920000, color: "#8B5CF6" },
-  { name: "Dames", solde: 3100000, color: "#EC4899" },
-  { name: "Messieurs", solde: 1750000, color: "#14B8A6" },
+  { name: "Diacres", solde: 2850000, color: CHART_COLORS.planified },
+  { name: "Jeunesse", solde: 1920000, color: CHART_COLORS.advance },
+  { name: "Dames", solde: 3100000, color: CHART_COLORS.pink },
+  { name: "Messieurs", solde: 1750000, color: CHART_COLORS.advance }, // teal 14B8A6 hors palette → .advance
   { name: "Chorale", solde: 2200000, color: "var(--accent-primary)" },
 ];
 
@@ -147,9 +149,9 @@ const SECTIONS: SectionData[] = [
     id: "dashboard",
     title: "Dashboard",
     icon: Home,
-    color: "#1DB954",
-    iconBg: "#1DB95420",
-    titleColor: "#1DB954",
+    color: CHART_COLORS.income,
+    iconBg: "color-mix(in srgb, var(--data-income) 12%, transparent)",
+    titleColor: CHART_COLORS.income,
     paragraphs: [
       "Le tableau de bord (Accueil) est votre point d'entrée principal. Il affiche en temps réel le solde de chaque caisse, les entrées et sorties du mois, ainsi que les événements à venir.",
       "La carte principale montre le solde global de la caisse principale (fonds de l'église). Les caisses de groupe (Diacres, Jeunesse, Dames…) sont listées juste en dessous avec leur solde respectif.",
@@ -167,9 +169,9 @@ const SECTIONS: SectionData[] = [
     id: "transactions",
     title: "Transactions",
     icon: Wallet,
-    color: "#1DB954",
-    iconBg: "#1DB95420",
-    titleColor: "#1DB954",
+    color: CHART_COLORS.income,
+    iconBg: "color-mix(in srgb, var(--data-income) 12%, transparent)",
+    titleColor: CHART_COLORS.income,
     paragraphs: [
       "Une transaction peut être une entrée (revenu) ou une sortie (dépense). Chaque transaction enregistre le montant, la date, la catégorie, la caisse source, et peut être liée à un groupe ou un événement.",
       "Chaque transaction passe par 4 états : Brouillon → En attente → Approuvé ou Rejeté. Le trésorier et le trésorier adjoint peuvent approuver les transactions en attente. Le pasteur et le trésorier peuvent rejeter une transaction avec un commentaire.",
@@ -194,9 +196,9 @@ const SECTIONS: SectionData[] = [
     id: "finance",
     title: "Grand livre",
     icon: Landmark,
-    color: "#3B82F6",
-    iconBg: "#3B82F620",
-    titleColor: "#3B82F6",
+    color: CHART_COLORS.planified,
+    iconBg: "color-mix(in srgb, var(--data-planified) 12%, transparent)",
+    titleColor: CHART_COLORS.planified,
     paragraphs: [
       "Le grand livre (Finances) liste toutes les transactions de la caisse sélectionnée. Il offre un filtre par période (mois ou année), par statut (brouillon, en attente, approuvé, rejeté), par catégorie, et par recherche textuelle.",
       "Les transactions en attente peuvent être approuvées en lot : cochez les cases à côté des transactions, puis cliquez « Approuver tout ».",
@@ -214,9 +216,9 @@ const SECTIONS: SectionData[] = [
     id: "caisses",
     title: "Gestion des caisses",
     icon: Wallet,
-    color: "#FFB800",
-    iconBg: "#FFB80020",
-    titleColor: "#FFB800",
+    color: CHART_COLORS.pending,
+    iconBg: "color-mix(in srgb, var(--data-pending) 12%, transparent)",
+    titleColor: CHART_COLORS.pending,
     paragraphs: [
       "La caisse principale (id: 'main') est la caisse centrale de l'église. C'est elle qui apparaît sur le tableau de bord comme solde global.",
       "Chaque groupe organisationnel a sa propre caisse créée automatiquement lors de la création du groupe.",
@@ -238,9 +240,9 @@ const SECTIONS: SectionData[] = [
     id: "groupes",
     title: "Groupes",
     icon: Users,
-    color: "#8B5CF6",
-    iconBg: "#8B5CF620",
-    titleColor: "#8B5CF6",
+    color: CHART_COLORS.advance,
+    iconBg: "color-mix(in srgb, var(--data-advance) 12%, transparent)",
+    titleColor: CHART_COLORS.advance,
     paragraphs: [
       "Les groupes organisationnels (Diacres, Jeunesse, Dames, Messieurs, Chorale…) permettent de segmenter les finances par unité de l'église.",
       "Chaque groupe a une caisse liée automatiquement lors de sa création. Vous pouvez créer, modifier et supprimer des groupes.",
@@ -260,9 +262,9 @@ const SECTIONS: SectionData[] = [
     id: "versement",
     title: "Versement",
     icon: ArrowRightLeft,
-    color: "#FFB800",
-    iconBg: "#FFB80020",
-    titleColor: "#FFB800",
+    color: CHART_COLORS.pending,
+    iconBg: "color-mix(in srgb, var(--data-pending) 12%, transparent)",
+    titleColor: CHART_COLORS.pending,
     paragraphs: [
       "Le versement transfère des fonds d'une caisse groupe vers la caisse principale de l'église.",
       "Il crée automatiquement deux transactions liées par un 'versementId' : une sortie (dépense) dans la caisse groupe et une entrée (revenu) dans la caisse principale.",
@@ -285,9 +287,9 @@ const SECTIONS: SectionData[] = [
     id: "evenements",
     title: "Événements",
     icon: CalendarPlus,
-    color: "#EC4899",
-    iconBg: "#EC489920",
-    titleColor: "#EC4899",
+    color: CHART_COLORS.pink,
+    iconBg: "color-mix(in srgb, var(--data-pink) 12%, transparent)",
+    titleColor: CHART_COLORS.pink,
     paragraphs: [
       "Un événement représente une célébration, une conférence, une semaine de prière, ou toute action spéciale de l'église.",
       "Chaque événement a un budget avec des postes (dîme, offrande, frais de fonctionnement, mission…) et une liste d'achats avec quantité, prix et fournisseur.",
@@ -310,9 +312,9 @@ const SECTIONS: SectionData[] = [
     id: "membres",
     title: "Membres",
     icon: ClipboardList,
-    color: "#14B8A6",
-    iconBg: "#14B8A620",
-    titleColor: "#14B8A6",
+    color: CHART_COLORS.success,
+    iconBg: "color-mix(in srgb, var(--data-success) 12%, transparent)",
+    titleColor: CHART_COLORS.success,
     paragraphs: [
       "Le module Membres permet de gérer les personnes de l'église : ajouter, rechercher, archiver et restaurer des membres.",
       "Chaque membre a un prénom, un nom, un téléphone et un email. Les membres archivés ne sont plus visibles dans la liste active mais peuvent être restaurés.",
@@ -330,9 +332,9 @@ const SECTIONS: SectionData[] = [
     id: "historique",
     title: "Historique",
     icon: History,
-    color: "#FFB800",
-    iconBg: "#FFB80020",
-    titleColor: "#FFB800",
+    color: CHART_COLORS.pending,
+    iconBg: "color-mix(in srgb, var(--data-pending) 12%, transparent)",
+    titleColor: CHART_COLORS.pending,
     paragraphs: [
       "La page Historique offre une vue approfondie des données financières avec des graphiques interactifs à courbes de Bézier.",
       "L'onglet « Vue d'ensemble » affiche les revenus vs dépenses en courbe lissée, le solde cumulé mois par mois, et la répartition par catégorie en graphique donut.",
@@ -352,9 +354,9 @@ const SECTIONS: SectionData[] = [
     id: "rapports",
     title: "Rapports",
     icon: BarChart3,
-    color: "#3B82F6",
-    iconBg: "#3B82F620",
-    titleColor: "#3B82F6",
+    color: CHART_COLORS.planified,
+    iconBg: "color-mix(in srgb, var(--data-planified) 12%, transparent)",
+    titleColor: CHART_COLORS.planified,
     paragraphs: [
       "Le module Rapports offre une vue consolidée des finances avec des indicateurs clés : entrées, sorties et résultat net.",
       "Sélectionnez une période (ce mois ou cette année) et visualisez les tendances financières.",
@@ -372,9 +374,9 @@ const SECTIONS: SectionData[] = [
     id: "bilan",
     title: "Bilan",
     icon: LineChart,
-    color: "#06B6D4",
-    iconBg: "#06B6D420",
-    titleColor: "#06B6D4",
+    color: CHART_COLORS.planified, // cyan 06B6D4 hors palette (DESIGN.md §2) → .planified
+    iconBg: "color-mix(in srgb, var(--data-planified) 12%, transparent)",
+    titleColor: CHART_COLORS.planified,
     paragraphs: [
       "Le bilan financier résume les entrées et sorties sur une période donnée (mois ou année) pour la caisse sélectionnée.",
       "Il présente les totaux par catégorie avec des barres de proportion visuelles, permettant une analyse rapide de la répartition des flux.",
@@ -393,9 +395,9 @@ const SECTIONS: SectionData[] = [
     id: "formulaires",
     title: "Formulaires",
     icon: FileText,
-    color: "#8B5CF6",
-    iconBg: "#8B5CF620",
-    titleColor: "#8B5CF6",
+    color: CHART_COLORS.advance,
+    iconBg: "color-mix(in srgb, var(--data-advance) 12%, transparent)",
+    titleColor: CHART_COLORS.advance,
     paragraphs: [
       "Le module Formulaires permet de créer des formulaires personnalisés pour la collecte de données : cotisations, demandes, témoignages, etc.",
       "Chaque formulaire a des champs configurables : texte, nombre, date, sélection, vrai/faux, montant (FCFA), texte long.",
@@ -417,9 +419,9 @@ const SECTIONS: SectionData[] = [
     id: "trace",
     title: "Trace d'activité",
     icon: ListChecks,
-    color: "#E51332",
-    iconBg: "#E5133220",
-    titleColor: "#E51332",
+    color: CHART_COLORS.expense,
+    iconBg: "color-mix(in srgb, var(--data-expense) 12%, transparent)",
+    titleColor: CHART_COLORS.expense,
     paragraphs: [
       "La page Trace d'activité affiche l'historique complet de toutes les actions financières : créations, modifications, approbations, rejets, archivages et restaurations.",
       "Chaque entrée de trace indique l'action, l'entité concernée, le montant (le cas échéant), et l'auteur.",
@@ -438,7 +440,7 @@ const SECTIONS: SectionData[] = [
     title: "Archives",
     icon: Archive,
     color: "var(--text-tertiary)",
-    iconBg: "#80808020",
+    iconBg: "color-mix(in srgb, var(--text-tertiary) 12%, transparent)",
     titleColor: "var(--text-tertiary)",
     paragraphs: [
       "L'archivage permet de masquer les éléments inactifs sans les supprimer définitivement : groupes, comptes, membres et événements.",
@@ -458,7 +460,7 @@ const SECTIONS: SectionData[] = [
     title: "Paramètres",
     icon: Settings,
     color: "var(--text-secondary)",
-    iconBg: "#80808020",
+    iconBg: "color-mix(in srgb, var(--text-tertiary) 12%, transparent)",
     titleColor: "var(--text-tertiary)",
     paragraphs: [
       "Les Paramètres permettent de configurer l'identité de l'église : nom complet, logo, et photo de profil utilisateur.",
@@ -499,9 +501,9 @@ const SECTIONS: SectionData[] = [
     id: "faq",
     title: "FAQ",
     icon: HelpCircle,
-    color: "#3B82F6",
-    iconBg: "#3B82F620",
-    titleColor: "#3B82F6",
+    color: CHART_COLORS.planified,
+    iconBg: "color-mix(in srgb, var(--data-planified) 12%, transparent)",
+    titleColor: CHART_COLORS.planified,
     paragraphs: ["Questions fréquentes sur l'utilisation de Lumina."],
     faqs: [
       {
@@ -550,9 +552,9 @@ const SECTIONS: SectionData[] = [
     id: "erreurs",
     title: "Erreurs fréquentes",
     icon: AlertCircle,
-    color: "#E51332",
-    iconBg: "#E5133220",
-    titleColor: "#E51332",
+    color: CHART_COLORS.expense,
+    iconBg: "color-mix(in srgb, var(--data-expense) 12%, transparent)",
+    titleColor: CHART_COLORS.expense,
     paragraphs: ["Erreurs courantes et comment les résoudre."],
     errors: [
       {
@@ -633,14 +635,14 @@ function TransactionFlowDiagram() {
         height="50"
         rx="8"
         fill="#F59E0B20"
-        stroke="#F59E0B"
+        stroke={CHART_COLORS.pending}
         strokeWidth="1.5"
       />
       <text
         x="48"
         y="78"
         textAnchor="middle"
-        fill="#F59E0B"
+        fill={CHART_COLORS.pending}
         fontSize="11"
         fontWeight="600"
       >

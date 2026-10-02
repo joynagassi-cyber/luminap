@@ -12,6 +12,7 @@ import {
 } from "@/lib/dataLayer";
 import { campaignProgress, giving } from "@/capabilities/giving";
 import { notification } from "@/capabilities/notification";
+import { useKeyboardAvoidance } from "@/hooks/useKeyboardAvoidance";
 import { formatCurrencyFull } from "@/lib/utils";
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
@@ -22,10 +23,13 @@ import {
   IonSpinner,
   IonSelect,
   IonSelectOption,
+  IonInput,
 } from "@ionic/react";
+import EmptyState from "@/components/EmptyState";
 
 export default function GivingCampaign() {
   const { id } = useParams();
+  const keyboardHeight = useKeyboardAvoidance();
   const { data: campaigns } = useGivingCampaigns();
   const { data: donors } = useGivingDonors();
   const { data: pledges } = usePledges();
@@ -160,7 +164,12 @@ export default function GivingCampaign() {
       <IonContent className="bg-canvas">
         <div className="min-h-screen bg-canvas">
           <TopHeader title="Campagne" />
-          <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
+          <div
+            className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc"
+            style={{
+              paddingBottom: keyboardHeight > 0 ? `${keyboardHeight}px` : undefined,
+            }}
+          >
             {/* Progression */}
             <div className="rounded-xl p-4 mb-4" style={{ backgroundColor: "var(--card)" }} data-testid="campaign-progress">
               <h1 className="text-text-primary font-bold text-lg mb-1">{campaign.name}</h1>
@@ -214,7 +223,8 @@ export default function GivingCampaign() {
                     {donors.map((d) => <IonSelectOption key={d.id} value={d.id}>{d.full_name}</IonSelectOption>)}
                   </IonSelect>
                   <div className="grid grid-cols-2 gap-2">
-                    <input type="number" inputMode="numeric" value={pledgeAmount} onChange={(e) => setPledgeAmount(e.target.value)} placeholder="Montant (FCFA)" className="px-3 py-2.5 rounded-lg text-sm outline-none" style={inputStyle} aria-label="Montant" data-testid="pledge-amount" />
+                    {/* M4 */}
+                    <IonInput type="number" value={pledgeAmount} onIonChange={(e) => setPledgeAmount((e.detail.value as string) ?? "")} placeholder="Montant (FCFA)" aria-label="Montant" data-testid="pledge-amount" />
                     <IonSelect value={pledgeSchedule} onIonChange={(e) => setPledgeSchedule(e.detail.value)} className="px-3 py-2.5 rounded-lg text-sm outline-none" style={inputStyle} aria-label="Fréquence">
                       <IonSelectOption value="ONCE">Une fois</IonSelectOption>
                       <IonSelectOption value="MONTHLY">Mensuel</IonSelectOption>
@@ -235,7 +245,11 @@ export default function GivingCampaign() {
                 </div>
               )}
               {campaignPledges.length === 0 ? (
-                <p className="text-text-tertiary text-xs">Aucun pledge sur cette campagne.</p>
+                <EmptyState
+                  title="Aucun pledge"
+                  description="Aucun pledge sur cette campagne"
+                  icon={<Handshake className="w-6 h-6" />}
+                />
               ) : (
                 <div className="space-y-2">
                   {campaignPledges.map((pl) => (
@@ -293,7 +307,11 @@ export default function GivingCampaign() {
                 </div>
               )}
               {campaignLinks.length === 0 ? (
-                <p className="text-text-tertiary text-xs">Aucune transaction rattachée.</p>
+                <EmptyState
+                  title="Aucune transaction rattachée"
+                  description="Les transactions rattachées à cette campagne apparaîtront ici"
+                  icon={<Link2 className="w-6 h-6" />}
+                />
               ) : (
                 <div className="space-y-2">
                   {campaignLinks.map((l) => {

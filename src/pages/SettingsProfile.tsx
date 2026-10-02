@@ -11,6 +11,7 @@ import {
   LogOut,
 } from "lucide-react";
 import SettingsShell from "@/components/SettingsShell";
+import { useKeyboardAvoidance } from "@/hooks/useKeyboardAvoidance";
 import {
   useAppConfig,
   useCurrentUser,
@@ -20,6 +21,7 @@ import {
 } from "@/lib/dataLayer";
 import { useLocalStore } from "@/store/useLocalStore";
 import { authService } from "@/lib/auth";
+import { IonInput } from "@ionic/react";
 
 const ROLE_LABEL: Record<string, string> = {
   CENTRAL_ADMIN: "Administration centrale",
@@ -39,6 +41,7 @@ function roleLabel(role: string | undefined): string {
 
 export default function SettingsProfile() {
   const navigate = useNavigate();
+  const keyboardHeight = useKeyboardAvoidance();
   const { config, updateConfig } = useAppConfig();
   const user = useCurrentUser();
   const isOnline = useOnlineStatus();
@@ -112,7 +115,13 @@ export default function SettingsProfile() {
   };
 
   return (
-    <SettingsShell title="Profil" subtitle="Vos informations et votre compte">
+    <SettingsShell
+      title="Profil"
+      subtitle="Vos informations et votre compte"
+      contentStyle={{
+        paddingBottom: keyboardHeight > 0 ? `${keyboardHeight}px` : undefined,
+      }}
+    >
       {/* Photo bien en haut */}
       <div className="flex flex-col items-center mb-6">
         <div className="relative">
@@ -182,34 +191,23 @@ export default function SettingsProfile() {
             <label className="text-text-tertiary text-xs mb-1.5 block" htmlFor="profile-firstname">
               Prénom
             </label>
-            <input
+            {/* M4 */}
+            <IonInput
               id="profile-firstname"
-              type="text"
               value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
+              onIonChange={(e) => setFirstName((e.detail.value as string) ?? "")}
               autoComplete="given-name"
-              className="w-full px-4 py-3 rounded-xl text-text-primary text-sm"
-              style={{
-                backgroundColor: "var(--card)",
-                border: "1px solid var(--border)",
-              }}
             />
           </div>
           <div>
             <label className="text-text-tertiary text-xs mb-1.5 block" htmlFor="profile-lastname">
               Nom
             </label>
-            <input
+            <IonInput
               id="profile-lastname"
-              type="text"
               value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
+              onIonChange={(e) => setLastName((e.detail.value as string) ?? "")}
               autoComplete="family-name"
-              className="w-full px-4 py-3 rounded-xl text-text-primary text-sm"
-              style={{
-                backgroundColor: "var(--card)",
-                border: "1px solid var(--border)",
-              }}
             />
           </div>
         </div>

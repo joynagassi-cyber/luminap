@@ -30,7 +30,10 @@ import {
   IonToolbar,
   IonButtons,
   IonBackButton,
+  IonSelect,
+  IonSelectOption,
 } from "@ionic/react";
+import EmptyState from "@/components/EmptyState";
 
 type Tab = "overview" | "budget" | "transactions";
 
@@ -614,18 +617,11 @@ export default function EventDetail() {
           {activeTab === "budget" && (
             <div className="space-y-3">
               {budgetItems.length === 0 ? (
-                <div
-                  className="text-center py-10 rounded-xl"
-                  style={{ backgroundColor: "var(--surface)" }}
-                >
-                  <Tag className="w-8 h-8 mx-auto mb-3 text-text-tertiary opacity-40" />
-                  <p className="text-text-tertiary text-sm">
-                    Aucun poste budgétaire
-                  </p>
-                  <p className="text-text-tertiary text-xs mt-1">
-                    Ajoutez des postes depuis la création de l'événement
-                  </p>
-                </div>
+                <EmptyState
+                  title="Aucun poste budgétaire"
+                  description="Ajoutez des postes depuis la création de l'événement"
+                  icon={<Tag className="w-6 h-6" />}
+                />
               ) : (
                 budgetItems.map((item: any) => {
                   const pct =
@@ -753,17 +749,11 @@ export default function EventDetail() {
                 </button>
               )}
               {eventTxs.length === 0 ? (
-                <div
-                  className="text-center py-10 rounded-xl"
-                  style={{ backgroundColor: "var(--surface)" }}
-                >
-                  <p className="text-text-tertiary text-sm">
-                    Aucune transaction liée
-                  </p>
-                  <p className="text-text-tertiary text-xs mt-1">
-                    Les dépenses seront enregistrées ici
-                  </p>
-                </div>
+                <EmptyState
+                  title="Aucune transaction liée"
+                  description="Les dépenses seront enregistrées ici"
+                  icon={<Plus className="w-6 h-6" />}
+                />
               ) : (
                 eventTxs
                   .sort(
@@ -882,26 +872,22 @@ export default function EventDetail() {
                     <label className="text-text-tertiary text-xs mb-1.5 block">
                       Poste budgétaire
                     </label>
-                    <select
+                    <IonSelect
                       value={selectedBudgetItemId || ""}
-                      onChange={(e) => setSelectedBudgetItemId(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl text-text-primary text-sm"
-                      style={{
-                        backgroundColor: "var(--surface)",
-                        border: "1px solid var(--border)",
-                      }}
+                      onIonChange={(e: any) => setSelectedBudgetItemId(e.detail.value)}
+                      interface="popover"
                     >
-                      <option value="">Sélectionner un poste...</option>
+                      <IonSelectOption value="">Sélectionner un poste...</IonSelectOption>
                       {budgetItems.map((item: any) => (
-                        <option key={item.id} value={item.id}>
+                        <IonSelectOption value={item.id}>
                           {item.label} — Reste:{" "}
                           {formatCurrencyCompact(
                             item.allocated - (item.spent || 0),
                           )}{" "}
                           F
-                        </option>
+                        </IonSelectOption>
                       ))}
-                    </select>
+                    </IonSelect>
                   </div>
 
                   <div>

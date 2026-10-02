@@ -46,7 +46,10 @@ import {
   IonToolbar,
   IonButtons,
   IonBackButton,
+  IonSelect,
+  IonSelectOption,
 } from "@ionic/react";
+import EmptyState from "@/components/EmptyState";
 
 type Tab = "transactions" | "membres" | "historique" | "parametres";
 
@@ -927,28 +930,24 @@ export default function GroupDetail() {
                 </button>
               </div>
               <div className="space-y-3">
-                <select
+                <IonSelect
                   value={selectedMemberId}
-                  onChange={(e) => setSelectedMemberId(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl text-text-primary text-sm appearance-none"
-                  style={{
-                    backgroundColor: "var(--surface)",
-                    border: "1px solid var(--border)",
-                  }}
+                  onIonChange={(e: any) => setSelectedMemberId(e.detail.value)}
+                  interface="popover"
                 >
-                  <option value="">Sélectionner un membre...</option>
+                  <IonSelectOption value="">Sélectionner un membre...</IonSelectOption>
                   {members
                     .filter(
                       (m: any) =>
                         m.status === "ACTIVE" && !groupMemberIds.includes(m.id),
                     )
                     .map((m: any) => (
-                      <option key={m.id} value={m.id}>
+                      <IonSelectOption value={m.id}>
                         {m.first_name || m.firstName}{" "}
                         {m.last_name || m.lastName}
-                      </option>
+                      </IonSelectOption>
                     ))}
-                </select>
+                </IonSelect>
                 {error && (
                   <p className="text-xs" style={{ color: "var(--data-expense)" }}>
                     {error}

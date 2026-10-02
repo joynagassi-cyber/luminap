@@ -13,6 +13,7 @@ import {
   IonTitle,
   IonToolbar,
 } from "@ionic/react";
+import EmptyState from "@/components/EmptyState";
 
 interface CulteStat {
   culteId: string;
@@ -125,31 +126,14 @@ export default function Cotisations() {
             </div>
 
             {culteStats.length === 0 ? (
-              <div
-                className="text-center py-16 rounded-xl"
-                style={{ background: "var(--surface)" }}
-              >
-                <Calendar
-                  className="w-12 h-12 mx-auto mb-4 opacity-40"
-                  style={{ color: "var(--text-tertiary)" }}
-                />
-                <p className="text-sm mb-2" style={{ color: "var(--text-tertiary)" }}>
-                  Aucun culte
-                </p>
-                <p className="text-xs mb-4" style={{ color: "var(--text-placeholder)" }}>
-                  Créez votre premier culte pour suivre les cotisations
-                </p>
-                <button
-                  onClick={() =>
-                    navigate("/event/new", { state: { defaultType: "CULTE" } })
-                  }
-                  className="px-6 py-2.5 rounded-full text-sm font-medium text-on-accent"
-                  style={{ background: "var(--accent-primary)" }}
-                  aria-label="Créer un culte"
-                >
-                  Créer un culte
-                </button>
-              </div>
+              <EmptyState
+                title="Aucun culte"
+                description="Créez votre premier culte pour suivre les cotisations"
+                actionLabel="Créer un culte"
+                onAction={() =>
+                  navigate("/event/new", { state: { defaultType: "CULTE" } })
+                }
+              />
             ) : (
               <div className="space-y-3">
                 {culteStatsCapped.map((stat) => {

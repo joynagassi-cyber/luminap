@@ -9,6 +9,7 @@ import {
 import { ArrowLeft, Wallet } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
+import { useKeyboardAvoidance } from "@/hooks/useKeyboardAvoidance";
 import type { Category } from "@/types";
 import { getOrganizationId } from "@/lib/orgContext";
 import {
@@ -23,6 +24,7 @@ export default function TransactionNewGroup() {
   const { id: groupId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+  const keyboardHeight = useKeyboardAvoidance();
 
   // PowerSync with fallback
   const { data: psCategories } = useCategories();
@@ -108,7 +110,12 @@ export default function TransactionNewGroup() {
       <IonContent className="bg-canvas">
         <div className="min-h-screen bg-canvas">
           <TopHeader title="Nouvelle transaction" />
-          <div className="px-5 pt-safe-calc pb-safe-calc">
+          <div
+            className="px-5 pt-safe-calc pb-safe-calc"
+            style={{
+              paddingBottom: keyboardHeight > 0 ? `${keyboardHeight}px` : undefined,
+            }}
+          >
             <button
               onClick={() => navigate(-1)}
               className="flex items-center gap-2 text-text-secondary text-sm mb-5"

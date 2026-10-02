@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
-import { IonPage, IonContent } from "@ionic/react";
+import { IonPage, IonContent, IonSelect, IonSelectOption } from "@ionic/react";
 import { ChartContainer } from "@/components/ui/chart";
 import { Bar, BarChart, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import {
@@ -473,43 +473,40 @@ export default function ReportBuilder() {
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="text-text-tertiary text-[11px] mb-1 block">Période</label>
-              <select
+              <IonSelect
                 value={f.period}
-                onChange={(e) => setFilter("period", e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl text-xs"
-                style={{ backgroundColor: "var(--card)", color: "var(--text-primary)", border: "1px solid var(--border)" }}
+                onIonChange={(e: any) => setFilter("period", e.detail.value)}
+                interface="popover"
               >
-                <option value="month">Ce mois</option>
-                <option value="year">Cette année</option>
-                <option value="all">Tout</option>
-              </select>
+                <IonSelectOption value="month">Ce mois</IonSelectOption>
+                <IonSelectOption value="year">Cette année</IonSelectOption>
+                <IonSelectOption value="all">Tout</IonSelectOption>
+              </IonSelect>
             </div>
             <div>
               <label className="text-text-tertiary text-[11px] mb-1 block">Type</label>
-              <select
+              <IonSelect
                 value={f.type}
-                onChange={(e) => setFilter("type", e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl text-xs"
-                style={{ backgroundColor: "var(--card)", color: "var(--text-primary)", border: "1px solid var(--border)" }}
+                onIonChange={(e: any) => setFilter("type", e.detail.value)}
+                interface="popover"
               >
-                <option value="">Tous</option>
-                <option value="INCOME">Entrées</option>
-                <option value="EXPENSE">Sorties</option>
-              </select>
+                <IonSelectOption value="">Tous</IonSelectOption>
+                <IonSelectOption value="INCOME">Entrées</IonSelectOption>
+                <IonSelectOption value="EXPENSE">Sorties</IonSelectOption>
+              </IonSelect>
             </div>
             <div>
               <label className="text-text-tertiary text-[11px] mb-1 block">Catégorie</label>
-              <select
+              <IonSelect
                 value={f.categoryId}
-                onChange={(e) => setFilter("categoryId", e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl text-xs"
-                style={{ backgroundColor: "var(--card)", color: "var(--text-primary)", border: "1px solid var(--border)" }}
+                onIonChange={(e: any) => setFilter("categoryId", e.detail.value)}
+                interface="popover"
               >
-                <option value="">Toutes</option>
+                <IonSelectOption value="">Toutes</IonSelectOption>
                 {(categories || []).map((c) => (
-                  <option key={c.id} value={c.id}>{c.labelFr}</option>
+                  <IonSelectOption value={c.id}>{c.labelFr}</IonSelectOption>
                 ))}
-              </select>
+              </IonSelect>
             </div>
             <div>
               <label className="text-text-tertiary text-[11px] mb-1 block">Caisse</label>

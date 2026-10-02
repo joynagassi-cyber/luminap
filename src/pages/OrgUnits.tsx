@@ -16,7 +16,7 @@
 
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { IonPage, IonContent } from "@ionic/react";
+import { IonPage, IonContent, IonSelect, IonSelectOption } from "@ionic/react";
 import {
   Boxes,
   Plus,
@@ -223,19 +223,19 @@ export default function OrgUnits() {
                   <label style={labelStyle} htmlFor="unit-type">
                     Type
                   </label>
-                  <select
+                  <IonSelect
                     id="unit-type"
                     data-testid="unit-type"
                     value={type}
-                    onChange={(e) => setType(e.target.value)}
-                    style={inputStyle}
+                    onIonChange={(e: any) => setType(e.detail.value)}
+                    interface="popover"
                   >
                     {UNIT_TYPES.map((t) => (
-                      <option key={t} value={t}>
+                      <IonSelectOption value={t}>
                         {t}
-                      </option>
+                      </IonSelectOption>
                     ))}
-                  </select>
+                  </IonSelect>
                 </div>
                 <div>
                   <label style={labelStyle} htmlFor="unit-desc">

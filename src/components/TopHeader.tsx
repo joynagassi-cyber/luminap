@@ -80,23 +80,12 @@ export default function TopHeader({ title }: { title?: string }) {
               enfants React des custom elements Ionic pouvaient ne pas
               être rendus (boutons vides) avec React 19. */}
           <div className="flex items-center gap-2">
-            {/* Zone tactile ≥ 44 px (bouton transparent) autour d'un cercle
-                36 px inchangé visuellement (a11y : cible tactile WCAG). */}
+            {/* L22 — hitzone tactile 44px / visuel 36px via classes CSS nommées
+                (.topheader-action, App.css) plutôt qu'un objet style inline 25 lignes. */}
             <button
               type="button"
               onClick={handleNotificationsClick}
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: "50%",
-                border: "none",
-                backgroundColor: "transparent",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-                padding: 0,
-              }}
+              className="topheader-action"
               aria-label={
                 unreadCount > 0
                   ? `Notifications (${unreadCount} non lues)`
@@ -105,19 +94,7 @@ export default function TopHeader({ title }: { title?: string }) {
               title="Notifications"
               aria-haspopup="dialog"
             >
-              <span
-                style={{
-                  position: "relative",
-                  width: 36,
-                  height: 36,
-                  borderRadius: "50%",
-                  border: "1px solid var(--border)",
-                  backgroundColor: "var(--surface)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
+              <span className="topheader-action-visual">
                 <Bell className="w-4 h-4 text-text-secondary" />
                 {unreadCount > 0 && (
                   <span
@@ -133,33 +110,11 @@ export default function TopHeader({ title }: { title?: string }) {
             <button
               type="button"
               onClick={() => navigate("/settings")}
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: "50%",
-                border: "none",
-                backgroundColor: "transparent",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-                padding: 0,
-              }}
+              className="topheader-action"
               aria-label="Paramètres"
               title="Paramètres"
             >
-              <span
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: "50%",
-                  border: "1px solid var(--border)",
-                  backgroundColor: "var(--surface)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
+              <span className="topheader-action-visual">
                 <Settings className="w-4 h-4 text-text-secondary" />
               </span>
             </button>

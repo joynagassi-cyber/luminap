@@ -27,6 +27,7 @@ import { policy } from "@/capabilities/policy";
 import { getOrganizationId } from "@/lib/orgContext";
 import { formatCurrencyCompact, formatDate } from "@/lib/utils";
 import { Plus, Check, Clock, X, Coins } from "lucide-react";
+import { useKeyboardAvoidance } from "@/hooks/useKeyboardAvoidance";
 import {
   IonPage,
   IonHeader,
@@ -38,11 +39,14 @@ import {
   IonButton,
   IonInput,
   IonSpinner,
+  IonItem,
+  IonLabel,
 } from "@ionic/react";
 
 export default function GroupCotisation() {
   const { id } = useParams<{ id: string }>();
   const user = useCurrentUser();
+  const keyboardHeight = useKeyboardAvoidance();
   const orgId = getOrganizationId();
 
   const { data: groups } = useGroups();
@@ -223,7 +227,12 @@ export default function GroupCotisation() {
         </IonToolbar>
       </IonHeader>
       <IonContent className="bg-canvas" fullscreen>
-        <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe">
+        <div
+          className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe"
+          style={{
+            paddingBottom: keyboardHeight > 0 ? `${keyboardHeight}px` : undefined,
+          }}
+        >
           <p className="text-text-tertiary text-xs mb-4">
             {groupMembers.length} membre(s) dans ce groupe
           </p>
@@ -450,66 +459,69 @@ export default function GroupCotisation() {
                 </button>
               </div>
 
-              <IonInput
-                type="text"
-                value={sessionName}
-                onIonChange={(e: any) => setSessionName(e.detail.value ?? "")}
-                placeholder="Nom de la session (ex: Cagnotte janvier)"
-                style={{
-                  backgroundColor: "var(--card)",
-                  border: "1px solid var(--border)",
-                }}
-              />
+              <div className="space-y-3">
+                <IonItem lines="none" className="bg-card rounded-xl">
+                  <IonLabel position="floating">
+                    Nom de la session
+                  </IonLabel>
+                  <IonInput
+                    type="text"
+                    value={sessionName}
+                    onIonChange={(e: any) =>
+                      setSessionName(e.detail.value ?? "")
+                    }
+                    placeholder="Ex: Cagnotte janvier"
+                  />
+                </IonItem>
 
-              <IonInput
-                type="date"
-                value={sessionDate}
-                onIonChange={(e: any) => setSessionDate(e.detail.value ?? "")}
-                style={{
-                  backgroundColor: "var(--card)",
-                  border: "1px solid var(--border)",
-                }}
-              />
+                <IonItem lines="none" className="bg-card rounded-xl">
+                  <IonLabel position="floating">
+                    Date de la session
+                  </IonLabel>
+                  <IonInput
+                    type="date"
+                    value={sessionDate}
+                    onIonChange={(e: any) =>
+                      setSessionDate(e.detail.value ?? "")
+                    }
+                  />
+                </IonItem>
 
-              <div>
-                <label className="text-text-tertiary text-xs mb-1.5 block">
-                  Montant obligatoire (FCFA) *
-                </label>
-                <IonInput
-                  type="number"
-                  value={sessionMontant}
-                  onIonChange={(e: any) =>
-                    setSessionMontant(e.detail.value ?? "")
-                  }
-                  placeholder="Ex: 2000"
-                  min="0"
-                  style={{
-                    backgroundColor: "var(--card)",
-                    border: "1px solid var(--border)",
-                  }}
-                />
-                <p className="text-text-tertiary text-xs mt-1">
+                <IonItem lines="none" className="bg-card rounded-xl">
+                  <IonLabel position="floating">
+                    Montant obligatoire (FCFA)
+                  </IonLabel>
+                  <IonInput
+                    type="number"
+                    value={sessionMontant}
+                    onIonChange={(e: any) =>
+                      setSessionMontant(e.detail.value ?? "")
+                    }
+                    placeholder="Ex: 2000"
+                    min="0"
+                  />
+                </IonItem>
+                <p className="text-text-tertiary text-xs">
                   {groupMembers.length} membre(s) actif(s) — une cotisation
                   sera créée pour chacun
                 </p>
-              </div>
 
-              <IonButton
-                expand="block"
-                onClick={handleCreateSession}
-                disabled={busy}
-                style={{ backgroundColor: "var(--accent-primary)" }}
-              >
-                {busy ? (
-                  <>
-                    <IonSpinner name="lines" style={{ marginRight: 6 }} />
-                    Création...
-                  </>
-                ) : (
-                  "Créer la session"
-                )}
-              </IonButton>
-            </div>
+                <IonButton
+                  expand="block"
+                  onClick={handleCreateSession}
+                  disabled={busy}
+                  style={{ backgroundColor: "var(--accent-primary)" }}
+                >
+                  {busy ? (
+                    <>
+                      <IonSpinner name="lines" style={{ marginRight: 6 }} />
+                      Création...
+                    </>
+                  ) : (
+                    "Créer la session"
+                  )}
+                </IonButton>
+              </div>
           )}
 
           <p className="text-text-tertiary text-xs mt-4">
