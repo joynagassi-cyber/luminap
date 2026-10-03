@@ -3468,6 +3468,78 @@ export async function deleteTransactionGivingPS(id: string): Promise<void> {
   await executeWrite("DELETE FROM transaction_giving WHERE id = ?", [id]);
 }
 
+// ============================================================
+// Rapports inter-organisations (Phase 4 Feature 2 — réception)
+// ============================================================
+
 /**
- * Hook to get current user
+ * PowerSync view of `org_reports` (snake_case, cf. lib/powersync/org-reports-schema.ts).
+ * - `content` : jsonb PG (agrégats du rapport) stocké en text.
+ * - `document_refs` : text[] PG stocké en text (JSON stringifié).
+ * - `read_at` : null tant que la mère n'a pas ouvert le rapport.
  */
+export interface PSOrgReports {
+  id: string;
+  from_org_id: string;
+  to_org_id: string;
+  period_start: string;
+  period_end: string;
+  format: string;
+  title: string;
+  content: string;
+  pdf_path: string | null;
+  document_refs: string;
+  status: string;
+  read_at: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Hook to list received reports for an organization (rapports dont l'org est
+ * le DESTINATAIRE). SQL `to_org_id = ?` — le scoping RLS (policy
+ * `org_reports_receiver`) garantit côté serveur que l'org ne voit que ce
+ * qui lui est destiné ; le stream PowerSync `org_reports` ne pousse que
+ * les lignes visibles (from_org = current OR to_org = current).
+ *
+ * - `orgId` : fallback = `getOrganizationId()` (scoping mono-org).
+ * - `refetch` : force le re-exécution de la watch-query (après
+ *   `markReportRead` ou pour re-lire l'état lu/non-lu local).
+ */
+export function useReportsReceived(orgId?: string) {
+  const org = orgId ?? getOrganizationId();
+  const [refreshCount, setRefreshCount] = useState(0);
+  // La watch-query de PowerSync se ré-exécute automatiquement après toute
+  // écriture locale sur `org_reports` (outbox / `executeWrite`). `refetch`
+  // force un re-run immédiat en variant le 2e paramètre (clé d'identité =
+  // SQL + paramètres sérialisés) ; l'impact sur le tri réel est nul.
+  const { data: psData } = useQuery<PSOrgReports>(
+    `SELECT id, from_org_id, to_org_id, period_start, period_end, format,
+            title, content, pdf_path, document_refs, status, read_at,
+            created_by, created_at, updated_at
+     FROM org_reports WHERE to_org_id = ? ORDER BY period_start DESC, ?`,
+    [org, refreshCount],
+    { reportFetching: true },
+  );
+  return {
+    data: psData ?? [],
+    isLoading: psData === undefined,
+    refetch: () => setRefreshCount((k) => k + 1),
+  };
+}
+
+/**
+ * Marquer un rapport reçu comme LU (idempotent : la condition `read_at IS
+ * NULL` évite de ré-écrire une ligne déjà lue — l'UPDATE ne recrée rien).
+ * Pousse l'UPDATE dans l'outbox PowerSync ; le RLS `org_reports_receiver`
+ * autorise le SELECT côté serveur, l'UPDATE passe par la même policy.
+ */
+export async function markReportRead(reportId: string): Promise<void> {
+  const now = new Date().toISOString();
+  await executeWrite(
+    `UPDATE org_reports SET read_at = ?, status = 'READ', updated_at = ?
+     WHERE id = ? AND read_at IS NULL`,
+    [now, now, reportId],
+  );
+}
