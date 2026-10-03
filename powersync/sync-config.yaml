@@ -182,6 +182,16 @@ streams:
            WHERE admin_profile_id = auth.uid()
               OR org_id = (SELECT org_id FROM profiles WHERE id = auth.uid())
 
+  # ── Rapports inter-organisations (Phase 1 Feature 2) ────────────────────
+  # Un user lit les rapports (a) émis par son org (from_org_id = son org)
+  # ET (b) reçus par son org (to_org_id = son org). Pas auto_subscribe :
+  # le client crée explicitement le stream (page d'émission / page réception).
+  org_reports:
+    auto_subscribe: false
+    query: SELECT * FROM org_reports
+           WHERE from_org_id = (SELECT org_id FROM profiles WHERE id = auth.uid())
+              OR to_org_id = (SELECT org_id FROM profiles WHERE id = auth.uid())
+
   # ── Modèle agnostique (Vague 2) : grants + tags ─────────────────────────
   # Streams créés explicitement côté client ; le filtrage fort passe par
   # `canAccess` (Vague 2.4), le scoping RLS reste `is_org_member`.

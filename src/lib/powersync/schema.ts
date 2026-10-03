@@ -1,6 +1,7 @@
 import { column, Schema, Table } from "@powersync/web";
 import { invitations, invitation_claims } from "./invitation-schema";
 import { organizations, org_admins } from "./org-admin-schema";
+import { org_reports } from "./org-reports-schema";
 import {
   org_memberships,
   grants,
@@ -610,6 +611,7 @@ export const AppSchema = new Schema({
   grants,
   tags,
   tag_assignments,
+  org_reports,
 });
 
 export type Database = (typeof AppSchema)["types"];
