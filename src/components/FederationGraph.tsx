@@ -31,7 +31,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { Maximize2 } from "lucide-react";
-import { FederationTreeSkeleton } from "@/components/PageSkeletons";
+import { FederationGraphSkeleton } from "@/components/PageSkeletons";
 import { useCurrentUser } from "@/lib/dataLayer";
 import {
   federation,
@@ -296,7 +296,7 @@ export default function FederationGraph() {
       >
         {loading ? (
           <div style={{ padding: 16 }}>
-            <FederationTreeSkeleton />
+            <FederationGraphSkeleton />
           </div>
         ) : error ? (
           <div

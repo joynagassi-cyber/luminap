@@ -432,8 +432,8 @@ export function SettingsSkeleton() {
   );
 }
 
-/* ── Federation Tree : diagramme React Flow (nœuds en cascade) ── */
-export function FederationTreeSkeleton() {
+/* ── Federation Graph : diagramme React Flow (nœuds en cascade) ── */
+export function FederationGraphSkeleton() {
   const node = (w = "100%") => (
     <div style={{ flex: 1 }}>
       <ShimmerBlock width={w} height={64} radius={8} />
