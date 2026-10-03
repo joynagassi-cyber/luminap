@@ -513,10 +513,16 @@ export default function FormBuilder() {
                       )}
                       {field.type === "reference" && (
                         <div className="flex items-center gap-2 mb-2">
-                          <label className="text-xs text-text-tertiary flex-shrink-0">
+                          {/* M24 — label inline conservé (grille compacte de
+                              construction de champ) : pas de bloc IonItem ici */}
+                          <label
+                            htmlFor={`ref-entity-${field.key}`}
+                            className="text-xs text-text-tertiary flex-shrink-0"
+                          >
                             Entité cible
                           </label>
                           <IonSelect
+                            id={`ref-entity-${field.key}`}
                             value={field.referenceEntityType ?? "member"}
                             onIonChange={(e: IonChangeCustomEvent<string>) =>
                               updateField(field.key, {

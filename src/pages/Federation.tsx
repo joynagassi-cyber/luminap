@@ -333,39 +333,38 @@ export default function Federation() {
                     slot="input"
                   />
                 </IonItem>
-                <div>
-                  <label
-                    className="block text-text-tertiary text-xs uppercase tracking-wide mb-1.5"
-                    htmlFor="org-type"
-                  >
+                {/* M24 — grammaire canonique : IonItem + IonLabel + IonSelect */}
+                <IonItem lines="none" className="bg-card rounded-xl">
+                  <IonLabel position="floating" className="text-sm text-text-secondary">
                     Type d'organisation
-                  </label>
+                  </IonLabel>
                   <IonSelect
                     id="org-type"
                     data-testid="org-type"
                     value={newType}
                     onIonChange={(e: IonChangeCustomEvent<string>) => setNewType(e.detail.value)}
                     interface="popover"
+                    slot="input"
+                    style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}
                   >
                     <IonSelectOption value="CHURCH">Église</IonSelectOption>
                     <IonSelectOption value="SCHOOL">École</IonSelectOption>
                     <IonSelectOption value="ENTERPRISE">Entreprise</IonSelectOption>
                     <IonSelectOption value="CENTRAL">Centrale</IonSelectOption>
                   </IonSelect>
-                </div>
-                <div>
-                  <label
-                    className="block text-text-tertiary text-xs uppercase tracking-wide mb-1.5"
-                    htmlFor="org-parent"
-                  >
+                </IonItem>
+                <IonItem lines="none" className="bg-card rounded-xl">
+                  <IonLabel position="floating" className="text-sm text-text-secondary">
                     Organisation parente (optionnel)
-                  </label>
+                  </IonLabel>
                   <IonSelect
                     id="org-parent"
                     data-testid="org-parent"
                     value={newParent}
                     onIonChange={(e: IonChangeCustomEvent<string>) => setNewParent(e.detail.value)}
                     interface="popover"
+                    slot="input"
+                    style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}
                   >
                     <IonSelectOption value="">Aucune (racine)</IonSelectOption>
                     {rootOrgs.map((o) => (
@@ -374,7 +373,7 @@ export default function Federation() {
                       </IonSelectOption>
                     ))}
                   </IonSelect>
-                </div>
+                </IonItem>
                 <button
                   type="button"
                   onClick={handleCreate}
