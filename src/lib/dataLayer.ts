@@ -209,6 +209,125 @@ export interface PSBudgetLine {
   created_at: string;
 }
 
+// Tâches & sous-tâches d'un événement (table `event_tasks`, migration
+// 20261003000001). `is_sub` est un integer 0/1 côté PowerSync (mapping du
+// boolean PostgreSQL) ; `id` est implicite (pkey PowerSync, voir NOTE
+// schema.ts) et ajouté automatiquement aux résultats de requête.
+export interface PSEventTask {
+  id: string;
+  org_id: string;
+  event_id: string;
+  title: string;
+  description: string;
+  is_sub: number;
+  parent_task_id: string | null;
+  assigned_group_id: string | null;
+  due_date: string | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Hook to get event tasks (tâches & sous-tâches d'un événement).
+ * Tries PowerSync first, no fallback (like `useDocuments`).
+ *
+ * - `orgId` : fallback = `getOrganizationId()` (scoping mono-org).
+ * - `eventId` : optionnel — restreint la liste à un événement précis.
+ */
+export function useEventTasks(eventId?: string, orgId?: string) {
+  const org = orgId ?? getOrganizationId();
+  const { data: psData } = useQuery<PSEventTask>(
+    "SELECT id, org_id, event_id, title, description, is_sub, parent_task_id, assigned_group_id, due_date, status, created_at, updated_at FROM event_tasks WHERE org_id = ? AND (? IS NULL OR event_id = ?) ORDER BY created_at",
+    [org, eventId ?? null, eventId ?? null],
+    { reportFetching: true },
+  );
+  return {
+    data: psData ?? [],
+    isLoading: psData === undefined,
+    source: "powersync" as const,
+  };
+}
+
+/**
+ * Add an event task (tâche ou sous-tâche) via PowerSync.
+ */
+export async function addEventTaskPS(
+  task: Omit<PSEventTask, "id" | "created_at" | "updated_at">,
+): Promise<string> {
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+
+  await executeWrite(
+    `INSERT INTO event_tasks (
+      id, org_id, event_id, title, description, is_sub,
+      parent_task_id, assigned_group_id, due_date, status,
+      created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      id,
+      task.org_id,
+      task.event_id,
+      task.title,
+      task.description,
+      task.is_sub,
+      task.parent_task_id ?? null,
+      task.assigned_group_id ?? null,
+      task.due_date ?? null,
+      task.status,
+      now,
+      now,
+    ],
+  );
+
+  return id;
+}
+
+/**
+ * Update an event task via PowerSync.
+ */
+export async function updateEventTaskPS(
+  id: string,
+  updates: Partial<PSEventTask>,
+): Promise<void> {
+  const setClauses: string[] = [];
+  const params: any[] = [];
+
+  const fieldMap: [keyof PSEventTask, string][] = [
+    ["event_id", "event_id"],
+    ["title", "title"],
+    ["description", "description"],
+    ["is_sub", "is_sub"],
+    ["parent_task_id", "parent_task_id"],
+    ["assigned_group_id", "assigned_group_id"],
+    ["due_date", "due_date"],
+    ["status", "status"],
+  ];
+
+  for (const [key, col] of fieldMap) {
+    if (updates[key] !== undefined) {
+      setClauses.push(`${col} = ?`);
+      params.push(updates[key]);
+    }
+  }
+
+  setClauses.push("updated_at = ?");
+  params.push(new Date().toISOString());
+  params.push(id);
+
+  await executeWrite(
+    `UPDATE event_tasks SET ${setClauses.join(", ")} WHERE id = ?`,
+    params,
+  );
+}
+
+/**
+ * Delete an event task via PowerSync.
+ */
+export async function deleteEventTaskPS(id: string): Promise<void> {
+  await executeWrite("DELETE FROM event_tasks WHERE id = ?", [id]);
+}
+
 export interface PSAuditEntry {
   id: string;
   org_id: string;

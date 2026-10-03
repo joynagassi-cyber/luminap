@@ -337,6 +337,28 @@ export type Versement = {
   createdAt: string;
 };
 
+// === NEW TYPE: EventTask (tâches & sous-tâches d'un événement) ===
+export type EventTaskStatus = "OPEN" | "IN_PROGRESS" | "DONE" | "BLOCKED";
+
+export type EventTask = {
+  id: string;
+  orgId: string;
+  eventId: string;
+  title: string;
+  description: string;
+  /** Sous-tâche (false = tâche racine de l'événement). */
+  isSub: boolean;
+  /** Tâche parente (sous-tâches uniquement) — null si tâche racine. */
+  parentTaskId: string | null;
+  /** « Groupe doit » — référence `groups.id`, null si non assigné. */
+  assignedGroupId: string | null;
+  /** Échéance (ISO date), null si sans échéance. */
+  dueDate: string | null;
+  status: EventTaskStatus;
+  createdAt: string;
+  updatedAt: string;
+};
+
 // === NEW TYPE: EventBudget ===
 export type EventBudget = {
   id: string;
