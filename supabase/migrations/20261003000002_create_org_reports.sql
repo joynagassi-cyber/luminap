@@ -105,7 +105,15 @@ CREATE POLICY org_reports_receiver ON public.org_reports
   USING (to_org_id = public.current_org_id());
 
 -- ----------------------------------------------------------------------------
--- 5) Grants (SELECT/INSERT/UPDATE TO authenticated + service_role ; pas de
---    DELETE côté client — la suppression est un admin action)
+-- 5) Grants — SSOT (aligné sur le live, vérifié 2026-10-03)
+--    * RESTREINT côté client (pas de DELETE — admin action),
+--    * `powersync_role` : SELECT (réplication) + INSERT/UPDATE (outbox
+--      local-first, push des lignes PENDING),
+--    * `service_role` : complet (Edge Functions / seed).
+--    Les grants résiduels de provisionnement Supabase (TRUNCATE, REFERENCES,
+--    SELECT à anon) sont bloqués par RLS FORCE et hors périmètre de cette
+--    migration additivement.
 -- ----------------------------------------------------------------------------
-GRANT SELECT, INSERT, UPDATE ON public.org_reports TO authenticated, service_role;
+GRANT SELECT, INSERT, UPDATE ON public.org_reports TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.org_reports TO service_role;
+GRANT SELECT, INSERT, UPDATE ON public.org_reports TO powersync_role;
