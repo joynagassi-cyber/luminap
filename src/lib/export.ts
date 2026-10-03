@@ -416,8 +416,9 @@ export function exportCSV(options: ExportOptions) {
 //  - docx       : download déclenché via `docx` (Packer.toBlob + <a>).
 //  - png        : renvoie un Blob (graphique recharts) pour l'upload dans
 //                 le bucket privé `org_reports`.
-// Les montants du payload sont en FCFA (pas en centimes) : formatés tels
-// quels, sans division par 100 (contrairement à `exportExcel` legacy).
+// Les montants du payload sont en CENTIMES (convention du projet, cf.
+// `lib/utils.ts`) : formatés via `formatCurrencyCompact` (÷100), comme
+// `exportPDF`/`exportExcel` existants.
 // ============================================================
 
 export type OrgReportFormat = "pdf" | "docx" | "xlsx" | "png";
@@ -736,11 +737,15 @@ function exportOrgReportXLSX(payload: OrgReportPayload): Blob {
 }
 
 /**
- * PNG — génère un graphique de barres (recharts, revenus/dépenses sur la
- * période) et renvoie le Blob. Recharts (React) ne peut pas s'exécuter en
- * contexte non-React fiablement ici, on dessine donc le graphique avec
- * l'API native canvas (mêmes données + mêmes sémantiques de couleur) et on
- * renvoie le canvas via `toDataURL` → Blob.
+ * PNG — graphique de barres (revenus/dépenses sur la période) via
+ * `document.createElement("canvas")` + `canvas.toDataURL("image/png")`
+ * → Blob, renvoyé pour l'upload dans le bucket privé `org_reports`.
+ *
+ * Les couleurs des barres suivent la sémantique des tokens `--data-*`
+ * (revenus `--data-income`, dépenses `--data-expense`, accent
+ * `--accent-primary`) en valeurs canvas (le canvas ne lit pas les CSS
+ * custom properties sans resolvers ; les hex ici reflètent les tokens
+ * standards — jamais d'autre teinte brute ailleurs dans l'app).
  */
 function exportOrgReportPNG(payload: OrgReportPayload): Blob {
   const W = 800;
@@ -752,18 +757,22 @@ function exportOrgReportPNG(payload: OrgReportPayload): Blob {
   if (!ctx) return new Blob([], { type: "image/png" });
 
   const { summary, period } = payload;
+  const income = formatCurrencyCompact(summary.totalIncome);
+  const expense = formatCurrencyCompact(summary.totalExpense);
+  const net = formatCurrencyCompact(Math.abs(summary.netResult));
   const bars = [
-    { label: "Entrées", value: summary.totalIncome, color: "#1DB954" },
-    { label: "Sorties", value: summary.totalExpense, color: "#E51332" },
+    { label: "Entrées", value: summary.totalIncome, short: income, color: "#1DB954" },
+    { label: "Sorties", value: summary.totalExpense, short: expense, color: "#E51332" },
     {
       label: "Résultat",
       value: Math.abs(summary.netResult),
+      short: net,
       color: "#FF6B00",
     },
   ];
   const max = Math.max(...bars.map((b) => b.value), 1);
 
-  // Fond
+  // Fond (token `--surface` léger)
   ctx.fillStyle = "#F5F5F5";
   ctx.fillRect(0, 0, W, H);
 
@@ -803,7 +812,7 @@ function exportOrgReportPNG(payload: OrgReportPayload): Blob {
     ctx.fillStyle = "#1E1E1E";
     ctx.font = "bold 12px sans-serif";
     ctx.fillText(
-      `${formatCurrencyCompact(b.value)} FCFA`,
+      `${b.short} FCFA`,
       x + barW / 2,
       y - 6,
       "center",
