@@ -111,7 +111,7 @@ export default function GroupDetail() {
           </IonToolbar>
         </IonHeader>
         <IonContent fullscreen className="bg-canvas">
-          <div className="min-h-screen bg-canvas flex items-center justify-center">
+          <div className="min-h-dvh flex items-center justify-center">
             <div className="text-center">
               <p className="text-text-primary font-semibold mb-2">
                 Groupe introuvable
@@ -328,7 +328,7 @@ export default function GroupDetail() {
             <div className="text-center mb-4">
               <p className="text-text-tertiary text-xs mb-1">Solde actuel</p>
               <p
-                className="text-3xl font-black"
+                className="text-2xl font-black"
                 style={{ color: balance >= 0 ? "var(--data-income)" : "var(--data-expense)" }}
               >
                 {balance >= 0 ? "" : "-"}

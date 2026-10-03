@@ -163,7 +163,7 @@ export default function Groups() {
   return (
     <IonPage>
       <IonContent className="bg-canvas">
-        <div className="min-h-screen bg-canvas">
+        <div className="min-h-dvh">
           <TopHeader title="Groupes" />
           <div className="px-5 pt-safe-calc pb-safe-calc max-w-lg mx-auto">
             {/* Header */}

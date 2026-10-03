@@ -111,7 +111,7 @@ export default function TransactionNewGroup() {
   return (
     <IonPage>
       <IonContent className="bg-canvas">
-        <div className="min-h-screen bg-canvas">
+        <div className="min-h-dvh">
           <TopHeader title="Nouvelle transaction" />
           <div
             className="px-5 pt-safe-calc pb-safe-calc"

@@ -196,7 +196,7 @@ export default function HistoryPage() {
   return (
     <IonPage>
       <IonContent className="bg-canvas">
-        <div className="min-h-screen bg-canvas">
+        <div className="min-h-dvh">
           <TopHeader title="Historique" />
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             {/* Period selector */}

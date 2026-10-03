@@ -89,7 +89,7 @@ export default function CustomFields() {
   return (
     <IonPage>
       <IonContent className="ion-padding">
-        <div className="min-h-screen bg-canvas">
+        <div className="min-h-dvh">
           <TopHeader title="Champs personnalisés" />
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             <button

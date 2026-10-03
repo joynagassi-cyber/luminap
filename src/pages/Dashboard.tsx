@@ -203,7 +203,7 @@ export default function Dashboard() {
     return (
       <IonPage>
         <IonContent fullscreen>
-          <div className="min-h-screen bg-canvas">
+          <div className="min-h-dvh">
             <TopHeader title="Lumina" />
             <DashboardSkeleton />
             <BottomNav />
@@ -216,7 +216,7 @@ export default function Dashboard() {
   return (
     <IonPage>
       <IonContent fullscreen>
-        <div className="min-h-screen bg-canvas">
+        <div className="min-h-dvh">
           <h1 className="sr-only">Accueil — tableau de bord financier</h1>
           <div className="sr-only" role="status" aria-live="polite">
             Données financières à jour

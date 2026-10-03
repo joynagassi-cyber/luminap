@@ -99,7 +99,7 @@ export default function Cotisations() {
   return (
     <IonPage>
       <IonContent className="bg-canvas">
-        <div className="min-h-screen" style={{ background: "var(--canvas)" }}>
+        <div className="min-h-dvh">
           <TopHeader title="Cotisations" />
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             <div className="flex items-center justify-between mb-5">

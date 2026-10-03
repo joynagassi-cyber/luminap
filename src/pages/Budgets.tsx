@@ -59,7 +59,7 @@ export default function Budgets() {
   return (
     <IonPage>
       <IonContent className="bg-canvas">
-        <div className="min-h-screen bg-canvas">
+        <div className="min-h-dvh">
           <TopHeader title="Budgets" />
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             <div className="flex items-center justify-between mb-5">
@@ -178,7 +178,7 @@ export default function Budgets() {
                         </div>
                         <div className="flex items-center gap-1">
                           <span
-                            className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                            className="text-xs font-semibold px-2 py-0.5 rounded-full"
                             style={{
                               backgroundColor: budget.status === "CLOSED" ? "var(--surface-active)" : "color-mix(in srgb, var(--accent-primary) 15%, transparent)",
                               color: budget.status === "CLOSED" ? "var(--text-tertiary)" : "var(--accent-primary)",
@@ -201,7 +201,7 @@ export default function Budgets() {
                           style={{ width: `${Math.min(100, bar)}%`, backgroundColor: over ? "var(--data-expense)" : "var(--accent-primary)" }}
                         />
                       </div>
-                      <p className="text-text-tertiary text-[11px] mt-1.5">{win.start} → {win.end}</p>
+                      <p className="text-text-tertiary text-xs mt-1.5">{win.start} → {win.end}</p>
                     </button>
                   );
                 })}

@@ -558,7 +558,7 @@ export default function FormSubmissions() {
                                 style={{ borderBottom: "1px solid var(--border)" }}
                               >
                                 <span
-                                  className="px-2 py-0.5 rounded-full text-[11px] font-medium"
+                                  className="px-2 py-0.5 rounded-full text-xs font-medium"
                                   style={{
                                     backgroundColor:
                                       sub.status === "PROCESSED"
@@ -578,7 +578,7 @@ export default function FormSubmissions() {
                                 </span>
                                 {sub.status === "REJECTED" &&
                                   sub.rejectionReason && (
-                                    <div className="text-text-tertiary mt-1 text-left text-[11px]">
+                                    <div className="text-text-tertiary mt-1 text-left text-xs">
                                       {sub.rejectionReason}
                                     </div>
                                   )}

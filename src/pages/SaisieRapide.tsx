@@ -144,7 +144,7 @@ export default function SaisieRapide() {
         </IonToolbar>
       </IonHeader>
       <IonContent className="bg-canvas">
-        <div className="min-h-screen bg-canvas">
+        <div className="min-h-dvh">
           <TopHeader title="Saisie rapide" />
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             {culteDate && (
@@ -236,7 +236,7 @@ export default function SaisieRapide() {
                         />
                         {useCustom && (
                           <span
-                            className="text-[10px] px-1.5 py-0.5 rounded-full"
+                            className="text-xs px-1.5 py-0.5 rounded-full"
                             style={{
                               backgroundColor: "color-mix(in srgb, var(--data-planified) 12%, transparent)",
                               color: "var(--data-planified)",

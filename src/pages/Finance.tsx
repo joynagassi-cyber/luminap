@@ -133,7 +133,7 @@ export default function Finance() {
   return (
     <IonPage>
       <IonContent className="bg-canvas">
-        <div className="min-h-screen bg-canvas">
+        <div className="min-h-dvh">
           {loading ? (
             <FinanceSkeleton />
           ) : (

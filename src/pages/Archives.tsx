@@ -180,7 +180,7 @@ export default function Archives() {
   return (
     <IonPage>
       <IonContent className="bg-canvas">
-        <div className="min-h-screen bg-canvas">
+        <div className="min-h-dvh">
           <TopHeader title="Archives" />
           {loading ? (
             <div className="flex items-center justify-center py-20">

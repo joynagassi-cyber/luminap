@@ -243,7 +243,7 @@ export default function SettingsNotifications() {
                   >
                     {row.label}
                   </span>
-                  <span className="block text-[11px] text-text-tertiary">
+                  <span className="block text-xs text-text-tertiary">
                     {row.hint}
                   </span>
                 </span>

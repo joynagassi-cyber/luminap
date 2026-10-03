@@ -87,7 +87,7 @@ function OrgNode({
           <div className="flex items-center gap-2">
             <p className="text-text-primary font-semibold truncate">{org.name}</p>
             <span
-              className="text-[10px] px-1.5 py-0.5 rounded-full font-medium flex-shrink-0"
+              className="text-xs px-1.5 py-0.5 rounded-full font-medium flex-shrink-0"
               style={{
                 backgroundColor: `${STATUS_COLOR[org.status]}20`,
                 color: STATUS_COLOR[org.status],
@@ -137,7 +137,7 @@ function OrgNode({
                 {child.name}
               </span>
               <span
-                className="text-[10px] px-1.5 py-0.5 rounded-full"
+                className="text-xs px-1.5 py-0.5 rounded-full"
                 style={{
                   backgroundColor: `${STATUS_COLOR[child.status]}20`,
                   color: STATUS_COLOR[child.status],
@@ -296,7 +296,7 @@ export default function Federation() {
         </IonToolbar>
       </IonHeader>
       <IonContent className="bg-canvas">
-        <div className="min-h-screen bg-canvas">
+        <div className="min-h-dvh">
           <TopHeader title="Gestion de la fédération" />
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             {/* Create button (bouton natif — les enfants d'IonButton ne sont
@@ -409,7 +409,7 @@ export default function Federation() {
                     ? "Création opérationnelle..."
                     : "Créer opérationnelle (admin + ACTIVE)"}
                 </button>
-                <p className="text-[11px] text-text-tertiary leading-snug">
+                <p className="text-xs text-text-tertiary leading-snug">
                   « Opérationnelle » = organisation ACTIVE dont vous êtes
                   l'admin (via la fonction serveur), prête à recevoir des
                   membres par invitation. Nécessite un grant admin central.

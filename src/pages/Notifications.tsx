@@ -76,7 +76,7 @@ export default function NotificationsPage() {
     return (
       <IonPage>
         <IonContent fullscreen>
-          <div className="min-h-screen bg-canvas">
+          <div className="min-h-dvh">
             <NotificationsSkeleton />
           </div>
         </IonContent>
@@ -87,7 +87,7 @@ export default function NotificationsPage() {
   return (
     <IonPage>
       <IonContent fullscreen>
-        <div className="min-h-screen bg-canvas">
+        <div className="min-h-dvh">
           <TopHeader title="Notifications" />
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             <div className="flex items-center justify-between mb-5">

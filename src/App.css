@@ -48,6 +48,9 @@
      entre modes — remplaçant les formules ad-hoc par page (rgba(255,107,0,.3)). */
   --shadow-accent: 0 4px 12px color-mix(in srgb, var(--accent-primary) 30%, transparent);
   --shadow-accent-sm: 0 2px 8px color-mix(in srgb, var(--accent-primary) 30%, transparent);
+  /* H3 résidu — ombre FAB (spéc §4 : 0 4px 16px, teinte 38 %) distincte
+     de --shadow-accent (12px / 30 %) pour l'échelle d'élévation complète. */
+  --shadow-fab: 0 4px 16px color-mix(in srgb, var(--accent-primary) 38%, transparent);
 
   /* Voile (scrim) des overlays de page. En clair, un voile noir 60–70 %
      écrase les surfaces blanches : on passe à un voile gris 35 %. */
@@ -157,7 +160,8 @@ textarea:focus-visible,
    surface de l'app) : on retire seulement le flou (backdrop-filter),
    qui EST la préférence de transparence. Les fonds restent en place. */
 @media (prefers-reduced-transparency: reduce) {
-  * {
+  .ion-backdrop,
+  [class*="backdrop"] {
     backdrop-filter: none !important;
   }
 }

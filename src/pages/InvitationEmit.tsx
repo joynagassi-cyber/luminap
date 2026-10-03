@@ -233,7 +233,7 @@ export default function InvitationEmit() {
       <IonContent fullscreen>
         {/* M9 — TopHeader supprimé : la barre IonHeader (back + « Gérer »)
             porte déjà le contexte ; un 2ᵉ chrome 64px en double coquin. */}
-        <div className="min-h-screen bg-canvas">
+        <div className="min-h-dvh">
           <div
             className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc"
             style={{

@@ -109,7 +109,7 @@ export default function TransactionDetail() {
           </IonToolbar>
         </IonHeader>
         <IonContent fullscreen className="bg-canvas">
-          <div className="min-h-screen bg-canvas flex items-center justify-center">
+          <div className="min-h-dvh flex items-center justify-center">
             <p className="text-text-tertiary">Transaction introuvable</p>
           </div>
         </IonContent>
@@ -226,7 +226,7 @@ export default function TransactionDetail() {
         </IonToolbar>
       </IonHeader>
       <IonContent fullscreen className="bg-canvas">
-        <div className="min-h-screen bg-canvas">
+        <div className="min-h-dvh">
           <TopHeader title="Transaction" />
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             <button
@@ -252,7 +252,7 @@ export default function TransactionDetail() {
                 )}
               </div>
               <p
-                className={`text-4xl font-black tabular-nums ${isIncome ? "text-income" : "text-expense"}`}
+                className={`text-2xl font-black tabular-nums ${isIncome ? "text-income" : "text-expense"}`}
               >
                 {isIncome ? "+" : "-"}
                 {formatCurrencyCompact(tx.amount)} F

@@ -5,7 +5,6 @@ import {
 import { MoreVerticalSwoosh } from "@/components/icons/MoreVerticalSwoosh";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useState, useMemo } from "react";
-import { tint } from "@/lib/utils";
 import {
   useFeatureConfig,
   featuresForNav,
@@ -171,7 +170,7 @@ export default function BottomNav() {
             alignItems: "center",
             justifyContent: "center",
             background: `linear-gradient(135deg, ${fabAction.color}, ${fabAction.color})`,
-            boxShadow: `0 4px 16px ${tint(fabAction.color, 38)}`,
+            boxShadow: "var(--shadow-fab)",
             color: "var(--text-primary)",
             padding: 0,
           }}

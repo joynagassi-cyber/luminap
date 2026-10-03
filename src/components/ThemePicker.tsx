@@ -59,7 +59,7 @@ export default function ThemePicker({ value, onChange, columns = 5 }: Props) {
               </div>
               {columns === 5 && (
                 <span
-                  className="text-[10px] leading-tight text-center"
+                  className="text-xs leading-tight text-center"
                   style={{ color: selected ? t.primary : "var(--text-tertiary)" }}
                 >
                   {t.name.split(" ")[0]}

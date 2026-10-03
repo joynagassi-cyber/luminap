@@ -50,6 +50,7 @@ export default {
         "shadow-pop": "var(--shadow-pop)",
         "shadow-accent": "var(--shadow-accent)",
         "shadow-accent-sm": "var(--shadow-accent-sm)",
+        "shadow-fab": "var(--shadow-fab)",
         // Lumina brand
         lumina: {
           DEFAULT: "#FF6B00",
@@ -107,6 +108,7 @@ export default {
         pop: "var(--shadow-pop)",
         accent: "var(--shadow-accent)",
         "accent-sm": "var(--shadow-accent-sm)",
+        fab: "var(--shadow-fab)",
       },
       keyframes: {
         "accordion-down": {

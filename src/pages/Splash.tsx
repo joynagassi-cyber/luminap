@@ -75,7 +75,7 @@ export default function Splash() {
     <IonPage>
       <IonContent className="bg-canvas">
         <div
-          className="min-h-screen flex flex-col items-center justify-center"
+          className="min-h-dvh flex flex-col items-center justify-center"
           style={{ backgroundColor: "var(--canvas)" }}
         >
           {/* Sync indicator */}

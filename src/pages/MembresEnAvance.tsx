@@ -39,7 +39,7 @@ export default function MembresEnAvance() {
   return (
     <IonPage>
       <IonContent className="bg-canvas">
-        <div className="min-h-screen" style={{ backgroundColor: "var(--canvas)" }}>
+        <div className="min-h-dvh">
           <TopHeader title="En avance" />
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             {/* Back button */}
@@ -65,7 +65,7 @@ export default function MembresEnAvance() {
                   Total en avance
                 </span>
               </div>
-              <p className="text-3xl font-black" style={{ color: "var(--accent-primary)" }}>
+              <p className="text-2xl font-black" style={{ color: "var(--accent-primary)" }}>
                 {formatCurrencyCompact(totalEnAvance)}
                 <span className="text-text-tertiary text-base font-medium ml-1">
                   FCFA

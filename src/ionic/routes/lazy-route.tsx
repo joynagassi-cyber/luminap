@@ -84,7 +84,7 @@ class LazyRouteErrorBoundary extends Component<
                 </span>
               </div>
               <div>
-                <p className="text-base font-semibold text-white">
+                <p className="text-base font-semibold text-text-primary">
                   Impossible d&apos;afficher cette page
                 </p>
                 <p className="mt-1 text-xs" style={{ color: "var(--text-tertiary)" }}>
@@ -96,7 +96,7 @@ class LazyRouteErrorBoundary extends Component<
                 <button
                   type="button"
                   onClick={this.retry}
-                  className="rounded-full px-5 py-3 text-sm font-semibold text-white transition-all active:scale-95"
+                  className="rounded-full px-5 py-3 text-sm font-semibold text-on-accent transition-all active:scale-95"
                   style={{ backgroundColor: "var(--accent-primary)" }}
                 >
                   Réessayer

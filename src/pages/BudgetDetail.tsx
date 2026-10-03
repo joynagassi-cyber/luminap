@@ -32,7 +32,7 @@ export default function BudgetDetail() {
     return (
       <IonPage>
         <IonContent className="bg-canvas">
-          <div className="min-h-screen bg-canvas">
+          <div className="min-h-dvh">
             <TopHeader title="Budget" />
             <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
               <p className="text-text-tertiary text-sm">Budget introuvable.</p>
@@ -74,7 +74,7 @@ export default function BudgetDetail() {
   return (
     <IonPage>
       <IonContent className="bg-canvas">
-        <div className="min-h-screen bg-canvas">
+        <div className="min-h-dvh">
           <TopHeader title="Budget" />
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             {/* En-tête */}
@@ -87,7 +87,7 @@ export default function BudgetDetail() {
                   </p>
                 </div>
                 <span
-                  className="text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0"
+                  className="text-xs font-semibold px-2 py-0.5 rounded-full shrink-0"
                   style={{
                     backgroundColor: budget.status === "CLOSED" ? "var(--surface-active)" : "color-mix(in srgb, var(--accent-primary) 15%, transparent)",
                     color: budget.status === "CLOSED" ? "var(--text-tertiary)" : "var(--accent-primary)",
@@ -102,15 +102,15 @@ export default function BudgetDetail() {
             {/* Résumé prévu / réel / écart */}
             <div className="grid grid-cols-3 gap-3 mb-4">
               <div className="rounded-xl p-3 text-center" style={{ backgroundColor: "var(--surface)" }}>
-                <p className="text-text-tertiary text-[11px]">Prévu</p>
+                <p className="text-text-tertiary text-xs">Prévu</p>
                 <p className="text-text-primary font-bold text-sm mt-1">{formatCurrencyCompact(report.totalPlanned)}</p>
               </div>
               <div className="rounded-xl p-3 text-center" style={{ backgroundColor: "var(--surface)" }}>
-                <p className="text-text-tertiary text-[11px]">Réel</p>
+                <p className="text-text-tertiary text-xs">Réel</p>
                 <p className="text-income font-bold text-sm mt-1">{formatCurrencyCompact(report.totalActual)}</p>
               </div>
               <div className="rounded-xl p-3 text-center" style={{ backgroundColor: "var(--surface)" }}>
-                <p className="text-text-tertiary text-[11px]">Écart</p>
+                <p className="text-text-tertiary text-xs">Écart</p>
                 <p className="font-bold text-sm mt-1" style={{ color: over ? "var(--data-expense)" : "var(--data-income)" }}>
                   {report.totalVariance >= 0 ? "+" : "-"}{formatCurrencyCompact(Math.abs(report.totalVariance))}
                 </p>
@@ -151,7 +151,7 @@ export default function BudgetDetail() {
                             style={{ width: `${Math.min(100, bar)}%`, backgroundColor: lOver ? "var(--data-expense)" : "var(--accent-primary)" }}
                           />
                         </div>
-                        <div className="flex justify-between text-[11px]">
+                        <div className="flex justify-between text-xs">
                           <span className="text-text-tertiary">Prévu {formatCurrencyFull(l.planned)}</span>
                           <span className="text-text-secondary">
                             Réel {formatCurrencyFull(l.actual)} ·{" "}

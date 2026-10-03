@@ -52,7 +52,7 @@ export default function Giving() {
   return (
     <IonPage>
       <IonContent className="bg-canvas">
-        <div className="min-h-screen bg-canvas">
+        <div className="min-h-dvh">
           <TopHeader title="Dons & Campagnes" />
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             <h1 className="text-text-primary font-bold text-xl mb-4" data-testid="giving-title">
@@ -123,7 +123,7 @@ export default function Giving() {
                               }}
                             />
                           </div>
-                          <div className="flex justify-between text-[11px]">
+                          <div className="flex justify-between text-xs">
                             <span className="text-text-tertiary">Collecté {formatCurrencyCompact(p.given)}</span>
                             <span className="text-text-secondary">
                               Objectif {formatCurrencyCompact(p.target)}
@@ -160,13 +160,13 @@ export default function Giving() {
                       >
                         <div>
                           <p className="text-text-primary font-medium text-sm">{d.full_name}</p>
-                          <p className="text-text-tertiary text-[11px]">
+                          <p className="text-text-tertiary text-xs">
                             {d.email || d.phone || "—"}
                           </p>
                         </div>
                         {d.tax_receipt_enabled === 1 && (
                           <span
-                            className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                            className="text-xs font-semibold px-2 py-0.5 rounded-full"
                             style={{ backgroundColor: "color-mix(in srgb, var(--data-income) 12%, transparent)", color: "var(--data-income)" }}
                           >
                             Reçu fiscal
@@ -195,7 +195,7 @@ export default function Giving() {
                               {donor?.full_name ?? "Donateur"}
                             </p>
                             <span
-                              className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                              className="text-xs font-semibold px-2 py-0.5 rounded-full"
                               style={{
                                 backgroundColor:
                                   "color-mix(in srgb, var(--data-pending) 12%, transparent)",
@@ -205,7 +205,7 @@ export default function Giving() {
                               {p.schedule}
                             </span>
                           </div>
-                          <p className="text-text-tertiary text-[11px] mt-0.5">
+                          <p className="text-text-tertiary text-xs mt-0.5">
                             {campaign?.name ?? "Campagne"} · {formatCurrencyFull(p.pledged_amount_cents)}
                           </p>
                         </div>
@@ -233,7 +233,7 @@ export default function Giving() {
                         >
                           <div>
                             <p className="text-text-primary font-medium text-sm">{donor?.full_name ?? "Donateur"}</p>
-                            <p className="text-text-tertiary text-[11px]">
+                            <p className="text-text-tertiary text-xs">
                               {r.year} · {r.receipt_no}
                             </p>
                           </div>

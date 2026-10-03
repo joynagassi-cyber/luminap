@@ -154,8 +154,8 @@ const GlobalPanel = memo(function GlobalPanel({ totalIncome, totalExpense, netRe
           {pieData.map((d, i) => (
             <div key={d.id} className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
-              <span className="text-text-secondary text-[11px] flex-1 truncate">{d.name}</span>
-              <span className="text-text-tertiary text-[11px] tabular-nums">{formatCentsToFCFA(d.value)}</span>
+              <span className="text-text-secondary text-xs flex-1 truncate">{d.name}</span>
+              <span className="text-text-tertiary text-xs tabular-nums">{formatCentsToFCFA(d.value)}</span>
             </div>
           ))}
         </div>
@@ -191,7 +191,7 @@ const GroupPanel = memo(function GroupPanel({ caisseData }: GroupPanelProps) {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-text-primary text-sm font-medium truncate">{c.name}</p>
-              <p className="text-text-tertiary text-[11px]">
+              <p className="text-text-tertiary text-xs">
                 {formatCentsToFCFA(c.income)} entrées · {formatCentsToFCFA(c.expense)} sorties
               </p>
             </div>
@@ -244,7 +244,7 @@ const EventPanel = memo(function EventPanel({ eventData, onOpen }: EventPanelPro
               >
                 <div className="flex-1 min-w-0">
                   <p className="text-text-primary text-sm font-medium truncate">{e.name}</p>
-                  <p className="text-text-tertiary text-[11px]">
+                  <p className="text-text-tertiary text-xs">
                     Budget {formatCentsToFCFA(e.budget)} · Net {formatCentsToFCFA(Math.abs(e.net))}
                   </p>
                 </div>
@@ -412,7 +412,7 @@ export default function Reports() {
     return (
       <IonPage>
         <IonContent className="bg-canvas">
-          <div className="min-h-screen bg-canvas">
+          <div className="min-h-dvh">
             <TopHeader title="Rapports" />
             <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
               <ReportsSkeleton />
@@ -427,7 +427,7 @@ export default function Reports() {
   return (
     <IonPage>
       <IonContent className="bg-canvas">
-        <div className="min-h-screen bg-canvas">
+        <div className="min-h-dvh">
           <TopHeader title="Rapports" />
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             {/* Période */}
@@ -498,7 +498,7 @@ export default function Reports() {
                 <div className="flex items-center gap-2 mb-3">
                   <FileText className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
                   <p className="text-text-primary font-semibold text-sm">Mes rapports</p>
-                  <span className="text-text-tertiary text-[11px]">({savedReports.length})</span>
+                  <span className="text-text-tertiary text-xs">({savedReports.length})</span>
                 </div>
 
                 {savedReports.length === 0 ? (
@@ -522,7 +522,7 @@ export default function Reports() {
                       return (
                         <div key={block.kind} className="rounded-xl p-3 space-y-2" style={{ backgroundColor: "var(--surface)" }}>
                           <div className="flex items-center justify-between">
-                            <p className="text-text-secondary text-[11px] font-semibold uppercase tracking-wide">
+                            <p className="text-text-secondary text-xs font-semibold uppercase tracking-wide">
                               {block.label}
                             </p>
                             <button
@@ -553,7 +553,7 @@ export default function Reports() {
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <p className="text-text-primary text-sm font-medium truncate">{r.name}</p>
-                                  <p className="text-text-tertiary text-[11px]">
+                                  <p className="text-text-tertiary text-xs">
                                     {(r.groupBy?.length || 0) > 0 ? `Grouper : ${(r.groupBy || []).join(", ")}` : "Sans groupement"}
                                   </p>
                                 </div>

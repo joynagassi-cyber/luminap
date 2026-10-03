@@ -197,7 +197,7 @@ export default function InvitationManage() {
         </IonToolbar>
       </IonHeader>
       <IonContent fullscreen>
-        <div className="min-h-screen bg-canvas">
+        <div className="min-h-dvh">
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             {/* Stats */}
             <div className="grid grid-cols-3 gap-3 mb-6">
@@ -342,7 +342,7 @@ export default function InvitationManage() {
                                         {new Date(cl.claimedAt).toLocaleString("fr-FR")}
                                       </span>
                                       <span
-                                        className="text-[11px] px-1.5 py-0.5 rounded-full font-medium"
+                                        className="text-xs px-1.5 py-0.5 rounded-full font-medium"
                                         style={{
                                           backgroundColor: `${cfg.color}20`,
                                           color: cfg.color,

@@ -218,7 +218,7 @@ export default function SessionsPage() {
   return (
     <IonPage>
       <IonContent className="bg-canvas">
-        <div className="min-h-screen bg-canvas">
+        <div className="min-h-dvh">
           <TopHeader title="Mes comptes" />
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             <p className="text-text-tertiary text-xs mb-5">
@@ -278,7 +278,7 @@ export default function SessionsPage() {
                               {org.name}
                             </p>
                             {isCurrent && (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-income flex-shrink-0">
+                              <span className="inline-flex items-center gap-1 text-xs font-medium text-income flex-shrink-0">
                                 <Check className="w-3 h-3" /> Actif
                               </span>
                             )}

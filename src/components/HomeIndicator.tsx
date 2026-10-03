@@ -146,7 +146,7 @@ export default function HomeIndicator() {
                 style={{ background: "var(--border)" }}
               />
               <p
-                className="ml-3 text-[11px] font-medium"
+                className="ml-3 text-xs font-medium"
                 style={{ color: "var(--text-tertiary)" }}
               >
                 Glisser pour fermer
@@ -201,7 +201,7 @@ export default function HomeIndicator() {
                           {s.label}
                         </p>
                         <p
-                          className="text-[11px] truncate"
+                          className="text-xs truncate"
                           style={{ color: "var(--text-tertiary)" }}
                         >
                           {s.desc}

@@ -120,7 +120,7 @@ export default function Versement() {
   return (
     <IonPage>
       <IonContent fullscreen>
-        <div className="min-h-screen bg-canvas">
+        <div className="min-h-dvh">
           <TopHeader title="Versement" />
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             <button
@@ -157,7 +157,7 @@ export default function Versement() {
                     <p className="text-text-tertiary text-sm mb-1">
                       Montant à verser
                     </p>
-                    <p className="text-3xl font-black text-accent">
+                    <p className="text-2xl font-black text-accent">
                       {formatCurrencyCompact(amountNum)} F
                     </p>
                   </div>

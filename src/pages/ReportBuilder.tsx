@@ -437,7 +437,7 @@ export default function ReportBuilder() {
   return (
     <IonPage>
       <IonContent className="bg-canvas">
-        <div className="min-h-screen bg-canvas">
+        <div className="min-h-dvh">
           <TopHeader title="Constructeur de rapport" />
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
         <button
@@ -453,7 +453,7 @@ export default function ReportBuilder() {
           </h1>
           {loadedId && (
             <span
-              className="text-[10px] font-medium px-2 py-0.5 rounded-full"
+              className="text-xs font-medium px-2 py-0.5 rounded-full"
               style={{ backgroundColor: "var(--surface-hover)", color: "var(--text-secondary)" }}
             >
               Chargé
@@ -469,7 +469,7 @@ export default function ReportBuilder() {
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="text-text-tertiary text-[11px] mb-1 block">Période</label>
+              <label className="text-text-tertiary text-xs mb-1 block">Période</label>
               <IonSelect
                 value={f.period}
                 onIonChange={(e: IonChangeCustomEvent<string>) => setFilter("period", e.detail.value)}
@@ -481,7 +481,7 @@ export default function ReportBuilder() {
               </IonSelect>
             </div>
             <div>
-              <label className="text-text-tertiary text-[11px] mb-1 block">Type</label>
+              <label className="text-text-tertiary text-xs mb-1 block">Type</label>
               <IonSelect
                 value={f.type}
                 onIonChange={(e: IonChangeCustomEvent<string>) => setFilter("type", e.detail.value)}
@@ -493,7 +493,7 @@ export default function ReportBuilder() {
               </IonSelect>
             </div>
             <div>
-              <label className="text-text-tertiary text-[11px] mb-1 block">Catégorie</label>
+              <label className="text-text-tertiary text-xs mb-1 block">Catégorie</label>
               <IonSelect
                 value={f.categoryId}
                 onIonChange={(e: IonChangeCustomEvent<string>) => setFilter("categoryId", e.detail.value)}
@@ -506,7 +506,7 @@ export default function ReportBuilder() {
               </IonSelect>
             </div>
             <div>
-              <label className="text-text-tertiary text-[11px] mb-1 block">Caisse</label>
+              <label className="text-text-tertiary text-xs mb-1 block">Caisse</label>
               <IonSelect
                 value={f.sourceCaisseId}
                 onIonChange={(e: IonChangeCustomEvent<string>) => setFilter("sourceCaisseId", e.detail.value)}
@@ -539,7 +539,7 @@ export default function ReportBuilder() {
           <div className="flex items-center gap-2 mb-3">
             <ListChecks className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
             <p className="text-text-primary font-semibold text-sm">Groupement</p>
-            <span className="text-text-tertiary text-[11px]">(optionnel)</span>
+            <span className="text-text-tertiary text-xs">(optionnel)</span>
           </div>
           <div className="flex flex-wrap gap-2">
             {groupDimsFor(draft.dataSource).map((dim) => {
@@ -732,7 +732,7 @@ export default function ReportBuilder() {
           <div className="flex items-center gap-2 mb-3">
             <FileText className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
             <p className="text-text-primary font-semibold text-sm">Mes rapports</p>
-            <span className="text-text-tertiary text-[11px]">({savedReports.length})</span>
+            <span className="text-text-tertiary text-xs">({savedReports.length})</span>
           </div>
           {savedReports.length === 0 ? (
             <EmptyState
@@ -750,7 +750,7 @@ export default function ReportBuilder() {
                 >
                   <div className="flex-1 min-w-0">
                     <p className="text-text-primary text-sm font-medium truncate">{r.name}</p>
-                    <p className="text-text-tertiary text-[11px]">
+                    <p className="text-text-tertiary text-xs">
                       {(r.groupBy?.length || 0) > 0
                         ? `Grouper : ${(r.groupBy || []).join(", ")}`
                         : "Sans groupement"}

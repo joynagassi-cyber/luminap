@@ -83,7 +83,7 @@ export default function SettingsPersonalisation() {
               placeholder="Ex: Église MFE-JC Centrale de Douala"
               data-testid="org-name-input"
             />
-            <p className="text-text-tertiary text-[11px] mt-1.5">
+            <p className="text-text-tertiary text-xs mt-1.5">
               Nom d'origine affiché dans l'en-tête et les rapports.
             </p>
           </div>
@@ -91,7 +91,7 @@ export default function SettingsPersonalisation() {
           <div>
             <label className="text-text-tertiary text-xs mb-1.5 block">
               Logo de l'organisation
-              <span className="block text-[11px] opacity-70 mt-0.5">
+              <span className="block text-xs opacity-70 mt-0.5">
                 Envoyé dans le bucket « logos » (repli local hors ligne)
               </span>
             </label>

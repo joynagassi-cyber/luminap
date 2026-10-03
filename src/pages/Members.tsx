@@ -157,7 +157,7 @@ export default function MembersPage() {
   return (
     <IonPage>
       <IonContent fullscreen>
-        <div className="min-h-screen bg-canvas">
+        <div className="min-h-dvh">
           <TopHeader title="Membres" />
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             {/* Header */}

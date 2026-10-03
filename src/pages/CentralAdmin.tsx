@@ -352,7 +352,7 @@ function OrgDetail({ orgId, onBack }: { orgId: string; onBack: () => void }) {
             </IonButton>
           </div>
         )}
-        <p className="text-[11px] text-text-tertiary mt-2 leading-snug">
+        <p className="text-xs text-text-tertiary mt-2 leading-snug">
           Confère un grant admin central actif sur cette organisation. Le
           serveur ré-applique le RLS à la synchronisation.
         </p>
@@ -387,7 +387,7 @@ function OrgDetail({ orgId, onBack }: { orgId: string; onBack: () => void }) {
                 {a.comment && (
                   <p className="text-text-tertiary text-xs mt-0.5">{a.comment}</p>
                 )}
-                <p className="text-text-tertiary text-[11px] mt-1">
+                <p className="text-text-tertiary text-xs mt-1">
                   {new Date(a.createdAt).toLocaleString("fr-FR")}
                 </p>
               </div>
@@ -468,7 +468,7 @@ export default function CentralAdmin() {
           </IonToolbar>
         </IonHeader>
         <IonContent className="bg-canvas">
-          <div className="min-h-screen bg-canvas">
+          <div className="min-h-dvh">
             <TopHeader title="Administration centrale" />
             <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
               <div className="p-6 rounded-xl text-center" style={{ backgroundColor: "var(--surface)" }}>
@@ -529,7 +529,7 @@ export default function CentralAdmin() {
         </IonToolbar>
       </IonHeader>
       <IonContent className="bg-canvas">
-        <div className="min-h-screen bg-canvas">
+        <div className="min-h-dvh">
           {/* Distinct central banner */}
           <div
             className="px-5 pt-4 pb-2"
@@ -708,7 +708,7 @@ export default function CentralAdmin() {
                                   data-testid="archive-confirm"
                                   onClick={() => confirmArchive(o)}
                                   disabled={busy === o.id}
-                                  className="px-2.5 py-1.5 rounded-full text-[11px] font-semibold text-on-accent transition-all active:scale-95 disabled:opacity-50"
+                                  className="px-2.5 py-1.5 rounded-full text-xs font-semibold text-on-accent transition-all active:scale-95 disabled:opacity-50"
                                   style={{ backgroundColor: "var(--accent-primary)" }}
                                 >
                                   Valider
@@ -719,7 +719,7 @@ export default function CentralAdmin() {
                                     setArchiveTarget(null);
                                     setArchiveReason("");
                                   }}
-                                  className="px-2 py-1.5 text-[11px] font-semibold"
+                                  className="px-2 py-1.5 text-xs font-semibold"
                                   style={{
                                     color: "var(--text-secondary)",
                                     background: "transparent",

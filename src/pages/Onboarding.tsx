@@ -669,7 +669,7 @@ export default function Onboarding() {
   return (
     <IonPage>
       <IonContent className="bg-canvas">
-        <div className="min-h-screen bg-canvas flex flex-col">
+        <div className="min-h-dvh flex flex-col">
           {/* Header with logo */}
           <div className="flex items-center justify-between px-6 py-5">
             <img

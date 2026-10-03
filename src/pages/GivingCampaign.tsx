@@ -74,7 +74,7 @@ export default function GivingCampaign() {
     return (
       <IonPage>
         <IonContent className="bg-canvas">
-          <div className="min-h-screen bg-canvas">
+          <div className="min-h-dvh">
             <TopHeader title="Campagne" />
             <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
               <p className="text-text-tertiary text-sm">Campagne introuvable.</p>
@@ -162,7 +162,7 @@ export default function GivingCampaign() {
   return (
     <IonPage>
       <IonContent className="bg-canvas">
-        <div className="min-h-screen bg-canvas">
+        <div className="min-h-dvh">
           <TopHeader title="Campagne" />
           <div
             className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc"
@@ -185,17 +185,17 @@ export default function GivingCampaign() {
               </div>
               <div className="grid grid-cols-3 gap-2 text-center">
                 <div>
-                  <p className="text-text-tertiary text-[11px]">Collecté</p>
+                  <p className="text-text-tertiary text-xs">Collecté</p>
                   <p className="text-income font-bold text-sm">{formatCurrencyFull(p.given)}</p>
                 </div>
                 <div>
-                  <p className="text-text-tertiary text-[11px]">Pledges</p>
+                  <p className="text-text-tertiary text-xs">Pledges</p>
                   <p className="text-text-secondary font-bold text-sm" style={{ color: "var(--data-pending)" }}>
                     {formatCurrencyFull(p.pledged)}
                   </p>
                 </div>
                 <div>
-                  <p className="text-text-tertiary text-[11px]">Objectif</p>
+                  <p className="text-text-tertiary text-xs">Objectif</p>
                   <p className="text-text-primary font-bold text-sm">{formatCurrencyFull(p.target)}</p>
                 </div>
               </div>
@@ -256,7 +256,7 @@ export default function GivingCampaign() {
                     <div key={pl.id} className="flex items-center justify-between">
                       <div>
                         <p className="text-text-primary text-sm font-medium">{donorName(pl.donor_id)}</p>
-                        <p className="text-text-tertiary text-[11px]">{pl.schedule}</p>
+                        <p className="text-text-tertiary text-xs">{pl.schedule}</p>
                       </div>
                       <p className="text-text-secondary text-sm font-semibold">{formatCurrencyFull(pl.pledged_amount_cents)}</p>
                     </div>
@@ -322,7 +322,7 @@ export default function GivingCampaign() {
                           <p className="text-text-primary text-sm font-medium">
                             {t?.description || "Transaction"}
                           </p>
-                          <p className="text-text-tertiary text-[11px]">{donorName(l.donor_id)}</p>
+                          <p className="text-text-tertiary text-xs">{donorName(l.donor_id)}</p>
                         </div>
                         <button onClick={() => deleteTransactionGivingPS(l.id)} className="text-text-tertiary active:scale-90 transition-transform" aria-label="Détacher">
                           <Trash2 className="w-3.5 h-3.5" />

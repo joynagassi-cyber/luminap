@@ -99,7 +99,7 @@ export default function TopHeader({ title }: { title?: string }) {
                 {unreadCount > 0 && (
                   <span
                     aria-hidden="true"
-                    className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center text-xs font-bold"
+                    className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold"
                     style={{ backgroundColor: "var(--data-expense)", color: "var(--on-accent)" }}
                   >
                     {unreadCount > 9 ? "9+" : unreadCount}

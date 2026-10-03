@@ -9,7 +9,7 @@ export default function NotFound() {
   return (
     <IonPage>
       <IonContent className="bg-canvas">
-        <div className="min-h-screen bg-canvas flex items-center justify-center px-5">
+        <div className="min-h-dvh flex items-center justify-center px-5">
           <div className="text-center">
             <p
               className="text-6xl font-black mb-4"
