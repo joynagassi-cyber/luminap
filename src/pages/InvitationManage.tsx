@@ -19,11 +19,11 @@ import {
   IonCardHeader,
   IonCardContent,
   IonBadge,
-  IonAlert,
   IonInput,
   IonSearchbar,
   IonSpinner,
 } from "@ionic/react";
+import ConfirmModal from "@/components/ConfirmModal";
 import {
   QrCode,
   Plus,
@@ -438,22 +438,17 @@ export default function InvitationManage() {
           <BottomNav />
         </div>
 
-        {/* M10 — IonAlert DANS IonContent (portale au body sinon, la vue
-            animerait la disparition de l'alerte en navigation). */}
-        <IonAlert
-          isOpen={showRevokeAlert}
-          onDidDismiss={() => setShowRevokeAlert(false)}
-          header="Révoquer l'invitation"
-          message={`Êtes-vous sûr de vouloir révoquer l'invitation ${revokeTarget?.code} ? Cette action est irréversible.`}
-          buttons={[
-            { text: "Annuler", role: "cancel" },
-            {
-              text: "Révoquer",
-              role: "confirm",
-              handler: handleRevoke,
-              cssClass: "ion-color-danger",
-            },
-          ]}
+        {/* M11 — ConfirmModal (pattern maison) remplace l'IonAlert pour la
+            révocation destructive : un seul style de confirmation dans l'app,
+            focus-trap + aria-modal + Escape gérés par ConfirmModal. */}
+        <ConfirmModal
+          open={showRevokeAlert}
+          onClose={() => setShowRevokeAlert(false)}
+          onConfirm={handleRevoke}
+          title="Révoquer l'invitation"
+          description={`Êtes-vous sûr de vouloir révoquer l'invitation ${revokeTarget?.code} ? Cette action est irréversible.`}
+          confirmLabel="Révoquer"
+          confirmVariant="danger"
         />
 
         {/* Modal de rejet d'une demande (raison + confirmation, sans prompt) */}

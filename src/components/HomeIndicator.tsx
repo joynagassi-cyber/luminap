@@ -110,7 +110,7 @@ export default function HomeIndicator() {
         >
           <div
             className="absolute inset-0"
-            style={{ background: "rgba(0,0,0,0.45)" }}
+            style={{ background: "var(--scrim)" }}
           />
           <div
             className="absolute left-0 right-0 bottom-0 rounded-t-2xl"

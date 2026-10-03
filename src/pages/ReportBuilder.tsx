@@ -574,7 +574,7 @@ export default function ReportBuilder() {
 
           {(draft.metrics || []).map((m, i) => (
             <div
-              key={i}
+              key={`${m.fn}-${i}`}
               className="flex items-center gap-2 p-2.5 rounded-lg mb-2"
               style={{ backgroundColor: "var(--surface)" }}
             >
@@ -701,7 +701,7 @@ export default function ReportBuilder() {
                   </thead>
                   <tbody>
                     {previewResult.rows.map((row, i) => (
-                      <tr key={i} className="border-t" style={{ borderColor: "var(--border)" }}>
+                      <tr key={JSON.stringify(row)} className="border-t" style={{ borderColor: "var(--border)" }}>
                         {previewResult.columns.map((col, j) => (
                           <td key={col} className="py-2 px-3 text-text-primary tabular-nums">
                             {j === 0

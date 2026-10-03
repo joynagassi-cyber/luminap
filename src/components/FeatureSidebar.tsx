@@ -160,7 +160,7 @@ export default function FeatureSidebar({
         style={{
           position: "absolute",
           inset: 0,
-          background: "rgba(0,0,0,0.5)",
+          background: "var(--scrim)",
           opacity: open ? 1 : 0,
           transition: "opacity 300ms ease",
         }}

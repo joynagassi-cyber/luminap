@@ -381,7 +381,7 @@ export default function Groups() {
             {showEdit && (
               <div
                 className="fixed inset-0 z-50 flex items-center justify-center p-4"
-                style={{ backgroundColor: "rgba(0,0,0,0.8)" }}
+                style={{ backgroundColor: "var(--scrim)" }}
               >
                 <div
                   className="w-full max-w-sm rounded-2xl p-5"
@@ -439,7 +439,7 @@ export default function Groups() {
             {showDelete && (
               <div
                 className="fixed inset-0 z-50 flex items-center justify-center p-4"
-                style={{ backgroundColor: "rgba(0,0,0,0.8)" }}
+                style={{ backgroundColor: "var(--scrim)" }}
               >
                 <div
                   className="w-full max-w-sm rounded-2xl p-5 text-center"

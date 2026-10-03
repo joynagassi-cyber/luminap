@@ -49,11 +49,13 @@ const STATUS_LABEL: Record<string, string> = {
   ARCHIVED: "Archivée",
 };
 
+// M17 — les statuts passent par les tokens --data-* (jamais de hex brut),
+// cohérent avec getStatusColor() de lib/utils.ts (H5) et CHART_COLORS.
 const STATUS_COLOR: Record<string, string> = {
-  PENDING: "#FFB800",
-  ACTIVE: "#1DB954",
-  SUSPENDED: "#E51332",
-  ARCHIVED: "#808080",
+  PENDING: "var(--data-pending)",
+  ACTIVE: "var(--data-income)",
+  SUSPENDED: "var(--data-expense)",
+  ARCHIVED: "var(--text-tertiary)",
 };
 
 const TYPE_LABEL: Record<string, string> = {

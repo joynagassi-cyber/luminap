@@ -64,7 +64,7 @@ function ChartTooltip({ active, payload, label, money }: any) {
     <div className="rounded-xl p-3 shadow-pop" style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}>
       {label != null && <p className="text-text-tertiary text-xs mb-2 font-medium">{label}</p>}
       {payload.map((entry: any, idx: number) => (
-        <div key={idx} className="flex items-center justify-between gap-6 min-w-[140px]">
+        <div key={entry.dataKey ?? idx} className="flex items-center justify-between gap-6 min-w-[140px]">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color || entry.payload?.fill || COLORS.accent }} />
             <span className="text-text-secondary text-xs">{entry.name}</span>
