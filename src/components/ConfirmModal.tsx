@@ -96,7 +96,7 @@ export default function ConfirmModal({
   const isConfirmDisabled = requiredText ? inputValue !== requiredText : false;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center px-4 pb-4 sm:pb-0">
+    <div className="fixed inset-0 z-overlay flex items-end sm:items-center justify-center px-4 pb-4 sm:pb-0">
       <div
         className="fixed inset-0 bg-scrim backdrop-blur-sm"
         onClick={onClose}

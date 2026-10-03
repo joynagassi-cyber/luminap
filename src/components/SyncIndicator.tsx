@@ -47,7 +47,7 @@ export default function SyncIndicator() {
       data-testid="sync-indicator"
       role="status"
       aria-live={state === "offline" ? "assertive" : "polite"}
-      className="fixed top-4 right-4 z-50 px-3 py-1.5 rounded-full flex items-center gap-1.5 text-xs font-medium transition-opacity duration-200"
+      className="fixed top-4 right-4 z-overlay px-3 py-1.5 rounded-full flex items-center gap-1.5 text-xs font-medium transition-opacity duration-200"
       style={{
         backgroundColor: config.bg,
         color: config.color,

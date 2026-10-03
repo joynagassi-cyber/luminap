@@ -10,9 +10,9 @@ export default function BottomDrawer({ open, onClose, children }: Props) {
   if (!open) return null;
   return (
     <>
-      <div className="fixed inset-0 z-50 bg-scrim" onClick={onClose} />
+      <div className="fixed inset-0 z-overlay bg-scrim" onClick={onClose} />
       <div
-        className="fixed bottom-0 left-0 right-0 z-50 rounded-t-2xl p-5 pb-8"
+        className="fixed bottom-0 left-0 right-0 z-overlay rounded-t-2xl p-5 pb-8"
         style={{ backgroundColor: "var(--card)" }}
       >
         <div className="flex items-center justify-between mb-4">

@@ -380,7 +380,7 @@ export default function Groups() {
             {/* Edit modal */}
             {showEdit && (
               <div
-                className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                className="fixed inset-0 z-overlay flex items-center justify-center p-4"
                 style={{ backgroundColor: "var(--scrim)" }}
               >
                 <div
@@ -434,7 +434,7 @@ export default function Groups() {
             {/* Delete confirmation */}
             {showDelete && (
               <div
-                className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                className="fixed inset-0 z-overlay flex items-center justify-center p-4"
                 style={{ backgroundColor: "var(--scrim)" }}
               >
                 <div

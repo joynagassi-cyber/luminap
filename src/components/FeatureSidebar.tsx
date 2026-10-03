@@ -149,7 +149,7 @@ export default function FeatureSidebar({
       style={{
         position: "fixed",
         inset: 0,
-        zIndex: 60,
+        zIndex: "var(--z-float)",
         visibility: open ? "visible" : "hidden",
         transition: "visibility 0s linear 300ms",
       }}

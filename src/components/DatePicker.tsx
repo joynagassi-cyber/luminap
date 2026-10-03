@@ -101,7 +101,7 @@ export default function DatePicker({ value, onChange, label, id }: Props) {
 
       {open && (
         <div
-          className="absolute z-50 top-full left-0 mt-2 rounded-2xl overflow-hidden shadow-pop"
+          className="absolute z-overlay top-full left-0 mt-2 rounded-2xl overflow-hidden shadow-pop"
           style={{
             backgroundColor: "var(--card)",
             border: "1px solid var(--border)",

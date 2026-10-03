@@ -102,7 +102,7 @@ export default function HomeIndicator() {
       {sheetOpen && (
         <div
           className="fixed inset-0"
-          style={{ zIndex: 60 }}
+          style={{ zIndex: "var(--z-float)" }}
           role="dialog"
           aria-modal="true"
           aria-label="Raccourcis utiles"
@@ -226,7 +226,7 @@ export default function HomeIndicator() {
           left: "50%",
           bottom: 66,
           transform: "translateX(-50%)",
-          zIndex: 60,
+          zIndex: "var(--z-float)",
           width: 120,
           height: 6,
           borderRadius: 999,

@@ -373,7 +373,7 @@ export default function FormBuilder() {
           {/* Create Modal */}
           {showCreate && (
             <div
-              className="fixed inset-0 z-50 flex items-end justify-center"
+              className="fixed inset-0 z-overlay flex items-end justify-center"
               onClick={closeCreateModal}
             >
               <div className="absolute inset-0 bg-scrim" />

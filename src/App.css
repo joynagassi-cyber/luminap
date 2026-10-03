@@ -52,6 +52,16 @@
      de --shadow-accent (12px / 30 %) pour l'échelle d'élévation complète. */
   --shadow-fab: 0 4px 16px color-mix(in srgb, var(--accent-primary) 38%, transparent);
 
+  /* M15 — z-index nommés : pile d'écrans coordonnée, fin des z ad-hoc.
+     Couche  : 40 (nav / BottomNav) < 50 (overlays : drawers, modales,
+     date-pickers, sync) < 60 (indicateurs flottants : home indicator,
+     feature sidebar, alertes) < 70 (toasts) < 100 (skip-link focus). */
+  --z-nav: 40;
+  --z-overlay: 50;
+  --z-float: 60;
+  --z-toast: 70;
+  --z-skip: 100;
+
   /* Voile (scrim) des overlays de page. En clair, un voile noir 60–70 %
      écrase les surfaces blanches : on passe à un voile gris 35 %. */
   --scrim: rgba(0, 0, 0, 0.6);

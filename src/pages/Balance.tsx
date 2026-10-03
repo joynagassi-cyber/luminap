@@ -295,7 +295,7 @@ export default function Balance() {
             {/* Export modal */}
             {showExport && (
               <div
-                className="fixed inset-0 z-50 flex items-end justify-center"
+                className="fixed inset-0 z-overlay flex items-end justify-center"
                 onClick={() => setShowExport(false)}
               >
                 <div className="absolute inset-0 bg-scrim" aria-hidden="true" />

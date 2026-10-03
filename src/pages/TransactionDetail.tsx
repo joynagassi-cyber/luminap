@@ -536,7 +536,7 @@ export default function TransactionDetail() {
                 ref={rejectModalRef}
                 role="dialog"
                 aria-modal="true"
-                className="fixed inset-0 z-50 flex items-center justify-center p-4 outline-none"
+                className="fixed inset-0 z-overlay flex items-center justify-center p-4 outline-none"
                 style={{ backgroundColor: "var(--scrim)" }}
               >
                 <div
@@ -584,7 +584,7 @@ export default function TransactionDetail() {
                 ref={reverseModalRef}
                 role="dialog"
                 aria-modal="true"
-                className="fixed inset-0 z-50 flex items-center justify-center p-4 outline-none"
+                className="fixed inset-0 z-overlay flex items-center justify-center p-4 outline-none"
                 style={{ backgroundColor: "var(--scrim)" }}
               >
                 <div

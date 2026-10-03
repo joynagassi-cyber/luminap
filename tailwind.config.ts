@@ -110,6 +110,15 @@ export default {
         "accent-sm": "var(--shadow-accent-sm)",
         fab: "var(--shadow-fab)",
       },
+      // M15 — z-index nommés : pile d'écrans coordonnée (nav 40 /
+      // overlays 50 / flottants 60 / toasts 70 / skip-link 100).
+      zIndex: {
+        nav: "var(--z-nav)",
+        overlay: "var(--z-overlay)",
+        float: "var(--z-float)",
+        toast: "var(--z-toast)",
+        skip: "var(--z-skip)",
+      },
       keyframes: {
         "accordion-down": {
           from: { height: "0" },

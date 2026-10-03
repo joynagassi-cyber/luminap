@@ -585,7 +585,7 @@ export default function Reports() {
 
           {/* Modale d'export */}
           {showExport && (
-            <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={() => setShowExport(false)}>
+            <div className="fixed inset-0 z-overlay flex items-end justify-center" onClick={() => setShowExport(false)}>
               <div className="absolute inset-0 bg-scrim" />
               <div className="relative w-full max-w-lg rounded-t-2xl p-5 pb-8" style={{ backgroundColor: "var(--card)" }} onClick={(e) => e.stopPropagation()}>
                 <div className="flex items-center justify-between mb-5">

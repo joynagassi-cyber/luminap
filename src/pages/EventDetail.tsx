@@ -848,7 +848,7 @@ export default function EventDetail() {
 
         {/* Add Expense Modal */}
         {showAddExpense && (
-          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+          <div className="fixed inset-0 z-overlay flex items-end sm:items-center justify-center">
             <div
               className="absolute inset-0 bg-scrim"
               onClick={() => setShowAddExpense(false)}
@@ -959,7 +959,7 @@ export default function EventDetail() {
         {/* Delete Confirmation */}
         {showDelete && (
           <div
-            className="fixed inset-0 z-50 flex items-center justify-center px-5"
+            className="fixed inset-0 z-overlay flex items-center justify-center px-5"
             onClick={() => setShowDelete(false)}
           >
             <div className="absolute inset-0 bg-scrim" />
