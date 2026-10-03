@@ -74,6 +74,14 @@ streams:
     auto_subscribe: true
     query: SELECT * FROM events WHERE org_id = (SELECT org_id FROM profiles WHERE id = auth.uid())
 
+  # Tâches & sous-tâches d'un événement (Phase 1 Feature 1 Calendrier,
+  # migration 20261003000001). Scoping org identique à `events` ; l'UI
+  # (EventTasks.tsx via useEventTasks) crée le stream explicitement.
+  event_tasks:
+    auto_subscribe: false
+    query: SELECT * FROM event_tasks
+           WHERE org_id = (SELECT org_id FROM profiles WHERE id = auth.uid())
+
   cotisations:
     auto_subscribe: true
     query: SELECT * FROM cotisations WHERE org_id = (SELECT org_id FROM profiles WHERE id = auth.uid())

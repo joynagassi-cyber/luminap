@@ -81,7 +81,9 @@ CREATE POLICY event_tasks_delete ON public.event_tasks
 -- ----------------------------------------------------------------------------
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.event_tasks
   TO anon, authenticated, service_role;
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.event_tasks
-  TO powersync_role;
+-- powersync_role : SELECT (réplication des tâches côté client PowerSync,
+-- aligné sur le live 2026-10-04 ; les INSERT/UPDATE passent par
+-- authenticated via l'outbox executeWrite)
+GRANT SELECT ON public.event_tasks TO powersync_role;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.event_tasks
   TO postgres;
