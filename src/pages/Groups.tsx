@@ -19,6 +19,10 @@ import {
   IonSelect,
   IonSelectOption,
   IonChangeCustomEvent,
+  IonItem,
+  IonLabel,
+  IonInput,
+  IonTextarea,
 } from "@ionic/react";
 import EmptyState from "@/components/EmptyState";
 
@@ -221,18 +225,16 @@ export default function Groups() {
                   Nouveau groupe
                 </h3>
                 <div className="space-y-3">
-                  <input
-                    type="text"
-                    value={createName}
-                    onChange={(e) => setCreateName(e.target.value)}
-                    placeholder="Nom du groupe"
-                    className="w-full px-4 py-3 rounded-xl text-sm"
-                    style={{
-                      backgroundColor: "var(--card)",
-                      color: "var(--text-primary)",
-                      border: "1px solid var(--border)",
-                    }}
-                  />
+                  <IonItem lines="none" className="bg-card rounded-xl">
+                    <IonLabel position="floating" className="text-sm text-text-secondary">Nom du groupe</IonLabel>
+                    <IonInput
+                      type="text"
+                      value={createName}
+                      onIonChange={(e: IonChangeCustomEvent<string>) => setCreateName(e.detail.value ?? "")}
+                      placeholder="Nom du groupe"
+                      slot="input"
+                    />
+                  </IonItem>
                   <IonSelect
                     value={createType}
                     onIonChange={(e: IonChangeCustomEvent<string>) => setCreateType(e.detail.value)}
@@ -244,18 +246,16 @@ export default function Groups() {
                       </IonSelectOption>
                     ))}
                   </IonSelect>
-                  <textarea
-                    value={createDesc}
-                    onChange={(e) => setCreateDesc(e.target.value)}
-                    placeholder="Description (optionnel)"
-                    rows={2}
-                    className="w-full px-4 py-3 rounded-xl text-sm resize-none"
-                    style={{
-                      backgroundColor: "var(--card)",
-                      color: "var(--text-primary)",
-                      border: "1px solid var(--border)",
-                    }}
-                  />
+                  <IonItem lines="none" className="bg-card rounded-xl">
+                    <IonLabel position="floating" className="text-sm text-text-secondary">Description (optionnel)</IonLabel>
+                    <IonTextarea
+                      value={createDesc}
+                      onIonChange={(e: IonChangeCustomEvent<string>) => setCreateDesc(e.detail.value ?? "")}
+                      placeholder="Description (optionnel)"
+                      rows={2}
+                      slot="input"
+                    />
+                  </IonItem>
                   <div className="flex gap-2">
                     {COLOR_PALETTE.map((color) => (
                       <button
@@ -391,29 +391,25 @@ export default function Groups() {
                     Modifier le groupe
                   </h3>
                   <div className="space-y-3">
-                    <input
-                      type="text"
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl text-sm"
-                      style={{
-                        backgroundColor: "var(--surface-hover)",
-                        color: "var(--text-primary)",
-                        border: "1px solid var(--border)",
-                      }}
-                    />
-                    <textarea
-                      value={editDesc}
-                      onChange={(e) => setEditDesc(e.target.value)}
-                      placeholder="Description"
-                      rows={2}
-                      className="w-full px-4 py-3 rounded-xl text-sm resize-none"
-                      style={{
-                        backgroundColor: "var(--surface-hover)",
-                        color: "var(--text-primary)",
-                        border: "1px solid var(--border)",
-                      }}
-                    />
+                    <IonItem lines="none" className="bg-card rounded-xl">
+                      <IonLabel position="floating" className="text-sm text-text-secondary">Nom du groupe</IonLabel>
+                      <IonInput
+                        type="text"
+                        value={editName}
+                        onIonChange={(e: IonChangeCustomEvent<string>) => setEditName(e.detail.value ?? "")}
+                        slot="input"
+                      />
+                    </IonItem>
+                    <IonItem lines="none" className="bg-card rounded-xl">
+                      <IonLabel position="floating" className="text-sm text-text-secondary">Description</IonLabel>
+                      <IonTextarea
+                        value={editDesc}
+                        onIonChange={(e: IonChangeCustomEvent<string>) => setEditDesc(e.detail.value ?? "")}
+                        placeholder="Description"
+                        rows={2}
+                        slot="input"
+                      />
+                    </IonItem>
                   </div>
                   <div className="flex gap-2 mt-4">
                     <button

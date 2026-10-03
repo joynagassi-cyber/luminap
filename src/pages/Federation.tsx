@@ -23,6 +23,9 @@ import {
   IonSelect,
   IonSelectOption,
   IonChangeCustomEvent,
+  IonItem,
+  IonLabel,
+  IonInput,
 } from "@ionic/react";
 import {
   Network,
@@ -38,6 +41,7 @@ import BottomNav from "@/components/BottomNav";
 import { useCurrentUser } from "@/lib/dataLayer";
 import {
   federation,
+  FEDERATION_STATUS_COLOR,
   type FederationOrg,
 } from "@/capabilities/federation";
 import { bootstrapOrganization } from "@/lib/orgBootstrap";
@@ -49,12 +53,9 @@ const STATUS_LABEL: Record<string, string> = {
   ARCHIVED: "Archivée",
 };
 
-const STATUS_COLOR: Record<string, string> = {
-  PENDING: "var(--data-pending)",
-  ACTIVE: "var(--data-income)",
-  SUSPENDED: "var(--accent-primary)",
-  ARCHIVED: "var(--text-tertiary)",
-};
+// M22 — carte de statut UNIQUE partagée (vue liste + vue graphe) :
+// plus de map locale qui diverge (ex. SUSPENDED en accent vs data-expense).
+const STATUS_COLOR = FEDERATION_STATUS_COLOR;
 
 function OrgNode({
   org,
@@ -319,28 +320,18 @@ export default function Federation() {
                 className="rounded-xl p-4 mb-4 space-y-4"
                 style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
               >
-                <div>
-                  <label
-                    className="block text-text-tertiary text-xs uppercase tracking-wide mb-1.5"
-                    htmlFor="org-name"
-                  >
-                    Nom
-                  </label>
-                  <input
+                <IonItem lines="none" className="bg-card rounded-xl">
+                  <IonLabel position="floating" className="text-sm text-text-secondary">Nom</IonLabel>
+                  <IonInput
                     id="org-name"
                     data-testid="org-name"
                     type="text"
                     value={newName}
-                    onChange={(e) => setNewName(e.target.value)}
+                    onIonChange={(e: IonChangeCustomEvent<string>) => setNewName(e.detail.value ?? "")}
                     placeholder="Ex: Paroisse Sainte-Marie"
-                    className="w-full px-3 py-2.5 rounded-xl text-sm"
-                    style={{
-                      backgroundColor: "var(--card)",
-                      color: "var(--text-primary)",
-                      border: "1px solid var(--border)",
-                    }}
+                    slot="input"
                   />
-                </div>
+                </IonItem>
                 <div>
                   <label
                     className="block text-text-tertiary text-xs uppercase tracking-wide mb-1.5"

@@ -16,7 +16,7 @@
 
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { IonPage, IonContent, IonSelect, IonSelectOption, IonChangeCustomEvent } from "@ionic/react";
+import { IonPage, IonContent, IonSelect, IonSelectOption, IonChangeCustomEvent, IonItem, IonLabel, IonInput } from "@ionic/react";
 import {
   Boxes,
   Plus,
@@ -110,25 +110,6 @@ export default function OrgUnits() {
     }
   };
 
-  const inputStyle: React.CSSProperties = {
-    width: "100%",
-    padding: "10px 12px",
-    borderRadius: 12,
-    fontSize: 14,
-    backgroundColor: "var(--card)",
-    color: "var(--text-primary)",
-    border: "1px solid var(--border)",
-    boxSizing: "border-box",
-  };
-  const labelStyle: React.CSSProperties = {
-    display: "block",
-    color: "var(--text-tertiary)",
-    fontSize: 12,
-    textTransform: "uppercase",
-    letterSpacing: "0.05em",
-    marginBottom: 6,
-  };
-
   return (
     <IonPage>
       <IonContent className="bg-canvas">
@@ -205,30 +186,27 @@ export default function OrgUnits() {
                   border: "1px solid var(--border)",
                 }}
               >
-                <div>
-                  <label style={labelStyle} htmlFor="unit-name">
-                    Nom
-                  </label>
-                  <input
+                <IonItem lines="none" className="bg-card rounded-xl">
+                  <IonLabel position="floating" className="text-sm text-text-secondary">Nom</IonLabel>
+                  <IonInput
                     id="unit-name"
                     data-testid="unit-name"
                     type="text"
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    onIonChange={(e: IonChangeCustomEvent<string>) => setName(e.detail.value ?? "")}
                     placeholder="Ex: Diocèse, Chorale, Jeunesse…"
-                    style={inputStyle}
+                    slot="input"
                   />
-                </div>
-                <div>
-                  <label style={labelStyle} htmlFor="unit-type">
-                    Type
-                  </label>
+                </IonItem>
+                <IonItem lines="none" className="bg-card rounded-xl">
+                  <IonLabel position="floating" className="text-sm text-text-secondary">Type</IonLabel>
                   <IonSelect
                     id="unit-type"
                     data-testid="unit-type"
                     value={type}
                     onIonChange={(e: IonChangeCustomEvent<string>) => setType(e.detail.value)}
                     interface="popover"
+                    slot="input"
                   >
                     {UNIT_TYPES.map((t) => (
                       <IonSelectOption value={t}>
@@ -236,21 +214,19 @@ export default function OrgUnits() {
                       </IonSelectOption>
                     ))}
                   </IonSelect>
-                </div>
-                <div>
-                  <label style={labelStyle} htmlFor="unit-desc">
-                    Description (optionnel)
-                  </label>
-                  <input
+                </IonItem>
+                <IonItem lines="none" className="bg-card rounded-xl">
+                  <IonLabel position="floating" className="text-sm text-text-secondary">Description (optionnel)</IonLabel>
+                  <IonInput
                     id="unit-desc"
                     data-testid="unit-desc"
                     type="text"
                     value={description}
-                    onChange={(e) => setDescription(e.target.value)}
+                    onIonChange={(e: IonChangeCustomEvent<string>) => setDescription(e.detail.value ?? "")}
                     placeholder="Rôle, périmètre…"
-                    style={inputStyle}
+                    slot="input"
                   />
-                </div>
+                </IonItem>
                 <button
                   type="button"
                   onClick={handleCreate}

@@ -16,6 +16,10 @@ import {
   IonSelect,
   IonSelectOption,
   IonChangeCustomEvent,
+  IonItem,
+  IonLabel,
+  IonInput,
+  IonTextarea,
 } from "@ionic/react";
 
 export default function EventEdit() {
@@ -124,94 +128,66 @@ export default function EventEdit() {
             )}
 
             <div className="space-y-5">
-              <div>
-                <label className="text-text-tertiary text-xs mb-2 block">
-                  Nom de l'événement *
-                </label>
-                <input
+              <IonItem
+                lines="none"
+                className="bg-card rounded-xl"
+                style={fieldErrors.name ? { border: "1px solid var(--data-expense)" } : undefined}
+              >
+                <IonLabel position="floating" className="text-sm text-text-secondary">Nom de l'événement *</IonLabel>
+                <IonInput
                   type="text"
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl text-sm"
-                  style={{
-                    backgroundColor: "var(--surface)",
-                    color: "var(--text-primary)",
-                    border: fieldErrors.name
-                      ? "1px solid var(--data-expense)"
-                      : "1px solid var(--surface-hover)",
-                  }}
+                  onIonChange={(e: IonChangeCustomEvent<string>) => setName(e.detail.value ?? "")}
+                  slot="input"
                 />
                 {fieldErrors.name && (
-                  <p className="text-expense text-xs mt-1">
-                    {fieldErrors.name}
-                  </p>
+                  <p className="text-expense text-xs mt-1">{fieldErrors.name}</p>
                 )}
-              </div>
+              </IonItem>
 
-              <div>
-                <label className="text-text-tertiary text-xs mb-2 block">
-                  Description
-                </label>
-                <textarea
+              <IonItem lines="none" className="bg-card rounded-xl">
+                <IonLabel position="floating" className="text-sm text-text-secondary">Description</IonLabel>
+                <IonTextarea
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  onIonChange={(e: IonChangeCustomEvent<string>) => setDescription(e.detail.value ?? "")}
                   rows={3}
-                  className="w-full px-4 py-3 rounded-xl text-sm  resize-none"
-                  style={{
-                    backgroundColor: "var(--surface)",
-                    color: "var(--text-primary)",
-                    border: "1px solid var(--border)",
-                  }}
+                  slot="input"
                 />
-              </div>
+              </IonItem>
 
-              <div>
-                <label className="text-text-tertiary text-xs mb-2 block">
-                  Date de début *
-                </label>
-                <input
+              <IonItem
+                lines="none"
+                className="bg-card rounded-xl"
+                style={fieldErrors.startDate ? { border: "1px solid var(--data-expense)" } : undefined}
+              >
+                <IonLabel position="floating" className="text-sm text-text-secondary">Date de début *</IonLabel>
+                <IonInput
                   type="date"
                   value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl text-sm"
-                  style={{
-                    backgroundColor: "var(--surface)",
-                    color: "var(--text-primary)",
-                    border: fieldErrors.startDate
-                      ? "1px solid var(--data-expense)"
-                      : "1px solid var(--surface-hover)",
-                  }}
+                  onIonChange={(e: IonChangeCustomEvent<string>) => setStartDate(e.detail.value ?? "")}
+                  slot="input"
                 />
                 {fieldErrors.startDate && (
-                  <p className="text-expense text-xs mt-1">
-                    {fieldErrors.startDate}
-                  </p>
+                  <p className="text-expense text-xs mt-1">{fieldErrors.startDate}</p>
                 )}
-              </div>
+              </IonItem>
 
-              <div>
-                <label className="text-text-tertiary text-xs mb-2 block">
-                  Date de fin
-                </label>
-                <input
+              <IonItem
+                lines="none"
+                className="bg-card rounded-xl"
+                style={fieldErrors.endDate ? { border: "1px solid var(--data-expense)" } : undefined}
+              >
+                <IonLabel position="floating" className="text-sm text-text-secondary">Date de fin</IonLabel>
+                <IonInput
                   type="date"
                   value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl text-sm"
-                  style={{
-                    backgroundColor: "var(--surface)",
-                    color: "var(--text-primary)",
-                    border: fieldErrors.endDate
-                      ? "1px solid var(--data-expense)"
-                      : "1px solid var(--surface-hover)",
-                  }}
+                  onIonChange={(e: IonChangeCustomEvent<string>) => setEndDate(e.detail.value ?? "")}
+                  slot="input"
                 />
                 {fieldErrors.endDate && (
-                  <p className="text-expense text-xs mt-1">
-                    {fieldErrors.endDate}
-                  </p>
+                  <p className="text-expense text-xs mt-1">{fieldErrors.endDate}</p>
                 )}
-              </div>
+              </IonItem>
 
               <div>
                 <label className="text-text-tertiary text-xs mb-2 block">
@@ -229,30 +205,24 @@ export default function EventEdit() {
                 </IonSelect>
               </div>
 
-              <div>
-                <label className="text-text-tertiary text-xs mb-2 block">
-                  Budget (FCFA)
-                </label>
-                <input
+              <IonItem
+                lines="none"
+                className="bg-card rounded-xl"
+                style={fieldErrors.budget ? { border: "1px solid var(--data-expense)" } : undefined}
+              >
+                <IonLabel position="floating" className="text-sm text-text-secondary">Budget (FCFA)</IonLabel>
+                <IonInput
                   type="number"
+                  inputMode="numeric"
                   value={budget}
-                  onChange={(e) => setBudget(e.target.value)}
+                  onIonChange={(e: IonChangeCustomEvent<string>) => setBudget(e.detail.value ?? "")}
                   placeholder="0"
-                  className="w-full px-4 py-3 rounded-xl text-sm"
-                  style={{
-                    backgroundColor: "var(--surface)",
-                    color: "var(--text-primary)",
-                    border: fieldErrors.budget
-                      ? "1px solid var(--data-expense)"
-                      : "1px solid var(--surface-hover)",
-                  }}
+                  slot="input"
                 />
                 {fieldErrors.budget && (
-                  <p className="text-expense text-xs mt-1">
-                    {fieldErrors.budget}
-                  </p>
+                  <p className="text-expense text-xs mt-1">{fieldErrors.budget}</p>
                 )}
-              </div>
+              </IonItem>
 
               <button
                 onClick={handleSave}

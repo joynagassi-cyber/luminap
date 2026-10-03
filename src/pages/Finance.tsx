@@ -26,6 +26,8 @@ import {
   IonTitle,
   IonToolbar,
   IonInfiniteScroll,
+  IonInput,
+  IonChangeCustomEvent,
 } from "@ionic/react";
 
 export const FINANCE_PAGE_SIZE = 50;
@@ -167,17 +169,12 @@ export default function Finance() {
             <div className="flex gap-2 mb-4">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
-                <input
+                <IonInput
                   type="text"
                   placeholder="Rechercher..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 rounded-xl text-sm outline-none"
-                  style={{
-                    backgroundColor: "var(--surface)",
-                    color: "var(--text-primary)",
-                    border: "1px solid var(--border)",
-                  }}
+                  onIonChange={(e: IonChangeCustomEvent<string>) => setSearchTerm(e.detail.value ?? "")}
+                  className="w-full pl-10"
                 />
               </div>
               <button
@@ -295,34 +292,24 @@ export default function Finance() {
                 <div>
                   <p className="text-text-tertiary text-xs mb-2">Période</p>
                   <div className="flex gap-2">
-                    <input
+                    <IonInput
                       type="date"
                       value={dateRange.from}
-                      onChange={(e) =>
-                        setDateRange({ ...dateRange, from: e.target.value })
+                      onIonChange={(e: IonChangeCustomEvent<string>) =>
+                        setDateRange({ ...dateRange, from: e.detail.value ?? "" })
                       }
-                      className="px-3 py-2 rounded-lg text-xs outline-none"
-                      style={{
-                        backgroundColor: "var(--surface)",
-                        color: "var(--text-primary)",
-                        border: "1px solid var(--border)",
-                      }}
+                      className="px-3 py-2 text-xs"
                     />
                     <span className="text-text-tertiary text-xs self-center">
                       →
                     </span>
-                    <input
+                    <IonInput
                       type="date"
                       value={dateRange.to}
-                      onChange={(e) =>
-                        setDateRange({ ...dateRange, to: e.target.value })
+                      onIonChange={(e: IonChangeCustomEvent<string>) =>
+                        setDateRange({ ...dateRange, to: e.detail.value ?? "" })
                       }
-                      className="px-3 py-2 rounded-lg text-xs outline-none"
-                      style={{
-                        backgroundColor: "var(--surface)",
-                        color: "var(--text-primary)",
-                        border: "1px solid var(--border)",
-                      }}
+                      className="px-3 py-2 text-xs"
                     />
                   </div>
                 </div>

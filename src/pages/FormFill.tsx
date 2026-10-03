@@ -32,6 +32,9 @@ import {
   IonSelect,
   IonSelectOption,
   IonChangeCustomEvent,
+  IonItem,
+  IonLabel,
+  IonTextarea,
 } from "@ionic/react";
 
 function ReferenceSelect({
@@ -295,19 +298,17 @@ export default function FormFill() {
                         ))}
                       </IonSelect>
                     ) : field.type === "textarea" ? (
-                      <textarea
-                        value={data[field.key] ?? ""}
-                        onChange={(e) =>
-                          handleChange(field.key, e.target.value)
-                        }
-                        placeholder={field.label}
-                        rows={3}
-                        className="w-full px-4 py-3 rounded-xl text-text-primary text-sm  resize-none"
-                        style={{
-                          backgroundColor: "var(--surface)",
-                          border: "1px solid var(--border)",
-                        }}
-                      />
+                      <IonItem lines="none" className="bg-card rounded-xl">
+                        <IonTextarea
+                          value={data[field.key] ?? ""}
+                          onIonChange={(e: IonChangeCustomEvent<string>) =>
+                            handleChange(field.key, e.detail.value ?? "")
+                          }
+                          placeholder={field.label}
+                          rows={3}
+                          slot="input"
+                        />
+                      </IonItem>
                     ) : field.type === "reference" ? (
                       <ReferenceSelect field={field} data={data} onChange={handleChange} />
                     ) : field.type === "currency" ? (
@@ -322,19 +323,15 @@ export default function FormFill() {
                         <span className="absolute left-4 top-1/2 -translate-y-1/2 text-text-tertiary text-sm pointer-events-none select-none">
                           $
                         </span>
-                        <input
+                        <IonInput
                           type="text"
                           inputMode="decimal"
                           value={data[field.key] ?? ""}
-                          onChange={(e) =>
-                            handleChange(field.key, e.target.value)
+                          onIonChange={(e: IonChangeCustomEvent<string>) =>
+                            handleChange(field.key, e.detail.value ?? "")
                           }
                           placeholder={field.label || "Montant"}
-                          className="w-full pl-9 pr-4 py-3 rounded-xl text-text-primary text-sm "
-                          style={{
-                            backgroundColor: "var(--surface)",
-                            border: "1px solid var(--border)",
-                          }}
+                          className="w-full pl-9 pr-4 py-3 text-sm"
                         />
                       </div>
                     ) : field.type === "file" ? (
@@ -351,19 +348,18 @@ export default function FormFill() {
                         }}
                       />
                     ) : (
-                      <input
-                        type="text"
-                        value={data[field.key] ?? ""}
-                        onChange={(e) =>
-                          handleChange(field.key, e.target.value)
-                        }
-                        placeholder={field.label}
-                        className="w-full px-4 py-3 rounded-xl text-text-primary text-sm "
-                        style={{
-                          backgroundColor: "var(--surface)",
-                          border: "1px solid var(--border)",
-                        }}
-                      />
+                      <IonItem lines="none" className="bg-card rounded-xl">
+                        <IonLabel position="floating" className="text-sm text-text-secondary">{field.label}</IonLabel>
+                        <IonInput
+                          type="text"
+                          value={data[field.key] ?? ""}
+                          onIonChange={(e: IonChangeCustomEvent<string>) =>
+                            handleChange(field.key, e.detail.value ?? "")
+                          }
+                          placeholder={field.label}
+                          slot="input"
+                        />
+                      </IonItem>
                     )}
                   </div>
                 ))}

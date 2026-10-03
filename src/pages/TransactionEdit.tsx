@@ -23,6 +23,10 @@ import {
   IonSelect,
   IonSelectOption,
   IonChangeCustomEvent,
+  IonItem,
+  IonLabel,
+  IonInput,
+  IonTextarea,
 } from "@ionic/react";
 
 export default function TransactionEdit() {
@@ -187,58 +191,38 @@ export default function TransactionEdit() {
                 </button>
               </div>
 
-              <div>
-                <label className="text-text-tertiary text-xs mb-2 block">
-                  Montant (FCFA)
-                </label>
-                <input
+              <IonItem lines="none" className="bg-card rounded-xl">
+                <IonLabel position="floating" className="text-sm text-text-secondary">Montant (FCFA)</IonLabel>
+                <IonInput
                   type="number"
+                  inputMode="numeric"
                   value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
+                  onIonChange={(e: IonChangeCustomEvent<string>) => setAmount(e.detail.value ?? "")}
                   placeholder="0"
-                  className="w-full px-4 py-3 rounded-xl text-lg font-bold outline-none text-center"
-                  style={{
-                    backgroundColor: "var(--surface)",
-                    color: "var(--text-primary)",
-                    border: "1px solid var(--border)",
-                  }}
+                  slot="input"
                 />
-              </div>
+              </IonItem>
 
-              <div>
-                <label className="text-text-tertiary text-xs mb-2 block">
-                  Description
-                </label>
-                <input
+              <IonItem lines="none" className="bg-card rounded-xl">
+                <IonLabel position="floating" className="text-sm text-text-secondary">Description</IonLabel>
+                <IonInput
                   type="text"
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  onIonChange={(e: IonChangeCustomEvent<string>) => setDescription(e.detail.value ?? "")}
                   placeholder="Description de la transaction"
-                  className="w-full px-4 py-3 rounded-xl text-sm outline-none"
-                  style={{
-                    backgroundColor: "var(--surface)",
-                    color: "var(--text-primary)",
-                    border: "1px solid var(--border)",
-                  }}
+                  slot="input"
                 />
-              </div>
+              </IonItem>
 
-              <div>
-                <label className="text-text-tertiary text-xs mb-2 block">
-                  Date
-                </label>
-                <input
+              <IonItem lines="none" className="bg-card rounded-xl">
+                <IonLabel position="floating" className="text-sm text-text-secondary">Date</IonLabel>
+                <IonInput
                   type="date"
                   value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl text-sm outline-none"
-                  style={{
-                    backgroundColor: "var(--surface)",
-                    color: "var(--text-primary)",
-                    border: "1px solid var(--border)",
-                  }}
+                  onIonChange={(e: IonChangeCustomEvent<string>) => setDate(e.detail.value ?? "")}
+                  slot="input"
                 />
-              </div>
+              </IonItem>
 
               <div>
                 <label className="text-text-tertiary text-xs mb-2 block">
@@ -275,23 +259,16 @@ export default function TransactionEdit() {
               </div>
 
               {source === "PERSONNE" && (
-                <div>
-                  <label className="text-text-tertiary text-xs mb-2 block">
-                    Nom de la personne
-                  </label>
-                  <input
+                <IonItem lines="none" className="bg-card rounded-xl">
+                  <IonLabel position="floating" className="text-sm text-text-secondary">Nom de la personne</IonLabel>
+                  <IonInput
                     type="text"
                     value={personName}
-                    onChange={(e) => setPersonName(e.target.value)}
+                    onIonChange={(e: IonChangeCustomEvent<string>) => setPersonName(e.detail.value ?? "")}
                     placeholder="Nom de la personne"
-                    className="w-full px-4 py-3 rounded-xl text-sm outline-none"
-                    style={{
-                      backgroundColor: "var(--surface)",
-                      color: "var(--text-primary)",
-                      border: "1px solid var(--border)",
-                    }}
+                    slot="input"
                   />
-                </div>
+                </IonItem>
               )}
 
               <div>
@@ -312,23 +289,16 @@ export default function TransactionEdit() {
                 </IonSelect>
               </div>
 
-              <div>
-                <label className="text-text-tertiary text-xs mb-2 block">
-                  Commentaire (optionnel)
-                </label>
-                <textarea
+              <IonItem lines="none" className="bg-card rounded-xl">
+                <IonLabel position="floating" className="text-sm text-text-secondary">Commentaire (optionnel)</IonLabel>
+                <IonTextarea
                   value={comment}
-                  onChange={(e) => setComment(e.target.value)}
+                  onIonChange={(e: IonChangeCustomEvent<string>) => setComment(e.detail.value ?? "")}
                   placeholder="Ajouter un commentaire..."
                   rows={2}
-                  className="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none"
-                  style={{
-                    backgroundColor: "var(--surface)",
-                    color: "var(--text-primary)",
-                    border: "1px solid var(--border)",
-                  }}
+                  slot="input"
                 />
-              </div>
+              </IonItem>
 
               {error && (
                 <div

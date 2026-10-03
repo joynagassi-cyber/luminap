@@ -16,6 +16,8 @@ import {
   IonToolbar,
   IonItem,
   IonLabel,
+  IonInput,
+  IonTextarea,
   IonSelect,
   IonSelectOption,
   IonChangeCustomEvent,
@@ -245,25 +247,24 @@ export default function Versement() {
                 )}
 
                 {/* Amount input */}
-                <div>
-                  <label className="text-text-tertiary text-xs mb-2 block">
-                    Montant à verser (FCFA)
-                  </label>
-                  <input
+                <IonItem
+                  lines="none"
+                  className="bg-card rounded-xl"
+                  style={
+                    amountNum > maxAmount
+                      ? { border: "1px solid var(--data-expense)" }
+                      : undefined
+                  }
+                >
+                  <IonLabel position="floating" className="text-sm text-text-secondary">Montant à verser (FCFA)</IonLabel>
+                  <IonInput
                     type="number"
+                    inputMode="numeric"
                     value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
+                    onIonChange={(e: IonChangeCustomEvent<string>) => setAmount(e.detail.value ?? "")}
                     placeholder="0"
                     max={maxAmount}
-                    className="w-full px-4 py-4 rounded-xl text-2xl font-bold  text-center"
-                    style={{
-                      backgroundColor: "var(--surface)",
-                      color: "var(--text-primary)",
-                      border:
-                        amountNum > maxAmount
-                          ? "1px solid var(--data-expense)"
-                          : "1px solid var(--surface-hover)",
-                    }}
+                    slot="input"
                   />
                   {amountNum > maxAmount && (
                     <p className="text-expense text-xs mt-1 text-center">
@@ -275,26 +276,19 @@ export default function Versement() {
                       Maximum: {formatCurrencyCompact(maxAmount)} F
                     </p>
                   )}
-                </div>
+                </IonItem>
 
                 {/* Comment */}
-                <div>
-                  <label className="text-text-tertiary text-xs mb-2 block">
-                    Commentaire (optionnel)
-                  </label>
-                  <textarea
+                <IonItem lines="none" className="bg-card rounded-xl">
+                  <IonLabel position="floating" className="text-sm text-text-secondary">Commentaire (optionnel)</IonLabel>
+                  <IonTextarea
                     value={comment}
-                    onChange={(e) => setComment(e.target.value)}
+                    onIonChange={(e: IonChangeCustomEvent<string>) => setComment(e.detail.value ?? "")}
                     placeholder="Ajouter un commentaire..."
                     rows={2}
-                    className="w-full px-4 py-3 rounded-xl text-sm  resize-none"
-                    style={{
-                      backgroundColor: "var(--surface)",
-                      color: "var(--text-primary)",
-                      border: "1px solid var(--border)",
-                    }}
+                    slot="input"
                   />
-                </div>
+                </IonItem>
 
                 {/* Quick amounts */}
                 {maxAmount > 0 && (

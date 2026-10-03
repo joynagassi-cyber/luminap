@@ -16,6 +16,10 @@ import {
   IonSelect,
   IonSelectOption,
   IonChangeCustomEvent,
+  IonItem,
+  IonLabel,
+  IonInput,
+  IonTextarea,
 } from "@ionic/react";
 
 const ENTITY_TYPES = [
@@ -216,42 +220,30 @@ export default function CustomFields() {
                       ))}
                     </IonSelect>
                   </div>
-                  <div>
-                    <label className="text-text-tertiary text-xs mb-1.5 block">
-                      Label *
-                    </label>
-                    <input
+                  <IonItem lines="none" className="bg-card rounded-xl">
+                    <IonLabel position="floating" className="text-sm text-text-secondary">Label *</IonLabel>
+                    <IonInput
                       type="text"
                       value={label}
-                      onChange={(e) => setLabel(e.target.value)}
+                      onIonChange={(e: IonChangeCustomEvent<string>) => setLabel(e.detail.value ?? "")}
                       placeholder="Ex: Montant estimé"
-                      className="w-full px-4 py-3 rounded-xl text-text-primary text-sm"
-                      style={{
-                        backgroundColor: "var(--surface)",
-                        border: "1px solid var(--border)",
-                      }}
+                      slot="input"
                     />
-                  </div>
-                  <div>
-                    <label className="text-text-tertiary text-xs mb-1.5 block">
-                      Clé *
-                    </label>
-                    <input
+                  </IonItem>
+                  <IonItem lines="none" className="bg-card rounded-xl">
+                    <IonLabel position="floating" className="text-sm text-text-secondary">Clé *</IonLabel>
+                    <IonInput
                       type="text"
                       value={key}
-                      onChange={(e) =>
+                      onIonChange={(e: IonChangeCustomEvent<string>) =>
                         setKey(
-                          e.target.value.replace(/\s+/g, "_").toLowerCase(),
+                          (e.detail.value ?? "").replace(/\s+/g, "_").toLowerCase(),
                         )
                       }
                       placeholder="montant_estime"
-                      className="w-full px-4 py-3 rounded-xl text-text-primary text-sm"
-                      style={{
-                        backgroundColor: "var(--surface)",
-                        border: "1px solid var(--border)",
-                      }}
+                      slot="input"
                     />
-                  </div>
+                  </IonItem>
                   <div>
                     <label className="text-text-tertiary text-xs mb-1.5 block">
                       Type
@@ -281,23 +273,17 @@ export default function CustomFields() {
                     </div>
                   </div>
                   {type === "select" && (
-                    <div>
-                      <label className="text-text-tertiary text-xs mb-1.5 block">
-                        Options (une par ligne)
-                      </label>
-                      <textarea
+                    <IonItem lines="none" className="bg-card rounded-xl">
+                      <IonLabel position="floating" className="text-sm text-text-secondary">Options (une par ligne)</IonLabel>
+                      <IonTextarea
                         value={options}
-                        onChange={(e) => setOptions(e.target.value)}
+                        onIonChange={(e: IonChangeCustomEvent<string>) => setOptions(e.detail.value ?? "")}
                         placeholder="Option 1\nOption 2"
                         rows={3}
-                        className="w-full px-4 py-3 rounded-xl text-text-primary text-sm resize-none"
-                        style={{
-                          backgroundColor: "var(--surface)",
-                          border: "1px solid var(--border)",
-                        }}
                         aria-label="Options du champ (une par ligne)"
+                        slot="input"
                       />
-                    </div>
+                    </IonItem>
                   )}
                 </div>
 

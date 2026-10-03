@@ -20,6 +20,9 @@ import {
   IonSelect,
   IonSelectOption,
   IonChangeCustomEvent,
+  IonItem,
+  IonLabel,
+  IonTextarea,
 } from "@ionic/react";
 
 const FIELD_TYPES: { value: FormFieldDefinition["type"]; label: string }[] = [
@@ -411,17 +414,16 @@ export default function FormBuilder() {
                     placeholder="Clé (ex: demande_cotisation) *"
                     className="w-full"
                   />
-                  <textarea
-                    value={formDescription}
-                    onChange={(e) => setFormDescription(e.target.value)}
-                    placeholder="Description (optionnel)"
-                    rows={2}
-                    className="w-full px-4 py-3 rounded-xl text-text-primary text-sm  resize-none"
-                    style={{
-                      backgroundColor: "var(--surface)",
-                      border: "1px solid var(--border)",
-                    }}
-                  />
+                  <IonItem lines="none" className="bg-card rounded-xl">
+                    <IonLabel position="floating" className="text-sm text-text-secondary">Description (optionnel)</IonLabel>
+                    <IonTextarea
+                      value={formDescription}
+                      onIonChange={(e: IonChangeCustomEvent<string>) => setFormDescription(e.detail.value ?? "")}
+                      placeholder="Description (optionnel)"
+                      rows={2}
+                      slot="input"
+                    />
+                  </IonItem>
                 </div>
 
                 {/* Fields */}
@@ -456,18 +458,13 @@ export default function FormBuilder() {
                     >
                       <div className="flex items-center gap-2 mb-2">
                         <GripVertical className="w-4 h-4 text-text-tertiary flex-shrink-0" />
-                        <input
+                        <IonInput
                           type="text"
                           value={field.label}
-                          onChange={(e) =>
-                            updateField(field.key, { label: e.target.value })
+                          onIonChange={(e: IonChangeCustomEvent<string>) =>
+                            updateField(field.key, { label: e.detail.value ?? "" })
                           }
-                          className="flex-1 px-3 py-1.5 rounded-lg text-sm"
-                          style={{
-                            backgroundColor: "var(--card)",
-                            border: "1px solid var(--border)",
-                            color: "var(--text-primary)",
-                          }}
+                          className="flex-1"
                         />
                         <IonSelect
                           value={field.type}
@@ -500,23 +497,18 @@ export default function FormBuilder() {
                         </button>
                       </div>
                       {field.type === "select" && (
-                        <textarea
+                        <IonTextarea
                           value={field.options?.join("\n") || ""}
-                          onChange={(e) =>
+                          onIonChange={(e: IonChangeCustomEvent<string>) =>
                             updateField(field.key, {
-                              options: e.target.value
+                              options: (e.detail.value ?? "")
                                 .split("\n")
                                 .filter(Boolean),
                             })
                           }
                           placeholder="Options (une par ligne)"
                           rows={2}
-                          className="w-full px-3 py-2 rounded-lg text-xs resize-none"
-                          style={{
-                            backgroundColor: "var(--card)",
-                            border: "1px solid var(--border)",
-                            color: "var(--text-primary)",
-                          }}
+                          className="text-xs"
                         />
                       )}
                       {field.type === "reference" && (
@@ -542,80 +534,60 @@ export default function FormBuilder() {
                         </div>
                       )}
                       <div className="grid grid-cols-2 gap-2 mb-1">
-                        <input
+                        <IonInput
                           type="text"
                           value={field.conditional?.showIfField ?? ""}
-                          onChange={(e) =>
+                          onIonChange={(e: IonChangeCustomEvent<string>) =>
                             updateField(field.key, {
                               conditional: {
-                                showIfField: e.target.value,
+                                showIfField: e.detail.value ?? "",
                                 showIfValue:
                                   field.conditional?.showIfValue ?? "",
                               },
                             })
                           }
                           placeholder="Afficher si champ (showIfField)"
-                          className="px-2 py-1.5 rounded-lg text-xs w-full"
-                          style={{
-                            backgroundColor: "var(--card)",
-                            border: "1px solid var(--border)",
-                            color: "var(--text-primary)",
-                          }}
+                          className="text-xs"
                         />
-                        <input
+                        <IonInput
                           type="text"
                           value={String(field.conditional?.showIfValue ?? "")}
-                          onChange={(e) =>
+                          onIonChange={(e: IonChangeCustomEvent<string>) =>
                             updateField(field.key, {
                               conditional: {
                                 showIfField:
                                   field.conditional?.showIfField ?? "",
-                                showIfValue: e.target.value,
+                                showIfValue: e.detail.value ?? "",
                               },
                             })
                           }
                           placeholder="= valeur (showIfValue)"
-                          className="px-2 py-1.5 rounded-lg text-xs w-full"
-                          style={{
-                            backgroundColor: "var(--card)",
-                            border: "1px solid var(--border)",
-                            color: "var(--text-primary)",
-                          }}
+                          className="text-xs"
                         />
-                        <input
+                        <IonInput
                           type="text"
                           value={field.validation?.regex ?? ""}
-                          onChange={(e) =>
+                          onIonChange={(e: IonChangeCustomEvent<string>) =>
                             updateField(field.key, {
                               validation: {
                                 ...field.validation,
-                                regex: e.target.value || undefined,
+                                regex: e.detail.value || undefined,
                               },
                             })
                           }
                           placeholder="Validation regex (optionnel)"
-                          className="px-2 py-1.5 rounded-lg text-xs w-full"
-                          style={{
-                            backgroundColor: "var(--card)",
-                            border: "1px solid var(--border)",
-                            color: "var(--text-primary)",
-                          }}
+                          className="text-xs"
                         />
-                        <input
+                        <IonInput
                           type="text"
                           value={field.mapsToEntityField ?? ""}
-                          onChange={(e) =>
+                          onIonChange={(e: IonChangeCustomEvent<string>) =>
                             updateField(field.key, {
-                              mapsToEntityField: e.target.value || undefined,
+                              mapsToEntityField: e.detail.value || undefined,
                             })
                           }
                           placeholder="Mappage entité (mapsToEntityField)"
-                          className="px-2 py-1.5 rounded-lg text-xs w-full"
-                          style={{
-                            backgroundColor: "var(--card)",
-                            border: "1px solid var(--border)",
-                            color: "var(--text-primary)",
-                          }}
+                          className="text-xs"
                         />
                       </div>
                     </div>

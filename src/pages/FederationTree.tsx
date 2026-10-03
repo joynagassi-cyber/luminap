@@ -40,7 +40,11 @@ import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
 import { FederationTreeSkeleton } from "@/components/PageSkeletons";
 import { useCurrentUser } from "@/lib/dataLayer";
-import { federation, type FederationOrg } from "@/capabilities/federation";
+import {
+  federation,
+  FEDERATION_STATUS_COLOR,
+  type FederationOrg,
+} from "@/capabilities/federation";
 
 const STATUS_LABEL: Record<string, string> = {
   PENDING: "En attente",
@@ -49,14 +53,10 @@ const STATUS_LABEL: Record<string, string> = {
   ARCHIVED: "Archivée",
 };
 
-// M17 — les statuts passent par les tokens --data-* (jamais de hex brut),
-// cohérent avec getStatusColor() de lib/utils.ts (H5) et CHART_COLORS.
-const STATUS_COLOR: Record<string, string> = {
-  PENDING: "var(--data-pending)",
-  ACTIVE: "var(--data-income)",
-  SUSPENDED: "var(--data-expense)",
-  ARCHIVED: "var(--text-tertiary)",
-};
+// M17/M22 — les statuts passent par la carte UNIQUE partagée
+// FEDERATION_STATUS_COLOR (capabilities/federation) : même couleur en vue
+// liste (Federation.tsx) et en vue graphe, jamais de map locale divergente.
+const STATUS_COLOR = FEDERATION_STATUS_COLOR;
 
 const TYPE_LABEL: Record<string, string> = {
   CHURCH: "Église",

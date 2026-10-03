@@ -21,6 +21,10 @@ import {
   IonSelect,
   IonSelectOption,
   IonChangeCustomEvent,
+  IonItem,
+  IonLabel,
+  IonInput,
+  IonTextarea,
 } from "@ionic/react";
 
 export default function TransactionNewGroup() {
@@ -164,60 +168,40 @@ export default function TransactionNewGroup() {
             </div>
 
             {/* Amount */}
-            <div className="mb-5">
-              <label className="text-text-tertiary text-xs mb-2 block">
-                Montant (FCFA)
-              </label>
-              <input
+            <IonItem lines="none" className="mb-5 bg-card rounded-xl">
+              <IonLabel position="floating" className="text-sm text-text-secondary">Montant (FCFA)</IonLabel>
+              <IonInput
                 type="number"
+                inputMode="numeric"
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                onIonChange={(e: IonChangeCustomEvent<string>) => setAmount(e.detail.value ?? "")}
                 placeholder="0"
-                className="w-full px-4 py-4 rounded-xl text-2xl font-bold  text-center"
-                style={{
-                  backgroundColor: "var(--surface)",
-                  color: "var(--text-primary)",
-                  border: "1px solid var(--border)",
-                }}
+                slot="input"
               />
-            </div>
+            </IonItem>
 
             {/* Description */}
-            <div className="mb-5">
-              <label className="text-text-tertiary text-xs mb-2 block">
-                Description
-              </label>
-              <input
+            <IonItem lines="none" className="mb-5 bg-card rounded-xl">
+              <IonLabel position="floating" className="text-sm text-text-secondary">Description</IonLabel>
+              <IonInput
                 type="text"
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                onIonChange={(e: IonChangeCustomEvent<string>) => setDescription(e.detail.value ?? "")}
                 placeholder="Ex: Dîme du groupe"
-                className="w-full px-4 py-3 rounded-xl text-sm "
-                style={{
-                  backgroundColor: "var(--surface)",
-                  color: "var(--text-primary)",
-                  border: "1px solid var(--border)",
-                }}
+                slot="input"
               />
-            </div>
+            </IonItem>
 
             {/* Date */}
-            <div className="mb-5">
-              <label className="text-text-tertiary text-xs mb-2 block">
-                Date
-              </label>
-              <input
+            <IonItem lines="none" className="mb-5 bg-card rounded-xl">
+              <IonLabel position="floating" className="text-sm text-text-secondary">Date</IonLabel>
+              <IonInput
                 type="date"
                 value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl text-sm "
-                style={{
-                  backgroundColor: "var(--surface)",
-                  color: "var(--text-primary)",
-                  border: "1px solid var(--border)",
-                }}
+                onIonChange={(e: IonChangeCustomEvent<string>) => setDate(e.detail.value ?? "")}
+                slot="input"
               />
-            </div>
+            </IonItem>
 
             {/* Category */}
             <div className="mb-5">
@@ -257,43 +241,29 @@ export default function TransactionNewGroup() {
 
             {/* Person name */}
             {source === "PERSONNE" && (
-              <div className="mb-5">
-                <label className="text-text-tertiary text-xs mb-2 block">
-                  Nom de la personne
-                </label>
-                <input
+              <IonItem lines="none" className="mb-5 bg-card rounded-xl">
+                <IonLabel position="floating" className="text-sm text-text-secondary">Nom de la personne</IonLabel>
+                <IonInput
                   type="text"
                   value={personName}
-                  onChange={(e) => setPersonName(e.target.value)}
+                  onIonChange={(e: IonChangeCustomEvent<string>) => setPersonName(e.detail.value ?? "")}
                   placeholder="Nom de la personne"
-                  className="w-full px-4 py-3 rounded-xl text-sm "
-                  style={{
-                    backgroundColor: "var(--surface)",
-                    color: "var(--text-primary)",
-                    border: "1px solid var(--border)",
-                  }}
+                  slot="input"
                 />
-              </div>
+              </IonItem>
             )}
 
             {/* Comment */}
-            <div className="mb-6">
-              <label className="text-text-tertiary text-xs mb-2 block">
-                Commentaire (optionnel)
-              </label>
-              <textarea
+            <IonItem lines="none" className="mb-6 bg-card rounded-xl">
+              <IonLabel position="floating" className="text-sm text-text-secondary">Commentaire (optionnel)</IonLabel>
+              <IonTextarea
                 value={comment}
-                onChange={(e) => setComment(e.target.value)}
+                onIonChange={(e: IonChangeCustomEvent<string>) => setComment(e.detail.value ?? "")}
                 placeholder="Ajouter un commentaire..."
                 rows={2}
-                className="w-full px-4 py-3 rounded-xl text-sm  resize-none"
-                style={{
-                  backgroundColor: "var(--surface)",
-                  color: "var(--text-primary)",
-                  border: "1px solid var(--border)",
-                }}
+                slot="input"
               />
-            </div>
+            </IonItem>
 
             {error && (
               <div

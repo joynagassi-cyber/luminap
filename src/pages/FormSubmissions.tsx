@@ -31,6 +31,7 @@ import {
   IonSelectOption,
   IonInfiniteScroll,
   IonChangeCustomEvent,
+  IonInput,
 } from "@ionic/react";
 import { Inbox, Download, CheckCircle2, Search, X } from "lucide-react";
 import {
@@ -420,18 +421,13 @@ export default function FormSubmissions() {
                   style={{ backgroundColor: "var(--surface)" }}
                 >
                   <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary pointer-events-none" />
-                  <input
+                  <IonInput
                     type="search"
                     value={searchInput}
-                    onChange={(e) => setSearchInput(e.target.value)}
+                    onIonChange={(e: IonChangeCustomEvent<string>) => setSearchInput(e.detail.value ?? "")}
                     placeholder="Rechercher dans les soumissions…"
                     aria-label="Rechercher dans les soumissions"
-                    className="w-full pl-9 pr-8 py-2 text-sm text-text-primary outline-none"
-                    style={{
-                      backgroundColor: "var(--surface)",
-                      border: "1px solid var(--border)",
-                      borderRadius: "0.75rem",
-                    }}
+                    className="w-full pl-9 pr-8"
                   />
                   {searchInput && (
                     <button

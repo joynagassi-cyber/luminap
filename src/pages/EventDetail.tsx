@@ -33,6 +33,9 @@ import {
   IonSelect,
   IonSelectOption,
   IonChangeCustomEvent,
+  IonItem,
+  IonLabel,
+  IonInput,
 } from "@ionic/react";
 import EmptyState from "@/components/EmptyState";
 
@@ -869,14 +872,13 @@ export default function EventDetail() {
                 )}
 
                 <div className="space-y-4">
-                  <div>
-                    <label className="text-text-tertiary text-xs mb-1.5 block">
-                      Poste budgétaire
-                    </label>
+                  <IonItem lines="none" className="bg-card rounded-xl">
+                    <IonLabel position="floating" className="text-sm text-text-secondary">Poste budgétaire</IonLabel>
                     <IonSelect
                       value={selectedBudgetItemId || ""}
                       onIonChange={(e: IonChangeCustomEvent<string>) => setSelectedBudgetItemId(e.detail.value)}
                       interface="popover"
+                      slot="input"
                     >
                       <IonSelectOption value="">Sélectionner un poste...</IonSelectOption>
                       {budgetItems.map((item: any) => (
@@ -889,22 +891,17 @@ export default function EventDetail() {
                         </IonSelectOption>
                       ))}
                     </IonSelect>
-                  </div>
+                  </IonItem>
 
-                  <div>
-                    <label className="text-text-tertiary text-xs mb-1.5 block">
-                      Montant (FCFA)
-                    </label>
-                    <input
+                  <IonItem lines="none" className="bg-card rounded-xl">
+                    <IonLabel position="floating" className="text-sm text-text-secondary">Montant (FCFA)</IonLabel>
+                    <IonInput
                       type="number"
+                      inputMode="numeric"
                       value={expenseAmount}
-                      onChange={(e) => setExpenseAmount(e.target.value)}
+                      onIonChange={(e: IonChangeCustomEvent<string>) => setExpenseAmount(e.detail.value ?? "")}
                       placeholder="0"
-                      className="w-full px-4 py-3 rounded-xl text-text-primary text-sm"
-                      style={{
-                        backgroundColor: "var(--surface)",
-                        border: "1px solid var(--border)",
-                      }}
+                      slot="input"
                     />
                     {selectedBudgetItemId &&
                       (() => {
@@ -924,24 +921,18 @@ export default function EventDetail() {
                           </p>
                         );
                       })()}
-                  </div>
+                  </IonItem>
 
-                  <div>
-                    <label className="text-text-tertiary text-xs mb-1.5 block">
-                      Description
-                    </label>
-                    <input
+                  <IonItem lines="none" className="bg-card rounded-xl">
+                    <IonLabel position="floating" className="text-sm text-text-secondary">Description</IonLabel>
+                    <IonInput
                       type="text"
                       value={expenseDescription}
-                      onChange={(e) => setExpenseDescription(e.target.value)}
+                      onIonChange={(e: IonChangeCustomEvent<string>) => setExpenseDescription(e.detail.value ?? "")}
                       placeholder="Ex: Achat de chaises"
-                      className="w-full px-4 py-3 rounded-xl text-text-primary text-sm"
-                      style={{
-                        backgroundColor: "var(--surface)",
-                        border: "1px solid var(--border)",
-                      }}
+                      slot="input"
                     />
-                  </div>
+                  </IonItem>
                 </div>
 
                 <div className="flex gap-3 mt-5">

@@ -6,7 +6,7 @@ import { formatCurrencyCompact } from "@/lib/utils";
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
 import { Plus, Target, Wallet, PieChart, X, ChevronRight } from "lucide-react";
-import { IonPage, IonContent, IonSelect, IonSelectOption, IonChangeCustomEvent } from "@ionic/react";
+import { IonPage, IonContent, IonSelect, IonSelectOption, IonChangeCustomEvent, IonItem, IonLabel, IonInput } from "@ionic/react";
 import EmptyState from "@/components/EmptyState";
 
 const PERIODS: Array<{ value: BudgetPeriod; label: string }> = [
@@ -267,12 +267,6 @@ function CreateBudgetSheet({
     }
   };
 
-  const inputStyle = {
-    backgroundColor: "var(--surface)",
-    color: "var(--text-primary)",
-    border: "1px solid var(--border)",
-  } as const;
-
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={onClose}>
       <div className="absolute inset-0 bg-scrim" aria-hidden="true" />
@@ -296,70 +290,71 @@ function CreateBudgetSheet({
         </div>
 
         <div className="space-y-3">
-          <label className="block">
-            <span className="text-text-tertiary text-xs uppercase tracking-wider block mb-1">Nom</span>
-            <input
+          <IonItem lines="none" className="bg-card rounded-xl">
+            <IonLabel position="floating" className="text-sm text-text-secondary">Nom</IonLabel>
+            <IonInput
+              type="text"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onIonChange={(e: IonChangeCustomEvent<string>) => setName(e.detail.value ?? "")}
               placeholder="Ex : Budget fonctionnement 2026"
-              className="w-full px-3 py-3 rounded-lg text-sm outline-none"
-              style={inputStyle}
+              slot="input"
               data-testid="budget-name"
             />
-          </label>
+          </IonItem>
 
           <div className="grid grid-cols-2 gap-3">
-            <label className="block">
-              <span className="text-text-tertiary text-xs uppercase tracking-wider block mb-1">Exercice</span>
-              <input
+            <IonItem lines="none" className="bg-card rounded-xl">
+              <IonLabel position="floating" className="text-sm text-text-secondary">Exercice</IonLabel>
+              <IonInput
                 type="number"
-                value={fiscalYear}
-                onChange={(e) => setFYear(Number(e.target.value))}
-                className="w-full px-3 py-3 rounded-lg text-sm outline-none"
-                style={inputStyle}
+                inputMode="numeric"
+                value={String(fiscalYear)}
+                onIonChange={(e: IonChangeCustomEvent<string>) => setFYear(Number(e.detail.value ?? ""))}
+                slot="input"
               />
-            </label>
-            <label className="block">
-              <span className="text-text-tertiary text-xs uppercase tracking-wider block mb-1">Période</span>
+            </IonItem>
+            <IonItem lines="none" className="bg-card rounded-xl">
+              <IonLabel position="floating" className="text-sm text-text-secondary">Période</IonLabel>
               <IonSelect
                 value={period}
                 onIonChange={(e: IonChangeCustomEvent<string>) => setPPeriod(e.detail.value as BudgetPeriod)}
                 interface="popover"
+                slot="input"
               >
                 {PERIODS.map((p) => (
                   <IonSelectOption value={p.value}>{p.label}</IonSelectOption>
                 ))}
               </IonSelect>
-            </label>
+            </IonItem>
           </div>
 
-          <label className="block">
-            <span className="text-text-tertiary text-xs uppercase tracking-wider block mb-1">Centre de coûts</span>
+          <IonItem lines="none" className="bg-card rounded-xl">
+            <IonLabel position="floating" className="text-sm text-text-secondary">Centre de coûts</IonLabel>
             <IonSelect
               value={cc}
               onIonChange={(e: IonChangeCustomEvent<string>) => setCc(e.detail.value)}
               interface="popover"
+              slot="input"
             >
               <IonSelectOption value="">Tous (aucun)</IonSelectOption>
               {orgUnits.map((u) => (
                 <IonSelectOption value={u.id}>{u.name}</IonSelectOption>
               ))}
             </IonSelect>
-          </label>
+          </IonItem>
 
-          <label className="block">
-            <span className="text-text-tertiary text-xs uppercase tracking-wider block mb-1">Montant prévu (FCFA)</span>
-            <input
+          <IonItem lines="none" className="bg-card rounded-xl">
+            <IonLabel position="floating" className="text-sm text-text-secondary">Montant prévu (FCFA)</IonLabel>
+            <IonInput
               type="number"
               inputMode="numeric"
               value={total}
-              onChange={(e) => setTotal(e.target.value)}
+              onIonChange={(e: IonChangeCustomEvent<string>) => setTotal(e.detail.value ?? "")}
               placeholder="Ex : 5000000"
-              className="w-full px-3 py-3 rounded-lg text-sm outline-none"
-              style={inputStyle}
+              slot="input"
               data-testid="budget-total"
             />
-          </label>
+          </IonItem>
 
           <button
             onClick={submit}

@@ -38,6 +38,24 @@ export interface OrgUnit {
   type: string;
 }
 
+/**
+ * M22 — Map de couleurs UNIQUE partagée par la vue liste (Federation.tsx)
+ * et la vue graphe (FederationTree.tsx).
+ *
+ * Tokens (DESIGN.md §2, cohérent avec getStatusColor de @/lib/utils) :
+ *  PENDING → --data-pending, ACTIVE → --data-income,
+ *  SUSPENDED → --data-expense, ARCHIVED → --text-tertiary.
+ *
+ * JAMAIS de teinte brute ni de map dupliquée dans les pages : toute
+ * nouvelle vue du statut des organisations importe cette constante.
+ */
+export const FEDERATION_STATUS_COLOR: Record<string, string> = {
+  PENDING: "var(--data-pending)",
+  ACTIVE: "var(--data-income)",
+  SUSPENDED: "var(--data-expense)",
+  ARCHIVED: "var(--text-tertiary)",
+};
+
 class FederationService {
   /**
    * Create a new organization, optionally under a parent org.
