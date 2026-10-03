@@ -3,14 +3,13 @@
  */
 import type { ReactElement } from "react";
 import { lazy } from "react";
-import { Route } from "react-router-dom";
+import { Route, Navigate } from "react-router-dom";
 
 import { LazyRoute } from "./lazy-route";
 
 const CentralAdmin = lazy(() => import("@/pages/CentralAdmin"));
 const OrgSetup = lazy(() => import("@/pages/OrgSetup"));
 const Federation = lazy(() => import("@/pages/Federation"));
-const FederationTree = lazy(() => import("@/pages/FederationTree"));
 const OrgUnits = lazy(() => import("@/pages/OrgUnits"));
 
 export const adminRoutes: ReactElement[] = [
@@ -24,6 +23,9 @@ export const adminRoutes: ReactElement[] = [
     path="/admin"
     element={<LazyRoute component={CentralAdmin} />}
   />,
+  // M22 — vue unifiée liste/graphe : le route /admin/federation/tree est
+  // obsolète (la vue graphe est un mode du composant Federation), on le
+  // laisse comme redirect rétro-compat.
   <Route
     key="/admin/federation"
     path="/admin/federation"
@@ -32,7 +34,7 @@ export const adminRoutes: ReactElement[] = [
   <Route
     key="/admin/federation/tree"
     path="/admin/federation/tree"
-    element={<LazyRoute component={FederationTree} />}
+    element={<Navigate replace to="/admin/federation" />}
   />,
   // B.8 — route OrgUnits (précédemment inatteignable : déclarée mais jamais montée)
   <Route

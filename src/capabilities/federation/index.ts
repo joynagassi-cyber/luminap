@@ -40,7 +40,7 @@ export interface OrgUnit {
 
 /**
  * M22 — Map de couleurs UNIQUE partagée par la vue liste (Federation.tsx)
- * et la vue graphe (FederationTree.tsx).
+ * et la vue graphe (components/FederationGraph.tsx).
  *
  * Tokens (DESIGN.md §2, cohérent avec getStatusColor de @/lib/utils) :
  *  PENDING → --data-pending, ACTIVE → --data-income,
@@ -54,6 +54,31 @@ export const FEDERATION_STATUS_COLOR: Record<string, string> = {
   ACTIVE: "var(--data-income)",
   SUSPENDED: "var(--data-expense)",
   ARCHIVED: "var(--text-tertiary)",
+};
+
+/**
+ * M22 — Libellés FR des statuts d'organisation.
+ *
+ * Source de vérité UNIQUE du label d'un statut de fédération : vue liste
+ * (Federation.tsx) et vue graphe (FederationGraph.tsx) importent cette
+ * constante, jamais de map locale dupliquée.
+ */
+export const FEDERATION_STATUS_LABEL: Record<string, string> = {
+  PENDING: "En attente",
+  ACTIVE: "Active",
+  SUSPENDED: "Suspendue",
+  ARCHIVED: "Archivée",
+};
+
+/**
+ * M22 — Libellés FR des types d'organisation (badge nœud du graphe).
+ * Fallback : le code brut est affiché à défaut d'entrée.
+ */
+export const FEDERATION_TYPE_LABEL: Record<string, string> = {
+  CHURCH: "Église",
+  SCHOOL: "École",
+  ENTERPRISE: "Entreprise",
+  CENTRAL: "Centrale",
 };
 
 class FederationService {

@@ -1,0 +1,421 @@
+/**
+ * Federation Graph — vue graphe (React Flow) de la fédération, MODE.
+ *
+ * Issue du split M22 du route /admin/federation/tree : un composant UNIQUE
+ * (Federation.tsx, vue liste par défaut) expose maintenant la vue graphe
+ * comme un mode explicite (segmented toggle Liste | Graphe). Ce module ne
+ * contient plus de chrome de page : le provider React Flow est monté par la
+ * page parente uniquement quand le mode graphe est actif, et le layout
+ * arborescence occupe tout l'espace qui lui est dédié.
+ *
+ * Nœuds déplaçables, zoom/mini-carte, légende des statuts (carte UNIQUE
+ * FEDERATION_STATUS_COLOR), clic sur un nœud → vue admin de l'organisation.
+ */
+
+import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  ReactFlow,
+  Background,
+  BackgroundVariant,
+  Controls,
+  MiniMap,
+  Handle,
+  Position,
+  type Node,
+  type Edge,
+  type NodeProps,
+  type ReactFlowInstance,
+  useNodesState,
+  useEdgesState,
+} from "@xyflow/react";
+import "@xyflow/react/dist/style.css";
+import { Maximize2 } from "lucide-react";
+import { FederationTreeSkeleton } from "@/components/PageSkeletons";
+import { useCurrentUser } from "@/lib/dataLayer";
+import {
+  federation,
+  FEDERATION_STATUS_COLOR,
+  FEDERATION_STATUS_LABEL,
+  FEDERATION_TYPE_LABEL,
+  type FederationOrg,
+} from "@/capabilities/federation";
+
+// M22 — statut et type via les cartiques UNIQUES partagées (capabilities) :
+// mêmes libellés/teintes que la vue liste, jamais de map locale divergente.
+const STATUS_COLOR = FEDERATION_STATUS_COLOR;
+const STATUS_LABEL = FEDERATION_STATUS_LABEL;
+const TYPE_LABEL = FEDERATION_TYPE_LABEL;
+
+interface OrgNodeData {
+  org: FederationOrg;
+}
+
+const handleStyle: React.CSSProperties = {
+  width: 8,
+  height: 8,
+  background: "var(--accent-primary)",
+  border: "2px solid var(--canvas)",
+};
+
+/* ── Nœud personnalisé (carte organisation) ── */
+function OrgFlowNode({ data, selected }: NodeProps) {
+  const { org } = data as unknown as OrgNodeData;
+  const color = STATUS_COLOR[org.status] ?? "var(--text-tertiary)";
+  return (
+    <div
+      style={{
+        width: 220,
+        minWidth: 220,
+        padding: 12,
+        background: "var(--surface)",
+        border: `1px solid ${selected ? "var(--accent-primary)" : "var(--border)"}`,
+        borderRadius: 8,
+        boxShadow: selected
+          ? "0 0 0 3px color-mix(in srgb, var(--accent-primary) 15%, transparent)"
+          : "var(--shadow-card)",
+        cursor: "pointer",
+      }}
+    >
+      <Handle type="target" position={Position.Top} style={handleStyle} />
+      <div className="flex items-center gap-3">
+        <div
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 8,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+            background:
+              "color-mix(in srgb, var(--accent-primary) 14%, transparent)",
+          }}
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            style={{ width: 18, height: 18, color: "var(--accent-primary)" }}
+            aria-hidden="true"
+          >
+            <rect x="4" y="3" width="16" height="18" rx="2" />
+            <path d="M9 7h1m4 0h1M9 11h1m4 0h1M9 15h1m4 0h1" />
+          </svg>
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div
+            style={{
+              color: "var(--text-primary)",
+              fontWeight: 600,
+              fontSize: 14,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {org.name}
+          </div>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              marginTop: 3,
+            }}
+          >
+            <span style={{ color: "var(--text-tertiary)", fontSize: 11 }}>
+              {TYPE_LABEL[org.type] ?? org.type}
+            </span>
+            <span
+              style={{
+                marginLeft: "auto",
+                fontSize: 10,
+                fontWeight: 500,
+                padding: "1px 7px",
+                borderRadius: 999,
+                background: `${color}22`,
+                color,
+              }}
+            >
+              {STATUS_LABEL[org.status] ?? org.status}
+            </span>
+          </div>
+        </div>
+      </div>
+      <Handle type="source" position={Position.Bottom} style={handleStyle} />
+    </div>
+  );
+}
+
+const nodeTypes = { org: OrgFlowNode };
+
+/**
+ * Layout « tidy tree » sans dépendance externe : chaque feuille reçoit un
+ * index séquentiel en x, les nœuds internes sont centrés sur leurs enfants,
+ * la profondeur donne y. Gère une forêt (plusieurs racines) et les nœuds
+ * dont le parent n'est pas visible (traités comme racines).
+ */
+function layoutForest(orgs: FederationOrg[]) {
+  const present = new Set(orgs.map((o) => o.id));
+  const childrenOf = new Map<string, FederationOrg[]>();
+  for (const o of orgs) {
+    if (o.parentOrgId && present.has(o.parentOrgId)) {
+      const arr = childrenOf.get(o.parentOrgId) ?? [];
+      arr.push(o);
+      childrenOf.set(o.parentOrgId, arr);
+    }
+  }
+  const roots = orgs.filter(
+    (o) => !o.parentOrgId || !present.has(o.parentOrgId),
+  );
+
+  const NODE_W = 220;
+  const H_GAP = 56;
+  const NODE_H = 68;
+  const V_GAP = 64;
+  const positions = new Map<string, { x: number; y: number }>();
+  let leaf = 0;
+
+  const place = (org: FederationOrg, depth: number): number => {
+    const kids = childrenOf.get(org.id) ?? [];
+    let x: number;
+    if (kids.length === 0) {
+      x = leaf;
+      leaf += 1;
+    } else {
+      const centers = kids.map((c) => place(c, depth + 1));
+      x = (centers[0] + centers[centers.length - 1]) / 2;
+    }
+    positions.set(org.id, {
+      x: x * (NODE_W + H_GAP) + NODE_W / 2,
+      y: depth * (NODE_H + V_GAP),
+    });
+    return x;
+  };
+  roots.forEach((r) => place(r, 0));
+
+  const nodes: Node[] = orgs.map((o) => ({
+    id: o.id,
+    type: "org",
+    position: positions.get(o.id) ?? { x: NODE_W / 2, y: 0 },
+    data: { org: o },
+  }));
+
+  const edges: Edge[] = orgs
+    .filter((o) => o.parentOrgId && present.has(o.parentOrgId))
+    .map((o) => ({
+      id: `e-${o.parentOrgId}-${o.id}`,
+      source: o.parentOrgId as string,
+      target: o.id,
+      type: "smoothstep",
+      style: { stroke: "var(--text-tertiary)", strokeWidth: 1.5 }, // M17 : arêtes grises → token texte
+    }));
+
+  return { nodes, edges };
+}
+
+export default function FederationGraph() {
+  const user = useCurrentUser();
+  const navigate = useNavigate();
+  const [orgs, setOrgs] = useState<FederationOrg[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
+  const rfInstance = useRef<ReactFlowInstance | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!user?.id) {
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      setError(null);
+      try {
+        const list = await federation.listOrgs(user.id);
+        if (cancelled) return;
+        setOrgs(list);
+      } catch (e: any) {
+        if (!cancelled) setError(e?.message ?? "Erreur de chargement");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
+
+  useEffect(() => {
+    const { nodes: n, edges: e } = layoutForest(orgs);
+    setNodes(n);
+    setEdges(e);
+  }, [orgs]);
+
+  const onInit = (inst: ReactFlowInstance) => {
+    rfInstance.current = inst;
+    inst.fitView({ padding: 0.2 });
+  };
+
+  const refit = () => rfInstance.current?.fitView({ padding: 0.2 });
+
+  const hasContent = !loading && !error && orgs.length > 0;
+
+  return (
+    <div style={{ position: "relative", minHeight: 0 }}>
+      <style>{`
+        .react-flow__controls { background: transparent; }
+        .react-flow__controls button {
+          background: var(--card);
+          border: 1px solid var(--border);
+          color: var(--text-primary);
+          width: 28px;
+          height: 28px;
+          line-height: 28px;
+          margin: 0;
+          padding: 0;
+        }
+        .react-flow__controls button:hover { background: var(--surface-hover); }
+        .react-flow__minimap { background: var(--card); border: 1px solid var(--border); }
+      `}</style>
+      <div
+        data-testid="federation-tree"
+        style={{
+          height: "calc(100dvh - 320px)",
+          minHeight: 420,
+          borderRadius: 12,
+          border: "1px solid var(--border)",
+          background: "var(--canvas)",
+          overflow: "hidden",
+          position: "relative",
+        }}
+      >
+        {loading ? (
+          <div style={{ padding: 16 }}>
+            <FederationTreeSkeleton />
+          </div>
+        ) : error ? (
+          <div
+            style={{
+              padding: 20,
+              color: "var(--text-secondary)",
+              fontSize: 14,
+              textAlign: "center",
+              marginTop: 24,
+            }}
+          >
+            {error}
+          </div>
+        ) : orgs.length === 0 ? (
+          <div
+            style={{
+              padding: 24,
+              color: "var(--text-secondary)",
+              fontSize: 14,
+              textAlign: "center",
+              lineHeight: 1.5,
+            }}
+          >
+            Aucune organisation visible pour votre compte.
+            <br />
+            Le diagramme est réservé aux admins centraux (accès admin central
+            actif).
+          </div>
+        ) : (
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            nodeTypes={nodeTypes}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onInit={onInit}
+            onNodeClick={(_, n) =>
+              navigate(`/admin/organizations/${n.id}`)
+            }
+            fitView
+            fitViewOptions={{ padding: 0.2 }}
+            proOptions={{ hideAttribution: true }}
+            minZoom={0.2}
+            maxZoom={1.5}
+          >
+            <Background
+              variant={BackgroundVariant.Dots}
+              gap={24}
+              size={1.5}
+              color="var(--surface-hover)"
+            />
+            <Controls position="bottom-right" showInteractive={false} />
+            <MiniMap
+              position="top-right"
+              nodeColor="var(--surface-hover)"
+              maskColor="color-mix(in srgb, var(--canvas) 60%, transparent)"
+              style={{ background: "var(--card)" }}
+            />
+          </ReactFlow>
+        )}
+      </div>
+
+      {/* Légende des statuts */}
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 12,
+          marginTop: 14,
+        }}
+      >
+        {Object.entries(STATUS_COLOR).map(([k, c]) => (
+          <span
+            key={k}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              fontSize: 11,
+              color: "var(--text-secondary)",
+            }}
+          >
+            <span
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: 999,
+                background: c,
+                display: "inline-block",
+              }}
+            />
+            {STATUS_LABEL[k]}
+          </span>
+        ))}
+      </div>
+
+      {hasContent && (
+        <button
+          type="button"
+          onClick={refit}
+          data-testid="tree-refit"
+          aria-label="Recentrer la vue"
+          className="mt-3 mx-auto block font-semibold"
+          style={{
+            color: "var(--accent-primary)",
+            background: "transparent",
+            border: "none",
+            cursor: "pointer",
+            fontSize: 12,
+            fontWeight: 600,
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 4,
+          }}
+        >
+          <Maximize2 style={{ width: 14, height: 14 }} />
+          Recentrer ({orgs.length} org)
+        </button>
+      )}
+    </div>
+  );
+}

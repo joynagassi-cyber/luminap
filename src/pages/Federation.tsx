@@ -26,6 +26,7 @@ import {
   IonItem,
   IonLabel,
   IonInput,
+  ReactFlowProvider,
 } from "@ionic/react";
 import {
   Network,
@@ -39,20 +40,20 @@ import {
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
 import EmptyState from "@/components/EmptyState";
+import FederationGraph from "@/components/FederationGraph";
 import { useCurrentUser } from "@/lib/dataLayer";
 import {
   federation,
   FEDERATION_STATUS_COLOR,
+  FEDERATION_STATUS_LABEL,
+  FEDERATION_TYPE_LABEL,
   type FederationOrg,
 } from "@/capabilities/federation";
 import { bootstrapOrganization } from "@/lib/orgBootstrap";
 
-const STATUS_LABEL: Record<string, string> = {
-  PENDING: "En attente",
-  ACTIVE: "Active",
-  SUSPENDED: "Suspendue",
-  ARCHIVED: "Archivée",
-};
+// M22 — libellés de statut UNIQUE partagés (capabilities/federation) :
+// vue liste et vue graphe (FederationGraph) ne dupliquent plus de map locale.
+const STATUS_LABEL = FEDERATION_STATUS_LABEL;
 
 // M22 — carte de statut UNIQUE partagée (vue liste + vue graphe) :
 // plus de map locale qui diverge (ex. SUSPENDED en accent vs data-expense).
@@ -98,7 +99,9 @@ function OrgNode({
               {STATUS_LABEL[org.status] ?? org.status}
             </span>
           </div>
-          <p className="text-text-tertiary text-xs truncate">{org.type}</p>
+          <p className="text-text-tertiary text-xs truncate">
+            {FEDERATION_TYPE_LABEL[org.type] ?? org.type}
+          </p>
         </div>
         <div className="flex items-center gap-1">
           <button
@@ -177,6 +180,11 @@ export default function Federation() {
   const [reparentOrg, setReparentOrg] = useState<string | null>(null);
   const [reparentTarget, setReparentTarget] = useState("");
   const [reparenting, setReparenting] = useState(false);
+
+  // M22 — toggle de vue unifié : liste (défaut) ou graphe (mode explicite).
+  // La vue graphe (FederationGraph, React Flow) n'est montée QUE dans ce
+  // mode : un composant unique partage la carte de statut FEDERATION_STATUS_COLOR.
+  const [view, setView] = useState<"list" | "graph">("list");
 
   const loadOrgs = async () => {
     if (!user?.id) return;
@@ -301,6 +309,38 @@ export default function Federation() {
         <div className="min-h-dvh">
           <TopHeader title="Gestion de la fédération" />
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
+            {/* M22 — segmented control Liste | Graphe : un seul composant,
+                la vue graphe (React Flow) est un mode explicite. */}
+            <div
+              role="tablist"
+              aria-label="Mode d'affichage de la fédération"
+              className="mb-4 p-1 rounded-full flex items-center gap-1"
+              style={{ backgroundColor: "var(--surface)" }}
+            >
+              {(["list", "graph"] as const).map((mode) => {
+                const active = view === mode;
+                return (
+                  <button
+                    key={mode}
+                    type="button"
+                    role="tab"
+                    aria-selected={active}
+                    onClick={() => setView(mode)}
+                    className="flex-1 py-2 rounded-full text-xs font-semibold transition-all active:scale-95"
+                    style={
+                      active
+                        ? { backgroundColor: "var(--accent-primary)", color: "var(--on-accent)" }
+                        : { backgroundColor: "transparent", color: "var(--text-secondary)" }
+                    }
+                  >
+                    {mode === "list" ? "Liste" : "Graphe"}
+                  </button>
+                );
+              })}
+            </div>
+
+            {view === "list" ? (
+            <>
             {/* Create button (bouton natif — les enfants d'IonButton ne sont
                 pas rendus fiablement sous React 19) */}
             <button
@@ -443,7 +483,7 @@ export default function Federation() {
                 </span>
                 <button
                   type="button"
-                  onClick={() => navigate("/admin/federation/tree")}
+                  onClick={() => setView("graph")}
                   className="ml-auto flex items-center gap-1 text-xs font-semibold transition-all active:scale-95"
                   style={{
                     color: "var(--accent-primary)",
@@ -555,6 +595,15 @@ export default function Federation() {
                   </button>
                 </div>
               </div>
+            )}
+
+            </>
+            ) : (
+            /* M22 — mode graphe : React Flow monté dans un Provider unique,
+               partageant la carte de statut FEDERATION_STATUS_COLOR. */
+            <ReactFlowProvider>
+              <FederationGraph />
+            </ReactFlowProvider>
             )}
 
             {/* Error */}
