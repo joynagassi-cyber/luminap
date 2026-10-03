@@ -11,6 +11,7 @@ const CentralAdmin = lazy(() => import("@/pages/CentralAdmin"));
 const OrgSetup = lazy(() => import("@/pages/OrgSetup"));
 const Federation = lazy(() => import("@/pages/Federation"));
 const OrgUnits = lazy(() => import("@/pages/OrgUnits"));
+const OrgReportSend = lazy(() => import("@/pages/OrgReportSend"));
 
 export const adminRoutes: ReactElement[] = [
   <Route
@@ -41,6 +42,13 @@ export const adminRoutes: ReactElement[] = [
     key="/admin/units"
     path="/admin/units"
     element={<LazyRoute component={OrgUnits} />}
+  />,
+  // Phase 3 Feature 2 — page d'émission du rapport de gestion inter-organisations
+  // (gating : org courante ayant une mère ; accès via section « Mes annexes »).
+  <Route
+    key="/admin/report-send"
+    path="/admin/report-send"
+    element={<LazyRoute component={OrgReportSend} />}
   />,
   <Route
     key="/admin/organizations/:id"

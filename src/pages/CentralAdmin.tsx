@@ -46,6 +46,7 @@ import {
   UserMinus,
   UserCheck,
   FolderTree,
+  Send,
 } from "lucide-react";
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
@@ -146,6 +147,7 @@ function useCentralAccessMulti(orgId: string) {
  */
 function MesAnnexesSection({ orgId }: { orgId: string }) {
   const user = useCurrentUser();
+  const navigate = useNavigate();
   const [parent, setParent] = useState<FederationOrg | null>(null);
   const [children, setChildren] = useState<FederationOrg[]>([]);
   const [checked, setChecked] = useState(false);
@@ -208,7 +210,17 @@ function MesAnnexesHeader({
       <span className="text-text-primary font-semibold text-sm">
         Mes annexes — Rapports reçus
       </span>
-      <div className="ml-auto flex flex-wrap gap-1.5">
+      <div className="ml-auto flex flex-wrap gap-1.5 items-center">
+        {hasParent && (
+          <IonButton
+            size="small"
+            fill="outline"
+            color="primary"
+            onClick={() => navigate("/admin/report-send")}
+          >
+            <Send className="w-3 h-3 mr-1" /> Envoyer un rapport
+          </IonButton>
+        )}
         {hasParent && (
           <span
             className="text-xs px-2 py-0.5 rounded-full font-medium"
