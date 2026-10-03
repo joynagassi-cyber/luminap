@@ -91,6 +91,23 @@ const events = new Table(
   { indexes: {} },
 );
 
+const event_tasks = new Table(
+  {
+    org_id: column.text,
+    event_id: column.text,
+    title: column.text,
+    description: column.text,
+    is_sub: column.integer,
+    parent_task_id: column.text,
+    assigned_group_id: column.text,
+    due_date: column.text,
+    status: column.text,
+    created_at: column.text,
+    updated_at: column.text,
+  },
+  { indexes: {} },
+);
+
 const notifications = new Table(
   {
     org_id: column.text,
@@ -558,6 +575,7 @@ export const AppSchema = new Schema({
   members,
   transactions,
   events,
+  event_tasks,
   notifications,
   categories,
   caisses,
