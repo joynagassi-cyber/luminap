@@ -18,6 +18,7 @@ import {
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
 import TransactionCard from "@/components/TransactionCard";
+import EmptyState from "@/components/EmptyState";
 import { FinanceSkeleton } from "@/components/PageSkeletons";
 import {
   IonPage,
@@ -319,14 +320,11 @@ export default function Finance() {
             {/* Transactions List */}
             <div className="space-y-2 mb-6">
               {filteredTransactions.length === 0 ? (
-                <div
-                  className="text-center py-10 rounded-xl"
-                  style={{ backgroundColor: "var(--surface)" }}
-                >
-                  <p className="text-text-tertiary text-sm">
-                    Aucune transaction trouvée
-                  </p>
-                </div>
+                <EmptyState
+                  title="Aucune transaction trouvée"
+                  description="Modifiez les filtres ou le période pour retrouver vos mouvements."
+                  icon={<Wallet className="w-6 h-6" />}
+                />
               ) : (
                 <>
                   {visibleTransactions.map((tx: any) => (

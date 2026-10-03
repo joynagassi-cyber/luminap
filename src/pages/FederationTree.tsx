@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
+import EmptyState from "@/components/EmptyState";
 import { FederationTreeSkeleton } from "@/components/PageSkeletons";
 import { useCurrentUser } from "@/lib/dataLayer";
 import {
@@ -379,23 +380,14 @@ function FederationTreeInner() {
                   {error}
                 </div>
               ) : orgs.length === 0 ? (
-                <div
-                  style={{
-                    padding: 20,
-                    color: "var(--text-secondary)",
-                    fontSize: 14,
-                    textAlign: "center",
-                    marginTop: 24,
-                    lineHeight: 1.5,
-                  }}
-                >
-                  <p style={{ color: "var(--text-primary)", fontWeight: 600, marginBottom: 8 }}>
-                    Aucune organisation visible pour votre compte.
-                  </p>
-                  <p style={{ color: "var(--text-tertiary)", fontSize: 12 }}>
-                    La vue diagramme est réservée aux admins centraux
-                    (détenteurs d&apos;un accès admin central actif).
-                  </p>
+                <div className="flex items-center justify-center">
+                  <EmptyState
+                    title="Aucune organisation visible pour votre compte."
+                    description="La vue diagramme est réservée aux admins centraux (détenteurs d'un accès admin central actif)."
+                    icon={<Network className="w-6 h-6" />}
+                    actionLabel="Gérer la fédération"
+                    onAction={() => navigate("/admin/federation")}
+                  />
                 </div>
               ) : (
                 <ReactFlow

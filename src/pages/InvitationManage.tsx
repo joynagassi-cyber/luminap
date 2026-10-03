@@ -37,6 +37,7 @@ import {
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { ShimmerCard } from "@/components/Shimmer";
+import EmptyState from "@/components/EmptyState";
 import { useInvitations } from "@/lib/dataLayer";
 import { useCurrentUser } from "@/lib/dataLayer";
 import { invitation } from "@/capabilities/invitation";
@@ -268,11 +269,13 @@ export default function InvitationManage() {
                 </IonButton>
               </div>
             ) : filtered.length === 0 ? (
-              <div className="text-center py-12 text-text-tertiary">
-                <Shield className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                <p>Aucune invitation</p>
-                <p className="text-sm">Créez votre première invitation</p>
-              </div>
+              <EmptyState
+                title="Aucune invitation"
+                description="Créez votre première invitation pour rejoindre votre organisation."
+                icon={<Shield className="w-6 h-6" />}
+                actionLabel="Créer une invitation"
+                onAction={handleGoEmit}
+              />
             ) : (
               <>
               <IonList lines="none" className="space-y-3">

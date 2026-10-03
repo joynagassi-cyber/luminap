@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
+import EmptyState from "@/components/EmptyState";
 import { useCurrentUser } from "@/lib/dataLayer";
 import {
   federation,
@@ -462,35 +463,13 @@ export default function Federation() {
               {loading ? (
                 <p className="text-text-tertiary text-sm py-4 text-center">Chargement...</p>
               ) : rootOrgs.length === 0 ? (
-                <div
-                  className="rounded-xl p-4 text-sm text-center space-y-2"
-                  style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
-                >
-                  <p className="text-text-tertiary">
-                    Aucune organisation visible pour votre compte.
-                  </p>
-                  <p className="text-text-tertiary text-xs leading-relaxed">
-                    La création d&apos;organisation opérationnelle et la gestion de
-                    la fédération sont réservées aux <strong>admins centraux</strong>{" "}
-                    (détenteurs d&apos;un accès admin central actif). Si
-                    vous n&apos;y voyez rien, votre compte n&apos;a pas encore le
-                    rôle admin central — demandez-le à l&apos;administrateur de
-                    Lumina.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => navigate("/admin")}
-                    className="mt-1 text-xs font-semibold"
-                    style={{
-                      color: "var(--accent-primary)",
-                      background: "transparent",
-                      border: "none",
-                      cursor: "pointer",
-                    }}
-                  >
-                    Voir mon accès admin central
-                  </button>
-                </div>
+                <EmptyState
+                  title="Aucune organisation visible pour votre compte."
+                  description="La création d'organisation opérationnelle et la gestion de la fédération sont réservées aux admins centraux (détenteurs d'un accès admin central actif)."
+                  icon={<GitBranch className="w-6 h-6" />}
+                  actionLabel="Voir mon accès admin central"
+                  onAction={() => navigate("/admin")}
+                />
               ) : (
                 rootOrgs.map((org) => (
                   <div key={org.id}>

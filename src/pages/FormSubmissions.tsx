@@ -381,18 +381,11 @@ export default function FormSubmissions() {
               </IonButton>
             </div>
           ) : rows.length === 0 ? (
-            <div
-              className="rounded-xl p-5 text-center"
-              style={{ backgroundColor: "var(--surface)" }}
-            >
-              <Inbox className="w-8 h-8 mx-auto text-text-tertiary mb-2" />
-              <p className="text-text-primary text-sm">
-                Aucune soumission pour l'instant.
-              </p>
-              <p className="text-text-tertiary text-xs mt-1">
-                Les réponses envoyées depuis « Remplir » apparaîtront ici.
-              </p>
-            </div>
+            <EmptyState
+              title="Aucune soumission pour l'instant."
+              description="Les réponses envoyées depuis « Remplir » apparaîtront ici."
+              icon={<Inbox className="w-6 h-6" />}
+            />
           ) : (
             <>
               {/* Barre : filtre statut + recherche + exports */}
@@ -467,9 +460,11 @@ export default function FormSubmissions() {
               </p>
 
               {filtered.length === 0 ? (
-                <div className="text-center text-text-tertiary text-xs py-4">
-                  Aucune soumission ne correspond aux filtres.
-                </div>
+                <EmptyState
+                  title="Aucune soumission ne correspond aux filtres."
+                  description="Modifiez le filtre de statut ou la recherche."
+                  icon={<Inbox className="w-6 h-6" />}
+                />
               ) : (
                 <>
                   <div className="overflow-x-auto rounded-xl" style={{ border: "1px solid var(--border)" }}>

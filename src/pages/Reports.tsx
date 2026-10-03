@@ -137,7 +137,9 @@ const GlobalPanel = memo(function GlobalPanel({ totalIncome, totalExpense, netRe
       <div className="rounded-xl p-3" style={{ backgroundColor: "var(--surface)" }}>
         <p className="text-text-tertiary text-xs mb-2">Sorties par catégorie</p>
         {pieData.length === 0 ? (
-          <p className="text-text-tertiary text-xs py-6 text-center">Aucune sortie sur la période</p>
+          <div className="text-center py-6 text-text-tertiary text-xs">
+            <p className="font-semibold text-text-primary mb-1">Aucune sortie sur la période</p>
+          </div>
         ) : (
           <ChartContainer config={{}} className="h-56">
             <PieChart>

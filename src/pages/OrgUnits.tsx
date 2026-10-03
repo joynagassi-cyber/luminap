@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
+import EmptyState from "@/components/EmptyState";
 import { ShimmerList } from "@/components/Shimmer";
 import {
   federation,
@@ -244,25 +245,11 @@ export default function OrgUnits() {
             {loading ? (
               <ShimmerList count={4} minHeight={56} />
             ) : units.length === 0 ? (
-              <div
-                className="rounded-xl p-6 text-center space-y-2"
-                style={{
-                  backgroundColor: "var(--surface)",
-                  border: "1px solid var(--border)",
-                }}
-              >
-                <Boxes
-                  style={{
-                    width: 24,
-                    height: 24,
-                    color: "var(--text-tertiary)",
-                    margin: "0 auto",
-                  }}
-                />
-                <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>
-                  Aucune unité interne pour cette organisation.
-                </p>
-              </div>
+              <EmptyState
+                title="Aucune unité interne pour cette organisation."
+                description="Créez une unité pour structurer votre organisation."
+                icon={<Boxes className="w-6 h-6" />}
+              />
             ) : (
               <div className="space-y-2">
                 {units.map((u) => (

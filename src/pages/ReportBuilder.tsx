@@ -682,9 +682,11 @@ export default function ReportBuilder() {
             )}
 
             {previewResult.rows.length === 0 ? (
-              <div className="text-center py-8 rounded-xl" style={{ backgroundColor: "var(--surface)" }}>
-                <p className="text-text-tertiary text-sm">Aucune donnée pour ces filtres</p>
-              </div>
+              <EmptyState
+                title="Aucune donnée pour ces filtres"
+                description="Modifiez les métriques ou la période pour visualiser des résultats."
+                icon={<BarChart3 className="w-6 h-6" />}
+              />
             ) : (
               <div className="overflow-x-auto rounded-xl" style={{ backgroundColor: "var(--surface)" }}>
                 <table className="w-full text-xs">

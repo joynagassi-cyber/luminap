@@ -8,6 +8,7 @@ import { formatCurrencyCompact, formatDate, tint } from "@/lib/utils";
 import { CheckCircle, Clock, User } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
+import EmptyState from "@/components/EmptyState";
 import { Progress } from "@/components/ui/progress";
 import {
   IonPage,
@@ -209,15 +210,11 @@ export default function MembreDetail() {
                 Historique des cotisations
               </h2>
               {historique.length === 0 ? (
-                <div
-                  className="rounded-xl p-6 text-center"
-                  style={{ backgroundColor: "var(--surface)" }}
-                >
-                  <Clock className="w-8 h-8 mx-auto mb-2 text-text-tertiary opacity-30" />
-                  <p className="text-text-tertiary text-sm">
-                    Aucune cotisation
-                  </p>
-                </div>
+                <EmptyState
+                  title="Aucune cotisation"
+                  description="L'historique des cotisations de ce membre apparaîtra ici."
+                  icon={<Clock className="w-6 h-6" />}
+                />
               ) : (
                 <div className="space-y-2">
                   {historique.map(({ cotisation, culte }) => (
