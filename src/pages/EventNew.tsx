@@ -21,7 +21,10 @@ import {
   IonButtons,
   IonBackButton,
   IonInput,
+  IonTextarea,
   IonButton,
+  IonItem,
+  IonLabel,
   IonSelect,
   IonSelectOption,
   IonChangeCustomEvent,
@@ -234,22 +237,26 @@ export default function EventNew() {
               </p>
               <div className="flex items-center gap-3">
                 <div className="flex-1">
-                  <label className="text-text-tertiary text-xs mb-1.5 block">
-                    Montant obligatoire (FCFA) *
-                  </label>
-                  <IonInput
-                    type="number"
-                    aria-label="Montant de cotisation obligatoire en FCFA"
-                    value={montantCotisation}
-                    onIonChange={(e) =>
-                      setMontantCotisation((e.detail.value as string) ?? "")
-                    }
-                    min="0"
-                    style={{
-                      backgroundColor: "var(--card)",
-                      border: "1px solid var(--border)",
-                    }}
-                  />
+                  {/* M24 — grammaire canonique IonItem + IonLabel + IonInput */}
+                  <IonItem lines="none" className="bg-card rounded-xl">
+                    <IonLabel position="floating" className="text-sm text-text-secondary">
+                      Montant obligatoire (FCFA) *
+                    </IonLabel>
+                    <IonInput
+                      type="number"
+                      aria-label="Montant de cotisation obligatoire en FCFA"
+                      value={montantCotisation}
+                      onIonChange={(e: IonChangeCustomEvent<string>) =>
+                        setMontantCotisation((e.detail.value as string) ?? "")
+                      }
+                      min="0"
+                      slot="input"
+                      style={{
+                        backgroundColor: "var(--card)",
+                        border: "1px solid var(--border)",
+                      }}
+                    />
+                  </IonItem>
                 </div>
               </div>
               <p className="text-text-tertiary text-xs mt-2">
@@ -266,37 +273,40 @@ export default function EventNew() {
             </div>
           )}
 
-          {/* Name */}
-          <div className="mb-5">
-            <label className="text-text-tertiary text-xs mb-2 block">
+          {/* Name — M24 : grammaire canonique IonItem + IonLabel + IonInput */}
+          <IonItem lines="none" className="mb-5 bg-card rounded-xl">
+            <IonLabel position="floating" className="text-sm text-text-secondary">
               Nom de l'événement *
-            </label>
+            </IonLabel>
             <IonInput
               type="text"
               aria-label="Nom de l'événement"
               value={name}
-              onIonChange={(e) => setName((e.detail.value as string) ?? "")}
+              onIonChange={(e: IonChangeCustomEvent<string>) =>
+                setName((e.detail.value as string) ?? "")
+              }
               placeholder="Ex: Noël 2026"
+              slot="input"
               style={{
-                backgroundColor: "var(--surface)",
-                color: "var(--text-primary)",
+                backgroundColor: "var(--card)",
                 border: "1px solid var(--border)",
               }}
             />
-          </div>
+          </IonItem>
 
           {/* Description */}
           <div className="mb-5">
             <label className="text-text-tertiary text-xs mb-2 block">
               Description
             </label>
-            <textarea
+            <IonTextarea
               aria-label="Description"
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onIonChange={(e: IonChangeCustomEvent<string>) =>
+                setDescription((e.detail.value as string) ?? "")
+              }
               placeholder="Description de l'événement..."
               rows={3}
-              className="w-full px-4 py-3 rounded-xl text-sm resize-none"
               style={{
                 backgroundColor: "var(--surface)",
                 color: "var(--text-primary)",
@@ -305,55 +315,59 @@ export default function EventNew() {
             />
           </div>
 
-          {/* Dates */}
-          <div className="mb-5">
-            <label className="text-text-tertiary text-xs mb-2 block">
+          {/* Dates — M24 : grammaire canonique IonItem + IonLabel + IonInput */}
+          <IonItem lines="none" className="mb-5 bg-card rounded-xl">
+            <IonLabel position="floating" className="text-sm text-text-secondary">
               Date de début *
-            </label>
+            </IonLabel>
             <IonInput
               type="date"
               value={startDate}
-              onIonChange={(e) =>
+              onIonChange={(e: IonChangeCustomEvent<string>) =>
                 setStartDate((e.detail.value as string) ?? "")
               }
+              slot="input"
               style={{
-                backgroundColor: "var(--surface)",
-                color: "var(--text-primary)",
+                backgroundColor: "var(--card)",
                 border: "1px solid var(--border)",
               }}
             />
-          </div>
+          </IonItem>
 
-          <div className="mb-5">
-            <label className="text-text-tertiary text-xs mb-2 block">
+          <IonItem lines="none" className="mb-5 bg-card rounded-xl">
+            <IonLabel position="floating" className="text-sm text-text-secondary">
               Date de fin (optionnel)
-            </label>
+            </IonLabel>
             <IonInput
               type="date"
               value={endDate}
-              onIonChange={(e) => setEndDate((e.detail.value as string) ?? "")}
+              onIonChange={(e: IonChangeCustomEvent<string>) =>
+                setEndDate((e.detail.value as string) ?? "")
+              }
+              slot="input"
               style={{
-                backgroundColor: "var(--surface)",
-                color: "var(--text-primary)",
+                backgroundColor: "var(--card)",
                 border: "1px solid var(--border)",
               }}
             />
-          </div>
+          </IonItem>
 
-          {/* Status */}
-          <div className="mb-5">
-            <label className="text-text-tertiary text-xs mb-2 block">
+          {/* Status — M24 : grammaire canonique IonItem + IonLabel + IonSelect */}
+          <IonItem lines="none" className="mb-5 bg-card rounded-xl">
+            <IonLabel position="floating" className="text-sm text-text-secondary">
               Statut
-            </label>
+            </IonLabel>
             <IonSelect
               value={status}
               onIonChange={(e: IonChangeCustomEvent<string>) => setStatus(e.detail.value as Event["status"])}
               interface="popover"
+              slot="input"
+              style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}
             >
               <IonSelectOption value="PLANIFIED">Planifié</IonSelectOption>
               <IonSelectOption value="ONGOING">En cours</IonSelectOption>
             </IonSelect>
-          </div>
+          </IonItem>
 
           {/* Budget */}
           <div className="mb-5">
