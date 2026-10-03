@@ -1,12 +1,12 @@
 # Graph Report - lumina  (2026-10-03)
 
 ## Corpus Check
-- 639 files · ~620,547 words
+- 641 files · ~622,698 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 8473 nodes · 27133 edges · 48 communities detected
-- Extraction: 69% EXTRACTED · 31% INFERRED · 0% AMBIGUOUS · INFERRED: 8444 edges (avg confidence: 0.8)
+- 8483 nodes · 27147 edges · 50 communities detected
+- Extraction: 69% EXTRACTED · 31% INFERRED · 0% AMBIGUOUS · INFERRED: 8447 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Community Hubs (Navigation)
@@ -46,18 +46,20 @@
 - [[_COMMUNITY_Community 33|Community 33]]
 - [[_COMMUNITY_Community 34|Community 34]]
 - [[_COMMUNITY_Community 35|Community 35]]
-- [[_COMMUNITY_Community 37|Community 37]]
+- [[_COMMUNITY_Community 36|Community 36]]
 - [[_COMMUNITY_Community 38|Community 38]]
 - [[_COMMUNITY_Community 39|Community 39]]
 - [[_COMMUNITY_Community 40|Community 40]]
 - [[_COMMUNITY_Community 41|Community 41]]
 - [[_COMMUNITY_Community 42|Community 42]]
 - [[_COMMUNITY_Community 44|Community 44]]
-- [[_COMMUNITY_Community 48|Community 48]]
-- [[_COMMUNITY_Community 50|Community 50]]
-- [[_COMMUNITY_Community 54|Community 54]]
-- [[_COMMUNITY_Community 56|Community 56]]
+- [[_COMMUNITY_Community 45|Community 45]]
+- [[_COMMUNITY_Community 49|Community 49]]
+- [[_COMMUNITY_Community 51|Community 51]]
+- [[_COMMUNITY_Community 55|Community 55]]
+- [[_COMMUNITY_Community 57|Community 57]]
 - [[_COMMUNITY_Community 58|Community 58]]
+- [[_COMMUNITY_Community 60|Community 60]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `map()` - 430 edges
@@ -87,127 +89,127 @@
 
 ### Community 0 - "Community 0"
 Cohesion: 0.01
-Nodes (1135): selectRole(), current(), findTabForPathname(), formatOptionsChanged(), getFirstRouteInfoForTab(), getViewItemsForOutlet(), gu(), onWindowResize() (+1127 more)
+Nodes (1114): selectRole(), changeActive(), current(), findTabForPathname(), formatOptionsChanged(), getFirstRouteInfoForTab(), getViewItemsForOutlet(), pm() (+1106 more)
 
 ### Community 1 - "Community 1"
 Cohesion: 0.0
-Nodes (961): D(), E(), k(), O(), O(), D(), E(), addLine() (+953 more)
+Nodes (1021): D(), E(), k(), O(), O(), D(), E(), addLine() (+1013 more)
 
 ### Community 2 - "Community 2"
 Cohesion: 0.01
-Nodes (622): extractAriaAttrs(), $(), be(), ce(), de(), Ee(), fe(), ge() (+614 more)
+Nodes (623): extractAriaAttrs(), $(), be(), ce(), de(), Ee(), fe(), ge() (+615 more)
 
 ### Community 3 - "Community 3"
 Cohesion: 0.01
-Nodes (608): $(), _a(), Ac(), activate(), activatedChanged(), activeBarStartChanged(), activeItem(), add() (+600 more)
+Nodes (513): addCapacity(), #c(), close(), create(), #d(), #f(), getCapacity(), getSize() (+505 more)
 
 ### Community 4 - "Community 4"
 Cohesion: 0.01
-Nodes (520): addCapacity(), #c(), close(), create(), #d(), #f(), getCapacity(), getSize() (+512 more)
+Nodes (578): CaisseCard(), $(), _a(), Ac(), activate(), activatedChanged(), activeBarStartChanged(), activeItem() (+570 more)
 
 ### Community 5 - "Community 5"
 Cohesion: 0.01
-Nodes (454): getAccountBalance(), AppProvider(), handleDocumentUpload(), handleDownloadDocument(), handleRestore(), handleToggleArchiveDocument(), writeAudit(), addLine() (+446 more)
+Nodes (564): R(), stats(), ChartStyle(), handleKey(), handleTab(), deleteAllLocalData(), wrapSelectTextNodes(), reverse() (+556 more)
 
 ### Community 6 - "Community 6"
 Cohesion: 0.01
-Nodes (566): R(), stats(), handleKey(), handleTab(), deleteAllLocalData(), wrapSelectTextNodes(), reverse(), execute() (+558 more)
+Nodes (361): AppProvider(), writeAudit(), addLine(), closeBudget(), archiveOrganization(), assertOrgAccess(), assignOrgAdmin(), buildAudit() (+353 more)
 
 ### Community 7 - "Community 7"
 Cohesion: 0.01
-Nodes (350): shift(), ae(), allocateData(), an(), analyzePath(), bn(), calculateAt(), ce() (+342 more)
+Nodes (368): ae(), allocateData(), an(), analyzePath(), at(), bn(), calculateAt(), ce() (+360 more)
 
 ### Community 8 - "Community 8"
-Cohesion: 0.02
-Nodes (225): $(), A(), aa(), ai(), An(), ar(), at(), au() (+217 more)
+Cohesion: 0.01
+Nodes (357): C(), shift(), t(), componentWillLoad(), ae(), an(), analyzePath(), ar() (+349 more)
 
 ### Community 9 - "Community 9"
-Cohesion: 0.03
-Nodes (215): p(), arc(), bezierCurveTo(), closePath(), draw(), In(), Jn(), lineEnd() (+207 more)
+Cohesion: 0.01
+Nodes (245): CaisseAdapter, values(), $(), A(), aa(), ai(), An(), ar() (+237 more)
 
 ### Community 10 - "Community 10"
-Cohesion: 0.01
-Nodes (109): check(), B(), F(), G(), H(), I(), J(), K() (+101 more)
+Cohesion: 0.02
+Nodes (221): EventBudgetAdapter, every(), arc(), bezierCurveTo(), closePath(), draw(), In(), Jn() (+213 more)
 
 ### Community 11 - "Community 11"
 Cohesion: 0.02
-Nodes (172): a(), Ce(), et(), F(), fromLocalValue(), fromLocalValueArray(), get(), getNumber() (+164 more)
+Nodes (101): B(), F(), G(), H(), I(), J(), K(), L() (+93 more)
 
 ### Community 12 - "Community 12"
-Cohesion: 0.03
-Nodes (176): b(), h(), ae(), an(), analyzePath(), at(), bn(), Bt() (+168 more)
+Cohesion: 0.02
+Nodes (136): check(), listUserOrgs(), T(), x(), unmount(), disconnectPowerSync(), initPowerSync(), mirrorAppSessionIntoConnector() (+128 more)
 
 ### Community 13 - "Community 13"
-Cohesion: 0.02
-Nodes (133): CaisseAdapter, values(), fo(), activeStreams(), closeAll(), unmount(), disconnectPowerSync(), initPowerSync() (+125 more)
+Cohesion: 0.06
+Nodes (63): K(), _(), a(), b(), C(), create(), D(), detect() (+55 more)
 
 ### Community 14 - "Community 14"
-Cohesion: 0.08
-Nodes (50): Ae(), at(), B(), Be(), ct(), dt(), _e(), F() (+42 more)
+Cohesion: 0.06
+Nodes (59): $(), Ae(), B(), Be(), $e(), Fe(), G(), Ge() (+51 more)
 
 ### Community 15 - "Community 15"
-Cohesion: 0.07
-Nodes (40): buttonChanged(), canActivate(), closeSlidingItems(), colorChanged(), componentDidLoad(), componentWillLoad(), connectedCallback(), disconnectedCallback() (+32 more)
+Cohesion: 0.05
+Nodes (13): OneSignalAuthService, NotificationCapability, createNotification(), markAllNotificationsRead(), markNotificationRead(), handleMarkAllRead(), handleMarkRead(), getOneSignalService() (+5 more)
 
 ### Community 16 - "Community 16"
 Cohesion: 0.08
-Nodes (35): canGoBack(), canGoBackSync(), canStart(), componentDidLoad(), constructor(), el(), failed(), fireError() (+27 more)
+Nodes (50): Ae(), at(), B(), Be(), ct(), dt(), _e(), F() (+42 more)
 
 ### Community 17 - "Community 17"
-Cohesion: 0.07
-Nodes (6): OneSignalAuthService, NotificationCapability, getOneSignalService(), initOneSignal(), OneSignalService, handleTogglePush()
+Cohesion: 0.08
+Nodes (35): canGoBack(), canGoBackSync(), canStart(), componentDidLoad(), constructor(), el(), failed(), fireError() (+27 more)
 
 ### Community 18 - "Community 18"
 Cohesion: 0.1
-Nodes (25): handleBack(), handleBranchChoice(), handleNext(), persist(), defaultOnboardingState(), loadOnboardingState(), needsOnboarding(), resetOnboarding() (+17 more)
+Nodes (19): a(), Ce(), connectedCallback(), et(), F(), fromLocalValue(), fromLocalValueArray(), get() (+11 more)
 
 ### Community 19 - "Community 19"
-Cohesion: 0.16
-Nodes (30): _(), a(), b(), C(), create(), D(), detect(), dismiss() (+22 more)
+Cohesion: 0.15
+Nodes (18): buttonChanged(), canActivate(), colorChanged(), componentWillLoad(), connectedCallback(), el(), emitColor(), emitStyle() (+10 more)
 
 ### Community 20 - "Community 20"
-Cohesion: 0.13
-Nodes (27): _(), A(), b(), C(), D(), displayable(), e(), ee() (+19 more)
+Cohesion: 0.14
+Nodes (17): handleDocumentUpload(), handleDownloadDocument(), handleRestore(), handleToggleArchiveDocument(), createSignedUrl(), upload(), handleLogoUpload(), handleSave() (+9 more)
 
 ### Community 21 - "Community 21"
-Cohesion: 0.11
-Nodes (27): Ae(), B(), Be(), $e(), Fe(), G(), Ge(), He() (+19 more)
+Cohesion: 0.14
+Nodes (16): componentDidLoad(), componentWillLoad(), el(), emitIonChange(), emitIonInput(), getFirstEmptyIndex(), getInputmode(), getPattern() (+8 more)
 
 ### Community 22 - "Community 22"
-Cohesion: 0.14
-Nodes (19): B(), L(), V(), Y(), z(), A(), C(), D() (+11 more)
+Cohesion: 0.18
+Nodes (11): be(), d(), ge(), get(), getBoolean(), getNumber(), he(), k() (+3 more)
 
 ### Community 23 - "Community 23"
-Cohesion: 0.14
-Nodes (17): componentDidLoad(), componentWillLoad(), el(), emitIonChange(), emitIonInput(), getFirstEmptyIndex(), getInputmode(), getPattern() (+9 more)
-
-### Community 24 - "Community 24"
 Cohesion: 0.16
 Nodes (8): activatedChanged(), componentDidLoad(), componentWillLoad(), disconnectedCallback(), el(), findForm(), getFab(), renderHiddenButton()
 
-### Community 25 - "Community 25"
-Cohesion: 0.22
-Nodes (1): StorageAdapter
+### Community 24 - "Community 24"
+Cohesion: 0.27
+Nodes (14): A(), C(), D(), E(), F(), I(), j(), k() (+6 more)
 
-### Community 26 - "Community 26"
+### Community 25 - "Community 25"
 Cohesion: 0.16
 Nodes (11): go(), ensureNavViewChunk(), featureById(), featuresForMoreMenu(), featuresForNav(), loadStored(), prefetchNavViews(), sanitizeNavTabs() (+3 more)
+
+### Community 26 - "Community 26"
+Cohesion: 0.25
+Nodes (13): applyIonicThemeMode(), hexToRgbTriplets(), setupLuminaTheme(), applyStoredTheme(), applyStoredThemeMode(), applyTheme(), applyThemeMode(), getStoredThemeId() (+5 more)
 
 ### Community 27 - "Community 27"
 Cohesion: 0.2
 Nodes (10): getCotDataLayer(), getNavigateFn(), makeIcon(), makeWrapper(), navigateRef(), resetState(), setCotisations(), setEvents() (+2 more)
 
 ### Community 28 - "Community 28"
-Cohesion: 0.2
-Nodes (10): be(), d(), ge(), get(), getBoolean(), getNumber(), he(), k() (+2 more)
-
-### Community 29 - "Community 29"
-Cohesion: 0.16
-Nodes (9): activeItem(), componentDidRender(), componentWillLoad(), connectedCallback(), el(), scrollActiveItemIntoView(), setValue(), valueChange() (+1 more)
-
-### Community 30 - "Community 30"
 Cohesion: 0.15
 Nodes (4): SyncIndicator(), formatCentsToFCFA(), formatCurrencyCompact(), tint()
+
+### Community 29 - "Community 29"
+Cohesion: 0.18
+Nodes (8): activeItem(), componentDidRender(), componentWillLoad(), connectedCallback(), el(), scrollActiveItemIntoView(), setValue(), valueChange()
+
+### Community 30 - "Community 30"
+Cohesion: 0.24
+Nodes (1): StorageAdapter
 
 ### Community 31 - "Community 31"
 Cohesion: 0.2
@@ -226,12 +228,12 @@ Cohesion: 0.29
 Nodes (5): makeAccount(), makeCaisse(), makeGroup(), makeGroupState(), makeOrgUnit()
 
 ### Community 35 - "Community 35"
+Cohesion: 0.33
+Nodes (5): B(), L(), V(), Y(), z()
+
+### Community 36 - "Community 36"
 Cohesion: 0.42
 Nodes (7): callsMatching(), isoDaysAgo(), lastCallContaining(), makeCotisation(), makeCulteEvent(), makeMember(), makeState()
-
-### Community 37 - "Community 37"
-Cohesion: 0.29
-Nodes (1): F()
 
 ### Community 38 - "Community 38"
 Cohesion: 0.29
@@ -257,34 +259,40 @@ Nodes (1): MainActivity
 Cohesion: 0.47
 Nodes (1): ManifestCompilerService
 
-### Community 48 - "Community 48"
+### Community 45 - "Community 45"
+Cohesion: 0.4
+Nodes (1): OrgUnitAdapter
+
+### Community 49 - "Community 49"
 Cohesion: 0.5
 Nodes (2): fail(), ok()
 
-### Community 50 - "Community 50"
+### Community 51 - "Community 51"
 Cohesion: 0.5
 Nodes (1): TransactionLegacyAdapter
 
-### Community 54 - "Community 54"
+### Community 55 - "Community 55"
 Cohesion: 0.67
 Nodes (1): ExampleInstrumentedTest
 
-### Community 56 - "Community 56"
+### Community 57 - "Community 57"
+Cohesion: 1.0
+Nodes (2): getEngine(), getResizeMode()
+
+### Community 58 - "Community 58"
 Cohesion: 0.67
 Nodes (1): ExampleUnitTest
 
-### Community 58 - "Community 58"
+### Community 60 - "Community 60"
 Cohesion: 1.0
 Nodes (2): mockLegacy(), runAndSettle()
 
 ## Knowledge Gaps
 - **1 isolated node(s):** `PolicyService`
   These have ≤1 connection - possible missing edges or undocumented components.
-- **Thin community `Community 25`** (15 nodes): `StorageAdapter.ts`, `StorageAdapter`, `.clear()`, `.constructor()`, `.get()`, `.getFromLocalStorage()`, `.getInstance()`, `.injectMockPlugin()`, `.isCapacitorEnv()`, `.parseJson()`, `.remove()`, `.removeFromLocalStorage()`, `.resetMockPlugin()`, `.set()`, `.setInLocalStorage()`
+- **Thin community `Community 30`** (13 nodes): `StorageAdapter.ts`, `StorageAdapter`, `.clear()`, `.constructor()`, `.get()`, `.getFromLocalStorage()`, `.getInstance()`, `.injectMockPlugin()`, `.isCapacitorEnv()`, `.parseJson()`, `.remove()`, `.removeFromLocalStorage()`, `.resetMockPlugin()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 31`** (11 nodes): `SecurityService`, `.checkPermission()`, `.getRoleLabel()`, `.getRoleLabels()`, `.getRolePermissions()`, `.getSortedRoles()`, `.hasHigherOrEqualRole()`, `.hasPermission()`, `.hasRole()`, `.parseRole()`, `index.ts`
-  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 37`** (7 nodes): `Giving-BQfPv5bL.js`, `F()`, `I()`, `j()`, `M()`, `N()`, `P()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 38`** (7 nodes): `policy-BE4aw2ae.js`, `a()`, `i()`, `n()`, `o()`, `r()`, `t()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
@@ -292,26 +300,30 @@ Nodes (2): mockLegacy(), runAndSettle()
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 44`** (6 nodes): `ManifestCompilerService`, `.compile()`, `.mergePolicies()`, `.mergeVocabulary()`, `.validate()`, `compiler.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 48`** (5 nodes): `buildFilter()`, `fail()`, `ok()`, `index.ts`, `index.ts`
+- **Thin community `Community 45`** (5 nodes): `OrgUnitAdapter`, `.fromGroup()`, `.mapGroupsToOrgUnits()`, `.toGroup()`, `OrgUnitAdapter.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 50`** (4 nodes): `TransactionLegacyAdapter.ts`, `TransactionLegacyAdapter`, `.fromPowerSync()`, `.isLegacy()`
+- **Thin community `Community 49`** (5 nodes): `buildFilter()`, `fail()`, `ok()`, `index.ts`, `index.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 54`** (3 nodes): `ExampleInstrumentedTest.java`, `ExampleInstrumentedTest`, `.useAppContext()`
+- **Thin community `Community 51`** (4 nodes): `TransactionLegacyAdapter.ts`, `TransactionLegacyAdapter`, `.fromPowerSync()`, `.isLegacy()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 56`** (3 nodes): `ExampleUnitTest.java`, `ExampleUnitTest`, `.addition_isCorrect()`
+- **Thin community `Community 55`** (3 nodes): `ExampleInstrumentedTest.java`, `ExampleInstrumentedTest`, `.useAppContext()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 58`** (3 nodes): `useCanAccessMulti.test.tsx`, `mockLegacy()`, `runAndSettle()`
+- **Thin community `Community 57`** (3 nodes): `keyboard-DAF8GNJ9-tZybG6rL.js`, `getEngine()`, `getResizeMode()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 58`** (3 nodes): `ExampleUnitTest.java`, `ExampleUnitTest`, `.addition_isCorrect()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 60`** (3 nodes): `useCanAccessMulti.test.tsx`, `mockLegacy()`, `runAndSettle()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `map()` connect `Community 5` to `Community 0`, `Community 1`, `Community 2`, `Community 3`, `Community 4`, `Community 6`, `Community 8`, `Community 9`, `Community 10`, `Community 11`, `Community 12`, `Community 13`, `Community 15`, `Community 16`, `Community 18`, `Community 19`, `Community 21`, `Community 22`, `Community 23`?**
-  _High betweenness centrality (0.077) - this node is a cross-community bridge._
-- **Why does `slice()` connect `Community 2` to `Community 0`, `Community 1`, `Community 33`, `Community 3`, `Community 4`, `Community 5`, `Community 6`, `Community 7`, `Community 8`, `Community 10`, `Community 11`, `Community 12`, `Community 14`, `Community 20`, `Community 21`, `Community 26`?**
-  _High betweenness centrality (0.056) - this node is a cross-community bridge._
-- **Why does `push()` connect `Community 2` to `Community 0`, `Community 1`, `Community 4`, `Community 5`, `Community 6`, `Community 7`, `Community 8`, `Community 9`, `Community 10`, `Community 11`, `Community 12`, `Community 13`, `Community 44`, `Community 17`, `Community 19`, `Community 26`, `Community 28`?**
+- **Why does `map()` connect `Community 1` to `Community 0`, `Community 2`, `Community 3`, `Community 4`, `Community 5`, `Community 6`, `Community 8`, `Community 9`, `Community 10`, `Community 12`, `Community 13`, `Community 14`, `Community 15`, `Community 17`, `Community 18`, `Community 21`, `Community 24`, `Community 26`, `Community 35`, `Community 45`?**
+  _High betweenness centrality (0.079) - this node is a cross-community bridge._
+- **Why does `push()` connect `Community 2` to `Community 0`, `Community 1`, `Community 3`, `Community 5`, `Community 6`, `Community 7`, `Community 8`, `Community 9`, `Community 10`, `Community 11`, `Community 12`, `Community 13`, `Community 14`, `Community 15`, `Community 44`, `Community 18`, `Community 22`, `Community 25`?**
   _High betweenness centrality (0.052) - this node is a cross-community bridge._
+- **Why does `slice()` connect `Community 2` to `Community 0`, `Community 1`, `Community 33`, `Community 3`, `Community 4`, `Community 5`, `Community 6`, `Community 7`, `Community 8`, `Community 9`, `Community 10`, `Community 11`, `Community 14`, `Community 16`, `Community 20`, `Community 25`?**
+  _High betweenness centrality (0.051) - this node is a cross-community bridge._
 - **Are the 365 inferred relationships involving `map()` (e.g. with `#o()` and `#o()`) actually correct?**
   _`map()` has 365 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 320 inferred relationships involving `push()` (e.g. with `hasNitroRoutesOnDisk()` and `#o()`) actually correct?**
