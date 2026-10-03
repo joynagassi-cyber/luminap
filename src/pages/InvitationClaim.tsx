@@ -227,10 +227,10 @@ export default function InvitationClaim() {
                 <IonItem lines="none" className="bg-card rounded-xl">
                   <IonLabel position="floating">Code d'invitation</IonLabel>
                   <IonInput
+                    type="text"
                     value={codeInput}
-                    onIonChange={(e) => setCodeInput(e.detail.value!)}
+                    onIonChange={(e) => setCodeInput(e.detail.value!.toUpperCase())}
                     placeholder="LUM-XXXXXX"
-                    {...({ capitalized: true, uppercase: true } as any)}
                     className="text-center text-xl font-mono tracking-widest"
                     slot="input"
                   />

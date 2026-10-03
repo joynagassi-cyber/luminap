@@ -297,7 +297,7 @@ function CreateBudgetSheet({
 
         <div className="space-y-3">
           <label className="block">
-            <span className="text-text-tertiary text-xs uppercase tracking-wide block mb-1">Nom</span>
+            <span className="text-text-tertiary text-xs uppercase tracking-wider block mb-1">Nom</span>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -310,7 +310,7 @@ function CreateBudgetSheet({
 
           <div className="grid grid-cols-2 gap-3">
             <label className="block">
-              <span className="text-text-tertiary text-xs uppercase tracking-wide block mb-1">Exercice</span>
+              <span className="text-text-tertiary text-xs uppercase tracking-wider block mb-1">Exercice</span>
               <input
                 type="number"
                 value={fiscalYear}
@@ -320,7 +320,7 @@ function CreateBudgetSheet({
               />
             </label>
             <label className="block">
-              <span className="text-text-tertiary text-xs uppercase tracking-wide block mb-1">Période</span>
+              <span className="text-text-tertiary text-xs uppercase tracking-wider block mb-1">Période</span>
               <IonSelect
                 value={period}
                 onIonChange={(e: IonChangeCustomEvent<string>) => setPPeriod(e.detail.value as BudgetPeriod)}
@@ -334,7 +334,7 @@ function CreateBudgetSheet({
           </div>
 
           <label className="block">
-            <span className="text-text-tertiary text-xs uppercase tracking-wide block mb-1">Centre de coûts</span>
+            <span className="text-text-tertiary text-xs uppercase tracking-wider block mb-1">Centre de coûts</span>
             <IonSelect
               value={cc}
               onIonChange={(e: IonChangeCustomEvent<string>) => setCc(e.detail.value)}
@@ -348,7 +348,7 @@ function CreateBudgetSheet({
           </label>
 
           <label className="block">
-            <span className="text-text-tertiary text-xs uppercase tracking-wide block mb-1">Montant prévu (FCFA)</span>
+            <span className="text-text-tertiary text-xs uppercase tracking-wider block mb-1">Montant prévu (FCFA)</span>
             <input
               type="number"
               inputMode="numeric"

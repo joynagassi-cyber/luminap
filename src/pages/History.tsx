@@ -223,7 +223,7 @@ export default function HistoryPage() {
             {/* Summary cards */}
             <div className="grid grid-cols-3 gap-3 mb-5">
               <div
-                className="rounded-xl p-4 text-center"
+                className="rounded-xl p-4 text-left"
                 style={{ backgroundColor: "var(--surface)" }}
               >
                 <p className="text-text-tertiary text-xs mb-1">Entrées</p>
@@ -232,7 +232,7 @@ export default function HistoryPage() {
                 </p>
               </div>
               <div
-                className="rounded-xl p-4 text-center"
+                className="rounded-xl p-4 text-left"
                 style={{ backgroundColor: "var(--surface)" }}
               >
                 <p className="text-text-tertiary text-xs mb-1">Sorties</p>
@@ -241,7 +241,7 @@ export default function HistoryPage() {
                 </p>
               </div>
               <div
-                className="rounded-xl p-4 text-center"
+                className="rounded-xl p-4 text-left"
                 style={{ backgroundColor: "var(--surface)" }}
               >
                 <p className="text-text-tertiary text-xs mb-1">Résultat</p>

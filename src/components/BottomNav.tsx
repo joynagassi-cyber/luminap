@@ -56,6 +56,9 @@ export default function BottomNav() {
   //   /event/new          → masqué  (le formulaire « nouveau culte » se soumet sur la page)
   //   /event/:id          → « Nouveau »   → /event/new
   //   /groups/:id         → « Verser »    → /versement
+  //   /versement          → par défaut  (la page expose déjà son CTA « Encaisser » inline,
+  //                                        le FAB « Transaction » → /transaction/new est
+  //                                        une action DIFFÉRENTE, acceptée comme résidu)
   //   par défaut          → « Transaction »→ /transaction/new
   const fabAction = useMemo(() => {
     const path = location.pathname;

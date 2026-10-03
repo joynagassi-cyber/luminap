@@ -95,22 +95,22 @@ const GlobalPanel = memo(function GlobalPanel({ totalIncome, totalExpense, netRe
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-3 gap-3">
-        <div className="rounded-xl p-4 text-center" style={{ backgroundColor: "var(--surface)" }}>
-          <div className="w-8 h-8 rounded-full flex items-center justify-center mx-auto mb-2" style={{ backgroundColor: "color-mix(in srgb, var(--data-income) 12%, transparent)" }}>
+        <div className="rounded-xl p-4 text-left" style={{ backgroundColor: "var(--surface)" }}>
+          <div className="w-8 h-8 rounded-full flex items-center justify-center mb-2" style={{ backgroundColor: "color-mix(in srgb, var(--data-income) 12%, transparent)" }}>
             <TrendingUp className="w-4 h-4" style={{ color: "var(--data-income)" }} />
           </div>
           <p className="text-text-tertiary text-xs">Entrées</p>
           <p className="text-income font-bold text-sm mt-1">+{formatCentsToFCFA(totalIncome)}</p>
         </div>
-        <div className="rounded-xl p-4 text-center" style={{ backgroundColor: "var(--surface)" }}>
-          <div className="w-8 h-8 rounded-full flex items-center justify-center mx-auto mb-2" style={{ backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)" }}>
+        <div className="rounded-xl p-4 text-left" style={{ backgroundColor: "var(--surface)" }}>
+          <div className="w-8 h-8 rounded-full flex items-center justify-center mb-2" style={{ backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)" }}>
             <TrendingDown className="w-4 h-4" style={{ color: "var(--data-expense)" }} />
           </div>
           <p className="text-text-tertiary text-xs">Sorties</p>
           <p className="text-expense font-bold text-sm mt-1">-{formatCentsToFCFA(totalExpense)}</p>
         </div>
-        <div className="rounded-xl p-4 text-center" style={{ backgroundColor: "var(--surface)" }}>
-          <div className="w-8 h-8 rounded-full flex items-center justify-center mx-auto mb-2" style={{ backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)" }}>
+        <div className="rounded-xl p-4 text-left" style={{ backgroundColor: "var(--surface)" }}>
+          <div className="w-8 h-8 rounded-full flex items-center justify-center mb-2" style={{ backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)" }}>
             <BarChart3 className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
           </div>
           <p className="text-text-tertiary text-xs">Résultat</p>
