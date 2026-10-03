@@ -26,6 +26,8 @@ import {
   BarChart3,
 } from "lucide-react";
 import TransactionCard from "@/components/TransactionCard";
+import EmptyState from "@/components/EmptyState";
+import CircleAction from "@/components/CircleAction";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
 import LuminaLogo from "@/components/LuminaLogo";
@@ -529,94 +531,59 @@ export default function Dashboard() {
                 Actions rapides
               </p>
               <div className="grid grid-cols-4 gap-3">
-                <button
-                  onClick={() => navigate("/transaction/new?type=INCOME")}
-                  className="flex flex-col items-center gap-2 p-3 rounded-xl active:scale-95 transition-transform text-left w-full"
-                  style={{
-                    backgroundColor: "var(--surface)",
-                    border: "1px solid var(--border)",
-                  }}
-                  aria-label="Nouvelle entrée"
-                >
-                  <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                    style={{ backgroundColor: tint("var(--data-income)", 12) }}
+                {/* M23 — grilles d'actions rapides : CircleAction (soft, 40px,
+                    ombre --shadow-accent unique) à la place de boutons ad-hoc */}
+                <div className="flex flex-col items-center gap-2 p-1 rounded-xl w-full">
+                  <CircleAction
+                    soft
+                    tone="income"
+                    onClick={() => navigate("/transaction/new?type=INCOME")}
+                    aria-label="Nouvelle entrée"
                   >
-                    <ArrowUpRight
-                      className="w-5 h-5"
-                      style={{ color: "var(--data-income)" }}
-                    />
-                  </div>
+                    <ArrowUpRight className="w-5 h-5" />
+                  </CircleAction>
                   <span className="text-text-primary text-xs font-medium text-center">
                     Entrée
                   </span>
-                </button>
-                <button
-                  onClick={() => navigate("/transaction/new?type=EXPENSE")}
-                  className="flex flex-col items-center gap-2 p-3 rounded-xl active:scale-95 transition-transform text-left w-full"
-                  style={{
-                    backgroundColor: "var(--surface)",
-                    border: "1px solid var(--border)",
-                  }}
-                  aria-label="Nouvelle sortie"
-                >
-                  <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                    style={{ backgroundColor: tint("var(--data-expense)", 12) }}
+                </div>
+                <div className="flex flex-col items-center gap-2 p-1 rounded-xl w-full">
+                  <CircleAction
+                    soft
+                    tone="expense"
+                    onClick={() => navigate("/transaction/new?type=EXPENSE")}
+                    aria-label="Nouvelle sortie"
                   >
-                    <ArrowDownRight
-                      className="w-5 h-5"
-                      style={{ color: "var(--data-expense)" }}
-                    />
-                  </div>
+                    <ArrowDownRight className="w-5 h-5" />
+                  </CircleAction>
                   <span className="text-text-primary text-xs font-medium text-center">
                     Sortie
                   </span>
-                </button>
-                <button
-                  onClick={() => navigate("/versement")}
-                  className="flex flex-col items-center gap-2 p-3 rounded-xl active:scale-95 transition-transform text-left w-full"
-                  style={{
-                    backgroundColor: "var(--surface)",
-                    border: "1px solid var(--border)",
-                  }}
-                  aria-label="Nouveau versement"
-                >
-                  <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                    style={{ backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)" }}
+                </div>
+                <div className="flex flex-col items-center gap-2 p-1 rounded-xl w-full">
+                  <CircleAction
+                    soft
+                    onClick={() => navigate("/versement")}
+                    aria-label="Nouveau versement"
                   >
-                    <TrendingUp
-                      className="w-5 h-5"
-                      style={{ color: "var(--accent-primary)" }}
-                    />
-                  </div>
+                    <TrendingUp className="w-5 h-5" style={{ color: "var(--accent-primary)" }} />
+                  </CircleAction>
                   <span className="text-text-primary text-xs font-medium text-center">
                     Versement
                   </span>
-                </button>
-                <button
-                  onClick={() => navigate("/events")}
-                  className="flex flex-col items-center gap-2 p-3 rounded-xl active:scale-95 transition-transform text-left w-full"
-                  style={{
-                    backgroundColor: "var(--surface)",
-                    border: "1px solid var(--border)",
-                  }}
-                  aria-label="Nouvel événement"
-                >
-                  <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                    style={{ backgroundColor: tint("var(--data-advance)", 12) }}
+                </div>
+                <div className="flex flex-col items-center gap-2 p-1 rounded-xl w-full">
+                  <CircleAction
+                    soft
+                    tone="advance"
+                    onClick={() => navigate("/events")}
+                    aria-label="Nouvel événement"
                   >
-                    <Calendar
-                      className="w-5 h-5"
-                      style={{ color: "var(--data-advance)" }}
-                    />
-                  </div>
+                    <Calendar className="w-5 h-5" />
+                  </CircleAction>
                   <span className="text-text-primary text-xs font-medium text-center">
                     Événement
                   </span>
-                </button>
+                </div>
               </div>
             </div>
 
@@ -636,29 +603,13 @@ export default function Dashboard() {
             </div>
             <div className="space-y-2 pb-4">
               {recentTransactions.length === 0 ? (
-                <div
-                  className="text-center py-10 rounded-xl"
-                  style={{
-                    backgroundColor: "var(--surface)",
-                    border: "1px solid var(--border)",
-                  }}
-                >
-                  <PlusCircle className="w-8 h-8 mx-auto mb-3 text-text-tertiary" />
-                  <p className="text-text-primary font-medium text-sm mb-2">
-                    Pas encore de mouvement
-                  </p>
-                  <p className="text-text-tertiary text-xs mb-4">
-                    Commencez par enregistrer votre première transaction
-                  </p>
-                  <button
-                    onClick={() => navigate("/transaction/new")}
-                    className="mt-3 text-sm font-medium"
-                    style={{ color: "var(--accent-primary)" }}
-                    aria-label="Créer une transaction"
-                  >
-                    Créer une transaction
-                  </button>
-                </div>
+                <EmptyState
+                  title="Pas encore de mouvement"
+                  description="Commencez par enregistrer votre première transaction"
+                  icon={<PlusCircle className="w-6 h-6" />}
+                  actionLabel="Créer une transaction"
+                  onAction={() => navigate("/transaction/new")}
+                />
               ) : (
                 recentTransactions.map((tx) => (
                   <TransactionCard

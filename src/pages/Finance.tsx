@@ -19,6 +19,7 @@ import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
 import TransactionCard from "@/components/TransactionCard";
 import EmptyState from "@/components/EmptyState";
+import CircleAction from "@/components/CircleAction";
 import { FinanceSkeleton } from "@/components/PageSkeletons";
 import {
   IonPage,
@@ -353,24 +354,23 @@ export default function Finance() {
               )}
             </div>
 
-            {/* FAB */}
+            {/* M23 — FAB multi-agir : CircleAction avec tone (plus de shadow/
+                bouton ad-hoc par page, ombre --shadow-accent unique) */}
             <div className="fixed bottom-24 right-5 flex flex-col gap-3">
-              <button
+              <CircleAction
+                tone="income"
                 onClick={() => handleAddTransaction("INCOME")}
-                className="w-14 h-14 rounded-full flex items-center justify-center shadow-accent active:scale-95 transition-transform"
-                style={{ backgroundColor: "var(--data-income)" }}
                 aria-label="Nouvelle entrée"
               >
                 <ArrowUpRight className="w-6 h-6 text-on-accent" />
-              </button>
-              <button
+              </CircleAction>
+              <CircleAction
+                tone="expense"
                 onClick={() => handleAddTransaction("EXPENSE")}
-                className="w-14 h-14 rounded-full flex items-center justify-center shadow-accent active:scale-95 transition-transform"
-                style={{ backgroundColor: "var(--data-expense)" }}
                 aria-label="Nouvelle dépense"
               >
                 <ArrowDownRight className="w-6 h-6 text-on-accent" />
-              </button>
+              </CircleAction>
             </div>
             </div>
             </Fragment>
