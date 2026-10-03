@@ -26,6 +26,8 @@ import {
   IonBadge,
   IonSelect,
   IonSelectOption,
+  IonItem,
+  IonLabel,
   IonInput,
   IonChangeCustomEvent,
 } from "@ionic/react";
@@ -327,20 +329,28 @@ function OrgDetail({ orgId, onBack }: { orgId: string; onBack: () => void }) {
           />
         ) : (
           <div className="space-y-3">
-            <IonSelect
-              data-testid="delegate-candidate"
-              value={delegated}
-              onIonChange={(e: IonChangeCustomEvent<string>) => setDelegated(e.detail.value)}
-              interface="popover"
-            >
-              <IonSelectOption value="">Choisir un profil…</IonSelectOption>
-              {candidates.map((c) => (
-                <IonSelectOption value={c.id}>
-                  {c.displayName}
-                  {c.email ? ` (${c.email})` : ""}
-                </IonSelectOption>
-              ))}
-            </IonSelect>
+            {/* M24 — grammaire canonique IonItem + IonLabel + IonSelect */}
+            <IonItem lines="none" className="bg-card rounded-xl">
+              <IonLabel position="floating" className="text-sm text-text-secondary">
+                Profil
+              </IonLabel>
+              <IonSelect
+                data-testid="delegate-candidate"
+                value={delegated}
+                onIonChange={(e: IonChangeCustomEvent<string>) => setDelegated(e.detail.value)}
+                interface="popover"
+                slot="input"
+                style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}
+              >
+                <IonSelectOption value="">Choisir un profil…</IonSelectOption>
+                {candidates.map((c) => (
+                  <IonSelectOption value={c.id}>
+                    {c.displayName}
+                    {c.email ? ` (${c.email})` : ""}
+                  </IonSelectOption>
+                ))}
+              </IonSelect>
+            </IonItem>
             <IonButton
               expand="block"
               color="primary"
