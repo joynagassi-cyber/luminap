@@ -151,7 +151,10 @@ export default function Cotisations() {
                       <div className="flex items-start gap-3">
                         <div
                           className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                          style={{ background: "rgba(255,107,0,0.15)" }}
+                          style={{
+                            background:
+                              "color-mix(in srgb, var(--accent-primary) 15%, transparent)",
+                          }}
                         >
                           <Calendar
                             className="w-5 h-5"
