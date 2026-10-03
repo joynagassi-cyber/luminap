@@ -73651,13 +73651,31 @@
       "norm_label": "formtemplates.test.ts"
     },
     {
+      "label": "org-hierarchy.test.ts",
+      "file_type": "code",
+      "source_file": "src\\lib\\__tests__\\org-hierarchy.test.ts",
+      "source_location": "L1",
+      "id": "src_lib_tests_org_hierarchy_test_ts",
+      "community": 306,
+      "norm_label": "org-hierarchy.test.ts"
+    },
+    {
       "label": "orgReport.test.ts",
       "file_type": "code",
       "source_file": "src\\lib\\__tests__\\orgReport.test.ts",
       "source_location": "L1",
       "id": "src_lib_tests_orgreport_test_ts",
-      "community": 306,
+      "community": 307,
       "norm_label": "orgreport.test.ts"
+    },
+    {
+      "label": "outbox-idempotence.test.ts",
+      "file_type": "code",
+      "source_file": "src\\lib\\__tests__\\outbox-idempotence.test.ts",
+      "source_location": "L1",
+      "id": "src_lib_tests_outbox_idempotence_test_ts",
+      "community": 308,
+      "norm_label": "outbox-idempotence.test.ts"
     },
     {
       "label": "policy-wiring.test.ts",
@@ -74205,7 +74223,7 @@
       "source_file": "src\\pages\\Balance.tsx",
       "source_location": "L1",
       "id": "src_pages_balance_tsx",
-      "community": 307,
+      "community": 309,
       "norm_label": "balance.tsx"
     },
     {
@@ -74250,7 +74268,7 @@
       "source_file": "src\\pages\\Budgets.tsx",
       "source_location": "L1",
       "id": "src_pages_budgets_tsx",
-      "community": 308,
+      "community": 310,
       "norm_label": "budgets.tsx"
     },
     {
@@ -74313,7 +74331,7 @@
       "source_file": "src\\pages\\Cotisations.tsx",
       "source_location": "L1",
       "id": "src_pages_cotisations_tsx",
-      "community": 309,
+      "community": 311,
       "norm_label": "cotisations.tsx"
     },
     {
@@ -74322,7 +74340,7 @@
       "source_file": "src\\pages\\CulteDetail.tsx",
       "source_location": "L1",
       "id": "src_pages_cultedetail_tsx",
-      "community": 310,
+      "community": 312,
       "norm_label": "cultedetail.tsx"
     },
     {
@@ -74493,7 +74511,7 @@
       "source_file": "src\\pages\\Events.tsx",
       "source_location": "L1",
       "id": "src_pages_events_tsx",
-      "community": 311,
+      "community": 313,
       "norm_label": "events.tsx"
     },
     {
@@ -74817,7 +74835,7 @@
       "source_file": "src\\pages\\Giving.tsx",
       "source_location": "L1",
       "id": "src_pages_giving_tsx",
-      "community": 312,
+      "community": 314,
       "norm_label": "giving.tsx"
     },
     {
@@ -74979,7 +74997,7 @@
       "source_file": "src\\pages\\Help.tsx",
       "source_location": "L1",
       "id": "src_pages_help_tsx",
-      "community": 313,
+      "community": 315,
       "norm_label": "help.tsx"
     },
     {
@@ -75177,7 +75195,7 @@
       "source_file": "src\\pages\\MembresEnAvance.tsx",
       "source_location": "L1",
       "id": "src_pages_membresenavance_tsx",
-      "community": 314,
+      "community": 316,
       "norm_label": "membresenavance.tsx"
     },
     {
@@ -75834,7 +75852,7 @@
       "source_file": "src\\pages\\SettingsFeatures.tsx",
       "source_location": "L1",
       "id": "src_pages_settingsfeatures_tsx",
-      "community": 315,
+      "community": 317,
       "norm_label": "settingsfeatures.tsx"
     },
     {
@@ -75843,7 +75861,7 @@
       "source_file": "src\\pages\\SettingsGestion.tsx",
       "source_location": "L1",
       "id": "src_pages_settingsgestion_tsx",
-      "community": 316,
+      "community": 318,
       "norm_label": "settingsgestion.tsx"
     },
     {
@@ -75978,7 +75996,7 @@
       "source_file": "src\\pages\\SettingsTheme.tsx",
       "source_location": "L1",
       "id": "src_pages_settingstheme_tsx",
-      "community": 317,
+      "community": 319,
       "norm_label": "settingstheme.tsx"
     },
     {
@@ -76239,7 +76257,7 @@
       "source_file": "src\\runtime\\compiler.ts",
       "source_location": "L1",
       "id": "src_runtime_compiler_ts",
-      "community": 318,
+      "community": 320,
       "norm_label": "compiler.ts"
     },
     {
@@ -76329,7 +76347,7 @@
       "source_file": "src\\store\\useLocalStore.ts",
       "source_location": "L1",
       "id": "src_store_uselocalstore_ts",
-      "community": 319,
+      "community": 321,
       "norm_label": "uselocalstore.ts"
     },
     {
@@ -76338,7 +76356,7 @@
       "source_file": "src\\store\\useThemeModeStore.ts",
       "source_location": "L1",
       "id": "src_store_usethememodestore_ts",
-      "community": 320,
+      "community": 322,
       "norm_label": "usethememodestore.ts"
     },
     {
@@ -76401,7 +76419,7 @@
       "source_file": "src\\store\\__tests__\\theme-mode.test.ts",
       "source_location": "L1",
       "id": "src_store_tests_theme_mode_test_ts",
-      "community": 321,
+      "community": 323,
       "norm_label": "theme-mode.test.ts"
     },
     {
@@ -76410,7 +76428,7 @@
       "source_file": "src\\templates\\church.ts",
       "source_location": "L1",
       "id": "src_templates_church_ts",
-      "community": 322,
+      "community": 324,
       "norm_label": "church.ts"
     },
     {
@@ -76419,7 +76437,7 @@
       "source_file": "src\\templates\\enterprise.ts",
       "source_location": "L1",
       "id": "src_templates_enterprise_ts",
-      "community": 323,
+      "community": 325,
       "norm_label": "enterprise.ts"
     },
     {
@@ -76428,7 +76446,7 @@
       "source_file": "src\\templates\\index.ts",
       "source_location": "L1",
       "id": "src_templates_index_ts",
-      "community": 324,
+      "community": 326,
       "norm_label": "index.ts"
     },
     {
@@ -76491,7 +76509,7 @@
       "source_file": "src\\templates\\school.ts",
       "source_location": "L1",
       "id": "src_templates_school_ts",
-      "community": 325,
+      "community": 327,
       "norm_label": "school.ts"
     },
     {
@@ -76500,7 +76518,7 @@
       "source_file": "src\\types\\federation.ts",
       "source_location": "L1",
       "id": "src_types_federation_ts",
-      "community": 326,
+      "community": 328,
       "norm_label": "federation.ts"
     },
     {
@@ -76509,7 +76527,7 @@
       "source_file": "src\\types\\index.ts",
       "source_location": "L1",
       "id": "src_types_index_ts",
-      "community": 327,
+      "community": 329,
       "norm_label": "index.ts"
     },
     {
@@ -76590,7 +76608,7 @@
       "source_file": "supabase\\functions\\login\\index.ts",
       "source_location": "L1",
       "id": "supabase_functions_login_index_ts",
-      "community": 328,
+      "community": 330,
       "norm_label": "index.ts"
     },
     {
@@ -76617,7 +76635,7 @@
       "source_file": "supabase\\functions\\signup\\index.ts",
       "source_location": "L1",
       "id": "supabase_functions_signup_index_ts",
-      "community": 329,
+      "community": 331,
       "norm_label": "index.ts"
     },
     {
@@ -76626,7 +76644,7 @@
       "source_file": "tests\\magnitude\\auth-negative.mag.ts",
       "source_location": "L1",
       "id": "tests_magnitude_auth_negative_mag_ts",
-      "community": 330,
+      "community": 332,
       "norm_label": "auth-negative.mag.ts"
     },
     {
@@ -76635,7 +76653,7 @@
       "source_file": "tests\\magnitude\\auth-smoke.mag.ts",
       "source_location": "L1",
       "id": "tests_magnitude_auth_smoke_mag_ts",
-      "community": 331,
+      "community": 333,
       "norm_label": "auth-smoke.mag.ts"
     },
     {
@@ -76644,7 +76662,7 @@
       "source_file": "tests\\magnitude\\magnitude.config.ts",
       "source_location": "L1",
       "id": "tests_magnitude_magnitude_config_ts",
-      "community": 332,
+      "community": 334,
       "norm_label": "magnitude.config.ts"
     }
   ],
@@ -149148,8 +149166,8 @@
       "source_file": "src\\lib\\export.ts",
       "source_location": "L806",
       "weight": 1.0,
-      "_src": "export_exportorgreportpng",
-      "_tgt": "facadevfs_cfeqf9mq_foreach",
+      "_src": "facadevfs_cfeqf9mq_foreach",
+      "_tgt": "export_exportorgreportpng",
       "source": "facadevfs_cfeqf9mq_foreach",
       "target": "export_exportorgreportpng"
     },
@@ -150216,8 +150234,8 @@
       "source_file": "src\\components\\DocumentPicker.tsx",
       "source_location": "L67",
       "weight": 1.0,
-      "_src": "documentpicker_toggle",
-      "_tgt": "facadevfs_cfeqf9mq_includes",
+      "_src": "facadevfs_cfeqf9mq_includes",
+      "_tgt": "documentpicker_toggle",
       "source": "facadevfs_cfeqf9mq_includes",
       "target": "documentpicker_toggle"
     },
@@ -152052,8 +152070,8 @@
       "source_file": "src\\lib\\orgReport.ts",
       "source_location": "L108",
       "weight": 1.0,
-      "_src": "orgreport_buildorgreport",
-      "_tgt": "facadevfs_cfeqf9mq_reduce",
+      "_src": "facadevfs_cfeqf9mq_reduce",
+      "_tgt": "orgreport_buildorgreport",
       "source": "facadevfs_cfeqf9mq_reduce",
       "target": "orgreport_buildorgreport"
     },
@@ -154200,8 +154218,8 @@
       "source_file": "src\\lib\\orgReport.ts",
       "source_location": "L69",
       "weight": 1.0,
-      "_src": "orgreport_inperiod",
-      "_tgt": "facadevfs_cfeqf9mq_slice",
+      "_src": "facadevfs_cfeqf9mq_slice",
+      "_tgt": "orgreport_inperiod",
       "source": "facadevfs_cfeqf9mq_slice",
       "target": "orgreport_inperiod"
     },
@@ -178692,8 +178710,8 @@
       "source_file": "src\\lib\\export.ts",
       "source_location": "L802",
       "weight": 1.0,
-      "_src": "export_exportorgreportpng",
-      "_tgt": "generatecategoricalchart_casi6yg6_moveto",
+      "_src": "generatecategoricalchart_casi6yg6_moveto",
+      "_tgt": "export_exportorgreportpng",
       "source": "generatecategoricalchart_casi6yg6_moveto",
       "target": "export_exportorgreportpng"
     },
@@ -178860,8 +178878,8 @@
       "source_file": "src\\lib\\export.ts",
       "source_location": "L803",
       "weight": 1.0,
-      "_src": "export_exportorgreportpng",
-      "_tgt": "generatecategoricalchart_casi6yg6_lineto",
+      "_src": "generatecategoricalchart_casi6yg6_lineto",
+      "_tgt": "export_exportorgreportpng",
       "source": "generatecategoricalchart_casi6yg6_lineto",
       "target": "export_exportorgreportpng"
     },
@@ -251568,8 +251586,8 @@
       "source_file": "src\\components\\DocumentPicker.tsx",
       "source_location": "L68",
       "weight": 1.0,
-      "_src": "documentpicker_toggle",
-      "_tgt": "index_deld9plb_filter",
+      "_src": "index_deld9plb_filter",
+      "_tgt": "documentpicker_toggle",
       "source": "index_deld9plb_filter",
       "target": "documentpicker_toggle"
     },
@@ -251856,8 +251874,8 @@
       "source_file": "src\\lib\\orgReport.ts",
       "source_location": "L104",
       "weight": 1.0,
-      "_src": "orgreport_buildorgreport",
-      "_tgt": "index_deld9plb_filter",
+      "_src": "index_deld9plb_filter",
+      "_tgt": "orgreport_buildorgreport",
       "source": "index_deld9plb_filter",
       "target": "orgreport_buildorgreport"
     },
@@ -252060,8 +252078,8 @@
       "source_file": "src\\pages\\OrgReportDetail.tsx",
       "source_location": "L161",
       "weight": 1.0,
-      "_src": "orgreportdetail_parsedocumentrefs",
-      "_tgt": "index_deld9plb_filter",
+      "_src": "index_deld9plb_filter",
+      "_tgt": "orgreportdetail_parsedocumentrefs",
       "source": "index_deld9plb_filter",
       "target": "orgreportdetail_parsedocumentrefs"
     },
@@ -259596,8 +259614,8 @@
       "source_file": "src\\lib\\export.ts",
       "source_location": "L529",
       "weight": 1.0,
-      "_src": "export_exportorgreportpdf",
-      "_tgt": "index_deld9plb_map",
+      "_src": "index_deld9plb_map",
+      "_tgt": "export_exportorgreportpdf",
       "source": "index_deld9plb_map",
       "target": "export_exportorgreportpdf"
     },
@@ -259608,8 +259626,8 @@
       "source_file": "src\\lib\\export.ts",
       "source_location": "L619",
       "weight": 1.0,
-      "_src": "export_exportorgreportdocx",
-      "_tgt": "index_deld9plb_map",
+      "_src": "index_deld9plb_map",
+      "_tgt": "export_exportorgreportdocx",
       "source": "index_deld9plb_map",
       "target": "export_exportorgreportdocx"
     },
@@ -259620,8 +259638,8 @@
       "source_file": "src\\lib\\export.ts",
       "source_location": "L689",
       "weight": 1.0,
-      "_src": "export_exportorgreportxlsx",
-      "_tgt": "index_deld9plb_map",
+      "_src": "index_deld9plb_map",
+      "_tgt": "export_exportorgreportxlsx",
       "source": "index_deld9plb_map",
       "target": "export_exportorgreportxlsx"
     },
@@ -259632,8 +259650,8 @@
       "source_file": "src\\lib\\export.ts",
       "source_location": "L773",
       "weight": 1.0,
-      "_src": "export_exportorgreportpng",
-      "_tgt": "index_deld9plb_map",
+      "_src": "index_deld9plb_map",
+      "_tgt": "export_exportorgreportpng",
       "source": "index_deld9plb_map",
       "target": "export_exportorgreportpng"
     },
@@ -259776,8 +259794,8 @@
       "source_file": "src\\lib\\orgReport.ts",
       "source_location": "L131",
       "weight": 1.0,
-      "_src": "orgreport_buildorgreport",
-      "_tgt": "index_deld9plb_map",
+      "_src": "index_deld9plb_map",
+      "_tgt": "orgreport_buildorgreport",
       "source": "index_deld9plb_map",
       "target": "orgreport_buildorgreport"
     },
@@ -259932,8 +259950,8 @@
       "source_file": "src\\pages\\OrgReportDetail.tsx",
       "source_location": "L161",
       "weight": 1.0,
-      "_src": "orgreportdetail_parsedocumentrefs",
-      "_tgt": "index_deld9plb_map",
+      "_src": "index_deld9plb_map",
+      "_tgt": "orgreportdetail_parsedocumentrefs",
       "source": "index_deld9plb_map",
       "target": "orgreportdetail_parsedocumentrefs"
     },
@@ -259944,8 +259962,8 @@
       "source_file": "src\\pages\\OrgReportSend.tsx",
       "source_location": "L156",
       "weight": 1.0,
-      "_src": "orgreportsend_refreshhistory",
-      "_tgt": "index_deld9plb_map",
+      "_src": "index_deld9plb_map",
+      "_tgt": "orgreportsend_refreshhistory",
       "source": "index_deld9plb_map",
       "target": "orgreportsend_refreshhistory"
     },
@@ -268764,8 +268782,8 @@
       "source_file": "src\\components\\DocumentPicker.tsx",
       "source_location": "L66",
       "weight": 1.0,
-      "_src": "documentpicker_toggle",
-      "_tgt": "index_deld9plb_onchange",
+      "_src": "index_deld9plb_onchange",
+      "_tgt": "documentpicker_toggle",
       "source": "index_deld9plb_onchange",
       "target": "documentpicker_toggle"
     },
@@ -275796,8 +275814,8 @@
       "source_file": "src\\lib\\export.ts",
       "source_location": "L826",
       "weight": 1.0,
-      "_src": "export_exportorgreportpng",
-      "_tgt": "index_es_cxfmshpe_split",
+      "_src": "index_es_cxfmshpe_split",
+      "_tgt": "export_exportorgreportpng",
       "source": "index_es_cxfmshpe_split",
       "target": "export_exportorgreportpng"
     },
@@ -277908,8 +277926,8 @@
       "source_file": "src\\pages\\OrgReportDetail.tsx",
       "source_location": "L139",
       "weight": 1.0,
-      "_src": "orgreportdetail_parsesummary",
-      "_tgt": "index_es_cxfmshpe_parse",
+      "_src": "index_es_cxfmshpe_parse",
+      "_tgt": "orgreportdetail_parsesummary",
       "source": "index_es_cxfmshpe_parse",
       "target": "orgreportdetail_parsesummary"
     },
@@ -277920,8 +277938,8 @@
       "source_file": "src\\pages\\OrgReportDetail.tsx",
       "source_location": "L160",
       "weight": 1.0,
-      "_src": "orgreportdetail_parsedocumentrefs",
-      "_tgt": "index_es_cxfmshpe_parse",
+      "_src": "index_es_cxfmshpe_parse",
+      "_tgt": "orgreportdetail_parsedocumentrefs",
       "source": "index_es_cxfmshpe_parse",
       "target": "orgreportdetail_parsedocumentrefs"
     },
@@ -277932,8 +277950,8 @@
       "source_file": "src\\pages\\OrgReportsReceived.tsx",
       "source_location": "L129",
       "weight": 1.0,
-      "_src": "orgreportsreceived_parsecontentsummary",
-      "_tgt": "index_es_cxfmshpe_parse",
+      "_src": "index_es_cxfmshpe_parse",
+      "_tgt": "orgreportsreceived_parsecontentsummary",
       "source": "index_es_cxfmshpe_parse",
       "target": "orgreportsreceived_parsecontentsummary"
     },
@@ -282504,8 +282522,8 @@
       "source_file": "src\\components\\PdfPreview.tsx",
       "source_location": "L171",
       "weight": 1.0,
-      "_src": "pdfpreview_handledownload",
-      "_tgt": "index_es_cxfmshpe_createelement",
+      "_src": "index_es_cxfmshpe_createelement",
+      "_tgt": "pdfpreview_handledownload",
       "source": "index_es_cxfmshpe_createelement",
       "target": "pdfpreview_handledownload"
     },
@@ -282552,8 +282570,8 @@
       "source_file": "src\\lib\\export.ts",
       "source_location": "L753",
       "weight": 1.0,
-      "_src": "export_exportorgreportpng",
-      "_tgt": "index_es_cxfmshpe_createelement",
+      "_src": "index_es_cxfmshpe_createelement",
+      "_tgt": "export_exportorgreportpng",
       "source": "index_es_cxfmshpe_createelement",
       "target": "export_exportorgreportpng"
     },
@@ -282588,8 +282606,8 @@
       "source_file": "src\\pages\\OrgReportDetail.tsx",
       "source_location": "L615",
       "weight": 1.0,
-      "_src": "orgreportdetail_handledownload",
-      "_tgt": "index_es_cxfmshpe_createelement",
+      "_src": "index_es_cxfmshpe_createelement",
+      "_tgt": "orgreportdetail_handledownload",
       "source": "index_es_cxfmshpe_createelement",
       "target": "orgreportdetail_handledownload"
     },
@@ -377460,8 +377478,8 @@
       "source_file": "src\\components\\PdfPreview.tsx",
       "source_location": "L168",
       "weight": 1.0,
-      "_src": "pdfpreview_handledownload",
-      "_tgt": "worker_djsxmwe3_fetch",
+      "_src": "worker_djsxmwe3_fetch",
+      "_tgt": "pdfpreview_handledownload",
       "source": "worker_djsxmwe3_fetch",
       "target": "pdfpreview_handledownload"
     },
@@ -377484,8 +377502,8 @@
       "source_file": "src\\pages\\OrgReportDetail.tsx",
       "source_location": "L612",
       "weight": 1.0,
-      "_src": "orgreportdetail_handledownload",
-      "_tgt": "worker_djsxmwe3_fetch",
+      "_src": "worker_djsxmwe3_fetch",
+      "_tgt": "orgreportdetail_handledownload",
       "source": "worker_djsxmwe3_fetch",
       "target": "orgreportdetail_handledownload"
     },
@@ -384456,8 +384474,8 @@
       "source_file": "src\\lib\\export.ts",
       "source_location": "L756",
       "weight": 1.0,
-      "_src": "export_exportorgreportpng",
-      "_tgt": "index_organizationservice_getcontext",
+      "_src": "index_organizationservice_getcontext",
+      "_tgt": "export_exportorgreportpng",
       "source": "index_organizationservice_getcontext",
       "target": "export_exportorgreportpng"
     },
@@ -386124,8 +386142,8 @@
       "source_file": "src\\lib\\export.ts",
       "source_location": "L733",
       "weight": 1.0,
-      "_src": "export_exportorgreportxlsx",
-      "_tgt": "setup_write",
+      "_src": "setup_write",
+      "_tgt": "export_exportorgreportxlsx",
       "source": "setup_write",
       "target": "export_exportorgreportxlsx"
     },
@@ -394548,8 +394566,8 @@
       "source_file": "src\\pages\\OrgReportsReceived.tsx",
       "source_location": "L269",
       "weight": 1.0,
-      "_src": "orgreportsreceived_handlemarkread",
-      "_tgt": "datalayer_markreportread",
+      "_src": "datalayer_markreportread",
+      "_tgt": "orgreportsreceived_handlemarkread",
       "source": "datalayer_markreportread",
       "target": "orgreportsreceived_handlemarkread"
     },
@@ -397572,8 +397590,8 @@
       "source_file": "src\\pages\\OrgReportSend.tsx",
       "source_location": "L151",
       "weight": 1.0,
-      "_src": "orgreportsend_refreshhistory",
-      "_tgt": "reporting_aggregationengine_execute",
+      "_src": "reporting_aggregationengine_execute",
+      "_tgt": "orgreportsend_refreshhistory",
       "source": "reporting_aggregationengine_execute",
       "target": "orgreportsend_refreshhistory"
     },
@@ -398580,8 +398598,8 @@
       "source_file": "src\\pages\\OrgReportSend.tsx",
       "source_location": "L150",
       "weight": 1.0,
-      "_src": "orgreportsend_refreshhistory",
-      "_tgt": "index_getpowersyncdatabase",
+      "_src": "index_getpowersyncdatabase",
+      "_tgt": "orgreportsend_refreshhistory",
       "source": "index_getpowersyncdatabase",
       "target": "orgreportsend_refreshhistory"
     },
