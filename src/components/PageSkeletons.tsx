@@ -477,6 +477,20 @@ export function FederationGraphSkeleton() {
   );
 }
 
+/* ── EventTasks (onglet Tâches) : compteur de progression + bouton d'ajout + liste ── */
+export function EventTasksSkeleton() {
+  return (
+    <div className="p-5 space-y-4" aria-busy="true">
+      <div>
+        <ShimmerLine width="30%" height={10} />
+        <ShimmerBlock width="100%" height={8} radius={4} style={{ marginTop: 6 }} />
+      </div>
+      <ShimmerBlock width="100%" height={48} radius={12} />
+      <ShimmerList count={8} minHeight={56} />
+    </div>
+  );
+}
+
 /* ── Invitations (emit/claim/manage) : cards + liste ── */
 export function InvitationsSkeleton() {
   return (

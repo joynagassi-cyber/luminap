@@ -337,7 +337,13 @@ export type Versement = {
   createdAt: string;
 };
 
-// === NEW TYPE: EventTask (tâches & sous-tâches d'un événement) ===
+// === EventTask (tâches & sous-tâches d'un événement) ===
+//
+// ⚠️  La SSOT est `PSEventTask` (snake_case) dans src/lib/dataLayer.ts,
+// qui est le shape retourné par le hook `useEventTasks` et attendu par
+// `addEventTaskPS` / `updateEventTaskPS` / `deleteEventTaskPS`.
+// Ce type camelCase est orphelin : ne PAS l'adopter sans mapper
+// `is_sub: 0/1` ↔ `isSub: boolean` ni les colonnes snake ↔ camel.
 export type EventTaskStatus = "OPEN" | "IN_PROGRESS" | "DONE" | "BLOCKED";
 
 export type EventTask = {

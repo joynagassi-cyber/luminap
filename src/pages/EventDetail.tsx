@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useEvents, useTransactions, useCaisses, deleteEventPS, updateEventPS, addTransactionPS, useCurrentUser } from "@/lib/dataLayer";
+import { useEvents, useTransactions, useCaisses, deleteEventPS, updateEventPS, addTransactionPS, useCurrentUser, useGroups } from "@/lib/dataLayer";
 import { formatCurrencyCompact, formatDate } from "@/lib/utils";
 import {
   Calendar,
@@ -38,8 +38,9 @@ import {
   IonInput,
 } from "@ionic/react";
 import EmptyState from "@/components/EmptyState";
+import EventTasks from "@/components/EventTasks";
 
-type Tab = "overview" | "budget" | "transactions";
+type Tab = "overview" | "budget" | "transactions" | "tasks";
 
 const STATUS_CONFIG: Record<
   EventStatus,
@@ -67,6 +68,8 @@ export default function EventDetail() {
   const { data: events } = useEvents();
   const { data: transactions } = useTransactions();
   const user = useCurrentUser();
+  const { data: psGroups } = useGroups();
+  const groups = (psGroups ?? []).map((g: any) => ({ id: g.id, name: g.name }));
 
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [showDelete, setShowDelete] = useState(false);
@@ -412,6 +415,7 @@ export default function EventDetail() {
                 { id: "overview" as Tab, label: "Aperçu" },
                 { id: "budget" as Tab, label: "Budget" },
                 { id: "transactions" as Tab, label: "Transactions" },
+                { id: "tasks" as Tab, label: "Tâches" },
               ].map(({ id: tabId, label }) => (
                 <button
                   key={tabId}
@@ -811,6 +815,11 @@ export default function EventDetail() {
                   ))
               )}
             </div>
+          )}
+
+          {/* Tab: Tâches */}
+          {activeTab === "tasks" && (
+            <EventTasks eventId={event.id} groups={groups} />
           )}
 
           {/* Delete button */}
