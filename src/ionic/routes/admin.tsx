@@ -12,6 +12,7 @@ const OrgSetup = lazy(() => import("@/pages/OrgSetup"));
 const Federation = lazy(() => import("@/pages/Federation"));
 const OrgUnits = lazy(() => import("@/pages/OrgUnits"));
 const OrgReportSend = lazy(() => import("@/pages/OrgReportSend"));
+const OrgReportsReceived = lazy(() => import("@/pages/OrgReportsReceived"));
 
 export const adminRoutes: ReactElement[] = [
   <Route
@@ -49,6 +50,15 @@ export const adminRoutes: ReactElement[] = [
     key="/admin/report-send"
     path="/admin/report-send"
     element={<LazyRoute component={OrgReportSend} />}
+  />,
+  // Phase 4 Feature 2 — page de réception des rapports de gestion
+  // inter-organisations (gating : org courante avec ≥1 annexe OU ≥1 rapport
+  // reçu — cf. `OrgReportsReceived.tsx`) + détail `/admin/reports/:id`
+  // (monté par T4.3 — `OrgReportDetail`, à venir dans ce même fichier).
+  <Route
+    key="/admin/reports"
+    path="/admin/reports"
+    element={<LazyRoute component={OrgReportsReceived} />}
   />,
   <Route
     key="/admin/organizations/:id"
