@@ -51,6 +51,7 @@ import {
   IonChangeCustomEvent,
 } from "@ionic/react";
 import EmptyState from "@/components/EmptyState";
+import ConfirmModal from "@/components/ConfirmModal";
 
 type Tab = "transactions" | "membres" | "historique" | "parametres";
 
@@ -841,52 +842,20 @@ export default function GroupDetail() {
         </div>
         <BottomNav />
 
-        {/* Archive Confirmation */}
-        {showArchive && (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center px-5"
-            onClick={() => setShowArchive(false)}
-          >
-            <div className="absolute inset-0 bg-scrim" aria-hidden="true" />
-            <div
-              role="dialog"
-              aria-modal="true"
-              className="relative w-full max-w-sm rounded-2xl p-5 text-center"
-              style={{ backgroundColor: "var(--card)" }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div
-                className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4"
-                style={{ backgroundColor: "color-mix(in srgb, var(--text-tertiary) 12%, transparent)" }}
-              >
-                <Archive className="w-6 h-6 text-text-tertiary" />
-              </div>
-              <h3 className="text-text-primary font-bold text-lg mb-2">
-                Archiver {orgUnit.name} ?
-              </h3>
-              <p className="text-text-tertiary text-sm mb-1">
-                Le groupe sera archivée mais pas supprimée.
-              </p>
-              <p className="text-text-tertiary text-xs mb-4">
-                Vous pourrez le restaurer plus tard.
-              </p>
-              <button
-                onClick={handleArchive}
-                className="w-full py-3.5 rounded-full font-semibold text-on-accent mb-3"
-                style={{ backgroundColor: "var(--text-tertiary)" }}
-              >
-                Archiver
-              </button>
-              <button
-                onClick={() => setShowArchive(false)}
-                className="w-full py-3 rounded-full font-medium text-sm text-text-tertiary"
-                style={{ backgroundColor: "var(--surface)" }}
-              >
-                Annuler
-              </button>
-            </div>
-          </div>
-        )}
+        {/* M11 — confirmations destructives/réversibles via ConfirmModal
+            (focus-trap + aria-modal + Escape + restauration du focus) */}
+        <ConfirmModal
+          open={showArchive}
+          onClose={() => setShowArchive(false)}
+          onConfirm={() => {
+            handleArchive();
+            setShowArchive(false);
+          }}
+          title={`Archiver ${orgUnit.name} ?`}
+          description="Le groupe sera archivé mais pas supprimé. Vous pourrez le restaurer plus tard."
+          confirmLabel="Archiver"
+          confirmVariant="primary"
+        />
 
         {/* Add Member Modal */}
         {showAddMember && (
@@ -964,53 +933,18 @@ export default function GroupDetail() {
           </div>
         )}
 
-        {/* Delete Confirmation */}
-        {showDelete && (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center px-5"
-            onClick={() => setShowDelete(false)}
-          >
-            <div className="absolute inset-0 bg-scrim" aria-hidden="true" />
-            <div
-              role="dialog"
-              aria-modal="true"
-              className="relative w-full max-w-sm rounded-2xl p-5 text-center"
-              style={{ backgroundColor: "var(--card)" }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div
-                className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4"
-                style={{ backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)" }}
-              >
-                <Trash2 className="w-6 h-6 text-expense" />
-              </div>
-              <h3 className="text-text-primary font-bold text-lg mb-2">
-                Supprimer {orgUnit.name} ?
-              </h3>
-              <p className="text-text-tertiary text-sm mb-1">
-                La caisse et toutes les transactions associées seront supprimées
-                définitivement.
-              </p>
-              <p className="text-text-tertiary text-xs mb-4">
-                Cette action ne peut pas être annulée.
-              </p>
-              <button
-                onClick={handleDelete}
-                className="w-full py-3.5 rounded-full font-semibold text-on-accent mb-3"
-                style={{ backgroundColor: "var(--data-expense)" }}
-              >
-                Supprimer définitivement
-              </button>
-              <button
-                onClick={() => setShowDelete(false)}
-                className="w-full py-3 rounded-full font-medium text-sm text-text-tertiary"
-                style={{ backgroundColor: "var(--surface)" }}
-              >
-                Annuler
-              </button>
-            </div>
-          </div>
-        )}
+        <ConfirmModal
+          open={showDelete}
+          onClose={() => setShowDelete(false)}
+          onConfirm={() => {
+            handleDelete();
+            setShowDelete(false);
+          }}
+          title={`Supprimer ${orgUnit.name} ?`}
+          description="La caisse et toutes les transactions associées seront supprimées définitivement. Cette action ne peut pas être annulée."
+          confirmLabel="Supprimer définitivement"
+          confirmVariant="danger"
+        />
       </IonContent>
     </IonPage>
   );
