@@ -16,7 +16,7 @@ import {
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
 import EmptyState from "@/components/EmptyState";
-import { IonPage, IonContent, IonSelect, IonSelectOption, IonChangeCustomEvent } from "@ionic/react";
+import { IonPage, IonContent, IonSelect, IonSelectOption, IonChangeCustomEvent, IonItem, IonLabel, IonInput } from "@ionic/react";
 import { ChartContainer } from "@/components/ui/chart";
 import { Bar, BarChart, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import {
@@ -120,7 +120,10 @@ function ReportTooltip({ active, payload, label, format }: any) {
     >
       <p className="text-text-tertiary text-xs mb-1 font-medium">{label}</p>
       {payload.map((entry: any, idx: number) => (
-        <div key={idx} className="flex items-center justify-between gap-6 min-w-[140px]">
+        <div
+          key={entry.dataKey ?? entry.name ?? idx}
+          className="flex items-center justify-between gap-6 min-w-[140px]"
+        >
           <div className="flex items-center gap-2">
             <div
               className="w-2 h-2 rounded-full"
@@ -522,17 +525,16 @@ export default function ReportBuilder() {
         </section>
 
         {/* Nom */}
-        <div className="mb-5">
-          <label className="text-text-tertiary text-xs mb-1.5 block">Nom du rapport</label>
-          <input
+        <IonItem lines="none" className="mb-5 bg-card rounded-xl">
+          <IonLabel position="floating" className="text-sm text-text-secondary">Nom du rapport</IonLabel>
+          <IonInput
             type="text"
             value={draft.name || ""}
-            onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))}
+            onIonChange={(e: IonChangeCustomEvent<string>) => setDraft((d) => ({ ...d, name: e.detail.value ?? "" }))}
             placeholder="Ex : Revenus par groupe"
-            className="w-full px-4 py-3 rounded-xl text-text-primary text-sm"
-            style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
+            slot="input"
           />
-        </div>
+        </IonItem>
 
         {/* GroupBy */}
         <section className="mb-5">
@@ -605,13 +607,12 @@ export default function ReportBuilder() {
                 <IonSelectOption value={fn.value}>{fn.label}</IonSelectOption>
               ))}
             </IonSelect>
-            <input
+            <IonInput
               type="text"
               value={draft.metric?.alias || ""}
-              onChange={(e) => updateMetricDraft({ alias: e.target.value })}
+              onIonChange={(e: IonChangeCustomEvent<string>) => updateMetricDraft({ alias: e.detail.value ?? "" })}
               placeholder="Alias"
-              className="px-2 py-2 rounded-lg text-xs"
-              style={{ backgroundColor: "var(--card)", color: "var(--text-primary)", border: "1px solid var(--border)" }}
+              className="text-xs"
             />
           </div>
           <button

@@ -46,6 +46,8 @@ import {
   IonToolbar,
   IonButtons,
   IonBackButton,
+  IonItem,
+  IonLabel,
   IonSelect,
   IonSelectOption,
   IonChangeCustomEvent,
@@ -886,11 +888,17 @@ export default function GroupDetail() {
                 </button>
               </div>
               <div className="space-y-3">
-                <IonSelect
-                  value={selectedMemberId}
-                  onIonChange={(e: IonChangeCustomEvent<string>) => setSelectedMemberId(e.detail.value)}
-                  interface="popover"
-                >
+                {/* M24 — grammaire canonique : IonItem + IonLabel + IonSelect */}
+                <IonItem lines="none" className="bg-card rounded-xl">
+                  <IonLabel position="floating" className="text-sm text-text-secondary">
+                    Membre
+                  </IonLabel>
+                  <IonSelect
+                    value={selectedMemberId}
+                    onIonChange={(e: IonChangeCustomEvent<string>) => setSelectedMemberId(e.detail.value)}
+                    interface="popover"
+                    style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}
+                  >
                   <IonSelectOption value="">Sélectionner un membre...</IonSelectOption>
                   {members
                     .filter(
@@ -904,6 +912,7 @@ export default function GroupDetail() {
                       </IonSelectOption>
                     ))}
                 </IonSelect>
+                </IonItem>
                 {error && (
                   <p className="text-xs" style={{ color: "var(--data-expense)" }}>
                     {error}

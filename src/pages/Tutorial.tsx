@@ -1085,7 +1085,7 @@ function CustomTooltip({ active, payload, label }: any) {
       <p className="text-text-tertiary text-xs mb-2 font-medium">{label}</p>
       {payload.map((entry: any, idx: number) => (
         <div
-          key={idx}
+          key={entry.dataKey ?? entry.name ?? idx}
           className="flex items-center justify-between gap-6 min-w-[120px]"
         >
           <div className="flex items-center gap-2">
