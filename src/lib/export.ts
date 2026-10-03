@@ -1,8 +1,20 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
+import {
+  Document,
+  HeadingLevel,
+  Packer,
+  Paragraph,
+  Table,
+  TableCell,
+  TableRow,
+  TextRun,
+  WidthType,
+} from "docx";
 import type { Transaction, Caisse, Event } from "@/types";
 import { formatCurrencyCompact, formatDate, formatCurrencyFull } from "./utils";
+import type { OrgReportPayload } from "./orgReport";
 
 export interface ExportOptions {
   churchName?: string;
@@ -394,3 +406,417 @@ export function exportCSV(options: ExportOptions) {
   a.click();
   URL.revokeObjectURL(url);
 }
+
+// ============================================================
+// Rapports inter-organisations — export multi-format (Phase 3 Feature 2)
+//
+// Un seul générateur, quatre formats. Le `payload` est le résultat pur de
+// `buildOrgReport` (lib/orgReport.ts) : agrégats + tableaux filtrés.
+//  - pdf / xlsx : déclenchent le download local (fonctions existantes).
+//  - docx       : download déclenché via `docx` (Packer.toBlob + <a>).
+//  - png        : renvoie un Blob (graphique recharts) pour l'upload dans
+//                 le bucket privé `org_reports`.
+// Les montants du payload sont en FCFA (pas en centimes) : formatés tels
+// quels, sans division par 100 (contrairement à `exportExcel` legacy).
+// ============================================================
+
+export type OrgReportFormat = "pdf" | "docx" | "xlsx" | "png";
+
+export async function exportOrgReport(
+  payload: OrgReportPayload,
+  format: OrgReportFormat,
+): Promise<Blob | void> {
+  switch (format) {
+    case "pdf":
+      return exportOrgReportPDF(payload);
+    case "docx":
+      return exportOrgReportDOCX(payload);
+    case "xlsx":
+      return exportOrgReportXLSX(payload);
+    case "png":
+      return exportOrgReportPNG(payload);
+  }
+}
+
+/** PDF — génère et renvoie un Blob (uploadable dans `org_reports`). */
+function exportOrgReportPDF(payload: OrgReportPayload): Blob {
+  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const { summary, period } = payload;
+
+  // ── En-tête ─────────────────────────────────────────────────────────────
+  doc.setFillColor(255, 107, 0);
+  doc.roundedRect(14, 10, 25, 25, 3, 3);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.setTextColor(255, 255, 255);
+  doc.text("L", 22, 27, { align: "center" });
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(16);
+  doc.setTextColor(30, 30, 30);
+  doc.text(
+    `Rapport de gestion — ${payload.fromOrg.name} → ${payload.toOrg.name}`,
+    45,
+    18,
+  );
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.setTextColor(100, 100, 100);
+  doc.text(
+    `Période : ${period.label} (${period.start} → ${period.end}) · Généré le ${new Date().toLocaleDateString("fr-FR")}`,
+    45,
+    26,
+  );
+
+  // ── Résumé ──────────────────────────────────────────────────────────────
+  doc.setFillColor(245, 245, 245);
+  doc.roundedRect(14, 38, pageWidth - 28, 16, 3, 3);
+  doc.setFontSize(10);
+  doc.setTextColor(29, 185, 84);
+  doc.text(`Entrées: ${formatCurrencyCompact(summary.totalIncome)} FCFA`, 20, 47);
+  doc.setTextColor(229, 19, 50);
+  doc.text(
+    `Sorties: ${formatCurrencyCompact(summary.totalExpense)} FCFA`,
+    75,
+    47,
+  );
+  doc.setTextColor(30, 30, 30);
+  doc.setFont("helvetica", "bold");
+  doc.text(
+    `Résultat: ${summary.netResult >= 0 ? "+" : "-"}${formatCurrencyCompact(Math.abs(summary.netResult))} FCFA`,
+    130,
+    47,
+  );
+
+  let y = 58;
+
+  const addTable = (title: string, head: string[], body: string[][]) => {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(30, 30, 30);
+    doc.text(title, 14, y);
+    y += 4;
+    autoTable(doc, {
+      startY: y,
+      head: [head],
+      body,
+      theme: "grid",
+      styles: { fontSize: 8, cellPadding: 3 },
+      headStyles: { fillColor: [255, 107, 0], textColor: 255, fontStyle: "bold" },
+      alternateRowStyles: { fillColor: [250, 250, 250] },
+    });
+    y = (doc as any).lastAutoTable.finalY + 10;
+  };
+
+  addTable(
+    "Synthèse",
+    ["Indicateur", "Valeur"],
+    [
+      ["Transactions sur la période", String(payload.transactions.length)],
+      ["Événements", String(summary.eventCount)],
+      ["Membres", String(summary.memberCount)],
+      ["Documents joints", String(summary.documentCount)],
+    ],
+  );
+
+  if (payload.transactions.length > 0) {
+    addTable(
+      "Transactions de la période",
+      ["Date", "Type", "Source", "Montant (FCFA)"],
+      payload.transactions.map((t) => [
+        formatDate(t.date),
+        t.type === "INCOME" ? "Entrée" : "Sortie",
+        t.source ?? t.person_name ?? "—",
+        formatCurrencyCompact(t.amount),
+      ]),
+    );
+  }
+
+  if (payload.events.length > 0) {
+    addTable(
+      "Événements",
+      ["Événement", "Statut", "Budget"],
+      payload.events.map((e) => [
+        e.name,
+        e.status,
+        e.budget != null ? formatCurrencyCompact(e.budget) : "—",
+      ]),
+    );
+  }
+
+  if (payload.documents.length > 0) {
+    addTable(
+      "Documents joints",
+      ["Titre", "Objet"],
+      payload.documents.map((d) => [d.title, d.purpose ?? "—"]),
+    );
+  }
+
+  // Pied de page (nombre de pages estimé)
+  for (let p = 1; p <= doc.getNumberOfPages(); p++) {
+    doc.setPage(p);
+    drawFooter(doc, p, doc.getNumberOfPages());
+  }
+
+  return doc.output("blob");
+}
+
+/** DOCX — génère et renvoie un Blob (uploadable + preview). */
+async function exportOrgReportDOCX(payload: OrgReportPayload): Promise<Blob> {
+  const { summary, period } = payload;
+  const cell = (text: string, bold = false): TableCell =>
+    new TableCell({
+      children: [
+        new Paragraph({
+          children: [
+            new TextRun({ text, bold, size: 18, color: bold ? "FF6B00" : "1E1E1E" }),
+          ],
+        }),
+      ],
+    });
+  const headerRow = (cols: string[]) =>
+    new TableRow({ children: cols.map((c) => cell(c, true)) });
+  const dataRow = (cols: string[]) => new TableRow({ children: cols.map((c) => cell(c)) });
+
+  const makeTable = (head: string[], rows: string[][]) =>
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      rows: [headerRow(head), ...rows.map((r) => dataRow(r))],
+    });
+
+  const doc = new Document({
+    sections: [
+      {
+        properties: {},
+        children: [
+          new Paragraph({
+            text: `Rapport de gestion — ${payload.fromOrg.name} → ${payload.toOrg.name}`,
+            heading: HeadingLevel.HEADING_1,
+          }),
+          new Paragraph({
+            text: `Période : ${period.label} (${period.start} → ${period.end})`,
+          }),
+          new Paragraph({
+            text: `Généré le ${new Date().toLocaleDateString("fr-FR")}`,
+          }),
+          new Paragraph({
+            text: `Entrées : ${formatCurrencyCompact(summary.totalIncome)} FCFA · Sorties : ${formatCurrencyCompact(summary.totalExpense)} FCFA · Résultat : ${summary.netResult >= 0 ? "+" : "-"}${formatCurrencyCompact(Math.abs(summary.netResult))} FCFA`,
+          }),
+          new Paragraph({
+            text: `Transactions : ${payload.transactions.length} · Événements : ${summary.eventCount} · Membres : ${summary.memberCount} · Documents joints : ${summary.documentCount}`,
+          }),
+          ...(payload.transactions.length > 0
+            ? [
+                new Paragraph({
+                  text: "Transactions de la période",
+                  heading: HeadingLevel.HEADING_2,
+                }),
+                makeTable(
+                  ["Date", "Type", "Source", "Montant (FCFA)"],
+                  payload.transactions.map((t) => [
+                    formatDate(t.date),
+                    t.type === "INCOME" ? "Entrée" : "Sortie",
+                    t.source ?? t.person_name ?? "—",
+                    formatCurrencyCompact(t.amount),
+                  ]),
+                ) as unknown as Paragraph,
+              ]
+            : []),
+          ...(payload.events.length > 0
+            ? [
+                new Paragraph({
+                  text: "Événements",
+                  heading: HeadingLevel.HEADING_2,
+                }),
+                makeTable(
+                  ["Événement", "Statut", "Budget"],
+                  payload.events.map((e) => [
+                    e.name,
+                    e.status,
+                    e.budget != null ? formatCurrencyCompact(e.budget) : "—",
+                  ]),
+                ) as unknown as Paragraph,
+              ]
+            : []),
+          ...(payload.documents.length > 0
+            ? [
+                new Paragraph({
+                  text: "Documents joints",
+                  heading: HeadingLevel.HEADING_2,
+                }),
+                makeTable(
+                  ["Titre", "Objet"],
+                  payload.documents.map((d) => [d.title, d.purpose ?? "—"]),
+                ) as unknown as Paragraph,
+              ]
+            : []),
+        ],
+      },
+    ],
+  });
+
+  return Packer.toBlob(doc);
+}
+
+/** XLSX — génère un multi-feuilles et renvoie le Blob. */
+function exportOrgReportXLSX(payload: OrgReportPayload): Blob {
+  const { summary, period } = payload;
+  const wb = XLSX.utils.book_new();
+
+  const summarySheet: any[] = [
+    [`Rapport de gestion — ${payload.fromOrg.name} → ${payload.toOrg.name}`],
+    [`Période : ${period.label} (${period.start} → ${period.end})`],
+    [`Généré le ${new Date().toLocaleDateString("fr-FR")}`],
+    [],
+    ["Total entrées (FCFA)", summary.totalIncome],
+    ["Total sorties (FCFA)", summary.totalExpense],
+    ["Résultat (FCFA)", summary.netResult],
+    ["Transactions", payload.transactions.length],
+    ["Événements", summary.eventCount],
+    ["Membres", summary.memberCount],
+    ["Documents joints", summary.documentCount],
+  ];
+  const ws1 = XLSX.utils.aoa_to_sheet(summarySheet);
+  ws1["!cols"] = [{ wch: 28 }, { wch: 18 }];
+  XLSX.utils.book_append_sheet(wb, ws1, "Résumé");
+
+  if (payload.transactions.length > 0) {
+    const txRows = [
+      ["Date", "Type", "Source", "Montant (FCFA)"],
+      ...payload.transactions.map((t) => [
+        formatDate(t.date),
+        t.type === "INCOME" ? "Entrée" : "Sortie",
+        t.source ?? t.person_name ?? "",
+        t.amount,
+      ]),
+    ];
+    const ws2 = XLSX.utils.aoa_to_sheet(txRows);
+    ws2["!cols"] = [
+      { wch: 12 },
+      { wch: 10 },
+      { wch: 20 },
+      { wch: 15 },
+    ];
+    XLSX.utils.book_append_sheet(wb, ws2, "Transactions");
+  }
+
+  if (payload.events.length > 0) {
+    const evtRows = [
+      ["Événement", "Statut", "Budget (FCFA)"],
+      ...payload.events.map((e) => [e.name, e.status, e.budget ?? ""]),
+    ];
+    const ws3 = XLSX.utils.aoa_to_sheet(evtRows);
+    ws3["!cols"] = [
+      { wch: 30 },
+      { wch: 15 },
+      { wch: 15 },
+    ];
+    XLSX.utils.book_append_sheet(wb, ws3, "Événements");
+  }
+
+  if (payload.documents.length > 0) {
+    const docRows = [
+      ["Titre", "Objet"],
+      ...payload.documents.map((d) => [d.title, d.purpose ?? ""]),
+    ];
+    const ws4 = XLSX.utils.aoa_to_sheet(docRows);
+    ws4["!cols"] = [
+      { wch: 30 },
+      { wch: 30 },
+    ];
+    XLSX.utils.book_append_sheet(wb, ws4, "Documents");
+  }
+
+  const out = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+  return new Blob([out], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+}
+
+/**
+ * PNG — génère un graphique de barres (recharts, revenus/dépenses sur la
+ * période) et renvoie le Blob. Recharts (React) ne peut pas s'exécuter en
+ * contexte non-React fiablement ici, on dessine donc le graphique avec
+ * l'API native canvas (mêmes données + mêmes sémantiques de couleur) et on
+ * renvoie le canvas via `toDataURL` → Blob.
+ */
+function exportOrgReportPNG(payload: OrgReportPayload): Blob {
+  const W = 800;
+  const H = 400;
+  const canvas = document.createElement("canvas");
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return new Blob([], { type: "image/png" });
+
+  const { summary, period } = payload;
+  const bars = [
+    { label: "Entrées", value: summary.totalIncome, color: "#1DB954" },
+    { label: "Sorties", value: summary.totalExpense, color: "#E51332" },
+    {
+      label: "Résultat",
+      value: Math.abs(summary.netResult),
+      color: "#FF6B00",
+    },
+  ];
+  const max = Math.max(...bars.map((b) => b.value), 1);
+
+  // Fond
+  ctx.fillStyle = "#F5F5F5";
+  ctx.fillRect(0, 0, W, H);
+
+  // Titre
+  ctx.fillStyle = "#1E1E1E";
+  ctx.font = "bold 20px sans-serif";
+  ctx.fillText(
+    `Rapport — ${payload.fromOrg.name} → ${payload.toOrg.name}`,
+    24,
+    36,
+  );
+  ctx.font = "14px sans-serif";
+  ctx.fillStyle = "#646464";
+  ctx.fillText(`Période : ${period.label}`, 24, 58);
+
+  // Barres
+  const chartX = 60;
+  const chartY = 100;
+  const chartW = W - 120;
+  const chartH = H - 200;
+  const gap = 40;
+  const barW = (chartW - gap * (bars.length - 1)) / bars.length;
+
+  // Ligne de base
+  ctx.strokeStyle = "#CCCCCC";
+  ctx.beginPath();
+  ctx.moveTo(chartX, chartY + chartH);
+  ctx.lineTo(chartX + chartW, chartY + chartH);
+  ctx.stroke();
+
+  bars.forEach((b, i) => {
+    const x = chartX + i * (barW + gap);
+    const h = (b.value / max) * (chartH - 30);
+    const y = chartY + chartH - h;
+    ctx.fillStyle = b.color;
+    ctx.fillRect(x, y, barW, h);
+    ctx.fillStyle = "#1E1E1E";
+    ctx.font = "bold 12px sans-serif";
+    ctx.fillText(
+      `${formatCurrencyCompact(b.value)} FCFA`,
+      x + barW / 2,
+      y - 6,
+      "center",
+    );
+    ctx.fillStyle = "#646464";
+    ctx.font = "13px sans-serif";
+    ctx.fillText(b.label, x + barW / 2, chartY + chartH + 18, "center");
+  });
+
+  const dataUrl = canvas.toDataURL("image/png");
+  const binary = atob(dataUrl.split(",")[1]);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new Blob([bytes], { type: "image/png" });
+}
+
