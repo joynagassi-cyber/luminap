@@ -30,8 +30,7 @@
  * auto_subscribe:false + WHERE from_org = current OR to_org = current).
  */
 
-import { useEffect, useMemo, useState } from "react";
-import {
+import { useEffect, useMemo, useState } from "react";import {
   IonPage,
   IonHeader,
   IonContent,
@@ -65,9 +64,9 @@ import {
   type PSOrgReports,
 } from "@/lib/dataLayer";
 import { getOrganizationId } from "@/lib/orgContext";
-import { federation, type FederationOrg } from "@/capabilities/federation";
+import { federation } from "@/capabilities/federation";
 import { computePeriod, type OrgReportPayload } from "@/lib/orgReport";
-import { formatCurrencyCompact, formatDate } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
 
 type PeriodFilter = "all" | "monthly" | "semiannual" | "annual";
 
