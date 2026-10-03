@@ -79,7 +79,9 @@ CREATE POLICY event_tasks_delete ON public.event_tasks
 -- 4) Grants (pattern P0 : anon/authenticated/service_role complets +
 --    powersync_role en lecture-modification pour l'upload local-first)
 -- ----------------------------------------------------------------------------
-GRANT SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES ON public.event_tasks
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.event_tasks
   TO anon, authenticated, service_role;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.event_tasks
   TO powersync_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.event_tasks
+  TO postgres;
