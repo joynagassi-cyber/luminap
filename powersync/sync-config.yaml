@@ -163,18 +163,25 @@ streams:
   # ── Administration centrale multi-org ──────────────────────────────────
   organizations:
     auto_subscribe: false
-    # Un admin central voit les organisations qu'il gère (via org_admins,
-    # colonne `admin_profile_id` = id du profil Supabase = `auth.uid()`).
-    # Un admin local ne voit que la sienne (via profiles.org_id).
-    # La vue `org_federation` pré-agrège parent + child_count pour la fédération.
-    # Le stream est créé explicitement côté client (CentralAdmin / Federation).
+    # Phase 1 Feature 2 : famille complète (profondeur illimitée) via
+    # `org_family` (vue closure transitive, migration 20261003000003).
+    # Un admin central voit les orgs qu'il gère (org_admins) ; une annexe
+    # voit sa famille complète (ascendants + descendants) pour
+    # recevoir/envoyer des rapports. Le stream est créé explicitement côté
+    # client (CentralAdmin / Federation / Rapports).
     query: SELECT o.id, o.name, o.type, o.status, o.parent_org_id,
                   o.suspended_at, o.suspended_by,
                   o.archived_at, o.archived_by, o.archive_reason,
                   o.created_at, o.updated_at
            FROM organizations o
-           WHERE o.id IN (SELECT org_id FROM org_admins WHERE admin_profile_id = auth.uid())
-              OR o.id = (SELECT org_id FROM profiles WHERE id = auth.uid())
+           WHERE o.id IN (
+                  SELECT org_id FROM public.org_family
+                  WHERE ancestor = (SELECT org_id FROM public.profiles WHERE id = auth.uid())
+                  UNION
+                  SELECT org_id FROM public.org_admins WHERE admin_profile_id = auth.uid()
+                  UNION
+                  SELECT org_id FROM public.profiles WHERE id = auth.uid()
+                )
 
   org_admins:
     auto_subscribe: false
