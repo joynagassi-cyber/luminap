@@ -91,7 +91,7 @@ function OrgFlowNode({ data, selected }: NodeProps) {
         borderRadius: 8,
         boxShadow: selected
           ? "0 0 0 3px color-mix(in srgb, var(--accent-primary) 15%, transparent)"
-          : "0 4px 12px rgba(0,0,0,0.3)",
+          : "var(--shadow-card)",
         cursor: "pointer",
       }}
     >
@@ -424,7 +424,7 @@ function FederationTreeInner() {
                   <MiniMap
                     position="top-right"
                     nodeColor="var(--surface-hover)"
-                    maskColor="rgba(18,18,18,0.6)"
+                    maskColor="color-mix(in srgb, var(--canvas) 60%, transparent)"
                     style={{ background: "var(--card)" }}
                   />
                 </ReactFlow>

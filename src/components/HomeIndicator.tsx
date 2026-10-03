@@ -118,7 +118,7 @@ export default function HomeIndicator() {
               background: "var(--card)",
               border: "1px solid var(--border)",
               borderBottom: "none",
-              boxShadow: "0 -12px 40px rgba(0,0,0,0.18)",
+              boxShadow: "0 -12px 40px var(--shadow-pop)",
               transform: sheetTranslate,
               transition: dragDy
                 ? "none"
@@ -233,8 +233,10 @@ export default function HomeIndicator() {
           border: "none",
           padding: 0,
           cursor: "pointer",
-          background: settled ? "rgba(120,120,120,0.55)" : "rgba(255,255,255,0.95)",
-          boxShadow: "0 1px 4px rgba(0,0,0,0.25)",
+          background: settled
+            ? "color-mix(in srgb, var(--text-tertiary) 55%, transparent)"
+            : "color-mix(in srgb, var(--on-accent) 95%, transparent)",
+          boxShadow: "0 1px 4px var(--shadow-card)",
           opacity: sheetOpen ? 0.5 : 1,
           transition:
             "background 600ms ease, opacity 300ms ease, box-shadow 300ms ease",
