@@ -69,7 +69,7 @@ function OrgNode({
   org: FederationOrg;
   children: FederationOrg[];
   onOpen: (id: string) => void;
-  onCreate: () => void;
+  onCreate: (parentOrgId: string) => void;
   onReparent: (orgId: string) => void;
 }) {
   return (
@@ -104,6 +104,16 @@ function OrgNode({
           </p>
         </div>
         <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => onCreate(org.id)}
+            title="Ajouter sous cette org"
+            aria-label="Ajouter sous cette org"
+            className="w-8 h-8 rounded-lg flex items-center justify-center transition-all active:scale-95"
+            style={{ color: "var(--text-secondary)", border: "none", background: "transparent", cursor: "pointer" }}
+          >
+            <UserPlus className="w-4 h-4" />
+          </button>
           <button
             type="button"
             onClick={() => onOpen(org.id)}
@@ -211,6 +221,17 @@ export default function Federation() {
 
   const handleOpenOrg = async (orgId: string) => {
     setSelectedOrg(orgId === selectedOrg ? null : orgId);
+  };
+
+  /**
+   * Bouton contextuel « Ajouter sous cette org » — ouvre le formulaire de
+   * création avec le parent pré-rempli à `org.id` (pattern L346-442).
+   * La création récursive passe par `federation.createOrg` (Phase 2 T2.1) ;
+   * le composant OrgChildren réutilise le même contrat.
+   */
+  const handleCreateUnder = (orgId: string) => {
+    setNewParent(orgId);
+    setShowCreate(true);
   };
 
   const handleCreate = async () => {
@@ -407,8 +428,10 @@ export default function Federation() {
                     style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}
                   >
                     <IonSelectOption value="">Aucune (racine)</IonSelectOption>
-                    {rootOrgs.map((o) => (
-                      <IonSelectOption value={o.id}>
+                    {/* Toute org visible (racines + annexes) peut être parente :
+                        la création récursive (Phase 2) s'appuie sur parent_org_id. */}
+                    {allOrgs.map((o) => (
+                      <IonSelectOption key={o.id} value={o.id}>
                         {o.name}
                       </IonSelectOption>
                     ))}
@@ -518,7 +541,7 @@ export default function Federation() {
                           org={org}
                           children={children}
                           onOpen={handleOpenOrg}
-                          onCreate={() => setShowCreate(true)}
+                          onCreate={handleCreateUnder}
                           onReparent={openReparent}
                         />
                       </div>
@@ -527,7 +550,7 @@ export default function Federation() {
                         org={org}
                         children={[]}
                         onOpen={handleOpenOrg}
-                        onCreate={() => setShowCreate(true)}
+                        onCreate={handleCreateUnder}
                         onReparent={openReparent}
                       />
                     )}

@@ -45,10 +45,12 @@ import {
   LayoutDashboard,
   UserMinus,
   UserCheck,
+  FolderTree,
 } from "lucide-react";
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
 import EmptyState from "@/components/EmptyState";
+import OrgChildren from "@/components/OrgChildren";
 import { useCurrentUser } from "@/lib/dataLayer";
 import { tint } from "@/lib/utils";
 import {
@@ -70,6 +72,10 @@ import {
 } from "@/capabilities/organization/central";
 import { useCanAccessMulti } from "@/hooks/useCanAccessMulti";
 import { useOrganizations, type PSOrganization } from "@/lib/dataLayer";
+import {
+  federation,
+  type FederationOrg,
+} from "@/capabilities/federation";
 import {
   useOrganizationContext,
   enterOrganization,
@@ -124,6 +130,110 @@ function useCentralAccessMulti(orgId: string) {
     managedOrgs: legacy.managedOrgs,
     source: multi.source,
   };
+}
+
+// ─── Section « Mes annexes » (Phase 2 Feature 2) ───────────────────────────
+
+/**
+ * Section « Mes annexes — Rapports reçus » du dashboard central.
+ *
+ * Gating fédéré (plan §Phase 2 Task 2.1, Step 2) : la section s'affiche si
+ * l'organisation courante a UNE MÈRE (`parentOrgId` non nul — c'est une
+ * annexe, elle envoie des rapports) OU au moins UNE ANNEXE DIRECTE
+ * (`federation.getOrgChildren(orgId).length > 0` — c'est une mère ou un
+ * intermédiaire, elle reçoit des rapports). Sinon : le composant renvoie
+ * null et le dashboard central reste intact (invariant non-régression).
+ */
+function MesAnnexesSection({ orgId }: { orgId: string }) {
+  const user = useCurrentUser();
+  const [parent, setParent] = useState<FederationOrg | null>(null);
+  const [children, setChildren] = useState<FederationOrg[]>([]);
+  const [checked, setChecked] = useState(false);
+  const [tick, setTick] = useState(0);
+
+  // Chargement du gating : mère (getOrgParent) + annexes directes.
+  useEffect(() => {
+    if (!user?.id || !orgId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const [p, ch] = await Promise.all([
+          federation.getOrgParent(orgId),
+          federation.getOrgChildren(orgId),
+        ]);
+        if (cancelled) return;
+        setParent(p);
+        setChildren(ch);
+        setChecked(true);
+      } catch {
+        if (!cancelled) setChecked(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, orgId, tick]);
+
+  const hasParent = !!parent;
+  const hasChildren = children.length > 0;
+  if (!checked || (!hasParent && !hasChildren)) return null;
+
+  return (
+    <div className="mt-6">
+      <div className="rounded-xl p-4 mb-4" style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}>
+        <MesAnnexesHeader hasParent={hasParent} hasChildren={hasChildren} childrenCount={children.length} />
+        {/* Composant réutilisable : liste des annexes + création récursive
+            (bouton contextuel « Créer une annexe » avec parentOrgId = org courante). */}
+        <div className="mt-4">
+          <OrgChildren parentOrgId={orgId} onCreated={() => setTick((t) => t + 1)} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MesAnnexesHeader({
+  hasParent,
+  hasChildren,
+  childrenCount,
+}: {
+  hasParent: boolean;
+  hasChildren: boolean;
+  childrenCount: number;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <FolderTree className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
+      <span className="text-text-primary font-semibold text-sm">
+        Mes annexes — Rapports reçus
+      </span>
+      <div className="ml-auto flex flex-wrap gap-1.5">
+        {hasParent && (
+          <span
+            className="text-xs px-2 py-0.5 rounded-full font-medium"
+            style={{
+              backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)",
+              color: "var(--accent-primary)",
+            }}
+          >
+            Envoyer vers la mère
+          </span>
+        )}
+        {hasChildren && (
+          <span
+            className="text-xs px-2 py-0.5 rounded-full font-medium"
+            style={{
+              backgroundColor: "color-mix(in srgb, var(--data-income) 12%, transparent)",
+              color: "var(--data-income)",
+            }}
+          >
+            {childrenCount} annexe{childrenCount > 1 ? "s" : ""} active{childrenCount > 1 ? "s" : ""}
+          </span>
+        )}
+      </div>
+    </div>
+  );
 }
 
 // ─── Org detail view ────────────────────────────────────────────────────────
@@ -759,6 +869,12 @@ export default function CentralAdmin() {
                     ))}
                   </div>
                 )}
+
+                {/* Mes annexes — Rapports reçus (Phase 2 Feature 2) : section
+                    non-régressive ajoutée sous « Organisations gérées ». Le
+                    composant s'auto-masque si l'org courante n'a ni mère ni
+                    annexe directe (gating fédéré). */}
+                <MesAnnexesSection orgId={ctx.orgId} />
               </>
             )}
 
