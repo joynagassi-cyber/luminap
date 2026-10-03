@@ -173,6 +173,25 @@ export function EventsSkeleton() {
   );
 }
 
+/* ── Calendrier maison : pills (mois/année) + grille 7×5 de pastilles (44×44) ── */
+export function CalendarSkeleton() {
+  return (
+    <div className="p-5 space-y-4" aria-busy="true">
+      <div style={{ display: "flex", gap: 8 }}>
+        <Pill width={88} />
+        <Pill width={88} />
+      </div>
+      <Shell>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 8 }}>
+          {Array.from({ length: 35 }).map((_, i) => (
+            <ShimmerBlock key={i} width={44} height={44} radius={8} style={{ margin: "auto" }} />
+          ))}
+        </div>
+      </Shell>
+    </div>
+  );
+}
+
 /* ── ÉvénementDetail : header + budget lines + quick-entry block ── */
 export function EventDetailSkeleton() {
   return (

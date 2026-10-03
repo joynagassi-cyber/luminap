@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   IonPage,
   IonHeader,
@@ -15,30 +15,31 @@ import CircleAction from "@/components/CircleAction";
 import { EventsSkeleton } from "@/components/PageSkeletons";
 import EmptyState from "@/components/EmptyState";
 import { formatDate, formatCurrencyCompact } from "@/lib/utils";
+import SegmentedTabs from "@/components/SegmentedTabs";
+import EventCalendar from "@/components/EventCalendar";
+import EventTimeline from "@/components/EventCalendar/EventTimeline";
+import { EVENT_STATUS_COLORS, EVENT_STATUS_LABELS } from "@/lib/event-status";
 
-const STATUS_COLORS: Record<string, string> = {
-  PLANIFIED: "var(--data-planified)",
-  ONGOING: "var(--data-income)",
-  COMPLETED: "var(--text-tertiary)",
-  CANCELLED: "var(--data-expense)",
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  PLANIFIED: "Planifié",
-  ONGOING: "En cours",
-  COMPLETED: "Terminé",
-  CANCELLED: "Annulé",
-};
+/** Vues de la page Événements : liste (défaut) | calendrier | timeline. */
+type ViewMode = "list" | "calendar" | "timeline";
 
 export default function Events() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { data: psEvents, isLoading: psLoading } = useEvents();
   const { data: psTransactions } = useTransactions();
 
   const events = psEvents ?? [];
   const transactions = psTransactions ?? [];
 
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [visibleCount, setVisibleCount] = useState(50);
+
+  // ?date=YYYY-MM-DD (navigation calendrier → timeline du jour) : bascule en timeline
+  const dateParam = searchParams.get("date");
+  useEffect(() => {
+    if (dateParam) setViewMode("timeline");
+  }, [dateParam]);
 
   const sortedEvents = useMemo(() => {
     return [...events].sort(
@@ -89,7 +90,31 @@ export default function Events() {
               </CircleAction>
             </div>
 
-            {sortedEvents.length === 0 ? (
+            {/* Toggle Liste | Calendrier | Timeline — pattern SegmentedTabs */}
+            <div className="mb-5">
+              <SegmentedTabs
+                tabs={[
+                  { id: "list", label: "Liste" },
+                  { id: "calendar", label: "Calendrier" },
+                  { id: "timeline", label: "Timeline" },
+                ]}
+                active={viewMode}
+                onChange={(id) => setViewMode(id as ViewMode)}
+              />
+            </div>
+
+            {viewMode === "calendar" ? (
+              <EventCalendar
+                events={events}
+                onSelectEvent={(id) => navigate(`/event/${id}`)}
+                onSelectDay={(iso) => navigate(`/events?date=${iso}`)}
+              />
+            ) : viewMode === "timeline" ? (
+              <EventTimeline
+                events={events}
+                onSelectEvent={(id) => navigate(`/event/${id}`)}
+              />
+            ) : sortedEvents.length === 0 ? (
               <EmptyState
                 title="Aucun événement"
                 description="Planifiez vos prochaines célébrations"
@@ -99,7 +124,7 @@ export default function Events() {
             ) : (
               <div className="space-y-3">
                 {visibleEvents.map((event: any) => {
-                  const color = STATUS_COLORS[event.status] || "var(--text-tertiary)";
+                  const color = EVENT_STATUS_COLORS[event.status] || "var(--text-tertiary)";
                   const eventTxs = txsByEvent.get(event.id) ?? [];
                   const income = eventTxs
                     .filter(
@@ -153,7 +178,7 @@ export default function Events() {
                               className="text-xs px-2 py-0.5 rounded-full font-medium"
                               style={{ color, backgroundColor: color + "20" }}
                             >
-                              {STATUS_LABELS[event.status] || event.status}
+                              {EVENT_STATUS_LABELS[event.status] || event.status}
                             </span>
                             {budgetItems.length > 0 && (
                               <span className="text-xs text-text-tertiary">
