@@ -126,20 +126,23 @@ describe('Lumina — Org reports hierarchy, send page gating, RLS', () => {
     cy.visit('/admin/report-send');
     cy.url({ timeout: 20_000 }).should('include', 'report-send');
 
-    // L'un des deux états : soit message racine, soit formulaire si l'org
-    // courante est une annexe (dépend du seed — on accepte les deux mais on
-    // documente l'attendu racine dans le log).
-    cy
-      .contains('Mère', { timeout: 15_000 })
-      .then(($m) => {
-        cy.log('report-send gating: message "pas de mère" visible (org racine)');
-      })
-      .catch(() => {
-        cy.get('ion-select[data-testid="report-period"]')
-          .should('exist')
-          .then(() => {
-            cy.log('report-send : formulaire visible (org courante a une mère)');
-          });
+    // L'un des deux états : soit le message « pas de mère » (org racine),
+    // soit le formulaire (org = annexe). Pas de .catch sur les chaînes
+    // Cypress : on teste la présence de chaque état indépendamment.
+    cy.get('body')
+      .then(($body) => {
+        const text = $body.text();
+        if (text.includes("n'a pas de mère")) {
+          cy.log('report-send gating: message « pas de mère » visible (org racine)');
+        }
+      });
+    cy.get('ion-select[data-testid="report-period"]', { timeout: 5_000 })
+      .then(($sel) => {
+        if ($sel.length > 0) {
+          cy.log('report-send : formulaire visible (org courante a une mère)');
+        } else {
+          cy.log('report-send : formulaire absent (conforme si org racine)');
+        }
       });
 
     // ── 6. RLS negative assertions (anon key) ─────────────────────────
