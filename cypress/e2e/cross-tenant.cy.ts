@@ -77,7 +77,9 @@ describe('Lumina — Cross-tenant isolation (2 orgs)', () => {
         cy.log(`Event visible in current org: ${rows.length} row(s)`);
       });
 
-      // Query events filtered by a FAKE org_id → must return 0
+      // Query events filtered by a FAKE org_id → must return 0.
+      // Le filtre `name=` est écarté : une org étrangère N'A tout simplement
+      // pas cette ligne (test de fuite réel, pas d'absence de donnée).
       const fakeOrgId = '00000000-0000-0000-0000-000000000000';
       cy.request({
         method: 'GET',

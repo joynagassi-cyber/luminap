@@ -38,10 +38,16 @@ ON CONFLICT (id) DO NOTHING;
 -- 2) Policies storage.objects DÉDIÉES au bucket org_reports
 --    (additif — ne modifie PAS les policies 0051/0052/0053 sur les autres
 --    buckets, qui restent le SSOT pour ceux-ci)
+--    Rationale TO anon + authenticated (aligné sur 0051/0052, live 2026-10-04) :
+--    le client (app web) authentifié lit via `getReportUrl` (URL signée, la
+--    lecture passe par la policy READ) ; `anon` est inclus car c'est le rôle
+--    de base des requests app non-auth (Rôle anon est requis par PostgREST
+--    pour les tables exposées). Les données restent PROTECTÉES par le fait
+--    que le bucket est `public = false` (pas d'URL publique statique).
 -- ----------------------------------------------------------------------------
 DROP POLICY IF EXISTS lumina_storage_read_org_reports ON storage.objects;
 CREATE POLICY lumina_storage_read_org_reports ON storage.objects
-  FOR SELECT TO authenticated
+  FOR SELECT TO anon, authenticated
   USING (bucket_id = 'org_reports');
 
 DROP POLICY IF EXISTS lumina_storage_write_org_reports ON storage.objects;
