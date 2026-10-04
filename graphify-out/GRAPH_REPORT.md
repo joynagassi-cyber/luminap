@@ -1,11 +1,11 @@
-# Graph Report - lumina  (2026-10-03)
+# Graph Report - lumina  (2026-10-04)
 
 ## Corpus Check
-- 650 files · ~636,782 words
+- 656 files · ~640,292 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 8518 nodes · 27219 edges · 49 communities detected
+- 8524 nodes · 27219 edges · 49 communities detected
 - Extraction: 69% EXTRACTED · 31% INFERRED · 0% AMBIGUOUS · INFERRED: 8486 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
@@ -316,7 +316,7 @@ Nodes (2): mockLegacy(), runAndSettle()
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `map()` connect `Community 2` to `Community 0`, `Community 1`, `Community 3`, `Community 4`, `Community 5`, `Community 6`, `Community 35`, `Community 8`, `Community 9`, `Community 10`, `Community 11`, `Community 13`, `Community 14`, `Community 18`, `Community 19`, `Community 20`, `Community 21`, `Community 26`?**
-  _High betweenness centrality (0.080) - this node is a cross-community bridge._
+  _High betweenness centrality (0.076) - this node is a cross-community bridge._
 - **Why does `push()` connect `Community 3` to `Community 0`, `Community 1`, `Community 2`, `Community 4`, `Community 5`, `Community 38`, `Community 7`, `Community 8`, `Community 9`, `Community 10`, `Community 11`, `Community 12`, `Community 13`, `Community 14`, `Community 15`, `Community 16`, `Community 41`, `Community 21`?**
   _High betweenness centrality (0.053) - this node is a cross-community bridge._
 - **Why does `slice()` connect `Community 3` to `Community 0`, `Community 1`, `Community 2`, `Community 33`, `Community 4`, `Community 5`, `Community 6`, `Community 7`, `Community 8`, `Community 9`, `Community 10`, `Community 12`, `Community 14`, `Community 15`, `Community 17`, `Community 20`, `Community 22`?**
