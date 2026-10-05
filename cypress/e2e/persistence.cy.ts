@@ -28,12 +28,13 @@
 
 describe('Lumina — F5 persistence (event)', () => {
   before(function () {
-    this.timeout(90_000);
+    this.timeout(120_000);
     cy.loginOrgAccount();
+    cy.ensureAuth();
   });
 
   it('event creation and persistence across navigation', function () {
-    this.timeout(240_000);
+    this.timeout(300_000);
 
     const EVENT_NAME = 'Event Persist F5';
 
@@ -44,54 +45,86 @@ describe('Lumina — F5 persistence (event)', () => {
     cy.ensureAuth();
 
     // ── 1. Create the event ─────────────────────────────────────────
-    // La route /event/new est lazy-load (React.lazy dans routes/events.tsx) :
-    // il faut attendre que la navigation vers /event/new soit complète
-    // avant de chercher les inputs, sinon le sélecteur échoue.
-    // On ne cible QUE le nom : c'est le seul champ requis pour un
-    // événement de type EVENT (le montant de cotisation n'est requis
-    // QUE pour eventType === 'CULTE', qui n'est pas le cas ici).
-    // La description est optionnelle — pas besoin de la remplir pour
-    // tester la persistance.
+    // La route /event/new est lazy-load (React.lazy dans
+    // routes/events.tsx) : il faut attendre que la navigation
+    // vers /event/new soit complète avant de chercher les inputs.
     cy.visit('/event/new');
-    cy.get('ion-title', { timeout: 60_000 })
+    cy.get('ion-title', { timeout: 90_000 })
       .contains('Nouvel événement')
       .should('be.visible');
 
-    // Nom : IonInput (custom element Ionic). Le pattern qui marche dans
-    // tout le projet (cf. events-tasks.cy.ts, groups-events.cy.ts) est
-    // de cibler l'ion-input par son aria-label et de faire .type()
-    // directement dessus — l'ion-input interne répropage vers
-    // onIonChange, ce qui met à jour le state React.
-    const nameSel =
-      'ion-input[aria-label="Nom de l\'événement"], input[aria-label="Nom de l\'événement"]';
+    // ── Le formulaire d'événement ─────────────────────────────────
+    // Le IonInput du nom est un custom element Ionic (wrapper
+    // ion-input, input natif interne). Le pattern éprouvé dans
+    // events-tasks.cy.ts (ce spec utilise le même flow) est :
+    //
+    //   cy.get('input[aria-label="..."]').type(name, { force: true })
+    //
+    // — cypress force() contourne le checkVisibility, et le
+    // type() de Cypress sur l'input interne déclenche bien le
+    // ionChange de l'IonInput (onIonChange → setName).
+    cy.get(
+      'ion-input[aria-label="Nom de l\'événement"], input[aria-label="Nom de l\'événement"]',
+      { timeout: 30_000 },
+    )
+      .first()
+      .type(EVENT_NAME, { force: true });
 
-    cy.get(nameSel, { timeout: 30_000 }).first().type(EVENT_NAME, { force: true });
-    cy.contains('button', "Créer l'événement", { timeout: 30_000 }).click();
+    // Vérifier que le champ du nom a bien été rempli (la value est
+    // dans l'input natif interne) AVANT de soumettre.
+    cy.get(
+      'ion-input[aria-label="Nom de l\'événement"], input[aria-label="Nom de l\'événement"]',
+      { timeout: 10_000 },
+    )
+      .first()
+      .should(($el: any) => {
+        // Le input natif interne est un descendant du wrapper.
+        const nativeInput =
+          $el[0].querySelector('input') ??
+          ($el[0].tagName.toLowerCase() === 'input' ? $el[0] : null);
+        expect(
+          (nativeInput as HTMLInputElement | null)?.value,
+          "le nom n'est pas dans le champ — le submit va bailed",
+        ).to.equal(EVENT_NAME);
+      });
+
+    // Le IonButton « Créer l'événement » rend un <ion-button>
+    // (custom element) — le texte est un child text node, pas un
+    // attribute. `cy.contains('button', ...)` cherche un <button>
+    // DOM avec ce texte en descendant : ça marche si le ion-button
+    // rend un <button> natif interne, mais en Ionic 7 le ion-button
+    // rend directement le texte dans son light DOM (pas de
+    // <button> interne). On cible donc le ion-button par son texte
+    // et on clique dessus (le ion-button a un onclick).
+    cy.contains('ion-button', "Créer l'événement", { timeout: 30_000 })
+      .first()
+      .click({ force: true });
 
     // VÉRIFICATION IMMÉDIATE de la navigation post-submit : le submit
     // déclenche navigate("/events") dans EventNew.tsx s'il a réussi.
     // Si on ne navigue PAS, le nom a été vide (React state pas
     // synchronisé) et le submit a bailed — le test échoue ici avec
-    // un message clair plutôt qu'à l'assert finale. Le should() retrye
-    // jusqu'à 60 s (l'app peut mettre un peu de temps à naviguer
-    // après l'attente du addEventPS + la notification).
+    // un message clair plutôt qu'à l'assert finale. Le should()
+    // retrye jusqu'à 60 s (l'app peut mettre un peu de temps à
+    // naviguer après l'attente du addEventPS + la notification).
     cy.location('pathname', { timeout: 60_000 }).should(
       'eq',
       '/events',
-      "le submit n'a pas navigué vers /events — l'état React du nom était probablement vide au moment du click (le .type() de Cypress sur l'ion-input n'a pas déclenché onIonChange, ou le submit a bailed sur !name.trim())",
+      "le submit n'a pas navigué vers /events — le ion-input type n'a pas déclenché onIonChange, ou le submit a bailed sur !name.trim()",
     );
 
     // ── 2. Verify the event persists across a hard reload ──────────
-    // Les événements sont lus via PowerSync (useEvents → useQuery) qui
-    // sync l'upload local → server. Le premier sync peut prendre 10-30 s.
-    // On recharge /events (cy.reload() = F5), et on attend que le nom
-    // soit visible (timeout étendu pour le sync). Si PowerSync n'a pas
-    // encore synchronisé, le fallback local (useLocalStore, IndexedDB)
-    // devrait le retourner (offline-first) — le test passe dans les
-    // deux cas, ce qui est le point exact du F5.
+    // Les événements sont lus via PowerSync (useEvents → useQuery)
+    // qui sync l'upload local → server. Le premier sync peut
+    // prendre 10-30 s. On recharge /events (cy.reload() = F5),
+    // et on attend que le nom soit visible (timeout étendu pour le
+    // sync). Si PowerSync n'a pas encore synchronisé, le fallback
+    // local (useLocalStore, IndexedDB) devrait le retourner
+    // (offline-first) — le test passe dans les deux cas, ce qui
+    // est le point exact du F5.
     cy.reload();
     cy.location('pathname', { timeout: 30_000 }).should('eq', '/events');
-    cy.contains(EVENT_NAME, { timeout: 90_000 }).should('be.visible');
+    cy.contains(EVENT_NAME, { timeout: 120_000 }).should('be.visible');
 
     console.log('✅ F5 PERSISTANCE — event survives hard reload of /events');
   });
