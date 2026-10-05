@@ -66,6 +66,11 @@ export default defineConfig(() => ({
   },
   optimizeDeps: {
     exclude: ["@journeyapps/wa-sqlite", "@powersync/web"],
+    // pdfjs worker : `?url` asset import est traité par Vite comme un
+    // asset émis dans dist/ — on l'ajoute explicitement pour que le
+    // bundler le copie dans le build (rolldown résout le module mais ne
+    // le copie pas comme asset sans déclaration).
+    include: ["pdfjs-dist/build/pdf.worker.min.mjs?url"],
   },
   build: {},
   worker: {

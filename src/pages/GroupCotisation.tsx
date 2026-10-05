@@ -523,6 +523,7 @@ export default function GroupCotisation() {
                   )}
                 </IonButton>
               </div>
+            </div>
           )}
 
           <p className="text-text-tertiary text-xs mt-4">

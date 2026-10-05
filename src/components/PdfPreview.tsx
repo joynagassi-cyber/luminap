@@ -13,10 +13,12 @@
  *    expirée, hors-ligne, bucket inatteignable) + bouton de re-essai ;
  *  - squelette (animate-pulse) pendant le load.
  *
- * Sécurité du worker : `react-pdf` pose par défaut `workerSrc =
- * 'pdf.worker.mjs'` (chemin relatif cassé sous Vite/Capacitor) — l'import
- * ci-dessous avec `?url` résout l'asset dans le bundle et on le pousse dans
- * `GlobalWorkerOptions` avant tout premier `<Document>` (idempotent).
+ * Sécurité du worker : `react-pdf` (pdfjs-dist v6) ne configure pas
+ * `GlobalWorkerOptions.workerSrc` — sans URL valide, le renderer de
+ * pdfjs ne sait pas charger `pdf.worker.min.mjs` et le rendu tombe en
+ * mode main-thread synchrone (freeze UI) ou échoue. On pousse une URL
+ * absolue dérivée du chemin de l'asset copié dans `dist/assets/` avant
+ * tout premier montage de `<Document>` (idempotent).
  *
  * Tokens Lumina uniquement (zéro couleur brute) : le composant n'utilise
  * que les variables CSS du design system (`--surface`, `--canvas`,
@@ -30,9 +32,6 @@ import {
   useDocumentContext,
   pdfjs,
 } from "react-pdf";
-// Import d'asset Vite : génère l'URL du worker dans le bundle (résolu au
-// même domaine que l'index.html) — remplace le chemin relatif par défaut.
-import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import {
   Minus,
   Plus,
@@ -44,8 +43,16 @@ import {
   RefreshCw,
 } from "lucide-react";
 
-// Propage l'URL d'asset du worker à pdfjs (avant tout montage de <Document>).
-pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl as string;
+// Chemin du worker : react-pdf (pdfjs-dist v6) ne préconfigure pas
+// `GlobalWorkerOptions.workerSrc`. Sans URL valide, le renderer de pdfjs
+// charge le worker par chemin relatif au document et échoue (ou bascule
+// en mode main-thread synchrone, UI figée). `new URL(..., import.meta.url)`
+// est résolu par le bundler (Vite/Rolldown : l'asset est émis dans
+// dist/assets/ avec son hash) — URL absolue au boot, idempotent.
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  "pdfjs-dist/build/pdf.worker.min.mjs",
+  import.meta.url,
+).href;
 
 interface PdfPreviewProps {
   /** URL signée (30 min) du rapport dans le bucket privé `org_reports`. */

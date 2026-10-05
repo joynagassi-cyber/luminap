@@ -11,6 +11,13 @@ import "./ionic/theme.css";
 import { applyStoredTheme, applyStoredThemeMode } from "./ionic/themes";
 import { initPowerSync } from "@/lib/powersync";
 import { prefetchNavViews, useFeatureConfig } from "@/lib/features";
+import { initSentry } from "@/lib/sentry";
+
+// Initialise Sentry avant tout : il capture les erreurs de la phase de
+// boot (initPowerSync, applyStoredTheme, loadIonicDefinitions…). Silencieux
+// si le DSN (VITE_SENTRY_DSN) n'est pas défini — le SDK reste actif sans envoi.
+initSentry();
+
 
 // Initialize PowerSync before React mounts. This is fire-and-forget: it
 // registers the shared database/connector singletons synchronously so the

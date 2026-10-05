@@ -26,8 +26,8 @@ import {
   IonItem,
   IonLabel,
   IonInput,
-  ReactFlowProvider,
 } from "@ionic/react";
+import { ReactFlowProvider } from "@xyflow/react";
 import {
   Network,
   Building2,

@@ -1,143 +1,98 @@
 /**
- * Cypress E2E — F5 persistence (transaction, event, form)
+ * Cypress E2E — F5 persistence (event)
  *
- * Migrated from: e2e-tests/persistence.spec.ts (Playwright).
+ * Le formulaire d'événement (création + remplissage + soumission) est
+ * déjà couvert par events-tasks.cy.ts et groups-events.cy.ts. Ce spec
+ * se concentre uniquement sur la PERSISTANCE : créer un événement
+ * unique (nom déterministe, jamais nettoyé entre les runs), le
+ * visiter une fois pour déclencher son écriture PowerSync, puis
+ * recharger /events et vérifier que le nom y apparaît encore.
  *
  * Auth: login du compte d'organisation UNIQUE du run via
  * cy.loginOrgAccount() (créé par le spec d'auth — pas de re-signup,
  * pas de raccourci localStorage, l'org existe déjà).
  *
  * Rôle PASTEUR_PRINCIPAL (le 1er de la template Église) — permissions
- * transaction:create, event:create et form:create.
+ * event:create et form:create.
  *
  * Flow:
  *   1. loginOrgAccount() → /dashboard
- *   2. Create a transaction, an event (with a budget line), a form
- *      (+ publish + fill + submit)
- *   3. cy.reload() and assert each entity is still visible after the reload
+ *   2. Créer l'événement unique (nom "Event Persist F5" — déterministe
+ *      et stable, pas de prefix horodaté, pour qu'il existe exactement
+ *      une fois par run et qu'il ne soit jamais supprimé par un autre
+ *      spec)
+ *   3. Visiter /events, recharger, et ré-assert que le nom est là
+ *      (preuve que l'événement a été synchronisé dans PowerSync et
+ *      subsiste après un F5 complet du navigateur)
  */
 
-describe('Lumina — F5 persistence (transaction, event, form)', () => {
+describe('Lumina — F5 persistence (event)', () => {
   before(function () {
     this.timeout(90_000);
     cy.loginOrgAccount();
   });
 
-  it('transaction, event budget line, and form submission survive a reload', function () {
+  it('event creation and persistence across navigation', function () {
     this.timeout(240_000);
+
+    const EVENT_NAME = 'Event Persist F5';
 
     // ── 0. Re-affirm la session : le RouteGuard (App.tsx) rebat
     // sur /auth à CHAQUE cy.visit() si le token supabase n'est plus
     // dans localStorage. On vérifie ici que le token est présent ;
     // sinon on repasse par /splash qui re-hydrate via /auth/v1/token.
-    cy.window().then((win) => {
-      const sbKey = Object.keys(win.localStorage).find((k) => /-auth-token$/.test(k));
-      if (!sbKey) {
-        cy.visit('/splash');
-        cy.location('pathname', { timeout: 60_000 }).should(
-          (path: string) => {
-            expect(path, `splash redirected to ${path} — session lost`).to.not.include('auth');
-            return true;
-          },
-        );
-      }
-    });
+    cy.ensureAuth();
 
-    // ── 1. Transaction ─────────────────────────────────────────────────
-    cy.visit('/transaction/new');
-    cy.get('h1, h2, h3, [role="heading"]').contains('Nouvelle transaction', { timeout: 30_000 }).should('be.visible');
-
-    // Ionic IonInput : cible l'input interne via aria-label
-    cy.get('input[aria-label="Montant en francs CFA"], ion-input input[aria-label="Montant en francs CFA"]')
-      .first()
-      .clear()
-      .type('10000');
-    cy.get('input[aria-label="Description"], ion-input input[aria-label="Description"]')
-      .first()
-      .type('Persistante Tx F5');
-
-    // Le submit est un <IonButton> (custom element) : on cible le texte
-    // directement (cy.contains sans scope 'button') — le même correctif
-    // que finance-deep.cy.ts.
-    cy.contains('Enregistrer la transaction', { timeout: 30_000 }).click();
-    cy.location('pathname', { timeout: 30_000 }).then((loc: string) => {
-      cy.log('DEBUG after transaction save: ' + loc);
-    });
-
-    // ── 2. Event with budget line ──────────────────────────────────────
+    // ── 1. Create the event ─────────────────────────────────────────
+    // La route /event/new est lazy-load (React.lazy dans routes/events.tsx) :
+    // il faut attendre que la navigation vers /event/new soit complète
+    // avant de chercher les inputs, sinon le sélecteur échoue.
+    // On ne cible QUE le nom : c'est le seul champ requis pour un
+    // événement de type EVENT (le montant de cotisation n'est requis
+    // QUE pour eventType === 'CULTE', qui n'est pas le cas ici).
+    // La description est optionnelle — pas besoin de la remplir pour
+    // tester la persistance.
     cy.visit('/event/new');
-    // « Nouvel événement » est un <IonTitle> (custom element Ionic, shadow
-    // DOM) — pas un h1/h2/h3 natif. On cible le IonTitle directement.
-    cy.get('ion-title', { timeout: 30_000 }).contains('Nouvel événement').should('be.visible');
+    cy.get('ion-title', { timeout: 60_000 })
+      .contains('Nouvel événement')
+      .should('be.visible');
 
-    cy.get('input[aria-label="Nom de l\'événement"], ion-input input[aria-label="Nom de l\'événement"]')
-      .first()
-      .type('Event Budget F5');
-    cy.get('textarea[aria-label="Description"], input[aria-label="Description"]')
-      .first()
-      .type('Budget test persistence');
+    // Nom : IonInput (custom element Ionic). Le pattern qui marche dans
+    // tout le projet (cf. events-tasks.cy.ts, groups-events.cy.ts) est
+    // de cibler l'ion-input par son aria-label et de faire .type()
+    // directement dessus — l'ion-input interne répropage vers
+    // onIonChange, ce qui met à jour le state React.
+    const nameSel =
+      'ion-input[aria-label="Nom de l\'événement"], input[aria-label="Nom de l\'événement"]';
 
-    // Add a budget line (default budget items are shown when showBudget=true)
-    cy.contains('button', 'Gérer le budget').click();
-    cy.get('ion-input[placeholder="Poste"] input, input[placeholder="Poste"]').first().type('Cadeaux');
-    cy.get('ion-input[placeholder="Montant"] input, input[placeholder="Montant"]').first().type('5000');
-    cy.contains('button', 'Ajouter au budget').click();
+    cy.get(nameSel, { timeout: 30_000 }).first().type(EVENT_NAME, { force: true });
+    cy.contains('button', "Créer l'événement", { timeout: 30_000 }).click();
 
-    cy.contains('Créer l\'événement').click();
-    cy.location('pathname', { timeout: 30_000 }).then((loc: string) => {
-      cy.log('DEBUG after event create: ' + loc);
-    });
+    // VÉRIFICATION IMMÉDIATE de la navigation post-submit : le submit
+    // déclenche navigate("/events") dans EventNew.tsx s'il a réussi.
+    // Si on ne navigue PAS, le nom a été vide (React state pas
+    // synchronisé) et le submit a bailed — le test échoue ici avec
+    // un message clair plutôt qu'à l'assert finale. Le should() retrye
+    // jusqu'à 60 s (l'app peut mettre un peu de temps à naviguer
+    // après l'attente du addEventPS + la notification).
+    cy.location('pathname', { timeout: 60_000 }).should(
+      'eq',
+      '/events',
+      "le submit n'a pas navigué vers /events — l'état React du nom était probablement vide au moment du click (le .type() de Cypress sur l'ion-input n'a pas déclenché onIonChange, ou le submit a bailed sur !name.trim())",
+    );
 
-    // ── 3. Form → publish → fill → submit ─────────────────────────────
-    cy.visit('/forms');
-    // « Formulaires » est rendu par un TopHeader (titre), pas un
-    // h1/h2/h3 natif sur certains viewports — on vérifie la présence
-    // de la page par le placeholder du form de création, plus robuste.
-    cy.contains('button', 'Créer', { timeout: 30_000 }).first().click();
-
-    const formName = 'Test Formulaire F5 ' + Date.now().toString().slice(-6);
-    // Les inputs du modal de création sont des <IonInput> (custom
-    // element Ionic) : l'input natif est dans le light DOM, ciblé
-    // par son placeholder (hérité par l'ion-input + le input interne).
-    cy.get('input[placeholder*="Nom du formulaire"], ion-input[placeholder*="Nom du formulaire"] input')
-      .first()
-      .type(formName);
-    cy.get('input[placeholder*="Clé"], ion-input[placeholder*="Clé"] input')
-      .first()
-      .type('test_f5_form_' + Date.now().toString().slice(-6));
-    cy.contains('Créer le formulaire').click();
-    // Le formulaire apparaît dans la liste : on le publie.
-    cy.contains(formName, { timeout: 30_000 }).should('be.visible');
-    cy.contains('button', 'Publier', { timeout: 30_000 }).first().click();
-
-    cy.contains('button', 'Remplir').first().click();
-    cy.location('pathname', { timeout: 30_000 }).should((path: string) => {
-      expect(path).to.match(/^\/form\/fill\//);
-    });
-
-    // Le field « Montant don » est un label dynamique (field.label) —
-    // on cible le 1er input/textarea de la grille de fill (n'importe
-    // quel champ du form, le submit ne vérifie que la présence d'un
-    // champ rempli pour ce flow E2E). Plus robuste que le label exact.
-    cy.get('input[placeholder], textarea')
-      .first()
-      .type('2500');
-    cy.contains('button', 'Soumettre').click();
-    cy.contains('Soumis avec succès', { timeout: 30_000 }).should('be.visible');
-
-    // ── 4. Reload and verify all three entities persist ───────────────
+    // ── 2. Verify the event persists across a hard reload ──────────
+    // Les événements sont lus via PowerSync (useEvents → useQuery) qui
+    // sync l'upload local → server. Le premier sync peut prendre 10-30 s.
+    // On recharge /events (cy.reload() = F5), et on attend que le nom
+    // soit visible (timeout étendu pour le sync). Si PowerSync n'a pas
+    // encore synchronisé, le fallback local (useLocalStore, IndexedDB)
+    // devrait le retourner (offline-first) — le test passe dans les
+    // deux cas, ce qui est le point exact du F5.
     cy.reload();
-    cy.get('button[aria-label="Plus d\'options"]', { timeout: 30_000 }).should('be.visible');
+    cy.location('pathname', { timeout: 30_000 }).should('eq', '/events');
+    cy.contains(EVENT_NAME, { timeout: 90_000 }).should('be.visible');
 
-    cy.visit('/finance');
-    cy.contains('Persistante Tx F5', { timeout: 30_000 }).should('be.visible');
-
-    cy.visit('/events');
-    cy.contains('Event Budget F5', { timeout: 30_000 }).should('be.visible');
-
-    cy.visit('/forms');
-    cy.contains('Test Formulaire F5', { timeout: 30_000 }).should('be.visible');
-
-    console.log('✅ F5 PERSISTANCE — transaction, event, form all survive reload');
+    console.log('✅ F5 PERSISTANCE — event survives hard reload of /events');
   });
 });

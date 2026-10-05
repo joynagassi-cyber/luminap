@@ -13,6 +13,7 @@ import { AppProvider } from "./context/AppContext";
 import SyncIndicator from "./components/SyncIndicator";
 import AppRouter from "./AppRouter";
 import { luminaRoutes } from "./ionic/routing";
+import { ErrorBoundary, withScope } from "@sentry/react";
 import "./ionic/theme";
 
 // Initialize Ionic React (dark theme applied via setupLuminaTheme)
@@ -129,14 +130,42 @@ const AppUrlOpenBridge = () => {
 };
 
 /**
+ * SentryUserBridge — rattache l'utilisateur connecté au contexte Sentry
+ * (replays, corrélation erreurs ↔ user), et le retire à la déconnexion.
+ */
+const SentryUserBridge = () => {
+  useEffect(() => {
+    const unsubscribe = authService.subscribe(() => {
+      const { user, session } = authService.getState();
+      withScope((scope) => {
+        if (user?.id && session) {
+          scope.setUser({
+            id: user.id,
+            email: user.email ?? undefined,
+          });
+        } else {
+          scope.setUser(null);
+        }
+      });
+    });
+    return unsubscribe;
+  }, []);
+  return null;
+};
+
+/**
  * App — wraps the entire Lumina application in IonApp + IonReactRouter.
  */
 const App = () => (
   <QueryClientProvider client={queryClient}>
+    <ErrorBoundary fallback={<div style={{ padding: 24, color: "var(--text-primary)", fontFamily: "var(--font-sans)", fontSize: 14 }}>
+        Une erreur inattendue s'est produite. Rechargez la page pour réessayer.
+      </div>}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
       <IonApp>
+        <SentryUserBridge />
         <AppUrlOpenBridge />
         {/* Lien « sauter au contenu » — premier élément focalisable, masqué
             visuellement jusqu'au focus clavier (a11y : parcours du clavier). */}
@@ -181,6 +210,7 @@ const App = () => (
         </IonReactRouter>
       </IonApp>
     </TooltipProvider>
+    </ErrorBoundary>
   </QueryClientProvider>
 );
 

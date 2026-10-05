@@ -11,6 +11,11 @@ e2e-tests/fixtures/
 cypress-sessions-diag.log
 hs_err_pid*.log
 replay_pid*.log
+tsconfig.app.tsbuildinfo
+cypress/.persist*.log
+
+# MCO / dev tooling — jamais commité
+.mcp.json.bak
 
 # ── Secrets / env locaux (JAMAIS commités) ────────────────────────────
 .env
