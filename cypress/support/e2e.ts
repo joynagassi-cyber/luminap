@@ -843,12 +843,65 @@ Cypress.Commands.add('resumeOnboardingForOrgAccount', function (): Cypress.Chain
     // Supabase et obligerait à rejouer un login complet.
     const creds = getUnconfiguredOrgCredentials();
 
-    // 1. Signin du compte unconfigured (déjà en base depuis le 1er run
-    //    ou créé ici si 1er run absolu). La session Supabase est conservée.
+    // 0. PROVISIONNEMENT du compte isolé (gap d'infra trouvé QA Run A,
+    //    2026-10-06) : si le compte unconfigured n'existe pas encore en
+    //    base Supabase (1er run absolu), le login ci-dessous échouerait
+    //    "Invalid email or password" et le spec retomberait sur /auth.
+    //    On le signe up via l'UI (comme signupOrgAccount le fait pour
+    //    le compte principal) ; sur les runs suivants l'app bascule
+    //    automatiquement en mode login (déjà existant) et le bloc
+    //    ci-dessous devient un no-op. Le wizard runOnboarding est
+    //    rejoué au point 4 car l'option B force le re-parcours via
+    //    resetOnboardingState() — l'org du compte unconfigured n'est
+    //    PAS un prérequis du scénario.
+    cy.clearLocalStorage();
+    cy.visit('/auth');
+    cy.contains('button', 'Pas encore de compte', { timeout: 30_000 })
+      .should('be.visible')
+      .click();
+    cy.get('input[aria-label="Prénom"]').type('E2e');
+    cy.get('input[aria-label="Nom"]').type('Unconfig');
+    cy.get('input[type="email"]').type(creds.email);
+    cy.get('input[type="password"]').type(creds.password);
+    cy.contains('button[type="submit"]', 'Créer mon compte').click();
+    cy.get('button[type="submit"]').then(($btns) => {
+      const texts = $btns.map((_, el) => el.textContent).get();
+      const signupStillThere = texts.some((t) =>
+        t?.includes('Créer mon compte'),
+      );
+      if (signupStillThere) {
+        throw new Error(
+          'resumeOnboardingForOrgAccount: sign-up du compte unconfigured ' +
+            'a échoué — le bouton « Créer mon compte » est resté visible ' +
+            '(bannière d’erreur d’auth à inspecter).',
+        );
+      }
+      // L'app a basculé en mode login (compte déjà existant — run suivant)
+      // ou le signup a atterri directement. Dans les deux cas on
+      // re-soumet en login pour garantir la session authentifiée.
+      cy.get('input[type="email"]').clear().type(creds.email);
+      cy.get('input[type="password"]').clear().type(creds.password);
+      cy.contains('button[type="submit"]', 'Se connecter').click();
+    });
+
+    // 1. Signin stabilisé du compte unconfigured (déjà en base depuis le
+    //    1er run ou créé au point 0 ci-dessus). La session Supabase est
+    //    conservée pour le re-parcours forcé des points 2-3.
     cy.visit('/auth');
     cy.get('input[type="email"]').first().type(creds.email);
     cy.get('input[type="password"]').first().type(creds.password);
     cy.contains('button[type="submit"]', 'Se connecter').click();
+    cy.location('pathname', { timeout: 90_000 }).should((path: string) => {
+      // Le signup fresh atterrit sur /onboarding (wizard non joué) ou
+      // sur /splash puis /dashboard ; le compte préexistant fait de
+      // même. /auth = login refusé (password diverge — override
+      // CYPRESS_ORG_UNCONFIGURED_PASSWORD non aligné avec la base).
+      expect(
+        path,
+        `login compte unconfigured: ${path} (attendu /onboarding, /dashboard ou /splash — /auth = compte inconnu ou password erroné)`,
+      ).to.not.eq('/auth');
+      return true;
+    });
 
     // 2. FORCER le re-parcours : effacer les flags d'onboarding du
     //    navigateur courant (lumina-onboarding / -onboarded / -role)
