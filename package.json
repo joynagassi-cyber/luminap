@@ -30,6 +30,7 @@
   "dependencies": {
     "@capacitor/app": "^6.0.3",
     "@capacitor/camera": "^6.1.0",
+    "@capacitor/keyboard": "6.0.4",
     "@capacitor/network": "^6.0.4",
     "@capacitor/push-notifications": "^6.0.5",
     "@capacitor/storage": "^1.2.5",
