@@ -83,8 +83,19 @@ describe('Lumina — cloud sync (offline → online)', () => {
     }).as('supabasePost');
 
     // ── 2. Create group (account) while offline ───────────────────────
+    // On visite d'abord /dashboard pour laisser PowerSync hydrater le
+    // SQLite (streams org_units / caisses) et le context org (l'app
+    // lit `lumina-user.org.id` au boot ; sans ça la page /groups est
+    // au mode "chargement…" / EmptyState et le CircleAction n'est
+    // jamais rendu car canCreateMulti.allowed = false).
     cy.ensureAuth();
-    cy.visit('/groups');
+    cy.visit('/dashboard', { timeout: 60_000 });
+    // 20 s pour le 1er cycle de sync PowerSync (downloading + resolving
+    // streams) — c'est aussi le time-to-first-render pour les pages
+    // protégées par useGroups()/useOrgUnits() (elles attendent le DB
+    // prêt sinon elles restent en skeleton).
+    cy.wait(20_000);
+    cy.visit('/groups', { timeout: 60_000 });
     // Le bouton rond orange (le + de la page) est un CircleAction
     // (aria-label="Créer un groupe") : c'est lui qui ouvre le form.
     cy.get('button[aria-label="Créer un groupe"]').click();
