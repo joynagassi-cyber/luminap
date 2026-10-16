@@ -20,8 +20,8 @@ function appendRun(runNo: number, durationMs: number): void {
   fs.appendFileSync(PREFLIGHT_LOG, `[${new Date().toISOString()}] run ${runNo} : ${(durationMs / 1000).toFixed(1)} s\n`);
 }
 
-test('pré-vol : goto /auth commit + #root rempli + 0 pageerror', async ({ context, page }) => {
-  let runNo = 1;
+test('pré-vol : goto /auth commit + #root rempli + 0 pageerror', async ({ page }) => {
+  const runNo = 1;
   const pageErrors: string[] = [];
 
   page.on('pageerror', (err) => pageErrors.push(err.message));

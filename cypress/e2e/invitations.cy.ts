@@ -44,7 +44,7 @@ describe('Lumina — Invitations (émettre un code / QR)', () => {
     cy.contains('button', "Générer l'invitation", { timeout: 30_000 }).click();
 
     // État « qr » : le QR est rendu + l'alerte de succès + le code.
-    cy.get('svg'), // qrcode.react rend un <svg>
+    cy.get('svg', { timeout: 30_000 }).should('exist'); // qrcode.react rend un <svg>
     cy.contains('Invitation créée', { timeout: 30_000 }).should('be.visible');
     cy.contains('Scannez ce QR code', { timeout: 15_000 }).should('be.visible');
 
