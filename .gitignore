@@ -1,7 +1,7 @@
 out/
 results.json
 
-# ── Build / runtime ──────────────────────────────────────────────────
+# ── Build / runtime ─────────────────────────────────────────────────────────
 node_modules/
 dist/
 test-results/
@@ -14,19 +14,26 @@ replay_pid*.log
 tsconfig.app.tsbuildinfo
 cypress/.persist*.log
 
-# MCO / dev tooling — jamais commité
+# ── Logs temporaires de dev / E2E ──────────────────────────────────────────
+cypress/tmp-*.log
+
+# ── MCO / dev tooling — jamais commité ────────────────────────────────────
 .mcp.json.bak
 
-# ── Secrets / env locaux (JAMAIS commités) ────────────────────────────
+# ── Secrets / env locaux (JAMAIS commités) ────────────────────────────────
 .env
 .env.local
 android/app/lumina-keystore.b64
 android/app/lumina-keystore.jks
 
-# ── Artefacts agents / dev ───────────────────────────────────────────
+# ── Artefacts agents / dev ─────────────────────────────────────────────────
 .dyad/
 .reversa/
 .stitch/devserver.log
 
 # Build output dir (Vite Stitch dev server) — not project state
 .output/
+
+# ── Graphify (cache de graphe de connaissance) ────────────────────────────
+graphify-out/cache/
+powersync/.drift-*.md

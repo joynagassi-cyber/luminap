@@ -64,12 +64,14 @@ describe('Lumina — comprehensive navigation & finance flow', () => {
     cy.contains('button', 'Événements').click();
     cy.get('h1, h2, h3').contains('Événements').should('be.visible');
 
-    cy.get('[data-testid="sync-indicator"]').click();
+    // (Le badge de sync global [data-testid="sync-indicator"] a été retiré
+    //    de l'app — le statut de connexion reste visible dans
+    //    Settings → Profil (ligne « Synchronisation : Connecté / Hors ligne »).)
 
     // ── Direct balance navigation ──────────────────────────────────────
     cy.ensureAuth();
     cy.visit('/balance');
-    cy.get('[data-testid="sync-indicator"]').should('be.visible');
+    cy.get('main').should('be.visible');
 
     // ── Transaction edit : on crée d'abord une transaction réelle via
     //    /transaction/new, puis on ouvre son edit par son vrai id. L'ancienne

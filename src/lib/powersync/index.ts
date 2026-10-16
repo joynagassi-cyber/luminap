@@ -121,6 +121,19 @@ export async function initPowerSync(): Promise<void> {
   // BUG FIX — mirror the app's main Supabase session into the connector's
   // own Supabase client so PowerSync's `fetchCredentials` returns a valid
   // token instead of `null` after every sign-in / sign-out.
+  //
+  // ORDER MATTERS : le miroir doit s'exécuter AVANT la création de la
+  // `PowerSyncDatabase`. Raison : au boot, `supabase.auth.onAuthStateChange`
+  // (souscrit par mirrorAppSessionIntoConnector → client B) n'émet
+  // SIGNED_IN que si la session du client B n'est pas déjà posée. Le
+  // client A (`supabase` de lib/auth) lit sa session depuis
+  // localStorage (persistSession), mais le client B (`this.client` de
+  // SupabaseConnector) a son propre client en mémoire — il ne lit PAS
+  // le localStorage de A. Sans le miroir, B reste `session = null` au
+  // premier boot et `fetchCredentials()` retourne null → PowerSync
+  // refuse le sync avec un token vide → les uploads d'offline-first
+  // (createGroupPS / custom fields) échouent silencieusement (4xx
+  // encaissé dans la queue, pas retryé si le 4xx est « fatal »).
   mirrorAppSessionIntoConnector();
 
   // Créer la base de données

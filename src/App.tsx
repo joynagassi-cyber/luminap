@@ -10,7 +10,6 @@ import { useEffect, useState } from "react";
 import { authService } from "@/lib/auth";
 import { useAppUrlOpen } from "@/hooks/useAppUrlOpen";
 import { AppProvider } from "./context/AppContext";
-import SyncIndicator from "./components/SyncIndicator";
 import AppRouter from "./AppRouter";
 import { luminaRoutes } from "./ionic/routing";
 import { ErrorBoundary, withScope } from "@sentry/react";
@@ -182,7 +181,6 @@ const App = () => (
           <RouteGuard />
           <AppRouter />
           <AppProvider>
-            <SyncIndicator />
             <main id="main" style={{ height: "100%" }}>
               {/*
                 Le <Routes> est OBLIGATOIRE : @ionic/react-router

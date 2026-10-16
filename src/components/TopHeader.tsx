@@ -67,8 +67,11 @@ export default function TopHeader({ title }: { title?: string }) {
                 style={{ border: "1px solid var(--border)" }}
               />
             )}
-            <div>
-              <p className="text-text-primary font-bold text-sm leading-none">
+            <div className="self-start">
+              <p
+                className="text-text-primary font-bold leading-none"
+                style={{ fontSize: 18 }}
+              >
                 {title || "Lumina"}
               </p>
               <p className="text-text-tertiary text-xs mt-0.5">

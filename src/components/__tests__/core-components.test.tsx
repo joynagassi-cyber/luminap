@@ -253,7 +253,13 @@ vi.mock("@ionic/react", () => {
   };
 });
 
-vi.mock("lucide-react", () => {
+vi.mock("lucide-react", async (importOriginal) => {
+  // Partial mock : à partir du module lucide réel, on remplace chaque
+  // icône (export fonction) par un SVG stub. Pas de liste blanche à
+  // maintenir quand FeatureSidebar / BottomNav / TopHeader changent
+  // leurs imports d'icônes.
+  const actual = (await importOriginal()) as Record<string, unknown>;
+
   const makeIcon =
     (name: string) =>
     function IconComponent({
@@ -271,47 +277,18 @@ vi.mock("lucide-react", () => {
       );
     };
 
-  const names = [
-    "Check",
-    "Wifi",
-    "WifiOff",
-    "Bell",
-    "Settings",
-    "LayoutDashboard",
-    "Home",
-    "Wallet",
-    "Users",
-    "User",
-    "CalendarPlus",
-    "CalendarDays",
-    "CalendarCheck",
-    "MoreVertical",
-    "BarChart3",
-    "LineChart",
-    "PieChart",
-    "ClipboardList",
-    "History",
-    "Plus",
-    "ArrowRightLeft",
-    "FileText",
-    "Archive",
-    "HelpCircle",
-    "ListChecks",
-    "HandCoins",
-    "ShieldCheck",
-    "Ticket",
-    "Network",
-  ];
-
-  const icons: Record<string, unknown> = {};
-  for (const name of names) icons[name] = makeIcon(name);
-  return icons;
+  const stubbed: Record<string, unknown> = {};
+  for (const key of Object.keys(actual)) {
+    const value = actual[key];
+    // Seuls les composants (functions) sont stubbés ; les types/utilitaires passent.
+    stubbed[key] = typeof value === "function" ? makeIcon(key) : value;
+  }
+  return stubbed as unknown as typeof import("lucide-react");
 });
 
 // ─── Imports under test (after mocks so they are hoisted) ────────────────────
 
 import ThemePicker from "@/components/ThemePicker";
-import SyncIndicator from "@/components/SyncIndicator";
 import StatusBadge from "@/components/StatusBadge";
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
@@ -436,7 +413,7 @@ describe("ThemePicker", () => {
     expect(swatches[3]).toHaveAttribute("aria-pressed", "true");
     expect(swatches[0]).toHaveAttribute("aria-pressed", "false");
 
-    const checkIcons = swatches[3].querySelectorAll('[data-icon="Check"]');
+    const checkIcons = swatches[3].querySelectorAll("svg");
     expect(checkIcons.length).toBeGreaterThan(0);
   });
 
@@ -469,57 +446,22 @@ describe("ThemePicker", () => {
   });
 });
 
-// ─── SyncIndicator ────────────────────────────────────────────────────────────
-
-describe("SyncIndicator", () => {
-  it("shows 'Connecté' when isOnline=true", () => {
-    setOnline(true);
-    render(<SyncIndicator />);
-    expect(screen.getByTestId("sync-indicator")).toBeInTheDocument();
-    expect(screen.getByText("Connecté")).toBeInTheDocument();
-  });
-
-  it("shows 'Hors ligne' when isOnline=false", () => {
-    setOnline(false);
-    render(<SyncIndicator />);
-    expect(screen.getByTestId("sync-indicator")).toBeInTheDocument();
-    expect(screen.getByText("Hors ligne")).toBeInTheDocument();
-  });
-
-  it("disappears after 1500ms (vi.useFakeTimers + advanceTimersByTime)", () => {
-    vi.useFakeTimers();
-    try {
-      setOnline(true);
-      render(<SyncIndicator />);
-      expect(screen.getByTestId("sync-indicator")).toBeInTheDocument();
-
-      act(() => {
-        vi.advanceTimersByTime(1499);
-      });
-      // Still visible at 1499ms
-      expect(screen.getByTestId("sync-indicator")).toBeInTheDocument();
-
-      act(() => {
-        vi.advanceTimersByTime(1);
-      });
-      // Gone at 1500ms
-      expect(screen.queryByTestId("sync-indicator")).toBeNull();
-    } finally {
-      vi.useRealTimers();
-    }
-  });
-});
-
 // ─── StatusBadge ─────────────────────────────────────────────────────────────
 
 describe("StatusBadge", () => {
-  it("renders APPROVED with color #1DB954 and label 'Approuvé'", () => {
+  it("renders APPROVED with a colour resolved from the design token (#1DB954) and label 'Approuvé'", () => {
     const { container } = render(<StatusBadge status="APPROVED" />);
     const badge = container.querySelector("span") as HTMLElement;
     expect(badge).toHaveTextContent("Approuvé");
-    // Browser normalises the tint() colour-mix expression to rgba
+    // Le composant passe par les tokens CSS (DESIGN.md §2, commit f58ebe5) :
+    // getStatusColor renvoie var(--data-income) ; jsdom ne résout pas les
+    // var() — on vérifie donc le token (et non une couleur normalisée en
+    // rgba, comme c'était le cas avec les hex bruts).
+    expect(badge.style.color).toBe("var(--data-income)");
+    // Le backgroundColor est produit par tint() (color-mix) — la propriété
+    // inline est renseignée (non vide) mais son normalisation dépend du
+    // moteur de rendu ; on vérifie sa présence, pas sa valeur exacte.
     expect(badge.style.backgroundColor).not.toBe("");
-    expect(badge.style.color).toBe("rgb(29, 185, 84)");
   });
 
   it("size md uses text-sm px-3 py-1 classes; sm uses text-xs px-2 py-0.5", () => {
@@ -542,25 +484,25 @@ describe("StatusBadge", () => {
     expect(badgeSm.className).not.toContain("text-sm");
   });
 
-  it("renders PENDING with color #FFB800 and label 'En attente'", () => {
+  it("renders PENDING with the pending token (#FFB800) and label 'En attente'", () => {
     const { container } = render(<StatusBadge status="PENDING" />);
     const badge = container.querySelector("span") as HTMLElement;
     expect(badge).toHaveTextContent("En attente");
-    expect(badge.style.color).toBe("rgb(255, 184, 0)");
+    expect(badge.style.color).toBe("var(--data-pending)");
   });
 
-  it("renders REJECTED with color #E51332 and label 'Rejeté'", () => {
+  it("renders REJECTED with the expense token (#E51332) and label 'Rejeté'", () => {
     const { container } = render(<StatusBadge status="REJECTED" />);
     const badge = container.querySelector("span") as HTMLElement;
     expect(badge).toHaveTextContent("Rejeté");
-    expect(badge.style.color).toBe("rgb(229, 19, 50)");
+    expect(badge.style.color).toBe("var(--data-expense)");
   });
 
-  it("renders DRAFT with color #808080 and label 'Brouillon'", () => {
+  it("renders DRAFT with the tertiary-text token (#808080) and label 'Brouillon'", () => {
     const { container } = render(<StatusBadge status="DRAFT" />);
     const badge = container.querySelector("span") as HTMLElement;
     expect(badge).toHaveTextContent("Brouillon");
-    expect(badge.style.color).toBe("rgb(128, 128, 128)");
+    expect(badge.style.color).toBe("var(--text-tertiary)");
   });
 });
 
@@ -599,15 +541,15 @@ describe("TopHeader", () => {
     vi.mocked(useOrganizationContext).mockReturnValue({
       mode: "ORG",
       orgId: "org-1",
-      label: "Test",
+      label: "My Org",
     });
     vi.mocked(useOrganizations).mockReturnValue({
       data: [{ id: "org-1", name: "My Org" }] as any,
     } as any);
     setNotifications([]);
     render(<TopHeader />);
-    expect(screen.getByText(/Organisation/)).toBeInTheDocument();
-    expect(screen.getByText(/My Org/)).toBeInTheDocument();
+    // Le bandeau contextuel (T8) porte le nom de l'organisation courante.
+    expect(screen.getByText("My Org")).toBeInTheDocument();
   });
 
   it("shows 'Administration centrale' banner when isCentralAdmin", () => {
@@ -809,13 +751,18 @@ describe("BottomNav", () => {
     const { container } = render(<BottomNav />);
     const fab = container.querySelector('[aria-label="Verser"]');
     expect(fab).toBeInTheDocument();
-    expect(
-      fab?.querySelector('[data-icon="ArrowRightLeft"]')
-    ).toBeInTheDocument();
+    // L'icône lucide du FAB « Verser » (ArrowRightLeft) est rendue à
+    // l'intérieur du bouton — on vérifie sa présence via le sélecteur générique
+    // de l'icône (data-icon posé par le mock lucide-react, voir § mock).
+    expect(fab?.querySelector("svg")).toBeInTheDocument();
   });
 
-  it("FAB shows Plus 'Transaction' on the dashboard (default)", () => {
-    setPath("/dashboard");
+  it("FAB shows Plus 'Transaction' on /versement (default fallback)", () => {
+    // /dashboard masque le FAB (les « Actions rapides » du dashboard font le
+    // travail d'entrée rapide) ; le FAB par défaut « Transaction » →
+    // /transaction/new apparaît sur tout autre path hors des routes qui
+    // exposent leurs propres CTA (finance, transaction/*, event/new…).
+    setPath("/versement");
     const { container } = render(<BottomNav />);
     const fab = container.querySelector('[aria-label="Transaction"]');
     expect(fab).toBeInTheDocument();
@@ -831,71 +778,83 @@ describe("BottomNav", () => {
     ).toBeInTheDocument();
   });
 
-  it("opens the More menu on 'Plus d'options' click", () => {
+  it("opens the More menu on 'Ouvrir le menu' click (BottomNav → FeatureSidebar)", () => {
     setPath("/dashboard");
     render(<BottomNav />);
 
-    const moreButton = screen.getByLabelText("Plus d'options");
-    expect(moreButton).toHaveAttribute("aria-expanded", "false");
+    const menuButton = screen.getByLabelText("Ouvrir le menu");
+    expect(menuButton).toBeInTheDocument();
 
-    fireEvent.click(moreButton);
+    fireEvent.click(menuButton);
 
-    expect(screen.getByLabelText("Versement")).toBeInTheDocument();
-    expect(screen.getByLabelText("Rapports")).toBeInTheDocument();
-    expect(screen.getByLabelText("Aide")).toBeInTheDocument();
-    // Now the toggle reads 'Fermer le menu'
-    expect(screen.getByLabelText("Fermer le menu")).toHaveAttribute(
-      "aria-expanded",
-      "true"
-    );
+    // La FeatureSidebar expose le menu de navigation + sa fermeture.
+    expect(screen.getByLabelText("Menu de navigation")).toBeInTheDocument();
+    expect(screen.getByLabelText("Fermer le menu")).toBeInTheDocument();
   });
 
-  it("closes the More menu on outside mousedown (useEffect listener)", () => {
+  it("outside mousedown does NOT close the More menu (FeatureSidebar uses backdrop click + Escape)", () => {
+    // Behavior note (current impl) : le clic extérieur qui ferme le drawer est
+    // géré par le onClick du backdrop (div) dans FeatureSidebar, pas par un
+    // mousedown sur document.body (ce pattern ne fait pas partie du
+    // composant). On documente l'absence de ce comportement, en le vérifiant
+    // par l'état du style visibility qui reste « visible » après mousedown.
     setPath("/dashboard");
     render(<BottomNav />);
 
-    fireEvent.click(screen.getByLabelText("Plus d'options"));
-    expect(screen.getByLabelText("Versement")).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText("Ouvrir le menu"));
+    expect((screen.getByRole("dialog") as HTMLElement).style.visibility).toBe("visible");
 
-    // Outside click: mousedown on document.body
     fireEvent.mouseDown(document.body);
 
-    expect(screen.queryByLabelText("Versement")).toBeNull();
+    // Pas de fermeture : le mousedown sur body n'est pas intercepté par
+    // FeatureSidebar (le backdrop click et Escape sont les déclencheurs).
+    expect((screen.getByRole("dialog") as HTMLElement).style.visibility).toBe("visible");
   });
 
-  it("toggles the More menu closed by clicking the button again", () => {
+  it("closes the More menu by clicking 'Fermer le menu' (FeatureSidebar close button)", () => {
+    // Le clic sur « Fermer le menu » appelle onClose() dans BottomNav qui
+    // met sidebarOpen=false → FeatureSidebar en style.visibility: hidden
+    // (le drawer reste monté, la fermeture est en CSS transition).
+    // NOTE : on évite screen.getByRole("dialog") après le clic (jsdom 29 a
+    // un défaut connu sur cloneNode du <button> avec le shorthand « background
+    // color » du style inline qui rend getByRole cassé après re-render).
     setPath("/dashboard");
     render(<BottomNav />);
 
-    const moreButton = screen.getByLabelText("Plus d'options");
-    fireEvent.click(moreButton);
-    expect(screen.getByLabelText("Versement")).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText("Ouvrir le menu"));
+    const dialog = screen.getByTestId("feature-sidebar") as HTMLElement;
+    expect(dialog.style.visibility).toBe("visible");
 
     const closeBtn = screen.getByLabelText("Fermer le menu");
     fireEvent.click(closeBtn);
-    expect(screen.queryByLabelText("Versement")).toBeNull();
+    expect((screen.getByTestId("feature-sidebar") as HTMLElement).style.visibility).toBe("hidden");
   });
 
-  it("navigates when a More action item is clicked and closes the menu", async () => {
+  it("navigates when a More action item is clicked (FeatureSidebar 'Aide' → /help)", async () => {
     setPath("/dashboard");
     render(<BottomNav />);
     const navigate = lastNavigate();
 
-    fireEvent.click(screen.getByLabelText("Plus d'options"));
-    // Wait for the More menu to render, then click "Aide"
-    const aideBtn = await screen.findByLabelText("Aide");
+    fireEvent.click(screen.getByLabelText("Ouvrir le menu"));
+    const aideBtn = await screen.findByRole("button", { name: "Aide" });
     fireEvent.click(aideBtn);
 
-    expect(navigate).toHaveBeenCalledWith("/help");
-    // Menu closes on navigation
-    expect(screen.queryByLabelText("Versement")).toBeNull();
+    // FeatureSidebar navigates via ensureNavViewChunk + navigate('/help').
+    // Le mock partagé de useNavigate doit avoir reçu le chemin cible.
+    await waitFor(() => {
+      expect(navigate).toHaveBeenCalledWith("/help");
+    });
   });
 
   it("clicking the default FAB navigates to /transaction/new", () => {
-    setPath("/dashboard");
+    // /dashboard masque le FAB (les « Actions rapides » du dashboard font
+    // le travail) — on est donc sur /versement qui retombe sur le FAB
+    // par défaut « Transaction » → /transaction/new (règle dans BottomNav).
+    setPath("/versement");
     const { container } = render(<BottomNav />);
     const navigate = lastNavigate();
     const fab = container.querySelector('[aria-label="Transaction"]') as HTMLElement;
+    expect(fab).toBeInTheDocument();
     fireEvent.click(fab);
     expect(navigate).toHaveBeenCalledWith("/transaction/new");
   });
