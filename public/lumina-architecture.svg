@@ -1,0 +1,113 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="520" viewBox="0 0 1200 520" role="img" aria-label="Architecture de Lumina : React 19 + Ionic, couche capabilities, PowerSync local-first, Supabase, mobile Capacitor">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#121212"/>
+      <stop offset="55%" stop-color="#1A1A1A"/>
+      <stop offset="100%" stop-color="#212121"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#FF6B00"/>
+      <stop offset="100%" stop-color="#FFB800"/>
+    </linearGradient>
+    <linearGradient id="flow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FF6B00" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#FFB800" stop-opacity="0.55"/>
+    </linearGradient>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#000000" flood-opacity="0.45"/>
+    </filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#FF6B00"/>
+    </marker>
+    <marker id="arrowGray" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#808080"/>
+    </marker>
+  </defs>
+
+  <!-- Fond -->
+  <rect width="1200" height="520" fill="url(#bg)"/>
+
+  <!-- Titre -->
+  <text x="48" y="66" font-family="'Segoe UI', Arial, sans-serif" font-size="40" font-weight="800" fill="#FFFFFF">LUMINA</text>
+  <rect x="48" y="82" width="86" height="5" rx="2.5" fill="url(#accent)"/>
+  <text x="48" y="116" font-family="'Segoe UI', Arial, sans-serif" font-size="17" fill="#B3B3B3">Plateforme financière offline-first pour associations — églises, écoles, ONG</text>
+
+  <!-- ============ BLOC CLIENT (React 19 + Ionic + Capacitor) ============ -->
+  <g filter="url(#soft)">
+    <rect x="48" y="148" width="620" height="330" rx="16" fill="#212121" stroke="#282828" stroke-width="1.5"/>
+  </g>
+  <text x="72" y="180" font-family="Arial" font-size="13" font-weight="700" fill="#FF8533" letter-spacing="1.5">CLIENT — REACT 19 + IONIC 9 + CAPACITOR</text>
+
+  <!-- Pages -->
+  <g filter="url(#soft)">
+    <rect x="72" y="200" width="572" height="62" rx="10" fill="#282828" stroke="#333333"/>
+  </g>
+  <text x="358" y="228" font-family="Arial" font-size="15" font-weight="600" fill="#FFFFFF" text-anchor="middle">38 pages Ionic (IonPage) — finance, groupes, événements, rapports, formulaires</text>
+  <text x="358" y="249" font-family="Arial" font-size="12" fill="#808080" text-anchor="middle">Tailwind + shadcn/ui · RBAC 14 rôles · thème sombre/clair (accent #FF6B00) · React Query</text>
+
+  <!-- Capabilities -->
+  <g filter="url(#soft)">
+    <rect x="72" y="282" width="572" height="76" rx="10" fill="#282828" stroke="#333333"/>
+  </g>
+  <text x="358" y="308" font-family="Arial" font-size="14" font-weight="700" fill="#FFFFFF" text-anchor="middle">Couche capabilities — logique métier testable, sans UI</text>
+  <text x="358" y="330" font-family="Arial" font-size="12.5" fill="#B3B3B3" text-anchor="middle">identity · organization · security · workflow · lifecycle · relationship</text>
+  <text x="358" y="348" font-family="Arial" font-size="12.5" fill="#B3B3B3" text-anchor="middle">resource · policy · notification · federation · + budgets, cotisation, giving, invitation</text>
+
+  <!-- Stores / state -->
+  <g filter="url(#soft)">
+    <rect x="72" y="378" width="572" height="58" rx="10" fill="#282828" stroke="#333333"/>
+  </g>
+  <text x="358" y="404" font-family="Arial" font-size="14" font-weight="600" fill="#FFFFFF" text-anchor="middle">État &amp; services</text>
+  <text x="358" y="424" font-family="Arial" font-size="12.5" fill="#808080" text-anchor="middle">Zustand (local + thème) · dataLayer (PowerSync → SQLite + IndexedDB) · OneSignal · Sentry</text>
+
+  <!-- dataLayer -->
+  <g filter="url(#soft)">
+    <rect x="72" y="456" width="572" height="10" rx="5" fill="none"/>
+  </g>
+
+  <!-- ============ BLOC SYNC / BACKEND ============ -->
+  <g filter="url(#soft)">
+    <rect x="716" y="148" width="436" height="230" rx="16" fill="#212121" stroke="#282828" stroke-width="1.5"/>
+  </g>
+  <text x="740" y="180" font-family="Arial" font-size="13" font-weight="700" fill="#FF8533" letter-spacing="1.5">SYNCHRONISATION OFFLINE-FIRST</text>
+
+  <g filter="url(#soft)">
+    <rect x="740" y="198" width="388" height="70" rx="10" fill="#282828" stroke="#333333"/>
+  </g>
+  <text x="934" y="226" font-family="Arial" font-size="15" font-weight="600" fill="#FFFFFF" text-anchor="middle">PowerSync Cloud (édition 3, multi-org)</text>
+  <text x="934" y="248" font-family="Arial" font-size="12.5" fill="#B3B3B3" text-anchor="middle">31 streams synchronisés · filtrage par org_id via JWT · SQLite local</text>
+
+  <g filter="url(#soft)">
+    <rect x="740" y="284" width="388" height="70" rx="10" fill="#282828" stroke="#333333"/>
+  </g>
+  <text x="934" y="312" font-family="Arial" font-size="15" font-weight="600" fill="#FFFFFF" text-anchor="middle">Supabase (PostgreSQL + Auth + Storage)</text>
+  <text x="934" y="334" font-family="Arial" font-size="12.5" fill="#B3B3B3" text-anchor="middle">RLS sur toutes les tables · 93 migrations · Edge Functions (signup, login, …)</text>
+
+  <!-- flèches client → sync -->
+  <line x1="668" y1="319" x2="732" y2="233" stroke="url(#flow)" stroke-width="3" marker-end="url(#arrow)"/>
+  <text x="660" y="352" font-family="Arial" font-size="11.5" fill="#FFB800" text-anchor="end">CRUD + sync</text>
+  <line x1="934" y1="272" x2="934" y2="280" stroke="#808080" stroke-width="2" marker-end="url(#arrowGray)"/>
+
+  <!-- ============ MOBILE + WEB ============ -->
+  <g filter="url(#soft)">
+    <rect x="716" y="400" width="206" height="78" rx="12" fill="#212121" stroke="#FF6B00" stroke-width="1.2"/>
+  </g>
+  <text x="819" y="432" font-family="Arial" font-size="14" font-weight="700" fill="#FF6B00" text-anchor="middle">Android</text>
+  <text x="819" y="454" font-family="Arial" font-size="12" fill="#B3B3B3" text-anchor="middle">Capacitor 6</text>
+  <text x="819" y="470" font-family="Arial" font-size="11" fill="#808080" text-anchor="middle">APK signé · CI GitHub</text>
+
+  <g filter="url(#soft)">
+    <rect x="946" y="400" width="206" height="78" rx="12" fill="#212121" stroke="#282828" stroke-width="1.5"/>
+  </g>
+  <text x="1049" y="432" font-family="Arial" font-size="14" font-weight="700" fill="#FFFFFF" text-anchor="middle">Web (Vercel / Render)</text>
+  <text x="1049" y="454" font-family="Arial" font-size="12" fill="#B3B3B3" text-anchor="middle">SPA statique dist/</text>
+  <text x="1049" y="470" font-family="Arial" font-size="11" fill="#808080" text-anchor="middle">rewrites → index.html</text>
+
+  <line x1="819" y1="378" x2="819" y2="398" stroke="#FF6B00" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <line x1="1049" y1="378" x2="1049" y2="398" stroke="#808080" stroke-width="2" marker-end="url(#arrowGray)"/>
+
+  <!-- bandeau qualité en bas à gauche -->
+  <g>
+    <rect x="48" y="488" width="620" height="0" fill="none"/>
+  </g>
+</svg>
