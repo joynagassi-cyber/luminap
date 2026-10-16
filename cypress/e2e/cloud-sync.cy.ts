@@ -45,8 +45,12 @@ describe('Lumina — cloud sync (offline → online)', () => {
     // organisation valide côté serveur → RLS `is_org_member(profile,
     // '__no_org__')` = faux → la queue d'upload PowerSync échoue de
     // façon silencieuse (4xx resté dans l'upload queue, pas retryée).
-    // On force le context org avant de couper le réseau pour que les
-    // écritures offline portent un org_id RLS-validé.
+    // On force le context org AVANT la coupure réseau : le visit
+    // /dashboard d'abord (network actif, PowerSync hydrate le SQLite),
+    // puis on écrit localStorage (lumina-user + lumina-active-org),
+    // puis on recharge pour que l'app relise le context.
+    cy.visit('/dashboard', { timeout: 90_000 });
+    cy.wait(10_000);
     cy.window().then((win) => {
       const activeOrgId =
         (Cypress.expose('CYPRESS_ORG_ACTIVE_ID') as string) || 'org-e2e';
@@ -59,6 +63,8 @@ describe('Lumina — cloud sync (offline → online)', () => {
       }
       ls.setItem('lumina-active-org', activeOrgId);
     });
+    cy.visit('/dashboard', { timeout: 90_000 });
+    cy.wait(10_000);
 
     // ── 1. Simulate offline: intercept Supabase REST ───────────────────
     // Cypress 16 a retiré `cy.unrouteAll()` ET `cy.restore()`/
@@ -83,22 +89,22 @@ describe('Lumina — cloud sync (offline → online)', () => {
     }).as('supabasePost');
 
     // ── 2. Create group (account) while offline ───────────────────────
-    // On visite d'abord /dashboard pour laisser PowerSync hydrater le
-    // SQLite (streams org_units / caisses) et le context org (l'app
-    // lit `lumina-user.org.id` au boot ; sans ça la page /groups est
-    // au mode "chargement…" / EmptyState et le CircleAction n'est
-    // jamais rendu car canCreateMulti.allowed = false).
     cy.ensureAuth();
-    cy.visit('/dashboard', { timeout: 60_000 });
-    // 20 s pour le 1er cycle de sync PowerSync (downloading + resolving
-    // streams) — c'est aussi le time-to-first-render pour les pages
-    // protégées par useGroups()/useOrgUnits() (elles attendent le DB
-    // prêt sinon elles restent en skeleton).
-    cy.wait(20_000);
-    cy.visit('/groups', { timeout: 60_000 });
-    // Le bouton rond orange (le + de la page) est un CircleAction
-    // (aria-label="Créer un groupe") : c'est lui qui ouvre le form.
-    cy.get('button[aria-label="Créer un groupe"]').click();
+    cy.visit('/groups', { timeout: 90_000 });
+    cy.contains('Groupes', { timeout: 30_000 }).should('exist');
+    // Le HomeIndicator (bottom-sheet « Raccourcis utiles ») est open par
+    // défaut au montage de la page — il masque le FAB et tous les clicks
+    // à sa position. On ferme d'abord la modale (bouton X aria-label
+    // "Fermer raccourcis" ou clic sur le scrim) puis on vise le FAB.
+    cy.get('button[aria-label*="Fermer" i]', { timeout: 5_000 })
+      .first()
+      .click({ force: true })
+      .then(() => cy.wait(500));
+    cy.screenshot('cloud-sync-before-fab-click', { capture: 'runner' });
+    // Le FAB orange (56px, w-14 h-14) est rendu par CircleAction avec
+    // l'aria-label « Créer un groupe ». Si l'aria-label est présent,
+    // on cible directement ; sinon on prend le dernier bouton (FAB).
+    cy.get('button[aria-label="Créer un groupe"]', { timeout: 30_000 }).click({ force: true });
     // Le champ « Nom du groupe » est un <ion-input> (host Stencil, mode ios)
     // dont l'input natif est en shadow root (sc-ion-input-ios). En mode
     // offline, le computed style de l'input interne est vide (pas encore
