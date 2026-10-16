@@ -181,6 +181,31 @@ Cypress.Commands.add('seedLocalSession', function (overrides = {}) {
       ls.setItem('lumina-role', role);
       ls.setItem('lumina-config', JSON.stringify({ churchName: orgName }));
       ls.setItem('lumina-session', userId);
+
+      // 4. Active organization (PowerSync / organization context).
+      // The app reads the active org id from the localStorage key
+      // 'lumina-active-org' at boot (via loadInitialData →
+      // getOrganizationId()). Without it, getOrganizationId() returns
+      // '__no_org__' and useAccounts() / useCaisses() return empty
+      // arrays, so the Dashboard skeleton is shown instead of the
+      // CaisseCard (the "Caisse principale" hero is gated on
+      // mainAccount = accounts.find(a => a.owner_type === "ORGANIZATION")).
+      //
+      // The org id written here is 'default-org' — the same key that
+      // the churchSeedData() seed uses for its root org
+      // (orgUnits[0].id = 'default-org', see src/packs/church/index.ts).
+      ls.setItem('lumina-active-org', 'default-org');
+      ls.setItem(
+        'lumina-orgs',
+        JSON.stringify([
+          {
+            id: 'default-org',
+            name: orgName,
+            type: 'Eglise',
+            role: role,
+          },
+        ]),
+      );
     });
   });
 });

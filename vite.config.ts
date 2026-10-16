@@ -70,7 +70,16 @@ export default defineConfig(() => ({
     // asset émis dans dist/ — on l'ajoute explicitement pour que le
     // bundler le copie dans le build (rolldown résout le module mais ne
     // le copie pas comme asset sans déclaration).
-    include: ["pdfjs-dist/build/pdf.worker.min.mjs?url"],
+    // @ionic/react + @ionic/react-router : pré-bundlés ensemble pour éviter
+    // le crash "IonPage is not defined" dans les lazy chunks (le wrapper de
+    // IonPage de @ionic/react-router référence IonPage mais ne l'importe pas
+    // dans son module ESM isolé ; pré-bundlé avec @ionic/react, les deux
+    // partagent le même scope).
+    include: [
+      "pdfjs-dist/build/pdf.worker.min.mjs?url",
+      "@ionic/react",
+      "@ionic/react-router",
+    ],
   },
   build: {},
   worker: {

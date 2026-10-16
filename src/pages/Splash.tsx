@@ -3,8 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { usePowerSyncStatus, useLoadInitialData } from "@/lib/dataLayer";
 import { needsOnboarding } from "@/lib/onboardingState";
 import { Wifi, WifiOff } from "lucide-react";
-import LuminaLogo from "@/components/LuminaLogo";
-import SplashIllustration from "@/components/SplashIllustration";
 import { IonPage, IonContent } from "@ionic/react";
 
 /**
@@ -90,7 +88,13 @@ export default function Splash() {
           {phase === "logo" && (
             /* Phase 1 — logo Lumina centré */
             <div className="flex flex-col items-center" data-testid="splash-phase-logo">
-              <LuminaLogo size={96} />
+              <img
+                src="/lumina-logo-version-monochrome.png"
+                alt="Lumina"
+                width={96}
+                height={96}
+                className="splash-monochrome-logo"
+              />
               <h1
                 className="font-bold text-3xl tracking-wide mt-4"
                 style={{ color: "var(--accent-primary)" }}
@@ -109,12 +113,24 @@ export default function Splash() {
               className="flex flex-col items-center w-full"
               data-testid="splash-phase-illustration"
             >
-              <SplashIllustration size={280} />
+              <img
+                src="/lumina-logo-version-monochrome.png"
+                alt=""
+                width={280}
+                height={280}
+                className="splash-monochrome-illustration"
+              />
               <div
                 className="absolute bottom-14 flex flex-col items-center"
                 aria-hidden={phase !== "illustration"}
               >
-                <LuminaLogo size={40} />
+                <img
+                  src="/lumina-logo-version-monochrome.png"
+                  alt="Lumina"
+                  width={40}
+                  height={40}
+                  className="splash-monochrome-logo-small"
+                />
                 <p
                   className="font-bold text-base tracking-wide mt-2"
                   style={{ color: "var(--accent-primary)" }}
@@ -128,12 +144,12 @@ export default function Splash() {
           {phase === "loading" && (
             /* Données pas encore prêtes : spinner de chargement (gate) */
             <div className="flex flex-col items-center gap-3" data-testid="splash-loading">
-              <div
-                className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin"
-                style={{
-                  borderColor: "var(--accent-primary)",
-                  borderTopColor: "transparent",
-                }}
+              <img
+                src="/lumina-logo-version-monochrome.png"
+                alt=""
+                width={48}
+                height={48}
+                className="splash-monochrome-logo spinner"
               />
               <p className="text-text-tertiary text-xs">
                 Chargement en cours…

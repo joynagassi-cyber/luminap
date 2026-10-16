@@ -60,7 +60,6 @@ import EmptyState from "@/components/EmptyState";
 import CircleAction from "@/components/CircleAction";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
-import LuminaLogo from "@/components/LuminaLogo";
 import TrendChart from "@/components/TrendChart";
 import OrgSwitcher from "@/components/OrgSwitcher";
 import { DashboardSkeleton } from "@/components/PageSkeletons";

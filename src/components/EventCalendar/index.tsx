@@ -415,6 +415,7 @@ export default function EventCalendar({
     const months = buildYearGrid(year);
     return (
       <div
+        className="grid"
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(4, 1fr)",

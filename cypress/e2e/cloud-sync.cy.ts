@@ -36,6 +36,30 @@ describe('Lumina — cloud sync (offline → online)', () => {
     const accountName = 'TestSync Account ' + now;
     const cfKey = 'test_sync_cf_' + now;
 
+    // ── 0. Ensure the org context is resolved before offline mode ────────
+    // L'app lit `lumina-user` (JSON) au boot pour initialiser le context
+    // org. Le parcours e2e de `signupOrgAccount` ne le set PAS, et
+    // `getOrganizationId()` (src/lib/orgContext.ts) retombe donc sur
+    // `'__no_org__'` → les `INSERT INTO accounts (org_id=...)` écrits
+    // côté client via PowerSync `executeWrite` ne matchent AUCUNE
+    // organisation valide côté serveur → RLS `is_org_member(profile,
+    // '__no_org__')` = faux → la queue d'upload PowerSync échoue de
+    // façon silencieuse (4xx resté dans l'upload queue, pas retryée).
+    // On force le context org avant de couper le réseau pour que les
+    // écritures offline portent un org_id RLS-validé.
+    cy.window().then((win) => {
+      const activeOrgId =
+        (Cypress.expose('CYPRESS_ORG_ACTIVE_ID') as string) || 'org-e2e';
+      const ls = win.localStorage;
+      const raw = ls.getItem('lumina-user');
+      const user = raw ? JSON.parse(raw) : null;
+      if (user) {
+        user.org = { id: activeOrgId, name: 'Lumina Org E2E', type: 'CHURCH' };
+        ls.setItem('lumina-user', JSON.stringify(user));
+      }
+      ls.setItem('lumina-active-org', activeOrgId);
+    });
+
     // ── 1. Simulate offline: intercept Supabase REST ───────────────────
     // Cypress 16 a retiré `cy.unrouteAll()` ET `cy.restore()`/
     // `cy.clearAllIntercepts()` (vérifié dans les .d.ts de cypress@16 :
@@ -61,27 +85,70 @@ describe('Lumina — cloud sync (offline → online)', () => {
     // ── 2. Create group (account) while offline ───────────────────────
     cy.ensureAuth();
     cy.visit('/groups');
-    // « Groupes » est le titre du TopHeader (Ionic). Le form de création
-    // est derrière le bouton « Créer » (aria-label du + Créé). On ouvre
-    // le form si besoin (idempotent : le placeholder est déjà visible
-    // si showCreate est déjà true).
-    cy.get('input[placeholder="Nom du groupe"]').then(($in) => {
-      if ($in.length === 0) {
-        cy.contains('button', 'Créer').first().click();
-      }
-    });
-    cy.get('input[placeholder="Nom du groupe"]').type(accountName);
+    // Le bouton rond orange (le + de la page) est un CircleAction
+    // (aria-label="Créer un groupe") : c'est lui qui ouvre le form.
+    cy.get('button[aria-label="Créer un groupe"]').click();
+    // Le champ « Nom du groupe » est un <ion-input> (host Stencil, mode ios)
+    // dont l'input natif est en shadow root (sc-ion-input-ios). En mode
+    // offline, le computed style de l'input interne est vide (pas encore
+    // hydraté par Stencil) → Cypress le déclare "not visible" et cy.type()
+    // échoue. Le pattern fiable (utilisé dans persistence.cy.ts qui passe) :
+    // écrire le value sur l'input natif via shadowRoot + dispatcher
+    // ionChange sur le host. L'adaptateur Stencil→React de IonInput lit
+    // l'event ionChange (pas "input") pour synchroniser le state React.
+    cy.get('ion-input', { timeout: 90_000 })
+      .then(($ions) => {
+        const el = $ions[0] as HTMLElement;
+        const native =
+          (el as any).nativeInput ??
+          el.shadowRoot?.querySelector('input') ??
+          el.querySelector('input') ??
+          null;
+        if (native) native.value = accountName;
+        el.value = accountName;
+        el.dispatchEvent(
+          new CustomEvent('ionChange', {
+            detail: { value: accountName, event: { target: native ?? el } },
+            bubbles: true,
+            composed: true,
+          }),
+        );
+      });
     cy.contains('button', 'Créer le groupe').click();
 
     // ── 3. Create custom field while offline ──────────────────────────
     cy.visit('/custom-fields');
-    // « Champs personnalisés » est le titre du TopHeader (Ionic) — le
-    // placeholder du Label du modal est le marqueur de présence le plus
-    // robuste. Le bouton « Créer » ouvre un modale (role=dialog,
-    // aria-label="Nouveau champ").
     cy.contains('button', 'Créer').click();
-    cy.get('input[placeholder="Ex: Montant estimé"]').type('TestSync Custom Field ' + now);
-    cy.get('input[placeholder="montant_estime"]').type(cfKey);
+    // La page /custom-fields utilise des <ion-input> pour Label + Clé
+    // (CustomFields.tsx). Même pattern que ci-dessus : on écrit via
+    // shadowRoot + ionChange car les inputs internes sont "not visible"
+    // en offline.
+    // Ordre dans le form : 1er ion-input = Label, 2e = Clé.
+    cy.get('ion-input', { timeout: 90_000 })
+      .then(($ions) => {
+        const labelInput = $ions[0] as HTMLElement;
+        const keyInput = $ions[1] as HTMLElement;
+        const cfName = 'TestSync Custom Field ' + now;
+
+        const setVal = (el: HTMLElement, val: string) => {
+          const native =
+            (el as any).nativeInput ??
+            el.shadowRoot?.querySelector('input') ??
+            el.querySelector('input') ??
+            null;
+          if (native) native.value = val;
+          el.value = val;
+          el.dispatchEvent(
+            new CustomEvent('ionChange', {
+              detail: { value: val, event: { target: native ?? el } },
+              bubbles: true,
+              composed: true,
+            }),
+          );
+        };
+        setVal(labelInput, cfName);
+        setVal(keyInput, cfKey);
+      });
     cy.get('button[aria-label="Créer le champ"]').click();
 
     // ── 4. Restore online mode ────────────────────────────────────────
@@ -94,9 +161,51 @@ describe('Lumina — cloud sync (offline → online)', () => {
     offline = false;
 
     // ── 5. Wait for the sync cycle (runs every ~30 s) ────────────────
-    // The sync wait is an external timing constraint, not a flaky
-    // UI wait — the app's PowerSync poller needs wall-clock time.
     cy.wait(35_000);
+
+    // DIAG DEV-only : inspecter la queue d'upload PowerSync avant
+    // l'assertion REST. Le flag est exposé par initPowerSync() dans
+    // src/lib/powersync/index.ts uniquement quand import.meta.env.DEV
+    // (pas dans les builds prod). Si `__psDb` est absent, le test
+    // échouera sur l'assertion REST sans info diagnostic — on ne
+    // bloque PAS le test sur le flag.
+    cy.window().then((win: any) => {
+      const ps = win.__psDb;
+      if (ps && ps.status) {
+        const st = ps.status;
+        // eslint-disable-next-line no-console
+        console.log('[PS DIAG] status:', {
+          connected: st.connected,
+          hasSynced: st.hasSynced,
+          uploading: st.uploading,
+          downloadError: st.downloadError?.message,
+          uploadError: st.uploadError?.message,
+        });
+      } else {
+        // eslint-disable-next-line no-console
+        console.log('[PS DIAG] no __psDb exposed (prod build?)');
+      }
+      // Forcer un flush explicite de la queue d'upload (si l'app a
+      // enqueued des CRUD offline) et vérifier le count d'ops pendantes.
+      const probeCrud = async () => {
+        try {
+          if (!ps || !ps.getNextCrudTransaction) return -1;
+          const tx = await ps.getNextCrudTransaction();
+          if (!tx) return 0; // vide : tout est uploadé ou la queue est vide
+          const n = tx.crud.length;
+          // On ne complete() PAS pour laisser le spec vérifier la base
+          // Supabase via REST ci-dessous — si on complete(), les op
+          // sont perdues et la table reste vide.
+          return n;
+        } catch (e) {
+          return -1;
+        }
+      };
+      probeCrud().then((pending) => {
+        // eslint-disable-next-line no-console
+        console.log('[PS DIAG] pendingCrud ops:', pending);
+      });
+    });
 
     // ── 6. Assert the entities reached Supabase ───────────────────────
     cy.request({

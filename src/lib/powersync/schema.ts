@@ -396,10 +396,11 @@ const cotisations = new Table(
 
 // Note : PowerSync v2 ne modélise pas les FK côté client (TableOptions ne
 // connaît que `indexes`) ; l'FK org_id → organizations(id) est portée côté
-// PostgreSQL (migrations). La pkey `id` reste implicite côté PowerSync.
+// PostgreSQL (migrations). La pkey `id` reste implicite côté PowerSync
+// (elle est générée automatiquement, on ne la déclare PAS dans le schéma).
 const report_definitions = new Table(
   {
-    id: column.text,
+    // id: column.text,  ← INTERDIT en PowerSync v2 : la PK id est automatique
     org_id: column.text,
     name: column.text,
     kind: column.text,

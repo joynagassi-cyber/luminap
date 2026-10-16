@@ -34,10 +34,47 @@ describe('Lumina — Event tasks CRUD + status + progress + F5', () => {
     // ── 1. Create event ───────────────────────────────────────────────
     cy.ensureAuth();
     cy.visit('/event/new');
-    cy.get('ion-input[aria-label="Nom de l\'événement"], input[aria-label="Nom de l\'événement"]')
+
+    // Le IonInput du nom est un custom element Ionic (shadow DOM). Le
+    // `type()` de Cypress sur l'input interne ne propage PAS vers
+    // onIonChange (le DOM value passe mais le React state reste vide)
+    // — voir le pattern détaillé dans persistence.cy.ts. On force :
+    //   1. value sur l'input natif interne + sur le IonInput wrapper ;
+    //   2. CustomEvent `ionChange` avec detail.value (exactement ce que
+    //      IonInput.emitValueChange() produit).
+    cy.get('ion-input', { timeout: 60_000 }).then(($ions) => {
+      let target: HTMLElement | null = null;
+      for (const el of Array.from($ions) as HTMLElement[]) {
+        if (el.getAttribute('aria-label') === "Nom de l'événement") {
+          target = el;
+          break;
+        }
+      }
+      if (!target && $ions.length > 1) target = $ions[1];
+      if (!target) throw new Error('IonInput du nom introuvable');
+
+      const ionInputEl = target;
+      const nativeInput: HTMLInputElement | null =
+        (ionInputEl as any).nativeInput ??
+        ionInputEl.querySelector('input') ??
+        null;
+      if (nativeInput) nativeInput.value = eventName;
+      (ionInputEl as any).value = eventName;
+      ionInputEl.dispatchEvent(
+        new CustomEvent('ionChange', {
+          detail: { value: eventName },
+          bubbles: true,
+          composed: true,
+        }),
+      );
+    });
+
+    // Le IonButton « Créer l'événement » rend un <ion-button> (custom
+    // element, texte en light DOM — pas de <button> natif interne en
+    // Ionic 7). On cible le ion-button par son texte.
+    cy.contains('ion-button', "Créer l'événement", { timeout: 30_000 })
       .first()
-      .type(eventName, { force: true });
-    cy.contains('button', "Créer l'événement", { timeout: 30_000 }).click();
+      .click({ force: true });
     cy.location('pathname', { timeout: 60_000 }).should((path: string) => {
       expect(path, `event detail path: ${path}`).to.match(/^\/events\//);
     });

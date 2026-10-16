@@ -105,4 +105,86 @@ describe('Lumina — Session persistence (Mes comptes, reconnect sans retaper)',
       cy.get(`button[aria-label="Retirer ${rawLabel} de la liste"]`).should('be.visible');
     });
   });
+
+  // ── PERSISTANCE DE LA SESSION (complément de la demande utilisateur) ────
+  // La demande : « vérifier que la session est bien enregistrée en local
+  // et accessible pour se connecter, permettant ainsi d’utiliser
+  // plusieurs organisations différentes avec des comptes différents ;
+  // que la persistance de la connexion tient ; que quand on sort de
+  // l’app on revienne exactement où on s’était ; que l’utilisateur ne
+  // se déconnecte pas à chaque fois qu’il sort de l’app ».
+  //
+  // Ce qui est testé ici (le 1er it de ce spec, lignes 53-89, a déjà
+  // vérifié la ré-ouverture du compte après déconnexion depuis /sessions) :
+  //   1. La session (token Supabase) est PERSISTÉE en localStorage sous
+  //      la clé `sb-<projectId>-auth-token` (supabase-js, src/lib/auth.ts
+  //      : createClient sans option `storage` → dérive la clé du project
+  //      ref) — on lit la clé dans le DOM du test.
+  //   2. Sortir de l’app = cy.visit('/') (le root de l’app, qui redirige
+  //      sur /splash) : le token est encore présent dans localStorage →
+  //      le Splash hydrate la session via authService.getSession() et
+  //      navigue vers /dashboard (ou /onboarding) SANS réafficher /auth.
+  //      C’est le comportement « revenir exactement où on s’était ».
+  //   3. Revenir sur /sessions (la page est PUBLIQUE — elle ne redirige
+  //      PAS sur /auth, cf. le spec existant ligne 69-73) : les comptes
+  //      sont TOUJOURS listés (ils ne sont PAS effacés par la
+  //      déconnexion — c’est le point exact de la demande « permettant
+  //      d’utiliser plusieurs organisations différentes »).
+  it('la session persiste en local et survit à une sortie de l’app (revenue sur l’état précédent)', function () {
+    this.timeout(120_000);
+
+    // 1. On est au dashboard (le test précédent a terminé sur
+    //    /dashboard après la reconnexion). On vérifie que le token
+    //    Supabase est PERSISTÉ en localStorage (la clé est dérivée
+    //    du project ref, cf. cypress/support/local.ts:89-94 —
+    //    `sb-<projectId>-auth-token`).
+    cy.visit('/dashboard');
+    cy.location('pathname', { timeout: 60_000 }).should('eq', '/dashboard');
+    cy.window().then((win) => {
+      const sbKey = Object.keys(win.localStorage).find((k) => /-auth-token$/.test(k));
+      expect(
+        sbKey,
+        'le token Supabase n est PAS persisté en localStorage (la session ne tiendra pas à la sortie de l app)',
+      ).to.be.a('string');
+      const raw = JSON.parse(win.localStorage.getItem(sbKey!) || 'null');
+      expect(raw?.access_token, 'access_token absent de la session persistée').to.be.a('string');
+      expect(raw?.refresh_token, 'refresh_token absent (la session ne pourra pas se re-valider)').to.be.a('string');
+    });
+
+    // 2. « Sortir de l’app » = visiter le root (qui redirige sur
+    //    /splash, le point d’entrée de l’app — cf. les routes dans
+    //    src/App.tsx : '/' n est pas une page de feature, c est
+    //    le hub de redirection vers /splash). Le token est encore
+    //    dans localStorage → le Splash hydrate la session et
+    //    navigue vers /dashboard (l’état précédent, « revenu
+    //    exactement où on s’était » — l’utilisateur n a PAS été
+    //    déconnecté, il ne retombe PAS sur /auth).
+    cy.visit('/');
+    // Le root redirige sur /splash (puis /splash → /dashboard si
+    // onboarding complet + données prêtes). On attend /splash ou
+    // /dashboard (les deux sont des états « authentifié »).
+    cy.location('pathname', { timeout: 60_000 }).should((path) => {
+      expect(
+        path,
+        `sortie de l’app : le root a mené à ${path} (attendu /splash ou /dashboard — /auth = déconnexion involontaire)`,
+      ).to.be.oneOf(['/splash', '/dashboard']);
+      return true;
+    });
+    // Si on est tombé sur /splash, on l laisse naviguer jusqu à
+    // /dashboard (le Splash navigue quand initialDataLoaded=true).
+    cy.location('pathname', { timeout: 60_000 }).should('eq', '/dashboard');
+
+    // 3. Le /sessions liste TOUJOURS les comptes (la
+    //    déconnexion S UI depuis le 1er it a retiré le token
+    //    Supabase, mais la RECONNEXION du 2e it l a reposé —
+    //    l org reste listée car la clé `lumina-removed-accounts`
+    //    (line 38 de Sessions.tsx) ne l a PAS effacée — on n a
+    //    pas cliqué « Retirer » dans ce spec, on a cliqué
+    //    « Re-ouvrir »).
+    cy.visit('/sessions');
+    cy.get('button[aria-label^="Re-ouvrir"]', { timeout: 60_000 }).should('exist');
+    // L’état « Actif » est affiché (le compte courant est toujours
+    // l’org active — la persistance de la connexion tient).
+    cy.contains('Actif').should('be.visible');
+  });
 });

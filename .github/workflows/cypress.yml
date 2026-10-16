@@ -1,0 +1,61 @@
+name: Cypress Tests
+
+on: [push]
+
+jobs:
+  cypress-run:
+    runs-on: ubuntu-latest
+    # Runs tests in parallel with matrix strategy https://on.cypress.io/parallelization
+    # https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/run-job-variations
+    # Also see warning here https://github.com/cypress-io/github-action#parallel
+    strategy:
+      fail-fast: false # https://github.com/cypress-io/github-action/issues/48
+      matrix:
+        containers: [1, 2] # Uses 2 parallel instances
+    env:
+      NODE_VERSION: '22'
+      PNPM_VERSION: '11.27.1'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Create .env.local
+        run: |
+          echo "VITE_SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > .env.local
+          echo "VITE_SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}" >> .env.local
+          echo "VITE_SUPABASE_JWKS_URL=${{ secrets.SUPABASE_JWKS_URL }}" >> .env.local
+          echo "VITE_POWERSYNC_URL=${{ secrets.POWERSYNC_URL }}" >> .env.local
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Cypress run
+        # Uses the official Cypress GitHub action https://github.com/cypress-io/github-action
+        uses: cypress-io/github-action@v7
+        with:
+          # Starts web server for E2E tests — Lumina uses a Vite dev server on :8080
+          # (not `npm start`/port 3000). See https://docs.cypress.io/app/continuous-integration/overview#Boot-your-server
+          start: pnpm run dev
+          wait-on: 'http://localhost:8080' # Waits for above
+          # Records to Cypress Cloud
+          # https://docs.cypress.io/cloud/get-started/setup
+          record: true
+          parallel: true # Runs test in parallel using settings above
+        env:
+          # For recording and parallelization you must set your CYPRESS_RECORD_KEY
+          # in GitHub repo → Settings → Secrets → Actions
+          CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
+          # Create a token https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CYPRESS_BASE_URL: http://localhost:8080

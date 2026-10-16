@@ -1,26 +1,39 @@
-# Adds YAML Schema support for VSCode users with the YAML extension installed. This enables features like validation and autocompletion based on the provided schema.
-# yaml-language-server: $schema=https://unpkg.com/@powersync/cli-schemas@latest/json-schema/service-config.json
-
 # PowerSync Cloud config - Lumina Church Management
+# yaml-language-server: $schema=https://unpkg.com/@powersync/cli-schemas@latest/json-schema/service-config.json
+#
+# Aligne localement sur service-fetched.yaml (dump Cloud = source de vérité du
+# service config, le seul en production). Ce fichier EST le service config Cloud.
+# Le deploy service-config ci-dessous renvoie exactement ce contenu (idempotent),
+# mais l'URI locale est désormais correcte (Supabase hhgovvrnalibhgpakswi,
+# pas l'ancien vvcdmqpbwfyhkzalwdli) et ne duplique plus le mot de passe :
+# le mot de passe Supabase est géré par le vault Cloud via `secret_ref`.
+#
+# ⚠️ Instance = 6a9dd96302481fb31b945823 (cli.yaml), nom "Production", région eu.
+
 _type: cloud
-
-# Instance name
-name: lumina
-
-# Deployment region - MUST match existing instance (eu)
+name: Production
 region: eu
 
 # Replication connection to Supabase
 replication:
   connections:
     - type: postgresql
-      # Supabase uses username: postgres.[project-ref]
-      uri: postgresql://postgres.vvcdmqpbwfyhkzalwdli:fUF6s8U678w6ct1a@db.vvcdmqpbwfyhkzalwdli.supabase.co:5432/postgres
+      uri: postgresql://postgres@db.hhgovvrnalibhgpakswi.supabase.co:5432/postgres
       password:
-        secret: !env PS_DATABASE_PASSWORD
+        secret_ref: default_password
+      hostname: db.hhgovvrnalibhgpakswi.supabase.co
+      port: 5432
+      database: postgres
+      username: postgres
+      name: Default
+      tag: default
       sslmode: verify-full
+      debug_api: false
 
 # Client authentication using Supabase JWT
 client_auth:
   supabase: true
-  # Auto-detects JWKS URL from Supabase project
+  supabase_jwt_secret:
+    secret_ref: supabase_jwt_secret
+  additional_audiences: []
+  allow_temporary_tokens: true

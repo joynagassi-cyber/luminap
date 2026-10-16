@@ -36,7 +36,22 @@
       }
     })();
   </script>
-  <div id="root"></div>
+  <div id="root">
+    <!-- Splash statique (HTML/CSS natif, pas React) : visible immédiatement
+         au chargement du document, avant que le bundle JS ne s'exécute.
+         Deux variantes (light/dark) — la bonne est révélée par le script
+         inline de data-theme ci-dessus (localStorage lumina-theme-mode).
+         Le splash React (src/pages/Splash.tsx, route /splash) prend le
+         relais quand React monte : même logo, même design system,
+         aucune cassure visuelle entre les deux. -->
+    <div class="splash-splash-html" aria-hidden="true">
+      <div class="splash-splash-html-logo">
+        <img src="/lumina-logo-version-monochrome.png" alt="" width="96" height="96" />
+        <p class="splash-splash-html-name">Lumina</p>
+        <p class="splash-splash-html-sub">Gestion financière des églises</p>
+      </div>
+    </div>
+  </div>
   <script type="module" src="/src/main.tsx"></script>
 </body>
 </html>

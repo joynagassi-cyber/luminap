@@ -62,6 +62,13 @@ import("@ionic/core")
 
 createRoot(document.getElementById("root")!).render(<App />);
 
+// Signale à la CSS statique d'index.html que le root React est
+// hydraté : le splash HTML/CSS (index.html) est masqué (display:none)
+// dès que le premier rendu React a du contenu, pour ne pas laisser
+// deux écrans de splash superposés. Le splash React (route /splash)
+// prend le relais visuellement.
+document.getElementById("root")?.classList.add("is-hydrated");
+
 // Affichage fluide : dès le départ, on préchauffe (hors du chemin critique
 // de rendu, au repos du navigateur) les chunks des vues de la nav que
 // l'utilisateur a configurée (défaut sinon). Le premier clic sur un onglet

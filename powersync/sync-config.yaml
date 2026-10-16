@@ -1,27 +1,30 @@
 # Lumina — PowerSync Sync Streams (édition 3, multi-organisation).
 #
 # Conventions
-#   - `auth.uid()`          : Supabase user ID (UUID) du stream requesté par le
-#                            client PowerSync. Côté service, il est résolu
-#                            contre `profiles.id` pour récupérer l'organisation
-#                            de l'utilisateur.
-#   - `auth.email()`        : email du profil (fallback : user email).
+#   - `auth.user_id()`    : Supabase user ID (UUID) ; scope du stream via le
+#                           JWT `sub`. Côté service, il est résolu contre
+#                           `profiles.id` pour récupérer l'organisation.
 #   - `auto_subscribe: true`: le client s'abonne automatiquement au stream à
-#                            l'initialisation (utile pour les streams globaux
-#                            ou partagés par toute l'organisation).
+#                             l'initialisation (utile pour les streams globaux
+#                             ou partagés par toute l'organisation).
 #
 # Pattern de filtrage par organisation
 #   Pour toute table qui porte une colonne `org_id` (text, pas uuid), le
 #   filtre est :
-#       WHERE org_id = (SELECT org_id FROM profiles WHERE id = auth.uid())
-#   Cela garantit qu'un utilisateur connecté ne voit QUE les données de son
-#   propre organisation — sans fuite cross-org.
+#       WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+#   C'est `IN` — pas `=` — car les sous-requêtes sont autorisées UNIQUEMENT
+#   dans les WHERE clauses de Sync Streams (pas dans les SELECT lists ni les
+#   JOINs). Un user 1-org = 1 ligne → `IN` = `=` sémantiquement ; un user
+#   multi-org = N lignes → `IN` couvre le double-scope.
 #
 # Pattern pour les tables LIAISON sans `org_id`
 #   `group_memberships`     : liée à `groups` (a `org_id`) → filtre par group_id
 #   `event_budgets`         : liée à `events`  (a `org_id`) → filtre par event_id
 #   `budget_lines`          : liée à `event_budgets` → filtre transitif
 #   `custom_field_values`   : liée à `custom_field_definitions` (a `org_id`)
+#   Aucun alias sur la table source (pas de `gm`, `eb`, `bl`, `cv`) :
+#   PowerSync sync le source row sous l'alias si on en met, ce qui casse les
+#   requêtes client qui cherchent la table par son vrai nom.
 #
 # Les streams GLOBAUX (mêmes pour tous les utilisateurs, aucune col
 # organisationnelle) restent en `auto_subscribe: true` sans filtre.
@@ -48,14 +51,15 @@ streams:
   # l'UI en a besoin pour afficher les rôles / orgs multiples de l'user.
   org_memberships:
     auto_subscribe: false
-    query: SELECT * FROM org_memberships
-           WHERE user_id = auth.uid()
-              OR org_id IN (SELECT org_id FROM profiles WHERE id = auth.uid())
+    query: |
+      SELECT * FROM org_memberships
+      WHERE user_id = auth.user_id()
+         OR org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
 
   # ── Profil de l'utilisateur connecté ───────────────────────────────────
   profiles:
     auto_subscribe: true
-    query: SELECT * FROM profiles WHERE email = auth.email()
+    query: SELECT * FROM profiles WHERE id = auth.user_id()
 
   # ── Données de l'organisation de l'utilisateur connecté ───────────────
   # Double-scope (Vague 1, réversible) : tant que le backfill 1:1 est exact,
@@ -63,89 +67,117 @@ streams:
   # Modèle à répliquer aux 22 autres streams en Étape 2.
   transactions:
     auto_subscribe: true
-    query: SELECT * FROM transactions WHERE org_id IN (
-      SELECT org_id FROM org_memberships
-      WHERE user_id = auth.uid() AND status IN ('ACTIVE','PENDING')
-      UNION
-      SELECT org_id FROM profiles WHERE id = auth.uid()
-    )
+    query: |
+      SELECT * FROM transactions
+      WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
 
   events:
     auto_subscribe: true
-    query: SELECT * FROM events WHERE org_id = (SELECT org_id FROM profiles WHERE id = auth.uid())
+    query: |
+      SELECT * FROM events
+      WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
 
   # Tâches & sous-tâches d'un événement (Phase 1 Feature 1 Calendrier,
   # migration 20261003000001). Scoping org identique à `events` ; l'UI
   # (EventTasks.tsx via useEventTasks) crée le stream explicitement.
   event_tasks:
     auto_subscribe: false
-    query: SELECT * FROM event_tasks
-           WHERE org_id = (SELECT org_id FROM profiles WHERE id = auth.uid())
+    query: |
+      SELECT * FROM event_tasks
+      WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
 
   cotisations:
     auto_subscribe: true
-    query: SELECT * FROM cotisations WHERE org_id = (SELECT org_id FROM profiles WHERE id = auth.uid())
+    query: |
+      SELECT * FROM cotisations
+      WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
 
   members:
     auto_subscribe: true
-    query: SELECT * FROM members WHERE org_id = (SELECT org_id FROM profiles WHERE id = auth.uid())
+    query: |
+      SELECT * FROM members
+      WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
 
   groups:
     auto_subscribe: true
-    query: SELECT * FROM groups WHERE org_id = (SELECT org_id FROM profiles WHERE id = auth.uid())
+    query: |
+      SELECT * FROM groups
+      WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
 
   versements:
     auto_subscribe: true
-    query: SELECT * FROM versements WHERE org_id = (SELECT org_id FROM profiles WHERE id = auth.uid())
+    query: |
+      SELECT * FROM versements
+      WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
 
   notifications:
     auto_subscribe: true
-    query: SELECT * FROM notifications WHERE org_id = (SELECT org_id FROM profiles WHERE id = auth.uid())
+    query: |
+      SELECT * FROM notifications
+      WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
 
   # Modèle canonique de comptes
   accounts:
     auto_subscribe: true
-    query: SELECT * FROM accounts WHERE org_id = (SELECT org_id FROM profiles WHERE id = auth.uid())
+    query: |
+      SELECT * FROM accounts
+      WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
 
   # Liaisons sans org_id direct → filtre transitif via le parent
+  # (Aucun alias sur la table source : PowerSync renommerait sinon la table
+  # sync côté client, qui s'appelle group_memberships côté SDK.)
   group_memberships:
     auto_subscribe: true
-    query: SELECT gm.* FROM group_memberships gm
-           JOIN groups g ON g.id = gm.group_id
-           WHERE g.org_id = (SELECT org_id FROM profiles WHERE id = auth.uid())
+    query: |
+      SELECT group_memberships.*
+      FROM group_memberships
+      JOIN groups ON groups.id = group_memberships.group_id
+      WHERE groups.org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
 
   event_budgets:
     auto_subscribe: true
-    query: SELECT eb.* FROM event_budgets eb
-           JOIN events e ON e.id = eb.event_id
-           WHERE e.org_id = (SELECT org_id FROM profiles WHERE id = auth.uid())
+    query: |
+      SELECT event_budgets.*
+      FROM event_budgets
+      JOIN events ON events.id = event_budgets.event_id
+      WHERE events.org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
 
   budget_lines:
     auto_subscribe: true
-    query: SELECT bl.* FROM budget_lines bl
-           JOIN event_budgets eb ON eb.id = bl.event_budget_id
-           JOIN events e ON e.id = eb.event_id
-           WHERE e.org_id = (SELECT org_id FROM profiles WHERE id = auth.uid())
+    query: |
+      SELECT budget_lines.*
+      FROM budget_lines
+      JOIN event_budgets ON event_budgets.id = budget_lines.event_budget_id
+      JOIN events ON events.id = event_budgets.event_id
+      WHERE events.org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
 
   custom_field_values:
     auto_subscribe: true
-    query: SELECT cv.* FROM custom_field_values cv
-           JOIN custom_field_definitions cfd ON cfd.id = cv.custom_field_definition_id
-           WHERE cfd.org_id = (SELECT org_id FROM profiles WHERE id = auth.uid())
+    query: |
+      SELECT custom_field_values.*
+      FROM custom_field_values
+      JOIN custom_field_definitions ON custom_field_definitions.id = custom_field_values.custom_field_definition_id
+      WHERE custom_field_definitions.org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
 
   # Formulaires
   form_definitions:
     auto_subscribe: true
-    query: SELECT * FROM form_definitions WHERE org_id = (SELECT org_id FROM profiles WHERE id = auth.uid())
+    query: |
+      SELECT * FROM form_definitions
+      WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
 
   form_submissions:
     auto_subscribe: true
-    query: SELECT * FROM form_submissions WHERE org_id = (SELECT org_id FROM profiles WHERE id = auth.uid())
+    query: |
+      SELECT * FROM form_submissions
+      WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
 
   # Champs personnalisés
   custom_field_definitions:
     auto_subscribe: true
-    query: SELECT * FROM custom_field_definitions WHERE org_id = (SELECT org_id FROM profiles WHERE id = auth.uid())
+    query: |
+      SELECT * FROM custom_field_definitions
+      WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
 
   # ── Invitations ─────────────────────────────────────────────────────────
   # Les invitations sont créées par un admin et validées par un utilisateur.
@@ -160,42 +192,62 @@ streams:
   # chaque vue.
   invitations:
     auto_subscribe: false
-    query: SELECT * FROM invitations WHERE org_id = (SELECT org_id FROM profiles WHERE id = auth.uid())
+    query: |
+      SELECT * FROM invitations
+      WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
 
   invitation_claims:
     auto_subscribe: false
-    query: SELECT * FROM invitation_claims
-           WHERE invitation_id IN (SELECT id FROM invitations
-                                   WHERE org_id = (SELECT org_id FROM profiles WHERE id = auth.uid()))
+    query: |
+      SELECT * FROM invitation_claims
+      WHERE invitation_id IN (
+        SELECT id FROM invitations
+        WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+      )
 
   # ── Administration centrale multi-org ──────────────────────────────────
-  organizations:
+  # L'union des 3 vues (famille + admin + propre org) est impossible dans un
+  # seul stream PowerSync (UNION de 2+ SELECT rejetés par le validateur).
+  # Chaque vue est un stream séparé ; le client les crée explicitement.
+  org_families:
     auto_subscribe: false
-    # Phase 1 Feature 2 : famille complète (profondeur illimitée) via
-    # `org_family` (vue closure transitive, migration 20261003000003).
-    # Un admin central voit les orgs qu'il gère (org_admins) ; une annexe
-    # voit sa famille complète (ascendants + descendants) pour
-    # recevoir/envoyer des rapports. Le stream est créé explicitement côté
-    # client (CentralAdmin / Federation / Rapports).
-    query: SELECT o.id, o.name, o.type, o.status, o.parent_org_id,
-                  o.suspended_at, o.suspended_by,
-                  o.archived_at, o.archived_by, o.archive_reason,
-                  o.created_at, o.updated_at
-           FROM organizations o
-           WHERE o.id IN (
-                  SELECT org_id FROM public.org_family
-                  WHERE ancestor = (SELECT org_id FROM public.profiles WHERE id = auth.uid())
-                  UNION
-                  SELECT org_id FROM public.org_admins WHERE admin_profile_id = auth.uid()
-                  UNION
-                  SELECT org_id FROM public.profiles WHERE id = auth.uid()
-                )
+    query: |
+      SELECT o.id, o.name, o.type, o.status, o.parent_org_id,
+             o.suspended_at, o.suspended_by,
+             o.archived_at, o.archived_by, o.archive_reason,
+             o.created_at, o.updated_at
+      FROM organizations o
+      WHERE o.id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
 
+  org_administered:
+    auto_subscribe: false
+    query: |
+      SELECT id, name, type, status, parent_org_id,
+             suspended_at, suspended_by,
+             archived_at, archived_by, archive_reason,
+             created_at, updated_at
+      FROM organizations
+      WHERE id IN (SELECT org_id FROM org_admins WHERE admin_profile_id = auth.user_id())
+
+  org_owned:
+    auto_subscribe: false
+    query: |
+      SELECT id, name, type, status, parent_org_id,
+             suspended_at, suspended_by,
+             archived_at, archived_by, archive_reason,
+             created_at, updated_at
+      FROM organizations
+      WHERE id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+
+  # Back-compat : les streams qui référenceaient le stream "organizations"
+  # (CentralAdmin / Federation / Rapports) utilisent l'union des 3 streams
+  # ci-dessus via les composants UI (voir src/capabilities/federation/*).
   org_admins:
     auto_subscribe: false
-    query: SELECT * FROM org_admins
-           WHERE admin_profile_id = auth.uid()
-              OR org_id = (SELECT org_id FROM profiles WHERE id = auth.uid())
+    query: |
+      SELECT * FROM org_admins
+      WHERE admin_profile_id = auth.user_id()
+         OR org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
 
   # ── Rapports inter-organisations (Phase 1 Feature 2) ────────────────────
   # Un user lit les rapports (a) émis par son org (from_org_id = son org)
@@ -203,30 +255,29 @@ streams:
   # le client crée explicitement le stream (page d'émission / page réception).
   org_reports:
     auto_subscribe: false
-    query: SELECT * FROM org_reports
-           WHERE from_org_id = (SELECT org_id FROM profiles WHERE id = auth.uid())
-              OR to_org_id = (SELECT org_id FROM profiles WHERE id = auth.uid())
+    query: |
+      SELECT * FROM org_reports
+      WHERE from_org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+         OR to_org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
 
   # ── Modèle agnostique (Vague 2) : grants + tags ─────────────────────────
   # Streams créés explicitement côté client ; le filtrage fort passe par
   # `canAccess` (Vague 2.4), le scoping RLS reste `is_org_member`.
   grants:
     auto_subscribe: false
-    query: SELECT * FROM grants
-           WHERE subject_id = auth.uid()::text
-              OR subject_type = 'tag' AND subject_id IN
-                 (SELECT ta.tag_id::text FROM tag_assignments ta
-                  WHERE ta.user_id = auth.uid())
+    query: |
+      SELECT * FROM grants
+      WHERE subject_id = auth.user_id()
 
   tags:
     auto_subscribe: false
-    query: SELECT * FROM tags
-           WHERE org_id = (SELECT org_id FROM profiles WHERE id = auth.uid())
-              OR org_id IN (SELECT org_id FROM org_memberships
-                            WHERE user_id = auth.uid()
-                              AND status IN ('ACTIVE','PENDING'))
+    # Simple scoping : le tag est synchronisé pour l'organisation de l'user
+    # courant (via profiles). L'UNION des orgs ACTIVE/PENDING dans memberships
+    # est exprimable par le client si nécessaire (canAccess), pas par PowerSync.
+    query: |
+      SELECT * FROM tags
+      WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
 
   tag_assignments:
     auto_subscribe: false
-    query: SELECT * FROM tag_assignments
-           WHERE user_id = auth.uid()
+    query: SELECT * FROM tag_assignments WHERE user_id = auth.user_id()

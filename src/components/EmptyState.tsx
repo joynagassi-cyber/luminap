@@ -1,7 +1,19 @@
 import { IonButton } from "@ionic/react";
 import React from "react";
-import EmptyIllustration from "@/components/EmptyIllustration";
 
+/**
+ * EmptyState — écran d'état vide réutilisable.
+ *
+ * Illustration : le logo Lumina monochrome
+ * (public/lumina-logo-version-monochrome.png) en format réduit (80 px),
+ * avec une opacité réduite (0.55) pour qu'il reste décoratif et annonce
+ * « quelque chose arrive » sans voler l'attention du titre / de la
+ * description.
+ *
+ * Si un `icon` explicite est passé par le caller, c'est l'`icon` qui
+ * est affiché à la place du logo (comportement inchangé par rapport au
+ * composant existant — aucune page n'est impactée).
+ */
 interface EmptyStateProps {
   icon?: React.ReactNode;
   title: string;
@@ -28,8 +40,19 @@ export default function EmptyState({
       {icon ? (
         <div className="w-16 h-16 mb-4 text-text-tertiary">{icon}</div>
       ) : (
-        <div className="mb-5" aria-hidden="true">
-          <EmptyIllustration />
+        <div className="mb-6" aria-hidden="true">
+          {/* Logo Lumina monochrome — indicateur « quelque chose arrive » :
+              opacité 0.55 pour rester décoratif (le titre/description
+              portent le sens, le logo ne qualifie pas le contenu).
+              Taille réduite (80 px) par rapport au 96 px du splash pour
+              se fondre dans la page et ne pas écraser le texte. */}
+          <img
+            src="/lumina-logo-version-monochrome.png"
+            alt=""
+            width={80}
+            height={80}
+            style={{ opacity: 0.55 }}
+          />
         </div>
       )}
       <h3 className="text-lg font-semibold text-text-primary mb-2">{title}</h3>

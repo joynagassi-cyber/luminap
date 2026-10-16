@@ -242,6 +242,36 @@ textarea:focus-visible,
   }
 }
 
+/* ── Splash : logo monochrome (public/lumina-logo-version-monochrome.png) ─
+ * Le PNG est 8-bit RGBA : le dessin (trait blanc) est opaqre, le fond
+ * est transparent. Pas de mix-blend-mode nécessaire — le PNG se fond
+ * nativement sur le canvas (sombre OU clair) :
+ *   - trait blanc sur canvas sombre → contrast élevé ✔
+ *   - trait blanc sur canvas clair  → le trait reste visible (blanc
+ *     sur fond #f5f6f8) mais le contrast est plus faible ; le mode
+ *     clair du splash affiche aussi le mot « Lumina » en
+ *     var(--accent-primary) juste en dessous, donc la cohérence
+ *     visuelle est portée par le texte + l'accent, pas par le trait.
+ * Pas de transformation CSS (pas de filtres de couleur) : le trait
+ * reste tel quel dans le PNG, il n'est ni récoloré ni inversé.
+ */
+.splash-monochrome-logo,
+.splash-monochrome-illustration,
+.splash-monochrome-logo-small {
+  display: block;
+}
+/* Spinner : le bloc logo pivotote en entier (le trait lui-même ne
+   bouge pas à l'intérieur — c'est l'ensemble qui tourne, ce qui
+   donne l'impression de chargement). 1 s / linear / infini.
+   Respecte prefers-reduced-motion : dans App.css, la règle globale
+   force animation-duration à 0.01ms pour les utilisateurs qui
+   ont la préférence « réduire les animations » activée — le
+   spinner devient alors statique, ce qui est acceptable (le
+   texte « Chargement en cours… » reste visible). */
+.splash-monochrome-logo.spinner {
+  animation: spin 1s linear infinite;
+}
+
 @keyframes ping {
   75%,
   100% {

@@ -7,6 +7,21 @@ import { supabase } from "@/lib/auth";
 let _db: PowerSyncDatabase | null = null;
 let _connector: SupabaseConnector | null = null;
 
+/**
+ * DEV-ONLY : expose le handle PowerSync sur window pour que les specs
+ * Cypress (cloud-sync) puissent inspecter `db.status` et
+ * `getNextCrudTransaction()` après l'offline→online toggle. Le hook est
+ * absent en build prod (pas de fuite de l'UI en shipping).
+ */
+function publishDevDiagnostics() {
+  if (!import.meta.env.DEV) return;
+  try {
+    (window as unknown as Record<string, unknown>).__psDb = _db;
+  } catch {
+    /* SSR / worker boundary */
+  }
+}
+
 export function getPowerSyncDatabase(): PowerSyncDatabase {
   if (!_db) {
     throw new Error(
@@ -145,6 +160,9 @@ export async function initPowerSync(): Promise<void> {
   _db.waitForFirstSync().catch((error) => {
     console.debug("[PowerSync] first sync failed (will retry):", error);
   });
+
+  // DEV-ONLY : expose le handle sur window pour les specs Cypress.
+  publishDevDiagnostics();
 }
 
 export async function disconnectPowerSync(): Promise<void> {

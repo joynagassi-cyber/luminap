@@ -220,6 +220,7 @@ export default function BottomNav() {
                 role="tab"
                 aria-selected={active}
                 aria-label={f.label}
+                data-testid={`nav-tab-${f.id}`}
                 onClick={() => go(f)}
                 className="flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5 px-1 py-2 rounded-xl overflow-hidden transition-[transform,background-color,color,opacity]"
                 style={tabStyle(active)}

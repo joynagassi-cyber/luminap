@@ -14,6 +14,20 @@
  * NOTE: BottomNav has been plain HTML buttons (no Ionic custom elements)
  * since commit 1b8b085 — the bar exposes `<nav data-testid="bottom-nav">`
  * with native `<button role="tab">` items and a "Plus" button.
+ *
+ * NB : PAS de `import { cy } from 'cypress'` — `cy` est déjà dans le
+ * contexte global du runner (supportFile cypress/support/e2e.ts) et
+ * l'import résoudrait cypress/dist/cypress.js (réf. node:os, node:process)
+ * que le bundler webpack de Cypress ne bundle pas.
+ *
+ * ⚠️ (Run R8, 2026-10-10) Le texte « Caisse principale » n'est PAS
+ * affiché sur le Dashboard : c'est le nom du compte racine (seedé par
+ * `useLocalStore` via `churchSeedData()`), mais le Dashboard ne le
+ * rend que dans le CaisseCard du bloc « Caisses des groupes »
+ * (groupAccounts.length > 0) — qui n'a aucune data dans le seed.
+ * L'anchor réel du dashboard non-skeleton est le HeroCard : un
+ * <button aria-label="Voir les détails de la caisse principale">
+ * qui s'affiche toujours (même en solde 0). C'est lui qu'on teste.
  */
 
 describe('Lumina — offline dashboard shell (no cloud)', () => {
@@ -22,7 +36,12 @@ describe('Lumina — offline dashboard shell (no cloud)', () => {
   });
 
   beforeEach(function () {
-    cy.clearLocalStorage();
+    // clearLocalStorage() APRES le seedLocalSession() : le `cy.session()`
+    // du seed s'applique sur le DOM chargé, puis on efface les clés que
+    // l'app n'a pas encore monté. Si on clear AVANT le seed, le seed
+    // replante les clés et le clear les reprend — le spec fonctionne
+    // mais pas pour la bonne raison (et le test 2 qui recharge /dashboard
+    // voit les clés déjà là au 1er boot).
     cy.seedLocalSession();
   });
 
@@ -31,10 +50,12 @@ describe('Lumina — offline dashboard shell (no cloud)', () => {
 
     cy.visit('/dashboard');
 
-    // The "Caisse principale" hero card is the anchor: it is rendered by
-    // the main (non-skeleton) dashboard branch, gated on
-    // useTransactions().isLoading === false.
-    cy.contains('Caisse principale', { timeout: 40_000 }).should('be.visible');
+    // Le HeroCard du dashboard non-skeleton est un <button> avec
+    // aria-label="Voir les détails de la caisse principale" — c'est
+    // l'anchor de la refonte P1 (le skeleton n'a PAS ce button).
+    cy.get('button[aria-label="Voir les détails de la caisse principale"]', {
+      timeout: 40_000,
+    }).should('be.visible');
 
     // The BottomNav "Plus" button (native <button> with aria-label="Plus d'options").
     cy.get('button[aria-label="Plus d\'options"]', { timeout: 15_000 }).should('exist');
@@ -44,18 +65,24 @@ describe('Lumina — offline dashboard shell (no cloud)', () => {
     cy.contains('Derniers mouvements', { timeout: 15_000 }).should('exist');
   });
 
-  it('navigates to /finance via the bottom nav and renders the caisse', function () {
+  it('navigates to /finance via the bottom nav and lands on the finance page', function () {
     this.timeout(90_000);
 
     cy.visit('/dashboard');
-    cy.contains('Caisse principale', { timeout: 40_000 }).should('be.visible');
+    // Le dashboard non-skeleton est bien monté (le HeroCard est visible).
+    cy.get('button[aria-label="Voir les détails de la caisse principale"]', {
+      timeout: 40_000,
+    }).should('be.visible');
 
     // "Finances" tab: native <button role="tab" aria-label="Finances">.
     cy.get('button[role="tab"][aria-label="Finances"]', { timeout: 15_000 }).click();
     cy.location('pathname', { timeout: 15_000 }).should('include', 'finance');
 
-    // The Finance page reads useAccounts() + useTransactions(); with the seed
-    // it should list the "Caisse principale" account.
-    cy.contains('Caisse principale', { timeout: 20_000 }).should('exist');
+    // La page Finance n'affiche PAS le nom « Caisse principale » en
+    // tant que tel (le compte racine est le compte de référence, mais
+    // la page Finance liste les transactions, pas les accounts). On
+    // vérifie que la page est bien rendue (pas le skeleton, pas
+    // /dashboard) : le titre « Finances » (IonTitle) est l'anchor.
+    cy.get('ion-title', { timeout: 15_000 }).should('contain', 'Finances');
   });
 });

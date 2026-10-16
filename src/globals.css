@@ -131,3 +131,84 @@ textarea:focus-visible,
     background: var(--canvas) !important;
   }
 }
+
+/* ============================================================
+ *  Splash statique (index.html) — light/dark
+ *
+ *  Le <div class="splash-splash-html"> est visible au 1er paint
+ *  de index.html (AVANT l'exécution du bundle JS / le montage
+ *  de React). Il est masqué (display:none) dès que le root
+ *  React est monté avec du contenu (script inline de
+ *  l'effet ci-dessous, ou via une classe que main.tsx pose).
+ * ============================================================ */
+
+/* Fond plein = var(--canvas) (défaut sombre #121212). Le script
+   inline de data-theme (index.html) est exécuté AVANT le 1er
+   paint, donc --canvas est déjà le bon (clair OU sombre) au
+   moment où ce CSS s'applique. */
+.splash-splash-html {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--canvas, #121212);
+  z-index: 9999;
+}
+
+/* Logo monochrome + nom + sous-titre, centrés. */
+.splash-splash-html-logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.splash-splash-html-logo img {
+  width: 96px;
+  height: 96px;
+  display: block;
+}
+
+.splash-splash-html-name {
+  font-family: inherit;
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--accent-primary, #ff6b00);
+  margin: 0;
+}
+
+.splash-splash-html-sub {
+  font-family: inherit;
+  font-size: 0.8rem;
+  color: var(--text-tertiary, #808080);
+  margin: 0;
+}
+
+/* ── Dark (défaut, s'applique quand [data-theme] n'est PAS "light") ─
+   Le fond est déjà var(--canvas) = #121212 (dark) — aucun
+   ajustement spécifique nécessaire : le logo blanc (trait PNG
+   blanc) est visible sur fond sombre, le nom accent (#ff6b00)
+   est visible, le sous-titre (#808080) est visible. */
+
+/* ── Light ─
+   [data-theme="light"] est posé par le script inline AVANT le
+   1er paint (donc les tokens --canvas = #f5f6f8, --text-tertiary
+   = #8a8f96, --accent-primary = #ff6b00 sont déjà les valeurs
+   claires). Le logo (trait blanc sur fond transparent PNG)
+   reste visible : le trait blanc sur fond clair #f5f6f8 est
+   contrastant (le blanc "se détache" du fond gris clair). */
+
+/* Lorsque le root React est monté ET a du contenu, on masque
+   le splash statique pour ne pas laisser deux écrans
+   superposés. Le div React est .splash-splash-html et le
+   conteneur #root porte la classe "is-hydrated" posée par
+   main.tsx dès le 1er render. */
+#root.is-hydrated .splash-splash-html {
+  display: none;
+}
+
+/* Respect reduced motion : le splash statique n'a pas
+   d'animation (pas de transition) — rien à désactiver. */
