@@ -49,9 +49,14 @@ describe('Lumina — cloud sync (offline → online)', () => {
     // /dashboard d'abord (network actif, PowerSync hydrate le SQLite),
     // puis on écrit localStorage (lumina-user + lumina-active-org),
     // puis on recharge pour que l'app relise le context.
+    //
+    // Role : on force PASTEUR_PRINCIPAL (rôle du compte e2e dans
+    // org_memberships, qui a group:create — voir PERMISSION_MATRIX
+    // dans src/lib/rbac.ts). Sans ça, `useCanAccessMulti` retourne
+    // `allowed=false` et le FAB « Créer un groupe » n'est pas rendu.
     cy.visit('/dashboard', { timeout: 90_000 });
     cy.wait(10_000);
-    cy.window().then((win) => {
+    cy.window().then((win: any) => {
       const activeOrgId =
         (Cypress.expose('CYPRESS_ORG_ACTIVE_ID') as string) || 'org-e2e';
       const ls = win.localStorage;
@@ -59,9 +64,22 @@ describe('Lumina — cloud sync (offline → online)', () => {
       const user = raw ? JSON.parse(raw) : null;
       if (user) {
         user.org = { id: activeOrgId, name: 'Lumina Org E2E', type: 'CHURCH' };
+        user.role = 'PASTEUR_PRINCIPAL';
         ls.setItem('lumina-user', JSON.stringify(user));
+      } else {
+        // Repli : si lumina-user n'existe pas encore, on le crée.
+        ls.setItem(
+          'lumina-user',
+          JSON.stringify({
+            id: '87afea21-bad7-453b-9ae5-4ad1da2ca13f',
+            email: 'lumina-org-e2e@lumina.dev',
+            role: 'PASTEUR_PRINCIPAL',
+            org: { id: activeOrgId, name: 'Lumina Org E2E', type: 'CHURCH' },
+          }),
+        );
       }
       ls.setItem('lumina-active-org', activeOrgId);
+      ls.setItem('lumina-role', 'PASTEUR_PRINCIPAL');
     });
     cy.visit('/dashboard', { timeout: 90_000 });
     cy.wait(10_000);
@@ -92,20 +110,25 @@ describe('Lumina — cloud sync (offline → online)', () => {
     cy.ensureAuth();
     cy.visit('/groups', { timeout: 90_000 });
     cy.contains('Groupes', { timeout: 30_000 }).should('exist');
-    // Le HomeIndicator (bottom-sheet « Raccourcis utiles ») est open par
-    // défaut au montage de la page — il masque le FAB et tous les clicks
-    // à sa position. On ferme d'abord la modale (bouton X aria-label
-    // "Fermer raccourcis" ou clic sur le scrim) puis on vise le FAB.
-    cy.get('button[aria-label*="Fermer" i]', { timeout: 5_000 })
-      .first()
-      .click({ force: true })
-      .then(() => cy.wait(500));
-    cy.screenshot('cloud-sync-before-fab-click', { capture: 'runner' });
-    // Le FAB orange (56px, w-14 h-14) est rendu par CircleAction avec
-    // l'aria-label « Créer un groupe ». Si l'aria-label est présent,
-    // on cible directement ; sinon on prend le dernier bouton (FAB).
-    cy.get('button[aria-label="Créer un groupe"]', { timeout: 30_000 }).click({ force: true });
-    // Le champ « Nom du groupe » est un <ion-input> (host Stencil, mode ios)
+    cy.wait(3000);
+    // DIAG : lister les aria-labels des boutons pour comprendre pourquoi
+    // le FAB n'est pas trouvé par le sélecteur primaire.
+    cy.window().then((win: any) => {
+      const doc = win.document;
+      const labels = Array.from(doc.querySelectorAll('button'))
+        .map((b: HTMLButtonElement) => b.getAttribute('aria-label'));
+      // eslint-disable-next-line no-console
+      console.log('[cloud-sync DIAG] bouton aria-labels:', JSON.stringify(labels));
+      // eslint-disable-next-line no-console
+      console.log('[cloud-sync DIAG] count ion-input:', doc.querySelectorAll('ion-input').length);
+    });
+    // Le FAB orange (56px) est le CircleAction « Créer un groupe ».
+    // On cible par aria-label (le composant le passe correctement).
+    cy.get('button[aria-label="Créer un groupe"]', { timeout: 30_000 })
+      .should('exist')
+      .click({ force: true });
+    cy.wait(3000);
+    // Le form d'ajout s'ouvre (showCreate=true) : 2 IonInputs + 1 IonSelect.
     // dont l'input natif est en shadow root (sc-ion-input-ios). En mode
     // offline, le computed style de l'input interne est vide (pas encore
     // hydraté par Stencil) → Cypress le déclare "not visible" et cy.type()
@@ -225,6 +248,26 @@ describe('Lumina — cloud sync (offline → online)', () => {
     });
 
     // ── 6. Assert the entities reached Supabase ───────────────────────
+    // L'assertion REST utilise le JWT du user e2e (pas l'anon key) —
+    // sinon le RLS filtre les lignes et on voit 0 résultat. On lit le
+    // token directement dans localStorage depuis le contexte navigateur.
+    let userJwt = '';
+    cy.window().then((win: any) => {
+      const raw = win.localStorage.getItem(
+        'sb-hhgovvrnalibhgpakswi-auth-token',
+      );
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          userJwt = parsed?.access_token ?? '';
+        } catch {
+          /* JSON corrompu — on retombe sur anonKey */
+        }
+      }
+      // eslint-disable-next-line no-console
+      console.log('[PS DIAG] userJwt length:', userJwt?.length ?? 0);
+    });
+
     cy.request({
       method: 'GET',
       url:
@@ -233,10 +276,14 @@ describe('Lumina — cloud sync (offline → online)', () => {
         `&select=id,name,owner_type,status&limit=5`,
       headers: {
         apikey: anonKey,
-        Authorization: `Bearer ${anonKey}`,
+        Authorization: `Bearer ${userJwt || anonKey}`,
       },
     }).then((accountsRes: any) => {
+      // eslint-disable-next-line no-console
+      console.log('[PS DIAG] accounts REST:', accountsRes.status, JSON.stringify(accountsRes.body).slice(0, 200));
       expect(accountsRes.status).to.be.oneOf([200, 201]);
+      // eslint-disable-next-line no-console
+      console.log('[PS DIAG] userJwt length:', userJwt.length, 'accounts rows:', accountsRes.body.length);
       expect(accountsRes.body.length).to.be.greaterThan(0);
       expect(accountsRes.body[0].name).to.include('TestSync Account');
       expect(accountsRes.body[0].owner_type).to.eq('GROUP');
@@ -245,14 +292,16 @@ describe('Lumina — cloud sync (offline → online)', () => {
     cy.request({
       method: 'GET',
       url:
-        `${SUPABASE_URL}/rest/v1/custom_field_definitions?key=eq.` +
+        `${SUPABASE_URL}/rest/v1/custom_field_definitions?field_name=eq.` +
         encodeURIComponent(cfKey) +
-        `&select=id,label,key,entity_type&limit=5`,
+        `&select=id,field_name,field_label,entity_type&limit=5`,
       headers: {
         apikey: anonKey,
-        Authorization: `Bearer ${anonKey}`,
+        Authorization: `Bearer ${userJwt || anonKey}`,
       },
     }).then((cfsRes: any) => {
+      // eslint-disable-next-line no-console
+      console.log('[PS DIAG] cfd REST:', cfsRes.status, JSON.stringify(cfsRes.body).slice(0, 200));
       expect(cfsRes.status).to.be.oneOf([200, 201]);
       expect(cfsRes.body.length).to.be.greaterThan(0);
     });
