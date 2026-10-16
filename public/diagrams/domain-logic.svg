@@ -1,0 +1,272 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2200" height="1500" viewBox="0 0 2200 1500" role="img" aria-label="Graphes métier de Lumina : transitions d'état des événements, arborescence récursive d'organisation, machine à états des invitations et arborescence de dépendances des capacités">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#FFB800"/>
+    </marker>
+    <marker id="arrowGreen" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#1DB954"/>
+    </marker>
+    <marker id="arrowRed" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#E51332"/>
+    </marker>
+  </defs>
+
+  <rect width="2200" height="1500" fill="#121212"/>
+  <text x="64" y="66" font-family="'Segoe UI', Arial, sans-serif" font-size="30" font-weight="800" fill="#FFFFFF">Graphes métier — transitions d'état, hiérarchies et dépendances</text>
+  <rect x="64" y="82" width="120" height="4" rx="2" fill="#FF6B00"/>
+  <text x="64" y="114" font-family="Arial" font-size="15" fill="#B3B3B3">4 graphes : (A) transitions d'état · (B) arborescence multi-organisation · (C) machine à états des invitations · (D) dépendances entre capacités</text>
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!--  GRAPHE A — TRANSITIONS D'ÉTAT (haut-gauche, 64–1050, 150–720)        -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <rect x="64" y="150" width="986" height="570" rx="14" fill="#1A1A1A" stroke="#282828" stroke-width="1.5"/>
+  <text x="92" y="182" font-family="Arial" font-size="13" font-weight="700" fill="#FF8533" letter-spacing="1.5">A · TRANSITIONS D'ÉTAT (capability Workflow — garde de transition + invariance)</text>
+
+  <!-- Événements -->
+  <text x="92" y="222" font-family="Arial" font-size="14" font-weight="700" fill="#FFFFFF">Événements (eventStatusGuard)</text>
+  <text x="92" y="240" font-family="Arial" font-size="11.5" fill="#808080">états terminaux (COMPLETED / CANCELLED) invariants — aucune transition sortante</text>
+
+  <rect x="92" y="256" width="190" height="64" rx="8" fill="#282828" stroke="#FFB800" stroke-width="1.2"/>
+  <text x="187" y="282" font-family="Arial" font-size="13.5" font-weight="600" fill="#FFB800" text-anchor="middle">PLANIFIED</text>
+  <text x="187" y="302" font-family="Arial" font-size="11" fill="#808080" text-anchor="middle">initialement</text>
+
+  <rect x="342" y="256" width="190" height="64" rx="8" fill="#282828" stroke="#1DB954" stroke-width="1.2"/>
+  <text x="437" y="282" font-family="Arial" font-size="13.5" font-weight="600" fill="#1DB954" text-anchor="middle">ONGOING</text>
+  <text x="437" y="302" font-family="Arial" font-size="11" fill="#808080" text-anchor="middle">en cours</text>
+
+  <rect x="592" y="256" width="190" height="64" rx="8" fill="#282828" stroke="#808080" stroke-width="1.2"/>
+  <text x="687" y="282" font-family="Arial" font-size="13.5" font-weight="600" fill="#B3B3B3" text-anchor="middle">COMPLETED</text>
+  <text x="687" y="302" font-family="Arial" font-size="11" fill="#E51332" text-anchor="middle">terminal — invariant</text>
+
+  <rect x="342" y="356" width="190" height="64" rx="8" fill="#282828" stroke="#E51332" stroke-width="1.2"/>
+  <text x="437" y="382" font-family="Arial" font-size="13.5" font-weight="600" fill="#E51332" text-anchor="middle">CANCELLED</text>
+  <text x="437" y="402" font-family="Arial" font-size="11" fill="#E51332" text-anchor="middle">terminal — invariant</text>
+
+  <line x1="284" y1="288" x2="334" y2="288" stroke="#1DB954" stroke-width="2" marker-end="url(#arrowGreen)"/>
+  <text x="309" y="276" font-family="Arial" font-size="11" fill="#B3B3B3" text-anchor="middle">démarrer</text>
+  <line x1="534" y1="288" x2="584" y2="288" stroke="#808080" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="559" y="276" font-family="Arial" font-size="11" fill="#B3B3B3" text-anchor="middle">clôturer</text>
+  <line x1="342" y1="388" x2="334" y2="388" stroke="#E51332" stroke-width="2" marker-end="url(#arrowRed)"/>
+  <line x1="437" y1="320" x2="437" y2="348" stroke="#E51332" stroke-width="2" marker-end="url(#arrowRed)"/>
+  <text x="456" y="342" font-family="Arial" font-size="11" fill="#B3B3B3">annuler (depuis P. ou O.)</text>
+
+  <!-- Cotisation + transaction + invitation -->
+  <text x="92" y="472" font-family="Arial" font-size="14" font-weight="700" fill="#FFFFFF">Cotisations · Transactions · Invitations (garde + règles Policy)</text>
+
+  <text x="92" y="500" font-family="Arial" font-size="12.5" fill="#B3B3B3"><tspan font-weight="700" fill="#FFFFFF">Cotisation</tspan> — verrou 30 j avant le culte (30 days lock) · montant minimum · immuable après verrouillage (immutability after lock)</text>
+  <text x="92" y="524" font-family="Arial" font-size="12.5" fill="#B3B3B3"><tspan font-weight="700" fill="#FFFFFF">Transaction</tspan> — DRAFT → PENDING → APPROVED (invariant) / REJECTED · montant positif · APPROVED immuable</text>
+  <text x="92" y="548" font-family="Arial" font-size="12.5" fill="#B3B3B3"><tspan font-weight="700" fill="#FFFFFF">Versement</tspan> — solde suffisant (sufficient balance) · contrat d'opération atomique (atomic operation contract)</text>
+  <text x="92" y="572" font-family="Arial" font-size="12.5" fill="#B3B3B3"><tspan font-weight="700" fill="#FFFFFF">Invitation</tspan> — ACTIVE → EXPIRED / REVOKED / EXHAUSTED (cf. graphe C)</text>
+
+  <!-- schéma générique de transition -->
+  <text x="700" y="500" font-family="Arial" font-size="12.5" font-weight="700" fill="#FF8533">Pattern génique (Workflow.transition)</text>
+  <text x="700" y="524" font-family="Arial" font-size="12.5" fill="#B3B3B3">1. garde (guard) s'exécute <tspan fill="#FFB800">d'abord</tspan></text>
+  <text x="700" y="544" font-family="Arial" font-size="12.5" fill="#B3B3B3">2. transition persistée via PowerSync</text>
+  <text x="700" y="564" font-family="Arial" font-size="12.5" fill="#B3B3B3">3. entrée audit (audit_log_repo)</text>
+  <text x="700" y="584" font-family="Arial" font-size="11.5" fill="#808080">réussite des gardes → pas de transition possible → la règle est structurelle, pas optionnelle</text>
+
+  <text x="92" y="640" font-family="Arial" font-size="12" fill="#808080">Réf. code : src/capabilities/workflow/index.ts (eventStatusGuard + transitions immuables) · src/capabilities/policy/index.ts (checkLock, validateAmount, checkBalance)</text>
+  <text x="92" y="660" font-family="Arial" font-size="12" fill="#808080">· src/lib/event-status.ts (EVENT_STATUS_COLORS / _LABELS — tokens, jamais de couleur brute)</text>
+  <text x="92" y="682" font-family="Arial" font-size="11.5" fill="#535353">Couleurs statuts : PLANIFIED = --data-planified · ONGOING = --data-income (vert #1DB954) · COMPLETED = --text-tertiary · CANCELLED = --data-expense (rouge #E51332)</text>
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!--  GRAPHE B — ARBORESCENCE MULTI-ORG (haut-droite, 1090–2136)           -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <rect x="1090" y="150" width="1046" height="570" rx="14" fill="#1A1A1A" stroke="#282828" stroke-width="1.5"/>
+  <text x="1118" y="182" font-family="Arial" font-size="13" font-weight="700" fill="#FF8533" letter-spacing="1.5">B · ARBORESCENCE RÉCURSIVE D'ORGANISATIONS (vue org_family — profondeur illimitée)</text>
+
+  <!-- racine -->
+  <rect x="1370" y="216" width="486" height="70" rx="10" fill="#282828" stroke="#FF6B00" stroke-width="1.5"/>
+  <text x="1613" y="244" font-family="Arial" font-size="15" font-weight="700" fill="#FF6B00" text-anchor="middle">Organisation racine (org_id)</text>
+  <text x="1613" y="266" font-family="Arial" font-size="12" fill="#B3B3B3" text-anchor="middle">1 user multi-org → N lignes profiles → N scopes couverts (filtre IN)</text>
+
+  <!-- niveau 1 -->
+  <line x1="1470" y1="286" x2="1300" y2="330" stroke="#FFB800" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="1613" y1="286" x2="1613" y2="330" stroke="#FFB800" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="1756" y1="286" x2="1926" y2="330" stroke="#FFB800" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <rect x="1170" y="334" width="260" height="66" rx="8" fill="#212121" stroke="#282828"/>
+  <text x="1300" y="360" font-family="Arial" font-size="13.5" font-weight="600" fill="#FFFFFF" text-anchor="middle">Annexe A (école)</text>
+  <text x="1300" y="382" font-family="Arial" font-size="11" fill="#808080" text-anchor="middle">multi-modèles (scolaire, entreprise…)</text>
+
+  <rect x="1483" y="334" width="260" height="66" rx="8" fill="#212121" stroke="#282828"/>
+  <text x="1613" y="360" font-family="Arial" font-size="13.5" font-weight="600" fill="#FFFFFF" text-anchor="middle">Annexe B (NGO)</text>
+  <text x="1613" y="382" font-family="Arial" font-size="11" fill="#808080" text-anchor="middle">unités org_units (grouper, budget…)</text>
+
+  <rect x="1796" y="334" width="260" height="66" rx="8" fill="#212121" stroke="#282828"/>
+  <text x="1926" y="360" font-family="Arial" font-size="13.5" font-weight="600" fill="#FFFFFF" text-anchor="middle">Annexe C (entreprise)</text>
+  <text x="1926" y="382" font-family="Arial" font-size="11" fill="#808080" text-anchor="middle">groupes + adhésions (group_memberships)</text>
+
+  <!-- niveau 2 -->
+  <line x1="1300" y1="400" x2="1240" y2="442" stroke="#808080" stroke-width="1.5" marker-end="url(#arrowGray)" />
+  <line x1="1300" y1="400" x2="1420" y2="442" stroke="#808080" stroke-width="1.5" marker-end="url(#arrowGray)" />
+  <line x1="1613" y1="400" x2="1560" y2="442" stroke="#808080" stroke-width="1.5" marker-end="url(#arrowGray)" />
+
+  <rect x="1140" y="454" width="190" height="60" rx="8" fill="#282828" stroke="#333333"/>
+  <text x="1235" y="478" font-family="Arial" font-size="12.5" font-weight="600" fill="#B3B3B3" text-anchor="middle">Annexe A.1</text>
+  <text x="1235" y="498" font-family="Arial" font-size="11" fill="#808080" text-anchor="middle">(recursives, A21)</text>
+
+  <rect x="1345" y="454" width="190" height="60" rx="8" fill="#282828" stroke="#333333"/>
+  <text x="1440" y="478" font-family="Arial" font-size="12.5" font-weight="600" fill="#B3B3B3" text-anchor="middle">Annexe A.2</text>
+  <text x="1440" y="498" font-family="Arial" font-size="11" fill="#808080" text-anchor="middle">(recursives, A22)</text>
+
+  <rect x="1470" y="454" width="190" height="60" rx="8" fill="#282828" stroke="#333333"/>
+  <text x="1565" y="478" font-family="Arial" font-size="12.5" font-weight="600" fill="#B3B3B3" text-anchor="middle">Annexe B.1</text>
+  <text x="1565" y="498" font-family="Arial" font-size="11" fill="#808080" text-anchor="middle">(recursives, B1)</text>
+
+  <!-- note RLS -->
+  <rect x="1118" y="548" width="990" height="150" rx="10" fill="#212121" stroke="#282828"/>
+  <text x="1142" y="578" font-family="Arial" font-size="13.5" font-weight="700" fill="#FF8533">RLS récursif sur org_family (profondeur illimitée)</text>
+  <text x="1142" y="604" font-family="Arial" font-size="12.5" fill="#B3B3B3">La vue org_family remonte la hiérarchie (organisation → annexe → annexe d'annexe…) sans limite de profondeur.</text>
+  <text x="1142" y="628" font-family="Arial" font-size="12.5" fill="#B3B3B3">Les rapports inter-organisations (outbox PDF/DOCX/XLSX/PNG) circulent le long de cet arbre — un utilisateur</text>
+  <text x="1142" y="652" font-family="Arial" font-size="12.5" fill="#B3B3B3">ne voit que ce qui est dans sa famille d'org (spec E2E : cross-tenant.cy.ts = fuite RLS inter-tentant = rejetée).</text>
+  <text x="1142" y="678" font-family="Arial" font-size="11.5" fill="#808080">Réf. : migrations supabase (org_family, org_administered, org_owned, org_admins) · capability Federation (multi-org)</text>
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!--  GRAPHE C — MACHINE D'ÉTAT INVITATION (bas-gauche, 64–1050, 770–1440) -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <rect x="64" y="770" width="986" height="670" rx="14" fill="#1A1A1A" stroke="#282828" stroke-width="1.5"/>
+  <text x="92" y="802" font-family="Arial" font-size="13" font-weight="700" fill="#FF8533" letter-spacing="1.5">C · MACHINE D'ÉTAT — INVITATION (flux 2 phases : transfert QR offline → validation en ligne)</text>
+
+  <!-- invitation status -->
+  <text x="92" y="842" font-family="Arial" font-size="14" font-weight="700" fill="#FFFFFF">État de l'invitation</text>
+
+  <ellipse cx="170" cy="900" rx="46" ry="22" fill="#1DB954" opacity="0.85"/>
+  <text x="170" y="906" font-family="Arial" font-size="13" font-weight="700" fill="#121212" text-anchor="middle">start</text>
+
+  <rect x="280" y="866" width="210" height="68" rx="10" fill="#282828" stroke="#1DB954" stroke-width="1.5"/>
+  <text x="385" y="894" font-family="Arial" font-size="14" font-weight="600" fill="#1DB954" text-anchor="middle">ACTIVE</text>
+  <text x="385" y="916" font-family="Arial" font-size="11.5" fill="#B3B3B3" text-anchor="middle">code + QR générés (offline)</text>
+
+  <rect x="560" y="820" width="210" height="60" rx="8" fill="#282828" stroke="#808080"/>
+  <text x="665" y="844" font-family="Arial" font-size="13" font-weight="600" fill="#B3B3B3" text-anchor="middle">EXPIRED</text>
+  <text x="665" y="864" font-family="Arial" font-size="11" fill="#808080" text-anchor="middle">(terminal)</text>
+
+  <rect x="560" y="902" width="210" height="60" rx="8" fill="#282828" stroke="#E51332"/>
+  <text x="665" y="926" font-family="Arial" font-size="13" font-weight="600" fill="#E51332" text-anchor="middle">REVOKED</text>
+  <text x="665" y="946" font-family="Arial" font-size="11" fill="#808080" text-anchor="middle">(terminal, manuel)</text>
+
+  <rect x="560" y="984" width="210" height="60" rx="8" fill="#282828" stroke="#808080"/>
+  <text x="665" y="1008" font-family="Arial" font-size="13" font-weight="600" fill="#B3B3B3" text-anchor="middle">EXHAUSTED</text>
+  <text x="665" y="1028" font-family="Arial" font-size="11" fill="#808080" text-anchor="middle">(limite atteinte, terminal)</text>
+
+  <line x1="216" y1="890" x2="272" y2="890" stroke="#1DB954" stroke-width="2" marker-end="url(#arrowGreen)"/>
+  <line x1="490" y1="880" x2="552" y2="850" stroke="#808080" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="514" y="856" font-family="Arial" font-size="11" fill="#B3B3B3">expirer</text>
+  <line x1="490" y1="902" x2="552" y2="930" stroke="#E51332" stroke-width="2" marker-end="url(#arrowRed)"/>
+  <text x="514" y="938" font-family="Arial" font-size="11" fill="#B3B3B3">révoquer</text>
+  <line x1="490" y1="922" x2="552" y2="1000" stroke="#808080" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="508" y="1010" font-family="Arial" font-size="11" fill="#B3B3B3">exhaust</text>
+
+  <!-- claim status -->
+  <text x="92" y="1090" font-family="Arial" font-size="14" font-weight="700" fill="#FFFFFF">État de la réclamation (claim) — <tspan fill="#FFB800">phase 1 = offline, phase 2 = en ligne</tspan></text>
+
+  <ellipse cx="170" cy="1146" rx="46" ry="22" fill="#1DB954" opacity="0.85"/>
+  <text x="170" y="1152" font-family="Arial" font-size="13" font-weight="700" fill="#121212" text-anchor="middle">scan</text>
+
+  <rect x="280" y="1112" width="230" height="68" rx="10" fill="#282828" stroke="#FFB800" stroke-width="1.5"/>
+  <text x="395" y="1140" font-family="Arial" font-size="14" font-weight="600" fill="#FFB800" text-anchor="middle">PENDING_SYNC</text>
+  <text x="395" y="1162" font-family="Arial" font-size="11.5" fill="#B3B3B3" text-anchor="middle">QR scanné — écriture locale (offline OK)</text>
+
+  <!-- rejets -->
+  <rect x="590" y="1076" width="220" height="52" rx="8" fill="#282828" stroke="#E51332"/>
+  <text x="700" y="1096" font-family="Arial" font-size="12" font-weight="600" fill="#E51332" text-anchor="middle">REJECTED_DUPLICATE</text>
+  <text x="700" y="1114" font-family="Arial" font-size="10.5" fill="#808080" text-anchor="middle">(déjà réclamé)</text>
+
+  <rect x="590" y="1138" width="220" height="52" rx="8" fill="#282828" stroke="#E51332"/>
+  <text x="700" y="1158" font-family="Arial" font-size="12" font-weight="600" fill="#E51332" text-anchor="middle">REJECTED_EXPIRED</text>
+  <text x="700" y="1176" font-family="Arial" font-size="10.5" fill="#808080" text-anchor="middle">(invitation expirée)</text>
+
+  <rect x="590" y="1200" width="220" height="52" rx="8" fill="#282828" stroke="#E51332"/>
+  <text x="700" y="1220" font-family="Arial" font-size="12" font-weight="600" fill="#E51332" text-anchor="middle">REJECTED_EXHAUSTED</text>
+  <text x="700" y="1238" font-family="Arial" font-size="10.5" fill="#808080" text-anchor="middle">(limite atteinte)</text>
+
+  <rect x="590" y="1262" width="220" height="52" rx="8" fill="#282828" stroke="#E51332"/>
+  <text x="700" y="1282" font-family="Arial" font-size="12" font-weight="600" fill="#E51332" text-anchor="middle">REJECTED_REVOKED</text>
+  <text x="700" y="1300" font-family="Arial" font-size="10.5" fill="#808080" text-anchor="middle">(révoquée)</text>
+
+  <!-- confirmé -->
+  <rect x="880" y="1138" width="150" height="68" rx="10" fill="#282828" stroke="#1DB954" stroke-width="1.5"/>
+  <text x="955" y="1166" font-family="Arial" font-size="14" font-weight="600" fill="#1DB954" text-anchor="middle">CONFIRMED</text>
+  <text x="955" y="1188" font-family="Arial" font-size="11" fill="#B3B3B3" text-anchor="middle">membre créé (en ligne)</text>
+
+  <line x1="216" y1="1146" x2="272" y2="1146" stroke="#1DB954" stroke-width="2" marker-end="url(#arrowGreen)"/>
+  <line x1="510" y1="1128" x2="582" y2="1102" stroke="#E51332" stroke-width="1.5" marker-end="url(#arrowRed)"/>
+  <line x1="510" y1="1146" x2="582" y2="1164" stroke="#E51332" stroke-width="1.5" marker-end="url(#arrowRed)"/>
+  <line x1="510" y1="1164" x2="582" y2="1226" stroke="#E51332" stroke-width="1.5" marker-end="url(#arrowRed)"/>
+  <line x1="510" y1="1180" x2="582" y2="1288" stroke="#E51332" stroke-width="1.5" marker-end="url(#arrowRed)"/>
+  <line x1="510" y1="1152" x2="872" y2="1166" stroke="#1DB954" stroke-width="2" marker-end="url(#arrowGreen)"/>
+  <text x="680" y="1126" font-family="Arial" font-size="11" fill="#E51332">rejet en ligne (explicit)</text>
+  <text x="700" y="1156" font-family="Arial" font-size="11" fill="#1DB954">réussite</text>
+
+  <text x="92" y="1356" font-family="Arial" font-size="12.5" fill="#B3B3B3">La phase 1 (scan + PENDING_SYNC) est 100 % offline — aucun réseau requis pour générer la réclamation. La phase 2</text>
+  <text x="92" y="1378" font-family="Arial" font-size="12.5" fill="#B3B3B3">s'exécute au retour du réseau et produit soit CONFIRMED, soit un REJECTED_* explicite (jamais silencieux).</text>
+  <text x="92" y="1404" font-family="Arial" font-size="11.5" fill="#808080">Réf. code : src/capabilities/invitation/index.ts (InvitationStatus, ClaimStatus, createInvitationPS, claimInvitationPS) · pages InvitationEmit / InvitationClaim / InvitationManage</text>
+  <text x="92" y="1426" font-family="Arial" font-size="11" fill="#535353">Multi-modèles d'invitation : scolaire, entreprise (template) · QR via qrcode.react / @zxing (generation + parse)</text>
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!--  GRAPHE D — DÉPENDANCES CAPACITÉS (bas-droite, 1090–2136, 770–1440)   -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <rect x="1090" y="770" width="1046" height="670" rx="14" fill="#1A1A1A" stroke="#282828" stroke-width="1.5"/>
+  <text x="1118" y="802" font-family="Arial" font-size="13" font-weight="700" fill="#FF8533" letter-spacing="1.5">D · DÉPENDANCES ENTRE CAPACITÉS (flèche = « s'appuie sur »)</text>
+
+  <!-- nœuds -->
+  <rect x="1140" y="840" width="240" height="64" rx="8" fill="#282828" stroke="#333333"/>
+  <text x="1260" y="866" font-family="Arial" font-size="13.5" font-weight="600" fill="#FFFFFF" text-anchor="middle">Identity</text>
+  <text x="1260" y="886" font-family="Arial" font-size="11" fill="#808080" text-anchor="middle">pas de dépendance</text>
+
+  <rect x="1440" y="840" width="240" height="64" rx="8" fill="#282828" stroke="#333333"/>
+  <text x="1560" y="866" font-family="Arial" font-size="13.5" font-weight="600" fill="#FFFFFF" text-anchor="middle">Organization</text>
+  <text x="1560" y="886" font-family="Arial" font-size="11" fill="#808080" text-anchor="middle">→ Identity (rôle depuis le contexte)</text>
+
+  <rect x="1740" y="840" width="240" height="64" rx="8" fill="#282828" stroke="#333333"/>
+  <text x="1860" y="866" font-family="Arial" font-size="13.5" font-weight="600" fill="#FFFFFF" text-anchor="middle">Federation</text>
+  <text x="1860" y="886" font-family="Arial" font-size="11" fill="#808080" text-anchor="middle">→ Organization (multi-org, au-dessus)</text>
+
+  <rect x="1140" y="960" width="240" height="64" rx="8" fill="#282828" stroke="#333333"/>
+  <text x="1260" y="986" font-family="Arial" font-size="13.5" font-weight="600" fill="#FFFFFF" text-anchor="middle">Security</text>
+  <text x="1260" y="1006" font-family="Arial" font-size="11" fill="#808080" text-anchor="middle">→ lib/rbac.ts (délègue)</text>
+
+  <rect x="1440" y="960" width="240" height="64" rx="8" fill="#282828" stroke="#333333"/>
+  <text x="1560" y="986" font-family="Arial" font-size="13.5" font-weight="600" fill="#FFFFFF" text-anchor="middle">Resource</text>
+  <text x="1560" y="1006" font-family="Arial" font-size="11" fill="#808080" text-anchor="middle">→ PowerSync lib + OrgContext</text>
+
+  <rect x="1740" y="960" width="240" height="64" rx="8" fill="#282828" stroke="#333333"/>
+  <text x="1860" y="986" font-family="Arial" font-size="13.5" font-weight="600" fill="#FFFFFF" text-anchor="middle">Notification</text>
+  <text x="1860" y="1006" font-family="Arial" font-size="11" fill="#808080" text-anchor="middle">→ OneSignal lib</text>
+
+  <rect x="1140" y="1080" width="240" height="64" rx="8" fill="#282828" stroke="#333333"/>
+  <text x="1260" y="1106" font-family="Arial" font-size="13.5" font-weight="600" fill="#FFFFFF" text-anchor="middle">Lifecycle</text>
+  <text x="1260" y="1126" font-family="Arial" font-size="11" fill="#808080" text-anchor="middle">→ Resource + Audit lib</text>
+
+  <rect x="1440" y="1080" width="240" height="64" rx="8" fill="#282828" stroke="#333333"/>
+  <text x="1560" y="1106" font-family="Arial" font-size="13.5" font-weight="600" fill="#FFFFFF" text-anchor="middle">Relationship</text>
+  <text x="1560" y="1126" font-family="Arial" font-size="11" fill="#808080" text-anchor="middle">→ Resource + OrgContext</text>
+
+  <rect x="1740" y="1080" width="240" height="64" rx="8" fill="#282828" stroke="#333333"/>
+  <text x="1860" y="1106" font-family="Arial" font-size="13.5" font-weight="600" fill="#FFFFFF" text-anchor="middle">Workflow · Policy</text>
+  <text x="1860" y="1126" font-family="Arial" font-size="11" fill="#808080" text-anchor="middle">pures (pas de dépendance capacité)</text>
+
+  <!-- arêtes (dessinées avant les nœuds pour rester derrière, mais les nœuds
+       sont pleins donc on les dessine par-dessus ici — ordre ok car les
+       nœuds ne se superposent pas aux arêtes) -->
+  <line x1="1380" y1="872" x2="1432" y2="872" stroke="#FFB800" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="1680" y1="872" x2="1732" y2="872" stroke="#FFB800" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="1560" y1="904" x2="1560" y2="952" stroke="#FFB800" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="1570" y="934" font-family="Arial" font-size="10.5" fill="#B3B3B3">rôle</text>
+  <line x1="1380" y1="992" x2="1432" y2="992" stroke="#FFB800" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="1392" y="984" font-family="Arial" font-size="10.5" fill="#B3B3B3">récupère le contexte</text>
+  <line x1="1260" y1="1024" x2="1260" y2="1072" stroke="#FFB800" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="1560" y1="1024" x2="1560" y2="1072" stroke="#FFB800" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- zone des invariants -->
+  <rect x="1140" y="1180" width="840" height="230" rx="10" fill="#212121" stroke="#282828"/>
+  <text x="1164" y="1210" font-family="Arial" font-size="13.5" font-weight="700" fill="#FF8533">Invariants structurels (enforce par test d'architecture)</text>
+  <text x="1164" y="1240" font-family="Arial" font-size="13" fill="#B3B3B3">① Aucune importation inter-capacité (no-cross-imports.test.ts) — chaque capacité est isolée.</text>
+  <text x="1164" y="1266" font-family="Arial" font-size="13" fill="#B3B3B3">② Pas de couplage UI — aucune capacité n'importe @/pages ou @/components.</text>
+  <text x="1164" y="1292" font-family="Arial" font-size="13" fill="#B3B3B3">③ Singleton par capacité — instance exportée pour la commodité d'usage.</text>
+  <text x="1164" y="1318" font-family="Arial" font-size="13" fill="#B3B3B3">④ Domaine agnostique — le métier évite le jargon propre à une org ; le spécifique</text>
+  <text x="1190" y="1338" font-family="Arial" font-size="13" fill="#B3B3B3">vite dans src/lib/ ou l'appelant.</text>
+  <text x="1164" y="1368" font-family="Arial" font-size="12" fill="#808080">Réf. : src/capabilities/ (14 dossiers) · __tests__/no-cross-imports.test.ts · __tests__/e2e.test.ts</text>
+  <text x="1164" y="1390" font-family="Arial" font-size="12" fill="#808080">(Flèche = dépendance « s'appuie sur », direction : le source pointe vers la cible qu'il consomme.)</text>
+</svg>

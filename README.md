@@ -1,6 +1,6 @@
 # Lumina
 
-<img src="./public/lumina-architecture.svg" alt="Architecture de Lumina" width="100%" />
+<img src="./public/lumina-architecture.svg" alt="Architecture complète de Lumina" width="100%" />
 
 > **Lumina** est une plateforme financière **offline-first** pour les associations (églises, écoles, ONG).
 > Toutes les données vivent d'abord **localement** (PowerSync + SQLite / IndexedDB) et se synchronisent
@@ -31,6 +31,8 @@
   - [Structure du répertoire](#structure-du-répertoire)
   - [Flux des données (offline-first)](#flux-des-données-offline-first)
   - [Couche capabilities](#couche-capabilities)
+  - [Graphes métier (logique, hiérarchies, dépendances)](#graphes-métier-logique-hiérarchies-dépendances)
+  - [Modèle de données](#modèle-de-données)
   - [Synchronisation PowerSync → Supabase](#synchronisation-powersync--supabase)
   - [Base de données](#base-de-données)
 - [Variables d'environnement](#variables-denvironnement)
@@ -51,6 +53,11 @@
 ---
 
 ## L'application en un coup d'œil
+
+_(Bannière complète : voir l'image en tête de page. Diagrammes de structure et de logique :
+[`public/diagrams/flow-offline-first.svg`](public/diagrams/flow-offline-first.svg),
+[`public/diagrams/domain-logic.svg`](public/diagrams/domain-logic.svg),
+[`public/diagrams/data-model.svg`](public/diagrams/data-model.svg).)_
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────┐
@@ -198,6 +205,8 @@ lumina/
 
 ### Flux des données (offline-first)
 
+![Flux offline-first détaillé](./public/diagrams/flow-offline-first.svg)
+
 1. **Tout passe par `src/lib/dataLayer.ts`** — l'unique porte d'entrée/sortie des données.
    - **Écritures** → transaction PowerSync locale (immédiate, même hors ligne),
      propagée vers Supabase par le `SupabaseConnector` quand le réseau est disponible.
@@ -236,6 +245,31 @@ Policy.validateAmount(amount)
   → Security.hasPermission(role, 'transaction:create')
   → dataLayer (PowerSync) → SQLite → Supabase (sync)
 ```
+
+### Graphes métier (logique, hiérarchies, dépendances)
+
+![Graphes métier](./public/diagrams/domain-logic.svg)
+
+Quatre graphes couvrent la logique de Lumina :
+
+- **A — Transitions d'état** : le guard `Workflow` protège chaque passage
+  (`PLANIFIED → ONGOING → COMPLETED|CANCELLED` pour les événements, montants en
+  centimes pour les transactions, verrou 30 jours pour les cotisations).
+- **B — Hiérarchie multi-organisations** : arborescence récursive via la vue
+  `org_family` (profondeur illimitée), portée par le RLS.
+- **C — Machine à états des invitations** : flux 2 phases — transfert QR hors ligne
+  (`PENDING_SYNC`) puis validation en ligne (`CONFIRMED` / `REJECTED_*`).
+- **D — Dépendances entre capacités** : graphe qui prouve le découplage (un seul
+  sens de flux, sans imports circulaires — enforce par test d'architecture).
+
+### Modèle de données
+
+![Modèle de données](./public/diagrams/data-model.svg)
+
+Les tables Supabase (extrait) : `transactions` (cœur), `events`, `caisses`,
+`members`/`groups`, `cotisations`, `versements`, `invitations`, `org_family`,
+`org_reports`. Invariants : **montants en centimes** (BIGINT), **RLS sur toutes les
+tables business**, **FK métier** (et non technique) tracées en flèches.
 
 ### Synchronisation PowerSync → Supabase
 

@@ -1,0 +1,163 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2000" height="1400" viewBox="0 0 2000 1400" role="img" aria-label="Flux offline-first de Lumina : écriture locale immédiate, file de synchronisation PowerSync, propagation Supabase et gestion de conflits">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#FFB800"/>
+    </marker>
+    <marker id="arrowRed" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#E51332"/>
+    </marker>
+    <marker id="arrowGreen" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#1DB954"/>
+    </marker>
+  </defs>
+
+  <rect width="2000" height="1400" fill="#121212"/>
+  <text x="64" y="66" font-family="'Segoe UI', Arial, sans-serif" font-size="30" font-weight="800" fill="#FFFFFF">Flux offline-first — écriture locale immédiate, sync différée</text>
+  <rect x="64" y="82" width="120" height="4" rx="2" fill="#FF6B00"/>
+  <text x="64" y="114" font-family="Arial" font-size="15" fill="#B3B3B3">Écriture locale immédiate (PowerSync) → file de synchronisation → Propagation Supabase (réseau) → Lecture locale (SQLite) → Gestion des conflits</text>
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!--  BANDE 1 — ÉCRITURE (x 64–1936, y 150–330)                          -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <rect x="64" y="150" width="1872" height="180" rx="14" fill="#1A1A1A" stroke="#282828" stroke-width="1.5"/>
+  <text x="92" y="182" font-family="Arial" font-size="13" font-weight="700" fill="#FF8533" letter-spacing="1.5">① ÉCRITURE — 100 % LOCALE, MÊME HORS LIGNE</text>
+
+  <!-- Action user -->
+  <rect x="92" y="204" width="280" height="100" rx="10" fill="#282828" stroke="#333333"/>
+  <text x="232" y="236" font-family="Arial" font-size="14" font-weight="600" fill="#FFFFFF" text-anchor="middle">Action utilisateur</text>
+  <text x="232" y="258" font-family="Arial" font-size="12" fill="#B3B3B3" text-anchor="middle">ex. « Créer une transaction »</text>
+  <text x="232" y="278" font-family="Arial" font-size="12" fill="#B3B3B3" text-anchor="middle">page /transaction/new</text>
+
+  <!-- Capability orchestration -->
+  <rect x="412" y="204" width="430" height="100" rx="10" fill="#282828" stroke="#333333"/>
+  <text x="627" y="232" font-family="Arial" font-size="14" font-weight="700" fill="#FF8533" text-anchor="middle">Orchestration par capacités (4 étapes)</text>
+  <text x="627" y="256" font-family="Arial" font-size="12" fill="#B3B3B3" text-anchor="middle">Policy.validateAmount → Workflow.transition('PENDING')</text>
+  <text x="627" y="274" font-family="Arial" font-size="12" fill="#B3B3B3" text-anchor="middle">→ Security.hasPermission(role, 'transaction:create')</text>
+  <text x="627" y="292" font-family="Arial" font-size="12" fill="#808080" text-anchor="middle">(échec → rejet UI immédiat, rien n'est écrit)</text>
+
+  <!-- dataLayer executeWrite -->
+  <rect x="882" y="204" width="430" height="100" rx="10" fill="#282828" stroke="#FF6B00" stroke-width="1.5"/>
+  <text x="1097" y="232" font-family="Arial" font-size="14" font-weight="700" fill="#FFFFFF" text-anchor="middle">dataLayer.ts — executeWrite()</text>
+  <text x="1097" y="256" font-family="Arial" font-size="12" fill="#B3B3B3" text-anchor="middle">INSERT INTO transactions (org_id = actif, montants en centimes)</text>
+  <text x="1097" y="274" font-family="Arial" font-size="12" fill="#B3B3B3" text-anchor="middle">+ entrée audit (audit_entries) — transaction atomique locale</text>
+
+  <!-- SQLite -->
+  <rect x="1352" y="204" width="564" height="100" rx="10" fill="#212121" stroke="#282828"/>
+  <text x="1634" y="232" font-family="Arial" font-size="14" font-weight="700" fill="#FFFFFF" text-anchor="middle">SQLite PowerSync (immédiat)</text>
+  <text x="1634" y="256" font-family="Arial" font-size="12" fill="#B3B3B3" text-anchor="middle">l'UI se met à jour à l'instant T (React Query invalidate + hook)</text>
+  <text x="1634" y="274" font-family="Arial" font-size="12" fill="#808080" text-anchor="middle">zéro latence réseau · fonctionne dans l'avion / souterrain</text>
+
+  <!-- flèches bande 1 -->
+  <line x1="374" y1="254" x2="404" y2="254" stroke="#FFB800" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="844" y1="254" x2="874" y2="254" stroke="#FFB800" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="1314" y1="254" x2="1344" y2="254" stroke="#FFB800" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="388" y="240" font-family="Arial" font-size="11" fill="#B3B3B3" text-anchor="middle">ok</text>
+  <text x="858" y="240" font-family="Arial" font-size="11" fill="#B3B3B3" text-anchor="middle">valide</text>
+  <text x="1328" y="240" font-family="Arial" font-size="11" fill="#B3B3B3" text-anchor="middle">write</text>
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!--  BANDE 2 — FILE DE SYNC + SUPABASE (y 380–620)                       -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <rect x="64" y="380" width="1872" height="240" rx="14" fill="#1A1A1A" stroke="#282828" stroke-width="1.5"/>
+  <text x="92" y="412" font-family="Arial" font-size="13" font-weight="700" fill="#FF8533" letter-spacing="1.5">② SYNCHRONISATION — RÉseau DISPONIBLE ?</text>
+
+  <!-- file locale -->
+  <rect x="92" y="436" width="560" height="150" rx="10" fill="#282828" stroke="#333333"/>
+  <text x="372" y="466" font-family="Arial" font-size="14" font-weight="700" fill="#FFFFFF" text-anchor="middle">File de synchronisation (locale)</text>
+  <text x="372" y="490" font-family="Arial" font-size="13" fill="#B3B3B3" text-anchor="middle">SupabaseConnector : push des écritures pending (CRUD + audit)</text>
+  <text x="372" y="512" font-family="Arial" font-size="12" fill="#B3B3B3" text-anchor="middle">retry avec backoff · offline → les ops restent en attente (4xx conservés, pas</text>
+  <text x="372" y="530" font-family="Arial" font-size="12" fill="#B3B3B3" text-anchor="middle">de perte)</text>
+  <text x="372" y="560" font-family="Arial" font-size="12" fill="#808080" text-anchor="middle">⚠ sans org_id RLS-validé (contexte non résolu) → RLS 403 silencieux</text>
+
+  <!-- réseau diamond -->
+  <path d="M 800,511 L 870,441 L 940,511 L 870,581 Z" fill="#282828" stroke="#FFB800" stroke-width="1.5"/>
+  <text x="870" y="505" font-family="Arial" font-size="13" font-weight="700" fill="#FFFFFF" text-anchor="middle">Réseau</text>
+  <text x="870" y="525" font-family="Arial" font-size="12" fill="#B3B3B3" text-anchor="middle">dispo ?</text>
+
+  <!-- non → attente -->
+  <path d="M 870,581 L 870,600 L 1760,600" fill="none" stroke="#E51332" stroke-width="2" marker-end="url(#arrowRed)"/>
+  <text x="900" y="596" font-family="Arial" font-size="12" fill="#E51332">NON (offline) → les opérations restent en file, resync au retour réseau</text>
+  <rect x="1772" y="584" width="144" height="32" rx="6" fill="#1A1A1A" stroke="#E51332" stroke-width="1"/>
+  <text x="1844" y="605" font-family="Arial" font-size="11.5" fill="#E51332" text-anchor="middle">attente (pas de perte)</text>
+
+  <!-- oui → supabase -->
+  <line x1="940" y1="511" x2="984" y2="511" stroke="#1DB954" stroke-width="2" marker-end="url(#arrowGreen)"/>
+  <text x="962" y="498" font-family="Arial" font-size="12" fill="#1DB954" text-anchor="middle">OUI</text>
+
+  <rect x="992" y="436" width="924" height="150" rx="10" fill="#212121" stroke="#282828"/>
+  <text x="1454" y="466" font-family="Arial" font-size="14" font-weight="700" fill="#FFFFFF" text-anchor="middle">Supabase (PostgreSQL)</text>
+  <text x="1454" y="492" font-family="Arial" font-size="13" fill="#B3B3B3" text-anchor="middle">PostgREST : INSERT avec le JWT utilisateur (sub = user id)</text>
+  <text x="1454" y="514" font-family="Arial" font-size="13" fill="#B3B3B3" text-anchor="middle">RLS vérifie is_org_member(initplan_uid(), org_id) — fonction STABLE qui lit</text>
+  <text x="1454" y="534" font-family="Arial" font-size="13" fill="#B3B3B3" text-anchor="middle">request.jwt.claims (fix initplan_uid, migration 20261012000001)</text>
+  <text x="1454" y="560" font-family="Arial" font-size="12" fill="#808080" text-anchor="middle">échec RLS → 403 42501 remonté à l'utilisateur (pas silencieux)</text>
+
+  <!-- flèches bande 2 -->
+  <path d="M 600,330 L 600,360 L 372,360 L 372,428" fill="none" stroke="#FFB800" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!--  BANDE 3 — LECTURE + CONFLITS (y 670–1080)                           -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <rect x="64" y="670" width="1872" height="410" rx="14" fill="#1A1A1A" stroke="#282828" stroke-width="1.5"/>
+  <text x="92" y="702" font-family="Arial" font-size="13" font-weight="700" fill="#FF8533" letter-spacing="1.5">③ LECTURE + CONFLITS — LA LECTURE EST TOUJOURS LOCALE</text>
+
+  <!-- PowerSync Cloud -->
+  <rect x="92" y="730" width="560" height="130" rx="10" fill="#282828" stroke="#333333"/>
+  <text x="372" y="758" font-family="Arial" font-size="14" font-weight="700" fill="#FFFFFF" text-anchor="middle">PowerSync Cloud (relay)</text>
+  <text x="372" y="782" font-family="Arial" font-size="13" fill="#B3B3B3" text-anchor="middle">réplique les changements Supabase → 31 streams</text>
+  <text x="372" y="804" font-family="Arial" font-size="12" fill="#B3B3B3" text-anchor="middle">chaque stream : filtre multi-org (org_id IN …) ou transitive sans alias</text>
+  <text x="372" y="826" font-family="Arial" font-size="12" fill="#808080" text-anchor="middle">édition 3 — instance « Production », région eu</text>
+
+  <!-- SQLite -->
+  <rect x="740" y="730" width="560" height="130" rx="10" fill="#282828" stroke="#FF6B00" stroke-width="1.2"/>
+  <text x="1020" y="758" font-family="Arial" font-size="14" font-weight="700" fill="#FFFFFF" text-anchor="middle">SQLite local (hydratation des 31 streams)</text>
+  <text x="1020" y="782" font-family="Arial" font-size="13" fill="#B3B3B3" text-anchor="middle">org_units · caisses · transactions · events · event_tasks · cotisations</text>
+  <text x="1020" y="804" font-family="Arial" font-size="13" fill="#B3B3B3" text-anchor="middle">members · groups · versements · accounts · budgets · forms · invitations · org_reports</text>
+  <text x="1020" y="826" font-family="Arial" font-size="12" fill="#808080" text-anchor="middle">+ streams globaux : categories, tags (auto_subscribe, sans filtre)</text>
+
+  <!-- UI -->
+  <rect x="1388" y="730" width="528" height="130" rx="10" fill="#212121" stroke="#282828"/>
+  <text x="1652" y="758" font-family="Arial" font-size="14" font-weight="700" fill="#FFFFFF" text-anchor="middle">UI — hooks React (useData / usePowerSync)</text>
+  <text x="1652" y="782" font-family="Arial" font-size="13" fill="#B3B3B3" text-anchor="middle">lecture SQLite directe · repli IndexedDB (useLocalStore) avant</text>
+  <text x="1652" y="804" font-family="Arial" font-size="13" fill="#B3B3B3" text-anchor="middle">hydratation → skeleton, jamais d'écran blanc</text>
+  <text x="1652" y="826" font-family="Arial" font-size="12" fill="#808080" text-anchor="middle">état de sync affiché : SyncIndicator (page Dashboard)</text>
+
+  <!-- flèches bande 3 -->
+  <line x1="654" y1="795" x2="732" y2="795" stroke="#FFB800" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="693" y="782" font-family="Arial" font-size="11.5" fill="#B3B3B3" text-anchor="middle">pull</text>
+  <line x1="1302" y1="795" x2="1380" y2="795" stroke="#FFB800" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="1341" y="782" font-family="Arial" font-size="11.5" fill="#B3B3B3" text-anchor="middle">SELECT</text>
+
+  <!-- Conflits -->
+  <rect x="92" y="890" width="1824" height="170" rx="10" fill="#212121" stroke="#282828"/>
+  <text x="372" y="922" font-family="Arial" font-size="14" font-weight="700" fill="#FF8533" text-anchor="middle">Gestion des conflits (src/lib/offline/) — strategy + conflicts</text>
+  <text x="372" y="948" font-family="Arial" font-size="13" fill="#B3B3B3" text-anchor="middle">deux appareils écrivent la même entité → les écritures sont horodatées ; la résolution est</text>
+  <text x="372" y="968" font-family="Arial" font-size="13" fill="#B3B3B3" text-anchor="middle">déclarative (stratégie par entité) · le flux invitations est un exemple typique :</text>
+  <text x="372" y="990" font-family="Arial" font-size="12.5" fill="#B3B3B3" text-anchor="middle">création + code QR en OFFLINE → PENDING_SYNC → confirmation EN LIGNE → CONFIRMED /</text>
+  <text x="372" y="1010" font-family="Arial" font-size="12.5" fill="#B3B3B3" text-anchor="middle">REJECTED_DUPLICATE / REJECTED_EXPIRED / REJECTED_EXHAUSTED / REJECTED_REVOKED</text>
+  <text x="372" y="1036" font-family="Arial" font-size="12" fill="#808080" text-anchor="middle">invariant : aucune donnée n'est perdue offline ; les rejets sont explicites et traçables (audit)</text>
+
+  <!-- LEGENDE -->
+  <rect x="64" y="1120" width="1872" height="220" rx="10" fill="#1A1A1A" stroke="#282828"/>
+  <text x="92" y="1152" font-family="Arial" font-size="13" font-weight="700" fill="#B3B3B3" letter-spacing="1">LÉGENDE — CE QUI SE PASSE À CHAQUE ÉCRITURE</text>
+
+  <line x1="92" y1="1182" x2="160" y2="1182" stroke="#FFB800" stroke-width="2.5"/>
+  <text x="172" y="1186" font-family="Arial" font-size="12.5" fill="#B3B3B3">flux données (écritures / lectures)</text>
+  <line x1="92" y1="1212" x2="160" y2="1212" stroke="#1DB954" stroke-width="2.5"/>
+  <text x="172" y="1216" font-family="Arial" font-size="12.5" fill="#B3B3B3">succès (réseau OK, sync valide)</text>
+  <line x1="92" y1="1242" x2="160" y2="1242" stroke="#E51332" stroke-width="2.5"/>
+  <text x="172" y="1246" font-family="Arial" font-size="12.5" fill="#B3B3B3">échec / attente (offline ou RLS) — la donnée reste locale, rien n'est perdu</text>
+
+  <text x="520" y="1186" font-family="Arial" font-size="13" fill="#B3B3B3">Invariant n°1 — <tspan font-weight="700" fill="#FFFFFF">l'écriture est toujours locale d'abord</tspan> (SQLite), la propagation est un effort</text>
+  <text x="520" y="1210" font-family="Arial" font-size="13" fill="#B3B3B3">de fond. L'app reste utilisable à 100 % sans réseau.</text>
+  <text x="520" y="1240" font-family="Arial" font-size="13" fill="#B3B3B3">Invariant n°2 — <tspan font-weight="700" fill="#FFFFFF">la lecture est toujours locale</tspan> (SQLite / IndexedDB), jamais de requête directe</text>
+  <text x="520" y="1264" font-family="Arial" font-size="13" fill="#B3B3B3">Supabase : zéro point de latence réseau dans le rendu des pages.</text>
+
+  <text x="1400" y="1186" font-family="Arial" font-size="13" fill="#B3B3B3">Invariant n°3 — <tspan font-weight="700" fill="#FFFFFF">les échecs sont explicites</tspan> : un 403 RLS (42501) ou un</text>
+  <text x="1400" y="1210" font-family="Arial" font-size="13" fill="#B3B3B3">conflit de sync remonte à l'UI, jamais de 4xx silencieux bloqué en file.</text>
+  <text x="1400" y="1240" font-family="Arial" font-size="13" fill="#B3B3B3">Invariant n°4 — <tspan font-weight="700" fill="#FFFFFF">l'organisation active est un prérequis d'écriture</tspan> : sans</text>
+  <text x="1400" y="1264" font-family="Arial" font-size="13" fill="#B3B3B3">contexte org résolu, les écritures ne matchent aucun org valide côté RLS.</text>
+
+  <text x="92" y="1318" font-family="Arial" font-size="13" fill="#808080">Réf. code : src/lib/dataLayer.ts (executeWrite, hooks) · src/lib/powersync/ (SupabaseConnector, schema 31 streams)</text>
+  <text x="92" y="1342" font-family="Arial" font-size="13" fill="#808080">· src/lib/offline/ (strategy, conflicts) · src/lib/orgContext.ts (org active) · powersync/sync-config.yaml (édition 3)</text>
+  <text x="92" y="1366" font-family="Arial" font-size="12" fill="#535353">· Spec E2E de référence : cypress/e2e/cloud-sync.cy.ts (offline → online, forçage du contexte org avant la coupure réseau)</text>
+</svg>

@@ -1,0 +1,177 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2400" height="1600" viewBox="0 0 2400 1600" role="img" aria-label="Modèle de données Lumina : tables Supabase principales, montants en centimes, FK métier et vues RLS">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#FFB800"/>
+    </marker>
+  </defs>
+
+  <rect width="2400" height="1600" fill="#121212"/>
+  <text x="64" y="66" font-family="'Segoe UI', Arial, sans-serif" font-size="30" font-weight="800" fill="#FFFFFF">Modèle de données — tables Supabase (extrait des 93 migrations)</text>
+  <rect x="64" y="82" width="120" height="4" rx="2" fill="#FF6B00"/>
+  <text x="64" y="114" font-family="Arial" font-size="15" fill="#B3B3B3">Toutes les tables business = RLS · montants en centimes (BIGINT) · flèches = FK métier (pas toutes les FK techniques)</text>
+
+  <!-- ═══ Colonne 1 (x 64–750) ═══════════════════════════════════════════ -->
+  <!-- profiles -->
+  <rect x="64" y="150" width="686" height="190" rx="10" fill="#212121" stroke="#282828"/>
+  <text x="92" y="180" font-family="Arial" font-size="15" font-weight="700" fill="#FF8533">profiles</text>
+  <text x="92" y="204" font-family="Arial" font-size="12.5" fill="#B3B3B3">id UUID (PK, = auth.users) · email · first_name · last_name</text>
+  <text x="92" y="224" font-family="Arial" font-size="12.5" fill="#B3B3B3">role (14 rôles) · org_id TEXT · created_at / updated_at</text>
+  <text x="92" y="248" font-family="Arial" font-size="12" fill="#808080">RLS : SELECT (true pour tous les membres de l'org) · INSERT/UPDATE/DELETE (auth.uid() = id)</text>
+  <text x="92" y="268" font-family="Arial" font-size="12" fill="#808080">Trigger auto : création du profil à la signup (0007) + rôle par défaut TREASURER</text>
+
+  <!-- org_units -->
+  <rect x="64" y="370" width="686" height="170" rx="10" fill="#212121" stroke="#282828"/>
+  <text x="92" y="400" font-family="Arial" font-size="15" font-weight="700" fill="#FF8533">org_units</text>
+  <text x="92" y="424" font-family="Arial" font-size="12.5" fill="#B3B3B3">id TEXT · org_id · nom / type d'unité · event_id (optionnel)</text>
+  <text x="92" y="444" font-family="Arial" font-size="12.5" fill="#B3B3B3">description · active · source — l'unité est le conteneur de gestion</text>
+  <text x="92" y="468" font-family="Arial" font-size="12" fill="#808080">RLS via is_org_member (voir org_family)</text>
+
+  <!-- caisses -->
+  <rect x="64" y="570" width="686" height="170" rx="10" fill="#212121" stroke="#282828"/>
+  <text x="92" y="600" font-family="Arial" font-size="15" font-weight="700" fill="#FF8533">caisses</text>
+  <text x="92" y="624" font-family="Arial" font-size="12.5" fill="#B3B3B3">id · org_id · libellé / solde (centimes) · enrichie (0034)</text>
+  <text x="92" y="644" font-family="Arial" font-size="12.5" fill="#B3B3B3">rattachement source_caisse_id (transaction) — traçabilité d'origine</text>
+  <text x="92" y="668" font-family="Arial" font-size="12" fill="#808080">Le solde est recalculé, jamais fait main : atomique via transactions / versements</text>
+
+  <!-- categories -->
+  <rect x="64" y="770" width="686" height="150" rx="10" fill="#212121" stroke="#282828"/>
+  <text x="92" y="800" font-family="Arial" font-size="15" font-weight="700" fill="#FF8533">categories</text>
+  <text x="92" y="824" font-family="Arial" font-size="12.5" fill="#B3B3B3">id TEXT · label · type (revenue / expense) — référentiel global</text>
+  <text x="92" y="844" font-family="Arial" font-size="12" fill="#808080">Stream PowerSync global (auto_subscribe, sans filtre org)</text>
+
+  <!-- notifications -->
+  <rect x="64" y="950" width="686" height="150" rx="10" fill="#212121" stroke="#282828"/>
+  <text x="92" y="980" font-family="Arial" font-size="15" font-weight="700" fill="#FF8533">notifications + role_assignments</text>
+  <text x="92" y="1004" font-family="Arial" font-size="12.5" fill="#B3B3B3">notifications : target_role · titre / message · statut de lecture</text>
+  <text x="92" y="1024" font-family="Arial" font-size="12.5" fill="#B3B3B3">role_assignments : session_id · role · org_id (multi-session, multi-org)</text>
+  <text x="92" y="1048" font-family="Arial" font-size="12" fill="#808080">Trigger auto de notifications (0012) + cleanup fonction</text>
+
+  <!-- audit -->
+  <rect x="64" y="1130" width="686" height="150" rx="10" fill="#212121" stroke="#282828"/>
+  <text x="92" y="1160" font-family="Arial" font-size="15" font-weight="700" fill="#FF8533">audit_entries</text>
+  <text x="92" y="1184" font-family="Arial" font-size="12.5" fill="#B3B3B3">action · entité / id · before / after (JSON) · actor · org_id · horodatage</text>
+  <text x="92" y="1204" font-family="Arial" font-size="12.5" fill="#B3B3B3">Traçabilité de toutes les mutations (lifecycle, workflow, invitations)</text>
+  <text x="92" y="1228" font-family="Arial" font-size="12" fill="#808080">Réf. : src/lib/audit.ts (auditLogRepo)</text>
+
+  <!-- ═══ Colonne 2 (x 810–1496) ═════════════════════════════════════════ -->
+  <!-- transactions -->
+  <rect x="810" y="150" width="686" height="240" rx="10" fill="#282828" stroke="#FF6B00" stroke-width="1.5"/>
+  <text x="838" y="180" font-family="Arial" font-size="15" font-weight="700" fill="#FF8533">transactions (noyau financier)</text>
+  <text x="838" y="204" font-family="Arial" font-size="12.5" fill="#FFFFFF">id TEXT · org_id · type INCOME | EXPENSE</text>
+  <text x="838" y="224" font-family="Arial" font-size="12.5" fill="#FFFFFF">amount BIGINT (centimes) · status DRAFT → PENDING → APPROVED | REJECTED</text>
+  <text x="838" y="244" font-family="Arial" font-size="12.5" fill="#FFFFFF">date · description · person_name · version (optimistic lock)</text>
+  <text x="838" y="264" font-family="Arial" font-size="12.5" fill="#FFFFFF">category_id FK · org_unit_id FK · compensates_for (self-FK, correction)</text>
+  <text x="838" y="284" font-family="Arial" font-size="12.5" fill="#FFFFFF">created_by / approved_by (auth.users) · source_caisse_id FK · versement_id FK</text>
+  <text x="838" y="308" font-family="Arial" font-size="12" fill="#808080">enrichie (0038) : event_id, person_name, source · RLS is_org_member</text>
+  <text x="838" y="328" font-family="Arial" font-size="12" fill="#808080">⚠ invariants : montant &gt; 0 · APPROVED immuable · version incrémentée</text>
+
+  <!-- events -->
+  <rect x="810" y="420" width="686" height="240" rx="10" fill="#212121" stroke="#282828"/>
+  <text x="838" y="450" font-family="Arial" font-size="15" font-weight="700" fill="#FF8533">events (calendrier + cultes)</text>
+  <text x="838" y="474" font-family="Arial" font-size="12.5" fill="#B3B3B3">id · org_id · title / description · event_type (0035) · actif</text>
+  <text x="838" y="494" font-family="Arial" font-size="12.5" fill="#B3B3B3">date début / fin (getEventStart gère snake_case PS + camelCase legacy)</text>
+  <text x="838" y="514" font-family="Arial" font-size="12.5" fill="#B3B3B3">statut : PLANIFIED → ONGOING → COMPLETED | CANCELLED (workflow)</text>
+  <text x="838" y="534" font-family="Arial" font-size="12.5" fill="#B3B3B3">budget_items JSON (0021/0022, migration canonique 0023)</text>
+  <text x="838" y="558" font-family="Arial" font-size="12" fill="#808080">Culte = event spécial (page /culte/:id) ; les cotisations s'y rattachent</text>
+
+  <!-- event_tasks -->
+  <rect x="810" y="690" width="686" height="170" rx="10" fill="#212121" stroke="#282828"/>
+  <text x="838" y="720" font-family="Arial" font-size="15" font-weight="700" fill="#FF8533">event_tasks (tâches de calendrier pro)</text>
+  <text x="838" y="744" font-family="Arial" font-size="12.5" fill="#B3B3B3">id · event_id FK · titre · assigné à · horodatage · statut</text>
+  <text x="838" y="764" font-family="Arial" font-size="12.5" fill="#B3B3B3">Filtré par event_id (transit, sans org_id direct)</text>
+  <text x="838" y="788" font-family="Arial" font-size="12" fill="#808080">Grant SELECT pour powersync_role corrigé (f813e25) · stream dédié</text>
+
+  <!-- event_budgets + budget_lines -->
+  <rect x="810" y="890" width="686" height="190" rx="10" fill="#212121" stroke="#282828"/>
+  <text x="838" y="920" font-family="Arial" font-size="15" font-weight="700" fill="#FF8533">event_budgets → budget_lines (budgets d'événement)</text>
+  <text x="838" y="944" font-family="Arial" font-size="12.5" fill="#B3B3B3">event_budgets : event_id FK · devise (défaut XOF) · révisé par / quand</text>
+  <text x="838" y="964" font-family="Arial" font-size="12.5" fill="#B3B3B3">budget_lines : event_budget_id FK · category_id FK · planned_amount_cents</text>
+  <text x="838" y="984" font-family="Arial" font-size="12.5" fill="#B3B3B3">actual_amount_cents (écart plan / réalisé en centimes)</text>
+  <text x="838" y="1008" font-family="Arial" font-size="12" fill="#808080">Chaîne : events → event_budgets → budget_lines (flèches transitives)</text>
+
+  <!-- forms -->
+  <rect x="810" y="1110" width="686" height="170" rx="10" fill="#212121" stroke="#282828"/>
+  <text x="838" y="1140" font-family="Arial" font-size="15" font-weight="700" fill="#FF8533">form_definitions / form_submissions / custom_fields</text>
+  <text x="838" y="1164" font-family="Arial" font-size="12.5" fill="#B3B3B3">form_definitions : org_id · titre · kind (FINANCE | FEATURE | AUDIT)</text>
+  <text x="838" y="1184" font-family="Arial" font-size="12.5" fill="#B3B3B3">form_submissions : definition FK · valeurs (JSON) · statut · auteur</text>
+  <text x="838" y="1204" font-family="Arial" font-size="12.5" fill="#B3B3B3">custom_field_definitions + custom_field_values (lIAISON transitive par org_id)</text>
+  <text x="838" y="1228" font-family="Arial" font-size="12" fill="#808080">FormFill v2 (courus 5 types de champs + currency) · CSV / export</text>
+
+  <!-- ═══ Colonne 3 (x 1556–2336) ════════════════════════════════════════ -->
+  <!-- members + groups -->
+  <rect x="1556" y="150" width="780" height="240" rx="10" fill="#212121" stroke="#282828"/>
+  <text x="1584" y="180" font-family="Arial" font-size="15" font-weight="700" fill="#FF8533">members · groups · group_memberships</text>
+  <text x="1584" y="204" font-family="Arial" font-size="12.5" fill="#B3B3B3">members : org_id · profil · contact (enrichie 0037)</text>
+  <text x="1584" y="224" font-family="Arial" font-size="12.5" fill="#B3B3B3">groups : org_id · nom / type · responsable · description</text>
+  <text x="1584" y="244" font-family="Arial" font-size="12.5" fill="#B3B3B3">group_memberships : group_id FK · member_id FK · rôle · statut</text>
+  <text x="1584" y="268" font-family="Arial" font-size="12" fill="#808080">Flux « archiver un groupe » (lifecycle) : vérifie actif → archive + audit</text>
+  <text x="1584" y="288" font-family="Arial" font-size="12" fill="#808080">+ suppression des adhésions (responsabilité de l'appelant, capability Relationship)</text>
+
+  <!-- cotisations -->
+  <rect x="1556" y="420" width="780" height="200" rx="10" fill="#212121" stroke="#282828"/>
+  <text x="1584" y="450" font-family="Arial" font-size="15" font-weight="700" fill="#FF8533">cotisations</text>
+  <text x="1584" y="474" font-family="Arial" font-size="12.5" fill="#B3B3B3">id · culte_id FK (events) · membre_id FK (members)</text>
+  <text x="1584" y="494" font-family="Arial" font-size="12.5" fill="#B3B3B3">statut NON_PAYE | PAYE | ABSENT | EN_AVANCE</text>
+  <text x="1584" y="514" font-family="Arial" font-size="12.5" fill="#B3B3B3">montantObligatoire (centimes, défaut 5000) · montantPaye (centimes)</text>
+  <text x="1584" y="538" font-family="Arial" font-size="12" fill="#808080">Index : idx_cotisations_culte (culte_id), idx_cotisations_membre (membre_id)</text>
+  <text x="1584" y="558" font-family="Arial" font-size="12" fill="#808080">Verrou 30 j + immutabilité après lock (capability Policy, isCulteVerrouille)</text>
+
+  <!-- versements -->
+  <rect x="1556" y="650" width="780" height="170" rx="10" fill="#212121" stroke="#282828"/>
+  <text x="1584" y="680" font-family="Arial" font-size="15" font-weight="700" fill="#FF8533">versements</text>
+  <text x="1584" y="704" font-family="Arial" font-size="12.5" fill="#B3B3B3">id · org_id · montant (centimes) · date · source / cible</text>
+  <text x="1584" y="724" font-family="Arial" font-size="12.5" fill="#B3B3B3">solde suffisant vérifié (checkBalance) · opération atomique</text>
+  <text x="1584" y="748" font-family="Arial" font-size="12" fill="#808080">Le versement peut déclencher une transaction (versement_id sur transactions)</text>
+
+  <!-- invitations -->
+  <rect x="1556" y="850" width="780" height="200" rx="10" fill="#212121" stroke="#282828"/>
+  <text x="1584" y="880" font-family="Arial" font-size="15" font-weight="700" fill="#FF8533">invitations · invitation_claims</text>
+  <text x="1584" y="904" font-family="Arial" font-size="12.5" fill="#B3B3B3">invitations : org_id · code · target_role · target_scope_type</text>
+  <text x="1584" y="924" font-family="Arial" font-size="12.5" fill="#B3B3B3">(ORG | GROUP | EVENT | REPORT) · statut ACTIVE | EXPIRED | REVOKED | EXHAUSTED</text>
+  <text x="1584" y="944" font-family="Arial" font-size="12.5" fill="#B3B3B3">invitation_claims : invitation FK · device_id · statut PENDING_SYNC | CONFIRMED</text>
+  <text x="1584" y="964" font-family="Arial" font-size="12.5" fill="#B3B3B3">| REJECTED_DUPLICATE | EXPIRED | EXHAUSTED | REVOKED</text>
+  <text x="1584" y="988" font-family="Arial" font-size="12" fill="#808080">QR / code (@zxing, qrcode.react) · multi-modèles (scolaire, entreprise)</text>
+
+  <!-- org hierarchy -->
+  <rect x="1556" y="1080" width="780" height="200" rx="10" fill="#282828" stroke="#FF6B00" stroke-width="1.5"/>
+  <text x="1584" y="1110" font-family="Arial" font-size="15" font-weight="700" fill="#FF8533">org_family · org_administered · org_owned · org_admins</text>
+  <text x="1584" y="1134" font-family="Arial" font-size="12.5" fill="#FFFFFF">org_family : vue RÉCURSIVE — la hiérarchie d'org d'un utilisateur,</text>
+  <text x="1584" y="1154" font-family="Arial" font-size="12.5" fill="#FFFFFF">profondeur illimitée (organisation → annexes → annexes d'annexes…)</text>
+  <text x="1584" y="1174" font-family="Arial" font-size="12.5" fill="#B3B3B3">org_administered / org_owned / org_admins : portées de gestion par type</text>
+  <text x="1584" y="1198" font-family="Arial" font-size="12" fill="#808080">RLS is_org_member(profile, org) s'appuie sur org_family (vue)</text>
+  <text x="1584" y="1218" font-family="Arial" font-size="12" fill="#808080">Fix initplan_uid : la vue doit être lue via une fonction STABLE (clé parent)</text>
+
+  <!-- org_reports -->
+  <rect x="1556" y="1310" width="780" height="200" rx="10" fill="#212121" stroke="#282828"/>
+  <text x="1584" y="1340" font-family="Arial" font-size="15" font-weight="700" fill="#FF8533">org_reports (rapports inter-organisations)</text>
+  <text x="1584" y="1364" font-family="Arial" font-size="12.5" fill="#B3B3B3">id · org_source · org_cible · type (PDF/DOCX/XLSX/PNG) · titre · horodatage</text>
+  <text x="1584" y="1384" font-family="Arial" font-size="12.5" fill="#B3B3B3">Bucket privé storage (org_reports) + URL signées · annexe illimitée</text>
+  <text x="1584" y="1404" font-family="Arial" font-size="12.5" fill="#B3B3B3">Reçus / preview (useReportsReceived) · outbox multi-format</text>
+  <text x="1584" y="1428" font-family="Arial" font-size="12" fill="#808080">Circule le long de org_family (hiérarchie) — RLS récursif + storage RLS</text>
+
+  <!-- ═══ Flèches FK (dessinées APRÈS les nœuds pour rester visibles) ═══ -->
+  <g>
+    <line x1="750" y1="270" x2="802" y2="270" stroke="#FFB800" stroke-width="2" marker-end="url(#arrow)"/>
+    <text x="776" y="258" font-family="Arial" font-size="10.5" fill="#B3B3B3" text-anchor="middle">org_id</text>
+    <line x1="750" y1="455" x2="802" y2="560" stroke="#FFB800" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="1153" y1="390" x2="1153" y2="412" stroke="#FFB800" stroke-width="2" marker-end="url(#arrow)"/>
+    <text x="1168" y="406" font-family="Arial" font-size="10.5" fill="#B3B3B3">event (culte)</text>
+    <line x1="1153" y1="660" x2="1153" y2="682" stroke="#FFB800" stroke-width="2" marker-end="url(#arrow)"/>
+    <text x="1168" y="676" font-family="Arial" font-size="10.5" fill="#B3B3B3">event_tasks</text>
+    <line x1="1153" y1="860" x2="1153" y2="882" stroke="#FFB800" stroke-width="2" marker-end="url(#arrow)"/>
+    <text x="1168" y="878" font-family="Arial" font-size="10.5" fill="#B3B3B3">event_budgets</text>
+    <line x1="1496" y1="540" x2="1548" y2="540" stroke="#FFB800" stroke-width="2" marker-end="url(#arrow)"/>
+    <text x="1522" y="528" font-family="Arial" font-size="10.5" fill="#B3B3B3" text-anchor="middle">FK (culte, membre)</text>
+    <line x1="1496" y1="730" x2="1548" y2="730" stroke="#FFB800" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="1496" y1="1080" x2="1548" y2="1160" stroke="#FFB800" stroke-width="2" marker-end="url(#arrow)"/>
+    <text x="1530" y="1146" font-family="Arial" font-size="10.5" fill="#B3B3B3">vue (recursives)</text>
+    <line x1="1496" y1="1380" x2="1548" y2="1400" stroke="#FFB800" stroke-width="2" marker-end="url(#arrow)"/>
+    <text x="1536" y="1376" font-family="Arial" font-size="10.5" fill="#B3B3B3">org_source</text>
+  </g>
+
+  <!-- ═══ Note bas ═══ -->
+  <rect x="64" y="1470" width="2272" height="100" rx="10" fill="#1A1A1A" stroke="#282828"/>
+  <text x="92" y="1498" font-family="Arial" font-size="13" fill="#B3B3B3"><tspan font-weight="700" fill="#FFFFFF">Convention « centimes »</tspan> — tous les montants sont BIGINT en centimes (montant, planned_amount_cents, actual_amount_cents, solde caisse, montantObligatoire, montantPaye). Aucune arithmétique flottante sur l'argent.</text>
+  <text x="92" y="1522" font-family="Arial" font-size="13" fill="#B3B3B3"><tspan font-weight="700" fill="#FFFFFF">Convention RLS</tspan> — is_org_member (vue org_family) sur toutes les tables business ; les vues inter-modules « *_public » isolent les tables par module. Le schéma est additif (on n'altère jamais les tables legacy).</text>
+  <text x="92" y="1546" font-family="Arial" font-size="12" fill="#808080">Réf. : docs/00-canonical/rls-policies.sql · docs/DB-INDEX-COMPARISON.md · supabase/migrations/ (93 fichiers) · le SSoT = les fichiers de migration, pas le schéma live.</text>
+</svg>
