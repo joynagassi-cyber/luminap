@@ -224,23 +224,29 @@ describe('Lumina — Forms v2 (currency, table view, DRAFT edit)', () => {
     // nom attendu côté window sans hardcoder le compte.
     cy.window().then((win) => {
       const raw = win.localStorage.getItem('lumina-user');
-      expect(raw, 'lumina-user devrait être persisté par loginOrgAccount').to.not.be.null;
-      const user = JSON.parse(raw!);
+      if (raw === null) {
+        throw new Error('lumina-user devrait être persisté par loginOrgAccount');
+      }
+      const user = JSON.parse(raw);
       const expectedName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
-      expect(expectedName, 'nom du compte').to.not.equal('');
+      if (expectedName === '') {
+        throw new Error('nom du compte : firstName/lastName manquants dans localStorage lumina-user');
+      }
       // La 1re <td> de chaque ligne du tableau = colonne « Soumetteur ».
       cy.get('table[role="table"] td', { timeout: 90_000 })
         .first()
         .invoke('text')
         .then((txt) => {
-          expect(txt.trim(), "valeur de la cellule « Soumetteur »").to.equal(expectedName);
+          if (txt.trim() !== expectedName) {
+            throw new Error(`valeur de la cellule « Soumetteur » : attendu « ${expectedName} », reçu « ${txt.trim()} »`);
+          }
         });
     });
     // Colonne du champ currency du formulaire : le montant stocké
     // (1500) est formaté Intl fr-FR XOF → « 1 500 » (séparateur de
     // milliers = espace fine U+00A0, code devise absente si XOF).
     // Le regex accepte l'espace ASCII ET l'espace fine U+00A0.
-    cy.get('td', { timeout: 90_000 }).contains(/1[  ]?500/).should('exist');
+    cy.get('td', { timeout: 90_000 }).contains(/1[  ]?500/).should('exist');
 
     // Garanti que la soumission T7.1 est synchronisée (PowerSync
     // local-first : la sync cloud est asynchrone, le rechargement de
@@ -347,9 +353,15 @@ describe('Lumina — Forms v2 (currency, table view, DRAFT edit)', () => {
     cy.wait(1_500);
     cy.window().then((win) => {
       const cap = (win as any).__e2eCaptured;
-      expect(cap, 'capteur download non posé').to.not.be.undefined;
-      expect(cap.download, 'a.download').to.match(/soumissions_.*\.csv$/);
-      expect(cap.type, 'content-type du Blob').to.match(/text\/csv/);
+      if (cap === undefined) {
+        throw new Error('capteur download non posé');
+      }
+      if (!/soumissions_.*\.csv$/.test(String(cap.download))) {
+        throw new Error(`a.download : attendu /soumissions_.*\\.csv$/, reçu « ${cap.download} »`);
+      }
+      if (!/text\/csv/.test(String(cap.type))) {
+        throw new Error(`content-type du Blob : attendu text/csv, reçu « ${cap.type} »`);
+      }
     });
   });
 
