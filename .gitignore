@@ -37,3 +37,5 @@ android/app/lumina-keystore.jks
 # ── Graphify (cache de graphe de connaissance) ────────────────────────────
 graphify-out/cache/
 powersync/.drift-*.md
+.secrets-vault/
+.secrets-vault/*.zip
