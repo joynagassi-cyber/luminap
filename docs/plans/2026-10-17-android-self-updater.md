@@ -733,17 +733,26 @@ export function useUpdater() {
   const set = (patch: Partial<UpdaterState>) =>
     setState((s) => ({ ...s, ...patch }));
 
-  /** Vérifie une nouvelle version. Met à jour `updateInfo` + `status`. */
-  const check = useCallback(async (force: boolean) => {
-    set({ status: "checking", error: null });
-    const info = await checkForUpdate(force);
-    if (info) {
-      updateInfoRef.current = info;
-      set({ status: "available", updateInfo: info });
-    } else {
-      set({ status: "idle" });
-    }
-  }, []);
+  /**
+   * Vérifie une nouvelle version. Met à jour `updateInfo` + `status`,
+   * et **retourne** l'UpdateInfo (ou null) pour permettre au parent
+   * d'afficher « Vous êtes à jour ».
+   */
+  const check = useCallback(
+    async (force: boolean): Promise<UpdateInfo | null> => {
+      set({ status: "checking", error: null });
+      const info = await checkForUpdate(force);
+      if (info) {
+        updateInfoRef.current = info;
+        set({ status: "available", updateInfo: info });
+      } else {
+        updateInfoRef.current = null;
+        set({ status: "idle", updateInfo: null });
+      }
+      return info;
+    },
+    [],
+  );
 
   /** Télécharge (si besoin) puis installe l'APK. */
   const startUpdate = useCallback(async () => {
