@@ -12,6 +12,8 @@ import android.os.Looper;
 import android.provider.Settings;
 import android.util.Log;
 
+import androidx.core.content.FileProvider;
+
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
@@ -176,9 +178,6 @@ public class ApkUpdaterPlugin extends Plugin {
                     params.setRequireUserAction(
                             PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED);
                 }
-                if (Build.VERSION.SDK_INT >= 34) {
-                    params.setRequestUpdateOwnership(true);
-                }
 
                 int sessionId = installer.createSession(params);
                 try (PackageInstaller.Session session = installer.openSession(sessionId);
@@ -218,15 +217,29 @@ public class ApkUpdaterPlugin extends Plugin {
      * Fallback API 21–25 (PackageInstaller exige API 26). Le téléchargement
      * est déjà fait dans download() ; ici on ouvre le lanceur système sur le
      * fichier local pour demander l'installation.
+     *
+     * Sur API 24+ (Nougat), partager un Uri de fichier « file:// » vers une
+     * autre app lève une FileUriExposedException — il faut passer par
+     * FileProvider (déclaré dans AndroidManifest, authority
+     * ${applicationId}.fileprovider, déjà présent dans le manifeste).
+     * Sur API 21–23 le flag FLAG_GRANT_READ_URI_PERMISSION n'existe pas,
+     * on utilise simplement Uri.fromFile.
      */
     private void installLegacy(PluginCall call, File apk) {
         mainHandler.post(() -> {
             try {
                 Intent intent = new Intent(Intent.ACTION_VIEW);
-                Uri apkUri = Uri.fromFile(apk);
-                intent.setDataAndType(apkUri, "application/vnd.android.package-archive");
                 if (Build.VERSION.SDK_INT >= 24) {
+                    Context ctx = getContext();
+                    Uri apkUri = FileProvider.getUriForFile(
+                            ctx,
+                            ctx.getPackageName() + ".fileprovider",
+                            apk);
+                    intent.setDataAndType(apkUri, "application/vnd.android.package-archive");
                     intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                } else {
+                    intent.setDataAndType(
+                            Uri.fromFile(apk), "application/vnd.android.package-archive");
                 }
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 getContext().startActivity(intent);
