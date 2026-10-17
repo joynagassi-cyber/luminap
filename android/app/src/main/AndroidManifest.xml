@@ -63,6 +63,12 @@
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
         </service>
+
+        <!-- Self-updater : receiver du résultat de la session PackageInstaller
+             (confirmé par la mission ; exporté=false = interne à l'app). -->
+        <receiver
+            android:name=".InstallResultReceiver"
+            android:exported="false" />
     </application>
 
     <!-- Permissions -->
@@ -74,5 +80,9 @@
     <!-- FCM (Firebase Cloud Messaging) — required by OneSignal for in-app
          push delivery on modern Android. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Self-updater : permet à l'app de demander l'installation d'APK
+         (sources inconnues) via PackageInstaller. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
 </manifest>

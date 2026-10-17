@@ -18,6 +18,23 @@ android {
         resValue "string", "onesignal_app_id", "5482a4eb-a402-4612-ab5e-a72df7961b12"
         resValue "string", "onesignal_google_project_number", "remote"
     }
+
+    // Self-updater : signature release pilotée par l'environnement CI
+    // (github actions : KEYSTORE_PATH/KEYSTORE_PASSWORD/KEY_ALIAS/KEY_PASSWORD).
+    // Les défauts vides gardent le build debug local fonctionnel ; le CI
+    // fournit les vraies valeurs (le CI existant signe en revanche via apksigner).
+    signingConfigs {
+        release {
+            def ksPath = System.getenv("KEYSTORE_PATH") ?: ""
+            if (ksPath != "") {
+                storeFile file(ksPath)
+                storePassword System.getenv("KEYSTORE_PASSWORD") ?: ""
+                keyAlias System.getenv("KEY_ALIAS") ?: ""
+                keyPassword System.getenv("KEY_PASSWORD") ?: ""
+            }
+        }
+    }
+
     buildTypes {
         release {
             // Unsigned by Gradle — la signature réelle est faite en CI
