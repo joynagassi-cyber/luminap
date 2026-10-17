@@ -23,6 +23,7 @@ export default defineConfig({
       'src/pages/__tests__/**/*.test.tsx',
       'src/store/__tests__/**/*.test.ts',
       'src/hooks/__tests__/**/*.test.tsx',
+      'src/updater/__tests__/**/*.test.ts',
     ],
     environmentMatchGlobs: {
       'src/components/**': 'jsdom',

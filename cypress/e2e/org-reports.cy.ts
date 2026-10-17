@@ -111,9 +111,9 @@ describe('Lumina — Org reports hierarchy, send page gating, RLS', () => {
       expect(orgB, `org B (${orgBName}) should exist`).to.exist;
 
       // A a une mère (l'org courante du compte e2e)
-      expect(orgA.parent_org_id, `org A should have a parent`).to.not.be.null;
+      expect(orgA!.parent_org_id, `org A should have a parent`).to.not.be.null;
       // B a A comme parent
-      expect(orgB.parent_org_id, `org B should have org A as parent`).to.eq(orgA.id);
+      expect(orgB!.parent_org_id, `org B should have org A as parent`).to.eq(orgA!.id);
 
       cy.log(`Hierarchy verified: Mère → ${orgAName} → ${orgBName}`);
     });

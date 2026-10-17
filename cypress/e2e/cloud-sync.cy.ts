@@ -200,54 +200,64 @@ describe('Lumina — cloud sync (offline → online)', () => {
     // assertions REST ci-dessous.
     offline = false;
 
-    // ── 5. Wait for the sync cycle (runs every ~30 s) ────────────────
-    cy.wait(35_000);
+    // ── 5. Flush explicite de la queue d'upload via le connector ──────
+    // Le worker WASM PowerSync est suspendu dans le contexte Electron
+    // headless (Cypress) : son cycle d'upload (~30 s) ne tourne pas de
+    // façon fiable pendant le test, et `db.getNextCrudTransaction()` ne
+    // résoud jamais si le worker n'est pas réveillé (pas de timeout
+    // interne dans le SDK).
+    //
+    // `__psFlushCrudUpload` (exposé en DEV par src/lib/powersync/index.ts)
+    // pousse directement la queue d'upload via le client Supabase du
+    // connector (SupabaseConnector.uploadData) avec un timeout interne
+    // de 5 s par `getNextCrudTransaction`, sans dépendre du timer du
+    // worker. C'est exactement ce que le cycle automatique ferait, mais
+    // sous contrôle du test — le déterminisme demandé.
+    //
+    // On l'appelle 3× (3 séries de 5 passes, ~15 s de fenêtre) pour
+    // couvrir les op FATAL re-thrown en DEV (replay : l'op reste dans
+    // la queue et est rejouée à la passe suivante).
+    cy.window().then((win: any) => {
+      const flush = win.__psFlushCrudUpload;
+      if (typeof flush !== 'function') {
+        // eslint-disable-next-line no-console
+        console.log('[PS DIAG] no __psFlushCrudUpload exposed (prod build?) — flush impossible');
+        return;
+      }
+      return (async () => {
+        for (let round = 0; round < 3; round++) {
+          const r = await flush(5);
+          // eslint-disable-next-line no-console
+          console.log(`[PS DIAG] flush round ${round + 1}:`, JSON.stringify(r));
+          if (!r || r.passes === 0 || r.opsTotal === 0) break; // queue vide
+          await new Promise((res) => setTimeout(res, 1000)); // laisser l'upload RLS se stabiliser
+        }
+      })();
+    });
+    // Laisse le temps au POST REST de Supabase d'atterrir côté base
+    // avant l'assertion (quelques centaines de ms).
+    cy.wait(2000);
 
-    // DIAG DEV-only : inspecter la queue d'upload PowerSync avant
-    // l'assertion REST. Le flag est exposé par initPowerSync() dans
-    // src/lib/powersync/index.ts uniquement quand import.meta.env.DEV
-    // (pas dans les builds prod). Si `__psDb` est absent, le test
-    // échouera sur l'assertion REST sans info diagnostic — on ne
-    // bloque PAS le test sur le flag.
+    // ── 5b. DIAG DEV-only : inspecter l'état PowerSync post-flush
     cy.window().then((win: any) => {
       const ps = win.__psDb;
       if (ps && ps.status) {
         const st = ps.status;
         // eslint-disable-next-line no-console
-        console.log('[PS DIAG] status:', {
+        console.log('[PS DIAG] status post-flush:', {
           connected: st.connected,
           hasSynced: st.hasSynced,
           uploading: st.uploading,
-          downloadError: st.downloadError?.message,
           uploadError: st.uploadError?.message,
+          downloadError: st.downloadError?.message,
         });
       } else {
         // eslint-disable-next-line no-console
-        console.log('[PS DIAG] no __psDb exposed (prod build?)');
+        console.log('[PS DIAG] no __psDb exposed');
       }
-      // Forcer un flush explicite de la queue d'upload (si l'app a
-      // enqueued des CRUD offline) et vérifier le count d'ops pendantes.
-      const probeCrud = async () => {
-        try {
-          if (!ps || !ps.getNextCrudTransaction) return -1;
-          const tx = await ps.getNextCrudTransaction();
-          if (!tx) return 0; // vide : tout est uploadé ou la queue est vide
-          const n = tx.crud.length;
-          // On ne complete() PAS pour laisser le spec vérifier la base
-          // Supabase via REST ci-dessous — si on complete(), les op
-          // sont perdues et la table reste vide.
-          return n;
-        } catch (e) {
-          return -1;
-        }
-      };
-      probeCrud().then((pending) => {
-        // eslint-disable-next-line no-console
-        console.log('[PS DIAG] pendingCrud ops:', pending);
-      });
     });
 
-    // ── 6. Assert the entities reached Supabase ───────────────────────
+    // ── 6. Assert the entities reached Supabase (retry sur 45 s) ──────
     // L'assertion REST utilise le JWT du user e2e (pas l'anon key) —
     // sinon le RLS filtre les lignes et on voit 0 résultat. On lit le
     // token directement dans localStorage depuis le contexte navigateur.
@@ -268,43 +278,84 @@ describe('Lumina — cloud sync (offline → online)', () => {
       console.log('[PS DIAG] userJwt length:', userJwt?.length ?? 0);
     });
 
-    cy.request({
-      method: 'GET',
-      url:
-        `${SUPABASE_URL}/rest/v1/accounts?name=eq.` +
-        encodeURIComponent(accountName) +
-        `&select=id,name,owner_type,status&limit=5`,
-      headers: {
-        apikey: anonKey,
-        Authorization: `Bearer ${userJwt || anonKey}`,
-      },
-    }).then((accountsRes: any) => {
-      // eslint-disable-next-line no-console
-      console.log('[PS DIAG] accounts REST:', accountsRes.status, JSON.stringify(accountsRes.body).slice(0, 200));
-      expect(accountsRes.status).to.be.oneOf([200, 201]);
-      // eslint-disable-next-line no-console
-      console.log('[PS DIAG] userJwt length:', userJwt.length, 'accounts rows:', accountsRes.body.length);
-      expect(accountsRes.body.length).to.be.greaterThan(0);
-      expect(accountsRes.body[0].name).to.include('TestSync Account');
-      expect(accountsRes.body[0].owner_type).to.eq('GROUP');
-    });
+    const authHeaders: Record<string, string> = {
+      apikey: anonKey,
+      Authorization: `Bearer ${userJwt || anonKey}`,
+    };
+    const accountsUrl =
+      `${SUPABASE_URL}/rest/v1/accounts?name=eq.` +
+      encodeURIComponent(accountName) +
+      `&select=id,name,owner_type,status&limit=5`;
+    const cfdUrl =
+      `${SUPABASE_URL}/rest/v1/custom_field_definitions?field_name=eq.` +
+      encodeURIComponent(cfKey) +
+      `&select=id,field_name,field_label,entity_type&limit=5`;
 
-    cy.request({
-      method: 'GET',
-      url:
-        `${SUPABASE_URL}/rest/v1/custom_field_definitions?field_name=eq.` +
-        encodeURIComponent(cfKey) +
-        `&select=id,field_name,field_label,entity_type&limit=5`,
-      headers: {
-        apikey: anonKey,
-        Authorization: `Bearer ${userJwt || anonKey}`,
+    // Helper de retry : attend jusqu'à `maxMs` pour que la ligne atterrisse
+    // (le cycle d'upload PowerSync du worker est asynchrone). Chaque
+    // réessai fait un GET REST avec le JWT user (RLS). Si aucune ligne
+    // au bout du délai, on échoue avec un message de diagnostic précis.
+    const waitForRest = (
+      url: string,
+      label: string,
+      assertRows: (rows: any[]) => void,
+    ): Cypress.Chainable => {
+      const MAX_TRIES = 9; // ~45 s
+      const retry = (attempt: number) => {
+        if (attempt >= MAX_TRIES) {
+          return cy.wrap(null as unknown).then((last: any) => {
+            throw new Error(
+              `cloud-sync: ${label} REST n'a pas atterri après ${MAX_TRIES * 5} s de retry — ` +
+                `le cycle d'upload PowerSync du worker n'a PAS poussé le CRUD offline vers Supabase ` +
+                `(worker WASM suspendu dans le contexte headless, ou le POST uploadData a échoué). ` +
+                `Vérifier le log [PowerSync] uploadData DEV du SupabaseConnector dans le terminal du dev server ` +
+                `et le status PowerSync (__psDb.status).`,
+            );
+          });
+        }
+        return cy
+          .request({ method: 'GET', url, headers: authHeaders })
+          .then((res: any) => {
+            const rows: any[] = Array.isArray(res.body) ? res.body : [];
+            if (rows.length > 0) {
+              assertRows(rows);
+              return;
+            }
+            // eslint-disable-next-line no-console
+            console.log(`[PS DIAG] ${label} REST retry ${attempt + 1}/${MAX_TRIES}: 0 row — re-check dans 5 s`);
+            return cy.wait(5_000).then(() => retry(attempt + 1));
+          });
+      };
+      return cy.request({ method: 'GET', url, headers: authHeaders }).then((res: any) => {
+        const rows: any[] = Array.isArray(res.body) ? res.body : [];
+        // eslint-disable-next-line no-console
+        console.log(`[PS DIAG] ${label} REST initial:`, res.status, 'rows =', rows.length);
+        if (rows.length > 0) {
+          assertRows(rows);
+          return cy.wrap(null);
+        }
+        return retry(0);
+      });
+    };
+
+    // Assertion 1 : le compte (group) a atterri dans Supabase.
+    waitForRest(
+      accountsUrl,
+      'accounts',
+      (rows) => {
+        expect(rows[0].name).to.include('TestSync Account');
+        expect(rows[0].owner_type).to.eq('GROUP');
       },
-    }).then((cfsRes: any) => {
-      // eslint-disable-next-line no-console
-      console.log('[PS DIAG] cfd REST:', cfsRes.status, JSON.stringify(cfsRes.body).slice(0, 200));
-      expect(cfsRes.status).to.be.oneOf([200, 201]);
-      expect(cfsRes.body.length).to.be.greaterThan(0);
-    });
+    );
+
+    // Assertion 2 : le custom field a atterri dans Supabase.
+    waitForRest(
+      cfdUrl,
+      'custom_field_definitions',
+      (rows) => {
+        expect(rows[0].field_name).to.eq(cfKey);
+      },
+    );
 
     console.log('✅ CLOUD SYNC — group and custom field reached Supabase');
   });

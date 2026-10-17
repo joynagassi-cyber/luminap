@@ -16,7 +16,53 @@ let _connector: SupabaseConnector | null = null;
 function publishDevDiagnostics() {
   if (!import.meta.env.DEV) return;
   try {
-    (window as unknown as Record<string, unknown>).__psDb = _db;
+    const win = window as unknown as Record<string, unknown>;
+    win.__psDb = _db;
+    win.__psConnector = _connector;
+    // Flush déterministe pour les specs E2E (cloud-sync).
+    //
+    // Le worker WASM PowerSync (@powersync/web) est suspendu dans le
+    // contexte Electron headless de Cypress : son cycle d'upload
+    // (~30 s) ne tourne pas de façon fiable pendant le test, et
+    // `db.getNextCrudTransaction()` — qui attend le prochain batch du
+    // worker — ne résout jamais si le worker n'est pas réveillé.
+    //
+    // `flushCrudUpload` pousse directement la queue d'upload via le
+    // client Supabase du connector (SupabaseConnector.uploadData),
+    // sans dépendre du timer du worker :
+    //   1. tire la prochaine transaction PowerSync (timeout interne
+    //      5 s pour ne jamais bloquer le test),
+    //   2. appelle `connector.uploadData(db)` qui ré-miroire la
+    //      session A→B (`ensureUploadSession`) puis pousse chaque op
+    //      au Supabase + complete la transaction,
+    //   3. répète jusqu'à N passes (max) ou queue vide.
+    //
+    // DEV-only : l'appel est volontairement inactif en production
+    // (pas de fuite de l'UI). Les specs Cypress reçoivent le handle
+    // via `window.__psFlushCrudUpload`.
+    win.__psFlushCrudUpload = async (maxPasses: number = 5) => {
+      if (!_db || !_connector) return { flushed: false, passes: 0, error: "db or connector not initialized" };
+      let passes = 0;
+      let opsTotal = 0;
+      for (let i = 0; i < maxPasses; i++) {
+        const tx: any = await Promise.race([
+          _db.getNextCrudTransaction(),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000)),
+        ]);
+        if (!tx) break; // queue vide, ou worker suspendu (timeout)
+        opsTotal += (tx.crud || []).length;
+        try {
+          await _connector.uploadData(_db);
+          passes++;
+        } catch {
+          // Une op FATAL (42501 RLS / 23xxx intègrité) peut re-throw
+          // (replay DEV) : on continue sur la passe suivante au lieu
+          // d'échouer tout le flush.
+          passes++;
+        }
+      }
+      return { flushed: true, passes, opsTotal };
+    };
   } catch {
     /* SSR / worker boundary */
   }

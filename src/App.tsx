@@ -13,6 +13,8 @@ import { AppProvider } from "./context/AppContext";
 import AppRouter from "./AppRouter";
 import { luminaRoutes } from "./ionic/routing";
 import { ErrorBoundary, withScope } from "@sentry/react";
+import { UpdateDialog } from "@/updater/UpdateDialog";
+import { checkForUpdate, type UpdateInfo } from "@/updater/checkForUpdate";
 import "./ionic/theme";
 
 // Initialize Ionic React (dark theme applied via setupLuminaTheme)
@@ -153,6 +155,31 @@ const SentryUserBridge = () => {
 };
 
 /**
+ * UpdaterBridge — vérifie une mise à jour (GitHub Releases) une seule fois au
+ * démarrage, de façon strictement non-bloquante :
+ *   - `checkForUpdate(false)` est fire-and-forget (jamais d'exception levée)
+ *   - sur web / iOS / dev navigateur il retourne null immédiatement
+ *     (Capacitor.getPlatform() !== 'android') → aucun effet
+ *   - le dialogue s'ouvre seulement si une version strictement supérieure
+ *     existe
+ * Ne modifie PAS l'init PowerSync/Supabase existante (voir AppRouter).
+ */
+const UpdaterBridge = () => {
+  const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
+
+  useEffect(() => {
+    checkForUpdate(false)
+      .then((info) => setUpdateInfo(info))
+      .catch(() => {
+        /* JAMAIS bloquer le démarrage : une erreur updater reste silencieuse. */
+      });
+  }, []);
+
+  if (!updateInfo) return null;
+  return <UpdateDialog />;
+};
+
+/**
  * App — wraps the entire Lumina application in IonApp + IonReactRouter.
  */
 const App = () => (
@@ -166,6 +193,7 @@ const App = () => (
       <IonApp>
         <SentryUserBridge />
         <AppUrlOpenBridge />
+        <UpdaterBridge />
         {/* Lien « sauter au contenu » — premier élément focalisable, masqué
             visuellement jusqu'au focus clavier (a11y : parcours du clavier). */}
         {/* M15 — z-index nommé : --z-toast (70) / --z-skip (100) coordonnés

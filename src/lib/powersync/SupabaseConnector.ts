@@ -25,6 +25,25 @@ const FATAL_RESPONSE_CODES = [
   new RegExp("^42501$"),
 ];
 
+// ── DIAG DEV-only : log chaque op d'upload (OK / FATAL) pour tracer
+// en production pourquoi une op offline ne s'attend pas au Supabase
+// dans le test Cypress (le `uploadData` est le seul chemin qui pousse
+// les ops offline vers le cloud ; s'il échoue silencieusement, le
+// spec ne voit rien et l'assertion REST reste à 0 ligne).
+const DEV_LOG = import.meta.env.DEV;
+function logOpOutcome(op: CrudEntry, ok: boolean, code?: string, msg?: string, orgId?: unknown) {
+  if (!DEV_LOG) return;
+  if (ok) {
+    console.info(
+      `[PowerSync] uploadData OK ${op.table} op=${op.op} org_id=${orgId ?? "(absent)"}`,
+    );
+  } else {
+    console.warn(
+      `[PowerSync] uploadData FAILED ${op.table} op=${op.op} org_id=${orgId ?? "(absent)"} code=${code ?? "?"} msg=${msg ?? "(unknown)"}`,
+    );
+  }
+}
+
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -232,12 +251,69 @@ export class SupabaseConnector
     } satisfies PowerSyncCredentials;
   }
 
+  /**
+   * Re-mirror the app's main Supabase session (client A) into this
+   * connector's own client (client B) right before every upload cycle.
+   *
+   * WHY: `uploadData` is invoked by PowerSync on a timer, but the two
+   * supabase-js GoTrueClient instances do NOT share in-memory session
+   * state — only the localStorage key does. After a reconnected offline
+   * write lands (spec cloud-sync: offline → online toggle), the first
+   * upload cycle may fire before `onAuthStateChange` has reached client
+   * B, so `this.client.from(...)` would hit Supabase with a 401 (no
+   * session). `ensureUploadSession` reads the shared localStorage key
+   * once per upload cycle and only calls `setSession` when the
+   * persisted token differs from B's in-memory copy.
+   */
+  private async ensureUploadSession(): Promise<void> {
+    try {
+      const storageKey =
+        (this.client.auth as unknown as { storageKey?: string }).storageKey ??
+        "";
+      if (!storageKey) return; // No persisted storage key — nothing to mirror.
+      const raw = localStorage.getItem(storageKey);
+      if (!raw) return; // No persisted session yet — rely on onAuthStateChange.
+      const parsed = JSON.parse(raw);
+      if (!parsed?.access_token || !parsed?.refresh_token) return;
+
+      // `getSession` is cheap (in-memory when present) — avoids a
+      // setSession round-trip when the token already matches.
+      const {
+        data: { session: current },
+      } = await this.client.auth.getSession();
+      const currentTok = current?.access_token ?? "";
+      if (currentTok !== parsed.access_token) {
+        await this.client.auth
+          .setSession({
+            access_token: parsed.access_token,
+            refresh_token: parsed.refresh_token,
+          })
+          .catch((err) => {
+            console.warn(
+              "[PowerSync] ensureUploadSession setSession failed:",
+              (err as Error)?.message ?? err,
+            );
+          });
+      }
+    } catch (err) {
+      // localStorage / JSON edge case — fall through with whatever session B holds.
+      console.debug("[PowerSync] ensureUploadSession read error:", err);
+    }
+  }
+
   async uploadData(database: CommonPowerSyncDatabase): Promise<void> {
     const transaction = await database.getNextCrudTransaction();
 
     if (!transaction) {
       return;
     }
+
+    // CRITICAL: before pushing any CRUD to Supabase, make sure client B
+    // (this.client) has a live session. Without this, an upload that
+    // fires immediately after a reconnect (offline-first scenario) can
+    // hit Supabase with client B's in-memory session still `null` and
+    // return 401 → the row silently stays in the offline queue.
+    await this.ensureUploadSession();
 
     let lastOp: CrudEntry | null = null;
     try {
@@ -258,7 +334,12 @@ export class SupabaseConnector
         switch (op.op) {
           case UpdateType.PUT: {
             const record = { ...opData, id: op.id };
-            result = await table.upsert(record);
+            // RLS « NO-USING » sur le INSERT (polcmd 'a') laisse passer
+            // la ligne dans Supabase mais le RLS de la colonne `created_at`
+            // peut rejeter 4xx. Le `onConflict: "id"` est la clé primaire
+            // de PowerSync côté SQLite — pas de conflit en cas de double
+            // upsert (ex. l'op est rejouée après un 4xx non-fatal).
+            result = await table.upsert(record, { onConflict: "id" });
             break;
           }
           case UpdateType.PATCH:

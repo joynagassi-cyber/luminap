@@ -4,7 +4,6 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import com.getcapacitor.BridgeActivity;
-import com.getcapacitor.Plugin;
 import java.util.ArrayList;
 
 public class MainActivity extends BridgeActivity {
@@ -12,6 +11,10 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        // Les plugins natifs locaux (non distribués comme module Gradle
+        // autonome) ne sont pas auto-enregistrés : il faut les déclarer
+        // AVANT la construction du Bridge (super.onCreate).
+        registerPlugin(ApkUpdaterPlugin.class);
         super.onCreate(savedInstanceState);
 
         // OneSignal est configuré côté web via @capacitor/push-notifications
