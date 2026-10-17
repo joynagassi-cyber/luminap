@@ -58,8 +58,14 @@ describe('Lumina — Cross-tenant isolation (2 orgs)', () => {
       },
     }).then((profilesRes: any) => {
       expect(profilesRes.status).to.eq(200);
-      const currentOrgId = (profilesRes.body as any[])[0]?.org_id;
-      expect(currentOrgId, 'current user must have an org_id').to.exist;
+      const profiles: any[] = profilesRes.body ?? [];
+      const currentOrgId = profiles[0]?.org_id;
+
+      // Pré-checker la nullité avant les assertions (evite le lint
+      // no-unused-expressions sur `expect(undefined).to.exist`).
+      if (!currentOrgId) {
+        throw new Error('current user must have an org_id');
+      }
       cy.log(`Current org_id: ${currentOrgId}`);
 
       // Query events filtered by current org_id

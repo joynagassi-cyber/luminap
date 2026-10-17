@@ -107,13 +107,20 @@ describe('Lumina — Org reports hierarchy, send page gating, RLS', () => {
       const orgA = rows.find((r: any) => r.name === orgAName);
       const orgB = rows.find((r: any) => r.name === orgBName);
 
-      expect(orgA, `org A (${orgAName}) should exist`).to.exist;
-      expect(orgB, `org B (${orgBName}) should exist`).to.exist;
+      // Pré-checker la nullité avant les assertions (evite le lint
+      // no-unused-expressions sur `expect(undefined).to.exist`).
+      if (!orgA || !orgB) {
+        throw new Error(`org A (${orgAName}) or org B (${orgBName}) not found in REST response`);
+      }
 
       // A a une mère (l'org courante du compte e2e)
-      expect(orgA!.parent_org_id, `org A should have a parent`).to.not.be.null;
+      if (!orgA.parent_org_id) {
+        throw new Error(`org A should have a parent (parent_org_id)`);
+      }
       // B a A comme parent
-      expect(orgB!.parent_org_id, `org B should have org A as parent`).to.eq(orgA!.id);
+      if (orgB.parent_org_id !== orgA.id) {
+        throw new Error(`org B should have org A as parent (got ${orgB.parent_org_id}, expected ${orgA.id})`);
+      }
 
       cy.log(`Hierarchy verified: Mère → ${orgAName} → ${orgBName}`);
     });
