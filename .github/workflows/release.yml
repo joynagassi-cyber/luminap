@@ -36,16 +36,19 @@ jobs:
         run: chmod +x android/gradlew
 
       - name: Decode keystore
-        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > $RUNNER_TEMP/release.keystore
+        # Réutilise les secrets ANDROID_KEYSTORE_* déjà présents (créés 2026-09-06)
+        # et consommés par lumina-android.yml (apksigner) — aucun nouveau
+        # secret à créer, pas de mélange de namespaces (LUMINA_* / ANDROID_*).
+        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > $RUNNER_TEMP/release.keystore
 
       - name: Build release APK
         working-directory: android
         run: ./gradlew assembleRelease
         env:
           KEYSTORE_PATH: ${{ runner.temp }}/release.keystore
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEYSTORE_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_KEY_PASSWORD }}
 
       - name: Rename APK to stable asset name
         run: cp android/app/build/outputs/apk/release/*.apk app-release.apk

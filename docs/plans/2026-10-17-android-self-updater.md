@@ -1124,13 +1124,18 @@ git commit -m "chore(updater): compilation complète + correctifs"
 ## Rapport final attendu (à produire à la fin de l'exécution)
 
 1. **Liste des fichiers créés/modifiés** (extrait de `git status --short` / `git diff --stat`).
-2. **Secrets GitHub à créer** (Settings → Secrets and variables → Actions → New repository secret) :
-   - `KEYSTORE_BASE64` (le keystore `.jks` encodé en base64)
-   - `KEYSTORE_PASSWORD` (mot de passe du store)
-   - `KEY_ALIAS` (alias de la clé)
-   - `KEY_PASSWORD` (mot de passe de la clé)
-   > ⚠️ Ces secrets ne sont PAS dans le code ni le dépôt. Ils alimentent le workflow `release.yml` et le `signingConfigs.release`.
-   > Le CI existant (`lumina-android.yml`) utilise déjà `ANDROID_KEYSTORE_BASE64` / `ANDROID_KEYSTORE_PASSWORD` / `ANDROID_KEYSTORE_ALIAS` — le workflow `release.yml` réutilise les mêmes secrets pour rester cohérent ; ne PAS créer des secrets dupliqués si l'équipe veut unifier.
+2. **Secrets GitHub** — **aucun secret à créer** : le workflow `release.yml` réutilise les secrets
+   **`ANDROID_KEYSTORE_*`** déjà présents dans le dépôt (vérifié via `gh secret list` le 2026-10-17) :
+   - `ANDROID_KEYSTORE_BASE64` (keystore `.jks` en base64)
+   - `ANDROID_KEYSTORE_PASSWORD` (mot de passe du store)
+   - `ANDROID_KEYSTORE_ALIAS` (alias de la clé)
+   - `ANDROID_KEYSTORE_KEY_PASSWORD` (mot de passe de la clé)
+   > ⚠️ Ne PAS créer de secrets dupliqués `KEYSTORE_*` ni `LUMINA_KEYSTORE_*` (ces derniers existent aussi
+   > mais n'ont pas de `KEY_PASSWORD` associé — incohérent). L'unique source de vérité = namespace
+   > `ANDROID_KEYSTORE_*` (déjà consommé par `lumina-android.yml` via `apksigner`, et maintenant par
+   > `release.yml` via `signingConfigs.release`).
+   > Le secret `LUMINA_GITHUB_PAT` (scope `contents:write`) existe déjà et peut être réutilisé si le
+   > token `GITHUB_TOKEN` par défaut du runner n'a pas le scope `releases` pour créer le release.
 3. **Procédure de publication** :
    - Incrémenter `versionCode` et `versionName` dans `android/app/build.gradle` (ex. `versionCode 3`, `versionName "1.0.2"`).
    - Committer.
