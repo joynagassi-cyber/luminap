@@ -7,14 +7,18 @@ on:
 env:
   NODE_VERSION: '22'
   JAVA_VERSION: '21'
-  PNPM_VERSION: '11.27.1'
+  PNPM_VERSION: '11'
+
+# Ce workflow ne fait plus que le build **debug** sur chaque push main
+# (utile pour tester la plateforme en sideload). Le job de release
+# (APK signé + GitHub Release) a été **retiré** ici le 2026-10-18 pour
+# n'avoir qu'UN seul workflow de release (`release.yml`) — la
+# duplication (2 signatures du même APK, 2 releases concurrentes)
+# était source de confusion. Pour une release signée :
+#   git tag v<version> && git push origin main v<version>
+# → trigger du workflow `release.yml` (single source of truth).
 
 jobs:
-  # ---------------------------------------------------------------
-  # BUILD DEBUG — à chaque push sur main : APK debug compilé + signé
-  # automatiquement par Gradle (debug.keystore), téléchargeable dans
-  # les artifacts du run. Utile pour tester la plateforme en sideload.
-  # ---------------------------------------------------------------
   debug-apk:
     name: Build Debug APK
     runs-on: ubuntu-latest
@@ -40,47 +44,36 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build web app + sync Capacitor
-        # Preflight : build:cap, puis cap sync android (recopie dist/ dans
-        # le webview — garantit qu'un dist périmé ne peut pas s'embarquer).
+        # Preflight : build:cap, puis cap sync android (recopie dist/
+        # dans le webview — garantit qu'un dist périmé ne peut pas
+        # s'embarquer).
         run: pnpm run sync:cap
 
       - name: Grant execute permission to gradlew
         run: chmod +x android/gradlew
 
-      - name: Align Gradle (restore repo versions + namespace + OneSignal + Cordova purge)
-        # Le cap sync régénère les fichiers Gradle du projet avec des valeurs
-        # incompatibles avec le wrapper Gradle 8.2.1 / AGP 8.2.1 (AGP 8.13.0
-        # par défaut, compileSdk 36). On restaure strictement les versions
-        # commitées du repo, qui sont déjà alignées :
-        # - android/variables.gradle (AGP 8.2.1, SDK 34, Java 17, minSdk 21)
-        # Le build.gradle du plugin cordova est généré par cap sync (ignoré
-        # par git) — on l'aligne par sed : AGP 8.13.0 → 8.2.1, SDK 36 → 34.
+      - name: Patch Cordova Sub-project (fix bcprov-jdk18on-1.79.jar)
+        # MÊME logique que le step "Patch Cordova Sub-project" de
+        # release.yml (job prepare). Le sous-projet
+        # `:capacitor-cordova-android-plugins` est GÉNÉRÉ par `cap sync`
+        # (fichier gitignored, donc recréé à chaque run CI) et son
+        # `build.gradle` déclare `classpath AGP 8.13.0` qui tire
+        # transitivement `bcprov-jdk18on-1.79.jar` (via
+        # `com.android.tools.build:builder:8.13.0` →
+        # `org.bouncycastle:bcprov-jdk18on:1.79`, confirmé dans
+        # `~/.gradle/caches/modules-2/metadata` local) — ce JAR échoue
+        # à se relier par le classloader de compilation Gradle sur les
+        # runners GitHub → erreur "Failed to create Jar file ...
+        # bcprov-jdk18on-1.79.jar".
+        #
+        # Fix : on retire le bloc `buildscript { ... }` du sous-projet
+        # (il hérite de l'AGP 8.2.1 de la racine, `android/build.gradle`
+        # ligne 10, qui ne tire PAS bcprov 1.79). Fiable car fait APRÈS
+        # `cap sync` (le fichier est récréé ici), en Python (plus
+        # robuste que sed pour un bloc multi-lignes).
         run: |
-          if [ -d "$HOME/.gradle" ]; then
-            echo "Purging ~/.gradle"
-            rm -rf "$HOME/.gradle"
-          fi
-          # 1. Restaure variables.gradle à sa version commitée
-          git checkout -- android/variables.gradle
-          echo "Restauré variables.gradle (AGP 8.2.1 / SDK 34 / Java 17 / minSdk 21)"
-          # 1b. CORRECTION REELLE DU BUG bcprov-jdk18on-1.79.jar (2026-10-18,
-          # cause racine identifiée après 6 runs rouges du tag v1.0.2) : le
-          # buildscript du sous-projet cordova (généré par cap sync, gitignored,
-          # recréé à CHAQUE run CI) déclare explicitement
-          #   classpath 'com.android.tools.build:gradle:8.13.0'
-          # qui tire transitivement bcprov-jdk18on-1.79.jar (via
-          # com.android.tools.build:builder:8.13.0 → bcprov-jdk18on:1.79).
-          # Le JAR échoue à se relier par le classloader de compilation
-          # Gradle → 'Failed to create Jar file .../bcprov-jdk18on-1.79.jar'.
-          #
-          # Les correctifs antérieurs (exclure le sous-projet de
-          # settings.gradle, forcer une version bcprov, retirer --no-daemon)
-          # ne touchaient PAS cette ligne du buildscript du sous-projet.
-          # Fix : on retire le bloc buildscript du sous-projet — il hérite
-          # de l'AGP 8.2.1 de la racine (android/build.gradle ligne 10),
-          # qui ne tire PAS bcprov 1.79.
           if grep -q "com.android.tools.build:gradle:8.13.0" android/capacitor-cordova-android-plugins/build.gradle; then
-            echo "Suppression du buildscript AGP 8.13.0 du sous-projet cordova (fix bcprov-jdk18on-1.79.jar)"
+            echo "Fix bcprov : retrait du bloc buildscript AGP 8.13.0 du sous-projet cordova"
             python3 - <<'PYEOF'
             import re
             path = "android/capacitor-cordova-android-plugins/build.gradle"
@@ -91,82 +84,29 @@ jobs:
                 f.write(new_content)
             print("buildscript retiré. Résultat :")
             import subprocess
-            subprocess.run(["cat", path], check=False)
+            subprocess.run(["head", "-20", path], check=False)
             PYEOF
           else
             echo "Sous-projet cordova sans AGP 8.13.0 — rien à faire"
           fi
-          # 2. Align le build.gradle du plugin cordova généré par cap sync
-          # (AGP 8.13.0 → 8.2.1 si le bloc buildscript reste, inoffensif
-          # sinon ; SDK 36 → 34)
-          sed -i "s/com.android.tools.build:gradle:8.13.0/com.android.tools.build:gradle:8.2.1/g" \
-            android/capacitor-cordova-android-plugins/build.gradle
+          # Align SDK 34 + patch namespace plugin storage (même logique
+          # que le step ci-dessus de release.yml).
           sed -i "s/compileSdkVersion') ? rootProject.ext.compileSdkVersion : 36/compileSdkVersion') ? rootProject.ext.compileSdkVersion : 34/g" \
             android/capacitor-cordova-android-plugins/build.gradle
-          # 2a. Purge de la dépendance Cordova framework (impose minSdk 22,
-          #  bloquerait le minSdk 21 voulu). Aucun plugin Cordova n'est
-          #  installé — les 5 plugins sont natifs Capacitor.
-          # Format cap sync vérifié : "    implementation "org.apache.cordova:framework:$cordovaAndroidVersion""
-          if grep -q 'implementation "org.apache.cordova:framework:' android/capacitor-cordova-android-plugins/build.gradle; then
-            echo "framework Cordova détecté — purge"
-            sed -i '/implementation "org.apache.cordova:framework:/d' \
-              android/capacitor-cordova-android-plugins/build.gradle
-          else
-            echo "framework Cordova déjà absent (plugin purgé)"
-          fi
-          # Vérification : le manifest app doit contenir l'override minSdk
-          # 21 (com.onesignal + org.apache.cordova résiduel).
-          if ! grep -q 'tools:overrideLibrary="com.onesignal,org.apache.cordova"' \
-            android/app/src/main/AndroidManifest.xml; then
-            echo "::error::tools:overrideLibrary manquant dans le manifest app (commité) — re-committer android/app/src/main/AndroidManifest.xml."
-            exit 1
-          fi
-          echo "Manifest override OK"
-          # 2a-bis. Le manifest app (commité) contient :
-          #   <uses-sdk tools:overrideLibrary="com.onesignal,org.apache.cordova" />
-          # qui force le minSdk 21 malgré le AAR OneSignal / framework Cordova
-          #  résiduel (minSdk 22). Vérifié ci-dessous ; rien à régénérer.
-          echo "Aligné cordova plugins build.gradle (AGP 8.2.1 / SDK 34 / sans framework Cordova)"
-          # 2b. Même alignement SDK 34 sur variables.gradle (au cas où cap sync
-          # l'a régénéré en 36)
           sed -i 's/compileSdkVersion = 36/compileSdkVersion = 34/' android/variables.gradle
           sed -i 's/targetSdkVersion = 36/targetSdkVersion = 34/' android/variables.gradle
-          # Patch namespace au plugin storage v1.2.5 (sans namespace dans le
-          # build.gradle, cap sync génère une erreur « Namespace not specified »)
           if ! grep -q "^    namespace " node_modules/@capacitor/storage/android/build.gradle; then
             sed -i '/^android {/a\    namespace "com.capacitorjs.plugins.storage"' \
               node_modules/@capacitor/storage/android/build.gradle
           fi
-          # Purge des références au plugin Cordova OneSignal non résolu
-          # (com.onesignal.cordova.OneSignalPush) qui casse compileJavaWithJavac.
-          # Le support OneSignal est natif via @capacitor/push-notifications.
-          if grep -rq "com.onesignal.cordova.OneSignalPush" \
-            android/capacitor-cordova-android-plugins/ 2>/dev/null; then
-            echo "OneSignalPush references détectées — purge"
-            find android/capacitor-cordova-android-plugins -name "*.gradle" \
-              -exec sed -i '/com.onesignal.cordova.OneSignalPush/d' {} \;
-          fi
-          echo "Gradle aligné : AGP 8.2.1 + SDK 34 + Java 17 + minSdk 21 + sans framework Cordova"
 
       - name: Build debug APK
-        # Le retry couvre une éventuelle course résiduelle, mais le
-        # build doit s'appuyer sur le cache purgé ci-dessus.
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 30
-          retry_wait_seconds: 30
-          retry_on: error
-          # 2026-10-18 : le flag --no-daemon cause une erreur reproductible
-          # "Failed to create Jar file .../bcprov-jdk18on-1.79.jar" (le
-          # classloader "single-use daemon" forké par --no-daemon échoue à
-          # relier les classes Java 21+ du JAR bouncycastle 1.79 que
-          # com.onesignal:OneSignal tire ; le daemon PERSISTANT de Gradle
-          # le charge sans problème — bug documenté en mémoire
-          # gradle-jdk17-bcprov-infra-fail, confirmé 2026-10-18 en local
-          # : build SANS --no-daemon = OK, AVEC --no-daemon = échec au
-          # même endroit, quel que soit le JDK). On retire donc le flag.
-          max_attempts: 3
-          command: cd android && ./gradlew assembleDebug
+        # Pas de --no-daemon (le classloader "single-use" du flag
+        # échoue à relier le JAR bcprov 1.79 — bug documenté en
+        # mémoire gradle-jdk17-bcprov-infra-fail, confirmé 2026-10-18
+        # en local : build SANS --no-daemon = OK, AVEC = échec).
+        working-directory: android
+        run: ./gradlew assembleDebug
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
@@ -174,12 +114,3 @@ jobs:
           name: lumina-debug
           path: android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 14
-
-# Un SEUL workflow de release (release.yml) : les jobs `release-apk` et
-# `github-release` (signature apksigner v1+v2+v3 + GitHub Release) ont été
-# retirés ici le 2026-10-18 pour éviter la duplication (2 signatures
-# possibles du même APK, 2 releases concurrentes, confusion). Ce
-# workflow ne fait plus que le build **debug** sur chaque push main
-# (utile pour tester la plateforme en sideload).
-# Pour une release signée : `git tag v<version> && git push origin main v<version>`
-# → trigger du workflow `release.yml` (single source of truth).

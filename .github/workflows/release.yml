@@ -4,178 +4,252 @@ on:
   push:
     tags: ["v*"]
 
-# Un SEUL workflow pour produire l'APK de release, signer (v1+v2+v3) et
-# publier une GitHub Release consommable par le self-updater de l'app.
-# Le job `release-apk` de `lumina-android.yml` a été retiré (2026-10-18,
-# user : "un seul workflow, pas deux") — ce fichier est désormais la
-# seule source de vérité pour la production de l'APK signé.
+permissions:
+  contents: write
+
+env:
+  NODE_VERSION: '22'
+  JAVA_VERSION: '21'
+  PNPM_VERSION: '11'
+
+# Un SEUL workflow (release) produit l'APK signé et publie la GitHub Release.
+# Le job debug de `lumina-android.yml` (build APK sideload sur push main) est
+# indépendant et n'a pas à passer ici. Structure inspirée du pattern
+# multi-jobs `prepare → build → sign → release` (cf. release holistique de
+# l'équipe, adaptée au cas Android-sidelow-GitHub, sans canary/stable).
 
 jobs:
-  release:
+  # ---------------------------------------------------------------
+  # PRÉPARATION : vérifier le tag, installer les deps, patcher le
+  # bug bcprov JUSQU'À CE QUE LE BUILD SOIT RELANCÉ.
+  # ---------------------------------------------------------------
+  prepare:
+    name: Prepare
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    outputs:
+      APP_VERSION: ${{ steps.version.outputs.APP_VERSION }}
     steps:
       - uses: actions/checkout@v4
 
       - uses: pnpm/action-setup@v4
         with:
-          version: 11
+          version: ${{ env.PNPM_VERSION }}
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
-          cache: pnpm
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
 
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 21
+          java-version: ${{ env.JAVA_VERSION }}
           cache: 'gradle'
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Build web + sync Capacitor
-        # Pré-build : garantit qu'un dist périmé ne peut pas s'embarquer
-        # dans le webview (idempotent avec le build du job `debug-apk` de
-        # lumina-android.yml, même logique).
+        # Régénère dist/ + l'arborescence `android/capacitor-cordova-android-plugins/`
+        # (le buildscript fautif AGP 8.13.0 du sous-projet est récréé ici — on le
+        # corrige juste après dans le step "Patch Cordova Sub-project", et il ne
+        # sera PAS recréé tant que le build Gradle n'a pas démarré).
         run: pnpm run sync:cap
 
       - name: Grant execute permission to gradlew
         run: chmod +x android/gradlew
 
-      - name: Align Gradle (purge cordova framework + bcprov classpath corruption)
-        # Reproduit strictement le step du job debug-apk de lumina-android.yml
-        # (cf. run 36173770387 GREEN) :
-        #  1. Purge ~/.gradle (cache bcprov-jdk18on-1.79.jar corrompu).
-        #  2. Restaure variables.gradle (AGP 8.2.1 / SDK 34 / Java 17 / minSdk 21).
-        #  3. Align le build.gradle du plugin cordova généré par cap sync
-        #     (AGP 8.13.0 → 8.2.1, SDK 36 → 34).
-        #  4. **SUPPRIME le sous-projet `:capacitor-cordova-android-plugins` de
-        #     settings.gradle** : `cap sync` le génère (avec `AGP 8.13.0` +
-        #     la dépendance `org.apache.cordova:framework` qui impose minSdk 22
-        #     ET introduit `bcprov-jdk18on-1.79.jar` dans le classpath, qui
-        #     échoue à se compiler sous Temurin 21 → l'erreur "Failed to
-        #     create Jar file bcprov-jdk18on-1.79.jar"). Les 5 plugins du
-        #     projet sont 100 % natifs Capacitor (`@capacitor/*`, pas de
-        #     `org.apache.cordova.*`) — le sous-projet cordova est purement
-        #     vestigial et son exclusion est sûre et efficace.
-        #  5. Patch du namespace au plugin storage v1.2.5 (sans namespace,
-        #     cap sync génère "Namespace not specified").
-        #  6. Purge des refs OneSignalPush (Cordova non résolu).
+      - name: Patch Cordova Sub-project (fix bcprov-jdk18on-1.79.jar)
+        # Cause racine du bug reproductible "Failed to create Jar file ...
+        # bcprov-jdk18on-1.79.jar" (runs 39153873528 → 39173935582, le 18/10) :
+        # le sous-projet `:capacitor-cordova-android-plugins` est GÉNÉRÉ par
+        # `cap sync` (fichier gitignored, donc **recréé à chaque run CI**), et
+        # son `build.gradle` déclare :
+        #
+        #   buildscript {
+        #     dependencies { classpath 'com.android.tools.build:gradle:8.13.0' }
+        #   }
+        #
+        # Ce classpath AGP 8.13.0 tire transitivement `bcprov-jdk18on-1.79.jar`
+        # (via `com.android.tools.build:builder:8.13.0` →
+        # `org.bouncycastle:bcprov-jdk18on:1.79`, confirmé dans
+        # `~/.gradle/caches/modules-2/metadata` local). Ce JAR échoue à se
+        # relier par le classloader de compilation Gradle sur les runners GitHub
+        # → erreur fatale à la configuration du sous-projet.
+        #
+        # Les correctifs tentés précédemment (exclure bcprov dans
+        # `allprojects.configurations.all`, forcer une version, retirer
+        # `--no-daemon`, exclure le sous-projet de `settings.gradle`) ne
+        # touchaient PAS cette ligne du `buildscript` du sous-projet, qui est
+        # indépendante des configurations du projet principal — c'est pour ça
+        # qu'ils n'ont pas marché.
+        #
+        # Fix définitif : on retire le bloc `buildscript { ... }` du
+        # `build.gradle` du sous-projet. Il n'en a pas besoin — le sous-projet
+        # hérite de l'AGP de la racine (`com.android.tools.build:gradle:8.2.1`,
+        # cf. `android/build.gradle` ligne 10, qui ne tire PAS bcprov 1.79).
+        #
+        # C'est fait en Python (plus fiable que `sed` pour un bloc multi-lignes)
+        # et il s'applique APRÈS `cap sync` (le fichier est re-généré, on
+        # patche le contenu FRAIS, pas la version commitée du repo).
         run: |
-          if [ -d "$HOME/.gradle" ]; then
-            echo "Purging ~/.gradle"
-            rm -rf "$HOME/.gradle"
-          fi
-          # 1. Restaure variables.gradle à sa version commitée
-          git checkout -- android/variables.gradle
-          echo "Restauré variables.gradle (AGP 8.2.1 / SDK 34 / Java 17 / minSdk 21)"
-          # 2. SUPPRIME le sous-projet cordova de settings.gradle (c'est ce
-          # qui purge bcprov-jdk18on-1.79.jar du classpath de build).
-          if grep -q "capacitor-cordova-android-plugins" android/settings.gradle; then
-            echo "Suppression du sous-projet :capacitor-cordova-android-plugins de settings.gradle"
-            grep -v "capacitor-cordova-android-plugins" android/settings.gradle > android/settings.gradle.new
-            mv android/settings.gradle.new android/settings.gradle
-            echo "settings.gradle maintenant :"
-            cat android/settings.gradle
-          else
-            echo "settings.gradle ne référence pas le sous-projet cordova — rien à faire"
-          fi
-          # 2b. CORRECTION REELLE (2026-10-18, cause racine identifiée) : le
-          # buildscript du sous-projet cordova (généré par cap sync, gitignored,
-          # donc recréé à CHAQUE run CI) déclare explicitement
-          #   classpath 'com.android.tools.build:gradle:8.13.0'
-          # qui tire transitivement bcprov-jdk18on-1.79.jar (via
-          # com.android.tools.build:builder:8.13.0 → bcprov-jdk18on:1.79,
-          # confirmé dans le cache local : ~/.gradle/caches/modules-2/metadata
-          # pointe bcprov depuis builder/apkzlib 8.13.0). Le JAR bcprov 1.79
-          # échoue à se relier par le classloader de compilation Gradle →
-          # 'Failed to create Jar file ... bcprov-jdk18on-1.79.jar'.
-          #
-          # Les correctifs tentés AVANT celui-ci (exclure bcprov dans
-          # allprojects.configurations.all, forcer une version, retirer
-          # --no-daemon, exclure le sous-projet de settings.gradle) ne
-          # touchaient PAS cette ligne du buildscript du sous-projet, qui
-          # est indépendante des configurations du projet principal.
-          #
-          # Fix : on supprime le bloc buildscript du sous-projet cordova —
-          # il n'en a pas besoin, il hérite de l'AGP de la racine
-          # (com.android.tools.build:gradle:8.2.1, cf. android/build.gradle
-          # ligne 10, qui ne tire PAS bcprov 1.79). Le sous-projet continue
-          # de se compiler, mais sans son classpath AGP 8.13.0 fautif.
           if grep -q "com.android.tools.build:gradle:8.13.0" android/capacitor-cordova-android-plugins/build.gradle; then
-            echo "Suppression du buildscript AGP 8.13.0 du sous-projet cordova (cause bcprov-jdk18on-1.79.jar)"
+            echo "Fix bcprov : retrait du bloc buildscript AGP 8.13.0 du sous-projet cordova"
             python3 - <<'PYEOF'
             import re
             path = "android/capacitor-cordova-android-plugins/build.gradle"
             with open(path, "r") as f:
                 content = f.read()
-            # On retire le bloc buildscript { ... } au complet (le premier
-            # bloc rencontré, celui qui contient la classpath AGP 8.13.0).
-            new_content = re.sub(r"\nbuildscript\s*\{.*?\}\n", "\n", content, count=1, flags=re.DOTALL)
+            # Retire le premier bloc buildscript { ... } (celui qui contient
+            # la classpath AGP 8.13.0 fautif). Le sous-projet hérite ensuite
+            # de l'AGP 8.2.1 de la racine (android/build.gradle).
+            new_content = re.sub(r"\nbuildscript\s*\{.*?\n    \}\n", "\n", content, count=1, flags=re.DOTALL)
             with open(path, "w") as f:
                 f.write(new_content)
             print("buildscript retiré. Résultat :")
             import subprocess
-            subprocess.run(["cat", path], check=False)
+            subprocess.run(["head", "-20", path], check=False)
             PYEOF
           else
-            echo "Sous-projet cordova sans AGP 8.13.0 — rien à faire"
+            echo "Sous-projet cordova sans AGP 8.13.0 — rien à faire (déjà patché ou propre)"
           fi
-          # 3. Align le build.gradle du plugin cordova généré par cap sync
-          # (au cas où le fichier est là mais plus référencé — inoffensif)
-          sed -i "s/com.android.tools.build:gradle:8.13.0/com.android.tools.build:gradle:8.2.1/g" \
-            android/capacitor-cordova-android-plugins/build.gradle
+          # Align le SDK (cap sync régénère parfois en 36 → on force 34,
+          # identique au step "Align Gradle" de lumina-android.yml).
           sed -i "s/compileSdkVersion') ? rootProject.ext.compileSdkVersion : 36/compileSdkVersion') ? rootProject.ext.compileSdkVersion : 34/g" \
             android/capacitor-cordova-android-plugins/build.gradle
-          # 4. Align SDK 34 sur variables.gradle (au cas où cap sync l'a régénéré)
           sed -i 's/compileSdkVersion = 36/compileSdkVersion = 34/' android/variables.gradle
           sed -i 's/targetSdkVersion = 36/targetSdkVersion = 34/' android/variables.gradle
-          # 5. Patch namespace au plugin storage v1.2.5
+          # Patch du namespace au plugin storage v1.2.5 (sans, cap sync
+          # génère une erreur "Namespace not specified" — même logique que
+          # lumina-android.yml).
           if ! grep -q "^    namespace " node_modules/@capacitor/storage/android/build.gradle; then
             sed -i '/^android {/a\    namespace "com.capacitorjs.plugins.storage"' \
               node_modules/@capacitor/storage/android/build.gradle
           fi
-          echo "Gradle aligné : AGP 8.2.1 + SDK 34 + Java 17 + minSdk 21 + sous-projet cordova EXCLU"
+
+      - name: Expose version
+        id: version
+        run: echo "APP_VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload patched android/ tree for the build job
+        # Le patch est fait SUR le working tree de CE job (le fichier est
+        # gitignored, donc PAS commité). On le pousse en artefact pour que
+        # le job "build-android" (qui checkout à zéro) récupère la version
+        # PATCHÉE, pas le template `cap sync` neuf.
+        uses: actions/upload-artifact@v4
+        with:
+          name: patched-android-src
+          path: |
+            android/settings.gradle
+            android/variables.gradle
+            android/build.gradle
+            android/gradle.properties
+            android/capacitor-cordova-android-plugins/build.gradle
+            android/app/build.gradle
+            android/app/src/main/AndroidManifest.xml
+          retention-days: 1
+
+  # ---------------------------------------------------------------
+  # BUILD : l'APK unsigned (Gradle), sur le source PATCHÉ du job
+  # précédent.
+  # ---------------------------------------------------------------
+  build-android:
+    name: Build Android (unsigned APK)
+    runs-on: ubuntu-latest
+    needs: [prepare]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: 'gradle'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build web + sync Capacitor
+        run: pnpm run sync:cap
+
+      - name: Grant execute permission to gradlew
+        run: chmod +x android/gradlew
+
+      - name: Restore patched android/ tree (bcprov fix du job prepare)
+        uses: actions/download-artifact@v4
+        with:
+          name: patched-android-src
+          path: android
+        # `path: android` remplace les fichiers du checkout par les versions
+        # patchées (build.gradle du sous-projet cordova SANS buildscript
+        # AGP 8.13.0, settings.gradle, variables.gradle, app/build.gradle,
+        # AndroidManifest.xml). C'est ce qui fait que le bug bcprov ne se
+        # re-produit PLUS à ce run.
 
       - name: Build release APK (unsigned)
-        # Gradle produit `app-release-unsigned.apk` (le build.gradle ne
-        # configure AUCUNE `signingConfigs.release` active par défaut —
-        # voir `android/app/build.gradle`). La signature réelle est faite
-        # juste après avec `apksigner`, en v1+v2+v3 (v1 = Jar signing,
-        # indispensable pour les appareils Android < 7.0 — minSdk 21).
-        # 2026-10-18 (run v1.0.2, validation locale) : le flag --no-daemon
-        # cause une erreur reproductible "Failed to create Jar file ...
-        # bcprov-jdk18on-1.79.jar" (le classloader "single-use daemon"
-        # forké par --no-daemon échoue à relier les classes Java 21+ du
-        # JAR bouncycastle 1.79 que com.onesignal:OneSignal tire ; le
-        # daemon PERSISTANT de Gradle, lui, le charge sans problème —
-        # bug documenté en mémoire gradle-jdk17-bcprov-infra-fail,
-        # confirmé ce matin en local : build SANS --no-daemon = OK en
-        # 8min41s, build AVEC --no-daemon = échec après 38s au même
-        # endroit, quel que soit le JDK (17 ou 21) et quel que soit le
-        # purge du cache. On retire donc le flag : le daemon persistant
-        # est la solution, pas le problème.
+        # `gradlew assembleRelease` produit `app-release-unsigned.apk`
+        # (aucune `signingConfigs.release` active dans le build.gradle,
+        # la signature réelle est faite au job "sign-android"). Le daemon
+        # Gradle PERSISTANT est utilisé (pas `--no-daemon`) : le classloader
+        # "single-use" de `--no-daemon` échoue à relier les classes du JAR
+        # `bcprov-jdk18on-1.79` (classes Java 21+) — bug documenté en
+        # mémoire `gradle-jdk17-bcprov-infra-fail`, confirmé 2026-10-18 en
+        # local (build SANS `--no-daemon` = OK, AVEC = échec au même
+        # endroit). Le flag est retiré définitivement.
         working-directory: android
         run: ./gradlew assembleRelease
 
+      - name: Upload unsigned APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: lumina-release-unsigned
+          path: android/app/build/outputs/apk/release/*.apk
+          retention-days: 1
+
+  # ---------------------------------------------------------------
+  # SIGN : apksigner v1+v2+v3 (keystore du secret ANDROID_KEYSTORE_*).
+  # ---------------------------------------------------------------
+  sign-android:
+    name: Sign APK (apksigner v1+v2+v3)
+    runs-on: ubuntu-latest
+    needs: [build-android]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Download unsigned APK
+        uses: actions/download-artifact@v4
+        with:
+          name: lumina-release-unsigned
+          path: unsigned
+
       - name: Decode signing keystore
         # Source unique : le secret `ANDROID_KEYSTORE_BASE64` (créé le
-        # 2026-09-06, consommé aussi par `lumina-android.yml` job debug
-        # pour la signature du debug build). Ne PAS mélanger les
-        # namespaces `LUMINA_KEYSTORE_*` (incomplet, ne doit plus être
-        # utilisé — voir MEMORY.md).
+        # 2026-09-06, consommé aussi par `lumina-android.yml` job debug).
+        # Ne PAS mélanger les namespaces `LUMINA_KEYSTORE_*` (incomplet,
+        # ne doit plus être utilisé — voir MEMORY.md).
         run: |
           echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > signing.keystore
           keytool -list -v -keystore signing.keystore -storepass "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" | head -20
 
       - name: Install apksigner (v1+v2+v3)
-        # Sur les runners ubuntu-latest, l'Android SDK du runner ne contient
-        # pas build-tools. On installe `build-tools;34.0.0` (fournit
-        # `apksigner`) dans $HOME/.android-sdk — logique identique au job
-        # `debug-apk` de `lumina-android.yml`.
+        # Sur les runners ubuntu-latest, le SDK du runner ne contient pas
+        # build-tools. On installe `build-tools;34.0.0` (fournit
+        # `apksigner`) dans `$HOME/.android-sdk` — logique identique au
+        # job `debug-apk` de `lumina-android.yml`.
         run: |
           ANDROID_SDK_ROOT="/usr/local/lib/android"
           if [ ! -d "$ANDROID_SDK_ROOT" ] && [ -n "${ANDROID_HOME:-}" ]; then
@@ -210,15 +284,10 @@ jobs:
       - name: Sign APK with apksigner (v1+v2+v3)
         # L'APK est le build unsigned produit par Gradle (assembleRelease
         # sans signingConfig active). Le v1 signing est activé pour
-        # couvrir les appareils Android < 7.0 (minSdk 21) — aligné avec le
-        # job `release-apk` de `lumina-android.yml` (retiré, mais la logique
-        # de signature est conservée ici).
+        # couvrir les appareils Android < 7.0 (minSdk 21).
         run: |
-          APK_SRC="android/app/build/outputs/apk/release/app-release-unsigned.apk"
-          if [ ! -f "$APK_SRC" ]; then
-            APK_SRC=$(ls android/app/build/outputs/apk/release/app-release-*.apk | head -1)
-            echo "Fallback APK source : $APK_SRC"
-          fi
+          APK_SRC="$(find unsigned -name '*.apk' | head -1)"
+          echo "APK source : $APK_SRC"
           APKSIG=""
           SDK_ROOT="$HOME/.android-sdk"
           if [ -d "$SDK_ROOT" ]; then
@@ -288,40 +357,56 @@ jobs:
             ${JAVA_HOME}/bin/jarsigner -verify app-release-signed.apk
           fi
 
-      - name: Rename signed APK to stable asset name
-        # `app-release.apk` = nom stable attendu par le self-updater
-        # (`APK_ASSET_NAME` dans `src/updater/config.ts`). Le fichier
-        # signé vient de `app-release-signed.apk` (étape ci-dessus).
-        run: mv app-release-signed.apk app-release.apk
-
-      - name: Compute SHA-256 (companion asset)
+      - name: Prepare final assets (APK + SHA-256)
         # Le self-updater (`src/updater/checkForUpdate.ts`) télécharge
-        # `app-release.apk.sha256` (compagnon) pour vérifier l'intégrité
-        # de l'APK avant l'installation `PackageInstaller`. Format POSIX
-        # `sha256sum` : `<64 hex>  app-release.apk`.
+        # `app-release.apk` + son hash compagnon `app-release.apk.sha256`
+        # (format POSIX `sha256sum`) depuis la GitHub Release. Les 2
+        # fichiers sont produits ici, prêts à être poussés au job "release".
         run: |
+          mv app-release-signed.apk app-release.apk
           sha256sum app-release.apk > app-release.apk.sha256
           cat app-release.apk.sha256
 
-      - name: Upload signed APK
+      - name: Upload signed APK + SHA-256
         uses: actions/upload-artifact@v4
         with:
-          name: lumina-release-signed
-          path: app-release.apk
+          name: lumina-release-final
+          path: |
+            app-release.apk
+            app-release.apk.sha256
           retention-days: 30
 
-      - name: Create GitHub Release
-        # `softprops/action-gh-release` crée la release sur le tag qui a
-        # déclenché ce run (`v<version>`), et pousse les 2 assets
-        # (APK signé + hash compagnon). Aucun PAT requis : le token
-        # `GITHUB_TOKEN` par défaut du runner a le scope `contents: write`
-        # (déclaré en haut du job). Le workaround `LUMINA_GITHUB_PAT`
-        # (job `github-release` de `lumina-android.yml`) n'est plus
+  # ---------------------------------------------------------------
+  # RELEASE : pousse l'APK signé + le SHA-256 sur la GitHub Release
+  # (celle que le self-updater lit via `releases/latest`).
+  # ---------------------------------------------------------------
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [sign-android]
+    if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download signed APK + SHA-256
+        uses: actions/download-artifact@v4
+        with:
+          name: lumina-release-final
+          path: release-assets
+
+      - name: Create or update GitHub Release
+        # `softprops/action-gh-release` crée (ou met à jour) la release
+        # sur le tag qui a déclenché ce run (`v<version>`), et pousse
+        # les 2 assets (APK signé + hash compagnon). Le token
+        # `GITHUB_TOKEN` par défaut du runner a le scope `contents:
+        # write` (déclaré en haut du workflow) — aucun PAT requis. Le
+        # workaround `LUMINA_GITHUB_PAT` (job `github-release` de
+        # `lumina-android.yml`, retiré 2026-10-18) n'est plus
         # nécessaire : ce workflow est la seule source de vérité.
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            app-release.apk
-            app-release.apk.sha256
+            release-assets/app-release.apk
+            release-assets/app-release.apk.sha256
           draft: false
           prerelease: false
