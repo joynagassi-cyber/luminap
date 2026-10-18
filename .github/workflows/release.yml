@@ -75,15 +75,27 @@ jobs:
           # qui purge bcprov-jdk18on-1.79.jar du classpath de build).
           if grep -q "capacitor-cordova-android-plugins" android/settings.gradle; then
             echo "Suppression du sous-projet :capacitor-cordova-android-plugins de settings.gradle"
-            # Les 3 lignes : include, project(...).projectDir = ..., et la
-            # ligne éventuellement vide/`include` associée. On filtre par
-            # grep -v (les 3 lignes sont contiguës dans le fichier généré).
             grep -v "capacitor-cordova-android-plugins" android/settings.gradle > android/settings.gradle.new
             mv android/settings.gradle.new android/settings.gradle
             echo "settings.gradle maintenant :"
             cat android/settings.gradle
           else
             echo "settings.gradle ne référence pas le sous-projet cordova — rien à faire"
+          fi
+          # 2b. On retire la référence orpheline à :capacitor-cordova-android-plugins
+          # dans android/app/build.gradle (le bloc flatDir + la dep. project() qui y
+          # pointent causent l'erreur "Project with path ':capacitor-cordova-android-plugins'
+          # could not be found in project ':app'" une fois le sous-projet exclu de
+          # settings.gradle). Le bloc maven { url ... } reste intact.
+          if grep -q "project(':capacitor-cordova-android-plugins')" android/app/build.gradle; then
+            echo "Suppression de la reference project() + bloc flatDir dans android/app/build.gradle"
+            sed -i "/implementation project(':capacitor-cordova-android-plugins')/d" android/app/build.gradle
+            # Suppression du bloc flatDir{ dirs ... } (4 lignes)
+            # (le chemin '../capacitor-cordova-android-plugins/src/main/libs' n'existe
+            #  plus dans l'arborescence du runner s'il n'est pas synchronisé)
+            sed -i '/flatDir{/,/}/d' android/app/build.gradle
+            echo "android/app/build.gradle maintenant :"
+            cat android/app/build.gradle | grep -A 30 "^repositories"
           fi
           # 3. Align le build.gradle du plugin cordova généré par cap sync
           # (au cas où le fichier est là mais plus référencé — inoffensif)
