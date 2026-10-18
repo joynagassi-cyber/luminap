@@ -27,6 +27,30 @@ interface LatestRelease {
   }>;
 }
 
+/**
+ * Récupère le SHA-256 de l'APK pour la release.
+ *
+ * La CI (`.github/workflows/release.yml`) pousse un asset compagnon
+ * `<APK_ASSET_NAME>.sha256` (contenu : `<hash>  <filename>` sur 2 colonnes
+ * POSIX `sha256sum`). On le télécharge et on parse le hash ; c'est la
+ * source de vérité (la `digest` du champ `assets[]` de l'API GitHub
+ * n'est pas remplie pour un asset ajouté via `action-gh-release`).
+ */
+async function fetchSha256FromCompanion(
+  apkAsset: { browser_download_url: string },
+): Promise<string | undefined> {
+  try {
+    const res = await fetch(apkAsset.browser_download_url.replace(/\.apk$/, ".sha256"));
+    if (!res.ok) return undefined;
+    const text = await res.text();
+    // Format sha256sum : "<64 hex>  <filename>" — prend la 1ère colonne.
+    const hash = text.trim().split(/\s+/)[0];
+    return /^[0-9a-f]{64}$/i.test(hash) ? hash.toLowerCase() : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 /** Supprime le préfixe « v » du tag (v1.4.0 → 1.4.0). */
 export function normalizeTag(tag: string): string {
   return tag.startsWith("v") ? tag.slice(1) : tag;
@@ -88,10 +112,14 @@ export async function checkForUpdate(
     // 6. Nouvelle version strictement supérieure ? (comparaison numérique)
     if (compareVersions(remoteVersion, localVersion) <= 0) return null;
 
-    // 7. Trouver l'asset exact APK_ASSET_NAME, extraire sha256 depuis digest
+    // 7. Trouver l'asset exact APK_ASSET_NAME, SHA-256 via l'asset
+    //    compagnon `.sha256` (généré par la CI) — fallback sur le champ
+    //    `digest` de l'API si le compagnon est absent (backward-compat).
     const asset = release.assets?.find((a) => a.name === APK_ASSET_NAME);
     if (!asset) return null;
-    const sha256 = asset.digest?.replace(/^sha256:/, "");
+    const companionSha256 = await fetchSha256FromCompanion(asset);
+    const digestSha256 = asset.digest?.replace(/^sha256:/, "")?.toLowerCase();
+    const sha256 = companionSha256 ?? digestSha256 ?? undefined;
 
     return {
       versionName: remoteVersion,

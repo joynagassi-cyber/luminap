@@ -4,6 +4,12 @@ on:
   push:
     tags: ["v*"]
 
+# Un SEUL workflow pour produire l'APK de release, signer (v1+v2+v3) et
+# publier une GitHub Release consommable par le self-updater de l'app.
+# Le job `release-apk` de `lumina-android.yml` a été retiré (2026-10-18,
+# user : "un seul workflow, pas deux") — ce fichier est désormais la
+# seule source de vérité pour la production de l'APK signé.
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -30,30 +36,184 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build web + sync Capacitor
+        # Pré-build : garantit qu'un dist périmé ne peut pas s'embarquer
+        # dans le webview (idempotent avec le build du job `debug-apk` de
+        # lumina-android.yml, même logique).
         run: pnpm run sync:cap
 
       - name: Grant execute permission to gradlew
         run: chmod +x android/gradlew
 
-      - name: Decode keystore
-        # Réutilise les secrets ANDROID_KEYSTORE_* déjà présents (créés 2026-09-06)
-        # et consommés par lumina-android.yml (apksigner) — aucun nouveau
-        # secret à créer, pas de mélange de namespaces (LUMINA_* / ANDROID_*).
-        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > $RUNNER_TEMP/release.keystore
-
-      - name: Build release APK
+      - name: Build release APK (unsigned)
+        # Gradle produit `app-release-unsigned.apk` (le build.gradle ne
+        # configure AUCUNE `signingConfigs.release` active par défaut —
+        # voir `android/app/build.gradle`). La signature réelle est faite
+        # juste après avec `apksigner`, en v1+v2+v3 (v1 = Jar signing,
+        # indispensable pour les appareils Android < 7.0 — minSdk 21).
         working-directory: android
-        run: ./gradlew assembleRelease
-        env:
-          KEYSTORE_PATH: ${{ runner.temp }}/release.keystore
-          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.ANDROID_KEYSTORE_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_KEY_PASSWORD }}
+        run: ./gradlew assembleRelease --no-daemon
 
-      - name: Rename APK to stable asset name
-        run: cp android/app/build/outputs/apk/release/*.apk app-release.apk
+      - name: Decode signing keystore
+        # Source unique : le secret `ANDROID_KEYSTORE_BASE64` (créé le
+        # 2026-09-06, consommé aussi par `lumina-android.yml` job debug
+        # pour la signature du debug build). Ne PAS mélanger les
+        # namespaces `LUMINA_KEYSTORE_*` (incomplet, ne doit plus être
+        # utilisé — voir MEMORY.md).
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > signing.keystore
+          keytool -list -v -keystore signing.keystore -storepass "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" | head -20
+
+      - name: Install apksigner (v1+v2+v3)
+        # Sur les runners ubuntu-latest, l'Android SDK du runner ne contient
+        # pas build-tools. On installe `build-tools;34.0.0` (fournit
+        # `apksigner`) dans $HOME/.android-sdk — logique identique au job
+        # `debug-apk` de `lumina-android.yml`.
+        run: |
+          ANDROID_SDK_ROOT="/usr/local/lib/android"
+          if [ ! -d "$ANDROID_SDK_ROOT" ] && [ -n "${ANDROID_HOME:-}" ]; then
+            ANDROID_SDK_ROOT="$ANDROID_HOME"
+          fi
+          if ls "$ANDROID_SDK_ROOT"/build-tools/*/apksigner >/dev/null 2>&1; then
+            echo "apksigner déjà présent dans le SDK système — rien à faire"
+            exit 0
+          fi
+          SDK_HOME="$HOME/.android-sdk"
+          if [ -x "$SDK_HOME/cmdline-tools/latest/bin/sdkmanager" ]; then
+            echo "cmdline-tools déjà installé dans $SDK_HOME"
+          else
+            echo "Téléchargement de cmdline-tools..."
+            mkdir -p "$SDK_HOME/cmdline-tools" /tmp/cmdtools-dl
+            curl -fsSL -o /tmp/cmdtools-dl/cmdline-tools.zip \
+              "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip"
+            unzip -q /tmp/cmdtools-dl/cmdline-tools.zip -d /tmp/cmdtools-dl
+            mv /tmp/cmdtools-dl/cmdline-tools "$SDK_HOME/cmdline-tools/latest"
+            rm -rf /tmp/cmdtools-dl
+          fi
+          echo "Installation de build-tools;34.0.0 (apksigner) dans $SDK_HOME..."
+          yes | "$SDK_HOME/cmdline-tools/latest/bin/sdkmanager" \
+            --sdk_root="$SDK_HOME" "build-tools;34.0.0" 2>&1 || true
+          if ls "$SDK_HOME"/build-tools/*/apksigner >/dev/null 2>&1; then
+            echo "apksigner installé dans $SDK_HOME ✓"
+          else
+            echo "::error::apksigner non installé — la signature v1+v2+v3 échouera (fallback jarsigner v1)"
+            exit 1
+          fi
+
+      - name: Sign APK with apksigner (v1+v2+v3)
+        # L'APK est le build unsigned produit par Gradle (assembleRelease
+        # sans signingConfig active). Le v1 signing est activé pour
+        # couvrir les appareils Android < 7.0 (minSdk 21) — aligné avec le
+        # job `release-apk` de `lumina-android.yml` (retiré, mais la logique
+        # de signature est conservée ici).
+        run: |
+          APK_SRC="android/app/build/outputs/apk/release/app-release-unsigned.apk"
+          if [ ! -f "$APK_SRC" ]; then
+            APK_SRC=$(ls android/app/build/outputs/apk/release/app-release-*.apk | head -1)
+            echo "Fallback APK source : $APK_SRC"
+          fi
+          APKSIG=""
+          SDK_ROOT="$HOME/.android-sdk"
+          if [ -d "$SDK_ROOT" ]; then
+            for bt in "$SDK_ROOT"/build-tools/*/apksigner; do
+              if [ -x "$bt" ]; then APKSIG="$bt"; break; fi
+            done
+          fi
+          if [ -z "$APKSIG" ]; then
+            for c in /usr/local/lib/android /opt/android-sdk /usr/lib/android-sdk /usr/local/android-sdk "${ANDROID_HOME:-}"; do
+              [ -z "$c" ] && continue
+              [ ! -d "$c" ] && continue
+              for bt in "$c"/build-tools/*/apksigner; do
+                if [ -x "$bt" ]; then APKSIG="$bt"; break 2; fi
+              done
+            done
+          fi
+          if [ -z "$APKSIG" ] && command -v apksigner >/dev/null 2>&1; then
+            APKSIG="$(command -v apksigner)"
+          fi
+          echo "apksigner : ${APKSIG:-non trouvé — fallback jarsigner v1 uniquement}"
+          if [ -n "$APKSIG" ]; then
+            "$APKSIG" sign \
+              --ks signing.keystore \
+              --ks-pass pass:${{ secrets.ANDROID_KEYSTORE_PASSWORD }} \
+              --key-pass pass:${{ secrets.ANDROID_KEYSTORE_KEY_PASSWORD }} \
+              --ks-key-alias ${{ secrets.ANDROID_KEYSTORE_ALIAS }} \
+              --v1-signing-enabled true \
+              --v2-signing-enabled true \
+              --v3-signing-enabled true \
+              --out app-release-signed.apk \
+              "$APK_SRC"
+            echo "Signé avec apksigner (v1+v2+v3 — v1 pour Android < 7.0)"
+          else
+            echo "apksigner introuvable — fallback jarsigner (v1 uniquement)"
+            ${JAVA_HOME}/bin/jarsigner \
+              -keystore signing.keystore \
+              -storepass ${{ secrets.ANDROID_KEYSTORE_PASSWORD }} \
+              -keypass ${{ secrets.ANDROID_KEYSTORE_KEY_PASSWORD }} \
+              -signedjar app-release-signed.apk \
+              "$APK_SRC" \
+              ${{ secrets.ANDROID_KEYSTORE_ALIAS }}
+          fi
+
+      - name: Verify signature
+        run: |
+          APKSIG=""
+          if [ -d "$HOME/.android-sdk" ]; then
+            for bt in "$HOME"/.android-sdk/build-tools/*/apksigner; do
+              if [ -x "$bt" ]; then APKSIG="$bt"; break; fi
+            done
+          fi
+          if [ -z "$APKSIG" ]; then
+            for c in /usr/local/lib/android /opt/android-sdk /usr/lib/android-sdk /usr/local/android-sdk "${ANDROID_HOME:-}"; do
+              [ -z "$c" ] && continue
+              [ ! -d "$c" ] && continue
+              for bt in "$c"/build-tools/*/apksigner; do
+                if [ -x "$bt" ]; then APKSIG="$bt"; break 2; fi
+              done
+            done
+          fi
+          if [ -z "$APKSIG" ] && command -v apksigner >/dev/null 2>&1; then
+            APKSIG="$(command -v apksigner)"
+          fi
+          if [ -n "$APKSIG" ]; then
+            "$APKSIG" verify --verbose app-release-signed.apk
+          else
+            ${JAVA_HOME}/bin/jarsigner -verify app-release-signed.apk
+          fi
+
+      - name: Rename signed APK to stable asset name
+        # `app-release.apk` = nom stable attendu par le self-updater
+        # (`APK_ASSET_NAME` dans `src/updater/config.ts`). Le fichier
+        # signé vient de `app-release-signed.apk` (étape ci-dessus).
+        run: mv app-release-signed.apk app-release.apk
+
+      - name: Compute SHA-256 (companion asset)
+        # Le self-updater (`src/updater/checkForUpdate.ts`) télécharge
+        # `app-release.apk.sha256` (compagnon) pour vérifier l'intégrité
+        # de l'APK avant l'installation `PackageInstaller`. Format POSIX
+        # `sha256sum` : `<64 hex>  app-release.apk`.
+        run: |
+          sha256sum app-release.apk > app-release.apk.sha256
+          cat app-release.apk.sha256
+
+      - name: Upload signed APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: lumina-release-signed
+          path: app-release.apk
+          retention-days: 30
 
       - name: Create GitHub Release
+        # `softprops/action-gh-release` crée la release sur le tag qui a
+        # déclenché ce run (`v<version>`), et pousse les 2 assets
+        # (APK signé + hash compagnon). Aucun PAT requis : le token
+        # `GITHUB_TOKEN` par défaut du runner a le scope `contents: write`
+        # (déclaré en haut du job). Le workaround `LUMINA_GITHUB_PAT`
+        # (job `github-release` de `lumina-android.yml`) n'est plus
+        # nécessaire : ce workflow est la seule source de vérité.
         uses: softprops/action-gh-release@v2
         with:
-          files: app-release.apk
+          files: |
+            app-release.apk
+            app-release.apk.sha256
+          draft: false
+          prerelease: false
