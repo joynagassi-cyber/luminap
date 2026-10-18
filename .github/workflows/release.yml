@@ -120,8 +120,20 @@ jobs:
         # voir `android/app/build.gradle`). La signature réelle est faite
         # juste après avec `apksigner`, en v1+v2+v3 (v1 = Jar signing,
         # indispensable pour les appareils Android < 7.0 — minSdk 21).
+        # 2026-10-18 (run v1.0.2, validation locale) : le flag --no-daemon
+        # cause une erreur reproductible "Failed to create Jar file ...
+        # bcprov-jdk18on-1.79.jar" (le classloader "single-use daemon"
+        # forké par --no-daemon échoue à relier les classes Java 21+ du
+        # JAR bouncycastle 1.79 que com.onesignal:OneSignal tire ; le
+        # daemon PERSISTANT de Gradle, lui, le charge sans problème —
+        # bug documenté en mémoire gradle-jdk17-bcprov-infra-fail,
+        # confirmé ce matin en local : build SANS --no-daemon = OK en
+        # 8min41s, build AVEC --no-daemon = échec après 38s au même
+        # endroit, quel que soit le JDK (17 ou 21) et quel que soit le
+        # purge du cache. On retire donc le flag : le daemon persistant
+        # est la solution, pas le problème.
         working-directory: android
-        run: ./gradlew assembleRelease --no-daemon
+        run: ./gradlew assembleRelease
 
       - name: Decode signing keystore
         # Source unique : le secret `ANDROID_KEYSTORE_BASE64` (créé le

@@ -153,8 +153,17 @@ jobs:
           timeout_minutes: 30
           retry_wait_seconds: 30
           retry_on: error
+          # 2026-10-18 : le flag --no-daemon cause une erreur reproductible
+          # "Failed to create Jar file .../bcprov-jdk18on-1.79.jar" (le
+          # classloader "single-use daemon" forké par --no-daemon échoue à
+          # relier les classes Java 21+ du JAR bouncycastle 1.79 que
+          # com.onesignal:OneSignal tire ; le daemon PERSISTANT de Gradle
+          # le charge sans problème — bug documenté en mémoire
+          # gradle-jdk17-bcprov-infra-fail, confirmé 2026-10-18 en local
+          # : build SANS --no-daemon = OK, AVEC --no-daemon = échec au
+          # même endroit, quel que soit le JDK). On retire donc le flag.
           max_attempts: 3
-          command: cd android && ./gradlew assembleDebug --no-daemon
+          command: cd android && ./gradlew assembleDebug
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4

@@ -22,6 +22,34 @@ allprojects {
         google()
         mavenCentral()
     }
+
+    // 2026-10-18 (audit release v1.0.2) : EXCLURE BouncyCastle (bcprov)
+    // du classpath de build.
+    //
+    // Cause racine de l'échec reproductible "Failed to create Jar file
+    // .../jars-9/<hash>/bcprov-jdk18on-1.79.jar" (bug d'infrastructure
+    // documenté en mémoire gradle-jdk17-bcprov-infra-fail) :
+    //
+    //   com.onesignal:OneSignal (wildcard [5.0.0, 5.99.99] → résout à la
+    //   dernière, qui tire org.bouncycastle:bcprov-jdk18on:1.79) embarque
+    //   BouncyCastle pour le chiffrement E2EE optionnel, NON utilisé par
+    //   l'app (le payload n'est pas chiffré côté E2EE). Ce jar 1.79 est
+    //   compilé pour Java 21 (classes BC 1.79 = jdk18on, target min Java
+    //   18) et échoue à se relier par le classloader de compilation
+    //   Gradle 8.2.1 sous Temurin 21 (jars-9 = le "classpath cache" de
+    //   Gradle qui "crée" les jars du classpath).
+    //
+    // Solution : EXCLURE le module bcprov-jdk18on de l'ensemble du
+    // classpath (pas juste forcer une version — le problème est le jar
+    // lui-même, pas sa version). OneSignal reste installable : il
+    // n'exige bcprov qu'à l'exécution pour une feature optionnelle
+    // (E2EE), non déclarée comme dépendance hard de son AAR ; à la
+    // compilation, son code n'est pas lié contre BC. Si OneSignal
+    // exigeait BC au runtime et qu'on casse le push, on verra au test.
+    configurations.all {
+        exclude group: 'org.bouncycastle', module: 'bcprov-jdk18on'
+        exclude group: 'org.bouncycastle', module: 'bcprov-jdk15on'
+    }
 }
 
 task clean(type: Delete) {
