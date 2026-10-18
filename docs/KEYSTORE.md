@@ -8,8 +8,13 @@
 - **Valide jusqu'au**: 2054-01-23 (28 ans)
 
 ## 🔑 Mot de passe
-- **Store Password**: `lumina2024`
-- **Key Password**: `lumina2024`
+- **Store Password**: `***`
+- **Key Password**: `***`
+
+> Les mots de passe réels sont stockés dans les secrets GitHub
+> `ANDROID_KEYSTORE_PASSWORD` / `ANDROID_KEYSTORE_KEY_PASSWORD` (jamais en clair,
+> jamais dans ce repo). Voir `docs/KEYSTORE_SETUP.md` pour le détail du
+> namespace de secrets.
 
 ## 👤 Informations du certificat
 - **CN** (Common Name): Lumina
@@ -47,9 +52,13 @@
 
 ### 🔒 CONSERVEZ CE FICHIER EN SÉCURITÉ
 - **NE JAMAIS** committer le keystore dans Git
-- Le fichier `.gitignore` a été mis à jour
-- Sauvegardez le keystore sur un support sécurisé (clé USB, cloud chiffré)
-- Si vous perdez ce keystore, vous ne pourrez PLUS jamais mettre à jour votre app sur le Play Store
+- Le fichier `.gitignore` a été mis à jour (tous les patterns `*.jks`,
+  `*.keystore`, `keystore.b64*`, `lumina-keystore-vault.zip` sont ignorés
+  depuis l'audit de sécurité du 2026-10-18)
+- Sauvegardez le keystore sur un support sécurisé (clé USB, cloud chiffré,
+  coffre-fort de secrets CI/CD)
+- Si vous perdez ce keystore, vous ne pourrez PLUS jamais mettre à jour
+  votre app sur le Play Store
 
 ### 📝 À faire immédiatement
 1. **Copier le keystore** sur un support externe
@@ -80,14 +89,14 @@ SHA-1 (Release): 25:86:58:5F:1A:CC:B7:A3:06:69:39:A7:07:20:99:F8:EF:D0:4A:30
 ```
 
 ## 📂 Fichiers générés
-- `android/app/lumina-keystore.jks` - Keystore principal
+- `android/app/lumina-keystore.jks` - Keystore principal (jamais commité)
 - `android/app/build.gradle` - Configuration mise à jour
 
 ## 🔧 Commandes utiles
 
-### Voir le keystore
+### Voir le keystore (en local, depuis le support chiffré)
 ```bash
-keytool -list -v -keystore android/app/lumina-keystore.jks -alias lumina
+keytool -list -v -keystore <chemin-votre-support>/lumina-keystore.jks -alias lumina
 ```
 
 ### Générer un nouvel APK signé
@@ -113,3 +122,5 @@ android/app/build/outputs/apk/release/app-release.apk
 ---
 *Généré le 2026-09-07*
 *Application: com.lumina.mfejc*
+*Audit sécurité 2026-10-18 : mots de passe retirés de ce fichier, remplacés par
+pointeurs vers les secrets GitHub `ANDROID_KEYSTORE_*`.*

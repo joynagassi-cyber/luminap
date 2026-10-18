@@ -25,6 +25,14 @@ cypress/tmp-*.log
 .env.local
 android/app/lumina-keystore.b64
 android/app/lumina-keystore.jks
+# Keystores / vaults racine (fuite découverte à l'audit release 2026-10-18,
+# commités en clair par erreur dans d4625a2 — jamais commités, jamais dans l'index)
+/keystore.b64
+/keystore.b64_single
+/release.keystore
+/lumina-keystore-vault.zip
+*.keystore
+*.jks
 
 # ── Artefacts agents / dev ─────────────────────────────────────────────────
 .dyad/
