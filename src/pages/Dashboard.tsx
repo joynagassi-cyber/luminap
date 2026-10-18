@@ -39,6 +39,7 @@ import {
 import { formatCentsToFCFA, getPeriodRange, formatDate, tint } from "@/lib/utils";
 import { useOrganizationContext, useMyOrgs } from "@/lib/organization-context";
 import { usePowerSyncIndicator } from "@/lib/hooks/usePowerSyncIndicator";
+import { IonContent, IonPage } from "@ionic/react";
 import {
   ArrowUpRight,
   ArrowDownRight,

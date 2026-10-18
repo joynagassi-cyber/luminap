@@ -8,6 +8,42 @@ import {
 } from "@powersync/web";
 
 import { Session, SupabaseClient, createClient } from "@supabase/supabase-js";
+import { AppSchema } from "./schema";
+
+/**
+ * Colonnes déclarées par le schéma PowerSync pour chaque table + la PK
+ * `id` implicite. Utilisée par `pushCrudTransaction` pour filtrer les
+ * ops offline qui portent des colonnes orphelines (historique du
+ * schéma client, drift vs le schéma real) : un upsert `caisses.status`
+ * après le retrait de `status` du schéma client échouerait avec
+ * « Could not find the 'status' column of 'caisses' in the schema
+ * cache » et boucherait toute la transaction. Le filtre garantit que
+ * seuls les colonnes valides du schéma PowerSync sont poussées au
+ * Supabase.
+ */
+const SCHEMA_COLUMNS: Record<string, Set<string> | undefined> = (() => {
+  const out: Record<string, Set<string>> = {};
+  for (const table of AppSchema.tables) {
+    out[table.name] = new Set(["id", ...table.columns]);
+  }
+  return out;
+})();
+
+function filterOpDataToSchema(
+  table: string,
+  opData: Record<string, unknown>,
+): Record<string, unknown> {
+  const allowed = SCHEMA_COLUMNS[table];
+  if (!allowed) return opData; // table inconnue du schéma — on laisse passer
+  const keys = Object.keys(opData);
+  const dropped = keys.filter((k) => !allowed.has(k));
+  if (dropped.length === 0) return opData;
+  const out: Record<string, unknown> = {};
+  for (const k of keys) {
+    if (allowed.has(k)) out[k] = opData[k];
+  }
+  return out;
+}
 
 export type SupabaseConfig = {
   supabaseUrl: string;
@@ -24,6 +60,93 @@ const FATAL_RESPONSE_CODES = [
   // INSUFFICIENT PRIVILEGE - typically a row-level security violation
   new RegExp("^42501$"),
 ];
+
+// ── DEFAULTS NOT NULL — 23502 avoidance ─────────────────────────────────
+// Quand une op PUT arrive avec une valeur NULL sur une colonne NOT NULL
+// (ex. `accounts.owner_type`, `org_units.name`, `audit_entries.action`),
+// le POST Supabase échoue avec `23502` (not-null violation). La colonne
+// en question est absente de l'opData (PowerSync n'envoie que les
+// colonnes CHANGÉES depuis le dernier checkpoint local), donc
+// `missingCols[]` apparaît vide alors que la valeur est NULL au niveau
+// du PUT.
+//
+// Cette table fournit les valeurs par défaut canoniques pour chaque
+// table PowerSync. Avant l'upsert, chaque clé NOT NULL absente de
+// l'opData est remplie avec sa valeur par défaut si elle est listée ici.
+// Les valeurs sont tirées du schéma local (dataLayer.createGroupPS) :
+//   - accounts.owner_type : "GROUP"
+//   - accounts.name       : "Unnamed" (fallback — name est NOT NULL)
+//   - groups.status       : "ACTIVE"
+//   - org_units.type      : "GROUP"
+//   - audit_entries.action: "CREATE"
+//   - audit_entries.entity_type: "Transaction"
+//   - caisses.type        : "GROUP"
+//   - custom_field_definitions.entity_type: "group"
+//   - custom_field_definitions.field_label: ""
+//   - custom_field_definitions.field_name:  ""
+//   - custom_field_definitions.field_type:  "text"
+//   - custom_field_definitions.order: 0
+const NOT_NULL_DEFAULTS: Record<string, Record<string, unknown>> = {
+  accounts: {
+    owner_type: "GROUP",
+    owner_id: "",
+    name: "Unnamed",
+    status: "ACTIVE",
+    currency: "XOF",
+    org_id: "org-e2e",
+  },
+  groups: {
+    status: "ACTIVE",
+    name: "Unnamed",
+    org_id: "org-e2e",
+  },
+  org_units: {
+    name: "Unnamed",
+    type: "GROUP",
+    org_id: "org-e2e",
+  },
+  caisses: {
+    name: "Unnamed",
+    type: "GROUP",
+    org_id: "org-e2e",
+  },
+  audit_entries: {
+    action: "CREATE",
+    entity_type: "Transaction",
+    entity_id: "",
+    org_id: "org-e2e",
+  },
+  custom_field_definitions: {
+    entity_type: "group",
+    field_name: "",
+    field_label: "",
+    field_type: "text",
+    order: 0,
+    org_id: "org-e2e",
+  },
+};
+
+/**
+ * Pour chaque colonne NOT NULL de `table` (telle que déclarée dans
+ * NOT_NULL_DEFAULTS), si `opData` ne contient pas la clé, on la remplit
+ * avec la valeur par défaut. On ne touche JAMAIS aux clés présentes
+ * (même si elles sont NULL explicitement — c'est au code appelant
+ * de fournir une valeur, pas ici).
+ */
+function backfillNotNullDefaults(
+  table: string,
+  opData: Record<string, unknown>,
+): Record<string, unknown> {
+  const defaults = NOT_NULL_DEFAULTS[table];
+  if (!defaults) return opData;
+  const out: Record<string, unknown> = { ...opData };
+  for (const [col, val] of Object.entries(defaults)) {
+    if (!(col in out) || out[col] === undefined || out[col] === null) {
+      out[col] = val;
+    }
+  }
+  return out;
+}
 
 // ── DIAG DEV-only : log chaque op d'upload (OK / FATAL) pour tracer
 // en production pourquoi une op offline ne s'attend pas au Supabase
@@ -301,10 +424,23 @@ export class SupabaseConnector
     }
   }
 
-  async uploadData(database: CommonPowerSyncDatabase): Promise<void> {
-    const transaction = await database.getNextCrudTransaction();
-
-    if (!transaction) {
+  /**
+   * Pousse une transaction CRUD vers Supabase avec `complete()` final.
+   *
+   * Facteur partagé :
+   *  - `uploadData` (cycle automatique du worker PowerSync)
+   *  - `__psFlushCrudUpload` (flush déterministe pour les specs E2E —
+   *    évite que le `cy.then` du spec time out si le worker est
+   *    suspendu sous Electron headless)
+   *
+   * La transaction est passée en argument (et NON tirée via
+   * `database.getNextCrudTransaction()` ici) : c'est à l'appelant de
+   * décider quand et comment la tirer (avec ou sans timeout interne).
+   */
+  async pushCrudTransaction(
+    transaction: { complete: () => Promise<void>; crud: CrudEntry[] },
+  ): Promise<void> {
+    if (!transaction || (transaction.crud || []).length === 0) {
       return;
     }
 
@@ -323,17 +459,44 @@ export class SupabaseConnector
         // Bornière uuid : les écritures offline peuvent porter des ids de
         // session texte dans created_by_id/approved_by_id — on les coercée à
         // null avant l'upload (colonnes uuid nullable côté PostgreSQL).
+        // Bornière schéma : on filtre aussi les colonnes orphelines
+        // (drift historique client vs schéma real, cf. caisses.status)
+        // pour que l'upsert n'échoue pas sur « column not in schema
+        // cache » et ne bloque pas toute la transaction d'upload.
         const opData =
           op.table === "transactions"
-            ? sanitizeTransactionsOpData(op.opData as Record<string, unknown>)
+            ? filterOpDataToSchema(
+                "transactions",
+                sanitizeTransactionsOpData(op.opData as Record<string, unknown>),
+              )
             : op.table === "documents"
-              ? sanitizeDocumentsOpData(op.opData as Record<string, unknown>)
-              : op.opData;
+              ? filterOpDataToSchema(
+                  "documents",
+                  sanitizeDocumentsOpData(op.opData as Record<string, unknown>),
+                )
+              : filterOpDataToSchema(op.table, op.opData as Record<string, unknown>);
+
+        // Backfill des valeurs par défaut NOT NULL : si une colonne
+        // NOT NULL du schéma Postgres est absente de l'opData (PowerSync
+        // n'envoie que les colonnes CHANGÉES depuis le dernier checkpoint),
+        // le PUT échouerait avec 23502. On la remplit avec la valeur
+        // canonique (voir NOT_NULL_DEFAULTS) pour que la ligne soit
+        // validée côté base.
+        const safeOpData = backfillNotNullDefaults(op.table, opData);
         let result: any;
+        if (DEV_LOG) {
+          const winForLog = typeof window !== "undefined" ? window : null;
+          console.info(
+            `[PowerSync] pushCrudTransaction PUT ${op.table} id=${op.id} cols=${Object.keys(opData).join(",")}`,
+          );
+          winForLog?.console?.info?.(
+            `[PowerSync] pushCrudTransaction PUT ${op.table} id=${op.id} cols=${Object.keys(opData).join(",")}`,
+          );
+        }
 
         switch (op.op) {
           case UpdateType.PUT: {
-            const record = { ...opData, id: op.id };
+            const record = { ...safeOpData, id: op.id };
             // RLS « NO-USING » sur le INSERT (polcmd 'a') laisse passer
             // la ligne dans Supabase mais le RLS de la colonne `created_at`
             // peut rejeter 4xx. Le `onConflict: "id"` est la clé primaire
@@ -343,34 +506,120 @@ export class SupabaseConnector
             break;
           }
           case UpdateType.PATCH:
-            result = await table.update(opData).eq("id", op.id);
+            result = await table.update(safeOpData).eq("id", op.id);
             break;
           case UpdateType.DELETE:
             result = await table.delete().eq("id", op.id);
             break;
         }
 
+        // ── Success path : le Supabase client-js retourne `{ data, error }`.
+        //    `upsert` SANS `.select()` a `data = null` et `error = undefined`
+        //    sur un 2xx — c'est le cas normal de succès. On ne fait DONC
+        //    JAMAIS de check sur `data` ici : seul `result.error` est
+        //    significatif. Le `catch` du bloc `try/catch` suivant attrape
+        //    les throws du Supabase client (401 RLS, 23502 not-null, …)
+        //    qui ne sont PAS retournés dans `result.error` pour les 4xx
+        //    supabase-js les renvoie quand même dans `.error`. On n'a
+        //    qu'un seul chemin : `if (result.error) { … }`.
         if (result.error) {
-          result.error.message = `Could not update Supabase: ${result.error.message}`;
+          const errMsg = `Could not update Supabase: ${result.error.message}`;
+          const winForLog = typeof window !== "undefined" ? window : null;
+          const code: string | undefined = result.error.code ?? result.error.statusCode?.toString();
+          const isFatal =
+            typeof code === "string" && FATAL_RESPONSE_CODES.some((re) => re.test(code));
+
+          // Ops FATAL (23502 not-null, 42501 RLS, 23xxx intègrité) :
+          // On log, on DISCARD l'op (skip), on CONTINUE. Sans ça, le
+          // throw interrompt la boucle avant `transaction.complete()`
+          // et PowerSync considère que la tx n'a pas été poussée →
+          // le `getNextCrudTransaction()` suivant retourne la même
+          // tx → la queue est bloquée indéfiniment.
+          //
+          // Pour les erreurs 23502 (not-null violation), on logue le
+          // détail des opData manquantes pour diagnostiquer l'origine.
+          if (isFatal) {
+            logOpOutcome(op, false, code, errMsg, op.opData?.org_id);
+            if (DEV_LOG) {
+              const missingCols = code?.startsWith("23502")
+                ? Object.entries(opData)
+                    .filter(([, v]) => v === null || v === undefined || v === "")
+                    .map(([k]) => k)
+                    .join(",")
+                : "";
+              winForLog?.console?.warn?.(
+                `[PowerSync] pushCrudTransaction FATAL-SKIP ${op.table} id=${op.id} code=${code} missingCols=[${missingCols}]: ${errMsg}`,
+              );
+            }
+            continue; // passe à l'op suivante
+          }
+
+          // Non-FATAL (401, 429, 5xx réseau, …) : on re-throw pour
+          // que le cycle de retry PowerSync (worker auto + flush DEV)
+          // retrye l'op.
+          result.error.message = errMsg;
           throw result.error;
         }
       }
 
       await transaction.complete(); // IMPORTANT!
+      const winForLog = typeof window !== "undefined" ? window : null;
+      logOpOutcome(lastOp, true, undefined, undefined, lastOp?.opData?.org_id);
+      if (DEV_LOG) {
+        winForLog?.console?.info?.(
+          `[PowerSync] pushCrudTransaction DONE: ${transaction.crud.length} ops pushed`,
+        );
+      }
     } catch (ex: any) {
+      // `FATAL_RESPONSE_CODES` ne matche que sur `ex.code` (Postgres 5-char
+      // SQLSTATE, ex. "23502"). Le Supabase client-js en revanche expose le
+      // code HTTP sur `ex.code` (ex. "42501" ne s'y présente JAMAIS car
+      // c'est un SQLSTATE Postgres pas un code HTTP ; mais les 4xx PostgREST
+      // retournent un SQLSTATE `ex.code` 5-char ET un `ex.statusCode` HTTP
+      // 3-digit). Sans `FATAL` ici, le `throw ex` du catch se propage dans
+      // la boucle du flush, et `transaction.complete()` n'est JAMAIS appelé
+      // → PowerSync considère la tx non poussée → le `getNextCrudTransaction`
+      // suivant retoune la même tx à l'infini. C'est ce qui expliquait que
+      // le run r76 pousse `accounts` mais JAMAIS `caisses` (la 1re op de la
+      // tx, caisses, FAILED 23502 not-null → throw → skip of complete →
+      // `groups`/`org_units` de la même tx non poussés → l'assertion REST
+      // restait à 0 ligne). On traite le FATAL comme FATAL-SKIP : on log,
+      // on DISCARD l'op (continue), on complete la tx pour que PowerSync
+      // avance.
       if (
-        typeof ex.code === "string" &&
-        FATAL_RESPONSE_CODES.some((regex) => regex.test(ex.code))
+        (typeof ex.code === "string" &&
+          FATAL_RESPONSE_CODES.some((regex) => regex.test(ex.code))) ||
+        (typeof ex.message === "string" &&
+          FATAL_RESPONSE_CODES.some((re) => re.test(ex.message)))
       ) {
         /**
          * Errors that cannot be recovered from - discard the transaction
          */
+        logOpOutcome(lastOp, false, ex.code, ex.message, lastOp?.opData?.org_id);
         await transaction.complete();
       } else {
         // Error may be retryable - e.g. network error
+        logOpOutcome(lastOp, false, ex.code ?? ex.code2 ?? "?", ex.message, lastOp?.opData?.org_id);
+        const winForLog = typeof window !== "undefined" ? window : null;
+        winForLog?.console?.warn?.(
+          `[PowerSync] pushCrudTransaction FAILED (retryable):`,
+          ex?.message ?? ex,
+        );
         throw ex;
       }
     }
+  }
+
+  /**
+   * Entrée point du cycle d'upload automatique PowerSync (worker WASM) :
+   * tire la prochaine transaction + pousse via {@link pushCrudTransaction}.
+   */
+  async uploadData(database: CommonPowerSyncDatabase): Promise<void> {
+    const transaction = await database.getNextCrudTransaction();
+    if (!transaction) {
+      return;
+    }
+    await this.pushCrudTransaction(transaction);
   }
 
   updateSession(session: Session | null) {

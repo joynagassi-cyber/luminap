@@ -42,6 +42,11 @@ export default defineConfig({
       // tous les specs suivants le relisent via loginOrgAccount().
       // Pré-déclaré ici (null) pour que la clé soit lisible au boot.
       orgCreds: null,
+      // Prédéclarée pour que `Cypress.expose('userJwt', …)` du spec
+      // cloud-sync soit lisible côté Node (Cypress 16 : les clés de
+      // `expose` doivent être pré-déclarées dans cypress.config.ts pour
+      // être accessibles via `Cypress.expose(key)` dans le contexte Node).
+      userJwt: null,
       // IDENTIFIANT UNIQUE du compte d'organisation de test (source de
       // vérité : CYPRESS_ORG_EMAIL / CYPRESS_ORG_PASSWORD, jamais
       // éphémère). Par défaut = lumina-org-e2e@lumina.dev / E2e-Lumina!1

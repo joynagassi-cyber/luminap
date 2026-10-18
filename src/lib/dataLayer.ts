@@ -129,10 +129,6 @@ export interface PSCaisse {
   org_id: string;
   created_at: string;
   updated_at: string;
-  archived_at: string | null;
-  archived_by: string | null;
-  archive_reason: string | null;
-  status: string;
 }
 
 export interface PSAccount {
@@ -521,7 +517,7 @@ export function useGroups() {
  */
 export function useCaisses() {
   const { data: psData } = useQuery<PSCaisse>(
-    "SELECT id, name, description, type, color, org_id, created_at, updated_at, archived_at, archived_by, archive_reason, status FROM caisses WHERE org_id = ? ORDER BY name",
+    "SELECT id, name, description, type, color, org_id, created_at, updated_at FROM caisses WHERE org_id = ? ORDER BY name",
     [getOrganizationId()],
     { reportFetching: true },
   );
@@ -618,7 +614,7 @@ export function useCategories() {
  */
 export function useOrgUnits() {
   const { data: psData } = useQuery<PSOrgUnit>(
-    "SELECT id, name, type, org_id, description, is_active, created_at, updated_at FROM org_units WHERE org_id = ? ORDER BY name",
+    "SELECT id, name, type, org_id, description, is_active, created_at FROM org_units WHERE org_id = ? ORDER BY name",
     [getOrganizationId()],
     { reportFetching: true },
   );
@@ -2379,7 +2375,7 @@ export async function createFormSubmissionPS(
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
   await executeWrite(
-    `INSERT INTO form_submissions (id, org_id, form_definition_id, form_version, entity_type, entity_id, data, submitted_by, submitted_at, status, created_at)
+    `INSERT INTO form_submissions (id, org_id, form_definition_id, form_version, linked_entity_type, linked_entity_id, data, submitted_by, submitted_at, status, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
@@ -2403,7 +2399,7 @@ export async function getFormSubmissionPS(
 ): Promise<FormSubmission | null> {
   const db = getPowerSyncDatabase();
   const result = await db.execute(
-    `SELECT id, org_id, form_definition_id, form_version, entity_type, entity_id, data, submitted_by, submitted_at, status, rejected_by, rejection_reason, created_at FROM form_submissions WHERE id = ?`,
+    `SELECT id, org_id, form_definition_id, form_version, linked_entity_type, linked_entity_id, data, submitted_by, submitted_at, status, rejected_by, rejection_reason, created_at FROM form_submissions WHERE id = ?`,
     [id],
   );
   const row = result?.array?.[0] as any;
@@ -2416,8 +2412,8 @@ export async function getFormSubmissionPS(
     submittedBy: row.submitted_by,
     submittedAt: row.submitted_at,
     data: JSON.parse(row.data),
-    linkedEntityType: row.entity_type,
-    linkedEntityId: row.entity_id,
+    linkedEntityType: row.linked_entity_type,
+    linkedEntityId: row.linked_entity_id,
     status: row.status,
     rejectedBy: row.rejected_by ?? null,
     rejectionReason: row.rejection_reason ?? null,
@@ -2442,13 +2438,13 @@ export async function listFormSubmissionsPS(filters?: {
     params.push(filters.status);
   }
   if (filters?.entityId) {
-    conditions.push("entity_id = ?");
+    conditions.push("linked_entity_id = ?");
     params.push(filters.entityId);
   }
   const sql =
     conditions.length > 0
-      ? `SELECT id, org_id, form_definition_id, form_version, entity_type, entity_id, data, submitted_by, submitted_at, status, rejected_by, rejection_reason, created_at FROM form_submissions WHERE ${conditions.join(" AND ")}`
-      : `SELECT id, org_id, form_definition_id, form_version, entity_type, entity_id, data, submitted_by, submitted_at, status, rejected_by, rejection_reason, created_at FROM form_submissions`;
+      ? `SELECT id, org_id, form_definition_id, form_version, linked_entity_type, linked_entity_id, data, submitted_by, submitted_at, status, rejected_by, rejection_reason, created_at FROM form_submissions WHERE ${conditions.join(" AND ")}`
+      : `SELECT id, org_id, form_definition_id, form_version, linked_entity_type, linked_entity_id, data, submitted_by, submitted_at, status, rejected_by, rejection_reason, created_at FROM form_submissions`;
   const result = await db.execute(sql, params);
   const rows = (result?.array || []) as any[];
   return rows.map((r) => ({
@@ -2459,8 +2455,8 @@ export async function listFormSubmissionsPS(filters?: {
     submittedBy: r.submitted_by,
     submittedAt: r.submitted_at,
     data: JSON.parse(r.data),
-    linkedEntityType: r.entity_type,
-    linkedEntityId: r.entity_id,
+    linkedEntityType: r.linked_entity_type,
+    linkedEntityId: r.linked_entity_id,
     status: r.status,
     rejectedBy: r.rejected_by ?? null,
     rejectionReason: r.rejection_reason ?? null,
@@ -2477,33 +2473,44 @@ export async function createGroupPS(
   const now = new Date().toISOString();
   const orgId = getOrganizationId();
   const id = crypto.randomUUID();
+  const desc = params.description ?? "";
 
-  // org_units
+  // Les 4 INSERTs (org_units + groups + accounts + caisses) restent 4
+  // transactions séparées (`execute`), comme dans la version originale.
+  //
+  // Pourquoi PAS `executeBatch` : PowerSync enregistre les mutations CRUD
+  // (insert/update/delete) côté client dans sa file d'upload UNIQUEMENT
+  // pour les opérations exécutées via `db.execute(sql, params)`.
+  // `executeBatch` est un SQL brut qui NE DÉCLENCHE PAS le tracking CRUD
+  // de PowerSync — les lignes sont écrites en SQLite local mais JAMAIS
+  // re-vues comme des ops d'upload → rien n'atteint Supabase.
+  //
+  // Avec 4 `execute` séparés, chaque INSERT est une op CRUD PowerSync
+  // (1 tx par INSERT = 4 tx). Le fix `transaction.complete()` sur FATAL
+  // (SupabaseConnector.ts) garantit que même si 1 tx échoue 23502,
+  // `complete()` est appelé et la tx suivante peut être tirée.
   await executeWrite(
-    `INSERT INTO org_units (id, name, type, org_id, description, is_active, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, 1, ?, ?)`,
-    [id, params.name, params.type, orgId, params.description ?? "", now, now],
+    `INSERT INTO org_units (id, name, type, org_id, description, is_active, created_at)
+     VALUES (?, ?, ?, ?, ?, 1, ?)`,
+    [id, params.name, params.type, orgId, desc, now],
   );
 
-  // groups
   await executeWrite(
     `INSERT INTO groups (id, org_id, name, parent_group_id, responsable_member_id, status, archived_at, archived_by, archive_reason, created_at, updated_at)
      VALUES (?, ?, ?, null, null, 'ACTIVE', null, null, null, ?, ?)`,
     [id, orgId, params.name, now, now],
   );
 
-  // accounts
   await executeWrite(
     `INSERT INTO accounts (id, org_id, owner_type, owner_id, name, currency, status, archived_at, archived_by, archive_reason, created_at, updated_at)
      VALUES (?, ?, 'GROUP', ?, ?, 'XOF', 'ACTIVE', null, null, null, ?, ?)`,
     [id, orgId, id, params.name, now, now],
   );
 
-  // caisses
   await executeWrite(
-    `INSERT INTO caisses (id, name, description, type, color, org_id, status, archived_at, archived_by, archive_reason, created_at, updated_at)
-     VALUES (?, ?, ?, 'GROUP', '#FF6B00', ?, 'ACTIVE', null, null, null, ?, ?)`,
-    [id, params.name, params.description ?? "", orgId, now, now],
+    `INSERT INTO caisses (id, name, description, type, color, org_id, created_at, updated_at)
+     VALUES (?, ?, ?, 'GROUP', '#FF6B00', ?, ?, ?)`,
+    [id, params.name, desc, orgId, now, now],
   );
 
   return id;
@@ -2520,10 +2527,10 @@ export async function updateGroupPS(
 ): Promise<void> {
   const now = new Date().toISOString();
 
-  // org_units
+  // org_units (pas de colonne updated_at côté PostgreSQL — idempotent)
   await executeWrite(
-    `UPDATE org_units SET name = ?, description = ?, updated_at = ? WHERE id = ?`,
-    [data.name ?? "", data.description ?? "", now, id],
+    `UPDATE org_units SET name = ?, description = ? WHERE id = ?`,
+    [data.name ?? "", data.description ?? "", id],
   );
 
   // caisses

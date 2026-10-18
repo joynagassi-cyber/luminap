@@ -121,11 +121,11 @@ export default function Groups() {
       return;
     }
     setError("");
-    // Update via raw SQL for org_units (name + description)
+    // Update via raw SQL for org_units (name + description — pas de colonne updated_at)
     const db = getPowerSyncDatabase();
     await db.execute(
-      `UPDATE org_units SET name = ?, description = ?, updated_at = ? WHERE id = ?`,
-      [editName.trim(), editDesc.trim(), new Date().toISOString(), id],
+      `UPDATE org_units SET name = ?, description = ? WHERE id = ?`,
+      [editName.trim(), editDesc.trim(), id],
     );
     setShowEdit(null);
     setSuccess("Groupe modifié");
