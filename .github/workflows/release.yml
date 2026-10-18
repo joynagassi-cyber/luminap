@@ -44,6 +44,20 @@ jobs:
       - name: Grant execute permission to gradlew
         run: chmod +x android/gradlew
 
+      - name: Purge stale Gradle cache (bcprov-jdk18on-1.79.jar classpath corruption)
+        # Infobulle issue déjà documentée en mémoire du projet (
+        # gradle-jdk17-bcprov-infra-fail) : sur certains runners GitHub,
+        # le cache bouncycastle 1.79 (classes Java 21+) produit des JARs
+        # corrompus dans `jars-9`, intransité par `:capacitor-cordova-android-plugins`
+        # avec une erreur `Failed to create Jar file ... bcprov-jdk18on-1.79.jar`.
+        # La purge du cache est la solution fiable (appliquée aussi dans
+        # lumina-android.yml, job debug-apk).
+        run: |
+          if [ -d "$HOME/.gradle" ]; then
+            echo "Purging ~/.gradle"
+            rm -rf "$HOME/.gradle"
+          fi
+
       - name: Build release APK (unsigned)
         # Gradle produit `app-release-unsigned.apk` (le build.gradle ne
         # configure AUCUNE `signingConfigs.release` active par défaut —
