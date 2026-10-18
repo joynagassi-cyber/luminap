@@ -83,20 +83,46 @@ jobs:
           else
             echo "settings.gradle ne référence pas le sous-projet cordova — rien à faire"
           fi
-          # 2b. On retire la référence orpheline à :capacitor-cordova-android-plugins
-          # dans android/app/build.gradle (le bloc flatDir + la dep. project() qui y
-          # pointent causent l'erreur "Project with path ':capacitor-cordova-android-plugins'
-          # could not be found in project ':app'" une fois le sous-projet exclu de
-          # settings.gradle). Le bloc maven { url ... } reste intact.
-          if grep -q "project(':capacitor-cordova-android-plugins')" android/app/build.gradle; then
-            echo "Suppression de la reference project() + bloc flatDir dans android/app/build.gradle"
-            sed -i "/implementation project(':capacitor-cordova-android-plugins')/d" android/app/build.gradle
-            # Suppression du bloc flatDir{ dirs ... } (4 lignes)
-            # (le chemin '../capacitor-cordova-android-plugins/src/main/libs' n'existe
-            #  plus dans l'arborescence du runner s'il n'est pas synchronisé)
-            sed -i '/flatDir{/,/}/d' android/app/build.gradle
-            echo "android/app/build.gradle maintenant :"
-            cat android/app/build.gradle | grep -A 30 "^repositories"
+          # 2b. CORRECTION REELLE (2026-10-18, cause racine identifiée) : le
+          # buildscript du sous-projet cordova (généré par cap sync, gitignored,
+          # donc recréé à CHAQUE run CI) déclare explicitement
+          #   classpath 'com.android.tools.build:gradle:8.13.0'
+          # qui tire transitivement bcprov-jdk18on-1.79.jar (via
+          # com.android.tools.build:builder:8.13.0 → bcprov-jdk18on:1.79,
+          # confirmé dans le cache local : ~/.gradle/caches/modules-2/metadata
+          # pointe bcprov depuis builder/apkzlib 8.13.0). Le JAR bcprov 1.79
+          # échoue à se relier par le classloader de compilation Gradle →
+          # 'Failed to create Jar file ... bcprov-jdk18on-1.79.jar'.
+          #
+          # Les correctifs tentés AVANT celui-ci (exclure bcprov dans
+          # allprojects.configurations.all, forcer une version, retirer
+          # --no-daemon, exclure le sous-projet de settings.gradle) ne
+          # touchaient PAS cette ligne du buildscript du sous-projet, qui
+          # est indépendante des configurations du projet principal.
+          #
+          # Fix : on supprime le bloc buildscript du sous-projet cordova —
+          # il n'en a pas besoin, il hérite de l'AGP de la racine
+          # (com.android.tools.build:gradle:8.2.1, cf. android/build.gradle
+          # ligne 10, qui ne tire PAS bcprov 1.79). Le sous-projet continue
+          # de se compiler, mais sans son classpath AGP 8.13.0 fautif.
+          if grep -q "com.android.tools.build:gradle:8.13.0" android/capacitor-cordova-android-plugins/build.gradle; then
+            echo "Suppression du buildscript AGP 8.13.0 du sous-projet cordova (cause bcprov-jdk18on-1.79.jar)"
+            python3 - <<'PYEOF'
+            import re
+            path = "android/capacitor-cordova-android-plugins/build.gradle"
+            with open(path, "r") as f:
+                content = f.read()
+            # On retire le bloc buildscript { ... } au complet (le premier
+            # bloc rencontré, celui qui contient la classpath AGP 8.13.0).
+            new_content = re.sub(r"\nbuildscript\s*\{.*?\}\n", "\n", content, count=1, flags=re.DOTALL)
+            with open(path, "w") as f:
+                f.write(new_content)
+            print("buildscript retiré. Résultat :")
+            import subprocess
+            subprocess.run(["cat", path], check=False)
+            PYEOF
+          else
+            echo "Sous-projet cordova sans AGP 8.13.0 — rien à faire"
           fi
           # 3. Align le build.gradle du plugin cordova généré par cap sync
           # (au cas où le fichier est là mais plus référencé — inoffensif)
