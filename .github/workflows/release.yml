@@ -44,19 +44,64 @@ jobs:
       - name: Grant execute permission to gradlew
         run: chmod +x android/gradlew
 
-      - name: Purge stale Gradle cache (bcprov-jdk18on-1.79.jar classpath corruption)
-        # Infobulle issue déjà documentée en mémoire du projet (
-        # gradle-jdk17-bcprov-infra-fail) : sur certains runners GitHub,
-        # le cache bouncycastle 1.79 (classes Java 21+) produit des JARs
-        # corrompus dans `jars-9`, intransité par `:capacitor-cordova-android-plugins`
-        # avec une erreur `Failed to create Jar file ... bcprov-jdk18on-1.79.jar`.
-        # La purge du cache est la solution fiable (appliquée aussi dans
-        # lumina-android.yml, job debug-apk).
+      - name: Align Gradle (purge cordova framework + bcprov classpath corruption)
+        # Reproduit strictement le step du job debug-apk de lumina-android.yml
+        # (cf. run 36173770387 GREEN) :
+        #  1. Purge ~/.gradle (cache bcprov-jdk18on-1.79.jar corrompu).
+        #  2. Restaure variables.gradle (AGP 8.2.1 / SDK 34 / Java 17 / minSdk 21).
+        #  3. Align le build.gradle du plugin cordova généré par cap sync
+        #     (AGP 8.13.0 → 8.2.1, SDK 36 → 34).
+        #  4. Purge de la dépendance cordova framework (impose minSdk 22 +
+        #     introduit bcprov-jdk18on-1.79 dans le classpath, qui échoue à
+        #     se compiler sous Temurin 21 → l'erreur "Failed to create Jar
+        #     file bcprov-jdk18on-1.79.jar").
+        #  5. Patch du namespace au plugin storage v1.2.5 (sans namespace,
+        #     cap sync génère "Namespace not specified").
+        #  6. Purge des refs OneSignalPush (Cordova non résolu).
         run: |
           if [ -d "$HOME/.gradle" ]; then
             echo "Purging ~/.gradle"
             rm -rf "$HOME/.gradle"
           fi
+          # 1. Restaure variables.gradle à sa version commitée
+          git checkout -- android/variables.gradle
+          echo "Restauré variables.gradle (AGP 8.2.1 / SDK 34 / Java 17 / minSdk 21)"
+          # 2. Align le build.gradle du plugin cordova généré par cap sync
+          sed -i "s/com.android.tools.build:gradle:8.13.0/com.android.tools.build:gradle:8.2.1/g" \
+            android/capacitor-cordova-android-plugins/build.gradle
+          sed -i "s/compileSdkVersion') ? rootProject.ext.compileSdkVersion : 36/compileSdkVersion') ? rootProject.ext.compileSdkVersion : 34/g" \
+            android/capacitor-cordova-android-plugins/build.gradle
+          # 2a. Purge de la dépendance Cordova framework
+          if grep -q 'implementation "org.apache.cordova:framework:' android/capacitor-cordova-android-plugins/build.gradle; then
+            echo "framework Cordova détecté — purge"
+            sed -i '/implementation "org.apache.cordova:framework:/d' \
+              android/capacitor-cordova-android-plugins/build.gradle
+          else
+            echo "framework Cordova déjà absent"
+          fi
+          # Vérif du manifest app (override minSdk 21)
+          if ! grep -q 'tools:overrideLibrary="com.onesignal,org.apache.cordova"' \
+            android/app/src/main/AndroidManifest.xml; then
+            echo "::error::tools:overrideLibrary manquant dans le manifest app."
+            exit 1
+          fi
+          echo "Manifest override OK"
+          # 2b. Align SDK 34 sur variables.gradle
+          sed -i 's/compileSdkVersion = 36/compileSdkVersion = 34/' android/variables.gradle
+          sed -i 's/targetSdkVersion = 36/targetSdkVersion = 34/' android/variables.gradle
+          # 3. Patch namespace au plugin storage v1.2.5
+          if ! grep -q "^    namespace " node_modules/@capacitor/storage/android/build.gradle; then
+            sed -i '/^android {/a\    namespace "com.capacitorjs.plugins.storage"' \
+              node_modules/@capacitor/storage/android/build.gradle
+          fi
+          # 4. Purge des refs OneSignalPush (Cordova)
+          if grep -rq "com.onesignal.cordova.OneSignalPush" \
+            android/capacitor-cordova-android-plugins/ 2>/dev/null; then
+            echo "OneSignalPush references détectées — purge"
+            find android/capacitor-cordova-android-plugins -name "*.gradle" \
+              -exec sed -i '/com.onesignal.cordova.OneSignalPush/d' {} \;
+          fi
+          echo "Gradle aligné : AGP 8.2.1 + SDK 34 + Java 17 + minSdk 21 + sans framework Cordova"
 
       - name: Build release APK (unsigned)
         # Gradle produit `app-release-unsigned.apk` (le build.gradle ne
