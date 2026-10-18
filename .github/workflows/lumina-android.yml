@@ -6,7 +6,17 @@ on:
 
 env:
   NODE_VERSION: '22'
-  JAVA_VERSION: '21'
+  # 2026-10-18 : bascule Temurin 21 → 17. Cause racine du bug
+  # "Failed to create Jar file .../bcprov-jdk18on-1.79.jar" (runs
+  # 39153873528 / 39154135560 / 39154685622 / 39155070574 / 39155447328) :
+  # le JAR bouncycastle 1.79 (dépendance transitive de com.onesignal:OneSignal
+  # + @capacitor/preferences) est compilé pour Java 17, et le classloader
+  # de compilation Gradle de Temurin 21 échoue à le relier ("Failed to
+  # create Jar file"). Le run 36173770387 (JDK 17, identique au build
+  # natif local validé) a démontré que le build passe proprement. Le
+  # JAVA_VERSION est lu par setup-java ET par le build natif local (cf.
+  # mémoire gradle-jdk17-bcprov-infra-fail).
+  JAVA_VERSION: '17'
   PNPM_VERSION: '11.27.1'
 
 jobs:
