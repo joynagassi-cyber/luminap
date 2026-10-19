@@ -70,7 +70,28 @@ dependencies {
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
-    implementation 'com.onesignal:OneSignal:[5.0.0, 5.99.99]'
+
+    // 2026-10-19 : OneSignal PINTÉ à 4.9.7 (dernière version 4.x, qui
+    // n'embarque PAS la dépendance transitive `bcprov-jdk18on:1.79` —
+    // celle-ci n'apparaît qu'à partir des versions 5.x+ du SDK, qui
+    // ont fait migrer le chiffrement E2EE vers BouncyCastle jdk18on).
+    // Le range ouvert `[5.0.0, 5.99.99]` résolait automatiquement à la
+    // dernière 5.x/6.x publiée, qui tire `bcprov-jdk18on:1.79` (jar
+    // compilé pour Java 21) — ce JAR échoue à se lier par le classloader
+    // de compilation Gradle, quel que soit le JDK du runner (confirmé
+    // runs 39180389543/39182394813/39182942531/39183807849, sur JDK 21
+    // ET JDK 17, avec exclusion ou non du JAR : c'est une incompatibilité
+    // de class-file-version intrinsèque au jar, pas un problème de
+    // résolution qu'on peut contourner en l'excluant du classpath).
+    //
+    // Piquer au-dessous de 5.x ne retire PAS OneSignal de l'app :
+    // l'intégration Capacitor push (`@capacitor/push-notifications`) et
+    // le `resValue onesignal_app_id`/`google_project_number` ci-dessus
+    // restent fonctionnels — seule la feature E2EE (chiffrement des
+    // payloads, NON activée ici) repose sur BC. Si un besoin de 5.x
+    // apparaît un jour (nouvelle feature), il faudra re-traiter le bug
+    // bcprov à ce moment-là, pas avant.
+    implementation 'com.onesignal:OneSignal:4.9.7'
 }
 
 apply from: 'capacitor.build.gradle'
