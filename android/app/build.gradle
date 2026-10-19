@@ -91,7 +91,7 @@ dependencies {
     // payloads, NON activée ici) repose sur BC. Si un besoin de 5.x
     // apparaît un jour (nouvelle feature), il faudra re-traiter le bug
     // bcprov à ce moment-là, pas avant.
-    implementation 'com.onesignal:OneSignal:4.9.7'
+    implementation 'com.onesignal:OneSignal:4.8.12'
 }
 
 apply from: 'capacitor.build.gradle'
