@@ -1,11 +1,43 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 
 buildscript {
-    
+
     repositories {
         google()
         mavenCentral()
     }
+
+    // 2026-10-19 (fix définitif bug "Failed to create Jar file bcprov-jdk18on-
+    // 1.79.jar" en CI Temurin 21) : le "Failed to create Jar file" n'a PAS
+    // lieu dans les configurations de PROJET (déjà couvertes par
+    // `allprojects.configurations.all.exclude` ci-dessous) — il a lieu sur le
+    // **classpath de build** lui-même (`buildscript { classpath ... }`), qui
+    // est un conteneur de configurations SÉPARÉ (`buildscript.configurations.
+    // classpath`) et n'est PAS couvert par `allprojects.configurations.all`.
+    //
+    // Cause réelle : `com.android.tools.build:gradle:8.2.1` tire
+    // transitivement `org.bouncycastle:bcprov-jdk18on:1.79` (AGP utilise BC
+    // pour la signature de keystores). Ce JAR échoue à être vérifié/
+    // instrumenté par le classloader de classpath de compilation Gradle
+    // sous Temurin 21 sur les runners GitHub (classes bcprov 1.79 = "jdk18on",
+    // incompatibilité de class-file-version à l'étape "create Jar file" du
+    // resolve du classpath de build — voir mémoire
+    // `gradle-jdk17-bcprov-infra-fail`). Retirer la ligne
+    // `classpath AGP 8.13.0` des sous-projets/plugins Capacitor (déjà fait
+    // par le step CI "Patch Cordova Sub-project") ne suffit pas : le
+    // buildscript de CETTE racine (ligne AGP 8.2.1 + google-services) tire
+    // la même dépendance bcprov 1.79 par une autre route.
+    //
+    // Fix : exclure `bcprov` du classpath de build explicitement (scope
+    // `buildscript.configurations.classpath`, distinct du scope projet).
+    // OneSignal/AGP n'ont besoin de BC qu'à l'exécution pour une feature
+    // optionnelle (E2EE / signature JAR à chaud) — le compile-time du
+    // buildscript ne requiert pas ces classes, l'exclusion est sûre.
+    configurations.classpath {
+        exclude group: 'org.bouncycastle', module: 'bcprov-jdk18on'
+        exclude group: 'org.bouncycastle', module: 'bcprov-jdk15on'
+    }
+
     dependencies {
         classpath 'com.android.tools.build:gradle:8.2.1'
         classpath 'com.google.gms:google-services:4.4.0'
