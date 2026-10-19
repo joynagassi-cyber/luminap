@@ -93,62 +93,34 @@ jobs:
         # et il s'applique APRÈS `cap sync` (le fichier est re-généré, on
         # patche le contenu FRAIS, pas la version commitée du repo).
         run: |
-          # Cause racine du bug bcprov (conclu après 8 runs rouges, cf.
-          # runs 39179717688 → 39186507781, le 19/10) : ce N'EST PAS le
-          # sous-projet `:capacitor-cordova-android-plugins` (vérifié : SANS
-          # buildscript), ce n'est PAS le JDK (17 ET 21 échouent), ce n'est
-          # PAS le cache du runner (cache 100% isolé/frais = même échec),
-          # et ce n'est PAS OneSignal ni @capacitor/preferences (piquage /
-          # downgrade inefficaces).
-          #
-          # La VRAIE cause : CHAQUE des 8 sous-projets `:capacitor-*`
-          # (fichiers `node_modules/.pnpm/.../android/build.gradle` — déjà
-          # listés ci-dessus, `grep -Rl "^buildscript {" node_modules/.pnpm
-          # = 8 fichiers exactement) porte son PROPRE bloc `buildscript {
-          # repositories {...} dependencies { classpath ... } }`. Ce
-          # `buildscript {}` est UN SCOPE DE CLASSTPATH TOTALEMENT
-          # INDÉPENDANT du `buildscript {}` du projet racine ET du
-          # `allprojects.configurations.all` — Gradle n'applique AUCUN
-          # `exclude`/`force`/`resolutionStrategy` d'un scope à l'autre.
-          # Le classpath de `com.android.tools.build:gradle:8.2.1` (que
-          # ces sous-projets `buildscript` classpath DE DÉFINISSONS eux-
-          # mêmes, pour `@capacitor/storage` v1.2.5 / `@capacitor/push-
-          # notifications` / etc.) tire `bcprov-jdk18on:1.79` (version
-          # résolue via la chaîne transitive de ce buildscript
-          # ISOLÉ, pas via `allprojects.configurations.all` du projet
-          # racine, qui est un tout autre conteneur de résolutions).
-          #
-          # `android/build.gradle` (le commit 1af9857) s'occupe déjà des 2
-          # scopes "racine" (`buildscript.configurations.classpath` +
-          # `allprojects.configurations.all`). Le scope MANQUANT — celui
-          # qui résout réellement le JAR fautif — est le `buildscript`
-          # de CHACUN de ces 8 sous-projets. C'est CE step qui le
-          # patche : on injecte un `resolutionStrategy.force` dans le
-          # bloc `buildscript { dependencies { ... } }` de CHAQUE fichier,
-          # en ajoutant le force juste APRÈS la ligne `dependencies {`
-          # qui ouvre ce bloc (le pattern est stable/identique sur les 8
-          # fichiers, vérifié ci-dessus — `grep -Rl "^buildscript {"`
-          # = exactement les 8 `node_modules/.pnpm/@capacitor+*/.../
-          # build.gradle`, pas d'autre fichier du repo qui matche).
           echo "Patch du scope buildscript de CHAQUE sous-projet Capacitor (bcprov:1.78)"
           find node_modules/.pnpm -path "*capacitor*" -name "build.gradle" -print0 2>/dev/null | \
             while IFS= read -r -d '' f; do
               if grep -q "^buildscript {" "$f" && ! grep -q "force 'org.bouncycastle:bcprov:1.78'" "$f"; then
-                # On insère le bloc force juste après la ligne
-                # `dependencies {` qui OUVRE le bloc buildscript (la
-                # 1re occurrence de cette ligne dans le fichier, qui est
-                # toujours dans le `buildscript {}` — les `dependencies
-                # {` suivants du fichier sont dans le bloc `android
-                # {...}` du sous-projet et ne sont pas touchées par un
-                # `sed` ciblé sur la 1re occurrence uniquement).
+                # `resolutionStrategy { ... }` ne s'applique PAS dans le
+                # bloc `dependencies {}` d'un `buildscript {}` (erreur
+                # "Could not find method resolutionStrategy() on
+                # DefaultDependencyHandler", run 39187533234) — il
+                # doit être placé au NIVEAU DU BLOC `buildscript {}`
+                # lui-même (avant le bloc `dependencies {}` qui suit),
+                # via `buildscript { ... resolutionStrategy {
+                # configurations.classpath { ... } } }`. C'est exactement
+                # ce que fait le bloc du projet racine dans
+                # `android/build.gradle`, transposé ici pour chaque
+                # sous-projet — on insère le bloc `resolutionStrategy
+                # { configurations.classpath { ... } }` juste avant la
+                # ligne `dependencies {` qui ouvre le bloc classpath du
+                # buildscript (pas à l'intérieur du bloc dependencies).
                 awk '
-                  /^    dependencies \{$/ && !done {
+                  /^buildscript \{$/ && !done {
                     print
-                    print "        resolutionStrategy {"
+                    print "    resolutionStrategy {"
+                    print "        configurations.classpath {"
                     print "            force '\''org.bouncycastle:bcprov:1.78'\''"
                     print "            force '\''org.bouncycastle:bcprov-jdk18on:1.70'\''"
                     print "            force '\''org.bouncycastle:bcprov-jdk15on:1.70'\''"
                     print "        }"
+                    print "    }"
                     done = 1
                     next
                   }
@@ -157,11 +129,7 @@ jobs:
                 echo "  ✓ $f"
               fi
             done
-          # Vérif finale : les 8 fichiers doivent désormais contenir le
-          # force.
           grep -Rl "force 'org.bouncycastle:bcprov:1.78'" node_modules/.pnpm 2>/dev/null | wc -l
-          # Align le SDK (cap sync régénère parfois en 36 → on force 34,
-          # identique au step "Align Gradle" de lumina-android.yml).
           sed -i "s/compileSdkVersion') ? rootProject.ext.compileSdkVersion : 36/compileSdkVersion') ? rootProject.ext.compileSdkVersion : 34/g" \
             android/capacitor-cordova-android-plugins/build.gradle
           sed -i 's/compileSdkVersion = 36/compileSdkVersion = 34/' android/variables.gradle
@@ -252,14 +220,32 @@ jobs:
           find node_modules/.pnpm -path "*capacitor*" -name "build.gradle" -print0 2>/dev/null | \
             while IFS= read -r -d '' f; do
               if grep -q "^buildscript {" "$f" && ! grep -q "force 'org.bouncycastle:bcprov:1.78'" "$f"; then
+                # `resolutionStrategy { ... }` ne s'applique PAS dans le
+                # bloc `dependencies {}` d'un `buildscript {}` (erreur
+                # "Could not find method resolutionStrategy() on
+                # DefaultDependencyHandler", run 39187533234) — il
+                # doit être placé au NIVEAU DU BLOC `buildscript {}`
+                # lui-même (avant le bloc `dependencies {}` qui suit),
+                # via `buildscript { ... resolutionStrategy {
+                # configurations.classpath { ... } } }`. C'est exactement
+                # ce que fait le bloc du projet racine dans
+                # `android/build.gradle` (cf. lignes 60-65 de ce
+                # fichier, `buildscript { ... configurations.classpath
+                # { exclude ... } ... }`), transposé ici pour chaque
+                # sous-projet — on insère le bloc `resolutionStrategy
+                # { configurations.classpath { ... } }` juste avant la
+                # ligne `dependencies {` qui ouvre le bloc classpath du
+                # buildscript (pas à l'intérieur du bloc dependencies).
                 awk '
-                  /^    dependencies \{$/ && !done {
+                  /^buildscript \{$/ && !done {
                     print
-                    print "        resolutionStrategy {"
+                    print "    resolutionStrategy {"
+                    print "        configurations.classpath {"
                     print "            force '\''org.bouncycastle:bcprov:1.78'\''"
                     print "            force '\''org.bouncycastle:bcprov-jdk18on:1.70'\''"
                     print "            force '\''org.bouncycastle:bcprov-jdk15on:1.70'\''"
                     print "        }"
+                    print "    }"
                     done = 1
                     next
                   }

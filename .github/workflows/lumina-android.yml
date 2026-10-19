@@ -93,14 +93,27 @@ jobs:
           find node_modules/.pnpm -path "*capacitor*" -name "build.gradle" -print0 2>/dev/null | \
             while IFS= read -r -d '' f; do
               if grep -q "^buildscript {" "$f" && ! grep -q "force 'org.bouncycastle:bcprov:1.78'" "$f"; then
+                # `resolutionStrategy { ... }` ne s'applique PAS dans le
+                # bloc `dependencies {}` d'un `buildscript {}` (erreur
+                # "Could not find method resolutionStrategy() on
+                # DefaultDependencyHandler", run 39187533234) — il
+                # doit être placé au NIVEAU DU BLOC `buildscript {}`
+                # lui-même (avant le bloc `dependencies {}` qui suit),
+                # via `buildscript { ... resolutionStrategy {
+                # configurations.classpath { ... } } }` (c'est
+                # exactement ce que fait le bloc du projet racine dans
+                # `android/build.gradle`, transposé ici pour chaque
+                # sous-projet).
                 awk '
-                  /^    dependencies \{$/ && !done {
+                  /^buildscript \{$/ && !done {
                     print
-                    print "        resolutionStrategy {"
+                    print "    resolutionStrategy {"
+                    print "        configurations.classpath {"
                     print "            force '\''org.bouncycastle:bcprov:1.78'\''"
                     print "            force '\''org.bouncycastle:bcprov-jdk18on:1.70'\''"
                     print "            force '\''org.bouncycastle:bcprov-jdk15on:1.70'\''"
                     print "        }"
+                    print "    }"
                     done = 1
                     next
                   }
