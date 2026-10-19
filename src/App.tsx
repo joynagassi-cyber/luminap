@@ -8,7 +8,7 @@ import { IonRouterOutlet } from "@ionic/react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { authService } from "@/lib/auth";
-import { useAppUrlOpen } from "@/hooks/useAppUrlOpen";
+import { useAppUrlOpen, LUMINA_DEEPLINK_EVENT } from "@/hooks/useAppUrlOpen";
 import { AppProvider } from "./context/AppContext";
 import AppRouter from "./AppRouter";
 import { luminaRoutes } from "./ionic/routing";
@@ -127,6 +127,19 @@ function RouteGuard() {
  */
 const AppUrlOpenBridge = () => {
   useAppUrlOpen();
+  // Force re-render sur chaque événement LUMINA_DEEPLINK_EVENT pour que
+  // les composants enfants (Splash, Onboarding, etc.) qui lisent
+  // `authService.getState().session` re-réagissent immédiatement après
+  // un callback OAuth arrivé sur une route publique (fix écran noir après
+  // le splash). Without this, a deep-link on /splash updates the session
+  // in memory but nothing re-renders the tree → user stuck on the black
+  // post-splash screen.
+  const [, setVersion] = useState(0);
+  useEffect(() => {
+    const onDeeplink = () => setVersion((v) => v + 1);
+    window.addEventListener(LUMINA_DEEPLINK_EVENT, onDeeplink);
+    return () => window.removeEventListener(LUMINA_DEEPLINK_EVENT, onDeeplink);
+  }, []);
   return null;
 };
 

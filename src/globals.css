@@ -84,6 +84,13 @@ html {
    ============================================================ */
 ion-page {
   animation: lumina-page-in 220ms ease-out;
+  /* Fix écran noir après le splash (v1.0.7+) : pendant que le view
+     ion-page de Splash (l'ancienne vue) se masque, ou que la vue
+     entrante (/onboarding, /auth) est encore en train de charger
+     (LazyRoute Suspense), l'écran derrière doit rester sombre au
+     lieu de tomber sur le noir natif du WebView. Le fond suit le
+     thème de l'app (var(--canvas)) pour rester cohérent. */
+  background: var(--canvas, #121212);
 }
 
 @keyframes lumina-page-in {

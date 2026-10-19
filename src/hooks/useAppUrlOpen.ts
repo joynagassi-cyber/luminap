@@ -8,6 +8,7 @@
 // CustomEvent so screen-specific logic (e.g. AuthPage's navigation intent)
 // can react. No-op on the web (Capacitor.isNativePlatform() guard).
 import { useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Capacitor } from "@capacitor/core";
 import { App as CapacitorApp } from "@capacitor/app";
 import { authService } from "@/lib/auth";
@@ -36,6 +37,8 @@ export interface LuminaDeepLinkDetail {
  * listener registered exactly once (no double-registration in AuthPage).
  */
 export function useAppUrlOpen() {
+  const navigate = useNavigate();
+  const location = useLocation();
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
 
@@ -66,6 +69,19 @@ export function useAppUrlOpen() {
           },
         }),
       );
+
+      // Transition forcée (fix écran noir après le splash) : si le callback
+      // OAuth arrive alors que l'app est sur une route PUBLIQUE (/splash,
+      // /), `RouteGuard` ne force PAS de navigation (PUBLIC_ROUTES renvoie
+      // null) et l'utilisateur resterait figé sur le splash / écran noir.
+      // On navigue vers le dashboard (ou l'onboarding si premier usage).
+      const PUBLIC = ["/splash", "/", "/auth", "/auth/callback", "/sessions"];
+      if (PUBLIC.includes(location.pathname) && !result.error) {
+        const { needsOnboarding } = await import("@/lib/onboardingState");
+        navigate(needsOnboarding() ? "/onboarding" : "/dashboard", {
+          replace: true,
+        });
+      }
     };
 
     // Cold launch: read the URL the app was started with.
