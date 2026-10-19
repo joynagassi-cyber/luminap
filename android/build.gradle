@@ -23,63 +23,6 @@ allprojects {
         google()
         mavenCentral()
     }
-
-    // 2026-10-19 (fix après 11 runs rouges consécutifs, runs
-    // 39179717688 → 39189854352, le 19/10) : le JAR `bcprov-jdk18on:
-    // 1.79` (classes compilées pour le class-file version 65 = Java 21)
-    // échoue SYSTÉMATIQUEMENT à la VÉRIFICATION du classloader de
-    // compilation Gradle 8.2.1 ("Failed to create Jar file .../jars-
-    // 9/<hash>/bcprov-jdk18on-1.79.jar"), et ce:
-    //   - quel que soit le JDK du runner (17 ET 21 testés, même
-    //     échec),
-    //   - quel que soit le cache Gradle (cache 100% isolé/frais dans
-    //     $RUNNER_TEMP testé, le JAR est re-téléchargé FRAÎCH du
-    //     runner "vierge" et échoue de la même façon — le bug n'est
-    //     PAS un cache résiduel du runner),
-    //   - ET surtout : malgré le piquage `com.onesignal:OneSignal`
-    //     à 4.9.7 (commit 4f0c16d), le downgrade
-    //     `@capacitor/preferences` 8.0.1 → 6.0.4 (commit 3382a02),
-    //     et le retrait de la ligne `classpath AGP 8.13.0` de tous
-    //     les build.gradle des plugins Capacitor (step CI "Patch
-    //     Cordova Sub-project", ré-appliqué dans le job build-android
-    //     lui-même) — la source EXACTE qui résout encore `bcprov-
-    //     jdk18on:1.79` n'a pas pu être isolée par simple suppression
-    //     de lignes `classpath` / piquage de version (cf. run
-    //     39189854352, "Aucun AGP 8.13.0 résiduel — rien à faire"
-    //     ET "échec au même jars-9/18366b31..." malgré tous ces
-    //     correctifs).
-    //
-    // Conclusion : la seule intervention Gradle qui a de la chance
-    // de neutraliser réellement ce JAR SPECIFIQUE, indépendamment de
-    // la route de résolution qui le tire (probablement
-    // `com.android.tools:sdk-common` ou un autre artefact interne AGP
-    // 8.2.1, non découvrable en lisant les `build.gradle` des
-    // sous-projets — c'est une dépendance transitive de la
-    // `com.android.tools.build:gradle` elle-même, déclarée dans le
-    // POM d'AGP, pas dans un `build.gradle` du projet qu'on peut
-    // grep/sed), est l'exclusion `exclude group/module` au niveau
-    // `allprojects.configurations.all` — qui couvre TOUS les
-    // conteneurs de configuration de chaque projet du build (projet
-    // racine ET sous-projets, `implementation` ET le classpath de
-    // build hérité), contrairement à `resolutionStrategy.force`
-    // (versions inexactes/inaisibles, run 39181048751) ou au patch
-    // du `buildscript{}` de chaque sous-projet Capacitor (syntaxe
-    // `resolutionStrategy` non supportée à ce niveau — runs
-    // 39187533234/39187906401).
-    //
-    // On exclut la ligne `bcprov-jdk18on` (pas `jdk15on` — celle-ci
-    // est requise par AGP 8.2.1 et se lie sans problème, cf. run
-    // 39182394813 "Could not find org.bouncycastle:bcprov-jdk15on"
-    // quand on l'a exclue à tort). L'exclusion d'un JAR qui n'est
-    // PAS réellement présent dans le DAG ne casse rien (no-op);
-    // si elle empêche la résolution du JAR fautif, le build passe;
-    // si OneSignal/AGP avait un besoin réel de ces classes à la
-    // compile-time, on verrait une `ClassNotFoundException` à
-    // l'usage (non testable ici — le build unsigned ne charge pas
-    // ces classes, seulement le JAR du classpath de build).
-    configurations.all {
-        exclude group: 'org.bouncycastle', module: 'bcprov-jdk18on'
-    }
 }
 
 task clean(type: Delete) {
