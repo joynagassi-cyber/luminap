@@ -237,6 +237,39 @@ jobs:
       - name: Grant execute permission to gradlew
         run: chmod +x android/gradlew
 
+      # Même step que dans le job `prepare` (au-dessus, ligne 95),
+      # ré-appliqué ICI dans le job `build-android` (qui a sa propre
+      # installation `pnpm install --frozen-lockfile` fraîche, qui
+      # remet à zéro les fichiers `node_modules/.pnpm/.../android/
+      # build.gradle` avant ce step — le patch du job `prepare` ne
+      # survit PAS entre les 2 jobs, cf. run 39187053500 qui a échoué
+      # pour exactement cette raison : le patch s'est bien exécuté
+      # dans `prepare` mais a été re-supplémenté par le `pnpm
+      # install` du job `build-android`).
+      - name: Patch Cordova Sub-project (fix bcprov-jdk18on-1.79.jar) [build job]
+        run: |
+          echo "Patch du scope buildscript de CHAQUE sous-projet Capacitor (bcprov:1.78)"
+          find node_modules/.pnpm -path "*capacitor*" -name "build.gradle" -print0 2>/dev/null | \
+            while IFS= read -r -d '' f; do
+              if grep -q "^buildscript {" "$f" && ! grep -q "force 'org.bouncycastle:bcprov:1.78'" "$f"; then
+                awk '
+                  /^    dependencies \{$/ && !done {
+                    print
+                    print "        resolutionStrategy {"
+                    print "            force '\''org.bouncycastle:bcprov:1.78'\''"
+                    print "            force '\''org.bouncycastle:bcprov-jdk18on:1.70'\''"
+                    print "            force '\''org.bouncycastle:bcprov-jdk15on:1.70'\''"
+                    print "        }"
+                    done = 1
+                    next
+                  }
+                  { print }
+                ' "$f" > "$f.tmp" && mv "$f.tmp" "$f"
+                echo "  ✓ $f"
+              fi
+            done
+          grep -Rl "force 'org.bouncycastle:bcprov:1.78'" node_modules/.pnpm 2>/dev/null | wc -l
+
       - name: Restore patched android/ tree (bcprov fix du job prepare)
         uses: actions/download-artifact@v4
         with:
