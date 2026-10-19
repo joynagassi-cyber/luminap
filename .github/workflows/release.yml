@@ -522,19 +522,42 @@ jobs:
           name: lumina-release-final
           path: release-assets
 
+      - name: Load release body (if a curated file was committed)
+        id: release-body
+        run: |
+          # Le body de release doit être COMPLET (fonctionnalités livrées,
+          # signature, changelog) — pas juste vide/absent. Si un fichier
+          # `.github/release-bodies/release-<version>.md` a été commité
+          # avant le tag (cf. `scripts/generate-release-body.sh`), on le
+          # pousse comme body via cet output ; sinon `softprops/
+          # action-gh-release` retombe sur le message du tag (pas assez
+          # documenté).
+          VER="${GITHUB_REF_NAME#v}"
+          BODY_FILE=".github/release-bodies/release-${VER}.md"
+          if [ -f "$BODY_FILE" ]; then
+            {
+              echo "body<<EOF_RELEASE_BODY"
+              cat "$BODY_FILE"
+              echo "EOF_RELEASE_BODY"
+            } >> "$GITHUB_OUTPUT"
+            echo "::notice::Body de release chargé depuis $BODY_FILE"
+          else
+            echo "::warning::Aucun $BODY_FILE trouvé — la release ne portera que le message du tag (recommandation : commit-er un body via scripts/generate-release-body.sh avant de tagger)."
+          fi
+
       - name: Create or update GitHub Release
         # `softprops/action-gh-release` crée (ou met à jour) la release
         # sur le tag qui a déclenché ce run (`v<version>`), et pousse
-        # les 2 assets (APK signé + hash compagnon). Le token
-        # `GITHUB_TOKEN` par défaut du runner a le scope `contents:
-        # write` (déclaré en haut du workflow) — aucun PAT requis. Le
-        # workaround `LUMINA_GITHUB_PAT` (job `github-release` de
-        # `lumina-android.yml`, retiré 2026-10-18) n'est plus
-        # nécessaire : ce workflow est la seule source de vérité.
+        # les 2 assets (APK signé + hash compagnon) + le body (s'il a
+        # été fourni au step ci-dessus, sinon le message du tag). Le
+        # token `GITHUB_TOKEN` par défaut du runner a le scope
+        # `contents: write` (déclaré en haut du workflow) — aucun PAT
+        # requis.
         uses: softprops/action-gh-release@v2
         with:
           files: |
             release-assets/app-release.apk
             release-assets/app-release.apk.sha256
+          body: ${{ steps.release-body.outputs.body }}
           draft: false
           prerelease: false

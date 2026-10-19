@@ -124,10 +124,12 @@ export default function Splash() {
                 Lumina
               </h1>
               <p
-                className="text-sm mt-1"
-                style={{ color: "var(--text-secondary)" }}
+                className="text-sm mt-1 text-center"
+                style={{ color: "var(--text-secondary)", textShadow: "none" }}
               >
-                Gestion financière des églises
+                La gestion complète de votre église — finances, cultes,
+                événements, dons, rapports et membres, en un seul endroit,
+                même hors ligne.
               </p>
             </div>
           )}
@@ -165,10 +167,12 @@ export default function Splash() {
                   Lumina
                 </p>
                 <p
-                  className="text-xs mt-0.5"
-                  style={{ color: "var(--text-secondary)" }}
+                  className="text-xs mt-0.5 text-center"
+                  style={{ color: "var(--text-secondary)", textShadow: "none" }}
                 >
-                  Gestion financière des églises
+                  La gestion complète de votre église — finances, cultes,
+                  événements, dons, rapports et membres, en un seul endroit,
+                  même hors ligne.
                 </p>
               </div>
             </div>
