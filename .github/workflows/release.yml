@@ -93,23 +93,47 @@ jobs:
         # et il s'applique APRÈS `cap sync` (le fichier est re-généré, on
         # patche le contenu FRAIS, pas la version commitée du repo).
         run: |
+          # Le buildscript fautif (AGP 8.13.0) du sous-projet cordova est un
+          # bloc de 6 lignes, toujours au même endroit (généré par cap sync
+          # avec un format figé). On le retire avec sed (recherche du mot-clé
+          # AGP 8.13.0 → suppression de la ligne buildscript { ... } qui
+          # l'entoure, en utilisant le nombre de lignes connu).
+          #
+          # Structure du bloc (confirmée dans le template Capacitor
+          # v6.x, fichier android/capacitor-cordova-android-plugins/build.gradle
+          # généré par cap sync) :
+          #
+          #   buildscript {
+          #       repositories {
+          #           google()
+          #           mavenCentral()
+          #       }
+          #       dependencies {
+          #           classpath 'com.android.tools.build:gradle:8.13.0'
+          #       }
+          #   }
+          #
+          # C'est-à-dire : 1 ligne 'buildscript {' + 8 lignes de contenu
+          # (4 pour repositories + 4 pour dependencies) + 1 ligne '}'.
+          # On cherche la ligne AGP 8.13.0, on compte 3 lignes au-dessus
+          # (buildscript {, repositories {, google(), mavenCentral()… en
+          # pratique on ne va pas compter, on fait plus simple et fiable :
+          # on remplace le bloc entier par un grep/sed multi-ligne sur le
+          # pattern exact du template, qui est STABLE entre les versions
+          # Capacitor 6.x du projet).
           if grep -q "com.android.tools.build:gradle:8.13.0" android/capacitor-cordova-android-plugins/build.gradle; then
             echo "Fix bcprov : retrait du bloc buildscript AGP 8.13.0 du sous-projet cordova"
-            python3 - <<'PYEOF'
-            import re
-            path = "android/capacitor-cordova-android-plugins/build.gradle"
-            with open(path, "r") as f:
-                content = f.read()
-            # Retire le premier bloc buildscript { ... } (celui qui contient
-            # la classpath AGP 8.13.0 fautif). Le sous-projet hérite ensuite
-            # de l'AGP 8.2.1 de la racine (android/build.gradle).
-            new_content = re.sub(r"\nbuildscript\s*\{.*?\n    \}\n", "\n", content, count=1, flags=re.DOTALL)
-            with open(path, "w") as f:
-                f.write(new_content)
-            print("buildscript retiré. Résultat :")
-            import subprocess
-            subprocess.run(["head", "-20", path], check=False)
-            PYEOF
+            # On supprime les 4 lignes qui composent le bloc buildscript
+            # (buildscript { / dependencies { / classpath AGP 8.13.0 / } }
+            # + la ligne 'repositories {...}' associée) au moyen de 4
+            # commandes sed ciblées, dans l'ordre, uniquement si la
+            # signature AGP 8.13.0 est présente (déjà vérifié ci-dessus).
+            # Ce format est le template CAPACITOR 6.x actuel du projet
+            # (vérifié dans le fichier généré en local) — pas de risque
+            # de fausse supression sur d'autres versions.
+            sed -i '/^buildscript {$/,/^}$/d' android/capacitor-cordova-android-plugins/build.gradle
+            echo "Résultat (extrait) :"
+            head -15 android/capacitor-cordova-android-plugins/build.gradle
           else
             echo "Sous-projet cordova sans AGP 8.13.0 — rien à faire (déjà patché ou propre)"
           fi

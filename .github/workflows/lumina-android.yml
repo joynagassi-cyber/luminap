@@ -74,20 +74,21 @@ jobs:
         run: |
           if grep -q "com.android.tools.build:gradle:8.13.0" android/capacitor-cordova-android-plugins/build.gradle; then
             echo "Fix bcprov : retrait du bloc buildscript AGP 8.13.0 du sous-projet cordova"
-            python3 - <<'PYEOF'
-            import re
-            path = "android/capacitor-cordova-android-plugins/build.gradle"
-            with open(path, "r") as f:
-                content = f.read()
-            new_content = re.sub(r"\nbuildscript\s*\{.*?\n    \}\n", "\n", content, count=1, flags=re.DOTALL)
-            with open(path, "w") as f:
-                f.write(new_content)
-            print("buildscript retiré. Résultat :")
-            import subprocess
-            subprocess.run(["head", "-20", path], check=False)
-            PYEOF
+            # Le bloc buildscript fautif (identique au template Capacitor 6.x,
+            # vérifié dans le fichier généré en local) s'étend sur plusieurs
+            # lignes entre `buildscript {` et le `}` qui le ferme. `sed` avec
+            # une plage de lignes s'arrête au premier `}` de colonne 0 qui
+            # suit le premier `buildscript {` — c'est exactement le format du
+            # template (pas d'autre `}` de colonne 0 au milieu du bloc, cf.
+            # le bloc `repositories` et `dependencies` qui sont bien
+            # indentés d'une tabulation). Suppression fiable, pas de
+            # heredoc Python fragile (YAML + indentation = casse le
+            # délimiteur, bug du run 39178608617).
+            sed -i '/^buildscript {$/,/^}$/d' android/capacitor-cordova-android-plugins/build.gradle
+            echo "Résultat (extrait) :"
+            head -15 android/capacitor-cordova-android-plugins/build.gradle
           else
-            echo "Sous-projet cordova sans AGP 8.13.0 — rien à faire"
+            echo "Sous-projet cordova sans AGP 8.13.0 — rien à faire (déjà patché ou propre)"
           fi
           # Align SDK 34 + patch namespace plugin storage (même logique
           # que le step ci-dessus de release.yml).
