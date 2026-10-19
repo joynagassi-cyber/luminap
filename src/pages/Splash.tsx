@@ -15,8 +15,8 @@ import { IonPage, IonContent } from "@ionic/react";
  * si les données ne sont pas prêtes après les ~2,7 s d'affichage minimum,
  * on bascule sur le spinner de chargement (comportement actuel).
  */
-const PHASE_LOGO_MS = 1200;
-const PHASE_ILLUSTRATION_MS = 1500;
+const PHASE_LOGO_MS = 800;
+const PHASE_ILLUSTRATION_MS = 800;
 
 type SplashPhase = "logo" | "illustration" | "loading";
 
@@ -26,7 +26,7 @@ type SplashPhase = "logo" | "illustration" | "loading";
 // install), l'app ne doit JAMAIS rester figée sur le splash — au bout
 // de la rampe minimum (~2,7 s) + ce délai de secours, on part de force
 // vers l'onboarding (ou le dashboard si le profil existe déjà).
-const STUCK_SAFETY_NET_MS = 6300;
+const STUCK_SAFETY_NET_MS = 3000;
 
 export default function Splash() {
   const navigate = useNavigate();
