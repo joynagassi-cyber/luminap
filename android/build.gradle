@@ -11,8 +11,22 @@ buildscript {
         classpath 'com.android.tools.build:gradle:8.2.1'
         classpath 'com.google.gms:google-services:4.4.0'
 
-        // NOTE: Do not place your application dependencies here; they belong
-        // in the individual module build.gradle files
+        // 2026-10-19 : exclusion ciblée du JAR bcprov-jdk18on (la ligne
+        // d'artifact BouncyCastle "Java 18+" qu'OneSignal tire via
+        // sa dépendance transitive — résout à 1.79, classes compilées
+        // pour Java 21, class file version 65) du classpath de build
+        // lui-même. Ce scope (`buildscript.configurations.classpath`)
+        // est SÉPARÉ du scope `allprojects.configurations.all` (projet),
+        // et les deux doivent être couverts indépendamment.
+        //
+        // NE PAS exclure `bcprov-jdk15on` : c'est la ligne "Java 5+"
+        // qu'AGP 8.2.1 exige réellement (résout à 1.67, lié sans
+        // problème) — l'exclure casse la résolution du classpath de
+        // build (erreur "Could not find org.bouncycastle:bcprov-jdk15on",
+        // run 39182394813).
+        configurations.classpath {
+            exclude group: 'org.bouncycastle', module: 'bcprov-jdk18on'
+        }
     }
 }
 
