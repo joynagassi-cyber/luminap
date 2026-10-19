@@ -9,7 +9,7 @@ permissions:
 
 env:
   NODE_VERSION: '22'
-  JAVA_VERSION: '21'
+  JAVA_VERSION: '17'
   PNPM_VERSION: '11'
 
 # Un SEUL workflow (release) produit l'APK signé et publie la GitHub Release.
