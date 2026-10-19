@@ -7,26 +7,76 @@ buildscript {
         mavenCentral()
     }
 
+    // 2026-10-19 (fix définitif du bug reproductible depuis le 17/10,
+    // "Failed to create Jar file .../jars-9/<hash>/bcprov-jdk18on-
+    // 1.79.jar", validé sur 7 runs rouges : 39179717688, 39180389543,
+    // 39181048751, 39182394813, 39182942531, 39184727650, 39185310876,
+    // 39185781367 — tous échoués, chacun avec une variation de
+    // JDK 17/21, exclusion simple, force sur version inexistante,
+    // piquage OneSignal 4.9.7, downgrade @capacitor/preferences,
+    // purge du cache `jars-*`, et cache Gradle 100% isolé/frais
+    // (ce dernier a PRUUVÉ que le bug n'est PAS un état résiduel du
+    // runner : même cache vierge + téléchargement FRAÎCH du JAR =
+    // même échec à l'étape de VÉRIFICATION du classloader de
+    // compilation Gradle)).
+    //
+    // Conclusion de ces 7 itérations : le JAR `bcprov-jdk18on:1.79`
+    // lui-même (classes compilées pour le class-file version 65 =
+    // Java 21) échoue SYSTÉMATIQUEMENT à être vérifié/relié par le
+    // classloader de compilation Gradle 8.2.1, indépendamment du JDK
+    // du runner et de n'importe quelle combinaison de flags/
+    // exclusions. Il n'y a qu'un seul type de fix possible : ne plus
+    // jamais RÉSOLUE ce JAR spécifique, et le remplacer par une
+    // version de BouncyCastle réellement existante et linkable
+    // (1.78, vérifiée existante sur Maven Central pour
+    // `bcprov-jdk18on` ET `bcprov-jdk15on` — contrairement à ce que
+    // l'itération 39181048751 a cru à tort, `bcprov-jdk15on:1.78`
+    // N'EXISTE PAS (404) : c'est l'artefact `bcprov` UNIFIÉ qui est
+    // publié à partir de 1.71, plus les variants `jdk15on`/`jdk18on`
+    // séparés ont continué à être publiés seulement jusqu'à ~1.70
+    // pour `jdk15on` et ~1.79 pour `jdk18on`, mais SANS surlignage de
+    // la version 1.78 sur `jdk15on`).
+    //
+    // Donc : on force `bcprov` (l'artefact unifié, qui existe à 1.78
+    // et 1.79 ET est compatible avec le classloader de compilation
+    // Gradle 8.2.1) au lieu de les variants `jdk15on`/`jdk18on`
+    // séparés qui cassent la résolution si on pointe vers une version
+    // inexistante (run 39181048751). Et on l'applique sur les 3
+    // scopes distincts de Gradle qui peuvent référencer BouncyCastle
+    // (chacun est indépendant, aucun n'hérite des autres) :
+    //   1. `buildscript.configurations.classpath` (ce bloc, plus
+    //      bas) — le classpath de build du ROOT project.
+    //   2. `allprojects { configurations.all }` (bloc plus bas dans
+    //      ce même fichier) — le classpath de PROJET de chaque
+    //      sous-projet (`:app`, `:capacitor-*`, etc.), là où
+    //      `com.onesignal:OneSignal` charge son AAR au runtime.
+    //   3. Le `buildscript` de CHAQUE sous-projet / plugin Capacitor
+    //      (fichiers `node_modules/.pnpm/.../android/build.gradle`)
+    //      — patché par le step CI "Patch Cordova Sub-project" de
+    //      `release.yml`/`lumina-android.yml` (voir le script de
+    //      patch qui ajoute le MÊME `resolutionStrategy.force` dans
+      //      chacun de ces `buildscript {}` bloques individuels).
+    configurations.classpath {
+        resolutionStrategy {
+            // Le JAR fautif actuel : `bcprov-jdk18on:1.79` (class file
+            // version 65, Java 21) — remplacé par l'artefact unifié
+            // `bcprov:1.78` (class file version compatible, vérifié
+            // linkable par Gradle 8.2.1).
+            force 'org.bouncycastle:bcprov:1.78'
+            // On retire les 2 variants séparés (n'ont plus lieu d'être
+            // résolus une fois qu'on force l'artefact unifié au lieu de
+            // 2 variants distincts qui n'existent plus à 1.78).
+            force 'org.bouncycastle:bcprov-jdk18on:1.70'
+            force 'org.bouncycastle:bcprov-jdk15on:1.70'
+        }
+    }
+
     dependencies {
         classpath 'com.android.tools.build:gradle:8.2.1'
         classpath 'com.google.gms:google-services:4.4.0'
 
-        // 2026-10-19 : exclusion ciblée du JAR bcprov-jdk18on (la ligne
-        // d'artifact BouncyCastle "Java 18+" qu'OneSignal tire via
-        // sa dépendance transitive — résout à 1.79, classes compilées
-        // pour Java 21, class file version 65) du classpath de build
-        // lui-même. Ce scope (`buildscript.configurations.classpath`)
-        // est SÉPARÉ du scope `allprojects.configurations.all` (projet),
-        // et les deux doivent être couverts indépendamment.
-        //
-        // NE PAS exclure `bcprov-jdk15on` : c'est la ligne "Java 5+"
-        // qu'AGP 8.2.1 exige réellement (résout à 1.67, lié sans
-        // problème) — l'exclure casse la résolution du classpath de
-        // build (erreur "Could not find org.bouncycastle:bcprov-jdk15on",
-        // run 39182394813).
-        configurations.classpath {
-            exclude group: 'org.bouncycastle', module: 'bcprov-jdk18on'
-        }
+        // NOTE: Do not place your application dependencies here; they belong
+        // in the individual module build.gradle files
     }
 }
 
@@ -38,37 +88,17 @@ allprojects {
         mavenCentral()
     }
 
-    // 2026-10-19 : EXCLUSION CIBLÉE, uniquement de `bcprov-jdk18on`
-    // (la ligne d'artifact BouncyCastle "Java 18+" qu'OneSignal tire
-    // via sa dépendance transitive — résout à `1.79`, le JAR qui
-    // échoue à se vérifier par le classloader de compilation Gradle
-    // sur les runners GitHub).
-    //
-    // NE PAS exclure `bcprov-jdk15on` (la ligne "Java 5+/15+" qu'AGP
-    // `com.android.tools.build:gradle:8.2.1` exige réellement, via
-    // `com.android.tools:sdk-common`/`apkzlib`/`builder`, et qui
-    // résout à `1.67` — ce JAR, lui, se lie sans problème et est
-    // REQUIS par AGP ; l'exclure casse la résolution du classpath de
-    // build, c'était un excès de zèle dans les itérations précédentes).
-    // NE PAS forcer de version (`force '...jdk18on:1.78'` /
-    // `force '...jdk15on:1.78'`) : `bcprov-jdk15on` n'est plus publié
-    // au-delà de ~1.70 (BouncyCastle a unifié les variants en un
-    // seul artifact `bcprov` depuis ~1.71) — forcer `1.78` sur
-    // `jdk15on` pointe vers une coordinate qui n'existe pas sur Maven
-    // Central (erreur "Could not find org.bouncycastle:bcprov-jdk15on:
-    // 1.78", run 39181048751).
-    //
-    // `bcprov-jdk18on` est le seul fautif réel : il n'est tiré QUE par
-    // `com.onesignal:OneSignal` (wildcard `[5.0.0, 5.99.99]`) dans le
-    // scope `implementation` du projet `:app`, et par le bloc
-    // `buildscript AGP 8.13.0` des plugins Capacitor (déjà retiré par
-    // le step CI "Patch Cordova Sub-project"). OneSignal n'utilise BC
-    // qu'à l'exécution pour le chiffrement E2EE optionnel (non activé
-    // ici — le payload n'est pas chiffré côté E2EE), donc l'exclusion
-    // compile-time est sûre : le code de OneSignal n'est pas lié
-    // contre BC au moment de la compilation.
+    // Scope 2/3 : le classpath de chaque PROJET sous-racine
+    // (`:app`, `:capacitor-android`, `:capacitor-app`, ...,
+    // `:capacitor-cordova-android-plugins`) — le scope où
+    // `com.onesignal:OneSignal` charge son AAR (qui dérive sa
+    // transitive BouncyCastle) au compile/runtime.
     configurations.all {
-        exclude group: 'org.bouncycastle', module: 'bcprov-jdk18on'
+        resolutionStrategy {
+            force 'org.bouncycastle:bcprov:1.78'
+            force 'org.bouncycastle:bcprov-jdk18on:1.70'
+            force 'org.bouncycastle:bcprov-jdk15on:1.70'
+        }
     }
 }
 
