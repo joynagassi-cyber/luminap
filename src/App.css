@@ -259,6 +259,14 @@ textarea:focus-visible,
 .splash-monochrome-illustration,
 .splash-monochrome-logo-small {
   display: block;
+  /* Redesign 2026-10-19 (fix bug v1.0.2 « logo trop sombre, difficile à
+     voir ») : le trait blanc du PNG reste tel quel, on n'applique AUCUN
+     glow/ombre/blur — c'est un rendu "pur" (le contraste du logo sur
+     le fond sombre --canvas vient du PNG lui-même, rien n'est ajouté
+     par CSS pour le rehausser artificiellement). */
+  filter: none;
+  box-shadow: none;
+  text-shadow: none;
 }
 /* Spinner : le bloc logo pivotote en entier (le trait lui-même ne
    bouge pas à l'intérieur — c'est l'ensemble qui tourne, ce qui

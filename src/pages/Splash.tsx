@@ -20,6 +20,14 @@ const PHASE_ILLUSTRATION_MS = 1500;
 
 type SplashPhase = "logo" | "illustration" | "loading";
 
+// Garde dure (fix bug v1.0.2 « bloqué sur le splash screen ») : même si
+// le chargement initial (PowerSync / `useLoadInitialData`) ne se termine
+// jamais (réseau down, erreur de connexion, première ouverture après
+// install), l'app ne doit JAMAIS rester figée sur le splash — au bout
+// de la rampe minimum (~2,7 s) + ce délai de secours, on part de force
+// vers l'onboarding (ou le dashboard si le profil existe déjà).
+const STUCK_SAFETY_NET_MS = 6300;
+
 export default function Splash() {
   const navigate = useNavigate();
   const { loaded: initialDataLoaded } = useLoadInitialData();
@@ -69,6 +77,19 @@ export default function Splash() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialDataLoaded, phase]);
 
+  // Garde de secours absolue (fix bug v1.0.2 « bloqué sur le splash ») :
+  // quel que soit l'état de `initialDataLoaded`/PowerSync au bout de
+  // `STUCK_SAFETY_NET_MS` s'ajouté à la rampe minimum (si on n'a pas déjà
+  // navigué), on part de force — l'écran ne peut plus rester figé
+  // indéfiniment, même si quelque chose bloque le chargement des données.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (!navigatingRef.current) goToNext();
+    }, PHASE_LOGO_MS + PHASE_ILLUSTRATION_MS + STUCK_SAFETY_NET_MS);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <IonPage>
       <IonContent className="bg-canvas">
@@ -86,22 +107,26 @@ export default function Splash() {
           </div>
 
           {phase === "logo" && (
-            /* Phase 1 — logo Lumina centré */
+            /* Phase 1 — logo Lumina centré (gros, blanc, sans glow/ombre) */
             <div className="flex flex-col items-center" data-testid="splash-phase-logo">
               <img
                 src="/lumina-logo-version-monochrome.png"
                 alt="Lumina"
-                width={96}
-                height={96}
+                width={160}
+                height={160}
                 className="splash-monochrome-logo"
+                style={{ filter: "none", boxShadow: "none", textShadow: "none" }}
               />
               <h1
                 className="font-bold text-3xl tracking-wide mt-4"
-                style={{ color: "var(--accent-primary)" }}
+                style={{ color: "var(--text-primary)", textShadow: "none" }}
               >
                 Lumina
               </h1>
-              <p className="text-text-tertiary text-sm mt-1">
+              <p
+                className="text-sm mt-1"
+                style={{ color: "var(--text-secondary)" }}
+              >
                 Gestion financière des églises
               </p>
             </div>
@@ -119,6 +144,7 @@ export default function Splash() {
                 width={280}
                 height={280}
                 className="splash-monochrome-illustration"
+                style={{ filter: "none", boxShadow: "none" }}
               />
               <div
                 className="absolute bottom-14 flex flex-col items-center"
@@ -130,12 +156,19 @@ export default function Splash() {
                   width={40}
                   height={40}
                   className="splash-monochrome-logo-small"
+                  style={{ filter: "none", boxShadow: "none" }}
                 />
                 <p
                   className="font-bold text-base tracking-wide mt-2"
-                  style={{ color: "var(--accent-primary)" }}
+                  style={{ color: "var(--text-primary)", textShadow: "none" }}
                 >
                   Lumina
+                </p>
+                <p
+                  className="text-xs mt-0.5"
+                  style={{ color: "var(--text-secondary)" }}
+                >
+                  Gestion financière des églises
                 </p>
               </div>
             </div>
@@ -150,8 +183,12 @@ export default function Splash() {
                 width={48}
                 height={48}
                 className="splash-monochrome-logo spinner"
+                style={{ filter: "none", boxShadow: "none" }}
               />
-              <p className="text-text-tertiary text-xs">
+              <p
+                className="text-xs"
+                style={{ color: "var(--text-secondary)" }}
+              >
                 Chargement en cours…
               </p>
             </div>

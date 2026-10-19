@@ -658,8 +658,27 @@ class AuthService {
         return { error: userMessage };
       }
 
-      // La redirection est lancée (web : page entière, mobile : system
-      // browser). Le reste est géré par handleOAuthCallback (web) ou
+      // Mobile : au lieu de laisser `signInWithOAuth` rediriger vers le
+      // navigateur système (le « Connect Google » actuel, qui est le
+      // symptôme de la « redirection » indésirable), on ouvre le même
+      // URL d'autorisation dans le navigateur in-app officiel Capacitor
+      // (`@capacitor/browser`, le vrai nom du package — il n'existe pas
+      // d'« @capacitor-community/in-app-browser »). Le deep link
+      // `lumina://auth/callback` est conservé : c'est lui qui ramène
+      // l'app (pas le navigateur), donc aucune redirection « à
+      // l'extérieur » de l'app pour l'utilisateur.
+      if (Capacitor.isNativePlatform() && data?.url) {
+        const { Browser } = await import("@capacitor/browser");
+        await Browser.open({ url: data.url });
+        // On ne bloque pas ici : le callback `lumina://auth/callback`
+        // arrive via le deep-link système (géré par useAppUrlOpen),
+        // indépendamment de la fermeture de la popup.
+        return { error: null };
+      }
+
+      // La redirection est lancée (web : page entière, mobile :
+      // in-app WebView si le plugin est installé, sinon navigateur
+      // système). Le reste est géré par handleOAuthCallback (web) ou
       // handleOAuthDeepLink (mobile).
       return { error: null };
     } catch (err: any) {
