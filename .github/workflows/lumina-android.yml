@@ -72,31 +72,44 @@ jobs:
         # `cap sync` (le fichier est récréé ici), en Python (plus
         # robuste que sed pour un bloc multi-lignes).
         run: |
-          # Cause racine réelle du bug bcprov : c'est pas le sous-projet
-          # `:capacitor-cordova-android-plugins` (fichier gitignored, on
-          # l'a vérifié : SANS buildscript AGP 8.13.0), mais les PLUGINS
-          # Capacitor eux-mêmes (fichiers `node_modules/.pnpm/.../android/
-          # build.gradle`, commités par le lockfile, donc déjà sur le runner
-          # à chaque run) : chacun porte son propre
-          # `buildscript { classpath AGP 8.13.0 }` qui tire
-          # bcprov-jdk18on-1.79. C'est ce bloc qu'on retire, sur TOUTES les
-          # déclarations classpath AGP 8.13.0 sous node_modules.
-          #
-          # On ne supprime PAS le bloc buildscript entier (il peut contenir
-          # d'autres dépendances, cf. @capacitor/preferences qui y déclare
-          # aussi `io.github.gradle-nexus:publish-plugin` sous condition de
-          # l'env `CAP_PLUGIN_PUBLISH`) — on retire juste la ligne
-          # `classpath 'com.android.tools.build:gradle:8.13.0'`, qui est la
-          # source de la dépendance bcprov. Le sous-projet / le plugin
-          # hérite alors de l'AGP 8.2.1 de la racine (cf. android/build.gradle
-          # ligne 10).
-          if grep -Rlq "com.android.tools.build:gradle:8.13.0" node_modules/.pnpm 2>/dev/null; then
-            echo "Fix bcprov : retrait du classpath AGP 8.13.0 de TOUS les build.gradle plugins Capacitor"
-            grep -Rl "com.android.tools.build:gradle:8.13.0" node_modules/.pnpm 2>/dev/null | \
-              xargs -r sed -i "/com.android.tools.build:gradle:8.13.0/d"
-          else
-            echo "Aucun build.gradle Capacitor sans AGP 8.13.0 — rien à faire"
-          fi
+          # MÊME logique que le step "Patch Cordova Sub-project" de
+          # release.yml (job prepare) — le fix bcprov réel, conclu après
+          # 8 runs rouges (39179717688 → 39186507781) : le JAR fautif
+          # `bcprov-jdk18on-1.79` est résolu par le bloc `buildscript {}`
+          # INDÉPENDANT de chacun des 8 sous-projets `:capacitor-*`
+          # (fichiers `node_modules/.pnpm/.../android/build.gradle`,
+          # listés via `grep -Rl "^buildscript {" node_modules/.pnpm`),
+          # un scope que ni `buildscript` du projet racine ni
+          # `allprojects.configurations.all` (les 2 déjas couverts par
+          # `android/build.gradle`) ne couvrent — chaque scope de
+          # classpath Gradle est indépendant des autres. Ce step
+          # injecte le `resolutionStrategy.force` de `bcprov:1.78`
+          # (artefact unifié, linkable par le classloader de compilation
+          # Gradle 8.2.1, cf. run 39186507781 qui a PRUUVÉ que même un
+          # cache 100% frais échoue sur le JAR 1.79 spécifiquement)
+          # dans le bloc `buildscript { dependencies { ... } }` de CHAQUE
+          # de ces 8 fichiers.
+          echo "Patch du scope buildscript de CHAQUE sous-projet Capacitor (bcprov:1.78)"
+          find node_modules/.pnpm -path "*capacitor*" -name "build.gradle" -print0 2>/dev/null | \
+            while IFS= read -r -d '' f; do
+              if grep -q "^buildscript {" "$f" && ! grep -q "force 'org.bouncycastle:bcprov:1.78'" "$f"; then
+                awk '
+                  /^    dependencies \{$/ && !done {
+                    print
+                    print "        resolutionStrategy {"
+                    print "            force '\''org.bouncycastle:bcprov:1.78'\''"
+                    print "            force '\''org.bouncycastle:bcprov-jdk18on:1.70'\''"
+                    print "            force '\''org.bouncycastle:bcprov-jdk15on:1.70'\''"
+                    print "        }"
+                    done = 1
+                    next
+                  }
+                  { print }
+                ' "$f" > "$f.tmp" && mv "$f.tmp" "$f"
+                echo "  ✓ $f"
+              fi
+            done
+          grep -Rl "force 'org.bouncycastle:bcprov:1.78'" node_modules/.pnpm 2>/dev/null | wc -l
           # Align SDK 34 + patch namespace plugin storage (même logique
           # que le step ci-dessus de release.yml). Le fichier réel vit dans
           # node_modules/.pnpm (symlinké depuis node_modules/@capacitor/...),
