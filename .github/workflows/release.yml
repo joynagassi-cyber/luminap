@@ -129,6 +129,52 @@ jobs:
           else
             echo "Aucun AGP 8.13.0 résiduel — rien à faire (déjà propre)"
           fi
+
+          # 2026-10-19 (run 39189854352, échec n°11) : le retrait du
+          # `classpath AGP 8.13.0` + le piquage OneSignal 4.9.7 + le
+          # downgrade @capacitor/preferences 8.0.1→6.0.4 ne sont PAS
+          # suffisants — le JAR `bcprov-jdk18on:1.79` continue d'être
+          # résolu (même chemin de cache `jars-9/18366b31...` que sur
+          # tous les runs rouges depuis le 17/10). Aucune des 4
+          # briques "simples" ci-dessus n'a eu l'effet attendu, ce qui
+          # confirme que le DAG de dépendances ne peut plus être
+          # déblayé par suppression d'une ligne `classpath` ou
+          # d'un piquage de version : la seule intervention Gradle
+          # qui force réellement la résolution d'un JAR spécifiquement
+          # (et qui ne peut PAS produire une erreur de syntaxe
+          # `Could not find method resolutionStrategy()` comme les
+          # tentatives de patch `buildscript{}` des runs 39187533234
+          # /39187906401 — celles-ci échouaient uniquement parce que
+          # le bloc `buildscript{}` propre à chaque sous-projet
+          # Capacitor n'accepte pas `resolutionStrategy` à ce niveau,
+          # contrairement au `buildscript` du projet racine) est
+          # `exclude group: ... module: ...` sur `configurations.all`,
+          # qui, lui, s'applique sur TOUS les conteneurs de
+          # configuration d'un projet (y compris le classpath de
+          # build d'un sous-projet, car `configurations.all` couvre
+          # le conteneur `buildscript.configurations.classpath`
+          # hérité par le sous-projet — c'est le comportement depuis
+          # Gradle 4.x : chaque sous-projet hérite des `exclude`
+          # déclarés dans le projet qui l'inclut via
+          # `settings.gradle`/`allprojects`).
+          #
+          # On ajoute donc ce `exclude` DANS `allprojects
+          # .configurations.all` de `android/build.gradle` (le commit
+          # correspondant est fait juste après ce step, dans le même
+          # commit — cf. `android/build.gradle`), c'est le SEUL
+          # mécanisme qui a de la chance de neutraliser réellement
+          # le JAR 1.79 s'il résiste à toutes les stratégies de
+          # "retirer la source qui le tire" (puisque, en l'occurrence,
+          # on n'a pas réussi à identifier la source exacte qui le
+          # résout malgré le piquage OneSignal 4.9.7 + le downgrade
+          # preferences + le retrait de l'AGP 8.13.0 — preuve
+          # qu'il y a une autre route de résolution encore active,
+          # probablement `com.android.tools:sdk-common:31.2.1` ou
+          # un autre artefact AGP 8.2.1 qui tire directement
+          # `bcprov-jdk18on` à sa propre résolution, non couvert
+          # par le piquage OneSignal).
+          echo "Vérif que le JAR ne subsiste nulle part (diagnostic, ne casse pas le build) :"
+          grep -Rl "bcprov-jdk18on" node_modules/.pnpm 2>/dev/null | head -5 || echo "(aucune référence textuelle sous node_modules — le JAR est résolu via Maven Central, pas via un fichier .gradle local)"
           # Align le SDK (cap sync régénère parfois en 36 → on force 34,
           # identique au step "Align Gradle" de lumina-android.yml).
           sed -i "s/compileSdkVersion') ? rootProject.ext.compileSdkVersion : 36/compileSdkVersion') ? rootProject.ext.compileSdkVersion : 34/g" \
