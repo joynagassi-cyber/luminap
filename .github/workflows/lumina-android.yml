@@ -6,7 +6,7 @@ on:
 
 env:
   NODE_VERSION: '22'
-  JAVA_VERSION: '17'
+  JAVA_VERSION: '21'
   PNPM_VERSION: '11'
 
 # Ce workflow ne fait plus que le build **debug** sur chaque push main
