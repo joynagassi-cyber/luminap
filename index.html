@@ -22,7 +22,34 @@
   <link rel="manifest" href="/manifest.json" />
 </head>
 <body>
+  <!-- Fix « écran noir après le splash » (v1.0.7) : le fond #121212 (identique
+       au noir natif du WebView) est forcé sur html/body AVANT tout autre CSS.
+       Pourquoi tu voyais un écran noir : si le bundle JS / Ionic / Capacitor
+       WebView ne se termine jamais de charger (réseau, PWA figée, crash), le
+       contenu React est vide ET le fond de l'app n'a pas encore de valeur
+       (tokens CSS non chargés) → le WebView affiche son noir natif. En forçant
+       le fond #121212 dès le 1er paint, le résultat visuel est le même que
+       l'arrière-plan de l'app (dark par défaut) : plus de flash noir surprise.
+       Le mode clair (localStorage lumina-theme-mode = "light") est géré par le
+       script de data-theme ci-dessous — le fond #121212 est seulement un
+       défaut de repli, remplacé par les tokens CSS dès qu'ils se chargent.
+       PAS de display:flex ici : les pages Ionic (ion-content) sont
+       position:fixed plein-écran, un flex sur html/#root casserait tout le
+       layout de l'app (BottomNav, modales, FAB). -->
+  <style>
+    html, body {
+      background: #121212 !important;
+      margin: 0;
+      min-height: 100vh;
+    }
+    #root {
+      min-height: 100vh;
+    }
+  </style>
   <!-- Pose data-theme AVANT le premier paint (sombre par défaut) : les
+       tokens de src/App.css et les vars Ionic (theme.css) suivent cette
+       valeur dès le chargement, sans flash. Le choix est persisté par
+       applyThemeMode (src/ionic/themes.ts, localStorage `lumina-theme-mode`). -->
        tokens de src/App.css et les vars Ionic (theme.css) suivent cette
        valeur dès le chargement, sans flash. Le choix est persisté par
        applyThemeMode (src/ionic/themes.ts, localStorage `lumina-theme-mode`). -->

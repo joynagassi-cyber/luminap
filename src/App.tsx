@@ -184,13 +184,41 @@ const UpdaterBridge = () => {
  */
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <ErrorBoundary fallback={<div style={{ padding: 24, color: "var(--text-primary)", fontFamily: "var(--font-sans)", fontSize: 14 }}>
-        Une erreur inattendue s'est produite. Rechargez la page pour réessayer.
-      </div>}>
+    <ErrorBoundary fallback={
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "var(--canvas)",
+          color: "var(--text-primary)",
+          fontFamily: "var(--font-sans)",
+          fontSize: 14,
+          gap: 8,
+          padding: 24,
+        }}
+      >
+        <img
+          src="/lumina-logo-version-monochrome.png"
+          alt="Lumina"
+          width={96}
+          height={96}
+          style={{ filter: "none", boxShadow: "none" }}
+        />
+        <p style={{ color: "var(--text-secondary)", margin: 0 }}>
+          Une erreur inattendue s'est produite.
+        </p>
+        <p style={{ color: "var(--text-secondary)", margin: 0, fontSize: 12 }}>
+          Rechargez la page pour réessayer.
+        </p>
+      </div>
+    }>
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <IonApp>
+      <IonApp style={{ backgroundColor: "var(--canvas)" }}>
         <SentryUserBridge />
         <AppUrlOpenBridge />
         <UpdaterBridge />
