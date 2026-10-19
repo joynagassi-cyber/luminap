@@ -127,9 +127,7 @@ export default function Splash() {
                 className="text-sm mt-1 text-center"
                 style={{ color: "var(--text-secondary)", textShadow: "none" }}
               >
-                La gestion complète de votre église — finances, cultes,
-                événements, dons, rapports et membres, en un seul endroit,
-                même hors ligne.
+                Une gestion complète, une foi partagée.
               </p>
             </div>
           )}
@@ -170,9 +168,7 @@ export default function Splash() {
                   className="text-xs mt-0.5 text-center"
                   style={{ color: "var(--text-secondary)", textShadow: "none" }}
                 >
-                  La gestion complète de votre église — finances, cultes,
-                  événements, dons, rapports et membres, en un seul endroit,
-                  même hors ligne.
+                  Une gestion complète, une foi partagée.
                 </p>
               </div>
             </div>
