@@ -114,8 +114,8 @@ jobs:
                 awk '
                   /^buildscript \{$/ && !done {
                     print
-                    print "    resolutionStrategy {"
-                    print "        configurations.classpath {"
+                    print "    configurations.classpath {"
+                    print "        resolutionStrategy {"
                     print "            force '\''org.bouncycastle:bcprov:1.78'\''"
                     print "            force '\''org.bouncycastle:bcprov-jdk18on:1.70'\''"
                     print "            force '\''org.bouncycastle:bcprov-jdk15on:1.70'\''"
@@ -239,8 +239,8 @@ jobs:
                 awk '
                   /^buildscript \{$/ && !done {
                     print
-                    print "    resolutionStrategy {"
-                    print "        configurations.classpath {"
+                    print "    configurations.classpath {"
+                    print "        resolutionStrategy {"
                     print "            force '\''org.bouncycastle:bcprov:1.78'\''"
                     print "            force '\''org.bouncycastle:bcprov-jdk18on:1.70'\''"
                     print "            force '\''org.bouncycastle:bcprov-jdk15on:1.70'\''"
