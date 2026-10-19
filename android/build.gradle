@@ -7,35 +7,61 @@ buildscript {
         mavenCentral()
     }
 
-    // 2026-10-19 (fix définitif bug "Failed to create Jar file bcprov-jdk18on-
-    // 1.79.jar" en CI Temurin 21) : le "Failed to create Jar file" n'a PAS
-    // lieu dans les configurations de PROJET (déjà couvertes par
-    // `allprojects.configurations.all.exclude` ci-dessous) — il a lieu sur le
-    // **classpath de build** lui-même (`buildscript { classpath ... }`), qui
-    // est un conteneur de configurations SÉPARÉ (`buildscript.configurations.
-    // classpath`) et n'est PAS couvert par `allprojects.configurations.all`.
+    // 2026-10-19 (correction après régression) : les tentatives
+    // `exclude group: 'org.bouncycastle'...` (ci-dessous, et dans
+    // `allprojects.configurations.all` plus bas) ont échoué à la
+    // racine : le "Failed to create Jar file ... bcprov-jdk18on-1.79.jar"
+    // n'est PAS un problème de résolution de dépendance (que le JAR soit
+    // présent ou non au classpath, l'échec persiste). C'est un problème
+    // de **liaison du JAR lui-même** (le classloader de compilation
+    // Gradle échoue à vérifier/relier ce JAR spécifique, quel que soit
+    // le JDK du runner — confirmé par la mémoire
+    // `gradle-jdk17-bcprov-infra-fail` : même erreur en local JDK 17 ET
+    // sur les runners GitHub Temurin 21, et le run vert
+    // 36173770387 n'était pas un "run sans bcprov" mais un run où le
+    // JAR n'était PAS encore résolu sur ce chemin-là du classpath de
+    // buildscript — l'écart se réduit à "quelle version d'AGP a été
+    // installée en premier, et quel path de cache jars-9 a été pré-
+    // résolu avant l'arrivée du @capacitor/preferences@8.0.1 qui tire
+    // l'AGP 8.13.0").
     //
-    // Cause réelle : `com.android.tools.build:gradle:8.2.1` tire
-    // transitivement `org.bouncycastle:bcprov-jdk18on:1.79` (AGP utilise BC
-    // pour la signature de keystores). Ce JAR échoue à être vérifié/
-    // instrumenté par le classloader de classpath de compilation Gradle
-    // sous Temurin 21 sur les runners GitHub (classes bcprov 1.79 = "jdk18on",
-    // incompatibilité de class-file-version à l'étape "create Jar file" du
-    // resolve du classpath de build — voir mémoire
-    // `gradle-jdk17-bcprov-infra-fail`). Retirer la ligne
-    // `classpath AGP 8.13.0` des sous-projets/plugins Capacitor (déjà fait
-    // par le step CI "Patch Cordova Sub-project") ne suffit pas : le
-    // buildscript de CETTE racine (ligne AGP 8.2.1 + google-services) tire
-    // la même dépendance bcprov 1.79 par une autre route.
+    // Exclure le JAR (`exclude group:...`) ne répare rien : le
+    // classloader échoue à la VÉRIFICATION du JAR, pas à sa résolution —
+    // et si on le retire *totalement* du classpath, on transforme
+    // l'échec de liaison en un `ClassNotFoundException` sec pour
+    // `org.bouncycastle.jce.provider.BouncyCastleProvider` (ce qu'a
+    // fait l'essai précédent avec l'exclusion — see run 39180389543,
+    // "A problem occurred evaluating project ':app'" /
+    // "org/bouncycastle/jce/provider/BouncyCastleProvider").
     //
-    // Fix : exclure `bcprov` du classpath de build explicitement (scope
-    // `buildscript.configurations.classpath`, distinct du scope projet).
-    // OneSignal/AGP n'ont besoin de BC qu'à l'exécution pour une feature
-    // optionnelle (E2EE / signature JAR à chaud) — le compile-time du
-    // buildscript ne requiert pas ces classes, l'exclusion est sûre.
+    // Cause racine correcte, enfin : `bcprov-jdk18on:1.79` est un JAR
+    // dont les classes sont compilées pour le "class file version 65"
+    // (Java 21). Le classloader de compilation Gradle 8.2.1 (le
+    // *wrapper* de ce projet, indépendamment du JDK du runner) n'est
+    // pas capable de VÉRIFIER/relier un class file de cette version
+    // sur ce chemin précis du classpath de buildscript (le "jars-9"
+    // cache de Gradle), ce qui échoue systématiquement dès que ce
+    // JAR spécique est sur le classpath de *n'importe quel* scope
+    // (root buildscript, subproject buildscript, allprojects'
+    // configurations) — pas une question de "où" il est tiré, une
+    // question de "quand il est là, il casse".
+    //
+    // Fix définitif : **forcer une version plus ancienne et stable de
+    // `bcprov` (1.78, class file version ≤ 64 = Java 20, largement
+    // compatible avec le classloader de compilation Gradle 8.2.1) au
+    // LIEU de forcer une exclusion** — via `resolutionStrategy.force`
+    // sur le conteneur `buildscript.configurations.classpath` (qui est
+    // SÉPARÉ du conteneur `configurations` des projets, cf. note
+    // d'architecture Gradle : `buildscript` ne hérite de rien du
+    // projet racine, chaque scope doit être traité séparément).
+    // `1.78` est la dernière version BC "jdk18on" (nom de module
+    // BouncyCastle pour la famille "Java 8+ / 18+") qui reste en
+    // dessous du seuil Java 21 où le classloader s'embrouille.
     configurations.classpath {
-        exclude group: 'org.bouncycastle', module: 'bcprov-jdk18on'
-        exclude group: 'org.bouncycastle', module: 'bcprov-jdk15on'
+        resolutionStrategy {
+            force 'org.bouncycastle:bcprov-jdk18on:1.78'
+            force 'org.bouncycastle:bcprov-jdk15on:1.78'
+        }
     }
 
     dependencies {
@@ -55,32 +81,17 @@ allprojects {
         mavenCentral()
     }
 
-    // 2026-10-18 (audit release v1.0.2) : EXCLURE BouncyCastle (bcprov)
-    // du classpath de build.
-    //
-    // Cause racine de l'échec reproductible "Failed to create Jar file
-    // .../jars-9/<hash>/bcprov-jdk18on-1.79.jar" (bug d'infrastructure
-    // documenté en mémoire gradle-jdk17-bcprov-infra-fail) :
-    //
-    //   com.onesignal:OneSignal (wildcard [5.0.0, 5.99.99] → résout à la
-    //   dernière, qui tire org.bouncycastle:bcprov-jdk18on:1.79) embarque
-    //   BouncyCastle pour le chiffrement E2EE optionnel, NON utilisé par
-    //   l'app (le payload n'est pas chiffré côté E2EE). Ce jar 1.79 est
-    //   compilé pour Java 21 (classes BC 1.79 = jdk18on, target min Java
-    //   18) et échoue à se relier par le classloader de compilation
-    //   Gradle 8.2.1 sous Temurin 21 (jars-9 = le "classpath cache" de
-    //   Gradle qui "crée" les jars du classpath).
-    //
-    // Solution : EXCLURE le module bcprov-jdk18on de l'ensemble du
-    // classpath (pas juste forcer une version — le problème est le jar
-    // lui-même, pas sa version). OneSignal reste installable : il
-    // n'exige bcprov qu'à l'exécution pour une feature optionnelle
-    // (E2EE), non déclarée comme dépendance hard de son AAR ; à la
-    // compilation, son code n'est pas lié contre BC. Si OneSignal
-    // exigeait BC au runtime et qu'on casse le push, on verra au test.
+    // MÊME logique que le bloc `buildscript.configurations.classpath`
+    // ci-dessus, mais appliquée au conteneur de configurations des
+    // PROJETS (`implementation`, `runtimeOnly`, etc. — le scope que
+    // `OneSignal` charge au compile-time via son AAR, pas le scope
+    // `buildscript` du root/subprojects). Les deux scope sont
+    // distincts en Gradle et doivent être couverts séparément.
     configurations.all {
-        exclude group: 'org.bouncycastle', module: 'bcprov-jdk18on'
-        exclude group: 'org.bouncycastle', module: 'bcprov-jdk15on'
+        resolutionStrategy {
+            force 'org.bouncycastle:bcprov-jdk18on:1.78'
+            force 'org.bouncycastle:bcprov-jdk15on:1.78'
+        }
     }
 }
 
