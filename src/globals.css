@@ -166,8 +166,8 @@ textarea:focus-visible,
 }
 
 .splash-splash-html-logo img {
-  width: 96px;
-  height: 96px;
+  width: 160px;
+  height: 160px;
   display: block;
 }
 
@@ -176,14 +176,14 @@ textarea:focus-visible,
   font-size: 1.75rem;
   font-weight: 700;
   letter-spacing: 0.04em;
-  color: var(--accent-primary, #ff6b00);
+  color: var(--text-primary, #fff);
   margin: 0;
 }
 
 .splash-splash-html-sub {
   font-family: inherit;
-  font-size: 0.8rem;
-  color: var(--text-tertiary, #808080);
+  font-size: 0.85rem;
+  color: var(--text-secondary, #c7c9cc);
   margin: 0;
 }
 

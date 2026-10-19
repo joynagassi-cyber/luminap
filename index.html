@@ -46,11 +46,27 @@
          aucune cassure visuelle entre les deux. -->
     <div class="splash-splash-html" aria-hidden="true">
       <div class="splash-splash-html-logo">
-        <img src="/lumina-logo-version-monochrome.png" alt="" width="96" height="96" />
+        <img src="/lumina-logo-version-monochrome.png" alt="" width="160" height="160" />
         <p class="splash-splash-html-name">Lumina</p>
-        <p class="splash-splash-html-sub">Gestion financière des églises</p>
+        <p class="splash-splash-html-sub">Une gestion complète, une foi partagée.</p>
       </div>
     </div>
+    <!-- Garde de sécurité du splash HTML (fix bug « bloqué 10 min+ sur le splash ») :
+         le splash statique est normalement masqué par `#root.is-hydrated` (posé par
+         main.tsx dès le 1er rendu React). Mais si le bundle JS / Ionic / WebView
+         ne se termine jamais (chargement, crash, PWA figée), is-hydrated ne se pose
+         JAMAIS et le div reste à l'écran indéfiniment (z-index 9999, opaque). Ce
+         timer inline (indépendant du bundle, tourne au DOMContentLoaded, dans le
+         même onglet WebView) masque le splash de force après 15 s au pire cas.
+         Il ne fait rien de plus si l'app s'est bien hydratée (div déjà display:none). -->
+    <script>
+      (function () {
+        setTimeout(function () {
+          var el = document.querySelector(".splash-splash-html");
+          if (el) el.style.display = "none";
+        }, 15000);
+      })();
+    </script>
   </div>
   <script type="module" src="/src/main.tsx"></script>
 </body>
