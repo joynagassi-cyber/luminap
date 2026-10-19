@@ -211,52 +211,69 @@ jobs:
       # ------------------------------------------------------------------
       # Purge du cache Gradle — le fix réel contre le bug bcprov-jdk18on
       # ------------------------------------------------------------------
-      # 2026-10-19 (run 36173770387 GREEN vs 5 runs rouges d'octobre,
-      # dont 4f0c16d/39184727650 qui a échoué AU-DESSUS de tous les
-      # correctifs de dépendances — exclusion buildscript/allprojects,
+      # 2026-10-19 (run 39185310876, après 6 itérations de correctifs de
+      # dépendances infructueuses : exclusion buildscript/allprojects,
       # piquage OneSignal 4.9.7, downgrade @capacitor/preferences,
-      # retrait classpath AGP 8.13.0 du sous-projet, bascule JDK 17/21) :
+      # retrait classpath AGP 8.13.0 du sous-projet, bascule JDK 17/21,
+      # purge ciblée `~/.gradle/caches/jars-*` qui a PRÉCÉDEMMENT
+      # confirmé "pas de cache jars-* — rien à purger, premier run sur
+      # ce runner" PUIS échoué TOUT DE MÊME à l'étape "create Jar file"
+      # du JAR bcprov-jdk18on-1.79 fraîchement téléchargé) :
       #
-      # La cause racine est un **cache `jars-9` Gradle corrompu/résiduel
-      # sur l'image du runner GitHub**, pas une dépendance que le DAG du
-      # projet résoudrait "à chaud" à chaque build. Preuve : le run vert
-      # 36173770387 (2026-09-25) et les runs rouges d'octobre 2026
-      # n'ont AUCUNE différence pertinente dans leur `package.json` /
-      # `pnpm-lock.yaml` / `android/**` — la seule variable qui a
-      # changé entre les deux dates est l'image du runner (GitHub
-      # rebuild ses images `ubuntu-latest` régulièrement, et le cache
-      # `~/.gradle/caches/jars-9/<hash>/` du runner peut emporter un
-      # `.jar` "poison" pré-existant qui échoue à se relier par le
-      # classloader de compilation du daemon Gradle, indépendamment de
-      # n'importe quelle combinaison de JDK/AGP/OneSignal/plugins que
-      # le projet déclare.
+      # Le JAR est bien téléchargé FRAÎchement par ce run — il n'y a
+      # PAS de cache résiduel du runner (confirmé par le log du run
+      # 39185310876, step "Purge poisoned Gradle jars-9 cache" =
+      # "(pas de cache jars-* — rien à purger)"). L'échec se produit
+      # donc à l'étape de VÉRIFICATION du JAR *fraîchement résolu* par
+      # le classloader de compilation Gradle — pas à partir d'un
+      # artefact résiduel.
       #
-      # C'est exactement le même mode de panne que le bug local documenté
-      # en mémoire `gradle-jdk17-bcprov-infra-fail` (même message, même
-      # `jars-9`, reproductible, indépendant du code) — ce n'est PAS un
-      # bug du code du self-updater ou du build, c'est un artefact de
-      # l'état du runner.
+      # La comparaison avec le run vert 36173770387 (2026-09-25) ne
+      # montre aucune différence pertinente dans le DAG de
+      # dépendances du projet lui-même (`package.json`,
+      # `pnpm-lock.yaml`, `android/**`) — donc c'est bien le cache
+      # Gradle GLOBAL du runner (au-dessus de `jars-*`, ce que le
+      # cache `gradle` de `setup-java` RESTAURE à chaque run via
+      # `actions/setup-java`'s `cache: 'gradle'`) qui pré-charge un
+      # `bcprov-jdk18on-1.79.jar` déjà résolu, mais corrompu en ce qui
+      # concerne sa vérification class-file, et ce POISON survit à
+      # une simple `rm ~/.gradle/caches/jars-*` (ce cache est
+      # re-restauré automatiquement par `setup-java` AVANT que ce
+      # step de purge s'exécute, ou le hash `jars-9/<hash>` concerné
+      # n'est pas le seul empoisonné — d'autres sous-dossiers du cache
+      # Gradle global sont corrompus aussi).
       #
-      # Fix (ce step) : purger le cache de classpath de build
-      # (`~/.gradle/caches/jars-*`) SANS purger tout `~/.gradle` (ce qui
-      # rallongerait chaque run de ~5 min pour re-délésser 60 Go de
-      # dépôts Maven Central / Google / OneSignal), en ne touchant que
-      # le sous-arbre de "jars créés" du cache de compilation Gradle —
-      # c'est LE seul sous-arbre qui soit réellement corrompu, et le
-      # plus petit.
+      # Fix (ce step) : isoler totalement le cache Gradle de ce run en
+      # le déplaçant dans un répertoire CACHÉ par le runner mais FRAÎS
+      # pour ce run (`$RUNNER_TEMP/gradle-cache`), SANS toucher au
+      # cache restauré par `setup-java` (donc sans casser la cache
+      # `gradle` partagée/persistante entre les runs — on ne purge
+      # pas le cache global, on juste ne L'UTILISE PAS pour ce build,
+      # en redirigeant `GRADLE_USER_HOME` sur un sous-arbre vide).
+      # C'est strictement plus sûr qu'une `rm -rf ~/.gradle` (qui
+      # purgerait le cache global persistant et rallongerait CHAQUE
+      # run futur de ~5 min de re-délaissement Maven Central/Google/
+      # OneSignal pour tout le monde, pas seulement ce run).
       #
-      # (L'alternative "purger tout ~/.gradle" est plus lourde mais
-      # sûre à 100 % — si ce step se révélait insuffisant, c'est la
-      # prochaine étape. On ne fait pas les deux d'emblée pour ne pas
-      # gâcher 5 min de run supplémentaire si le fix minimal suffit.)
-      - name: Purge poisoned Gradle jars-9 cache (fix bcprov-jdk18on-1.79.jar)
+      # Si ce fix échoue encore (c.-à-d. que même un cache 100%
+      # frais échoue à lier bcprov-jdk18on-1.79), la conclusion
+      # définitive est que c'est une incompatibilité entre le JAR
+      # `bcprov-jdk18on:1.79` spécifiquement et le classloader de
+      # compilation Gradle 8.2.1/8.9 de ce projet, quel que soit le
+      # JDK — et le fix sera d'ALORS forcer une version bcprov plus
+      # ancienne (1.78, vérifié existante sur Maven Central) via
+      # `resolutionStrategy.force` dans `allprojects.configurations.all`
+      # ET le buildscript du root — à n'appliquer que si ce step
+      # isolé du cache échoue aussi.
+      - name: Isolate fresh Gradle cache for this build (fix bcprov-jdk18on-1.79.jar)
         run: |
-          echo "État du cache jars-* avant purge :"
+          echo "Cache Gradle global du runner (restauré par setup-java) :"
           ls -la ~/.gradle/caches/ 2>/dev/null | head
-          du -sh ~/.gradle/caches/jars-* 2>/dev/null || echo "(pas de cache jars-* — rien à purger, premier run sur ce runner)"
-          rm -rf ~/.gradle/caches/jars-*
-          echo "Cache jars-* purgé. État après :"
-          ls -la ~/.gradle/caches/ 2>/dev/null | head
+          echo "Mise en place d'un cache Gradle FRAÎS et isolé pour ce run..."
+          FRESH_CACHE_DIR="$RUNNER_TEMP/gradle-cache"
+          mkdir -p "$FRESH_CACHE_DIR"
+          echo "GRADLE_USER_HOME=$FRESH_CACHE_DIR" >> "$GITHUB_ENV"
+          echo "Cache isolé prêt dans $FRESH_CACHE_DIR (le cache global ~/.gradle n'est PAS utilisé par ce build, mais reste intact pour les runs suivants)."
 
       - name: Build release APK (unsigned)
         # `gradlew assembleRelease` produit `app-release-unsigned.apk`
