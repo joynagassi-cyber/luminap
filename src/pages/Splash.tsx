@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePowerSyncStatus, useLoadInitialData } from "@/lib/dataLayer";
 import { needsOnboarding } from "@/lib/onboardingState";
+import { authService } from "@/lib/auth";
 import { Wifi, WifiOff } from "lucide-react";
 import { IonPage, IonContent } from "@ionic/react";
 
@@ -39,13 +40,30 @@ export default function Splash() {
     initialDataLoadedRef.current = initialDataLoaded;
   }, [initialDataLoaded]);
 
-  // Transition vers l'étape suivante (onboarding / dashboard), une fois.
-  const goToNext = () => {
+  // Transition vers l'étape suivante (auth / onboarding / dashboard), une fois.
+  // Fix : si aucune session active existe, naviguer directement vers /auth
+  // (route publique) au lieu de /onboarding (route protégée → RouteGuard
+  // redirigerait vers /auth de toute façon, mais le double-bounce splash →
+  // onboarding → auth peut laisser le view-stack Ionic stuck / écran blanc).
+  const goToNext = async () => {
     if (navigatingRef.current) return;
     navigatingRef.current = true;
-    navigate(needsOnboarding() ? "/onboarding" : "/dashboard", {
-      replace: true,
-    });
+    try {
+      const session = await authService.getSession();
+      if (session) {
+        // Session existante → onboarding ou dashboard
+        navigate(needsOnboarding() ? "/onboarding" : "/dashboard", {
+          replace: true,
+        });
+      } else {
+        // Pas de session → page d'inscription / connexion (route publique)
+        navigate("/auth", { replace: true });
+      }
+    } catch {
+      // Erreur inattendue → toujours atterrir sur /auth pour ne pas
+      // laisser le user bloqué sur le splash.
+      navigate("/auth", { replace: true });
+    }
   };
 
   // Les deux timers pilotent la rampe minimum (logo → illustration →
@@ -55,7 +73,7 @@ export default function Splash() {
     const t2 = setTimeout(() => {
       if (navigatingRef.current) return;
       if (initialDataLoadedRef.current) {
-        goToNext();
+        void goToNext();
       } else {
         setPhase("loading");
       }
@@ -73,7 +91,7 @@ export default function Splash() {
   // `initialDataLoaded` déjà true (cas PowerSync prêt au montage) et
   // court-circuiterait la rampe minimum.
   useEffect(() => {
-    if (initialDataLoaded && phase === "loading") goToNext();
+    if (initialDataLoaded && phase === "loading") void goToNext();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialDataLoaded, phase]);
 
@@ -84,7 +102,7 @@ export default function Splash() {
   // indéfiniment, même si quelque chose bloque le chargement des données.
   useEffect(() => {
     const t = setTimeout(() => {
-      if (!navigatingRef.current) goToNext();
+      if (!navigatingRef.current) void goToNext();
     }, PHASE_LOGO_MS + PHASE_ILLUSTRATION_MS + STUCK_SAFETY_NET_MS);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
