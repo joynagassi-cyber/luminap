@@ -21,13 +21,21 @@ import { AppSchema } from "./schema";
  * seuls les colonnes valides du schéma PowerSync sont poussées au
  * Supabase.
  */
-const SCHEMA_COLUMNS: Record<string, Set<string> | undefined> = (() => {
+export function buildSchemaColumns(): Record<string, Set<string>> {
   const out: Record<string, Set<string>> = {};
   for (const table of AppSchema.tables) {
-    out[table.name] = new Set(["id", ...table.columns]);
+    // `table.columns` expose des instances `Column` (getter de
+    // ResolvedTable → `options.columns`), pas des chaînes. Les étaler
+    // directement produisait un Set de `"[object Object]"` : toutes les
+    // colonnes sauf `id` étaient filtrées, chaque op partait en PUT avec
+    // le seul `{id}` et Supabase la rejetait en 42501 (RLS
+    // `is_org_member(uid, NULL)`), y compris après des heures de retry.
+    out[table.name] = new Set(["id", ...table.columns.map((c) => c.name)]);
   }
   return out;
-})();
+}
+
+const SCHEMA_COLUMNS: Record<string, Set<string> | undefined> = buildSchemaColumns();
 
 function filterOpDataToSchema(
   table: string,
@@ -86,35 +94,38 @@ const FATAL_RESPONSE_CODES = [
 //   - custom_field_definitions.field_name:  ""
 //   - custom_field_definitions.field_type:  "text"
 //   - custom_field_definitions.order: 0
-const NOT_NULL_DEFAULTS: Record<string, Record<string, unknown>> = {
+// `org_id` n'a JAMAIS de valeur par défaut : c'est la colonne d'isolation
+// multi-tenant. Un défaut constant (`"org-e2e"`, org de test, présent ici
+// jusqu'au 2026-10-22) réécrivait l'organisation réelle de chaque ligne
+// (faille d'isolation, PATCH compris) ; un défaut `null` échouait de
+// toute façon en 42501. Les insertions légitimes portent toujours
+// `org_id` explicitement (cf. `addMemberPS`, `addEventPS`, …) : s'il
+// manque, l'op doit échouer visiblement plutôt que d'écrire dans la
+// mauvaise organisation.
+export const NOT_NULL_DEFAULTS: Record<string, Record<string, unknown>> = {
   accounts: {
     owner_type: "GROUP",
     owner_id: "",
     name: "Unnamed",
     status: "ACTIVE",
     currency: "XOF",
-    org_id: "org-e2e",
   },
   groups: {
     status: "ACTIVE",
     name: "Unnamed",
-    org_id: "org-e2e",
   },
   org_units: {
     name: "Unnamed",
     type: "GROUP",
-    org_id: "org-e2e",
   },
   caisses: {
     name: "Unnamed",
     type: "GROUP",
-    org_id: "org-e2e",
   },
   audit_entries: {
     action: "CREATE",
     entity_type: "Transaction",
     entity_id: "",
-    org_id: "org-e2e",
   },
   custom_field_definitions: {
     entity_type: "group",
@@ -122,7 +133,6 @@ const NOT_NULL_DEFAULTS: Record<string, Record<string, unknown>> = {
     field_label: "",
     field_type: "text",
     order: 0,
-    org_id: "org-e2e",
   },
 };
 

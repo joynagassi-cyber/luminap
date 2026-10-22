@@ -27,6 +27,7 @@ import {
   IonInput,
 } from "@ionic/react";
 import EmptyState from "@/components/EmptyState";
+import { showError } from "@/utils/toast";
 
 export default function MembersPage() {
   const navigate = useNavigate();
@@ -115,9 +116,11 @@ export default function MembersPage() {
       setPhone("");
       setEmail("");
       setShowForm(false);
-    } catch {
-      // Échec silencieux : le rechargement de la liste PS refait émerger
-      // l'état ; on laisse le formulaire ouvert pour réessayer.
+    } catch (err) {
+      // Une erreur avalée laissait l'utilisateur devant un formulaire qui ne
+      // se ferme pas, sans explication. On journalise ET on affiche.
+      console.error("[members] échec de la création du membre", err);
+      showError("Impossible d'ajouter le membre. Réessayez.");
     } finally {
       setSaving(false);
     }
@@ -237,6 +240,7 @@ export default function MembersPage() {
                   />
                   <div className="flex gap-2">
                     <button
+                      data-testid="member-submit"
                       onClick={handleCreate}
                       disabled={saving || !firstName.trim() || !lastName.trim()}
                       className="flex-1 py-3 rounded-full font-semibold text-on-accent text-sm"
