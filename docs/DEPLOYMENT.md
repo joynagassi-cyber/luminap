@@ -51,8 +51,8 @@ le dupliquer dans les workflows.
 | `SUPABASE_ANON_KEY` | Clé anon Supabase |
 | `SUPABASE_JWKS_URL` | URL JWKS Supabase |
 | `POWERSYNC_URL` | URL de l'instance PowerSync |
-| `OS_V2_API_KEY` | OneSignal App ID (injecté en `VITE_ONESIGNAL_APP_ID`) |
-| `SENTRY_DSN` | DSN Sentry public (injecté en `VITE_SENTRY_DSN`) |
+| `OS_V2_API_KEY` | OneSignal App ID (injecté en `VITE_ONESIGNAL_APP_ID`) — repli sur `VITE_ONESIGNAL_APP_ID` |
+| `SENTRY_DSN` | DSN Sentry public (injecté en `VITE_SENTRY_DSN`) — repli sur `VITE_SENTRY_DSN` |
 | `SENTRY_AUTH_TOKEN` | Token d'upload des source maps |
 | `SENTRY_ORG` | Slug de l'organisation Sentry |
 | `SENTRY_PROJECT` | Slug du projet Sentry |

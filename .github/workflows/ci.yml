@@ -37,8 +37,8 @@ jobs:
           echo "VITE_SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}" >> .env.local
           echo "VITE_SUPABASE_JWKS_URL=${{ secrets.SUPABASE_JWKS_URL }}" >> .env.local
           echo "VITE_POWERSYNC_URL=${{ secrets.POWERSYNC_URL }}" >> .env.local
-          echo "VITE_ONESIGNAL_APP_ID=${{ secrets.OS_V2_API_KEY }}" >> .env.local
-          echo "VITE_SENTRY_DSN=${{ secrets.SENTRY_DSN }}" >> .env.local
+          echo "VITE_ONESIGNAL_APP_ID=${{ secrets.OS_V2_API_KEY || secrets.VITE_ONESIGNAL_APP_ID }}" >> .env.local
+          echo "VITE_SENTRY_DSN=${{ secrets.SENTRY_DSN || secrets.VITE_SENTRY_DSN }}" >> .env.local
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -68,8 +68,8 @@ jobs:
           echo "VITE_SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}" >> .env.local
           echo "VITE_SUPABASE_JWKS_URL=${{ secrets.SUPABASE_JWKS_URL }}" >> .env.local
           echo "VITE_POWERSYNC_URL=${{ secrets.POWERSYNC_URL }}" >> .env.local
-          echo "VITE_ONESIGNAL_APP_ID=${{ secrets.OS_V2_API_KEY }}" >> .env.local
-          echo "VITE_SENTRY_DSN=${{ secrets.SENTRY_DSN }}" >> .env.local
+          echo "VITE_ONESIGNAL_APP_ID=${{ secrets.OS_V2_API_KEY || secrets.VITE_ONESIGNAL_APP_ID }}" >> .env.local
+          echo "VITE_SENTRY_DSN=${{ secrets.SENTRY_DSN || secrets.VITE_SENTRY_DSN }}" >> .env.local
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -99,8 +99,8 @@ jobs:
           echo "VITE_SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}" >> .env.local
           echo "VITE_SUPABASE_JWKS_URL=${{ secrets.SUPABASE_JWKS_URL }}" >> .env.local
           echo "VITE_POWERSYNC_URL=${{ secrets.POWERSYNC_URL }}" >> .env.local
-          echo "VITE_ONESIGNAL_APP_ID=${{ secrets.OS_V2_API_KEY }}" >> .env.local
-          echo "VITE_SENTRY_DSN=${{ secrets.SENTRY_DSN }}" >> .env.local
+          echo "VITE_ONESIGNAL_APP_ID=${{ secrets.OS_V2_API_KEY || secrets.VITE_ONESIGNAL_APP_ID }}" >> .env.local
+          echo "VITE_SENTRY_DSN=${{ secrets.SENTRY_DSN || secrets.VITE_SENTRY_DSN }}" >> .env.local
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -113,11 +113,11 @@ jobs:
           VITE_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           VITE_SUPABASE_JWKS_URL: ${{ secrets.SUPABASE_JWKS_URL }}
           VITE_POWERSYNC_URL: ${{ secrets.POWERSYNC_URL }}
-          VITE_ONESIGNAL_APP_ID: ${{ secrets.OS_V2_API_KEY }}
+          VITE_ONESIGNAL_APP_ID: ${{ secrets.OS_V2_API_KEY || secrets.VITE_ONESIGNAL_APP_ID }}
           # Sentry — DSN public (embarqué dans le bundle) ; le token sert à
           # l'upload des source maps. Sans SENTRY_AUTH_TOKEN, le plugin Sentry
           # est désactivé (build normal, sans maps).
-          VITE_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+          VITE_SENTRY_DSN: ${{ secrets.SENTRY_DSN || secrets.VITE_SENTRY_DSN }}
           VITE_APP_VERSION: ${{ github.sha }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
@@ -182,8 +182,8 @@ jobs:
           echo "VITE_SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}" >> .env.local
           echo "VITE_SUPABASE_JWKS_URL=${{ secrets.SUPABASE_JWKS_URL }}" >> .env.local
           echo "VITE_POWERSYNC_URL=${{ secrets.POWERSYNC_URL }}" >> .env.local
-          echo "VITE_ONESIGNAL_APP_ID=${{ secrets.OS_V2_API_KEY }}" >> .env.local
-          echo "VITE_SENTRY_DSN=${{ secrets.SENTRY_DSN }}" >> .env.local
+          echo "VITE_ONESIGNAL_APP_ID=${{ secrets.OS_V2_API_KEY || secrets.VITE_ONESIGNAL_APP_ID }}" >> .env.local
+          echo "VITE_SENTRY_DSN=${{ secrets.SENTRY_DSN || secrets.VITE_SENTRY_DSN }}" >> .env.local
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
