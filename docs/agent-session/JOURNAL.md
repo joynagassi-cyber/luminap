@@ -86,3 +86,36 @@ La CI n'exécutait **aucun** job vitest : les 18 échecs ne pouvaient jamais êt
 - **13 tables sans index `org_id`** (R7). **Corrigé**, preuve EXPLAIN avant/après.
 - `notifyRole` côté client envoyait l'id OneSignal comme JWT (toujours invalide)
   et ne transmettait pas l'organisation. **Corrigé** (+ tag `org_id` au login).
+
+---
+
+## Phase 2 — invitations, rôles, intégrité — 19:35 UTC
+
+| Heure | Action | Résultat |
+|-------|--------|----------|
+| 19:05 | Audit RLS `invitations` | Policy `invitations_insert` **sans restriction de rôle** (perdue en `20260926000001:115`) → escalade |
+| 19:15 | Test API création d'invitation | **HTTP 400** `42804: column "is_read" is of type boolean but expression is of type integer` → **toute création d'invitation cassée** |
+| 19:20 | Cause racine | 7 fonctions de notification insèrent le littéral entier `0` dans `notifications.is_read` (BOOLEAN) — forme héritée SQLite/PowerSync. Trigger AFTER INSERT → transaction entière annulée |
+| 19:22 | Migration `20261022000003` | `0` → `false` dans les 7 fonctions + `SET search_path=public`. Rollback fourni |
+| 19:23 | Preuve après | `POST /invitations` **400 → 201** ; `POST /events` **400 → 201** ; notifications créées `is_read=false` |
+| 19:24 | Preuve escalade (avant) | Compte `MEMBRE` → `POST /invitations {target_role:PASTEUR_PRINCIPAL}` **HTTP 201** |
+| 19:28 | Migration `20261022000004` | `can_manage_invitations()` appliquée à INSERT/UPDATE/DELETE. Rollback fourni |
+| 19:29 | Preuve après | Non-gestionnaire → **`42501` row-level security policy** (bloqué) ; gestionnaire → INSERT accepté ; SELECT → 200 |
+
+### Défaut n°2 — 7 parcours métier refusaient toute écriture (CRITIQUE)
+Les triggers de notification (`invitations`, `invitation_claims`, `events`,
+`transactions` INSERT+UPDATE, `form_submissions`, `budget_lines`) échouaient tous
+sur `is_read = 0` (int) vs `boolean`. Comme le trigger est AFTER INSERT, la ligne
+était insérée puis **la transaction annulée** : l'utilisateur voyait l'action
+échouer sans rien enregistrer. Corrigé et prouvé (400 → 201).
+
+### Défaut n°3 — escalade de privilèges sur `invitations` (CRITIQUE)
+La policy d'insertion avait perdu sa liste de rôles ; `UPDATE`/`DELETE` n'étaient
+gardés que par l'appartenance. Un simple membre pouvait émettre une invitation
+`PASTEUR_PRINCIPAL` et révoquer/supprimer toutes les invitations. Corrigé et
+prouvé (201 → 42501).
+
+### Incohérence de modèle constatée (à trancher par le propriétaire)
+`profiles.role` et `org_memberships.role` **divergent** pour le compte de test
+(`MEMBRE` vs `PASTEUR_PRINCIPAL`). Le gate de rôle lit les deux sources. Voir
+RISQUES.md.

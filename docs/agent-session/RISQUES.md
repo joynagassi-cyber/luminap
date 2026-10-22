@@ -28,6 +28,56 @@
 - **Statut** : corrigé (qualification `is_org_member.org_id`), test de
   non-régression pérennisé.
 
+### R14 — 7 triggers de notification écrivaient `0` dans une colonne BOOLEAN — CORRIGÉ
+- **Défaut** : `notifications.is_read` est `BOOLEAN` (migration 0011) mais les 7
+  fonctions de notification insèrent le littéral entier `0` (hérité de SQLite/
+  PowerSync). PostgreSQL refuse la conversion → le trigger `AFTER INSERT`
+  échoue → **la transaction métier entière est annulée**.
+- **Parcours cassés** : créer une invitation, accepter une invitation, créer un
+  événement, créer une transaction, approuver une transaction, soumettre un
+  formulaire, dépasser un budget. L'utilisateur voyait l'action échouer sans
+  rien enregistrer — **aucune invitation ni transaction n'était possible**.
+- **Preuve** : `POST /rest/v1/invitations` → `HTTP 400 {"code":"42804",
+  "message":"column \"is_read\" is of type boolean but expression is of type
+  integer"}`. Après correctif → `HTTP 201`. Idem `POST /rest/v1/events` :
+  400 → 201.
+- **Correctif** : migration `20261022000003`, `0` → `false` dans les 7 fonctions
+  (+ `SET search_path=public`). Rollback fourni.
+- **Statut** : corrigé, prouvé par appels HTTP réels sur l'API REST.
+
+### R15 — Escalade de privilèges sur `invitations` — CORRIGÉ
+- **Défaut** : `invitations_insert` avait perdu sa liste de rôles
+  (`20260926000001:115` l'a réécrite en `is_org_member(...)` seul).
+  `invitations_update` / `invitations_delete` n'étaient gardés que par
+  l'appartenance. Un **simple membre** pouvait émettre une invitation portant
+  `target_role = PASTEUR_PRINCIPAL` (élévation), révoquer et **supprimer** toutes
+  les invitations de son organisation. Aucune garde côté front (la page
+  `/invitation/emit` est accessible à tout connecté) : le serveur était la seule
+  barrière, et il ne l'était plus.
+- **Preuve** : compte `org-e2e` (rôle `MEMBRE` côté `profiles`) →
+  `POST /invitations {target_role:"PASTEUR_PRINCIPAL"}` → **HTTP 201**. Après
+  correctif, même utilisateur → `42501 new row violates row-level security
+  policy` (transaction de test annulée).
+- **Correctif** : migration `20261022000004`, fonction
+  `can_manage_invitations(uid, org_id)` (rôle lu dans `profiles` ET
+  `org_memberships`) appliquée à INSERT, UPDATE (USING + WITH CHECK) et DELETE.
+  Rollback fourni.
+- **Statut** : corrigé, prouvé. Non-régression vérifiée : un gestionnaire
+  (`PASTEUR_PRINCIPAL`) crée toujours (INSERT accepté) et un membre lit
+  toujours (`GET` → 200).
+
+### R16 — `profiles.role` et `org_memberships.role` divergent — OUVERT
+- **Défaut** : pour le compte de test, `profiles.role = 'MEMBRE'` mais
+  `org_memberships.role = 'PASTEUR_PRINCIPAL'` pour la même organisation. Deux
+  sources de vérité du rôle coexistent et peuvent se contredire.
+- **Impact** : un gate qui ne lirait qu'une des deux tables accorderait ou
+  refuserait à tort. Le correctif R15 lit les deux pour être sûr ; mais la
+  divergence reste un **risque de modèle** (rôle affiché ≠ rôle effectif).
+- **Décision conservatrice** : ne pas « réparer » les données (risque
+  d'aggraver), documenter et faire trancher le propriétaire.
+- **Statut** : ouvert, à trancher (voir DECISIONS.md et RAPPORT_FINAL.md).
+
+
 ## Gravité HAUTE
 
 ### R3 — Streams PowerSync non filtrés par organisation — CORRIGÉ FICHIER, DÉPLOIEMENT CLOUD À CONFIRMER
