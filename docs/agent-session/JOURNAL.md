@@ -347,3 +347,22 @@ sonde après correctifs → `{ org:"org-e2e", n:5, ready:true, err:"none" }`.
 - **Correctif** : `persistSession: false` + `autoRefreshToken: false` sur le
   client B. A reste l'unique propriétaire de la persistance et du refresh ;
   B consomme la copie mémoire posée par `mirrorAppSessionIntoConnector()`.
+
+## Bug F — perte de session entre les tests Cypress (testIsolation)
+- **Symptôme** : dans `members.cy.ts`, le 1er test passait puis les suivants
+  retombaient sur `/auth` (assertion sur `h1.text-2xl` = AuthPage).
+- **Preuve du cycle de vie** : trace du token `sb-hhgovvrnalibhgpakswi-auth-token` :
+  visite 1 → `exp=1792715840` (valide, ~1 h de marge) ; visite 2 →
+  **ABSENT dès le début du test**, avant même `ensureAuth()`. Seules les clés
+  de thème survivaient.
+- **Cause racine** : Cypress 16 active `testIsolation` par défaut → cookies +
+  `localStorage` sont effacés avant chaque `it()`. Le token Supabase vit
+  UNIQUEMENT en `localStorage` (supabase-js ne pose pas de cookie http-only),
+  donc `ensureAuth()` (qui se contentait de re-router via `/splash` en
+  supposant un cookie persistant) ne pouvait rien restaurer → session perdue
+  dès le 2e `it()`.
+- **Correctif** : `ensureAuth()` utilise désormais `cy.session('lumina-org-account', …)`
+  (setup = `loginOrgAccount()`), mécanisme canonique qui met en cache et
+  restaure cookies + localStorage avant chaque test, et rejoue le setup si le
+  cache est invalide.
+- **Validation** : `members.cy.ts` → **3/3 passing** (contre 0/3 au départ).

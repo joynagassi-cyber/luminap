@@ -417,36 +417,22 @@ Cypress.Commands.add('requireCredentials', function (): Cypress.Chainable {
  * vraiment perdue et le spec doit re-sign.
  */
 Cypress.Commands.add('ensureAuth', function () {
-  cy.window().then((win) => {
-    // Le key est `sb-<projectId>-auth-token` — `hhgovvrnalibhgpakswi`
-    // est le projectRef de l'instance Supabase Lumina (voir
-    // cypress.config.ts SUPABASE_URL et src/pages/AuthPage.tsx:65).
-    const SB_TOKEN_KEY = 'sb-hhgovvrnalibhgpakswi-auth-token';
-    const raw = win.localStorage.getItem(SB_TOKEN_KEY);
-    let tokenValid = false;
-    if (raw) {
-      try {
-        const parsed = JSON.parse(raw);
-        const exp = parsed?.expires_at; // epoch seconds
-        tokenValid = !!parsed?.access_token && (!exp || exp * 1000 > Date.now());
-      } catch {
-        tokenValid = false;
-      }
-    }
-    if (tokenValid) return;
-    // Token absent/expiré → re-route via /splash. La page public
-    // /splash permet à Splash.tsx de re-appeler
-    // authService.getSession() (qui lit le token + s'il est
-    // expiré, refreshSession via le refresh_token).
-    cy.visit('/splash');
-    cy.location('pathname', { timeout: 60_000 }).should((path: string) => {
-      // Re-route vers /onboarding si le token a perdu le flag
-      // lumina-onboarded ; sinon /dashboard. Si on rebata sur
-      // /auth, le token est Perte et le spec va échouer (on
-      // préfère échouer ici que plus tard en cascade).
-      expect(path, `ensureAuth: /splash a rebattu sur ${path} — le token Supabase a expiré et le refresh a échoué`).to.not.include('/auth');
-      return true;
-    });
+  // Cypress 16 active `testIsolation` par défaut : `localStorage` (donc le
+  // token Supabase, qui vit UNIQUEMENT en localStorage — supabase-js ne
+  // pose pas de cookie http-only) est EFFACÉ avant chaque `it()`. L'ancienne
+  // implémentation se contentait de re-router via /splash en supposant un
+  // cookie persistant : il n'existe pas, donc à partir du 2e `it()` d'un
+  // spec la session était perdue et le RouteGuard rebattait sur /auth
+  // (`h1.text-2xl` d'AuthPage) — d'où des échecs en cascade non
+  // déterministes.
+  //
+  // `cy.session()` est le mécanisme canonique : il met en cache
+  // cookies + localStorage après le setup et les RESTAURE avant chaque
+  // test, et rejoue le setup si le cache est invalide. Le setup est
+  // `loginOrgAccount()` (login UI réel, idempotent). Résultat : chaque
+  // `it()` repart authentifié, indépendamment de l'ordre d'exécution.
+  cy.session('lumina-org-account', () => {
+    cy.loginOrgAccount();
   });
 });
 
