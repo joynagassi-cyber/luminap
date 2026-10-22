@@ -42,6 +42,7 @@ import {
 } from "@/lib/formSystem";
 import type { FormDefinition, FormFieldDefinition, FormSubmission } from "@/types";
 import { downloadBlob } from "@/lib/download";
+import EmptyState from "@/components/EmptyState";
 
 const STATUS_FILTERS: Array<{ value: string; label: string }> = [
   { value: "ALL", label: "Tous les statuts" },
