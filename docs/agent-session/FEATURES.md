@@ -56,3 +56,38 @@
 | events-tasks.cy.ts | 0/1 ❌ |
 | local-dashboard.cy.ts | 0/2 ❌ (spec obsolète) |
 | (13 autres) | voir JOURNAL.md |
+
+---
+
+## Phase 1 — mises à jour (session 2026-10-22, ~19:30–20:30 UTC)
+
+Défauts découverts **pendant** la session, non listés dans le tableau initial.
+Tous ont été corrigés en base par migration versionnée, avec rollback, et
+prouvés par un appel réel (REST/SQL) reproductible.
+
+| # | Fonctionnalité | Défaut découvert | Preuve avant | Correctif | Preuve après | Migration |
+|---|---|---|---|---|---|---|
+| 29 | **Invitations — émission (QR/code)** | `generateCode()` appelé DEUX fois : le code affiché (QR + copier) n'était pas le code persisté → aucune invitation réclamable. De plus `createInvitationPS` générait un id différent de celui du service → id affiché ≠ id persisté (export fichier et claim visant une ligne inexistante) | Test unitaire ROUGE `invitation-code-consistency.test.ts` | `createInvitation` renvoie `{ id, code }` (code persisté) ; `createInvitationPS` réutilise l'id transmis | `V: invitation-code-consistency.test.ts` vert ; `npx vitest run` 60/60 fichiers | — (code) |
+| 30 | **Invitations — limite d'usage (`max_uses`)** | Régression introduite par le durcissement `invitations` : `settle_invitation_claim` (SECURITY INVOKER) ne pouvait plus écrire `used_count` (policy filtrait sans erreur) → invitation réutilisable sans limite | Claim `max_uses=1` → `used_count=0` | Fonction repassée SECURITY DEFINER + EXECUTE retiré à PUBLIC/anon | Claim → `used_count=1` | `20261022000005` |
+| 31 | **Profil — appartenance organisation** | `profiles.org_id` modifiable par UPDATE direct → rattachement à une organisation arbitraire (accès lecture via `is_org_member`) | `UPDATE profiles SET org_id='org-e2e'` accepté | Trigger `guard_profile_org_immutable` (BEFORE UPDATE) | `42501 ORG_ID_IMMUTABLE` | `20261022000005` |
+| 32 | **Inscription / isolation des profils** | `handle_new_user` rattachait CHAQUE nouvel inscrit à `org-1` (organisation contenant de vraies adresses) → tout compte neuf lisait 59 profils | Compte neuf → `GET /profiles` = 59 | `handle_new_user` → `__no_org__` ; `upsert_profile` n'écrit plus `org_id` | 1 profil (le sien) | `20261022000006` |
+| 33 | **Isolation — sentinelle « pas d'organisation »** | Après le correctif 32, la fuite se déplaçait sur `__no_org__` : `is_org_member` considérait tous les utilisateurs sans organisation comme membres d'une même organisation fictive | Compte neuf → 48 profils | `is_org_member` retourne `false` pour le sentinelle | 1 profil | `20261022000007` |
+| 34 | **Fédération — visibilité des organisations** | La vue `org_family` n'avait pas `security_invoker` → contournait la RLS d'`organizations` : énumération de TOUTES les organisations, **même sans jeton** | `GET /org_family` sans jeton → 5 organisations | `security_invoker=true` + policy réécrite via `org_descendants(uid)` (SECURITY DEFINER, borné) | anon → 0 ; membre → 1 | `20261022000008` |
+| 35 | **Surface d'API (fonctions RPC)** | `upsert_profile`, `is_org_member`, `current_org_id`, `org_descendants`, `can_manage_invitations` exécutables par `anon` ; `initplan_uid` à `search_path` mutable | Advisors Supabase (4 + 1 alertes) | EXECUTE retiré à anon/PUBLIC ; `search_path` figé | `POST /rpc/upsert_profile` sans jeton → 401 ; authentifié → 200 | `20261022000009` |
+
+### Couverture de tests ajoutée / corrigée (Phase 1)
+
+| Test | Type | Scénario | Résultat |
+|---|---|---|---|
+| `src/capabilities/__tests__/invitation-code-consistency.test.ts` | V | Le code et l'id renvoyés par `createInvitation` sont EXACTEMENT ceux persistés | vert |
+| `cypress/e2e/rls-isolation-hardened.cy.ts` | C | Isolation RLS avec le **jeton réel** de l'utilisateur (les specs existantes `rls-leak`/`cross-tenant` utilisent la clé **anon** et ne testent donc pas l'utilisateur connecté) | à exécuter |
+
+### Lacune de test identifiée (RISQUES R26)
+
+`cypress/e2e/rls-leak.cy.ts` et `cross-tenant.cy.ts` envoient
+`Authorization: Bearer <anonKey>` : ils valident le rôle `anon`, pas
+l'utilisateur authentifié. Ils **ne peuvent pas** détecter une fuite
+inter-utilisateurs (celle corrigée en 20261022000006/7). De plus `rls-leak`
+échoue sur son assertion finale (« l'organisation courante est visible ») car
+la clé anon ne voit aucune organisation. Le nouveau spec
+`rls-isolation-hardened.cy.ts` lit le vrai jeton et comble ce trou.
