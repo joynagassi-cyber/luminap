@@ -323,3 +323,25 @@
   contrôle de `p_role` dans `upsert_profile` (via `is_org_admin`).
 - **Statut** : corrigé (migrations `20261022000011` et `20261022000012`).
   Rollbacks fournis.
+
+### R29 — Storage sans isolation par organisation (lecture anonyme des documents privés) — CORRIGÉ
+- **Défaut** : les policies de `storage.objects` ne filtraient que le
+  `bucket_id` :
+  * `lumina_storage_read` accordait SELECT à `{anon, authenticated}` sur
+    `logos`, `archives`, `expense_proofs` → **un visiteur SANS COMPTE** pouvait
+    télécharger tout document privé (archives, justificatifs de dépense) en
+    connaissant le chemin `<org_id>/…` ;
+  * `lumina_storage_delete` laissait tout `authenticated` supprimer les
+    documents de n'importe quelle organisation ;
+  * `lumina_storage_write` acceptait les INSERT de `anon` sans contrôle de
+    chemin ; `org_reports` (rapports financiers) était lisible par tout
+    authentifié.
+- **Preuve** : `pg_policies` (rôles `{anon,authenticated}`, `qual` sans
+  condition de chemin). Aucun objet n'existait dans ces buckets : pas de fuite
+  réelle, mais exploitation possible dès le premier dépôt.
+- **Correctif** : chaque accès est borné à l'organisation du chemin
+  (`is_org_member`) ; `logos` reste public en lecture ; `org_reports` est
+  réservé à l'émetteur ou au destinataire.
+- **Vérification** : anon ne liste plus `archives` (vide) ni n'accède aux
+  buckets privés ; un membre ne voit que le préfixe de son organisation.
+- **Statut** : corrigé (migration `20261022000013`). Rollback fourni.
