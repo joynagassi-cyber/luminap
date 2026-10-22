@@ -366,3 +366,13 @@
   dupliqué (`aria-label="Navigation principale"` sur `<nav>` **et** sur le
   `div[role=tablist]` interne) → deux repères de navigation identiques
   (défaut WCAG). Le `tablist` porte désormais « Onglets de navigation ».
+
+### R31 — Contournement de R28 par DELETE + INSERT du profil — CORRIGÉ
+- **Défaut** : le trigger de protection ne couvrait que UPDATE. Un utilisateur
+  pouvait supprimer sa ligne puis la recréer avec `role='ADMIN'`.
+- **Preuve** : `DELETE /profiles?id=eq.<moi>` → 204, puis
+  `POST /profiles {id:<moi>, role:'ADMIN'}` → 201 (role=ADMIN). Profil restauré.
+- **Correctif** : trigger `guard_profile_role_insert` — un profil créé par
+  `authenticated`/`anon` ne peut pas naître avec un rôle privilégié.
+- **Vérification** : INSERT `role='ADMIN'` → 403 ; INSERT `role='MEMBRE'` → 201.
+- **Statut** : corrigé (migration `20261022000014`). Rollback fourni.
