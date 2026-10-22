@@ -208,7 +208,7 @@ export default function BottomNav() {
         <div
           className="flex items-center gap-1.5 max-w-lg mx-auto"
           role="tablist"
-          aria-label="Navigation principale"
+          aria-label="Onglets de navigation"
         >
           {activeNavFeatures.map((f) => {
             const Icon = f.icon;

@@ -345,3 +345,24 @@
 - **Vérification** : anon ne liste plus `archives` (vide) ni n'accède aux
   buckets privés ; un membre ne voit que le préfixe de son organisation.
 - **Statut** : corrigé (migration `20261022000013`). Rollback fourni.
+
+### R30 — Cypress `nav-bottom` : onglets non cliquables (vues Ionic conservées) — OUVERT
+- **Symptôme** : `cy.click()` sur `button[role="tab"][aria-label="Finances"]`
+  échoue avec « not visible per `Element.checkVisibility()` » alors que les
+  styles calculés sont visibles (`display:flex`, `visibility:visible`,
+  `opacity:1`).
+- **Analyse** : Ionic conserve la vue précédente dans le DOM pendant/après la
+  transition (`ion-page` sortant masqué). Le sélecteur
+  `button[role="tab"][aria-label=…]` matche donc **plusieurs** boutons ; le
+  premier trouvé appartient à la vue sortante (zone nulle). `filter(":visible")`
+  ne suffit pas (jQuery considère la vue sortante « visible »).
+- **Impact** : défaut de **test** (synchronisation), pas de l'application — les
+  3 tests échouaient déjà au baseline, à l'identique.
+- **État** : non corrigé. Piste : scoper au `ion-page.ion-page-invisible:not(…)`
+  / attendre `ion-view` actif, ou utiliser `{ force: true }` après assertion du
+  `pathname` (le spec asserte déjà le pathname).
+- **Gravité** : moyenne (couverture de navigation non obtenue).
+- **Correction partielle apportée** : suppression du libellé d'accessibilité
+  dupliqué (`aria-label="Navigation principale"` sur `<nav>` **et** sur le
+  `div[role=tablist]` interne) → deux repères de navigation identiques
+  (défaut WCAG). Le `tablist` porte désormais « Onglets de navigation ».
