@@ -272,3 +272,15 @@
   réécrite via une fonction SECURITY DEFINER `org_descendants(uid)` (la lecture
   directe de la vue dans la policy provoquait une récursion infinie).
 - **Statut** : corrigé (migration `20261022000008`). Rollback fourni.
+
+### R25 — Fonctions SECURITY DEFINER exposées à `anon` + `search_path` mutable — CORRIGÉ
+- **Défaut** : `upsert_profile`, `is_org_member`, `current_org_id`,
+  `org_descendants`, `can_manage_invitations` étaient exécutables par le rôle
+  `anon` (visiteur non authentifié) via `/rest/v1/rpc/…` ; `initplan_uid`
+  (appelée par ~143 policies) avait un `search_path` mutable.
+- **Preuve** : advisors Supabase `anon_security_definer_function_executable`
+  (4 fonctions) et `function_search_path_mutable` (1) ; `POST /rpc/upsert_profile`
+  sans jeton → 401 après correctif.
+- **Statut** : corrigé (migration `20261022000009`). Rollback fourni.
+- **Note** : `upsert_profile` reste exécutable par `authenticated` (nécessaire à
+  l'onboarding) ; il vérifie `p_user_id = auth.uid()` et n'écrit plus `org_id`.
