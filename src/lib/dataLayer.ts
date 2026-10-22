@@ -1944,11 +1944,13 @@ export function useInvitationClaims(invitationId: string | null) {
 export async function createInvitationPS(
   inv: Omit<
     PSInvitation,
-    "id" | "issued_at" | "expires_at" | "used_count" | "status" | "created_at" | "updated_at"
-  >,
+    "issued_at" | "expires_at" | "used_count" | "status" | "created_at" | "updated_at"
+  > & { id?: string },
   expiresAt: string,
 ): Promise<string> {
-  const id = crypto.randomUUID();
+  // L'appelant peut imposer l'id (l'id affiché doit être l'id persisté, sinon
+  // l'export fichier et le claim visent une ligne inexistante).
+  const id = inv.id ?? crypto.randomUUID();
   const now = new Date().toISOString();
   // Payloads déjà sérialisés (string) côté UI : on ne double-encode JAMAIS.
   const grantsPayload =
