@@ -149,3 +149,39 @@ RISQUES.md.
 ### Suite
 - Terminer la couverture Cypress (suite complète en tâche de fond).
 - Compléter FEATURES.md, puis phases 2–7.
+
+---
+
+## Phase 1 (suite) — isolation et durcissement (~20:00–21:00 UTC)
+
+T0 = 2026-10-22T17:56:53Z.
+
+### Défauts découverts et corrigés
+
+| # | Défaut | Preuve avant | Correctif | Migration |
+|---|---|---|---|---|
+| R24 | Vue `org_family` sans `security_invoker` → énumération de TOUTES les organisations, **même sans jeton** | `GET /org_family` (anon) → 5 organisations | `security_invoker` + policy via `org_descendants(uid)` | `…000008` |
+| R25 | 5 fonctions SECURITY DEFINER exécutables par `anon` ; `initplan_uid` à `search_path` mutable | Advisors Supabase (4+1) | REVOKE anon/PUBLIC ; `search_path` figé | `…000009` |
+| R27 | `org_memberships` : auto-ajout dans N'IMPORTE quelle organisation | `POST /org_memberships{org_id:'org-1'}` → 201 puis `POST /org_units{org_id:'org-1'}` → 201 | policies par commande, INSERT/UPDATE → admins | `…000010` |
+| R28 | `profiles.role` modifiable par l'utilisateur → MEMBRE→ADMIN ; `upsert_profile` contournait le trigger | `PATCH /profiles{role:'ADMIN'}` → 200 puis `POST /org_admins` → 201 ; `POST /rpc/upsert_profile{p_role:'ADMIN'}` → 200 | trigger `guard_profile_role_immutable` + contrôle `p_role` | `…000011`, `…000012` |
+| R26 | Les specs RLS s'authentifiaient avec la clé **anon**, jamais le jeton utilisateur | lecture de `rls-leak.cy.ts` | nouveau spec `rls-isolation-hardened.cy.ts` (jeton réel) | — |
+
+### Vérifications saines (preuves)
+
+| Contrôle | Résultat |
+|---|---|
+| Écritures cross-org (`groups`, `events`, `transactions`, `categories`, `members`, `notifications`, `audit_entries`, `accounts`) | **403 / 42501** (toutes refusées) |
+| Secrets : `.env` suivis, clés en dur, secrets dans l'historique | **aucun** ; seules des clés publiques (`VITE_*`) |
+| Intégrité : doublons e-mail, doublons de code, orphelins (profils, memberships, invitations, notifications) | **0** partout |
+| `org_admins` : INSERT/UPDATE bornés à sa propre organisation | conforme |
+| Non-régression après durcissement : `upsert_profile` authentifié, lecture RLS, `org_units` | **200 / 200 / 200** |
+
+### Nettoyage
+Toutes les lignes injectées par les tests d'attaque ont été supprimées et les
+rôles restaurés (`org-e2e` → `PASTEUR_PRINCIPAL`, `org-e2e-unconf` → `MEMBRE`,
+`first_name` remis à `null`, `org_admins` purgé pour `org-e2e-unconf`).
+
+### Suite
+- Isolation du stockage de fichiers (buckets Storage).
+- Invitations : parcours complet (phase 2).
+- Sauvegarde vérifiée ; fin de la suite Cypress.
