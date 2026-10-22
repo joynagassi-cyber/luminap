@@ -186,15 +186,25 @@ describe("a11y — aria labels", () => {
     expect(labels).toContain("Navigation principale");
     // Each tab should have a label (the label variable is interpolated)
     expect(labels.some((l) => l === "label" || l.includes("label"))).toBe(true);
-    // More button toggle - label may vary by implementation
+    // More button toggle — le bouton « Menu » ouvre le menu latéral
+    // (FeatureSidebar). Il est étiqueté « Ouvrir le menu » ; le libellé
+    // « Plus »/« options » date de l'ancienne liste plate.
     expect(
       labels.some(
         (l) =>
-          l.includes("Plus") || l.includes("options") || l.includes("More"),
+          l.includes("Ouvrir le menu") ||
+          l.includes("Plus") ||
+          l.includes("options") ||
+          l.includes("More"),
       ),
     ).toBe(true);
+    // La fermeture du menu vit dans FeatureSidebar, pas dans BottomNav.
+    const sidebarSrc = readTsFile("FeatureSidebar.tsx");
+    const sidebarLabels = extractAriaAttrs(sidebarSrc)
+      .filter((a) => a.attr.startsWith("aria-label"))
+      .map((a) => a.value);
     expect(
-      labels.some(
+      sidebarLabels.some(
         (l) =>
           l.includes("Fermer") ||
           l.includes("Close") ||
@@ -439,6 +449,14 @@ describe("a11y — aria-expanded", () => {
       src.includes("aria-expanded"),
       "More button should expose aria-expanded",
     ).toBe(true);
+  });
+
+  it("FeatureSidebar close button has an aria-label", () => {
+    const src = readTsFile("FeatureSidebar.tsx");
+    const labels = extractAriaAttrs(src)
+      .filter((a) => a.attr.startsWith("aria-label"))
+      .map((a) => a.value);
+    expect(labels).toContain("Fermer le menu");
   });
 
   it("Dropdown menu items are keyboard accessible (outline-none + focus styles)", () => {

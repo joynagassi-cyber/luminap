@@ -251,6 +251,7 @@ export default function BottomNav() {
               onClick={() => setSidebarOpen(true)}
               aria-label="Ouvrir le menu"
               aria-haspopup="dialog"
+              aria-expanded={sidebarOpen}
               style={tabStyle(sidebarOpen)}
               className="w-full flex flex-col items-center justify-center gap-0.5 px-1 py-2 rounded-xl overflow-hidden transition-[transform,background-color,color,opacity]"
             >

@@ -41,32 +41,9 @@ vi.mock("@/components/BottomNav", () => ({
 }));
 
 // ─── Mock @ionic/react ────────────────────────────────────────────────────
-vi.mock("@ionic/react", () => {
-  function makeWrapper(tag: string, props: Record<string, unknown>, children: React.ReactNode[]) {
-    if (tag === "ion-button") {
-      const { onClick, ...rest } = props;
-      return <button type="button" onClick={onClick as (() => void) | undefined} {...rest}>{children}</button>;
-    }
-    return <div {...props}>{children}</div>;
-  }
-  return {
-    IonPage: ({ children, ...props }: any) => makeWrapper("ion-page", props, [children]),
-    IonHeader: ({ children, ...props }: any) => makeWrapper("ion-header", props, [children]),
-    IonContent: ({ children, ...props }: any) => makeWrapper("ion-content", props, [children]),
-    IonTitle: ({ children, ...props }: any) => makeWrapper("ion-title", props, [children]),
-    IonToolbar: ({ children, ...props }: any) => makeWrapper("ion-toolbar", props, [children]),
-    IonButtons: ({ children, ...props }: any) => makeWrapper("ion-buttons", props, [children]),
-    IonBackButton: () => <button data-testid="back-button">back</button>,
-    IonButton: ({ children, ...props }: any) => makeWrapper("ion-button", props, [children]),
-    IonInput: ({ value, onIonChange, ...props }: any) => (
-      <input
-        data-testid="ion-input"
-        value={value}
-        onChange={(e: any) => onIonChange?.({ detail: { value: e.target.value } })}
-        {...props}
-      />
-    ),
-  };
+vi.mock("@ionic/react", async () => {
+  const { createIonicMock } = await import("@/test/ionic-mock");
+  return createIonicMock();
 });
 
 // ─── Mock react-router-dom (useParams is reactive per-route) ───────────────
@@ -288,7 +265,10 @@ describe("Policy wiring in pages", () => {
     it("blocks payment when amount is below policy minimum", async () => {
       _params = { id: "e1" };
       vi.mocked(useEvents).mockReturnValue({
-        data: [{ id: "e1", name: "Test Culte", start_date: "2026-09-01" }] as any,
+        // Date dynamique : un culte figé dans le passé finit par dépasser
+        // JOURS_VERROUILLAGE_CULTE (30 j) et verrouille le bouton « Payé »,
+        // faisant échouer ce test des mois après son écriture.
+        data: [{ id: "e1", name: "Test Culte", start_date: new Date().toISOString() }] as any,
       } as any);
       vi.mocked(useCotisations).mockReturnValue({
         data: [

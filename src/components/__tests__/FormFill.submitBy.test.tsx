@@ -86,6 +86,11 @@ vi.mock("@/components/TopHeader", () => ({
   default: ({ title }: { title?: string }) => <div data-testid="top-header">{title}</div>,
 }));
 
+vi.mock("@ionic/react", async () => {
+  const { createIonicMock } = await import("@/test/ionic-mock");
+  return createIonicMock();
+});
+
 import FormFill from "@/pages/FormFill";
 
 describe("FormFill — submittedBy réel (T2 Forms v2)", () => {
