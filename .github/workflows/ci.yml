@@ -78,6 +78,32 @@ jobs:
         run: npx tsc --noEmit
         continue-on-error: false
 
+  unit:
+    name: Unit Tests (Vitest)
+    runs-on: ubuntu-latest
+    # Ajouté le 2026-10-22 : la suite vitest n'était exécutée par AUCUN job,
+    # ce qui laissait 18 tests en échec invisibles (dont un écran vide réel
+    # en production). Bloquant volontairement : un test rouge doit arrêter
+    # la CI.
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run unit tests
+        run: pnpm exec vitest run
+        continue-on-error: false
+
   build:
     name: Build Application
     runs-on: ubuntu-latest
