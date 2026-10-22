@@ -9,10 +9,14 @@ import { getOneSignalService, initOneSignal } from "./onesignal";
 import { authService } from "./auth";
 import type { Role } from "@/types";
 
-const ONESIGNAL_APP_ID = import.meta.env.VITE_ONESIGNAL_APP_ID;
-if (!ONESIGNAL_APP_ID) {
-  throw new Error(
-    "[authOneSignal] VITE_ONESIGNAL_APP_ID manquante : la synchronisation auth/OneSignal ne peut pas fonctionner sans OneSignal.",
+// OneSignal est optionnel (push) : l'absence d'App ID ne doit PAS lever au
+// chargement du module. Un `throw` ici s'exécute dès l'import et fait planter
+// tout chunk qui importe ce fichier (AuthPage, AppContext) — y compris des
+// pages sans rapport avec les notifications. getOneSignalService() dégrade en
+// no-op quand l'App ID est absent.
+if (!import.meta.env.VITE_ONESIGNAL_APP_ID) {
+  console.warn(
+    "[authOneSignal] VITE_ONESIGNAL_APP_ID manquante : synchronisation auth/OneSignal désactivée (no-op).",
   );
 }
 

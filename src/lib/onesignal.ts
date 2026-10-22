@@ -93,6 +93,12 @@ class OneSignalService {
   }
 
   private getPlugin(): OneSignalPlugin | null {
+    // Pas de `window` (SSR, tests Node, worker) : aucun plugin possible.
+    // Sans cette garde, `getOneSignalService()` levait `window is not defined`
+    // hors navigateur.
+    if (typeof window === "undefined") {
+      return null;
+    }
     const win = window as OneSignalWindow;
 
     // Check if Capacitor is available
@@ -779,11 +785,16 @@ export function getOneSignalService(): OneSignalService {
   if (!instance) {
     const appId = import.meta.env.VITE_ONESIGNAL_APP_ID;
     if (!appId) {
-      throw new Error(
-        "[onesignal] VITE_ONESIGNAL_APP_ID manquante : les notifications push ne peuvent pas fonctionner sans OneSignal.",
+      // Push optionnel : sans App ID (build CI, dev sans config) on retourne
+      // un service « débranché ». Chaque méthode est déjà gardée par
+      // `if (!this.plugin)` (getPlugin() → null hors Capacitor/OneSignal), donc
+      // tout est no-op. Un `throw` ici casserait les pages qui importent le
+      // service sans jamais toucher aux notifications.
+      console.warn(
+        "[onesignal] VITE_ONESIGNAL_APP_ID manquante : notifications push désactivées (no-op).",
       );
     }
-    instance = new OneSignalService(appId);
+    instance = new OneSignalService(appId ?? "");
   }
   return instance;
 }

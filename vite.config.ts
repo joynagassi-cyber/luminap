@@ -4,11 +4,18 @@ import react from "@vitejs/plugin-react-swc";
 import { nitro } from "nitro/vite";
 import wasm from "vite-plugin-wasm";
 import topLevelAwait from "vite-plugin-top-level-await";
+import { sentryVitePlugin } from "@sentry/vite-plugin";
 import path from "path";
 import { readdirSync } from "node:fs";
 
 const isCapacitorBuild = process.env.CAPACITOR_BUILD === "true";
 const isDev = process.env.NODE_ENV !== "production";
+
+// Upload des source maps vers Sentry — uniquement quand un token est fourni
+// (CI de release / build APK). En local sans SENTRY_AUTH_TOKEN le plugin est
+// absent : pas de tentative d'upload, pas d'échec de build.
+const sentryAuthToken = process.env.SENTRY_AUTH_TOKEN;
+const sentryUploadEnabled = Boolean(sentryAuthToken && process.env.SENTRY_ORG && process.env.SENTRY_PROJECT);
 
 // Nitro server layer : activé uniquement s'il existe de VRAIES routes
 // serveur (fichiers .ts/.mts dans ./server, à part .gitkeep). L'app ne
@@ -48,13 +55,49 @@ export default defineConfig(() => ({
     port: 8080,
   },
   plugins: isCapacitorBuild
-    ? [dyadComponentTagger(), react()]
+    ? [
+        dyadComponentTagger(),
+        react(),
+        // Sentry doit rester en DERNIER : il s'exécute après la génération
+        // des bundles/source maps pour les uploader.
+        ...(sentryUploadEnabled
+          ? [
+              sentryVitePlugin({
+                org: process.env.SENTRY_ORG,
+                project: process.env.SENTRY_PROJECT,
+                authToken: sentryAuthToken,
+                release: { name: process.env.VITE_APP_VERSION },
+                telemetry: false,
+                // Supprime les .map du bundle APRÈS upload : elles ne doivent
+                // jamais être servies ni embarquées dans l'APK.
+                sourcemaps: { filesToDeleteAfterUpload: ["./dist/**/*.map"] },
+              }),
+            ]
+          : []),
+      ]
     : [
         dyadComponentTagger(),
         react(),
         wasm(),
         // Only enable top-level await in dev mode (not with Nitro)
         ...(isDev ? [topLevelAwait()] : []),
+        // Sentry upload (source maps) — avant nitro() pour respecter
+        // l'invariant « nitro() doit rester le DERNIER plugin ». Le plugin
+        // n'agit qu'à `closeBundle`, l'ordre relatif est donc neutre.
+        ...(sentryUploadEnabled
+          ? [
+              sentryVitePlugin({
+                org: process.env.SENTRY_ORG,
+                project: process.env.SENTRY_PROJECT,
+                authToken: sentryAuthToken,
+                release: { name: process.env.VITE_APP_VERSION },
+                telemetry: false,
+                // Supprime les .map du bundle APRÈS upload : elles ne doivent
+                // jamais être servies ni embarquées dans l'APK.
+                sourcemaps: { filesToDeleteAfterUpload: ["./dist/**/*.map"] },
+              }),
+            ]
+          : []),
         // nitro() doit rester le DERNIER plugin (apres les transforms Vite)
         // pour que le SPA fallback n'intercepte pas les URLs internes.
         ...(hasNitroServerRoutes ? [nitro()] : []),
@@ -81,7 +124,14 @@ export default defineConfig(() => ({
       "@ionic/react-router",
     ],
   },
-  build: {},
+  build: {
+    // Source maps uniquement quand Sentry est configuré (CI de release).
+    // « hidden » = maps générées sans commentaire sourceMappingURL → jamais
+    // servies au navigateur ; le plugin Sentry les uploade puis les supprime
+    // du bundle final. Hors CI Sentry : pas de maps du tout (pas de fuite de
+    // source si `dist/` est déployé).
+    sourcemap: sentryUploadEnabled ? "hidden" : false,
+  },
   worker: {
     format: "es",
     plugins: () => [wasm()],

@@ -40,6 +40,18 @@ jobs:
           distribution: 'temurin'
           cache: 'gradle'
 
+      - name: Create .env.local
+        # Les `import.meta.env.VITE_*` sont inlinés au BUILD. Sans ce fichier,
+        # le bundle embarque `undefined` → l'app native plante au boot
+        # (auth Supabase). Les workflows web (ci/cypress) le créent déjà.
+        run: |
+          echo "VITE_SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > .env.local
+          echo "VITE_SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}" >> .env.local
+          echo "VITE_SUPABASE_JWKS_URL=${{ secrets.SUPABASE_JWKS_URL }}" >> .env.local
+          echo "VITE_POWERSYNC_URL=${{ secrets.POWERSYNC_URL }}" >> .env.local
+          echo "VITE_ONESIGNAL_APP_ID=${{ secrets.OS_V2_API_KEY }}" >> .env.local
+          echo "VITE_SENTRY_DSN=${{ secrets.SENTRY_DSN }}" >> .env.local
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -47,6 +59,14 @@ jobs:
         # Preflight : build:cap, puis cap sync android (recopie dist/
         # dans le webview — garantit qu'un dist périmé ne peut pas
         # s'embarquer).
+        # Sentry : DSN public + upload des source maps (le token active le
+        # plugin dans vite.config.ts ; absent → plugin désactivé, build OK).
+        env:
+          VITE_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+          VITE_APP_VERSION: ${{ github.sha }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
         run: pnpm run sync:cap
 
       - name: Grant execute permission to gradlew

@@ -30,8 +30,40 @@ Create `.env.local`:
 ```env
 VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key
+VITE_SUPABASE_JWKS_URL=https://your-project.supabase.co/auth/v1/.well-known/jwks.json
+VITE_POWERSYNC_URL=https://your-powersync-instance
 VITE_ONESIGNAL_APP_ID=your-onesignal-app-id
+# Sentry — DSN public (embarqué dans le bundle, ce n'est PAS un secret).
+VITE_SENTRY_DSN=https://<key>@o<org>.ingest.sentry.io/<project>
+# Optionnel : force l'environnement Sentry (sinon dérivé du mode Vite).
+# VITE_SENTRY_ENV=production
 ```
+
+### GitHub Actions secrets
+
+Le CI lit ces secrets (Settings → Secrets and variables → Actions).
+Le DSN Sentry est public, mais on le stocke quand même en secret pour ne pas
+le dupliquer dans les workflows.
+
+| Nom exact du secret | Rôle |
+|---|---|
+| `SUPABASE_URL` | URL du projet Supabase |
+| `SUPABASE_ANON_KEY` | Clé anon Supabase |
+| `SUPABASE_JWKS_URL` | URL JWKS Supabase |
+| `POWERSYNC_URL` | URL de l'instance PowerSync |
+| `OS_V2_API_KEY` | OneSignal App ID (injecté en `VITE_ONESIGNAL_APP_ID`) |
+| `SENTRY_DSN` | DSN Sentry public (injecté en `VITE_SENTRY_DSN`) |
+| `SENTRY_AUTH_TOKEN` | Token d'upload des source maps |
+| `SENTRY_ORG` | Slug de l'organisation Sentry |
+| `SENTRY_PROJECT` | Slug du projet Sentry |
+| `ANDROID_KEYSTORE_BASE64` | Keystore Android (base64) |
+| `ANDROID_KEYSTORE_PASSWORD` | Mot de passe du keystore |
+| `ANDROID_KEYSTORE_ALIAS` | Alias de la clé |
+| `ANDROID_KEYSTORE_KEY_PASSWORD` | Mot de passe de la clé |
+| `CYPRESS_RECORD_KEY` | Clé Cypress Cloud (parallélisation) |
+
+Sans `SENTRY_AUTH_TOKEN` / `SENTRY_ORG` / `SENTRY_PROJECT`, le plugin Sentry
+est désactivé : le build passe, sans upload de source maps.
 
 ### 3. Database Migration
 
