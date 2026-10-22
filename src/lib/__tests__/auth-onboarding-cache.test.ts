@@ -89,6 +89,7 @@ const sbStore = vi.hoisted(() => ({
     getUser: [] as any[],
     refreshSession: [] as any[],
     signOut: [] as any[],
+    stopAutoRefresh: [] as any[],
     signInWithOAuth: [] as any[],
     exchangeCodeForSession: [] as any[],
     onAuthStateChange: [] as any[],
@@ -103,6 +104,7 @@ const sbStore = vi.hoisted(() => ({
     this.calls.getUser = [];
     this.calls.refreshSession = [];
     this.calls.signOut = [];
+    this.calls.stopAutoRefresh = [];
     this.calls.signInWithOAuth = [];
     this.calls.exchangeCodeForSession = [];
     this.calls.onAuthStateChange = [];
@@ -168,6 +170,10 @@ vi.mock("@supabase/supabase-js", () => {
         sbStore.calls.signOut.push(1);
         return sbStore.signOutResult;
       }),
+      stopAutoRefresh: vi.fn(() => {
+        sbStore.calls.stopAutoRefresh.push(1);
+      }),
+      storageKey: "sb-stub-auth-token",
       signInWithOAuth: vi.fn(async (args: any) => {
         sbStore.calls.signInWithOAuth.push(args);
         return sbStore.signInWithOAuthResult;
@@ -381,13 +387,42 @@ describe("auth.ts — signOut", () => {
     expect(getState().session).toBeNull();
     expect(getState().user).toBeNull();
     expect(getState().profile).toBeNull();
-    expect(sbStore.calls.signOut.length).toBe(1);
+    // Soft logout : on ne révoque PAS la session côté serveur (un appel
+    // auth.signOut() invaliderait le refresh token et casserait la
+    // reconnexion depuis /sessions). On coupe seulement l'auto-refresh local.
+    expect(sbStore.calls.signOut.length).toBe(0);
+    expect(sbStore.calls.stopAutoRefresh.length).toBe(1);
   });
 
-  it("clears state even when supabase.signOut throws", async () => {
+  it("keeps the session tokens in a local backup for /sessions", async () => {
+    localStorage.setItem(
+      "sb-stub-auth-token",
+      JSON.stringify({
+        user: { id: "sb-user-1" },
+        access_token: "at",
+        refresh_token: "rt",
+      }),
+    );
     seedAuthSession();
-    sbStore.signOutResult = { error: { message: "boom" } };
+    await authService.signOut();
+    const backup = JSON.parse(
+      localStorage.getItem("lumina-session-backup") || "null",
+    );
+    expect(backup?.access_token).toBe("at");
+    expect(backup?.refresh_token).toBe("rt");
+    // La session active est retirée du storage (l'app n'est plus connectée).
+    expect(localStorage.getItem("sb-stub-auth-token")).toBeNull();
+  });
+
+  it("clears state even when the local teardown throws", async () => {
+    seedAuthSession();
+    sbStore.calls.stopAutoRefresh.length = 0;
+    const orig = localStorage.removeItem;
+    localStorage.removeItem = () => {
+      throw new Error("boom");
+    };
     const res = await authService.signOut();
+    localStorage.removeItem = orig;
     expect(res.error).toBe("boom");
     expect(getState().session).toBeNull();
     expect(getState().user).toBeNull();

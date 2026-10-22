@@ -233,7 +233,6 @@ const App = () => (
       <Sonner />
       <IonApp style={{ backgroundColor: "var(--canvas)" }}>
         <SentryUserBridge />
-        <AppUrlOpenBridge />
         <UpdaterBridge />
         {/* Lien « sauter au contenu » — premier élément focalisable, masqué
             visuellement jusqu'au focus clavier (a11y : parcours du clavier). */}
@@ -248,6 +247,7 @@ const App = () => (
         </a>
         <IonReactRouter>
           <RouteGuard />
+          <AppUrlOpenBridge />
           <AppRouter />
           <AppProvider>
             <main id="main" style={{ height: "100%" }}>

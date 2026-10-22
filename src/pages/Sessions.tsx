@@ -141,9 +141,18 @@ export default function SessionsPage() {
     setBusy(org.orgId);
     setEntering(org.orgId);
     try {
-      // 1. Re-s'authentifier si déconnecté (token expiré / rechargement) :
-      //    on tente de restaurer la session Supabase depuis le localStorage.
+      // 1. Re-s'authentifier si déconnecté (logout doux) : on restaure la
+      //    session depuis le backup local écrit par authService.signOut()
+      //    (tokens conservés, refresh token toujours valide côté serveur
+      //    car le sign-out est en scope "local"). C'est ce qui permet de
+      //    rouvrir le compte sans retaper les identifiants.
       let session = await authService.getSession();
+      if (!session) {
+        const restored = await authService.restoreSoftSession();
+        if (restored) {
+          session = await authService.getSession();
+        }
+      }
       if (!session) {
         // Le token local peut encore être valide : re-hydrate via
         // fetchUser() qui re-lit sb-*-auth-token et revalide silencieusement.

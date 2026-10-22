@@ -17,7 +17,7 @@
 | 4 | Organization dynamique | **PASS** | FederationService, OrgContext, multi-org sync streams dans powersync/sync-config.yaml |
 | 5 | Security réelle | **PASS** | RBAC avec PERMISSION_MATRIX, SecurityService capability, policy checks dans 57+ tests |
 | 6 | Supabase canonical | **PASS** | SupabaseConnector.ts, migrations/, sync-config.yaml (20 streams) |
-| 7 | PowerSync canonical | **PASS** | powersync/cli.yaml, service.yaml, sync-config.yaml, sync-fetched.yaml |
+| 7 | PowerSync canonical | **PASS** | powersync/cli.yaml, service.yaml, sync-config.yaml |
 | 8 | Domain models séparés | **PASS** | Templates system + church.ts; lib/ contient uniquement des utilitaires génériques |
 | 9 | Church Pack fonctionnel | **PASS** | church.ts: workflows (Transaction, Event, Member), 14 roles, 3 forms, RBAC, branding |
 | 10 | Template fonctionnel | **PASS** | schema.ts: Template interface complete; church.ts: full implementation |

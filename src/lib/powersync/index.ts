@@ -251,11 +251,53 @@ function mirrorAppSessionIntoConnector(): void {
 
   supabase.auth.onAuthStateChange(() => {
     syncFromStorage();
+    void subscribeOrgStreams();
   });
   // Synchronise on first boot, in case the session was persisted from a
   // previous app instance (the app client already called getSession() but
   // the connector client has no in-memory copy yet).
   syncFromStorage();
+}
+
+/**
+ * Streams declared `auto_subscribe: false` in the sync config (see
+ * `powersync/sync-config.yaml`, the single source of truth for stream
+ * definitions). They must be opened explicitly by the client, otherwise the
+ * matching local tables stay empty — e.g. `organizations` stays empty and
+ * « Mes comptes » (/sessions) shows no account.
+ *
+ * Subscriptions are persisted locally by PowerSync, so a reload does not drop
+ * them. Idempotent and safe to call before login: without a session the
+ * subscribe simply fails and is retried on the next auth event.
+ */
+const ON_DEMAND_STREAMS = [
+  "org_owned",
+  "org_administered",
+  "org_memberships",
+  "org_admins",
+  "org_families",
+  "grants",
+  "tags",
+  "tag_assignments",
+  "event_tasks",
+  "invitations",
+  "invitation_claims",
+  "org_reports",
+] as const;
+
+let _orgStreamsSubscribed = false;
+async function subscribeOrgStreams(): Promise<void> {
+  if (!_db || _orgStreamsSubscribed) return;
+  try {
+    const { data } = await supabase.auth.getSession();
+    if (!data.session) return; // retried by onAuthStateChange after login
+    for (const name of ON_DEMAND_STREAMS) {
+      await _db.syncStream(name).subscribe();
+    }
+    _orgStreamsSubscribed = true;
+  } catch (error) {
+    console.debug("[PowerSync] org streams subscribe failed (will retry):", error);
+  }
 }
 
 export async function initPowerSync(): Promise<void> {
@@ -297,6 +339,14 @@ export async function initPowerSync(): Promise<void> {
 
   // Connecter à PowerSync
   _db.connect(_connector);
+
+  // Ouvrir les streams org (auto_subscribe: false) — nécessaire pour que
+  // `organizations` / `org_memberships` / `org_admins` se remplissent et
+  // que « Mes comptes » (/sessions) liste le compte. Appelé APRÈS la
+  // création de `_db` (le handle doit exister) et après `connect` (une
+  // session peut déjà être persistée au boot). Idempotent, et re-tenté
+  // sur chaque événement auth (voir onAuthStateChange ci-dessus).
+  void subscribeOrgStreams();
 
   // Écouter les changements de statut
   _db.registerListener({

@@ -1,12 +1,10 @@
 # PowerSync Cloud config - Lumina Church Management
 # yaml-language-server: $schema=https://unpkg.com/@powersync/cli-schemas@latest/json-schema/service-config.json
 #
-# Aligne localement sur service-fetched.yaml (dump Cloud = source de vérité du
-# service config, le seul en production). Ce fichier EST le service config Cloud.
-# Le deploy service-config ci-dessous renvoie exactement ce contenu (idempotent),
-# mais l'URI locale est désormais correcte (Supabase hhgovvrnalibhgpakswi,
-# pas l'ancien vvcdmqpbwfyhkzalwdli) et ne duplique plus le mot de passe :
-# le mot de passe Supabase est géré par le vault Cloud via `secret_ref`.
+# SOURCE DE VÉRITÉ UNIQUE du service config Cloud (l'ancien dump
+# `service-fetched.yaml` a été supprimé : il dupliquait ce fichier et
+# divergeait). `powersync deploy service-config` déploie ce contenu.
+# Le mot de passe Supabase est géré par le vault Cloud via `secret_ref`.
 #
 # ⚠️ Instance = 6a9dd96302481fb31b945823 (cli.yaml), nom "Production", région eu.
 

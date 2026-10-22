@@ -71,6 +71,18 @@ const TOKEN_RENEWAL_BUFFER_MS = 5 * 60 * 1000;
 // Session validation interval (check every 60 seconds)
 const SESSION_CHECK_INTERVAL_MS = 60 * 1000;
 
+// Soft-logout backup key. On sign-out the active session is cleared locally
+// (and NOT revoked server-side), but its tokens are copied here first so
+// « Mes comptes » (/sessions) can restore the session with a single click —
+// the user never retypes their credentials.
+const SOFT_SESSION_BACKUP_KEY = "lumina-session-backup";
+
+interface SoftSessionBackup {
+  userId: string | null;
+  access_token: string;
+  refresh_token: string;
+}
+
 // Brand-new sign-up window. A Google OAuth round-trip that just created the
 // auth user (user.created_at within this window) is the user's FIRST login —
 // i.e. a sign-up — so it must land on onboarding. A returning login (account
@@ -903,12 +915,45 @@ class AuthService {
     }
   }
 
-  // Sign out
+  /**
+   * Soft sign-out — clears the ACTIVE session locally but keeps the account
+   * listed in « Mes comptes » (/sessions) so the user can re-open it with one
+   * click, without retyping credentials.
+   *
+   * IMPORTANT: we deliberately do NOT call `supabase.auth.signOut()`. Even with
+   * `{ scope: "local" }`, supabase-js posts to `/auth/v1/logout` and the server
+   * REVOKES the refresh token, which makes the saved tokens unusable (verified
+   * live: `refreshSession` → "Invalid Refresh Token"). Removing only the local
+   * storage key leaves the refresh token valid server-side, which is exactly
+   * what lets /sessions restore the session later.
+   *
+   * The tokens are copied to a local backup first, then the local session key
+   * is dropped and auto-refresh is stopped.
+   */
   async signOut(): Promise<{ error: string | null }> {
     this.stopSessionValidation();
 
     try {
-      const { error } = await supabase.auth.signOut();
+      const storageKey = (supabase.auth as unknown as { storageKey?: string })
+        .storageKey;
+      const raw = storageKey ? localStorage.getItem(storageKey) : null;
+      const parsed = raw ? JSON.parse(raw) : null;
+
+      // Persist the tokens for /sessions before wiping the active session.
+      if (parsed?.access_token && parsed?.refresh_token) {
+        const backup: SoftSessionBackup = {
+          userId: parsed?.user?.id ?? null,
+          access_token: parsed.access_token,
+          refresh_token: parsed.refresh_token,
+        };
+        localStorage.setItem(SOFT_SESSION_BACKUP_KEY, JSON.stringify(backup));
+      }
+
+      // Local-only teardown: stop the refresh timer and drop the persisted
+      // session so the app no longer counts as signed in — WITHOUT the
+      // server-side revocation that `auth.signOut()` would trigger.
+      supabase.auth.stopAutoRefresh();
+      if (storageKey) localStorage.removeItem(storageKey);
 
       this.setState({
         session: null,
@@ -918,14 +963,9 @@ class AuthService {
         error: null,
       });
       this.notifyListeners();
-
-      if (error) {
-        return { error: error.message };
-      }
-
       return { error: null };
     } catch (err: any) {
-      // Still clear state even if signOut fails
+      // Still clear state even if the local teardown fails
       this.setState({
         session: null,
         user: null,
@@ -935,6 +975,43 @@ class AuthService {
       });
       this.notifyListeners();
       return { error: err?.message };
+    }
+  }
+
+  /**
+   * Restore the session saved by the last soft sign-out (see `signOut`).
+   * Used by /sessions ("Mes comptes") so a click on an account re-authenticates
+   * without credentials. Returns true when a session was restored.
+   */
+  async restoreSoftSession(): Promise<boolean> {
+    let backup: SoftSessionBackup | null = null;
+    try {
+      const raw = localStorage.getItem(SOFT_SESSION_BACKUP_KEY);
+      if (raw) backup = JSON.parse(raw) as SoftSessionBackup;
+    } catch {
+      /* malformed backup — nothing to restore */
+    }
+    if (!backup?.access_token || !backup?.refresh_token) return false;
+
+    try {
+      // `refreshSession` is the reliable path: the saved access token may be
+      // expired, but the (still valid) refresh token mints a fresh session.
+      // `setSession` would only work while the access token is unexpired.
+      const { data, error } = await supabase.auth.refreshSession({
+        refresh_token: backup.refresh_token,
+      });
+      if (error || !data.session) return false;
+      this.setState({
+        session: data.session,
+        user: data.session.user,
+        isLoading: false,
+        error: null,
+      });
+      this.notifyListeners();
+      this.startSessionValidation();
+      return true;
+    } catch {
+      return false;
     }
   }
 

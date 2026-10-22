@@ -50,7 +50,22 @@ vi.mock("@/lib/auth", () => ({
     getSession: vi.fn(async () => null),
     fetchUser: vi.fn(async () => null),
     signOut: vi.fn(async () => ({ error: null })),
+    restoreSoftSession: vi.fn(async () => false),
+    hydrateProfile: vi.fn(async () => undefined),
   },
+  // La page lit le profil via useAuth().getState().profile ; sans ce mock
+  // partiel, Sessions.tsx lève « No useAuth export » et toute la suite casse.
+  useAuth: () => ({
+    getState: () => ({
+      profile: {
+        id: "user-1",
+        email: "u@example.com",
+        first_name: "Test",
+        last_name: "User",
+        role: "TREASURIER",
+      },
+    }),
+  }),
 }));
 
 vi.mock("@/lib/orgContext", () => ({
@@ -109,7 +124,7 @@ describe("Sessions — « Mes comptes » (persistance de session)", () => {
   it("message vide quand aucun compte", () => {
     mockOrgs = [];
     renderSessions();
-    expect(screen.getByText("Aucun compte lié pour l'instant.")).toBeInTheDocument();
+    expect(screen.getByText("Aucun compte lié pour l'instant")).toBeInTheDocument();
     expect(screen.getByText("u@example.com")).toBeInTheDocument();
   });
 
