@@ -87,9 +87,9 @@ describe('Lumina — Event tasks CRUD + status + progress + F5', () => {
     }).should('be.visible');
 
     // ── 3. Add a parent task ─────────────────────────────────────────
-    cy.contains('button', 'Ajouter une tâche', { timeout: 30_000 }).click();
+    cy.contains('button, ion-button', 'Ajouter une tâche', { timeout: 30_000 }).click();
     cy.get('input[placeholder="Ex: Préparer la salle"]').type(parentTitle);
-    cy.contains('button', 'Enregistrer').click();
+    cy.contains('button, ion-button', 'Enregistrer').click();
 
     // Task appears in list with title
     cy.contains(parentTitle, { timeout: 20_000 }).should('be.visible');
@@ -98,7 +98,7 @@ describe('Lumina — Event tasks CRUD + status + progress + F5', () => {
     cy.contains('span', /0\/\d+ tâche/, { timeout: 10_000 }).should('exist');
 
     // ── 4. Add a sub-task linked to the parent ───────────────────────
-    cy.contains('button', 'Ajouter une tâche').click();
+    cy.contains('button, ion-button', 'Ajouter une tâche').click();
     cy.get('input[placeholder="Ex: Préparer la salle"]').type(subTitle);
     // Check "Sous-tâche"
     cy.get('label').contains('Sous-tâche').click();
@@ -117,7 +117,7 @@ describe('Lumina — Event tasks CRUD + status + progress + F5', () => {
       .click();
     // Wait for popover and pick the parent
     cy.contains('ion-item', parentTitle, { timeout: 10_000 }).first().click();
-    cy.contains('button', 'Enregistrer').click();
+    cy.contains('button, ion-button', 'Enregistrer').click();
 
     // Subtask appears (indented)
     cy.contains(subTitle, { timeout: 20_000 }).should('exist');

@@ -41,7 +41,7 @@ describe('Lumina — Cross-tenant isolation (2 orgs)', () => {
     cy.get('ion-input[aria-label="Nom de l\'événement"], input[aria-label="Nom de l\'événement"]')
       .first()
       .type(eventName, { force: true });
-    cy.contains('button', "Créer l'événement", { timeout: 30_000 }).click();
+    cy.contains('button, ion-button', "Créer l'événement", { timeout: 30_000 }).click();
     cy.location('pathname', { timeout: 60_000 }).should((path: string) => {
       expect(path).to.match(/^\/events\//);
     });

@@ -940,4 +940,8 @@ Cypress.Commands.add('resumeOnboardingForOrgAccount', function (): Cypress.Chain
 // restoreCloud) so they are available to every spec.
 import './local';
 
+// Register the Ionic UI helpers (clickButton, typeIonicInput,
+// expectNoBlankScreen) — see cypress/support/ionic.ts for why they exist.
+import './ionic';
+
 export {};

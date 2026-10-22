@@ -31,17 +31,17 @@ describe('Lumina — Calendar segmented tabs + today + navigation + ?date=', () 
       .should('be.visible');
 
     // ── 2. Switch to Calendar tab (SegmentedTabs uses native <button>) ─
-    cy.contains('button', 'Calendrier', { timeout: 30_000 }).click();
-    cy.contains('button', 'Calendrier').should('have.attr', 'aria-selected', 'true');
+    cy.contains('button, ion-button', 'Calendrier', { timeout: 30_000 }).click();
+    cy.contains('button, ion-button', 'Calendrier').should('have.attr', 'aria-selected', 'true');
 
     // ── 3. Assert view toggle buttons exist ──────────────────────────
-    cy.contains('button', 'Jour').should('be.visible');
-    cy.contains('button', 'Semaine').should('be.visible');
-    cy.contains('button', 'Mois').should('be.visible');
-    cy.contains('button', 'Année').should('be.visible');
+    cy.contains('button, ion-button', 'Jour').should('be.visible');
+    cy.contains('button, ion-button', 'Semaine').should('be.visible');
+    cy.contains('button, ion-button', 'Mois').should('be.visible');
+    cy.contains('button, ion-button', 'Année').should('be.visible');
 
     // ── 4. Click "Aujourd'hui" ────────────────────────────────────────
-    cy.contains('button', "Aujourd'hui", { timeout: 10_000 }).click();
+    cy.contains('button, ion-button', "Aujourd'hui", { timeout: 10_000 }).click();
     // Header should show current week label — assert presence of a date-like string
     cy.get('div').should(($divs) => {
       // Look for any text containing a 4-digit year (e.g. "Semaine du 3 oct.")
@@ -53,8 +53,8 @@ describe('Lumina — Calendar segmented tabs + today + navigation + ?date=', () 
     });
 
     // ── 5. Toggle to Year view ────────────────────────────────────────
-    cy.contains('button', 'Année').click();
-    cy.contains('button', 'Année').should('have.attr', 'aria-selected', 'true');
+    cy.contains('button, ion-button', 'Année').click();
+    cy.contains('button, ion-button', 'Année').should('have.attr', 'aria-selected', 'true');
     // Year view shows a 4x3 grid of months
     cy.get('.grid').then(($grid) => {
       // At least some month cells should be visible
@@ -62,8 +62,8 @@ describe('Lumina — Calendar segmented tabs + today + navigation + ?date=', () 
     });
 
     // ── 6. Go back to Month view and navigate forward/backward ────────
-    cy.contains('button', 'Mois').click();
-    cy.contains('button', 'Mois').should('have.attr', 'aria-selected', 'true');
+    cy.contains('button, ion-button', 'Mois').click();
+    cy.contains('button, ion-button', 'Mois').should('have.attr', 'aria-selected', 'true');
 
     // Next month
     cy.get('button[aria-label="Suivant (mois/semaine)"]').first().click();
@@ -90,7 +90,7 @@ describe('Lumina — Calendar segmented tabs + today + navigation + ?date=', () 
     cy.location('search').should('include', `date=${today}`);
 
     // ── 8. Clean up: go back to list ─────────────────────────────────
-    cy.contains('button', 'Liste').click();
+    cy.contains('button, ion-button', 'Liste').click();
     cy.location('pathname').should((path: string) => {
       expect(path).to.equal('/events');
     });

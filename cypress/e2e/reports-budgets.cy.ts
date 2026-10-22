@@ -28,14 +28,14 @@ describe('Lumina — Reports & Budgets', () => {
     cy.get('h1, h2, h3, header').contains('Rapports', { timeout: 30_000 }).should('be.visible');
 
     // Period buttons
-    cy.contains('button', 'Ce mois').should('be.visible');
-    cy.contains('button', 'Cette année').should('be.visible');
-    cy.contains('button', 'Tout').should('be.visible');
+    cy.contains('button, ion-button', 'Ce mois').should('be.visible');
+    cy.contains('button, ion-button', 'Cette année').should('be.visible');
+    cy.contains('button, ion-button', 'Tout').should('be.visible');
 
     // Tab buttons
-    cy.contains('button', 'Global').should('be.visible');
-    cy.contains('button', 'Groupes').should('be.visible');
-    cy.contains('button', 'Événements').should('be.visible');
+    cy.contains('button, ion-button', 'Global').should('be.visible');
+    cy.contains('button, ion-button', 'Groupes').should('be.visible');
+    cy.contains('button, ion-button', 'Événements').should('be.visible');
   });
 
   it('opens the export modal and shows the PDF option', function () {
@@ -43,9 +43,9 @@ describe('Lumina — Reports & Budgets', () => {
 
     cy.ensureAuth();
     cy.visit('/reports');
-    cy.contains('button', 'Exporter le rapport', { timeout: 30_000 }).click();
+    cy.contains('button, ion-button', 'Exporter le rapport', { timeout: 30_000 }).click();
     cy.get('h2').contains('Exporter le rapport').should('be.visible');
-    cy.contains('button', 'PDF').should('be.visible');
+    cy.contains('button, ion-button', 'PDF').should('be.visible');
     // Close the modal
     cy.get('button[aria-label="Fermer"]').click();
   });
@@ -56,7 +56,7 @@ describe('Lumina — Reports & Budgets', () => {
     cy.ensureAuth();
     cy.visit('/report-builder');
     // Metric buttons
-    cy.contains('button', /Somme|Comptage|Moyenne/i, { timeout: 30_000 }).should('exist');
+    cy.contains('button, ion-button', /Somme|Comptage|Moyenne/i, { timeout: 30_000 }).should('exist');
   });
 
   it('creates a budget and sees it in the list', function () {
@@ -71,7 +71,7 @@ describe('Lumina — Reports & Budgets', () => {
     // Open the create sheet
     cy.get('button[aria-label="Nouveau budget"]').click();
     cy.get('[data-testid="budget-name"]').type(budgetName);
-    cy.contains('button', 'Créer le budget').click();
+    cy.contains('button, ion-button', 'Créer le budget').click();
 
     // Budget appears in the list
     cy.contains(budgetName, { timeout: 30_000 }).should('be.visible');
@@ -83,7 +83,7 @@ describe('Lumina — Reports & Budgets', () => {
     // Grab the last budget from the list (our E2e one)
     cy.ensureAuth();
     cy.visit('/budgets');
-    cy.contains('button', /Budgets|E2e Budget/i)
+    cy.contains('button, ion-button', /Budgets|E2e Budget/i)
       .last()
       .click();
       // After clicking the card, the route is /budgets/:id
@@ -97,7 +97,7 @@ describe('Lumina — Reports & Budgets', () => {
 
     // Add a budget line
     cy.get('[data-testid="line-amount"]').type('5000');
-    cy.contains('button', 'Ajouter').click();
+    cy.contains('button, ion-button', 'Ajouter').click();
     cy.contains(/5/, { timeout: 10_000 }).should('exist');
   });
 });

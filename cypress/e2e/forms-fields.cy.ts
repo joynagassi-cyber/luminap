@@ -29,20 +29,20 @@ describe('Lumina — Forms & Custom Fields', () => {
     cy.get('h1, h2, h3').contains('Formulaires', { timeout: 90_000 }).should('exist');
 
     // Open the create modal
-    cy.contains('button', 'Créer').first().click({ force: true });
+    cy.contains('button, ion-button', 'Créer').first().click({ force: true });
 
     // Fill the form name + key (IonInput rend <ion-input> ; le DOM
     // natif exposé est un <input> simple en dehors du shadow root —
     // c'est ce que le selector ci-dessous cible).
     cy.get('input[placeholder*="Nom du formulaire"]').type(formName);
     cy.get('input[placeholder*="Clé"]').type(formKey);
-    cy.contains('button', 'Créer le formulaire').click();
+    cy.contains('button, ion-button', 'Créer le formulaire').click();
 
     // Form appears in the list
     cy.contains(formName, { timeout: 90_000 }).should('exist');
 
     // Publish the form (button label is "Publier" for a DRAFT form)
-    cy.contains('button', 'Publier').first().click();
+    cy.contains('button, ion-button', 'Publier').first().click();
     cy.contains('Brouillon', { timeout: 90_000 }).should('exist').as('draftBadge');
   });
 
@@ -81,7 +81,7 @@ describe('Lumina — Forms & Custom Fields', () => {
     // The modal has: Entité (select), Label, Clé, Type (select), Options
     cy.get('[role="dialog"] input').eq(0).type(fieldLabel);
     cy.get('[role="dialog"] input').eq(1).type(fieldKey);
-    cy.contains('button', /Créer/i).last().click();
+    cy.contains('button, ion-button', /Créer/i).last().click();
 
     // Field appears in the list
     cy.contains(fieldLabel, { timeout: 90_000 }).should('exist');

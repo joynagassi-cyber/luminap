@@ -50,7 +50,7 @@ describe('Lumina — Org reports hierarchy, send page gating, RLS', () => {
     cy.get('ion-title', { timeout: 30_000 }).should('be.visible');
 
     // ── 2. Create org A under Mère (parent pré-rempli via le select) ──
-    cy.contains('button', 'Créer une organisation', { timeout: 30_000 }).click();
+    cy.contains('button, ion-button', 'Créer une organisation', { timeout: 30_000 }).click();
 
     // Parent = org courante : le select org-parent liste les orgs visibles ;
     // on sélectionne la 1re option organique du popover (la Mère du compte).
@@ -77,7 +77,7 @@ describe('Lumina — Org reports hierarchy, send page gating, RLS', () => {
     // ── 3. Create org B under A (bouton contextuel « Ajouter sous cette org »)
     // La card de A expose le sous-menu OrgChildren avec le bouton contextuel
     // (Phase 2 T2.2 — Federation.tsx L532-556).
-    cy.contains('button', 'Ajouter sous cette org', { timeout: 30_000 })
+    cy.contains('button, ion-button', 'Ajouter sous cette org', { timeout: 30_000 })
       .first()
       .click();
 

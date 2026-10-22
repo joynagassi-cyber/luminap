@@ -28,13 +28,13 @@ describe('Lumina — Members', () => {
     cy.get('h1, h2, h3').contains('Membres').should('be.visible');
 
     // Open the create form
-    cy.contains('button', 'Ajouter').first().click({ force: true });
+    cy.contains('button, ion-button', 'Ajouter').first().click({ force: true });
     cy.get('input[aria-label="Prénom"]').type(firstName);
     cy.get('input[aria-label="Nom"]').type(lastName);
     cy.get('input[aria-label="Téléphone"]').type(phone);
 
     // Submit
-    cy.contains('button', 'Ajouter').last().click();
+    cy.contains('button, ion-button', 'Ajouter').last().click();
 
     // Member appears in the active list
     cy.contains(firstName + ' ' + lastName, { timeout: 20_000 }).should('be.visible');

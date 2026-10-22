@@ -57,8 +57,10 @@ describe('Lumina — offline dashboard shell (no cloud)', () => {
       timeout: 40_000,
     }).should('be.visible');
 
-    // The BottomNav "Plus" button (native <button> with aria-label="Plus d'options").
-    cy.get('button[aria-label="Plus d\'options"]', { timeout: 15_000 }).should('exist');
+    // The BottomNav is `<nav data-testid="bottom-nav">` with native
+    // `<button role="tab" data-testid="nav-tab-*">` items (probed DOM).
+    cy.get('[data-testid="bottom-nav"]', { timeout: 15_000 }).should('exist');
+    cy.get('[data-testid="nav-tab-dashboard"]', { timeout: 15_000 }).should('exist');
 
     // The empty "Derniers mouvements" state proves transactions=[] rendered,
     // NOT a loading block.
@@ -74,15 +76,12 @@ describe('Lumina — offline dashboard shell (no cloud)', () => {
       timeout: 40_000,
     }).should('be.visible');
 
-    // "Finances" tab: native <button role="tab" aria-label="Finances">.
-    cy.get('button[role="tab"][aria-label="Finances"]', { timeout: 15_000 }).click();
+    // "Finances" tab: native <button role="tab" data-testid="nav-tab-finance">.
+    cy.get('[data-testid="nav-tab-finance"]', { timeout: 15_000 }).click();
     cy.location('pathname', { timeout: 15_000 }).should('include', 'finance');
 
-    // La page Finance n'affiche PAS le nom « Caisse principale » en
-    // tant que tel (le compte racine est le compte de référence, mais
-    // la page Finance liste les transactions, pas les accounts). On
-    // vérifie que la page est bien rendue (pas le skeleton, pas
-    // /dashboard) : le titre « Finances » (IonTitle) est l'anchor.
-    cy.get('ion-title', { timeout: 15_000 }).should('contain', 'Finances');
+    // The Finance page renders a semantic <h1> « Finance — Grand livre »
+    // (probed DOM) — there is no IonTitle on these screens.
+    cy.get('h1', { timeout: 15_000 }).should('contain', 'Finance');
   });
 });

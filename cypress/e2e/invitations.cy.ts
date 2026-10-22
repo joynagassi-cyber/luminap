@@ -41,7 +41,7 @@ describe('Lumina — Invitations (émettre un code / QR)', () => {
     cy.get('ion-select[aria-label="Sélectionner un rôle"]').click({ force: true });
     cy.get('ion-select-option').contains('Secrétaire').click({ force: true });
 
-    cy.contains('button', "Générer l'invitation", { timeout: 30_000 }).click();
+    cy.contains('button, ion-button', "Générer l'invitation", { timeout: 30_000 }).click();
 
     // État « qr » : le QR est rendu + l'alerte de succès + le code.
     cy.get('svg', { timeout: 30_000 }).should('exist'); // qrcode.react rend un <svg>
@@ -52,7 +52,7 @@ describe('Lumina — Invitations (émettre un code / QR)', () => {
     cy.get('code').first().should('exist').and('have.text').and('length.gte', 4);
 
     // « Gérer » ouvre la page de gestion des invitations.
-    cy.contains('button', 'Gérer').click();
+    cy.contains('button, ion-button', 'Gérer').click();
     cy.location('pathname', { timeout: 30_000 }).should('eq', '/invitation/manage');
     cy.get('h1, h2, h3, [role="heading"]').should('exist');
   });

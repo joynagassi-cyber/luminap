@@ -125,7 +125,7 @@ describe('Lumina — navigation BottomNav (affichage pages + perf + pas d écran
         }
         const text = win.document.body?.textContent ?? '';
         if (text.includes('Réessayer')) {
-          cy.contains('button', 'Réessayer', { timeout: 10_000 }).click();
+          cy.contains('button, ion-button', 'Réessayer', { timeout: 10_000 }).click();
           return cy.get(NAV_SELECTOR, { timeout: 90_000 }).should('exist');
         }
         return cy.get(NAV_SELECTOR, { timeout: 90_000 }).should('exist');
