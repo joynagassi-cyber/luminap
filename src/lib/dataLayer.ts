@@ -882,21 +882,26 @@ export function usePowerSyncStatus(): boolean {
   useEffect(() => {
     if (!sync) return;
 
-    const unsubscribe = (sync as any).addListener?.("statusChanged", (status: any) => {
+    const applyStatus = (status: any) => {
       if (status?.connected && status?.hasSynced) {
         setReady(true);
         markPowerSyncReady();
       }
+    };
+
+    // API PowerSync réelle : `registerListener({ statusChanged })` +
+    // propriété `currentStatus`. Les noms `addListener` / `getStatus()`
+    // n'existent pas dans le SDK : l'appel optionnel ne levait pas, mais
+    // n'enregistrait rien → `_psReady` restait `false` pour toujours et
+    // TOUS les hooks de lecture retombaient sur le repli local (vide au
+    // premier lancement), alors que `useQuery` renvoyait bien les lignes.
+    const unregister = (sync as any).registerListener?.({
+      statusChanged: applyStatus,
     });
 
-    // Check initial status
-    const currentStatus = (sync as any).getStatus?.();
-    if (currentStatus?.connected && currentStatus?.hasSynced) {
-      setReady(true);
-      markPowerSyncReady();
-    }
+    applyStatus((sync as any).currentStatus);
 
-    return () => { if (typeof unsubscribe === "function") unsubscribe(); };
+    return () => { if (typeof unregister === "function") unregister(); };
   }, [sync]);
 
   return ready;

@@ -257,13 +257,29 @@ export class SupabaseConnector
 
     this.config = { supabaseUrl, powersyncUrl, supabaseAnonKey };
 
+    // Client B (PowerSync) : session EN MÉMOIRE uniquement.
+    //
+    // `persistSession: false` + `autoRefreshToken: false` sont
+    // indispensables : ce client partageait le storageKey de client A
+    // (`sb-<ref>-auth-token`) tout en ayant son propre timer de refresh.
+    // Supabase fait tourner (rotate) le refresh token à chaque refresh ;
+    // les deux clients rafraîchissaient donc en parallèle avec le même
+    // refresh token. Le second refresh était rejeté (« Invalid Refresh
+    // Token: Already Used ») et Supabase RÉVOQUE toute la famille de
+    // tokens → déconnexion aléatoire de l'utilisateur (et des specs
+    // Cypress en cascade).
+    //
+    // A reste l'unique propriétaire de la session persistée et du timer
+    // (voir src/lib/auth.ts) ; B ne fait que consommer une copie en
+    // mémoire posée par `mirrorAppSessionIntoConnector()` pour que
+    // `fetchCredentials()` renvoie un access_token valide.
     this.client = createClient(
       this.config.supabaseUrl,
       this.config.supabaseAnonKey,
       {
         auth: {
-          persistSession: true,
-          autoRefreshToken: true,
+          persistSession: false,
+          autoRefreshToken: false,
           detectSessionInUrl: false,
         },
       },

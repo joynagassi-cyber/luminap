@@ -234,3 +234,116 @@ n'expose pas d'événement `ionInput` pour eux (vérifié dans
 - `npx tsc --noEmit` → **OK**.
 - `npx vitest run` → **60 fichiers / 1050 tests verts**.
 - Le mock de test `src/test/ionic-mock.tsx` acceptait déjà `onIonInput`.
+
+## Phase 1/4 — DÉFAUT CRITIQUE : write path PowerSync → Supabase (22:20–22:42 UTC)
+
+### Symptôme
+`/members` : le membre semblait créé (formulaire fermé, aucun message
+d'erreur) mais **n'apparaissait jamais** dans la liste, et **aucune ligne
+n'arrivait en base**.
+
+### Diagnostic (prouvé)
+1. Interception réseau Cypress (`cy.intercept('**/rest/v1/members*')`) :
+   le corps de l'op d'upload valait `{"id":"4e1c1db3-…"}` — **une seule
+   clé**. Toutes les autres colonnes (dont `org_id`) étaient absentes.
+2. Console navigateur :
+   `[PowerSync] uploadData FAILED members op=PUT org_id=org-e2e
+   code=42501 msg=Could not update Supabase: new row violates row-level
+   security policy for table "members"`.
+3. `pg_policies` : `members_insert` a `WITH CHECK is_org_member(uid, org_id)`.
+   `is_org_member(uid, NULL)` → `false` (le CASE renvoie false dès que
+   `org_id` est NULL). D'où le 42501.
+4. Reproduction REST : un upsert `POST members?on_conflict=id` avec
+   `org_id` renseigné → **HTTP 201**, puis **200** au 2e passage. Donc
+   l'utilisateur satisfait bien la RLS ; c'est bien l'op PowerSync qui
+   était amputée.
+
+### Cause racine (2 défauts, même commit d379ec0 du 2026-10-18)
+- **`SCHEMA_COLUMNS`** (`src/lib/powersync/SupabaseConnector.ts:27`)
+  faisait `new Set(["id", ...table.columns])`. Or `table.columns` expose
+  des instances `Column` (getter `ResolvedTable.columns` →
+  `options.columns`), **pas des chaînes**. Preuve exécutable :
+  `node probe-columns.mjs` →
+  `set contents: [ 'id', '[object Object]', '[object Object]', … ]`.
+  `filterOpDataToSchema` supprimait donc **toutes** les colonnes sauf
+  `id`. → **Toute écriture client échouait en 42501.**
+- **`NOT_NULL_DEFAULTS`** fournissait `org_id: "org-e2e"` (l'organisation
+  de test) : une op dont `org_id` manquait était réécrite vers une
+  **autre organisation** → faille d'isolation multi-tenant (PATCH inclus).
+
+### Correctif (commit 9bb2059)
+- `buildSchemaColumns()` : `table.columns.map((c) => c.name)`.
+- `org_id` retiré de `NOT_NULL_DEFAULTS` (aucune valeur par défaut pour
+  la colonne d'isolation ; une op sans `org_id` doit échouer
+  visiblement).
+
+### Preuves
+- `src/lib/__tests__/connector-schema-filter.test.ts` : **5/5 verts** ;
+  en réintroduisant les deux défauts, **4/5 échouent** (régression
+  verrouillée).
+- Cypress : corps du PUT =
+  `{"created_at":…,"first_name":"Diag","joined_at":…,"last_name":"Write",
+  "org_id":"org-e2e","status":"ACTIVE","updated_at":…,"id":…}` — complet,
+  plus aucune 42501.
+- Postgres : `52f659e4… "Diag Write"` et `0bd1b0e6… "Jean E2e29918"`
+  persistés avec `org_id='org-e2e'`.
+- `npx tsc --noEmit` → exit 0 ; `npx vitest run` → **61 fichiers /
+  1055 tests verts**.
+- Branche poussée : `agent/session-2026-10-22-stabilisation`.
+
+### Reste à traiter
+La liste `/members` n'affiche toujours pas les membres créés alors que la
+base les contient : investigation du chemin de lecture (PowerSync local
+`members` / `isPowerSyncReady` / repli `useLocalStore`).
+
+## Bug C — provider PowerSync jamais monté (cause racine du bug de lecture)
+- **Symptôme** : `/members` affichait « 0 actifs / Aucun membre » alors que la
+  base SQLite locale contenait bien 5 membres (`hasSynced=true`,
+  `connected=true`).
+- **Preuve de la course écartée** : instrumentation `console.info` du hook →
+  `orgId=__no_org__` au 1er rendu puis `orgId=org-e2e` (4 re-rendus). L'org
+  finit donc bien par être résolue : ce n'était PAS une course React.
+- **Cause racine** : `src/components/PowerSyncProvider.tsx` définit un
+  `<PowerSyncContext.Provider>` mais **n'était monté nulle part**
+  (`grep` sur tout le dépôt : seule occurrence = sa propre définition ;
+  `git log -S PowerSyncProvider -- src/App.tsx src/main.tsx` = vide, il n'a
+  jamais été monté). `useQuery()` de `@powersync/react` fait
+  `usePowerSync()` → `null` → renvoie
+  `{ data: [], isLoading:false, error: Error("PowerSync not configured.") }`.
+  Toutes les listes de l'app retombaient donc sur le repli `useLocalStore`
+  (vide au premier lancement).
+- **Correctif** : monter le provider autour de `<App />` dans `src/main.tsx`.
+
+## Bug D — `usePowerSyncStatus` utilisait une API inexistante
+- **Symptôme** : après le correctif C, `useQuery` renvoyait bien 5 lignes mais
+  l'UI restait vide : `isPowerSyncReady()` renvoyait `false` en permanence.
+- **Preuve** : sonde `window.__diagUseMembers` → `{ org:"org-e2e", n:5,
+  ready:false }`. Or `useMembers` exige `psData.length>0 && isPowerSyncReady()`
+  pour retourner les données PowerSync.
+- **Cause racine** : `usePowerSyncStatus` appelait `sync.addListener("statusChanged")`
+  et `sync.getStatus()`. Vérification des `.d.ts` du SDK
+  (`@powersync/common@2.2.0`) : ces membres **n'existent pas**. L'API réelle est
+  `registerListener({ statusChanged })` et la propriété `currentStatus`
+  (`get connected()`, `get hasSynced()`). Les appels optionnels
+  (`?.`) ne levaient pas mais n'enregistraient rien → `markPowerSyncReady()`
+  n'était jamais appelé → `_psReady` restait `false` → repli local partout.
+- **Correctif** : `registerListener({ statusChanged: applyStatus })` +
+  lecture initiale de `currentStatus`.
+
+**Preuve de validation (locale, `--config baseUrl=http://127.0.0.1:8080`)** :
+sonde après correctifs → `{ org:"org-e2e", n:5, ready:true, err:"none" }`.
+
+## Bug E — refresh token en rotation par deux clients Supabase concurrents
+- **Symptôme** : session perdue de façon non déterministe pendant la suite
+  Cypress (le test 2 retombait sur l'écran `/auth` : `h1.text-2xl` d'AuthPage).
+- **Cause racine** : deux `createClient` Supabase partagent le même
+  storageKey (`sb-<ref>-auth-token`) : client A (`src/lib/auth.ts`) et client B
+  (`SupabaseConnector`). Le client B avait `persistSession: true` **et**
+  `autoRefreshToken: true` → son propre timer de refresh. Supabase fait
+  tourner le refresh token à chaque refresh ; le second refresh concurrent
+  était rejeté (« Already Used ») et Supabase révoque la famille de tokens →
+  déconnexion. Le commentaire du code affirmait que B « ne possède pas le
+  timer », ce qui était faux.
+- **Correctif** : `persistSession: false` + `autoRefreshToken: false` sur le
+  client B. A reste l'unique propriétaire de la persistance et du refresh ;
+  B consomme la copie mémoire posée par `mirrorAppSessionIntoConnector()`.
