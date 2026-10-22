@@ -91,3 +91,22 @@ inter-utilisateurs (celle corrigée en 20261022000006/7). De plus `rls-leak`
 échoue sur son assertion finale (« l'organisation courante est visible ») car
 la clé anon ne voit aucune organisation. Le nouveau spec
 `rls-isolation-hardened.cy.ts` lit le vrai jeton et comble ce trou.
+
+---
+
+## Phase 2 — mises à jour (session 2026-10-22, ~20:30–21:45 UTC)
+
+| # | Fonctionnalité | Défaut découvert | Preuve avant | Correctif | Preuve après | Migration |
+|---|---|---|---|---|---|---|
+| 36 | **Rôles — immuabilité (UPDATE)** | Un membre pouvait s'auto-promouvoir `ADMIN` via `PATCH /profiles {role}` | `PATCH role=ADMIN` → 204 | Trigger `guard_profile_role_immutable` (BEFORE UPDATE) | `403 ROLE_IMMUTABLE` ; `PATCH first_name` → 204 | `20261022000011` |
+| 37 | **Rôles — injection via RPC** | `upsert_profile` (SECURITY DEFINER) acceptait `p_role` et contournait le trigger UPDATE | `POST /rpc/upsert_profile {p_role:'ADMIN'}` → 200 | Rôle refusé hors `authenticated` non-admin ; `EXECUTE` retiré à anon | `403 ROLE_NOT_ALLOWED` ; sans `p_role` → 200 | `20261022000012` |
+| 38 | **Rôles — contournement par DELETE+INSERT** | Le trigger ne couvrait que UPDATE : `DELETE` de sa ligne (204) puis `POST {role:'ADMIN'}` (201) recréait un profil admin | `POST role=ADMIN` → 201 | Trigger `guard_profile_role_insert` (seul `MEMBRE` accepté à l'INSERT) | `403 ROLE_NOT_ALLOWED` ; INSERT `MEMBRE` → 201 | `20261022000014` |
+| 39 | **Fichiers — isolation du stockage** | Buckets privés (`archives`, `expense_proofs`) sans portée d'organisation : tout authentifié listait/écrivait les objets de toute organisation | Liste anon `archives` → 200 | Policies portées sur l'org du chemin (`org_id/…`) | anon `archives` → vide ; cross-org → vide ; org courante → 200 | `20261022000013` |
+| 23 | **Navigation (barre basse + menu latéral)** | `aria-label="Navigation principale"` présent sur le `<nav>` **et** sur le `div[role=tablist]` interne → deux repères de navigation de même nom (WCAG) et sélecteur de test ambigu | — | `tablist` → `aria-label="Onglets de navigation"` | `V: a11y.test.ts` 28/28 verts | — (code) |
+
+### Statut de la suite Cypress (après durcissement)
+
+Aucune régression : les 24 specs donnent **exactement** le même résultat
+qu'au baseline (comparaison `/tmp/cy-baseline-full.log` vs `/tmp/cy-post.log`).
+Les échecs sont **préexistants** (défauts de test / infra), cf. RISQUES.md R30.
+`local-dashboard.cy.ts` passe de 0/2 à 2/2 (spec obsolète réparé en Phase 0).
