@@ -185,3 +185,13 @@ rôles restaurés (`org-e2e` → `PASTEUR_PRINCIPAL`, `org-e2e-unconf` → `MEMB
 - Isolation du stockage de fichiers (buckets Storage).
 - Invitations : parcours complet (phase 2).
 - Sauvegarde vérifiée ; fin de la suite Cypress.
+
+### Sauvegardes (phase 0/1)
+`GET /v1/projects/…/database/backups` → `walg_enabled: true`,
+`pitr_enabled: false`, **`backups: []`** (aucune sauvegarde listée) : R18 confirmé.
+Exports produits **hors dépôt** (données réelles, non commitées) :
+- `/tmp/lumina-schema-20261022.sql` (133 Ko, schéma complet) ;
+- `/tmp/lumina-data-20261022.sql` (1,1 Mo, données).
+Commande : `npx supabase@latest db dump --linked [-f … | --data-only -f …]`.
+R18 reste **ouvert** côté propriétaire : activer les sauvegardes
+planifiées / PITR (action de facturation, hors de ma portée).
