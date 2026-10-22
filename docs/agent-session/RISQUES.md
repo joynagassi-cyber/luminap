@@ -119,6 +119,58 @@
   d'abonnement du propriétaire).
 
 
+### R19 — Régression `used_count` (durcissement invitations) — CORRIGÉ
+- **Défaut** : mon durcissement R15 a bloqué l'écriture de `used_count` par
+  `settle_invitation_claim` (SECURITY INVOKER) : la policy `invitations_update`
+  filtrait silencieusement l'UPDATE, sans erreur. `max_uses` n'était donc plus
+  appliqué (invitation réutilisable au-delà de sa limite).
+- **Preuve** : claim d'une invitation `max_uses=1` → claim CONFIRMED mais
+  `used_count=0`. Après correctif (SECURITY DEFINER) → `used_count=1`.
+- **Statut** : corrigé (migration `20261022000005`). Rollback fourni.
+
+### R20 — `profiles.org_id` injectable par UPDATE direct — CORRIGÉ (rôle self-service ouvert)
+- **Défaut** : la policy `profiles_update` autorisait l'utilisateur à modifier
+  toute colonne de son propre profil, dont `org_id`. Comme `is_org_member` lit
+  `profiles.org_id`, un utilisateur pouvait se rattacher à une organisation
+  arbitraire et lire ses données.
+- **Preuve** : `UPDATE profiles SET org_id='org-e2e'` par un utilisateur hors
+  org → accepté avant ; `42501 ORG_ID_IMMUTABLE` après.
+- **Statut** : corrigé (migration `20261022000005`).
+- **Reste ouvert** : le **rôle** reste modifiable par l'utilisateur
+  (`upsert_profile` accepte un `p_role` arbitraire, et `profiles_update` laisse
+  passer `role`). Un utilisateur peut donc s'attribuer `PASTEUR_PRINCIPAL`.
+  C'est peut-être voulu (self-service d'onboarding) : décision produit à
+  trancher (voir DECISIONS.md). Non modifié pour ne pas casser l'onboarding.
+
+### R21 — Fuite PII inter-utilisateurs via `handle_new_user` / sentinelle — CORRIGÉ
+- **Défaut** : `handle_new_user` rattachait chaque nouvel inscrit à `org-1`
+  (organisation contenant de vraies adresses personnelles). Tout compte neuf
+  lisait les 59 profils de `org-1`. En corrigeant, la fuite se déplaçait sur le
+  sentinelle `__no_org__` (48 profils). `upsert_profile` acceptait aussi un
+  `p_org_id` arbitraire.
+- **Preuve** : compte neuf → `GET /profiles` = 59 profils (org-1) puis 48
+  (`__no_org__`) ; après correctif → 1 profil (le sien).
+- **Statut** : corrigé (migrations `20261022000006` et `20261022000007`).
+- **Résiduel** : les 59 profils **déjà** rattachés à `org-1` restent liés entre
+  eux (données potentiellement réelles : non déplacées). Voir R22.
+
+### R22 — 59 comptes rattachés à `org-1` (dont des adresses réelles) — OUVERT
+- **Constat** : `org-1` contient 59 profils mêlant comptes de test et adresses
+  personnelles réelles (`joynagassi@gmail.com`, `kairosiluminate@gmail.com`, …).
+  Ces comptes peuvent se lire entre eux (même organisation).
+- **Risque** : si ces adresses sont des utilisateurs réels distincts, il y a
+  divulgation croisée d'e-mails. Le propriétaire doit décider : purger `org-1`,
+  ou éclater ces comptes en organisations réelles.
+- **Décision conservatrice** : ne rien déplacer automatiquement (risque
+  d'aggraver). Documenté, à trancher.
+
+### R23 — `settle_invitation_claim` était exécutable par `anon`/PUBLIC — CORRIGÉ
+- **Défaut** : la fonction (règlement de claim) était `EXECUTE`-able par `anon`
+  et PUBLIC, alors qu'elle est appelée uniquement par des triggers.
+- **Statut** : corrigé (migration `20261022000005`, droits restreints à
+  `authenticated`/`service_role`).
+
+
 ## Gravité HAUTE
 
 ### R3 — Streams PowerSync non filtrés par organisation — CORRIGÉ FICHIER, DÉPLOIEMENT CLOUD À CONFIRMER

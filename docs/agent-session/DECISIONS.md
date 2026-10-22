@@ -30,3 +30,46 @@
   et le label du bouton est devenu « Ouvrir le menu ». Le test n'a pas suivi.
   Le principe « ne jamais affaiblir un test » impose de corriger le test pour qu'il
   vérifie la même intention (l'anchor du shell non-skeleton), pas de le supprimer.
+
+## Phase 1 — Intégrité et isolation des données (2026-10-22, ~19:30–20:15 UTC)
+
+### D-07 — `org_id` protégé par trigger, pas par policy RLS
+- **Décision** : rendre `profiles.org_id` immuable par UPDATE direct via un
+  trigger `BEFORE UPDATE` (`guard_profile_org_immutable`), et non via une policy
+  `WITH CHECK`.
+- **Alternative écartée** : policy avec `org_id = (SELECT ... FROM profiles ...)`.
+- **Raison** : une policy qui interroge sa propre table provoque une récursion
+  (« infinite recursion detected in policy for relation profiles »). Le trigger
+  distingue le client (`current_user` = authenticated/anon) de l'appel via une
+  fonction SECURITY DEFINER, sans récursion.
+
+### D-08 — Ne PAS déplacer les 59 profils déjà rattachés à `org-1`
+- **Décision** : corriger le trigger d'inscription (plus de rattachement
+  automatique) mais **ne pas** toucher aux profils existants de `org-1`.
+- **Alternative écartée** : rattacher rétroactivement les comptes de test à
+  `__no_org__`.
+- **Raison** : principe conservateur. `org-1` contient peut-être de vrais
+  utilisateurs ; un déplacement automatique pourrait leur retirer l'accès à des
+  données légitimes. Décision consignée (R22) et laissée au propriétaire.
+
+### D-09 — Le rôle reste auto-attribuable (self-service) — à trancher
+- **Décision** : ne pas bloquer la modification de `profiles.role` par
+  l'utilisateur, malgré l'escalade possible vers `PASTEUR_PRINCIPAL`.
+- **Alternative écartée** : restreindre `role` à l'insertion initiale.
+- **Raison** : l'onboarding (`OrgSetup`, `selectRole`) écrit le rôle choisi par
+  l'utilisateur ; bloquer casserait un parcours fonctionnel sans connaître
+  l'intention produit. Documenté R20 + proposition dans PROPOSITIONS.md.
+
+### D-10 — Inscription sans organisation (`__no_org__`)
+- **Décision** : `handle_new_user` et `upsert_profile` n'attribuent plus
+  d'organisation à l'inscription ; l'utilisateur rejoint une organisation par
+  invitation ou en crée une.
+- **Raison** : toute attribution automatique à une organisation existante crée
+  une appartenance implicite non consentie (fuite PII). `__no_org__` est le
+  marqueur déjà prévu par `orgContext.ts`/`AppContext.tsx`.
+
+### D-11 — Un sentinelle n'est pas une organisation
+- **Décision** : `is_org_member` retourne `false` pour `__no_org__`, `no-org`,
+  vide/NULL.
+- **Raison** : sans cela, tous les utilisateurs « sans organisation »
+  partageaient la même appartenance fictive (48 profils lisibles entre eux).

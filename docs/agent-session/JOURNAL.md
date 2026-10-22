@@ -119,3 +119,33 @@ prouvé (201 → 42501).
 `profiles.role` et `org_memberships.role` **divergent** pour le compte de test
 (`MEMBRE` vs `PASTEUR_PRINCIPAL`). Le gate de rôle lit les deux sources. Voir
 RISQUES.md.
+
+## 2026-10-22 ~20:15 UTC — Phase 1 : intégrité et isolation des données
+
+**T0** = 2026-10-22T17:56:53Z. Branche `agent/session-2026-10-22-stabilisation`.
+
+### Fait
+- Baseline vitest : **60 fichiers / 1050 tests verts**.
+- Correction du défaut d'invitation (code + id divergents) — commit `6468b3c`.
+  Test `invitation-code-consistency.test.ts` écrit ROUGE puis VERT.
+- Audit de l'isolation des données par appels REST réels (compte neuf).
+  **Découverte majeure** : tout nouvel inscrit était rattaché à `org-1` et
+  lisait 59 profils (dont adresses réelles).
+- Migrations `20261022000005`, `000006`, `000007` appliquées, avec rollback :
+  - régression `used_count` (introduite par mon durcissement invitations) ;
+  - `profiles.org_id` injectable ;
+  - fuite PII inter-utilisateurs (`handle_new_user` + sentinelle).
+- Commit `7ce1711`.
+- Comptes de test nettoyés (0 restant).
+
+### Preuves
+| Test | Avant | Après |
+|---|---|---|
+| Profils lisibles par un compte neuf | 59 (`org-1`) puis 48 (`__no_org__`) | **1** (le sien) |
+| `used_count` après claim (`max_uses=1`) | 0 | **1** |
+| `UPDATE profiles SET org_id` par un tiers | accepté | `42501 ORG_ID_IMMUTABLE` |
+| Membre `org-e2e` lit `org-1` | — | **0** |
+
+### Suite
+- Terminer la couverture Cypress (suite complète en tâche de fond).
+- Compléter FEATURES.md, puis phases 2–7.
