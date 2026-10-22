@@ -78,6 +78,47 @@
 - **Statut** : ouvert, à trancher (voir DECISIONS.md et RAPPORT_FINAL.md).
 
 
+### R17 — Dérive majeure migrations ↔ base (les fichiers du dépôt ne sont pas la source de vérité) — OUVERT
+- **Défaut** : les 39 migrations enregistrées dans
+  `supabase_migrations.schema_migrations` portent des versions d'horodatage
+  (`20260910123851`, …, `20261022192658`) qui **n'ont AUCUN fichier
+  correspondant** dans `supabase/migrations/`. Inversement, les **34**
+  migrations horodatées du dépôt (`20260909000002_create_invitation_system.sql`,
+  etc.) n'ont **jamais** été enregistrées comme appliquées. Les 63 migrations
+  historiques `NNNN_*.sql` (0000→0062) ne sont pas traçables non plus.
+- **Conséquence** : `supabase db push` rejouerait 34 migrations non tracées sur
+  une base où leur contenu existe déjà → erreurs (objets existants) voire
+  altérations. `supabase db pull` produirait un diff trompeur. **Ne pas lancer
+  `db push` sans revue manuelle.**
+- **Cause probable** : le schéma a été appliqué via l'éditeur SQL / MCP (versions
+  auto-générées à l'heure d'application), pas via `supabase db push`. Mes propres
+  correctifs suivent ce chemin : les fichiers `20261022000003/4` du dépôt
+  correspondent aux versions `20261022192320` / `20261022192658` en base.
+- **Mitigation fournie** : `scripts/schema-snapshot.sql` capture le DDL réel
+  (colonnes, fonctions, policies, triggers, index, contraintes, versions) →
+  source de vérité de secours, utilisable pour reconstruire un objet ou vérifier
+  une dérive avant tout `db push`.
+- **Recommandation propriétaire** : régulariser l'historique (marquer les
+  migrations appliquées avec `supabase migration repair --status applied <version>`)
+  ou adopter « base = source de vérité » et ne plus se fier au tracker. À
+  trancher — voir DECISIONS.md et RAPPORT_FINAL.md.
+- **Statut** : ouvert, documenté, contourné (instantané).
+
+### R18 — Aucune sauvegarde ni PITR sur le projet Supabase — OUVERT (CRITIQUE pour 4 mois)
+- **Défaut** : l'API Management renvoie `backups: []` et `pitr_enabled: false`
+  pour `hhgovvrnalibhgpakswi` (plan gratuit). Aucun point de restauration.
+- **Preuve** : `GET /v1/projects/hhgovvrnalibhgpakswi/database/backups` →
+  `{"walg_enabled":true,"pitr_enabled":false,"backups":[]}`.
+- **Conséquence** : une erreur de schéma ou une suppression accidentelle est
+  **irréversible**. Aucun retour arrière automatique possible.
+- **Mitigation fournie** : `scripts/schema-snapshot.sql` (DDL complet) +
+  migrations réversibles (`rollback/`). Ne couvre PAS les données.
+- **Recommandation** : activer les sauvegardes (plan payant) ou exporter
+  régulièrement les données ; voir RUNBOOK.md.
+- **Statut** : ouvert — hors périmètre de correction (dépend d'une décision
+  d'abonnement du propriétaire).
+
+
 ## Gravité HAUTE
 
 ### R3 — Streams PowerSync non filtrés par organisation — CORRIGÉ FICHIER, DÉPLOIEMENT CLOUD À CONFIRMER
