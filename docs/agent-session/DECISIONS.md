@@ -73,3 +73,14 @@
   vide/NULL.
 - **Raison** : sans cela, tous les utilisateurs « sans organisation »
   partageaient la même appartenance fictive (48 profils lisibles entre eux).
+
+### D-12 — Fédération : fonction `SECURITY DEFINER` plutôt que lecture de vue en policy
+- **Décision** : réécrire `orgs_select_federation_recursive` avec
+  `org_descendants(initplan_uid())` (SECURITY DEFINER, bornée aux descendants de
+  l'organisation de l'appelant) et activer `security_invoker` sur `org_family`.
+- **Alternative écartée** : laisser la vue contourner la RLS, ou supprimer la
+  fonctionnalité de fédération.
+- **Raison** : la fonctionnalité est volontaire (migration 20261003000003) ;
+  seule l'implémentation fuyait. La lecture directe de la vue dans une policy
+  provoque une récursion : le helper SECURITY DEFINER préserve la sémantique
+  sans récursion. La vue n'est référencée par aucun code applicatif.

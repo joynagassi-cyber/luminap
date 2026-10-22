@@ -256,3 +256,19 @@
   with params null leaked!` au fil de la navigation → abonnements non
   `unsubscribe()` → fuite mémoire progressive sur une session longue.
 - **Statut** : documenté. Proposé : PROPOSITIONS.md P6.
+
+### R24 — Vue `org_family` sans `security_invoker` : fuite inter-organisations — CORRIGÉ
+- **Défaut** : la vue `org_family` (clôture transitive de la fédération)
+  s'exécutait avec les droits de son propriétaire et **ignorait la RLS** de
+  `organizations`. Tout le monde — y compris un visiteur NON authentifié —
+  pouvait énumérer toutes les organisations ; un simple membre lisait en outre
+  les `organizations` de la fédération d'autrui via
+  `orgs_select_federation_recursive`.
+- **Preuve** : `GET /rest/v1/org_family` sans jeton → 5 organisations
+  (`org-1`, `org-central`, `e2e-auth-org-1`, `org-e2e`, `org-e2e-unconf`).
+  Membre `org-e2e` → 5 lignes. Après correctif : anon → 0 ; membre → 1 (la
+  sienne).
+- **Correctif** : `security_invoker=true` sur la vue + policy de fédération
+  réécrite via une fonction SECURITY DEFINER `org_descendants(uid)` (la lecture
+  directe de la vue dans la policy provoquait une récursion infinie).
+- **Statut** : corrigé (migration `20261022000008`). Rollback fourni.
