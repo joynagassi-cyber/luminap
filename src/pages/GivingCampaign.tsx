@@ -224,7 +224,7 @@ export default function GivingCampaign() {
                   </IonSelect>
                   <div className="grid grid-cols-2 gap-2">
                     {/* M4 */}
-                    <IonInput type="number" value={pledgeAmount} onIonChange={(e) => setPledgeAmount((e.detail.value as string) ?? "")} placeholder="Montant (FCFA)" aria-label="Montant" data-testid="pledge-amount" />
+                    <IonInput type="number" value={pledgeAmount} onIonInput={(e) => setPledgeAmount((e.detail.value as string) ?? "")} placeholder="Montant (FCFA)" aria-label="Montant" data-testid="pledge-amount" />
                     <IonSelect value={pledgeSchedule} onIonChange={(e) => setPledgeSchedule(e.detail.value)} className="px-3 py-2.5 rounded-lg text-sm outline-none" style={inputStyle} aria-label="Fréquence">
                       <IonSelectOption value="ONCE">Une fois</IonSelectOption>
                       <IonSelectOption value="MONTHLY">Mensuel</IonSelectOption>

@@ -312,7 +312,7 @@ export default function InvitationEmit() {
                   <IonInput
                     type="number"
                     value={String(expiresDays)}
-                    onIonChange={(e) => setExpiresDays(Number(e.detail.value!))}
+                    onIonInput={(e) => setExpiresDays(Number(e.detail.value!))}
                     slot="end"
                     className="w-16 text-center"
                   />
@@ -324,7 +324,7 @@ export default function InvitationEmit() {
                   <IonInput
                     type="number"
                     value={String(maxUses)}
-                    onIonChange={(e) => setMaxUses(Number(e.detail.value!))}
+                    onIonInput={(e) => setMaxUses(Number(e.detail.value!))}
                     slot="end"
                     className="w-16 text-center"
                   />

@@ -295,7 +295,7 @@ function CreateBudgetSheet({
             <IonInput
               type="text"
               value={name}
-              onIonChange={(e: IonChangeCustomEvent<string>) => setName(e.detail.value ?? "")}
+              onIonInput={(e: IonChangeCustomEvent<string>) => setName(e.detail.value ?? "")}
               placeholder="Ex : Budget fonctionnement 2026"
               slot="input"
               data-testid="budget-name"
@@ -309,7 +309,7 @@ function CreateBudgetSheet({
                 type="number"
                 inputMode="numeric"
                 value={String(fiscalYear)}
-                onIonChange={(e: IonChangeCustomEvent<string>) => setFYear(Number(e.detail.value ?? ""))}
+                onIonInput={(e: IonChangeCustomEvent<string>) => setFYear(Number(e.detail.value ?? ""))}
                 slot="input"
               />
             </IonItem>
@@ -349,7 +349,7 @@ function CreateBudgetSheet({
               type="number"
               inputMode="numeric"
               value={total}
-              onIonChange={(e: IonChangeCustomEvent<string>) => setTotal(e.detail.value ?? "")}
+              onIonInput={(e: IonChangeCustomEvent<string>) => setTotal(e.detail.value ?? "")}
               placeholder="Ex : 5000000"
               slot="input"
               data-testid="budget-total"

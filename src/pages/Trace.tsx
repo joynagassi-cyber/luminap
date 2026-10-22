@@ -134,7 +134,7 @@ export default function TracePage() {
               <IonInput
                 placeholder="Rechercher..."
                 value={search}
-                onIonChange={(e) => setSearch((e.detail.value as string) ?? "")}
+                onIonInput={(e) => setSearch((e.detail.value as string) ?? "")}
               />
             </div>
 

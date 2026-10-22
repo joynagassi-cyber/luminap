@@ -185,7 +185,7 @@ export default function MembersPage() {
                 aria-label="Rechercher un membre"
                 placeholder="Rechercher un membre..."
                 value={searchQuery}
-                onIonChange={(e) => setSearchQuery((e.detail.value as string) ?? "")}
+                onIonInput={(e) => setSearchQuery((e.detail.value as string) ?? "")}
               />
             </div>
 
@@ -209,14 +209,14 @@ export default function MembersPage() {
                       autoComplete="given-name"
                       placeholder="Prénom"
                       value={firstName}
-                      onIonChange={(e) => setFirstName((e.detail.value as string) ?? "")}
+                      onIonInput={(e) => setFirstName((e.detail.value as string) ?? "")}
                     />
                     <IonInput
                       aria-label="Nom"
                       autoComplete="family-name"
                       placeholder="Nom"
                       value={lastName}
-                      onIonChange={(e) => setLastName((e.detail.value as string) ?? "")}
+                      onIonInput={(e) => setLastName((e.detail.value as string) ?? "")}
                     />
                   </div>
                   <IonInput
@@ -225,7 +225,7 @@ export default function MembersPage() {
                     autoComplete="tel"
                     placeholder="Téléphone"
                     value={phone}
-                    onIonChange={(e) => setPhone((e.detail.value as string) ?? "")}
+                    onIonInput={(e) => setPhone((e.detail.value as string) ?? "")}
                   />
                   <IonInput
                     type="email"
@@ -233,7 +233,7 @@ export default function MembersPage() {
                     autoComplete="email"
                     placeholder="Email (optionnel)"
                     value={email}
-                    onIonChange={(e) => setEmail((e.detail.value as string) ?? "")}
+                    onIonInput={(e) => setEmail((e.detail.value as string) ?? "")}
                   />
                   <div className="flex gap-2">
                     <button

@@ -304,7 +304,7 @@ export default function OrgChildren({
                 <IonInput
                   type="text"
                   value={newName}
-                  onIonChange={(e: IonChangeCustomEvent<string>) =>
+                  onIonInput={(e: IonChangeCustomEvent<string>) =>
                     setNewName(e.detail.value ?? "")
                   }
                   placeholder="Ex: Paroisse Sainte-Marie"

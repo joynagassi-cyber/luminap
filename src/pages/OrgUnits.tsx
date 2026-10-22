@@ -194,7 +194,7 @@ export default function OrgUnits() {
                     data-testid="unit-name"
                     type="text"
                     value={name}
-                    onIonChange={(e: IonChangeCustomEvent<string>) => setName(e.detail.value ?? "")}
+                    onIonInput={(e: IonChangeCustomEvent<string>) => setName(e.detail.value ?? "")}
                     placeholder="Ex: Diocèse, Chorale, Jeunesse…"
                     slot="input"
                   />
@@ -223,7 +223,7 @@ export default function OrgUnits() {
                     data-testid="unit-desc"
                     type="text"
                     value={description}
-                    onIonChange={(e: IonChangeCustomEvent<string>) => setDescription(e.detail.value ?? "")}
+                    onIonInput={(e: IonChangeCustomEvent<string>) => setDescription(e.detail.value ?? "")}
                     placeholder="Rôle, périmètre…"
                     slot="input"
                   />

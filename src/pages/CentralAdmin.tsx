@@ -831,7 +831,7 @@ export default function CentralAdmin() {
                                 <IonInput
                                   data-testid="archive-reason"
                                   value={archiveReason}
-                                  onIonChange={(e) => setArchiveReason((e.detail.value as string) ?? "")}
+                                  onIonInput={(e) => setArchiveReason((e.detail.value as string) ?? "")}
                                   placeholder="Raison (optionnel)"
                                   className="flex-1 min-w-0"
                                 />

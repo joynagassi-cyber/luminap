@@ -225,7 +225,7 @@ export default function CustomFields() {
                     <IonInput
                       type="text"
                       value={label}
-                      onIonChange={(e: IonChangeCustomEvent<string>) => setLabel(e.detail.value ?? "")}
+                      onIonInput={(e: IonChangeCustomEvent<string>) => setLabel(e.detail.value ?? "")}
                       placeholder="Ex: Montant estimé"
                       slot="input"
                     />
@@ -235,7 +235,7 @@ export default function CustomFields() {
                     <IonInput
                       type="text"
                       value={key}
-                      onIonChange={(e: IonChangeCustomEvent<string>) =>
+                      onIonInput={(e: IonChangeCustomEvent<string>) =>
                         setKey(
                           (e.detail.value ?? "").replace(/\s+/g, "_").toLowerCase(),
                         )
@@ -277,7 +277,7 @@ export default function CustomFields() {
                       <IonLabel position="floating" className="text-sm text-text-secondary">Options (une par ligne)</IonLabel>
                       <IonTextarea
                         value={options}
-                        onIonChange={(e: IonChangeCustomEvent<string>) => setOptions(e.detail.value ?? "")}
+                        onIonInput={(e: IonChangeCustomEvent<string>) => setOptions(e.detail.value ?? "")}
                         placeholder="Option 1\nOption 2"
                         rows={3}
                         aria-label="Options du champ (une par ligne)"

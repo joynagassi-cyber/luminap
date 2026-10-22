@@ -206,7 +206,7 @@ export default function Archives() {
                 {/* M4 */}
                 <IonInput
                   value={searchQuery}
-                  onIonChange={(e) => setSearchQuery((e.detail.value as string) ?? "")}
+                  onIonInput={(e) => setSearchQuery((e.detail.value as string) ?? "")}
                   placeholder="Rechercher dans les archives..."
                 />
               </div>
@@ -253,13 +253,13 @@ export default function Archives() {
                     {/* M4 */}
                     <IonInput
                       value={docTitle}
-                      onIonChange={(e) => setDocTitle((e.detail.value as string) ?? "")}
+                      onIonInput={(e) => setDocTitle((e.detail.value as string) ?? "")}
                       placeholder="Nom du document *"
                       aria-label="Nom du document"
                     />
                     <IonInput
                       value={docPurpose}
-                      onIonChange={(e) => setDocPurpose((e.detail.value as string) ?? "")}
+                      onIonInput={(e) => setDocPurpose((e.detail.value as string) ?? "")}
                       placeholder="Objet / à quoi il s'applique (ex: PV assemblée, reçu...)"
                       aria-label="Objet du document"
                     />

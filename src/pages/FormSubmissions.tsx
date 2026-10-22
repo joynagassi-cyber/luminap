@@ -418,7 +418,7 @@ export default function FormSubmissions() {
                   <IonInput
                     type="search"
                     value={searchInput}
-                    onIonChange={(e: IonChangeCustomEvent<string>) => setSearchInput(e.detail.value ?? "")}
+                    onIonInput={(e: IonChangeCustomEvent<string>) => setSearchInput(e.detail.value ?? "")}
                     placeholder="Rechercher dans les soumissions…"
                     aria-label="Rechercher dans les soumissions"
                     className="w-full pl-9 pr-8"

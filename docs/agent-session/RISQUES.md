@@ -376,3 +376,21 @@
   `authenticated`/`anon` ne peut pas naître avec un rôle privilégié.
 - **Vérification** : INSERT `role='ADMIN'` → 403 ; INSERT `role='MEMBRE'` → 201.
 - **Statut** : corrigé (migration `20261022000014`). Rollback fourni.
+
+### R32 — Saisie bloquée par `onIonChange` (Ionic) — CORRIGÉ
+- **Défaut** : `onIonChange` ne part qu'au blur ; cliquer sur un bouton
+  désactivé ne blur pas → l'état React reste vide → l'utilisateur ne peut pas
+  valider (ex. créer un membre). Touchait **34 fichiers**, 87 `IonInput`.
+- **Preuve** : test Cypress → bouton « Ajouter » toujours désactivé après frappe.
+- **Correctif** : `onIonInput` pour `IonInput`/`IonTextarea` (95 remplacements).
+- **Vérification** : test cypress vert (1 passing) ; `tsc` OK ; 1050 tests verts.
+- **Reste** : `IonSelect`/`IonCheckbox` conservent `onIonChange` (aucun
+  événement `ionInput`) — à surveiller (cf. R33).
+
+### R33 — `IonSelect`/`IonCheckbox` sans équivalent `ionInput` — OUVERT (faible)
+- Ionic n'expose pas d'événement `ionInput` pour `<IonSelect>` (57 usages) ni
+  `<IonCheckbox>` (2). `onIonChange` y reste la seule option.
+- Impact : un `<IonSelect>` dont la valeur conditionne l'activation d'un bouton
+  peut présenter le même blocage qu'R32 si aucun blur ne survient.
+- **Gravité** : faible (un `<IonSelect>` émet `ionChange` dès la sélection sur
+  la plupart des plateformes). À vérifier par un test dédié si le temps le permet.

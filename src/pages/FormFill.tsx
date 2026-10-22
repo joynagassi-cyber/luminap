@@ -301,7 +301,7 @@ export default function FormFill() {
                       <IonItem lines="none" className="bg-card rounded-xl">
                         <IonTextarea
                           value={data[field.key] ?? ""}
-                          onIonChange={(e: IonChangeCustomEvent<string>) =>
+                          onIonInput={(e: IonChangeCustomEvent<string>) =>
                             handleChange(field.key, e.detail.value ?? "")
                           }
                           placeholder={field.label}
@@ -327,7 +327,7 @@ export default function FormFill() {
                           type="text"
                           inputMode="decimal"
                           value={data[field.key] ?? ""}
-                          onIonChange={(e: IonChangeCustomEvent<string>) =>
+                          onIonInput={(e: IonChangeCustomEvent<string>) =>
                             handleChange(field.key, e.detail.value ?? "")
                           }
                           placeholder={field.label || "Montant"}
@@ -353,7 +353,7 @@ export default function FormFill() {
                         <IonInput
                           type="text"
                           value={data[field.key] ?? ""}
-                          onIonChange={(e: IonChangeCustomEvent<string>) =>
+                          onIonInput={(e: IonChangeCustomEvent<string>) =>
                             handleChange(field.key, e.detail.value ?? "")
                           }
                           placeholder={field.label}

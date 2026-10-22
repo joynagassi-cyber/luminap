@@ -197,7 +197,7 @@ export default function TransactionEdit() {
                   type="number"
                   inputMode="numeric"
                   value={amount}
-                  onIonChange={(e: IonChangeCustomEvent<string>) => setAmount(e.detail.value ?? "")}
+                  onIonInput={(e: IonChangeCustomEvent<string>) => setAmount(e.detail.value ?? "")}
                   placeholder="0"
                   slot="input"
                 />
@@ -208,7 +208,7 @@ export default function TransactionEdit() {
                 <IonInput
                   type="text"
                   value={description}
-                  onIonChange={(e: IonChangeCustomEvent<string>) => setDescription(e.detail.value ?? "")}
+                  onIonInput={(e: IonChangeCustomEvent<string>) => setDescription(e.detail.value ?? "")}
                   placeholder="Description de la transaction"
                   slot="input"
                 />
@@ -219,7 +219,7 @@ export default function TransactionEdit() {
                 <IonInput
                   type="date"
                   value={date}
-                  onIonChange={(e: IonChangeCustomEvent<string>) => setDate(e.detail.value ?? "")}
+                  onIonInput={(e: IonChangeCustomEvent<string>) => setDate(e.detail.value ?? "")}
                   slot="input"
                 />
               </IonItem>
@@ -264,7 +264,7 @@ export default function TransactionEdit() {
                   <IonInput
                     type="text"
                     value={personName}
-                    onIonChange={(e: IonChangeCustomEvent<string>) => setPersonName(e.detail.value ?? "")}
+                    onIonInput={(e: IonChangeCustomEvent<string>) => setPersonName(e.detail.value ?? "")}
                     placeholder="Nom de la personne"
                     slot="input"
                   />
@@ -293,7 +293,7 @@ export default function TransactionEdit() {
                 <IonLabel position="floating" className="text-sm text-text-secondary">Commentaire (optionnel)</IonLabel>
                 <IonTextarea
                   value={comment}
-                  onIonChange={(e: IonChangeCustomEvent<string>) => setComment(e.detail.value ?? "")}
+                  onIonInput={(e: IonChangeCustomEvent<string>) => setComment(e.detail.value ?? "")}
                   placeholder="Ajouter un commentaire..."
                   rows={2}
                   slot="input"

@@ -110,3 +110,9 @@ Aucune régression : les 24 specs donnent **exactement** le même résultat
 qu'au baseline (comparaison `/tmp/cy-baseline-full.log` vs `/tmp/cy-post.log`).
 Les échecs sont **préexistants** (défauts de test / infra), cf. RISQUES.md R30.
 `local-dashboard.cy.ts` passe de 0/2 à 2/2 (spec obsolète réparé en Phase 0).
+
+## Phase 4 — défaut transversal de saisie (corrigé)
+
+| # | Fonctionnalité | Défaut | Preuve avant | Correctif | Preuve après |
+|---|---|---|---|---|---|
+| 40 | **Toute saisie de texte** (membres, transactions, formulaires, événements, budgets, dons…) | `onIonChange` sur `<IonInput>`/`<IonTextarea>` ne se déclenche qu'au **blur** : un bouton désactivé (validation par état React) ne se débloque jamais → **impasse**. Ex. bouton « Ajouter » de `/members` | `C tmp-diag` : `expected <button…> to be 'enabled'` (échec) | `onIonChange` → `onIonInput` (95 remplacements, 34 fichiers). `IonSelect`/`IonCheckbox` inchangés (pas d'`ionInput`) | `C tmp-diag` **1 passing** ; `tsc` OK ; `V` 1050/1050 |

@@ -530,7 +530,7 @@ export default function ReportBuilder() {
           <IonInput
             type="text"
             value={draft.name || ""}
-            onIonChange={(e: IonChangeCustomEvent<string>) => setDraft((d) => ({ ...d, name: e.detail.value ?? "" }))}
+            onIonInput={(e: IonChangeCustomEvent<string>) => setDraft((d) => ({ ...d, name: e.detail.value ?? "" }))}
             placeholder="Ex : Revenus par groupe"
             slot="input"
           />
@@ -610,7 +610,7 @@ export default function ReportBuilder() {
             <IonInput
               type="text"
               value={draft.metric?.alias || ""}
-              onIonChange={(e: IonChangeCustomEvent<string>) => updateMetricDraft({ alias: e.detail.value ?? "" })}
+              onIonInput={(e: IonChangeCustomEvent<string>) => updateMetricDraft({ alias: e.detail.value ?? "" })}
               placeholder="Alias"
               className="text-xs"
             />

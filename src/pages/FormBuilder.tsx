@@ -399,14 +399,14 @@ export default function FormBuilder() {
                   <IonInput
                     type="text"
                     value={formName}
-                    onIonChange={(e) => setFormName(e.detail.value!)}
+                    onIonInput={(e) => setFormName(e.detail.value!)}
                     placeholder="Nom du formulaire *"
                     className="w-full"
                   />
                   <IonInput
                     type="text"
                     value={formKey}
-                    onIonChange={(e) =>
+                    onIonInput={(e) =>
                       setFormKey(
                         e.detail.value!.replace(/\s+/g, "_").toLowerCase(),
                       )
@@ -418,7 +418,7 @@ export default function FormBuilder() {
                     <IonLabel position="floating" className="text-sm text-text-secondary">Description (optionnel)</IonLabel>
                     <IonTextarea
                       value={formDescription}
-                      onIonChange={(e: IonChangeCustomEvent<string>) => setFormDescription(e.detail.value ?? "")}
+                      onIonInput={(e: IonChangeCustomEvent<string>) => setFormDescription(e.detail.value ?? "")}
                       placeholder="Description (optionnel)"
                       rows={2}
                       slot="input"
@@ -461,7 +461,7 @@ export default function FormBuilder() {
                         <IonInput
                           type="text"
                           value={field.label}
-                          onIonChange={(e: IonChangeCustomEvent<string>) =>
+                          onIonInput={(e: IonChangeCustomEvent<string>) =>
                             updateField(field.key, { label: e.detail.value ?? "" })
                           }
                           className="flex-1"
@@ -499,7 +499,7 @@ export default function FormBuilder() {
                       {field.type === "select" && (
                         <IonTextarea
                           value={field.options?.join("\n") || ""}
-                          onIonChange={(e: IonChangeCustomEvent<string>) =>
+                          onIonInput={(e: IonChangeCustomEvent<string>) =>
                             updateField(field.key, {
                               options: (e.detail.value ?? "")
                                 .split("\n")
@@ -543,7 +543,7 @@ export default function FormBuilder() {
                         <IonInput
                           type="text"
                           value={field.conditional?.showIfField ?? ""}
-                          onIonChange={(e: IonChangeCustomEvent<string>) =>
+                          onIonInput={(e: IonChangeCustomEvent<string>) =>
                             updateField(field.key, {
                               conditional: {
                                 showIfField: e.detail.value ?? "",
@@ -558,7 +558,7 @@ export default function FormBuilder() {
                         <IonInput
                           type="text"
                           value={String(field.conditional?.showIfValue ?? "")}
-                          onIonChange={(e: IonChangeCustomEvent<string>) =>
+                          onIonInput={(e: IonChangeCustomEvent<string>) =>
                             updateField(field.key, {
                               conditional: {
                                 showIfField:
@@ -573,7 +573,7 @@ export default function FormBuilder() {
                         <IonInput
                           type="text"
                           value={field.validation?.regex ?? ""}
-                          onIonChange={(e: IonChangeCustomEvent<string>) =>
+                          onIonInput={(e: IonChangeCustomEvent<string>) =>
                             updateField(field.key, {
                               validation: {
                                 ...field.validation,
@@ -587,7 +587,7 @@ export default function FormBuilder() {
                         <IonInput
                           type="text"
                           value={field.mapsToEntityField ?? ""}
-                          onIonChange={(e: IonChangeCustomEvent<string>) =>
+                          onIonInput={(e: IonChangeCustomEvent<string>) =>
                             updateField(field.key, {
                               mapsToEntityField: e.detail.value || undefined,
                             })

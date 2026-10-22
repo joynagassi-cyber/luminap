@@ -246,7 +246,7 @@ export default function EventNew() {
                       type="number"
                       aria-label="Montant de cotisation obligatoire en FCFA"
                       value={montantCotisation}
-                      onIonChange={(e: IonChangeCustomEvent<string>) =>
+                      onIonInput={(e: IonChangeCustomEvent<string>) =>
                         setMontantCotisation((e.detail.value as string) ?? "")
                       }
                       min="0"
@@ -282,7 +282,7 @@ export default function EventNew() {
               type="text"
               aria-label="Nom de l'événement"
               value={name}
-              onIonChange={(e: IonChangeCustomEvent<string>) =>
+              onIonInput={(e: IonChangeCustomEvent<string>) =>
                 setName((e.detail.value as string) ?? "")
               }
               placeholder="Ex: Noël 2026"
@@ -302,7 +302,7 @@ export default function EventNew() {
             <IonTextarea
               aria-label="Description"
               value={description}
-              onIonChange={(e: IonChangeCustomEvent<string>) =>
+              onIonInput={(e: IonChangeCustomEvent<string>) =>
                 setDescription((e.detail.value as string) ?? "")
               }
               placeholder="Description de l'événement..."
@@ -323,7 +323,7 @@ export default function EventNew() {
             <IonInput
               type="date"
               value={startDate}
-              onIonChange={(e: IonChangeCustomEvent<string>) =>
+              onIonInput={(e: IonChangeCustomEvent<string>) =>
                 setStartDate((e.detail.value as string) ?? "")
               }
               slot="input"
@@ -341,7 +341,7 @@ export default function EventNew() {
             <IonInput
               type="date"
               value={endDate}
-              onIonChange={(e: IonChangeCustomEvent<string>) =>
+              onIonInput={(e: IonChangeCustomEvent<string>) =>
                 setEndDate((e.detail.value as string) ?? "")
               }
               slot="input"
@@ -414,7 +414,7 @@ export default function EventNew() {
                   <IonInput
                     type="text"
                     value={newBudgetLabel}
-                    onIonChange={(e) =>
+                    onIonInput={(e) =>
                       setNewBudgetLabel((e.detail.value as string) ?? "")
                     }
                     placeholder="Poste"
@@ -427,7 +427,7 @@ export default function EventNew() {
                   <IonInput
                     type="number"
                     value={newBudgetAmount}
-                    onIonChange={(e) =>
+                    onIonInput={(e) =>
                       setNewBudgetAmount((e.detail.value as string) ?? "")
                     }
                     placeholder="Montant"

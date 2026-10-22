@@ -229,7 +229,7 @@ export default function InvitationClaim() {
                   <IonInput
                     type="text"
                     value={codeInput}
-                    onIonChange={(e) => setCodeInput(e.detail.value!.toUpperCase())}
+                    onIonInput={(e) => setCodeInput(e.detail.value!.toUpperCase())}
                     placeholder="LUM-XXXXXX"
                     className="text-center text-xl font-mono tracking-widest"
                     slot="input"
@@ -263,7 +263,7 @@ export default function InvitationClaim() {
                   <IonLabel position="floating">Coller le code d'invitation</IonLabel>
                   <IonInput
                     value={rawPayload}
-                    onIonChange={(e) => setRawPayload(e.detail.value!)}
+                    onIonInput={(e) => setRawPayload(e.detail.value!)}
                     placeholder="Collez ici le code reçu (texte ou JSON)"
                     className="text-xs"
                     slot="input"

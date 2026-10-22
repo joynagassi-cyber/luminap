@@ -908,7 +908,7 @@ export default function EventDetail() {
                       type="number"
                       inputMode="numeric"
                       value={expenseAmount}
-                      onIonChange={(e: IonChangeCustomEvent<string>) => setExpenseAmount(e.detail.value ?? "")}
+                      onIonInput={(e: IonChangeCustomEvent<string>) => setExpenseAmount(e.detail.value ?? "")}
                       placeholder="0"
                       slot="input"
                     />
@@ -937,7 +937,7 @@ export default function EventDetail() {
                     <IonInput
                       type="text"
                       value={expenseDescription}
-                      onIonChange={(e: IonChangeCustomEvent<string>) => setExpenseDescription(e.detail.value ?? "")}
+                      onIonInput={(e: IonChangeCustomEvent<string>) => setExpenseDescription(e.detail.value ?? "")}
                       placeholder="Ex: Achat de chaises"
                       slot="input"
                     />

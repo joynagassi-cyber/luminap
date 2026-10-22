@@ -227,7 +227,7 @@ export default function OrgSetup() {
                 {/* M4 */}
                 <IonInput
                   value={name}
-                  onIonChange={(e) => setName((e.detail.value as string) ?? "")}
+                  onIonInput={(e) => setName((e.detail.value as string) ?? "")}
                   placeholder="Église MFE-JC Centrale"
                 />
               </label>
@@ -240,7 +240,7 @@ export default function OrgSetup() {
                 </span>
                 <IonInput
                   value={sigle}
-                  onIonChange={(e) => setSigle(((e.detail.value as string) ?? "").toUpperCase().slice(0, 12))}
+                  onIonInput={(e) => setSigle(((e.detail.value as string) ?? "").toUpperCase().slice(0, 12))}
                   placeholder="MFE"
                 />
               </label>

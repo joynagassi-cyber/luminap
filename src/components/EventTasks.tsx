@@ -344,7 +344,7 @@ export default function EventTasks({
                   <IonInput
                     type="text"
                     value={title}
-                    onIonChange={(e: IonChangeCustomEvent<string>) =>
+                    onIonInput={(e: IonChangeCustomEvent<string>) =>
                       setTitle(e.detail.value ?? "")
                     }
                     placeholder="Ex: Préparer la salle"
@@ -360,7 +360,7 @@ export default function EventTasks({
                   <IonInput
                     type="date"
                     value={dueDate}
-                    onIonChange={(e: IonChangeCustomEvent<string>) =>
+                    onIonInput={(e: IonChangeCustomEvent<string>) =>
                       setDueDate(e.detail.value ?? "")
                     }
                     slot="input"
@@ -396,7 +396,7 @@ export default function EventTasks({
                   </IonLabel>
                   <IonTextarea
                     value={description}
-                    onIonChange={(e: IonChangeCustomEvent<string>) =>
+                    onIonInput={(e: IonChangeCustomEvent<string>) =>
                       setDescription(e.detail.value ?? "")
                     }
                     placeholder="Détails, consignes..."

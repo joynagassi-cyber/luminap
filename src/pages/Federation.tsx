@@ -389,7 +389,7 @@ export default function Federation() {
                     data-testid="org-name"
                     type="text"
                     value={newName}
-                    onIonChange={(e: IonChangeCustomEvent<string>) => setNewName(e.detail.value ?? "")}
+                    onIonInput={(e: IonChangeCustomEvent<string>) => setNewName(e.detail.value ?? "")}
                     placeholder="Ex: Paroisse Sainte-Marie"
                     slot="input"
                   />

@@ -207,3 +207,30 @@ binaire Cypress effacé. Mesures prises :
 - **branche poussée** sur GitHub (sécurisation du travail, consigne du
   propriétaire) : `agent/session-2026-10-22-stabilisation`.
 Les exports `/tmp/lumina-*` doivent être régénérés (RUNBOOK.md à jour).
+
+## Phase 4 — défaut majeur de saisie : `onIonChange` (21:15–21:45 UTC)
+
+### Symptôme
+Sur `/members`, le bouton « Ajouter » restait **désactivé** après saisie du
+prénom et du nom. L'utilisateur ne pouvait pas créer de membre.
+
+### Diagnostic (prouvé, pas supposé)
+`onIonChange` d'un `<IonInput>` Ionic ne se déclenche **qu'au blur**. Un clic
+sur un bouton **désactivé** ne déclenche aucun `blur` → l'état React
+(`firstName`, `lastName`) reste vide → le bouton reste désactivé → **impasse
+utilisateur**. Preuve : test Cypress temporaire `tmp-diag.cy.ts` →
+`expected <button…> to be 'enabled'` (échec après 120 s de retry).
+
+### Correctif
+`onIonChange` → `onIonInput` (événement émis **à la frappe**) pour
+`<IonInput>` et `<IonTextarea>` : **95 remplacements sur 34 fichiers**.
+`IonSelect` (57) et `IonCheckbox` (2) **conservent** `onIonChange` : Ionic
+n'expose pas d'événement `ionInput` pour eux (vérifié dans
+`node_modules/@ionic/core/dist/types/components/`).
+
+### Preuves
+- Avant (Members en `onIonChange`) : test `tmp-diag` **échoue**.
+- Après (Members en `onIonInput`) : test `tmp-diag` → **1 passing (11 s)**.
+- `npx tsc --noEmit` → **OK**.
+- `npx vitest run` → **60 fichiers / 1050 tests verts**.
+- Le mock de test `src/test/ionic-mock.tsx` acceptait déjà `onIonInput`.

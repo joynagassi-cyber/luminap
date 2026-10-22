@@ -230,7 +230,7 @@ export default function Groups() {
                     <IonInput
                       type="text"
                       value={createName}
-                      onIonChange={(e: IonChangeCustomEvent<string>) => setCreateName(e.detail.value ?? "")}
+                      onIonInput={(e: IonChangeCustomEvent<string>) => setCreateName(e.detail.value ?? "")}
                       placeholder="Nom du groupe"
                       slot="input"
                     />
@@ -250,7 +250,7 @@ export default function Groups() {
                     <IonLabel position="floating" className="text-sm text-text-secondary">Description (optionnel)</IonLabel>
                     <IonTextarea
                       value={createDesc}
-                      onIonChange={(e: IonChangeCustomEvent<string>) => setCreateDesc(e.detail.value ?? "")}
+                      onIonInput={(e: IonChangeCustomEvent<string>) => setCreateDesc(e.detail.value ?? "")}
                       placeholder="Description (optionnel)"
                       rows={2}
                       slot="input"
@@ -396,7 +396,7 @@ export default function Groups() {
                       <IonInput
                         type="text"
                         value={editName}
-                        onIonChange={(e: IonChangeCustomEvent<string>) => setEditName(e.detail.value ?? "")}
+                        onIonInput={(e: IonChangeCustomEvent<string>) => setEditName(e.detail.value ?? "")}
                         slot="input"
                       />
                     </IonItem>
@@ -404,7 +404,7 @@ export default function Groups() {
                       <IonLabel position="floating" className="text-sm text-text-secondary">Description</IonLabel>
                       <IonTextarea
                         value={editDesc}
-                        onIonChange={(e: IonChangeCustomEvent<string>) => setEditDesc(e.detail.value ?? "")}
+                        onIonInput={(e: IonChangeCustomEvent<string>) => setEditDesc(e.detail.value ?? "")}
                         placeholder="Description"
                         rows={2}
                         slot="input"

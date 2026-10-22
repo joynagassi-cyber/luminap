@@ -266,7 +266,7 @@ export default function TransactionNew() {
                 aria-invalid={!!fieldErrors.amount}
                 aria-describedby={fieldErrors.amount ? "tx-amount-error" : undefined}
                 value={amount}
-                onIonChange={(e) =>
+                onIonInput={(e) =>
                   handleAmountChange((e.detail.value as string) ?? "")
                 }
                 placeholder="0"
@@ -289,7 +289,7 @@ export default function TransactionNew() {
                 type="text"
                 aria-label="Description"
                 value={description}
-                onIonChange={(e) =>
+                onIonInput={(e) =>
                   setDescription((e.detail.value as string) ?? "")
                 }
                 placeholder="Ex: Dîme du mois"
@@ -304,7 +304,7 @@ export default function TransactionNew() {
                 type="date"
                 aria-label="Date"
                 value={date}
-                onIonChange={(e) => setDate((e.detail.value as string) ?? "")}
+                onIonInput={(e) => setDate((e.detail.value as string) ?? "")}
                 slot="input"
               />
             </IonItem>
@@ -374,7 +374,7 @@ export default function TransactionNew() {
                   type="text"
                   aria-label="Nom de la personne"
                   value={personName}
-                  onIonChange={(e) =>
+                  onIonInput={(e) =>
                     setPersonName((e.detail.value as string) ?? "")
                   }
                   placeholder="Nom de la personne"
@@ -409,7 +409,7 @@ export default function TransactionNew() {
               <IonTextarea
                 aria-label="Commentaire"
                 value={comment}
-                onIonChange={(e) =>
+                onIonInput={(e) =>
                   setComment((e.detail.value as string) ?? "")
                 }
                 placeholder="Ajouter un commentaire..."
