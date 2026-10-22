@@ -195,3 +195,15 @@ Exports produits **hors dépôt** (données réelles, non commitées) :
 Commande : `npx supabase@latest db dump --linked [-f … | --data-only -f …]`.
 R18 reste **ouvert** côté propriétaire : activer les sauvegardes
 planifiées / PITR (action de facturation, hors de ma portée).
+
+### Incident d'environnement (~20:45–21:05 UTC)
+Un redémarrage du conteneur a interrompu la session : processus arrêtés
+(Vite, Xvfb, Cypress), `/tmp` vidé (exports de sauvegarde et logs perdus),
+binaire Cypress effacé. Mesures prises :
+- reprise depuis le dernier commit (`9ad1280`), arbre propre ;
+- vérification : **Vitest 1050/1050 verts** (aucune régression introduite) ;
+- sauvegardes de 18:02 intactes (`/workspace/backups/`) ;
+- binaire Cypress réinstallé, Xvfb + serveur de dev relancés ;
+- **branche poussée** sur GitHub (sécurisation du travail, consigne du
+  propriétaire) : `agent/session-2026-10-22-stabilisation`.
+Les exports `/tmp/lumina-*` doivent être régénérés (RUNBOOK.md à jour).
