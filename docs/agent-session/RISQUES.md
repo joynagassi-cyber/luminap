@@ -284,3 +284,42 @@
 - **Statut** : corrigé (migration `20261022000009`). Rollback fourni.
 - **Note** : `upsert_profile` reste exécutable par `authenticated` (nécessaire à
   l'onboarding) ; il vérifie `p_user_id = auth.uid()` et n'écrit plus `org_id`.
+
+### R26 — Lacune des tests RLS (clé anon au lieu du jeton utilisateur) — CORRIGÉ
+- **Défaut** : `cypress/e2e/rls-leak.cy.ts` et `cross-tenant.cy.ts` envoient
+  `Authorization: Bearer <anonKey>` : ils testent le rôle `anon`, pas
+  l'utilisateur connecté. Ils ne peuvent donc pas détecter une fuite
+  inter-utilisateurs, et `rls-leak` échoue sur son assertion « l'organisation
+  courante est visible ».
+- **Correctif** : nouveau spec `rls-isolation-hardened.cy.ts` lisant le vrai
+  `access_token` depuis `localStorage` (4 assertions : profil, org-1, org_family,
+  anon).
+- **Statut** : corrigé.
+
+### R27 — Escalade de privilèges : `org_memberships` (auto-ajout dans toute org) — CORRIGÉ
+- **Défaut** : la policy `om_all_merged` (FOR ALL) autorisait tout utilisateur à
+  écrire une ligne dont il est le `user_id` → **s'ajouter lui-même dans
+  n'importe quelle organisation**, avec le rôle de son choix. Comme
+  `is_org_member()` s'appuie sur `org_memberships` ACTIVE, l'écriture dans les
+  données d'autrui s'ouvrait en cascade.
+- **Preuve** : `POST /org_memberships {org_id:'org-1', role:'PASTEUR_PRINCIPAL'}`
+  → 201, puis `POST /org_units {org_id:'org-1'}` → 201 (le même INSERT sans
+  membership préalable → 42501). Lignes supprimées après la preuve.
+- **Correctif** : policies par commande ; INSERT/UPDATE réservés aux
+  administrateurs de l'organisation ; SELECT/DELETE conservent l'accès à soi.
+- **Statut** : corrigé (migration `20261022000010`). Rollback fourni.
+
+### R28 — Escalade de privilèges : `profiles.role` modifiable par l'utilisateur — CORRIGÉ
+- **Défaut** : `profiles_update` autorise chaque utilisateur à modifier sa
+  propre ligne, y compris `role`, qui sert de barrière (`org_admins_insert_merged`
+  exige `role='ADMIN'` ; l'UI teste `CENTRAL_ADMIN`). Un MEMBRE pouvait
+  s'auto-promouvoir ADMIN puis devenir administrateur de son organisation.
+  Le RPC `upsert_profile` (SECURITY DEFINER) contournait en outre tout trigger
+  `current_user`-based.
+- **Preuve** : `PATCH /profiles {role:'ADMIN'}` → 200 puis
+  `POST /org_admins` → 201 ; `POST /rpc/upsert_profile {p_role:'ADMIN'}` → 200.
+  Lignes supprimées et rôles restaurés après la preuve.
+- **Correctif** : trigger `guard_profile_role_immutable` (UPDATE direct) +
+  contrôle de `p_role` dans `upsert_profile` (via `is_org_admin`).
+- **Statut** : corrigé (migrations `20261022000011` et `20261022000012`).
+  Rollbacks fournis.

@@ -84,3 +84,17 @@
   seule l'implémentation fuyait. La lecture directe de la vue dans une policy
   provoque une récursion : le helper SECURITY DEFINER préserve la sémantique
   sans récursion. La vue n'est référencée par aucun code applicatif.
+
+### D-13 — Le rôle est attribuable uniquement par un administrateur de l'organisation
+- **Décision** : refuser toute modification de `profiles.role` par
+  `authenticated`/`anon` (trigger `guard_profile_role_immutable`), et refuser
+  `p_role` dans `upsert_profile` si l'appelant n'est pas administrateur actif de
+  l'organisation visée.
+- **Alternative écartée** : rendre `profiles.role` totalement immuable côté
+  client (plus simple mais interdirait à un admin légitime de promouvoir un
+  membre).
+- **Raison** : préserve la fonctionnalité d'administration tout en supprimant
+  l'auto-promotion. Les chemins légitimes (`settle_invitation_claim`, edges
+  `signup`/`create_org` en service_role) écrivent hors des rôles
+  `authenticated`/`anon` et restent intacts. `authService.setProfileRole` est du
+  code mort — aucun appel applicatif ne transmet `p_role`.
