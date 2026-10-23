@@ -454,3 +454,15 @@ X
 - **R37 prouvé** : sonde Cypress comparant deux `ion-item` — `slot="label"`
   → hauteur **0** (invisible) ; sans slot → hauteur **24** (visible).
   Correctif `bdd1f5b` validé par la mesure. Sonde supprimée.
+
+## 2026-10-23 ~03:10–03:30 UTC — R38 (critique) : utilisateur factice
+- **Découverte** : `lumina-user` jamais écrit au login → `useCurrentUser()`
+  renvoie `{id:'local-user', role:'TREASURIER'}` → `federation.canAccess`
+  TOUJOURS faux → FAB « Créer un groupe », export de rapports masqués à tort.
+- **Preuve** : base = `profiles.role=MEMBRE` + `org_memberships.role=
+  PASTEUR_PRINCIPAL` ; localStorage `lumina-user` = **absent** ; sonde
+  `window.__psDb` : `om=[{role:PASTEUR_PRINCIPAL,status:ACTIVE}]` correct.
+- **Correctif** (`60830d4`) : persistance dans `authService.setState` +
+  `useCurrentUser` lit le profil live et se re-rend sur auth.
+- **Preuve après** : `lumina-user` = id réel ; FAB présent après reload
+  (1re visite encore sans FAB → R39, course de synchronisation).

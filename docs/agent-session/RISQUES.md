@@ -477,3 +477,26 @@
   - `ion-label` sans slot → `rect.height = 24` (`visible: true`)
 - **Correctif** : retrait de l'attribut `slot="label"` (commit `bdd1f5b`).
 - **Gravité** : faible (un libellé de formulaire d'invitation). Corrigé.
+
+### R38 — `useCurrentUser()` renvoyait un utilisateur factice — CORRIGÉ (critique)
+- **Défaut** : `lumina-user` (localStorage) n'était **jamais écrit au login**
+  (seule la page Profil l'écrivait). `useCurrentUser()` lisait uniquement
+  cette clé et retombait sinon sur son repli **factice**
+  `{ id: "local-user", role: "TREASURIER" }`.
+- **Conséquence prouvée** : `useCanAccessMulti` → `federation.canAccess(
+  "local-user", …)` compare `org_memberships.user_id` à `"local-user"` →
+  **toujours faux**. Les gardes d'accès réels masquaient donc à tort des
+  actions légitimes : FAB « Créer un groupe », export de rapports, onglets de
+  transaction. Prouvé : `profiles.role=MEMBRE` +
+  `org_memberships.role=PASTEUR_PRINCIPAL` en base, et FAB **absent** sur
+  `/groups` alors que le rôle autorise `group:create`.
+- **Correctif** (commit `60830d4`) :
+  1. `authService.setState` persiste `lumina-user` dès que le profil est connu ;
+  2. `useCurrentUser()` lit d'abord le **profil Supabase live**
+     (`authService.getState().profile`), puis `lumina-user`, puis le repli ;
+  3. le hook se **re-rend** sur les changements d'auth (un seul pont
+     d'abonnement partagé, pas un listener Supabase par composant).
+- **Preuve** : `lumina-user` passe de `null` à l'id réel
+  `87afea21-…` ; FAB `Créer un groupe` **présent après rechargement**
+  (absent à la 1re visite, cf. R39).
+- **Gravité** : **critique** (contrôle d'accès réel inopérant pour tous).
