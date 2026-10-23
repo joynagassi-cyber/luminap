@@ -47,3 +47,4 @@ graphify-out/cache/
 powersync/.drift-*.md
 .secrets-vault/
 .secrets-vault/*.zip
+backups/

@@ -130,3 +130,18 @@
   surveiller après déploiement.
 - **Proposition** : vérifier la livraison réelle et le comportement hors ligne.
 - **Coût** : 2 h. **Risques** : faible.
+
+## P-BACKFILL-BUDGET — Re-normaliser `events.budget_items` (priorité : haute)
+- **Problème** : 158 des 159 lignes portent un jsonb de type *string*
+  (double encodage historique). Le code tolère désormais les deux formes,
+  mais la donnée reste sale et toute nouvelle lecture naïve casserait.
+- **Proposition** : migration de données idempotente et réversible :
+  `update events set budget_items = (budget_items #>> '{}')::jsonb
+   where jsonb_typeof(budget_items) = 'string';`
+  puis `alter table events alter column budget_items set default '[]'::jsonb`.
+- **Intérêt** : supprime la cause, pas seulement le symptôme ; rend la
+  colonne exploitable par SQL (rapports, agrégats) sans cast défensif.
+- **Coût** : 0,5 h (dont script de retour arrière et vérification).
+- **Risque** : faible (opération idempotente, réversible par
+  `to_jsonb(budget_items::text)`).
+- **Bloquante pour la fiabilité** : non (le code tolère), mais **haute**.
