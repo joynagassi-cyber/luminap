@@ -21,7 +21,7 @@ describe('Lumina — comprehensive navigation & finance flow', () => {
     // Le hub /settings n'est qu'une liste de sections : « Actualiser
     // les données » (loadInitialData) et les actions (Bilan financier,
     // Historique…) vivent dans /settings/gestion (SettingsGestion.tsx).
-    cy.get('button[aria-label="Plus d\'options"]').click();
+    cy.get('button[aria-label="Ouvrir le menu"]').click();
     cy.contains('button, ion-button', 'Paramètres').click();
     cy.get('h1, h2, h3').contains('Paramètres').should('exist');
     cy.contains('button, ion-button', 'Gérer').click();
@@ -49,7 +49,7 @@ describe('Lumina — comprehensive navigation & finance flow', () => {
     cy.contains('button, ion-button', 'PDF').first().click();
 
     // ── History ────────────────────────────────────────────────────────
-    cy.get('button[aria-label="Plus d\'options"]').click();
+    cy.get('button[aria-label="Ouvrir le menu"]').click();
     cy.contains('button, ion-button', 'Historique').click();
     cy.get('h1, h2, h3').contains('Historique').should('be.visible');
 
@@ -60,7 +60,7 @@ describe('Lumina — comprehensive navigation & finance flow', () => {
     cy.contains('button, ion-button', 'Retour').click();
 
     // ── Events ─────────────────────────────────────────────────────────
-    cy.get('button[aria-label="Plus d\'options"]').click();
+    cy.get('button[aria-label="Ouvrir le menu"]').click();
     cy.contains('button, ion-button', 'Événements').click();
     cy.get('h1, h2, h3').contains('Événements').should('be.visible');
 

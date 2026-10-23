@@ -76,7 +76,7 @@ describe('Lumina — Event tasks CRUD + status + progress + F5', () => {
       .first()
       .click({ force: true });
     cy.location('pathname', { timeout: 60_000 }).should((path: string) => {
-      expect(path, `event detail path: ${path}`).to.match(/^\/events\//);
+      expect(path, `event detail path: ${path}`).to.match(/^\/event\//);
     });
 
     // ── 2. Open the Tasks tab ────────────────────────────────────────
@@ -142,7 +142,7 @@ describe('Lumina — Event tasks CRUD + status + progress + F5', () => {
     // ── 7. Reload — tasks survive ────────────────────────────────────
     cy.reload();
     cy.location('pathname', { timeout: 30_000 }).should((path: string) => {
-      expect(path).to.match(/^\/events\//);
+      expect(path).to.match(/^\/event\//);
     });
     cy.contains('button[role="tab"]', 'Tâches', { timeout: 30_000 })
       .click();

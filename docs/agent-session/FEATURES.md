@@ -4,6 +4,15 @@
 > Validation : validée (tests verts) / partielle / non validée.
 > Légende des preuves : `V` = vitest, `C` = Cypress, `SQL` = requête base, `M` = manuel.
 
+## Correctifs transverses (session 2026-10-22)
+
+| # | Défaut | Impact | Correctif | Preuve |
+|---|---|---|---|---|
+| T1 | `PowerSyncProvider` défini mais jamais monté (`src/main.tsx`) | **Toutes** les listes de l'app vides au 1er lancement (repli local vide) alors que la sync fonctionnait | Monté autour de `<App/>` | `members.cy.ts` 3/3 ; sonde `{n:5, ready:true}` |
+| T2 | `usePowerSyncStatus` : `addListener`/`getStatus()` inexistants dans `@powersync/common@2.2.0` | `isPowerSyncReady()` toujours `false` → repli vide permanent, silencieux | `registerListener({statusChanged})` + `currentStatus` | sonde `ready:true` ; 3/3 |
+| T3 | Client Supabase B (`SupabaseConnector`) : `persistSession`+`autoRefreshToken` sur le même storageKey que le client A | Double rotation du refresh token → « Already Used » → révocation → **déconnexion aléatoire** | Client B en mémoire seule | Trace token + 3/3 |
+| T4 | `ensureAuth` ne survivait pas à `testIsolation` (Cypress 16) | Session perdue dès le 2e `it()` → échecs en cascade non déterministes | `cy.session()` | Trace token ABSENT en visite 2 ; 0/3→3/3 |
+
 ## Phase 0 — état initial
 
 | # | Fonctionnalité | Rôle utilisateur | Points d'entrée | Statut initial | Défauts constatés | Actions menées | Tests | Validation |
@@ -24,9 +33,9 @@
 | 14 | **Rapports financiers et inter-organisations** | Produire et transmettre un rapport | `/reports`, `/balance`, `/budgets`, `org_reports`, `report_definitions` | complète | — | — | `C: org-reports.cy.ts`, `V: orgReport.test.ts` | partielle |
 | 15 | **Formulaires dynamiques (builder + saisie)** | Créer un formulaire, le remplir | `/forms`, `/forms/fill/:id`, `/forms/:id/submissions` | **incomplète** | **`FormSubmissions.tsx` : `<EmptyState>` utilisé sans import → `ReferenceError` → page blanche à l'état vide** | Corrigé (import ajouté) | `V: FormSubmissions.test.tsx` | validée (V) |
 | 16 | **Champs personnalisés** | Ajouter des champs métier | `custom_field_definitions/values` | complète | — | — | `V` | à valider |
-| 17 | **Événements et tâches** | Planifier un culte, suivre ses tâches | `/events`, `/event/*`, `events`, `event_tasks` | complète | — | — | `C: events-tasks.cy.ts` (0/1) | non validée |
+| 17 | **Événements et tâches** | Planifier un culte, suivre ses tâches | `/events`, `/event/*`, `events`, `event_tasks` | complète | Spec périmée : assertion `/^\/events\//` (pluriel) alors que la route est `/event/:id` (singulier) — échec systématique indépendant du code. | Spec corrigée (`events-tasks.cy.ts`, `cross-tenant.cy.ts`) | `C: events-tasks.cy.ts`, `cross-tenant.cy.ts` | à revalider |
 | 18 | **Groupes et appartenances de groupe** | Organiser des groupes | `/groups`, `groups`, `group_memberships` | complète | — | — | `C: groups-events.cy.ts` | à valider |
-| 19 | **Membres (annuaire)** | Gérer les personnes | `/members`, `/membres-en-avance`, `members` | complète | — | — | — | non validée |
+| 19 | **Membres (annuaire)** | Gérer les personnes | `/members`, `/membres-en-avance`, `members` | **cassée** | **Provider PowerSync jamais monté** (bug C) → `useQuery` renvoyait `data:[]` + « PowerSync not configured. » → repli `useLocalStore` vide → « 0 actifs / Aucun membre » alors que la base locale contenait 5 membres. **`usePowerSyncStatus` appelait `addListener`/`getStatus()`** (inexistants dans le SDK, bug D) → `_psReady` restait `false` → repli vide permanent. **`usePowerSyncStatus` bloquait aussi les autres listes** ; `ensureAuth` perdait la session entre `it()` (bug F) ; routes `/event/*` testées en `/events/*` (spec périmée). | Corrigé C (montage provider), D (`registerListener`+`currentStatus`), E (double refresh Supabase), F (`cy.session`) ; specs `/event/` corrigées | `C: members.cy.ts` **3/3** ; sonde `useMembers` `{n:5, ready:true}` | **validée (C, 3/3)** |
 | 20 | **Dons et campagnes** | Suivre les dons | `/giving`, `giving_campaigns`, `giving_donors`, `pledges`, `tax_receipts` | complète | — | — | `V: budgets-giving.test.ts` | partielle |
 | 21 | **Notifications** | Être averti d'un changement | `notifications`, triggers `notify_*`, `onesignal.ts` | complète | — | — | `V: notification.test.ts` | partielle |
 | 22 | **Journal d'audit** | Tracer les changements | `/trace`, `audit_entries` | complète | — | — | `V` | à valider |
