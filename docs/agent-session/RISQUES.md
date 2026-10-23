@@ -858,26 +858,58 @@
   `comprehensive-flow.cy.ts` 1/1.
 - **Statut** : corrigé, validé (C).
 
-### R59 — Page cible laissée à `opacity: 0` après navigation par le menu latéral — OUVERT
-- **Gravité** : moyenne (à confirmer côté utilisateur).
-- **Observation** : après un clic dans `FeatureSidebar` vers `/settings`,
-  la page cible porte durablement `ion-page-invisible` et
-  `opacity: 0` (mesuré : `INV op=0 vis=visible disp=flex h=844`), alors
-  que l'accès direct à `/settings` rend correctement (`VIS op=1`). Même
-  route, même contenu : le facteur est la **navigation programmatique**
-  (`ensureNavViewChunk` puis `navigate()`).
-- **Réserve** : l'environnement de test est un **serveur de développement
-  Vite** (URLs avec `?t=` HMR) ; l'effet peut être accentué par le HMR et
-  ne pas se produire sur un build de production. Non confirmé sur build.
+### R59 — Écran noir : la page entrante reste à `opacity: 0` après une navigation depuis la liste — OUVERT (gravité HAUTE)
+- **Gravité** : **haute** (écran noir permanent ; l'app est une PWA
+  mobile sans barre d'adresse → aucun moyen de recharger).
+- **Symptôme** : cliquer un élément d'une liste qui navigue vers une
+  **route paramétrée** (`/groups/:id`, `/event/:id`, `/members/:id`…)
+  pousse bien la nouvelle page dans le view-stack d'Ionic, **mais elle
+  reste à `opacity: 0`** (classes `ion-page-invisible`) → écran noir,
+  alors que la page est montée et contient les bonnes données.
+- **Preuves (mesurées, reproductibles)** :
+  - **Accès direct** à `/groups/<id>` : `VIS:op1` → **rendu correct**.
+  - **Clic depuis `/groups`** : `VIS+INV:op0` → **écran noir**, contenu
+    pourtant présent (`"Jeunesse 003100 … Caisse Solde actuel 0 FCFA"`).
+  - Identique en 2e ouverture (chunk déjà chargé) et après préchargement
+    du chunk via une visite directe → **ce n'est pas un problème de
+    chargement de chunk**.
+  - Idem en développement (URLs `?t=` HMR) et hors HMR.
+- **Hypothèses ÉLIMINÉES par expérience** (chacune testée puis annulée) :
+  1. **identité du `<IonPage>` échangée** entre branche de chargement
+     (`<GroupDetailSkeleton/>`) et branche chargée — supprimer la branche
+     de chargement ne change rien ;
+  2. **`<div>` intermédiaire du `LazyRouteErrorBoundary`** entre l'outlet
+     et l'`IonPage` — remplacé par un Fragment, sans effet ;
+  3. **`<PageSkeleton>` du `Suspense`** (un `IonPage`) échangé contre
+     celui de la page — voir 1 ;
+  4. **chunk paresseux non résolu au moment de la transition** — le
+     préchargement préalable ne corrige rien.
+- **Piste restante (non confirmée, à investiguer)** : la transition
+  `ion-router-outlet` ne retire pas `ion-page-invisible` quand la
+  navigation est déclenchée par un handler React **pendant que la page
+  courante est encore en cours d'hydratation/synchro**. À vérifier :
+  (a) déclencher la navigation **après** un `requestAnimationFrame` /
+  `setTimeout(0)` ; (b) comparer avec une navigation par un lien
+  `<IonRouterLink>` (transition gérée par Ionic) plutôt que
+  `navigate()` ; (c) instrumenter `ion-router-outlet` (`ionNavDidChange`)
+  pour voir si l'événement de fin de transition est émis.
+- **Impact utilisateur** : **critique sur le parcours cœur** — ouvrir un
+  groupe, un événement, un membre depuis une liste laisse un écran noir.
+  Les tests E2E correspondants échouent pour cette raison
+  (`groups-events.cy.ts` 0/3, `reports-budgets`/`persistence`/
+  `performance-batch`/`org-reports` partiellement).
 - **Contournement en test** : suivre la convention du dépôt
   (`cypress/support/view.ts`) — la page affichée est le dernier
-  `div.ion-page:not(.ion-page-hidden)`, `ion-page-invisible` étant
-  documentée comme transitoire.
-- **Action recommandée** : reproduire sur un build de production
-  (`npm run build && npm run preview`) ; si confirmé, vérifier la
-  transition `ion-router-outlet` (classe retirée par Ionic à la fin de
-  l'animation) et l'ordre `await ensureNavViewChunk()` → `navigate()`.
-- **Statut** : ouvert, à confirmer hors serveur de développement.
+  `div.ion-page:not(.ion-page-hidden)` ; `ion-page-invisible` y est
+  documentée comme **transitoire**, ce qui n'est manifestement plus vrai
+  dans ce cas précis (elle persiste).
+- **Recommandation** : traiter en priorité 1 (cf. PROPOSITIONS P34),
+  avec un test de non-régression qui assert `opacity !== 0` sur la page
+  entrante **après** une navigation depuis une liste.
+- **Statut** : **ouvert, non corrigé** (dépasse le budget imparti de
+  30 min ; conforme au garde-fou « si bloqué > 30 min, consigner dans
+  RISQUES.md et passer à la suite »). Aucune modification de code n'a été
+  conservée pour ce défaut.
 
 ### R61 — Titres de page non sémantiques (accessibilité) — OUVERT
 - **Gravité** : basse (a11y).

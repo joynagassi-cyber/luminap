@@ -261,3 +261,81 @@
 - **Risque** : faible (CI uniquement). **Priorité** : critique.
 - **Bloquant long terme** : **oui** — sans CI fiable, toute régression future
   passera inaperçue.
+
+## Session 3 (2026-10-23) — propositions
+
+### P28 — Corriger l'ordre des hooks : généraliser le garde-fou — CRITIQUE
+- **Problème** : R60 (retour anticipé avant un hook dans `useTransactions`)
+  était **silencieux** en revue statique et ne se manifestait qu'à l'exécution,
+  sur une seule route. Rien n'empêche un futur hook de réintroduire le même
+  motif (cache, `if (!ready) return`, `if (cached) return`).
+- **Proposition** : (1) activer `eslint-plugin-react-hooks` en **erreur** dans
+  la CI ; (2) ajouter un test unitaire qui monte chaque hook de `dataLayer.ts`
+  avec `renderHook` et le re-rend après remplissage du cache (détecte tout
+  changement de nombre d'appels) ; (3) règle de revue : aucun `return`
+  conditionnel avant le dernier hook d'une fonction.
+- **Intérêt** : élimine une classe entière de crashs en ErrorBoundary, les
+  plus difficiles à diagnostiquer (message React cryptique).
+- **Coût** : 3 h. **Risques** : faible. **Priorité** : critique.
+- **Bloquant pour la fiabilité à long terme** : oui.
+
+### P29 — Couverture de l'édition de transaction — HAUTE
+- **Problème** : R60 n'a été détecté que tardivement ; `/transaction/:id/edit`
+  n'avait **aucun test** avant cette session.
+- **Proposition** : spec Cypress dédiée (création → édition → relecture du
+  montant/description modifiés **en base**), plus un test du refus d'édition
+  d'une transaction `APPROVED` (immunité déjà codée, non testée).
+- **Intérêt** : verrouille R60 et l'immunité. **Coût** : 2 h. **Priorité** : haute.
+
+### P30 — Statut de vérification produit dans le rapport — MOYENNE
+- **Problème** : les captures d'erreurs (`console.error`) restent dans la
+  console du navigateur ; en production personne ne les voit.
+- **Proposition** : brancher le `LazyRouteErrorBoundary` et les erreurs de
+  synchronisation PowerSync sur le service d'observabilité (Sentry est
+  disponible dans l'environnement) avec un identifiant de corrélation.
+- **Intérêt** : un échec silencieux chez un utilisateur devient une trace
+  exploitable au retour du propriétaire. **Coût** : 4 h. **Priorité** : moyenne.
+
+### P31 — Sauvegardes sans plan Pro (voir aussi P20) — CRITIQUE
+- **Problème** : les sauvegardes classiques Supabase exigent un plan Pro.
+  L'environnement est en plan **gratuit**.
+- **Proposition** : export logique planifié hors Supabase — `pg_dump`
+  quotidien (données + schéma) vers un stockage externe, plus l'export
+  `supabase db dump` pour les migrations, avec rotation et test de
+  restauration mensuel documenté dans `RUNBOOK.md`.
+- **Intérêt** : sans sauvegarde, une corruption est définitive.
+  **Coût** : 4 h puis 0 h/mois. **Priorité** : critique. **Bloquant** : oui.
+
+### P32 — Titres de page sémantiques (`<h1>`) — BASSE
+- **Problème** : R61 — `TopHeader` rend le titre en `<p>`, donc pas de `<h1>`
+  sur les pages de premier niveau. **Proposition** : un `<h1>` par page.
+  **Coût** : 2 h. **Priorité** : basse (a11y).
+
+### P33 — Conflits de synchronisation PowerSync explicites — HAUTE
+- **Problème** : le comportement en cas de conflit d'écriture concurrente
+  (deux appareils hors ligne modifiant la même transaction) n'est ni
+  documenté ni testé.
+- **Proposition** : documenter la stratégie (`uploadData` actuel), tester un
+  conflit réel (deux clients, même ligne) et afficher un état « version
+  divergente » plutôt qu'un écrasement silencieux.
+- **Intérêt** : évite une confusion de données financières. **Coût** : 6 h.
+  **Priorité** : haute. **Bloquant** : partiellement (finances).
+
+### P34 — Écran noir à la navigation vers une route paramétrée (R59) — CRITIQUE
+- **Problème** : ouvrir un groupe / événement / membre depuis une liste
+  laisse la page entrante à `opacity: 0` (écran noir permanent, PWA sans
+  barre d'adresse). C'est le parcours cœur de l'app.
+- **Proposition** : (1) instrumenter `ion-router-outlet`
+  (`ionNavDidChange`) pour confirmer si l'événement de fin de transition
+  est émis ; (2) tester une navigation différée (`requestAnimationFrame`)
+  et une navigation via `<IonRouterLink>` ; (3) ajouter un garde-fou :
+  si après N ms la page active porte encore `ion-page-invisible`, la
+  forcer visible (classe retirée) — correctif de dernier recours,
+  idempotent ; (4) test de non-régression qui assert `opacity !== 0` sur
+  la page entrante après un clic depuis une liste.
+- **Intérêt** : débloque le parcours principal et fait passer
+  `groups-events`, `reports-budgets`, `persistence`, `performance-batch`
+  et `org-reports` au vert.
+- **Coût** : 4 à 6 h (diagnostic Ionic/`ion-router-outlet`).
+  **Risques** : moyen (touche au routeur). **Priorité** : **critique**.
+- **Bloquant** : oui.
