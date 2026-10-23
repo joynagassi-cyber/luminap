@@ -109,7 +109,16 @@ trouvés ont été corrigés dans le temps imparti.
 | R32 | `onIonChange` (Ionic) ne part qu'au blur → bouton jamais débloqué | `onIonInput` (95 remplacements) | test Cypress vert ; `tsc` OK |
 | R34 | `slot="input"` : 61 champs **jamais rendus** (rect 0×0) | Suppression des 61 attributs (20 fichiers, `86670ef`) | sonde DOM avant/après ; `finance-deep` 5/5 |
 | R35 | `TopHeader` collant (110px) recouvre les champs (64px réservés) | `ion-content::part(scroll){scroll-padding-top:7rem}` (`dff2cbe`) | `headerBottom=111`, `inputTop=281`, `covered=false` |
-| — | `?date=` périmé dans l'URL en quittant la timeline | `setSearchParams({}, replace)` (`af2d79d`) | `C: calendar.cy.ts` |
+| — | `?date=` périmé dans l'URL en quittant la timeline | `setSearchParams({}, replace)` (`af2d79d`) | `C: calendar.cy.ts` 0/1 → **1/1** |
+| R37 | `slot="label"` sur `IonLabel` dans `ion-item` (Shadow DOM sans slot `label`) → libellé non rendu | Retrait de l'attribut (`bdd1f5b`) | Sonde : hauteur **0** avec slot, **24** sans |
+
+> **Faux positif écarté par la preuve** : `UpdateDialog` (R36) plaçait ses
+> actions dans `<IonButtons slot="footer">` alors qu'`ion-alert` n'expose aucun
+> slot. Vérification en navigateur réel : `ion-alert` est `encapsulation:
+> "scoped"` (pas shadow), donc ses enfants light-DOM **sont** rendus
+> (`hostText="PLUSTARD_PROBEProbe"`, élément `hydrated`). **Aucun défaut.**
+> R34 (shadow) et R36 (scoped) s'opposent : toujours vérifier l'encapsulation
+> avant de conclure. Documenté dans RISQUES.md (R36) et JOURNAL.md.
 
 **Bug le plus grave** : R34 — la quasi-totalité des formulaires de l'app
 (transaction, événement, groupe, budget, versement, invitation, champ
