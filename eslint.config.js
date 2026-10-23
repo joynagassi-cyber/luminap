@@ -42,5 +42,20 @@ export default tseslint.config(
         ],
       }],
     },
+  },
+  {
+    // Les specs Cypress utilisent la syntaxe d'assertion Chai
+    // (`expect(x).to.be.a('string').and.not.be.empty`) : les accès de
+    // propriété finaux sont des instructions-expression valides du DSL Chai.
+    // `no-unused-expressions` (règle TS) les signale à tort. Sans cette
+    // exception, le job « Lint Check » échouait en CI sur 9 faux positifs
+    // (cypress/e2e/cross-tenant.cy.ts, rbac-gates.cy.ts, support/view.ts).
+    files: ['cypress/**/*.{ts,tsx}'],
+    languageOptions: {
+      globals: { ...globals.browser, cy: 'readonly', Cypress: 'readonly' },
+    },
+    rules: {
+      '@typescript-eslint/no-unused-expressions': 'off',
+    },
   }
 );

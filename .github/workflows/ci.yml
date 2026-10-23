@@ -97,6 +97,22 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
 
+      # CORRECTIF (session 2) : ce job était le SEUL à ne pas créer
+      # `.env.local`. Or `src/lib/auth.ts` lève à l'import si
+      # VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY sont absents. Résultat :
+      # 14 fichiers de test échouaient au chargement (« (0 test) ») en CI,
+      # alors qu'ils passaient en local (où `.env.local` existe). La CI était
+      # donc rouge en permanence → plus aucun signal exploitable pour le
+      # propriétaire. Mêmes variables que les jobs lint/typecheck/build.
+      - name: Create .env.local
+        run: |
+          echo "VITE_SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > .env.local
+          echo "VITE_SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}" >> .env.local
+          echo "VITE_SUPABASE_JWKS_URL=${{ secrets.SUPABASE_JWKS_URL }}" >> .env.local
+          echo "VITE_POWERSYNC_URL=${{ secrets.POWERSYNC_URL }}" >> .env.local
+          echo "VITE_ONESIGNAL_APP_ID=${{ secrets.OS_V2_API_KEY || secrets.VITE_ONESIGNAL_APP_ID }}" >> .env.local
+          echo "VITE_SENTRY_DSN=${{ secrets.SENTRY_DSN || secrets.VITE_SENTRY_DSN }}" >> .env.local
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
