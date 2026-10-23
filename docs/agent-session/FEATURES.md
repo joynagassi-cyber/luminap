@@ -141,3 +141,31 @@ Les échecs sont **préexistants** (défauts de test / infra), cf. RISQUES.md R3
 | # | Fonctionnalité | Défaut | Preuve avant | Correctif | Preuve après |
 |---|---|---|---|---|---|
 | 41 | **Tous les formulaires à `IonItem + IonInput/IonSelect/IonTextarea`** (transaction, transaction groupée, événement, groupe, budget, versement, fédération, invitation, champ personnalisé, rapport, unités d'org, document, tâches) | `slot="input"` posé sur le contrôle à l'intérieur d'un `<IonItem>`. `ion-item` (Ionic 9.0.2, **shadow DOM**) ne déclare que les slots `start` / `end` / défaut : l'enfant n'est **assigné à aucun slot → jamais rendu**. Le champ existe dans le DOM (`should('exist')` passe) mais rect **0×0**, `checkVisibility()=false`, `offsetParent=null` → invisible et non saisissable. | Sonde DOM `/event/new` : `checkVisibility=false`, rect `0×0`, `offsetParent=false` | Suppression des **61** attributs `slot="input"` (20 fichiers) — commit `86670ef` | Sonde DOM `/event/new` : `checkVisibility=true`, rect `316×44`, `offsetParent=true` ; `tsc` OK ; `C: finance-deep` passe de 4/5 à 5/5 |
+
+## Session 3 (2026-10-23) — fonctionnalités complétées / défauts corrigés
+
+| # | Fonctionnalité | Statut initial | Défaut | Correctif (commit) | Tests | Validation |
+|---|---|---|---|---|---|---|
+| 11b | **Édition d'une transaction** (`/transaction/:id/edit`) | **cassée** | **R60** — `useTransactions()` sautait un hook (retour anticipé du cache) → « change in the order of Hooks » → ErrorBoundary « Impossible d'afficher cette page ». Édition impossible. | Cache consulté après le hook ; `key` ajoutées aux `IonSelectOption` mappés (`71b1738`) | `C: finance-deep.cy.ts` 5/5 ; `C: comprehensive-flow.cy.ts` 1/1 | **validée (C)** |
+| 1b | **Point d'entrée de l'app / PWA** (`/`) | **cassée** | **R58** — `<Navigate>` en **enfant** de `<Route path="/">` (ignoré par React Router) → `/` (le `start_url` du manifest) rendait un **écran blanc total**, sans aucun moyen de sortir (PWA sans barre d'adresse). | `element={<Navigate to="/splash" replace/>}` (`eca2052`) | `C: root-redirect.cy.ts` **2/2** (avec et sans session) | **validée (C)** |
+| 24d | **Dashboard** (`/dashboard`) | **cassée** | **R57** — `RangeError: Invalid time value` : `formatDate` sur une date NULL → ErrorBoundary sur toute la page. | Helpers défensifs (`657491b`) | `V: utils-date.test.ts` ; `C: local-dashboard.cy.ts` 2/2 | **validée (V+C)** |
+| 23b | **Navigation (barre basse)** | complète | Specs périmées : onglet par défaut = « Cultes », sélecteurs sur pages masquées. | Specs corrigées (scoping page active) | `C: nav-bottom.cy.ts` **3/3** | **validée (C)** |
+| 41b | **États de chargement / squelettes** | incomplète | Spec `responsive-skeleton` : prémisse obsolète après R57 (plus de squelette infini). | Spec alignée | `C: responsive-skeleton.cy.ts` **4/4** | **validée (C)** |
+| 2b | **Déconnexion douce / reconnexion** | complète | Specs : `testIsolation` Cypress 16 effaçait la session entre `it()`. | `cy.ensureAuth()` en tête de chaque `it()` | `C: sessions.cy.ts` **3/3** ; `C: rbac-gates.cy.ts` **2/2** | **validée (C)** |
+| — | **Ouverture d'une entité depuis une liste** (groupe, événement, membre) | **cassée** | **R59** — navigation vers une route paramétrée : page entrante **`opacity: 0`** (écran noir permanent) alors que le contenu est rendu. Accès direct OK. **NON CORRIGÉ** (budget dépassé ; 4 hypothèses éliminées par expérience). | — | `C: groups-events.cy.ts` 0/3 (échoue pour cette raison) | **non validée** (défaut produit ouvert, cf. RISQUES R59 / PROPOSITIONS P34) |
+
+### Suite Cypress complète — session 3
+
+`npx cypress run --browser chromium` → **27 specs, 70 tests, 50 verts, 20 rouges
+(7 specs en échec)**, durée 39 min.
+Specs **vertes** (20) : auth-real 5/5, calendar 1/1, cloud-sync 1/1,
+comprehensive-flow 1/1, cross-tenant 1/1, events-tasks 1/1, finance-deep 5/5,
+invitations 1/1, local-dashboard 2/2, local-smoke 3/3, members 3/3,
+nav-bottom 3/3, rbac-gates 2/2, responsive-skeleton 4/4,
+rls-isolation-hardened 4/4, rls-leak 1/1, root-redirect 2/2, sessions 3/3,
+simple-check 1/1, theme-modes 3/3.
+Specs **rouges** (7) : `forms-fields` 2/4, `forms-v2` 0/6, `groups-events` 0/3,
+`org-reports` 0/1, `performance-batch` 0/3, `persistence` 0/1,
+`reports-budgets` 1/5.
+Causes : **R59** (écran noir, 4 specs) et sélecteurs globaux portant sur des
+pages Ionic **masquées** + prémisses de spec obsolètes (3 specs).

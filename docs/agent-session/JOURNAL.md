@@ -680,3 +680,31 @@ alors que l'app fonctionnait.
   sur `/history` (page de 1er niveau), édition attendue sur le
   pré-remplissage, « Entrées »/« Sorties » sont des `<p>` (pas des boutons).
 - `root-redirect.cy.ts` (nouveau) : verrouille R58 (avec et sans session).
+
+### Session 3 — suite complète (2026-10-23, ~20:47 UTC)
+
+- **20:47** — Suite complète `npx cypress run --browser chromium` terminée :
+  **27 specs / 70 tests / 50 verts / 20 rouges / 39 min 06 s**.
+  20 specs vertes, 7 rouges.
+- **Investigation R59** (écran noir après navigation depuis une liste) —
+  5 sondes Cypress, ~55 min :
+  - Sonde 1 (`/groups`) : 1 seule page visible, liste OK, 85 groupes.
+  - Sonde 2 (clic groupe) : `VIS+INV:op0` → **écran noir** (contenu présent).
+  - Sonde 3 (accès direct `/groups/:id`) : `VIS:op1` → **rendu correct**.
+  - Sonde 4 (2ᵉ ouverture / préchargement du chunk) : toujours `op0`
+    → ce n'est pas un chargement de chunk.
+  - Sonde 5 (branche de chargement neutralisée, `LazyRoute` sans `<div>`)
+    : toujours `op0` → hypothèses « identité `<IonPage>` » et « `<div>`
+    intermédiaire » **éliminées**.
+- Décision : budget de 30 min dépassé → **R59 consigné comme défaut produit
+  ouvert (gravité HAUTE)** avec preuves et pistes, aucune modification de
+  code conservée (changement minimal), suite du programme reprise
+  (conforme au garde-fou « blocage > 30 min »).
+- État git vérifié propre : seuls les fichiers `docs/agent-session/*` sont
+  modifiés ; aucun fichier source parasite ; artefact
+  `cypress/downloads/lumina_export_2026-10-23.pdf` restauré.
+- **T2 (sauvegardes) clos** : `/workspace/backups/` contient
+  `schema-20261022-1801.sql` (125 Ko, 42 `CREATE TABLE`) et
+  `data-20261022-1802.sql` (1,1 Mo) — export logique complet de
+  `hhgovvrnalibhgpakswi` (plan gratuit, sauvegardes classiques
+  indisponibles → export `supabase db dump`, cf. RUNBOOK §Sauvegardes).

@@ -1,7 +1,11 @@
 # Rapport final — session de stabilisation Lumina
 
-- **Date** : 2026-10-22T17:56Z (T0) → 2026-10-23T02:5xZ
-- **Branche** : `agent/session-2026-10-22-stabilisation` (40 commits, non fusionnée)
+- **Date** : 2026-10-22T17:56Z (T0) → 2026-10-23T02:5xZ (sessions 1-2) puis
+  **session 3** le 2026-10-23 (branche
+  `agent/session-2026-10-23-phases-restantes`)
+- **Branche** : `agent/session-2026-10-23-phases-restantes` (session 3, non
+  fusionnée — le propriétaire décide ; session 1-2 :
+  `agent/session-2026-10-22-stabilisation`)
 - **Environnement Supabase** : `hhgovvrnalibhgpakswi` (eu-west-2) — environnement
   de **test/dev**, pas de production réelle (décision D1)
 - **Périmètre** : 119 fichiers modifiés, +8082 / −4185 lignes
@@ -518,3 +522,117 @@ Aucune donnée financière touchée (la table `transactions` est **vide**).
 | 5 | `logo_url` organisation + streams | 1 h 30 |
 | 6 | Personnalisation des annexes | 1 h |
 | 7 | Faire aboutir le sync PowerSync dans l'env. de test | 2 h |
+
+---
+
+# Session 3 — 2026-10-23 (branche `agent/session-2026-10-23-phases-restantes`)
+
+> Cette section complète le rapport des sessions 1-2. Elle suit la même règle :
+> aucune affirmation sans preuve (test, sortie de commande, requête).
+
+## S3.1 — Résumé exécutif de la session 3
+
+La session 3 a **corrigé 3 défauts produit bloquants** et **qualifié un
+4ᵉ** comme défaut ouvert :
+
+1. **R60 — édition de transaction impossible** (`/transaction/:id/edit`).
+   Cause : `useTransactions()` (`src/lib/dataLayer.ts`) faisait un `return`
+   anticipé du cache **avant** son appel à `useQuery` → le nombre de hooks
+   changeait entre le 1ᵉʳ et le 2ᵉ rendu → React « change in the order of
+   Hooks » → ErrorBoundary. **Corrigé** (le cache est consulté après le
+   hook). Preuve : `finance-deep.cy.ts` **5/5**, `comprehensive-flow.cy.ts`
+   **1/1**.
+2. **R58 — écran blanc total sur `/`** (le `start_url` de la PWA) :
+   `<Navigate>` placé en **enfant** d'un `<Route>` (ignoré par React
+   Router) → `path="/"` matchait sans rien rendre. **Corrigé** via
+   `element={<Navigate to="/splash" replace/>}`. Preuve :
+   `root-redirect.cy.ts` **2/2**.
+3. **R57 — `RangeError: Invalid time value`** sur `/dashboard`
+   (date NULL → `formatDate`). **Corrigé** (helpers défensifs). Preuve :
+   `local-dashboard.cy.ts` **2/2** + tests unitaires.
+4. **R59 — écran noir après navigation vers une route paramétrée** :
+   défaut **produit** confirmé par 5 sondes (accès direct OK, clic KO),
+   4 hypothèses éliminées. **Non corrigé** (budget dépassé) ; consigné
+   avec preuves, pistes et test de non-régression à écrire (P34).
+
+**Niveau de confiance** : les parcours couverts par les **20 specs vertes**
+sont fiables (preuves automatiques). Les parcours touchant l'ouverture
+d'une entité depuis une liste (groupe, événement, membre) ne le sont pas
+tant que **R59** n'est pas corrigé — c'est le principal risque résiduel.
+
+## S3.2 — Bugs corrigés en session 3
+
+| Réf | Cause racine | Correction | Preuve |
+|---|---|---|---|
+| **R60** | Retour anticipé avant `useQuery` dans `useTransactions()` → ordre des hooks instable | Déplacement du `return` cache **après** `useQuery` ; `key` sur les `IonSelectOption` mappés | `C: finance-deep` 5/5 ; `C: comprehensive-flow` 1/1 |
+| **R58** | `<Navigate>` enfant d'un `<Route>` (ignoré) | `element={<Navigate to="/splash" replace/>}` | `C: root-redirect` 2/2 |
+| **R57** | `formatDate`/`formatDateTime` sur date NULL → `RangeError` | Helpers défensifs (retour `—`) | `C: local-dashboard` 2/2 ; `V` unitaires |
+
+## S3.3 — Défauts connus NON corrigés (gravité décroissante)
+
+1. **R59 — écran noir, navigation vers route paramétrée** (HAUTE, produit).
+   Accès direct OK ; clic depuis une liste → page `opacity: 0` persistante.
+   Éliminés par expérience : identité `<IonPage>`, `<div>` du `LazyRoute`,
+   squelette de chargement, préchargement du chunk. Piste :
+   `ion-router-outlet` / `ionNavDidChange`. Cf. RISQUES.md R59, P34.
+2. **Sélecteurs de spec portant sur des pages Ionic masquées** (MOYENNE,
+   test). `cy.contains` fouille tout `ion-app` (qui porte `.ion-page`) →
+   matche des pages cachées. 3 specs concernées (`forms-v2`, `forms-fields`,
+   `reports-budgets` partiellement). Correctif = scoper à la page active
+   (`cypress/support/view.ts`).
+3. **Prémisses de spec obsolètes** (BASSE, test) : `forms-v2` T6, etc.
+
+## S3.4 — Tests : résultats et commande de reproduction
+
+```bash
+cd /workspace/project/luminap
+npx vite --port 8080 --host 127.0.0.1 &      # serveur requis
+rm -f /tmp/.X99-lock; Xvfb :99 -screen 0 1280x720x24 -nolisten tcp &
+DISPLAY=:99 CYPRESS_CACHE_FOLDER=/workspace/.cypress-cache \
+  CYPRESS_BASE_URL=http://localhost:8080 \
+  npx cypress run --browser chromium
+```
+
+| Indicateur | Valeur (mesurée, log `/workspace/full2.log`) |
+|---|---|
+| Specs | 27 (20 vertes / 7 rouges) |
+| Tests | 70 (50 verts / 20 rouges) |
+| Durée | 39 min 06 s |
+| Taux de réussite | 71 % |
+
+Causes des 20 échecs : **R59** (4 specs : `groups-events`, `persistence`,
+`performance-batch`, `org-reports`) et **sélecteurs non scopés** +
+prémisses obsolètes (3 specs : `forms-v2`, `forms-fields`,
+`reports-budgets`).
+
+## S3.5 — Sauvegardes (T2) — CLOS
+
+Les sauvegardes classiques Supabase exigent un plan **Pro** ; l'environnement
+est en plan **gratuit**. Alternative retenue et **exécutée** : export logique
+`supabase db dump` → `/workspace/backups/` :
+
+- `schema-20261022-1801.sql` — 125 Ko, 42 `CREATE TABLE` ;
+- `data-20261022-1802.sql` — 1,1 Mo.
+
+Procédure de restauration et de rotation : RUNBOOK.md §Sauvegardes.
+**Recommandation** : planifier cet export (cron quotidien) vers un stockage
+externe (P31).
+
+## S3.6 — Reste à faire, priorisé
+
+| Priorité | Tâche | Estimation |
+|---|---|---|
+| 1 | **Corriger R59** (écran noir navigation paramétrée) + test de non-régression | 4-6 h |
+| 2 | Scoper les 3 specs restantes à la page active ; corriger leurs prémisses | 2 h |
+| 3 | Brancher l'observabilité (Sentry) sur l'ErrorBoundary et PowerSync (P30) | 4 h |
+| 4 | Planifier l'export de sauvegarde quotidien (P31) | 4 h |
+| 5 | Couvrir l'édition de transaction (P29) et les conflits de synchro (P33) | 8 h |
+
+## S3.7 — Décisions à valider par le propriétaire
+
+1. **Corriger R59 avant la mise en production** — le parcours « ouvrir une
+   entité depuis une liste » est cassé sur les routes paramétrées.
+2. **Planifier les sauvegardes** (P31) : sans export planifié, une
+   corruption est définitive (plan gratuit = pas de PITR).
+3. **Activer `eslint-plugin-react-hooks` en erreur** (P28) pour prévenir
+   toute récidive de R60.
