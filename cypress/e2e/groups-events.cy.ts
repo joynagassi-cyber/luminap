@@ -88,6 +88,9 @@ describe('Lumina — Groups & Events', () => {
     cy.get(`${PAGE} ion-title`)
       .contains(groupName, { timeout: 30_000 })
       .should('be.visible');
+    // R61 : la page expose un titre de niveau 1 (IonTitle n'a pas de role
+    // heading). Sans ce <h1>, aucun titre n'est annonce aux lecteurs d'ecran.
+    cy.get(`${PAGE} h1`).should('contain.text', groupName);
 
     // Retour à la liste : le bouton retour reel est un <ion-back-button>
     // (la spec cherchait un bouton « Retour », inexistant ici, et matchait
