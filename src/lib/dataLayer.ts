@@ -21,7 +21,7 @@ import type {
   FormDefinition,
   FormSubmission,
 } from "@/types";
-import { getOrganizationId } from "./orgContext";
+import { getOrganizationId, subscribeOrganization } from "./orgContext";
 import { get, set, invalidate, clear, asyncGetOrSet } from "./cache";
 import { authService } from "./auth";
 
@@ -407,10 +407,31 @@ function setPowerSyncReady(ready: boolean) {
 // ============================================================
 
 /**
+ * Force un re-rendu du composant appelant des que l'organisation courante est
+ * resolue.
+ *
+ * `getOrganizationId()` lit une variable de module (`orgContext._orgId`)
+ * posee de facon asynchrone par `AppContext` au boot. Sans abonnement, une
+ * page montee avant la resolution interroge PowerSync avec
+ * `org_id = '__no_org__'` et affiche un etat vide TROMPEUR
+ * ("0 evenements", "Aucun membre") alors que les donnees sont bien
+ * synchronisees - jusqu'au re-rendu suivant (mesure ~30 s).
+ */
+function useOrganizationRevision(): number {
+  const [rev, setRev] = useState(0);
+  useEffect(() => {
+    return subscribeOrganization(() => setRev((n) => n + 1));
+  }, []);
+  return rev;
+}
+
+/**
  * Hook to get all transactions
  * Tries PowerSync first, falls back to local cache
  */
 export function useTransactions() {
+  const orgRev = useOrganizationRevision();
+  void orgRev;
   const sync = usePowerSync();
   const store = useLocalStore();
   const orgId = getOrganizationId();
@@ -442,9 +463,11 @@ export function useTransactions() {
  * Hook to get all events
  */
 export function useEvents() {
+  const orgRev = useOrganizationRevision();
+  void orgRev;
   const { data: psData, isLoading: psStatus } = useQuery<PSEvent>(
     "SELECT id, org_id, name, description, start_date, end_date, status, type, budget, budget_items, created_at, updated_at FROM events WHERE org_id = ? ORDER BY start_date ASC",
-    [getOrganizationId()],
+    [getOrganizationId(), orgRev],
     { reportFetching: true },
   );
   const store = useLocalStore();
@@ -464,10 +487,12 @@ export function useEvents() {
  * Hook to get all members
  */
 export function useMembers() {
+  const orgRev = useOrganizationRevision();
+  void orgRev;
   const [retryKey, setRetryKey] = useState(0);
   const { data: psData, error: psError } = useQuery<PSMember>(
     "SELECT id, org_id, first_name, last_name, phone, email, status, joined_at, archived_at, archived_by, archive_reason, total_dons, montant_en_avance, created_at, updated_at FROM members WHERE org_id = ? ORDER BY last_name, first_name",
-    [getOrganizationId(), retryKey],
+    [getOrganizationId(), retryKey, orgRev],
     { reportFetching: true },
   );
   const store = useLocalStore();
@@ -495,9 +520,11 @@ export function useMembers() {
  * Hook to get all groups
  */
 export function useGroups() {
+  const orgRev = useOrganizationRevision();
+  void orgRev;
   const { data: psData } = useQuery<PSGroup>(
     "SELECT id, org_id, name, parent_group_id, responsable_member_id, status, archived_at, archived_by, archive_reason, created_at, updated_at FROM groups WHERE org_id = ? ORDER BY name",
-    [getOrganizationId()],
+    [getOrganizationId(), orgRev],
     { reportFetching: true },
   );
   const store = useLocalStore();
@@ -517,9 +544,11 @@ export function useGroups() {
  * Hook to get all caisses
  */
 export function useCaisses() {
+  const orgRev = useOrganizationRevision();
+  void orgRev;
   const { data: psData } = useQuery<PSCaisse>(
     "SELECT id, name, description, type, color, org_id, created_at, updated_at FROM caisses WHERE org_id = ? ORDER BY name",
-    [getOrganizationId()],
+    [getOrganizationId(), orgRev],
     { reportFetching: true },
   );
   const store = useLocalStore();
@@ -539,9 +568,11 @@ export function useCaisses() {
  * Hook to get all accounts
  */
 export function useAccounts() {
+  const orgRev = useOrganizationRevision();
+  void orgRev;
   const { data: psData } = useQuery<PSAccount>(
     "SELECT id, org_id, owner_type, owner_id, name, currency, status, archived_at, archived_by, archive_reason, created_at, updated_at FROM accounts WHERE org_id = ? ORDER BY name",
-    [getOrganizationId()],
+    [getOrganizationId(), orgRev],
     { reportFetching: true },
   );
   const store = useLocalStore();
@@ -561,10 +592,12 @@ export function useAccounts() {
  * Hook to get all notifications
  */
 export function useNotifications() {
+  const orgRev = useOrganizationRevision();
+  void orgRev;
   const [retryKey, setRetryKey] = useState(0);
   const { data: psData, error: psError } = useQuery<PSNotification>(
     "SELECT id, org_id, action_type, title, message, is_read, source_transaction_id, created_at FROM notifications WHERE org_id = ? ORDER BY created_at DESC",
-    [getOrganizationId(), retryKey],
+    [getOrganizationId(), retryKey, orgRev],
     { reportFetching: true },
   );
   const store = useLocalStore();
@@ -592,9 +625,11 @@ export function useNotifications() {
  * Hook to get all categories
  */
 export function useCategories() {
+  const orgRev = useOrganizationRevision();
+  void orgRev;
   const { data: psData } = useQuery<PSCategory>(
     "SELECT id, key, label_fr, type, org_id, created_at FROM categories WHERE org_id = ? ORDER BY label_fr",
-    [getOrganizationId()],
+    [getOrganizationId(), orgRev],
     { reportFetching: true },
   );
   const store = useLocalStore();
@@ -614,9 +649,11 @@ export function useCategories() {
  * Hook to get all org units
  */
 export function useOrgUnits() {
+  const orgRev = useOrganizationRevision();
+  void orgRev;
   const { data: psData } = useQuery<PSOrgUnit>(
     "SELECT id, name, type, org_id, description, is_active, created_at FROM org_units WHERE org_id = ? ORDER BY name",
-    [getOrganizationId()],
+    [getOrganizationId(), orgRev],
     { reportFetching: true },
   );
   const store = useLocalStore();
@@ -636,9 +673,11 @@ export function useOrgUnits() {
  * Hook to get all versements
  */
 export function useVersements() {
+  const orgRev = useOrganizationRevision();
+  void orgRev;
   const { data: psData } = useQuery<PSVersement>(
     "SELECT id, org_id, from_account_id, to_account_id, amount_cents, date, status, created_by, approved_by, approved_at, comment, created_at FROM versements WHERE org_id = ? ORDER BY created_at DESC",
-    [getOrganizationId()],
+    [getOrganizationId(), orgRev],
     { reportFetching: true },
   );
   const store = useLocalStore();
@@ -722,9 +761,11 @@ export function useBudgetLines() {
  * Hook to get all audit entries
  */
 export function useAuditEntries() {
+  const orgRev = useOrganizationRevision();
+  void orgRev;
   const { data: psData } = useQuery<PSAuditEntry>(
     "SELECT id, org_id, transaction_id, user_id, actor_role_at_time, action, entity_type, entity_id, before_state, after_state, comment, created_at FROM audit_entries WHERE org_id = ? ORDER BY created_at DESC",
-    [getOrganizationId()],
+    [getOrganizationId(), orgRev],
     { reportFetching: true },
   );
   const store = useLocalStore();
@@ -760,9 +801,11 @@ function psToCotisation(r: PSCotisation): Cotisation {
 }
 
 export function useCotisations() {
+  const orgRev = useOrganizationRevision();
+  void orgRev;
   const { data: psData } = useQuery<PSCotisation>(
     "SELECT id, org_id, culte_id, membre_id, statut, montantobligatoire, montantpaye, datepaiement, notes, createdat, updatedat FROM cotisations WHERE org_id = ? ORDER BY createdat DESC",
-    [getOrganizationId()],
+    [getOrganizationId(), orgRev],
     { reportFetching: true },
   );
   const store = useLocalStore();
@@ -789,7 +832,7 @@ export function useCotisations() {
 export function useDocuments(opts?: { entity?: string; entityType?: string }) {
   const { data: psData } = useQuery<PSDocument>(
     "SELECT id, org_id, title, purpose, bucket, file_path, file_size, mime_type, entity_type, entity_id, status, uploaded_by, created_at, updated_at FROM documents WHERE org_id = ? AND status != 'DELETED' ORDER BY created_at DESC",
-    [getOrganizationId()],
+    [getOrganizationId(), orgRev],
     { reportFetching: true },
   );
   const filtered = (psData ?? []).filter((d) => {
@@ -1913,9 +1956,11 @@ export interface PSInvitationClaim {
  * Hook to get all invitations
  */
 export function useInvitations() {
+  const orgRev = useOrganizationRevision();
+  void orgRev;
   const { data: psData } = useQuery<PSInvitation>(
     "SELECT id, org_id, code, target_role, target_scope_type, target_group_id, target_member_id, issued_by, issued_at, expires_at, max_uses, used_count, status FROM invitations WHERE org_id = ? ORDER BY created_at DESC",
-    [getOrganizationId()],
+    [getOrganizationId(), orgRev],
     { reportFetching: true },
   );
   return { data: psData, isLoading: false, source: "powersync" as const };
@@ -3146,7 +3191,7 @@ export interface PSOrgBudgetLine {
 export function useOrgBudgets() {
   const { data: psData } = useQuery<PSOrgBudget>(
     "SELECT id, org_id, fiscal_year, period, cost_center_id, cost_center_label, name, total_budgeted_cents, status, currency, note, created_at, updated_at FROM org_budgets WHERE org_id = ? ORDER BY fiscal_year DESC, created_at DESC",
-    [getOrganizationId()],
+    [getOrganizationId(), orgRev],
     { reportFetching: true },
   );
   return { data: psData ?? [], isLoading: psData === undefined, source: "powersync" as const };
@@ -3351,7 +3396,7 @@ export interface PSTransactionGiving {
 export function useGivingDonors() {
   const { data: psData } = useQuery<PSGivingDonor>(
     "SELECT id, org_id, full_name, email, phone, address, member_id, tax_receipt_enabled, notes, created_at, updated_at FROM giving_donors WHERE org_id = ? ORDER BY full_name",
-    [getOrganizationId()],
+    [getOrganizationId(), orgRev],
     { reportFetching: true },
   );
   return { data: psData ?? [], isLoading: psData === undefined, source: "powersync" as const };
@@ -3360,7 +3405,7 @@ export function useGivingDonors() {
 export function useGivingCampaigns() {
   const { data: psData } = useQuery<PSGivingCampaign>(
     "SELECT id, org_id, name, purpose, fund, target_amount_cents, start_date, end_date, status, notes, created_at, updated_at FROM giving_campaigns WHERE org_id = ? ORDER BY start_date DESC, created_at DESC",
-    [getOrganizationId()],
+    [getOrganizationId(), orgRev],
     { reportFetching: true },
   );
   return { data: psData ?? [], isLoading: psData === undefined, source: "powersync" as const };
@@ -3369,7 +3414,7 @@ export function useGivingCampaigns() {
 export function usePledges() {
   const { data: psData } = useQuery<PSPledge>(
     "SELECT id, org_id, campaign_id, donor_id, pledged_amount_cents, schedule, amount_per_period_cents, start_date, end_date, status, notes, created_at, updated_at FROM pledges WHERE org_id = ? ORDER BY created_at DESC",
-    [getOrganizationId()],
+    [getOrganizationId(), orgRev],
     { reportFetching: true },
   );
   return { data: psData ?? [], isLoading: psData === undefined, source: "powersync" as const };
@@ -3378,7 +3423,7 @@ export function usePledges() {
 export function useTaxReceipts() {
   const { data: psData } = useQuery<PSTaxReceipt>(
     "SELECT id, org_id, donor_id, year, receipt_no, total_amount_cents, issued_at, created_at, updated_at FROM tax_receipts WHERE org_id = ? ORDER BY year DESC, donor_id",
-    [getOrganizationId()],
+    [getOrganizationId(), orgRev],
     { reportFetching: true },
   );
   return { data: psData ?? [], isLoading: psData === undefined, source: "powersync" as const };
@@ -3387,7 +3432,7 @@ export function useTaxReceipts() {
 export function useTransactionGiving() {
   const { data: psData } = useQuery<PSTransactionGiving>(
     "SELECT id, org_id, transaction_id, donor_id, campaign_id, recorded_at, created_at, updated_at FROM transaction_giving WHERE org_id = ? ORDER BY recorded_at DESC",
-    [getOrganizationId()],
+    [getOrganizationId(), orgRev],
     { reportFetching: true },
   );
   return { data: psData ?? [], isLoading: psData === undefined, source: "powersync" as const };
