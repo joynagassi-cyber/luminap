@@ -204,3 +204,60 @@
   `main`, ou badge de statut en tête de README.
 - **Intérêt** : un défaut d'infrastructure devient visible en minutes.
 - **Coût** : 15 min. **Risque** : aucun. **Priorité** : haute.
+
+---
+
+## Session 2 — propositions complémentaires
+
+### P23 — Corriger le défaut UX de `/sessions` (état de chargement) — HAUTE
+- **Problème** : `Sessions.tsx` confond `null` (chargement) et `[]` (vide) →
+  « Aucun compte lié pour l'instant » s'affiche alors que le compte existe
+  (R52). Message faux, perte de confiance au moment précis où l'utilisateur
+  cherche à se reconnecter.
+- **Proposition** : `const loading = orgs === null;` → squelette pendant le
+  chargement ; `EmptyState` seulement quand `orgs !== null && list.length === 0`.
+- **Intérêt** : supprime un mensonge à l'écran sur le parcours de reconnexion.
+- **Coût** : 30 min. **Risque** : très faible (affichage conditionnel).
+- **Priorité** : haute. **Bloquant long terme** : non, mais dégrade fortement
+  la confiance.
+
+### P24 — Ajouter `logo_url` à `organizations` + streams PowerSync — MOYENNE
+- **Problème** : le logo d'organisation n'est pas persisté en base (R48) —
+  invisible pour les autres membres, les autres appareils et les rapports PDF.
+- **Proposition** : migration `ALTER TABLE organizations ADD COLUMN logo_url
+  TEXT` + rollback, ajout de la colonne aux 3 streams `org_*` de
+  `sync-config.yaml`, déploiement Cloud, puis écriture client.
+- **Coût** : 1 h 30. **Risque** : moyen (déploiement PowerSync Cloud requis).
+- **Priorité** : moyenne. **Bloquant** : non.
+
+### P25 — Personnalisation des annexes (`org_units`) — BASSE
+- **Problème** : la demande « personnalisation de l'organisation **et de ses
+  annexes** » n'est satisfaite que pour l'organisation (R49).
+- **Coût** : 1 h. **Priorité** : basse.
+
+### P26 — Réparer le build Android (`@capacitor/storage` → `preferences`) — HAUTE
+- **Problème** : l'APK Android ne se construit plus (R55) — namespace manquant
+  dans le plugin `@capacitor/storage`, déprécié.
+- **Proposition** : migrer vers `@capacitor/preferences` (remplacement
+  officiel) ou épingler un plugin déclarant son `namespace`.
+- **Intérêt** : rend à nouveau possible la distribution native.
+- **Coût** : 1 h. **Risque** : moyen (dépendance native, à tester sur
+  appareil). **Priorité** : haute. **Bloquant** : oui pour toute livraison
+  Android.
+
+### P27 — Assainir la CI : 3 workflows à réparer — CRITIQUE
+- **Problème** : `CI Pipeline` était rouge sur 3 jobs (corrigé cette session),
+  mais `cypress.yml` et `android-debug.yml` restent rouges à **chaque push**,
+  et le job E2E de `ci.yml` est **illusoire** (R54 : `continue-on-error` +
+  suite complète skippée faute de secret). Conclusion : **aucune couche E2E
+  n'est réellement vérifiée automatiquement**.
+- **Proposition** : (1) provisionner `E2E_TEST_EMAIL`/`E2E_TEST_PASSWORD`,
+  (2) retirer `continue-on-error`, (3) élargir la liste de specs, (4) fournir
+  `CYPRESS_RECORD_KEY` ou exécuter sans `record/parallel`, (5) corriger le
+  build Android. Objectif : **une CI verte signifie réellement « tout passe »**.
+- **Intérêt** : rétablit le garde-fou automatique — la seule protection
+  possible pendant 4 mois sans surveillance.
+- **Coût** : 3 h 45 (dont 2 h E2E, 1 h Android, 45 min Cypress Cloud).
+- **Risque** : faible (CI uniquement). **Priorité** : critique.
+- **Bloquant long terme** : **oui** — sans CI fiable, toute régression future
+  passera inaperçue.

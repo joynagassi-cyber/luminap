@@ -753,3 +753,59 @@
   affaiblir un test ».
 - **Travail restant** : faire aboutir le sync PowerSync dans
   l'environnement de test (ou seeder la réplique locale), puis rejouer.
+
+### R54 — Le job E2E de la CI ne teste rien de réel — NON CORRIGÉ (documenté)
+- **Gravité** : élevée (faux sentiment de sécurité sur toute la couche E2E).
+- **Défaut** (`.github/workflows/ci.yml`) : le job « E2E (Cypress) » exécute
+  **un seul** spec (`simple-check.cy.ts`, qui se contente de rendre la page
+  d'auth) et le marque `continue-on-error: true` → il est **vert quoi qu'il
+  arrive**. L'étape « Run full Cypress suite » est conditionnée à
+  `vars.E2E_RUN_FULL == 'true' || env.E2E_TEST_EMAIL != ''` : sans le secret
+  `E2E_TEST_EMAIL`, elle est **skippée silencieusement**. Les 26 specs E2E ne
+  sont donc **jamais** exécutés par la CI.
+- **Preuve** : `ci.yml:249` (`--spec "cypress/e2e/simple-check.cy.ts"` +
+  `continue-on-error: true`) et `ci.yml:259-261` (condition + liste de 4
+  specs seulement). Le job « E2E (Cypress) » de la PR #4 est `success` alors
+  que `sessions.cy.ts` échoue en local — confirmation directe.
+- **Pourquoi non corrigé** : rendre le job bloquant exigerait un compte
+  Supabase de test provisionné en secret + un sync PowerSync fonctionnel dans
+  l'Action ; hors de portée ici, et un job E2E bloquant mal configuré
+  bloquerait toutes les PR. À décider par le propriétaire.
+- **Correctif proposé (2 h)** : (1) fournir `E2E_TEST_EMAIL`/`E2E_TEST_PASSWORD`
+  en secret, (2) retirer `continue-on-error`, (3) élargir la liste de specs,
+  (4) rendre le job bloquant. Estimé 2 h dont 1 h de mise au point du sync.
+
+### R55 — Le build Android échoue à chaque push (préexistant, y compris sur `main`) — NON CORRIGÉ
+- **Gravité** : moyenne (n'affecte pas la PWA web, mais l'app native est
+  **impossible à produire**).
+- **Cause racine exacte** (log du job `120537034105`, run `39989430527`) :
+  ```
+  A problem occurred configuring project ':capacitor-storage'
+  > Could not create an instance of type
+    com.android.build.api.variant.impl.LibraryVariantBuilderImpl.
+    > Namespace not specified. Specify a namespace in the module's build file.
+  BUILD FAILED in 11s
+  ```
+  Le plugin `@capacitor/storage` (déprécié) n'a pas d'attribut `namespace`
+  dans son `build.gradle`, obligatoire avec Android Gradle Plugin 8.
+- **Preuve que c'est préexistant** : « Android Debug Build » est `failure` sur
+  toutes les exécutions listées, y compris la branche de la session
+  précédente. Ce n'est **pas** une régression de cette session.
+- **Pourquoi non corrigé** : règle de gel + modification de dépendance native
+  (hors périmètre « pas de mise à jour majeure ») + impossible à valider ici
+  (pas de SDK Android). Un correctif non testé serait pire que le défaut.
+- **Correctif proposé (1 h)** : remplacer `@capacitor/storage` (déprécié) par
+  `@capacitor/preferences`, ou épingler une version du plugin déclarant son
+  `namespace`. Voir PROPOSITIONS.md P26.
+
+### R56 — Deux workflows CI sont rouges en permanence (préexistant)
+- **Gravité** : moyenne.
+- **Défaut** : `cypress.yml` (déclenché sur **tout push**) échoue sur les 2
+  conteneurs, et `android-debug.yml` échoue. Un dépôt dont la moitié des
+  badges est rouge en permanence **désensibilise** : le propriétaire ne
+  distingue plus une vraie régression d'un bruit de fond.
+- **Cause `cypress.yml`** : `record: true` + `parallel: true` (Cypress Cloud)
+  sans `CYPRESS_RECORD_KEY` exploitable, et sans serveur/repli adéquat ;
+  le workflow n'a **pas** d'étape de repli locale. Voir P27.
+- **Correctif proposé (45 min)** : soit fournir `CYPRESS_RECORD_KEY`, soit
+  retirer `record/parallel` et exécuter la suite en local sur le runner.
