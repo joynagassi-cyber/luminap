@@ -433,10 +433,21 @@ sonde après correctifs → `{ org:"org-e2e", n:5, ready:true, err:"none" }`.
 - **Corrigé** : `slot="label"` dans `InvitationEmit.tsx:230` — `ion-item`
   n'expose que `start`/défaut/`end` (source `item.js`), donc le libellé
   « Rôle cible » n'était pas rendu. Retiré ; `tsc` = 0.
-- **Nouveau défaut (R36, OUVERT)** : `UpdateDialog.tsx` place ses actions dans
+X
   `<IonButtons slot="footer">` alors qu'`ion-alert` n'a **aucun slot** → le
   dialogue de mise à jour n'a **aucun bouton cliquable**. Correctif identifié
   (prop `buttons` d'`IonAlert`) mais **non appliqué** : règle de gel T0+9 h
   et changement non testable dans le délai. Documenté dans RISQUES.md (R36).
 - Gel atteint : plus de complétion de fonctionnalité ni de changement
   structurel à partir de maintenant.
+
+## 2026-10-23 ~02:50–02:58 UTC — R36 : faux positif écarté par la preuve
+- **Suspicion** : `UpdateDialog` (actions dans `IonButtons slot="footer"`) alors
+  qu'`ion-alert` n'expose aucun slot → boutons non rendus (famille R34).
+- **Vérification en navigateur réel** (Cypress) : `ion-alert` rend bien ses
+  enfants light-DOM (`hostText="PLUSTARD_PROBEProbe"`, enfant `hydrated`).
+  `ion-alert` est `encapsulation: "scoped"` (pas `shadow`) : le contenu est
+  conservé sur place. **R36 n'est PAS un défaut.**
+- RISQUES.md corrigé (R36 → vérifié, pas un défaut) ; leçon consignée :
+  vérifier l'encapsulation du composant avant de conclure.
+- Sondes supprimées (`zz-probe-alert.cy.ts`, `zz-upd.test.tsx`).
