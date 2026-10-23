@@ -48,6 +48,7 @@ import { federation } from "@/capabilities/federation";
 import { security } from "@/capabilities/security";
 import type { AccessScope } from "@/types/federation";
 import type { Role } from "@/types";
+import { getPowerSyncDatabase } from "@/lib/powersync";
 
 export type AccessSource = "legacy" | "federation" | "both" | "neither";
 
@@ -81,6 +82,50 @@ function cacheKey(
  */
 export function clearCanAccessMultiCache(): void {
   cache.clear();
+  // Purge explicite : la prochaine fin de sync doit re-résoudre (les
+  // grants/memberships ont pu changer).
+  _cacheStale = true;
+}
+
+// Vrai tant qu'une invalidation n'a pas été consommée par une fin de sync.
+// Vrai au départ : le premier sync doit toujours invalider les résolutions
+// faites sur une base encore vide.
+let _cacheStale = true;
+
+// ─── Invalidation sur synchronisation PowerSync ─────────────────────────────
+//
+// BUG CORRIGÉ : un résultat NÉGATIF obtenu AVANT que la base locale ne soit
+// synchronisée était mémorisé DÉFINITIVEMENT. Au premier chargement d'une
+// page, `federation.canAccess` lit un SQLite encore vide
+// (`org_memberships` / `grants` non téléchargées) → `false`, mis en cache →
+// les actions légitimes (FAB « Créer un groupe », export de rapports)
+// restaient masquées jusqu'au rechargement suivant.
+//
+// Correctif : à chaque fois que PowerSync signale `hasSynced === true`, on
+// vide le cache et on notifie les hooks montés, qui re-résolvent. Les
+// composants re-rendent alors avec la bonne valeur — sans rechargement.
+const _invalidationListeners = new Set<() => void>();
+let _syncBridged = false;
+
+function ensurePowerSyncInvalidationBridge(): void {
+  if (_syncBridged) return;
+  _syncBridged = true;
+  try {
+    const db = getPowerSyncDatabase();
+    db.registerListener({
+      statusChanged: (status: { hasSynced?: boolean }) => {
+        if (!status?.hasSynced || !_cacheStale) return;
+        // Une seule invalidation par fin de sync : inutile de vider le cache
+        // à chaque tick de statut tant qu'aucune purge n'est demandée.
+        _cacheStale = false;
+        cache.clear();
+        _invalidationListeners.forEach((l) => l());
+      },
+    });
+  } catch {
+    // DB non initialisée (SSR / test) : le prochain montage réessaiera.
+    _syncBridged = false;
+  }
 }
 
 /**
@@ -114,7 +159,19 @@ export function useCanAccessMulti(
     return { fedResult: undefined, legacyResult };
   });
 
+  // Incrémenté à chaque invalidation PowerSync : force la re-résolution
+  // (l'effet de fetch ci-dessous le liste dans ses dépendances).
+  const [resolveToken, setResolveToken] = useState(0);
   useEffect(() => {
+    const listener = () => setResolveToken((n) => n + 1);
+    _invalidationListeners.add(listener);
+    return () => {
+      _invalidationListeners.delete(listener);
+    };
+  }, []);
+
+  useEffect(() => {
+    ensurePowerSyncInvalidationBridge();
     let cancelled = false;
     const current = cache.get(key);
     if (!current || current.fedResult === undefined) {
@@ -155,7 +212,8 @@ export function useCanAccessMulti(
     return () => {
       cancelled = true;
     };
-  }, [key, legacyRole]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [key, legacyRole, resolveToken]); // eslint-disable-line react-hooks/exhaustive-deps
+
 
   const fed = entry.fedResult === true;
   const legacy = entry.legacyResult === true;
