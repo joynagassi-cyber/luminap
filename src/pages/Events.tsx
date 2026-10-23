@@ -25,7 +25,7 @@ type ViewMode = "list" | "calendar" | "timeline";
 
 export default function Events() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { data: psEvents, isLoading: psLoading } = useEvents();
   const { data: psTransactions } = useTransactions();
 
@@ -99,7 +99,15 @@ export default function Events() {
                   { id: "timeline", label: "Timeline" },
                 ]}
                 active={viewMode}
-                onChange={(id) => setViewMode(id as ViewMode)}
+                onChange={(id) => {
+                  setViewMode(id as ViewMode);
+                  // Quitter la timeline (entrée via ?date=) doit retirer le
+                  // paramètre : sinon l'URL reste désynchronisée de la vue et
+                  // un retour/refresh ré-ouvre la timeline.
+                  if (id !== "timeline" && searchParams.has("date")) {
+                    setSearchParams({}, { replace: true });
+                  }
+                }}
               />
             </div>
 
