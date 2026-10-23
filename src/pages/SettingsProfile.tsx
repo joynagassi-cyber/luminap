@@ -61,6 +61,8 @@ export default function SettingsProfile() {
     () => localStorage.getItem("lumina-lastName") ?? user?.lastName ?? "",
   );
   const [namesDirty, setNamesDirty] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const handlePhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -81,10 +83,26 @@ export default function SettingsProfile() {
   };
 
   const handleSaveNames = async () => {
-    localStorage.setItem("lumina-firstName", firstName.trim());
-    localStorage.setItem("lumina-lastName", lastName.trim());
-    // Met à jour l'utilisateur local pour que le nom s'affiche partout.
+    setSaveError(null);
+    setSaving(true);
+    // 1) Persistance en base (source de vérité). Sans cette écriture, le nom
+    //    saisi n'existait que dans le navigateur courant : un autre appareil,
+    //    une invitation ou un rapport affichaient l'ancien nom.
+    const { error } = await authService.updateProfile({
+      first_name: firstName.trim(),
+      last_name: lastName.trim(),
+    });
+    if (error) {
+      // Aucun échec avalé : l'utilisateur voit que l'enregistrement a échoué
+      // et peut réessayer ; le cache local n'est PAS mis à jour (il mentirait).
+      setSaving(false);
+      setSaveError(error);
+      return;
+    }
+    // 2) Cache local (affichage immédiat, hors-ligne) — cohérent avec la base.
     try {
+      localStorage.setItem("lumina-firstName", firstName.trim());
+      localStorage.setItem("lumina-lastName", lastName.trim());
       const stored = localStorage.getItem("lumina-user");
       if (stored) {
         const parsed = JSON.parse(stored);
@@ -93,8 +111,9 @@ export default function SettingsProfile() {
         localStorage.setItem("lumina-user", JSON.stringify(parsed));
       }
     } catch {
-      /* stockage indisponible — les champs restent éditables */
+      /* stockage indisponible — la base reste la source de vérité */
     }
+    setSaving(false);
     setNamesDirty(false);
   };
 
@@ -212,15 +231,26 @@ export default function SettingsProfile() {
             />
           </div>
         </div>
+        {saveError && (
+          <p
+            role="alert"
+            data-testid="profile-save-error"
+            className="mt-3 text-xs"
+            style={{ color: "var(--data-expense)" }}
+          >
+            Enregistrement impossible : {saveError}. Vérifiez votre connexion et
+            réessayez.
+          </p>
+        )}
         <button
           type="button"
           onClick={handleSaveNames}
-          disabled={!namesDirty}
+          disabled={!namesDirty || saving}
           className="w-full mt-3 py-3 rounded-full font-semibold text-on-accent text-sm transition-transform active:scale-95 disabled:opacity-40"
           style={{ backgroundColor: "var(--accent-primary)" }}
           aria-label="Enregistrer le nom"
         >
-          {namesDirty ? "Enregistrer" : "Enregistré"}
+          {saving ? "Enregistrement…" : namesDirty ? "Enregistrer" : "Enregistré"}
         </button>
       </div>
 

@@ -606,3 +606,206 @@
   « la nav reste SOUS les overlays » (`core-components.test.tsx`).
 - **Gravité** : **haute** (fonctionnalité inutilisable au doigt, invisible
   en test unitaire jsdom qui n'évalue pas le chevauchement visuel).
+
+---
+
+## Session 2 (2026-10-23) — nouveaux constats
+
+### R45 — CI rouge en permanence sur `main` — CORRIGÉ
+- **Gravité** : critique (silence = plus aucun signal).
+- **Défaut** : après la fusion de la PR #3, la CI de `main` échouait sur
+  **3 jobs** : Unit Tests (14 fichiers « 0 test »), Lint Check (9 erreurs),
+  Security Audit (1 vulnérabilité critique). Le propriétaire n'avait donc
+  **aucun** garde-fou automatique.
+- **Cause racine (Vitest)** : le job `unit` était le seul à ne pas créer
+  `.env.local` ; `src/lib/auth.ts` lève à l'import sans
+  `VITE_SUPABASE_URL`/`ANON_KEY` → échec au chargement. Les mêmes tests
+  passaient en local — écart CI/local invisible.
+- **Preuve** : logs GitHub Actions (run `39972947162`) :
+  `Test Files 14 failed | 46 passed (60)`,
+  `✖ 1710 problems (9 errors …)`, `dompurify … critical`.
+  Après correctif local : `npx eslint .` → 0 erreur ;
+  `pnpm audit --audit-level=critical` → exit 0.
+- **Correctif** : `074dc2e`.
+- **Statut** : corrigé localement ; **à confirmer par un run CI** (voir
+  R46).
+
+### R46 — Correctifs CI non encore confirmés par un run GitHub Actions
+- **Gravité** : moyenne.
+- **Défaut** : les 3 correctifs de R45 sont validés **localement** (preuves
+  ci-dessus), mais aucun run CI n'a encore tourné dessus au moment de la
+  rédaction.
+- **Impact si faux** : la CI resterait rouge.
+- **Action** : pousser la branche et vérifier les 4 jobs verts.
+
+### R47 — Test unitaire instable (`e2e-transaction`) — CORRIGÉ
+- **Gravité** : moyenne (bruit qui masque les vrais échecs).
+- **Défaut** : `buildReverseTransaction` relisait l'horloge en interne ;
+  l'assertion `approvedAt === now` comparait deux lectures (±1 ms).
+- **Preuve** : `expected '…06.147Z' to be '…06.146Z'`.
+- **Correctif** : horloge injectable (`6e500da`) ; 38/38 × 3 passes.
+- **Statut** : corrigé, stabilité prouvée.
+
+### R48 — Logo d'organisation non persisté en base — NON CORRIGÉ
+- **Gravité** : faible (le nom l'est désormais).
+- **Défaut** : la table `organizations` n'a **pas** de colonne `logo_url` ;
+  le logo reste en `localStorage` (`lumina-config`). Un autre membre, un
+  autre appareil ou un rapport PDF ne voit donc pas le logo de l'org.
+- **Pourquoi non corrigé** : l'ajouter exige une migration de colonne
+  **plus** un déploiement PowerSync Cloud (`sync-config.yaml`) — impossible
+  dans cet environnement (pas de `PS_ADMIN_TOKEN`) et non testable
+  bout-en-bout ici. Un changement non déployé serait pire que le défaut.
+- **Travail restant** : migration `ALTER TABLE organizations ADD COLUMN
+  logo_url TEXT`, ajout de la colonne aux 3 streams `org_*`, déploiement
+  Cloud, puis écriture client. Estimé : 1 h 30.
+
+### R49 — Phase 7 : personnalisation des annexes (`org_units`) non couverte
+- **Gravité** : faible.
+- **Défaut** : la demande « personnalisation de l'organisation **et de ses
+  annexes** » n'est satisfaite que pour l'organisation. Les annexes
+  (`org_units`) n'ont pas d'écran de personnalisation dédié.
+- **Travail restant** : estimé 1 h (formulaire + écriture `org_units`).
+
+### R50 — Faux positif écarté : la RLS inter-tenant de `profiles` tient — VÉRIFIÉ
+- **Gravité** : information (aucun défaut).
+- **Ce qui a été soupçonné** : `profiles_update` n'a qu'un `USING (auth.uid() = id)`,
+  sans filtre de colonne. Un utilisateur pouvait donc, en théorie, réécrire son
+  propre `org_id` et lire l'organisation cible (`is_org_member` fait foi sur
+  `profiles.org_id`).
+- **Vérification menée (2 comptes, appels REST réels)** :
+  | Scénario | Résultat |
+  |---|---|
+  | non-admin `PATCH profiles {org_id:'org-1'}` | **HTTP 403 `ORG_ID_IMMUTABLE`** |
+  | non-admin `PATCH profiles {role:'ADMIN'}` | **HTTP 403 `ROLE_IMMUTABLE`** |
+  | non-admin `PATCH organizations?id=eq.org-e2e` | **HTTP 200, 0 ligne** |
+  | non-admin `PATCH profiles {role:'MEMBRE', first_name}` (légitime) | **HTTP 204** |
+  | lecture `profiles`/`transactions`/`organizations` d'une autre org | **0 ligne** |
+- **Mécanisme** : triggers `guard_profile_role_immutable`,
+  `guard_profile_role_insert` (migrations `20261022000011` / `…14`) et
+  `trg_guard_profile_org`. Ils **sont bien installés en base** (`tgenabled='O'`).
+- **Nuance honnête** : un premier test avec le compte E2E a semblé montrer une
+  escalade (HTTP 200). C'était un **faux positif** : ce compte est
+  *légitimement* administrateur d'`org-e2e` (`org_admins.status='ACTIVE'`),
+  donc le trigger a correctement autorisé l'écriture. Le contrôle a été refait
+  avec un compte **non-admin**, qui est bloqué sur tous les chemins.
+- **Statut** : RLS vérifiée, **aucun correctif nécessaire**. Les écritures de
+  test ont été restaurées (nom d'org et rôle remis à l'identique).
+- **Travail restant** : ajouter ce scénario à la suite Cypress (fait :
+  `cypress/e2e/rls-leak.cy.ts`, 1/1 × 3 passes).
+
+### R51 — `rls-leak.cy.ts` ne testait pas la RLS — CORRIGÉ
+- **Gravité** : élevée (faux sentiment de sécurité + CI rouge permanente).
+- **Défaut** : le spec appelait REST avec la clé **anon** au lieu du jeton de
+  session. La clé anon n'a aucun `sub` → 0 ligne partout, y compris
+  l'assertion « l'org courante est visible » → échec systématique
+  (`expected 0 to be above 0`) **sans jamais tester la RLS**.
+- **Correctif** : authentification REST déterministe + jeton de session,
+  étapes imbriquées (les littéraux de gabarit étaient évalués à la mise en
+  file des commandes), assertions renforcées (`profiles`, `transactions`,
+  organisations étrangères réellement seedées, contrôle positif).
+- **Preuve** : `1 passing` × **3 passes consécutives** (`06012f5`).
+
+### R52 — `/sessions` n'a pas d'état de chargement (défaut UX réel) — NON CORRIGÉ
+- **Gravité** : moyenne (écran trompeur, pas de crash).
+- **Défaut** : `useMyOrgs()` expose `data: UserOrg[] | null`. `Sessions.tsx`
+  teste `list.length === 0` sans distinguer **`null` (chargement)** de
+  **`[]` (vraiment vide)**. Tant que la réplique locale PowerSync n'est pas
+  peuplée, l'utilisateur lit « Aucun compte lié pour l'instant » — un
+  message **faux** : son compte existe (prouvé : `org_memberships` ACTIVE
+  pour le compte E2E). Défaut de la famille « aucun écran sans
+  explication » (phase 6).
+- **Preuve** : diagnostic Cypress — `/sessions` rend
+  `Mes comptes … Aucun compte lié pour l'instant lumina-org-e2e@lumina.dev`
+  alors que `org_memberships` contient bien la ligne `org-e2e` ACTIVE.
+- **Pourquoi non corrigé** : règle de gel (T0 + 9 h dépassé) + validation
+  impossible ici (voir R53). Le correctif est petit mais non testable.
+- **Correctif proposé (30 min)** : `const loading = orgs === null;` puis
+  afficher un squelette/spinner quand `loading`, l'`EmptyState` seulement
+  quand `orgs !== null && list.length === 0`.
+
+### R53 — `sessions.cy.ts` rouge : réplique PowerSync vide dans l'environnement — NON CORRIGÉ
+- **Gravité** : moyenne (le spec ne peut pas passer ici ; ce n'est pas une
+  régression produit démontrée).
+- **Constat** : `sessions.cy.ts` échoue 3/3. `listUserOrgs()` lit
+  `getPowerSyncDatabase()` (réplique **locale**) ; dans cet environnement la
+  réplique ne se peuple pas (le sync PowerSync n'aboutit pas) → 0 org →
+  aucune carte `Re-ouvrir`.
+- **Ce qui a été vérifié** (pour ne pas confondre bug produit et artefact) :
+  1. La persistance du token est **saine** : après un login normal,
+     `sb-hhgovvrnalibhgpakswi-auth-token` contient bien `access_token` +
+     `refresh_token` (diagnostic direct, `localStorage`).
+  2. Le compte est **bien lié** en base : `org_memberships` ACTIVE +
+     `org_admins` ACTIVE + `profiles` (`org-e2e`).
+  3. `/sessions` **rend bien** sa page (header « Mes comptes », texte
+     d'aide) : pas d'écran blanc, pas de rebond sur `/auth`.
+- **Correctif appliqué (réel)** : le spec n'appelait que `loginOrgAccount()`
+  sans `cy.ensureAuth()` ; sous `testIsolation` (Cypress 16) `localStorage`
+  est effacé avant chaque `it()`, donc la session était perdue dès le 1er
+  `cy.visit`. `cy.ensureAuth()` est désormais appelé (aligné sur les autres
+  specs). Le spec va plus loin mais reste rouge sur la liste (réplique vide).
+- **Ce que j'ai essayé** : exécution isolée (3×), diagnostic `localStorage`
+  après login, diagnostic du corps rendu, requête base sur
+  `org_memberships`/`org_admins`/`profiles`, lecture de `listUserOrgs` et de
+  `useMyOrgs`. Conclusion : l'échec dépend de la réplique locale, non du
+  code d'authentification.
+- **Assertions NON affaiblies** : le spec conserve ses 3 assertions
+  d'origine (aucun `skip`, aucun relâchement) — voir la règle « ne jamais
+  affaiblir un test ».
+- **Travail restant** : faire aboutir le sync PowerSync dans
+  l'environnement de test (ou seeder la réplique locale), puis rejouer.
+
+### R54 — Le job E2E de la CI ne teste rien de réel — NON CORRIGÉ (documenté)
+- **Gravité** : élevée (faux sentiment de sécurité sur toute la couche E2E).
+- **Défaut** (`.github/workflows/ci.yml`) : le job « E2E (Cypress) » exécute
+  **un seul** spec (`simple-check.cy.ts`, qui se contente de rendre la page
+  d'auth) et le marque `continue-on-error: true` → il est **vert quoi qu'il
+  arrive**. L'étape « Run full Cypress suite » est conditionnée à
+  `vars.E2E_RUN_FULL == 'true' || env.E2E_TEST_EMAIL != ''` : sans le secret
+  `E2E_TEST_EMAIL`, elle est **skippée silencieusement**. Les 26 specs E2E ne
+  sont donc **jamais** exécutés par la CI.
+- **Preuve** : `ci.yml:249` (`--spec "cypress/e2e/simple-check.cy.ts"` +
+  `continue-on-error: true`) et `ci.yml:259-261` (condition + liste de 4
+  specs seulement). Le job « E2E (Cypress) » de la PR #4 est `success` alors
+  que `sessions.cy.ts` échoue en local — confirmation directe.
+- **Pourquoi non corrigé** : rendre le job bloquant exigerait un compte
+  Supabase de test provisionné en secret + un sync PowerSync fonctionnel dans
+  l'Action ; hors de portée ici, et un job E2E bloquant mal configuré
+  bloquerait toutes les PR. À décider par le propriétaire.
+- **Correctif proposé (2 h)** : (1) fournir `E2E_TEST_EMAIL`/`E2E_TEST_PASSWORD`
+  en secret, (2) retirer `continue-on-error`, (3) élargir la liste de specs,
+  (4) rendre le job bloquant. Estimé 2 h dont 1 h de mise au point du sync.
+
+### R55 — Le build Android échoue à chaque push (préexistant, y compris sur `main`) — NON CORRIGÉ
+- **Gravité** : moyenne (n'affecte pas la PWA web, mais l'app native est
+  **impossible à produire**).
+- **Cause racine exacte** (log du job `120537034105`, run `39989430527`) :
+  ```
+  A problem occurred configuring project ':capacitor-storage'
+  > Could not create an instance of type
+    com.android.build.api.variant.impl.LibraryVariantBuilderImpl.
+    > Namespace not specified. Specify a namespace in the module's build file.
+  BUILD FAILED in 11s
+  ```
+  Le plugin `@capacitor/storage` (déprécié) n'a pas d'attribut `namespace`
+  dans son `build.gradle`, obligatoire avec Android Gradle Plugin 8.
+- **Preuve que c'est préexistant** : « Android Debug Build » est `failure` sur
+  toutes les exécutions listées, y compris la branche de la session
+  précédente. Ce n'est **pas** une régression de cette session.
+- **Pourquoi non corrigé** : règle de gel + modification de dépendance native
+  (hors périmètre « pas de mise à jour majeure ») + impossible à valider ici
+  (pas de SDK Android). Un correctif non testé serait pire que le défaut.
+- **Correctif proposé (1 h)** : remplacer `@capacitor/storage` (déprécié) par
+  `@capacitor/preferences`, ou épingler une version du plugin déclarant son
+  `namespace`. Voir PROPOSITIONS.md P26.
+
+### R56 — Deux workflows CI sont rouges en permanence (préexistant)
+- **Gravité** : moyenne.
+- **Défaut** : `cypress.yml` (déclenché sur **tout push**) échoue sur les 2
+  conteneurs, et `android-debug.yml` échoue. Un dépôt dont la moitié des
+  badges est rouge en permanence **désensibilise** : le propriétaire ne
+  distingue plus une vraie régression d'un bruit de fond.
+- **Cause `cypress.yml`** : `record: true` + `parallel: true` (Cypress Cloud)
+  sans `CYPRESS_RECORD_KEY` exploitable, et sans serveur/repli adéquat ;
+  le workflow n'a **pas** d'étape de repli locale. Voir P27.
+- **Correctif proposé (45 min)** : soit fournir `CYPRESS_RECORD_KEY`, soit
+  retirer `record/parallel` et exécuter la suite en local sur le runner.

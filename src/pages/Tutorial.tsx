@@ -157,9 +157,11 @@ const SECTIONS: SectionData[] = [
       "La carte principale montre le solde global de la caisse principale (fonds de l'église). Les caisses de groupe (Diacres, Jeunesse, Dames…) sont listées juste en dessous avec leur solde respectif.",
       "Les boutons d'actions rapides permettent de créer une entrée, une sortie, effectuer un versement ou créer un événement en un seul tap.",
       "Le bouton flottant orange (＋) en bas à droite crée rapidement une nouvelle transaction.",
+      "La carte « Premiers pas » vous guide, au début, vers ce qu'il reste à faire (premier mouvement, premier membre, premier événement, première invitation). Elle suit votre avancement réel et disparaît une fois tout franchi — ou quand vous la masquez.",
     ],
     tips: [
       "Cliquez sur une caisse du dashboard pour voir toutes ses transactions dans la page Finances.",
+      "La carte « Premiers pas » propose toujours l'étape suivante ; touchez-la pour y aller directement.",
       "La section « Événements à venir » montre les prochains événements avec leur avance de budget.",
       "Le badge de notification (cloche) en haut à droite indique le nombre de notifications non lues.",
       "Les statuts « En attente » et « Brouillon » apparaissent dans la section rapide du dashboard.",
@@ -464,6 +466,8 @@ const SECTIONS: SectionData[] = [
     titleColor: "var(--text-tertiary)",
     paragraphs: [
       "Les Paramètres permettent de configurer l'identité de l'église : nom complet, logo, et photo de profil utilisateur.",
+      "Le nom et le prénom de votre profil sont enregistrés dans la base : ils suivent votre compte sur tous vos appareils et apparaissent dans les traces et les invitations.",
+      "Le nom de l'organisation est partagé : un administrateur qui le modifie dans « Personnalisation » le change pour tous les membres, les rapports et l'en-tête.",
       "Le statut de synchronisation indique si l'appareil est connecté au cloud et si les données sont à jour.",
       "Le stockage local affiche le volume de données et le nombre d'actions enregistrées dans la trace.",
       "Les raccourcis rapides donnent accès aux différentes sections de l'application depuis les paramètres.",

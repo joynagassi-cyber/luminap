@@ -48,6 +48,17 @@ describe('Lumina — Session persistence (Mes comptes, reconnect sans retaper)',
   before(function () {
     this.timeout(90_000);
     cy.loginOrgAccount();
+    // DÉFAUT CORRIGÉ (session 2) : ce spec n'appelait que
+    // `loginOrgAccount()`. Cypress 16 active `testIsolation` par défaut :
+    // `localStorage` (où vit le token Supabase — supabase-js ne pose aucun
+    // cookie http-only) est EFFACÉ avant chaque `it()`. Résultat : dès le
+    // 1er `cy.visit('/sessions')`, la session était perdue → aucune carte
+    // `Re-ouvrir` → 3 échecs. `cy.ensureAuth()` est le mécanisme canonique
+    // (cy.session met en cache et restaure localStorage avant chaque test),
+    // utilisé par tous les autres specs. La persistance elle-même est saine :
+    // après un login normal, `sb-<ref>-auth-token` contient bien
+    // access_token + refresh_token (vérifié par diagnostic direct).
+    cy.ensureAuth();
   });
 
   it('logout → /sessions shows the active account → click reconnects without re-login', function () {

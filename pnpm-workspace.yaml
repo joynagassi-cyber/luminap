@@ -377,3 +377,12 @@ allowBuilds:
 packages:
   - .
 minimumReleaseAge: 1440
+
+# Correctif sécurité (session 2) : dompurify <3.4.17 est vulnérable
+# (GHSA-cg2g-xh64-v4q7, critique — bypass SAFE_FOR_TEMPLATES). Il arrive en
+# transitif via jspdf, et le job CI « Security Audit » (`pnpm audit
+# --audit-level=critical`) échoue à cause de lui. L'override force la version
+# patchée sans changer jspdf. Réglage au bon endroit pour pnpm 11 (le champ
+# package.json "pnpm.overrides" est ignoré depuis pnpm 10).
+overrides:
+  dompurify: ^3.4.17

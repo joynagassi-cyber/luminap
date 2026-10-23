@@ -62,6 +62,7 @@ import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
 import TrendChart from "@/components/TrendChart";
 import OrgSwitcher from "@/components/OrgSwitcher";
+import DashboardOnboarding from "@/components/DashboardOnboarding";
 import { DashboardSkeleton } from "@/components/PageSkeletons";
 import { getRoleLabel } from "@/lib/utils";
 
@@ -799,6 +800,9 @@ export default function Dashboard() {
           syncing={syncing}
           navigate={navigate}
         />
+
+        {/* Premiers pas — guide dynamique, s'auto-masque une fois terminé */}
+        <DashboardOnboarding />
 
         {/* P2 : stream unifié (s'auto-masque si 0 item) */}
         <UnifiedTodoList todos={todos} navigate={navigate} />

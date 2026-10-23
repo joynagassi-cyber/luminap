@@ -145,3 +145,119 @@
 - **Risque** : faible (opération idempotente, réversible par
   `to_jsonb(budget_items::text)`).
 - **Bloquante pour la fiabilité** : non (le code tolère), mais **haute**.
+
+---
+
+## Session 2 (2026-10-23)
+
+### P18 — Persister le logo de l'organisation (et des annexes) en base
+- **Problème** : `organizations` n'a pas de colonne `logo_url` ; le logo
+  reste local au navigateur (R48). Les rapports PDF/Excel et les autres
+  membres ne le voient pas.
+- **Proposition** : migration `ADD COLUMN logo_url TEXT`, exposition dans les
+  3 streams `org_*` de `sync-config.yaml`, déploiement Cloud, puis écriture
+  client (bucket `logos` → URL publique).
+- **Intérêt** : identité visuelle cohérente sur tous les appareils et dans
+  tous les exports — c'est ce que promet déjà l'UI.
+- **Coût** : 1 h 30 (dont 20 min de déploiement PowerSync). **Risque** :
+  moyen (déploiement Cloud requis ; sans lui, la colonne reste invisible).
+- **Priorité** : haute. **Bloquant long terme** : non, mais l'écart
+  promesse/UI est visible par l'utilisateur.
+
+### P19 — Écran de personnalisation des annexes (`org_units`)
+- **Problème** : la Phase 7 demandait la personnalisation « de
+  l'organisation **et de ses annexes** » ; seule l'organisation est couverte
+  (R49).
+- **Proposition** : formulaire nom/logo/adresse par annexe, écriture
+  `org_units`, visible par les membres de l'annexe.
+- **Intérêt** : une fédération gère plusieurs sites ; chacun doit porter son
+  identité dans les rapports.
+- **Coût** : 1 h. **Risque** : faible. **Priorité** : moyenne.
+
+### P20 — Activer les sauvegardes planifiées Supabase + PITR
+- **Problème** : `backups: []`, `pitr_enabled: false` (R18). Aucune
+  sauvegarde exploitable : une corruption est irréversible. C'est le risque
+  n° 1 pour une exploitation de 4 mois sans surveillance.
+- **Proposition** : activer les sauvegardes quotidiennes (voire le PITR) dans
+  le dashboard Supabase ; consigner la procédure de restauration dans
+  RUNBOOK.md (déjà rédigée).
+- **Intérêt** : survie aux erreurs humaines et aux pannes.
+- **Coût** : 15 min (action propriétaire, pas développeur). **Risque** :
+  aucun. **Priorité** : **critique — bloquant pour la fiabilité à 4 mois.**
+- **Note** : l'agent ne peut pas l'activer (plan payant, dashboard).
+
+### P21 — Déployer le correctif d'isolation PowerSync (R6)
+- **Problème** : les streams `categories`, `org_units`, `caisses` étaient en
+  `SELECT *` **sans filtre d'organisation** ; le fichier est corrigé mais
+  **non déployé** (pas de `PS_ADMIN_TOKEN` dans cet environnement).
+- **Proposition** : exécuter `powersync deploy sync-config` avec un jeton
+  administrateur, puis rejouer `cross-tenant.cy.ts`.
+- **Intérêt** : isolation réelle des données entre organisations côté
+  synchronisation (défense en profondeur, en plus de la RLS).
+- **Coût** : 30 min. **Risque** : faible (fichier déjà validé). **Priorité** :
+  **critique — bloquant pour la fiabilité à 4 mois.**
+
+### P22 — Alerter sur l'échec de la CI (notification)
+- **Problème** : la CI est restée rouge sans que personne ne le voie
+  (R45). Le propriétaire n'a pas de canal d'alerte.
+- **Proposition** : notification GitHub (e-mail/Slack) sur échec de workflow
+  `main`, ou badge de statut en tête de README.
+- **Intérêt** : un défaut d'infrastructure devient visible en minutes.
+- **Coût** : 15 min. **Risque** : aucun. **Priorité** : haute.
+
+---
+
+## Session 2 — propositions complémentaires
+
+### P23 — Corriger le défaut UX de `/sessions` (état de chargement) — HAUTE
+- **Problème** : `Sessions.tsx` confond `null` (chargement) et `[]` (vide) →
+  « Aucun compte lié pour l'instant » s'affiche alors que le compte existe
+  (R52). Message faux, perte de confiance au moment précis où l'utilisateur
+  cherche à se reconnecter.
+- **Proposition** : `const loading = orgs === null;` → squelette pendant le
+  chargement ; `EmptyState` seulement quand `orgs !== null && list.length === 0`.
+- **Intérêt** : supprime un mensonge à l'écran sur le parcours de reconnexion.
+- **Coût** : 30 min. **Risque** : très faible (affichage conditionnel).
+- **Priorité** : haute. **Bloquant long terme** : non, mais dégrade fortement
+  la confiance.
+
+### P24 — Ajouter `logo_url` à `organizations` + streams PowerSync — MOYENNE
+- **Problème** : le logo d'organisation n'est pas persisté en base (R48) —
+  invisible pour les autres membres, les autres appareils et les rapports PDF.
+- **Proposition** : migration `ALTER TABLE organizations ADD COLUMN logo_url
+  TEXT` + rollback, ajout de la colonne aux 3 streams `org_*` de
+  `sync-config.yaml`, déploiement Cloud, puis écriture client.
+- **Coût** : 1 h 30. **Risque** : moyen (déploiement PowerSync Cloud requis).
+- **Priorité** : moyenne. **Bloquant** : non.
+
+### P25 — Personnalisation des annexes (`org_units`) — BASSE
+- **Problème** : la demande « personnalisation de l'organisation **et de ses
+  annexes** » n'est satisfaite que pour l'organisation (R49).
+- **Coût** : 1 h. **Priorité** : basse.
+
+### P26 — Réparer le build Android (`@capacitor/storage` → `preferences`) — HAUTE
+- **Problème** : l'APK Android ne se construit plus (R55) — namespace manquant
+  dans le plugin `@capacitor/storage`, déprécié.
+- **Proposition** : migrer vers `@capacitor/preferences` (remplacement
+  officiel) ou épingler un plugin déclarant son `namespace`.
+- **Intérêt** : rend à nouveau possible la distribution native.
+- **Coût** : 1 h. **Risque** : moyen (dépendance native, à tester sur
+  appareil). **Priorité** : haute. **Bloquant** : oui pour toute livraison
+  Android.
+
+### P27 — Assainir la CI : 3 workflows à réparer — CRITIQUE
+- **Problème** : `CI Pipeline` était rouge sur 3 jobs (corrigé cette session),
+  mais `cypress.yml` et `android-debug.yml` restent rouges à **chaque push**,
+  et le job E2E de `ci.yml` est **illusoire** (R54 : `continue-on-error` +
+  suite complète skippée faute de secret). Conclusion : **aucune couche E2E
+  n'est réellement vérifiée automatiquement**.
+- **Proposition** : (1) provisionner `E2E_TEST_EMAIL`/`E2E_TEST_PASSWORD`,
+  (2) retirer `continue-on-error`, (3) élargir la liste de specs, (4) fournir
+  `CYPRESS_RECORD_KEY` ou exécuter sans `record/parallel`, (5) corriger le
+  build Android. Objectif : **une CI verte signifie réellement « tout passe »**.
+- **Intérêt** : rétablit le garde-fou automatique — la seule protection
+  possible pendant 4 mois sans surveillance.
+- **Coût** : 3 h 45 (dont 2 h E2E, 1 h Android, 45 min Cypress Cloud).
+- **Risque** : faible (CI uniquement). **Priorité** : critique.
+- **Bloquant long terme** : **oui** — sans CI fiable, toute régression future
+  passera inaperçue.

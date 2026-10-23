@@ -2464,6 +2464,24 @@ export async function setOrganizationStatusPS(
 }
 
 /**
+ * Renomme une organisation (colonne `name`). Autorisé côté serveur par la
+ * policy `orgs_update_merged` (ADMIN de l'org, ou admin central actif).
+ * Retourne le nombre de lignes affectées — 0 signifie que l'appelant n'a pas
+ * la permission ou que l'org n'existe pas : l'appelant DOIT le traiter comme
+ * un échec (sinon l'UI afficherait « Sauvegardé » à tort).
+ */
+export async function renameOrganizationPS(
+  orgId: string,
+  name: string,
+): Promise<number> {
+  const now = new Date().toISOString();
+  return executeWrite(
+    `UPDATE organizations SET name = ?, updated_at = ? WHERE id = ?`,
+    [name, now, orgId],
+  );
+}
+
+/**
  * Grant a central admin on an organization.
  */
 export async function grantOrgAdminPS(input: {
