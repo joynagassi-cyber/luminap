@@ -220,11 +220,15 @@ export function buildReverseTransaction(
   id: string,
   userId: string,
   reason: string,
+  // Horloge injectable (défaut : maintenant). Permet aux tests d'être
+  // déterministes — sans ce paramètre, deux lectures successives de
+  // `new Date()` pouvaient différer d'1 ms et faire échouer une assertion
+  // d'égalité (test instable observé en CI : « 15:40:06.147Z vs .146Z »).
+  now: string = new Date().toISOString(),
 ): ReverseTransactionResult | null {
   const tx = transactions.find((t) => t.id === id);
   if (!tx || tx.status !== "APPROVED") return null;
 
-  const now = new Date().toISOString();
   const reversalId = generateId();
   return {
     reversalTx: {

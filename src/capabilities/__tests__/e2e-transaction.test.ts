@@ -877,11 +877,14 @@ describe("e2e-transaction: reversal flow", () => {
       },
     ];
 
+    // `now` est injecté : sinon l'assertion `approvedAt === now` compare deux
+    // lectures de l'horloge murale et devient instable (±1 ms).
     const result = buildReverseTransaction(
       transactions,
       "tx-rev-1",
       "actor-2",
       "Error in original entry",
+      now,
     );
 
     expect(result).not.toBeNull();
@@ -932,6 +935,7 @@ describe("e2e-transaction: reversal flow", () => {
       "tx-rev-2",
       "actor-2",
       "Duplicate payment",
+      now,
     );
 
     expect(result).not.toBeNull();
