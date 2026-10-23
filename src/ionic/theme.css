@@ -109,3 +109,13 @@ ion-content ion-header {
   top: 0;
   z-index: 30;
 }
+
+/* Le TopHeader collant mesure jusqu'à 110px (64px de barre + 46px de
+   bandeau organisationnel). Sans `scroll-padding-top`, amener un champ en
+   vue (focus clavier, scroll programmatique, cy.clear()) le cale à y=0 :
+   il disparaît DERRIÈRE le header et devient non interactif (accessibilité
+   + tests). On réserve la hauteur maximale du header dans le conteneur de
+   scroll Ionic (`part="scroll"`). */
+ion-content::part(scroll) {
+  scroll-padding-top: 7rem;
+}
