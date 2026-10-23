@@ -98,3 +98,23 @@
   `signup`/`create_org` en service_role) écrivent hors des rôles
   `authenticated`/`anon` et restent intacts. `authService.setProfileRole` est du
   code mort — aucun appel applicatif ne transmet `p_role`.
+
+## D-R41 — Retrait de l'état « chargement » temporel (R41) — 2026-10-23
+
+- **Contexte** : après R40, des pages pouvaient encore montrer un état vide
+  trompeur pendant la 1re synchronisation. J'ai introduit un `isLoading`
+  calculé (`isInitializingRead`) borné à 10 s.
+- **Résultat** : régression mesurée. L'état était purement temporel (non
+  réactif) : les formulaires restaient sur leur squelette et
+  `input[aria-label="Nom de l'événement"]` devenait introuvable
+  (`cross-tenant`, `events-tasks`, `persistence`). Un état de chargement
+  **masquait** des écrans légitimes.
+- **Décision** : retrait complet. R40 (résolution synchrone et réactive de
+  l'organisation) supprime la cause : le premier rendu interroge déjà la
+  bonne organisation, donc il n'y a plus de fenêtre vide à couvrir.
+- **Alternative écartée** : rendre l'état réactif sur `hasSynced`
+  (abonnement + borne). Plus complexe, et surtout inutile : « vide » peut
+  être un état **légitime** (utilisateur sans donnée). Afficher un
+  chargement dans ce cas serait un mensonge de plus.
+- **Principe appliqué** : minimum de changement ; un état de chargement ne
+  doit jamais masquer un état réel.

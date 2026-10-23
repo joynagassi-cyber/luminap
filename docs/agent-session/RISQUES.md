@@ -551,3 +551,14 @@
   les voit immédiatement ; l'état réel n'est jamais masqué indéfiniment.
 - **Preuve** : `V` 1049/1049 ; specs Cypress des listes revérifiées.
 - **Gravité** : **haute**.
+
+### R42 — Création d'événement perçue comme perdue — CORRIGÉ (critique)
+- **Défaut** : après création, `EventNew` renvoyait vers `/events`. La liste
+  est triée par `start_date` décroissante et tronquée (50) : un événement
+  créé avec une date ancienne n'y figurait pas.
+- **Impact** : l'utilisateur recréait l'événement → **doublons**, ou croyait
+  l'app cassée. La ligne était pourtant bien persistée et synchronisée.
+- **Preuve du défaut** : sonde Cypress → `url=/events`, `hasName=false`,
+  corps de page « 149 événements » sans l'élément créé.
+- **Correctif** : `navigate(\`/event/${newEventId}\`)` (`EventNew.tsx`).
+- **Gravité** : **critique** (perte de confiance + doublons de données).

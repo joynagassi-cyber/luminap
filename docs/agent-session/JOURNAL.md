@@ -466,3 +466,25 @@ X
   `useCurrentUser` lit le profil live et se re-rend sur auth.
 - **Preuve après** : `lumina-user` = id réel ; FAB présent après reload
   (1re visite encore sans FAB → R39, course de synchronisation).
+
+## 2026-10-23 04:00–04:40 UTC — R40/R42 (critiques) : listes vides et création « perdue »
+- **R40** : `getOrganizationId()` restait `__no_org__` au 1er rendu. Trois
+  causes imbriquées : variable de module non réactive, résolution au seul
+  montage d'`AppContext`, aucune restauration au boot.
+  → `subscribeOrganization` + `useOrganizationRevision` (13 hooks),
+  résolution déplacée dans `authService.setState` (là où le profil arrive),
+  restauration synchrone depuis `lumina-active-org`.
+  **Preuve** : « 143 événements » dès la 1re visite sans reload ; login neuf
+  (`cy.clearLocalStorage()`), correct en **6,2 s**.
+- **Tentative R41 écartée** : un `isLoading` borné à 10 s masquait les
+  formulaires (`input[aria-label="Nom de l'événement"]` introuvable) →
+  **réverté**. Décision D-R41 consignée.
+- **R42** : après création, `navigate("/events")` — la liste est triée par
+  date décroissante et tronquée, donc un événement à date ancienne
+  n'apparaissait pas : création perçue comme perdue. **Sonde** : `p2.json`
+  → `url=/events`, `hasName=false`, pourtant 149 événements en base.
+  → redirection vers `/event/<id>` (déjà attendu par `cross-tenant.cy.ts`).
+- **Sauvegarde** : export REST par table dans `backups/rest-export/`
+  (hors git). L'anon key ne lit presque rien (RLS) : les volumes de
+  référence restent ceux mesurés via MCP.
+- Gel (T0+9 h) dépassé : passage en clôture, plus de complétion.
