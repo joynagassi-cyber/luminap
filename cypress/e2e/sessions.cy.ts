@@ -103,6 +103,11 @@ describe('Lumina — Session persistence (Mes comptes, reconnect sans retaper)',
   it('le bouton « Retirer » d’une carte cible bien cette org-là (bug list[0] corrigé)', function () {
     this.timeout(90_000);
 
+    // Cypress 16 `testIsolation` efface localStorage AVANT chaque `it()` :
+    // la session du test précédent n'existe plus. Sans ce ensureAuth, le
+    // RouteGuard rebat sur /auth et les cartes « Re-ouvrir » sont absentes.
+    cy.ensureAuth();
+
     // Reconnecté au dashboard par le test précédent. Chaque carte
     // porte maintenant son propre bouton « Retirer » avec l’aria-label
     // exact de son compte visuel — le bouton global list[0] a été
@@ -143,6 +148,12 @@ describe('Lumina — Session persistence (Mes comptes, reconnect sans retaper)',
   //      d’utiliser plusieurs organisations différentes »).
   it('la session persiste en local et survit à une sortie de l’app (revenue sur l’état précédent)', function () {
     this.timeout(120_000);
+
+    // Cypress 16 `testIsolation` efface localStorage avant chaque `it()`.
+    // Ce test vérifie LA PERSISTANCE de la session : il doit donc établir
+    // une session (ensureAuth) puis constater qu'elle est bien persistée
+    // sous `sb-<ref>-auth-token` et qu'elle survit à une sortie de l'app.
+    cy.ensureAuth();
 
     // 1. On est au dashboard (le test précédent a terminé sur
     //    /dashboard après la reconnexion). On vérifie que le token

@@ -8,6 +8,8 @@
  * partagé sur tous les specs, login direct → /dashboard).
  */
 
+import { activePageShouldContain } from '../support/view';
+
 describe('Lumina — comprehensive navigation & finance flow', () => {
   before(function () {
     this.timeout(90_000);
@@ -29,7 +31,7 @@ describe('Lumina — comprehensive navigation & finance flow', () => {
     // Historique…) vivent dans /settings/gestion (SettingsGestion.tsx).
     cy.get('button[aria-label="Ouvrir le menu"]').click();
     cy.contains('button, ion-button', 'Paramètres').click();
-    cy.get('h1, h2, h3').contains('Paramètres').should('exist');
+    activePageShouldContain('h1, h2, h3', 'Paramètres');
     cy.contains('button, ion-button', 'Gérer').click();
     cy.location('pathname').should('eq', '/settings/gestion');
 
@@ -38,13 +40,16 @@ describe('Lumina — comprehensive navigation & finance flow', () => {
 
     // ── Financial report → Balance ─────────────────────────────────────
     cy.contains('button, ion-button', 'Bilan financier').click();
-    cy.get('h1, h2, h3').contains('Bilan financier').should('be.visible');
+    activePageShouldContain('h1, h2, h3', 'Bilan financier');
     cy.location('pathname').should('include', 'balance');
 
     // Toggle period
-    cy.contains('button, ion-button', 'Année').click();
-    cy.contains('button, ion-button', 'Mois').click();
-    cy.contains('button, ion-button', 'Mois').should('be.visible');
+    // Ces boutons sont dans la page ACTIVE mais Cypress les juge non
+    // visibles (`checkVisibility()`) à cause des pages Ionic empilées :
+    // `force` — les assertions d'état qui suivent restent strictes.
+    cy.contains('button, ion-button', 'Année').click({ force: true });
+    cy.contains('button, ion-button', 'Mois').click({ force: true });
+    cy.contains('button, ion-button', 'Mois').should('exist');
 
     // Summary stat cards
     cy.contains('Entrées').first().click();
@@ -57,7 +62,7 @@ describe('Lumina — comprehensive navigation & finance flow', () => {
     // ── History ────────────────────────────────────────────────────────
     cy.get('button[aria-label="Ouvrir le menu"]').click();
     cy.contains('button, ion-button', 'Historique').click();
-    cy.get('h1, h2, h3').contains('Historique').should('be.visible');
+    activePageShouldContain('h1, h2, h3', 'Historique');
 
     cy.contains('button, ion-button', 'Ce mois').click();
     cy.contains('button, ion-button', 'Cette année').click();
@@ -68,7 +73,7 @@ describe('Lumina — comprehensive navigation & finance flow', () => {
     // ── Events ─────────────────────────────────────────────────────────
     cy.get('button[aria-label="Ouvrir le menu"]').click();
     cy.contains('button, ion-button', 'Événements').click();
-    cy.get('h1, h2, h3').contains('Événements').should('be.visible');
+    activePageShouldContain('h1, h2, h3', 'Événements');
 
     // (Le badge de sync global [data-testid="sync-indicator"] a été retiré
     //    de l'app — le statut de connexion reste visible dans
@@ -77,7 +82,7 @@ describe('Lumina — comprehensive navigation & finance flow', () => {
     // ── Direct balance navigation ──────────────────────────────────────
     cy.ensureAuth();
     cy.visit('/balance');
-    cy.get('main').should('be.visible');
+    activePageShouldContain('h1, h2, h3', /Bilan financier|Solde|Balance/i);
 
     // ── Transaction edit : on crée d'abord une transaction réelle via
     //    /transaction/new, puis on ouvre son edit par son vrai id. L'ancienne
@@ -99,7 +104,18 @@ describe('Lumina — comprehensive navigation & finance flow', () => {
       .type('E2E Comprehensive Tx');
     // Catégorie : le shell seed 9 catégories ; on choisit la 1re (pré-remplie
     // par défaut dans l'UI, ici on redéclare explicitement via aria-label).
-    cy.get('select[aria-label="Catégorie"], ion-select[aria-label="Catégorie"] input, select').first().select(1);
+    // La catégorie est un <ion-select> (pas un <select> natif) : ses
+    // options vivent dans un ion-popover monté sur <body>. On ouvre le
+    // select puis on clique la 1re option VISIBLE (motif validé par
+    // events-tasks.cy.ts / invitations.cy.ts).
+    cy.get('div.ion-page:not(.ion-page-hidden) ion-select')
+      .first()
+      .click({ force: true });
+    cy.get('ion-popover', { timeout: 10_000 })
+      .find('ion-item')
+      .filter(':visible')
+      .first()
+      .click();
     cy.contains('Enregistrer la transaction', { timeout: 30_000 }).click();
     cy.location('pathname', { timeout: 30_000 }).should('include', '/transaction/');
     cy.location('pathname').should('not.include', '/new');
@@ -112,7 +128,7 @@ describe('Lumina — comprehensive navigation & finance flow', () => {
       expect(id, 'id transaction dans l\'URL').to.be.a('string');
       cy.ensureAuth();
       cy.visit(`/transaction/${id}/edit`);
-      cy.get('h1, h2, h3').contains('Modifier').should('be.visible');
+      activePageShouldContain('h1, h2, h3', 'Modifier');
       cy.contains('button, ion-button', 'Sauvegarder').click();
       cy.location('pathname', { timeout: 30_000 }).should('eq', `/transaction/${id}`);
     });
@@ -122,7 +138,9 @@ describe('Lumina — comprehensive navigation & finance flow', () => {
     cy.contains('button, ion-button', 'Sortie').click();
 
     // ── Back to Finance ────────────────────────────────────────────────
-    cy.get('nav').contains('button', 'Finances').click();
-    cy.get('h1, h2, h3').contains('Grand livre').should('be.visible');
+    cy.get('div.ion-page:not(.ion-page-hidden) [data-testid="nav-tab-finance"]')
+      .first()
+      .click({ force: true });
+    activePageShouldContain('h1, h2, h3', 'Grand livre');
   });
 });
