@@ -40,3 +40,20 @@
 - Migrations versionnées dans `supabase/migrations/` + rollback dans
   `supabase/migrations/rollback/`.
 - Chaîne d'escalade de rôle entièrement fermée (migrations 000011/12/14).
+
+## Règle Ionic — slots et encapsulation (leçon coûteuse)
+- Un attribut `slot` **inexistant** supprime le rendu de l'enfant **uniquement
+  si le composant parent est `encapsulation: "shadow"`**. En mode `"scoped"`
+  (`ion-alert`), les enfants light-DOM sont rendus sur place.
+- Vérifier : `grep -n "get encapsulation" -A2 node_modules/.pnpm/@ionic+core@*/node_modules/@ionic/core/dist/collection/components/<x>/<x>.js`.
+- Shadow (donc slots stricts) : `ion-item` (`start`/défaut/`end` **seulement**),
+  `ion-select`, `ion-input`. Un `slot="input"`/`slot="label"` sur ces
+  composants = enfant **invisible** (rect 0×0) sans erreur console.
+- Scoped (slots ignorés mais contenu rendu) : `ion-alert`.
+
+## TopHeader collant et champs recouverts (R35)
+- `TopHeader` (IonHeader **dans** `ion-content`, `position: sticky`) mesure
+  **110 px** (64 px barre + 46 px bandeau org) alors que `pt-safe-calc` = 64 px.
+- Correctif appliqué : `ion-content::part(scroll){scroll-padding-top:7rem}`.
+  Sans lui, tout champ amené en vue (focus, scroll, `cy.clear()`) se cale à
+  y=0 et passe derrière le header → non saisissable.
