@@ -1,21 +1,57 @@
 import { useState } from "react";
-import { Building2, Check, ImageIcon } from "lucide-react";
+import { Building2, Check, ImageIcon, AlertCircle } from "lucide-react";
 import SettingsShell from "@/components/SettingsShell";
-import { useAppConfig } from "@/lib/dataLayer";
+import { useAppConfig, useCurrentUser, renameOrganizationPS } from "@/lib/dataLayer";
 import { uploadLuminaFile } from "@/lib/storageService";
 import { supabase } from "@/integrations/supabase/client";
+import { getOrganizationId, hasResolvedOrganization } from "@/lib/orgContext";
 import { IonInput } from "@ionic/react";
+
+// Rôles autorisés à renommer l'organisation côté serveur (policy
+// `orgs_update_merged` : ADMIN de l'org, ou admin central actif).
+const RENAME_ROLES = ["ADMIN", "CENTRAL_ADMIN"];
 
 export default function SettingsPersonalisation() {
   const { config, updateConfig } = useAppConfig();
+  const user = useCurrentUser();
+  const canRename = RENAME_ROLES.includes(user?.role ?? "");
   const [churchName, setChurchName] = useState(config.churchName);
   const [churchLogo, setChurchLogo] = useState(config.churchLogoUrl);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSave = async () => {
+    setError(null);
     setSaving(true);
+    // 1) Persistance EN BASE (source de vérité, partagée par tous les
+    //    utilisateurs de l'organisation). Sans cette écriture, le nom saisi
+    //    n'existait que dans le navigateur de l'auteur : les autres membres,
+    //    les rapports et l'en-tête affichaient l'ancien nom.
+    if (hasResolvedOrganization()) {
+      // Contrôle client (l'autorité reste la RLS serveur) : les écritures
+      // PowerSync sont optimistes, donc un `rowsAffected` local ne prouve
+      // PAS l'acceptation serveur. On refuse tôt un rôle non autorisé plutôt
+      // que d'afficher un faux « Sauvegardé ».
+      if (!canRename) {
+        setSaving(false);
+        setError(
+          "Seul un administrateur de l'organisation peut modifier son nom.",
+        );
+        return;
+      }
+      try {
+        await renameOrganizationPS(getOrganizationId(), churchName.trim());
+      } catch (e: any) {
+        setSaving(false);
+        setError(
+          `Enregistrement impossible : ${e?.message ?? "erreur inconnue"}. Réessayez une fois connecté.`,
+        );
+        return;
+      }
+    }
+    // 2) Cache local (affichage immédiat, hors-ligne) — cohérent avec la base.
     await updateConfig({
       churchName: churchName.trim(),
       churchLogoUrl: churchLogo,
@@ -135,6 +171,18 @@ export default function SettingsPersonalisation() {
               </label>
             </div>
           </div>
+
+          {error && (
+            <p
+              role="alert"
+              data-testid="org-save-error"
+              className="flex items-start gap-1.5 text-xs"
+              style={{ color: "var(--data-expense)" }}
+            >
+              <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" aria-hidden="true" />
+              <span>{error}</span>
+            </p>
+          )}
 
           <button
             type="button"
