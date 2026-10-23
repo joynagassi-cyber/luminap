@@ -465,3 +465,15 @@
 - **Leçon** : vérifier l'`encapsulation` du composant avant de conclure qu'un
   `slot` inconnu supprime le rendu. R34 (shadow) et R36 (scoped) s'opposent.
 
+
+### R37 — `slot="label"` sur `IonLabel` dans `ion-item` — CORRIGÉ et prouvé
+- **Défaut** : `InvitationEmit.tsx:230` portait `slot="label"` sur un
+  `IonLabel` enfant d'`ion-item`. `ion-item` (Shadow DOM) n'expose que
+  `start` / défaut / `end` → le libellé « Rôle cible » **n'était pas rendu**.
+- **Preuve mesurée (sonde Cypress, navigateur réel, deux `ion-item` créés
+  côte à côte)** :
+  - `ion-label slot="label"` → `rect.height = 0` (`visible: false`),
+    `ion-item.shadowRoot` **sans** `slot[name="label"]`
+  - `ion-label` sans slot → `rect.height = 24` (`visible: true`)
+- **Correctif** : retrait de l'attribut `slot="label"` (commit `bdd1f5b`).
+- **Gravité** : faible (un libellé de formulaire d'invitation). Corrigé.

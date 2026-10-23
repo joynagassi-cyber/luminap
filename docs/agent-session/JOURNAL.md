@@ -451,3 +451,6 @@ X
 - RISQUES.md corrigé (R36 → vérifié, pas un défaut) ; leçon consignée :
   vérifier l'encapsulation du composant avant de conclure.
 - Sondes supprimées (`zz-probe-alert.cy.ts`, `zz-upd.test.tsx`).
+- **R37 prouvé** : sonde Cypress comparant deux `ion-item` — `slot="label"`
+  → hauteur **0** (invisible) ; sans slot → hauteur **24** (visible).
+  Correctif `bdd1f5b` validé par la mesure. Sonde supprimée.
