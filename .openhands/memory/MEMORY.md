@@ -46,3 +46,27 @@ DECISIONS, RISQUES, PROPOSITIONS, RUNBOOK, RAPPORT_FINAL).
 - Cypress : construire les requêtes dans `cy.then()` (exécution synchrone).
 - Pile z (App.css M15) : nav 40 < overlays 50 < float 60 < toasts 70.
 - `Xvfb`/serveur Vite absents ⇒ Cypress `exit 139` muet (cause n° 1).
+
+## Session 3 (2026-10-23) — défauts produit & méthode
+- **R60 (corrigé)** : un `return` anticipé du cache **avant** un `useQuery`
+  dans `useTransactions()` faisait varier le nombre de hooks entre rendus →
+  ErrorBoundary « Impossible d'afficher cette page » sur
+  `/transaction/:id/edit`. Règle : aucun `return` conditionnel avant le
+  dernier hook d'une fonction.
+- **R58 (corrigé)** : un `<Navigate>` placé en **enfant** d'un `<Route>`
+  est ignoré par React Router → `path="/"` matche sans rien rendre (écran
+  blanc, PWA sans barre d'adresse). Utiliser `element={<Navigate …/>}`.
+- **R59 (OUVERT, gravité haute)** : navigation vers une route **paramétrée**
+  (`/groups/:id`, `/event/:id`) depuis une liste → la page entrante reste
+  `ion-page-invisible` (`opacity: 0`) = **écran noir permanent**, alors que
+  l'**accès direct** à la même URL rend correctement (`opacity: 1`).
+  Éliminés par expérience : identité `<IonPage>`, `<div>` du `LazyRoute`,
+  squelette de chargement, préchargement du chunk. Piste : transition
+  `ion-router-outlet` (`ionNavDidChange`). ~5 sondes Cypress pour le
+  démontrer — `cy.window()` + dump des `div.ion-page` avec
+  `getComputedStyle(x).opacity` est la méthode qui tranche.
+- **Suite Cypress complète** : ~39 min pour 27 specs / 70 tests. Le
+  serveur Vite **doit tourner** et `Xvfb :99` doit être actif.
+- **Sauvegardes** : plan gratuit Supabase ⇒ pas de sauvegarde classique ni
+  de PITR. Alternative = `supabase db dump` (schéma + `--data-only`) vers
+  `/workspace/backups/`.
