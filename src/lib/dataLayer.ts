@@ -910,6 +910,9 @@ export function useCotisations() {
  * PowerSync only — pas de fallback IndexedDB (les fichiers sont cloud).
  */
 export function useDocuments(opts?: { entity?: string; entityType?: string }) {
+  const orgRev = useOrganizationRevision();
+  void orgRev;
+
   const { data: psData } = useQuery<PSDocument>(
     "SELECT id, org_id, title, purpose, bucket, file_path, file_size, mime_type, entity_type, entity_id, status, uploaded_by, created_at, updated_at FROM documents WHERE org_id = ? AND status != 'DELETED' ORDER BY created_at DESC",
     [getOrganizationId(), orgRev],
@@ -3287,6 +3290,9 @@ export interface PSOrgBudgetLine {
 }
 
 export function useOrgBudgets() {
+  const orgRev = useOrganizationRevision();
+  void orgRev;
+
   const { data: psData } = useQuery<PSOrgBudget>(
     "SELECT id, org_id, fiscal_year, period, cost_center_id, cost_center_label, name, total_budgeted_cents, status, currency, note, created_at, updated_at FROM org_budgets WHERE org_id = ? ORDER BY fiscal_year DESC, created_at DESC",
     [getOrganizationId(), orgRev],
@@ -3492,6 +3498,9 @@ export interface PSTransactionGiving {
 }
 
 export function useGivingDonors() {
+  const orgRev = useOrganizationRevision();
+  void orgRev;
+
   const { data: psData } = useQuery<PSGivingDonor>(
     "SELECT id, org_id, full_name, email, phone, address, member_id, tax_receipt_enabled, notes, created_at, updated_at FROM giving_donors WHERE org_id = ? ORDER BY full_name",
     [getOrganizationId(), orgRev],
@@ -3501,6 +3510,9 @@ export function useGivingDonors() {
 }
 
 export function useGivingCampaigns() {
+  const orgRev = useOrganizationRevision();
+  void orgRev;
+
   const { data: psData } = useQuery<PSGivingCampaign>(
     "SELECT id, org_id, name, purpose, fund, target_amount_cents, start_date, end_date, status, notes, created_at, updated_at FROM giving_campaigns WHERE org_id = ? ORDER BY start_date DESC, created_at DESC",
     [getOrganizationId(), orgRev],
@@ -3510,6 +3522,9 @@ export function useGivingCampaigns() {
 }
 
 export function usePledges() {
+  const orgRev = useOrganizationRevision();
+  void orgRev;
+
   const { data: psData } = useQuery<PSPledge>(
     "SELECT id, org_id, campaign_id, donor_id, pledged_amount_cents, schedule, amount_per_period_cents, start_date, end_date, status, notes, created_at, updated_at FROM pledges WHERE org_id = ? ORDER BY created_at DESC",
     [getOrganizationId(), orgRev],
@@ -3519,6 +3534,9 @@ export function usePledges() {
 }
 
 export function useTaxReceipts() {
+  const orgRev = useOrganizationRevision();
+  void orgRev;
+
   const { data: psData } = useQuery<PSTaxReceipt>(
     "SELECT id, org_id, donor_id, year, receipt_no, total_amount_cents, issued_at, created_at, updated_at FROM tax_receipts WHERE org_id = ? ORDER BY year DESC, donor_id",
     [getOrganizationId(), orgRev],
@@ -3528,6 +3546,9 @@ export function useTaxReceipts() {
 }
 
 export function useTransactionGiving() {
+  const orgRev = useOrganizationRevision();
+  void orgRev;
+
   const { data: psData } = useQuery<PSTransactionGiving>(
     "SELECT id, org_id, transaction_id, donor_id, campaign_id, recorded_at, created_at, updated_at FROM transaction_giving WHERE org_id = ? ORDER BY recorded_at DESC",
     [getOrganizationId(), orgRev],

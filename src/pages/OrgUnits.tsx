@@ -208,7 +208,7 @@ export default function OrgUnits() {
                     interface="popover"
                   >
                     {UNIT_TYPES.map((t) => (
-                      <IonSelectOption value={t}>
+                      <IonSelectOption key={t} value={t}>
                         {t}
                       </IonSelectOption>
                     ))}

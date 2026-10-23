@@ -129,7 +129,7 @@ export default function SettingsFeatures() {
                   : "Choisir…"}
               </IonSelectOption>
               {FEATURES.filter((f) => !navTabs.includes(f.id)).map((f) => (
-                <IonSelectOption value={f.id}>
+                <IonSelectOption key={f.id} value={f.id}>
                   {f.label}
                 </IonSelectOption>
               ))}

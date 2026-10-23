@@ -475,7 +475,7 @@ export default function FormBuilder() {
                           interface="popover"
                         >
                           {FIELD_TYPES.map((ft) => (
-                            <IonSelectOption value={ft.value}>
+                            <IonSelectOption key={ft.value} value={ft.value}>
                               {ft.label}
                             </IonSelectOption>
                           ))}
@@ -531,7 +531,7 @@ export default function FormBuilder() {
                             interface="popover"
                           >
                             {REFERENCE_ENTITY_TYPES.map((et) => (
-                              <IonSelectOption value={et}>
+                              <IonSelectOption key={et} value={et}>
                                 {et}
                               </IonSelectOption>
                             ))}

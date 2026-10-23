@@ -240,7 +240,7 @@ export default function Groups() {
                     interface="popover"
                   >
                     {GROUP_TYPES.map((t) => (
-                      <IonSelectOption value={t}>
+                      <IonSelectOption key={t} value={t}>
                         {t.charAt(0).toUpperCase() + t.slice(1)}
                       </IonSelectOption>
                     ))}

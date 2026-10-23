@@ -185,7 +185,7 @@ export default function BudgetDetail() {
                       >
                         <IonSelectOption value="">Toutes (non catégorisé)</IonSelectOption>
                         {categories.map((c) => (
-                          <IonSelectOption value={c.id}>{c.label_fr || c.label}</IonSelectOption>
+                          <IonSelectOption key={c.id} value={c.id}>{c.label_fr || c.label}</IonSelectOption>
                         ))}
                       </IonSelect>
                     </IonItem>

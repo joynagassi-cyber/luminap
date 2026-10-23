@@ -214,7 +214,7 @@ export default function CustomFields() {
                       interface="popover"
                     >
                       {ENTITY_TYPES.map((t) => (
-                        <IonSelectOption value={t}>
+                        <IonSelectOption key={t} value={t}>
                           {t}
                         </IonSelectOption>
                       ))}

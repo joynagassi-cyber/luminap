@@ -219,7 +219,7 @@ export default function Versement() {
                   >
                     <IonSelectOption value="">Choisir une caisse...</IonSelectOption>
                     {groupAccounts.map((account: any) => (
-                      <IonSelectOption value={account.id}>
+                      <IonSelectOption key={account.id} value={account.id}>
                         {account.name}
                       </IonSelectOption>
                     ))}

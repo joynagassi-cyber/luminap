@@ -504,7 +504,7 @@ export default function ReportBuilder() {
               >
                 <IonSelectOption value="">Toutes</IonSelectOption>
                 {(categories || []).map((c) => (
-                  <IonSelectOption value={c.id}>{c.labelFr}</IonSelectOption>
+                  <IonSelectOption key={c.id} value={c.id}>{c.labelFr}</IonSelectOption>
                 ))}
               </IonSelect>
             </div>
@@ -517,7 +517,7 @@ export default function ReportBuilder() {
               >
                 <IonSelectOption value="">Toutes</IonSelectOption>
                 {(caisses || []).map((c) => (
-                  <IonSelectOption value={c.id}>{c.name}</IonSelectOption>
+                  <IonSelectOption key={c.id} value={c.id}>{c.name}</IonSelectOption>
                 ))}
               </IonSelect>
             </div>
@@ -603,7 +603,7 @@ export default function ReportBuilder() {
               interface="popover"
             >
               {METRIC_FNS.map((fn) => (
-                <IonSelectOption value={fn.value}>{fn.label}</IonSelectOption>
+                <IonSelectOption key={fn.value} value={fn.value}>{fn.label}</IonSelectOption>
               ))}
             </IonSelect>
             <IonInput

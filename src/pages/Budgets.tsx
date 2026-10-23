@@ -86,7 +86,7 @@ export default function Budgets() {
                 aria-label="Exercice"
               >
                 {yearOptions.map((y) => (
-                  <IonSelectOption value={y}>Exercice {y}</IonSelectOption>
+                  <IonSelectOption key={y} value={y}>Exercice {y}</IonSelectOption>
                 ))}
               </IonSelect>
               <IonSelect
@@ -97,7 +97,7 @@ export default function Budgets() {
               >
                 <IonSelectOption value="">Toutes périodes</IonSelectOption>
                 {PERIODS.map((p) => (
-                  <IonSelectOption value={p.value}>{p.label}</IonSelectOption>
+                  <IonSelectOption key={p.value} value={p.value}>{p.label}</IonSelectOption>
                 ))}
               </IonSelect>
               <IonSelect
@@ -108,7 +108,7 @@ export default function Budgets() {
               >
                 <IonSelectOption value="all">Tous centres</IonSelectOption>
                 {orgUnits.map((u) => (
-                  <IonSelectOption value={u.id}>{u.name}</IonSelectOption>
+                  <IonSelectOption key={u.id} value={u.id}>{u.name}</IonSelectOption>
                 ))}
               </IonSelect>
             </div>
@@ -319,7 +319,7 @@ function CreateBudgetSheet({
                 interface="popover"
               >
                 {PERIODS.map((p) => (
-                  <IonSelectOption value={p.value}>{p.label}</IonSelectOption>
+                  <IonSelectOption key={p.value} value={p.value}>{p.label}</IonSelectOption>
                 ))}
               </IonSelect>
             </IonItem>
@@ -334,7 +334,7 @@ function CreateBudgetSheet({
             >
               <IonSelectOption value="">Tous (aucun)</IonSelectOption>
               {orgUnits.map((u) => (
-                <IonSelectOption value={u.id}>{u.name}</IonSelectOption>
+                <IonSelectOption key={u.id} value={u.id}>{u.name}</IonSelectOption>
               ))}
             </IonSelect>
           </IonItem>

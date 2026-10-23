@@ -292,7 +292,7 @@ export default function FormFill() {
                       >
                         <IonSelectOption value="">— Sélectionner —</IonSelectOption>
                         {field.options.map((opt) => (
-                          <IonSelectOption value={opt}>
+                          <IonSelectOption key={opt} value={opt}>
                             {opt}
                           </IonSelectOption>
                         ))}

@@ -585,7 +585,7 @@ export default function Federation() {
                   {rootOrgs
                     .filter((o) => o.id !== reparentOrg)
                     .map((o) => (
-                      <IonSelectOption value={o.id}>
+                      <IonSelectOption key={o.id} value={o.id}>
                         {o.name}
                       </IonSelectOption>
                     ))}

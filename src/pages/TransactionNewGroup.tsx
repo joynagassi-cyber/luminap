@@ -212,7 +212,7 @@ export default function TransactionNewGroup() {
               >
                 <IonSelectOption value="">Sélectionner une catégorie</IonSelectOption>
                 {filteredCategories.map((cat: any) => (
-                  <IonSelectOption value={cat.id}>
+                  <IonSelectOption key={cat.id} value={cat.id}>
                     {cat.label_fr || cat.label}
                   </IonSelectOption>
                 ))}

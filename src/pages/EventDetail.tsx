@@ -942,7 +942,7 @@ export default function EventDetail() {
                     >
                       <IonSelectOption value="">Sélectionner un poste...</IonSelectOption>
                       {budgetItems.map((item: any) => (
-                        <IonSelectOption value={item.id}>
+                        <IonSelectOption key={item.id} value={item.id}>
                           {item.label} — Reste:{" "}
                           {formatCurrencyCompact(
                             item.allocated - (item.spent || 0),

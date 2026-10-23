@@ -909,7 +909,7 @@ export default function GroupDetail() {
                         m.status === "ACTIVE" && !groupMemberIds.includes(m.id),
                     )
                     .map((m: any) => (
-                      <IonSelectOption value={m.id}>
+                      <IonSelectOption key={m.id} value={m.id}>
                         {m.first_name || m.firstName}{" "}
                         {m.last_name || m.lastName}
                       </IonSelectOption>
