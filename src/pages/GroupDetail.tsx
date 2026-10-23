@@ -269,6 +269,9 @@ export default function GroupDetail() {
         </IonToolbar>
       </IonHeader>
       <IonContent className="bg-canvas" fullscreen>
+        {/* R61 — titre de niveau 1 pour les lecteurs d'ecran et la navigation
+            par titres : `IonTitle` n'expose pas de role heading. */}
+        <h1 className="sr-only">{orgUnit.name}</h1>
         <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe">
           {error && (
             <div

@@ -503,3 +503,13 @@ export function InvitationsSkeleton() {
     </div>
   );
 }
+
+/* ── Mes comptes (/sessions) : intro + liste de cartes de compte ── */
+export function SessionsSkeleton() {
+  return (
+    <div className="p-5 space-y-4" aria-busy="true">
+      <ShimmerLine width="55%" height={12} />
+      <ShimmerList count={2} minHeight={72} />
+    </div>
+  );
+}

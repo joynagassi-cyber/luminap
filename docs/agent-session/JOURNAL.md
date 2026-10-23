@@ -647,3 +647,177 @@ PR ouverte : **#4** (non fusionnée — décision du propriétaire).
   R56 (2 workflows rouges).
 - **Nouvelles propositions** : P23–P27.
 - **PR #4** ouverte, **non fusionnée**.
+
+## Session 3 — 2026-10-23 (phases restantes)
+
+- **T0 session 3** : 2026-10-22T17:56:53Z (ancre conservée). Branche
+  `agent/session-2026-10-23-phases-restantes`.
+- Reprise de l'état « 38/68 Cypress verts » et des 30 échecs restants.
+
+### Correctifs produit (défauts réels, reproduits par sonde DOM)
+
+| Réf | Défaut | Cause racine | Preuve | Correctif |
+|---|---|---|---|---|
+| **R57** | `/dashboard` affichait l'ErrorBoundary (page entière en erreur) | `RangeError: Invalid time value` — `formatDate`/`formatDateTime` recevaient une date NULL (Dashboard.tsx:1551) | `utils-date.test.ts` (rouge→vert) | Helpers rendus défensifs (`657491b`) |
+| **R58** | Ouvrir la PWA (ou le domaine nu) → **écran totalement blanc**, 0 page Ionic, aucun moyen de sortir | `<Route path="/">` contenait un `<Navigate>` **enfant**, ignoré par React Router (il attend `element=`). `/` = `start_url` du manifest → route matchée sans rien rendre | Sonde : `PATH=/ PAGES=0 BODYLEN=26` avant ; `root-redirect.cy.ts` 2/2 après | `element={<Navigate to="/splash" replace/>}` (`eca2052`) |
+| **R60** | `/transaction/:id/edit` affichait « Impossible d'afficher cette page » (ErrorBoundary) dès que le cache transactions était rempli | `useTransactions()` faisait un `return` anticipé du cache CPU **avant** son `useQuery` → 4 hooks au 1er render, 3 au suivant → React « change in the order of Hooks » → `Should have a queue` → ErrorBoundary | Sonde console : `ERR ... useOrganizationRevision / useCategories / TransactionEdit` ; après : `LOGS=[]` ; `finance-deep` 5/5, `comprehensive-flow` 1/1 | Cache consulté **après** le hook (`71b1738`) |
+
+### Spécs Cypress corrigées (défauts de test, pas de produit)
+
+Motif systémique identifié : **la pile Ionic conserve les pages visitées
+montées** (masquées via `.ion-page-hidden`). Un sélecteur global
+(`cy.contains('button', …)`, `cy.get('h1')`, `cy.get('button[aria-label=…]')`)
+résolvait l'exemplaire d'une page **masquée** → « element is not visible »
+alors que l'app fonctionnait.
+
+- `nav-bottom.cy.ts` 3/3 : onglet par défaut = « Cultes » (`cotisations`), pas « Événements ».
+- `responsive-skeleton.cy.ts` 4/4 : prémisse obsolète après R57 (plus de squelette infini).
+- `sessions.cy.ts` : `ensureAuth()` avant chaque `it()` (`testIsolation` Cypress 16 efface `localStorage`).
+- `rbac-gates.cy.ts` 2/2 : idem R39 + scoping page active.
+- `comprehensive-flow.cy.ts` 1/1 : réécrit — toutes les interactions scopées
+  sur la page ACTIVE, `ion-select` en interface `ion-alert` (options =
+  `button.alert-radio-button`, pas `ion-radio`), pas de bouton « Retour »
+  sur `/history` (page de 1er niveau), édition attendue sur le
+  pré-remplissage, « Entrées »/« Sorties » sont des `<p>` (pas des boutons).
+- `root-redirect.cy.ts` (nouveau) : verrouille R58 (avec et sans session).
+
+### Session 3 — suite complète (2026-10-23, ~20:47 UTC)
+
+- **20:47** — Suite complète `npx cypress run --browser chromium` terminée :
+  **27 specs / 70 tests / 50 verts / 20 rouges / 39 min 06 s**.
+  20 specs vertes, 7 rouges.
+- **Investigation R59** (écran noir après navigation depuis une liste) —
+  5 sondes Cypress, ~55 min :
+  - Sonde 1 (`/groups`) : 1 seule page visible, liste OK, 85 groupes.
+  - Sonde 2 (clic groupe) : `VIS+INV:op0` → **écran noir** (contenu présent).
+  - Sonde 3 (accès direct `/groups/:id`) : `VIS:op1` → **rendu correct**.
+  - Sonde 4 (2ᵉ ouverture / préchargement du chunk) : toujours `op0`
+    → ce n'est pas un chargement de chunk.
+  - Sonde 5 (branche de chargement neutralisée, `LazyRoute` sans `<div>`)
+    : toujours `op0` → hypothèses « identité `<IonPage>` » et « `<div>`
+    intermédiaire » **éliminées**.
+- Décision : budget de 30 min dépassé → **R59 consigné comme défaut produit
+  ouvert (gravité HAUTE)** avec preuves et pistes, aucune modification de
+  code conservée (changement minimal), suite du programme reprise
+  (conforme au garde-fou « blocage > 30 min »).
+- État git vérifié propre : seuls les fichiers `docs/agent-session/*` sont
+  modifiés ; aucun fichier source parasite ; artefact
+  `cypress/downloads/lumina_export_2026-10-23.pdf` restauré.
+- **T2 (sauvegardes) clos** : `/workspace/backups/` contient
+  `schema-20261022-1801.sql` (125 Ko, 42 `CREATE TABLE`) et
+  `data-20261022-1802.sql` (1,1 Mo) — export logique complet de
+  `hhgovvrnalibhgpakswi` (plan gratuit, sauvegardes classiques
+  indisponibles → export `supabase db dump`, cf. RUNBOOK §Sauvegardes).
+
+
+---
+
+## Session 4 — 2026-10-23 (livraison : R59 corrige, R61 corrige, fusion)
+
+- **Branche** : `agent/session-3-livraison` (PR #5). Aucun changement de branche.
+- **T0 session 4** : 2026-10-23T22:2xZ (voir horodatages ci-dessous).
+
+### R59 — ecran noir apres navigation vers une route parametree : CORRIGE
+
+Diagnostic par sondes 24-28 (MutationObserver sur `ion-router-outlet`) :
+
+- `ionNavWillChange` -> `ionNavDidChange` est bien emis, la transition se
+  termine, **mais `ion-page-invisible` n'est jamais retiree**.
+- Deux navigations observees : la 1re reussit (+501 ms), la 2e (+685 ms)
+  laisse la nouvelle page invisible. Un seul `pushState`, un seul
+  `transition()`, mais **deux** ajouts de `ion-page-invisible`.
+- **Test decisif** : rendre `GroupDetail` en DIRECT (sans `lazy()` ni
+  `LazyRoute`) => `VIS:op1` (rendu correct). Via `LazyRoute` => `op0`.
+
+**CAUSE RACINE** : `React.lazy()` + `<Suspense>` dont le fallback rendait
+un `<IonPage>` **a l'interieur** de `ion-router-outlet`. L'outlet
+enregistre la **premiere** page rendue par la route comme « vue
+entrante » : il capturait le squelette, lui ajoutait `ion-page-invisible`,
+puis le remplacait par la vraie page (chunk arrive) qui heritait de l'etat
+invisible -> contenu monte mais `opacity: 0`.
+
+**CORRECTIF** : `PageSkeleton` (`src/ionic/routes/lazy-route.tsx`) ne rend
+plus `<IonPage>`/`<IonContent>` mais un `<div>` neutre ; le fallback ne
+participe plus au registre de vues de l'outlet. Le squelette de chargement
+(UX) est conserve. Commit `93072b4`.
+
+**PREUVE** : `groups-events.cy.ts` **0/3 -> 3/3** ; **3 passes
+consecutives vertes** (`ge4.log`, `ge-stab1.log`, `ge-stab2.log`), 26-27 s
+par passe (contre 3 min en echec). L'assertion de non-regression
+(`ion-page` entrante visible apres un clic depuis la liste) est dans le
+spec.
+
+### Spec `groups-events.cy.ts` — defauts de test corriges
+
+Motif systemique : `ion-router-outlet` **conserve montees** toutes les
+pages visitees (masquees par `ion-page-hidden`). Un selecteur global
+(`cy.contains('button', 'Retour')`, `cy.get('h1')`) fouillait donc aussi
+la barre laterale `FeatureSidebar` (`visibility: hidden`) -> faux echecs
+« element is not visible » alors que l'app fonctionnait.
+
+- Tous les selecteurs sont scopes a la page active :
+  `const PAGE = 'div.ion-page:not(.ion-page-hidden)'`.
+- Bouton retour reel du detail groupe : `ion-back-button` (la spec
+  cherchait un bouton « Retour » inexistant sur cette page).
+- Titre du detail groupe : `ion-title` (pas de `<h1>` avant R61).
+- Test 3 : `navigate(-1)` depuis `TransactionNew` revient sur le **detail**
+  de l'evenement, pas sur la liste -> assertion corrigee.
+
+### R61 — titre de niveau 1 sur le detail de groupe : CORRIGE
+
+`IonTitle` n'expose pas de `role="heading"` : `/groups/:id` n'avait aucun
+titre de niveau 1. Ajout d'un `<h1 className="sr-only">{orgUnit.name}</h1>`
+(convention deja utilisee par Dashboard, Finance, TransactionNew).
+Commit `5db7436`.
+
+**Portee volontairement limitee** : 19 pages n'ont aucun `<h1>`, mais un
+`<h1>` global dans `TopHeader` creerait un **doublon** sur les 24 pages
+qui en ont deja un. Le reste est consigne en proposition (P35) plutot
+qu'improvise.
+
+**PREUVE** : `groups-events.cy.ts` **3/3** (assertion `h1` incluse) ;
+**test NEGATIF** correctif retire via `git stash` => **2/3**, echec
+« Expected to find element: `div.ion-page:not(.ion-page-hidden) h1` »
+(l'assertion n'est donc pas vide).
+
+### Fusion `origin/main` — 5 conflits documentaires resolus
+
+Fichiers : `.openhands/memory/2026-10-23.md`,
+`docs/agent-session/{JOURNAL,PROPOSITIONS,RAPPORT_FINAL,RISQUES}.md`.
+
+Resolution : version de la branche conservee. **Justification verifiee, pas
+supposee** : pour chacun des 5 fichiers, les lignes ajoutees par
+`origin/main` (23, 74, 101, 122 et 187 lignes non vides) sont **toutes
+deja presentes** dans la version de la branche -> **0 ligne perdue**. Le
+cote `main` du conflit etait vide (la branche avait deja integre puis
+etendu ces sections). Aucun fichier de **code** en conflit : les apports de
+`origin/main` (DashboardOnboarding, SettingsProfile/Personalisation,
+Tutorial, dataLayer, ci.yml, eslint.config.js) sont fusionnes
+automatiquement. Commit `fa284bc`. `tsc --noEmit` => exit 0 sur l'arbre
+fusionne.
+
+### Fixture E2E — incoherence de role (donnee de test, pas defaut produit)
+
+Constat : `profiles.role = 'MEMBRE'` alors que
+`org_memberships.role = 'PASTEUR_PRINCIPAL'` pour le compte E2E. L'app lit
+`profiles.role` (via `useCurrentUser` -> cle `lumina-user`), donc les
+permissions du compte de test etaient celles d'un `MEMBRE`
+(`transaction:create` absent -> bouton « Ajouter une transaction » masque,
+d'ou l'echec du test 3).
+
+**Ce n'est PAS un defaut produit** : les comptes REELS
+(`kairosiluminate@gmail.com`, `journey@example.com`) ont
+`profiles.role = org_memberships.role` (coherents). Verification par
+requete sur `profiles` JOIN `org_memberships`.
+
+**Correction de la fixture** (2 comptes E2E uniquement) :
+`UPDATE public.profiles p SET role = m.role FROM public.org_memberships m
+WHERE m.user_id = p.id AND p.email IN (...) AND p.role IS DISTINCT FROM m.role;`
+**Retour arriere documente** : `UPDATE public.profiles SET role = 'MEMBRE'
+WHERE id = '87afea21-bad7-453b-9ae5-4ad1da2ca13f';`
+
+**Ambiguite consignee (P36)** : le depot a deux sources de verite du role
+(`profiles.role` lu par l'app, `org_memberships.role` ecrit par
+`settle_invitation_claim`) et aucun trigger ne les synchronise. Impact
+limite aujourd'hui (les chemins d'invitation mettent a jour les deux), mais
+c'est une fragilite a traiter.

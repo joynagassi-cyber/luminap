@@ -509,16 +509,23 @@ export function useTransactions() {
   const store = useLocalStore();
   const orgId = getOrganizationId();
 
-  // CPU-tier cache: 60s TTL, invalidates on transaction writes
+  // R60 — le `return` du cache était placé AVANT ce `useQuery` : au 1er
+  // render (cache vide) la fonction appelait 4 hooks, au render suivant
+  // (cache rempli) elle n'en appelait que 3 → « change in the order of
+  // Hooks » → crash d'Ionic (`Should have a queue`) et ErrorBoundary sur
+  // /transaction/:id/edit. Aucun hook ne doit être sauté : le cache est
+  // donc consulté APRÈS, et le résultat de useQuery est simplement ignoré
+  // s'il est périmé.
   const cached = get<PSTransaction[]>("txs:" + orgId);
-  if (cached)
-    return { data: cached, isLoading: false, source: "cached" as const };
 
   const { data: psData, isLoading: psStatus } = useQuery<PSTransaction>(
     "SELECT id, org_id, type, amount, description, date, status, category_id, org_unit_id, event_id, source, person_name, compensates_for, comment, version, source_caisse_id, versement_id, reversal_of_id, created_by_id, approved_by_id, created_at, updated_at, approved_at FROM transactions WHERE org_id = ? ORDER BY created_at DESC",
     [orgId],
     { reportFetching: true },
   );
+
+  if (cached)
+    return { data: cached, isLoading: false, source: "cached" as const };
 
   if (psData && psData.length > 0 && isPowerSyncReady()) {
     set("txs:" + orgId, psData, { tier: "cpu" });

@@ -809,3 +809,200 @@
   le workflow n'a **pas** d'étape de repli locale. Voir P27.
 - **Correctif proposé (45 min)** : soit fournir `CYPRESS_RECORD_KEY`, soit
   retirer `record/parallel` et exécuter la suite en local sur le runner.
+
+---
+
+## Session 3 (2026-10-23) — nouveaux risques
+
+### R57 — Date NULL → crash du dashboard — CORRIGÉ
+- **Gravité** : haute (page entière en ErrorBoundary).
+- **Défaut** : `formatDate`/`formatDateTime` (`src/lib/utils.ts`) levaient
+  `RangeError: Invalid time value` sur une date NULL/invalide ; appelés
+  depuis `Dashboard.tsx:1551` avec une valeur absente en base → `/dashboard`
+  affichait l'écran d'erreur au lieu du contenu.
+- **Correctif** : helpers rendus défensifs (validation + repli), test
+  `src/lib/__tests__/utils-date.test.ts` (rouge → vert). Commit `657491b`.
+- **Statut** : corrigé, validé (V).
+
+### R58 — Point d'entrée PWA (`/`) = écran blanc total — CORRIGÉ
+- **Gravité** : **critique** (perte totale d'accès pour un utilisateur PWA).
+- **Défaut** : `public/manifest.json` déclare `"start_url": "/"`. La route
+  `<Route path="/">` (`src/App.tsx`) contenait un `<Navigate>` **enfant**,
+  que React Router **ignore** (il n'accepte un composant que via
+  `element=`). `/` matchait donc sans rien rendre : 0 page Ionic poussée
+  dans le view-stack → écran blanc, sans BottomNav ni menu (aucun moyen de
+  sortir, l'app étant une PWA sans barre d'adresse).
+- **Preuve** : sonde DOM avant correctif → `PATH=/ PAGES(ion-page)=0
+  BODYLEN=26`.
+- **Correctif** : `element={<Navigate to="/splash" replace />}`.
+  Commit `eca2052`. Test `cypress/e2e/root-redirect.cy.ts` (2 tests, avec
+  et sans session).
+- **Statut** : corrigé, validé (C, 2/2).
+
+### R60 — `/transaction/:id/edit` en ErrorBoundary (Rules of Hooks) — CORRIGÉ
+- **Gravité** : **critique** (édition de transaction impossible).
+- **Défaut** : `useTransactions()` (`src/lib/dataLayer.ts`) faisait un
+  `return` anticipé du cache CPU **avant** son `useQuery`. Au 1er render
+  (cache vide) la fonction appelait 4 hooks ; au render suivant (cache
+  rempli par une lecture précédente) elle n'en appelait plus que 3 → React
+  « change in the order of Hooks » → `Error: Should have a queue` →
+  `LazyRouteErrorBoundary` → « Impossible d'afficher cette page ».
+  Toute page consommant `useTransactions` était exposée ; le cas
+  reproductible est `/transaction/:id/edit`.
+- **Preuve** : sonde console → `ERR ... at useOrganizationRevision
+  (dataLayer.ts) ... at useCategories ... at TransactionEdit` ; après
+  correctif → `LOGS=[]`, page rendue.
+- **Correctif** : le cache est consulté **après** l'appel du hook, le
+  résultat de `useQuery` étant ignoré s'il est périmé (aucun hook sauté).
+  Commit `71b1738`. Validation : `finance-deep.cy.ts` 5/5,
+  `comprehensive-flow.cy.ts` 1/1.
+- **Statut** : corrigé, validé (C).
+
+### R59 — Écran noir : la page entrante reste à `opacity: 0` après une navigation depuis la liste — OUVERT (gravité HAUTE)
+- **Gravité** : **haute** (écran noir permanent ; l'app est une PWA
+  mobile sans barre d'adresse → aucun moyen de recharger).
+- **Symptôme** : cliquer un élément d'une liste qui navigue vers une
+  **route paramétrée** (`/groups/:id`, `/event/:id`, `/members/:id`…)
+  pousse bien la nouvelle page dans le view-stack d'Ionic, **mais elle
+  reste à `opacity: 0`** (classes `ion-page-invisible`) → écran noir,
+  alors que la page est montée et contient les bonnes données.
+- **Preuves (mesurées, reproductibles)** :
+  - **Accès direct** à `/groups/<id>` : `VIS:op1` → **rendu correct**.
+  - **Clic depuis `/groups`** : `VIS+INV:op0` → **écran noir**, contenu
+    pourtant présent (`"Jeunesse 003100 … Caisse Solde actuel 0 FCFA"`).
+  - Identique en 2e ouverture (chunk déjà chargé) et après préchargement
+    du chunk via une visite directe → **ce n'est pas un problème de
+    chargement de chunk**.
+  - Idem en développement (URLs `?t=` HMR) et hors HMR.
+- **Hypothèses ÉLIMINÉES par expérience** (chacune testée puis annulée) :
+  1. **identité du `<IonPage>` échangée** entre branche de chargement
+     (`<GroupDetailSkeleton/>`) et branche chargée — supprimer la branche
+     de chargement ne change rien ;
+  2. **`<div>` intermédiaire du `LazyRouteErrorBoundary`** entre l'outlet
+     et l'`IonPage` — remplacé par un Fragment, sans effet ;
+  3. **`<PageSkeleton>` du `Suspense`** (un `IonPage`) échangé contre
+     celui de la page — voir 1 ;
+  4. **chunk paresseux non résolu au moment de la transition** — le
+     préchargement préalable ne corrige rien.
+- **Piste restante (non confirmée, à investiguer)** : la transition
+  `ion-router-outlet` ne retire pas `ion-page-invisible` quand la
+  navigation est déclenchée par un handler React **pendant que la page
+  courante est encore en cours d'hydratation/synchro**. À vérifier :
+  (a) déclencher la navigation **après** un `requestAnimationFrame` /
+  `setTimeout(0)` ; (b) comparer avec une navigation par un lien
+  `<IonRouterLink>` (transition gérée par Ionic) plutôt que
+  `navigate()` ; (c) instrumenter `ion-router-outlet` (`ionNavDidChange`)
+  pour voir si l'événement de fin de transition est émis.
+- **Impact utilisateur** : **critique sur le parcours cœur** — ouvrir un
+  groupe, un événement, un membre depuis une liste laisse un écran noir.
+  Les tests E2E correspondants échouent pour cette raison
+  (`groups-events.cy.ts` 0/3, `reports-budgets`/`persistence`/
+  `performance-batch`/`org-reports` partiellement).
+- **Contournement en test** : suivre la convention du dépôt
+  (`cypress/support/view.ts`) — la page affichée est le dernier
+  `div.ion-page:not(.ion-page-hidden)` ; `ion-page-invisible` y est
+  documentée comme **transitoire**, ce qui n'est manifestement plus vrai
+  dans ce cas précis (elle persiste).
+- **Recommandation** : traiter en priorité 1 (cf. PROPOSITIONS P34),
+  avec un test de non-régression qui assert `opacity !== 0` sur la page
+  entrante **après** une navigation depuis une liste.
+- **CAUSE RACINE (session 4, sondes 24-28)** : `React.lazy()` +
+  `<Suspense>` dont le fallback rendait un `<IonPage>` **à l'intérieur** de
+  `ion-router-outlet`. L'outlet enregistre la **première** page rendue par
+  la route comme « vue entrante » : il capturait le squelette, lui ajoutait
+  `ion-page-invisible`, puis le remplaçait par la vraie page (chunk arrivé)
+  qui héritait de l'état invisible → contenu monté, `opacity: 0`.
+  La MutationObserver montrait bien `ionNavWillChange` → `ionNavDidChange`
+  (transition terminée) mais `ion-page-invisible` **jamais retirée** ;
+  **test décisif** : rendu direct de `GroupDetail` (sans `lazy()`) →
+  `VIS:op1` correct, via `LazyRoute` → `op0`.
+- **CORRECTIF** : `PageSkeleton` (`src/ionic/routes/lazy-route.tsx`) ne
+  rend plus `<IonPage>`/`<IonContent>` mais un `<div>` neutre ; le fallback
+  ne participe plus au registre de vues de l'outlet. Squelette de
+  chargement conservé. Commit `93072b4`.
+- **Statut** : **CORRIGÉ, validé**. Preuve : `groups-events.cy.ts` **0/3 →
+  3/3**, **3 passes consécutives vertes** (26-27 s). Assertion de
+  non-régression incluse dans le spec (page entrante visible après un clic
+  depuis une liste).
+
+### R61 — Titres de page non sémantiques (accessibilité) — OUVERT
+- **Gravité** : basse (a11y).
+- **Défaut** : `TopHeader` rend le titre de page dans un `<p>` stylé, pas
+  dans un `<h1>`. Les pages qui n'ont pas d'autre titre (ex. `/history`,
+  `/settings`) n'exposent donc **aucun titre de niveau 1** aux lecteurs
+  d'écran ni à la navigation par titres.
+- **Preuve** : `src/components/TopHeader.tsx` (lignes ~71-78) ; sonde DOM
+  sur `/history` : aucun `h1/h2/h3` portant « Historique ».
+- **Recommandation** : rendre le titre de `TopHeader` dans un `<h1>`
+  (avec `role="heading"`), ou imposer un `<h1>` par page.
+- **CORRECTIF (session 4)** : ajout d'un
+  `<h1 className="sr-only">{orgUnit.name}</h1>` sur `/groups/:id`
+  (convention du dépôt, déjà utilisée par Dashboard, Finance,
+  `TransactionNew`). Commit `5db7436`.
+- **Portée volontairement limitée** : 19 pages n'ont aucun `<h1>`, mais un
+  `<h1>` global dans `TopHeader` créerait un **doublon** sur les 24 pages
+  qui en ont déjà un → reste consigné en proposition (P35).
+- **Statut** : **CORRIGÉ pour `/groups/:id`, validé**. Preuve :
+  `groups-events.cy.ts` **3/3** avec l'assertion `h1` ; **test négatif**
+  (correctif retiré via `git stash`) → **2/3**, échec
+  « Expected to find element: `div.ion-page:not(.ion-page-hidden) h1` ».
+
+
+---
+
+## Session 4 (2026-10-23) — livraison
+
+### R59 — écran noir sur route paramétrée — CORRIGÉ (voir ci-dessus)
+Statut passé d'**ouvert (HAUTE)** à **corrigé, validé**. Le risque résiduel
+principal des sessions précédentes est levé : l'ouverture d'une entité
+depuis une liste (groupe, événement, membre) fonctionne.
+
+### R61 — titres non sémantiques — CORRIGÉ pour `/groups/:id`
+Reste ouvert pour **19 autres pages** (cf. P35). Gravité **basse** (a11y).
+
+### R62 — Deux sources de vérité pour le rôle, non synchronisées — OUVERT (gravité MOYENNE)
+- **Gravité** : moyenne (fragilité de sécurité/UX, pas d'exploitation
+  connue).
+- **Défaut** : l'application lit `profiles.role` (via
+  `authService.persistCurrentUser` → clé `lumina-user` →
+  `useCurrentUser()` → `security.hasPermission`). Or `settle_invitation_claim`
+  écrit aussi `org_memberships.role`. **Aucun trigger ne synchronise les
+  deux colonnes.**
+- **Preuve mesurée** : pour le compte E2E,
+  `profiles.role = 'MEMBRE'` et `org_memberships.role = 'PASTEUR_PRINCIPAL'`
+  → `transaction:create` absent → bouton « Ajouter une transaction »
+  masqué. Les comptes **réels** (`kairosiluminate@gmail.com`,
+  `journey@example.com`) sont, eux, **cohérents** (vérifié par requête).
+- **Impact** : un utilisateur invité dont `profiles.role` ne serait pas
+  aligné verrait des permissions inférieures (ou supérieures) à son rôle
+  réel d'organisation. Aujourd'hui les chemins d'invitation écrivent les
+  deux, donc l'impact est **latent**.
+- **Recommandation** : tronquer la source de vérité à une seule colonne
+  (vue ou trigger de synchronisation `org_memberships` → `profiles.role`),
+  ou faire lire `org_memberships.role` par `useCurrentUser`. Proposition
+  **P36**.
+- **Statut** : ouvert, non corrigé (changement de modèle de données →
+  hors périmètre de correctif ciblé).
+
+### R63 — Fixture E2E désalignée — CORRIGÉ (donnée de test)
+- **Défaut** : le compte E2E avait `profiles.role = 'MEMBRE'` (au lieu de
+  `PASTEUR_PRINCIPAL`), ce qui masquait `transaction:create` et faisait
+  échouer `groups-events.cy.ts` test 3 — pour une raison de **donnée**, pas
+  de code.
+- **Correctif** : alignement de `profiles.role` sur `org_memberships.role`
+  pour les 2 comptes E2E uniquement.
+- **Retour arrière** : `UPDATE public.profiles SET role = 'MEMBRE' WHERE
+  id = '87afea21-bad7-453b-9ae5-4ad1da2ca13f';`
+- **Statut** : corrigé, validé (spec 3/3).
+
+### R64 — Sélecteurs de spec portant sur des pages Ionic masquées — CORRIGÉ (test)
+- **Défaut** : `ion-router-outlet` conserve montées toutes les pages
+  visitées (`ion-page-hidden`). Les sélecteurs globaux
+  (`cy.contains('button', …)`, `cy.get('h1')`) matchaient la barre latérale
+  `FeatureSidebar` (`visibility: hidden`) → faux échecs « element is not
+  visible » alors que l'app fonctionnait.
+- **Correctif** : scoper à la page active
+  (`div.ion-page:not(.ion-page-hidden)`). Corrigé dans
+  `groups-events.cy.ts` ; reste à appliquer aux autres specs si elles
+  échouent encore pour ce motif (cf. specs en cours de réexécution).
+- **Statut** : corrigé pour `groups-events.cy.ts`, validé (3/3, 3 passes).

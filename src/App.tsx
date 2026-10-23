@@ -267,9 +267,15 @@ const App = () => (
               <IonRouterOutlet key="lumina-root-outlet">
                 <Routes>
                   {luminaRoutes}
-                  <Route path="/">
-                    <Navigate to="/splash" replace />
-                  </Route>
+                  {/* Redirection via `element=` (et NON un <Navigate>
+                      enfant) : React Router ignore un composant placé en
+                      enfant d'un <Route> sans `element`. Un `<Navigate>`
+                      enfant laissait `/` (le `start_url` de la PWA)
+                      matcher sans rien rendre → écran BLANC. */}
+                  <Route
+                    path="/"
+                    element={<Navigate to="/splash" replace />}
+                  />
                 </Routes>
               </IonRouterOutlet>
             </main>

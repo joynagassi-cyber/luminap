@@ -232,7 +232,7 @@ export default function TransactionEdit() {
                 >
                   <IonSelectOption value="">Sélectionner une catégorie</IonSelectOption>
                   {filteredCategories.map((cat: any) => (
-                    <IonSelectOption value={cat.id}>
+                    <IonSelectOption key={cat.id} value={cat.id}>
                       {cat.label_fr || cat.label}
                     </IonSelectOption>
                   ))}
@@ -278,7 +278,7 @@ export default function TransactionEdit() {
                 >
                   <IonSelectOption value="">Aucun événement</IonSelectOption>
                   {events.map((ev: any) => (
-                    <IonSelectOption value={ev.id}>
+                    <IonSelectOption key={ev.id} value={ev.id}>
                       {ev.name}
                     </IonSelectOption>
                   ))}

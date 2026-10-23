@@ -11,6 +11,8 @@
  *
  * Le compte de test est PASTEUR_PRINCIPAL (autorise `group:create`).
  */
+import { activePageShouldContain } from '../support/view';
+
 describe('Lumina — Gardes d\'accès (RBAC)', () => {
   before(function () {
     this.timeout(90_000);
@@ -37,10 +39,16 @@ describe('Lumina — Gardes d\'accès (RBAC)', () => {
 
   it('R39 — le FAB « Créer un groupe » est visible sans rechargement', function () {
     this.timeout(120_000);
+    // Cypress 16 `testIsolation` efface localStorage avant chaque `it()` :
+    // le `cy.ensureAuth()` du `before()` ne couvre que le 1er test. Sans
+    // cette ligne, le RouteGuard rebat sur /auth et « Groupes » n'existe
+    // dans aucune page active.
+    cy.ensureAuth();
     cy.visit('/groups');
-    cy.get('h1, h2, h3')
-      .contains('Groupes', { timeout: 60_000 })
-      .should('be.visible');
+    // La pile de pages Ionic garde les pages précédentes montées : un
+    // `cy.get('h1')` peut matcher le titre d'une page MASQUÉE et échouer
+    // (« not visible »). On asserte dans la page ACTIVE.
+    activePageShouldContain('h1, h2, h3', 'Groupes');
     // Aucun cy.reload() : la résolution doit se corriger seule à la fin
     // de la synchronisation PowerSync.
     cy.get('button[aria-label="Créer un groupe"]', { timeout: 45_000 }).should(

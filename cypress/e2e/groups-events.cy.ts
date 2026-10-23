@@ -20,6 +20,22 @@
  * au re-run.
  */
 
+/**
+ * Page Ionic ACTIVE uniquement.
+ *
+ * `ion-router-outlet` garde toutes les pages visitees montees et les masque
+ * (`ion-page-hidden`). Un selecteur global (`cy.contains('button', 'Retour')`,
+ * `cy.get('h1, h2, h3')`) fouille donc AUSSI les pages masquees — et
+ * notamment la barre laterale `FeatureSidebar`, qui reste montee avec
+ * `visibility: hidden` : Cypress echouait sur « element is not visible »
+ * pour des boutons que l'utilisateur ne voit pas. Tous les selecteurs de ce
+ * spec sont donc scopes a la page active.
+ *
+ * `div.ion-page:not(.ion-page-hidden)` est sur : `ion-app` porte la classe
+ * `ion-page` mais n'est pas un `div` (voir cypress/support/view.ts).
+ */
+const PAGE = 'div.ion-page:not(.ion-page-hidden)';
+
 describe('Lumina — Groups & Events', () => {
   before(function () {
     this.timeout(90_000);
@@ -34,13 +50,15 @@ describe('Lumina — Groups & Events', () => {
 
     cy.ensureAuth();
     cy.visit('/groups');
-    cy.get('h1, h2, h3').contains('Groupes', { timeout: 60_000 }).should('be.visible');
+    cy.get(`${PAGE} h1, ${PAGE} h2, ${PAGE} h3`)
+      .contains('Groupes', { timeout: 60_000 })
+      .should('be.visible');
 
     // Le FAB est un <CircleAction> : un <button> natif portant
     // aria-label="Créer un groupe" et SANS texte « Créer ». On le cible
     // par son aria-label (le `cy.contains(..., 'Créer')` ne le matchait
     // pas — défaut de spec, pas d'app).
-    cy.get('button[aria-label="Créer un groupe"]', { timeout: 30_000 })
+    cy.get(`${PAGE} button[aria-label="Créer un groupe"]`, { timeout: 30_000 })
       .should('exist')
       .click({ force: true });
     cy.get('input[placeholder="Nom du groupe"]').type(groupName);
@@ -51,25 +69,34 @@ describe('Lumina — Groups & Events', () => {
     // Le CTA du formulaire « Créer le groupe » (le submit fait 4
     // executeWrite PowerSync : org_units + groups + accounts + caisses) —
     // peut prendre quelques secondes.
-    cy.contains('button, ion-button', 'Créer le groupe', { timeout: 60_000 }).click();
+    cy.get(PAGE)
+      .contains('button, ion-button', 'Créer le groupe', { timeout: 60_000 })
+      .click();
 
     // Le groupe apparaît dans la liste, avec le sous-titre de type.
-    cy.contains(groupName, { timeout: 60_000 }).should('be.visible');
+    cy.get(PAGE).contains(groupName, { timeout: 60_000 }).should('be.visible');
 
     // On ouvre le détail et on revient.
-    cy.contains(groupName).first().click({ force: true });
+    cy.get(PAGE).contains(groupName).first().click({ force: true });
     cy.location('pathname', { timeout: 30_000 }).should((path: string) => {
       expect(path, `pathname after group open: ${path}`).to.match(/^\/groups\//);
     });
-    cy.get('h1, h2, h3, [role="heading"]')
+    // NON-REGRESSION R59 : le detail groupe doit etre VISIBLE. Avant le
+    // correctif de `PageSkeleton` (src/ionic/routes/lazy-route.tsx), la page
+    // entrante restait `ion-page-invisible` (opacity: 0) -> ecran noir et
+    // cette assertion echouait. Le titre du detail est un <ion-title>.
+    cy.get(`${PAGE} ion-title`)
       .contains(groupName, { timeout: 30_000 })
       .should('be.visible');
+    // R61 : la page expose un titre de niveau 1 (IonTitle n'a pas de role
+    // heading). Sans ce <h1>, aucun titre n'est annonce aux lecteurs d'ecran.
+    cy.get(`${PAGE} h1`).should('contain.text', groupName);
 
-    // Retour à la liste.
-    cy.get('button[aria-label="Retour"], ion-back-button, button')
-      .contains('Retour')
-      .click();
-    cy.get('h1, h2, h3')
+    // Retour à la liste : le bouton retour reel est un <ion-back-button>
+    // (la spec cherchait un bouton « Retour », inexistant ici, et matchait
+    // donc celui de la barre laterale masquee).
+    cy.get(`${PAGE} ion-back-button`).first().click({ force: true });
+    cy.get(`${PAGE} h1, ${PAGE} h2, ${PAGE} h3`)
       .contains('Groupes', { timeout: 30_000 })
       .should('be.visible');
   });
@@ -105,13 +132,14 @@ describe('Lumina — Groups & Events', () => {
       expect(path, `pathname after event create: ${path}`).to.match(/^\/event\//);
     });
 
-    cy.get('h1, h2, h3, [role="heading"]')
+    cy.get(`${PAGE} h1, ${PAGE} h2, ${PAGE} h3, ${PAGE} [role="heading"]`)
       .contains(eventName, { timeout: 60_000 })
       .should('be.visible');
-    cy.contains('button, ion-button', 'Aperçu').should('be.visible');
-    cy.contains('button, ion-button', 'Budget').should('be.visible');
-    cy.contains('button, ion-button', 'Transactions').should('be.visible');
-    cy.contains('Planifié').should('be.visible');
+    cy.get(`${PAGE} button[aria-label="Onglet Aperçu"]`).should('be.visible');
+    cy.get(`${PAGE} button[aria-label="Onglet Budget"]`).should('be.visible');
+    cy.get(`${PAGE} button[aria-label="Onglet Transactions"]`).should('be.visible');
+    // Badge de statut (libelle « Planifié »), scope a la page active.
+    cy.get(PAGE).contains('Planifié', { timeout: 30_000 }).should('be.visible');
   });
 
   it('shows empty budget and transaction tabs on a new event', function () {
@@ -135,25 +163,30 @@ describe('Lumina — Groups & Events', () => {
       expect(path, `pathname after event create: ${path}`).to.match(/^\/event\//);
     });
 
-    cy.get('h1, h2, h3, [role="heading"]')
+    cy.get(`${PAGE} h1, ${PAGE} h2, ${PAGE} h3, ${PAGE} [role="heading"]`)
       .contains(eventName, { timeout: 60_000 })
       .should('be.visible');
 
-    cy.contains('button, ion-button', 'Budget').click();
-    cy.contains('Aucun poste budgétaire', { timeout: 30_000 }).should('exist');
+    cy.get(`${PAGE} button[aria-label="Onglet Budget"]`).click();
+    cy.get(PAGE).contains('Aucun poste budgétaire', { timeout: 30_000 }).should('exist');
 
-    cy.contains('button, ion-button', 'Retour').click();
-    cy.contains('button, ion-button', 'Transactions').click();
-    cy.contains('Aucune transaction liée', { timeout: 30_000 }).should('exist');
+    cy.get(`${PAGE} button[aria-label="Onglet Transactions"]`).click();
+    cy.get(PAGE).contains('Aucune transaction liée', { timeout: 30_000 }).should('exist');
 
-    cy.contains('button, ion-button', 'Ajouter une transaction').click();
-    cy.get('h1, h2, h3').contains(/nouvelle transaction/i, {
-      timeout: 30_000,
-    }).should('be.visible');
+    cy.get(PAGE).contains('button', 'Ajouter une transaction').click();
+    cy.get(`${PAGE} h1, ${PAGE} h2, ${PAGE} h3`)
+      .contains(/nouvelle transaction/i, { timeout: 30_000 })
+      .should('be.visible');
 
-    cy.contains('button, ion-button', 'Retour').click();
-    cy.get('h1, h2, h3')
-      .contains('Événements', { timeout: 30_000 })
+    // Le bouton « Retour » de TransactionNew (bouton natif, pas un
+    // ion-back-button) ramene a l'evenement.
+    cy.get(`${PAGE} button`).contains('Retour').click();
+    // TransactionNew revient par `navigate(-1)` : on retombe sur le DETAIL de
+    // l'evenement, pas sur la liste. (L'assertion precedente attendait
+    // « Evenements » : c'etait la spec qui etait fausse, pas l'app.)
+    cy.location('pathname', { timeout: 30_000 }).should('match', /^\/event\//);
+    cy.get(`${PAGE} ion-title, ${PAGE} h1, ${PAGE} h2, ${PAGE} h3`)
+      .contains(eventName, { timeout: 30_000 })
       .should('be.visible');
   });
 });
