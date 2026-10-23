@@ -387,3 +387,16 @@ sonde après correctifs → `{ org:"org-e2e", n:5, ready:true, err:"none" }`.
   (`OrgReportSend.tsx`) ; `tsc --noEmit` OK ; commit `86670ef`.
 - **Docs** : RISQUES.md → R34 (critique, corrigé).
 - Suite complète relancée en tâche de fond (run 3) pendant la rédaction.
+
+## 2026-10-23 ~02:35–02:42 UTC — Bug R35 (header recouvrant) + suite finale
+- **Bug 2 identifié** : `cy.clear()` sur le montant échoue car le `TopHeader`
+  recouvre l'input. Sonde Cypress : `headerH=110px`, `contentPadTop=64px`,
+  `scroll-padding-top=auto`.
+- **Correctif** : `ion-content::part(scroll) { scroll-padding-top: 7rem; }`.
+  Après : `headerBottom=111`, `inputTop=281`, `covered=false`.
+- **Validation** : `finance-deep.cy.ts` **5/5** (baseline 2/5). Commit `dff2cbe`.
+- **Vitest** : **61 fichiers / 1055 tests, 100 % verts** (baseline 1030/1048,
+  18 échecs). Commande : `npx vitest run`.
+- Suite Cypress complète relancée (run 4, `/tmp/cy-final.log`) après les
+  correctifs R34 + R35 + Events.
+- Docs : RISQUES.md → R35.

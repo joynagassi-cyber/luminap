@@ -423,3 +423,25 @@
   `slot="input"` en croyant à un slot Ionic documenté. Il n'existe pas.
 - **Gravité** : **critique** (blocage total de la saisie sur l'essentiel de
   l'application).
+
+### R35 — Le TopHeader collant recouvre les champs de saisie — CORRIGÉ (majeur)
+- **Défaut** : le `TopHeader` (IonHeader **dans** `ion-content`, donc
+  `position: sticky; top: 0` via `theme.css`) mesure **110px** (64px de barre
+  + 46px de bandeau organisationnel), mais les pages ne réservent que **64px**
+  (`pt-safe-calc` = `4rem`). Le conteneur de scroll Ionic n'avait pas de
+  `scroll-padding-top` (`auto`).
+- **Conséquence** : tout champ amené en vue (focus clavier, scroll
+  programmatique, `cy.clear()`) se cale à `y=0` → il passe **derrière** le
+  header, devient invisible et non saisissable. Frappe réelle : un utilisateur
+  qui fait défiler le formulaire et tape dans le montant ne peut plus
+  interagir avec le champ.
+- **Preuve mesurée** (sonde Cypress, `/transaction/new`) :
+  - avant : `headerBottom=110`, `inputTop=0` (sous le header) → `cy.clear()`
+    échoue « element is being covered by another element » (le `<p>` du
+    `TopHeader` désigné comme l'élément recouvrant)
+  - après : `headerBottom=111`, `inputTop=281`, `covered=false`,
+    `clear().type('7500')` → valeur `7500` (OK)
+- **Correctif** : `ion-content::part(scroll) { scroll-padding-top: 7rem; }`
+  (commit `dff2cbe`). `7rem` = 112px ≥ 110px mesurés.
+- **Validation** : `cypress/e2e/finance-deep.cy.ts` **5/5** (baseline 2/5).
+- **Gravité** : majeure (blocage de saisie sur les formulaires longs).
