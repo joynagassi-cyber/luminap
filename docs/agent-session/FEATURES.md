@@ -12,6 +12,10 @@
 | T2 | `usePowerSyncStatus` : `addListener`/`getStatus()` inexistants dans `@powersync/common@2.2.0` | `isPowerSyncReady()` toujours `false` → repli vide permanent, silencieux | `registerListener({statusChanged})` + `currentStatus` | sonde `ready:true` ; 3/3 |
 | T3 | Client Supabase B (`SupabaseConnector`) : `persistSession`+`autoRefreshToken` sur le même storageKey que le client A | Double rotation du refresh token → « Already Used » → révocation → **déconnexion aléatoire** | Client B en mémoire seule | Trace token + 3/3 |
 | T4 | `ensureAuth` ne survivait pas à `testIsolation` (Cypress 16) | Session perdue dès le 2e `it()` → échecs en cascade non déterministes | `cy.session()` | Trace token ABSENT en visite 2 ; 0/3→3/3 |
+| T5 (R34) | `slot="input"` sur 61 contrôles dans `<IonItem>` : `ion-item` (Shadow DOM) n'expose que `start`/défaut/`end` | **61 champs jamais rendus** (rect 0×0) dans 20 fichiers : transaction, événement, groupe, budget, versement, invitation, champ personnalisé, rapport, fédération, unités d'org — **formulaires inutilisables silencieusement** | Suppression des 61 attributs (20 fichiers) | Sonde DOM avant/après : `checkVisibility` false→true, rect 0×0→316×44, `offsetParent` false→true (`86670ef`) |
+| T6 (R35) | `TopHeader` collant (110 px) recouvre les champs (64 px réservés), sans `scroll-padding-top` | Champ amené en vue (focus/scroll/`cy.clear()`) → **derrière le header**, non saisissable | `ion-content::part(scroll){scroll-padding-top:7rem}` (`dff2cbe`) | Mesure : `headerBottom=111`, `inputTop=281`, `covered=false` ; `finance-deep` 2/5→**5/5** |
+| T7 | `?date=` périmé dans l'URL en quittant la timeline (`Events.tsx`) | État/URL désynchronisés : rechargement → filtre fantôme | `setSearchParams({}, {replace:true})` (`af2d79d`) | `C: calendar.cy.ts` 0/1→**1/1** |
+| T8 (R37) | `slot="label"` sur `IonLabel` dans `ion-item` (`InvitationEmit.tsx`) | Libellé « Rôle cible » **non rendu** | Retrait de l'attribut (`bdd1f5b`) | Sonde : `slot="label"` → hauteur **0** ; sans slot → **24** |
 
 ## Phase 0 — état initial
 
@@ -27,7 +31,7 @@
 | 8 | **Invitations (code / QR / lien)** | Inviter un membre | `/invitation/*`, `invitations`, `invitation_claims`, `settle_invitation_claim` | complète | — | — | `C: invitations.cy.ts` | à valider |
 | 9 | **Gestion des rôles et appartenances** | Attribuer un rôle | `org_memberships`, `org_admins`, `role_assignments`, `/admin/*` | complète | `org_roles` masquage (corrigé) | Corrigé | `V`, `SQL` | partielle |
 | 10 | **Fédération (organisations parentes/enfants)** | Piloter plusieurs organisations | `/admin/federation`, `org_family`, `org_reports` | complète | — | — | `C: org-reports.cy.ts` | à valider |
-| 11 | **Finances — transactions (entrée/sortie)** | Saisir un mouvement | `/finance`, `/transaction/new`, `/transaction/:id`, `transactions` | complète | 0 transaction en base (pas de données réelles) | — | `C: finance-deep.cy.ts` (2/5) | partielle |
+| 11 | **Finances — transactions (entrée/sortie)** | Saisir un mouvement | `/finance`, `/transaction/new`, `/transaction/:id`, `transactions` | **cassée** | Saisie impossible : champ montant recouvert par le `TopHeader` (R35) + champs non rendus (R34) | Corrigé R34 + R35 | `C: finance-deep.cy.ts` **5/5** | **validée (C)** |
 | 12 | **Versements entre comptes** | Transférer entre caisses | `/versement`, `versements` | complète | — | — | `V: versement-cotisation.test.ts` | partielle |
 | 13 | **Cultes / cotisations** | Collecter les cotisations d'un culte | `/cotisations`, `cotisations` | complète | — | — | `V: versement-cotisation`, `C` | partielle |
 | 14 | **Rapports financiers et inter-organisations** | Produire et transmettre un rapport | `/reports`, `/balance`, `/budgets`, `org_reports`, `report_definitions` | complète | — | — | `C: org-reports.cy.ts`, `V: orgReport.test.ts` | partielle |
