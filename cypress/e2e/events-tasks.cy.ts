@@ -51,11 +51,14 @@ describe('Lumina — Event tasks CRUD + status + progress + F5', () => {
     // `typeIonicInput` ecrit la valeur ET emet `ionChange` — chemin fiable
     // (cf. cypress/support/ionic.ts).
     cy.typeIonicInput("Nom de l'événement", eventName);
+    // Laisser React traiter l'evenement `ionChange` (le bouton peut rester
+    // desactive pendant le render qui suit la mise a jour du state).
+    cy.wait(500);
 
     // Le IonButton « Créer l'événement » rend un <ion-button> (custom
     // element, texte en light DOM — pas de <button> natif interne en
     // Ionic 7). On cible le ion-button par son texte.
-    cy.contains('ion-button', "Créer l'événement", { timeout: 30_000 })
+    cy.contains('button, ion-button', "Créer l'événement", { timeout: 30_000 })
       .first()
       .click({ force: true });
     // `/event/new` matche aussi /^\/event\// : on exige un identifiant de
@@ -72,11 +75,10 @@ describe('Lumina — Event tasks CRUD + status + progress + F5', () => {
     // dans le DOM Ionic ; sans filtre, on vise l'onglet d'une page cachee.
     activePageShouldContain('button[role="tab"]', 'Tâches');
     activePage().contains('button[role="tab"]', 'Tâches').click();
-    activePage()
-      .contains('button[role="tab"][aria-selected="true"]', 'Tâches', {
-        timeout: 10_000,
-      })
-      .should('be.visible');
+    // Verification retryable : juste apres le clic, la page de detail est
+    // encore en transition et un cliche `activePage()` peut tomber sur un
+    // etat intermediaire (onglet present mais pas encore selectionne).
+    activePageShouldContain('button[role="tab"][aria-selected="true"]', 'Tâches');
 
     // ── 3. Add a parent task ─────────────────────────────────────────
     cy.contains('button, ion-button', 'Ajouter une tâche', { timeout: 30_000 }).click();
