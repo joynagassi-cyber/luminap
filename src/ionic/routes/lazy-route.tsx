@@ -19,22 +19,30 @@ import { IonPage, IonContent } from "@ionic/react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 // ─── Suspense Fallback ─────────────────────────────────────────────────────
+// IMPORTANT — ce fallback ne doit PAS rendre un <IonPage>.
+// `ion-router-outlet` enregistre comme « vue entrante » le premier
+// élément portant la classe `ion-page` qu'il trouve sous la route.
+// Quand React.lazy() n'est pas encore résolu, ce fallback était un
+// <IonPage> : l'outlet jouait la transition vers ce squelette, puis la
+// vraie page le remplaçait sans rejouer de transition et restait
+// `ion-page-invisible` (opacity: 0) → écran noir permanent. Constaté et
+// corrigé en session 3 (RISQUES.md R59) : ouvrir une entité depuis une
+// liste (/groups/:id, /event/:id…) laissait un écran noir, alors qu'un
+// accès direct à la même URL fonctionnait.
 const PageSkeleton = () => (
-  <IonPage>
-    <IonContent fullscreen className="ion-padding ion-padding-top">
-      <div className="space-y-4 p-4">
-        <Skeleton className="h-8 w-3/4" />
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-5/6" />
-        <Skeleton className="h-32 w-full" />
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-4/5" />
-        <Skeleton className="h-32 w-full" />
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-3/4" />
-      </div>
-    </IonContent>
-  </IonPage>
+  <div className="ion-padding ion-padding-top" style={{ minHeight: "100%" }}>
+    <div className="space-y-4 p-4">
+      <Skeleton className="h-8 w-3/4" />
+      <Skeleton className="h-4 w-full" />
+      <Skeleton className="h-4 w-5/6" />
+      <Skeleton className="h-32 w-full" />
+      <Skeleton className="h-4 w-full" />
+      <Skeleton className="h-4 w-4/5" />
+      <Skeleton className="h-32 w-full" />
+      <Skeleton className="h-4 w-full" />
+      <Skeleton className="h-4 w-3/4" />
+    </div>
+  </div>
 );
 
 /**
