@@ -23,6 +23,7 @@ import type {
 } from "@/types";
 import { getOrganizationId } from "./orgContext";
 import { get, set, invalidate, clear, asyncGetOrSet } from "./cache";
+import { authService } from "./auth";
 
 
 // ============================================================
@@ -2874,72 +2875,147 @@ export async function deleteAllLocalData(): Promise<void> {
 /**
  * Hook to get current user from localStorage
  */
-export function useCurrentUser() {
-  const [user, setUser] = useState<{
-    id: string;
-    email: string;
-    firstName: string;
-    lastName: string;
-    role: string;
-    org: { id: string; name: string; type: string; accentColor: string };
-  } | null>(null);
+export interface CurrentUser {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+  org: { id: string; name: string; type: string; accentColor: string };
+}
 
-  // Charge l'utilisateur persisté APRÈS montage (l'état démarre à null).
-  // Le PREMIER rendu ne peut donc pas compter sur cet effet : le repli
-  // synchrone ci-dessous est le seul garant d'un utilisateur non-null.
-  useEffect(() => {
-    const stored = localStorage.getItem("lumina-user");
-    if (stored) {
+/**
+ * Résout l'utilisateur courant de façon SYNCHRONE et déterministe.
+ *
+ * Ordre des sources (la première non vide gagne) :
+ *   1. le profil Supabase live (`authService.getState().profile`) — hydraté au
+ *      login par `ensureProfile`/`hydrateProfile` ; c'est la source fiable ;
+ *   2. `lumina-user` (localStorage) — écrit par `authService.setState` dès que
+ *      le profil est connu, et par la page Profil (édition du nom) ;
+ *   3. `null` → l'appelant retombe sur `fallbackCurrentUser()`.
+ *
+ * L'ORDRE EST CRITIQUE : la clé `lumina-user` seule ne suffisait pas. Elle
+ * n'était jamais écrite au login (seule la page Profil l'écrivait), donc
+ * `useCurrentUser()` renvoyait toujours son repli factice
+ * (`id: "local-user"`, `role: "TREASURIER"`). Conséquence : les gardes
+ * d'accès multi-org (`useCanAccessMulti` → `federation.canAccess`) étaient
+ * TOUJOURS fausses pour tout le monde, masquant à tort des actions légitimes
+ * (FAB « Créer un groupe », export de rapports, onglets de transaction).
+ */
+function readCurrentUser(): CurrentUser | null {
+  try {
+    const profile = authService.getState().profile;
+    if (profile?.id) {
+      let orgName = "";
       try {
-        setUser(JSON.parse(stored));
+        const cfg = JSON.parse(localStorage.getItem("lumina-config") ?? "{}");
+        if (cfg?.churchName) orgName = cfg.churchName;
       } catch {
-        /* JSON corrompu — le repli synchrone prend le relais au rendu courant */
+        /* config absente — nom d'organisation laissé vide */
       }
+      return {
+        id: profile.id,
+        email: profile.email ?? "",
+        firstName: profile.first_name ?? "",
+        lastName: profile.last_name ?? "",
+        role: profile.role,
+        org: {
+          id: profile.org_id,
+          name: orgName,
+          type: "Eglise",
+          accentColor: "#FF6B00",
+        },
+      };
     }
+  } catch {
+    /* auth non initialisée (SSR / test) — on tente le storage ci-dessous */
+  }
+  try {
+    const stored = localStorage.getItem("lumina-user");
+    if (stored) return JSON.parse(stored) as CurrentUser;
+  } catch {
+    /* JSON corrompu — le repli synchrone prend le relais au rendu courant */
+  }
+  return null;
+}
+
+// ─── Pont de réactivité auth → hooks ────────────────────────────────────────
+// UN SEUL abonnement `authService` pour toute l'application, quel que soit le
+// nombre de composants qui appellent `useCurrentUser()` : sans cela chaque
+// montage ajouterait un listener `onAuthStateChange` Supabase.
+const _userListeners = new Set<() => void>();
+let _userAuthBridged = false;
+
+function ensureUserAuthBridge(): void {
+  if (_userAuthBridged) return;
+  _userAuthBridged = true;
+  try {
+    authService.subscribe(() => _userListeners.forEach((l) => l()));
+  } catch {
+    /* auth indisponible — le rendu suivant relira l'état directement */
+  }
+}
+
+export function useCurrentUser(): CurrentUser {
+  const [, forceRender] = useState(0);
+
+  useEffect(() => {
+    ensureUserAuthBridge();
+    const listener = () => forceRender((n) => n + 1);
+    _userListeners.add(listener);
+    // Re-lire une fois après montage : le profil peut s'être hydraté entre le
+    // rendu et l'effet (login/restauration de session).
+    listener();
+    return () => {
+      _userListeners.delete(listener);
+    };
   }, []);
 
-  // Repli SYNCHRONE et DÉTERMINISTE : tant que `lumina-user` n'est pas
-  // encore chargé (1er rendu), on CONSTRUIT l'objet ici et on le RETOURNE
-  // directement. Le repli précédent utilisait un setState en phase de
-  // rendu (appliqué au rendu SUIVANT) : le 1er rendu renvoyait null et
-  // crashait toute page lisant `user.role` à son montage (écran noir).
-  // Ce hook ne renvoie donc JAMAIS null.
-  if (!user) {
-    let role = "TREASURIER";
-    let orgName = "Lumina";
-    let orgId = "org-1";
-    try {
-      const storedRole = localStorage.getItem("lumina-role");
-      if (storedRole) role = storedRole;
-      const cfg = JSON.parse(
-        localStorage.getItem("lumina-config") ?? "{}",
-      );
-      if (cfg?.churchName) orgName = cfg.churchName;
-    } catch {
-      /* stockage indisponible (SSR / test) — valeurs par défaut */
-    }
-    try {
-      const ctx = getOrganizationId();
-      if (ctx) orgId = ctx;
-    } catch {
-      /* contexte d'organisation indisponible — repli org-1 */
-    }
-    return {
-      id: "local-user",
-      email: "",
-      firstName: "Utilisateur",
-      lastName: "",
-      role,
-      org: {
-        id: orgId,
-        name: orgName,
-        type: "Eglise",
-        accentColor: "#FF6B00",
-      },
-    };
-  }
+  const live = readCurrentUser();
+  if (live) return live;
+  return fallbackCurrentUser();
+}
 
-  return user;
+/**
+ * Repli SYNCHRONE et DÉTERMINISTE : appelé uniquement quand aucune source
+ * fiable n'existe (avant login, ou auth+storage indisponibles). Il CONSTRUIT
+ * un utilisateur local plausible et le RETOURNE directement — le hook ne
+ * renvoie donc JAMAIS null (un null crashait toute page lisant `user.role` à
+ * son montage : écran noir).
+ */
+function fallbackCurrentUser(): CurrentUser {
+  let role = "TREASURIER";
+  let orgName = "Lumina";
+  let orgId = "org-1";
+  try {
+    const storedRole = localStorage.getItem("lumina-role");
+    if (storedRole) role = storedRole;
+    const cfg = JSON.parse(
+      localStorage.getItem("lumina-config") ?? "{}",
+    );
+    if (cfg?.churchName) orgName = cfg.churchName;
+  } catch {
+    /* stockage indisponible (SSR / test) — valeurs par défaut */
+  }
+  try {
+    const ctx = getOrganizationId();
+    if (ctx) orgId = ctx;
+  } catch {
+    /* contexte d'organisation indisponible — repli org-1 */
+  }
+  return {
+    id: "local-user",
+    email: "",
+    firstName: "Utilisateur",
+    lastName: "",
+    role,
+    org: {
+      id: orgId,
+      name: orgName,
+      type: "Eglise",
+      accentColor: "#FF6B00",
+    },
+  };
 }
 
 /**

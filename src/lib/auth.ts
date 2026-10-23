@@ -1131,6 +1131,50 @@ class AuthService {
   // Internal state setter
   private setState(updates: Partial<AuthState>): void {
     this.state = { ...this.state, ...updates };
+    if (updates.profile) this.persistCurrentUser(updates.profile);
+  }
+
+  /**
+   * Écrit la clé `lumina-user` attendue par `useCurrentUser()` (dataLayer),
+   * `resolveCurrentUserId()` (organization-context) et `Sessions`.
+   *
+   * Sans cela la clé n'est jamais créée au login : `useCurrentUser()` renvoie
+   * son repli factice (`id: "local-user"`, rôle par défaut) et
+   * `federation.canAccess("local-user", …)` est TOUJOURS faux — les contrôles
+   * de permission réels (FAB « Créer un groupe », export de rapports,
+   * transaction detail…) sont donc masqués à tort pour les administrateurs.
+   *
+   * Best-effort : une indisponibilité de stockage (SSR, test) ne doit jamais
+   * faire échouer la connexion.
+   */
+  private persistCurrentUser(profile: Profile): void {
+    try {
+      let orgName = "";
+      try {
+        const cfg = JSON.parse(localStorage.getItem("lumina-config") ?? "{}");
+        if (cfg?.churchName) orgName = cfg.churchName;
+      } catch {
+        /* config absente ou malformée — nom d'org laissé vide */
+      }
+      localStorage.setItem(
+        "lumina-user",
+        JSON.stringify({
+          id: profile.id,
+          email: profile.email ?? "",
+          firstName: profile.first_name ?? "",
+          lastName: profile.last_name ?? "",
+          role: profile.role,
+          org: {
+            id: profile.org_id,
+            name: orgName,
+            type: "Eglise",
+            accentColor: "#FF6B00",
+          },
+        }),
+      );
+    } catch {
+      /* stockage indisponible — l'app retombe sur le repli de useCurrentUser */
+    }
   }
 
   // Notify listeners
