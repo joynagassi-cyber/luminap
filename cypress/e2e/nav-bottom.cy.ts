@@ -40,11 +40,11 @@
  * le 1er click (nav-tab-dashboard) mène sur /dashboard, les
  * suivants mènent sur /finance, /groups, /events.
  *
- * Les 4 features de la nav par défaut sont les 2 core
- * (dashboard, finance) + 2 features par défaut (groups, events —
- * DEFAULT_NAV_TABS, src/lib/features.ts:236) : c'est ce que la
- * BottomNav affiche pour un user qui n'a pas configuré ses
- * onglets. On teste ces 4 + le bouton « Menu » (qui ouvre le
+ * Les 4 features de la nav par défaut sont celles de
+ * DEFAULT_NAV_TABS (src/lib/features.ts:217) : dashboard, finance,
+ * groups, cotisations — c'est ce que la BottomNav affiche pour un
+ * user qui n'a pas configuré ses onglets. (`events` n'en fait PAS
+ * partie : le spec attendait un onglet inexistant.) On teste ces 4 + le bouton « Menu » (qui ouvre le
  * FeatureSidebar, pas une route).
  *
  * Pas de run de ce spec sur un serveur instable (Render 503) :
@@ -52,6 +52,8 @@
  * l'initialisation (pas un bug du code — c'est l'infra, voir
  * cypress/support/orgCreds.ts et les runs précédents).
  */
+
+import { activePage } from '../support/view';
 
 describe('Lumina — navigation BottomNav (affichage pages + perf + pas d écran noir)', () => {
   before(function () {
@@ -84,7 +86,7 @@ describe('Lumina — navigation BottomNav (affichage pages + perf + pas d écran
     { testid: 'nav-tab-dashboard', label: 'Accueil', path: '/dashboard' },
     { testid: 'nav-tab-finance', label: 'Finances', path: '/finance' },
     { testid: 'nav-tab-groups', label: 'Groupes', path: '/groups' },
-    { testid: 'nav-tab-events', label: 'Événements', path: '/events' },
+    { testid: 'nav-tab-cotisations', label: 'Cultes', path: '/cotisations' },
   ];
 
   /**
@@ -146,15 +148,36 @@ describe('Lumina — navigation BottomNav (affichage pages + perf + pas d écran
     cy.location('pathname', { timeout: 60_000 }).should('eq', '/finance');
     ensureBottomNavVisible();
 
-    NAV_TABS.forEach(({ label, path }) => {
+    NAV_TABS.forEach(({ testid, path }) => {
       // Le sélecteur est l'aria-label (le data-testid n'est PAS
       // encore déployé sur le serveur Render — voir le commentaire
       // de NAV_TABS ci-dessus). Le libellé FR est stable (les
       // 4 features de DEFAULT_NAV_TABS n'ont pas été renommées
       // depuis l'ajout de la BottomNav).
-      cy.get(`button[role="tab"][aria-label="${label}"]`, { timeout: 30_000 })
+      // La pile de pages Ionic garde les pages précédentes MONTÉES (avec
+      // la classe `ion-page-hidden`) : le même data-testid existe donc
+      // dans la page active ET dans des copies cachées. `:visible` ne
+      // suffit pas (les copies cachées gardent `display:flex`), il faut
+      // le filtre officiel `activePage()` qui écarte `ion-page-hidden`
+      // (cypress/support/view.ts:21-41).
+      // Le sélecteur est scopé sur la page Ionic ACTIVE via
+      // `:not(.ion-page-hidden)` — le même filtre que `activePage()`
+      // (cypress/support/view.ts:21-28). Un `activePage().find()` échoue
+      // (« subject is no longer attached ») car le re-render React détache
+      // le cliché ; un `cy.get()` re-interroge le DOM à chaque tentative.
+      cy.get(
+        `div.ion-page:not(.ion-page-hidden) [data-testid="${testid}"]`,
+        { timeout: 30_000 },
+      )
+        .first()
         .should('exist')
-        .click();
+        // `{ force: true }` : Ionic empile les pages et le BottomNav de la
+        // page cachée fait échouer `Element.checkVisibility()` de Cypress
+        // alors que l'élément actif est bien peint (styles vérifiés par
+        // sonde : display:flex, visibility:visible, opacity:1). Les
+        // assertions de NAVIGATION qui suivent restent strictes — un clic
+        // qui ne navigue pas fait échouer le test.
+        .click({ force: true });
       // La page attendue est chargée : l'assertion PRINCIPALE est
       // que le `pathname` a changé (la navigation a abouti). Le
       // `ion-title` de la TopHeader (src/components/TopHeader.tsx:
@@ -178,13 +201,34 @@ describe('Lumina — navigation BottomNav (affichage pages + perf + pas d écran
     cy.location('pathname', { timeout: 60_000 }).should('eq', '/finance');
     ensureBottomNavVisible();
 
-    NAV_TABS.forEach(({ label, path }) => {
+    NAV_TABS.forEach(({ testid, path }) => {
       // Le sélecteur est l'aria-label (le data-testid n'est PAS
       // encore déployé sur le serveur Render — voir le commentaire
       // de NAV_TABS ci-dessus).
-      cy.get(`button[role="tab"][aria-label="${label}"]`, { timeout: 30_000 })
+      // La pile de pages Ionic garde les pages précédentes MONTÉES (avec
+      // la classe `ion-page-hidden`) : le même data-testid existe donc
+      // dans la page active ET dans des copies cachées. `:visible` ne
+      // suffit pas (les copies cachées gardent `display:flex`), il faut
+      // le filtre officiel `activePage()` qui écarte `ion-page-hidden`
+      // (cypress/support/view.ts:21-41).
+      // Le sélecteur est scopé sur la page Ionic ACTIVE via
+      // `:not(.ion-page-hidden)` — le même filtre que `activePage()`
+      // (cypress/support/view.ts:21-28). Un `activePage().find()` échoue
+      // (« subject is no longer attached ») car le re-render React détache
+      // le cliché ; un `cy.get()` re-interroge le DOM à chaque tentative.
+      cy.get(
+        `div.ion-page:not(.ion-page-hidden) [data-testid="${testid}"]`,
+        { timeout: 30_000 },
+      )
+        .first()
         .should('exist')
-        .click();
+        // `{ force: true }` : Ionic empile les pages et le BottomNav de la
+        // page cachée fait échouer `Element.checkVisibility()` de Cypress
+        // alors que l'élément actif est bien peint (styles vérifiés par
+        // sonde : display:flex, visibility:visible, opacity:1). Les
+        // assertions de NAVIGATION qui suivent restent strictes — un clic
+        // qui ne navigue pas fait échouer le test.
+        .click({ force: true });
       cy.location('pathname', { timeout: 45_000 }).should('eq', path);
 
       // « Pas d écran noir » = le DOM a rendu au moins :
@@ -218,13 +262,34 @@ describe('Lumina — navigation BottomNav (affichage pages + perf + pas d écran
     cy.location('pathname', { timeout: 60_000 }).should('eq', '/finance');
     ensureBottomNavVisible();
 
-    NAV_TABS.slice(1).forEach(({ label, path }) => {
+    NAV_TABS.slice(1).forEach(({ testid, path }) => {
       // Mesure le temps de navigation (le `should` retrye jusqu'à
       // 30 s ; le temps réel est capturé par le timestamp diff).
       const start = Date.now();
-      cy.get(`button[role="tab"][aria-label="${label}"]`, { timeout: 30_000 })
+      // La pile de pages Ionic garde les pages précédentes MONTÉES (avec
+      // la classe `ion-page-hidden`) : le même data-testid existe donc
+      // dans la page active ET dans des copies cachées. `:visible` ne
+      // suffit pas (les copies cachées gardent `display:flex`), il faut
+      // le filtre officiel `activePage()` qui écarte `ion-page-hidden`
+      // (cypress/support/view.ts:21-41).
+      // Le sélecteur est scopé sur la page Ionic ACTIVE via
+      // `:not(.ion-page-hidden)` — le même filtre que `activePage()`
+      // (cypress/support/view.ts:21-28). Un `activePage().find()` échoue
+      // (« subject is no longer attached ») car le re-render React détache
+      // le cliché ; un `cy.get()` re-interroge le DOM à chaque tentative.
+      cy.get(
+        `div.ion-page:not(.ion-page-hidden) [data-testid="${testid}"]`,
+        { timeout: 30_000 },
+      )
+        .first()
         .should('exist')
-        .click();
+        // `{ force: true }` : Ionic empile les pages et le BottomNav de la
+        // page cachée fait échouer `Element.checkVisibility()` de Cypress
+        // alors que l'élément actif est bien peint (styles vérifiés par
+        // sonde : display:flex, visibility:visible, opacity:1). Les
+        // assertions de NAVIGATION qui suivent restent strictes — un clic
+        // qui ne navigue pas fait échouer le test.
+        .click({ force: true });
       cy.location('pathname', { timeout: 45_000 })
         .should('eq', path)
         .then(() => {
