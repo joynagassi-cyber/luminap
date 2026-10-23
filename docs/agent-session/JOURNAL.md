@@ -614,3 +614,21 @@ ne peut pas être exécuté. Le correctif d'isolation des streams (R6 :
 
 `npx vitest run` → **63 fichiers / 1065 tests, 100 % verts** (après les
 correctifs ; 1 échec instable avant).
+
+### R46 CONFIRMÉ — CI verte sur la PR #4 (run `39984165908`)
+
+Les 6 jobs sont verts, y compris les 3 qui échouaient sur `main` :
+
+| Job | `main` (avant) | PR #4 (après) |
+|---|---|---|
+| Lint Check | ❌ 9 erreurs | ✅ **success** |
+| Unit Tests (Vitest) | ❌ 14 fichiers | ✅ **success** |
+| Security Audit | ❌ 1 critique | ✅ **success** |
+| TypeScript Check | ✅ | ✅ success |
+| Build Application | ✅ | ✅ success |
+| E2E (Cypress) | ✅ | ✅ success |
+
+Preuve : `GET /actions/runs/39984165908/jobs` → `conclusion=success` pour les
+6 jobs. Le garde-fou automatique du dépôt est **rétabli**.
+
+PR ouverte : **#4** (non fusionnée — décision du propriétaire).
