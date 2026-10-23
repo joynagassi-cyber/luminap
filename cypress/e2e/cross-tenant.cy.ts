@@ -48,6 +48,7 @@ describe('Lumina — Cross-tenant isolation (2 orgs)', () => {
 
     const ts = Date.now().toString().slice(-6);
     const eventName = `CrossTenant Event ${ts}`;
+    let eventId = '';
 
     const SUPABASE_URL =
       (Cypress.expose('SUPABASE_URL') as string) ||
@@ -111,11 +112,19 @@ describe('Lumina — Cross-tenant isolation (2 orgs)', () => {
     }).click();
     // `/event/new` matches /^\/event\// too — require a real detail id so a
     // failed creation cannot pass this assertion.
-    cy.location('pathname', { timeout: 60_000 }).should((path: string) => {
-      expect(path, `event detail path: ${path}`).to.match(
-        /^\/event\/(?!new$)[^/]+$/,
-      );
-    });
+    cy.location('pathname', { timeout: 60_000 })
+      .should((path: string) => {
+        expect(path, `event detail path: ${path}`).to.match(
+          /^\/event\/(?!new$)[^/]+$/,
+        );
+      })
+      .then((path: string) => {
+        // On memorise l'id pour la preuve UI de l'etape 5 : naviguer
+        // DIRECTEMENT vers la page de detail evite de dependre de la
+        // liste `/events`, tronquee et triee par date (R42) — source
+        // d'instabilite, pas de defaut d'isolation.
+        eventId = path.split('/').filter(Boolean).pop() as string;
+      });
     activePageShouldContain('ion-title, h1', eventName);
 
     // ── 2-4. REST + replica proofs ───────────────────────────────────
@@ -198,8 +207,14 @@ describe('Lumina — Cross-tenant isolation (2 orgs)', () => {
     });
 
     // ── 5. UI check: the event is still visible in the same org ──────
-    cy.visit('/events');
-    cy.contains(eventName, { timeout: 20_000 }).should('be.visible');
+    // Navigation directe vers la page de detail (id capture a l'etape 1) :
+    // deterministe, contrairement a la liste `/events` (tronquee, R42).
+    cy.then(() => {
+      expect(eventId, 'id de l evenement capture').to.be.a('string').and.not.be
+        .empty;
+      cy.visit(`/event/${eventId}`);
+    });
+    activePageShouldContain('ion-title, h1', eventName);
 
     console.log('✅ CROSS-TENANT — org-scoped data isolation verified');
   });

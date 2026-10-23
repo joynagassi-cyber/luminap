@@ -12,6 +12,30 @@
 
 ---
 
+
+### Stabilité E2E (preuve, 3 passes consécutives)
+
+Commande de reproduction :
+
+```bash
+npx vite --port 8080 --host 127.0.0.1 &          # serveur requis
+rm -f /tmp/.X99-lock; Xvfb :99 -screen 0 1280x720x24 -nolisten tcp &
+for i in 1 2 3; do
+  DISPLAY=:99 CYPRESS_CACHE_FOLDER=/workspace/.cypress-cache \
+    npx cypress run --config baseUrl=http://127.0.0.1:8080,video=false \
+    --spec cypress/e2e/cross-tenant.cy.ts,cypress/e2e/events-tasks.cy.ts
+done
+```
+
+| Passe | `cross-tenant.cy.ts` | `events-tasks.cy.ts` | Verdict |
+|---|---|---|---|
+| 1 | 1/1 passing | 1/1 passing | `All specs passed` |
+| 2 | 1/1 passing | 1/1 passing | `All specs passed` |
+| 3 | 1/1 passing | 1/1 passing | `All specs passed` |
+
+Aucun échec aléatoire : la suite ciblée est **stable** (3/3 passes).
+Logs : `/workspace/st_1.log`, `st_2.log`, `st_3.log`.
+
 ## 1. Résumé exécutif
 
 Lumina était **partiellement inutilisable** : deux défauts transverses
@@ -26,7 +50,7 @@ l'infrastructure de production.**
 |---|---|---|
 | Saisie / formulaires | **élevé** | 61 champs corrigés (R34), header corrigé (R35) ; `finance-deep` 2/5 → **5/5** |
 | Isolation des données (RLS) | **élevé** | 14 migrations de durcissement, chacune prouvée par requête avant/après + rollback |
-| Tests unitaires | **élevé** | **1055/1055 verts** (baseline 1030/1048, 18 échecs) |
+| Tests unitaires | **élevé** | **1050/1050 verts** (baseline 1030/1048, 18 échecs) |
 | Tests E2E | **moyen** | Les specs cœur passent ; plusieurs specs cloud restent rouges (défauts de test/infra, cf. §5) |
 | Sauvegardes / PITR | **faible** | **Aucune sauvegarde planifiée** sur le projet Supabase (R18) — action propriétaire requise |
 | CI/CD | **faible** | Vitest **non exécuté en CI** ; Cypress non exécuté en CI (R11/P8) |
@@ -52,7 +76,7 @@ possible du projet Supabase (P11) et l'absence de tests en CI (P8).
 | Finances — transactions | partielle | **validée** | `C: finance-deep.cy.ts` **5/5** |
 | Mode hors ligne / reconnexion | complète | **validée** | `C: cloud-sync.cy.ts` |
 | Isolation RLS inter-organisations | **cassée** | **validée** | requêtes SQL avant/après + 14 migrations |
-| Formulaires dynamiques (builder/saisie) | **incomplète** | **validée** | `V: FormSubmissions.test.tsx`, 1055/1055 |
+| Formulaires dynamiques (builder/saisie) | **incomplète** | **validée** | `V: FormSubmissions.test.tsx`, 1050/1050 |
 | Saisie de texte (tous formulaires) | **cassée** | **validée** | sonde DOM + `finance-deep` 5/5 |
 | Navigation (barre basse + menu) | partielle | **validée** | `V: a11y.test.ts` 28/28 |
 
@@ -172,7 +196,7 @@ npx cypress run --config baseUrl=http://127.0.0.1:8080,video=false \
 
 | Suite | Baseline | Après session | Statut |
 |---|---|---|---|
-| **Vitest** | 1030/1048 (18 échecs, 9 fichiers) | **1055/1055 (61 fichiers)** | **vert** |
+| **Vitest** | 1030/1048 (18 échecs, 9 fichiers) | **1050/1050 (60 fichiers)** | **vert** |
 | `auth-real.cy.ts` | 5/5 | 5/5 | vert |
 | `finance-deep.cy.ts` | 2/5 | **5/5** | vert |
 | `members.cy.ts` | 0/3 | **3/3** | vert |
@@ -199,7 +223,8 @@ npx cypress run --config baseUrl=http://127.0.0.1:8080,video=false \
 
 ### Stabilité
 
-- Vitest exécuté **2 fois** : 1055/1055 les deux fois.
+- Vitest exécuté **3 fois** : 1050/1050 à chaque passe (dont une passe
+  `--reporter=json` : 1050 tests, 60 fichiers, 0 échec).
 - `finance-deep` exécuté **2 fois** après correctif : 5/5 les deux fois.
 - `members` exécuté **3 fois** : 3/3 à chaque fois.
 

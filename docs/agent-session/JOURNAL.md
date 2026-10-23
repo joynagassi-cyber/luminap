@@ -507,3 +507,46 @@ X
   4. artefact `DataCloneError` du worker PowerSync sous Electron/Cypress.
 - **Tests unitaires** : **1049/1049 verts** (`npx vitest run`), dont le
   nouveau test z-index (37/37 sur `core-components.test.tsx`).
+
+## Clôture — 2026-10-23T13:20Z — specs E2E au vert (preuve)
+
+- **`events-tasks.cy.ts` : 1/1 passing (35,6 s)** — parcours complet :
+  création d'événement → onglet Tâches → tâche parente → sous-tâche liée →
+  statut « En cours » → « Terminer » → compteur de progression `1/N` →
+  **rechargement F5** → les deux tâches survivent.
+- **`cross-tenant.cy.ts` : 1/1 passing (28 s)** — isolation vérifiée sur
+  trois plans indépendants : REST (`org_id` étranger → 0 ligne),
+  réplica local PowerSync (`SELECT DISTINCT org_id FROM events` = 1 seule
+  org), et UI (événement visible dans sa propre organisation).
+- **Corrections de fiabilité des specs** (aucune ne masque un défaut) :
+  - étape 5 de `cross-tenant` : navigation directe vers `/event/<id>`
+    capturé à l'étape 1, au lieu de la liste `/events` tronquée (R42) ;
+  - `events-tasks` : ciblage du `ion-checkbox` (et non d'un `label`
+    ambigu), ouverture du `ion-select` **hôte**, sélection dans
+    `ion-popover` filtrée `:visible`, assertions scoppées à la page ACTIVE.
+- **Tests unitaires : 1050/1050 (60 fichiers), 0 échec** — confirmé par
+  une passe `--reporter=json`. `tsc --noEmit` : aucune erreur.
+- **Incident d'environnement** : le serveur Vite est tombé en cours de
+  session (cause des `exit 139` de Cypress, log vide). Relancé
+  (`npx vite --port 8080`) ; Cypress doit être lancé **détaché**
+  (`setsid nohup … &`) dans cet environnement, sinon SIGSEGV.
+
+## Clôture — 2026-10-23T14:1xZ — stabilité E2E prouvée (3 passes)
+
+`cross-tenant.cy.ts` + `events-tasks.cy.ts` rejoués **3 fois de suite**,
+en séquentiel, serveur Vite relancé et `Xvfb :99` rétabli :
+
+| Passe | Résultat | Durée |
+|---|---|---|
+| 1 | **2/2 passing** (`All specs passed`) | 01:01 |
+| 2 | **2/2 passing** (`All specs passed`) | 00:55 |
+| 3 | **2/2 passing** (`All specs passed`) | 00:55 |
+
+Aucun échec aléatoire, aucune reprise. La suite ciblée est donc déclarée
+**stable** (critère : 3 passes consécutives sans échec).
+
+Incidents d'environnement rencontrés et résolus (à connaître) :
+- `Xvfb` **avait disparu** de l'image en cours de session → Cypress
+  mourait en `exit 139` avec un log vide. Réinstallé
+  (`sudo apt-get update && sudo apt-get install -y xvfb`).
+- Le serveur Vite s'était arrêté → toutes les specs échouaient. Relancé.
