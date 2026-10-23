@@ -366,3 +366,24 @@ sonde après correctifs → `{ org:"org-e2e", n:5, ready:true, err:"none" }`.
   restaure cookies + localStorage avant chaque test, et rejoue le setup si le
   cache est invalide.
 - **Validation** : `members.cy.ts` → **3/3 passing** (contre 0/3 au départ).
+
+## 2026-10-23 ~02:00–02:15 UTC — Bug R34 (critique) trouvé et corrigé
+- Redémarrage de session : Vite relancé (port 8080), **Xvfb réinstallé**
+  (`sudo apt-get install -y xvfb` — perdu au redémarrage, Cypress 16 en a
+  besoin même en `run` headless).
+- Suite Cypress relancée (run 2) : `auth-real` 5/5 ; `forms-fields` 2/4
+  (mon correctif de sélecteur a fait passer « renders the form-submissions
+  page ») ; `finance-deep` 4/5 ; `events-tasks` 0/1.
+- **Investigation du champ montant** (`/transaction/new`) : `cy.clear()`
+  échoue « element is not visible » alors que le sélecteur matche. Sonde DOM
+  ciblée → l'`<input>` a un rect **0×0**, `checkVisibility()=false`.
+- **Cause racine** : `ion-item` (Ionic 9.0.2, `encapsulation: "shadow"`) ne
+  déclare que les slots `start` / `end` / défaut. Tout enfant portant
+  `slot="input"` n'est assigné à aucun slot → **jamais rendu**.
+- **Ampleur** : 61 occurrences dans 20 fichiers (tous les formulaires).
+- **Preuve avant/après** sur `/event/new` :
+  `checkVisibility false→true`, rect `0×0 → 316×44`, `offsetParent false→true`.
+- **Correctif** : suppression des 61 `slot="input"` + commentaire obsolète
+  (`OrgReportSend.tsx`) ; `tsc --noEmit` OK ; commit `86670ef`.
+- **Docs** : RISQUES.md → R34 (critique, corrigé).
+- Suite complète relancée en tâche de fond (run 3) pendant la rédaction.

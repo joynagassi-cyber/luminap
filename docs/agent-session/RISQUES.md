@@ -394,3 +394,32 @@
   peut présenter le même blocage qu'R32 si aucun blur ne survient.
 - **Gravité** : faible (un `<IonSelect>` émet `ionChange` dès la sélection sur
   la plupart des plateformes). À vérifier par un test dédié si le temps le permet.
+
+### R34 — `slot="input"` : 61 champs de saisie jamais rendus — CORRIGÉ (critique)
+- **Défaut** : `IonInput` / `IonSelect` / `IonTextarea` placés dans un
+  `<IonItem>` portaient `slot="input"`. Or `ion-item` (Ionic 9.0.2,
+  `encapsulation: "shadow"`) n'expose que les slots **`start`**, **`end`** et
+  le slot par défaut. Un enfant assigné à un slot inexistant n'est distribué
+  dans aucun slot → il **n'est jamais rendu**.
+- **Conséquence** : le champ existe dans le DOM (donc `should('exist')` passe)
+  mais il a un rectangle **0×0**, `checkVisibility()` = `false` et
+  `offsetParent` = `null` → **invisible et non interactif**. L'utilisateur ne
+  peut pas saisir : formulaire de transaction, d'événement, de groupe, de
+  budget, de versement, d'invitation, de champ personnalisé, de rapport,
+  fédération, unités d'organisation, etc.
+- **Preuve avant/après** (spec de diagnostic, `/event/new`, input
+  « Nom de l'événement ») :
+  - avant : `checkVisibility=false`, rect `0×0`, `offsetParent=false`
+  - après : `checkVisibility=true`, rect `316×44`, `offsetParent=true`
+- **Corrélation** : `members.cy.ts` (IonInput **nu**, sans IonItem) passait
+  3/3 ; les specs touchant les formulaires `IonItem + slot="input"`
+  échouaient (`finance-deep` : `cy.clear()` « element is not visible »).
+- **Correctif** : suppression des 61 attributs `slot="input"` dans 20 fichiers
+  (commit `86670ef`). Aucun CSS du dépôt ne re-slotait ces éléments.
+- **Vérification** : sonde DOM avant/après ci-dessus ; `tsc --noEmit` OK ;
+  suite Cypress relancée.
+- **Cause racine probable** : une passe de refonte UI (« M24 — grammaire
+  canonique IonItem + IonLabel + IonInput », commit `9c59103`) a ajouté
+  `slot="input"` en croyant à un slot Ionic documenté. Il n'existe pas.
+- **Gravité** : **critique** (blocage total de la saisie sur l'essentiel de
+  l'application).
