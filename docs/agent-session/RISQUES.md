@@ -562,3 +562,24 @@
   corps de page « 149 événements » sans l'élément créé.
 - **Correctif** : `navigate(\`/event/${newEventId}\`)` (`EventNew.tsx`).
 - **Gravité** : **critique** (perte de confiance + doublons de données).
+
+### R43 — `budget_items` doublement encodé → page de détail en erreur — CORRIGÉ (critique)
+- **Défaut** : `events.budget_items` est `jsonb` en base, mais le client la
+  stocke en `text` (schéma PowerSync) et poussait la valeur **déjà
+  sérialisée**. Supabase écrivait alors un jsonb de type *string*
+  (`"\"[]\""`). En relecture, `JSON.parse` renvoyait une chaîne ; le premier
+  `.reduce()` de `EventDetail` levait.
+- **Mesure** : `jsonb_typeof(budget_items)` → **string = 158**, array = 1.
+  Donc ouvrir n'importe quel événement ancien cassait l'écran.
+- **Preuve du crash** : sonde Cypress interceptant `console.error` →
+  `budgetItems.reduce is not a function`, error boundary
+  « Impossible d'afficher cette page ».
+- **Correctif** :
+  - `SupabaseConnector.coerceJsonbColumns()` : désérialise les colonnes
+    jsonb stockées en text avant l'upsert (idempotent, 2 niveaux).
+  - `dataLayer.parseBudgetItems()` : décodage tolérant, jamais d'exception ;
+    utilisé par `EventDetail`, `Events`, `Dashboard`, `GroupCotisation`.
+- **Données historiques** : les 158 lignes restent mal encodées en base ;
+  le parseur tolérant les lit correctement. Un backfill SQL est proposé
+  (PROPOSITIONS.md, P-BACKFILL-BUDGET) plutôt qu'exécuté sans validation.
+- **Gravité** : **critique**.

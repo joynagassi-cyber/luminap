@@ -97,8 +97,12 @@ describe('Lumina — Groups & Events', () => {
     cy.contains('button, ion-button', "Créer l'événement", { timeout: 30_000 }).click();
 
     // addEventPS → PowerSync executeWrite.
+    //
+    // L'app ouvre désormais le DÉTAIL de l'événement créé (et non la liste) :
+    // la liste est triée par date décroissante et tronquée, donc un événement
+    // à date ancienne n'y apparaissait pas → création perçue comme perdue.
     cy.location('pathname', { timeout: 60_000 }).should((path: string) => {
-      expect(path, `pathname after event create: ${path}`).to.match(/^\/events/);
+      expect(path, `pathname after event create: ${path}`).to.match(/^\/event\//);
     });
 
     cy.get('h1, h2, h3, [role="heading"]')
@@ -122,8 +126,13 @@ describe('Lumina — Groups & Events', () => {
     });
     cy.contains('button, ion-button', "Créer l'événement", { timeout: 30_000 }).click();
 
+    // addEventPS → PowerSync executeWrite.
+    //
+    // L'app ouvre désormais le DÉTAIL de l'événement créé (et non la liste) :
+    // la liste est triée par date décroissante et tronquée, donc un événement
+    // à date ancienne n'y apparaissait pas → création perçue comme perdue.
     cy.location('pathname', { timeout: 60_000 }).should((path: string) => {
-      expect(path, `pathname after event create: ${path}`).to.match(/^\/events/);
+      expect(path, `pathname after event create: ${path}`).to.match(/^\/event\//);
     });
 
     cy.get('h1, h2, h3, [role="heading"]')
