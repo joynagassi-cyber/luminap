@@ -550,3 +550,67 @@ Incidents d'environnement rencontrés et résolus (à connaître) :
   mourait en `exit 139` avec un log vide. Réinstallé
   (`sudo apt-get update && sudo apt-get install -y xvfb`).
 - Le serveur Vite s'était arrêté → toutes les specs échouaient. Relancé.
+
+## 2026-10-23 15:25–15:45 UTC — Session 2 (continuation) : CI rouge, Phase 7, instabilité
+
+**Constat de départ** : la PR #3 a été **mergée** dans `main`, mais la CI de
+`main` est **rouge** sur 3 jobs. Une CI toujours rouge ne signale plus rien.
+
+### Cause racine n° 1 — CI rouge en permanence (le défaut le plus grave)
+
+| Job | Échec | Cause racine | Correctif |
+|---|---|---|---|
+| Unit Tests (Vitest) | 14 fichiers « 0 test » | le job `unit` était le **seul** à ne pas créer `.env.local` ; `src/lib/auth.ts` **lève à l'import** si `VITE_SUPABASE_URL`/`ANON_KEY` manquent → les fichiers échouent au chargement. En local (`.env.local` présent) les **mêmes** tests passaient : c'est l'écart CI/local. | ajout de l'étape `Create .env.local` (`074dc2e`) |
+| Lint Check | 9 erreurs | faux positifs `@typescript-eslint/no-unused-expressions` sur la syntaxe Chai des specs Cypress (`expect(x).to.be.a('string').and.not.be.empty`) | exception ESLint ciblée `cypress/**` (`074dc2e`) |
+| Security Audit | 1 vuln. **critique** | `dompurify` 3.4.14 (GHSA-cg2g-xh64-v4q7), transitif via `jspdf` | override `dompurify: ^3.4.17` dans `pnpm-workspace.yaml` + lockfile (`074dc2e`) |
+
+Preuves locales après correctif : `npx eslint .` → **0 erreur** (9 avant) ;
+`pnpm audit --audit-level=critical` → **exit 0, 0 critique** (1 avant) ;
+`npx tsc --noEmit` → 0.
+
+> Note pnpm 11 : `pnpm.overrides` dans `package.json` est **ignoré**
+> (déplacé dans `pnpm-workspace.yaml`). Vérifié par avertissement explicite.
+
+### Cause racine n° 2 — test instable (défaut réel, pas « flaky à ignorer »)
+
+`buildReverseTransaction` relisait l'horloge en interne alors que le test
+comparaît `approvedAt` à un `now` lu avant l'appel → échec intermittent
+(« expected .147Z to be .146Z »). Correctif : horloge injectable (5e
+paramètre `now`), sur le modèle de `buildApproveTransaction` (`6e500da`).
+Preuve : **38/38 passés 3 fois de suite**.
+
+### Phase 7 — exceptions explicitement demandées : TERMINÉES
+
+1. **Onboarding dynamique** (`DashboardOnboarding.tsx`) — carte « Premiers
+   pas » : progression déduite des données réelles, étape suivante mise en
+   avant, auto-masquage, masquage explicite. 10 tests (`844a248`).
+2. **Profil** — le prénom/nom n'était écrit QUE dans `localStorage`
+   (jamais en base) ; l'écriture base passait par `authService.updateProfile`
+   **jamais appelé**. Corrigé + erreur visible. 2 tests ; preuve base réelle
+   `PATCH /profiles` → **HTTP 200** (`844a248`).
+3. **Organisation** — le nom n'était écrit QUE dans `localStorage`. Ajout de
+   `renameOrganizationPS` (RLS `orgs_update_merged`, ADMIN) + refus de rôle
+   explicite + erreur visible. 3 tests (`22b40ea`).
+4. **Tutoriel** mis à jour (guide « premiers pas », persistance en base)
+   (`e053e7e`).
+
+### Sauvegardes (R18) — confirmé sans changement
+
+`GET /v1/projects/hhgovvrnalibhgpakswi/database/backups` →
+`{"walg_enabled":true,"pitr_enabled":false,"backups":[]}`.
+**Aucune sauvegarde exploitable.** Export manuel existant hors dépôt
+(`/workspace/backups/`, 1,1 Mo de données). **Seul le propriétaire peut
+activer les sauvegardes planifiées** (dashboard Supabase, plan payant) :
+hors de portée de l'agent. Consigné R18 / P1.
+
+### PowerSync Cloud — déploiement impossible ici
+
+Aucun `PS_ADMIN_TOKEN` dans l'environnement : `powersync deploy sync-config`
+ne peut pas être exécuté. Le correctif d'isolation des streams (R6 :
+`categories`, `org_units`, `caisses` sans filtre org) reste donc
+**non déployé**. Consigné.
+
+### Vitest — état
+
+`npx vitest run` → **63 fichiers / 1065 tests, 100 % verts** (après les
+correctifs ; 1 échec instable avant).

@@ -145,3 +145,62 @@
 - **Risque** : faible (opération idempotente, réversible par
   `to_jsonb(budget_items::text)`).
 - **Bloquante pour la fiabilité** : non (le code tolère), mais **haute**.
+
+---
+
+## Session 2 (2026-10-23)
+
+### P18 — Persister le logo de l'organisation (et des annexes) en base
+- **Problème** : `organizations` n'a pas de colonne `logo_url` ; le logo
+  reste local au navigateur (R48). Les rapports PDF/Excel et les autres
+  membres ne le voient pas.
+- **Proposition** : migration `ADD COLUMN logo_url TEXT`, exposition dans les
+  3 streams `org_*` de `sync-config.yaml`, déploiement Cloud, puis écriture
+  client (bucket `logos` → URL publique).
+- **Intérêt** : identité visuelle cohérente sur tous les appareils et dans
+  tous les exports — c'est ce que promet déjà l'UI.
+- **Coût** : 1 h 30 (dont 20 min de déploiement PowerSync). **Risque** :
+  moyen (déploiement Cloud requis ; sans lui, la colonne reste invisible).
+- **Priorité** : haute. **Bloquant long terme** : non, mais l'écart
+  promesse/UI est visible par l'utilisateur.
+
+### P19 — Écran de personnalisation des annexes (`org_units`)
+- **Problème** : la Phase 7 demandait la personnalisation « de
+  l'organisation **et de ses annexes** » ; seule l'organisation est couverte
+  (R49).
+- **Proposition** : formulaire nom/logo/adresse par annexe, écriture
+  `org_units`, visible par les membres de l'annexe.
+- **Intérêt** : une fédération gère plusieurs sites ; chacun doit porter son
+  identité dans les rapports.
+- **Coût** : 1 h. **Risque** : faible. **Priorité** : moyenne.
+
+### P20 — Activer les sauvegardes planifiées Supabase + PITR
+- **Problème** : `backups: []`, `pitr_enabled: false` (R18). Aucune
+  sauvegarde exploitable : une corruption est irréversible. C'est le risque
+  n° 1 pour une exploitation de 4 mois sans surveillance.
+- **Proposition** : activer les sauvegardes quotidiennes (voire le PITR) dans
+  le dashboard Supabase ; consigner la procédure de restauration dans
+  RUNBOOK.md (déjà rédigée).
+- **Intérêt** : survie aux erreurs humaines et aux pannes.
+- **Coût** : 15 min (action propriétaire, pas développeur). **Risque** :
+  aucun. **Priorité** : **critique — bloquant pour la fiabilité à 4 mois.**
+- **Note** : l'agent ne peut pas l'activer (plan payant, dashboard).
+
+### P21 — Déployer le correctif d'isolation PowerSync (R6)
+- **Problème** : les streams `categories`, `org_units`, `caisses` étaient en
+  `SELECT *` **sans filtre d'organisation** ; le fichier est corrigé mais
+  **non déployé** (pas de `PS_ADMIN_TOKEN` dans cet environnement).
+- **Proposition** : exécuter `powersync deploy sync-config` avec un jeton
+  administrateur, puis rejouer `cross-tenant.cy.ts`.
+- **Intérêt** : isolation réelle des données entre organisations côté
+  synchronisation (défense en profondeur, en plus de la RLS).
+- **Coût** : 30 min. **Risque** : faible (fichier déjà validé). **Priorité** :
+  **critique — bloquant pour la fiabilité à 4 mois.**
+
+### P22 — Alerter sur l'échec de la CI (notification)
+- **Problème** : la CI est restée rouge sans que personne ne le voie
+  (R45). Le propriétaire n'a pas de canal d'alerte.
+- **Proposition** : notification GitHub (e-mail/Slack) sur échec de workflow
+  `main`, ou badge de statut en tête de README.
+- **Intérêt** : un défaut d'infrastructure devient visible en minutes.
+- **Coût** : 15 min. **Risque** : aucun. **Priorité** : haute.

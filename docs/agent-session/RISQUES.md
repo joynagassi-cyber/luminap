@@ -606,3 +606,62 @@
   « la nav reste SOUS les overlays » (`core-components.test.tsx`).
 - **Gravité** : **haute** (fonctionnalité inutilisable au doigt, invisible
   en test unitaire jsdom qui n'évalue pas le chevauchement visuel).
+
+---
+
+## Session 2 (2026-10-23) — nouveaux constats
+
+### R45 — CI rouge en permanence sur `main` — CORRIGÉ
+- **Gravité** : critique (silence = plus aucun signal).
+- **Défaut** : après la fusion de la PR #3, la CI de `main` échouait sur
+  **3 jobs** : Unit Tests (14 fichiers « 0 test »), Lint Check (9 erreurs),
+  Security Audit (1 vulnérabilité critique). Le propriétaire n'avait donc
+  **aucun** garde-fou automatique.
+- **Cause racine (Vitest)** : le job `unit` était le seul à ne pas créer
+  `.env.local` ; `src/lib/auth.ts` lève à l'import sans
+  `VITE_SUPABASE_URL`/`ANON_KEY` → échec au chargement. Les mêmes tests
+  passaient en local — écart CI/local invisible.
+- **Preuve** : logs GitHub Actions (run `39972947162`) :
+  `Test Files 14 failed | 46 passed (60)`,
+  `✖ 1710 problems (9 errors …)`, `dompurify … critical`.
+  Après correctif local : `npx eslint .` → 0 erreur ;
+  `pnpm audit --audit-level=critical` → exit 0.
+- **Correctif** : `074dc2e`.
+- **Statut** : corrigé localement ; **à confirmer par un run CI** (voir
+  R46).
+
+### R46 — Correctifs CI non encore confirmés par un run GitHub Actions
+- **Gravité** : moyenne.
+- **Défaut** : les 3 correctifs de R45 sont validés **localement** (preuves
+  ci-dessus), mais aucun run CI n'a encore tourné dessus au moment de la
+  rédaction.
+- **Impact si faux** : la CI resterait rouge.
+- **Action** : pousser la branche et vérifier les 4 jobs verts.
+
+### R47 — Test unitaire instable (`e2e-transaction`) — CORRIGÉ
+- **Gravité** : moyenne (bruit qui masque les vrais échecs).
+- **Défaut** : `buildReverseTransaction` relisait l'horloge en interne ;
+  l'assertion `approvedAt === now` comparait deux lectures (±1 ms).
+- **Preuve** : `expected '…06.147Z' to be '…06.146Z'`.
+- **Correctif** : horloge injectable (`6e500da`) ; 38/38 × 3 passes.
+- **Statut** : corrigé, stabilité prouvée.
+
+### R48 — Logo d'organisation non persisté en base — NON CORRIGÉ
+- **Gravité** : faible (le nom l'est désormais).
+- **Défaut** : la table `organizations` n'a **pas** de colonne `logo_url` ;
+  le logo reste en `localStorage` (`lumina-config`). Un autre membre, un
+  autre appareil ou un rapport PDF ne voit donc pas le logo de l'org.
+- **Pourquoi non corrigé** : l'ajouter exige une migration de colonne
+  **plus** un déploiement PowerSync Cloud (`sync-config.yaml`) — impossible
+  dans cet environnement (pas de `PS_ADMIN_TOKEN`) et non testable
+  bout-en-bout ici. Un changement non déployé serait pire que le défaut.
+- **Travail restant** : migration `ALTER TABLE organizations ADD COLUMN
+  logo_url TEXT`, ajout de la colonne aux 3 streams `org_*`, déploiement
+  Cloud, puis écriture client. Estimé : 1 h 30.
+
+### R49 — Phase 7 : personnalisation des annexes (`org_units`) non couverte
+- **Gravité** : faible.
+- **Défaut** : la demande « personnalisation de l'organisation **et de ses
+  annexes** » n'est satisfaite que pour l'organisation. Les annexes
+  (`org_units`) n'ont pas d'écran de personnalisation dédié.
+- **Travail restant** : estimé 1 h (formulaire + écriture `org_units`).
