@@ -36,10 +36,13 @@ describe('Lumina — Groups & Events', () => {
     cy.visit('/groups');
     cy.get('h1, h2, h3').contains('Groupes', { timeout: 60_000 }).should('be.visible');
 
-    // Le bouton « + Créer » ouvre le formulaire de création de groupe.
-    // Le CTA du formulaire s'appelle « Créer le groupe » (le 2e « Créer »
-    // dans le DOM : le 1er est le CTA header déjà cliqué).
-    cy.contains('button, ion-button', 'Créer', { timeout: 30_000 }).first().click();
+    // Le FAB est un <CircleAction> : un <button> natif portant
+    // aria-label="Créer un groupe" et SANS texte « Créer ». On le cible
+    // par son aria-label (le `cy.contains(..., 'Créer')` ne le matchait
+    // pas — défaut de spec, pas d'app).
+    cy.get('button[aria-label="Créer un groupe"]', { timeout: 30_000 })
+      .should('exist')
+      .click({ force: true });
     cy.get('input[placeholder="Nom du groupe"]').type(groupName);
     cy.get('textarea[placeholder="Description (optionnel)"]')
       .type('Groupe de la jeunesse')
@@ -87,7 +90,7 @@ describe('Lumina — Groups & Events', () => {
 
     // Le premier ion-input du form est le nom (aria-label « Nom de l'événement »).
     // Cypress 16 + Ionic : cibler l'input interne via l'aria-label hérité.
-    cy.get('ion-input[aria-label="Nom de l\'événement"]').type(eventName, {
+    cy.get('input[aria-label="Nom de l\'événement"]').type(eventName, {
       force: true,
     });
 
@@ -114,7 +117,7 @@ describe('Lumina — Groups & Events', () => {
     cy.ensureAuth();
     cy.visit('/event/new');
     cy.contains('button, ion-button', 'Événement', { timeout: 60_000 }).should('be.visible');
-    cy.get('ion-input[aria-label="Nom de l\'événement"]').type(eventName, {
+    cy.get('input[aria-label="Nom de l\'événement"]').type(eventName, {
       force: true,
     });
     cy.contains('button, ion-button', "Créer l'événement", { timeout: 30_000 }).click();

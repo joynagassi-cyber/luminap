@@ -402,6 +402,19 @@ function setPowerSyncReady(ready: boolean) {
   _psReady = ready;
 }
 
+// ── Etat "initialisation" des lectures ─────────────────────────────────────
+//
+// `useQuery` peut repondre `[]` AVANT la fin de la 1re synchronisation (base
+// SQLite encore vide) et SANS erreur. Les hooks renvoyaient alors
+// `isLoading: false` : les pages affichaient un etat VIDE TROMPEUR
+// ("0 evenements", "Aucun membre") au lieu de leur squelette de chargement,
+// puis se remplissaient seules au re-rendu suivant (mesure : 30 s).
+//
+// On ne signale "chargement" que si l'on n'a AUCUNE donnee a montrer : un
+// utilisateur hors ligne avec des donnees locales les voit immediatement. Le
+// delai borne garantit qu'on ne masque jamais indefiniment l'etat reel.
+
+
 // ============================================================
 // Read hooks - PowerSync first, PowerSync fallback
 // ============================================================
@@ -419,9 +432,20 @@ function setPowerSyncReady(ready: boolean) {
  */
 function useOrganizationRevision(): number {
   const [rev, setRev] = useState(0);
+  const bump = () => setRev((n) => n + 1);
+
   useEffect(() => {
-    return subscribeOrganization(() => setRev((n) => n + 1));
+    const unsubOrg = subscribeOrganization(bump);
+    // Borne de secours : si l'organisation n'est jamais resolue (auth en
+    // echec, mode degrade), on re-tente une passe apres 10 s plutot que de
+    // rester fige sur `__no_org__`.
+    const timer = setTimeout(bump, 10_000);
+    return () => {
+      unsubOrg();
+      clearTimeout(timer);
+    };
   }, []);
+
   return rev;
 }
 
