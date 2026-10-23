@@ -344,11 +344,10 @@ export default function EventTasks({
                   <IonInput
                     type="text"
                     value={title}
-                    onIonChange={(e: IonChangeCustomEvent<string>) =>
+                    onIonInput={(e: IonChangeCustomEvent<string>) =>
                       setTitle(e.detail.value ?? "")
                     }
                     placeholder="Ex: Préparer la salle"
-                    slot="input"
                   />
                 </IonItem>
 
@@ -360,10 +359,9 @@ export default function EventTasks({
                   <IonInput
                     type="date"
                     value={dueDate}
-                    onIonChange={(e: IonChangeCustomEvent<string>) =>
+                    onIonInput={(e: IonChangeCustomEvent<string>) =>
                       setDueDate(e.detail.value ?? "")
                     }
-                    slot="input"
                   />
                 </IonItem>
 
@@ -378,7 +376,6 @@ export default function EventTasks({
                       setGroupId(e.detail.value ?? "")
                     }
                     interface="popover"
-                    slot="input"
                   >
                     <IonSelectOption value="">Sélectionner un groupe...</IonSelectOption>
                     {groups.map((g) => (
@@ -396,12 +393,11 @@ export default function EventTasks({
                   </IonLabel>
                   <IonTextarea
                     value={description}
-                    onIonChange={(e: IonChangeCustomEvent<string>) =>
+                    onIonInput={(e: IonChangeCustomEvent<string>) =>
                       setDescription(e.detail.value ?? "")
                     }
                     placeholder="Détails, consignes..."
                     rows={3}
-                    slot="input"
                   />
                 </IonItem>
 
@@ -429,7 +425,6 @@ export default function EventTasks({
                         setParentId(e.detail.value ?? "")
                       }
                       interface="popover"
-                      slot="input"
                     >
                       <IonSelectOption value="">Sélectionner une tâche...</IonSelectOption>
                       {parents.map((p) => (

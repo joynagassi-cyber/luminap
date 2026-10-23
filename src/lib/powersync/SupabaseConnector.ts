@@ -21,13 +21,21 @@ import { AppSchema } from "./schema";
  * seuls les colonnes valides du schéma PowerSync sont poussées au
  * Supabase.
  */
-const SCHEMA_COLUMNS: Record<string, Set<string> | undefined> = (() => {
+export function buildSchemaColumns(): Record<string, Set<string>> {
   const out: Record<string, Set<string>> = {};
   for (const table of AppSchema.tables) {
-    out[table.name] = new Set(["id", ...table.columns]);
+    // `table.columns` expose des instances `Column` (getter de
+    // ResolvedTable → `options.columns`), pas des chaînes. Les étaler
+    // directement produisait un Set de `"[object Object]"` : toutes les
+    // colonnes sauf `id` étaient filtrées, chaque op partait en PUT avec
+    // le seul `{id}` et Supabase la rejetait en 42501 (RLS
+    // `is_org_member(uid, NULL)`), y compris après des heures de retry.
+    out[table.name] = new Set(["id", ...table.columns.map((c) => c.name)]);
   }
   return out;
-})();
+}
+
+const SCHEMA_COLUMNS: Record<string, Set<string> | undefined> = buildSchemaColumns();
 
 function filterOpDataToSchema(
   table: string,
@@ -86,35 +94,38 @@ const FATAL_RESPONSE_CODES = [
 //   - custom_field_definitions.field_name:  ""
 //   - custom_field_definitions.field_type:  "text"
 //   - custom_field_definitions.order: 0
-const NOT_NULL_DEFAULTS: Record<string, Record<string, unknown>> = {
+// `org_id` n'a JAMAIS de valeur par défaut : c'est la colonne d'isolation
+// multi-tenant. Un défaut constant (`"org-e2e"`, org de test, présent ici
+// jusqu'au 2026-10-22) réécrivait l'organisation réelle de chaque ligne
+// (faille d'isolation, PATCH compris) ; un défaut `null` échouait de
+// toute façon en 42501. Les insertions légitimes portent toujours
+// `org_id` explicitement (cf. `addMemberPS`, `addEventPS`, …) : s'il
+// manque, l'op doit échouer visiblement plutôt que d'écrire dans la
+// mauvaise organisation.
+export const NOT_NULL_DEFAULTS: Record<string, Record<string, unknown>> = {
   accounts: {
     owner_type: "GROUP",
     owner_id: "",
     name: "Unnamed",
     status: "ACTIVE",
     currency: "XOF",
-    org_id: "org-e2e",
   },
   groups: {
     status: "ACTIVE",
     name: "Unnamed",
-    org_id: "org-e2e",
   },
   org_units: {
     name: "Unnamed",
     type: "GROUP",
-    org_id: "org-e2e",
   },
   caisses: {
     name: "Unnamed",
     type: "GROUP",
-    org_id: "org-e2e",
   },
   audit_entries: {
     action: "CREATE",
     entity_type: "Transaction",
     entity_id: "",
-    org_id: "org-e2e",
   },
   custom_field_definitions: {
     entity_type: "group",
@@ -122,7 +133,6 @@ const NOT_NULL_DEFAULTS: Record<string, Record<string, unknown>> = {
     field_label: "",
     field_type: "text",
     order: 0,
-    org_id: "org-e2e",
   },
 };
 
@@ -215,6 +225,47 @@ function sanitizeDocumentsOpData(
   return coerceUuidKeys(opData, ["uploaded_by"]);
 }
 
+/**
+ * Colonnes `jsonb` côté PostgreSQL dont le client stocke une CHAÎNE JSON
+ * (colonne `text` dans le schéma PowerSync local).
+ *
+ * Supabase sérialise la valeur telle quelle : envoyer la chaîne `"[]"`
+ * écrit un jsonb de type **string** (`"\"[]\""`), pas un tableau. En
+ * relecture, `JSON.parse` renvoie alors une chaîne, et le premier
+ * `.reduce()` / `.map()` de l'UI lève — la page entière tombe (error
+ * boundary). Mesuré : 158 des 159 événements de la base étaient dans cet
+ * état, donc ouvrir n'importe quel événement ancien cassait l'écran.
+ *
+ * Le parse est idempotent : un contenu déjà tableau est laissé intact.
+ */
+const JSONB_TEXT_COLUMNS: Record<string, string[]> = {
+  events: ["budget_items"],
+};
+
+function coerceJsonbColumns(
+  table: string,
+  opData: Record<string, unknown>,
+): Record<string, unknown> {
+  const columns = JSONB_TEXT_COLUMNS[table];
+  if (!columns) return opData;
+  let changed = false;
+  const out: Record<string, unknown> = { ...opData };
+  for (const col of columns) {
+    const value = out[col];
+    if (typeof value !== "string") continue;
+    try {
+      out[col] = JSON.parse(value);
+      changed = true;
+    } catch {
+      // Chaîne non-JSON : on la remplace par un tableau vide plutôt que
+      // de laisser un type invalide bloquer durablement l'upload.
+      out[col] = [];
+      changed = true;
+    }
+  }
+  return changed ? out : opData;
+}
+
 export type SupabaseConnectorListener = {
   initialized: () => void;
   sessionStarted: (session: Session) => void;
@@ -247,13 +298,29 @@ export class SupabaseConnector
 
     this.config = { supabaseUrl, powersyncUrl, supabaseAnonKey };
 
+    // Client B (PowerSync) : session EN MÉMOIRE uniquement.
+    //
+    // `persistSession: false` + `autoRefreshToken: false` sont
+    // indispensables : ce client partageait le storageKey de client A
+    // (`sb-<ref>-auth-token`) tout en ayant son propre timer de refresh.
+    // Supabase fait tourner (rotate) le refresh token à chaque refresh ;
+    // les deux clients rafraîchissaient donc en parallèle avec le même
+    // refresh token. Le second refresh était rejeté (« Invalid Refresh
+    // Token: Already Used ») et Supabase RÉVOQUE toute la famille de
+    // tokens → déconnexion aléatoire de l'utilisateur (et des specs
+    // Cypress en cascade).
+    //
+    // A reste l'unique propriétaire de la session persistée et du timer
+    // (voir src/lib/auth.ts) ; B ne fait que consommer une copie en
+    // mémoire posée par `mirrorAppSessionIntoConnector()` pour que
+    // `fetchCredentials()` renvoie un access_token valide.
     this.client = createClient(
       this.config.supabaseUrl,
       this.config.supabaseAnonKey,
       {
         auth: {
-          persistSession: true,
-          autoRefreshToken: true,
+          persistSession: false,
+          autoRefreshToken: false,
           detectSessionInUrl: false,
         },
       },
@@ -474,7 +541,10 @@ export class SupabaseConnector
                   "documents",
                   sanitizeDocumentsOpData(op.opData as Record<string, unknown>),
                 )
-              : filterOpDataToSchema(op.table, op.opData as Record<string, unknown>);
+              : filterOpDataToSchema(
+                  op.table,
+                  coerceJsonbColumns(op.table, op.opData as Record<string, unknown>),
+                );
 
         // Backfill des valeurs par défaut NOT NULL : si une colonne
         // NOT NULL du schéma Postgres est absente de l'opData (PowerSync

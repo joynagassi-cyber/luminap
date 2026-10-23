@@ -196,7 +196,7 @@ export default function SettingsProfile() {
             <IonInput
               id="profile-firstname"
               value={firstName}
-              onIonChange={(e) => setFirstName((e.detail.value as string) ?? "")}
+              onIonInput={(e) => setFirstName((e.detail.value as string) ?? "")}
               autoComplete="given-name"
             />
           </div>
@@ -207,7 +207,7 @@ export default function SettingsProfile() {
             <IonInput
               id="profile-lastname"
               value={lastName}
-              onIonChange={(e) => setLastName((e.detail.value as string) ?? "")}
+              onIonInput={(e) => setLastName((e.detail.value as string) ?? "")}
               autoComplete="family-name"
             />
           </div>

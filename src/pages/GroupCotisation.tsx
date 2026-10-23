@@ -16,8 +16,7 @@ import {
   useMembers,
   useCotisations,
   useEvents,
-  useCurrentUser,
-} from "@/lib/dataLayer";
+  useCurrentUser,parseBudgetItems } from "@/lib/dataLayer";
 import {
   createCotisationSession,
   collectCotisation,
@@ -75,7 +74,7 @@ export default function GroupCotisation() {
       .filter((e: any) => e.type === "CULTE")
       .filter((e: any) => {
         try {
-          const bi = e.budget_items ? JSON.parse(e.budget_items) : [];
+          const bi = parseBudgetItems(e.budget_items);
           return bi.some((b: any) => b.source === "group" && b.groupId === id);
         } catch {
           return false;
@@ -468,7 +467,7 @@ export default function GroupCotisation() {
                   <IonInput
                     type="text"
                     value={sessionName}
-                    onIonChange={(e: IonChangeCustomEvent<string>) =>
+                    onIonInput={(e: IonChangeCustomEvent<string>) =>
                       setSessionName(e.detail.value ?? "")
                     }
                     placeholder="Ex: Cagnotte janvier"
@@ -482,7 +481,7 @@ export default function GroupCotisation() {
                   <IonInput
                     type="date"
                     value={sessionDate}
-                    onIonChange={(e: IonChangeCustomEvent<string>) =>
+                    onIonInput={(e: IonChangeCustomEvent<string>) =>
                       setSessionDate(e.detail.value ?? "")
                     }
                   />
@@ -495,7 +494,7 @@ export default function GroupCotisation() {
                   <IonInput
                     type="number"
                     value={sessionMontant}
-                    onIonChange={(e: IonChangeCustomEvent<string>) =>
+                    onIonInput={(e: IonChangeCustomEvent<string>) =>
                       setSessionMontant(e.detail.value ?? "")
                     }
                     placeholder="Ex: 2000"

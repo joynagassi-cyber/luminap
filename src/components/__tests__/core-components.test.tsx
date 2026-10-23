@@ -687,6 +687,32 @@ describe("BottomNav", () => {
     expect(homeTab?.getAttribute("aria-selected")).toBe("false");
   });
 
+  it("la nav reste SOUS les overlays (--z-nav, pas --z-overlay)", () => {
+    // Régression : la nav était en --z-overlay (50), donc AU-DESSUS des
+    // bottom-sheets (elles aussi en 50). Elle recouvrait le bouton
+    // « Enregistrer » d'une tâche, incliquable au doigt (prouvé par le
+    // spec E2E events-tasks). La pile documentée dans App.css (M15) place
+    // la nav en --z-nav (40), strictement sous les overlays.
+    setPath("/dashboard");
+    const { container } = render(<BottomNav />);
+    const nav = container.querySelector(
+      'nav[data-testid="bottom-nav"]'
+    ) as HTMLElement;
+    expect(nav).toBeTruthy();
+    expect(nav.style.zIndex).toBe("var(--z-nav)");
+
+    const root = document.documentElement;
+    const navZ = Number(
+      getComputedStyle(root).getPropertyValue("--z-nav").trim() || 0
+    );
+    const overlayZ = Number(
+      getComputedStyle(root).getPropertyValue("--z-overlay").trim() || 0
+    );
+    if (navZ && overlayZ) {
+      expect(navZ).toBeLessThan(overlayZ);
+    }
+  });
+
   it("home tab is active on its route /dashboard (exact match)", () => {
     setPath("/dashboard");
     const { container } = render(<BottomNav />);

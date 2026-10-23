@@ -7,6 +7,7 @@
  */
 import { getOneSignalService, initOneSignal } from "./onesignal";
 import { authService } from "./auth";
+import { getOrganizationId } from "./orgContext";
 import type { Role } from "@/types";
 
 // OneSignal est optionnel (push) : l'absence d'App ID ne doit PAS lever au
@@ -35,13 +36,20 @@ class OneSignalAuthService {
     }
   }
 
-  async login(role: Role, userId: string): Promise<void> {
+  /**
+   * Tag the current player with the organisation it belongs to. The
+   * `onesignal-notify` edge function targets pushes by `org_id`, so a push
+   * intended for one tenant can never reach another.
+   */
+  async login(role: Role, userId: string, orgId?: string): Promise<void> {
     if (!this.isInitialized) await this.initialize();
     try {
       const service = getOneSignalService();
       await service.login(userId);
       await service.setTag("role", role);
       await service.setTag("user_id", userId);
+      const org = orgId ?? getOrganizationId();
+      if (org) await service.setTag("org_id", org);
       this.userId = userId;
     } catch (error) {
       // Tag sync failure is non-fatal
@@ -79,11 +87,20 @@ class OneSignalAuthService {
     data?: Record<string, any>,
   ): Promise<void> {
     // Delegate to the OneSignal edge function for server-side push.
-    // The edge function resolves targeting from OneSignal tags (role, user_id)
-    // already set on the current player during login.
+    // The edge function resolves targeting from OneSignal tags (role, org_id)
+    // set on each player during login, and requires a valid Supabase session.
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
     if (!supabaseUrl || !anonKey) return; // Silent no-op if Supabase env missing
+
+    const session = await authService.getSession();
+    const accessToken = session?.access_token;
+    if (!accessToken) {
+      // Without a session the edge function rejects the call (401); don't even
+      // try, otherwise a stale OneSignal id would be sent as a bogus JWT.
+      console.warn("[authOneSignal] notifyRole ignoré : session absente");
+      return;
+    }
 
     const res = await fetch(
       `${supabaseUrl}/functions/v1/onesignal-notify`,
@@ -92,13 +109,14 @@ class OneSignalAuthService {
         headers: {
           "Content-Type": "application/json",
           apikey: anonKey,
-          Authorization: `Bearer ${this.getUserId() ?? ""}`,
+          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
           actionType: "ROLE_NOTIFY",
           title,
           message,
           targetRole: role,
+          orgId: getOrganizationId(),
           data,
         }),
       },

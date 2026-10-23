@@ -7,7 +7,7 @@ import {
   IonTitle,
   IonToolbar,
 } from "@ionic/react";
-import { useEvents, useTransactions, useMembers } from "@/lib/dataLayer";
+import { useEvents, useTransactions, useMembers, parseBudgetItems } from "@/lib/dataLayer";
 import { Plus, Clock, Gift, ArrowUp, ArrowDown } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
@@ -25,7 +25,7 @@ type ViewMode = "list" | "calendar" | "timeline";
 
 export default function Events() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { data: psEvents, isLoading: psLoading } = useEvents();
   const { data: psTransactions } = useTransactions();
 
@@ -99,7 +99,15 @@ export default function Events() {
                   { id: "timeline", label: "Timeline" },
                 ]}
                 active={viewMode}
-                onChange={(id) => setViewMode(id as ViewMode)}
+                onChange={(id) => {
+                  setViewMode(id as ViewMode);
+                  // Quitter la timeline (entrée via ?date=) doit retirer le
+                  // paramètre : sinon l'URL reste désynchronisée de la vue et
+                  // un retour/refresh ré-ouvre la timeline.
+                  if (id !== "timeline" && searchParams.has("date")) {
+                    setSearchParams({}, { replace: true });
+                  }
+                }}
               />
             </div>
 
@@ -138,9 +146,7 @@ export default function Events() {
                         t.type === "EXPENSE" && t.status === "APPROVED",
                     )
                     .reduce((s: number, t: any) => s + t.amount, 0);
-                  const budgetItems = event.budget_items
-                    ? JSON.parse(event.budget_items)
-                    : [];
+                  const budgetItems = parseBudgetItems(event.budget_items);
                   return (
                     <button
                       key={event.id}

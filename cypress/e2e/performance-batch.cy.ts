@@ -64,7 +64,7 @@ describe('Lumina — Performance batch (offline sync + charge tx + calendar)', (
       // Navigate back to the form for the next tx
       cy.go('back');
       // Re-render the new tx form if we're back at the list
-      cy.contains('button', 'Ajouter une transaction')
+      cy.contains('button, ion-button', 'Ajouter une transaction')
         .click()
         .then(() => {
           cy.url().should('include', '/transaction/new');
@@ -134,7 +134,7 @@ describe('Lumina — Performance batch (offline sync + charge tx + calendar)', (
         .type(`ChargeTx ${now} ${i}`);
       cy.contains('Enregistrer la transaction', { timeout: 10_000 }).click();
       cy.go('back');
-      cy.contains('button', 'Ajouter une transaction')
+      cy.contains('button, ion-button', 'Ajouter une transaction')
         .click()
         .then(() => {
           cy.url().should('include', '/transaction/new');
@@ -176,14 +176,14 @@ describe('Lumina — Performance batch (offline sync + charge tx + calendar)', (
       cy.get('ion-input[aria-label="Nom de l\'événement"], input[aria-label="Nom de l\'événement"]')
         .first()
         .type(`CalEvent ${now} ${i}`, { force: true });
-      cy.contains('button', "Créer l'événement", { timeout: 15_000 }).click();
+      cy.contains('button, ion-button', "Créer l'événement", { timeout: 15_000 }).click();
       cy.url({ timeout: 30_000 }).should('include', '/events');
       cy.go('back');
     }
 
     // Navigate to calendar view and assert it renders
     cy.visit('/events');
-    cy.contains('button', 'Calendrier', { timeout: 30_000 }).click();
+    cy.contains('button, ion-button', 'Calendrier', { timeout: 30_000 }).click();
     // Calendar must be visible — at least the month grid or event dots
     cy.get('.grid, [class*="calendar"], ion-grid, [class*="event-dot"], [class*="EventDot"], .h-full.rounded-full')
       .first()

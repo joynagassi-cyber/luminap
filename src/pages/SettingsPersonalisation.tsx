@@ -75,7 +75,7 @@ export default function SettingsPersonalisation() {
             <IonInput
               id="org-name"
               value={churchName}
-              onIonChange={(e) => {
+              onIonInput={(e) => {
                 const v = (e.detail.value as string) ?? "";
                 setChurchName(v);
                 setDirty(true);

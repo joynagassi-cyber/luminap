@@ -56,8 +56,8 @@ describe('Lumina — Finance deep flow', () => {
     cy.ensureAuth();
     cy.visit('/balance');
     cy.get('h1, h2, h3, header').contains('Bilan financier', { timeout: 90_000 }).should('exist');
-    cy.contains('button', 'Année').should('exist');
-    cy.contains('button', 'Mois').should('exist');
+    cy.contains('button, ion-button', 'Année').should('exist');
+    cy.contains('button, ion-button', 'Mois').should('exist');
   });
 
   it('navigates to the first transaction detail and edit pages', function () {

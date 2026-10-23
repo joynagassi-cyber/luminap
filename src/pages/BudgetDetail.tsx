@@ -194,7 +194,7 @@ export default function BudgetDetail() {
                       <IonInput
                         type="number"
                         value={amount}
-                        onIonChange={(e: IonChangeCustomEvent<string>) => setAmount(e.detail.value ?? "")}
+                        onIonInput={(e: IonChangeCustomEvent<string>) => setAmount(e.detail.value ?? "")}
                         aria-label="Montant prévu (FCFA)"
                         data-testid="line-amount"
                         style={{ backgroundColor: "var(--card)" }}

@@ -198,7 +198,11 @@ export default function BottomNav() {
           bottom: 0,
           left: 0,
           right: 0,
-          zIndex: "var(--z-overlay)",
+          // --z-nav (40) et non --z-overlay (50) : la nav doit rester SOUS
+          // les modales/drawers (pile documentee dans App.css, M15). En 50
+          // elle recouvrait les boutons des bottom-sheets (« Enregistrer »
+          // d'une tache, etc.) et les rendait incliquables au doigt.
+          zIndex: "var(--z-nav)",
           background: "var(--nav-bg)",
           backdropFilter: "blur(10px)",
           borderTop: "1px solid var(--border)",
@@ -208,7 +212,7 @@ export default function BottomNav() {
         <div
           className="flex items-center gap-1.5 max-w-lg mx-auto"
           role="tablist"
-          aria-label="Navigation principale"
+          aria-label="Onglets de navigation"
         >
           {activeNavFeatures.map((f) => {
             const Icon = f.icon;
@@ -251,6 +255,7 @@ export default function BottomNav() {
               onClick={() => setSidebarOpen(true)}
               aria-label="Ouvrir le menu"
               aria-haspopup="dialog"
+              aria-expanded={sidebarOpen}
               style={tabStyle(sidebarOpen)}
               className="w-full flex flex-col items-center justify-center gap-0.5 px-1 py-2 rounded-xl overflow-hidden transition-[transform,background-color,color,opacity]"
             >

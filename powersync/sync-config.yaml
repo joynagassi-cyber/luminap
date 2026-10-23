@@ -33,18 +33,29 @@ config:
   edition: 3
 
 streams:
-  # ── Données globales / partagées ────────────────────────────────────────
+  # ── Données d'organisation ─────────────────────────────────────────────
+  # categories / org_units / caisses portent toutes un `org_id` : elles
+  # doivent être filtrées par organisation, comme les autres streams.
+  # (Corrigé le 2026-10-22 : ces 3 streams étaient `SELECT *` sans filtre,
+  # donc chaque utilisateur synchronisait les catégories, unités internes et
+  # caisses de TOUTES les organisations.)
   categories:
     auto_subscribe: true
-    query: SELECT * FROM categories
+    query: |
+      SELECT * FROM categories
+      WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
 
   org_units:
     auto_subscribe: true
-    query: SELECT * FROM org_units
+    query: |
+      SELECT * FROM org_units
+      WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
 
   caisses:
     auto_subscribe: true
-    query: SELECT * FROM caisses
+    query: |
+      SELECT * FROM caisses
+      WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
 
   # ── Socle multi-org (Vague 1) ──────────────────────────────────────────
   # Les memberships multi-org sont créés côté client (pas auto_subscribe) :

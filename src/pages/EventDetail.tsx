@@ -1,6 +1,17 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useEvents, useTransactions, useCaisses, deleteEventPS, updateEventPS, addTransactionPS, useCurrentUser, useGroups } from "@/lib/dataLayer";
+import {
+  useEvents,
+  useTransactions,
+  useCaisses,
+  deleteEventPS,
+  updateEventPS,
+  addTransactionPS,
+  useCurrentUser,
+  useGroups,
+  parseBudgetItems,
+  isPowerSyncReadyNow,
+} from "@/lib/dataLayer";
 import { formatCurrencyCompact, formatDate } from "@/lib/utils";
 import {
   Calendar,
@@ -84,10 +95,51 @@ export default function EventDetail() {
 
   const event = events.find((e: any) => e.id === id);
 
-  if (!event) return <EventDetailSkeleton />;
+  // « Introuvable » n'est affiche QUE lorsque les donnees sont reellement
+  // disponibles : sinon on montre le squelette. Sans ce garde-fou, un
+  // evenement absent (ou pas encore synchronise) laissait la page sur un
+  // squelette INFINI — aucun titre, aucune explication, aucune action
+  // possible pour l'utilisateur.
+  if (!event) {
+    if (!isPowerSyncReadyNow()) return <EventDetailSkeleton />;
+    return (
+      <IonPage>
+        <IonHeader>
+          <IonToolbar>
+            <IonButtons slot="start">
+              <IonBackButton defaultHref="/events" />
+            </IonButtons>
+            <IonTitle>Événement introuvable</IonTitle>
+          </IonToolbar>
+        </IonHeader>
+        <IonContent className="ion-padding">
+          <div className="px-5 pb-safe pt-safe text-center">
+            <p className="text-text-primary font-semibold mb-2">
+              Cet événement est introuvable.
+            </p>
+            <p className="text-text-tertiary text-sm mb-6">
+              Il a peut-être été supprimé, ou il appartient à une autre
+              organisation.
+            </p>
+            <button
+              type="button"
+              onClick={() => navigate("/events")}
+              className="px-4 py-2.5 rounded-xl text-sm font-medium"
+              style={{
+                backgroundColor: "var(--accent-primary)",
+                color: "var(--accent-contrast, #fff)",
+              }}
+            >
+              Retour aux événements
+            </button>
+          </div>
+        </IonContent>
+      </IonPage>
+    );
+  }
 
   const config = STATUS_CONFIG[event.status];
-  const budgetItems = (event as any).budget_items ? JSON.parse((event as any).budget_items) : [];
+  const budgetItems = parseBudgetItems((event as any).budget_items);
   const budgetSpent = budgetItems.reduce(
     (s: number, i: any) => s + (i.spent || 0),
     0,
@@ -887,7 +939,6 @@ export default function EventDetail() {
                       value={selectedBudgetItemId || ""}
                       onIonChange={(e: IonChangeCustomEvent<string>) => setSelectedBudgetItemId(e.detail.value)}
                       interface="popover"
-                      slot="input"
                     >
                       <IonSelectOption value="">Sélectionner un poste...</IonSelectOption>
                       {budgetItems.map((item: any) => (
@@ -908,9 +959,8 @@ export default function EventDetail() {
                       type="number"
                       inputMode="numeric"
                       value={expenseAmount}
-                      onIonChange={(e: IonChangeCustomEvent<string>) => setExpenseAmount(e.detail.value ?? "")}
+                      onIonInput={(e: IonChangeCustomEvent<string>) => setExpenseAmount(e.detail.value ?? "")}
                       placeholder="0"
-                      slot="input"
                     />
                     {selectedBudgetItemId &&
                       (() => {
@@ -937,9 +987,8 @@ export default function EventDetail() {
                     <IonInput
                       type="text"
                       value={expenseDescription}
-                      onIonChange={(e: IonChangeCustomEvent<string>) => setExpenseDescription(e.detail.value ?? "")}
+                      onIonInput={(e: IonChangeCustomEvent<string>) => setExpenseDescription(e.detail.value ?? "")}
                       placeholder="Ex: Achat de chaises"
-                      slot="input"
                     />
                   </IonItem>
                 </div>

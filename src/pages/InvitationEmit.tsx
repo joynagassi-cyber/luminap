@@ -42,8 +42,6 @@ import { useMembers, useGroups } from "@/lib/dataLayer";
 import { useCurrentUser } from "@/lib/dataLayer";
 import {
   invitation,
-  generateCode,
-  buildQRPayload,
   exportInvitationToFile,
 } from "@/capabilities/invitation";
 import { getOrganizationId } from "@/lib/orgContext";
@@ -110,7 +108,10 @@ export default function InvitationEmit() {
         Date.now() + expiresDays * 24 * 60 * 60 * 1000,
       ).toISOString();
 
-      const id = await invitation.createInvitation({
+      // Le code affiché DOIT être celui persisté : on le récupère de
+      // `createInvitation` au lieu de régénérer un code aléatoire (qui ne
+      // correspondait à aucune invitation en base).
+      const { id, code } = await invitation.createInvitation({
         orgId: targetOrgId,
         targetRole,
         targetScopeType: scopeType,
@@ -123,24 +124,6 @@ export default function InvitationEmit() {
         targetScopeResource: targetScopeResource || undefined,
         targetScopeId: targetScopeId || undefined,
       });
-
-      const code = generateCode();
-      const payload = buildQRPayload(
-        {
-          orgId: targetOrgId,
-          targetRole,
-          targetScopeType: scopeType,
-          targetGroupId: scopeType === "GROUP" ? targetGroupId : undefined,
-          targetMemberId: targetMemberId || undefined,
-          issuedBy: user.id,
-          expiresAt: expiresAtMs,
-          maxUses: maxUses,
-          // B.3 — transport du scope granulaire dans le QR (payload v2)
-          targetScopeResource: targetScopeResource || undefined,
-          targetScopeId: targetScopeId || undefined,
-        },
-        code,
-      );
 
       setCreatedAt(new Date().toISOString());
       setExpiresAt(expiresAtMs);
@@ -244,7 +227,7 @@ export default function InvitationEmit() {
               <div className="space-y-6">
                 {/* Role selection */}
                 <IonItem lines="none" className="bg-card rounded-xl">
-                  <IonLabel className="text-sm text-text-secondary mb-1" slot="label">Rôle cible</IonLabel>
+                  <IonLabel className="text-sm text-text-secondary mb-1">Rôle cible</IonLabel>
                   <IonSelect
                     value={targetRole}
                     onIonChange={(e) => setTargetRole(e.detail.value!)}
@@ -329,7 +312,7 @@ export default function InvitationEmit() {
                   <IonInput
                     type="number"
                     value={String(expiresDays)}
-                    onIonChange={(e) => setExpiresDays(Number(e.detail.value!))}
+                    onIonInput={(e) => setExpiresDays(Number(e.detail.value!))}
                     slot="end"
                     className="w-16 text-center"
                   />
@@ -341,7 +324,7 @@ export default function InvitationEmit() {
                   <IonInput
                     type="number"
                     value={String(maxUses)}
-                    onIonChange={(e) => setMaxUses(Number(e.detail.value!))}
+                    onIonInput={(e) => setMaxUses(Number(e.detail.value!))}
                     slot="end"
                     className="w-16 text-center"
                   />

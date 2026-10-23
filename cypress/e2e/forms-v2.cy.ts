@@ -70,10 +70,10 @@ describe('Lumina — Forms v2 (currency, table view, DRAFT edit)', () => {
         cy.get('button', { timeout: 30_000 }).then(($btns) => {
           const texts = $btns.map((_, el) => (el.textContent || '').trim()).get();
           if (texts.includes('Brouillon')) {
-            cy.contains('button', 'Brouillon').click({ force: true });
+            cy.contains('button, ion-button', 'Brouillon').click({ force: true });
             // Attendre le re-render : le bouton « Publier » re-apparaît
             // quand le status repasse DRAFT.
-            cy.contains('button', 'Publier', { timeout: 60_000 }).should('exist');
+            cy.contains('button, ion-button', 'Publier', { timeout: 60_000 }).should('exist');
           }
         });
         return;
@@ -84,17 +84,17 @@ describe('Lumina — Forms v2 (currency, table view, DRAFT edit)', () => {
       // au 6e champ currency (FIELD_TYPES[5]). Le label par défaut est
       // « Nouveau champ currency » (FormBuilder.tsx:46). On s'arrête
       // au 6e champ — un 7e champ repartirait au début de la rotation.
-      cy.contains('button', 'Créer').first().click({ force: true });
+      cy.contains('button, ion-button', 'Créer').first().click({ force: true });
       // Les placeholders réels du modal (FormBuilder.tsx:390/401) :
       // « Nom du formulaire * » et « Clé (ex: demande_cotisation) * ».
       cy.get('input[placeholder*="Nom du formulaire"]').type(FORM_NAME);
       cy.get('input[placeholder*="Clé"]').type(FORM_KEY);
       // 6× « Ajouter » : le 6e crée le champ currency (FIELD_TYPES[5]).
       for (let i = 0; i < 6; i += 1) {
-        cy.contains('button', 'Ajouter').click({ force: true });
+        cy.contains('button, ion-button', 'Ajouter').click({ force: true });
       }
       // Le bouton « Créer le formulaire » est un IonButton (Ionic 9 =
-      // Shadow DOM) : cy.contains('button', ...) ne le traverse pas.
+      // Shadow DOM) : cy.contains('button, ion-button', ...) ne le traverse pas.
       // On cible ion-button via le light DOM, ou son <button> interne
       // accessible après le shadowRoot pierce.
       cy.get('ion-button', { timeout: 30_000 })
@@ -137,7 +137,7 @@ describe('Lumina — Forms v2 (currency, table view, DRAFT edit)', () => {
         throw new Error(`Formulaire « ${FORM_NAME} » absent de /forms après le setup`);
       }
       // Un bouton « Remplir » par carte — on clique le IDX+1e.
-      cy.contains('button', 'Remplir').then(($btns) => {
+      cy.contains('button, ion-button', 'Remplir').then(($btns) => {
         ($btns as any).eq(idx).click({ force: true });
       });
     });
@@ -162,7 +162,7 @@ describe('Lumina — Forms v2 (currency, table view, DRAFT edit)', () => {
     // normalisé en 1500 (séparateur de milliers FR) par
     // parseCurrencyAmount avant la create du formSubmissionRepo
     // (vérification via la vue tableau au test T5 ci-dessous).
-    cy.contains('button', 'Soumettre', { timeout: 90_000 }).first().click();
+    cy.contains('button, ion-button', 'Soumettre', { timeout: 90_000 }).first().click();
     cy.contains('Soumis avec succès', { timeout: 90_000 }).should('exist');
   });
 
@@ -170,7 +170,7 @@ describe('Lumina — Forms v2 (currency, table view, DRAFT edit)', () => {
     this.timeout(180_000);
     openFill();
     cy.get('input[inputmode="decimal"]').type('abc');
-    cy.contains('button', 'Soumettre').first().click();
+    cy.contains('button, ion-button', 'Soumettre').first().click();
     // La validation est rejetée (bannière d'erreur de FormFill —
     // le bloc `errors.length > 0` style data-expense) ET la
     // confirmation « Soumis avec succès ! » n'apparaît PAS.
@@ -196,7 +196,7 @@ describe('Lumina — Forms v2 (currency, table view, DRAFT edit)', () => {
     // bouton de l'action bar (ordre DOM = ordre des cartes).
     cy.get('p', { timeout: 90_000 }).then(($ps) => {
       const idx = findFormIndex($ps);
-      cy.contains('button', 'Soumissions').then(($btns) => {
+      cy.contains('button, ion-button', 'Soumissions').then(($btns) => {
         ($btns as any).eq(idx).click({ force: true });
       });
     });
@@ -258,7 +258,7 @@ describe('Lumina — Forms v2 (currency, table view, DRAFT edit)', () => {
     // le submit T7.1, au moins une soumission est filtrée, ils
     // sont actifs).
     // Les boutons d'export sont des IonButton (Ionic 9 = Shadow DOM) :
-    // cy.contains('button', ...) ne les capte pas. On cible ion-button
+    // cy.contains('button, ion-button', ...) ne les capte pas. On cible ion-button
     // et on vérifie l'attribut disabled sur l'ion-button lui-même.
     cy.get('ion-button', { timeout: 30_000 }).then(($ion) => {
       const texts = $ion
@@ -286,13 +286,13 @@ describe('Lumina — Forms v2 (currency, table view, DRAFT edit)', () => {
     cy.visit('/forms');
     cy.get('p', { timeout: 90_000 }).then(($ps) => {
       const idx = findFormIndex($ps);
-      cy.contains('button', 'Soumissions').then(($btns) => {
+      cy.contains('button, ion-button', 'Soumissions').then(($btns) => {
         ($btns as any).eq(idx).click({ force: true });
       });
     });
     cy.location('pathname').should('match', /^\/forms\/[^/]+\/submissions$/);
     // Le bouton « Exporter CSV » est un IonButton (Ionic 9 = Shadow
-    // DOM) : cy.contains('button', ...) ne le capte pas. On cible
+    // DOM) : cy.contains('button, ion-button', ...) ne le capte pas. On cible
     // ion-button et on vérifie l absence de l attribut disabled.
     cy.get('table[role="table"] td', { timeout: 90_000 }).should('exist');
     cy.get('ion-button', { timeout: 30_000 }).then(($ion) => {
@@ -372,7 +372,7 @@ describe('Lumina — Forms v2 (currency, table view, DRAFT edit)', () => {
     cy.visit('/forms');
     cy.get('p', { timeout: 90_000 }).then(($ps) => {
       const idx = findFormIndex($ps);
-      cy.contains('button', 'Modifier').then(($btns) => {
+      cy.contains('button, ion-button', 'Modifier').then(($btns) => {
         ($btns as any).eq(idx).click({ force: true });
       });
     });
@@ -383,7 +383,7 @@ describe('Lumina — Forms v2 (currency, table view, DRAFT edit)', () => {
     // modal (le modal de création est réutilisé — le titre
     // « Modifier le formulaire » + bouton « Enregistrer »).
     cy.contains('h2', 'Modifier le formulaire', { timeout: 90_000 }).should('exist');
-    cy.contains('button', 'Enregistrer').should('exist');
+    cy.contains('button, ion-button', 'Enregistrer').should('exist');
     // Le champ currency du form est pré-rempli (copy des fields
     // du state partagé — pas de mutation, openEditModal). Le
     // champ currency est le 6e <select> du modal (rotation
@@ -392,7 +392,7 @@ describe('Lumina — Forms v2 (currency, table view, DRAFT edit)', () => {
     // Fermeture (on ne sauvegarde PAS : version++ ne doit PAS se
     // produire — c'est le 2e test T6 qui le vérifie après le
     // passage en PUBLISHED).
-    cy.contains('button', 'Annuler').click();
+    cy.contains('button, ion-button', 'Annuler').click();
   });
 
   it('T6 — a PUBLISHED form has NO « Modifier » button (edits forbidden)', function () {
@@ -416,11 +416,11 @@ describe('Lumina — Forms v2 (currency, table view, DRAFT edit)', () => {
         if (isPublished) {
           // Déjà PUBLISHED : on remet en DRAFT pour que le test T6.1
           // puisse tourner idempotement au run suivant.
-          cy.contains('button', 'Brouillon', { timeout: 30_000 }).click({ force: true });
-          cy.contains('button', 'Publier', { timeout: 60_000 }).should('exist');
+          cy.contains('button, ion-button', 'Brouillon', { timeout: 30_000 }).click({ force: true });
+          cy.contains('button, ion-button', 'Publier', { timeout: 60_000 }).should('exist');
         }
         // Si DRAFT : continuer avec « Publier ».
-        cy.contains('button', 'Publier', { timeout: 60_000 }).then(($pubBtns) => {
+        cy.contains('button, ion-button', 'Publier', { timeout: 60_000 }).then(($pubBtns) => {
           ($pubBtns as any).eq(idx).click({ force: true });
         });
       });
@@ -440,7 +440,7 @@ describe('Lumina — Forms v2 (currency, table view, DRAFT edit)', () => {
       ).not.to.include('Modifier');
     });
     // Le bouton de bascule repasse « Brouillon » (revert possible).
-    cy.contains('button', 'Brouillon').should('exist');
+    cy.contains('button, ion-button', 'Brouillon').should('exist');
   });
 
   // Idempotence inter-runs : T6.2 laisse le formulaire en PUBLISHED.
@@ -455,8 +455,8 @@ describe('Lumina — Forms v2 (currency, table view, DRAFT edit)', () => {
       const texts = $btns.map((_, el) => (el.textContent || '').trim()).get();
       if (texts.includes('Brouillon')) {
         // Le formulaire est PUBLISHED : on remet en DRAFT.
-        cy.contains('button', 'Brouillon').click({ force: true });
-        cy.contains('button', 'Publier', { timeout: 60_000 }).should('exist');
+        cy.contains('button, ion-button', 'Brouillon').click({ force: true });
+        cy.contains('button, ion-button', 'Publier', { timeout: 60_000 }).should('exist');
       }
     });
   });

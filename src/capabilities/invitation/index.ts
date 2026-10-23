@@ -193,17 +193,24 @@ export function parseQRPayload(raw: string): ClaimPayload | null {
 export class InvitationService {
   /**
    * Create a new invitation and persist it via PowerSync.
-   * Returns the invitation id.
+   * Returns the generated `id` AND the `code` that was actually persisted.
+   *
+   * Le code est renvoyé (et non régénéré par l'appelant) : le code affiché à
+   * l'invité (QR, « copier », export fichier) doit être exactement celui écrit
+   * en base, sinon aucune invitation n'est réclamable.
    */
-  async createInvitation(input: CreateInvitationInput): Promise<string> {
+  async createInvitation(
+    input: CreateInvitationInput,
+  ): Promise<{ id: string; code: string }> {
     const id = crypto.randomUUID();
     const code = generateCode();
     const expiresAt = input.expiresAt ?? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
     const maxUses = input.maxUses ?? 1;
     const now = new Date().toISOString();
 
-    await createInvitationPS(
+    const persistedId = await createInvitationPS(
       {
+        id,
         org_id: input.orgId,
         code,
         target_role: input.targetRole,
@@ -235,7 +242,9 @@ export class InvitationService {
       comment: `Invitation created: ${code}`,
     });
 
-    return id;
+    // `createInvitationPS` réutilise l'id transmis : l'id renvoyé ici est donc
+    // exactement celui persisté (export fichier + claim s'appuient dessus).
+    return { id: persistedId, code };
   }
 
   /**

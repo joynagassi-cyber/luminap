@@ -126,10 +126,19 @@ describe("groupByDay", () => {
 
 describe("splitEventsByToday", () => {
   it("sépare passé / aujourd'hui / à venir par rapport au jour courant", () => {
+    // Dates relatives : une date « aujourd'hui » figée dans le test devient
+    // obsolète dès le lendemain et fait échouer le test sans que le code
+    // ait changé.
+    const today = new Date();
+    const iso = (d: Date) => d.toISOString().slice(0, 10);
+    const past = new Date(today);
+    past.setDate(past.getDate() - 1);
+    const future = new Date(today);
+    future.setDate(future.getDate() + 1);
     const out = splitEventsByToday([
-      { id: "past", start_date: "2020-01-01" },
-      { id: "future", start_date: "2030-01-01" },
-      { id: "today", start_date: "2026-10-03" },
+      { id: "past", start_date: iso(past) },
+      { id: "future", start_date: iso(future) },
+      { id: "today", start_date: iso(today) },
     ]);
     expect(out.past.map((e) => e.id)).toEqual(["past"]);
     expect(out.today.map((e) => e.id)).toEqual(["today"]);

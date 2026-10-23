@@ -28,13 +28,14 @@ describe('Lumina — Members', () => {
     cy.get('h1, h2, h3').contains('Membres').should('be.visible');
 
     // Open the create form
-    cy.contains('button', 'Ajouter').first().click({ force: true });
+    cy.contains('button, ion-button', 'Ajouter').first().click({ force: true });
     cy.get('input[aria-label="Prénom"]').type(firstName);
     cy.get('input[aria-label="Nom"]').type(lastName);
     cy.get('input[aria-label="Téléphone"]').type(phone);
 
-    // Submit
-    cy.contains('button', 'Ajouter').last().click();
+    // Submit — cible le bouton du formulaire (data-testid), pas celui de
+    // l'EmptyState (« Ajouter »), qui apparaît aussi quand la liste est vide.
+    cy.get('[data-testid="member-submit"]').should('be.enabled').click();
 
     // Member appears in the active list
     cy.contains(firstName + ' ' + lastName, { timeout: 20_000 }).should('be.visible');

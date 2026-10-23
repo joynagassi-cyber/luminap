@@ -3,19 +3,38 @@
  *
  * B2 — Feature « Multi-organization isolation ».
  *
- * Two approaches combined:
- *   1. UI-based: create an event in the current org (orgA), then navigate
- *      to a second org context and assert the event is not visible.
- *   2. REST-based: directly query Supabase with a fake org_id filter to
- *      assert zero cross-org leakage.
+ * Three complementary proofs:
+ *   1. UI: create an event in the current org and assert its detail is
+ *      displayed (scoped to the ACTIVE Ionic page).
+ *   2. REST: the event is visible with its own org_id, and a foreign org_id
+ *      returns zero rows — the real leak test.
+ *   3. Replica: the local PowerSync database only contains the current org,
+ *      so a leaking sync stream would be caught even if the API were
+ *      correctly scoped.
  *
- * Since Cypress runs in a single browser session, full multi-account
- * switching is impractical mid-spec. Instead we:
- *   - Create an event tied to the current org
- *   - Query the server REST with that org's id → event must appear
- *   - Query with a fake org's id → event must NOT appear
- *   This proves RLS correctly scopes by org_id.
+ * Session token: querying with the anon key alone returns zero rows for
+ * EVERY org (RLS), which used to make the leak assertion « pass » while the
+ * spec's own visibility check silently failed. Requests below carry the
+ * logged-in user's access token.
  */
+
+import { activePageShouldContain } from '../support/view';
+
+/**
+ * Artefact d'environnement : sous Cypress/Electron, le worker PowerSync
+ * echoue a cloner son `schema` lors d'un `postMessage` et emet une
+ * `DataCloneError` non capturee. Cela ne vient PAS de Lumina (le meme
+ * code fonctionne dans un navigateur reel) et Cypress, par defaut,
+ * echoue le test courant sur toute exception applicative non capturee.
+ *
+ * On ignore UNIQUEMENT ce message precis ; toutes les assertions du spec
+ * restent actives. Tout autre `uncaught:exception` continue de faire
+ * echouer le test.
+ */
+Cypress.on('uncaught:exception', (err) => {
+  if (/could not be cloned/i.test(err.message)) return false;
+  return true;
+});
 
 describe('Lumina — Cross-tenant isolation (2 orgs)', () => {
   before(function () {
@@ -24,104 +43,178 @@ describe('Lumina — Cross-tenant isolation (2 orgs)', () => {
     cy.ensureAuth();
   });
 
-  it('orgA event is invisible from a foreign org_id via REST and UI', function () {
+  it('orgA event is invisible from a foreign org_id via REST, replica and UI', function () {
     this.timeout(240_000);
 
     const ts = Date.now().toString().slice(-6);
     const eventName = `CrossTenant Event ${ts}`;
+    let eventId = '';
 
     const SUPABASE_URL =
       (Cypress.expose('SUPABASE_URL') as string) ||
       'https://hhgovvrnalibhgpakswi.supabase.co';
     const anonKey = Cypress.expose('SUPABASE_ANON_KEY') as string;
 
-    // ── 1. Create an event in the current org ────────────────────────
+    // ── 0. Session token + current org, read from the app ────────────
+    // The org comes from the local PowerSync replica: a REST call with the
+    // anon key on `profiles` answers 401, so it cannot be the source.
+    let accessToken = '';
+    let currentOrgId = '';
+
     cy.ensureAuth();
+
     cy.visit('/event/new');
-    cy.get('ion-input[aria-label="Nom de l\'événement"], input[aria-label="Nom de l\'événement"]')
-      .first()
-      .type(eventName, { force: true });
-    cy.contains('button', "Créer l'événement", { timeout: 30_000 }).click();
-    cy.location('pathname', { timeout: 60_000 }).should((path: string) => {
-      expect(path).to.match(/^\/events\//);
-    });
-    cy.contains(eventName, { timeout: 20_000 }).should('be.visible');
+    // Attendre l'hydratation du formulaire avant de le remplir : le champ
+    // existe dans le DOM avant que React ne monte, et un remplissage trop
+    // tot est ecrase par le premier render (valeur visible puis perdue,
+    // d'ou « Le nom est requis »).
+    cy.contains('button, ion-button', "Créer l'événement", {
+      timeout: 60_000,
+    }).should('be.visible');
 
-    // ── 2. Verify event appears when filtering by current org ────────
-    // Get current user's org_id from profiles
-    cy.request({
-      method: 'GET',
-      url: `${SUPABASE_URL}/rest/v1/profiles?select=id,org_id&limit=1`,
-      headers: {
-        apikey: anonKey,
-        Authorization: `Bearer ${anonKey}`,
-      },
-    }).then((profilesRes: any) => {
-      expect(profilesRes.status).to.eq(200);
-      const profiles: any[] = profilesRes.body ?? [];
-      const currentOrgId = profiles[0]?.org_id;
+    // Session reelle lue via le CLIENT SUPABASE DE L'APPLICATION
+    // (`window.__psSupabaseClient`, publie par le connecteur PowerSync en
+    // dev, donc seulement APRES le montage de l'app). C'est la source la
+    // plus fiable : elle reflete exactement la session utilisee par l'app,
+    // sans dependre du format de stockage.
+    cy.window()
+      .its('__psSupabaseClient')
+      .should('exist')
+      .then(async (client: any) => {
+        const { data } = await client.auth.getSession();
+        accessToken = data?.session?.access_token ?? '';
+        expect(accessToken, 'jeton de session Supabase').to.be.a('string').and
+          .not.be.empty;
 
-      // Pré-checker la nullité avant les assertions (evite le lint
-      // no-unused-expressions sur `expect(undefined).to.exist`).
-      if (!currentOrgId) {
-        throw new Error('current user must have an org_id');
-      }
-      cy.log(`Current org_id: ${currentOrgId}`);
+        // Org courante : le profil de l'utilisateur connecte. Lue avec le
+        // jeton de session (un appel anon sur `profiles` repond 401).
+        const res = await fetch(
+          `${SUPABASE_URL}/rest/v1/profiles?select=org_id&limit=1`,
+          {
+            headers: {
+              apikey: anonKey,
+              Authorization: `Bearer ${accessToken}`,
+            },
+          },
+        );
+        expect(res.status, 'lecture du profil').to.eq(200);
+        const profiles = await res.json();
+        currentOrgId = profiles?.[0]?.org_id ?? '';
+        expect(currentOrgId, 'org_id de la session').to.be.a('string').and.not.be
+          .empty;
+      });
 
-      // Query events filtered by current org_id
+
+    // ── 1. Create an event in the current org ────────────────────────
+    cy.typeIonicInput("Nom de l'événement", eventName);
+    cy.contains('button, ion-button', "Créer l'événement", {
+      timeout: 30_000,
+    }).click();
+    // `/event/new` matches /^\/event\// too — require a real detail id so a
+    // failed creation cannot pass this assertion.
+    cy.location('pathname', { timeout: 60_000 })
+      .should((path: string) => {
+        expect(path, `event detail path: ${path}`).to.match(
+          /^\/event\/(?!new$)[^/]+$/,
+        );
+      })
+      .then((path: string) => {
+        // On memorise l'id pour la preuve UI de l'etape 5 : naviguer
+        // DIRECTEMENT vers la page de detail evite de dependre de la
+        // liste `/events`, tronquee et triee par date (R42) — source
+        // d'instabilite, pas de defaut d'isolation.
+        eventId = path.split('/').filter(Boolean).pop() as string;
+      });
+    activePageShouldContain('ion-title, h1', eventName);
+
+    // ── 2-4. REST + replica proofs ───────────────────────────────────
+    // IMPORTANT : ces requetes sont construites DANS un `cy.then()`. Le
+    // corps du test s'execute de maniere SYNCHRONE (toutes les commandes
+    // sont mises en file avant la 1re execution) : une URL interpolee
+    // directement dans le corps serait construite avec les variables
+    // encore vides (`org_id=eq.` → 401). Le `cy.then()` s'execute apres
+    // le bloc session, donc avec les vraies valeurs.
+    cy.then(() => {
+      expect(accessToken, 'jeton disponible').to.be.a('string').and.not.be
+        .empty;
+      expect(currentOrgId, 'org disponible').to.be.a('string').and.not.be.empty;
+
+      // 2. The event IS visible in its own org.
       cy.request({
         method: 'GET',
-        url: `${SUPABASE_URL}/rest/v1/events?org_id=eq.${encodeURIComponent(currentOrgId)}&name=eq.${encodeURIComponent(eventName)}&select=id,name,org_id&limit=5`,
+        url: `${SUPABASE_URL}/rest/v1/events?org_id=eq.${encodeURIComponent(
+          currentOrgId,
+        )}&name=eq.${encodeURIComponent(eventName)}&select=id,name,org_id&limit=5`,
         headers: {
           apikey: anonKey,
-          Authorization: `Bearer ${anonKey}`,
+          Authorization: `Bearer ${accessToken}`,
         },
       }).then((eventsRes: any) => {
         expect(eventsRes.status).to.eq(200);
         const rows: any[] = eventsRes.body ?? [];
-        expect(rows.length).to.be.greaterThan(0);
+        expect(
+          rows.length,
+          `evenement visible dans sa propre org (${currentOrgId})`,
+        ).to.be.greaterThan(0);
+        expect(rows[0].org_id).to.eq(currentOrgId);
         cy.log(`Event visible in current org: ${rows.length} row(s)`);
       });
 
-      // Query events filtered by a FAKE org_id → must return 0.
-      // Le filtre `name=` est écarté : une org étrangère N'A tout simplement
-      // pas cette ligne (test de fuite réel, pas d'absence de donnée).
+      // 3. A foreign org_id returns ZERO rows. No `name=` filter here: a
+      // foreign org simply does not have this row, which is the real leak
+      // test (absence of data, not absence of match).
       const fakeOrgId = '00000000-0000-0000-0000-000000000000';
       cy.request({
         method: 'GET',
         url: `${SUPABASE_URL}/rest/v1/events?org_id=eq.${fakeOrgId}&select=id,name&limit=5`,
         headers: {
           apikey: anonKey,
-          Authorization: `Bearer ${anonKey}`,
+          Authorization: `Bearer ${accessToken}`,
         },
       }).then((eventsRes: any) => {
         expect(eventsRes.status).to.eq(200);
-        const rows: any[] = eventsRes.body ?? [];
-        expect(rows.length).to.eq(0);
+        expect(eventsRes.body ?? []).to.have.length(0);
         cy.log(`✅ events: 0 rows for foreign org_id (${fakeOrgId})`);
       });
 
-      // Same for transactions
       cy.request({
         method: 'GET',
         url: `${SUPABASE_URL}/rest/v1/transactions?org_id=eq.${fakeOrgId}&select=id&limit=5`,
         headers: {
           apikey: anonKey,
-          Authorization: `Bearer ${anonKey}`,
+          Authorization: `Bearer ${accessToken}`,
         },
       }).then((res: any) => {
         expect(res.status).to.eq(200);
-        expect((res.body as any[]).length).to.eq(0);
-        cy.log(`✅ transactions: 0 rows for foreign org_id`);
+        expect(res.body ?? []).to.have.length(0);
+        cy.log('✅ transactions: 0 rows for foreign org_id');
       });
+
+      // 4. The LOCAL replica only holds the current org. Sync-level proof:
+      // a leaking PowerSync stream would surface a foreign org here even if
+      // the REST API were correctly scoped.
+      cy.window()
+        .its('__psDb')
+        .then(async (db: any) => {
+          const rows = await db.getAll('SELECT DISTINCT org_id FROM events');
+          const orgIds = rows.map((r: any) => r.org_id);
+          expect(
+            orgIds,
+            'orgs presentes dans le replica local',
+          ).to.deep.equal([currentOrgId]);
+          cy.log(`✅ replica local scope a 1 org: ${orgIds.join(', ')}`);
+        });
     });
 
-    // ── 3. UI check: event name does NOT leak across orgs ──────────
-    // The current event is scoped to the current org. We verify by
-    // navigating back to /events and confirming our event is still
-    // visible (same org context).
-    cy.visit('/events');
-    cy.contains(eventName, { timeout: 20_000 }).should('be.visible');
+    // ── 5. UI check: the event is still visible in the same org ──────
+    // Navigation directe vers la page de detail (id capture a l'etape 1) :
+    // deterministe, contrairement a la liste `/events` (tronquee, R42).
+    cy.then(() => {
+      expect(eventId, 'id de l evenement capture').to.be.a('string').and.not.be
+        .empty;
+      cy.visit(`/event/${eventId}`);
+    });
+    activePageShouldContain('ion-title, h1', eventName);
 
     console.log('✅ CROSS-TENANT — org-scoped data isolation verified');
   });

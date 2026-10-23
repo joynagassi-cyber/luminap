@@ -2,6 +2,11 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+vi.mock("@ionic/react", async () => {
+  const { createIonicMock } = await import("@/test/ionic-mock");
+  return createIonicMock();
+});
+
 import FormBuilder from "@/pages/FormBuilder";
 import * as types from "@/types";
 

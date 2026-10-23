@@ -142,7 +142,7 @@ export default function ConfirmModal({
             <IonInput
               type="text"
               value={inputValue}
-              onIonChange={(e) => setInputValue(e.detail.value!)}
+              onIonInput={(e) => setInputValue(e.detail.value!)}
               className="w-full px-4 py-3 rounded-lg text-text-primary text-sm text-center"
               style={{
                 backgroundColor: "var(--canvas)",

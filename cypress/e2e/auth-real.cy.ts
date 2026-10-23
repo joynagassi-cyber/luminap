@@ -105,7 +105,7 @@ describe('Lumina — real auth flows (cloud)', () => {
     // Le bouton « J'ai un code d'invitation » (ajouté 2026-09-30) doit
     // être visible sur l'écran d'auth — point d'entrée découvert de
     // l'invitation.
-    cy.contains('button', "J'ai un code d'invitation", {
+    cy.contains('button, ion-button', "J'ai un code d'invitation", {
       timeout: 30_000,
     }).should('be.visible');
   });

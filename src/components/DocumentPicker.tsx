@@ -176,13 +176,12 @@ export default function DocumentPicker({
           <IonInput
             type="file"
             data-testid="doc-picker-file"
-            onIonChange={(e: IonChangeCustomEvent<unknown>) => {
+            onIonInput={(e: IonChangeCustomEvent<unknown>) => {
               const v = e.detail.value;
               // Ionic IonInput renvoie un array-like de File : on prend le 1er.
               const f = Array.isArray(v) ? (v[0] as File | undefined) : (v as File | undefined);
               setFile(f ?? null);
             }}
-            slot="input"
             style={{
               backgroundColor: "var(--card)",
               border: "1px solid var(--border)",

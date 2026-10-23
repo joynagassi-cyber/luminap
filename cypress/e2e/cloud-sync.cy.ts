@@ -205,7 +205,7 @@ describe('Lumina — cloud sync (offline → online)', () => {
           }),
         );
       });
-    cy.contains('button', 'Créer le groupe').click();
+    cy.contains('button, ion-button', 'Créer le groupe').click();
     // Le groupe est créé en SQLite via executeBatch (4 ops : org_units,
     // groups, accounts, caisses). En mode offline, elles restent dans
     // la queue PowerSync (worker WASM). On laisse un peu de temps à
@@ -215,7 +215,7 @@ describe('Lumina — cloud sync (offline → online)', () => {
     // ── 3. Create custom field while offline ──────────────────────────
     cy.ensureAuth();
     cy.visit('/custom-fields', { timeout: 90_000 });
-    cy.contains('button', 'Créer', { timeout: 30_000 }).click();
+    cy.contains('button, ion-button', 'Créer', { timeout: 30_000 }).click();
     // La page /custom-fields utilise des <IonInput> :
     //   - 1er IonInput : Label (placeholder « Ex: Montant estimé »)
     //   - 2e  IonInput : Clé   (placeholder « montant_estime »)

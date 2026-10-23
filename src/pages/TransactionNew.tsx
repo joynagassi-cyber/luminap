@@ -266,11 +266,10 @@ export default function TransactionNew() {
                 aria-invalid={!!fieldErrors.amount}
                 aria-describedby={fieldErrors.amount ? "tx-amount-error" : undefined}
                 value={amount}
-                onIonChange={(e) =>
+                onIonInput={(e) =>
                   handleAmountChange((e.detail.value as string) ?? "")
                 }
                 placeholder="0"
-                slot="input"
               />
               {fieldErrors.amount && (
                 <p
@@ -289,11 +288,10 @@ export default function TransactionNew() {
                 type="text"
                 aria-label="Description"
                 value={description}
-                onIonChange={(e) =>
+                onIonInput={(e) =>
                   setDescription((e.detail.value as string) ?? "")
                 }
                 placeholder="Ex: Dîme du mois"
-                slot="input"
               />
             </IonItem>
 
@@ -304,8 +302,7 @@ export default function TransactionNew() {
                 type="date"
                 aria-label="Date"
                 value={date}
-                onIonChange={(e) => setDate((e.detail.value as string) ?? "")}
-                slot="input"
+                onIonInput={(e) => setDate((e.detail.value as string) ?? "")}
               />
             </IonItem>
 
@@ -316,7 +313,6 @@ export default function TransactionNew() {
                 aria-label="Catégorie"
                 value={categoryId}
                 onIonChange={(e) => setCategoryId(e.detail.value)}
-                slot="input"
               >
                 <IonSelectOption value="">
                   Sélectionner une catégorie
@@ -336,7 +332,6 @@ export default function TransactionNew() {
                 aria-label="Source"
                 value={source}
                 onIonChange={(e) => setSource(e.detail.value as any)}
-                slot="input"
               >
                 <IonSelectOption value="CAISSE">Caisse</IonSelectOption>
                 <IonSelectOption value="COTISATION">
@@ -355,7 +350,6 @@ export default function TransactionNew() {
                   aria-label="Caisse"
                   value={sourceCaisseId}
                   onIonChange={(e) => setSourceCaisseId(e.detail.value)}
-                  slot="input"
                 >
                   {caisses.map((c: any) => (
                     <IonSelectOption key={c.id} value={c.id}>
@@ -374,11 +368,10 @@ export default function TransactionNew() {
                   type="text"
                   aria-label="Nom de la personne"
                   value={personName}
-                  onIonChange={(e) =>
+                  onIonInput={(e) =>
                     setPersonName((e.detail.value as string) ?? "")
                   }
                   placeholder="Nom de la personne"
-                  slot="input"
                 />
               </IonItem>
             )}
@@ -390,7 +383,6 @@ export default function TransactionNew() {
                 aria-label="Événement"
                 value={eventId}
                 onIonChange={(e) => setEventId(e.detail.value)}
-                slot="input"
               >
                 <IonSelectOption value="">
                   Aucun événement
@@ -409,12 +401,11 @@ export default function TransactionNew() {
               <IonTextarea
                 aria-label="Commentaire"
                 value={comment}
-                onIonChange={(e) =>
+                onIonInput={(e) =>
                   setComment((e.detail.value as string) ?? "")
                 }
                 placeholder="Ajouter un commentaire..."
                 rows={3}
-                slot="input"
               />
             </IonItem>
 

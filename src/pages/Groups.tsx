@@ -230,9 +230,8 @@ export default function Groups() {
                     <IonInput
                       type="text"
                       value={createName}
-                      onIonChange={(e: IonChangeCustomEvent<string>) => setCreateName(e.detail.value ?? "")}
+                      onIonInput={(e: IonChangeCustomEvent<string>) => setCreateName(e.detail.value ?? "")}
                       placeholder="Nom du groupe"
-                      slot="input"
                     />
                   </IonItem>
                   <IonSelect
@@ -250,10 +249,9 @@ export default function Groups() {
                     <IonLabel position="floating" className="text-sm text-text-secondary">Description (optionnel)</IonLabel>
                     <IonTextarea
                       value={createDesc}
-                      onIonChange={(e: IonChangeCustomEvent<string>) => setCreateDesc(e.detail.value ?? "")}
+                      onIonInput={(e: IonChangeCustomEvent<string>) => setCreateDesc(e.detail.value ?? "")}
                       placeholder="Description (optionnel)"
                       rows={2}
-                      slot="input"
                     />
                   </IonItem>
                   <div className="flex gap-2">
@@ -396,18 +394,16 @@ export default function Groups() {
                       <IonInput
                         type="text"
                         value={editName}
-                        onIonChange={(e: IonChangeCustomEvent<string>) => setEditName(e.detail.value ?? "")}
-                        slot="input"
+                        onIonInput={(e: IonChangeCustomEvent<string>) => setEditName(e.detail.value ?? "")}
                       />
                     </IonItem>
                     <IonItem lines="none" className="bg-card rounded-xl">
                       <IonLabel position="floating" className="text-sm text-text-secondary">Description</IonLabel>
                       <IonTextarea
                         value={editDesc}
-                        onIonChange={(e: IonChangeCustomEvent<string>) => setEditDesc(e.detail.value ?? "")}
+                        onIonInput={(e: IonChangeCustomEvent<string>) => setEditDesc(e.detail.value ?? "")}
                         placeholder="Description"
                         rows={2}
-                        slot="input"
                       />
                     </IonItem>
                   </div>

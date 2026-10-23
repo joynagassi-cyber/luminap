@@ -12,7 +12,7 @@ import type {
   User as SupabaseUser,
 } from "@supabase/supabase-js";
 import type { Role } from "@/types";
-import { getOrganizationId } from "./orgContext";
+import { getOrganizationId, setOrganizationId } from "./orgContext";
 
 // Use environment variables — never hardcode credentials.
 // L'application exige explicitement VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY
@@ -1131,6 +1131,77 @@ class AuthService {
   // Internal state setter
   private setState(updates: Partial<AuthState>): void {
     this.state = { ...this.state, ...updates };
+    if (updates.profile) {
+      this.persistCurrentUser(updates.profile);
+      // Résout l'organisation AU MOMENT où le profil est connu, plutôt que
+      // de compter sur `AppContext` (monté une seule fois, avant toute
+      // connexion). Sans cela, un login depuis /auth laissait
+      // `getOrganizationId()` sur `__no_org__` : toutes les lectures
+      // PowerSync filtrées par `org_id` renvoyaient `[]` (listes vides,
+      // création d'événement perçue comme perdue).
+      this.syncOrganizationContext(updates.profile);
+    }
+  }
+
+  /**
+   * Pose l'organisation courante dès qu'un profil est disponible.
+   *
+   * Best-effort et idempotent : `setOrganizationId` ignore une valeur
+   * inchangée, donc les appels répétés (reconnexions, refresh de session) ne
+   * provoquent pas de re-rendus inutiles.
+   */
+  private syncOrganizationContext(profile: Profile): void {
+    const orgId = profile.org_id;
+    if (!orgId || orgId === "__no_org__") return;
+    setOrganizationId(orgId);
+    try {
+      localStorage.setItem("lumina-active-org", orgId);
+    } catch {
+      /* stockage indisponible — le contexte mémoire suffit pour la session */
+    }
+  }
+
+  /**
+   * Écrit la clé `lumina-user` attendue par `useCurrentUser()` (dataLayer),
+   * `resolveCurrentUserId()` (organization-context) et `Sessions`.
+   *
+   * Sans cela la clé n'est jamais créée au login : `useCurrentUser()` renvoie
+   * son repli factice (`id: "local-user"`, rôle par défaut) et
+   * `federation.canAccess("local-user", …)` est TOUJOURS faux — les contrôles
+   * de permission réels (FAB « Créer un groupe », export de rapports,
+   * transaction detail…) sont donc masqués à tort pour les administrateurs.
+   *
+   * Best-effort : une indisponibilité de stockage (SSR, test) ne doit jamais
+   * faire échouer la connexion.
+   */
+  private persistCurrentUser(profile: Profile): void {
+    try {
+      let orgName = "";
+      try {
+        const cfg = JSON.parse(localStorage.getItem("lumina-config") ?? "{}");
+        if (cfg?.churchName) orgName = cfg.churchName;
+      } catch {
+        /* config absente ou malformée — nom d'org laissé vide */
+      }
+      localStorage.setItem(
+        "lumina-user",
+        JSON.stringify({
+          id: profile.id,
+          email: profile.email ?? "",
+          firstName: profile.first_name ?? "",
+          lastName: profile.last_name ?? "",
+          role: profile.role,
+          org: {
+            id: profile.org_id,
+            name: orgName,
+            type: "Eglise",
+            accentColor: "#FF6B00",
+          },
+        }),
+      );
+    } catch {
+      /* stockage indisponible — l'app retombe sur le repli de useCurrentUser */
+    }
   }
 
   // Notify listeners

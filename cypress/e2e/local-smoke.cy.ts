@@ -34,6 +34,6 @@ describe('Lumina — offline smoke (no cloud)', () => {
     cy.clearLocalStorage();
     cy.visit('/auth');
     cy.get('input[type="email"]').should('be.visible');
-    cy.contains('button', 'Se connecter').should('be.visible');
+    cy.contains('button, ion-button', 'Se connecter').should('be.visible');
   });
 });

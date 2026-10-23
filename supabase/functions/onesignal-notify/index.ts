@@ -7,12 +7,14 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
  * Closes the gap: `notifyRole` in `src/lib/authOneSignal.ts` is a no-op
  * client-side stub. This edge function is the real send path:
  *   1. Receives { actionType, title, message, targetRole?, targetUserId?, orgId? }
- *   2. Verifies the caller's Supabase session (JWT) via service_role when
- *      SUPABASE_SERVICE_ROLE_KEY is available; otherwise falls back to the
- *      publishable/anon key.
+ *   2. REQUIRES a valid caller JWT (401 otherwise): with the server-side
+ *      OneSignal REST key this endpoint would otherwise be an open relay
+ *      able to broadcast to every device of every tenant.
  *   3. Calls OneSignal `POST /api/v1/notifications` with Bearer auth
  *      (OneSignal v2 API key) and a `filter` built from OneSignal tags
- *      (`role:{R}`, `user_id:{id}`) that the client already sets on login.
+ *      (`role:{R}`, `user_id:{id}`, `org_id:{org}`) set on the client at login.
+ *      A request with NO targeting at all falls back to a full broadcast and
+ *      is therefore reserved to a central admin (`org_admins` ACTIVE grant).
  *
  * Required env vars (set via `supabase secrets set`):
  *   ONESIGNAL_APP_ID         — OneSignal app ID
@@ -26,6 +28,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
  *   "message": "Une transaction de 5000 FCFA attend votre approbation",
  *   "targetRole": "TREASURIER",       // optional
  *   "targetUserId": "uuid-...",      // optional
+ *   "orgId": "org-...",              // optional, scopes the push to one tenant
  *   "data": { "transactionId": "..." } // optional, delivered to the client
  * }
  *
@@ -61,21 +64,44 @@ function fail(status: number, message: string) {
   });
 }
 
+type OSFilter = Record<string, string>;
+
 /**
- * Build a OneSignal `filter` expression from targetRole / targetUserId.
- * OneSignal tag filters use `key : value` syntax.
- * If neither is set, returns undefined → broadcast to all app users.
+ * Build the OneSignal v2 `filters` array from targetRole / targetUserId / orgId.
+ *
+ * The OneSignal REST API expects `filters` (an ARRAY of tag predicates joined
+ * by explicit `{ operator: "AND" }` entries) — NOT a string field named
+ * `filter`. The previous single-string form made every targeted push fail with
+ * HTTP 400 "You must include which players, segments, or tags you wish to send
+ * this notification to", so `notifyRole` never delivered anything.
+ *
+ * Without any targeting the caller would fall back to `included_segments:
+ * ["All"]`, which reaches every device of every tenant — cross-tenant by
+ * construction. That path is therefore reserved to a central admin.
  */
-function buildFilter(
+function buildFilters(
   targetRole?: string,
   targetUserId?: string,
-): string | undefined {
-  if (targetUserId && targetRole) {
-    return `role : ${targetRole} AND user_id : ${targetUserId}`;
+  orgId?: string,
+): OSFilter[] | undefined {
+  const predicates: OSFilter[] = [];
+  if (targetUserId) {
+    predicates.push({ field: "tag", key: "user_id", relation: "=", value: targetUserId });
   }
-  if (targetUserId) return `user_id : ${targetUserId}`;
-  if (targetRole) return `role : ${targetRole}`;
-  return undefined;
+  if (targetRole) {
+    predicates.push({ field: "tag", key: "role", relation: "=", value: targetRole });
+  }
+  if (orgId) {
+    predicates.push({ field: "tag", key: "org_id", relation: "=", value: orgId });
+  }
+  if (predicates.length === 0) return undefined;
+
+  const filters: OSFilter[] = [];
+  predicates.forEach((p, i) => {
+    if (i > 0) filters.push({ operator: "AND" });
+    filters.push(p);
+  });
+  return filters;
 }
 
 serve(async (req) => {
@@ -90,26 +116,23 @@ serve(async (req) => {
       return fail(500, "OneSignal non configuré côté serveur");
     }
 
-    // 1. Verify the caller's Supabase session (JWT) — graceful degradation.
-    //    The OneSignal REST API key is the primary gate; JWT check is audit.
+    // 1. Authenticate the caller. This function fans out push notifications
+    //    with the server-side OneSignal REST key, so an anonymous caller must
+    //    never be able to reach it (otherwise it is an open notification relay:
+    //    `included_segments: ["All"]` reaches every device of every tenant).
     const admin = createClient(SUPABASE_URL, AUTH_KEY, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
     const authHeader = req.headers.get("Authorization") ?? "";
     const userJwt = authHeader.replace(/^Bearer\s+/i, "").trim();
-    let userId: string | undefined;
-
-    if (userJwt) {
-      const { data, error: userError } = await admin.auth.getUser(userJwt);
-      if (userError || !data?.user) {
-        console.warn(
-          "[onesignal-notify] JWT verification failed:",
-          userError?.message ?? "no user",
-        );
-      } else {
-        userId = data.user.id;
-      }
+    if (!userJwt) {
+      return fail(401, "Non authentifié");
     }
+    const { data: authData, error: userError } = await admin.auth.getUser(userJwt);
+    if (userError || !authData?.user) {
+      return fail(401, "Session invalide ou expirée");
+    }
+    const userId = authData.user.id;
 
     // 2. Parse the body.
     let body: {
@@ -131,14 +154,29 @@ serve(async (req) => {
     const message = String(body?.message ?? "").trim();
     if (!title || !message) return fail(400, "title et message sont requis");
 
-    const filter = buildFilter(body?.targetRole, body?.targetUserId);
+    const filters = buildFilters(body?.targetRole, body?.targetUserId, body?.orgId);
+    if (!filters) {
+      // No targeting at all → OneSignal would broadcast to "All" (every tenant).
+      // Only a CENTRAL admin (org_id "org-central") may do that; an org admin
+      // must scope their push to a role, a user or their own organisation.
+      const { data: grants } = await admin
+        .from("org_admins")
+        .select("id")
+        .eq("admin_profile_id", userId)
+        .eq("org_id", "org-central")
+        .eq("status", "ACTIVE")
+        .limit(1);
+      if (!grants || grants.length === 0) {
+        return fail(403, "Ciblage requis (rôle, utilisateur ou organisation)");
+      }
+    }
 
     // 3. Call OneSignal (v2 API, Bearer auth).
     const osPayload: Record<string, unknown> = {
       app_id: ONESIGNAL_APP_ID,
       // `included_segments: ["All"]` targets everyone when no filter is set.
-      ...(!filter ? { included_segments: ["All"] } : {}),
-      ...(filter ? { filter } : {}),
+      ...(!filters ? { included_segments: ["All"] } : {}),
+      ...(filters ? { filters } : {}),
       headings: { en: title },
       contents: { en: message },
       // Deliver to in-app + push simultaneously when the user is on the app.
@@ -180,9 +218,9 @@ serve(async (req) => {
     console.log("[onesignal-notify] sent", {
       actionType: body?.actionType,
       title,
-      filter: filter ?? "broadcast",
+      filter: filters ?? "broadcast",
       oneSignalId: osBody?.id ?? null,
-      by: userId ?? "unverified",
+      by: userId,
     });
 
     return ok({

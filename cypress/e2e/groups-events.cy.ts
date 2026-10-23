@@ -36,10 +36,13 @@ describe('Lumina — Groups & Events', () => {
     cy.visit('/groups');
     cy.get('h1, h2, h3').contains('Groupes', { timeout: 60_000 }).should('be.visible');
 
-    // Le bouton « + Créer » ouvre le formulaire de création de groupe.
-    // Le CTA du formulaire s'appelle « Créer le groupe » (le 2e « Créer »
-    // dans le DOM : le 1er est le CTA header déjà cliqué).
-    cy.contains('button', 'Créer', { timeout: 30_000 }).first().click();
+    // Le FAB est un <CircleAction> : un <button> natif portant
+    // aria-label="Créer un groupe" et SANS texte « Créer ». On le cible
+    // par son aria-label (le `cy.contains(..., 'Créer')` ne le matchait
+    // pas — défaut de spec, pas d'app).
+    cy.get('button[aria-label="Créer un groupe"]', { timeout: 30_000 })
+      .should('exist')
+      .click({ force: true });
     cy.get('input[placeholder="Nom du groupe"]').type(groupName);
     cy.get('textarea[placeholder="Description (optionnel)"]')
       .type('Groupe de la jeunesse')
@@ -48,7 +51,7 @@ describe('Lumina — Groups & Events', () => {
     // Le CTA du formulaire « Créer le groupe » (le submit fait 4
     // executeWrite PowerSync : org_units + groups + accounts + caisses) —
     // peut prendre quelques secondes.
-    cy.contains('button', 'Créer le groupe', { timeout: 60_000 }).click();
+    cy.contains('button, ion-button', 'Créer le groupe', { timeout: 60_000 }).click();
 
     // Le groupe apparaît dans la liste, avec le sous-titre de type.
     cy.contains(groupName, { timeout: 60_000 }).should('be.visible');
@@ -83,27 +86,31 @@ describe('Lumina — Groups & Events', () => {
     // Le type par défaut est « Événement » (pas « Culte dominical ») —
     // pas de champ de cotisation obligatoire. Attendre l'hydratation
     // complète de la page avant d'asserter.
-    cy.contains('button', 'Événement', { timeout: 60_000 }).should('be.visible');
+    cy.contains('button, ion-button', 'Événement', { timeout: 60_000 }).should('be.visible');
 
     // Le premier ion-input du form est le nom (aria-label « Nom de l'événement »).
     // Cypress 16 + Ionic : cibler l'input interne via l'aria-label hérité.
-    cy.get('ion-input[aria-label="Nom de l\'événement"]').type(eventName, {
+    cy.get('input[aria-label="Nom de l\'événement"]').type(eventName, {
       force: true,
     });
 
-    cy.contains('button', "Créer l'événement", { timeout: 30_000 }).click();
+    cy.contains('button, ion-button', "Créer l'événement", { timeout: 30_000 }).click();
 
     // addEventPS → PowerSync executeWrite.
+    //
+    // L'app ouvre désormais le DÉTAIL de l'événement créé (et non la liste) :
+    // la liste est triée par date décroissante et tronquée, donc un événement
+    // à date ancienne n'y apparaissait pas → création perçue comme perdue.
     cy.location('pathname', { timeout: 60_000 }).should((path: string) => {
-      expect(path, `pathname after event create: ${path}`).to.match(/^\/events/);
+      expect(path, `pathname after event create: ${path}`).to.match(/^\/event\//);
     });
 
     cy.get('h1, h2, h3, [role="heading"]')
       .contains(eventName, { timeout: 60_000 })
       .should('be.visible');
-    cy.contains('button', 'Aperçu').should('be.visible');
-    cy.contains('button', 'Budget').should('be.visible');
-    cy.contains('button', 'Transactions').should('be.visible');
+    cy.contains('button, ion-button', 'Aperçu').should('be.visible');
+    cy.contains('button, ion-button', 'Budget').should('be.visible');
+    cy.contains('button, ion-button', 'Transactions').should('be.visible');
     cy.contains('Planifié').should('be.visible');
   });
 
@@ -113,33 +120,38 @@ describe('Lumina — Groups & Events', () => {
 
     cy.ensureAuth();
     cy.visit('/event/new');
-    cy.contains('button', 'Événement', { timeout: 60_000 }).should('be.visible');
-    cy.get('ion-input[aria-label="Nom de l\'événement"]').type(eventName, {
+    cy.contains('button, ion-button', 'Événement', { timeout: 60_000 }).should('be.visible');
+    cy.get('input[aria-label="Nom de l\'événement"]').type(eventName, {
       force: true,
     });
-    cy.contains('button', "Créer l'événement", { timeout: 30_000 }).click();
+    cy.contains('button, ion-button', "Créer l'événement", { timeout: 30_000 }).click();
 
+    // addEventPS → PowerSync executeWrite.
+    //
+    // L'app ouvre désormais le DÉTAIL de l'événement créé (et non la liste) :
+    // la liste est triée par date décroissante et tronquée, donc un événement
+    // à date ancienne n'y apparaissait pas → création perçue comme perdue.
     cy.location('pathname', { timeout: 60_000 }).should((path: string) => {
-      expect(path, `pathname after event create: ${path}`).to.match(/^\/events/);
+      expect(path, `pathname after event create: ${path}`).to.match(/^\/event\//);
     });
 
     cy.get('h1, h2, h3, [role="heading"]')
       .contains(eventName, { timeout: 60_000 })
       .should('be.visible');
 
-    cy.contains('button', 'Budget').click();
+    cy.contains('button, ion-button', 'Budget').click();
     cy.contains('Aucun poste budgétaire', { timeout: 30_000 }).should('exist');
 
-    cy.contains('button', 'Retour').click();
-    cy.contains('button', 'Transactions').click();
+    cy.contains('button, ion-button', 'Retour').click();
+    cy.contains('button, ion-button', 'Transactions').click();
     cy.contains('Aucune transaction liée', { timeout: 30_000 }).should('exist');
 
-    cy.contains('button', 'Ajouter une transaction').click();
+    cy.contains('button, ion-button', 'Ajouter une transaction').click();
     cy.get('h1, h2, h3').contains(/nouvelle transaction/i, {
       timeout: 30_000,
     }).should('be.visible');
 
-    cy.contains('button', 'Retour').click();
+    cy.contains('button, ion-button', 'Retour').click();
     cy.get('h1, h2, h3')
       .contains('Événements', { timeout: 30_000 })
       .should('be.visible');

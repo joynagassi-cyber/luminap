@@ -461,7 +461,6 @@ function OrgDetail({ orgId, onBack }: { orgId: string; onBack: () => void }) {
                 value={delegated}
                 onIonChange={(e: IonChangeCustomEvent<string>) => setDelegated(e.detail.value)}
                 interface="popover"
-                slot="input"
                 style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}
               >
                 <IonSelectOption value="">Choisir un profil…</IonSelectOption>
@@ -831,7 +830,7 @@ export default function CentralAdmin() {
                                 <IonInput
                                   data-testid="archive-reason"
                                   value={archiveReason}
-                                  onIonChange={(e) => setArchiveReason((e.detail.value as string) ?? "")}
+                                  onIonInput={(e) => setArchiveReason((e.detail.value as string) ?? "")}
                                   placeholder="Raison (optionnel)"
                                   className="flex-1 min-w-0"
                                 />

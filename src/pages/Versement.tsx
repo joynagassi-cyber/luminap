@@ -261,10 +261,9 @@ export default function Versement() {
                     type="number"
                     inputMode="numeric"
                     value={amount}
-                    onIonChange={(e: IonChangeCustomEvent<string>) => setAmount(e.detail.value ?? "")}
+                    onIonInput={(e: IonChangeCustomEvent<string>) => setAmount(e.detail.value ?? "")}
                     placeholder="0"
                     max={maxAmount}
-                    slot="input"
                   />
                   {amountNum > maxAmount && (
                     <p className="text-expense text-xs mt-1 text-center">
@@ -283,10 +282,9 @@ export default function Versement() {
                   <IonLabel position="floating" className="text-sm text-text-secondary">Commentaire (optionnel)</IonLabel>
                   <IonTextarea
                     value={comment}
-                    onIonChange={(e: IonChangeCustomEvent<string>) => setComment(e.detail.value ?? "")}
+                    onIonInput={(e: IonChangeCustomEvent<string>) => setComment(e.detail.value ?? "")}
                     placeholder="Ajouter un commentaire..."
                     rows={2}
-                    slot="input"
                   />
                 </IonItem>
 

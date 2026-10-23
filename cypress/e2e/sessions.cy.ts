@@ -60,7 +60,7 @@ describe('Lumina — Session persistence (Mes comptes, reconnect sans retaper)',
     cy.contains('Actif').should('be.visible');
     cy.window().then((win) => dumpDiag(win));
 
-    cy.contains('button', 'Se déconnecter').click();
+    cy.contains('button, ion-button', 'Se déconnecter').click();
     // Le sign-out navigue vers /auth (la session Supabase est effacée,
     // mais les comptes restent listés dans /sessions — localStorage
     // lumina-removed-accounts / my-orgs persistent côté client).

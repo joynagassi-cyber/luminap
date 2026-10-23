@@ -221,7 +221,7 @@ export default function SaisieRapide() {
                         <IonInput
                           type="number"
                           value={customMontants[cot.id] ?? String(montantOblig / 100)}
-                          onIonChange={(e: IonChangeCustomEvent<string>) =>
+                          onIonInput={(e: IonChangeCustomEvent<string>) =>
                             setCustomMontants((prev) => ({
                               ...prev,
                               [cot.id]: e.detail.value ?? "",

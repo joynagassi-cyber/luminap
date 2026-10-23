@@ -147,7 +147,7 @@ export default function EventNew() {
         return;
       }
 
-      await addEventPS({
+      const newEventId = await addEventPS({
         org_id: getOrganizationId(),
         name: name.trim(),
         description: description.trim(),
@@ -167,7 +167,14 @@ export default function EventNew() {
         extraData: { eventName: name.trim(), startDate },
       }).catch(() => {});
 
-      navigate("/events");
+      // Ouvre directement le détail de l'événement créé.
+      //
+      // Naviguer vers la liste ne montrait PAS le nouvel événement : elle est
+      // triée par date décroissante et tronquée aux 50 premiers, alors que la
+      // date saisie peut être ancienne. L'utilisateur croyait la création
+      // perdue (mesuré : événement absent de `/events` juste après le submit,
+      // alors que la ligne était bien en base et synchronisée).
+      navigate(`/event/${newEventId}`);
     } finally {
       setSubmitting(false);
     }
@@ -246,11 +253,10 @@ export default function EventNew() {
                       type="number"
                       aria-label="Montant de cotisation obligatoire en FCFA"
                       value={montantCotisation}
-                      onIonChange={(e: IonChangeCustomEvent<string>) =>
+                      onIonInput={(e: IonChangeCustomEvent<string>) =>
                         setMontantCotisation((e.detail.value as string) ?? "")
                       }
                       min="0"
-                      slot="input"
                       style={{
                         backgroundColor: "var(--card)",
                         border: "1px solid var(--border)",
@@ -282,11 +288,10 @@ export default function EventNew() {
               type="text"
               aria-label="Nom de l'événement"
               value={name}
-              onIonChange={(e: IonChangeCustomEvent<string>) =>
+              onIonInput={(e: IonChangeCustomEvent<string>) =>
                 setName((e.detail.value as string) ?? "")
               }
               placeholder="Ex: Noël 2026"
-              slot="input"
               style={{
                 backgroundColor: "var(--card)",
                 border: "1px solid var(--border)",
@@ -302,7 +307,7 @@ export default function EventNew() {
             <IonTextarea
               aria-label="Description"
               value={description}
-              onIonChange={(e: IonChangeCustomEvent<string>) =>
+              onIonInput={(e: IonChangeCustomEvent<string>) =>
                 setDescription((e.detail.value as string) ?? "")
               }
               placeholder="Description de l'événement..."
@@ -323,10 +328,9 @@ export default function EventNew() {
             <IonInput
               type="date"
               value={startDate}
-              onIonChange={(e: IonChangeCustomEvent<string>) =>
+              onIonInput={(e: IonChangeCustomEvent<string>) =>
                 setStartDate((e.detail.value as string) ?? "")
               }
-              slot="input"
               style={{
                 backgroundColor: "var(--card)",
                 border: "1px solid var(--border)",
@@ -341,10 +345,9 @@ export default function EventNew() {
             <IonInput
               type="date"
               value={endDate}
-              onIonChange={(e: IonChangeCustomEvent<string>) =>
+              onIonInput={(e: IonChangeCustomEvent<string>) =>
                 setEndDate((e.detail.value as string) ?? "")
               }
-              slot="input"
               style={{
                 backgroundColor: "var(--card)",
                 border: "1px solid var(--border)",
@@ -361,7 +364,6 @@ export default function EventNew() {
               value={status}
               onIonChange={(e: IonChangeCustomEvent<string>) => setStatus(e.detail.value as Event["status"])}
               interface="popover"
-              slot="input"
               style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}
             >
               <IonSelectOption value="PLANIFIED">Planifié</IonSelectOption>
@@ -414,7 +416,7 @@ export default function EventNew() {
                   <IonInput
                     type="text"
                     value={newBudgetLabel}
-                    onIonChange={(e) =>
+                    onIonInput={(e) =>
                       setNewBudgetLabel((e.detail.value as string) ?? "")
                     }
                     placeholder="Poste"
@@ -427,7 +429,7 @@ export default function EventNew() {
                   <IonInput
                     type="number"
                     value={newBudgetAmount}
-                    onIonChange={(e) =>
+                    onIonInput={(e) =>
                       setNewBudgetAmount((e.detail.value as string) ?? "")
                     }
                     placeholder="Montant"

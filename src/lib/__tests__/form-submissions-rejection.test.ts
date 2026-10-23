@@ -57,13 +57,17 @@ import {
 import type { FormSubmission } from "@/types";
 
 // Ligne PS snake_case COMPLET (colonnes de la migration 4a).
+// `linked_entity_type` / `linked_entity_id` : noms réels des colonnes
+// (renommées depuis `entity_type` / `entity_id` en 0023). Le fixture
+// utilisait encore les anciens noms et ne correspondait donc plus au
+// SELECT émis par la dataLayer.
 const fullRow: any = {
   id: "fs-1",
   org_id: "org-1",
   form_definition_id: "fd-1",
   form_version: 1,
-  entity_type: "member",
-  entity_id: "m-1",
+  linked_entity_type: "member",
+  linked_entity_id: "m-1",
   data: JSON.stringify({ nom: "Aya" }),
   submitted_by: "user-1",
   submitted_at: "2026-10-01T00:00:00Z",

@@ -10,6 +10,7 @@ import "@ionic/core/css/ionic.bundle.css";
 import "./ionic/theme.css";
 import { applyStoredTheme, applyStoredThemeMode } from "./ionic/themes";
 import { initPowerSync } from "@/lib/powersync";
+import { PowerSyncProvider } from "@/components/PowerSyncProvider";
 import { prefetchNavViews, useFeatureConfig } from "@/lib/features";
 import { initSentry } from "@/lib/sentry";
 
@@ -60,7 +61,18 @@ import("@ionic/core")
   })
   .catch(() => {});
 
-createRoot(document.getElementById("root")!).render(<App />);
+// Le `<PowerSyncProvider>` DOIT envelopper `<App />` : les hooks de lecture
+// du dataLayer (`useQuery` de @powersync/react) lisent la base via
+// `PowerSyncContext`. Sans provider, `useQuery` renvoie
+// `{ data: [], error: new Error("PowerSync not configured.") }` : toutes
+// les listes de l'app retombaient sur le repli local (vide au premier
+// lancement) — la base SQLite contenait pourtant bien les lignes
+// synchronisées. Le provider était défini mais jamais monté.
+createRoot(document.getElementById("root")!).render(
+  <PowerSyncProvider>
+    <App />
+  </PowerSyncProvider>,
+);
 
 // Signale à la CSS statique d'index.html que le root React est
 // hydraté : le splash HTML/CSS (index.html) est masqué (display:none)

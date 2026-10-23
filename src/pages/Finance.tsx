@@ -175,7 +175,7 @@ export default function Finance() {
                   type="text"
                   placeholder="Rechercher..."
                   value={searchTerm}
-                  onIonChange={(e: IonChangeCustomEvent<string>) => setSearchTerm(e.detail.value ?? "")}
+                  onIonInput={(e: IonChangeCustomEvent<string>) => setSearchTerm(e.detail.value ?? "")}
                   className="w-full pl-10"
                 />
               </div>
@@ -297,7 +297,7 @@ export default function Finance() {
                     <IonInput
                       type="date"
                       value={dateRange.from}
-                      onIonChange={(e: IonChangeCustomEvent<string>) =>
+                      onIonInput={(e: IonChangeCustomEvent<string>) =>
                         setDateRange({ ...dateRange, from: e.detail.value ?? "" })
                       }
                       className="px-3 py-2 text-xs"
@@ -308,7 +308,7 @@ export default function Finance() {
                     <IonInput
                       type="date"
                       value={dateRange.to}
-                      onIonChange={(e: IonChangeCustomEvent<string>) =>
+                      onIonInput={(e: IonChangeCustomEvent<string>) =>
                         setDateRange({ ...dateRange, to: e.detail.value ?? "" })
                       }
                       className="px-3 py-2 text-xs"

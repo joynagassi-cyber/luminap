@@ -21,47 +21,47 @@ describe('Lumina — comprehensive navigation & finance flow', () => {
     // Le hub /settings n'est qu'une liste de sections : « Actualiser
     // les données » (loadInitialData) et les actions (Bilan financier,
     // Historique…) vivent dans /settings/gestion (SettingsGestion.tsx).
-    cy.get('button[aria-label="Plus d\'options"]').click();
-    cy.contains('button', 'Paramètres').click();
+    cy.get('button[aria-label="Ouvrir le menu"]').click();
+    cy.contains('button, ion-button', 'Paramètres').click();
     cy.get('h1, h2, h3').contains('Paramètres').should('exist');
-    cy.contains('button', 'Gérer').click();
+    cy.contains('button, ion-button', 'Gérer').click();
     cy.location('pathname').should('eq', '/settings/gestion');
 
     // Refresh data
-    cy.contains('button', 'Actualiser les données').click();
+    cy.contains('button, ion-button', 'Actualiser les données').click();
 
     // ── Financial report → Balance ─────────────────────────────────────
-    cy.contains('button', 'Bilan financier').click();
+    cy.contains('button, ion-button', 'Bilan financier').click();
     cy.get('h1, h2, h3').contains('Bilan financier').should('be.visible');
     cy.location('pathname').should('include', 'balance');
 
     // Toggle period
-    cy.contains('button', 'Année').click();
-    cy.contains('button', 'Mois').click();
-    cy.contains('button', 'Mois').should('be.visible');
+    cy.contains('button, ion-button', 'Année').click();
+    cy.contains('button, ion-button', 'Mois').click();
+    cy.contains('button, ion-button', 'Mois').should('be.visible');
 
     // Summary stat cards
     cy.contains('Entrées').first().click();
     cy.contains('Sorties').first().click();
 
     // Export PDF
-    cy.contains('button', 'Exporter le rapport').click();
-    cy.contains('button', 'PDF').first().click();
+    cy.contains('button, ion-button', 'Exporter le rapport').click();
+    cy.contains('button, ion-button', 'PDF').first().click();
 
     // ── History ────────────────────────────────────────────────────────
-    cy.get('button[aria-label="Plus d\'options"]').click();
-    cy.contains('button', 'Historique').click();
+    cy.get('button[aria-label="Ouvrir le menu"]').click();
+    cy.contains('button, ion-button', 'Historique').click();
     cy.get('h1, h2, h3').contains('Historique').should('be.visible');
 
-    cy.contains('button', 'Ce mois').click();
-    cy.contains('button', 'Cette année').click();
-    cy.contains('button', 'Tout').click();
+    cy.contains('button, ion-button', 'Ce mois').click();
+    cy.contains('button, ion-button', 'Cette année').click();
+    cy.contains('button, ion-button', 'Tout').click();
 
-    cy.contains('button', 'Retour').click();
+    cy.contains('button, ion-button', 'Retour').click();
 
     // ── Events ─────────────────────────────────────────────────────────
-    cy.get('button[aria-label="Plus d\'options"]').click();
-    cy.contains('button', 'Événements').click();
+    cy.get('button[aria-label="Ouvrir le menu"]').click();
+    cy.contains('button, ion-button', 'Événements').click();
     cy.get('h1, h2, h3').contains('Événements').should('be.visible');
 
     // (Le badge de sync global [data-testid="sync-indicator"] a été retiré
@@ -107,13 +107,13 @@ describe('Lumina — comprehensive navigation & finance flow', () => {
       cy.ensureAuth();
       cy.visit(`/transaction/${id}/edit`);
       cy.get('h1, h2, h3').contains('Modifier').should('be.visible');
-      cy.contains('button', 'Sauvegarder').click();
+      cy.contains('button, ion-button', 'Sauvegarder').click();
       cy.location('pathname', { timeout: 30_000 }).should('eq', `/transaction/${id}`);
     });
 
-    cy.contains('button', 'Sortie').click();
-    cy.contains('button', 'Entrée').click();
-    cy.contains('button', 'Sortie').click();
+    cy.contains('button, ion-button', 'Sortie').click();
+    cy.contains('button, ion-button', 'Entrée').click();
+    cy.contains('button, ion-button', 'Sortie').click();
 
     // ── Back to Finance ────────────────────────────────────────────────
     cy.get('nav').contains('button', 'Finances').click();
