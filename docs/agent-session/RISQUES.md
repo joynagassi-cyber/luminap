@@ -809,3 +809,84 @@
   le workflow n'a **pas** d'étape de repli locale. Voir P27.
 - **Correctif proposé (45 min)** : soit fournir `CYPRESS_RECORD_KEY`, soit
   retirer `record/parallel` et exécuter la suite en local sur le runner.
+
+---
+
+## Session 3 (2026-10-23) — nouveaux risques
+
+### R57 — Date NULL → crash du dashboard — CORRIGÉ
+- **Gravité** : haute (page entière en ErrorBoundary).
+- **Défaut** : `formatDate`/`formatDateTime` (`src/lib/utils.ts`) levaient
+  `RangeError: Invalid time value` sur une date NULL/invalide ; appelés
+  depuis `Dashboard.tsx:1551` avec une valeur absente en base → `/dashboard`
+  affichait l'écran d'erreur au lieu du contenu.
+- **Correctif** : helpers rendus défensifs (validation + repli), test
+  `src/lib/__tests__/utils-date.test.ts` (rouge → vert). Commit `657491b`.
+- **Statut** : corrigé, validé (V).
+
+### R58 — Point d'entrée PWA (`/`) = écran blanc total — CORRIGÉ
+- **Gravité** : **critique** (perte totale d'accès pour un utilisateur PWA).
+- **Défaut** : `public/manifest.json` déclare `"start_url": "/"`. La route
+  `<Route path="/">` (`src/App.tsx`) contenait un `<Navigate>` **enfant**,
+  que React Router **ignore** (il n'accepte un composant que via
+  `element=`). `/` matchait donc sans rien rendre : 0 page Ionic poussée
+  dans le view-stack → écran blanc, sans BottomNav ni menu (aucun moyen de
+  sortir, l'app étant une PWA sans barre d'adresse).
+- **Preuve** : sonde DOM avant correctif → `PATH=/ PAGES(ion-page)=0
+  BODYLEN=26`.
+- **Correctif** : `element={<Navigate to="/splash" replace />}`.
+  Commit `eca2052`. Test `cypress/e2e/root-redirect.cy.ts` (2 tests, avec
+  et sans session).
+- **Statut** : corrigé, validé (C, 2/2).
+
+### R60 — `/transaction/:id/edit` en ErrorBoundary (Rules of Hooks) — CORRIGÉ
+- **Gravité** : **critique** (édition de transaction impossible).
+- **Défaut** : `useTransactions()` (`src/lib/dataLayer.ts`) faisait un
+  `return` anticipé du cache CPU **avant** son `useQuery`. Au 1er render
+  (cache vide) la fonction appelait 4 hooks ; au render suivant (cache
+  rempli par une lecture précédente) elle n'en appelait plus que 3 → React
+  « change in the order of Hooks » → `Error: Should have a queue` →
+  `LazyRouteErrorBoundary` → « Impossible d'afficher cette page ».
+  Toute page consommant `useTransactions` était exposée ; le cas
+  reproductible est `/transaction/:id/edit`.
+- **Preuve** : sonde console → `ERR ... at useOrganizationRevision
+  (dataLayer.ts) ... at useCategories ... at TransactionEdit` ; après
+  correctif → `LOGS=[]`, page rendue.
+- **Correctif** : le cache est consulté **après** l'appel du hook, le
+  résultat de `useQuery` étant ignoré s'il est périmé (aucun hook sauté).
+  Commit `71b1738`. Validation : `finance-deep.cy.ts` 5/5,
+  `comprehensive-flow.cy.ts` 1/1.
+- **Statut** : corrigé, validé (C).
+
+### R59 — Page cible laissée à `opacity: 0` après navigation par le menu latéral — OUVERT
+- **Gravité** : moyenne (à confirmer côté utilisateur).
+- **Observation** : après un clic dans `FeatureSidebar` vers `/settings`,
+  la page cible porte durablement `ion-page-invisible` et
+  `opacity: 0` (mesuré : `INV op=0 vis=visible disp=flex h=844`), alors
+  que l'accès direct à `/settings` rend correctement (`VIS op=1`). Même
+  route, même contenu : le facteur est la **navigation programmatique**
+  (`ensureNavViewChunk` puis `navigate()`).
+- **Réserve** : l'environnement de test est un **serveur de développement
+  Vite** (URLs avec `?t=` HMR) ; l'effet peut être accentué par le HMR et
+  ne pas se produire sur un build de production. Non confirmé sur build.
+- **Contournement en test** : suivre la convention du dépôt
+  (`cypress/support/view.ts`) — la page affichée est le dernier
+  `div.ion-page:not(.ion-page-hidden)`, `ion-page-invisible` étant
+  documentée comme transitoire.
+- **Action recommandée** : reproduire sur un build de production
+  (`npm run build && npm run preview`) ; si confirmé, vérifier la
+  transition `ion-router-outlet` (classe retirée par Ionic à la fin de
+  l'animation) et l'ordre `await ensureNavViewChunk()` → `navigate()`.
+- **Statut** : ouvert, à confirmer hors serveur de développement.
+
+### R61 — Titres de page non sémantiques (accessibilité) — OUVERT
+- **Gravité** : basse (a11y).
+- **Défaut** : `TopHeader` rend le titre de page dans un `<p>` stylé, pas
+  dans un `<h1>`. Les pages qui n'ont pas d'autre titre (ex. `/history`,
+  `/settings`) n'exposent donc **aucun titre de niveau 1** aux lecteurs
+  d'écran ni à la navigation par titres.
+- **Preuve** : `src/components/TopHeader.tsx` (lignes ~71-78) ; sonde DOM
+  sur `/history` : aucun `h1/h2/h3` portant « Historique ».
+- **Recommandation** : rendre le titre de `TopHeader` dans un `<h1>`
+  (avec `role="heading"`), ou imposer un `<h1>` par page.
+- **Statut** : ouvert (non corrigé — changement structurel hors gel).

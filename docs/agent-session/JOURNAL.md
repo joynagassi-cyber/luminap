@@ -647,3 +647,36 @@ PR ouverte : **#4** (non fusionnée — décision du propriétaire).
   R56 (2 workflows rouges).
 - **Nouvelles propositions** : P23–P27.
 - **PR #4** ouverte, **non fusionnée**.
+
+## Session 3 — 2026-10-23 (phases restantes)
+
+- **T0 session 3** : 2026-10-22T17:56:53Z (ancre conservée). Branche
+  `agent/session-2026-10-23-phases-restantes`.
+- Reprise de l'état « 38/68 Cypress verts » et des 30 échecs restants.
+
+### Correctifs produit (défauts réels, reproduits par sonde DOM)
+
+| Réf | Défaut | Cause racine | Preuve | Correctif |
+|---|---|---|---|---|
+| **R57** | `/dashboard` affichait l'ErrorBoundary (page entière en erreur) | `RangeError: Invalid time value` — `formatDate`/`formatDateTime` recevaient une date NULL (Dashboard.tsx:1551) | `utils-date.test.ts` (rouge→vert) | Helpers rendus défensifs (`657491b`) |
+| **R58** | Ouvrir la PWA (ou le domaine nu) → **écran totalement blanc**, 0 page Ionic, aucun moyen de sortir | `<Route path="/">` contenait un `<Navigate>` **enfant**, ignoré par React Router (il attend `element=`). `/` = `start_url` du manifest → route matchée sans rien rendre | Sonde : `PATH=/ PAGES=0 BODYLEN=26` avant ; `root-redirect.cy.ts` 2/2 après | `element={<Navigate to="/splash" replace/>}` (`eca2052`) |
+| **R60** | `/transaction/:id/edit` affichait « Impossible d'afficher cette page » (ErrorBoundary) dès que le cache transactions était rempli | `useTransactions()` faisait un `return` anticipé du cache CPU **avant** son `useQuery` → 4 hooks au 1er render, 3 au suivant → React « change in the order of Hooks » → `Should have a queue` → ErrorBoundary | Sonde console : `ERR ... useOrganizationRevision / useCategories / TransactionEdit` ; après : `LOGS=[]` ; `finance-deep` 5/5, `comprehensive-flow` 1/1 | Cache consulté **après** le hook (`71b1738`) |
+
+### Spécs Cypress corrigées (défauts de test, pas de produit)
+
+Motif systémique identifié : **la pile Ionic conserve les pages visitées
+montées** (masquées via `.ion-page-hidden`). Un sélecteur global
+(`cy.contains('button', …)`, `cy.get('h1')`, `cy.get('button[aria-label=…]')`)
+résolvait l'exemplaire d'une page **masquée** → « element is not visible »
+alors que l'app fonctionnait.
+
+- `nav-bottom.cy.ts` 3/3 : onglet par défaut = « Cultes » (`cotisations`), pas « Événements ».
+- `responsive-skeleton.cy.ts` 4/4 : prémisse obsolète après R57 (plus de squelette infini).
+- `sessions.cy.ts` : `ensureAuth()` avant chaque `it()` (`testIsolation` Cypress 16 efface `localStorage`).
+- `rbac-gates.cy.ts` 2/2 : idem R39 + scoping page active.
+- `comprehensive-flow.cy.ts` 1/1 : réécrit — toutes les interactions scopées
+  sur la page ACTIVE, `ion-select` en interface `ion-alert` (options =
+  `button.alert-radio-button`, pas `ion-radio`), pas de bouton « Retour »
+  sur `/history` (page de 1er niveau), édition attendue sur le
+  pré-remplissage, « Entrées »/« Sorties » sont des `<p>` (pas des boutons).
+- `root-redirect.cy.ts` (nouveau) : verrouille R58 (avec et sans session).
