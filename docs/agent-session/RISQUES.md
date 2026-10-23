@@ -500,3 +500,20 @@
   `87afea21-…` ; FAB `Créer un groupe` **présent après rechargement**
   (absent à la 1re visite, cf. R39).
 - **Gravité** : **critique** (contrôle d'accès réel inopérant pour tous).
+
+### R39 — Cache d'accès négatif figé avant la 1re synchro — CORRIGÉ (haute)
+- **Défaut** : `useCanAccessMulti` mémorise `fedResult` au niveau module. Au
+  premier chargement d'une page, la base SQLite locale n'est pas encore
+  synchronisée (`org_memberships` / `grants` vides) → `canAccess` → `false`,
+  **mis en cache définitivement**. Les actions légitimes (FAB « Créer un
+  groupe », export de rapports) restaient masquées jusqu'au rechargement.
+- **Preuve** : FAB **absent** à la 1re visite de `/groups` alors que
+  `org_memberships.role = PASTEUR_PRINCIPAL` (autorise `group:create`) ;
+  **présent après `cy.reload()`** (base locale alors peuplée).
+- **Correctif** (commit `6f6065d`) : à la fin du premier sync
+  (`hasSynced === true`), purge du cache + notification des hooks montés, qui
+  re-résolvent via un jeton de résolution. Les composants re-rendent avec la
+  bonne valeur, **sans rechargement**.
+- **Preuve après** : FAB présent dès la 1re visite ; `V` :
+  `useCanAccessMulti` 46/46.
+- **Gravité** : **haute** (même symptôme que R38, mais transitoire).
