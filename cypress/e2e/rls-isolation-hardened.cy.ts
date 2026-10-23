@@ -42,6 +42,11 @@ describe('Lumina — isolation RLS avec le jeton réel (read-only)', () => {
 
   it('un membre ne lit que son propre profil (pas de fuite PII)', function () {
     this.timeout(60_000);
+    // `realToken()` lit localStorage : il faut d'abord que la page
+    // soit servie par l'app (origine correcte) et que la session soit
+    // restaurée — `cy.session()` ne restaure PAS l'URL courante.
+    cy.ensureAuth();
+    cy.visit('/dashboard');
     realToken().then((token) => {
       cy.request({
         method: 'GET',
@@ -60,6 +65,11 @@ describe('Lumina — isolation RLS avec le jeton réel (read-only)', () => {
 
   it("un membre ne lit aucune donnée de l'organisation org-1", function () {
     this.timeout(60_000);
+    // `realToken()` lit localStorage : il faut d'abord que la page
+    // soit servie par l'app (origine correcte) et que la session soit
+    // restaurée — `cy.session()` ne restaure PAS l'URL courante.
+    cy.ensureAuth();
+    cy.visit('/dashboard');
     realToken().then((token) => {
       cy.request({
         method: 'GET',
@@ -75,6 +85,11 @@ describe('Lumina — isolation RLS avec le jeton réel (read-only)', () => {
 
   it('org_family n\'expose que sa propre organisation', function () {
     this.timeout(60_000);
+    // `realToken()` lit localStorage : il faut d'abord que la page
+    // soit servie par l'app (origine correcte) et que la session soit
+    // restaurée — `cy.session()` ne restaure PAS l'URL courante.
+    cy.ensureAuth();
+    cy.visit('/dashboard');
     realToken().then((token) => {
       cy.request({
         method: 'GET',

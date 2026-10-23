@@ -17,6 +17,12 @@ describe('Lumina — comprehensive navigation & finance flow', () => {
   it('navigates Settings, Balance, History, Events, and Transaction edit', function () {
     this.timeout(180_000);
 
+    // `cy.session()` (ensureAuth) restaure le token mais PAS l'URL : sans
+    // ce visit, la page reste vierge et le 1er cy.get() cherche le menu
+    // sur `about:blank`.
+    cy.ensureAuth();
+    cy.visit('/dashboard');
+
     // ── Open More menu → Settings hub → Gestion ────────────────────────
     // Le hub /settings n'est qu'une liste de sections : « Actualiser
     // les données » (loadInitialData) et les actions (Bilan financier,

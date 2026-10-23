@@ -17,6 +17,7 @@ import {
 } from "@ionic/react";
 import TopHeader from "@/components/TopHeader";
 import EmptyState from "@/components/EmptyState";
+import { SessionsSkeleton } from "@/components/PageSkeletons";
 import { useCurrentUser } from "@/lib/dataLayer";
 import {
   useMyOrgs,
@@ -223,6 +224,11 @@ export default function SessionsPage() {
   const uid = resolveCurrentUserId();
   const removed = readRemovedAccounts().filter((p) => p.userId === uid);
   const list = (orgs ?? []).filter((o) => !removed.some((p) => p.orgId === o.orgId));
+  // `orgs === null` = la liste n'a PAS encore été lue (premier chargement).
+  // Ne jamais afficher « Aucun compte » dans cet état : le compte existe
+  // souvent en base, l'utilisateur lirait un message faux au moment précis
+  // où il cherche à se reconnecter.
+  const loading = orgs === null;
 
   return (
     <IonPage>
@@ -235,7 +241,9 @@ export default function SessionsPage() {
               l'un d'eux pour re-ouvrir votre session.
             </p>
 
-            {list.length === 0 ? (
+            {loading ? (
+              <SessionsSkeleton />
+            ) : list.length === 0 ? (
               <EmptyState
                 title="Aucun compte lié pour l'instant"
                 description={user?.email ?? "Connectez-vous pour voir vos organisations."}
