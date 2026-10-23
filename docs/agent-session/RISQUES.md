@@ -665,3 +665,42 @@
   annexes** » n'est satisfaite que pour l'organisation. Les annexes
   (`org_units`) n'ont pas d'écran de personnalisation dédié.
 - **Travail restant** : estimé 1 h (formulaire + écriture `org_units`).
+
+### R50 — Faux positif écarté : la RLS inter-tenant de `profiles` tient — VÉRIFIÉ
+- **Gravité** : information (aucun défaut).
+- **Ce qui a été soupçonné** : `profiles_update` n'a qu'un `USING (auth.uid() = id)`,
+  sans filtre de colonne. Un utilisateur pouvait donc, en théorie, réécrire son
+  propre `org_id` et lire l'organisation cible (`is_org_member` fait foi sur
+  `profiles.org_id`).
+- **Vérification menée (2 comptes, appels REST réels)** :
+  | Scénario | Résultat |
+  |---|---|
+  | non-admin `PATCH profiles {org_id:'org-1'}` | **HTTP 403 `ORG_ID_IMMUTABLE`** |
+  | non-admin `PATCH profiles {role:'ADMIN'}` | **HTTP 403 `ROLE_IMMUTABLE`** |
+  | non-admin `PATCH organizations?id=eq.org-e2e` | **HTTP 200, 0 ligne** |
+  | non-admin `PATCH profiles {role:'MEMBRE', first_name}` (légitime) | **HTTP 204** |
+  | lecture `profiles`/`transactions`/`organizations` d'une autre org | **0 ligne** |
+- **Mécanisme** : triggers `guard_profile_role_immutable`,
+  `guard_profile_role_insert` (migrations `20261022000011` / `…14`) et
+  `trg_guard_profile_org`. Ils **sont bien installés en base** (`tgenabled='O'`).
+- **Nuance honnête** : un premier test avec le compte E2E a semblé montrer une
+  escalade (HTTP 200). C'était un **faux positif** : ce compte est
+  *légitimement* administrateur d'`org-e2e` (`org_admins.status='ACTIVE'`),
+  donc le trigger a correctement autorisé l'écriture. Le contrôle a été refait
+  avec un compte **non-admin**, qui est bloqué sur tous les chemins.
+- **Statut** : RLS vérifiée, **aucun correctif nécessaire**. Les écritures de
+  test ont été restaurées (nom d'org et rôle remis à l'identique).
+- **Travail restant** : ajouter ce scénario à la suite Cypress (fait :
+  `cypress/e2e/rls-leak.cy.ts`, 1/1 × 3 passes).
+
+### R51 — `rls-leak.cy.ts` ne testait pas la RLS — CORRIGÉ
+- **Gravité** : élevée (faux sentiment de sécurité + CI rouge permanente).
+- **Défaut** : le spec appelait REST avec la clé **anon** au lieu du jeton de
+  session. La clé anon n'a aucun `sub` → 0 ligne partout, y compris
+  l'assertion « l'org courante est visible » → échec systématique
+  (`expected 0 to be above 0`) **sans jamais tester la RLS**.
+- **Correctif** : authentification REST déterministe + jeton de session,
+  étapes imbriquées (les littéraux de gabarit étaient évalués à la mise en
+  file des commandes), assertions renforcées (`profiles`, `transactions`,
+  organisations étrangères réellement seedées, contrôle positif).
+- **Preuve** : `1 passing` × **3 passes consécutives** (`06012f5`).
