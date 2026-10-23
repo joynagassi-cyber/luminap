@@ -63,14 +63,30 @@ export function formatCentsFull(cents: number): string {
   }).format(ffa);
 }
 
-export function formatDate(date: string | Date): string {
+/**
+ * Coerce une valeur de date hétérogène (chaîne ISO, objet Date, `null`
+ * possible depuis une colonne PowerSync non renseignée) en `Date` valide.
+ * Retourne `null` si la valeur est inexploitable.
+ *
+ * Indispensable : `date-fns.format()` lève `RangeError: Invalid time value`
+ * sur une date invalide. Sans ce garde-fou, une seule colonne `NULL` faisait
+ * planter le rendu complet de la page (le LazyRouteErrorBoundary remplaçait
+ * tout l'écran par « Impossible d'afficher cette page »).
+ */
+function toValidDate(date: string | Date | null | undefined): Date | null {
+  if (date === null || date === undefined || date === "") return null;
   const d = typeof date === "string" ? new Date(date) : date;
-  return format(d, "d MMM yyyy", { locale: fr });
+  return Number.isNaN(d.getTime()) ? null : d;
 }
 
-export function formatDateTime(date: string | Date): string {
-  const d = typeof date === "string" ? new Date(date) : date;
-  return format(d, "d MMM yyyy à HH:mm", { locale: fr });
+export function formatDate(date: string | Date | null | undefined): string {
+  const d = toValidDate(date);
+  return d ? format(d, "d MMM yyyy", { locale: fr }) : "";
+}
+
+export function formatDateTime(date: string | Date | null | undefined): string {
+  const d = toValidDate(date);
+  return d ? format(d, "d MMM yyyy à HH:mm", { locale: fr }) : "";
 }
 
 export function getStatusLabel(status: Transaction["status"]): string {
