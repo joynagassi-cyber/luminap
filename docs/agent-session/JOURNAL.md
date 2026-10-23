@@ -400,3 +400,29 @@ sonde après correctifs → `{ org:"org-e2e", n:5, ready:true, err:"none" }`.
 - Suite Cypress complète relancée (run 4, `/tmp/cy-final.log`) après les
   correctifs R34 + R35 + Events.
 - Docs : RISQUES.md → R35.
+
+## 2026-10-23 ~02:42–02:50 UTC — suite finale (run 4) et livrables
+- Suite Cypress complète relancée en tâche de fond (`/tmp/cy-final.log`).
+- Résultats confirmés du run 4 : `auth-real` **5/5**, `calendar` **1/1**
+  (baseline 0/1 → correctif `?date=` validé), `cloud-sync` 0/1 (échec
+  **préexistant**, identique aux runs 2 et 3 avant correctifs).
+- Build production : `✓ built in 4.34s`.
+- **Livrables créés** : `PROPOSITIONS.md` (17 propositions priorisées),
+  `RAPPORT_FINAL.md`.
+- Branche poussée, **PR #3** ouverte (non fusionnée) :
+  https://github.com/joynagassi-cyber/luminap/pull/3
+- Sauvegardes vérifiées : `/workspace/backups/` (schéma 125 Ko / 42 tables,
+  données 1,1 Mo / 21 INSERT) — hors dépôt.
+
+## Statut des specs Cypress — run 4 (fin de session)
+
+| Spec | Baseline | Run 4 |
+|---|---|---|
+| auth-real | 5/5 | 5/5 |
+| calendar | 0/1 | **1/1** |
+| cloud-sync | 1/1 | 0/1 (préexistant, instable) |
+| finance-deep | 2/5 | **5/5** (spec isolée) |
+| members | 0/3 | **3/3** |
+| forms-fields | 0/4 | 3/4 |
+| forms-v2 | 0/6 | 0/6 (défaut de test) |
+| autres | variable | suite interrompue à la clôture |
