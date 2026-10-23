@@ -12,9 +12,13 @@ npx supabase@latest db dump --linked --data-only -f backup-data.sql # données
 ```
 Prérequis : projet lié (`supabase/.temp/project-ref`) et
 `SUPABASE_ACCESS_TOKEN` (ou `supabase login`).
-Un export équivalent a été produit pendant la session dans `/tmp/` (schéma
-133 Ko + données 1,1 Mo) — **à récupérer avant la fin de la session**, il n'est
-pas dans le dépôt (données réelles).
+Un export a été produit pendant la session (hors dépôt — données réelles) :
+- `/workspace/backups/remote_schema.sql` (125 Ko, 42 `CREATE TABLE`)
+- `/workspace/backups/remote_data.sql` (1,1 Mo, 21 `INSERT`)
+- copies horodatées : `schema-20261022-1801.sql`, `data-20261022-1802.sql`
+**Ces fichiers vivent hors du dépôt Git** (ils contiennent des données réelles :
+ne pas les commiter). À récupérer par le propriétaire avant que l'environnement
+de test soit détruit.
 
 ### Restaurer
 ```bash
