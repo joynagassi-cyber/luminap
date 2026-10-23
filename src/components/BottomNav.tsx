@@ -198,7 +198,11 @@ export default function BottomNav() {
           bottom: 0,
           left: 0,
           right: 0,
-          zIndex: "var(--z-overlay)",
+          // --z-nav (40) et non --z-overlay (50) : la nav doit rester SOUS
+          // les modales/drawers (pile documentee dans App.css, M15). En 50
+          // elle recouvrait les boutons des bottom-sheets (« Enregistrer »
+          // d'une tache, etc.) et les rendait incliquables au doigt.
+          zIndex: "var(--z-nav)",
           background: "var(--nav-bg)",
           backdropFilter: "blur(10px)",
           borderTop: "1px solid var(--border)",

@@ -488,3 +488,22 @@ X
   (hors git). L'anon key ne lit presque rien (RLS) : les volumes de
   référence restent ceux mesurés via MCP.
 - Gel (T0+9 h) dépassé : passage en clôture, plus de complétion.
+
+## Clôture — 2026-10-23T12:2xZ (gel dépassé, passage en clôture)
+
+- **R44 trouvé et corrigé** : `BottomNav` en `--z-overlay` (50) recouvrait
+  les boutons des bottom-sheets. Découvert par le spec `events-tasks` :
+  « Enregistrer » couvert par l'icône de l'onglet. → `--z-nav` (40).
+  Test unitaire de non-régression ajouté.
+- **Specs E2E fiabilisés** : `cross-tenant.cy.ts` **1 passing** (isolation
+  REST + réplica local + UI). `events-tasks.cy.ts` : la création
+  d'événement passe (hydratation + `typeIonicInput`), l'étape tâches
+  progresse après la correction R44.
+- **Causes racines identifiées** (toutes documentées) :
+  1. URL REST interpolées **hors** `cy.then()` → variables vides → 401 ;
+  2. `cy.contains` global tombant sur des pages Ionic **cachées** →
+     « not visible » alors que l'élément existe dans la page active ;
+  3. remplissage du formulaire **avant** le montage React → valeur écrasée ;
+  4. artefact `DataCloneError` du worker PowerSync sous Electron/Cypress.
+- **Tests unitaires** : **1049/1049 verts** (`npx vitest run`), dont le
+  nouveau test z-index (37/37 sur `core-components.test.tsx`).

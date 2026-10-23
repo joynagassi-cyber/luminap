@@ -583,3 +583,26 @@
   le parseur tolérant les lit correctement. Un backfill SQL est proposé
   (PROPOSITIONS.md, P-BACKFILL-BUDGET) plutôt qu'exécuté sans validation.
 - **Gravité** : **critique**.
+
+### R44 — BottomNav au-dessus des modales : boutons inaccessibles au doigt — CORRIGÉ (haute)
+- **Défaut** : la barre de navigation basse (`BottomNav.tsx`) utilisait
+  `zIndex: var(--z-overlay)` (50) — la même couche que les modales et
+  bottom-sheets. Elle recouvrait donc les boutons situés en bas des
+  overlays. Sur le modal « Nouvelle tâche », le bouton « Enregistrer »
+  était **physiquement couvert** par l'icône de l'onglet de navigation.
+- **Preuve** : le spec E2E `events-tasks.cy.ts` échouait avec
+  `cy.click() failed because this element is being covered by another
+  element` — l'élément couvrant étant le `<svg>` `lucide-calendar-plus`
+  de `BottomNav.tsx`. Cypress reproduit fidèlement ce qu'un doigt subit :
+  le clic n'atteint jamais le bouton.
+- **Portée** : tous les bottom-sheets qui placent une action en bas
+  (tâches d'événement, ajout de dépense, drawers) — c'est-à-dire le
+  parcours de saisie le plus fréquent sur mobile.
+- **Correctif** : `zIndex: var(--z-nav)` (40), conformément à la pile
+  documentée dans `src/App.css` (M15 : 40 nav < 50 overlays < 60 float
+  < 70 toasts). Le code contredisait sa propre spécification.
+- **Preuve de la correction** : le clic passe (`events-tasks.cy.ts`
+  progresse au-delà de l'étape 3) + test unitaire de non-régression
+  « la nav reste SOUS les overlays » (`core-components.test.tsx`).
+- **Gravité** : **haute** (fonctionnalité inutilisable au doigt, invisible
+  en test unitaire jsdom qui n'évalue pas le chevauchement visuel).

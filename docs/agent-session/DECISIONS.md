@@ -118,3 +118,15 @@
   chargement dans ce cas serait un mensonge de plus.
 - **Principe appliqué** : minimum de changement ; un état de chargement ne
   doit jamais masquer un état réel.
+
+### D-R44 — Corriger le z-index de BottomNav plutôt que forcer le clic dans le test
+- **Contexte** : `events-tasks.cy.ts` échouait sur le clic « Enregistrer »,
+  couvert par `BottomNav`.
+- **Alternative écartée** : `click({ force: true })` — masquerait un défaut
+  **réel** subi par l'utilisateur (bouton inaccessible au doigt). Interdit
+  par le principe « ne jamais affaiblir un test pour le faire passer ».
+- **Décision** : corriger le code (`--z-overlay` → `--z-nav`), conformément
+  à la pile z documentée dans `App.css` (M15), et verrouiller par un test.
+- **Alternative écartée (2)** : remonter `--z-overlay` à 60 — casserait
+  l'échelle d'élévation pour tous les autres overlays et rendrait les
+  toasts (70) et la barre flottante (60) ambigus.

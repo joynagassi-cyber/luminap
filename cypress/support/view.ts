@@ -47,9 +47,12 @@ export const activePage = (): Cypress.Chainable<JQuery<HTMLElement>> =>
  */
 export const activePageShouldContain = (
   selector: string,
-  text: string,
-): Cypress.Chainable<JQuery<HTMLElement>> =>
-  cy.get("div.ion-page", { timeout: 60_000 }).should(($pages) => {
+  text: string | RegExp,
+): Cypress.Chainable<JQuery<HTMLElement>> => {
+  const matches = (content: string): boolean =>
+    text instanceof RegExp ? text.test(content) : content.includes(text);
+
+  return cy.get("div.ion-page", { timeout: 60_000 }).should(($pages) => {
     // Pendant une transition, la page entrante et la sortante peuvent être
     // toutes deux « visibles » : on cherche dans l'ensemble des pages
     // visibles, jamais dans une page masquée.
@@ -57,8 +60,9 @@ export const activePageShouldContain = (
     expect(pages.length, "au moins une page visible").to.be.greaterThan(0);
     const found = pages.some((page) =>
       Array.from(page.querySelectorAll(selector)).some((el) =>
-        (el.textContent || "").includes(text),
+        matches(el.textContent || ""),
       ),
     );
     expect(found, `"${text}" présent dans la page active (${selector})`).to.be.true;
   });
+};

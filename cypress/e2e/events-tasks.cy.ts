@@ -81,57 +81,72 @@ describe('Lumina — Event tasks CRUD + status + progress + F5', () => {
     activePageShouldContain('button[role="tab"][aria-selected="true"]', 'Tâches');
 
     // ── 3. Add a parent task ─────────────────────────────────────────
-    cy.contains('button, ion-button', 'Ajouter une tâche', { timeout: 30_000 }).click();
-    cy.get('input[placeholder="Ex: Préparer la salle"]').type(parentTitle);
-    cy.contains('button, ion-button', 'Enregistrer').click();
+    // Toutes les commandes ciblent la page ACTIVE : les pages Ionic
+    // precedemment visitees restent montees dans le DOM et un selecteur
+    // global peut tomber sur un element cache (faux echec « not visible »).
+    activePage()
+      .contains('button, ion-button', 'Ajouter une tâche', { timeout: 30_000 })
+      .click();
+    activePage()
+      .get('input[placeholder="Ex: Préparer la salle"]')
+      .type(parentTitle);
+    activePage().contains('button, ion-button', 'Enregistrer').click();
 
     // Task appears in list with title
-    cy.contains(parentTitle, { timeout: 20_000 }).should('be.visible');
+    activePageShouldContain('p, span, div', parentTitle);
 
     // Progress counter shows "0/N tâche..."
-    cy.contains('span', /0\/\d+ tâche/, { timeout: 10_000 }).should('exist');
+    activePageShouldContain('span', /0\/\d+ tâche/);
 
     // ── 4. Add a sub-task linked to the parent ───────────────────────
-    cy.contains('button, ion-button', 'Ajouter une tâche').click();
-    cy.get('input[placeholder="Ex: Préparer la salle"]').type(subTitle);
-    // Check "Sous-tâche"
-    cy.get('label').contains('Sous-tâche').click();
-    // The parent select should now appear
-    cy.get('ion-select', { timeout: 10_000 })
-      .first()
-      .then(($sel) => {
-        const val = $sel.attr('value');
-        if (val && val !== 'Sélectionner une tâche...') return;
-        // Not yet visible, wait for it
-      });
-    // Click the parent select to open its options
-    cy.get('ion-select')
-      .contains('Sélectionner une tâche...')
-      .first()
+    activePage().contains('button, ion-button', 'Ajouter une tâche').click();
+    activePage()
+      .get('input[placeholder="Ex: Préparer la salle"]')
+      .type(subTitle);
+    // Check "Sous-tâche". On cible le ion-checkbox lui-meme : son label
+    // interne (shadow DOM) n'est pas fiable, et un `get('label')` global
+    // tombe sur le wrapper du textarea de description (1er label du form).
+    activePage().contains('ion-checkbox', 'Sous-tâche').click();
+    // Ouvrir le select « Tâche parente » (le DERNIER du formulaire : le
+    // premier est « Groupe assigné »). On clique l'HOTE `ion-select` : ses
+    // `ion-select-option` sont dans le light DOM mais `display: none` tant
+    // que le popover n'est pas ouvert, et un `.contains()` les viserait.
+    //
+    // NB : ne PAS scoper par le libellé « Tâche parente » — le titre de la
+    // tâche parente commence par ces mots, donc un `contains('ion-item',
+    // 'Tâche parente')` matche aussi la carte de la tâche dans la liste.
+    activePage().get('ion-select').last().click();
+    // Le popover Ionic est monte HORS de la page, attache a `body` (prouve
+    // par sonde : `ion-popover.select-popover` visible, options rendues en
+    // `ion-item`/`ion-radio`). On attend l'option VISIBLE du parent.
+    cy.get('ion-popover', { timeout: 10_000 })
+      .find('ion-item')
+      .filter(':visible')
+      .contains(parentTitle)
       .click();
-    // Wait for popover and pick the parent
-    cy.contains('ion-item', parentTitle, { timeout: 10_000 }).first().click();
-    cy.contains('button, ion-button', 'Enregistrer').click();
+    activePage().contains('button, ion-button', 'Enregistrer').click();
 
     // Subtask appears (indented)
-    cy.contains(subTitle, { timeout: 20_000 }).should('exist');
+    activePageShouldContain('p, span, div', subTitle);
 
     // ── 5. Mark the parent task as IN_PROGRESS ────────────────────────
-    cy.contains(parentTitle)
+    activePage()
+      .contains(parentTitle)
       .parents('.rounded-xl')
       .first()
       .contains('button', 'En cours')
       .click({ force: true });
 
     // ── 6. Mark parent task as DONE ───────────────────────────────────
-    cy.contains(parentTitle)
+    activePage()
+      .contains(parentTitle)
       .parents('.rounded-xl')
       .first()
       .contains('button', 'Terminer')
       .click({ force: true });
 
     // Progress counter updates after marking DONE
-    cy.contains('span', /1\/\d+ tâche/, { timeout: 10_000 }).should('exist');
+    activePageShouldContain('span', /1\/\d+ tâche/);
 
     // ── 7. Reload — tasks survive ────────────────────────────────────
     cy.reload();
@@ -140,10 +155,11 @@ describe('Lumina — Event tasks CRUD + status + progress + F5', () => {
     });
     activePageShouldContain('button[role="tab"]', 'Tâches');
     activePage().contains('button[role="tab"]', 'Tâches').click();
+    activePageShouldContain('button[role="tab"][aria-selected="true"]', 'Tâches');
 
-    // Both tasks are still present
-    cy.contains(parentTitle, { timeout: 20_000 }).should('exist');
-    cy.contains(subTitle, { timeout: 20_000 }).should('exist');
+    // Both tasks are still present (page active uniquement)
+    activePageShouldContain('p, span, div', parentTitle);
+    activePageShouldContain('p, span, div', subTitle);
 
     console.log('✅ TASKS CRUD — parent + subtask + status + progress + F5');
   });
