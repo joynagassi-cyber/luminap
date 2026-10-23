@@ -147,7 +147,7 @@ export default function EventNew() {
         return;
       }
 
-      await addEventPS({
+      const newEventId = await addEventPS({
         org_id: getOrganizationId(),
         name: name.trim(),
         description: description.trim(),
@@ -167,7 +167,14 @@ export default function EventNew() {
         extraData: { eventName: name.trim(), startDate },
       }).catch(() => {});
 
-      navigate("/events");
+      // Ouvre directement le détail de l'événement créé.
+      //
+      // Naviguer vers la liste ne montrait PAS le nouvel événement : elle est
+      // triée par date décroissante et tronquée aux 50 premiers, alors que la
+      // date saisie peut être ancienne. L'utilisateur croyait la création
+      // perdue (mesuré : événement absent de `/events` juste après le submit,
+      // alors que la ligne était bien en base et synchronisée).
+      navigate(`/event/${newEventId}`);
     } finally {
       setSubmitting(false);
     }
