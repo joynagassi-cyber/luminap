@@ -125,3 +125,9 @@ Les échecs sont **préexistants** (défauts de test / infra), cf. RISQUES.md R3
 | # | Fonctionnalité | Défaut | Preuve avant | Correctif | Preuve après |
 |---|---|---|---|---|---|
 | 40 | **Toute saisie de texte** (membres, transactions, formulaires, événements, budgets, dons…) | `onIonChange` sur `<IonInput>`/`<IonTextarea>` ne se déclenche qu'au **blur** : un bouton désactivé (validation par état React) ne se débloque jamais → **impasse**. Ex. bouton « Ajouter » de `/members` | `C tmp-diag` : `expected <button…> to be 'enabled'` (échec) | `onIonChange` → `onIonInput` (95 remplacements, 34 fichiers). `IonSelect`/`IonCheckbox` inchangés (pas d'`ionInput`) | `C tmp-diag` **1 passing** ; `tsc` OK ; `V` 1050/1050 |
+
+## Phase 5 — défaut transversal majeur : champs de saisie jamais rendus (corrigé)
+
+| # | Fonctionnalité | Défaut | Preuve avant | Correctif | Preuve après |
+|---|---|---|---|---|---|
+| 41 | **Tous les formulaires à `IonItem + IonInput/IonSelect/IonTextarea`** (transaction, transaction groupée, événement, groupe, budget, versement, fédération, invitation, champ personnalisé, rapport, unités d'org, document, tâches) | `slot="input"` posé sur le contrôle à l'intérieur d'un `<IonItem>`. `ion-item` (Ionic 9.0.2, **shadow DOM**) ne déclare que les slots `start` / `end` / défaut : l'enfant n'est **assigné à aucun slot → jamais rendu**. Le champ existe dans le DOM (`should('exist')` passe) mais rect **0×0**, `checkVisibility()=false`, `offsetParent=null` → invisible et non saisissable. | Sonde DOM `/event/new` : `checkVisibility=false`, rect `0×0`, `offsetParent=false` | Suppression des **61** attributs `slot="input"` (20 fichiers) — commit `86670ef` | Sonde DOM `/event/new` : `checkVisibility=true`, rect `316×44`, `offsetParent=true` ; `tsc` OK ; `C: finance-deep` passe de 4/5 à 5/5 |
