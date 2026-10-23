@@ -306,7 +306,6 @@ export default function FormFill() {
                           }
                           placeholder={field.label}
                           rows={3}
-                          slot="input"
                         />
                       </IonItem>
                     ) : field.type === "reference" ? (
@@ -357,7 +356,6 @@ export default function FormFill() {
                             handleChange(field.key, e.detail.value ?? "")
                           }
                           placeholder={field.label}
-                          slot="input"
                         />
                       </IonItem>
                     )}

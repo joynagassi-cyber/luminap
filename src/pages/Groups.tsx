@@ -232,7 +232,6 @@ export default function Groups() {
                       value={createName}
                       onIonInput={(e: IonChangeCustomEvent<string>) => setCreateName(e.detail.value ?? "")}
                       placeholder="Nom du groupe"
-                      slot="input"
                     />
                   </IonItem>
                   <IonSelect
@@ -253,7 +252,6 @@ export default function Groups() {
                       onIonInput={(e: IonChangeCustomEvent<string>) => setCreateDesc(e.detail.value ?? "")}
                       placeholder="Description (optionnel)"
                       rows={2}
-                      slot="input"
                     />
                   </IonItem>
                   <div className="flex gap-2">
@@ -397,7 +395,6 @@ export default function Groups() {
                         type="text"
                         value={editName}
                         onIonInput={(e: IonChangeCustomEvent<string>) => setEditName(e.detail.value ?? "")}
-                        slot="input"
                       />
                     </IonItem>
                     <IonItem lines="none" className="bg-card rounded-xl">
@@ -407,7 +404,6 @@ export default function Groups() {
                         onIonInput={(e: IonChangeCustomEvent<string>) => setEditDesc(e.detail.value ?? "")}
                         placeholder="Description"
                         rows={2}
-                        slot="input"
                       />
                     </IonItem>
                   </div>

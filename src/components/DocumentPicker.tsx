@@ -182,7 +182,6 @@ export default function DocumentPicker({
               const f = Array.isArray(v) ? (v[0] as File | undefined) : (v as File | undefined);
               setFile(f ?? null);
             }}
-            slot="input"
             style={{
               backgroundColor: "var(--card)",
               border: "1px solid var(--border)",

@@ -391,7 +391,6 @@ export default function Federation() {
                     value={newName}
                     onIonInput={(e: IonChangeCustomEvent<string>) => setNewName(e.detail.value ?? "")}
                     placeholder="Ex: Paroisse Sainte-Marie"
-                    slot="input"
                   />
                 </IonItem>
                 {/* M24 — grammaire canonique : IonItem + IonLabel + IonSelect */}
@@ -405,7 +404,6 @@ export default function Federation() {
                     value={newType}
                     onIonChange={(e: IonChangeCustomEvent<string>) => setNewType(e.detail.value)}
                     interface="popover"
-                    slot="input"
                     style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}
                   >
                     <IonSelectOption value="CHURCH">Église</IonSelectOption>
@@ -424,7 +422,6 @@ export default function Federation() {
                     value={newParent}
                     onIonChange={(e: IonChangeCustomEvent<string>) => setNewParent(e.detail.value)}
                     interface="popover"
-                    slot="input"
                     style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}
                   >
                     <IonSelectOption value="">Aucune (racine)</IonSelectOption>

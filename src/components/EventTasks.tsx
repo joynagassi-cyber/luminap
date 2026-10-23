@@ -348,7 +348,6 @@ export default function EventTasks({
                       setTitle(e.detail.value ?? "")
                     }
                     placeholder="Ex: Préparer la salle"
-                    slot="input"
                   />
                 </IonItem>
 
@@ -363,7 +362,6 @@ export default function EventTasks({
                     onIonInput={(e: IonChangeCustomEvent<string>) =>
                       setDueDate(e.detail.value ?? "")
                     }
-                    slot="input"
                   />
                 </IonItem>
 
@@ -378,7 +376,6 @@ export default function EventTasks({
                       setGroupId(e.detail.value ?? "")
                     }
                     interface="popover"
-                    slot="input"
                   >
                     <IonSelectOption value="">Sélectionner un groupe...</IonSelectOption>
                     {groups.map((g) => (
@@ -401,7 +398,6 @@ export default function EventTasks({
                     }
                     placeholder="Détails, consignes..."
                     rows={3}
-                    slot="input"
                   />
                 </IonItem>
 
@@ -429,7 +425,6 @@ export default function EventTasks({
                         setParentId(e.detail.value ?? "")
                       }
                       interface="popover"
-                      slot="input"
                     >
                       <IonSelectOption value="">Sélectionner une tâche...</IonSelectOption>
                       {parents.map((p) => (

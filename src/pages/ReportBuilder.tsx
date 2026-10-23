@@ -532,7 +532,6 @@ export default function ReportBuilder() {
             value={draft.name || ""}
             onIonInput={(e: IonChangeCustomEvent<string>) => setDraft((d) => ({ ...d, name: e.detail.value ?? "" }))}
             placeholder="Ex : Revenus par groupe"
-            slot="input"
           />
         </IonItem>
 

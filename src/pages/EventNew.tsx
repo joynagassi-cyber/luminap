@@ -250,7 +250,6 @@ export default function EventNew() {
                         setMontantCotisation((e.detail.value as string) ?? "")
                       }
                       min="0"
-                      slot="input"
                       style={{
                         backgroundColor: "var(--card)",
                         border: "1px solid var(--border)",
@@ -286,7 +285,6 @@ export default function EventNew() {
                 setName((e.detail.value as string) ?? "")
               }
               placeholder="Ex: Noël 2026"
-              slot="input"
               style={{
                 backgroundColor: "var(--card)",
                 border: "1px solid var(--border)",
@@ -326,7 +324,6 @@ export default function EventNew() {
               onIonInput={(e: IonChangeCustomEvent<string>) =>
                 setStartDate((e.detail.value as string) ?? "")
               }
-              slot="input"
               style={{
                 backgroundColor: "var(--card)",
                 border: "1px solid var(--border)",
@@ -344,7 +341,6 @@ export default function EventNew() {
               onIonInput={(e: IonChangeCustomEvent<string>) =>
                 setEndDate((e.detail.value as string) ?? "")
               }
-              slot="input"
               style={{
                 backgroundColor: "var(--card)",
                 border: "1px solid var(--border)",
@@ -361,7 +357,6 @@ export default function EventNew() {
               value={status}
               onIonChange={(e: IonChangeCustomEvent<string>) => setStatus(e.detail.value as Event["status"])}
               interface="popover"
-              slot="input"
               style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}
             >
               <IonSelectOption value="PLANIFIED">Planifié</IonSelectOption>

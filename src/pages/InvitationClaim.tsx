@@ -232,7 +232,6 @@ export default function InvitationClaim() {
                     onIonInput={(e) => setCodeInput(e.detail.value!.toUpperCase())}
                     placeholder="LUM-XXXXXX"
                     className="text-center text-xl font-mono tracking-widest"
-                    slot="input"
                   />
                 </IonItem>
                 <IonButton
@@ -266,7 +265,6 @@ export default function InvitationClaim() {
                     onIonInput={(e) => setRawPayload(e.detail.value!)}
                     placeholder="Collez ici le code reçu (texte ou JSON)"
                     className="text-xs"
-                    slot="input"
                   />
                 </IonItem>
                 <IonButton

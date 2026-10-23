@@ -308,7 +308,6 @@ export default function OrgChildren({
                     setNewName(e.detail.value ?? "")
                   }
                   placeholder="Ex: Paroisse Sainte-Marie"
-                  slot="input"
                 />
               </IonItem>
 
@@ -320,7 +319,6 @@ export default function OrgChildren({
                   value={newType}
                   onIonChange={(e: IonChangeCustomEvent<string>) => setNewType(e.detail.value)}
                   interface="popover"
-                  slot="input"
                 >
                   {ORG_TYPES.map((t) => (
                     <IonSelectOption key={t} value={t}>
@@ -340,7 +338,6 @@ export default function OrgChildren({
                     setNewStatus(e.detail.value)
                   }
                   interface="popover"
-                  slot="input"
                 >
                   {ORG_STATUSES.map((s) => (
                     <IonSelectOption key={s} value={s}>

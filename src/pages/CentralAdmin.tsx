@@ -461,7 +461,6 @@ function OrgDetail({ orgId, onBack }: { orgId: string; onBack: () => void }) {
                 value={delegated}
                 onIonChange={(e: IonChangeCustomEvent<string>) => setDelegated(e.detail.value)}
                 interface="popover"
-                slot="input"
                 style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}
               >
                 <IonSelectOption value="">Choisir un profil…</IonSelectOption>

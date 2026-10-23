@@ -421,7 +421,6 @@ export default function FormBuilder() {
                       onIonInput={(e: IonChangeCustomEvent<string>) => setFormDescription(e.detail.value ?? "")}
                       placeholder="Description (optionnel)"
                       rows={2}
-                      slot="input"
                     />
                   </IonItem>
                 </div>

@@ -227,7 +227,6 @@ export default function CustomFields() {
                       value={label}
                       onIonInput={(e: IonChangeCustomEvent<string>) => setLabel(e.detail.value ?? "")}
                       placeholder="Ex: Montant estimé"
-                      slot="input"
                     />
                   </IonItem>
                   <IonItem lines="none" className="bg-card rounded-xl">
@@ -241,7 +240,6 @@ export default function CustomFields() {
                         )
                       }
                       placeholder="montant_estime"
-                      slot="input"
                     />
                   </IonItem>
                   <div>
@@ -281,7 +279,6 @@ export default function CustomFields() {
                         placeholder="Option 1\nOption 2"
                         rows={3}
                         aria-label="Options du champ (une par ligne)"
-                        slot="input"
                       />
                     </IonItem>
                   )}

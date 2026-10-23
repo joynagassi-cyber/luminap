@@ -51,10 +51,14 @@ describe('Lumina — Forms & Custom Fields', () => {
 
     cy.ensureAuth();
     cy.visit('/forms');
-    // Click the form card → navigates to /forms/:id/submissions
-    cy.get('button')
-      .contains(/E2e Form/i)
-      .first()
+    // La carte de formulaire n'est PAS cliquable : la navigation vers
+    // /forms/:id/submissions passe par le bouton « Soumissions » de la
+    // ligne. L'ancienne version cliquait la carte (button contenant le
+    // nom) → aucun bouton trouvé → timeout.
+    cy.contains(/E2e Form/i, { timeout: 90_000 })
+      .closest('div')
+      .parent()
+      .contains('button', 'Soumissions')
       .click({ force: true });
 
     cy.location('pathname', { timeout: 90_000 }).should((path: string) => {
@@ -77,10 +81,14 @@ describe('Lumina — Forms & Custom Fields', () => {
     // Open the create modal
     cy.get('button[aria-label="Créer un nouveau champ"]').click({ force: true });
 
-    // Fill label + key
-    // The modal has: Entité (select), Label, Clé, Type (select), Options
-    cy.get('[role="dialog"] input').eq(0).type(fieldLabel);
-    cy.get('[role="dialog"] input').eq(1).type(fieldKey);
+    // Fill label + key.
+    // Le modal a : Entité (IonSelect), Label, Clé, Type (IonSelect), Options.
+    // `input` au sens DOM inclut l'`<input class="aux-input">` CACHÉ que
+    // Ionic injecte pour chaque IonSelect : `.eq(0)` tombait donc sur
+    // l'aux-input de « Entité » (display:none) → `cy.type()` échouait.
+    // On cible les deux champs par leur placeholder (uniques).
+    cy.get('[role="dialog"] input[placeholder="Ex: Montant estimé"]').type(fieldLabel);
+    cy.get('[role="dialog"] input[placeholder="montant_estime"]').type(fieldKey);
     cy.contains('button, ion-button', /Créer/i).last().click();
 
     // Field appears in the list

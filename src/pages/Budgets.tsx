@@ -297,7 +297,6 @@ function CreateBudgetSheet({
               value={name}
               onIonInput={(e: IonChangeCustomEvent<string>) => setName(e.detail.value ?? "")}
               placeholder="Ex : Budget fonctionnement 2026"
-              slot="input"
               data-testid="budget-name"
             />
           </IonItem>
@@ -310,7 +309,6 @@ function CreateBudgetSheet({
                 inputMode="numeric"
                 value={String(fiscalYear)}
                 onIonInput={(e: IonChangeCustomEvent<string>) => setFYear(Number(e.detail.value ?? ""))}
-                slot="input"
               />
             </IonItem>
             <IonItem lines="none" className="bg-card rounded-xl">
@@ -319,7 +317,6 @@ function CreateBudgetSheet({
                 value={period}
                 onIonChange={(e: IonChangeCustomEvent<string>) => setPPeriod(e.detail.value as BudgetPeriod)}
                 interface="popover"
-                slot="input"
               >
                 {PERIODS.map((p) => (
                   <IonSelectOption value={p.value}>{p.label}</IonSelectOption>
@@ -334,7 +331,6 @@ function CreateBudgetSheet({
               value={cc}
               onIonChange={(e: IonChangeCustomEvent<string>) => setCc(e.detail.value)}
               interface="popover"
-              slot="input"
             >
               <IonSelectOption value="">Tous (aucun)</IonSelectOption>
               {orgUnits.map((u) => (
@@ -351,7 +347,6 @@ function CreateBudgetSheet({
               value={total}
               onIonInput={(e: IonChangeCustomEvent<string>) => setTotal(e.detail.value ?? "")}
               placeholder="Ex : 5000000"
-              slot="input"
               data-testid="budget-total"
             />
           </IonItem>

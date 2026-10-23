@@ -887,7 +887,6 @@ export default function EventDetail() {
                       value={selectedBudgetItemId || ""}
                       onIonChange={(e: IonChangeCustomEvent<string>) => setSelectedBudgetItemId(e.detail.value)}
                       interface="popover"
-                      slot="input"
                     >
                       <IonSelectOption value="">Sélectionner un poste...</IonSelectOption>
                       {budgetItems.map((item: any) => (
@@ -910,7 +909,6 @@ export default function EventDetail() {
                       value={expenseAmount}
                       onIonInput={(e: IonChangeCustomEvent<string>) => setExpenseAmount(e.detail.value ?? "")}
                       placeholder="0"
-                      slot="input"
                     />
                     {selectedBudgetItemId &&
                       (() => {
@@ -939,7 +937,6 @@ export default function EventDetail() {
                       value={expenseDescription}
                       onIonInput={(e: IonChangeCustomEvent<string>) => setExpenseDescription(e.detail.value ?? "")}
                       placeholder="Ex: Achat de chaises"
-                      slot="input"
                     />
                   </IonItem>
                 </div>

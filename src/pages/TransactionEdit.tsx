@@ -199,7 +199,6 @@ export default function TransactionEdit() {
                   value={amount}
                   onIonInput={(e: IonChangeCustomEvent<string>) => setAmount(e.detail.value ?? "")}
                   placeholder="0"
-                  slot="input"
                 />
               </IonItem>
 
@@ -210,7 +209,6 @@ export default function TransactionEdit() {
                   value={description}
                   onIonInput={(e: IonChangeCustomEvent<string>) => setDescription(e.detail.value ?? "")}
                   placeholder="Description de la transaction"
-                  slot="input"
                 />
               </IonItem>
 
@@ -220,7 +218,6 @@ export default function TransactionEdit() {
                   type="date"
                   value={date}
                   onIonInput={(e: IonChangeCustomEvent<string>) => setDate(e.detail.value ?? "")}
-                  slot="input"
                 />
               </IonItem>
 
@@ -266,7 +263,6 @@ export default function TransactionEdit() {
                     value={personName}
                     onIonInput={(e: IonChangeCustomEvent<string>) => setPersonName(e.detail.value ?? "")}
                     placeholder="Nom de la personne"
-                    slot="input"
                   />
                 </IonItem>
               )}
@@ -296,7 +292,6 @@ export default function TransactionEdit() {
                   onIonInput={(e: IonChangeCustomEvent<string>) => setComment(e.detail.value ?? "")}
                   placeholder="Ajouter un commentaire..."
                   rows={2}
-                  slot="input"
                 />
               </IonItem>
 

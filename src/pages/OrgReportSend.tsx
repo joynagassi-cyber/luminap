@@ -7,8 +7,8 @@
  * un message explicite (« pas de mère — racine »), pas de formulaire.
  *
  * Formulaire (grammaire ionique canonique : IonItem lines="none" bg-card
- * rounded-xl + IonLabel position="floating" + IonSelect slot="input",
- * pattern Versement.tsx L212-227) :
+ * rounded-xl + IonLabel position="floating" + IonSelect,
+ * pattern Versement.tsx) :
  *  - IonSelect période  : mensuelle / semestrielle / annuelle
  *  - IonSelect format   : PDF / DOCX / XLSX / PNG
  *  - DocumentPicker     : documents uploadés joints → `document_refs`
@@ -362,7 +362,6 @@ export default function OrgReportSend() {
                 value={periodKind}
                 onIonChange={(e: IonChangeCustomEvent<PeriodKind>) => setPeriodKind(e.detail.value)}
                 interface="popover"
-                slot="input"
                 style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}
               >
                 {(Object.keys(PERIOD_LABELS) as PeriodKind[]).map((k) => (
@@ -383,7 +382,6 @@ export default function OrgReportSend() {
                 value={format}
                 onIonChange={(e: IonChangeCustomEvent<OrgReportFormat>) => setFormat(e.detail.value)}
                 interface="popover"
-                slot="input"
                 style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}
               >
                 {(Object.keys(FORMAT_LABELS) as OrgReportFormat[]).map((f) => (

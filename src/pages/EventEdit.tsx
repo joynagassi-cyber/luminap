@@ -138,7 +138,6 @@ export default function EventEdit() {
                   type="text"
                   value={name}
                   onIonInput={(e: IonChangeCustomEvent<string>) => setName(e.detail.value ?? "")}
-                  slot="input"
                 />
                 {fieldErrors.name && (
                   <p className="text-expense text-xs mt-1">{fieldErrors.name}</p>
@@ -151,7 +150,6 @@ export default function EventEdit() {
                   value={description}
                   onIonInput={(e: IonChangeCustomEvent<string>) => setDescription(e.detail.value ?? "")}
                   rows={3}
-                  slot="input"
                 />
               </IonItem>
 
@@ -165,7 +163,6 @@ export default function EventEdit() {
                   type="date"
                   value={startDate}
                   onIonInput={(e: IonChangeCustomEvent<string>) => setStartDate(e.detail.value ?? "")}
-                  slot="input"
                 />
                 {fieldErrors.startDate && (
                   <p className="text-expense text-xs mt-1">{fieldErrors.startDate}</p>
@@ -182,7 +179,6 @@ export default function EventEdit() {
                   type="date"
                   value={endDate}
                   onIonInput={(e: IonChangeCustomEvent<string>) => setEndDate(e.detail.value ?? "")}
-                  slot="input"
                 />
                 {fieldErrors.endDate && (
                   <p className="text-expense text-xs mt-1">{fieldErrors.endDate}</p>
@@ -217,7 +213,6 @@ export default function EventEdit() {
                   value={budget}
                   onIonInput={(e: IonChangeCustomEvent<string>) => setBudget(e.detail.value ?? "")}
                   placeholder="0"
-                  slot="input"
                 />
                 {fieldErrors.budget && (
                   <p className="text-expense text-xs mt-1">{fieldErrors.budget}</p>

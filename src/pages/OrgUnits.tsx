@@ -196,7 +196,6 @@ export default function OrgUnits() {
                     value={name}
                     onIonInput={(e: IonChangeCustomEvent<string>) => setName(e.detail.value ?? "")}
                     placeholder="Ex: Diocèse, Chorale, Jeunesse…"
-                    slot="input"
                   />
                 </IonItem>
                 <IonItem lines="none" className="bg-card rounded-xl">
@@ -207,7 +206,6 @@ export default function OrgUnits() {
                     value={type}
                     onIonChange={(e: IonChangeCustomEvent<string>) => setType(e.detail.value)}
                     interface="popover"
-                    slot="input"
                   >
                     {UNIT_TYPES.map((t) => (
                       <IonSelectOption value={t}>
@@ -225,7 +223,6 @@ export default function OrgUnits() {
                     value={description}
                     onIonInput={(e: IonChangeCustomEvent<string>) => setDescription(e.detail.value ?? "")}
                     placeholder="Rôle, périmètre…"
-                    slot="input"
                   />
                 </IonItem>
                 <button
