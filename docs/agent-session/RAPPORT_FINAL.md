@@ -636,3 +636,115 @@ externe (P31).
    corruption est définitive (plan gratuit = pas de PITR).
 3. **Activer `eslint-plugin-react-hooks` en erreur** (P28) pour prévenir
    toute récidive de R60.
+
+
+---
+
+# Session 4 — 2026-10-23 (livraison : R59 et R61 corrigés, fusion `main`)
+
+> Cette section complète les rapports des sessions 1-3. Même règle :
+> aucune affirmation sans preuve (test, sortie de commande, requête).
+
+## S4.1 — Résumé exécutif de la session 4
+
+Le **défaut produit le plus grave encore ouvert** (R59, écran noir après
+navigation vers une route paramétrée) est **corrigé**, avec sa cause racine
+identifiée — ce que les sessions 2 et 3 n'avaient pas réussi à faire.
+
+- **R59 — écran noir (gravité HAUTE)** : **corrigé**. Cause racine :
+  `React.lazy()` + `<Suspense>` dont le fallback rendait un `<IonPage>`
+  **dans** `ion-router-outlet` ; l'outlet enregistrait le squelette comme
+  « vue entrante » et la vraie page héritait de `ion-page-invisible`
+  (`opacity: 0`). Correctif : fallback en `<div>` neutre
+  (`src/ionic/routes/lazy-route.tsx`, commit `93072b4`). **Preuve** :
+  `groups-events.cy.ts` **0/3 → 3/3**, **3 passes consécutives vertes**.
+- **R61 — titre non sémantique** : **corrigé** sur `/groups/:id`
+  (`<h1 className="sr-only">`, commit `5db7436`). **Preuve** : 3/3, plus un
+  **test négatif** (correctif retiré → 2/3) qui prouve que l'assertion
+  n'est pas vide.
+- **Fusion `origin/main`** : 5 conflits documentaires résolus, **0 ligne
+  perdue** (vérifié ligne à ligne). `tsc --noEmit` => exit 0.
+- **Fixture E2E** : rôle `profiles` désaligné du rôle `org_memberships`
+  → corrigé (donnée de test, retour arrière documenté). Les comptes réels
+  sont, eux, cohérents.
+
+**Niveau de confiance** : **élevé** sur les parcours couverts par les specs
+vertes, et le principal risque résiduel des sessions précédentes est levé.
+Restent des défauts de **gravité moyenne/basse** (R62, R55, R56, R61 sur 19
+pages) et des specs à réexécuter après le correctif R59.
+
+## S4.2 — Bugs corrigés en session 4
+
+| Réf | Cause racine | Correction | Preuve |
+|---|---|---|---|
+| **R59** | Fallback `<Suspense>` rendant un `<IonPage>` dans `ion-router-outlet` → vue entrante = squelette, page réelle héritant de `ion-page-invisible` | `PageSkeleton` rend un `<div>` neutre (`93072b4`) | `groups-events.cy.ts` **3/3**, 3 passes consécutives |
+| **R61** | `IonTitle` n'expose pas de `role="heading"` → aucun `<h1>` sur `/groups/:id` | `<h1 className="sr-only">` (`5db7436`) | **3/3** ; **test négatif** → 2/3 |
+| **R63** | Fixture E2E : `profiles.role='MEMBRE'` vs `org_memberships.role='PASTEUR_PRINCIPAL'` | alignement de la donnée de test (2 comptes) | spec **3/3** |
+| **R64** | Sélecteurs de spec matchant les pages Ionic masquées (`FeatureSidebar`) | scope `div.ion-page:not(.ion-page-hidden)` | spec **3/3** |
+
+## S4.3 — Défauts connus NON corrigés (gravité décroissante)
+
+1. **R62 — deux sources de vérité du rôle, non synchronisées** (MOYENNE).
+   L'app lit `profiles.role`, `settle_invitation_claim` écrit aussi
+   `org_memberships.role`, aucun trigger ne les synchronise. Impact
+   **latent** (les chemins d'invitation écrivent les deux) mais réel : le
+   compte E2E en a fait la démonstration. Proposition **P36**.
+2. **R55 — build Android** (`@capacitor/storage` namespace) : non traité
+   cette session (hors périmètre web, pas de chaîne Android disponible).
+3. **R56 — 2 workflows CI rouges** : non traité (cf. S4.5).
+4. **R61 sur 19 autres pages** (BASSE, a11y) : proposition **P35**.
+5. **R64 sur les autres specs** (MOYENNE, test) : proposition **P37**.
+
+## S4.4 — Tests : résultats et reproduction
+
+```
+# Spec cible (R59, R61, R63, R64) — 3 passes consécutives vertes
+npx cypress run --spec cypress/e2e/groups-events.cy.ts --browser chromium
+# → Tests: 3 | Passing: 3 | Failing: 0 | ~26 s
+
+# Preuve négative de R61 (correctif retiré)
+git stash push -- src/pages/GroupDetail.tsx
+npx cypress run --spec cypress/e2e/groups-events.cy.ts --browser chromium
+# → Passing: 2 | Failing: 1
+#   "Expected to find element: div.ion-page:not(.ion-page-hidden) h1"
+git stash pop
+```
+
+## S4.5 — Modifications de la base de données
+
+Une seule écriture, sur des **données de test** :
+
+```sql
+-- Fixture E2E : aligner profiles.role sur org_memberships.role
+UPDATE public.profiles p SET role = m.role, updated_at = now()
+FROM public.org_memberships m
+WHERE m.user_id = p.id
+  AND p.email IN ('lumina-org-e2e@lumina.dev','lumina-org-unconfigured@lumina.dev')
+  AND p.role IS DISTINCT FROM m.role;
+-- 2 lignes : les deux comptes E2E → PASTEUR_PRINCIPAL
+
+-- RETOUR ARRIÈRE
+UPDATE public.profiles SET role = 'MEMBRE'
+WHERE id = '87afea21-bad7-453b-9ae5-4ad1da2ca13f';
+```
+
+Aucune migration, aucun DDL, aucune donnée utilisateur réelle touchée.
+Sauvegarde disponible : `/workspace/backups/` (cf. S3.5).
+
+## S4.6 — Risques résiduels pour les 4 mois sans surveillance
+
+1. **Aucune sauvegarde planifiée** (critique) — plan gratuit, pas de PITR.
+   Proposition **P31**. À traiter en priorité par le propriétaire.
+2. **Projet Supabase en pause** si inactif (plan gratuit) — cf. RUNBOOK.
+3. **R62** (rôle non synchronisé) — permissions fausses possibles pour un
+   utilisateur invité.
+4. **R56** (2 workflows CI rouges) — l'alerte ne sera pas fiable.
+5. **R61** sur 19 pages (a11y uniquement).
+
+## S4.7 — Décisions à valider par le propriétaire
+
+1. **Fusionner la PR #5** (R59 + R61 + fusion `main` + docs).
+2. **P36** : trancher la source de vérité du rôle (R62) — décision de
+   modèle de données, pas un correctif.
+3. **P31** : mettre en place une sauvegarde planifiée hors Supabase.
+4. **P35** : généraliser le `<h1>` aux 19 pages restantes.

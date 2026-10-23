@@ -42,7 +42,7 @@
 | 15 | **Formulaires dynamiques (builder + saisie)** | Créer un formulaire, le remplir | `/forms`, `/forms/fill/:id`, `/forms/:id/submissions` | **incomplète** | **`FormSubmissions.tsx` : `<EmptyState>` utilisé sans import → `ReferenceError` → page blanche à l'état vide** | Corrigé (import ajouté) | `V: FormSubmissions.test.tsx` | validée (V) |
 | 16 | **Champs personnalisés** | Ajouter des champs métier | `custom_field_definitions/values` | complète | — | — | `V` | à valider |
 | 17 | **Événements et tâches** | Planifier un culte, suivre ses tâches | `/events`, `/event/*`, `events`, `event_tasks` | complète | Spec périmée (`/^\/events\//` vs route `/event/:id`) ; formulaire rempli **avant** le montage React (valeur écrasée) ; sélecteurs globaux tombant sur des pages Ionic **cachées** ; `ion-checkbox` « Sous-tâche » ciblé via un `label` ambigu | Specs corrigées : attente d'hydratation, `typeIonicInput`, `activePage`/`activePageShouldContain` (helper `view.ts`, support regex), ciblage `ion-checkbox` ; **R44** corrigé côté code | `C: cross-tenant.cy.ts` **1/1** ; `C: events-tasks.cy.ts` **1/1** (CRUD complet + F5) — **3 passes consécutives vertes** | **validée (C, 3 passes)** |
-| 18 | **Groupes et appartenances de groupe** | Organiser des groupes | `/groups`, `groups`, `group_memberships` | complète | — | — | `C: groups-events.cy.ts` | à valider |
+| 18 | **Groupes et appartenances de groupe** | Organiser des groupes | `/groups`, `groups`, `group_memberships` | complète | R61 (aucun `<h1>` sur le detail) — **corrige session 4** | Correctif `<h1 class="sr-only">` (`5db7436`) ; spec scopee a la page active + `ion-back-button` (`93072b4`) | `C: groups-events.cy.ts` **3/3** (nominal + navigation detail/retour + `h1`) ; **3 passes consecutives** | **validee (C, 3 passes)** |
 | 19 | **Membres (annuaire)** | Gérer les personnes | `/members`, `/membres-en-avance`, `members` | **cassée** | **Provider PowerSync jamais monté** (bug C) → `useQuery` renvoyait `data:[]` + « PowerSync not configured. » → repli `useLocalStore` vide → « 0 actifs / Aucun membre » alors que la base locale contenait 5 membres. **`usePowerSyncStatus` appelait `addListener`/`getStatus()`** (inexistants dans le SDK, bug D) → `_psReady` restait `false` → repli vide permanent. **`usePowerSyncStatus` bloquait aussi les autres listes** ; `ensureAuth` perdait la session entre `it()` (bug F) ; routes `/event/*` testées en `/events/*` (spec périmée). | Corrigé C (montage provider), D (`registerListener`+`currentStatus`), E (double refresh Supabase), F (`cy.session`) ; specs `/event/` corrigées | `C: members.cy.ts` **3/3** ; sonde `useMembers` `{n:5, ready:true}` | **validée (C, 3/3)** |
 | 20 | **Dons et campagnes** | Suivre les dons | `/giving`, `giving_campaigns`, `giving_donors`, `pledges`, `tax_receipts` | complète | — | — | `V: budgets-giving.test.ts` | partielle |
 | 21 | **Notifications** | Être averti d'un changement | `notifications`, triggers `notify_*`, `onesignal.ts` | complète | — | — | `V: notification.test.ts` | partielle |
@@ -152,7 +152,7 @@ Les échecs sont **préexistants** (défauts de test / infra), cf. RISQUES.md R3
 | 23b | **Navigation (barre basse)** | complète | Specs périmées : onglet par défaut = « Cultes », sélecteurs sur pages masquées. | Specs corrigées (scoping page active) | `C: nav-bottom.cy.ts` **3/3** | **validée (C)** |
 | 41b | **États de chargement / squelettes** | incomplète | Spec `responsive-skeleton` : prémisse obsolète après R57 (plus de squelette infini). | Spec alignée | `C: responsive-skeleton.cy.ts` **4/4** | **validée (C)** |
 | 2b | **Déconnexion douce / reconnexion** | complète | Specs : `testIsolation` Cypress 16 effaçait la session entre `it()`. | `cy.ensureAuth()` en tête de chaque `it()` | `C: sessions.cy.ts` **3/3** ; `C: rbac-gates.cy.ts` **2/2** | **validée (C)** |
-| — | **Ouverture d'une entité depuis une liste** (groupe, événement, membre) | **cassée** | **R59** — navigation vers une route paramétrée : page entrante **`opacity: 0`** (écran noir permanent) alors que le contenu est rendu. Accès direct OK. **NON CORRIGÉ** (budget dépassé ; 4 hypothèses éliminées par expérience). | — | `C: groups-events.cy.ts` 0/3 (échoue pour cette raison) | **non validée** (défaut produit ouvert, cf. RISQUES R59 / PROPOSITIONS P34) |
+| — | **Ouverture d'une entité depuis une liste** (groupe, événement, membre) | **corrigée** | **R59** — `React.lazy()` + fallback `<Suspense>` rendant un `<IonPage>` dans `ion-router-outlet` : l'outlet enregistrait le squelette comme « vue entrante » et la vraie page héritait de `ion-page-invisible` (`opacity: 0`). | `PageSkeleton` rend un `<div>` neutre (`src/ionic/routes/lazy-route.tsx`, `93072b4`) | `C: groups-events.cy.ts` **3/3** (assertion de non-régression : page entrante visible après un clic depuis la liste) | **validée (C, 3 passes)** |
 
 ### Suite Cypress complète — session 3
 
@@ -169,3 +169,16 @@ Specs **rouges** (7) : `forms-fields` 2/4, `forms-v2` 0/6, `groups-events` 0/3,
 `reports-budgets` 1/5.
 Causes : **R59** (écran noir, 4 specs) et sélecteurs globaux portant sur des
 pages Ionic **masquées** + prémisses de spec obsolètes (3 specs).
+
+
+---
+
+## Session 4 — mises à jour (2026-10-23, livraison)
+
+| Réf | Fonctionnalité | Statut initial | Statut final | Preuve |
+|---|---|---|---|---|
+| R59 | Ouverture d'une entité depuis une liste | **cassée** (écran noir) | **corrigée** | `C: groups-events.cy.ts` 0/3 → **3/3**, 3 passes consécutives |
+| R61 | Titre de niveau 1 sur `/groups/:id` | incomplète (a11y) | **corrigée** | `C: groups-events.cy.ts` **3/3** ; test négatif (correctif retiré) → 2/3 |
+| R63 | Fixture E2E : rôle `profiles` ≠ `org_memberships` | **cassée** (donnée) | **corrigée** | spec 3/3 après alignement ; retour arrière documenté (RISQUES R63) |
+| R64 | Sélecteurs de spec sur pages Ionic masquées | incomplète (test) | **corrigée** (1 spec) | `groups-events.cy.ts` scopé à la page active |
+| R62 | Deux sources de vérité du rôle | — | **ouverte** | Proposition P36 (RISQUES R62) |

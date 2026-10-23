@@ -130,3 +130,63 @@
 - **Alternative écartée (2)** : remonter `--z-overlay` à 60 — casserait
   l'échelle d'élévation pour tous les autres overlays et rendrait les
   toasts (70) et la barre flottante (60) ambigus.
+
+
+### D-R59 — Corriger le squelette de `LazyRoute`, pas la transition d'Ionic
+- **Contexte** : R59 (écran noir après navigation vers une route
+  paramétrée). Quatre hypothèses avaient déjà été éliminées par
+  expérience : identité du `<IonPage>` échangée, `<div>` du
+  `LazyRouteErrorBoundary`, branche de chargement, préchargement du chunk.
+- **Décision** : corriger la **cause racine** — le fallback de `<Suspense>`
+  (`PageSkeleton`) rendait un `<IonPage>` **à l'intérieur** de
+  `ion-router-outlet`, qui l'enregistrait comme vue entrante. Il rend
+  désormais un `<div>` neutre. Le squelette de chargement (UX) est
+  conservé.
+- **Alternative écartée** : retirer le `<Suspense>` / rendre les pages en
+  direct. Cela supprimerait le découpage de code (bundle initial plus
+  lourd) pour contourner un défaut de structure du fallback — traiter le
+  symptôme plutôt que la cause.
+- **Alternative écartée (2)** : patcher la transition `ion-router-outlet`
+  (forcé de retirer `ion-page-invisible`). Touche à un composant Ionic
+  interne, hors de notre contrôle, et masquerait d'autres transitions.
+- **Preuve** : `groups-events.cy.ts` 0/3 → 3/3, 3 passes consécutives.
+
+### D-R61 — `<h1 className="sr-only">` par page, pas un `<h1>` global dans `TopHeader`
+- **Contexte** : R61 — 19 pages n'exposent aucun `<h1>`, mais 24 pages en
+  ont déjà un.
+- **Décision** : correctif minimal, page par page (`/groups/:id` d'abord),
+  via la convention déjà en place (`<h1 className="sr-only">`, utilisée par
+  Dashboard, Finance, TransactionNew).
+- **Alternative écartée** : rendre le titre de `TopHeader` en `<h1>`. Un
+  changement global créerait un **doublon** de titre de niveau 1 sur les 24
+  pages qui en ont déjà un — régression d'accessibilité, pas correctif.
+- **Alternative écartée (2)** : `headingLevel` configurable sur
+  `TopHeader`. Plus propre à terme, mais touche 43 pages : hors du
+  « minimum de changement » et du gel de fin de session → consigné en
+  proposition **P35**.
+
+### D-R63 — Aligner la fixture E2E, sans toucher au code produit
+- **Contexte** : le compte E2E avait `profiles.role = 'MEMBRE'` alors que
+  `org_memberships.role = 'PASTEUR_PRINCIPAL'`. L'app lit `profiles.role`,
+  donc le compte de test n'avait pas `transaction:create`.
+- **Décision** : corriger la **donnée de test** (2 comptes E2E), pas le
+  code. Les comptes **réels** sont cohérents (vérifié par requête) : le
+  défaut est dans la fixture, pas dans le produit.
+- **Alternative écartée** : modifier l'app pour lire `org_memberships.role`.
+  C'est un changement de modèle de données (sécurité des rôles) : hors
+  périmètre d'un correctif ciblé, et risqué en fin de session → consigné en
+  proposition **P36** (RISQUES R62).
+- **Traçabilité** : requête de correction et requête de retour arrière
+  consignées dans RISQUES.md (R63).
+
+### D-Fusion — Résoudre les 5 conflits en gardant la version de la branche
+- **Contexte** : fusion de `origin/main` (1 commit, PR #4) dans
+  `agent/session-3-livraison` → 5 conflits, tous documentaires.
+- **Décision** : garder la version de la branche (`--ours`).
+- **Vérification (pas une supposition)** : pour chacun des 5 fichiers, les
+  lignes ajoutées par `origin/main` (23, 74, 101, 122 et 187 lignes non
+  vides) sont **toutes déjà présentes** dans la version de la branche →
+  **0 ligne perdue**. Le côté `main` du conflit était vide.
+- **Alternative écartée** : fusion manuelle bloc par bloc — inutile ici,
+  et source d'erreur, puisque le contenu de `main` est un sous-ensemble
+  strict.

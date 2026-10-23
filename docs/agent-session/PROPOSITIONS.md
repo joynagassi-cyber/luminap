@@ -322,6 +322,10 @@
   **Priorité** : haute. **Bloquant** : partiellement (finances).
 
 ### P34 — Écran noir à la navigation vers une route paramétrée (R59) — CRITIQUE
+- **TRAITÉ (session 4)** : R59 corrigé — cause racine = fallback
+  `<Suspense>` rendant un `<IonPage>` dans `ion-router-outlet`
+  (`src/ionic/routes/lazy-route.tsx`, commit `93072b4`). Preuve :
+  `groups-events.cy.ts` 0/3 → 3/3, 3 passes vertes.
 - **Problème** : ouvrir un groupe / événement / membre depuis une liste
   laisse la page entrante à `opacity: 0` (écran noir permanent, PWA sans
   barre d'adresse). C'est le parcours cœur de l'app.
@@ -339,3 +343,50 @@
 - **Coût** : 4 à 6 h (diagnostic Ionic/`ion-router-outlet`).
   **Risques** : moyen (touche au routeur). **Priorité** : **critique**.
 - **Bloquant** : oui.
+
+
+### P35 — Titre de niveau 1 sur les 19 pages restantes — MOYENNE
+- **Problème** : R61 (session 4) n'a été corrigé que pour `/groups/:id`.
+  **19 pages** n'exposent aucun `<h1>` (mesuré :
+  `grep -c '<h1' src/pages/*.tsx` → CentralAdmin, EventEdit, EventNew,
+  Federation, FormFill, History, InvitationEmit, MembreDetail,
+  MembresEnAvance, OrgReportDetail, OrgReportSend, OrgReportsReceived,
+  OrgUnits, Reports, SaisieRapide, Sessions, Trace, TransactionDetail,
+  TransactionNewGroup). Un `<h1>` global dans `TopHeader` est **exclu** :
+  il créerait un **doublon** sur les 24 pages qui en ont déjà un.
+- **Proposition** : `TopHeader` accepte une prop `headingLevel` (défaut
+  `"none"` = `<p>` actuel) ; chaque page sans `<h1>` passe `headingLevel=1`.
+  Ou, plus simple : un `<h1 className="sr-only">` par page manquante,
+  comme fait pour `/groups/:id`.
+- **Intérêt** : navigation par titres et lecteurs d'écran conformes sur
+  toute l'app. **Coût** : 2 h. **Priorité** : moyenne (a11y).
+- **Bloquant** : non.
+
+### P36 — Trancher la source de vérité du rôle (R62) — HAUTE
+- **Problème** : deux colonnes portent le rôle
+  (`profiles.role` **lu** par l'app, `org_memberships.role` **écrit** par
+  `settle_invitation_claim`) et **aucun trigger ne les synchronise**
+  (mesuré : le compte E2E avait `MEMBRE` vs `PASTEUR_PRINCIPAL`). Un
+  désalignement produit des permissions fausses (masquage d'actions
+  légitimes, ou l'inverse).
+- **Proposition** : (1) définir `org_memberships.role` comme source de
+  vérité (elle porte déjà le multi-org) ; (2) soit faire lire ce rôle par
+  `useCurrentUser`/`persistCurrentUser` au lieu de `profiles.role`, soit
+  ajouter un trigger de synchronisation `org_memberships` →
+  `profiles.role` ; (3) test Cypress de non-régression : un utilisateur
+  invité avec `target_role='TREASURIER'` voit bien les actions de
+  `TREASURIER` (et pas celles d'un `MEMBRE`).
+- **Intérêt** : supprime une classe de bugs de permissions silencieux, sur
+  le cœur sécurité/données. **Coût** : 5 h. **Priorité** : haute.
+- **Bloquant pour la fiabilité à long terme** : oui (sécurité des rôles).
+
+### P37 — Étendre le scoping « page active » aux specs restants — MOYENNE
+- **Problème** : R64 (sélecteurs globaux matchant les pages Ionic masquées)
+  a été corrigé dans `groups-events.cy.ts` uniquement. D'autres specs
+  utilisent encore `cy.contains('button', …)` / `cy.get('h1')` globaux et
+  peuvent échouer pour ce motif, en accusant l'app à tort.
+- **Proposition** : factoriser le helper `PAGE` dans
+  `cypress/support/view.ts` (qui documente déjà le mécanisme) et l'imposer
+  par une règle de revue + un test lint.
+- **Intérêt** : des échecs de test qui désignent le bon coupable.
+  **Coût** : 2 h. **Priorité** : moyenne.

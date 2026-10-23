@@ -708,3 +708,116 @@ alors que l'app fonctionnait.
   `data-20261022-1802.sql` (1,1 Mo) — export logique complet de
   `hhgovvrnalibhgpakswi` (plan gratuit, sauvegardes classiques
   indisponibles → export `supabase db dump`, cf. RUNBOOK §Sauvegardes).
+
+
+---
+
+## Session 4 — 2026-10-23 (livraison : R59 corrige, R61 corrige, fusion)
+
+- **Branche** : `agent/session-3-livraison` (PR #5). Aucun changement de branche.
+- **T0 session 4** : 2026-10-23T22:2xZ (voir horodatages ci-dessous).
+
+### R59 — ecran noir apres navigation vers une route parametree : CORRIGE
+
+Diagnostic par sondes 24-28 (MutationObserver sur `ion-router-outlet`) :
+
+- `ionNavWillChange` -> `ionNavDidChange` est bien emis, la transition se
+  termine, **mais `ion-page-invisible` n'est jamais retiree**.
+- Deux navigations observees : la 1re reussit (+501 ms), la 2e (+685 ms)
+  laisse la nouvelle page invisible. Un seul `pushState`, un seul
+  `transition()`, mais **deux** ajouts de `ion-page-invisible`.
+- **Test decisif** : rendre `GroupDetail` en DIRECT (sans `lazy()` ni
+  `LazyRoute`) => `VIS:op1` (rendu correct). Via `LazyRoute` => `op0`.
+
+**CAUSE RACINE** : `React.lazy()` + `<Suspense>` dont le fallback rendait
+un `<IonPage>` **a l'interieur** de `ion-router-outlet`. L'outlet
+enregistre la **premiere** page rendue par la route comme « vue
+entrante » : il capturait le squelette, lui ajoutait `ion-page-invisible`,
+puis le remplacait par la vraie page (chunk arrive) qui heritait de l'etat
+invisible -> contenu monte mais `opacity: 0`.
+
+**CORRECTIF** : `PageSkeleton` (`src/ionic/routes/lazy-route.tsx`) ne rend
+plus `<IonPage>`/`<IonContent>` mais un `<div>` neutre ; le fallback ne
+participe plus au registre de vues de l'outlet. Le squelette de chargement
+(UX) est conserve. Commit `93072b4`.
+
+**PREUVE** : `groups-events.cy.ts` **0/3 -> 3/3** ; **3 passes
+consecutives vertes** (`ge4.log`, `ge-stab1.log`, `ge-stab2.log`), 26-27 s
+par passe (contre 3 min en echec). L'assertion de non-regression
+(`ion-page` entrante visible apres un clic depuis la liste) est dans le
+spec.
+
+### Spec `groups-events.cy.ts` — defauts de test corriges
+
+Motif systemique : `ion-router-outlet` **conserve montees** toutes les
+pages visitees (masquees par `ion-page-hidden`). Un selecteur global
+(`cy.contains('button', 'Retour')`, `cy.get('h1')`) fouillait donc aussi
+la barre laterale `FeatureSidebar` (`visibility: hidden`) -> faux echecs
+« element is not visible » alors que l'app fonctionnait.
+
+- Tous les selecteurs sont scopes a la page active :
+  `const PAGE = 'div.ion-page:not(.ion-page-hidden)'`.
+- Bouton retour reel du detail groupe : `ion-back-button` (la spec
+  cherchait un bouton « Retour » inexistant sur cette page).
+- Titre du detail groupe : `ion-title` (pas de `<h1>` avant R61).
+- Test 3 : `navigate(-1)` depuis `TransactionNew` revient sur le **detail**
+  de l'evenement, pas sur la liste -> assertion corrigee.
+
+### R61 — titre de niveau 1 sur le detail de groupe : CORRIGE
+
+`IonTitle` n'expose pas de `role="heading"` : `/groups/:id` n'avait aucun
+titre de niveau 1. Ajout d'un `<h1 className="sr-only">{orgUnit.name}</h1>`
+(convention deja utilisee par Dashboard, Finance, TransactionNew).
+Commit `5db7436`.
+
+**Portee volontairement limitee** : 19 pages n'ont aucun `<h1>`, mais un
+`<h1>` global dans `TopHeader` creerait un **doublon** sur les 24 pages
+qui en ont deja un. Le reste est consigne en proposition (P35) plutot
+qu'improvise.
+
+**PREUVE** : `groups-events.cy.ts` **3/3** (assertion `h1` incluse) ;
+**test NEGATIF** correctif retire via `git stash` => **2/3**, echec
+« Expected to find element: `div.ion-page:not(.ion-page-hidden) h1` »
+(l'assertion n'est donc pas vide).
+
+### Fusion `origin/main` — 5 conflits documentaires resolus
+
+Fichiers : `.openhands/memory/2026-10-23.md`,
+`docs/agent-session/{JOURNAL,PROPOSITIONS,RAPPORT_FINAL,RISQUES}.md`.
+
+Resolution : version de la branche conservee. **Justification verifiee, pas
+supposee** : pour chacun des 5 fichiers, les lignes ajoutees par
+`origin/main` (23, 74, 101, 122 et 187 lignes non vides) sont **toutes
+deja presentes** dans la version de la branche -> **0 ligne perdue**. Le
+cote `main` du conflit etait vide (la branche avait deja integre puis
+etendu ces sections). Aucun fichier de **code** en conflit : les apports de
+`origin/main` (DashboardOnboarding, SettingsProfile/Personalisation,
+Tutorial, dataLayer, ci.yml, eslint.config.js) sont fusionnes
+automatiquement. Commit `fa284bc`. `tsc --noEmit` => exit 0 sur l'arbre
+fusionne.
+
+### Fixture E2E — incoherence de role (donnee de test, pas defaut produit)
+
+Constat : `profiles.role = 'MEMBRE'` alors que
+`org_memberships.role = 'PASTEUR_PRINCIPAL'` pour le compte E2E. L'app lit
+`profiles.role` (via `useCurrentUser` -> cle `lumina-user`), donc les
+permissions du compte de test etaient celles d'un `MEMBRE`
+(`transaction:create` absent -> bouton « Ajouter une transaction » masque,
+d'ou l'echec du test 3).
+
+**Ce n'est PAS un defaut produit** : les comptes REELS
+(`kairosiluminate@gmail.com`, `journey@example.com`) ont
+`profiles.role = org_memberships.role` (coherents). Verification par
+requete sur `profiles` JOIN `org_memberships`.
+
+**Correction de la fixture** (2 comptes E2E uniquement) :
+`UPDATE public.profiles p SET role = m.role FROM public.org_memberships m
+WHERE m.user_id = p.id AND p.email IN (...) AND p.role IS DISTINCT FROM m.role;`
+**Retour arriere documente** : `UPDATE public.profiles SET role = 'MEMBRE'
+WHERE id = '87afea21-bad7-453b-9ae5-4ad1da2ca13f';`
+
+**Ambiguite consignee (P36)** : le depot a deux sources de verite du role
+(`profiles.role` lu par l'app, `org_memberships.role` ecrit par
+`settle_invitation_claim`) et aucun trigger ne les synchronise. Impact
+limite aujourd'hui (les chemins d'invitation mettent a jour les deux), mais
+c'est une fragilite a traiter.
