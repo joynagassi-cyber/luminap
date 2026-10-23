@@ -517,3 +517,37 @@
 - **Preuve après** : FAB présent dès la 1re visite ; `V` :
   `useCanAccessMulti` 46/46.
 - **Gravité** : **haute** (même symptôme que R38, mais transitoire).
+
+### R40 — Organisation jamais résolue → toutes les listes vides — CORRIGÉ (critique)
+- **Défaut** : `getOrganizationId()` (`orgContext._orgId`, variable de
+  module) valait `__no_org__` au premier rendu de chaque page :
+  1. le poser ne re-rend aucun composant (aucun abonnement) ;
+  2. `AppContext` ne le résolvait qu'au **montage** (jamais après un login
+     depuis `/auth`, car `AppProvider` est monté à la racine) ;
+  3. aucune restauration synchrone depuis `lumina-active-org` au boot.
+- **Impact** : toutes les lectures PowerSync filtrées par `org_id` renvoyaient
+  `[]` — « 0 événements », « Aucun membre », alors que 141 événements et
+  14 membres étaient synchronisés en local. Après **création d'un événement**,
+  l'app renvoyait sur `/events` vide : l'utilisateur croyait la création
+  perdue (la ligne était pourtant bien en base).
+- **Mesure avant** : `/events` affichait « 0 événements » pendant ~30 s
+  (`SelfHeal`) ; « 143 événements » seulement après re-rendu spontané.
+- **Correctif** (commit `29e7cdb`) : `subscribeOrganization()` +
+  `useOrganizationRevision()` dans les 13 hooks de lecture ; résolution depuis
+  le profil auth déjà hydraté, réabonnement sur `authService.subscribe` ;
+  restauration synchrone depuis `lumina-active-org`.
+- **Preuve après** : « 143 événements » dès la 1re visite sans reload ;
+  après `cy.clearLocalStorage()` + login neuf : correct en **6,2 s**.
+- **Gravité** : **critique**.
+
+### R41 — État vide trompeur pendant l'initialisation — CORRIGÉ (haute)
+- **Défaut** : les hooks de lecture renvoyaient `isLoading: false` en dur,
+  même quand `useQuery` répondait `[]` **avant la fin de la 1re synchro**
+  (base SQLite encore vide, sans erreur). Les pages affichaient « Aucun
+  événement » / « Aucun membre » au lieu de leur squelette de chargement.
+- **Correctif** : `isInitializingRead()` — « chargement » seulement si aucune
+  donnée n'est disponible ET que PowerSync n'est pas prêt ET qu'on est dans
+  les 10 s suivant le boot. Un utilisateur hors ligne avec des données locales
+  les voit immédiatement ; l'état réel n'est jamais masqué indéfiniment.
+- **Preuve** : `V` 1049/1049 ; specs Cypress des listes revérifiées.
+- **Gravité** : **haute**.
