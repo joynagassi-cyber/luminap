@@ -1,6 +1,17 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useEvents, useTransactions, useCaisses, deleteEventPS, updateEventPS, addTransactionPS, useCurrentUser, useGroups } from "@/lib/dataLayer";
+import {
+  useEvents,
+  useTransactions,
+  useCaisses,
+  deleteEventPS,
+  updateEventPS,
+  addTransactionPS,
+  useCurrentUser,
+  useGroups,
+  parseBudgetItems,
+  isPowerSyncReadyNow,
+} from "@/lib/dataLayer";
 import { formatCurrencyCompact, formatDate } from "@/lib/utils";
 import {
   Calendar,
@@ -18,7 +29,6 @@ import {
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { EventDetailSkeleton } from "@/components/PageSkeletons";
-import { isPowerSyncReadyNow } from "@/lib/dataLayer";
 import type { EventStatus } from "@/types";
 import { security } from "@/capabilities/security";
 import { workflow } from "@/capabilities/workflow";
