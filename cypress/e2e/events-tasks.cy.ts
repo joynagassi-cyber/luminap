@@ -16,6 +16,8 @@
  *   7. F5 persist — les tâches subsistent
  */
 
+import { activePage, activePageShouldContain } from '../support/view';
+
 describe('Lumina — Event tasks CRUD + status + progress + F5', () => {
   before(function () {
     this.timeout(90_000);
@@ -35,39 +37,20 @@ describe('Lumina — Event tasks CRUD + status + progress + F5', () => {
     cy.ensureAuth();
     cy.visit('/event/new');
 
-    // Le IonInput du nom est un custom element Ionic (shadow DOM). Le
-    // `type()` de Cypress sur l'input interne ne propage PAS vers
-    // onIonChange (le DOM value passe mais le React state reste vide)
-    // — voir le pattern détaillé dans persistence.cy.ts. On force :
-    //   1. value sur l'input natif interne + sur le IonInput wrapper ;
-    //   2. CustomEvent `ionChange` avec detail.value (exactement ce que
-    //      IonInput.emitValueChange() produit).
-    cy.get('ion-input', { timeout: 60_000 }).then(($ions) => {
-      let target: HTMLElement | null = null;
-      for (const el of Array.from($ions) as HTMLElement[]) {
-        if (el.getAttribute('aria-label') === "Nom de l'événement") {
-          target = el;
-          break;
-        }
-      }
-      if (!target && $ions.length > 1) target = $ions[1];
-      if (!target) throw new Error('IonInput du nom introuvable');
+    // Attendre l'HYDRATATION du formulaire avant de remplir : le champ
+    // existe dans le DOM avant que React ne monte, et un remplissage trop
+    // tot est ecrase par le premier render (valeur visible puis perdue,
+    // d'ou « Le nom est requis »).
+    cy.contains('button, ion-button', "Créer l'événement", {
+      timeout: 60_000,
+    }).should('be.visible');
 
-      const ionInputEl = target;
-      const nativeInput: HTMLInputElement | null =
-        (ionInputEl as any).nativeInput ??
-        ionInputEl.querySelector('input') ??
-        null;
-      if (nativeInput) nativeInput.value = eventName;
-      (ionInputEl as any).value = eventName;
-      ionInputEl.dispatchEvent(
-        new CustomEvent('ionChange', {
-          detail: { value: eventName },
-          bubbles: true,
-          composed: true,
-        }),
-      );
-    });
+    // Le IonInput du nom est un custom element Ionic : ecrire sur l'input
+    // natif ne propage pas vers `onIonChange` (le state React reste vide,
+    // d'ou « Le nom est requis » alors que la valeur est visible a l'ecran).
+    // `typeIonicInput` ecrit la valeur ET emet `ionChange` — chemin fiable
+    // (cf. cypress/support/ionic.ts).
+    cy.typeIonicInput("Nom de l'événement", eventName);
 
     // Le IonButton « Créer l'événement » rend un <ion-button> (custom
     // element, texte en light DOM — pas de <button> natif interne en
@@ -75,16 +58,25 @@ describe('Lumina — Event tasks CRUD + status + progress + F5', () => {
     cy.contains('ion-button', "Créer l'événement", { timeout: 30_000 })
       .first()
       .click({ force: true });
+    // `/event/new` matche aussi /^\/event\// : on exige un identifiant de
+    // detail reel, sinon l'assertion passe alors que la creation a echoue et
+    // que le formulaire est toujours affiche.
     cy.location('pathname', { timeout: 60_000 }).should((path: string) => {
-      expect(path, `event detail path: ${path}`).to.match(/^\/event\//);
+      expect(path, `event detail path: ${path}`).to.match(
+        /^\/event\/(?!new$)[^/]+$/,
+      );
     });
 
     // ── 2. Open the Tasks tab ────────────────────────────────────────
-    cy.contains('button[role="tab"]', 'Tâches', { timeout: 30_000 })
-      .click();
-    cy.contains('button[role="tab"][aria-selected="true"]', 'Tâches', {
-      timeout: 10_000,
-    }).should('be.visible');
+    // Scoper a la page ACTIVE : la page « Nouvel événement » reste montee
+    // dans le DOM Ionic ; sans filtre, on vise l'onglet d'une page cachee.
+    activePageShouldContain('button[role="tab"]', 'Tâches');
+    activePage().contains('button[role="tab"]', 'Tâches').click();
+    activePage()
+      .contains('button[role="tab"][aria-selected="true"]', 'Tâches', {
+        timeout: 10_000,
+      })
+      .should('be.visible');
 
     // ── 3. Add a parent task ─────────────────────────────────────────
     cy.contains('button, ion-button', 'Ajouter une tâche', { timeout: 30_000 }).click();
@@ -142,10 +134,10 @@ describe('Lumina — Event tasks CRUD + status + progress + F5', () => {
     // ── 7. Reload — tasks survive ────────────────────────────────────
     cy.reload();
     cy.location('pathname', { timeout: 30_000 }).should((path: string) => {
-      expect(path).to.match(/^\/event\//);
+      expect(path).to.match(/^\/event\/(?!new$)[^/]+$/);
     });
-    cy.contains('button[role="tab"]', 'Tâches', { timeout: 30_000 })
-      .click();
+    activePageShouldContain('button[role="tab"]', 'Tâches');
+    activePage().contains('button[role="tab"]', 'Tâches').click();
 
     // Both tasks are still present
     cy.contains(parentTitle, { timeout: 20_000 }).should('exist');
