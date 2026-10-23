@@ -357,3 +357,164 @@ d'attente passif réel est resté inférieur au quota de 30 min.
 redémarrage (résolu : réinstallation de Xvfb, relance de Vite) ; les
 sauvegardes `/tmp` ont disparu (résolu : sauvegardes dans
 `/workspace/backups`, hors `/tmp`).
+
+---
+---
+
+# Annexe — Session 2 (2026-10-23)
+
+- **Branche** : `agent/session-2026-10-23-phases-restantes` (poussée, non fusionnée)
+- **Pull request** : **#4** — https://github.com/joynagassi-cyber/luminap/pull/4
+- **Environnement Supabase** : `hhgovvrnalibhgpakswi` (eu-west-2) — **test/dev**
+  confirmé (organisations `org-1`, `org-e2e`, `e2e-auth-org-1` ; aucune donnée
+  utilisateur réelle). Écritures autorisées ; elles ont toutes été restaurées.
+
+## 1. Résumé exécutif
+
+L'app **fonctionne** et son socle de sécurité est **plus solide que je ne le
+craignais** : la RLS inter-organisations **tient** sur tous les chemins testés
+(un non-admin ne peut ni changer son `org_id`, ni s'auto-promouvoir, ni écrire
+chez autrui). 1065 tests unitaires passent.
+
+Le problème dominant n'est **pas** le code applicatif : c'est **la chaîne de
+vérification**. Trois défauts se cumulent :
+
+1. `CI Pipeline` était **rouge en permanence** sur `main` (3 jobs) — corrigé.
+2. Le job E2E de `ci.yml` est **illusoire** (1 seul spec en
+   `continue-on-error`, suite complète skippée faute de secret) — **R54**.
+3. Deux autres workflows (`cypress.yml`, `android-debug.yml`) sont rouges à
+   **chaque push**, y compris sur `main` — **R55, R56**.
+
+Conséquence : **aucune couche E2E n'était réellement vérifiée
+automatiquement**. C'est le risque n° 1 pour 4 mois sans surveillance, et il
+est traité en priorité dans PROPOSITIONS.md (P27, critique).
+
+**Niveau de confiance** : élevé sur le code et les données (RLS vérifiée par
+appels réels), **moyen** sur la CI/E2E (défauts structurels documentés, non
+corrigés car ils exigent des secrets et un environnement que je n'ai pas).
+
+## 2. Ce qui a été corrigé (avec preuve)
+
+| Défaut | Cause racine | Preuve du correctif |
+|---|---|---|
+| **CI rouge : Vitest** | le job `unit` ne créait pas `.env.local` ; `auth.ts` lève à l'import → 14 fichiers en « 0 test » | CI verte, job `Unit Tests` = `success` |
+| **CI rouge : Lint** | 9 faux positifs `no-unused-expressions` (syntaxe Chai Cypress) | `npx eslint .` → 0 erreur |
+| **CI rouge : Audit** | `dompurify` 3.4.14 (GHSA-cg2g-xh64-v4q7) via `jspdf` | `pnpm audit --audit-level=critical` → exit 0 |
+| **Test instable** `buildReverseTransaction` | comparaison de deux lectures d'horloge (±1 ms) | horloge injectable ; 38/38 × 3 passes |
+| **R51 — `rls-leak.cy.ts` ne testait rien** | clé **anon** au lieu du jeton de session → 0 ligne partout, échec permanent | réécrit ; `1 passing` × 3 passes |
+| **`sessions.cy.ts` perdait la session** | `loginOrgAccount()` sans `cy.ensureAuth()` ; `testIsolation` efface `localStorage` | spec aligné sur les autres (assertions intactes) |
+
+**Preuve CI globale** (`GET /actions/runs/39984165908/jobs`) : les **6 jobs**
+de `CI Pipeline` sont `success` — Lint, Unit Tests, Security Audit,
+TypeScript, Build, E2E.
+
+## 3. Ce qui a été vérifié sans défaut (faux positif écarté)
+
+**R50 — la RLS inter-tenant tient.** J'ai d'abord cru à une escalade
+critique, puis j'ai vérifié et **corrigé mon propre constat** : le compte E2E
+était *légitimement* administrateur d'`org-e2e`. Re-testé avec un compte
+**non-admin** :
+
+| Scénario (compte non-admin) | Résultat réel |
+|---|---|
+| `PATCH profiles {org_id:'org-1'}` | **403 `ORG_ID_IMMUTABLE`** |
+| `PATCH profiles {role:'ADMIN'}` | **403 `ROLE_IMMUTABLE`** |
+| `PATCH organizations?id=eq.org-e2e` | **200, 0 ligne** |
+| `PATCH profiles {role:'MEMBRE', first_name}` (légitime) | **204** |
+| lecture `profiles`/`transactions` d'une autre org | **0 ligne** |
+
+Aucune correction nécessaire : les triggers `guard_profile_role_immutable`,
+`guard_profile_role_insert`, `trg_guard_profile_org` sont bien installés
+(`tgenabled='O'`). Les 41 tables du schéma `public` ont **toutes** la RLS
+activée et **aucune** politique `USING (true)`.
+
+## 4. Défauts connus non corrigés (classés par gravité)
+
+| # | Défaut | Gravité | Pourquoi non corrigé |
+|---|---|---|---|
+| **R54** | job E2E de la CI illusoire (`continue-on-error` + suite skippée) | **élevée** | exige des secrets + sync PowerSync dans l'Action |
+| **R55** | build Android cassé (namespace manquant, `@capacitor/storage`) | moyenne | règle de gel + dépendance native + pas de SDK ici |
+| **R56** | `cypress.yml` + `android-debug.yml` rouges à chaque push | moyenne | idem |
+| **R52** | `/sessions` confond « chargement » et « vide » → message **faux** | moyenne | règle de gel ; correctif 30 min (P23) |
+| **R53** | `sessions.cy.ts` rouge (réplique PowerSync vide dans l'env.) | moyenne | défaut d'environnement, pas régression produit |
+| **R48** | logo d'organisation non persisté (pas de colonne `logo_url`) | faible | déploiement PowerSync Cloud requis (P24) |
+| **R49** | personnalisation des annexes non couverte | faible | 1 h (P25) |
+
+## 5. Risques résiduels pour 4 mois sans surveillance (classés)
+
+1. **CRITIQUE — aucune sauvegarde Supabase.** `backups: []`,
+   `pitr_enabled: false`. Une corruption est **irréversible**. Action
+   dashboard, 15 min. *(repris de la session 1 — P20.)*
+2. **CRITIQUE — CI/E2E non fiable.** Sans signal automatique, toute
+   régression future est invisible. (R54, R56, P27.)
+3. **HAUT — correctif d'isolation PowerSync non déployé.** 3 streams
+   (`categories`, `org_units`, `caisses`) sont corrigés **dans le fichier**
+   mais pas en Cloud (pas de `PS_ADMIN_TOKEN`). (R6, P21.)
+4. **MOYEN — pause automatique du projet Supabase** si inactif selon le plan ;
+   à surveiller (RUNBOOK).
+5. **MOYEN — message faux sur `/sessions`** au moment de la reconnexion (R52).
+
+## 6. Tests ajoutés / modifiés
+
+| Fichier | Nature | Résultat |
+|---|---|---|
+| `cypress/e2e/rls-leak.cy.ts` | **réécrit** (testait la RLS avec la clé anon) | `1 passing` × **3 passes** |
+| `cypress/e2e/sessions.cy.ts` | ajout `cy.ensureAuth()` | assertions **intactes** (3) |
+| `src/lib/transaction-service.ts` + tests | horloge injectable | 38/38 × 3 passes |
+| `.github/workflows/ci.yml` | `.env.local` dans le job `unit` | job vert |
+| `eslint.config.js` | exception Cypress ciblée | 0 erreur |
+| `pnpm-workspace.yaml` | override `dompurify ^3.4.17` | 0 critique |
+
+**Suite unitaire (preuve)** : `npx vitest run` →
+`Test Files 63 passed (63)`, `Tests 1065 passed (1065)`, durée 19,6 s.
+
+**Commande pour rejouer un spec E2E** :
+```bash
+CYPRESS_CACHE_FOLDER=/workspace/.cypress-cache CYPRESS_BASE_URL=http://localhost:8080 \
+  npx cypress run --spec cypress/e2e/rls-leak.cy.ts --browser electron
+```
+
+## 7. Modifications de la base de données
+
+**Aucune migration, aucune donnée modifiée de façon permanente.**
+
+Les seules écritures ont été des **preuves temporaires**, restaurées
+immédiatement (vérifié après coup) :
+
+| Écriture | But | Restauration |
+|---|---|---|
+| `PATCH organizations org-e2e {name}` | prouver R50 (faux positif) | `name = "Lumina Org E2E"` → **204** |
+| `PATCH profiles <moi> {role}` | prouver R50 | `role = "MEMBRE"` → **204** |
+
+État final relu : org = `Lumina Org E2E`, profil = `org-e2e` / `MEMBRE`.
+Aucune donnée financière touchée (la table `transactions` est **vide**).
+
+## 8. Temps et attente CI
+
+- Aucune nouvelle attente CI imputable à cette session : les runs ont été
+  vérifiés en interrogeant l'API pendant que d'autres tâches avançaient
+  (jamais d'attente passive).
+- Cypress local : suite complète interrompue par un `SIGTERM` à **24/26
+  specs** ; les 2 specs restants (`simple-check`, `theme-modes`) ont été
+  rejoués séparément et **passent** (1 + 3 tests).
+
+## 9. Décisions à valider par le propriétaire
+
+1. **Fusionner la PR #4** (la décision vous revient ; je n'ai rien fusionné).
+2. **Activer les sauvegardes Supabase** (P20) — 15 min, priorité absolue.
+3. **Déployer `sync-config.yaml`** (R6/P21) — 30 min.
+4. **Assainir la CI** (P27) — décider : fournir les secrets E2E et rendre le
+   job bloquant, ou retirer les workflows rouges en permanence.
+5. **Réparer le build Android** (P26).
+
+## 10. Reste à faire, priorisé et estimé
+
+| Priorité | Tâche | Estimation |
+|---|---|---|
+| 1 | Sauvegardes Supabase (dashboard) | 15 min |
+| 2 | Déployer l'isolation PowerSync | 30 min |
+| 3 | Assainir la CI (E2E réel + Cypress Cloud + Android) | 3 h 45 |
+| 4 | Corriger `/sessions` (état de chargement) | 30 min |
+| 5 | `logo_url` organisation + streams | 1 h 30 |
+| 6 | Personnalisation des annexes | 1 h |
+| 7 | Faire aboutir le sync PowerSync dans l'env. de test | 2 h |

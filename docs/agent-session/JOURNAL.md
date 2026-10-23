@@ -632,3 +632,18 @@ Preuve : `GET /actions/runs/39984165908/jobs` → `conclusion=success` pour les
 6 jobs. Le garde-fou automatique du dépôt est **rétabli**.
 
 PR ouverte : **#4** (non fusionnée — décision du propriétaire).
+
+## Session 2 — clôture
+
+- **CI** : `CI Pipeline` **verte** (6/6 jobs) sur `636226b` — preuve
+  `GET /actions/runs/39984165908/jobs`.
+- **Vitest** : `63 passed (63)` fichiers, `1065 passed (1065)` tests.
+- **Cypress** : `rls-leak` réécrit → `1 passing` × 3 passes ;
+  `sessions` → rouge (réplique PowerSync vide, R53) ;
+  `simple-check` (1) + `theme-modes` (3) → **verts**.
+- **Nouveaux risques** : R50 (faux positif écarté, RLS vérifiée), R51
+  (test rls-leak corrigé), R52 (état de chargement `/sessions`), R53
+  (réplique vide), R54 (job E2E illusoire), R55 (build Android cassé),
+  R56 (2 workflows rouges).
+- **Nouvelles propositions** : P23–P27.
+- **PR #4** ouverte, **non fusionnée**.
