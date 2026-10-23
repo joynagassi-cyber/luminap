@@ -135,6 +135,7 @@ trouvés ont été corrigés dans le temps imparti.
 | R35 | `TopHeader` collant (110px) recouvre les champs (64px réservés) | `ion-content::part(scroll){scroll-padding-top:7rem}` (`dff2cbe`) | `headerBottom=111`, `inputTop=281`, `covered=false` |
 | — | `?date=` périmé dans l'URL en quittant la timeline | `setSearchParams({}, replace)` (`af2d79d`) | `C: calendar.cy.ts` 0/1 → **1/1** |
 | R37 | `slot="label"` sur `IonLabel` dans `ion-item` (Shadow DOM sans slot `label`) → libellé non rendu | Retrait de l'attribut (`bdd1f5b`) | Sonde : hauteur **0** avec slot, **24** sans |
+| **R44** | **`BottomNav` en `--z-overlay` (50) : même couche que les bottom-sheets → la nav recouvrait le bouton « Enregistrer » d'une tâche, incliquable au doigt** | **`--z-nav` (40), conforme à la pile documentée dans `App.css` (M15)** | **`C: events-tasks.cy.ts` 1/1 (clic atteint) ; `V: core-components.test.tsx` test de non-régression z-index** |
 
 > **Faux positif écarté par la preuve** : `UpdateDialog` (R36) plaçait ses
 > actions dans `<IonButtons slot="footer">` alors qu'`ion-alert` n'expose aucun
