@@ -704,3 +704,52 @@
   file des commandes), assertions renforcées (`profiles`, `transactions`,
   organisations étrangères réellement seedées, contrôle positif).
 - **Preuve** : `1 passing` × **3 passes consécutives** (`06012f5`).
+
+### R52 — `/sessions` n'a pas d'état de chargement (défaut UX réel) — NON CORRIGÉ
+- **Gravité** : moyenne (écran trompeur, pas de crash).
+- **Défaut** : `useMyOrgs()` expose `data: UserOrg[] | null`. `Sessions.tsx`
+  teste `list.length === 0` sans distinguer **`null` (chargement)** de
+  **`[]` (vraiment vide)**. Tant que la réplique locale PowerSync n'est pas
+  peuplée, l'utilisateur lit « Aucun compte lié pour l'instant » — un
+  message **faux** : son compte existe (prouvé : `org_memberships` ACTIVE
+  pour le compte E2E). Défaut de la famille « aucun écran sans
+  explication » (phase 6).
+- **Preuve** : diagnostic Cypress — `/sessions` rend
+  `Mes comptes … Aucun compte lié pour l'instant lumina-org-e2e@lumina.dev`
+  alors que `org_memberships` contient bien la ligne `org-e2e` ACTIVE.
+- **Pourquoi non corrigé** : règle de gel (T0 + 9 h dépassé) + validation
+  impossible ici (voir R53). Le correctif est petit mais non testable.
+- **Correctif proposé (30 min)** : `const loading = orgs === null;` puis
+  afficher un squelette/spinner quand `loading`, l'`EmptyState` seulement
+  quand `orgs !== null && list.length === 0`.
+
+### R53 — `sessions.cy.ts` rouge : réplique PowerSync vide dans l'environnement — NON CORRIGÉ
+- **Gravité** : moyenne (le spec ne peut pas passer ici ; ce n'est pas une
+  régression produit démontrée).
+- **Constat** : `sessions.cy.ts` échoue 3/3. `listUserOrgs()` lit
+  `getPowerSyncDatabase()` (réplique **locale**) ; dans cet environnement la
+  réplique ne se peuple pas (le sync PowerSync n'aboutit pas) → 0 org →
+  aucune carte `Re-ouvrir`.
+- **Ce qui a été vérifié** (pour ne pas confondre bug produit et artefact) :
+  1. La persistance du token est **saine** : après un login normal,
+     `sb-hhgovvrnalibhgpakswi-auth-token` contient bien `access_token` +
+     `refresh_token` (diagnostic direct, `localStorage`).
+  2. Le compte est **bien lié** en base : `org_memberships` ACTIVE +
+     `org_admins` ACTIVE + `profiles` (`org-e2e`).
+  3. `/sessions` **rend bien** sa page (header « Mes comptes », texte
+     d'aide) : pas d'écran blanc, pas de rebond sur `/auth`.
+- **Correctif appliqué (réel)** : le spec n'appelait que `loginOrgAccount()`
+  sans `cy.ensureAuth()` ; sous `testIsolation` (Cypress 16) `localStorage`
+  est effacé avant chaque `it()`, donc la session était perdue dès le 1er
+  `cy.visit`. `cy.ensureAuth()` est désormais appelé (aligné sur les autres
+  specs). Le spec va plus loin mais reste rouge sur la liste (réplique vide).
+- **Ce que j'ai essayé** : exécution isolée (3×), diagnostic `localStorage`
+  après login, diagnostic du corps rendu, requête base sur
+  `org_memberships`/`org_admins`/`profiles`, lecture de `listUserOrgs` et de
+  `useMyOrgs`. Conclusion : l'échec dépend de la réplique locale, non du
+  code d'authentification.
+- **Assertions NON affaiblies** : le spec conserve ses 3 assertions
+  d'origine (aucun `skip`, aucun relâchement) — voir la règle « ne jamais
+  affaiblir un test ».
+- **Travail restant** : faire aboutir le sync PowerSync dans
+  l'environnement de test (ou seeder la réplique locale), puis rejouer.
