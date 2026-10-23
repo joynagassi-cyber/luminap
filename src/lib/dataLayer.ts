@@ -398,8 +398,55 @@ function isPowerSyncReady(): boolean {
   return _psReady;
 }
 
+// La disponibilite de PowerSync est un etat REACTIF : `markPowerSyncReady`
+// est appele apres le 1er sync, donc APRES le premier rendu des pages. Sans
+// notification, un hook de lecture reste fige sur son repli (store local
+// vide) jusqu'au prochain re-rendu spontane — l'utilisateur voyait une liste
+// vide ou un squelette de chargement sans fin.
+const _readyListeners = new Set<() => void>();
+
 function setPowerSyncReady(ready: boolean) {
+  if (_psReady === ready) return;
   _psReady = ready;
+  if (ready) _readyListeners.forEach((l) => l());
+}
+
+/** S'abonner au passage « PowerSync pret » (etat one-shot). */
+export function subscribePowerSyncReady(listener: () => void): () => void {
+  _readyListeners.add(listener);
+  return () => {
+    _readyListeners.delete(listener);
+  };
+}
+
+/** Etat courant, lisible hors React (pour choisir un etat de repli). */
+export function isPowerSyncReadyNow(): boolean {
+  return _psReady;
+}
+
+/**
+ * Decode `budget_items` de facon tolerante.
+ *
+ * La colonne est `jsonb` en base, mais le client la stocke en `text`
+ * (schema PowerSync). Historiquement la valeur etait envoyee deja
+ * serialisee, ce qui a produit des lignes de type **string** en base
+ * (158 des 159 evenements mesures) : `JSON.parse` renvoyait alors une
+ * chaine, et le premier `.reduce()` de l'UI levait — page entiere en
+ * erreur. Cette fonction accepte les deux formes, et une valeur
+ * illisible ne fait JAMAIS planter l'ecran (tableau vide).
+ */
+export function parseBudgetItems(raw: unknown): any[] {
+  if (raw === null || raw === undefined) return [];
+  let value: unknown = raw;
+  // Deux niveaux suffisent : "[]" (double encodage) et [{"..."}] (correct).
+  for (let i = 0; i < 2 && typeof value === "string"; i++) {
+    try {
+      value = JSON.parse(value);
+    } catch {
+      return [];
+    }
+  }
+  return Array.isArray(value) ? value : [];
 }
 
 // ── Etat "initialisation" des lectures ─────────────────────────────────────
@@ -436,12 +483,14 @@ function useOrganizationRevision(): number {
 
   useEffect(() => {
     const unsubOrg = subscribeOrganization(bump);
+    const unsubReady = subscribePowerSyncReady(bump);
     // Borne de secours : si l'organisation n'est jamais resolue (auth en
     // echec, mode degrade), on re-tente une passe apres 10 s plutot que de
     // rester fige sur `__no_org__`.
     const timer = setTimeout(bump, 10_000);
     return () => {
       unsubOrg();
+      unsubReady();
       clearTimeout(timer);
     };
   }, []);

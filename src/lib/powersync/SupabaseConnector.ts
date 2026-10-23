@@ -225,6 +225,47 @@ function sanitizeDocumentsOpData(
   return coerceUuidKeys(opData, ["uploaded_by"]);
 }
 
+/**
+ * Colonnes `jsonb` côté PostgreSQL dont le client stocke une CHAÎNE JSON
+ * (colonne `text` dans le schéma PowerSync local).
+ *
+ * Supabase sérialise la valeur telle quelle : envoyer la chaîne `"[]"`
+ * écrit un jsonb de type **string** (`"\"[]\""`), pas un tableau. En
+ * relecture, `JSON.parse` renvoie alors une chaîne, et le premier
+ * `.reduce()` / `.map()` de l'UI lève — la page entière tombe (error
+ * boundary). Mesuré : 158 des 159 événements de la base étaient dans cet
+ * état, donc ouvrir n'importe quel événement ancien cassait l'écran.
+ *
+ * Le parse est idempotent : un contenu déjà tableau est laissé intact.
+ */
+const JSONB_TEXT_COLUMNS: Record<string, string[]> = {
+  events: ["budget_items"],
+};
+
+function coerceJsonbColumns(
+  table: string,
+  opData: Record<string, unknown>,
+): Record<string, unknown> {
+  const columns = JSONB_TEXT_COLUMNS[table];
+  if (!columns) return opData;
+  let changed = false;
+  const out: Record<string, unknown> = { ...opData };
+  for (const col of columns) {
+    const value = out[col];
+    if (typeof value !== "string") continue;
+    try {
+      out[col] = JSON.parse(value);
+      changed = true;
+    } catch {
+      // Chaîne non-JSON : on la remplace par un tableau vide plutôt que
+      // de laisser un type invalide bloquer durablement l'upload.
+      out[col] = [];
+      changed = true;
+    }
+  }
+  return changed ? out : opData;
+}
+
 export type SupabaseConnectorListener = {
   initialized: () => void;
   sessionStarted: (session: Session) => void;
@@ -500,7 +541,10 @@ export class SupabaseConnector
                   "documents",
                   sanitizeDocumentsOpData(op.opData as Record<string, unknown>),
                 )
-              : filterOpDataToSchema(op.table, op.opData as Record<string, unknown>);
+              : filterOpDataToSchema(
+                  op.table,
+                  coerceJsonbColumns(op.table, op.opData as Record<string, unknown>),
+                );
 
         // Backfill des valeurs par défaut NOT NULL : si une colonne
         // NOT NULL du schéma Postgres est absente de l'opData (PowerSync

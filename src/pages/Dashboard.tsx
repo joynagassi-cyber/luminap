@@ -34,8 +34,7 @@ import {
   useReportsReceived,
   useOrganizations,
   markReportRead,
-  type PSOrgReports,
-} from "@/lib/dataLayer";
+  type PSOrgReports,parseBudgetItems } from "@/lib/dataLayer";
 import { formatCentsToFCFA, getPeriodRange, formatDate, tint } from "@/lib/utils";
 import { useOrganizationContext, useMyOrgs } from "@/lib/organization-context";
 import { usePowerSyncIndicator } from "@/lib/hooks/usePowerSyncIndicator";
@@ -828,12 +827,9 @@ export default function Dashboard() {
             </div>
             <div className="space-y-2">
               {upcomingEvents.map((event: any) => {
-                const budgetSpent = (event.budget_items
-                  ? JSON.parse(event.budget_items)
-                  : event.budgetItems || []).reduce(
-                  (s: number, i: any) => s + i.spent,
-                  0,
-                );
+                const budgetSpent = parseBudgetItems(
+                  event.budget_items ?? event.budgetItems,
+                ).reduce((s: number, i: any) => s + (i.spent ?? 0), 0);
                 const overBudget = event.budget > 0 && budgetSpent > event.budget;
                 const EVENT_COLORS: Record<string, string> = {
                   PLANIFIED: "var(--data-planified)",

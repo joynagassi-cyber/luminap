@@ -7,7 +7,7 @@ import {
   IonTitle,
   IonToolbar,
 } from "@ionic/react";
-import { useEvents, useTransactions, useMembers } from "@/lib/dataLayer";
+import { useEvents, useTransactions, useMembers, parseBudgetItems } from "@/lib/dataLayer";
 import { Plus, Clock, Gift, ArrowUp, ArrowDown } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
@@ -146,9 +146,7 @@ export default function Events() {
                         t.type === "EXPENSE" && t.status === "APPROVED",
                     )
                     .reduce((s: number, t: any) => s + t.amount, 0);
-                  const budgetItems = event.budget_items
-                    ? JSON.parse(event.budget_items)
-                    : [];
+                  const budgetItems = parseBudgetItems(event.budget_items);
                   return (
                     <button
                       key={event.id}
