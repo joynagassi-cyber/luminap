@@ -11,12 +11,41 @@
 import { activePageShouldContain } from '../support/view';
 
 describe('Lumina — comprehensive navigation & finance flow', () => {
-  before(function () {
-    this.timeout(90_000);
-    cy.loginOrgAccount();
-  });
 
-  it('navigates Settings, Balance, History, Events, and Transaction edit', function () {
+  /**
+   * Sélecteur de la page Ionic ACTIVE. La pile garde les pages
+   * précédentes montées : `.ion-page-hidden` = page retirée,
+   * `.ion-page-invisible` = page en cours de transition (opacité 0).
+   * Sans ces exclusions, un sélecteur global matche le titre/le bouton
+   * d'une page MASQUÉE et Cypress échoue avec « element is not visible »
+   * (motif d'échec de la 1re exécution de ce spec).
+   *
+   * Le sélecteur est préfixé dans chaque requête plutôt que chaîné après
+   * un `cy.get(...).last()` : pendant une transition Ionic, TOUTES les
+   * pages peuvent être invisibles un instant, ce qui vide le sujet et
+   * casse le chaînage. Une requête unique re-interrogée par Cypress
+   * jusqu'à trouver l'élément est la seule forme fiable.
+   */
+  // Convention du dépôt (cypress/support/view.ts) : la page affichée est
+  // le dernier `div.ion-page:not(.ion-page-hidden)`. `ion-page-invisible`
+  // est une classe de TRANSITION qui peut persister sans que la page soit
+  // invisible pour l'utilisateur — ne pas l'exclure (le faire vidait le
+  // sujet pendant les transitions).
+  const PAGE = 'div.ion-page:not(.ion-page-hidden)';
+  const BTNS = `${PAGE} button, ${PAGE} ion-button`;
+
+  /** Clic sur un bouton de la page ACTIVE (Cypress ré-essaie la requête). */
+  const clickInPage = (label: string | RegExp) =>
+    cy.contains(BTNS, label, { timeout: 30_000 }).first().click({ force: true });
+
+  /** Bouton « Ouvrir le menu » de la page ACTIVE. */
+  const openMenu = () =>
+    cy
+      .get(`${PAGE} button[aria-label="Ouvrir le menu"]`, { timeout: 30_000 })
+      .last()
+      .click({ force: true });
+
+it('navigates Settings, Balance, History, Events, and Transaction edit', function () {
     this.timeout(180_000);
 
     // `cy.session()` (ensureAuth) restaure le token mais PAS l'URL : sans
@@ -29,17 +58,17 @@ describe('Lumina — comprehensive navigation & finance flow', () => {
     // Le hub /settings n'est qu'une liste de sections : « Actualiser
     // les données » (loadInitialData) et les actions (Bilan financier,
     // Historique…) vivent dans /settings/gestion (SettingsGestion.tsx).
-    cy.get('button[aria-label="Ouvrir le menu"]').click();
-    cy.contains('button, ion-button', 'Paramètres').click();
+    openMenu();
+    clickInPage('Paramètres');
     activePageShouldContain('h1, h2, h3', 'Paramètres');
-    cy.contains('button, ion-button', 'Gérer').click();
+    clickInPage('Gérer');
     cy.location('pathname').should('eq', '/settings/gestion');
 
     // Refresh data
-    cy.contains('button, ion-button', 'Actualiser les données').click();
+    clickInPage('Actualiser les données');
 
     // ── Financial report → Balance ─────────────────────────────────────
-    cy.contains('button, ion-button', 'Bilan financier').click();
+    clickInPage('Bilan financier');
     activePageShouldContain('h1, h2, h3', 'Bilan financier');
     cy.location('pathname').should('include', 'balance');
 
@@ -47,33 +76,47 @@ describe('Lumina — comprehensive navigation & finance flow', () => {
     // Ces boutons sont dans la page ACTIVE mais Cypress les juge non
     // visibles (`checkVisibility()`) à cause des pages Ionic empilées :
     // `force` — les assertions d'état qui suivent restent strictes.
-    cy.contains('button, ion-button', 'Année').click({ force: true });
-    cy.contains('button, ion-button', 'Mois').click({ force: true });
-    cy.contains('button, ion-button', 'Mois').should('exist');
+    clickInPage('Année');
+    clickInPage('Mois');
+    cy.contains(BTNS, 'Mois', { timeout: 30_000 }).should('exist');
 
     // Summary stat cards
-    cy.contains('Entrées').first().click();
-    cy.contains('Sorties').first().click();
+    // « Entrées » / « Sorties » sont des libellés de cartes de statistiques
+    // (<p> dans Balance.tsx), PAS des boutons : on vérifie leur présence.
+    cy.contains(`${PAGE} p`, 'Entrées', { timeout: 30_000 }).should('exist');
+    cy.contains(`${PAGE} p`, 'Sorties', { timeout: 30_000 }).should('exist');
 
     // Export PDF
-    cy.contains('button, ion-button', 'Exporter le rapport').click();
-    cy.contains('button, ion-button', 'PDF').first().click();
+    clickInPage('Exporter le rapport');
+    // Le menu de format est rendu INLINE dans la page (Balance.tsx:347,
+    // état `showExport`) — pas un overlay. On clique donc dans la page
+    // active. Le téléchargement déclenché par exportPDF() n'est pas
+    // vérifié ici (couvert par reports-budgets.cy.ts) : on valide le
+    // parcours d'ouverture du menu et le choix du format.
+    cy.contains(`${PAGE} button`, /^PDF/, { timeout: 30_000 })
+      .first()
+      .click({ force: true });
 
     // ── History ────────────────────────────────────────────────────────
-    cy.get('button[aria-label="Ouvrir le menu"]').click();
-    cy.contains('button, ion-button', 'Historique').click();
-    activePageShouldContain('h1, h2, h3', 'Historique');
+    openMenu();
+    clickInPage('Historique');
+    // Assertion d'URL (résultat métier) : la page History n'a PAS de
+    // <h1> — son titre est un <p> rendu par TopHeader (défaut
+    // d'accessibilité relevé dans RISQUES.md), donc une assertion sur
+    // un titre échouerait à tort.
+    cy.location('pathname', { timeout: 30_000 }).should('eq', '/history');
 
-    cy.contains('button, ion-button', 'Ce mois').click();
-    cy.contains('button, ion-button', 'Cette année').click();
-    cy.contains('button, ion-button', 'Tout').click();
-
-    cy.contains('button, ion-button', 'Retour').click();
+    clickInPage('Ce mois');
+    clickInPage('Cette année');
+    clickInPage('Tout');
+    // (Pas de bouton « Retour » sur /history : c'est une page de premier
+    // niveau atteinte par le menu, pas une sous-page — l'ancien spec
+    // supposait à tort une pile de navigation.)
 
     // ── Events ─────────────────────────────────────────────────────────
-    cy.get('button[aria-label="Ouvrir le menu"]').click();
-    cy.contains('button, ion-button', 'Événements').click();
-    activePageShouldContain('h1, h2, h3', 'Événements');
+    openMenu();
+    clickInPage('Événements');
+    cy.location('pathname', { timeout: 30_000 }).should('eq', '/events');
 
     // (Le badge de sync global [data-testid="sync-indicator"] a été retiré
     //    de l'app — le statut de connexion reste visible dans
@@ -96,27 +139,19 @@ describe('Lumina — comprehensive navigation & finance flow', () => {
     // l'aria-label de l'ion-input.
     cy.ensureAuth();
     cy.visit('/transaction/new');
-    cy.get('ion-input[aria-label="Montant en francs CFA"] input, input[placeholder="0"]')
-      .first()
-      .type('7500');
-    cy.get('ion-input[aria-label="Description"] input, input[placeholder="Ex: Dîme du mois"]')
+    // Pattern éprouvé par finance-deep.cy.ts : montant + description
+    // suffisent — Catégorie / Source / Caisse ont des valeurs par défaut
+    // valides. (Manipuler les ion-select écrase ces défauts avec le 1er
+    // choix — souvent un libellé vide — et la validation refuse alors
+    // l'enregistrement.)
+    cy.get('input[placeholder="0"]').first().clear().type('7500');
+    cy.get('input[placeholder="Ex: Dîme du mois"]')
       .first()
       .type('E2E Comprehensive Tx');
-    // Catégorie : le shell seed 9 catégories ; on choisit la 1re (pré-remplie
-    // par défaut dans l'UI, ici on redéclare explicitement via aria-label).
-    // La catégorie est un <ion-select> (pas un <select> natif) : ses
-    // options vivent dans un ion-popover monté sur <body>. On ouvre le
-    // select puis on clique la 1re option VISIBLE (motif validé par
-    // events-tasks.cy.ts / invitations.cy.ts).
-    cy.get('div.ion-page:not(.ion-page-hidden) ion-select')
+
+    cy.contains(BTNS, 'Enregistrer la transaction', { timeout: 30_000 })
       .first()
       .click({ force: true });
-    cy.get('ion-popover', { timeout: 10_000 })
-      .find('ion-item')
-      .filter(':visible')
-      .first()
-      .click();
-    cy.contains('Enregistrer la transaction', { timeout: 30_000 }).click();
     cy.location('pathname', { timeout: 30_000 }).should('include', '/transaction/');
     cy.location('pathname').should('not.include', '/new');
 
@@ -129,13 +164,23 @@ describe('Lumina — comprehensive navigation & finance flow', () => {
       cy.ensureAuth();
       cy.visit(`/transaction/${id}/edit`);
       activePageShouldContain('h1, h2, h3', 'Modifier');
-      cy.contains('button, ion-button', 'Sauvegarder').click();
+      // La page d'édition charge la transaction en asynchrone : cliquer
+      // « Sauvegarder » avant le remplissage laisse le montant vide, la
+      // validation bloque et l'URL ne change jamais. On attend donc que
+      // le champ Montant soit réellement pré-rempli (condition déterministe,
+      // pas d'attente arbitraire).
+      cy.get(`${PAGE} input[placeholder="0"]`, { timeout: 30_000 }).should(
+        ($i) => {
+          expect(String($i.val()).replace(/\D/g, '')).to.not.equal('');
+        },
+      );
+      clickInPage('Sauvegarder');
       cy.location('pathname', { timeout: 30_000 }).should('eq', `/transaction/${id}`);
     });
 
-    cy.contains('button, ion-button', 'Sortie').click();
-    cy.contains('button, ion-button', 'Entrée').click();
-    cy.contains('button, ion-button', 'Sortie').click();
+    clickInPage('Sortie');
+    clickInPage('Entrée');
+    clickInPage('Sortie');
 
     // ── Back to Finance ────────────────────────────────────────────────
     cy.get('div.ion-page:not(.ion-page-hidden) [data-testid="nav-tab-finance"]')
