@@ -445,3 +445,24 @@
   (commit `dff2cbe`). `7rem` = 112px ≥ 110px mesurés.
 - **Validation** : `cypress/e2e/finance-deep.cy.ts` **5/5** (baseline 2/5).
 - **Gravité** : majeure (blocage de saisie sur les formulaires longs).
+
+### R36 — Le dialogue de mise à jour n'a aucun bouton cliquable — OUVERT (moyen)
+- **Défaut** : `src/updater/UpdateDialog.tsx` place les actions dans
+  `<IonButtons slot="footer">`. Or `ion-alert` (Ionic 9.0.2,
+  `encapsulation: "scoped"`) **n'expose aucun slot** (vérifié dans
+  `@ionic/core/.../alert/alert.js` : `render()` n'émet aucune balise
+  `<slot>`, et `renderAlertButtons()` construit les boutons depuis
+  `processedButtons`, c.-à-d. la prop `buttons`). Les enfants React sont donc
+  ignorés.
+- **Conséquence** : l'alerte de mise à jour (Android/APK) s'affiche **sans
+  bouton « Plus tard » ni « Installer »** : l'utilisateur ne peut ni installer
+  ni refuser. Impasse UX sur ce parcours.
+- **Famille** : même cause racine que R34 (`slot` inexistant sur un composant
+  Ionic). 3ᵉ occurrence après `slot="input"` (61 champs) et `slot="label"`.
+- **Correctif à appliquer** (non appliqué — gel T0+9 h, changement non
+  testable dans le délai) : passer les actions par la **prop `buttons`** de
+  `IonAlert` (`buttons={[{ text: 'Plus tard', role: 'cancel', handler }, ...]}`
+  avec `disabled` selon `status`) et supprimer `<IonButtons slot="footer">`.
+- **Gravité** : moyenne (parcours de mise à jour uniquement ; le reste de
+  l'app n'est pas affecté). À couvrir par un test de composant une fois
+  corrigé.

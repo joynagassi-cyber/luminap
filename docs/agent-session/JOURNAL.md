@@ -426,3 +426,17 @@ sonde après correctifs → `{ org:"org-e2e", n:5, ready:true, err:"none" }`.
 | forms-fields | 0/4 | 3/4 |
 | forms-v2 | 0/6 | 0/6 (défaut de test) |
 | autres | variable | suite interrompue à la clôture |
+
+## 2026-10-23 ~02:47–02:55 UTC — audit slots Ionic (famille R34) et gel
+- Audit exhaustif des slots utilisés dans `src` : `start` (28), `end` (6),
+  `footer` (1), `label` (1).
+- **Corrigé** : `slot="label"` dans `InvitationEmit.tsx:230` — `ion-item`
+  n'expose que `start`/défaut/`end` (source `item.js`), donc le libellé
+  « Rôle cible » n'était pas rendu. Retiré ; `tsc` = 0.
+- **Nouveau défaut (R36, OUVERT)** : `UpdateDialog.tsx` place ses actions dans
+  `<IonButtons slot="footer">` alors qu'`ion-alert` n'a **aucun slot** → le
+  dialogue de mise à jour n'a **aucun bouton cliquable**. Correctif identifié
+  (prop `buttons` d'`IonAlert`) mais **non appliqué** : règle de gel T0+9 h
+  et changement non testable dans le délai. Documenté dans RISQUES.md (R36).
+- Gel atteint : plus de complétion de fonctionnalité ni de changement
+  structurel à partir de maintenant.
