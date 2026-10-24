@@ -309,6 +309,6 @@ actif et correct.
 | Point d'entrée | `/forms/:id/submissions`, `src/pages/FormSubmissions.tsx` |
 | Défaut | affichait `submitted_by` (UUID) au lieu du nom |
 | Cause | `submitted_by` référence `profiles.id`, jamais résolu à l'affichage |
-| Correctif | résolution via la table locale `profiles` (RLS bornée), avec repli sur l'id |
+| Correctif | résolution via la table locale `profiles` (RLS bornée), avec repli sur l'id ; idem pour la colonne « Rejeté par » (`rejected_by`) et les tris |
 | Tests | `src/components/__tests__/FormSubmissions-table.test.tsx` (5/5) ; `cypress/e2e/forms-v2.cy.ts` T5 |
 | Statut | **corrigé, validé par test unitaire** ; validation E2E à confirmer par le spec |
