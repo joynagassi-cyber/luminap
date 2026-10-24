@@ -1016,3 +1016,10 @@ La suite Cypress a été lancée **avant** ces correctifs : le serveur Vite en
 mode dev a rechargé les sources modifiées à chaud (HMR) en cours de run. Ce
 run ne vaut donc que comme **détecteur de défauts** ; la validation finale
 sera faite sur code gelé, par une nouvelle exécution complète.
+
+
+### 6. Bug produit R77 — coquille « Trésurier » dans le badge de rôle (corrigé)
+
+`SettingsProfile.tsx` écrivait `TREASURIER: "Trésurier"` alors que tous les
+autres libellés de l'app disent « Trésorier ». Deux comptes réels ont ce rôle
+→ faute visible. Corrigé ; test ajouté (badge `profile-role-badge`).

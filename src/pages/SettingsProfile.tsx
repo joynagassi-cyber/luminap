@@ -25,7 +25,7 @@ import { IonInput } from "@ionic/react";
 
 const ROLE_LABEL: Record<string, string> = {
   CENTRAL_ADMIN: "Administration centrale",
-  TREASURIER: "Trésurier",
+  TREASURIER: "Trésorier",
   ADMIN: "Administrateur",
   PASTEUR: "Pasteur",
   DIACRE: "Diacre",

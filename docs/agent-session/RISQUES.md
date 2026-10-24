@@ -1310,3 +1310,22 @@ distincte (horloge, tendance, coche) ; la sélection est isolée dans
 
 **Preuve** : `src/pages/__tests__/Notifications-icon.test.tsx` (3/3) ;
 `tsc -b` 0 erreur.
+
+
+### R77 — Coquille « Trésurier » dans le badge de rôle du profil — CORRIGÉ (basse)
+
+**Défaut** : `ROLE_LABEL` (`src/pages/SettingsProfile.tsx:28`) écrivait
+`TREASURIER: "Trésurier"`. Partout ailleurs dans l'app le libellé est
+« Trésorier » (`src/lib/rbac.ts`, `src/lib/utils.ts`, `src/templates/*`,
+`OrgSetup.tsx`, `InvitationEmit.tsx`, `Tutorial.tsx`). Le badge de rôle du
+profil affichait donc une faute d'orthographe, visible par tout utilisateur
+ayant ce rôle.
+
+**Portée** : `profiles.role = 'TREASURIER'` → **2 comptes** réels dans
+l'environnement. Faute visible immédiatement.
+
+**Correction** : libellé aligné sur la source de vérité (« Trésorier »).
+
+**Preuve** : test ajouté dans `SettingsProfile.test.tsx` — le badge
+(`data-testid="profile-role-badge"`) contient « Trésorier » et non
+« Trésurier » (3/3 verts) ; `tsc -b` 0 erreur.
