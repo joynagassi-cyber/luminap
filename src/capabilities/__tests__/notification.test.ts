@@ -80,9 +80,14 @@ vi.mock("@/lib/onesignal", () => ({
 
 // ─── PowerSync mock (notifications persistence, audit O4) ───────
 const mockExecutions: Array<{ sql: string; params: any[] }> = [];
+// Permet de simuler une base locale indisponible (preuve « aucun échec
+// silencieux »). Le mock ci-dessous crée un objet NEUF à chaque appel : on
+// passe donc par un drapeau partagé, pas par une réassignation de méthode.
+let mockDbShouldThrow = false;
 vi.mock("@/lib/powersync", () => ({
   getPowerSyncDatabase: () => ({
     execute: async (sql: string, params: any[] = []) => {
+      if (mockDbShouldThrow) throw new Error("base locale indisponible");
       mockExecutions.push({ sql, params });
       return { array: [] };
     },
@@ -175,6 +180,23 @@ describe("notification capability", () => {
       await notif.initialize();
       const result = await notif.requestPermission();
       expect(result).toBe(false);
+    });
+  });
+
+  describe("persistance best-effort — aucun échec silencieux", () => {
+    it("journalise l'échec de persistance PowerSync (console.warn) et poursuit", async () => {
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+      mockDbShouldThrow = true;
+      try {
+        await notif.sendNotification({ title: "T", message: "M", targetRole: "MEMBRE" });
+        expect(warn).toHaveBeenCalled();
+        const msg = warn.mock.calls.map((c) => String(c[0])).join(" ");
+        expect(msg).toContain("[notification]");
+        expect(msg).toContain("PowerSync");
+      } finally {
+        mockDbShouldThrow = false;
+        warn.mockRestore();
+      }
     });
   });
 

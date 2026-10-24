@@ -19,6 +19,33 @@
  */
 
 describe('Lumina — Performance batch (offline sync + charge tx + calendar)', () => {
+  const SUPABASE_URL =
+    (Cypress.expose('SUPABASE_URL') as string) ||
+    'https://hhgovvrnalibhgpakswi.supabase.co';
+  const anonKey = Cypress.expose('SUPABASE_ANON_KEY') as string;
+
+  /**
+   * Jeton RÉEL de l'utilisateur connecté (motif de
+   * `rls-isolation-hardened.cy.ts` et `org-reports.cy.ts`).
+   *
+   * Les politiques SELECT de `transactions` sont posées sur le rôle
+   * `authenticated` ; avec la clé **anon**, `auth.uid()` est NULL → **0
+   * ligne visible**. Les anciennes assertions interrogeaient le serveur avec
+   * `Authorization: Bearer <anonKey>` et recevaient donc systématiquement 0 :
+   * elles ne pouvaient pas valider la synchronisation (échec « expected 0 to
+   * be at least 20 »). Défaut de test, pas de code.
+   */
+  const realToken = (): Cypress.Chainable<string> =>
+    cy.window().then((win) => {
+      const ls = win.localStorage;
+      const sbKey = Object.keys(ls).find((k) => /-auth-token$/.test(k));
+      if (!sbKey) throw new Error('Aucune session Supabase en localStorage');
+      const raw = JSON.parse(ls.getItem(sbKey)!);
+      const token = raw?.access_token;
+      if (!token) throw new Error('access_token absent de la session');
+      return token as string;
+    });
+
   before(function () {
     this.timeout(90_000);
     cy.loginOrgAccount();
@@ -61,14 +88,15 @@ describe('Lumina — Performance batch (offline sync + charge tx + calendar)', (
         .clear()
         .type(`Tx batch ${now} #${i}`);
       cy.contains('Enregistrer la transaction', { timeout: 10_000 }).click();
-      // Navigate back to the form for the next tx
-      cy.go('back');
-      // Re-render the new tx form if we're back at the list
-      cy.contains('button, ion-button', 'Ajouter une transaction')
-        .click()
-        .then(() => {
-          cy.url().should('include', '/transaction/new');
-        });
+      // Après enregistrement, l'app navigue vers le DÉTAIL de la transaction
+      // (/transaction/:id) — elle ne revient pas sur la liste. La spec
+      // cherchait un bouton « Ajouter une transaction » qui n'existe nulle
+      // part dans l'app (la page Finances expose « Nouvelle entrée » /
+      // « Nouvelle dépense », et le FAB s'appelle « Transaction ») : l'échec
+      // était un défaut de test, pas de code. On revient donc directement au
+      // formulaire, de façon déterministe.
+      cy.visit('/transaction/new');
+      cy.url().should('include', '/transaction/new');
     }
 
     // ── 3. Restore online mode ────────────────────────────────────────
@@ -78,20 +106,22 @@ describe('Lumina — Performance batch (offline sync + charge tx + calendar)', (
     cy.wait(40_000);
 
     // ── 5. Assert COUNT rows reached Supabase ─────────────────────────
-    cy.request({
-      method: 'GET',
-      url: `${SUPABASE_URL}/rest/v1/transactions?description=like.*Tx batch ${now}.*&select=id&limit=100`,
-      headers: {
-        apikey: anonKey,
-        Authorization: `Bearer ${anonKey}`,
-      },
-    }).then((res: any) => {
-      expect(res.status).to.eq(200);
-      const bodies: any[] = res.body ?? [];
-      cy.log(`Server transaction count for batch ${now}: ${bodies.length} (expected ${COUNT})`);
-      expect(bodies.length).to.be.greaterThanOrEqual(COUNT);
-      // Exactness: we only assert >= because other specs may have also
-      // inserted txs with overlapping descriptions (unlikely with timestamp).
+    realToken().then((token) => {
+      cy.request({
+        method: 'GET',
+        url: `${SUPABASE_URL}/rest/v1/transactions?description=like.*Tx batch ${now}.*&select=id&limit=100`,
+        headers: {
+          apikey: anonKey,
+          Authorization: `Bearer ${token}`,
+        },
+      }).then((res: any) => {
+        expect(res.status).to.eq(200);
+        const bodies: any[] = res.body ?? [];
+        cy.log(`Server transaction count for batch ${now}: ${bodies.length} (expected ${COUNT})`);
+        expect(bodies.length).to.be.greaterThanOrEqual(COUNT);
+        // Exactness: we only assert >= because other specs may have also
+        // inserted txs with overlapping descriptions (unlikely with timestamp).
+      });
     });
 
     console.log('✅ PERF BATCH — 20 tx offline exact sync');
@@ -133,30 +163,31 @@ describe('Lumina — Performance batch (offline sync + charge tx + calendar)', (
         .clear()
         .type(`ChargeTx ${now} ${i}`);
       cy.contains('Enregistrer la transaction', { timeout: 10_000 }).click();
-      cy.go('back');
-      cy.contains('button, ion-button', 'Ajouter une transaction')
-        .click()
-        .then(() => {
-          cy.url().should('include', '/transaction/new');
-        });
+      // Même défaut que le test 1 : l'app navigue vers le DÉTAIL de la
+      // transaction, et « Ajouter une transaction » n'existe nulle part
+      // (cy.go('back') ne ramène pas au formulaire de façon fiable).
+      cy.visit('/transaction/new');
+      cy.url().should('include', '/transaction/new');
     }
 
     // Back online
     offline = false;
     cy.wait(45_000);
 
-    cy.request({
-      method: 'GET',
-      url: `${SUPABASE_URL}/rest/v1/transactions?description=like.*ChargeTx ${now}.*&select=id&limit=100`,
-      headers: {
-        apikey: anonKey,
-        Authorization: `Bearer ${anonKey}`,
-      },
-    }).then((res: any) => {
-      expect(res.status).to.eq(200);
-      const bodies: any[] = res.body ?? [];
-      cy.log(`Server charge tx count: ${bodies.length} (expected >= ${COUNT})`);
-      expect(bodies.length).to.be.greaterThanOrEqual(COUNT);
+    realToken().then((token) => {
+      cy.request({
+        method: 'GET',
+        url: `${SUPABASE_URL}/rest/v1/transactions?description=like.*ChargeTx ${now}.*&select=id&limit=100`,
+        headers: {
+          apikey: anonKey,
+          Authorization: `Bearer ${token}`,
+        },
+      }).then((res: any) => {
+        expect(res.status).to.eq(200);
+        const bodies: any[] = res.body ?? [];
+        cy.log(`Server charge tx count: ${bodies.length} (expected >= ${COUNT})`);
+        expect(bodies.length).to.be.greaterThanOrEqual(COUNT);
+      });
     });
 
     console.log('✅ PERF BATCH — 50 tx charge sync');
@@ -170,15 +201,32 @@ describe('Lumina — Performance batch (offline sync + charge tx + calendar)', (
     const COUNT = 50;
 
     cy.ensureAuth();
-    // Create COUNT events rapidly
+    // Créer COUNT événements rapidement.
+    //
+    // Deux défauts corrigés ici :
+    //  1. `cy.get('ion-input[aria-label="Nom de l'événement"], input[...]')`
+    //     ne matchait jamais (échec après 300 s) : l'`aria-label` est porté par
+    //     le `<input>` natif et l'hydratation React n'est pas garantie à
+    //     l'arrivée sur la page. `cy.typeIonicInput` (déjà éprouvé par
+    //     `events-tasks.cy.ts`) écrit la valeur ET émet `ionChange`.
+    //  2. Le bouton peut rester `disabled` le temps du render qui suit :
+    //     on attend qu'il soit visible, puis on laisse React traiter
+    //     l'événement avant de cliquer.
     for (let i = 0; i < COUNT; i++) {
       cy.visit('/event/new');
-      cy.get('ion-input[aria-label="Nom de l\'événement"], input[aria-label="Nom de l\'événement"]')
+      cy.contains('button, ion-button', "Créer l'événement", {
+        timeout: 60_000,
+      }).should('be.visible');
+      cy.typeIonicInput("Nom de l'événement", `CalEvent ${now} ${i}`);
+      cy.wait(500);
+      cy.contains('button, ion-button', "Créer l'événement", { timeout: 30_000 })
         .first()
-        .type(`CalEvent ${now} ${i}`, { force: true });
-      cy.contains('button, ion-button', "Créer l'événement", { timeout: 15_000 }).click();
-      cy.url({ timeout: 30_000 }).should('include', '/events');
-      cy.go('back');
+        .click();
+      // EventNew.tsx navigue vers le DÉTAIL de l'événement créé
+      // (/event/:id), pas vers la liste : c'est volontaire (la liste triée
+      // par date tronquée aux 50 premiers ne montrait pas toujours le
+      // nouvel événement). L'assertion « /events » était donc périmée.
+      cy.url({ timeout: 30_000 }).should('include', '/event/');
     }
 
     // Navigate to calendar view and assert it renders

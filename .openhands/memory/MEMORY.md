@@ -70,3 +70,36 @@ DECISIONS, RISQUES, PROPOSITIONS, RUNBOOK, RAPPORT_FINAL).
 - **Sauvegardes** : plan gratuit Supabase ⇒ pas de sauvegarde classique ni
   de PITR. Alternative = `supabase db dump` (schéma + `--data-only`) vers
   `/workspace/backups/`.
+
+## Pièges de test (mesurés 2026-10-24)
+- **Assertions REST dans un spec Cypress : utiliser le JETON RÉEL, jamais
+  la clé anon.** Les policies SELECT sont sur le rôle `authenticated` avec
+  `auth.uid()` ; en anon, `auth.uid()` est NULL → **0 ligne**, donc toute
+  assertion « au moins N lignes » échoue à tort. Helper `realToken()`
+  (lit `sb-*-auth-token` dans localStorage), présent dans
+  `rls-isolation-hardened.cy.ts`, `org-reports.cy.ts`, `performance-batch.cy.ts`.
+- **Spec offline→online : 3 prérequis indissociables** (motif de
+  `cloud-sync.cy.ts`, qui passe) : (1) handler d'intercept avec
+  `req.continue()` en mode online, sinon Cypress mange la requête et le
+  client reçoit une réponse CORS invalide ; (2) intercept `OPTIONS` pour le
+  préflight ; (3) forcer `lumina-user` + `lumina-active-org` (sinon
+  `getOrganizationId()` → `__no_org__` et la file d'upload PowerSync échoue
+  en silence). `performance-batch.cy.ts` n'a aucun des trois (R83).
+- **Ionic : remplir un champ = `cy.typeIonicInput(ariaLabel, valeur)`** puis
+  attendre le bouton visible avant de cliquer (le state React arrive après
+  le premier render). Écrire sur l'`<input>` natif ne propage pas
+  `ionChange`.
+- **Sélecteurs d'UI réels** : le titre de page vient de `TopHeader` (un
+  `<p>`, pas un `<h1/h2/h3>`) ; les fonctions d'agrégation du ReportBuilder
+  sont des `IonSelectOption` (le select de fonction est le **dernier**
+  `ion-select` de la page) ; les options Ionic vivent dans `ion-popover` et
+  ne sont visibles qu'après clic sur le `ion-select`.
+- **`tsc -b` (CI) ne vérifie que `src/`** : `cypress/` porte 13 erreurs de
+  type invisibles (R84, P34). Pour vérifier : `npx tsc -p cypress/tsconfig.json`.
+- **`org_family`** est une vue `security_invoker=true` (respecte la RLS) :
+  elle expose exactement le périmètre du compte. Ne pas conclure à une fuite
+  à partir du nombre d'organisations exposées — comparer au périmètre de
+  `organizations` sous le même jeton.
+- **`members`** est une entité métier (adhérents) avec des ids **texte**
+  distincts des UUID de `profiles` : elle ne permet PAS de résoudre le nom
+  d'un profil (R80).

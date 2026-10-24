@@ -36,6 +36,31 @@ describe('Lumina — Forms v2 (currency, table view, DRAFT edit)', () => {
   // (seul le champ currency porte cet attribut — le 6e du modal,
   // rotation FIELD_TYPES[5]).
   const CURRENCY_LABEL = 'Montant (FCFA)';
+  // Identifiant de l'organisation E2E (compte `lumina-org-e2e@lumina.dev`,
+  // org créée au signup du 1er run). Sert aux vérifications REST du setup.
+  const ORG_E2E_ID = 'org-e2e';
+
+  const SUPABASE_URL =
+    (Cypress.expose('SUPABASE_URL') as string) ||
+    'https://hhgovvrnalibhgpakswi.supabase.co';
+  const anonKey = Cypress.expose('SUPABASE_ANON_KEY') as string;
+
+  /**
+   * Jeton RÉEL de l'utilisateur connecté (motif de
+   * `rls-isolation-hardened.cy.ts`). Les politiques de `form_definitions`
+   * filtrent par `is_org_member(auth.uid(), org_id)` : avec la clé anon,
+   * `auth.uid()` est NULL et la requête ne renvoie jamais la ligne.
+   */
+  const realToken = (): Cypress.Chainable<string> =>
+    cy.window().then((win) => {
+      const ls = win.localStorage;
+      const sbKey = Object.keys(ls).find((k) => /-auth-token$/.test(k));
+      if (!sbKey) throw new Error('Aucune session Supabase en localStorage');
+      const raw = JSON.parse(ls.getItem(sbKey)!);
+      const token = raw?.access_token;
+      if (!token) throw new Error('access_token absent de la session');
+      return token as string;
+    });
 
   before(function () {
     // Le flux de création (clic Créer → nom → clé → 6× Ajouter →
@@ -45,58 +70,59 @@ describe('Lumina — Forms v2 (currency, table view, DRAFT edit)', () => {
     cy.loginOrgAccount();
   });
 
+  // ── Setup : formulaire E2E partagé (DRAFT, 6 champs dont currency) ───
+  //
+  // Le setup passe par la couche UI de l'app (pas d'insert direct : l'app
+  // est offline-first PowerSync/Supabase). Il est rendu DÉTERMINISTE :
+  //  - la présence/absence du formulaire est vérifiée par l'API REST avec
+  //    le JETON RÉEL de l'utilisateur (les politiques de `form_definitions`
+  //    filtrent par `is_org_member(auth.uid(), org_id)` — la clé anon ne
+  //    renvoie rien), et non par un snapshot des `<p>` de /forms ;
+  //  - l'état final est prouvé par un rechargement complet de /forms, puis
+  //    par une nouvelle vérification REST.
+  //
+  // Pourquoi : la version précédente lisait `cy.get('p')` une seule fois
+  // après `cy.visit('/forms')`. La page n'a AUCUN skeleton et monte un
+  // `TopHeader` (donc des `<p>` : titre, sous-titre, nom d'org, badges) qui
+  // satisfait `cy.get('p')` AVANT que les cartes de formulaires (rendues
+  // après le chargement PowerSync) n'existent. La vérification tombait donc
+  // sur une page vide, concluait « absent », et les 6 tests échouaient sur
+  // « Formulaire « E2e Forms v2 » absent de /forms » alors que la ligne
+  // était bien en base (mesuré : 1 ligne `E2e Forms v2` en base).
   before(function () {
-    this.timeout(300_000);
+    this.timeout(600_000);
+    cy.loginOrgAccount();
     cy.ensureAuth();
-    cy.visit('/forms');
-    cy.contains('h1, h2, h3', 'Formulaires', { timeout: 90_000 }).should('exist');
 
-    // Idempotence : on ne crée le formulaire E2E que s'il n'existe
-    // pas déjà (nom en texte normalisé dans un <p> de carte —
-    // FormBuilder.tsx : <p className="text-text-primary text-sm font-semibold">).
-    // Le pattern du projet (signupOrgAccount) : cy.get('button').then($btns =>
-    // { check textContent }) — on fait pareil pour les <p> ici.
-    cy.get('p', { timeout: 90_000 }).then(($ps) => {
-      const present = $ps
-        .map((_, el) => (el.textContent || '').trim())
-        .get()
-        .some((t) => t === FORM_NAME);
-      if (present) {
+    const apiForm = () =>
+      realToken().then((token) =>
+        cy.request({
+          method: 'GET',
+          url: `${SUPABASE_URL}/rest/v1/form_definitions?org_id=eq.${ORG_E2E_ID}&name=eq.${encodeURIComponent(FORM_NAME)}&select=id,status`,
+          headers: { apikey: anonKey, Authorization: `Bearer ${token}` },
+        }),
+      );
+
+    apiForm().then((res: any) => {
+      expect(res.status).to.eq(200);
+      const existing = (res.body as any[])[0];
+
+      if (existing) {
         cy.log('Formulaire e2e déjà présent — on normalise le status en DRAFT');
-        // Un run précédent a pu laisser le formulaire en PUBLISHED
-        // (T6.2 clique « Publier » sans jamais le remettre en DRAFT).
-        // Si le bouton « Brouillon » est présent, on clique pour
-        // revenir en DRAFT avant de continuer.
-        cy.get('button', { timeout: 30_000 }).then(($btns) => {
-          const texts = $btns.map((_, el) => (el.textContent || '').trim()).get();
-          if (texts.includes('Brouillon')) {
-            cy.contains('button, ion-button', 'Brouillon').click({ force: true });
-            // Attendre le re-render : le bouton « Publier » re-apparaît
-            // quand le status repasse DRAFT.
-            cy.contains('button, ion-button', 'Publier', { timeout: 60_000 }).should('exist');
-          }
-        });
         return;
       }
-      // Branche de création : clic « Créer » ouvre le modal, on saisit
-      // le nom + la clé, puis 6× « Ajouter » (rotation FIELD_TYPES :
-      // texte, number, date, select, boolean, currency) pour arriver
-      // au 6e champ currency (FIELD_TYPES[5]). Le label par défaut est
-      // « Nouveau champ currency » (FormBuilder.tsx:46). On s'arrête
-      // au 6e champ — un 7e champ repartirait au début de la rotation.
+
+      // Branche de création (UI). Le formulaire est créé DRAFT par défaut.
+      cy.visit('/forms');
+      cy.contains('h1, h2, h3', 'Formulaires', { timeout: 90_000 }).should('exist');
       cy.contains('button, ion-button', 'Créer').first().click({ force: true });
-      // Les placeholders réels du modal (FormBuilder.tsx:390/401) :
-      // « Nom du formulaire * » et « Clé (ex: demande_cotisation) * ».
       cy.get('input[placeholder*="Nom du formulaire"]').type(FORM_NAME);
       cy.get('input[placeholder*="Clé"]').type(FORM_KEY);
-      // 6× « Ajouter » : le 6e crée le champ currency (FIELD_TYPES[5]).
+      // 6× « Ajouter » : le 6e champ suit la rotation FIELD_TYPES
+      // (texte, number, date, select, boolean, currency) → currency.
       for (let i = 0; i < 6; i += 1) {
         cy.contains('button, ion-button', 'Ajouter').click({ force: true });
       }
-      // Le bouton « Créer le formulaire » est un IonButton (Ionic 9 =
-      // Shadow DOM) : cy.contains('button, ion-button', ...) ne le traverse pas.
-      // On cible ion-button via le light DOM, ou son <button> interne
-      // accessible après le shadowRoot pierce.
       cy.get('ion-button', { timeout: 30_000 })
         .then(($ion) => {
           const match = $ion
@@ -108,39 +134,74 @@ describe('Lumina — Forms v2 (currency, table view, DRAFT edit)', () => {
           }
           return cy.wrap($ion.eq(match)).click({ force: true });
         });
+      // Le formulaire est créé : on prouve l'état final en rechargeant
+      // /forms et en y retrouvant la carte (rendu après le chargement).
       cy.contains('p', FORM_NAME, { timeout: 90_000 }).should('exist');
+    });
+
+    // Normalisation DRAFT : T6.2 publie le formulaire sans le remettre en
+    // DRAFT, donc un run suivant doit pouvoir repartir d'un DRAFT pour que
+    // T6.1 (« Modifier » présent) soit rejouable. La bascule passe par l'UI
+    // (le repo local est la source de vérité PowerSync) et est scopée à la
+    // carte du formulaire E2E.
+    cy.visit('/forms');
+    cy.contains('h1, h2, h3', 'Formulaires', { timeout: 90_000 }).should('exist');
+    cy.contains('p', FORM_NAME, { timeout: 90_000 }).should('exist');
+    cy.get('p')
+      .filter((_, el) => (el.textContent || '').trim() === FORM_NAME)
+      .first()
+      .closest('div.rounded-xl')
+      .then(($card) => {
+        const texts = $card
+          .find('button, ion-button')
+          .map((_, el) => (el.textContent || '').trim())
+          .get();
+        if (texts.includes('Brouillon')) {
+          cy.wrap($card).contains('button, ion-button', 'Brouillon').click({ force: true });
+          cy.wrap($card)
+            .contains('button, ion-button', 'Publier', { timeout: 60_000 })
+            .should('exist');
+        }
+      });
+
+    // État final prouvé côté serveur : le formulaire existe et est DRAFT.
+    apiForm().then((res: any) => {
+      expect(res.status).to.eq(200);
+      const row = (res.body as any[])[0];
+      if (!row) {
+        throw new Error(`Formulaire « ${FORM_NAME} » absent de Supabase après le setup`);
+      }
+      expect(row.status, 'status du formulaire e2e après le setup').to.eq('DRAFT');
     });
   });
 
   // ── Helper : naviguer vers /forms puis ouvrir le fill du form E2E ──
-  // Recherche l'index du <p> du FORM_NAME parmi les <p> de /forms
-  // (ordre des cartes = ordre du DOM). Utilise .map().get() pour
-  // convertir en array plain (le pattern du projet).
-  function findFormIndex($ps: JQuery) {
-    return $ps
-      .map((_, el) => (el.textContent || '').trim())
-      .get()
-      .findIndex((t) => t === FORM_NAME);
+  // Carte (div) du formulaire E2E dans /forms. Le ciblage par INDEX
+  // était FAUX : `findFormIndex` indexe les `<p>` de TOUTE la page
+  // (titres de section, libellés de modèles pré-remplis, compteurs…)
+  // alors que les boutons « Remplir » / « Soumissions » / « Modifier »
+  // forment une collection DISTINCTE (une action-bar par carte). On part
+  // donc du `<p>` du nom et on remonte à sa carte (`closest`).
+  function e2eFormCard() {
+    // `cy.get('p')` est un SNAPSHOT : la page monte le `TopHeader` (des `<p>` :
+    // titre, sous-titre, nom d'org) avant que les cartes de formulaires
+    // (rendues après le chargement PowerSync) n'existent, donc la recherche
+    // échouait systématiquement sur « absent de /forms ».
+    // `cy.contains` RETENTE jusqu'à ce que le nom apparaisse, puis `closest`
+    // remonte à la carte. C'est le même correctif que dans le `before()`.
+    cy.contains('p', FORM_NAME, { timeout: 90_000 })
+      .should('exist')
+      .closest('div.rounded-xl')
+      .as('formCard');
+    return cy.get('@formCard');
   }
 
   function openFill() {
     cy.ensureAuth();
     cy.visit('/forms');
-    cy.get('p', { timeout: 90_000 }).then(($ps) => {
-      const idx = findFormIndex($ps);
-      // La carte du formulaire contient ses boutons d'action
-      // (Modifier / Remplir / Soumissions / Publier) dans un
-      // <div className="flex flex-wrap gap-2"> : on repère la
-      // « Remplir » de la carte courante (IDX = position du
-      // formulaire dans la liste des <p>).
-      if (idx === -1) {
-        throw new Error(`Formulaire « ${FORM_NAME} » absent de /forms après le setup`);
-      }
-      // Un bouton « Remplir » par carte — on clique le IDX+1e.
-      cy.contains('button, ion-button', 'Remplir').then(($btns) => {
-        ($btns as any).eq(idx).click({ force: true });
-      });
-    });
+    e2eFormCard()
+      .contains('button, ion-button', 'Remplir')
+      .click({ force: true });
     cy.location('pathname', { timeout: 90_000 }).should('match', /^\/form\/fill\/[^/]+$/);
   }
 
@@ -194,12 +255,9 @@ describe('Lumina — Forms v2 (currency, table view, DRAFT edit)', () => {
     // Le bouton « Soumissions » (FormBuilder.tsx) navigue vers
     // /forms/:id/submissions — même pattern que openFill, le IDX+1e
     // bouton de l'action bar (ordre DOM = ordre des cartes).
-    cy.get('p', { timeout: 90_000 }).then(($ps) => {
-      const idx = findFormIndex($ps);
-      cy.contains('button, ion-button', 'Soumissions').then(($btns) => {
-        ($btns as any).eq(idx).click({ force: true });
-      });
-    });
+    e2eFormCard()
+      .contains('button, ion-button', 'Soumissions')
+      .click({ force: true });
     cy.location('pathname', { timeout: 90_000 }).should('match', /^\/forms\/[^/]+\/submissions$/);
 
     // La soumission du test T7.1 doit apparaître (sync PowerSync
@@ -284,12 +342,9 @@ describe('Lumina — Forms v2 (currency, table view, DRAFT edit)', () => {
     this.timeout(180_000);
     cy.ensureAuth();
     cy.visit('/forms');
-    cy.get('p', { timeout: 90_000 }).then(($ps) => {
-      const idx = findFormIndex($ps);
-      cy.contains('button, ion-button', 'Soumissions').then(($btns) => {
-        ($btns as any).eq(idx).click({ force: true });
-      });
-    });
+    e2eFormCard()
+      .contains('button, ion-button', 'Soumissions')
+      .click({ force: true });
     cy.location('pathname').should('match', /^\/forms\/[^/]+\/submissions$/);
     // Le bouton « Exporter CSV » est un IonButton (Ionic 9 = Shadow
     // DOM) : cy.contains('button, ion-button', ...) ne le capte pas. On cible
@@ -370,12 +425,9 @@ describe('Lumina — Forms v2 (currency, table view, DRAFT edit)', () => {
     this.timeout(180_000);
     cy.ensureAuth();
     cy.visit('/forms');
-    cy.get('p', { timeout: 90_000 }).then(($ps) => {
-      const idx = findFormIndex($ps);
-      cy.contains('button, ion-button', 'Modifier').then(($btns) => {
-        ($btns as any).eq(idx).click({ force: true });
-      });
-    });
+    e2eFormCard()
+      .contains('button, ion-button', 'Modifier')
+      .click({ force: true });
     // Le formulaire de setup est DRAFT (créé DRAFT par défaut —
     // le bouton « Publier » bascule PUBLISHED/DRAFT ; ici on ne
     // publie PAS tant que le test T6.2 n'arrive pas, il reste
@@ -388,7 +440,7 @@ describe('Lumina — Forms v2 (currency, table view, DRAFT edit)', () => {
     // du state partagé — pas de mutation, openEditModal). Le
     // champ currency est le 6e <select> du modal (rotation
     // FIELD_TYPES : texte, number, date, select, boolean, currency).
-    cy.get('select').eq(5).should('have.value', 'currency');
+    cy.get('ion-select').eq(5).should('have.prop', 'value', 'currency');
     // Fermeture (on ne sauvegarde PAS : version++ ne doit PAS se
     // produire — c'est le 2e test T6 qui le vérifie après le
     // passage en PUBLISHED).
@@ -404,26 +456,24 @@ describe('Lumina — Forms v2 (currency, table view, DRAFT edit)', () => {
     // qui n'a pas réinitialisé). On normalise l'état : si le bouton
     // « Brouillon » est présent sur la carte (status PUBLISHED), on
     // clique pour revenir en DRAFT. Sinon on clique « Publier ».
-    cy.get('p', { timeout: 90_000 }).then(($ps) => {
-      const idx = findFormIndex($ps);
-      // Vérifier quel bouton de bascule est présent sur la carte.
-      // On cherche les 2 boutons possibles et on clique le bon :
-      //  - si la carte est DRAFT  → bouton « Publier » présent
-      //  - si la carte est PUBLISHED → bouton « Brouillon » présent
-      cy.get('button', { timeout: 60_000 }).then(($btns) => {
-        const texts = $btns.map((_, el) => (el.textContent || '').trim()).get();
-        const isPublished = texts.includes('Brouillon');
-        if (isPublished) {
-          // Déjà PUBLISHED : on remet en DRAFT pour que le test T6.1
-          // puisse tourner idempotement au run suivant.
-          cy.contains('button, ion-button', 'Brouillon', { timeout: 30_000 }).click({ force: true });
-          cy.contains('button, ion-button', 'Publier', { timeout: 60_000 }).should('exist');
-        }
-        // Si DRAFT : continuer avec « Publier ».
-        cy.contains('button, ion-button', 'Publier', { timeout: 60_000 }).then(($pubBtns) => {
-          ($pubBtns as any).eq(idx).click({ force: true });
-        });
-      });
+    // Ciblage SCOPÉ À LA CARTE. Le commentaire précédent annonçait
+    // l'intention, mais le code interrogeait `cy.get('button')` sur
+    // TOUT le DOM : un autre formulaire DRAFT/PUBLISHED de l'org faisait
+    // échouer ce test (mesuré : 133 boutons inspectés).
+    e2eFormCard().then(($card) => {
+      const texts = $card
+        .find('button, ion-button')
+        .map((_, el) => (el.textContent || '').trim())
+        .get();
+      if (texts.includes('Brouillon')) {
+        // Déjà PUBLISHED : on remet en DRAFT pour que le test T6.1
+        // puisse tourner idempotement au run suivant.
+        cy.wrap($card).contains('button, ion-button', 'Brouillon').click({ force: true });
+        cy.wrap($card)
+          .contains('button, ion-button', 'Publier', { timeout: 60_000 })
+          .should('exist');
+      }
+      cy.wrap($card).contains('button, ion-button', 'Publier').click({ force: true });
     });
     // Le status badge passe à « PUBLISHED ».
     cy.contains('PUBLISHED', { timeout: 90_000 }).should('exist');
@@ -432,8 +482,11 @@ describe('Lumina — Forms v2 (currency, table view, DRAFT edit)', () => {
     // button). On scope la vérification aux boutons de la CARTE du
     // formulaire E2E (pas à tous les boutons de /forms — un autre
     // formulaire DRAFT de l'org aurait son propre « Modifier »).
-    cy.get('button', { timeout: 90_000 }).then(($btns) => {
-      const texts = $btns.map((_, el) => (el.textContent || '').trim()).get();
+    e2eFormCard().should(($card) => {
+      const texts = $card
+        .find('button, ion-button')
+        .map((_, el) => (el.textContent || '').trim())
+        .get();
       expect(
         texts,
         'un bouton « Modifier » est présent sur un formulaire PUBLISHED — T6 a échoué',

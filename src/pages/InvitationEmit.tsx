@@ -234,7 +234,7 @@ export default function InvitationEmit() {
                     placeholder="Sélectionner un rôle"
                     interface="popover"
                     aria-label="Sélectionner un rôle"
-                    style={{ "--placeholder-color": "var(--text-tertiary)" }}
+                    style={{ "--placeholder-color": "var(--text-tertiary)" } as React.CSSProperties}
                   >
                     {ROLES.map((r) => (
                       <IonSelectOption key={r.value} value={r.value}>

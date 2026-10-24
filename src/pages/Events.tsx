@@ -53,7 +53,7 @@ export default function Events() {
   const txsByEvent = useMemo(() => {
     const map = new Map<string, any[]>();
     for (const t of transactions) {
-      const eid = t.event_id || t.eventId;
+      const eid = (t as any).event_id || (t as any).eventId;
       if (!eid) continue;
       const list = map.get(eid);
       if (list) list.push(t);

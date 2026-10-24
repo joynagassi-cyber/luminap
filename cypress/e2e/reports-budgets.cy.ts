@@ -25,7 +25,11 @@ describe('Lumina — Reports & Budgets', () => {
 
     cy.ensureAuth();
     cy.visit('/reports');
-    cy.get('h1, h2, h3, header').contains('Rapports', { timeout: 30_000 }).should('be.visible');
+    // Le titre de page est rendu par `<TopHeader title="Rapports" />` dans un
+    // `<p>` (Reports.tsx:418/433), PAS dans un <h1/h2/h3> : l'ancien
+    // `cy.get('h1, h2, h3, header').contains('Rapports')` ne pouvait pas
+    // matcher et échouait après 30 s. On ancre sur le texte du bandeau.
+    cy.contains('Rapports', { timeout: 30_000 }).should('be.visible');
 
     // Period buttons
     cy.contains('button, ion-button', 'Ce mois').should('be.visible');
@@ -55,8 +59,23 @@ describe('Lumina — Reports & Budgets', () => {
 
     cy.ensureAuth();
     cy.visit('/report-builder');
-    // Metric buttons
-    cy.contains('button, ion-button', /Somme|Comptage|Moyenne/i, { timeout: 30_000 }).should('exist');
+    // Les fonctions d'agrégation ne sont PAS des boutons : elles vivent dans
+    // les `IonSelectOption` du select « Métrique » (ReportBuilder.tsx:598-608,
+    // libellés de `METRIC_FNS`). L'ancien
+    // `cy.contains('button, ion-button', /Somme|Comptage|Moyenne/i)` ne
+    // pouvait donc jamais matcher (échec après 30 s).
+    //
+    // Ciblage déterministe : le select de FONCTION est le DERNIER `ion-select`
+    // de la page (ReportBuilder.tsx:601 — après lui il n'y a qu'un IonInput
+    // d'alias). Les quatre premiers selects sont période/source/catégorie/
+    // caisse et le cinquième le champ de la métrique.
+    cy.get('ion-select').last().click({ force: true });
+    cy.get('ion-popover', { timeout: 10_000 })
+      .find('ion-item')
+      .filter(':visible')
+      .contains(/Somme|Comptage|Moyenne/)
+      .should('exist');
+    cy.get('ion-popover').type('{esc}');
   });
 
   it('creates a budget and sees it in the list', function () {

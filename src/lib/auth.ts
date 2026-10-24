@@ -697,7 +697,10 @@ class AuthService {
       const userMessage =
         err?.message || "An unexpected error occurred during Google sign-in.";
       this.setState({ error: userMessage, isLoading: false });
-      return { userMessage };
+      // Clé `error` (contrat du type de retour) : avec `userMessage`, le
+      // `catch` d'AuthPage ne voyait pas d'erreur → spinner infini et aucun
+      // message affiché quand Google échouait.
+      return { error: userMessage };
     }
   }
 

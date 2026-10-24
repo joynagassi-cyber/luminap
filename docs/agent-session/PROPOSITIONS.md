@@ -131,7 +131,13 @@
 - **Proposition** : vérifier la livraison réelle et le comportement hors ligne.
 - **Coût** : 2 h. **Risques** : faible.
 
-## P-BACKFILL-BUDGET — Re-normaliser `events.budget_items` (priorité : haute)
+## P-BACKFILL-BUDGET — Re-normaliser `events.budget_items` — **EXÉCUTÉ le 2026-10-24**
+
+> **Statut : fait**, et étendu à toutes les colonnes concernées (6 colonnes,
+> 218 valeurs) — cf. R65 et migration `20261024000001`. Conservé ici pour
+> mémoire du raisonnement. Il reste proposé (P-NEW ci-dessous) d'ajouter une
+> **contrainte de forme** en base pour rendre le défaut impossible.
+
 - **Problème** : 158 des 159 lignes portent un jsonb de type *string*
   (double encodage historique). Le code tolère désormais les deux formes,
   mais la donnée reste sale et toute nouvelle lecture naïve casserait.
@@ -390,3 +396,141 @@
   par une règle de revue + un test lint.
 - **Intérêt** : des échecs de test qui désignent le bon coupable.
   **Coût** : 2 h. **Priorité** : moyenne.
+
+
+---
+
+## Session 5 (2026-10-24) — propositions issues de la clôture
+
+### P-NEW-1 — Contrainte de forme sur les colonnes jsonb (priorité : haute)
+- **Problème** : rien n'empêche une écriture future de reposer un jsonb de
+  type *string*. Le correctif amont est côté client (PowerSync) ; une
+  écriture directe par SQL, un import, ou un futur client tiers
+  reproduiraient le défaut, et il est **silencieux** (aucune erreur à
+  l'écriture, plantage au rendu).
+- **Proposition** : ajouter une contrainte `CHECK` sur les colonnes
+  concernées, ex. `CHECK (budget_items IS NULL OR jsonb_typeof(budget_items)
+  IN ('array','object','null'))` pour `events.budget_items` et
+  `form_definitions.fields`, et un `DEFAULT '[]'::jsonb` là où le vide est
+  un tableau.
+- **Intérêt** : rend le défaut **impossible**, pas seulement corrigé. Une
+  écriture fautive échoue immédiatement, à l'endroit de la faute.
+- **Coût** : 1 h (contraintes + tests + vérification qu'aucun chemin
+  légitime n'écrit un scalaire). **Risque** : moyen — à valider, car
+  `custom_field_values.value` accepte légitimement des scalaires et ne doit
+  PAS être contraint.
+- **Bloquante pour la fiabilité** : oui, à moyen terme.
+
+### P-NEW-2 — Rendre la suite Cypress complète fiable (priorité : haute)
+- **Problème** : au dernier run complet (session 3), 20 tests sur 70
+  échouaient sur 7 specs, principalement pour des **prémisses de spec
+  obsolètes** et des sélecteurs portant sur des pages Ionic masquées (R64).
+  Ces échecs sont du bruit qui masque les vrais défauts.
+- **Proposition** : traiter les 7 specs rouges une par une (comme fait pour
+  `groups-events`), en appliquant le helper `activePage`
+  (`div.ion-page:not(.ion-page-hidden)`) partout.
+- **Intérêt** : sans suite verte, aucune régression future n'est détectée —
+  c'est la condition de la stabilité sur 4 mois.
+- **Coût** : 4 h. **Risque** : faible.
+- **Bloquante** : oui.
+
+### P-NEW-3 — Purge des tables d'audit et de notifications (priorité : moyenne)
+- **Problème** : `audit_entries` et `notifications` croissent sans purge.
+  Sur un projet Supabase gratuit (500 Mo), la base pleine provoquerait un
+  refus de **toutes** les écritures. Mesure au 2026-10-24 : **20 Mo
+  utilisés (4 %)** avec 48 `audit_entries` et 314 `notifications` — le
+  risque n'est donc **pas imminent**, mais il est structurel et non
+  surveillé : rien n'avertit avant la limite.
+- **Proposition** : tâche planifiée (`pg_cron`) purgeant les entrées de plus
+  de N mois, avec archivage préalable vers `archives`.
+- **Intérêt** : évite l'arrêt total des écritures. **Coût** : 2 h.
+  **Risque** : faible si l'archivage précède la purge.
+- **Bloquante** : non à court terme (4 % du quota) ; oui à long terme si
+  l'app est utilisée intensivement pendant plusieurs années.
+
+### P-NEW-4 — Alerte sur la taille de la base (priorité : haute)
+- **Problème** : aucune surveillance de l'espace utilisé. Le propriétaire ne
+  saura pas que la base approche du quota avant l'échec.
+- **Proposition** : consulter régulièrement `pg_database_size` (requête
+  fournie dans RUNBOOK.md) et/ou brancher une alerte Sentry/OneSignal sur
+  un seuil (ex. 80 % du quota).
+- **Intérêt** : prévenir au lieu de subir. **Coût** : 1 h. **Risque** : faible.
+- **Bloquante** : oui pour la fiabilité à long terme.
+
+
+### P-NEW-5 — Supprimer le code mort `src/adapters/` (priorité : basse)
+- **Problème** : les 5 fichiers de `src/adapters/` (`CaisseAdapter`,
+  `EventBudgetAdapter`, `OrgUnitAdapter`, `TransactionLegacyAdapter`,
+  `VersementLegacyAdapter`) n'ont **aucun importateur** dans `src/`
+  (`git grep -rn "EventBudgetAdapter"` → 0 résultat hors définition ;
+  aucun `from "@/adapters"`). `EventBudgetAdapter.fromJsonb` contient un
+  `JSON.parse` direct sur `budget_items` — exactement le motif qui a produit
+  le double encodage. Du code mort qui ré-implémente un parseur dangereux est
+  un piège pour le prochain intervenant.
+- **Proposition** : supprimer le dossier, ou le marquer explicitement
+  `@deprecated` avec la raison. **Vérification préalable** : relancer
+  `tsc -b` et `vitest run` (les deux doivent rester verts).
+- **Intérêt** : réduit la surface de confusion sur le format `budget_items`.
+  **Coût** : 30 min. **Risque** : faible (à confirmer par la suite de tests).
+- **Bloquante** : non.
+
+
+### P-NEW-6 — Séparer « type d'événement » et « destinataire » des notifications (priorité : moyenne)
+- **Problème** : `notifications.action_type` reçoit tantôt un type
+  d'événement (`EVENT_CREATED`, 311 lignes), tantôt un rôle
+  (`TREASURIER`, via `sendNotification`). Aucun code ne route par
+  destinataire ; `getNotifIcon` ne reconnaît que 3 valeurs jamais produites
+  (cf. R74). Le « ciblage » affiché dans l'UI est donc inexistant.
+- **Proposition** :
+  1. décider la sémantique de `action_type` (**type d'événement**) et
+     l'appliquer partout : remplacer les `targetRole:` de
+     `TransactionDetail.tsx` (5), `EventNew.tsx`, `GivingCampaign.tsx`,
+     `FormFill.tsx`, `InvitationEmit.tsx`, `InvitationClaim.tsx` par un
+     `actionType:` d'événement (`TRANSACTION_APPROVED`, etc.) ;
+  2. ajouter un vrai champ de ciblage (`target_role` / `target_user_id`)
+     **si** le ciblage par rôle est voulu, et le lire dans `useNotifications` ;
+  3. compléter `getNotifIcon` avec les valeurs réellement produites.
+- **Intérêt** : notifications compréhensibles d'un coup d'œil (icône
+  distincte par type) et ciblage réellement appliqué.
+- **Coût** : 2 h (dont une migration si l'on ajoute une colonne).
+  **Risque** : faible (colonne texte, sans contrainte ni FK).
+- **Bloquante** : non — mais à trancher avant d'ajouter des notifications.
+### P32 — Rendre l'environnement de test infalsifiable (priorité : haute)
+
+- **Problème** : un run Cypress a pu porter sur un build obsolète de 9 minutes
+  sans qu'aucun signal ne l'annonce (R81). `cypress.config.ts` ne définit pas
+  de `webServer` et `baseUrl` retombe par défaut sur un déploiement distant.
+  Le risque concret : valider — ou invalider — une version qui n'est pas celle
+  qu'on croit, et consigner un faux résultat de test.
+- **Proposition** : (1) déclarer un `webServer` explicite (commande `vite`,
+  port 8080, `reuseExistingServer: false`) pour que Cypress démarre toujours
+  le bon serveur ; (2) faire échouer le démarrage si un serveur préexistant
+  répond mais que son horodatage de build est antérieur au dernier commit ;
+  (3) journaliser l'URL cible et l'empreinte du bundle dans le rapport Cypress.
+- **Intérêt** : c'est la condition pour que tout résultat de test consigné
+  soit digne de confiance. Sans cela, chaque affirmation « testé » est
+  potentiellement fausse — le pire cas pour un livrable vérifiable.
+- **Coût estimé** : 1 h. **Risque** : faible (configuration de test
+  uniquement, aucun impact production).
+- **Bloquante pour la fiabilité à long terme** : **oui**. À traiter avant la
+  prochaine session de validation.
+
+---
+
+## P34 — Typechecker la suite Cypress en CI
+
+- **Problème** : `tsc -b` (CI) ne couvre que `src/` ; `cypress/` n'est jamais
+  vérifié statiquement. Mesuré : 13 erreurs de type préexistantes dans
+  `cloud-sync.cy.ts`, `nav-bottom.cy.ts`, `sessions.cy.ts` et
+  `cypress/support/ionic.ts`.
+- **Proposition** : créer `tsconfig.cypress.json` (`include: ["cypress"]`,
+  `target` es2020 pour `--downlevelIteration`), le référencer dans
+  `tsconfig.json`, corriger les 13 erreurs, et l'exécuter dans le job CI
+  existant.
+- **Intérêt** : attrape les fautes des specs avant l'exécution ; fiabilise la
+  base de preuves de test, qui est le seul mécanisme de validation de ce
+  projet.
+- **Coût estimé** : 1 h. **Risques** : faibles (aucun impact runtime) ;
+  nécessite de traiter 13 erreurs préexistantes.
+- **Priorité** : moyenne. **Bloquante pour la fiabilité à long terme** : non,
+  mais recommandée — les tests sont la seule preuve disponible.

@@ -83,7 +83,7 @@ describe('Lumina — isolation RLS avec le jeton réel (read-only)', () => {
     });
   });
 
-  it('org_family n\'expose que sa propre organisation', function () {
+  it("org_family n'expose aucune organisation hors de son périmètre RLS", function () {
     this.timeout(60_000);
     // `realToken()` lit localStorage : il faut d'abord que la page
     // soit servie par l'app (origine correcte) et que la session soit
@@ -91,16 +91,45 @@ describe('Lumina — isolation RLS avec le jeton réel (read-only)', () => {
     cy.ensureAuth();
     cy.visit('/dashboard');
     realToken().then((token) => {
+      const headers = { apikey: anonKey, Authorization: `Bearer ${token}` };
+      // Invariant de sécurité (plus fort que l'ancien `orgs.size < 5`, qui
+      // confondait « nombre d'organisations » et « isolation ») :
+      // `org_family` (security_invoker=true) ne doit exposer AUCUN ancêtre
+      // que l'endpoint `organizations` n'expose pas déjà sous la même RLS.
+      // Toute différence serait une fuite par la vue.
       cy.request({
         method: 'GET',
-        url: `${SUPABASE_URL}/rest/v1/org_family?select=ancestor,org_id&limit=50`,
-        headers: { apikey: anonKey, Authorization: `Bearer ${token}` },
-      }).then((res) => {
-        expect(res.status).to.eq(200);
-        const orgs = new Set((res.body as any[]).map((r) => r.ancestor));
-        // La vue ne doit pas permettre d'énumérer les autres organisations.
-        expect(orgs.size, 'organisations distinctes exposées').to.be.lessThan(5);
-        cy.log(`✅ org_family expose ${orgs.size} organisation(s)`);
+        url: `${SUPABASE_URL}/rest/v1/organizations?select=id`,
+        headers,
+      }).then((orgsRes) => {
+        expect(orgsRes.status).to.eq(200);
+        const allowed = new Set(
+          (orgsRes.body as any[]).map((r) => r.id as string),
+        );
+        // Contrôle négatif : l'organisation historique org-1 doit rester
+        // hors du périmètre du compte.
+        expect(Array.from(allowed), 'org-1 ne doit pas être visible').to.not.include(
+          'org-1',
+        );
+
+        cy.request({
+          method: 'GET',
+          url: `${SUPABASE_URL}/rest/v1/org_family?select=ancestor,org_id&limit=200`,
+          headers,
+        }).then((res) => {
+          expect(res.status).to.eq(200);
+          const exposed = Array.from(
+            new Set((res.body as any[]).map((r) => r.ancestor as string)),
+          );
+          const leaked = exposed.filter((a) => !allowed.has(a));
+          expect(
+            leaked,
+            `organisations exposées par org_family mais hors périmètre RLS : ${leaked.join(', ')}`,
+          ).to.deep.eq([]);
+          cy.log(
+            `✅ org_family expose ${exposed.length} org(s), toutes dans le périmètre RLS`,
+          );
+        });
       });
     });
   });

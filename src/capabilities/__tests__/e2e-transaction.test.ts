@@ -202,19 +202,16 @@ vi.mock("@/lib/audit", () => ({
 
 // ─── Seed helper: insert a transaction row into the mock DB ────────
 function seedTransaction(
-  row: Omit<
-    Transaction,
-    "id" | "createdAt" | "updatedAt" | "version" | "reversalOfId"
-  > & { id: string },
+  row: Partial<Transaction> & { id: string },
 ): void {
   const now = new Date().toISOString();
-  const tx: Transaction = {
+  const tx = {
     ...row,
     createdAt: now,
     updatedAt: now,
     version: 1,
     reversalOfId: null,
-  };
+  } as Transaction;
   // Build mock PS row with snake_case column names
   const psRow: any = {
     id: tx.id,

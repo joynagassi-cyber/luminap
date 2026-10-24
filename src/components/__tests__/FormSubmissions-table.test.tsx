@@ -24,6 +24,16 @@ vi.mock("@/lib/formSystem", () => ({
 
 import { formDefinitionRepo, formSubmissionRepo, buildSubmissionsCSV, exportSubmissionsAsXLSX } from "@/lib/formSystem";
 
+// `getAll` est mocké : il résout les noms de soumetteurs depuis la table
+// locale `profiles`. Par défaut vide → la colonne retombe sur l'id (repli),
+// ce qui préserve les assertions historiques du fichier.
+const { mockGetAll } = vi.hoisted(() => ({
+  mockGetAll: vi.fn(async (_sql: string): Promise<any[]> => []),
+}));
+vi.mock("@/lib/powersync", () => ({
+  getPowerSyncDatabase: () => ({ getAll: mockGetAll }),
+}));
+
 const FORM_DEF = {
   id: "form-1",
   orgId: "org-1",
@@ -173,5 +183,25 @@ describe("FormSubmissions — vue tableau", () => {
       expect.objectContaining({ id: "form-1" }),
       "soumissions_baptemes",
     );
+  });
+
+  it("affiche le NOM du soumetteur (résolu depuis profiles), pas son id brut", async () => {
+    vi.mocked(formDefinitionRepo.get).mockResolvedValue(FORM_DEF);
+    vi.mocked(formSubmissionRepo.list).mockResolvedValue(SUBS);
+    mockGetAll.mockResolvedValue([
+      { id: "user-1", first_name: "Alice", last_name: "Martin", email: "a@x.dev" },
+      { id: "user-2", first_name: "Bob", last_name: "", email: "b@x.dev" },
+    ]);
+
+    renderPage();
+    await screen.findByRole("table");
+
+    // Le nom complet remplace l'UUID.
+    expect(await screen.findByText("Alice Martin")).toBeInTheDocument();
+    // Nom partiel : le prénom suffit (pas de double espace).
+    expect(screen.getByText("Bob")).toBeInTheDocument();
+    // Plus aucun UUID affiché.
+    expect(screen.queryByText("user-1")).toBeNull();
+    expect(screen.queryByText("user-2")).toBeNull();
   });
 });

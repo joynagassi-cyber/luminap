@@ -6,7 +6,8 @@ import { formatCurrencyCompact, formatCurrencyFull } from "@/lib/utils";
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
 import { Plus, Trash2, Lock, FileText, X } from "lucide-react";
-import { IonPage, IonContent, IonItem, IonLabel, IonInput, IonSelect, IonSelectOption, IonChangeCustomEvent } from "@ionic/react";
+import { IonPage, IonContent, IonItem, IonLabel, IonInput, IonSelect, IonSelectOption } from "@ionic/react";
+import type { IonChangeCustomEvent } from "@/lib/ionic-types";
 
 export default function BudgetDetail() {
   const { id } = useParams();
@@ -185,7 +186,7 @@ export default function BudgetDetail() {
                       >
                         <IonSelectOption value="">Toutes (non catégorisé)</IonSelectOption>
                         {categories.map((c) => (
-                          <IonSelectOption value={c.id}>{c.label_fr || c.label}</IonSelectOption>
+                          <IonSelectOption key={c.id} value={c.id}>{c.label_fr || c.label}</IonSelectOption>
                         ))}
                       </IonSelect>
                     </IonItem>

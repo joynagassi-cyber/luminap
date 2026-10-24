@@ -183,3 +183,5 @@ export function useMyOrgs(): {
 
   return { data, refetch };
 }
+
+export type { UserOrg };

@@ -182,3 +182,144 @@ pages Ionic **masquées** + prémisses de spec obsolètes (3 specs).
 | R63 | Fixture E2E : rôle `profiles` ≠ `org_memberships` | **cassée** (donnée) | **corrigée** | spec 3/3 après alignement ; retour arrière documenté (RISQUES R63) |
 | R64 | Sélecteurs de spec sur pages Ionic masquées | incomplète (test) | **corrigée** (1 spec) | `groups-events.cy.ts` scopé à la page active |
 | R62 | Deux sources de vérité du rôle | — | **ouverte** | Proposition P36 (RISQUES R62) |
+
+---
+
+## Session 5 — mises à jour (2026-10-24, clôture des défauts critiques)
+
+| Réf | Fonctionnalité | Statut initial | Statut final | Défaut / action | Preuve |
+|---|---|---|---|---|---|
+| R65 | **Formulaires dynamiques — ouverture** (`/forms/:id/submissions`, builder) | **cassée** | **corrigée** | `form_definitions.fields` était un jsonb de type *string* sur **34/34 lignes** (100 %) : `fields.map is not a function` → ErrorBoundary. Portée réelle du double encodage : **218 valeurs sur 6 colonnes**, pas seulement `budget_items`. | Migration `20261024000001` ; `SQL` après : 0 valeur `string` (34 arrays) ; `V: jsonb.test.ts` 18/18 |
+| R65 | **Événements — détail / budgets** (`/event/:id`) | **cassée** | **corrigée** | `events.budget_items` : 158/305 valeurs `string`. Le parseur tolérait, la donnée restait sale (toute lecture SQL cassait). | `SQL` après : 305 arrays, 0 string ; rollback prouvé exact (158 restaurées, 147 saines intactes) |
+| R65 | **Invitations — payload de droits** (`invitations`) | **cassée** | **corrigée** | `grants_payload` et `tags_payload` : 8/10 `string` chacun → droits d'invitation illisibles par toute lecture naïve. | `SQL` après : 10 arrays chacun |
+| R65 | **Journal d'audit** (`/trace`, `audit_entries`) | **cassée** | **corrigée** | `before_state`/`after_state` : 5 `string` chacun → comparaison avant/après impossible en SQL. | `SQL` après : 15 objects, 5 `null` |
+| R67 | **Envoi d'un rapport d'organisation** (`/reports`, `OrgReportSend`) | **cassée** | **corrigée** | Import de l'icône lucide `File` (inutilisée) masquait le constructeur global `File` → `new File(...)` levait « File is not a constructor » : **l'envoi échouait à tous les coups**. | `tsc -b` 0 erreur ; import supprimé (le chemin d'envoi s'exécute désormais) |
+| R66 | **Indicateur de synchronisation** | **cassée** | **corrigée** | PowerSync v2 : `db.status` n'existe plus (`db.currentStatus`) → l'indicateur affichait « hors ligne » en permanence, y compris quand la sync fonctionnait. | `tsc -b` 0 erreur ; `src/lib/powersync/index.ts`, `usePowerSyncIndicator.ts`, `cloud-sync.cy.ts` |
+| R68 | **Calendrier / timeline d'événements** | **cassée** | **corrigée** | `onButtonClick` n'existe pas sur `IonItem` (Ionic 9) : le clic sur un événement du calendrier ne faisait rien. | `onClick` ; `tsc -b` 0 erreur |
+| R69 | **Membres / profil — autocomplétion** | incomplète | **corrigée** | Ionic 9 attend `autocomplete` (minuscule) ; `autoComplete` n'était pas transmis au DOM. | `tsc -b` 0 erreur ; `Members.tsx`, `SettingsProfile.tsx` |
+| R70 | **Rejet d'une transaction — notification** | incomplète | **corrigée** | `targetRole: "ADMIN"` n'existe pas dans le type `Role` : erreur de type masquée par `as any`. **Rectificatif** : `targetRole` ne route rien (il alimente `notifications.action_type`), donc aucun silence métier réel — cf. R74. | `TREASURIER` ; `tsc -b` 0 erreur |
+| R71 | **Détection des erreurs de type (CI)** | **cassée** | **corrigée** | `tsc --noEmit` à la racine ne vérifiait **aucun fichier** (`"files": []`) → succès systématique, 98 erreurs accumulées dont 5 bugs d'exécution. | `tsc -b --noEmit` en CI : 0 erreur ; `vite build` exit 0 |
+
+### Chiffres de validation (session 5)
+
+- `npx tsc -b --noEmit` → **0 erreur** (contre 99 avant : 98 dans l'app + 1 dans `vite.config.ts`).
+- `npx vitest run` → **1091 tests / 65 fichiers, 100 % verts** (contre 1030/1048 et 18 échecs au baseline).
+- `npx vite build` → exit **0**.
+- Base : 0 valeur `jsonb_typeof = 'string'` sur les 10 colonnes jsonb.
+
+
+### R65 — chaîne complète vérifiée (pourquoi le défaut ne reviendra pas)
+
+Le défaut était **silencieux** : rien ne signalait l'écriture fautive. La
+correction ne tient que si les **trois** maillons sont protégés. Vérifié
+dans le code :
+
+| Maillon | Emplacement | Mécanisme | Preuve |
+|---|---|---|---|
+| **1. Données existantes** | migration `20261024000001` | 218 valeurs re-parsées ; sauvegarde exacte ; rollback prouvé | SQL : 0 `jsonb_typeof='string'` |
+| **2. Chemin d'écriture** | `src/lib/powersync/SupabaseConnector.ts:506` | `coerceJsonbColumns(op.table, op.opData)` appliqué à `opData`, **utilisé pour PUT *et* PATCH** | lecture du code + `V: jsonb.test.ts` |
+| **3. Chemin de lecture** | `src/lib/dataLayer.ts` (1726, 1749, 1907, 1943, 2570, 2613) | `parseJsonbValue` tolère chaîne, double encodage et forme correcte | `V: jsonb.test.ts` 18/18 |
+
+`JSONB_COLUMNS` couvre **10 colonnes** : `events.budget_items`,
+`form_definitions.fields`, `form_submissions.data`,
+`invitations.grants_payload` / `tags_payload`, `org_reports.content`,
+`report_definitions.filters`, `custom_field_definitions.options`,
+`audit_entries.before_state` / `after_state`.
+
+> Point d'attention pour un futur intervenant : `coerceJsonbValue` ne
+> re-décode **pas** un double encodage déjà présent dans l'outbox (une
+> chaîne `"[]"` avec guillemets reste inchangée). C'est volontaire : un
+> décodage récursif transformerait une valeur scalaire légitime en objet.
+> Si un défaut de double encodage réapparaît, corriger **la source de
+> l'écriture**, pas `coerceJsonbValue`.
+
+
+### R65 — absence de régression due au changement de TYPE en base (vérifié)
+
+La migration a changé le **type** des valeurs côté serveur (jsonb *string* →
+jsonb *array*/*object*). PowerSync transmet la colonne sous forme de **texte
+JSON** au client (`src/lib/powersync/schema.ts` : `column.text`), et ce texte
+change de `"[]"` (chaîne encodée) à `[]` (tableau). Il fallait donc vérifier
+que les lectures directes par `JSON.parse` ne cassent pas.
+
+| Chemin | Emplacement | Lit | Verdict |
+|---|---|---|---|
+| Rapports — définitions | `src/lib/reporting.ts:631` (`JSON.parse(r.filters \|\| "[]")`) | colonne **locale** `report_definitions.filters` | **amélioré** : avant, `JSON.parse('"[]"')` rendait la *chaîne* `[]` ; après, rend le *tableau* `[]` |
+| Détail de rapport | `src/pages/OrgReportDetail.tsx:139` (`JSON.parse(content)`) | colonne locale `org_reports.content` | **inchangé/amélioré** (protégé par `try/catch`) |
+| Rapports reçus | `src/pages/OrgReportsReceived.tsx:117` | colonne locale `org_reports.content` | idem |
+| Adaptateur budget | `src/adapters/EventBudgetAdapter.ts:23` (`JSON.parse(budget_items_json)`) | argument **chaîne** | **code mort** — voir ci-dessous |
+
+**Preuve que `EventBudgetAdapter` est mort** : `git grep -rn "EventBudgetAdapter"`
+ne renvoie **aucun** importateur (hors sa propre définition). Idem pour les
+4 autres fichiers de `src/adapters/` (`CaisseAdapter`, `OrgUnitAdapter`,
+`TransactionLegacyAdapter`, `VersementLegacyAdapter`) : aucun import
+`from "@/adapters"` dans `src/`. Le chemin **vivant** du budget passe par
+`parseJsonbValue` (`dataLayer.ts:441`), appelé par `Dashboard`, `EventDetail`,
+`Events`, `GroupCotisation`.
+
+**Conclusion** : le changement de type ne casse aucun chemin de lecture
+actif ; il corrige au passage les deux `JSON.parse` de `reporting.ts` et des
+pages de rapport, qui recevaient auparavant une chaîne là où un tableau était
+attendu.
+
+
+### Isolation inter-organisations — preuve empirique en rôle `authenticated` (2026-10-24)
+
+Les specs Cypress existantes (`rls-leak`, `cross-tenant`) utilisent la clé
+**anon** : elles ne prouvent pas l'isolation pour un utilisateur **connecté**
+(R26). Test mené en base, en impersonant le rôle PostgreSQL `authenticated`
+avec les claims d'un vrai utilisateur (`1961752a-…`, org `e2e-auth-org-1`),
+via `set local role authenticated` + `set local request.jwt.claims`.
+Tout a été exécuté dans une transaction annulée (`rollback`), sauf le
+contrôle positif, dont la ligne a été supprimée ensuite.
+
+**Lecture** (l'utilisateur de `e2e-auth-org-1` ne doit rien voir d'autre) :
+
+| Requête | Résultat | Attendu |
+|---|---|---|
+| `auth.uid()` | `1961752a-…` | l'utilisateur impersonné |
+| `current_org_id()` | `e2e-auth-org-1` | sa propre org |
+| `select count(*) from profiles` | **1** | lui seul (sur 108 au total) |
+| `select count(*) from profiles where org_id='org-1'` | **0** | aucune fuite |
+| `select count(*) from organizations` | **1** | la sienne |
+| `... where id <> 'e2e-auth-org-1'` | **0** | aucune autre org visible |
+| `transactions where org_id='org-1'` | **0** | aucune fuite |
+| `events where org_id='org-1'` | **0** | aucune fuite |
+| `audit_entries where org_id='org-1'` | **0** | aucune fuite |
+
+**Écriture** (la direction la plus dangereuse) :
+
+| Tentative | Résultat | Attendu |
+|---|---|---|
+| `insert into events (org_id='org-1')` | **REFUSÉ — `42501`** « new row violates row-level security policy for table "events" » | refus |
+| `insert into events (org_id='e2e-auth-org-1')` | **ACCEPTÉ** (ligne créée puis supprimée) | accepté |
+
+Les deux directions sont donc prouvées : l'utilisateur écrit chez lui et
+**ne peut pas** écrire ailleurs. C'est la preuve directe que le durcissement
+RLS des sessions 1-3 (migrations `20261022000001` à `20261022000014`) est
+actif et correct.
+
+**Nettoyage** : `select count(*) from events where id like 'agent-%'` → **0**.
+
+
+### Formulaires — colonne « Soumetteur » (R75, corrigé)
+
+| Élément | État |
+|---|---|
+| Point d'entrée | `/forms/:id/submissions`, `src/pages/FormSubmissions.tsx` |
+| Défaut | affichait `submitted_by` (UUID) au lieu du nom |
+| Cause | `submitted_by` référence `profiles.id`, jamais résolu à l'affichage |
+| Correctif | résolution via la table locale `profiles` (RLS bornée), avec repli sur l'id ; idem pour la colonne « Rejeté par » (`rejected_by`) et les tris |
+| Tests | `src/components/__tests__/FormSubmissions-table.test.tsx` (5/5) ; `cypress/e2e/forms-v2.cy.ts` T5 |
+| Statut | **corrigé, validé par test unitaire** ; validation E2E à confirmer par le spec |
+
+
+### Notifications — icône par type d'action (R76, corrigé)
+
+| Élément | État |
+|---|---|
+| Point d'entrée | `/notifications`, `src/pages/Notifications.tsx` |
+| Défaut | les 3 types réellement persistés n'étaient pas mappés → icône générique pour 100 % des notifications |
+| Correctif | `notifIconKey()` couvre EVENT_CREATED / INVITATION_RECEIVED / FORM_SUBMITTED |
+| Tests | `src/pages/__tests__/Notifications-icon.test.tsx` (3/3) |
+| Statut | **corrigé, validé par test unitaire** |

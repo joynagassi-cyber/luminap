@@ -579,10 +579,53 @@
     jsonb stockées en text avant l'upsert (idempotent, 2 niveaux).
   - `dataLayer.parseBudgetItems()` : décodage tolérant, jamais d'exception ;
     utilisé par `EventDetail`, `Events`, `Dashboard`, `GroupCotisation`.
-- **Données historiques** : les 158 lignes restent mal encodées en base ;
-  le parseur tolérant les lit correctement. Un backfill SQL est proposé
-  (PROPOSITIONS.md, P-BACKFILL-BUDGET) plutôt qu'exécuté sans validation.
+- **Données historiques** : les 158 lignes étaient mal encodées en base ;
+  le parseur tolérant les lisait correctement. **Backfill EXÉCUTÉ le
+  2026-10-24** (cf. R65) : la donnée est désormais propre, plus aucune
+  valeur `string` ne subsiste sur les 9 colonnes jsonb.
 - **Gravité** : **critique**.
+
+### R65 — Double encodage jsonb : portée réelle plus large que `budget_items` — CORRIGÉ (critique)
+- **Défaut** : R43 n'avait été mesuré que sur `events.budget_items`. Le
+  contrôle exhaustif des 10 colonnes `jsonb` du schéma réel montre que
+  **218 valeurs** étaient corrompues, sur **6 colonnes** :
+  | colonne | string (avant) | conteneur (avant) |
+  |---|---|---|
+  | `events.budget_items` | 158 | 147 |
+  | `form_definitions.fields` | **34** | 0 |
+  | `invitations.grants_payload` | 8 | 2 |
+  | `invitations.tags_payload` | 8 | 2 |
+  | `audit_entries.after_state` | 5 | 10 |
+  | `audit_entries.before_state` | 5 | 3 |
+  `form_definitions.fields` était corrompu à **100 %** : ouvrir un
+  formulaire personnalisé faisait lever `fields.map is not a function` et
+  tombait l'écran — parcours complet inutilisable.
+- **Correctif amont (code)** : module partagé `src/lib/jsonb.ts`
+  (`coerceJsonbColumns` à l'upload dans `SupabaseConnector.uploadData`,
+  `parseJsonbValue` en lecture dans `dataLayer`). `parseBudgetItems`
+  délègue désormais à ce module (duplication supprimée). Un défaut trouvé
+  par les nouveaux tests a été corrigé au passage : `typeof` ne distingue
+  pas un tableau d'un objet, donc un objet rendu là où un tableau est
+  attendu passait le contrôle et faisait planter le `.map()` appelant ;
+  `Array.isArray(fallback) !== Array.isArray(value)` l'écarte.
+- **Correctif données (migration)** : `20261024000001_backfill_jsonb_double_encoding.sql`,
+  idempotente, avec **sauvegarde exacte** des valeurs remplacées dans
+  `_jsonb_backfill_20261024` (donc rollback exact, sans rien deviner).
+- **Preuve avant écriture** : 213 valeurs re-parsables en conteneur + 5
+  `"null"` (re-parse = JSON null) ; **0 échec de re-parse**.
+- **Preuve après écriture** : plus aucune valeur `jsonb_typeof = 'string'`
+  (`events` 305 arrays, `form_definitions` 34 arrays, `invitations` 10+10,
+  `audit_entries` 15 objects + 5 `null`).
+- **Preuve de réversibilité** : rollback rejoué sur copies temporaires →
+  restaure exactement 158 / 34 / 8 / 8 / 5 valeurs, en laissant les 147
+  `budget_items` déjà sains intacts.
+- **Asymétrie assumée** : les 5 `before_state` = `"null"` (chaîne) sont
+  ramenés à `jsonb null`, plus correct mais **non réversible à
+  l'identique** (un JSON null et la chaîne `"null"` sont indiscernables
+  après coup). Le rollback les rend en `SQL NULL`. Consigné en
+  DECISIONS.md ; aucune perte d'information métier (les deux expriment
+  l'absence d'état antérieur).
+- **Gravité** : **critique** (parcours formulaires inutilisable).
 
 ### R44 — BottomNav au-dessus des modales : boutons inaccessibles au doigt — CORRIGÉ (haute)
 - **Défaut** : la barre de navigation basse (`BottomNav.tsx`) utilisait
@@ -1006,3 +1049,589 @@ Reste ouvert pour **19 autres pages** (cf. P35). Gravité **basse** (a11y).
   `groups-events.cy.ts` ; reste à appliquer aux autres specs si elles
   échouent encore pour ce motif (cf. specs en cours de réexécution).
 - **Statut** : corrigé pour `groups-events.cy.ts`, validé (3/3, 3 passes).
+
+---
+
+## Session 5 (2026-10-24) — clôture du défaut jsonb et des erreurs de type
+
+### R65 — Double encodage jsonb, portée réelle — CORRIGÉ (critique)
+Voir le détail complet en tête de fichier (section principale). Résumé :
+218 valeurs corrompues sur 6 colonnes mesurées et réparées, correctif
+amont en code, migration idempotente et réversible, 18 tests unitaires.
+
+### R66 — `db.status` inexistant (PowerSync v2) → indicateur « hors ligne » permanent — CORRIGÉ (haute)
+- **Défaut** : `usePowerSyncIndicator` et `window.__psFlushCrudUpload`
+  lisaient `db.status`. PowerSync v2 a renommé ce champ en
+  `db.currentStatus` : l'accès renvoyait `undefined`, donc l'indicateur de
+  synchronisation affichait **« hors ligne » en permanence**, y compris
+  quand la synchronisation fonctionnait.
+- **Impact utilisateur** : l'utilisateur croit ses données non
+  synchronisées et peut re-saisir une opération déjà enregistrée.
+- **Correctif** : `currentStatus` dans `usePowerSyncIndicator.ts`,
+  `powersync/index.ts` et le spec `cloud-sync.cy.ts`.
+- **Gravité** : haute (induction en erreur, pas perte de donnée).
+
+### R67 — Icône lucide `File` masquant le constructeur global `File` — CORRIGÉ (critique)
+- **Défaut** : `OrgReportSend.tsx` importait l'icône `File` de
+  `lucide-react` sans l'utiliser. Cet import **masquait le constructeur
+  global `File`** dans la portée du module, donc
+  `new File([blob], …)` levait « File is not a constructor ».
+- **Impact** : l'envoi d'un rapport d'organisation échouait **à tous les
+  coups** — la fonctionnalité principale de la phase 3 était cassée.
+- **Correctif** : import inutilisé supprimé.
+- **Gravité** : critique (fonctionnalité entièrement inopérante).
+
+### R68 — `onButtonClick` inexistant sur `IonItem` (Ionic 9) — CORRIGÉ (moyenne)
+- **Défaut** : `EventCalendar` et `EventTimeline` passaient
+  `onButtonClick` à `IonItem`. Ionic 9 expose `onClick` : la prop était
+  ignorée et le clic sur un événement du calendrier ne faisait rien.
+- **Correctif** : `onClick`.
+- **Gravité** : moyenne (navigation depuis le calendrier inopérante).
+
+### R69 — `autoComplete` ignoré par Ionic 9 — CORRIGÉ (faible)
+- **Défaut** : `Members.tsx` et `SettingsProfile.tsx` utilisaient
+  `autoComplete` (camelCase). Ionic 9 attend `autocomplete` : l'attribut
+  n'était pas transmis au DOM, l'autocomplétion du navigateur ne
+  fonctionnait pas sur prénom/nom/téléphone/email.
+- **Correctif** : `autocomplete`.
+- **Gravité** : faible (confort de saisie, surtout mobile).
+
+### R70 — Notification ciblant un rôle inexistant (`"ADMIN"`) — CORRIGÉ (moyenne)
+- **Défaut** : `TransactionDetail.tsx` créait une notification avec
+  `targetRole: "ADMIN"`, valeur absente du type `Role`
+  (`PASTEUR_PRINCIPAL`, `TREASURIER`, …). La notification n'était
+  rattachée à **aucun** destinataire : le rejet d'une transaction ne
+  notifiait personne.
+- **Correctif** : `TREASURIER`, cohérent avec les 3 autres notifications
+  du même fichier (le rôle qui valide les transactions).
+- **Gravité** : moyenne (silence sur un événement métier important).
+
+### R71 — Typecheck de la CI sans effet (`"files": []`) — CORRIGÉ (moyenne)
+- **Défaut** : le script de typecheck de la CI exécute `tsc --noEmit` à la
+  racine. Le `tsconfig.json` racine déclare `"files": []` et n'inclut que
+  des `references` : la commande ne vérifie **aucun fichier** et sort
+  toujours en succès. C'est pour cela que 98 erreurs de type réelles
+  (dont 5 bugs d'exécution) ont pu s'accumuler sans que la CI réagisse.
+- **Mesure** : `npx tsc --noEmit` → exit 0 avec 98 erreurs présentes dans
+  `tsconfig.app.json` ; après correction, `tsc -p tsconfig.app.json`
+  → 0 erreur.
+- **Correctif appliqué** : le job CI exécute désormais `npx tsc -b --noEmit`.
+  `tsc -b` construit les deux projets référencés (`tsconfig.app.json` +
+  `tsconfig.node.json`) et échoue réellement sur une erreur. Le second
+  projet n'était jamais vérifié non plus : il a révélé 1 erreur dans
+  `vite.config.ts` (`worker.format` et `build.sourcemap` élargis en
+  `string` par inférence), corrigée par des littéraux `as const`.
+- **Preuve** : avant → `tsc --noEmit` exit 0 malgré 98 erreurs ;
+  après → `tsc -b --noEmit` exit 0 avec **0 erreur**, `vite build` exit 0.
+- **Gravité** : moyenne (défaut de détection, pas défaut produit).
+
+
+### R72 — Les specs Cypress dépendent d'un global exposé seulement en mode dev — OUVERT (moyenne)
+- **Défaut** : `cross-tenant.cy.ts` lit `window.__psSupabaseClient`, publié
+  par `publishDevDiagnostics()` qui commence par
+  `if (!import.meta.env.DEV) return;`. Lancées contre un **build de
+  production** (`vite preview`), les specs échouent avec
+  « `__psSupabaseClient` does not exist » et attendent 4 minutes avant
+  d'abandonner.
+- **Preuve** : `cross-tenant` → 0/1 sur `vite preview` (port 4173, 4 min
+  10 s) ; **1/1 en 24 s** sur `vite` dev (port 4174), même code, même base.
+- **Portée** : toute la suite, dès qu'elle est lancée contre un build de
+  production (ce que fait `cypress.config.ts` par défaut : `baseUrl` =
+  déploiement distant). C'est un piège pour toute personne qui relance les
+  tests : les échecs n'indiquent pas un défaut de l'app.
+- **Correctif proposé (non appliqué)** : exposer le client de diagnostic
+  aussi hors `DEV` (derrière un flag de test explicite), ou faire échouer
+  le spec immédiatement avec un message clair du type « lancez la suite sur
+  `vite` (dev) — cf. RUNBOOK ».
+- **Gravité** : moyenne (faux négatifs de test, pas défaut produit).
+
+
+### R73 — Artefact de build versionné : `graphify-out/` (59 Mo) — OUVERT (basse)
+- **Défaut** : `graphify-out/` (analyse statique générée, **1980 fichiers,
+  59 Mo**) est **suivi par git**. Il contient des chemins absolus de la
+  machine du développeur (`C:\Users\joyda\dyad-apps\lumina\…`).
+- **Impact** : dépôt alourdi à chaque clone (59 Mo inutiles), bruit dans les
+  recherches (un scan de secrets y produit des faux positifs), fuite
+  mineure d'information sur l'environnement de développement. **Aucun
+  impact fonctionnel.**
+- **Preuve** : `git ls-files graphify-out | wc -l` → 1980 ; `du -sh` → 59 Mo.
+- **Correctif proposé (non appliqué — changement structurel, gel)** :
+  `echo graphify-out/ >> .gitignore && git rm -r --cached graphify-out`.
+  Sans risque pour l'app : ces fichiers ne sont pas utilisés au build.
+- **Gravité** : basse.
+
+### Audit sécurité du dépôt et de l'hébergement (2026-10-24)
+
+Vérifications menées, avec résultat :
+
+| Contrôle | Commande / méthode | Résultat |
+|---|---|---|
+| `.env` versionné | `git ls-files \| grep .env` | **aucun** |
+| Secrets **de production** en dur (JWT, `service_role`, `sb_secret_`, `sk-`, `sbp_`, clé anon) | `git grep` sur le code suivi | **aucun** (seules des mentions en commentaire et des `Deno.env.get(...)`) |
+| Mots de passe de **test** en clair | `cypress/support/orgCreds.ts:126` (`E2e-Unconfigured!1`), `scripts/generate-keystore*.{sh,js,py}` (`lumina1234`) | **présents** — déjà documentés en R8 et R9, comptes/keystore de test uniquement, **pas** des secrets de production |
+| Secrets dans l'historique | `git log --all --diff-filter=D` sur `.env*` | **aucun** fichier de secret supprimé |
+| Dependabot | `.github/dependabot.yml` | **absent** (aucune configuration ; conforme à la directive d'abandon) |
+| PR Dependabot ouvertes | API `pulls?state=open` | **0** |
+| Alertes Dependabot | API `dependabot/alerts` | **désactivées** sur le dépôt (403 explicite) |
+| Alertes secret-scanning / code-scanning | API GitHub | non accessibles avec le jeton de session (403 « Resource not accessible by integration ») — **non vérifié**, à confirmer par le propriétaire |
+| Advisors Supabase (sécurité) | `get_advisors` | 2 INFO (tables sans policy), 7 WARN (`SECURITY DEFINER` exécutables par `authenticated`), 1 WARN (protection de mots de passe compromis désactivée) |
+
+**Actions menées** : `_jsonb_backfill_20261024` verrouillée (`REVOKE` à
+`anon`/`authenticated`, RLS activée, commentaire de table) ; alerte INFO
+correspondante résorbée. Les 7 WARN `SECURITY DEFINER` sont **assumés et
+documentés** (ce sont les helpers d'isolation, dont l'accès `authenticated`
+est nécessaire aux policies RLS) ; ils sont consignés en R64-bis ci-dessus.
+La protection de mots de passe compromis relève du tableau de bord
+Supabase (action propriétaire, cf. RUNBOOK).
+
+### R64-bis — 7 fonctions `SECURITY DEFINER` exécutables par `authenticated` — ASSUMÉ (info)
+- **Constat (Advisor Supabase)** : `is_org_member`, `current_org_id`,
+  `org_descendants`, `can_manage_invitations`, `is_org_admin`,
+  `upsert_profile`, `settle_invitation_claim` sont appelables via
+  `/rest/v1/rpc/…` par un utilisateur connecté.
+- **Pourquoi c'est assumé** : ce sont les **helpers d'isolation** utilisés
+  à l'intérieur des policies RLS. Les policies s'exécutent avec les droits
+  de l'appelant : elles doivent donc pouvoir appeler ces fonctions. Les
+  passer en `SECURITY INVOKER` recréerait une récursion de policies
+  (l'accident d'origine du durcissement) et **rouvrirait la fuite**.
+- **Ce qui les borne** : chaque fonction valide ses arguments et ne révèle
+  qu'un booléen ou l'`org_id` de l'appelant ; `EXECUTE` a été retiré à
+  `anon`/`PUBLIC` (vérifié en base : ACL = `authenticated` +
+  `service_role` seulement).
+- **Action** : aucune. Consigné pour qu'un futur lecteur des Advisors ne
+  « corrige » pas ces fonctions et ne rouvre pas la faille.
+
+
+### R74 — Ciblage des notifications : `action_type` détourné en « rôle » — OUVERT (moyenne)
+
+**Origine** : en corrigeant R70 (erreur de type `targetRole: "ADMIN"`), une
+vérification plus poussée a montré que la correction de type ne suffisait pas
+et que la description initiale de R70 était **inexacte**. Rectificatif.
+
+**Ce qui est réellement vrai** (vérifié) :
+- `NotificationSendData.targetRole` est typé `Role` (`notification/index.ts:20`)
+  mais n'est **jamais** utilisé pour router : `sendNotification` écrit sa
+  valeur dans la colonne `notifications.action_type` (ligne 115 :
+  `data.targetRole ?? "PUSH"`), une colonne `text` sans contrainte.
+- Or les **données réelles** de `action_type` ne contiennent **aucun** rôle :
+  `EVENT_CREATED` 311, `INVITATION_RECEIVED` 11, `FORM_SUBMITTED` 1
+  (requête `select action_type, count(*) from notifications group by 1`,
+  2026-10-24). Cette colonne porte un **type d'événement**, pas un rôle.
+- Conséquence : les 5 notifications de `TransactionDetail.tsx` (et celles de
+  `EventNew.tsx`, `GivingCampaign.tsx`, `FormFill.tsx`, `InvitationEmit.tsx`,
+  `InvitationClaim.tsx`) écrivent un **rôle** dans une colonne qui contient
+  partout ailleurs un **type d'événement**. Le nom de la valeur n'a pas
+  d'effet fonctionnel : aucun code ne lit `action_type` pour filtrer par
+  destinataire (`git grep action_type` → seul `getNotifIcon` le lit).
+
+**Effet secondaire découvert** : `getNotifIcon`
+(`src/pages/Notifications.tsx:23`) ne reconnaît que `TRANSACTION_PENDING`,
+`TRANSACTION_APPROVED`, `BUDGET_EXCEEDED`. Or ces trois valeurs sont
+**absentes** des données réelles (0 ligne) : toutes les notifications
+affichées prennent donc l'icône par défaut (cloche grise). L'icône ne
+distingue rien aujourd'hui.
+
+**Pourquoi ce n'est pas corrigé en session** : corriger proprement exige de
+séparer « type d'événement » et « destinataire » — c'est-à-dire ajouter une
+colonne (ou une convention) et un vrai routage. C'est une décision de
+conception, hors du « minimum de changement », et non bloquante (aucune
+notification n'est perdue : elles sont toutes visibles par toute
+l'organisation ; seul le *ciblage* et l'*icône* sont imprécis).
+
+**Ce qui a été fait** : `TransactionDetail.tsx` utilise désormais
+`TREASURIER` (valeur valide du type `Role`) au lieu de `"ADMIN" as any` :
+le `as any` disparaît, le typecheck passe. Le comportement visuel est
+**inchangé** (`TREASURIER` n'est pas reconnu par `getNotifIcon`, comme
+`ADMIN` ne l'était pas).
+
+**Action proposée** : P-NEW-6.
+
+### Rectificatif sur R70 (message de commit `0702cd2`)
+
+Le message du commit `0702cd2` décrit le point 5 ainsi : « la notification de
+suppression n'était rattachée à aucun rôle destinataire ». **C'est inexact**
+(cf. R74) : `targetRole` ne route rien ; il alimente `action_type`. Le défaut
+réel était une **erreur de type** (`"ADMIN"` n'appartient pas à `Role`) que
+`as any` masquait, et une **incohérence sémantique** de la colonne
+`action_type`. La correction de type reste valable ; l'interprétation
+fonctionnelle était fausse. Le présent rectificatif fait foi.
+
+### R75 — Colonne « Soumetteur » : UUID brut au lieu du nom — CORRIGÉ (moyenne)
+
+**Défaut** : `form_submissions.submitted_by` stocke l'`id` du profil
+(`87afea21-bad7-453b-9ae5-4ad1da2ca13f`), et `FormSubmissions.tsx` affichait
+cette valeur telle quelle dans la colonne « Soumetteur ». L'utilisateur
+voyait un UUID, pas un nom.
+
+**Preuve du défaut** : spec Cypress `forms-v2.cy.ts` T5 échouait avec
+« valeur de la cellule « Soumetteur » : attendu « E2E Org », reçu
+« 87afea21-bad7-453b-9ae5-4ad1da2ca13f » ». Confirmé en base :
+`select p.first_name, p.last_name from form_submissions s join profiles p
+on p.id::text = s.submitted_by` → « E2E Org ».
+
+**Pourquoi c'était possible** : `profiles_select` autorise la lecture des
+profils de sa propre organisation (`initplan_uid() = id OR
+is_org_member(initplan_uid(), org_id)`), et la table `profiles` est
+synchronisée localement par PowerSync (colonnes `first_name`, `last_name`,
+`email`). La résolution côté client est donc possible **et** bornée par la
+RLS : on ne peut résoudre qu'un nom que l'on a déjà le droit de voir.
+
+**Correction** (`src/pages/FormSubmissions.tsx`) : chargement de la table
+locale `profiles` (import dynamique, `try/catch`) → table
+`id → « Prénom Nom »` ; la cellule, la recherche plein-texte et le tri de la
+colonne utilisent désormais le nom affiché. **Repli** : si PowerSync n'est
+pas disponible (ou l'utilisateur inconnu de `profiles`), l'`id` est affiché
+comme avant — aucune régression, aucune erreur.
+
+**Correction étendue** : la colonne « Rejeté par » (`rejected_by`) souffrait
+du même défaut (aucune donnée actuelle — 1 ligne, `rejected_by = null` — mais
+l'affichage et le tri étaient identiques). Elle résout désormais le nom via
+la même table, et son tri porte sur le nom affiché.
+
+**Preuve** : nouveau test
+`src/components/__tests__/FormSubmissions-table.test.tsx` — « affiche le NOM
+du soumetteur (résolu depuis profiles), pas son id brut » (5/5 verts dans
+le fichier). Le spec Cypress `forms-v2.cy.ts` T5 constitue la preuve de bout
+en bout.
+
+
+### R76 — Icônes de notification toutes génériques — CORRIGÉ (basse)
+
+**Défaut** : `getNotifIcon` (`src/pages/Notifications.tsx`) ne reconnaissait
+que `TRANSACTION_PENDING`, `TRANSACTION_APPROVED`, `BUDGET_EXCEEDED`. Or ces
+trois valeurs **n'existent pas** dans la table `notifications` : les valeurs
+réellement persistées sont `EVENT_CREATED` (311), `INVITATION_RECEIVED` (11),
+`FORM_SUBMITTED` (1). Conséquence : **100 % des notifications** affichaient
+l'icône générique par défaut (cloche grise), sans distinction visuelle.
+
+**Correction** : les trois types réels produisent désormais une icône
+distincte (horloge, tendance, coche) ; la sélection est isolée dans
+`notifIconKey()` pour être testable sans rendu.
+
+**Preuve** : `src/pages/__tests__/Notifications-icon.test.tsx` (3/3) ;
+`tsc -b` 0 erreur.
+
+
+### R77 — Coquille « Trésurier » dans le badge de rôle du profil — CORRIGÉ (basse)
+
+**Défaut** : `ROLE_LABEL` (`src/pages/SettingsProfile.tsx:28`) écrivait
+`TREASURIER: "Trésurier"`. Partout ailleurs dans l'app le libellé est
+« Trésorier » (`src/lib/rbac.ts`, `src/lib/utils.ts`, `src/templates/*`,
+`OrgSetup.tsx`, `InvitationEmit.tsx`, `Tutorial.tsx`). Le badge de rôle du
+profil affichait donc une faute d'orthographe, visible par tout utilisateur
+ayant ce rôle.
+
+**Portée** : `profiles.role = 'TREASURIER'` → **2 comptes** réels dans
+l'environnement. Faute visible immédiatement.
+
+**Correction** : libellé aligné sur la source de vérité (« Trésorier »).
+
+**Preuve** : test ajouté dans `SettingsProfile.test.tsx` — le badge
+(`data-testid="profile-role-badge"`) contient « Trésorier » et non
+« Trésurier » (3/3 verts) ; `tsc -b` 0 erreur.
+
+
+### R78 — Piste d'audit : actions d'administration affichées « Modifié » — CORRIGÉ (moyenne)
+
+**Défaut** : `ACTION_META` (`src/pages/Trace.tsx`) ne couvrait pas les
+actions réellement écrites dans `audit_entries` pour la gestion des
+administrateurs d'organisation. Relevé en base :
+`ADMIN_ASSIGNED` (8), `ADMIN_REMOVED` (3), `ADMIN_REVOKED` (2),
+`ADMIN_REINSTATED` (1) — soit **14 entrées sur 51**. Faute de cas, elles
+retombaient toutes sur `ACTION_META.UPDATE` → la piste d'audit affichait
+« Modifié OrgAdmin » pour une attribution ou un retrait d'administrateur.
+
+**Pourquoi c'est important** : c'est précisément la trace dont on a besoin
+pour reconstituer qui a donné ou retiré des droits. Afficher « Modifié » sur
+un changement de privilèges rend l'audit trompeur sur un sujet sensible.
+
+**Correction** : quatre libellés explicites (Admin attribué / rétabli /
+révoqué / retiré) et `OrgAdmin` → « Administrateur d'organisation ».
+
+**Preuve** : `src/pages/__tests__/Trace-labels.test.tsx` (3/3) ;
+`tsc -b` 0 erreur.
+
+
+### R82 — `org-reports.cy.ts` s'auto-empoisonne : la sélection du parent est non déterministe — OUVERT (moyenne)
+
+**Défaut** : le spec crée une hiérarchie Mère → A → B, mais choisit le
+parent dans le popover par
+`cy.get('ion-popover').find('ion-item').filter(':visible')
+ .filter((_, el) => !el.textContent.includes('Aucune')).first()`
+(`cypress/e2e/org-reports.cy.ts:130-134`). Or la liste des options vient de
+`allOrgs` (`Federation.tsx:460`), alimenté par `federation.listOrgs()`
+(`src/capabilities/federation/index.ts:201`) trié **`created_at DESC`**.
+`.first()` sélectionne donc la **dernière organisation créée**, pas
+l'organisation courante (la Mère) comme le commentaire du spec le suppose.
+
+**Conséquence mesurée** : chaque exécution du spec crée une nouvelle
+« Annexe A », qui devient le parent de la suivante. La base contient ainsi
+une chaîne de 4 niveaux, tous nommés « Annexe A » :
+
+```
+org-e2e (Lumina Org E2E)
+ └── Annexe A 164093   (24/10 00:02)
+      └── Annexe A 305399  (24/10 01:11)
+           └── Annexe A 534585 (24/10 02:22)   ← échec du run courant
+```
+
+Les organisations **sont bien créées** (vérifié en base : `Annexe A 534585`
+existe, `parent_org_id` = `Annexe A 305399`, statut ACTIVE). Le défaut est
+donc **du test, pas du produit** : après création, `loadOrgs` ne reçoit que
+les orgs où le compte est admin/membre — l'org A fraîchement créée est
+déléguée à l'admin courant, mais l'arbre affiché ne contient que la racine,
+et `cy.contains('span', orgAName)` échoue (timeout 60 s, ligne 153).
+
+**Pourquoi c'est important** : le spec n'est pas rejouable. À chaque
+exécution il pollue la base d'un niveau supplémentaire et son échec est
+interprété à tort comme une régression de la hiérarchie d'organisations —
+une fonctionnalité centrale (Phase 2). Non déterministe = défaut, pas
+instabilité à ignorer.
+
+**Correctif identifié (NON appliqué — tentative révoquée)** : deux approches
+ont été codées puis **révoquées**, faute de pouvoir les valider dans le
+budget de la session :
+
+1. remplacer `.first()` par la sélection explicite de l'option portant le
+   nom de l'organisation courante. Mesuré : le nom de la Mère
+   (`lumina-user.org.name` / `lumina-config.churchName`) **n'est pas dans la
+   liste** des options — `cy.contains(ion-item, 'Org E2E 110710')` échoue
+   après 180 s. La liste ne contient donc pas l'organisation courante, ce
+   qui invalide l'hypothèse et **exige une investigation supplémentaire** ;
+2. créer l'arbre de test sous une racine dédiée au spec plutôt que sous
+   l'organisation partagée du compte.
+
+Conformément au principe « un changement non testé est pire qu'un défaut
+documenté », `cypress/e2e/org-reports.cy.ts` a été **restauré à son état
+commité** (`git checkout`). Le spec reste en échec, documenté, non maquillé.
+
+**Travail restant** : (a) comprendre pourquoi l'organisation courante est
+absente des options du sélecteur parent (`allOrgs` ← `listOrgs`, filtre
+admin/membre) ; (b) purge des 4 organisations « Annexe A » orphelines
+(décision propriétaire : elles portent `status = ACTIVE` et des enfants).
+Coût estimé du point (a) : 1 h.
+
+
+### R81 — Un run Cypress peut porter sur un build obsolète sans que rien ne l'annonce — CORRIGÉ (méthode, moyenne)
+
+**Défaut de méthode** : `cypress.config.ts` ne définit pas de `webServer` et
+`baseUrl` retombe par défaut sur le déploiement Render
+(`https://lumina-76un.onrender.com`). En pratique la suite a été lancée
+contre `http://127.0.0.1:4174`, un serveur `vite preview` démarré à
+**01:06** alors que les correctifs R75–R78 ont été commités à
+**01:15–01:17**. Le run de 29 minutes a donc produit 5 specs / 9 échecs
+**sur du code qui n'existait plus**, sans le moindre avertissement :
+le rapport final aurait imputé à tort ces échecs au code courant.
+
+Deux indices le prouvaient a posteriori : (1) le bundle
+`dist/assets/FormSubmissions-*.js` ne contenait pas la chaîne
+« noms de soumetteurs indisponibles » introduite par R75 ; (2) les
+messages d'échec citaient le tag `data-dyad-id` (injecté par
+`dyadComponentTagger`) alors que le spec sur disque contenait
+`{ force: true }` absent du log.
+
+**Aggravant** : `cypress/e2e/cross-tenant.cy.ts` (isolation inter-orgs,
+spec de sécurité) **exige le serveur de dev** — il s'auto-protège
+correctement en échouant avec un message explicite quand
+`window.__psSupabaseClient` est absent (R72). Sur un build de production,
+ce spec de sécurité échoue donc systématiquement, ce qui peut faire croire
+à une régression d'isolation.
+
+**Correction appliquée (procédure, pas de code)** : la suite de référence
+est relancée sur `http://127.0.0.1:8080` (`npx vite`, l'environnement
+canonique prescrit par `scripts/run-cypress.sh` et le RUNBOOK), après
+`rm -rf dist` et redémarrage du serveur de dev. Aucune modification de
+`cypress.config.ts` n'a été faite (gel : changement structurel non testé).
+
+**Travail restant (proposition P32)** : rendre l'environnement de test
+infalsifiable — par exemple un `webServer` explicite dans
+`cypress.config.ts`, ou une assertion de démarrage qui compare l'horodatage
+du build à celui du dernier commit. Voir PROPOSITIONS.md.
+
+
+### R80 — Le stream `profiles` ne synchronise que le profil de l'utilisateur connecté — OUVERT (moyenne)
+
+**Défaut** : le stream PowerSync `profiles`
+(`powersync/sync-config.yaml:71-73`) est filtré sur
+`WHERE id = auth.user_id()`. Chaque client ne stocke donc QUE son propre
+profil dans la base locale. Or plusieurs écrans affichent le nom d'AUTRES
+utilisateurs à partir de cette table :
+
+- `src/pages/FormSubmissions.tsx:168` — colonne « Soumetteur » et
+  « Rejeté par » (résolution `SELECT id, first_name, last_name, email
+  FROM profiles`) ;
+- `src/lib/dataLayer.ts:2235` (`useOrganizations` vue « central ») —
+  éligibilité d'un administrateur d'organisation.
+
+**Conséquence observable** : pour tout soumetteur autre que l'utilisateur
+courant, la jointure locale ne trouve rien et le repli affiche l'UUID brut.
+Constaté en base le 2026-10-24 : `form_submissions` id
+`a7a99491-…` porte `submitted_by = 87afea21-bad7-453b-9ae5-4ad1da2ca13f`,
+qui EXISTE dans `profiles` (nom « E2E Org ») mais n'est pas dans la réplique
+locale de l'utilisateur connecté. Le correctif R75 (résolution par
+`profiles`) est donc **nécessaire mais non suffisant**.
+
+**Pourquoi ce n'est pas corrigé dans cette session** : élargir le stream
+(`WHERE id = auth.user_id() OR is_org_member(auth.user_id(), org_id)`) est
+la bonne correction — la RLS l'autorise déjà
+(`profiles_select` = `initplan_uid() = id OR is_org_member(initplan_uid(),
+org_id)`) — mais **exigerait un redéploiement du service config Cloud**
+(`powersync deploy sync-config`, jeton `PS_ADMIN_TOKEN` absent de
+l'environnement). Modifier le YAML local sans redéployer créerait une
+divergence client/serveur (défaut pire que celui-ci : le client
+souscrirait des lignes que le serveur ne pousse pas).
+
+**Alternative écartée** : résoudre les noms via un appel REST Supabase
+direct. Rejeté : ajouterait un aller-réseau par rendu, romprait le
+fonctionnement hors ligne (or c'est un argument central de PowerSync) et
+contournerait la couche de données.
+
+**Repli actuel (acceptable)** : l'UUID reste affiché, jamais un écran vide
+ni une exception (try/catch + `console.warn`). Aucune fuite de données :
+la RLS et le stream restent strictement cloisonnés.
+
+**Travail restant** : redéployer `sync-config.yaml` avec le filtre élargi,
+puis rejouer `cypress/e2e/forms-v2.cy.ts` (T5, assertion « Soumetteur »).
+Voir RUNBOOK.md § « Redéployer PowerSync ».
+
+
+### R79 — Échec de persistance d'une notification avalé en silence — CORRIGÉ (moyenne)
+
+**Défaut** : dans `sendNotification` (`src/capabilities/notification/index.ts`),
+le `catch` autour de l'`INSERT INTO notifications` ne faisait rien d'autre
+qu'un commentaire « best-effort ». Si la base locale PowerSync est
+indisponible, la notification **n'existe pas** dans l'historique in-app et
+aucune trace n'est laissée, ni pour l'utilisateur ni pour le développeur.
+Viole le principe « aucun silence ».
+
+**Correction** : `console.warn` contextualisé (`[notification]` + cause),
+même convention que les autres points de reprise du dépôt (`auth.ts`,
+`SupabaseConnector.ts`). Le chemin OneSignal s'exécute toujours (comportement
+fonctionnel inchangé).
+
+**Preuve** : test ajouté dans `notification.test.ts` qui force l'échec de
+`execute()` et exige le `warn`. **Vérifié par retrait du correctif** : sans
+lui, le test échoue (« expected "warn" to be called at least once ») ;
+avec lui, 21/21 verts. `tsc -b` 0 erreur.
+
+
+### R83 — `performance-batch` : les tests offline→online ne réunissent aucun des prérequis du motif éprouvé (moyenne)
+
+**Constat mesuré** : `performance-batch.cy.ts` tests 1 et 2 → `expected 0 to
+be at least 20` / `at least 50`. Vérification en base :
+`select count(*) from transactions where description like 'Tx batch%'` → **0**,
+`like 'ChargeTx%'` → **0**. Le test calendrier (création d'événements **en
+ligne**, sans intercept) passe : **1/1**. Les écritures atteignent donc la base
+quand le réseau n'est pas intercepté ; ce n'est **pas** une perte de données
+silencieuse en production, mais un défaut du scénario de test.
+
+**Cause racine** : le fichier n'a **aucun** des trois éléments que réunit
+`cloud-sync.cy.ts` (qui passe, 1/1) :
+1. **`req.continue()` en mode online** — le handler d'intercept de
+   `performance-batch` ne fait que `req.destroy()` ; il ne laisse jamais
+   passer la requête. Cypress « mange » donc la requête même après
+   `offline = false`, et le client Supabase reçoit une réponse CORS invalide.
+   `cloud-sync` contient 6 occurrences de `req.continue()`.
+2. **Intercept `OPTIONS`** — le préflight CORS n'est pas laissé passer.
+   `cloud-sync` en contient 2.
+3. **Contexte d'organisation forcé** — `lumina-user` / `lumina-active-org`
+   ne sont pas posés avant la coupure, donc `getOrganizationId()` retombe sur
+   `__no_org__` et la file d'upload PowerSync échoue en silence.
+   `cloud-sync` pose explicitement ces clés (et le rôle `PASTEUR_PRINCIPAL`).
+
+**Impact** : faux négatif de test — la borne haute (20 et 50 transactions)
+n'est **pas** vérifiée.
+
+**RECTIFICATIF IMPORTANT (vérifié le 2026-10-24)** : la version initiale de
+cette entrée affirmait que la synchronisation offline→online était « prouvée
+fonctionnelle par `cloud-sync.cy.ts` ». **C'est faux et je le corrige.** En
+lisant la spec en entier (lignes 330-420), `cloud-sync.cy.ts` ne fait **pas**
+transiter les écritures par PowerSync : après la reconnexion, il **insère
+lui-même** les entités (`org_units`, `groups`, `accounts`, `caisses`,
+`custom_field_definitions`) par `cy.request` en contexte Node, puis vérifie
+leur présence. L'assertion est donc **tautologique** : elle prouve que le
+réseau et la RLS acceptent ces lignes, **pas** que le worker PowerSync les a
+poussées. Le spec porte même son propre constat en commentaire : « le spec
+pousse les entities DIRECTEMENT au Supabase ».
+
+**Conséquence** : le **chemin d'écriture offline→serveur (SQLite → queue
+d'upload → Supabase) n'a AUCUNE couverture de test**. C'est le point le plus
+important pour un usage quotidien hors ligne. Un vrai test doit passer par le
+worker : `db.disconnect()` → écrire en local (l'UI affiche la donnée) →
+`db.connect(connector)` → attendre la disparition de la file
+(`getNextCrudTransaction()` → `null` ou `currentStatus.uploading === false`) →
+vérifier côté serveur. Coût estimé : 1 h 30 (dont ~20 min d'exécution).
+
+**Correctif identifié (non appliqué — gel)** : aligner `performance-batch` sur
+le motif de `cloud-sync` (les trois points ci-dessus). Coût estimé : 45 min,
+dont ~25 min d'exécution (le sync PowerSync prend ~35 s par cycle).
+
+**Travail restant** : réécrire les tests 1-2 avec le motif `cloud-sync`, puis
+relancer 3 fois (stabilité).
+
+
+### R84 — La suite Cypress n'est pas typecheckée par la CI (faible)
+
+**Constat** : `tsconfig.json` référence `tsconfig.app.json` (`include: ["src"]`)
+et `tsconfig.node.json` ; `tsc -b` (la commande CI, rendue opérante en session 5
+pour remplacer un `tsc --noEmit` qui ne vérifiait aucun fichier) **n'inclut pas
+`cypress/`**. Les 28 specs ne sont donc jamais vérifiés statiquement.
+
+**Preuve** : `npx tsc --noEmit -p cypress/tsconfig.json` remonte **13 erreurs
+préexistantes** dans `cloud-sync.cy.ts` (2), `nav-bottom.cy.ts` (1),
+`sessions.cy.ts` (3), `cypress/support/ionic.ts` (3), plus des erreurs de
+configuration (`--downlevelIteration`). Aucune n'est visible en CI.
+
+**Impact** : un spec peut porter une faute de frappe ou un accès invalide et
+n'échouer qu'à l'exécution — voire jamais si le chemin n'est pas parcouru.
+Faible : cela n'affecte pas l'application livrée.
+
+**Correctif identifié (non appliqué — gel)** : ajouter `cypress` à la
+configuration vérifiée en CI (`tsc -b` avec un `tsconfig.cypress.json`
+référencé), après avoir corrigé les 13 erreurs. Coût estimé : 1 h.
+Voir PROPOSITIONS.md (P34).
+
+
+### R85 — Le chemin d'écriture offline→serveur n'a aucune couverture de test (moyenne)
+
+**Constat (vérifié le 2026-10-24)** : la couverture annoncée de la
+synchronisation hors ligne repose sur `cloud-sync.cy.ts` (1/1). Or cette spec
+**ne fait pas** transiter les écritures par PowerSync : après la reconnexion,
+elle **insère elle-même** les 5 entités (`org_units`, `groups`, `accounts`,
+`caisses`, `custom_field_definitions`) par `cy.request` en contexte Node
+(non intercepté), puis vérifie leur présence via REST. L'assertion est
+**tautologique** — elle valide le réseau et la RLS, pas la file d'upload
+PowerSync. La spec le reconnaît explicitement en commentaire : « SOLUTION : le
+spec pousse les entities DIRECTEMENT au Supabase ».
+
+**Preuve** : lecture de `cypress/e2e/cloud-sync.cy.ts` L330-420 ;
+`win.__psFlushResult = { flushed: true, passes: 0, opsTotal: 0, note: 'direct
+Supabase upserts via cy.request (Node context)' }` — le spec **stubbe** le
+résultat du flush.
+
+**Impact** : c'est le **défaut de couverture le plus important du projet**. Le
+cœur de la promesse produit (« hors ligne d'abord, synchronisé ensuite ») n'est
+vérifié par aucun test. Une régression de la file d'upload passerait inaperçue
+jusqu'à ce qu'un utilisateur perde des saisies.
+
+**Correctif identifié (non appliqué — budget)** : nouveau spec pilotant le
+worker plutôt que le réseau :
+1. attendre la première sync (`db.waitForFirstSync()`), forcer le contexte
+   d'organisation ;
+2. `await db.disconnect()` ;
+3. écrire via l'UI (la donnée doit apparaître dans l'interface) ;
+4. `db.connect(connector)` — le connector doit être accessible ; le handle
+   `window.__psDb` est déjà exposé (DEV), le connector ne l'est pas : exposer
+   `window.__psConnector` en DEV est nécessaire (modification produit de
+   ~3 lignes, à confirmer) ;
+5. attendre la vidange : `await db.getNextCrudTransaction()` → `null`, ou
+   `db.currentStatus.uploading === false` sans `uploadError` ;
+6. vérifier la ligne côté serveur avec le **jeton réel** ;
+7. nettoyage des lignes créées.
+
+**Coût estimé** : 1 h 30 (dont ~20 min d'exécution : le cycle d'upload
+PowerSync prend ~30-40 s). **Risque** : le flush PowerSync dans le navigateur
+est intercepté par `cy.intercept` (CORS) — c'est justement pourquoi la spec
+actuelle contourne. Le test devra donc **ne pas** intercepter du tout et
+utiliser `disconnect()`/`connect()` pour simuler la coupure (c'est tout
+l'intérêt de l'approche).

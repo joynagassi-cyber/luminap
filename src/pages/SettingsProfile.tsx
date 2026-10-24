@@ -25,7 +25,7 @@ import { IonInput } from "@ionic/react";
 
 const ROLE_LABEL: Record<string, string> = {
   CENTRAL_ADMIN: "Administration centrale",
-  TREASURIER: "Trésurier",
+  TREASURIER: "Trésorier",
   ADMIN: "Administrateur",
   PASTEUR: "Pasteur",
   DIACRE: "Diacre",
@@ -216,7 +216,7 @@ export default function SettingsProfile() {
               id="profile-firstname"
               value={firstName}
               onIonInput={(e) => setFirstName((e.detail.value as string) ?? "")}
-              autoComplete="given-name"
+              autocomplete="given-name"
             />
           </div>
           <div>
@@ -227,7 +227,7 @@ export default function SettingsProfile() {
               id="profile-lastname"
               value={lastName}
               onIonInput={(e) => setLastName((e.detail.value as string) ?? "")}
-              autoComplete="family-name"
+              autocomplete="family-name"
             />
           </div>
         </div>

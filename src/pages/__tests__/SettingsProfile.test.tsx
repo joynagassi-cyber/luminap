@@ -82,6 +82,13 @@ describe("SettingsProfile — persistance du nom en base", () => {
   });
   afterEach(cleanup);
 
+  it("affiche le libellé correct du rôle « Trésorier » (pas la coquille « Trésurier »)", () => {
+    renderPage();
+    const badge = screen.getByTestId("profile-role-badge");
+    expect(badge.textContent).toContain("Trésorier");
+    expect(badge.textContent).not.toContain("Trésurier");
+  });
+
   it("enregistre prénom ET nom via authService.updateProfile (base de vérité)", async () => {
     renderPage();
     typeInto("profile-firstname", "Nouveau");

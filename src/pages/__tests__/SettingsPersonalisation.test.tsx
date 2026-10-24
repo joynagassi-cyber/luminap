@@ -22,10 +22,10 @@ const me = { role: "ADMIN" };
 vi.mock("@/lib/dataLayer", () => ({
   useAppConfig: () => ({
     config: { churchName: "Ancien nom", churchLogoUrl: "", userPhoto: "" },
-    updateConfig: (...a: unknown[]) => updateConfig(...a),
+    updateConfig: (...a: unknown[]) => updateConfig(...(a as Parameters<typeof updateConfig>)),
   }),
   useCurrentUser: () => ({ id: "u1", role: me.role }),
-  renameOrganizationPS: (...a: unknown[]) => renameOrganizationPS(...a),
+  renameOrganizationPS: (...a: unknown[]) => renameOrganizationPS(...(a as Parameters<typeof renameOrganizationPS>)),
 }));
 
 vi.mock("@/lib/orgContext", () => ({

@@ -188,7 +188,7 @@ function EventListItem({
     <IonItem
       lines="none"
       button={!!onSelectEvent}
-      onButtonClick={() => event?.id && onSelectEvent?.(event.id)}
+      onClick={() => event?.id && onSelectEvent?.(event.id)}
       style={{ cursor: onSelectEvent ? "pointer" : "default" }}
       aria-label={`Événement ${event?.name ?? ""}`}
     >

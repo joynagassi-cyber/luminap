@@ -30,20 +30,7 @@
  * auto_subscribe:false + WHERE from_org = current OR to_org = current).
  */
 
-import { useEffect, useMemo, useState } from "react";import {
-  IonPage,
-  IonHeader,
-  IonContent,
-  IonTitle,
-  IonToolbar,
-  IonButtons,
-  IonBackButton,
-  IonSelect,
-  IonSelectOption,
-  IonLabel,
-  IonItem,
-  IonChangeCustomEvent,
-} from "@ionic/react";
+import { useEffect, useMemo, useState } from "react";import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar, IonButtons, IonBackButton, IonSelect, IonSelectOption, IonLabel, IonItem } from "@ionic/react";
 import {
   Inbox,
   FileText,
@@ -67,6 +54,7 @@ import { getOrganizationId } from "@/lib/orgContext";
 import { federation } from "@/capabilities/federation";
 import { computePeriod, type OrgReportPayload } from "@/lib/orgReport";
 import { formatDate } from "@/lib/utils";
+import type { IonChangeCustomEvent } from "@/lib/ionic-types";
 
 type PeriodFilter = "all" | "monthly" | "semiannual" | "annual";
 

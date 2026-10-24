@@ -16,7 +16,7 @@ import {
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
 import EmptyState from "@/components/EmptyState";
-import { IonPage, IonContent, IonSelect, IonSelectOption, IonChangeCustomEvent, IonItem, IonLabel, IonInput } from "@ionic/react";
+import { IonPage, IonContent, IonSelect, IonSelectOption, IonItem, IonLabel, IonInput } from "@ionic/react";
 import { ChartContainer } from "@/components/ui/chart";
 import { Bar, BarChart, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import {
@@ -31,6 +31,7 @@ import { formatCentsToFCFA, formatCentsFull, generateId } from "@/lib/utils";
 import { getOrganizationId } from "@/lib/orgContext";
 import { downloadBlob } from "@/lib/download";
 import type { ReportDefinition, ReportResult } from "@/types";
+import type { IonChangeCustomEvent } from "@/lib/ionic-types";
 
 type PeriodKey = "all" | "month" | "year";
 
@@ -504,7 +505,7 @@ export default function ReportBuilder() {
               >
                 <IonSelectOption value="">Toutes</IonSelectOption>
                 {(categories || []).map((c) => (
-                  <IonSelectOption value={c.id}>{c.labelFr}</IonSelectOption>
+                  <IonSelectOption key={c.id} value={c.id}>{c.labelFr}</IonSelectOption>
                 ))}
               </IonSelect>
             </div>
@@ -517,7 +518,7 @@ export default function ReportBuilder() {
               >
                 <IonSelectOption value="">Toutes</IonSelectOption>
                 {(caisses || []).map((c) => (
-                  <IonSelectOption value={c.id}>{c.name}</IonSelectOption>
+                  <IonSelectOption key={c.id} value={c.id}>{c.name}</IonSelectOption>
                 ))}
               </IonSelect>
             </div>
@@ -603,7 +604,7 @@ export default function ReportBuilder() {
               interface="popover"
             >
               {METRIC_FNS.map((fn) => (
-                <IonSelectOption value={fn.value}>{fn.label}</IonSelectOption>
+                <IonSelectOption key={fn.value} value={fn.value}>{fn.label}</IonSelectOption>
               ))}
             </IonSelect>
             <IonInput

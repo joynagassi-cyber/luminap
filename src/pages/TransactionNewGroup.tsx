@@ -20,12 +20,13 @@ import {
   IonToolbar,
   IonSelect,
   IonSelectOption,
-  IonChangeCustomEvent,
+  
   IonItem,
   IonLabel,
   IonInput,
   IonTextarea,
 } from "@ionic/react";
+import type { IonChangeCustomEvent } from "@/lib/ionic-types";
 
 export default function TransactionNewGroup() {
   const { id: groupId } = useParams<{ id: string }>();
@@ -212,7 +213,7 @@ export default function TransactionNewGroup() {
               >
                 <IonSelectOption value="">Sélectionner une catégorie</IonSelectOption>
                 {filteredCategories.map((cat: any) => (
-                  <IonSelectOption value={cat.id}>
+                  <IonSelectOption key={cat.id} value={cat.id}>
                     {cat.label_fr || cat.label}
                   </IonSelectOption>
                 ))}

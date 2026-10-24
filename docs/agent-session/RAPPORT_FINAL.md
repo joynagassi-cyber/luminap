@@ -16,6 +16,142 @@
 
 ---
 
+# ⚠️ MISE À JOUR SESSION 6 (2026-10-24) — à lire en premier
+
+## Contexte de fin de session
+
+T0 = 2026-10-22T17:56Z. Le budget de 12 h 30 était **dépassé** au démarrage de
+cette session : elle s'est donc déroulée en **mode clôture** (finitions,
+preuves, documentation), conformément à la règle de gel. Aucune fonctionnalité
+nouvelle n'a été développée.
+
+## État de l'application à la clôture
+
+| Indicateur | Valeur | Preuve |
+|---|---|---|
+| Tests unitaires | **1100 / 1100** (67 fichiers) | `/workspace/unit-s6.log` |
+| Build de production | exit 0 | `vite build` |
+| E2E (suite complète, 28 specs) | **63 / 71 verts**, 8 échecs dont **2 réels** | `/workspace/cy-dev-full.log` |
+| Erreurs de type | 0 | `tsc -b` |
+| Valeurs jsonb corrompues | 0 | requête SQL (session 5) |
+
+## Défauts de test corrigés dans cette session (preuves mesurées)
+
+Ces échecs ne provenaient **pas** de l'application mais des specs. Ils sont
+corrigés, avec la preuve d'exécution.
+
+| Spec | Avant | Après | Cause du faux échec |
+|---|---|---|---|
+| `rls-isolation-hardened.cy.ts` | 3/4 | **4/4** | Assertion de sécurité comparant un **nombre** d'organisations à un seuil magique (`< 5`) au lieu de tester l'**isolation**. Le seuil était franchi légitimement (4 organisations administrées + l'organisation courante). Vérifié en base : la vue `org_family` est en `security_invoker=true` et n'expose que 5 organisations sur 9, exactement celles du périmètre RLS. Remplacée par un invariant **plus fort** : aucun ancêtre hors du périmètre de `organizations`, plus contrôle négatif sur `org-1`. |
+| `reports-budgets.cy.ts` | 3/5 | **5/5** | (1) Le titre `/reports` est rendu par `TopHeader` dans un `<p>`, pas un `<h1/h2/h3>`. (2) Les fonctions d'agrégation sont des `IonSelectOption` du dernier `ion-select`, pas des boutons. |
+| `forms-fields.cy.ts` | 2/4 | **4/4** | Confirmé : les 2 échecs venaient d'un build obsolète (R81), pas du code. |
+| `performance-batch.cy.ts` (calendrier) | 0/1 | **1/1** | Sélecteur d'événement inexistant (`ion-input[aria-label=…]` sans hydratation) → `cy.typeIonicInput`, motif éprouvé par `events-tasks.cy.ts`. |
+
+## Défauts réels non corrigés (classés)
+
+| Réf | Gravité | Défaut | Pourquoi non corrigé |
+|---|---|---|---|
+| **R80** | **moyenne** | La colonne « Soumetteur » de `forms-v2.cy.ts` T5 affiche un **UUID** au lieu d'un nom. Le stream PowerSync `profiles` ne synchronise que le profil de l'utilisateur courant : les noms des autres membres sont absents du client. | Le correctif exige l'élargissement du stream + `powersync deploy sync-config`, or **`PS_ADMIN_TOKEN` est absent** de l'environnement : un changement local ferait diverger client et serveur (décision D-S6-1). Piste alternative explorée et **écartée par vérification** : la table `members` (synchronisée org-wide, porte `first_name`/`last_name`/`email`) aurait pu fournir les noms localement — vérifié en base, `members.id` est un id texte distinct des UUID de `profiles` et ne contient pas le soumetteur. **Aucun contournement local n'existe.** Gravité *moyenne* : défaut d'affichage (confusion pour l'utilisateur), sans corruption ni perte de données ; la donnée `submitted_by` reste correcte en base. |
+| **R82** | **moyenne** | `org-reports.cy.ts` est **non déterministe** : il sélectionne la première option du popover parent, soit la **dernière** organisation créée (`listOrgs` trié `created_at DESC`). Chaque exécution rattache l'« Annexe A » à celle du run précédent → chaîne de 4 niveaux en base. | Correctif tenté (sélection explicite de la Mère par son nom) puis **révoqué** : mesure en échec — le nom de la Mère n'est **pas** dans la liste des options (`cy.contains(ion-item, 'Org E2E 110710')` échoue après 180 s), ce qui **invalide l'hypothèse** et exige une investigation supplémentaire (~1 h). Conformément à « un changement non testé est pire qu'un défaut documenté », le spec a été **restauré à son état commité**. |
+| **R83** | **moyenne** | `performance-batch.cy.ts` tests 1-2 : 0 transaction sur le serveur. **Aucun des trois prérequis** du motif offline→online éprouvé (`cloud-sync.cy.ts`) n'est réuni : (a) pas de `req.continue()` en mode online → Cypress mange la requête et le client reçoit une réponse CORS invalide ; (b) pas d'intercept `OPTIONS` → préflight bloqué ; (c) contexte d'organisation non forcé (`lumina-user` / `lumina-active-org`) → la file d'upload PowerSync échoue en silence. Preuve du diagnostic : le test **calendrier** (qui crée des événements en ligne, sans intercept) passe. Le fichier `performance-batch.cy.ts` est en **échec, non maquillé**, et documenté. |
+| **R85** | **moyenne** | **Le chemin d'écriture offline→serveur (SQLite → queue d'upload PowerSync → Supabase) n'a AUCUNE couverture de test.** Rectificatif : la session 6 avait d'abord écrit que `cloud-sync.cy.ts` (1/1) prouvait cette synchronisation — **c'est faux**. Lecture complète de la spec (L330-420) : après reconnexion, elle **insère elle-même** les entités par `cy.request` en contexte Node, puis vérifie leur présence. L'assertion est **tautologique** ; le spec le dit lui-même en commentaire. | Correctif = nouveau test pilotant le worker (`db.disconnect()` → écriture locale → `db.connect(connector)` → attente de la vidange de la file → vérification serveur). Non réalisé faute de budget : c'est le point le plus critique pour l'usage hors ligne quotidien. Coût estimé 1 h 30. Voir RISQUES R85. |
+
+## Vérification d'isolation inter-organisations (point de sécurité)
+
+La question « un compte peut-il lire une donnée d'une autre organisation ? » a
+été testée de façon indépendante, avec le rôle réel :
+
+```sql
+begin;
+select set_config('role','authenticated',true);
+select set_config('request.jwt.claims','{"sub":"87afea21-…","role":"authenticated"}',true);
+select count(distinct ancestor) from org_family;   -- 5 sur 9 organisations
+select count(*) from organizations;                 -- 5 sur 9
+rollback;
+```
+
+La vue `org_family` (`security_invoker=true`) expose **exactement** les
+5 organisations du périmètre RLS du compte (4 administrées + l'organisation
+courante), sur 9 au total. Le spec `cross-tenant.cy.ts` passe également (1/1).
+**Conclusion : l'isolation inter-organisations est vérifiée, sans fuite
+constatée.**
+
+---
+
+
+# ⚠️ MISE À JOUR SESSION 5 (2026-10-24)
+
+Les sections qui suivent datent des sessions 1 à 4. **Cinq bugs d'exécution
+supplémentaires et un défaut de corruption de données ont été corrigés
+depuis.** Les chiffres ci-dessous remplacent ceux du corps du rapport.
+
+| Indicateur | Avant session 5 | Après session 5 |
+|---|---|---|
+| Erreurs de type (`tsc`) | 98 (jamais détectées par la CI) | **0** |
+| Tests unitaires | 1050 / 1050 | **1100 / 1100** (67 fichiers) |
+| Build de production | OK | OK (`vite build` exit 0) |
+| Valeurs jsonb corrompues | **218** sur 6 colonnes | **0** |
+| Typecheck CI | inopérant (succès systématique) | **opérant** (`tsc -b`) |
+
+### Bugs d'exécution corrigés (cause → effet → preuve)
+
+| Réf | Cause | Effet utilisateur | Preuve |
+|---|---|---|---|
+| R67 | Import de l'icône `File` (lucide) masquant le constructeur global `File` | **L'envoi d'un rapport d'organisation échouait à tous les coups** | `tsc -b` 0 erreur ; import supprimé |
+| R65 | Double encodage jsonb, portée réelle **218 valeurs / 6 colonnes** (dont `form_definitions.fields` à **100 %**) | Ouvrir un formulaire ou un événement ancien **tombait l'écran** | Migration `20261024000001` ; SQL après : 0 valeur `string` ; rollback prouvé exact |
+| R66 | `db.status` n'existe plus (PowerSync v2 → `db.currentStatus`) | Indicateur de sync affiché **« hors ligne » en permanence** | `tsc -b` 0 erreur |
+| R68 | `onButtonClick` n'existe pas sur `IonItem` (Ionic 9 → `onClick`) | Clic sur un événement du calendrier **sans effet** | `tsc -b` 0 erreur |
+| R70 | `targetRole: "ADMIN"` — valeur hors du type `Role`, masquée par `as any` | Erreur de type (aucun impact fonctionnel : `targetRole` ne route rien, cf. **rectificatif R74**) | `TREASURIER` ; `tsc -b` 0 erreur |
+| R69 | `autoComplete` ignoré par Ionic 9 (→ `autocomplete`) | Autocomplétion navigateur absente | `tsc -b` 0 erreur |
+| R71 | `tsc --noEmit` à la racine ne vérifiait **aucun fichier** (`"files": []`) | 98 erreurs réelles invisibles, dont les 5 ci-dessus | `tsc -b --noEmit` en CI : 0 erreur |
+| **R75** | `form_submissions.submitted_by` référence `profiles.id` mais était affiché brut | La colonne « Soumetteur » montrait un **UUID** au lieu d'un nom | Détecté par `forms-v2.cy.ts` T5 (« attendu E2E Org, reçu 87afea21-… ») ; corrigé (`FormSubmissions.tsx`) ; test unitaire « affiche le NOM du soumetteur » |
+| **R76** | `getNotifIcon` ne mappait que des types **absents** de la base | **Toutes** les notifications affichaient l'icône générique | Relevé SQL des `action_type` réels ; corrigé ; test `Notifications-icon.test.tsx` 3/3 |
+| **R77** | `ROLE_LABEL` écrivait « Trésurier » (coquille) | Le badge de rôle du profil affichait une faute (2 comptes concernés) | Corrigé ; test `SettingsProfile.test.tsx` (badge `profile-role-badge`) 3/3 |
+| **R78** | `ACTION_META` ne couvrait pas ADMIN_ASSIGNED/REMOVED/REVOKED/REINSTATED (14 entrées réelles) | La piste d'audit affichait « Modifié OrgAdmin » pour un changement de privilèges | Relevé SQL ; 4 libellés ajoutés ; test `Trace-labels.test.tsx` 3/3 |
+| **R79** | Le `catch` de `sendNotification` avalait l'échec d'INSERT | Notification absente de l'historique sans aucune trace | `console.warn` contextualisé ; test qui échoue sans le correctif (21/21) |
+
+### Pourquoi c'était invisible
+
+Le job de typecheck de la CI exécutait `npx tsc --noEmit` à la racine. Le
+`tsconfig.json` racine déclare `"files": []` et ne contient que des
+`references` : la commande **ne vérifiait rien** et sortait toujours en
+succès. C'est la cause racine de l'accumulation des 98 erreurs, dont cinq
+provoquaient des pannes visibles pour l'utilisateur. Le job exécute
+désormais `tsc -b --noEmit`, vérifié à 0 erreur.
+
+### Vérification E2E (session 5)
+
+| Spec | Résultat | Note |
+|---|---|---|
+| `cloud-sync.cy.ts` | **1/1** | — |
+| `finance-deep.cy.ts` | **5/5** | — |
+| `events-tasks.cy.ts` | **1/1** | — |
+| `cross-tenant.cy.ts` | **1/1** | sur serveur **dev** (cf. R72) |
+
+**R72 (piège de lancement, non bloquant)** : lancée contre un **build de
+production** (`vite preview`), `cross-tenant` échoue après 4 minutes
+(`window.__psSupabaseClient` n'est publié qu'en mode dev). Sur le serveur de
+dev, le même spec passe **1/1 en 24 s**. Aucune régression de l'app : c'est
+un piège de lancement des tests, documenté dans RUNBOOK.md.
+
+### Décisions prises en session 5 (à valider)
+
+1. **Rattraper la donnée jsonb en base** (et non seulement la tolérer) :
+   218 valeurs réparées, sauvegarde exacte, rollback prouvé. Cf. D-S5-1/2/3.
+2. **Activer `tsc -b` en CI** malgré la règle de gel : correctif ciblé,
+   risque vérifié nul (0 erreur, build vert), effet protecteur immédiat
+   sur les 4 mois. Cf. D-S5-4.
+
+### Fait nouveau sur la capacité de la base
+
+Mesure au 2026-10-24 : **20 Mo utilisés sur 500 Mo (4 %)**, 48
+`audit_entries`, 314 `notifications`. Le risque de saturation du plan
+gratuit est donc **structurel mais non imminent** (contrairement à ce
+qu'indiquait la version initiale de P-NEW-3, corrigée depuis). Requêtes de
+surveillance fournies dans RUNBOOK.md.
+
+---
+
 
 ### Stabilité E2E (preuve, 3 passes consécutives)
 
@@ -199,6 +335,10 @@ npx cypress run --config baseUrl=http://127.0.0.1:8080,video=false \
 
 ### Résultats
 
+**Suite unitaire complète (session 6, après R75/R76)** : `npx vitest run` →
+**67 fichiers / 1100 tests, 100 % verts** (~28 s). Commande de rejeu :
+`npx vitest run`.
+
 | Suite | Baseline | Après session | Statut |
 |---|---|---|---|
 | **Vitest** | 1030/1048 (18 échecs, 9 fichiers) | **1050/1050 (60 fichiers)** | **vert** |
@@ -294,6 +434,13 @@ psql "$DATABASE_URL" -f supabase/migrations/rollback/<version>_rollback.sql
 
 ## 9. Risques résiduels pour les 4 mois sans surveillance
 
+> Mise à jour session 5 : les points 4 et 8 de cette liste sont **en partie
+> résorbés** — `tsc -b` est désormais actif en CI (R71) et la corruption
+> jsonb est réparée de bout en bout (R65). Le point 2 (mise en pause) reste
+> **le risque le plus probable** sur 4 mois avec un plan gratuit.
+> Capacité mesurée au 2026-10-24 : **20 Mo / 500 Mo (4 %)** → saturation non
+> imminente.
+
 1. **Perte de données** (pas de sauvegarde) — probabilité moyenne, impact
    maximal. → activer les sauvegardes (P1).
 2. **Mise en pause du projet Supabase** (inactivité) — probabilité élevée sur
@@ -333,6 +480,17 @@ psql "$DATABASE_URL" -f supabase/migrations/rollback/<version>_rollback.sql
 8. **P7** — Onglets `nav-bottom` (3 h) — *haute*.
 9. **P10/P11** — Observabilité + sonde de disponibilité (5 h) — *moyenne*.
 10. **P14** — Couverture Cypress complète (15–25 h) — *basse*.
+
+**Ajouts session 5** (détail : `PROPOSITIONS.md`) :
+
+11. **P-NEW-2** — Réparer les 7 specs Cypress rouges (4 h) — *haute*. Sans
+    suite verte, aucune régression future n'est détectée.
+12. **P-NEW-1** — Contrainte `CHECK` de forme sur les colonnes jsonb (1 h)
+    — *haute* : rend le défaut R65 **impossible**, pas seulement corrigé.
+13. **P-NEW-4** — Alerte sur la taille de la base (1 h) — *haute*.
+14. **P-NEW-3** — Purge planifiée `audit_entries` / `notifications` (2 h)
+    — *moyenne* (non urgente : 4 % du quota).
+15. **P-NEW-5** — Supprimer le code mort `src/adapters/` (0,5 h) — *basse*.
 
 Détail complet : `PROPOSITIONS.md`.
 

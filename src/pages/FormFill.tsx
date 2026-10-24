@@ -31,11 +31,12 @@ import {
   IonButton,
   IonSelect,
   IonSelectOption,
-  IonChangeCustomEvent,
+  
   IonItem,
   IonLabel,
   IonTextarea,
 } from "@ionic/react";
+import type { IonChangeCustomEvent } from "@/lib/ionic-types";
 
 function ReferenceSelect({
   field,
@@ -292,7 +293,7 @@ export default function FormFill() {
                       >
                         <IonSelectOption value="">— Sélectionner —</IonSelectOption>
                         {field.options.map((opt) => (
-                          <IonSelectOption value={opt}>
+                          <IonSelectOption key={opt} value={opt}>
                             {opt}
                           </IonSelectOption>
                         ))}

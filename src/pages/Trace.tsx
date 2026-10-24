@@ -31,7 +31,7 @@ import {
   IonInput,
 } from "@ionic/react";
 
-const ACTION_META: Record<
+export const ACTION_META: Record<
   string,
   { icon: typeof Clock; color: string; label: string }
 > = {
@@ -44,9 +44,17 @@ const ACTION_META: Record<
   RESTORE: { icon: CheckCircle, color: "var(--data-income)", label: "Rétabli" },
   REVISE: { icon: Edit2, color: "var(--data-pending)", label: "Révisé" },
   CANCEL: { icon: XCircle, color: "var(--data-expense)", label: "Annulé" },
+  // Actions réellement présentes dans audit_entries pour la gestion des
+  // administrateurs d'organisation (14 entrées relevées en base). Sans ces
+  // cas, la piste d'audit affichait « Modifié » pour une attribution ou un
+  // retrait d'administrateur — une information fausse sur un sujet sensible.
+  ADMIN_ASSIGNED: { icon: CheckCircle, color: "var(--data-income)", label: "Admin attribué" },
+  ADMIN_REINSTATED: { icon: CheckCircle, color: "var(--data-income)", label: "Admin rétabli" },
+  ADMIN_REVOKED: { icon: XCircle, color: "var(--data-expense)", label: "Admin révoqué" },
+  ADMIN_REMOVED: { icon: Trash2, color: "var(--data-expense)", label: "Admin retiré" },
 };
 
-const ENTITY_LABELS: Record<string, string> = {
+export const ENTITY_LABELS: Record<string, string> = {
   Transaction: "Transaction",
   Event: "Événement",
   Group: "Groupe",
@@ -59,6 +67,7 @@ const ENTITY_LABELS: Record<string, string> = {
   GroupMembership: "Adhésion",
   Versement: "Versement",
   Account: "Compte",
+  OrgAdmin: "Administrateur d'organisation",
 };
 
 const FILTERS = [

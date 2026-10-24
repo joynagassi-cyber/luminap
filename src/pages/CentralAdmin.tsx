@@ -13,24 +13,7 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import {
-  IonPage,
-  IonHeader,
-  IonContent,
-  IonTitle,
-  IonToolbar,
-  IonButton,
-  IonButtons,
-  IonBackButton,
-  IonSpinner,
-  IonBadge,
-  IonSelect,
-  IonSelectOption,
-  IonItem,
-  IonLabel,
-  IonInput,
-  IonChangeCustomEvent,
-} from "@ionic/react";
+import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar, IonButton, IonButtons, IonBackButton, IonSpinner, IonBadge, IonSelect, IonSelectOption, IonItem, IonLabel, IonInput } from "@ionic/react";
 import {
   Building2,
   Shield,
@@ -82,6 +65,7 @@ import {
   enterOrganization,
   exitToCentral,
 } from "@/lib/organization-context";
+import type { IonChangeCustomEvent } from "@/lib/ionic-types";
 
 const STATUS_LABEL: Record<string, string> = {
   PENDING: "En attente",
@@ -204,6 +188,10 @@ function MesAnnexesHeader({
   hasChildren: boolean;
   childrenCount: number;
 }) {
+  // `navigate` vit ici : sans cet appel, le bouton « Envoyer un rapport »
+  // levait `ReferenceError: navigate is not defined` et faisait planter tout
+  // le dashboard central (ErrorBoundary) dès qu'une annexe était détectée.
+  const navigate = useNavigate();
   return (
     <div className="flex items-center gap-2">
       <FolderTree className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
@@ -465,7 +453,7 @@ function OrgDetail({ orgId, onBack }: { orgId: string; onBack: () => void }) {
               >
                 <IonSelectOption value="">Choisir un profil…</IonSelectOption>
                 {candidates.map((c) => (
-                  <IonSelectOption value={c.id}>
+                  <IonSelectOption key={c.id} value={c.id}>
                     {c.displayName}
                     {c.email ? ` (${c.email})` : ""}
                   </IonSelectOption>

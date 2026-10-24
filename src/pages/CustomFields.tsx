@@ -15,12 +15,13 @@ import {
   IonToolbar,
   IonSelect,
   IonSelectOption,
-  IonChangeCustomEvent,
+  
   IonItem,
   IonLabel,
   IonInput,
   IonTextarea,
 } from "@ionic/react";
+import type { IonChangeCustomEvent } from "@/lib/ionic-types";
 
 const ENTITY_TYPES = [
   "Transaction",
@@ -214,7 +215,7 @@ export default function CustomFields() {
                       interface="popover"
                     >
                       {ENTITY_TYPES.map((t) => (
-                        <IonSelectOption value={t}>
+                        <IonSelectOption key={t} value={t}>
                           {t}
                         </IonSelectOption>
                       ))}

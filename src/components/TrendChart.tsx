@@ -54,7 +54,7 @@ export default function TrendChart({
           </defs>
           <Tooltip
             content={
-              withTooltip
+              (withTooltip
                 ? (props: any) => {
                     const active = props.active;
                     if (!active || !props.payload?.length) return null;
@@ -72,7 +72,7 @@ export default function TrendChart({
                       </div>
                     );
                   }
-                : false
+                : undefined) as any
             }
           />
           <Area

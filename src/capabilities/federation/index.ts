@@ -410,9 +410,18 @@ class FederationService {
          )`,
       [userId, userId, orgId, orgId, userId, orgId],
     );
-    return ((res?.array ?? []) as any[]).map((g) => ({
+    const SUBJECT_TYPES = new Set([
+      "user",
+      "org_member",
+      "group_member",
+      "role",
+      "tag",
+    ]);
+    return ((res?.array ?? []) as any[])
+      .filter((g) => SUBJECT_TYPES.has(String(g.subject_type)))
+      .map((g) => ({
       id: String(g.id),
-      subjectType: String(g.subject_type),
+      subjectType: String(g.subject_type) as Grant["subjectType"],
       subjectId: String(g.subject_id),
       resource: String(g.resource),
       action: String(g.action),

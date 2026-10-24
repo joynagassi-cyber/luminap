@@ -178,7 +178,7 @@ export default function TransactionDetail() {
     await notification.sendNotification({
       title: "Transaction supprimée",
       message: `${tx.description || tx.id} a été supprimée.`,
-      targetRole: "ADMIN",
+      targetRole: "TREASURIER",
       extraData: {
         source: "transaction-detail",
         txId: tx.id,

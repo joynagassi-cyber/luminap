@@ -821,3 +821,347 @@ WHERE id = '87afea21-bad7-453b-9ae5-4ad1da2ca13f';`
 `settle_invitation_claim`) et aucun trigger ne les synchronise. Impact
 limite aujourd'hui (les chemins d'invitation mettent a jour les deux), mais
 c'est une fragilite a traiter.
+
+---
+
+## Session 5 — 2026-10-24 (clôture des défauts critiques)
+
+**Heure** : début 00:35 UTC, clôture du lot à 00:52 UTC (T0 + ~30 h).
+**Phase** : clôture du défaut de corruption de données (priorité irréversible).
+
+### Actions et résultats
+
+1. **Quantification du double encodage jsonb (R65)** — contrôle exhaustif
+   des 10 colonnes `jsonb` : **218 valeurs corrompues sur 6 colonnes**,
+   dont `form_definitions.fields` à **100 %** (34/34) et
+   `events.budget_items` à 158/305. R43 n'avait mesuré que `budget_items`.
+2. **Sauvegarde avant écriture** — taille du payload mesurée (2,2 Ko) ;
+   table de sauvegarde `_jsonb_backfill_20261024` créée par la migration
+   elle-même, ce qui rend le rollback exact.
+3. **Dry-run** sur copies temporaires → 0 chaîne restante, aucune perte.
+4. **Migration `20261024000001`** appliquée → **0 valeur `jsonb_typeof =
+   'string'`** sur toute la base.
+5. **Rollback rejoué sur copies** → restaure 158/34/8/8/5 et laisse
+   intacts les 147 `budget_items` déjà sains. Réversibilité prouvée.
+6. **Correctif amont** : `parseBudgetItems` délègue à `parseJsonbValue`.
+   Un défaut a été trouvé par les nouveaux tests : `typeof` ne distingue
+   pas un objet d'un tableau, donc un objet rendu là où un tableau est
+   attendu passait le contrôle et aurait fait planter le `.map()`.
+   Corrigé par `Array.isArray(fallback) !== Array.isArray(value)`.
+7. **18 tests unitaires ajoutés** (`src/lib/__tests__/jsonb.test.ts`).
+8. **Typecheck CI réparé (R71)** : `tsc --noEmit` à la racine ne vérifiait
+   aucun fichier (`"files": []`). Passage à `tsc -b --noEmit`, qui a
+   révélé 1 erreur supplémentaire dans `vite.config.ts` (littéraux
+   `worker.format` / `build.sourcemap`), corrigée.
+9. **Commit** `cc76fb3`.
+
+### Vérifications (preuves)
+
+| Commande | Résultat |
+|---|---|
+| `npx tsc -b --noEmit` | **0 erreur** (99 avant) |
+| `npx vitest run` | **1091 / 1091** verts, 65 fichiers |
+| `npx vite build` | exit **0** |
+| `SQL` jsonb_typeof | 0 valeur `string` |
+
+### Décisions prises (DECISIONS.md)
+
+- D-S5-1 : rattraper la donnée plutôt que tolérer seulement.
+- D-S5-2 : table de sauvegarde → rollback exact (pas de ré-encodage global).
+- D-S5-3 : `"null"` → `jsonb null`, asymétrie assumée (non réversible à l'identique).
+- D-S5-4 : activer `tsc -b` en CI malgré le gel (correctif ciblé, risque vérifié nul).
+
+
+### Vérification Cypress (session 5)
+
+Lancée en tâche de fond pendant la rédaction, contre un serveur local.
+
+| Spec | `vite preview` (prod) | `vite` (dev) |
+|---|---|---|
+| `cloud-sync.cy.ts` | **1/1** | — |
+| `finance-deep.cy.ts` | **5/5** | — |
+| `events-tasks.cy.ts` | **1/1** | — |
+| `cross-tenant.cy.ts` | 0/1 (échec 4 min 10 s) | **1/1** (24 s) |
+
+**Diagnostic de l'échec `cross-tenant`** : il lit `window.__psSupabaseClient`,
+publié par `publishDevDiagnostics()` qui sort immédiatement si
+`!import.meta.env.DEV`. Sur un build de production, le global n'existe pas.
+**Aucune régression de l'app** : sur le serveur de dev (celui qu'utilise le
+script officiel `scripts/run-cypress.sh`), le spec passe 1/1.
+Consigné comme R72 (piège de lancement des tests, à documenter).
+
+
+### Vérification de durabilité du correctif jsonb (R65)
+
+Le défaut était silencieux : la seule réparation des données ne suffit pas
+si le chemin d'écriture reproduit la corruption. Les trois maillons ont été
+vérifiés :
+
+1. **Données** — migration appliquée, 0 valeur `string` restante.
+2. **Écriture** — `coerceJsonbColumns()` est appelé sur `opData` dans
+   `pushCrudTransaction` (`SupabaseConnector.ts:506`), et cet `opData` est
+   utilisé pour **PUT et PATCH**. Les écritures passent donc désormais un
+   tableau/objet, pas une chaîne. `JSONB_COLUMNS` couvre 10 colonnes.
+3. **Lecture** — `parseJsonbValue` (6 points d'appel dans `dataLayer.ts`)
+   tolère les trois formes (chaîne, double encodage, forme correcte).
+
+Conclusion : le défaut est fermé de bout en bout, pas seulement rattrapé.
+
+
+### Rectificatif R70 / découverte R74 — « preuve avant affirmation »
+
+En vérifiant les 5 correctifs annoncés dans le commit `0702cd2`, le point 5
+(R70) s'est révélé **mal décrit**. Vérifications menées :
+
+- `git grep 'targetRole: "ADMIN"'` → 3 occurrences restantes
+  (`FormFill.tsx`, `InvitationClaim.tsx`, `InvitationEmit.tsx`).
+- `NotificationSendData.targetRole` est typé `Role` **mais** n'est utilisé
+  que pour remplir `notifications.action_type` (`notification/index.ts:115`).
+- `select action_type, count(*) from notifications group by 1` →
+  `EVENT_CREATED` 311, `INVITATION_RECEIVED` 11, `FORM_SUBMITTED` 1 :
+  **aucun rôle**. La colonne porte un type d'événement.
+- `getNotifIcon` ne reconnaît que `TRANSACTION_PENDING` /
+  `TRANSACTION_APPROVED` / `BUDGET_EXCEEDED` → **0 ligne** en base : toutes
+  les notifications prennent l'icône par défaut.
+
+Conclusion : le défaut réel n'était pas « notification sans destinataire »
+mais (a) une erreur de type masquée par `as any` — corrigée — et (b) une
+incohérence sémantique de `action_type` — **ouverte**, consignée R74 et
+proposée P-NEW-6. Le message de commit `0702cd2` n'est pas réécrit
+(interdiction de réécrire l'historique) ; le rectificatif ci-dessus et dans
+RISQUES.md fait foi.
+
+
+### Bug produit corrigé — R75 « Soumetteur » affichait un UUID
+
+Détecté par l'échec Cypress `forms-v2.cy.ts` T5 (message explicite : attendu
+« E2E Org », reçu un UUID). Confirmé en base par jointure. Corrigé dans
+`FormSubmissions.tsx` (résolution `profiles` locale, repli sur l'id) ;
+nouveau test unitaire vert ; `tsc -b` 0 erreur ; les 4 tests unitaires
+existants du fichier restent verts (repli).
+
+Deux échecs du spec `forms-fields.cy.ts` analysés : ce sont des **défauts de
+test**, pas de code —
+1. `cy.contains('button', /Créer/i).last()` ne renvoie qu'**un** élément
+   (le premier = bouton d'ouverture, recouvert par le scrim) : le bouton de
+   soumission n'était jamais atteint. Ciblé par `aria-label` unique.
+2. Le bouton de suppression est ciblé par `aria-label="Supprimer le champ
+   <label>"` (la ligne n'est pas un ancêtre direct de la `<p>` du label).
+
+
+---
+
+## Suite de session (session 6) — 2026-10-24, à partir de 01:05Z
+
+Reprise après la session 5. Ordre suivi : rectifier une affirmation inexacte,
+exploiter la suite Cypress en cours comme source de défauts réels, corriger,
+tester, documenter.
+
+### 1. Rectificatif R70 propagé (docs)
+
+Le message du commit `0702cd2` décrivait R70 comme « la notification de
+suppression n'était rattachée à aucun rôle destinataire ». Vérification en
+base : `targetRole` n'alimente que `notifications.action_type`, et les valeurs
+réelles de cette colonne sont des types d'événement. Le rectificatif a été
+propagé dans RISQUES.md (R74), FEATURES.md (ligne R70) et RAPPORT_FINAL.md.
+
+### 2. Suite Cypress complète exploitée comme détecteur (16/28 → …)
+
+Bilan des 15 premières specs : **38 tests verts, 3 rouges**, tous analysés :
+
+| Échec | Nature | Cause | Traitement |
+|---|---|---|---|
+| `forms-fields` « creates a custom field… » | défaut de **test** | `cy.contains('button', /Créer/i)` ne renvoie qu'un élément (bouton d'ouverture, recouvert par le scrim) : `.last()` n'atteignait pas le bouton de soumission | cible `aria-label="Créer le champ"` |
+| `forms-fields` « deletes a custom field… » | défaut de **test** | ligne non-ancêtre direct du label ; le bouton porte `aria-label="Supprimer le champ <label>"` | cible par `aria-label` construit depuis le texte |
+| `forms-v2` T5 « Soumetteur » | **bug produit** | la colonne affichait l'UUID `submitted_by` au lieu du nom | **R75 corrigé** |
+
+### 3. Bug produit R75 — « Soumetteur » affichait un UUID (corrigé)
+
+`form_submissions.submitted_by` référence `profiles.id`. Preuve en base :
+`87afea21-…` = profil « E2E Org ». Correction dans `FormSubmissions.tsx` :
+résolution depuis la table locale `profiles` (import dynamique + `try/catch`),
+utilisée par la cellule, la recherche plein-texte et le tri ; **repli** sur
+l'id si PowerSync est indisponible → aucune régression. La résolution est
+bornée par la RLS `profiles_select` (profils de sa propre organisation).
+Même correction appliquée à la colonne « Rejeté par » (`rejected_by`), qui
+souffrait du défaut identique (aucune donnée concernée aujourd'hui :
+`rejected_by = null`).
+
+Preuves : nouveau test unitaire « affiche le NOM du soumetteur » (5/5 verts
+dans `FormSubmissions-table.test.tsx`, les 4 cas existants préservés par le
+repli) ; `tsc -b` 0 erreur.
+
+### 4. Bug produit R76 — icônes de notification toutes génériques (corrigé)
+
+`getNotifIcon` ne mappait que `TRANSACTION_PENDING` / `_APPROVED` /
+`BUDGET_EXCEEDED` — trois valeurs **absentes** de la table `notifications`.
+Valeurs réelles : `EVENT_CREATED` (311), `INVITATION_RECEIVED` (11),
+`FORM_SUBMITTED` (1). Donc 100 % des notifications affichaient l'icône
+générique. Correction : les trois types réels produisent une icône distincte ;
+sélection isolée dans `notifIconKey()` (testable sans rendu).
+Preuve : `src/pages/__tests__/Notifications-icon.test.tsx` 3/3.
+
+### 5. T2 (sauvegardes) — vérifié
+
+Les exports logiques existent toujours et sont intègres
+(`/workspace/backups/schema-20261022-1801.sql` 125 Ko / 3 828 lignes ;
+`data-20261022-1802.sql` 1,1 Mo / 4 730 lignes). Sauvegardes Supabase
+classiques impossibles en plan gratuit → alternative retenue (export
+`supabase db dump` + rotation documentée). Reste propriétaire : planifier
+l'export (P31) et tester une restauration.
+
+### Note d'exécution
+
+La suite Cypress a été lancée **avant** ces correctifs : le serveur Vite en
+mode dev a rechargé les sources modifiées à chaud (HMR) en cours de run. Ce
+run ne vaut donc que comme **détecteur de défauts** ; la validation finale
+sera faite sur code gelé, par une nouvelle exécution complète.
+
+
+### 6. Bug produit R77 — coquille « Trésurier » dans le badge de rôle (corrigé)
+
+`SettingsProfile.tsx` écrivait `TREASURIER: "Trésurier"` alors que tous les
+autres libellés de l'app disent « Trésorier ». Deux comptes réels ont ce rôle
+→ faute visible. Corrigé ; test ajouté (badge `profile-role-badge`).
+
+
+### 7. Bug produit R78 — piste d'audit : 14 actions admin affichées « Modifié »
+
+`audit_entries` contient ADMIN_ASSIGNED (8), ADMIN_REMOVED (3),
+ADMIN_REVOKED (2), ADMIN_REINSTATED (1). `ACTION_META` ne les couvrait pas →
+toutes retombaient sur « Modifié ». Sur un changement de privilèges, la
+piste d'audit devenait trompeuse. Quatre libellés explicites ajoutés, plus
+`OrgAdmin` → « Administrateur d'organisation ». Test : `Trace-labels.test.tsx`
+(3/3).
+
+
+### 8. Défaut R79 — échec de persistance de notification avalé en silence (corrigé)
+
+`sendNotification` avalait l'échec d'INSERT dans `notifications` : si la base
+locale était indisponible, la notification disparaissait sans trace. Ajout
+d'un `console.warn` contextualisé (le chemin OneSignal reste inchangé).
+Preuve par test ajouté, **validé par retrait du correctif** (le test échoue
+sans lui). 21/21 verts.
+
+### 9. Défaut de test — `org-reports.cy.ts` visait un `<p>` de bannière
+
+Le nom de l'organisation créée apparaît dans la bannière de succès
+(« … créée (opérationnelle) »), rendue AVANT l'arborescence.
+`cy.contains(orgAName)` matchait ce `<p>`, dont le `.closest('div')` ne
+contient aucun bouton d'action → échec après 480 s. Ancrage corrigé sur le
+`<span>` de la carte ; timeout global ramené à 180 s.
+
+
+## Clôture — constat tardif : la base de référence E2E était invalide
+
+### 10. Le run Cypress de référence portait sur un build obsolète (R81)
+
+Signal d'alarme : un run de 29 min sur 28 specs annonçait 5 specs / 9 échecs.
+Deux vérifications ont montré que ce run n'était pas exploitable :
+
+1. `stat dist/index.html` → build de **01:06** ; les correctifs R75–R78 sont
+   commités **01:15–01:17**. `grep "noms de soumetteurs indisponibles"
+   dist/assets/*.js` → **0 occurrence** : le bundle était antérieur au
+   correctif qu'il était censé valider.
+2. Les messages d'échec citaient `data-dyad-id` (tag du serveur de dev) et un
+   `.click()` SANS `{ force: true }` sur `button[aria-label="Créer un nouveau
+   champ"]`, alors que le spec sur disque porte `{ force: true }` depuis le
+   commit `8259109`. Le log ne pouvait pas provenir du code courant.
+
+**Conclusion** : ces 5 specs / 9 échecs ne sont pas imputables au code
+courant. Ils sont écartés du rapport final comme non concluants.
+
+### 11. `cross-tenant.cy.ts` exige le serveur de dev, pas un build
+
+Le spec d'isolation inter-organisations échoue volontairement sur un build de
+production : il lit `window.__psSupabaseClient`, publié seulement en mode dev,
+et lève un message explicite (R72). Relancer la suite sur
+`http://127.0.0.1:4174` (build) faisait donc échouer **systématiquement** le
+spec de sécurité le plus important — risque de fausse conclusion « régression
+d'isolation ». Décision : environnement de référence = serveur de dev
+`npx vite` sur `:8080`, conformément à `scripts/run-cypress.sh` et au RUNBOOK.
+
+### 12. Défaut produit R80 — `profiles` n'est synchronisé que pour soi-même
+
+`powersync/sync-config.yaml:71-73` filtre `profiles` sur
+`WHERE id = auth.user_id()` : un client ne possède QUE son propre profil.
+Or `FormSubmissions.tsx` affiche le nom d'AUTRES utilisateurs depuis cette
+table. Vérifié en base : la soumission `a7a99491-…` porte
+`submitted_by = 87afea21-…`, présent dans `profiles` (« E2E Org ») mais absent
+de la réplique locale. Le correctif R75 était donc nécessaire mais **non
+suffisant** → consigné R80 (OUVERT, moyenne). Correction propre = élargir le
+stream + `powersync deploy sync-config` (jeton `PS_ADMIN_TOKEN` absent) :
+décision de ne pas créer de divergence client/serveur. Voir DECISIONS.md.
+
+### 13. Suite de référence relancée dans l'environnement canonique
+
+`rm -rf dist` ; `npx vite build` (7 s, 0 erreur) ; serveur de dev relancé sur
+`:8080` (prêt en 877 ms) ; Xvfb installé (`sudo apt-get install xvfb`, requis
+par Cypress headless — `Error: spawn Xvfb ENOENT`) ; suite complète 28 specs
+lancée en tâche de fond sur `CYPRESS_BASE_URL=http://127.0.0.1:8080`.
+
+### 14. Suite de référence (serveur dev :8080) — résultats et verdicts
+
+Run complet 28 specs sur `http://127.0.0.1:8080`. Constat en cours de route :
+
+- `cloud-sync.cy.ts` **1/1** (offline → reconnexion → Supabase) ✅
+- `cross-tenant.cy.ts` **1/1** (isolation inter-organisations) ✅ — sur serveur
+  dev, conformément à R72/R81. Confirme qu'il n'y a **pas** de régression
+  d'isolation.
+- `events-tasks.cy.ts` **1/1** ✅
+- `comprehensive-flow.cy.ts` **1/1** ✅
+- `calendar.cy.ts` **1/1** ✅
+- `forms-fields.cy.ts` **4/4** ✅ — les 2 échecs du run « 29 min » étaient
+  donc bien imputables au **build obsolète** (R81), pas au code. Preuve
+  directe que R81 était la bonne explication.
+- `forms-v2.cy.ts` **5/6** — seul échec : T5 « Soumetteur », attendu
+  « E2E Org », reçu l'UUID `87afea21-…`. C'est la **manifestation exacte de
+  R80** (le stream `profiles` ne synchronise que le profil de l'utilisateur
+  courant, donc le nom d'un autre membre est irrésoluble localement). Le
+  correctif R75 était nécessaire mais non suffisant.
+- `org-reports.cy.ts` **échec** — défaut de test non déterministe, R82
+  (sélection du parent = dernière org créée → auto-empoisonnement).
+
+### 15. Défauts de test corrigés après le run de référence (preuves)
+
+| Spec | Avant | Après | Nature du défaut |
+|---|---|---|---|
+| `rls-isolation-hardened.cy.ts` | 3/4 | **4/4** | Assertion de sécurité comparant un **nombre** d'organisations à un seuil magique (`<5`) au lieu de tester l'**isolation**. Le seuil était franchi légitimement (4 orgs administrées + l'org courante). Remplacée par un invariant exact : aucun ancêtre exposé par `org_family` hors du périmètre RLS de `organizations`, plus un contrôle négatif sur `org-1`. Assertion **plus forte**, pas plus faible. |
+| `reports-budgets.cy.ts` | 3/5 | **5/5** | (1) Le titre `/reports` est rendu par `TopHeader` dans un `<p>`, pas un `<h1/h2/h3>`. (2) Les fonctions d'agrégation sont des `IonSelectOption`, pas des boutons : ciblage du dernier `ion-select`. |
+| `forms-fields.cy.ts` | 2/4 (build obsolète) | **4/4** | Confirmé : les 2 échecs venaient du build de 01:06, pas du code (R81). |
+| `org-reports.cy.ts` | 0/1 | 0/1 (inchangé) | Défaut de test non déterministe (R82). Correctif tenté, **révoqué** faute de validation possible : l'hypothèse « le nom de la Mère est dans le popover » est **fausse** (mesuré). Spec restauré à son état commité. |
+| `performance-batch.cy.ts` | 0/3 | en cours | Assertions serveur en clé **anon** (0 ligne par RLS), navigation non déterministe, formulaire d'événement sans hydratation. |
+
+### 16. Tentative R80 par la table `members` — écartée après vérification
+
+Piste explorée : `members` est synchronisée org-wide (`WHERE org_id = ?`) et
+porte `first_name`/`last_name`/`email` ; elle aurait pu fournir les noms
+localement, **sans** redéploiement PowerSync. Vérification en base : `members.id`
+est un **id texte** distinct des UUID de `profiles` (0 ligne pour
+`id = 87afea21-…`), et aucune ligne ne correspond au soumetteur. `members` est
+une entité métier distincte (adhérents), pas une projection des profils :
+**aucun contournement local n'existe**. R80 exige bien l'élargissement du
+stream + redéploiement. Conclusion consignée, décision D-S6-1 confirmée.
+
+### 17. Clôture de session — heure et état final
+
+- **Heure de clôture** : 2026-10-24T03:15Z. Budget T0+12h30 (2026-10-24T06:26Z)
+  largement dépassé en temps mural du fait des exécutions Cypress longues
+  (`performance-batch` seul : 13 min ; suite complète : ~30 min). Session
+  conduite en **mode clôture** : aucun développement de fonctionnalité, seuls
+  des correctifs de test ciblés et de la documentation.
+- **Corrections de test validées** (preuves d'exécution) :
+  `rls-isolation-hardened` 4/4, `reports-budgets` 5/5, `forms-fields` 4/4,
+  `performance-batch` calendrier 1/1.
+- **Correctif révoqué** : `org-reports` (R82) — hypothèse invalidée par la
+  mesure, spec restauré à son état commité.
+- **Défauts réels documentés non corrigés** : R80 (moyenne), R82 (moyenne),
+  R83 (moyenne). Aucun défaut de gravité haute ou critique laissé ouvert.
+- **Isolation inter-organisations** : vérifiée en base avec le rôle réel
+  (5 organisations sur 9 exposées, toutes dans le périmètre RLS) + spec
+  `cross-tenant` vert. Aucune fuite.
+- **Fichiers de suivi** : `docs/agent-session/` (FEATURES, DOMAINE, JOURNAL,
+  DECISIONS, RISQUES, PROPOSITIONS, RUNBOOK, RAPPORT_FINAL).
+- **Résidu assumé** : `cypress/e2e/zz-debug.cy.ts` (spec de débogage, vert) est
+  laissé en place pour ne pas modifier la base de référence de 28 specs
+  pendant le gel ; à supprimer par le propriétaire.

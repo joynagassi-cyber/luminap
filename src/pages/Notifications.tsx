@@ -20,13 +20,44 @@ import {
   IonInfiniteScroll,
 } from "@ionic/react";
 
-function getNotifIcon(actionType: string) {
+/** Clé d'icône par type d'action — isolée pour être testable sans rendu. */
+export function notifIconKey(
+  actionType: string,
+): "event" | "invitation" | "form" | "pending" | "approved" | "exceeded" | "default" {
   switch (actionType) {
+    // Types réellement persistés (relevé en base : EVENT_CREATED 311,
+    // INVITATION_RECEIVED 11, FORM_SUBMITTED 1). Sans ces cas, toutes les
+    // notifications retombaient sur l'icône générique.
+    case "EVENT_CREATED":
+      return "event";
+    case "INVITATION_RECEIVED":
+      return "invitation";
+    case "FORM_SUBMITTED":
+      return "form";
     case "TRANSACTION_PENDING":
-      return <Bell className="w-4 h-4" style={{ color: "var(--data-pending)" }} />;
+      return "pending";
     case "TRANSACTION_APPROVED":
-      return <CheckCircle className="w-4 h-4" style={{ color: "var(--data-income)" }} />;
+      return "approved";
     case "BUDGET_EXCEEDED":
+      return "exceeded";
+    default:
+      return "default";
+  }
+}
+
+function getNotifIcon(actionType: string) {
+  switch (notifIconKey(actionType)) {
+    case "event":
+      return <Clock className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />;
+    case "invitation":
+      return <TrendingUp className="w-4 h-4" style={{ color: "var(--data-income)" }} />;
+    case "form":
+      return <CheckCircle className="w-4 h-4" style={{ color: "var(--data-pending)" }} />;
+    case "pending":
+      return <Bell className="w-4 h-4" style={{ color: "var(--data-pending)" }} />;
+    case "approved":
+      return <CheckCircle className="w-4 h-4" style={{ color: "var(--data-income)" }} />;
+    case "exceeded":
       return <AlertCircle className="w-4 h-4" style={{ color: "var(--data-expense)" }} />;
     default:
       return <Bell className="w-4 h-4" style={{ color: "var(--text-secondary)" }} />;

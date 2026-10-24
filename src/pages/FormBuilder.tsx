@@ -19,11 +19,12 @@ import {
   IonButton,
   IonSelect,
   IonSelectOption,
-  IonChangeCustomEvent,
+  
   IonItem,
   IonLabel,
   IonTextarea,
 } from "@ionic/react";
+import type { IonChangeCustomEvent } from "@/lib/ionic-types";
 
 const FIELD_TYPES: { value: FormFieldDefinition["type"]; label: string }[] = [
   { value: "text", label: "Texte" },
@@ -475,7 +476,7 @@ export default function FormBuilder() {
                           interface="popover"
                         >
                           {FIELD_TYPES.map((ft) => (
-                            <IonSelectOption value={ft.value}>
+                            <IonSelectOption key={ft.value} value={ft.value}>
                               {ft.label}
                             </IonSelectOption>
                           ))}
@@ -531,7 +532,7 @@ export default function FormBuilder() {
                             interface="popover"
                           >
                             {REFERENCE_ENTITY_TYPES.map((et) => (
-                              <IonSelectOption value={et}>
+                              <IonSelectOption key={et} value={et}>
                                 {et}
                               </IonSelectOption>
                             ))}

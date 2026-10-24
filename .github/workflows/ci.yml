@@ -75,7 +75,13 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run type check
-        run: npx tsc --noEmit
+        # `tsc --noEmit` à la racine ne vérifiait AUCUN fichier : le
+        # tsconfig.json racine a `"files": []` et ne contient que des
+        # `references`. C'est pourquoi 98 erreurs de type réelles (dont 5
+        # bugs d'exécution) ont pu s'accumuler sans que la CI réagisse.
+        # `tsc -b` construit les deux projets référencés (app + node) et
+        # échoue vraiment sur une erreur. Vérifié le 2026-10-24 : 0 erreur.
+        run: npx tsc -b --noEmit
         continue-on-error: false
 
   unit:
