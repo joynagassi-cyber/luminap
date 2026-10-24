@@ -2063,3 +2063,25 @@ la configuration Gradle de `:capacitor-storage` / `capacitor-cordova-android-plu
   (le binaire Cypress n'est pas installable dans l'environnement d'agent).
   Reste à confirmer par un run CI. Non destructif : au pire, un résidu
   reste ACTIVE (comportement antérieur).
+
+### R97 — 2 advisors `rls_enabled_no_policy` (`keep_alive`, `_jsonb_backfill_20261024`) — FAUX POSITIFS (documentés)
+- **Gravité** : BASSE.
+- **Constat** : les deux tables ont RLS **activée sans aucune politique**. Un
+  advisor Supabase les signale. En PostgreSQL, RLS activée sans politique =
+  **refus total** (deny-all) : les privilèges `SELECT/INSERT/...` accordés à
+  `anon`/`authenticated` sont **inopérants** (aucune ligne lisible/écrivable).
+  Il n'y a donc **aucune fuite** ; l'advisor signale une intention implicite,
+  pas une faille.
+- **Preuve** : `keep_alive` = 1 ligne, `_jsonb_backfill_20261024` = 213 lignes,
+  0 politique chacune ; `information_schema.role_table_grants` montre des
+  privilèges accordés mais la RLS les neutralise (le ping
+  `GET /rest/v1/keep_alive` renvoie **HTTP 200 avec un corps vide** — cf.
+  workflow `keep-alive.yml`, run `40078250833`).
+- **Décision** : **ne pas** créer de politique (ce serait élargir l'accès à des
+  tables internes) et **ne pas** désactiver la RLS. Les deux tables sont
+  conservées : `keep_alive` est la cible du ping anti-pause ;
+  `_jsonb_backfill_20261024` est la sauvegarde du backfill jsonb (R65).
+  Désactiver l'advisor exigerait de supprimer une table utile → refusé
+  (comportement conservateur).
+- **Statut** : documenté, aucune action. Réévaluer si `keep_alive` ou le
+  backfill sont un jour supprimés (l'advisor disparaît alors).
