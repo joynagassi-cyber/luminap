@@ -495,3 +495,22 @@
 - **Coût** : 2 h (dont une migration si l'on ajoute une colonne).
   **Risque** : faible (colonne texte, sans contrainte ni FK).
 - **Bloquante** : non — mais à trancher avant d'ajouter des notifications.
+### P32 — Rendre l'environnement de test infalsifiable (priorité : haute)
+
+- **Problème** : un run Cypress a pu porter sur un build obsolète de 9 minutes
+  sans qu'aucun signal ne l'annonce (R81). `cypress.config.ts` ne définit pas
+  de `webServer` et `baseUrl` retombe par défaut sur un déploiement distant.
+  Le risque concret : valider — ou invalider — une version qui n'est pas celle
+  qu'on croit, et consigner un faux résultat de test.
+- **Proposition** : (1) déclarer un `webServer` explicite (commande `vite`,
+  port 8080, `reuseExistingServer: false`) pour que Cypress démarre toujours
+  le bon serveur ; (2) faire échouer le démarrage si un serveur préexistant
+  répond mais que son horodatage de build est antérieur au dernier commit ;
+  (3) journaliser l'URL cible et l'empreinte du bundle dans le rapport Cypress.
+- **Intérêt** : c'est la condition pour que tout résultat de test consigné
+  soit digne de confiance. Sans cela, chaque affirmation « testé » est
+  potentiellement fausse — le pire cas pour un livrable vérifiable.
+- **Coût estimé** : 1 h. **Risque** : faible (configuration de test
+  uniquement, aucun impact production).
+- **Bloquante pour la fiabilité à long terme** : **oui**. À traiter avant la
+  prochaine session de validation.

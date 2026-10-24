@@ -241,3 +241,37 @@
   le changement. C'est le correctif qui protège le plus durablement.
 - **Alternative écartée** : laisser en proposition pour le propriétaire.
   Écartée car l'effet protecteur est immédiat et le risque vérifié nul.
+
+### D-S6-1 — Ne pas élargir le stream PowerSync `profiles` malgré le défaut R80
+- **Contexte** : `profiles` n'est synchronisé que pour l'utilisateur courant
+  (`WHERE id = auth.user_id()`), ce qui fait afficher l'UUID au lieu du nom
+  pour les autres membres (R80). La RLS autorise déjà la lecture des profils
+  de sa propre organisation.
+- **Décision** : ne PAS modifier `powersync/sync-config.yaml` dans cette
+  session ; consigner R80 comme défaut ouvert avec le correctif à appliquer.
+- **Raison** : la correction exige un `powersync deploy sync-config` (jeton
+  `PS_ADMIN_TOKEN` absent). Modifier le YAML local sans redéployer crée une
+  divergence client/serveur : le client souscrirait des lignes que le serveur
+  ne pousse pas — défaut moins visible mais plus grave que celui qu'on
+  corrigerait, et impossible à diagnostiquer sur le terrain.
+- **Alternative écartée** : résolution des noms par appel REST Supabase
+  direct. Rejetée : casse le fonctionnement hors ligne (argument central de
+  PowerSync), ajoute un aller-réseau par rendu et court-circuite la couche de
+  données (`dataLayer.ts`) — donc une seconde source de vérité.
+
+### D-S6-2 — Environnement de référence E2E = serveur de dev `:8080`
+- **Contexte** : la suite avait été lancée contre un `vite preview` obsolète
+  (`:4174`, build de 01:06) produisant 9 échecs non imputables au code courant
+  (R81) ; et `cross-tenant.cy.ts` (isolation inter-orgs) exige
+  `window.__psSupabaseClient`, publié uniquement en mode dev (R72).
+- **Décision** : figer l'environnement de référence sur `npx vite` port 8080
+  (`CYPRESS_BASE_URL=http://127.0.0.1:8080`), après `rm -rf dist` et
+  redémarrage du serveur, conformément à `scripts/run-cypress.sh` et au
+  RUNBOOK. Ne pas modifier `cypress.config.ts` (gel).
+- **Raison** : un build de production fait échouer le spec de sécurité le plus
+  important de façon systématique et silencieuse, ce qui peut faire conclure à
+  tort à une régression d'isolation des données. Le serveur de dev est
+  l'environnement prescrit par le dépôt.
+- **Alternative écartée** : ajouter un `webServer` à `cypress.config.ts` pour
+  rendre le démarrage explicite. Écartée pendant le gel (changement
+  structurel non testé) → portée en PROPOSITIONS.md (P32).

@@ -1352,6 +1352,89 @@ révoqué / retiré) et `OrgAdmin` → « Administrateur d'organisation ».
 `tsc -b` 0 erreur.
 
 
+### R81 — Un run Cypress peut porter sur un build obsolète sans que rien ne l'annonce — CORRIGÉ (méthode, moyenne)
+
+**Défaut de méthode** : `cypress.config.ts` ne définit pas de `webServer` et
+`baseUrl` retombe par défaut sur le déploiement Render
+(`https://lumina-76un.onrender.com`). En pratique la suite a été lancée
+contre `http://127.0.0.1:4174`, un serveur `vite preview` démarré à
+**01:06** alors que les correctifs R75–R78 ont été commités à
+**01:15–01:17**. Le run de 29 minutes a donc produit 5 specs / 9 échecs
+**sur du code qui n'existait plus**, sans le moindre avertissement :
+le rapport final aurait imputé à tort ces échecs au code courant.
+
+Deux indices le prouvaient a posteriori : (1) le bundle
+`dist/assets/FormSubmissions-*.js` ne contenait pas la chaîne
+« noms de soumetteurs indisponibles » introduite par R75 ; (2) les
+messages d'échec citaient le tag `data-dyad-id` (injecté par
+`dyadComponentTagger`) alors que le spec sur disque contenait
+`{ force: true }` absent du log.
+
+**Aggravant** : `cypress/e2e/cross-tenant.cy.ts` (isolation inter-orgs,
+spec de sécurité) **exige le serveur de dev** — il s'auto-protège
+correctement en échouant avec un message explicite quand
+`window.__psSupabaseClient` est absent (R72). Sur un build de production,
+ce spec de sécurité échoue donc systématiquement, ce qui peut faire croire
+à une régression d'isolation.
+
+**Correction appliquée (procédure, pas de code)** : la suite de référence
+est relancée sur `http://127.0.0.1:8080` (`npx vite`, l'environnement
+canonique prescrit par `scripts/run-cypress.sh` et le RUNBOOK), après
+`rm -rf dist` et redémarrage du serveur de dev. Aucune modification de
+`cypress.config.ts` n'a été faite (gel : changement structurel non testé).
+
+**Travail restant (proposition P32)** : rendre l'environnement de test
+infalsifiable — par exemple un `webServer` explicite dans
+`cypress.config.ts`, ou une assertion de démarrage qui compare l'horodatage
+du build à celui du dernier commit. Voir PROPOSITIONS.md.
+
+
+### R80 — Le stream `profiles` ne synchronise que le profil de l'utilisateur connecté — OUVERT (moyenne)
+
+**Défaut** : le stream PowerSync `profiles`
+(`powersync/sync-config.yaml:71-73`) est filtré sur
+`WHERE id = auth.user_id()`. Chaque client ne stocke donc QUE son propre
+profil dans la base locale. Or plusieurs écrans affichent le nom d'AUTRES
+utilisateurs à partir de cette table :
+
+- `src/pages/FormSubmissions.tsx:168` — colonne « Soumetteur » et
+  « Rejeté par » (résolution `SELECT id, first_name, last_name, email
+  FROM profiles`) ;
+- `src/lib/dataLayer.ts:2235` (`useOrganizations` vue « central ») —
+  éligibilité d'un administrateur d'organisation.
+
+**Conséquence observable** : pour tout soumetteur autre que l'utilisateur
+courant, la jointure locale ne trouve rien et le repli affiche l'UUID brut.
+Constaté en base le 2026-10-24 : `form_submissions` id
+`a7a99491-…` porte `submitted_by = 87afea21-bad7-453b-9ae5-4ad1da2ca13f`,
+qui EXISTE dans `profiles` (nom « E2E Org ») mais n'est pas dans la réplique
+locale de l'utilisateur connecté. Le correctif R75 (résolution par
+`profiles`) est donc **nécessaire mais non suffisant**.
+
+**Pourquoi ce n'est pas corrigé dans cette session** : élargir le stream
+(`WHERE id = auth.user_id() OR is_org_member(auth.user_id(), org_id)`) est
+la bonne correction — la RLS l'autorise déjà
+(`profiles_select` = `initplan_uid() = id OR is_org_member(initplan_uid(),
+org_id)`) — mais **exigerait un redéploiement du service config Cloud**
+(`powersync deploy sync-config`, jeton `PS_ADMIN_TOKEN` absent de
+l'environnement). Modifier le YAML local sans redéployer créerait une
+divergence client/serveur (défaut pire que celui-ci : le client
+souscrirait des lignes que le serveur ne pousse pas).
+
+**Alternative écartée** : résoudre les noms via un appel REST Supabase
+direct. Rejeté : ajouterait un aller-réseau par rendu, romprait le
+fonctionnement hors ligne (or c'est un argument central de PowerSync) et
+contournerait la couche de données.
+
+**Repli actuel (acceptable)** : l'UUID reste affiché, jamais un écran vide
+ni une exception (try/catch + `console.warn`). Aucune fuite de données :
+la RLS et le stream restent strictement cloisonnés.
+
+**Travail restant** : redéployer `sync-config.yaml` avec le filtre élargi,
+puis rejouer `cypress/e2e/forms-v2.cy.ts` (T5, assertion « Soumetteur »).
+Voir RUNBOOK.md § « Redéployer PowerSync ».
+
+
 ### R79 — Échec de persistance d'une notification avalé en silence — CORRIGÉ (moyenne)
 
 **Défaut** : dans `sendNotification` (`src/capabilities/notification/index.ts`),

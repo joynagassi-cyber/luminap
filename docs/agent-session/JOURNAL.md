@@ -1043,10 +1043,59 @@ d'un `console.warn` contextualisé (le chemin OneSignal reste inchangé).
 Preuve par test ajouté, **validé par retrait du correctif** (le test échoue
 sans lui). 21/21 verts.
 
-### 9. Défaut de test R80 — `org-reports.cy.ts` visait un `<p>` de bannière
+### 9. Défaut de test — `org-reports.cy.ts` visait un `<p>` de bannière
 
 Le nom de l'organisation créée apparaît dans la bannière de succès
 (« … créée (opérationnelle) »), rendue AVANT l'arborescence.
 `cy.contains(orgAName)` matchait ce `<p>`, dont le `.closest('div')` ne
 contient aucun bouton d'action → échec après 480 s. Ancrage corrigé sur le
 `<span>` de la carte ; timeout global ramené à 180 s.
+
+
+## Clôture — constat tardif : la base de référence E2E était invalide
+
+### 10. Le run Cypress de référence portait sur un build obsolète (R81)
+
+Signal d'alarme : un run de 29 min sur 28 specs annonçait 5 specs / 9 échecs.
+Deux vérifications ont montré que ce run n'était pas exploitable :
+
+1. `stat dist/index.html` → build de **01:06** ; les correctifs R75–R78 sont
+   commités **01:15–01:17**. `grep "noms de soumetteurs indisponibles"
+   dist/assets/*.js` → **0 occurrence** : le bundle était antérieur au
+   correctif qu'il était censé valider.
+2. Les messages d'échec citaient `data-dyad-id` (tag du serveur de dev) et un
+   `.click()` SANS `{ force: true }` sur `button[aria-label="Créer un nouveau
+   champ"]`, alors que le spec sur disque porte `{ force: true }` depuis le
+   commit `8259109`. Le log ne pouvait pas provenir du code courant.
+
+**Conclusion** : ces 5 specs / 9 échecs ne sont pas imputables au code
+courant. Ils sont écartés du rapport final comme non concluants.
+
+### 11. `cross-tenant.cy.ts` exige le serveur de dev, pas un build
+
+Le spec d'isolation inter-organisations échoue volontairement sur un build de
+production : il lit `window.__psSupabaseClient`, publié seulement en mode dev,
+et lève un message explicite (R72). Relancer la suite sur
+`http://127.0.0.1:4174` (build) faisait donc échouer **systématiquement** le
+spec de sécurité le plus important — risque de fausse conclusion « régression
+d'isolation ». Décision : environnement de référence = serveur de dev
+`npx vite` sur `:8080`, conformément à `scripts/run-cypress.sh` et au RUNBOOK.
+
+### 12. Défaut produit R80 — `profiles` n'est synchronisé que pour soi-même
+
+`powersync/sync-config.yaml:71-73` filtre `profiles` sur
+`WHERE id = auth.user_id()` : un client ne possède QUE son propre profil.
+Or `FormSubmissions.tsx` affiche le nom d'AUTRES utilisateurs depuis cette
+table. Vérifié en base : la soumission `a7a99491-…` porte
+`submitted_by = 87afea21-…`, présent dans `profiles` (« E2E Org ») mais absent
+de la réplique locale. Le correctif R75 était donc nécessaire mais **non
+suffisant** → consigné R80 (OUVERT, moyenne). Correction propre = élargir le
+stream + `powersync deploy sync-config` (jeton `PS_ADMIN_TOKEN` absent) :
+décision de ne pas créer de divergence client/serveur. Voir DECISIONS.md.
+
+### 13. Suite de référence relancée dans l'environnement canonique
+
+`rm -rf dist` ; `npx vite build` (7 s, 0 erreur) ; serveur de dev relancé sur
+`:8080` (prêt en 877 ms) ; Xvfb installé (`sudo apt-get install xvfb`, requis
+par Cypress headless — `Error: spawn Xvfb ENOENT`) ; suite complète 28 specs
+lancée en tâche de fond sur `CYPRESS_BASE_URL=http://127.0.0.1:8080`.
