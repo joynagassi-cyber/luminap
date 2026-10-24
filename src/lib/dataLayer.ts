@@ -19,9 +19,11 @@ import type {
   CustomFieldDefinition,
   CustomFieldValue,
   FormDefinition,
+  FormFieldDefinition,
   FormSubmission,
 } from "@/types";
 import { getOrganizationId, subscribeOrganization } from "./orgContext";
+import { parseJsonbValue } from "./jsonb";
 import { get, set, invalidate, clear, asyncGetOrSet } from "./cache";
 import { authService } from "./auth";
 
@@ -1721,7 +1723,7 @@ export async function getCustomFieldDefinitionPS(
     key: row.field_name,
     label: row.field_label,
     type: row.field_type,
-    options: row.options ? JSON.parse(row.options) : undefined,
+    options: row.options ? parseJsonbValue<any[]>(row.options, []) : undefined,
     order: row.order,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -1744,7 +1746,7 @@ export async function listCustomFieldDefinitionsPS(
     key: r.field_name,
     label: r.field_label,
     type: r.field_type,
-    options: r.options ? JSON.parse(r.options) : undefined,
+    options: r.options ? parseJsonbValue<any[]>(r.options, []) : undefined,
     order: r.order,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
@@ -1902,7 +1904,7 @@ export async function getFormDefinitionPS(
     description: row.description,
     version: row.version,
     targetEntityType: row.target_entity_type,
-    fields: JSON.parse(row.fields),
+    fields: parseJsonbValue<FormFieldDefinition[]>(row.fields, []),
     status: row.status,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -1938,7 +1940,7 @@ export async function listFormDefinitionsPS(filters?: {
     description: r.description,
     version: r.version,
     targetEntityType: r.target_entity_type,
-    fields: JSON.parse(r.fields),
+    fields: parseJsonbValue<FormFieldDefinition[]>(r.fields, []),
     status: r.status,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
@@ -2565,7 +2567,7 @@ export async function getFormSubmissionPS(
     formVersion: row.form_version,
     submittedBy: row.submitted_by,
     submittedAt: row.submitted_at,
-    data: JSON.parse(row.data),
+    data: parseJsonbValue<Record<string, unknown>>(row.data, {}),
     linkedEntityType: row.linked_entity_type,
     linkedEntityId: row.linked_entity_id,
     status: row.status,
@@ -2608,7 +2610,7 @@ export async function listFormSubmissionsPS(filters?: {
     formVersion: r.form_version,
     submittedBy: r.submitted_by,
     submittedAt: r.submitted_at,
-    data: JSON.parse(r.data),
+    data: parseJsonbValue<Record<string, unknown>>(r.data, {}),
     linkedEntityType: r.linked_entity_type,
     linkedEntityId: r.linked_entity_id,
     status: r.status,
