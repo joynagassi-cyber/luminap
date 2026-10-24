@@ -1921,6 +1921,13 @@ branches (`agent/session-2026-10-22-stabilisation`, `…-phases-restantes`,
 `…-3-livraison`, `…-6-livraison`, `…-6b-r85-r86`). Le taux d'échec est de
 **100 %**, donc le défaut est **structurel**, pas introduit par un commit.
 
+**Cause racine précise (session 9)** : `@capacitor/cli` est en **^8.5.2**
+alors que `@capacitor/android` / `@capacitor/core` sont restés en **^6.2.2**.
+`pnpm run sync:cap` (CLI 8) génère le module `capacitor-cordova-android-plugins`
+au format attendu par AGP 8, sans `namespace` → `./gradlew assembleDebug` échoue
+(« Could not create an instance of type …LibraryVariantBuilderImpl : Namespace
+not specified », run `40078162326`). Correctif proposé : P35.
+
 **Cause relevée dans le journal CI** :
 ```
 > Configure project :capacitor-cordova-android-plugins
@@ -1963,9 +1970,33 @@ la configuration Gradle de `:capacitor-storage` / `capacitor-cordova-android-plu
   nom d'un profil déjà ACTIF (défense en profondeur). Rollback fourni
   (`supabase/migrations/rollback/20261024000002_rollback.sql`, réintroduit la
   faille — documenté).
+- **Régression introduite par ce correctif — R91.b (CORRIGÉE)** : la politique
+  `invitation_claims_insert` de `20261024000002` contenait
+  `EXISTS (SELECT 1 FROM public.invitations ...)`. Ce sous-`SELECT` s'exécute
+  **sous la RLS de l'appelant** ; depuis que `invitations_select` est restreint
+  aux gestionnaires, un invité non gestionnaire ne « voit » pas la ligne →
+  son claim était **refusé (42501)**. Le parcours « un invité réclame un code »
+  était cassé. Correctif : migration
+  `20261024000003_fix_claims_insert_regression.sql` (le contrôle est redondant
+  avec la FK `invitation_claims_invitation_id_fkey`, hors RLS).
+- **Défense en profondeur fiable — R91.c (AJOUTÉE)** : la RLS est **aveugle**
+  (elle ne distingue pas « profil ACTIF » de « profil non visible »). La
+  vérification est déplacée dans le trigger `settle_invitation_claim`
+  (**SECURITY DEFINER**, seule lecture fiable) : migration
+  `20261024000004_harden_settle_claim.sql` — refus d'élever un profil **déjà
+  ACTIF** sauf si un gestionnaire d'invitations est l'auteur de l'invitation
+  (`REJECTED_DUPLICATE` / `ROLE_ESCALATION_BLOCKED`).
+- **Preuves R91.b/R91.c** (instance dev, transactions annulées, 0 résidu) :
+  - invité non gestionnaire : `visibles=0`, claim self/other `REFUSE 42501`,
+    claim sur profil PENDING = `ACCEPTE`, `pending_apres=ACTIVE` (flux complet
+    rétabli) ;
+  - appelant gestionnaire (la RLS laisse passer) : `INSERT ACCEPTE` puis
+    `claim_status=REJECTED_DUPLICATE`, `reason=ROLE_ESCALATION_BLOCKED`,
+    `role_avant=ADMIN role_apres=ADMIN` (**inchangé**).
 - **Statut** : corrigé et vérifié. Test de non-régression
-  `src/capabilities/__tests__/invitation-rls-hardening.test.ts` (4/4 ; échoue
-  si l'on restaure la politique permissive).
+  `src/capabilities/__tests__/invitation-rls-hardening.test.ts` (**10/10** ;
+  couvre R91, R91.b et R91.c, et échoue si l'on restaure une politique
+  permissive ou le `EXISTS` régressif). Migrations réversibles (4 rollbacks).
 
 ### R92 — Stream PowerSync `invitations` trop large (divulgation) — NON CORRIGÉ
 - **Gravité** : MOYENNE (atténuée par R91).
@@ -1989,3 +2020,21 @@ la configuration Gradle de `:capacitor-storage` / `capacitor-cordova-android-plu
   et/ou ne synchroniser que les invitations effectivement remises hors-bande
   (le destinataire détient le JSON). Voir PROPOSITIONS.md.
 - **Statut** : NON CORRIGÉ (documenté). Le correctif RLS R91 ferme l'exploit.
+
+### R94 — Anti-pause Supabase : prémisse fausse dans `keep-alive.sql` — CORRIGÉ
+- **Gravité** : HAUTE (pour un fonctionnement 4 mois sans intervention).
+- **Défaut** : `supabase/keep-alive.sql` affirmait que le heartbeat `pg_cron`
+  « immunise contre la pause auto ». La doc officielle Supabase (« Project
+  Pausing ») indique que la pause Free dépend de l'activité **API**
+  (« a few user requests to the database each day ») ; l'activité **interne**
+  (pg_cron) n'est pas comptée. Le projet restait donc exposé à une pause à
+  7 jours d'inactivité — chaque pause rendait l'app inutilisable sans
+  intervention humaine.
+- **Correctif** : `.github/workflows/keep-alive.yml` — ping
+  `REST /rest/v1/keep_alive` + `Auth /auth/v1/health` toutes les 48 h. Le dépôt
+  est **public**, donc les schedules GitHub ne sont pas désactivés (la limite
+  des 60 jours ne concerne que les dépôts privés). Commentaire de
+  `keep-alive.sql` corrigé.
+- **Preuve** : run GitHub Actions `40078250833` → **success**, log `HTTP 200`.
+- **Statut** : corrigé et vérifié de bout en bout.
+

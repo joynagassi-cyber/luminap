@@ -534,3 +534,32 @@
   nécessite de traiter 13 erreurs préexistantes.
 - **Priorité** : moyenne. **Bloquante pour la fiabilité à long terme** : non,
   mais recommandée — les tests sont la seule preuve disponible.
+
+### P31 — Sauvegardes sans plan Pro — OUTILLÉ (reste à activer)
+- **MAJ 2026-10-24** : la proposition est désormais **implémentée** dans le
+  dépôt : `.github/workflows/backup.yml` (quotidien 03:00 UTC) +
+  `scripts/backup-supabase.sh` (export schéma+données via `supabase db dump`,
+  empreintes SHA-256, chiffrement AES256 optionnel, rotation 30 j). L'artefact
+  n'est publié que **chiffré** (dépôt public). **Reste à faire par le
+  propriétaire** : créer les secrets `SUPABASE_DB_URL` et
+  `BACKUP_GPG_PASSPHRASE` (procédure dans RUNBOOK.md §Sauvegardes).
+- **Pourquoi pas activé automatiquement** : ni `pg_dump` ni Docker ne sont
+  disponibles dans l'environnement d'agent, et aucune credential DB n'y est
+  présente. La sauvegarde tourne dès que le secret existe.
+- **Priorité** : critique. **Bloquant** : oui (sans export, une corruption est
+  définitive).
+
+### P35 — Aligner les versions Capacitor (build Android) — HAUTE
+- **Problème** : `android-debug.yml` échoue (« Namespace not specified » sur le
+  module généré `capacitor-cordova-android-plugins`), car `@capacitor/cli`
+  (^8.5.2) et `@capacitor/android` (^6.2.2) sont sur des majeures différentes.
+  R95.
+- **Proposition** : aligner `@capacitor/android` et `@capacitor/core` sur la
+  majeure de la CLI, régénérer avec `npx cap sync android`, et vérifier
+  `./gradlew assembleDebug` en CI. Vérifier aussi `lumina-android.yml`
+  (workflow de release).
+- **Intérêt** : restaure la distribution APK Android.
+- **Coût** : 3–4 h (mise à jour majeure + régression éventuelle des plugins
+  natifs : caméra, notifications, stockage). **Risque** : moyen (rupture de
+  plugins natifs). **Priorité** : haute. **Bloquant** : non (l'app web/PWA
+  fonctionne).
