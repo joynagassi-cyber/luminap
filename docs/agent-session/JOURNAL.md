@@ -1121,3 +1121,24 @@ Run complet 28 specs sur `http://127.0.0.1:8080`. Constat en cours de route :
   correctif R75 était nécessaire mais non suffisant.
 - `org-reports.cy.ts` **échec** — défaut de test non déterministe, R82
   (sélection du parent = dernière org créée → auto-empoisonnement).
+
+### 15. Défauts de test corrigés après le run de référence (preuves)
+
+| Spec | Avant | Après | Nature du défaut |
+|---|---|---|---|
+| `rls-isolation-hardened.cy.ts` | 3/4 | **4/4** | Assertion de sécurité comparant un **nombre** d'organisations à un seuil magique (`<5`) au lieu de tester l'**isolation**. Le seuil était franchi légitimement (4 orgs administrées + l'org courante). Remplacée par un invariant exact : aucun ancêtre exposé par `org_family` hors du périmètre RLS de `organizations`, plus un contrôle négatif sur `org-1`. Assertion **plus forte**, pas plus faible. |
+| `reports-budgets.cy.ts` | 3/5 | **5/5** | (1) Le titre `/reports` est rendu par `TopHeader` dans un `<p>`, pas un `<h1/h2/h3>`. (2) Les fonctions d'agrégation sont des `IonSelectOption`, pas des boutons : ciblage du dernier `ion-select`. |
+| `forms-fields.cy.ts` | 2/4 (build obsolète) | **4/4** | Confirmé : les 2 échecs venaient du build de 01:06, pas du code (R81). |
+| `org-reports.cy.ts` | 0/1 | 0/1 (inchangé) | Défaut de test non déterministe (R82). Correctif tenté, **révoqué** faute de validation possible : l'hypothèse « le nom de la Mère est dans le popover » est **fausse** (mesuré). Spec restauré à son état commité. |
+| `performance-batch.cy.ts` | 0/3 | en cours | Assertions serveur en clé **anon** (0 ligne par RLS), navigation non déterministe, formulaire d'événement sans hydratation. |
+
+### 16. Tentative R80 par la table `members` — écartée après vérification
+
+Piste explorée : `members` est synchronisée org-wide (`WHERE org_id = ?`) et
+porte `first_name`/`last_name`/`email` ; elle aurait pu fournir les noms
+localement, **sans** redéploiement PowerSync. Vérification en base : `members.id`
+est un **id texte** distinct des UUID de `profiles` (0 ligne pour
+`id = 87afea21-…`), et aucune ligne ne correspond au soumetteur. `members` est
+une entité métier distincte (adhérents), pas une projection des profils :
+**aucun contournement local n'existe**. R80 exige bien l'élargissement du
+stream + redéploiement. Conclusion consignée, décision D-S6-1 confirmée.

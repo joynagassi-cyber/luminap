@@ -1388,14 +1388,28 @@ interprété à tort comme une régression de la hiérarchie d'organisations —
 une fonctionnalité centrale (Phase 2). Non déterministe = défaut, pas
 instabilité à ignorer.
 
-**Correctif identifié (non appliqué — gel)** : sélectionner explicitement
-l'option de la Mère (nom de l'organisation courante, lu depuis
-`lumina-user` / `lumina-config`) au lieu de `.first()` ; et créer l'arbre
-de test sous une racine dédiée au spec plutôt que sous l'organisation
-partagée du compte. Coût estimé : 30 min. Voir PROPOSITIONS.md (P33).
+**Correctif identifié (NON appliqué — tentative révoquée)** : deux approches
+ont été codées puis **révoquées**, faute de pouvoir les valider dans le
+budget de la session :
 
-**Travail restant** : purge des 4 organisations « Annexe A » orphelines
+1. remplacer `.first()` par la sélection explicite de l'option portant le
+   nom de l'organisation courante. Mesuré : le nom de la Mère
+   (`lumina-user.org.name` / `lumina-config.churchName`) **n'est pas dans la
+   liste** des options — `cy.contains(ion-item, 'Org E2E 110710')` échoue
+   après 180 s. La liste ne contient donc pas l'organisation courante, ce
+   qui invalide l'hypothèse et **exige une investigation supplémentaire** ;
+2. créer l'arbre de test sous une racine dédiée au spec plutôt que sous
+   l'organisation partagée du compte.
+
+Conformément au principe « un changement non testé est pire qu'un défaut
+documenté », `cypress/e2e/org-reports.cy.ts` a été **restauré à son état
+commité** (`git checkout`). Le spec reste en échec, documenté, non maquillé.
+
+**Travail restant** : (a) comprendre pourquoi l'organisation courante est
+absente des options du sélecteur parent (`allOrgs` ← `listOrgs`, filtre
+admin/membre) ; (b) purge des 4 organisations « Annexe A » orphelines
 (décision propriétaire : elles portent `status = ACTIVE` et des enfants).
+Coût estimé du point (a) : 1 h.
 
 
 ### R81 — Un run Cypress peut porter sur un build obsolète sans que rien ne l'annonce — CORRIGÉ (méthode, moyenne)
