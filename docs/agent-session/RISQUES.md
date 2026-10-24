@@ -1909,3 +1909,34 @@ Constat serveur, après le flush qui se déclare « OK » :
 Sans ces correctifs, Lumina **accumule des données uniquement sur chaque
 appareil**, sans sauvegarde serveur exploitable (cf. P31) et sans aucun signal
 d'alerte. Une perte d'appareil = perte définitive des écritures financières.
+
+
+---
+
+### R90 — HAUTE — Le workflow « Android Debug Build » n'a JAMAIS réussi (préexistant)
+
+**Preuve** : `gh run list --workflow=android-debug.yml --limit 20` →
+**20 échecs sur 20 exécutions**, depuis le 2026-10-23T14:19, sur **toutes** les
+branches (`agent/session-2026-10-22-stabilisation`, `…-phases-restantes`,
+`…-3-livraison`, `…-6-livraison`, `…-6b-r85-r86`). Le taux d'échec est de
+**100 %**, donc le défaut est **structurel**, pas introduit par un commit.
+
+**Cause relevée dans le journal CI** :
+```
+> Configure project :capacitor-cordova-android-plugins
+WARNING: Using flatDir should be avoided …
+FAILURE: Build failed with an exception.
+* What went wrong:
+A problem occurred configuring project ':capacitor-storage'.
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+BUILD FAILED in 17s
+```
+
+**Impact** : aucun APK de debug n'est produit automatiquement. La distribution
+Android dépend donc d'un build manuel (`lumina-android.yml`, lui, **réussit** sur
+`main` — vérifié : 4 succès consécutifs les 23-24/10).
+
+**Non corrigé** : hors périmètre (Gradle/Android, pas le code applicatif) et non
+nécessaire à la stabilité web. **À traiter par le propriétaire** : mettre à jour
+la configuration Gradle de `:capacitor-storage` / `capacitor-cordova-android-plugins`
+(ou épingler une version de Gradle < 9).

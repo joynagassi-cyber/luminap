@@ -78,6 +78,58 @@ comme le fait SQLite. Le mock **masquait** le défaut.
   « after login: /auth … 503 Render / rate limit GoTrue ». Les 16 échecs de la
   suite complète sont donc **environnementaux**, pas des régressions.
 
+## Découverte la plus grave de la session : R89 — la synchronisation est rompue dans les deux sens
+
+En croisant le code et la base (`hhgovvrnalibhgpakswi`), j'ai constaté un fait
+anormal : le serveur contient **964 événements** et **108 profils**, mais
+**0 transaction**. L'application est donc utilisée, et pourtant **aucune donnée
+financière n'atteint le serveur**. J'ai instrumenté le chemin d'upload
+(`window.__psFlushCrudUpload`, capture console) et obtenu la preuve :
+
+```
+ERROR [PowerSync]: Could not POST streaming to /sync/stream - 500 -
+      {"code":"PSYNC_S2305","description":"Too many parameter query results (limit of 1000)"}
+WARN  [PowerSync] uploadData FAILED transactions op=PUT code=23503
+      msg=… violates foreign key constraint "transactions_category_id_fkey"
+WARN  [PowerSync] pushCrudTransaction FATAL-SKIP … code=23503
+INFO  [PowerSync] uploadData OK transactions op=PUT      ← SUCCÈS MENSONGER
+INFO  [PS-FLUSH] done: passes=1 opsTotal=1 fatalSkipped=0 ← compteur faux
+```
+
+Trois défauts distincts, en cascade :
+
+1. **89.a — montée impossible.** `category_id` envoyé = `cat-dime` (pack client,
+   `src/packs/church/index.ts:53`), alors que le serveur ne contient que
+   `cat-1 … cat-9`. Violation de clé étrangère → **chaque transaction est
+   jetée**. Prouvé par insertion SQL contrôlée : `cat-1` réussit (puis
+   `rollback`), `cat-dime` échoue.
+2. **89.b — descente impossible.** Le filtre des Sync Streams
+   (`org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())`) est
+   plafonné à **1000 résultats** par PowerSync → `PSYNC_S2305`, `connected=false`,
+   `hasSynced=false` : **aucune donnée ne descend** sur un appareil neuf.
+3. **89.c — la perte était invisible (CORRIGÉ).** `logOpOutcome(…, true, …)`
+   était appelé inconditionnellement après la boucle d'upload, même quand toutes
+   les ops avaient été jetées, et `fatalSkipped` restait à 0. C'est ce qui a
+   masqué le défaut pendant des mois.
+
+**Corrigé dans cette session (89.c)** : compteurs `pushedOps`/`skippedOps`, plus
+de faux « OK », `__psFlushResult` expose `skipped` et `ok`. Preuve dans les deux
+sens (1 test échoue sans le correctif, 7/7 avec) et **preuve navigateur** :
+`__psFlushResult` renvoie désormais `{…,"skipped":1,"ok":false}` là où il
+renvoyait un objet indistinguable d'un succès.
+
+**NON corrigé (89.a, 89.b)** : exige d'aligner les référentiels d'identifiants de
+catégories (données serveur) et de modifier puis redéployer le service PowerSync
+Cloud (`PS_ADMIN_TOKEN` requis). Actions opérateur, détaillées dans
+`RISQUES.md` §R89 avec l'ordre de correction.
+
+## Autre défaut préexistant relevé
+
+- **R90** : le workflow « Android Debug Build » n'a **jamais** réussi
+  (**20 échecs sur 20**, toutes branches) — problème Gradle
+  `:capacitor-storage`, sans lien avec le code applicatif. `lumina-android.yml`
+  réussit sur `main`.
+
 ## Verdict honnête sur l'état de l'app
 
 - La liste `/finance` est **réparée et prouvée** (unitaires + E2E).
