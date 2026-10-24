@@ -1303,3 +1303,22 @@ vérifiés dans les deux sens (1 échec sans correctif, 7/7 avec). Suite unitair
   détecté une variable non définie introduite par mon premier jet de correctif ;
   `tsc --noEmit`, lui, la laissait passer. Consigné dans RUNBOOK.md.
 - Après correction : `tsc -b` propre, suite unitaire **1104/1104**.
+
+### 24. Preuves de stabilité (passes répétées) et état final
+
+- **Tests unitaires critiques** (`resource.test.ts` = R87,
+  `connector-schema-filter.test.ts` = R89.c) : **3 passes consécutives,
+  31/31** chaque fois.
+- **Test E2E critique** (`offline-write-sync.cy.ts`) : **3 passes consécutives,
+  1/1** chaque fois. Pas d'instabilité.
+- **Suite unitaire complète** : 67 fichiers, **1104/1104**.
+- **`npx tsc -b`** (le vrai contrôle, cf. piège `tsc --noEmit`) : propre.
+- **CI GitHub Actions sur la PR #7** : `TypeScript Check`, `Unit Tests (Vitest)`,
+  `E2E (Cypress)`, `Lint Check`, `Security Audit`, `Build Application` —
+  **tous verts**. Seul `Android Debug APK` échoue : défaut préexistant R90
+  (20 échecs sur 20 historiquement, toutes branches).
+- **Temps** : la session a largement dépassé le budget initial de 12 h 30
+  (dépassement acté dans le contexte de mission). Le travail s'est concentré sur
+  la valeur réelle : deux défauts produits majeurs trouvés et prouvés (R87
+  corrigé, R89 diagnostiqué + 89.c corrigé), plutôt que sur le remplissage du
+  budget.
