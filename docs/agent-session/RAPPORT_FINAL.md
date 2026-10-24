@@ -1030,3 +1030,80 @@ Sauvegarde disponible : `/workspace/backups/` (cf. S3.5).
    modèle de données, pas un correctif.
 3. **P31** : mettre en place une sauvegarde planifiée hors Supabase.
 4. **P35** : généraliser le `<h1>` aux 19 pages restantes.
+
+---
+
+# S5 — Addendum session 9 (2026-10-24)
+
+Suite de la session (gel en vigueur : correctifs ciblés + tests + clôture
+documentaire uniquement). Aucun changement structurel.
+
+## S5.1 — Nettoyage des résidus de test et cause racine (R96)
+
+**Constat.** Le spec Cypress `cypress/e2e/org-reports.cy.ts` créait, à chaque
+exécution, **2 organisations ACTIVE réelles** via la fonction serveur
+`create_org`, sans jamais les nettoyer (aucun `after()`/`afterEach()`).
+
+**Preuve.** 3 annexes résiduelles en base le 2026-10-24 (`org-34ee1844…`
+00:02, `org-329fbe9d…` 01:11, `org-13547450…` 02:22 — une par run), chacune
+avec exactement 1 `org_admins` + 1 `audit_entries`
+(`actor_role_at_time = service_role`) et **0** donnée métier.
+
+**Actions.**
+1. Les 3 annexes ont été **archivées** (`status='ARCHIVED'`,
+   `archive_reason` renseigné) — `ARCHIVED ≠ DELETE`, réversible et tracé
+   (aucune sauvegarde DB n'existe encore, donc aucune suppression).
+2. Le spec enregistre désormais les ids créés et les **archive** dans un hook
+   `after()` via l'API REST avec le jeton réel (autorisé par
+   `orgs_update_merged` : le compte e2e détient le grant `org_admins` accordé
+   par `create_org`).
+
+**Vérification.** `tsc -b` propre ; `eslint` 0 erreur ; PR #13 mergée ;
+CI Pipeline verte. ⚠️ La vérification E2E (le hook archive bien à la fin du
+run) est à confirmer par la CI Cypress — le binaire Cypress n'est pas
+installable dans l'environnement d'agent.
+
+## S5.2 — Advisors de sécurité : faux positifs documentés (R97)
+
+Les 2 advisors `rls_enabled_no_policy` (`keep_alive`,
+`_jsonb_backfill_20261024`) sont des **faux positifs** : RLS activée sans
+politique = **deny-all** en PostgreSQL, donc aucun accès (les privilèges
+`anon`/`authenticated` sont inopérants). Preuve : le ping
+`GET /rest/v1/keep_alive` renvoie **HTTP 200 avec corps vide** (run
+`40078250833`). Décision conservatrice : ni politique, ni RLS désactivée
+(D-S9-4). Aucune faille.
+
+## S5.3 — Évaluation « production réelle » et PII
+
+- **Instance de développement** : `transactions = 0`, `documents = 0`,
+  `versements = 0`. 108 profils (87 `@lumina.dev`, 11 `@example.com`, 9
+  `@gmail.com`), 47 `__no_org__`, 70 members, 42 invitations, 9 organisations
+  (5 ACTIVE). Aucun signe d'exploitation réelle → écritures autorisées.
+- **Aucune PII supprimée** (D-S9-5) : l'identification « réel vs test » n'est
+  pas certaine et aucune sauvegarde n'existe. Traitement documenté (R10, R22,
+  RUNBOOK) à exécuter par le propriétaire **après** activation des sauvegardes.
+- **Aucun secret dans le code/historique** : clés lues via `Deno.env` ; pas de
+  `.env` versionné ; pas de JWT en dur. Les identifiants trouvés
+  (`E2e-Lumina!1`, `lumina1234`) sont des identifiants de **test** (R8, R9),
+  déjà documentés ; le build release utilise des variables d'environnement.
+
+## S5.4 — Invitations : statut consolidé
+
+R91 (fuite `code`/`target_role` → escalade de rôle) → R91.b (régression du
+parcours de claim introduite par le correctif) → R91.c (garde anti-escalade
+déplacée dans le trigger DEFINER). Preuves : `V:
+invitation-rls-hardening.test.ts` **10/10**, `SQL` (invité non gestionnaire :
+0 invitation visible, claim `42501` ; gestionnaire : `ACCEPTE` puis
+`REJECTED_DUPLICATE`/`ROLE_ESCALATION_BLOCKED`, rôle inchangé). Statut
+**validée (V+SQL)**.
+
+## S5.5 — Preuve de non-régression
+
+- Suite unitaire complète : **1114/1114 passés** (`npx vitest run`,
+  20,5 s, 2026-10-24).
+- `npx tsc -b` : exit 0.
+- CI Pipeline (branches de session) : **success**.
+- Android Debug Build : **failure pré-existante** (R90 — désalignement
+  `@capacitor/android` ^6.2.2 vs `@capacitor/cli` ^8.5.2 ; non régression).
+- Cypress : suite volumineuse, exécutée en CI (binaire non installable dans
+  l'environnement d'agent). Résultat consigné dans JOURNAL.md.

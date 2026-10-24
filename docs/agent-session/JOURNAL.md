@@ -1379,3 +1379,33 @@ Heure de reprise : 2026-10-24T08:0x Z. Branches : `agent/session-8-security`
   PROPOSITIONS. Sans impact prouvé aujourd'hui : les invitations INSERT/UPDATE/
   DELETE exigent déjà `can_manage_invitations`, donc un `ADMIN` n'émet pas
   d'invitation aujourd'hui.
+
+## 2026-10-24 — Session 9 (suite) — gel : correctifs ciblés + clôture documentaire
+
+- **T0** rappelé : 2026-10-22T17:56Z. Budget T0+12h30 dépassé → **règle de gel**
+  appliquée (aucune complétion de fonctionnalité, aucun changement structurel ;
+  correctifs ciblés + tests + clôture uniquement).
+- **Résidus de test (R96)** — cause racine trouvée et corrigée :
+  - Le spec `org-reports.cy.ts` créait 2 organisations ACTIVE réelles par run
+    sans nettoyage. Preuve : 3 annexes résiduelles en base (00:02, 01:11,
+    02:22 — une par run), 1 `org_admins` + 1 `audit_entries` (service_role) et
+    0 donnée métier chacune.
+  - Action : les 3 annexes ont été **archivées** (`status='ARCHIVED'`,
+    `archive_reason` renseigné) — non destructif, réversible.
+  - Correctif : hook `after()` qui archive les orgs créées via l'API REST avec
+    le jeton réel. `tsc -b` exit 0 ; `eslint` 0 erreur. **PR #13 mergée**,
+    CI Pipeline **success**. Cypress lancé (vérification E2E du hook).
+- **Advisors RLS (R97)** : `keep_alive` et `_jsonb_backfill_20261024` ont RLS
+  sans politique = **deny-all** → **faux positifs**, aucune faille. Preuve :
+  ping `GET /rest/v1/keep_alive` = HTTP 200 corps vide. Décision : ne rien
+  changer (D-S9-4). **PR #14 mergée**.
+- **Évaluation production réelle** : `transactions = 0`, `documents = 0`,
+  `versements = 0` → instance de **développement**, écritures autorisées.
+  Aucune PII supprimée (D-S9-5).
+- **Secrets** : aucun secret codé en dur (clés via `Deno.env`) ; pas de `.env`
+  versionné ; identifiants trouvés = comptes de **test** (R8, R9).
+- **Non-régression** : suite unitaire complète **1114/1114** (`npx vitest run`,
+  20,5 s) ; `tsc -b` exit 0 ; CI Pipeline success ; Android Debug Build =
+  échec **pré-existant** (R90, non régression).
+- **Documentation** : addendum rapport final (S5.1–S5.5), DECISIONS D-S9-1 à
+  D-S9-5, RISQUES R96/R97, FEATURES ligne invitations validée.
