@@ -112,6 +112,29 @@ serve(async (req) => {
       : "CHURCH";
     const parentOrgId = body?.parentOrgId ? String(body.parentOrgId) : null;
 
+    // 3bis. Si une organisation parente est fournie, l'appelant doit en etre
+    // un administrateur ACTIF. Sans cette verification, un admin d'une
+    // organisation A pourrait rattacher une annexe au tenant d'une
+    // organisation B (violation d'integrite inter-tenant) : le service_role
+    // contourne la RLS `orgs_insert_merged`. On rejoue donc la meme regle ici.
+    if (parentOrgId) {
+      const { data: parentGrant, error: parentGrantError } = await admin
+        .from("org_admins")
+        .select("id")
+        .eq("admin_profile_id", user.id)
+        .eq("org_id", parentOrgId)
+        .eq("status", "ACTIVE")
+        .limit(1);
+      if (parentGrantError || !parentGrant || parentGrant.length === 0) {
+        console.error("[create_org] rejected: not admin of parent org", {
+          by: user.id,
+          parentOrgId,
+          error: parentGrantError?.message,
+        });
+        return fail(403, "Administrateur de l'organisation parente requis");
+      }
+    }
+
     // 4. Create the org (ACTIVE) and grant the creator admin on it.
     const orgId = "org-" + crypto.randomUUID();
     const { error: orgError } = await admin.from("organizations").insert({
