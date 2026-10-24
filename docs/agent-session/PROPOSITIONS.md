@@ -564,27 +564,15 @@
   plugins natifs). **Priorité** : haute. **Bloquant** : non (l'app web/PWA
   fonctionne).
 
-### P38 — Fiabiliser la suite Cypress : 1 seul conteneur (R98) — CRITIQUE
-- **Problème** : la suite Cypress n'a **jamais** été verte sur `main` (20 runs
-  consécutifs en échec, du 2026-10-19 au 2026-10-24). La CI exécute 2
-  conteneurs **parallèles partageant la même base Supabase**
-  (`matrix.containers: [1, 2]`, `parallel: true`), ce qui provoque des
-  interférences sur les lignes nommées attendues et les comptages.
-- **Proposition** : exécuter Cypress en **1 seul conteneur**
-  (`containers: [1]`, `parallel: false`) pour retrouver un signal fiable, puis
-  traiter les échecs **réels** un par un. À défaut d'isolation par base, la
-  parallélisation doit être abandonnée.
-- **Intérêt** : la CI redevient une alerte utile ; sans cela, aucune
-  régression ne sera détectée pendant 4 mois. C'est le prérequis à toute
-  confiance dans les tests.
-- **Coût** : 15 min pour le changement + temps de run allongé (~2×) ;
-  le vrai coût est le tri des échecs réels révélés. **Risque** : faible
-  (réversible d'un commit). **Priorité** : **critique**. **Bloquant** : oui,
-  pour la fiabilité à long terme.
-- **Note** : une branche candidate a été poussée
-  (`agent/session-13-ci-cypress-test`) pour **mesurer** l'effet en CI. À
-  fusionner uniquement si elle réduit significativement les échecs (la preuve
-  est consignée dans JOURNAL.md).
+### P38 — ~~Fiabiliser la suite Cypress : 1 seul conteneur~~ — RÉFUTÉE PAR MESURE
+- **Hypothèse** : la suite Cypress n'a jamais été verte sur `main` (20 runs en
+  échec) parce que 2 conteneurs parallèles partagent la même base Supabase.
+- **Mesure** : une branche candidate (1 seul conteneur, `parallel: false`,
+  run `40080015253`) a été exécutée en CI. Résultat : **les mêmes 10 specs
+  échouent, aux mêmes assertions**. Aucune amélioration.
+- **Conclusion** : hypothèse **réfutée**. La parallélisation n'est pas la
+  cause. **Ne pas fusionner** la branche candidate. Voir R98 et P41.
+- **Priorité** : n/a (proposition retirée).
 
 ### P39 — Isoler chaque exécution E2E (nettoyage systématique) — HAUTE
 - **Problème** : plusieurs specs créent des données réelles sans les nettoyer
@@ -610,3 +598,28 @@
 - **Intérêt** : moins de runs concurrents, moins de bruit, base moins
   sollicitée. **Coût** : 15 min. **Risque** : faible.
   **Priorité** : moyenne.
+
+### P41 — Rendre l'environnement E2E capable d'exercer PowerSync, et tester l'écriture hors-ligne (R98/R83/R53) — CRITIQUE
+- **Problème** : la suite Cypress n'a **jamais** été verte sur `main` (20 runs
+  en échec). La cause n'est pas la CI mais l'**environnement E2E** : 10 specs
+  dépendent de la synchronisation PowerSync et du contexte d'organisation, qui
+  ne sont pas opérants en CI. Pire : le **chemin d'écriture hors-ligne**
+  (SQLite → queue d'upload → Supabase) n'a **aucune** couverture de test — c'est
+  pourtant le cœur d'une app utilisée « chaque jour » sur le terrain.
+- **Proposition** :
+  1. Provisionner un **compte de test** dont la réplique PowerSync se peuple
+     (secrets `E2E_TEST_EMAIL` / `E2E_TEST_PASSWORD`) et un contexte
+     d'organisation stable, puis débloquer les specs R53/R72.
+  2. Réécrire `performance-batch` selon le motif éprouvé (cf. R83) en exerçant
+     le **vrai worker** PowerSync : `db.disconnect()` → écrire en local →
+     `db.connect(connector)` → attendre `getNextCrudTransaction() === null` →
+     vérifier côté serveur.
+  3. Rendre le job E2E de `ci.yml` **bloquant** (retirer `continue-on-error`,
+     exécuter la suite réelle, cf. R54).
+- **Intérêt** : la CI redevient une alerte utile et le chemin hors-ligne — le
+  plus critique pour l'usage quotidien — est enfin vérifié. Sans cela, aucune
+  régression ne sera détectée pendant 4 mois.
+- **Coût** : 6–8 h (provisionnement, réécriture des specs, stabilisation sur
+  3 passes). **Risque** : moyen (dépend de l'accès au projet PowerSync Cloud et
+  d'un compte de test). **Priorité** : **critique**. **Bloquant** : oui, pour
+  la fiabilité à long terme.

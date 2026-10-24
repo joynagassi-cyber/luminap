@@ -2086,7 +2086,7 @@ la configuration Gradle de `:capacitor-storage` / `capacitor-cordova-android-plu
 - **Statut** : documenté, aucune action. Réévaluer si `keep_alive` ou le
   backfill sont un jour supprimés (l'advisor disparaît alors).
 
-### R98 — La suite Cypress n'a JAMAIS été verte sur `main` (20 runs consécutifs) — CAUSE RACINE PROBABLE : 2 conteneurs parallèles sur une seule base — NON CORRIGÉ (documenté)
+### R98 — La suite Cypress n'a JAMAIS été verte sur `main` (20 runs consécutifs) — CAUSE : environnement E2E (sync PowerSync indisponible) ; hypothèse « parallélisation » RÉFUTÉE par mesure — NON CORRIGÉ (documenté)
 - **Gravité** : HAUTE (l'alerte CI est structurellement inutilisable ; un vrai
   échec introduit par une session future ne serait pas distinguable du bruit).
 - **Constat** : sur `main`, les 20 derniers runs Cypress (du 2026-10-19 au
@@ -2101,26 +2101,72 @@ la configuration Gradle de `:capacitor-storage` / `capacitor-cordova-android-plu
   `org-reports` (`Org E2E 327858` introuvable dans le select),
   `forms-v2` (`E2e Forms v2` introuvable), `persistence`
   (`Event Persist F5` introuvable), `comprehensive-flow` (timeout 30 s).
-- **Cause racine probable** : `.github/workflows/cypress.yml` exécute la suite
-  en **2 conteneurs parallèles** (`matrix.containers: [1, 2]`, `parallel: true`)
-  qui **partagent la même base Supabase** (secrets `SUPABASE_URL` /
-  `SUPABASE_ANON_KEY` identiques). Les specs créent, lisent et **attendent des
-  lignes nommées** (`Jean …`, `Jeunesse …`, `Org E2E …`, `Event Persist F5`,
-  `E2e Forms v2`) : la concurrence sur une base unique provoque des comptages
-  et des recherches incohérents — signature attendue d'une interférence
-  inter-conteneurs, pas d'un bug produit. De plus, plusieurs specs échouent en
-  `expected 0 to be at least N` (comptage de lignes) : cohérent avec des
-  données attendues non encore synchronisées ou déjà modifiées par l'autre
-  conteneur.
+- **Cause (corrigée après mesure)** : ce n'est **pas** la parallélisation
+  (hypothèse réfutée — voir « RÉFUTATION » ci-dessous). La cause est
+  l'**environnement E2E** : les specs qui échouent dépendent de la
+  **synchronisation PowerSync** et du **contexte d'organisation**, tous deux
+  indisponibles/défaillants en CI. C'est **déjà diagnostiqué** :
+  `R53` (réplique PowerSync vide → `sessions.cy.ts` sans compte),
+  `R83` (`performance-batch` : intercept qui ne laisse pas passer la requête,
+  pas de `req.continue()`, contexte d'org non posé → 0 ligne côté serveur),
+  `R72` (specs dépendant d'un global exposé seulement en mode dev),
+  `R54` (le job E2E de `ci.yml` ne teste rien de réel : `simple-check` +
+  `continue-on-error`). La signature commune (« une donnée créée n'apparaît
+  pas », `expected 0 to be at least N`) désigne la **couche de données**, pas
+  la CI.
 - **Ce qui n'est PAS la cause** : ce n'est **pas** une régression introduite par
   les correctifs de sécurité R91/R91.b/R91.c. Preuve : `org-reports.cy.ts`
   échouait déjà sur `main` **avant** le correctif R96 (échec à la ligne 150,
   `Org E2E 327858`, sur le run `40078474144` du sha `2fae0d2`).
-- **Correctif** : **non appliqué** (gel en vigueur, et le correctif implique de
-  changer le mode d'exécution de la CI → décision structurelle du propriétaire).
-  Pistes : (a) exécuter Cypress en **1 seul conteneur** (`containers: [1]`,
-  `parallel: false`) pour retrouver un signal fiable ; (b) ou isoler chaque
-  conteneur (base de test dédiée par conteneur — coûteux). Voir PROPOSITIONS.
+- **Correctif** : **non appliqué** (gel en vigueur ; le correctif est double :
+  (a) rendre l'environnement E2E capable d'exercer PowerSync (compte de test +
+  contexte d'organisation + sync abouti), et (b) réparer les specs selon
+  R53/R83/R72. Voir P41). **La branche `agent/session-13-ci-cypress-test`
+  (1 conteneur) ne corrige RIEN** : ne pas la fusionner (preuve négative
+  conservée comme trace).
 - **Statut** : documenté, non corrigé. **Impact pour les 4 mois** : l'alerte CI
   Cypress restera rouge en permanence ; elle ne détectera pas les régressions.
-  Le propriétaire doit traiter ce point avant de se fier à la CI.
+  Le propriétaire doit traiter ce point avant de se fier à la CI. Le vrai
+  enjeu est le **chemin d'écriture hors-ligne (SQLite → queue → Supabase)**,
+  qui n'a **aucune** couverture de test (cf. R83).
+
+#### R98 — RÉFUTATION de l'hypothèse « parallélisation » (expérience du 2026-10-24)
+
+- **Expérience** : branche `agent/session-13-ci-cypress-test` = **1 seul
+  conteneur** (`containers: [1]`, `parallel: false`), run `40080015253`.
+- **Résultat** : le run échoue dans **exactement les mêmes 10 specs**, avec les
+  **mêmes assertions** que le run 2-conteneurs (`40078474144`) :
+  `comprehensive-flow`, `cross-tenant`, `events-tasks`, `forms-v2`,
+  `groups-events`, `members`, `org-reports`, `performance-batch`,
+  `persistence`, `sessions`. **Aucune amélioration.**
+- **Conclusion** : la parallélisation **n'est PAS la cause**. L'hypothèse est
+  réfutée par la mesure. Le fait que les échecs soient **identiques et
+  déterministes** (mêmes specs, mêmes assertions, en mono-conteneur) écarte
+  l'interférence.
+- **Signature réelle** : les échecs partagent un motif unique — **une donnée
+  créée n'apparaît pas** :
+  - `members` : « Jean E2e… » introuvable (membre créé non visible) ;
+  - `org-reports` : « Org E2E … » introuvable dans le select (org non visible) ;
+  - `persistence` : « Event Persist F5 » introuvable ; `forms-v2` :
+    « E2e Forms v2 » introuvable ; `groups-events` : « Jeunesse … » introuvable
+    et aucun titre de page ;
+  - `performance-batch` : `expected 0 to be at least 20/50` — **0 ligne
+    atteint le serveur** après un cycle de synchronisation hors-ligne ;
+  - `sessions` : bouton « Re-ouvrir » introuvable (compte non listé) ;
+  - `cross-tenant`/`events-tasks` : « au moins une page visible: expected 0 ».
+  Ce motif (écriture → relecture qui ne voit rien, et **0 ligne côté serveur**
+  pour `performance-batch`) désigne la **couche de données / la synchronisation
+  PowerSync**, pas la CI. À rapprocher de **R89** (config de synchronisation
+  PowerSync non déployée en Cloud : `PS_ADMIN_TOKEN` indisponible dans
+  l'environnement d'agent → le fichier `sync-config.yaml` est corrigé mais
+  **non déployé**). Si les streams ne sont pas ceux attendus, ou si le contexte
+  d'organisation du compte e2e n'est pas résolu, les lignes écrites restent
+  invisibles à la relecture — exactement la signature observée.
+- **Correctif** : **non appliqué** — nécessite (a) le déploiement de la config
+  PowerSync en Cloud (accès `PS_ADMIN_TOKEN`), et (b) une investigation de la
+  résolution du contexte d'organisation du compte e2e. Hors du périmètre du gel
+  et de l'environnement de l'agent. **Ne pas fusionner** la branche
+  `agent/session-13-ci-cypress-test` (elle ne corrige rien — la preuve est
+  négative, elle est conservée comme trace).
+- **Statut** : hypothèse réfutée, cause réelle circonscrite (couche de données /
+  sync), non corrigée. **Priorité : critique** (voir P41).
