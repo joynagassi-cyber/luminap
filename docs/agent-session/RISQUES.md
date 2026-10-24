@@ -1803,3 +1803,107 @@ afficher un état d'erreur explicite dans l'UI.
 - Conséquence pour le propriétaire : rejouer la suite avec des identifiants de
   test **dédiés** (ou un Supabase local) pour obtenir un verdict vert. Voir
   RUNBOOK.md.
+
+---
+
+### R89 — CRITIQUE — La synchronisation Lumina est rompue dans les DEUX SENS (prouvé par log)
+
+**Statut** : **diagnostiqué avec preuve, NON corrigé** (le correctif exige une
+action sur les données serveur et sur le service PowerSync Cloud, hors de portée
+d'une session de code seule). **Impact : les données financières ne quittent
+jamais l'appareil.** C'est le défaut le plus grave connu de Lumina.
+
+**Preuve mesurée** (spec de diagnostic temporaire, `window.__psFlushCrudUpload`,
+chromium headless, serveur `hhgovvrnalibhgpakswi`) :
+
+```
+INFO  [PS-FLUSH] start … dbStatus={"connected":false,"hasSynced":false,"uploading":false}
+ERROR [PowerSync]: Could not POST streaming to /sync/stream - 500 -
+      {"error":{"code":"PSYNC_S2305","description":"Too many parameter query results (limit of 1000)"}}
+WARN  [PowerSync] uploadData FAILED transactions op=PUT org_id=org-e2e code=23503
+      msg=Could not update Supabase: insert or update on table "transactions"
+          violates foreign key constraint "transactions_category_id_fkey"
+WARN  [PowerSync] pushCrudTransaction FATAL-SKIP … code=23503 missingCols=[]
+INFO  [PowerSync] uploadData OK transactions op=PUT org_id=org-e2e   ← SUCCÈS MENSONGER
+INFO  [PS-FLUSH] done: passes=1 opsTotal=1 fatalSkipped=0            ← compteur faux
+```
+
+Constat serveur, après le flush qui se déclare « OK » :
+`select count(*) from transactions` → **0**.
+
+#### 89.a — Montée (upload) : violation de clé étrangère `category_id`
+
+- L'op PUT envoyée contient `category_id = "cat-dime"` (vérifié : op locale
+  complète lue dans SQLite).
+- Le serveur `hhgovvrnalibhgpakswi` ne contient que `cat-1 … cat-9`
+  (`select id from categories`).
+- Les deux référentiels de catégories sont **incompatibles** :
+  - **client** : `src/packs/church/index.ts:53` sème `cat-dime`, `cat-offrande`,
+    `cat-don`, … (ids littéraux) ;
+  - **serveur** : `cat-1 … cat-9` (seed/migration, `cat-1` absent du dépôt).
+- Conséquence : **toute** transaction est rejetée en `23503`. Vérifié par
+  insertion SQL contrôlée : avec `category_id='cat-1'` l'insertion **réussit**
+  (puis `rollback`) ; avec `'cat-dime'` elle échoue.
+- `transactions.category_id` est **NOT NULL sans défaut** et absent de
+  `NOT_NULL_DEFAULTS` (`src/lib/powersync/SupabaseConnector.ts:73-96`), donc
+  aucun repli automatique n'existe.
+
+#### 89.b — Descente (download) : `PSYNC_S2305`, sous-requête à plus de 1000 résultats
+
+- `powersync/sync-config.yaml` (édition 3) filtre chaque table par
+  `WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())`.
+- Le service PowerSync évalue la sous-requête et la plafonne à **1000
+  résultats** → `PSYNC_S2305` dès que `profiles` dépasse 1000 lignes (le projet
+  en compte déjà **108** ; le pack client sème **~200** profils par
+  organisation, cf. `src/packs/church/index.ts`).
+- Conséquence : le stream échoue, `connected=false`, `hasSynced=false`, et
+  **aucune donnée ne descend** sur un appareil neuf. Vérifié : un navigateur
+  neuf avec `localStorage` vidé et un état SQLite neuf ne reçoit rien du
+  serveur.
+
+#### 89.c — Le succès est MENSONGER (défaut d'observabilité, corrigible en 1 ligne)
+
+- `src/lib/powersync/SupabaseConnector.ts:597` : à la fin de la boucle d'upload,
+  `logOpOutcome(lastOp, true, …)` est appelé **inconditionnellement**, même
+  quand la dernière op a été rejetée via `continue` (FATAL-SKIP). Le log
+  affiche donc « uploadData OK » **juste après** un « FATAL-SKIP ».
+- `window.__psFlushResult.fatalSkipped` (`src/lib/powersync/index.ts`) reste à
+  **0** dans ce cas, car l'incrément n'a lieu que sur un `throw`, jamais sur le
+  `continue` interne. Le seul indicateur disponible pour un test **ment**.
+- Conséquence : la perte de données est **invisible** en production (pas de
+  trace exploitable, pas d'alerte, pas d'état d'erreur UI). C'est ce qui a rendu
+  R89 indétectable jusqu'ici.
+- **Correctif minimal recommandé** : compter les ops réellement poussées
+  (`pushed`) vs jetées (`skipped`) et n'appeler `logOpOutcome(…, true, …)` que si
+  `pushed > 0 && skipped === 0` ; remonter ce compteur dans `__psFlushResult`.
+
+#### 89.d — Défauts annexes constatés
+
+- **Faux positif de test** : `cypress/e2e/cloud-sync.cy.ts` ne prouve **pas** la
+  synchronisation — il insère via `cy.request` (non intercepté par PowerSync) et
+  stubbe `window.__psFlushResult`. Une spec verte y est donc sans valeur.
+- **Duplication de log** : chaque message est journalisé deux fois
+  (`console.info` module + `win.console.info`), ce qui double le bruit.
+- **`/transaction/:id` (D1)** : second symptôme du même ensemble — le détail
+  d'une transaction locale n'est pas lisible (cf. D1).
+
+#### Ordre de correction recommandé (propriétaire)
+
+1. **89.c** (1 ligne, sans risque) : arrêter de journaliser un faux succès —
+   rend le défaut visible.
+2. **89.a** : aligner les identifiants de catégories client ↔ serveur. Option
+   sûre : **côté client**, mapper les ids littéraux du pack vers les ids serveur
+   (ou générer des UUID partagés) ; vérifier la coexistence des deux
+   référentiels avant tout `INSERT`.
+3. **89.b** : remplacer le filtre par sous-requête dans `sync-config.yaml`
+   (ex. colonne dénormalisée `org_id` sur `profiles`, ou fonction
+   `auth.parameters()`), puis `powersync deploy sync-config` — **action
+   opérateur**, nécessite `PS_ADMIN_TOKEN`.
+4. Ajouter une **alerte** sur l'échec d'upload et un **état d'erreur UI** (cf.
+   R88) pour que la perte ne soit plus silencieuse.
+
+#### Impact « 4 mois sans surveillance »
+
+Sans ces correctifs, Lumina **accumule des données uniquement sur chaque
+appareil**, sans sauvegarde serveur exploitable (cf. P31) et sans aucun signal
+d'alerte. Une perte d'appareil = perte définitive des écritures financières.
