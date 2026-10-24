@@ -18,6 +18,78 @@
 
 # ⚠️ MISE À JOUR SESSION 6 (2026-10-24) — à lire en premier
 
+## Correctif produit majeur de cette session : R87 — la page Finance était cassée
+
+**Constat** : la page `/finance` (Grand livre) affichait **systématiquement**
+« Aucune transaction trouvée », « Revenus 0 », « Dépenses 0 », quelle que soit la
+donnée réellement présente. Aucun message d'erreur. Défaut **silencieux**, donc
+invisible pour l'utilisateur comme pour le propriétaire.
+
+**Cause racine (prouvée par instrumentation temporaire)** :
+`ResourceService.toTableName()` (`src/capabilities/resource/index.ts`) mappait
+`Group`/`Event`/`Member`/`Account`/`Category`/`Role`, mais **pas `Transaction`**.
+Le repli `entityType.toLowerCase()` produisait `transaction` (singulier) alors
+que la table PowerSync est `transactions`. La requête levait
+`near "transaction": syntax error`, **avalée** par le `.catch()` de
+`Finance.tsx` → liste vide sans signal. Requête capturée :
+
+```
+SELECT * FROM transaction WHERE org_id = ? ORDER BY date desc
+  -> near "transaction": syntax error
+```
+
+**Défaut préexistant** : `git diff --stat origin/main HEAD` sur
+`resource/index.ts` et `Finance.tsx` est **vide** — le défaut est présent sur
+`main`, il n'est pas introduit par la fusion.
+
+**Correctif** : une ligne (`Transaction: "transactions"`), plus un commentaire.
+
+**Preuves** :
+- Tests de reproduction dans `src/capabilities/__tests__/resource.test.ts`
+  (bloc « R87 ») : ils inspectent le SQL émis et refusent toute table hors
+  schéma. **Vérifiés dans les deux sens** : **2 échecs** avec le correctif
+  retiré, **24/24** avec le correctif.
+- Preuve de bout en bout : `cypress/e2e/offline-write-sync.cy.ts` (**1/1, 15 s**
+  dans la suite complète) crée une transaction via l'interface et vérifie
+  qu'elle **apparaît dans `/finance`**. Mesuré : avant correctif
+  `contientLabel=false`, après `contientLabel=true`.
+- Non-régression : suite unitaire **1102/1102**.
+
+**Pourquoi les tests ne l'avaient jamais vu** : le mock de `resource.test.ts`
+renvoyait `[]` pour une table inconnue, au lieu de lever « no such table »
+comme le fait SQLite. Le mock **masquait** le défaut.
+
+## Défauts liés, documentés et NON corrigés (règle de gel)
+
+- **D1** — `/transaction/:id` affiche « Transaction introuvable » pour une
+  transaction écrite localement. Cause : `useTransactions()` ne sert les données
+  PowerSync que si `isPowerSyncReady()` (`connected && hasSynced`), sinon il
+  retombe sur `useLocalStore().transactions`, un store **jamais hydraté**. Le
+  même garde concerne **17 hooks de lecture**. Correctif propre = reprendre les
+  17 hooks + vérification complète : hors budget, et un correctif partiel non
+  testé serait pire que le défaut documenté. Contournement : passer par
+  `/finance`, qui est corrigé.
+- **R88** — **23 `.catch()` vides** dans `src/pages/` transforment toute erreur
+  en **état vide silencieux**. Inventaire complet dans `RISQUES.md`. C'est ce qui
+  a rendu R87 invisible.
+- **R86** — La suite E2E dépend d'un Supabase GoTrue **partagé et limité en
+  débit**. Preuve : sur `origin/main` **intact** (worktree isolé), les mêmes
+  specs échouent avec le **même** message
+  « after login: /auth … 503 Render / rate limit GoTrue ». Les 16 échecs de la
+  suite complète sont donc **environnementaux**, pas des régressions.
+
+## Verdict honnête sur l'état de l'app
+
+- La liste `/finance` est **réparée et prouvée** (unitaires + E2E).
+- Le **détail** d'une transaction écrite localement reste cassé (D1).
+- La suite E2E **ne peut pas être déclarée verte** dans cet environnement
+  (R86) : 16 échecs, tous reproduits à l'identique sur `main` intact.
+- Les écritures hors ligne sont **capturées** dans la file d'upload PowerSync
+  (prouvé), mais leur **vidage** n'est pas testable en CI (worker WASM qui ne se
+  connecte jamais en headless) — procédure manuelle dans `RUNBOOK.md`.
+
+
+
 ## Contexte de fin de session
 
 T0 = 2026-10-22T17:56Z. Le budget de 12 h 30 était **dépassé** au démarrage de
