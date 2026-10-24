@@ -79,6 +79,11 @@ export function parseJsonbValue<T>(raw: unknown, fallback: T): T {
     }
   }
   if (value === null || value === undefined) return fallback;
-  if (typeof value !== typeof fallback && fallback !== null) return fallback;
+  if (fallback === null) return value as T;
+  if (typeof value !== typeof fallback) return fallback;
+  // `typeof` ne distingue pas un tableau d'un objet : un objet rendu là où
+  // un tableau est attendu ferait lever le `.map()` appelant — c'est
+  // exactement le plantage qu'on cherche à éviter.
+  if (Array.isArray(fallback) !== Array.isArray(value)) return fallback;
   return value as T;
 }

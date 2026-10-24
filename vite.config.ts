@@ -130,10 +130,10 @@ export default defineConfig(() => ({
     // servies au navigateur ; le plugin Sentry les uploade puis les supprime
     // du bundle final. Hors CI Sentry : pas de maps du tout (pas de fuite de
     // source si `dist/` est déployé).
-    sourcemap: sentryUploadEnabled ? "hidden" : false,
+    sourcemap: sentryUploadEnabled ? ("hidden" as const) : false,
   },
   worker: {
-    format: "es",
+    format: "es" as const,
     plugins: () => [wasm()],
   },
 }));

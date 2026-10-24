@@ -12,6 +12,7 @@ cypress-sessions-diag.log
 hs_err_pid*.log
 replay_pid*.log
 tsconfig.app.tsbuildinfo
+tsconfig.node.tsbuildinfo
 cypress/.persist*.log
 
 # ── Logs temporaires de dev / E2E ──────────────────────────────────────────

@@ -579,10 +579,53 @@
     jsonb stockées en text avant l'upsert (idempotent, 2 niveaux).
   - `dataLayer.parseBudgetItems()` : décodage tolérant, jamais d'exception ;
     utilisé par `EventDetail`, `Events`, `Dashboard`, `GroupCotisation`.
-- **Données historiques** : les 158 lignes restent mal encodées en base ;
-  le parseur tolérant les lit correctement. Un backfill SQL est proposé
-  (PROPOSITIONS.md, P-BACKFILL-BUDGET) plutôt qu'exécuté sans validation.
+- **Données historiques** : les 158 lignes étaient mal encodées en base ;
+  le parseur tolérant les lisait correctement. **Backfill EXÉCUTÉ le
+  2026-10-24** (cf. R65) : la donnée est désormais propre, plus aucune
+  valeur `string` ne subsiste sur les 9 colonnes jsonb.
 - **Gravité** : **critique**.
+
+### R65 — Double encodage jsonb : portée réelle plus large que `budget_items` — CORRIGÉ (critique)
+- **Défaut** : R43 n'avait été mesuré que sur `events.budget_items`. Le
+  contrôle exhaustif des 10 colonnes `jsonb` du schéma réel montre que
+  **218 valeurs** étaient corrompues, sur **6 colonnes** :
+  | colonne | string (avant) | conteneur (avant) |
+  |---|---|---|
+  | `events.budget_items` | 158 | 147 |
+  | `form_definitions.fields` | **34** | 0 |
+  | `invitations.grants_payload` | 8 | 2 |
+  | `invitations.tags_payload` | 8 | 2 |
+  | `audit_entries.after_state` | 5 | 10 |
+  | `audit_entries.before_state` | 5 | 3 |
+  `form_definitions.fields` était corrompu à **100 %** : ouvrir un
+  formulaire personnalisé faisait lever `fields.map is not a function` et
+  tombait l'écran — parcours complet inutilisable.
+- **Correctif amont (code)** : module partagé `src/lib/jsonb.ts`
+  (`coerceJsonbColumns` à l'upload dans `SupabaseConnector.uploadData`,
+  `parseJsonbValue` en lecture dans `dataLayer`). `parseBudgetItems`
+  délègue désormais à ce module (duplication supprimée). Un défaut trouvé
+  par les nouveaux tests a été corrigé au passage : `typeof` ne distingue
+  pas un tableau d'un objet, donc un objet rendu là où un tableau est
+  attendu passait le contrôle et faisait planter le `.map()` appelant ;
+  `Array.isArray(fallback) !== Array.isArray(value)` l'écarte.
+- **Correctif données (migration)** : `20261024000001_backfill_jsonb_double_encoding.sql`,
+  idempotente, avec **sauvegarde exacte** des valeurs remplacées dans
+  `_jsonb_backfill_20261024` (donc rollback exact, sans rien deviner).
+- **Preuve avant écriture** : 213 valeurs re-parsables en conteneur + 5
+  `"null"` (re-parse = JSON null) ; **0 échec de re-parse**.
+- **Preuve après écriture** : plus aucune valeur `jsonb_typeof = 'string'`
+  (`events` 305 arrays, `form_definitions` 34 arrays, `invitations` 10+10,
+  `audit_entries` 15 objects + 5 `null`).
+- **Preuve de réversibilité** : rollback rejoué sur copies temporaires →
+  restaure exactement 158 / 34 / 8 / 8 / 5 valeurs, en laissant les 147
+  `budget_items` déjà sains intacts.
+- **Asymétrie assumée** : les 5 `before_state` = `"null"` (chaîne) sont
+  ramenés à `jsonb null`, plus correct mais **non réversible à
+  l'identique** (un JSON null et la chaîne `"null"` sont indiscernables
+  après coup). Le rollback les rend en `SQL NULL`. Consigné en
+  DECISIONS.md ; aucune perte d'information métier (les deux expriment
+  l'absence d'état antérieur).
+- **Gravité** : **critique** (parcours formulaires inutilisable).
 
 ### R44 — BottomNav au-dessus des modales : boutons inaccessibles au doigt — CORRIGÉ (haute)
 - **Défaut** : la barre de navigation basse (`BottomNav.tsx`) utilisait
@@ -1006,3 +1049,78 @@ Reste ouvert pour **19 autres pages** (cf. P35). Gravité **basse** (a11y).
   `groups-events.cy.ts` ; reste à appliquer aux autres specs si elles
   échouent encore pour ce motif (cf. specs en cours de réexécution).
 - **Statut** : corrigé pour `groups-events.cy.ts`, validé (3/3, 3 passes).
+
+---
+
+## Session 5 (2026-10-24) — clôture du défaut jsonb et des erreurs de type
+
+### R65 — Double encodage jsonb, portée réelle — CORRIGÉ (critique)
+Voir le détail complet en tête de fichier (section principale). Résumé :
+218 valeurs corrompues sur 6 colonnes mesurées et réparées, correctif
+amont en code, migration idempotente et réversible, 18 tests unitaires.
+
+### R66 — `db.status` inexistant (PowerSync v2) → indicateur « hors ligne » permanent — CORRIGÉ (haute)
+- **Défaut** : `usePowerSyncIndicator` et `window.__psFlushCrudUpload`
+  lisaient `db.status`. PowerSync v2 a renommé ce champ en
+  `db.currentStatus` : l'accès renvoyait `undefined`, donc l'indicateur de
+  synchronisation affichait **« hors ligne » en permanence**, y compris
+  quand la synchronisation fonctionnait.
+- **Impact utilisateur** : l'utilisateur croit ses données non
+  synchronisées et peut re-saisir une opération déjà enregistrée.
+- **Correctif** : `currentStatus` dans `usePowerSyncIndicator.ts`,
+  `powersync/index.ts` et le spec `cloud-sync.cy.ts`.
+- **Gravité** : haute (induction en erreur, pas perte de donnée).
+
+### R67 — Icône lucide `File` masquant le constructeur global `File` — CORRIGÉ (critique)
+- **Défaut** : `OrgReportSend.tsx` importait l'icône `File` de
+  `lucide-react` sans l'utiliser. Cet import **masquait le constructeur
+  global `File`** dans la portée du module, donc
+  `new File([blob], …)` levait « File is not a constructor ».
+- **Impact** : l'envoi d'un rapport d'organisation échouait **à tous les
+  coups** — la fonctionnalité principale de la phase 3 était cassée.
+- **Correctif** : import inutilisé supprimé.
+- **Gravité** : critique (fonctionnalité entièrement inopérante).
+
+### R68 — `onButtonClick` inexistant sur `IonItem` (Ionic 9) — CORRIGÉ (moyenne)
+- **Défaut** : `EventCalendar` et `EventTimeline` passaient
+  `onButtonClick` à `IonItem`. Ionic 9 expose `onClick` : la prop était
+  ignorée et le clic sur un événement du calendrier ne faisait rien.
+- **Correctif** : `onClick`.
+- **Gravité** : moyenne (navigation depuis le calendrier inopérante).
+
+### R69 — `autoComplete` ignoré par Ionic 9 — CORRIGÉ (faible)
+- **Défaut** : `Members.tsx` et `SettingsProfile.tsx` utilisaient
+  `autoComplete` (camelCase). Ionic 9 attend `autocomplete` : l'attribut
+  n'était pas transmis au DOM, l'autocomplétion du navigateur ne
+  fonctionnait pas sur prénom/nom/téléphone/email.
+- **Correctif** : `autocomplete`.
+- **Gravité** : faible (confort de saisie, surtout mobile).
+
+### R70 — Notification ciblant un rôle inexistant (`"ADMIN"`) — CORRIGÉ (moyenne)
+- **Défaut** : `TransactionDetail.tsx` créait une notification avec
+  `targetRole: "ADMIN"`, valeur absente du type `Role`
+  (`PASTEUR_PRINCIPAL`, `TREASURIER`, …). La notification n'était
+  rattachée à **aucun** destinataire : le rejet d'une transaction ne
+  notifiait personne.
+- **Correctif** : `TREASURIER`, cohérent avec les 3 autres notifications
+  du même fichier (le rôle qui valide les transactions).
+- **Gravité** : moyenne (silence sur un événement métier important).
+
+### R71 — Typecheck de la CI sans effet (`"files": []`) — CORRIGÉ (moyenne)
+- **Défaut** : le script de typecheck de la CI exécute `tsc --noEmit` à la
+  racine. Le `tsconfig.json` racine déclare `"files": []` et n'inclut que
+  des `references` : la commande ne vérifie **aucun fichier** et sort
+  toujours en succès. C'est pour cela que 98 erreurs de type réelles
+  (dont 5 bugs d'exécution) ont pu s'accumuler sans que la CI réagisse.
+- **Mesure** : `npx tsc --noEmit` → exit 0 avec 98 erreurs présentes dans
+  `tsconfig.app.json` ; après correction, `tsc -p tsconfig.app.json`
+  → 0 erreur.
+- **Correctif appliqué** : le job CI exécute désormais `npx tsc -b --noEmit`.
+  `tsc -b` construit les deux projets référencés (`tsconfig.app.json` +
+  `tsconfig.node.json`) et échoue réellement sur une erreur. Le second
+  projet n'était jamais vérifié non plus : il a révélé 1 erreur dans
+  `vite.config.ts` (`worker.format` et `build.sourcemap` élargis en
+  `string` par inférence), corrigée par des littéraux `as const`.
+- **Preuve** : avant → `tsc --noEmit` exit 0 malgré 98 erreurs ;
+  après → `tsc -b --noEmit` exit 0 avec **0 erreur**, `vite build` exit 0.
+- **Gravité** : moyenne (défaut de détection, pas défaut produit).

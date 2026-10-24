@@ -438,17 +438,7 @@ export function isPowerSyncReadyNow(): boolean {
  * illisible ne fait JAMAIS planter l'ecran (tableau vide).
  */
 export function parseBudgetItems(raw: unknown): any[] {
-  if (raw === null || raw === undefined) return [];
-  let value: unknown = raw;
-  // Deux niveaux suffisent : "[]" (double encodage) et [{"..."}] (correct).
-  for (let i = 0; i < 2 && typeof value === "string"; i++) {
-    try {
-      value = JSON.parse(value);
-    } catch {
-      return [];
-    }
-  }
-  return Array.isArray(value) ? value : [];
+  return parseJsonbValue<any[]>(raw, []);
 }
 
 // ── Etat "initialisation" des lectures ─────────────────────────────────────

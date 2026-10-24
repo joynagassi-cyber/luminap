@@ -190,3 +190,54 @@
 - **Alternative écartée** : fusion manuelle bloc par bloc — inutile ici,
   et source d'erreur, puisque le contenu de `main` est un sous-ensemble
   strict.
+
+---
+
+## Session 5 (2026-10-24) — rattrapage jsonb et activation du typecheck CI
+
+### D-S5-1 — Rattraper la donnée jsonb en base, plutôt que seulement tolérer
+- **Contexte** : R43 avait choisi de ne pas modifier la donnée (parseur
+  tolérant uniquement), par prudence. Le contrôle exhaustif montre 218
+  valeurs corrompues sur 6 colonnes, dont `form_definitions.fields` à
+  **100 %** : le parcours formulaires était inutilisable.
+- **Décision** : exécuter une migration de rattrapage idempotente et
+  réversible, après sauvegarde exacte des valeurs remplacées.
+- **Alternative écartée** : rester en tolérance seule. Écartée car toute
+  lecture SQL ou toute nouvelle requête naïve (rapport, agrégat, export)
+  continuerait de voir un jsonb de type *string* — le défaut resterait
+  entier pour l'exploitation, et non seulement pour l'affichage.
+- **Garde-fou** : sauvegarde table-par-table avant écriture, dry-run sur
+  copies temporaires, rollback rejoué sur copies avant application.
+
+### D-S5-2 — Sauvegarde dans une table, pour un rollback exact
+- **Contexte** : le rollback naïf `to_jsonb(col::text)` corromprait les
+  147 `budget_items` déjà sains en les transformant en chaînes.
+- **Décision** : la migration enregistre les valeurs remplacées dans
+  `_jsonb_backfill_20261024` ; le rollback restaure depuis cette table et
+  ne touche que les lignes réellement modifiées.
+- **Alternative écartée** : rollback par ré-encodage global. Écartée : elle
+  introduirait 147 corruptions pour en annuler 158.
+
+### D-S5-3 — Ramener `"null"` (chaîne) à `jsonb null`, non réversible à l'identique
+- **Contexte** : 5 `audit_entries.before_state` valent la chaîne `"null"`.
+  La forme correcte est JSON null.
+- **Décision** : convertir. L'opération est **non réversible à
+  l'identique** (chaîne `"null"` et JSON null sont indiscernables après
+  coup ; le rollback rend SQL NULL). Consigné ici comme asymétrie assumée.
+- **Raison** : aucune information métier n'est perdue (les deux
+  expriment l'absence d'état antérieur), et garder une chaîne `"null"`
+  laisserait une valeur de type incohérent dans une colonne jsonb.
+
+### D-S5-4 — Activer `tsc -b` en CI malgré la règle de gel
+- **Contexte** : règle de gel à T0+9 h (correctifs ciblés et tests
+  seulement, pas de changement structurel).
+- **Décision** : appliquer ce correctif, considéré comme ciblé et non
+  structurel : une ligne de commande dans un job existant, plus deux
+  littéraux `as const` dans `vite.config.ts`.
+- **Raison** : sans cette activation, les 98 erreurs de type (dont 5 bugs
+  d'exécution réels) peuvent se ré-accumuler pendant les 4 mois, et
+  personne ne le verra. Le risque d'activation est mesuré comme nul :
+  `tsc -b --noEmit` sort à 0 erreur et `vite build` à 0, vérifiés après
+  le changement. C'est le correctif qui protège le plus durablement.
+- **Alternative écartée** : laisser en proposition pour le propriétaire.
+  Écartée car l'effet protecteur est immédiat et le risque vérifié nul.
