@@ -1165,3 +1165,34 @@ stream + redéploiement. Conclusion consignée, décision D-S6-1 confirmée.
 - **Résidu assumé** : `cypress/e2e/zz-debug.cy.ts` (spec de débogage, vert) est
   laissé en place pour ne pas modifier la base de référence de 28 specs
   pendant le gel ; à supprimer par le propriétaire.
+
+### 18. R85 — test du chemin d'écriture hors ligne (livré)
+
+- **Contexte** : la PR #6 était en conflit avec `main` (sessions 3-5 fusionnées).
+  Fusion de `origin/main` dans la branche avec `-Xignore-all-space` : les diffs
+  massifs des deux côtés étaient du **bruit d'espaces** (GroupDetail.tsx :
+  3 ajouts / 15 suppressions réelles, pas 1900 lignes). 6 conflits, tous
+  documentaires, tous en `add/add` avec base vide : vérifié que **0 ligne de
+  `main` n'était absente** de la version de branche → résolution `--ours`.
+  Après fusion : `tsc -b` 0 erreur, **1100/1100** unitaires. PR redevenue
+  MERGEABLE.
+- **Erreur corrigée dans le rapport** : il était écrit que
+  `cloud-sync.cy.ts` « prouvait » la synchronisation offline→online. **Faux** :
+  cette spec insère elle-même les entités via `cy.request` (contexte Node)
+  puis vérifie leur présence — assertion tautologique, flush stubbe
+  (`__psFlushResult = { flushed: true, passes: 0, opsTotal: 0 }`).
+- **Nouveau test** `cypress/e2e/offline-write-sync.cy.ts` : **1/1, 3 passes
+  consécutives**, 12-13 s. Prouve que l'écriture faite par l'interface
+  (1) atterrit dans SQLite (`org_id` correct, 12345 → 1234500 centimes),
+  (2) entre dans `ps_crud` en op `PUT` — **le chemin d'écriture hors ligne est
+  réellement capturé**, ce qui n'était prouvé nulle part —, (3) contrôle
+  négatif : pas encore sur le serveur.
+- **Limite mesurée, non supposée** : en Chromium headless le worker WASM
+  PowerSync ne se connecte jamais (`connected:false` après 120 s, sans erreur).
+  `__psFlushCrudUpload` retourne `passes: 0, opsTotal: 0` alors que `ps_crud`
+  contient l'op → le **vidage** de la file n'est pas testable en CI. Procédure
+  de vérification manuelle ajoutée dans RUNBOOK.md.
+- **Faux positifs de diagnostic écartés en cours de route** : (a) le montant
+  `12345` → `1234500` n'est pas un bug, le stockage est en **centimes** ;
+  (b) la page de détail vide n'a pas pu être tranchée (capture DOM trop
+  précoce) — piste notée, non conclue.

@@ -256,3 +256,45 @@ DROP TABLE public._jsonb_backfill_20261024;
 C'est sans risque une fois le rattrapage validé, et cela libère l'alerte
 `rls_enabled_no_policy` que l'Advisor Supabase signale pour cette table.
 
+
+---
+
+## Vérifier la synchronisation hors ligne dans un vrai navigateur
+
+Le vidage de la file d'upload PowerSync **ne peut pas être testé en CI**
+(worker WASM gelé en headless). À vérifier à la main après toute modification
+touchant `src/lib/powersync/` ou `src/lib/dataLayer.ts` :
+
+1. Ouvrir l'application dans un navigateur **normal** (pas headless) et se
+   connecter.
+2. Attendre l'indicateur de synchronisation (il doit passer à « en ligne »).
+   Si besoin, inspecter en console : `__psDb.currentStatus` doit montrer
+   `connected: true` et `hasSynced: true`.
+3. Créer une transaction : `/transaction/new`, montant `12345`, description
+   `verif-sync-<horodatage>`.
+4. Attendre ~40 s (cycle d'upload du worker).
+5. Contrôler la file locale — elle doit être **vide** :
+   ```js
+   await __psDb.getAll('SELECT * FROM ps_crud')   // → []
+   ```
+6. Contrôler le serveur (SQL) : la ligne doit exister.
+   ```sql
+   select id, amount, org_id, description
+   from transactions
+   where description like 'verif-sync-%'
+   order by created_at desc limit 5;
+   ```
+   Le montant attendu est **en centimes** (12345 saisi → `1234500`).
+7. En cas d'échec : lire `__psDb.currentStatus.uploadError` et
+   `downloadError`. Une op qui reste dans `ps_crud` signale un rejet côté
+   serveur (RLS, contrainte, ou `org_id` invalide — vérifier que
+   `lumina-active-org` correspond bien à l'organisation de l'utilisateur).
+
+Le test automatisé `cypress/e2e/offline-write-sync.cy.ts` couvre les étapes 3
+et 5 **partiellement** (écriture locale + présence dans `ps_crud`), mais pas
+le vidage.
+
+```bash
+npx cypress run --e2e --browser chromium \
+  --spec cypress/e2e/offline-write-sync.cy.ts
+```
