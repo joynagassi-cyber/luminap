@@ -1283,6 +1283,11 @@ colonne utilisent désormais le nom affiché. **Repli** : si PowerSync n'est
 pas disponible (ou l'utilisateur inconnu de `profiles`), l'`id` est affiché
 comme avant — aucune régression, aucune erreur.
 
+**Correction étendue** : la colonne « Rejeté par » (`rejected_by`) souffrait
+du même défaut (aucune donnée actuelle — 1 ligne, `rejected_by = null` — mais
+l'affichage et le tri étaient identiques). Elle résout désormais le nom via
+la même table, et son tri porte sur le nom affiché.
+
 **Preuve** : nouveau test
 `src/components/__tests__/FormSubmissions-table.test.tsx` — « affiche le NOM
 du soumetteur (résolu depuis profiles), pas son id brut » (5/5 verts dans

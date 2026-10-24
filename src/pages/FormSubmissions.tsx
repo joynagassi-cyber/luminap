@@ -124,7 +124,7 @@ function sortValue(
     case "status":
       return sub.status ?? "";
     case "rejectedBy":
-      return sub.rejectedBy ?? "";
+      return sub.rejectedBy ? nameOf(sub.rejectedBy) : "";
     case "rejectionReason":
       return sub.rejectionReason ?? "";
     default: {
@@ -617,7 +617,9 @@ export default function FormSubmissions() {
                                 className="px-3 py-2 text-text-tertiary whitespace-nowrap text-left"
                                 style={{ borderBottom: "1px solid var(--border)" }}
                               >
-                                {sub.rejectedBy ?? "—"}
+                                {sub.rejectedBy
+                                  ? submitterName(sub.rejectedBy)
+                                  : "—"}
                               </td>
                               <td
                                 className="px-3 py-2 text-text-tertiary break-words text-left"

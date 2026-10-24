@@ -41,6 +41,7 @@ depuis.** Les chiffres ci-dessous remplacent ceux du corps du rapport.
 | R70 | `targetRole: "ADMIN"` — valeur hors du type `Role`, masquée par `as any` | Erreur de type (aucun impact fonctionnel : `targetRole` ne route rien, cf. **rectificatif R74**) | `TREASURIER` ; `tsc -b` 0 erreur |
 | R69 | `autoComplete` ignoré par Ionic 9 (→ `autocomplete`) | Autocomplétion navigateur absente | `tsc -b` 0 erreur |
 | R71 | `tsc --noEmit` à la racine ne vérifiait **aucun fichier** (`"files": []`) | 98 erreurs réelles invisibles, dont les 5 ci-dessus | `tsc -b --noEmit` en CI : 0 erreur |
+| **R75** | `form_submissions.submitted_by` référence `profiles.id` mais était affiché brut | La colonne « Soumetteur » montrait un **UUID** au lieu d'un nom | Détecté par `forms-v2.cy.ts` T5 (« attendu E2E Org, reçu 87afea21-… ») ; corrigé (`FormSubmissions.tsx`) ; test unitaire « affiche le NOM du soumetteur » |
 
 ### Pourquoi c'était invisible
 
