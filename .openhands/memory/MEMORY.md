@@ -6,8 +6,11 @@ Docs de session : `docs/agent-session/` (FEATURES, DOMAINE, JOURNAL,
 DECISIONS, RISQUES, PROPOSITIONS, RUNBOOK, RAPPORT_FINAL).
 
 ## Commandes vérifiées
-- Unitaires : `npx vitest run` → 1065/1065 (63 fichiers).
-- Types : `npx tsc --noEmit` → 0 erreur.
+- Unitaires : `npx vitest run` → 1104/1104 (67 fichiers).
+- **Types : `npx tsc --noEmit` NE VÉRIFIE RIEN** (`tsconfig.json` racine a
+  `"files": []`). Le contrôle réel (celui de la CI) est **`npx tsc -b`**.
+  Erreur de type réelle (variable non définie) passée inaperçue avec
+  `--noEmit`, détectée par `tsc -b`.
 - E2E : serveur Vite **et** `Xvfb :99` requis ; lancer Cypress **détaché**
   (`setsid nohup … &`) sinon SIGSEGV `exit 139` avec log vide.
 - E2E : binaire Cypress dans `/workspace/.cypress-cache` → toujours passer
@@ -103,3 +106,39 @@ DECISIONS, RISQUES, PROPOSITIONS, RUNBOOK, RAPPORT_FINAL).
 - **`members`** est une entité métier (adhérents) avec des ids **texte**
   distincts des UUID de `profiles` : elle ne permet PAS de résoudre le nom
   d'un profil (R80).
+
+
+## Défauts produit majeurs (2026-10-24) — R87 corrigé, R89 diagnostiqué
+- **R87 (corrigé, 1 ligne)** : `/finance` affichait TOUJOURS « Aucune
+  transaction ». Cause : `ResourceService.toTableName()`
+  (`src/capabilities/resource/index.ts`) n'avait pas `Transaction` dans son
+  `tableMap` → repli `toLowerCase()` = `transaction` (singulier) ≠ table
+  PowerSync `transactions`. Erreur SQL **avalée** par le `.catch()` de
+  `Finance.tsx`. **Le mock de `resource.test.ts` renvoyait `[]` pour une table
+  inconnue**, masquant le défaut : tester le **SQL émis**, pas seulement le
+  résultat.
+- **R89 (le plus grave, partiellement corrigé)** : la sync est rompue **dans
+  les deux sens**. Détecté en croisant code ↔ base : serveur = 964 events,
+  108 profils, **0 transaction**.
+  - 89.a (non corrigé) : `23503` sur `transactions_category_id_fkey`. Le pack
+    client (`src/packs/church/index.ts:53`) sème `cat-dime`/`cat-offrande`…, le
+    serveur n'a que `cat-1…cat-9` → **chaque transaction est jetée**.
+  - 89.b (non corrigé) : `PSYNC_S2305` « Too many parameter query results
+    (limit of 1000) » — le filtre `org_id IN (SELECT org_id FROM profiles …)`
+    des Sync Streams est plafonné à 1000 → **rien ne descend**.
+  - 89.c (**corrigé**) : `logOpOutcome(…, true, …)` était appelé même quand
+    toutes les ops étaient jetées (`FATAL-SKIP` = `continue`, sans `throw`), et
+    `fatalSkipped` restait à 0 → **perte de données invisible**. Correctif :
+    compteurs `pushedOps`/`skippedOps`, `__psFlushResult.{skipped,ok}`.
+- **Outils de diagnostic décisifs** : `window.__psFlushCrudUpload()` (flush
+  indépendant du worker WASM gelé en headless), `window.__psDb`,
+  `window.__psSupabaseClient`, `window.__psFlushResult`. Vérifier l'arrivée
+  réelle par `select count(*)` côté serveur (MCP Supabase `execute_sql`).
+- **Piège Cypress** : `cy.loginOrgAccount()` navigue → toute capture `console`
+  posée avant un `cy.visit` est perdue. Poser la capture APRÈS la dernière
+  navigation.
+- **Classe de défaut R88** : 23 `.catch(() => {})` dans `src/pages/` →
+  « état vide silencieux » (l'utilisateur croit qu'il n'y a rien). Inventaire
+  dans `docs/agent-session/RISQUES.md`.
+- **Non-régression** : ne jamais conclure à une régression E2E sans comparer
+  à `origin/main` **intact** dans un `git worktree add --detach` séparé.
