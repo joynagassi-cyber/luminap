@@ -1783,3 +1783,23 @@ afficher un état d'erreur explicite dans l'UI.
   d'erreur, et aucune trace n'est journalisée. C'est ce qui a rendu R87
   invisible. Correctif recommandé : conserver l'erreur dans un état et afficher
   un message explicite + journaliser.
+
+**Preuve renforcée (2026-10-24)** — comparaison avec `main` **intact** :
+
+- Sur ma branche (correctif R87), suite complète = **29 specs, 16 échecs**.
+- Sur `origin/main` (`c11aad7`) intact, dans un worktree isolé
+  (`git worktree add --detach /tmp/lm2 origin/main`, `node_modules` lié,
+  `.env.local` copié, serveur Vite sur `:8082`), les **mêmes specs clés**
+  échouent avec **le même message** :
+  `Timed out … after login: /auth (attendu /onboarding ou /dashboard — le POST
+  login nav n'a pas complété en 90 s : vérifier le 503 Render / la rate limit
+  GoTrue / le timeout du form)`.
+- Les échecs sont donc **environnementaux** (Supabase GoTrue partagé, limité en
+  débit, et/ou 503 Render), **pas** causés par le correctif R87.
+- Indice corroborant : aucun échec ne mentionne `/finance` ni le nom de table ;
+  les assertions qui échouent portent sur l'authentification (« 0 page
+  visible ») et sur la synchronisation PowerSync (« 0 à atteindre 50 »), deux
+  dépendances réseau.
+- Conséquence pour le propriétaire : rejouer la suite avec des identifiants de
+  test **dédiés** (ou un Supabase local) pour obtenir un verdict vert. Voir
+  RUNBOOK.md.

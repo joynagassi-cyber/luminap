@@ -1244,3 +1244,26 @@ stream + redéploiement. Conclusion consignée, décision D-S6-1 confirmée.
   concernés) et **R88** (erreurs avalées dans `Finance.tsx`). Non corrigés :
   correctif = 17 hooks à reprendre + vérification complète, incompatible avec la
   règle de gel.
+
+### 21. Suite E2E complète + preuve de non-régression du correctif R87
+
+- **Suite complète sur ma branche** : **29 specs**, 16 échecs répartis sur 10
+  specs (`groups-events` 3, `sessions` 3, `members` 2, `performance-batch` 2,
+  `comprehensive-flow`, `cross-tenant`, `events-tasks`, `forms-v2`,
+  `org-reports`, `persistence` 1 chacun).
+- **Nature des échecs** : authentification (« 0 page visible », en-tête absent,
+  « after login: /auth ») et synchronisation PowerSync (« 0 à atteindre 50 »,
+  « 0 à atteindre 20 »). **Aucun** ne concerne `/finance`, la table
+  `transactions` ou le nom de table.
+- **Preuve de non-régression (R86)** : sur `origin/main` **intact**
+  (`c11aad7`, worktree isolé `/tmp/lm2`, Vite `:8082`, `.env.local` copié), les
+  5 specs clés (`groups-events`, `sessions`, `performance-batch`, `persistence`,
+  `members`) échouent **toutes** avec le **même** message
+  « after login: /auth … 503 Render / rate limit GoTrue ». Les 16 échecs sont
+  donc environnementaux, **pas** imputables au correctif R87.
+- **Mon test R87** (`offline-write-sync.cy.ts`) : **1/1, 15 s**, y compris dans
+  la suite complète — la transaction créée par l'interface apparaît bien dans
+  `/finance`.
+- **Suite unitaire** : **1102/1102** (1100 + 2 tests R87).
+- **Classe de défaut R88** inventoriée : 23 `.catch()` qui avalent l'erreur dans
+  `src/pages/` (état vide silencieux, aucune trace).
