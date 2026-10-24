@@ -1409,3 +1409,29 @@ Heure de reprise : 2026-10-24T08:0x Z. Branches : `agent/session-8-security`
   échec **pré-existant** (R90, non régression).
 - **Documentation** : addendum rapport final (S5.1–S5.5), DECISIONS D-S9-1 à
   D-S9-5, RISQUES R96/R97, FEATURES ligne invitations validée.
+
+### Suite : découverte R98 (suite Cypress jamais verte)
+
+- **Constat** : sur `main`, **20 runs Cypress consécutifs en échec**
+  (2026-10-19 → 2026-10-24). Aucun vert. Run représentatif `40078474144`
+  (sha `2fae0d2`) : **10 specs / 23 en échec** (13 tests).
+- **Cause racine probable** : `cypress.yml` exécute **2 conteneurs parallèles
+  sur la même base Supabase** (`parallel: true`) → interférence sur les lignes
+  nommées et les comptages.
+- **Ce n'est pas une régression R91/R96** : `org-reports.cy.ts` échouait déjà
+  sur `main` avant R96 (échec ligne 150, `Org E2E 327858`, run `40078474144`).
+  Mon run de vérification R96 (`40078845540`) échoue au **même** point
+  (ligne 189 après mes +39 lignes) — preuve de neutralité.
+- **Expérience** : branche `agent/session-13-ci-cypress-test` = 1 conteneur,
+  `parallel: false`. Run `40080015253` en cours (>28 min). Résultat à consigner
+  ici dès la fin ; **ne pas fusionner sans la mesure** (P38).
+- **Actions** : R98 documenté (RISQUES.md), P38/P39/P40 (PROPOSITIONS.md),
+  section CI du RUNBOOK, addendum rapport S5.6/S5.7.
+- **Correctifs livrés** : R96 (nettoyage robuste du spec org-reports, y compris
+  en cas d'échec précoce), hook `after()` non fatal.
+- **Non-régression** : suite unitaire **1114/1114** ; `tsc -b` exit 0 ;
+  `eslint` 0 erreur.
+- **Honnêteté** : Cypress non exécutable en local (binaire non installable) →
+  aucune validation E2E n'est affirmée sans run CI. PowerSync non déployé
+  (PS_ADMIN_TOKEN absent). Aucune sauvegarde DB produite → aucune suppression
+  destructive (archivage seul).
