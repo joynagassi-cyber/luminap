@@ -1513,3 +1513,39 @@ fonctionnel inchangé).
 `execute()` et exige le `warn`. **Vérifié par retrait du correctif** : sans
 lui, le test échoue (« expected "warn" to be called at least once ») ;
 avec lui, 21/21 verts. `tsc -b` 0 erreur.
+
+
+### R83 — `performance-batch` : les tests offline→online ne réunissent aucun des prérequis du motif éprouvé (moyenne)
+
+**Constat mesuré** : `performance-batch.cy.ts` tests 1 et 2 → `expected 0 to
+be at least 20` / `at least 50`. Vérification en base :
+`select count(*) from transactions where description like 'Tx batch%'` → **0**,
+`like 'ChargeTx%'` → **0**. Le test calendrier (création d'événements **en
+ligne**, sans intercept) passe : **1/1**. Les écritures atteignent donc la base
+quand le réseau n'est pas intercepté ; ce n'est **pas** une perte de données
+silencieuse en production, mais un défaut du scénario de test.
+
+**Cause racine** : le fichier n'a **aucun** des trois éléments que réunit
+`cloud-sync.cy.ts` (qui passe, 1/1) :
+1. **`req.continue()` en mode online** — le handler d'intercept de
+   `performance-batch` ne fait que `req.destroy()` ; il ne laisse jamais
+   passer la requête. Cypress « mange » donc la requête même après
+   `offline = false`, et le client Supabase reçoit une réponse CORS invalide.
+   `cloud-sync` contient 6 occurrences de `req.continue()`.
+2. **Intercept `OPTIONS`** — le préflight CORS n'est pas laissé passer.
+   `cloud-sync` en contient 2.
+3. **Contexte d'organisation forcé** — `lumina-user` / `lumina-active-org`
+   ne sont pas posés avant la coupure, donc `getOrganizationId()` retombe sur
+   `__no_org__` et la file d'upload PowerSync échoue en silence.
+   `cloud-sync` pose explicitement ces clés (et le rôle `PASTEUR_PRINCIPAL`).
+
+**Impact** : faux négatif de test. La synchronisation offline→online est
+**prouvée fonctionnelle** par `cloud-sync.cy.ts` (1/1) ; la borne haute (20 et
+50 transactions) n'est **pas** vérifiée.
+
+**Correctif identifié (non appliqué — gel)** : aligner `performance-batch` sur
+le motif de `cloud-sync` (les trois points ci-dessus). Coût estimé : 45 min,
+dont ~25 min d'exécution (le sync PowerSync prend ~35 s par cycle).
+
+**Travail restant** : réécrire les tests 1-2 avec le motif `cloud-sync`, puis
+relancer 3 fois (stabilité).

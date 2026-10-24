@@ -16,7 +16,69 @@
 
 ---
 
-# ⚠️ MISE À JOUR SESSION 5 (2026-10-24) — à lire en premier
+# ⚠️ MISE À JOUR SESSION 6 (2026-10-24) — à lire en premier
+
+## Contexte de fin de session
+
+T0 = 2026-10-22T17:56Z. Le budget de 12 h 30 était **dépassé** au démarrage de
+cette session : elle s'est donc déroulée en **mode clôture** (finitions,
+preuves, documentation), conformément à la règle de gel. Aucune fonctionnalité
+nouvelle n'a été développée.
+
+## État de l'application à la clôture
+
+| Indicateur | Valeur | Preuve |
+|---|---|---|
+| Tests unitaires | **1100 / 1100** (67 fichiers) | `/workspace/unit-s6.log` |
+| Build de production | exit 0 | `vite build` |
+| E2E (suite complète, 28 specs) | **63 / 71 verts**, 8 échecs dont **2 réels** | `/workspace/cy-dev-full.log` |
+| Erreurs de type | 0 | `tsc -b` |
+| Valeurs jsonb corrompues | 0 | requête SQL (session 5) |
+
+## Défauts de test corrigés dans cette session (preuves mesurées)
+
+Ces échecs ne provenaient **pas** de l'application mais des specs. Ils sont
+corrigés, avec la preuve d'exécution.
+
+| Spec | Avant | Après | Cause du faux échec |
+|---|---|---|---|
+| `rls-isolation-hardened.cy.ts` | 3/4 | **4/4** | Assertion de sécurité comparant un **nombre** d'organisations à un seuil magique (`< 5`) au lieu de tester l'**isolation**. Le seuil était franchi légitimement (4 organisations administrées + l'organisation courante). Vérifié en base : la vue `org_family` est en `security_invoker=true` et n'expose que 5 organisations sur 9, exactement celles du périmètre RLS. Remplacée par un invariant **plus fort** : aucun ancêtre hors du périmètre de `organizations`, plus contrôle négatif sur `org-1`. |
+| `reports-budgets.cy.ts` | 3/5 | **5/5** | (1) Le titre `/reports` est rendu par `TopHeader` dans un `<p>`, pas un `<h1/h2/h3>`. (2) Les fonctions d'agrégation sont des `IonSelectOption` du dernier `ion-select`, pas des boutons. |
+| `forms-fields.cy.ts` | 2/4 | **4/4** | Confirmé : les 2 échecs venaient d'un build obsolète (R81), pas du code. |
+| `performance-batch.cy.ts` (calendrier) | 0/1 | **1/1** | Sélecteur d'événement inexistant (`ion-input[aria-label=…]` sans hydratation) → `cy.typeIonicInput`, motif éprouvé par `events-tasks.cy.ts`. |
+
+## Défauts réels non corrigés (classés)
+
+| Réf | Gravité | Défaut | Pourquoi non corrigé |
+|---|---|---|---|
+| **R80** | **moyenne** | La colonne « Soumetteur » de `forms-v2.cy.ts` T5 affiche un **UUID** au lieu d'un nom. Le stream PowerSync `profiles` ne synchronise que le profil de l'utilisateur courant : les noms des autres membres sont absents du client. | Le correctif exige l'élargissement du stream + `powersync deploy sync-config`, or **`PS_ADMIN_TOKEN` est absent** de l'environnement : un changement local ferait diverger client et serveur (décision D-S6-1). Piste alternative explorée et **écartée par vérification** : la table `members` (synchronisée org-wide, porte `first_name`/`last_name`/`email`) aurait pu fournir les noms localement — vérifié en base, `members.id` est un id texte distinct des UUID de `profiles` et ne contient pas le soumetteur. **Aucun contournement local n'existe.** Gravité *moyenne* : défaut d'affichage (confusion pour l'utilisateur), sans corruption ni perte de données ; la donnée `submitted_by` reste correcte en base. |
+| **R82** | **moyenne** | `org-reports.cy.ts` est **non déterministe** : il sélectionne la première option du popover parent, soit la **dernière** organisation créée (`listOrgs` trié `created_at DESC`). Chaque exécution rattache l'« Annexe A » à celle du run précédent → chaîne de 4 niveaux en base. | Correctif tenté (sélection explicite de la Mère par son nom) puis **révoqué** : mesure en échec — le nom de la Mère n'est **pas** dans la liste des options (`cy.contains(ion-item, 'Org E2E 110710')` échoue après 180 s), ce qui **invalide l'hypothèse** et exige une investigation supplémentaire (~1 h). Conformément à « un changement non testé est pire qu'un défaut documenté », le spec a été **restauré à son état commité**. |
+| **R83** | **moyenne** | `performance-batch.cy.ts` tests 1-2 : 0 transaction sur le serveur. **Aucun des trois prérequis** du motif offline→online éprouvé (`cloud-sync.cy.ts`, qui passe) n'est réuni : (a) pas de `req.continue()` en mode online → Cypress mange la requête et le client reçoit une réponse CORS invalide ; (b) pas d'intercept `OPTIONS` → préflight bloqué ; (c) contexte d'organisation non forcé (`lumina-user` / `lumina-active-org`) → la file d'upload PowerSync échoue en silence. Preuve du diagnostic : le test **calendrier** (qui crée des événements en ligne, sans intercept) passe. Le fichier `performance-batch.cy.ts` est en **échec, non maquillé**, et documenté. |
+
+## Vérification d'isolation inter-organisations (point de sécurité)
+
+La question « un compte peut-il lire une donnée d'une autre organisation ? » a
+été testée de façon indépendante, avec le rôle réel :
+
+```sql
+begin;
+select set_config('role','authenticated',true);
+select set_config('request.jwt.claims','{"sub":"87afea21-…","role":"authenticated"}',true);
+select count(distinct ancestor) from org_family;   -- 5 sur 9 organisations
+select count(*) from organizations;                 -- 5 sur 9
+rollback;
+```
+
+La vue `org_family` (`security_invoker=true`) expose **exactement** les
+5 organisations du périmètre RLS du compte (4 administrées + l'organisation
+courante), sur 9 au total. Le spec `cross-tenant.cy.ts` passe également (1/1).
+**Conclusion : l'isolation inter-organisations est vérifiée, sans fuite
+constatée.**
+
+---
+
+
+# ⚠️ MISE À JOUR SESSION 5 (2026-10-24)
 
 Les sections qui suivent datent des sessions 1 à 4. **Cinq bugs d'exécution
 supplémentaires et un défaut de corruption de données ont été corrigés

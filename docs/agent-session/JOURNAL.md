@@ -1142,3 +1142,26 @@ est un **id texte** distinct des UUID de `profiles` (0 ligne pour
 une entité métier distincte (adhérents), pas une projection des profils :
 **aucun contournement local n'existe**. R80 exige bien l'élargissement du
 stream + redéploiement. Conclusion consignée, décision D-S6-1 confirmée.
+
+### 17. Clôture de session — heure et état final
+
+- **Heure de clôture** : 2026-10-24T03:15Z. Budget T0+12h30 (2026-10-24T06:26Z)
+  largement dépassé en temps mural du fait des exécutions Cypress longues
+  (`performance-batch` seul : 13 min ; suite complète : ~30 min). Session
+  conduite en **mode clôture** : aucun développement de fonctionnalité, seuls
+  des correctifs de test ciblés et de la documentation.
+- **Corrections de test validées** (preuves d'exécution) :
+  `rls-isolation-hardened` 4/4, `reports-budgets` 5/5, `forms-fields` 4/4,
+  `performance-batch` calendrier 1/1.
+- **Correctif révoqué** : `org-reports` (R82) — hypothèse invalidée par la
+  mesure, spec restauré à son état commité.
+- **Défauts réels documentés non corrigés** : R80 (moyenne), R82 (moyenne),
+  R83 (moyenne). Aucun défaut de gravité haute ou critique laissé ouvert.
+- **Isolation inter-organisations** : vérifiée en base avec le rôle réel
+  (5 organisations sur 9 exposées, toutes dans le périmètre RLS) + spec
+  `cross-tenant` vert. Aucune fuite.
+- **Fichiers de suivi** : `docs/agent-session/` (FEATURES, DOMAINE, JOURNAL,
+  DECISIONS, RISQUES, PROPOSITIONS, RUNBOOK, RAPPORT_FINAL).
+- **Résidu assumé** : `cypress/e2e/zz-debug.cy.ts` (spec de débogage, vert) est
+  laissé en place pour ne pas modifier la base de référence de 28 specs
+  pendant le gel ; à supprimer par le propriétaire.
