@@ -1116,23 +1116,28 @@ représentatif (`40078474144`, sha `2fae0d2`) échoue dans **10 specs sur 23**
 (13 tests). C'est le défaut le plus lourd pour la fiabilité à long terme : une
 CI rouge en permanence **ne détecte aucune régression**.
 
-**Cause racine probable.** `.github/workflows/cypress.yml` exécute la suite en
-**2 conteneurs parallèles partageant la même base Supabase**
-(`matrix.containers: [1, 2]`, `parallel: true`). Les specs s'appuient sur des
-lignes **nommées** et des **comptages** ; la concurrence sur une base unique
-produit exactement la signature observée (`expected 0 to be at least 20`,
-« Jean … introuvable », « Org E2E … introuvable »).
+**Cause réelle (mesurée, après réfutation d'une première hypothèse).** Une
+première hypothèse — la parallélisation CI (2 conteneurs sur une même base) —
+a été **testée puis réfutée** : une branche candidate en **1 seul conteneur**
+(`agent/session-13-ci-cypress-test`, run `40080015253`, `parallel: false`)
+échoue dans **exactement les mêmes 10 specs, aux mêmes assertions**. La cause
+est donc l'**environnement E2E** : ces specs dépendent de la synchronisation
+PowerSync et du contexte d'organisation, non opérants en CI — déjà diagnostiqué
+en R53 (réplique PowerSync vide), R83 (`performance-batch` : intercept qui ne
+laisse pas passer la requête, contexte d'org non posé → 0 ligne côté serveur),
+R72 (global dev) et R54 (job E2E de `ci.yml` non bloquant).
 
 **Ce que ce n'est PAS.** Ce n'est pas une régression des correctifs de sécurité
 R91/R91.b/R91.c : `org-reports.cy.ts` échouait déjà sur `main` **avant** R96
 (échec ligne 150, `Org E2E 327858`, run `40078474144`). Mon correctif R96 est
 neutre (il ajoute un nettoyage non fatal).
 
-**Statut.** Non corrigé (gel + décision structurelle). Une branche candidate
-`agent/session-13-ci-cypress-test` (1 conteneur, `parallel: false`) **mesure**
-l'effet en CI ; la preuve (nombre d'échecs avant/après) est consignée dans
-JOURNAL.md et RUNBOOK.md. À fusionner **uniquement** si elle réduit
-significativement les échecs.
+**Statut.** Non corrigé (gel ; le correctif exige un environnement E2E capable
+d'exercer PowerSync + un compte de test — cf. P41, priorité critique). La
+branche candidate `agent/session-13-ci-cypress-test` **ne doit pas être
+fusionnée** : elle ne corrige rien (preuve négative conservée comme trace dans
+JOURNAL.md et RUNBOOK.md). L'enjeu de fond : le **chemin d'écriture
+hors-ligne** (SQLite → queue → Supabase) n'a **aucune** couverture de test.
 
 ## S5.7 — Ce qui n'a PAS pu être vérifié (honnêteté des preuves)
 

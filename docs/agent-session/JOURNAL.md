@@ -1422,9 +1422,12 @@ Heure de reprise : 2026-10-24T08:0x Z. Branches : `agent/session-8-security`
   sur `main` avant R96 (échec ligne 150, `Org E2E 327858`, run `40078474144`).
   Mon run de vérification R96 (`40078845540`) échoue au **même** point
   (ligne 189 après mes +39 lignes) — preuve de neutralité.
-- **Expérience** : branche `agent/session-13-ci-cypress-test` = 1 conteneur,
-  `parallel: false`. Run `40080015253` en cours (>28 min). Résultat à consigner
-  ici dès la fin ; **ne pas fusionner sans la mesure** (P38).
+- **Expérience (terminée)** : branche `agent/session-13-ci-cypress-test` =
+  1 conteneur, `parallel: false`. Run `40080015253` : **échec, exactement les
+  mêmes 10 specs et les mêmes assertions** que le run 2-conteneurs. Hypothèse
+  « parallélisation » **RÉFUTÉE**. Cause réelle = environnement E2E
+  (PowerSync/contexte d'org) : déjà diagnostiqué en R53/R83/R72/R54.
+  **Ne pas fusionner cette branche** (P38 retirée ; voir P41).
 - **Actions** : R98 documenté (RISQUES.md), P38/P39/P40 (PROPOSITIONS.md),
   section CI du RUNBOOK, addendum rapport S5.6/S5.7.
 - **Correctifs livrés** : R96 (nettoyage robuste du spec org-reports, y compris
