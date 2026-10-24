@@ -1539,9 +1539,28 @@ silencieuse en production, mais un défaut du scénario de test.
    `__no_org__` et la file d'upload PowerSync échoue en silence.
    `cloud-sync` pose explicitement ces clés (et le rôle `PASTEUR_PRINCIPAL`).
 
-**Impact** : faux négatif de test. La synchronisation offline→online est
-**prouvée fonctionnelle** par `cloud-sync.cy.ts` (1/1) ; la borne haute (20 et
-50 transactions) n'est **pas** vérifiée.
+**Impact** : faux négatif de test — la borne haute (20 et 50 transactions)
+n'est **pas** vérifiée.
+
+**RECTIFICATIF IMPORTANT (vérifié le 2026-10-24)** : la version initiale de
+cette entrée affirmait que la synchronisation offline→online était « prouvée
+fonctionnelle par `cloud-sync.cy.ts` ». **C'est faux et je le corrige.** En
+lisant la spec en entier (lignes 330-420), `cloud-sync.cy.ts` ne fait **pas**
+transiter les écritures par PowerSync : après la reconnexion, il **insère
+lui-même** les entités (`org_units`, `groups`, `accounts`, `caisses`,
+`custom_field_definitions`) par `cy.request` en contexte Node, puis vérifie
+leur présence. L'assertion est donc **tautologique** : elle prouve que le
+réseau et la RLS acceptent ces lignes, **pas** que le worker PowerSync les a
+poussées. Le spec porte même son propre constat en commentaire : « le spec
+pousse les entities DIRECTEMENT au Supabase ».
+
+**Conséquence** : le **chemin d'écriture offline→serveur (SQLite → queue
+d'upload → Supabase) n'a AUCUNE couverture de test**. C'est le point le plus
+important pour un usage quotidien hors ligne. Un vrai test doit passer par le
+worker : `db.disconnect()` → écrire en local (l'UI affiche la donnée) →
+`db.connect(connector)` → attendre la disparition de la file
+(`getNextCrudTransaction()` → `null` ou `currentStatus.uploading === false`) →
+vérifier côté serveur. Coût estimé : 1 h 30 (dont ~20 min d'exécution).
 
 **Correctif identifié (non appliqué — gel)** : aligner `performance-batch` sur
 le motif de `cloud-sync` (les trois points ci-dessus). Coût estimé : 45 min,
@@ -1571,3 +1590,48 @@ Faible : cela n'affecte pas l'application livrée.
 configuration vérifiée en CI (`tsc -b` avec un `tsconfig.cypress.json`
 référencé), après avoir corrigé les 13 erreurs. Coût estimé : 1 h.
 Voir PROPOSITIONS.md (P34).
+
+
+### R85 — Le chemin d'écriture offline→serveur n'a aucune couverture de test (moyenne)
+
+**Constat (vérifié le 2026-10-24)** : la couverture annoncée de la
+synchronisation hors ligne repose sur `cloud-sync.cy.ts` (1/1). Or cette spec
+**ne fait pas** transiter les écritures par PowerSync : après la reconnexion,
+elle **insère elle-même** les 5 entités (`org_units`, `groups`, `accounts`,
+`caisses`, `custom_field_definitions`) par `cy.request` en contexte Node
+(non intercepté), puis vérifie leur présence via REST. L'assertion est
+**tautologique** — elle valide le réseau et la RLS, pas la file d'upload
+PowerSync. La spec le reconnaît explicitement en commentaire : « SOLUTION : le
+spec pousse les entities DIRECTEMENT au Supabase ».
+
+**Preuve** : lecture de `cypress/e2e/cloud-sync.cy.ts` L330-420 ;
+`win.__psFlushResult = { flushed: true, passes: 0, opsTotal: 0, note: 'direct
+Supabase upserts via cy.request (Node context)' }` — le spec **stubbe** le
+résultat du flush.
+
+**Impact** : c'est le **défaut de couverture le plus important du projet**. Le
+cœur de la promesse produit (« hors ligne d'abord, synchronisé ensuite ») n'est
+vérifié par aucun test. Une régression de la file d'upload passerait inaperçue
+jusqu'à ce qu'un utilisateur perde des saisies.
+
+**Correctif identifié (non appliqué — budget)** : nouveau spec pilotant le
+worker plutôt que le réseau :
+1. attendre la première sync (`db.waitForFirstSync()`), forcer le contexte
+   d'organisation ;
+2. `await db.disconnect()` ;
+3. écrire via l'UI (la donnée doit apparaître dans l'interface) ;
+4. `db.connect(connector)` — le connector doit être accessible ; le handle
+   `window.__psDb` est déjà exposé (DEV), le connector ne l'est pas : exposer
+   `window.__psConnector` en DEV est nécessaire (modification produit de
+   ~3 lignes, à confirmer) ;
+5. attendre la vidange : `await db.getNextCrudTransaction()` → `null`, ou
+   `db.currentStatus.uploading === false` sans `uploadError` ;
+6. vérifier la ligne côté serveur avec le **jeton réel** ;
+7. nettoyage des lignes créées.
+
+**Coût estimé** : 1 h 30 (dont ~20 min d'exécution : le cycle d'upload
+PowerSync prend ~30-40 s). **Risque** : le flush PowerSync dans le navigateur
+est intercepté par `cy.intercept` (CORS) — c'est justement pourquoi la spec
+actuelle contourne. Le test devra donc **ne pas** intercepter du tout et
+utiliser `disconnect()`/`connect()` pour simuler la coupure (c'est tout
+l'intérêt de l'approche).
