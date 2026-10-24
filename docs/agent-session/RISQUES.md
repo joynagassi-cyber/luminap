@@ -1350,3 +1350,23 @@ révoqué / retiré) et `OrgAdmin` → « Administrateur d'organisation ».
 
 **Preuve** : `src/pages/__tests__/Trace-labels.test.tsx` (3/3) ;
 `tsc -b` 0 erreur.
+
+
+### R79 — Échec de persistance d'une notification avalé en silence — CORRIGÉ (moyenne)
+
+**Défaut** : dans `sendNotification` (`src/capabilities/notification/index.ts`),
+le `catch` autour de l'`INSERT INTO notifications` ne faisait rien d'autre
+qu'un commentaire « best-effort ». Si la base locale PowerSync est
+indisponible, la notification **n'existe pas** dans l'historique in-app et
+aucune trace n'est laissée, ni pour l'utilisateur ni pour le développeur.
+Viole le principe « aucun silence ».
+
+**Correction** : `console.warn` contextualisé (`[notification]` + cause),
+même convention que les autres points de reprise du dépôt (`auth.ts`,
+`SupabaseConnector.ts`). Le chemin OneSignal s'exécute toujours (comportement
+fonctionnel inchangé).
+
+**Preuve** : test ajouté dans `notification.test.ts` qui force l'échec de
+`execute()` et exige le `warn`. **Vérifié par retrait du correctif** : sans
+lui, le test échoue (« expected "warn" to be called at least once ») ;
+avec lui, 21/21 verts. `tsc -b` 0 erreur.

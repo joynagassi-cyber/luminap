@@ -1033,3 +1033,20 @@ toutes retombaient sur « Modifié ». Sur un changement de privilèges, la
 piste d'audit devenait trompeuse. Quatre libellés explicites ajoutés, plus
 `OrgAdmin` → « Administrateur d'organisation ». Test : `Trace-labels.test.tsx`
 (3/3).
+
+
+### 8. Défaut R79 — échec de persistance de notification avalé en silence (corrigé)
+
+`sendNotification` avalait l'échec d'INSERT dans `notifications` : si la base
+locale était indisponible, la notification disparaissait sans trace. Ajout
+d'un `console.warn` contextualisé (le chemin OneSignal reste inchangé).
+Preuve par test ajouté, **validé par retrait du correctif** (le test échoue
+sans lui). 21/21 verts.
+
+### 9. Défaut de test R80 — `org-reports.cy.ts` visait un `<p>` de bannière
+
+Le nom de l'organisation créée apparaît dans la bannière de succès
+(« … créée (opérationnelle) »), rendue AVANT l'arborescence.
+`cy.contains(orgAName)` matchait ce `<p>`, dont le `.closest('div')` ne
+contient aucun bouton d'action → échec après 480 s. Ancrage corrigé sur le
+`<span>` de la carte ; timeout global ramené à 180 s.
