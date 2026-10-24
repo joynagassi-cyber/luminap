@@ -1124,3 +1124,78 @@ amont en code, migration idempotente et réversible, 18 tests unitaires.
 - **Preuve** : avant → `tsc --noEmit` exit 0 malgré 98 erreurs ;
   après → `tsc -b --noEmit` exit 0 avec **0 erreur**, `vite build` exit 0.
 - **Gravité** : moyenne (défaut de détection, pas défaut produit).
+
+
+### R72 — Les specs Cypress dépendent d'un global exposé seulement en mode dev — OUVERT (moyenne)
+- **Défaut** : `cross-tenant.cy.ts` lit `window.__psSupabaseClient`, publié
+  par `publishDevDiagnostics()` qui commence par
+  `if (!import.meta.env.DEV) return;`. Lancées contre un **build de
+  production** (`vite preview`), les specs échouent avec
+  « `__psSupabaseClient` does not exist » et attendent 4 minutes avant
+  d'abandonner.
+- **Preuve** : `cross-tenant` → 0/1 sur `vite preview` (port 4173, 4 min
+  10 s) ; **1/1 en 24 s** sur `vite` dev (port 4174), même code, même base.
+- **Portée** : toute la suite, dès qu'elle est lancée contre un build de
+  production (ce que fait `cypress.config.ts` par défaut : `baseUrl` =
+  déploiement distant). C'est un piège pour toute personne qui relance les
+  tests : les échecs n'indiquent pas un défaut de l'app.
+- **Correctif proposé (non appliqué)** : exposer le client de diagnostic
+  aussi hors `DEV` (derrière un flag de test explicite), ou faire échouer
+  le spec immédiatement avec un message clair du type « lancez la suite sur
+  `vite` (dev) — cf. RUNBOOK ».
+- **Gravité** : moyenne (faux négatifs de test, pas défaut produit).
+
+
+### R73 — Artefact de build versionné : `graphify-out/` (59 Mo) — OUVERT (basse)
+- **Défaut** : `graphify-out/` (analyse statique générée, **1980 fichiers,
+  59 Mo**) est **suivi par git**. Il contient des chemins absolus de la
+  machine du développeur (`C:\Users\joyda\dyad-apps\lumina\…`).
+- **Impact** : dépôt alourdi à chaque clone (59 Mo inutiles), bruit dans les
+  recherches (un scan de secrets y produit des faux positifs), fuite
+  mineure d'information sur l'environnement de développement. **Aucun
+  impact fonctionnel.**
+- **Preuve** : `git ls-files graphify-out | wc -l` → 1980 ; `du -sh` → 59 Mo.
+- **Correctif proposé (non appliqué — changement structurel, gel)** :
+  `echo graphify-out/ >> .gitignore && git rm -r --cached graphify-out`.
+  Sans risque pour l'app : ces fichiers ne sont pas utilisés au build.
+- **Gravité** : basse.
+
+### Audit sécurité du dépôt et de l'hébergement (2026-10-24)
+
+Vérifications menées, avec résultat :
+
+| Contrôle | Commande / méthode | Résultat |
+|---|---|---|
+| `.env` versionné | `git ls-files \| grep .env` | **aucun** |
+| Secrets en dur (JWT, `service_role`, `sb_secret_`, `sk-`, `sbp_`) | `git grep` sur le code suivi | **aucun** (seules des mentions en commentaire et `Deno.env.get(...)`) |
+| Secrets dans l'historique | `git log --all --diff-filter=D` sur `.env*` | **aucun** fichier de secret supprimé |
+| Dependabot | `.github/dependabot.yml` | **absent** (aucune configuration ; conforme à la directive d'abandon) |
+| PR Dependabot ouvertes | API `pulls?state=open` | **0** |
+| Alertes Dependabot | API `dependabot/alerts` | **désactivées** sur le dépôt (403 explicite) |
+| Alertes secret-scanning / code-scanning | API GitHub | non accessibles avec le jeton de session (403 « Resource not accessible by integration ») — **non vérifié**, à confirmer par le propriétaire |
+| Advisors Supabase (sécurité) | `get_advisors` | 2 INFO (tables sans policy), 7 WARN (`SECURITY DEFINER` exécutables par `authenticated`), 1 WARN (protection de mots de passe compromis désactivée) |
+
+**Actions menées** : `_jsonb_backfill_20261024` verrouillée (`REVOKE` à
+`anon`/`authenticated`, RLS activée, commentaire de table) ; alerte INFO
+correspondante résorbée. Les 7 WARN `SECURITY DEFINER` sont **assumés et
+documentés** (ce sont les helpers d'isolation, dont l'accès `authenticated`
+est nécessaire aux policies RLS) ; ils sont consignés en R64-bis ci-dessus.
+La protection de mots de passe compromis relève du tableau de bord
+Supabase (action propriétaire, cf. RUNBOOK).
+
+### R64-bis — 7 fonctions `SECURITY DEFINER` exécutables par `authenticated` — ASSUMÉ (info)
+- **Constat (Advisor Supabase)** : `is_org_member`, `current_org_id`,
+  `org_descendants`, `can_manage_invitations`, `is_org_admin`,
+  `upsert_profile`, `settle_invitation_claim` sont appelables via
+  `/rest/v1/rpc/…` par un utilisateur connecté.
+- **Pourquoi c'est assumé** : ce sont les **helpers d'isolation** utilisés
+  à l'intérieur des policies RLS. Les policies s'exécutent avec les droits
+  de l'appelant : elles doivent donc pouvoir appeler ces fonctions. Les
+  passer en `SECURITY INVOKER` recréerait une récursion de policies
+  (l'accident d'origine du durcissement) et **rouvrirait la fuite**.
+- **Ce qui les borne** : chaque fonction valide ses arguments et ne révèle
+  qu'un booléen ou l'`org_id` de l'appelant ; `EXECUTE` a été retiré à
+  `anon`/`PUBLIC` (vérifié en base : ACL = `authenticated` +
+  `service_role` seulement).
+- **Action** : aucune. Consigné pour qu'un futur lecteur des Advisors ne
+  « corrige » pas ces fonctions et ne rouvre pas la faille.

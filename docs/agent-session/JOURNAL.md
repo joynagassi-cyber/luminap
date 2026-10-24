@@ -821,3 +821,88 @@ WHERE id = '87afea21-bad7-453b-9ae5-4ad1da2ca13f';`
 `settle_invitation_claim`) et aucun trigger ne les synchronise. Impact
 limite aujourd'hui (les chemins d'invitation mettent a jour les deux), mais
 c'est une fragilite a traiter.
+
+---
+
+## Session 5 — 2026-10-24 (clôture des défauts critiques)
+
+**Heure** : début 00:35 UTC, clôture du lot à 00:52 UTC (T0 + ~30 h).
+**Phase** : clôture du défaut de corruption de données (priorité irréversible).
+
+### Actions et résultats
+
+1. **Quantification du double encodage jsonb (R65)** — contrôle exhaustif
+   des 10 colonnes `jsonb` : **218 valeurs corrompues sur 6 colonnes**,
+   dont `form_definitions.fields` à **100 %** (34/34) et
+   `events.budget_items` à 158/305. R43 n'avait mesuré que `budget_items`.
+2. **Sauvegarde avant écriture** — taille du payload mesurée (2,2 Ko) ;
+   table de sauvegarde `_jsonb_backfill_20261024` créée par la migration
+   elle-même, ce qui rend le rollback exact.
+3. **Dry-run** sur copies temporaires → 0 chaîne restante, aucune perte.
+4. **Migration `20261024000001`** appliquée → **0 valeur `jsonb_typeof =
+   'string'`** sur toute la base.
+5. **Rollback rejoué sur copies** → restaure 158/34/8/8/5 et laisse
+   intacts les 147 `budget_items` déjà sains. Réversibilité prouvée.
+6. **Correctif amont** : `parseBudgetItems` délègue à `parseJsonbValue`.
+   Un défaut a été trouvé par les nouveaux tests : `typeof` ne distingue
+   pas un objet d'un tableau, donc un objet rendu là où un tableau est
+   attendu passait le contrôle et aurait fait planter le `.map()`.
+   Corrigé par `Array.isArray(fallback) !== Array.isArray(value)`.
+7. **18 tests unitaires ajoutés** (`src/lib/__tests__/jsonb.test.ts`).
+8. **Typecheck CI réparé (R71)** : `tsc --noEmit` à la racine ne vérifiait
+   aucun fichier (`"files": []`). Passage à `tsc -b --noEmit`, qui a
+   révélé 1 erreur supplémentaire dans `vite.config.ts` (littéraux
+   `worker.format` / `build.sourcemap`), corrigée.
+9. **Commit** `cc76fb3`.
+
+### Vérifications (preuves)
+
+| Commande | Résultat |
+|---|---|
+| `npx tsc -b --noEmit` | **0 erreur** (99 avant) |
+| `npx vitest run` | **1091 / 1091** verts, 65 fichiers |
+| `npx vite build` | exit **0** |
+| `SQL` jsonb_typeof | 0 valeur `string` |
+
+### Décisions prises (DECISIONS.md)
+
+- D-S5-1 : rattraper la donnée plutôt que tolérer seulement.
+- D-S5-2 : table de sauvegarde → rollback exact (pas de ré-encodage global).
+- D-S5-3 : `"null"` → `jsonb null`, asymétrie assumée (non réversible à l'identique).
+- D-S5-4 : activer `tsc -b` en CI malgré le gel (correctif ciblé, risque vérifié nul).
+
+
+### Vérification Cypress (session 5)
+
+Lancée en tâche de fond pendant la rédaction, contre un serveur local.
+
+| Spec | `vite preview` (prod) | `vite` (dev) |
+|---|---|---|
+| `cloud-sync.cy.ts` | **1/1** | — |
+| `finance-deep.cy.ts` | **5/5** | — |
+| `events-tasks.cy.ts` | **1/1** | — |
+| `cross-tenant.cy.ts` | 0/1 (échec 4 min 10 s) | **1/1** (24 s) |
+
+**Diagnostic de l'échec `cross-tenant`** : il lit `window.__psSupabaseClient`,
+publié par `publishDevDiagnostics()` qui sort immédiatement si
+`!import.meta.env.DEV`. Sur un build de production, le global n'existe pas.
+**Aucune régression de l'app** : sur le serveur de dev (celui qu'utilise le
+script officiel `scripts/run-cypress.sh`), le spec passe 1/1.
+Consigné comme R72 (piège de lancement des tests, à documenter).
+
+
+### Vérification de durabilité du correctif jsonb (R65)
+
+Le défaut était silencieux : la seule réparation des données ne suffit pas
+si le chemin d'écriture reproduit la corruption. Les trois maillons ont été
+vérifiés :
+
+1. **Données** — migration appliquée, 0 valeur `string` restante.
+2. **Écriture** — `coerceJsonbColumns()` est appelé sur `opData` dans
+   `pushCrudTransaction` (`SupabaseConnector.ts:506`), et cet `opData` est
+   utilisé pour **PUT et PATCH**. Les écritures passent donc désormais un
+   tableau/objet, pas une chaîne. `JSONB_COLUMNS` couvre 10 colonnes.
+3. **Lecture** — `parseJsonbValue` (6 points d'appel dans `dataLayer.ts`)
+   tolère les trois formes (chaîne, double encodage, forme correcte).
+
+Conclusion : le défaut est fermé de bout en bout, pas seulement rattrapé.

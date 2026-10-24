@@ -131,7 +131,13 @@
 - **Proposition** : vérifier la livraison réelle et le comportement hors ligne.
 - **Coût** : 2 h. **Risques** : faible.
 
-## P-BACKFILL-BUDGET — Re-normaliser `events.budget_items` (priorité : haute)
+## P-BACKFILL-BUDGET — Re-normaliser `events.budget_items` — **EXÉCUTÉ le 2026-10-24**
+
+> **Statut : fait**, et étendu à toutes les colonnes concernées (6 colonnes,
+> 218 valeurs) — cf. R65 et migration `20261024000001`. Conservé ici pour
+> mémoire du raisonnement. Il reste proposé (P-NEW ci-dessous) d'ajouter une
+> **contrainte de forme** en base pour rendre le défaut impossible.
+
 - **Problème** : 158 des 159 lignes portent un jsonb de type *string*
   (double encodage historique). Le code tolère désormais les deux formes,
   mais la donnée reste sale et toute nouvelle lecture naïve casserait.
@@ -390,3 +396,63 @@
   par une règle de revue + un test lint.
 - **Intérêt** : des échecs de test qui désignent le bon coupable.
   **Coût** : 2 h. **Priorité** : moyenne.
+
+
+---
+
+## Session 5 (2026-10-24) — propositions issues de la clôture
+
+### P-NEW-1 — Contrainte de forme sur les colonnes jsonb (priorité : haute)
+- **Problème** : rien n'empêche une écriture future de reposer un jsonb de
+  type *string*. Le correctif amont est côté client (PowerSync) ; une
+  écriture directe par SQL, un import, ou un futur client tiers
+  reproduiraient le défaut, et il est **silencieux** (aucune erreur à
+  l'écriture, plantage au rendu).
+- **Proposition** : ajouter une contrainte `CHECK` sur les colonnes
+  concernées, ex. `CHECK (budget_items IS NULL OR jsonb_typeof(budget_items)
+  IN ('array','object','null'))` pour `events.budget_items` et
+  `form_definitions.fields`, et un `DEFAULT '[]'::jsonb` là où le vide est
+  un tableau.
+- **Intérêt** : rend le défaut **impossible**, pas seulement corrigé. Une
+  écriture fautive échoue immédiatement, à l'endroit de la faute.
+- **Coût** : 1 h (contraintes + tests + vérification qu'aucun chemin
+  légitime n'écrit un scalaire). **Risque** : moyen — à valider, car
+  `custom_field_values.value` accepte légitimement des scalaires et ne doit
+  PAS être contraint.
+- **Bloquante pour la fiabilité** : oui, à moyen terme.
+
+### P-NEW-2 — Rendre la suite Cypress complète fiable (priorité : haute)
+- **Problème** : au dernier run complet (session 3), 20 tests sur 70
+  échouaient sur 7 specs, principalement pour des **prémisses de spec
+  obsolètes** et des sélecteurs portant sur des pages Ionic masquées (R64).
+  Ces échecs sont du bruit qui masque les vrais défauts.
+- **Proposition** : traiter les 7 specs rouges une par une (comme fait pour
+  `groups-events`), en appliquant le helper `activePage`
+  (`div.ion-page:not(.ion-page-hidden)`) partout.
+- **Intérêt** : sans suite verte, aucune régression future n'est détectée —
+  c'est la condition de la stabilité sur 4 mois.
+- **Coût** : 4 h. **Risque** : faible.
+- **Bloquante** : oui.
+
+### P-NEW-3 — Purge des tables d'audit et de notifications (priorité : moyenne)
+- **Problème** : `audit_entries` et `notifications` croissent sans purge.
+  Sur un projet Supabase gratuit (500 Mo), la base pleine provoquerait un
+  refus de **toutes** les écritures. Mesure au 2026-10-24 : **20 Mo
+  utilisés (4 %)** avec 48 `audit_entries` et 314 `notifications` — le
+  risque n'est donc **pas imminent**, mais il est structurel et non
+  surveillé : rien n'avertit avant la limite.
+- **Proposition** : tâche planifiée (`pg_cron`) purgeant les entrées de plus
+  de N mois, avec archivage préalable vers `archives`.
+- **Intérêt** : évite l'arrêt total des écritures. **Coût** : 2 h.
+  **Risque** : faible si l'archivage précède la purge.
+- **Bloquante** : non à court terme (4 % du quota) ; oui à long terme si
+  l'app est utilisée intensivement pendant plusieurs années.
+
+### P-NEW-4 — Alerte sur la taille de la base (priorité : haute)
+- **Problème** : aucune surveillance de l'espace utilisé. Le propriétaire ne
+  saura pas que la base approche du quota avant l'échec.
+- **Proposition** : consulter régulièrement `pg_database_size` (requête
+  fournie dans RUNBOOK.md) et/ou brancher une alerte Sentry/OneSignal sur
+  un seuil (ex. 80 % du quota).
+- **Intérêt** : prévenir au lieu de subir. **Coût** : 1 h. **Risque** : faible.
+- **Bloquante** : oui pour la fiabilité à long terme.

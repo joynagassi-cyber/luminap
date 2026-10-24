@@ -16,6 +16,74 @@
 
 ---
 
+# ⚠️ MISE À JOUR SESSION 5 (2026-10-24) — à lire en premier
+
+Les sections qui suivent datent des sessions 1 à 4. **Cinq bugs d'exécution
+supplémentaires et un défaut de corruption de données ont été corrigés
+depuis.** Les chiffres ci-dessous remplacent ceux du corps du rapport.
+
+| Indicateur | Avant session 5 | Après session 5 |
+|---|---|---|
+| Erreurs de type (`tsc`) | 98 (jamais détectées par la CI) | **0** |
+| Tests unitaires | 1050 / 1050 | **1091 / 1091** (65 fichiers) |
+| Build de production | OK | OK (`vite build` exit 0) |
+| Valeurs jsonb corrompues | **218** sur 6 colonnes | **0** |
+| Typecheck CI | inopérant (succès systématique) | **opérant** (`tsc -b`) |
+
+### Bugs d'exécution corrigés (cause → effet → preuve)
+
+| Réf | Cause | Effet utilisateur | Preuve |
+|---|---|---|---|
+| R67 | Import de l'icône `File` (lucide) masquant le constructeur global `File` | **L'envoi d'un rapport d'organisation échouait à tous les coups** | `tsc -b` 0 erreur ; import supprimé |
+| R65 | Double encodage jsonb, portée réelle **218 valeurs / 6 colonnes** (dont `form_definitions.fields` à **100 %**) | Ouvrir un formulaire ou un événement ancien **tombait l'écran** | Migration `20261024000001` ; SQL après : 0 valeur `string` ; rollback prouvé exact |
+| R66 | `db.status` n'existe plus (PowerSync v2 → `db.currentStatus`) | Indicateur de sync affiché **« hors ligne » en permanence** | `tsc -b` 0 erreur |
+| R68 | `onButtonClick` n'existe pas sur `IonItem` (Ionic 9 → `onClick`) | Clic sur un événement du calendrier **sans effet** | `tsc -b` 0 erreur |
+| R70 | `targetRole: "ADMIN"` — rôle inexistant | Rejet d'une transaction **ne notifiait personne** | `TREASURIER` ; `tsc -b` 0 erreur |
+| R69 | `autoComplete` ignoré par Ionic 9 (→ `autocomplete`) | Autocomplétion navigateur absente | `tsc -b` 0 erreur |
+| R71 | `tsc --noEmit` à la racine ne vérifiait **aucun fichier** (`"files": []`) | 98 erreurs réelles invisibles, dont les 5 ci-dessus | `tsc -b --noEmit` en CI : 0 erreur |
+
+### Pourquoi c'était invisible
+
+Le job de typecheck de la CI exécutait `npx tsc --noEmit` à la racine. Le
+`tsconfig.json` racine déclare `"files": []` et ne contient que des
+`references` : la commande **ne vérifiait rien** et sortait toujours en
+succès. C'est la cause racine de l'accumulation des 98 erreurs, dont cinq
+provoquaient des pannes visibles pour l'utilisateur. Le job exécute
+désormais `tsc -b --noEmit`, vérifié à 0 erreur.
+
+### Vérification E2E (session 5)
+
+| Spec | Résultat | Note |
+|---|---|---|
+| `cloud-sync.cy.ts` | **1/1** | — |
+| `finance-deep.cy.ts` | **5/5** | — |
+| `events-tasks.cy.ts` | **1/1** | — |
+| `cross-tenant.cy.ts` | **1/1** | sur serveur **dev** (cf. R72) |
+
+**R72 (piège de lancement, non bloquant)** : lancée contre un **build de
+production** (`vite preview`), `cross-tenant` échoue après 4 minutes
+(`window.__psSupabaseClient` n'est publié qu'en mode dev). Sur le serveur de
+dev, le même spec passe **1/1 en 24 s**. Aucune régression de l'app : c'est
+un piège de lancement des tests, documenté dans RUNBOOK.md.
+
+### Décisions prises en session 5 (à valider)
+
+1. **Rattraper la donnée jsonb en base** (et non seulement la tolérer) :
+   218 valeurs réparées, sauvegarde exacte, rollback prouvé. Cf. D-S5-1/2/3.
+2. **Activer `tsc -b` en CI** malgré la règle de gel : correctif ciblé,
+   risque vérifié nul (0 erreur, build vert), effet protecteur immédiat
+   sur les 4 mois. Cf. D-S5-4.
+
+### Fait nouveau sur la capacité de la base
+
+Mesure au 2026-10-24 : **20 Mo utilisés sur 500 Mo (4 %)**, 48
+`audit_entries`, 314 `notifications`. Le risque de saturation du plan
+gratuit est donc **structurel mais non imminent** (contrairement à ce
+qu'indiquait la version initiale de P-NEW-3, corrigée depuis). Requêtes de
+surveillance fournies dans RUNBOOK.md.
+
+---
+
 
 ### Stabilité E2E (preuve, 3 passes consécutives)
 

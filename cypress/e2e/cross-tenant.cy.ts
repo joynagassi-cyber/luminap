@@ -77,6 +77,22 @@ describe('Lumina — Cross-tenant isolation (2 orgs)', () => {
     // dev, donc seulement APRES le montage de l'app). C'est la source la
     // plus fiable : elle reflete exactement la session utilisee par l'app,
     // sans dependre du format de stockage.
+    //
+    // Ce global n'est publie qu'en mode dev (`import.meta.env.DEV`). Lance
+    // contre un build de production (`vite preview` ou le deploiement), ce
+    // spec attendrait 4 minutes puis echouerait avec un message obscur
+    // (« `__psSupabaseClient` does not exist ») alors que l'app est saine.
+    // On echoue donc tout de suite, avec la cause et la marche a suivre.
+    cy.window().then((win) => {
+      if (!(win as unknown as Record<string, unknown>).__psSupabaseClient) {
+        throw new Error(
+          "Ce spec exige le serveur de DEV (`npx vite`), pas un build de " +
+            "production : `window.__psSupabaseClient` n'est publie qu'en " +
+            "mode dev. Lancer via `scripts/run-cypress.sh` (cf. RUNBOOK.md).",
+        );
+      }
+    });
+
     cy.window()
       .its('__psSupabaseClient')
       .should('exist')

@@ -182,3 +182,53 @@ pages Ionic **masquées** + prémisses de spec obsolètes (3 specs).
 | R63 | Fixture E2E : rôle `profiles` ≠ `org_memberships` | **cassée** (donnée) | **corrigée** | spec 3/3 après alignement ; retour arrière documenté (RISQUES R63) |
 | R64 | Sélecteurs de spec sur pages Ionic masquées | incomplète (test) | **corrigée** (1 spec) | `groups-events.cy.ts` scopé à la page active |
 | R62 | Deux sources de vérité du rôle | — | **ouverte** | Proposition P36 (RISQUES R62) |
+
+---
+
+## Session 5 — mises à jour (2026-10-24, clôture des défauts critiques)
+
+| Réf | Fonctionnalité | Statut initial | Statut final | Défaut / action | Preuve |
+|---|---|---|---|---|---|
+| R65 | **Formulaires dynamiques — ouverture** (`/forms/:id/submissions`, builder) | **cassée** | **corrigée** | `form_definitions.fields` était un jsonb de type *string* sur **34/34 lignes** (100 %) : `fields.map is not a function` → ErrorBoundary. Portée réelle du double encodage : **218 valeurs sur 6 colonnes**, pas seulement `budget_items`. | Migration `20261024000001` ; `SQL` après : 0 valeur `string` (34 arrays) ; `V: jsonb.test.ts` 18/18 |
+| R65 | **Événements — détail / budgets** (`/event/:id`) | **cassée** | **corrigée** | `events.budget_items` : 158/305 valeurs `string`. Le parseur tolérait, la donnée restait sale (toute lecture SQL cassait). | `SQL` après : 305 arrays, 0 string ; rollback prouvé exact (158 restaurées, 147 saines intactes) |
+| R65 | **Invitations — payload de droits** (`invitations`) | **cassée** | **corrigée** | `grants_payload` et `tags_payload` : 8/10 `string` chacun → droits d'invitation illisibles par toute lecture naïve. | `SQL` après : 10 arrays chacun |
+| R65 | **Journal d'audit** (`/trace`, `audit_entries`) | **cassée** | **corrigée** | `before_state`/`after_state` : 5 `string` chacun → comparaison avant/après impossible en SQL. | `SQL` après : 15 objects, 5 `null` |
+| R67 | **Envoi d'un rapport d'organisation** (`/reports`, `OrgReportSend`) | **cassée** | **corrigée** | Import de l'icône lucide `File` (inutilisée) masquait le constructeur global `File` → `new File(...)` levait « File is not a constructor » : **l'envoi échouait à tous les coups**. | `tsc -b` 0 erreur ; import supprimé (le chemin d'envoi s'exécute désormais) |
+| R66 | **Indicateur de synchronisation** | **cassée** | **corrigée** | PowerSync v2 : `db.status` n'existe plus (`db.currentStatus`) → l'indicateur affichait « hors ligne » en permanence, y compris quand la sync fonctionnait. | `tsc -b` 0 erreur ; `src/lib/powersync/index.ts`, `usePowerSyncIndicator.ts`, `cloud-sync.cy.ts` |
+| R68 | **Calendrier / timeline d'événements** | **cassée** | **corrigée** | `onButtonClick` n'existe pas sur `IonItem` (Ionic 9) : le clic sur un événement du calendrier ne faisait rien. | `onClick` ; `tsc -b` 0 erreur |
+| R69 | **Membres / profil — autocomplétion** | incomplète | **corrigée** | Ionic 9 attend `autocomplete` (minuscule) ; `autoComplete` n'était pas transmis au DOM. | `tsc -b` 0 erreur ; `Members.tsx`, `SettingsProfile.tsx` |
+| R70 | **Rejet d'une transaction — notification** | incomplète | **corrigée** | `targetRole: "ADMIN"` n'existe pas dans le type `Role` → notification sans destinataire, silence sur un événement métier. | `TREASURIER`, cohérent avec les 3 autres notifications du fichier ; `tsc -b` 0 erreur |
+| R71 | **Détection des erreurs de type (CI)** | **cassée** | **corrigée** | `tsc --noEmit` à la racine ne vérifiait **aucun fichier** (`"files": []`) → succès systématique, 98 erreurs accumulées dont 5 bugs d'exécution. | `tsc -b --noEmit` en CI : 0 erreur ; `vite build` exit 0 |
+
+### Chiffres de validation (session 5)
+
+- `npx tsc -b --noEmit` → **0 erreur** (contre 99 avant : 98 dans l'app + 1 dans `vite.config.ts`).
+- `npx vitest run` → **1091 tests / 65 fichiers, 100 % verts** (contre 1030/1048 et 18 échecs au baseline).
+- `npx vite build` → exit **0**.
+- Base : 0 valeur `jsonb_typeof = 'string'` sur les 10 colonnes jsonb.
+
+
+### R65 — chaîne complète vérifiée (pourquoi le défaut ne reviendra pas)
+
+Le défaut était **silencieux** : rien ne signalait l'écriture fautive. La
+correction ne tient que si les **trois** maillons sont protégés. Vérifié
+dans le code :
+
+| Maillon | Emplacement | Mécanisme | Preuve |
+|---|---|---|---|
+| **1. Données existantes** | migration `20261024000001` | 218 valeurs re-parsées ; sauvegarde exacte ; rollback prouvé | SQL : 0 `jsonb_typeof='string'` |
+| **2. Chemin d'écriture** | `src/lib/powersync/SupabaseConnector.ts:506` | `coerceJsonbColumns(op.table, op.opData)` appliqué à `opData`, **utilisé pour PUT *et* PATCH** | lecture du code + `V: jsonb.test.ts` |
+| **3. Chemin de lecture** | `src/lib/dataLayer.ts` (1726, 1749, 1907, 1943, 2570, 2613) | `parseJsonbValue` tolère chaîne, double encodage et forme correcte | `V: jsonb.test.ts` 18/18 |
+
+`JSONB_COLUMNS` couvre **10 colonnes** : `events.budget_items`,
+`form_definitions.fields`, `form_submissions.data`,
+`invitations.grants_payload` / `tags_payload`, `org_reports.content`,
+`report_definitions.filters`, `custom_field_definitions.options`,
+`audit_entries.before_state` / `after_state`.
+
+> Point d'attention pour un futur intervenant : `coerceJsonbValue` ne
+> re-décode **pas** un double encodage déjà présent dans l'outbox (une
+> chaîne `"[]"` avec guillemets reste inchangée). C'est volontaire : un
+> décodage récursif transformerait une valeur scalaire légitime en objet.
+> Si un défaut de double encodage réapparaît, corriger **la source de
+> l'écriture**, pas `coerceJsonbValue`.

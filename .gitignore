@@ -6,6 +6,8 @@ node_modules/
 dist/
 test-results/
 cypress/screenshots/
+cypress/downloads/
+cypress/videos/
 e2e-min/logs/
 e2e-tests/fixtures/
 cypress-sessions-diag.log
