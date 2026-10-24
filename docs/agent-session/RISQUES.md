@@ -1656,3 +1656,38 @@ est intercepté par `cy.intercept` (CORS) — c'est justement pourquoi la spec
 actuelle contourne. Le test devra donc **ne pas** intercepter du tout et
 utiliser `disconnect()`/`connect()` pour simuler la coupure (c'est tout
 l'intérêt de l'approche).
+
+---
+
+### R86 — La suite E2E dépend d'un service d'authentification partagé et limité en débit
+
+- **Gravité** : moyenne (environnement de test, pas production).
+- **Constat mesuré (2026-10-24)** : sur un run de 13 specs, 3 échouent —
+  `groups-events.cy.ts` (0/3), `sessions.cy.ts` (0/3),
+  `comprehensive-flow.cy.ts` (0/1) — alors que les 10 autres passent
+  (dont mes 3 specs modifiés et les 2 specs de synchronisation).
+- **Cause établie par comparaison** : j'ai monté `origin/main` **intact** dans
+  un worktree isolé (serveur sur 8081, même `.env.local`) et rejoué les 3
+  specs : elles échouent **de la même façon**, avec un message explicite de la
+  suite elle-même :
+  `after login: /auth (attendu /onboarding ou /dashboard — le POST login n'a
+  pas complété en 90 s : vérifier le 503 Render / la rate limit GoTrue / le
+  timeout du form)`.
+  → La cause est **l'authentification Supabase partagée** (quota GoTrue /
+  latence), dégradée par la répétition des exécutions E2E de la session.
+  **Ce n'est pas une régression de la fusion.**
+- **Preuve complémentaire d'absence de régression de la fusion** : les fichiers
+  porteurs des correctifs de la session 3 (R57/R58/R59/R60) sont
+  **identiques à `main`** dans ma branche :
+  `git diff --stat origin/main HEAD -- src/ionic/routes/lazy-route.tsx src/App.tsx src/components/PageSkeletons.tsx src/lib/utils.ts`
+  → **aucune différence** (le correctif R59 « squelette neutre, sans
+  `IonPage` » est bien présent). Seul `src/lib/dataLayer.ts` diffère
+  (+30/−17, modifications de ma session).
+- **Conséquence** : les specs qui exigent un vrai login sont **non
+  déterministes en fin de session** ; le nombre de passes doit être interprété
+  à la lumière de cette limite. Le total « vert » dépend de la fraîcheur du
+  quota d'auth, pas du code.
+- **Recommandation** : exécuter la suite E2E avec un compte dédié et des
+  identifiants stables, espacés dans le temps ; ou basculer la suite sur un
+  Supabase local (`supabase start`) pour supprimer la dépendance réseau. Coût
+  estimé : 2 h. **Non traité** (hors budget de clôture).
