@@ -1267,3 +1267,27 @@ stream + redéploiement. Conclusion consignée, décision D-S6-1 confirmée.
 - **Suite unitaire** : **1102/1102** (1100 + 2 tests R87).
 - **Classe de défaut R88** inventoriée : 23 `.catch()` qui avalent l'erreur dans
   `src/pages/` (état vide silencieux, aucune trace).
+
+### 22. R89 — la synchronisation était rompue dans les DEUX SENS (découverte majeure)
+
+Vérification croisée code ↔ base (projet `hhgovvrnalibhgpakswi`) : **0
+transaction** côté serveur alors que l'app est utilisée (964 événements,
+108 profils). Diagnostic par instrumentation temporaire
+(`window.__psFlushCrudUpload` + capture console) :
+
+- **89.a (montée)** : `23503` — `category_id = "cat-dime"` (pack client,
+  `src/packs/church/index.ts:53`) viole `transactions_category_id_fkey`
+  (le serveur n'a que `cat-1 … cat-9`). Insertion SQL contrôlée : `cat-1`
+  **réussit** (puis rollback), `cat-dime` échoue. → **toute** transaction jetée.
+- **89.b (descente)** : `PSYNC_S2305` — « Too many parameter query results
+  (limit of 1000) » sur `/sync/stream`, à cause du filtre
+  `org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())` du
+  `sync-config.yaml`. `connected=false`, `hasSynced=false` → rien ne descend.
+- **89.c (mensonge)** : `uploadData OK` journalisé **après** un `FATAL-SKIP`,
+  et `fatalSkipped: 0` → perte de données invisible. **CORRIGÉ** : compteurs
+  `pushedOps`/`skippedOps`, plus de faux « OK », `__psFlushResult.ok` expose le
+  résultat réel.
+
+Tests 89.c : 2 tests dans `src/lib/__tests__/connector-schema-filter.test.ts`,
+vérifiés dans les deux sens (1 échec sans correctif, 7/7 avec). Suite unitaire
+**1104/1104**, `tsc --noEmit` propre.

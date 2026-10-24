@@ -479,6 +479,12 @@ export class SupabaseConnector
     await this.ensureUploadSession();
 
     let lastOp: CrudEntry | null = null;
+    // Compteurs de résultat réel : une op rejetée en FATAL est `continue`
+    // (jetée) sans `throw`, donc le seul indicateur fiable est ce comptage.
+    // Sans lui, `logOpOutcome(…, true, …)` annonce « OK » même quand TOUTES
+    // les ops ont été jetées (cf. R89.c).
+    let pushedOps = 0;
+    let skippedOps = 0;
     try {
       for (const op of transaction.crud) {
         lastOp = op;
@@ -569,6 +575,7 @@ export class SupabaseConnector
           // Pour les erreurs 23502 (not-null violation), on logue le
           // détail des opData manquantes pour diagnostiquer l'origine.
           if (isFatal) {
+            skippedOps++;
             logOpOutcome(op, false, code, errMsg, op.opData?.org_id);
             if (DEV_LOG) {
               const missingCols = code?.startsWith("23502")
@@ -590,15 +597,34 @@ export class SupabaseConnector
           result.error.message = errMsg;
           throw result.error;
         }
+        pushedOps++;
       }
 
       await transaction.complete(); // IMPORTANT!
       const winForLog = typeof window !== "undefined" ? window : null;
-      logOpOutcome(lastOp, true, undefined, undefined, lastOp?.opData?.org_id);
+      if (skippedOps > 0) {
+        // Ne PAS annoncer « OK » si des ops ont été jetées : le succès serait
+        // mensonger (R89.c). On journalise un état dégradé explicite.
+        logOpOutcome(
+          lastOp,
+          false,
+          "PARTIAL",
+          `${pushedOps} pushed, ${skippedOps} discarded`,
+          lastOp?.opData?.org_id,
+        );
+      } else {
+        logOpOutcome(lastOp, true, undefined, undefined, lastOp?.opData?.org_id);
+      }
       if (DEV_LOG) {
         winForLog?.console?.info?.(
-          `[PowerSync] pushCrudTransaction DONE: ${transaction.crud.length} ops pushed`,
+          `[PowerSync] pushCrudTransaction DONE: ${pushedOps} pushed, ${skippedOps} discarded`,
         );
+        // Exposé pour que le flush DEV (`__psFlushCrudUpload`) puisse rapporter
+        // le résultat RÉEL (ops jetées incluses) au lieu d'un compteur qui
+        // ignore les `continue` internes (cf. R89.c).
+        if (winForLog) {
+          (winForLog as any).__psLastUpload = { pushed: pushedOps, skipped: skippedOps };
+        }
       }
     } catch (ex: any) {
       // `FATAL_RESPONSE_CODES` ne matche que sur `ex.code` (Postgres 5-char

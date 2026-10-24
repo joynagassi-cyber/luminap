@@ -1808,7 +1808,9 @@ afficher un état d'erreur explicite dans l'UI.
 
 ### R89 — CRITIQUE — La synchronisation Lumina est rompue dans les DEUX SENS (prouvé par log)
 
-**Statut** : **diagnostiqué avec preuve, NON corrigé** (le correctif exige une
+**Statut** : **diagnostiqué avec preuve**. Sous-point **89.c CORRIGÉ** (le faux
+succès ne ment plus, avec test dans les deux sens) ; **89.a et 89.b NON corrigés**
+(le correctif exige une
 action sur les données serveur et sur le service PowerSync Cloud, hors de portée
 d'une session de code seule). **Impact : les données financières ne quittent
 jamais l'appareil.** C'est le défaut le plus grave connu de Lumina.
@@ -1861,7 +1863,7 @@ Constat serveur, après le flush qui se déclare « OK » :
   neuf avec `localStorage` vidé et un état SQLite neuf ne reçoit rien du
   serveur.
 
-#### 89.c — Le succès est MENSONGER (défaut d'observabilité, corrigible en 1 ligne)
+#### 89.c — Le succès est MENSONGER (défaut d'observabilité) — ✅ CORRIGÉ le 2026-10-24
 
 - `src/lib/powersync/SupabaseConnector.ts:597` : à la fin de la boucle d'upload,
   `logOpOutcome(lastOp, true, …)` est appelé **inconditionnellement**, même
