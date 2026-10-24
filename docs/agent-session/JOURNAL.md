@@ -1291,3 +1291,15 @@ transaction** côté serveur alors que l'app est utilisée (964 événements,
 Tests 89.c : 2 tests dans `src/lib/__tests__/connector-schema-filter.test.ts`,
 vérifiés dans les deux sens (1 échec sans correctif, 7/7 avec). Suite unitaire
 **1104/1104**, `tsc --noEmit` propre.
+
+### 23. 89.c vérifié en navigateur réel + piège `tsc`
+
+- **Preuve navigateur (chromium réel)** : `__psFlushResult` renvoie désormais
+  `{"flushed":true,"passes":1,"opsTotal":1,"fatalSkipped":0,"skipped":1,"ok":false}`.
+  Avant, le même cas renvoyait `{"passes":1,"opsTotal":1,"fatalSkipped":0}` —
+  **indistinguable d'un succès**. La perte de données est maintenant visible.
+- **Piège corrigé** : `npx tsc --noEmit` ne vérifie rien (`tsconfig.json` racine
+  a `"files": []`). Le contrôle réel est `npx tsc -b` (celui de la CI). Il a
+  détecté une variable non définie introduite par mon premier jet de correctif ;
+  `tsc --noEmit`, lui, la laissait passer. Consigné dans RUNBOOK.md.
+- Après correction : `tsc -b` propre, suite unitaire **1104/1104**.

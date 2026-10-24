@@ -298,3 +298,16 @@ le vidage.
 npx cypress run --e2e --browser chromium \
   --spec cypress/e2e/offline-write-sync.cy.ts
 ```
+
+## Vérifier le type (piège de l'environnement)
+
+- **`npx tsc --noEmit` ne vérifie RIEN** dans ce dépôt : `tsconfig.json` a
+  `"files": []` (config racine « solution »), donc aucune source n'est incluse.
+  Il sort toujours en succès.
+- Le contrôle réel (celui de la CI, `typecheck`) est **`npx tsc -b`**. Il détecte
+  bien les erreurs de type dans `src/`.
+- Vérifié le 2026-10-24 : une variable non définie dans
+  `src/lib/powersync/index.ts` échappe à `tsc --noEmit` mais est bien signalée
+  par `tsc -b` (`error TS2552: Cannot find name …`).
+- Conséquence : toujours lancer `npx tsc -b` avant de conclure qu'un changement
+  est typé correctement.

@@ -165,7 +165,7 @@ function publishDevDiagnostics() {
       const lastUpload = (winForLog as any)?.__psLastUpload as
         | { pushed: number; skipped: number }
         | undefined;
-      const skipped = skippedOps + (lastUpload?.skipped ?? 0);
+      const skipped = fatalSkipped + (lastUpload?.skipped ?? 0);
       const result = {
         flushed: true,
         passes,
