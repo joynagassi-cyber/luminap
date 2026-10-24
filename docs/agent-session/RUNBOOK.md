@@ -441,3 +441,68 @@ L'app peut paraître fonctionnelle alors que **rien ne quitte l'appareil**
    ```
 3. Surveiller les erreurs de stream : `PSYNC_S2305` (R89.b) et
    `23503` sur `transactions_category_id_fkey` (R89.a).
+
+## Sauvegarde VÉRIFIÉE (2026-10-24) — procédure validée de bout en bout
+
+**État** : une sauvegarde fraîche a été produite **et sa restauration a été
+testée** dans un conteneur Postgres jetable. C'est la première fois que la
+chaîne sauvegarde → restauration est prouvée sur ce projet.
+
+### 1. Produire la sauvegarde
+```bash
+export SUPABASE_ACCESS_TOKEN=...        # jeton d'accès Supabase
+docker info >/dev/null || sudo dockerd & # la CLI exige un daemon Docker
+npx supabase@latest db dump --linked -f schema-$(date -u +%Y%m%d-%H%M%S).sql
+npx supabase@latest db dump --linked --data-only -f data-$(date -u +%Y%m%d-%H%M%S).sql
+sha256sum schema-*.sql data-*.sql > backup.sha256   # sommes de contrôle
+gzip -k schema-*.sql data-*.sql                     # compression
+```
+Résultat mesuré : **schéma 136 Ko (43 `CREATE TABLE`, 146 politiques RLS)**,
+**données 6,3 Mo (29 tables, dont `auth.users`)**, sommes de contrôle OK.
+Les fichiers vivent **hors du dépôt** (`/workspace/backups/`) : ils contiennent
+des données réelles, ne pas les commiter (dépôt public).
+
+### 2. Restaurer (procédure TESTÉE)
+La restauration exige l'image **Supabase** (contient `pg_cron`) et le rôle
+**`supabase_admin`** (superutilisateur) sur la base **`postgres`** :
+```bash
+docker run -d --name restore -e POSTGRES_PASSWORD=test \
+  public.ecr.aws/supabase/postgres:17.6.1.166
+# `public` appartient à supabase_admin ; `pg_cron` n'existe que dans `postgres`
+docker exec -i restore psql -U supabase_admin -d postgres -v ON_ERROR_STOP=0 < schema-*.sql
+# Prérequis : le rôle applicatif doit exister AVANT le dump des données
+docker exec restore psql -U supabase_admin -d postgres -c \
+  "create role powersync_role if not exists" # (si absent)
+docker exec -i restore psql -U supabase_admin -d postgres -v ON_ERROR_STOP=0 < data-*.sql
+```
+**Résultat mesuré** : 44 tables + 146 politiques RLS restaurées. Les seules
+erreurs (7) concernent les schémas `auth`/`storage` (gérés par Supabase, non
+inclus dans un dump du schéma `public`) — **aucune perte de données métier**.
+
+### 3. Vérifier la fidélité (procédure de contrôle)
+Comparer les comptages source et restauré :
+```sql
+select 'profiles', count(*) from public.profiles
+union all select 'organizations', count(*) from public.organizations
+union all select 'events', count(*) from public.events
+union all select 'audit_entries', count(*) from public.audit_entries;
+```
+**Fidélité constatée : 10/10 tables identiques** (profiles 108, organizations 9,
+org_memberships 5, org_admins 6, invitations 66, members 94, groups 222,
+events 3220, audit_entries 97, notifications 3320).
+
+### 4. Ce qui reste à faire par le propriétaire (priorité critique)
+Le workflow `.github/workflows/backup.yml` est **prêt** mais **inactif** : son
+exécution du 2026-10-24 (run `40114231378`) a émis l'avertissement
+« `SUPABASE_DB_URL` absent — sauvegarde NON configurée » et n'a publié
+**aucun artefact** (vérifié : `total_count = 0` — pas de fuite sur le dépôt
+public). Pour l'activer :
+1. Secret `SUPABASE_DB_URL` = chaîne de connexion Postgres complète,
+   percent-encodée (Dashboard Supabase → Connect → Session pooler / Direct).
+2. Secret `BACKUP_GPG_PASSPHRASE` (recommandé) : sans lui, l'export est validé
+   mais **rien n'est publié** (garde-fou dépôt public, correct).
+3. Lancer « Run workflow » une fois pour valider, puis vérifier l'artefact
+   `supabase-backup-<run_id>` (rétention 14 j) et **tester une restauration**.
+4. Idéalement, passer le dépôt en **privé** ou copier les exports chiffrés
+   hors-site (S3, disque local) : un artefact GitHub n'est pas une sauvegarde
+   durable.
