@@ -1099,3 +1099,25 @@ décision de ne pas créer de divergence client/serveur. Voir DECISIONS.md.
 `:8080` (prêt en 877 ms) ; Xvfb installé (`sudo apt-get install xvfb`, requis
 par Cypress headless — `Error: spawn Xvfb ENOENT`) ; suite complète 28 specs
 lancée en tâche de fond sur `CYPRESS_BASE_URL=http://127.0.0.1:8080`.
+
+### 14. Suite de référence (serveur dev :8080) — résultats et verdicts
+
+Run complet 28 specs sur `http://127.0.0.1:8080`. Constat en cours de route :
+
+- `cloud-sync.cy.ts` **1/1** (offline → reconnexion → Supabase) ✅
+- `cross-tenant.cy.ts` **1/1** (isolation inter-organisations) ✅ — sur serveur
+  dev, conformément à R72/R81. Confirme qu'il n'y a **pas** de régression
+  d'isolation.
+- `events-tasks.cy.ts` **1/1** ✅
+- `comprehensive-flow.cy.ts` **1/1** ✅
+- `calendar.cy.ts` **1/1** ✅
+- `forms-fields.cy.ts` **4/4** ✅ — les 2 échecs du run « 29 min » étaient
+  donc bien imputables au **build obsolète** (R81), pas au code. Preuve
+  directe que R81 était la bonne explication.
+- `forms-v2.cy.ts` **5/6** — seul échec : T5 « Soumetteur », attendu
+  « E2E Org », reçu l'UUID `87afea21-…`. C'est la **manifestation exacte de
+  R80** (le stream `profiles` ne synchronise que le profil de l'utilisateur
+  courant, donc le nom d'un autre membre est irrésoluble localement). Le
+  correctif R75 était nécessaire mais non suffisant.
+- `org-reports.cy.ts` **échec** — défaut de test non déterministe, R82
+  (sélection du parent = dernière org créée → auto-empoisonnement).

@@ -1352,6 +1352,52 @@ révoqué / retiré) et `OrgAdmin` → « Administrateur d'organisation ».
 `tsc -b` 0 erreur.
 
 
+### R82 — `org-reports.cy.ts` s'auto-empoisonne : la sélection du parent est non déterministe — OUVERT (moyenne)
+
+**Défaut** : le spec crée une hiérarchie Mère → A → B, mais choisit le
+parent dans le popover par
+`cy.get('ion-popover').find('ion-item').filter(':visible')
+ .filter((_, el) => !el.textContent.includes('Aucune')).first()`
+(`cypress/e2e/org-reports.cy.ts:130-134`). Or la liste des options vient de
+`allOrgs` (`Federation.tsx:460`), alimenté par `federation.listOrgs()`
+(`src/capabilities/federation/index.ts:201`) trié **`created_at DESC`**.
+`.first()` sélectionne donc la **dernière organisation créée**, pas
+l'organisation courante (la Mère) comme le commentaire du spec le suppose.
+
+**Conséquence mesurée** : chaque exécution du spec crée une nouvelle
+« Annexe A », qui devient le parent de la suivante. La base contient ainsi
+une chaîne de 4 niveaux, tous nommés « Annexe A » :
+
+```
+org-e2e (Lumina Org E2E)
+ └── Annexe A 164093   (24/10 00:02)
+      └── Annexe A 305399  (24/10 01:11)
+           └── Annexe A 534585 (24/10 02:22)   ← échec du run courant
+```
+
+Les organisations **sont bien créées** (vérifié en base : `Annexe A 534585`
+existe, `parent_org_id` = `Annexe A 305399`, statut ACTIVE). Le défaut est
+donc **du test, pas du produit** : après création, `loadOrgs` ne reçoit que
+les orgs où le compte est admin/membre — l'org A fraîchement créée est
+déléguée à l'admin courant, mais l'arbre affiché ne contient que la racine,
+et `cy.contains('span', orgAName)` échoue (timeout 60 s, ligne 153).
+
+**Pourquoi c'est important** : le spec n'est pas rejouable. À chaque
+exécution il pollue la base d'un niveau supplémentaire et son échec est
+interprété à tort comme une régression de la hiérarchie d'organisations —
+une fonctionnalité centrale (Phase 2). Non déterministe = défaut, pas
+instabilité à ignorer.
+
+**Correctif identifié (non appliqué — gel)** : sélectionner explicitement
+l'option de la Mère (nom de l'organisation courante, lu depuis
+`lumina-user` / `lumina-config`) au lieu de `.first()` ; et créer l'arbre
+de test sous une racine dédiée au spec plutôt que sous l'organisation
+partagée du compte. Coût estimé : 30 min. Voir PROPOSITIONS.md (P33).
+
+**Travail restant** : purge des 4 organisations « Annexe A » orphelines
+(décision propriétaire : elles portent `status = ACTIVE` et des enfants).
+
+
 ### R81 — Un run Cypress peut porter sur un build obsolète sans que rien ne l'annonce — CORRIGÉ (méthode, moyenne)
 
 **Défaut de méthode** : `cypress.config.ts` ne définit pas de `webServer` et
