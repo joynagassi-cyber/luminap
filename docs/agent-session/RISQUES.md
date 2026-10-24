@@ -1609,10 +1609,31 @@ spec pousse les entities DIRECTEMENT au Supabase ».
 Supabase upserts via cy.request (Node context)' }` — le spec **stubbe** le
 résultat du flush.
 
-**Impact** : c'est le **défaut de couverture le plus important du projet**. Le
-cœur de la promesse produit (« hors ligne d'abord, synchronisé ensuite ») n'est
-vérifié par aucun test. Une régression de la file d'upload passerait inaperçue
-jusqu'à ce qu'un utilisateur perde des saisies.
+**Impact** : le cœur de la promesse produit (« hors ligne d'abord, synchronisé
+ensuite ») n'était vérifié par aucun test. Une régression de la file d'upload
+serait passée inaperçue jusqu'à ce qu'un utilisateur perde des saisies.
+
+**CORRECTIF PARTIEL LIVRÉ (2026-10-24)** — `cypress/e2e/offline-write-sync.cy.ts`,
+**1/1, 3 passes consécutives** (12-13 s par passe). Ce que le test prouve,
+mesuré :
+1. une transaction créée par l'interface est écrite dans la base locale
+   (`transactions`, `org_id` correct, montant 12345 → **1234500 centimes**) ;
+2. elle entre dans la **file d'upload locale** : `ps_crud` contient
+   `{"op":"PUT","type":"transactions","id":"<uuid>","data":{"org_id":"org-e2e",…}}`
+   — **le chemin d'écriture hors ligne est donc réellement capturé**, ce qui
+   n'était prouvé nulle part ;
+3. contrôle négatif : la ligne n'est pas encore sur le serveur.
+
+**Résidu non couvert (mesuré, pas supposé)** : le **vidage** de la file.
+En Chromium headless, le worker WASM de PowerSync ne se connecte jamais —
+`currentStatus` reste `{ connected: false, hasSynced: false }` après 120 s
+d'attente, **sans aucune erreur remontée**, et `__psFlushCrudUpload` retourne
+`passes: 0, opsTotal: 0` alors que `ps_crud` contient l'op. Aucun test
+headless ne peut donc vider la file : c'est la raison pour laquelle
+`cloud-sync.cy.ts` contournait par des insertions directes. **Ce n'est pas un
+défaut produit** (la file est correctement remplie) mais une limite
+d'environnement de test. Vérification manuelle requise : procédure ajoutée
+dans RUNBOOK.md.
 
 **Correctif identifié (non appliqué — budget)** : nouveau spec pilotant le
 worker plutôt que le réseau :
