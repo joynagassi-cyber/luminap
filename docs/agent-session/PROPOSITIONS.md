@@ -586,6 +586,9 @@
 - **Intérêt** : suite déterministe, base non polluée, comptages fiables.
 - **Coût** : 3–4 h. **Risque** : faible (nettoyage par préfixe, non fatal).
   **Priorité** : haute. **Bloquant** : non, mais fortement recommandé.
+- **Mesure (2026-10-24)** : `groups` « Jeunesse … » = **84**, `events`
+  « Event Persist … » = **54**, tous dans l'organisation de test `org-e2e` —
+  en ~1,5 jour de CI. Confirme la nécessité du nettoyage systématique.
 
 ### P40 — Verrouiller la CI sur la branche `main` uniquement pour Cypress — MOYENNE
 - **Problème** : le workflow `cypress.yml` se déclenche sur **tout** `push`

@@ -2170,3 +2170,27 @@ la configuration Gradle de `:capacitor-storage` / `capacitor-cordova-android-plu
   négative, elle est conservée comme trace).
 - **Statut** : hypothèse réfutée, cause réelle circonscrite (couche de données /
   sync), non corrigée. **Priorité : critique** (voir P41).
+
+#### R96 — MESURE d'accumulation (2026-10-24) : d'autres specs fuient aussi
+Inventaire mesuré en base (project `hhgovvrnalibhgpakswi`) :
+- `organizations` nommées `Annexe A/B …` : **4** (3 archivées par la session 9,
+  1 `PENDING` du 2026-10-23 laissée par un run antérieur — non touchée, cf.
+  principe conservateur) ;
+- `groups` nommés `Jeunesse …` : **84**, **tous** dans l'organisation de test
+  dédiée `org-e2e` (« Lumina Org E2E », ACTIVE) — `last_seen` = 2026-10-24
+  09:38, soit le run de la session ;
+- `events` nommés `Event Persist …` : **54** ;
+- `form_definitions` « … E2e Forms v2 » : 1 ;
+- `transactions` (`Tx batch%` / `ChargeTx%`) : **0** (le chemin hors-ligne ne
+  pousse rien, cf. R83) ;
+- `organizations` total : 9 (dont 5 ACTIVE) — pas d'inflation côté
+  organisations grâce au correctif R96 de cette session.
+
+**Lecture** : les organisations orphelines sont **contenues** (R96 corrigé),
+mais **`groups` et `events` s'accumulent dans l'organisation de test
+`org-e2e`** (~84 groupes et ~54 événements en ~1,5 jour de CI). Ce n'est pas
+une donnée utilisateur, mais sur 4 mois la table grossit et peut fausser les
+specs qui comptent ou listent. C'est la justification mesurée de **P39**
+(nettoyage systématique des données de test). **Non corrigé** (gel ; et
+supprimer des `groups` peut cascader vers `group_members`/`events` sans
+sauvegarde disponible).
