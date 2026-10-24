@@ -1196,3 +1196,21 @@ stream + redéploiement. Conclusion consignée, décision D-S6-1 confirmée.
   `12345` → `1234500` n'est pas un bug, le stockage est en **centimes** ;
   (b) la page de détail vide n'a pas pu être tranchée (capture DOM trop
   précoce) — piste notée, non conclue.
+
+
+### 19. Non-régression après fusion + R86
+
+- Run de 13 specs sur la branche fusionnée : **10 specs vertes**, dont mes 3
+  specs modifiés et les 2 specs de synchronisation. **3 specs rouges** :
+  `groups-events` (0/3), `sessions` (0/3), `comprehensive-flow` (0/1).
+- **Vérification que la fusion n'est pas en cause** : `origin/main` **intact**
+  monté dans un worktree isolé (serveur 8081, même `.env.local`) → les 3 mêmes
+  specs échouent **de la même façon**, avec un message explicite de la suite :
+  `after login: /auth (attendu /onboarding ou /dashboard — … 503 Render /
+  rate limit GoTrue …)`. La cause est **l'authentification Supabase partagée**
+  (quota GoTrue), dégradée par la répétition des runs de la session.
+- **Preuve directe** : `git diff --stat origin/main HEAD` sur
+  `lazy-route.tsx`, `App.tsx`, `PageSkeletons.tsx`, `utils.ts` → **vide**.
+  Les correctifs R57/R58/R59/R60 de la session 3 sont donc bien dans la
+  branche. Seul `dataLayer.ts` diffère (+30/−17, mes modifications).
+- Consigné en **R86** (moyenne, environnement de test).
