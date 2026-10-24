@@ -311,3 +311,61 @@ npx cypress run --e2e --browser chromium \
   par `tsc -b` (`error TS2552: Cannot find name …`).
 - Conséquence : toujours lancer `npx tsc -b` avant de conclure qu'un changement
   est typé correctement.
+
+
+## Sauvegarder la base (P31) — plan gratuit, sans sauvegarde automatique
+
+Le plan Supabase **gratuit** ne fournit **pas** de sauvegarde automatique. Tant
+que le projet reste en gratuit, la sauvegarde est **manuelle et à la charge du
+propriétaire**. Procédure minimale :
+
+1. Récupérer la chaîne de connexion : tableau de bord Supabase →
+   *Project Settings* → *Database* → *Connection string* (mode `URI`, rôle
+   `postgres`, mot de passe de la base).
+2. Exporter **schéma + données** :
+   ```bash
+   pg_dump "$DATABASE_URL" --schema=public --no-owner --no-privileges \
+     -f "lumina-$(date +%Y%m%d-%H%M).sql"
+   ```
+   (`pg_dump` n'est pas installé dans cet environnement — voir ci-dessous.)
+3. Exporter les migrations du dépôt (référence de dérive) :
+   ```bash
+   supabase db dump -f schema-reference.sql
+   ```
+4. Stocker les deux fichiers **hors Supabase** (disque chiffré, stockage objet
+   privé) avec une rotation : garder au minimum 7 quotidiennes + 4 hebdomadaires.
+5. **Tester la restauration une fois par mois** sur une base jetable :
+   ```bash
+   psql "$RESTORE_URL" -f lumina-YYYYMMDD-HHMM.sql
+   ```
+   Une sauvegarde non testée n'est pas une sauvegarde.
+
+### Ce qui a été fait dans cette session
+
+- **Aucun `pg_dump` exécuté** : `pg_dump`/`psql`/`supabase` sont **absents** de
+  l'environnement, et aucun `DATABASE_URL` n'y est disponible (seules les clés
+  navigateur `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` sont présentes).
+  Le service MCP Supabase permet des requêtes SQL mais **pas** un `pg_dump`.
+- **Instantané de schéma** : `scripts/schema-snapshot.sql` existe déjà pour
+  produire le DDL de référence (à exécuter avec un accès SQL).
+- **À faire par le propriétaire** : brancher l'étape 2 sur une tâche planifiée
+  (cron GitHub Actions avec le secret `DATABASE_URL`) — cf. `PROPOSITIONS.md`
+  §P31.
+
+## Vérifier la synchronisation PowerSync (indispensable — cf. R89)
+
+L'app peut paraître fonctionnelle alors que **rien ne quitte l'appareil**
+(R89). Contrôle à faire régulièrement :
+
+1. Dans la console du navigateur, après connexion et création d'une donnée :
+   ```js
+   await window.__psFlushCrudUpload(5);
+   window.__psFlushResult;   // attendu : { ok: true, skipped: 0, opsTotal: >0 }
+   ```
+   `ok: false` ou `skipped > 0` = **des données ont été jetées**.
+2. Côté serveur, compter les lignes :
+   ```sql
+   select count(*) from transactions;   -- doit croître avec l'usage
+   ```
+3. Surveiller les erreurs de stream : `PSYNC_S2305` (R89.b) et
+   `23503` sur `transactions_category_id_fkey` (R89.a).
