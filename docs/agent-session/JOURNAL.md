@@ -947,3 +947,72 @@ test**, pas de code —
    soumission n'était jamais atteint. Ciblé par `aria-label` unique.
 2. Le bouton de suppression est ciblé par `aria-label="Supprimer le champ
    <label>"` (la ligne n'est pas un ancêtre direct de la `<p>` du label).
+
+
+---
+
+## Suite de session (session 6) — 2026-10-24, à partir de 01:05Z
+
+Reprise après la session 5. Ordre suivi : rectifier une affirmation inexacte,
+exploiter la suite Cypress en cours comme source de défauts réels, corriger,
+tester, documenter.
+
+### 1. Rectificatif R70 propagé (docs)
+
+Le message du commit `0702cd2` décrivait R70 comme « la notification de
+suppression n'était rattachée à aucun rôle destinataire ». Vérification en
+base : `targetRole` n'alimente que `notifications.action_type`, et les valeurs
+réelles de cette colonne sont des types d'événement. Le rectificatif a été
+propagé dans RISQUES.md (R74), FEATURES.md (ligne R70) et RAPPORT_FINAL.md.
+
+### 2. Suite Cypress complète exploitée comme détecteur (16/28 → …)
+
+Bilan des 15 premières specs : **38 tests verts, 3 rouges**, tous analysés :
+
+| Échec | Nature | Cause | Traitement |
+|---|---|---|---|
+| `forms-fields` « creates a custom field… » | défaut de **test** | `cy.contains('button', /Créer/i)` ne renvoie qu'un élément (bouton d'ouverture, recouvert par le scrim) : `.last()` n'atteignait pas le bouton de soumission | cible `aria-label="Créer le champ"` |
+| `forms-fields` « deletes a custom field… » | défaut de **test** | ligne non-ancêtre direct du label ; le bouton porte `aria-label="Supprimer le champ <label>"` | cible par `aria-label` construit depuis le texte |
+| `forms-v2` T5 « Soumetteur » | **bug produit** | la colonne affichait l'UUID `submitted_by` au lieu du nom | **R75 corrigé** |
+
+### 3. Bug produit R75 — « Soumetteur » affichait un UUID (corrigé)
+
+`form_submissions.submitted_by` référence `profiles.id`. Preuve en base :
+`87afea21-…` = profil « E2E Org ». Correction dans `FormSubmissions.tsx` :
+résolution depuis la table locale `profiles` (import dynamique + `try/catch`),
+utilisée par la cellule, la recherche plein-texte et le tri ; **repli** sur
+l'id si PowerSync est indisponible → aucune régression. La résolution est
+bornée par la RLS `profiles_select` (profils de sa propre organisation).
+Même correction appliquée à la colonne « Rejeté par » (`rejected_by`), qui
+souffrait du défaut identique (aucune donnée concernée aujourd'hui :
+`rejected_by = null`).
+
+Preuves : nouveau test unitaire « affiche le NOM du soumetteur » (5/5 verts
+dans `FormSubmissions-table.test.tsx`, les 4 cas existants préservés par le
+repli) ; `tsc -b` 0 erreur.
+
+### 4. Bug produit R76 — icônes de notification toutes génériques (corrigé)
+
+`getNotifIcon` ne mappait que `TRANSACTION_PENDING` / `_APPROVED` /
+`BUDGET_EXCEEDED` — trois valeurs **absentes** de la table `notifications`.
+Valeurs réelles : `EVENT_CREATED` (311), `INVITATION_RECEIVED` (11),
+`FORM_SUBMITTED` (1). Donc 100 % des notifications affichaient l'icône
+générique. Correction : les trois types réels produisent une icône distincte ;
+sélection isolée dans `notifIconKey()` (testable sans rendu).
+Preuve : `src/pages/__tests__/Notifications-icon.test.tsx` 3/3.
+
+### 5. T2 (sauvegardes) — vérifié
+
+Les exports logiques existent toujours et sont intègres
+(`/workspace/backups/schema-20261022-1801.sql` 125 Ko / 3 828 lignes ;
+`data-20261022-1802.sql` 1,1 Mo / 4 730 lignes). Sauvegardes Supabase
+classiques impossibles en plan gratuit → alternative retenue (export
+`supabase db dump` + rotation documentée). Reste propriétaire : planifier
+l'export (P31) et tester une restauration.
+
+### Note d'exécution
+
+La suite Cypress a été lancée **avant** ces correctifs : le serveur Vite en
+mode dev a rechargé les sources modifiées à chaud (HMR) en cours de run. Ce
+run ne vaut donc que comme **détecteur de défauts** ; la validation finale
+sera faite sur code gelé, par une nouvelle exécution complète.
