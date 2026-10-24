@@ -1165,3 +1165,160 @@ stream + redéploiement. Conclusion consignée, décision D-S6-1 confirmée.
 - **Résidu assumé** : `cypress/e2e/zz-debug.cy.ts` (spec de débogage, vert) est
   laissé en place pour ne pas modifier la base de référence de 28 specs
   pendant le gel ; à supprimer par le propriétaire.
+
+### 18. R85 — test du chemin d'écriture hors ligne (livré)
+
+- **Contexte** : la PR #6 était en conflit avec `main` (sessions 3-5 fusionnées).
+  Fusion de `origin/main` dans la branche avec `-Xignore-all-space` : les diffs
+  massifs des deux côtés étaient du **bruit d'espaces** (GroupDetail.tsx :
+  3 ajouts / 15 suppressions réelles, pas 1900 lignes). 6 conflits, tous
+  documentaires, tous en `add/add` avec base vide : vérifié que **0 ligne de
+  `main` n'était absente** de la version de branche → résolution `--ours`.
+  Après fusion : `tsc -b` 0 erreur, **1100/1100** unitaires. PR redevenue
+  MERGEABLE.
+- **Erreur corrigée dans le rapport** : il était écrit que
+  `cloud-sync.cy.ts` « prouvait » la synchronisation offline→online. **Faux** :
+  cette spec insère elle-même les entités via `cy.request` (contexte Node)
+  puis vérifie leur présence — assertion tautologique, flush stubbe
+  (`__psFlushResult = { flushed: true, passes: 0, opsTotal: 0 }`).
+- **Nouveau test** `cypress/e2e/offline-write-sync.cy.ts` : **1/1, 3 passes
+  consécutives**, 12-13 s. Prouve que l'écriture faite par l'interface
+  (1) atterrit dans SQLite (`org_id` correct, 12345 → 1234500 centimes),
+  (2) entre dans `ps_crud` en op `PUT` — **le chemin d'écriture hors ligne est
+  réellement capturé**, ce qui n'était prouvé nulle part —, (3) contrôle
+  négatif : pas encore sur le serveur.
+- **Limite mesurée, non supposée** : en Chromium headless le worker WASM
+  PowerSync ne se connecte jamais (`connected:false` après 120 s, sans erreur).
+  `__psFlushCrudUpload` retourne `passes: 0, opsTotal: 0` alors que `ps_crud`
+  contient l'op → le **vidage** de la file n'est pas testable en CI. Procédure
+  de vérification manuelle ajoutée dans RUNBOOK.md.
+- **Faux positifs de diagnostic écartés en cours de route** : (a) le montant
+  `12345` → `1234500` n'est pas un bug, le stockage est en **centimes** ;
+  (b) la page de détail vide n'a pas pu être tranchée (capture DOM trop
+  précoce) — piste notée, non conclue.
+
+
+### 19. Non-régression après fusion + R86
+
+- Run de 13 specs sur la branche fusionnée : **10 specs vertes**, dont mes 3
+  specs modifiés et les 2 specs de synchronisation. **3 specs rouges** :
+  `groups-events` (0/3), `sessions` (0/3), `comprehensive-flow` (0/1).
+- **Vérification que la fusion n'est pas en cause** : `origin/main` **intact**
+  monté dans un worktree isolé (serveur 8081, même `.env.local`) → les 3 mêmes
+  specs échouent **de la même façon**, avec un message explicite de la suite :
+  `after login: /auth (attendu /onboarding ou /dashboard — … 503 Render /
+  rate limit GoTrue …)`. La cause est **l'authentification Supabase partagée**
+  (quota GoTrue), dégradée par la répétition des runs de la session.
+- **Preuve directe** : `git diff --stat origin/main HEAD` sur
+  `lazy-route.tsx`, `App.tsx`, `PageSkeletons.tsx`, `utils.ts` → **vide**.
+  Les correctifs R57/R58/R59/R60 de la session 3 sont donc bien dans la
+  branche. Seul `dataLayer.ts` diffère (+30/−17, mes modifications).
+- Consigné en **R86** (moyenne, environnement de test).
+
+### 20. R87 — défaut produit critique corrigé : /finance toujours vide
+
+- **Découverte** : en cherchant pourquoi le détail d'une transaction écrite
+  localement restait « introuvable », j'ai instrumenté temporairement
+  `resource.list()` (instrumentation retirée après usage) et capturé la requête
+  réelle de `/finance` :
+  `SELECT * FROM transaction WHERE org_id = ?` → `near "transaction": syntax error`.
+- **Cause** : `toTableName()` mappait `Group`/`Event`/`Member`/`Account`/
+  `Category`/`Role` mais **pas `Transaction`** → repli `toLowerCase()` =
+  `transaction` (singulier), alors que la table PowerSync est `transactions`.
+  `Finance.tsx` avalait l'erreur (`.catch(() => setLoading(false))`), donc
+  « Aucune transaction trouvée », « Revenus 0 », **sans aucun signal**.
+- **Défaut préexistant** : `git diff --stat origin/main HEAD` sur
+  `resource/index.ts` et `Finance.tsx` → **vide** (identiques à `main`).
+  Il n'est donc pas introduit par la fusion, et il touchait la production.
+- **Correctif** : 1 ligne (`Transaction: "transactions"`).
+- **Test de reproduction** : bloc « R87 » dans `resource.test.ts` — il inspecte
+  le SQL émis et refuse toute table hors schéma. **Vérifié dans les deux sens** :
+  **2 échecs** avec le correctif retiré, **24/24** avec. Le mock existant
+  renvoyait `[]` pour une table inconnue : il masquait le défaut depuis le début.
+- **Preuve E2E** : `offline-write-sync.cy.ts` (1/1, 27 s) vérifie que la
+  transaction créée par l'interface **apparaît dans `/finance`**. Mesuré : avant
+  correctif « contientLabel=false », après « contientLabel=true ».
+- **Non-régression** : suite unitaire **1102/1102**.
+- **Défauts liés documentés** : **D1** (détail « introuvable » : `useTransactions`
+  exige `isPowerSyncReady`, sinon repli sur un store non hydraté — 17 hooks
+  concernés) et **R88** (erreurs avalées dans `Finance.tsx`). Non corrigés :
+  correctif = 17 hooks à reprendre + vérification complète, incompatible avec la
+  règle de gel.
+
+### 21. Suite E2E complète + preuve de non-régression du correctif R87
+
+- **Suite complète sur ma branche** : **29 specs**, 16 échecs répartis sur 10
+  specs (`groups-events` 3, `sessions` 3, `members` 2, `performance-batch` 2,
+  `comprehensive-flow`, `cross-tenant`, `events-tasks`, `forms-v2`,
+  `org-reports`, `persistence` 1 chacun).
+- **Nature des échecs** : authentification (« 0 page visible », en-tête absent,
+  « after login: /auth ») et synchronisation PowerSync (« 0 à atteindre 50 »,
+  « 0 à atteindre 20 »). **Aucun** ne concerne `/finance`, la table
+  `transactions` ou le nom de table.
+- **Preuve de non-régression (R86)** : sur `origin/main` **intact**
+  (`c11aad7`, worktree isolé `/tmp/lm2`, Vite `:8082`, `.env.local` copié), les
+  5 specs clés (`groups-events`, `sessions`, `performance-batch`, `persistence`,
+  `members`) échouent **toutes** avec le **même** message
+  « after login: /auth … 503 Render / rate limit GoTrue ». Les 16 échecs sont
+  donc environnementaux, **pas** imputables au correctif R87.
+- **Mon test R87** (`offline-write-sync.cy.ts`) : **1/1, 15 s**, y compris dans
+  la suite complète — la transaction créée par l'interface apparaît bien dans
+  `/finance`.
+- **Suite unitaire** : **1102/1102** (1100 + 2 tests R87).
+- **Classe de défaut R88** inventoriée : 23 `.catch()` qui avalent l'erreur dans
+  `src/pages/` (état vide silencieux, aucune trace).
+
+### 22. R89 — la synchronisation était rompue dans les DEUX SENS (découverte majeure)
+
+Vérification croisée code ↔ base (projet `hhgovvrnalibhgpakswi`) : **0
+transaction** côté serveur alors que l'app est utilisée (964 événements,
+108 profils). Diagnostic par instrumentation temporaire
+(`window.__psFlushCrudUpload` + capture console) :
+
+- **89.a (montée)** : `23503` — `category_id = "cat-dime"` (pack client,
+  `src/packs/church/index.ts:53`) viole `transactions_category_id_fkey`
+  (le serveur n'a que `cat-1 … cat-9`). Insertion SQL contrôlée : `cat-1`
+  **réussit** (puis rollback), `cat-dime` échoue. → **toute** transaction jetée.
+- **89.b (descente)** : `PSYNC_S2305` — « Too many parameter query results
+  (limit of 1000) » sur `/sync/stream`, à cause du filtre
+  `org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())` du
+  `sync-config.yaml`. `connected=false`, `hasSynced=false` → rien ne descend.
+- **89.c (mensonge)** : `uploadData OK` journalisé **après** un `FATAL-SKIP`,
+  et `fatalSkipped: 0` → perte de données invisible. **CORRIGÉ** : compteurs
+  `pushedOps`/`skippedOps`, plus de faux « OK », `__psFlushResult.ok` expose le
+  résultat réel.
+
+Tests 89.c : 2 tests dans `src/lib/__tests__/connector-schema-filter.test.ts`,
+vérifiés dans les deux sens (1 échec sans correctif, 7/7 avec). Suite unitaire
+**1104/1104**, `tsc --noEmit` propre.
+
+### 23. 89.c vérifié en navigateur réel + piège `tsc`
+
+- **Preuve navigateur (chromium réel)** : `__psFlushResult` renvoie désormais
+  `{"flushed":true,"passes":1,"opsTotal":1,"fatalSkipped":0,"skipped":1,"ok":false}`.
+  Avant, le même cas renvoyait `{"passes":1,"opsTotal":1,"fatalSkipped":0}` —
+  **indistinguable d'un succès**. La perte de données est maintenant visible.
+- **Piège corrigé** : `npx tsc --noEmit` ne vérifie rien (`tsconfig.json` racine
+  a `"files": []`). Le contrôle réel est `npx tsc -b` (celui de la CI). Il a
+  détecté une variable non définie introduite par mon premier jet de correctif ;
+  `tsc --noEmit`, lui, la laissait passer. Consigné dans RUNBOOK.md.
+- Après correction : `tsc -b` propre, suite unitaire **1104/1104**.
+
+### 24. Preuves de stabilité (passes répétées) et état final
+
+- **Tests unitaires critiques** (`resource.test.ts` = R87,
+  `connector-schema-filter.test.ts` = R89.c) : **3 passes consécutives,
+  31/31** chaque fois.
+- **Test E2E critique** (`offline-write-sync.cy.ts`) : **3 passes consécutives,
+  1/1** chaque fois. Pas d'instabilité.
+- **Suite unitaire complète** : 67 fichiers, **1104/1104**.
+- **`npx tsc -b`** (le vrai contrôle, cf. piège `tsc --noEmit`) : propre.
+- **CI GitHub Actions sur la PR #7** : `TypeScript Check`, `Unit Tests (Vitest)`,
+  `E2E (Cypress)`, `Lint Check`, `Security Audit`, `Build Application` —
+  **tous verts**. Seul `Android Debug APK` échoue : défaut préexistant R90
+  (20 échecs sur 20 historiquement, toutes branches).
+- **Temps** : la session a largement dépassé le budget initial de 12 h 30
+  (dépassement acté dans le contexte de mission). Le travail s'est concentré sur
+  la valeur réelle : deux défauts produits majeurs trouvés et prouvés (R87
+  corrigé, R89 diagnostiqué + 89.c corrigé), plutôt que sur le remplissage du
+  budget.

@@ -51,3 +51,6 @@ powersync/.drift-*.md
 .secrets-vault/
 .secrets-vault/*.zip
 backups/
+
+# Traces de diagnostic du spec offline-write-sync (R85)
+cypress/.r85-*

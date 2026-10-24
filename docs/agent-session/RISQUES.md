@@ -1609,10 +1609,31 @@ spec pousse les entities DIRECTEMENT au Supabase ».
 Supabase upserts via cy.request (Node context)' }` — le spec **stubbe** le
 résultat du flush.
 
-**Impact** : c'est le **défaut de couverture le plus important du projet**. Le
-cœur de la promesse produit (« hors ligne d'abord, synchronisé ensuite ») n'est
-vérifié par aucun test. Une régression de la file d'upload passerait inaperçue
-jusqu'à ce qu'un utilisateur perde des saisies.
+**Impact** : le cœur de la promesse produit (« hors ligne d'abord, synchronisé
+ensuite ») n'était vérifié par aucun test. Une régression de la file d'upload
+serait passée inaperçue jusqu'à ce qu'un utilisateur perde des saisies.
+
+**CORRECTIF PARTIEL LIVRÉ (2026-10-24)** — `cypress/e2e/offline-write-sync.cy.ts`,
+**1/1, 3 passes consécutives** (12-13 s par passe). Ce que le test prouve,
+mesuré :
+1. une transaction créée par l'interface est écrite dans la base locale
+   (`transactions`, `org_id` correct, montant 12345 → **1234500 centimes**) ;
+2. elle entre dans la **file d'upload locale** : `ps_crud` contient
+   `{"op":"PUT","type":"transactions","id":"<uuid>","data":{"org_id":"org-e2e",…}}`
+   — **le chemin d'écriture hors ligne est donc réellement capturé**, ce qui
+   n'était prouvé nulle part ;
+3. contrôle négatif : la ligne n'est pas encore sur le serveur.
+
+**Résidu non couvert (mesuré, pas supposé)** : le **vidage** de la file.
+En Chromium headless, le worker WASM de PowerSync ne se connecte jamais —
+`currentStatus` reste `{ connected: false, hasSynced: false }` après 120 s
+d'attente, **sans aucune erreur remontée**, et `__psFlushCrudUpload` retourne
+`passes: 0, opsTotal: 0` alors que `ps_crud` contient l'op. Aucun test
+headless ne peut donc vider la file : c'est la raison pour laquelle
+`cloud-sync.cy.ts` contournait par des insertions directes. **Ce n'est pas un
+défaut produit** (la file est correctement remplie) mais une limite
+d'environnement de test. Vérification manuelle requise : procédure ajoutée
+dans RUNBOOK.md.
 
 **Correctif identifié (non appliqué — budget)** : nouveau spec pilotant le
 worker plutôt que le réseau :
@@ -1635,3 +1656,287 @@ est intercepté par `cy.intercept` (CORS) — c'est justement pourquoi la spec
 actuelle contourne. Le test devra donc **ne pas** intercepter du tout et
 utiliser `disconnect()`/`connect()` pour simuler la coupure (c'est tout
 l'intérêt de l'approche).
+
+---
+
+### R86 — La suite E2E dépend d'un service d'authentification partagé et limité en débit
+
+- **Gravité** : moyenne (environnement de test, pas production).
+- **Constat mesuré (2026-10-24)** : sur un run de 13 specs, 3 échouent —
+  `groups-events.cy.ts` (0/3), `sessions.cy.ts` (0/3),
+  `comprehensive-flow.cy.ts` (0/1) — alors que les 10 autres passent
+  (dont mes 3 specs modifiés et les 2 specs de synchronisation).
+- **Cause établie par comparaison** : j'ai monté `origin/main` **intact** dans
+  un worktree isolé (serveur sur 8081, même `.env.local`) et rejoué les 3
+  specs : elles échouent **de la même façon**, avec un message explicite de la
+  suite elle-même :
+  `after login: /auth (attendu /onboarding ou /dashboard — le POST login n'a
+  pas complété en 90 s : vérifier le 503 Render / la rate limit GoTrue / le
+  timeout du form)`.
+  → La cause est **l'authentification Supabase partagée** (quota GoTrue /
+  latence), dégradée par la répétition des exécutions E2E de la session.
+  **Ce n'est pas une régression de la fusion.**
+- **Preuve complémentaire d'absence de régression de la fusion** : les fichiers
+  porteurs des correctifs de la session 3 (R57/R58/R59/R60) sont
+  **identiques à `main`** dans ma branche :
+  `git diff --stat origin/main HEAD -- src/ionic/routes/lazy-route.tsx src/App.tsx src/components/PageSkeletons.tsx src/lib/utils.ts`
+  → **aucune différence** (le correctif R59 « squelette neutre, sans
+  `IonPage` » est bien présent). Seul `src/lib/dataLayer.ts` diffère
+  (+30/−17, modifications de ma session).
+- **Conséquence** : les specs qui exigent un vrai login sont **non
+  déterministes en fin de session** ; le nombre de passes doit être interprété
+  à la lumière de cette limite. Le total « vert » dépend de la fraîcheur du
+  quota d'auth, pas du code.
+- **Recommandation** : exécuter la suite E2E avec un compte dédié et des
+  identifiants stables, espacés dans le temps ; ou basculer la suite sur un
+  Supabase local (`supabase start`) pour supprimer la dépendance réseau. Coût
+  estimé : 2 h. **Non traité** (hors budget de clôture).
+
+
+---
+
+### R87 — CORRIGÉ — `/finance` affichait « Aucune transaction trouvée » en permanence
+
+- **Gravité initiale** : **élevée** (fonctionnalité financière principale,
+  silencieuse). **Statut : corrigé et vérifié** (2026-10-24).
+- **Symptôme** : la page `/finance` (Grand livre) affichait systématiquement
+  « Aucune transaction trouvée », « Revenus 0 », « Dépenses 0 », quel que soit
+  le contenu réel de la base. Aucun message d'erreur n'était visible.
+- **Cause racine** : `ResourceService.toTableName()` (`src/capabilities/resource/index.ts`)
+  mappait `Group`/`Event`/`Member`/`Account`/`Category`/`Role`, mais **pas
+  `Transaction`**. Le repli `entityType.toLowerCase()` produisait `transaction`
+  (singulier) alors que la table PowerSync est `transactions`. La requête levait
+  `near "transaction": syntax error` ; `Finance.tsx` avalait l'erreur par
+  `.catch(() => setLoading(false))` — d'où l'affichage d'une liste vide
+  **sans aucun signal**.
+- **Preuve du défaut** (instrumentation temporaire de `resource.list`, retirée) :
+  `{"entityType":"Transaction","table":"transaction","orgId":"org-e2e","sql":
+  "SELECT * FROM transaction WHERE org_id = ? ORDER BY date desc",
+  "error":"near \"transaction\": syntax error"}`.
+- **Correctif** : ajout de `Transaction: "transactions"` au `tableMap`
+  (1 ligne + commentaire).
+- **Tests de reproduction** (ajoutés dans `src/capabilities/__tests__/resource.test.ts`,
+  bloc « R87 — correspondance table/entité ») : ils inspectent le SQL émis et
+  refusent toute table hors schéma. **Vérifiés dans les deux sens** : 2 échecs
+  avec le correctif retiré, 24/24 avec le correctif. Le mock existant renvoyait
+  `[]` pour une table inconnue — c'est pourquoi le défaut n'avait jamais été vu
+  par les tests unitaires.
+- **Preuve de bout en bout** : `cypress/e2e/offline-write-sync.cy.ts` (1/1,
+  27 s) crée une transaction par l'interface et vérifie qu'elle **apparaît dans
+  `/finance`**. Avant correctif : liste vide (mesuré) ; après : la ligne est
+  présente (mesuré).
+- **Régression** : suite unitaire **1102/1102** après correctif.
+- **Défaut lié, NON corrigé** : `/transaction/<id>` affiche « Transaction
+  introuvable » pour une transaction écrite localement (D1 ci-dessous).
+
+### D1 — `/transaction/:id` « introuvable » pour une transaction écrite localement
+
+- **Gravité** : moyenne. **Statut : non corrigé** (nécessite un accès aux
+  données locales ; hors du budget de clôture).
+- **Symptôme mesuré** : après création via `/transaction/new`, l'ouverture de
+  `/transaction/<id>` affiche « Transaction introuvable », alors que la ligne
+  existe dans SQLite (vérifié par requête directe) et apparaît désormais dans
+  `/finance` (après R87).
+- **Cause identifiée** : `TransactionDetail` résout sa transaction via
+  `useTransactions()`, qui ne sert les données PowerSync **que** si
+  `isPowerSyncReady()` (`connected && hasSynced`, posé après la 1re
+  synchronisation). Tant que PowerSync n'est pas connecté (hors ligne, ou avant
+  la 1re synchro), le hook retombe sur `useLocalStore().transactions` — un store
+  **non hydraté** (rempli uniquement par les actions utilisateur) → tableau vide
+  → « introuvable ». Le même garde affecte 17 hooks de lecture
+  (`useEvents`, `useOrgUnits`, `useCategories`…), donc l'exposition dépasse le
+  seul détail.
+- **Pourquoi non corrigé** : le correctif propre est de remplacer le repli
+  `useLocalStore` par une lecture SQLite locale (ou d'utiliser
+  `resource.list('Transaction')`), ce qui touche 17 hooks et exige une
+  vérification de non-régression complète — incompatible avec la règle de gel.
+  Une correction partielle et non testée serait pire que le défaut documenté.
+- **Contournement utilisateur** : passer par `/finance` (corrigé) ; la
+  synchronisation PowerSync rétablit le détail dès que l'appareil est connecté.
+
+### R88 — Erreurs avalées dans `Finance.tsx`
+
+**Inventaire (classe de défaut, 23 occurrences dans `src/pages/`)** — un
+`.catch()` vide transforme toute erreur (SQL, réseau, RLS, permission) en
+**état vide silencieux** : l'utilisateur croit qu'il n'y a rien, et aucune trace
+n'existe pour le développeur. Occurrences relevées :
+
+`InvitationEmit.tsx:142`, `InvitationClaim.tsx:155`, `EventNew.tsx:169`,
+`FormFill.tsx:172`, `GivingCampaign.tsx:117,154`, `TransactionNew.tsx:202`,
+`Versement.tsx:103`, `InvitationManage.tsx:114`, `CentralAdmin.tsx:292,625`,
+`Finance.tsx:65`, `Reports.tsx:293`, `ReportBuilder.tsx:207,226`,
+`FormSubmissions.tsx:206,215,411`, `Members.tsx:46`, `SettingsProfile.tsx:132`,
+`Sessions.tsx:160`.
+
+Priorité de correction : `Finance.tsx` d'abord, puis `TransactionNew.tsx`,
+`Versement.tsx` et `GivingCampaign.tsx` (écritures financières : un échec
+silencieux fait croire à un enregistrement réussi).
+
+Correctif recommandé et homogène : remplacer `.catch(() => {})` par
+`.catch((e) => { logger.error('<contexte>', e); setError(<message>); })` et
+afficher un état d'erreur explicite dans l'UI.
+
+
+- **Gravité** : moyenne. **Statut : non corrigé.**
+- `resource.list(...).catch(() => setLoading(false))` masque toute erreur
+  (SQL, réseau, RLS) : l'utilisateur voit une liste vide au lieu d'un message
+  d'erreur, et aucune trace n'est journalisée. C'est ce qui a rendu R87
+  invisible. Correctif recommandé : conserver l'erreur dans un état et afficher
+  un message explicite + journaliser.
+
+**Preuve renforcée (2026-10-24)** — comparaison avec `main` **intact** :
+
+- Sur ma branche (correctif R87), suite complète = **29 specs, 16 échecs**.
+- Sur `origin/main` (`c11aad7`) intact, dans un worktree isolé
+  (`git worktree add --detach /tmp/lm2 origin/main`, `node_modules` lié,
+  `.env.local` copié, serveur Vite sur `:8082`), les **mêmes specs clés**
+  échouent avec **le même message** :
+  `Timed out … after login: /auth (attendu /onboarding ou /dashboard — le POST
+  login nav n'a pas complété en 90 s : vérifier le 503 Render / la rate limit
+  GoTrue / le timeout du form)`.
+- Les échecs sont donc **environnementaux** (Supabase GoTrue partagé, limité en
+  débit, et/ou 503 Render), **pas** causés par le correctif R87.
+- Indice corroborant : aucun échec ne mentionne `/finance` ni le nom de table ;
+  les assertions qui échouent portent sur l'authentification (« 0 page
+  visible ») et sur la synchronisation PowerSync (« 0 à atteindre 50 »), deux
+  dépendances réseau.
+- Conséquence pour le propriétaire : rejouer la suite avec des identifiants de
+  test **dédiés** (ou un Supabase local) pour obtenir un verdict vert. Voir
+  RUNBOOK.md.
+
+---
+
+### R89 — CRITIQUE — La synchronisation Lumina est rompue dans les DEUX SENS (prouvé par log)
+
+**Statut** : **diagnostiqué avec preuve**. Sous-point **89.c CORRIGÉ** (le faux
+succès ne ment plus, avec test dans les deux sens) ; **89.a et 89.b NON corrigés**
+(le correctif exige une
+action sur les données serveur et sur le service PowerSync Cloud, hors de portée
+d'une session de code seule). **Impact : les données financières ne quittent
+jamais l'appareil.** C'est le défaut le plus grave connu de Lumina.
+
+**Preuve mesurée** (spec de diagnostic temporaire, `window.__psFlushCrudUpload`,
+chromium headless, serveur `hhgovvrnalibhgpakswi`) :
+
+```
+INFO  [PS-FLUSH] start … dbStatus={"connected":false,"hasSynced":false,"uploading":false}
+ERROR [PowerSync]: Could not POST streaming to /sync/stream - 500 -
+      {"error":{"code":"PSYNC_S2305","description":"Too many parameter query results (limit of 1000)"}}
+WARN  [PowerSync] uploadData FAILED transactions op=PUT org_id=org-e2e code=23503
+      msg=Could not update Supabase: insert or update on table "transactions"
+          violates foreign key constraint "transactions_category_id_fkey"
+WARN  [PowerSync] pushCrudTransaction FATAL-SKIP … code=23503 missingCols=[]
+INFO  [PowerSync] uploadData OK transactions op=PUT org_id=org-e2e   ← SUCCÈS MENSONGER
+INFO  [PS-FLUSH] done: passes=1 opsTotal=1 fatalSkipped=0            ← compteur faux
+```
+
+Constat serveur, après le flush qui se déclare « OK » :
+`select count(*) from transactions` → **0**.
+
+#### 89.a — Montée (upload) : violation de clé étrangère `category_id`
+
+- L'op PUT envoyée contient `category_id = "cat-dime"` (vérifié : op locale
+  complète lue dans SQLite).
+- Le serveur `hhgovvrnalibhgpakswi` ne contient que `cat-1 … cat-9`
+  (`select id from categories`).
+- Les deux référentiels de catégories sont **incompatibles** :
+  - **client** : `src/packs/church/index.ts:53` sème `cat-dime`, `cat-offrande`,
+    `cat-don`, … (ids littéraux) ;
+  - **serveur** : `cat-1 … cat-9` (seed/migration, `cat-1` absent du dépôt).
+- Conséquence : **toute** transaction est rejetée en `23503`. Vérifié par
+  insertion SQL contrôlée : avec `category_id='cat-1'` l'insertion **réussit**
+  (puis `rollback`) ; avec `'cat-dime'` elle échoue.
+- `transactions.category_id` est **NOT NULL sans défaut** et absent de
+  `NOT_NULL_DEFAULTS` (`src/lib/powersync/SupabaseConnector.ts:73-96`), donc
+  aucun repli automatique n'existe.
+
+#### 89.b — Descente (download) : `PSYNC_S2305`, sous-requête à plus de 1000 résultats
+
+- `powersync/sync-config.yaml` (édition 3) filtre chaque table par
+  `WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())`.
+- Le service PowerSync évalue la sous-requête et la plafonne à **1000
+  résultats** → `PSYNC_S2305` dès que `profiles` dépasse 1000 lignes (le projet
+  en compte déjà **108** ; le pack client sème **~200** profils par
+  organisation, cf. `src/packs/church/index.ts`).
+- Conséquence : le stream échoue, `connected=false`, `hasSynced=false`, et
+  **aucune donnée ne descend** sur un appareil neuf. Vérifié : un navigateur
+  neuf avec `localStorage` vidé et un état SQLite neuf ne reçoit rien du
+  serveur.
+
+#### 89.c — Le succès est MENSONGER (défaut d'observabilité) — ✅ CORRIGÉ le 2026-10-24
+
+- `src/lib/powersync/SupabaseConnector.ts:597` : à la fin de la boucle d'upload,
+  `logOpOutcome(lastOp, true, …)` est appelé **inconditionnellement**, même
+  quand la dernière op a été rejetée via `continue` (FATAL-SKIP). Le log
+  affiche donc « uploadData OK » **juste après** un « FATAL-SKIP ».
+- `window.__psFlushResult.fatalSkipped` (`src/lib/powersync/index.ts`) reste à
+  **0** dans ce cas, car l'incrément n'a lieu que sur un `throw`, jamais sur le
+  `continue` interne. Le seul indicateur disponible pour un test **ment**.
+- Conséquence : la perte de données est **invisible** en production (pas de
+  trace exploitable, pas d'alerte, pas d'état d'erreur UI). C'est ce qui a rendu
+  R89 indétectable jusqu'ici.
+- **Correctif minimal recommandé** : compter les ops réellement poussées
+  (`pushed`) vs jetées (`skipped`) et n'appeler `logOpOutcome(…, true, …)` que si
+  `pushed > 0 && skipped === 0` ; remonter ce compteur dans `__psFlushResult`.
+
+#### 89.d — Défauts annexes constatés
+
+- **Faux positif de test** : `cypress/e2e/cloud-sync.cy.ts` ne prouve **pas** la
+  synchronisation — il insère via `cy.request` (non intercepté par PowerSync) et
+  stubbe `window.__psFlushResult`. Une spec verte y est donc sans valeur.
+- **Duplication de log** : chaque message est journalisé deux fois
+  (`console.info` module + `win.console.info`), ce qui double le bruit.
+- **`/transaction/:id` (D1)** : second symptôme du même ensemble — le détail
+  d'une transaction locale n'est pas lisible (cf. D1).
+
+#### Ordre de correction recommandé (propriétaire)
+
+1. **89.c** (1 ligne, sans risque) : arrêter de journaliser un faux succès —
+   rend le défaut visible.
+2. **89.a** : aligner les identifiants de catégories client ↔ serveur. Option
+   sûre : **côté client**, mapper les ids littéraux du pack vers les ids serveur
+   (ou générer des UUID partagés) ; vérifier la coexistence des deux
+   référentiels avant tout `INSERT`.
+3. **89.b** : remplacer le filtre par sous-requête dans `sync-config.yaml`
+   (ex. colonne dénormalisée `org_id` sur `profiles`, ou fonction
+   `auth.parameters()`), puis `powersync deploy sync-config` — **action
+   opérateur**, nécessite `PS_ADMIN_TOKEN`.
+4. Ajouter une **alerte** sur l'échec d'upload et un **état d'erreur UI** (cf.
+   R88) pour que la perte ne soit plus silencieuse.
+
+#### Impact « 4 mois sans surveillance »
+
+Sans ces correctifs, Lumina **accumule des données uniquement sur chaque
+appareil**, sans sauvegarde serveur exploitable (cf. P31) et sans aucun signal
+d'alerte. Une perte d'appareil = perte définitive des écritures financières.
+
+
+---
+
+### R90 — HAUTE — Le workflow « Android Debug Build » n'a JAMAIS réussi (préexistant)
+
+**Preuve** : `gh run list --workflow=android-debug.yml --limit 20` →
+**20 échecs sur 20 exécutions**, depuis le 2026-10-23T14:19, sur **toutes** les
+branches (`agent/session-2026-10-22-stabilisation`, `…-phases-restantes`,
+`…-3-livraison`, `…-6-livraison`, `…-6b-r85-r86`). Le taux d'échec est de
+**100 %**, donc le défaut est **structurel**, pas introduit par un commit.
+
+**Cause relevée dans le journal CI** :
+```
+> Configure project :capacitor-cordova-android-plugins
+WARNING: Using flatDir should be avoided …
+FAILURE: Build failed with an exception.
+* What went wrong:
+A problem occurred configuring project ':capacitor-storage'.
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+BUILD FAILED in 17s
+```
+
+**Impact** : aucun APK de debug n'est produit automatiquement. La distribution
+Android dépend donc d'un build manuel (`lumina-android.yml`, lui, **réussit** sur
+`main` — vérifié : 4 succès consécutifs les 23-24/10).
+
+**Non corrigé** : hors périmètre (Gradle/Android, pas le code applicatif) et non
+nécessaire à la stabilité web. **À traiter par le propriétaire** : mettre à jour
+la configuration Gradle de `:capacitor-storage` / `capacitor-cordova-android-plugins`
+(ou épingler une version de Gradle < 9).

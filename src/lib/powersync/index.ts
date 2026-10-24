@@ -162,8 +162,26 @@ function publishDevDiagnostics() {
           break;
         }
       }
-      const result = { flushed: true, passes, opsTotal, fatalSkipped };
-      log("info", `[PS-FLUSH] done: passes=${passes} opsTotal=${opsTotal} total=${Date.now() - t0}ms`);
+      const lastUpload = (winForLog as any)?.__psLastUpload as
+        | { pushed: number; skipped: number }
+        | undefined;
+      const skipped = fatalSkipped + (lastUpload?.skipped ?? 0);
+      const result = {
+        flushed: true,
+        passes,
+        opsTotal,
+        fatalSkipped,
+        // Résultat RÉEL de la dernière transaction poussée : `skipped > 0`
+        // signifie qu'au moins une op a été jetée (donnée PERDUE). Sans ce
+        // champ, un appelant ne peut pas distinguer un vrai succès d'une
+        // perte silencieuse (cf. R89.c).
+        skipped,
+        ok: skipped === 0 && fatalSkipped === 0,
+      };
+      log(
+        "info",
+        `[PS-FLUSH] done: passes=${passes} opsTotal=${opsTotal} skipped=${skipped} ok=${result.ok} total=${Date.now() - t0}ms`,
+      );
       const w2 = winForLog as Record<string, unknown> | null;
       if (w2) w2.__psFlushResult = result;
     };

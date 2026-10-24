@@ -256,3 +256,116 @@ DROP TABLE public._jsonb_backfill_20261024;
 C'est sans risque une fois le rattrapage validé, et cela libère l'alerte
 `rls_enabled_no_policy` que l'Advisor Supabase signale pour cette table.
 
+
+---
+
+## Vérifier la synchronisation hors ligne dans un vrai navigateur
+
+Le vidage de la file d'upload PowerSync **ne peut pas être testé en CI**
+(worker WASM gelé en headless). À vérifier à la main après toute modification
+touchant `src/lib/powersync/` ou `src/lib/dataLayer.ts` :
+
+1. Ouvrir l'application dans un navigateur **normal** (pas headless) et se
+   connecter.
+2. Attendre l'indicateur de synchronisation (il doit passer à « en ligne »).
+   Si besoin, inspecter en console : `__psDb.currentStatus` doit montrer
+   `connected: true` et `hasSynced: true`.
+3. Créer une transaction : `/transaction/new`, montant `12345`, description
+   `verif-sync-<horodatage>`.
+4. Attendre ~40 s (cycle d'upload du worker).
+5. Contrôler la file locale — elle doit être **vide** :
+   ```js
+   await __psDb.getAll('SELECT * FROM ps_crud')   // → []
+   ```
+6. Contrôler le serveur (SQL) : la ligne doit exister.
+   ```sql
+   select id, amount, org_id, description
+   from transactions
+   where description like 'verif-sync-%'
+   order by created_at desc limit 5;
+   ```
+   Le montant attendu est **en centimes** (12345 saisi → `1234500`).
+7. En cas d'échec : lire `__psDb.currentStatus.uploadError` et
+   `downloadError`. Une op qui reste dans `ps_crud` signale un rejet côté
+   serveur (RLS, contrainte, ou `org_id` invalide — vérifier que
+   `lumina-active-org` correspond bien à l'organisation de l'utilisateur).
+
+Le test automatisé `cypress/e2e/offline-write-sync.cy.ts` couvre les étapes 3
+et 5 **partiellement** (écriture locale + présence dans `ps_crud`), mais pas
+le vidage.
+
+```bash
+npx cypress run --e2e --browser chromium \
+  --spec cypress/e2e/offline-write-sync.cy.ts
+```
+
+## Vérifier le type (piège de l'environnement)
+
+- **`npx tsc --noEmit` ne vérifie RIEN** dans ce dépôt : `tsconfig.json` a
+  `"files": []` (config racine « solution »), donc aucune source n'est incluse.
+  Il sort toujours en succès.
+- Le contrôle réel (celui de la CI, `typecheck`) est **`npx tsc -b`**. Il détecte
+  bien les erreurs de type dans `src/`.
+- Vérifié le 2026-10-24 : une variable non définie dans
+  `src/lib/powersync/index.ts` échappe à `tsc --noEmit` mais est bien signalée
+  par `tsc -b` (`error TS2552: Cannot find name …`).
+- Conséquence : toujours lancer `npx tsc -b` avant de conclure qu'un changement
+  est typé correctement.
+
+
+## Sauvegarder la base (P31) — plan gratuit, sans sauvegarde automatique
+
+Le plan Supabase **gratuit** ne fournit **pas** de sauvegarde automatique. Tant
+que le projet reste en gratuit, la sauvegarde est **manuelle et à la charge du
+propriétaire**. Procédure minimale :
+
+1. Récupérer la chaîne de connexion : tableau de bord Supabase →
+   *Project Settings* → *Database* → *Connection string* (mode `URI`, rôle
+   `postgres`, mot de passe de la base).
+2. Exporter **schéma + données** :
+   ```bash
+   pg_dump "$DATABASE_URL" --schema=public --no-owner --no-privileges \
+     -f "lumina-$(date +%Y%m%d-%H%M).sql"
+   ```
+   (`pg_dump` n'est pas installé dans cet environnement — voir ci-dessous.)
+3. Exporter les migrations du dépôt (référence de dérive) :
+   ```bash
+   supabase db dump -f schema-reference.sql
+   ```
+4. Stocker les deux fichiers **hors Supabase** (disque chiffré, stockage objet
+   privé) avec une rotation : garder au minimum 7 quotidiennes + 4 hebdomadaires.
+5. **Tester la restauration une fois par mois** sur une base jetable :
+   ```bash
+   psql "$RESTORE_URL" -f lumina-YYYYMMDD-HHMM.sql
+   ```
+   Une sauvegarde non testée n'est pas une sauvegarde.
+
+### Ce qui a été fait dans cette session
+
+- **Aucun `pg_dump` exécuté** : `pg_dump`/`psql`/`supabase` sont **absents** de
+  l'environnement, et aucun `DATABASE_URL` n'y est disponible (seules les clés
+  navigateur `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` sont présentes).
+  Le service MCP Supabase permet des requêtes SQL mais **pas** un `pg_dump`.
+- **Instantané de schéma** : `scripts/schema-snapshot.sql` existe déjà pour
+  produire le DDL de référence (à exécuter avec un accès SQL).
+- **À faire par le propriétaire** : brancher l'étape 2 sur une tâche planifiée
+  (cron GitHub Actions avec le secret `DATABASE_URL`) — cf. `PROPOSITIONS.md`
+  §P31.
+
+## Vérifier la synchronisation PowerSync (indispensable — cf. R89)
+
+L'app peut paraître fonctionnelle alors que **rien ne quitte l'appareil**
+(R89). Contrôle à faire régulièrement :
+
+1. Dans la console du navigateur, après connexion et création d'une donnée :
+   ```js
+   await window.__psFlushCrudUpload(5);
+   window.__psFlushResult;   // attendu : { ok: true, skipped: 0, opsTotal: >0 }
+   ```
+   `ok: false` ou `skipped > 0` = **des données ont été jetées**.
+2. Côté serveur, compter les lignes :
+   ```sql
+   select count(*) from transactions;   -- doit croître avec l'usage
+   ```
+3. Surveiller les erreurs de stream : `PSYNC_S2305` (R89.b) et
+   `23503` sur `transactions_category_id_fkey` (R89.a).

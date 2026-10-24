@@ -231,6 +231,76 @@ describe("resource capability", () => {
     });
   });
 
+  // ─── R87 — le nom de table doit correspondre au schéma réel ────
+  //
+  // Défaut préexistant : `Transaction` était absent du `tableMap`, le repli
+  // `entityType.toLowerCase()` produisait `transaction` (singulier) alors que
+  // la table PowerSync est `transactions`. En vrai SQLite la requête lève
+  // « no such table: transaction » ; l'erreur était avalée par les `.catch()`
+  // des pages, donc /finance affichait « Aucune transaction trouvée » en
+  // permanence, sans jamais signaler d'erreur.
+  //
+  // Le mock renvoyait `[]` pour une table inconnue : il ne pouvait pas
+  // détecter le défaut. Ces tests inspectent le SQL réellement émis.
+  describe("R87 — correspondance table/entité", () => {
+    const SCHEMA_TABLES = [
+      "transactions",
+      "groups",
+      "events",
+      "members",
+      "accounts",
+      "categories",
+      "org_units",
+    ];
+
+    const captureSql = async (entityType: string) => {
+      const seen: string[] = [];
+      const spy = vi
+        .spyOn(mockDb, "execute")
+        .mockImplementation(async (sql: string) => {
+          seen.push(sql);
+          return { array: [] };
+        });
+      try {
+        await resource.list(entityType);
+      } finally {
+        spy.mockRestore();
+      }
+      return seen;
+    };
+
+    it("list('Transaction') interroge `transactions`, jamais `transaction`", async () => {
+      const seen = await captureSql("Transaction");
+      expect(seen.length).toBeGreaterThan(0);
+      expect(seen.some((sql) => /FROM\s+transactions\b/.test(sql))).toBe(true);
+      expect(
+        seen.some((sql) => /FROM\s+transaction\b(?!s)/.test(sql)),
+        `SQL émis : ${seen.join(" | ")}`,
+      ).toBe(false);
+    });
+
+    it("tous les types d'entité produisent une table du schéma", async () => {
+      const types = [
+        "Transaction",
+        "Group",
+        "Event",
+        "Member",
+        "Account",
+        "Category",
+        "Role",
+      ];
+      const horsSchema: string[] = [];
+      for (const t of types) {
+        const seen = await captureSql(t);
+        for (const sql of seen) {
+          const m = sql.match(/FROM\s+(\w+)/i);
+          if (m && !SCHEMA_TABLES.includes(m[1])) horsSchema.push(`${t}: ${m[1]}`);
+        }
+      }
+      expect(horsSchema, `tables hors schéma : ${horsSchema.join(", ")}`).toEqual([]);
+    });
+  });
+
   // ─── list ──────────────────────────────────────────────────────
 
   describe("list", () => {

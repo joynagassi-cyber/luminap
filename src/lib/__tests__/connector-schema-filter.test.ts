@@ -20,6 +20,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { AppSchema } from "../powersync/schema";
+import { UpdateType } from "@powersync/web";
 import { buildSchemaColumns, NOT_NULL_DEFAULTS } from "../powersync/SupabaseConnector";
 
 describe("PowerSync connector — filtre de colonnes", () => {
@@ -68,5 +69,103 @@ describe("PowerSync connector — défauts NOT NULL", () => {
     const serialized = JSON.stringify(NOT_NULL_DEFAULTS);
     expect(serialized).not.toContain("org-e2e");
     expect(serialized).not.toContain("org-1");
+  });
+});
+
+/**
+ * R89.c — non-régression : un upload dont TOUTES les ops sont jetées (FATAL
+ * 23503/23502/42501) ne doit JAMAIS être journalisé comme un succès.
+ *
+ * Avant ce correctif, `pushCrudTransaction` appelait `logOpOutcome(…, true, …)`
+ * à la fin de la boucle même quand chaque op avait été `continue`-ée : le log
+ * affichait « uploadData OK » juste après un « FATAL-SKIP », et
+ * `__psFlushResult.fatalSkipped` restait à 0. La perte de données était donc
+ * invisible (c'est ce qui a masqué R89 pendant des mois).
+ */
+describe("PowerSync connector — R89.c, pas de faux succès d'upload", () => {
+  it("journalise un état dégradé (pas « OK ») quand toutes les ops sont jetées", async () => {
+    const { SupabaseConnector } = await import("../powersync/SupabaseConnector");
+
+    const infos: string[] = [];
+    const warns: string[] = [];
+    const origInfo = console.info;
+    const origWarn = console.warn;
+    console.info = (...a: unknown[]) => { infos.push(a.map(String).join(" ")); };
+    console.warn = (...a: unknown[]) => { warns.push(a.map(String).join(" ")); };
+
+    try {
+      const connector = new SupabaseConnector();
+      // La FK `transactions_category_id_fkey` viole → 23503 = FATAL.
+      (connector as unknown as { client: unknown }).client = {
+        from: () => ({
+          upsert: async () => ({
+            error: {
+              code: "23503",
+              message:
+                'insert or update on table "transactions" violates foreign key constraint "transactions_category_id_fkey"',
+            },
+          }),
+        }),
+      };
+      // Pas de session persistée → ensureUploadSession ne fait rien.
+      (connector as unknown as { ensureUploadSession: () => Promise<void> }).ensureUploadSession =
+        async () => {};
+
+      let completed = false;
+      const tx = {
+        crud: [
+          {
+            table: "transactions",
+            op: UpdateType.PUT,
+            id: "tx-r89c",
+            opData: { org_id: "org-e2e", category_id: "cat-dime" },
+          },
+        ],
+        complete: async () => { completed = true; },
+      };
+
+      await connector.pushCrudTransaction(tx as never);
+
+      const okLines = infos.filter((l) => l.includes("uploadData OK"));
+      expect(okLines, "aucun faux « uploadData OK » ne doit être émis").toHaveLength(0);
+      expect(
+        warns.some((l) => l.includes("FAILED") && l.includes("23503")),
+        "le rejet doit être journalisé avec son code",
+      ).toBe(true);
+      expect(completed, "la transaction doit être complétée (file non bloquée)").toBe(true);
+    } finally {
+      console.info = origInfo;
+      console.warn = origWarn;
+    }
+  });
+
+  it("journalise « OK » quand l'op est réellement poussée", async () => {
+    const { SupabaseConnector } = await import("../powersync/SupabaseConnector");
+    const infos: string[] = [];
+    const origInfo = console.info;
+    console.info = (...a: unknown[]) => { infos.push(a.map(String).join(" ")); };
+    try {
+      const connector = new SupabaseConnector();
+      (connector as unknown as { client: unknown }).client = {
+        from: () => ({ upsert: async () => ({ error: null }) }),
+      };
+      (connector as unknown as { ensureUploadSession: () => Promise<void> }).ensureUploadSession =
+        async () => {};
+      const tx = {
+        crud: [
+          {
+            table: "transactions",
+            op: UpdateType.PUT,
+            id: "tx-ok",
+            opData: { org_id: "org-e2e", category_id: "cat-1" },
+          },
+        ],
+        complete: async () => {},
+      };
+      await connector.pushCrudTransaction(tx as never);
+      expect(infos.some((l) => l.includes("uploadData OK"))).toBe(true);
+    } finally {
+      console.info = origInfo;
+    }
   });
 });

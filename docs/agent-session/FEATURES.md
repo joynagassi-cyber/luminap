@@ -323,3 +323,40 @@ actif et correct.
 | Correctif | `notifIconKey()` couvre EVENT_CREATED / INVITATION_RECEIVED / FORM_SUBMITTED |
 | Tests | `src/pages/__tests__/Notifications-icon.test.tsx` (3/3) |
 | Statut | **corrigé, validé par test unitaire** |
+
+## R87 / D1 / R88 — Grand livre financier (`/finance`) et détail de transaction
+
+| Champ | Valeur |
+|---|---|
+| Fonctionnalité | Consultation du grand livre (`/finance`) et détail d'une transaction (`/transaction/:id`) |
+| Points d'entrée | `src/pages/Finance.tsx`, `src/pages/TransactionDetail.tsx`, `src/capabilities/resource/index.ts`, table `transactions` |
+| Statut initial | **cassée** — `/finance` affichait « Aucune transaction trouvée » en permanence |
+| Défaut constaté | `resource.list('Transaction')` émettait `SELECT * FROM transaction` (singulier) ; erreur SQL avalée par le `.catch()` de la page (R88) |
+| Actions menées | **R87 corrigé** (`Transaction: "transactions"` dans `tableMap`), 2 tests de reproduction, assertion E2E `/finance`. **D1 non corrigé** (détail « introuvable » pour une écriture locale), **R88 non corrigé** (erreurs avalées) |
+| Tests | `src/capabilities/__tests__/resource.test.ts` (bloc R87, 2 tests — échouent sans le correctif) ; `cypress/e2e/offline-write-sync.cy.ts` (assertion `/finance`) |
+| Validation | **partielle** — liste `/finance` validée (E2E + unitaires, 1102/1102) ; détail `/transaction/:id` **non validé** (D1 ouvert) |
+
+
+---
+
+## ⚠️ Statut de validation revu le 2026-10-24 — la synchronisation PowerSync
+
+**Constat** : la matrice ci-dessus déclarait plusieurs fonctionnalités
+« validées » sur la base de tests E2E verts. Après vérification croisée
+code ↔ base (serveur `hhgovvrnalibhgpakswi` : **0 transaction**), ce statut doit
+être **dégradé** pour toute fonctionnalité dont la donnée doit atteindre le
+serveur.
+
+| Fonctionnalité | Statut déclaré | Statut réel (2026-10-24) | Raison |
+|---|---|---|---|
+| Grand livre / Finance (liste locale) | validée | **validée (local)** | `/finance` lit SQLite local ; corrigé R87 |
+| Enregistrer une transaction | validée | **partielle** | l'écriture locale réussit, mais **l'upload serveur est rejeté** (R89.a, `23503`) |
+| Synchronisation descendante (nouvel appareil) | validée | **non validée** | `PSYNC_S2305` : le stream échoue, rien ne descend (R89.b) |
+| Rapports / versements / cotisations | validée | **non validée** | dépendent des transactions, qui n'atteignent pas le serveur |
+| Détail d'une transaction | validée | **cassée** | D1 : `/transaction/:id` = « introuvable » pour une écriture locale |
+| Sauvegarde des données serveur | — | **absente** | P31 : aucun `pg_dump` planifié (free tier) |
+
+**Preuves** : `RISQUES.md` §R89 (journal d'upload complet), §D1, §R88, §P31.
+**Règle appliquée** : ne jamais déclarer « validée » une fonctionnalité dont la
+persistance serveur n'est pas prouvée. Les tests E2E verts prouvaient l'écriture
+**locale** et l'absence d'erreur d'UI — pas la synchronisation.

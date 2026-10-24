@@ -18,6 +18,130 @@
 
 # ⚠️ MISE À JOUR SESSION 6 (2026-10-24) — à lire en premier
 
+## Correctif produit majeur de cette session : R87 — la page Finance était cassée
+
+**Constat** : la page `/finance` (Grand livre) affichait **systématiquement**
+« Aucune transaction trouvée », « Revenus 0 », « Dépenses 0 », quelle que soit la
+donnée réellement présente. Aucun message d'erreur. Défaut **silencieux**, donc
+invisible pour l'utilisateur comme pour le propriétaire.
+
+**Cause racine (prouvée par instrumentation temporaire)** :
+`ResourceService.toTableName()` (`src/capabilities/resource/index.ts`) mappait
+`Group`/`Event`/`Member`/`Account`/`Category`/`Role`, mais **pas `Transaction`**.
+Le repli `entityType.toLowerCase()` produisait `transaction` (singulier) alors
+que la table PowerSync est `transactions`. La requête levait
+`near "transaction": syntax error`, **avalée** par le `.catch()` de
+`Finance.tsx` → liste vide sans signal. Requête capturée :
+
+```
+SELECT * FROM transaction WHERE org_id = ? ORDER BY date desc
+  -> near "transaction": syntax error
+```
+
+**Défaut préexistant** : `git diff --stat origin/main HEAD` sur
+`resource/index.ts` et `Finance.tsx` est **vide** — le défaut est présent sur
+`main`, il n'est pas introduit par la fusion.
+
+**Correctif** : une ligne (`Transaction: "transactions"`), plus un commentaire.
+
+**Preuves** :
+- Tests de reproduction dans `src/capabilities/__tests__/resource.test.ts`
+  (bloc « R87 ») : ils inspectent le SQL émis et refusent toute table hors
+  schéma. **Vérifiés dans les deux sens** : **2 échecs** avec le correctif
+  retiré, **24/24** avec le correctif.
+- Preuve de bout en bout : `cypress/e2e/offline-write-sync.cy.ts` (**1/1, 15 s**
+  dans la suite complète) crée une transaction via l'interface et vérifie
+  qu'elle **apparaît dans `/finance`**. Mesuré : avant correctif
+  `contientLabel=false`, après `contientLabel=true`.
+- Non-régression : suite unitaire **1102/1102**.
+
+**Pourquoi les tests ne l'avaient jamais vu** : le mock de `resource.test.ts`
+renvoyait `[]` pour une table inconnue, au lieu de lever « no such table »
+comme le fait SQLite. Le mock **masquait** le défaut.
+
+## Défauts liés, documentés et NON corrigés (règle de gel)
+
+- **D1** — `/transaction/:id` affiche « Transaction introuvable » pour une
+  transaction écrite localement. Cause : `useTransactions()` ne sert les données
+  PowerSync que si `isPowerSyncReady()` (`connected && hasSynced`), sinon il
+  retombe sur `useLocalStore().transactions`, un store **jamais hydraté**. Le
+  même garde concerne **17 hooks de lecture**. Correctif propre = reprendre les
+  17 hooks + vérification complète : hors budget, et un correctif partiel non
+  testé serait pire que le défaut documenté. Contournement : passer par
+  `/finance`, qui est corrigé.
+- **R88** — **23 `.catch()` vides** dans `src/pages/` transforment toute erreur
+  en **état vide silencieux**. Inventaire complet dans `RISQUES.md`. C'est ce qui
+  a rendu R87 invisible.
+- **R86** — La suite E2E dépend d'un Supabase GoTrue **partagé et limité en
+  débit**. Preuve : sur `origin/main` **intact** (worktree isolé), les mêmes
+  specs échouent avec le **même** message
+  « after login: /auth … 503 Render / rate limit GoTrue ». Les 16 échecs de la
+  suite complète sont donc **environnementaux**, pas des régressions.
+
+## Découverte la plus grave de la session : R89 — la synchronisation est rompue dans les deux sens
+
+En croisant le code et la base (`hhgovvrnalibhgpakswi`), j'ai constaté un fait
+anormal : le serveur contient **964 événements** et **108 profils**, mais
+**0 transaction**. L'application est donc utilisée, et pourtant **aucune donnée
+financière n'atteint le serveur**. J'ai instrumenté le chemin d'upload
+(`window.__psFlushCrudUpload`, capture console) et obtenu la preuve :
+
+```
+ERROR [PowerSync]: Could not POST streaming to /sync/stream - 500 -
+      {"code":"PSYNC_S2305","description":"Too many parameter query results (limit of 1000)"}
+WARN  [PowerSync] uploadData FAILED transactions op=PUT code=23503
+      msg=… violates foreign key constraint "transactions_category_id_fkey"
+WARN  [PowerSync] pushCrudTransaction FATAL-SKIP … code=23503
+INFO  [PowerSync] uploadData OK transactions op=PUT      ← SUCCÈS MENSONGER
+INFO  [PS-FLUSH] done: passes=1 opsTotal=1 fatalSkipped=0 ← compteur faux
+```
+
+Trois défauts distincts, en cascade :
+
+1. **89.a — montée impossible.** `category_id` envoyé = `cat-dime` (pack client,
+   `src/packs/church/index.ts:53`), alors que le serveur ne contient que
+   `cat-1 … cat-9`. Violation de clé étrangère → **chaque transaction est
+   jetée**. Prouvé par insertion SQL contrôlée : `cat-1` réussit (puis
+   `rollback`), `cat-dime` échoue.
+2. **89.b — descente impossible.** Le filtre des Sync Streams
+   (`org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())`) est
+   plafonné à **1000 résultats** par PowerSync → `PSYNC_S2305`, `connected=false`,
+   `hasSynced=false` : **aucune donnée ne descend** sur un appareil neuf.
+3. **89.c — la perte était invisible (CORRIGÉ).** `logOpOutcome(…, true, …)`
+   était appelé inconditionnellement après la boucle d'upload, même quand toutes
+   les ops avaient été jetées, et `fatalSkipped` restait à 0. C'est ce qui a
+   masqué le défaut pendant des mois.
+
+**Corrigé dans cette session (89.c)** : compteurs `pushedOps`/`skippedOps`, plus
+de faux « OK », `__psFlushResult` expose `skipped` et `ok`. Preuve dans les deux
+sens (1 test échoue sans le correctif, 7/7 avec) et **preuve navigateur** :
+`__psFlushResult` renvoie désormais `{…,"skipped":1,"ok":false}` là où il
+renvoyait un objet indistinguable d'un succès.
+
+**NON corrigé (89.a, 89.b)** : exige d'aligner les référentiels d'identifiants de
+catégories (données serveur) et de modifier puis redéployer le service PowerSync
+Cloud (`PS_ADMIN_TOKEN` requis). Actions opérateur, détaillées dans
+`RISQUES.md` §R89 avec l'ordre de correction.
+
+## Autre défaut préexistant relevé
+
+- **R90** : le workflow « Android Debug Build » n'a **jamais** réussi
+  (**20 échecs sur 20**, toutes branches) — problème Gradle
+  `:capacitor-storage`, sans lien avec le code applicatif. `lumina-android.yml`
+  réussit sur `main`.
+
+## Verdict honnête sur l'état de l'app
+
+- La liste `/finance` est **réparée et prouvée** (unitaires + E2E).
+- Le **détail** d'une transaction écrite localement reste cassé (D1).
+- La suite E2E **ne peut pas être déclarée verte** dans cet environnement
+  (R86) : 16 échecs, tous reproduits à l'identique sur `main` intact.
+- Les écritures hors ligne sont **capturées** dans la file d'upload PowerSync
+  (prouvé), mais leur **vidage** n'est pas testable en CI (worker WASM qui ne se
+  connecte jamais en headless) — procédure manuelle dans `RUNBOOK.md`.
+
+
+
 ## Contexte de fin de session
 
 T0 = 2026-10-22T17:56Z. Le budget de 12 h 30 était **dépassé** au démarrage de
@@ -54,7 +178,7 @@ corrigés, avec la preuve d'exécution.
 | **R80** | **moyenne** | La colonne « Soumetteur » de `forms-v2.cy.ts` T5 affiche un **UUID** au lieu d'un nom. Le stream PowerSync `profiles` ne synchronise que le profil de l'utilisateur courant : les noms des autres membres sont absents du client. | Le correctif exige l'élargissement du stream + `powersync deploy sync-config`, or **`PS_ADMIN_TOKEN` est absent** de l'environnement : un changement local ferait diverger client et serveur (décision D-S6-1). Piste alternative explorée et **écartée par vérification** : la table `members` (synchronisée org-wide, porte `first_name`/`last_name`/`email`) aurait pu fournir les noms localement — vérifié en base, `members.id` est un id texte distinct des UUID de `profiles` et ne contient pas le soumetteur. **Aucun contournement local n'existe.** Gravité *moyenne* : défaut d'affichage (confusion pour l'utilisateur), sans corruption ni perte de données ; la donnée `submitted_by` reste correcte en base. |
 | **R82** | **moyenne** | `org-reports.cy.ts` est **non déterministe** : il sélectionne la première option du popover parent, soit la **dernière** organisation créée (`listOrgs` trié `created_at DESC`). Chaque exécution rattache l'« Annexe A » à celle du run précédent → chaîne de 4 niveaux en base. | Correctif tenté (sélection explicite de la Mère par son nom) puis **révoqué** : mesure en échec — le nom de la Mère n'est **pas** dans la liste des options (`cy.contains(ion-item, 'Org E2E 110710')` échoue après 180 s), ce qui **invalide l'hypothèse** et exige une investigation supplémentaire (~1 h). Conformément à « un changement non testé est pire qu'un défaut documenté », le spec a été **restauré à son état commité**. |
 | **R83** | **moyenne** | `performance-batch.cy.ts` tests 1-2 : 0 transaction sur le serveur. **Aucun des trois prérequis** du motif offline→online éprouvé (`cloud-sync.cy.ts`) n'est réuni : (a) pas de `req.continue()` en mode online → Cypress mange la requête et le client reçoit une réponse CORS invalide ; (b) pas d'intercept `OPTIONS` → préflight bloqué ; (c) contexte d'organisation non forcé (`lumina-user` / `lumina-active-org`) → la file d'upload PowerSync échoue en silence. Preuve du diagnostic : le test **calendrier** (qui crée des événements en ligne, sans intercept) passe. Le fichier `performance-batch.cy.ts` est en **échec, non maquillé**, et documenté. |
-| **R85** | **moyenne** | **Le chemin d'écriture offline→serveur (SQLite → queue d'upload PowerSync → Supabase) n'a AUCUNE couverture de test.** Rectificatif : la session 6 avait d'abord écrit que `cloud-sync.cy.ts` (1/1) prouvait cette synchronisation — **c'est faux**. Lecture complète de la spec (L330-420) : après reconnexion, elle **insère elle-même** les entités par `cy.request` en contexte Node, puis vérifie leur présence. L'assertion est **tautologique** ; le spec le dit lui-même en commentaire. | Correctif = nouveau test pilotant le worker (`db.disconnect()` → écriture locale → `db.connect(connector)` → attente de la vidange de la file → vérification serveur). Non réalisé faute de budget : c'est le point le plus critique pour l'usage hors ligne quotidien. Coût estimé 1 h 30. Voir RISQUES R85. |
+| **R85** | **moyenne** (couverture partielle livrée) | **Le chemin d'écriture offline→serveur n'avait AUCUNE couverture de test.** Rectificatif : la session 6 avait d'abord écrit que `cloud-sync.cy.ts` (1/1) prouvait cette synchronisation — **c'est faux**. Lecture complète de la spec (L330-420) : après reconnexion, elle **insère elle-même** les entités par `cy.request` en contexte Node, puis vérifie leur présence. L'assertion est **tautologique** ; le spec le dit lui-même en commentaire. | **Couverture partielle livrée** : `cypress/e2e/offline-write-sync.cy.ts` (**1/1, 3 passes**, 12-13 s) prouve que l'écriture faite par l'interface (a) atterrit dans SQLite et (b) entre dans la **file d'upload locale** (`ps_crud`, op `PUT` avec le bon `org_id`), plus un contrôle négatif serveur. **Résidu** : le vidage de la file reste non testable en headless (le worker WASM ne se connecte jamais : `connected:false` après 120 s, `passes:0, opsTotal:0` alors que `ps_crud` est rempli) → vérification manuelle documentée dans RUNBOOK.md. Voir RISQUES R85. |
 
 ## Vérification d'isolation inter-organisations (point de sécurité)
 
