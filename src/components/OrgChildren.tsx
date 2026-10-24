@@ -10,10 +10,9 @@
  *  - Bouton « Créer une annexe » ouvrant un bottom-sheet DOM (pattern
  *    Federation.tsx L346-442 : fixed + scrim + rounded-t-2xl) :
  *    IonInput nom + IonSelect type + IonSelect statut.
- *      PENDING  → `federation.createOrg(crypto.randomUUID(), ...)` local
- *                  (PowerSync outbox, idempotent).
- *      ACTIVE   → `bootstrapOrganization` (edge `create_org`, service_role) :
- *                  l'organisation est ACTIVE et le créateur son admin.
+ *      `bootstrapOrganization` (edge `create_org`, service_role) : l'organisation
+ *      est ACTIVE et le créateur en devient l'admin. C'est le seul chemin
+ *      exposé — l'insert PENDING local produisait des organisations orphelines.
  *
  * Réutilisable : section « Mes annexes » de `CentralAdmin.tsx` (T2.2) et
  * bouton contextuel « Ajouter sous cette org » de `Federation.tsx` (T2.2).
@@ -36,7 +35,6 @@ import {
   FEDERATION_TYPE_LABEL,
   type FederationOrg,
 } from "@/capabilities/federation";
-import { useCurrentUser } from "@/lib/dataLayer";
 import { bootstrapOrganization } from "@/lib/orgBootstrap";
 
 /** Types acceptés par la colonne `type` de `organizations`
@@ -44,7 +42,6 @@ import { bootstrapOrganization } from "@/lib/orgBootstrap";
 const ORG_TYPES = ["CENTRAL", "CHURCH", "SCHOOL", "ENTERPRISE"] as const;
 
 /** Statuts sélectionnables à la création d'une annexe. */
-const ORG_STATUSES = ["PENDING", "ACTIVE"] as const;
 
 /**
  * Formule M22 : couleur de statut + 20 % de transparence pour le fond de
@@ -71,7 +68,6 @@ export default function OrgChildren({
   /** Callback optionnel appelé après création d'une annexe (rafraîchir la vue parente). */
   onCreated?: (createdOrgId: string) => void;
 }) {
-  const user = useCurrentUser();
   const [children, setChildren] = useState<FederationOrg[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -80,9 +76,7 @@ export default function OrgChildren({
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState("");
   const [newType, setNewType] = useState<string>("CHURCH");
-  const [newStatus, setNewStatus] = useState<string>("PENDING");
   const [creating, setCreating] = useState(false);
-  const [bootstrapping, setBootstrapping] = useState(false);
   const [createdMsg, setCreatedMsg] = useState<string | null>(null);
 
   const loadChildren = async () => {
@@ -105,29 +99,31 @@ export default function OrgChildren({
   }, [parentOrgId]);
 
   /**
-   * PENDING : création registry locale (PowerSync outbox) — le statut PENDING
-   * est écrit par `federation.createOrg`. L'activation vers ACTIVE passe par
-   * le bouton « Opérationnelle » (edge `create_org`) ou par l'admin parent.
+   * Création d'une annexe — passe par la fonction serveur (`create_org`) :
+   * organisation ACTIVE + le créateur en devient l'admin.
+   *
+   * L'insert PowerSync local (`federation.createOrg`, statut PENDING) a été
+   * retiré : il écrivait une organisation sans AUCUN lien d'appartenance
+   * (`profiles.org_id`, `org_memberships`, `org_admins`). Comme `listOrgs()`
+   * et la RLS `is_org_member()` n'exposent une organisation qu'à ses membres
+   * ou admins, l'annexe créée était définitivement invisible pour tout le
+   * monde, y compris son créateur (orphelin en base — cf. `Annexe A 542602`).
    */
   const handleCreate = async () => {
-    if (!user?.id || !newName.trim()) return;
+    if (!newName.trim()) return;
     setCreating(true);
     setError(null);
     try {
-      // Id crypto (pas de Date.now — collision multi-appareils hors-ligne)
-      const newId = crypto.randomUUID();
-      await federation.createOrg(
-        newId,
-        newName.trim(),
-        { parentOrgId, type: newType },
-        user.id,
-      );
+      const res = await bootstrapOrganization({
+        name: newName.trim(),
+        type: newType,
+        parentOrgId,
+      });
       setNewName("");
       setNewType("CHURCH");
-      setNewStatus("PENDING");
       setShowCreate(false);
-      setCreatedMsg(`« ${newName.trim()} » créée sous cette organisation.`);
-      onCreated?.(newId);
+      setCreatedMsg(`« ${res.name} » créée. Vous êtes son admin.`);
+      onCreated?.(res.orgId);
       await loadChildren();
     } catch (e: any) {
       setError(e?.message ?? "Erreur lors de la création de l'annexe");
@@ -141,32 +137,6 @@ export default function OrgChildren({
    * (`create_org`, service_role) : organisation ACTIVE + le créateur en
    * devient l'admin. Le client seul ne peut pas faire cela (RLS).
    */
-  const handleBootstrapCreate = async () => {
-    if (!newName.trim()) return;
-    setBootstrapping(true);
-    setError(null);
-    try {
-      const res = await bootstrapOrganization({
-        name: newName.trim(),
-        type: newType,
-        parentOrgId,
-      });
-      setNewName("");
-      setNewType("CHURCH");
-      setNewStatus("PENDING");
-      setShowCreate(false);
-      setCreatedMsg(
-        `« ${res.name} » créée (opérationnelle). Vous êtes son admin.`,
-      );
-      onCreated?.(res.orgId);
-      await loadChildren();
-    } catch (e: any) {
-      setError(e?.message ?? "Erreur lors de la création opérationnelle");
-    } finally {
-      setBootstrapping(false);
-    }
-  };
-
   return (
     <div className="space-y-3">
       {/* En-tête + compteur */}
@@ -328,24 +298,6 @@ export default function OrgChildren({
                 </IonSelect>
               </IonItem>
 
-              <IonItem lines="none" className="bg-surface rounded-xl">
-                <IonLabel position="floating" className="text-sm text-text-secondary">
-                  Statut
-                </IonLabel>
-                <IonSelect
-                  value={newStatus}
-                  onIonChange={(e: IonChangeCustomEvent<string>) =>
-                    setNewStatus(e.detail.value)
-                  }
-                  interface="popover"
-                >
-                  {ORG_STATUSES.map((s) => (
-                    <IonSelectOption key={s} value={s}>
-                      {statusLabel(s)}
-                    </IonSelectOption>
-                  ))}
-                </IonSelect>
-              </IonItem>
             </div>
 
             <div className="flex gap-2">
@@ -356,20 +308,7 @@ export default function OrgChildren({
                 className="flex-1 py-2.5 rounded-full text-sm font-semibold text-on-accent transition-all active:scale-95 disabled:opacity-50"
                 style={{ backgroundColor: "var(--accent-primary)" }}
               >
-                {creating ? "Création..." : "Créer"}
-              </button>
-              <button
-                type="button"
-                onClick={handleBootstrapCreate}
-                disabled={bootstrapping || !newName.trim()}
-                className="flex-1 py-2.5 rounded-full text-sm font-semibold transition-all active:scale-95 disabled:opacity-50"
-                style={{
-                  color: "var(--accent-primary)",
-                  border: "1px solid var(--accent-primary)",
-                  background: "transparent",
-                }}
-              >
-                {bootstrapping ? "Création opérationnelle..." : "Opérationnelle (admin + ACTIVE)"}
+                {creating ? "Création…" : "Créer"}
               </button>
             </div>
             <button

@@ -239,21 +239,11 @@ export default function Federation() {
     setCreating(true);
     setError(null);
     try {
-      const newId = `org-${Date.now()}`;
-      await federation.createOrg(
-        newId,
-        newName.trim(),
-        {
-          type: newType,
-          parentOrgId: newParent || null,
-        },
-        user.id,
-      );
-      setNewName("");
-      setNewType("CHURCH");
-      setNewParent("");
-      setShowCreate(false);
-      await loadOrgs();
+      // Les deux boutons vivent dans le MÊME formulaire : on bascule sur le
+      // chemin serveur (ACTIVE + admin) au lieu de l'insert PENDING local.
+      // Voir la note sur `handleBootstrap` ci-dessous.
+      await handleBootstrap();
+      return;
     } catch (e: any) {
       setError(e?.message ?? "Erreur lors de la création");
     } finally {
@@ -266,6 +256,15 @@ export default function Federation() {
    * ACTIVE et le créateur devient son admin. Le client seul ne peut pas le
    * faire (RLS), c'est le rôle de la fonction `create_org`. Ensuite on peut
    * inviter des membres (RBAC) sur cette organisation.
+   *
+   * C'est le SEUL chemin de création exposé. L'ancien bouton « Créer »
+   * (insert PowerSync local, statut PENDING) écrivait une organisation sans
+   * aucun lien d'appartenance (`profiles.org_id`, `org_memberships` ni
+   * `org_admins`). Or `listOrgs()` et la RLS `is_org_member()` n'exposent une
+   * organisation qu'à ses membres/admins : l'organisation créée était donc
+   * définitivement INVISIBLE pour tout le monde, y compris son créateur
+   * (orphelin en base, constaté sur `Annexe A 542602`). Le chemin local est
+   * conservé pour la reprise hors-ligne (PROPOSITIONS.md P1).
    */
   const handleBootstrap = async () => {
     if (!newName.trim()) return;
@@ -437,33 +436,17 @@ export default function Federation() {
                 <button
                   type="button"
                   onClick={handleCreate}
-                  disabled={creating || !newName.trim()}
+                  disabled={creating || bootstrapping || !newName.trim()}
                   className="w-full py-3 rounded-full font-semibold text-on-accent text-sm transition-all active:scale-95 disabled:opacity-50"
                   style={{ backgroundColor: "var(--accent-primary)" }}
                   aria-label="Créer l'organisation"
                 >
-                  {creating ? "Création..." : "Créer"}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleBootstrap}
-                  disabled={bootstrapping || !newName.trim()}
-                  className="w-full py-3 rounded-full font-semibold text-sm transition-all active:scale-95 disabled:opacity-50"
-                  style={{
-                    backgroundColor: "transparent",
-                    color: "var(--accent-primary)",
-                    border: "1px solid var(--accent-primary)",
-                  }}
-                  aria-label="Créer une organisation opérationnelle"
-                >
-                  {bootstrapping
-                    ? "Création opérationnelle..."
-                    : "Créer opérationnelle (admin + ACTIVE)"}
+                  {creating || bootstrapping ? "Création…" : "Créer"}
                 </button>
                 <p className="text-xs text-text-tertiary leading-snug">
-                  « Opérationnelle » = organisation ACTIVE dont vous êtes
-                  l'admin (via la fonction serveur), prête à recevoir des
-                  membres par invitation. Nécessite un grant admin central.
+                  L'organisation est créée ACTIVE dont vous êtes l'admin, prête
+                  à recevoir des membres par invitation. Nécessite un grant
+                  admin central.
                 </p>
               </div>
             )}
