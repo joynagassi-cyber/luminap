@@ -1023,3 +1023,13 @@ sera faite sur code gelé, par une nouvelle exécution complète.
 `SettingsProfile.tsx` écrivait `TREASURIER: "Trésurier"` alors que tous les
 autres libellés de l'app disent « Trésorier ». Deux comptes réels ont ce rôle
 → faute visible. Corrigé ; test ajouté (badge `profile-role-badge`).
+
+
+### 7. Bug produit R78 — piste d'audit : 14 actions admin affichées « Modifié »
+
+`audit_entries` contient ADMIN_ASSIGNED (8), ADMIN_REMOVED (3),
+ADMIN_REVOKED (2), ADMIN_REINSTATED (1). `ACTION_META` ne les couvrait pas →
+toutes retombaient sur « Modifié ». Sur un changement de privilèges, la
+piste d'audit devenait trompeuse. Quatre libellés explicites ajoutés, plus
+`OrgAdmin` → « Administrateur d'organisation ». Test : `Trace-labels.test.tsx`
+(3/3).

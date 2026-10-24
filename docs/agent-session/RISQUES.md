@@ -1329,3 +1329,24 @@ l'environnement. Faute visible immédiatement.
 **Preuve** : test ajouté dans `SettingsProfile.test.tsx` — le badge
 (`data-testid="profile-role-badge"`) contient « Trésorier » et non
 « Trésurier » (3/3 verts) ; `tsc -b` 0 erreur.
+
+
+### R78 — Piste d'audit : actions d'administration affichées « Modifié » — CORRIGÉ (moyenne)
+
+**Défaut** : `ACTION_META` (`src/pages/Trace.tsx`) ne couvrait pas les
+actions réellement écrites dans `audit_entries` pour la gestion des
+administrateurs d'organisation. Relevé en base :
+`ADMIN_ASSIGNED` (8), `ADMIN_REMOVED` (3), `ADMIN_REVOKED` (2),
+`ADMIN_REINSTATED` (1) — soit **14 entrées sur 51**. Faute de cas, elles
+retombaient toutes sur `ACTION_META.UPDATE` → la piste d'audit affichait
+« Modifié OrgAdmin » pour une attribution ou un retrait d'administrateur.
+
+**Pourquoi c'est important** : c'est précisément la trace dont on a besoin
+pour reconstituer qui a donné ou retiré des droits. Afficher « Modifié » sur
+un changement de privilèges rend l'audit trompeur sur un sujet sensible.
+
+**Correction** : quatre libellés explicites (Admin attribué / rétabli /
+révoqué / retiré) et `OrgAdmin` → « Administrateur d'organisation ».
+
+**Preuve** : `src/pages/__tests__/Trace-labels.test.tsx` (3/3) ;
+`tsc -b` 0 erreur.
