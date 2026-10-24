@@ -1107,3 +1107,44 @@ invitation-rls-hardening.test.ts` **10/10**, `SQL` (invité non gestionnaire :
   `@capacitor/android` ^6.2.2 vs `@capacitor/cli` ^8.5.2 ; non régression).
 - Cypress : suite volumineuse, exécutée en CI (binaire non installable dans
   l'environnement d'agent). Résultat consigné dans JOURNAL.md.
+
+## S5.6 — Découverte majeure : la suite Cypress n'a jamais été verte (R98)
+
+**Constat.** Sur `main`, les **20 derniers runs Cypress (2026-10-19 →
+2026-10-24) sont tous en échec** ; aucun run vert sur la période. Un run
+représentatif (`40078474144`, sha `2fae0d2`) échoue dans **10 specs sur 23**
+(13 tests). C'est le défaut le plus lourd pour la fiabilité à long terme : une
+CI rouge en permanence **ne détecte aucune régression**.
+
+**Cause racine probable.** `.github/workflows/cypress.yml` exécute la suite en
+**2 conteneurs parallèles partageant la même base Supabase**
+(`matrix.containers: [1, 2]`, `parallel: true`). Les specs s'appuient sur des
+lignes **nommées** et des **comptages** ; la concurrence sur une base unique
+produit exactement la signature observée (`expected 0 to be at least 20`,
+« Jean … introuvable », « Org E2E … introuvable »).
+
+**Ce que ce n'est PAS.** Ce n'est pas une régression des correctifs de sécurité
+R91/R91.b/R91.c : `org-reports.cy.ts` échouait déjà sur `main` **avant** R96
+(échec ligne 150, `Org E2E 327858`, run `40078474144`). Mon correctif R96 est
+neutre (il ajoute un nettoyage non fatal).
+
+**Statut.** Non corrigé (gel + décision structurelle). Une branche candidate
+`agent/session-13-ci-cypress-test` (1 conteneur, `parallel: false`) **mesure**
+l'effet en CI ; la preuve (nombre d'échecs avant/après) est consignée dans
+JOURNAL.md et RUNBOOK.md. À fusionner **uniquement** si elle réduit
+significativement les échecs.
+
+## S5.7 — Ce qui n'a PAS pu être vérifié (honnêteté des preuves)
+
+- **Cypress en local** : le binaire Cypress n'est pas installable dans
+  l'environnement d'agent (pas d'écran X, téléchargement bloqué). Toute
+  affirmation E2E repose donc sur la **CI**, dont la fiabilité est elle-même en
+  cause (R98). Les specs ne sont donc **pas** déclarées « validées » sur la foi
+  d'un run local.
+- **PowerSync** : le déploiement Cloud (`powersync deploy sync-config`) exige
+  `PS_ADMIN_TOKEN`, non disponible. Les correctifs de filtrage des streams
+  sont donc « fichier corrigé, non déployé ».
+- **Sauvegarde DB** : aucune sauvegarde n'a pu être produite (ni `pg_dump` ni
+  Docker ni credential DB dans l'environnement). P31 est **outillé** mais
+  l'activation dépend du propriétaire. **Conséquence : aucune suppression
+  destructive n'a été faite** (seul un archivage réversible).
