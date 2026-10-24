@@ -2194,3 +2194,33 @@ specs qui comptent ou listent. C'est la justification mesurée de **P39**
 (nettoyage systématique des données de test). **Non corrigé** (gel ; et
 supprimer des `groups` peut cascader vers `group_members`/`events` sans
 sauvegarde disponible).
+
+### R99 — Sauvegarde : chaîne désormais VÉRIFIÉE, mais automatisation toujours INACTIVE (critique)
+- **Gravité** : **critique** — c'est le risque n°1 pour 4 mois sans surveillance.
+- **Ce qui a été fait (2026-10-24)** :
+  1. Une **sauvegarde fraîche** a été produite : schéma 136 Ko
+     (43 `CREATE TABLE`, 146 politiques RLS) + données 6,3 Mo (29 tables, dont
+     `auth.users`), **sommes de contrôle SHA-256 vérifiées** (`sha256sum -c` OK).
+  2. Sa **restauration a été testée de bout en bout** dans un conteneur
+     Postgres jetable (image Supabase `postgres:17.6.1.166`) : 44 tables et
+     146 politiques RLS recréées ; seules 7 erreurs, toutes sur les schémas
+     `auth`/`storage` gérés par Supabase (aucune perte métier).
+  3. La **fidélité a été contrôlée** : les 10 comptages source et restaurés
+     sont **identiques** (profiles 108, organizations 9, org_memberships 5,
+     org_admins 6, invitations 66, members 94, groups 222, events 3220,
+     audit_entries 97, notifications 3320).
+  4. Le **garde-fou du workflow public** a été vérifié : le run `40114231378`
+     n'a publié **aucun artefact** (`total_count = 0`) car le secret est absent.
+  Les fichiers vivent **hors du dépôt** (`/workspace/backups/`, ~10 Mo) — ils
+  contiennent des données réelles, **ne pas les commiter** (dépôt public).
+- **Ce qui reste (non résolu — hors de portée de la session)** :
+  l'automatisation quotidienne (`backup.yml`) est **toujours inactive** : le
+  secret `SUPABASE_DB_URL` n'existe pas (prouvé par l'avertissement du run), et
+  le jeton de session ne permet pas de le créer (403). Côté Supabase,
+  `pitr_enabled=false` et `backups=[]`.
+- **Procédure complète et testée** : voir RUNBOOK.md §« Sauvegarde VÉRIFIÉE ».
+- **Impact 4 mois** : sans activation, **aucune sauvegarde automatique** ne
+  sera prise ; une corruption ou une erreur humaine serait irréversible. La
+  sauvegarde manuelle produite aujourd'hui **périme** (elle est figée au
+  2026-10-24) et vit dans un environnement de test voué à disparaître : le
+  propriétaire **doit la récupérer** et activer le workflow.

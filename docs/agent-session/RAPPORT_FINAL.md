@@ -1153,3 +1153,41 @@ hors-ligne** (SQLite → queue → Supabase) n'a **aucune** couverture de test.
   Docker ni credential DB dans l'environnement). P31 est **outillé** mais
   l'activation dépend du propriétaire. **Conséquence : aucune suppression
   destructive n'a été faite** (seul un archivage réversible).
+
+## S5.8 — Objectif 2 (sauvegardes) : chaîne sauvegarde → restauration PROUVÉE
+
+C'était le point le plus critique et le seul objectif non résolu en début de
+clôture. Il est désormais **outillé, exécuté et vérifié** — mais l'automatisation
+reste à activer par le propriétaire.
+
+**Preuves produites (2026-10-24)** :
+1. **Sauvegarde fraîche** : schéma **136 Ko** (43 `CREATE TABLE`, 146 politiques
+   RLS) + données **6,3 Mo** (29 tables, dont `auth.users`), sommes de contrôle
+   SHA-256 **vérifiées** (`sha256sum -c` → OK).
+2. **Restauration testée de bout en bout** dans un conteneur Postgres jetable
+   (image Supabase `postgres:17.6.1.166`) : **44 tables et 146 politiques RLS**
+   recréées. Les seules erreurs (7) portent sur les schémas `auth`/`storage`
+   gérés par Supabase — **aucune perte de données métier**.
+3. **Fidélité vérifiée** : les **10 comptages** source et restauré sont
+   **identiques** (profiles 108, organizations 9, org_memberships 5, org_admins
+   6, invitations 66, members 94, groups 222, events 3220, audit_entries 97,
+   notifications 3320).
+4. **Garde-fou du dépôt public vérifié** : le run `40114231378` n'a publié
+   **aucun artefact** (`total_count = 0`) — pas de fuite. Le workflow
+   `backup.yml` refuse correctement de publier un export non chiffré.
+
+**Pièges documentés** (dans RUNBOOK.md §« Sauvegarde VÉRIFIÉE ») :
+- La CLI `supabase db dump` **exige un daemon Docker** (sinon
+  `DockerRunError`) ; le daemon doit être relancé et le socket accessible.
+- La restauration exige l'**image Supabase** (contient `pg_cron`) et le rôle
+  **`supabase_admin`** sur la base **`postgres`** — avec `postgres`/`public` ou
+  une image vanilla, la restauration échoue (786 erreurs, 0 table).
+- Le rôle applicatif `powersync_role` doit exister **avant** le dump des données.
+
+**Reste à faire (critique)** : activer les secrets `SUPABASE_DB_URL` et
+`BACKUP_GPG_PASSPHRASE`, puis vérifier une exécution planifiée (R99, P31).
+
+**Note de sécurité** : la sauvegarde contient des données réelles ; elle vit
+**hors du dépôt** (`/workspace/backups/`) et ne doit **jamais** être commitée
+(dépôt public). Le propriétaire doit la récupérer : l'environnement de test est
+voué à disparaître.
