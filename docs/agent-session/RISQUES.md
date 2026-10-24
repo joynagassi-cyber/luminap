@@ -1756,6 +1756,27 @@ l'intérêt de l'approche).
 
 ### R88 — Erreurs avalées dans `Finance.tsx`
 
+**Inventaire (classe de défaut, 23 occurrences dans `src/pages/`)** — un
+`.catch()` vide transforme toute erreur (SQL, réseau, RLS, permission) en
+**état vide silencieux** : l'utilisateur croit qu'il n'y a rien, et aucune trace
+n'existe pour le développeur. Occurrences relevées :
+
+`InvitationEmit.tsx:142`, `InvitationClaim.tsx:155`, `EventNew.tsx:169`,
+`FormFill.tsx:172`, `GivingCampaign.tsx:117,154`, `TransactionNew.tsx:202`,
+`Versement.tsx:103`, `InvitationManage.tsx:114`, `CentralAdmin.tsx:292,625`,
+`Finance.tsx:65`, `Reports.tsx:293`, `ReportBuilder.tsx:207,226`,
+`FormSubmissions.tsx:206,215,411`, `Members.tsx:46`, `SettingsProfile.tsx:132`,
+`Sessions.tsx:160`.
+
+Priorité de correction : `Finance.tsx` d'abord, puis `TransactionNew.tsx`,
+`Versement.tsx` et `GivingCampaign.tsx` (écritures financières : un échec
+silencieux fait croire à un enregistrement réussi).
+
+Correctif recommandé et homogène : remplacer `.catch(() => {})` par
+`.catch((e) => { logger.error('<contexte>', e); setError(<message>); })` et
+afficher un état d'erreur explicite dans l'UI.
+
+
 - **Gravité** : moyenne. **Statut : non corrigé.**
 - `resource.list(...).catch(() => setLoading(false))` masque toute erreur
   (SQL, réseau, RLS) : l'utilisateur voit une liste vide au lieu d'un message
