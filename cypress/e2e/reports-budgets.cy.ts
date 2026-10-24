@@ -65,20 +65,11 @@ describe('Lumina — Reports & Budgets', () => {
     // `cy.contains('button, ion-button', /Somme|Comptage|Moyenne/i)` ne
     // pouvait donc jamais matcher (échec après 30 s).
     //
-    // Ciblage déterministe : on sélectionne le `ion-select` dont les options
-    // portent les valeurs d'agrégation (`sum`/`count`/`avg`) — un simple
-    // index serait fragile (la page en compte plusieurs : période, source,
-    // catégorie, caisse, champ, fonction).
-    cy.get('ion-select')
-      .filter((_, el) =>
-        Array.from(el.querySelectorAll('ion-select-option')).some((o) =>
-          ['sum', 'count', 'avg', 'min', 'max'].includes(
-            o.getAttribute('value') ?? '',
-          ),
-        ),
-      )
-      .first()
-      .click({ force: true });
+    // Ciblage déterministe : le select de FONCTION est le DERNIER `ion-select`
+    // de la page (ReportBuilder.tsx:601 — après lui il n'y a qu'un IonInput
+    // d'alias). Les quatre premiers selects sont période/source/catégorie/
+    // caisse et le cinquième le champ de la métrique.
+    cy.get('ion-select').last().click({ force: true });
     cy.get('ion-popover', { timeout: 10_000 })
       .find('ion-item')
       .filter(':visible')
