@@ -1,0 +1,92 @@
+name: Sauvegarde Supabase (export logique)
+
+# Le plan Free Supabase ne fournit AUCUNE sauvegarde téléchargeable
+# (« Database backups are not available for download for Free Plan projects »).
+# Ce workflow produit un export logique quotidien hors Supabase (proposition
+# P31, priorité critique).
+#
+# MISE EN SERVICE (à faire une fois par le propriétaire) — voir RUNBOOK.md :
+#   1. Settings → Secrets and variables → Actions → New repository secret :
+#        SUPABASE_DB_URL            = chaîne Postgres complète, percent-encodée
+#        BACKUP_GPG_PASSPHRASE      = phrase de passe de chiffrement (recommandé)
+#   2. Déclencher une fois « Run workflow » pour valider.
+#
+# SÉCURITÉ — dépôt PUBLIC : un artefact d'export contient TOUTE la base.
+# Le workflow n'envoie donc un artefact QUE s'il est chiffré
+# (BACKUP_GPG_PASSPHRASE défini). Sans chiffrement, il valide l'export mais
+# n'en publie rien. Pour une rétention hors-site durable, passer le dépôt en
+# privé (les schedules privés restent actifs 60 j ; le keep-alive les réveille).
+
+on:
+  schedule:
+    - cron: '0 3 * * *' # quotidien 03:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    name: Export logique (schéma + données)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      BACKUP_GPG_PASSPHRASE: ${{ secrets.BACKUP_GPG_PASSPHRASE }}
+      BACKUP_DIR: ./backups
+      BACKUP_RETENTION_DAYS: '30'
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Vérifier la configuration
+        id: cfg
+        run: |
+          if [ -z "${SUPABASE_DB_URL:-}" ]; then
+            echo "::warning::SUPABASE_DB_URL absent — sauvegarde NON configurée. Voir RUNBOOK.md §Sauvegardes."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+          if [ -n "${BACKUP_GPG_PASSPHRASE:-}" ]; then
+            echo "encrypted=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "encrypted=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Export (schéma + données)
+        if: steps.cfg.outputs.ready == 'true'
+        run: |
+          chmod +x scripts/backup-supabase.sh
+          ./scripts/backup-supabase.sh
+
+      - name: Publier l'export (chiffré uniquement)
+        if: steps.cfg.outputs.ready == 'true' && steps.cfg.outputs.encrypted == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: supabase-backup-${{ github.run_id }}
+          path: backups/*.gpg
+          # Les exports chiffrés restent 14 j ; la copie hors-site durable
+          # est à la charge du propriétaire (voir RUNBOOK.md).
+          retention-days: 14
+
+      - name: Avertir si non chiffré (aucun artefact publié)
+        if: steps.cfg.outputs.ready == 'true' && steps.cfg.outputs.encrypted == 'false'
+        run: |
+          echo "::warning::Export réalisé mais NON chiffré : aucun artefact publié (dépôt public). Définir BACKUP_GPG_PASSPHRASE pour activer la publication."
+
+      - name: Résumé
+        if: always()
+        run: |
+          {
+            echo "## Sauvegarde Supabase"
+            if [ "${{ steps.cfg.outputs.ready }}" != "true" ]; then
+              echo "- ⚠️ Non configurée : secret \`SUPABASE_DB_URL\` absent (RUNBOOK.md §Sauvegardes)."
+            else
+              echo "- Chiffrement : ${{ steps.cfg.outputs.encrypted }}"
+              ls -la backups/ 2>/dev/null || true
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

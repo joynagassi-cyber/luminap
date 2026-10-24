@@ -313,44 +313,75 @@ npx cypress run --e2e --browser chromium \
   est typé correctement.
 
 
-## Sauvegarder la base (P31) — plan gratuit, sans sauvegarde automatique
+## Sauvegarder la base (P31) — AUTOMATISÉ (à activer par un secret)
 
-Le plan Supabase **gratuit** ne fournit **pas** de sauvegarde automatique. Tant
-que le projet reste en gratuit, la sauvegarde est **manuelle et à la charge du
-propriétaire**. Procédure minimale :
+Le plan Supabase **gratuit** ne fournit **aucune** sauvegarde téléchargeable
+(« Database backups are not available for download for Free Plan projects »).
+La protection est donc un **export logique planifié hors Supabase**. C'est
+désormais outillé dans le dépôt :
+
+- `.github/workflows/backup.yml` — quotidien 03:00 UTC.
+- `scripts/backup-supabase.sh` — export schéma + données, empreintes SHA-256,
+  chiffrement AES256 optionnel, rotation 30 jours.
+
+### Mise en service (une seule fois)
 
 1. Récupérer la chaîne de connexion : tableau de bord Supabase →
-   *Project Settings* → *Database* → *Connection string* (mode `URI`, rôle
-   `postgres`, mot de passe de la base).
-2. Exporter **schéma + données** :
-   ```bash
-   pg_dump "$DATABASE_URL" --schema=public --no-owner --no-privileges \
-     -f "lumina-$(date +%Y%m%d-%H%M).sql"
-   ```
-   (`pg_dump` n'est pas installé dans cet environnement — voir ci-dessous.)
-3. Exporter les migrations du dépôt (référence de dérive) :
-   ```bash
-   supabase db dump -f schema-reference.sql
-   ```
-4. Stocker les deux fichiers **hors Supabase** (disque chiffré, stockage objet
-   privé) avec une rotation : garder au minimum 7 quotidiennes + 4 hebdomadaires.
-5. **Tester la restauration une fois par mois** sur une base jetable :
-   ```bash
-   psql "$RESTORE_URL" -f lumina-YYYYMMDD-HHMM.sql
-   ```
-   Une sauvegarde non testée n'est pas une sauvegarde.
+   *Project Settings* → *Database* → *Connection string* → onglet **URI**
+   (rôle `postgres`, mot de passe de la base). La **percent-encoder** si le
+   mot de passe contient des caractères spéciaux.
+2. GitHub → *Settings* → *Secrets and variables* → *Actions* → créer :
+   - `SUPABASE_DB_URL` = la chaîne de connexion complète ;
+   - `BACKUP_GPG_PASSPHRASE` = une phrase de passe (active le chiffrement ;
+     **recommandé** — sans elle, le workflow ne publie aucun artefact car le
+     dépôt est **public**).
+3. Onglet *Actions* → « Sauvegarde Supabase » → *Run workflow* pour valider.
 
-### Ce qui a été fait dans cette session
+### Pourquoi un secret est indispensable
 
-- **Aucun `pg_dump` exécuté** : `pg_dump`/`psql`/`supabase` sont **absents** de
-  l'environnement, et aucun `DATABASE_URL` n'y est disponible (seules les clés
-  navigateur `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` sont présentes).
-  Le service MCP Supabase permet des requêtes SQL mais **pas** un `pg_dump`.
-- **Instantané de schéma** : `scripts/schema-snapshot.sql` existe déjà pour
-  produire le DDL de référence (à exécuter avec un accès SQL).
-- **À faire par le propriétaire** : brancher l'étape 2 sur une tâche planifiée
-  (cron GitHub Actions avec le secret `DATABASE_URL`) — cf. `PROPOSITIONS.md`
-  §P31.
+Le service MCP Supabase permet des requêtes SQL mais **pas** un `pg_dump`, et
+`pg_dump`/Docker ne sont pas disponibles dans l'environnement d'agent. La
+sauvegarde doit donc tourner là où le mot de passe de la base est disponible :
+GitHub Actions, via le secret `SUPABASE_DB_URL`.
+
+### Rétention hors-site (recommandé)
+
+L'artefact GitHub ne vit que **14 jours**. Pour survivre à 4 mois, copier
+chaque export chiffré vers un stockage privé (S3/R2, disque chiffré). Passer
+le dépôt en **privé** renforce la confidentialité, mais les schedules GitHub
+sont alors désactivés après 60 jours sans activité : le workflow
+`keep-alive.yml` (qui s'exécute toutes les 48 h) réveille le dépôt et
+maintient les schedules actifs.
+
+### Test de restauration (mensuel)
+
+Une sauvegarde non testée n'est pas une sauvegarde.
+
+```bash
+gpg -d backups/data-YYYYMMDD-HHMMSS.sql.gz.gpg | gunzip | psql "$RESTORE_URL"
+gpg -d backups/schema-YYYYMMDD-HHMMSS.sql.gz.gpg | gunzip | psql "$RESTORE_URL"
+```
+
+Créer au préalable une base jetable (`$RESTORE_URL`), restaurer le **schéma
+d'abord**, puis les **données**, et vérifier `select count(*) from profiles;`.
+
+### Anti-pause (indispensable sur le plan gratuit)
+
+Supabase met un projet Free en pause après **7 jours** de faible **activité
+API**. L'activité **interne** (job `pg_cron keep_alive_daily`) **ne compte
+pas** : seul un appel API **externe** remet le compteur à zéro.
+
+- `.github/workflows/keep-alive.yml` envoie un ping **toutes les 48 h**
+  (`REST /rest/v1/keep_alive` + `Auth /auth/v1/health`). Dépôt **public** :
+  les schedules ne sont pas désactivés. Un échec de ping fait échouer le job →
+  GitHub notifie le propriétaire.
+- Vérification manuelle : *Actions* → « Keep-alive Supabase » → dernier run
+  vert, et `select last_ping from keep_alive;` doit dater de < 48 h.
+- En cas de pause : la restaurer depuis le tableau de bord Supabase (fenêtre
+  de 90 jours), puis vérifier `select last_ping from keep_alive;`.
+
+> Le heartbeat `pg_cron` reste utile (il horodate le dernier passage), mais il
+> **ne suffit pas** à empêcher la pause : c'est le ping externe qui agit.
 
 ## Vérifier la synchronisation PowerSync (indispensable — cf. R89)
 

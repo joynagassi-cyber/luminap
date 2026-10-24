@@ -11,8 +11,15 @@
 --
 -- Méthode : 1 table keep_alive (1 ligne, PK id=1) + 1 job pg_cron quotidien
 -- à 00:00 UTC qui fait un UPSERT. Charge négligeable, 100 % native
--- Postgres. L'inactivité API ne compte pas : le heartbeat garde le
--- compteur d'activité de l'instance à zéro, évitant la pause auto Free.
+-- Postgres.
+--
+-- AVERTISSEMENT (corrigé 2026-10-24) : ce heartbeat NE SUFFIT PAS à empêcher
+-- la pause auto. La pause Free dépend de l'activité « API » (requêtes
+-- utilisateur sur la base) ; l'activité INTERNE (pg_cron) n'est pas comptée.
+-- Le heartbeat sert seulement à HORODATER le dernier passage du job et à
+-- vérifier, au réveil, que l'instance n'a pas été mise en pause.
+-- L'anti-pause réel est un ping API EXTERNE : .github/workflows/keep-alive.yml
+-- (toutes les 48 h). Voir RUNBOOK.md §Anti-pause.
 --
 -- NOTE IMPORTANTE :
 --  - Le job est créé via cron.schedule() et NON via INSERT INTO cron.job
@@ -51,7 +58,9 @@ ON CONFLICT (id) DO UPDATE SET last_ping = now();
 -- Commande du job (vérifiée verbatim dans cron.job) :
 --   INSERT INTO public.keep_alive (id, last_ping) VALUES (1, now())
 --   ON CONFLICT (id) DO UPDATE SET last_ping = now();
--- Statut : OUI — le projet est immunisé contre la pause auto.
+-- Statut : le job horodate le dernier passage, mais NE protège PAS de la
+-- pause (voir AVERTISSEMENT ci-dessus) — l'anti-pause réel est le ping API
+-- externe (.github/workflows/keep-alive.yml).
 --
 -- Échec historique documenté :
 --   jobid 1 (DELETE+INSERT sans PK) a échoué au 2026-09-27 00:00 UTC :

@@ -1,0 +1,63 @@
+name: Keep-alive Supabase (anti-pause Free)
+
+# Le plan Free de Supabase met le projet en pause après 7 jours de faible
+# activité « API » (requêtes utilisateur sur la base). L'activité INTERNE
+# (job pg_cron `keep_alive_daily`) NE compte PAS : seul un appel API externe
+# remet le compteur à zéro. Ce workflow envoie donc un ping toutes les 48 h.
+#
+# Dépôt PUBLIC : les schedules GitHub Actions ne sont pas désactivés (la
+# désactivation après 60 jours d'inactivité ne concerne que les dépôts privés).
+#
+# Si un ping échoue, le job échoue → GitHub notifie le propriétaire.
+# Vérification manuelle possible : onglet Actions → « Keep-alive Supabase ».
+
+on:
+  schedule:
+    # Toutes les 48 h à 06:00 UTC (marge : seuil de pause = 7 jours).
+    - cron: '0 6 */2 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    name: Ping API Supabase
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping REST (activité base) + Auth health
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || 'https://hhgovvrnalibhgpakswi.supabase.co' }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || 'sb_publishable_kwbReVxSdHLx_u2IzQvGaA_Eegsf2Sh' }}
+        run: |
+          set -u
+          ok=1
+          echo "::group::REST /rest/v1/keep_alive"
+          # Toute requête PostgREST exécute une requête SQL : même 0 ligne
+          # (RLS) compte comme activité base. On exige un HTTP 2xx.
+          rest_code=$(curl -sS -o /tmp/rest.out -w '%{http_code}' \
+            "$SUPABASE_URL/rest/v1/keep_alive?select=id,last_ping&limit=1" \
+            -H "apikey: $SUPABASE_ANON_KEY" -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            || echo 000)
+          echo "HTTP $rest_code"
+          head -c 300 /tmp/rest.out || true
+          echo
+          echo "::endgroup::"
+          case "$rest_code" in 2*) ;; *) ok=0 ;; esac
+
+          echo "::group::Auth /auth/v1/health"
+          auth_code=$(curl -sS -o /tmp/auth.out -w '%{http_code}' \
+            "$SUPABASE_URL/auth/v1/health" -H "apikey: $SUPABASE_ANON_KEY" \
+            || echo 000)
+          echo "HTTP $auth_code"
+          head -c 300 /tmp/auth.out || true
+          echo
+          echo "::endgroup::"
+          case "$auth_code" in 2*) ;; *) ok=0 ;; esac
+
+          if [ "$ok" -ne 1 ]; then
+            echo "::error::Ping Supabase en échec (REST=$rest_code, Auth=$auth_code). Le projet peut être en pause ou l'URL/la clé a changé — vérifier le dashboard Supabase."
+            exit 1
+          fi
+          echo "OK — activité Supabase enregistrée le $(date -u +%FT%TZ)."
