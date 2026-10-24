@@ -312,3 +312,14 @@ actif et correct.
 | Correctif | résolution via la table locale `profiles` (RLS bornée), avec repli sur l'id ; idem pour la colonne « Rejeté par » (`rejected_by`) et les tris |
 | Tests | `src/components/__tests__/FormSubmissions-table.test.tsx` (5/5) ; `cypress/e2e/forms-v2.cy.ts` T5 |
 | Statut | **corrigé, validé par test unitaire** ; validation E2E à confirmer par le spec |
+
+
+### Notifications — icône par type d'action (R76, corrigé)
+
+| Élément | État |
+|---|---|
+| Point d'entrée | `/notifications`, `src/pages/Notifications.tsx` |
+| Défaut | les 3 types réellement persistés n'étaient pas mappés → icône générique pour 100 % des notifications |
+| Correctif | `notifIconKey()` couvre EVENT_CREATED / INVITATION_RECEIVED / FORM_SUBMITTED |
+| Tests | `src/pages/__tests__/Notifications-icon.test.tsx` (3/3) |
+| Statut | **corrigé, validé par test unitaire** |

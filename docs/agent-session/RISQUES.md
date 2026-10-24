@@ -1293,3 +1293,20 @@ la même table, et son tri porte sur le nom affiché.
 du soumetteur (résolu depuis profiles), pas son id brut » (5/5 verts dans
 le fichier). Le spec Cypress `forms-v2.cy.ts` T5 constitue la preuve de bout
 en bout.
+
+
+### R76 — Icônes de notification toutes génériques — CORRIGÉ (basse)
+
+**Défaut** : `getNotifIcon` (`src/pages/Notifications.tsx`) ne reconnaissait
+que `TRANSACTION_PENDING`, `TRANSACTION_APPROVED`, `BUDGET_EXCEEDED`. Or ces
+trois valeurs **n'existent pas** dans la table `notifications` : les valeurs
+réellement persistées sont `EVENT_CREATED` (311), `INVITATION_RECEIVED` (11),
+`FORM_SUBMITTED` (1). Conséquence : **100 % des notifications** affichaient
+l'icône générique par défaut (cloche grise), sans distinction visuelle.
+
+**Correction** : les trois types réels produisent désormais une icône
+distincte (horloge, tendance, coche) ; la sélection est isolée dans
+`notifIconKey()` pour être testable sans rendu.
+
+**Preuve** : `src/pages/__tests__/Notifications-icon.test.tsx` (3/3) ;
+`tsc -b` 0 erreur.
