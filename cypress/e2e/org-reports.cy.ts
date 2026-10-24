@@ -110,24 +110,46 @@ describe('Lumina — Org reports hierarchy, send page gating, RLS', () => {
     // ── 2. Create org A under Mère (parent pré-rempli via le select) ──
     cy.contains('button, ion-button', 'Créer une organisation', { timeout: 30_000 }).click();
 
-    // Parent = org COURANTE (la Mère du compte) pour que la chaîne testée
-    // soit Mère → A → B. Deux défauts de la version précédente :
-    //  1. `cy.get('ion-select-option').first()` : l'option « Aucune (racine) »
-    //     est rendue EN PREMIER dans le DOM → org A n'avait PAS de mère et
-    //     l'assertion « A a une mère » ne pouvait pas passer.
-    //  2. `cy.get('ion-select-option').click()` : les options vivent dans un
-    //     `ion-popover` monté sur <body> et sont `display:none` tant que le
-    //     popover n'est pas ouvert → « element is not visible » (échec mesuré
-    //     après 480 s). Motif correct déjà utilisé par `invitations.cy.ts`
-    //     et `events-tasks.cy.ts` : ouvrir le popover, cliquer l'`ion-item`
-    //     VISIBLE.
-    cy.get('ion-select[data-testid="org-parent"]').first().click({ force: true });
-    cy.get('ion-popover', { timeout: 10_000 })
-      .find('ion-item')
-      .filter(':visible')
-      .filter((_, el) => !(el.textContent || '').includes('Aucune'))
-      .first()
-      .click();
+    // Parent = org COURANTE (la Mère du compte).
+    //
+    // Défaut corrigé (R82) : l'ancien code prenait `.first()` des options du
+    // popover, en supposant que la première était la Mère. Or la liste vient
+    // de `allOrgs`, alimenté par `federation.listOrgs()` trié `created_at
+    // DESC` : `.first()` désigne donc la DERNIÈRE organisation créée. Comme
+    // ce spec crée une « Annexe A » à chaque exécution, il se rattachait à
+    // l'annexe du run précédent — d'où une chaîne de 4 niveaux en base et
+    // l'échec « Expected to find content: 'Annexe A …' within the selector:
+    // 'span' » (la carte A n'étant pas enfant de la Mère, elle n'est pas
+    // dépliée là où le spec la cherche). Non déterministe = défaut.
+    //
+    // On sélectionne donc EXPLICITEMENT l'option de la Mère, par son nom
+    // exact (l'organisation courante du compte).
+    //
+    // Le nom est lu dans `lumina-user` (clé `org.name`, écrite par
+    // `authService.persistCurrentUser`) avec repli sur `lumina-config`
+    // (`churchName`) — c'est le même repli que le code de production.
+    cy.window().then((win) => {
+      let orgName: string | null = null;
+      try {
+        orgName = JSON.parse(win.localStorage.getItem('lumina-user') ?? '')?.org?.name || null;
+      } catch {
+        /* clé absente ou malformée */
+      }
+      if (!orgName) {
+        try {
+          orgName = JSON.parse(win.localStorage.getItem('lumina-config') ?? '')?.churchName || null;
+        } catch {
+          /* clé absente ou malformée */
+        }
+      }
+      expect(orgName, 'nom de l\'organisation courante').to.be.a('string').and.not.be.empty;
+      cy.get('ion-select[data-testid="org-parent"]').first().click({ force: true });
+      cy.get('ion-popover', { timeout: 10_000 })
+        .find('ion-item')
+        .filter(':visible')
+        .contains(orgName as string)
+        .click();
+    });
 
     typeOrgName(orgAName);
     // Le bouton « Créer » est `disabled` tant que `newName` est vide :
