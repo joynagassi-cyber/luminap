@@ -1255,3 +1255,36 @@ réel était une **erreur de type** (`"ADMIN"` n'appartient pas à `Role`) que
 `as any` masquait, et une **incohérence sémantique** de la colonne
 `action_type`. La correction de type reste valable ; l'interprétation
 fonctionnelle était fausse. Le présent rectificatif fait foi.
+
+### R75 — Colonne « Soumetteur » : UUID brut au lieu du nom — CORRIGÉ (moyenne)
+
+**Défaut** : `form_submissions.submitted_by` stocke l'`id` du profil
+(`87afea21-bad7-453b-9ae5-4ad1da2ca13f`), et `FormSubmissions.tsx` affichait
+cette valeur telle quelle dans la colonne « Soumetteur ». L'utilisateur
+voyait un UUID, pas un nom.
+
+**Preuve du défaut** : spec Cypress `forms-v2.cy.ts` T5 échouait avec
+« valeur de la cellule « Soumetteur » : attendu « E2E Org », reçu
+« 87afea21-bad7-453b-9ae5-4ad1da2ca13f » ». Confirmé en base :
+`select p.first_name, p.last_name from form_submissions s join profiles p
+on p.id::text = s.submitted_by` → « E2E Org ».
+
+**Pourquoi c'était possible** : `profiles_select` autorise la lecture des
+profils de sa propre organisation (`initplan_uid() = id OR
+is_org_member(initplan_uid(), org_id)`), et la table `profiles` est
+synchronisée localement par PowerSync (colonnes `first_name`, `last_name`,
+`email`). La résolution côté client est donc possible **et** bornée par la
+RLS : on ne peut résoudre qu'un nom que l'on a déjà le droit de voir.
+
+**Correction** (`src/pages/FormSubmissions.tsx`) : chargement de la table
+locale `profiles` (import dynamique, `try/catch`) → table
+`id → « Prénom Nom »` ; la cellule, la recherche plein-texte et le tri de la
+colonne utilisent désormais le nom affiché. **Repli** : si PowerSync n'est
+pas disponible (ou l'utilisateur inconnu de `profiles`), l'`id` est affiché
+comme avant — aucune régression, aucune erreur.
+
+**Preuve** : nouveau test
+`src/components/__tests__/FormSubmissions-table.test.tsx` — « affiche le NOM
+du soumetteur (résolu depuis profiles), pas son id brut » (5/5 verts dans
+le fichier). Le spec Cypress `forms-v2.cy.ts` T5 constitue la preuve de bout
+en bout.

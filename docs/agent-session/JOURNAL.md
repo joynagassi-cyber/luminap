@@ -930,3 +930,20 @@ incohérence sémantique de `action_type` — **ouverte**, consignée R74 et
 proposée P-NEW-6. Le message de commit `0702cd2` n'est pas réécrit
 (interdiction de réécrire l'historique) ; le rectificatif ci-dessus et dans
 RISQUES.md fait foi.
+
+
+### Bug produit corrigé — R75 « Soumetteur » affichait un UUID
+
+Détecté par l'échec Cypress `forms-v2.cy.ts` T5 (message explicite : attendu
+« E2E Org », reçu un UUID). Confirmé en base par jointure. Corrigé dans
+`FormSubmissions.tsx` (résolution `profiles` locale, repli sur l'id) ;
+nouveau test unitaire vert ; `tsc -b` 0 erreur ; les 4 tests unitaires
+existants du fichier restent verts (repli).
+
+Deux échecs du spec `forms-fields.cy.ts` analysés : ce sont des **défauts de
+test**, pas de code —
+1. `cy.contains('button', /Créer/i).last()` ne renvoie qu'**un** élément
+   (le premier = bouton d'ouverture, recouvert par le scrim) : le bouton de
+   soumission n'était jamais atteint. Ciblé par `aria-label` unique.
+2. Le bouton de suppression est ciblé par `aria-label="Supprimer le champ
+   <label>"` (la ligne n'est pas un ancêtre direct de la `<p>` du label).

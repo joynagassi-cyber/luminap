@@ -16,7 +16,7 @@
  * union triée des champs du formulaire et des clés data observées ;
  * tri par colonne, recherche plein-texte débouncée, export CSV + Excel.
  */
-import { useEffect, useState, useMemo } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar, IonButtons, IonBackButton, IonButton, IonSelect, IonSelectOption, IonInfiniteScroll, IonInput } from "@ionic/react";
 import { Inbox, Download, CheckCircle2, Search, X } from "lucide-react";
@@ -109,10 +109,16 @@ function formatFieldValue(
 }
 
 /** Sort accessor for a table column. */
-function sortValue(sub: FormSubmission, key: SortKey): string {
+function sortValue(
+  sub: FormSubmission,
+  key: SortKey,
+  nameOf: (id?: string | null) => string,
+): string {
   switch (key) {
     case "submittedBy":
-      return sub.submittedBy ?? "";
+      // Trier par le nom affiché (et non par l'UUID) : c'est ce que
+      // l'utilisateur voit dans la colonne « Soumetteur ».
+      return nameOf(sub.submittedBy);
     case "submittedAt":
       return new Date(sub.submittedAt ?? sub.createdAt).getTime().toString();
     case "status":
@@ -141,6 +147,50 @@ export default function FormSubmissions() {
   const [searchQuery, setSearchQuery] = useState("");
   const [sort, setSort] = useState<{ key: SortKey; dir: SortDir } | null>(
     { key: "submittedAt", dir: "desc" },
+  );
+  // `submitted_by` stocke l'`id` du profil, pas son nom : sans cette
+  // résolution la colonne « Soumetteur » affichait un UUID brut.
+  const [profileNames, setProfileNames] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        // Import dynamique : la résolution des noms est un confort, elle ne
+        // doit jamais empêcher l'affichage du tableau ni faire échouer un
+        // rendu hors PowerSync (tests, premier chargement).
+        const { getPowerSyncDatabase } = await import("@/lib/powersync");
+        const rows = await getPowerSyncDatabase().getAll<{
+          id: string;
+          first_name: string | null;
+          last_name: string | null;
+          email: string | null;
+        }>("SELECT id, first_name, last_name, email FROM profiles");
+        if (cancelled) return;
+        const map: Record<string, string> = {};
+        for (const p of rows) {
+          const full = [p.first_name, p.last_name].filter(Boolean).join(" ").trim();
+          map[p.id] = full || p.email || "";
+        }
+        setProfileNames(map);
+      } catch (e) {
+        console.warn(
+          "[FormSubmissions] noms de soumetteurs indisponibles, repli sur l'id",
+          e,
+        );
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const submitterName = useCallback(
+    (id?: string | null): string => {
+      if (!id) return "Anonyme";
+      return profileNames[id] || id;
+    },
+    [profileNames],
   );
 
   useEffect(() => {
@@ -228,14 +278,14 @@ export default function FormSubmissions() {
     const arr = [...rows];
     if (sort) {
       arr.sort((a, b) => {
-        const av = sortValue(a, sort.key);
-        const bv = sortValue(b, sort.key);
+        const av = sortValue(a, sort.key, submitterName);
+        const bv = sortValue(b, sort.key, submitterName);
         const cmp = av.localeCompare(bv, "fr", { numeric: true });
         return sort.dir === "asc" ? cmp : -cmp;
       });
     }
     return arr;
-  }, [rows, sort]);
+  }, [rows, sort, submitterName]);
 
   const visible = useMemo(
     () =>
@@ -251,6 +301,7 @@ export default function FormSubmissions() {
     return visible.filter((sub) => {
       const data = parseSubmissionData(sub);
       const haystack = [
+        submitterName(sub.submittedBy),
         sub.submittedBy,
         sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString("fr-FR") : "",
         sub.status,
@@ -263,7 +314,7 @@ export default function FormSubmissions() {
         .toLowerCase();
       return haystack.includes(q);
     });
-  }, [visible, searchQuery, dataColumns]);
+  }, [visible, searchQuery, dataColumns, submitterName]);
 
   // Pagination : plafonner le nombre de lignes montées (le dataset complet
   // reste disponible pour l'export ; IonInfiniteScroll charge plus).
@@ -510,7 +561,7 @@ export default function FormSubmissions() {
                                 className="px-3 py-2 text-text-primary whitespace-nowrap"
                                 style={{ borderBottom: "1px solid var(--border)" }}
                               >
-                                {sub.submittedBy || "Anonyme"}
+                                {submitterName(sub.submittedBy)}
                               </td>
                               <td
                                 className="px-3 py-2 text-text-primary whitespace-nowrap"

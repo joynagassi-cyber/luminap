@@ -89,7 +89,11 @@ describe('Lumina — Forms & Custom Fields', () => {
     // On cible les deux champs par leur placeholder (uniques).
     cy.get('[role="dialog"] input[placeholder="Ex: Montant estimé"]').type(fieldLabel);
     cy.get('[role="dialog"] input[placeholder="montant_estime"]').type(fieldKey);
-    cy.contains('button, ion-button', /Créer/i).last().click();
+    // `cy.contains('button', /Créer/i)` ne renvoie que le PREMIER bouton
+    // correspondant — c'est-à-dire le bouton d'ouverture du modal, recouvert
+    // par le scrim. `.last()` ne pouvait donc pas atteindre le bouton de
+    // soumission. On le cible par son `aria-label` unique.
+    cy.get('[role="dialog"] button[aria-label="Créer le champ"]').click();
 
     // Field appears in the list
     cy.contains(fieldLabel, { timeout: 90_000 }).should('exist');
@@ -100,11 +104,18 @@ describe('Lumina — Forms & Custom Fields', () => {
 
     cy.ensureAuth();
     cy.visit('/custom-fields');
-    cy.contains(/E2e CF/i).parent().within(() => {
-      cy.get('button[aria-label^="Supprimer"]').click();
-    });
 
-    // Field no longer visible
-    cy.contains(/E2e CF/i).should('not.exist');
+    // Le bouton de suppression porte `aria-label="Supprimer le champ <label>"` :
+    // on lit le label de la ligne puis on cible exactement ce bouton (la ligne
+    // n'est pas un ancêtre direct de la <p> du label, d'où l'échec du
+    // `.parent().within()` précédent).
+    cy.contains(/E2e CF/i, { timeout: 90_000 })
+      .invoke('text')
+      .then((label) => {
+        const trimmed = label.trim();
+        cy.get(`button[aria-label="Supprimer le champ ${trimmed}"]`).click();
+        // Field no longer visible
+        cy.contains(trimmed).should('not.exist');
+      });
   });
 });
