@@ -25,7 +25,7 @@ depuis.** Les chiffres ci-dessous remplacent ceux du corps du rapport.
 | Indicateur | Avant session 5 | Après session 5 |
 |---|---|---|
 | Erreurs de type (`tsc`) | 98 (jamais détectées par la CI) | **0** |
-| Tests unitaires | 1050 / 1050 | **1095 / 1095** (66 fichiers) |
+| Tests unitaires | 1050 / 1050 | **1100 / 1100** (67 fichiers) |
 | Build de production | OK | OK (`vite build` exit 0) |
 | Valeurs jsonb corrompues | **218** sur 6 colonnes | **0** |
 | Typecheck CI | inopérant (succès systématique) | **opérant** (`tsc -b`) |
@@ -43,6 +43,9 @@ depuis.** Les chiffres ci-dessous remplacent ceux du corps du rapport.
 | R71 | `tsc --noEmit` à la racine ne vérifiait **aucun fichier** (`"files": []`) | 98 erreurs réelles invisibles, dont les 5 ci-dessus | `tsc -b --noEmit` en CI : 0 erreur |
 | **R75** | `form_submissions.submitted_by` référence `profiles.id` mais était affiché brut | La colonne « Soumetteur » montrait un **UUID** au lieu d'un nom | Détecté par `forms-v2.cy.ts` T5 (« attendu E2E Org, reçu 87afea21-… ») ; corrigé (`FormSubmissions.tsx`) ; test unitaire « affiche le NOM du soumetteur » |
 | **R76** | `getNotifIcon` ne mappait que des types **absents** de la base | **Toutes** les notifications affichaient l'icône générique | Relevé SQL des `action_type` réels ; corrigé ; test `Notifications-icon.test.tsx` 3/3 |
+| **R77** | `ROLE_LABEL` écrivait « Trésurier » (coquille) | Le badge de rôle du profil affichait une faute (2 comptes concernés) | Corrigé ; test `SettingsProfile.test.tsx` (badge `profile-role-badge`) 3/3 |
+| **R78** | `ACTION_META` ne couvrait pas ADMIN_ASSIGNED/REMOVED/REVOKED/REINSTATED (14 entrées réelles) | La piste d'audit affichait « Modifié OrgAdmin » pour un changement de privilèges | Relevé SQL ; 4 libellés ajoutés ; test `Trace-labels.test.tsx` 3/3 |
+| **R79** | Le `catch` de `sendNotification` avalait l'échec d'INSERT | Notification absente de l'historique sans aucune trace | `console.warn` contextualisé ; test qui échoue sans le correctif (21/21) |
 
 ### Pourquoi c'était invisible
 
@@ -270,7 +273,7 @@ npx cypress run --config baseUrl=http://127.0.0.1:8080,video=false \
 ### Résultats
 
 **Suite unitaire complète (session 6, après R75/R76)** : `npx vitest run` →
-**66 fichiers / 1095 tests, 100 % verts** (~28 s). Commande de rejeu :
+**67 fichiers / 1100 tests, 100 % verts** (~28 s). Commande de rejeu :
 `npx vitest run`.
 
 | Suite | Baseline | Après session | Statut |
