@@ -1214,3 +1214,33 @@ stream + redéploiement. Conclusion consignée, décision D-S6-1 confirmée.
   Les correctifs R57/R58/R59/R60 de la session 3 sont donc bien dans la
   branche. Seul `dataLayer.ts` diffère (+30/−17, mes modifications).
 - Consigné en **R86** (moyenne, environnement de test).
+
+### 20. R87 — défaut produit critique corrigé : /finance toujours vide
+
+- **Découverte** : en cherchant pourquoi le détail d'une transaction écrite
+  localement restait « introuvable », j'ai instrumenté temporairement
+  `resource.list()` (instrumentation retirée après usage) et capturé la requête
+  réelle de `/finance` :
+  `SELECT * FROM transaction WHERE org_id = ?` → `near "transaction": syntax error`.
+- **Cause** : `toTableName()` mappait `Group`/`Event`/`Member`/`Account`/
+  `Category`/`Role` mais **pas `Transaction`** → repli `toLowerCase()` =
+  `transaction` (singulier), alors que la table PowerSync est `transactions`.
+  `Finance.tsx` avalait l'erreur (`.catch(() => setLoading(false))`), donc
+  « Aucune transaction trouvée », « Revenus 0 », **sans aucun signal**.
+- **Défaut préexistant** : `git diff --stat origin/main HEAD` sur
+  `resource/index.ts` et `Finance.tsx` → **vide** (identiques à `main`).
+  Il n'est donc pas introduit par la fusion, et il touchait la production.
+- **Correctif** : 1 ligne (`Transaction: "transactions"`).
+- **Test de reproduction** : bloc « R87 » dans `resource.test.ts` — il inspecte
+  le SQL émis et refuse toute table hors schéma. **Vérifié dans les deux sens** :
+  **2 échecs** avec le correctif retiré, **24/24** avec. Le mock existant
+  renvoyait `[]` pour une table inconnue : il masquait le défaut depuis le début.
+- **Preuve E2E** : `offline-write-sync.cy.ts` (1/1, 27 s) vérifie que la
+  transaction créée par l'interface **apparaît dans `/finance`**. Mesuré : avant
+  correctif « contientLabel=false », après « contientLabel=true ».
+- **Non-régression** : suite unitaire **1102/1102**.
+- **Défauts liés documentés** : **D1** (détail « introuvable » : `useTransactions`
+  exige `isPowerSyncReady`, sinon repli sur un store non hydraté — 17 hooks
+  concernés) et **R88** (erreurs avalées dans `Finance.tsx`). Non corrigés :
+  correctif = 17 hooks à reprendre + vérification complète, incompatible avec la
+  règle de gel.

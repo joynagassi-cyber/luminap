@@ -1691,3 +1691,74 @@ l'intérêt de l'approche).
   identifiants stables, espacés dans le temps ; ou basculer la suite sur un
   Supabase local (`supabase start`) pour supprimer la dépendance réseau. Coût
   estimé : 2 h. **Non traité** (hors budget de clôture).
+
+
+---
+
+### R87 — CORRIGÉ — `/finance` affichait « Aucune transaction trouvée » en permanence
+
+- **Gravité initiale** : **élevée** (fonctionnalité financière principale,
+  silencieuse). **Statut : corrigé et vérifié** (2026-10-24).
+- **Symptôme** : la page `/finance` (Grand livre) affichait systématiquement
+  « Aucune transaction trouvée », « Revenus 0 », « Dépenses 0 », quel que soit
+  le contenu réel de la base. Aucun message d'erreur n'était visible.
+- **Cause racine** : `ResourceService.toTableName()` (`src/capabilities/resource/index.ts`)
+  mappait `Group`/`Event`/`Member`/`Account`/`Category`/`Role`, mais **pas
+  `Transaction`**. Le repli `entityType.toLowerCase()` produisait `transaction`
+  (singulier) alors que la table PowerSync est `transactions`. La requête levait
+  `near "transaction": syntax error` ; `Finance.tsx` avalait l'erreur par
+  `.catch(() => setLoading(false))` — d'où l'affichage d'une liste vide
+  **sans aucun signal**.
+- **Preuve du défaut** (instrumentation temporaire de `resource.list`, retirée) :
+  `{"entityType":"Transaction","table":"transaction","orgId":"org-e2e","sql":
+  "SELECT * FROM transaction WHERE org_id = ? ORDER BY date desc",
+  "error":"near \"transaction\": syntax error"}`.
+- **Correctif** : ajout de `Transaction: "transactions"` au `tableMap`
+  (1 ligne + commentaire).
+- **Tests de reproduction** (ajoutés dans `src/capabilities/__tests__/resource.test.ts`,
+  bloc « R87 — correspondance table/entité ») : ils inspectent le SQL émis et
+  refusent toute table hors schéma. **Vérifiés dans les deux sens** : 2 échecs
+  avec le correctif retiré, 24/24 avec le correctif. Le mock existant renvoyait
+  `[]` pour une table inconnue — c'est pourquoi le défaut n'avait jamais été vu
+  par les tests unitaires.
+- **Preuve de bout en bout** : `cypress/e2e/offline-write-sync.cy.ts` (1/1,
+  27 s) crée une transaction par l'interface et vérifie qu'elle **apparaît dans
+  `/finance`**. Avant correctif : liste vide (mesuré) ; après : la ligne est
+  présente (mesuré).
+- **Régression** : suite unitaire **1102/1102** après correctif.
+- **Défaut lié, NON corrigé** : `/transaction/<id>` affiche « Transaction
+  introuvable » pour une transaction écrite localement (D1 ci-dessous).
+
+### D1 — `/transaction/:id` « introuvable » pour une transaction écrite localement
+
+- **Gravité** : moyenne. **Statut : non corrigé** (nécessite un accès aux
+  données locales ; hors du budget de clôture).
+- **Symptôme mesuré** : après création via `/transaction/new`, l'ouverture de
+  `/transaction/<id>` affiche « Transaction introuvable », alors que la ligne
+  existe dans SQLite (vérifié par requête directe) et apparaît désormais dans
+  `/finance` (après R87).
+- **Cause identifiée** : `TransactionDetail` résout sa transaction via
+  `useTransactions()`, qui ne sert les données PowerSync **que** si
+  `isPowerSyncReady()` (`connected && hasSynced`, posé après la 1re
+  synchronisation). Tant que PowerSync n'est pas connecté (hors ligne, ou avant
+  la 1re synchro), le hook retombe sur `useLocalStore().transactions` — un store
+  **non hydraté** (rempli uniquement par les actions utilisateur) → tableau vide
+  → « introuvable ». Le même garde affecte 17 hooks de lecture
+  (`useEvents`, `useOrgUnits`, `useCategories`…), donc l'exposition dépasse le
+  seul détail.
+- **Pourquoi non corrigé** : le correctif propre est de remplacer le repli
+  `useLocalStore` par une lecture SQLite locale (ou d'utiliser
+  `resource.list('Transaction')`), ce qui touche 17 hooks et exige une
+  vérification de non-régression complète — incompatible avec la règle de gel.
+  Une correction partielle et non testée serait pire que le défaut documenté.
+- **Contournement utilisateur** : passer par `/finance` (corrigé) ; la
+  synchronisation PowerSync rétablit le détail dès que l'appareil est connecté.
+
+### R88 — Erreurs avalées dans `Finance.tsx`
+
+- **Gravité** : moyenne. **Statut : non corrigé.**
+- `resource.list(...).catch(() => setLoading(false))` masque toute erreur
+  (SQL, réseau, RLS) : l'utilisateur voit une liste vide au lieu d'un message
+  d'erreur, et aucune trace n'est journalisée. C'est ce qui a rendu R87
+  invisible. Correctif recommandé : conserver l'erreur dans un état et afficher
+  un message explicite + journaliser.

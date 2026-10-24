@@ -259,6 +259,12 @@ export class ResourceService {
       Account: "accounts",
       Category: "categories",
       Role: "org_units",
+      // `Transaction` était absent du map : le repli `entityType.toLowerCase()`
+      // produisait `transaction` (singulier) alors que la table PowerSync est
+      // `transactions`. La requête levait « no such table: transaction »,
+      // erreur avalée par les `.catch()` des pages — /finance affichait donc
+      // « Aucune transaction trouvée » en permanence (R87).
+      Transaction: "transactions",
     };
     return tableMap[entityType] ?? entityType.toLowerCase();
   }

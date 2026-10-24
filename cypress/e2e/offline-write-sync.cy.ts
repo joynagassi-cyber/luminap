@@ -142,6 +142,16 @@ describe('Lumina — écriture hors ligne (R85)', () => {
       win.__r85TxId = txId;
     });
 
+    // ── 3b. Régression R87 — la transaction apparaît dans /finance ────
+    // `resource.list('Transaction')` interrogeait `transaction` (singulier)
+    // au lieu de `transactions` : la requête levait « no such table »,
+    // erreur avalée par le `.catch()` de la page, et /finance affichait
+    // « Aucune transaction trouvée » en permanence. Ce test verrouille la
+    // correction au niveau du parcours utilisateur.
+    cy.visit('/dashboard', { timeout: 90_000 });
+    cy.visit('/finance', { timeout: 90_000 });
+    cy.contains(label, { timeout: 60_000 }).should('exist');
+
     // ── 4. Contrôle négatif : pas encore sur le serveur ───────────────
     // La ligne ne peut pas y être : le worker ne se connecte pas en
     // headless. Ce contrôle garantit que l'assertion précédente porte bien
