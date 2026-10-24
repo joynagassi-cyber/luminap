@@ -906,3 +906,27 @@ vérifiés :
    tolère les trois formes (chaîne, double encodage, forme correcte).
 
 Conclusion : le défaut est fermé de bout en bout, pas seulement rattrapé.
+
+
+### Rectificatif R70 / découverte R74 — « preuve avant affirmation »
+
+En vérifiant les 5 correctifs annoncés dans le commit `0702cd2`, le point 5
+(R70) s'est révélé **mal décrit**. Vérifications menées :
+
+- `git grep 'targetRole: "ADMIN"'` → 3 occurrences restantes
+  (`FormFill.tsx`, `InvitationClaim.tsx`, `InvitationEmit.tsx`).
+- `NotificationSendData.targetRole` est typé `Role` **mais** n'est utilisé
+  que pour remplir `notifications.action_type` (`notification/index.ts:115`).
+- `select action_type, count(*) from notifications group by 1` →
+  `EVENT_CREATED` 311, `INVITATION_RECEIVED` 11, `FORM_SUBMITTED` 1 :
+  **aucun rôle**. La colonne porte un type d'événement.
+- `getNotifIcon` ne reconnaît que `TRANSACTION_PENDING` /
+  `TRANSACTION_APPROVED` / `BUDGET_EXCEEDED` → **0 ligne** en base : toutes
+  les notifications prennent l'icône par défaut.
+
+Conclusion : le défaut réel n'était pas « notification sans destinataire »
+mais (a) une erreur de type masquée par `as any` — corrigée — et (b) une
+incohérence sémantique de `action_type` — **ouverte**, consignée R74 et
+proposée P-NEW-6. Le message de commit `0702cd2` n'est pas réécrit
+(interdiction de réécrire l'historique) ; le rectificatif ci-dessus et dans
+RISQUES.md fait foi.

@@ -38,7 +38,7 @@ depuis.** Les chiffres ci-dessous remplacent ceux du corps du rapport.
 | R65 | Double encodage jsonb, portée réelle **218 valeurs / 6 colonnes** (dont `form_definitions.fields` à **100 %**) | Ouvrir un formulaire ou un événement ancien **tombait l'écran** | Migration `20261024000001` ; SQL après : 0 valeur `string` ; rollback prouvé exact |
 | R66 | `db.status` n'existe plus (PowerSync v2 → `db.currentStatus`) | Indicateur de sync affiché **« hors ligne » en permanence** | `tsc -b` 0 erreur |
 | R68 | `onButtonClick` n'existe pas sur `IonItem` (Ionic 9 → `onClick`) | Clic sur un événement du calendrier **sans effet** | `tsc -b` 0 erreur |
-| R70 | `targetRole: "ADMIN"` — rôle inexistant | Rejet d'une transaction **ne notifiait personne** | `TREASURIER` ; `tsc -b` 0 erreur |
+| R70 | `targetRole: "ADMIN"` — valeur hors du type `Role`, masquée par `as any` | Erreur de type (aucun impact fonctionnel : `targetRole` ne route rien, cf. **rectificatif R74**) | `TREASURIER` ; `tsc -b` 0 erreur |
 | R69 | `autoComplete` ignoré par Ionic 9 (→ `autocomplete`) | Autocomplétion navigateur absente | `tsc -b` 0 erreur |
 | R71 | `tsc --noEmit` à la racine ne vérifiait **aucun fichier** (`"files": []`) | 98 erreurs réelles invisibles, dont les 5 ci-dessus | `tsc -b --noEmit` en CI : 0 erreur |
 
@@ -362,6 +362,13 @@ psql "$DATABASE_URL" -f supabase/migrations/rollback/<version>_rollback.sql
 
 ## 9. Risques résiduels pour les 4 mois sans surveillance
 
+> Mise à jour session 5 : les points 4 et 8 de cette liste sont **en partie
+> résorbés** — `tsc -b` est désormais actif en CI (R71) et la corruption
+> jsonb est réparée de bout en bout (R65). Le point 2 (mise en pause) reste
+> **le risque le plus probable** sur 4 mois avec un plan gratuit.
+> Capacité mesurée au 2026-10-24 : **20 Mo / 500 Mo (4 %)** → saturation non
+> imminente.
+
 1. **Perte de données** (pas de sauvegarde) — probabilité moyenne, impact
    maximal. → activer les sauvegardes (P1).
 2. **Mise en pause du projet Supabase** (inactivité) — probabilité élevée sur
@@ -401,6 +408,17 @@ psql "$DATABASE_URL" -f supabase/migrations/rollback/<version>_rollback.sql
 8. **P7** — Onglets `nav-bottom` (3 h) — *haute*.
 9. **P10/P11** — Observabilité + sonde de disponibilité (5 h) — *moyenne*.
 10. **P14** — Couverture Cypress complète (15–25 h) — *basse*.
+
+**Ajouts session 5** (détail : `PROPOSITIONS.md`) :
+
+11. **P-NEW-2** — Réparer les 7 specs Cypress rouges (4 h) — *haute*. Sans
+    suite verte, aucune régression future n'est détectée.
+12. **P-NEW-1** — Contrainte `CHECK` de forme sur les colonnes jsonb (1 h)
+    — *haute* : rend le défaut R65 **impossible**, pas seulement corrigé.
+13. **P-NEW-4** — Alerte sur la taille de la base (1 h) — *haute*.
+14. **P-NEW-3** — Purge planifiée `audit_entries` / `notifications` (2 h)
+    — *moyenne* (non urgente : 4 % du quota).
+15. **P-NEW-5** — Supprimer le code mort `src/adapters/` (0,5 h) — *basse*.
 
 Détail complet : `PROPOSITIONS.md`.
 

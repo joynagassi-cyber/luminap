@@ -456,3 +456,42 @@
   un seuil (ex. 80 % du quota).
 - **Intérêt** : prévenir au lieu de subir. **Coût** : 1 h. **Risque** : faible.
 - **Bloquante** : oui pour la fiabilité à long terme.
+
+
+### P-NEW-5 — Supprimer le code mort `src/adapters/` (priorité : basse)
+- **Problème** : les 5 fichiers de `src/adapters/` (`CaisseAdapter`,
+  `EventBudgetAdapter`, `OrgUnitAdapter`, `TransactionLegacyAdapter`,
+  `VersementLegacyAdapter`) n'ont **aucun importateur** dans `src/`
+  (`git grep -rn "EventBudgetAdapter"` → 0 résultat hors définition ;
+  aucun `from "@/adapters"`). `EventBudgetAdapter.fromJsonb` contient un
+  `JSON.parse` direct sur `budget_items` — exactement le motif qui a produit
+  le double encodage. Du code mort qui ré-implémente un parseur dangereux est
+  un piège pour le prochain intervenant.
+- **Proposition** : supprimer le dossier, ou le marquer explicitement
+  `@deprecated` avec la raison. **Vérification préalable** : relancer
+  `tsc -b` et `vitest run` (les deux doivent rester verts).
+- **Intérêt** : réduit la surface de confusion sur le format `budget_items`.
+  **Coût** : 30 min. **Risque** : faible (à confirmer par la suite de tests).
+- **Bloquante** : non.
+
+
+### P-NEW-6 — Séparer « type d'événement » et « destinataire » des notifications (priorité : moyenne)
+- **Problème** : `notifications.action_type` reçoit tantôt un type
+  d'événement (`EVENT_CREATED`, 311 lignes), tantôt un rôle
+  (`TREASURIER`, via `sendNotification`). Aucun code ne route par
+  destinataire ; `getNotifIcon` ne reconnaît que 3 valeurs jamais produites
+  (cf. R74). Le « ciblage » affiché dans l'UI est donc inexistant.
+- **Proposition** :
+  1. décider la sémantique de `action_type` (**type d'événement**) et
+     l'appliquer partout : remplacer les `targetRole:` de
+     `TransactionDetail.tsx` (5), `EventNew.tsx`, `GivingCampaign.tsx`,
+     `FormFill.tsx`, `InvitationEmit.tsx`, `InvitationClaim.tsx` par un
+     `actionType:` d'événement (`TRANSACTION_APPROVED`, etc.) ;
+  2. ajouter un vrai champ de ciblage (`target_role` / `target_user_id`)
+     **si** le ciblage par rôle est voulu, et le lire dans `useNotifications` ;
+  3. compléter `getNotifIcon` avec les valeurs réellement produites.
+- **Intérêt** : notifications compréhensibles d'un coup d'œil (icône
+  distincte par type) et ciblage réellement appliqué.
+- **Coût** : 2 h (dont une migration si l'on ajoute une colonne).
+  **Risque** : faible (colonne texte, sans contrainte ni FK).
+- **Bloquante** : non — mais à trancher avant d'ajouter des notifications.

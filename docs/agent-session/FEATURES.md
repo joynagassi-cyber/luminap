@@ -232,3 +232,71 @@ dans le code :
 > décodage récursif transformerait une valeur scalaire légitime en objet.
 > Si un défaut de double encodage réapparaît, corriger **la source de
 > l'écriture**, pas `coerceJsonbValue`.
+
+
+### R65 — absence de régression due au changement de TYPE en base (vérifié)
+
+La migration a changé le **type** des valeurs côté serveur (jsonb *string* →
+jsonb *array*/*object*). PowerSync transmet la colonne sous forme de **texte
+JSON** au client (`src/lib/powersync/schema.ts` : `column.text`), et ce texte
+change de `"[]"` (chaîne encodée) à `[]` (tableau). Il fallait donc vérifier
+que les lectures directes par `JSON.parse` ne cassent pas.
+
+| Chemin | Emplacement | Lit | Verdict |
+|---|---|---|---|
+| Rapports — définitions | `src/lib/reporting.ts:631` (`JSON.parse(r.filters \|\| "[]")`) | colonne **locale** `report_definitions.filters` | **amélioré** : avant, `JSON.parse('"[]"')` rendait la *chaîne* `[]` ; après, rend le *tableau* `[]` |
+| Détail de rapport | `src/pages/OrgReportDetail.tsx:139` (`JSON.parse(content)`) | colonne locale `org_reports.content` | **inchangé/amélioré** (protégé par `try/catch`) |
+| Rapports reçus | `src/pages/OrgReportsReceived.tsx:117` | colonne locale `org_reports.content` | idem |
+| Adaptateur budget | `src/adapters/EventBudgetAdapter.ts:23` (`JSON.parse(budget_items_json)`) | argument **chaîne** | **code mort** — voir ci-dessous |
+
+**Preuve que `EventBudgetAdapter` est mort** : `git grep -rn "EventBudgetAdapter"`
+ne renvoie **aucun** importateur (hors sa propre définition). Idem pour les
+4 autres fichiers de `src/adapters/` (`CaisseAdapter`, `OrgUnitAdapter`,
+`TransactionLegacyAdapter`, `VersementLegacyAdapter`) : aucun import
+`from "@/adapters"` dans `src/`. Le chemin **vivant** du budget passe par
+`parseJsonbValue` (`dataLayer.ts:441`), appelé par `Dashboard`, `EventDetail`,
+`Events`, `GroupCotisation`.
+
+**Conclusion** : le changement de type ne casse aucun chemin de lecture
+actif ; il corrige au passage les deux `JSON.parse` de `reporting.ts` et des
+pages de rapport, qui recevaient auparavant une chaîne là où un tableau était
+attendu.
+
+
+### Isolation inter-organisations — preuve empirique en rôle `authenticated` (2026-10-24)
+
+Les specs Cypress existantes (`rls-leak`, `cross-tenant`) utilisent la clé
+**anon** : elles ne prouvent pas l'isolation pour un utilisateur **connecté**
+(R26). Test mené en base, en impersonant le rôle PostgreSQL `authenticated`
+avec les claims d'un vrai utilisateur (`1961752a-…`, org `e2e-auth-org-1`),
+via `set local role authenticated` + `set local request.jwt.claims`.
+Tout a été exécuté dans une transaction annulée (`rollback`), sauf le
+contrôle positif, dont la ligne a été supprimée ensuite.
+
+**Lecture** (l'utilisateur de `e2e-auth-org-1` ne doit rien voir d'autre) :
+
+| Requête | Résultat | Attendu |
+|---|---|---|
+| `auth.uid()` | `1961752a-…` | l'utilisateur impersonné |
+| `current_org_id()` | `e2e-auth-org-1` | sa propre org |
+| `select count(*) from profiles` | **1** | lui seul (sur 108 au total) |
+| `select count(*) from profiles where org_id='org-1'` | **0** | aucune fuite |
+| `select count(*) from organizations` | **1** | la sienne |
+| `... where id <> 'e2e-auth-org-1'` | **0** | aucune autre org visible |
+| `transactions where org_id='org-1'` | **0** | aucune fuite |
+| `events where org_id='org-1'` | **0** | aucune fuite |
+| `audit_entries where org_id='org-1'` | **0** | aucune fuite |
+
+**Écriture** (la direction la plus dangereuse) :
+
+| Tentative | Résultat | Attendu |
+|---|---|---|
+| `insert into events (org_id='org-1')` | **REFUSÉ — `42501`** « new row violates row-level security policy for table "events" » | refus |
+| `insert into events (org_id='e2e-auth-org-1')` | **ACCEPTÉ** (ligne créée puis supprimée) | accepté |
+
+Les deux directions sont donc prouvées : l'utilisateur écrit chez lui et
+**ne peut pas** écrire ailleurs. C'est la preuve directe que le durcissement
+RLS des sessions 1-3 (migrations `20261022000001` à `20261022000014`) est
+actif et correct.
+
+**Nettoyage** : `select count(*) from events where id like 'agent-%'` → **0**.

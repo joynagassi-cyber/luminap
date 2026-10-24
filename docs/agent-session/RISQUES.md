@@ -1167,7 +1167,8 @@ Vérifications menées, avec résultat :
 | Contrôle | Commande / méthode | Résultat |
 |---|---|---|
 | `.env` versionné | `git ls-files \| grep .env` | **aucun** |
-| Secrets en dur (JWT, `service_role`, `sb_secret_`, `sk-`, `sbp_`) | `git grep` sur le code suivi | **aucun** (seules des mentions en commentaire et `Deno.env.get(...)`) |
+| Secrets **de production** en dur (JWT, `service_role`, `sb_secret_`, `sk-`, `sbp_`, clé anon) | `git grep` sur le code suivi | **aucun** (seules des mentions en commentaire et des `Deno.env.get(...)`) |
+| Mots de passe de **test** en clair | `cypress/support/orgCreds.ts:126` (`E2e-Unconfigured!1`), `scripts/generate-keystore*.{sh,js,py}` (`lumina1234`) | **présents** — déjà documentés en R8 et R9, comptes/keystore de test uniquement, **pas** des secrets de production |
 | Secrets dans l'historique | `git log --all --diff-filter=D` sur `.env*` | **aucun** fichier de secret supprimé |
 | Dependabot | `.github/dependabot.yml` | **absent** (aucune configuration ; conforme à la directive d'abandon) |
 | PR Dependabot ouvertes | API `pulls?state=open` | **0** |
@@ -1199,3 +1200,58 @@ Supabase (action propriétaire, cf. RUNBOOK).
   `service_role` seulement).
 - **Action** : aucune. Consigné pour qu'un futur lecteur des Advisors ne
   « corrige » pas ces fonctions et ne rouvre pas la faille.
+
+
+### R74 — Ciblage des notifications : `action_type` détourné en « rôle » — OUVERT (moyenne)
+
+**Origine** : en corrigeant R70 (erreur de type `targetRole: "ADMIN"`), une
+vérification plus poussée a montré que la correction de type ne suffisait pas
+et que la description initiale de R70 était **inexacte**. Rectificatif.
+
+**Ce qui est réellement vrai** (vérifié) :
+- `NotificationSendData.targetRole` est typé `Role` (`notification/index.ts:20`)
+  mais n'est **jamais** utilisé pour router : `sendNotification` écrit sa
+  valeur dans la colonne `notifications.action_type` (ligne 115 :
+  `data.targetRole ?? "PUSH"`), une colonne `text` sans contrainte.
+- Or les **données réelles** de `action_type` ne contiennent **aucun** rôle :
+  `EVENT_CREATED` 311, `INVITATION_RECEIVED` 11, `FORM_SUBMITTED` 1
+  (requête `select action_type, count(*) from notifications group by 1`,
+  2026-10-24). Cette colonne porte un **type d'événement**, pas un rôle.
+- Conséquence : les 5 notifications de `TransactionDetail.tsx` (et celles de
+  `EventNew.tsx`, `GivingCampaign.tsx`, `FormFill.tsx`, `InvitationEmit.tsx`,
+  `InvitationClaim.tsx`) écrivent un **rôle** dans une colonne qui contient
+  partout ailleurs un **type d'événement**. Le nom de la valeur n'a pas
+  d'effet fonctionnel : aucun code ne lit `action_type` pour filtrer par
+  destinataire (`git grep action_type` → seul `getNotifIcon` le lit).
+
+**Effet secondaire découvert** : `getNotifIcon`
+(`src/pages/Notifications.tsx:23`) ne reconnaît que `TRANSACTION_PENDING`,
+`TRANSACTION_APPROVED`, `BUDGET_EXCEEDED`. Or ces trois valeurs sont
+**absentes** des données réelles (0 ligne) : toutes les notifications
+affichées prennent donc l'icône par défaut (cloche grise). L'icône ne
+distingue rien aujourd'hui.
+
+**Pourquoi ce n'est pas corrigé en session** : corriger proprement exige de
+séparer « type d'événement » et « destinataire » — c'est-à-dire ajouter une
+colonne (ou une convention) et un vrai routage. C'est une décision de
+conception, hors du « minimum de changement », et non bloquante (aucune
+notification n'est perdue : elles sont toutes visibles par toute
+l'organisation ; seul le *ciblage* et l'*icône* sont imprécis).
+
+**Ce qui a été fait** : `TransactionDetail.tsx` utilise désormais
+`TREASURIER` (valeur valide du type `Role`) au lieu de `"ADMIN" as any` :
+le `as any` disparaît, le typecheck passe. Le comportement visuel est
+**inchangé** (`TREASURIER` n'est pas reconnu par `getNotifIcon`, comme
+`ADMIN` ne l'était pas).
+
+**Action proposée** : P-NEW-6.
+
+### Rectificatif sur R70 (message de commit `0702cd2`)
+
+Le message du commit `0702cd2` décrit le point 5 ainsi : « la notification de
+suppression n'était rattachée à aucun rôle destinataire ». **C'est inexact**
+(cf. R74) : `targetRole` ne route rien ; il alimente `action_type`. Le défaut
+réel était une **erreur de type** (`"ADMIN"` n'appartient pas à `Role`) que
+`as any` masquait, et une **incohérence sémantique** de la colonne
+`action_type`. La correction de type reste valable ; l'interprétation
+fonctionnelle était fausse. Le présent rectificatif fait foi.
