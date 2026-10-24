@@ -67,6 +67,33 @@ setsid nohup Xvfb :99 -screen 0 1280x720x24 -nolisten tcp &
 - Si la CI est indisponible, rejouer la suite en local (voir ci-dessus) et
   le signaler : un résultat local n'a pas la valeur d'une preuve CI.
 
+### ⚠️ La suite Cypress est structurellement rouge (R98) — à traiter en priorité
+
+Au 2026-10-24, les **20 derniers runs Cypress sur `main` sont tous en échec**
+(aucun vert depuis le 2026-10-19). Ce n'est **pas** un bug produit : le
+workflow `.github/workflows/cypress.yml` exécute la suite en **2 conteneurs
+parallèles partageant la même base Supabase**, ce qui provoque des
+interférences (recherches de lignes nommées et comptages incohérents).
+
+**Conséquence pour vous :** tant que ce point n'est pas réglé, la CI Cypress
+**ne détecte aucune régression** — son rouge est permanent. Ne vous fiez pas à
+elle pour valider un changement.
+
+**Marche à suivre** (cf. PROPOSITIONS.md P38) :
+1. Passer à **1 seul conteneur** dans `cypress.yml` :
+   `matrix: containers: [1]` et `parallel: false` (retirer aussi `record`/
+   `CYPRESS_RECORD_KEY` si vous n'utilisez pas Cypress Cloud).
+2. Relancer la CI : le nombre d'échecs doit **chuter fortement**. Les échecs
+   restants sont alors de **vrais** défauts, à traiter un par un.
+3. Sérialiser les runs pour éviter plusieurs suites concurrentes sur la même
+   base : ajouter `concurrency: { group: cypress, cancel-in-progress: true }`
+   et ne déclencher que sur `main` + `pull_request` (P40).
+
+Une branche candidate (`agent/session-13-ci-cypress-test`) mesure cet effet ;
+la preuve (nombre d'échecs avant/après) est consignée dans
+`docs/agent-session/JOURNAL.md`. **Ne pas fusionner sans cette mesure.**
+
+
 ## Surveiller la taille de la base (quota du plan gratuit)
 
 Projet Supabase gratuit : **500 Mo**. `audit_entries` et `notifications`
