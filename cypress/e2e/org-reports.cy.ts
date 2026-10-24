@@ -91,7 +91,7 @@ describe('Lumina — Org reports hierarchy, send page gating, RLS', () => {
   };
 
   it('creates org hierarchy, verifies send-page gating and RLS', function () {
-    this.timeout(480_000);
+    this.timeout(180_000);
 
     const ts = Date.now().toString().slice(-6);
     const orgAName = `Annexe A ${ts}`;
@@ -150,14 +150,21 @@ describe('Lumina — Org reports hierarchy, send page gating, RLS', () => {
     // (L'ancienne assertion `cy.contains(orgAName)` cherchait un texte de
     // carte racine : structurellement introuvable.)
     cy.get('[data-testid^="org-open-"]', { timeout: 60_000 }).first().click();
-    cy.contains(orgAName, { timeout: 60_000 }).should('be.visible');
+    cy.contains('span', orgAName, { timeout: 60_000 }).should('be.visible');
     cy.log(`Org A created: ${orgAName}`);
 
     // ── 3. Create org B under A (bouton contextuel « Ajouter sous cette org »)
     // Le bouton porte une ICÔNE (pas de texte) : son libellé est un
     // `aria-label`. `cy.contains('button', 'Ajouter sous cette org')` ne
     // pouvait donc jamais matcher (échec mesuré : 30 s puis timeout).
-    cy.contains(orgAName, { timeout: 60_000 })
+    //
+    // Le nom de l'org apparaît AUSSI dans la bannière de succès
+    // (« "Annexe A …" créée (opérationnelle) »), rendue AVANT l'arborescence.
+    // `cy.contains(orgAName)` y matchait donc un <p> de bannière, dont le
+    // `.closest('div')` ne contient aucun bouton d'action → échec mesuré
+    // après 480 s. La carte enfant, elle, rend le nom dans un <span> à texte
+    // exact : on ancre la recherche dessus.
+    cy.contains('span', orgAName, { timeout: 60_000 })
       .closest('div')
       .find('button[aria-label="Ajouter sous cette org"]')
       .first()
