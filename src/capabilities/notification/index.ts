@@ -119,8 +119,14 @@ export class NotificationCapability {
           now,
         ],
       );
-    } catch {
-      // Persistence is best-effort — the OneSignal path below still runs.
+    } catch (e) {
+      // Persistance best-effort : le chemin OneSignal ci-dessous s'exécute
+      // quand même. Mais un échec ne doit pas être avalé en silence (il
+      // laisse une notification absente de l'historique in-app sans trace).
+      console.warn(
+        "[notification] persistance PowerSync échouée (push OneSignal tenté quand même):",
+        e,
+      );
     }
 
     // 2) Tag the current session for server-side targeting
