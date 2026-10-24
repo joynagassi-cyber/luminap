@@ -275,3 +275,33 @@
 - **Alternative écartée** : ajouter un `webServer` à `cypress.config.ts` pour
   rendre le démarrage explicite. Écartée pendant le gel (changement
   structurel non testé) → portée en PROPOSITIONS.md (P32).
+
+
+## D-S7-1 — Anti-pause : ping API externe (pas le heartbeat pg_cron)
+
+- **Décision** : ajouter `.github/workflows/keep-alive.yml` (ping REST+Auth
+  toutes les 48 h) comme mécanisme anti-pause, et corriger le commentaire de
+  `supabase/keep-alive.sql` qui affirmait le contraire.
+- **Raison** : la doc officielle Supabase (« Project Pausing ») indique que la
+  pause Free dépend de « user database activity / a few user requests to the
+  database each day ». L'activité **interne** (pg_cron) n'est pas comptée :
+  le heartbeat seul n'empêchait donc rien. Le dépôt est **public**, donc les
+  schedules GitHub ne sont pas désactivés (la limite des 60 jours ne concerne
+  que les dépôts privés).
+- **Alternative écartée** : dépendre du heartbeat pg_cron (prémisse fausse) ;
+  passer au plan Pro (coût récurrent non validé par le propriétaire).
+
+## D-S7-2 — Sauvegarde planifiée via GitHub Actions, chiffrée
+
+- **Décision** : livrer `.github/workflows/backup.yml` +
+  `scripts/backup-supabase.sh` (export schéma+données via `supabase db dump`,
+  décision D2), avec publication d'artefact **uniquement si chiffré**
+  (AES256/GPG). Activation par le propriétaire via le secret
+  `SUPABASE_DB_URL`.
+- **Raison** : le plan Free ne permet aucun téléchargement de sauvegarde ; ni
+  `pg_dump` ni Docker ne sont disponibles dans l'environnement d'agent, et
+  aucune credential DB n'y est présente. Le workflow rend la sauvegarde
+  automatique dès que le secret existe.
+- **Alternative écartée** : publier un artefact non chiffré (dépôt public →
+  fuite de toute la base) ; exiger un stockage S3 (secret supplémentaire,
+  friction).
