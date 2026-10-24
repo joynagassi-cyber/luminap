@@ -1940,3 +1940,52 @@ Android dépend donc d'un build manuel (`lumina-android.yml`, lui, **réussit** 
 nécessaire à la stabilité web. **À traiter par le propriétaire** : mettre à jour
 la configuration Gradle de `:capacitor-storage` / `capacitor-cordova-android-plugins`
 (ou épingler une version de Gradle < 9).
+
+
+## Session 7 (2026-10-24) — audit intégrité/isolation (phase 1)
+
+### R91 — Fuite des secrets d'invitation => escalade de privilèges — CORRIGÉ
+- **Gravité** : CRITIQUE.
+- **Défaut** : `invitations_select` était `is_org_member(initplan_uid(), org_id)` :
+  TOUT membre (y compris un simple MEMBRE ou une adhésion PENDING) lisait
+  `code`, `target_role`, `grants_payload`, `tags_payload` de TOUTES les
+  invitations de son organisation. `invitation_claims_insert` n'exigeait pas
+  `resulting_user_id = auth.uid()`, et le trigger SECURITY DEFINER
+  `settle_invitation_claim()` appliquait `inv.target_role` au profil
+  `resulting_user_id`. Enchaînement : un MEMBRE s'octroyait une invitation à
+  rôle élevé et se retrouvait promu.
+- **Preuve** (instance dev, transaction annulée, aucun résidu vérifié) :
+  - avant : `invitations_visibles=1  role_avant=MEMBRE  role_apres=ADMIN` ;
+  - après correctif : `invitations_visibles=0  role_apres=MEMBRE  claim=42501 (refusé)`.
+- **Correctif** : migration `20261024000002_fix_invitation_secret_leak.sql`
+  (commits `177b59d`, test `85d353d`). `invitations_select` réservé à
+  `can_manage_invitations` ; `invitation_claims_insert` interdit un claim au
+  nom d'un profil déjà ACTIF (défense en profondeur). Rollback fourni
+  (`supabase/migrations/rollback/20261024000002_rollback.sql`, réintroduit la
+  faille — documenté).
+- **Statut** : corrigé et vérifié. Test de non-régression
+  `src/capabilities/__tests__/invitation-rls-hardening.test.ts` (4/4 ; échoue
+  si l'on restaure la politique permissive).
+
+### R92 — Stream PowerSync `invitations` trop large (divulgation) — NON CORRIGÉ
+- **Gravité** : MOYENNE (atténuée par R91).
+- **Défaut** : `powersync/sync-config.yaml`, stream `invitations`
+  (`auto_subscribe: false`) filtre par
+  `org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())` et
+  synchronise **toutes** les colonnes (`SELECT *`) de **toutes** les
+  invitations de l'organisation sur l'appareil de **chaque** membre — alors
+  que le commentaire du fichier annonce l'inverse (« un utilisateur ne lit que
+  ces deux vues, pas tout ce que tout le monde a émis »). PowerSync applique
+  ses propres règles et **contourne RLS**.
+- **Impact** : un membre récupère hors-ligne les codes d'invitation et rôles
+  cibles de son organisation (divulgation). L'**exploit** d'escalade reste
+  fermé par R91 (le claim au nom d'un profil ACTIF est refusé en 42501 même
+  via le stream), donc R92 est une divulgation, pas une escalade.
+- **Correctif proposé** (non appliqué : nécessite `PS_ADMIN_TOKEN` absent de
+  l'environnement et un redéploiement Cloud) : restreindre le stream aux
+  invitations émises par l'appareil ou par un gestionnaire, p.ex.
+  `WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id()
+     AND role IN ('PASTEUR_PRINCIPAL','ANCIEN','TREASURIER'))`
+  et/ou ne synchroniser que les invitations effectivement remises hors-bande
+  (le destinataire détient le JSON). Voir PROPOSITIONS.md.
+- **Statut** : NON CORRIGÉ (documenté). Le correctif RLS R91 ferme l'exploit.
