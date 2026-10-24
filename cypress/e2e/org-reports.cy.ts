@@ -43,11 +43,27 @@ describe('Lumina — Org reports hierarchy, send page gating, RLS', () => {
     // Archivage (ARCHIVED ≠ DELETE : l'historique reste) via l'API REST avec
     // le JETON RÉEL. La RLS `orgs_update_merged` l'autorise : `create_org` a
     // accordé au compte e2e un grant `org_admins` ACTIVE sur chaque org créée.
+    //
+    // Le nettoyage est VOLONTAIREMENT NON FATAL : un échec ici ne doit jamais
+    // transformer une suite verte en rouge ni masquer un échec du test. Au
+    // pire, le résidu reste ACTIVE (comportement antérieur).
     const SUPABASE_URL =
       (Cypress.expose('SUPABASE_URL') as string) ||
       'https://hhgovvrnalibhgpakswi.supabase.co';
     const anonKey = Cypress.expose('SUPABASE_ANON_KEY') as string;
-    realToken().then((token) => {
+    cy.window({ log: false }).then((win) => {
+      const ls = win.localStorage;
+      const sbKey = Object.keys(ls).find((k) => /-auth-token$/.test(k));
+      let token: string | null = null;
+      try {
+        token = JSON.parse(ls.getItem(sbKey ?? '') ?? '')?.access_token ?? null;
+      } catch {
+        token = null;
+      }
+      if (!token) {
+        cy.log('cleanup orgs: session absente, archivage ignoré (non fatal)');
+        return;
+      }
       createdOrgIds.forEach((id) => {
         cy.request({
           method: 'PATCH',

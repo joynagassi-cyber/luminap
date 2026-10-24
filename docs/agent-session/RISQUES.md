@@ -2085,3 +2085,42 @@ la configuration Gradle de `:capacitor-storage` / `capacitor-cordova-android-plu
   (comportement conservateur).
 - **Statut** : documenté, aucune action. Réévaluer si `keep_alive` ou le
   backfill sont un jour supprimés (l'advisor disparaît alors).
+
+### R98 — La suite Cypress n'a JAMAIS été verte sur `main` (20 runs consécutifs) — CAUSE RACINE PROBABLE : 2 conteneurs parallèles sur une seule base — NON CORRIGÉ (documenté)
+- **Gravité** : HAUTE (l'alerte CI est structurellement inutilisable ; un vrai
+  échec introduit par une session future ne serait pas distinguable du bruit).
+- **Constat** : sur `main`, les 20 derniers runs Cypress (du 2026-10-19 au
+  2026-10-24) sont **tous en échec**. Aucun run vert trouvé sur cette période.
+  Un run représentatif (`40078474144`, sha `2fae0d2`) : **10 specs en échec**
+  (13 tests) / 13 specs vertes. Échecs mesurés : `performance-batch`
+  (`expected 0 to be at least 20`, `... at least 50`), `sessions`
+  (`button[aria-label^="Re-ouvrir"]` introuvable ×3), `members`
+  (`Jean E2e84248` / `Jean` introuvable), `groups-events`
+  (`Jeunesse 889096` + aucun titre visible), `events-tasks` et `cross-tenant`
+  (`au moins une page visible: expected 0 to be above 0`),
+  `org-reports` (`Org E2E 327858` introuvable dans le select),
+  `forms-v2` (`E2e Forms v2` introuvable), `persistence`
+  (`Event Persist F5` introuvable), `comprehensive-flow` (timeout 30 s).
+- **Cause racine probable** : `.github/workflows/cypress.yml` exécute la suite
+  en **2 conteneurs parallèles** (`matrix.containers: [1, 2]`, `parallel: true`)
+  qui **partagent la même base Supabase** (secrets `SUPABASE_URL` /
+  `SUPABASE_ANON_KEY` identiques). Les specs créent, lisent et **attendent des
+  lignes nommées** (`Jean …`, `Jeunesse …`, `Org E2E …`, `Event Persist F5`,
+  `E2e Forms v2`) : la concurrence sur une base unique provoque des comptages
+  et des recherches incohérents — signature attendue d'une interférence
+  inter-conteneurs, pas d'un bug produit. De plus, plusieurs specs échouent en
+  `expected 0 to be at least N` (comptage de lignes) : cohérent avec des
+  données attendues non encore synchronisées ou déjà modifiées par l'autre
+  conteneur.
+- **Ce qui n'est PAS la cause** : ce n'est **pas** une régression introduite par
+  les correctifs de sécurité R91/R91.b/R91.c. Preuve : `org-reports.cy.ts`
+  échouait déjà sur `main` **avant** le correctif R96 (échec à la ligne 150,
+  `Org E2E 327858`, sur le run `40078474144` du sha `2fae0d2`).
+- **Correctif** : **non appliqué** (gel en vigueur, et le correctif implique de
+  changer le mode d'exécution de la CI → décision structurelle du propriétaire).
+  Pistes : (a) exécuter Cypress en **1 seul conteneur** (`containers: [1]`,
+  `parallel: false`) pour retrouver un signal fiable ; (b) ou isoler chaque
+  conteneur (base de test dédiée par conteneur — coûteux). Voir PROPOSITIONS.
+- **Statut** : documenté, non corrigé. **Impact pour les 4 mois** : l'alerte CI
+  Cypress restera rouge en permanence ; elle ne détectera pas les régressions.
+  Le propriétaire doit traiter ce point avant de se fier à la CI.
