@@ -1322,3 +1322,60 @@ vérifiés dans les deux sens (1 échec sans correctif, 7/7 avec). Suite unitair
   la valeur réelle : deux défauts produits majeurs trouvés et prouvés (R87
   corrigé, R89 diagnostiqué + 89.c corrigé), plutôt que sur le remplissage du
   budget.
+
+## Session 9 (2026-10-24) — Phase 1 (suite) + robustesse 4 mois
+
+Heure de reprise : 2026-10-24T08:0x Z. Branches : `agent/session-8-security`
+(PR #10) puis `agent/session-9-integrity` (PR #11).
+
+### 25. Ops — anti-pause Supabase + sauvegarde planifiée (PR #10)
+
+- **Découverte** : `supabase/keep-alive.sql` affirmait que le heartbeat
+  `pg_cron` « immunise contre la pause auto ». **Faux** — la doc officielle
+  (« Project Pausing ») : la pause Free dépend de l'activité **API**
+  (« a few user requests to the database each day »), pas de l'activité
+  interne. Le projet restait exposé à une pause à 7 jours.
+- **Correctif** : `.github/workflows/keep-alive.yml` (ping REST + Auth toutes
+  les 48 h). Dépôt **public** → schedules GitHub non désactivés.
+  **Preuve** : run `40078250833` **success**, log `HTTP 200`.
+- **Sauvegarde P31** : `.github/workflows/backup.yml` + `scripts/backup-supabase.sh`
+  (export schéma+données, SHA-256, chiffrement AES256, rotation 30 j ; artefact
+  publié **uniquement chiffré** car dépôt public). Activation par secret
+  `SUPABASE_DB_URL` (RUNBOOK §Sauvegardes). Ni `pg_dump` ni Docker ne sont
+  disponibles dans l'environnement d'agent → non exécutable ici.
+- Décisions D-S7-1 / D-S7-2 ; risques R94 (corrigé) ; R18 mis à jour.
+
+### 26. Sécurité — régression R91.b + garde R91.c (PR #11)
+
+- **R91.b (régression de mon propre correctif R91)** : la politique
+  `invitation_claims_insert` posée par `20261024000002` contenait
+  `EXISTS (SELECT 1 FROM public.invitations ...)`, **soumis à la RLS de
+  l'appelant**. Depuis que `invitations_select` est restreint aux
+  gestionnaires, un invité non gestionnaire ne « voit » pas la ligne → son
+  claim était **refusé (42501)** : le parcours « réclamer un code » était
+  cassé. Correctif `20261024000003` : retirer ce `EXISTS` (redondant avec la
+  FK `invitation_claims_invitation_id_fkey`, hors RLS).
+- **R91.c (défense en profondeur fiable)** : la RLS est aveugle (elle ne
+  distingue pas « profil ACTIF » de « non visible »). La vérification est
+  déplacée dans le trigger **SECURITY DEFINER** `settle_invitation_claim`
+  (`20261024000004`) : refus d'élever un profil **déjà ACTIF** sauf si un
+  gestionnaire d'invitations est l'auteur (`ROLE_ESCALATION_BLOCKED`).
+- **Preuves** (transactions annulées, 0 résidu) :
+  - invité non gestionnaire : `visibles=0`, self/other `REFUSE 42501`,
+    claim sur profil PENDING = `ACCEPTE`, `pending_apres=ACTIVE` (flux rétabli) ;
+  - appelant gestionnaire : `INSERT ACCEPTE` puis
+    `REJECTED_DUPLICATE / ROLE_ESCALATION_BLOCKED`, `role ADMIN inchangé`.
+- **Test** `invitation-rls-hardening.test.ts` étendu → **10/10**.
+- Migrations réversibles (rollbacks 000003 / 000004 fournis).
+- **Vérifs** : suite unitaire complète **1108/1108** (68 fichiers) ;
+  `npx tsc -b` propre ; CI `main` `f955781` **success**.
+
+### 27. Découverte de modèle (rôle `ADMIN`)
+
+- `profiles.role` / `org_memberships.role` contiennent `ADMIN` (1 ligne =
+  admin central), mais le type TS `Role` (`src/types/index.ts`) **ne l'inclut
+  pas**, et `can_manage_invitations` / `canManageFinance` ne l'autorisent pas.
+  Non corrigé (défaut de modèle de rôles, décision produit) — voir R16/R20 et
+  PROPOSITIONS. Sans impact prouvé aujourd'hui : les invitations INSERT/UPDATE/
+  DELETE exigent déjà `can_manage_invitations`, donc un `ADMIN` n'émet pas
+  d'invitation aujourd'hui.
