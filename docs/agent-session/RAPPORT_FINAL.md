@@ -1030,3 +1030,126 @@ Sauvegarde disponible : `/workspace/backups/` (cf. S3.5).
    modèle de données, pas un correctif.
 3. **P31** : mettre en place une sauvegarde planifiée hors Supabase.
 4. **P35** : généraliser le `<h1>` aux 19 pages restantes.
+
+---
+
+# S5 — Addendum session 9 (2026-10-24)
+
+Suite de la session (gel en vigueur : correctifs ciblés + tests + clôture
+documentaire uniquement). Aucun changement structurel.
+
+## S5.1 — Nettoyage des résidus de test et cause racine (R96)
+
+**Constat.** Le spec Cypress `cypress/e2e/org-reports.cy.ts` créait, à chaque
+exécution, **2 organisations ACTIVE réelles** via la fonction serveur
+`create_org`, sans jamais les nettoyer (aucun `after()`/`afterEach()`).
+
+**Preuve.** 3 annexes résiduelles en base le 2026-10-24 (`org-34ee1844…`
+00:02, `org-329fbe9d…` 01:11, `org-13547450…` 02:22 — une par run), chacune
+avec exactement 1 `org_admins` + 1 `audit_entries`
+(`actor_role_at_time = service_role`) et **0** donnée métier.
+
+**Actions.**
+1. Les 3 annexes ont été **archivées** (`status='ARCHIVED'`,
+   `archive_reason` renseigné) — `ARCHIVED ≠ DELETE`, réversible et tracé
+   (aucune sauvegarde DB n'existe encore, donc aucune suppression).
+2. Le spec enregistre désormais les ids créés et les **archive** dans un hook
+   `after()` via l'API REST avec le jeton réel (autorisé par
+   `orgs_update_merged` : le compte e2e détient le grant `org_admins` accordé
+   par `create_org`).
+
+**Vérification.** `tsc -b` propre ; `eslint` 0 erreur ; PR #13 mergée ;
+CI Pipeline verte. ⚠️ La vérification E2E (le hook archive bien à la fin du
+run) est à confirmer par la CI Cypress — le binaire Cypress n'est pas
+installable dans l'environnement d'agent.
+
+## S5.2 — Advisors de sécurité : faux positifs documentés (R97)
+
+Les 2 advisors `rls_enabled_no_policy` (`keep_alive`,
+`_jsonb_backfill_20261024`) sont des **faux positifs** : RLS activée sans
+politique = **deny-all** en PostgreSQL, donc aucun accès (les privilèges
+`anon`/`authenticated` sont inopérants). Preuve : le ping
+`GET /rest/v1/keep_alive` renvoie **HTTP 200 avec corps vide** (run
+`40078250833`). Décision conservatrice : ni politique, ni RLS désactivée
+(D-S9-4). Aucune faille.
+
+## S5.3 — Évaluation « production réelle » et PII
+
+- **Instance de développement** : `transactions = 0`, `documents = 0`,
+  `versements = 0`. 108 profils (87 `@lumina.dev`, 11 `@example.com`, 9
+  `@gmail.com`), 47 `__no_org__`, 70 members, 42 invitations, 9 organisations
+  (5 ACTIVE). Aucun signe d'exploitation réelle → écritures autorisées.
+- **Aucune PII supprimée** (D-S9-5) : l'identification « réel vs test » n'est
+  pas certaine et aucune sauvegarde n'existe. Traitement documenté (R10, R22,
+  RUNBOOK) à exécuter par le propriétaire **après** activation des sauvegardes.
+- **Aucun secret dans le code/historique** : clés lues via `Deno.env` ; pas de
+  `.env` versionné ; pas de JWT en dur. Les identifiants trouvés
+  (`E2e-Lumina!1`, `lumina1234`) sont des identifiants de **test** (R8, R9),
+  déjà documentés ; le build release utilise des variables d'environnement.
+
+## S5.4 — Invitations : statut consolidé
+
+R91 (fuite `code`/`target_role` → escalade de rôle) → R91.b (régression du
+parcours de claim introduite par le correctif) → R91.c (garde anti-escalade
+déplacée dans le trigger DEFINER). Preuves : `V:
+invitation-rls-hardening.test.ts` **10/10**, `SQL` (invité non gestionnaire :
+0 invitation visible, claim `42501` ; gestionnaire : `ACCEPTE` puis
+`REJECTED_DUPLICATE`/`ROLE_ESCALATION_BLOCKED`, rôle inchangé). Statut
+**validée (V+SQL)**.
+
+## S5.5 — Preuve de non-régression
+
+- Suite unitaire complète : **1114/1114 passés** (`npx vitest run`,
+  20,5 s, 2026-10-24).
+- `npx tsc -b` : exit 0.
+- CI Pipeline (branches de session) : **success**.
+- Android Debug Build : **failure pré-existante** (R90 — désalignement
+  `@capacitor/android` ^6.2.2 vs `@capacitor/cli` ^8.5.2 ; non régression).
+- Cypress : suite volumineuse, exécutée en CI (binaire non installable dans
+  l'environnement d'agent). Résultat consigné dans JOURNAL.md.
+
+## S5.6 — Découverte majeure : la suite Cypress n'a jamais été verte (R98)
+
+**Constat.** Sur `main`, les **20 derniers runs Cypress (2026-10-19 →
+2026-10-24) sont tous en échec** ; aucun run vert sur la période. Un run
+représentatif (`40078474144`, sha `2fae0d2`) échoue dans **10 specs sur 23**
+(13 tests). C'est le défaut le plus lourd pour la fiabilité à long terme : une
+CI rouge en permanence **ne détecte aucune régression**.
+
+**Cause réelle (mesurée, après réfutation d'une première hypothèse).** Une
+première hypothèse — la parallélisation CI (2 conteneurs sur une même base) —
+a été **testée puis réfutée** : une branche candidate en **1 seul conteneur**
+(`agent/session-13-ci-cypress-test`, run `40080015253`, `parallel: false`)
+échoue dans **exactement les mêmes 10 specs, aux mêmes assertions**. La cause
+est donc l'**environnement E2E** : ces specs dépendent de la synchronisation
+PowerSync et du contexte d'organisation, non opérants en CI — déjà diagnostiqué
+en R53 (réplique PowerSync vide), R83 (`performance-batch` : intercept qui ne
+laisse pas passer la requête, contexte d'org non posé → 0 ligne côté serveur),
+R72 (global dev) et R54 (job E2E de `ci.yml` non bloquant).
+
+**Ce que ce n'est PAS.** Ce n'est pas une régression des correctifs de sécurité
+R91/R91.b/R91.c : `org-reports.cy.ts` échouait déjà sur `main` **avant** R96
+(échec ligne 150, `Org E2E 327858`, run `40078474144`). Mon correctif R96 est
+neutre (il ajoute un nettoyage non fatal).
+
+**Statut.** Non corrigé (gel ; le correctif exige un environnement E2E capable
+d'exercer PowerSync + un compte de test — cf. P41, priorité critique). La
+branche candidate `agent/session-13-ci-cypress-test` **ne doit pas être
+fusionnée** : elle ne corrige rien (preuve négative conservée comme trace dans
+JOURNAL.md et RUNBOOK.md). L'enjeu de fond : le **chemin d'écriture
+hors-ligne** (SQLite → queue → Supabase) n'a **aucune** couverture de test.
+
+## S5.7 — Ce qui n'a PAS pu être vérifié (honnêteté des preuves)
+
+- **Cypress en local** : le binaire Cypress n'est pas installable dans
+  l'environnement d'agent (pas d'écran X, téléchargement bloqué). Toute
+  affirmation E2E repose donc sur la **CI**, dont la fiabilité est elle-même en
+  cause (R98). Les specs ne sont donc **pas** déclarées « validées » sur la foi
+  d'un run local.
+- **PowerSync** : le déploiement Cloud (`powersync deploy sync-config`) exige
+  `PS_ADMIN_TOKEN`, non disponible. Les correctifs de filtrage des streams
+  sont donc « fichier corrigé, non déployé ».
+- **Sauvegarde DB** : aucune sauvegarde n'a pu être produite (ni `pg_dump` ni
+  Docker ni credential DB dans l'environnement). P31 est **outillé** mais
+  l'activation dépend du propriétaire. **Conséquence : aucune suppression
+  destructive n'a été faite** (seul un archivage réversible).

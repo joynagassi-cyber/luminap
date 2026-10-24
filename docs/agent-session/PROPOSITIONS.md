@@ -563,3 +563,63 @@
   natifs : caméra, notifications, stockage). **Risque** : moyen (rupture de
   plugins natifs). **Priorité** : haute. **Bloquant** : non (l'app web/PWA
   fonctionne).
+
+### P38 — ~~Fiabiliser la suite Cypress : 1 seul conteneur~~ — RÉFUTÉE PAR MESURE
+- **Hypothèse** : la suite Cypress n'a jamais été verte sur `main` (20 runs en
+  échec) parce que 2 conteneurs parallèles partagent la même base Supabase.
+- **Mesure** : une branche candidate (1 seul conteneur, `parallel: false`,
+  run `40080015253`) a été exécutée en CI. Résultat : **les mêmes 10 specs
+  échouent, aux mêmes assertions**. Aucune amélioration.
+- **Conclusion** : hypothèse **réfutée**. La parallélisation n'est pas la
+  cause. **Ne pas fusionner** la branche candidate. Voir R98 et P41.
+- **Priorité** : n/a (proposition retirée).
+
+### P39 — Isoler chaque exécution E2E (nettoyage systématique) — HAUTE
+- **Problème** : plusieurs specs créent des données réelles sans les nettoyer
+  (constaté : 3 annexes résiduelles de `org-reports.cy.ts`, R96). Sur 4 mois,
+  la base se remplit de résidus (organisations, événements, membres de test),
+  faussant les comptages d'autres tests.
+- **Proposition** : généraliser le motif de `after()` (archivage/suppression
+  non fatale par préfixe de nom) à tous les specs qui créent des données, et
+  ajouter un job de nettoyage périodique des résidus par préfixe (`Annexe`,
+  `Org E2E`, `Jean E2e`, `Event Persist`, `E2e Forms v2`, `Jeunesse`).
+- **Intérêt** : suite déterministe, base non polluée, comptages fiables.
+- **Coût** : 3–4 h. **Risque** : faible (nettoyage par préfixe, non fatal).
+  **Priorité** : haute. **Bloquant** : non, mais fortement recommandé.
+
+### P40 — Verrouiller la CI sur la branche `main` uniquement pour Cypress — MOYENNE
+- **Problème** : le workflow `cypress.yml` se déclenche sur **tout** `push`
+  (`on: [push]`), y compris les branches de travail : plusieurs runs
+  concurrents partagent la même base (constaté : 8 runs simultanés), aggravant
+  les interférences et consommant des minutes CI.
+- **Proposition** : limiter le déclenchement (`push` sur `main` +
+  `pull_request`), ou sérialiser via `concurrency: { group: cypress,
+  cancel-in-progress: true }`.
+- **Intérêt** : moins de runs concurrents, moins de bruit, base moins
+  sollicitée. **Coût** : 15 min. **Risque** : faible.
+  **Priorité** : moyenne.
+
+### P41 — Rendre l'environnement E2E capable d'exercer PowerSync, et tester l'écriture hors-ligne (R98/R83/R53) — CRITIQUE
+- **Problème** : la suite Cypress n'a **jamais** été verte sur `main` (20 runs
+  en échec). La cause n'est pas la CI mais l'**environnement E2E** : 10 specs
+  dépendent de la synchronisation PowerSync et du contexte d'organisation, qui
+  ne sont pas opérants en CI. Pire : le **chemin d'écriture hors-ligne**
+  (SQLite → queue d'upload → Supabase) n'a **aucune** couverture de test — c'est
+  pourtant le cœur d'une app utilisée « chaque jour » sur le terrain.
+- **Proposition** :
+  1. Provisionner un **compte de test** dont la réplique PowerSync se peuple
+     (secrets `E2E_TEST_EMAIL` / `E2E_TEST_PASSWORD`) et un contexte
+     d'organisation stable, puis débloquer les specs R53/R72.
+  2. Réécrire `performance-batch` selon le motif éprouvé (cf. R83) en exerçant
+     le **vrai worker** PowerSync : `db.disconnect()` → écrire en local →
+     `db.connect(connector)` → attendre `getNextCrudTransaction() === null` →
+     vérifier côté serveur.
+  3. Rendre le job E2E de `ci.yml` **bloquant** (retirer `continue-on-error`,
+     exécuter la suite réelle, cf. R54).
+- **Intérêt** : la CI redevient une alerte utile et le chemin hors-ligne — le
+  plus critique pour l'usage quotidien — est enfin vérifié. Sans cela, aucune
+  régression ne sera détectée pendant 4 mois.
+- **Coût** : 6–8 h (provisionnement, réécriture des specs, stabilisation sur
+  3 passes). **Risque** : moyen (dépend de l'accès au projet PowerSync Cloud et
+  d'un compte de test). **Priorité** : **critique**. **Bloquant** : oui, pour
+  la fiabilité à long terme.

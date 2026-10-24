@@ -67,6 +67,47 @@ setsid nohup Xvfb :99 -screen 0 1280x720x24 -nolisten tcp &
 - Si la CI est indisponible, rejouer la suite en local (voir ci-dessus) et
   le signaler : un résultat local n'a pas la valeur d'une preuve CI.
 
+### ⚠️ La suite Cypress est structurellement rouge (R98) — à traiter en priorité
+
+Au 2026-10-24, les **20 derniers runs Cypress sur `main` sont tous en échec**
+(aucun vert depuis le 2026-10-19). Les échecs sont **déterministes** : les
+mêmes **10 specs** échouent à chaque run (13 tests sur ~40).
+
+**Ce n'est PAS un bug produit démontré, et ce n'est PAS la parallélisation.**
+Une expérience a été menée (branche `agent/session-13-ci-cypress-test`, run
+`40080015253`, **1 seul conteneur**) : les mêmes 10 specs échouent, aux mêmes
+assertions. La parallélisation (2 conteneurs) a donc été **réfutée** comme
+cause. La cause réelle est l'**environnement E2E** : ces specs dépendent de la
+**synchronisation PowerSync** et du **contexte d'organisation**, indisponibles
+en CI. C'est déjà diagnostiqué dans RISQUES.md :
+- **R53** — `sessions.cy.ts` : réplique PowerSync vide → aucun compte listé ;
+- **R83** — `performance-batch` : intercept qui ne laisse pas passer la
+  requête (`req.destroy()` sans `req.continue()`), contexte d'org non posé →
+  **0 ligne atteint le serveur** ;
+- **R72** — specs dépendant d'un global exposé seulement en mode dev ;
+- **R54** — le job E2E de `ci.yml` ne teste rien de réel (`simple-check` +
+  `continue-on-error: true`).
+
+**Conséquence pour vous :** tant que ce point n'est pas réglé, la CI Cypress
+**ne détecte aucune régression** — son rouge est permanent et connu. Ne vous
+fiez pas à elle pour valider un changement.
+
+**Marche à suivre** (cf. PROPOSITIONS.md P41, priorité critique) :
+1. Fournir à la CI un **compte de test** dont la réplique PowerSync se peuple
+   (secret `E2E_TEST_EMAIL` / `E2E_TEST_PASSWORD`) et un **contexte
+   d'organisation** stable.
+2. Réparer les specs selon R53/R83/R72 (le motif éprouvé est `cloud-sync.cy.ts`
+   pour l'interaction réseau, **mais** cf. R83 : `cloud-sync` n'exerce pas le
+   vrai worker PowerSync).
+3. Écrire **le** test manquant : le chemin d'écriture hors-ligne
+   (SQLite → queue d'upload → Supabase), qui n'a **aucune** couverture
+   aujourd'hui. C'est le point le plus important pour un usage quotidien hors
+   ligne.
+
+**Ne pas fusionner** la branche `agent/session-13-ci-cypress-test` : elle ne
+corrige rien (preuve négative conservée comme trace dans JOURNAL.md).
+
+
 ## Surveiller la taille de la base (quota du plan gratuit)
 
 Projet Supabase gratuit : **500 Mo**. `audit_entries` et `notifications`

@@ -305,3 +305,72 @@
 - **Alternative écartée** : publier un artefact non chiffré (dépôt public →
   fuite de toute la base) ; exiger un stockage S3 (secret supplémentaire,
   friction).
+
+## D-S9-1 — Retirer le contrôle d'existence de l'invitation dans la politique de claim (R91.b)
+
+- **Décision** : dans `invitation_claims_insert`, supprimer
+  `EXISTS (SELECT 1 FROM public.invitations i WHERE i.id = invitation_id)`.
+  L'existence de l'invitation est garantie par la clé étrangère
+  `invitation_claims_invitation_id_fkey` (contrôle effectué hors RLS).
+- **Raison** : ce sous-`SELECT` s'exécute **sous la RLS de l'appelant**. Depuis
+  que `invitations_select` est restreint aux gestionnaires, un invité non
+  gestionnaire ne « voit » pas la ligne → `EXISTS` faux → son claim était
+  refusé (42501). Le parcours « un invité réclame un code » était cassé. La FK
+  rend le contrôle redondant, sans angle mort.
+- **Alternative écartée** : rendre `invitations_select` permissif pour les
+  invités (réintroduirait la fuite R91 du `code`/`target_role`) ; ajouter une
+  fonction SECURITY DEFINER dédiée (plus de surface, non nécessaire).
+
+## D-S9-2 — Déplacer la garde anti-escalade dans le trigger DEFINER (R91.c)
+
+- **Décision** : vérifier « le profil cible est-il déjà ACTIF ? » dans
+  `settle_invitation_claim` (SECURITY DEFINER), et refuser l'élévation sauf si
+  un gestionnaire d'invitations est l'auteur de l'invitation.
+- **Raison** : la RLS est **aveugle** — elle ne peut pas distinguer « profil
+  ACTIF » de « profil non visible par l'appelant » (les deux donnent
+  `NOT EXISTS`). Le trigger DEFINER est le seul endroit où la lecture des
+  profils est fiable. C'est de la défense en profondeur sous la RLS.
+- **Alternative écartée** : garder la seule garde RLS (déjà contournée dans le
+  cas « appelant gestionnaire » — prouvé) ; interdire tout claim sur un profil
+  existant (casserait le parcours d'onboarding par invitation).
+
+## D-S9-3 — Archiver (ARCHIVED) les organisations résiduelles plutôt que les supprimer (R96)
+
+- **Décision** : les 3 annexes créées par le spec Cypress `org-reports.cy.ts`
+  ont été **archivées** (`status='ARCHIVED'`, `archive_reason` renseigné) et
+  non supprimées. Le spec archive désormais ses propres organisations dans un
+  hook `after()`.
+- **Raison** : aucune sauvegarde DB n'existe encore (P31 non activée par le
+  propriétaire) → toute suppression serait irréversible. `ARCHIVED ≠ DELETE`
+  est le cycle de vie sanctionné par l'app (`archiveOrganization`), l'action
+  est réversible et tracée.
+- **Alternative écartée** : `DELETE` des organisations (irréversible sans
+  sauvegarde, et sans FK depuis `profiles`/`org_memberships`/`org_admins` vers
+  `organizations`, la suppression laisserait des orphelins) ; ne rien faire
+  (pollution continue de la base).
+
+## D-S9-4 — Ne pas modifier les 2 advisors `rls_enabled_no_policy` (R97)
+
+- **Décision** : laisser `keep_alive` et `_jsonb_backfill_20261024` avec RLS
+  activée **sans politique**.
+- **Raison** : RLS sans politique = **deny-all** (aucun accès), donc aucune
+  fuite. Ajouter une politique élargirait l'accès à des tables internes ;
+  désactiver la RLS ouvrirait l'accès ; supprimer les tables casserait le ping
+  anti-pause et perdrait la sauvegarde du backfill jsonb (R65). L'option la
+  plus sûre est de ne rien changer.
+- **Alternative écartée** : créer des politiques de lecture pour « faire
+  disparaître l'advisor » (aggraverait la sécurité pour un gain cosmétique).
+
+## D-S9-5 — Ne supprimer aucune donnée personnelle (PII) de l'instance
+
+- **Décision** : ne pas purger les 9 adresses `@gmail.com` ni les 47 profils
+  `__no_org__`.
+- **Raison** : bien que l'instance soit un environnement de développement
+  (`transactions = 0`, `documents = 0`), l'identification exacte des données
+  « réelles » vs « de test » n'est pas certaine, et aucune sauvegarde n'existe.
+  Le principe conservateur s'applique : ne rien détruire d'irréversible.
+  Ces éléments sont documentés (R10, R22) avec une procédure de traitement
+  dans RUNBOOK.md, à exécuter par le propriétaire après activation des
+  sauvegardes.
+- **Alternative écartée** : purge immédiate (risque de destruction
+  irréversible de données potentiellement réelles).
