@@ -9,7 +9,7 @@ let _connector: SupabaseConnector | null = null;
 
 /**
  * DEV-ONLY : expose le handle PowerSync sur window pour que les specs
- * Cypress (cloud-sync) puissent inspecter `db.status` et
+ * Cypress (cloud-sync) puissent inspecter `db.currentStatus` et
  * `getNextCrudTransaction()` après l'offline→online toggle. Le hook est
  * absent en build prod (pas de fuite de l'UI en shipping).
  */
@@ -50,8 +50,8 @@ function publishDevDiagnostics() {
     // via `window.__psFlushCrudUpload`.
     win.__psFlushCrudUpload = async (maxPasses: number = 5) => {
       const t0 = Date.now();
-      const st = _db?.status;
-      const winForLog = typeof window !== "undefined" ? window : null;
+      const st = _db?.currentStatus;
+      const winForLog: any = typeof window !== "undefined" ? window : null;
       const log = (level: "info" | "warn", ...args: unknown[]) => {
         // Écrire dans le console du navigateur (visible dans les logs
         // Cypress) ET le console du module (visible dans le log du dev

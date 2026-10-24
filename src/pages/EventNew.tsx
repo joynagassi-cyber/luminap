@@ -27,8 +27,9 @@ import {
   IonLabel,
   IonSelect,
   IonSelectOption,
-  IonChangeCustomEvent,
+  
 } from "@ionic/react";
+import type { IonChangeCustomEvent } from "@/lib/ionic-types";
 
 const DEFAULT_BUDGET_ITEMS = [
   { label: "Dîme", categoryId: "cat-dime", allocated: 0 },
@@ -69,7 +70,7 @@ export default function EventNew() {
     new Date().toISOString().split("T")[0],
   );
   const [endDate, setEndDate] = useState("");
-  const [status, setStatus] = useState<"PLANIFIED" | "ONGOING">("PLANIFIED");
+  const [status, setStatus] = useState<Event["status"]>("PLANIFIED");
   const [eventType, setEventType] = useState<"EVENT" | "CULTE">(
     location.state?.defaultType === "CULTE" ? "CULTE" : "EVENT",
   );

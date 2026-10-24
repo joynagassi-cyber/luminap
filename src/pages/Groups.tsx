@@ -10,21 +10,9 @@ import { Users, Plus, Edit3, Trash2 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
 import CircleAction from "@/components/CircleAction";
-import {
-  IonPage,
-  IonHeader,
-  IonContent,
-  IonTitle,
-  IonToolbar,
-  IonSelect,
-  IonSelectOption,
-  IonChangeCustomEvent,
-  IonItem,
-  IonLabel,
-  IonInput,
-  IonTextarea,
-} from "@ionic/react";
+import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar, IonSelect, IonSelectOption, IonItem, IonLabel, IonInput, IonTextarea } from "@ionic/react";
 import EmptyState from "@/components/EmptyState";
+import type { IonChangeCustomEvent } from "@/lib/ionic-types";
 
 const COLOR_PALETTE = [
   "var(--data-planified)",

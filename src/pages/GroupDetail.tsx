@@ -38,22 +38,10 @@ import { lifecycle } from "@/capabilities/lifecycle";
 import { security } from "@/capabilities/security";
 import { GroupDetailSkeleton } from "@/components/PageSkeletons";
 import type { Transaction, Account, Member, GroupMembership } from "@/types";
-import {
-  IonPage,
-  IonHeader,
-  IonContent,
-  IonTitle,
-  IonToolbar,
-  IonButtons,
-  IonBackButton,
-  IonItem,
-  IonLabel,
-  IonSelect,
-  IonSelectOption,
-  IonChangeCustomEvent,
-} from "@ionic/react";
+import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar, IonButtons, IonBackButton, IonItem, IonLabel, IonSelect, IonSelectOption } from "@ionic/react";
 import EmptyState from "@/components/EmptyState";
 import ConfirmModal from "@/components/ConfirmModal";
+import type { IonChangeCustomEvent } from "@/lib/ionic-types";
 
 type Tab = "transactions" | "membres" | "historique" | "parametres";
 

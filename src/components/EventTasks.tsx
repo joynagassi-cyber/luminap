@@ -1,14 +1,5 @@
 import { useMemo, useState } from "react";
-import {
-  IonItem,
-  IonLabel,
-  IonInput,
-  IonSelect,
-  IonSelectOption,
-  IonTextarea,
-  IonCheckbox,
-  IonChangeCustomEvent,
-} from "@ionic/react";
+import { IonItem, IonLabel, IonInput, IonSelect, IonSelectOption, IonTextarea, IonCheckbox } from "@ionic/react";
 import { Plus, CheckCircle, Circle, Clock, Lock, Play } from "lucide-react";
 import {
   useEventTasks,
@@ -19,6 +10,7 @@ import { getOrganizationId } from "@/lib/orgContext";
 import { formatDate } from "@/lib/utils";
 import type { PSEventTask } from "@/lib/dataLayer";
 import EmptyState from "@/components/EmptyState";
+import type { IonChangeCustomEvent } from "@/lib/ionic-types";
 
 interface EventTasksProps {
   eventId: string;

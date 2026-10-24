@@ -32,6 +32,64 @@ describe('Lumina — Org reports hierarchy, send page gating, RLS', () => {
     cy.ensureAuth();
   });
 
+  /**
+   * Jeton RÉEL de l'utilisateur connecté (motif de
+   * `rls-isolation-hardened.cy.ts`).
+   *
+   * Les politiques SELECT de `organizations` sont posées sur le rôle
+   * `authenticated` (vérifié en base : `roles = {authenticated}`) et leur
+   * prédicat s'appuie sur `initplan_uid()` = `auth.uid()`. Avec la clé
+   * **anon**, `auth.uid()` est NULL → **0 ligne visible**. L'ancien code
+   * interrogeait `organizations` avec la clé anon, puis cherchait org A / B
+   * dans la réponse : il ne pouvait structurellement pas les trouver. Les
+   * assertions RLS, elles, DOIVENT rester en anon (c'est le rôle à tester).
+   */
+  const realToken = (): Cypress.Chainable<string> =>
+    cy.window().then((win) => {
+      const ls = win.localStorage;
+      const sbKey = Object.keys(ls).find((k) => /-auth-token$/.test(k));
+      if (!sbKey) throw new Error('Aucune session Supabase en localStorage');
+      const raw = JSON.parse(ls.getItem(sbKey)!);
+      const token = raw?.access_token;
+      if (!token) throw new Error('access_token absent de la session');
+      return token as string;
+    });
+
+  /**
+   * Saisit une valeur dans un `IonInput` ciblé par son `data-testid`.
+   *
+   * `data-testid="org-name"` est posé sur l'HÔTE `<ion-input>` : le `<input>`
+   * natif vit dans le SHADOW ROOT, et l'hôte ne porte ni `aria-label` ni
+   * `placeholder` (ceux-ci sont rendus côté shadow). Le sélecteur
+   * `input[data-testid="org-name"]` ne pouvait donc JAMAIS matcher — d'où
+   * l'échec « Expected to find element … but never found it » après 480 s.
+   *
+   * On reprend le chemin éprouvé de `cy.typeIonicInput`
+   * (`cypress/support/ionic.ts`) : écrire la valeur sur l'input natif ET sur
+   * l'hôte, puis émettre `ionChange` — exactement ce que le composant émet —
+   * pour que l'état React (`newName`) soit mis à jour.
+   */
+  const typeOrgName = (value: string): void => {
+    cy.get('ion-input[data-testid="org-name"]', { timeout: 30_000 })
+      .first()
+      .then(($el) => {
+        const host = $el[0] as HTMLElement;
+        const native =
+          ((host as unknown as { nativeInput?: HTMLInputElement }).nativeInput ??
+            host.shadowRoot?.querySelector('input') ??
+            host.querySelector('input')) as HTMLInputElement | null;
+        if (native) native.value = value;
+        (host as unknown as { value?: string }).value = value;
+        host.dispatchEvent(
+          new CustomEvent('ionChange', { detail: { value }, bubbles: true, composed: true }),
+        );
+        if (native) {
+          native.dispatchEvent(new Event('input', { bubbles: true }));
+          native.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      });
+  };
+
   it('creates org hierarchy, verifies send-page gating and RLS', function () {
     this.timeout(480_000);
 
@@ -52,55 +110,87 @@ describe('Lumina — Org reports hierarchy, send page gating, RLS', () => {
     // ── 2. Create org A under Mère (parent pré-rempli via le select) ──
     cy.contains('button, ion-button', 'Créer une organisation', { timeout: 30_000 }).click();
 
-    // Parent = org courante : le select org-parent liste les orgs visibles ;
-    // on sélectionne la 1re option organique du popover (la Mère du compte).
-    cy.get('ion-select[data-testid="org-parent"]').first().click();
-    cy.get('ion-select-option', { timeout: 10_000 }).first().click();
-
-    cy.get('input[data-testid="org-name"]')
-      .first()
-      .type(orgAName, { force: true });
-
-    // Type : Église
-    cy.get('ion-select[data-testid="org-type"]')
+    // Parent = org COURANTE (la Mère du compte) pour que la chaîne testée
+    // soit Mère → A → B. Deux défauts de la version précédente :
+    //  1. `cy.get('ion-select-option').first()` : l'option « Aucune (racine) »
+    //     est rendue EN PREMIER dans le DOM → org A n'avait PAS de mère et
+    //     l'assertion « A a une mère » ne pouvait pas passer.
+    //  2. `cy.get('ion-select-option').click()` : les options vivent dans un
+    //     `ion-popover` monté sur <body> et sont `display:none` tant que le
+    //     popover n'est pas ouvert → « element is not visible » (échec mesuré
+    //     après 480 s). Motif correct déjà utilisé par `invitations.cy.ts`
+    //     et `events-tasks.cy.ts` : ouvrir le popover, cliquer l'`ion-item`
+    //     VISIBLE.
+    cy.get('ion-select[data-testid="org-parent"]').first().click({ force: true });
+    cy.get('ion-popover', { timeout: 10_000 })
+      .find('ion-item')
+      .filter(':visible')
+      .filter((_, el) => !(el.textContent || '').includes('Aucune'))
       .first()
       .click();
-    cy.contains('ion-select-option', 'Église', { timeout: 10_000 }).first().click();
+
+    typeOrgName(orgAName);
+    // Le bouton « Créer » est `disabled` tant que `newName` est vide :
+    // attendre qu'il soit actif prouve que l'état React a bien pris la valeur.
+    cy.get('button[aria-label="Créer l\'organisation"]').should('not.be.disabled');
+
+    // Type : Église
+    cy.get('ion-select[data-testid="org-type"]').first().click({ force: true });
+    cy.get('ion-popover', { timeout: 10_000 })
+      .find('ion-item')
+      .filter(':visible')
+      .contains('Église')
+      .click();
 
     // Soumettre (bouton « Créer » — aria-label Federation.tsx L446)
     cy.get('button[aria-label="Créer l\'organisation"]').click({ timeout: 30_000 });
 
-    // Org A apparaît dans la liste / les child cards
+    // Org A est une ANNEXE de la Mère (org courante) : elle n'apparaît donc
+    // pas dans la liste des racines. Il faut déplier la Mère pour la voir.
+    // (L'ancienne assertion `cy.contains(orgAName)` cherchait un texte de
+    // carte racine : structurellement introuvable.)
+    cy.get('[data-testid^="org-open-"]', { timeout: 60_000 }).first().click();
     cy.contains(orgAName, { timeout: 60_000 }).should('be.visible');
     cy.log(`Org A created: ${orgAName}`);
 
     // ── 3. Create org B under A (bouton contextuel « Ajouter sous cette org »)
-    // La card de A expose le sous-menu OrgChildren avec le bouton contextuel
-    // (Phase 2 T2.2 — Federation.tsx L532-556).
-    cy.contains('button, ion-button', 'Ajouter sous cette org', { timeout: 30_000 })
+    // Le bouton porte une ICÔNE (pas de texte) : son libellé est un
+    // `aria-label`. `cy.contains('button', 'Ajouter sous cette org')` ne
+    // pouvait donc jamais matcher (échec mesuré : 30 s puis timeout).
+    cy.contains(orgAName, { timeout: 60_000 })
+      .closest('div')
+      .find('button[aria-label="Ajouter sous cette org"]')
       .first()
       .click();
 
     // Le bottom-sheet se rouvre, parent pré-rempli sur A
-    cy.get('input[data-testid="org-name"]').first().clear({ force: true });
-    cy.get('input[data-testid="org-name"]').first().type(orgBName, { force: true });
+    typeOrgName(orgBName);
+    cy.get('button[aria-label="Créer l\'organisation"]').should('not.be.disabled');
 
-    cy.get('ion-select[data-testid="org-type"]').first().click();
-    cy.contains('ion-select-option', 'Église', { timeout: 10_000 }).first().click();
+    cy.get('ion-select[data-testid="org-type"]').first().click({ force: true });
+    cy.get('ion-popover', { timeout: 10_000 })
+      .find('ion-item')
+      .filter(':visible')
+      .contains('Église')
+      .click();
 
     cy.get('button[aria-label="Créer l\'organisation"]').click({ timeout: 30_000 });
     cy.contains(orgBName, { timeout: 60_000 }).should('be.visible');
     cy.log(`Org B created under A: ${orgBName}`);
 
     // ── 4. Verify the hierarchy chain via REST ─────────────────────────
-    cy.request({
-      method: 'GET',
-      url: `${SUPABASE_URL}/rest/v1/organizations?select=id,name,parent_org_id&order=created_at.desc&limit=10`,
-      headers: {
-        apikey: anonKey,
-        Authorization: `Bearer ${anonKey}`,
-      },
-    }).then((orgsRes: any) => {
+    // Jeton RÉEL : les politiques SELECT de `organizations` sont sur
+    // `authenticated` et filtrent par `auth.uid()` — la clé anon ne renvoie
+    // jamais ces lignes (vérifié en base).
+    realToken()
+      .then((token) =>
+        cy.request({
+          method: 'GET',
+          url: `${SUPABASE_URL}/rest/v1/organizations?select=id,name,parent_org_id&order=created_at.desc&limit=10`,
+          headers: { apikey: anonKey, Authorization: `Bearer ${token}` },
+        }),
+      )
+      .then((orgsRes: any) => {
       expect(orgsRes.status).to.eq(200);
       const rows: any[] = orgsRes.body ?? [];
 

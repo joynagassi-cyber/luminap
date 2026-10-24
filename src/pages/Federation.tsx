@@ -12,21 +12,7 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  IonPage,
-  IonHeader,
-  IonContent,
-  IonTitle,
-  IonToolbar,
-  IonButtons,
-  IonBackButton,
-  IonSelect,
-  IonSelectOption,
-  IonChangeCustomEvent,
-  IonItem,
-  IonLabel,
-  IonInput,
-} from "@ionic/react";
+import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar, IonButtons, IonBackButton, IonSelect, IonSelectOption, IonItem, IonLabel, IonInput } from "@ionic/react";
 import { ReactFlowProvider } from "@xyflow/react";
 import {
   Network,
@@ -50,6 +36,7 @@ import {
   type FederationOrg,
 } from "@/capabilities/federation";
 import { bootstrapOrganization } from "@/lib/orgBootstrap";
+import type { IonChangeCustomEvent } from "@/lib/ionic-types";
 
 // M22 — libellés de statut UNIQUE partagés (capabilities/federation) :
 // vue liste et vue graphe (FederationGraph) ne dupliquent plus de map locale.
@@ -58,6 +45,70 @@ const STATUS_LABEL = FEDERATION_STATUS_LABEL;
 // M22 — carte de statut UNIQUE partagée (vue liste + vue graphe) :
 // plus de map locale qui diverge (ex. SUSPENDED en accent vs data-expense).
 const STATUS_COLOR = FEDERATION_STATUS_COLOR;
+
+/**
+ * Actions d'une carte d'organisation — partagées par les cartes racines ET
+ * les cartes enfants. Sans elles sur les enfants, une hiérarchie de plus de
+ * deux niveaux était impossible à construire depuis l'UI : la carte enfant
+ * n'exposait ni « Ajouter sous cette org » ni « Voir les enfants ».
+ */
+function OrgNodeActions({
+  org,
+  onCreate,
+  onOpen,
+  onReparent,
+}: {
+  org: FederationOrg;
+  onCreate: (parentOrgId: string) => void;
+  onOpen: (id: string) => void;
+  onReparent: (orgId: string) => void;
+}) {
+  const btn =
+    "w-8 h-8 rounded-lg flex items-center justify-center transition-all active:scale-95";
+  const style = {
+    color: "var(--text-secondary)",
+    border: "none",
+    background: "transparent",
+    cursor: "pointer",
+  } as const;
+  return (
+    <div className="flex items-center gap-1">
+      <button
+        type="button"
+        onClick={() => onCreate(org.id)}
+        title="Ajouter sous cette org"
+        aria-label="Ajouter sous cette org"
+        data-testid={`org-add-child-${org.id}`}
+        className={btn}
+        style={style}
+      >
+        <UserPlus className="w-4 h-4" />
+      </button>
+      <button
+        type="button"
+        onClick={() => onOpen(org.id)}
+        title="Voir les enfants"
+        aria-label="Voir les enfants"
+        data-testid={`org-open-${org.id}`}
+        className={btn}
+        style={style}
+      >
+        <ChevronRight className="w-4 h-4" />
+      </button>
+      <button
+        type="button"
+        onClick={() => onReparent(org.id)}
+        title="Changer de parent"
+        aria-label="Changer de parent"
+        data-testid={`org-reparent-${org.id}`}
+        className={btn}
+        style={style}
+      >
+        <GitBranch className="w-4 h-4" />
+      </button>
+    </div>
+  );
+}
 
 function OrgNode({
   org,
@@ -103,38 +154,12 @@ function OrgNode({
             {FEDERATION_TYPE_LABEL[org.type] ?? org.type}
           </p>
         </div>
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={() => onCreate(org.id)}
-            title="Ajouter sous cette org"
-            aria-label="Ajouter sous cette org"
-            className="w-8 h-8 rounded-lg flex items-center justify-center transition-all active:scale-95"
-            style={{ color: "var(--text-secondary)", border: "none", background: "transparent", cursor: "pointer" }}
-          >
-            <UserPlus className="w-4 h-4" />
-          </button>
-          <button
-            type="button"
-            onClick={() => onOpen(org.id)}
-            title="Voir les enfants"
-            aria-label="Voir les enfants"
-            className="w-8 h-8 rounded-lg flex items-center justify-center transition-all active:scale-95"
-            style={{ color: "var(--text-secondary)", border: "none", background: "transparent", cursor: "pointer" }}
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
-          <button
-            type="button"
-            onClick={() => onReparent(org.id)}
-            title="Changer de parent"
-            aria-label="Changer de parent"
-            className="w-8 h-8 rounded-lg flex items-center justify-center transition-all active:scale-95"
-            style={{ color: "var(--text-secondary)", border: "none", background: "transparent", cursor: "pointer" }}
-          >
-            <GitBranch className="w-4 h-4" />
-          </button>
-        </div>
+        <OrgNodeActions
+          org={org}
+          onCreate={onCreate}
+          onOpen={onOpen}
+          onReparent={onReparent}
+        />
       </div>
 
       {children.length > 0 && (
@@ -152,7 +177,7 @@ function OrgNode({
                 {child.name}
               </span>
               <span
-                className="text-xs px-1.5 py-0.5 rounded-full"
+                className="text-xs px-1.5 py-0.5 rounded-full flex-shrink-0"
                 style={{
                   backgroundColor: `${STATUS_COLOR[child.status]}20`,
                   color: STATUS_COLOR[child.status],
@@ -160,6 +185,12 @@ function OrgNode({
               >
                 {STATUS_LABEL[child.status] ?? child.status}
               </span>
+              <OrgNodeActions
+                org={child}
+                onCreate={onCreate}
+                onOpen={onOpen}
+                onReparent={onReparent}
+              />
             </div>
           ))}
         </div>

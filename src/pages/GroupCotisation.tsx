@@ -40,8 +40,9 @@ import {
   IonSpinner,
   IonItem,
   IonLabel,
-  IonChangeCustomEvent,
+  
 } from "@ionic/react";
+import type { IonChangeCustomEvent } from "@/lib/ionic-types";
 
 export default function GroupCotisation() {
   const { id } = useParams<{ id: string }>();

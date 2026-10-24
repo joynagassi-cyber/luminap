@@ -14,13 +14,7 @@
  */
 
 import { useState } from "react";
-import {
-  IonItem,
-  IonLabel,
-  IonCheckbox,
-  IonInput,
-  IonChangeCustomEvent,
-} from "@ionic/react";
+import { IonItem, IonLabel, IonCheckbox, IonInput } from "@ionic/react";
 import {
   FileText,
   FileImage,
@@ -31,6 +25,7 @@ import {
 } from "lucide-react";
 import { useDocuments, addDocumentPS, type PSDocument } from "@/lib/dataLayer";
 import { uploadLuminaFile } from "@/lib/storageService";
+import type { IonChangeCustomEvent } from "@/lib/ionic-types";
 
 /** Icône par `mime_type` (fallback : document générique). */
 function DocIcon({ mime }: { mime?: string | null }) {
@@ -174,7 +169,7 @@ export default function DocumentPicker({
             Ajouter un document
           </IonLabel>
           <IonInput
-            type="file"
+            type={"file" as any}
             data-testid="doc-picker-file"
             onIonInput={(e: IonChangeCustomEvent<unknown>) => {
               const v = e.detail.value;

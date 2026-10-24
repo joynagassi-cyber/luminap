@@ -10,18 +10,7 @@
  */
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import {
-  IonPage,
-  IonHeader,
-  IonContent,
-  IonTitle,
-  IonToolbar,
-  IonButtons,
-  IonBackButton,
-  IonButton,
-  IonInput,
-  IonChangeCustomEvent,
-} from "@ionic/react";
+import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar, IonButtons, IonBackButton, IonButton, IonInput } from "@ionic/react";
 import { ArrowLeft, CheckCircle, Clock, Plus, X } from "lucide-react";
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
@@ -38,6 +27,7 @@ import { formatDate, formatCurrencyCompact } from "@/lib/utils";
 import { isCulteVerrouille } from "@/lib/cotisation-logic";
 import { policy } from "@/capabilities/policy";
 import type { CotisationStatut } from "@/types";
+import type { IonChangeCustomEvent } from "@/lib/ionic-types";
 
 export default function SaisieRapide() {
   const { id } = useParams<{ id: string }>();

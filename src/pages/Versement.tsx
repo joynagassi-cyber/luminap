@@ -20,8 +20,9 @@ import {
   IonTextarea,
   IonSelect,
   IonSelectOption,
-  IonChangeCustomEvent,
+  
 } from "@ionic/react";
+import type { IonChangeCustomEvent } from "@/lib/ionic-types";
 
 export default function Versement() {
   const navigate = useNavigate();
@@ -98,7 +99,7 @@ export default function Versement() {
         title: "Versement enregistré",
         message: `${amountNum.toLocaleString()} FCFA versés dans ${selectedCaisse}`,
         targetRole: "TREASURIER" as any,
-        extraData: { caisseId: selectedCaisse, amount: amountNum },
+        extraData: { caisseId: selectedCaisse, amount: String(amountNum) },
       }).catch(() => {});
 
       navigate("/dashboard");

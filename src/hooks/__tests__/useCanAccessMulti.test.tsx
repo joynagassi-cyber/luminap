@@ -36,9 +36,9 @@ const ROLE = "TREASURIER";
 let mockCanAccess: ReturnType<typeof vi.fn>;
 
 beforeAll(() => {
-  mockCanAccess = vi.fn(async () => false);
+  mockCanAccess = vi.fn(async (..._a: unknown[]) => false);
   vi.spyOn(federation, "canAccess").mockImplementation(
-    (..._args: unknown[]) => mockCanAccess(...(_args as [])),
+    (..._args: unknown[]) => (mockCanAccess as (...a: unknown[]) => Promise<boolean>)(..._args),
   );
 });
 

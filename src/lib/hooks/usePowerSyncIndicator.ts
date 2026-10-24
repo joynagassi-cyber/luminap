@@ -12,7 +12,7 @@
  * neutre et s'abonne à l'auth store pour se raccorder dès que le DB existe.
  */
 import { useEffect, useState } from "react";
-import type { PowerSyncStatus } from "@powersync/web";
+import type { SyncStatus } from "@powersync/web";
 import { getPowerSyncDatabase } from "@/lib/powersync";
 import { authService } from "@/lib/auth";
 
@@ -27,7 +27,7 @@ const EMPTY: PowerSyncIndicator = { online: false, lastSyncAt: null, syncing: fa
 function readStatus(): PowerSyncIndicator {
   try {
     const db = getPowerSyncDatabase();
-    const s: PowerSyncStatus = (db as any).status;
+    const s: SyncStatus | undefined = (db as any).currentStatus;
     return {
       online: s?.connected === true,
       lastSyncAt: s?.lastSyncedAt ? new Date(s.lastSyncedAt) : null,

@@ -33,23 +33,10 @@ import type { EventStatus } from "@/types";
 import { security } from "@/capabilities/security";
 import { workflow } from "@/capabilities/workflow";
 import { getOrganizationId } from "@/lib/orgContext";
-import {
-  IonPage,
-  IonHeader,
-  IonContent,
-  IonTitle,
-  IonToolbar,
-  IonButtons,
-  IonBackButton,
-  IonSelect,
-  IonSelectOption,
-  IonChangeCustomEvent,
-  IonItem,
-  IonLabel,
-  IonInput,
-} from "@ionic/react";
+import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar, IonButtons, IonBackButton, IonSelect, IonSelectOption, IonItem, IonLabel, IonInput } from "@ionic/react";
 import EmptyState from "@/components/EmptyState";
 import EventTasks from "@/components/EventTasks";
+import type { IonChangeCustomEvent } from "@/lib/ionic-types";
 
 type Tab = "overview" | "budget" | "transactions" | "tasks";
 

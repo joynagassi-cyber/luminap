@@ -34,24 +34,10 @@
  */
 
 import { useEffect, useState } from "react";
-import {
-  IonPage,
-  IonHeader,
-  IonContent,
-  IonTitle,
-  IonToolbar,
-  IonButtons,
-  IonBackButton,
-  IonSelect,
-  IonSelectOption,
-  IonItem,
-  IonLabel,
-  IonChangeCustomEvent,
-} from "@ionic/react";
+import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar, IonButtons, IonBackButton, IonSelect, IonSelectOption, IonItem, IonLabel } from "@ionic/react";
 import {
   Send,
   FileText,
-  File,
   Check,
   Loader2,
   Network,
@@ -71,6 +57,7 @@ import { buildOrgReport, computePeriod } from "@/lib/orgReport";
 import { exportOrgReport, type OrgReportFormat } from "@/lib/export";
 import { uploadReportFile } from "@/lib/storageService";
 import { formatDate } from "@/lib/utils";
+import type { IonChangeCustomEvent } from "@/lib/ionic-types";
 
 type PeriodKind = "monthly" | "semiannual" | "annual";
 

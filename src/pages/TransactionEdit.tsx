@@ -22,12 +22,13 @@ import {
   IonToolbar,
   IonSelect,
   IonSelectOption,
-  IonChangeCustomEvent,
+  
   IonItem,
   IonLabel,
   IonInput,
   IonTextarea,
 } from "@ionic/react";
+import type { IonChangeCustomEvent } from "@/lib/ionic-types";
 
 export default function TransactionEdit() {
   const { id } = useParams<{ id: string }>();

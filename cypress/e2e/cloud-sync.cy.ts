@@ -295,7 +295,7 @@ describe('Lumina — cloud sync (offline → online)', () => {
       const db = win.__psDb;
       // eslint-disable-next-line no-console
       console.log('[PS DIAG] pre-flush:', {
-        dbStatus: db?.status ? { connected: db.status.connected, hasSynced: db.status.hasSynced } : 'n/a',
+        dbStatus: db?.currentStatus ? { connected: db.currentStatus.connected, hasSynced: db.currentStatus.hasSynced } : 'n/a',
       });
       // Lire le JWT du user pour les POSTs directs au Supabase.
       const raw = win.localStorage.getItem('sb-hhgovvrnalibhgpakswi-auth-token');
@@ -318,8 +318,8 @@ describe('Lumina — cloud sync (offline → online)', () => {
     // ── 5b. DIAG DEV-only : inspecter l'état PowerSync post-flush
     cy.window().then((win: any) => {
       const ps = win.__psDb;
-      if (ps && ps.status) {
-        const st = ps.status;
+      if (ps && ps.currentStatus) {
+        const st = ps.currentStatus;
         // eslint-disable-next-line no-console
         console.log('[PS DIAG] status post-flush:', {
           connected: st.connected,

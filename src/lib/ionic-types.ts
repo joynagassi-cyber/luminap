@@ -8,4 +8,4 @@
  * export supprimé. Le `value` est volontairement non typé : les composants
  * hétérogènes (input, select, toggle, datetime…) ne partagent pas de type.
  */
-export type IonChangeCustomEvent<_T = string> = CustomEvent<{ value?: any }>;
+export type IonChangeCustomEvent<_T = string> = CustomEvent<{ value?: any; checked?: boolean }>;

@@ -19,14 +19,7 @@
  */
 
 import { useEffect, useState } from "react";
-import {
-  IonItem,
-  IonLabel,
-  IonInput,
-  IonSelect,
-  IonSelectOption,
-  IonChangeCustomEvent,
-} from "@ionic/react";
+import { IonItem, IonLabel, IonInput, IonSelect, IonSelectOption } from "@ionic/react";
 import { X, Building2, Plus, FolderPlus } from "lucide-react";
 import {
   federation,
@@ -36,6 +29,7 @@ import {
   type FederationOrg,
 } from "@/capabilities/federation";
 import { bootstrapOrganization } from "@/lib/orgBootstrap";
+import type { IonChangeCustomEvent } from "@/lib/ionic-types";
 
 /** Types acceptés par la colonne `type` de `organizations`
  *  (migration 20260910000001 : CHECK IN ('CENTRAL','CHURCH','SCHOOL','ENTERPRISE')). */

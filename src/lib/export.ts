@@ -811,15 +811,11 @@ function exportOrgReportPNG(payload: OrgReportPayload): Blob {
     ctx.fillRect(x, y, barW, h);
     ctx.fillStyle = "#1E1E1E";
     ctx.font = "bold 12px sans-serif";
-    ctx.fillText(
-      `${b.short} FCFA`,
-      x + barW / 2,
-      y - 6,
-      "center",
-    );
+    ctx.textAlign = "center";
+    ctx.fillText(`${b.short} FCFA`, x + barW / 2, y - 6);
     ctx.fillStyle = "#646464";
     ctx.font = "13px sans-serif";
-    ctx.fillText(b.label, x + barW / 2, chartY + chartH + 18, "center");
+    ctx.fillText(b.label, x + barW / 2, chartY + chartH + 18);
   });
 
   const dataUrl = canvas.toDataURL("image/png");

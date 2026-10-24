@@ -18,21 +18,7 @@
  */
 import { useEffect, useState, useMemo } from "react";
 import { useParams } from "react-router-dom";
-import {
-  IonPage,
-  IonHeader,
-  IonContent,
-  IonTitle,
-  IonToolbar,
-  IonButtons,
-  IonBackButton,
-  IonButton,
-  IonSelect,
-  IonSelectOption,
-  IonInfiniteScroll,
-  IonChangeCustomEvent,
-  IonInput,
-} from "@ionic/react";
+import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar, IonButtons, IonBackButton, IonButton, IonSelect, IonSelectOption, IonInfiniteScroll, IonInput } from "@ionic/react";
 import { Inbox, Download, CheckCircle2, Search, X } from "lucide-react";
 import {
   formDefinitionRepo,
@@ -43,6 +29,7 @@ import {
 import type { FormDefinition, FormFieldDefinition, FormSubmission } from "@/types";
 import { downloadBlob } from "@/lib/download";
 import EmptyState from "@/components/EmptyState";
+import type { IonChangeCustomEvent } from "@/lib/ionic-types";
 
 const STATUS_FILTERS: Array<{ value: string; label: string }> = [
   { value: "ALL", label: "Tous les statuts" },

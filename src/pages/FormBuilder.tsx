@@ -19,11 +19,12 @@ import {
   IonButton,
   IonSelect,
   IonSelectOption,
-  IonChangeCustomEvent,
+  
   IonItem,
   IonLabel,
   IonTextarea,
 } from "@ionic/react";
+import type { IonChangeCustomEvent } from "@/lib/ionic-types";
 
 const FIELD_TYPES: { value: FormFieldDefinition["type"]; label: string }[] = [
   { value: "text", label: "Texte" },

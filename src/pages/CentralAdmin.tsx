@@ -13,24 +13,7 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import {
-  IonPage,
-  IonHeader,
-  IonContent,
-  IonTitle,
-  IonToolbar,
-  IonButton,
-  IonButtons,
-  IonBackButton,
-  IonSpinner,
-  IonBadge,
-  IonSelect,
-  IonSelectOption,
-  IonItem,
-  IonLabel,
-  IonInput,
-  IonChangeCustomEvent,
-} from "@ionic/react";
+import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar, IonButton, IonButtons, IonBackButton, IonSpinner, IonBadge, IonSelect, IonSelectOption, IonItem, IonLabel, IonInput } from "@ionic/react";
 import {
   Building2,
   Shield,
@@ -82,6 +65,7 @@ import {
   enterOrganization,
   exitToCentral,
 } from "@/lib/organization-context";
+import type { IonChangeCustomEvent } from "@/lib/ionic-types";
 
 const STATUS_LABEL: Record<string, string> = {
   PENDING: "En attente",

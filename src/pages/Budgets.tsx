@@ -6,8 +6,9 @@ import { formatCurrencyCompact } from "@/lib/utils";
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
 import { Plus, Target, Wallet, PieChart, X, ChevronRight } from "lucide-react";
-import { IonPage, IonContent, IonSelect, IonSelectOption, IonChangeCustomEvent, IonItem, IonLabel, IonInput } from "@ionic/react";
+import { IonPage, IonContent, IonSelect, IonSelectOption, IonItem, IonLabel, IonInput } from "@ionic/react";
 import EmptyState from "@/components/EmptyState";
+import type { IonChangeCustomEvent } from "@/lib/ionic-types";
 
 const PERIODS: Array<{ value: BudgetPeriod; label: string }> = [
   { value: "ANNUAL", label: "Annuel" },

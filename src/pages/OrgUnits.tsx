@@ -16,7 +16,7 @@
 
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { IonPage, IonContent, IonSelect, IonSelectOption, IonChangeCustomEvent, IonItem, IonLabel, IonInput } from "@ionic/react";
+import { IonPage, IonContent, IonSelect, IonSelectOption, IonItem, IonLabel, IonInput } from "@ionic/react";
 import {
   Boxes,
   Plus,
@@ -35,6 +35,7 @@ import {
 import { organization } from "@/capabilities/organization";
 import { getOrganizationId } from "@/lib/orgContext";
 import { useOrganizations } from "@/lib/dataLayer";
+import type { IonChangeCustomEvent } from "@/lib/ionic-types";
 
 const UNIT_TYPES = ["groupe", "service", "départment", "branche"];
 

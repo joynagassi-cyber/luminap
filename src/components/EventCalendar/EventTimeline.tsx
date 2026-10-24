@@ -34,7 +34,7 @@ function TimelineItem({
     <IonItem
       lines="none"
       button={!!onSelectEvent}
-      onButtonClick={() => event?.id && onSelectEvent?.(event.id)}
+      onClick={() => event?.id && onSelectEvent?.(event.id)}
       style={{
         backgroundColor: "var(--surface)",
         borderBottom: "1px solid var(--border)",

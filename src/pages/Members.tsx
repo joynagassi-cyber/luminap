@@ -209,14 +209,14 @@ export default function MembersPage() {
                     {/* M4 */}
                     <IonInput
                       aria-label="Prénom"
-                      autoComplete="given-name"
+                      autocomplete="given-name"
                       placeholder="Prénom"
                       value={firstName}
                       onIonInput={(e) => setFirstName((e.detail.value as string) ?? "")}
                     />
                     <IonInput
                       aria-label="Nom"
-                      autoComplete="family-name"
+                      autocomplete="family-name"
                       placeholder="Nom"
                       value={lastName}
                       onIonInput={(e) => setLastName((e.detail.value as string) ?? "")}
@@ -225,7 +225,7 @@ export default function MembersPage() {
                   <IonInput
                     type="tel"
                     aria-label="Téléphone"
-                    autoComplete="tel"
+                    autocomplete="tel"
                     placeholder="Téléphone"
                     value={phone}
                     onIonInput={(e) => setPhone((e.detail.value as string) ?? "")}
@@ -233,7 +233,7 @@ export default function MembersPage() {
                   <IonInput
                     type="email"
                     aria-label="Email"
-                    autoComplete="email"
+                    autocomplete="email"
                     placeholder="Email (optionnel)"
                     value={email}
                     onIonInput={(e) => setEmail((e.detail.value as string) ?? "")}

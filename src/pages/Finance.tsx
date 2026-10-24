@@ -29,8 +29,9 @@ import {
   IonToolbar,
   IonInfiniteScroll,
   IonInput,
-  IonChangeCustomEvent,
+  
 } from "@ionic/react";
+import type { IonChangeCustomEvent } from "@/lib/ionic-types";
 
 export const FINANCE_PAGE_SIZE = 50;
 
