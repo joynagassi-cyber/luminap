@@ -35,6 +35,23 @@
 - Le spec `org-reports.cy.ts` **créait des organisations réelles sans nettoyage**
   (R96, corrigé : hook `after()` non fatal + repli par préfixe).
 
+## Sauvegarde / restauration (procédure VÉRIFIÉE, 2026-10-24)
+- `supabase db dump` **exige un daemon Docker** : s'il est arrêté, erreur
+  `DockerRunError` (le socket disparaît). Le relancer : `sudo dockerd &` puis
+  `sudo chmod 666 /var/run/docker.sock` (l'utilisateur n'a pas le socket).
+  Docker **est** installé (`/usr/bin/docker`) — l'affirmation inverse est fausse.
+- **Restaurer** un dump : exige l'**image Supabase**
+  (`public.ecr.aws/supabase/postgres:17.6.1.166`, contient `pg_cron`) et le rôle
+  **`supabase_admin`** sur la base **`postgres`**. Avec l'image vanilla ou
+  `postgres`/`public` : **786 erreurs, 0 table** (`public` appartient à
+  `supabase_admin` ; `pg_cron` n'existe que dans `postgres`).
+- Créer le rôle `powersync_role` **avant** de rejouer le dump des données.
+- Le dump `--data-only` couvre 29 tables (dont `auth.users`) ; les schémas
+  `auth`/`storage` ne sont pas recréés (7 erreurs attendues, sans perte métier).
+- Fidélité de contrôle : comparer les `count(*)` source/restauré (10/10 OK).
+- Sauvegardes réelles : `/workspace/backups/` **hors dépôt** (données réelles,
+  ne jamais commiter). `backup.yml` publie **uniquement** si chiffré.
+
 ## Conventions du dépôt
 - Dépôt **PUBLIC** → ne jamais committer de secret ni d'artefact non chiffré.
 - Docs de session dans `docs/agent-session/` (FEATURES, DOMAINE, JOURNAL,
