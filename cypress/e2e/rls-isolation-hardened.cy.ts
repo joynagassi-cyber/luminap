@@ -108,7 +108,7 @@ describe('Lumina — isolation RLS avec le jeton réel (read-only)', () => {
         );
         // Contrôle négatif : l'organisation historique org-1 doit rester
         // hors du périmètre du compte.
-        expect([...allowed], 'org-1 ne doit pas être visible').to.not.include(
+        expect(Array.from(allowed), 'org-1 ne doit pas être visible').to.not.include(
           'org-1',
         );
 
@@ -118,9 +118,9 @@ describe('Lumina — isolation RLS avec le jeton réel (read-only)', () => {
           headers,
         }).then((res) => {
           expect(res.status).to.eq(200);
-          const exposed = [
-            ...new Set((res.body as any[]).map((r) => r.ancestor as string)),
-          ];
+          const exposed = Array.from(
+            new Set((res.body as any[]).map((r) => r.ancestor as string)),
+          );
           const leaked = exposed.filter((a) => !allowed.has(a));
           expect(
             leaked,

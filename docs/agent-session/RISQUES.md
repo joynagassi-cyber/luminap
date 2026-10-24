@@ -1549,3 +1549,25 @@ dont ~25 min d'exécution (le sync PowerSync prend ~35 s par cycle).
 
 **Travail restant** : réécrire les tests 1-2 avec le motif `cloud-sync`, puis
 relancer 3 fois (stabilité).
+
+
+### R84 — La suite Cypress n'est pas typecheckée par la CI (faible)
+
+**Constat** : `tsconfig.json` référence `tsconfig.app.json` (`include: ["src"]`)
+et `tsconfig.node.json` ; `tsc -b` (la commande CI, rendue opérante en session 5
+pour remplacer un `tsc --noEmit` qui ne vérifiait aucun fichier) **n'inclut pas
+`cypress/`**. Les 28 specs ne sont donc jamais vérifiés statiquement.
+
+**Preuve** : `npx tsc --noEmit -p cypress/tsconfig.json` remonte **13 erreurs
+préexistantes** dans `cloud-sync.cy.ts` (2), `nav-bottom.cy.ts` (1),
+`sessions.cy.ts` (3), `cypress/support/ionic.ts` (3), plus des erreurs de
+configuration (`--downlevelIteration`). Aucune n'est visible en CI.
+
+**Impact** : un spec peut porter une faute de frappe ou un accès invalide et
+n'échouer qu'à l'exécution — voire jamais si le chemin n'est pas parcouru.
+Faible : cela n'affecte pas l'application livrée.
+
+**Correctif identifié (non appliqué — gel)** : ajouter `cypress` à la
+configuration vérifiée en CI (`tsc -b` avec un `tsconfig.cypress.json`
+référencé), après avoir corrigé les 13 erreurs. Coût estimé : 1 h.
+Voir PROPOSITIONS.md (P34).

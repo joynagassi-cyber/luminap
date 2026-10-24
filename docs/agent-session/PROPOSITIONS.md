@@ -514,3 +514,23 @@
   uniquement, aucun impact production).
 - **Bloquante pour la fiabilité à long terme** : **oui**. À traiter avant la
   prochaine session de validation.
+
+---
+
+## P34 — Typechecker la suite Cypress en CI
+
+- **Problème** : `tsc -b` (CI) ne couvre que `src/` ; `cypress/` n'est jamais
+  vérifié statiquement. Mesuré : 13 erreurs de type préexistantes dans
+  `cloud-sync.cy.ts`, `nav-bottom.cy.ts`, `sessions.cy.ts` et
+  `cypress/support/ionic.ts`.
+- **Proposition** : créer `tsconfig.cypress.json` (`include: ["cypress"]`,
+  `target` es2020 pour `--downlevelIteration`), le référencer dans
+  `tsconfig.json`, corriger les 13 erreurs, et l'exécuter dans le job CI
+  existant.
+- **Intérêt** : attrape les fautes des specs avant l'exécution ; fiabilise la
+  base de preuves de test, qui est le seul mécanisme de validation de ce
+  projet.
+- **Coût estimé** : 1 h. **Risques** : faibles (aucun impact runtime) ;
+  nécessite de traiter 13 erreurs préexistantes.
+- **Priorité** : moyenne. **Bloquante pour la fiabilité à long terme** : non,
+  mais recommandée — les tests sont la seule preuve disponible.
