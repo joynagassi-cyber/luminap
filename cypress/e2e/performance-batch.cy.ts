@@ -61,14 +61,15 @@ describe('Lumina — Performance batch (offline sync + charge tx + calendar)', (
         .clear()
         .type(`Tx batch ${now} #${i}`);
       cy.contains('Enregistrer la transaction', { timeout: 10_000 }).click();
-      // Navigate back to the form for the next tx
-      cy.go('back');
-      // Re-render the new tx form if we're back at the list
-      cy.contains('button, ion-button', 'Ajouter une transaction')
-        .click()
-        .then(() => {
-          cy.url().should('include', '/transaction/new');
-        });
+      // Après enregistrement, l'app navigue vers le DÉTAIL de la transaction
+      // (/transaction/:id) — elle ne revient pas sur la liste. La spec
+      // cherchait un bouton « Ajouter une transaction » qui n'existe nulle
+      // part dans l'app (la page Finances expose « Nouvelle entrée » /
+      // « Nouvelle dépense », et le FAB s'appelle « Transaction ») : l'échec
+      // était un défaut de test, pas de code. On revient donc directement au
+      // formulaire, de façon déterministe.
+      cy.visit('/transaction/new');
+      cy.url().should('include', '/transaction/new');
     }
 
     // ── 3. Restore online mode ────────────────────────────────────────
@@ -177,7 +178,11 @@ describe('Lumina — Performance batch (offline sync + charge tx + calendar)', (
         .first()
         .type(`CalEvent ${now} ${i}`, { force: true });
       cy.contains('button, ion-button', "Créer l'événement", { timeout: 15_000 }).click();
-      cy.url({ timeout: 30_000 }).should('include', '/events');
+      // EventNew.tsx navigue vers le DÉTAIL de l'événement créé
+      // (/event/:id), pas vers la liste : c'est volontaire (la liste triée
+      // par date tronquée aux 50 premiers ne montrait pas toujours le
+      // nouvel événement). L'assertion « /events » était donc périmée.
+      cy.url({ timeout: 30_000 }).should('include', '/event/');
       cy.go('back');
     }
 
