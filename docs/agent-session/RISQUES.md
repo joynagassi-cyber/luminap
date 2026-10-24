@@ -2038,3 +2038,28 @@ la configuration Gradle de `:capacitor-storage` / `capacitor-cordova-android-plu
 - **Preuve** : run GitHub Actions `40078250833` → **success**, log `HTTP 200`.
 - **Statut** : corrigé et vérifié de bout en bout.
 
+
+### R96 — Le spec Cypress `org-reports.cy.ts` crée des organisations réelles sans les nettoyer — CORRIGÉ
+- **Gravité** : MOYENNE (pollution de la base de production ; aucun impact
+  utilisateur immédiat).
+- **Défaut** : le spec crée, à chaque exécution, deux organisations **ACTIVE**
+  réelles via la fonction serveur `create_org` (org A sous la Mère, org B sous
+  A) et ne les supprime ni ne les archive jamais. Aucun `after()`/`afterEach()`.
+  Sur 4 mois de CI quotidienne, la base accumule des centaines d'organisations
+  orphelines (0 membre, 0 donnée métier, un `org_admins` + un `audit_entries`
+  chacune). C'est aussi la cause de la chaîne de 4 niveaux corrigée en R82
+  (le spec se rattachait à l'annexe du run précédent).
+- **Preuve** : 3 annexes résiduelles constatées en base le 2026-10-24
+  (`org-34ee1844…`, `org-329fbe9d…`, `org-13547450…`, créées à 00:02, 01:11,
+  02:22 — une par run), chacune avec exactement 1 `org_admins` et 1
+  `audit_entries` (`actor_role_at_time = service_role`) et **0** donnée métier
+  (profils, members, transactions, invitations…). Elles ont été **archivées**
+  (ARCHIVED ≠ DELETE, tracé via `archive_reason`) — voir JOURNAL session 9.
+- **Correctif** : le spec enregistre désormais les ids créés
+  (`createdOrgIds`) et les **archive** dans un hook `after()` via l'API REST
+  avec le jeton réel (autorisé par `orgs_update_merged` : le compte e2e détient
+  le grant `org_admins` accordé par `create_org`). Rien n'est supprimé.
+- **Statut** : corrigé (code) ; la vérification E2E nécessite la CI Cypress
+  (le binaire Cypress n'est pas installable dans l'environnement d'agent).
+  Reste à confirmer par un run CI. Non destructif : au pire, un résidu
+  reste ACTIVE (comportement antérieur).

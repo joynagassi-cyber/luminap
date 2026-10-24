@@ -26,10 +26,49 @@
  */
 
 describe('Lumina — Org reports hierarchy, send page gating, RLS', () => {
+  // Organisations créées par ce run, archivées dans `after()` (R96) : sans
+  // nettoyage, chaque exécution (et chaque run CI) laissait 2 organisations
+  // réelles ACTIVE orphelines en base — constaté : chaîne de 3 annexes
+  // résiduelles du 2026-10-24.
+  const createdOrgIds: string[] = [];
+
   before(function () {
     this.timeout(90_000);
     cy.loginOrgAccount();
     cy.ensureAuth();
+  });
+
+  after(function () {
+    if (createdOrgIds.length === 0) return;
+    // Archivage (ARCHIVED ≠ DELETE : l'historique reste) via l'API REST avec
+    // le JETON RÉEL. La RLS `orgs_update_merged` l'autorise : `create_org` a
+    // accordé au compte e2e un grant `org_admins` ACTIVE sur chaque org créée.
+    const SUPABASE_URL =
+      (Cypress.expose('SUPABASE_URL') as string) ||
+      'https://hhgovvrnalibhgpakswi.supabase.co';
+    const anonKey = Cypress.expose('SUPABASE_ANON_KEY') as string;
+    realToken().then((token) => {
+      createdOrgIds.forEach((id) => {
+        cy.request({
+          method: 'PATCH',
+          url: `${SUPABASE_URL}/rest/v1/organizations?id=eq.${id}`,
+          headers: {
+            apikey: anonKey,
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            Prefer: 'return=minimal',
+          },
+          body: {
+            status: 'ARCHIVED',
+            archive_reason:
+              'Nettoyage automatique — spec Cypress org-reports.cy.ts',
+          },
+          failOnStatusCode: false,
+        }).then((res: any) => {
+          cy.log(`cleanup org ${id}: HTTP ${res.status}`);
+        });
+      });
+    });
   });
 
   /**
@@ -225,6 +264,10 @@ describe('Lumina — Org reports hierarchy, send page gating, RLS', () => {
 
       const orgA = rows.find((r: any) => r.name === orgAName);
       const orgB = rows.find((r: any) => r.name === orgBName);
+
+      // Enregistre pour le nettoyage `after()` (R96).
+      if (orgA) createdOrgIds.push(orgA.id);
+      if (orgB) createdOrgIds.push(orgB.id);
 
       // Pré-checker la nullité avant les assertions (evite le lint
       // no-unused-expressions sur `expect(undefined).to.exist`).
