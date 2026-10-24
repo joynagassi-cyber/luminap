@@ -1438,3 +1438,35 @@ Heure de reprise : 2026-10-24T08:0x Z. Branches : `agent/session-8-security`
   aucune validation E2E n'est affirmée sans run CI. PowerSync non déployé
   (PS_ADMIN_TOKEN absent). Aucune sauvegarde DB produite → aucune suppression
   destructive (archivage seul).
+
+### Session 10 (2026-10-24, soir) — objectif 2 : sauvegarde vérifiée de bout en bout
+- **T0+** : gel actif (budget dépassé) → uniquement correctifs ciblés, tests et
+  documentation de clôture. Aucun changement structurel.
+- **Résidu de test mesuré** (R96) : `groups` « Jeunesse … » = **84**, `events`
+  « Event Persist … » = **54**, tous dans l'organisation de test `org-e2e` ;
+  `transactions` = 0 (chemin hors-ligne ne pousse rien, R83). Organisations
+  **contenues** (9 au total) grâce au correctif R96. **Aucune suppression**
+  (pas de sauvegarde au moment de la mesure) → justifie P39 par la mesure.
+- **P31/R99 — sauvegarde** :
+  1. Le workflow `backup.yml` (créé par une session antérieure) n'avait
+     **jamais tourné**. Déclenché : run `40114231378` → avertissement
+     « `SUPABASE_DB_URL` absent », **0 artefact publié** (garde-fou dépôt
+     public **vérifié**, `total_count = 0`).
+  2. Docker était installé mais le **daemon arrêté** → `DockerRunError`.
+     Relancé (`sudo dockerd`), socket ouvert.
+  3. **Sauvegarde fraîche produite** : schéma 136 Ko (43 `CREATE TABLE`,
+     146 RLS) + données 6,3 Mo (29 tables, dont `auth.users`), SHA-256 vérifiés.
+  4. **Restauration testée** dans un conteneur Postgres jetable : après avoir
+     compris qu'il faut l'**image Supabase** + **`supabase_admin`** + base
+     **`postgres`** + le rôle `powersync_role`, résultat : **44 tables,
+     146 politiques RLS**.
+  5. **Fidélité vérifiée : 10/10 comptages identiques** (profiles 108,
+     organizations 9, org_memberships 5, org_admins 6, invitations 66,
+     members 94, groups 222, events 3220, audit_entries 97, notifications 3320).
+- **Correctif d'honnêteté** : PROPOSITIONS.md affirmait que « ni Docker ni
+  `pg_dump` ne sont disponibles » — **faux**, corrigé et documenté.
+- **Livrables** : PR #18 (mesure R96/P39), PR #19 (R99 + RUNBOOK procédure
+  vérifiée + rapport S5.8), mémoire projet.
+- **Reste à faire (propriétaire, critique)** : créer les secrets
+  `SUPABASE_DB_URL` + `BACKUP_GPG_PASSPHRASE`, récupérer `/workspace/backups/`
+  (environnement de test voué à disparaître).

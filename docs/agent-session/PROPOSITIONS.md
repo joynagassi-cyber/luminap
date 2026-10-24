@@ -543,9 +543,18 @@
   n'est publié que **chiffré** (dépôt public). **Reste à faire par le
   propriétaire** : créer les secrets `SUPABASE_DB_URL` et
   `BACKUP_GPG_PASSPHRASE` (procédure dans RUNBOOK.md §Sauvegardes).
-- **Pourquoi pas activé automatiquement** : ni `pg_dump` ni Docker ne sont
-  disponibles dans l'environnement d'agent, et aucune credential DB n'y est
-  présente. La sauvegarde tourne dès que le secret existe.
+- **MAJ 2026-10-24 (correctif d'affirmation)** : l'entrée précédente affirmait
+  que « ni `pg_dump` ni Docker ne sont disponibles dans l'environnement
+  d'agent ». **C'est faux** : Docker est installé (`/usr/bin/docker`) ; seul le
+  daemon était arrêté. Après `sudo dockerd`, la chaîne
+  `supabase db dump` → restauration a été **exécutée et vérifiée de bout en
+  bout** (voir R99 et RUNBOOK.md §« Sauvegarde VÉRIFIÉE ») : schéma 136 Ko
+  (43 tables, 146 RLS) + données 6,3 Mo, sommes de contrôle OK, restauration
+  fidèle 10/10.
+- **Pourquoi l'automatisation n'est pas encore active** : il manque le secret
+  `SUPABASE_DB_URL` (le run `40114231378` l'a prouvé par un avertissement) et le
+  jeton de session ne permet pas de créer de secret GitHub (403). Ce n'est donc
+  **pas** un manque d'outillage mais une action réservée au propriétaire.
 - **Priorité** : critique. **Bloquant** : oui (sans export, une corruption est
   définitive).
 
