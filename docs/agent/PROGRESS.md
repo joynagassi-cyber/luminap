@@ -33,7 +33,8 @@
 | 2 | `data-screen-state` (catalogue §5.1) + crawler | P0 | **en cours** | `agent/phase-02-routing` | — |
 | 3 | Multi-organisation : anti-cycle + clôture transitive (profondeur/largeur non plafonnées) | P1 | **terminé** | `agent/phase-03-multi-org` | `phase-03/2026-10-26-multi-org.md` |
 | 3 | Multi-organisation : table de fermeture matérialisée (perf) | P2 | proposition | — | (cf. PROPOSALS P3-1) |
-| 4 | RBAC fin : décision unique DB↔TS, portées, deny, matrice | P1 | à faire | `agent/phase-04-rbac` | — |
+| 4 | RBAC fin : décision unique DB↔TS (`has_permission`), deny, portées | P1 | **terminé** | `agent/phase-04-rbac` | `phase-04/2026-10-26-rbac.md` |
+| 4 | RBAC fin : réécrire les ~146 politiques RLS sur `has_permission` | P2 | proposition | — | (cf. PROPOSALS PR18) |
 | 5-6 | Auth, création d'org, onboarding, invitations | P1 | à faire | `agent/phase-05-06-auth-invitations` | — |
 | 7 | Finance : modèle unique, contrepassation, rapports | P1 | à faire | `agent/phase-07-finance` | — |
 | 8 | Isolation & sécurité (Red Team) | P1 | à faire | `agent/phase-08-redteam` | — |

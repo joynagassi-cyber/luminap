@@ -426,3 +426,36 @@
   « minimal, réversible ». La clôture transitive est fournie **en TS** par
   `buildClosure` (testée, profondeur ≥ 25, largeur ≥ 150).
 - **Alternative** : PR17 (proposition) si un besoin de perf est mesuré plus tard.
+
+### D-P4-1 — Décision de permission unique, générée depuis la matrice canon
+- **Décision** : `has_permission()` (SQL) et `evaluatePermission()` (TS) sont deux
+  implémentations de la **même** table de vérité, elle-même **générée** depuis
+  `PERMISSION_MATRIX` (`src/lib/rbac.ts`). Les `VALUES` SQL de
+  `role_permissions` sont extraits de `ROLE_PERMISSION_ROWS` (TS), et un test
+  **relit la migration** pour prouver l'égalité exacte.
+- **Raison** : garantir « une décision unique DB↔TS » (contrat §4) sans double
+  maintenance. La génération + le test anti-dérive rendent toute divergence
+  impossible sans échec CI.
+- **Alternative écartée** : écrire la matrice deux fois (TS + SQL) à la main —
+  source de divergence silencieuse.
+- **Réversibilité** : `rollback/20261026000002_rollback.sql`.
+
+### D-P4-2 — Deny via `grants.effect`, sans nouvelle table
+- **Décision** : ajouter `effect` ('allow'|'deny') et `expires_at` à `grants`
+  plutôt que créer une table `denials`.
+- **Raison** : le deny a **exactement** la même forme qu'un grant (sujet,
+  ressource, action, portée) ; une colonne suffit, et `subject_type='tag'` reste
+  un sujet de première classe (invariant 10). Une table séparée dupliquerait la
+  logique de résolution et le schéma de sync.
+- **Conséquence** : le schéma local PowerSync (`multi-org-schema.ts`) est mis à
+  jour en miroir (sinon la sync casse).
+
+### D-P4-3 — `has_permission` livrée comme primitive, RLS non réécrites
+- **Décision** : ne **pas** réécrire les ~146 politiques RLS existantes pour
+  appeler `has_permission` dans cette phase.
+- **Raison** : aucune régression n'est mesurée (les politiques actuelles
+  fonctionnent, R2/R15/R91 déjà corrigés) ; une réécriture massive serait un
+  risque élevé non justifié (principe « minimal, réversible »). La décision
+  unique est **disponible** et **prouvée** pour les nouveaux usages et la
+  migration progressive.
+- **Alternative** : proposition PR18 (migration progressive des politiques).
