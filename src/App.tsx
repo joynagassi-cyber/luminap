@@ -6,7 +6,7 @@ import { IonApp, setupIonicReact } from "@ionic/react";
 import { IonReactRouter } from "@ionic/react-router";
 import { IonRouterOutlet } from "@ionic/react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { authService } from "@/lib/auth";
 import { useAppUrlOpen, LUMINA_DEEPLINK_EVENT } from "@/hooks/useAppUrlOpen";
 import { AppProvider } from "./context/AppContext";
@@ -15,7 +15,28 @@ import { luminaRoutes } from "./ionic/routing";
 import { ErrorBoundary, withScope } from "@sentry/react";
 import { UpdateDialog } from "@/updater/UpdateDialog";
 import { checkForUpdate, type UpdateInfo } from "@/updater/checkForUpdate";
+import { resolveRoute, type RouteOutcome } from "@/lib/routeResolver";
+import { installClientErrorCapture, installChunkErrorRecovery } from "@/lib/clientErrors";
+import {
+  ForbiddenScreen,
+  NeedsMembershipScreen,
+  UpdateRequiredScreen,
+  BootRecoveryScreen,
+} from "@/components/RouteStates";
 import "./ionic/theme";
+
+// Capture globale des erreurs non gérées (contrat Phase 1/2) : rend visibles
+// les échecs silencieux au lieu de laisser l'utilisateur sur un écran noir.
+installClientErrorCapture();
+// Récupération contrôlée d'un chunk obsolète après déploiement (contrat §2.1).
+installChunkErrorRecovery();
+
+/**
+ * Boot watchdog delay (ms) — if the app shell has not rendered its routes by
+ * then, we surface an explicit recovery screen instead of a silent blank view
+ * (contract Phase 1 "boot watchdog").
+ */
+const BOOT_WATCHDOG_MS = 12_000;
 
 // Initialize Ionic React (dark theme applied via setupLuminaTheme)
 setupIonicReact({
@@ -26,10 +47,7 @@ setupIonicReact({
 
 const queryClient = new QueryClient();
 
-// Routes that don't require authentication
-const PUBLIC_ROUTES = ["/splash", "/auth", "/auth/callback", "/sessions"];
-
-/** Route guard — blocks access to protected routes when unauthenticated.
+/** Route guard — the single decision point for "what does this URL show?".
 
  *  Two-layer auth check:
  *   1. **Mount check** — async `authService.getSession()` on first render
@@ -98,24 +116,67 @@ function RouteGuard() {
     );
   }
 
-  // Always allow public routes
-  if (PUBLIC_ROUTES.includes(location.pathname)) return null;
+  // Always allow public routes → delegated to the single resolver below.
+  // (Resolve the current URL through resolveRoute so web navigation and
+  // native deep links share ONE decision point — contract §2.2.)
+  const outcome: RouteOutcome = resolveRoute(location.pathname, {
+    isAuthenticated,
+    // `isOrgMember` / `hasPermission` / schema versions are wired by later
+    // phases (3/4). Until then the resolver defaults them to "allowed", which
+    // preserves the exact current behaviour.
+  });
 
-  // Redirect unauthenticated users to /auth.
-  // Log pour diagnostiquer le cas où un clic BottomNav déclenche ce
-  // Navigate PENDANT une transition Ionic : le view entrant peut rester
-  // stuck en `ion-page-invisible` (écran noir permanent jusqu'au
-  // reload). On corrige la racine (le wrapper <Routes>, voir plus bas)
-  // et on log ici pour confirmer que le cas ne survient plus.
-  if (!isAuthenticated) {
-    console.warn(
-      `[RouteGuard] Unauthenticated at ${location.pathname} — redirecting to /auth. ` +
-        `Si le user a juste cliqué un onglet de la BottomNav, cette navigation ` +
-        `a pu casser la transition Ionic (écran noir).`,
-    );
-    return <Navigate to="/auth" replace />;
+  switch (outcome.outcome) {
+    case "render":
+      return null;
+    case "redirect":
+      return <Navigate to={outcome.to} replace />;
+    case "needs-auth":
+      // Log conservé (diagnostic écran noir BottomNav, cf. historique).
+      console.warn(
+        `[RouteGuard] Unauthenticated at ${location.pathname} — redirecting to /auth (returnTo=${outcome.returnTo}). ` +
+          `Si le user a juste cliqué un onglet de la BottomNav, cette navigation ` +
+          `a pu casser la transition Ionic (écran noir).`,
+      );
+      return <Navigate to="/auth" replace />;
+    case "forbidden":
+      return <ForbiddenScreen permission={outcome.permission} />;
+    case "needs-membership":
+      return <NeedsMembershipScreen />;
+    case "update-required":
+      return <UpdateRequiredScreen />;
+    // `not-found` is rendered by the wildcard route in the route registry;
+    // the guard lets it through to avoid a double 404.
+    case "not-found":
+    case "org-switch-required":
+    case "loading":
+    default:
+      return null;
   }
+}
 
+/**
+ * AppReadyBridge — sets `data-app-ready="true"` on the document once the
+ * routes have mounted, and arms a boot watchdog: if the shell never becomes
+ * ready within BOOT_WATCHDOG_MS, an explicit recovery screen replaces the
+ * silent blank view (contract Phase 1).
+ */
+function AppReadyBridge() {
+  const [bootTimedOut, setBootTimedOut] = useState(false);
+  const readyRef = useRef(false);
+
+  useEffect(() => {
+    document.getElementById("root")?.setAttribute("data-app-ready", "true");
+    readyRef.current = true;
+
+    const timer = window.setTimeout(() => {
+      if (!readyRef.current) setBootTimedOut(true);
+    }, BOOT_WATCHDOG_MS);
+
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  if (bootTimedOut) return <BootRecoveryScreen />;
   return null;
 }
 
@@ -247,6 +308,7 @@ const App = () => (
         </a>
         <IonReactRouter>
           <RouteGuard />
+          <AppReadyBridge />
           <AppUrlOpenBridge />
           <AppRouter />
           <AppProvider>

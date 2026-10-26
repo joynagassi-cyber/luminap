@@ -22,15 +22,15 @@
 | Phase | Tâche | Prio | Statut | Branche / PR | Receipt |
 |---|---|---|---|---|---|
 | 0 | Amorçage de l'état + réconciliation | P0 | **terminé** | `agent/phase-00-etat` | `phase-00/2026-10-26-etat.md` |
-| 2 | Routage : `resolveRoute` + registre unique | P0 | à faire | `agent/phase-02-routing` | — |
-| 2 | Écrans d'état 404 / « accès refusé » / update-required | P0 | à faire | `agent/phase-02-routing` | — |
-| 2 | `ErrorBoundary` par route (déjà via `LazyRoute`) | P0 | à faire | `agent/phase-02-routing` | — |
-| 2 | Watchdog `app-ready` + écran de récupération | P0 | à faire | `agent/phase-02-routing` | — |
-| 2 | Gestion `ChunkLoadError` (rechargement contrôlé) | P0 | à faire | `agent/phase-02-routing` | — |
-| 2 | Deep links web + `appUrlOpen` via `resolveRoute`, `returnTo` allowlisté | P0 | à faire | `agent/phase-02-routing` | — |
-| 2 | Capture `onerror`/`unhandledrejection` (PII redactée) | P1 | à faire | `agent/phase-02-routing` | — |
+| 2 | Routage : `resolveRoute` + registre unique | P0 | **terminé** | `agent/phase-02-routing` | `phase-02/2026-10-26-routing.md` |
+| 2 | Écrans d'état 404 / « accès refusé » / update-required | P0 | **terminé** | `agent/phase-02-routing` | `phase-02/2026-10-26-routing.md` |
+| 2 | `ErrorBoundary` par route (déjà via `LazyRoute`) | P0 | **terminé** | (pré-existant) | `phase-02/2026-10-26-routing.md` |
+| 2 | Watchdog `app-ready` + écran de récupération | P0 | **terminé** | `agent/phase-02-routing` | `phase-02/2026-10-26-routing.md` |
+| 2 | Gestion `ChunkLoadError` (rechargement contrôlé) | P0 | **terminé** | `agent/phase-02-routing` | `phase-02/2026-10-26-routing.md` |
+| 2 | Deep links web + `appUrlOpen` via `resolveRoute`, `returnTo` allowlisté | P0 | **terminé** | `agent/phase-02-routing` | `phase-02/2026-10-26-routing.md` |
+| 2 | Capture `onerror`/`unhandledrejection` (PII redactée) | P1 | **terminé** | `agent/phase-02-routing` | `phase-02/2026-10-26-routing.md` |
 | 2 | Matrice deep link (`deeplinks.matrix.json`) | P0 | **terminé** | `agent/phase-00-etat` | `phase-00/2026-10-26-etat.md` |
-| 2 | `data-screen-state` (catalogue §5.1) + crawler | P0 | à faire | `agent/phase-02-routing` | — |
+| 2 | `data-screen-state` (catalogue §5.1) + crawler | P0 | **en cours** | `agent/phase-02-routing` | — |
 | 3 | Multi-organisation : arbre illimité, anti-cycle, table de fermeture | P1 | à faire | `agent/phase-03-multi-org` | — |
 | 4 | RBAC fin : décision unique DB↔TS, portées, deny, matrice | P1 | à faire | `agent/phase-04-rbac` | — |
 | 5-6 | Auth, création d'org, onboarding, invitations | P1 | à faire | `agent/phase-05-06-auth-invitations` | — |

@@ -12,6 +12,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Capacitor } from "@capacitor/core";
 import { App as CapacitorApp } from "@capacitor/app";
 import { authService } from "@/lib/auth";
+import { parseDeepLink } from "@/lib/routeResolver";
 
 /**
  * Event dispatched (on `window`) after a native OAuth deep-link URL has been
@@ -46,14 +47,18 @@ export function useAppUrlOpen() {
     let cleanup: (() => void) | undefined;
 
     const onNativeDeepLink = async (url: string) => {
-      let parsed: URL;
-      try {
-        parsed = new URL(url);
-      } catch {
+      // Parse through the SAME resolver as the web (contract §2.3): the link
+      // is never trusted — `returnTo` is allowlisted, unknown paths fall back.
+      const link = parseDeepLink(url);
+      if (!link) return;
+
+      // Non-OAuth deep link: navigate to the (validated) target path directly.
+      // The route guard then applies auth / permission / org-switch rules.
+      if (!link.code) {
+        const target = link.returnTo ?? link.path;
+        navigate(target, { replace: false });
         return;
       }
-      const code = parsed.searchParams.get("code");
-      if (!code) return; // not an OAuth callback (plain lumina:// launch)
 
       const result = await authService.handleOAuthDeepLink(url);
       if (!active) return;
@@ -72,15 +77,16 @@ export function useAppUrlOpen() {
 
       // Transition forcée (fix écran noir après le splash) : si le callback
       // OAuth arrive alors que l'app est sur une route PUBLIQUE (/splash,
-      // /), `RouteGuard` ne force PAS de navigation (PUBLIC_ROUTES renvoie
-      // null) et l'utilisateur resterait figé sur le splash / écran noir.
-      // On navigue vers le dashboard (ou l'onboarding si premier usage).
+      // /), `RouteGuard` ne force PAS de navigation et l'utilisateur
+      // resterait figé sur le splash / écran noir. On navigue vers le
+      // `returnTo` validé, sinon le dashboard (ou l'onboarding).
       const PUBLIC = ["/splash", "/", "/auth", "/auth/callback", "/sessions"];
       if (PUBLIC.includes(location.pathname) && !result.error) {
         const { needsOnboarding } = await import("@/lib/onboardingState");
-        navigate(needsOnboarding() ? "/onboarding" : "/dashboard", {
-          replace: true,
-        });
+        const dest =
+          link.returnTo ??
+          (needsOnboarding() ? "/onboarding" : "/dashboard");
+        navigate(dest, { replace: true });
       }
     };
 
