@@ -1,4 +1,5 @@
 import type { EventBudget, BudgetLine } from "@/types";
+import { DEFAULT_CATEGORY_ID } from "@/lib/canonicalCategories";
 
 /**
  * EventBudgetAdapter — bridge between JSONB budget_items and canonical tables
@@ -37,7 +38,7 @@ export class EventBudgetAdapter {
     const lines: BudgetLine[] = items.map((item: any) => ({
       id: item.id ?? `bl-${eventId}-${item.label}`,
       eventBudgetId: budget.id,
-      categoryId: item.categoryId ?? "cat-dime",
+      categoryId: item.categoryId ?? DEFAULT_CATEGORY_ID,
       plannedAmountCents: item.allocated ?? 0,
       actualAmountCents: item.spent ?? 0,
       createdAt: new Date().toISOString(),

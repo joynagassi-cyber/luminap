@@ -11,6 +11,7 @@ import DatePicker from "@/components/DatePicker";
 import { generateId, formatCurrencyCompact } from "@/lib/utils";
 import type { BudgetItem, Event } from "@/types";
 import { getOrganizationId } from "@/lib/orgContext";
+import { CANONICAL_CATEGORIES } from "@/lib/canonicalCategories";
 import { notification } from "@/capabilities/notification";
 import {
   IonPage,
@@ -31,24 +32,15 @@ import {
 } from "@ionic/react";
 import type { IonChangeCustomEvent } from "@/lib/ionic-types";
 
-const DEFAULT_BUDGET_ITEMS = [
-  { label: "Dîme", categoryId: "cat-dime", allocated: 0 },
-  { label: "Offrande", categoryId: "cat-offrande", allocated: 0 },
-  {
-    label: "Offrande Mission",
-    categoryId: "cat-offrande-mission",
-    allocated: 0,
-  },
-  { label: "Salaire Pasteur", categoryId: "cat-salaire-pasteur", allocated: 0 },
-  {
-    label: "Frais de Fonctionnement",
-    categoryId: "cat-frais-fonc",
-    allocated: 0,
-  },
-  { label: "Mission", categoryId: "cat-mission", allocated: 0 },
-  { label: "Entretien", categoryId: "cat-entretien", allocated: 0 },
-  { label: "Aumône", categoryId: "cat-aumone", allocated: 0 },
-];
+// Dérivé de la source unique des catégories (R89.a) : les identifiants
+// stockés dans `budget_items` (JSONB) sont réutilisés tels quels comme
+// `transactions.category_id` par EventDetail — ils DOIVENT donc être
+// canoniques, sinon l'upload échoue en 23503.
+const DEFAULT_BUDGET_ITEMS = CANONICAL_CATEGORIES.map((c) => ({
+  label: c.labelFr,
+  categoryId: c.id,
+  allocated: 0,
+}));
 
 export default function EventNew() {
   const navigate = useNavigate();

@@ -635,3 +635,21 @@
   3 passes). **Risque** : moyen (dépend de l'accès au projet PowerSync Cloud et
   d'un compte de test). **Priorité** : **critique**. **Bloquant** : oui, pour
   la fiabilité à long terme.
+
+### P42 — Identifiants de catégories par organisation (R89.a) — MOYENNE
+
+- **Contexte** : le correctif R89.a (2026-10-26) a aligné client et serveur sur
+  des identifiants canoniques (`cat-dime`, …) seedés une seule fois. Cela
+  débloque la FK `transactions.category_id`, mais `categories.id` reste une clé
+  **primaire globale** : deux organisations ne peuvent pas avoir des catégories
+  personnalisées portant le même `key` sans collision d'identifiant.
+- **Proposition** : introduire un identifiant **par organisation**
+  (`org_id || ':' || key` ou UUID), déplacer la contrainte d'unicité sur
+  `(org_id, key)`, et remapper les écritures client. Prévoir une migration de
+  données pour les lignes existantes.
+- **Intérêt** : personnalisation réelle des catégories par organisation
+  (exigence métier probable pour École/Entreprise), suppression de la
+  limitation documentée dans le receipt Phase 9.
+- **Coût** : 4–6 h (migration + remap + tests). **Risque** : moyen (touche la
+  FK des transactions ; nécessite une sauvegarde vérifiée avant migration).
+  **Priorité** : moyenne. **Bloquant** : non.
