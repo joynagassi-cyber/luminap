@@ -30,7 +30,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 // liste (/groups/:id, /event/:id…) laissait un écran noir, alors qu'un
 // accès direct à la même URL fonctionnait.
 const PageSkeleton = () => (
-  <div className="ion-padding ion-padding-top" style={{ minHeight: "100%" }}>
+  <div
+    data-screen-state="loading"
+    className="ion-padding ion-padding-top"
+    style={{ minHeight: "100%" }}
+  >
     <div className="space-y-4 p-4">
       <Skeleton className="h-8 w-3/4" />
       <Skeleton className="h-4 w-full" />
@@ -82,7 +86,10 @@ class LazyRouteErrorBoundary extends Component<
       return (
         <IonPage>
           <IonContent className="ion-padding">
-            <div className="mx-auto flex max-w-sm flex-col items-center gap-4 py-10 text-center">
+            <div
+              data-screen-state="error"
+              className="mx-auto flex max-w-sm flex-col items-center gap-4 py-10 text-center"
+            >
               <div
                 className="flex h-14 w-14 items-center justify-center rounded-full"
                 style={{ backgroundColor: "color-mix(in srgb, var(--data-pending) 12%, transparent)" }}
@@ -127,7 +134,11 @@ class LazyRouteErrorBoundary extends Component<
         </IonPage>
       );
     }
-    return <div key={this.state.attempt}>{this.props.children}</div>;
+    return (
+      <div key={this.state.attempt} data-screen-state="ready">
+        {this.props.children}
+      </div>
+    );
   }
 }
 
