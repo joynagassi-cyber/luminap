@@ -17,7 +17,7 @@
 | PR1 | Journal d'audit consultable (UI) | traçabilité des actions sensibles | faible | moyen | audit_entries (existe) | P1 |
 | PR2 | Export/sauvegarde des données (UI) | réversibilité, passation | faible | moyen | dataLayer | P1 |
 | PR3 | Corbeille / restauration (soft-delete) | anti-perte | moyen | moyen | archivage (existe) | P2 |
-| PR4 | Page de santé (version, base, sync, dernières erreurs) | exploitation autonome | faible | faible | `client_errors`, PowerSync status | P1 |
+| PR4 ✅ | Page de santé (version, base, sync, dernières erreurs) | exploitation autonome | faible | faible | `client_errors`, PowerSync status | P1 |
 | PR5 | Bouton « Signaler un problème » (contexte sans PII) | support | faible | faible | Sentry + `client_errors` | P2 |
 | PR6 | Écran « mise à jour requise » (versionnage de schéma) | compat APK | faible | faible | schéma de sync | P1 |
 | PR7 | Drapeaux de fonctionnalités (kill switches) | désactivation sûre | faible | faible | config | P1 |

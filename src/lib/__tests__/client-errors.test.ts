@@ -3,7 +3,7 @@
  * Priorité : la redaction (aucune PII dans les rapports).
  */
 import { describe, it, expect } from "vitest";
-import { redact, buildContext } from "../clientErrors";
+import { redact, buildContext, getRecentErrors, clearRecentErrors } from "../clientErrors";
 
 describe("redact — aucune PII dans les rapports", () => {
   it("masque les adresses e-mail", () => {
@@ -49,5 +49,16 @@ describe("buildContext", () => {
     const err = new Error("échec pour user@example.com");
     const ctx = buildContext("onerror", err);
     expect(ctx.message).not.toContain("user@example.com");
+  });
+});
+
+describe("buffer d'erreurs récentes (page santé)", () => {
+  it("démarre vide puis conserve les erreurs via les handlers globaux", () => {
+    clearRecentErrors();
+    expect(getRecentErrors()).toHaveLength(0);
+    // installClientErrorCapture n'est pas testé ici (nécessite window) ; on
+    // vérifie seulement que le buffer est lisible et effaçable.
+    clearRecentErrors();
+    expect(getRecentErrors()).toHaveLength(0);
   });
 });

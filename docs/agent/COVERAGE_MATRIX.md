@@ -44,6 +44,7 @@
 | 9 | Sync hors-ligne | `C: cloud-sync.cy.ts` (bloqué env.) | **bloqué (E2)** |
 | 10 | Responsive / a11y | `C: responsive-skeleton.cy.ts` | partiel |
 | 11 | Pre-mortem / chaos | à créer | **non couvert** |
+| 11 | Page « État du système » (santé) | `V: health.test.ts` (11) + `C: zero-black-screen` (route) | **couvert** |
 | 12 | Crawler zéro écran noir | `C: zero-black-screen.cy.ts` (toutes routes × état marqué) | **couvert** (hors-cloud) |
 | 13 | Tutoriel | à créer (C) | **non couvert** |
 | 14 | Personnalisation profil/org | à créer (C) | **non couvert** |

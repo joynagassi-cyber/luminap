@@ -89,6 +89,7 @@ export const ROUTE_REGISTRY: readonly RouteDef[] = [
   { pattern: "/settings/notifications", kind: "app" },
   { pattern: "/settings/gestion", kind: "app" },
   { pattern: "/settings/about", kind: "app" },
+  { pattern: "/settings/health", kind: "app" },
   { pattern: "*", kind: "public" }, // catch-all → resolved as not-found
 ] as const;
 

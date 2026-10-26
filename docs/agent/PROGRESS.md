@@ -43,6 +43,8 @@
 | 9 | Synchronisation & hors-ligne (PowerSync) — R89.a identifiants catégories | P1 | **terminé** | `agent/phase-09-sync-categories` | `phase-09/2026-10-26-r89a-canonical-categories.md` |
 | 9 | Synchronisation — R89.b descente (`PSYNC_S2305`) | P1 | bloqué (déploiement PowerSync Cloud requis) | — | ESCALATIONS E1 |
 | 9 | Synchronisation — garde anti-dérive `ON_DEMAND_STREAMS` ↔ `sync-config.yaml` | P1 | **terminé** | `agent/phase-09-streams-guard` | `phase-09/2026-10-26-r89a-canonical-categories.md` (addendum) |
+
+| 11 | Page « État du système » (santé : version, sync, erreurs) | P1 | **terminé** | `agent/phase-11-health` | `phase-11/2026-10-26-health-page.md` |
 | 10 | Design system, UX, responsive, perf, a11y | P2 | à faire | `agent/phase-10-ux` | — |
 | 11 | Pre-mortem, chaos, exploitation autonome | P2 | à faire | `agent/phase-11-premortem` | — |
 | 12 | Suite Cypress (couverture totale) + crawler | P2 | à faire | `agent/phase-12-cypress` | — |
