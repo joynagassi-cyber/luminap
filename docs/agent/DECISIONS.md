@@ -459,3 +459,23 @@
   unique est **disponible** et **prouvée** pour les nouveaux usages et la
   migration progressive.
 - **Alternative** : proposition PR18 (migration progressive des politiques).
+
+### D-P6-1 — Durcir les streams PowerSync au même niveau que la RLS
+- **Décision** : chaque fois qu'une politique RLS est durcie, vérifier le stream
+  PowerSync correspondant — sinon la règle de sync **contourne** la RLS
+  (PowerSync lit en service role).
+- **Raison** : R92 le prouve : la RLS `invitations_select` avait été restreinte
+  (R91) mais le stream restait « org de l'appelant », donc tout membre
+  synchronisait les codes. La RLS n'est pas une frontière suffisante quand un
+  flux de sync la double.
+- **Correctif** : streams `invitations`/`invitation_claims` restreints aux
+  gestionnaires, testés par lecture du YAML (anti-régression).
+
+### D-P6-2 — Jetons porteurs générés par CSPRNG
+- **Décision** : tout code/jeton remis hors-bande (invitation, partage) est tiré
+  de `crypto.getRandomValues`, jamais de `Math.random()`.
+- **Raison** : un code d'invitation ouvre l'accès à une organisation ; un flux
+  `Math.random` prévisible le rend devinable (prouvé : code identique sous flux
+  figé).
+- **Repli** : `Math.random()` uniquement si WebCrypto est absent (l'entropie
+  reste non déterministe) — cas non navigateur.

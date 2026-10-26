@@ -52,6 +52,22 @@
 - Sauvegardes réelles : `/workspace/backups/` **hors dépôt** (données réelles,
   ne jamais commiter). `backup.yml` publie **uniquement** si chiffré.
 
+## Boucle autonome « lumina-autonomous-hardening » (2026-10-26)
+- Contrat 18 phases ; état dans `docs/agent/` (ex-`docs/agent-session`, renommé).
+  `docs/agent/00-RECONCILIATION.md` mappe phase↔état réel. Ordre : 0 → 2 → 3 → 4…
+- **Gates bloquants locaux** : `npx tsc -b --noEmit`, `pnpm exec vitest run`,
+  `pnpm run lint`, `pnpm run build`. Cypress = **non bloquant** (env E2E indispo).
+- **Parallélisation CI Cypress RÉFUTÉE comme cause du rouge** (run mono-conteneur
+  = mêmes 10 specs). Cause réelle = environnement E2E (PowerSync/contexte org).
+- Convention boucle : 1 PR par phase, tag `lumina-phase-NN-<nom>-20261026`,
+  receipt `docs/agent/receipts/phase-NN/`, merge après gates verts (R90 Android
+  rouge pré-existant toléré).
+- Phases livrées : 0 (état), 2 (routage P0), 3 (anti-cycle org), 4 (RBAC
+  `has_permission`).
+- **DB dev** : migrations appliquées via MCP `apply_migration` (DDL) ; preuves en
+  `BEGIN … ROLLBACK` (aucune donnée modifiée). `org_memberships.user_id` a une FK
+  → `auth.users` (impossible d'insérer un user bidon pour tester).
+
 ## Conventions du dépôt
 - Dépôt **PUBLIC** → ne jamais committer de secret ni d'artefact non chiffré.
 - Docs de session dans `docs/agent-session/` (FEATURES, DOMAINE, JOURNAL,
