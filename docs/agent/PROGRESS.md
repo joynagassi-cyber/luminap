@@ -30,7 +30,8 @@
 | 2 | Deep links web + `appUrlOpen` via `resolveRoute`, `returnTo` allowlisté | P0 | **terminé** | `agent/phase-02-routing` | `phase-02/2026-10-26-routing.md` |
 | 2 | Capture `onerror`/`unhandledrejection` (PII redactée) | P1 | **terminé** | `agent/phase-02-routing` | `phase-02/2026-10-26-routing.md` |
 | 2 | Matrice deep link (`deeplinks.matrix.json`) | P0 | **terminé** | `agent/phase-00-etat` | `phase-00/2026-10-26-etat.md` |
-| 2 | `data-screen-state` (catalogue §5.1) + crawler | P0 | **en cours** | `agent/phase-02-routing` | — |
+| 2 | `data-screen-state` (catalogue §5.1) + crawler zéro écran noir | P0 | **terminé** | `agent/phase-02-zero-black-screen` | `phase-02/2026-10-26-zero-black-screen.md` |
+| 2 | Garde anti-dérive registre ↔ routes montées | P0 | **terminé** | `agent/phase-02-zero-black-screen` | `phase-02/2026-10-26-zero-black-screen.md` |
 | 3 | Multi-organisation : anti-cycle + clôture transitive (profondeur/largeur non plafonnées) | P1 | **terminé** | `agent/phase-03-multi-org` | `phase-03/2026-10-26-multi-org.md` |
 | 3 | Multi-organisation : table de fermeture matérialisée (perf) | P2 | proposition | — | (cf. PROPOSALS P3-1) |
 | 4 | RBAC fin : décision unique DB↔TS (`has_permission`), deny, portées | P1 | **terminé** | `agent/phase-04-rbac` | `phase-04/2026-10-26-rbac.md` |
