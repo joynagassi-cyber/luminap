@@ -54,6 +54,6 @@
 
 ## Conventions du dépôt
 - Dépôt **PUBLIC** → ne jamais committer de secret ni d'artefact non chiffré.
-- Docs de session dans `docs/agent-session/` (FEATURES, DOMAINE, JOURNAL,
+- Docs de session dans `docs/agent/` (FEATURES, DOMAINE, JOURNAL,
   DECISIONS, RISQUES, PROPOSITIONS, RUNBOOK, RAPPORT_FINAL).
 - Branche dédiée + PR, **jamais** de push forcé ni de réécriture d'historique.
