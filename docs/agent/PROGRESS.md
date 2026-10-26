@@ -37,7 +37,7 @@
 | 4 | RBAC fin : réécrire les ~146 politiques RLS sur `has_permission` | P2 | proposition | — | (cf. PROPOSALS PR18) |
 | 5-6 | Auth, création d'org, onboarding, invitations | P1 | **terminé** (partiel : sync E1) | `agent/phase-05-06-auth-invitations` | `phase-05-06/2026-10-26-auth-invitations.md` |
 | 5-6 | Preuve post-acceptation (sync filtrée + rôle actif) | P1 | bloqué (E1 : PowerSync non déployé) | — | — |
-| 7 | Finance : modèle unique, contrepassation, rapports | P1 | à faire | `agent/phase-07-finance` | — |
+| 7 | Finance : modèle unique, contrepassation, rapports | P1 | **terminé** (R101/R102 corrigés) | `agent/phase-07-finance` | `phase-07/2026-10-26-finance.md` |
 | 8 | Isolation & sécurité (Red Team) | P1 | à faire | `agent/phase-08-redteam` | — |
 | 9 | Synchronisation & hors-ligne (PowerSync) | P1 | à faire | `agent/phase-09-sync` | — |
 | 10 | Design system, UX, responsive, perf, a11y | P2 | à faire | `agent/phase-10-ux` | — |

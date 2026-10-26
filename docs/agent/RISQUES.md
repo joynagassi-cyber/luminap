@@ -2246,3 +2246,45 @@ sauvegarde disponible).
   reste alors non déterministe). Format `LUM-XXXXXX` et alphabet sans ambiguïté
   conservés.
 - **Statut** : corrigé et vérifié (test rouge → vert, 3 cas).
+
+### R101 — `notify_transaction_change()` malformée : le flux finance est cassé en base — CORRIGÉ
+- **Gravité** : CRITIQUE.
+- **Défaut** : la fonction trigger `notify_transaction_change()` (créée par la
+  migration `0012`, toujours active) insère dans `notifications` en listant
+  **6 colonnes** (`org_id, action_type, title, message, source_transaction_id,
+  created_at`) mais ne fournit que **5 valeurs** : le `message` manque, donc
+  `NEW.id`/`NEW.created_at` glissent dans `message`/`source_transaction_id`.
+  Toute écriture d'une transaction au statut PENDING/APPROVED/REJECTED échoue
+  en `42601: INSERT has more target columns than expressions`.
+- **Preuve** (instance dev, transactions annulées) :
+  - `INSERT ... status='PENDING'` → **42601** ;
+  - `UPDATE DRAFT→APPROVED` → **42601** ;
+  - `INSERT ... status='DRAFT'` → OK (la garde `IF NEW.status IN (...)` est
+    fausse), ce qui masquait le défaut.
+  - Après correctif : INSERT PENDING / UPDATE APPROVED / DELETE OK, chacune
+    produisant la notification attendue ; 0 résidu.
+- **Impact** : aucune transaction ne peut être soumise ni approuvée — ni via
+  l'UI, ni via PowerSync, ni via l'API. La fonctionnalité finance (et les
+  rapports qui en dépendent) est **inopérante**. Défaut latent : la table
+  `transactions` était vide sur l'instance dev.
+- **Correctif** : `20261026000003_fix_notify_transaction_change.sql` — fournit
+  le `message` manquant (construit par cas), et rend le trigger compatible
+  DELETE (l'ancien code utilisait NEW sur DELETE → NULL ; désormais OLD).
+- **Statut** : corrigé, appliqué à la base dev, vérifié de bout en bout.
+
+### R102 — Suppression dure d'une transaction APPROVED possible en base — CORRIGÉ
+- **Gravité** : HAUTE (intégrité financière).
+- **Défaut** : la policy RLS `transactions_delete` est `is_org_member(uid,
+  org_id)` : **tout** membre (rôle MEMBRE inclus) peut supprimer n'importe
+  quelle transaction, APPROVED comprise. Le garde-fou « APPROVED = immuable »
+  n'existait que **côté client** (`deleteTransactionPS`), or PowerSync écrit en
+  service role (RLS contournée) et l'API REST n'applique pas la logique TS.
+- **Preuve** (instance dev, transaction annulée) : un profil `MEMBRE` a
+  supprimé une transaction `APPROVED` (count restant = 0).
+- **Correctif** : `20261026000004_guard_approved_transaction_delete.sql` —
+  trigger `BEFORE DELETE` qui lève `TRANSACTION_APPROVED_IMMUTABLE` (P0001)
+  pour une transaction APPROVED, quel que soit le rôle. DRAFT/PENDING/REJECTED
+  restent supprimables (parité avec `deleteTransactionPS`). La contrepassation
+  (`reversal_of_id`) reste le mécanisme sanctionné pour une pièce approuvée.
+- **Statut** : corrigé, appliqué à la base dev, vérifié (DRAFT supprimable,
+  APPROVED refusé en P0001).

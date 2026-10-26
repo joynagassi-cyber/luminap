@@ -37,7 +37,7 @@
 | 4 | RLS réécrites sur `has_permission` | — | proposition (PR18) |
 | 5 | Auth parcours complets | `C: auth-real.cy.ts`, `sessions.cy.ts` | partiel |
 | 6 | Invitations (code/QR/lien) | `C: invitations.cy.ts`, `V: invitation-rls-hardening`, `invitation-code-entropy`, `sync-config-invitations` | partiel (E1) |
-| 7 | Finance transactions | `C: finance-deep.cy.ts` | partiel |
+| 7 | Finance transactions | `C: finance-deep.cy.ts`, `V: migration-notify-transaction` | partiel (R101/R102 corrigés) |
 | 8 | Isolation RLS | `SQL` + `C: cross-tenant.cy.ts` | partiel |
 | 9 | Sync hors-ligne | `C: cloud-sync.cy.ts` (bloqué env.) | **bloqué (E2)** |
 | 10 | Responsive / a11y | `C: responsive-skeleton.cy.ts` | partiel |

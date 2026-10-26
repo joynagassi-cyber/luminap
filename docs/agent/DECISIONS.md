@@ -479,3 +479,25 @@
   figé).
 - **Repli** : `Math.random()` uniquement si WebCrypto est absent (l'entropie
   reste non déterministe) — cas non navigateur.
+
+### D-P7-1 — Les gardes métier doivent exister en base, pas seulement côté client
+- **Décision** : toute règle d'intégrité financière (immuabilité d'une pièce
+  approuvée, interdiction de suppression) doit être **en base** (trigger/policy),
+  pas uniquement dans le client TS.
+- **Raison** : R102 prouve que le garde-fou client (`deleteTransactionPS`) est
+  contourné par PowerSync (service role) et par l'API REST. Le client n'est pas
+  une frontière de sécurité.
+- **Correctif** : trigger `BEFORE DELETE` refusant la suppression d'une
+  transaction APPROVED, avec le **même** code d'erreur que le client
+  (`TRANSACTION_APPROVED_IMMUTABLE`) pour une parité vérifiée par test.
+
+### D-P7-2 — Un trigger `AFTER INSERT OR UPDATE OR DELETE` doit gérer OLD/NEW
+- **Décision** : toute fonction trigger multi-opérations doit brancher sur
+  `TG_OP` et n'utiliser `NEW` que pour INSERT/UPDATE, `OLD` pour DELETE.
+- **Raison** : R101 — l'ancienne `notify_transaction_change()` référençait `NEW`
+  sur DELETE (NULL) et, plus grave, listait 6 colonnes pour 5 valeurs, cassant
+  toute écriture de transaction. Le défaut était masqué car `transactions`
+  était vide.
+- **Leçon** : un schéma de test vide masque les triggers d'écriture ; la CI
+  n'exécute aucune transaction réelle. Les gardes d'intégrité de migration
+  (`migration-notify-transaction.test.ts`) verrouillent la structure.
