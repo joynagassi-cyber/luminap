@@ -61,3 +61,11 @@ $ INSERT tx (cat-dime) … ROLLBACK→ fk_ok = 1   ← la FK résout
   déploiement PowerSync Cloud (`PS_ADMIN_TOKEN` absent). Reste une escalade.
 - Le test bout-en-bout réel (upload via PowerSync) reste impossible sans
   PowerSync déployé ; la preuve ici est la résolution de la FK côté Postgres.
+
+## Addendum — garde anti-dérive des streams PowerSync (même phase)
+
+`ON_DEMAND_STREAMS` (client) et les streams `auto_subscribe: false`
+(`sync-config.yaml`) coïncidaient (12) mais sans garde. Ajout de
+`sync-streams-drift.test.ts` (2 tests) qui verrouille l'égalité. Une dérive
+laisserait une table vide en silence (ex. `organizations` → « Mes comptes »
+vide) ou ferait échouer `subscribe()`.
