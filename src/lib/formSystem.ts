@@ -1,5 +1,6 @@
 // Using PowerSync
 import { generateId } from "./utils";
+import { escapeCsvCell } from "./csv";
 import { writeAudit } from "./audit";
 import type { FormDefinition, FormFieldDefinition, FormSubmission } from "@/types";
 import { getOrganizationId } from "./orgContext";
@@ -313,15 +314,7 @@ export function buildSubmissionsCSV(
   );
   const header = fields.map((f) => f.label || f.key);
 
-  const escapeValue = (v: unknown): string => {
-    if (v == null) return "";
-    const text =
-      typeof v === "object" ? JSON.stringify(v) : String(v);
-    if (/[";]/.test(text)) {
-      return `"${text.replace(/"/g, '""')}"`;
-    }
-    return text;
-  };
+  const escapeValue = (v: unknown): string => escapeCsvCell(v, ";");
 
   const parseData = (sub: FormSubmission): Record<string, any> => {
     if (sub.data && typeof sub.data === "object") return sub.data;

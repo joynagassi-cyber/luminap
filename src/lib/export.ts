@@ -1,6 +1,7 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
+import { escapeCsvRow } from "./csv";
 import {
   Document,
   HeadingLevel,
@@ -379,25 +380,27 @@ export function exportCSV(options: ExportOptions) {
   const BOM = "\uFEFF";
   const header =
     "Date;Type;Catégorie;Description;Montant (FCFA);Statut;Caisse source;Versement;Événement";
-  const rows = sorted.map((t) => [
-    formatDate(t.date),
-    t.type === "INCOME" ? "Entrée" : "Sortie",
-    t.category?.labelFr || t.categoryId || "",
-    `"${(t.description || "").replace(/"/g, '""')}"`,
-    String(t.amount / 100),
-    String(
-      t.status === "APPROVED"
-        ? "Approuvé"
-        : t.status === "PENDING"
-          ? "En attente"
-          : "Brouillon",
-    ),
-    String(caisses?.find((c) => c.id === t.sourceCaisseId)?.name || ""),
-    t.versementId ? "Oui" : "",
-    t.eventId || "",
-  ]);
+  const rows = sorted.map((t) =>
+    escapeCsvRow([
+      formatDate(t.date),
+      t.type === "INCOME" ? "Entrée" : "Sortie",
+      t.category?.labelFr || t.categoryId || "",
+      t.description || "",
+      String(t.amount / 100),
+      String(
+        t.status === "APPROVED"
+          ? "Approuvé"
+          : t.status === "PENDING"
+            ? "En attente"
+            : "Brouillon",
+      ),
+      caisses?.find((c) => c.id === t.sourceCaisseId)?.name || "",
+      t.versementId ? "Oui" : "",
+      t.eventId || "",
+    ]),
+  );
 
-  const csv = BOM + [header, ...rows.map((r) => r.join(";"))].join("\n");
+  const csv = BOM + [header, ...rows].join("\n");
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
