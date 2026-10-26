@@ -35,7 +35,8 @@
 | 3 | Multi-organisation : table de fermeture matérialisée (perf) | P2 | proposition | — | (cf. PROPOSALS P3-1) |
 | 4 | RBAC fin : décision unique DB↔TS (`has_permission`), deny, portées | P1 | **terminé** | `agent/phase-04-rbac` | `phase-04/2026-10-26-rbac.md` |
 | 4 | RBAC fin : réécrire les ~146 politiques RLS sur `has_permission` | P2 | proposition | — | (cf. PROPOSALS PR18) |
-| 5-6 | Auth, création d'org, onboarding, invitations | P1 | à faire | `agent/phase-05-06-auth-invitations` | — |
+| 5-6 | Auth, création d'org, onboarding, invitations | P1 | **terminé** (partiel : sync E1) | `agent/phase-05-06-auth-invitations` | `phase-05-06/2026-10-26-auth-invitations.md` |
+| 5-6 | Preuve post-acceptation (sync filtrée + rôle actif) | P1 | bloqué (E1 : PowerSync non déployé) | — | — |
 | 7 | Finance : modèle unique, contrepassation, rapports | P1 | à faire | `agent/phase-07-finance` | — |
 | 8 | Isolation & sécurité (Red Team) | P1 | à faire | `agent/phase-08-redteam` | — |
 | 9 | Synchronisation & hors-ligne (PowerSync) | P1 | à faire | `agent/phase-09-sync` | — |

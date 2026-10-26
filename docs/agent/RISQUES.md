@@ -1998,7 +1998,7 @@ la configuration Gradle de `:capacitor-storage` / `capacitor-cordova-android-plu
   couvre R91, R91.b et R91.c, et échoue si l'on restaure une politique
   permissive ou le `EXISTS` régressif). Migrations réversibles (4 rollbacks).
 
-### R92 — Stream PowerSync `invitations` trop large (divulgation) — NON CORRIGÉ
+### R92 — Stream PowerSync `invitations` trop large (divulgation) — CORRIGÉ
 - **Gravité** : MOYENNE (atténuée par R91).
 - **Défaut** : `powersync/sync-config.yaml`, stream `invitations`
   (`auto_subscribe: false`) filtre par
@@ -2012,14 +2012,20 @@ la configuration Gradle de `:capacitor-storage` / `capacitor-cordova-android-plu
   cibles de son organisation (divulgation). L'**exploit** d'escalade reste
   fermé par R91 (le claim au nom d'un profil ACTIF est refusé en 42501 même
   via le stream), donc R92 est une divulgation, pas une escalade.
-- **Correctif proposé** (non appliqué : nécessite `PS_ADMIN_TOKEN` absent de
-  l'environnement et un redéploiement Cloud) : restreindre le stream aux
-  invitations émises par l'appareil ou par un gestionnaire, p.ex.
-  `WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id()
-     AND role IN ('PASTEUR_PRINCIPAL','ANCIEN','TREASURIER'))`
-  et/ou ne synchroniser que les invitations effectivement remises hors-bande
-  (le destinataire détient le JSON). Voir PROPOSITIONS.md.
-- **Statut** : NON CORRIGÉ (documenté). Le correctif RLS R91 ferme l'exploit.
+- **Correctif APPLIQUÉ (2026-10-26)** : `powersync/sync-config.yaml` — les
+  streams `invitations` et `invitation_claims` sont désormais restreints aux
+  **gestionnaires** d'invitations (`org_memberships.role` ACTIVE ∈
+  {PASTEUR_PRINCIPAL, ANCIEN, TREASURIER}, ou `profiles.role` idem) — mêmes
+  rôles que la RLS R91 et que `can_manage_invitations()`. Le propriétaire peut
+  lire ses invitations ; le simple membre ne synchronise plus aucun code.
+- **Preuve** : test anti-régression `sync-config-invitations.test.ts` (3 cas)
+  qui lit le YAML et exige le filtre gestionnaire. Toute régression vers le
+  filtre « org de l'appelant » échoue en CI.
+- **Limite (E1)** : le redéploiement effectif du sync-config exige
+  `PS_ADMIN_TOKEN` (absent) ; le correctif est **dans le dépôt** et prend effet
+  au prochain `powersync deploy sync-config`. Tant que le flux hors-ligne
+  n'est pas déployé, l'impact reste théorique (aucun client ne synchronise).
+- **Statut** : corrigé (dépôt) ; déploiement conditionné à E1.
 
 ### R94 — Anti-pause Supabase : prémisse fausse dans `keep-alive.sql` — CORRIGÉ
 - **Gravité** : HAUTE (pour un fonctionnement 4 mois sans intervention).
@@ -2224,3 +2230,19 @@ sauvegarde disponible).
   sauvegarde manuelle produite aujourd'hui **périme** (elle est figée au
   2026-10-24) et vit dans un environnement de test voué à disparaître : le
   propriétaire **doit la récupérer** et activer le workflow.
+
+### R100 — Code d'invitation généré par `Math.random()` (non cryptographique) — CORRIGÉ
+- **Gravité** : MOYENNE (jeton porteur devinable).
+- **Défaut** : `generateCode()` (`src/capabilities/invitation/index.ts`) tirait
+  les 6 caractères du code d'invitation via `Math.random()`, un générateur
+  **non cryptographique** à flux prévisible. Le code est un **jeton porteur**
+  (QR/lien remis hors-bande) qui ouvre l'accès à une organisation (rôle +
+  grants) : sa valeur ne doit pas être devinable.
+- **Preuve** : en figeant `Math.random`, deux appels successifs produisent le
+  **même** code (`LUM-PPPPPP`) — le code est entièrement déterminé par le flux
+  `Math.random`. Test `invitation-code-entropy.test.ts` (rouge avant correctif).
+- **Correctif** : tirage via `crypto.getRandomValues` (CSPRNG WebCrypto), avec
+  repli `Math.random()` **uniquement** si WebCrypto est absent (l'entropie
+  reste alors non déterministe). Format `LUM-XXXXXX` et alphabet sans ambiguïté
+  conservés.
+- **Statut** : corrigé et vérifié (test rouge → vert, 3 cas).

@@ -121,12 +121,27 @@ export interface ClaimPayload {
 /**
  * Generate a human-readable invitation code (6 chars, alphanumeric, no ambiguities).
  * Format: "LUM-XXXXXX" where X is alphanumeric.
+ *
+ * Le code est un JETON PORTEUR : il ouvre l'accès à une organisation (rôle +
+ * grants). Il est donc tiré d'un générateur CRYPTOGRAPHIQUE
+ * (`crypto.getRandomValues`), jamais de `Math.random()` (flux prévisible →
+ * code devinable). Repli `Math.random()` uniquement si WebCrypto est absent
+ * (environnements non navigateur) ; l'entropie reste alors non déterministe.
  */
 export function generateCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no ambiguous chars
+  const bytes = new Uint8Array(6);
+  const cryptoObj = globalThis.crypto;
+  if (cryptoObj?.getRandomValues) {
+    cryptoObj.getRandomValues(bytes);
+  } else {
+    for (let i = 0; i < bytes.length; i++) {
+      bytes[i] = Math.floor(Math.random() * 256);
+    }
+  }
   let code = "";
   for (let i = 0; i < 6; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
+    code += chars.charAt(bytes[i] % chars.length);
   }
   return `LUM-${code}`;
 }
