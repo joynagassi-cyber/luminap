@@ -64,6 +64,30 @@ export function buildContext(
 let installed = false;
 
 /**
+ * In-memory ring buffer of the most recent client errors, for the health page
+ * (Phase 11). Never persisted and never leaves the device — it exists so the
+ * user (and support) can see "the last errors" without a Sentry account.
+ */
+const RECENT_ERRORS_LIMIT = 20;
+const recentErrors: ClientErrorContext[] = [];
+
+export function getRecentErrors(): readonly ClientErrorContext[] {
+  return recentErrors;
+}
+
+function pushRecentError(ctx: ClientErrorContext): void {
+  recentErrors.unshift(ctx);
+  if (recentErrors.length > RECENT_ERRORS_LIMIT) {
+    recentErrors.length = RECENT_ERRORS_LIMIT;
+  }
+}
+
+/** Test helper — clears the in-memory ring buffer. */
+export function clearRecentErrors(): void {
+  recentErrors.length = 0;
+}
+
+/**
  * Install the global handlers exactly once. Idempotent (safe to call from
  * multiple entry points). Returns an uninstall function for tests.
  */
@@ -74,6 +98,7 @@ export function installClientErrorCapture(): () => void {
 
   const onError = (event: ErrorEvent) => {
     const ctx = buildContext("onerror", event.error ?? event.message);
+    pushRecentError(ctx);
     console.error("[client-error]", ctx);
     Sentry.captureException(event.error ?? new Error(ctx.message), {
       tags: { source: "onerror", route: ctx.route, platform: ctx.platform },
@@ -82,6 +107,7 @@ export function installClientErrorCapture(): () => void {
 
   const onRejection = (event: PromiseRejectionEvent) => {
     const ctx = buildContext("unhandledrejection", event.reason);
+    pushRecentError(ctx);
     console.error("[client-error]", ctx);
     Sentry.captureException(event.reason ?? new Error(ctx.message), {
       tags: {

@@ -8,6 +8,7 @@ import {
   Settings as SettingsIcon,
   Info,
   ChevronRight,
+  Activity,
   type LucideIcon,
 } from "lucide-react";
 import { IonPage, IonContent } from "@ionic/react";
@@ -94,6 +95,13 @@ const GROUPS: SettingsGroup[] = [
         description: "Version, données et informations",
         icon: Info,
         to: "/settings/about",
+      },
+      {
+        id: "health",
+        label: "État du système",
+        description: "Diagnostic : version, synchronisation, erreurs récentes",
+        icon: Activity,
+        to: "/settings/health",
       },
     ],
   },

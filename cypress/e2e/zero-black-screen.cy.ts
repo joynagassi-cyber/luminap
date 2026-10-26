@@ -81,6 +81,7 @@ const ROUTES: string[] = [
   "/settings/notifications",
   "/settings/gestion",
   "/settings/about",
+  "/settings/health",
 ];
 
 /** États autorisés par le contrat §5.1 (ensemble fini). */

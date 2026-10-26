@@ -22,6 +22,7 @@ const SettingsFeatures = lazy(() => import("@/pages/SettingsFeatures"));
 const SettingsNotifications = lazy(() => import("@/pages/SettingsNotifications"));
 const SettingsGestion = lazy(() => import("@/pages/SettingsGestion"));
 const SettingsAbout = lazy(() => import("@/pages/SettingsAbout"));
+const Health = lazy(() => import("@/pages/Health"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
 export const systemRoutes: ReactElement[] = [
@@ -79,6 +80,11 @@ export const systemRoutes: ReactElement[] = [
     key="/settings/about"
     path="/settings/about"
     element={<LazyRoute component={SettingsAbout} />}
+  />,
+  <Route
+    key="/settings/health"
+    path="/settings/health"
+    element={<LazyRoute component={Health} />}
   />,
   <Route
     key="*"
