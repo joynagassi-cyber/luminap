@@ -20,6 +20,7 @@ import type { AccessScope, Grant } from "@/types/federation";
 // n'est JAMAIS modifiée par ce design). Importée depuis @/lib/rbac.ts,
 // JAMAIS depuis la capability de façade sécurité (garde-fou §2.4 du plan).
 import { PERMISSION_MATRIX } from "@/lib/rbac";
+import { assertReparentAllowed } from "@/lib/orgTree";
 
 export interface FederationOrg {
   id: string;
@@ -213,9 +214,26 @@ class FederationService {
 
   /**
    * Set a new parent for an organization (re-parent in the federation tree).
+   *
+   * Anti-cycle (Phase 3) : refuse tout rattachement qui ferait de `orgId`
+   * l'ancêtre de son propre parent (self, enfant, descendant). Sans cette
+   * garde, `org_family` / `org_descendants` (CTE récursifs) boucleraient à
+   * l'infini. La base applique le même invariant via `org_would_cycle`.
    */
   async setParentOrg(orgId: string, newParentId: string | null, actorId: string): Promise<void> {
     const db = getPowerSyncDatabase();
+
+    const rowsRes = await db.execute(
+      `SELECT id, parent_org_id FROM organizations`,
+    );
+    const parentOf = new Map<string, string | null>(
+      (rowsRes?.array ?? []).map((r: any) => [
+        String(r.id),
+        r.parent_org_id ? String(r.parent_org_id) : null,
+      ]),
+    );
+    assertReparentAllowed(orgId, newParentId, parentOf);
+
     await db.execute(
       `UPDATE organizations SET parent_org_id = ? WHERE id = ?`,
       [newParentId, orgId],
