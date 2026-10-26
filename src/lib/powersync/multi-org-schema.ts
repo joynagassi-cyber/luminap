@@ -43,6 +43,9 @@ const grants = new Table(
     granted_by: column.text,
     granted_at: column.text,
     revoked_at: column.text,
+    // Phase 4 — deny prioritaire + expiration (migration 20261026000002).
+    effect: column.text,
+    expires_at: column.text,
   },
   {
     indexes: {
