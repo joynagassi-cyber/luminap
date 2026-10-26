@@ -6,6 +6,7 @@
  */
 
 import { getOrganizationId } from "./orgContext";
+import { DEFAULT_CATEGORY_ID } from "./canonicalCategories";
 import { generateId } from "./utils";
 import { executeWrite } from "./dataLayer";
 import type { Transaction } from "@/types";
@@ -74,7 +75,7 @@ export async function createVersement(
     createdById: sessionId,
     approvedById: sessionId,
     approvedAt: now,
-    categoryId: "cat-dime",
+    categoryId: DEFAULT_CATEGORY_ID,
     orgUnitId: null,
     eventId: null,
     source: "CAISSE",
@@ -100,7 +101,7 @@ export async function createVersement(
     createdById: sessionId,
     approvedById: sessionId,
     approvedAt: now,
-    categoryId: "cat-dime",
+    categoryId: DEFAULT_CATEGORY_ID,
     orgUnitId: null,
     eventId: null,
     source: "CAISSE",

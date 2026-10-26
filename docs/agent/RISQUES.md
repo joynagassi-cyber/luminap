@@ -1808,8 +1808,11 @@ afficher un état d'erreur explicite dans l'UI.
 
 ### R89 — CRITIQUE — La synchronisation Lumina est rompue dans les DEUX SENS (prouvé par log)
 
-**Statut** : **diagnostiqué avec preuve**. Sous-point **89.c CORRIGÉ** (le faux
-succès ne ment plus, avec test dans les deux sens) ; **89.a et 89.b NON corrigés**
+**Statut** : **diagnostiqué avec preuve**. Sous-points **89.a CORRIGÉ**
+(2026-10-26, PR Phase 9 — identifiants de catégories canoniques : seed serveur
+idempotent + source unique + garde anti-dérive ; preuve `INSERT tx (cat-dime)`
+→ FK résolue) et **89.c CORRIGÉ** (le faux
+succès ne ment plus, avec test dans les deux sens) ; **89.b NON corrigé**
 (le correctif exige une
 action sur les données serveur et sur le service PowerSync Cloud, hors de portée
 d'une session de code seule). **Impact : les données financières ne quittent
@@ -1833,7 +1836,18 @@ INFO  [PS-FLUSH] done: passes=1 opsTotal=1 fatalSkipped=0            ← compteu
 Constat serveur, après le flush qui se déclare « OK » :
 `select count(*) from transactions` → **0**.
 
-#### 89.a — Montée (upload) : violation de clé étrangère `category_id`
+#### 89.a — Montée (upload) : violation de clé étrangère `category_id` — ✅ CORRIGÉ le 2026-10-26
+
+**Correctif livré** (branche `agent/phase-09-sync-categories`) : source unique
+`src/lib/canonicalCategories.ts`, seed serveur idempotent
+`20261026000006_seed_canonical_categories.sql` (+ rollback garde-fou), pack
+`churchSeedData()` aligné, call sites (`versement`/`cotisation`/`EventDetail`/
+`EventBudgetAdapter`/`EventNew`) sans littéraux, garde anti-dérive
+`canonical-categories-drift.test.ts` (4 tests). Preuve : `INSERT tx
+(category_id='cat-dime')` → FK résolue (`fk_ok=1`). Détail :
+`docs/agent/receipts/phase-09/2026-10-26-r89a-canonical-categories.md`.
+
+**Défaut d'origine** :
 
 - L'op PUT envoyée contient `category_id = "cat-dime"` (vérifié : op locale
   complète lue dans SQLite).

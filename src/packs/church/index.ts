@@ -18,6 +18,7 @@
  */
 
 import { getOrganizationId } from "@/lib/orgContext";
+import { CANONICAL_CATEGORIES } from "@/lib/canonicalCategories";
 import type { Role } from "@/types";
 import type { Category, Caisse, OrgUnit, User } from "@/types";
 
@@ -49,17 +50,13 @@ export function churchSeedData(): ChurchSeedData {
     },
   };
 
-  const categories: Category[] = [
-    { id: "cat-dime", key: "dime", labelFr: "Dime", type: "INCOME", orgId },
-    { id: "cat-offrande", key: "offrande", labelFr: "Offrande", type: "INCOME", orgId },
-    { id: "cat-offrande-mission", key: "offrande_mission", labelFr: "Offrande Mission", type: "INCOME", orgId },
-    { id: "cat-don", key: "don", labelFr: "Don", type: "INCOME", orgId },
-    { id: "cat-salaire-pasteur", key: "salaire_pasteur", labelFr: "Salaire Pasteur", type: "EXPENSE", orgId },
-    { id: "cat-frais-fonc", key: "frais_fonctionnement", labelFr: "Frais de Fonctionnement", type: "EXPENSE", orgId },
-    { id: "cat-mission", key: "mission", labelFr: "Mission", type: "EXPENSE", orgId },
-    { id: "cat-entretien", key: "entretien", labelFr: "Entretien", type: "EXPENSE", orgId },
-    { id: "cat-aumone", key: "aumone", labelFr: "Aumone", type: "EXPENSE", orgId },
-  ];
+  // Identifiants issus de la source unique (R89.a) : les mêmes valeurs sont
+  // seedées côté serveur par 20261026000006_seed_canonical_categories.sql, ce
+  // qui garantit que la clé étrangère transactions.category_id résout.
+  const categories: Category[] = CANONICAL_CATEGORIES.map((c) => ({
+    ...c,
+    orgId,
+  }));
 
   const now = new Date().toISOString();
   const caisses: Caisse[] = [

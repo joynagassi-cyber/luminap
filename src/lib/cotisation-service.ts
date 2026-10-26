@@ -13,6 +13,7 @@
 import { generateId } from "./utils";
 import { formatDate, formatCentsToFCFA } from "./utils";
 import { getOrganizationId } from "./orgContext";
+import { DEFAULT_CATEGORY_ID } from "./canonicalCategories";
 import { executeWrite, updateCotisationPS, updateMemberPS } from "./dataLayer";
 import {
   determinerStatutAvance,
@@ -208,7 +209,7 @@ export function markCotisationPaid(
       description: `Cotisation ${membre.firstName} ${membre.lastName} -- Culte du ${formatDate(culte.startDate)}`,
       date: datePaiement.split("T")[0],
       status: "APPROVED",
-      categoryId: "cat-dime",
+      categoryId: DEFAULT_CATEGORY_ID,
       orgUnitId: null,
       eventId: cot.culteId,
       source: "COTISATION" as const,
