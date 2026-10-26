@@ -374,3 +374,29 @@
   sauvegardes.
 - **Alternative écartée** : purge immédiate (risque de destruction
   irréversible de données potentiellement réelles).
+
+## Phase 0 (boucle autonome) — D-P0-1 à D-P0-3 (2026-10-26)
+
+### D-P0-1 — Magasin d'état unique sous `docs/agent/`
+- **Contexte** : le contrat exige `docs/agent/` (PROGRESS, ESCALATIONS, …) ; les
+  sessions précédentes ont produit `docs/agent-session/`. Deux dossiers =
+  violation de R7 (source de vérité unique).
+- **Décision** : `git mv docs/agent-session docs/agent` ; les artefacts du
+  contrat vivent dans le même dossier. Références internes mises à jour.
+- **Alternative écartée** : index de compatibilité (deux dossiers à maintenir).
+- **Réversibilité** : `git mv` inverse.
+
+### D-P0-2 — Gates bloquants = gates déterministes mesurables localement
+- **Décision** : `tsc -b`, lint, vitest, build sont **bloquants** ; Cypress n'est
+  pas un gate bloquant local (environnement E2E indisponible, R98).
+- **Raison** : R12 (honnêteté) — ne pas déclarer vert ce qu'on ne peut pas
+  prouver ; ne pas bloquer sur un gate non mesurable.
+- **Conséquence** : ESCALATIONS E2 ; specs Cypress indépendantes de PowerSync =
+  signal E2E de repli.
+
+### D-P0-3 — Gates inatteignables → escalades avec repli sûr
+- **Décision** : déploiement PowerSync (E1), Cypress vert (E2), sauvegardes
+  automatiques (E3) = entrées `ESCALATIONS.md`, jamais des « verts » déclarés à
+  tort, jamais bloquants pour les autres tâches.
+- **Repli appliqué** : cf. ESCALATIONS.md (fichiers corrigés et versionnés,
+  runbook opérateur, principe conservateur sur les migrations destructives).

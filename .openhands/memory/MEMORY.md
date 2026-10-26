@@ -57,3 +57,24 @@
 - Docs de session dans `docs/agent-session/` (FEATURES, DOMAINE, JOURNAL,
   DECISIONS, RISQUES, PROPOSITIONS, RUNBOOK, RAPPORT_FINAL).
 - Branche dédiée + PR, **jamais** de push forcé ni de réécriture d'historique.
+
+## Boucle « lumina-autonomous-hardening » (contrat 18 phases)
+- **Magasin d'état = `docs/agent/`** (ex-`docs/agent-session`, `git mv` fait le
+  2026-10-26). Contient PROGRESS, ESCALATIONS, PREMORTEM, COVERAGE_MATRIX,
+  PROPOSALS, `00-RECONCILIATION.md`, `deeplinks.matrix.json`,
+  `permissions.matrix.json`, `receipts/`.
+- **Contrat complet** = 1er message user de la conversation
+  `6fe837fd3ccd441d81585a5f28d2847b` ; plan dérivé = `.agents_tmp/PLAN.md`
+  (NON versionné — ne pas committer).
+- **Réconciliation** : phases 3→9 déjà partiellement traitées par les sessions
+  antérieures ; **seule la Phase 2 (routage/écrans noirs/deep links) manquait**.
+- **Phase 2 livrée** : `src/lib/routeResolver.ts` = résolveur unique
+  `resolveRoute(url, état)` → ensemble fini ; registre de 63 routes en données ;
+  `isAllowedReturnTo` (anti redirection ouverte) ; `parseDeepLink` (web +
+  `lumina://`). Écrans d'état dans `src/components/RouteStates.tsx`
+  (`data-screen-state`). `src/lib/clientErrors.ts` (capture onerror/
+  unhandledrejection, redaction PII, rechargement contrôlé chunk).
+- **Gates fiables** : `npx tsc -b --noEmit`, `pnpm run lint`, `pnpm exec vitest run`,
+  `pnpm run build`, + workflow **`CI Pipeline`**. `Android Debug Build` échoue
+  toujours (R90, pré-existant) ; Cypress sur `main` rouge déterministe (R98/E2).
+- **PRs** : #21 (état/réconciliation), #22 (routage Phase 2, empilée).

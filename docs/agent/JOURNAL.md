@@ -700,7 +700,7 @@ alors que l'app fonctionnait.
   ouvert (gravité HAUTE)** avec preuves et pistes, aucune modification de
   code conservée (changement minimal), suite du programme reprise
   (conforme au garde-fou « blocage > 30 min »).
-- État git vérifié propre : seuls les fichiers `docs/agent-session/*` sont
+- État git vérifié propre : seuls les fichiers `docs/agent/*` sont
   modifiés ; aucun fichier source parasite ; artefact
   `cypress/downloads/lumina_export_2026-10-23.pdf` restauré.
 - **T2 (sauvegardes) clos** : `/workspace/backups/` contient
@@ -783,7 +783,7 @@ qu'improvise.
 ### Fusion `origin/main` — 5 conflits documentaires resolus
 
 Fichiers : `.openhands/memory/2026-10-23.md`,
-`docs/agent-session/{JOURNAL,PROPOSITIONS,RAPPORT_FINAL,RISQUES}.md`.
+`docs/agent/{JOURNAL,PROPOSITIONS,RAPPORT_FINAL,RISQUES}.md`.
 
 Resolution : version de la branche conservee. **Justification verifiee, pas
 supposee** : pour chacun des 5 fichiers, les lignes ajoutees par
@@ -1160,7 +1160,7 @@ stream + redéploiement. Conclusion consignée, décision D-S6-1 confirmée.
 - **Isolation inter-organisations** : vérifiée en base avec le rôle réel
   (5 organisations sur 9 exposées, toutes dans le périmètre RLS) + spec
   `cross-tenant` vert. Aucune fuite.
-- **Fichiers de suivi** : `docs/agent-session/` (FEATURES, DOMAINE, JOURNAL,
+- **Fichiers de suivi** : `docs/agent/` (FEATURES, DOMAINE, JOURNAL,
   DECISIONS, RISQUES, PROPOSITIONS, RUNBOOK, RAPPORT_FINAL).
 - **Résidu assumé** : `cypress/e2e/zz-debug.cy.ts` (spec de débogage, vert) est
   laissé en place pour ne pas modifier la base de référence de 28 specs

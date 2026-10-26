@@ -1,0 +1,142 @@
+{
+  "version": 1,
+  "generated": "2026-10-26",
+  "purpose": "Matrice deep link (contrat §2.3) — le resultat attendu est ecrit AVANT le test.",
+  "dimensions": {
+    "auth": [
+      "non-connecte",
+      "connecte"
+    ],
+    "membership": [
+      "membre",
+      "non-membre"
+    ],
+    "role": [
+      "suffisant",
+      "insuffisant"
+    ],
+    "org": [
+      "existante",
+      "inexistante",
+      "archivee"
+    ],
+    "entity": [
+      "existante",
+      "supprimee",
+      "autre-org"
+    ],
+    "network": [
+      "en-ligne",
+      "hors-ligne"
+    ],
+    "start": [
+      "froid",
+      "chaud"
+    ],
+    "platform": [
+      "web",
+      "capacitor"
+    ]
+  },
+  "expected_outcomes": [
+    "render",
+    "redirect(returnTo)",
+    "needs-auth",
+    "needs-membership",
+    "forbidden",
+    "not-found",
+    "org-switch-required",
+    "update-required",
+    "loading->error"
+  ],
+  "routes_total": 63,
+  "routes_public": [
+    "/auth",
+    "/auth/callback",
+    "/sessions",
+    "/splash"
+  ],
+  "routes_parametrized": [
+    "/admin/organizations/:id",
+    "/admin/reports/:id",
+    "/budgets/:id",
+    "/culte/:id",
+    "/event/:id",
+    "/event/:id/edit",
+    "/form/fill/:id",
+    "/forms/:id/submissions",
+    "/giving/campaigns/:id",
+    "/groups/:id",
+    "/groups/:id/cotisation",
+    "/groups/:id/transaction/new",
+    "/membre/:id",
+    "/saisie-rapide/:id",
+    "/transaction/:id",
+    "/transaction/:id/edit"
+  ],
+  "routes": [
+    "*",
+    "/admin",
+    "/admin/federation",
+    "/admin/federation/tree",
+    "/admin/organizations/:id",
+    "/admin/report-send",
+    "/admin/reports",
+    "/admin/reports/:id",
+    "/admin/units",
+    "/archives",
+    "/auth",
+    "/auth/callback",
+    "/balance",
+    "/budgets",
+    "/budgets/:id",
+    "/cotisations",
+    "/culte/:id",
+    "/custom-fields",
+    "/dashboard",
+    "/event/:id",
+    "/event/:id/edit",
+    "/event/new",
+    "/events",
+    "/finance",
+    "/form/fill/:id",
+    "/forms",
+    "/forms/:id/submissions",
+    "/giving",
+    "/giving/campaigns/:id",
+    "/groups",
+    "/groups/:id",
+    "/groups/:id/cotisation",
+    "/groups/:id/transaction/new",
+    "/help",
+    "/history",
+    "/invitation/claim",
+    "/invitation/emit",
+    "/invitation/manage",
+    "/members",
+    "/membre/:id",
+    "/membres-en-avance",
+    "/notifications",
+    "/onboarding",
+    "/org-setup",
+    "/report-builder",
+    "/reports",
+    "/saisie-rapide/:id",
+    "/sessions",
+    "/settings",
+    "/settings/about",
+    "/settings/features",
+    "/settings/gestion",
+    "/settings/notifications",
+    "/settings/personnalisation",
+    "/settings/profil",
+    "/settings/theme",
+    "/splash",
+    "/trace",
+    "/transaction/:id",
+    "/transaction/:id/edit",
+    "/transaction/new",
+    "/tutoriel",
+    "/versement"
+  ]
+}
