@@ -31,7 +31,8 @@
 | 2 | Capture `onerror`/`unhandledrejection` (PII redactée) | P1 | **terminé** | `agent/phase-02-routing` | `phase-02/2026-10-26-routing.md` |
 | 2 | Matrice deep link (`deeplinks.matrix.json`) | P0 | **terminé** | `agent/phase-00-etat` | `phase-00/2026-10-26-etat.md` |
 | 2 | `data-screen-state` (catalogue §5.1) + crawler | P0 | **en cours** | `agent/phase-02-routing` | — |
-| 3 | Multi-organisation : arbre illimité, anti-cycle, table de fermeture | P1 | à faire | `agent/phase-03-multi-org` | — |
+| 3 | Multi-organisation : anti-cycle + clôture transitive (profondeur/largeur non plafonnées) | P1 | **terminé** | `agent/phase-03-multi-org` | `phase-03/2026-10-26-multi-org.md` |
+| 3 | Multi-organisation : table de fermeture matérialisée (perf) | P2 | proposition | — | (cf. PROPOSALS P3-1) |
 | 4 | RBAC fin : décision unique DB↔TS, portées, deny, matrice | P1 | à faire | `agent/phase-04-rbac` | — |
 | 5-6 | Auth, création d'org, onboarding, invitations | P1 | à faire | `agent/phase-05-06-auth-invitations` | — |
 | 7 | Finance : modèle unique, contrepassation, rapports | P1 | à faire | `agent/phase-07-finance` | — |

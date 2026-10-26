@@ -400,3 +400,29 @@
   tort, jamais bloquants pour les autres tâches.
 - **Repli appliqué** : cf. ESCALATIONS.md (fichiers corrigés et versionnés,
   runbook opérateur, principe conservateur sur les migrations destructives).
+
+### D-P3-1 — Anti-cycle de fédération en défense en profondeur (TS + DB)
+- **Décision** : la garde anti-cycle est appliquée à **deux** niveaux — miroir TS
+  pur (`src/lib/orgTree.ts`, appelé par `federation.setParentOrg`) **et** trigger
+  `BEFORE INSERT OR UPDATE OF parent_org_id` en base (`org_would_cycle`).
+- **Raison** : la même règle doit tenir que l'écriture passe par le client,
+  par SQL direct ou par la sync PowerSync. Une garde TS seule est contournable ;
+  une garde DB seule ne donne pas de message clair côté UI. Les deux partagent
+  le **même** algorithme (remontée des parents, bornée).
+- **Alternative écartée** : contrainte `CHECK` (impossible : dépend d'autres
+  lignes) ; vue matérialisée de clôture (lourde, cf. PR17).
+- **Réversibilité** : `rollback/20261026000001_rollback.sql` (drop trigger +
+  fonctions) ; côté TS, retrait du seul appel `assertReparentAllowed`.
+- **Réduction de surface** : `REVOKE ALL … FROM PUBLIC, anon, authenticated` sur
+  les 2 fonctions (usage interne au trigger uniquement).
+
+### D-P3-2 — Pas de table de fermeture matérialisée (pour l'instant)
+- **Décision** : conserver la vue récursive `org_family` + `org_descendants`
+  existantes ; ne **pas** introduire de table `ancestor/descendant/depth`
+  matérialisée maintenant.
+- **Raison** : aucun besoin de perf mesuré (aucune latence observée sur la base
+  de dev) ; une table matérialisée ajoute une migration lourde, une maintenance
+  de cohérence et un risque de désynchronisation (sync PowerSync). Principe
+  « minimal, réversible ». La clôture transitive est fournie **en TS** par
+  `buildClosure` (testée, profondeur ≥ 25, largeur ≥ 150).
+- **Alternative** : PR17 (proposition) si un besoin de perf est mesuré plus tard.

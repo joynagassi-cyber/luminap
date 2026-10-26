@@ -21,6 +21,7 @@
 | PR5 | Bouton « Signaler un problème » (contexte sans PII) | support | faible | faible | Sentry + `client_errors` | P2 |
 | PR6 | Écran « mise à jour requise » (versionnage de schéma) | compat APK | faible | faible | schéma de sync | P1 |
 | PR7 | Drapeaux de fonctionnalités (kill switches) | désactivation sûre | faible | faible | config | P1 |
+| PR17 | Table de fermeture matérialisée (ancestor/descendant/depth) pour la fédération | perf des requêtes de famille à grande échelle | faible | moyen | `org_family` (existe) | P2 |
 
 ## Produit — propositions (non implémentées pendant l'absence)
 

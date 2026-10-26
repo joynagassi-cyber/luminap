@@ -31,7 +31,8 @@
 | 2 | `ChunkLoadError` rechargement | `installChunkErrorRecovery` | partiel (C chaos à venir) |
 | 2 | Deep links (web + `appUrlOpen`) | `V: parseDeepLink` (7) | **couvert** (parsing) |
 | 2 | `client_errors` capture + redaction PII | `V: client-errors.test.ts` (8) | **couvert** |
-| 3 | Arbre multi-org illimité | `V` partiel | partiel |
+| 3 | Arbre multi-org : anti-cycle + clôture transitive | `V: org-tree.test.ts` (11) + preuves SQL | **couvert** |
+| 3 | Table de fermeture matérialisée (perf) | — | proposition |
 | 4 | RBAC décision unique DB↔TS | `V` partiel | partiel |
 | 5 | Auth parcours complets | `C: auth-real.cy.ts`, `sessions.cy.ts` | partiel |
 | 6 | Invitations (code/QR/lien) | `C: invitations.cy.ts`, `V: invitation-rls-hardening` | partiel |
