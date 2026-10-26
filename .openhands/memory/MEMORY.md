@@ -94,3 +94,16 @@
   `pnpm run build`, + workflow **`CI Pipeline`**. `Android Debug Build` échoue
   toujours (R90, pré-existant) ; Cypress sur `main` rouge déterministe (R98/E2).
 - **PRs** : #21 (état/réconciliation), #22 (routage Phase 2, empilée).
+
+## Sécurité base (constats vérifiés)
+- **Aucune fonction `RETURNS trigger` ni `settle_invitation_claim` ne doit être
+  `EXECUTE`-able par `anon`/`authenticated`** : elles sont `SECURITY DEFINER` et
+  à effet de bord (R103). Si un wrapper `SECURITY INVOKER` les appelle, le
+  repasser en `SECURITY DEFINER` après le revoke.
+- Les advisors `*_security_definer_function_executable` sur les helpers RLS
+  (`is_org_member`, `has_permission`, `can_manage_invitations`, …) sont
+  **attendus** : ils prennent l'uid en paramètre et sont appelés dans les
+  policies — ne pas les révoquer.
+- Tout export CSV doit passer par `src/lib/csv.ts` (injection de formule OWASP).
+- `auth_leaked_password_protection` exige un plan **Pro** (non activable via API
+  sur le plan courant) → R104.
