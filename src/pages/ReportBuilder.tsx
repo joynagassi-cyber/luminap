@@ -29,6 +29,7 @@ import { useCaisses, useCategories, useCurrentUser } from "@/lib/dataLayer";
 import { security } from "@/capabilities/security";
 import { formatCentsToFCFA, formatCentsFull, generateId } from "@/lib/utils";
 import { getOrganizationId } from "@/lib/orgContext";
+import { escapeCsvRow } from "@/lib/csv";
 import { downloadBlob } from "@/lib/download";
 import type { ReportDefinition, ReportResult } from "@/types";
 import type { IonChangeCustomEvent } from "@/lib/ionic-types";
@@ -411,7 +412,13 @@ export default function ReportBuilder() {
     const cols = previewResult.columns;
     const header = [cols[0], ...cols.slice(1)].join(";");
     const body = previewResult.rows.map((r) =>
-      cols.map((c) => (c === cols[0] ? decodeKey(r[c], draft.groupBy || [], caisses || [], categories || []) : String(r[c] ?? ""))).join(";"),
+      escapeCsvRow(
+        cols.map((c) =>
+          c === cols[0]
+            ? decodeKey(r[c], draft.groupBy || [], caisses || [], categories || [])
+            : r[c] ?? "",
+        ),
+      ),
     );
     const csv = "\uFEFF" + [header, ...body].join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });

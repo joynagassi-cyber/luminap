@@ -2288,3 +2288,38 @@ sauvegarde disponible).
   (`reversal_of_id`) reste le mécanisme sanctionné pour une pièce approuvée.
 - **Statut** : corrigé, appliqué à la base dev, vérifié (DRAFT supprimable,
   APPROVED refusé en P0001).
+
+### R103 — Escalade de privilèges via `settle_invitation_claim` en RPC — CORRIGÉ
+- **Gravité** : CRITIQUE (élévation de privilèges).
+- **Défaut** : `public.settle_invitation_claim(uuid)` est `SECURITY DEFINER` et
+  était `EXECUTE`-able par `authenticated` via
+  `POST /rest/v1/rpc/settle_invitation_claim`. La fonction agit sur
+  `resulting_user_id` (un tiers) sans vérifier l'appelant : **n'importe quel
+  utilisateur authentifié** pouvait forcer l'application d'une invitation et
+  élever un tiers (profil ACTIVE + rôle/org réécrits + `org_memberships` +
+  `grants` insérés).
+- **Preuve** (instance dev, transaction annulée) : un appelant (trésorier) a
+  fait passer un profil `PENDING`/`MEMBRE` à **`ADMIN`/`ACTIVE`**
+  (`claim_status = CONFIRMED`), sans lien avec l'invitation.
+- **Correctif** : `20261026000005_revoke_rpc_on_trigger_functions.sql` —
+  1. garde `pg_trigger_depth() = 0` (refus de tout appel direct) ;
+  2. `REVOKE EXECUTE` sur `settle_invitation_claim` et toutes les fonctions de
+     trigger (`RETURNS trigger`) pour PUBLIC/anon/authenticated ;
+  3. wrappers de trigger re-basculés en `SECURITY DEFINER` (nécessaire pour
+     invoquer la fonction après le revoke).
+- **Vérifié** : appel RPC direct → `42501 permission denied` ; flux légitime
+  (claim inséré par un gestionnaire) → `CONFIRMED` + profil `ACTIVE`/`MEMBRE`.
+  Advisors : `anon_security_definer_function_executable` 1→0,
+  `authenticated_…` 9→7.
+- **Statut** : corrigé, appliqué à la base dev, vérifié.
+
+### R104 — Protection des mots de passe compromis désactivée — ESCALADE (plan)
+- **Gravité** : MOYENNE.
+- **Défaut** : `auth_leaked_password_protection` (advisor WARN) — Supabase Auth
+  ne vérifie pas les mots de passe contre HaveIBeenPwned.
+- **Blocage** : l'activation via l'API Management renvoie
+  « available on Pro Plans and up » (HTTP, vérifié). Non activable sur ce plan.
+- **Action propriétaire** : activer le plan Pro puis
+  Auth → Password settings → « Leaked password protection », ou accepter le
+  risque documenté.
+- **Statut** : ouvert, escalade (non bloquant pour le code).

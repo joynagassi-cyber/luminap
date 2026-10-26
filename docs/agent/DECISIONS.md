@@ -501,3 +501,25 @@
 - **Leçon** : un schéma de test vide masque les triggers d'écriture ; la CI
   n'exécute aucune transaction réelle. Les gardes d'intégrité de migration
   (`migration-notify-transaction.test.ts`) verrouillent la structure.
+
+### D-P8-1 — Aucune fonction de trigger ni de règlement n'est exposée en RPC
+- **Décision** : `REVOKE EXECUTE` sur toute fonction `RETURNS trigger` et sur
+  `settle_invitation_claim` (PUBLIC/anon/authenticated) ; garde
+  `pg_trigger_depth() = 0` en défense en profondeur.
+- **Raison** : R103 — une fonction `SECURITY DEFINER` exposée en RPC agissant
+  sur un tiers permet une escalade de privilèges. Les triggers doivent rester
+  `SECURITY DEFINER` pour continuer à invoquer la fonction après le revoke
+  (l'invocation système ne requiert pas `EXECUTE`).
+- **Compromis assumé** : les advisors `authenticated_security_definer_function_executable`
+  restent pour les helpers RLS (`is_org_member`, `has_permission`, …) : ils sont
+  conçus pour être appelés dans les policies et prennent l'uid en paramètre ;
+  leur retrait casserait les policies. Seules les fonctions à effet de bord sont
+  fermées.
+
+### D-P8-2 — Échappement CSV obligatoire (injection de formule)
+- **Décision** : tout export CSV passe par `escapeCsvCell`/`escapeCsvRow`
+  (`src/lib/csv.ts`) : neutralisation des préfixes `= + - @ \t \r \n` + citation
+  RFC 4180.
+- **Raison** : Phase 8 « entrées hostiles » — un champ utilisateur commençant
+  par `=` est exécuté comme formule par Excel/Sheets à l'ouverture. Les trois
+  exports (transactions, soumissions de formulaire, rapports) sont couverts.
