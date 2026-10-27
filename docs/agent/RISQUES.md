@@ -2481,10 +2481,10 @@ sauvegarde disponible).
   et sans permissions tant que R109 n'est pas tranché.
 - **Statut** : ouvert, documenté, gardé (à trancher — voir DECISIONS.md).
 
-### R111 — Le parcours « réclamer une invitation » ne peut PAS aboutir (FK `auth.users`) — OUVERT (CRITIQUE)
-- **Gravité** : CRITIQUE (le parcours d'adhésion d'un membre est inopérant).
+### R111 — Le parcours « réclamer une invitation » ne pouvait PAS aboutir (FK `auth.users`) — CORRIGÉ (2026-10-26)
+- **Gravité** : CRITIQUE (le parcours d'adhésion d'un membre était inopérant).
 - **Défaut** : `claimInvitation` (`src/capabilities/invitation/index.ts:311`)
-  crée le profil PENDING avec un **UUID aléatoire** (`crypto.randomUUID()`),
+  créait le profil PENDING avec un **UUID aléatoire** (`crypto.randomUUID()`),
   jamais rattaché à un compte `auth.users`. Or **deux FK** l'interdisent :
   - `profiles.id → auth.users(id)` (`ON DELETE CASCADE`) ;
   - `org_memberships.user_id → auth.users(id)` (posée par le trigger de
@@ -2497,24 +2497,31 @@ sauvegarde disponible).
   - règlement du claim → **`23503`** `org_memberships_user_id_fkey`
     (trigger `settle_invitation_claim`, ligne 92) ;
   - données réelles : `invitation_claims = 0`, profils
-    `pending-*@lumina.local = 0` (le flux n'a **jamais** abouti) ;
-  - **contrôle** : le flux légitime avec un **compte Auth réel**
-    (`proof-postaccept@lumina.dev`, créé puis supprimé) fonctionne — claim
-    `CONFIRMED`, profil `ACTIVE`, membership `ACTIVE`, et sync filtrée
-    post-acceptation `{"events":1,"profiles":1,"organizations":0}`.
+    `pending-*@lumina.local = 0` (le flux n'a **jamais** abouti).
 - **Cause** : le design prévoyait un « bridge `auth.users` » (edge
   `bridge-auth.ts`, Vague 3.5) **jamais implémenté** (aucun fichier `bridge*`),
   alors que les FK, elles, sont en place.
-- **Impact** : ni l'écriture locale (upload) ni le règlement serveur ne
-  peuvent réussir ; le rôle/organisation du nouvel arrivant ne sont jamais
-  appliqués en base. Écran « rejoindre une organisation » = impasse silencieuse
-  (le client affiche « bienvenue », la donnée n'arrive jamais).
-- **Correctif (décision propriétaire requise)** : (a) créer l'utilisateur Auth
-  (sign-up) **avant** le profil PENDING et porter le claim par l'id Auth du
-  réclamant, ou (b) retirer la FK `profiles.id → auth.users` (perte
-  d'intégrité) — **non implémenté sans arbitrage**.
-- **Statut** : ouvert, documenté, **escaladé (E4)**.
-- **Receipt** : `docs/agent/receipts/phase-05-06/2026-10-27-post-acceptation-proof.md`.
+- **Correctif retenu (a)** — inscription obligatoire avant le claim :
+  - `claimInvitation` exige une **session Auth** (`authService.getSession()`) et
+    lie le profil à `auth.uid()` ; sans session → `AUTH_REQUIRED`.
+  - Le profil local est un **UPSERT** qui n'écrit QUE `status='PENDING'`
+    (role/org_id laissés intacts — gardes `ROLE_IMMUTABLE`/`ORG_ID_IMMUTABLE`) ;
+    le trigger SECURITY DEFINER `settle_invitation_claim` applique le rôle et
+    l'organisation de l'invitation.
+  - `InvitationClaim.tsx` : bandeau « Créez d'abord votre compte » + CTA
+    `/auth` sans session ; `handleConfirm` refuse sans session.
+- **Preuve du correctif (2026-10-26, transaction annulée, 0 résidu)** :
+  - compte Auth réel (`r111-proof@lumina.dev`) → profil `PENDING`, claim
+    `PENDING_SYNC` inséré par l'invité (RLS `authenticated`) ;
+  - règlement serveur → `role=ANCIEN`, `org_id=org-1`, profil `ACTIVE`, claim
+    `CONFIRMED`, `used_count=1`, `org_memberships=1` ;
+  - **contre-cas** : profil PENDING à UUID aléatoire (absent de `auth.users`)
+    → **`23503` `profiles_id_fkey`** (l'ancien défaut, désormais impossible).
+- **Statut** : **corrigé** (branche `agent/r111-claim-auth-required`).
+- **Receipt** : `docs/agent/receipts/phase-05-06/2026-10-26-r111-claim-auth-required.md`.
+- **Reste ouvert (hors périmètre R111)** : le scope granulaire (event/report/
+  ressource libre) n'a pas d'UI d'émission (R112) ; le payload QR v2 le
+  transporte désormais (complétude de contrat).
 
 ### R16 (mise à jour) — divergence `profiles.role` ↔ `org_memberships.role`
 - **Mesure (2026-10-26)** : 108 profils, 5 memberships ; **0** divergence de rôle

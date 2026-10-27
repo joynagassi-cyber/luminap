@@ -7,7 +7,7 @@
  * 2. Confirm → creates PENDING user locally
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   IonPage,
@@ -36,6 +36,7 @@ import BottomNav from "@/components/BottomNav";
 import CameraScanner from "@/components/CameraScanner";
 import { useKeyboardAvoidance } from "@/hooks/useKeyboardAvoidance";
 import { useCurrentUser, selectRole } from "@/lib/dataLayer";
+import { authService } from "@/lib/auth";
 import { getRoleLabel } from "@/lib/utils";
 import {
   loadOnboardingState,
@@ -60,6 +61,19 @@ export default function InvitationClaim() {
   const [parsedPayload, setParsedPayload] = useState<ClaimPayload | null>(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);
+  // R111 — inscription obligatoire avant le claim : on suit l'état de session
+  // pour bloquer le parcours tant que l'utilisateur n'a pas de compte Auth réel
+  // (le claim lie le profil à `auth.uid()`).
+  const [authed, setAuthed] = useState<boolean>(
+    () => !!authService.getState().session,
+  );
+
+  useEffect(() => {
+    const unsubscribe = authService.subscribe(() => {
+      setAuthed(!!authService.getState().session);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const handleCodeSubmit = async () => {
     const trimmed = codeInput.trim().toUpperCase();
@@ -117,6 +131,15 @@ export default function InvitationClaim() {
 
   const handleConfirm = async () => {
     if (!parsedPayload) return;
+    // R111 — le claim exige une session Auth (resulting_user_id = auth.uid()).
+    if (!authService.getState().session) {
+      setResult({
+        ok: false,
+        message:
+          "Vous devez d'abord créer votre compte (inscription) avant de rejoindre l'organisation.",
+      });
+      return;
+    }
     setLoading(true);
     try {
       const { userId, claimId } = await invitation.claimInvitation(
@@ -156,9 +179,12 @@ export default function InvitationClaim() {
     } catch (err: any) {
       setResult({
         ok: false,
-        message: err?.message === "INVITATION_EXPIRED"
-          ? "Cette invitation a expiré."
-          : err?.message ?? "Erreur lors de la réclamation.",
+        message:
+          err?.message === "INVITATION_EXPIRED"
+            ? "Cette invitation a expiré."
+            : err?.message === "AUTH_REQUIRED"
+              ? "Vous devez d'abord créer votre compte (inscription) avant de rejoindre l'organisation."
+              : err?.message ?? "Erreur lors de la réclamation.",
       });
     } finally {
       setLoading(false);
@@ -199,6 +225,46 @@ export default function InvitationClaim() {
                 Scannez un QR code ou entrez un code d'invitation
               </p>
             </div>
+
+            {/* R111 — inscription obligatoire : sans compte Auth, le claim ne
+                peut pas aboutir (le profil est lié à `auth.uid()`). On guide
+                vers l'inscription au lieu de laisser échouer silencieusement. */}
+            {!authed && (
+              <div
+                className="mb-6 p-4 rounded-xl border"
+                style={{
+                  backgroundColor:
+                    "color-mix(in srgb, var(--data-alert) 10%, transparent)",
+                  borderColor:
+                    "color-mix(in srgb, var(--data-alert) 30%, transparent)",
+                }}
+              >
+                <div className="flex items-start gap-3">
+                  <AlertCircle
+                    className="w-5 h-5 flex-shrink-0 mt-0.5"
+                    style={{ color: "var(--data-alert)" }}
+                  />
+                  <div>
+                    <p className="text-sm font-medium text-text-primary">
+                      Créez d'abord votre compte
+                    </p>
+                    <p className="text-xs text-text-tertiary mt-1">
+                      Pour rejoindre une organisation, vous devez avoir un compte
+                      Lumina. Inscrivez-vous, puis revenez saisir votre code ou
+                      scanner le QR.
+                    </p>
+                    <IonButton
+                      size="small"
+                      className="mt-3"
+                      onClick={() => navigate("/auth")}
+                    >
+                      <UserPlus className="w-4 h-4 mr-2" />
+                      S'inscrire / Se connecter
+                    </IonButton>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Mode toggle */}
             <div className="flex gap-2 mb-6">
