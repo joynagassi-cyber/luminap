@@ -1808,15 +1808,15 @@ afficher un état d'erreur explicite dans l'UI.
 
 ### R89 — CRITIQUE — La synchronisation Lumina est rompue dans les DEUX SENS (prouvé par log)
 
-**Statut** : **diagnostiqué avec preuve**. Sous-points **89.a CORRIGÉ**
+**Statut** : **CORRIGÉ dans ses trois sous-points**. **89.a CORRIGÉ**
 (2026-10-26, PR Phase 9 — identifiants de catégories canoniques : seed serveur
 idempotent + source unique + garde anti-dérive ; preuve `INSERT tx (cat-dime)`
-→ FK résolue) et **89.c CORRIGÉ** (le faux
-succès ne ment plus, avec test dans les deux sens) ; **89.b NON corrigé**
-(le correctif exige une
-action sur les données serveur et sur le service PowerSync Cloud, hors de portée
-d'une session de code seule). **Impact : les données financières ne quittent
-jamais l'appareil.** C'est le défaut le plus grave connu de Lumina.
+→ FK résolue) ; **89.b CORRIGÉ** (2026-10-27 — dénormalisation `org_id` sur les
+4 tables enfants + streams à clé directe + redéploiement PowerSync ; preuve de
+bout en bout : profil fort volume `org-e2e` → `connected:true`, `hasSynced:true`,
+`events: 6709`) ; **89.c CORRIGÉ** (le faux succès ne ment plus, avec test dans
+les deux sens). **Impact (historique) : les données financières ne quittaient
+jamais l'appareil** — c'était le défaut le plus grave connu de Lumina.
 
 **Preuve mesurée** (spec de diagnostic temporaire, `window.__psFlushCrudUpload`,
 chromium headless, serveur `hhgovvrnalibhgpakswi`) :
@@ -1864,18 +1864,34 @@ Constat serveur, après le flush qui se déclare « OK » :
   `NOT_NULL_DEFAULTS` (`src/lib/powersync/SupabaseConnector.ts:73-96`), donc
   aucun repli automatique n'existe.
 
-#### 89.b — Descente (download) : `PSYNC_S2305`, sous-requête à plus de 1000 résultats
+#### 89.b — Descente (download) : `PSYNC_S2305` — ✅ CORRIGÉ le 2026-10-27
 
-- `powersync/sync-config.yaml` (édition 3) filtre chaque table par
-  `WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())`.
-- Le service PowerSync évalue la sous-requête et la plafonne à **1000
-  résultats** → `PSYNC_S2305` dès que `profiles` dépasse 1000 lignes (le projet
-  en compte déjà **108** ; le pack client sème **~200** profils par
-  organisation, cf. `src/packs/church/index.ts`).
-- Conséquence : le stream échoue, `connected=false`, `hasSynced=false`, et
-  **aucune donnée ne descend** sur un appareil neuf. Vérifié : un navigateur
-  neuf avec `localStorage` vidé et un état SQLite neuf ne reçoit rien du
-  serveur.
+**Cause racine (mesurée)** — l'hypothèse initiale « `profiles` > 1000 lignes »
+est **réfutée** (108 profils). La vraie cause : 4 streams filtraient par
+**jointure** sur la table parente (`group_memberships`, `event_budgets`,
+`budget_lines`, `custom_field_values`). PowerSync ne peut pas clé la partition
+sur une colonne absente de la ligne synchronisée → **un bucket par ligne enfant**
+(et une requête de paramètre par ligne) → plafond de 1000 franchi par le nombre
+de lignes **enfant** (`org-e2e` = 6709 événements).
+
+**Correctif** (migration `20261027000001_denormalize_org_id_sync_scope.sql` +
+`sync-config.yaml` + schéma client) : `org_id` dénormalisé sur les 4 tables,
+maintenu par triggers, et streams clés **directement** sur `org_id` (1 bucket
+par organisation, comme les autres tables).
+
+**Preuve de bout en bout** (token PowerSync réel, profil fort volume) :
+
+```
+AVANT : PSYNC_S2305 Too many parameter query results (limit of 1000) → 0 ligne
+APRÈS : {"connected":true,"hasSynced":true} → events: 6709, members: 161
+```
+
+Détail : `docs/agent/receipts/phase-09/2026-10-27-r89b-denormalize-org-id.md`.
+
+**Défaut d'origine** (conservé pour mémoire) : le service PowerSync évaluait la
+sous-requête de jointure et la plafonnait à 1000 résultats ; le stream échouait
+(`connected=false`, `hasSynced=false`) et **aucune donnée ne descendait** sur un
+appareil neuf.
 
 #### 89.c — Le succès est MENSONGER (défaut d'observabilité) — ✅ CORRIGÉ le 2026-10-24
 
@@ -2471,3 +2487,24 @@ sauvegarde disponible).
   historiquement (MEMBRE vs PASTEUR_PRINCIPAL) n'est plus présente dans les
   données actuelles. Le risque de **modèle** (deux sources de vérité) reste
   entier ; voir R109 pour le seul écart structurel mesuré (`ADMIN`).
+
+### R110 — HAUTE — `notify_budget_exceeded` référençait des colonnes inexistantes : toute création de ligne budgétaire échouait — ✅ CORRIGÉ le 2026-10-27
+
+- **Défaut** : `public.notify_budget_exceeded()` (migration `0042`, revue en
+  `20261022000003` pour le booléen `is_read` mais **pas** pour les colonnes)
+  lisait `NEW.event_id`, colonne absente de `public.budget_lines` (dont la FK
+  est `event_budget_id`, cf. `0031`). Elle agrégeait en outre sur
+  `event_budget_id = NEW.id AND id <> NEW.id` (FK comparée à son propre id →
+  agrégat toujours vide).
+- **Preuve** (reproduit sur la base, transaction annulée) :
+  `insert into public.budget_lines …` → `ERROR 42703: record "new" has no field
+  "event_id"`. Le trigger est `AFTER INSERT` → la ligne est écrite puis la
+  transaction **annulée** : l'utilisateur ne pouvait créer **aucune** ligne
+  budgétaire.
+- **Correctif** : migration `20261027000002_fix_notify_budget_exceeded_event_budget_id.sql`
+  (résolution de l'événement via `event_budgets`, agrégat sur le bon budget).
+  Preuve après : `insert into budget_lines … returning org_id` → **ACCEPTÉ**
+  (`org-1`).
+- **Détecté par** : les tests de trigger de la dénormalisation R89.b (le défaut
+  était invisible jusqu'ici car aucune ligne budgétaire n'existait en base).
+- **RÉVERSIBILITÉ** : `rollback/20261027000002_rollback.sql`.

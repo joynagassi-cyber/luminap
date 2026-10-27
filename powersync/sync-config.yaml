@@ -140,35 +140,26 @@ streams:
   group_memberships:
     auto_subscribe: true
     query: |
-      SELECT group_memberships.*
-      FROM group_memberships
-      JOIN groups ON groups.id = group_memberships.group_id
-      WHERE groups.org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+      SELECT * FROM group_memberships
+      WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
 
   event_budgets:
     auto_subscribe: true
     query: |
-      SELECT event_budgets.*
-      FROM event_budgets
-      JOIN events ON events.id = event_budgets.event_id
-      WHERE events.org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+      SELECT * FROM event_budgets
+      WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
 
   budget_lines:
     auto_subscribe: true
     query: |
-      SELECT budget_lines.*
-      FROM budget_lines
-      JOIN event_budgets ON event_budgets.id = budget_lines.event_budget_id
-      JOIN events ON events.id = event_budgets.event_id
-      WHERE events.org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+      SELECT * FROM budget_lines
+      WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
 
   custom_field_values:
     auto_subscribe: true
     query: |
-      SELECT custom_field_values.*
-      FROM custom_field_values
-      JOIN custom_field_definitions ON custom_field_definitions.id = custom_field_values.custom_field_definition_id
-      WHERE custom_field_definitions.org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+      SELECT * FROM custom_field_values
+      WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
 
   # Formulaires
   form_definitions:
@@ -208,12 +199,12 @@ streams:
       WHERE org_id IN (
         SELECT org_id FROM org_memberships
         WHERE user_id = auth.user_id() AND status = 'ACTIVE'
-          AND role IN ('PASTEUR_PRINCIPAL', 'ANCIEN', 'TREASURIER')
+          AND (role = 'PASTEUR_PRINCIPAL' OR role = 'ANCIEN' OR role = 'TREASURIER')
       )
       OR org_id IN (
         SELECT org_id FROM profiles
         WHERE id = auth.user_id()
-          AND role IN ('PASTEUR_PRINCIPAL', 'ANCIEN', 'TREASURIER')
+          AND (role = 'PASTEUR_PRINCIPAL' OR role = 'ANCIEN' OR role = 'TREASURIER')
       )
 
   invitation_claims:
@@ -225,12 +216,12 @@ streams:
         WHERE org_id IN (
           SELECT org_id FROM org_memberships
           WHERE user_id = auth.user_id() AND status = 'ACTIVE'
-            AND role IN ('PASTEUR_PRINCIPAL', 'ANCIEN', 'TREASURIER')
+            AND (role = 'PASTEUR_PRINCIPAL' OR role = 'ANCIEN' OR role = 'TREASURIER')
         )
         OR org_id IN (
           SELECT org_id FROM profiles
           WHERE id = auth.user_id()
-            AND role IN ('PASTEUR_PRINCIPAL', 'ANCIEN', 'TREASURIER')
+            AND (role = 'PASTEUR_PRINCIPAL' OR role = 'ANCIEN' OR role = 'TREASURIER')
         )
       )
 

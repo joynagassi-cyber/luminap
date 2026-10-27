@@ -218,6 +218,7 @@ const groups = new Table(
 
 const group_memberships = new Table(
   {
+    org_id: column.text,
     member_id: column.text,
     group_id: column.text,
     role: column.text,
@@ -234,6 +235,7 @@ const group_memberships = new Table(
 
 const event_budgets = new Table(
   {
+    org_id: column.text,
     event_id: column.text,
     currency: column.text,
     revised_at: column.text,
@@ -245,6 +247,7 @@ const event_budgets = new Table(
 
 const budget_lines = new Table(
   {
+    org_id: column.text,
     event_budget_id: column.text,
     category_id: column.text,
     planned_amount_cents: column.integer,
@@ -355,6 +358,7 @@ const custom_field_definitions = new Table(
 
 const custom_field_values = new Table(
   {
+    org_id: column.text,
     entity_type: column.text,
     entity_id: column.text,
     custom_field_definition_id: column.text,

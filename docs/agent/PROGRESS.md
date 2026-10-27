@@ -44,7 +44,9 @@
 | 7 | Finance : modèle unique, contrepassation, rapports | P1 | **terminé** (R101/R102 corrigés) | `agent/phase-07-finance` | `phase-07/2026-10-26-finance.md` |
 | 8 | Isolation & sécurité (Red Team) | P1 | **terminé** (R103 corrigé, R104 escalade) | `agent/phase-08-isolation` | `phase-08/2026-10-26-isolation.md` |
 | 9 | Synchronisation & hors-ligne (PowerSync) — R89.a identifiants catégories | P1 | **terminé** | `agent/phase-09-sync-categories` | `phase-09/2026-10-26-r89a-canonical-categories.md` |
-| 9 | Synchronisation — R89.b descente (`PSYNC_S2305`) | P1 | bloqué (déploiement PowerSync Cloud requis) | — | ESCALATIONS E1 |
+| 9 | Synchronisation — R89.b descente (`PSYNC_S2305`) : dénormalisation `org_id` + streams à clé directe | P1 | **terminé** | `agent/phase-09-r89b-denormalize-org-id` | `phase-09/2026-10-27-r89b-denormalize-org-id.md` |
+| 9 | R110 — `notify_budget_exceeded` : colonnes inexistantes sur `budget_lines` (toute création de ligne budgétaire échouait) | P1 | **terminé** | `agent/phase-09-r89b-denormalize-org-id` | `phase-09/2026-10-27-r89b-denormalize-org-id.md` |
+| 12 | Sauvegarde Supabase chiffrée + vérifiée, workflow passé en **hebdomadaire** (P31/E3) | P1 | **terminé** (activation secrets = propriétaire) | `agent/phase-09-r89b-denormalize-org-id` | `phase-09/2026-10-27-backup-weekly-verified.md` |
 | 9 | Synchronisation — garde anti-dérive `ON_DEMAND_STREAMS` ↔ `sync-config.yaml` | P1 | **terminé** | `agent/phase-09-streams-guard` | `phase-09/2026-10-26-r89a-canonical-categories.md` (addendum) |
 
 | 11 | Page « État du système » (santé : version, sync, erreurs) | P1 | **terminé** | `agent/phase-11-health` | `phase-11/2026-10-26-health-page.md` |

@@ -1470,3 +1470,34 @@ Heure de reprise : 2026-10-24T08:0x Z. Branches : `agent/session-8-security`
 - **Reste à faire (propriétaire, critique)** : créer les secrets
   `SUPABASE_DB_URL` + `BACKUP_GPG_PASSPHRASE`, récupérer `/workspace/backups/`
   (environnement de test voué à disparaître).
+
+## 2026-10-27 — Session 10 : R89.b résolu de bout en bout (le défaut le plus grave)
+
+- **Contexte** : reprise de la boucle. Les deux demandes explicites du
+  propriétaire sont traitées (sauvegarde hebdomadaire + filet de sécurité avant
+  migration), puis le chantier P1 le plus débloquant : **R89.b** (la descente
+  PowerSync, impact 5 — « les données ne descendent jamais sur un appareil »).
+- **Cause racine (réfutation)** : l'hypothèse « `profiles` > 1000 lignes » est
+  **fausse** (108 profils). La vraie cause : 4 streams filtraient par **jointure**
+  sur le parent → PowerSync clé **un bucket par ligne enfant** → plafond de 1000
+  franchi par le nombre de lignes enfant (`org-e2e` = 6709 événements) →
+  `PSYNC_S2305`.
+- **Correctif** : dénormalisation `org_id` sur `group_memberships`,
+  `event_budgets`, `budget_lines`, `custom_field_values` (colonne + backfill +
+  `NOT NULL` + index + triggers de cohérence), streams réécrits en filtre direct,
+  schéma client mis à jour, **redéploiement PowerSync réussi**.
+- **Preuve de bout en bout** : profil fort volume `org-e2e` →
+  `{"connected":true,"hasSynced":true}` puis **`events: 6709`**, `members: 161`
+  (avant : `PSYNC_S2305`, 0 ligne). Gates : `vitest` **1279/1279**, `tsc -b` 0,
+  `eslint` 0.
+- **Défaut connexe découvert (R110)** : en testant les triggers,
+  `insert into budget_lines` échouait (`ERROR 42703: record "new" has no field
+  "event_id"`) — trigger pré-existant `notify_budget_exceeded` (0042) lisant des
+  colonnes inexistantes → **toute création de ligne budgétaire échouait**.
+  Corrigé et prouvé.
+- **Sauvegarde (P31/E3)** : chaîne complète rejouée le 2026-10-27 — schéma
+  17 838 o, données 2 166 111 o (76 tables), empreintes OK, chiffrement AES256
+  déchiffrable ; workflow passé en **hebdomadaire** (`0 3 * * 0`) ; **bug latent
+  du script corrigé** (gzip conservait le point initial → échec des empreintes,
+  qui aurait fait échouer chaque sauvegarde planifiée).
+- **Escalade E1 close** : `powersync deploy sync-config` réussit désormais.
