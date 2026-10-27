@@ -523,3 +523,24 @@
 - **Raison** : Phase 8 « entrées hostiles » — un champ utilisateur commençant
   par `=` est exécuté comme formule par Excel/Sheets à l'ouverture. Les trois
   exports (transactions, soumissions de formulaire, rapports) sont couverts.
+
+### D-S10-1 — R109 : ne pas trancher le rôle `ADMIN` en autonomie (conservateur)
+- **Décision** : ne PAS ajouter `ADMIN` au modèle canon ni le retirer des
+  politiques RLS. Mesurer, figer (`docs/agent/role-model.json`) et **faire
+  trancher le propriétaire**.
+- **Raison** : R109 est un choix de modèle de rôles (admin central via rôle
+  `profiles.role='ADMIN'` vs via grants `org_admins`). Ajouter `ADMIN` au modèle
+  TS lèverait la garde `role-model-drift` et changerait le comportement
+  d'autorisation de bout en bout (UI + RLS) sans mandat explicite ; retirer le
+  littéral des politiques RLS toucherait la sécurité d'écriture des tables
+  centrales. Les deux options ont un impact produit réel → décision propriétaire.
+- **Conséquence assumée** : le compte admin central reste fonctionnellement sans
+  droits `has_permission` tant que la décision n'est pas prise. Documenté (R109),
+  gardé (test anti-dérive), non corrigé.
+
+### D-S10-2 — Garde d'inventaire RLS sans identifiants (CI bloquante)
+- **Décision** : figer l'inventaire RLS mesuré (`docs/agent/rls-inventory.json`)
+  et échouer en CI si une table n'a ni RLS ni politique (sauf deny-all listé).
+- **Raison** : le seul contrôle existant (`scripts/rls-isolation-check.sh`)
+  exige des identifiants Supabase → non exécutable en CI, donc non bloquant.
+  Un audit figé rend l'invariant vérifiable sans secret.

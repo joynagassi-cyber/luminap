@@ -2436,3 +2436,38 @@ sauvegarde disponible).
   coquille ne signale pas sa disponibilité ; rien si elle le fait à temps ;
   rechargement au clic. Gates : `tsc -b` 0, vitest 1242/1242, `vite build` OK.
 - **Statut** : corrigé.
+
+### R109 — Rôle `ADMIN` présent dans les DONNÉES et les politiques RLS mais absent du modèle TS → compte admin central SANS DROITS — OUVERT (à trancher)
+- **Gravité** : MOYENNE-HAUTE (modèle de rôles ; bloquait le câblage de la garde de route R105/R107).
+- **Mesure (2026-10-26, instance DEV)** : `profiles.role='ADMIN'` (1 ligne) et
+  `org_memberships.role='ADMIN'` (1 ligne), mais **0** ligne
+  `role_permissions.role='ADMIN'` et `ADMIN` **absent** de `Role` (TS) et de
+  `PERMISSION_MATRIX`. Preuve d'effet :
+  `public.has_permission(<admin>, 'org-1', 'admin', 'settings') = false` et
+  `'transaction','read' = false` ; `is_org_admin(<admin>,'org-1') = false`.
+- **Conséquence** : le compte admin central n'obtient AUCUN droit via
+  `has_permission` ; aucune route à `permission` (ex. `/admin*`,
+  `admin:settings`) ne peut l'autoriser — il est fonctionnellement **verrouillé**
+  hors des politiques RLS qui testent `profiles.role='ADMIN'` **en dur**
+  (`org_admins_insert_merged`, `org_admins_update_merged`, `orgs_update_merged`).
+  `has_permission` (Phase 4) et ces politiques RLS divergent donc.
+- **Fait notable** : les 14 rôles canon TS ↔ DB sont **parfaitement alignés**
+  (vérifié : migration `20261026000002_rbac_has_permission.sql` ≡
+  `role_permissions` en base, 149 lignes, identiques). Le seul écart est `ADMIN`.
+- **Décision requise (propriétaire)** : (a) supprimer le rôle `ADMIN` et faire
+  reposer l'admin central uniquement sur les grants `org_admins` (nettoyage du
+  littéral dans les 3 politiques), ou (b) ajouter `ADMIN` au modèle canon
+  (`Role` + `PERMISSION_MATRIX` + `role_permissions`) avec les droits
+  d'administration centrale. Non tranché → conservateur (aucune donnée modifiée).
+- **Garde fournie** : `docs/agent/role-model.json` (instantané mesuré) +
+  `V: role-model-drift.test.ts` (4) verrouillent TS ↔ DB et échouent si un rôle
+  est ajouté/retiré sans mise à jour explicite ; `ADMIN` doit rester hors canon
+  et sans permissions tant que R109 n'est pas tranché.
+- **Statut** : ouvert, documenté, gardé (à trancher — voir DECISIONS.md).
+
+### R16 (mise à jour) — divergence `profiles.role` ↔ `org_memberships.role`
+- **Mesure (2026-10-26)** : 108 profils, 5 memberships ; **0** divergence de rôle
+  pour une même organisation (ni entre organisations). La divergence observée
+  historiquement (MEMBRE vs PASTEUR_PRINCIPAL) n'est plus présente dans les
+  données actuelles. Le risque de **modèle** (deux sources de vérité) reste
+  entier ; voir R109 pour le seul écart structurel mesuré (`ADMIN`).

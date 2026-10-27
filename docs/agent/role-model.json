@@ -1,0 +1,219 @@
+{
+  "version": 1,
+  "generated": "2026-10-26",
+  "purpose": "Instantane MESURE du modele de roles (TS PERMISSION_MATRIX + base role_permissions + politiques RLS). Sert de garde anti-derive et documente l'ecart ADMIN (R109).",
+  "source_of_truth": "src/lib/rbac.ts (PERMISSION_MATRIX) = 14 roles canon; DB public.role_permissions = miroir identique (mesure 2026-10-26).",
+  "canon_roles": [
+    "ANCIEN",
+    "BENEVOLE",
+    "COMPTABLE",
+    "DIACRE",
+    "MEMBRE",
+    "PASTEUR_ASSOCIE",
+    "PASTEUR_JEUNESSE",
+    "PASTEUR_PRINCIPAL",
+    "RESPONSABLE_DEPARTEMENT",
+    "RESPONSABLE_GROUPE",
+    "SECRETAIRE",
+    "SECRETAIRE_ADJOINT",
+    "TREASURIER",
+    "TREASURIER_ADJOINT"
+  ],
+  "role_permissions": {
+    "ANCIEN": [
+      "cotisation:manage",
+      "event:create",
+      "event:read",
+      "event:update",
+      "group:create",
+      "group:read",
+      "group:update",
+      "invitation:create",
+      "invitation:manage",
+      "invitation:revoke",
+      "member:read",
+      "member:update",
+      "report:export",
+      "report:read",
+      "transaction:approve",
+      "transaction:create",
+      "transaction:read",
+      "transaction:reject",
+      "versement:approve"
+    ],
+    "BENEVOLE": [
+      "event:read",
+      "member:read",
+      "report:read",
+      "transaction:read"
+    ],
+    "COMPTABLE": [
+      "event:read",
+      "report:export",
+      "report:read",
+      "transaction:read"
+    ],
+    "DIACRE": [
+      "cotisation:manage",
+      "event:read",
+      "group:read",
+      "member:read",
+      "report:read",
+      "transaction:approve",
+      "transaction:read"
+    ],
+    "MEMBRE": [
+      "event:read",
+      "transaction:read"
+    ],
+    "PASTEUR_ASSOCIE": [
+      "cotisation:manage",
+      "event:create",
+      "event:read",
+      "event:update",
+      "group:read",
+      "member:read",
+      "report:export",
+      "report:read",
+      "transaction:approve",
+      "transaction:read",
+      "transaction:reject"
+    ],
+    "PASTEUR_JEUNESSE": [
+      "cotisation:manage",
+      "event:create",
+      "event:read",
+      "event:update",
+      "group:read",
+      "member:read",
+      "report:read",
+      "transaction:approve",
+      "transaction:read"
+    ],
+    "PASTEUR_PRINCIPAL": [
+      "admin:roles",
+      "admin:settings",
+      "cotisation:manage",
+      "event:create",
+      "event:delete",
+      "event:read",
+      "event:update",
+      "group:create",
+      "group:delete",
+      "group:read",
+      "group:update",
+      "invitation:create",
+      "invitation:manage",
+      "invitation:revoke",
+      "member:create",
+      "member:read",
+      "member:update",
+      "report:export",
+      "report:read",
+      "transaction:approve",
+      "transaction:create",
+      "transaction:delete",
+      "transaction:read",
+      "transaction:reject",
+      "transaction:update",
+      "versement:approve",
+      "versement:create"
+    ],
+    "RESPONSABLE_DEPARTEMENT": [
+      "cotisation:manage",
+      "event:create",
+      "event:read",
+      "event:update",
+      "group:read",
+      "member:read",
+      "member:update",
+      "report:read",
+      "transaction:create",
+      "transaction:read",
+      "transaction:update"
+    ],
+    "RESPONSABLE_GROUPE": [
+      "cotisation:manage",
+      "event:create",
+      "event:read",
+      "group:read",
+      "member:read",
+      "transaction:create",
+      "transaction:read",
+      "transaction:update"
+    ],
+    "SECRETAIRE": [
+      "event:create",
+      "event:delete",
+      "event:read",
+      "event:update",
+      "group:read",
+      "member:create",
+      "member:read",
+      "member:update",
+      "report:read"
+    ],
+    "SECRETAIRE_ADJOINT": [
+      "event:create",
+      "event:read",
+      "event:update",
+      "group:read",
+      "member:read"
+    ],
+    "TREASURIER": [
+      "cotisation:manage",
+      "event:create",
+      "event:read",
+      "event:update",
+      "group:create",
+      "group:delete",
+      "group:read",
+      "group:update",
+      "invitation:create",
+      "invitation:manage",
+      "invitation:revoke",
+      "member:create",
+      "member:read",
+      "member:update",
+      "report:export",
+      "report:read",
+      "transaction:approve",
+      "transaction:create",
+      "transaction:delete",
+      "transaction:read",
+      "transaction:update",
+      "versement:approve",
+      "versement:create"
+    ],
+    "TREASURIER_ADJOINT": [
+      "cotisation:manage",
+      "event:create",
+      "event:read",
+      "event:update",
+      "member:read",
+      "report:read",
+      "transaction:approve",
+      "transaction:create",
+      "transaction:read",
+      "transaction:update"
+    ]
+  },
+  "db_only_roles": {
+    "ADMIN": {
+      "reason": "Role present UNIQUEMENT dans les donnees/DB, absent du modele TS (Role, PERMISSION_MATRIX) et de role_permissions.",
+      "measured_profiles": 1,
+      "measured_org_memberships": 1,
+      "role_permissions_rows": 0,
+      "used_in_rls_policies": [
+        "org_admins_insert_merged",
+        "org_admins_update_merged",
+        "orgs_update_merged"
+      ],
+      "effect": "public.has_permission(uid,org,*,*) = false pour ce compte (aucun droit) ; aucune route a permission ne peut l'autoriser ; l'ecriture des tables centrales (org_admins/organizations) repose sur profiles.role='ADMIN' en dur dans les politiques.",
+      "decision": "A TRANCHER (R109) : (a) supprimer le role ADMIN et n'utiliser que les grants/org_admins pour l'admin central, ou (b) ajouter ADMIN au modele canon (Role + PERMISSION_MATRIX + role_permissions) avec les droits d'administration centrale."
+    }
+  },
+  "policy_role_literals": [
+    "ADMIN"
+  ]
+}
