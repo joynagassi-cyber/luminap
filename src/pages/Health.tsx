@@ -1,9 +1,16 @@
-import { CheckCircle2, AlertTriangle, XCircle, Activity } from "lucide-react";
+import { CheckCircle2, AlertTriangle, XCircle, Activity, Copy, Check } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { useState } from "react";
 
 import SettingsShell from "@/components/SettingsShell";
-import { useHealthSnapshot } from "@/lib/health";
+import {
+  useHealthSnapshot,
+  buildDiagnosticReport,
+  collectHealthInputs,
+  HEALTH_LEVEL_LABEL,
+} from "@/lib/health";
 import type { HealthLevel } from "@/lib/health";
+import { getRecentErrors } from "@/lib/clientErrors";
 
 const LEVEL_ICON: Record<HealthLevel, LucideIcon> = {
   ok: CheckCircle2,
@@ -17,11 +24,7 @@ const LEVEL_COLOR: Record<HealthLevel, string> = {
   error: "var(--data-expense, #ef4444)",
 };
 
-const LEVEL_LABEL: Record<HealthLevel, string> = {
-  ok: "Bon",
-  warn: "Attention",
-  error: "Problème",
-};
+const LEVEL_LABEL: Record<HealthLevel, string> = HEALTH_LEVEL_LABEL;
 
 /**
  * Page « État du système » (Phase 11, proposition PR4).
@@ -32,6 +35,24 @@ const LEVEL_LABEL: Record<HealthLevel, string> = {
 export default function Health() {
   const report = useHealthSnapshot();
   const OverallIcon = LEVEL_ICON[report.overall];
+  const [copied, setCopied] = useState(false);
+
+  const copyDiagnostic = async () => {
+    const text = buildDiagnosticReport(
+      collectHealthInputs(typeof navigator !== "undefined" ? navigator.onLine : true),
+      getRecentErrors(),
+      new Date().toISOString(),
+    );
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Repli : le presse-papiers peut être refusé (permission/ contexte non
+      // sécurisé). On expose le texte dans une alerte pour copie manuelle.
+      window.prompt("Copiez le diagnostic ci-dessous :", text);
+    }
+  };
 
   return (
     <SettingsShell
@@ -79,6 +100,27 @@ export default function Health() {
           );
         })}
       </div>
+
+      <button
+        type="button"
+        onClick={copyDiagnostic}
+        aria-label="Signaler un problème : copier le diagnostic"
+        data-testid="health.report-problem"
+        className="mt-4 w-full rounded-lg flex items-center justify-center gap-2 text-sm font-medium"
+        style={{
+          minHeight: 44,
+          backgroundColor: "var(--surface)",
+          border: "1px solid var(--border)",
+          color: "var(--text-primary)",
+        }}
+      >
+        {copied ? (
+          <Check className="w-4 h-4" aria-hidden="true" />
+        ) : (
+          <Copy className="w-4 h-4" aria-hidden="true" />
+        )}
+        {copied ? "Diagnostic copié" : "Signaler un problème"}
+      </button>
 
       <div className="flex items-center gap-2 mt-4 text-text-tertiary text-xs">
         <Activity className="w-4 h-4" aria-hidden="true" />

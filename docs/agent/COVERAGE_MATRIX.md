@@ -24,7 +24,7 @@
 | Phase | Feature | Test(s) | Statut |
 |---|---|---|---|
 | 2 | `resolveRoute` + registre unique | `V: route-resolver.test.ts` (32) | **couvert** |
-| 2 | Écrans 404 / forbidden / needs-membership / update-required | `V: route-resolver.test.ts` (outcomes) | **couvert** |
+| 2 | Écrans 404 / forbidden / needs-membership / update-required | `V: route-resolver.test.ts` (outcomes) | **couvert** (screens) — **câblage incomplet** : forbidden/needs-membership/update-required jamais déclenchés (R105/R106/R107) |
 | 2 | `data-screen-state` (shell + écrans d'état) | `C: zero-black-screen.cy.ts` (61) + `V: route-registry-drift` (3) | **couvert** (crawler livré) |
 | 2 | `ErrorBoundary` par route | `LazyRouteErrorBoundary` (pré-existant) | couvert |
 | 2 | Watchdog `app-ready` | `AppReadyBridge` | partiel (pas de test d'intégration) |
@@ -44,7 +44,7 @@
 | 9 | Sync hors-ligne | `C: cloud-sync.cy.ts` (bloqué env.) | **bloqué (E2)** |
 | 10 | Responsive / a11y | `C: responsive-skeleton.cy.ts` | partiel |
 | 11 | Pre-mortem / chaos | à créer | **non couvert** |
-| 11 | Page « État du système » (santé) | `V: health.test.ts` (11) + `C: zero-black-screen` (route) | **couvert** |
+| 11 | Page « État du système » (santé) + « Signaler un problème » | `V: health.test.ts` (15) + `C: zero-black-screen` (route) | **couvert** |
 | 12 | Crawler zéro écran noir | `C: zero-black-screen.cy.ts` (toutes routes × état marqué) | **couvert** (hors-cloud) |
 | 13 | Tutoriel | à créer (C) | **non couvert** |
 | 14 | Personnalisation profil/org | à créer (C) | **non couvert** |

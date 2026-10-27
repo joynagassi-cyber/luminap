@@ -20,6 +20,13 @@ import { getOrganizationId, hasResolvedOrganization } from "./orgContext";
 
 export type HealthLevel = "ok" | "warn" | "error";
 
+/** Libellés FR d'un niveau de santé (partagés par la page et le diagnostic). */
+export const HEALTH_LEVEL_LABEL: Record<HealthLevel, string> = {
+  ok: "Bon",
+  warn: "Attention",
+  error: "Problème",
+};
+
 export interface HealthCheck {
   id: string;
   label: string;
@@ -134,6 +141,33 @@ export function collectHealthInputs(online: boolean): HealthInputs {
     lastErrorMessage: last?.message,
     lastErrorAt: last ? new Date().toISOString() : undefined,
   };
+}
+
+/**
+ * Construit un rapport de diagnostic **copiable** (Phase 11, « Signaler un
+ * problème »). Pur et sans PII : mêmes champs que le rapport santé, plus les
+ * dernières erreurs **déjà expurgées** par `clientErrors.redact`. Utilisé par
+ * le bouton « Copier le diagnostic » de la page Santé.
+ */
+export function buildDiagnosticReport(
+  inputs: HealthInputs,
+  errors: readonly { message: string; stack?: string }[],
+  generatedAt: string,
+): string {
+  const lines: string[] = [
+    "— Diagnostic Lumina —",
+    `Généré : ${generatedAt}`,
+    `Version : ${inputs.appVersion || "inconnue"}`,
+    `Plateforme : ${inputs.platform}`,
+    `Réseau : ${inputs.online ? "en ligne" : "hors ligne"}`,
+    `Sync PowerSync : ${inputs.syncReady ? "connectée" : "en attente"}`,
+    `Organisation : ${inputs.hasOrg ? inputs.orgId : "aucune"}`,
+    `Erreurs récentes : ${errors.length}`,
+  ];
+  errors.slice(0, 5).forEach((e, i) => {
+    lines.push(`  ${i + 1}. ${e.message}`);
+  });
+  return lines.join("\n");
 }
 
 /** Hook React : rapport santé, rafraîchi toutes les `intervalMs`. */
