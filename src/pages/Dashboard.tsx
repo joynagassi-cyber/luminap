@@ -88,6 +88,7 @@ function HeroCard({
   online,
   lastSyncAt,
   syncing,
+  syncError,
   navigate,
 }: {
   greeting: string;
@@ -102,23 +103,30 @@ function HeroCard({
   online: boolean;
   lastSyncAt: Date | null;
   syncing: boolean;
+  syncError: string | null;
   navigate: ReturnType<typeof useNavigate>;
 }) {
   const netColor =
     netResult >= 0 ? "var(--data-income)" : "var(--data-expense)";
   const now = new Date();
-  const syncLabel = !online
-    ? "hors ligne"
-    : syncing
-      ? "synchronisation…"
-      : lastSyncAt
-        ? `sync ${now.toDateString() === lastSyncAt.toDateString()
-            ? lastSyncAt.toLocaleTimeString("fr-FR", {
-                hour: "2-digit",
-                minute: "2-digit",
-              })
-            : formatDate(lastSyncAt.toISOString())}`
-        : "en attente";
+  // PM19 — une erreur d'envoi (uploadError/downloadError) doit être VISIBLE :
+  // sinon une saisie en file jamais envoyée restait muette (le pill affichait
+  // « sync HH:MM » comme si tout allait bien).
+  const syncLabel = syncError
+    ? "échec d'envoi"
+    : !online
+      ? "hors ligne"
+      : syncing
+        ? "synchronisation…"
+        : lastSyncAt
+          ? `sync ${now.toDateString() === lastSyncAt.toDateString()
+              ? lastSyncAt.toLocaleTimeString("fr-FR", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              : formatDate(lastSyncAt.toISOString())}`
+          : "en attente";
+  const hasSyncError = syncError !== null;
 
   return (
     <button
@@ -159,11 +167,20 @@ function HeroCard({
           className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap"
           style={{
             backgroundColor: "color-mix(in srgb, var(--accent-primary) 8%, transparent)",
-            color: online ? "var(--accent-primary)" : "var(--data-expense)",
+            color: hasSyncError
+            ? "var(--data-expense)"
+            : online
+              ? "var(--accent-primary)"
+              : "var(--data-expense)",
           }}
           aria-label={`État de synchronisation : ${syncLabel}`}
         >
-          {syncing ? (
+          {hasSyncError ? (
+            <Circle
+              className="w-1.5 h-1.5"
+              style={{ fill: "var(--data-expense)", color: "var(--data-expense)" }}
+            />
+          ) : syncing ? (
             <Radio className="w-3.5 h-3.5 animate-pulse" />
           ) : online ? (
             <Circle className="w-1.5 h-1.5" style={{ fill: "var(--data-income)", color: "var(--data-income)" }} />
@@ -683,7 +700,7 @@ export default function Dashboard() {
   const { data: accounts } = useAccounts();
   const { data: caisses } = useCaisses();
   const { data: reports } = useReportsReceived();
-  const { online, lastSyncAt, syncing } = usePowerSyncIndicator();
+  const { online, lastSyncAt, syncing, syncError } = usePowerSyncIndicator();
   const { data: myOrgsData } = useMyOrgs();
 
   const churchName = appConfig.churchName || user?.org?.name || "Lumina";
@@ -798,6 +815,7 @@ export default function Dashboard() {
           online={online}
           lastSyncAt={lastSyncAt}
           syncing={syncing}
+          syncError={syncError}
           navigate={navigate}
         />
 

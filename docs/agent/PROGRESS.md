@@ -53,6 +53,7 @@
 | 2 | R108 — watchdog de démarrage armé hors React (surcouche de récupération) | P1 | **terminé** | `agent/phase-02-boot-watchdog` | `phase-02/2026-10-26-boot-watchdog.md` |
 | 2 | Garde de couverture du crawler « zéro écran noir » (ROUTES ≡ ROUTE_REGISTRY) | P1 | **terminé** | `agent/phase-02-crawler-coverage` | `phase-02/2026-10-26-crawler-coverage.md` |
 | 10 | Anti double-soumission des actions financières (`useSubmitGuard` + `disabled`) | P2 | **terminé** | `agent/phase-10-ux` | `phase-10/2026-10-26-double-submit.md` |
+| 9 | Erreur de synchronisation VISIBLE (PM19 : `uploadError`/`downloadError` → pill « échec d'envoi ») | P2 | **terminé** | `agent/phase-09-sync-error-visible` | `phase-09/2026-10-26-sync-error-visible.md` |
 | 4 | RBAC : R109 — rôle `ADMIN` DB-only (compte admin central sans droits) mesuré + garde anti-dérive TS↔DB | P1 | **terminé** (documenté, gardé ; décision propriétaire) | `agent/phase-04-role-model` | `phase-04/2026-10-26-role-model.md` |
 | 4 | RBAC : câblage réel de la garde de route (`hasPermission`/`isOrgMember`) | P1 | bloqué (dépend décision R109/R16) | — | R109 |
 | 10 | Design system, UX, responsive, perf, a11y | P2 | à faire | `agent/phase-10-ux` | — |
