@@ -14,18 +14,27 @@
 - `ROUTE_REGISTRY` : **61** routes concrètes (hors catch-all `*`).
 - Bloc `ROUTES` du crawler : **61** entrées — **identiques** aujourd'hui, mais
   **aucun test** ne l'imposait (dérive possible à chaque nouvelle route).
+- **Drift mesuré (2ᵉ copie)** : `docs/agent/deeplinks.matrix.json` embarque lui
+  aussi une copie du registre et **il manquait `/settings/health`** (63 routes
+  contre 64). Toute route absente de la matrice n'est jamais couverte par les
+  tests de deep link.
 
 ## Livré
 
-- `src/lib/__tests__/route-registry-drift.test.ts` : +1 test qui lit le spec
-  Cypress et vérifie que son bloc `ROUTES` **égale exactement** les patterns de
-  `ROUTE_REGISTRY` (hors `*`). Toute route ajoutée/retirée d'un côté sans l'autre
-  fait échouer la CI (bloquante, sans identifiants).
+- `docs/agent/deeplinks.matrix.json` : ajout de `/settings/health` (63 → 64),
+  `routes_total` mis à jour.
+- `src/lib/__tests__/route-registry-drift.test.ts` : **+2 tests** —
+  1. le bloc `ROUTES` du crawler Cypress **égale exactement** `ROUTE_REGISTRY` ;
+  2. `deeplinks.matrix.json` (`routes` + `routes_total`) **égale exactement**
+     `ROUTE_REGISTRY`.
+  Toute route ajoutée/retirée d'un côté sans l'autre fait échouer la CI
+  (bloquante, sans identifiants).
 
 ## Preuve
 
 | Gate | Sortie |
 |---|---|
-| `vitest run` (route-registry-drift) | **4/4** |
+| `vitest run` (route-registry-drift) | **5/5** |
 | `npx tsc -b --noEmit` | **0** |
 | `eslint` | **0** erreur |
+
