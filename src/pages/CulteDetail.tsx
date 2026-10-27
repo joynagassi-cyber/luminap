@@ -34,6 +34,14 @@ export default function CulteDetail() {
 
   const culte = events.find((e: any) => e.id === id);
 
+  // Rules of Hooks : ces `useState` doivent être appelés AVANT tout `return`
+  // précoce. Placés après le `if (!culte)` ci-dessous, ils n'étaient pas
+  // appelés tant que les données n'étaient pas chargées, puis l'étaient une
+  // fois `culte` trouvé → « Rendered more hooks than during the previous
+  // render » et écran d'erreur (même défaut que RouteGuard dans App.tsx).
+  const [showMassPay, setShowMassPay] = useState(false);
+  const [busyRowId, setBusyRowId] = useState<string | null>(null);
+
   if (!culte) {
     return (
       <IonPage>
@@ -94,8 +102,6 @@ export default function CulteDetail() {
       30 * 24 * 60 * 60 * 1000
     : false;
 
-  const [showMassPay, setShowMassPay] = useState(false);
-  const [busyRowId, setBusyRowId] = useState<string | null>(null);
 
   const runRowMutation = async (cotId: string, action: () => Promise<void>) => {
     if (busyRowId) return;

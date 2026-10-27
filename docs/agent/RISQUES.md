@@ -2541,6 +2541,33 @@ sauvegarde disponible).
   données actuelles. Le risque de **modèle** (deux sources de vérité) reste
   entier ; voir R109 pour le seul écart structurel mesuré (`ADMIN`).
 
+### R113 — CRITIQUE — `RouteGuard` violait les Rules of Hooks : l'application ne montait jamais — ✅ CORRIGÉ le 2026-10-27
+
+- **Défaut** : dans `RouteGuard` (`src/App.tsx`), deux hooks
+  (`useState(orgIntent)` + `useEffect`) étaient déclarés **après** un `return`
+  précoce (`if (!isAuthChecked) return <spinner/>`). Au premier rendu (auth non
+  vérifiée) ils n'étaient pas appelés ; dès le rendu suivant ils l'étaient →
+  `Rendered more hooks than during the previous render` → l'`ErrorBoundary`
+  racine remplaçait **toute** l'application par « Une erreur inattendue s'est
+  produite ». Aucune route authentifiée n'était atteignable.
+- **Origine** : introduit par `db4a367` (PR #47, PM2 deep link inter-organisation).
+- **Preuve (dev server réel + navigateur)** : `/splash` affichait l'écran
+  d'erreur, contenu React vide ; console : `React has detected a change in the
+  order of Hooks called by RouteGuard` puis `Error: Rendered more hooks…`
+  (`App.tsx:137`). Seconde occurrence identique dans `CulteDetail.tsx`
+  (`useState` après `if (!culte)`), révélée par la même règle ESLint.
+- **Cause structurelle** : `react-hooks/rules-of-hooks` était forcé à `warn`
+  dans `eslint.config.js` → une violation **fatale au rendu** ne cassait pas la CI.
+- **Correctif** : hooks déplacés au-dessus des `return` précoces (App.tsx,
+  CulteDetail.tsx) ; règle passée à **`error`** (+ exception `e2e/**` pour le
+  `use` des fixtures Playwright) ; test de non-régression
+  `src/pages/__tests__/CulteDetail-hooks.test.tsx` (échoue sans le correctif).
+- **Impact E2E** : cause probable de « l'app ne monte pas » (sélecteurs
+  `input[type="email"]`, `nav[aria-label]`, `[data-screen-state]` jamais trouvés)
+  — Phase 12.
+- **Statut** : **corrigé** (branche `agent/p0-hooks-routeguard`, PR #67).
+- **Receipt** : `docs/agent/receipts/phase-02/2026-10-27-p0-hooks-routeguard.md`.
+
 ### R110 — HAUTE — `notify_budget_exceeded` référençait des colonnes inexistantes : toute création de ligne budgétaire échouait — ✅ CORRIGÉ le 2026-10-27
 
 - **Défaut** : `public.notify_budget_exceeded()` (migration `0042`, revue en
