@@ -1,26 +1,54 @@
 # Correctif prêt — `.github/workflows/backup.yml`
 
-**Statut : NON APPLIQUÉ.** Poussé sur aucune branche : le jeton GitHub App de
-l'agent n'a pas la permission `workflows` —
+**Statut : NON APPLIQUÉ sur `main`.** L'agent ne peut pas modifier un fichier de
+workflow : le jeton GitHub App n'a pas la permission `workflows` —
 
 ```
 refusing to allow a GitHub App to create or update workflow
 `.github/workflows/backup.yml` without `workflows` permission
 ```
 
-## À faire (propriétaire, ~2 min)
+## Deux changements dans ce patch
+
+1. **Sauvegarde le LUNDI** — `cron: '0 3 * * 0'` (dimanche) → `'0 3 * * 1'`
+   (lundi 03:00 UTC = 04:00 à Cotonou, UTC+1 sans changement d'heure).
+2. **Fin du faux vert + contrôle de l'export + diagnostic en annotations** —
+   voir le détail plus bas.
+
+## Voie rapide (30 s, sans git) — pour le seul changement de jour
+
+GitHub → onglet **Actions** → « Sauvegarde Supabase » → menu **⋯** en haut à
+droite → **View workflow file** → crayon ✏️ → remplacer la ligne
+
+```yaml
+    - cron: '0 3 * * 0' # hebdomadaire, dimanche 03:00 UTC
+```
+
+par
+
+```yaml
+    - cron: '0 3 * * 1' # hebdomadaire, LUNDI 03:00 UTC = 04:00 à Cotonou
+```
+
+→ **Commit changes** → committer directement sur `main`.
+
+> Le cron n'est lu que sur la **branche par défaut** (`main`). Un changement
+> sur une branche de travail n'a aucun effet sur les exécutions planifiées.
+
+## Voie complète (patch entier, ~2 min)
 
 ```bash
-git checkout -b fix/backup-echec-bruyant
+git checkout main && git pull
+git checkout -b fix/backup-lundi-echec-bruyant
 git apply docs/agent/patches/backup-yml-faux-vert.patch
 git add .github/workflows/backup.yml
-git commit -m "fix(backup): secret absent = échec, contrôle de l'export, diagnostic en annotations"
-git push -u origin fix/backup-echec-bruyant
+git commit -m "fix(backup): lundi + secret absent = échec + contrôle de l'export"
+git push -u origin fix/backup-lundi-echec-bruyant
 ```
 
 Puis ouvrir une PR vers `main`.
 
-## Contenu du correctif
+## Détail des changements de robustesse
 
 1. **Fin du faux vert** — `Vérifier la configuration` fait `exit 1` quand
    `SUPABASE_DB_URL` est absent, au lieu d'un `::warning::` suivi d'un
@@ -41,12 +69,39 @@ bash -n scripts/backup-supabase.sh                     # OK
 python3 -c "import yaml;yaml.safe_load(open('.github/workflows/backup.yml'))"
 ```
 
+## À savoir sur les exécutions planifiées (mesuré sur ce dépôt)
+
+- GitHub n'accepte que de l'**UTC** (pas de fuseau ni d'heure d'été).
+- Les runs arrivent **en retard** : cron `03:00 UTC`, exécutions réelles à
+  `07:56`, `08:17` et `08:30` UTC les 25, 26 et 27/10/2026 (~5 h).
+- Un dépôt **public** sans activité pendant **60 jours** voit ses schedules
+  désactivés automatiquement ; `keep-alive.yml` (toutes les 48 h) l'évite.
+- `workflow_dispatch` reste disponible pour tester immédiatement :
+  *Actions* → « Sauvegarde Supabase » → **Run workflow**.
+
 ```diff
 diff --git a/.github/workflows/backup.yml b/.github/workflows/backup.yml
-index cfd7919..0daa42b 100644
+index cfd7919..e1db11a 100644
 --- a/.github/workflows/backup.yml
 +++ b/.github/workflows/backup.yml
-@@ -42,26 +42,94 @@ jobs:
+@@ -18,8 +18,15 @@ name: Sauvegarde Supabase (export logique)
+ # privé (les schedules privés restent actifs 60 j ; le keep-alive les réveille).
+ 
+ on:
++  # GitHub Actions n'accepte QUE de l'UTC (aucun fuseau, aucun changement
++  # d'heure). Cotonou = UTC+1 : 03:00 UTC = 04:00 locale.
++  # Jour : 0=dimanche, 1=lundi, 2=mardi… 6=samedi (0 et 7 = dimanche).
++  # ⚠️ Mesuré sur ce dépôt : les runs planifiés arrivent ~5 h APRÈS l'heure
++  # demandée (cron 03:00 UTC → lancés à 07:56, 08:17 et 08:30 UTC les 25, 26
++  # et 27/10/2026).
++  # Ne pas compter sur l'heure exacte ; lancer workflow_dispatch pour vérifier.
+   schedule:
+-    - cron: '0 3 * * 0' # hebdomadaire, dimanche 03:00 UTC
++    - cron: '0 3 * * 1' # hebdomadaire, LUNDI 03:00 UTC = 04:00 à Cotonou
+   workflow_dispatch:
+ 
+ permissions:
+@@ -42,26 +49,94 @@ jobs:
          with:
            node-version: '22'
  

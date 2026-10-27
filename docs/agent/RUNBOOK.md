@@ -361,9 +361,34 @@ Le plan Supabase **gratuit** ne fournit **aucune** sauvegarde téléchargeable
 La protection est donc un **export logique planifié hors Supabase**. C'est
 désormais outillé dans le dépôt :
 
-- `.github/workflows/backup.yml` — quotidien 03:00 UTC.
+- `.github/workflows/backup.yml` — **hebdomadaire, lundi 03:00 UTC** (= 04:00 à
+  Cotonou). Historique du cron : `0 3 * * *` (quotidien) jusqu'au 27/10/2026,
+  puis `0 3 * * 0` (dimanche) après #52, et **`0 3 * * 1` (lundi)** à appliquer
+  via `docs/agent/patches/backup-yml-faux-vert.patch`.
 - `scripts/backup-supabase.sh` — export schéma + données, empreintes SHA-256,
   chiffrement AES256 optionnel, rotation 30 jours.
+
+### Planification : ce qui est possible et ce qui ne l'est pas
+
+| Sujet | À retenir |
+|---|---|
+| Fuseau horaire | **UTC uniquement**. GitHub n'offre ni fuseau ni heure d'été. Cotonou = UTC+1 toute l'année → soustraire 1 h. |
+| Jour | `0`=dim, **`1`=lundi**, `2`=mardi, `3`=mercredi, `4`=jeudi, `5`=vendredi, `6`=samedi (`0` et `7` = dimanche). |
+| Branche | Le cron n'est lu que sur la **branche par défaut** (`main`). Modifier le fichier sur une branche de travail ne change **rien** aux exécutions planifiées. |
+| Ponctualité | **Non garanti.** Mesuré : cron `03:00 UTC` → runs réels à `07:56`, `08:17`, `08:30` UTC les 25, 26 et 27/10/2026 (**~5 h de retard**). Ne pas bâtir de dépendance sur l'heure exacte ; lancer `workflow_dispatch` pour tester. |
+| Désactivation | Un dépôt **public** sans activité pendant **60 jours** voit ses schedules coupés par GitHub. `keep-alive.yml` (toutes les 48 h) évite le problème. |
+| Minimum | Pas plus d'une exécution par **5 minutes**, et GitHub recommande d'éviter les heures rondes (`0` minute) où la charge est maximale. |
+| Test immédiat | *Actions* → « Sauvegarde Supabase » → **Run workflow** (`workflow_dispatch`). |
+
+Formules utiles (cron à 5 champs `min heure jour-du-mois mois jour-de-semaine`) :
+
+```yaml
+- cron: '0 3 * * 1'    # lundi 04:00 Cotonou   ← retenu
+- cron: '0 2 * * 1'    # lundi 03:00 Cotonou (2 h UTC)
+- cron: '0 23 * * 0'   # dimanche 23:00 UTC = lundi 00:00 Cotonou
+- cron: '0 3 * * 1,4'  # lundi ET jeudi
+- cron: '0 3 1 * *'    # le 1er de chaque mois
+```
 
 ### Mise en service (une seule fois)
 
