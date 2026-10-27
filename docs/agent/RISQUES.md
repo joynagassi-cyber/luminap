@@ -2465,6 +2465,41 @@ sauvegarde disponible).
   et sans permissions tant que R109 n'est pas tranché.
 - **Statut** : ouvert, documenté, gardé (à trancher — voir DECISIONS.md).
 
+### R111 — Le parcours « réclamer une invitation » ne peut PAS aboutir (FK `auth.users`) — OUVERT (CRITIQUE)
+- **Gravité** : CRITIQUE (le parcours d'adhésion d'un membre est inopérant).
+- **Défaut** : `claimInvitation` (`src/capabilities/invitation/index.ts:311`)
+  crée le profil PENDING avec un **UUID aléatoire** (`crypto.randomUUID()`),
+  jamais rattaché à un compte `auth.users`. Or **deux FK** l'interdisent :
+  - `profiles.id → auth.users(id)` (`ON DELETE CASCADE`) ;
+  - `org_memberships.user_id → auth.users(id)` (posée par le trigger de
+    règlement `settle_invitation_claim`).
+  Les deux sont **NON deferrable** (vérifié).
+- **Preuves (instance dev, transactions annulées, 0 résidu)** :
+  - upsert du profil PENDING (chemin `SupabaseConnector.uploadData`,
+    PostgREST service-role) → **`23503`** « Key (id)=… is not present in
+    table "users" » ;
+  - règlement du claim → **`23503`** `org_memberships_user_id_fkey`
+    (trigger `settle_invitation_claim`, ligne 92) ;
+  - données réelles : `invitation_claims = 0`, profils
+    `pending-*@lumina.local = 0` (le flux n'a **jamais** abouti) ;
+  - **contrôle** : le flux légitime avec un **compte Auth réel**
+    (`proof-postaccept@lumina.dev`, créé puis supprimé) fonctionne — claim
+    `CONFIRMED`, profil `ACTIVE`, membership `ACTIVE`, et sync filtrée
+    post-acceptation `{"events":1,"profiles":1,"organizations":0}`.
+- **Cause** : le design prévoyait un « bridge `auth.users` » (edge
+  `bridge-auth.ts`, Vague 3.5) **jamais implémenté** (aucun fichier `bridge*`),
+  alors que les FK, elles, sont en place.
+- **Impact** : ni l'écriture locale (upload) ni le règlement serveur ne
+  peuvent réussir ; le rôle/organisation du nouvel arrivant ne sont jamais
+  appliqués en base. Écran « rejoindre une organisation » = impasse silencieuse
+  (le client affiche « bienvenue », la donnée n'arrive jamais).
+- **Correctif (décision propriétaire requise)** : (a) créer l'utilisateur Auth
+  (sign-up) **avant** le profil PENDING et porter le claim par l'id Auth du
+  réclamant, ou (b) retirer la FK `profiles.id → auth.users` (perte
+  d'intégrité) — **non implémenté sans arbitrage**.
+- **Statut** : ouvert, documenté, **escaladé (E4)**.
+- **Receipt** : `docs/agent/receipts/phase-05-06/2026-10-27-post-acceptation-proof.md`.
+
 ### R16 (mise à jour) — divergence `profiles.role` ↔ `org_memberships.role`
 - **Mesure (2026-10-26)** : 108 profils, 5 memberships ; **0** divergence de rôle
   pour une même organisation (ni entre organisations). La divergence observée
