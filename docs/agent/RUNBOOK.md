@@ -462,20 +462,54 @@ d'abord**, puis les **données**, et vérifier `select count(*) from profiles;`.
 ### Anti-pause (indispensable sur le plan gratuit)
 
 Supabase met un projet Free en pause après **7 jours** de faible **activité
-API**. L'activité **interne** (job `pg_cron keep_alive_daily`) **ne compte
-pas** : seul un appel API **externe** remet le compteur à zéro.
+base**. L'activité **interne** (job `pg_cron keep_alive_daily`) **ne compte
+pas** : seul un appel **externe** remet le compteur à zéro.
 
-- `.github/workflows/keep-alive.yml` envoie un ping **toutes les 48 h**
-  (`REST /rest/v1/keep_alive` + `Auth /auth/v1/health`). Dépôt **public** :
-  les schedules ne sont pas désactivés. Un échec de ping fait échouer le job →
-  GitHub notifie le propriétaire.
-- Vérification manuelle : *Actions* → « Keep-alive Supabase » → dernier run
-  vert, et `select last_ping from keep_alive;` doit dater de < 48 h.
-- En cas de pause : la restaurer depuis le tableau de bord Supabase (fenêtre
-  de 90 jours), puis vérifier `select last_ping from keep_alive;`.
+#### Deux mécanismes en place, un seul protège réellement (vérifié le 2026-10-27)
 
-> Le heartbeat `pg_cron` reste utile (il horodate le dernier passage), mais il
-> **ne suffit pas** à empêcher la pause : c'est le ping externe qui agit.
+| Mécanisme | Où il vit | Efficace contre la pause ? |
+|---|---|---|
+| `pg_cron` → job `keep_alive_daily`, cron `0 0 * * *`, `active=true` | **dans** la base | ❌ **non** |
+| `.github/workflows/keep-alive.yml`, toutes les 48 h | **hors** du projet | ✅ oui |
+
+Le job `pg_cron` fonctionne parfaitement — 12 exécutions consécutives
+`succeeded` du 16 au 27/10/2026, `last_ping` à jour. Mais il a un défaut
+**structurel** : *il vit à l'intérieur de ce qu'il est censé protéger*.
+Quand un projet Supabase se met en pause, le processus Postgres s'arrête, donc
+`pg_cron` s'arrête avec lui : le job ne peut pas réveiller le projet. L'horloge
+s'arrête avec la machine.
+
+C'est pourquoi `keep-alive.yml` (ping REST + Auth **depuis GitHub**) reste la
+seule protection réelle. Il ne faut pas supprimer le job `pg_cron` pour autant :
+il sert de journal de bord (`last_ping`), et ne coûte rien.
+
+#### Preuve que la pause arrive vraiment sur ce compte
+
+Le projet **`jkqpoowxnerxqwnydeea`** (« joynagassi@gmail.com's Project »,
+eu-west-1, créé le 21/12/2025) est **`INACTIVE`** = en pause, sans mécanisme
+externe. Le projet Lumina (`hhgovvrnalibhgpakswi`) est `ACTIVE_HEALTHY`, avec
+**8,98 M de transactions** depuis le 25/08/2026 : à ce niveau d'usage
+applicatif, le risque de pause est quasi nul aujourd'hui.
+
+#### Contrôles
+
+- *Actions* → « Keep-alive Supabase » → dernier run vert, et
+  `select last_ping from keep_alive;` doit dater de < 48 h.
+- Les 7 workflows doivent être `active` — sinon GitHub les a coupés :
+  ```bash
+  gh api repos/joynagassi-cyber/luminap/actions/workflows --jq '.workflows[] | "\(.state) \(.name)"'
+  gh workflow enable <fichier.yml>   # pour réarmer
+  ```
+- En cas de pause : restaurer depuis le tableau de bord Supabase (fenêtre d'un
+  an), puis vérifier `select last_ping from keep_alive;`.
+
+> ⚠️ **Règle des 60 jours** — elle concerne les dépôts **PUBLICS**, pas les
+> dépôts privés (contrairement à ce qu'affirme le commentaire en tête de
+> `keep-alive.yml`, à corriger). GitHub coupe silencieusement tous les
+> `schedule:` d'un dépôt public resté 60 jours **sans commit** ; un simple
+> commit sur la branche par défaut remet le compteur à zéro, mais **pas** les
+> exécutions du workflow lui-même. Ce dépôt reçoit des commits quotidiens, donc
+> le risque est faible — à surveiller si le projet est mis en veille.
 
 ## Vérifier la synchronisation PowerSync (indispensable — cf. R89)
 
