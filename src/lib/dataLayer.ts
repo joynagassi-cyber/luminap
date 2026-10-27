@@ -22,7 +22,11 @@ import type {
   FormFieldDefinition,
   FormSubmission,
 } from "@/types";
-import { getOrganizationId, subscribeOrganization } from "./orgContext";
+import {
+  getOrganizationId,
+  subscribeOrganization,
+  resetOrganizationId,
+} from "./orgContext";
 import { parseJsonbValue } from "./jsonb";
 import { get, set, invalidate, clear, asyncGetOrSet } from "./cache";
 import { authService } from "./auth";
@@ -3008,6 +3012,55 @@ export async function deleteAllLocalData(): Promise<void> {
   } catch (e) {
     console.error("[dataLayer] deleteAllLocalData failed", e);
   }
+}
+
+/**
+ * Clé marquant QUEL compte possède les données locales de cet appareil.
+ * Préfixée `lumina-` à dessein : une réinitialisation locale volontaire
+ * (`deleteAllLocalData`, « comportement de première installation ») doit aussi
+ * oublier le propriétaire. `ensureLocalDataOwnedBy` la réécrit APRÈS la purge.
+ */
+const LOCAL_DATA_OWNER_KEY = "lumina-local-owner";
+
+/**
+ * PM18 — les données locales (nom d'église, prénom/nom, rôle, org active,
+ * thème, onboarding) sont partagées par tout le NAVIGATEUR, pas par compte.
+ *
+ * Défaut : `lumina-config` (nom d'église affiché sur le tableau de bord) et
+ * `lumina-firstName` / `lumina-lastName` (page Profil) ne sont JAMAIS
+ * réécrits automatiquement au login. Un utilisateur B qui se connecte sur
+ * l'appareil d'un utilisateur A voit donc l'église, le nom et le rôle de A.
+ *
+ * Correctif : à la première connexion d'un compte DIFFÉRENT sur cet appareil,
+ * on purge les données locales avant que le nouveau compte ne s'affiche, puis
+ * on mémorise le nouveau propriétaire. Même compte → no-op (le cache
+ * hors-ligne est préservé). Renvoie `true` quand une purge a eu lieu.
+ */
+export async function ensureLocalDataOwnedBy(
+  userId: string | null,
+): Promise<boolean> {
+  if (!userId) return false;
+  let owner: string | null = null;
+  try {
+    owner = localStorage.getItem(LOCAL_DATA_OWNER_KEY);
+  } catch {
+    /* stockage indisponible — pas de comparaison possible */
+  }
+  if (owner === userId) return false;
+
+  if (owner) {
+    // Un AUTRE compte possédait cet appareil → purge des données locales ET de
+    // l'organisation en mémoire (`_orgId` est résolu au chargement du module,
+    // donc purger le stockage ne suffit pas).
+    await deleteAllLocalData();
+    resetOrganizationId();
+  }
+  try {
+    localStorage.setItem(LOCAL_DATA_OWNER_KEY, userId);
+  } catch {
+    /* best-effort */
+  }
+  return owner !== null;
 }
 
 /**

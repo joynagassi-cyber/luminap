@@ -30,7 +30,7 @@
 | PM15 | Base locale pleine/corrompue → app inutilisable | pas de réinitialisation sûre | 2 | 3 | 2 | 12 | réinitialisation locale sûre (Phase 9) | C chaos | à faire |
 | PM16 | Import/export CSV → injection de formules | cellule commençant par `=`/`+`/`@` | 2 | 3 | 2 | 12 | échappement des formules (Phase 8) | V + C | à faire |
 | PM17 | Bouton cliqué deux fois → double écriture financière | pas d'anti double-soumission | 3 | 4 | 2 | 24 | `useSubmitGuard` (garde synchrone ref + `disabled`) sur les 4 actions financières de `TransactionDetail` | `V: useSubmitGuard.test.tsx` (3, jsdom : 2 clics = 1 appel) | **mitigé** (guard + test ; reste à étendre aux autres écrans financiers) |
-| PM18 | Données locales de A visibles par B sur le même appareil | purge locale absente au logout | 2 | 5 | 3 | 30 | purge complète au logout (Phase 5) | C changement d'utilisateur | à faire |
+| PM18 | Données locales de A visibles par B sur le même appareil | purge locale absente au logout | 2 | 5 | 3 | 30 | `ensureLocalDataOwnedBy(userId)` : purge des clés `lumina-*` + org mémoire au 1er login d'un AUTRE compte | `V: local-data-ownership.test.ts` (4, jsdom : même/autre compte, 1er, null) | **mitigé** |
 | PM19 | Mutation en file jamais envoyée, sans indicateur | échec silencieux | 3 | 4 | 4 | 48 | `usePowerSyncIndicator.syncError` (uploadError/downloadError) + pill « échec d'envoi » sur le tableau de bord | `V: powersync-indicator.test.ts` (3, jsdom : upload/download) | **mitigé** (erreur désormais VISIBLE ; reste : indicateur par élément) |
 | PM20 | Données de test en production | seeds non marqués `is_test` | 2 | 2 | 3 | 12 | marquage `is_test` + orgs de test dédiées | SQL audit | à faire |
 

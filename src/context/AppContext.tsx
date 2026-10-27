@@ -5,7 +5,7 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLocalStore } from "@/store/useLocalStore";
-import { usePowerSyncStatus } from "@/lib/dataLayer";
+import { usePowerSyncStatus, ensureLocalDataOwnedBy } from "@/lib/dataLayer";
 import { authService } from "@/lib/auth";
 import { oneSignalService } from "@/lib/authOneSignal";
 import { setOrganizationId } from "@/lib/orgContext";
@@ -48,6 +48,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (session) profile = await authService.getProfile(session.user.id);
       }
       if (profile) {
+        // PM18 — PURGE AVANT TOUT le reste : si un AUTRE compte possédait cet
+        // appareil, les données locales (nom d'église, prénom/nom, rôle, org
+        // active, thème) appartiennent à ce compte et ne doivent PAS être
+        // affichées au nouveau. On purge d'abord, PUIS on résout le contexte
+        // d'organisation ci-dessous à partir du profil réel.
+        await ensureLocalDataOwnedBy(profile.id);
+
         // SYNC ORG CONTEXT AT BOOT
         //
         // L'org context (orgContext._orgId) n'était jamais résolu au boot :
