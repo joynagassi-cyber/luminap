@@ -52,3 +52,24 @@
 - **Repli appliqué** : aucune migration destructive tant que la sauvegarde
   automatique n'est pas active (principe conservateur D-S9-5) ; runbook opérateur
   livré.
+
+## E4 — Le parcours « réclamer une invitation » ne peut pas aboutir (R111)
+
+- **Symptôme** : un invité qui réclame une invitation (QR/code/fichier) voit
+  « bienvenue » dans l'app, mais **rien n'arrive en base** : le profil PENDING
+  n'est jamais uploadé, le claim n'est jamais réglé, l'utilisateur n'obtient
+  jamais le rôle/organisation de l'invitation.
+- **Cause racine** : `claimInvitation` crée un profil PENDING à **UUID
+  aléatoire** (`crypto.randomUUID()`), or `profiles.id → auth.users(id)` et
+  `org_memberships.user_id → auth.users(id)` (FK **NON deferrable**). Le
+  « bridge `auth.users` » prévu par le design (edge `bridge-auth.ts`, Vague 3.5)
+  n'a jamais été implémenté.
+- **Preuves** : `23503` à l'upsert du profil **et** au règlement du trigger ;
+  `invitation_claims = 0` et profils `pending-*@lumina.local = 0` en base ;
+  contrôle négatif/positif : le flux avec un **compte Auth réel** réussit
+  (claim `CONFIRMED`, profil+membership `ACTIVE`, sync filtrée `events:1`).
+- **Décision requise (propriétaire)** : (a) exiger une inscription Auth avant
+  le claim et porter `resulting_user_id` = id Auth du réclamant, ou (b) assouplir
+  la FK `profiles.id → auth.users`. Non tranché.
+- **Repli appliqué** : aucun code modifié (décision d'architecture) ; documenté
+  (R111) + receipt.

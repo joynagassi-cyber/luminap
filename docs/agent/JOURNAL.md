@@ -1501,3 +1501,29 @@ Heure de reprise : 2026-10-24T08:0x Z. Branches : `agent/session-8-security`
   du script corrigé** (gzip conservait le point initial → échec des empreintes,
   qui aurait fait échouer chaque sauvegarde planifiée).
 - **Escalade E1 close** : `powersync deploy sync-config` réussit désormais.
+
+## Session 11 (2026-10-27) — Phase 5-6 : preuve post-acceptation → R111
+
+- **Tâche** : « Preuve post-acceptation (sync filtrée + rôle actif) », P1,
+  précédemment **bloquée par E1** (PowerSync Cloud). E1 levé → débloquée.
+- **Scénario prouvé** (instance dev, compte Auth réel créé puis supprimé) :
+  invitation émise par un gestionnaire (`TREASURIER` d'`org-1`) → claim
+  `PENDING_SYNC` porté par l'**id Auth réel** → règlement : claim `CONFIRMED`,
+  profil `ACTIVE`, `org_memberships` `ACTIVE` → **sync filtrée** avec un jeton
+  généré pour ce compte : `{"connected":true,"hasSynced":true}`,
+  `events:1` (`org-1`), `profiles:1`, `organizations:0`.
+  **0 résidu** (profils/invitations/claims/memberships/orgs), transactions
+  SQL annulées.
+- **Découverte majeure — R111 (CRITIQUE, non documenté)** : le flux **réel** du
+  client (`claimInvitation`) crée un profil PENDING à **UUID aléatoire**, or
+  `profiles.id → auth.users(id)` (et `org_memberships.user_id → auth.users`)
+  sont des FK **NON deferrable**. Preuves : `23503` à l'upsert du profil
+  (PostgREST, chemin `uploadData`) **et** au règlement du trigger ;
+  `invitation_claims = 0` et `pending-*@lumina.local = 0` en base (jamais
+  abouti). Le « bridge `auth.users` » du design (Vague 3.5) n'a jamais été
+  implémenté. **Impact** : le parcours « rejoindre une organisation » est une
+  impasse silencieuse.
+- **Action** : documenté (R111, FEATURES row 8 « cassée (réclamation) »,
+  PROGRESS), **escaladé (E4)**, receipt
+  `phase-05-06/2026-10-27-post-acceptation-proof.md`. **Aucun code modifié**
+  (décision d'architecture requise : sign-up Auth avant claim, ou assouplir la FK).

@@ -44,6 +44,13 @@
   depuis `profiles` / `org_memberships` / `org_admins` → suppression d'org =
   orphelins. **Archiver, ne pas supprimer.**
 - `can_manage_invitations` = PASTEUR_PRINCIPAL / ANCIEN / TREASURIER (pas ADMIN).
+- **FK `auth.users` (piège, R111)** : `profiles.id → auth.users(id)` ET
+  `org_memberships.user_id → auth.users(id)`, **NON deferrable**. Tout profil
+  doit donc porter un id de compte Auth réel. Or `claimInvitation`
+  (`src/capabilities/invitation/index.ts`) crée un profil PENDING à
+  `crypto.randomUUID()` → upload et règlement échouent en `23503` (parcours
+  « rejoindre une org » inopérant, E4). Le flux légitime (compte Auth réel)
+  fonctionne : claim CONFIRMED, profil+membership ACTIVE, sync filtrée OK.
 
 ## Pièges CI (constats mesurés)
 - **La suite Cypress n'a JAMAIS été verte sur `main`** (20 runs en échec,
