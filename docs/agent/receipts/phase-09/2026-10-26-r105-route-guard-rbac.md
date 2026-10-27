@@ -48,3 +48,21 @@ n'est détenu que par PASTEUR_PRINCIPAL, alors que `/admin` est utilisé par
 `ADMIN` (central) et `CENTRAL_ADMIN`. Câbler aujourd'hui **enfermerait dehors**
 les admins d'organisation. Le câblage est une dépendance de PR18 (R16), et devra
 s'accompagner d'un test E2E par rôle.
+
+## Addendum — même classe de défaut : R106 et R107
+
+L'audit a révélé que **deux autres** branches de garde du resolver sont inertes,
+de la même façon que R105 (le `RouteState` n'est alimenté qu'avec
+`isAuthenticated`) :
+
+- **R106 — `update-required`** : le contrôle `clientSchemaVersion <
+  minSchemaVersion` existe, mais **aucune source** ne fournit ces valeurs (ni
+  client, ni serveur/config). Un APK au schéma incompatible ne reçoit donc aucun
+  message de mise à jour.
+- **R107 — `needs-membership`** : produit quand `isOrgMember === false`, mais
+  `isOrgMember` n'est jamais passé à `resolveRoute` → un non-membre voit la page
+  (vide) au lieu de l'écran d'orientation vers une invitation.
+
+Ces deux points sont documentés (RISQUES R106/R107) et leur correctif est
+regroupé dans la proposition **PR19** (alimenter `RouteState`), elle-même
+dépendante de PR18 (R16) pour le volet permission.

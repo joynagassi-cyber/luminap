@@ -2378,3 +2378,36 @@ sauvegarde disponible).
   accompagné d'un test E2E par rôle.
 - **Statut** : vocabulaire réconcilié (corrigé + verrouillé) ; câblage de la
   garde = dépendance de PR18 (ouvert).
+
+### R106 — Écran « mise à jour requise » (PR6) déclaré mais INERTE (aucune source de version de schéma) — OUVERT
+- **Gravité** : FAIBLE (aucun écran noir ; mais le garde-fou de compatibilité APK est absent).
+- **Défaut** : `resolveRoute()` sait produire `update-required` (contrôle
+  `clientSchemaVersion < minSchemaVersion`) et `App.tsx` rend bien
+  `UpdateRequiredScreen`. Mais **aucune** source ne fournit jamais ces deux
+  valeurs : ni `SCHEMA_VERSION` côté client, ni `min_schema_version` côté
+  serveur/config. La branche est donc **du code mort** (même classe que R105).
+- **Impact** : un APK ancien dont le schéma PowerSync est incompatible ne reçoit
+  aucun message « mettez à jour » ; il peut se synchroniser de travers ou rester
+  muet. Risque de compatibilité, pas de sécurité.
+- **Preuve** : `grep -rn "minSchemaVersion\|clientSchemaVersion" src/ supabase/`
+  → seules les définitions dans `routeResolver.ts` et le test unitaire ; aucun
+  producteur.
+- **Correctif possible (proposé, non fait)** : exposer une constante de schéma
+  (ex. `src/lib/schemaVersion.ts`) + une valeur minimale servie par la config
+  (`AppConfig`/edge-fn), puis alimenter `RouteState` dans `App.tsx`. Nécessite une
+  décision produit (où vit `minSchemaVersion` : config distante ou constante
+  embarquée) — donc **proposition**, pas correctif autonome.
+- **Statut** : ouvert, documenté (classe R105 : branche de garde non alimentée).
+
+### R107 — `NeedsMembershipScreen` (état `needs-membership`) déclaré mais INERTE — OUVERT
+- **Gravité** : FAIBLE.
+- **Défaut** : `resolveRoute()` produit `needs-membership` quand
+  `isOrgMember === false`, et `App.tsx` rend `NeedsMembershipScreen`. Mais
+  `App.tsx` n'appelle jamais `resolveRoute` avec `isOrgMember` → la branche est
+  inerte (même cause racine que R105 : `RouteState` n'est pas alimenté au-delà de
+  `isAuthenticated`).
+- **Impact** : un utilisateur authentifié mais non membre de l'org active voit la
+  page (données vides / RLS) au lieu de l'écran « organisation non rejointe » qui
+  l'orienterait vers une invitation.
+- **Statut** : ouvert ; sera corrigé en même temps que le câblage R105 (dépend
+  PR18/R16).
