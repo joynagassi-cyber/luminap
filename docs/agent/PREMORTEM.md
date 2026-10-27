@@ -59,6 +59,10 @@ et la base (chaque mitigation cite sa preuve mesurée) :
 | PM17 double soumission | `V: useSubmitGuard.test.tsx` (3) — PR #43 |
 | PM18 fuite locale inter-comptes | `V: local-data-ownership.test.ts` (4) — PR #45 |
 | PM19 échec d'envoi silencieux | `V: powersync-indicator.test.ts` (3) — PR #44 |
+| PM2 deep link inter-org | `V: deeplink-org-switch.test.ts` (6) — PR #47 |
+| PM5 org orpheline (dernier admin) | `assertNotLastOrgAdmin` + trigger `trg_org_admins_not_last` ; `V: last-org-admin.test.ts` (4) — PR #49 |
+| PM7 perte de saisie longue | `useFormDraft` + `V: useFormDraft.test.tsx` (6) — PR #48 |
+| PM8 perte financière à la suppression d'un membre | FK `RESTRICT` + `trg_members_audit_delete` ; `V: member-deletion-guard.test.ts` (4) — PR #50 |
 
 Reclassés en **partiel** (sécurité assurée, confort restant) : PM3 (la RLS
 serveur rejette l'op hors droits ; l'explication par élément à l'utilisateur
@@ -73,3 +77,24 @@ schéma), PM15 (réinitialisation locale exposée dans l'UI), PM20 (marquage
 tracée). PM5 (impact 4) et PM7 (impact 4) sont aussi **mitigés** (garde
 anti-orphelin d'organisation, brouillon de saisie longue). Les risques ouverts
 restants (PM14, PM15, PM20) sont d'impact ≤ 3.
+
+## Verdict GO / NO-GO — Phase 11/17 (2026-10-26)
+
+Règle du contrat : le pre-mortem final doit être **sans risque critique
+(impact 5) non mitigé**.
+
+| Impact 5 | Statut | Preuve |
+|---|---|---|
+| PM2 deep link inter-org | mitigé | `deeplink-org-switch.test.ts` (6) — PR #47 |
+| PM8 perte financière (membre) | mitigé | `member-deletion-guard.test.ts` (4) + contrainte DB vérifiée — PR #50 |
+| PM9 cycle d'arbres | mitigé | `org_assert_no_cycle` + `org-tree.test.ts` |
+| PM18 fuite locale inter-comptes | mitigé | `local-data-ownership.test.ts` (4) — PR #45 |
+
+**Risques ouverts restants** : PM14 (versionnage de schéma, impact 3), PM15
+(réinitialisation locale, impact 3), PM20 (marquage `is_test`, impact 2),
+PM3 partiel (confort UX, sécurité assurée).
+
+**VERDICT : GO.** Aucun risque d'impact 5 ne reste non mitigé ; les risques
+ouverts sont d'impact ≤ 3 et non bloquants. Ce verdict repose sur des preuves
+mesurées (tests unitaires exécutés + invariants vérifiés en base), pas sur des
+déclarations.
