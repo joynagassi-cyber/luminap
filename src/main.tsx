@@ -13,6 +13,12 @@ import { initPowerSync } from "@/lib/powersync";
 import { PowerSyncProvider } from "@/components/PowerSyncProvider";
 import { prefetchNavViews, useFeatureConfig } from "@/lib/features";
 import { initSentry } from "@/lib/sentry";
+import { armBootWatchdog } from "@/lib/bootWatchdog";
+
+// Arme le watchdog de démarrage AVANT tout montage React : si la coquille ne
+// signale jamais sa disponibilité (chunk manquant, échec d'hydratation, blocage
+// PowerSync), une surcouche de récupération remplace l'écran noir silencieux.
+armBootWatchdog();
 
 // Initialise Sentry avant tout : il capture les erreurs de la phase de
 // boot (initPowerSync, applyStoredTheme, loadIonicDefinitions…). Silencieux
