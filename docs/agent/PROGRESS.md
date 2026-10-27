@@ -67,7 +67,7 @@
 | 9 | Erreur de synchronisation VISIBLE (PM19 : `uploadError`/`downloadError` → pill « échec d'envoi ») | P2 | **terminé** | `agent/phase-09-sync-error-visible` | `phase-09/2026-10-26-sync-error-visible.md` |
 | 5 | Purge des données locales au changement de compte (PM18 : fuite inter-comptes sur appareil partagé) | P2 | **terminé** | `agent/phase-05-local-purge` | `phase-05/2026-10-26-local-purge.md` |
 | 2 | Deep link inter-organisation : `org-switch-required` était mort (PM2, priorité 45) | P0 | **terminé** | `agent/phase-02-org-switch-deeplink` | `phase-02/2026-10-26-org-switch-deeplink.md` |
-| 2 | **R110 — « l'app ne monte pas » : `RouteGuard` violait les Rules of Hooks (hook après `return` précoce) → ErrorBoundary remplaçait toute l'app** | **P0** | **terminé** | `agent/p0-hooks-routeguard` | `phase-02/2026-10-27-p0-hooks-routeguard.md` |
+| 2 | **R113 — « l'app ne monte pas » : `RouteGuard` violait les Rules of Hooks (hook après `return` précoce) → ErrorBoundary remplaçait toute l'app** | **P0** | **terminé** | `agent/p0-hooks-routeguard` | `phase-02/2026-10-27-p0-hooks-routeguard.md` |
 | 7 | Brouillon de saisie longue : perte de données à l'expiration de session (PM7, priorité 36) | P1 | **terminé** | `agent/phase-07-form-draft` | `phase-07/2026-10-26-form-draft.md` |
 | 4 | Invariant « ≥1 propriétaire » : une org pouvait perdre son dernier admin (PM5, priorité 24) | P1 | **terminé** | `agent/phase-04-last-org-admin` | `phase-04/2026-10-26-last-org-admin.md` |
 | 7 | Suppression d'un membre : le lien financier cascadait (perte de cotisations) (PM8, priorité 20) | P1 | **terminé** | `agent/phase-07-member-deletion` | `phase-07/2026-10-26-member-deletion.md` |
