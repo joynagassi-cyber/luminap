@@ -1059,6 +1059,8 @@ export async function executeWrite(
 /** PowerSync view of `grants` (snake_case columns, id is implicit). */
 export interface PSGrant {
   id: string;
+  /** Organisation de validité du grant (cloisonnement RBAC). */
+  org_id: string;
   subject_type: string;
   subject_id: string;
   resource: string;
@@ -1104,11 +1106,12 @@ export async function createGrantPS(
   const now = new Date().toISOString();
   await executeWrite(
     `INSERT INTO grants (
-      id, subject_type, subject_id, resource, action,
+      id, org_id, subject_type, subject_id, resource, action,
       scope_resource, scope_id, granted_by, granted_at, revoked_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)`,
     [
       id,
+      grant.org_id,
       grant.subject_type,
       grant.subject_id,
       grant.resource,
@@ -1142,7 +1145,7 @@ export async function listGrantsForUserPS(
 ): Promise<PSGrant[]> {
   const db = getPowerSyncDatabase();
   const res = await db.execute(
-    `SELECT * FROM grants WHERE revoked_at IS NULL AND (
+    `SELECT * FROM grants WHERE revoked_at IS NULL AND org_id = ? AND (
         (subject_type = 'user' AND subject_id = ?)
         OR (subject_type = 'org_member' AND subject_id IN
              (SELECT id FROM org_memberships
@@ -1156,7 +1159,7 @@ export async function listGrantsForUserPS(
               WHERE user_id = ? AND org_id = ?))
         OR (subject_type = 'role')
       )`,
-    [userId, userId, orgId, orgId, userId, orgId],
+    [orgId, userId, userId, orgId, orgId, userId, orgId],
   );
   return ((res?.array ?? []) as unknown as PSGrant[]).map((g) => ({
     ...g,

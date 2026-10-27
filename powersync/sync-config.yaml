@@ -283,11 +283,16 @@ streams:
   # ── Modèle agnostique (Vague 2) : grants + tags ─────────────────────────
   # Streams créés explicitement côté client ; le filtrage fort passe par
   # `canAccess` (Vague 2.4), le scoping RLS reste `is_org_member`.
+  # Cloisonnement par org (migration 20261027000010) : un grant n'est
+  # synchronisé que pour les organisations de l'utilisateur.
   grants:
     auto_subscribe: false
     query: |
       SELECT * FROM grants
       WHERE subject_id = auth.user_id()
+         OR org_id IN (
+              SELECT org_id FROM org_memberships
+              WHERE user_id = auth.user_id() AND status = 'ACTIVE')
 
   tags:
     auto_subscribe: false
