@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useFormDraft } from "@/hooks/useFormDraft";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, CheckCircle, AlertCircle } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
@@ -94,7 +95,14 @@ export default function FormFill() {
   // (repli synchrone `id: "local-user"`), le `?? "local-user"` est un garde-fou.
   const currentUser = useCurrentUser();
   const [form, setForm] = useState<FormDefinition | null>(null);
-  const [data, setData] = useState<Record<string, any>>({});
+  // PM7 — brouillon de saisie longue : la saisie survit à une session expirée
+  // ou à une fermeture d'écran, et est effacée à la soumission réussie.
+  const {
+    value: data,
+    setValue: setData,
+    restored: draftRestored,
+    discard: discardDraft,
+  } = useFormDraft<Record<string, any>>(`form:${id}`, {});
   const [errors, setErrors] = useState<string[]>([]);
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -162,6 +170,8 @@ export default function FormFill() {
       );
     }
     setSubmitted(true);
+    // PM7 — la soumission a réussi : le brouillon n'a plus de raison d'être.
+    discardDraft();
 
     // Notify the form organizer that a submission was received
     notification.sendNotification({
@@ -230,6 +240,27 @@ export default function FormFill() {
               <p className="text-text-tertiary text-sm mb-5">
                 {form.description}
               </p>
+            )}
+
+            {draftRestored && !submitted && (
+              <div
+                className="mb-4 p-3 rounded-xl text-sm flex items-center justify-between gap-3"
+                style={{
+                  backgroundColor:
+                    "color-mix(in srgb, var(--accent-primary) 12%, transparent)",
+                  color: "var(--text-secondary)",
+                }}
+              >
+                <span>Brouillon restauré.</span>
+                <button
+                  type="button"
+                  onClick={discardDraft}
+                  className="font-semibold shrink-0"
+                  style={{ color: "var(--accent-primary)" }}
+                >
+                  Recommencer
+                </button>
+              </div>
             )}
 
             {errors.length > 0 && (

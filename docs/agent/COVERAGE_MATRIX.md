@@ -53,4 +53,5 @@
 | 9 | Erreur de sync VISIBLE (uploadError/downloadError → pill) | `V: powersync-indicator.test.ts` (3, jsdom) | **couvert** |
 | 5 | Purge des données locales au changement de compte (PM18) | `V: local-data-ownership.test.ts` (4, jsdom) | **couvert** |
 | 2 | Deep link inter-organisation → bascule confirmée (PM2) | `V: deeplink-org-switch.test.ts` (6, jsdom) | **couvert** |
+| 7 | Brouillon de saisie longue (PM7) | `V: useFormDraft.test.tsx` (6, jsdom) | **couvert** |
 | 9 | Catégories canoniques (R89.a, FK `transactions.category_id`) | `V: canonical-categories-drift` (4) + seed idempotent | **couvert** (FK vérifiée en base) |
