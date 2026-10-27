@@ -464,7 +464,9 @@ crée `.env.local` depuis les secrets et valide la stack complète.
 | `README-CI.md` | Détail du pipeline CI/CD |
 | `README-KEYSTORE.md` / `docs/KEYSTORE.md` | Signature APK Android |
 | `AGENTS.md` | Instructions pour les agents de code (architecture front-first) |
-| `graphify-out/GRAPH_REPORT.md` | Graphe de connaissance du codebase |
+
+> `graphify-out/` (graphe de connaissance, 59 Mo) n'est plus suivi par git
+> (R73) — régénérable localement via `graphify update .`.
 
 ---
 

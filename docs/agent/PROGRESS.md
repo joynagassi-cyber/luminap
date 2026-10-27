@@ -55,6 +55,7 @@
 | 2 | R108 — watchdog de démarrage armé hors React (surcouche de récupération) | P1 | **terminé** | `agent/phase-02-boot-watchdog` | `phase-02/2026-10-26-boot-watchdog.md` |
 | 2 | Garde de couverture du crawler « zéro écran noir » (ROUTES ≡ ROUTE_REGISTRY) | P1 | **terminé** | `agent/phase-02-crawler-coverage` | `phase-02/2026-10-26-crawler-coverage.md` |
 | 10 | Anti double-soumission des actions financières (`useSubmitGuard` + `disabled`) | P2 | **terminé** | `agent/phase-10-ux` | `phase-10/2026-10-26-double-submit.md` |
+| 10 | R73 — hygiène du dépôt : artefacts générés suivis (graphify-out 59 Mo + rapports bundle + `test_ps.db`) retirés du suivi | P3 | **terminé** | `agent/r73-repo-hygiene` | `phase-10/2026-10-26-r73-repo-hygiene.md` |
 | 9 | Erreur de synchronisation VISIBLE (PM19 : `uploadError`/`downloadError` → pill « échec d'envoi ») | P2 | **terminé** | `agent/phase-09-sync-error-visible` | `phase-09/2026-10-26-sync-error-visible.md` |
 | 5 | Purge des données locales au changement de compte (PM18 : fuite inter-comptes sur appareil partagé) | P2 | **terminé** | `agent/phase-05-local-purge` | `phase-05/2026-10-26-local-purge.md` |
 | 2 | Deep link inter-organisation : `org-switch-required` était mort (PM2, priorité 45) | P0 | **terminé** | `agent/phase-02-org-switch-deeplink` | `phase-02/2026-10-26-org-switch-deeplink.md` |
