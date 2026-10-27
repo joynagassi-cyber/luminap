@@ -14,7 +14,7 @@
 | # | Scénario | Cause racine hypothétique | P | I | D | Prio | Mitigation | Test | Statut |
 |---|---|---|---|---|---|---|---|---|---|
 | PM1 | Déploiement → chunk obsolète → écran noir | cache/SW périmé après déploiement | 4 | 4 | 2 | 32 | `installChunkErrorRecovery` (`vite:preloadError` → rechargement contrôlé, 1×/session) | `V: chunk-error-recovery.test.ts` (3) | **mitigé** |
-| PM2 | Deep link vers org B alors que A active → écriture dans B | contexte d'org non changé avant écriture | 3 | 5 | 3 | 45 | `resolveRoute` gère l'org du lien (Phase 2) | matrice deep link | à faire |
+| PM2 | Deep link vers org B alors que A active → écriture dans B | contexte d'org non changé avant écriture | 3 | 5 | 3 | 45 | `useAppUrlOpen` mémorise l'org visée (`deepLinkIntent`) → `RouteGuard` alimente `linkOrgId` → `org-switch-required` → `OrgSwitchScreen` (confirmation) + `enterOrganization` (garde d'accès) | `V: deeplink-org-switch.test.ts` (6) + `route-resolver.test.ts` | **mitigé** |
 | PM3 | Droit révoqué hors ligne → mutations non autorisées poussées | file d'envoi sans revalidation | 3 | 4 | 4 | 48 | la RLS serveur rejette (42501 → FATAL-SKIP : l'op est jetée, jamais appliquée) ; l'utilisateur est averti via l'indicateur d'erreur de sync (PM19) | `V: powersync-indicator.test.ts` (erreur visible) | **partiel** (sécurité OK ; explication par élément à faire) |
 | PM4 | Nouvelle table sans RLS → fuite inter-org | oubli d'activer RLS | 2 | 5 | 2 | 20 | garde d'inventaire RLS (RLS + ≥1 politique par table, exécutable en CI) | `V: rls-inventory.test.ts` (4) | **mitigé** |
 | PM5 | Dernier admin quitte → organisation orpheline | pas de garde « ≥1 propriétaire » | 2 | 4 | 3 | 24 | invariant anti-orphelin (Phase 4) | V | à faire |
@@ -64,15 +64,11 @@ Reclassés en **partiel** (sécurité assurée, confort restant) : PM3 (la RLS
 serveur rejette l'op hors droits ; l'explication par élément à l'utilisateur
 reste à faire).
 
-**Restent ouverts** (nécessitent une décision/chantier) : PM2 (écran
-« changer d'organisation » pour un deep link inter-org — `linkOrgId` n'est
-jamais passé à `resolveRoute`, branche `org-switch-required` inerte, même
-classe que R105-R108), PM5 (invariant « ≥1 propriétaire »), PM7 (brouillon de
+**Restent ouverts** (nécessitent une décision/chantier) : PM5 (invariant « ≥1 propriétaire »), PM7 (brouillon de
 saisie longue), PM8 (anonymisation au lieu de suppression dure), PM14
 (versionnage de schéma), PM15 (réinitialisation locale exposée dans l'UI),
 PM20 (marquage `is_test`).
 
-Aucun risque **impact 5** ne reste sans mitigation : PM2 (impact 5) est
-circonscrit (l'écriture est de toute façon filtrée par la RLS `org_id`),
-PM5/PM8 (impact 5) sont des chantiers identifiés non bloquants, PM18 (impact 5)
-est désormais **mitigé**.
+Aucun risque **impact 5** ne reste sans mitigation : PM2 (impact 5) est désormais **mitigé** (deep link inter-org → confirmation
++ bascule gardée par l'accès local), PM5/PM8 (impact 5) sont des chantiers
+identifiés non bloquants, PM18 (impact 5) est **mitigé**.
