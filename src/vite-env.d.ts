@@ -14,6 +14,12 @@ interface ImportMetaEnv {
   readonly VITE_SENTRY_ENV?: string;
   /** Version de release (ex. tag git) pour associer les erreurs au code. */
   readonly VITE_APP_VERSION?: string;
+  /**
+   * Version minimale de schéma local acceptée (R106). Absente = aucune
+   * contrainte (fail-open) : un ancien APK n'est averti que si le build
+   * déclare explicitement une version minimale.
+   */
+  readonly VITE_MIN_SCHEMA_VERSION?: string;
 }
 
 interface ImportMeta {
