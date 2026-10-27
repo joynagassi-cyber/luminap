@@ -361,10 +361,11 @@ Le plan Supabase **gratuit** ne fournit **aucune** sauvegarde téléchargeable
 La protection est donc un **export logique planifié hors Supabase**. C'est
 désormais outillé dans le dépôt :
 
-- `.github/workflows/backup.yml` — **hebdomadaire, lundi 03:00 UTC** (= 04:00 à
-  Cotonou). Historique du cron : `0 3 * * *` (quotidien) jusqu'au 27/10/2026,
-  puis `0 3 * * 0` (dimanche) après #52, et **`0 3 * * 1` (lundi)** à appliquer
-  via `docs/agent/patches/backup-yml-faux-vert.patch`.
+- `.github/workflows/backup.yml` — **hebdomadaire, DIMANCHE 03:00 UTC** (= 04:00
+  à Cotonou). Historique du cron : `0 3 * * *` (quotidien) jusqu'au 27/10/2026,
+  puis `0 3 * * 0` (dimanche) après #52. **Conservé le dimanche** : décision du
+  propriétaire le 2026-10-27 (« dimanche c'est bon ») — le passage au lundi a
+  été écarté.
 - `scripts/backup-supabase.sh` — export schéma + données, empreintes SHA-256,
   chiffrement AES256 optionnel, rotation 30 jours.
 
@@ -373,7 +374,7 @@ désormais outillé dans le dépôt :
 | Sujet | À retenir |
 |---|---|
 | Fuseau horaire | **UTC uniquement**. GitHub n'offre ni fuseau ni heure d'été. Cotonou = UTC+1 toute l'année → soustraire 1 h. |
-| Jour | `0`=dim, **`1`=lundi**, `2`=mardi, `3`=mercredi, `4`=jeudi, `5`=vendredi, `6`=samedi (`0` et `7` = dimanche). |
+| Jour | `0`=dim, `1`=lundi, `2`=mardi, `3`=mercredi, `4`=jeudi, `5`=vendredi, `6`=samedi (`0` et `7` = dimanche). La sauvegarde est sur **`0` (dimanche)**. |
 | Branche | Le cron n'est lu que sur la **branche par défaut** (`main`). Modifier le fichier sur une branche de travail ne change **rien** aux exécutions planifiées. |
 | Ponctualité | **Non garanti.** Mesuré : cron `03:00 UTC` → runs réels à `07:56`, `08:17`, `08:30` UTC les 25, 26 et 27/10/2026 (**~5 h de retard**). Ne pas bâtir de dépendance sur l'heure exacte ; lancer `workflow_dispatch` pour tester. |
 | Désactivation | Un dépôt **public** sans activité pendant **60 jours** voit ses schedules coupés par GitHub. `keep-alive.yml` (toutes les 48 h) évite le problème. |
@@ -383,11 +384,12 @@ désormais outillé dans le dépôt :
 Formules utiles (cron à 5 champs `min heure jour-du-mois mois jour-de-semaine`) :
 
 ```yaml
-- cron: '0 3 * * 1'    # lundi 04:00 Cotonou   ← retenu
-- cron: '0 2 * * 1'    # lundi 03:00 Cotonou (2 h UTC)
-- cron: '0 23 * * 0'   # dimanche 23:00 UTC = lundi 00:00 Cotonou
+- cron: '0 3 * * 0'    # dimanche 04:00 Cotonou   ← EN PLACE (sauvegarde)
+- cron: '0 0 * * *'    # tous les jours à minuit UTC
+- cron: '0 3 * * 1'    # lundi 04:00 Cotonou
 - cron: '0 3 * * 1,4'  # lundi ET jeudi
 - cron: '0 3 1 * *'    # le 1er de chaque mois
+- cron: '0 6 */2 * *'  # jours IMPAIRS du mois (keep-alive) — écart max 2 j
 ```
 
 ### Mise en service (une seule fois)
