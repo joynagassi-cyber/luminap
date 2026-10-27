@@ -45,8 +45,18 @@ android/app/lumina-keystore.jks
 # Build output dir (Vite Stitch dev server) — not project state
 .output/
 
-# ── Graphify (cache de graphe de connaissance) ────────────────────────────
-graphify-out/cache/
+# ── Graphify (graphe de connaissance du codebase — artefact régénérable) ──
+# R73 : 1980 fichiers / 59 Mo étaient suivis (dont cache 44 Mo + graph.json
+# 15 Mo), avec des chemins absolus de la machine du développeur. Non utilisé
+# par le build ; régénérable via `graphify update .`.
+graphify-out/
+
+# Rapports d'analyse de bundle (Vite visualizer) — artefacts générés dont le
+# nom contient le chemin absolu local aplati (« Users…dyad-apps… »).
+*bundle-analysis*
+
+# Base SQLite PowerSync locale (artefact de dev/test).
+test_ps.db
 powersync/.drift-*.md
 .secrets-vault/
 .secrets-vault/*.zip

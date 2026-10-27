@@ -42,6 +42,7 @@
 | 4 | RBAC fin : réécrire les ~146 politiques RLS sur `has_permission` | P2 | proposition | — | (cf. PROPOSALS PR18) |
 | 5-6 | Auth, création d'org, onboarding, invitations | P1 | **terminé** (partiel : sync E1) | `agent/phase-05-06-auth-invitations` | `phase-05-06/2026-10-26-auth-invitations.md` |
 | 5-6 | Preuve post-acceptation (sync filtrée + rôle actif) | P1 | **terminé** (E1 levé) — flux serveur prouvé ; **défaut grave R111 découvert** (FK `auth.users`) | `agent/phase-05-06-post-acceptation` | `phase-05-06/2026-10-27-post-acceptation-proof.md` |
+| 5-6 | **Tâche 3 — transports d'invitation** : code `LUM-XXXXXX`, payload QR v2, round-trip `buildQRPayload`→`parseQRPayload`, 4 transports sur un moteur unique | P1 | **terminé** | `agent/task3-qr-transports` | `phase-05-06/2026-10-26-task3-qr-transports.md` |
 | 5-6 | **R111 — inscription obligatoire avant le claim** (profil lié à `auth.uid()`, fin de l'UUID aléatoire) + QR lisible en thème clair | P1 | **terminé** | `agent/r111-claim-auth-required` | `phase-05-06/2026-10-26-r111-claim-auth-required.md` |
 | 7 | Finance : modèle unique, contrepassation, rapports | P1 | **terminé** (R101/R102 corrigés) | `agent/phase-07-finance` | `phase-07/2026-10-26-finance.md` |
 | 8 | Isolation & sécurité (Red Team) | P1 | **terminé** (R103 corrigé, R104 escalade) | `agent/phase-08-isolation` | `phase-08/2026-10-26-isolation.md` |
@@ -57,6 +58,7 @@
 | 2 | R108 — watchdog de démarrage armé hors React (surcouche de récupération) | P1 | **terminé** | `agent/phase-02-boot-watchdog` | `phase-02/2026-10-26-boot-watchdog.md` |
 | 2 | Garde de couverture du crawler « zéro écran noir » (ROUTES ≡ ROUTE_REGISTRY) | P1 | **terminé** | `agent/phase-02-crawler-coverage` | `phase-02/2026-10-26-crawler-coverage.md` |
 | 10 | Anti double-soumission des actions financières (`useSubmitGuard` + `disabled`) | P2 | **terminé** | `agent/phase-10-ux` | `phase-10/2026-10-26-double-submit.md` |
+| 10 | R73 — hygiène du dépôt : artefacts générés suivis (graphify-out 59 Mo + rapports bundle + `test_ps.db`) retirés du suivi | P3 | **terminé** | `agent/r73-repo-hygiene` | `phase-10/2026-10-26-r73-repo-hygiene.md` |
 | 9 | Erreur de synchronisation VISIBLE (PM19 : `uploadError`/`downloadError` → pill « échec d'envoi ») | P2 | **terminé** | `agent/phase-09-sync-error-visible` | `phase-09/2026-10-26-sync-error-visible.md` |
 | 5 | Purge des données locales au changement de compte (PM18 : fuite inter-comptes sur appareil partagé) | P2 | **terminé** | `agent/phase-05-local-purge` | `phase-05/2026-10-26-local-purge.md` |
 | 2 | Deep link inter-organisation : `org-switch-required` était mort (PM2, priorité 45) | P0 | **terminé** | `agent/phase-02-org-switch-deeplink` | `phase-02/2026-10-26-org-switch-deeplink.md` |

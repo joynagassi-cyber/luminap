@@ -1146,19 +1146,30 @@ amont en code, migration idempotente et réversible, 18 tests unitaires.
 - **Gravité** : moyenne (faux négatifs de test, pas défaut produit).
 
 
-### R73 — Artefact de build versionné : `graphify-out/` (59 Mo) — OUVERT (basse)
+### R73 — Artefact de build versionné : `graphify-out/` (59 Mo) — CORRIGÉ (2026-10-26)
 - **Défaut** : `graphify-out/` (analyse statique générée, **1980 fichiers,
-  59 Mo**) est **suivi par git**. Il contient des chemins absolus de la
+  59 Mo**) était **suivi par git**. Il contient des chemins absolus de la
   machine du développeur (`C:\Users\joyda\dyad-apps\lumina\…`).
 - **Impact** : dépôt alourdi à chaque clone (59 Mo inutiles), bruit dans les
   recherches (un scan de secrets y produit des faux positifs), fuite
   mineure d'information sur l'environnement de développement. **Aucun
   impact fonctionnel.**
 - **Preuve** : `git ls-files graphify-out | wc -l` → 1980 ; `du -sh` → 59 Mo.
-- **Correctif proposé (non appliqué — changement structurel, gel)** :
-  `echo graphify-out/ >> .gitignore && git rm -r --cached graphify-out`.
-  Sans risque pour l'app : ces fichiers ne sont pas utilisés au build.
-- **Gravité** : basse.
+- **Correctif appliqué** : `graphify-out/` ajouté à `.gitignore` +
+  `git rm -r --cached graphify-out` (fichiers conservés sur disque, plus
+  suivis). Le motif antérieur `graphify-out/cache/` ne couvrait que le cache
+  (44 Mo) — `graph.json` (15 Mo) et `GRAPH_REPORT.md` restaient suivis.
+- **Artefacts connexes retirés** (même classe, chemins absolus du dev) :
+  `Usersjoydadyad-appsluminabundle-analysis.html` (1,6 Mo) +
+  `…-list.json` (204 Ko) — rapports du Vite bundle visualizer ;
+  `test_ps.db` (base SQLite PowerSync locale). Ajoutés à `.gitignore`
+  (`*bundle-analysis*`, `test_ps.db`).
+- **Vérifications** : aucun de ces artefacts n'est référencé par le build, la
+  CI, les tests ni les scripts (`grep` vide) ; la ligne README citant
+  `graphify-out/GRAPH_REPORT.md` a été retirée. Gates inchangés (`tsc -b`,
+  vitest, `vite build` lisent `src/` uniquement).
+- **Receipt** : `docs/agent/receipts/phase-10/2026-10-26-r73-repo-hygiene.md`.
+- **Statut** : **corrigé**.
 
 ### Audit sécurité du dépôt et de l'hébergement (2026-10-24)
 
