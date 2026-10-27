@@ -13,6 +13,8 @@ import { Capacitor } from "@capacitor/core";
 import { App as CapacitorApp } from "@capacitor/app";
 import { authService } from "@/lib/auth";
 import { parseDeepLink } from "@/lib/routeResolver";
+import { getOrganizationId } from "@/lib/orgContext";
+import { setDeepLinkOrgIntent } from "@/lib/deepLinkIntent";
 
 /**
  * Event dispatched (on `window`) after a native OAuth deep-link URL has been
@@ -56,6 +58,12 @@ export function useAppUrlOpen() {
       // The route guard then applies auth / permission / org-switch rules.
       if (!link.code) {
         const target = link.returnTo ?? link.path;
+        // PM2 : si le lien vise une AUTRE organisation que l'active, on
+        // mémorise l'intention AVANT de naviguer — sinon `resolveRoute`
+        // n'aurait aucun `linkOrgId` à comparer et la garde resterait morte.
+        if (link.orgId && link.orgId !== getOrganizationId()) {
+          setDeepLinkOrgIntent({ orgId: link.orgId, path: target });
+        }
         navigate(target, { replace: false });
         return;
       }

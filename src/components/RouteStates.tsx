@@ -159,6 +159,35 @@ export function UpdateRequiredScreen() {
   );
 }
 
+/**
+ * PM2 — un deep link vise une AUTRE organisation que l'active. On demande
+ * confirmation AVANT de basculer : un changement de contexte d'organisation
+ * est une action significative (les listes, permissions et écritures changent),
+ * et un lien ne doit jamais basculer silencieusement.
+ */
+export function OrgSwitchScreen({
+  orgLabel,
+  onConfirm,
+  onCancel,
+}: {
+  orgLabel: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <StateScreen
+      state="partial"
+      icon="🔄"
+      title="Changer d'organisation ?"
+      message={`Ce lien vise une autre organisation (${orgLabel}). Voulez-vous basculer vers ce contexte ?`}
+      primaryLabel="Changer d'organisation"
+      onPrimary={onConfirm}
+      secondaryLabel="Rester ici"
+      onSecondary={onCancel}
+    />
+  );
+}
+
 /** Boot watchdog — shown when the app shell never became ready in time. */
 export function BootRecoveryScreen({ onRetry }: { onRetry?: () => void }) {
   return (

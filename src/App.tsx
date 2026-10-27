@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { IonApp, setupIonicReact } from "@ionic/react";
 import { IonReactRouter } from "@ionic/react-router";
 import { IonRouterOutlet } from "@ionic/react";
-import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { authService } from "@/lib/auth";
 import { useAppUrlOpen, LUMINA_DEEPLINK_EVENT } from "@/hooks/useAppUrlOpen";
@@ -22,7 +22,14 @@ import {
   ForbiddenScreen,
   NeedsMembershipScreen,
   UpdateRequiredScreen,
+  OrgSwitchScreen,
 } from "@/components/RouteStates";
+import { getOrganizationId } from "@/lib/orgContext";
+import {
+  getDeepLinkOrgIntent,
+  clearDeepLinkOrgIntent,
+} from "@/lib/deepLinkIntent";
+import { enterOrganization } from "@/lib/organization-context";
 import "./ionic/theme";
 
 // Capture globale des erreurs non gérées (contrat Phase 1/2) : rend visibles
@@ -58,6 +65,7 @@ const queryClient = new QueryClient();
  */
 function RouteGuard() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [isAuthChecked, setIsAuthChecked] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
@@ -113,15 +121,49 @@ function RouteGuard() {
     );
   }
 
+  // PM2 — un deep link peut viser une AUTRE organisation que l'active. On lit
+  // l'intention mémorisée par `useAppUrlOpen` et on l'expose au résolveur, qui
+  // produira `org-switch-required`. Sans cet état, la branche restait morte et
+  // le lien s'ouvrait dans le mauvais contexte.
+  const [orgIntent, setOrgIntent] = useState(() => getDeepLinkOrgIntent());
+  useEffect(() => {
+    const sync = () => setOrgIntent(getDeepLinkOrgIntent());
+    // L'intention est écrite par le listener natif (hors React) → on re-sonde
+    // à chaque navigation, qui suit toujours de près la pose de l'intention.
+    sync();
+    return () => {};
+  }, [location.pathname]);
+
+  const activeOrgId = getOrganizationId();
+  const linkOrgId =
+    orgIntent && orgIntent.orgId !== activeOrgId ? orgIntent.orgId : null;
+
   // Always allow public routes → delegated to the single resolver below.
   // (Resolve the current URL through resolveRoute so web navigation and
   // native deep links share ONE decision point — contract §2.2.)
   const outcome: RouteOutcome = resolveRoute(location.pathname, {
     isAuthenticated,
+    activeOrgId,
+    linkOrgId,
     // `isOrgMember` / `hasPermission` / schema versions are wired by later
     // phases (3/4). Until then the resolver defaults them to "allowed", which
     // preserves the exact current behaviour.
   });
+
+  const confirmOrgSwitch = async (targetOrgId: string) => {
+    const entered = await enterOrganization(targetOrgId);
+    clearDeepLinkOrgIntent();
+    setOrgIntent(null);
+    // `enterOrganization` vérifie l'accès local ; en cas de refus on retombe
+    // sur l'accueil (jamais d'écran muet).
+    navigate(entered ? location.pathname : "/dashboard", { replace: true });
+  };
+
+  const cancelOrgSwitch = () => {
+    clearDeepLinkOrgIntent();
+    setOrgIntent(null);
+    navigate("/dashboard", { replace: true });
+  };
 
   switch (outcome.outcome) {
     case "render":
@@ -142,10 +184,17 @@ function RouteGuard() {
       return <NeedsMembershipScreen />;
     case "update-required":
       return <UpdateRequiredScreen />;
+    case "org-switch-required":
+      return (
+        <OrgSwitchScreen
+          orgLabel={outcome.orgId}
+          onConfirm={() => void confirmOrgSwitch(outcome.orgId)}
+          onCancel={cancelOrgSwitch}
+        />
+      );
     // `not-found` is rendered by the wildcard route in the route registry;
     // the guard lets it through to avoid a double 404.
     case "not-found":
-    case "org-switch-required":
     case "loading":
     default:
       return null;
