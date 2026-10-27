@@ -40,6 +40,11 @@
 | 4 | RBAC : câblage réel de la garde de route (`hasPermission`/`isOrgMember`) | P1 | bloqué (dépend PR18/R16 : réconcilier rôles ADMIN/CENTRAL_ADMIN) | — | R105 |
 | 2 | Audit garde de route : R106 (update-required inerte) + R107 (needs-membership inerte) | P1 | **terminé** (documenté ; correctif = PR19) | `agent/r105-route-guard-rbac` | `phase-09/2026-10-26-r105-route-guard-rbac.md` |
 | 4 | RBAC fin : réécrire les ~146 politiques RLS sur `has_permission` | P2 | proposition | — | (cf. PROPOSALS PR18) |
+| 4 | **RBAC session 11 — contrat d'interface** (grants org-scopés, capacités, hooks, UI, preuve E2E) | P1 | **terminé** | `agent/rbac-contrat` | `phase-04/2026-10-27-rbac-contrat.md` |
+| 4 | **RBAC — chantier A : cloisonnement des `grants` par organisation** (fuite inter-org corrigée) | P1 | **terminé** | `agent/rbac-sql-org-scope` (PR #61) | `phase-04/2026-10-27-rbac-org-scope.md` |
+| 4 | **RBAC — chantier B : modèle de capacités + hooks + couche d'écriture admin** | P1 | en cours (sous-agent) | `agent/rbac-capabilities` | `phase-04/2026-10-27-rbac-capabilities.md` |
+| 4 | **RBAC — chantier C : UI d'admin des accès + bandeau de capacités** | P1 | en cours (sous-agent) | `agent/rbac-ui` | `phase-04/2026-10-27-rbac-ui.md` |
+| 4 | **RBAC — chantier D : preuve E2E rôle+org+capacités par les 4 transports** | P1 | en cours (sous-agent) | `agent/rbac-e2e` | `phase-04/2026-10-27-rbac-e2e.md` |
 | 5-6 | Auth, création d'org, onboarding, invitations | P1 | **terminé** (partiel : sync E1) | `agent/phase-05-06-auth-invitations` | `phase-05-06/2026-10-26-auth-invitations.md` |
 | 5-6 | Preuve post-acceptation (sync filtrée + rôle actif) | P1 | **terminé** (E1 levé) — flux serveur prouvé ; **défaut grave R111 découvert** (FK `auth.users`) | `agent/phase-05-06-post-acceptation` | `phase-05-06/2026-10-27-post-acceptation-proof.md` |
 | 5-6 | **Tâche 3 — transports d'invitation** : code `LUM-XXXXXX`, payload QR v2, round-trip `buildQRPayload`→`parseQRPayload`, 4 transports sur un moteur unique | P1 | **terminé** | `agent/task3-qr-transports` | `phase-05-06/2026-10-26-task3-qr-transports.md` |
