@@ -2565,6 +2565,12 @@ sauvegarde disponible).
 - **Impact E2E** : cause probable de « l'app ne monte pas » (sélecteurs
   `input[type="email"]`, `nav[aria-label]`, `[data-screen-state]` jamais trouvés)
   — Phase 12.
+- **Preuve E2E (CI Cypress, avant/après)** :
+  - baseline `main` (run 40555104799) : **17/17 specs en échec**, 1 test passant,
+    28 en échec ;
+  - branche : shard 1 → 82 tests passants (dont `zero-black-screen.cy.ts`
+    **64/64**, `auth-real.cy.ts` **5/5**) ; shard 2 → 36 tests passants.
+  Le « app not mounting » est levé.
 - **Statut** : **corrigé** (branche `agent/p0-hooks-routeguard`, PR #67).
 - **Receipt** : `docs/agent/receipts/phase-02/2026-10-27-p0-hooks-routeguard.md`.
 

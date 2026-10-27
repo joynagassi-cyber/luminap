@@ -1,4 +1,4 @@
-# Receipt — Phase 2 : P0 « l'app ne monte pas » (Rules of Hooks) — R110
+# Receipt — Phase 2 : P0 « l'app ne monte pas » (Rules of Hooks) — R113
 
 - **Date** : 2026-10-27
 - **Branche** : `agent/p0-hooks-routeguard`
@@ -55,6 +55,24 @@ C'est la cause probable de « l'app ne monte pas » constatée en E2E (Phase 12)
 les sélecteurs `input[type="email"]`, `nav[aria-label]`, `[data-screen-state]`
 n'étaient jamais trouvés car React n'affichait que l'écran d'erreur. **Toute**
 route authentifiée était inatteignable tant que `isAuthChecked` basculait.
+
+### Preuve E2E (CI Cypress, avant/après)
+
+| | Baseline `main` (run 40555104799) | Branche `agent/p0-hooks-routeguard` |
+|---|---|---|
+| Specs en échec | **17/17 (100 %)** | shard 1 : 5/12 · shard 2 : 5/18 |
+| Tests passants | 1 | shard 1 : **82** · shard 2 : **36** |
+| Tests en échec | 28 | shard 1 : 9 · shard 2 : 7 |
+| `zero-black-screen.cy.ts` | ✖ échec | **✔ 64/64** |
+| `auth-real.cy.ts` (signup, login→dashboard, onboarding) | ✖ | **✔ 5/5** |
+| `nav-bottom`, `responsive-skeleton`, `reports-budgets`, `calendar`, `local-smoke` | ✖ | **✔** |
+
+Le défaut P0 est levé : les parcours qui échouaient par « app not mounting »
+passent. Les échecs résiduels (forms-v2, members, performance-batch,
+cross-tenant, groups-events, sessions, persistence, comprehensive-flow,
+org-reports) relèvent de causes distinctes déjà documentées (R53/R83/R98 —
+environnement PowerSync, prérequis offline) ou de fuites de données de test
+(R96), **pas** du montage de l'app.
 
 ## Reste (assumé)
 
