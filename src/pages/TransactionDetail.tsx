@@ -33,6 +33,7 @@ import {
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
 import { useCanAccessMulti } from "@/hooks/useCanAccessMulti";
+import { useSubmitGuard } from "@/hooks/useSubmitGuard";
 import { notification } from "@/capabilities/notification";
 import {
   IonPage,
@@ -77,6 +78,11 @@ export default function TransactionDetail() {
   const reverseModalRef = useRef<HTMLDivElement>(null);
   useFocusTrap(rejectModalRef, showRejectModal);
   useFocusTrap(reverseModalRef, showReverseModal);
+
+  // Anti double-soumission (PM17) : un double-tap sur une action financière ne
+  // doit pas écrire deux fois. Le guard est synchrone (ref) → couvre la fenêtre
+  // avant le re-rendu qui désactive le bouton.
+  const guard = useSubmitGuard();
 
   // Preuves de dépense (photos dans le bucket `expense_proofs`).
   const { data: docData } = useDocuments();
@@ -130,82 +136,90 @@ export default function TransactionDetail() {
     (tx as any).event ||
     events.find((e: any) => e.id === (tx as any).event_id || e.id === (tx as any).eventId);
 
-  const handleApprove = async () => {
+  const handleApprove = () => {
     if (!canApproveMulti.allowed) {
       return;
     }
-    await approveTransactionPS(tx.id, user?.id || "");
-    // B.7 — notification locale app (persistée dans `notifications` PowerSync,
-    // visible dans l'UI in-app. L'audit APPROVED est géré côté trigger serveur.
-    await notification.sendNotification({
-      title: "Transaction approuvée",
-      message: `${tx.description || tx.id} a été approuvée.`,
-      targetRole: "TREASURIER",
-      extraData: {
-        source: "transaction-detail",
-        txId: tx.id,
-      },
+    return guard.run(async () => {
+      await approveTransactionPS(tx.id, user?.id || "");
+      // B.7 — notification locale app (persistée dans `notifications` PowerSync,
+      // visible dans l'UI in-app. L'audit APPROVED est géré côté trigger serveur.
+      await notification.sendNotification({
+        title: "Transaction approuvée",
+        message: `${tx.description || tx.id} a été approuvée.`,
+        targetRole: "TREASURIER",
+        extraData: {
+          source: "transaction-detail",
+          txId: tx.id,
+        },
+      });
+      navigate(-1);
     });
-    navigate(-1);
   };
 
-  const handleRejectConfirm = async () => {
+  const handleRejectConfirm = () => {
     if (!canRejectMulti.allowed) {
       return;
     }
     if (!rejectComment.trim()) return;
-    await updateTransactionPS(tx.id, { status: "REJECTED", comment: rejectComment.trim() });
-    await notification.sendNotification({
-      title: "Transaction rejetée",
-      message: `${tx.description || tx.id} a été rejetée : ${rejectComment.trim()}`,
-      targetRole: "TREASURIER",
-      extraData: {
-        source: "transaction-detail",
-        txId: tx.id,
-        reason: rejectComment.trim(),
-      },
+    return guard.run(async () => {
+      await updateTransactionPS(tx.id, { status: "REJECTED", comment: rejectComment.trim() });
+      await notification.sendNotification({
+        title: "Transaction rejetée",
+        message: `${tx.description || tx.id} a été rejetée : ${rejectComment.trim()}`,
+        targetRole: "TREASURIER",
+        extraData: {
+          source: "transaction-detail",
+          txId: tx.id,
+          reason: rejectComment.trim(),
+        },
+      });
+      setShowRejectModal(false);
+      setRejectComment("");
+      navigate(-1);
     });
-    setShowRejectModal(false);
-    setRejectComment("");
-    navigate(-1);
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!canDeleteMulti.allowed) {
       return;
     }
-    await deleteTransactionPS(tx.id);
-    await notification.sendNotification({
-      title: "Transaction supprimée",
-      message: `${tx.description || tx.id} a été supprimée.`,
-      targetRole: "TREASURIER",
-      extraData: {
-        source: "transaction-detail",
-        txId: tx.id,
-      },
+    return guard.run(async () => {
+      await deleteTransactionPS(tx.id);
+      await notification.sendNotification({
+        title: "Transaction supprimée",
+        message: `${tx.description || tx.id} a été supprimée.`,
+        targetRole: "TREASURIER",
+        extraData: {
+          source: "transaction-detail",
+          txId: tx.id,
+        },
+      });
+      navigate(-1);
     });
-    navigate(-1);
   };
 
-  const handleReverse = async () => {
+  const handleReverse = () => {
     if (!reverseReason.trim()) return;
     if (!canReverseMulti.allowed) {
       return;
     }
-    await reverseTransactionPS(tx.id, user?.id || "", reverseReason.trim());
-    await notification.sendNotification({
-      title: "Transaction inversée",
-      message: `${tx.description || tx.id} a été inversée : ${reverseReason.trim()}`,
-      targetRole: "TREASURIER",
-      extraData: {
-        source: "transaction-detail",
-        txId: tx.id,
-        reversalReason: reverseReason.trim(),
-      },
+    return guard.run(async () => {
+      await reverseTransactionPS(tx.id, user?.id || "", reverseReason.trim());
+      await notification.sendNotification({
+        title: "Transaction inversée",
+        message: `${tx.description || tx.id} a été inversée : ${reverseReason.trim()}`,
+        targetRole: "TREASURIER",
+        extraData: {
+          source: "transaction-detail",
+          txId: tx.id,
+          reversalReason: reverseReason.trim(),
+        },
+      });
+      setShowReverseModal(false);
+      setReverseReason("");
+      navigate(-1);
     });
-    setShowReverseModal(false);
-    setReverseReason("");
-    navigate(-1);
   };
 
   // Find reversal transaction if exists
@@ -361,6 +375,7 @@ export default function TransactionDetail() {
                   {canApproveMulti.allowed && (
                     <button
                       onClick={handleApprove}
+                      disabled={guard.submitting}
                       className="w-full py-4 rounded-full font-semibold text-on-accent text-sm transition-all active:scale-95"
                       style={{ backgroundColor: "var(--data-income)" }}
                     >
@@ -412,6 +427,7 @@ export default function TransactionDetail() {
                 canDeleteMulti.allowed && (
                   <button
                     onClick={handleDelete}
+                    disabled={guard.submitting}
                     className="w-full py-4 rounded-full font-semibold text-sm transition-all active:scale-95"
                     style={{
                       backgroundColor: "var(--surface)",
@@ -561,6 +577,7 @@ export default function TransactionDetail() {
                   <div className="flex gap-2">
                     <button
                       onClick={handleRejectConfirm}
+                      disabled={guard.submitting}
                       className="flex-1 py-3 rounded-full font-semibold text-on-accent text-sm"
                       style={{ backgroundColor: "var(--data-expense)" }}
                     >
@@ -612,6 +629,7 @@ export default function TransactionDetail() {
                   <div className="flex gap-2">
                     <button
                       onClick={handleReverse}
+                      disabled={guard.submitting}
                       className="flex-1 py-3 rounded-full font-semibold text-on-accent text-sm"
                       style={{ backgroundColor: "var(--data-pending)" }}
                     >
