@@ -107,3 +107,31 @@
 - Tout export CSV doit passer par `src/lib/csv.ts` (injection de formule OWASP).
 - `auth_leaked_password_protection` exige un plan **Pro** (non activable via API
   sur le plan courant) → R104.
+
+## RBAC / gardes de route (constats mesurés, 2026-10-26)
+- `resolveRoute()` (src/lib/routeResolver.ts) implémente 4 issues : render,
+  redirect, **forbidden** (permission de route manquante), **update-required**
+  (clientSchemaVersion < minSchemaVersion), **needs-membership** (isOrgMember
+  false). Mais `App.tsx` ne passe QUE `{ isAuthenticated }` → forbidden,
+  update-required et needs-membership sont **inertes** (R105/R106/R107). Les
+  écrans existent (`RouteStates.tsx`) mais aucune branche ne les déclenche.
+- `PERMISSION_MATRIX` (src/lib/rbac.ts) **n'inclut PAS** les rôles `ADMIN` ni
+  `CENTRAL_ADMIN` (pourtant présents en base : 1 profil `ADMIN`). `admin:settings`
+  n'est détenu QUE par PASTEUR_PRINCIPAL → câbler la garde fermerait `/admin`
+  aux admins. Réconcilier avant (PR18/R16).
+- `role_permissions` est une **vraie table DB** (migration
+  `20261026000002_rbac_has_permission.sql`) ; toute évolution de la matrice TS
+  doit être répercutée dans l'INSERT SQL **et** en base (le test
+  `permissions.test.ts` vérifie l'égalité TS↔SQL).
+- `can_manage_invitations` (SQL, prod) = PASTEUR_PRINCIPAL / ANCIEN /
+  TREASURIER. Les permissions `invitation:create/manage/revoke` (exigées par
+  ROUTE_REGISTRY) n'étaient détenues par **aucun** rôle canon → R105, corrigé.
+- Helper utile : `getRolesWithPermission(permission)` (src/lib/rbac.ts).
+
+## Piège git (constaté)
+- Le remote `origin` contenait un token obsolète `ghu_…` → `git push` demande un
+  mot de passe et **bloque**. Correctif : `git remote set-url origin
+  "https://x-access-token:${GITHUB_TOKEN}@github.com/<owner>/<repo>.git"`.
+- `gh` CLI n'est **pas authentifié** dans l'env ; utiliser `GH_TOKEN="$GITHUB_TOKEN" gh …`
+  ou les outils MCP. Un PR créé par l'outil MCP arrive en **draft** → `gh pr ready`
+  avant `gh pr merge`.
