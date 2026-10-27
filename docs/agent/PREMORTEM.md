@@ -31,7 +31,7 @@
 | PM16 | Import/export CSV → injection de formules | cellule commençant par `=`/`+`/`@` | 2 | 3 | 2 | 12 | échappement des formules (Phase 8) | V + C | à faire |
 | PM17 | Bouton cliqué deux fois → double écriture financière | pas d'anti double-soumission | 3 | 4 | 2 | 24 | `useSubmitGuard` (garde synchrone ref + `disabled`) sur les 4 actions financières de `TransactionDetail` | `V: useSubmitGuard.test.tsx` (3, jsdom : 2 clics = 1 appel) | **mitigé** (guard + test ; reste à étendre aux autres écrans financiers) |
 | PM18 | Données locales de A visibles par B sur le même appareil | purge locale absente au logout | 2 | 5 | 3 | 30 | purge complète au logout (Phase 5) | C changement d'utilisateur | à faire |
-| PM19 | Mutation en file jamais envoyée, sans indicateur | échec silencieux | 3 | 4 | 4 | 48 | indicateur par élément (Phase 9) | C chaos | à faire |
+| PM19 | Mutation en file jamais envoyée, sans indicateur | échec silencieux | 3 | 4 | 4 | 48 | `usePowerSyncIndicator.syncError` (uploadError/downloadError) + pill « échec d'envoi » sur le tableau de bord | `V: powersync-indicator.test.ts` (3, jsdom : upload/download) | **mitigé** (erreur désormais VISIBLE ; reste : indicateur par élément) |
 | PM20 | Données de test en production | seeds non marqués `is_test` | 2 | 2 | 3 | 12 | marquage `is_test` + orgs de test dédiées | SQL audit | à faire |
 
 > Ce registre est complété au fil des phases (chaque phase ajoute/actualise ses
