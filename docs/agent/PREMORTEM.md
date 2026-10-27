@@ -17,7 +17,7 @@
 | PM2 | Deep link vers org B alors que A active → écriture dans B | contexte d'org non changé avant écriture | 3 | 5 | 3 | 45 | `useAppUrlOpen` mémorise l'org visée (`deepLinkIntent`) → `RouteGuard` alimente `linkOrgId` → `org-switch-required` → `OrgSwitchScreen` (confirmation) + `enterOrganization` (garde d'accès) | `V: deeplink-org-switch.test.ts` (6) + `route-resolver.test.ts` | **mitigé** |
 | PM3 | Droit révoqué hors ligne → mutations non autorisées poussées | file d'envoi sans revalidation | 3 | 4 | 4 | 48 | la RLS serveur rejette (42501 → FATAL-SKIP : l'op est jetée, jamais appliquée) ; l'utilisateur est averti via l'indicateur d'erreur de sync (PM19) | `V: powersync-indicator.test.ts` (erreur visible) | **partiel** (sécurité OK ; explication par élément à faire) |
 | PM4 | Nouvelle table sans RLS → fuite inter-org | oubli d'activer RLS | 2 | 5 | 2 | 20 | garde d'inventaire RLS (RLS + ≥1 politique par table, exécutable en CI) | `V: rls-inventory.test.ts` (4) | **mitigé** |
-| PM5 | Dernier admin quitte → organisation orpheline | pas de garde « ≥1 propriétaire » | 2 | 4 | 3 | 24 | invariant anti-orphelin (Phase 4) | V | à faire |
+| PM5 | Dernier admin quitte → organisation orpheline | pas de garde « ≥1 propriétaire » | 2 | 4 | 3 | 24 | `assertNotLastOrgAdmin` (central.ts#revokeOrgAdmin) + trigger `trg_org_admins_not_last` (`org_assert_not_last_admin`, migration 20261026000007) | `V: last-org-admin.test.ts` (4) + `organization-central.test.ts` ; `SQL: transaction annulée T1/T2/T3/T4` ; trigger vérifié en base | **mitigé** |
 | PM6 | Offre gratuite : projet DB en pause → 1er accès échoue | mise en veille automatique | 3 | 3 | 2 | 18 | `keep-alive.yml` (ping REST toutes les 48 h) + écran de récupération au boot | workflow `keep-alive.yml` (déclenché, HTTP 200) | **mitigé** |
 | PM7 | Session expirée pendant une saisie longue → perte de données | pas de sauvegarde de brouillon | 3 | 4 | 3 | 36 | `useFormDraft` (localStorage `lumina-draft:*`) : saisie persistée en continu, restaurée à la réouverture, effacée à la soumission ; avis « Brouillon restauré » + « Recommencer » | `V: useFormDraft.test.tsx` (6, jsdom) | **mitigé** (FormFill ; généralisable aux autres formulaires) |
 | PM8 | Suppression d'un membre → écritures orphelines | suppression dure au lieu d'anonymisation | 2 | 5 | 2 | 20 | anonymisation, 0 orphelin (Phase 7) | C + SQL | à faire |
@@ -64,12 +64,11 @@ Reclassés en **partiel** (sécurité assurée, confort restant) : PM3 (la RLS
 serveur rejette l'op hors droits ; l'explication par élément à l'utilisateur
 reste à faire).
 
-**Restent ouverts** (nécessitent une décision/chantier) : PM5 (invariant « ≥1 propriétaire »), PM7 (brouillon de
-saisie longue), PM8 (anonymisation au lieu de suppression dure), PM14
-(versionnage de schéma), PM15 (réinitialisation locale exposée dans l'UI),
-PM20 (marquage `is_test`).
+**Restent ouverts** (nécessitent une décision/chantier) : PM8 (anonymisation au
+lieu de suppression dure), PM14 (versionnage de schéma), PM15 (réinitialisation
+locale exposée dans l'UI), PM20 (marquage `is_test`).
 
-Aucun risque **impact 5** ne reste sans mitigation : PM2 (impact 5) est désormais **mitigé** (deep link inter-org → confirmation
-+ bascule gardée par l'accès local), PM5/PM8 (impact 5) sont des chantiers
-identifiés non bloquants, PM18 (impact 5) est **mitigé**. PM7 est **mitigé**
-(brouillon de saisie longue).
+**Il reste UN risque impact 5 non mitigé : PM8** (suppression dure d'un membre →
+écritures orphelines). PM2 (impact 5), PM9 (impact 5) et PM18 (impact 5) sont
+**mitigés** ; PM5 (impact 4) et PM7 (impact 4) sont désormais **mitigés**
+(garde anti-orphelin d'organisation, brouillon de saisie longue).

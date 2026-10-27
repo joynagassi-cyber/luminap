@@ -127,6 +127,10 @@ describe("admin grants", () => {
   beforeEach(() => {
     calls.length = 0;
     auditEntries.length = 0;
+    // PM5 — la révocation compte les admins ACTIFS de l'org : on simule un
+    // second admin actif (grant-1 + grant-2) pour que le cas nominal passe.
+    dbRows.length = 0;
+    dbRows.push({ id: "grant-1" }, { id: "grant-2" });
   });
 
   it("B.8 — refuse la mutation si l'acteur n'a pas le grant local (GRANT_MISSING)", async () => {
@@ -158,6 +162,15 @@ describe("admin grants", () => {
     await revokeOrgAdmin("grant-1", "org-B", "root-1", { status: "ACTIVE" });
     expect(calls).toContainEqual(["revoke", "grant-1"]);
     expect(auditEntries[0].action).toBe("REVOKE");
+  });
+
+  it("PM5 — refuse de révoquer le dernier admin actif (org orpheline)", async () => {
+    dbRows.length = 0;
+    dbRows.push({ id: "grant-1" });
+    await expect(
+      revokeOrgAdmin("grant-1", "org-B", "root-1", { status: "ACTIVE" }),
+    ).rejects.toThrow("LAST_ORG_ADMIN");
+    expect(calls).not.toContainEqual(["revoke", "grant-1"]);
   });
 });
 

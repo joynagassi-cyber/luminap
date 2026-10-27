@@ -78,6 +78,32 @@ async function assertOrgAccess(orgId: string, actorId: string): Promise<void> {
 }
 
 /**
+ * PM5 — invariant « ≥1 propriétaire ».
+ *
+ * Compte les grants ACTIFS de l'organisation. Si révoquer `grantId` ferait
+ * tomber ce compte à 0, on refuse : l'organisation deviendrait orpheline
+ * (aucun administrateur ne pourrait la réadministrer). Le grant visé peut
+ * avoir déjà été révoqué (compte non décrémenté) ou être introuvable.
+ */
+export async function assertNotLastOrgAdmin(
+  orgId: string,
+  grantId: string,
+): Promise<void> {
+  const db = getPowerSyncDatabase();
+  const res = await db.execute(
+    "SELECT id FROM org_admins WHERE org_id = ? AND status = 'ACTIVE'",
+    [orgId],
+  );
+  const rows = ((res as { array?: unknown })?.array ?? []) as Array<{ id: string }>;
+  const active = Array.from(rows);
+  const targetIsActive = active.some((r) => r.id === grantId);
+  const activeAfter = active.length - (targetIsActive ? 1 : 0);
+  if (activeAfter < 1) {
+    throw new Error("LAST_ORG_ADMIN");
+  }
+}
+
+/**
  * Suspend une organisation (lifecycle). L'historique est conservé.
  * Le serveur rejette si l'acteur n'a pas le droit (RLS org_admins).
  */
@@ -219,6 +245,10 @@ export async function revokeOrgAdmin(
 ): Promise<void> {
   // B.8 : l'acteur doit avoir le droit sur l'org (union 3 sources) pour révoquer.
   await assertOrgAccess(orgId, actorId);
+  // PM5 — invariant anti-orphelin : une organisation ne doit jamais se
+  // retrouver sans aucun administrateur ACTIF. Sans cette garde, révoquer le
+  // dernier grant laisse l'org ingérable (personne ne peut la réadministrer).
+  await assertNotLastOrgAdmin(orgId, grantId);
   await revokeOrgAdminPS(grantId);
   await writeAudit(
     buildAudit(
