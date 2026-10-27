@@ -135,3 +135,26 @@
 - `gh` CLI n'est **pas authentifié** dans l'env ; utiliser `GH_TOKEN="$GITHUB_TOKEN" gh …`
   ou les outils MCP. Un PR créé par l'outil MCP arrive en **draft** → `gh pr ready`
   avant `gh pr merge`.
+
+## Classe de défaut récurrente : « filet déclaré, jamais déclenché »
+Trois occurrences trouvées (R105/R106/R107/R108) : une garde/écran est écrit et
+documenté comme actif, mais son déclencheur n'est jamais alimenté.
+- **R105** : `invitation:*` exigées par ROUTE_REGISTRY, détenues par aucun rôle.
+- **R106/R107** : `resolveRoute` reçoit seulement `{isAuthenticated}`.
+- **R108** : `AppReadyBridge` posait `readyRef=true` AVANT d'armer le minuteur →
+  `if(!readyRef.current)` toujours faux ; `BootRecoveryScreen` inatteignable. Un
+  watchdog DANS l'arbre React ne peut pas détecter l'absence de montage.
+  Corrigé : `src/lib/bootWatchdog.ts` armé avant `createRoot` dans `main.tsx`,
+  surcouche HTML statique (`renderBootRecoveryOverlay`, `data-screen-state=error`).
+  Méthode de détection : pour chaque garde, vérifier que la condition peut
+  réellement devenir vraie, et que le déclencheur est alimenté quelque part.
+
+## Gardes de test « sans identifiants » (pattern réutilisable)
+- `docs/agent/rls-inventory.json` + `src/lib/__tests__/rls-inventory.test.ts` :
+  fige l'inventaire RLS mesuré (43 tables) et fait échouer la CI si une table
+  n'a ni RLS ni politique (sauf deny-all listé : `keep_alive`,
+  `_jsonb_backfill_20261024`). Requête de régénération en tête du test.
+- Tests jsdom : ajouter `// @vitest-environment jsdom` en 1re ligne ; l'import
+  `from "fs"`/`resolve(__dirname,...)` fonctionne (pas besoin de fileURLToPath).
+- `installChunkErrorRecovery` (clientErrors.ts) : recharge 1× par session via
+  `sessionStorage['lumina-chunk-reloaded']` (anti-boucle) sur `vite:preloadError`.
