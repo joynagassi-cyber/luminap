@@ -65,6 +65,13 @@ export async function persistUpdateMember(
 }
 
 // --- deleteMember ---
+//
+// PM8 — la suppression d'un membre n'est pas un effacement muet : la base
+// refuse (RESTRICT) de supprimer un membre porteur de cotisations, et toute
+// suppression restante est tracée dans `audit_entries` (trigger
+// `trg_members_audit_delete`, migration 20261026000008). Le chemin sanctionné
+// pour un membre avec historique est l'archivage (`archiveMember`), qui
+// conserve la ligne et son lien financier.
 
 export function applyDeleteMember(members: Member[], id: string): Member[] {
   return members.filter((m) => m.id !== id);

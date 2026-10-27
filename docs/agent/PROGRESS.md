@@ -58,6 +58,7 @@
 | 2 | Deep link inter-organisation : `org-switch-required` était mort (PM2, priorité 45) | P0 | **terminé** | `agent/phase-02-org-switch-deeplink` | `phase-02/2026-10-26-org-switch-deeplink.md` |
 | 7 | Brouillon de saisie longue : perte de données à l'expiration de session (PM7, priorité 36) | P1 | **terminé** | `agent/phase-07-form-draft` | `phase-07/2026-10-26-form-draft.md` |
 | 4 | Invariant « ≥1 propriétaire » : une org pouvait perdre son dernier admin (PM5, priorité 24) | P1 | **terminé** | `agent/phase-04-last-org-admin` | `phase-04/2026-10-26-last-org-admin.md` |
+| 7 | Suppression d'un membre : le lien financier cascadait (perte de cotisations) (PM8, priorité 20) | P1 | **terminé** | `agent/phase-07-member-deletion` | `phase-07/2026-10-26-member-deletion.md` |
 | 4 | RBAC : R109 — rôle `ADMIN` DB-only (compte admin central sans droits) mesuré + garde anti-dérive TS↔DB | P1 | **terminé** (documenté, gardé ; décision propriétaire) | `agent/phase-04-role-model` | `phase-04/2026-10-26-role-model.md` |
 | 4 | RBAC : câblage réel de la garde de route (`hasPermission`/`isOrgMember`) | P1 | bloqué (dépend décision R109/R16) | — | R109 |
 | 10 | Design system, UX, responsive, perf, a11y | P2 | à faire | `agent/phase-10-ux` | — |
