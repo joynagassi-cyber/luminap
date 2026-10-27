@@ -170,7 +170,7 @@ export default function InvitationEmit() {
   const payload = useMemo(() => {
     if (!generatedId || !createdAt || !expiresAt) return null;
     return {
-      v: 1,
+      v: 2,
       orgId: targetOrgId,
       invitationId: generatedId,
       code: generatedCode,
@@ -178,8 +178,15 @@ export default function InvitationEmit() {
       scope: {
         type: scopeType,
         ...(scopeType === "GROUP" ? { groupId: targetGroupId } : {}),
+        // B.3 — scope granulaire transporté (harmonisé sur AccessScope.id) :
+        // sans ces champs, une invitation scopée (event/report/ressource libre)
+        // perdait sa cible côté QR et le claim retombait sur ORG.
+        ...(targetScopeResource ? { resource: targetScopeResource } : {}),
+        ...(targetScopeId ? { id: targetScopeId } : {}),
       },
       memberId: targetMemberId || null,
+      grants: [],
+      tags: [],
       issuedAt: createdAt,
       // Réutilise la valeur PERSISTÉE (pas recalculée au render) — sinon le
       // claimant peut être rejeté côté serveur alors que le scan local
@@ -194,6 +201,8 @@ export default function InvitationEmit() {
     scopeType,
     targetGroupId,
     targetMemberId,
+    targetScopeResource,
+    targetScopeId,
     createdAt,
     expiresAt,
   ]);
@@ -352,13 +361,18 @@ export default function InvitationEmit() {
                   </IonCardHeader>
                   <IonCardContent className="flex justify-center py-6">
                     {payload && (
-                      /* fond blanc fixe : vérité d'impression/scannage, indépendant du thème */
+                      /* fond blanc fixe + modules noirs : vérité de
+                         scannage. Un `bgColor` lié au thème
+                         (`var(--text-primary)`) rendait le QR noir-sur-noir
+                         en thème clair (#1a1a1a) → illisible par la caméra.
+                         Contraste et polarité FIXES, indépendants du thème. */
                       <div style={{ backgroundColor: "#fff" }} className="inline-block">
                         <QRCodeSVG
                           value={JSON.stringify(payload)}
                           size={220}
-                          bgColor="var(--text-primary)"
+                          bgColor="#ffffff"
                           fgColor="#000000"
+                          level="M"
                         />
                       </div>
                     )}

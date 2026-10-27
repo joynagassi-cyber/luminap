@@ -22,6 +22,7 @@
 | Phase | Tâche | Prio | Statut | Branche / PR | Receipt |
 |---|---|---|---|---|---|
 | 0 | Amorçage de l'état + réconciliation | P0 | **terminé** | `agent/phase-00-etat` | `phase-00/2026-10-26-etat.md` |
+| 0 | Tâche 1 — skills QA installés (`cypress-e2e`, `claude-code-qa`, `playwright-e2e`, `supertest-api`) | P2 | **terminé** | `agent/task1-qa-skills` | `phase-00/2026-10-26-task1-qa-skills.md` |
 | 2 | Routage : `resolveRoute` + registre unique | P0 | **terminé** | `agent/phase-02-routing` | `phase-02/2026-10-26-routing.md` |
 | 2 | Écrans d'état 404 / « accès refusé » / update-required | P0 | **terminé** | `agent/phase-02-routing` | `phase-02/2026-10-26-routing.md` |
 | 2 | `ErrorBoundary` par route (déjà via `LazyRoute`) | P0 | **terminé** | (pré-existant) | `phase-02/2026-10-26-routing.md` |
@@ -41,6 +42,7 @@
 | 4 | RBAC fin : réécrire les ~146 politiques RLS sur `has_permission` | P2 | proposition | — | (cf. PROPOSALS PR18) |
 | 5-6 | Auth, création d'org, onboarding, invitations | P1 | **terminé** (partiel : sync E1) | `agent/phase-05-06-auth-invitations` | `phase-05-06/2026-10-26-auth-invitations.md` |
 | 5-6 | Preuve post-acceptation (sync filtrée + rôle actif) | P1 | **terminé** (E1 levé) — flux serveur prouvé ; **défaut grave R111 découvert** (FK `auth.users`) | `agent/phase-05-06-post-acceptation` | `phase-05-06/2026-10-27-post-acceptation-proof.md` |
+| 5-6 | **R111 — inscription obligatoire avant le claim** (profil lié à `auth.uid()`, fin de l'UUID aléatoire) + QR lisible en thème clair | P1 | **terminé** | `agent/r111-claim-auth-required` | `phase-05-06/2026-10-26-r111-claim-auth-required.md` |
 | 7 | Finance : modèle unique, contrepassation, rapports | P1 | **terminé** (R101/R102 corrigés) | `agent/phase-07-finance` | `phase-07/2026-10-26-finance.md` |
 | 8 | Isolation & sécurité (Red Team) | P1 | **terminé** (R103 corrigé, R104 escalade) | `agent/phase-08-isolation` | `phase-08/2026-10-26-isolation.md` |
 | 9 | Synchronisation & hors-ligne (PowerSync) — R89.a identifiants catégories | P1 | **terminé** | `agent/phase-09-sync-categories` | `phase-09/2026-10-26-r89a-canonical-categories.md` |
