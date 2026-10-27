@@ -14,6 +14,8 @@ import TopHeader from "@/components/TopHeader";
 import CircleAction from "@/components/CircleAction";
 import { EventsSkeleton } from "@/components/PageSkeletons";
 import EmptyState from "@/components/EmptyState";
+import CapabilityBanner from "@/components/CapabilityBanner";
+import { getOrganizationId } from "@/lib/orgContext";
 import { formatDate, formatCurrencyCompact } from "@/lib/utils";
 import SegmentedTabs from "@/components/SegmentedTabs";
 import EventCalendar from "@/components/EventCalendar";
@@ -73,6 +75,7 @@ export default function Events() {
       ) : (
         <IonContent className="bg-canvas" fullscreen>
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe">
+            <CapabilityBanner orgId={getOrganizationId()} />
             <div className="flex items-center justify-between mb-5">
               <div>
                 <h1 className="text-text-primary font-bold text-xl">

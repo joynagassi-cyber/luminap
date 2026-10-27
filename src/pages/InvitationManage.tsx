@@ -38,6 +38,8 @@ import {
 import BottomNav from "@/components/BottomNav";
 import { ShimmerCard } from "@/components/Shimmer";
 import EmptyState from "@/components/EmptyState";
+import CapabilityBanner from "@/components/CapabilityBanner";
+import { getOrganizationId } from "@/lib/orgContext";
 import { useInvitations } from "@/lib/dataLayer";
 import { useCurrentUser } from "@/lib/dataLayer";
 import { invitation } from "@/capabilities/invitation";
@@ -200,6 +202,7 @@ export default function InvitationManage() {
       <IonContent fullscreen>
         <div className="min-h-dvh">
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
+            <CapabilityBanner orgId={getOrganizationId()} />
             {/* Stats */}
             <div className="grid grid-cols-3 gap-3 mb-6">
               {[

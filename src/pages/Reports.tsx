@@ -24,6 +24,8 @@ import {
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
 import EmptyState from "@/components/EmptyState";
+import CapabilityBanner from "@/components/CapabilityBanner";
+import { getOrganizationId } from "@/lib/orgContext";
 import { ReportsSkeleton } from "@/components/PageSkeletons";
 import { exportPDF, exportExcel, exportCSV } from "@/lib/export";
 import { reportDefinitionRepo } from "@/lib/reporting";
@@ -432,6 +434,7 @@ export default function Reports() {
         <div className="min-h-dvh">
           <TopHeader title="Rapports" />
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
+            <CapabilityBanner orgId={getOrganizationId()} />
             {/* Période */}
             <div className="flex gap-2 mb-5">
               {([
