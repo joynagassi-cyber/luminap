@@ -44,10 +44,44 @@ echo "[backup] début $TS → $OUT_DIR"
 
 fail() { echo "ERREUR : $1" >&2; exit 1; }
 
+# --- 0. Diagnostic SANS secret (hôte ciblé, version CLI, joignabilité) ------
+# Rien ici ne doit révéler le mot de passe : le dépôt est PUBLIC et les logs
+# d'Actions le sont aussi. On n'affiche que l'hôte, le port et la version.
+DB_HOSTPORT="$(printf '%s' "$SUPABASE_DB_URL" \
+  | sed -E 's#^[a-zA-Z][a-zA-Z0-9+.-]*://##' \
+  | sed -E 's#.*@##; s#[/?].*$##')"
+DB_HOST="${DB_HOSTPORT%%:*}"
+DB_PORT="${DB_HOSTPORT##*:}"
+[ "$DB_PORT" = "$DB_HOST" ] && DB_PORT=5432
+echo "[backup] cible : $DB_HOST:$DB_PORT (identifiants masqués)"
+# PIÈGE VÉRIFIÉ LE 2026-10-27 (run 40531962063) : l'hôte direct
+# `db.<ref>.supabase.co` ne possède AUCUN enregistrement A — il n'existe qu'en
+# IPv6 (AAAA). Les runners GitHub Actions n'ont pas d'IPv6 → pg_dump échoue
+# après avoir tiré l'image Docker (~48 s) sur « Network is unreachable ».
+# Le pooler `aws-0-<region>.pooler.supabase.com` a un A (IPv4) → il fonctionne.
+case "$DB_HOST" in
+  db.*) echo "[backup] ATTENTION : hôte direct « $DB_HOST » = IPv6 SEULEMENT (aucun
+                 enregistrement A). GitHub Actions n'a pas d'IPv6 → échec
+                 « Network is unreachable ». Utiliser le pooler IPv4 :
+                 aws-0-<region>.pooler.supabase.com:5432 avec l'utilisateur
+                 postgres.<ref> (dashboard Supabase → Connect → Session pooler)." >&2 ;;
+  *.pooler.supabase.com) echo "[backup] hôte pooler détecté (IPv4) : conforme" ;;
+esac
+# La version de la CLI distingue un échec réseau/auth d'un échec de compatibilité
+# pg_dump ↔ serveur. `npx` met le paquet en cache : le dump suivant est plus rapide.
+echo "[backup] CLI Supabase : $($SUPABASE_BIN --version 2>&1 | tail -1 || echo 'inconnue')"
+# Test TCP avant le dump : sépare « hôte/port injoignables » (erreur immédiate et
+# explicite) de « authentification refusée » (sinon noyée dans la sortie pg_dump).
+if command -v timeout >/dev/null 2>&1; then
+  timeout 10 bash -c "exec 3<>/dev/tcp/$DB_HOST/$DB_PORT" 2>/dev/null \
+    || fail "hôte injoignable : $DB_HOST:$DB_PORT — vérifier SUPABASE_DB_URL (pooler aws-0-<region>.pooler.supabase.com:5432)"
+  echo "[backup] port $DB_PORT joignable"
+fi
+
 # --- 1. Schéma (DDL : tables, index, politiques RLS, fonctions, triggers) ----
 echo "[backup] schéma…"
 $SUPABASE_BIN db dump --db-url "$SUPABASE_DB_URL" -f "$OUT_DIR/.schema-$TS.sql" \
-  || fail "dump du schéma"
+  || fail "dump du schéma (si l'erreur est « password authentication failed » : mot de passe non percent-encodé dans SUPABASE_DB_URL — @ : / # ? % & doivent devenir %40 %3A %2F %23 %3F %25 %26)"
 gzip -f "$OUT_DIR/.schema-$TS.sql" || fail "compression du schéma"
 SCHEMA_GZ="$OUT_DIR/schema-$TS.sql.gz"
 # gzip conserve le point initial du fichier temporaire : on le retire pour que

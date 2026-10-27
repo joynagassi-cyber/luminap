@@ -1,0 +1,79 @@
+name: Garde anti-pause (détecte un keep-alive muet)
+
+# RÔLE — filet de sécurité à DEUX niveaux.
+#
+# Le workflow `keep-alive.yml` échoue bruyamment quand il s'exécute et que le
+# ping échoue. Mais « pas de run du tout » ne produit aucun échec : ce qui ne
+# tourne pas ne se plaint pas. Ce garde couvre ce trou côté GitHub.
+#
+#   1. Le workflow keep-alive est-il encore à l'état `active` ? GitHub coupe
+#      TOUS les schedules d'un dépôt PUBLIC après 60 jours sans commit, et
+#      prévient à peine.
+#   2. Son dernier run réussi date-t-il de moins de 4 jours ? Le cron tourne
+#      sur les jours impairs ; 4 jours = deux exécutions manquées.
+#
+# LIMITE ASSUMÉE — ce garde est lui-même planifié sur GitHub. Si GitHub coupe
+# globalement les schedules, il se taît aussi. C'est pourquoi le dead-man's
+# switch EXTERNE (healthchecks.io, voir keep-alive-verifiable.yml) reste la
+# seule protection complète. Les deux sont complémentaires :
+#   - santé du dépôt / du workflow  → ici, avec un message précis ;
+#   - arrêt total de GitHub        → healthchecks.io.
+#
+# Déclencheur : hebdomadaire le lundi (les jours impairs du keep-alive ne
+# tombent pas toujours un lundi, ce garde si).
+
+on:
+  schedule:
+    - cron: '0 7 * * 1'   # lundi 07:00 UTC = 08:00 à Cotonou
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  garde:
+    name: Vérifier que le keep-alive tourne encore
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: État du workflow + fraîcheur du dernier succès
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -uo pipefail
+          api="https://api.github.com/repos/$REPO"
+          auth="Authorization: Bearer $GH_TOKEN"
+          fail=0
+
+          # 1. État — `disabled_inactivity` est le cas silencieux à attraper.
+          state=$(curl -sS --max-time 20 -H "$auth" -H "Accept: application/vnd.github+json" \
+            "$api/actions/workflows/keep-alive.yml" \
+            | sed -n 's/.*"state"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)
+          echo "état du workflow keep-alive : ${state:-inconnu}"
+          if [ "$state" != "active" ]; then
+            echo "::error::Workflow keep-alive à l'état '${state:-inconnu}'. Les pings sont arrêtés. Réarmer : gh workflow enable keep-alive.yml — puis vérifier que le dépôt reçoit bien des commits (règle des 60 jours, dépôts PUBLICS)."
+            fail=1
+          fi
+
+          # 2. Fraîcheur — on prend le dernier run `success`, tous événements
+          # confondus (un workflow_dispatch manuel compte comme une preuve de
+          # vie, mais on veut surtout voir le schedule reprendre).
+          last=$(curl -sS --max-time 20 -H "$auth" -H "Accept: application/vnd.github+json" \
+            "$api/actions/workflows/keep-alive.yml/runs?status=success&per_page=1" \
+            | sed -n 's/.*"updated_at"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)
+          if [ -z "$last" ]; then
+            echo "::error::Aucun run réussi du keep-alive n'est enregistré — le mécanisme n'a jamais fonctionné."
+            fail=1
+          else
+            echo "dernier succès : $last"
+            age=$(( ( $(date -u +%s) - $(date -u -d "$last" +%s) ) / 86400 ))
+            echo "ancienneté : $age jour(s)"
+            if [ "$age" -gt 4 ]; then
+              echo "::error::Dernier succès du keep-alive il y a $age jours (seuil : 4). Deux exécutions consécutives ont été manquées — le projet Supabase peut être en pause. Vérifier le tableau de bord Supabase, puis relancer le workflow manuellement."
+              fail=1
+            fi
+          fi
+
+          exit "$fail"

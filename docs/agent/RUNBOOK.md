@@ -361,9 +361,36 @@ Le plan Supabase **gratuit** ne fournit **aucune** sauvegarde téléchargeable
 La protection est donc un **export logique planifié hors Supabase**. C'est
 désormais outillé dans le dépôt :
 
-- `.github/workflows/backup.yml` — quotidien 03:00 UTC.
+- `.github/workflows/backup.yml` — **hebdomadaire, DIMANCHE 03:00 UTC** (= 04:00
+  à Cotonou). Historique du cron : `0 3 * * *` (quotidien) jusqu'au 27/10/2026,
+  puis `0 3 * * 0` (dimanche) après #52. **Conservé le dimanche** : décision du
+  propriétaire le 2026-10-27 (« dimanche c'est bon ») — le passage au lundi a
+  été écarté.
 - `scripts/backup-supabase.sh` — export schéma + données, empreintes SHA-256,
   chiffrement AES256 optionnel, rotation 30 jours.
+
+### Planification : ce qui est possible et ce qui ne l'est pas
+
+| Sujet | À retenir |
+|---|---|
+| Fuseau horaire | **UTC uniquement**. GitHub n'offre ni fuseau ni heure d'été. Cotonou = UTC+1 toute l'année → soustraire 1 h. |
+| Jour | `0`=dim, `1`=lundi, `2`=mardi, `3`=mercredi, `4`=jeudi, `5`=vendredi, `6`=samedi (`0` et `7` = dimanche). La sauvegarde est sur **`0` (dimanche)**. |
+| Branche | Le cron n'est lu que sur la **branche par défaut** (`main`). Modifier le fichier sur une branche de travail ne change **rien** aux exécutions planifiées. |
+| Ponctualité | **Non garanti.** Mesuré : cron `03:00 UTC` → runs réels à `07:56`, `08:17`, `08:30` UTC les 25, 26 et 27/10/2026 (**~5 h de retard**). Ne pas bâtir de dépendance sur l'heure exacte ; lancer `workflow_dispatch` pour tester. |
+| Désactivation | Un dépôt **public** sans activité pendant **60 jours** voit ses schedules coupés par GitHub. `keep-alive.yml` (toutes les 48 h) évite le problème. |
+| Minimum | Pas plus d'une exécution par **5 minutes**, et GitHub recommande d'éviter les heures rondes (`0` minute) où la charge est maximale. |
+| Test immédiat | *Actions* → « Sauvegarde Supabase » → **Run workflow** (`workflow_dispatch`). |
+
+Formules utiles (cron à 5 champs `min heure jour-du-mois mois jour-de-semaine`) :
+
+```yaml
+- cron: '0 3 * * 0'    # dimanche 04:00 Cotonou   ← EN PLACE (sauvegarde)
+- cron: '0 0 * * *'    # tous les jours à minuit UTC
+- cron: '0 3 * * 1'    # lundi 04:00 Cotonou
+- cron: '0 3 * * 1,4'  # lundi ET jeudi
+- cron: '0 3 1 * *'    # le 1er de chaque mois
+- cron: '0 6 */2 * *'  # jours IMPAIRS du mois (keep-alive) — écart max 2 j
+```
 
 ### Mise en service (une seule fois)
 
@@ -371,6 +398,34 @@ désormais outillé dans le dépôt :
    *Project Settings* → *Database* → *Connection string* → onglet **URI**
    (rôle `postgres`, mot de passe de la base). La **percent-encoder** si le
    mot de passe contient des caractères spéciaux.
+
+   > #### ⚠️ Prendre le **Session pooler**, JAMAIS la « Direct connection »
+   >
+   > Vérifié le 2026-10-27 (run `40531962063`, échec après 48 s) :
+   >
+   > ```
+   > pg_dump: error: connection to server at "db.hhgovvrnalibhgpakswi.supabase.co"
+   >   (2a05:d01c:874:6b01:e75b:1568:eaf6:c53), port 5432 failed: Network is unreachable
+   > Your network does not support IPv6, which is required for direct connections
+   > to the database.
+   > ```
+   >
+   > | Hôte | A (IPv4) | AAAA (IPv6) |
+   > |---|---|---|
+   > | `db.<ref>.supabase.co` — connexion **directe** | **aucun** | `2a05:d01c:…` |
+   > | `aws-0-<region>.pooler.supabase.com` — **pooler** | oui | aucun |
+   >
+   > L'hôte direct n'existe **qu'en IPv6** ; les runners GitHub Actions n'ont
+   > pas d'IPv6. La forme retenue est donc :
+   >
+   > ```
+   > postgresql://postgres.<ref>:<MDP_PERCENT_ENCODÉ>@aws-0-<region>.pooler.supabase.com:5432/postgres
+   > ```
+   >
+   > (utilisateur `postgres.<ref>`, port **5432** = session pooler ; le port
+   > 6543 = transaction pooler, inadapté à `pg_dump`). Le mot de passe ne
+   > change pas : seul l'hôte et le nom d'utilisateur diffèrent de la
+   > connexion directe.
 2. GitHub → *Settings* → *Secrets and variables* → *Actions* → créer :
    - `SUPABASE_DB_URL` = la chaîne de connexion complète ;
    - `BACKUP_GPG_PASSPHRASE` = une phrase de passe (active le chiffrement ;
@@ -409,20 +464,133 @@ d'abord**, puis les **données**, et vérifier `select count(*) from profiles;`.
 ### Anti-pause (indispensable sur le plan gratuit)
 
 Supabase met un projet Free en pause après **7 jours** de faible **activité
-API**. L'activité **interne** (job `pg_cron keep_alive_daily`) **ne compte
-pas** : seul un appel API **externe** remet le compteur à zéro.
+base**. L'activité **interne** (job `pg_cron keep_alive_daily`) **ne compte
+pas** : seul un appel **externe** remet le compteur à zéro.
 
-- `.github/workflows/keep-alive.yml` envoie un ping **toutes les 48 h**
-  (`REST /rest/v1/keep_alive` + `Auth /auth/v1/health`). Dépôt **public** :
-  les schedules ne sont pas désactivés. Un échec de ping fait échouer le job →
-  GitHub notifie le propriétaire.
-- Vérification manuelle : *Actions* → « Keep-alive Supabase » → dernier run
-  vert, et `select last_ping from keep_alive;` doit dater de < 48 h.
-- En cas de pause : la restaurer depuis le tableau de bord Supabase (fenêtre
-  de 90 jours), puis vérifier `select last_ping from keep_alive;`.
+#### Deux mécanismes en place, un seul protège réellement (vérifié le 2026-10-27)
 
-> Le heartbeat `pg_cron` reste utile (il horodate le dernier passage), mais il
-> **ne suffit pas** à empêcher la pause : c'est le ping externe qui agit.
+| Mécanisme | Où il vit | Efficace contre la pause ? |
+|---|---|---|
+| `pg_cron` → job `keep_alive_daily`, cron `0 0 * * *`, `active=true` | **dans** la base | ❌ **non** |
+| `.github/workflows/keep-alive.yml`, toutes les 48 h | **hors** du projet | ✅ oui |
+
+Le job `pg_cron` fonctionne parfaitement — 12 exécutions consécutives
+`succeeded` du 16 au 27/10/2026, `last_ping` à jour. Mais il a un défaut
+**structurel** : *il vit à l'intérieur de ce qu'il est censé protéger*.
+Quand un projet Supabase se met en pause, le processus Postgres s'arrête, donc
+`pg_cron` s'arrête avec lui : le job ne peut pas réveiller le projet. L'horloge
+s'arrête avec la machine.
+
+C'est pourquoi `keep-alive.yml` (ping REST + Auth **depuis GitHub**) reste la
+seule protection réelle. Il ne faut pas supprimer le job `pg_cron` pour autant :
+il sert de journal de bord (`last_ping`), et ne coûte rien.
+
+#### Preuve que la pause arrive vraiment sur ce compte
+
+Le projet **`jkqpoowxnerxqwnydeea`** (« joynagassi@gmail.com's Project »,
+eu-west-1, créé le 21/12/2025) est **`INACTIVE`** = en pause, sans mécanisme
+externe. Le projet Lumina (`hhgovvrnalibhgpakswi`) est `ACTIVE_HEALTHY`, avec
+**8,98 M de transactions** depuis le 25/08/2026 : à ce niveau d'usage
+applicatif, le risque de pause est quasi nul aujourd'hui.
+
+#### Contrôles
+
+> ⚠️ **`select last_ping from keep_alive` ne prouve RIEN sur le mécanisme
+> externe.** `last_ping` est écrit par le job pg_cron (00:00 UTC chaque jour),
+> pas par GitHub. Le contrôle du RUNBOOK « `last_ping` < 48 h » valide donc
+> pg_cron — c'est-à-dire précisément le mécanisme qui ne protège pas. Cette
+> erreur a été corrigée le 2026-10-27.
+
+Ce qui est réellement vérifiable aujourd'hui :
+
+1. **Le mécanisme atteint bien Postgres** — `pg_stat_statements` compte les
+   requêtes PostgREST sur `keep_alive` :
+   ```sql
+   select calls, rows, left(query, 80)
+     from pg_stat_statements
+    where query ilike '%pgrst_source%keep_alive%'
+    order by calls desc;
+   ```
+   Relevé du 27/10 : 4 appels. La lecture s'exécute bien côté serveur.
+2. **Le workflow s'exécute** — `gh api .../workflows/394939112/runs` :
+   runs des 25/10 10:58 et 27/10 11:48, tous deux `schedule` + `success`.
+   Attention : 3 runs seulement affichés, dont un `workflow_dispatch` le 24/10.
+3. **Rien ne prouve qu'un run donné a pingé** — *avant la migration ci-dessous*,
+   le ping était une LECTURE : aucune trace attribuable. Un run vert pouvait
+   s'exécuter sans que la requête porte (le contrôle HTTP 2xx ne distingue pas
+   un `200 []` d'un `200` avec données).
+
+#### Trace déterministe — migration APPLIQUÉE le 2026-10-27
+
+La migration `20261027000003_keep_alive_external_trace.sql` est **en
+production** (version `20261027000003` enregistrée dans
+`supabase_migrations.schema_migrations`, donc alignée sur le fichier du dépôt).
+Elle ajoute `external_ping` et `external_count`, écrits **uniquement** par le
+RPC `keep_alive_ping()` — jamais par pg_cron.
+
+État au moment de l'application : `external_ping = NULL`, `external_count = 0`.
+La première valeur non nulle sera donc la **première preuve d'un ping externe
+réel**.
+
+```sql
+-- À interroger après le prochain run de « Keep-alive Supabase » :
+select last_ping,      -- mécanisme INTERNE (pg_cron)
+       external_ping,  -- mécanisme EXTERNE (GitHub)  ← seul qui protège
+       external_count,
+       now() - external_ping as age_externe
+  from public.keep_alive;
+```
+
+| Observation | Interprétation |
+|---|---|
+| `external_count` reste à **0** | le workflow ne pinge pas (ou appelle encore l'ancienne URL) |
+| `external_count` ≥ 1 mais figé | le workflow s'est arrêté depuis `external_ping` |
+| `age_externe` > 4 jours | **agir** : projet peut-être en pause |
+| `external_count` croît | ✅ chaîne externe prouvée |
+
+Le RPC est en écriture seule côté `anon` (`has_function_privilege` vérifié) :
+`authenticated` n'a **pas** le droit de l'exécuter, et la valeur écrite est
+toujours `now()` — impossible de faire reculer l'horodatage pour simuler une
+panne.
+
+#### Dead-man's switch — « le run n'a jamais eu lieu »
+
+Un workflow qui ne tourne pas n'échoue pas : aucun mécanisme interne ne peut
+signaler son propre silence. Deux couches, préparées mais **à activer** :
+
+1. **Externe (indispensable)** — `docs/agent/patches/keep-alive-verifiable.yml`
+   annonce chaque succès à healthchecks.io. Sans ce secret, aucune alerte en
+   cas d'arrêt total.
+   - healthchecks.io → *New Check* → Period **2 days**, Grace **1 day** ;
+   - copier l'URL `https://hc-ping.com/<uuid>` ;
+   - GitHub → *Settings* → *Secrets* → `HEALTHCHECK_PING_URL`.
+   - Alternatives équivalentes : cron-job.org, UptimeRobot.
+2. **Interne (complément)** — `docs/agent/patches/deadman-guard.yml`, lundi
+   07:00 UTC : vérifie que le workflow est `active` et que son dernier succès
+   date de < 4 jours. Message d'erreur précis, mais soumis à la même panne
+   GitHub que ce qu'il surveille.
+
+> ⚠️ Ces deux fichiers sont des **workflows** : l'agent ne peut pas les pousser
+> (permission `workflows` absente). Ils sont versionnés dans
+> `docs/agent/patches/` pour être installés par le propriétaire.
+
+*Actions* → « Keep-alive Supabase » → dernier run vert reste le contrôle
+principal ; le reste ci-dessus sert à savoir si ce vert signifie quelque chose.
+- Les 7 workflows doivent être `active` — sinon GitHub les a coupés :
+  ```bash
+  gh api repos/joynagassi-cyber/luminap/actions/workflows --jq '.workflows[] | "\(.state) \(.name)"'
+  gh workflow enable <fichier.yml>   # pour réarmer
+  ```
+- En cas de pause : restaurer depuis le tableau de bord Supabase (fenêtre d'un
+  an), puis vérifier `select last_ping from keep_alive;`.
+
+> ⚠️ **Règle des 60 jours** — elle concerne les dépôts **PUBLICS**, pas les
+> dépôts privés (contrairement à ce qu'affirme le commentaire en tête de
+> `keep-alive.yml`, à corriger). GitHub coupe silencieusement tous les
+> `schedule:` d'un dépôt public resté 60 jours **sans commit** ; un simple
+> commit sur la branche par défaut remet le compteur à zéro, mais **pas** les
+> exécutions du workflow lui-même. Ce dépôt reçoit des commits quotidiens, donc
+> le risque est faible — à surveiller si le projet est mis en veille.
 
 ## Vérifier la synchronisation PowerSync (indispensable — cf. R89)
 
@@ -491,18 +659,40 @@ union all select 'audit_entries', count(*) from public.audit_entries;
 org_memberships 5, org_admins 6, invitations 66, members 94, groups 222,
 events 3220, audit_entries 97, notifications 3320).
 
-### 4. Ce qui reste à faire par le propriétaire (priorité critique)
-Le workflow `.github/workflows/backup.yml` est **prêt** mais **inactif** : son
-exécution du 2026-10-24 (run `40114231378`) a émis l'avertissement
-« `SUPABASE_DB_URL` absent — sauvegarde NON configurée » et n'a publié
-**aucun artefact** (vérifié : `total_count = 0` — pas de fuite sur le dépôt
-public). Pour l'activer :
-1. Secret `SUPABASE_DB_URL` = chaîne de connexion Postgres complète,
-   percent-encodée (Dashboard Supabase → Connect → Session pooler / Direct).
-2. Secret `BACKUP_GPG_PASSPHRASE` (recommandé) : sans lui, l'export est validé
-   mais **rien n'est publié** (garde-fou dépôt public, correct).
-3. Lancer « Run workflow » une fois pour valider, puis vérifier l'artefact
-   `supabase-backup-<run_id>` (rétention 14 j) et **tester une restauration**.
+### 4. État au 2026-10-27 — ce qui reste à faire par le propriétaire
+
+**Historique des runs : la sauvegarde n'a jamais tourné en CI avant le 27/10.**
+
+| Run | Date | Conclusion affichée | Réalité |
+|---|---|---|---|
+| `40114231378` | 24/10 17:01 | `success` | `Export`/`Publier`/`Avertir` **skipped**, 0 artefact |
+| `40174653132` | 25/10 07:56 | `success` | idem |
+| `40291272903` | 26/10 08:17 | `success` | idem |
+| `40473991148` | 27/10 08:30 | `success` | idem |
+| `40531962063` | 27/10 15:32 | **`failure`** | secrets présents, export lancé, **échec IPv6** |
+
+Annotation constante sur les quatre premiers : « `SUPABASE_DB_URL` absent —
+sauvegarde NON configurée ». Ces verts étaient donc **faux**. À noter pour la
+mémoire du projet : `.openhands/memory/2026-10-27.md` cite le run du 24/10
+comme preuve du garde-fou « chiffré uniquement » ; ce step était `skipped`,
+lui aussi. La chaîne n'a été validée que **manuellement**, hors CI.
+
+**Reste à faire :**
+
+1. Remplacer le secret `SUPABASE_DB_URL` par la chaîne **Session pooler**
+   (voir l'encadré « ⚠️ Prendre le Session pooler » ci-dessus) — c'est la
+   seule action nécessaire pour que l'export aboutisse. L'ancienne valeur
+   pointe sur `db.hhgovvrnalibhgpakswi.supabase.co`, IPv6-only.
+2. Relancer *Actions* → « Sauvegarde Supabase » → *Run workflow*, puis
+   vérifier : conclusion `success`, **1 artefact** `supabase-backup-<run_id>`,
+   et que les annotations listent bien le schéma, les données et les sommes de
+   contrôle, tous en `.gpg`.
+3. Faire **durcir l'échec** dans `.github/workflows/backup.yml` : un secret
+   absent doit faire échouer le job (`exit 1`), pas seulement émettre un
+   avertissement. Correctif prêt mais **non poussable par l'agent** (le jeton
+   GitHub App n'a pas la permission `workflows`) :
+   `docs/agent/patches/backup-yml-faux-vert.patch`.
 4. Idéalement, passer le dépôt en **privé** ou copier les exports chiffrés
    hors-site (S3, disque local) : un artefact GitHub n'est pas une sauvegarde
    durable.
+
