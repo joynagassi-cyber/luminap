@@ -25,7 +25,7 @@
 |---|---|---|---|
 | 2 | `resolveRoute` + registre unique | `V: route-resolver.test.ts` (32) | **couvert** |
 | 2 | Écrans 404 / forbidden / needs-membership / update-required | `V: route-resolver.test.ts` (outcomes) | **couvert** (screens) — **câblage incomplet** : forbidden/needs-membership/update-required jamais déclenchés (R105/R106/R107) |
-| 2 | `data-screen-state` (shell + écrans d'état) | `C: zero-black-screen.cy.ts` (61) + `V: route-registry-drift` (3) | **couvert** (crawler livré) |
+| 2 | `data-screen-state` (shell + écrans d'état) | `C: zero-black-screen.cy.ts` (61) + `V: route-registry-drift` (5, dont couverture crawler + matrice deep link) | **couvert** (crawler livré + anti-dérive) |
 | 2 | `ErrorBoundary` par route | `LazyRouteErrorBoundary` (pré-existant) | couvert |
 | 2 | Watchdog `app-ready` (armé hors React, surcouche statique) | `V: boot-watchdog.test.ts` (4, jsdom) | **couvert** |
 | 2 | `ChunkLoadError` rechargement | `V: chunk-error-recovery.test.ts` (3, jsdom) | **couvert** (anti-boucle) |

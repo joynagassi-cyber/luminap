@@ -49,7 +49,7 @@
     "update-required",
     "loading->error"
   ],
-  "routes_total": 63,
+  "routes_total": 64,
   "routes_public": [
     "/auth",
     "/auth/callback",
@@ -127,6 +127,7 @@
     "/settings/about",
     "/settings/features",
     "/settings/gestion",
+    "/settings/health",
     "/settings/notifications",
     "/settings/personnalisation",
     "/settings/profil",
