@@ -12,6 +12,8 @@ import TopHeader from "@/components/TopHeader";
 import CircleAction from "@/components/CircleAction";
 import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar, IonSelect, IonSelectOption, IonItem, IonLabel, IonInput, IonTextarea } from "@ionic/react";
 import EmptyState from "@/components/EmptyState";
+import CapabilityBanner from "@/components/CapabilityBanner";
+import { getOrganizationId } from "@/lib/orgContext";
 import type { IonChangeCustomEvent } from "@/lib/ionic-types";
 
 const COLOR_PALETTE = [
@@ -158,6 +160,7 @@ export default function Groups() {
         <div className="min-h-dvh">
           <TopHeader title="Groupes" />
           <div className="px-5 pt-safe-calc pb-safe-calc max-w-lg mx-auto">
+            <CapabilityBanner orgId={getOrganizationId()} />
             {/* Header */}
             <div className="flex items-center justify-between mb-5">
               <div>

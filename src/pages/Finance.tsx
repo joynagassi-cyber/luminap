@@ -20,6 +20,8 @@ import TopHeader from "@/components/TopHeader";
 import TransactionCard from "@/components/TransactionCard";
 import EmptyState from "@/components/EmptyState";
 import CircleAction from "@/components/CircleAction";
+import CapabilityBanner from "@/components/CapabilityBanner";
+import { getOrganizationId } from "@/lib/orgContext";
 import { FinanceSkeleton } from "@/components/PageSkeletons";
 import {
   IonPage,
@@ -146,6 +148,7 @@ export default function Finance() {
               <h1 className="sr-only">Finance — Grand livre</h1>
               <TopHeader title="Finance" />
               <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
+            <CapabilityBanner orgId={getOrganizationId()} />
             {/* Summary Cards */}
             <div className="grid grid-cols-2 gap-3 mb-6">
               <div

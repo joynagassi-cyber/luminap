@@ -14,6 +14,7 @@ const OrgUnits = lazy(() => import("@/pages/OrgUnits"));
 const OrgReportSend = lazy(() => import("@/pages/OrgReportSend"));
 const OrgReportsReceived = lazy(() => import("@/pages/OrgReportsReceived"));
 const OrgReportDetail = lazy(() => import("@/pages/OrgReportDetail"));
+const OrgRoles = lazy(() => import("@/pages/OrgRoles"));
 
 export const adminRoutes: ReactElement[] = [
   <Route
@@ -70,5 +71,12 @@ export const adminRoutes: ReactElement[] = [
     key="/admin/organizations/:id"
     path="/admin/organizations/:id"
     element={<LazyRoute component={CentralAdmin} />}
+  />,
+  // Session 11 — administration des accès : assigner un rôle à un membre et
+  // lui accorder/retirer des capacités, dans l'org active.
+  <Route
+    key="/admin/roles"
+    path="/admin/roles"
+    element={<LazyRoute component={OrgRoles} />}
   />,
 ];
