@@ -6,7 +6,7 @@ import { IonApp, setupIonicReact } from "@ionic/react";
 import { IonReactRouter } from "@ionic/react-router";
 import { IonRouterOutlet } from "@ionic/react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { authService } from "@/lib/auth";
 import { useAppUrlOpen, LUMINA_DEEPLINK_EVENT } from "@/hooks/useAppUrlOpen";
 import { AppProvider } from "./context/AppContext";
@@ -17,11 +17,11 @@ import { UpdateDialog } from "@/updater/UpdateDialog";
 import { checkForUpdate, type UpdateInfo } from "@/updater/checkForUpdate";
 import { resolveRoute, type RouteOutcome } from "@/lib/routeResolver";
 import { installClientErrorCapture, installChunkErrorRecovery } from "@/lib/clientErrors";
+import { signalAppReady } from "@/lib/bootWatchdog";
 import {
   ForbiddenScreen,
   NeedsMembershipScreen,
   UpdateRequiredScreen,
-  BootRecoveryScreen,
 } from "@/components/RouteStates";
 import "./ionic/theme";
 
@@ -31,12 +31,9 @@ installClientErrorCapture();
 // Récupération contrôlée d'un chunk obsolète après déploiement (contrat §2.1).
 installChunkErrorRecovery();
 
-/**
- * Boot watchdog delay (ms) — if the app shell has not rendered its routes by
- * then, we surface an explicit recovery screen instead of a silent blank view
- * (contract Phase 1 "boot watchdog").
- */
-const BOOT_WATCHDOG_MS = 12_000;
+// Le watchdog de démarrage est armé AVANT `createRoot` dans `main.tsx` (il doit
+// pouvoir détecter l'absence de montage React — impossible depuis l'arbre).
+// Ici on ne fait que signaler la disponibilité de la coquille.
 
 // Initialize Ionic React (dark theme applied via setupLuminaTheme)
 setupIonicReact({
@@ -156,27 +153,17 @@ function RouteGuard() {
 }
 
 /**
- * AppReadyBridge — sets `data-app-ready="true"` on the document once the
- * routes have mounted, and arms a boot watchdog: if the shell never becomes
- * ready within BOOT_WATCHDOG_MS, an explicit recovery screen replaces the
- * silent blank view (contract Phase 1).
+ * AppReadyBridge — marks the document `data-app-ready="true"` and cancels the
+ * boot watchdog (armed in `main.tsx` before `createRoot`) once the shell has
+ * mounted. The watchdog itself lives OUTSIDE React on purpose: a watchdog
+ * inside the tree can never fire when React fails to mount.
  */
 function AppReadyBridge() {
-  const [bootTimedOut, setBootTimedOut] = useState(false);
-  const readyRef = useRef(false);
-
   useEffect(() => {
     document.getElementById("root")?.setAttribute("data-app-ready", "true");
-    readyRef.current = true;
-
-    const timer = window.setTimeout(() => {
-      if (!readyRef.current) setBootTimedOut(true);
-    }, BOOT_WATCHDOG_MS);
-
-    return () => window.clearTimeout(timer);
+    signalAppReady();
   }, []);
 
-  if (bootTimedOut) return <BootRecoveryScreen />;
   return null;
 }
 

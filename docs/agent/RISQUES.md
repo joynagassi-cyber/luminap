@@ -2411,3 +2411,28 @@ sauvegarde disponible).
   l'orienterait vers une invitation.
 - **Statut** : ouvert ; sera corrigé en même temps que le câblage R105 (dépend
   PR18/R16).
+
+### R108 — Watchdog de démarrage (« app-ready ») DÉCLARÉ mais JAMAIS ARMÉ — CORRIGÉ
+- **Gravité** : MOYENNE (robustesse « zéro écran noir »).
+- **Défaut** : `AppReadyBridge` (src/App.tsx) était présenté comme un watchdog :
+  « if the shell never becomes ready within BOOT_WATCHDOG_MS, an explicit
+  recovery screen replaces the silent blank view ». En réalité, l'effet posait
+  `readyRef.current = true` **avant** d'armer le minuteur, et la condition
+  d'échec était `if (!readyRef.current)` → **toujours fausse** : `bootTimedOut`
+  ne passait jamais à `true`, `BootRecoveryScreen` était **inatteignable**
+  (branche morte). Pire, un watchdog placé DANS l'arbre React ne peut, par
+  construction, jamais détecter « React n'a jamais monté ».
+- **Impact** : si la coquille ne montait pas (chunk manquant pendant
+  l'hydratation, échec de montage, blocage de boot), l'utilisateur restait sur
+  un écran noir **silencieux** — exactement le scénario que le watchdog devait
+  couvrir. La classe de défaut est la même que R105/R106/R107 (filet déclaré,
+  jamais déclenché).
+- **Correctif** : watchdog extrait dans `src/lib/bootWatchdog.ts`, **armé avant
+  `createRoot`** (donc indépendant du montage React) ; à l'expiration il rend une
+  **surcouche HTML statique** (`renderBootRecoveryOverlay`, `data-screen-state="error"`,
+  bouton de rechargement) qui fonctionne même si React n'a jamais monté.
+  `signalAppReady()` (appelé par `AppReadyBridge` au montage) annule le minuteur.
+- **Preuve** : `V: boot-watchdog.test.ts` (4, jsdom) — surcouche affichée si la
+  coquille ne signale pas sa disponibilité ; rien si elle le fait à temps ;
+  rechargement au clic. Gates : `tsc -b` 0, vitest 1242/1242, `vite build` OK.
+- **Statut** : corrigé.

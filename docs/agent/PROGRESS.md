@@ -50,6 +50,7 @@
 | 11 | Page « État du système » (santé : version, sync, erreurs) | P1 | **terminé** | `agent/phase-11-health` | `phase-11/2026-10-26-health-page.md` |
 | 11 | Bouton « Signaler un problème » (diagnostic copiable, sans PII) | P1 | **terminé** | `agent/phase-11-report-problem` | `phase-11/2026-10-26-health-report-problem.md` |
 | 8 | Garde d'inventaire RLS (RLS + ≥1 politique par table, exécutable en CI) | P1 | **terminé** | `agent/phase-08-rls-inventory-guard` | `phase-08/2026-10-26-rls-inventory-guard.md` |
+| 2 | R108 — watchdog de démarrage armé hors React (surcouche de récupération) | P1 | **terminé** | `agent/phase-02-boot-watchdog` | `phase-02/2026-10-26-boot-watchdog.md` |
 | 10 | Design system, UX, responsive, perf, a11y | P2 | à faire | `agent/phase-10-ux` | — |
 | 11 | Pre-mortem, chaos, exploitation autonome | P2 | à faire | `agent/phase-11-premortem` | — |
 | 12 | Suite Cypress (couverture totale) + crawler | P2 | à faire | `agent/phase-12-cypress` | — |
