@@ -61,3 +61,21 @@ export function getOrganizationId(): string {
 export function hasResolvedOrganization(): boolean {
   return _orgId !== null && _orgId !== "" && _orgId !== NO_ORG_SELECTED;
 }
+
+/**
+ * Oublie l'organisation courante (mémoire + `lumina-active-org`).
+ *
+ * Indispensable au changement de compte (PM18) : `_orgId` est résolu au
+ * CHARGEMENT DU MODULE depuis `lumina-active-org`, donc purger le stockage ne
+ * suffit pas — un compte B sans organisation hériterait sinon, en mémoire, de
+ * l'organisation du compte A précédemment connecté.
+ */
+export function resetOrganizationId(): void {
+  _orgId = null;
+  try {
+    localStorage.removeItem("lumina-active-org");
+  } catch {
+    /* stockage indisponible — la remise à zéro mémoire suffit */
+  }
+  _orgListeners.forEach((l) => l());
+}
