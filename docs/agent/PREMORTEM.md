@@ -19,7 +19,7 @@
 | PM4 | Nouvelle table sans RLS → fuite inter-org | oubli d'activer RLS | 2 | 5 | 2 | 20 | garde d'inventaire RLS (RLS + ≥1 politique par table, exécutable en CI) | `V: rls-inventory.test.ts` (4) | **mitigé** |
 | PM5 | Dernier admin quitte → organisation orpheline | pas de garde « ≥1 propriétaire » | 2 | 4 | 3 | 24 | invariant anti-orphelin (Phase 4) | V | à faire |
 | PM6 | Offre gratuite : projet DB en pause → 1er accès échoue | mise en veille automatique | 3 | 3 | 2 | 18 | `keep-alive.yml` (ping REST toutes les 48 h) + écran de récupération au boot | workflow `keep-alive.yml` (déclenché, HTTP 200) | **mitigé** |
-| PM7 | Session expirée pendant une saisie longue → perte de données | pas de sauvegarde de brouillon | 3 | 4 | 3 | 36 | état UX + reprise (Phase 5) | C session expirée | à faire |
+| PM7 | Session expirée pendant une saisie longue → perte de données | pas de sauvegarde de brouillon | 3 | 4 | 3 | 36 | `useFormDraft` (localStorage `lumina-draft:*`) : saisie persistée en continu, restaurée à la réouverture, effacée à la soumission ; avis « Brouillon restauré » + « Recommencer » | `V: useFormDraft.test.tsx` (6, jsdom) | **mitigé** (FormFill ; généralisable aux autres formulaires) |
 | PM8 | Suppression d'un membre → écritures orphelines | suppression dure au lieu d'anonymisation | 2 | 5 | 2 | 20 | anonymisation, 0 orphelin (Phase 7) | C + SQL | à faire |
 | PM9 | Cycle dans l'arbre d'organisations → récursion infinie | pas de contrainte anti-cycle | 2 | 5 | 2 | 20 | `org_assert_no_cycle` (trigger DB) + garde anti-cycle côté client | `V: org-tree.test.ts` (anti-cycle, 5) + SQL | **mitigé** |
 | PM10 | Arbre très profond → requêtes lentes/expirées | absence d'index/table de fermeture | 3 | 3 | 3 | 27 | `idx_organizations_parent` (index) + vue de fermeture `org_descendants` (CTE récursive) | `V: org-tree.test.ts` (profondeur) | **mitigé** |
@@ -71,4 +71,5 @@ PM20 (marquage `is_test`).
 
 Aucun risque **impact 5** ne reste sans mitigation : PM2 (impact 5) est désormais **mitigé** (deep link inter-org → confirmation
 + bascule gardée par l'accès local), PM5/PM8 (impact 5) sont des chantiers
-identifiés non bloquants, PM18 (impact 5) est **mitigé**.
+identifiés non bloquants, PM18 (impact 5) est **mitigé**. PM7 est **mitigé**
+(brouillon de saisie longue).
