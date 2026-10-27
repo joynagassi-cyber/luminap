@@ -1,0 +1,225 @@
+{
+  "_comment": "Inventaire RLS du schema public (project hhgovvrnalibhgpakswi, instance de DEV). REGENERE par la requete en tete de rls-inventory.test.ts apres tout changement de schema/RLS.",
+  "_generatedAt": "2026-10-26",
+  "_denyAllAllowlist": [
+    "keep_alive",
+    "_jsonb_backfill_20261024"
+  ],
+  "tables": [
+    {
+      "table": "_jsonb_backfill_20261024",
+      "rls": true,
+      "policies": 0
+    },
+    {
+      "table": "accounts",
+      "rls": true,
+      "policies": 4
+    },
+    {
+      "table": "audit_entries",
+      "rls": true,
+      "policies": 4
+    },
+    {
+      "table": "budget_lines",
+      "rls": true,
+      "policies": 4
+    },
+    {
+      "table": "caisses",
+      "rls": true,
+      "policies": 4
+    },
+    {
+      "table": "categories",
+      "rls": true,
+      "policies": 4
+    },
+    {
+      "table": "cotisations",
+      "rls": true,
+      "policies": 4
+    },
+    {
+      "table": "custom_field_definitions",
+      "rls": true,
+      "policies": 4
+    },
+    {
+      "table": "custom_field_values",
+      "rls": true,
+      "policies": 4
+    },
+    {
+      "table": "documents",
+      "rls": true,
+      "policies": 3
+    },
+    {
+      "table": "event_budgets",
+      "rls": true,
+      "policies": 4
+    },
+    {
+      "table": "event_tasks",
+      "rls": true,
+      "policies": 4
+    },
+    {
+      "table": "events",
+      "rls": true,
+      "policies": 4
+    },
+    {
+      "table": "form_definitions",
+      "rls": true,
+      "policies": 4
+    },
+    {
+      "table": "form_submissions",
+      "rls": true,
+      "policies": 4
+    },
+    {
+      "table": "giving_campaigns",
+      "rls": true,
+      "policies": 4
+    },
+    {
+      "table": "giving_donors",
+      "rls": true,
+      "policies": 4
+    },
+    {
+      "table": "grants",
+      "rls": true,
+      "policies": 1
+    },
+    {
+      "table": "group_memberships",
+      "rls": true,
+      "policies": 4
+    },
+    {
+      "table": "groups",
+      "rls": true,
+      "policies": 4
+    },
+    {
+      "table": "invitation_claims",
+      "rls": true,
+      "policies": 3
+    },
+    {
+      "table": "invitations",
+      "rls": true,
+      "policies": 4
+    },
+    {
+      "table": "keep_alive",
+      "rls": true,
+      "policies": 0
+    },
+    {
+      "table": "members",
+      "rls": true,
+      "policies": 4
+    },
+    {
+      "table": "notifications",
+      "rls": true,
+      "policies": 4
+    },
+    {
+      "table": "org_admins",
+      "rls": true,
+      "policies": 3
+    },
+    {
+      "table": "org_budget_lines",
+      "rls": true,
+      "policies": 4
+    },
+    {
+      "table": "org_budgets",
+      "rls": true,
+      "policies": 4
+    },
+    {
+      "table": "org_memberships",
+      "rls": true,
+      "policies": 4
+    },
+    {
+      "table": "org_reports",
+      "rls": true,
+      "policies": 2
+    },
+    {
+      "table": "org_units",
+      "rls": true,
+      "policies": 4
+    },
+    {
+      "table": "organizations",
+      "rls": true,
+      "policies": 4
+    },
+    {
+      "table": "pledges",
+      "rls": true,
+      "policies": 4
+    },
+    {
+      "table": "profiles",
+      "rls": true,
+      "policies": 4
+    },
+    {
+      "table": "report_definitions",
+      "rls": true,
+      "policies": 4
+    },
+    {
+      "table": "role_assignments",
+      "rls": true,
+      "policies": 4
+    },
+    {
+      "table": "role_permissions",
+      "rls": true,
+      "policies": 1
+    },
+    {
+      "table": "tag_assignments",
+      "rls": true,
+      "policies": 1
+    },
+    {
+      "table": "tags",
+      "rls": true,
+      "policies": 1
+    },
+    {
+      "table": "tax_receipts",
+      "rls": true,
+      "policies": 4
+    },
+    {
+      "table": "transaction_giving",
+      "rls": true,
+      "policies": 4
+    },
+    {
+      "table": "transactions",
+      "rls": true,
+      "policies": 4
+    },
+    {
+      "table": "versements",
+      "rls": true,
+      "policies": 4
+    }
+  ]
+}
