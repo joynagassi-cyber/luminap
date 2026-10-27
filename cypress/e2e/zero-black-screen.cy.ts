@@ -70,6 +70,7 @@ const ROUTES: string[] = [
   "/admin/reports",
   "/admin/reports/:id",
   "/admin/organizations/:id",
+  "/admin/roles",
   "/trace",
   "/history",
   "/help",
