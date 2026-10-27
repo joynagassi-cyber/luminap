@@ -64,9 +64,9 @@ Reclassés en **partiel** (sécurité assurée, confort restant) : PM3 (la RLS
 serveur rejette l'op hors droits ; l'explication par élément à l'utilisateur
 reste à faire).
 
-**Restent ouverts** (nécessitent une décision/chantier) : PM8 (anonymisation au
-lieu de suppression dure), PM14 (versionnage de schéma), PM15 (réinitialisation
-locale exposée dans l'UI), PM20 (marquage `is_test`).
+**Restent ouverts** (nécessitent une décision/chantier) : PM14 (versionnage de
+schéma), PM15 (réinitialisation locale exposée dans l'UI), PM20 (marquage
+`is_test`).
 
 **Aucun risque d'impact 5 ne reste non mitigé** : PM2, PM8, PM9, PM18 sont
 **mitigés** (PM8 : le lien financier ne casque plus et toute suppression est
