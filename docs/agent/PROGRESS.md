@@ -22,6 +22,7 @@
 | Phase | Tâche | Prio | Statut | Branche / PR | Receipt |
 |---|---|---|---|---|---|
 | 0 | Amorçage de l'état + réconciliation | P0 | **terminé** | `agent/phase-00-etat` | `phase-00/2026-10-26-etat.md` |
+| 0 | Tâche 1 — skills QA installés (`cypress-e2e`, `claude-code-qa`, `playwright-e2e`, `supertest-api`) | P2 | **terminé** | `agent/task1-qa-skills` | `phase-00/2026-10-26-task1-qa-skills.md` |
 | 2 | Routage : `resolveRoute` + registre unique | P0 | **terminé** | `agent/phase-02-routing` | `phase-02/2026-10-26-routing.md` |
 | 2 | Écrans d'état 404 / « accès refusé » / update-required | P0 | **terminé** | `agent/phase-02-routing` | `phase-02/2026-10-26-routing.md` |
 | 2 | `ErrorBoundary` par route (déjà via `LazyRoute`) | P0 | **terminé** | (pré-existant) | `phase-02/2026-10-26-routing.md` |
