@@ -9,7 +9,7 @@
  */
 import { describe, it, expect } from "vitest";
 
-import { buildHealthReport, worstLevel } from "@/lib/health";
+import { buildHealthReport, worstLevel, buildDiagnosticReport } from "@/lib/health";
 import type { HealthInputs } from "@/lib/health";
 
 const base: HealthInputs = {
@@ -88,5 +88,41 @@ describe("buildHealthReport", () => {
     const err = r.checks.find((c) => c.id === "errors");
     expect(err?.detail).toContain("boom");
     expect(err?.detail).toContain("1 erreur");
+  });
+});
+
+describe("buildDiagnosticReport (Signaler un problème)", () => {
+  it("inclut les champs de contexte et le nombre d'erreurs", () => {
+    const txt = buildDiagnosticReport(
+      base,
+      [{ message: "TypeError: x" }],
+      "2026-10-26T12:00:00.000Z",
+    );
+    expect(txt).toContain("Diagnostic Lumina");
+    expect(txt).toContain("Version : 1.0.9");
+    expect(txt).toContain("Plateforme : web");
+    expect(txt).toContain("Organisation : org-1");
+    expect(txt).toContain("Erreurs récentes : 1");
+    expect(txt).toContain("TypeError: x");
+  });
+
+  it("aucune erreur → compte 0 et aucune ligne d'erreur", () => {
+    const txt = buildDiagnosticReport(base, [], "t");
+    expect(txt).toContain("Erreurs récentes : 0");
+    expect(txt).not.toContain("\n  1. ");
+  });
+
+  it("plafonne à 5 erreurs (diagnostic concis)", () => {
+    const many = Array.from({ length: 9 }, (_, i) => ({ message: `err${i}` }));
+    const txt = buildDiagnosticReport(base, many, "t");
+    expect(txt).toContain("Erreurs récentes : 9");
+    expect(txt).toContain("err0");
+    expect(txt).toContain("err4");
+    expect(txt).not.toContain("err5");
+  });
+
+  it("organisation absente → « aucune »", () => {
+    const txt = buildDiagnosticReport({ ...base, hasOrg: false }, [], "t");
+    expect(txt).toContain("Organisation : aucune");
   });
 });
