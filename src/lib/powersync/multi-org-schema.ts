@@ -34,6 +34,9 @@ const org_memberships = new Table(
 
 const grants = new Table(
   {
+    // Cloisonnement par organisation (migration 20261027000010) : un grant ne
+    // vaut que dans son org.
+    org_id: column.text,
     subject_type: column.text,
     subject_id: column.text,
     resource: column.text,
@@ -51,6 +54,7 @@ const grants = new Table(
     indexes: {
       idx_grants_subject: ["subject_type", "subject_id"],
       idx_grants_scope: ["scope_resource", "scope_id"],
+      idx_grants_org: ["org_id"],
     },
   },
 );
