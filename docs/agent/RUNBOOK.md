@@ -371,6 +371,34 @@ désormais outillé dans le dépôt :
    *Project Settings* → *Database* → *Connection string* → onglet **URI**
    (rôle `postgres`, mot de passe de la base). La **percent-encoder** si le
    mot de passe contient des caractères spéciaux.
+
+   > #### ⚠️ Prendre le **Session pooler**, JAMAIS la « Direct connection »
+   >
+   > Vérifié le 2026-10-27 (run `40531962063`, échec après 48 s) :
+   >
+   > ```
+   > pg_dump: error: connection to server at "db.hhgovvrnalibhgpakswi.supabase.co"
+   >   (2a05:d01c:874:6b01:e75b:1568:eaf6:c53), port 5432 failed: Network is unreachable
+   > Your network does not support IPv6, which is required for direct connections
+   > to the database.
+   > ```
+   >
+   > | Hôte | A (IPv4) | AAAA (IPv6) |
+   > |---|---|---|
+   > | `db.<ref>.supabase.co` — connexion **directe** | **aucun** | `2a05:d01c:…` |
+   > | `aws-0-<region>.pooler.supabase.com` — **pooler** | oui | aucun |
+   >
+   > L'hôte direct n'existe **qu'en IPv6** ; les runners GitHub Actions n'ont
+   > pas d'IPv6. La forme retenue est donc :
+   >
+   > ```
+   > postgresql://postgres.<ref>:<MDP_PERCENT_ENCODÉ>@aws-0-<region>.pooler.supabase.com:5432/postgres
+   > ```
+   >
+   > (utilisateur `postgres.<ref>`, port **5432** = session pooler ; le port
+   > 6543 = transaction pooler, inadapté à `pg_dump`). Le mot de passe ne
+   > change pas : seul l'hôte et le nom d'utilisateur diffèrent de la
+   > connexion directe.
 2. GitHub → *Settings* → *Secrets and variables* → *Actions* → créer :
    - `SUPABASE_DB_URL` = la chaîne de connexion complète ;
    - `BACKUP_GPG_PASSPHRASE` = une phrase de passe (active le chiffrement ;
@@ -491,18 +519,40 @@ union all select 'audit_entries', count(*) from public.audit_entries;
 org_memberships 5, org_admins 6, invitations 66, members 94, groups 222,
 events 3220, audit_entries 97, notifications 3320).
 
-### 4. Ce qui reste à faire par le propriétaire (priorité critique)
-Le workflow `.github/workflows/backup.yml` est **prêt** mais **inactif** : son
-exécution du 2026-10-24 (run `40114231378`) a émis l'avertissement
-« `SUPABASE_DB_URL` absent — sauvegarde NON configurée » et n'a publié
-**aucun artefact** (vérifié : `total_count = 0` — pas de fuite sur le dépôt
-public). Pour l'activer :
-1. Secret `SUPABASE_DB_URL` = chaîne de connexion Postgres complète,
-   percent-encodée (Dashboard Supabase → Connect → Session pooler / Direct).
-2. Secret `BACKUP_GPG_PASSPHRASE` (recommandé) : sans lui, l'export est validé
-   mais **rien n'est publié** (garde-fou dépôt public, correct).
-3. Lancer « Run workflow » une fois pour valider, puis vérifier l'artefact
-   `supabase-backup-<run_id>` (rétention 14 j) et **tester une restauration**.
+### 4. État au 2026-10-27 — ce qui reste à faire par le propriétaire
+
+**Historique des runs : la sauvegarde n'a jamais tourné en CI avant le 27/10.**
+
+| Run | Date | Conclusion affichée | Réalité |
+|---|---|---|---|
+| `40114231378` | 24/10 17:01 | `success` | `Export`/`Publier`/`Avertir` **skipped**, 0 artefact |
+| `40174653132` | 25/10 07:56 | `success` | idem |
+| `40291272903` | 26/10 08:17 | `success` | idem |
+| `40473991148` | 27/10 08:30 | `success` | idem |
+| `40531962063` | 27/10 15:32 | **`failure`** | secrets présents, export lancé, **échec IPv6** |
+
+Annotation constante sur les quatre premiers : « `SUPABASE_DB_URL` absent —
+sauvegarde NON configurée ». Ces verts étaient donc **faux**. À noter pour la
+mémoire du projet : `.openhands/memory/2026-10-27.md` cite le run du 24/10
+comme preuve du garde-fou « chiffré uniquement » ; ce step était `skipped`,
+lui aussi. La chaîne n'a été validée que **manuellement**, hors CI.
+
+**Reste à faire :**
+
+1. Remplacer le secret `SUPABASE_DB_URL` par la chaîne **Session pooler**
+   (voir l'encadré « ⚠️ Prendre le Session pooler » ci-dessus) — c'est la
+   seule action nécessaire pour que l'export aboutisse. L'ancienne valeur
+   pointe sur `db.hhgovvrnalibhgpakswi.supabase.co`, IPv6-only.
+2. Relancer *Actions* → « Sauvegarde Supabase » → *Run workflow*, puis
+   vérifier : conclusion `success`, **1 artefact** `supabase-backup-<run_id>`,
+   et que les annotations listent bien le schéma, les données et les sommes de
+   contrôle, tous en `.gpg`.
+3. Faire **durcir l'échec** dans `.github/workflows/backup.yml` : un secret
+   absent doit faire échouer le job (`exit 1`), pas seulement émettre un
+   avertissement. Correctif prêt mais **non poussable par l'agent** (le jeton
+   GitHub App n'a pas la permission `workflows`) :
+   `docs/agent/patches/backup-yml-faux-vert.patch`.
 4. Idéalement, passer le dépôt en **privé** ou copier les exports chiffrés
    hors-site (S3, disque local) : un artefact GitHub n'est pas une sauvegarde
    durable.
+

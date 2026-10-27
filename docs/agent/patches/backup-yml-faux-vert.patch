@@ -1,0 +1,149 @@
+# Correctif prêt — `.github/workflows/backup.yml`
+
+**Statut : NON APPLIQUÉ.** Poussé sur aucune branche : le jeton GitHub App de
+l'agent n'a pas la permission `workflows` —
+
+```
+refusing to allow a GitHub App to create or update workflow
+`.github/workflows/backup.yml` without `workflows` permission
+```
+
+## À faire (propriétaire, ~2 min)
+
+```bash
+git checkout -b fix/backup-echec-bruyant
+git apply docs/agent/patches/backup-yml-faux-vert.patch
+git add .github/workflows/backup.yml
+git commit -m "fix(backup): secret absent = échec, contrôle de l'export, diagnostic en annotations"
+git push -u origin fix/backup-echec-bruyant
+```
+
+Puis ouvrir une PR vers `main`.
+
+## Contenu du correctif
+
+1. **Fin du faux vert** — `Vérifier la configuration` fait `exit 1` quand
+   `SUPABASE_DB_URL` est absent, au lieu d'un `::warning::` suivi d'un
+   `success` avec toutes les étapes `skipped`.
+2. **Contrôle de l'export** (nouvelle étape) — présence et taille minimale de
+   `schema`/`data`/`checksums` (mesures du 24/10 : schéma ~17,8 Ko, données
+   ~2,1 Mo), cohérence du chiffrement annoncé.
+3. **Diagnostic lisible par API** — republie la queue de stderr en `::error::`
+   (les logs de job sont servis par `*.blob.core.windows.net`, hors allowlist
+   réseau des outils d'audit ; les annotations, elles, se lisent via
+   `GET /check-runs/{id}/annotations`), **après redaction** de toute URL
+   `postgres(ql)://user:pass@` — dépôt public, annotations publiques.
+
+## Vérification après application
+
+```bash
+bash -n scripts/backup-supabase.sh                     # OK
+python3 -c "import yaml;yaml.safe_load(open('.github/workflows/backup.yml'))"
+```
+
+```diff
+diff --git a/.github/workflows/backup.yml b/.github/workflows/backup.yml
+index cfd7919..0daa42b 100644
+--- a/.github/workflows/backup.yml
++++ b/.github/workflows/backup.yml
+@@ -42,26 +42,94 @@ jobs:
+         with:
+           node-version: '22'
+ 
++      # Un secret absent DOIT faire échouer le job. Avant ce correctif, le run
++      # se terminait en `success` en 8 s avec TOUTES les étapes `skipped` :
++      # les 4 runs du 24→27/10/2026 étaient verts alors qu'aucune sauvegarde
++      # n'avait été produite (0 artefact). Une sauvegarde hebdomadaire qui ne
++      # tourne pas est un incident, pas un succès.
+       - name: Vérifier la configuration
+         id: cfg
+         run: |
+           if [ -z "${SUPABASE_DB_URL:-}" ]; then
+-            echo "::warning::SUPABASE_DB_URL absent — sauvegarde NON configurée. Voir RUNBOOK.md §Sauvegardes."
+-            echo "ready=false" >> "$GITHUB_OUTPUT"
+-          else
+-            echo "ready=true" >> "$GITHUB_OUTPUT"
++            echo "::error::SUPABASE_DB_URL absent — la sauvegarde hebdomadaire NE TOURNE PAS. Settings → Secrets → Actions. Voir RUNBOOK.md §Sauvegardes."
++            exit 1
+           fi
++          echo "ready=true" >> "$GITHUB_OUTPUT"
+           if [ -n "${BACKUP_GPG_PASSPHRASE:-}" ]; then
+             echo "encrypted=true" >> "$GITHUB_OUTPUT"
+           else
++            echo "::warning::BACKUP_GPG_PASSPHRASE absent — l'export sera validé mais AUCUN artefact ne sera publié (dépôt public)."
+             echo "encrypted=false" >> "$GITHUB_OUTPUT"
+           fi
+ 
++      # Les logs de job GitHub sont servis par results-receiver.actions.
++      # githubusercontent.com / *.blob.core.windows.net : inaccessibles aux
++      # outils d'audit automatisés (hors allowlist réseau). Les ANNOTATIONS,
++      # elles, se lisent via `GET /check-runs/{id}/annotations`. On republie
++      # donc la queue de l'erreur en `::error::` pour qu'un échec reste
++      # diagnostiquable sans ouvrir le navigateur.
++      #
++      # REDACTION OBLIGATOIRE : la chaîne de connexion contient le mot de
++      # passe de la base et `set -x`/stderr peuvent la recopier. Toute URL
++      # postgres(ql)://user:pass@ est remplacée par postgres://***:***@ AVANT
++      # publication (les annotations d'un dépôt public sont lisibles par tous).
+       - name: Export (schéma + données)
+         if: steps.cfg.outputs.ready == 'true'
++        shell: bash
+         run: |
+           chmod +x scripts/backup-supabase.sh
+-          ./scripts/backup-supabase.sh
++          set +e
++          log="$(mktemp)"
++          ./scripts/backup-supabase.sh 2>&1 | tee "$log"
++          code=${PIPESTATUS[0]}
++          if [ "$code" -ne 0 ]; then
++            echo "::error::Sauvegarde ÉCHOUÉE (code $code). Causes fréquentes : mot de passe non percent-encodé dans SUPABASE_DB_URL, hôte direct db.<ref>… au lieu du pooler, ou CLI Supabase exigeant SUPABASE_ACCESS_TOKEN."
++            sed -E 's#(postgres(ql)?://)[^/@[:space:]]*@#\1***:***@#g' "$log" \
++              | tail -n 40 \
++              | while IFS= read -r line; do
++                  [ -n "$line" ] && printf '::error::%s\n' "${line//%/%%}"
++                done
++          fi
++          rm -f "$log"
++          exit "$code"
++
++      # Garde de non-régression : un dump vide, tronqué ou non chiffré ne doit
++      # jamais passer pour une sauvegarde valide (leçon des runs verts du
++      # 24→27/10 : `success` sans aucun octet produit).
++      - name: Contrôler l'export (taille + chiffrement)
++        if: steps.cfg.outputs.ready == 'true'
++        shell: bash
++        run: |
++          fail=0
++          for f in backups/schema-*.sql.gz* backups/data-*.sql.gz* backups/checksums-*.sha256*; do
++            if [ ! -e "$f" ]; then
++              echo "::error::fichier attendu absent : $f"
++              fail=1
++              continue
++            fi
++            size=$(stat -c%s "$f")
++            echo "$(basename "$f") : $size octets"
++            case "$(basename "$f")" in
++              data-*)   min=100000 ;;   # données : ~2,1 Mo mesuré le 24/10
++              schema-*) min=5000 ;;     # schéma  : ~17,8 Ko mesuré le 24/10
++              *)        min=100 ;;
++            esac
++            if [ "$size" -lt "$min" ]; then
++              echo "::error::$(basename "$f") trop petit ($size o < $min o) — dump probablement vide ou tronqué"
++              fail=1
++            fi
++          done
++          if [ "${{ steps.cfg.outputs.encrypted }}" = "true" ]; then
++            if ! ls backups/*.gpg >/dev/null 2>&1; then
++              echo "::error::chiffrement attendu mais aucun fichier .gpg produit"
++              fail=1
++            fi
++            if ls backups/*.sql.gz >/dev/null 2>&1; then
++              echo "::error::des exports NON chiffrés subsistent dans backups/ — ne pas publier"
++              fail=1
++            fi
++          fi
++          exit "$fail"
+ 
+       - name: Publier l'export (chiffré uniquement)
+         if: steps.cfg.outputs.ready == 'true' && steps.cfg.outputs.encrypted == 'true'
+```
