@@ -190,3 +190,32 @@ documenté comme actif, mais son déclencheur n'est jamais alimenté.
   `from "fs"`/`resolve(__dirname,...)` fonctionne (pas besoin de fileURLToPath).
 - `installChunkErrorRecovery` (clientErrors.ts) : recharge 1× par session via
   `sessionStorage['lumina-chunk-reloaded']` (anti-boucle) sur `vite:preloadError`.
+
+## RBAC organisationnel (session 11, mergé sur main)
+- **`grants` est désormais org-scopé** : colonne `org_id NOT NULL`
+  (migrations `20261027000010_grants_org_scope.sql`,
+  `20261027000011_settle_propagate_org.sql`). Avant : aucune colonne `org_id`,
+  une seule policy `USING (true)` → un grant `subject_type='user'` valait dans
+  **toutes** les orgs (fuite inter-org) et toute session lisait tous les grants.
+  Policies : `grants_insert_admin`, `grants_read_org`, `grants_update_admin`.
+  `has_permission` contraint `g.org_id = p_org`.
+- **Modèle de capacités** (`src/lib/capabilities.ts`) : 14 capacités couvrant les
+  28 permissions de `PERMISSION_MATRIX` — **ne jamais inventer** une permission.
+  `capabilitiesForRole` = ≥1 permission (affichage) ; `capabilityFullyGranted` =
+  toutes. Couche d'écriture `src/lib/orgAdmin.ts` : le rôle s'écrit dans
+  `org_memberships`, **jamais** `profiles.role` (D3).
+- UI : page `/admin/roles` (`src/pages/OrgRoles.tsx`) + `CapabilityBanner`.
+- Contrat figé : `docs/agent/CONTRAT_RBAC.md`.
+
+### Pièges d'intégration RBAC (mesurés)
+- **Worktrees git isolés n'ont pas `.env.local`** (gitignoré) → toute la suite
+  vitest échoue (`VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY manquantes`).
+  Ce n'est **pas** une régression : copier `.env.local` dans le worktree.
+- **Ordre de merge imposé par les dépendances** : C consomme les fichiers de B
+  (`capabilities.ts`, `orgAdmin.ts`, `useMyCapabilities.ts`) → C ne compile
+  **pas** dans son worktree isolé ; le rebaser sur `main` **après** merge de B.
+  Ordre correct : A → B → C.
+- **Garde anti-dérive des routes** (`src/lib/__tests__/route-registry-drift.test.ts`) :
+  toute route ajoutée à `ROUTE_REGISTRY` doit l'être aussi dans
+  `cypress/e2e/zero-black-screen.cy.ts` **et** `docs/agent/deeplinks.matrix.json`
+  (`routes_total`), sinon 2 tests échouent. Ici `/admin/roles` (64→65).
