@@ -20,7 +20,7 @@
 | PM5 | Dernier admin quitte → organisation orpheline | pas de garde « ≥1 propriétaire » | 2 | 4 | 3 | 24 | `assertNotLastOrgAdmin` (central.ts#revokeOrgAdmin) + trigger `trg_org_admins_not_last` (`org_assert_not_last_admin`, migration 20261026000007) | `V: last-org-admin.test.ts` (4) + `organization-central.test.ts` ; `SQL: transaction annulée T1/T2/T3/T4` ; trigger vérifié en base | **mitigé** |
 | PM6 | Offre gratuite : projet DB en pause → 1er accès échoue | mise en veille automatique | 3 | 3 | 2 | 18 | `keep-alive.yml` (ping REST toutes les 48 h) + écran de récupération au boot | workflow `keep-alive.yml` (déclenché, HTTP 200) | **mitigé** |
 | PM7 | Session expirée pendant une saisie longue → perte de données | pas de sauvegarde de brouillon | 3 | 4 | 3 | 36 | `useFormDraft` (localStorage `lumina-draft:*`) : saisie persistée en continu, restaurée à la réouverture, effacée à la soumission ; avis « Brouillon restauré » + « Recommencer » | `V: useFormDraft.test.tsx` (6, jsdom) | **mitigé** (FormFill ; généralisable aux autres formulaires) |
-| PM8 | Suppression d'un membre → écritures orphelines | suppression dure au lieu d'anonymisation | 2 | 5 | 2 | 20 | anonymisation, 0 orphelin (Phase 7) | C + SQL | à faire |
+| PM8 | Suppression d'un membre → écritures orphelines | suppression dure au lieu d'anonymisation | 2 | 5 | 2 | 20 | `cotisations.membre_id` passe de `ON DELETE CASCADE` à `ON DELETE RESTRICT` + trigger `trg_members_audit_delete` (migration 20261026000008) ; chemin sanctionné = archivage (`archiveMember`) | `V: member-deletion-guard.test.ts` (4) ; `SQL: transaction annulée T1/T2/T3/T4` ; contrainte vérifiée en base | **mitigé** |
 | PM9 | Cycle dans l'arbre d'organisations → récursion infinie | pas de contrainte anti-cycle | 2 | 5 | 2 | 20 | `org_assert_no_cycle` (trigger DB) + garde anti-cycle côté client | `V: org-tree.test.ts` (anti-cycle, 5) + SQL | **mitigé** |
 | PM10 | Arbre très profond → requêtes lentes/expirées | absence d'index/table de fermeture | 3 | 3 | 3 | 27 | `idx_organizations_parent` (index) + vue de fermeture `org_descendants` (CTE récursive) | `V: org-tree.test.ts` (profondeur) | **mitigé** |
 | PM11 | Fonction `SECURITY DEFINER` sans `search_path` figé → escalade | 7 fonctions exécutables par `authenticated` | 2 | 4 | 3 | 24 | `search_path` figé sur **15/15** fonctions SECURITY DEFINER (mesuré en base) ; `EXECUTE` restreint à `authenticated` | SQL mesuré (pg_proc.proconfig) | **mitigé** |
@@ -68,7 +68,8 @@ reste à faire).
 lieu de suppression dure), PM14 (versionnage de schéma), PM15 (réinitialisation
 locale exposée dans l'UI), PM20 (marquage `is_test`).
 
-**Il reste UN risque impact 5 non mitigé : PM8** (suppression dure d'un membre →
-écritures orphelines). PM2 (impact 5), PM9 (impact 5) et PM18 (impact 5) sont
-**mitigés** ; PM5 (impact 4) et PM7 (impact 4) sont désormais **mitigés**
-(garde anti-orphelin d'organisation, brouillon de saisie longue).
+**Aucun risque d'impact 5 ne reste non mitigé** : PM2, PM8, PM9, PM18 sont
+**mitigés** (PM8 : le lien financier ne casque plus et toute suppression est
+tracée). PM5 (impact 4) et PM7 (impact 4) sont aussi **mitigés** (garde
+anti-orphelin d'organisation, brouillon de saisie longue). Les risques ouverts
+restants (PM14, PM15, PM20) sont d'impact ≤ 3.
