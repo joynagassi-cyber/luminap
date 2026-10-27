@@ -99,6 +99,39 @@ jobs:
           fi
           echo "OK — activité EXTERNE enregistrée le $(date -u +%FT%TZ)."
 
+      # DEAD-MAN'S SWITCH — « le run n'a jamais eu lieu » est le seul échec
+      # qu'un workflow ne peut pas signaler lui-même : ce qui ne tourne pas
+      # n'échoue pas. On annonce donc chaque succès à un service EXTERNE
+      # (healthchecks.io) qui, lui, alerte quand le signal CESSE d'arriver.
+      #
+      # Mise en service (5 min, gratuit) :
+      #   1. healthchecks.io → New Check
+      #        Period: 2 days   /   Grace: 1 day
+      #        (période alignée sur le cron « jours impairs », +5 h de retard
+      #         GitHub habituel : 1 jour de grâce absorbe la dérive)
+      #   2. Copier l'URL de ping (https://hc-ping.com/<uuid>)
+      #   3. GitHub → Settings → Secrets → Actions → HEALTHCHECK_PING_URL
+      #
+      # Sans ce secret, l'étape est simplement ignorée : le workflow reste
+      # fonctionnel, mais il n'existe alors AUCUNE alerte en cas d'arrêt total.
+      - name: Annoncer le ping à un moniteur externe (dead-man's switch)
+        if: success()
+        env:
+          HEALTHCHECK_PING_URL: ${{ secrets.HEALTHCHECK_PING_URL }}
+        run: |
+          if [ -z "${HEALTHCHECK_PING_URL:-}" ]; then
+            echo "::warning::HEALTHCHECK_PING_URL non défini — aucune alerte si ce workflow cesse de tourner. Voir RUNBOOK § Anti-pause."
+            exit 0
+          fi
+          # --fail : un moniteur qui répond en erreur ne doit pas passer pour
+          # un signal reçu. Mais un échec ici ne doit pas masquer le fait que
+          # le ping Supabase, lui, a réussi : on avertit sans faire échouer.
+          if curl -sS --max-time 15 --fail -o /dev/null "$HEALTHCHECK_PING_URL"; then
+            echo "Moniteur externe prévenu."
+          else
+            echo "::warning::Moniteur externe injoignable — le ping Supabase a réussi, mais le dead-man's switch ne sera pas réarmé."
+          fi
+
       # « Jamais exécuté » est le seul échec que ce workflow ne peut pas
       # détecter lui-même. On vérifie donc au moins la condition qui coupe les
       # schedules : 60 jours sans commit sur un dépôt public.

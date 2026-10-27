@@ -513,16 +513,64 @@ Ce qui est réellement vérifiable aujourd'hui :
 2. **Le workflow s'exécute** — `gh api .../workflows/394939112/runs` :
    runs des 25/10 10:58 et 27/10 11:48, tous deux `schedule` + `success`.
    Attention : 3 runs seulement affichés, dont un `workflow_dispatch` le 24/10.
-3. **Rien ne prouve qu'un run donné a pingé** — le ping est une LECTURE, il ne
-   laisse aucune trace attribuable. Un run vert peut avoir été exécuté sans
-   que la requête porte (le contrôle HTTP 2xx ne distingue pas un `200 []`
-   d'un `200` avec données).
+3. **Rien ne prouve qu'un run donné a pingé** — *avant la migration ci-dessous*,
+   le ping était une LECTURE : aucune trace attribuable. Un run vert pouvait
+   s'exécuter sans que la requête porte (le contrôle HTTP 2xx ne distingue pas
+   un `200 []` d'un `200` avec données).
 
-Ce qui manque pour un contrôle déterministe : la migration
-`20261027000003_keep_alive_external_trace.sql` (RPC `keep_alive_ping()` en
-écriture) + `docs/agent/patches/keep-alive-verifiable.yml`. Après application,
-`select external_ping, external_count from keep_alive;` doit croître d'au moins
-1 tous les 2 jours — et cette valeur-là vient de GitHub, pas de pg_cron.
+#### Trace déterministe — migration APPLIQUÉE le 2026-10-27
+
+La migration `20261027000003_keep_alive_external_trace.sql` est **en
+production** (version `20261027000003` enregistrée dans
+`supabase_migrations.schema_migrations`, donc alignée sur le fichier du dépôt).
+Elle ajoute `external_ping` et `external_count`, écrits **uniquement** par le
+RPC `keep_alive_ping()` — jamais par pg_cron.
+
+État au moment de l'application : `external_ping = NULL`, `external_count = 0`.
+La première valeur non nulle sera donc la **première preuve d'un ping externe
+réel**.
+
+```sql
+-- À interroger après le prochain run de « Keep-alive Supabase » :
+select last_ping,      -- mécanisme INTERNE (pg_cron)
+       external_ping,  -- mécanisme EXTERNE (GitHub)  ← seul qui protège
+       external_count,
+       now() - external_ping as age_externe
+  from public.keep_alive;
+```
+
+| Observation | Interprétation |
+|---|---|
+| `external_count` reste à **0** | le workflow ne pinge pas (ou appelle encore l'ancienne URL) |
+| `external_count` ≥ 1 mais figé | le workflow s'est arrêté depuis `external_ping` |
+| `age_externe` > 4 jours | **agir** : projet peut-être en pause |
+| `external_count` croît | ✅ chaîne externe prouvée |
+
+Le RPC est en écriture seule côté `anon` (`has_function_privilege` vérifié) :
+`authenticated` n'a **pas** le droit de l'exécuter, et la valeur écrite est
+toujours `now()` — impossible de faire reculer l'horodatage pour simuler une
+panne.
+
+#### Dead-man's switch — « le run n'a jamais eu lieu »
+
+Un workflow qui ne tourne pas n'échoue pas : aucun mécanisme interne ne peut
+signaler son propre silence. Deux couches, préparées mais **à activer** :
+
+1. **Externe (indispensable)** — `docs/agent/patches/keep-alive-verifiable.yml`
+   annonce chaque succès à healthchecks.io. Sans ce secret, aucune alerte en
+   cas d'arrêt total.
+   - healthchecks.io → *New Check* → Period **2 days**, Grace **1 day** ;
+   - copier l'URL `https://hc-ping.com/<uuid>` ;
+   - GitHub → *Settings* → *Secrets* → `HEALTHCHECK_PING_URL`.
+   - Alternatives équivalentes : cron-job.org, UptimeRobot.
+2. **Interne (complément)** — `docs/agent/patches/deadman-guard.yml`, lundi
+   07:00 UTC : vérifie que le workflow est `active` et que son dernier succès
+   date de < 4 jours. Message d'erreur précis, mais soumis à la même panne
+   GitHub que ce qu'il surveille.
+
+> ⚠️ Ces deux fichiers sont des **workflows** : l'agent ne peut pas les pousser
+> (permission `workflows` absente). Ils sont versionnés dans
+> `docs/agent/patches/` pour être installés par le propriétaire.
 
 *Actions* → « Keep-alive Supabase » → dernier run vert reste le contrôle
 principal ; le reste ci-dessus sert à savoir si ce vert signifie quelque chose.
