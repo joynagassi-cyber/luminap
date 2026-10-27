@@ -50,6 +50,9 @@ $SUPABASE_BIN db dump --db-url "$SUPABASE_DB_URL" -f "$OUT_DIR/.schema-$TS.sql" 
   || fail "dump du schéma"
 gzip -f "$OUT_DIR/.schema-$TS.sql" || fail "compression du schéma"
 SCHEMA_GZ="$OUT_DIR/schema-$TS.sql.gz"
+# gzip conserve le point initial du fichier temporaire : on le retire pour que
+# les noms finaux (et les empreintes) soient stables.
+mv -f "$OUT_DIR/.schema-$TS.sql.gz" "$SCHEMA_GZ" || fail "renommage du schéma"
 
 # --- 2. Données (COPY des lignes de public) ---------------------------------
 echo "[backup] données…"
@@ -57,6 +60,7 @@ $SUPABASE_BIN db dump --db-url "$SUPABASE_DB_URL" --data-only --use-copy \
   -f "$OUT_DIR/.data-$TS.sql" || fail "dump des données"
 gzip -f "$OUT_DIR/.data-$TS.sql" || fail "compression des données"
 DATA_GZ="$OUT_DIR/data-$TS.sql.gz"
+mv -f "$OUT_DIR/.data-$TS.sql.gz" "$DATA_GZ" || fail "renommage des données"
 
 # --- 3. Empreintes (intégrité : un fichier tronqué se détecte) --------------
 ( cd "$OUT_DIR" && sha256sum "$(basename "$SCHEMA_GZ")" "$(basename "$DATA_GZ")" \

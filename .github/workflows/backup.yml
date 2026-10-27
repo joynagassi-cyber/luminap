@@ -2,7 +2,7 @@ name: Sauvegarde Supabase (export logique)
 
 # Le plan Free Supabase ne fournit AUCUNE sauvegarde téléchargeable
 # (« Database backups are not available for download for Free Plan projects »).
-# Ce workflow produit un export logique quotidien hors Supabase (proposition
+# Ce workflow produit un export logique hebdomadaire hors Supabase (proposition
 # P31, priorité critique).
 #
 # MISE EN SERVICE (à faire une fois par le propriétaire) — voir RUNBOOK.md :
@@ -19,7 +19,7 @@ name: Sauvegarde Supabase (export logique)
 
 on:
   schedule:
-    - cron: '0 3 * * *' # quotidien 03:00 UTC
+    - cron: '0 3 * * 0' # hebdomadaire, dimanche 03:00 UTC
   workflow_dispatch:
 
 permissions:

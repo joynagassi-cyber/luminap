@@ -3,11 +3,33 @@
 ## Environnement d'agent (contraintes lourdes, vérifiées)
 - **Cypress ne tourne PAS en local** : binaire non installable (pas d'écran X,
   téléchargement bloqué). Toute validation E2E passe par la **CI**.
-- **Aucun accès DB direct** : ni `pg_dump`, ni Docker, ni credential Postgres.
-  Le MCP Supabase (`execute_sql`) est la seule voie SQL.
-- **`PS_ADMIN_TOKEN` absent** → `powersync deploy sync-config` impossible.
+- **Accès DB possible** : Docker **est** installé (`sudo dockerd &` +
+  `chmod 666 /var/run/docker.sock`) ; la chaîne Postgres passe par le **pooler**
+  `aws-0-eu-west-2.pooler.supabase.com:5432` (l'hôte direct `db.<ref>…` **ne
+  résout pas** dans le conteneur). Le MCP Supabase (`execute_sql`) reste la voie
+  SQL la plus simple.
+- **`PS_ADMIN_TOKEN` disponible** dans le coffre local `~/.ps-secrets` →
+  `powersync deploy sync-config` **fonctionne** (E1 close le 2026-10-27).
 - **`npx tsc --noEmit` à la racine ne vérifie RIEN** (tsconfig `"files": []`,
   sort toujours 0). Utiliser **`npx tsc -b`**.
+
+## PowerSync (instance prod 6a9dd96302481fb31b945823)
+- **Déployable depuis ce conteneur** : jeton admin dans `~/.ps-secrets`
+  (`PS_ADMIN_TOKEN`, `PS_DATABASE_PASSWORD`) — **coffre local, jamais commité**.
+  `powersync validate` puis `powersync deploy sync-config`.
+- **Syntaxe sync-config** : PowerSync refuse les listes littérales
+  `IN ('a','b')` → utiliser `OR` chaîné, ou `IN (sous-requête)`.
+- **PIÈGE MAJEUR (R89.b)** : un stream qui filtre par **JOIN** sur la table
+  parente crée **1 bucket par ligne enfant** → 1 requête de paramètre par ligne →
+  `PSYNC_S2305 Too many parameter query results (limit of 1000)` dès que le
+  nombre de lignes **enfant** dépasse 1000 (pas de rapport avec `profiles`).
+  Correctif officiel : **dénormaliser `org_id`** sur la table enfant et clé la
+  partition directement dessus (1 bucket / org).
+- La CLI `powersync` **réécrit `service.yaml`** (`secret_ref` →
+  `secret: !env …`) pendant les tests : vérifier `git status` et revertre si
+  c'est incident.
+- Client : `src/lib/powersync/schema.ts` doit porter **exactement** les colonnes
+  serveur (mapping par nom).
 
 ## Base Supabase (hhgovvrnalibhgpakswi)
 - **Instance de DÉVELOPPEMENT**, pas la production : `transactions = 0`,
@@ -36,6 +58,9 @@
   **Ce n'est PAS la parallélisation** (réfuté par mesure en mono-conteneur,
   run `40080015253`). Cause = environnement E2E (PowerSync/contexte d'org) :
   cf. R53/R83/R72/R54. Ne pas se fier au rouge Cypress comme signal.
+  **Nuance mesurée (2026-10-27)** : le job « E2E (Cypress) » de `ci.yml` peut
+  passer sur une branche de correctif (constaté sur PR #52) — le rouge global
+  dépend donc aussi du contenu testé.
 - **Android Debug Build = échec pré-existant** (R90) : `@capacitor/cli` ^8.5.2
   vs `@capacitor/android` ^6.2.2. Non régression.
 - CI Pipeline (`ci.yml`) et `tsc` sont, eux, fiables.
