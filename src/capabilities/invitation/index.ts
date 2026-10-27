@@ -18,6 +18,7 @@
 
 import { getPowerSyncDatabase } from "@/lib/powersync";
 import { getOrganizationId } from "@/lib/orgContext";
+import { authService } from "@/lib/auth";
 import {
   createInvitationPS,
   revokeInvitationPS,
@@ -296,17 +297,21 @@ export class InvitationService {
   }
 
   /**
-   * Claim an invitation locally. Creates a PENDING user + InvitationClaim.
-   * Returns the new user id and claim id.
+   * Claim an invitation. Requires an AUTHENTICATED session: the claim binds
+   * the invitation to the caller's real Supabase Auth account
+   * (`resulting_user_id = auth.uid()`).
    *
-   * B.4 — design hors-ligne (design §5 du module) : la claim est créée en
-   * `PENDING_SYNC` LOCALEMENT, même si l'invitation cible n'est pas encore
-   * synchronisée sur cet appareil. La `ON CONFLICT` du claim (PK inv+device)
-   * + le moteur d'idempotence du trigger `settle_invitation_claim` (il ne
-   * rejoue que les claims PENDING_SYNC, et attend l'invitation avant de
-   * confirmer) garantissent que le settlement n'arrive QUAND L'INVITATION EST
-   * DISPO. On n'échoue donc PAS le claim si `getInvitationByCode` retourne
-   * null — on crée la claim de toute façon et on laisse le serveur trancher.
+   * R111 — pourquoi l'inscription est OBLIGATOIRE avant le claim :
+   * `profiles.id` et `org_memberships.user_id` portent une FK NON deferrable
+   * vers `auth.users(id)` ; la RLS `profiles_insert_self` exige de plus
+   * `initplan_uid() = id`. L'ancien code générait un `crypto.randomUUID()`
+   * (profil PENDING orphelin) → `23503` à l'upload ET au règlement, et 42501
+   * à l'insertion locale : le parcours était inopérant de bout en bout.
+   *
+   * Le profil local n'écrit QUE `status = 'PENDING'` (role/org_id restent
+   * inchangés) : le rôle et l'organisation cibles sont appliqués par le
+   * trigger SECURITY DEFINER `settle_invitation_claim`, seul chemin autorisé
+   * à franchir les gardes `ROLE_IMMUTABLE` / `ORG_ID_IMMUTABLE`.
    */
   async claimInvitation(
     payload: ClaimPayload,
@@ -316,32 +321,40 @@ export class InvitationService {
     const db = getPowerSyncDatabase();
     const now = new Date().toISOString();
 
+    // Inscription obligatoire : le claim porte sur le compte Auth réel.
+    const session = await authService.getSession();
+    const userId = session?.user?.id;
+    if (!userId) {
+      throw new Error("AUTH_REQUIRED");
+    }
+
     // Check expiration locally
     if (new Date(payload.expiresAt) < new Date()) {
       throw new Error("INVITATION_EXPIRED");
     }
 
-    // Create a PENDING user
-    const userId = crypto.randomUUID();
-    const pendingEmail = `pending-${userId.slice(0, 8)}@lumina.local`;
-
+    // Le profil Auth existe déjà (créé par `handle_new_user` au signup). On le
+    // passe PENDING SANS toucher role/org_id (gardes ROLE/ORG_IMMUTABLE) : le
+    // trigger de règlement réconciliera le rôle et l'organisation de
+    // l'invitation. UPSERT : si la ligne n'est pas encore visible localement,
+    // l'INSERT pose les valeurs par défaut tolérées (role MEMBRE, org
+    // `__no_org__` — miroir exact de `handle_new_user`).
     await db.execute(
       `INSERT INTO profiles (
         id, email, first_name, last_name, role, org_id, status, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, 'PENDING', ?, ?)`,
+      ) VALUES (?, ?, ?, ?, 'MEMBRE', '__no_org__', 'PENDING', ?, ?)
+      ON CONFLICT (id) DO UPDATE SET status = 'PENDING', updated_at = excluded.updated_at`,
       [
         userId,
-        pendingEmail,
+        session?.user?.email ?? `pending-${userId.slice(0, 8)}@lumina.local`,
         "",
         "",
-        payload.role,
-        payload.orgId,
         now,
         now,
       ],
     );
 
-    // Create the claim
+    // Create the claim (resulting_user_id = auth.uid())
     const claimId = await claimInvitationPS(
       payload.invitationId,
       claimedByDeviceId,
