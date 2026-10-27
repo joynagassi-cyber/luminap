@@ -2337,3 +2337,44 @@ sauvegarde disponible).
   Auth → Password settings → « Leaked password protection », ou accepter le
   risque documenté.
 - **Statut** : ouvert, escalade (non bloquant pour le code).
+
+### R105 — Garde de route RBAC déclarée mais INERTE + permissions `invitation:*` orphelines — CORRIGÉ (partiel)
+- **Gravité** : MOYENNE (défense en profondeur absente ; pas d'escalade directe car les pages et la RLS filtrent déjà).
+- **Défaut (2 volets)** :
+  1. `resolveRoute()` implémente bien une garde de permission par route
+     (`route.permission` → `forbidden`) et un contrôle d'appartenance
+     (`isOrgMember === false` → `needs-membership`), mais `App.tsx` l'appelle
+     avec **seulement** `{ isAuthenticated }`. Le commentaire « wired by later
+     phases (3/4) » est obsolète : les phases 3/4 sont livrées. Les branches
+     `forbidden` / `needs-membership` sont donc **du code mort**.
+  2. `ROUTE_REGISTRY` déclare `admin:settings` (/admin*), `invitation:create`
+     (/invitation/emit) et `invitation:manage` (/invitation/manage). Or
+     `PERMISSION_MATRIX` ne donnait `invitation:create/manage/revoke` à
+     **AUCUN** rôle canon, et la table DB `role_permissions` (générée de la
+     matrice) n'en contenait **aucune ligne** — alors que la fonction SQL
+     `can_manage_invitations` (déjà en prod) accorde la gestion des invitations
+     à PASTEUR_PRINCIPAL / ANCIEN / TREASURIER. Divergence DB↔TS (famille R16).
+- **Preuve** : `select role, permission from role_permissions where permission
+  like 'invitation%'` → **0 ligne** (avant) ; `getRolesWithPermission(
+  "invitation:manage")` → `[]` ; le test anti-dérive (ci-dessous) échouait.
+- **Correctif (partiel, non régressif)** :
+  1. `PERMISSION_MATRIX` : `invitation:create/manage/revoke` ajoutés à
+     PASTEUR_PRINCIPAL, ANCIEN, TREASURIER (miroir exact de
+     `can_manage_invitations`).
+  2. Migration `20261026000002_rbac_has_permission.sql` : mêmes lignes ajoutées
+     à l'INSERT `role_permissions` (le test TS↔SQL existant l'exige).
+  3. Base dev : migration `rbac_invitation_permissions_mirror` appliquée et
+     vérifiée (3 rôles × 3 permissions).
+  4. Test anti-dérive : **toute** permission déclarée par `ROUTE_REGISTRY` doit
+     être détenue par ≥1 rôle canon (échouerait si une permission orpheline
+     réapparaissait).
+- **Reste à faire (volontairement NON fait)** : câbler réellement
+  `state.hasPermission` / `state.isOrgMember` dans `App.tsx`. C'est
+  **bloquant tant que le rôle `ADMIN` (central) et `CENTRAL_ADMIN` ne sont pas
+  réconciliés** avec la matrice canon (cf. R16, PR18) : câbler la garde
+  aujourd'hui **enfermerait dehors** les admins d'organisation (`/admin` →
+  `forbidden`), car `admin:settings` n'est détenu que par PASTEUR_PRINCIPAL.
+  Le câblage doit être fait **après** la réconciliation des rôles admin, et
+  accompagné d'un test E2E par rôle.
+- **Statut** : vocabulaire réconcilié (corrigé + verrouillé) ; câblage de la
+  garde = dépendance de PR18 (ouvert).

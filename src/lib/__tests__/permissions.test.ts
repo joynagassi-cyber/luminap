@@ -15,6 +15,8 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "fs";
 import { resolve } from "path";
 import { PERMISSION_MATRIX, type Permission } from "../rbac";
+import { getRolesWithPermission } from "../rbac";
+import { ROUTE_REGISTRY } from "../routeResolver";
 import {
   PERMISSION_TABLE,
   ROLE_PERMISSION_ROWS,
@@ -340,5 +342,37 @@ describe("evaluatePermission — grants (allow)", () => {
         grants,
       }).allowed,
     ).toBe(true);
+  });
+});
+
+/**
+ * Anti-dérive ROUTE_REGISTRY ↔ PERMISSION_MATRIX (R105).
+ *
+ * Le resolver exige `route.permission` pour ouvrir une route protégée
+ * (`forbidden` sinon). Une permission déclarée par le registre mais détenue
+ * par AUCUN rôle canon est une incohérence : soit la route est inatteignable,
+ * soit le vocabulaire a divergé (R16). Ce test verrouille l'alignement.
+ */
+describe("cohérence ROUTE_REGISTRY ↔ PERMISSION_MATRIX", () => {
+  const declaredPermissions = [
+    ...new Set(
+      ROUTE_REGISTRY.map((r) => r.permission).filter(
+        (p): p is Permission => typeof p === "string",
+      ),
+    ),
+  ];
+
+  it("le registre déclare au moins une permission", () => {
+    expect(declaredPermissions.length).toBeGreaterThan(0);
+  });
+
+  it("chaque permission de route est détenue par ≥1 rôle canon", () => {
+    const unowned = declaredPermissions.filter(
+      (p) => getRolesWithPermission(p).length === 0,
+    );
+    expect(
+      unowned,
+      `permissions déclarées par ROUTE_REGISTRY mais détenues par aucun rôle : ${unowned.join(", ")}`,
+    ).toEqual([]);
   });
 });

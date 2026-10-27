@@ -33,7 +33,7 @@
 | 2 | `client_errors` capture + redaction PII | `V: client-errors.test.ts` (8) | **couvert** |
 | 3 | Arbre multi-org : anti-cycle + clôture transitive | `V: org-tree.test.ts` (11) + preuves SQL | **couvert** |
 | 3 | Table de fermeture matérialisée (perf) | — | proposition |
-| 4 | RBAC décision unique DB↔TS | `V: permissions.test.ts` (17) + preuves SQL | **couvert** |
+| 4 | RBAC décision unique DB↔TS | `V: permissions.test.ts` (19, dont garde registre↔matrice R105) + preuves SQL | **couvert** |
 | 4 | RLS réécrites sur `has_permission` | — | proposition (PR18) |
 | 5 | Auth parcours complets | `C: auth-real.cy.ts`, `sessions.cy.ts` | partiel |
 | 6 | Invitations (code/QR/lien) | `C: invitations.cy.ts`, `V: invitation-rls-hardening`, `invitation-code-entropy`, `sync-config-invitations` | partiel (E1) |
