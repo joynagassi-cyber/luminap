@@ -37,6 +37,7 @@ dont la base locale est corrompue/pleine restait bloqué sans recours.
 | `src/pages/Health.tsx` | bouton « Réinitialiser les données locales » (confirmé, `data-testid="health.local-recovery"`) |
 | `src/lib/__tests__/schema-version.test.ts` | 12 tests (parse fail-open, décision pure, câblage App.tsx) |
 | `src/lib/__tests__/local-recovery.test.ts` | 7 tests (ordre, best-effort, câblage Health) |
+| `src/lib/__tests__/route-state-wiring.test.ts` | 8 tests — **garde structurelle anti-classe** : aucun champ de `RouteState` ne peut être ajouté sans être câblé (ou explicitement listé `PENDING_WIRING`), et chaque `RouteOutcome` doit avoir un `case` rendu |
 
 ## Décisions de conception
 
@@ -59,13 +60,19 @@ dont la base locale est corrompue/pleine restait bloqué sans recours.
 |---|---|---|
 | Typecheck | `./node_modules/.bin/tsc -b` | **0** (exit 0) |
 | Lint | `./node_modules/.bin/eslint .` | **0 erreur** (warnings pré-existants) |
-| Unitaires | `./node_modules/.bin/vitest run` | **1365/1365** (102 fichiers) |
+| Unitaires | `./node_modules/.bin/vitest run` | **1373/1373** (103 fichiers) |
 | Build | `./node_modules/.bin/vite build` | **OK** (exit 0) |
 
 **Preuve que le test échoue sans le correctif** : en retirant
 `clientSchemaVersion`/`minSchemaVersion` de `App.tsx`, le test de câblage passe
 de 12/12 à **10 passed | 2 failed** (« App.tsx alimente clientSchemaVersion… »
 et « …minSchemaVersion… »). Restauré ensuite.
+
+**Preuve que la garde structurelle mord** : en ajoutant un champ fictif
+`bogusInertField` à `RouteState` (non câblé, non listé), le test
+`route-state-wiring` échoue (« expected [ 'bogusInertField' ] to deeply equal
+[] ») — puis restauré. La classe de défaut ne peut donc plus récidiver
+silencieusement.
 
 ## Non-couvert (honnêteté)
 
