@@ -48,4 +48,25 @@ describe("ROUTE_REGISTRY ↔ routes montées (anti-dérive)", () => {
     expect(stars).toHaveLength(1);
     expect(registeredPaths().filter((p) => p === "*")).toHaveLength(1);
   });
+
+  // Le crawler E2E « zéro écran noir » embarque une COPIE de ROUTE_REGISTRY.
+  // Si une route est ajoutée au registre sans l'être au crawler, l'invariant
+  // « aucune route ne laisse un écran noir » cesse silencieusement de couvrir
+  // cette route. On verrouille la copie ici (seule vérification possible sans
+  // exécuter Cypress).
+  it("la liste du crawler `zero-black-screen.cy.ts` couvre exactement le registre", () => {
+    const spec = readFileSync(
+      resolve(__dirname, "../../../cypress/e2e/zero-black-screen.cy.ts"),
+      "utf8",
+    );
+    const block = spec.match(/const ROUTES: string\[\] = \[([\s\S]*?)\];/);
+    expect(block, "bloc ROUTES introuvable dans le crawler").not.toBeNull();
+    const crawler = [
+      ...block![1].matchAll(/"([^"]+)"/g),
+    ].map((m) => m[1]).sort();
+    const registry = ROUTE_REGISTRY.filter((r) => r.pattern !== "*")
+      .map((r) => r.pattern)
+      .sort();
+    expect(crawler).toEqual(registry);
+  });
 });
