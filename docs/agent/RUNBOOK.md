@@ -493,8 +493,39 @@ applicatif, le risque de pause est quasi nul aujourd'hui.
 
 #### Contrôles
 
-- *Actions* → « Keep-alive Supabase » → dernier run vert, et
-  `select last_ping from keep_alive;` doit dater de < 48 h.
+> ⚠️ **`select last_ping from keep_alive` ne prouve RIEN sur le mécanisme
+> externe.** `last_ping` est écrit par le job pg_cron (00:00 UTC chaque jour),
+> pas par GitHub. Le contrôle du RUNBOOK « `last_ping` < 48 h » valide donc
+> pg_cron — c'est-à-dire précisément le mécanisme qui ne protège pas. Cette
+> erreur a été corrigée le 2026-10-27.
+
+Ce qui est réellement vérifiable aujourd'hui :
+
+1. **Le mécanisme atteint bien Postgres** — `pg_stat_statements` compte les
+   requêtes PostgREST sur `keep_alive` :
+   ```sql
+   select calls, rows, left(query, 80)
+     from pg_stat_statements
+    where query ilike '%pgrst_source%keep_alive%'
+    order by calls desc;
+   ```
+   Relevé du 27/10 : 4 appels. La lecture s'exécute bien côté serveur.
+2. **Le workflow s'exécute** — `gh api .../workflows/394939112/runs` :
+   runs des 25/10 10:58 et 27/10 11:48, tous deux `schedule` + `success`.
+   Attention : 3 runs seulement affichés, dont un `workflow_dispatch` le 24/10.
+3. **Rien ne prouve qu'un run donné a pingé** — le ping est une LECTURE, il ne
+   laisse aucune trace attribuable. Un run vert peut avoir été exécuté sans
+   que la requête porte (le contrôle HTTP 2xx ne distingue pas un `200 []`
+   d'un `200` avec données).
+
+Ce qui manque pour un contrôle déterministe : la migration
+`20261027000003_keep_alive_external_trace.sql` (RPC `keep_alive_ping()` en
+écriture) + `docs/agent/patches/keep-alive-verifiable.yml`. Après application,
+`select external_ping, external_count from keep_alive;` doit croître d'au moins
+1 tous les 2 jours — et cette valeur-là vient de GitHub, pas de pg_cron.
+
+*Actions* → « Keep-alive Supabase » → dernier run vert reste le contrôle
+principal ; le reste ci-dessus sert à savoir si ce vert signifie quelque chose.
 - Les 7 workflows doivent être `active` — sinon GitHub les a coupés :
   ```bash
   gh api repos/joynagassi-cyber/luminap/actions/workflows --jq '.workflows[] | "\(.state) \(.name)"'
