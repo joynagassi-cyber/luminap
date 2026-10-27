@@ -75,6 +75,12 @@ export const PERMISSION_MATRIX: Readonly<Record<Role, Permission[]>> = {
     "cotisation:manage",
     "admin:settings",
     "admin:roles",
+    // Miroir de `can_manage_invitations` (SQL, déjà en prod) : ces trois
+    // permissions n'étaient détenues par AUCUN rôle canon, alors que
+    // ROUTE_REGISTRY les exige (/invitation/emit, /invitation/manage).
+    "invitation:create",
+    "invitation:manage",
+    "invitation:revoke",
   ] as Permission[],
 
   PASTEUR_ASSOCIE: [
@@ -120,6 +126,10 @@ export const PERMISSION_MATRIX: Readonly<Record<Role, Permission[]>> = {
     "member:read",
     "member:update",
     "cotisation:manage",
+    // Miroir de `can_manage_invitations` (SQL) — voir PASTEUR_PRINCIPAL.
+    "invitation:create",
+    "invitation:manage",
+    "invitation:revoke",
   ] as Permission[],
 
   DIACRE: [
@@ -189,6 +199,10 @@ export const PERMISSION_MATRIX: Readonly<Record<Role, Permission[]>> = {
     "member:read",
     "member:update",
     "cotisation:manage",
+    // Miroir de `can_manage_invitations` (SQL) — voir PASTEUR_PRINCIPAL.
+    "invitation:create",
+    "invitation:manage",
+    "invitation:revoke",
   ] as Permission[],
 
   TREASURIER_ADJOINT: [
