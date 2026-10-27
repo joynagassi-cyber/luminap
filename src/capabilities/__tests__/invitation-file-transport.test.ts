@@ -61,6 +61,19 @@ vi.mock("@/lib/orgContext", () => ({
   setOrganizationId: () => {},
 }));
 
+// R111 — le claim exige désormais une session Auth (resulting_user_id =
+// auth.uid()). On simule un utilisateur connecté ; le test « sans session »
+// bascule ce mock pour prouver le refus AUTH_REQUIRED.
+let mockSession: { user: { id: string; email: string } } | null = {
+  user: { id: "auth-user-1", email: "invite@lumina.dev" },
+};
+vi.mock("@/lib/auth", () => ({
+  authService: {
+    getSession: async () => mockSession,
+    getState: () => ({ session: mockSession }),
+  },
+}));
+
 vi.mock("@/lib/audit", () => ({
   auditLogRepo: { write: vi.fn(async () => {}), list: async () => [], getByEntity: async () => [] },
   writeAudit: vi.fn(async () => {}),
@@ -135,11 +148,32 @@ describe("invitation file transport (T9)", () => {
     const json = await exportInvitationToFile("inv-1");
     const res = await claimInvitationFromFile(json, "device-1", "actor-1");
     expect(res.claimId).toBe("claim-1");
+    // R111 — le claim porte sur le compte Auth réel (auth.uid()), jamais un
+    // UUID aléatoire : le profil local inséré est celui de la session.
+    expect(res.userId).toBe("auth-user-1");
+    expect(claimed).toContain("auth-user-1");
     // The claim op was routed through dataLayer's claimInvitationPS.
     expect(claimed).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ invitationId: "inv-1", status: "PENDING_SYNC" }),
+        expect.objectContaining({
+          invitationId: "inv-1",
+          status: "PENDING_SYNC",
+          resultingUserId: "auth-user-1",
+        }),
       ]),
     );
+  });
+
+  it("R111 — le claim est refusé sans session Auth (AUTH_REQUIRED)", async () => {
+    const json = await exportInvitationToFile("inv-1");
+    const prev = mockSession;
+    mockSession = null;
+    try {
+      await expect(
+        claimInvitationFromFile(json, "device-1", "actor-1"),
+      ).rejects.toThrow("AUTH_REQUIRED");
+    } finally {
+      mockSession = prev;
+    }
   });
 });
