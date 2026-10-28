@@ -2801,3 +2801,31 @@ sauvegarde disponible).
 - **RÉVERSIBILITÉ** : `rollback/20261028000001_rollback.sql` (réouvre la
   surface — fourni pour la symétrie, à n'appliquer qu'en connaissance de cause).
 - **Receipt** : `docs/agent/receipts/phase-08/2026-10-28-r115-trigger-rpc-surface.md`.
+
+### R116 — La garde de budget de performance était SILENCIEUSEMENT ignorée en CI — ✅ CORRIGÉ le 2026-10-28
+
+- **Gravité** : MOYENNE (perte de signal, pas de faille).
+- **Classe** : « filet déclaré, jamais déclenché » (6e occurrence après
+  R105/R106/R107/R108/R113) — la variante **CI** : une garde existe et est
+  documentée comme active, mais une **condition d'environnement** la met hors
+  service silencieusement.
+- **Défaut** : `src/lib/__tests__/perf-budget.test.ts` est
+  `describe.skipIf(!existsSync(dist/index.html))`. Or le job `unit`
+  (`.github/workflows/ci.yml`) exécutait `pnpm exec vitest run` **sans build
+  préalable** → `dist/` absent → les **6** tests de budget de performance
+  étaient **ignorés** (rapportés « skipped », donc verts). Une régression du
+  poids du premier rendu (ex. import statique lourd dans le bundle d'entrée)
+  passait inaperçue. Preuve : en CI le job `unit` ne dépendait d'aucun `build`
+  et l'étape de build vit dans un **autre** job (`build`), non partagé.
+- **Correctif (2 volets)** :
+  1. `.github/workflows/ci.yml` : ajout d'une étape `pnpm run build` **avant**
+     `vitest run` dans le job `unit` → la garde s'exécute réellement ;
+  2. `perf-budget.test.ts` : test explicite « l'artefact de build est présent
+     quand la garde est attendue » — si `process.env.CI` est positionné et que
+     `dist/index.html` manque, le test **échoue** (au lieu de sauter
+     silencieusement). Hors CI, le skip reste toléré (TDD local).
+- **Preuves (3 cas, mesurées)** :
+  - sans `CI` et sans `dist/` → `1 passed | 6 skipped` (tolérance locale) ;
+  - `CI=1` sans `dist/` → **échec** explicite `dist/index.html absent … (R116)` ;
+  - `CI=1` avec `dist/` (après `vite build`) → **7 passed**.
+- **Receipt** : `docs/agent/receipts/phase-17/2026-10-28-perf-guard-muet.md`.
