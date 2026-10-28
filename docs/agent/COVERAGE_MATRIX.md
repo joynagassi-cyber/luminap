@@ -44,7 +44,8 @@
 | 8 | Escalade RPC (`settle_invitation_claim`) | `V: settle-claim-rpc-hardening` (4) + preuve SQL | **couvert** |
 | 8 | Entrées hostiles : injection formule CSV | `V: csv-escape` (7) | **couvert** |
 | 9 | Sync hors-ligne | `C: cloud-sync.cy.ts` (bloqué env.) | **bloqué (E2)** |
-| 10 | Responsive / a11y | `C: responsive-skeleton.cy.ts` | partiel |
+| 10 | Responsive / a11y | `C: responsive-skeleton.cy.ts` + `V: responsive-container-guard.test.tsx` | **couvert** (garde statique ; E2E en CI) |
+| 10 | Responsive (contenu borné/centré, grand viewport ; R119) | `V: responsive-container-guard.test.tsx` (3 : 62 pages montées) | **couvert** |
 | 11 | Pre-mortem / chaos | à créer | **non couvert** |
 | 11 | Page « État du système » (santé) + « Signaler un problème » | `V: health.test.ts` (15) + `C: zero-black-screen` (route) | **couvert** |
 | 11 | Drapeaux de fonctionnalités (kill switches, PR7/R118) | `V: feature-flags.test.ts` (16 : fail-open, désactivation, surcharge locale, câblage) | **couvert** |

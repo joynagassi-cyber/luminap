@@ -250,7 +250,7 @@ export default function EventDetail() {
         </IonToolbar>
       </IonHeader>
       <IonContent className="ion-padding">
-        <div className="px-5 pb-safe pt-safe">
+        <div className="max-w-lg mx-auto px-5 pb-safe pt-safe">
           {success && (
             <div
               className="mb-4 p-3 rounded-xl text-sm"
