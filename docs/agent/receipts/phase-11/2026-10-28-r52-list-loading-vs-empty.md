@@ -14,6 +14,7 @@ est vide », et annonçaient donc un fait **faux** pendant le chargement :
 | `/giving` (4 onglets) | « Aucune campagne », « Aucun donateur », … | `isLoading` des 4 hooks + `ListSkeleton` **non câblé** |
 | `/membre/:id` | « Membre introuvable » | `MembreDetailSkeleton` **non câblé** |
 | `/membres/en-avance` | « Aucun membre en avance » **et total à 0** | `MembresEnAvanceSkeleton` **non câblé** |
+| `/budgets` | « Aucun budget » | `isLoading` des 2 hooks + `ListSkeleton` **non câblé** |
 
 Le cas est piégeux : les hooks PowerSync renvoient `data: []` **ET**
 `isLoading: true` tant que la première lecture n'a pas abouti. Lire `data`
@@ -28,6 +29,7 @@ seul produit un état vide indétectable du vrai état vide.
   dans `EventDetail.tsx:92`) → `MembreDetailSkeleton` tant que la réplique
   n'est pas disponible ; « Membre introuvable » seulement ensuite.
 - `MembresEnAvance.tsx` : même garde → `MembresEnAvanceSkeleton`.
+- `Budgets.tsx` : `ListSkeleton` pendant `budgetsLoading || linesLoading`.
 
 Aucune donnée, aucun schéma, aucune migration touchés.
 
@@ -37,14 +39,14 @@ Aucune donnée, aucun schéma, aucune migration touchés.
 |---|---|
 | `npx tsc -b` | **0** |
 | `npx eslint src` | **0 erreur** (warnings préexistants) |
-| `npx vitest run` | **1597/1597** (130 fichiers) |
-| Non-vacuité (retrait du câblage) | les **3** assertions « squelette » échouent |
+| `npx vitest run` | **1599/1599** (130 fichiers) |
+| Non-vacuité (retrait du câblage) | les **4** assertions « squelette » échouent |
 
 Nouveaux tests :
 - `src/pages/__tests__/Giving-loading.test.tsx` (2) — chargement → squelette
   **et** lecture terminée → état vide exact ;
-- `src/pages/__tests__/list-loading-vs-empty.test.tsx` (4) — idem pour
-  `/membre/:id` et `/membres/en-avance`.
+- `src/pages/__tests__/list-loading-vs-empty.test.tsx` (6) — idem pour
+  `/membre/:id`, `/membres/en-avance` et `/budgets`.
 
 Les deux directions sont verrouillées : un correctif qui afficherait le
 squelette **à tort** (état vide réel masqué) échoue aussi.

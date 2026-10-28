@@ -24,13 +24,19 @@ vi.mock("@ionic/react", async () => {
 });
 
 // `ready` pilote la disponibilité de la réplique (le cas piégeux = false).
-const state = { ready: false };
+const state = { ready: false, loading: true };
 
 vi.mock("@/lib/dataLayer", () => ({
   useMembers: () => ({ data: [], isLoading: false, error: undefined, retry: vi.fn() }),
   useEvents: () => ({ data: [], isLoading: false }),
   useCotisations: () => ({ data: [], isLoading: false }),
   isPowerSyncReadyNow: () => state.ready,
+  useOrgBudgets: () => ({ data: [], isLoading: state.loading }),
+  useOrgBudgetLines: () => ({ data: [], isLoading: state.loading }),
+  useTransactions: () => ({ data: [], isLoading: false }),
+  useCategories: () => ({ data: [], isLoading: false }),
+  useOrgUnits: () => ({ data: [], isLoading: false }),
+  addOrgBudgetPS: vi.fn(async () => undefined),
 }));
 
 vi.mock("@/components/TopHeader", () => ({
@@ -43,6 +49,7 @@ vi.mock("@/components/BottomNav", () => ({
 
 import MembreDetail from "@/pages/MembreDetail";
 import MembresEnAvance from "@/pages/MembresEnAvance";
+import Budgets from "@/pages/Budgets";
 
 afterEach(cleanup);
 
@@ -99,5 +106,31 @@ describe("R52.c — /membres/en-avance", () => {
 
     expect(container.querySelectorAll('[aria-busy="true"]').length).toBe(0);
     expect(screen.getByText("Aucun membre en avance")).toBeInTheDocument();
+  });
+});
+
+describe("R52.d — /budgets", () => {
+  it("affiche un squelette (pas « Aucun budget ») pendant la lecture", () => {
+    state.loading = true;
+    const { container } = render(
+      <MemoryRouter>
+        <Budgets />
+      </MemoryRouter>,
+    );
+
+    expect(container.querySelectorAll('[aria-busy="true"]').length).toBeGreaterThan(0);
+    expect(screen.queryByText("Aucun budget")).toBeNull();
+  });
+
+  it("affiche l'état vide quand la lecture est terminée et la liste vide", () => {
+    state.loading = false;
+    const { container } = render(
+      <MemoryRouter>
+        <Budgets />
+      </MemoryRouter>,
+    );
+
+    expect(container.querySelectorAll('[aria-busy="true"]').length).toBe(0);
+    expect(screen.getByText("Aucun budget")).toBeInTheDocument();
   });
 });
