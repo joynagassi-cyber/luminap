@@ -38,6 +38,7 @@
 | 4 | RBAC fin : décision unique DB↔TS (`has_permission`), deny, portées | P1 | **terminé** | `agent/phase-04-rbac` | `phase-04/2026-10-26-rbac.md` |
 | 4 | RBAC : R105 — permissions `invitation:*` orphelines réconciliées + garde anti-dérive registre↔matrice | P1 | **terminé** | `agent/r105-route-guard-rbac` | `phase-09/2026-10-26-r105-route-guard-rbac.md` |
 | 4 | RBAC : câblage réel de la garde de route (`isOrgMember`) | P1 | **terminé** (R107 : `useOrgMembership` fail-open + exemption `/onboarding`/`/org-setup`) | `agent/phase-4-needs-membership` | `phase-04/2026-10-28-needs-membership-wiring.md` |
+| 2 | Écran « Organisation non rejointe » : cul-de-sac (bouton mort → `/dashboard` bloqué) | P1 | **terminé** (R120 : échappatoire = déconnexion, garde anti-dérive) | `agent/phase-4-needs-membership` | `phase-04/2026-10-28-needs-membership-escape.md` |
 | 4 | RBAC : câblage réel de la garde de route (`hasPermission`) | P1 | bloqué (dépend PR18/R16 : réconcilier rôles ADMIN/CENTRAL_ADMIN) | — | R105 |
 | 2 | Audit garde de route : R106 (update-required inerte) + R107 (needs-membership inerte) | P1 | **terminé** (documenté ; correctif = PR19) | `agent/r105-route-guard-rbac` | `phase-09/2026-10-26-r105-route-guard-rbac.md` |
 | 4 | RBAC fin : réécrire les ~146 politiques RLS sur `has_permission` | P2 | proposition | — | (cf. PROPOSALS PR18) |
