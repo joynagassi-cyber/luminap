@@ -2477,9 +2477,12 @@ export async function setOrganizationStatusPS(
       [now, actorId, reason ?? null, now, orgId],
     );
   } else {
-    // Reactivate: clear suspended flags
+    // Reactivate/restore: clear BOTH suspension and archive metadata.
+    // R123 — `archived_at/by/reason` étaient laissés en place : une
+    // organisation restaurée depuis ARCHIVED restait marquée « archivée le
+    // … par … pour … » alors qu'elle est ACTIVE (métadonnées trompeuses).
     await executeWrite(
-      `UPDATE organizations SET status = 'ACTIVE', suspended_at = NULL, suspended_by = NULL, updated_at = ? WHERE id = ?`,
+      `UPDATE organizations SET status = 'ACTIVE', suspended_at = NULL, suspended_by = NULL, archived_at = NULL, archived_by = NULL, archive_reason = NULL, updated_at = ? WHERE id = ?`,
       [now, orgId],
     );
   }

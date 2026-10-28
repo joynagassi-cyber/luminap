@@ -21,6 +21,7 @@ import {
   ShieldOff,
   Archive,
   Play,
+  RotateCcw,
   Users,
   Clock,
   History,
@@ -794,6 +795,27 @@ export default function CentralAdmin() {
                               }
                             >
                               <Play className="w-3 h-3 mr-1" /> Réactiver
+                            </IonButton>
+                          ) : o.status === "ARCHIVED" ? (
+                            /* R123 — une organisation ARCHIVED n'offrait AUCUNE
+                               action : cul-de-sac. `reactivateOrganization`
+                               remet ACTIVE et nettoie les métadonnées
+                               d'archivage (l'historique d'audit est conservé). */
+                            <IonButton
+                              size="small"
+                              fill="outline"
+                              color="success"
+                              data-testid={`restore-${o.id}`}
+                              disabled={busy === o.id}
+                              onClick={() =>
+                                act(
+                                  () =>
+                                    reactivateOrganization(o.id, user?.id ?? "", o),
+                                  o.id,
+                                )
+                              }
+                            >
+                              <RotateCcw className="w-3 h-3 mr-1" /> Restaurer
                             </IonButton>
                           ) : o.status === "ACTIVE" ? (
                             <IonButton
