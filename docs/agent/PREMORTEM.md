@@ -26,8 +26,8 @@
 | PM11 | Fonction `SECURITY DEFINER` sans `search_path` figé → escalade | 7 fonctions exécutables par `authenticated` | 2 | 4 | 3 | 24 | `search_path` figé sur **15/15** fonctions SECURITY DEFINER (mesuré en base) ; `EXECUTE` restreint à `authenticated` | SQL mesuré (pg_proc.proconfig) | **mitigé** |
 | PM12 | Rapport PDF énorme → mémoire/timeout mobile | génération sans pagination | 2 | 3 | 2 | 12 | `jspdf-autotable` pagine automatiquement (`addPage` géré par la lib) | `V` export + revue de code | **mitigé** |
 | PM13 | Arrondis/devise → totaux app ≠ PDF | flottants | 2 | 4 | 2 | 16 | montants en entiers (centimes) + parseur currency FR/US centralisé | `V: formSystem-currency.test.ts` (10) | **mitigé** |
-| PM14 | Ancien APK incompatible avec le nouveau schéma de sync | pas de versionnage de schéma | 2 | 3 | 3 | 18 | écran « mise à jour requise » (Phase 1/2) | V | à faire |
-| PM15 | Base locale pleine/corrompue → app inutilisable | pas de réinitialisation sûre | 2 | 3 | 2 | 12 | réinitialisation locale sûre (Phase 9) | C chaos | à faire |
+| PM14 | Ancien APK incompatible avec le nouveau schéma de sync | pas de versionnage de schéma | 2 | 3 | 3 | 18 | écran « mise à jour requise » CÂBLÉ : `schemaVersion.ts` + `RouteState` alimenté (fail-open tant que `VITE_MIN_SCHEMA_VERSION` non déclarée) | `V: schema-version.test.ts` (12) | **mitigé (câblage)** |
+| PM15 | Base locale pleine/corrompue → app inutilisable | pas de réinitialisation sûre | 2 | 3 | 2 | 12 | `performLocalRecovery` (disconnect→purge→reset-org→reload) exposé par un bouton confirmé sur `/settings/health` | `V: local-recovery.test.ts` (7) | **mitigé** |
 | PM16 | Import/export CSV → injection de formules | cellule commençant par `=`/`+`/`@` | 2 | 3 | 2 | 12 | échappement des préfixes de formule (`= + - @`, TAB/CR/LF) + guillemets | `V: csv-escape.test.ts` (7) | **mitigé** |
 | PM17 | Bouton cliqué deux fois → double écriture financière | pas d'anti double-soumission | 3 | 4 | 2 | 24 | `useSubmitGuard` (garde synchrone ref + `disabled`) sur les 4 actions financières de `TransactionDetail` | `V: useSubmitGuard.test.tsx` (3, jsdom : 2 clics = 1 appel) | **mitigé** (guard + test ; reste à étendre aux autres écrans financiers) |
 | PM18 | Données locales de A visibles par B sur le même appareil | purge locale absente au logout | 2 | 5 | 3 | 30 | `ensureLocalDataOwnedBy(userId)` : purge des clés `lumina-*` + org mémoire au 1er login d'un AUTRE compte | `V: local-data-ownership.test.ts` (4, jsdom : même/autre compte, 1er, null) | **mitigé** |
@@ -68,15 +68,16 @@ Reclassés en **partiel** (sécurité assurée, confort restant) : PM3 (la RLS
 serveur rejette l'op hors droits ; l'explication par élément à l'utilisateur
 reste à faire).
 
-**Restent ouverts** (nécessitent une décision/chantier) : PM14 (versionnage de
-schéma), PM15 (réinitialisation locale exposée dans l'UI), PM20 (marquage
-`is_test`).
+**Restent ouverts** (nécessitent une décision/chantier) : PM20 (marquage
+`is_test`). PM14 et PM15 sont désormais **mitigés** (2026-10-27, branche
+`agent/phase-11-resilience`) : câblage du versionnage de schéma et exposition
+d'une réinitialisation locale sûre dans l'UI.
 
 **Aucun risque d'impact 5 ne reste non mitigé** : PM2, PM8, PM9, PM18 sont
 **mitigés** (PM8 : le lien financier ne casque plus et toute suppression est
 tracée). PM5 (impact 4) et PM7 (impact 4) sont aussi **mitigés** (garde
 anti-orphelin d'organisation, brouillon de saisie longue). Les risques ouverts
-restants (PM14, PM15, PM20) sont d'impact ≤ 3.
+restant (PM20) est d’impact ≤ 3 ; PM14 et PM15 sont désormais mitigés.
 
 ## Verdict GO / NO-GO — Phase 11/17 (2026-10-26)
 
@@ -90,9 +91,10 @@ Règle du contrat : le pre-mortem final doit être **sans risque critique
 | PM9 cycle d'arbres | mitigé | `org_assert_no_cycle` + `org-tree.test.ts` |
 | PM18 fuite locale inter-comptes | mitigé | `local-data-ownership.test.ts` (4) — PR #45 |
 
-**Risques ouverts restants** : PM14 (versionnage de schéma, impact 3), PM15
-(réinitialisation locale, impact 3), PM20 (marquage `is_test`, impact 2),
-PM3 partiel (confort UX, sécurité assurée).
+**Risques ouverts restants** : PM20 (marquage `is_test`, impact 2),
+PM3 partiel (confort UX, sécurité assurée). PM14 (versionnage de schéma) et
+PM15 (réinitialisation locale) sont **mitigés** depuis le 2026-10-27
+(`schema-version.test.ts`, `local-recovery.test.ts`).
 
 **VERDICT : GO.** Aucun risque d'impact 5 ne reste non mitigé ; les risques
 ouverts sont d'impact ≤ 3 et non bloquants. Ce verdict repose sur des preuves

@@ -5,13 +5,20 @@ Guide d'exploitation. À lire en premier si quelque chose ne va pas.
 ## Lancer l'application
 
 ```bash
-npm ci                 # installe les dependances (version du lockfile)
+pnpm install --frozen-lockfile   # gestionnaire officiel (lockfile pnpm-lock.yaml)
 npx vite --port 8080 --host 127.0.0.1
 ```
 - App : <http://127.0.0.1:8080/>
 - Prérequis : `.env` / `.env.local` renseignés (URL Supabase, clé publique,
   URL PowerSync). Aucune clé de service n'est nécessaire : l'app est
   **front-first** (Supabase + PowerSync depuis le navigateur).
+- **Ne pas utiliser `npm ci`** : `@capacitor/storage` (peer `@capacitor/core@^3`)
+  entre en conflit ERESOLVE avec `@capacitor/core` récent ; `npm ci` **échoue**.
+  Le projet est **pnpm** (c'est ce que la CI exécute :
+  `pnpm install --frozen-lockfile`). Si `pnpm` n'est pas installé :
+  `corepack enable && corepack prepare pnpm@latest --activate` (ou
+  `npm i -g pnpm`).
+- **Vérifié à froid (2026-10-27)** : `npx vite` → `VITE ready`, `curl /` → **200**.
 
 ## Lancer les tests
 
@@ -30,6 +37,15 @@ DISPLAY=:99 CYPRESS_CACHE_FOLDER=/workspace/.cypress-cache \
   npx cypress run --config baseUrl=http://127.0.0.1:8080,video=false \
   --spec cypress/e2e/cross-tenant.cy.ts,cypress/e2e/events-tasks.cy.ts
 ```
+- **Résultats attendus (vérifiés à froid le 2026-10-27)** :
+  `npx vitest run` → **1429/1429 (109 fichiers)** ; `npx tsc -b --noEmit` →
+  **exit 0** ; `npx eslint .` → **0 erreur** (warnings pré-existants) ;
+  `npm run build` → **OK**. Le compteur exact s'obtient par
+  `--reporter=json` (`numTotalTests`, `numFailedTests`).
+- **Prérequis E2E non installés par défaut** : `Xvfb` **absent** de l'image
+  (`which Xvfb` → vide) → l'installer avant toute exécution Cypress locale :
+  `sudo apt-get update && sudo apt-get install -y xvfb`.
+
 > **Piège (R72) : lancez la suite contre le serveur de DEV (`npx vite`),
 > pas contre un build de production (`vite preview` ou le déploiement).**
 > Les specs lisent `window.__psSupabaseClient`, publié par
@@ -144,6 +160,16 @@ P-NEW-3), ou passer au plan payant.
 Le double encodage jsonb était **silencieux**. Cette requête doit toujours
 renvoyer **0** sur la colonne `corrompues` ; toute valeur non nulle est une
 régression à corriger immédiatement.
+
+> **Mesure du 2026-10-27 (cold-test) :** la requête renvoie **88** sur
+> `audit_entries.before_state` (au lieu de 0). Ce ne sont pas des tableaux
+> corrompus mais la **chaîne littérale `"null"`** (jsonb de type `string`),
+> écrite par `audit.ts` (`JSON.stringify(null)` → `"null"`). Toutes les lignes
+> concernées sont des `CREATE` (84 `Invitation`, 4 `FormSubmission`), où
+> `before_state` devrait valoir `NULL`. **Ne pas conclure « 0 » sans exécuter
+> la requête** : la valeur « doit toujours renvoyer 0 » ci-dessous est un
+> objectif, pas un constat. Correctif : cf. R65 (writer + données historiques).
+
 
 ```sql
 select 'events.budget_items' as col, count(*) filter (where jsonb_typeof(budget_items) = 'string') as corrompues from public.events

@@ -1,4 +1,4 @@
-import { CheckCircle2, AlertTriangle, XCircle, Activity, Copy, Check } from "lucide-react";
+import { CheckCircle2, AlertTriangle, XCircle, Activity, Copy, Check, RefreshCw } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useState } from "react";
 
@@ -11,6 +11,10 @@ import {
 } from "@/lib/health";
 import type { HealthLevel } from "@/lib/health";
 import { getRecentErrors } from "@/lib/clientErrors";
+import { performLocalRecovery } from "@/lib/localRecovery";
+import { disconnectPowerSync } from "@/lib/powersync";
+import { deleteAllLocalData } from "@/lib/dataLayer";
+import { resetOrganizationId } from "@/lib/orgContext";
 
 const LEVEL_ICON: Record<HealthLevel, LucideIcon> = {
   ok: CheckCircle2,
@@ -36,6 +40,7 @@ export default function Health() {
   const report = useHealthSnapshot();
   const OverallIcon = LEVEL_ICON[report.overall];
   const [copied, setCopied] = useState(false);
+  const [recovering, setRecovering] = useState(false);
 
   const copyDiagnostic = async () => {
     const text = buildDiagnosticReport(
@@ -52,6 +57,25 @@ export default function Health() {
       // sécurisé). On expose le texte dans une alerte pour copie manuelle.
       window.prompt("Copiez le diagnostic ci-dessous :", text);
     }
+  };
+
+  // PM15 — récupération locale sûre : base locale corrompue/pleine → purge
+  // locale + rechargement. Ne touche jamais au cloud ; confirmation obligatoire.
+  const runRecovery = async () => {
+    const confirmed = window.confirm(
+      "Réinitialiser les données locales de cet appareil ?\n\n" +
+        "Les données non encore synchronisées peuvent être perdues. " +
+        "Les données déjà enregistrées côté serveur seront rechargées. " +
+        "Vous resterez connecté.",
+    );
+    if (!confirmed) return;
+    setRecovering(true);
+    await performLocalRecovery({
+      disconnect: () => disconnectPowerSync(),
+      purgeLocalData: () => deleteAllLocalData(),
+      resetOrg: () => resetOrganizationId(),
+      reload: () => window.location.reload(),
+    });
   };
 
   return (
@@ -126,6 +150,30 @@ export default function Health() {
         <Activity className="w-4 h-4" aria-hidden="true" />
         <span>Actualisation automatique toutes les 5 s.</span>
       </div>
+
+      {/* PM15 — récupération locale sûre (base locale corrompue/pleine). */}
+      <button
+        type="button"
+        onClick={() => void runRecovery()}
+        disabled={recovering}
+        aria-label="Réinitialiser les données locales de cet appareil"
+        data-testid="health.local-recovery"
+        className="mt-4 w-full rounded-lg flex items-center justify-center gap-2 text-sm font-medium"
+        style={{
+          minHeight: 44,
+          backgroundColor: "var(--surface)",
+          border: "1px solid var(--border)",
+          color: "var(--data-expense, #ef4444)",
+          opacity: recovering ? 0.6 : 1,
+        }}
+      >
+        <RefreshCw className="w-4 h-4" aria-hidden="true" />
+        {recovering ? "Réinitialisation…" : "Réinitialiser les données locales"}
+      </button>
+      <p className="mt-2 text-text-tertiary text-xs">
+        En cas de base locale corrompue ou pleine. Les données déjà enregistrées
+        côté serveur sont rechargées ; vous restez connecté.
+      </p>
     </SettingsShell>
   );
 }
