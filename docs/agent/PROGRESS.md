@@ -78,6 +78,7 @@
 | 10 | A11y automatisée (6 écrans + modale `/forms`) + états UX §5.1 sur les 62 écrans montés (garde d'inventaire) + budgets de perf verrouillés (1er rendu / entrée / total) | P2 | **terminé** | `agent/phase-10-a11y-ux` | `phase-10/2026-10-27-a11y-ux-budgets.md` |
 | 11 | Pre-mortem, chaos, exploitation autonome | P2 | **en cours** (chaos de stockage couvert ; reste : exploitation autonome) | `agent/phase-11-premortem` | — |
 | 11 | **Chaos — résilience du boot à un stockage indisponible** (`applyStoredTheme`/`applyStoredThemeMode`/`selectRole` levaient avant le montage React = écran noir) | P2 | **terminé** | `agent/phase-11-boot-storage-resilience` | `phase-11/2026-10-27-boot-storage-resilience.md` |
+| 11 | **Chaos — volet LECTURE du stockage** (`getStoredThemeId`/`getStoredThemeMode` levaient au boot ; `JSON.parse` de boot audités) | P2 | **terminé** | `agent/phase-11-boot-storage-read` | `phase-11/2026-10-27-boot-storage-read.md` |
 | 12 | Suite Cypress (couverture totale) + crawler | P2 | à faire | `agent/phase-12-cypress` | — |
 | 13-17 | Tutoriel, personnalisation, propositions, doc, validation finale | P3 | à faire | `agent/phase-13..17` | — |
 
