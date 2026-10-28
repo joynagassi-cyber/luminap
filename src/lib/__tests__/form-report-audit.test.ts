@@ -1247,6 +1247,31 @@ describe("auditLogRepo.write", () => {
     expect(auditCalls[0].params).toContain("Caisse");
     expect(auditCalls[0].params).toContain('{"id":"ca-9","name":"Nouvelle caisse"}');
   });
+
+  it("écrit un état absent en NULL, pas en chaîne \"null\" (jsonb)", async () => {
+    // Défaut mesuré en base : 88 lignes `before_state` de type string `"null"`
+    // (JSON.stringify(null) = "null") au lieu de NULL. Régression R65.
+    await auditLogRepo.write({
+      orgId: "test-org",
+      transactionId: null,
+      userId: "user-1",
+      actorRoleAtTime: null,
+      action: "CREATE",
+      entityType: "Invitation",
+      entityId: "inv-1",
+      beforeState: null,
+      afterState: null,
+      comment: null,
+    });
+    const [call] = psStore.calls.filter((c) =>
+      /INSERT INTO audit_entries/i.test(c.sql),
+    );
+    // Colonnes : ... entity_id (7), before_state (8), after_state (9), ...
+    // Les deux états doivent être NULL (paramètre `null`), jamais la chaîne "null".
+    expect(call.params[8]).toBeNull();
+    expect(call.params[9]).toBeNull();
+    expect(call.params).not.toContain("null");
+  });
 });
 
 describe("auditLogRepo.list", () => {

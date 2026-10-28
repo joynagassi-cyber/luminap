@@ -145,6 +145,16 @@ Le double encodage jsonb était **silencieux**. Cette requête doit toujours
 renvoyer **0** sur la colonne `corrompues` ; toute valeur non nulle est une
 régression à corriger immédiatement.
 
+> **Mesure du 2026-10-27 (cold-test) :** la requête renvoyait **88** sur
+> `audit_entries.before_state` (au lieu de 0) — non des tableaux corrompus mais
+> la **chaîne littérale `"null"`** (jsonb de type `string`), écrite par
+> `audit.ts` (`JSON.stringify(null)` → `"null"`) : 84 `Invitation` +
+> 4 `FormSubmission`, toutes en `CREATE`. **CORRIGÉ le 2026-10-27** : writer
+> (`serializeAuditState`) + rattrapage migration `20261027000012`. La requête
+> renvoie désormais **0 partout** (vérifié). **Ne pas conclure « 0 » sans
+> exécuter la requête** : c'est un invariant à mesurer, pas une garantie de
+> code (cf. R65.b, non gardé en CI).
+
 ```sql
 select 'events.budget_items' as col, count(*) filter (where jsonb_typeof(budget_items) = 'string') as corrompues from public.events
 union all select 'form_definitions.fields', count(*) filter (where jsonb_typeof(fields) = 'string') from public.form_definitions
