@@ -925,6 +925,21 @@
   3 échecs quand les gardes sont retirées).
 - **Statut** : corrigé.
 
+### R52.t — `/transaction/:id/edit` : formulaire VIDE en état `ready` avant la 1re lecture — CORRIGÉ (2026-10-28)
+- **Gravité** : MOYENNE-HAUTE (risque d'écrasement de valeurs réelles + formulaire trompeur).
+- **Défaut** : `transactions` est vide avant le premier sync ; l'écran rendait
+  quand même son formulaire en `data-screen-state="ready"`, avec montant /
+  description / catégorie vides. L'effet de pré-remplissage sortait par
+  `if (!tx) return;` sans jamais signaler l'attente. L'utilisateur pouvait
+  enregistrer un formulaire vide, ou éditer des champs vides et **écraser** les
+  vraies valeurs arrivées au sync suivant.
+- **Correctif** : garde `isPowerSyncReadyNow()` → squelette `loading` si la
+  transaction n'est pas encore lue, écran `data-screen-state="error"` +
+  « Retour aux transactions » si elle est réellement absente.
+- **Preuve** : `r52t-transactionedit-loading.test.tsx` (3 tests, non-vacuité
+  vérifiée : garde neutralisée → 2 échecs).
+- **Statut** : corrigé.
+
 ### R52.s — `/event/:id/edit` : « Chargement... » INFINI + champ « Nom » jamais pré-rempli — CORRIGÉ (2026-10-28)
 - **Gravité** : MOYENNE-HAUTE (écran muet permanent + édition impossible).
 - **Défaut A (écran muet)** : `if (loading || !event) return "Chargement..."`
