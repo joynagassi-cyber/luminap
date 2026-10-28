@@ -60,8 +60,12 @@ function events(): Event[] {
 
     const found: { pos: number; ev: Event }[] = [];
     for (const m of src.matchAll(create)) {
-      // Le corps utile (returns + security definer) suit immédiatement.
-      const body = src.slice(m.index! + m[0].length, m.index! + m[0].length + 800);
+      // Le corps utile (`returns …` + `security definer`) suit immédiatement la
+      // signature. On borne la fenêtre au prochain `create` s'il est proche,
+      // sinon on garde une fenêtre large. Une fenêtre trop courte ne peut
+      // produire qu'une FAUSSE ALARME (garde présente mais hors fenêtre), jamais
+      // un faux positif silencieux : l'absence de motif fait échouer le test.
+      const body = src.slice(m.index! + m[0].length, m.index! + m[0].length + 2000);
       const head = body.slice(0, body.search(/create\s+or\s+replace\s+function/i) + 1 || body.length);
       found.push({
         pos: m.index!,
