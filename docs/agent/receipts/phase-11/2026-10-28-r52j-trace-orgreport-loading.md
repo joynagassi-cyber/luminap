@@ -1,7 +1,8 @@
-# Receipt — R52.j : `/trace` et `/admin/reports/send` annonçaient « aucun » avant la première lecture
+# Receipt — R52.j + R52.k : verdicts vides annoncés avant la première lecture
 
 - **Date** : 2026-10-28
 - **Priorité** : P2 (famille R52 : « pas encore lu » présenté comme « vide »)
+- **Périmètre** : R52.j (`/trace`, `/admin/reports/send`) + R52.k (`/forms`, `/forms/custom-fields`)
 - **Branche** : `agent/r52j-trace-orgreport-loading`
 - **Statut** : corrigé, non-vacuité prouvée, garde anti-récurrence étendue
 
@@ -54,3 +55,30 @@ formulaire (« Aucun événement », « Aucune (racine) ») et les boutons
   (`src/pages/__R52Probe.tsx`) affichant « Aucune entrée trouvée » sans garde
   fait échouer le test (`expected [ '__R52Probe.tsx' ] to deeply equal []`).
   La sonde a été supprimée.
+
+---
+
+## R52.k — `/forms` (FormBuilder) et `/forms/custom-fields` (CustomFields)
+
+Même motif, deux pages qui lisent en asynchrone
+(`formDefinitionRepo.list` / `customFieldRepo.list`) et rendaient
+« Pas encore de formulaire » / « Pas encore de champ personnalisé » dès le
+premier rendu (liste `[]`).
+
+- `CustomFields.tsx` : drapeau `fieldsLoaded` posé dans un `finally` ;
+  `catch` instrumenté via `captureClientError` (R88 : plus d'erreur avalée) ;
+  `ListSkeleton` tant que `!fieldsLoaded`.
+- `FormBuilder.tsx` : drapeau `formsLoaded` posé dans le `finally` de
+  `loadForms` (qui est aussi rappelé après création/édition) ; `catch`
+  instrumenté ; `ListSkeleton` tant que `!formsLoaded`.
+
+### Preuves R52.k
+
+- `npx tsc -b --force --noEmit` → **0 erreur**.
+- `src/pages/__tests__/r52k-forms-loading.test.tsx` → **3/3** (2 « squelette »
+  + 1 « le message vide exact apparaît une fois la lecture terminée », avec
+  résolution contrôlée de la promesse).
+- **Non-vacuité** : en retirant le garde des deux pages → `2 failed | 1 passed`.
+- Garde statique étendue à `Pas encore de ` ; non-vacuité prouvée par sonde
+  (`__R52Probe2.tsx` → `expected [ '__R52Probe2.tsx' ] to deeply equal []`).
+- Suite complète : **1615/1615** (133 fichiers) ; eslint 0 erreur.

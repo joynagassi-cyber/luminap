@@ -441,3 +441,7 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   libellés de formulaire (« Aucun événement », « Aucune (racine) ») et les
   boutons (« Aucune notification à vider ») — un motif trop large (`Aucun\s`)
   fait échouer 9 pages légitimes.
+- **R52.k** : même motif sur les pages à lecture asynchrone hors `dataLayer`
+  (`/forms` = `formDefinitionRepo.list`, `/forms/custom-fields` =
+  `customFieldRepo.list`) → drapeau `*Loaded` posé dans un `finally` +
+  `ListSkeleton`. La garde statique couvre désormais aussi « Pas encore de ».

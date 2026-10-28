@@ -4,6 +4,8 @@ import { ArrowLeft, Plus, X, Trash2, GripVertical } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
 import { formDefinitionRepo } from "@/lib/formSystem";
+import { ListSkeleton } from "@/components/Skeleton";
+import { captureClientError } from "@/lib/clientErrors";
 import { FORM_TEMPLATES, materializeTemplate } from "@/lib/formTemplates";
 import { generateId } from "@/lib/utils";
 import { useKeyboardAvoidance } from "@/hooks/useKeyboardAvoidance";
@@ -69,6 +71,8 @@ export default function FormBuilder() {
   const navigate = useNavigate();
   const keyboardHeight = useKeyboardAvoidance();
   const [forms, setForms] = useState<FormDefinition[]>([]);
+  // R52.k — « Pas encore de formulaire » n'est exact qu'après la première lecture.
+  const [formsLoaded, setFormsLoaded] = useState(false);
   const [editingForm, setEditingForm] = useState<FormDefinition | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [formName, setFormName] = useState("");
@@ -80,8 +84,14 @@ export default function FormBuilder() {
   const [saving, setSaving] = useState(false);
 
   const loadForms = async () => {
-    const list = await formDefinitionRepo.list({ orgId: getOrganizationId() });
-    setForms(list);
+    try {
+      const list = await formDefinitionRepo.list({ orgId: getOrganizationId() });
+      setForms(list);
+    } catch (e) {
+      captureClientError(e, { message: "Échec du chargement des formulaires" });
+    } finally {
+      setFormsLoaded(true);
+    }
   };
 
   useEffect(() => {
@@ -242,7 +252,9 @@ export default function FormBuilder() {
               </button>
             </div>
 
-            {forms.length === 0 ? (
+            {!formsLoaded ? (
+              <ListSkeleton count={3} />
+            ) : forms.length === 0 ? (
               <div
                 className="text-center py-16 rounded-xl"
                 style={{ backgroundColor: "var(--surface)" }}

@@ -814,6 +814,14 @@
   `ListSkeleton` (`/trace`) ; drapeau `historyLoaded` posé dans un `finally` +
   `ListSkeleton` (`/admin/reports/send`). 2 tests à double sens, non-vacuité
   vérifiée (2 échecs sans le garde).
+- **Rechute R52.k (`/forms`, `/forms/custom-fields`)** — **corrigée 2026-10-28** :
+  FormBuilder affichait « Pas encore de formulaire » et CustomFields
+  « Pas encore de champ personnalisé » avant la première lecture (les deux
+  listes sont remplies par une promesse `formDefinitionRepo.list` /
+  `customFieldRepo.list`). Correctifs : drapeau `formsLoaded`/`fieldsLoaded`
+  posé dans un `finally` + `ListSkeleton` ; `catch` instrumenté via
+  `captureClientError` (R88). 3 tests (dont « le message vide exact apparaît
+  une fois la lecture terminée »), non-vacuité vérifiée.
 - **Garde anti-récurrence** — ajoutée 2026-10-28 (étendue R52.j) : test
   **statique** `src/lib/__tests__/r52-readiness-guard.test.ts` — toute page qui
   affiche un verdict vide réel (« introuvable », « Aucun(e) … trouvé(e) »,
@@ -822,6 +830,7 @@
   `Skeleton`, `Loaded`, `listError`), sinon la suite échoue. Le motif exclut les
   libellés de formulaire (« Aucun événement », « Aucune (racine) ») et les
   boutons (« Aucune notification à vider ») pour éviter les faux positifs.
+  Couvre aussi « Pas encore de … » (R52.k).
   Allowlist motivée : `NotFound.tsx` (le verdict EST la route), `Tutorial.tsx`
   (contenu pédagogique). Non-vacuité prouvée par sonde (`__R52Probe.tsx`).
 - **Preuve** : `src/pages/__tests__/Giving-loading.test.tsx` (2) +
@@ -832,8 +841,8 @@
   directions sont verrouillées (chargement → squelette ET état vide exact
   quand la lecture est terminée). **Non-vacuité vérifiée** : en retirant le
   branchement, les 13 assertions « squelette » échouent ; R52.j : 2 échecs sans
-  le garde. Suite : **1612/1612** (132 fichiers), `tsc -b --force` = 0, eslint
-  0 erreur.
+  le garde ; R52.k : 2 échecs sans le garde. Suite : **1615/1615** (133
+  fichiers), `tsc -b --force` = 0, eslint 0 erreur.
 - **Piège de vérification** : `tsc -b` est incrémental et peut masquer une
   erreur réelle (TS1117) ; contrôler avec `npx tsc -b --force --noEmit`.
 - **Travail restant (R52.a)** : `/sessions` conserve sa preuve E2E rouge

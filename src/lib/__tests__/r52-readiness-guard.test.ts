@@ -42,12 +42,12 @@ const READINESS_SIGNALS = [
 /**
  * Motifs de verdict dérivés d'une lecture (R52 : « pas encore lu » ≠ « absent »).
  * On ne cible que les messages d'état vides réels (« … trouvé(e) », « pour le
- * moment », « pour l'instant ») ou le mot « introuvable » — pour ne pas
- * confondre avec les libellés de formulaire (« Aucun événement »,
+ * moment », « pour l'instant », « Pas encore de … ») ou le mot « introuvable » —
+ * pour ne pas confondre avec les libellés de formulaire (« Aucun événement »,
  * « Aucune (racine) ») ni les boutons.
  */
 const VERDICT_PATTERN =
-  /introuvable|Aucun(e)? [^"'<>{}]*?(trouvé|trouvée|trouvés|trouvées|pour le moment|pour l'instant)/i;
+  /introuvable|Aucun(e)? [^"'<>{}]*?(trouvé|trouvée|trouvés|trouvées|pour le moment|pour l'instant)|Pas encore de /i;
 
 describe("R52 — garde statique : verdict vide/introuvable exige un signal de disponibilité", () => {
   it("aucune page n'annonce un verdict vide sans distinguer « pas encore lu »", () => {
