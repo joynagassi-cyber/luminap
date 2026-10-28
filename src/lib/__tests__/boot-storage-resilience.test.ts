@@ -18,6 +18,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import {
   applyStoredTheme,
   applyStoredThemeMode,
+  getStoredThemeId,
+  getStoredThemeMode,
   persistThemeId,
   persistThemeMode,
 } from "@/ionic/themes";
@@ -40,6 +42,38 @@ function breakSetItem(): void {
     throw new DOMException("QuotaExceededError", "QuotaExceededError");
   });
 }
+
+/** Rend `localStorage.getItem` défaillant, comme un stockage inaccessible. */
+function breakGetItem(): void {
+  vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+    throw new DOMException("SecurityError", "SecurityError");
+  });
+}
+
+describe("lecture du thème — best-effort (chaos stockage)", () => {
+  it("getStoredThemeId renvoie null quand getItem échoue", () => {
+    breakGetItem();
+    expect(() => getStoredThemeId()).not.toThrow();
+    expect(getStoredThemeId()).toBeNull();
+  });
+
+  it("getStoredThemeMode retombe sur dark quand getItem échoue", () => {
+    breakGetItem();
+    expect(getStoredThemeMode()).toBe("dark");
+  });
+
+  it("applyStoredTheme garde le boot et applique le thème par défaut", () => {
+    breakGetItem();
+    expect(() => applyStoredTheme()).not.toThrow();
+    expect(root.style.getPropertyValue("--accent-primary")).toBe("#FF6B00");
+  });
+
+  it("applyStoredThemeMode garde le boot et applique dark", () => {
+    breakGetItem();
+    expect(() => applyStoredThemeMode()).not.toThrow();
+    expect(root.dataset.theme).toBe("dark");
+  });
+});
 
 describe("persistance du thème — best-effort (chaos stockage)", () => {
   it("persistThemeId ne lève pas quand setItem échoue", () => {

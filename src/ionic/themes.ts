@@ -130,7 +130,13 @@ export function getThemeById(id: ThemeId | string | null | undefined): LuminaThe
 
 export function getStoredThemeId(): ThemeId | null {
   if (typeof localStorage === "undefined") return null;
-  return localStorage.getItem(STORAGE_KEY) as ThemeId | null;
+  // Gardé : lecture de boot (cf. `persistThemeId`) — un `getItem` qui lève
+  // (stockage indisponible) ne doit pas interrompre le démarrage.
+  try {
+    return localStorage.getItem(STORAGE_KEY) as ThemeId | null;
+  } catch {
+    return null;
+  }
 }
 
 export function persistThemeId(id: ThemeId): void {
@@ -196,8 +202,12 @@ export const THEME_MODE_STORAGE_KEY = "lumina-theme-mode";
 
 export function getStoredThemeMode(): ThemeMode {
   if (typeof localStorage === "undefined") return "dark";
-  const v = localStorage.getItem(THEME_MODE_STORAGE_KEY);
-  return v === "light" ? "light" : "dark";
+  try {
+    const v = localStorage.getItem(THEME_MODE_STORAGE_KEY);
+    return v === "light" ? "light" : "dark";
+  } catch {
+    return "dark";
+  }
 }
 
 export function persistThemeMode(mode: ThemeMode): void {
