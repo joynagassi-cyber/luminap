@@ -30,7 +30,16 @@
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { renderHook } from "@testing-library/react";
-import { DatabaseSync } from "node:sqlite";
+import type { DatabaseSync } from "node:sqlite";
+
+// `node:sqlite` est un builtin « expérimental » ABSENT de `module.builtinModules`
+// sous Node 22 : un import *statique* fait échouer Vite (« Cannot bundle Node.js
+// built-in "node:sqlite" »), donc la CI (Node 22) tombait alors que le poste de
+// dev (Node 24) passait. On le résout à l'exécution via `process.getBuiltinModule`
+// — Vite ne tente pas de le bundler — et l'import de TYPE est effacé au build.
+const { DatabaseSync: SqliteDatabase } = process.getBuiltinModule("node:sqlite") as {
+  DatabaseSync: new (path: string) => DatabaseSync;
+};
 
 // ─── Base SQLite réelle, partagée avec les mocks hoistés ────────────────────
 const h = vi.hoisted(() => ({ db: null as any }));
@@ -94,7 +103,7 @@ const ORG_B = "org-B";
 
 /** Crée un `node:sqlite` en mémoire avec le sous-ensemble de schéma utilisé. */
 function makeDb(): DatabaseSync {
-  const db = new DatabaseSync(":memory:");
+  const db = new SqliteDatabase(":memory:");
   db.exec(`
     CREATE TABLE events (
       id text, org_id text, name text, description text, start_date text,

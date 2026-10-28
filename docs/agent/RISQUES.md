@@ -2608,3 +2608,31 @@ sauvegarde disponible).
 - **Détecté par** : les tests de trigger de la dénormalisation R89.b (le défaut
   était invisible jusqu'ici car aucune ligne budgétaire n'existait en base).
 - **RÉVERSIBILITÉ** : `rollback/20261027000002_rollback.sql`.
+
+### R114 — CRITIQUE — la CI Pipeline était ROUGE sur `main` : test importable seulement sous Node 24 — ✅ CORRIGÉ le 2026-10-27
+
+- **Défaut** : `src/lib/__tests__/org-isolation-intrusion.test.ts` (Phase 8,
+  mergé #73) fait `import { DatabaseSync } from "node:sqlite"`. `node:sqlite`
+  est un builtin **expérimental** absent de `module.builtinModules` sous Node
+  22 : Vite refuse de le bundler → « Cannot bundle Node.js built-in
+  `node:sqlite` ». Le job **Unit Tests (Vitest)** de la CI Pipeline échouait
+  donc sur `main` (run `40612896922`, commit `8dd6908`).
+- **Impact** : **toute la CI Pipeline est rouge sur `main`** — le seul signal
+  de qualité fiable du dépôt (Cypress est structurellement rouge, R98 ; Android
+  échoue, R90). Aucune régression n'est plus détectable par la CI. Les branches
+  héritent du rouge (échec pré-existant, pas une régression de la branche).
+- **Cause racine** : **désalignement de version Node** — la CI et tous les
+  workflows utilisent `NODE_VERSION: '22'` ; le poste de dev a Node **24**.
+  Sous Node 22.20, `node:sqlite` **existe** (`require` fonctionne) mais n'est
+  pas dans `builtinModules`, donc Vite ne l'externalise pas.
+- **Reproduction (déterministe)** :
+  - Node 22 : `vitest run <spec>` → `FAIL … Cannot bundle "node:sqlite"` ;
+  - Node 24 : `vitest run <spec>` → **15/15**.
+- **Correctif** : résoudre le builtin **à l'exécution** via
+  `process.getBuiltinModule("node:sqlite")` (Vite ne tente pas de le bundler),
+  l'import restant `import type` (effacé au build). Aucun autre fichier
+  n'importe `node:sqlite` (vérifié).
+- **Preuve après** : `vitest run` sous Node 22 → **112 fichiers, 1452 tests,
+  0 échec** ; sous Node 24 → idem. `tsc -b --noEmit` = 0 ; `eslint` = 0 erreur.
+- **Statut** : **corrigé** (branche `agent/phase-11-ci-node22-sqlite`).
+- **Receipt** : `docs/agent/receipts/phase-11/2026-10-27-ci-node22-sqlite.md`.
