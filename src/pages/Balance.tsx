@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useTransactions, useCategories, useAccounts, useAppConfig } from "@/lib/dataLayer";
+import { useTransactions, useCategories, useAccounts, useAppConfig, isPowerSyncReadyNow } from "@/lib/dataLayer";
 import { formatCurrencyCompact, getPeriodRange } from "@/lib/utils";
 import {
   TrendingUp,
@@ -30,6 +30,12 @@ export default function Balance() {
   const { data: psAccounts } = useAccounts();
   const { config: appConfig } = useAppConfig();
 
+  // R52.q — `psLoading` provient de `useTransactions()`, qui renvoie `false`
+  // EN DUR (D-R41) : la garde ci-dessous ne s'exécutait jamais. L'écran
+  // annonçait alors `data-screen-state="ready"` avec des totaux à 0 FCFA —
+  // un trésorier lisait un bilan FAUX (pire qu'un verdict vide).
+  const replicaPending = !isPowerSyncReadyNow();
+
   const transactions = psTransactions;
   const categories = psCategories;
   const accounts = psAccounts;
@@ -38,12 +44,12 @@ export default function Balance() {
   const [selectedCaisse, setSelectedCaisse] = useState<string>("main");
   const [showExport, setShowExport] = useState(false);
 
-  if (psLoading) {
+  if (psLoading || (transactions.length === 0 && replicaPending)) {
     return (
       <IonPage>
         <IonContent className="bg-canvas">
           <TopHeader title="Bilan" />
-          <div data-screen-state="loading" className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
+          <div data-screen-state="loading" aria-busy="true" className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
                 <ShimmerCard key={i} minHeight={64} />

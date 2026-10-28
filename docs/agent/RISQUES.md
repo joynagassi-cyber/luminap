@@ -907,6 +907,36 @@
 - **Preuve** : `list-loading-vs-empty.test.tsx` (§ R52.n). Non-vacuité vérifiée.
 - **Statut** : corrigé.
 
+### R52.q — Écrans FINANCIERS affichant des CHIFFRES FAUX avant la 1re lecture — CORRIGÉ (2026-10-28)
+- **Gravité** : HAUTE (plus grave que R52.l→R52.p : ce n'est pas un verdict vide
+  mais un **bilan chiffré faux** lu par un trésorier).
+- **Défaut (même cause systémique, conséquence aggravée)** : la garde de
+  chargement reposait sur un `isLoading` **mort** (`useTransactions` /
+  `useAccounts` renvoient `false` en dur, D-R41). Le squelette n'était JAMAIS
+  rendu :
+  - `/balance` : `data-screen-state="ready"` avec **tous les totaux à 0 FCFA** ;
+  - `/history` : graphiques et agrégats **vides** ;
+  - `/versement` : sélecteur de caisse **vide** (laisse croire qu'aucun compte
+    n'existe).
+- **Correctif** : `replicaPending = !isPowerSyncReadyNow()` + garde
+  `if (XLoading || (liste.length === 0 && replicaPending))` (motif éprouvé) ;
+  `aria-busy="true"` ajouté aux squelettes de `/balance` et `/history`.
+- **Preuve** : `r52q-finance-loading.test.tsx` (6 tests, non-vacuité mesurée :
+  3 échecs quand les gardes sont retirées).
+- **Statut** : corrigé.
+
+### R52 — garde statique durcie (2ᵉ invariant, R52.q) — CORRIGÉ (2026-10-28)
+- **Défaut de la garde elle-même** : un simple **import** de `isPowerSyncReadyNow`
+  (sans appel) suffisait à blanchir un fichier — même classe de faille que
+  l'import de `Skeleton` corrigé plus tôt. Mesuré : en retirant la garde de
+  `Balance.tsx` en gardant l'import, la 1re garde ne signalait rien.
+- **Correctif** : `provesReadiness()` exige un **appel** `isPowerSyncReadyNow(…)`
+  ou un usage de `replicaPending`. Nouvel invariant : un écran qui possède un
+  squelette visible (`aria-busy="true"` / `Skeleton`) ne peut pas garder ce
+  squelette sur un `isLoading` mort.
+- **Preuve** : `r52-readiness-guard.test.ts` (4 tests) ; mutation de `Balance.tsx`
+  → échec nommé `src/pages/Balance.tsx (psLoading)`.
+
 ### R52.o — `/reports` : « Aucun rapport personnalisé » avant la lecture — CORRIGÉ (2026-10-28)
 - **Gravité** : MOYENNE-HAUTE.
 - **Défaut (double)** : (1) la garde `if (isLoading)` de `/reports` était morte

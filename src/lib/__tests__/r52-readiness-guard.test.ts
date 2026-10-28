@@ -78,6 +78,16 @@ const STRONG_SIGNALS = [
 ];
 
 /**
+ * Disponibilité PROUVÉE (R52.q) — un simple *import* ne compte pas : il faut un
+ * APPEL à `isPowerSyncReadyNow(…)` ou un usage réel de `replicaPending`. Un
+ * écran qui importe le symbole sans l'appeler garde une branche de chargement
+ * morte (c'est exactement la faille qui blanchissait la garde).
+ */
+function provesReadiness(src: string): boolean {
+  return /isPowerSyncReadyNow\s*\(/.test(src) || /\breplicaPending\b/.test(src);
+}
+
+/**
  * Motifs de verdict dérivés d'une lecture (R52 : « pas encore lu » ≠ « absent »).
  * On ne cible que les messages d'état vides réels (« … trouvé(e) », « pour le
  * moment », « pour l'instant », « Pas encore de … ») ou le mot « introuvable » —
@@ -166,6 +176,42 @@ describe("R52 — garde statique : verdict vide/introuvable exige un signal de d
     expect(
       offenders,
       "Ces écrans gardent un verdict vide sur un `isLoading` MORT (D-R41) :\n" +
+        offenders.map((f) => `  - ${f}`).join("\n"),
+    ).toEqual([]);
+  });
+
+  it("aucun squelette n'est gardé par un `isLoading` mort sans disponibilité prouvée", () => {
+    const dead = deadLoadingHooks();
+    const offenders: string[] = [];
+
+    for (const dir of SCAN_DIRS) {
+      for (const file of readdirSync(dir)) {
+        if (!file.endsWith(".tsx")) continue;
+        if (ALLOWLIST.has(file)) continue;
+        const src = readFileSync(join(dir, file), "utf8");
+
+        // L'écran possède un état de chargement VISIBLE (squelette / aria-busy).
+        const hasSkeleton = src.includes('aria-busy="true"') || src.includes("Skeleton");
+        if (!hasSkeleton) continue;
+        if (provesReadiness(src)) continue;
+
+        const guards: string[] = [];
+        for (const m of src.matchAll(/const\s*\{([^}]*)\}\s*=\s*(use\w+)\(/gs)) {
+          if (!dead.has(m[2])) continue;
+          const alias = /isLoading\s*:\s*(\w+)/.exec(m[1]);
+          const name = alias ? alias[1] : /\bisLoading\b/.test(m[1]) ? "isLoading" : null;
+          if (!name) continue;
+          // Garde de rendu morte : `if (alias)` / `if (!alias)`.
+          if (new RegExp(`if\\s*\\(\\s*!?${name}\\b`).test(src)) guards.push(name);
+        }
+        if (guards.length) offenders.push(`${relative(process.cwd(), join(dir, file))} (${guards.join(", ")})`);
+      }
+    }
+
+    expect(
+      offenders,
+      "Ces écrans affichent un squelette gardé par un `isLoading` MORT (D-R41) :\n" +
+        "le squelette n'est JAMAIS rendu et des chiffres/verdicts faux sont montrés.\n" +
         offenders.map((f) => `  - ${f}`).join("\n"),
     ).toEqual([]);
   });
