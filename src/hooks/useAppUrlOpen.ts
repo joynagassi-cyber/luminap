@@ -12,7 +12,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Capacitor } from "@capacitor/core";
 import { App as CapacitorApp } from "@capacitor/app";
 import { authService } from "@/lib/auth";
-import { parseDeepLink } from "@/lib/routeResolver";
+import { parseDeepLink, orgSwitchIntentFromLink } from "@/lib/routeResolver";
 import { getOrganizationId } from "@/lib/orgContext";
 import { setDeepLinkOrgIntent } from "@/lib/deepLinkIntent";
 
@@ -64,12 +64,14 @@ export function useAppUrlOpen() {
           link.invitationCode && link.path === "/invitation/claim"
             ? `${link.path}?code=${encodeURIComponent(link.invitationCode)}`
             : (link.returnTo ?? link.path);
-        // PM2 : si le lien vise une AUTRE organisation que l'active, on
+        // PM2/R127 : si le lien vise une AUTRE organisation que l'active, on
         // mémorise l'intention AVANT de naviguer — sinon `resolveRoute`
         // n'aurait aucun `linkOrgId` à comparer et la garde resterait morte.
-        if (link.orgId && link.orgId !== getOrganizationId()) {
-          setDeepLinkOrgIntent({ orgId: link.orgId, path: target });
-        }
+        // La décision est PARTAGÉE avec le web (`orgSwitchIntentFromLink`) :
+        // sans elle, le natif basculait aussi depuis les pages dont le `?org=`
+        // est un simple sélecteur (divergence web/natif).
+        const switchIntent = orgSwitchIntentFromLink(link, getOrganizationId());
+        if (switchIntent) setDeepLinkOrgIntent(switchIntent);
         navigate(target, { replace: false });
         return;
       }

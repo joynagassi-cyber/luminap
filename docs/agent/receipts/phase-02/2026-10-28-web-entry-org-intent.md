@@ -41,3 +41,13 @@ alimenté que par `useAppUrlOpen`, gardé par
 | `npx tsc -b` | exit 0 |
 | `npx eslint` (fichiers touchés) | 0 erreur |
 | `npx vitest run` | **1586/1586** (128 fichiers) |
+
+## Suivi R127.b — unification de la décision web/natif
+
+Le natif gardait sa propre condition de bascule (`link.orgId !== getOrganizationId()`),
+sans l'exemption `?org=` local : `/invitation/emit?org=B` déclenchait une
+bascule sur mobile mais pas sur le web. La décision est extraite en
+`orgSwitchIntentFromLink(link, activeOrgId)` et **les deux plateformes
+l'appellent**. 3 tests supplémentaires figent l'égalité de décision web/natif.
+
+Suite après unification : **1589/1589**.

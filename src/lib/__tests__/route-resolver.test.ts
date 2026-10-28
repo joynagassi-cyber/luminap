@@ -11,6 +11,7 @@ import {
   readReturnToFromSearch,
   parseDeepLink,
   webEntryOrgIntent,
+  orgSwitchIntentFromLink,
   ROUTE_REGISTRY,
   ROUTE_COUNT,
   type RouteState,
@@ -371,5 +372,29 @@ describe("R127 — intention d'organisation depuis une URL d'ENTRÉE web", () =>
 
   it("refuse une URL invalide", () => {
     expect(webEntryOrgIntent("pas une url", A)).toBeNull();
+  });
+});
+
+describe("R127 — décision de bascule PARTAGÉE web/natif", () => {
+  it("le natif et le web prennent la même décision pour la même URL", () => {
+    const url = `lumina://dashboard?org=org-B`;
+    const link = parseDeepLink(url);
+    expect(orgSwitchIntentFromLink(link, "org-A")).toEqual({
+      orgId: "org-B",
+      path: "/dashboard",
+    });
+    expect(webEntryOrgIntent("https://app.lumina.dev/dashboard?org=org-B", "org-A")).toEqual(
+      orgSwitchIntentFromLink(link, "org-A"),
+    );
+  });
+
+  it("le natif n'exige pas de bascule depuis une page au `?org=` local", () => {
+    // Divergence corrigée : le natif basculait aussi depuis /invitation/emit.
+    const link = parseDeepLink("lumina://invitation/emit?org=org-B");
+    expect(orgSwitchIntentFromLink(link, "org-A")).toBeNull();
+  });
+
+  it("aucune bascule quand le lien ne porte pas d'organisation", () => {
+    expect(orgSwitchIntentFromLink(parseDeepLink("lumina://dashboard"), "org-A")).toBeNull();
   });
 });
