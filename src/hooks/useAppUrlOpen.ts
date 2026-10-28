@@ -57,7 +57,13 @@ export function useAppUrlOpen() {
       // Non-OAuth deep link: navigate to the (validated) target path directly.
       // The route guard then applies auth / permission / org-switch rules.
       if (!link.code) {
-        const target = link.returnTo ?? link.path;
+        // R125 — un code d'invitation doit être reporté dans l'URL cible :
+        // `parseDeepLink` ne conserve que le CHEMIN, donc sans ce report
+        // l'écran `/invitation/claim` s'ouvrirait sans le code reçu.
+        const target =
+          link.invitationCode && link.path === "/invitation/claim"
+            ? `${link.path}?code=${encodeURIComponent(link.invitationCode)}`
+            : (link.returnTo ?? link.path);
         // PM2 : si le lien vise une AUTRE organisation que l'active, on
         // mémorise l'intention AVANT de naviguer — sinon `resolveRoute`
         // n'aurait aucun `linkOrgId` à comparer et la garde resterait morte.

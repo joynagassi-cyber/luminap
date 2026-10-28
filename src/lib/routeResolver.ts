@@ -118,9 +118,20 @@ export interface RouteState {
   activeOrgId?: string | null;
 }
 
-/** Internal routes a `returnTo` may target. Everything else is rejected. */
+/**
+ * Internal routes a `returnTo` may target. Everything else is rejected.
+ *
+ * R125 — l'allowlist ne retenait que les routes `kind === "app"`. Or des routes
+ * **publiques** sont des cibles légitimes : `/invitation/claim` (lien
+ * d'invitation envoyé à un invité qui n'a pas encore de compte) et `/auth`
+ * (retour après connexion). Un lien `lumina://invitation/claim?code=…` était
+ * donc réécrit en `/dashboard` par `parseDeepLink` — le parcours d'adhésion par
+ * lien profond n'aboutissait jamais. On inclut désormais toutes les routes
+ * internes déclarées (hors catch-all `*`) ; la garde anti-redirection ouverte
+ * reste : chemin absolu commençant par `/`, jamais `//`.
+ */
 const RETURN_TO_ALLOWLIST: readonly string[] = ROUTE_REGISTRY.filter(
-  (r) => r.pattern !== "*" && r.kind === "app",
+  (r) => r.pattern !== "*",
 ).map((r) => r.pattern);
 
 /**
@@ -243,6 +254,12 @@ export interface ParsedDeepLink {
   orgId: string | null;
   /** OAuth authorization code, when the link is an auth callback. */
   code: string | null;
+  /**
+   * R125 — code d'invitation porté par un lien `/invitation/claim?code=…`.
+   * Distinct de `code` (OAuth) : la navigation native doit le reporter dans
+   * l'URL cible, sinon l'écran de réclamation s'ouvre sans le code.
+   */
+  invitationCode: string | null;
 }
 
 /**
@@ -257,7 +274,6 @@ export function parseDeepLink(url: string): ParsedDeepLink | null {
   } catch {
     return null;
   }
-  const code = parsed.searchParams.get("code");
   const returnToRaw = parsed.searchParams.get("returnTo");
   const orgId = parsed.searchParams.get("org") ?? parsed.searchParams.get("orgId");
 
@@ -268,6 +284,17 @@ export function parseDeepLink(url: string): ParsedDeepLink | null {
     path = `/${parsed.host}${parsed.pathname}`;
   }
 
+  // R125 — `code` n'est un code d'autorisation OAuth QUE sur le callback d'auth.
+  // Sans ce cadrage, un lien d'invitation portant `?code=AB12` était pris pour
+  // un callback OAuth : `handleOAuthDeepLink` tentait un échange PKCE sur un
+  // code d'invitation (échec « Google sign-in could not be completed ») au lieu
+  // d'ouvrir l'écran de réclamation.
+  const isAuthCallback = path === "/auth/callback";
+  const code = isAuthCallback ? parsed.searchParams.get("code") : null;
+  // Code d'invitation : uniquement sur l'écran de réclamation.
+  const invitationCode =
+    path === "/invitation/claim" ? parsed.searchParams.get("code") : null;
+
   const returnTo =
     returnToRaw && isAllowedReturnTo(returnToRaw) ? returnToRaw : null;
 
@@ -276,5 +303,6 @@ export function parseDeepLink(url: string): ParsedDeepLink | null {
     returnTo,
     orgId: orgId || null,
     code,
+    invitationCode,
   };
 }

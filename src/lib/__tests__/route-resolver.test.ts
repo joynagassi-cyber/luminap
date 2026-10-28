@@ -185,6 +185,43 @@ describe("isAllowedReturnTo — anti redirection ouverte", () => {
   it("ignore query et fragment pour la validation", () => {
     expect(isAllowedReturnTo("/dashboard?tab=1#x")).toBe(true);
   });
+
+  // R125 — les routes PUBLIQUES sont des cibles légitimes : un lien d'invitation
+  // vise `/invitation/claim` (invité sans compte), et `/auth` sert de retour
+  // après connexion. Avant le correctif, seule `kind === "app"` était retenue.
+  it("accepte les routes publiques internes (R125)", () => {
+    expect(isAllowedReturnTo("/invitation/claim")).toBe(true);
+    expect(isAllowedReturnTo("/auth")).toBe(true);
+    expect(isAllowedReturnTo("/sessions")).toBe(true);
+  });
+
+  it("refuse toujours le catch-all `*` (jamais une cible)", () => {
+    expect(isAllowedReturnTo("*")).toBe(false);
+    expect(isAllowedReturnTo("/*")).toBe(false);
+  });
+});
+
+describe("parseDeepLink — lien d'invitation (R125)", () => {
+  it("un lien `lumina://invitation/claim?code=…` atteint l'écran de réclamation", () => {
+    const link = parseDeepLink("lumina://invitation/claim?code=AB12");
+    // Avant le correctif : path réécrit en `/dashboard` → le parcours
+    // d'adhésion par lien profond n'aboutissait jamais.
+    expect(link?.path).toBe("/invitation/claim");
+    // Le code est un code d'INVITATION, pas un code OAuth (sinon
+    // `handleOAuthDeepLink` tenterait un échange PKCE sur ce code).
+    expect(link?.invitationCode).toBe("AB12");
+    expect(link?.code).toBeNull();
+  });
+
+  it("conserve la protection contre la redirection ouverte", () => {
+    const bad = parseDeepLink("lumina://dashboard?returnTo=//evil.com");
+    expect(bad?.returnTo).toBeNull();
+    // Le parseur ne retient que le CHEMIN (jamais l'hôte) : pas de redirection
+    // vers un domaine externe. Un hôte externe ne peut viser qu'une route
+    // interne connue.
+    const ext = parseDeepLink("https://evil.com/ceci-nexiste-pas");
+    expect(ext?.path).toBe("/dashboard");
+  });
 });
 
 describe("registre de routes", () => {
@@ -232,6 +269,7 @@ describe("parseDeepLink — deep links web et applicatifs", () => {
   it("extrait le code OAuth d'un callback", () => {
     const d = parseDeepLink("lumina://auth/callback?code=abc123");
     expect(d?.code).toBe("abc123");
+    expect(d?.invitationCode).toBeNull();
   });
 
   it("valide returnTo contre la liste d'autorisation", () => {

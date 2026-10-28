@@ -8,7 +8,7 @@
  */
 
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   IonPage,
   IonContent,
@@ -52,6 +52,7 @@ import { notification } from "@/capabilities/notification";
 
 export default function InvitationClaim() {
   const navigate = useNavigate();
+  const location = useLocation();
   const user = useCurrentUser();
   const keyboardHeight = useKeyboardAvoidance();
 
@@ -73,6 +74,17 @@ export default function InvitationClaim() {
       setAuthed(!!authService.getState().session);
     });
     return () => unsubscribe();
+  }, []);
+
+  // R125 — un lien profond `lumina://invitation/claim?code=AB12` (ou l'URL web
+  // équivalente) doit préremplir le code : sans cela l'invité voyait bien
+  // l'écran mais devait ressaisir le code reçu. On ne fait que PRÉREMPLIR —
+  // la soumission reste une action explicite de l'utilisateur.
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const codeFromLink = params.get("code")?.trim();
+    if (codeFromLink) setCodeInput(codeFromLink.toUpperCase());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleCodeSubmit = async () => {
