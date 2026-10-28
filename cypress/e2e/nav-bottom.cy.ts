@@ -110,7 +110,7 @@ describe('Lumina — navigation BottomNav (affichage pages + perf + pas d écran
     const MAX_PASSES = 5;
 
     let pass = 0;
-    const doPass = (): Cypress.Chainable<void> => {
+    const doPass = () => {
       pass++;
       if (pass > MAX_PASSES) {
         throw new Error(

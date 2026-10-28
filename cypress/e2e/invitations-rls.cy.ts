@@ -146,3 +146,5 @@ describe('Lumina — R91 : isolation RLS des invitations', () => {
     });
   });
 });
+
+export {};

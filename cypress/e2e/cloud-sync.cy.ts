@@ -196,7 +196,7 @@ describe('Lumina — cloud sync (offline → online)', () => {
           found.querySelector('input') ??
           null;
         if (native) native.value = accountName;
-        found.value = accountName;
+        (found as unknown as { value: string }).value = accountName;
         found.dispatchEvent(
           new CustomEvent('ionChange', {
             detail: { value: accountName, event: { target: native ?? found } },
@@ -238,7 +238,7 @@ describe('Lumina — cloud sync (offline → online)', () => {
             el.querySelector('input') ??
             null;
           if (native) native.value = val;
-          el.value = val;
+          (el as unknown as { value: string }).value = val;
           el.dispatchEvent(
             new CustomEvent('ionChange', {
               detail: { value: val, event: { target: native ?? el } },
