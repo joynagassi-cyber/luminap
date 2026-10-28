@@ -368,6 +368,8 @@ export interface PSCotisation {
 
 export interface PSGroupMembership {
   id: string;
+  /** Organisation de l'appartenance (dénormalisée, migration 20261027000001). */
+  org_id: string;
   member_id: string;
   group_id: string;
   role: string;
@@ -930,9 +932,15 @@ export function useDocuments(opts?: { entity?: string; entityType?: string }) {
  * Hook to get all group memberships
  */
 export function useGroupMemberships() {
+  const orgRev = useOrganizationRevision();
+  void orgRev;
+  // Isolation inter-org (Phase 8) : la table `group_memberships` porte
+  // `org_id` (dénormalisé, migration 20261027000001). Sans ce filtre, un
+  // membre de l'org A lisait les appartenances de l'org B via le cache
+  // PowerSync local. On borne à l'organisation courante.
   const { data: psData } = useQuery<PSGroupMembership>(
-    "SELECT id, member_id, group_id, role, created_at FROM group_memberships",
-    [],
+    "SELECT id, org_id, member_id, group_id, role, created_at FROM group_memberships WHERE org_id = ?",
+    [getOrganizationId(), orgRev],
     { reportFetching: true },
   );
   const store = useLocalStore();
@@ -958,9 +966,12 @@ export async function addGroupMembershipPS(
 ): Promise<string> {
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
+  // org_id posé explicitement (défense en profondeur) : le trigger serveur
+  // `denorm_child_org_id` le repose depuis le groupe parent, mais la ligne
+  // locale doit déjà porter son org pour ne jamais fuiter entre orgs.
   await executeWrite(
-    `INSERT INTO group_memberships (id, member_id, group_id, role, created_at) VALUES (?, ?, ?, ?, ?)`,
-    [id, memberId, groupId, role, now],
+    `INSERT INTO group_memberships (id, org_id, member_id, group_id, role, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
+    [id, getOrganizationId(), memberId, groupId, role, now],
   );
   return id;
 }
@@ -977,8 +988,10 @@ export async function removeGroupMembershipPS(id: string): Promise<void> {
  */
 export async function getGroupMembershipsPS(): Promise<PSGroupMembership[]> {
   const db = getPowerSyncDatabase();
+  // Isolation inter-org (Phase 8) : lecture bornée à l'organisation courante.
   const result = await db.execute(
-    `SELECT id, member_id, group_id, role, created_at FROM group_memberships`,
+    `SELECT id, org_id, member_id, group_id, role, created_at FROM group_memberships WHERE org_id = ?`,
+    [getOrganizationId()],
   );
   return (result?.array || []) as any[] as PSGroupMembership[];
 }
@@ -3294,9 +3307,14 @@ export function useLoadInitialData(): LoadInitialDataResult {
  * Returns a fresh session ID.
  */
 export async function selectRole(role: string): Promise<string> {
-  const sessionId = localStorage.getItem("lumina-session") ?? crypto.randomUUID();
-  localStorage.setItem("lumina-session", sessionId);
-  localStorage.setItem("lumina-role", role);
+  let sessionId: string = crypto.randomUUID();
+  try {
+    sessionId = localStorage.getItem("lumina-session") ?? sessionId;
+    localStorage.setItem("lumina-session", sessionId);
+    localStorage.setItem("lumina-role", role);
+  } catch {
+    /* stockage indisponible (mode privé, quota) — session conservée en mémoire */
+  }
   return sessionId;
 }
 

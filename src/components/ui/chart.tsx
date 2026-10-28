@@ -2,6 +2,7 @@ import * as React from "react";
 import * as RechartsPrimitive from "recharts";
 
 import { cn } from "@/lib/utils";
+import { sanitizeCssValue } from "@/lib/sanitize";
 
 // Format: { THEME_NAME: CSS_SELECTOR }
 const THEMES = { light: "", dark: ".dark" } as const;
@@ -74,7 +75,11 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
     return null;
   }
 
-  // Build CSS string safely — all values are developer-defined theme colors, not user input
+  // Feuille de style construite en chaîne + `dangerouslySetInnerHTML` : même
+  // si les couleurs proviennent aujourd'hui du thème (développeur), on
+  // neutralise toute valeur capable de sortir du contexte CSS (Phase 8 —
+  // défense en profondeur). `sanitizeCssValue` retire `<>{};"'\` et plafonne.
+  const safeId = sanitizeCssValue(id);
   const cssText = Object.entries(THEMES)
     .map(([theme, prefix]) => {
       const rules = colorConfig
@@ -82,11 +87,12 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
           const color =
             itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ||
             itemConfig.color;
-          return color ? `  --color-${key}: ${color};` : null;
+          const safeColor = sanitizeCssValue(color);
+          return safeColor ? `  --color-${key}: ${safeColor};` : null;
         })
         .filter(Boolean)
         .join("\n");
-      return `${prefix} [data-chart=${id}] {\n${rules}\n}`;
+      return `${prefix} [data-chart=${safeId}] {\n${rules}\n}`;
     })
     .join("\n");
 

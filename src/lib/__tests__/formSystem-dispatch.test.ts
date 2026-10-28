@@ -380,4 +380,49 @@ describe("dispatchFormSubmission", () => {
     expect(dataLayer.addMemberPS).not.toHaveBeenCalled();
     expect(dataLayer.updateFormSubmissionPS).not.toHaveBeenCalled();
   });
+
+  it("entrée hostile : les caractères de contrôle sont retirés avant l'écriture de l'entité", async () => {
+    const submission = {
+      id: "sub-9",
+      orgId: "org-1",
+      formDefinitionId: "f-1",
+      formVersion: 1,
+      submittedBy: "u-1",
+      submittedAt: "2026-10-01T00:00:00Z",
+      // NUL, ESC (séquence ANSI), TAB, CRLF, et un texte légitime.
+      data: { nom: "Jean\u0000\u001b[31m\tNom\r\nDîme" },
+      status: "SUBMITTED" as const,
+      createdAt: "2026-10-01T00:00:00Z",
+    } as any;
+    const definition = defOf("member", fieldsWith("lastName"));
+
+    await dispatchFormSubmission(submission, definition);
+
+    const arg = (dataLayer.addMemberPS as any).mock.calls[0][0];
+    expect(arg.last_name).toBe("Jean[31m Nom Dîme");
+    expect(arg.last_name).not.toMatch(
+      // eslint-disable-next-line no-control-regex -- vérifier l'absence de caractères de contrôle est le but du test
+      /[\u0000-\u0008\u000E-\u001F]/,
+    );
+  });
+
+  it("entrée hostile : une valeur texte trop longue est plafonnée", async () => {
+    const submission = {
+      id: "sub-10",
+      orgId: "org-1",
+      formDefinitionId: "f-1",
+      formVersion: 1,
+      submittedBy: "u-1",
+      submittedAt: "2026-10-01T00:00:00Z",
+      data: { nom: "A".repeat(5000) },
+      status: "SUBMITTED" as const,
+      createdAt: "2026-10-01T00:00:00Z",
+    } as any;
+    const definition = defOf("member", fieldsWith("lastName"));
+
+    await dispatchFormSubmission(submission, definition);
+
+    const arg = (dataLayer.addMemberPS as any).mock.calls[0][0];
+    expect(arg.last_name.length).toBe(2000);
+  });
 });

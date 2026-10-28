@@ -51,6 +51,7 @@
 | 5-6 | **R111 — inscription obligatoire avant le claim** (profil lié à `auth.uid()`, fin de l'UUID aléatoire) + QR lisible en thème clair | P1 | **terminé** | `agent/r111-claim-auth-required` | `phase-05-06/2026-10-26-r111-claim-auth-required.md` |
 | 7 | Finance : modèle unique, contrepassation, rapports | P1 | **terminé** (R101/R102 corrigés) | `agent/phase-07-finance` | `phase-07/2026-10-26-finance.md` |
 | 8 | Isolation & sécurité (Red Team) | P1 | **terminé** (R103 corrigé, R104 escalade) | `agent/phase-08-isolation` | `phase-08/2026-10-26-isolation.md` |
+| 8 | Entrées hostiles (XSS/contrôle/CSV) + intrusion inter-org côté client | P1 | **terminé** | `agent/phase-08-hostile-input` | `phase-08/2026-10-27-hostile-input-redteam.md` |
 | 9 | Synchronisation & hors-ligne (PowerSync) — R89.a identifiants catégories | P1 | **terminé** | `agent/phase-09-sync-categories` | `phase-09/2026-10-26-r89a-canonical-categories.md` |
 | 9 | Synchronisation — R89.b descente (`PSYNC_S2305`) : dénormalisation `org_id` + streams à clé directe | P1 | **terminé** | `agent/phase-09-r89b-denormalize-org-id` | `phase-09/2026-10-27-r89b-denormalize-org-id.md` |
 | 9 | R110 — `notify_budget_exceeded` : colonnes inexistantes sur `budget_lines` (toute création de ligne budgétaire échouait) | P1 | **terminé** | `agent/phase-09-r89b-denormalize-org-id` | `phase-09/2026-10-27-r89b-denormalize-org-id.md` |
@@ -75,8 +76,9 @@
 | 4 | RBAC : câblage réel de la garde de route (`hasPermission`/`isOrgMember`) | P1 | bloqué (dépend décision R109/R16) | — | R109 |
 | 10 | Design system, UX, responsive, perf, a11y | P2 | à faire | `agent/phase-10-ux` | — |
 | 10 | A11y automatisée (6 écrans + modale `/forms`) + états UX §5.1 sur les 62 écrans montés (garde d'inventaire) + budgets de perf verrouillés (1er rendu / entrée / total) | P2 | **terminé** | `agent/phase-10-a11y-ux` | `phase-10/2026-10-27-a11y-ux-budgets.md` |
-| 11 | Pre-mortem, chaos, exploitation autonome | P2 | à faire | `agent/phase-11-premortem` | — |
+| 11 | Pre-mortem, chaos, exploitation autonome | P2 | **en cours** (chaos de stockage couvert ; reste : exploitation autonome) | `agent/phase-11-premortem` | — |
 | 11 | **R106 + PM15 — capacités de résilience déclarées mais INERTES** (update-required non alimenté ; récupération locale non câblée) | P1 | **terminé** | `agent/phase-11-resilience` | `phase-11/2026-10-27-inert-resilience-capabilities.md` |
+| 11 | **Chaos — résilience du boot à un stockage indisponible** (`applyStoredTheme`/`applyStoredThemeMode`/`selectRole` levaient avant le montage React = écran noir) | P2 | **terminé** | `agent/phase-11-boot-storage-resilience` | `phase-11/2026-10-27-boot-storage-resilience.md` |
 | 12 | Suite Cypress (couverture totale) + crawler | P2 | à faire | `agent/phase-12-cypress` | — |
 | 13-17 | Tutoriel, personnalisation, propositions, doc, validation finale | P3 | à faire | `agent/phase-13..17` | — |
 
