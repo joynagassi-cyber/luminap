@@ -48,15 +48,26 @@ vi.mock("@/lib/dataLayer", () => ({
   linkTransactionGivingPS: vi.fn(async () => undefined),
   deleteTransactionGivingPS: vi.fn(async () => undefined),
   useCurrentUser: () => ({ id: "u-1", role: "TREASURIER" }),
+  updateCotisationPS: vi.fn(async () => undefined),
+  useGroups: () => ({ data: [], isLoading: false }),
+  useGroupMemberships: () => ({ data: [], isLoading: false }),
+  parseBudgetItems: () => [],
+  updateTransactionPS: vi.fn(async () => undefined),
+  deleteTransactionPS: vi.fn(async () => undefined),
+  useDocuments: () => ({ data: [], isLoading: false }),
 }));
 
-vi.mock("@/hooks/useCanAccessMulti", () => ({
-  useCanAccessMulti: () => ({ allowed: true, canAccess: true, loading: false, source: "test" }),
+vi.mock("@/capabilities/policy", () => ({
+  policy: { can: () => true, assert: () => true },
 }));
 
 vi.mock("@/lib/orgContext", () => ({
   getOrganizationId: () => "org-1",
   hasResolvedOrganization: () => true,
+}));
+
+vi.mock("@/hooks/useCanAccessMulti", () => ({
+  useCanAccessMulti: () => ({ allowed: true, canAccess: true, loading: false, source: "test" }),
 }));
 
 vi.mock("@/components/TopHeader", () => ({
@@ -73,6 +84,9 @@ import Budgets from "@/pages/Budgets";
 import BudgetDetail from "@/pages/BudgetDetail";
 import GivingCampaign from "@/pages/GivingCampaign";
 import OrgRoles from "@/pages/OrgRoles";
+import CulteDetail from "@/pages/CulteDetail";
+import GroupCotisation from "@/pages/GroupCotisation";
+import TransactionDetail from "@/pages/TransactionDetail";
 
 afterEach(cleanup);
 
@@ -194,5 +208,46 @@ describe("R52.g — pages de détail : « introuvable » avant le premier sync",
     );
     expect(container.querySelectorAll('[aria-busy="true"]').length).toBeGreaterThan(0);
     expect(screen.queryByText("Aucun membre")).toBeNull();
+  });
+});
+
+describe("R52.h — autres pages de détail : « introuvable » avant le premier sync", () => {
+  it("/cultes/:id affiche un squelette, pas « Culte introuvable »", () => {
+    state.ready = false;
+    const { container } = render(
+      <MemoryRouter initialEntries={["/cultes/e-1"]}>
+        <Routes>
+          <Route path="/cultes/:id" element={<CulteDetail />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(container.querySelectorAll('[aria-busy="true"]').length).toBeGreaterThan(0);
+    expect(screen.queryByText("Culte introuvable")).toBeNull();
+  });
+
+  it("/groups/:id/cotisation affiche un squelette, pas « Groupe introuvable »", () => {
+    state.ready = false;
+    const { container } = render(
+      <MemoryRouter initialEntries={["/groups/g-1/cotisation"]}>
+        <Routes>
+          <Route path="/groups/:id/cotisation" element={<GroupCotisation />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(container.querySelectorAll('[aria-busy="true"]').length).toBeGreaterThan(0);
+    expect(screen.queryByText("Groupe introuvable.")).toBeNull();
+  });
+
+  it("/transaction/:id affiche un squelette, pas « Transaction introuvable »", () => {
+    state.ready = false;
+    const { container } = render(
+      <MemoryRouter initialEntries={["/transaction/t-1"]}>
+        <Routes>
+          <Route path="/transaction/:id" element={<TransactionDetail />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(container.querySelectorAll('[aria-busy="true"]').length).toBeGreaterThan(0);
+    expect(screen.queryByText("Transaction introuvable")).toBeNull();
   });
 });

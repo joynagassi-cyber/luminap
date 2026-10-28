@@ -798,14 +798,21 @@
   n'y avait pas été appliqué. Correctif : garde identique (squelette tant que la
   réplique n'est pas prête). `OrgReportDetail` était **déjà** couvert
   (drapeau `loading`) — vérifié, rien à changer.
+- **Rechute R52.h (3 pages de détail supplémentaires)** — **corrigée
+  2026-10-28** : `/cultes/:id` (« Culte introuvable »), `/groups/:id/cotisation`
+  (« Groupe introuvable. »), `/transaction/:id` (« Transaction introuvable »)
+  comparaient la donnée à `undefined` avant le premier sync. Même correctif
+  (`isPowerSyncReadyNow()` + `ListSkeleton`).
 - **Preuve** : `src/pages/__tests__/Giving-loading.test.tsx` (2) +
   `src/pages/__tests__/list-loading-vs-empty.test.tsx` (6) +
   `src/pages/__tests__/async-loading-vs-empty.test.tsx` (2) +
-  `list-loading-vs-empty.test.tsx` (3 de plus, R52.g) ; les deux
+  `list-loading-vs-empty.test.tsx` (6 de plus : R52.g/R52.h) ; les deux
   directions sont verrouillées (chargement → squelette ET état vide exact
   quand la lecture est terminée). **Non-vacuité vérifiée** : en retirant le
-  branchement, les 9 assertions « squelette » échouent. Suite : **1604/1604**
-  (131 fichiers), `tsc -b` = 0, eslint 0 erreur.
+  branchement, les 12 assertions « squelette » échouent. Suite : **1607/1607**
+  (131 fichiers), `tsc -b --force` = 0, eslint 0 erreur.
+- **Piège de vérification** : `tsc -b` est incrémental et peut masquer une
+  erreur réelle (TS1117) ; contrôler avec `npx tsc -b --force --noEmit`.
 - **Travail restant (R52.a)** : `/sessions` conserve sa preuve E2E rouge
   tant que la réplique PowerSync ne se peuple pas dans l'environnement de
   test (cf. R53/R98) — le correctif produit est en place, la preuve E2E non.
