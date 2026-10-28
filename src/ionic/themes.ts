@@ -135,7 +135,14 @@ export function getStoredThemeId(): ThemeId | null {
 
 export function persistThemeId(id: ThemeId): void {
   if (typeof localStorage === "undefined") return;
-  localStorage.setItem(STORAGE_KEY, id);
+  // Best-effort : un stockage indisponible (mode privé, quota plein) ne doit
+  // JAMAIS interrompre le boot — `applyStoredTheme` est appelé avant le
+  // montage React, une exception ici laisserait un écran noir silencieux.
+  try {
+    localStorage.setItem(STORAGE_KEY, id);
+  } catch {
+    /* thème appliqué en mémoire ; persistance perdue, sans conséquence */
+  }
 }
 
 export function hexToRgb(hex: string): string {
@@ -195,7 +202,12 @@ export function getStoredThemeMode(): ThemeMode {
 
 export function persistThemeMode(mode: ThemeMode): void {
   if (typeof localStorage === "undefined") return;
-  localStorage.setItem(THEME_MODE_STORAGE_KEY, mode);
+  // Best-effort (cf. `persistThemeId`) : ne jamais lever au boot.
+  try {
+    localStorage.setItem(THEME_MODE_STORAGE_KEY, mode);
+  } catch {
+    /* mode appliqué en mémoire ; persistance perdue, sans conséquence */
+  }
 }
 
 /**

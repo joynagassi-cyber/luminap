@@ -34,6 +34,19 @@ describe("escapeCsvCell — injection de formule", () => {
     expect(escapeCsvCell("\r=1+1")).toMatch(/^'|"'/);
   });
 
+  it("neutralise une formule précédée d'un caractère de contrôle ignoré (NUL/VT/FF)", () => {
+    // Certains tableurs suppriment ces caractères de tête avant d'évaluer la
+    // cellule : sans apostrophe, « \u000b=1+1 » deviendrait une formule.
+    for (const payload of ["\u0000=1+1", "\u000b=1+1", "\f=1+1", "\u0000@SUM(A1)"]) {
+      const out = escapeCsvCell(payload);
+      expect(out.startsWith("'")).toBe(true);
+    }
+  });
+
+  it("ne préfixe pas une valeur sans formule après les caractères de contrôle", () => {
+    expect(escapeCsvCell("\u0000texte")).toBe("\u0000texte");
+  });
+
   it("ne touche pas aux valeurs inoffensives", () => {
     expect(escapeCsvCell("Dîme")).toBe("Dîme");
     expect(escapeCsvCell(1500)).toBe("1500");
