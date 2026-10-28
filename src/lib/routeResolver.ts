@@ -124,6 +124,17 @@ const RETURN_TO_ALLOWLIST: readonly string[] = ROUTE_REGISTRY.filter(
 ).map((r) => r.pattern);
 
 /**
+ * Routes where the `needs-membership` requirement does NOT apply : ce sont
+ * précisément les écrans qui PERMETTENT d'acquérir une appartenance (créer sa
+ * organisation ou en rejoindre une). Exiger l'appartenance y bloquerait tout
+ * nouvel inscrit — le flux d'onboarding ne pourrait jamais aboutir (R107).
+ */
+const MEMBERSHIP_EXEMPT_ROUTES: ReadonlySet<string> = new Set([
+  "/onboarding",
+  "/org-setup",
+]);
+
+/**
  * Whether a `returnTo` value is a safe internal path. Blocks open redirects
  * (contract §2.3): only same-app absolute paths, never protocol-relative
  * (`//evil.com`) nor absolute URLs.
@@ -210,7 +221,12 @@ export function resolveRoute(
     return { outcome: "forbidden", permission: route.permission };
   }
 
-  if (state.isOrgMember === false) return { outcome: "needs-membership" };
+  if (
+    state.isOrgMember === false &&
+    !MEMBERSHIP_EXEMPT_ROUTES.has(route.pattern)
+  ) {
+    return { outcome: "needs-membership" };
+  }
 
   return { outcome: "render" };
 }

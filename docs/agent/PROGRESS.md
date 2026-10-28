@@ -37,7 +37,8 @@
 | 3 | Multi-organisation : table de fermeture matérialisée (perf) | P2 | proposition | — | (cf. PROPOSALS P3-1) |
 | 4 | RBAC fin : décision unique DB↔TS (`has_permission`), deny, portées | P1 | **terminé** | `agent/phase-04-rbac` | `phase-04/2026-10-26-rbac.md` |
 | 4 | RBAC : R105 — permissions `invitation:*` orphelines réconciliées + garde anti-dérive registre↔matrice | P1 | **terminé** | `agent/r105-route-guard-rbac` | `phase-09/2026-10-26-r105-route-guard-rbac.md` |
-| 4 | RBAC : câblage réel de la garde de route (`hasPermission`/`isOrgMember`) | P1 | bloqué (dépend PR18/R16 : réconcilier rôles ADMIN/CENTRAL_ADMIN) | — | R105 |
+| 4 | RBAC : câblage réel de la garde de route (`isOrgMember`) | P1 | **terminé** (R107 : `useOrgMembership` fail-open + exemption `/onboarding`/`/org-setup`) | `agent/phase-4-needs-membership` | `phase-04/2026-10-28-needs-membership-wiring.md` |
+| 4 | RBAC : câblage réel de la garde de route (`hasPermission`) | P1 | bloqué (dépend PR18/R16 : réconcilier rôles ADMIN/CENTRAL_ADMIN) | — | R105 |
 | 2 | Audit garde de route : R106 (update-required inerte) + R107 (needs-membership inerte) | P1 | **terminé** (documenté ; correctif = PR19) | `agent/r105-route-guard-rbac` | `phase-09/2026-10-26-r105-route-guard-rbac.md` |
 | 4 | RBAC fin : réécrire les ~146 politiques RLS sur `has_permission` | P2 | proposition | — | (cf. PROPOSALS PR18) |
 | 4 | **RBAC session 11 — contrat d'interface** (grants org-scopés, capacités, hooks, UI, preuve E2E) | P1 | **terminé** | `agent/rbac-contrat` | `phase-04/2026-10-27-rbac-contrat.md` |

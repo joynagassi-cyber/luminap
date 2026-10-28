@@ -2551,18 +2551,32 @@ sauvegarde disponible).
 - **Statut** : **corrigé** (câblé + testé) ; la valeur minimale reste à déclarer
   par le propriétaire.
 
-### R107 — `NeedsMembershipScreen` (état `needs-membership`) déclaré mais INERTE — OUVERT
+### R107 — `NeedsMembershipScreen` (état `needs-membership`) déclaré mais INERTE — ✅ CORRIGÉ le 2026-10-28
 - **Gravité** : FAIBLE.
 - **Défaut** : `resolveRoute()` produit `needs-membership` quand
   `isOrgMember === false`, et `App.tsx` rend `NeedsMembershipScreen`. Mais
-  `App.tsx` n'appelle jamais `resolveRoute` avec `isOrgMember` → la branche est
+  `App.tsx` n'appelait jamais `resolveRoute` avec `isOrgMember` → la branche était
   inerte (même cause racine que R105 : `RouteState` n'est pas alimenté au-delà de
   `isAuthenticated`).
-- **Impact** : un utilisateur authentifié mais non membre de l'org active voit la
+- **Impact** : un utilisateur authentifié mais non membre de l'org active voyait la
   page (données vides / RLS) au lieu de l'écran « organisation non rejointe » qui
   l'orienterait vers une invitation.
-- **Statut** : ouvert ; sera corrigé en même temps que le câblage R105 (dépend
-  PR18/R16).
+- **Correctif** : `src/hooks/useOrgMembership.ts` alimente `isOrgMember` dans
+  `App.tsx`. Sûreté **fail-open** : on ne renvoie `false` QUE sur preuve positive
+  de non-appartenance (`canAccessOrganization` faux **et** base locale déjà
+  synchronisée, `hasSynced`). Sinon `undefined` → le résolveur laisse passer. La
+  décision est réévaluée au changement d'organisation et à chaque fin de sync
+  (base vide au démarrage à froid).
+- **Garde anti-régression de flux** : `/onboarding` et `/org-setup` sont
+  **exemptés** de `needs-membership` — ce sont les écrans qui PERMETTENT
+  d'acquérir une appartenance ; les bloquer empêcherait tout nouvel inscrit de
+  terminer l'onboarding (exemption ajoutée à `routeResolver.ts`).
+- **Preuve** : `V: useOrgMembership.test.tsx` (6 : fail-open, preuve positive,
+  négatif retenu seulement après sync, réévaluation à la fin de sync) +
+  `route-resolver.test.ts` (exemption + fail-open) + `route-state-wiring.test.ts`
+  (`isOrgMember` retiré de `PENDING_WIRING`). Gates : `tsc -b` 0, vitest
+  **1546/1546**, lint 0 erreur.
+- **Receipt** : `docs/agent/receipts/phase-04/2026-10-28-needs-membership-wiring.md`.
 
 ### R108 — Watchdog de démarrage (« app-ready ») DÉCLARÉ mais JAMAIS ARMÉ — CORRIGÉ
 - **Gravité** : MOYENNE (robustesse « zéro écran noir »).
