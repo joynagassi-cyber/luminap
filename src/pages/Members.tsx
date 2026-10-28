@@ -155,13 +155,17 @@ export default function MembersPage() {
   };
 
   if (membersLoading) {
-    return <MembersSkeleton />;
+    return (
+      <div data-screen-state="loading">
+        <MembersSkeleton />
+      </div>
+    );
   }
 
   return (
     <IonPage>
       <IonContent fullscreen>
-        <div className="min-h-dvh">
+        <div data-screen-state="ready" className="min-h-dvh">
           <TopHeader title="Membres" />
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             <CapabilityBanner orgId={getOrganizationId()} />

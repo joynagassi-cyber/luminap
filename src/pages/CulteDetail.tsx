@@ -34,6 +34,14 @@ export default function CulteDetail() {
 
   const culte = events.find((e: any) => e.id === id);
 
+  // Rules of Hooks : ces `useState` doivent être appelés AVANT tout `return`
+  // précoce. Placés après le `if (!culte)` ci-dessous, ils n'étaient pas
+  // appelés tant que les données n'étaient pas chargées, puis l'étaient une
+  // fois `culte` trouvé → « Rendered more hooks than during the previous
+  // render » et écran d'erreur (même défaut que RouteGuard dans App.tsx).
+  const [showMassPay, setShowMassPay] = useState(false);
+  const [busyRowId, setBusyRowId] = useState<string | null>(null);
+
   if (!culte) {
     return (
       <IonPage>
@@ -46,7 +54,7 @@ export default function CulteDetail() {
           </IonToolbar>
         </IonHeader>
         <IonContent>
-          <div className="p-4 text-center text-text-tertiary">
+          <div data-screen-state="notfound" className="p-4 text-center text-text-tertiary">
             <p className="font-semibold mb-2">Culte introuvable</p>
             <button
               onClick={() => navigate("/cotisations")}
@@ -94,8 +102,6 @@ export default function CulteDetail() {
       30 * 24 * 60 * 60 * 1000
     : false;
 
-  const [showMassPay, setShowMassPay] = useState(false);
-  const [busyRowId, setBusyRowId] = useState<string | null>(null);
 
   const runRowMutation = async (cotId: string, action: () => Promise<void>) => {
     if (busyRowId) return;
@@ -144,7 +150,7 @@ export default function CulteDetail() {
           <IonTitle>Détail du Culte</IonTitle>
         </IonToolbar>
       </IonHeader>
-      <IonContent>
+      <IonContent data-screen-state="ready">
         <div className="px-4 py-3 flex items-center gap-3 border-b border-border">
             <button
               onClick={() => navigate("/cotisations")}

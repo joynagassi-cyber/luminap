@@ -43,7 +43,7 @@ export default function Balance() {
       <IonPage>
         <IonContent className="bg-canvas">
           <TopHeader title="Bilan" />
-          <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
+          <div data-screen-state="loading" className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
                 <ShimmerCard key={i} minHeight={64} />
@@ -104,7 +104,7 @@ export default function Balance() {
     <IonPage>
       <IonContent className="bg-canvas">
         <TopHeader title="Bilan" />
-          <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
+          <div data-screen-state="ready" className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             <h1 className="text-text-primary font-bold text-xl mb-5">
               Bilan financier
             </h1>

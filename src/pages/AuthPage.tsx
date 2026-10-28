@@ -262,7 +262,7 @@ export default function AuthPage() {
   return (
     <IonPage>
       <IonContent className="bg-canvas">
-        <div className="min-h-dvh flex flex-col">
+        <div data-screen-state="ready" className="min-h-dvh flex flex-col">
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-5">
             <img

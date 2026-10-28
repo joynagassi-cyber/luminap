@@ -191,7 +191,7 @@ export default function FormFill() {
       <IonPage>
         <IonContent className="bg-canvas">
           <TopHeader title="Formulaire" />
-          <div className="flex items-center justify-center min-h-[60vh]">
+          <div data-screen-state="loading" className="flex items-center justify-center min-h-[60vh]">
             <p className="text-text-tertiary text-sm">Chargement...</p>
           </div>
         </IonContent>
@@ -204,7 +204,7 @@ export default function FormFill() {
       <IonPage>
         <IonContent className="bg-canvas">
           <TopHeader title="Formulaire" />
-          <div className="px-5 pt-safe-calc pb-safe-calc max-w-lg mx-auto">
+          <div data-screen-state="notfound" className="px-5 pt-safe-calc pb-safe-calc max-w-lg mx-auto">
             <button
               onClick={() => navigate(-1)}
               className="flex items-center gap-2 text-text-secondary text-sm mb-5"
@@ -224,6 +224,7 @@ export default function FormFill() {
       <IonContent className="bg-canvas">
         <TopHeader title={form.name} />
         <div
+          data-screen-state="ready"
           className="px-5 pt-safe-calc pb-safe-calc max-w-lg mx-auto"
           style={{
             paddingBottom: keyboardHeight > 0 ? `${keyboardHeight}px` : undefined,

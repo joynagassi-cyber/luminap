@@ -27,7 +27,11 @@ export default tseslint.config(
       "@typescript-eslint/no-empty-object-type": "warn",
       "@typescript-eslint/no-unused-vars": "warn",
       "no-empty-pattern": "warn",
-      "react-hooks/rules-of-hooks": "warn",
+      // `error` (et non `warn`) : une violation fait planter TOUT le rendu
+      // (l'ErrorBoundary racine remplace l'app par « Une erreur inattendue »).
+      // Deux cas réels ont été trouvés (RouteGuard dans App.tsx, CulteDetail)
+      // où un hook suivait un `return` précoce → écran noir / E2E jamais vert.
+      "react-hooks/rules-of-hooks": "error",
     },
   },
   {
@@ -41,6 +45,15 @@ export default tseslint.config(
           },
         ],
       }],
+    },
+  },
+  {
+    // Les fixtures Playwright reçoivent un paramètre nommé `use` (callback de
+    // fixture) : `react-hooks/rules-of-hooks` le prend à tort pour un hook.
+    // Ce ne sont PAS des composants React.
+    files: ['e2e/**/*.{ts,tsx}'],
+    rules: {
+      'react-hooks/rules-of-hooks': 'off',
     },
   },
   {
