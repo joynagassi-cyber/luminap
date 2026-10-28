@@ -79,6 +79,7 @@
 | 11 | Pre-mortem, chaos, exploitation autonome | P2 | **en cours** (chaos de stockage couvert ; reste : exploitation autonome) | `agent/phase-11-premortem` | — |
 | 11 | **R106 + PM15 — capacités de résilience déclarées mais INERTES** (update-required non alimenté ; récupération locale non câblée) | P1 | **terminé** | `agent/phase-11-resilience` | `phase-11/2026-10-27-inert-resilience-capabilities.md` |
 | 11 | **Chaos — résilience du boot à un stockage indisponible** (`applyStoredTheme`/`applyStoredThemeMode`/`selectRole` levaient avant le montage React = écran noir) | P2 | **terminé** | `agent/phase-11-boot-storage-resilience` | `phase-11/2026-10-27-boot-storage-resilience.md` |
+| 11 | **Runbook testé à froid** (2 défauts trouvés : `npm ci` échoue → pnpm ; invariant jsonb = 88 au lieu de 0) | P2 | **terminé** | `agent/phase-11-runbook-cold-test` | `phase-11/2026-10-27-runbook-cold-test.md` |
 | 12 | Suite Cypress (couverture totale) + crawler | P2 | à faire | `agent/phase-12-cypress` | — |
 | 13-17 | Tutoriel, personnalisation, propositions, doc, validation finale | P3 | à faire | `agent/phase-13..17` | — |
 
