@@ -15,7 +15,11 @@ import { luminaRoutes } from "./ionic/routing";
 import { ErrorBoundary, withScope } from "@sentry/react";
 import { UpdateDialog } from "@/updater/UpdateDialog";
 import { useUpdater } from "@/updater/useUpdater";
-import { resolveRoute, type RouteOutcome } from "@/lib/routeResolver";
+import {
+  resolveRoute,
+  webEntryOrgIntent,
+  type RouteOutcome,
+} from "@/lib/routeResolver";
 import {
   CLIENT_SCHEMA_VERSION,
   resolveMinSchemaVersion,
@@ -32,6 +36,7 @@ import { getOrganizationId } from "@/lib/orgContext";
 import { useOrgMembership } from "@/hooks/useOrgMembership";
 import {
   getDeepLinkOrgIntent,
+  setDeepLinkOrgIntent,
   clearDeepLinkOrgIntent,
 } from "@/lib/deepLinkIntent";
 import { enterOrganization } from "@/lib/organization-context";
@@ -106,7 +111,25 @@ function RouteGuard() {
   // chaque rendu.
   const [orgIntent, setOrgIntent] = useState(() => getDeepLinkOrgIntent());
   useEffect(() => {
-    const sync = () => setOrgIntent(getDeepLinkOrgIntent());
+    const sync = () => {
+      let intent = getDeepLinkOrgIntent();
+      // R127 — sur le web, RIEN n'analysait l'URL d'entrée (contrairement au
+      // chemin natif `appUrlOpen`). Un lien `…/dashboard?org=B` s'ouvrait donc
+      // dans l'organisation A sans jamais proposer la bascule. On capte
+      // l'intention depuis `window.location` et on la persiste (sinon le
+      // prochain `sync()` l'écraserait avec `null`).
+      if (!intent && typeof window !== "undefined") {
+        const fromUrl = webEntryOrgIntent(
+          window.location.href,
+          getOrganizationId(),
+        );
+        if (fromUrl) {
+          setDeepLinkOrgIntent(fromUrl);
+          intent = fromUrl;
+        }
+      }
+      setOrgIntent(intent);
+    };
     // L'intention est écrite par le listener natif (hors React) → on re-sonde
     // à chaque navigation, qui suit toujours de près la pose de l'intention.
     sync();

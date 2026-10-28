@@ -3119,3 +3119,36 @@ sauvegarde disponible).
 - **Preuve** : vitest **1578/1578** (128 fichiers), `tsc -b` exit 0, eslint
   0 erreur.
 - **Receipt** : `docs/agent/receipts/phase-02/2026-10-28-returnto-wiring.md`.
+
+### R127 — deep link web d'ENTRÉE `?org=B` : la bascule d'organisation n'était jamais proposée (la branche `org-switch-required` n'était atteignable que sur mobile) — ✅ CORRIGÉ le 2026-10-28
+- **Gravité** : MOYENNE (P0 routage ; dimension `platform: web` de la matrice
+  deep link **insatisfiable** — famille « filet déclaré, jamais câblé » :
+  R105/R106/R107/R108/R113/R126).
+- **Défaut** : `resolveRoute` produit `org-switch-required` dès que
+  `linkOrgId` diffère de l'organisation active. Or `linkOrgId` n'était alimenté
+  QUE par `useAppUrlOpen` (chemin **natif** `appUrlOpen` / `getLaunchUrl`), qui
+  sort immédiatement si `Capacitor.isNativePlatform()` est faux. **Sur le web,
+  RIEN n'analysait l'URL d'entrée** : ouvrir
+  `https://…/dashboard?org=B` s'affichait dans l'organisation A, sans jamais
+  proposer la bascule. La dimension `platform: ["web", "capacitor"]` du contrat
+  §2.3 n'était donc vérifiable que sur mobile.
+- **Preuve du défaut** : `grep -rn "parseDeepLink" src` → seul
+  `useAppUrlOpen.ts` (gardé par `isNativePlatform()`) et `App.tsx` (lecture de
+  l'intention mémorisée, jamais posée sur le web) ; aucun appelant web.
+- **Correctif** :
+  1. `webEntryOrgIntent(url, activeOrgId)` (`routeResolver.ts`) : analyse l'URL
+     d'entrée via le **même** `parseDeepLink` (donc même validation, même
+     allowlist), et retourne l'intention seulement si l'org visée diffère de
+     l'active.
+  2. `App.tsx` : le `sync()` d'intention lit `window.location.href` quand
+     aucune intention n'est mémorisée, la **persiste** (`setDeepLinkOrgIntent`)
+     pour ne pas être écrasée au re-rendu suivant, puis l'expose à
+     `resolveRoute` → `org-switch-required`.
+  3. Exemption explicite : `/invitation/emit` et `/admin/units` consomment
+     `?org=` comme leur **propre** sélecteur (pas une demande de bascule) — les
+     traiter comme une bascule aurait cassé ces écrans.
+- **Non-vacuité prouvée** : retirer le câblage `webEntryOrgIntent` de `App.tsx`
+  → 1 test de `route-state-wiring.test.ts` échoue.
+- **Preuve** : vitest **1586/1586** (128 fichiers), `tsc -b` exit 0, eslint
+  0 erreur.
+- **Receipt** : `docs/agent/receipts/phase-02/2026-10-28-web-entry-org-intent.md`.

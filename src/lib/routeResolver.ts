@@ -175,6 +175,40 @@ export function readReturnToFromSearch(search: string): string | null {
   }
 }
 
+/**
+ * Pages qui consomment `?org=` comme leur PROPRE paramètre de sélection : pour
+ * elles, `?org=` ne demande PAS un changement d'organisation active.
+ */
+const ORG_PARAM_LOCAL_CONSUMERS: ReadonlySet<string> = new Set([
+  "/invitation/emit",
+  "/admin/units",
+]);
+
+/**
+ * R127 — intention « ce lien vise une autre organisation » depuis une URL
+ * d'ENTRÉE web (contrat §2.3, dimension `platform: web`).
+ *
+ * Défaut visé : sur le web, contrairement au chemin natif `appUrlOpen`, RIEN
+ * n'analysait l'URL d'entrée. Un lien `https://…/dashboard?org=B` s'ouvrait
+ * donc silencieusement dans l'organisation A : la branche `org-switch-required`
+ * n'était atteignable que sur mobile (le natif, seul, appelait `parseDeepLink`).
+ * La dimension `web` de la matrice deep link était de ce fait insatisfiable.
+ *
+ * Retourne l'intention quand l'URL vise une AUTRE organisation que l'active,
+ * sinon `null`. Les pages listées dans `ORG_PARAM_LOCAL_CONSUMERS` sont
+ * exclues (leur `?org=` n'est pas une demande de bascule).
+ */
+export function webEntryOrgIntent(
+  url: string,
+  activeOrgId: string | null,
+): { orgId: string; path: string } | null {
+  const link = parseDeepLink(url);
+  if (!link || !link.orgId) return null;
+  if (!activeOrgId || link.orgId === activeOrgId) return null;
+  if (ORG_PARAM_LOCAL_CONSUMERS.has(link.path)) return null;
+  return { orgId: link.orgId, path: link.path };
+}
+
 /** Compile a `:param` / `*` pattern into a matcher. */
 function matchesPattern(pattern: string, pathname: string): boolean {
   if (pattern === "*") return true;

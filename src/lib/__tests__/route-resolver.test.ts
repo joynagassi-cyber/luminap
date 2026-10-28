@@ -10,6 +10,7 @@ import {
   isAllowedReturnTo,
   readReturnToFromSearch,
   parseDeepLink,
+  webEntryOrgIntent,
   ROUTE_REGISTRY,
   ROUTE_COUNT,
   type RouteState,
@@ -316,5 +317,59 @@ describe("R126 — needs-auth transmet un returnTo allowlisté et consommable", 
   it("readReturnToFromSearch retourne null sans paramètre", () => {
     expect(readReturnToFromSearch("")).toBeNull();
     expect(readReturnToFromSearch("?foo=bar")).toBeNull();
+  });
+});
+
+describe("R127 — intention d'organisation depuis une URL d'ENTRÉE web", () => {
+  const A = "org-A";
+  const B = "org-B";
+
+  it("un lien d'entrée web vers une autre org produit l'intention", () => {
+    expect(
+      webEntryOrgIntent(`https://app.lumina.dev/dashboard?org=${B}`, A),
+    ).toEqual({ orgId: B, path: "/dashboard" });
+  });
+
+  it("l'intention alimente org-switch-required dans le résolveur", () => {
+    const intent = webEntryOrgIntent(`https://app.lumina.dev/finance?org=${B}`, A);
+    expect(intent).not.toBeNull();
+    expect(
+      resolveRoute(intent!.path, {
+        isAuthenticated: true,
+        activeOrgId: A,
+        linkOrgId: intent!.orgId,
+      }),
+    ).toEqual({ outcome: "org-switch-required", orgId: B });
+  });
+
+  it("aucune intention quand l'URL vise l'org DÉJÀ active", () => {
+    expect(
+      webEntryOrgIntent(`https://app.lumina.dev/dashboard?org=${A}`, A),
+    ).toBeNull();
+  });
+
+  it("aucune intention sans organisation active connue (fail-open)", () => {
+    expect(
+      webEntryOrgIntent(`https://app.lumina.dev/dashboard?org=${B}`, null),
+    ).toBeNull();
+  });
+
+  it("aucune intention sans paramètre org", () => {
+    expect(webEntryOrgIntent("https://app.lumina.dev/dashboard", A)).toBeNull();
+  });
+
+  it("`?org=` n'est PAS une bascule sur les pages qui le consomment localement", () => {
+    // `/invitation/emit` et `/admin/units` lisent `?org=` comme leur PROPRE
+    // sélecteur : les traiter comme une demande de bascule casserait ces écrans.
+    expect(
+      webEntryOrgIntent(`https://app.lumina.dev/invitation/emit?org=${B}`, A),
+    ).toBeNull();
+    expect(
+      webEntryOrgIntent(`https://app.lumina.dev/admin/units?org=${B}`, A),
+    ).toBeNull();
+  });
+
+  it("refuse une URL invalide", () => {
+    expect(webEntryOrgIntent("pas une url", A)).toBeNull();
   });
 });
