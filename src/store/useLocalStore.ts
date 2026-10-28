@@ -360,10 +360,14 @@ export const useLocalStore = create<LocalStoreState>()(
       isOnline: navigator.onLine,
 
       selectRole: async (role) => {
-        const sessionId =
-          localStorage.getItem("lumina-session") ?? crypto.randomUUID();
-        localStorage.setItem("lumina-session", sessionId);
-        localStorage.setItem("lumina-role", role);
+        try {
+          const sessionId =
+            localStorage.getItem("lumina-session") ?? crypto.randomUUID();
+          localStorage.setItem("lumina-session", sessionId);
+          localStorage.setItem("lumina-role", role);
+        } catch {
+          /* stockage indisponible (mode privé, quota) — état mémoire seul */
+        }
         set({ user: { ...get().user, role } });
       },
 
