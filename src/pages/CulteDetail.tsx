@@ -1,6 +1,7 @@
 import { useState } from "react";
+import { ListSkeleton } from "@/components/Skeleton";
 import { useNavigate, useParams } from "react-router-dom";
-import { useEvents, useCotisations, useMembers, updateCotisationPS } from "@/lib/dataLayer";
+import { useEvents, useCotisations, useMembers, updateCotisationPS, isPowerSyncReadyNow } from "@/lib/dataLayer";
 import { formatCurrencyCompact, formatDate } from "@/lib/utils";
 import { calculerStatsCulte } from "@/lib/cotisation-logic";
 import {
@@ -41,6 +42,23 @@ export default function CulteDetail() {
   // render » et écran d'erreur (même défaut que RouteGuard dans App.tsx).
   const [showMassPay, setShowMassPay] = useState(false);
   const [busyRowId, setBusyRowId] = useState<string | null>(null);
+
+  // R52.h — « Culte introuvable » n'est exact qu'une fois la réplique prête.
+  if (!culte && !isPowerSyncReadyNow()) {
+    return (
+      <IonPage>
+        <IonContent className="bg-canvas">
+          <h1 className="sr-only">Détail du culte</h1>
+          <div className="min-h-dvh">
+            <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
+              <ListSkeleton count={4} />
+            </div>
+            <BottomNav />
+          </div>
+        </IonContent>
+      </IonPage>
+    );
+  }
 
   if (!culte) {
     return (

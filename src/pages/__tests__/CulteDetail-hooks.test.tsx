@@ -33,6 +33,11 @@ vi.mock("@/lib/dataLayer", async (importOriginal) => {
     useCotisations: () => ({ data: [] }),
     useMembers: () => ({ data: [] }),
     updateCotisationPS: vi.fn(async () => undefined),
+    // R52.h — ce test porte sur la transition de hooks APRÈS lecture ; la
+    // garde « réplique prête » est donc neutralisée ici (sinon l'écran reste
+    // sur le squelette et l'assertion « Culte introuvable » ne peut pas
+    // s'exécuter).
+    isPowerSyncReadyNow: () => true,
   };
 });
 

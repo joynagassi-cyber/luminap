@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
+import { ListSkeleton } from "@/components/Skeleton";
 import { useFocusTrap } from "@/hooks/useFocusTrap";
 import { useNavigate, useParams } from "react-router-dom";
-import { useCurrentUser } from "@/lib/dataLayer";
+import { useCurrentUser, isPowerSyncReadyNow } from "@/lib/dataLayer";
 import {
   useTransactions,
   useCategories,
@@ -102,6 +103,25 @@ export default function TransactionDetail() {
   }, [proofs.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const tx = transactions.find((t: any) => t.id === id);
+
+  // R52.h — « Transaction introuvable » n'est exact qu'une fois la réplique
+  // prête (même garde qu'`EventDetail`).
+  if (!tx && !isPowerSyncReadyNow()) {
+    return (
+      <IonPage>
+        <IonContent fullscreen className="bg-canvas">
+          <h1 className="sr-only">Détail de la transaction</h1>
+          <div className="min-h-dvh">
+            <TopHeader title="Transaction" />
+            <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
+              <ListSkeleton count={4} />
+            </div>
+            <BottomNav />
+          </div>
+        </IonContent>
+      </IonPage>
+    );
+  }
 
   if (!tx) {
     return (

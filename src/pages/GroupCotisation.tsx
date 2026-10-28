@@ -16,7 +16,10 @@ import {
   useMembers,
   useCotisations,
   useEvents,
-  useCurrentUser,parseBudgetItems } from "@/lib/dataLayer";
+  useCurrentUser,
+  parseBudgetItems,
+  isPowerSyncReadyNow,
+} from "@/lib/dataLayer";
 import {
   createCotisationSession,
   collectCotisation,
@@ -27,6 +30,7 @@ import { getOrganizationId } from "@/lib/orgContext";
 import { formatCurrencyCompact, formatDate } from "@/lib/utils";
 import { Plus, Check, Clock, X, Coins } from "lucide-react";
 import { useKeyboardAvoidance } from "@/hooks/useKeyboardAvoidance";
+import { ListSkeleton } from "@/components/Skeleton";
 import {
   IonPage,
   IonHeader,
@@ -196,6 +200,20 @@ export default function GroupCotisation() {
       ),
     };
   }, [sessionCots]);
+
+  // R52.h — « Groupe introuvable. » n'est exact qu'une fois la réplique prête.
+  if (!group && !isPowerSyncReadyNow()) {
+    return (
+      <IonPage>
+        <IonContent className="bg-canvas">
+          <h1 className="sr-only">Cotisation du groupe</h1>
+          <div className="p-5">
+            <ListSkeleton count={4} />
+          </div>
+        </IonContent>
+      </IonPage>
+    );
+  }
 
   if (!group) {
     return (

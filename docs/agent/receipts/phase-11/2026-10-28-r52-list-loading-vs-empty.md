@@ -20,6 +20,9 @@ est vide », et annonçaient donc un fait **faux** pendant le chargement :
 | `/budget/:id` | « Budget introuvable. » | `isPowerSyncReadyNow()` absent |
 | `/giving/campaign/:id` | « Campagne introuvable. » | `isPowerSyncReadyNow()` absent |
 | `/admin/roles` | « Aucun membre » | `isPowerSyncReadyNow()` absent |
+| `/cultes/:id` | « Culte introuvable » | `isPowerSyncReadyNow()` absent |
+| `/groups/:id/cotisation` | « Groupe introuvable. » | `isPowerSyncReadyNow()` absent |
+| `/transaction/:id` | « Transaction introuvable » | `isPowerSyncReadyNow()` absent |
 
 Le cas est piégeux : les hooks PowerSync renvoient `data: []` **ET**
 `isLoading: true` tant que la première lecture n'a pas abouti. Lire `data`
@@ -40,6 +43,13 @@ seul produit un état vide indétectable du vrai état vide.
 - `BudgetDetail.tsx` / `GivingCampaign.tsx` : garde `isPowerSyncReadyNow()`.
 - `OrgRoles.tsx` : garde `isPowerSyncReadyNow()` sur la liste des membres.
 - `OrgReportDetail.tsx` : **déjà** couvert (drapeau `loading`) — rien changé.
+- `CulteDetail.tsx` / `GroupCotisation.tsx` / `TransactionDetail.tsx` : garde
+  `isPowerSyncReadyNow()`.
+
+Deux mocks de tests préexistants ont dû être complétés
+(`isPowerSyncReadyNow: () => true` dans `CulteDetail-hooks.test.tsx`) : ces tests
+portent sur le comportement **après** lecture (Rules of Hooks), pas sur la
+fenêtre de chargement — ils restent significatifs.
 
 Les deux drapeaux sont posés dans un `finally` : un échec de lecture ne
 laisse jamais un squelette **infini** (le message vide devient alors exact).
@@ -52,8 +62,8 @@ Aucune donnée, aucun schéma, aucune migration touchés.
 |---|---|
 | `npx tsc -b` | **0** |
 | `npx eslint src` | **0 erreur** (warnings préexistants) |
-| `npx vitest run` | **1604/1604** (131 fichiers) |
-| Non-vacuité (retrait du câblage) | les **9** assertions « squelette » échouent |
+| `npx vitest run` | **1607/1607** (131 fichiers) |
+| Non-vacuité (retrait du câblage) | les **12** assertions « squelette » échouent |
 
 Nouveaux tests :
 - `src/pages/__tests__/Giving-loading.test.tsx` (2) — chargement → squelette
