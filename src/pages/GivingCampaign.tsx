@@ -9,6 +9,7 @@ import {
   addPledgePS,
   linkTransactionGivingPS,
   deleteTransactionGivingPS,
+  isPowerSyncReadyNow,
 } from "@/lib/dataLayer";
 import { campaignProgress, giving } from "@/capabilities/giving";
 import { notification } from "@/capabilities/notification";
@@ -26,6 +27,7 @@ import {
   IonInput,
 } from "@ionic/react";
 import EmptyState from "@/components/EmptyState";
+import { ListSkeleton } from "@/components/Skeleton";
 
 export default function GivingCampaign() {
   const { id } = useParams();
@@ -69,6 +71,25 @@ export default function GivingCampaign() {
   const [receiptYear, setReceiptYear] = useState(String(new Date().getFullYear()));
   const [receiptMsg, setReceiptMsg] = useState<string | null>(null);
   const [receiptBusy, setReceiptBusy] = useState(false);
+
+  // R52.g — « Campagne introuvable » n'est exact qu'une fois la réplique
+  // disponible (même garde qu'`EventDetail`).
+  if (!campaign && !isPowerSyncReadyNow()) {
+    return (
+      <IonPage>
+        <IonContent className="bg-canvas">
+          <h1 className="sr-only">Détail de la campagne</h1>
+          <div className="min-h-dvh">
+            <TopHeader title="Campagne" />
+            <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
+              <ListSkeleton count={4} />
+            </div>
+            <BottomNav />
+          </div>
+        </IonContent>
+      </IonPage>
+    );
+  }
 
   if (!campaign || !p) {
     return (

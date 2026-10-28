@@ -33,10 +33,31 @@ vi.mock("@/lib/dataLayer", () => ({
   isPowerSyncReadyNow: () => state.ready,
   useOrgBudgets: () => ({ data: [], isLoading: state.loading }),
   useOrgBudgetLines: () => ({ data: [], isLoading: state.loading }),
+  useOrgBudgetLines: () => ({ data: [], isLoading: state.loading }),
   useTransactions: () => ({ data: [], isLoading: false }),
   useCategories: () => ({ data: [], isLoading: false }),
   useOrgUnits: () => ({ data: [], isLoading: false }),
   addOrgBudgetPS: vi.fn(async () => undefined),
+  addOrgBudgetLinePS: vi.fn(async () => undefined),
+  deleteOrgBudgetLinePS: vi.fn(async () => undefined),
+  updateOrgBudgetPS: vi.fn(async () => undefined),
+  useGivingCampaigns: () => ({ data: [], isLoading: false }),
+  useGivingDonors: () => ({ data: [], isLoading: false }),
+  usePledges: () => ({ data: [], isLoading: false }),
+  useTransactionGiving: () => ({ data: [], isLoading: false }),
+  addPledgePS: vi.fn(async () => undefined),
+  linkTransactionGivingPS: vi.fn(async () => undefined),
+  deleteTransactionGivingPS: vi.fn(async () => undefined),
+  useCurrentUser: () => ({ id: "u-1", role: "TREASURIER" }),
+}));
+
+vi.mock("@/hooks/useCanAccessMulti", () => ({
+  useCanAccessMulti: () => ({ allowed: true, canAccess: true, loading: false, source: "test" }),
+}));
+
+vi.mock("@/lib/orgContext", () => ({
+  getOrganizationId: () => "org-1",
+  hasResolvedOrganization: () => true,
 }));
 
 vi.mock("@/components/TopHeader", () => ({
@@ -50,6 +71,9 @@ vi.mock("@/components/BottomNav", () => ({
 import MembreDetail from "@/pages/MembreDetail";
 import MembresEnAvance from "@/pages/MembresEnAvance";
 import Budgets from "@/pages/Budgets";
+import BudgetDetail from "@/pages/BudgetDetail";
+import GivingCampaign from "@/pages/GivingCampaign";
+import OrgRoles from "@/pages/OrgRoles";
 
 afterEach(cleanup);
 
@@ -132,5 +156,44 @@ describe("R52.d — /budgets", () => {
 
     expect(container.querySelectorAll('[aria-busy="true"]').length).toBe(0);
     expect(screen.getByText("Aucun budget")).toBeInTheDocument();
+  });
+});
+
+describe("R52.g — pages de détail : « introuvable » avant le premier sync", () => {
+  it("/budget/:id affiche un squelette, pas « Budget introuvable »", () => {
+    state.ready = false;
+    const { container } = render(
+      <MemoryRouter initialEntries={["/budget/b-1"]}>
+        <Routes>
+          <Route path="/budget/:id" element={<BudgetDetail />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(container.querySelectorAll('[aria-busy="true"]').length).toBeGreaterThan(0);
+    expect(screen.queryByText("Budget introuvable.")).toBeNull();
+  });
+
+  it("/giving/campaign/:id affiche un squelette, pas « Campagne introuvable »", () => {
+    state.ready = false;
+    const { container } = render(
+      <MemoryRouter initialEntries={["/giving/campaign/c-1"]}>
+        <Routes>
+          <Route path="/giving/campaign/:id" element={<GivingCampaign />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(container.querySelectorAll('[aria-busy="true"]').length).toBeGreaterThan(0);
+    expect(screen.queryByText("Campagne introuvable.")).toBeNull();
+  });
+
+  it("/admin/roles affiche un squelette, pas « Aucun membre »", () => {
+    state.ready = false;
+    const { container } = render(
+      <MemoryRouter>
+        <OrgRoles />
+      </MemoryRouter>,
+    );
+    expect(container.querySelectorAll('[aria-busy="true"]').length).toBeGreaterThan(0);
+    expect(screen.queryByText("Aucun membre")).toBeNull();
   });
 });

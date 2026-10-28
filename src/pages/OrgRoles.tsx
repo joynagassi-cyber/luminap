@@ -22,8 +22,9 @@ import { Shield, UserCog, Save } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
 import EmptyState from "@/components/EmptyState";
+import { ListSkeleton } from "@/components/Skeleton";
 import { ScreenState } from "@/components/RouteStates";
-import { useCurrentUser, useMembers, type PSMember } from "@/lib/dataLayer";
+import { useCurrentUser, useMembers, isPowerSyncReadyNow, type PSMember } from "@/lib/dataLayer";
 import { getOrganizationId } from "@/lib/orgContext";
 import { useCanAccessMulti } from "@/hooks/useCanAccessMulti";
 import { ROLE_LABELS, getRolePermissions } from "@/lib/rbac";
@@ -219,7 +220,11 @@ export default function OrgRoles() {
               </p>
             </div>
 
-            {activeMembers.length === 0 ? (
+            {/* R52.g — « Aucun membre » n'est exact qu'une fois la réplique
+                disponible (même garde qu'`EventDetail`). */}
+            {!isPowerSyncReadyNow() ? (
+              <ListSkeleton count={3} />
+            ) : activeMembers.length === 0 ? (
               <ScreenState state="empty">
                 <EmptyState
                   title="Aucun membre"
