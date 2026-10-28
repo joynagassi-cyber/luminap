@@ -344,3 +344,25 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   (`source:"handled"`) ; `LoadErrorBlock` (embarquable, sans IonPage) affiche
   l'erreur + réessai. `Finance` doit garder **un seul** `<IonPage>` (bug écran
   noir view-stack Ionic).
+
+## Durcissement RPC — tester l'ÉTAT FINAL, pas un motif concaténé (R115, 2026-10-28)
+- **Classe** : une migration qui **recrée** une fonction de trigger (ou
+  `settle_invitation_claim`) hors du chemin de durcissement R103 **rouvre** la
+  surface RPC. Un test qui **concatène** les migrations et cherche un motif
+  *quelque part* est **aveugle à l'ordre**.
+- **Instances mesurées** : `denorm_child_org_id`/`denorm_cascade_org_id`
+  (`20261027000001`, créées après le balayage `20261026000005`) → exécutables par
+  `anon`/`authenticated` ; `20261027000011` recrée `settle_invitation_claim`
+  depuis le corps pré-R103 → garde `pg_trigger_depth()=0` **perdue**.
+- **Exploitabilité** : `select public.denorm_cascade_org_id()` sous `anon` →
+  `0A000: trigger functions can only be called as triggers` → **non exploitable**
+  (faux positif, classe R97). Corrigé quand même (cohérence + avenir).
+- **Correctif** : `20261028000001` (garde restaurée + balayage rejoué) → 0
+  fonction de trigger exposée ; `anon_…` 3→1 (`keep_alive_ping` volontaire),
+  `authenticated_…` 9→7.
+- **Garde réutilisable** : `src/lib/__tests__/revoke-trigger-functions.test.ts`
+  rejoue les migrations **dans l'ordre** (`create` / balayage générique /
+  `revoke`) et évalue l'état final. **Ne pas se fier au test R103 existant** : il
+  concatène et rate toute régression ultérieure.
+- **Règle générale** : pour un invariant d'état DB (privilèges, RLS, colonnes),
+  la garde doit modéliser l'**ordre** des migrations, pas le texte concaténé.
