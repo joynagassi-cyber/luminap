@@ -2468,6 +2468,11 @@ sauvegarde disponible).
   Advisors : `anon_security_definer_function_executable` 1→0,
   `authenticated_…` 9→7.
 - **Statut** : corrigé, appliqué à la base dev, vérifié.
+- **MAJ 2026-10-28** : ce durcissement a été **contourné par deux migrations
+  ultérieures** (fonctions de trigger recréées hors du chemin de revoke ;
+  garde `pg_trigger_depth()` perdue par `20261027000011`). Corrigé par
+  `20261028000001` + garde d'ordre `revoke-trigger-functions.test.ts` → cf.
+  **R115**.
 
 ### R104 — Protection des mots de passe compromis désactivée — ESCALADE (plan)
 - **Gravité** : MOYENNE.
@@ -2742,3 +2747,57 @@ sauvegarde disponible).
   0 échec** ; sous Node 24 → idem. `tsc -b --noEmit` = 0 ; `eslint` = 0 erreur.
 - **Statut** : **corrigé** (branche `agent/phase-11-ci-node22-sqlite`).
 - **Receipt** : `docs/agent/receipts/phase-11/2026-10-27-ci-node22-sqlite.md`.
+
+### R115 — Le durcissement R103 de la surface RPC a été CONTOURNÉ par deux migrations ultérieures — ✅ CORRIGÉ le 2026-10-28
+
+- **Gravité** : MOYENNE (défense en profondeur ; **aucune** vulnérabilité
+  exploitable mesurée — cf. « exploitabilité » ci-dessous).
+- **Classe** : une migration qui **recrée** une fonction de trigger (ou la
+  fonction de règlement) hors du chemin de durcissement R103 **rouvre** la
+  surface RPC. Le test anti-régression R103 existant ne pouvait pas le voir : il
+  concatène toutes les migrations et cherche un motif *quelque part* — il ne
+  modélise pas l'**ordre** (une migration ultérieure peut régresser l'état).
+- **Deux instances réelles (mesurées le 2026-10-28, instance dev)** :
+  1. **(A)** `denorm_child_org_id` / `denorm_cascade_org_id`
+     (`20261027000001`) ont été créées **après** le balayage générique de
+     `20261026000005` → `SECURITY DEFINER` et
+     `has_function_privilege('anon', oid, 'EXECUTE') = true`. Preuve advisor :
+     `anon_security_definer_function_executable` = **3** (denorm ×2 +
+     `keep_alive_ping`).
+  2. **(B)** `20261027000011` recrée `settle_invitation_claim` en repartant du
+     corps de `20261024000004` (pré-R103) → la garde `pg_trigger_depth() = 0`
+     a été **silencieusement perdue**. Le `REVOKE EXECUTE` tenait toujours
+     (appel RPC direct → `42501 permission denied`), donc l'escalade R103
+     n'était **pas** rouverte, mais la défense en profondeur (2e niveau) l'était.
+- **Exploitabilité (honnêteté R12)** : un appel direct d'une fonction
+  `RETURNS trigger` est refusé par PostgreSQL lui-même —
+  `0A000: trigger functions can only be called as triggers` (vérifié sous
+  `set local role anon`). La surface (A) n'est donc **pas** une vulnérabilité
+  exploitable : faux positif de la classe R97. Le correctif referme néanmoins la
+  surface (cohérence R103 + protection contre un futur `GRANT`/`SECURITY
+  INVOKER`).
+- **Correctif** : migration
+  `20261028000001_harden_trigger_function_rpc_surface.sql` —
+  1. restaure la garde `pg_trigger_depth() = 0` dans `settle_invitation_claim`
+     (corps identique à `20261027000011`, seule la garde est ré-ajoutée) +
+     `REVOKE EXECUTE` (la redéfinition réinitialise les privilèges) ;
+  2. rejoue le balayage générique (idempotent) → **0** fonction de trigger
+     exécutable par anon/authenticated.
+- **Preuves après (mesurées)** :
+  - `select count(*) … prorettype='trigger' and (has_function_privilege('anon'…) or has_function_privilege('authenticated'…))`
+    → **0** ;
+  - appel direct `select public.settle_invitation_claim('0000…')` par `postgres`
+    → `42501 settle_invitation_claim: appel direct interdit` ;
+  - **flux légitime** (INSERT invitation + INSERT claim, transaction annulée)
+    → `claim=CONFIRMED, used_count=1` (la garde ne casse pas le trigger) ;
+  - advisors : `anon_…` **3→1** (`keep_alive_ping` seul, volontaire — endpoint
+    anti-pause public), `authenticated_…` **9→7** ;
+  - **0 résidu** (invitations de test = 0, claims orphelins = 0).
+- **Garde anti-régression** : `src/lib/__tests__/revoke-trigger-functions.test.ts`
+  (4 tests) — rejoue les migrations **dans l'ordre** (create / sweep / revoke) et
+  exige qu'aucune fonction de trigger `SECURITY DEFINER` ne reste non révoquée
+  et que la **dernière** définition de `settle_invitation_claim` porte la garde.
+  Non-vacuité prouvée : sans `20261028000001` → **3/4 échecs** ; avec → **4/4**.
+- **RÉVERSIBILITÉ** : `rollback/20261028000001_rollback.sql` (réouvre la
+  surface — fourni pour la symétrie, à n'appliquer qu'en connaissance de cause).
+- **Receipt** : `docs/agent/receipts/phase-08/2026-10-28-r115-trigger-rpc-surface.md`.

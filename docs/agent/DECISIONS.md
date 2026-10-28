@@ -544,3 +544,27 @@
 - **Raison** : le seul contrôle existant (`scripts/rls-isolation-check.sh`)
   exige des identifiants Supabase → non exécutable en CI, donc non bloquant.
   Un audit figé rend l'invariant vérifiable sans secret.
+
+### D-S11-1 — Durcir la surface RPC par l'ÉTAT FINAL, pas par motif concaténé
+- **Décision** : pour garantir qu'aucune fonction de trigger `SECURITY DEFINER`
+  n'est exécutable par `anon`/`authenticated`, la garde rejoue les migrations
+  **dans l'ordre** (`create` / balayage générique / `revoke` explicite) et
+  évalue l'**état final** — au lieu de chercher un motif dans le texte concaténé
+  de toutes les migrations.
+- **Raison** : le test R103 existant cherchait un motif *quelque part* ; il ne
+  pouvait pas détecter qu'une migration **ultérieure** (`20261027000001`,
+  `20261027000011`) régresse l'état. Mesuré : `denorm_*` exposées et garde
+  `pg_trigger_depth()` perdue. Une garde qui ignore l'ordre est structurellement
+  aveugle à cette classe (cf. R115).
+- **Conséquence** : `src/lib/__tests__/revoke-trigger-functions.test.ts`
+  (non-vacuité prouvée : 3/4 échecs sans le correctif).
+
+### D-S11-2 — Corriger une surface non exploitable quand même (cohérence + avenir)
+- **Décision** : corriger la surface RPC de `denorm_*` bien que l'appel direct
+  d'une fonction `RETURNS trigger` soit refusé par PostgreSQL
+  (`0A000: trigger functions can only be called as triggers`) — donc **aucune
+  vulnérabilité exploitable**.
+- **Raison** : le coût est nul et réversible (rollback fourni) ; l'état exposé
+  est incohérent avec R103 et deviendrait réel si un `GRANT EXECUTE` ou un
+  passage en `SECURITY INVOKER` survenait. La correction documente explicitement
+  l'exploitabilité mesurée (honnêteté R12) plutôt que de la surestimer.
