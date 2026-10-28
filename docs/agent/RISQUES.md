@@ -803,14 +803,23 @@
   (« Groupe introuvable. »), `/transaction/:id` (« Transaction introuvable »)
   comparaient la donnée à `undefined` avant le premier sync. Même correctif
   (`isPowerSyncReadyNow()` + `ListSkeleton`).
+- **Rechute R52.i (`/saisie-rapide/:id`)** — **corrigée 2026-10-28** :
+  « Culte introuvable. » affiché avant le premier sync. Correctif identique.
+- **Garde anti-récurrence** — ajoutée 2026-10-28 : test **statique**
+  `src/lib/__tests__/r52-readiness-guard.test.ts` — toute page qui affiche
+  « introuvable » doit contenir un signal de disponibilité
+  (`isPowerSyncReadyNow`, `notFound`, `isLoading`, `Loaded`, `Skeleton`), sinon
+  la suite échoue. Allowlist motivée : `NotFound.tsx` (le verdict EST la route),
+  `Tutorial.tsx` (contenu pédagogique). Non-vacuité prouvée par sonde.
 - **Preuve** : `src/pages/__tests__/Giving-loading.test.tsx` (2) +
   `src/pages/__tests__/list-loading-vs-empty.test.tsx` (6) +
   `src/pages/__tests__/async-loading-vs-empty.test.tsx` (2) +
-  `list-loading-vs-empty.test.tsx` (6 de plus : R52.g/R52.h) ; les deux
+  `list-loading-vs-empty.test.tsx` (7 de plus : R52.g/h/i) +
+  `r52-readiness-guard.test.ts` (garde statique) ; les deux
   directions sont verrouillées (chargement → squelette ET état vide exact
   quand la lecture est terminée). **Non-vacuité vérifiée** : en retirant le
-  branchement, les 12 assertions « squelette » échouent. Suite : **1607/1607**
-  (131 fichiers), `tsc -b --force` = 0, eslint 0 erreur.
+  branchement, les 13 assertions « squelette » échouent. Suite : **1610/1610**
+  (132 fichiers), `tsc -b --force` = 0, eslint 0 erreur.
 - **Piège de vérification** : `tsc -b` est incrémental et peut masquer une
   erreur réelle (TS1117) ; contrôler avec `npx tsc -b --force --noEmit`.
 - **Travail restant (R52.a)** : `/sessions` conserve sa preuve E2E rouge

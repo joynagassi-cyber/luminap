@@ -23,6 +23,7 @@ est vide », et annonçaient donc un fait **faux** pendant le chargement :
 | `/cultes/:id` | « Culte introuvable » | `isPowerSyncReadyNow()` absent |
 | `/groups/:id/cotisation` | « Groupe introuvable. » | `isPowerSyncReadyNow()` absent |
 | `/transaction/:id` | « Transaction introuvable » | `isPowerSyncReadyNow()` absent |
+| `/saisie-rapide/:id` | « Culte introuvable. » | `isPowerSyncReadyNow()` absent |
 
 Le cas est piégeux : les hooks PowerSync renvoient `data: []` **ET**
 `isLoading: true` tant que la première lecture n'a pas abouti. Lire `data`
@@ -43,8 +44,16 @@ seul produit un état vide indétectable du vrai état vide.
 - `BudgetDetail.tsx` / `GivingCampaign.tsx` : garde `isPowerSyncReadyNow()`.
 - `OrgRoles.tsx` : garde `isPowerSyncReadyNow()` sur la liste des membres.
 - `OrgReportDetail.tsx` : **déjà** couvert (drapeau `loading`) — rien changé.
-- `CulteDetail.tsx` / `GroupCotisation.tsx` / `TransactionDetail.tsx` : garde
-  `isPowerSyncReadyNow()`.
+- `CulteDetail.tsx` / `GroupCotisation.tsx` / `TransactionDetail.tsx` /
+  `SaisieRapide.tsx` : garde `isPowerSyncReadyNow()`.
+
+## Garde anti-récurrence
+
+Neuf rechutes (R52.b → R52.i) justifient une garde **statique** :
+`src/lib/__tests__/r52-readiness-guard.test.ts` échoue si une page affiche
+« introuvable » sans aucun signal de disponibilité. Allowlist motivée :
+`NotFound.tsx` (le verdict est la route), `Tutorial.tsx` (contenu pédagogique).
+Non-vacuité : une page sonde fautive fait échouer la garde.
 
 Deux mocks de tests préexistants ont dû être complétés
 (`isPowerSyncReadyNow: () => true` dans `CulteDetail-hooks.test.tsx`) : ces tests
@@ -62,8 +71,8 @@ Aucune donnée, aucun schéma, aucune migration touchés.
 |---|---|
 | `npx tsc -b` | **0** |
 | `npx eslint src` | **0 erreur** (warnings préexistants) |
-| `npx vitest run` | **1607/1607** (131 fichiers) |
-| Non-vacuité (retrait du câblage) | les **12** assertions « squelette » échouent |
+| `npx vitest run` | **1610/1610** (132 fichiers) |
+| Non-vacuité (retrait du câblage) | les **13** assertions « squelette » échouent |
 
 Nouveaux tests :
 - `src/pages/__tests__/Giving-loading.test.tsx` (2) — chargement → squelette
