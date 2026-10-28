@@ -2441,25 +2441,30 @@ sauvegarde disponible).
 - **Statut** : vocabulaire réconcilié (corrigé + verrouillé) ; câblage de la
   garde = dépendance de PR18 (ouvert).
 
-### R106 — Écran « mise à jour requise » (PR6) déclaré mais INERTE (aucune source de version de schéma) — OUVERT
+### R106 — Écran « mise à jour requise » (PR6) déclaré mais INERTE (aucune source de version de schéma) — CORRIGÉ (2026-10-27)
 - **Gravité** : FAIBLE (aucun écran noir ; mais le garde-fou de compatibilité APK est absent).
 - **Défaut** : `resolveRoute()` sait produire `update-required` (contrôle
   `clientSchemaVersion < minSchemaVersion`) et `App.tsx` rend bien
-  `UpdateRequiredScreen`. Mais **aucune** source ne fournit jamais ces deux
+  `UpdateRequiredScreen`. Mais **aucune** source ne fournissait jamais ces deux
   valeurs : ni `SCHEMA_VERSION` côté client, ni `min_schema_version` côté
-  serveur/config. La branche est donc **du code mort** (même classe que R105).
+  serveur/config. La branche était donc **du code mort** (même classe que R105).
 - **Impact** : un APK ancien dont le schéma PowerSync est incompatible ne reçoit
   aucun message « mettez à jour » ; il peut se synchroniser de travers ou rester
   muet. Risque de compatibilité, pas de sécurité.
 - **Preuve** : `grep -rn "minSchemaVersion\|clientSchemaVersion" src/ supabase/`
   → seules les définitions dans `routeResolver.ts` et le test unitaire ; aucun
   producteur.
-- **Correctif possible (proposé, non fait)** : exposer une constante de schéma
-  (ex. `src/lib/schemaVersion.ts`) + une valeur minimale servie par la config
-  (`AppConfig`/edge-fn), puis alimenter `RouteState` dans `App.tsx`. Nécessite une
-  décision produit (où vit `minSchemaVersion` : config distante ou constante
-  embarquée) — donc **proposition**, pas correctif autonome.
-- **Statut** : ouvert, documenté (classe R105 : branche de garde non alimentée).
+- **CORRECTIF (2026-10-27, `agent/phase-11-resilience`)** : `src/lib/schemaVersion.ts`
+  expose `CLIENT_SCHEMA_VERSION` + `resolveMinSchemaVersion()` (env
+  `VITE_MIN_SCHEMA_VERSION`) ; `App.tsx` alimente désormais `RouteState`.
+  Politique **fail-open** : sans version minimale déclarée, aucune contrainte
+  (comportement inchangé). Test de câblage : `V: schema-version.test.ts` (12) —
+  échoue si `App.tsx` cesse d'alimenter les deux champs.
+- **Reste au propriétaire** : positionner `VITE_MIN_SCHEMA_VERSION` dans le build
+  au moment où un schéma incompatible est publié (sinon fail-open = pas
+  d'avertissement, comme avant).
+- **Statut** : **corrigé** (câblé + testé) ; la valeur minimale reste à déclarer
+  par le propriétaire.
 
 ### R107 — `NeedsMembershipScreen` (état `needs-membership`) déclaré mais INERTE — OUVERT
 - **Gravité** : FAIBLE.

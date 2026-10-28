@@ -16,6 +16,10 @@ import { ErrorBoundary, withScope } from "@sentry/react";
 import { UpdateDialog } from "@/updater/UpdateDialog";
 import { checkForUpdate, type UpdateInfo } from "@/updater/checkForUpdate";
 import { resolveRoute, type RouteOutcome } from "@/lib/routeResolver";
+import {
+  CLIENT_SCHEMA_VERSION,
+  resolveMinSchemaVersion,
+} from "@/lib/schemaVersion";
 import { installClientErrorCapture, installChunkErrorRecovery } from "@/lib/clientErrors";
 import { signalAppReady } from "@/lib/bootWatchdog";
 import {
@@ -159,9 +163,13 @@ function RouteGuard() {
     isAuthenticated,
     activeOrgId,
     linkOrgId,
-    // `isOrgMember` / `hasPermission` / schema versions are wired by later
-    // phases (3/4). Until then the resolver defaults them to "allowed", which
-    // preserves the exact current behaviour.
+    // R106 — le garde-fou « mise à jour requise » n'était jamais alimenté
+    // (branche morte). On fournit la version du schéma local et la version
+    // minimale exigée par la config. Fail-open : si aucune version minimale
+    // n'est déclarée, la contrainte est inerte (comportement inchangé).
+    clientSchemaVersion: CLIENT_SCHEMA_VERSION,
+    minSchemaVersion: resolveMinSchemaVersion(),
+    // `isOrgMember` / `hasPermission` sont câblés par les phases 4 (R107/R105).
   });
 
   const confirmOrgSwitch = async (targetOrgId: string) => {
