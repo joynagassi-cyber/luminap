@@ -178,11 +178,17 @@ et documenté comme actif, mais son déclencheur n'est jamais alimenté.
   recréer** (j'ai ouvert puis fermé PR #70 pour ce doublon). Le test
   `route-registry-drift.test.ts` ne couvre QUE routes↔registre, pas les
   permissions : c'est ce qui m'avait induit en erreur.
-- **R106/R107** : `resolveRoute` reçoit seulement `{isAuthenticated}`.
+- **R106/R107** : `resolveRoute` recevait seulement `{isAuthenticated}`.
   **R106 CORRIGÉ** (phase 11, 2026-10-27) : `clientSchemaVersion`/
   `minSchemaVersion` alimentés via `src/lib/schemaVersion.ts` (fail-open tant que
-  `VITE_MIN_SCHEMA_VERSION` n'est pas positionnée). **R107 reste bloqué** par la
-  décision R109/R16 (modèle de rôles ADMIN).
+  `VITE_MIN_SCHEMA_VERSION` n'est pas positionnée). **R107 CORRIGÉ (2026-10-28,
+  PR #95)** : `src/hooks/useOrgMembership.ts` alimente `isOrgMember`, **fail-open**
+  (`not-member` seulement si `canAccessOrganization` est faux **ET**
+  `db.currentStatus.hasSynced` — sinon `unknown` → `undefined`). Réévalué au
+  changement d'org + à chaque fin de sync. **Piège de flux** : `/onboarding` et
+  `/org-setup` doivent rester **exemptés** de `needs-membership` (ce sont les
+  écrans qui confèrent l'appartenance) — exemption dans `routeResolver.ts`
+  (`MEMBERSHIP_EXEMPT_ROUTES`).
 - **R108** : `AppReadyBridge` posait `readyRef=true` AVANT d'armer le minuteur →
   `if(!readyRef.current)` toujours faux ; `BootRecoveryScreen` inatteignable. Un
   watchdog DANS l'arbre React ne peut pas détecter l'absence de montage.
@@ -221,13 +227,13 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
 - **Réflexe** : avant d'attaquer un risque « OUVERT », lire son **corps** et
   `grep` le code ; ne se fier ni à l'en-tête seul, ni à la mémoire.
 - Légitimement ouverts (défaut/env) : R30 (sync Cypress), R33 (IonSelect),
-  R72 (global hors DEV), R80 (`PS_ADMIN_TOKEN`), R107 (décision R109/R16),
-  R109 (décision propriétaire).
-- `App.tsx` (RouteGuard) câble `resolveRoute` avec seulement `isAuthenticated`,
-  `activeOrgId`, `linkOrgId` (+ schéma via `schemaVersion.ts`). `isOrgMember`/
-  `hasPermission` restent NON câblés (branches `needs-membership`/`forbidden`
-  inertes) : c'est R107/R105, dépendant de la réconciliation des rôles ADMIN
-  (R109/R16). Un câblage naïf de `hasPermission` enfermerait dehors les admins.
+  R72 (global hors DEV), R80 (`PS_ADMIN_TOKEN`), R109 (décision propriétaire).
+- `App.tsx` (RouteGuard) câble `resolveRoute` avec `isAuthenticated`,
+  `activeOrgId`, `linkOrgId`, `isOrgMember` (R107) + schéma via
+  `schemaVersion.ts`. **Seul `hasPermission` reste NON câblé** (branche
+  `forbidden` inerte) : c'est R105, dépendant de la réconciliation des rôles
+  ADMIN (R109/R16). Un câblage naïf de `hasPermission` enfermerait dehors les
+  admins.
 
 ## RBAC organisationnel (session 11, mergé sur main)
 - **`grants` est désormais org-scopé** : colonne `org_id NOT NULL`
