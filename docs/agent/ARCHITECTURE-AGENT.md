@@ -3,6 +3,10 @@
 > **Statut** : spécification, aucune ligne de code applicatif écrite.
 > **Date** : 2026-10-28 · **Périmètre** : assistant org-scopé, modes d'approbation, skills, rendu.
 > **Vérifié** : versions npm interrogées le jour de rédaction (registre), contraintes lues dans le dépôt.
+>
+> **Décision produit et critère d'abandon** : ce document décrit **comment**
+> construire l'assistant. Le **si et quand** est tranché dans
+> [`docs/ROADMAP.md`](../ROADMAP.md) §6 — à lire avant de commencer.
 
 ---
 

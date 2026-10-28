@@ -209,11 +209,22 @@ Phase 0 (DONE) ──▶ Phase 1 (DONE) ──▶ Phase 2 (DONE)
 
 ## WHAT'S REMAINING (Future Sprints)
 
+> ⚠️ **Ce tableau n'est plus la référence.** Depuis le 2026-10-28, la
+> planification produit vit dans **[`docs/ROADMAP.md`](../ROADMAP.md)**, qui
+> tranche les priorités et porte les critères de sortie et d'abandon.
+>
+> Ce document reste la référence **historique** des phases d'ingénierie 0→25
+> (figé au 2026-09-09). Ses métriques sont périmées : elles annoncent 574 tests
+> et 38 pages, alors que le dépôt compte **100 fichiers de test** et **62 pages**.
+
 | Item | Description | Priority |
 |------|-------------|----------|
-| Phase 9-11 | Manifest system → Business Packs (School, NGO) | Medium |
+| Phase 9-11 | Manifest system → Business Packs (School, NGO) | **Suspendu** — voir `ROADMAP.md` §9 : aucun client de ce type |
 | Store final optimization | Further reduce store lines below 894 | Low |
-| Second business pack | Implement school.ts or ngo.ts | Medium |
+| Second business pack | Implement school.ts or ngo.ts | **Suspendu** — idem |
+
+Voir `docs/ROADMAP.md` pour les chantiers en cours : adoption réelle,
+recherche guidée, assistant conversationnel, dictée vocale, hygiène technique.
 
 ---
 

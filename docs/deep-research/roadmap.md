@@ -1,5 +1,14 @@
 # Roadmap — features/capabilities proposées pour Lumina (grandes églises)
 
+> ⚠️ **Document d'analyse, pas de décision.** Depuis le 2026-10-28, l'ordre des
+> chantiers est tranché dans [`docs/ROADMAP.md`](../ROADMAP.md). Ce fichier reste
+> la référence d'analyse par capacité (SQL, effort, valeur) pour `attendance`,
+> `payroll`, `funds`, `assets`, `teams` — chantiers **suspendus** tant que
+> l'adoption du socle n'est pas acquise (`ROADMAP.md` §9).
+>
+> État au 2026-10-28 : les deux briques **P0 sont livrées** (`src/capabilities/budgets`
+> et `src/capabilities/giving` existent).
+
 Basé sur `gap-matrix.md`. Séquence P0 → P1 → P2. Chaque brique = capability
 (`src/capabilities/*`) + feature (route) + SQL (Postgres + PowerSync + RLS + grants).
 
