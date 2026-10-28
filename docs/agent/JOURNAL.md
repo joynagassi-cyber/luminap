@@ -1527,3 +1527,20 @@ Heure de reprise : 2026-10-24T08:0x Z. Branches : `agent/session-8-security`
   PROGRESS), **escaladé (E4)**, receipt
   `phase-05-06/2026-10-27-post-acceptation-proof.md`. **Aucun code modifié**
   (décision d'architecture requise : sign-up Auth avant claim, ou assouplir la FK).
+
+## Session — 2026-10-27 (suite) : réconciliation des statuts de risque périmés
+
+- **Constat** : en cherchant la suite à traiter, j'ai investi du temps sur
+  **R59** (« écran noir », en-tête **OUVERT gravité HAUTE**) puis découvert que
+  le corps de l'entrée le donnait **CORRIGÉ, validé** (fallback `lazy-route.tsx`
+  ne rend plus `<IonPage>` ; `groups-events.cy.ts` 3/3). Même dérive pour **R61**
+  et **R74**. La documentation **contredisait l'état réel du code** — exactement
+  ce que la boucle doit réconcilier.
+- **Action** : en-têtes corrigés (R59 → CORRIGÉ ; R61 → CORRIGÉ pour
+  `/groups/:id`, 19 pages restantes P35 ; R74 → partiel, effet « icône » corrigé
+  + testé, sémantique = P-NEW-6). Preuves vérifiées **en code** :
+  `lazy-route.tsx`, `GroupDetail.tsx` (`<h1 className="sr-only">`),
+  `notifIconKey` + `Notifications-icon.test.tsx`. Addendum **S5.9** au rapport.
+- **Leçon** : les en-têtes de statut d'un registre de risques doivent être mis à
+  jour **dans le même commit** que le correctif — sinon la prochaine session
+  ré-investigue un défaut déjà réglé (cf. aussi le doublon R105/PR #70).
