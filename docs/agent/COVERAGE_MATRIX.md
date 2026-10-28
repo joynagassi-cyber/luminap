@@ -71,3 +71,4 @@
 | 11 | `/balance`, `/history`, `/versement` : chiffres faux avant lecture (R52.q) | `V: r52q-finance-loading.test.tsx` (6, non-vacuité vérifiée) | **couvert** |
 | 11 | Garde statique : squelette gardé par un `isLoading` MORT sans disponibilité prouvée | `V: r52-readiness-guard.test.ts` (4, mutation de Balance.tsx) | **couvert** |
 | 11 | `/settings/notifications` : « Tout est lu » avant lecture (R52.r) | `V: r52r-settings-notifications-loading.test.tsx` (2, non-vacuité vérifiée) | **couvert** |
+| 11 | `/event/:id/edit` : « Chargement... » infini + nom non pré-rempli (R52.s) | `V: r52s-eventedit-loading.test.tsx` (3, non-vacuité vérifiée) | **couvert** |

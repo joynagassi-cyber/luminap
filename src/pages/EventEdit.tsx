@@ -1,6 +1,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useEvents, useCategories, updateEventPS } from "@/lib/dataLayer";
+import {
+  useEvents,
+  useCategories,
+  updateEventPS,
+  isPowerSyncReadyNow,
+} from "@/lib/dataLayer";
 import { ArrowLeft } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
@@ -51,6 +56,10 @@ export default function EventEdit() {
 
   useEffect(() => {
     if (!event || psLoading) return;
+    // Le NOM n'était jamais pré-rempli : le formulaire s'ouvrait vide et
+    // `validate()` (« Le nom est requis ») rendait tout enregistrement
+    // impossible. Défaut réel, corrigé avec la garde de disponibilité.
+    setName(event.name || "");
     setDescription(event.description || "");
     setStartDate((event as any).start_date || (event as any).startDate);
     setEndDate((event as any).end_date || (event as any).endDate || "");
@@ -59,7 +68,46 @@ export default function EventEdit() {
     setLoading(false);
   }, [event, psLoading]);
 
+  // R52.s — « Chargement... » était rendu À L'INFINI dès que l'événement était
+  // absent (lien mort, événement d'une autre organisation) : aucun titre,
+  // aucune explication, aucune action. On distingue désormais « pas encore lu »
+  // (squelette) de « réellement absent » (écran d'erreur avec retour).
   if (loading || !event) {
+    if (!event && isPowerSyncReadyNow()) {
+      return (
+        <IonPage>
+          <IonHeader>
+            <IonToolbar>
+              <IonTitle>Événement introuvable</IonTitle>
+            </IonToolbar>
+          </IonHeader>
+          <IonContent fullscreen className="bg-canvas">
+            <div
+              data-screen-state="error"
+              className="min-h-dvh flex items-center justify-center px-5 text-center"
+            >
+              <div>
+                <p className="text-text-primary font-semibold mb-2">
+                  Cet événement est introuvable.
+                </p>
+                <p className="text-text-tertiary text-sm mb-6">
+                  Il a peut-être été supprimé, ou il appartient à une autre
+                  organisation.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => navigate("/events")}
+                  className="px-4 py-2.5 rounded-xl text-sm font-medium"
+                  style={{ color: "var(--accent-primary)" }}
+                >
+                  Retour aux événements
+                </button>
+              </div>
+            </div>
+          </IonContent>
+        </IonPage>
+      );
+    }
     return (
       <div data-screen-state="loading" className="min-h-dvh flex items-center justify-center">
         <p className="text-text-tertiary">Chargement...</p>

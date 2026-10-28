@@ -925,6 +925,23 @@
   3 échecs quand les gardes sont retirées).
 - **Statut** : corrigé.
 
+### R52.s — `/event/:id/edit` : « Chargement... » INFINI + champ « Nom » jamais pré-rempli — CORRIGÉ (2026-10-28)
+- **Gravité** : MOYENNE-HAUTE (écran muet permanent + édition impossible).
+- **Défaut A (écran muet)** : `if (loading || !event) return "Chargement..."`
+  sans distinguer « pas encore lu » de « réellement absent ». Un lien mort ou un
+  événement d'une autre organisation laissait l'utilisateur sur « Chargement... »
+  À L'INFINI — aucun titre, aucune explication, aucune action (classe P0).
+- **Défaut B (édition impossible)** : `setName(event.name || "")` était ABSENT de
+  l'effet d'initialisation → le formulaire s'ouvrait vide et `validate()`
+  (« Le nom est requis ») bloquait tout enregistrement. Tout « Modifier » un
+  événement échouait donc en validation.
+- **Correctif** : garde `isPowerSyncReadyNow()` → squelette si non lu, écran
+  `data-screen-state="error"` « Cet événement est introuvable. » + « Retour aux
+  événements » si réellement absent ; ajout du pré-remplissage du nom.
+- **Preuve** : `r52s-eventedit-loading.test.tsx` (3 tests, non-vacuité vérifiée :
+  2 échecs quand la garde et le pré-remplissage sont neutralisés).
+- **Statut** : corrigé.
+
 ### R52.r — `/settings/notifications` annonçait « Tout est lu » avant la 1re lecture — CORRIGÉ (2026-10-28)
 - **Gravité** : MOYENNE (fait faux présenté comme état stable ; pas de perte de données).
 - **Défaut** : `useNotifications()` renvoie `isLoading: false` en dur (D-R41) et
