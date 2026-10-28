@@ -2846,3 +2846,28 @@ sauvegarde disponible).
   `#000000` dans `theme.ts` → échec `canvas : TS=#000000 CSS=#121212` ;
   restauré → 4/4.
 - **Receipt** : `docs/agent/receipts/phase-10/2026-10-28-design-tokens-drift.md`.
+
+### R118 — Aucun drapeau de fonctionnalité (kill switch) : impossible de couper une fonctionnalité en production sans redéployer — ✅ MITIGÉ le 2026-10-28
+- **Gravité** : FAIBLE-MOYENNE (robustesse d'exploitation, pas de défaut actif).
+- **Défaut** : le contrat (Phase 1/11, proposition PR7) exige des **drapeaux de
+  fonctionnalités** pour désactiver une fonctionnalité défectueuse **sans
+  redéployer**. Aucun module n'existait (`grep isFeatureEnabled` → 0). En cas de
+  panne provoquée par une fonctionnalité livrée (crash au boot, boucle de sync,
+  écriture erronée), le seul recours était un redéploiement.
+- **Correctif** : `src/lib/featureFlags.ts` — décision PURE et **fail-open**
+  (`isFeatureEnabled(name)` ; un drapeau absent/vide/illisible/non booléen ne
+  coupe JAMAIS une fonctionnalité). Deux sources fusionnées : surcharge locale
+  (`lumina-flags`, pour couper sur un appareil précis en diagnostic) et config de
+  build (`VITE_FLAGS`). La surcharge locale prime.
+- **Câblage réel (anti « filet déclaré, jamais câblé »)** : `initOneSignal`
+  (`src/lib/onesignal.ts`) est gardé par `isFeatureEnabled("notifications-push")`.
+  Un test verrouille ce câblage (`feature-flags.test.ts`), pour que la classe de
+  défaut R105/R106/R107/R108 ne récidive pas.
+- **Preuve** : `V: feature-flags.test.ts` (**16**) — fail-open (absent/vide/JSON
+  corrompu/tableau/scalaire/non booléen → actif), désactivation réelle (`false`),
+  priorité de la surcharge locale, robustesse du stockage (`setItem` qui lève →
+  aucune exception), et câblage. Gates : `tsc -b` 0, vitest 1534/1534, lint 0
+  erreur.
+- **Receipt** : `docs/agent/receipts/phase-11/2026-10-28-feature-flags.md`.
+- **Statut** : **mitigé** (module + câblage + garde). Reste propriétaire :
+  déclarer `VITE_FLAGS` au build si un kill switch doit être pilotable à distance.

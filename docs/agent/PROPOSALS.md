@@ -20,7 +20,7 @@
 | PR4 ✅ | Page de santé (version, base, sync, dernières erreurs) | exploitation autonome | faible | faible | `client_errors`, PowerSync status | P1 |
 | PR5 | Bouton « Signaler un problème » (contexte sans PII) | support | faible | faible | Sentry + `client_errors` | P2 |
 | PR6 | Écran « mise à jour requise » — écran OK mais **source de version absente** (R106) | compat APK | faible | faible | schéma de sync | P1 |
-| PR7 | Drapeaux de fonctionnalités (kill switches) | désactivation sûre | faible | faible | config | P1 |
+| PR7 ✅ | Drapeaux de fonctionnalités (kill switches) | désactivation sûre | faible | faible | config | P1 |
 | PR19 | Alimenter `RouteState` (hasPermission/isOrgMember/schema) dans `App.tsx` — débloque R105/R107, dépend PR18 (R16) | défense en profondeur | moyen | moyen | RBAC canon + config | P1 |
 | PR17 | Table de fermeture matérialisée (ancestor/descendant/depth) pour la fédération | perf des requêtes de famille à grande échelle | faible | moyen | `org_family` (existe) | P2 |
 | PR18 | Migration progressive des politiques RLS vers `has_permission()` (décision unique) | une seule source de vérité RBAC en base | moyen | élevé | `has_permission` (livrée) | P2 |

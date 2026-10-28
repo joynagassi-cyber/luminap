@@ -5,6 +5,8 @@
  * OneSignal App ID: 5482a4eb-a402-4612-ab5e-a72df7961b12
  */
 
+import { isFeatureEnabled } from "./featureFlags";
+
 // Type definitions for OneSignal Cordova plugin
 interface OneSignalPlugin {
   initialize(appId: string): void;
@@ -801,8 +803,17 @@ export function getOneSignalService(): OneSignalService {
 
 /**
  * Initialize OneSignal (call this once at app startup)
+ *
+ * Kill switch PR7 : le drapeau `notifications-push` (défaut actif) permet de
+ * couper l'initialisation push en production sans redéploiement — utile si le
+ * plugin provoque un crash au démarrage. Fail-open : sans drapeau, comportement
+ * inchangé.
  */
 export async function initOneSignal(): Promise<void> {
+  if (!isFeatureEnabled("notifications-push")) {
+    console.warn("[onesignal] drapeau `notifications-push` désactivé : push no-op.");
+    return;
+  }
   const service = getOneSignalService();
   await service.initialize();
 }
