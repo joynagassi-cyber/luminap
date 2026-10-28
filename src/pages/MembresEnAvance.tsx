@@ -1,10 +1,11 @@
-import { useMembers } from "@/lib/dataLayer";
+import { useMembers, isPowerSyncReadyNow } from "@/lib/dataLayer";
 import { useNavigate } from "react-router-dom";
 import { formatCurrencyCompact } from "@/lib/utils";
 import { ArrowLeft, TrendingUp } from "lucide-react";
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
 import EmptyState from "@/components/EmptyState";
+import { MembresEnAvanceSkeleton } from "@/components/PageSkeletons";
 import {
   IonPage,
   IonHeader,
@@ -79,7 +80,12 @@ export default function MembresEnAvance() {
             </div>
 
             {/* Members list */}
-            {membresEnAvance.length === 0 ? (
+            {/* R52.c — « Aucun membre en avance » n'est exact qu'une fois la
+                réplique disponible ; sinon on annonce le chargement (le total
+                affiché plus haut serait lui aussi faux à 0). */}
+            {!isPowerSyncReadyNow() ? (
+              <MembresEnAvanceSkeleton />
+            ) : membresEnAvance.length === 0 ? (
               <EmptyState
                 title="Aucun membre en avance"
                 description="Tous les membres sont à jour"

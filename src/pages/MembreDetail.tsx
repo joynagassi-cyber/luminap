@@ -3,12 +3,14 @@ import {
   useMembers,
   useEvents,
   useCotisations,
+  isPowerSyncReadyNow,
 } from "@/lib/dataLayer";
 import { formatCurrencyCompact, formatDate, tint } from "@/lib/utils";
 import { CheckCircle, Clock, User } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
 import EmptyState from "@/components/EmptyState";
+import { MembreDetailSkeleton } from "@/components/PageSkeletons";
 import { Progress } from "@/components/ui/progress";
 import {
   IonPage,
@@ -46,6 +48,25 @@ export default function MembreDetail() {
   const cotisations = psCotisations ?? [];
 
   const member = allMembers.find((m: any) => m.id === id) ?? null;
+
+  // R52.c — « Membre introuvable » n'est affiché QUE lorsque la réplique est
+  // réellement disponible (même garde que `EventDetail`, R-EventDetail) : avant
+  // le premier sync, un membre non encore lu n'est pas un membre inexistant —
+  // l'utilisateur lirait un message FAUX sur son propre membre.
+  if (!member && !isPowerSyncReadyNow()) {
+    return (
+      <IonPage>
+        <IonContent fullscreen>
+          <h1 className="sr-only">Détail du membre</h1>
+          <div className="min-h-dvh">
+            <TopHeader title="" />
+            <MembreDetailSkeleton />
+            <BottomNav />
+          </div>
+        </IonContent>
+      </IonPage>
+    );
+  }
 
   if (!member) {
     return (

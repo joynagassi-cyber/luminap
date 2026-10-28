@@ -748,23 +748,49 @@
   organisations étrangères réellement seedées, contrôle positif).
 - **Preuve** : `1 passing` × **3 passes consécutives** (`06012f5`).
 
-### R52 — `/sessions` n'a pas d'état de chargement (défaut UX réel) — NON CORRIGÉ
+### R52 — « liste en cours de lecture » présentée comme « liste vide » — CORRIGÉ (rechutes b/c corrigées 2026-10-28)
 - **Gravité** : moyenne (écran trompeur, pas de crash).
 - **Défaut** : `useMyOrgs()` expose `data: UserOrg[] | null`. `Sessions.tsx`
-  teste `list.length === 0` sans distinguer **`null` (chargement)** de
+  testait `list.length === 0` sans distinguer **`null` (chargement)** de
   **`[]` (vraiment vide)**. Tant que la réplique locale PowerSync n'est pas
   peuplée, l'utilisateur lit « Aucun compte lié pour l'instant » — un
   message **faux** : son compte existe (prouvé : `org_memberships` ACTIVE
   pour le compte E2E). Défaut de la famille « aucun écran sans
   explication » (phase 6).
-- **Preuve** : diagnostic Cypress — `/sessions` rend
-  `Mes comptes … Aucun compte lié pour l'instant lumina-org-e2e@lumina.dev`
-  alors que `org_memberships` contient bien la ligne `org-e2e` ACTIVE.
-- **Pourquoi non corrigé** : règle de gel (T0 + 9 h dépassé) + validation
-  impossible ici (voir R53). Le correctif est petit mais non testable.
-- **Correctif proposé (30 min)** : `const loading = orgs === null;` puis
-  afficher un squelette/spinner quand `loading`, l'`EmptyState` seulement
-  quand `orgs !== null && list.length === 0`.
+- **Correctif historique (Sessions)** : `const loading = orgs === null;` →
+  `SessionsSkeleton` pendant la lecture, `EmptyState` seulement ensuite.
+- **Rechute R52.b (`/giving`)** — **corrigée 2026-10-28** : les hooks
+  `useGivingCampaigns` / `useGivingDonors` / `usePledges` / `useTaxReceipts`
+  renvoient `data: []` **ET** `isLoading: true` tant que la première lecture
+  n'a pas abouti ; la page ne lisait que `data` → « Aucune campagne » /
+  « Aucun donateur » affichés pendant le chargement (message faux, au moment
+  précis où l'utilisateur vérifie que ses données sont là). Le squelette
+  `ListSkeleton` était de plus **déclaré mais jamais câblé**. Correctif :
+  composant `ListArea` (`loading` → squelette, `isEmpty` → état vide,
+  sinon contenu) appliqué aux 4 onglets.
+- **Rechute R52.c (`/membre/:id`, `/membres/en-avance`)** — **corrigée
+  2026-10-28** : deux pages possédaient un squelette **dédié et non câblé**
+  (`MembreDetailSkeleton`, `MembresEnAvanceSkeleton`). `/membre/:id`
+  affichait « Membre introuvable » et `/membres/en-avance` « Aucun membre en
+  avance » **plus un total à 0** avant le premier sync — double message faux.
+  Correctif : garde `isPowerSyncReadyNow()` (déjà éprouvée dans
+  `EventDetail`) → squelette tant que la réplique n'est pas disponible.
+- **Rechute R52.d (`/budgets`)** — **corrigée 2026-10-28** : `useOrgBudgets` /
+  `useOrgBudgetLines` exposent `isLoading` ; la page ne lisait que `data` →
+  « Aucun budget » pendant la lecture. Correctif : `ListSkeleton` pendant
+  `budgetsLoading || linesLoading`.
+- **Preuve** : `src/pages/__tests__/Giving-loading.test.tsx` (2) +
+  `src/pages/__tests__/list-loading-vs-empty.test.tsx` (6) ; les deux
+  directions sont verrouillées (chargement → squelette ET état vide exact
+  quand la lecture est terminée). **Non-vacuité vérifiée** : en retirant le
+  branchement, les 4 assertions « squelette » échouent. Suite : **1599/1599**,
+  `tsc -b` = 0, eslint 0 erreur.
+- **Travail restant (R52.a)** : `/sessions` conserve sa preuve E2E rouge
+  tant que la réplique PowerSync ne se peuple pas dans l'environnement de
+  test (cf. R53/R98) — le correctif produit est en place, la preuve E2E non.
+  Le diagnostic Cypress initial (« Mes comptes … Aucun compte lié pour
+  l'instant » alors que `org_memberships` contient la ligne `org-e2e` ACTIVE)
+  reste la mesure du défaut, aujourd'hui couvert par le squelette.
 
 ### R53 — `sessions.cy.ts` rouge : réplique PowerSync vide dans l'environnement — NON CORRIGÉ
 - **Gravité** : moyenne (le spec ne peut pas passer ici ; ce n'est pas une

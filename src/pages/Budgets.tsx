@@ -8,6 +8,7 @@ import BottomNav from "@/components/BottomNav";
 import { Plus, Target, Wallet, PieChart, X, ChevronRight } from "lucide-react";
 import { IonPage, IonContent, IonSelect, IonSelectOption, IonItem, IonLabel, IonInput } from "@ionic/react";
 import EmptyState from "@/components/EmptyState";
+import { ListSkeleton } from "@/components/Skeleton";
 import type { IonChangeCustomEvent } from "@/lib/ionic-types";
 
 const PERIODS: Array<{ value: BudgetPeriod; label: string }> = [
@@ -20,8 +21,8 @@ const PERIODS: Array<{ value: BudgetPeriod; label: string }> = [
 
 export default function Budgets() {
   const navigate = useNavigate();
-  const { data: budgets } = useOrgBudgets();
-  const { data: lines } = useOrgBudgetLines();
+  const { data: budgets, isLoading: budgetsLoading } = useOrgBudgets();
+  const { data: lines, isLoading: linesLoading } = useOrgBudgetLines();
   const { data: transactions } = useTransactions();
   const { data: categories } = useCategories();
   const { data: orgUnits } = useOrgUnits();
@@ -142,8 +143,12 @@ export default function Budgets() {
               </div>
             </div>
 
-            {/* Liste des budgets */}
-            {filtered.length === 0 ? (
+            {/* Liste des budgets — R52.d : « Aucun budget » n'est exact
+                qu'une fois la lecture terminée (`useOrgBudgets` renvoie
+                `data: []` ET `isLoading: true` au premier passage). */}
+            {budgetsLoading || linesLoading ? (
+              <ListSkeleton count={3} />
+            ) : filtered.length === 0 ? (
               <EmptyState
                 title="Aucun budget"
                 description="Créez votre premier budget pour cet exercice et centre de coûts."
