@@ -40,7 +40,6 @@ const READINESS_SIGNALS = [
   "Loading",
   "ShimmerList",
   "Loaded",
-  "Skeleton",
   "listError",
 ];
 
@@ -89,5 +88,17 @@ describe("R52 — garde statique : verdict vide/introuvable exige un signal de d
     // ci-dessus sanctionne. Si cette assertion tombait, la garde serait vide.
     expect(READINESS_SIGNALS.some((s) => faulty.includes(s))).toBe(false);
     expect(VERDICT_PATTERN.test(faulty)).toBe(true);
+
+    // Cas R52.l : un squelette IMPORTÉ mais jamais câblé ne doit PAS compter
+    // comme preuve de disponibilité. La garde statique ne peut pas voir qu'une
+    // branche est morte — d'où le test COMPORTEMENTAL `r52l-dashboard-loading`.
+    // Ce qu'elle peut exiger, c'est qu'un simple import de squelette ne suffise
+    // pas : ici, aucun autre signal n'est présent.
+    const importedSkeletonOnly = `import { DashboardSkeleton } from "@/components/PageSkeletons";
+      export default function Y() {
+        return list.length === 0 ? <p>Aucun élément trouvé</p> : null;
+      }`;
+    expect(VERDICT_PATTERN.test(importedSkeletonOnly)).toBe(true);
+    expect(READINESS_SIGNALS.some((s) => importedSkeletonOnly.includes(s))).toBe(false);
   });
 });

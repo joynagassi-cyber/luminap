@@ -34,6 +34,7 @@ import {
   useReportsReceived,
   useOrganizations,
   markReportRead,
+  isPowerSyncReadyNow,
   type PSOrgReports,parseBudgetItems } from "@/lib/dataLayer";
 import { formatCentsToFCFA, getPeriodRange, formatDate, tint } from "@/lib/utils";
 import { useOrganizationContext, useMyOrgs } from "@/lib/organization-context";
@@ -64,6 +65,7 @@ import TrendChart from "@/components/TrendChart";
 import OrgSwitcher from "@/components/OrgSwitcher";
 import DashboardOnboarding from "@/components/DashboardOnboarding";
 import { DashboardSkeleton } from "@/components/PageSkeletons";
+import { ListSkeleton } from "@/components/Skeleton";
 import { getRoleLabel } from "@/lib/utils";
 
 // ─── Héro financier (P1) ─────────────────────────────────────────────────────
@@ -703,6 +705,10 @@ export default function Dashboard() {
   const { online, lastSyncAt, syncing, syncError } = usePowerSyncIndicator();
   const { data: myOrgsData } = useMyOrgs();
 
+  // R52.l — la réplique PowerSync n'est pas encore prête : « Pas encore de
+  // mouvement » serait un fait FAUX (l'écran d'accueil est la 1re chose vue).
+  const replicaPending = !isPowerSyncReadyNow();
+
   const churchName = appConfig.churchName || user?.org?.name || "Lumina";
 
   const greeting = useMemo(() => {
@@ -1021,7 +1027,9 @@ export default function Dashboard() {
           </button>
         </div>
         <div className="space-y-2 pb-4">
-          {recentTransactions.length === 0 ? (
+          {recentTransactions.length === 0 && replicaPending ? (
+            <ListSkeleton count={3} />
+          ) : recentTransactions.length === 0 ? (
             <EmptyState
               title="Pas encore de mouvement"
               description="Commencez par enregistrer votre première transaction"

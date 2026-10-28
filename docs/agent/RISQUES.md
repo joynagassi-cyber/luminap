@@ -857,6 +857,30 @@
   l'instant » alors que `org_memberships` contient la ligne `org-e2e` ACTIVE)
   reste la mesure du défaut, aujourd'hui couvert par le squelette.
 
+### R52.l — `/dashboard` : « Pas encore de mouvement » avant la première lecture — CORRIGÉ (2026-10-28)
+- **Gravité** : HAUTE (c'est le **premier écran** vu après connexion ; un
+  historique vide affiché à tort fait croire à une perte de données).
+- **Défaut** : `Dashboard.tsx` ne distinguait pas « pas encore lu » de
+  « réellement vide ». Il portait bien un `DashboardSkeleton`, mais **seulement**
+  sur la branche `if (isLoading)` — or `useTransactions()` renvoie
+  `isLoading: false` **en dur** (l'état de chargement temporel a été retiré,
+  décision D-R41). Cette branche est donc **du code mort** : aucun squelette
+  n'était jamais rendu, et « Pas encore de mouvement » s'affichait pendant la
+  première synchronisation.
+- **Aggravant (garde aveuglée)** : la garde statique `r52-readiness-guard`
+  comptait le mot « Skeleton » comme preuve de disponibilité — un simple
+  *import* de squelette, même non câblé, suffisait à la faire passer.
+- **Correctif** :
+  1. `Dashboard.tsx` : `const replicaPending = !isPowerSyncReadyNow();` et
+     `ListSkeleton` quand `recentTransactions.length === 0 && replicaPending`.
+  2. `r52-readiness-guard.test.ts` : « Skeleton » **retiré** des signaux de
+     disponibilité (un import ne prouve rien) ; signal `aria-busy` ajouté ;
+     test de non-vacuité étendu au cas « squelette importé non câblé ».
+- **Preuve** : `src/pages/__tests__/r52l-dashboard-loading.test.tsx` (2 tests,
+  **non-vacuité vérifiée** : retirer la garde fait réapparaître « Pas encore de
+  mouvement » et échouer le test).
+- **Statut** : corrigé.
+
 ### R53 — `sessions.cy.ts` rouge : réplique PowerSync vide dans l'environnement — NON CORRIGÉ
 - **Gravité** : moyenne (le spec ne peut pas passer ici ; ce n'est pas une
   régression produit démontrée).
