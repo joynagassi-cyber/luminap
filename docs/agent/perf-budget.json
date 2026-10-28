@@ -1,0 +1,21 @@
+{
+  "_comment": "Budget de performance mesuré (Phase 10). Régénérer via `node scripts/../` — voir src/lib/__tests__/perf-budget.test.ts. Mesures prises après `vite build` (chunks minifiés, non compressés sauf mention gzip).",
+  "measured_at": "2026-10-27",
+  "tool": "vite build (rolldown) + parsing de dist/index.html",
+  "budgets": {
+    "first_render_requests_max": 28,
+    "first_render_raw_kb_max": 2560,
+    "first_render_gzip_kb_max": 650,
+    "entry_raw_kb_max": 800,
+    "entry_gzip_kb_max": 260,
+    "total_js_gzip_kb_max": 2400
+  },
+  "measured": {
+    "first_render_requests": 20,
+    "first_render_raw_kb": 2284.5,
+    "first_render_gzip_kb": 577.5,
+    "entry_raw_kb": 736.5,
+    "entry_gzip_kb": 223.9,
+    "total_js_gzip_kb": 2179.3
+  }
+}

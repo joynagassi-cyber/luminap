@@ -186,6 +186,7 @@ export default function EventNew() {
 
       <IonContent className="bg-canvas" fullscreen>
         <div
+          data-screen-state="ready"
           className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe"
           style={{
             paddingBottom: keyboardHeight > 0 ? `${keyboardHeight}px` : undefined,

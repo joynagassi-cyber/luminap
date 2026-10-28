@@ -207,7 +207,7 @@ export default function InvitationClaim() {
 
   return (
     <IonPage>
-      <IonContent fullscreen>
+      <IonContent data-screen-state="ready" fullscreen>
         <div className="flex flex-col min-h-dvh bg-canvas">
           <TopHeader title="" />
           <div

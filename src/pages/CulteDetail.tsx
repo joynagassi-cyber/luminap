@@ -46,7 +46,7 @@ export default function CulteDetail() {
           </IonToolbar>
         </IonHeader>
         <IonContent>
-          <div className="p-4 text-center text-text-tertiary">
+          <div data-screen-state="notfound" className="p-4 text-center text-text-tertiary">
             <p className="font-semibold mb-2">Culte introuvable</p>
             <button
               onClick={() => navigate("/cotisations")}
@@ -144,7 +144,7 @@ export default function CulteDetail() {
           <IonTitle>Détail du Culte</IonTitle>
         </IonToolbar>
       </IonHeader>
-      <IonContent>
+      <IonContent data-screen-state="ready">
         <div className="px-4 py-3 flex items-center gap-3 border-b border-border">
             <button
               onClick={() => navigate("/cotisations")}

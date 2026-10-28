@@ -171,7 +171,7 @@ export default function OrgReportSend() {
           </IonToolbar>
         </IonHeader>
         <IonContent className="bg-canvas">
-          <div className="min-h-dvh">
+          <div data-screen-state="forbidden" className="min-h-dvh">
             <TopHeader title="Envoyer un rapport" />
             <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
               <div
@@ -318,7 +318,7 @@ export default function OrgReportSend() {
         </IonToolbar>
       </IonHeader>
       <IonContent className="bg-canvas">
-        <div className="min-h-dvh">
+        <div data-screen-state="ready" className="min-h-dvh">
           <TopHeader title="Envoyer un rapport" />
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc space-y-4">
             {/* Destinataire (la mère — gating, non modifiable) */}
