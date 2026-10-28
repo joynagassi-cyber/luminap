@@ -142,12 +142,14 @@ export default function Finance() {
       <IonContent className="bg-canvas">
         <div className="min-h-dvh">
           {loading ? (
-            <FinanceSkeleton />
+            <div data-screen-state="loading">
+              <FinanceSkeleton />
+            </div>
           ) : (
             <Fragment>
               <h1 className="sr-only">Finance — Grand livre</h1>
               <TopHeader title="Finance" />
-              <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
+              <div data-screen-state="ready" className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             <CapabilityBanner orgId={getOrganizationId()} />
             {/* Summary Cards */}
             <div className="grid grid-cols-2 gap-3 mb-6">
@@ -177,6 +179,7 @@ export default function Finance() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
                 <IonInput
                   type="text"
+                  aria-label="Rechercher une transaction"
                   placeholder="Rechercher..."
                   value={searchTerm}
                   onIonInput={(e: IonChangeCustomEvent<string>) => setSearchTerm(e.detail.value ?? "")}
@@ -300,6 +303,7 @@ export default function Finance() {
                   <div className="flex gap-2">
                     <IonInput
                       type="date"
+                      aria-label="Date de début de période"
                       value={dateRange.from}
                       onIonInput={(e: IonChangeCustomEvent<string>) =>
                         setDateRange({ ...dateRange, from: e.detail.value ?? "" })
@@ -311,6 +315,7 @@ export default function Finance() {
                     </span>
                     <IonInput
                       type="date"
+                      aria-label="Date de fin de période"
                       value={dateRange.to}
                       onIonInput={(e: IonChangeCustomEvent<string>) =>
                         setDateRange({ ...dateRange, to: e.detail.value ?? "" })

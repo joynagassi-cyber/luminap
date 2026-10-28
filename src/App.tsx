@@ -92,6 +92,26 @@ function RouteGuard() {
     return unsubscribe;
   }, []);
 
+  // PM2 — un deep link peut viser une AUTRE organisation que l'active. On lit
+  // l'intention mémorisée par `useAppUrlOpen` et on l'expose au résolveur, qui
+  // produira `org-switch-required`. Sans cet état, la branche restait morte et
+  // le lien s'ouvrait dans le mauvais contexte.
+  //
+  // Ces deux hooks DOIVENT rester au-dessus du `return` précoce du check auth :
+  // les placer après violait les Rules of Hooks (`Rendered more hooks than
+  // during the previous render`) → l'ErrorBoundary racine remplaçait toute
+  // l'app par « Une erreur inattendue s'est produite » au premier rendu
+  // (écran noir / E2E jamais vert). L'ordre des hooks doit être identique à
+  // chaque rendu.
+  const [orgIntent, setOrgIntent] = useState(() => getDeepLinkOrgIntent());
+  useEffect(() => {
+    const sync = () => setOrgIntent(getDeepLinkOrgIntent());
+    // L'intention est écrite par le listener natif (hors React) → on re-sonde
+    // à chaque navigation, qui suit toujours de près la pose de l'intention.
+    sync();
+    return () => {};
+  }, [location.pathname]);
+
   // Pendant le check, on affiche un spinner plein écran plutôt que null :
   // le fond --canvas (noir) restait seul visible pendant 2-3s (la
   // revalidation réseau du token) et ressemblait à un « écran noir »
@@ -129,15 +149,9 @@ function RouteGuard() {
   // l'intention mémorisée par `useAppUrlOpen` et on l'expose au résolveur, qui
   // produira `org-switch-required`. Sans cet état, la branche restait morte et
   // le lien s'ouvrait dans le mauvais contexte.
-  const [orgIntent, setOrgIntent] = useState(() => getDeepLinkOrgIntent());
-  useEffect(() => {
-    const sync = () => setOrgIntent(getDeepLinkOrgIntent());
-    // L'intention est écrite par le listener natif (hors React) → on re-sonde
-    // à chaque navigation, qui suit toujours de près la pose de l'intention.
-    sync();
-    return () => {};
-  }, [location.pathname]);
-
+  //
+  // (Les hooks `orgIntent` sont déclarés plus haut, avant le `return` précoce
+  // du check auth, pour respecter les Rules of Hooks.)
   const activeOrgId = getOrganizationId();
   const linkOrgId =
     orgIntent && orgIntent.orgId !== activeOrgId ? orgIntent.orgId : null;

@@ -139,7 +139,7 @@ export default function HistoryPage() {
       <IonPage>
         <IonContent className="bg-canvas">
           <TopHeader title="Historique" />
-          <div className="min-h-dvh flex flex-col">
+          <div data-screen-state="loading" className="min-h-dvh flex flex-col">
             <div className="flex-1 max-w-lg w-full mx-auto px-5 pb-safe-calc pt-safe-calc">
               <div className="space-y-4">
                 <ShimmerList count={5} gap={16} minHeight={88} />
@@ -196,7 +196,7 @@ export default function HistoryPage() {
   return (
     <IonPage>
       <IonContent className="bg-canvas">
-        <div className="min-h-dvh">
+        <div data-screen-state="ready" className="min-h-dvh">
           <TopHeader title="Historique" />
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             {/* Period selector */}

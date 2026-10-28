@@ -1528,6 +1528,31 @@ Heure de reprise : 2026-10-24T08:0x Z. Branches : `agent/session-8-security`
   `phase-05-06/2026-10-27-post-acceptation-proof.md`. **Aucun code modifié**
   (décision d'architecture requise : sign-up Auth avant claim, ou assouplir la FK).
 
+## Session — 2026-10-27 : P0 « l'app ne monte pas » — Rules of Hooks (R113)
+
+- **Découverte (P0, critique)** : `RouteGuard` (`src/App.tsx`) déclarait deux
+  hooks (`useState(orgIntent)` + `useEffect`) **après** un `return` précoce
+  (`if (!isAuthChecked)`). Au 1er rendu ils n'étaient pas appelés, au suivant
+  ils l'étaient → `Rendered more hooks than during the previous render` →
+  l'`ErrorBoundary` racine remplaçait **toute** l'app par « Une erreur
+  inattendue s'est produite ». Reproduit dans un navigateur réel sur le dev
+  server : `/splash` vide + erreur console. Introduit par `db4a367` (PR #47).
+- **Cause structurelle** : `react-hooks/rules-of-hooks` était forcé à `warn`
+  dans `eslint.config.js` → une violation **fatale au rendu** ne cassait pas la CI.
+- **Deuxième occurrence** (même classe) : `src/pages/CulteDetail.tsx`
+  (`useState` après `if (!culte)`), révélée par la même règle passée en `error`.
+- **Correctif** : hooks déplacés au-dessus des `return` précoces ; règle ESLint
+  passée à `error` (+ exception `e2e/**` : le `use` des fixtures Playwright n'est
+  pas un hook) ; test de non-régression `CulteDetail-hooks.test.tsx` (échoue sans
+  le correctif).
+- **Preuve E2E décisive** : baseline `main` (run 40555104799) = **17/17 specs en
+  échec (100 %)**, 1 test passant, 28 en échec. Branche = shard 1 : **82 tests
+  passants** (dont `zero-black-screen.cy.ts` **64/64**, `auth-real.cy.ts` 5/5) ;
+  shard 2 : 36 passants. Le défaut « app not mounting » est levé.
+- **Statut** : PR #67. Gates locaux : eslint 0 erreur, tsc 0, vitest 1347/1347.
+- **Reste** : échecs résiduels = R53/R83/R98 (environnement PowerSync) + R96
+  (hygiène de test), pas le montage.
+
 ## Session — 2026-10-27 : garde structurelle anti-classe « filet déclaré, jamais câblé »
 
 - **Constat** : la classe de défaut « filet déclaré, jamais câblé » (un champ,

@@ -67,12 +67,14 @@
 | 9 | Erreur de synchronisation VISIBLE (PM19 : `uploadError`/`downloadError` → pill « échec d'envoi ») | P2 | **terminé** | `agent/phase-09-sync-error-visible` | `phase-09/2026-10-26-sync-error-visible.md` |
 | 5 | Purge des données locales au changement de compte (PM18 : fuite inter-comptes sur appareil partagé) | P2 | **terminé** | `agent/phase-05-local-purge` | `phase-05/2026-10-26-local-purge.md` |
 | 2 | Deep link inter-organisation : `org-switch-required` était mort (PM2, priorité 45) | P0 | **terminé** | `agent/phase-02-org-switch-deeplink` | `phase-02/2026-10-26-org-switch-deeplink.md` |
+| 2 | **R113 — « l'app ne monte pas » : `RouteGuard` violait les Rules of Hooks (hook après `return` précoce) → ErrorBoundary remplaçait toute l'app** | **P0** | **terminé** | `agent/p0-hooks-routeguard` | `phase-02/2026-10-27-p0-hooks-routeguard.md` |
 | 7 | Brouillon de saisie longue : perte de données à l'expiration de session (PM7, priorité 36) | P1 | **terminé** | `agent/phase-07-form-draft` | `phase-07/2026-10-26-form-draft.md` |
 | 4 | Invariant « ≥1 propriétaire » : une org pouvait perdre son dernier admin (PM5, priorité 24) | P1 | **terminé** | `agent/phase-04-last-org-admin` | `phase-04/2026-10-26-last-org-admin.md` |
 | 7 | Suppression d'un membre : le lien financier cascadait (perte de cotisations) (PM8, priorité 20) | P1 | **terminé** | `agent/phase-07-member-deletion` | `phase-07/2026-10-26-member-deletion.md` |
 | 4 | RBAC : R109 — rôle `ADMIN` DB-only (compte admin central sans droits) mesuré + garde anti-dérive TS↔DB | P1 | **terminé** (documenté, gardé ; décision propriétaire) | `agent/phase-04-role-model` | `phase-04/2026-10-26-role-model.md` |
 | 4 | RBAC : câblage réel de la garde de route (`hasPermission`/`isOrgMember`) | P1 | bloqué (dépend décision R109/R16) | — | R109 |
 | 10 | Design system, UX, responsive, perf, a11y | P2 | à faire | `agent/phase-10-ux` | — |
+| 10 | A11y automatisée (6 écrans + modale `/forms`) + états UX §5.1 sur les 62 écrans montés (garde d'inventaire) + budgets de perf verrouillés (1er rendu / entrée / total) | P2 | **terminé** | `agent/phase-10-a11y-ux` | `phase-10/2026-10-27-a11y-ux-budgets.md` |
 | 11 | Pre-mortem, chaos, exploitation autonome | P2 | à faire | `agent/phase-11-premortem` | — |
 | 11 | **R106 + PM15 — capacités de résilience déclarées mais INERTES** (update-required non alimenté ; récupération locale non câblée) | P1 | **terminé** | `agent/phase-11-resilience` | `phase-11/2026-10-27-inert-resilience-capabilities.md` |
 | 12 | Suite Cypress (couverture totale) + crawler | P2 | à faire | `agent/phase-12-cypress` | — |

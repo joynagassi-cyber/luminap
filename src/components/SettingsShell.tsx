@@ -36,6 +36,7 @@ export default function SettingsShell({
       <IonContent className="bg-canvas">
         <TopHeader title={title} />
         <div
+          data-screen-state="ready"
           className="max-w-lg mx-auto px-5 pt-safe-calc pb-safe-calc"
           style={contentStyle}
         >

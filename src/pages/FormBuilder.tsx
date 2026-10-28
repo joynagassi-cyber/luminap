@@ -214,6 +214,7 @@ export default function FormBuilder() {
       <IonContent className="bg-canvas">
         <TopHeader title="Formulaires" />
         <div
+          data-screen-state="ready"
           className="px-5 pt-safe-calc pb-safe-calc max-w-lg mx-auto"
           style={{
             paddingBottom: keyboardHeight > 0 ? `${keyboardHeight}px` : undefined,
@@ -389,6 +390,7 @@ export default function FormBuilder() {
                   </h2>
                   <button
                     onClick={closeCreateModal}
+                    aria-label="Fermer"
                     className="w-8 h-8 rounded-full flex items-center justify-center"
                     style={{ backgroundColor: "var(--surface-hover)" }}
                   >
@@ -399,6 +401,7 @@ export default function FormBuilder() {
                 <div className="space-y-3 mb-4">
                   <IonInput
                     type="text"
+                    aria-label="Nom du formulaire"
                     value={formName}
                     onIonInput={(e) => setFormName(e.detail.value!)}
                     placeholder="Nom du formulaire *"
@@ -406,6 +409,7 @@ export default function FormBuilder() {
                   />
                   <IonInput
                     type="text"
+                    aria-label="Clé du formulaire"
                     value={formKey}
                     onIonInput={(e) =>
                       setFormKey(
@@ -418,6 +422,7 @@ export default function FormBuilder() {
                   <IonItem lines="none" className="bg-card rounded-xl">
                     <IonLabel position="floating" className="text-sm text-text-secondary">Description (optionnel)</IonLabel>
                     <IonTextarea
+                      aria-label="Description du formulaire"
                       value={formDescription}
                       onIonInput={(e: IonChangeCustomEvent<string>) => setFormDescription(e.detail.value ?? "")}
                       placeholder="Description (optionnel)"
@@ -460,6 +465,7 @@ export default function FormBuilder() {
                         <GripVertical className="w-4 h-4 text-text-tertiary flex-shrink-0" />
                         <IonInput
                           type="text"
+                          aria-label="Libellé du champ"
                           value={field.label}
                           onIonInput={(e: IonChangeCustomEvent<string>) =>
                             updateField(field.key, { label: e.detail.value ?? "" })
@@ -467,6 +473,7 @@ export default function FormBuilder() {
                           className="flex-1"
                         />
                         <IonSelect
+                          aria-label="Type du champ"
                           value={field.type}
                           onIonChange={(e: IonChangeCustomEvent<string>) =>
                             updateField(field.key, {
@@ -483,6 +490,7 @@ export default function FormBuilder() {
                         </IonSelect>
                         <button
                           onClick={() => toggleRequired(field.key)}
+                          aria-label={`${field.required ? "Rendre facultatif" : "Rendre obligatoire"} le champ ${field.label || "sans nom"}`}
                           style={{
                             color: field.required ? "var(--accent-primary)" : "var(--text-tertiary)",
                           }}
@@ -491,6 +499,7 @@ export default function FormBuilder() {
                         </button>
                         <button
                           onClick={() => removeField(field.key)}
+                          aria-label={`Supprimer le champ ${field.label || "sans nom"}`}
                           style={{ color: "var(--data-expense)" }}
                         >
                           <Trash2 className="w-4 h-4" />
@@ -498,6 +507,7 @@ export default function FormBuilder() {
                       </div>
                       {field.type === "select" && (
                         <IonTextarea
+                          aria-label="Options du champ (une par ligne)"
                           value={field.options?.join("\n") || ""}
                           onIonInput={(e: IonChangeCustomEvent<string>) =>
                             updateField(field.key, {
@@ -542,6 +552,7 @@ export default function FormBuilder() {
                       <div className="grid grid-cols-2 gap-2 mb-1">
                         <IonInput
                           type="text"
+                          aria-label="Afficher si champ"
                           value={field.conditional?.showIfField ?? ""}
                           onIonInput={(e: IonChangeCustomEvent<string>) =>
                             updateField(field.key, {
@@ -557,6 +568,7 @@ export default function FormBuilder() {
                         />
                         <IonInput
                           type="text"
+                          aria-label="Valeur attendue du champ conditionnel"
                           value={String(field.conditional?.showIfValue ?? "")}
                           onIonInput={(e: IonChangeCustomEvent<string>) =>
                             updateField(field.key, {
@@ -572,6 +584,7 @@ export default function FormBuilder() {
                         />
                         <IonInput
                           type="text"
+                          aria-label="Validation regex"
                           value={field.validation?.regex ?? ""}
                           onIonInput={(e: IonChangeCustomEvent<string>) =>
                             updateField(field.key, {
@@ -586,6 +599,7 @@ export default function FormBuilder() {
                         />
                         <IonInput
                           type="text"
+                          aria-label="Mappage entité"
                           value={field.mapsToEntityField ?? ""}
                           onIonInput={(e: IonChangeCustomEvent<string>) =>
                             updateField(field.key, {

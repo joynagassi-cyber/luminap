@@ -237,3 +237,21 @@ et documenté comme actif, mais son déclencheur n'est jamais alimenté.
   toute route ajoutée à `ROUTE_REGISTRY` doit l'être aussi dans
   `cypress/e2e/zero-black-screen.cy.ts` **et** `docs/agent/deeplinks.matrix.json`
   (`routes_total`), sinon 2 tests échouent. Ici `/admin/roles` (64→65).
+
+### Pièges de rendu React (mesurés, 2026-10-27)
+- **Un hook après un `return` précoce = app entièrement cassée.** `RouteGuard`
+  (`src/App.tsx`) et `CulteDetail.tsx` déclaraient des `useState`/`useEffect`
+  APRÈS un `if (...) return` → `Rendered more hooks than during the previous
+  render` → l'`ErrorBoundary` racine remplace **tout** l'arbre par « Une erreur
+  inattendue s'est produite ». C'est la cause du « app not mounting » des E2E
+  (R113). Régressions : `db4a367` (PR #47).
+- **`react-hooks/rules-of-hooks` était forcé à `warn`** dans `eslint.config.js`
+  → cette erreur **fatale** ne cassait pas la CI. Passé à `error` (exception
+  `e2e/**` : le `use` des fixtures Playwright est un faux positif). Ne jamais
+  rétrograder cette règle.
+- **Reproduire le montage en local sans pnpm** : `./node_modules/.bin/vite`
+  fonctionne directement (pnpm n'est pas installé). Les erreurs React sont
+  relayées dans la sortie du dev server (`[vite] (client) [console.error]`).
+- **Baseline Cypress `main` = 17/17 specs en échec (100 %)** avant ce correctif ;
+  après : shard 1 → 82 passants (`zero-black-screen` 64/64), shard 2 → 36.
+  Les échecs résiduels sont R53/R83/R98 (PowerSync) + R96 (hygiène de test).
