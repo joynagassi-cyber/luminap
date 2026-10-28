@@ -2905,3 +2905,28 @@ sauvegarde disponible).
   → échec ciblé `EventDetail (@/pages/EventDetail)` ; restauré → 3/3.
 - **Preuve** : vitest **1537/1537** (122 fichiers), `tsc -b` 0, lint 0 erreur.
 - **Receipt** : `docs/agent/receipts/phase-10/2026-10-28-responsive-containment.md`.
+
+### R120 — L'écran « Organisation non rejointe » était un CUL-DE-SAC (bouton mort) — ✅ CORRIGÉ le 2026-10-28
+- **Gravité** : MOYENNE-HAUTE (blocage utilisateur réel : aucun chemin praticable).
+- **Défaut (exposé par le câblage R107)** : dès que `needs-membership` est devenu
+  atteignable (R107), l'écran `NeedsMembershipScreen` proposait « Retour à
+  l'accueil » → `/dashboard`. Or `/dashboard` **n'est pas** exempté de
+  `needs-membership` (seules `/onboarding` et `/org-setup` le sont) : le bouton
+  renvoyait l'utilisateur **sur le même écran**. Pire, toutes les routes `app`
+  étant bloquées pour un non-membre, `/settings/profil` (qui porte le bouton
+  « Se déconnecter ») était inatteignable : **aucune échappatoire** n'existait.
+- **Mesure** : `resolveRoute("/dashboard", {isAuthenticated:true, isOrgMember:false})`
+  → `{outcome:"needs-membership"}` ; pour un non-membre, l'ensemble des routes
+  `app` statiques qui rendent la main se réduit à `/onboarding` et `/org-setup`.
+- **Correctif** : le bouton secondaire devient « Changer de compte » (déconnexion
+  + `/sessions`, route PUBLIQUE), câblé via `onSignOut` depuis `App.tsx` ;
+  `secondaryLabel` n'est rendu que si `onSignOut` est fourni → **aucun bouton
+  mort**. Le CTA principal (`/invitation/claim`, route publique) est inchangé.
+- **Garde anti-dérive** : `src/components/__tests__/needs-membership-escape.test.tsx`
+  (4 tests) — vérifie que le CTA principal mène à une route praticable, que
+  `/dashboard` est bien bloqué (preuve du défaut), qu'aucune action ne vise
+  `/dashboard`, et que l'ensemble praticable hors exemptions est exactement
+  `{/onboarding, /org-setup}`. **Non-vacuité prouvée** : réintroduction du bouton
+  mort → 2 tests échouent ; restauré → 4/4.
+- **Preuve** : vitest **1550/1550** (124 fichiers), `tsc -b` 0, lint 0 erreur.
+- **Receipt** : `docs/agent/receipts/phase-04/2026-10-28-needs-membership-escape.md`.

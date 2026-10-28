@@ -215,7 +215,14 @@ function RouteGuard() {
     case "forbidden":
       return <ForbiddenScreen permission={outcome.permission} />;
     case "needs-membership":
-      return <NeedsMembershipScreen />;
+      return (
+        <NeedsMembershipScreen
+          onSignOut={() => {
+            void authService.signOut();
+            navigate("/sessions", { replace: true });
+          }}
+        />
+      );
     case "update-required":
       return <UpdateRequiredScreen />;
     case "org-switch-required":
