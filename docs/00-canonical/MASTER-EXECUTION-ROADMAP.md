@@ -215,7 +215,7 @@ Phase 0 (DONE) ──▶ Phase 1 (DONE) ──▶ Phase 2 (DONE)
 >
 > Ce document reste la référence **historique** des phases d'ingénierie 0→25
 > (figé au 2026-09-09). Ses métriques sont périmées : elles annoncent 574 tests
-> et 38 pages, alors que le dépôt compte **100 fichiers de test** et **62 pages**.
+> et 38 pages, alors que le dépôt compte **103 fichiers de test** et **62 pages**.
 
 | Item | Description | Priority |
 |------|-------------|----------|

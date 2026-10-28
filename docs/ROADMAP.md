@@ -47,7 +47,7 @@ Relevé direct sur la base de production `hhgovvrnalibhgpakswi` le 2026-10-28.
 **Ce que cela signifie** : la boucle
 « saisir une cotisation → la voir dans le grand livre → effectuer un versement »
 n'a **jamais été parcourue par un utilisateur**. L'application est techniquement
-aboutie (100 fichiers de test, 62 pages, 124 migrations, RBAC fin, RLS complète) mais
+aboutie (103 fichiers de test, 62 pages, 124 migrations, RBAC fin, RLS complète) mais
 **non adoptée**.
 
 C'est le fait le plus important de cette roadmap. Il gouverne toutes les
@@ -76,7 +76,7 @@ mesure d'usage réel**.
 | # | Chantier | Objectif | Effort | Statut |
 |---|---|---|---|---|
 | **A** | Adoption réelle | 5 organisations, 1 vraie transaction | — | 🔴 **priorité 1** |
-| **B** | Recherche guidée « Comment faire ? » | Trouver seul comment utiliser l'app | 1-2 j | ⚪ prêt à démarrer |
+| **B** | Recherche guidée « Comment faire ? » | Trouver seul comment utiliser l'app | 2-3 j | ✅ livré (§5) |
 | **C** | Assistant conversationnel (chat) | Agir en discutant, par étapes | 4-8 sem. | 🟡 **conditionné** |
 | **D** | Dictée vocale | Saisir sans écrire | 1-2 sem. | ⚪ plus tard |
 | **E** | Hygiène technique | Dépôt sain, dépendances à jour | 2-3 j | 🟠 à faire |
@@ -110,22 +110,82 @@ suffit.
 **Le « 20 % gratuit »** : cela répond déjà au problème « je me perds dans
 l'application », sans aucun modèle de langage.
 
-### Pourquoi c'est faisable en deux jours
+### État : LIVRÉ
 
-`src/pages/Tutorial.tsx` contient déjà `SECTIONS: SectionData[]` avec, pour
-chaque section : `title`, `paragraphs`, `tips`, `warnings`, `faqs`, `errors`.
-La documentation existe. Il manque deux champs.
+| Élément | Fichier |
+|---|---|
+| Catalogue (17 parcours) + moteur de recherche | `src/lib/howto.ts` |
+| Interface mobile (champ + parcours repliables) | `src/components/HowToSearch.tsx` |
+| Intégration dans la page d'aide | `src/pages/Help.tsx` |
+| Description des rôles dérivée du RBAC | `src/lib/roleGuide.ts` |
+| Tests (44) | `src/lib/__tests__/howto.test.ts`, `src/lib/__tests__/roleGuide.test.ts`, `src/components/__tests__/HowToSearch.test.tsx` |
+| Aperçu autonome (sans backend) | `preview-howto.html`, `preview-vite.config.ts`, `src/__preview__/` |
 
-### Contenu
+### Écart assumé par rapport au plan initial
 
-1. Ajouter à `SectionData` : `route: string` (lien profond existant, ex.
-   `/invitation/emit`) et `keywords: string[]`.
-2. Une barre « Comment faire ? » (page `Help` existante ou `BottomDrawer`) qui
-   filtre localement les sections par mots-clés.
-3. Chaque résultat rend un **parcours guidé** : étapes numérotées, pièges
-   connus, bouton *« Ouvrir la page »*.
-4. **Instrumenter** : compter les recherches et enregistrer les requêtes sans
-   résultat.
+Le plan ci-dessus prévoyait d'ajouter `route` et `keywords` à `SectionData`
+dans `Tutorial.tsx`, pour ne pas créer une seconde documentation. **Ce n'était
+pas réalisable comme écrit**, pour une raison vérifiée dans le code, pas par
+préférence :
+
+`SectionData` ne contient que de la **prose explicative** (`paragraphs`,
+`tips`, `warnings`, `faqs`, `errors`) — c'est-à-dire *ce qu'est* une
+fonctionnalité. Un parcours « comment faire » exige l'inverse : une **suite
+ordonnée d'actions** et une destination. Ajouter deux champs ne suffit pas, il
+faudrait ajouter `steps: {label, detail}[]` — soit un second modèle de contenu
+dans une structure conçue pour le premier. Le résultat aurait été un `SectionData`
+hybride, à moitié prose à moitié procédure.
+
+La décision retenue est donc : **un catalogue de parcours séparé, relié au
+Tutoriel par `sectionId`**. Chaque parcours pointe vers sa section du Tutoriel
+pour l'explication complète. Il n'y a pas deux documentations concurrentes :
+il y a un index de procédures qui renvoie vers une seule documentation.
+
+Cet écart est verrouillé par des tests, qui échouent si le lien se rompt :
+chaque `sectionId` doit exister dans `SECTIONS`, chaque `route` doit exister
+dans `ROUTE_REGISTRY` **et** dans les routes Ionic déclarées. Un lien mort ne
+peut pas passer inaperçu.
+
+### Contenu livré
+
+1. **17 parcours** couvrant les gestes réellement demandés : enregistrer une
+   transaction, faire un versement, créer un événement avec budget, inviter
+   puis réclamer une invitation, gérer les invitations, attribuer un rôle,
+   créer une organisation, organiser les unités, cotisations de groupe, saisie
+   rapide, budget, rapport, ajouter un membre, données absentes, profil,
+   archives.
+2. **Recherche locale** : normalisation (casse, accents, ponctuation), appariement
+   par radical, ET strict puis repli « au moins un mot » signalé à l'utilisateur.
+   Insensible aux accents parce que « evenement » est la saisie réelle.
+3. **Parcours repliables** : question visible, étapes numérotées, précisions,
+   encart « À savoir », bouton d'action vers la route profonde. Une seule carte
+   ouverte à la fois.
+4. **Instrumentation** : journal local des 200 dernières recherches (requête,
+   nombre de résultats), avec synthèse `topQueries` / `topZeroResult`. Les
+   requêtes **sans résultat** sont le signal utile : elles désignent ce que
+   l'application ne sait pas encore faire.
+
+### Corrections trouvées en chemin
+
+- La page d'aide listait un rôle **`PASTEUR` qui n'existe pas** (le type définit
+  `PASTEUR_PRINCIPAL`, `PASTEUR_ASSOCIE`, `PASTEUR_JEUNESSE`) et omettait 8 des
+  14 rôles réels. `src/lib/roleGuide.ts` dérive désormais la liste de
+  `PERMISSION_MATRIX`, qui est exhaustif par construction : impossible d'afficher
+  un rôle fantôme ou d'en oublier un.
+- Le pied de page affichait en dur « Église MFE-JC Centrale » dans une
+  application multi-organisations. Il affiche l'organisation active, ou rien.
+- Les valeurs affichées sur les invitations ont été alignées sur le code :
+  **7 jours et 1 utilisation** par défaut, et le statut n'a que deux valeurs
+  réelles (`ACTIVE`, `REVOKED`) — « Expirée » et « Épuisée » sont des
+  conséquences de `expires_at` / `max_uses`, pas des statuts stockés.
+
+### Ce que le plan initial surestimait
+
+Le plan annonçait « deux jours ». Le contenu et le moteur sont faits, mais
+l'écart ci-dessus (un catalogue séparé, plus la vérification de chaque
+affirmation métier contre le code) représente la moitié du travail réel. Le
+chiffre honnête est **2 à 3 jours**, et la partie qui prend du temps n'est pas
+le code : c'est de s'assurer que le texte d'aide est **vrai**.
 
 | Critère de sortie | Mesure |
 |---|---|
@@ -232,7 +292,9 @@ d'intention sélectionne 1 à 3 skills → 5 à 7 outils par tour.
 Toujours actifs : `aide` et `rapports`. Une question générale trouve donc
 toujours une réponse, même hors skill détecté.
 
-Le skill `aide` **dérive de `Tutorial.tsx`** — même source que le chantier B.
+Le skill `aide` **réutilise le catalogue de `src/lib/howto.ts`** — même contenu
+que le chantier B, deux lecteurs. Le catalogue porte les procédures, le
+Tutoriel porte l'explication : le premier renvoie au second par `sectionId`.
 On n'écrit pas une seconde documentation : une seule, deux lecteurs (l'humain
 dans l'onglet Tutoriel, l'agent dans le chat).
 
@@ -375,6 +437,7 @@ Points déjà traités : la sauvegarde Supabase **fonctionne** (artefact chiffr�
 | 2026-10-27 | Migration `20261027000003` appliquée : trace du keep-alive externe | le ping GitHub était une lecture, donc invérifiable |
 | 2026-10-28 | Assistant : **à mettre en roadmap, pas à construire maintenant** | `transactions = 0` : le cœur n'a jamais servi (§1) |
 | 2026-10-28 | Chantier B (recherche guidée) **avant** le chat | coût nul, risque nul, et produit la mesure de demande |
+| 2026-10-28 | Catalogue de parcours **séparé** du Tutoriel, relié par `sectionId` | `SectionData` ne porte que de la prose ; les étapes n'y tiennent pas sans créer un type hybride (§5) |
 | 2026-10-28 | Créer / inviter / assigner : **jamais** d'outil, seulement une explication | périmètre défini par absence, pas par consigne de prompt |
 | 2026-10-28 | Mode `autonome` : **reporté**, et borné par 4 catégories | 20 % de la valeur, 80 % du risque |
 | 2026-10-28 | Mobile : bottom sheet, pas de second bouton flottant | `BottomNav` a déjà un FAB contextuel |
@@ -383,9 +446,27 @@ Points déjà traités : la sauvegarde Supabase **fonctionne** (artefact chiffr�
 
 ## 11. Prochaine action
 
-**Une seule** : lancer le chantier B (1 à 2 jours, aucun risque), et en parallèle
-démarrer A1 (recruter 5 organisations réelles).
+**Le chantier B est livré** (voir §5). Ce qui reste n'est plus du développement :
+
+1. **Utiliser l'outil avant de l'enrichir.** Ouvrir la page Aide, chercher
+   réellement « inviter », suivre le parcours jusqu'au bout. Un parcours qui
+   n'a jamais été suivi par un humain n'est pas vérifié.
+2. **Lire le journal local des recherches** (clé `lumina.howto.searches.v1`
+   dans le stockage de l'appareil) après quelques jours d'usage sur un appareil
+   réel. Les requêtes à **zéro résultat** désignent les manques réels. C'est
+   cette liste — et rien d'autre — qui dira si le chantier C se justifie.
+3. **Chantier A en parallèle** : recruter 5 organisations, faire saisir une
+   première transaction, la retrouver au grand livre. C'est la condition de tout
+   le reste (§2).
 
 Le chantier C reste ouvert dans cette roadmap, avec sa spécification complète
 (`agent/ARCHITECTURE-AGENT.md`) prête à être exécutée **si et seulement si** la
 mesure d'usage le justifie.
+
+### Question ouverte, à trancher quand la donnée existera
+
+Le journal des recherches est **local à l'appareil**. Il ne permet donc pas
+d'agréger les requêtes de plusieurs utilisateurs. Si le besoin se confirme, la
+réponse est une table dédiée (requête, résultats, organisation, horodatage) —
+c'est du travail d'infrastructure, pas une case à cocher. Ne pas la créer
+maintenant : elle n'aurait rien à mesurer.
