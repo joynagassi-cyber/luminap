@@ -15,20 +15,29 @@
  */
 const FORMULA_PREFIXES = ["=", "+", "-", "@"];
 
+// Caractères de contrôle C0 en tête de cellule. TAB/CR/LF étaient déjà
+// neutralisés ; les autres (NUL, VT `\v`, FF `\f`…) sont ignorés par certains
+// tableurs, qui évaluent alors la formule qui suit (`"\v=1+1"` → formule).
+const LEADING_CONTROL_CHARS =
+  // eslint-disable-next-line no-control-regex -- neutraliser ces caractères est le but du module
+  /^[\u0000-\u001F]+/;
+
+function startsWithRiskyPrefix(text: string): boolean {
+  const first = text[0];
+  if (FORMULA_PREFIXES.includes(first)) return true;
+  if (first === "\t" || first === "\r" || first === "\n") return true;
+  const afterControls = text.replace(LEADING_CONTROL_CHARS, "");
+  return (
+    afterControls.length > 0 && FORMULA_PREFIXES.includes(afterControls[0])
+  );
+}
+
 export function escapeCsvCell(value: unknown, delimiter = ";"): string {
   if (value == null) return "";
   let text = typeof value === "object" ? JSON.stringify(value) : String(value);
 
-  if (text.length > 0) {
-    const first = text[0];
-    const risky =
-      FORMULA_PREFIXES.includes(first) ||
-      first === "\t" ||
-      first === "\r" ||
-      first === "\n";
-    if (risky) {
-      text = "'" + text;
-    }
+  if (text.length > 0 && startsWithRiskyPrefix(text)) {
+    text = "'" + text;
   }
 
   const mustQuote =

@@ -17,6 +17,7 @@ import { Capacitor } from "@capacitor/core";
 import { getRecentErrors } from "./clientErrors";
 import { isPowerSyncReadyNow } from "./dataLayer";
 import { getOrganizationId, hasResolvedOrganization } from "./orgContext";
+import { normalizeText } from "./sanitize";
 
 export type HealthLevel = "ok" | "warn" | "error";
 
@@ -165,7 +166,11 @@ export function buildDiagnosticReport(
     `Erreurs récentes : ${errors.length}`,
   ];
   errors.slice(0, 5).forEach((e, i) => {
-    lines.push(`  ${i + 1}. ${e.message}`);
+    // `e.message` provient d'une erreur runtime, donc indirectement de
+    // données/entrées hostiles : on retire les caractères de contrôle (dont
+    // les séquences ANSI ESC) et on plafonne, pour que le texte collé dans un
+    // rapport de bug reste du texte inerte et borné.
+    lines.push(`  ${i + 1}. ${normalizeText(e.message, { maxLength: 500 })}`);
   });
   return lines.join("\n");
 }
