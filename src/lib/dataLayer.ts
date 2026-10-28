@@ -3294,9 +3294,14 @@ export function useLoadInitialData(): LoadInitialDataResult {
  * Returns a fresh session ID.
  */
 export async function selectRole(role: string): Promise<string> {
-  const sessionId = localStorage.getItem("lumina-session") ?? crypto.randomUUID();
-  localStorage.setItem("lumina-session", sessionId);
-  localStorage.setItem("lumina-role", role);
+  let sessionId: string = crypto.randomUUID();
+  try {
+    sessionId = localStorage.getItem("lumina-session") ?? sessionId;
+    localStorage.setItem("lumina-session", sessionId);
+    localStorage.setItem("lumina-role", role);
+  } catch {
+    /* stockage indisponible (mode privé, quota) — session conservée en mémoire */
+  }
   return sessionId;
 }
 
