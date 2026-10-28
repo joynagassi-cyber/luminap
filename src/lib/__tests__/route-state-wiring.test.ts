@@ -168,3 +168,13 @@ describe("returnTo — le filet de reprise est réellement transmis ET consommé
     expect(authPageSrc).toMatch(/readReturnToFromSearch\(location\.search\)/);
   });
 });
+
+describe("R127 — l'URL d'entrée web alimente réellement linkOrgId (pas de filet mort)", () => {
+  it("App.tsx dérive une intention d'org depuis l'URL d'entrée", () => {
+    // Sur le web, `parseDeepLink` n'était appelé que par le chemin natif : un
+    // lien `…?org=B` ne proposait jamais la bascule. Cette garde fige le
+    // câblage boot → `webEntryOrgIntent` → `linkOrgId`.
+    expect(appSrc).toMatch(/webEntryOrgIntent\(/);
+    expect(appSrc).toMatch(/linkOrgId/);
+  });
+});
