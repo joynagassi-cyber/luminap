@@ -790,12 +790,21 @@
   asynchrone ; « aucun admin » / « aucun candidat » s'affichaient avant la fin
   de la lecture. Correctif : drapeau `detailLoaded` (`finally`) +
   `ListSkeleton`.
+- **Rechute R52.g (pages de détail, `isPowerSyncReadyNow()` absent)** —
+  **corrigée 2026-10-28** : `/budget/:id` (« Budget introuvable. »),
+  `/giving/campaign/:id` (« Campagne introuvable. ») et `/admin/roles`
+  (« Aucun membre ») comparaient la donnée à `undefined` **avant le premier
+  sync** de la réplique. Le motif éprouvé d'`EventDetail` (`isPowerSyncReadyNow`)
+  n'y avait pas été appliqué. Correctif : garde identique (squelette tant que la
+  réplique n'est pas prête). `OrgReportDetail` était **déjà** couvert
+  (drapeau `loading`) — vérifié, rien à changer.
 - **Preuve** : `src/pages/__tests__/Giving-loading.test.tsx` (2) +
   `src/pages/__tests__/list-loading-vs-empty.test.tsx` (6) +
-  `src/pages/__tests__/async-loading-vs-empty.test.tsx` (2) ; les deux
+  `src/pages/__tests__/async-loading-vs-empty.test.tsx` (2) +
+  `list-loading-vs-empty.test.tsx` (3 de plus, R52.g) ; les deux
   directions sont verrouillées (chargement → squelette ET état vide exact
   quand la lecture est terminée). **Non-vacuité vérifiée** : en retirant le
-  branchement, les 6 assertions « squelette » échouent. Suite : **1601/1601**
+  branchement, les 9 assertions « squelette » échouent. Suite : **1604/1604**
   (131 fichiers), `tsc -b` = 0, eslint 0 erreur.
 - **Travail restant (R52.a)** : `/sessions` conserve sa preuve E2E rouge
   tant que la réplique PowerSync ne se peuple pas dans l'environnement de

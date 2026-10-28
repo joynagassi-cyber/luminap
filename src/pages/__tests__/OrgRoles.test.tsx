@@ -44,6 +44,9 @@ vi.mock("@/lib/dataLayer", () => ({
     org: { id: "org-1", name: "Lumina", type: "Église", accentColor: "#fff" },
   }),
   useMembers: () => ({ data: hoisted.members, isLoading: false, error: undefined }),
+  // R52.g — la page n'annonce « Aucun membre » qu'une fois la réplique prête ;
+  // ce test porte sur le rendu APRÈS lecture.
+  isPowerSyncReadyNow: () => true,
 }));
 
 vi.mock("@/lib/orgContext", () => ({

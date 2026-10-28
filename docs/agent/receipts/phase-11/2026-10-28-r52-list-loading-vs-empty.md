@@ -17,6 +17,9 @@ est vide », et annonçaient donc un fait **faux** pendant le chargement :
 | `/budgets` | « Aucun budget » | `isLoading` des 2 hooks + `ListSkeleton` **non câblé** |
 | `/reports/builder` | « Aucun rapport sauvegardé » | `reportDefinitionRepo.list()` en cours + `ListSkeleton` |
 | `/admin/organizations/:id` | « aucun admin » / « aucun candidat » | `Promise.all` en cours + `ListSkeleton` |
+| `/budget/:id` | « Budget introuvable. » | `isPowerSyncReadyNow()` absent |
+| `/giving/campaign/:id` | « Campagne introuvable. » | `isPowerSyncReadyNow()` absent |
+| `/admin/roles` | « Aucun membre » | `isPowerSyncReadyNow()` absent |
 
 Le cas est piégeux : les hooks PowerSync renvoient `data: []` **ET**
 `isLoading: true` tant que la première lecture n'a pas abouti. Lire `data`
@@ -34,6 +37,9 @@ seul produit un état vide indétectable du vrai état vide.
 - `Budgets.tsx` : `ListSkeleton` pendant `budgetsLoading || linesLoading`.
 - `ReportBuilder.tsx` : drapeau `reportsLoaded` posé dans un `finally`.
 - `CentralAdmin.tsx` : drapeau `detailLoaded` posé dans un `finally`.
+- `BudgetDetail.tsx` / `GivingCampaign.tsx` : garde `isPowerSyncReadyNow()`.
+- `OrgRoles.tsx` : garde `isPowerSyncReadyNow()` sur la liste des membres.
+- `OrgReportDetail.tsx` : **déjà** couvert (drapeau `loading`) — rien changé.
 
 Les deux drapeaux sont posés dans un `finally` : un échec de lecture ne
 laisse jamais un squelette **infini** (le message vide devient alors exact).
@@ -46,8 +52,8 @@ Aucune donnée, aucun schéma, aucune migration touchés.
 |---|---|
 | `npx tsc -b` | **0** |
 | `npx eslint src` | **0 erreur** (warnings préexistants) |
-| `npx vitest run` | **1601/1601** (131 fichiers) |
-| Non-vacuité (retrait du câblage) | les **6** assertions « squelette » échouent |
+| `npx vitest run` | **1604/1604** (131 fichiers) |
+| Non-vacuité (retrait du câblage) | les **9** assertions « squelette » échouent |
 
 Nouveaux tests :
 - `src/pages/__tests__/Giving-loading.test.tsx` (2) — chargement → squelette

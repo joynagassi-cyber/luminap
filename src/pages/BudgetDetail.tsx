@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useOrgBudgets, useOrgBudgetLines, useTransactions, useCategories, useOrgUnits, addOrgBudgetLinePS, deleteOrgBudgetLinePS, updateOrgBudgetPS } from "@/lib/dataLayer";
+import { useOrgBudgets, useOrgBudgetLines, useTransactions, useCategories, useOrgUnits, addOrgBudgetLinePS, deleteOrgBudgetLinePS, updateOrgBudgetPS, isPowerSyncReadyNow } from "@/lib/dataLayer";
 import { computeBudgetReport, budgetWindow } from "@/capabilities/budgets";
 import { formatCurrencyCompact, formatCurrencyFull } from "@/lib/utils";
 import TopHeader from "@/components/TopHeader";
@@ -8,6 +8,7 @@ import BottomNav from "@/components/BottomNav";
 import { Plus, Trash2, Lock, FileText, X } from "lucide-react";
 import { IonPage, IonContent, IonItem, IonLabel, IonInput, IonSelect, IonSelectOption } from "@ionic/react";
 import type { IonChangeCustomEvent } from "@/lib/ionic-types";
+import { ListSkeleton } from "@/components/Skeleton";
 
 export default function BudgetDetail() {
   const { id } = useParams();
@@ -28,6 +29,26 @@ export default function BudgetDetail() {
   const [amount, setAmount] = useState("");
   const [adding, setAdding] = useState(false);
   const [showAdd, setShowAdd] = useState(true);
+
+  // R52.g — « Budget introuvable » n'est exact qu'une fois la réplique
+  // disponible (même garde qu'`EventDetail`) : avant le premier sync, le
+  // budget n'a simplement pas encore été lu.
+  if (!budget && !isPowerSyncReadyNow()) {
+    return (
+      <IonPage>
+        <IonContent className="bg-canvas">
+          <h1 className="sr-only">Détail du budget</h1>
+          <div className="min-h-dvh">
+            <TopHeader title="Budget" />
+            <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
+              <ListSkeleton count={4} />
+            </div>
+            <BottomNav />
+          </div>
+        </IonContent>
+      </IonPage>
+    );
+  }
 
   if (!budget || !report) {
     return (
