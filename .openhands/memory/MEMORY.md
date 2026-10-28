@@ -169,17 +169,29 @@
   avant `gh pr merge`.
 
 ## Classe de défaut récurrente : « filet déclaré, jamais déclenché »
-Trois occurrences trouvées (R105/R106/R107/R108) : une garde/écran est écrit et
-documenté comme actif, mais son déclencheur n'est jamais alimenté.
+Cinq occurrences trouvées (R105/R106/R107/R108/R113) : une garde/écran est écrit
+et documenté comme actif, mais son déclencheur n'est jamais alimenté.
 - **R105** : `invitation:*` exigées par ROUTE_REGISTRY, détenues par aucun rôle.
 - **R106/R107** : `resolveRoute` reçoit seulement `{isAuthenticated}`.
+  **R106 CORRIGÉ** (phase 11, 2026-10-27) : `clientSchemaVersion`/
+  `minSchemaVersion` alimentés via `src/lib/schemaVersion.ts` (fail-open tant que
+  `VITE_MIN_SCHEMA_VERSION` n'est pas positionnée). **R107 reste bloqué** par la
+  décision R109/R16 (modèle de rôles ADMIN).
 - **R108** : `AppReadyBridge` posait `readyRef=true` AVANT d'armer le minuteur →
   `if(!readyRef.current)` toujours faux ; `BootRecoveryScreen` inatteignable. Un
   watchdog DANS l'arbre React ne peut pas détecter l'absence de montage.
   Corrigé : `src/lib/bootWatchdog.ts` armé avant `createRoot` dans `main.tsx`,
   surcouche HTML statique (`renderBootRecoveryOverlay`, `data-screen-state=error`).
-  Méthode de détection : pour chaque garde, vérifier que la condition peut
-  réellement devenir vraie, et que le déclencheur est alimenté quelque part.
+- **R113** (P0) : hooks React après un `return` précoce (RouteGuard, CulteDetail)
+  → ErrorBoundary remplace toute l'app. Corrigé PR #67 ; `react-hooks/rules-of-hooks`
+  était à `warn` dans eslint.config.js → passé à `error`. Audit `eslint src/
+  --rule rules-of-hooks:error` = 2 fichiers seulement (les deux de #67).
+- **Garde structurelle (2026-10-27)** : `src/lib/__tests__/route-state-wiring.test.ts`
+  (8 tests) verrouille la CAUSE : tout champ de `RouteState` doit être câblé dans
+  `App.tsx` OU listé dans `PENDING_WIRING` (raison + id de risque) ; chaque
+  `RouteOutcome` doit avoir un `case` rendu. Preuve : ajouter un champ fictif fait
+  échouer le test. Méthode de détection : pour chaque garde, vérifier que la
+  condition peut réellement devenir vraie, et que le déclencheur est alimenté.
 
 ## Gardes de test « sans identifiants » (pattern réutilisable)
 - `docs/agent/rls-inventory.json` + `src/lib/__tests__/rls-inventory.test.ts` :
