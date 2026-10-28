@@ -17,6 +17,7 @@ import {
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
 import EmptyState from "@/components/EmptyState";
+import { ListSkeleton } from "@/components/Skeleton";
 import { IonPage, IonContent, IonSelect, IonSelectOption, IonItem, IonLabel, IonInput } from "@ionic/react";
 import { ChartContainer } from "@/components/ui/chart";
 import { Bar, BarChart, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
@@ -199,6 +200,7 @@ export default function ReportBuilder() {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [savedReports, setSavedReports] = useState<ReportDefinition[]>([]);
+  const [reportsLoaded, setReportsLoaded] = useState(false);
   const [loadedId, setLoadedId] = useState<string | null>(null);
 
   // Charge la liste des rapports sauvegardés.
@@ -208,7 +210,10 @@ export default function ReportBuilder() {
       .then(setSavedReports)
       .catch((e) => {
         captureClientError(e, { message: "Échec du chargement des rapports" });
-      });
+      })
+      // R52.e — le chargement se termine aussi en erreur : sans ce `finally`,
+      // un échec laisserait l'écran sur un squelette INFINI.
+      .finally(() => setReportsLoaded(true));
   }, []);
 
   // Ouvre un rapport depuis ?open=<id>.
@@ -745,7 +750,12 @@ export default function ReportBuilder() {
             <p className="text-text-primary font-semibold text-sm">Mes rapports</p>
             <span className="text-text-tertiary text-xs">({savedReports.length})</span>
           </div>
-          {savedReports.length === 0 ? (
+          {/* R52.e — « Aucun rapport sauvegardé » n'est exact qu'après le
+              chargement ; avant, l'utilisateur croirait avoir perdu ses
+              rapports. */}
+          {!reportsLoaded ? (
+            <ListSkeleton count={2} />
+          ) : savedReports.length === 0 ? (
             <EmptyState
               title="Aucun rapport sauvegardé"
               description="Configurez un rapport puis « Enregistrer »"

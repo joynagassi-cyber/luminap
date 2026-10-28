@@ -779,12 +779,24 @@
   `useOrgBudgetLines` exposent `isLoading` ; la page ne lisait que `data` →
   « Aucun budget » pendant la lecture. Correctif : `ListSkeleton` pendant
   `budgetsLoading || linesLoading`.
+- **Rechute R52.e (`/reports/builder`)** — **corrigée 2026-10-28** :
+  `savedReports` est chargé **hors hooks** (`reportDefinitionRepo.list()`) ;
+  « Aucun rapport sauvegardé » s'affichait pendant la lecture (l'utilisateur
+  croit avoir perdu ses rapports). Correctif : drapeau `reportsLoaded` posé
+  dans un `finally` (donc jamais de squelette infini en cas d'échec) +
+  `ListSkeleton`.
+- **Rechute R52.f (`/admin/organizations/:id`)** — **corrigée 2026-10-28** :
+  `Promise.all` de `OrgDetail` remplit `admins`/`candidates` de façon
+  asynchrone ; « aucun admin » / « aucun candidat » s'affichaient avant la fin
+  de la lecture. Correctif : drapeau `detailLoaded` (`finally`) +
+  `ListSkeleton`.
 - **Preuve** : `src/pages/__tests__/Giving-loading.test.tsx` (2) +
-  `src/pages/__tests__/list-loading-vs-empty.test.tsx` (6) ; les deux
+  `src/pages/__tests__/list-loading-vs-empty.test.tsx` (6) +
+  `src/pages/__tests__/async-loading-vs-empty.test.tsx` (2) ; les deux
   directions sont verrouillées (chargement → squelette ET état vide exact
   quand la lecture est terminée). **Non-vacuité vérifiée** : en retirant le
-  branchement, les 4 assertions « squelette » échouent. Suite : **1599/1599**,
-  `tsc -b` = 0, eslint 0 erreur.
+  branchement, les 6 assertions « squelette » échouent. Suite : **1601/1601**
+  (131 fichiers), `tsc -b` = 0, eslint 0 erreur.
 - **Travail restant (R52.a)** : `/sessions` conserve sa preuve E2E rouge
   tant que la réplique PowerSync ne se peuple pas dans l'environnement de
   test (cf. R53/R98) — le correctif produit est en place, la preuve E2E non.
