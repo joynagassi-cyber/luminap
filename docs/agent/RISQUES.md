@@ -2829,3 +2829,20 @@ sauvegarde disponible).
   - `CI=1` sans `dist/` → **échec** explicite `dist/index.html absent … (R116)` ;
   - `CI=1` avec `dist/` (après `vite build`) → **7 passed**.
 - **Receipt** : `docs/agent/receipts/phase-17/2026-10-28-perf-guard-muet.md`.
+
+### R117 — Dérive non gardée entre les jetons TS et le CSS (Phase 10) — ✅ CORRIGÉ le 2026-10-28
+
+- **Gravité** : FAIBLE (risque de divergence visuelle silencieuse, pas de faille).
+- **Classe** : dérive code↔asset non gardée (même famille que R65.b jsonb).
+- **Défaut** : `src/ionic/theme.ts` duplique la palette dans `LUMINA_TOKENS` et
+  `LUMINA_LIGHT_TOKENS` (pour les triplets `-rgb` et variables `--ion-*`), alors
+  que `src/App.css` est la **source de vérité** des couleurs. Aucun test ne
+  vérifiait l'alignement : une retouche de l'un sans l'autre passait inaperçue.
+- **Correctif** : `src/lib/__tests__/design-tokens-drift.test.ts` (4 tests) —
+  pour chaque clé TS (camelCase → kebab-case), relève la valeur CSS des blocs
+  `:root` + `[data-theme="dark"]` (mode sombre) et `:root` +
+  `[data-theme="light"]` (mode clair) et exige l'égalité hexadécimale.
+- **Preuve de non-vacuité** : `canvas` changé temporairement de `#121212` à
+  `#000000` dans `theme.ts` → échec `canvas : TS=#000000 CSS=#121212` ;
+  restauré → 4/4.
+- **Receipt** : `docs/agent/receipts/phase-10/2026-10-28-design-tokens-drift.md`.
