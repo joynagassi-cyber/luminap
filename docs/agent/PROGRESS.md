@@ -74,7 +74,7 @@
 | 4 | Invariant « ≥1 propriétaire » : une org pouvait perdre son dernier admin (PM5, priorité 24) | P1 | **terminé** | `agent/phase-04-last-org-admin` | `phase-04/2026-10-26-last-org-admin.md` |
 | 7 | Suppression d'un membre : le lien financier cascadait (perte de cotisations) (PM8, priorité 20) | P1 | **terminé** | `agent/phase-07-member-deletion` | `phase-07/2026-10-26-member-deletion.md` |
 | 4 | RBAC : R109 — rôle `ADMIN` DB-only (compte admin central sans droits) mesuré + garde anti-dérive TS↔DB | P1 | **terminé** (documenté, gardé ; décision propriétaire) | `agent/phase-04-role-model` | `phase-04/2026-10-26-role-model.md` |
-| 4 | RBAC : câblage réel de la garde de route (`hasPermission`/`isOrgMember`) | P1 | bloqué (dépend décision R109/R16) | — | R109 |
+| 4 | RBAC : câblage réel de la garde de route (`hasPermission`) | P1 | bloqué (dépend décision R109/R16 : rôle ADMIN) | — | R109 |
 | 10 | Design system, UX, responsive, perf, a11y | P2 | **terminé** (a11y/UX/perf ✓ ; jetons design gardés R117 ✓ ; responsive : 4 pages bornées + garde statique R119 ✓) | `agent/phase-10-responsive` | `phase-10/2026-10-28-responsive-containment.md` |
 | 10 | A11y automatisée (6 écrans + modale `/forms`) + états UX §5.1 sur les 62 écrans montés (garde d'inventaire) + budgets de perf verrouillés (1er rendu / entrée / total) | P2 | **terminé** | `agent/phase-10-a11y-ux` | `phase-10/2026-10-27-a11y-ux-budgets.md` |
 | 11 | Pre-mortem, chaos, exploitation autonome | P2 | **terminé** (chaos de stockage + hors-ligne ; exploitation autonome : page santé + drapeaux PR7/R118) | `agent/phase-11-premortem` | `phase-11/2026-10-28-chaos-offline-resilience.md` |
