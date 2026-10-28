@@ -56,6 +56,7 @@ vi.mock("@/lib/dataLayer", () => ({
   deleteTransactionPS: vi.fn(async () => undefined),
   useDocuments: () => ({ data: [], isLoading: false }),
   useCaisses: () => ({ data: [], isLoading: false }),
+  useAuditEntries: () => ({ data: [], isLoading: false }),
 }));
 
 vi.mock("@/capabilities/policy", () => ({
@@ -89,6 +90,8 @@ import CulteDetail from "@/pages/CulteDetail";
 import GroupCotisation from "@/pages/GroupCotisation";
 import TransactionDetail from "@/pages/TransactionDetail";
 import SaisieRapide from "@/pages/SaisieRapide";
+import Trace from "@/pages/Trace";
+import OrgReportSend from "@/pages/OrgReportSend";
 
 afterEach(cleanup);
 
@@ -266,5 +269,33 @@ describe("R52.i — /saisie-rapide/:id : « Culte introuvable » avant le premie
     );
     expect(container.querySelectorAll('[aria-busy="true"]').length).toBeGreaterThan(0);
     expect(screen.queryByText("Culte introuvable.")).toBeNull();
+  });
+});
+
+describe("R52.j — /trace et /admin/reports/send : « aucun » avant la première lecture", () => {
+  it("/trace affiche un squelette, pas « Aucune entrée trouvée »", () => {
+    state.ready = false;
+    const { container } = render(
+      <MemoryRouter initialEntries={["/trace"]}>
+        <Routes>
+          <Route path="/trace" element={<Trace />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(container.querySelectorAll('[aria-busy="true"]').length).toBeGreaterThan(0);
+    expect(screen.queryByText("Aucune entrée trouvée")).toBeNull();
+  });
+
+  it("/admin/reports/send affiche un squelette, pas « Aucun rapport envoyé »", () => {
+    state.ready = false;
+    const { container } = render(
+      <MemoryRouter initialEntries={["/admin/reports/send"]}>
+        <Routes>
+          <Route path="/admin/reports/send" element={<OrgReportSend />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(container.querySelectorAll('[aria-busy="true"]').length).toBeGreaterThan(0);
+    expect(screen.queryByText("Aucun rapport envoyé pour le moment.")).toBeNull();
   });
 });

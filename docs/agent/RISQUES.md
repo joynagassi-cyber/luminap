@@ -805,12 +805,25 @@
   (`isPowerSyncReadyNow()` + `ListSkeleton`).
 - **Rechute R52.i (`/saisie-rapide/:id`)** — **corrigée 2026-10-28** :
   « Culte introuvable. » affiché avant le premier sync. Correctif identique.
-- **Garde anti-récurrence** — ajoutée 2026-10-28 : test **statique**
-  `src/lib/__tests__/r52-readiness-guard.test.ts` — toute page qui affiche
-  « introuvable » doit contenir un signal de disponibilité
-  (`isPowerSyncReadyNow`, `notFound`, `isLoading`, `Loaded`, `Skeleton`), sinon
-  la suite échoue. Allowlist motivée : `NotFound.tsx` (le verdict EST la route),
-  `Tutorial.tsx` (contenu pédagogique). Non-vacuité prouvée par sonde.
+- **Rechute R52.j (`/trace`, `/admin/reports/send`)** — **corrigée 2026-10-28** :
+  `/trace` affichait « Aucune entrée trouvée » avant que `audit_entries` ne soit
+  lue (`useAuditEntries()` retombe sur `store.auditEntries = []` au premier
+  rendu) ; `/admin/reports/send` affichait « Aucun rapport envoyé pour le
+  moment. » avant la réponse de la requête PowerSync `org_reports`
+  (`refreshHistory` asynchrone). Correctifs : garde `isPowerSyncReadyNow()` +
+  `ListSkeleton` (`/trace`) ; drapeau `historyLoaded` posé dans un `finally` +
+  `ListSkeleton` (`/admin/reports/send`). 2 tests à double sens, non-vacuité
+  vérifiée (2 échecs sans le garde).
+- **Garde anti-récurrence** — ajoutée 2026-10-28 (étendue R52.j) : test
+  **statique** `src/lib/__tests__/r52-readiness-guard.test.ts` — toute page qui
+  affiche un verdict vide réel (« introuvable », « Aucun(e) … trouvé(e) »,
+  « … pour le moment », « … pour l'instant ») doit contenir un signal de
+  disponibilité (`isPowerSyncReadyNow`, `loading`/`Loading`, `ShimmerList`,
+  `Skeleton`, `Loaded`, `listError`), sinon la suite échoue. Le motif exclut les
+  libellés de formulaire (« Aucun événement », « Aucune (racine) ») et les
+  boutons (« Aucune notification à vider ») pour éviter les faux positifs.
+  Allowlist motivée : `NotFound.tsx` (le verdict EST la route), `Tutorial.tsx`
+  (contenu pédagogique). Non-vacuité prouvée par sonde (`__R52Probe.tsx`).
 - **Preuve** : `src/pages/__tests__/Giving-loading.test.tsx` (2) +
   `src/pages/__tests__/list-loading-vs-empty.test.tsx` (6) +
   `src/pages/__tests__/async-loading-vs-empty.test.tsx` (2) +
@@ -818,8 +831,9 @@
   `r52-readiness-guard.test.ts` (garde statique) ; les deux
   directions sont verrouillées (chargement → squelette ET état vide exact
   quand la lecture est terminée). **Non-vacuité vérifiée** : en retirant le
-  branchement, les 13 assertions « squelette » échouent. Suite : **1610/1610**
-  (132 fichiers), `tsc -b --force` = 0, eslint 0 erreur.
+  branchement, les 13 assertions « squelette » échouent ; R52.j : 2 échecs sans
+  le garde. Suite : **1612/1612** (132 fichiers), `tsc -b --force` = 0, eslint
+  0 erreur.
 - **Piège de vérification** : `tsc -b` est incrémental et peut masquer une
   erreur réelle (TS1117) ; contrôler avec `npx tsc -b --force --noEmit`.
 - **Travail restant (R52.a)** : `/sessions` conserve sa preuve E2E rouge

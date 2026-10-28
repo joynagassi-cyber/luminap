@@ -7,9 +7,10 @@
  * non lues, donc affichait un fait faux pendant le chargement.
  *
  * Cette garde verrouille la règle au niveau statique : toute page qui affiche
- * un message « introuvable » doit prouver qu'elle sait distinguer « pas encore
- * lu » de « réellement absent » — soit par `isPowerSyncReadyNow()`, soit par un
- * drapeau de chargement explicite (`loading`, `notFound`, `isLoading`, …).
+ * un message « introuvable » / « aucun(e) … » doit prouver qu'elle sait
+ * distinguer « pas encore lu » de « réellement absent » — soit par
+ * `isPowerSyncReadyNow()`, soit par un drapeau de chargement explicite
+ * (`loading`, `notFound`, `isLoading`, `Loaded`, un squelette).
  *
  * Sans garde, un nouveau cas R52.x passerait inaperçu jusqu'en production.
  */
@@ -30,14 +31,26 @@ const READINESS_SIGNALS = [
   "isPowerSyncReadyNow",
   "notFound",
   "isLoading",
-  "if (loading)",
-  "loading)",
+  "loading",
+  "Loading",
+  "ShimmerList",
   "Loaded",
   "Skeleton",
+  "listError",
 ];
 
-describe("R52 — garde statique : « introuvable » exige un signal de disponibilité", () => {
-  it("aucune page n'annonce « introuvable » sans distinguer « pas encore lu »", () => {
+/**
+ * Motifs de verdict dérivés d'une lecture (R52 : « pas encore lu » ≠ « absent »).
+ * On ne cible que les messages d'état vides réels (« … trouvé(e) », « pour le
+ * moment », « pour l'instant ») ou le mot « introuvable » — pour ne pas
+ * confondre avec les libellés de formulaire (« Aucun événement »,
+ * « Aucune (racine) ») ni les boutons.
+ */
+const VERDICT_PATTERN =
+  /introuvable|Aucun(e)? [^"'<>{}]*?(trouvé|trouvée|trouvés|trouvées|pour le moment|pour l'instant)/i;
+
+describe("R52 — garde statique : verdict vide/introuvable exige un signal de disponibilité", () => {
+  it("aucune page n'annonce un verdict vide sans distinguer « pas encore lu »", () => {
     const offenders: string[] = [];
 
     for (const file of readdirSync(PAGES_DIR)) {
@@ -45,7 +58,7 @@ describe("R52 — garde statique : « introuvable » exige un signal de disponib
       if (ALLOWLIST.has(file)) continue;
 
       const src = readFileSync(join(PAGES_DIR, file), "utf8");
-      if (!/introuvable/i.test(src)) continue;
+      if (!VERDICT_PATTERN.test(src)) continue;
 
       const hasSignal = READINESS_SIGNALS.some((s) => src.includes(s));
       if (!hasSignal) offenders.push(file);
@@ -62,11 +75,12 @@ describe("R52 — garde statique : « introuvable » exige un signal de disponib
     // Un contenu synthétique qui reproduit le motif fautif…
     const faulty = `export default function X() {
       if (!thing) return <p>Élément introuvable</p>;
+      if (list.length === 0) return <p>Aucun élément trouvé</p>;
       return null;
     }`;
     // …ne doit produire AUCUN signal de disponibilité : c'est ce que la garde
     // ci-dessus sanctionne. Si cette assertion tombait, la garde serait vide.
     expect(READINESS_SIGNALS.some((s) => faulty.includes(s))).toBe(false);
-    expect(/introuvable/i.test(faulty)).toBe(true);
+    expect(VERDICT_PATTERN.test(faulty)).toBe(true);
   });
 });

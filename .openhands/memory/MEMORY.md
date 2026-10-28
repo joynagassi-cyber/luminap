@@ -424,3 +424,20 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
 - Vérifier un doute avec **`npx tsc -b --force --noEmit`** (rebuild complet).
 - Ne pas supprimer les `.tsbuildinfo` du dépôt : le vrai diagnostic est le
   `--force`.
+
+## R52.j — la famille R52 n'est pas close par les pages de détail
+- Le motif « pas encore lu » ≠ « vide » frappe aussi les **listes dérivées d'une
+  lecture asynchrone** hors des pages déjà traitées : `/trace`
+  (`useAuditEntries()` retombe sur `store.auditEntries = []` avant la lecture) et
+  `/admin/reports/send` (historique `org_reports` lu en `async`).
+- **Signal générique à chercher** : un `useState([])` + un `useEffect` qui
+  remplit la liste de façon asynchrone, avec un rendu `list.length === 0 ? "Aucun…"`
+  sans drapeau `loaded`. Correctif : drapeau posé dans un **`finally`** (jamais
+  seulement dans `catch`, sinon l'état reste bloqué en squelette si la lecture
+  échoue) OU `isPowerSyncReadyNow()`.
+- Garde statique `src/lib/__tests__/r52-readiness-guard.test.ts` **étendue** :
+  `VERDICT_PATTERN` couvre « introuvable » + « Aucun(e) … trouvé(e) / pour le
+  moment / pour l'instant ». Piège de faux positifs : il faut exclure les
+  libellés de formulaire (« Aucun événement », « Aucune (racine) ») et les
+  boutons (« Aucune notification à vider ») — un motif trop large (`Aucun\s`)
+  fait échouer 9 pages légitimes.
