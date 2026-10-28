@@ -14,6 +14,8 @@
  * Run with: npx vitest run src/lib/__tests__/orgAdmin.test.ts
  */
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "fs";
+import { resolve } from "path";
 import {
   buildGrantInputs,
   grantsToCapabilities,
@@ -157,5 +159,28 @@ describe("grantsToCapabilities", () => {
     ]);
     const keys = result.map((r) => `${r.grantId}|${r.capabilityId}|${r.effect}`);
     expect(new Set(keys).size).toBe(keys.length);
+  });
+});
+
+describe("R128 — invalidation du cache d'accès après mutation de grants/rôles", () => {
+  it("chaque mutation câble clearCanAccessMultiCache (pas de filet mort)", () => {
+    // Défaut visé : l'invalidation était DOCUMENTÉE (« après mutation de
+    // grants ») mais jamais appelée hors tests → après le 1er sync, le cache
+    // d'accès n'était plus jamais purgé de la session, et un admin qui
+    // accordait une capacité ne la voyait apparaître qu'au rechargement.
+    const src = readFileSync(resolve(__dirname, "../orgAdmin.ts"), "utf8");
+    const mutations = [
+      "export async function assignMemberRole",
+      "export async function grantCapability",
+      "export async function revokeCapability",
+    ];
+    for (const marker of mutations) {
+      const start = src.indexOf(marker);
+      expect(start, `${marker} introuvable`).toBeGreaterThan(-1);
+      const body = src.slice(start, src.indexOf("\n}", start));
+      expect(body, `${marker} n'invalide pas le cache d'accès`).toContain(
+        "clearCanAccessMultiCache()",
+      );
+    }
   });
 });

@@ -17,6 +17,7 @@ import { capabilityById, capabilityGrantPayload, type Capability } from "@/lib/c
 import type { Permission } from "@/lib/rbac";
 import { CAPABILITIES } from "@/lib/capabilities";
 import { getPowerSyncDatabase } from "@/lib/powersync";
+import { clearCanAccessMultiCache } from "@/hooks/useCanAccessMulti";
 import {
   createGrantPS,
   executeWrite,
@@ -190,6 +191,10 @@ export async function assignMemberRole(
       WHERE id = ?`,
     [role, plan.id],
   );
+  // Un changement de rôle change les capacités dérivées : le cache d'accès
+  // module-level (`useCanAccessMulti`) doit être purgé, sinon l'ancien verdict
+  // persiste jusqu'au rechargement suivant.
+  clearCanAccessMultiCache();
 }
 
 /**
@@ -209,12 +214,14 @@ export async function grantCapability(
   for (const input of buildGrantInputs(userId, orgId, cap)) {
     await createGrantPS(input);
   }
+  clearCanAccessMultiCache();
   return cap.id;
 }
 
 /** Révoque un grant (soft delete : `revoked_at`). */
 export async function revokeCapability(grantId: string): Promise<void> {
   await revokeGrantPS(grantId);
+  clearCanAccessMultiCache();
 }
 
 /**
