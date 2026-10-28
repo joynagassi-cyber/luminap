@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, type ReactNode } from "react";
 import { useFocusTrap } from "@/hooks/useFocusTrap";
 import { useNavigate } from "react-router-dom";
 import {
@@ -16,6 +16,7 @@ import { formatCurrencyCompact, formatCurrencyFull } from "@/lib/utils";
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
 import EmptyState from "@/components/EmptyState";
+import { ListSkeleton } from "@/components/Skeleton";
 import {
   Plus,
   ChevronRight,
@@ -38,10 +39,10 @@ type TabId = (typeof TABS)[number]["id"];
 
 export default function Giving() {
   const navigate = useNavigate();
-  const { data: campaigns } = useGivingCampaigns();
-  const { data: donors } = useGivingDonors();
-  const { data: pledges } = usePledges();
-  const { data: receipts } = useTaxReceipts();
+  const { data: campaigns, isLoading: campaignsLoading } = useGivingCampaigns();
+  const { data: donors, isLoading: donorsLoading } = useGivingDonors();
+  const { data: pledges, isLoading: pledgesLoading } = usePledges();
+  const { data: receipts, isLoading: receiptsLoading } = useTaxReceipts();
   const { data: transactions } = useTransactions();
   const { data: links } = useTransactionGiving();
   const [tab, setTab] = useState<TabId>("campaigns");
@@ -89,9 +90,11 @@ export default function Giving() {
                 >
                   <Plus className="w-4 h-4" /> Nouvelle campagne
                 </button>
-                {campaigns.length === 0 ? (
-                  <Empty label="Aucune campagne" sub="Lancez une campagne de dons avec un objectif." />
-                ) : (
+                <ListArea
+                  loading={campaignsLoading}
+                  isEmpty={campaigns.length === 0}
+                  empty={<Empty label="Aucune campagne" sub="Lancez une campagne de dons avec un objectif." />}
+                >
                   <div className="space-y-3">
                     {campaigns.map((c) => {
                       const p = campaignProgress(c, links, pledges, incomeTx);
@@ -133,7 +136,7 @@ export default function Giving() {
                       );
                     })}
                   </div>
-                )}
+                </ListArea>
               </div>
             )}
 
@@ -147,9 +150,11 @@ export default function Giving() {
                 >
                   <Plus className="w-4 h-4" /> Nouveau donateur
                 </button>
-                {donors.length === 0 ? (
-                  <Empty label="Aucun donateur" sub="Ajoutez un donateur pour le rattacher à ses dons." />
-                ) : (
+                <ListArea
+                  loading={donorsLoading}
+                  isEmpty={donors.length === 0}
+                  empty={<Empty label="Aucun donateur" sub="Ajoutez un donateur pour le rattacher à ses dons." />}
+                >
                   <div className="space-y-2">
                     {donors.map((d) => (
                       <div
@@ -175,15 +180,17 @@ export default function Giving() {
                       </div>
                     ))}
                   </div>
-                )}
+                </ListArea>
               </div>
             )}
 
             {tab === "pledges" && (
               <div data-testid="giving-pledges">
-                {pledges.length === 0 ? (
-                  <Empty label="Aucun pledge" sub="Enregistrez des engagements de dons échelonnés." />
-                ) : (
+                <ListArea
+                  loading={pledgesLoading}
+                  isEmpty={pledges.length === 0}
+                  empty={<Empty label="Aucun pledge" sub="Enregistrez des engagements de dons échelonnés." />}
+                >
                   <div className="space-y-2">
                     {pledges.map((p) => {
                       const donor = donors.find((d) => d.id === p.donor_id);
@@ -212,15 +219,17 @@ export default function Giving() {
                       );
                     })}
                   </div>
-                )}
+                </ListArea>
               </div>
             )}
 
             {tab === "receipts" && (
               <div data-testid="giving-receipts">
-                {receipts.length === 0 ? (
-                  <Empty label="Aucun reçu fiscal" sub="Générez un reçu annuel depuis le détail d'une campagne." />
-                ) : (
+                <ListArea
+                  loading={receiptsLoading}
+                  isEmpty={receipts.length === 0}
+                  empty={<Empty label="Aucun reçu fiscal" sub="Générez un reçu annuel depuis le détail d'une campagne." />}
+                >
                   <div className="space-y-2">
                     {receipts.map((r) => {
                       const donor = donors.find((d) => d.id === r.donor_id);
@@ -244,7 +253,7 @@ export default function Giving() {
                       );
                     })}
                   </div>
-                )}
+                </ListArea>
               </div>
             )}
           </div>
@@ -294,6 +303,30 @@ function Empty({ label, sub }: { label: string; sub: string }) {
       icon={<Users className="w-6 h-6" />}
     />
   );
+}
+
+/**
+ * R52.b — une liste en cours de lecture n'est pas une liste vide.
+ *
+ * Les hooks (`useGivingCampaigns`, …) renvoient `data: []` ET `isLoading: true`
+ * tant que la première lecture n'a pas abouti. Afficher l'`EmptyState` dans cet
+ * état annonce un fait FAUX (« Aucune campagne ») au moment précis où
+ * l'utilisateur vérifie que ses données sont là. On montre un squelette.
+ */
+function ListArea({
+  loading,
+  isEmpty,
+  empty,
+  children,
+}: {
+  loading: boolean;
+  isEmpty: boolean;
+  empty: ReactNode;
+  children: ReactNode;
+}) {
+  if (loading) return <ListSkeleton count={4} />;
+  if (isEmpty) return <>{empty}</>;
+  return <>{children}</>;
 }
 
 function GiveSheet({
