@@ -101,6 +101,27 @@ describe("resolveRoute — appartenance et contexte d'organisation", () => {
     expect(resolveRoute("/dashboard", state).outcome).toBe("needs-membership");
   });
 
+  it("R107 — /onboarding et /org-setup restent accessibles à un non-membre", () => {
+    // Ce sont les écrans qui PERMETTENT d'acquérir une appartenance : les
+    // bloquer empêcherait tout nouvel inscrit de terminer l'onboarding.
+    const state: RouteState = { isAuthenticated: true, isOrgMember: false };
+    expect(resolveRoute("/onboarding", state).outcome).toBe("render");
+    expect(resolveRoute("/org-setup", state).outcome).toBe("render");
+  });
+
+  it("R107 — l'exemption ne s'applique qu'aux routes concernées", () => {
+    const state: RouteState = { isAuthenticated: true, isOrgMember: false };
+    for (const path of ["/dashboard", "/finance", "/members", "/settings"]) {
+      expect(resolveRoute(path, state).outcome).toBe("needs-membership");
+    }
+  });
+
+  it("R107 — isOrgMember absent (fail-open) → rendu, jamais needs-membership", () => {
+    // `undefined` = non-appartenance NON prouvée (base pas encore synchronisée).
+    const state: RouteState = { isAuthenticated: true };
+    expect(resolveRoute("/dashboard", state).outcome).toBe("render");
+  });
+
   it("deep link vers une autre org que l'org active → org-switch-required AVANT tout rendu", () => {
     const state: RouteState = {
       isAuthenticated: true,

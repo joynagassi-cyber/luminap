@@ -29,6 +29,7 @@ import {
   OrgSwitchScreen,
 } from "@/components/RouteStates";
 import { getOrganizationId } from "@/lib/orgContext";
+import { useOrgMembership } from "@/hooks/useOrgMembership";
 import {
   getDeepLinkOrgIntent,
   clearDeepLinkOrgIntent,
@@ -112,6 +113,13 @@ function RouteGuard() {
     return () => {};
   }, [location.pathname]);
 
+  // R107 — alimente `isOrgMember` pour la branche `needs-membership` du
+  // résolveur (sinon MORTE : un compte authentifié mais non membre de l'org
+  // active voyait un écran vide au lieu de l'écran « Organisation non
+  // rejointe »). Fail-open : `undefined` tant que la non-appartenance n'est pas
+  // PROUVÉE. DOIT rester au-dessus du `return` précoce (Rules of Hooks).
+  const orgMembership = useOrgMembership();
+
   // Pendant le check, on affiche un spinner plein écran plutôt que null :
   // le fond --canvas (noir) restait seul visible pendant 2-3s (la
   // revalidation réseau du token) et ressemblait à un « écran noir »
@@ -169,7 +177,11 @@ function RouteGuard() {
     // n'est déclarée, la contrainte est inerte (comportement inchangé).
     clientSchemaVersion: CLIENT_SCHEMA_VERSION,
     minSchemaVersion: resolveMinSchemaVersion(),
-    // `isOrgMember` / `hasPermission` sont câblés par les phases 4 (R107/R105).
+    // R107 — `isOrgMember` alimenté par `useOrgMembership` : `false` UNIQUEMENT
+    // sur preuve de non-appartenance (membre de l'org active → `true` ; incertain
+    // → `undefined`, fail-open). `hasPermission` reste à câbler (phase 4/R105,
+    // bloqué par la décision R109 sur le rôle ADMIN).
+    isOrgMember: orgMembership === "unknown" ? undefined : orgMembership === "member",
   });
 
   const confirmOrgSwitch = async (targetOrgId: string) => {

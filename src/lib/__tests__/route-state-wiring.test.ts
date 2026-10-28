@@ -38,7 +38,6 @@ const appSrc = readFileSync(resolve(__dirname, "../../App.tsx"), "utf8");
  * test (garde anti-obsolescence).
  */
 const PENDING_WIRING: Record<string, string> = {
-  isOrgMember: "R107 — bloqué par la décision R109/R16 (modèle de rôles ADMIN)",
   hasPermission: "R105 — bloqué par la décision R109/R16 (modèle de rôles ADMIN)",
 };
 
@@ -118,6 +117,7 @@ describe("RouteState — aucun champ inerte (garde anti-classe R105/R106/R107)",
     // Les champs attendus comme câblés aujourd'hui (R106 + PM2 + base).
     for (const k of [
       "isAuthenticated",
+      "isOrgMember",
       "activeOrgId",
       "linkOrgId",
       "clientSchemaVersion",
