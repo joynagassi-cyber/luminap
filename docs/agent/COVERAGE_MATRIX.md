@@ -15,7 +15,7 @@
 | T5 | `slot="input"` retiré (61 champs) | sonde DOM | couvert |
 | T6 | `scroll-padding-top` (header) | `C: finance-deep.cy.ts` | couvert |
 | T9 | `lumina-user` persisté | `V` + sonde | couvert |
-| T10 | Cache `canAccess` invalidé | `V: useCanAccessMulti` | couvert |
+| T10 | Cache `canAccess` invalidé | `V: useCanAccessMulti.test.tsx` | couvert |
 | T11 | Contexte d'org réactif | `V` + `C` | couvert |
 | T12 | `isInitializingRead()` borné | `V` 1049/1049 | couvert |
 
@@ -29,7 +29,7 @@
 | 2 | `ErrorBoundary` par route | `LazyRouteErrorBoundary` (pré-existant) | couvert |
 | 2 | Watchdog `app-ready` (armé hors React, surcouche statique) | `V: boot-watchdog.test.ts` (4, jsdom) | **couvert** |
 | 2 | `ChunkLoadError` rechargement | `V: chunk-error-recovery.test.ts` (3, jsdom) | **couvert** (anti-boucle) |
-| 2 | Deep links (web + `appUrlOpen`) | `V: parseDeepLink` (7) | **couvert** (parsing) |
+| 2 | Deep links (web + `appUrlOpen`) | `V: route-resolver.test.ts` (`parseDeepLink`, 7) | **couvert** (parsing) |
 | 2 | `client_errors` capture + redaction PII | `V: client-errors.test.ts` (8) | **couvert** |
 | 3 | Arbre multi-org : anti-cycle + clôture transitive | `V: org-tree.test.ts` (11) + preuves SQL | **couvert** |
 | 3 | Table de fermeture matérialisée (perf) | — | proposition |

@@ -89,6 +89,7 @@
 | 11 | **Banc a11y rendu étendu** (6 → 8 écrans : `/help`, `/notifications`) — invariants `data-screen-state`/`<h1>`/labels/`alt` vérifiés à l'exécution | P2 | **terminé** | `agent/phase-11-a11y-screens-coverage` | `phase-11/2026-10-28-a11y-screens-coverage.md` |
 | 11 | **R65.b — garde d'inventaire jsonb** : `jsonb-inventory.test.ts` relève les colonnes `jsonb` des migrations et échoue si `JSONB_COLUMNS` en manque une ; **dérive réelle corrigée** (`custom_field_values.value`) | P2 | **terminé** | `agent/phase-11-r65b-jsonb-inventory` | `phase-11/2026-10-28-r65b-jsonb-inventory.md` |
 | 8 | **R115 — surface RPC des fonctions de trigger** : le durcissement R103 était **contourné** (2 migrations ultérieures) ; garde `pg_trigger_depth()` restaurée + balayage générique rejoué → 0 fonction de trigger exposée ; garde d'**ordre** `revoke-trigger-functions.test.ts` | P1 | **terminé** | `agent/phase-08-r115-trigger-rpc-surface` | `phase-08/2026-10-28-r115-trigger-rpc-surface.md` |
+| 12 | **Garde anti-dérive `COVERAGE_MATRIX` ↔ tests réels** : chaque référence `V:`/`C:`/`SQL:` doit pointer vers un fichier existant (couverture déclarée ≠ fictive) ; 2 dérives réelles corrigées (`useCanAccessMulti`, `parseDeepLink`) | P2 | **terminé** | `agent/phase-12-coverage-guard` | `phase-12/2026-10-28-coverage-matrix-guard.md` |
 | 12 | Suite Cypress (couverture totale) + crawler | P2 | à faire | `agent/phase-12-cypress` | — |
 | 13-17 | Tutoriel, personnalisation, propositions, doc, validation finale | P3 | à faire | `agent/phase-13..17` | — |
 
