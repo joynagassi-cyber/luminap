@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useCaisses, useAccounts, useTransactions, createVersement } from "@/lib/dataLayer";
+import { useCaisses, useAccounts, useTransactions, createVersement, isPowerSyncReadyNow } from "@/lib/dataLayer";
 import { formatCurrencyCompact } from "@/lib/utils";
 import { ArrowLeft, Check, AlertCircle, Wallet, RefreshCw } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
@@ -110,7 +110,10 @@ export default function Versement() {
     }
   };
 
-  if (accountsLoading) {
+  // R52.q — `accountsLoading` provient de `useAccounts()` (renvoie `false` en
+  // dur, D-R41) : le formulaire s'affichait avec un sélecteur de caisse vide,
+  // laissant croire qu'aucun compte n'existe.
+  if (accountsLoading || (accounts.length === 0 && !isPowerSyncReadyNow())) {
     return (
       <IonPage>
         <IonContent className="bg-canvas" fullscreen>

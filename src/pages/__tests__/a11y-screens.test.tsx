@@ -72,6 +72,7 @@ vi.mock("@/lib/dataLayer", () => ({
   markReportRead: vi.fn(async () => undefined),
   parseBudgetItems: () => [],
   addMemberPS: vi.fn(async () => undefined),
+  isPowerSyncReadyNow: () => true,
 }));
 
 vi.mock("@/lib/auth", () => ({

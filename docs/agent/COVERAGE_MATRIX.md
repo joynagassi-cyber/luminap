@@ -60,3 +60,16 @@
 | 4 | Invariant ≥1 administrateur par organisation (PM5) | `V: last-org-admin.test.ts` (4) + `SQL: 20261026000007` | **couvert** |
 | 7 | Suppression de membre sans perte financière (PM8) | `V: member-deletion-guard.test.ts` (4) + `SQL: 20261026000008` | **couvert** |
 | 9 | Catégories canoniques (R89.a, FK `transactions.category_id`) | `V: canonical-categories-drift` (4) + seed idempotent | **couvert** (FK vérifiée en base) |
+| 11 | « Pas encore lu » ≠ « vide » (R52.b→R52.k) : squelettes + garde `isPowerSyncReadyNow()` / drapeaux `*Loaded` | `V: list-loading-vs-empty.test.tsx` (15), `V: r52k-forms-loading.test.tsx` (3), `V: Giving-loading`, `V: async-loading-vs-empty` | **couvert** (non-vacuité vérifiée) |
+| 11 | Garde statique anti-récurrence R52 (verdict vide ⇒ signal de disponibilité) | `V: r52-readiness-guard.test.ts` (2, dont non-vacuité par sonde) | **couvert** |
+| 11 | `/dashboard` : état vide ≠ pas encore lu (R52.l, branche `isLoading` morte) | `V: r52l-dashboard-loading.test.tsx` (2, non-vacuité vérifiée) | **couvert** |
+| 11 | Listes principales `/members`, `/events`, `/groups`, `/cotisations`, `/notifications` (R52.m) | `V: list-loading-vs-empty.test.tsx` (5, non-vacuité vérifiée) | **couvert** |
+| 11 | Détail `/group/:id` : « introuvable » avant lecture (R52.n) | `V: list-loading-vs-empty.test.tsx` (1, non-vacuité vérifiée) | **couvert** |
+| 11 | `/reports` : « Aucun rapport personnalisé » avant lecture (R52.o) | `V: r52o-reports-loading.test.tsx` (1, non-vacuité vérifiée) | **couvert** |
+| 11 | `DocumentPicker` : « Aucun document uploadé » avant lecture (R52.p) | `V: r52p-document-picker-loading.test.tsx` (2, non-vacuité vérifiée) | **couvert** |
+| 11 | Garde statique : verdict vide gardé par un `isLoading` MORT (liste dérivée de dataLayer) | `V: r52-readiness-guard.test.ts` (3, sonde de non-vacuité) | **couvert** |
+| 11 | `/balance`, `/history`, `/versement` : chiffres faux avant lecture (R52.q) | `V: r52q-finance-loading.test.tsx` (6, non-vacuité vérifiée) | **couvert** |
+| 11 | Garde statique : squelette gardé par un `isLoading` MORT sans disponibilité prouvée | `V: r52-readiness-guard.test.ts` (4, mutation de Balance.tsx) | **couvert** |
+| 11 | `/settings/notifications` : « Tout est lu » avant lecture (R52.r) | `V: r52r-settings-notifications-loading.test.tsx` (2, non-vacuité vérifiée) | **couvert** |
+| 11 | `/event/:id/edit` : « Chargement... » infini + nom non pré-rempli (R52.s) | `V: r52s-eventedit-loading.test.tsx` (3, non-vacuité vérifiée) | **couvert** |
+| 11 | `/transaction/:id/edit` : formulaire vide en `ready` avant lecture (R52.t) | `V: r52t-transactionedit-loading.test.tsx` (3, non-vacuité vérifiée) | **couvert** |

@@ -7,7 +7,7 @@ import {
   IonTitle,
   IonToolbar,
 } from "@ionic/react";
-import { useEvents, useTransactions, useMembers, parseBudgetItems } from "@/lib/dataLayer";
+import { useEvents, useTransactions, useMembers, parseBudgetItems, isPowerSyncReadyNow } from "@/lib/dataLayer";
 import { Plus, Clock, Gift, ArrowUp, ArrowDown } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
@@ -64,11 +64,14 @@ export default function Events() {
     return map;
   }, [transactions]);
 
+  // R52.m — réplique PowerSync non prête : « Aucun événement » serait un fait FAUX.
+  const replicaPending = !isPowerSyncReadyNow();
+
   const visibleEvents = sortedEvents.slice(0, visibleCount);
 
   return (
     <IonPage>
-      {psLoading ? (
+      {psLoading || (events.length === 0 && replicaPending) ? (
         <IonContent fullscreen>
           <EventsSkeleton />
         </IonContent>

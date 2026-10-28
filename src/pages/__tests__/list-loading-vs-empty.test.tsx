@@ -56,6 +56,16 @@ vi.mock("@/lib/dataLayer", () => ({
   deleteTransactionPS: vi.fn(async () => undefined),
   useDocuments: () => ({ data: [], isLoading: false }),
   useCaisses: () => ({ data: [], isLoading: false }),
+  useAuditEntries: () => ({ data: [], isLoading: false }),
+  useNotifications: () => ({ data: [], isLoading: false, error: undefined, retry: vi.fn() }),
+  useAppConfig: () => ({ config: { churchName: "Lumina", churchLogoUrl: "" }, updateConfig: vi.fn() }),
+  useAccounts: () => ({ data: [], isLoading: false }),
+  addMemberPS: vi.fn(async () => undefined),
+  markNotificationRead: vi.fn(async () => undefined),
+  markAllNotificationsRead: vi.fn(async () => undefined),
+  createGroupPS: vi.fn(async () => undefined),
+  updateGroupPS: vi.fn(async () => undefined),
+  deleteGroupPS: vi.fn(async () => undefined),
 }));
 
 vi.mock("@/capabilities/policy", () => ({
@@ -89,6 +99,15 @@ import CulteDetail from "@/pages/CulteDetail";
 import GroupCotisation from "@/pages/GroupCotisation";
 import TransactionDetail from "@/pages/TransactionDetail";
 import SaisieRapide from "@/pages/SaisieRapide";
+import Trace from "@/pages/Trace";
+import OrgReportSend from "@/pages/OrgReportSend";
+import Members from "@/pages/Members";
+import Events from "@/pages/Events";
+import Groups from "@/pages/Groups";
+import Cotisations from "@/pages/Cotisations";
+import Notifications from "@/pages/Notifications";
+import GroupDetail from "@/pages/GroupDetail";
+import Reports from "@/pages/Reports";
 
 afterEach(cleanup);
 
@@ -266,5 +285,120 @@ describe("R52.i — /saisie-rapide/:id : « Culte introuvable » avant le premie
     );
     expect(container.querySelectorAll('[aria-busy="true"]').length).toBeGreaterThan(0);
     expect(screen.queryByText("Culte introuvable.")).toBeNull();
+  });
+});
+
+describe("R52.j — /trace et /admin/reports/send : « aucun » avant la première lecture", () => {
+  it("/trace affiche un squelette, pas « Aucune entrée trouvée »", () => {
+    state.ready = false;
+    const { container } = render(
+      <MemoryRouter initialEntries={["/trace"]}>
+        <Routes>
+          <Route path="/trace" element={<Trace />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(container.querySelectorAll('[aria-busy="true"]').length).toBeGreaterThan(0);
+    expect(screen.queryByText("Aucune entrée trouvée")).toBeNull();
+  });
+
+  it("/admin/reports/send affiche un squelette, pas « Aucun rapport envoyé »", () => {
+    state.ready = false;
+    const { container } = render(
+      <MemoryRouter initialEntries={["/admin/reports/send"]}>
+        <Routes>
+          <Route path="/admin/reports/send" element={<OrgReportSend />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(container.querySelectorAll('[aria-busy="true"]').length).toBeGreaterThan(0);
+    expect(screen.queryByText("Aucun rapport envoyé pour le moment.")).toBeNull();
+  });
+});
+
+describe("R52.m — listes principales : verdict vide avant la première lecture", () => {
+  it("/members affiche un squelette, pas « Aucun membre »", () => {
+    state.ready = false;
+    const { container } = render(
+      <MemoryRouter>
+        <Members />
+      </MemoryRouter>,
+    );
+    expect(container.querySelectorAll('[aria-busy="true"]').length).toBeGreaterThan(0);
+    expect(screen.queryByText("Aucun membre")).toBeNull();
+  });
+
+  it("/events affiche un squelette, pas « Aucun événement »", () => {
+    state.ready = false;
+    const { container } = render(
+      <MemoryRouter>
+        <Events />
+      </MemoryRouter>,
+    );
+    expect(container.querySelectorAll('[aria-busy="true"]').length).toBeGreaterThan(0);
+    expect(screen.queryByText("Aucun événement")).toBeNull();
+  });
+
+  it("/groups affiche un squelette, pas « Aucun groupe »", () => {
+    state.ready = false;
+    const { container } = render(
+      <MemoryRouter>
+        <Groups />
+      </MemoryRouter>,
+    );
+    expect(container.querySelectorAll('[aria-busy="true"]').length).toBeGreaterThan(0);
+    expect(screen.queryByText("Aucun groupe")).toBeNull();
+  });
+
+  it("/cotisations affiche un squelette, pas « Aucun culte »", () => {
+    state.ready = false;
+    const { container } = render(
+      <MemoryRouter>
+        <Cotisations />
+      </MemoryRouter>,
+    );
+    expect(container.querySelectorAll('[aria-busy="true"]').length).toBeGreaterThan(0);
+    expect(screen.queryByText("Aucun culte")).toBeNull();
+  });
+
+  it("/notifications affiche un squelette, pas « Pas encore de notification »", () => {
+    state.ready = false;
+    const { container } = render(
+      <MemoryRouter>
+        <Notifications />
+      </MemoryRouter>,
+    );
+    expect(container.querySelectorAll('[aria-busy="true"]').length).toBeGreaterThan(0);
+    expect(screen.queryByText("Pas encore de notification")).toBeNull();
+  });
+});
+
+describe("R52.n — /group/:id : « Groupe introuvable » avant le premier sync", () => {
+  it("affiche un squelette, pas « Groupe introuvable »", () => {
+    state.ready = false;
+    const { container } = render(
+      <MemoryRouter initialEntries={["/group/g-1"]}>
+        <Routes>
+          <Route path="/group/:id" element={<GroupDetail />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(container.querySelectorAll('[aria-busy="true"]').length).toBeGreaterThan(0);
+    expect(screen.queryByText("Groupe introuvable")).toBeNull();
+  });
+});
+
+describe("R52.o — /reports : « Aucun rapport personnalisé » avant la lecture", () => {
+  it("affiche un squelette, pas « Aucun rapport personnalisé »", () => {
+    state.ready = false;
+    const { container } = render(
+      <MemoryRouter initialEntries={["/reports"]}>
+        <Routes>
+          <Route path="/reports" element={<Reports />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(container.querySelectorAll('[aria-busy="true"]').length).toBeGreaterThan(0);
+    expect(screen.queryByText("Aucun rapport personnalisé")).toBeNull();
   });
 });

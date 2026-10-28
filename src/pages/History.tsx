@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   useTransactions,
+  isPowerSyncReadyNow,
 } from "@/lib/dataLayer";
 import {
   ArrowLeft,
@@ -131,7 +132,12 @@ export default function HistoryPage() {
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
   const [period, setPeriod] = useState<"all" | "month" | "year">("all");
 
-  if (txLoading) {
+  // R52.q — `txLoading` provient de `useTransactions()` (renvoie `false` en
+  // dur, D-R41) : le squelette ne s'affichait jamais et l'historique montrait
+  // des graphiques et des totaux VIDES avant la 1re lecture.
+  const replicaPending = !isPowerSyncReadyNow();
+
+  if (txLoading || ((transactions?.length ?? 0) === 0 && replicaPending)) {
     // M25/H4 — le skeleton reste dans IonPage/IonContent (transitions de vue
     // ioniques + conteneur de scroll unique) ; shimmer en lieu et place de
     // animate-pulse (DESIGN.md §4).
@@ -140,7 +146,7 @@ export default function HistoryPage() {
         <IonContent className="bg-canvas">
         <h1 className="sr-only">Historique</h1>
           <TopHeader title="Historique" />
-          <div data-screen-state="loading" className="min-h-dvh flex flex-col">
+          <div data-screen-state="loading" aria-busy="true" className="min-h-dvh flex flex-col">
             <div className="flex-1 max-w-lg w-full mx-auto px-5 pb-safe-calc pt-safe-calc">
               <div className="space-y-4">
                 <ShimmerList count={5} gap={16} minHeight={88} />

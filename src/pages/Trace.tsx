@@ -6,6 +6,7 @@ import {
   useGroups,
   useMembers,
   useEvents,
+  isPowerSyncReadyNow,
 } from "@/lib/dataLayer";
 import {
   ArrowLeft,
@@ -20,6 +21,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
+import { ListSkeleton } from "@/components/Skeleton";
 import TopHeader from "@/components/TopHeader";
 import { formatDateTime, formatDate } from "@/lib/utils";
 import {
@@ -167,7 +169,9 @@ export default function TracePage() {
 
             {/* Entries */}
             <div className="space-y-2 mb-6">
-              {filteredEntries.length === 0 ? (
+              {filteredEntries.length === 0 && !isPowerSyncReadyNow() ? (
+                <ListSkeleton count={4} />
+              ) : filteredEntries.length === 0 ? (
                 <div
                   className="text-center py-10 rounded-xl"
                   style={{ backgroundColor: "var(--surface)" }}

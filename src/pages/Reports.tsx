@@ -8,6 +8,7 @@ import {
   useEvents,
   useAppConfig,
   useCurrentUser,
+  isPowerSyncReadyNow,
 } from "@/lib/dataLayer";
 import { formatCentsToFCFA, formatCentsFull, formatDate } from "@/lib/utils";
 import {
@@ -28,6 +29,7 @@ import EmptyState from "@/components/EmptyState";
 import CapabilityBanner from "@/components/CapabilityBanner";
 import { getOrganizationId } from "@/lib/orgContext";
 import { ReportsSkeleton } from "@/components/PageSkeletons";
+import { ListSkeleton } from "@/components/Skeleton";
 import { exportPDF, exportExcel, exportCSV } from "@/lib/export";
 import { reportDefinitionRepo } from "@/lib/reporting";
 import { useCanAccessMulti } from "@/hooks/useCanAccessMulti";
@@ -280,6 +282,9 @@ export default function Reports() {
   const [period, setPeriod] = useState<Period>("month");
   const [showExport, setShowExport] = useState(false);
   const [savedReports, setSavedReports] = useState<ReportDefinition[]>([]);
+  // R52.o — `reportDefinitionRepo.list()` est asynchrone : « Aucun rapport
+  // personnalisé » serait un fait FAUX avant la fin de la lecture.
+  const [savedLoaded, setSavedLoaded] = useState(false);
 
   // B.1 — le hook fait l'union : `allowed` est vrai si le chemin fédéré
   // (`federation.canAccess` : grants + rôles canon) OU le chemin legacy
@@ -297,7 +302,10 @@ export default function Reports() {
         // Hors ligne ou store indisponible : la liste reste vide, mais on garde
         // une trace (R88) — sans elle, un échec réel est indiscernable du vide.
         captureClientError(e, { message: "Échec du chargement des rapports" });
-      });
+      })
+      // `finally` : l'écran ne reste jamais bloqué en squelette si la lecture
+      // échoue (même garantie que R52.k).
+      .finally(() => setSavedLoaded(true));
   }, []);
 
   // ── Filtrage par période ───────────────────────────────────────────────────
@@ -415,7 +423,10 @@ export default function Reports() {
     setShowExport(false);
   };
 
-  if (isLoading) {
+  // R52.m/o — la branche `isLoading` est MORTE (`useTransactions` renvoie
+  // `false` en dur, D-R41) : on ajoute la garde de réplique + la lecture des
+  // rapports personnalisés pour ne jamais annoncer « Aucun … » avant lecture.
+  if (isLoading || ((transactions?.length ?? 0) === 0 && !isPowerSyncReadyNow())) {
     return (
       <IonPage>
         <IonContent className="bg-canvas">
@@ -511,7 +522,9 @@ export default function Reports() {
                   <span className="text-text-tertiary text-xs">({savedReports.length})</span>
                 </div>
 
-                {savedReports.length === 0 ? (
+                {savedReports.length === 0 && !savedLoaded ? (
+                  <ListSkeleton count={2} />
+                ) : savedReports.length === 0 ? (
                   <EmptyState
                     title="Aucun rapport personnalisé"
                     description="Créez-en un avec le constructeur"

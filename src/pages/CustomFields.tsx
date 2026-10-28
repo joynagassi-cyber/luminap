@@ -4,6 +4,8 @@ import { ArrowLeft, Plus, X, Trash2, Edit3 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
 import { customFieldRepo, customFieldValueRepo } from "@/lib/customFields";
+import { ListSkeleton } from "@/components/Skeleton";
+import { captureClientError } from "@/lib/clientErrors";
 import { generateId } from "@/lib/utils";
 import { getOrganizationId } from "@/lib/orgContext";
 import type { CustomFieldDefinition } from "@/types";
@@ -42,6 +44,9 @@ const FIELD_TYPES: { value: CustomFieldDefinition["type"]; label: string }[] = [
 export default function CustomFields() {
   const navigate = useNavigate();
   const [fields, setFields] = useState<CustomFieldDefinition[]>([]);
+  // R52.k — « Pas encore de champ personnalisé » n'est exact qu'après la
+  // première lecture (sinon on annonce un fait faux pendant le chargement).
+  const [fieldsLoaded, setFieldsLoaded] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [entityType, setEntityType] = useState("Transaction");
   const [key, setKey] = useState("");
@@ -52,7 +57,13 @@ export default function CustomFields() {
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
-    customFieldRepo.list().then(setFields);
+    customFieldRepo
+      .list()
+      .then(setFields)
+      .catch((e) =>
+        captureClientError(e, { message: "Échec du chargement des champs personnalisés" }),
+      )
+      .finally(() => setFieldsLoaded(true));
   }, []);
 
   const handleCreate = async () => {
@@ -121,7 +132,9 @@ export default function CustomFields() {
               </button>
             </div>
 
-            {fields.length === 0 ? (
+            {!fieldsLoaded ? (
+              <ListSkeleton count={3} />
+            ) : fields.length === 0 ? (
               <div
                 className="text-center py-16 rounded-xl"
                 style={{ backgroundColor: "var(--surface)" }}

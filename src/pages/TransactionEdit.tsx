@@ -7,6 +7,7 @@ import {
   useEvents,
   useAccounts,
   updateTransactionPS,
+  isPowerSyncReadyNow,
 } from "@/lib/dataLayer";
 import { ArrowUpRight, ArrowDownRight, X, Wallet, User } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
@@ -87,6 +88,58 @@ export default function TransactionEdit() {
       setComment((tx as any).comment || "");
     }
   }, [id, transactions]);
+
+  // R52.t — avant la 1re lecture, `transactions` est vide : le formulaire
+  // s'affichait VIDE en `data-screen-state="ready"`. L'utilisateur pouvait
+  // croire à une transaction sans montant/description et enregistrer un
+  // formulaire vide (ou écraser les vraies valeurs arrivées au sync suivant).
+  // Même famille que R52.l→R52.s (D-R41 : aucun signal de disponibilité).
+  const tx = transactions.find((t: any) => t.id === id);
+  if (!tx) {
+    if (!isPowerSyncReadyNow()) {
+      return (
+        <div
+          data-screen-state="loading"
+          className="min-h-dvh flex items-center justify-center"
+        >
+          <p className="text-text-tertiary">Chargement...</p>
+        </div>
+      );
+    }
+    return (
+      <IonPage>
+        <IonHeader>
+          <IonToolbar>
+            <IonTitle>Transaction introuvable</IonTitle>
+          </IonToolbar>
+        </IonHeader>
+        <IonContent fullscreen className="bg-canvas">
+          <div
+            data-screen-state="error"
+            className="min-h-dvh flex items-center justify-center px-5 text-center"
+          >
+            <div>
+              <p className="text-text-primary font-semibold mb-2">
+                Cette transaction est introuvable.
+              </p>
+              <p className="text-text-tertiary text-sm mb-6">
+                Elle a peut-être été supprimée, ou elle appartient à une autre
+                organisation.
+              </p>
+              <button
+                type="button"
+                onClick={() => navigate("/transactions")}
+                className="px-4 py-2.5 rounded-xl text-sm font-medium"
+                style={{ color: "var(--accent-primary)" }}
+              >
+                Retour aux transactions
+              </button>
+            </div>
+          </div>
+        </IonContent>
+      </IonPage>
+    );
+  }
 
   const filteredCategories = categories.filter((c: any) => c.type === type);
 

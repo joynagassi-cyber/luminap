@@ -805,12 +805,39 @@
   (`isPowerSyncReadyNow()` + `ListSkeleton`).
 - **Rechute R52.i (`/saisie-rapide/:id`)** — **corrigée 2026-10-28** :
   « Culte introuvable. » affiché avant le premier sync. Correctif identique.
-- **Garde anti-récurrence** — ajoutée 2026-10-28 : test **statique**
-  `src/lib/__tests__/r52-readiness-guard.test.ts` — toute page qui affiche
-  « introuvable » doit contenir un signal de disponibilité
-  (`isPowerSyncReadyNow`, `notFound`, `isLoading`, `Loaded`, `Skeleton`), sinon
-  la suite échoue. Allowlist motivée : `NotFound.tsx` (le verdict EST la route),
-  `Tutorial.tsx` (contenu pédagogique). Non-vacuité prouvée par sonde.
+- **Rechute R52.j (`/trace`, `/admin/reports/send`)** — **corrigée 2026-10-28** :
+  `/trace` affichait « Aucune entrée trouvée » avant que `audit_entries` ne soit
+  lue (`useAuditEntries()` retombe sur `store.auditEntries = []` au premier
+  rendu) ; `/admin/reports/send` affichait « Aucun rapport envoyé pour le
+  moment. » avant la réponse de la requête PowerSync `org_reports`
+  (`refreshHistory` asynchrone). Correctifs : garde `isPowerSyncReadyNow()` +
+  `ListSkeleton` (`/trace`) ; drapeau `historyLoaded` posé dans un `finally` +
+  `ListSkeleton` (`/admin/reports/send`). 2 tests à double sens, non-vacuité
+  vérifiée (2 échecs sans le garde).
+- **Rechute R52.k (`/forms`, `/forms/custom-fields`)** — **corrigée 2026-10-28** :
+  FormBuilder affichait « Pas encore de formulaire » et CustomFields
+  « Pas encore de champ personnalisé » avant la première lecture (les deux
+  listes sont remplies par une promesse `formDefinitionRepo.list` /
+  `customFieldRepo.list`). Correctifs : drapeau `formsLoaded`/`fieldsLoaded`
+  posé dans un `finally` + `ListSkeleton` ; `catch` instrumenté via
+  `captureClientError` (R88). 3 tests (dont « le message vide exact apparaît
+  une fois la lecture terminée »), non-vacuité vérifiée.
+- **Garde anti-récurrence** — ajoutée 2026-10-28 (étendue R52.j) : test
+  **statique** `src/lib/__tests__/r52-readiness-guard.test.ts` — toute page qui
+  affiche un verdict vide réel (« introuvable », « Aucun(e) … trouvé(e) »,
+  « … pour le moment », « … pour l'instant ») doit contenir un signal de
+  disponibilité (`isPowerSyncReadyNow`, `loading`/`Loading`, `ShimmerList`,
+  `Skeleton`, `Loaded`, `listError`), sinon la suite échoue. Le motif exclut les
+  libellés de formulaire (« Aucun événement », « Aucune (racine) ») et les
+  boutons (« Aucune notification à vider ») pour éviter les faux positifs.
+  Couvre aussi « Pas encore de … » (R52.k).
+  Allowlist motivée : `NotFound.tsx` (le verdict EST la route), `Tutorial.tsx`
+  (contenu pédagogique). Le balayage couvre **aussi `src/components/`** (un
+  verdict vide dans un composant partagé se propage partout) — `DocumentPicker`
+  (« Aucun document uploadé pour le moment. ») et `OrgChildren` (« Aucune
+  annexe pour le moment. ») sont vérifiés sains (garde `loading` / `documents`
+  `undefined`). Non-vacuité prouvée par sonde (`__R52Probe.tsx`,
+  `__R52ProbeC.tsx`).
 - **Preuve** : `src/pages/__tests__/Giving-loading.test.tsx` (2) +
   `src/pages/__tests__/list-loading-vs-empty.test.tsx` (6) +
   `src/pages/__tests__/async-loading-vs-empty.test.tsx` (2) +
@@ -818,8 +845,9 @@
   `r52-readiness-guard.test.ts` (garde statique) ; les deux
   directions sont verrouillées (chargement → squelette ET état vide exact
   quand la lecture est terminée). **Non-vacuité vérifiée** : en retirant le
-  branchement, les 13 assertions « squelette » échouent. Suite : **1610/1610**
-  (132 fichiers), `tsc -b --force` = 0, eslint 0 erreur.
+  branchement, les 13 assertions « squelette » échouent ; R52.j : 2 échecs sans
+  le garde ; R52.k : 2 échecs sans le garde. Suite : **1615/1615** (133
+  fichiers), `tsc -b --force` = 0, eslint 0 erreur.
 - **Piège de vérification** : `tsc -b` est incrémental et peut masquer une
   erreur réelle (TS1117) ; contrôler avec `npx tsc -b --force --noEmit`.
 - **Travail restant (R52.a)** : `/sessions` conserve sa preuve E2E rouge
@@ -828,6 +856,167 @@
   Le diagnostic Cypress initial (« Mes comptes … Aucun compte lié pour
   l'instant » alors que `org_memberships` contient la ligne `org-e2e` ACTIVE)
   reste la mesure du défaut, aujourd'hui couvert par le squelette.
+
+### R52.l — `/dashboard` : « Pas encore de mouvement » avant la première lecture — CORRIGÉ (2026-10-28)
+- **Gravité** : HAUTE (c'est le **premier écran** vu après connexion ; un
+  historique vide affiché à tort fait croire à une perte de données).
+- **Défaut** : `Dashboard.tsx` ne distinguait pas « pas encore lu » de
+  « réellement vide ». Il portait bien un `DashboardSkeleton`, mais **seulement**
+  sur la branche `if (isLoading)` — or `useTransactions()` renvoie
+  `isLoading: false` **en dur** (l'état de chargement temporel a été retiré,
+  décision D-R41). Cette branche est donc **du code mort** : aucun squelette
+  n'était jamais rendu, et « Pas encore de mouvement » s'affichait pendant la
+  première synchronisation.
+- **Aggravant (garde aveuglée)** : la garde statique `r52-readiness-guard`
+  comptait le mot « Skeleton » comme preuve de disponibilité — un simple
+  *import* de squelette, même non câblé, suffisait à la faire passer.
+- **Correctif** :
+  1. `Dashboard.tsx` : `const replicaPending = !isPowerSyncReadyNow();` et
+     `ListSkeleton` quand `recentTransactions.length === 0 && replicaPending`.
+  2. `r52-readiness-guard.test.ts` : « Skeleton » **retiré** des signaux de
+     disponibilité (un import ne prouve rien) ; signal `aria-busy` ajouté ;
+     test de non-vacuité étendu au cas « squelette importé non câblé ».
+- **Preuve** : `src/pages/__tests__/r52l-dashboard-loading.test.tsx` (2 tests,
+  **non-vacuité vérifiée** : retirer la garde fait réapparaître « Pas encore de
+  mouvement » et échouer le test).
+- **Statut** : corrigé.
+
+### R52.m — listes principales : verdict vide avant la première lecture — CORRIGÉ (2026-10-28)
+- **Gravité** : HAUTE (écrans quotidiens : `/members`, `/events`, `/groups`,
+  `/cotisations`, `/notifications`).
+- **Défaut (systémique)** : ces pages portaient un squelette dédié, mais leur
+  garde était `if (…Loading)` — or `useMembers`, `useEvents`, `useGroups`,
+  `useOrgUnits`, `useNotifications`, `useCotisations` renvoient
+  `isLoading: false` **en dur** (état temporel retiré, D-R41). Ces branches
+  étaient donc **du code mort** : « Aucun membre », « Aucun événement »,
+  « Aucun groupe », « Aucun culte », « Pas encore de notification »
+  s'affichaient pendant la première synchronisation.
+- **Correctif** : garde `isPowerSyncReadyNow()` ajoutée (motif éprouvé), le
+  squelette existant est désormais réellement rendu.
+- **Preuve** : `list-loading-vs-empty.test.tsx` (§ R52.m, 5 tests). **Non-vacuité
+  vérifiée** : en retirant la garde, les 5 tests échouent (mesuré 6/6 avec
+  R52.n).
+- **Statut** : corrigé.
+
+### R52.n — `/group/:id` : « Groupe introuvable » avant le premier sync — CORRIGÉ (2026-10-28)
+- **Gravité** : HAUTE (page de détail ; l'utilisateur croit le groupe supprimé).
+- **Défaut** : même cause que R52.m — `useOrgUnits()` renvoie `isLoading: false`
+  en dur, donc `if (orgUnitsLoading)` ne se déclenchait jamais et le verdict
+  « Groupe introuvable » s'affichait tant que la réplique n'était pas prête.
+- **Correctif** : `if (orgUnitsLoading || (!orgUnit && !isPowerSyncReadyNow()))`.
+- **Preuve** : `list-loading-vs-empty.test.tsx` (§ R52.n). Non-vacuité vérifiée.
+- **Statut** : corrigé.
+
+### R52.q — Écrans FINANCIERS affichant des CHIFFRES FAUX avant la 1re lecture — CORRIGÉ (2026-10-28)
+- **Gravité** : HAUTE (plus grave que R52.l→R52.p : ce n'est pas un verdict vide
+  mais un **bilan chiffré faux** lu par un trésorier).
+- **Défaut (même cause systémique, conséquence aggravée)** : la garde de
+  chargement reposait sur un `isLoading` **mort** (`useTransactions` /
+  `useAccounts` renvoient `false` en dur, D-R41). Le squelette n'était JAMAIS
+  rendu :
+  - `/balance` : `data-screen-state="ready"` avec **tous les totaux à 0 FCFA** ;
+  - `/history` : graphiques et agrégats **vides** ;
+  - `/versement` : sélecteur de caisse **vide** (laisse croire qu'aucun compte
+    n'existe).
+- **Correctif** : `replicaPending = !isPowerSyncReadyNow()` + garde
+  `if (XLoading || (liste.length === 0 && replicaPending))` (motif éprouvé) ;
+  `aria-busy="true"` ajouté aux squelettes de `/balance` et `/history`.
+- **Preuve** : `r52q-finance-loading.test.tsx` (6 tests, non-vacuité mesurée :
+  3 échecs quand les gardes sont retirées).
+- **Statut** : corrigé.
+
+### R52.t — `/transaction/:id/edit` : formulaire VIDE en état `ready` avant la 1re lecture — CORRIGÉ (2026-10-28)
+- **Gravité** : MOYENNE-HAUTE (risque d'écrasement de valeurs réelles + formulaire trompeur).
+- **Défaut** : `transactions` est vide avant le premier sync ; l'écran rendait
+  quand même son formulaire en `data-screen-state="ready"`, avec montant /
+  description / catégorie vides. L'effet de pré-remplissage sortait par
+  `if (!tx) return;` sans jamais signaler l'attente. L'utilisateur pouvait
+  enregistrer un formulaire vide, ou éditer des champs vides et **écraser** les
+  vraies valeurs arrivées au sync suivant.
+- **Correctif** : garde `isPowerSyncReadyNow()` → squelette `loading` si la
+  transaction n'est pas encore lue, écran `data-screen-state="error"` +
+  « Retour aux transactions » si elle est réellement absente.
+- **Preuve** : `r52t-transactionedit-loading.test.tsx` (3 tests, non-vacuité
+  vérifiée : garde neutralisée → 2 échecs).
+- **Statut** : corrigé.
+
+### R52.s — `/event/:id/edit` : « Chargement... » INFINI + champ « Nom » jamais pré-rempli — CORRIGÉ (2026-10-28)
+- **Gravité** : MOYENNE-HAUTE (écran muet permanent + édition impossible).
+- **Défaut A (écran muet)** : `if (loading || !event) return "Chargement..."`
+  sans distinguer « pas encore lu » de « réellement absent ». Un lien mort ou un
+  événement d'une autre organisation laissait l'utilisateur sur « Chargement... »
+  À L'INFINI — aucun titre, aucune explication, aucune action (classe P0).
+- **Défaut B (édition impossible)** : `setName(event.name || "")` était ABSENT de
+  l'effet d'initialisation → le formulaire s'ouvrait vide et `validate()`
+  (« Le nom est requis ») bloquait tout enregistrement. Tout « Modifier » un
+  événement échouait donc en validation.
+- **Correctif** : garde `isPowerSyncReadyNow()` → squelette si non lu, écran
+  `data-screen-state="error"` « Cet événement est introuvable. » + « Retour aux
+  événements » si réellement absent ; ajout du pré-remplissage du nom.
+- **Preuve** : `r52s-eventedit-loading.test.tsx` (3 tests, non-vacuité vérifiée :
+  2 échecs quand la garde et le pré-remplissage sont neutralisés).
+- **Statut** : corrigé.
+
+### R52.r — `/settings/notifications` annonçait « Tout est lu » avant la 1re lecture — CORRIGÉ (2026-10-28)
+- **Gravité** : MOYENNE (fait faux présenté comme état stable ; pas de perte de données).
+- **Défaut** : `useNotifications()` renvoie `isLoading: false` en dur (D-R41) et
+  l'écran n'avait AUCUN drapeau de disponibilité. Avant le premier sync il
+  affichait « **Tout est lu** », « **0 au total** » et « **Aucune notification à
+  vider** » — trois affirmations fausses, dont une qui **désactivait** le bouton
+  « Tout marquer lu » (`disabled={unread === 0}`) alors que des notifications
+  non lues arrivaient.
+- **Correctif** : `notificationsPending = (notifications?.length ?? 0) === 0 &&
+  !isPowerSyncReadyNow()` → libellés « Chargement… / Lecture des notifications en
+  cours », bouton désactivé et libellé « Chargement… » tant que non résolu.
+- **Preuve** : `r52r-settings-notifications-loading.test.tsx` (2 tests, non-vacuité
+  vérifiée : garde neutralisée → « Tout est lu » réapparaît).
+- **Garde statique étendue** : le motif de verdict vide couvre désormais
+  `… à vider` / `… disponible` / `… à afficher` (mesuré : seuls `NotFound.tsx` et
+  `Tutorial.tsx`, déjà allowlistés, matchent — extension sans faux positif).
+- **Statut** : corrigé.
+
+### R52 — garde statique durcie (2ᵉ invariant, R52.q) — CORRIGÉ (2026-10-28)
+- **Défaut de la garde elle-même** : un simple **import** de `isPowerSyncReadyNow`
+  (sans appel) suffisait à blanchir un fichier — même classe de faille que
+  l'import de `Skeleton` corrigé plus tôt. Mesuré : en retirant la garde de
+  `Balance.tsx` en gardant l'import, la 1re garde ne signalait rien.
+- **Correctif** : `provesReadiness()` exige un **appel** `isPowerSyncReadyNow(…)`
+  ou un usage de `replicaPending`. Nouvel invariant : un écran qui possède un
+  squelette visible (`aria-busy="true"` / `Skeleton`) ne peut pas garder ce
+  squelette sur un `isLoading` mort.
+- **Preuve** : `r52-readiness-guard.test.ts` (4 tests) ; mutation de `Balance.tsx`
+  → échec nommé `src/pages/Balance.tsx (psLoading)`.
+
+### R52.o — `/reports` : « Aucun rapport personnalisé » avant la lecture — CORRIGÉ (2026-10-28)
+- **Gravité** : MOYENNE-HAUTE.
+- **Défaut (double)** : (1) la garde `if (isLoading)` de `/reports` était morte
+  (`useTransactions` renvoie `false` en dur) ; (2) `savedReports` provient de
+  `reportDefinitionRepo.list()` (asynchrone) → « Aucun rapport personnalisé »
+  s'affichait avant la fin de la lecture.
+- **Correctif** : garde `isPowerSyncReadyNow()` + drapeau `savedLoaded` posé
+  dans un `finally` (l'écran ne reste jamais bloqué si la lecture échoue).
+- **Preuve** : `r52o-reports-loading.test.tsx` (1 test, non-vacuité mesurée).
+- **Statut** : corrigé.
+
+### R52.p — `DocumentPicker` : « Aucun document uploadé » avant la lecture — CORRIGÉ (2026-10-28)
+- **Gravité** : MOYENNE (composant partagé : jointures de rapports).
+- **Défaut** : le composant consommait `useDocuments()` **sans lire `isLoading`**
+  et dérivait « Aucun document uploadé pour le moment. » de la seule longueur →
+  l'utilisateur croyait avoir perdu ses pièces jointes pendant la lecture.
+- **Correctif** : `documentsPending = documentsLoading || !isPowerSyncReadyNow()`
+  → état « Chargement des documents… ».
+- **Preuve** : `r52p-document-picker-loading.test.tsx` (2 tests, non-vacuité
+  mesurée ; le second verrouille le vrai vide légitime).
+- **Statut** : corrigé.
+
+### R52 — durcissement de la garde statique (2026-10-28)
+- La garde ne pouvait pas détecter le motif exact : un verdict vide gardé par un
+  `isLoading` **mort**. Nouveau test : la liste des hooks renvoyant
+  `isLoading: false` en dur est **dérivée du source de `dataLayer.ts`** (19
+  hooks) ; toute page/composant qui garde un verdict vide sur un tel alias et
+  n'expose aucun signal fort est fautif.
+- **Non-vacuité** : une sonde temporaire (`__R52Probe.tsx`) fait échouer la
+  garde ; supprimée ensuite. 0 faux positif mesuré sur le corpus actuel.
 
 ### R53 — `sessions.cy.ts` rouge : réplique PowerSync vide dans l'environnement — NON CORRIGÉ
 - **Gravité** : moyenne (le spec ne peut pas passer ici ; ce n'est pas une

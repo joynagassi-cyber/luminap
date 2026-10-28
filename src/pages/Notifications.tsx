@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { useNotifications, markNotificationRead, markAllNotificationsRead } from "@/lib/dataLayer";
+import { useNotifications, markNotificationRead, markAllNotificationsRead, isPowerSyncReadyNow } from "@/lib/dataLayer";
 import { NotificationsSkeleton } from "@/components/PageSkeletons";
 import {
   Bell,
@@ -75,6 +75,10 @@ export default function NotificationsPage() {
 
   const [visibleCount, setVisibleCount] = useState(50);
 
+  // R52.m — la réplique PowerSync n'est pas encore prête : « Pas encore de
+  // notification » serait un fait FAUX (aucune lecture n'a eu lieu).
+  const replicaPending = !isPowerSyncReadyNow();
+
   const sorted = useMemo(
     () =>
       [...(notifications ?? [])].sort(
@@ -103,7 +107,7 @@ export default function NotificationsPage() {
     await markAllNotificationsRead({} as any);
   };
 
-  if (notificationsLoading) {
+  if (notificationsLoading || (sorted.length === 0 && replicaPending)) {
     return (
       <IonPage>
         <IonContent fullscreen>

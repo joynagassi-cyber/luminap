@@ -424,3 +424,68 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
 - Vérifier un doute avec **`npx tsc -b --force --noEmit`** (rebuild complet).
 - Ne pas supprimer les `.tsbuildinfo` du dépôt : le vrai diagnostic est le
   `--force`.
+
+## R52.j — la famille R52 n'est pas close par les pages de détail
+- Le motif « pas encore lu » ≠ « vide » frappe aussi les **listes dérivées d'une
+  lecture asynchrone** hors des pages déjà traitées : `/trace`
+  (`useAuditEntries()` retombe sur `store.auditEntries = []` avant la lecture) et
+  `/admin/reports/send` (historique `org_reports` lu en `async`).
+- **Signal générique à chercher** : un `useState([])` + un `useEffect` qui
+  remplit la liste de façon asynchrone, avec un rendu `list.length === 0 ? "Aucun…"`
+  sans drapeau `loaded`. Correctif : drapeau posé dans un **`finally`** (jamais
+  seulement dans `catch`, sinon l'état reste bloqué en squelette si la lecture
+  échoue) OU `isPowerSyncReadyNow()`.
+- Garde statique `src/lib/__tests__/r52-readiness-guard.test.ts` **étendue** :
+  `VERDICT_PATTERN` couvre « introuvable » + « Aucun(e) … trouvé(e) / pour le
+  moment / pour l'instant ». Piège de faux positifs : il faut exclure les
+  libellés de formulaire (« Aucun événement », « Aucune (racine) ») et les
+  boutons (« Aucune notification à vider ») — un motif trop large (`Aucun\s`)
+  fait échouer 9 pages légitimes.
+- **R52.k** : même motif sur les pages à lecture asynchrone hors `dataLayer`
+  (`/forms` = `formDefinitionRepo.list`, `/forms/custom-fields` =
+  `customFieldRepo.list`) → drapeau `*Loaded` posé dans un `finally` +
+  `ListSkeleton`. La garde statique couvre désormais aussi « Pas encore de ».
+- **R52.l→R52.p (2026-10-28, Phase 11)** — cause **systémique** découverte :
+  19 hooks de `dataLayer` renvoient `isLoading: false` **en dur** (l'état de
+  chargement temporel a été retiré par D-R41). Donc toute garde
+  `if (…Loading)` posée sur eux est **du code mort** → verdict vide faux
+  (« Aucun membre », « Groupe introuvable », « Pas encore de mouvement »…)
+  pendant la 1re lecture PowerSync. Écrans corrigés : `/dashboard` (R52.l),
+  `/members` `/events` `/groups` `/cotisations` `/notifications` (R52.m),
+  `/group/:id` (R52.n), `/reports` (R52.o), `DocumentPicker` (R52.p).
+  Correctif = `isPowerSyncReadyNow()` (ou drapeau `*Loaded` posé dans un
+  `finally` pour les lectures hors dataLayer).
+- **Garde statique durcie** : `r52-readiness-guard.test.ts` dérive la liste des
+  hooks à `isLoading:false` en dur **du source** `dataLayer.ts` et échoue si un
+  verdict vide est gardé par un tel alias (alias explicite OU destructuration
+  courte). Non-vacuité : sonde `__R52Probe.tsx` temporaire. 0 offenseur restant.
+  Piège mesuré : un simple *import* de `Skeleton` (même en code mort) aveuglait
+  l'ancienne garde — le mot a été retiré des signaux de disponibilité.
+- **R52.q→R52.t (2026-10-28, même branche/PR #114)** — extension de la famille :
+  `/balance` `/history` `/versement` (R52.q, chiffres faux) ;
+  `/settings/notifications` (R52.r : « Tout est lu / 0 au total » + bouton
+  « Tout marquer lu » désactivé à tort) ; `/event/:id/edit` (R52.s : « Chargement... »
+  INFINI si événement absent + champ « Nom » JAMAIS pré-rempli → tout
+  enregistrement bloqué en validation) ; `/transaction/:id/edit` (R52.t :
+  formulaire VIDE en `ready` avant lecture → risque d'écrasement des valeurs
+  réelles arrivées au sync).
+- **Motif étendu de la garde statique** : ajouter `à vider` / `disponible` /
+  `à afficher` au motif de verdict vide. Mesuré : seuls `NotFound.tsx` et
+  `Tutorial.tsx` (déjà allowlistés) matchent → extension sans faux positif.
+- **Balayage exhaustif fait (2026-10-28)** : plus aucun écran `useParams`+`id`
+  ne rend un formulaire/verdict dérivé d'une lecture sans signal de
+  disponibilité. Faux positifs confirmés : `FormFill.tsx` (a déjà loading +
+  notfound), `TransactionNew.tsx` / `TransactionNewGroup.tsx` (ne font que
+  dégrader un libellé « Groupe », pas un verdict faux).
+- **R80 reste bloqué** : le stream `profiles` ne synchronise que le profil
+  connecté (`WHERE id = auth.user_id()`). Élargir exige un **redéploiement
+  PowerSync Cloud** ; `PS_ADMIN_TOKEN` ABSENT de l'environnement (vérifié :
+  `PS_ADMIN_TOKEN`/`POWERSYNC_TOKEN` unset, pas de `~/.ps-secrets`). Modifier le
+  YAML sans redéployer = divergence client/serveur, explicitement documentée
+  comme défaut PIRE → ne pas le faire.
+- **`Build Debug APK` rouge = R90 pré-existant** (`Namespace not specified` sur
+  `:capacitor-storage`, désalignement `@capacitor/cli` 8.x vs
+  `@capacitor/android` 6.x) : non régression, indépendant des changements TS.
+- **Non-vacuité obligatoire** : pour tout correctif R52, retirer la garde, voir
+  les tests échouer, restaurer. Chaque cas a son test comportemental
+  (`list-loading-vs-empty.test.tsx`, `r52l-*`, `r52o-*`, `r52p-*`).

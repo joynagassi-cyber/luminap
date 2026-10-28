@@ -46,9 +46,11 @@ import {
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
 import DocumentPicker from "@/components/DocumentPicker";
+import { ListSkeleton } from "@/components/Skeleton";
 import {
   useCurrentUser,
   executeWrite,
+  isPowerSyncReadyNow,
 } from "@/lib/dataLayer";
 import { getPowerSyncDatabase } from "@/lib/powersync";
 import { getOrganizationId } from "@/lib/orgContext";
@@ -108,6 +110,9 @@ export default function OrgReportSend() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [sentReports, setSentReports] = useState<SentReportLocal[]>([]);
+  // R52.j — « Aucun rapport envoyé » n'est exact qu'après la première lecture
+  // de `org_reports` (sinon on annonce un fait faux pendant le chargement).
+  const [historyLoaded, setHistoryLoaded] = useState(false);
 
   const period = computePeriod(periodKind);
 
@@ -151,6 +156,8 @@ export default function OrgReportSend() {
       })));
     } catch {
       setSentReports([]);
+    } finally {
+      setHistoryLoaded(true);
     }
   };
 
@@ -453,7 +460,9 @@ export default function OrgReportSend() {
                   Rapports envoyés (récent)
                 </span>
               </div>
-              {sentReports.length === 0 ? (
+              {!(isPowerSyncReadyNow() && historyLoaded) ? (
+                <ListSkeleton count={2} />
+              ) : sentReports.length === 0 ? (
                 <p className="text-text-tertiary text-sm">
                   Aucun rapport envoyé pour le moment.
                 </p>

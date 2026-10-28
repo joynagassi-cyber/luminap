@@ -11,7 +11,7 @@ import {
   Loader2,
 } from "lucide-react";
 import SettingsShell from "@/components/SettingsShell";
-import { useNotifications } from "@/lib/dataLayer";
+import { useNotifications, isPowerSyncReadyNow } from "@/lib/dataLayer";
 import { useLocalStore } from "@/store/useLocalStore";
 import { notification } from "@/capabilities/notification";
 
@@ -87,6 +87,13 @@ export default function SettingsNotifications() {
     n.is_read !== undefined ? n.is_read === 0 : n.isRead === false;
   const unread = (notifications ?? []).filter((n) => isUnread(n)).length;
 
+  // R52.r — la réplique PowerSync peut être vide au premier rendu : sans ce
+  // drapeau, l'écran annonçait « Tout est lu » / « 0 au total » / « Aucune
+  // notification à vider » — un fait FAUX présenté comme un état stable.
+  // (Même cause systémique que R52.l→R52.q : `isLoading` mort, D-R41.)
+  const notificationsPending =
+    (notifications?.length ?? 0) === 0 && !isPowerSyncReadyNow();
+
   useEffect(() => {
     localStorage.setItem(PREF_KEY, JSON.stringify(prefs));
   }, [prefs]);
@@ -141,17 +148,23 @@ export default function SettingsNotifications() {
           </div>
           <div>
             <p className="text-text-primary text-sm font-semibold">
-              {unread > 0 ? `${unread} non lue${unread > 1 ? "s" : ""}` : "Tout est lu"}
+              {notificationsPending
+                ? "Chargement…"
+                : unread > 0
+                  ? `${unread} non lue${unread > 1 ? "s" : ""}`
+                  : "Tout est lu"}
             </p>
             <p className="text-text-tertiary text-xs">
-              {notifications?.length ?? 0} au total
+              {notificationsPending
+                ? "Lecture des notifications en cours"
+                : `${notifications?.length ?? 0} au total`}
             </p>
           </div>
         </div>
         <button
           type="button"
           onClick={handleMarkAll}
-          disabled={unread === 0}
+          disabled={unread === 0 || notificationsPending}
           className="px-3 py-2 rounded-full text-xs font-medium active:scale-95 disabled:opacity-40 transition-transform"
           style={{
             backgroundColor:
@@ -278,7 +291,11 @@ export default function SettingsNotifications() {
         }}
         aria-label="Marquer toutes les notifications comme lues"
       >
-        {unread > 0 ? (
+        {notificationsPending ? (
+          <>
+            <Loader2 className="w-4 h-4 animate-spin" /> Chargement…
+          </>
+        ) : unread > 0 ? (
           <>
             <BellOff className="w-4 h-4" /> Vider ({unread})
           </>
