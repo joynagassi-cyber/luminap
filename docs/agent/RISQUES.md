@@ -3089,3 +3089,33 @@ sauvegarde disponible).
 - **Preuve** : vitest **1572/1572** (128 fichiers), `tsc -b` exit 0, eslint
   0 erreur.
 - **Receipt** : `docs/agent/receipts/phase-02/2026-10-28-deeplink-invitation.md`.
+
+### R126 — `returnTo` du garde de route calculé mais JAMAIS transmis ni consommé : la cible d'un lien profond vers une route protégée était perdue après connexion — ✅ CORRIGÉ le 2026-10-28
+- **Gravité** : MOYENNE (P0 routage ; aucun écran noir, mais perte de contexte —
+  famille « filet déclaré, jamais câblé » : R105/R106/R107/R108/R113).
+- **Défaut** : `resolveRoute` produit, pour l'état `needs-auth`, un
+  `returnTo` **allowlisté** (la route protégée visée). Mais `RouteGuard`
+  (`src/App.tsx`) faisait `<Navigate to="/auth" replace />` **sans** le
+  transmettre, et `AuthPage` ne lisait **aucun** `returnTo` : après
+  authentification il allait systématiquement à `/onboarding` ou `/dashboard`.
+  L'utilisateur qui ouvrait un lien profond (ou un onglet) vers une route
+  protégée était donc détourné vers le dashboard, sa cible perdue.
+- **Preuve du défaut** : `grep -rn "returnTo" src --include=*.tsx` → seul
+  `routeResolver.ts` (production du champ), `useAppUrlOpen.ts` (deep link
+  natif) et un `console.warn` de `App.tsx` le mentionnaient ; **aucun**
+  consommateur côté `AuthPage`.
+- **Correctif** :
+  1. `RouteGuard` (`App.tsx`) : `needs-auth` navigue vers
+     `/auth?returnTo=<encodeURIComponent(outcome.returnTo)>`.
+  2. Nouveau `readReturnToFromSearch(search)` (`routeResolver.ts`) : relit ET
+     **revalide** le `returnTo` via `isAllowedReturnTo` (la valeur transite par
+     l'URL, donc n'est jamais digne de confiance).
+  3. `AuthPage.proceedAfterAuth` : si un `returnTo` allowlisté est présent, on y
+     revient après connexion ; l'onboarding forcé (nouveau compte) reste
+     prioritaire.
+- **Non-vacuité prouvée** : retirer les deux câblages → 2 tests de
+  `route-state-wiring.test.ts` échouent ; garde anti-dérive ajoutée
+  (`App.tsx` transmet, `AuthPage` consomme).
+- **Preuve** : vitest **1578/1578** (128 fichiers), `tsc -b` exit 0, eslint
+  0 erreur.
+- **Receipt** : `docs/agent/receipts/phase-02/2026-10-28-returnto-wiring.md`.

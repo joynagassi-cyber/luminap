@@ -211,7 +211,16 @@ function RouteGuard() {
           `Si le user a juste cliqué un onglet de la BottomNav, cette navigation ` +
           `a pu casser la transition Ionic (écran noir).`,
       );
-      return <Navigate to="/auth" replace />;
+      // R126 — le `returnTo` (déjà allowlisté par le résolveur) DOIT être
+      // transmis : sans lui, l'utilisateur qui suivait un lien profond vers
+      // une route protégée était renvoyé au dashboard après connexion, la
+      // cible étant perdue. `AuthPage` le relit (revalidé) après authent.
+      return (
+        <Navigate
+          to={`/auth?returnTo=${encodeURIComponent(outcome.returnTo)}`}
+          replace
+        />
+      );
     case "forbidden":
       return <ForbiddenScreen permission={outcome.permission} />;
     case "needs-membership":

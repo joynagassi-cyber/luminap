@@ -31,6 +31,10 @@ const routeResolverSrc = readFileSync(
   "utf8",
 );
 const appSrc = readFileSync(resolve(__dirname, "../../App.tsx"), "utf8");
+const authPageSrc = readFileSync(
+  resolve(__dirname, "../../pages/AuthPage.tsx"),
+  "utf8",
+);
 
 /**
  * Champs de `RouteState` dont le câblage est DIFFÉRÉ, avec la raison et le
@@ -150,5 +154,17 @@ describe("RouteOutcome — chaque état produit est rendu (pas d'écran muet)", 
     for (const v of ["forbidden", "needs-membership", "update-required"]) {
       expect(appSrc, `${v} doit être rendu`).toContain(`case "${v}"`);
     }
+  });
+});
+
+describe("returnTo — le filet de reprise est réellement transmis ET consommé (R126)", () => {
+  it("App.tsx transmet le returnTo de `needs-auth` à /auth", () => {
+    // Sans ceci, `outcome.returnTo` était calculé puis jeté : un lien profond
+    // vers une route protégée perdait sa cible après connexion.
+    expect(appSrc).toMatch(/returnTo=\$\{encodeURIComponent\(outcome\.returnTo\)\}/);
+  });
+
+  it("AuthPage relit le returnTo (validé) pour la navigation post-auth", () => {
+    expect(authPageSrc).toMatch(/readReturnToFromSearch\(location\.search\)/);
   });
 });

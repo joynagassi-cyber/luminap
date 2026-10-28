@@ -8,6 +8,7 @@ import { describe, it, expect } from "vitest";
 import {
   resolveRoute,
   isAllowedReturnTo,
+  readReturnToFromSearch,
   parseDeepLink,
   ROUTE_REGISTRY,
   ROUTE_COUNT,
@@ -291,5 +292,29 @@ describe("parseDeepLink — deep links web et applicatifs", () => {
 
   it("retourne null pour une URL illisible", () => {
     expect(parseDeepLink("pas une url")).toBeNull();
+  });
+});
+
+describe("R126 — needs-auth transmet un returnTo allowlisté et consommable", () => {
+  it("une route protégée non authentifiée produit un returnTo vers elle-même", () => {
+    const out = resolveRoute("/finance", anon);
+    expect(out.outcome).toBe("needs-auth");
+    if (out.outcome === "needs-auth") {
+      expect(out.returnTo).toBe("/finance");
+    }
+  });
+
+  it("readReturnToFromSearch lit et valide un returnTo transmis", () => {
+    expect(readReturnToFromSearch("?returnTo=%2Ffinance")).toBe("/finance");
+  });
+
+  it("readReturnToFromSearch refuse une redirection ouverte", () => {
+    expect(readReturnToFromSearch("?returnTo=//evil.com")).toBeNull();
+    expect(readReturnToFromSearch("?returnTo=https://evil.com")).toBeNull();
+  });
+
+  it("readReturnToFromSearch retourne null sans paramètre", () => {
+    expect(readReturnToFromSearch("")).toBeNull();
+    expect(readReturnToFromSearch("?foo=bar")).toBeNull();
   });
 });

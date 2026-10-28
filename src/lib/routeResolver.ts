@@ -157,6 +157,24 @@ export function isAllowedReturnTo(path: string): boolean {
   return RETURN_TO_ALLOWLIST.some((pattern) => matchesPattern(pattern, clean));
 }
 
+/**
+ * R126 — lit un `returnTo` depuis une chaîne de requête (`location.search`) et
+ * le valide. Le `returnTo` produit par le garde de route (`needs-auth`) était
+ * calculé mais JAMAIS transmis à `/auth`, donc jamais consommé : l'utilisateur
+ * qui suivait un lien profond vers une route protégée était toujours renvoyé
+ * au dashboard après connexion. `AuthPage` s'en sert pour revenir à la cible.
+ * Retourne `null` si absent ou refusé par l'allowlist.
+ */
+export function readReturnToFromSearch(search: string): string | null {
+  try {
+    const raw = new URLSearchParams(search).get("returnTo");
+    if (!raw) return null;
+    return isAllowedReturnTo(raw) ? raw : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Compile a `:param` / `*` pattern into a matcher. */
 function matchesPattern(pattern: string, pathname: string): boolean {
   if (pattern === "*") return true;
