@@ -23,7 +23,7 @@ import {
   Paperclip,
   UploadCloud,
 } from "lucide-react";
-import { useDocuments, addDocumentPS, type PSDocument } from "@/lib/dataLayer";
+import { useDocuments, addDocumentPS, isPowerSyncReadyNow, type PSDocument } from "@/lib/dataLayer";
 import { uploadLuminaFile } from "@/lib/storageService";
 import type { IonChangeCustomEvent } from "@/lib/ionic-types";
 
@@ -51,7 +51,11 @@ export default function DocumentPicker({
   refreshKey?: number;
   onUploaded?: () => void;
 }) {
-  const { data: documents } = useDocuments();
+  const { data: documents, isLoading: documentsLoading } = useDocuments();
+  // R52.p — `useDocuments()` renvoie `isLoading` vrai tant que la réplique n'a
+  // pas répondu : « Aucun document uploadé » serait un fait FAUX (l'utilisateur
+  // croirait avoir perdu ses pièces jointes).
+  const documentsPending = documentsLoading || !isPowerSyncReadyNow();
   void refreshKey; // la liste suit `useDocuments` ; le parent contrôle le refresh
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -113,7 +117,14 @@ export default function DocumentPicker({
       </div>
 
       {/* Checklist des documents uploadés (bucket `archives`) */}
-      {documents && documents.length === 0 ? (
+      {(documents ?? []).length === 0 && documentsPending ? (
+        <div
+          className="rounded-xl p-4 text-center"
+          style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
+        >
+          <p className="text-text-tertiary text-sm">Chargement des documents…</p>
+        </div>
+      ) : (documents ?? []).length === 0 ? (
         <div
           className="rounded-xl p-4 text-center"
           style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}

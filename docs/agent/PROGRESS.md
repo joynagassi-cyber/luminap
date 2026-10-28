@@ -113,6 +113,9 @@
 | 11 | **R52.l — `/dashboard` (écran d'accueil)** annonçait « Pas encore de mouvement » avant la 1re lecture ; son seul garde (`isLoading` de `useTransactions`) est **du code mort** (D-R41) → aucun squelette jamais rendu. Correctif : garde `isPowerSyncReadyNow()` + `ListSkeleton`. Garde statique durcie (un import de squelette non câblé ne compte plus comme preuve) | P2 | **terminé** | `agent/r52j-trace-orgreport-loading` | `phase-11/2026-10-28-r52l-dashboard-loading.md` |
 | 11 | **R52.m — listes principales** (`/members`, `/events`, `/groups`, `/cotisations`, `/notifications`) : garde `isLoading` **morte** (hooks renvoyant `false` en dur) → verdict vide faux pendant la 1re lecture. Correctif : `isPowerSyncReadyNow()` | P2 | **terminé** | `agent/r52j-trace-orgreport-loading` | `phase-11/2026-10-28-r52m-list-loading.md` |
 | 11 | **R52.n — `/group/:id`** : « Groupe introuvable » avant le 1er sync (même cause). Correctif : garde `isPowerSyncReadyNow()` | P2 | **terminé** | `agent/r52j-trace-orgreport-loading` | `phase-11/2026-10-28-r52m-list-loading.md` |
+| 11 | **R52.o — `/reports`** : garde `isLoading` morte + `savedReports` asynchrone → « Aucun rapport personnalisé » faux. Correctif : `isPowerSyncReadyNow()` + `savedLoaded` (`finally`) | P2 | **terminé** | `agent/r52j-trace-orgreport-loading` | `phase-11/2026-10-28-r52o-p-reports-documents.md` |
+| 11 | **R52.p — `DocumentPicker`** : « Aucun document uploadé » avant lecture (composant partagé). Correctif : garde `documentsPending` | P2 | **terminé** | `agent/r52j-trace-orgreport-loading` | `phase-11/2026-10-28-r52o-p-reports-documents.md` |
+| 11 | **R52 — garde statique durcie** : détecte un verdict vide gardé par un `isLoading` MORT (liste dérivée de `dataLayer.ts`) | P2 | **terminé** | `agent/r52j-trace-orgreport-loading` | `phase-11/2026-10-28-r52o-p-reports-documents.md` |
 
 ## Escalades ouvertes (ne bloquent pas la boucle)
 

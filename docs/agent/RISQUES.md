@@ -907,6 +907,37 @@
 - **Preuve** : `list-loading-vs-empty.test.tsx` (§ R52.n). Non-vacuité vérifiée.
 - **Statut** : corrigé.
 
+### R52.o — `/reports` : « Aucun rapport personnalisé » avant la lecture — CORRIGÉ (2026-10-28)
+- **Gravité** : MOYENNE-HAUTE.
+- **Défaut (double)** : (1) la garde `if (isLoading)` de `/reports` était morte
+  (`useTransactions` renvoie `false` en dur) ; (2) `savedReports` provient de
+  `reportDefinitionRepo.list()` (asynchrone) → « Aucun rapport personnalisé »
+  s'affichait avant la fin de la lecture.
+- **Correctif** : garde `isPowerSyncReadyNow()` + drapeau `savedLoaded` posé
+  dans un `finally` (l'écran ne reste jamais bloqué si la lecture échoue).
+- **Preuve** : `r52o-reports-loading.test.tsx` (1 test, non-vacuité mesurée).
+- **Statut** : corrigé.
+
+### R52.p — `DocumentPicker` : « Aucun document uploadé » avant la lecture — CORRIGÉ (2026-10-28)
+- **Gravité** : MOYENNE (composant partagé : jointures de rapports).
+- **Défaut** : le composant consommait `useDocuments()` **sans lire `isLoading`**
+  et dérivait « Aucun document uploadé pour le moment. » de la seule longueur →
+  l'utilisateur croyait avoir perdu ses pièces jointes pendant la lecture.
+- **Correctif** : `documentsPending = documentsLoading || !isPowerSyncReadyNow()`
+  → état « Chargement des documents… ».
+- **Preuve** : `r52p-document-picker-loading.test.tsx` (2 tests, non-vacuité
+  mesurée ; le second verrouille le vrai vide légitime).
+- **Statut** : corrigé.
+
+### R52 — durcissement de la garde statique (2026-10-28)
+- La garde ne pouvait pas détecter le motif exact : un verdict vide gardé par un
+  `isLoading` **mort**. Nouveau test : la liste des hooks renvoyant
+  `isLoading: false` en dur est **dérivée du source de `dataLayer.ts`** (19
+  hooks) ; toute page/composant qui garde un verdict vide sur un tel alias et
+  n'expose aucun signal fort est fautif.
+- **Non-vacuité** : une sonde temporaire (`__R52Probe.tsx`) fait échouer la
+  garde ; supprimée ensuite. 0 faux positif mesuré sur le corpus actuel.
+
 ### R53 — `sessions.cy.ts` rouge : réplique PowerSync vide dans l'environnement — NON CORRIGÉ
 - **Gravité** : moyenne (le spec ne peut pas passer ici ; ce n'est pas une
   régression produit démontrée).

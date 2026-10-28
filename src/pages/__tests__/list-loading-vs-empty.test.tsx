@@ -58,6 +58,7 @@ vi.mock("@/lib/dataLayer", () => ({
   useCaisses: () => ({ data: [], isLoading: false }),
   useAuditEntries: () => ({ data: [], isLoading: false }),
   useNotifications: () => ({ data: [], isLoading: false, error: undefined, retry: vi.fn() }),
+  useAppConfig: () => ({ config: { churchName: "Lumina", churchLogoUrl: "" }, updateConfig: vi.fn() }),
   useAccounts: () => ({ data: [], isLoading: false }),
   addMemberPS: vi.fn(async () => undefined),
   markNotificationRead: vi.fn(async () => undefined),
@@ -106,6 +107,7 @@ import Groups from "@/pages/Groups";
 import Cotisations from "@/pages/Cotisations";
 import Notifications from "@/pages/Notifications";
 import GroupDetail from "@/pages/GroupDetail";
+import Reports from "@/pages/Reports";
 
 afterEach(cleanup);
 
@@ -383,5 +385,20 @@ describe("R52.n — /group/:id : « Groupe introuvable » avant le premier sync"
     );
     expect(container.querySelectorAll('[aria-busy="true"]').length).toBeGreaterThan(0);
     expect(screen.queryByText("Groupe introuvable")).toBeNull();
+  });
+});
+
+describe("R52.o — /reports : « Aucun rapport personnalisé » avant la lecture", () => {
+  it("affiche un squelette, pas « Aucun rapport personnalisé »", () => {
+    state.ready = false;
+    const { container } = render(
+      <MemoryRouter initialEntries={["/reports"]}>
+        <Routes>
+          <Route path="/reports" element={<Reports />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(container.querySelectorAll('[aria-busy="true"]').length).toBeGreaterThan(0);
+    expect(screen.queryByText("Aucun rapport personnalisé")).toBeNull();
   });
 });

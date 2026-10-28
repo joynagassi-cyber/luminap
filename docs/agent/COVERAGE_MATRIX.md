@@ -65,3 +65,6 @@
 | 11 | `/dashboard` : état vide ≠ pas encore lu (R52.l, branche `isLoading` morte) | `V: r52l-dashboard-loading.test.tsx` (2, non-vacuité vérifiée) | **couvert** |
 | 11 | Listes principales `/members`, `/events`, `/groups`, `/cotisations`, `/notifications` (R52.m) | `V: list-loading-vs-empty.test.tsx` (5, non-vacuité vérifiée) | **couvert** |
 | 11 | Détail `/group/:id` : « introuvable » avant lecture (R52.n) | `V: list-loading-vs-empty.test.tsx` (1, non-vacuité vérifiée) | **couvert** |
+| 11 | `/reports` : « Aucun rapport personnalisé » avant lecture (R52.o) | `V: r52o-reports-loading.test.tsx` (1, non-vacuité vérifiée) | **couvert** |
+| 11 | `DocumentPicker` : « Aucun document uploadé » avant lecture (R52.p) | `V: r52p-document-picker-loading.test.tsx` (2, non-vacuité vérifiée) | **couvert** |
+| 11 | Garde statique : verdict vide gardé par un `isLoading` MORT (liste dérivée de dataLayer) | `V: r52-readiness-guard.test.ts` (3, sonde de non-vacuité) | **couvert** |

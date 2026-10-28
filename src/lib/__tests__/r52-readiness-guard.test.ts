@@ -44,6 +44,40 @@ const READINESS_SIGNALS = [
 ];
 
 /**
+ * Hooks de `dataLayer` qui renvoient `isLoading: false` EN DUR (l'état de
+ * chargement temporel a été retiré — décision D-R41). Un écran qui garde son
+ * verdict vide sur un tel alias possède une branche MORTE : c'est la cause
+ * systémique mesurée en R52.l/m/n/o/p. La liste est DÉRIVÉE du source de
+ * `dataLayer.ts` (pas recopiée) pour rester juste si un hook change.
+ */
+function deadLoadingHooks(): Set<string> {
+  const src = readFileSync(
+    join(process.cwd(), "src", "lib", "dataLayer.ts"),
+    "utf8",
+  );
+  const names = new Set<string>();
+  for (const m of src.matchAll(/export function (use\w+)\(/g)) {
+    const rest = src.slice(m.index! + m[0].length);
+    const stop = rest.search(/\nexport (async )?function |\nexport const /);
+    const body = rest.slice(0, stop === -1 ? 3000 : stop);
+    if (/isLoading:\s*false/.test(body)) names.add(m[1]);
+  }
+  return names;
+}
+
+/** Signaux FORTS : ils ne peuvent pas provenir d'un `isLoading` mort. */
+const STRONG_SIGNALS = [
+  "isPowerSyncReadyNow",
+  "replicaPending",
+  "Loaded",
+  "hasLoaded",
+  "listError",
+  "notFound",
+  "ShimmerList",
+  "gatingChecked",
+];
+
+/**
  * Motifs de verdict dérivés d'une lecture (R52 : « pas encore lu » ≠ « absent »).
  * On ne cible que les messages d'état vides réels (« … trouvé(e) », « pour le
  * moment », « pour l'instant », « Pas encore de … ») ou le mot « introuvable » —
@@ -100,5 +134,39 @@ describe("R52 — garde statique : verdict vide/introuvable exige un signal de d
       }`;
     expect(VERDICT_PATTERN.test(importedSkeletonOnly)).toBe(true);
     expect(READINESS_SIGNALS.some((s) => importedSkeletonOnly.includes(s))).toBe(false);
+  });
+
+  it("aucun verdict vide ne dépend d'un `isLoading` renvoyé en dur (branche morte)", () => {
+    const dead = deadLoadingHooks();
+    // La garde n'a de sens que si la liste est non vide.
+    expect(dead.size).toBeGreaterThan(0);
+
+    const offenders: string[] = [];
+    for (const dir of SCAN_DIRS) {
+      for (const file of readdirSync(dir)) {
+        if (!file.endsWith(".tsx")) continue;
+        if (ALLOWLIST.has(file)) continue;
+        const src = readFileSync(join(dir, file), "utf8");
+        if (!VERDICT_PATTERN.test(src)) continue;
+        if (STRONG_SIGNALS.some((k) => src.includes(k))) continue;
+
+        const aliases: string[] = [];
+        for (const m of src.matchAll(/const\s*\{([^}]*)\}\s*=\s*(use\w+)\(/gs)) {
+          if (!dead.has(m[2])) continue;
+          // `isLoading: x` (alias explicite) OU `isLoading` seul (destructuration
+          // courte) — les deux désignent le même booléen mort.
+          const alias = /isLoading\s*:\s*(\w+)/.exec(m[1]);
+          if (alias) aliases.push(alias[1]);
+          else if (/\bisLoading\b/.test(m[1])) aliases.push("isLoading");
+        }
+        if (aliases.length) offenders.push(`${relative(process.cwd(), join(dir, file))} (${aliases.join(", ")})`);
+      }
+    }
+
+    expect(
+      offenders,
+      "Ces écrans gardent un verdict vide sur un `isLoading` MORT (D-R41) :\n" +
+        offenders.map((f) => `  - ${f}`).join("\n"),
+    ).toEqual([]);
   });
 });
