@@ -3013,3 +3013,41 @@ sauvegarde disponible).
   (SQL sans `archived_at = NULL` → échec ; branche UI retirée → échec).
 - **Preuve** : vitest **1560/1560** (126 fichiers), `tsc -b` 0, lint 0 erreur.
 - **Receipt** : `docs/agent/receipts/phase-04/2026-10-28-org-archive-restore.md`.
+
+### R124 — État du self-updater NON partagé : le dialogue de mise à jour était inerte — ✅ CORRIGÉ le 2026-10-28
+- **Gravité** : HAUTE (la mise à jour applicative — le seul canal de livraison
+  d'un APK — était **inopérante** : bouton « Mettre à jour » sans effet, et
+  « Plus tard » ne fermait rien).
+- **Défaut** : `UpdateDialog` appelle `useUpdater()` **lui-même** tout en
+  affirmant dans son commentaire que l'état est « global via `useUpdater()` ».
+  Or `useUpdater` gardait son état dans un `useState` **local** : chaque appel
+  créait un état **isolé**. Le dialogue lisait donc un état `idle`
+  (`updateInfo: null`) au lieu de celui de l'appelant (`UpdaterBridge` /
+  `SettingsAbout`) — la mise à jour détectée n'était jamais visible.
+  Conséquences : (a) « Mettre à jour » (`startUpdate`) ne s'exécutait jamais
+  (le garde `if (!info) return` renvoyait immédiatement) ; (b) « Plus tard »
+  était `onClick={() => undefined}` — bouton **mort**, aucune fermeture.
+- **Preuve de non-vacuité** : un test d'abonné (`subscribeUpdater`) montre
+  qu'avant correctif l'état écrit par un appelant n'était pas observé par un
+  autre.
+- **Correctif** :
+  1. Nouveau store **global** `src/updater/updaterStore.ts` (état au niveau
+     module + `subscribe`/`emit` + `checkUpdate`/`startUpdate`/`dismissUpdater`
+     + `resetUpdaterStore`). Un seul listener natif de progression, garde
+     `inFlight` contre les téléchargements concurrents.
+  2. `useUpdater.ts` devient une fine enveloppe `useSyncExternalStore`-like
+     (`useState` + `subscribe`) exposant `{ …state, check, startUpdate,
+     dismiss }`.
+  3. `UpdateDialog` : « Plus tard » appelle `dismiss()` (ferme réellement) et
+     est désactivé pendant le téléchargement.
+  4. **Point de montage unique** : l'état partagé rendrait sinon DEUX dialogues
+     (App.tsx + SettingsAbout). `UpdaterBridge` (App.tsx) utilise le store
+     (`check(false)` au démarrage) ; SettingsAbout n'expose plus que le bouton
+     « Rechercher une mise à jour » (écrit dans le même store).
+- **Garde anti-dérive** : `src/updater/__tests__/updaterStore.test.ts`
+  (6 tests) : état réellement partagé (abonné voit les mutations d'un autre
+  appelant), `dismiss()`, `startUpdate()` (download+install, idempotent),
+  no-op sans mise à jour, « Plus tard » branché, **point de montage unique**.
+  **Non-vacuité prouvée** (retrait du câblage → échec).
+- **Preuve** : vitest **1566/1566** (127 fichiers), `tsc -b` 0, lint 0 erreur.
+- **Receipt** : `docs/agent/receipts/phase-11/2026-10-28-updater-shared-state.md`.

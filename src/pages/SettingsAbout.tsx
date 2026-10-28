@@ -3,13 +3,14 @@ import SettingsShell from "@/components/SettingsShell";
 import { useAppConfig, useCurrentUser } from "@/lib/dataLayer";
 import { toast } from "@/components/ui/use-toast";
 import { useUpdater } from "@/updater/useUpdater";
-import { UpdateDialog } from "@/updater/UpdateDialog";
 
 /**
  * Page « À propos » — inclut le bloc « Mise à jour » du self-updater.
- * Le dialogue UpdateDialog est monté ici (bouton « Rechercher une mise à
- * jour » appelle check(true)) ; la vérification au démarrage se fait
- * séparément dans App.tsx (UpdaterBridge).
+ * Le dialogue UpdateDialog n'est PAS monté ici : l'état de l'updater est
+ * partagé (store module, R124), donc le monter aussi ici afficherait DEUX
+ * dialogues. Le bouton « Rechercher une mise à jour » appelle check(true),
+ * qui écrit dans le store partagé → le dialogue monté par `UpdaterBridge`
+ * (App.tsx) apparaît. Vérification au démarrage : App.tsx.
  */
 export default function SettingsAbout() {
   const { config } = useAppConfig();
@@ -96,8 +97,6 @@ export default function SettingsAbout() {
             </span>
           )}
         </div>
-        {/* Le dialogue s'affiche quand le statut passe à "available" */}
-        {status === "available" && <UpdateDialog />}
       </div>
 
       <div

@@ -14,7 +14,7 @@ import AppRouter from "./AppRouter";
 import { luminaRoutes } from "./ionic/routing";
 import { ErrorBoundary, withScope } from "@sentry/react";
 import { UpdateDialog } from "@/updater/UpdateDialog";
-import { checkForUpdate, type UpdateInfo } from "@/updater/checkForUpdate";
+import { useUpdater } from "@/updater/useUpdater";
 import { resolveRoute, type RouteOutcome } from "@/lib/routeResolver";
 import {
   CLIENT_SCHEMA_VERSION,
@@ -308,23 +308,27 @@ const SentryUserBridge = () => {
 /**
  * UpdaterBridge — vérifie une mise à jour (GitHub Releases) une seule fois au
  * démarrage, de façon strictement non-bloquante :
- *   - `checkForUpdate(false)` est fire-and-forget (jamais d'exception levée)
+ *   - `check(false)` est fire-and-forget (jamais d'exception levée)
  *   - sur web / iOS / dev navigateur il retourne null immédiatement
  *     (Capacitor.getPlatform() !== 'android') → aucun effet
  *   - le dialogue s'ouvre seulement si une version strictement supérieure
  *     existe
+ *
+ * R124 — POINT DE MONTAGE UNIQUE du dialogue : l'état est partagé (store au
+ * niveau module), donc le monter aussi dans SettingsAbout afficherait DEUX
+ * dialogues (le second au-dessus de la page). Le bouton « Rechercher une mise
+ * à jour » de SettingsAbout écrit dans le même store, ce qui fait apparaître
+ * ce dialogue-ci.
  * Ne modifie PAS l'init PowerSync/Supabase existante (voir AppRouter).
  */
 const UpdaterBridge = () => {
-  const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
+  const { updateInfo, check } = useUpdater();
 
   useEffect(() => {
-    checkForUpdate(false)
-      .then((info) => setUpdateInfo(info))
-      .catch(() => {
-        /* JAMAIS bloquer le démarrage : une erreur updater reste silencieuse. */
-      });
-  }, []);
+    check(false).catch(() => {
+      /* JAMAIS bloquer le démarrage : une erreur updater reste silencieuse. */
+    });
+  }, [check]);
 
   if (!updateInfo) return null;
   return <UpdateDialog />;

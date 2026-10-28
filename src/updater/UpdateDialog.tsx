@@ -5,14 +5,17 @@ import { useUpdater } from "./useUpdater";
  * Dialogue « Mise à jour disponible » (Ionic IonAlert + IonProgressBar).
  * Monté dans SettingsAbout (bouton « Rechercher une mise à jour ») et dans
  * App.tsx (vérification au démarrage, UpdaterBridge). L'état du self-updater
- * est global via useUpdater() — un seul dialogue affiché à la fois.
+ * est partagé par toutes les instances du hook `useUpdater` (store au niveau
+ * module, R124) — un seul dialogue affiché à la fois, et l'état lu ici est
+ * bien celui écrit par l'appelant.
  *
- * « Plus tard » ferme le dialogue (le statut reste "available" : l'utilisateur
- * peut relancer depuis Settings About). Pendant le téléchargement le bouton
- * « Mettre à jour » est désactivé et la barre de progression prend le relais.
+ * « Plus tard » ferme le dialogue (`dismiss()`) sans interrompre un
+ * téléchargement en cours (le statut reste disponible pour relancer depuis
+ * Settings About). Pendant le téléchargement le bouton « Mettre à jour » est
+ * désactivé et la barre de progression prend le relais.
  */
 export function UpdateDialog() {
-  const { status, progress, updateInfo, error, startUpdate } = useUpdater();
+  const { status, progress, updateInfo, error, startUpdate, dismiss } = useUpdater();
 
   if (!updateInfo) return null;
 
@@ -56,7 +59,10 @@ export function UpdateDialog() {
         </div>
       )}
       <IonButtons slot="footer">
-        <IonButton onClick={() => undefined}>
+        <IonButton
+          onClick={() => dismiss()}
+          disabled={status === "downloading"}
+        >
           Plus tard
         </IonButton>
         {status === "downloading" ? (
