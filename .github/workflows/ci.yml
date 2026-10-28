@@ -122,6 +122,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # R116 : le test de budget de performance (`perf-budget.test.ts`) est
+      # `skipIf(!existsSync(dist/index.html))`. Sans build préalable, il était
+      # SILENCIEUSEMENT ignoré en CI (filet déclaré, jamais déclenché) : une
+      # régression du poids du premier rendu passait inaperçue. On construit
+      # donc `dist/` avant la suite unitaire pour que la garde s'exécute.
+      - name: Build (pour activer la garde de budget de perf — R116)
+        run: pnpm run build
+
       - name: Run unit tests
         run: pnpm exec vitest run
         continue-on-error: false

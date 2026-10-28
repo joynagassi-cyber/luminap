@@ -61,6 +61,21 @@ function gzipKb(paths: string[]): number {
 
 const built = existsSync(indexHtml);
 
+// R116 — « filet déclaré, jamais déclenché » : `skipIf(!built)` rendait cette
+// garde MUETTE en CI (le job `unit` ne construisait pas `dist/`). On échoue
+// désormais explicitement si la garde est attendue mais que l'artefact manque.
+// La variable `CI` est positionnée par GitHub Actions ; en local, un simple
+// `vitest run` sans build reste toléré (skip), pour ne pas gêner le TDD.
+const expectBuilt = !!process.env.CI;
+
+it("l'artefact de build est présent quand la garde est attendue (R116)", () => {
+  if (!expectBuilt) return; // hors CI : skip toléré
+  expect(
+    built,
+    "dist/index.html absent : la garde de budget de perf serait silencieusement ignorée (R116)",
+  ).toBe(true);
+});
+
 describe.skipIf(!built)("budget de performance (premier rendu, dist/ présent)", () => {
   const budget = loadBudget();
 
