@@ -2954,3 +2954,33 @@ sauvegarde disponible).
   restauré → 1/1.
 - **Preuve** : vitest **1551/1551** (125 fichiers), `tsc -b` 0, lint 0 erreur.
 - **Receipt** : `docs/agent/receipts/phase-15/2026-10-28-cjk-error-strings.md`.
+
+### R122 — Re-parentage : impossible de déplacer une organisation sous une annexe (profondeur plafonnée) — ✅ CORRIGÉ le 2026-10-28
+- **Gravité** : MOYENNE (fonctionnalité Phase 3 « arbre multi-organisation »
+  partiellement inutilisable).
+- **Défaut (produit, distinct du défaut de test R82)** : dans `Federation.tsx`,
+  le sélecteur de **création** offre « toute org visible » (`allOrgs`), mais le
+  sélecteur de **re-parentage** n'offrait que les **racines**
+  (`rootOrgs = allOrgs.filter((o) => !o.parentOrgId)`). Il était donc
+  **impossible** de déplacer une organisation **sous une annexe existante** :
+  toute la fédération se voyait plafonnée à une profondeur de 1 via l'UI,
+  alors que le contrat Phase 3 exige une « profondeur/largeur non plafonnée ».
+  Second défaut : la liste n'excluait que `reparentOrg` lui-même, pas ses
+  **descendants** → des cibles créant un cycle étaient proposées (refusées
+  ensuite par `setParentOrg`, mais sans que l'UI l'explique).
+- **Correctif** : nouvelle primitive pure `reparentTargets(orgId, rows)`
+  (`src/lib/orgTree.ts`) — toute organisation **sauf self et descendants**
+  (anti-cycle calculé par `wouldCreateCycle`, même source de vérité que
+  l'écriture). `Federation.tsx` alimente le sélecteur avec
+  `reparentTargets(reparentOrg, allOrgs)` au lieu de `rootOrgs`.
+- **Garde anti-dérive** : 6 tests ajoutés à `src/lib/__tests__/org-tree.test.ts` :
+  4 sur la primitive (propose les annexes, exclut self, exclut les descendants,
+  cohérence avec l'anti-cycle d'écriture) + 2 **de câblage** (la page doit
+  utiliser `reparentTargets`, les options doivent venir de `reparentCandidates`).
+  **Non-vacuité prouvée** : retour au code fautif (`rootOrgs.filter(...)`) →
+  2 tests échouent ; restauré → 17/17.
+- **Preuve** : vitest **1557/1557** (125 fichiers), `tsc -b` 0, lint 0 erreur.
+- **Note** : ceci lève la **cause produit** du diagnostic R82 (sélecteur de
+  parent limité aux racines). La purge des organisations « Annexe A » résiduelles
+  reste une décision propriétaire (R82/T2).
+- **Receipt** : `docs/agent/receipts/phase-03/2026-10-28-reparent-depth.md`.
