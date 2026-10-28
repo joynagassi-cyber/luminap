@@ -36,6 +36,7 @@ import {
   type FederationOrg,
 } from "@/capabilities/federation";
 import { bootstrapOrganization } from "@/lib/orgBootstrap";
+import { reparentTargets } from "@/lib/orgTree";
 import type { IonChangeCustomEvent } from "@/lib/ionic-types";
 
 // M22 — libellés de statut UNIQUE partagés (capabilities/federation) :
@@ -346,6 +347,16 @@ export default function Federation() {
 
   const rootOrgs = allOrgs.filter((o) => !o.parentOrgId);
 
+  // R122 — le sélecteur de re-parentage n'offrait que les RACINES
+  // (`rootOrgs`), alors que la création accepte toute organisation
+  // visible : il était donc impossible de déplacer une organisation
+  // sous une annexe existante (profondeur plafonnée à 1). On aligne les
+  // deux sélecteurs sur « toute org visible », en excluant self et
+  // descendants (anti-cycle, même source de vérité que l'écriture).
+  const reparentCandidates = reparentOrg
+    ? reparentTargets(reparentOrg, allOrgs)
+    : [];
+
   return (
     <IonPage>
       <IonHeader>
@@ -597,8 +608,7 @@ export default function Federation() {
                   interface="popover"
                 >
                   <IonSelectOption value="">Détacher (aucun parent)</IonSelectOption>
-                  {rootOrgs
-                    .filter((o) => o.id !== reparentOrg)
+                  {reparentCandidates
                     .map((o) => (
                       <IonSelectOption key={o.id} value={o.id}>
                         {o.name}

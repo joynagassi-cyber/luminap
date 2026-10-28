@@ -73,6 +73,27 @@ export function parentMapFrom(rows: OrgParentRow[]): ParentMap {
 }
 
 /**
+ * Cibles valides pour un re-parentage de `orgId` : toutes les organisations
+ * SAUF `orgId` lui-même et ses descendants (les rattacher créerait un cycle).
+ *
+ * Sert à ALIGNER le sélecteur de re-parentage sur celui de création : les deux
+ * doivent offrir la même profondeur (toute org visible), sans quoi il était
+ * impossible de déplacer une organisation sous une annexe existante — seules
+ * les racines étaient proposées. L'anti-cycle reste appliqué à l'écriture
+ * (`assertReparentAllowed` / `org_would_cycle` en base) ; ceci n'est que le
+ * filtre d'affichage, calculé avec la MÊME source de vérité.
+ */
+export function reparentTargets<T extends OrgParentRow>(
+  orgId: string,
+  rows: T[],
+): T[] {
+  const parentOf = parentMapFrom(rows);
+  return rows.filter(
+    (r) => r.id !== orgId && !wouldCreateCycle(orgId, r.id, parentOf),
+  );
+}
+
+/**
  * Clôture transitive de l'arbre : pour chaque nœud, la liste de ses
  * descendants (soi-même inclus, depth 0) et de ses ancêtres (soi-même inclus).
  *

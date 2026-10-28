@@ -35,6 +35,7 @@
 | 2 | Garde anti-dérive registre ↔ routes montées | P0 | **terminé** | `agent/phase-02-zero-black-screen` | `phase-02/2026-10-26-zero-black-screen.md` |
 | 3 | Multi-organisation : anti-cycle + clôture transitive (profondeur/largeur non plafonnées) | P1 | **terminé** | `agent/phase-03-multi-org` | `phase-03/2026-10-26-multi-org.md` |
 | 3 | Multi-organisation : table de fermeture matérialisée (perf) | P2 | proposition | — | (cf. PROPOSALS P3-1) |
+| 3 | Re-parentage : impossible de déplacer une org sous une annexe (profondeur plafonnée à 1 via l'UI) | P2 | **terminé** (R122 : `reparentTargets` aligné sur la création + anti-cycle) | `agent/r122-reparent-depth` | `phase-03/2026-10-28-reparent-depth.md` |
 | 4 | RBAC fin : décision unique DB↔TS (`has_permission`), deny, portées | P1 | **terminé** | `agent/phase-04-rbac` | `phase-04/2026-10-26-rbac.md` |
 | 4 | RBAC : R105 — permissions `invitation:*` orphelines réconciliées + garde anti-dérive registre↔matrice | P1 | **terminé** | `agent/r105-route-guard-rbac` | `phase-09/2026-10-26-r105-route-guard-rbac.md` |
 | 4 | RBAC : câblage réel de la garde de route (`isOrgMember`) | P1 | **terminé** (R107 : `useOrgMembership` fail-open + exemption `/onboarding`/`/org-setup`) | `agent/phase-4-needs-membership` | `phase-04/2026-10-28-needs-membership-wiring.md` |

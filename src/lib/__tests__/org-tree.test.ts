@@ -9,6 +9,8 @@
  * boucler `org_family` / `org_descendants` (CTE `WITH RECURSIVE`) à l'infini.
  */
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "fs";
+import { resolve } from "path";
 import {
   wouldCreateCycle,
   assertReparentAllowed,
@@ -17,6 +19,7 @@ import {
   computeAncestors,
   maxDepth,
   maxBreadth,
+  reparentTargets,
 } from "../orgTree";
 
 type Row = { id: string; parentOrgId: string | null };
@@ -105,5 +108,54 @@ describe("clôture transitive", () => {
     ];
     const closure = buildClosure(cyclic);
     expect(closure.length).toBeGreaterThan(0);
+  });
+});
+
+describe("R122 — cibles de re-parentage (alignées sur la création)", () => {
+  it("propose toute organisation VISIBLE (pas seulement les racines)", () => {
+    // Le sélecteur de création accepte toute org visible ; le sélecteur de
+    // re-parentage ne proposait que les racines → impossible de déplacer une
+    // org sous une annexe. La liste doit donc contenir les annexes.
+    const targets = reparentTargets("b", rows).map((r) => r.id);
+    expect(targets).toContain("a"); // une annexe (parentOrgId = mother)
+    expect(targets).toContain("mother");
+  });
+
+  it("exclut l'organisation elle-même", () => {
+    expect(reparentTargets("a", rows).map((r) => r.id)).not.toContain("a");
+  });
+
+  it("exclut les descendants (sinon un cycle serait créé)", () => {
+    const targets = reparentTargets("a", rows).map((r) => r.id);
+    expect(targets).not.toContain("b");
+    expect(targets).not.toContain("c");
+    expect(targets).toEqual(["mother"]);
+  });
+
+  it("cohérence : toute cible proposée passe l'anti-cycle d'écriture", () => {
+    for (const t of reparentTargets("a", rows)) {
+      expect(() =>
+        assertReparentAllowed("a", t.id, parentOf(rows)),
+      ).not.toThrow();
+    }
+  });
+});
+
+describe("R122 — câblage de la page Fédération (anti « filet jamais branché »)", () => {
+  const page = readFileSync(
+    resolve(__dirname, "../../pages/Federation.tsx"),
+    "utf8",
+  );
+
+  it("le sélecteur de re-parentage utilise `reparentTargets` (pas rootOrgs)", () => {
+    expect(page).toMatch(/reparentTargets\(reparentOrg, allOrgs\)/);
+    // Le sélecteur ne doit plus se limiter aux racines.
+    expect(page).not.toMatch(/rootOrgs\s*\n?\s*\.filter\(\(o\) => o\.id !== reparentOrg\)/);
+  });
+
+  it("les options du sélecteur proviennent de `reparentCandidates`", () => {
+    const block = page.slice(page.indexOf('data-testid="reparent-target"'));
+    const upToApply = block.slice(0, block.indexOf("reparent-apply"));
+    expect(upToApply).toMatch(/reparentCandidates/);
   });
 });
