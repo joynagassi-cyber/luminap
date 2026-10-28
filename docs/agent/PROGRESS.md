@@ -43,6 +43,7 @@
 | 4 | RBAC : câblage réel de la garde de route (`hasPermission`) | P1 | bloqué (dépend PR18/R16 : réconcilier rôles ADMIN/CENTRAL_ADMIN) | — | R105 |
 | 2 | Audit garde de route : R106 (update-required inerte) + R107 (needs-membership inerte) | P1 | **terminé** (documenté ; correctif = PR19) | `agent/r105-route-guard-rbac` | `phase-09/2026-10-26-r105-route-guard-rbac.md` |
 | 4 | RBAC fin : réécrire les ~146 politiques RLS sur `has_permission` | P2 | proposition | — | (cf. PROPOSALS PR18) |
+| 4 | Cycle de vie : organisation ARCHIVED = cul-de-sac (aucune action) + métadonnées d'archivage non nettoyées à la restauration | P1 | **terminé** (R123 : bouton « Restaurer » + nettoyage `archived_*`) | `agent/r123-org-archive-restore` | `phase-04/2026-10-28-org-archive-restore.md` |
 | 4 | **RBAC session 11 — contrat d'interface** (grants org-scopés, capacités, hooks, UI, preuve E2E) | P1 | **terminé** | `agent/rbac-contrat` | `phase-04/2026-10-27-rbac-contrat.md` |
 | 4 | **RBAC — chantier A : cloisonnement des `grants` par organisation** (fuite inter-org corrigée) | P1 | **terminé** | `agent/rbac-sql-org-scope` (PR #61) | `phase-04/2026-10-27-rbac-org-scope.md` |
 | 4 | **RBAC — chantier B : modèle de capacités + hooks + couche d'écriture admin** | P1 | **terminé** | `agent/rbac-capabilities` (PR #64) | `phase-04/2026-10-27-rbac-capabilities.md` |

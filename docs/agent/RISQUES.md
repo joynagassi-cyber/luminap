@@ -2984,3 +2984,32 @@ sauvegarde disponible).
   parent limité aux racines). La purge des organisations « Annexe A » résiduelles
   reste une décision propriétaire (R82/T2).
 - **Receipt** : `docs/agent/receipts/phase-03/2026-10-28-reparent-depth.md`.
+
+### R123 — Organisation archivée : cul-de-sac (aucune action) + métadonnées d'archivage non nettoyées — ✅ CORRIGÉ le 2026-10-28
+- **Gravité** : MOYENNE (une organisation archivée devenait **irrécupérable
+  depuis l'UI**, et une restauration laissait des métadonnées trompeuses).
+- **Défaut 1 (cul-de-sac UI)** : dans `CentralAdmin.tsx`, l'action de statut
+  était `o.status === "SUSPENDED" ? « Réactiver » : o.status === "ACTIVE" ?
+  « Suspendre » : null`. Une organisation **ARCHIVED** tombait donc dans la
+  branche `null` : **aucun bouton**. Or `reactivateOrganization` existe et
+  remet `ACTIVE`. L'org archivée était un cul-de-sac — alors que le cycle de
+  vie sanctionné est « archiver ≠ supprimer », donc réversible.
+- **Défaut 2 (métadonnées)** : `setOrganizationStatusPS(…, "ACTIVE")`
+  (`dataLayer.ts`) remettait `status='ACTIVE'` et nettoyait `suspended_*`, mais
+  **laissait** `archived_at`, `archived_by`, `archive_reason`. Une organisation
+  restaurée restait marquée « archivée le … par … pour … » alors qu'elle est
+  ACTIVE (métadonnées incohérentes, trompeuses pour l'audit et l'UI).
+- **Correctif** :
+  1. `setOrganizationStatusPS("ACTIVE")` nettoie désormais **aussi**
+     `archived_at/archived_by/archive_reason` (restauration complète).
+  2. `CentralAdmin.tsx` ajoute une branche `ARCHIVED` → bouton **« Restaurer »**
+     (`data-testid="restore-<id>"`) qui appelle `reactivateOrganization`
+     (l'historique d'audit reste intact).
+- **Garde anti-dérive** : `src/lib/__tests__/org-lifecycle-restore.test.ts`
+  (3 tests) : le SQL `ACTIVE` doit contenir les 6 nettoyages (`status`,
+  `suspended_at/by`, `archived_at/by/reason`) ; le SQL `ARCHIVED` doit
+  renseigner les métadonnées ; **câblage UI** (branche ARCHIVED → action
+  `reactivateOrganization` + libellé « Restaurer »). **Non-vacuité prouvée**
+  (SQL sans `archived_at = NULL` → échec ; branche UI retirée → échec).
+- **Preuve** : vitest **1560/1560** (126 fichiers), `tsc -b` 0, lint 0 erreur.
+- **Receipt** : `docs/agent/receipts/phase-04/2026-10-28-org-archive-restore.md`.
