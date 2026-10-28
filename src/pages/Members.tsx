@@ -1,3 +1,4 @@
+import { captureClientError } from "@/lib/clientErrors";
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCurrentUser } from "@/lib/dataLayer";
@@ -44,7 +45,10 @@ export default function MembersPage() {
     resource
       .listArchived<Member>("Member")
       .then(({ items }) => setArchivedMembers(items))
-      .catch(() => setArchivedError(true));
+      .catch((e) => {
+        captureClientError(e, { message: "Échec du chargement des membres archivés" });
+        setArchivedError(true);
+      });
   }, [retryArchived]);
 
   const [searchQuery, setSearchQuery] = useState("");

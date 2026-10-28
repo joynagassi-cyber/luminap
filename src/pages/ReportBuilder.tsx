@@ -1,3 +1,4 @@
+import { captureClientError } from "@/lib/clientErrors";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
@@ -205,8 +206,8 @@ export default function ReportBuilder() {
     reportDefinitionRepo
       .list()
       .then(setSavedReports)
-      .catch(() => {
-        /* store indisponible (hors ligne) — reste vide */
+      .catch((e) => {
+        captureClientError(e, { message: "Échec du chargement des rapports" });
       });
   }, []);
 
@@ -224,8 +225,8 @@ export default function ReportBuilder() {
         const def = defs.find((d) => d.id === openId);
         if (def) loadDefinition(def);
       })
-      .catch(() => {
-        /* ignore */
+      .catch((e) => {
+        captureClientError(e, { message: "Échec de l'ouverture du rapport" });
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openId]);

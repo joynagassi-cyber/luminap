@@ -326,3 +326,21 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   parallélisation (réfuté par mesure).
 - **CI Pipeline = désormais VERTE** après R114 (#77) — c'est le seul signal
   fiable du dépôt : ne jamais la laisser rouge.
+
+## Pièges d'environnement de l'agent (2026-10-28, coûteux à découvrir)
+- **Push Git : le jeton `ghu_` ne fonctionne PAS en basic-auth** (le remote a le
+  jeton en *username* sans password → `git push` demande un mot de passe et
+  **bloque jusqu'au timeout 120 s**). `git ls-remote` (lecture) passe, mais pas
+  le push. **Solution** : pousser avec une URL explicite —
+  `git push "https://x-access-token:${GITHUB_TOKEN}@github.com/<owner>/<repo>.git" <branche>`
+  (et `GIT_TERMINAL_PROMPT=0` pour échouer vite). Ne pas persister le jeton.
+- **Le jeton n'a PAS la permission `workflows`** : `gh api .../actions/permissions`
+  → `403 Resource not accessible by integration`. Conséquence : les patches de
+  workflow dans `patches/` (`backup-yml-faux-vert.patch`, `deadman-guard.yml`,
+  `keep-alive-verifiable.yml`) **ne peuvent pas être poussés** par l'agent →
+  escalade réelle (pas un manque d'effort). Le propriétaire doit les appliquer.
+- **R88 corrigé (2026-10-27)** : `.catch()` vides = états vides silencieux.
+  `captureClientError()` (dans `clientErrors.ts`) capture les erreurs **gérées**
+  (`source:"handled"`) ; `LoadErrorBlock` (embarquable, sans IonPage) affiche
+  l'erreur + réessai. `Finance` doit garder **un seul** `<IonPage>` (bug écran
+  noir view-stack Ionic).

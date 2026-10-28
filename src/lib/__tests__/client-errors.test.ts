@@ -3,7 +3,13 @@
  * Priorité : la redaction (aucune PII dans les rapports).
  */
 import { describe, it, expect } from "vitest";
-import { redact, buildContext, getRecentErrors, clearRecentErrors } from "../clientErrors";
+import {
+  redact,
+  buildContext,
+  getRecentErrors,
+  clearRecentErrors,
+  captureClientError,
+} from "../clientErrors";
 
 describe("redact — aucune PII dans les rapports", () => {
   it("masque les adresses e-mail", () => {
@@ -60,5 +66,34 @@ describe("buffer d'erreurs récentes (page santé)", () => {
     // vérifie seulement que le buffer est lisible et effaçable.
     clearRecentErrors();
     expect(getRecentErrors()).toHaveLength(0);
+  });
+});
+
+describe("captureClientError — erreurs GÉRÉES (R88)", () => {
+  it("enregistre une erreur interceptée par un .catch dans le buffer santé", () => {
+    clearRecentErrors();
+    captureClientError(new Error("permission denied for table transactions"), {
+      message: "Échec du chargement des transactions",
+    });
+    const errors = getRecentErrors();
+    expect(errors).toHaveLength(1);
+    expect(errors[0].source).toBe("handled");
+    expect(errors[0].message).toBe("Échec du chargement des transactions");
+    clearRecentErrors();
+  });
+
+  it("redacte le contexte fourni (aucune PII)", () => {
+    clearRecentErrors();
+    captureClientError(new Error("boom"), { message: "échec pour user@example.com" });
+    expect(getRecentErrors()[0].message).not.toContain("user@example.com");
+    clearRecentErrors();
+  });
+
+  it("accepte une valeur non-Error", () => {
+    clearRecentErrors();
+    captureClientError({ weird: true });
+    expect(getRecentErrors()[0].source).toBe("handled");
+    expect(getRecentErrors()[0].message).toBe("Erreur inconnue");
+    clearRecentErrors();
   });
 });

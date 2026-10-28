@@ -9,6 +9,7 @@
  * quelles l'utilisateur courant est lié (membres, grants, legacy) et propose
  * de re-entrer dans chacune, ou de tout déconnecter.
  */
+import { captureClientError } from "@/lib/clientErrors";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -157,7 +158,10 @@ export default function SessionsPage() {
       if (!session) {
         // Le token local peut encore être valide : re-hydrate via
         // fetchUser() qui re-lit sb-*-auth-token et revalide silencieusement.
-        const rehydrated = await authService.fetchUser().catch(() => null);
+        const rehydrated = await authService.fetchUser().catch((e) => {
+          captureClientError(e, { message: "Échec de la re-validation de session" });
+          return null;
+        });
         if (!rehydrated) {
           // Impossible de restaurer la session : le refresh token est mort.
           // On renvoie vers /auth pour un re-login explicite — SANS laisser
