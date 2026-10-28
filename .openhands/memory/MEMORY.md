@@ -372,3 +372,27 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   concatène et rate toute régression ultérieure.
 - **Règle générale** : pour un invariant d'état DB (privilèges, RLS, colonnes),
   la garde doit modéliser l'**ordre** des migrations, pas le texte concaténé.
+
+## Session 2026-10-28 (boucle autonome) — classe « filet déclaré jamais câblé » + audit produit
+- **R120 (corrigé)** : câbler un filet (R107 → `needs-membership`) **expose** des
+  écrans jamais atteints. `NeedsMembershipScreen` proposait « Retour à l'accueil »
+  → `/dashboard`, qui n'est PAS exempté → boucle sans issue (toutes les routes
+  `app` bloquées pour un non-membre, y compris `/settings/profil` = déconnexion).
+  Correctif : bouton secondaire « Changer de compte » (`signOut` + `/sessions`,
+  route publique), rendu **seulement si** `onSignOut` fourni. Exemptions
+  `needs-membership` = `{/onboarding, /org-setup}` uniquement.
+- **R121 (corrigé)** : 3 messages d'erreur **en chinois** dans l'UI française
+  (`Versement.tsx:87`, `TransactionEdit.tsx:108/114`). Garde
+  `src/lib/__tests__/no-cjk-strings.test.ts` (scan tout `src`, hors `__tests__`) ;
+  **exclure `\uff00-\uffef`** (contient `＋` U+FF0B légitime du tutoriel).
+- **R122 (corrigé)** : `Federation.tsx` — le sélecteur de re-parentage ne
+  proposait que les **racines** (`rootOrgs`), alors que la création accepte
+  `allOrgs` → impossible de déplacer une org sous une annexe. Correctif :
+  `reparentTargets(orgId, rows)` (`src/lib/orgTree.ts`, toute org sauf self +
+  descendants via `wouldCreateCycle`). C'est la **cause produit** du diagnostic
+  R82 (sélecteur limité aux racines).
+- **Classe réutilisable** : chercher les branches d'écran **mortes** — un
+  `outcome` produit par un résolveur mais dont le bouton pointe vers une route
+  elle-même bloquée. Tester que **chaque action** d'un écran d'état mène à une
+  route **praticable** (`resolveRoute(path, {isOrgMember:false}).outcome==="render"`).
+- **`/workspace/backups/`** : sauvegardes réelles hors dépôt (ne jamais commiter).
