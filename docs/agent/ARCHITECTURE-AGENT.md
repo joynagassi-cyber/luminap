@@ -595,7 +595,7 @@ src/agent/
     StepperView.tsx WalkthroughCard.tsx
 
 src/components/agent/
-  AgentPanel.tsx           # panneau latéral / plein écran
+  AgentPanel.tsx           # feuille plein écran (route /assistant)
   MessageList.tsx MessageBubble.tsx Composer.tsx
   ApprovalCard.tsx ModeSelector.tsx QuotaBanner.tsx
 
@@ -604,28 +604,195 @@ docs/agent/ARCHITECTURE-AGENT.md   # ce document
 docs/agent/SKILLS-AGENT.md         # catalogue des skills (à produire en P2)
 ```
 
-**Intégration UI** : l'agent est un panneau, pas une page. Une route `/assistant`
-pour le plein écran mobile, et un bouton flottant ailleurs. Il ne remplace aucun
-formulaire existant : les 63 pages restent la voie nominale.
+**Intégration UI** : ce n'est **ni un panneau latéral ni un bouton flottant** — les deux
+sont exclus par le contexte mobile (cf. §11). Une route plein écran `/assistant`, plus un
+accès depuis le menu latéral existant. L'agent ne remplace aucun formulaire : les 63 pages
+restent la voie nominale.
 
 ---
 
-## 11. Phasage
+## 11. Contraintes mobiles — Lumina est une application Android (Capacitor)
+
+> Section ajoutée le 2026-10-28 : la première version de ce document parlait d'un
+> « panneau latéral », ce qui n'a aucun sens sur un téléphone. Voici les contraintes
+> réelles, lues dans le dépôt.
+
+### État vérifié
+
+| Élément | Constat |
+|---|---|
+| Emballage | **Capacitor 6** (`@capacitor/android`, `appId com.lumina.mfejc`, versionCode 10) |
+| Rendu | WebView Chromium (Android System WebView), pas Safari ni Chrome de bureau |
+| Cible | Téléphones 5"–6,7", usage à une main, réseau mobile coûteux |
+| `viewport` | `width=device-width, viewport-fit=cover, user-scalable=no` → encoches à gérer |
+| Clavier | `@capacitor/keyboard@6.0.4` **déjà installé** |
+| Réseau | `@capacitor/network@6.0.4` **déjà installé** |
+| Navigation | `BottomNav.tsx` avec **FAB contextuel** (« Nouveau », « Verser », « Transaction ») + menu latéral `FeatureSidebar` |
+| Hors ligne | PowerSync, cœur de l'application |
+| Voix | **aucun** plugin de reconnaissance vocale |
+
+### Conséquences sur l'architecture
+
+**1. Pas de panneau latéral — un *bottom sheet*.** Sur 6", un panneau latéral vole un tiers
+de la largeur. On réutilise `BottomDrawer.tsx` (déjà présent) à 85 % de hauteur, plus une
+route plein écran `/assistant` pour les conversations longues.
+
+**2. Ne PAS ajouter un second bouton flottant.** `BottomNav` possède déjà un FAB dont
+l'action **change selon la page**. Un bouton de chat flottant entrerait en collision et
+casserait l'ergonomie existante. Point d'entrée : le menu latéral (`aria-label="Ouvrir le
+menu"`), plus une entrée dans « Plus ».
+
+**3. Le clavier est la première cause d'échec d'un chat mobile.** Le champ de saisie doit
+être ancré, remonté par `useKeyboardAvoidance` **et** `@capacitor/keyboard`
+(mode `resize`), avec `padding-bottom: env(safe-area-inset-bottom)` sous la barre home.
+Sans ça, le champ passe sous le clavier et la fonctionnalité est inutilisable.
+
+**4. Risque de streaming sur WebView ancien.** `@ai-sdk/react` s'appuie sur
+`fetch` + `ReadableStream`. Les Android System WebView à jour le supportent, mais les
+appareils Android 8–9 d'entrée de gamme peuvent être en retard. **Parade** : détection de
+capacité au démarrage, repli sur une réponse non streamée (indicateur d'attente puis
+message complet). **À tester sur un vrai appareil ancien**, pas dans Chrome de bureau.
+
+**5. Hors ligne : dégradation explicite, jamais de file d'attente.** `@capacitor/network`
+est déjà là ; on s'en sert au lieu d'inventer un `isOnline`. Hors ligne, le champ est
+désactivé avec un message clair (« l'assistant a besoin du réseau ; vos saisies manuelles
+continuent de fonctionner »). Rejouer un tour plus tard produirait des actions incohérentes
+avec l'état de la base.
+
+**6. La voix est le vrai levier mobile — et c'est un autre chantier.** Pour un trésorier qui
+écrit lentement, dicter « ajoute une offrande de 5 000 francs pour dimanche » est
+transformateur. Mais la **Web Speech API ne fonctionne pas dans une WebView Capacitor** : il
+faut `@capacitor-community/speech-recognition` + la permission `RECORD_AUDIO`. À traiter
+séparément, après le chat texte.
+
+**7. Coût et données mobiles.** Un tour = plusieurs centaines de kilo-octets (contexte +
+outils + réponse). Sur un forfait au Bénin, ce n'est pas neutre. Quota mensuel obligatoire,
+et un indicateur discret du nombre de tours restants.
+
+**8. Zone du pouce.** Les boutons d'approbation vont **en bas** de la feuille, pas en haut.
+« Refuser » en variante destructive, « Confirmer » en variante primaire — jamais l'inverse.
+
+**9. Densité.** Pas de tableau large : `BudgetTable` se replie en liste empilée sous 400 px.
+Deux cartes maximum par message.
+
+**10. Batterie.** Virtualiser la liste des messages ; ne pas re-rendre tout le fil à chaque
+token reçu.
+
+---
+
+## 12. Faut-il le construire ? — verdict honnête
+
+> Cette section n'est pas là pour encourager. Elle est là pour éviter de dépenser
+> plusieurs semaines sur une fonctionnalité dont la valeur n'est pas encore démontrée.
+
+### Ce que disent les données de production (relevé le 2026-10-28)
+
+| Mesure | Valeur | Lecture |
+|---|---|---|
+| `transactions` | **0** | le cœur financier n'a **jamais** servi |
+| `cotisations` | **0** | idem |
+| `versements` | **0** | idem |
+| `events` | 7 027 | impressionnant… jusqu'au détail suivant |
+| Dates de début distinctes des 7 027 événements | **6** | ≈ 1 170 événements par date → **données de test**, pas des événements réels |
+| Organisations portant ces événements | **2** | sur 9 |
+| Comptes hors `@lumina.dev` / `@example.com` | **10** sur 108 | aucun signe d'usage réel |
+
+**Conclusion factuelle** : aucune écriture financière réelle n'a été enregistrée. La boucle
+« saisir une cotisation → la voir dans le grand livre → faire un versement » n'a jamais été
+parcourue par un utilisateur.
+
+### Donc : surengineering ou game-changer ?
+
+**Les trois questions qui tranchent :**
+
+**1. L'agent supprime-t-il des étapes, ou ajoute-t-il de la conversation ?**
+Pour saisir un montant et une date sur un téléphone, un formulaire à 4 champs avec clavier
+numérique est **plus rapide** qu'une phrase à dicter ou taper, puis vérifier, puis confirmer.
+Sur ce type de tâche, le chat est un **coût**, pas un gain. Verdict : **surengineering**.
+
+**2. Corrige-t-il un échec réellement observé ?**
+Impossible à dire : personne n'a encore utilisé le cœur de l'application. On ne peut pas
+observer un problème d'ergonomie sur un produit qui n'a pas encore d'usagers. Verdict :
+**prématuré**.
+
+**3. Peut-on se permettre le mode d'échec ?**
+Sur des registres financiers d'église, une transaction mal créée est un incident social, pas
+un bug. Verdict : **non, pas sans confirmation systématique**.
+
+### Ce qui EST réellement différenciant
+
+Trois usages survivent à l'examen — et **aucun** ne nécessite le mode `autonome` :
+
+| Usage | Pourquoi ça compte | Poids |
+|---|---|---|
+| **Découverte guidée** (« comment j'invite un ancien ? ») | 63 pages, du jargon métier (versement, caisse, poste budgétaire), des utilisateurs peu techniciens | ★★★ |
+| **Planification composite** (« organise la conférence de décembre avec 250 000 ») | événement + postes budgétaires + liste d'achats = 5 à 8 écrans ; là, le langage naturel gagne vraiment | ★★★ |
+| **Dictée vocale** | pour qui écrit lentement, c'est le vrai saut — mais c'est un autre chantier (plugin natif) | ★★ |
+
+Et le surengineering est précisément là où le risque est maximal :
+
+| À ne pas faire maintenant | Pourquoi |
+|---|---|
+| Mode `autonome` | 20 % de la valeur, 80 % du risque |
+| Écriture sur les finances (`transaction.create`, `versement.approve`) | c'est le cœur qu'on ne sait pas encore tester faute d'usage |
+| Exposition des ~60 méthodes des capacités | fiabilité en chute libre, coût multiplié |
+
+### Ce que je recommande à la place
+
+**Étape 1 — le « 20 % gratuit » (1 à 2 jours, sans aucun LLM).**
+Le skill `aide` **n'a pas besoin d'un modèle de langage**. `Tutorial.tsx` contient déjà
+`SECTIONS[]` : titres, paragraphes, `tips`, `warnings`, `faqs`. Il suffit d'ajouter un
+`route` et un champ `keywords` à chaque section, puis une recherche locale
+(`String.includes` sur les mots-clés) dans une barre « Comment faire ? ».
+
+- coût : **zéro** ;
+- risque : **zéro** ;
+- valeur : réduit immédiatement le mal que vous décrivez (« se perdre à travers les
+  fonctionnalités ») ;
+- bonus : ça **mesure** la demande. Vous verrez quelles questions reviennent.
+
+**Étape 2 — observer.** Lancez avec 5 vraies organisations. Notez chaque fois qu'un
+utilisateur bloque. Si trois personnes différentes bloquent au même endroit, vous avez un
+argument factuel — et souvent la vraie solution est un formulaire mieux placé, pas un agent.
+
+**Étape 3 — l'agent, seulement si l'étape 2 le justifie.** En commençant par la
+planification composite, qui est le seul cas où le langage naturel bat réellement les
+formulaires.
+
+### Critère d'abandon explicite
+
+> Si, après **quatre semaines d'usage réel**, aucun utilisateur n'a demandé d'assistant
+> conversationnel et que la recherche de l'étape 1 reste peu utilisée, **ne construisez pas
+> l'agent**. Le problème n'est pas là.
+
+Ce critère est la partie la plus utile de ce document.
+
+---
+
+## 13. Phasage
 
 | Phase | Contenu | Risque | Critère de sortie |
 |---|---|---|---|
-| **P0 — Socle** (2-3 j) | `ai@7` + `zod@4`, types, registry vide, edge function qui streame *sans aucun outil*, panneau UI, migration des tables | nul | on discute, ça streame, ça coûte ~0 |
+| **P1 bis — « 20 % gratuit »** (1-2 j, **sans LLM**) | recherche locale « Comment faire ? » dérivée de `Tutorial.tsx#SECTIONS` + `route` par section | **nul** | un utilisateur trouve seul comment inviter un membre |
+| **P0 — Socle** (2-3 j) | `ai@7` + `zod@4`, types, registry vide, edge function qui streame *sans aucun outil*, feuille UI mobile, migration des tables | nul | on discute, ça streame, ça coûte ~0 |
 | **P1 — Lecture** (3-4 j) | skills `rapports` + `membres` + `aide`, mode `lecture` uniquement, `WalkthroughCard` | nul | « combien de cotisations en retard ? », « comment j'invite ? » |
 | **P2 — Écriture assistée** (1 sem.) | skills `evenements` + `budgets`, `ApprovalCard`, `runner`, audit | faible | créer un événement avec budget, après confirmation |
 | **P3 — Autonomie bornée** (1 sem.) | skill `finances`, mode `autonome`, seuils, quotas, `DiffView` | **moyen** | tâches répétitives sans clic, sauf les 4 catégories protégées |
+
+**P1 bis d'abord, et elle peut remplacer tout le reste** (cf. §12). Elle coûte deux jours,
+n'utilise aucun modèle de langage, et répond déjà au problème énoncé : « se perdre à travers
+les fonctionnalités ». Elle produit en plus une **mesure de la demande** réelle.
 
 **Ne pas inverser P1 et P2.** La phase lecture valide le routage d'intention, le coût réel
 et le rendu **sans jamais exposer une écriture**. C'est là qu'on apprend si l'architecture
 tient, au moment où une erreur ne coûte rien.
 
+**P3 est facultative et devrait probablement être reportée** : c'est 20 % de la valeur pour
+80 % du risque, sur des registres financiers.
+
 ---
 
-## 12. Risques et parades
+## 14. Risques et parades
 
 | Risque | Parade |
 |---|---|
@@ -640,7 +807,7 @@ tient, au moment où une erreur ne coûte rien.
 
 ---
 
-## 13. Ce qu'il faudra vérifier à l'implémentation (honnêteté sur les inconnues)
+## 15. Ce qu'il faudra vérifier à l'implémentation (honnêteté sur les inconnues)
 
 Ces points sont **voulus** dans une spec : ils ne sont pas devinables depuis l'extérieur.
 
@@ -658,7 +825,7 @@ Ces points sont **voulus** dans une spec : ils ne sont pas devinables depuis l'e
 
 ---
 
-## 14. Résumé exécutable
+## 16. Résumé exécutable
 
 - **Aucune friction technique** : `ai@7` accepte votre Zod, votre React et votre Node actuels.
 - **Un seul point de vérité par outil** : schéma Zod → validation, types, doc du modèle et
@@ -670,4 +837,13 @@ Ces points sont **voulus** dans une spec : ils ne sont pas devinables depuis l'e
 - **Trois modes** (`lecture`, `assiste`, `autonome`), avec quatre catégories protégées en
   permanence.
 - **Rendu par registre fermé** : professionnel, shadcn, sans JSX généré.
+- **Mobile d'abord** : feuille plein écran, clavier géré, repli si le WebView ne streame pas,
+  pas de file d'attente hors ligne.
 - **Démarrer en lecture seule**, livrer l'écriture après validation.
+
+**Et surtout, le point qui compte le plus** : les données de production montrent
+`transactions = 0`, `cotisations = 0`, `versements = 0`. Le cœur de l'application n'a jamais
+servi. **Commencez par P1 bis — la recherche « Comment faire ? » sans LLM, deux jours, risque
+nul** — puis mesurez quatre semaines avant d'engager les phases suivantes. Le critère
+d'abandon est explicite (§12).
+
