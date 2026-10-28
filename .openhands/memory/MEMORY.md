@@ -191,6 +191,26 @@ documenté comme actif, mais son déclencheur n'est jamais alimenté.
 - `installChunkErrorRecovery` (clientErrors.ts) : recharge 1× par session via
   `sessionStorage['lumina-chunk-reloaded']` (anti-boucle) sur `vite:preloadError`.
 
+## Dérive doc ↔ code : en-têtes de risque périmés (2026-10-27)
+Le registre `docs/agent/RISQUES.md` garde parfois un **en-tête périmé**
+(« OUVERT ») alors que le corps ET le code donnent le risque **corrigé** —
+piège coûteux : on ré-investigue un défaut déjà réglé.
+- Vérifié et corrigé (PR #71) : **R59** (écran noir route paramétrée) était en
+  tête `OUVERT (HAUTE)` mais **CORRIGÉ** (fallback `lazy-route.tsx` ne rend plus
+  `<IonPage>` ; `groups-events.cy.ts` 3/3) ; **R61** CORRIGÉ pour `/groups/:id`
+  (19 pages restantes P35) ; **R74** partiel (icône `notifIconKey` corrigée +
+  testée ; sémantique `action_type` = P-NEW-6).
+- **Réflexe** : avant d'attaquer un risque « OUVERT », lire son **corps** et
+  `grep` le code ; ne se fier ni à l'en-tête seul, ni à la mémoire.
+- Légitimement ouverts (défaut/env) : R30 (sync Cypress), R33 (IonSelect),
+  R72 (global hors DEV), R80 (`PS_ADMIN_TOKEN`), R107 (décision R109/R16),
+  R109 (décision propriétaire).
+- `App.tsx` (RouteGuard) câble `resolveRoute` avec seulement `isAuthenticated`,
+  `activeOrgId`, `linkOrgId` (+ schéma via `schemaVersion.ts`). `isOrgMember`/
+  `hasPermission` restent NON câblés (branches `needs-membership`/`forbidden`
+  inertes) : c'est R107/R105, dépendant de la réconciliation des rôles ADMIN
+  (R109/R16). Un câblage naïf de `hasPermission` enfermerait dehors les admins.
+
 ## RBAC organisationnel (session 11, mergé sur main)
 - **`grants` est désormais org-scopé** : colonne `org_id NOT NULL`
   (migrations `20261027000010_grants_org_scope.sql`,
