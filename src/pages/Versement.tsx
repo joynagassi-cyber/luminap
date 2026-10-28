@@ -84,7 +84,7 @@ export default function Versement() {
         amountCents,
       });
       if (!balanceCheck.ok) {
-        setFormError(balanceCheck.message ?? "余额检查失败");
+        setFormError(balanceCheck.message ?? "La vérification du solde a échoué");
         setIsLoading(false);
         return;
       }
