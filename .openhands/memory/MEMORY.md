@@ -302,3 +302,27 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   → rollback qui restaure puis supprime la table. Réutiliser ce motif.
 - **Règle d'or** : ne jamais écrire « plus aucune écriture ne peut produire ce
   format » sans corriger TOUS les writers ; la migration R65 l'affirmait à tort.
+
+## Piège CI majeur : Node 22 (CI) vs Node 24 (dev) — R114 (2026-10-27)
+- **Tous les workflows GitHub Actions fixent `NODE_VERSION: '22'`** ; le
+  conteneur de dev a Node **24**. Un builtin Node **expérimental** présent sous
+  24 mais absent de `module.builtinModules` sous 22 casse la CI seulement.
+- **Cas mesuré** : `import { DatabaseSync } from "node:sqlite"` (test Phase 8
+  `org-isolation-intrusion.test.ts`) → sous Node 22, Vite refuse de bundler :
+  `Cannot bundle Node.js built-in "node:sqlite"`. **La CI Pipeline était ROUGE
+  sur `main`** (job Unit Tests), alors que le local passait (15/15).
+- **Correctif réutilisable** : résoudre le builtin **à l'exécution** —
+  `process.getBuiltinModule("node:sqlite")` (non bundlé par Vite) + garder un
+  `import type` (effacé au build). Vérifié : suite complète **1452/1452 sous
+  Node 22** (télécharger Node 22 dans `/tmp` pour reproduire :
+  `https://nodejs.org/dist/v22.20.0/node-v22.20.0-linux-x64.tar.xz`).
+- **Avant d'accuser une branche d'un rouge CI, vérifier `main`** : ici `main`
+  était rouge depuis #73 (défaut hérité, pas une régression de la branche).
+
+## Défauts pré-existants confirmés (ne pas re-diagnostiquer)
+- **Android Debug Build = échec pré-existant** (`@capacitor/cli` 8.5.2 vs
+  `@capacitor/android` 6.2.2) — R90.
+- **Cypress = jamais vert** (R98) ; cause = environnement E2E, pas la
+  parallélisation (réfuté par mesure).
+- **CI Pipeline = désormais VERTE** après R114 (#77) — c'est le seul signal
+  fiable du dépôt : ne jamais la laisser rouge.
