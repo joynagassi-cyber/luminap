@@ -1527,3 +1527,28 @@ Heure de reprise : 2026-10-24T08:0x Z. Branches : `agent/session-8-security`
   PROGRESS), **escaladé (E4)**, receipt
   `phase-05-06/2026-10-27-post-acceptation-proof.md`. **Aucun code modifié**
   (décision d'architecture requise : sign-up Auth avant claim, ou assouplir la FK).
+
+## Session — 2026-10-27 : garde structurelle anti-classe « filet déclaré, jamais câblé »
+
+- **Constat** : la classe de défaut « filet déclaré, jamais câblé » (un champ,
+  une branche ou un écran existent mais rien ne les alimente) a récidivé **≥5
+  fois** : R105 (garde de permission), R106 (update-required, corrigé phase 11),
+  R107 (needs-membership), R108 (watchdog), R113 (Rules of Hooks). Chaque fois,
+  la CI restait verte : aucun test ne vérifiait que l'entrée du résolveur était
+  réellement alimentée.
+- **Correctif (test de structure)** : `src/lib/__tests__/route-state-wiring.test.ts`
+  (8 tests). Il lit `routeResolver.ts` + `App.tsx` et exige que :
+  1. tout champ de `RouteState` soit câblé dans `App.tsx` **ou** listé dans
+     `PENDING_WIRING` avec une raison + id de risque (`isOrgMember`/`hasPermission`
+     → bloqués par la décision R109/R16) ;
+  2. `PENDING_WIRING` ne devienne pas obsolète (champ retiré du type) ;
+  3. chaque variante de `RouteOutcome` ait un `case` rendu (pas d'écran muet).
+- **Preuve que la garde mord** : ajouter un champ fictif `bogusInertField` à
+  `RouteState` fait échouer le test (« expected [ 'bogusInertField' ] to deeply
+  equal [] ») ; restauré ensuite.
+- **Audit complémentaire** : `eslint src/ --rule rules-of-hooks:error` ne
+  signale que **2 fichiers** (`App.tsx`, `CulteDetail.tsx`) — exactement ceux
+  que la PR #67 (P0 R113) corrige : la classe est entièrement couverte par #67.
+  R59/R61/R82/R74 sont vérifiés déjà corrigés (pas de travail redondant).
+- **Statut** : commit `64abb1a`, poussé sur `agent/phase-11-resilience`
+  (PR #68). Gates : tsc 0, eslint 0 erreur, vitest **1373/1373**, build OK.
