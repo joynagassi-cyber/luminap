@@ -78,13 +78,22 @@ function cacheKey(
 }
 
 /**
- * Réinitialise le cache (tests + invalidation après mutation de grants).
+ * Réinitialise le cache et force les hooks MONTÉS à re-résoudre.
+ *
+ * Appelé (a) par les tests, (b) après toute mutation de grants/rôles
+ * (`assignMemberRole`, `grantCapability`, `revokeCapability`) : sans cela, un
+ * administrateur qui accorde une capacité à un membre ne la voyait apparaître
+ * qu'au rechargement suivant — le cache module-level (clé `userId|orgId|…`)
+ * restait sur l'ancien verdict, et la fin de sync ne le purge plus une fois
+ * `_cacheStale` consommé (au plus une purge par session).
  */
 export function clearCanAccessMultiCache(): void {
   cache.clear();
   // Purge explicite : la prochaine fin de sync doit re-résoudre (les
   // grants/memberships ont pu changer).
   _cacheStale = true;
+  // Notifie les hooks montés : ils re-résolvent SANS rechargement.
+  _invalidationListeners.forEach((l) => l());
 }
 
 // Vrai tant qu'une invalidation n'a pas été consommée par une fin de sync.

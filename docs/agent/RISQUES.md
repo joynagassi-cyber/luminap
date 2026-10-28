@@ -3159,3 +3159,31 @@ natif (`useAppUrlOpen`) appliquait sa PROPRE condition de bascule
 lien `/invitation/emit?org=B` demandait donc une bascule sur mobile mais pas sur
 le web. La décision est désormais **unique** (`orgSwitchIntentFromLink`),
 partagée par les deux plateformes et couverte par 3 tests.
+
+### R128 — Cache d'accès aux capacités invalidé « après mutation de grants » mais jamais câblé — ✅ CORRIGÉ le 2026-10-28
+- **Gravité** : MOYENNE-HAUTE (capacités admin inopérantes jusqu'au rechargement ;
+  famille « filet déclaré, jamais câblé » : R105/R106/R107/R108/R113/R126/R127).
+- **Défaut** : `clearCanAccessMultiCache()` (`useCanAccessMulti.ts`) documente
+  « tests + invalidation après mutation de grants », mais **seul le test**
+  l'appelait. Or le cache module-level (clé `userId|orgId|resource|action|scope`)
+  mémorise le verdict de `federation.canAccess`. La purge sur fin de sync est
+  **unique par session** (`_cacheStale` est consommé au premier sync), donc :
+  après la première sync, une capacité accordée/retirée par un admin
+  (`assignMemberRole`, `grantCapability`, `revokeCapability`) **ne changeait
+  plus rien** pour l'utilisateur — le verdict périmé persistait jusqu'au
+  rechargement complet. Sur mobile (pas de rechargement), l'effet était
+  permanent.
+- **Preuve du défaut** : `grep -rn "clearCanAccessMultiCache" src` → 3 refs,
+  dont **2 dans le test** ; zéro appelant en production.
+- **Correctif** :
+  1. `clearCanAccessMultiCache()` notifie désormais les hooks **montés**
+     (`_invalidationListeners`) en plus de vider le cache : les composants
+     re-résolvent sans rechargement (le chemin existait déjà pour la fin de
+     sync, il n'était pas emprunté par l'invalidation par mutation).
+  2. `orgAdmin.ts` appelle l'invalidation après `assignMemberRole`,
+     `grantCapability` et `revokeCapability`.
+- **Non-vacuité prouvée** : (a) retirer la notification → 1 test échoue ;
+  (b) retirer les 3 appels → la garde anti-dérive échoue.
+- **Preuve** : vitest **1591/1591** (128 fichiers), `tsc -b` exit 0, eslint
+  0 erreur.
+- **Receipt** : `docs/agent/receipts/phase-04/2026-10-28-access-cache-invalidation.md`.

@@ -191,4 +191,33 @@ describe("useCanAccessMulti (B.1)", () => {
     expect(handleA.result.current).toBeDefined();
     expect(handleB.result.current).toBeDefined();
   });
+
+  it("clearCanAccessMultiCache notifie les hooks MONTÉS (re-résolution sans rechargement)", async () => {
+    mockLegacy(false);
+    mockCanAccess.mockClear();
+    // 1re résolution : accès refusé.
+    mockCanAccess.mockImplementation(async () => false);
+    const handle = renderHook(() =>
+      useCanAccessMulti(UID, ORG, RESOURCE, ACTION, undefined, ROLE),
+    );
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+    const callsAfterFirst = mockCanAccess.mock.calls.length;
+
+    // Mutation de grants côté admin : le service accorde désormais l'accès.
+    mockCanAccess.mockImplementation(async () => true);
+    act(() => {
+      clearCanAccessMultiCache();
+    });
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+
+    // Sans la notification, le hook n'aurait AUCUNE raison de re-résoudre
+    // (il ne relit le cache que sur changement de clé/rôle).
+    expect(mockCanAccess.mock.calls.length).toBeGreaterThan(callsAfterFirst);
+    expect(handle.result.current.allowed).toBe(true);
+    expect(handle.result.current.source).toBe("federation");
+  });
 });
