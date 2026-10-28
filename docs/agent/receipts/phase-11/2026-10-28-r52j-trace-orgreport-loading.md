@@ -82,3 +82,21 @@ premier rendu (liste `[]`).
 - Garde statique étendue à `Pas encore de ` ; non-vacuité prouvée par sonde
   (`__R52Probe2.tsx` → `expected [ '__R52Probe2.tsx' ] to deeply equal []`).
 - Suite complète : **1615/1615** (133 fichiers) ; eslint 0 erreur.
+
+---
+
+## Extension de la garde aux composants partagés
+
+Le balayage statique couvrait `src/pages/` uniquement. Il couvre désormais
+**`src/components/`** : un verdict vide dérivé d'une lecture asynchrone dans un
+composant partagé (DocumentPicker, OrgChildren, …) se propage sur toutes les
+pages qui l'utilisent. Deux composants portent le motif et sont **sains** :
+
+- `DocumentPicker.tsx` — « Aucun document uploadé pour le moment. » n'est rendu
+  que si `documents` est défini et vide (sinon rien).
+- `OrgChildren.tsx` — « Aucune annexe pour le moment. » est protégé par un
+  drapeau `loading` explicite.
+
+Non-vacuité de l'extension prouvée par une sonde dans `src/components/`
+(`__R52ProbeC.tsx` → `expected [ 'src/components/__R52ProbeC.tsx' ] to deeply
+equal []`) ; sonde supprimée.

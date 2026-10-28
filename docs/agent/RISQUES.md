@@ -832,7 +832,12 @@
   boutons (« Aucune notification à vider ») pour éviter les faux positifs.
   Couvre aussi « Pas encore de … » (R52.k).
   Allowlist motivée : `NotFound.tsx` (le verdict EST la route), `Tutorial.tsx`
-  (contenu pédagogique). Non-vacuité prouvée par sonde (`__R52Probe.tsx`).
+  (contenu pédagogique). Le balayage couvre **aussi `src/components/`** (un
+  verdict vide dans un composant partagé se propage partout) — `DocumentPicker`
+  (« Aucun document uploadé pour le moment. ») et `OrgChildren` (« Aucune
+  annexe pour le moment. ») sont vérifiés sains (garde `loading` / `documents`
+  `undefined`). Non-vacuité prouvée par sonde (`__R52Probe.tsx`,
+  `__R52ProbeC.tsx`).
 - **Preuve** : `src/pages/__tests__/Giving-loading.test.tsx` (2) +
   `src/pages/__tests__/list-loading-vs-empty.test.tsx` (6) +
   `src/pages/__tests__/async-loading-vs-empty.test.tsx` (2) +

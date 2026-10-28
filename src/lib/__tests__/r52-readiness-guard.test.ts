@@ -16,9 +16,14 @@
  */
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 
-const PAGES_DIR = join(process.cwd(), "src", "pages");
+const SCAN_DIRS = [
+  join(process.cwd(), "src", "pages"),
+  // Les composants partagés sont un lieu de rechute réel (R52 : un verdict vide
+  // dérivé d'une lecture asynchrone dans un composant se propage partout).
+  join(process.cwd(), "src", "components"),
+];
 
 /** Pages légitimement exemptées (le message ne dépend d'aucune lecture). */
 const ALLOWLIST = new Set([
@@ -50,24 +55,26 @@ const VERDICT_PATTERN =
   /introuvable|Aucun(e)? [^"'<>{}]*?(trouvé|trouvée|trouvés|trouvées|pour le moment|pour l'instant)|Pas encore de /i;
 
 describe("R52 — garde statique : verdict vide/introuvable exige un signal de disponibilité", () => {
-  it("aucune page n'annonce un verdict vide sans distinguer « pas encore lu »", () => {
+  it("aucun fichier n'annonce un verdict vide sans distinguer « pas encore lu »", () => {
     const offenders: string[] = [];
 
-    for (const file of readdirSync(PAGES_DIR)) {
-      if (!file.endsWith(".tsx")) continue;
-      if (ALLOWLIST.has(file)) continue;
+    for (const dir of SCAN_DIRS) {
+      for (const file of readdirSync(dir)) {
+        if (!file.endsWith(".tsx")) continue;
+        if (ALLOWLIST.has(file)) continue;
 
-      const src = readFileSync(join(PAGES_DIR, file), "utf8");
-      if (!VERDICT_PATTERN.test(src)) continue;
+        const src = readFileSync(join(dir, file), "utf8");
+        if (!VERDICT_PATTERN.test(src)) continue;
 
-      const hasSignal = READINESS_SIGNALS.some((s) => src.includes(s));
-      if (!hasSignal) offenders.push(file);
+        const hasSignal = READINESS_SIGNALS.some((s) => src.includes(s));
+        if (!hasSignal) offenders.push(relative(process.cwd(), join(dir, file)));
+      }
     }
 
     expect(
       offenders,
       `Ces pages annoncent « introuvable » sans prouver qu'elles ont lu la donnée :\n` +
-        offenders.map((f) => `  - src/pages/${f}`).join("\n"),
+        offenders.map((f) => `  - ${f}`).join("\n"),
     ).toEqual([]);
   });
 
