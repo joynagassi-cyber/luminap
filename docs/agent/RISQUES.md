@@ -901,7 +901,7 @@
   `comprehensive-flow.cy.ts` 1/1.
 - **Statut** : corrigé, validé (C).
 
-### R59 — Écran noir : la page entrante reste à `opacity: 0` après une navigation depuis la liste — OUVERT (gravité HAUTE)
+### R59 — Écran noir : la page entrante reste à `opacity: 0` après une navigation depuis la liste — CORRIGÉ (gravité HAUTE initiale)
 - **Gravité** : **haute** (écran noir permanent ; l'app est une PWA
   mobile sans barre d'adresse → aucun moyen de recharger).
 - **Symptôme** : cliquer un élément d'une liste qui navigue vers une
@@ -968,7 +968,7 @@
   non-régression incluse dans le spec (page entrante visible après un clic
   depuis une liste).
 
-### R61 — Titres de page non sémantiques (accessibilité) — OUVERT
+### R61 — Titres de page non sémantiques (accessibilité) — CORRIGÉ pour `/groups/:id` ; reste ouvert pour 19 pages (P35)
 - **Gravité** : basse (a11y).
 - **Défaut** : `TopHeader` rend le titre de page dans un `<p>` stylé, pas
   dans un `<h1>`. Les pages qui n'ont pas d'autre titre (ex. `/history`,
@@ -1256,6 +1256,15 @@ le `as any` disparaît, le typecheck passe. Le comportement visuel est
 `ADMIN` ne l'était pas).
 
 **Action proposée** : P-NEW-6.
+
+**Mise à jour (2026-10-27)** — l'effet secondaire « icône » est **corrigé et
+testé** : `notifIconKey` (`src/pages/Notifications.tsx`) reconnaît désormais
+`EVENT_CREATED`/`INVITATION_RECEIVED`/`FORM_SUBMITTED` (les valeurs réellement
+en base) en plus des 3 valeurs de transaction ; test
+`src/pages/__tests__/Notifications-icon.test.tsx`. Reste ouvert : la
+**sémantique** de `action_type` (un rôle y est encore écrit par
+`InvitationClaim.tsx:172`, `Versement.tsx:101`, `EventNew.tsx:159` via
+`as any`) — décision de conception P-NEW-6, non bloquante.
 
 ### Rectificatif sur R70 (message de commit `0702cd2`)
 
