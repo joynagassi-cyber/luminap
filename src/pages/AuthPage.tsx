@@ -6,6 +6,7 @@ import { authService, type Profile } from "@/lib/auth";
 import { oneSignalService } from "@/lib/authOneSignal";
 import type { Role } from "@/types";
 import { needsOnboarding } from "@/lib/onboardingState";
+import { readReturnToFromSearch } from "@/lib/routeResolver";
 import { useLocalStore } from "@/store/useLocalStore";
 import { useKeyboardAvoidance } from "@/hooks/useKeyboardAvoidance";
 import { Loader2, Mail, Lock, User } from "lucide-react";
@@ -93,8 +94,16 @@ export default function AuthPage() {
     // principal — même si ce navigateur a déjà configuré un autre compte.
     // La connexion d'un compte existant reste conditionnelle (onboarding
     // uniquement s'il n'est pas encore finalisé pour ce navigateur).
+    //
+    // R126 — si un `returnTo` allowlisté est présent (`/auth?returnTo=…`,
+    // posé par le garde de route pour une route protégée), on y revient :
+    // c'était la cible du lien/onglet d'origine. L'onboarding forcé reste
+    // prioritaire (un nouveau compte doit d'abord créer son organisation).
+    const returnTo = readReturnToFromSearch(location.search);
     const to =
-      opts?.forceOnboarding || needsOnboarding() ? "/onboarding" : "/dashboard";
+      opts?.forceOnboarding || needsOnboarding()
+        ? "/onboarding"
+        : (returnTo ?? "/dashboard");
     navigate(to, { replace: true });
   };
 

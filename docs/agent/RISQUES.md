@@ -3051,3 +3051,71 @@ sauvegarde disponible).
   **Non-vacuité prouvée** (retrait du câblage → échec).
 - **Preuve** : vitest **1566/1566** (127 fichiers), `tsc -b` 0, lint 0 erreur.
 - **Receipt** : `docs/agent/receipts/phase-11/2026-10-28-updater-shared-state.md`.
+
+### R125 — Lien profond d'invitation réécrit en `/dashboard` : le parcours d'adhésion par lien n'aboutissait jamais — ✅ CORRIGÉ le 2026-10-28
+- **Gravité** : haute (P0 « zéro écran noir » / parcours d'adhésion ; pas
+  d'exploitation, mais fonctionnalité d'invitation par lien totalement inerte).
+- **Défaut** : `RETURN_TO_ALLOWLIST` (`src/lib/routeResolver.ts`) était dérivé de
+  `ROUTE_REGISTRY.filter((r) => r.pattern !== "*" && r.kind === "app")`. Or
+  `/invitation/claim` est déclaré `kind: "public"` (l'invité n'a pas encore de
+  compte) et figure pourtant dans la matrice deep link
+  (`docs/agent/deeplinks.matrix.json`) comme cible légitime. `parseDeepLink`
+  réécrivait donc tout lien `/invitation/claim` en `/dashboard`.
+- **Preuve mesurée (avant correctif)** :
+  `parseDeepLink("lumina://invitation/claim?code=AB12")` →
+  `{"path":"/dashboard","returnTo":null,"orgId":null,"code":"AB12"}`.
+  `isAllowedReturnTo("/invitation/claim")` → `false`.
+- **Défaut secondaire (cumulé)** : `code` était lu sur **n'importe quelle** URL.
+  Un lien d'invitation `?code=AB12` était donc traité comme un callback OAuth :
+  `useAppUrlOpen` appelait `handleOAuthDeepLink`, qui tentait un échange PKCE
+  (`exchangeCodeForSession`) sur un code d'invitation → échec
+  « Google sign-in could not be completed ».
+- **Défaut tertiaire** : `parseDeepLink` ne conserve que le CHEMIN (jamais la
+  query), donc même une fois la route autorisée, le code du lien était perdu à
+  la navigation.
+- **Correctif** :
+  1. `RETURN_TO_ALLOWLIST` inclut désormais **toutes** les routes internes
+     déclarées (hors catch-all `*`) — les routes publiques (`/invitation/claim`,
+     `/auth`, `/sessions`) sont des cibles légitimes. La garde anti-redirection
+     ouverte est conservée (chemin absolu `/…`, jamais `//`).
+  2. `code` (OAuth) n'est extrait QUE sur `/auth/callback` ; nouveau champ
+     `invitationCode` extrait uniquement sur `/invitation/claim`.
+  3. `useAppUrlOpen` reporte `invitationCode` dans l'URL cible
+     (`/invitation/claim?code=…`) ;
+     `InvitationClaim` préremplit le champ code depuis `location.search`.
+- **Non-vacuité prouvée** : retirer le filtre `kind === "app"` de l'allowlist →
+  2 tests de `route-resolver.test.ts` échouent ; retirer le préremplissage →
+  le test de comportement échoue (1/2).
+- **Preuve** : vitest **1572/1572** (128 fichiers), `tsc -b` exit 0, eslint
+  0 erreur.
+- **Receipt** : `docs/agent/receipts/phase-02/2026-10-28-deeplink-invitation.md`.
+
+### R126 — `returnTo` du garde de route calculé mais JAMAIS transmis ni consommé : la cible d'un lien profond vers une route protégée était perdue après connexion — ✅ CORRIGÉ le 2026-10-28
+- **Gravité** : MOYENNE (P0 routage ; aucun écran noir, mais perte de contexte —
+  famille « filet déclaré, jamais câblé » : R105/R106/R107/R108/R113).
+- **Défaut** : `resolveRoute` produit, pour l'état `needs-auth`, un
+  `returnTo` **allowlisté** (la route protégée visée). Mais `RouteGuard`
+  (`src/App.tsx`) faisait `<Navigate to="/auth" replace />` **sans** le
+  transmettre, et `AuthPage` ne lisait **aucun** `returnTo` : après
+  authentification il allait systématiquement à `/onboarding` ou `/dashboard`.
+  L'utilisateur qui ouvrait un lien profond (ou un onglet) vers une route
+  protégée était donc détourné vers le dashboard, sa cible perdue.
+- **Preuve du défaut** : `grep -rn "returnTo" src --include=*.tsx` → seul
+  `routeResolver.ts` (production du champ), `useAppUrlOpen.ts` (deep link
+  natif) et un `console.warn` de `App.tsx` le mentionnaient ; **aucun**
+  consommateur côté `AuthPage`.
+- **Correctif** :
+  1. `RouteGuard` (`App.tsx`) : `needs-auth` navigue vers
+     `/auth?returnTo=<encodeURIComponent(outcome.returnTo)>`.
+  2. Nouveau `readReturnToFromSearch(search)` (`routeResolver.ts`) : relit ET
+     **revalide** le `returnTo` via `isAllowedReturnTo` (la valeur transite par
+     l'URL, donc n'est jamais digne de confiance).
+  3. `AuthPage.proceedAfterAuth` : si un `returnTo` allowlisté est présent, on y
+     revient après connexion ; l'onboarding forcé (nouveau compte) reste
+     prioritaire.
+- **Non-vacuité prouvée** : retirer les deux câblages → 2 tests de
+  `route-state-wiring.test.ts` échouent ; garde anti-dérive ajoutée
+  (`App.tsx` transmet, `AuthPage` consomme).
+- **Preuve** : vitest **1578/1578** (128 fichiers), `tsc -b` exit 0, eslint
+  0 erreur.
+- **Receipt** : `docs/agent/receipts/phase-02/2026-10-28-returnto-wiring.md`.

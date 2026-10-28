@@ -29,6 +29,8 @@
 | 2 | Watchdog `app-ready` + écran de récupération | P0 | **terminé** | `agent/phase-02-routing` | `phase-02/2026-10-26-routing.md` |
 | 2 | Gestion `ChunkLoadError` (rechargement contrôlé) | P0 | **terminé** | `agent/phase-02-routing` | `phase-02/2026-10-26-routing.md` |
 | 2 | Deep links web + `appUrlOpen` via `resolveRoute`, `returnTo` allowlisté | P0 | **terminé** | `agent/phase-02-routing` | `phase-02/2026-10-26-routing.md` |
+| 2 | **R125 — lien profond d'invitation** : `/invitation/claim` (route publique) était réécrit en `/dashboard` ; `?code=` d'invitation traité comme code OAuth | P0 | **terminé** | `agent/r125-deeplink-invitation` | `phase-02/2026-10-28-deeplink-invitation.md` |
+| 2 | **R126 — `returnTo` du garde de route** calculé mais jamais transmis/consommé : la cible d'un lien profond vers une route protégée était perdue après connexion | P0 | **terminé** | `agent/r125-deeplink-invitation` | `phase-02/2026-10-28-returnto-wiring.md` |
 | 2 | Capture `onerror`/`unhandledrejection` (PII redactée) | P1 | **terminé** | `agent/phase-02-routing` | `phase-02/2026-10-26-routing.md` |
 | 2 | Matrice deep link (`deeplinks.matrix.json`) | P0 | **terminé** | `agent/phase-00-etat` | `phase-00/2026-10-26-etat.md` |
 | 2 | `data-screen-state` (catalogue §5.1) + crawler zéro écran noir | P0 | **terminé** | `agent/phase-02-zero-black-screen` | `phase-02/2026-10-26-zero-black-screen.md` |
