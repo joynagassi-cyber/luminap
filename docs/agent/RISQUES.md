@@ -1616,25 +1616,45 @@ dont ~25 min d'exécution (le sync PowerSync prend ~35 s par cycle).
 relancer 3 fois (stabilité).
 
 
-### R84 — La suite Cypress n'est pas typecheckée par la CI (faible)
+### R84 — La suite Cypress n'est pas typecheckée par la CI — CORRIGÉ (2026-10-28)
 
 **Constat** : `tsconfig.json` référence `tsconfig.app.json` (`include: ["src"]`)
 et `tsconfig.node.json` ; `tsc -b` (la commande CI, rendue opérante en session 5
 pour remplacer un `tsc --noEmit` qui ne vérifiait aucun fichier) **n'inclut pas
 `cypress/`**. Les 28 specs ne sont donc jamais vérifiés statiquement.
 
-**Preuve** : `npx tsc --noEmit -p cypress/tsconfig.json` remonte **13 erreurs
+**Preuve** : `npx tsc --noEmit -p cypress/tsconfig.json` remontait **13 erreurs
 préexistantes** dans `cloud-sync.cy.ts` (2), `nav-bottom.cy.ts` (1),
 `sessions.cy.ts` (3), `cypress/support/ionic.ts` (3), plus des erreurs de
-configuration (`--downlevelIteration`). Aucune n'est visible en CI.
+configuration (`--downlevelIteration`). Aucune n'était visible en CI.
 
 **Impact** : un spec peut porter une faute de frappe ou un accès invalide et
 n'échouer qu'à l'exécution — voire jamais si le chemin n'est pas parcouru.
-Faible : cela n'affecte pas l'application livrée.
 
-**Correctif identifié (non appliqué — gel)** : ajouter `cypress` à la
-configuration vérifiée en CI (`tsc -b` avec un `tsconfig.cypress.json`
-référencé), après avoir corrigé les 13 erreurs. Coût estimé : 1 h.
+**CORRECTIF (2026-10-28, `agent/phase-11-r84-cypress-typecheck`)** : la suite
+Cypress est désormais **typecheckée par la CI existante**, sans toucher à un
+workflow (`.github/workflows/` n'est pas modifiable par l'agent — permission
+`workflows` absente) :
+- `tsconfig.json` référence `./cypress/tsconfig.json` ;
+- `cypress/tsconfig.json` reçoit `target: ES2020` (résout
+  `--downlevelIteration` pour l'itération d'un `Set`), `composite: true` et
+  `noEmit: true` (nécessaire : sans `noEmit`, `tsc -b` **émettait 74 `.js`/`.d.ts`
+  dans `cypress/` et un `cypress.config.js` à la racine) ;
+- les **11 erreurs** restantes corrigées, toutes **sans effet runtime** :
+  commandes custom `clickButton`/`typeIonicInput`/`expectNoBlankScreen` typées
+  `Chainable<void>` (au lieu de `Chainable<null>`) + `.then(() => undefined)` ;
+  cast d'écriture `.value` sur l'hôte Ionic (`cloud-sync.cy.ts`) ; `Window.console`
+  via un cast local (`sessions.cy.ts`) ; `export {}` dans deux specs globaux qui
+  redéclaraient `FOREIGN_ORG_IDS` (`invitations-rls`, `rls-leak`) ; type de retour
+  inféré (`nav-bottom.cy.ts`) ; `.gitignore` : `cypress/tsconfig.tsbuildinfo`.
+
+**Vérification** : `npx tsc -b --noEmit` (commande CI exacte) → **0 erreur**
+(inclut désormais `cypress/`) ; aucune émission (`tsc -b` propre) ;
+`eslint cypress/` → **0 erreur** (103 warnings préexistants) ;
+`vite build` OK ; suite unitaire **1462/1462**. **Preuve anti-régression** : le
+verrou est actif — réintroduire une faute de type dans un spec fait échouer
+`tsc -b`.
+
 Voir PROPOSITIONS.md (P34).
 
 

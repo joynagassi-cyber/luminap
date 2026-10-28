@@ -32,15 +32,17 @@ describe('Lumina — Session persistence (Mes comptes, reconnect sans retaper)',
   const installSpy = (win: Window) => {
     (win as any).__diag = [];
     for (const lvl of ['info', 'warn', 'error', 'log'] as const) {
-      const orig = win.console[lvl];
-      win.console[lvl] = (...args: unknown[]) => {
+      const wc = (win as unknown as { console: Record<string, (...a: unknown[]) => void> })
+        .console;
+      const orig = wc[lvl];
+      wc[lvl] = (...args: unknown[]) => {
         const s = args
           .map((a) => (typeof a === 'string' ? a : JSON.stringify(a)))
           .join(' ');
         if (/loginOrgAccount|org\] refetch|auth\] hydrateProfile|dataLayer|listUserOrgs|sessions-diag/.test(s)) {
           ((win as any).__diag as string[]).push(`[${lvl}] ${s}`);
         }
-        orig.apply(win.console, args);
+        orig.apply(wc, args);
       };
     }
   };

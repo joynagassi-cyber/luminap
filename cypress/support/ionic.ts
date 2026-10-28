@@ -36,8 +36,8 @@ Cypress.Commands.add(
     cy.contains("ion-button, button", label, { timeout })
       .first()
       .scrollIntoView()
-      .click({ force: true });
-    return cy.wrap(null);
+      .click({ force: true })
+      .then(() => undefined);
   },
 );
 
@@ -87,8 +87,8 @@ Cypress.Commands.add(
           native.dispatchEvent(new Event("input", { bubbles: true }));
           native.dispatchEvent(new Event("change", { bubbles: true }));
         }
-      });
-    return cy.wrap(null);
+      })
+      .then(() => undefined);
   },
 );
 
@@ -98,20 +98,19 @@ Cypress.Commands.add("expectNoBlankScreen", () => {
   cy.get("body").then(($body) => {
     expect($body.text().trim().length, "page has content").to.be.greaterThan(0);
   });
-  return cy.wrap(null);
 });
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Cypress {
     interface Chainable {
-      clickButton(label: string, opts?: { timeout?: number }): Chainable<null>;
+      clickButton(label: string, opts?: { timeout?: number }): Chainable<void>;
       typeIonicInput(
         ariaLabel: string,
         value: string,
         opts?: { timeout?: number },
-      ): Chainable<null>;
-      expectNoBlankScreen(): Chainable<null>;
+      ): Chainable<void>;
+      expectNoBlankScreen(): Chainable<void>;
     }
   }
 }

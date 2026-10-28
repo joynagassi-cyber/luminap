@@ -147,3 +147,5 @@ describe('Lumina — assertions négatives de fuite RLS (REST, jeton de session)
     });
   });
 });
+
+export {};
