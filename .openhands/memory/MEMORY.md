@@ -396,3 +396,23 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   elle-même bloquée. Tester que **chaque action** d'un écran d'état mène à une
   route **praticable** (`resolveRoute(path, {isOrgMember:false}).outcome==="render"`).
 - **`/workspace/backups/`** : sauvegardes réelles hors dépôt (ne jamais commiter).
+- **R123 (corrigé)** : `CentralAdmin.tsx` — l'action de statut était
+  `SUSPENDED ? « Réactiver » : ACTIVE ? « Suspendre » : null` → une organisation
+  **ARCHIVED** tombait dans la branche `null` (aucune action, irrécupérable),
+  alors que `reactivateOrganization` existe (cycle de vie « archiver ≠
+  supprimer » = réversible). **Et** `setOrganizationStatusPS(…,"ACTIVE")`
+  (`dataLayer.ts`) ne nettoyait pas `archived_at/by/reason` → org restaurée
+  marquée « archivée le … ». Correctif : bouton « Restaurer » + nettoyage des 6
+  colonnes. Garde : `src/lib/__tests__/org-lifecycle-restore.test.ts`.
+- **R124 (corrigé)** : `UpdateDialog` appelait `useUpdater()` **lui-même** en
+  affirmant que l'état est « global » — or le hook gardait un `useState`
+  **local** (état isolé par appel) → le dialogue lisait `updateInfo=null` :
+  « Mettre à jour » inerte (`if (!info) return`) et « Plus tard »
+  (`onClick={() => undefined}`) mort. Correctif : store **global**
+  `src/updater/updaterStore.ts` (module + subscribe/emit) ; `useUpdater` =
+  enveloppe ; **point de montage unique** du dialogue (App.tsx `UpdaterBridge`),
+  SettingsAbout ne garde que le bouton. Garde :
+  `src/updater/__tests__/updaterStore.test.ts` (état partagé prouvé par abonné).
+  **Leçon générale** : un commentaire qui dit « état global » sur un hook à
+  `useState` local est un signal — vérifier qui appelle le hook et où le résultat
+  est consommé.
