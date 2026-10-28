@@ -110,6 +110,7 @@ export default function SaisieRapide() {
           </IonToolbar>
         </IonHeader>
         <IonContent>
+        <h1 className="sr-only">Saisie rapide</h1>
           <div data-screen-state="notfound" className="p-4">
             <p className="text-text-tertiary">
               Culte introuvable.
@@ -134,6 +135,7 @@ export default function SaisieRapide() {
         </IonToolbar>
       </IonHeader>
       <IonContent className="bg-canvas">
+      <h1 className="sr-only">Saisie rapide</h1>
         <div data-screen-state="ready" className="min-h-dvh">
           <TopHeader title="Saisie rapide" />
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">

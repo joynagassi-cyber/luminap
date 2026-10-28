@@ -115,6 +115,7 @@ export default function OrgUnits() {
   return (
     <IonPage>
       <IonContent className="bg-canvas">
+      <h1 className="sr-only">Unités d'organisation</h1>
         <div style={{ minHeight: "100dvh" }}>
           <TopHeader title="Unités internes" />
           <div

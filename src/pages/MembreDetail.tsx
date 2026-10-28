@@ -59,6 +59,7 @@ export default function MembreDetail() {
           </IonToolbar>
         </IonHeader>
         <IonContent fullscreen>
+        <h1 className="sr-only">Détail du membre</h1>
           <div className="min-h-dvh">
             <TopHeader title="" />
             <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
@@ -122,6 +123,7 @@ export default function MembreDetail() {
         </IonToolbar>
       </IonHeader>
       <IonContent fullscreen>
+      <h1 className="sr-only">Détail du membre</h1>
         <div className="min-h-dvh">
           <TopHeader title="Membre" />
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">

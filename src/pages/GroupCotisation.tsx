@@ -209,6 +209,7 @@ export default function GroupCotisation() {
           </IonToolbar>
         </IonHeader>
         <IonContent className="bg-canvas">
+          <h1 className="sr-only">Cotisation groupe</h1>
           <div className="p-5">
             <p data-screen-state="notfound" className="text-text-tertiary">Groupe introuvable.</p>
           </div>
@@ -228,6 +229,7 @@ export default function GroupCotisation() {
         </IonToolbar>
       </IonHeader>
       <IonContent className="bg-canvas" fullscreen>
+        <h1 className="sr-only">Cotisation — {group.name}</h1>
         <div
           data-screen-state="ready"
           className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe"

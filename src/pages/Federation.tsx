@@ -357,6 +357,7 @@ export default function Federation() {
         </IonToolbar>
       </IonHeader>
       <IonContent className="bg-canvas">
+      <h1 className="sr-only">Fédération</h1>
         <div className="min-h-dvh">
           <TopHeader title="Gestion de la fédération" />
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">

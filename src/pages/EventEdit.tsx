@@ -104,6 +104,7 @@ export default function EventEdit() {
   return (
     <IonPage>
       <IonContent className="bg-canvas">
+      <h1 className="sr-only">Modifier l'événement</h1>
         <div data-screen-state="ready" className="min-h-dvh">
           <TopHeader title="Modifier l'événement" />
           <div

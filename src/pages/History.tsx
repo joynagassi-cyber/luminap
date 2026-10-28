@@ -138,6 +138,7 @@ export default function HistoryPage() {
     return (
       <IonPage>
         <IonContent className="bg-canvas">
+        <h1 className="sr-only">Historique</h1>
           <TopHeader title="Historique" />
           <div data-screen-state="loading" className="min-h-dvh flex flex-col">
             <div className="flex-1 max-w-lg w-full mx-auto px-5 pb-safe-calc pt-safe-calc">
@@ -196,6 +197,7 @@ export default function HistoryPage() {
   return (
     <IonPage>
       <IonContent className="bg-canvas">
+      <h1 className="sr-only">Historique</h1>
         <div data-screen-state="ready" className="min-h-dvh">
           <TopHeader title="Historique" />
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">

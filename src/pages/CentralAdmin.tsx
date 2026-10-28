@@ -587,6 +587,7 @@ export default function CentralAdmin() {
           </IonToolbar>
         </IonHeader>
         <IonContent className="bg-canvas">
+        <h1 className="sr-only">Administration centrale</h1>
           <div className="min-h-dvh">
             <TopHeader title="Administration centrale" />
             <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
@@ -648,6 +649,7 @@ export default function CentralAdmin() {
         </IonToolbar>
       </IonHeader>
       <IonContent className="bg-canvas">
+      <h1 className="sr-only">Administration centrale</h1>
         <div className="min-h-dvh">
           {/* Distinct central banner */}
           <div

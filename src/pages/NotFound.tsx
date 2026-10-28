@@ -9,6 +9,7 @@ export default function NotFound() {
   return (
     <IonPage>
       <IonContent className="bg-canvas">
+        <h1 className="sr-only">Page introuvable</h1>
         <div
           data-screen-state="notfound"
           className="min-h-dvh flex items-center justify-center px-5"

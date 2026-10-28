@@ -39,6 +39,7 @@ export default function MembresEnAvance() {
   return (
     <IonPage>
       <IonContent className="bg-canvas">
+      <h1 className="sr-only">Membres en avance</h1>
         <div className="min-h-dvh">
           <TopHeader title="En avance" />
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">

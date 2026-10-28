@@ -419,6 +419,7 @@ export default function Reports() {
     return (
       <IonPage>
         <IonContent className="bg-canvas">
+        <h1 className="sr-only">Rapports</h1>
           <div className="min-h-dvh">
             <TopHeader title="Rapports" />
             <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
@@ -434,6 +435,7 @@ export default function Reports() {
   return (
     <IonPage>
       <IonContent className="bg-canvas">
+      <h1 className="sr-only">Rapports</h1>
         <div className="min-h-dvh">
           <TopHeader title="Rapports" />
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">

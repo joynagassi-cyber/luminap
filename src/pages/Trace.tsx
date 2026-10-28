@@ -134,6 +134,7 @@ export default function TracePage() {
   return (
     <IonPage>
       <IonContent className="bg-canvas">
+      <h1 className="sr-only">Journal d'audit</h1>
         <div data-screen-state="ready" className="min-h-dvh">
           <TopHeader title="Trace d'activité" />
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">

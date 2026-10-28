@@ -277,6 +277,7 @@ export default function OrgReportsReceived() {
           </IonToolbar>
         </IonHeader>
         <IonContent className="bg-canvas">
+        <h1 className="sr-only">Rapports d'organisation reçus</h1>
           <div className="min-h-dvh">
             <TopHeader title="Rapports reçus" />
             <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
@@ -304,6 +305,7 @@ export default function OrgReportsReceived() {
         </IonToolbar>
       </IonHeader>
       <IonContent className="bg-canvas">
+      <h1 className="sr-only">Rapports d'organisation reçus</h1>
         <div className="min-h-dvh">
           <TopHeader title="Rapports reçus" />
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc space-y-4">

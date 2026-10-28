@@ -382,6 +382,7 @@ export default function FormSubmissions() {
         </IonToolbar>
       </IonHeader>
       <IonContent className="bg-canvas" fullscreen>
+        <h1 className="sr-only">Soumissions de formulaires</h1>
         <div className="max-w-[1200px] mx-auto px-4 py-4 space-y-3">
           {loading ? (
             <div className="p-4 text-center text-text-tertiary text-sm">

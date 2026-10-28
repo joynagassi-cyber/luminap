@@ -968,7 +968,7 @@
   non-régression incluse dans le spec (page entrante visible après un clic
   depuis une liste).
 
-### R61 — Titres de page non sémantiques (accessibilité) — CORRIGÉ pour `/groups/:id` ; reste ouvert pour 19 pages (P35)
+### R61 — Titres de page non sémantiques (accessibilité) — CORRIGÉ (toutes les pages montées)
 - **Gravité** : basse (a11y).
 - **Défaut** : `TopHeader` rend le titre de page dans un `<p>` stylé, pas
   dans un `<h1>`. Les pages qui n'ont pas d'autre titre (ex. `/history`,
@@ -989,6 +989,18 @@
   `groups-events.cy.ts` **3/3** avec l'assertion `h1` ; **test négatif**
   (correctif retiré via `git stash`) → **2/3**, échec
   « Expected to find element: `div.ion-page:not(.ion-page-hidden) h1` ».
+- **CORRECTIF COMPLET (2026-10-28, `agent/phase-11-r61-page-titles`)** : la
+  convention `sr-only` (déjà utilisée par `Dashboard`, `Finance`, `GroupDetail`,
+  `TransactionNew`) a été appliquée à **toutes** les pages montées qui
+  n'exposaient aucun `<h1>` : `<h1 className="sr-only">Titre</h1>` inséré juste
+  après chaque `<IonContent>` de branche (les branches d'une page sont
+  mutuellement exclusives → jamais deux `<h1>` rendus à la fois).
+  Mesure : `62` écrans montés, `24` sans titre avant → **0** après. `SettingsShell`
+  (8 écrans Paramètres) rend déjà son `<h1>`.
+  **Garde anti-régression** : `screen-states-guard.test.tsx` (3e invariant) échoue
+  si un composant monté n'a ni `<h1>` ni `SettingsShell` — **preuve de
+  non-vacuité** : la garde a listé les 20 pages restantes avant correctif.
+  Vérifié : `tsc -b` 0, `eslint` 0 erreur, `vite build` OK, suite **1463/1463**.
 
 
 ---

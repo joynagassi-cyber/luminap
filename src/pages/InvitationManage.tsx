@@ -204,6 +204,7 @@ export default function InvitationManage() {
         </IonToolbar>
       </IonHeader>
       <IonContent fullscreen>
+        <h1 className="sr-only">Gestion des invitations</h1>
         <div className="min-h-dvh">
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             <CapabilityBanner orgId={getOrganizationId()} />
