@@ -79,6 +79,7 @@ vi.mock("@/lib/auth", () => ({
     getSession: vi.fn(async () => null),
     getState: () => ({ session: null, user: null }),
     subscribe: vi.fn(() => () => undefined),
+    hydrateProfile: vi.fn(async () => undefined),
   },
   useAuth: () => ({ getState: () => ({ profile: null }) }),
 }));
@@ -201,6 +202,8 @@ import Dashboard from "@/pages/Dashboard";
 import MembersPage from "@/pages/Members";
 import Finance from "@/pages/Finance";
 import FormBuilder from "@/pages/FormBuilder";
+import Help from "@/pages/Help";
+import Notifications from "@/pages/Notifications";
 
 const VALID_STATES = new Set([
   "loading",
@@ -320,6 +323,8 @@ const SCREENS: { name: string; route: string; render: () => ReactElement }[] = [
   { name: "/members", route: "/members", render: () => <MembersPage /> },
   { name: "/finance", route: "/finance", render: () => <Finance /> },
   { name: "/forms", route: "/forms", render: () => <FormBuilder /> },
+  { name: "/help", route: "/help", render: () => <Help /> },
+  { name: "/notifications", route: "/notifications", render: () => <Notifications /> },
 ];
 
 describe("a11y — écrans prioritaires (invariants §5.1 + WCAG)", () => {
