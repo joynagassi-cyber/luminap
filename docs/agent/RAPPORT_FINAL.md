@@ -1191,3 +1191,25 @@ reste à activer par le propriétaire.
 **hors du dépôt** (`/workspace/backups/`) et ne doit **jamais** être commitée
 (dépôt public). Le propriétaire doit la récupérer : l'environnement de test est
 voué à disparaître.
+
+## S5.9 — Réconciliation documentaire des statuts de risque (2026-10-27)
+
+Objectif de la boucle autonome : **réconcilier le contrat avec l'état réel du
+dépôt**. Plusieurs risques portaient un **en-tête périmé** (« OUVERT ») alors
+que leur corps (et le code) les donnaient **corrigés** — une dérive qui a
+elle-même induit une perte de temps (investigation d'un « R59 ouvert » déjà
+corrigé, et d'un doublon de garde R105).
+
+| Risque | En-tête avant | Statut réel (vérifié en code) | Preuve |
+|---|---|---|---|
+| **R59** — écran noir route paramétrée | OUVERT (HAUTE) | **CORRIGÉ** | `PageSkeleton` (`lazy-route.tsx`) ne rend plus `<IonPage>` ; `groups-events.cy.ts` 3/3 |
+| **R61** — titres non sémantiques | OUVERT | **CORRIGÉ pour `/groups/:id`** ; 19 pages restantes (P35) | `<h1 className="sr-only">` dans `GroupDetail.tsx` ; test négatif 2/3 |
+| **R74** — `action_type` détourné en rôle | OUVERT (moyenne) | **partiel** : effet « icône » corrigé + testé ; sémantique = décision P-NEW-6 | `notifIconKey` reconnaît `EVENT_CREATED`/`INVITATION_RECEIVED`/`FORM_SUBMITTED` ; `Notifications-icon.test.tsx` |
+
+**Reste légitimement ouvert** (défaut/environnement, pas un oubli) : R30
+(synchronisation Cypress), R33 (faible, `IonSelect`), R72 (global exposé hors
+DEV), R80 (stream `profiles`, bloqué par `PS_ADMIN_TOKEN`), R107 (décision
+R109/R16), R109 (décision propriétaire).
+
+**Leçon retenue** : les en-têtes de statut d'un registre de risques doivent être
+mis à jour **dans le même commit** que le correctif qu'ils décrivent.
