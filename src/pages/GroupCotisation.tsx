@@ -210,7 +210,7 @@ export default function GroupCotisation() {
         </IonHeader>
         <IonContent className="bg-canvas">
           <div className="p-5">
-            <p className="text-text-tertiary">Groupe introuvable.</p>
+            <p data-screen-state="notfound" className="text-text-tertiary">Groupe introuvable.</p>
           </div>
         </IonContent>
       </IonPage>
@@ -229,6 +229,7 @@ export default function GroupCotisation() {
       </IonHeader>
       <IonContent className="bg-canvas" fullscreen>
         <div
+          data-screen-state="ready"
           className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe"
           style={{
             paddingBottom: keyboardHeight > 0 ? `${keyboardHeight}px` : undefined,

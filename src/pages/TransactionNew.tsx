@@ -211,6 +211,7 @@ export default function TransactionNew() {
         <h1 className="sr-only">Nouvelle transaction</h1>
         <TopHeader title="Nouvelle transaction" />
         <div
+          data-screen-state="ready"
           className="px-5 pt-safe-calc pb-safe-calc"
           style={{
             paddingBottom: keyboardHeight > 0 ? `${keyboardHeight}px` : undefined,

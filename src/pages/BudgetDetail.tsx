@@ -33,7 +33,7 @@ export default function BudgetDetail() {
     return (
       <IonPage>
         <IonContent className="bg-canvas">
-          <div className="min-h-dvh">
+          <div data-screen-state="empty" className="min-h-dvh">
             <TopHeader title="Budget" />
             <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
               <p className="text-text-tertiary text-sm">Budget introuvable.</p>
@@ -75,7 +75,7 @@ export default function BudgetDetail() {
   return (
     <IonPage>
       <IonContent className="bg-canvas">
-        <div className="min-h-dvh">
+        <div data-screen-state="ready" className="min-h-dvh">
           <TopHeader title="Budget" />
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             {/* En-tête */}

@@ -115,7 +115,7 @@ export default function TransactionDetail() {
           </IonToolbar>
         </IonHeader>
         <IonContent fullscreen className="bg-canvas">
-          <div className="min-h-dvh flex items-center justify-center">
+          <div data-screen-state="notfound" className="min-h-dvh flex items-center justify-center">
             <p className="text-text-tertiary">Transaction introuvable</p>
           </div>
         </IonContent>
@@ -240,7 +240,7 @@ export default function TransactionDetail() {
         </IonToolbar>
       </IonHeader>
       <IonContent fullscreen className="bg-canvas">
-        <div className="min-h-dvh">
+        <div data-screen-state="ready" className="min-h-dvh">
           <TopHeader title="Transaction" />
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             <button

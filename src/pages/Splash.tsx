@@ -112,6 +112,7 @@ export default function Splash() {
     <IonPage>
       <IonContent className="bg-canvas">
         <div
+          data-screen-state={phase === "loading" ? "loading" : "ready"}
           className="min-h-dvh flex flex-col items-center justify-center"
           style={{ backgroundColor: "var(--canvas)" }}
         >

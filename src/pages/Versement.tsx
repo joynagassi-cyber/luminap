@@ -123,7 +123,7 @@ export default function Versement() {
   return (
     <IonPage>
       <IonContent fullscreen>
-        <div className="min-h-dvh">
+        <div data-screen-state="ready" className="min-h-dvh">
           <TopHeader title="Versement" />
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             <button

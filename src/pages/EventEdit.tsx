@@ -61,7 +61,7 @@ export default function EventEdit() {
 
   if (loading || !event) {
     return (
-      <div className="min-h-dvh flex items-center justify-center">
+      <div data-screen-state="loading" className="min-h-dvh flex items-center justify-center">
         <p className="text-text-tertiary">Chargement...</p>
       </div>
     );
@@ -104,7 +104,7 @@ export default function EventEdit() {
   return (
     <IonPage>
       <IonContent className="bg-canvas">
-        <div className="min-h-dvh">
+        <div data-screen-state="ready" className="min-h-dvh">
           <TopHeader title="Modifier l'événement" />
           <div
             className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc"

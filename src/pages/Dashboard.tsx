@@ -779,8 +779,10 @@ export default function Dashboard() {
   if (isLoading) {
     return (
       <IonPageWrapper>
-        <TopHeader title="Lumina" />
-        <DashboardSkeleton />
+        <div data-screen-state="loading">
+          <TopHeader title="Lumina" />
+          <DashboardSkeleton />
+        </div>
         <BottomNav />
       </IonPageWrapper>
     );
@@ -788,6 +790,7 @@ export default function Dashboard() {
 
   return (
     <IonPageWrapper>
+      <div data-screen-state="ready">
       <TopHeader title="Lumina" />
       <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
         <h1 className="sr-only">Accueil — tableau de bord financier</h1>
@@ -1039,6 +1042,7 @@ export default function Dashboard() {
       </div>
 
       <BottomNav />
+      </div>
     </IonPageWrapper>
   );
 }

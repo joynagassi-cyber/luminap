@@ -34,6 +34,7 @@ export default function EmptyState({
 }: EmptyStateProps) {
   return (
     <div
+      data-screen-state="empty"
       className="flex flex-col items-center justify-center py-16 px-6 text-center"
       data-testid={testid}
     >
