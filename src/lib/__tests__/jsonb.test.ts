@@ -83,7 +83,7 @@ describe("jsonb — application par colonne (coerceJsonbColumns)", () => {
     expect(coerceJsonbColumns("events", op)).toBe(op);
   });
 
-  it("couvre les 9 colonnes jsonb du schéma réel", () => {
+  it("couvre les 10 colonnes converties (jsonb + text[] du schéma réel)", () => {
     const declared = Object.entries(JSONB_COLUMNS).flatMap(([t, cols]) =>
       cols.map((c) => `${t}.${c}`),
     );
@@ -92,6 +92,7 @@ describe("jsonb — application par colonne (coerceJsonbColumns)", () => {
         "audit_entries.after_state",
         "audit_entries.before_state",
         "custom_field_definitions.options",
+        "custom_field_values.value",
         "events.budget_items",
         "form_definitions.fields",
         "form_submissions.data",

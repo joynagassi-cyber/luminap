@@ -22,7 +22,15 @@ export const JSONB_COLUMNS: Record<string, string[]> = {
   invitations: ["grants_payload", "tags_payload"],
   org_reports: ["content"],
   report_definitions: ["filters"],
+  // `options` est un `text[]` PostgreSQL, pas un `jsonb` : le client le
+  // sérialise en chaîne JSON et a besoin de la même conversion qu'une
+  // colonne jsonb pour éviter le double encodage côté serveur.
   custom_field_definitions: ["options"],
+  // `value` est `jsonb NOT NULL DEFAULT '{}'` en base et la table est
+  // synchronisée : sans entrée ici, un objet écrit hors ligne partait en
+  // chaîne et devenait un jsonb de type `string` (défaut R65). Absence
+  // détectée par la garde d'inventaire `jsonb-inventory.test.ts` (R65.b).
+  custom_field_values: ["value"],
   audit_entries: ["before_state", "after_state"],
 };
 

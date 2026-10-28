@@ -87,6 +87,7 @@
 | 11 | **R84 — suite Cypress non typecheckée en CI** : `tsconfig.json` référence `cypress/tsconfig.json` (`target ES2020`, `composite`, **`noEmit`**) ; 11 erreurs de type préexistantes corrigées → `tsc -b --noEmit` couvre désormais Cypress (0 erreur) | P2 | **terminé** | `agent/phase-11-r84-cypress-typecheck` | `phase-11/2026-10-28-r84-cypress-typecheck.md` |
 | 11 | **R61/P35 — titres de page sémantiques** : `<h1 className="sr-only">` par branche sur les **24** pages montées sans titre (a11y WCAG 2.4.1) + 3e invariant de `screen-states-guard` (0 écran monté sans `<h1>`) | P2 | **terminé** | `agent/phase-11-r61-page-titles` | `phase-11/2026-10-28-r61-page-titles.md` |
 | 11 | **Banc a11y rendu étendu** (6 → 8 écrans : `/help`, `/notifications`) — invariants `data-screen-state`/`<h1>`/labels/`alt` vérifiés à l'exécution | P2 | **terminé** | `agent/phase-11-a11y-screens-coverage` | `phase-11/2026-10-28-a11y-screens-coverage.md` |
+| 11 | **R65.b — garde d'inventaire jsonb** : `jsonb-inventory.test.ts` relève les colonnes `jsonb` des migrations et échoue si `JSONB_COLUMNS` en manque une ; **dérive réelle corrigée** (`custom_field_values.value`) | P2 | **terminé** | `agent/phase-11-r65b-jsonb-inventory` | `phase-11/2026-10-28-r65b-jsonb-inventory.md` |
 | 12 | Suite Cypress (couverture totale) + crawler | P2 | à faire | `agent/phase-12-cypress` | — |
 | 13-17 | Tutoriel, personnalisation, propositions, doc, validation finale | P3 | à faire | `agent/phase-13..17` | — |
 

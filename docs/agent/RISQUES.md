@@ -1089,12 +1089,32 @@ décodant vers `object`/`array`).
   sauvegarde exacte dans `_jsonb_null_literal_20261027` puis `"null"` → `NULL`.
   Appliquée : l'invariant RUNBOOK renvoie **0 partout** (vérifié).
 
-### R65.b — Invariant d'intégrité jsonb non gardé en CI — OUVERT (moyenne)
+### R65.b — Invariant d'intégrité jsonb non gardé en CI — CORRIGÉ (moyenne)
 - **Constat** : la requête d'intégrité du RUNBOOK (jsonb de type `string` = 0)
   est **manuelle**. Rien ne la rejoue automatiquement ; c'est pourquoi la
   rechute R65 a persisté 3 jours (88 lignes) sans être détectée.
-- **Recommandation** : l'exécuter en CI (job planifié ou via l'API) et échouer
-  si une valeur non nulle apparaît. Cf. PROPOSITIONS (P41/P-NEW).
+- **CORRIGÉ (2026-10-28, `agent/phase-11-r65b-jsonb-inventory`)** — la cause
+  racine est une **dérive de code** (colonnes `jsonb` du schéma PG vs table de
+  conversion `JSONB_COLUMNS`), entièrement visible dans le dépôt : la garde
+  n'a donc pas besoin d'accès base. `src/lib/__tests__/jsonb-inventory.test.ts`
+  relève les colonnes `jsonb` déclarées dans `supabase/migrations/` et **échoue**
+  si l'une d'elles n'est pas couverte par `JSONB_COLUMNS` (ou si une entrée est
+  morte). Déterministe, hors-ligne, exécutée à chaque `vitest run` (donc en CI).
+- **Dérive détectée et corrigée au passage** : `custom_field_values.value`
+  (`jsonb NOT NULL DEFAULT '{}'`, table **synchronisée**) était absente de
+  `JSONB_COLUMNS` → un objet écrit hors ligne partait en chaîne et devenait un
+  jsonb de type `string`. Ajoutée. Table actuellement **vide** en base (défaut
+  latent, pas de corruption existante) — correctif préventif.
+- **Justesse du parseur** : l'inventaire extrait des migrations correspond
+  **exactement** aux 10 colonnes `jsonb` relevées dans
+  `information_schema.columns` (base de dev, 2026-10-28) — assertion de
+  contrôle incluse dans le test.
+- **Preuve de non-vacuité** : retrait du correctif → la garde échoue en nommant
+  `custom_field_values.value` ; remise → vert.
+- **Note** : `custom_field_definitions.options` reste dans `JSONB_COLUMNS` bien
+  que le type PG soit `text[]` — c'est **délibéré** (le client le sérialise en
+  chaîne JSON et a besoin de la même conversion) ; la garde le reconnaît comme
+  couverture légitime.
 
 
 ### R66 — `db.status` inexistant (PowerSync v2) → indicateur « hors ligne » permanent — CORRIGÉ (haute)
