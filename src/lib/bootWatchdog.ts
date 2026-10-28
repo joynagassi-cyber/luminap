@@ -1,6 +1,27 @@
 /**
  * Watchdog de démarrage (Phase 2, robustesse « zéro écran noir »).
  *
+ * ⚠️ PORTÉE RÉELLE — corrigée le 2026-10-28.
+ *
+ * Ce module ne peut protéger que les blocages survenant APRÈS l'évaluation du
+ * graphe de modules. Il est armé par une instruction de `main.tsx` ; or les
+ * imports ES sont évalués avant toute instruction du module. Si un import lève
+ * à l'évaluation (ex. `@/lib/auth` sans `VITE_SUPABASE_URL`), le corps de
+ * `main.tsx` ne s'exécute jamais : `armBootWatchdog()` n'est jamais atteint, et
+ * ce watchdog ne peut pas signaler l'échec.
+ *
+ * C'est le même défaut que celui décrit ci-dessous, un niveau plus haut : le
+ * minuteur était dans l'arbre React (donc aveugle à « React n'a jamais monté »),
+ * il a été déplacé dans le bundle (donc aveugle à « le bundle n'a jamais été
+ * évalué »). Le dernier recours vit désormais HORS du bundle, en script inline
+ * dans `index.html` (`#lumina-boot-recovery`).
+ *
+ * Les deux couches sont idempotentes : chacune vérifie la présence de
+ * `#lumina-boot-recovery` avant d'afficher, et la couche HTML retire sa
+ * surcouche dès que l'app devient prête.
+ *
+ * Ci-dessous : historique du premier correctif (toujours valable).
+ *
  * Problème : le watchdog vivait DANS l'arbre React (`AppReadyBridge`). Or ce
  * composant ne s'exécute que si React a monté — il ne peut donc jamais
  * détecter « React n'a jamais monté ». Pire, son effet posait le drapeau de

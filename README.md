@@ -134,20 +134,30 @@ cd lumina
 pnpm install
 
 # 2. Configurer l'environnement
-cp .env .env.local      # ou créer .env.local à la main (voir ci-dessous)
+cp .env.example .env    # puis renseigner les valeurs (voir ci-dessous)
 ```
 
-Les variables requises côté client (prefix `VITE_`) :
+Le dépôt ne contient pas de `.env` (ignoré par Git). Modèle :
+[`.env.example`](.env.example). Variables réellement lues par `src/` :
 
-| Variable | Description |
-|----------|-------------|
-| `VITE_SUPABASE_URL` | URL du projet Supabase |
-| `VITE_SUPABASE_ANON_KEY` | Clé anon (les politiques RLS protègent les données) |
-| `VITE_SUPABASE_JWKS_URL` | URL JWKS pour la vérification des JWT |
-| `VITE_POWERSYNC_URL` | Endpoint de l'instance PowerSync |
-| `VITE_POWERSYNC_ACCESS_KEY` | Clé d'accès PowerSync (publique côté client) |
-| `VITE_ONEAPP_ID` / `VITE_onesignal_app_id` | Identifiant OneSignal (notifications) |
-| `VITE_SENTRY_DSN` | DSN Sentry (sinon le SDK reste débranché, sans perte) |
+| Variable | Statut | Effet si absente |
+|----------|--------|------------------|
+| `VITE_SUPABASE_URL` | **requis** | `src/lib/auth.ts` lève à l'évaluation du module → **l'app ne démarre pas du tout** (écran noir après le splash, cf. [diagnostic](docs/DIAGNOSTIC-ECRAN-NOIR.md)) |
+| `VITE_SUPABASE_ANON_KEY` | **requis** | idem |
+| `VITE_POWERSYNC_URL` | recommandé | `initPowerSync()` échoue, avertissement console, **mode hors ligne** (l'app démarre) |
+| `VITE_ONESIGNAL_APP_ID` | optionnel | notifications push désactivées (no-op) |
+| `VITE_OAUTH_REDIRECT_URL` | optionnel | redirection OAuth par défaut de la plateforme |
+| `VITE_SENTRY_DSN` / `VITE_SENTRY_ENV` | optionnel | SDK chargé mais silencieux, aucun envoi |
+| `VITE_APP_VERSION` | optionnel | injectée au build pour l'affichage de version |
+
+> Les clés `VITE_*` sont **embarquées dans le bundle** : visibles par quiconque
+> installe l'APK. Ne jamais y mettre de clé `service_role`.
+>
+> Les variables sont lues **au démarrage du serveur Vite** : après modification
+> du `.env`, relancer `pnpm dev` (un rechargement à chaud ne les relit pas).
+>
+> Déclarées dans `src/vite-env.d.ts` mais **jamais lues** par le code :
+> `VITE_SUPABASE_JWKS_URL`. Ne les cherchez pas : les renseigner n'a aucun effet.
 
 ```bash
 # 3. Lancer le dev server
@@ -461,6 +471,7 @@ crée `.env.local` depuis les secrets et valide la stack complète.
 | `docs/DB-INDEX-COMPARISON.md` | Audit d'index PostgreSQL |
 | `docs/security-audit-2026-09-09.md` | Audit sécurité + RLS |
 | `docs/ionic-migration.md` | Migration incremental React → Ionic |
+| `docs/DIAGNOSTIC-ECRAN-NOIR.md` | Écran noir après le splash : cause, correctif, vérification |
 | `README-CI.md` | Détail du pipeline CI/CD |
 | `README-KEYSTORE.md` / `docs/KEYSTORE.md` | Signature APK Android |
 | `AGENTS.md` | Instructions pour les agents de code (architecture front-first) |
