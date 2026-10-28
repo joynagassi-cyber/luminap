@@ -172,6 +172,12 @@
 Cinq occurrences trouvées (R105/R106/R107/R108/R113) : une garde/écran est écrit
 et documenté comme actif, mais son déclencheur n'est jamais alimenté.
 - **R105** : `invitation:*` exigées par ROUTE_REGISTRY, détenues par aucun rôle.
+  **Garde DÉJÀ en place** : `src/lib/__tests__/permissions.test.ts`
+  (`describe("cohérence ROUTE_REGISTRY ↔ PERMISSION_MATRIX")`, ajouté PR #33) —
+  vérifie que toute `route.permission` est détenue par ≥1 rôle. **Ne pas
+  recréer** (j'ai ouvert puis fermé PR #70 pour ce doublon). Le test
+  `route-registry-drift.test.ts` ne couvre QUE routes↔registre, pas les
+  permissions : c'est ce qui m'avait induit en erreur.
 - **R106/R107** : `resolveRoute` reçoit seulement `{isAuthenticated}`.
   **R106 CORRIGÉ** (phase 11, 2026-10-27) : `clientSchemaVersion`/
   `minSchemaVersion` alimentés via `src/lib/schemaVersion.ts` (fail-open tant que
