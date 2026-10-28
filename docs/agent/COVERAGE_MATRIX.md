@@ -60,3 +60,5 @@
 | 4 | Invariant ≥1 administrateur par organisation (PM5) | `V: last-org-admin.test.ts` (4) + `SQL: 20261026000007` | **couvert** |
 | 7 | Suppression de membre sans perte financière (PM8) | `V: member-deletion-guard.test.ts` (4) + `SQL: 20261026000008` | **couvert** |
 | 9 | Catégories canoniques (R89.a, FK `transactions.category_id`) | `V: canonical-categories-drift` (4) + seed idempotent | **couvert** (FK vérifiée en base) |
+| 11 | « Pas encore lu » ≠ « vide » (R52.b→R52.k) : squelettes + garde `isPowerSyncReadyNow()` / drapeaux `*Loaded` | `V: list-loading-vs-empty.test.tsx` (15), `V: r52k-forms-loading.test.tsx` (3), `V: Giving-loading`, `V: async-loading-vs-empty` | **couvert** (non-vacuité vérifiée) |
+| 11 | Garde statique anti-récurrence R52 (verdict vide ⇒ signal de disponibilité) | `V: r52-readiness-guard.test.ts` (2, dont non-vacuité par sonde) | **couvert** |
