@@ -237,6 +237,7 @@ export default function SessionsPage() {
   return (
     <IonPage>
       <IonContent className="bg-canvas">
+      <h1 className="sr-only">Sessions</h1>
         <div className="min-h-dvh">
           <TopHeader title="Mes comptes" />
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">

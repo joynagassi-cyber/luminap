@@ -223,6 +223,7 @@ export default function InvitationEmit() {
         </IonToolbar>
       </IonHeader>
       <IonContent fullscreen>
+      <h1 className="sr-only">Émettre une invitation</h1>
         {/* M9 — TopHeader supprimé : la barre IonHeader (back + « Gérer »)
             porte déjà le contexte ; un 2ᵉ chrome 64px en double coquin. */}
         <div data-screen-state="ready" className="min-h-dvh">

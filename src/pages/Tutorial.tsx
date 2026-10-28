@@ -1344,6 +1344,7 @@ export default function Tutorial() {
   return (
     <IonPage>
       <IonContent className="bg-canvas">
+      <h1 className="sr-only">Tutoriel</h1>
         <div data-screen-state="ready" className="min-h-dvh">
           <TopHeader title="Tutoriel" />
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">

@@ -171,6 +171,7 @@ export default function OrgReportSend() {
           </IonToolbar>
         </IonHeader>
         <IonContent className="bg-canvas">
+        <h1 className="sr-only">Envoyer un rapport d'organisation</h1>
           <div data-screen-state="forbidden" className="min-h-dvh">
             <TopHeader title="Envoyer un rapport" />
             <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
@@ -318,6 +319,7 @@ export default function OrgReportSend() {
         </IonToolbar>
       </IonHeader>
       <IonContent className="bg-canvas">
+      <h1 className="sr-only">Envoyer un rapport d'organisation</h1>
         <div data-screen-state="ready" className="min-h-dvh">
           <TopHeader title="Envoyer un rapport" />
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc space-y-4">

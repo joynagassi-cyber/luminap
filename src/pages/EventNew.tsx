@@ -185,6 +185,7 @@ export default function EventNew() {
       </IonHeader>
 
       <IonContent className="bg-canvas" fullscreen>
+      <h1 className="sr-only">Nouvel événement</h1>
         <div
           data-screen-state="ready"
           className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe"

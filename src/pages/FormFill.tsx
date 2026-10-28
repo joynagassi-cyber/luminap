@@ -190,6 +190,7 @@ export default function FormFill() {
     return (
       <IonPage>
         <IonContent className="bg-canvas">
+        <h1 className="sr-only">Remplir le formulaire</h1>
           <TopHeader title="Formulaire" />
           <div data-screen-state="loading" className="flex items-center justify-center min-h-[60vh]">
             <p className="text-text-tertiary text-sm">Chargement...</p>
@@ -203,6 +204,7 @@ export default function FormFill() {
     return (
       <IonPage>
         <IonContent className="bg-canvas">
+        <h1 className="sr-only">Remplir le formulaire</h1>
           <TopHeader title="Formulaire" />
           <div data-screen-state="notfound" className="px-5 pt-safe-calc pb-safe-calc max-w-lg mx-auto">
             <button
@@ -222,6 +224,7 @@ export default function FormFill() {
   return (
     <IonPage>
       <IonContent className="bg-canvas">
+      <h1 className="sr-only">Remplir le formulaire</h1>
         <TopHeader title={form.name} />
         <div
           data-screen-state="ready"

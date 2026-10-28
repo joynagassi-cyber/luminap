@@ -351,21 +351,23 @@
 - **Bloquant** : oui.
 
 
-### P35 — Titre de niveau 1 sur les 19 pages restantes — MOYENNE
-- **Problème** : R61 (session 4) n'a été corrigé que pour `/groups/:id`.
-  **19 pages** n'exposent aucun `<h1>` (mesuré :
-  `grep -c '<h1' src/pages/*.tsx` → CentralAdmin, EventEdit, EventNew,
-  Federation, FormFill, History, InvitationEmit, MembreDetail,
-  MembresEnAvance, OrgReportDetail, OrgReportSend, OrgReportsReceived,
-  OrgUnits, Reports, SaisieRapide, Sessions, Trace, TransactionDetail,
-  TransactionNewGroup). Un `<h1>` global dans `TopHeader` est **exclu** :
-  il créerait un **doublon** sur les 24 pages qui en ont déjà un.
-- **Proposition** : `TopHeader` accepte une prop `headingLevel` (défaut
-  `"none"` = `<p>` actuel) ; chaque page sans `<h1>` passe `headingLevel=1`.
-  Ou, plus simple : un `<h1 className="sr-only">` par page manquante,
-  comme fait pour `/groups/:id`.
+### P35 — Titre de niveau 1 sur les 19 pages restantes — TRAITÉ (2026-10-28)
+- **Problème** : R61 (session 4) n'avait été corrigé que pour `/groups/:id`.
+  **19 pages** (24 en comptant celles sans aucun titre, hors `SettingsShell`)
+  n'exposaient aucun `<h1>` (mesuré : `grep -c '<h1' src/pages/*.tsx` →
+  CentralAdmin, EventEdit, EventNew, Federation, FormFill, History,
+  InvitationEmit, MembreDetail, MembresEnAvance, OrgReportDetail, OrgReportSend,
+  OrgReportsReceived, OrgUnits, Reports, SaisieRapide, Sessions, Trace,
+  TransactionDetail, TransactionNewGroup). Un `<h1>` global dans `TopHeader`
+  est **exclu** : il créerait un **doublon** sur les 24 pages qui en ont déjà un.
+- **TRAITÉ (2026-10-28, `agent/phase-11-r61-page-titles`)** : `<h1
+  className="sr-only">` par branche de page (convention du dépôt), sur les
+  **24** pages montées sans titre (dont `NotFound`, `FormSubmissions`,
+  `GroupCotisation`, `InvitationManage` qui n'avaient **aucun** titre).
+  Garde anti-régression ajoutée (`screen-states-guard`, 3e invariant).
+  Mesure : 24 → 0. Détail : R61.
 - **Intérêt** : navigation par titres et lecteurs d'écran conformes sur
-  toute l'app. **Coût** : 2 h. **Priorité** : moyenne (a11y).
+  toute l'app. **Coût** : 1 h. **Priorité** : moyenne (a11y).
 - **Bloquant** : non.
 
 ### P36 — Trancher la source de vérité du rôle (R62) — HAUTE

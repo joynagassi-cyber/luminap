@@ -10,12 +10,16 @@
  * (lecture des sources) : pas besoin de rendre l'écran, donc aucune dépendance
  * Ionic/Supabase.
  *
- * Deux invariants :
+ * Trois invariants :
  *   1. Tout composant monté par `<Route>` expose un mécanisme d'état
  *      (`data-screen-state`, `<ScreenState>`, `<EmptyState>` ou `SettingsShell`).
  *   2. Toute valeur écrite dans `data-screen-state` appartient au catalogue
  *      fini déclaré dans `RouteStates.tsx` (anti-dérive : une faute de frappe
  *      comme `data-screen-state="loadingg"` ne doit pas passer).
+ *   3. Tout composant monté expose un titre de niveau 1 (`<h1>`), directement
+ *      ou via `SettingsShell` (qui le rend). Sans cela, un écran n'offre aucun
+ *      point d'entrée à la navigation par titres ni aux lecteurs d'écran
+ *      (WCAG 2.4.1) — défaut R61/P35.
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "fs";
@@ -98,6 +102,19 @@ describe("§5.1 — chaque écran monté expose un état UX observable", () => {
     for (const key of ["empty", "loading", "error", "ready"]) {
       expect(states).toContain(key);
     }
+  });
+
+  it("CHAQUE écran monté expose un titre de niveau 1 (<h1>) — direct ou via SettingsShell (R61/P35)", () => {
+    const noHeading = [...pages.entries()]
+      .filter(([, mod]) => {
+        const src = pageSource(mod);
+        return !/<h1\b/.test(src) && !/SettingsShell/.test(src);
+      })
+      .map(([name]) => name);
+    expect(
+      noHeading,
+      `écrans sans titre de niveau 1 : ${noHeading.join(", ")}`,
+    ).toEqual([]);
   });
 
   it("les composants partagés d'état exposent leur marqueur", () => {
