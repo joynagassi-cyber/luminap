@@ -93,6 +93,7 @@
 | 17 | **R116 — garde de budget de perf muette en CI** : le job `unit` ne construisait pas `dist/` → les 6 tests `perf-budget` étaient **ignorés** (skipped = verts). Correctif : étape `build` avant `vitest run` + échec explicite sous `CI` si l'artefact manque | P1 | **terminé** | `agent/phase-17-perf-guard-ci` | `phase-17/2026-10-28-perf-guard-muet.md` |
 | 12 | Suite Cypress (couverture totale) + crawler | P2 | à faire | `agent/phase-12-cypress` | — |
 | 13-17 | Tutoriel, personnalisation, propositions, doc, validation finale | P3 | à faire | `agent/phase-13..17` | — |
+| 16 | Documentation technique (ARCHITECTURE/SECURITY/TESTING) | P3 | **terminé** | `agent/phase-16-docs-techniques` | `phase-16/2026-10-28-docs-techniques.md` |
 
 ## Escalades ouvertes (ne bloquent pas la boucle)
 
