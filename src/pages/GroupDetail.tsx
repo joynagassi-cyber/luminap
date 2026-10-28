@@ -8,6 +8,7 @@ import {
   useOrgUnits,
   useGroupMemberships,
   useCurrentUser,
+  isPowerSyncReadyNow,
   updateGroupPS,
   deleteGroupPS,
   addGroupMembershipPS,
@@ -89,7 +90,9 @@ export default function GroupDetail() {
     (m: any) => groupMemberIds.includes(m.id) && m.status !== "ARCHIVED",
   );
 
-  if (orgUnitsLoading) {
+  // R52.n — la réplique PowerSync n'est pas encore prête : « Groupe
+  // introuvable » serait un fait FAUX (aucune lecture n'a eu lieu).
+  if (orgUnitsLoading || (!orgUnit && !isPowerSyncReadyNow())) {
     return <GroupDetailSkeleton />;
   }
 

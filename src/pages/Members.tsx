@@ -2,7 +2,7 @@ import { captureClientError } from "@/lib/clientErrors";
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCurrentUser } from "@/lib/dataLayer";
-import { useMembers, addMemberPS } from "@/lib/dataLayer";
+import { useMembers, addMemberPS, isPowerSyncReadyNow } from "@/lib/dataLayer";
 import { getOrganizationId } from "@/lib/orgContext";
 import { resource } from "@/capabilities/resource";
 import { lifecycle } from "@/capabilities/lifecycle";
@@ -66,6 +66,9 @@ export default function MembersPage() {
     error: membersError,
     retry: retryMembers,
   } = useMembers();
+
+  // R52.m — réplique PowerSync non prête : « Aucun membre » serait un fait FAUX.
+  const replicaPending = !isPowerSyncReadyNow();
 
   const filteredMembers = useMemo(() => {
     return members.filter((m: any) => {
@@ -158,7 +161,7 @@ export default function MembersPage() {
     setArchivedMembers(items);
   };
 
-  if (membersLoading) {
+  if (membersLoading || (members.length === 0 && replicaPending)) {
     return (
       <div data-screen-state="loading">
         <MembersSkeleton />

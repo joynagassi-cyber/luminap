@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useEvents, useCotisations } from "@/lib/dataLayer";
+import { useEvents, useCotisations, isPowerSyncReadyNow } from "@/lib/dataLayer";
 import { CotisationsSkeleton } from "@/components/PageSkeletons";
 import { formatCurrencyCompact, formatDate } from "@/lib/utils";
 import { Calendar, CheckCircle, Clock, Plus } from "lucide-react";
@@ -92,7 +92,8 @@ export default function Cotisations() {
     [culteStats, showAll],
   );
 
-  if (eventsLoading) {
+  // R52.m — réplique PowerSync non prête : « Aucun culte » serait un fait FAUX.
+  if (eventsLoading || (events.length === 0 && !isPowerSyncReadyNow())) {
     return <CotisationsSkeleton />;
   }
 

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCurrentUser } from "@/lib/dataLayer";
-import { useGroups, useOrgUnits, createGroupPS } from "@/lib/dataLayer";
+import { useGroups, useOrgUnits, createGroupPS, isPowerSyncReadyNow } from "@/lib/dataLayer";
 import { GroupsSkeleton } from "@/components/PageSkeletons";
 import { getPowerSyncDatabase } from "@/lib/powersync";
 import { useCanAccessMulti } from "@/hooks/useCanAccessMulti";
@@ -144,7 +144,10 @@ export default function Groups() {
     }
   };
 
-  if (groupsLoading) {
+  // R52.m — réplique PowerSync non prête : « Aucun groupe » serait un fait FAUX.
+  const replicaPending = !isPowerSyncReadyNow();
+
+  if (groupsLoading || (orgUnits.length === 0 && replicaPending)) {
     return (
       <IonPage>
         <IonContent className="bg-canvas" fullscreen>

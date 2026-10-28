@@ -881,6 +881,32 @@
   mouvement » et échouer le test).
 - **Statut** : corrigé.
 
+### R52.m — listes principales : verdict vide avant la première lecture — CORRIGÉ (2026-10-28)
+- **Gravité** : HAUTE (écrans quotidiens : `/members`, `/events`, `/groups`,
+  `/cotisations`, `/notifications`).
+- **Défaut (systémique)** : ces pages portaient un squelette dédié, mais leur
+  garde était `if (…Loading)` — or `useMembers`, `useEvents`, `useGroups`,
+  `useOrgUnits`, `useNotifications`, `useCotisations` renvoient
+  `isLoading: false` **en dur** (état temporel retiré, D-R41). Ces branches
+  étaient donc **du code mort** : « Aucun membre », « Aucun événement »,
+  « Aucun groupe », « Aucun culte », « Pas encore de notification »
+  s'affichaient pendant la première synchronisation.
+- **Correctif** : garde `isPowerSyncReadyNow()` ajoutée (motif éprouvé), le
+  squelette existant est désormais réellement rendu.
+- **Preuve** : `list-loading-vs-empty.test.tsx` (§ R52.m, 5 tests). **Non-vacuité
+  vérifiée** : en retirant la garde, les 5 tests échouent (mesuré 6/6 avec
+  R52.n).
+- **Statut** : corrigé.
+
+### R52.n — `/group/:id` : « Groupe introuvable » avant le premier sync — CORRIGÉ (2026-10-28)
+- **Gravité** : HAUTE (page de détail ; l'utilisateur croit le groupe supprimé).
+- **Défaut** : même cause que R52.m — `useOrgUnits()` renvoie `isLoading: false`
+  en dur, donc `if (orgUnitsLoading)` ne se déclenchait jamais et le verdict
+  « Groupe introuvable » s'affichait tant que la réplique n'était pas prête.
+- **Correctif** : `if (orgUnitsLoading || (!orgUnit && !isPowerSyncReadyNow()))`.
+- **Preuve** : `list-loading-vs-empty.test.tsx` (§ R52.n). Non-vacuité vérifiée.
+- **Statut** : corrigé.
+
 ### R53 — `sessions.cy.ts` rouge : réplique PowerSync vide dans l'environnement — NON CORRIGÉ
 - **Gravité** : moyenne (le spec ne peut pas passer ici ; ce n'est pas une
   régression produit démontrée).
