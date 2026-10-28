@@ -125,4 +125,21 @@ describe("buildDiagnosticReport (Signaler un problème)", () => {
     const txt = buildDiagnosticReport({ ...base, hasOrg: false }, [], "t");
     expect(txt).toContain("Organisation : aucune");
   });
+
+  it("neutralise les caractères de contrôle dans un message d'erreur (entrée hostile)", () => {
+    const txt = buildDiagnosticReport(
+      base,
+      [{ message: "boom\u001b[31m\u0000=1+1" }],
+      "t",
+    );
+    expect(txt).not.toContain("\u001b");
+    expect(txt).not.toContain("\u0000");
+    expect(txt).toContain("boom[31m=1+1");
+  });
+
+  it("plafonne la longueur d'un message d'erreur hostile (500)", () => {
+    const txt = buildDiagnosticReport(base, [{ message: "x".repeat(900) }], "t");
+    const line = txt.split("\n").find((l) => l.includes("x"))!;
+    expect(line.length).toBeLessThanOrEqual(5 + 500);
+  });
 });

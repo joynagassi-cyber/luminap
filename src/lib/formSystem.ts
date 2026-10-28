@@ -1,6 +1,7 @@
 // Using PowerSync
 import { generateId } from "./utils";
 import { escapeCsvCell } from "./csv";
+import { normalizeText } from "./sanitize";
 import { writeAudit } from "./audit";
 import type { FormDefinition, FormFieldDefinition, FormSubmission } from "@/types";
 import { getOrganizationId } from "./orgContext";
@@ -292,7 +293,13 @@ export function mapFormFields(
   const mapped: Record<string, any> = {};
   for (const field of formDef.fields) {
     if (field.mapsToEntityField) {
-      mapped[field.mapsToEntityField] = data[field.key];
+      const value = data[field.key];
+      // Frontière d'entrée : les valeurs texte issues du formulaire sont
+      // normalisées (caractères de contrôle retirés, longueur plafonnée)
+      // avant d'atteindre l'entité cible. Les types non-chaînes (nombres,
+      // booléens, dates) sont transmis tels quels.
+      mapped[field.mapsToEntityField] =
+        typeof value === "string" ? normalizeText(value) : value;
     }
   }
   return mapped;
@@ -330,7 +337,10 @@ export function buildSubmissionsCSV(
     return fields.map((f) => escapeValue(data[f.key])).join(";");
   });
 
-  return "﻿" + [header.join(";"), ...body].join("\n");
+  // Les en-têtes sont des libellés définis par l'utilisateur : eux aussi
+  // peuvent porter un préfixe de formule (`=`, `+`, `-`, `@`), il faut les
+  // échapper au même titre que les cellules.
+  return "﻿" + [header.map(escapeValue).join(";"), ...body].join("\n");
 }
 
 /**

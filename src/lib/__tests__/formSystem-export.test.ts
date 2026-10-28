@@ -54,7 +54,7 @@ vi.mock("@/lib/cache", () => ({
   invalidate: vi.fn(),
 }));
 
-import { exportSubmissionsAsXLSX } from "@/lib/formSystem";
+import { exportSubmissionsAsXLSX, buildSubmissionsCSV } from "@/lib/formSystem";
 import * as XLSX from "xlsx";
 import type { FormDefinition, FormSubmission } from "@/types";
 
@@ -144,5 +144,35 @@ describe("exportSubmissionsAsXLSX", () => {
     const reasonIdx = aoa[0].indexOf("Raison du rejet");
     expect(aoa[2][metaIdx]).toBe("admin");
     expect(aoa[2][reasonIdx]).toBe("pièce manquante");
+  });
+});
+
+describe("buildSubmissionsCSV — injection de formule", () => {
+  it("neutralise un préfixe de formule dans une CELLULE de soumission", () => {
+    const evil = {
+      ...sub,
+      data: { nom: '=HYPERLINK("http://evil","x")', date_bapteme: "2026-10-01" },
+    } as unknown as FormSubmission;
+
+    const csv = buildSubmissionsCSV([evil], formDef);
+
+    expect(csv).toContain("'=HYPERLINK");
+    // La ligne de données ne commence pas par `=`.
+    const dataLine = csv.split("\n")[1];
+    expect(dataLine.includes('"\'=HYPERLINK') || dataLine.includes("'=HYPERLINK")).toBe(true);
+  });
+
+  it("neutralise un préfixe de formule dans un EN-TÊTE (libellé de champ)", () => {
+    const evilDef = {
+      ...formDef,
+      fields: [
+        { key: "nom", label: "+Nom", type: "text", required: false, order: 0 },
+      ],
+    } as unknown as FormDefinition;
+
+    const csv = buildSubmissionsCSV([sub], evilDef);
+
+    const headerLine = csv.replace(/^\uFEFF/, "").split("\n")[0];
+    expect(headerLine).toBe("'+Nom");
   });
 });

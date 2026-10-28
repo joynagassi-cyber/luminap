@@ -58,10 +58,23 @@ export function renderBootRecoveryOverlay(): void {
     "align-items:center;justify-content:center;gap:12px;padding:24px;" +
     "text-align:center;background:var(--canvas,#0b0b0c);" +
     "color:var(--text-primary,#fff);font-family:var(--font-sans,system-ui,sans-serif)";
-  el.innerHTML =
-    '<div style="font-size:32px" aria-hidden="true">⚠</div>' +
-    '<p style="margin:0;font-weight:700;font-size:18px">L’application n’a pas pu démarrer</p>' +
-    '<p style="margin:0;font-size:14px;opacity:.8">Le chargement a échoué ou dépassé le délai attendu.</p>';
+  // Aucun `innerHTML` : les nœuds sont construits via `textContent`, donc un
+  // texte (même hostile) ne peut jamais être interprété comme du balisage.
+  const icon = document.createElement("div");
+  icon.setAttribute("aria-hidden", "true");
+  icon.style.fontSize = "32px";
+  icon.textContent = "⚠";
+
+  const title = document.createElement("p");
+  title.style.cssText = "margin:0;font-weight:700;font-size:18px";
+  title.textContent = "L’application n’a pas pu démarrer";
+
+  const detail = document.createElement("p");
+  detail.style.cssText = "margin:0;font-size:14px;opacity:.8";
+  detail.textContent = "Le chargement a échoué ou dépassé le délai attendu.";
+
+  el.append(icon, title, detail);
+
   const btn = document.createElement("button");
   btn.type = "button";
   btn.textContent = "Recharger l’application";

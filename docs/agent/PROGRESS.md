@@ -51,6 +51,7 @@
 | 5-6 | **R111 — inscription obligatoire avant le claim** (profil lié à `auth.uid()`, fin de l'UUID aléatoire) + QR lisible en thème clair | P1 | **terminé** | `agent/r111-claim-auth-required` | `phase-05-06/2026-10-26-r111-claim-auth-required.md` |
 | 7 | Finance : modèle unique, contrepassation, rapports | P1 | **terminé** (R101/R102 corrigés) | `agent/phase-07-finance` | `phase-07/2026-10-26-finance.md` |
 | 8 | Isolation & sécurité (Red Team) | P1 | **terminé** (R103 corrigé, R104 escalade) | `agent/phase-08-isolation` | `phase-08/2026-10-26-isolation.md` |
+| 8 | Entrées hostiles (XSS/contrôle/CSV) + intrusion inter-org côté client | P1 | **terminé** | `agent/phase-08-hostile-input` | `phase-08/2026-10-27-hostile-input-redteam.md` |
 | 9 | Synchronisation & hors-ligne (PowerSync) — R89.a identifiants catégories | P1 | **terminé** | `agent/phase-09-sync-categories` | `phase-09/2026-10-26-r89a-canonical-categories.md` |
 | 9 | Synchronisation — R89.b descente (`PSYNC_S2305`) : dénormalisation `org_id` + streams à clé directe | P1 | **terminé** | `agent/phase-09-r89b-denormalize-org-id` | `phase-09/2026-10-27-r89b-denormalize-org-id.md` |
 | 9 | R110 — `notify_budget_exceeded` : colonnes inexistantes sur `budget_lines` (toute création de ligne budgétaire échouait) | P1 | **terminé** | `agent/phase-09-r89b-denormalize-org-id` | `phase-09/2026-10-27-r89b-denormalize-org-id.md` |
