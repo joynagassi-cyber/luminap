@@ -33,7 +33,6 @@ vi.mock("@/lib/dataLayer", () => ({
   isPowerSyncReadyNow: () => state.ready,
   useOrgBudgets: () => ({ data: [], isLoading: state.loading }),
   useOrgBudgetLines: () => ({ data: [], isLoading: state.loading }),
-  useOrgBudgetLines: () => ({ data: [], isLoading: state.loading }),
   useTransactions: () => ({ data: [], isLoading: false }),
   useCategories: () => ({ data: [], isLoading: false }),
   useOrgUnits: () => ({ data: [], isLoading: false }),

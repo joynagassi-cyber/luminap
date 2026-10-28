@@ -416,3 +416,11 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   **Leçon générale** : un commentaire qui dit « état global » sur un hook à
   `useState` local est un signal — vérifier qui appelle le hook et où le résultat
   est consommé.
+
+## Piège mesuré : `tsc -b` local peut mentir (cache incrémental)
+- `tsc -b` (même `--noEmit`) est **incrémental** : un fichier de test déjà
+  « vert » en cache peut masquer une **vraie** erreur TS (ex. TS1117 propriété
+  dupliquée dans un objet littéral) jusqu'au rebuild CI.
+- Vérifier un doute avec **`npx tsc -b --force --noEmit`** (rebuild complet).
+- Ne pas supprimer les `.tsbuildinfo` du dépôt : le vrai diagnostic est le
+  `--force`.
