@@ -74,9 +74,9 @@
 | 7 | Suppression d'un membre : le lien financier cascadait (perte de cotisations) (PM8, priorité 20) | P1 | **terminé** | `agent/phase-07-member-deletion` | `phase-07/2026-10-26-member-deletion.md` |
 | 4 | RBAC : R109 — rôle `ADMIN` DB-only (compte admin central sans droits) mesuré + garde anti-dérive TS↔DB | P1 | **terminé** (documenté, gardé ; décision propriétaire) | `agent/phase-04-role-model` | `phase-04/2026-10-26-role-model.md` |
 | 4 | RBAC : câblage réel de la garde de route (`hasPermission`/`isOrgMember`) | P1 | bloqué (dépend décision R109/R16) | — | R109 |
-| 10 | Design system, UX, responsive, perf, a11y | P2 | à faire | `agent/phase-10-ux` | — |
+| 10 | Design system, UX, responsive, perf, a11y | P2 | **en cours** (a11y/UX/perf ✓ ; jetons design gardés ✓ ; reste : responsive) | `agent/phase-10-ux` | `phase-10/2026-10-28-design-tokens-drift.md` |
 | 10 | A11y automatisée (6 écrans + modale `/forms`) + états UX §5.1 sur les 62 écrans montés (garde d'inventaire) + budgets de perf verrouillés (1er rendu / entrée / total) | P2 | **terminé** | `agent/phase-10-a11y-ux` | `phase-10/2026-10-27-a11y-ux-budgets.md` |
-| 11 | Pre-mortem, chaos, exploitation autonome | P2 | **en cours** (chaos de stockage couvert ; reste : exploitation autonome) | `agent/phase-11-premortem` | — |
+| 11 | Pre-mortem, chaos, exploitation autonome | P2 | **en cours** (chaos de stockage + catalogue de chaos hors-ligne livrés ; reste : exploitation autonome) | `agent/phase-11-premortem` | `phase-11/2026-10-28-chaos-offline-resilience.md` |
 | 11 | **R106 + PM15 — capacités de résilience déclarées mais INERTES** (update-required non alimenté ; récupération locale non câblée) | P1 | **terminé** | `agent/phase-11-resilience` | `phase-11/2026-10-27-inert-resilience-capabilities.md` |
 | 11 | **Chaos — résilience du boot à un stockage indisponible** (`applyStoredTheme`/`applyStoredThemeMode`/`selectRole` levaient avant le montage React = écran noir) | P2 | **terminé** | `agent/phase-11-boot-storage-resilience` | `phase-11/2026-10-27-boot-storage-resilience.md` |
 | 11 | **Chaos — volet LECTURE du stockage** (`getStoredThemeId`/`getStoredThemeMode` levaient au boot ; `JSON.parse` de boot audités) | P2 | **terminé** | `agent/phase-11-boot-storage-read` | `phase-11/2026-10-27-boot-storage-read.md` |
@@ -92,7 +92,9 @@
 | 12 | **Garde anti-dérive `COVERAGE_MATRIX` ↔ tests réels** : chaque référence `V:`/`C:`/`SQL:` doit pointer vers un fichier existant (couverture déclarée ≠ fictive) ; 2 dérives réelles corrigées (`useCanAccessMulti`, `parseDeepLink`) | P2 | **terminé** | `agent/phase-12-coverage-guard` | `phase-12/2026-10-28-coverage-matrix-guard.md` |
 | 17 | **R116 — garde de budget de perf muette en CI** : le job `unit` ne construisait pas `dist/` → les 6 tests `perf-budget` étaient **ignorés** (skipped = verts). Correctif : étape `build` avant `vitest run` + échec explicite sous `CI` si l'artefact manque | P1 | **terminé** | `agent/phase-17-perf-guard-ci` | `phase-17/2026-10-28-perf-guard-muet.md` |
 | 12 | Suite Cypress (couverture totale) + crawler | P2 | à faire | `agent/phase-12-cypress` | — |
-| 13-17 | Tutoriel, personnalisation, propositions, doc, validation finale | P3 | à faire | `agent/phase-13..17` | — |
+| 13-17 | Tutoriel, personnalisation, propositions, doc, validation finale | P3 | **13 ✓ 14 ✓ 16 ✓ 17 ✓** ; reste : propositions (15) | `agent/phase-13..17` | — |
+| 13 | **Tutoriel — tests anti-régression** : `Tutorial.test.tsx` verrouille les sections et la non-vacuité (échec si une section disparaît) | P3 | **terminé** | `agent/phase-13-tutorial-tests` | `phase-13/2026-10-28-tutorial-tests.md` |
+| 14 | **Personnalisation — persistance/isolation des préférences + héritage mère→annexe** : `SettingsPersonalisation-inheritance.test.tsx` (10) — chemins réels + 4 défauts réels **caractérisés** (R3 : clés globales non scopées, aucune héritage de config) | P3 | **terminé** | `agent/phase-14-personalisation` | `phase-14/2026-10-28-personalisation-inheritance.md` |
 | 16 | Documentation technique (ARCHITECTURE/SECURITY/TESTING) | P3 | **terminé** | `agent/phase-16-docs-techniques` | `phase-16/2026-10-28-docs-techniques.md` |
 
 ## Escalades ouvertes (ne bloquent pas la boucle)
