@@ -275,3 +275,30 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
 - **Baseline Cypress `main` = 17/17 specs en échec (100 %)** avant ce correctif ;
   après : shard 1 → 82 passants (`zero-black-screen` 64/64), shard 2 → 36.
   Les échecs résiduels sont R53/R83/R98 (PowerSync) + R96 (hygiène de test).
+
+## Cold-test & intégrité des données (mesurés, 2026-10-27)
+- **Le gestionnaire de paquets est pnpm, pas npm.** `npm ci` **échoue**
+  (ERESOLVE : `@capacitor/storage@^1.2.5` peer `@capacitor/core@^3` vs
+  `@capacitor/core` récent). La CI et `backup.yml` utilisent
+  `pnpm install --frozen-lockfile`. `pnpm-lock.yaml` (23/10) est à jour ;
+  `package-lock.json` (30/09) est **périmé** mais suivi par erreur.
+  `pnpm` n'est pas installé dans le conteneur : utiliser
+  `./node_modules/.bin/vite` / `npx vitest` directement.
+- **`Xvfb` est ABSENT de l'image** (`which Xvfb` vide) → Cypress local
+  impossible sans `sudo apt-get install -y xvfb`. Cohérent avec E2/E2E CI.
+- **Un runbook sans résultat attendu ne détecte rien.** Tester « à froid » =
+  exécuter les commandes telles qu'écrites et **confronter au résultat
+  annoncé**. C'est ce qui a révélé 2 défauts réels (npm ci, invariant jsonb).
+- **Invariant d'intégrité jsonb (RUNBOOK)** : `select ... jsonb_typeof(col) =
+  'string'` doit renvoyer **0** sur 9 colonnes. Il était à **88** sur
+  `audit_entries.before_state` (rechute R65, non détectée car **non gardée en
+  CI** — cf. R65.b).
+- **Cause de la rechute R65** : `JSON.stringify(null)` renvoie la **chaîne**
+  `"null"` (jsonb type string au lieu de NULL). `coerceJsonbValue` ne couvre
+  pas ce cas (il ne convertit que les chaînes décodant vers object/array).
+  Correctif : `serializeAuditState()` dans `audit.ts` (null → NULL).
+- **Motif de rattrapage (R65/20261027000012)** : sauvegarde EXACTE dans une
+  table `_jsonb_null_literal_<date>` (rollback exact) → conversion idempotente
+  → rollback qui restaure puis supprime la table. Réutiliser ce motif.
+- **Règle d'or** : ne jamais écrire « plus aucune écriture ne peut produire ce
+  format » sans corriger TOUS les writers ; la migration R65 l'affirmait à tort.

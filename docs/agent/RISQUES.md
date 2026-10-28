@@ -1059,6 +1059,32 @@ Voir le détail complet en tête de fichier (section principale). Résumé :
 218 valeurs corrompues sur 6 colonnes mesurées et réparées, correctif
 amont en code, migration idempotente et réversible, 18 tests unitaires.
 
+**Rechute partielle découverte le 2026-10-27 (cold-test du RUNBOOK) :**
+l'affirmation « plus aucune écriture ne peut produire ce format » de la
+migration `20261024000001` était **fausse**. Le chemin d'audit
+(`src/lib/audit.ts#write`) n'avait pas été corrigé : `JSON.stringify(null)`
+produisait la **chaîne** `"null"` (jsonb de type `string`). Mesure :
+`audit_entries.before_state` = **88** lignes `"null"` (84 `Invitation` +
+4 `FormSubmission`, action `CREATE`, du 24/10 au 27/10 — donc **après** la
+migration de rattrapage, qui ne touchait que la 1re passe). Le helper
+`coerceJsonbValue` ne normalise pas ce cas (il ne convertit que les chaînes
+décodant vers `object`/`array`).
+- **Correctif amont** : `serializeAuditState(state)` dans `audit.ts` renvoie
+  `null` (→ `NULL` SQL) pour une valeur absente, la chaîne JSON sinon.
+  Verrouillé par un test (`form-report-audit.test.ts`, mutation : rouge sans
+  le correctif).
+- **Rattrapage données** : migration `20261027000012` (+ rollback) —
+  sauvegarde exacte dans `_jsonb_null_literal_20261027` puis `"null"` → `NULL`.
+  Appliquée : l'invariant RUNBOOK renvoie **0 partout** (vérifié).
+
+### R65.b — Invariant d'intégrité jsonb non gardé en CI — OUVERT (moyenne)
+- **Constat** : la requête d'intégrité du RUNBOOK (jsonb de type `string` = 0)
+  est **manuelle**. Rien ne la rejoue automatiquement ; c'est pourquoi la
+  rechute R65 a persisté 3 jours (88 lignes) sans être détectée.
+- **Recommandation** : l'exécuter en CI (job planifié ou via l'API) et échouer
+  si une valeur non nulle apparaît. Cf. PROPOSITIONS (P41/P-NEW).
+
+
 ### R66 — `db.status` inexistant (PowerSync v2) → indicateur « hors ligne » permanent — CORRIGÉ (haute)
 - **Défaut** : `usePowerSyncIndicator` et `window.__psFlushCrudUpload`
   lisaient `db.status`. PowerSync v2 a renommé ce champ en

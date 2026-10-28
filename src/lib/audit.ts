@@ -5,6 +5,17 @@ import { getOrganizationId } from "./orgContext";
 import { get, set, invalidate } from "./cache";
 
 /**
+ * Sérialise un état d'audit pour la colonne `jsonb` `audit_entries`.
+ * `JSON.stringify(null)` renvoie la **chaîne** `"null"`, qui serait stockée en
+ * jsonb de type `string` au lieu de `NULL` (défaut mesuré : 88 lignes
+ * `before_state` en `"null"`). On renvoie donc `null` (→ `NULL` SQL) pour une
+ * valeur absente, et la chaîne JSON sinon.
+ */
+function serializeAuditState(state: unknown): string | null {
+  return state === null || state === undefined ? null : JSON.stringify(state);
+}
+
+/**
  * AuditLogRepository
  * Système d'audit canonique: every mutation is logged with before/after snapshots and actorRoleAtTime.
  * Invariant NeverBreak #6: AuditLog sur toute mutation.
@@ -59,8 +70,8 @@ export const auditLogRepo: AuditLogRepository = {
         fullEntry.action,
         fullEntry.entityType,
         fullEntry.entityId,
-        JSON.stringify(fullEntry.beforeState),
-        JSON.stringify(fullEntry.afterState),
+        serializeAuditState(fullEntry.beforeState),
+        serializeAuditState(fullEntry.afterState),
         fullEntry.comment,
         fullEntry.createdAt,
       ],
