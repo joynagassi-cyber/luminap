@@ -64,3 +64,12 @@ backups/
 
 # Traces de diagnostic du spec offline-write-sync (R85)
 cypress/.r85-*
+
+# ── Captures d'écran du tutoriel (générées) ──────────────────────────────────
+# Produites par `pnpm capture:screens` → `public/captures/<id>.png`.
+# Non versionnées : artefacts binaires, régénérables en une commande.
+# Le tutoriel les affiche si elles existent et les omet sinon (dégradation
+# silencieuse, cf. ScreenCapture.tsx).
+# Pour les FIGER (déploiement sans navigateur) : git add -f public/captures/*.png
+/public/captures/*.png
+!/public/captures/.gitkeep

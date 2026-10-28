@@ -25,7 +25,9 @@
     "e2e:full": "bash scripts/run-cypress.sh",
     "e2e:min": "playwright test --config=playwright.min.config.ts",
     "e2e:mag": "magnitude",
-    "debug": "bash scripts/logcat-debug.sh"
+    "debug": "bash scripts/logcat-debug.sh",
+    "capture:screens": "cypress run --spec cypress/e2e/screenshots.cy.ts && node --experimental-strip-types scripts/collect-screenshots.mjs",
+    "capture:check": "node --experimental-strip-types scripts/collect-screenshots.mjs --check"
   },
   "dependencies": {
     "@capacitor/app": "^6.0.3",

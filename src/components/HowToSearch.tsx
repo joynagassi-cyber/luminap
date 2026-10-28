@@ -25,6 +25,7 @@ import {
   BookOpen,
 } from "lucide-react";
 
+import ScreenCapture from "@/components/ScreenCapture";
 import {
   HOWTOS,
   featuredHowtos,
@@ -333,6 +334,8 @@ export default function HowToSearch({
                             </ul>
                           </div>
                         )}
+
+                        <ScreenCapture howtoId={howto.id} />
 
                         {howto.route && (
                           <button

@@ -472,6 +472,7 @@ crée `.env.local` depuis les secrets et valide la stack complète.
 | `docs/security-audit-2026-09-09.md` | Audit sécurité + RLS |
 | `docs/ionic-migration.md` | Migration incremental React → Ionic |
 | `docs/DIAGNOSTIC-ECRAN-NOIR.md` | Écran noir après le splash : cause, correctif, vérification |
+| `docs/CAPTURES-ECRAN.md` | Captures d'écran du tutoriel : production, manifeste, annotation |
 | `README-CI.md` | Détail du pipeline CI/CD |
 | `README-KEYSTORE.md` / `docs/KEYSTORE.md` | Signature APK Android |
 | `AGENTS.md` | Instructions pour les agents de code (architecture front-first) |
