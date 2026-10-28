@@ -3152,3 +3152,10 @@ sauvegarde disponible).
 - **Preuve** : vitest **1586/1586** (128 fichiers), `tsc -b` exit 0, eslint
   0 erreur.
 - **Receipt** : `docs/agent/receipts/phase-02/2026-10-28-web-entry-org-intent.md`.
+
+**R127.b — divergence web/natif (corrigée dans la même lignée)** : le chemin
+natif (`useAppUrlOpen`) appliquait sa PROPRE condition de bascule
+(`link.orgId !== getOrganizationId()`), sans l'exemption `?org=` local. Le même
+lien `/invitation/emit?org=B` demandait donc une bascule sur mobile mais pas sur
+le web. La décision est désormais **unique** (`orgSwitchIntentFromLink`),
+partagée par les deux plateformes et couverte par 3 tests.

@@ -185,6 +185,22 @@ const ORG_PARAM_LOCAL_CONSUMERS: ReadonlySet<string> = new Set([
 ]);
 
 /**
+ * Décision UNIQUE « ce lien demande-t-il un changement d'organisation ? »,
+ * partagée par le web (`webEntryOrgIntent`) et le natif (`useAppUrlOpen`) : sans
+ * elle, les deux plateformes divergeaient (le natif basculait aussi depuis
+ * `/invitation/emit`, dont le `?org=` est un simple sélecteur de formulaire).
+ */
+export function orgSwitchIntentFromLink(
+  link: ParsedDeepLink | null,
+  activeOrgId: string | null,
+): { orgId: string; path: string } | null {
+  if (!link || !link.orgId) return null;
+  if (!activeOrgId || link.orgId === activeOrgId) return null;
+  if (ORG_PARAM_LOCAL_CONSUMERS.has(link.path)) return null;
+  return { orgId: link.orgId, path: link.path };
+}
+
+/**
  * R127 — intention « ce lien vise une autre organisation » depuis une URL
  * d'ENTRÉE web (contrat §2.3, dimension `platform: web`).
  *
@@ -202,11 +218,7 @@ export function webEntryOrgIntent(
   url: string,
   activeOrgId: string | null,
 ): { orgId: string; path: string } | null {
-  const link = parseDeepLink(url);
-  if (!link || !link.orgId) return null;
-  if (!activeOrgId || link.orgId === activeOrgId) return null;
-  if (ORG_PARAM_LOCAL_CONSUMERS.has(link.path)) return null;
-  return { orgId: link.orgId, path: link.path };
+  return orgSwitchIntentFromLink(parseDeepLink(url), activeOrgId);
 }
 
 /** Compile a `:param` / `*` pattern into a matcher. */
