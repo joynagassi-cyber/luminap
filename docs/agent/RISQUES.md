@@ -925,6 +925,24 @@
   3 échecs quand les gardes sont retirées).
 - **Statut** : corrigé.
 
+### R52.r — `/settings/notifications` annonçait « Tout est lu » avant la 1re lecture — CORRIGÉ (2026-10-28)
+- **Gravité** : MOYENNE (fait faux présenté comme état stable ; pas de perte de données).
+- **Défaut** : `useNotifications()` renvoie `isLoading: false` en dur (D-R41) et
+  l'écran n'avait AUCUN drapeau de disponibilité. Avant le premier sync il
+  affichait « **Tout est lu** », « **0 au total** » et « **Aucune notification à
+  vider** » — trois affirmations fausses, dont une qui **désactivait** le bouton
+  « Tout marquer lu » (`disabled={unread === 0}`) alors que des notifications
+  non lues arrivaient.
+- **Correctif** : `notificationsPending = (notifications?.length ?? 0) === 0 &&
+  !isPowerSyncReadyNow()` → libellés « Chargement… / Lecture des notifications en
+  cours », bouton désactivé et libellé « Chargement… » tant que non résolu.
+- **Preuve** : `r52r-settings-notifications-loading.test.tsx` (2 tests, non-vacuité
+  vérifiée : garde neutralisée → « Tout est lu » réapparaît).
+- **Garde statique étendue** : le motif de verdict vide couvre désormais
+  `… à vider` / `… disponible` / `… à afficher` (mesuré : seuls `NotFound.tsx` et
+  `Tutorial.tsx`, déjà allowlistés, matchent — extension sans faux positif).
+- **Statut** : corrigé.
+
 ### R52 — garde statique durcie (2ᵉ invariant, R52.q) — CORRIGÉ (2026-10-28)
 - **Défaut de la garde elle-même** : un simple **import** de `isPowerSyncReadyNow`
   (sans appel) suffisait à blanchir un fichier — même classe de faille que

@@ -95,7 +95,7 @@ function provesReadiness(src: string): boolean {
  * « Aucune (racine) ») ni les boutons.
  */
 const VERDICT_PATTERN =
-  /introuvable|Aucun(e)? [^"'<>{}]*?(trouvé|trouvée|trouvés|trouvées|pour le moment|pour l'instant)|Pas encore de /i;
+  /introuvable|Aucun(e)? [^"'<>{}]*?(trouvé|trouvée|trouvés|trouvées|pour le moment|pour l'instant|à vider|disponible|à afficher)|Pas encore de /i;
 
 describe("R52 — garde statique : verdict vide/introuvable exige un signal de disponibilité", () => {
   it("aucun fichier n'annonce un verdict vide sans distinguer « pas encore lu »", () => {
