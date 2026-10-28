@@ -5,7 +5,10 @@
  * au proxy d'aperçu. Fichier de développement — non utilisé par le build.
  */
 import { defineConfig } from "vite";
-import baseConfig from "../vite.config";
+// Extension explicite : le chargeur de config natif de Vite l'exige, et il
+// deviendra le défaut. Sans elle, `vite --config` fonctionne mais émet un
+// avertissement de dépréciation à chaque démarrage.
+import baseConfig from "../vite.config.ts";
 
 export default defineConfig(async (env) => {
   const base = await (baseConfig as (e: unknown) => unknown)(env);
