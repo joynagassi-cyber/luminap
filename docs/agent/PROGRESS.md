@@ -83,6 +83,7 @@
 | 11 | **Runbook testé à froid** (2 défauts trouvés : `npm ci` échoue → pnpm ; invariant jsonb = 88 au lieu de 0) | P2 | **terminé** | `agent/phase-11-runbook-cold-test` | `phase-11/2026-10-27-runbook-cold-test.md` |
 | 11 | **R114 — CI Pipeline rouge sur `main`** (test importait `node:sqlite`, Node 24-only ; CI = Node 22) → résolution runtime `getBuiltinModule` ; suite **1452/1452 sous Node 22** | P0 | **terminé** | `agent/phase-11-ci-node22-sqlite` | `phase-11/2026-10-27-ci-node22-sqlite.md` |
 | 11 | **Correctif R65 (rechute)** — `audit_entries.before_state` = chaîne `"null"` (88 lignes) ; writer `serializeAuditState` + migration rattrapage `20261027000012` ; invariant jsonb **0 partout** | P1 | **terminé** | `agent/phase-11-jsonb-null-literal` | `phase-11/2026-10-27-jsonb-null-literal.md` |
+| 11 | **R88 — erreurs avalées** (`.catch()` vides → états vides silencieux) : `captureClientError` (capture des erreurs **gérées**, tampon santé) + 11 sites de chargement instrumentés + état d'erreur/réessai `LoadErrorBlock` sur `Finance` | P1 | **terminé** | `agent/phase-11-r88-swallowed-errors` | `phase-11/2026-10-27-r88-swallowed-errors.md` |
 | 12 | Suite Cypress (couverture totale) + crawler | P2 | à faire | `agent/phase-12-cypress` | — |
 | 13-17 | Tutoriel, personnalisation, propositions, doc, validation finale | P3 | à faire | `agent/phase-13..17` | — |
 

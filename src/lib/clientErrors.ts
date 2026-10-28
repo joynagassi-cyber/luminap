@@ -21,7 +21,7 @@ export interface ClientErrorContext {
   role?: string;
   orgId?: string;
   platform?: string;
-  source: "onerror" | "unhandledrejection";
+  source: "onerror" | "unhandledrejection" | "handled";
 }
 
 /** Redact anything that looks like an email or a bearer/JWT token. */
@@ -85,6 +85,29 @@ function pushRecentError(ctx: ClientErrorContext): void {
 /** Test helper — clears the in-memory ring buffer. */
 export function clearRecentErrors(): void {
   recentErrors.length = 0;
+}
+
+/**
+ * Capture a **handled** error — one a `.catch()` intercepted before it could
+ * become an unhandled rejection (R88). Without this, a failed load that the
+ * UI swallows leaves no trace at all: the user sees an empty list and support
+ * has nothing to inspect. Same redaction and same health-page buffer as the
+ * global handlers, so a caught failure is as visible as an uncaught one.
+ */
+export function captureClientError(
+  err: unknown,
+  context?: { message?: string; route?: string },
+): void {
+  const base = buildContext("handled", err);
+  const ctx: ClientErrorContext = context?.message
+    ? { ...base, message: redact(context.message) }
+    : base;
+  pushRecentError(context?.route ? { ...ctx, route: context.route } : ctx);
+  console.error("[client-error]", ctx);
+  Sentry.captureException(
+    err instanceof Error ? err : new Error(context?.message ?? ctx.message),
+    { tags: { source: "handled", route: ctx.route, platform: ctx.platform } },
+  );
 }
 
 /**

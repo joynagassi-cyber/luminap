@@ -16,6 +16,7 @@
  * union triée des champs du formulaire et des clés data observées ;
  * tri par colonne, recherche plein-texte débouncée, export CSV + Excel.
  */
+import { captureClientError } from "@/lib/clientErrors";
 import { useCallback, useEffect, useState, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar, IonButtons, IonBackButton, IonButton, IonSelect, IonSelectOption, IonInfiniteScroll, IonInput } from "@ionic/react";
@@ -203,7 +204,8 @@ export default function FormSubmissions() {
       .then((def) => {
         if (!cancelled) setFormDef(def);
       })
-      .catch(() => {
+      .catch((e) => {
+        captureClientError(e, { message: "Échec du chargement du formulaire" });
         if (!cancelled) setFormDef(null);
       });
     formSubmissionRepo
@@ -212,7 +214,8 @@ export default function FormSubmissions() {
         if (cancelled) return;
         setRows(list);
       })
-      .catch(() => {
+      .catch((e) => {
+        captureClientError(e, { message: "Échec du chargement des soumissions" });
         if (cancelled) return;
         setRows([]);
         setListError(true);
@@ -408,7 +411,8 @@ export default function FormSubmissions() {
                     .then((list) => {
                       setRows(list);
                     })
-                    .catch(() => {
+                    .catch((e) => {
+                      captureClientError(e, { message: "Échec du chargement des soumissions" });
                       setRows([]);
                       setListError(true);
                     })

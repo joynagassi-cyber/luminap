@@ -1800,7 +1800,7 @@ l'intérêt de l'approche).
 - **Contournement utilisateur** : passer par `/finance` (corrigé) ; la
   synchronisation PowerSync rétablit le détail dès que l'appareil est connecté.
 
-### R88 — Erreurs avalées dans `Finance.tsx`
+### R88 — Erreurs avalées dans `src/pages/` — CORRIGÉ (2026-10-27)
 
 **Inventaire (classe de défaut, 23 occurrences dans `src/pages/`)** — un
 `.catch()` vide transforme toute erreur (SQL, réseau, RLS, permission) en
@@ -1823,12 +1823,40 @@ Correctif recommandé et homogène : remplacer `.catch(() => {})` par
 afficher un état d'erreur explicite dans l'UI.
 
 
-- **Gravité** : moyenne. **Statut : non corrigé.**
-- `resource.list(...).catch(() => setLoading(false))` masque toute erreur
-  (SQL, réseau, RLS) : l'utilisateur voit une liste vide au lieu d'un message
-  d'erreur, et aucune trace n'est journalisée. C'est ce qui a rendu R87
-  invisible. Correctif recommandé : conserver l'erreur dans un état et afficher
-  un message explicite + journaliser.
+- **Gravité** : moyenne. **Statut : CORRIGÉ (2026-10-27).**
+- `resource.list(...).catch(() => setLoading(false))` masquait toute erreur
+  (SQL, réseau, RLS) : l'utilisateur voyait une liste vide au lieu d'un message
+  d'erreur, et aucune trace n'était journalisée. C'est ce qui a rendu R87
+  invisible.
+
+**Correctif (2026-10-27)** — deux volets, sans refonte de l'UI (proportionné) :
+
+1. **Trace des erreurs GÉRÉES** : nouvelle fonction
+   `captureClientError(err, { message })` dans `src/lib/clientErrors.ts`,
+   réutilisant la redaction PII et le tampon de la page santé (Phase 11) — une
+   erreur interceptée par un `.catch()` est désormais aussi visible qu'une
+   erreur non gérée (`source: "handled"`). Appliquée aux **11 sites de
+   chargement** qui avalaient l'erreur : `Finance`, `Members`, `Reports`,
+   `ReportBuilder` (×2), `FormSubmissions` (×3), `InvitationManage` (×2),
+   `Sessions`.
+2. **État d'erreur visible + réessai** sur le site prioritaire `Finance.tsx` :
+   nouvel état `loadError` ; le rendu distingue « vide » de « échec » via
+   `LoadErrorBlock` (composant embarquable de `RouteStates.tsx`,
+   `data-screen-state="error"`, bouton « Réessayer » qui relance le chargement).
+
+**Non corrigé (assumé)** : les ~9 `.catch(() => {})` sur `sendNotification`
+(`TransactionNew`, `Versement`, `GivingCampaign`×2, `EventNew`, `FormFill`,
+`InvitationEmit`, `InvitationClaim`) sont **bénins** — l'écriture attendue a
+déjà réussi ; seul l'effet secondaire de notification échoue. Aucun mensonge à
+l'utilisateur. Les mentions d'écritures financières ci-dessus (« fait croire à
+un enregistrement réussi ») étaient **inexactes** : ces `.catch()` enveloppent
+la notification, pas l'écriture.
+
+**Preuve** : `src/pages/__tests__/Finance-load-error.test.tsx` (2 tests,
+mutation-testés : neutraliser `loadError` les fait échouer) +
+`src/lib/__tests__/client-errors.test.ts` (3 tests `captureClientError`).
+Suite **1462/1462** (Node 22), `tsc -b` = 0, eslint 0 erreur.
+**Receipt** : `docs/agent/receipts/phase-11/2026-10-27-r88-swallowed-errors.md`.
 
 **Preuve renforcée (2026-10-24)** — comparaison avec `main` **intact** :
 

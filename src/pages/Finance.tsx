@@ -19,6 +19,8 @@ import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
 import TransactionCard from "@/components/TransactionCard";
 import EmptyState from "@/components/EmptyState";
+import { LoadErrorBlock } from "@/components/RouteStates";
+import { captureClientError } from "@/lib/clientErrors";
 import CircleAction from "@/components/CircleAction";
 import CapabilityBanner from "@/components/CapabilityBanner";
 import { getOrganizationId } from "@/lib/orgContext";
@@ -50,10 +52,13 @@ export default function Finance() {
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [visibleCount, setVisibleCount] = useState(FINANCE_PAGE_SIZE);
 
-  // Load transactions via Resource capability
-  useEffect(() => {
+  // Load transactions via Resource capability.
+  const loadTransactions = useCallback(() => {
+    setLoading(true);
+    setLoadError(false);
     resource
       .list<Transaction>("Transaction", {
         filter: [],
@@ -64,10 +69,18 @@ export default function Finance() {
         setTransactions(items as any);
         setLoading(false);
       })
-      .catch(() => {
+      .catch((e) => {
+        // R88 — ne pas avaler : sans trace, l'utilisateur voyait une liste
+        // vide identique à « aucune transaction » (c'est ce qui a masqué R87).
+        captureClientError(e, { message: "Échec du chargement des transactions" });
+        setLoadError(true);
         setLoading(false);
       });
   }, []);
+
+  useEffect(() => {
+    loadTransactions();
+  }, [loadTransactions]);
 
   const [filterOpen, setFilterOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -144,6 +157,11 @@ export default function Finance() {
           {loading ? (
             <div data-screen-state="loading">
               <FinanceSkeleton />
+            </div>
+          ) : loadError ? (
+            <div data-screen-state="error" className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
+              <TopHeader title="Finance" />
+              <LoadErrorBlock onRetry={loadTransactions} />
             </div>
           ) : (
             <Fragment>

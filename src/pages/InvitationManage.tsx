@@ -2,6 +2,7 @@
  * Invitation Manage Page — list, filter, and revoke invitations
  */
 
+import { captureClientError } from "@/lib/clientErrors";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -95,7 +96,8 @@ export default function InvitationManage() {
         setInvitations(list);
         setIsLoading(false);
       })
-      .catch(() => {
+      .catch((e) => {
+        captureClientError(e, { message: "Échec du chargement des invitations" });
         setListError(true);
         setIsLoading(false);
       });
@@ -113,7 +115,9 @@ export default function InvitationManage() {
         invitation
           .getClaims(inv.id)
           .then((list) => setClaims((prev) => ({ ...prev, [inv.id]: list })))
-          .catch(() => {});
+          .catch((e) => {
+            captureClientError(e, { message: "Échec du chargement des demandes" });
+          });
       });
   }, [invitations]);
 

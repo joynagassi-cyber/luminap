@@ -203,3 +203,44 @@ export function BootRecoveryScreen({ onRetry }: { onRetry?: () => void }) {
     />
   );
 }
+
+/**
+ * A data load failed (R88) — distinct from "loaded, nothing there". Without
+ * this, a swallowed `.catch(() => setLoading(false))` renders the same empty
+ * state as a genuinely empty list: the user cannot tell "no data" from "could
+ * not fetch", and no trace is left. `onRetry` re-runs the load.
+ *
+ * Embeddable (no `IonPage`): pages that must keep a single `<IonPage>` root
+ * (to avoid the black-screen view-stack bug) render it inside their own
+ * `IonContent`, like `EmptyState`.
+ */
+export function LoadErrorBlock({
+  message = "Le chargement a échoué. Vérifiez votre connexion puis réessayez.",
+  onRetry,
+}: {
+  message?: string;
+  onRetry?: () => void;
+}) {
+  return (
+    <div
+      data-screen-state="error"
+      className="flex flex-col items-center justify-center py-16 px-6 text-center"
+    >
+      <div className="text-3xl mb-3" aria-hidden>
+        ⚠
+      </div>
+      <p className="text-text-primary font-bold text-lg mb-1">
+        Chargement impossible
+      </p>
+      <p className="text-text-tertiary text-sm mb-6">{message}</p>
+      <button
+        type="button"
+        onClick={onRetry}
+        className="px-8 py-3 rounded-full font-semibold text-on-accent active:scale-95 transition-all"
+        style={{ backgroundColor: "var(--accent-primary)" }}
+      >
+        Réessayer
+      </button>
+    </div>
+  );
+}

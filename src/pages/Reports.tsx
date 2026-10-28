@@ -1,3 +1,4 @@
+import { captureClientError } from "@/lib/clientErrors";
 import { useCallback, memo, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -292,8 +293,10 @@ export default function Reports() {
     reportDefinitionRepo
       .list()
       .then(setSavedReports)
-      .catch(() => {
-        /* hors ligne — liste vide */
+      .catch((e) => {
+        // Hors ligne ou store indisponible : la liste reste vide, mais on garde
+        // une trace (R88) — sans elle, un échec réel est indiscernable du vide.
+        captureClientError(e, { message: "Échec du chargement des rapports" });
       });
   }, []);
 
