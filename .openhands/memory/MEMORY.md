@@ -445,3 +445,22 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   (`/forms` = `formDefinitionRepo.list`, `/forms/custom-fields` =
   `customFieldRepo.list`) → drapeau `*Loaded` posé dans un `finally` +
   `ListSkeleton`. La garde statique couvre désormais aussi « Pas encore de ».
+- **R52.l→R52.p (2026-10-28, Phase 11)** — cause **systémique** découverte :
+  19 hooks de `dataLayer` renvoient `isLoading: false` **en dur** (l'état de
+  chargement temporel a été retiré par D-R41). Donc toute garde
+  `if (…Loading)` posée sur eux est **du code mort** → verdict vide faux
+  (« Aucun membre », « Groupe introuvable », « Pas encore de mouvement »…)
+  pendant la 1re lecture PowerSync. Écrans corrigés : `/dashboard` (R52.l),
+  `/members` `/events` `/groups` `/cotisations` `/notifications` (R52.m),
+  `/group/:id` (R52.n), `/reports` (R52.o), `DocumentPicker` (R52.p).
+  Correctif = `isPowerSyncReadyNow()` (ou drapeau `*Loaded` posé dans un
+  `finally` pour les lectures hors dataLayer).
+- **Garde statique durcie** : `r52-readiness-guard.test.ts` dérive la liste des
+  hooks à `isLoading:false` en dur **du source** `dataLayer.ts` et échoue si un
+  verdict vide est gardé par un tel alias (alias explicite OU destructuration
+  courte). Non-vacuité : sonde `__R52Probe.tsx` temporaire. 0 offenseur restant.
+  Piège mesuré : un simple *import* de `Skeleton` (même en code mort) aveuglait
+  l'ancienne garde — le mot a été retiré des signaux de disponibilité.
+- **Non-vacuité obligatoire** : pour tout correctif R52, retirer la garde, voir
+  les tests échouer, restaurer. Chaque cas a son test comportemental
+  (`list-loading-vs-empty.test.tsx`, `r52l-*`, `r52o-*`, `r52p-*`).
