@@ -55,6 +55,7 @@ vi.mock("@/lib/dataLayer", () => ({
   updateTransactionPS: vi.fn(async () => undefined),
   deleteTransactionPS: vi.fn(async () => undefined),
   useDocuments: () => ({ data: [], isLoading: false }),
+  useCaisses: () => ({ data: [], isLoading: false }),
 }));
 
 vi.mock("@/capabilities/policy", () => ({
@@ -87,6 +88,7 @@ import OrgRoles from "@/pages/OrgRoles";
 import CulteDetail from "@/pages/CulteDetail";
 import GroupCotisation from "@/pages/GroupCotisation";
 import TransactionDetail from "@/pages/TransactionDetail";
+import SaisieRapide from "@/pages/SaisieRapide";
 
 afterEach(cleanup);
 
@@ -249,5 +251,20 @@ describe("R52.h — autres pages de détail : « introuvable » avant le premier
     );
     expect(container.querySelectorAll('[aria-busy="true"]').length).toBeGreaterThan(0);
     expect(screen.queryByText("Transaction introuvable")).toBeNull();
+  });
+});
+
+describe("R52.i — /saisie-rapide/:id : « Culte introuvable » avant le premier sync", () => {
+  it("affiche un squelette, pas « Culte introuvable. »", () => {
+    state.ready = false;
+    const { container } = render(
+      <MemoryRouter initialEntries={["/saisie-rapide/e-1"]}>
+        <Routes>
+          <Route path="/saisie-rapide/:id" element={<SaisieRapide />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(container.querySelectorAll('[aria-busy="true"]').length).toBeGreaterThan(0);
+    expect(screen.queryByText("Culte introuvable.")).toBeNull();
   });
 });

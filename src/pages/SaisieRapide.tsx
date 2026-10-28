@@ -14,6 +14,7 @@ import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar, IonButtons, IonBa
 import { ArrowLeft, CheckCircle, Clock, Plus, X } from "lucide-react";
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
+import { ListSkeleton } from "@/components/Skeleton";
 import {
   useEvents,
   useMembers,
@@ -21,6 +22,7 @@ import {
   useTransactions,
   useCaisses,
   useCategories,
+  isPowerSyncReadyNow,
 } from "@/lib/dataLayer";
 import { useLocalStore } from "@/store/useLocalStore";
 import { formatDate, formatCurrencyCompact } from "@/lib/utils";
@@ -97,6 +99,24 @@ export default function SaisieRapide() {
       setBusy(null);
     }
   };
+
+  // R52.i — « Culte introuvable. » n'est exact qu'une fois la réplique prête.
+  if (!culte && !isPowerSyncReadyNow()) {
+    return (
+      <IonPage>
+        <IonContent className="bg-canvas">
+          <h1 className="sr-only">Saisie rapide</h1>
+          <div className="min-h-dvh">
+            <TopHeader title="Saisie rapide" />
+            <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
+              <ListSkeleton count={4} />
+            </div>
+            <BottomNav />
+          </div>
+        </IonContent>
+      </IonPage>
+    );
+  }
 
   if (!culte) {
     return (
