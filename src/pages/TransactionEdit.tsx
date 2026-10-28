@@ -105,13 +105,13 @@ export default function TransactionEdit() {
     const trimmedDesc = description?.trim();
     const trimmedCatId = categoryId?.toString().trim();
     if (!trimmedAmount || !trimmedDesc || !trimmedCatId) {
-      setError("请填完整必填项");
+      setError("Veuillez remplir tous les champs obligatoires");
       return;
     }
     const amountCents = Math.round(parseFloat(amount) * 100);
     const amountCheck = policy.transaction.validateAmount(amountCents);
     if (!amountCheck.ok) {
-      setError(amountCheck.message ?? "金额无效");
+      setError(amountCheck.message ?? "Montant invalide");
       return;
     }
     if (submitting) return;

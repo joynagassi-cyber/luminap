@@ -2930,3 +2930,27 @@ sauvegarde disponible).
   mort → 2 tests échouent ; restauré → 4/4.
 - **Preuve** : vitest **1550/1550** (124 fichiers), `tsc -b` 0, lint 0 erreur.
 - **Receipt** : `docs/agent/receipts/phase-04/2026-10-28-needs-membership-escape.md`.
+
+### R121 — Messages d'erreur restés en CHINOIS dans le flux finance — ✅ CORRIGÉ le 2026-10-28
+- **Gravité** : MOYENNE (message utilisateur incompréhensible au moment précis où
+  l'utilisateur a besoin de comprendre pourquoi son opération a échoué).
+- **Défaut** : trois chaînes affichées à l'utilisateur étaient restées en
+  chinois (reliquats d'un gabarit de génération), dans l'interface française :
+  - `src/pages/Versement.tsx:87` — `"余额检查失败"` (échec de la vérification du solde) ;
+  - `src/pages/TransactionEdit.tsx:108` — `"请填完整必填项"` (champs obligatoires manquants) ;
+  - `src/pages/TransactionEdit.tsx:114` — `"金额无效"` (montant invalide).
+- **Impact** : sur un versement dont le solde est insuffisant (ou une transaction
+  mal remplie), l'utilisateur voyait un message indéchiffrable au lieu de la
+  raison. Le flux `Versement` est un chemin financier légitime et courant.
+- **Correctif** : traduction en français
+  (`"La vérification du solde a échoué"`, `"Veuillez remplir tous les champs
+  obligatoires"`, `"Montant invalide"`). Les replis `??` vers les messages de
+  `policy` (déjà en français) sont conservés.
+- **Garde anti-dérive** : `src/lib/__tests__/no-cjk-strings.test.ts` — scanne
+  TOUT `src` (hors `__tests__`) et échoue sur tout idéogramme CJK / kana. Les
+  formes pleine largeur (`\uff00-\uffef`) sont **exclues** pour éviter le faux
+  positif de `＋` (U+FF0B, texte légitime du tutoriel). **Non-vacuité prouvée** :
+  réintroduction de `余额检查失败` → échec ciblé `pages/Versement.tsx:87` ;
+  restauré → 1/1.
+- **Preuve** : vitest **1551/1551** (125 fichiers), `tsc -b` 0, lint 0 erreur.
+- **Receipt** : `docs/agent/receipts/phase-15/2026-10-28-cjk-error-strings.md`.
