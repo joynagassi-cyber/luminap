@@ -35,6 +35,7 @@ import {
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
 import EmptyState from "@/components/EmptyState";
+import { ListSkeleton } from "@/components/Skeleton";
 import OrgChildren from "@/components/OrgChildren";
 import { useCurrentUser } from "@/lib/dataLayer";
 import { tint } from "@/lib/utils";
@@ -274,6 +275,7 @@ function OrgDetail({ orgId, onBack }: { orgId: string; onBack: () => void }) {
   const [admins, setAdmins] = useState<OrgAdminDetail[]>([]);
   const [candidates, setCandidates] = useState<AdminCandidate[]>([]);
   const [delegated, setDelegated] = useState("");
+  const [detailLoaded, setDetailLoaded] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -295,7 +297,11 @@ function OrgDetail({ orgId, onBack }: { orgId: string; onBack: () => void }) {
         setReportCard(null);
         setAdmins([]);
         setCandidates([]);
-      });
+      })
+      // R52.f — l'écran ne doit pas annoncer « aucun admin / aucun candidat »
+      // avant que la lecture soit terminée (et le `finally` évite le squelette
+      // infini en cas d'échec).
+      .finally(() => setDetailLoaded(true));
   }, [orgId]);
 
   const handleDelegate = async () => {
@@ -380,7 +386,9 @@ function OrgDetail({ orgId, onBack }: { orgId: string; onBack: () => void }) {
           <UserCheck className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
           <span className="text-text-primary font-semibold text-sm">Liste des admins</span>
         </div>
-        {admins.length === 0 ? (
+        {!detailLoaded ? (
+          <ListSkeleton count={2} />
+        ) : admins.length === 0 ? (
           <EmptyState
             title="Aucun administrateur"
             description="Les admins actifs de cette organisation apparaîtront ici"
@@ -432,7 +440,9 @@ function OrgDetail({ orgId, onBack }: { orgId: string; onBack: () => void }) {
             Déléguer l&apos;admin central
           </span>
         </div>
-        {candidates.length === 0 ? (
+        {!detailLoaded ? (
+          <ListSkeleton count={2} />
+        ) : candidates.length === 0 ? (
           <EmptyState
             title="Aucun profil éligible"
             description="Tous les membres sont déjà admins actifs"
