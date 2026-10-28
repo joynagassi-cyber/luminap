@@ -2871,3 +2871,23 @@ sauvegarde disponible).
 - **Receipt** : `docs/agent/receipts/phase-11/2026-10-28-feature-flags.md`.
 - **Statut** : **mitigé** (module + câblage + garde). Reste propriétaire :
   déclarer `VITE_FLAGS` au build si un kill switch doit être pilotable à distance.
+
+### R119 — Quatre pages montées n'étaient pas contraintes en largeur (responsive) — ✅ CORRIGÉ le 2026-10-28
+- **Gravité** : FAIBLE (confort/lisibilité sur tablette/desktop ; pas de perte de données).
+- **Défaut** : le contrat (Phase 10 « responsive ») impose que le contenu reste
+  **centré** (`max-w-lg mx-auto`) au grand viewport. Quatre pages montées par le
+  routeur n'appliquaient AUCUNE contrainte : `CulteDetail`, `EventDetail`,
+  `TransactionNew`, `TransactionNewGroup`. Leur contenu s'étalait donc pleine
+  largeur sur tablette/desktop, alors que toutes leurs pages sœurs sont centrées.
+- **Correctif** : conteneur borné ajouté (`max-w-lg mx-auto`, ou `maxWidth: 480`
+  là où le style est inline). Vérifié : les **62 pages montées** portent
+  désormais une contrainte (`max-w-* mx-auto`, `SettingsShell`, `maxWidth`, ou
+  figurent dans la liste blanche des 3 pages centrées `Splash`/`NotFound`/
+  `Onboarding`).
+- **Garde anti-dérive** : `src/pages/__tests__/responsive-container-guard.test.tsx`
+  — analogue STATIQUE du spec Cypress `responsive-skeleton.cy.ts` (qui, lui, ne
+  peut pas tourner ici : R98/E2). Il échoue dès qu'une page montée cesse de
+  borner sa largeur. **Non-vacuité prouvée** : retrait du correctif `EventDetail`
+  → échec ciblé `EventDetail (@/pages/EventDetail)` ; restauré → 3/3.
+- **Preuve** : vitest **1537/1537** (122 fichiers), `tsc -b` 0, lint 0 erreur.
+- **Receipt** : `docs/agent/receipts/phase-10/2026-10-28-responsive-containment.md`.

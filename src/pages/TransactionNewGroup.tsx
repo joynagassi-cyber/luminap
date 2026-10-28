@@ -120,7 +120,7 @@ export default function TransactionNewGroup() {
         <div data-screen-state="ready" className="min-h-dvh">
           <TopHeader title="Nouvelle transaction" />
           <div
-            className="px-5 pt-safe-calc pb-safe-calc"
+            className="max-w-lg mx-auto w-full px-5 pt-safe-calc pb-safe-calc"
             style={{
               paddingBottom: keyboardHeight > 0 ? `${keyboardHeight}px` : undefined,
             }}
