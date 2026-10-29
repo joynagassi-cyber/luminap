@@ -538,6 +538,23 @@
   droits `has_permission` tant que la décision n'est pas prise. Documenté (R109),
   gardé (test anti-dérive), non corrigé.
 
+### D-S10-3 — R109 : `CENTRAL_ADMIN` = second orphelin, même décision conservatrice
+- **Décision** : ne PAS ajouter `CENTRAL_ADMIN` au modèle canon ni toucher aux
+  `user?.role === "CENTRAL_ADMIN"` de l'UI. Documenter et faire trancher.
+- **Mesure (2026-10-29)** : `CENTRAL_ADMIN` est testé par l'UI dans 10
+  occurrences / 7 fichiers, mais il est **absent** du type `Role`, **absent** de
+  `role_permissions` (0 ligne) et **absent de toute politique RLS** (0 ligne
+  dans `pg_policies`). Ces tests sont donc toujours faux — code mort latent,
+  masqué par le fait que `CurrentUser.role` est typé `string` (`dataLayer.ts:44`).
+- **Mécanisme réel** : l'admin central fonctionne via les **grants `org_admins`**
+  (`create_org` gate sur un grant ACTIF et en crée un pour le créateur), pas via
+  un rôle. Donc la voie (b) « rôle admin central » serait à **créer de zéro**,
+  tandis que la voie (a) « grants » **existe déjà** et est fonctionnelle.
+- **Raison** : même que D-S10-1 — choix de modèle de rôles, impact autorisation
+  de bout en bout, sans mandat explicite → décision propriétaire.
+- **Conséquence assumée** : les 10 tests UI `role === "CENTRAL_ADMIN"` restent
+  faux ; documenté (R109), gardé (test anti-dérive), non corrigé.
+
 ### D-S10-2 — Garde d'inventaire RLS sans identifiants (CI bloquante)
 - **Décision** : figer l'inventaire RLS mesuré (`docs/agent/rls-inventory.json`)
   et échouer en CI si une table n'a ni RLS ni politique (sauf deny-all listé).
