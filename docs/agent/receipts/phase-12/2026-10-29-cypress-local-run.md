@@ -48,12 +48,20 @@ seulement ces deux dépendances.
    le serveur). Signature = **couche de données**, pas de rendu.
 2. **Mêmes specs rouges qu'en CI** (10/13 en commun) → **ce n'est pas la CI**,
    et l'hypothèse « parallélisation » est définitivement écartée.
-3. `cloud-sync` **passe** (écriture hors-ligne → Supabase après reconnexion,
-   63 s) → la synchronisation **fonctionne** ; le vidage de file d'upload EST
-   testable en local.
-4. Le crawler P0 passe **64/64** → **aucun écran noir** sur les 64 routes, y
+3. `cloud-sync` **passe**, mais il **ne teste PAS la synchronisation** : il
+   insère lui-même les entités par `cy.request` puis vérifie leur présence —
+   assertion **tautologique** (cf. `offline-write-sync.cy.ts`, R85).
+4. **Cause racine (R85)** : le worker WASM PowerSync **ne se connecte pas en
+   headless** (`{connected:false, hasSynced:false}` après 120 s). Donc tout test
+   exigeant un **upload réel** (`performance-batch`, `persistence`) **ne peut
+   pas passer** ici. Tentative de correctif R83 (contexte d'org + `req.continue()`
+   en ligne + warm-up avant coupure) : **testée, insuffisante** (0 ligne en base)
+   → hypothèse **réfutée par la mesure**, changements annulés. Preuve locale
+   positive : `offline-write-sync.cy.ts` passe (capture `ps_crud` + contrôle
+   négatif, pas d'upload).
+5. Le crawler P0 passe **64/64** → **aucun écran noir** sur les 64 routes, y
    compris quand les données manquent (squelette `loading` accepté).
-5. `/balance` (`finance-deep`) : la page **rend** bien `h1 « Bilan financier »`
+6. `/balance` (`finance-deep`) : la page **rend** bien `h1 « Bilan financier »`
    quand `data-screen-state="ready"` — l'échec vient de l'absence de données,
    **pas d'un bug produit**.
 

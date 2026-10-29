@@ -396,12 +396,16 @@ CYPRESS_BASE_URL=http://localhost:8080 xvfb-run -a \
 
 **Résultat de référence (2026-10-29)** : 30 specs, 139 tests,
 **113 passing / 21 failing** (13 specs rouges). Le crawler P0
-`zero-black-screen.cy.ts` passe **64/64** (les 64 routes). `cloud-sync` passe —
-donc **le vidage de la file d'upload EST testable en local** (contrairement à
-l'ancienne note ci-dessus) ; seul l'environnement CI headless l'empêche. Les
-specs rouges sont les mêmes qu'en CI et relèvent de la **couche de données**
-(cf. R98) — pas d'un bug de rendu : les écrans affichent un squelette `loading`
-et le crawler les accepte.
+`zero-black-screen.cy.ts` passe **64/64** (les 64 routes). Les specs rouges
+relèvent de la **couche de données** : le **worker WASM PowerSync ne se connecte
+pas en headless** (R85) — `__psDb.currentStatus` reste `{connected:false,
+hasSynced:false}` après 120 s, donc tout test exigeant un **upload réel** vers
+Supabase (`performance-batch`, `persistence`) **ne peut pas passer** en
+Electron/Xvfb. `offline-write-sync.cy.ts` passe parce qu'il ne vérifie que la
+**capture** dans `ps_crud` (pas l'upload). Les écrans, eux, affichent un
+squelette `loading` que le crawler accepte : **aucun écran noir**. La suite reste
+donc un excellent détecteur de régression **UI/routage/rendu**, mais pas de
+synchronisation.
 
 ## Vérifier le type (piège de l'environnement)
 
