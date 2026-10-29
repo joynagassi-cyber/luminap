@@ -123,11 +123,22 @@
   (colonnes, fonctions, policies, triggers, index, contraintes, versions) →
   source de vérité de secours, utilisable pour reconstruire un objet ou vérifier
   une dérive avant tout `db push`.
+- **Inventaire gelé (2026-10-29)** : `docs/agent/migration-drift.json` fige la
+  mesure (`applied_versions_in_tracker=70`, `repo_timestamped_files=63`,
+  `repo_sequential_files=63`, `repo_total_sql_files=126`, `versions_in_common=2`,
+  `common_versions=["20261001000001","20261027000003"]`, `drift_ratio="2/70"`).
+- **Garde anti-dérive (repo-side)** : `V: migration-drift-guard.test.ts` (3). Le
+  tracker n'étant **pas accessible en CI**, la garde verrouille ce qui est
+  vérifiable sans base — le **nombre et la forme des fichiers du dépôt** — et
+  **échoue dès qu'une migration est ajoutée/retirée**, forçant à re-mesurer la
+  dérive et à mettre à jour l'instantané. Sans elle, une migration appliquée via
+  l'éditeur SQL (donc jamais tracée) passerait totalement inaperçue.
 - **Recommandation propriétaire** : régulariser l'historique (marquer les
   migrations appliquées avec `supabase migration repair --status applied <version>`)
   ou adopter « base = source de vérité » et ne plus se fier au tracker. À
   trancher — voir DECISIONS.md et RAPPORT_FINAL.md.
-- **Statut** : ouvert, documenté, contourné (instantané).
+- **Statut** : ouvert (choix propriétaire), documenté, contourné (instantané),
+  **gardé** (toute nouvelle migration déclenche une re-mesure).
 
 ### R18 — Aucune sauvegarde native ni PITR sur le projet Supabase — MITIGÉ (2026-10-29)
 - **Défaut** : l'API Management renvoie `backups: []` et `pitr_enabled: false`
