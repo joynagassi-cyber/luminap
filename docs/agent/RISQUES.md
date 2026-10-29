@@ -425,13 +425,26 @@
 - **Reste** : `IonSelect`/`IonCheckbox` conservent `onIonChange` (aucun
   événement `ionInput`) — à surveiller (cf. R33).
 
-### R33 — `IonSelect`/`IonCheckbox` sans équivalent `ionInput` — OUVERT (faible)
-- Ionic n'expose pas d'événement `ionInput` pour `<IonSelect>` (57 usages) ni
-  `<IonCheckbox>` (2). `onIonChange` y reste la seule option.
+### R33 — `IonSelect`/`IonCheckbox` sans équivalent `ionInput` — MESURÉ + GARDÉ (faible)
+- Ionic n'expose pas d'événement `ionInput` pour `<IonSelect>` (58 usages) ni
+  `<IonCheckbox>`. `onIonChange` y reste la seule option.
 - Impact : un `<IonSelect>` dont la valeur conditionne l'activation d'un bouton
   peut présenter le même blocage qu'R32 si aucun blur ne survient.
 - **Gravité** : faible (un `<IonSelect>` émet `ionChange` dès la sélection sur
-  la plupart des plateformes). À vérifier par un test dédié si le temps le permet.
+  la plupart des plateformes).
+- **Mesure (2026-10-29)** : analyse par **balise ouvrante** (gère `>` dans
+  `{}`) sur `src/` — **58** balises `IonSelect`/`IonCheckbox`, **0** portant
+  `onIonInput` (l'événement jamais émis). Contrôle croisé : **100** balises
+  `IonInput`/`IonTextarea`, **0** portant `onIonChange` (donc R32 non régressé).
+  Deux faux positifs écartés (`ReportBuilder.tsx:626`, `GivingCampaign.tsx:248` :
+  le `onIonInput` appartient à un `<IonInput>` **frère**, pas au `<IonSelect>`).
+- **Garde anti-récurrence** : `V: ionic-input-events-guard.test.ts` (2) échoue
+  si (1) un `IonSelect`/`IonCheckbox` reçoit `onIonInput`, ou (2) un
+  `IonInput`/`IonTextarea` revient à `onIonChange` ; avec assertions de
+  **non-vacuité** (>20 et >50 balises scannées) pour qu'une extraction cassée
+  fasse échouer le test au lieu de passer silencieusement.
+- **Statut** : mesuré, gardé (aucune régression R32 ; R33 lui-même non
+  exploitable dans les données actuelles).
 
 ### R34 — `slot="input"` : 61 champs de saisie jamais rendus — CORRIGÉ (critique)
 - **Défaut** : `IonInput` / `IonSelect` / `IonTextarea` placés dans un
