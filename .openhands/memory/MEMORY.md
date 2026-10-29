@@ -1,19 +1,34 @@
 # Mémoire projet — Lumina
 
 ## Environnement d'agent (contraintes lourdes, vérifiées)
-- **Cypress ne tourne PAS en local** : binaire non installable (pas d'écran X,
-  téléchargement bloqué). Toute validation E2E passe par la **CI**.
+- **Cypress TOURNE en local** (contredit l'ancienne note) : `sudo apt-get install
+  -y xvfb` puis `.env.local` (4 vars, cf. `docs/agent/RUNBOOK.md`) puis
+  `node node_modules/vite/bin/vite.js &` (:8080) puis
+  `CYPRESS_BASE_URL=http://localhost:8080 xvfb-run -a node
+  node_modules/cypress/bin/cypress run --spec … --browser electron
+  --config video=false`. `local-dashboard.cy.ts` → **2/2** (spec offline).
 - **Accès DB possible** : Docker **est** installé (`sudo dockerd &` +
   `chmod 666 /var/run/docker.sock`) ; la chaîne Postgres passe par le **pooler**
   `aws-0-eu-west-2.pooler.supabase.com:5432` (l'hôte direct `db.<ref>…` **ne
   résout pas** dans le conteneur). Le MCP Supabase (`execute_sql`) reste la voie
   SQL la plus simple.
-- **`PS_ADMIN_TOKEN` disponible** dans le coffre local `~/.ps-secrets` →
-  `powersync deploy sync-config` **fonctionne** (E1 close le 2026-10-27).
+- **`~/.ps-secrets` N'EXISTE PLUS dans ce conteneur** (note périmée) → plus de
+  `PS_ADMIN_TOKEN` ici ; `powersync deploy service-config` n'est pas faisable par
+  l'agent. `gh auth` non connecté. Livrer les correctifs de config Cloud en
+  **patch + consignes propriétaire**.
 - **`npx tsc --noEmit` à la racine ne vérifie RIEN** (tsconfig `"files": []`,
   sort toujours 0). Utiliser **`npx tsc -b`**.
 
 ## PowerSync (instance prod 6a9dd96302481fb31b945823)
+- **CAUSE RACINE Cypress (2026-10-29, mesurée)** : l'instance rejette TOUT jeton
+  utilisateur Supabase → `401 PSYNC_S2105 — Unexpected "aud" claim value:
+  "authenticated"`. `client_auth.additional_audiences` vide. Preuve hors
+  navigateur : POST `/sync/stream` corps VALIDE + jeton réel (compte
+  `lumina-org-e2e@lumina.dev`) → 401 **5×/5** ; JWKS ES256 `kid=e6d0da61-…`.
+  Correctif = ajouter `"authenticated"` (dashboard ou
+  `patches/powersync-service-audience.patch` + `powersync deploy service-config`).
+  Conséquence : réplique jamais peuplée → specs « cloud » rouges (offline vertes).
+  Détail : `docs/agent/receipts/phase-12/2026-10-29-cypress-powersync-audience.md`.
 - **Déployable depuis ce conteneur** : jeton admin dans `~/.ps-secrets`
   (`PS_ADMIN_TOKEN`, `PS_DATABASE_PASSWORD`) — **coffre local, jamais commité**.
   `powersync validate` puis `powersync deploy sync-config`.

@@ -121,12 +121,13 @@
 | 11 | **R52 — garde statique, 2ᵉ invariant** : un simple import de `isPowerSyncReadyNow` ne blanchit plus (il faut un **appel**) ; un squelette visible ne peut pas être gardé par un `isLoading` mort | P2 | **terminé** | `agent/r52j-trace-orgreport-loading` | `phase-11/2026-10-28-r52q-finance-loading.md` |
 | 11 | **R52.p — `DocumentPicker`** : « Aucun document uploadé » avant lecture (composant partagé). Correctif : garde `documentsPending` | P2 | **terminé** | `agent/r52j-trace-orgreport-loading` | `phase-11/2026-10-28-r52o-p-reports-documents.md` |
 | 11 | **R52 — garde statique durcie** : détecte un verdict vide gardé par un `isLoading` MORT (liste dérivée de `dataLayer.ts`) | P2 | **terminé** | `agent/r52j-trace-orgreport-loading` | `phase-11/2026-10-28-r52o-p-reports-documents.md` |
+| 12 | **E2 — cause racine de la suite Cypress « cloud »** : l'instance PowerSync Production rejette tout jeton utilisateur Supabase (`401 PSYNC_S2105 — Unexpected "aud" claim value: "authenticated"`) ; `additional_audiences` vide. Preuve reproductible hors navigateur + patch de déploiement. **Bloquant propriétaire** (config Cloud) ; `service.yaml` non modifié. | P1 | **bloqué** (déploiement propriétaire) | `fix/cypress-sync-infra` | `phase-12/2026-10-29-cypress-powersync-audience.md` |
 
 ## Escalades ouvertes (ne bloquent pas la boucle)
 
 | Id | Sujet | Repli appliqué | Détail |
 |---|---|---|---|
-| E2 | Cypress vert sur `main` (environnement E2E, R98) | specs indépendantes de PowerSync seules bloquantes | ESCALATIONS.md |
+| E2 | Cypress vert sur `main` (environnement E2E, R98) — **cause racine mesurée 2026-10-29 : audience JWT PowerSync** (`PSYNC_S2105`) | correctif en patch (`patches/powersync-service-audience.patch`) ; `service.yaml` non modifié ; specs indépendantes de PowerSync seules bloquantes | ESCALATIONS.md / receipt `phase-12/2026-10-29-cypress-powersync-audience.md` |
 | E3 | Sauvegardes automatiques (`SUPABASE_DB_URL` absent) | chaîne prouvée manuellement, runbook opérateur | ESCALATIONS.md |
 | E4 | Parcours « réclamer une invitation » (FK `auth.users`, R111) | aucun code modifié (décision d'architecture) ; documenté | ESCALATIONS.md |
 

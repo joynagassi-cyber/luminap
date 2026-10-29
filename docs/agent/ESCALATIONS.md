@@ -19,20 +19,36 @@
 - **Repli (historique)** : fichier source corrigé et versionné pendant la
   période où le déploiement était bloqué.
 
-## E2 — Suite Cypress jamais verte sur `main` (environnement E2E)
+## E2 — Suite Cypress jamais verte sur `main` (environnement E2E) — CAUSE RACINE MESURÉE (2026-10-29)
 
 - **Symptôme** : la suite Cypress échoue de façon déterministe (10 specs) sur
   `main`, indépendamment des correctifs.
 - **Preuves** : R98 (hypothèse « parallélisation » **réfutée** par mesure en
   mono-conteneur, run `40080015253`) ; cause réelle circonscrite = environnement
   E2E (PowerSync/réplique vide R53, prérequis offline R83, contexte d'org R72).
+- **CAUSE RACINE (mesurée le 2026-10-29, reproductible)** : l'instance PowerSync
+  Production `6a9dd96302481fb31b945823` rejette **tout** jeton d'utilisateur
+  Supabase avec `401 PSYNC_S2105 — Unexpected "aud" claim value: "authenticated"`.
+  Le service config déployé n'accepte pas l'audience `authenticated` (que
+  Supabase impose dans ses jetons) : `client_auth.additional_audiences` est vide.
+  Preuve : corps de sync **valide** + jeton réel (`lumina-org-e2e@lumina.dev`)
+  → `401 PSYNC_S2105` **5×/5** ; JWKS public ES256 `kid=e6d0da61-…` bien résolu ;
+  jeton legacy HS256 → `S2101` (kid introuvable). Détail + commandes :
+  `docs/agent/receipts/phase-12/2026-10-29-cypress-powersync-audience.md`.
+- **Conséquence** : la base locale SQLite reste vide → toutes les specs « cloud »
+  (sessions, members, forms-v2, persistence, cross-tenant, org-reports,
+  groups-events, events-tasks, calendar, finance-deep, performance-batch)
+  échouent ; les specs **offline** (`local-dashboard.cy.ts`) passent (2/2).
 - **Hypothèses testées** : (1) parallélisation → réfutée ; (2) specs fragiles →
-  partiellement (org-reports) mais pas la cause racine.
-- **Recommandation** : reconstruire un environnement E2E déterministe
-  (proposition P41) ; en attendant, ne pas se fier au rouge Cypress global.
-- **Repli appliqué** : seuls les gates déterministes locaux (`tsc -b`, lint,
-  vitest, build) sont bloquants ; les specs Cypress **indépendantes de
-  PowerSync** restent le signal E2E exploitable.
+  partiellement (org-reports) mais pas la cause racine ; (3) réplication arrêtée
+  → réparée (R80), plus la cause ; (4) **audience JWT PowerSync → CONFIRMÉE**.
+- **Recommandation (propriétaire)** : ajouter `authenticated` à
+  `additional_audiences` (tableau de bord → Client Auth → JWT Audience, ou
+  `powersync deploy service-config` après application de
+  `docs/agent/patches/powersync-service-audience.patch`). Doc PowerSync :
+  « PSYNC_S2105 … Add `authenticated` to your audience configuration. »
+- **Repli appliqué** : `powersync/service.yaml` **non modifié** (config
+  déployée) ; correctif livré en patch + receipt ; aucune spec affaiblie.
 
 ## E3 — Sauvegardes automatiques : chaîne prouvée, activation = propriétaire
 

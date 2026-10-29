@@ -1,0 +1,27 @@
+Subject: [PATCH] fix(powersync): accepter l'audience JWT "authenticated" (débloque la suite Cypress)
+
+PowerSync rejette TOUT jeton d'utilisateur Supabase avec
+  401 PSYNC_S2105 — Unexpected "aud" claim value: "authenticated"
+
+Cause : le service config de l'instance Production accepte l'audience
+`authenticated` que Supabase émet pour les jetons utilisateur. Correctif :
+l'ajouter à `client_auth.additional_audiences`.
+
+Déploiement (propriétaire) :
+  powersync deploy service-config
+puis re-mesurer les specs Cypress « cloud ».
+
+Le champ `supabase_jwt_secret` est conservé tel quel : sur l'instance Cloud
+`6a9dd96302481fb31b945823`, l'auth passe par les clés asymétriques (JWKS
+ES256, kid e6d0da61-…). L'`aud` reste la seule lacune mesurée.
+
+--- a/powersync/service.yaml
++++ b/powersync/service.yaml
+@@ -32,6 +32,6 @@
+ client_auth:
+   supabase: true
+   supabase_jwt_secret:
+     secret_ref: supabase_jwt_secret
+-  additional_audiences: []
++  additional_audiences: ["authenticated"]
+   allow_temporary_tokens: true
