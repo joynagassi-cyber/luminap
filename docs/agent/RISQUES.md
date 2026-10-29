@@ -792,8 +792,21 @@
 - **Garde** : `src/lib/__tests__/route-reachability-guard.test.ts` (3 tests) —
   toute route montée doit avoir un lien entrant, ou figurer dans une
   `UNREACHABLE_ALLOWLIST` justifiée (redirect rétro-compat, lien profond public,
-  retour OAuth). Non-vacuité prouvée par mutation (retrait des 2 liens → échec
-  nommant `/admin/roles` et `/admin/units`).
+  retour OAuth). **Non-vacuité prouvée par mutation** (retrait des 2 liens →
+  échec nommant `/admin/roles` et `/admin/units`).
+
+### R49.c — P0 : lien cassé vers une route inexistante (`/transactions`) — CORRIGÉ (2026-10-29)
+- **Gravité** : **élevée** (classe P0 « écran noir »).
+- **Défaut** : `TransactionEdit.tsx` (« Retour aux transactions », état
+  « introuvable ») faisait `navigate("/transactions")` ; cette route **n'a jamais
+  existé** (`git log -S 'path="/transactions"'` vide) — le grand livre est
+  `/finance`. Clic → 404/écran noir.
+- **Correctif** : cible → `/finance`.
+- **Garde inverse** (`route-reachability-guard.test.ts`, +2) : toute cible de
+  navigation doit correspondre à une route montée. **Piège corrigé** : le
+  catch-all `path="*"` validait toute cible (garde vacuе, ne détectait pas le
+  lien) → `*` exclu explicitement. Non-vacuité : remettre le lien cassé fait
+  échouer (nomme `/transactions`).
 
 ### R50 — Faux positif écarté : la RLS inter-tenant de `profiles` tient — VÉRIFIÉ
 - **Gravité** : information (aucun défaut).

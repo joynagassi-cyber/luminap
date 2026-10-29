@@ -134,3 +134,55 @@ describe("Routes montées ↔ reachability (aucune page orpheline)", () => {
     expect(stale).toEqual([]);
   });
 });
+
+/**
+ * L'inverse : une cible de navigation qui ne correspond à AUCUNE route montée
+ * envoie l'utilisateur vers le vide (écran noir / 404). Défaut réel trouvé :
+ * `TransactionEdit.tsx` faisait `navigate("/transactions")` alors que la route
+ * `/transactions` n'a jamais existé (le grand livre est `/finance`).
+ */
+const TARGET_ALLOWLIST: Record<string, string> = {
+  // Racine : redirigée par le résolveur (`resolveRoute("/")` → `redirect /splash`).
+  "/": "redirigée par le résolveur vers /splash",
+};
+
+/** Une cible correspond-elle à une route montée (gère `:param` et `?query`) ? */
+function targetMatchesMounted(target: string, mounted: string[]): boolean {
+  const clean = target.split("?")[0].split("#")[0];
+  for (const p of mounted) {
+    // Le catch-all `*` ne compte PAS : toute cible « correspondrait » alors,
+    // rendant la vérification vacuе (c'est ce qui masquait le lien cassé).
+    if (p === "*") continue;
+    if (p.includes("/:")) {
+      const base = baseOf(p);
+      if (clean === base || clean.startsWith(base + "/") || clean.startsWith("/:")) {
+        return true;
+      }
+    } else if (p === clean) {
+      return true;
+    }
+  }
+  return false;
+}
+
+describe("Cibles de navigation ↔ routes montées (aucun lien cassé)", () => {
+  const mounted = mountedPaths();
+  const targets = [
+    ...new Set(navigationTargets().filter((t) => t.startsWith("/"))),
+  ];
+
+  it("la collecte n'est pas vide (non-vacuité)", () => {
+    expect(targets.length).toBeGreaterThan(20);
+  });
+
+  it("chaque cible pointe vers une route montée OU est justifiée", () => {
+    const broken = targets.filter(
+      (t) => !(t in TARGET_ALLOWLIST) && !targetMatchesMounted(t, mounted),
+    );
+    expect(
+      broken,
+      `Cibles de navigation sans route montée (lien cassé → écran noir) : ${broken.join(", ")}. ` +
+        `Corrigez la cible ou inscrivez-la dans TARGET_ALLOWLIST avec une justification.`,
+    ).toEqual([]);
+  });
+});

@@ -128,7 +128,7 @@ export default function TransactionEdit() {
               </p>
               <button
                 type="button"
-                onClick={() => navigate("/transactions")}
+                onClick={() => navigate("/finance")}
                 className="px-4 py-2.5 rounded-xl text-sm font-medium"
                 style={{ color: "var(--accent-primary)" }}
               >

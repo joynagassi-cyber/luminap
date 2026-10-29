@@ -61,3 +61,45 @@ rétro-compat), `/invitation/claim` (lien profond public), `/auth/callback`
 
 - R17 (dérive migrations↔base) et la décision de rôle ADMIN (R109/R16) restent
   ouverts et bloqués par des décisions propriétaire.
+
+---
+
+# R49.c (P0) — lien cassé vers une route inexistante
+
+- **Date** : 2026-10-29
+- **Branche** : `agent/r49b-broken-links`
+
+## Défaut
+
+`src/pages/TransactionEdit.tsx:131` (« Retour aux transactions », affiché sur
+l'état « transaction introuvable ») appelait `navigate("/transactions")`. Or
+aucune route `/transactions` n'a **jamais** existé (vérifié : `git log -S
+'path="/transactions"'` → vide ; le grand livre est `/finance`). Le clic menait
+donc à un écran noir/404 — défaut de classe **P0 « écran noir »**.
+
+## Correctif
+
+Cible corrigée vers `/finance` (titre « Finance — Grand livre », contient la
+liste des transactions).
+
+## Garde (inverse de R49.b)
+
+`route-reachability-guard.test.ts` (+2 tests) : toute **cible de navigation**
+doit correspondre à une **route montée** (`:param` et `?query` normalisés).
+
+Piège corrigé : le catch-all `path="*"` faisait correspondre **toute** cible →
+la garde était vacuе et ne détectait pas le lien cassé. `*` est désormais
+**exclu** de la correspondance (le catch-all affiche un 404, ce n'est pas une
+« route » atteignable).
+
+`TARGET_ALLOWLIST` : `/` (redirigé par le résolveur vers `/splash`).
+
+## Preuves
+
+| Gate | Sortie |
+|---|---|
+| `npx tsc -b` | **0** |
+| `eslint` (fichiers touchés) | **0 erreur** |
+| `vitest run route-reachability-guard` | **5 passed** |
+| Non-vacuité (remettre `/transactions`) | **1 failed** — nomme `/transactions` ; restauré → **5 passed** |
+| Suite complète | **1676 passed** (149 fichiers) |
