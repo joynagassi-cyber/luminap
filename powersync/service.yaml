@@ -12,26 +12,35 @@ _type: cloud
 name: Production
 region: eu
 
-# Replication connection to Supabase
+# Replication connection to Supabase.
+#
+# ⚠️ NE PAS revenir à `username: postgres` + `secret_ref: default_password` :
+# cette combinaison pointe vers le mot de passe `postgres` (rotaté côté
+# Supabase) et a causé une panne de réplication (R80/R111). L'instance
+# Production est approvisionnée par l'intégration Supabase, qui crée un rôle
+# de réplication dédié et un secret vault nommé d'après le projet. Ces
+# valeurs proviennent de `powersync pull instance` sur l'instance qui
+# fonctionne ; elles doivent être conservées telles quelles.
 replication:
   connections:
     - type: postgresql
-      uri: postgresql://postgres@db.hhgovvrnalibhgpakswi.supabase.co:5432/postgres
       password:
-        secret_ref: default_password
+        secret_ref: supabase_6ae28a41b82cab873076dfc9_password
       hostname: db.hhgovvrnalibhgpakswi.supabase.co
       port: 5432
       database: postgres
-      username: postgres
-      name: Default
-      tag: default
+      username: powersync_28d1d97617993b66d4ee0a3b
+      id: default
       sslmode: verify-full
-      debug_api: false
 
-# Client authentication using Supabase JWT
+# Client authentication using Supabase JWT.
+# L'authentification passe par le JWKS public du projet (clés asymétriques) —
+# pas par le secret JWT legacy, qui n'existe pas dans le vault de cette
+# instance. Conforme à `powersync pull instance`.
 client_auth:
   supabase: true
-  supabase_jwt_secret:
-    secret_ref: supabase_jwt_secret
+  jwks_uri: https://hhgovvrnalibhgpakswi.supabase.co/auth/v1/.well-known/jwks.json
+  jwks:
+    keys: []
   additional_audiences: []
   allow_temporary_tokens: true

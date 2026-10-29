@@ -67,10 +67,37 @@ streams:
       WHERE user_id = auth.user_id()
          OR org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
 
-  # ── Profil de l'utilisateur connecté ───────────────────────────────────
+  # ── Profils visibles par l'utilisateur connecté (R80) ──────────────────
+  # Miroir EXACT de la politique RLS `profiles_select`
+  #   ((initplan_uid() = id) OR is_org_member(initplan_uid(), org_id))
+  # où `is_org_member(u, org)` = appartenance via `profiles.org_id` OU
+  # `org_memberships` (ACTIVE/PENDING) OU `org_admins` (ACTIVE), avec les
+  # sentinelles `__no_org__` / `no-org` / vide EXCLUES.
+  # Sans élargissement, la colonne « Soumetteur » de /forms affichait l'UUID
+  # brut pour tout membre autre que soi (défaut R80).
   profiles:
     auto_subscribe: true
-    query: SELECT * FROM profiles WHERE id = auth.user_id()
+    query: |
+      SELECT * FROM profiles
+      WHERE id = auth.user_id()
+         OR org_id IN (
+              SELECT org_id FROM org_memberships
+               WHERE user_id = auth.user_id()
+                 AND status = 'ACTIVE')
+         OR org_id IN (
+              SELECT org_id FROM org_memberships
+               WHERE user_id = auth.user_id()
+                 AND status = 'PENDING')
+         OR org_id IN (
+              SELECT org_id FROM org_admins
+               WHERE admin_profile_id = auth.user_id()
+                 AND status = 'ACTIVE')
+         OR org_id IN (
+              SELECT org_id FROM profiles
+               WHERE id = auth.user_id()
+                 AND org_id <> '__no_org__'
+                 AND org_id <> 'no-org'
+                 AND org_id <> '')
 
   # ── Données de l'organisation de l'utilisateur connecté ───────────────
   # Double-scope (Vague 1, réversible) : tant que le backfill 1:1 est exact,
