@@ -26,16 +26,18 @@
  */
 
 describe('Lumina — Org reports hierarchy, send page gating, RLS', () => {
-  // Organisations créées par ce run, archivées dans `after()` (R96) : sans
+  // Organisations créées par ce run, archivées dans `after()` (R96/P39) : sans
   // nettoyage, chaque exécution (et chaque run CI) laissait 2 organisations
   // réelles ACTIVE orphelines en base — constaté : chaîne de 3 annexes
-  // résiduelles du 2026-10-24.
-  // Nombre de caractères distincts partagés par orgAName et orgBName.
-  const TS_LEN = 6;
-  // Ids connus (collectés à l'étape REST) + préfixe de nom, pour retrouver les
+  // résiduelles du 2026-10-24, et 4 au 2026-10-29.
+  // Ids connus (collectés à l'étape REST) + préfixes de nom, pour retrouver les
   // organisations même si le test échoue AVANT l'étape REST (R96).
   const createdOrgIds = new Set<string>();
   let namePrefix = '';
+  // P39 — préfixes des DEUX annexes du run (A et B), drainés par `after()`.
+  const orgPrefixes: string[] = [];
+  // Borne temporelle stricte : n'archive QUE les annexes créées par ce run.
+  const runStartedAt = new Date().toISOString();
 
   before(function () {
     this.timeout(90_000);
@@ -43,71 +45,16 @@ describe('Lumina — Org reports hierarchy, send page gating, RLS', () => {
     cy.ensureAuth();
   });
 
-  after(function () {
-    // Archivage (ARCHIVED ≠ DELETE : l'historique reste) via l'API REST avec
-    // le JETON RÉEL. La RLS `orgs_update_merged` l'autorise : `create_org` a
-    // accordé au compte e2e un grant `org_admins` ACTIVE sur chaque org créée.
-    //
-    // Le nettoyage est VOLONTAIREMENT NON FATAL : un échec ici ne doit jamais
-    // transformer une suite verte en rouge ni masquer un échec du test. Au
-    // pire, le résidu reste ACTIVE (comportement antérieur).
-    if (!namePrefix && createdOrgIds.size === 0) return;
-    const SUPABASE_URL =
-      (Cypress.expose('SUPABASE_URL') as string) ||
-      'https://hhgovvrnalibhgpakswi.supabase.co';
-    const anonKey = Cypress.expose('SUPABASE_ANON_KEY') as string;
-    cy.window({ log: false }).then((win) => {
-      const ls = win.localStorage;
-      const sbKey = Object.keys(ls).find((k) => /-auth-token$/.test(k));
-      let token: string | null = null;
-      try {
-        token = JSON.parse(ls.getItem(sbKey ?? '') ?? '')?.access_token ?? null;
-      } catch {
-        token = null;
-      }
-      if (!token) {
-        cy.log('cleanup orgs: session absente, archivage ignoré (non fatal)');
-        return;
-      }
-      const archive = (ids: string[]) =>
-        ids.forEach((id) => {
-          cy.request({
-            method: 'PATCH',
-            url: `${SUPABASE_URL}/rest/v1/organizations?id=eq.${id}`,
-            headers: {
-              apikey: anonKey,
-              Authorization: `Bearer ${token}`,
-              'Content-Type': 'application/json',
-              Prefer: 'return=minimal',
-            },
-            body: {
-              status: 'ARCHIVED',
-              archive_reason:
-                'Nettoyage automatique — spec Cypress org-reports.cy.ts',
-            },
-            failOnStatusCode: false,
-          }).then((res: any) => cy.log(`cleanup org ${id}: HTTP ${res.status}`));
-        });
-
-      if (createdOrgIds.size > 0) {
-        archive([...createdOrgIds]);
-        return;
-      }
-      // Repli : le test a échoué avant l'étape REST → retrouver par préfixe.
-      const ts = namePrefix.slice(-TS_LEN);
-      cy.request({
-        method: 'GET',
-        url: `${SUPABASE_URL}/rest/v1/organizations?select=id,name&name=like.*${ts}*`,
-        headers: { apikey: anonKey, Authorization: `Bearer ${token}` },
-        failOnStatusCode: false,
-      }).then((res: any) => {
-        const rows: any[] = Array.isArray(res.body) ? res.body : [];
-        archive(
-          rows
-            .filter((r) => /^Annexe [AB] /.test(r.name ?? ''))
-            .map((r) => r.id),
-        );
-      });
+  after(() => {
+    // Archivage (ARCHIVED ≠ DELETE : l'historique reste) délégué au helper
+    // partagé P39 (`cypress/support/e2eCleanup.ts`), NON FATAL par
+    // construction (contexte navigateur + try/catch : un échec RLS/réseau est
+    // loggé, jamais fatal). Chemin exact par id quand l'étape REST les a
+    // capturés ; repli par préfixe de nom si le test a échoué plus tôt.
+    cy.cleanupTestArtifacts({
+      ids: { organizations: [...createdOrgIds] },
+      orgNamePrefix: orgPrefixes.length > 0 ? orgPrefixes : [namePrefix],
+      sinceIso: runStartedAt,
     });
   });
 
@@ -176,8 +123,9 @@ describe('Lumina — Org reports hierarchy, send page gating, RLS', () => {
     const orgAName = `Annexe A ${ts}`;
     const orgBName = `Annexe B ${ts}`;
     // Permet au hook `after()` de retrouver les organisations même si le test
-    // échoue avant l'étape REST (R96).
+    // échoue avant l'étape REST (R96/P39).
     namePrefix = orgAName;
+    orgPrefixes.push(orgAName, orgBName);
 
     const SUPABASE_URL =
       (Cypress.expose('SUPABASE_URL') as string) ||

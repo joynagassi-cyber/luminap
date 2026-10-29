@@ -37,10 +37,24 @@ Cypress.on('uncaught:exception', (err) => {
 });
 
 describe('Lumina — Cross-tenant isolation (2 orgs)', () => {
+  // P39 — nom unique au run (repli de nettoyage) + borne temporelle stricte.
+  let createdEventName = '';
+  const runStartedAt = new Date().toISOString();
+
   before(function () {
     this.timeout(90_000);
     cy.loginOrgAccount();
     cy.ensureAuth();
+  });
+
+  after(() => {
+    // P39 — nettoyage NON FATAL (cypress/support/e2eCleanup.ts) : annule
+    // (`CANCELLED`) l'événement `CrossTenant Event <ts>` créé par ce run.
+    // Sans lui, chaque exécution laissait un événement réel de plus en base.
+    cy.cleanupTestArtifacts({
+      eventNamePrefix: [createdEventName],
+      sinceIso: runStartedAt,
+    });
   });
 
   it('orgA event is invisible from a foreign org_id via REST, replica and UI', function () {
@@ -48,6 +62,7 @@ describe('Lumina — Cross-tenant isolation (2 orgs)', () => {
 
     const ts = Date.now().toString().slice(-6);
     const eventName = `CrossTenant Event ${ts}`;
+    createdEventName = eventName;
     let eventId = '';
 
     const SUPABASE_URL =
