@@ -31,12 +31,21 @@ describe("ROUTE_REGISTRY ↔ routes montées (anti-dérive)", () => {
   it("chaque route montée est inscrite dans le registre", () => {
     const registered = new Set(registeredPaths());
     const inRegistry = new Set(ROUTE_REGISTRY.map((r) => r.pattern));
+    // Non-vacuité : si l'extraction casse (répertoire renommé, regex cassée),
+    // `registered` devient vide et `missing` aussi → la garde P0 « zéro écran
+    // noir » passerait SANS RIEN GARDER. On exige un volume plausible.
+    expect(
+      registered.size,
+      "routes montées introuvables (extraction cassée ?) — la garde serait vacue",
+    ).toBeGreaterThan(50);
+    expect(ROUTE_REGISTRY.length).toBeGreaterThan(50);
     const missing = [...registered].filter((p) => !inRegistry.has(p));
     expect(missing).toEqual([]);
   });
 
   it("chaque entrée du registre correspond à une route montée", () => {
     const registered = new Set(registeredPaths());
+    expect(registered.size).toBeGreaterThan(50);
     const drift = ROUTE_REGISTRY.map((r) => r.pattern).filter(
       (p) => !registered.has(p),
     );

@@ -34,7 +34,14 @@ function walk(dir: string): string[] {
 describe("R121 — aucune chaîne CJK dans le code source (UI française)", () => {
   it("aucun fichier source hors tests ne contient de caractère CJK", () => {
     const offenders: string[] = [];
-    for (const file of walk(SRC)) {
+    const files = walk(SRC);
+    // Non-vacuité : si `walk` casse (répertoire renommé, extension filtrée à
+    // tort), la liste serait vide et le test passerait sans rien vérifier.
+    expect(
+      files.length,
+      "aucun fichier source trouvé — extraction cassée, la garde serait vacue",
+    ).toBeGreaterThan(100);
+    for (const file of files) {
       const src = readFileSync(file, "utf8");
       src.split("\n").forEach((line, i) => {
         if (CJK.test(line)) {
