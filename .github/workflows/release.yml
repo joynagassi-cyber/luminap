@@ -187,25 +187,10 @@ jobs:
           # par le piquage OneSignal).
           echo "Vérif que le JAR ne subsiste nulle part (diagnostic, ne casse pas le build) :"
           grep -Rl "bcprov-jdk18on" node_modules/.pnpm 2>/dev/null | head -5 || echo "(aucune référence textuelle sous node_modules — le JAR est résolu via Maven Central, pas via un fichier .gradle local)"
-          # Align le SDK (cap sync régénère parfois en 36 → on force 34,
-          # identique au step "Align Gradle" de lumina-android.yml).
-          sed -i "s/compileSdkVersion') ? rootProject.ext.compileSdkVersion : 36/compileSdkVersion') ? rootProject.ext.compileSdkVersion : 34/g" \
-            android/capacitor-cordova-android-plugins/build.gradle
-          sed -i 's/compileSdkVersion = 36/compileSdkVersion = 34/' android/variables.gradle
-          sed -i 's/targetSdkVersion = 36/targetSdkVersion = 34/' android/variables.gradle
-          # Patch du namespace au plugin storage v1.2.5 (sans, cap sync
-          # génère une erreur "Namespace not specified" — même logique que
-          # lumina-android.yml). Le fichier réel vit dans node_modules/.pnpm
-          # (symlinké depuis node_modules/@capacitor/storage), on patche le
-          # path "vrai" pour être sûr que le patch tient dans node_modules
-          # (et pas juste sur le symlink).
-          STORAGE_GRADLE="$(node -e "console.log(require.resolve('@capacitor/storage/android/build.gradle'))" 2>/dev/null || true)"
-          if [ -z "$STORAGE_GRADLE" ]; then
-            STORAGE_GRADLE="node_modules/@capacitor/storage/android/build.gradle"
-          fi
-          if [ -f "$STORAGE_GRADLE" ] && ! grep -q "^    namespace " "$STORAGE_GRADLE"; then
-            sed -i '/^android {/a\    namespace "com.capacitorjs.plugins.storage"' "$STORAGE_GRADLE"
-          fi
+          # P35 (2026-10-29) : patch `namespace` storage et forçage SDK
+          # supprimés — tous les `@capacitor/*` sont en 7.x (AGP 8.7.2,
+          # namespace partout), `@capacitor/storage` est retiré et
+          # `variables.gradle` porte déjà compileSdk/targetSdk 35.
 
       - name: Expose version
         id: version
@@ -308,17 +293,10 @@ jobs:
           else
             echo "Aucun AGP 8.13.0 résiduel — rien à faire (déjà propre)"
           fi
-          sed -i "s/compileSdkVersion') ? rootProject.ext.compileSdkVersion : 36/compileSdkVersion') ? rootProject.ext.compileSdkVersion : 34/g" \
-            android/capacitor-cordova-android-plugins/build.gradle
-          sed -i 's/compileSdkVersion = 36/compileSdkVersion = 34/' android/variables.gradle
-          sed -i 's/targetSdkVersion = 36/targetSdkVersion = 34/' android/variables.gradle
-          STORAGE_GRADLE="$(node -e "console.log(require.resolve('@capacitor/storage/android/build.gradle'))" 2>/dev/null || true)"
-          if [ -z "$STORAGE_GRADLE" ]; then
-            STORAGE_GRADLE="node_modules/@capacitor/storage/android/build.gradle"
-          fi
-          if [ -f "$STORAGE_GRADLE" ] && ! grep -q "^    namespace " "$STORAGE_GRADLE"; then
-            sed -i '/^android {/a\    namespace "com.capacitorjs.plugins.storage"' "$STORAGE_GRADLE"
-          fi
+          # P35 (2026-10-29) : patch `namespace` storage et forçage SDK
+          # supprimés — tous les `@capacitor/*` sont en 7.x (AGP 8.7.2,
+          # namespace partout), `@capacitor/storage` est retiré et
+          # `variables.gradle` porte déjà compileSdk/targetSdk 35.
 
       - name: Restore patched android/ tree (bcprov fix du job prepare)
         uses: actions/download-artifact@v4
