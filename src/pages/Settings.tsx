@@ -9,6 +9,7 @@ import {
   Info,
   ChevronRight,
   Activity,
+  ShieldCheck,
   type LucideIcon,
 } from "lucide-react";
 import { IonPage, IonContent } from "@ionic/react";
@@ -63,6 +64,13 @@ const GROUPS: SettingsGroup[] = [
   {
     title: "Organisation",
     options: [
+      {
+        id: "roles",
+        label: "Accès & rôles",
+        description: "Rôles des membres et capacités accordées dans l'organisation",
+        icon: ShieldCheck,
+        to: "/admin/roles",
+      },
       {
         id: "features",
         label: "Features & navigation",

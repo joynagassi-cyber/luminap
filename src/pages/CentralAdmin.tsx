@@ -31,6 +31,7 @@ import {
   UserCheck,
   FolderTree,
   Send,
+  ChevronRight,
 } from "lucide-react";
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
@@ -267,6 +268,7 @@ const ENTITY_LABEL: Record<string, string> = {
 
 function OrgDetail({ orgId, onBack }: { orgId: string; onBack: () => void }) {
   const user = useCurrentUser();
+  const navigate = useNavigate();
   const { data: orgData } = useOrganizations("central");
   const orgName = orgData?.find((o) => o.id === orgId)?.name;
   const [stats, setStats] = useState<OrgStats | null>(null);
@@ -376,6 +378,32 @@ function OrgDetail({ orgId, onBack }: { orgId: string; onBack: () => void }) {
           </div>
         </div>
       )}
+
+      {/* Internal units (org_units) — point d'entrée vers /admin/units.
+          Corrige R49 : la page était montée (B.8) mais aucun lien n'y menait. */}
+      <button
+        type="button"
+        onClick={() => navigate(`/admin/units?org=${orgId}`)}
+        className="w-full flex items-center gap-3 p-4 rounded-xl mb-4 active:scale-95 transition-transform text-left"
+        style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
+        aria-label="Gérer les unités internes de cette organisation"
+      >
+        <div
+          className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+          style={{ backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)" }}
+        >
+          <FolderTree className="w-5 h-5" style={{ color: "var(--accent-primary)" }} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-text-primary text-sm font-semibold">
+            Unités internes
+          </p>
+          <p className="text-text-tertiary text-xs mt-0.5">
+            Groupes, services, branches et départements de cette organisation
+          </p>
+        </div>
+        <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: "var(--text-tertiary)" }} />
+      </button>
 
       {/* Admin list */}
       <div

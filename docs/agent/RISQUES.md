@@ -772,12 +772,28 @@
   logo_url TEXT`, ajout de la colonne aux 3 streams `org_*`, déploiement
   Cloud, puis écriture client. Estimé : 1 h 30.
 
-### R49 — Phase 7 : personnalisation des annexes (`org_units`) non couverte
+### R49 — Personnalisation / gestion des annexes (`org_units`) — CORRIGÉ (R49.b, 2026-10-29)
 - **Gravité** : faible.
-- **Défaut** : la demande « personnalisation de l'organisation **et de ses
-  annexes** » n'est satisfaite que pour l'organisation. Les annexes
-  (`org_units`) n'ont pas d'écran de personnalisation dédié.
-- **Travail restant** : estimé 1 h (formulaire + écriture `org_units`).
+- **Défaut initial** : la demande « personnalisation de l'organisation **et de ses
+  annexes** » n'était satisfaite que pour l'organisation ; les annexes
+  (`org_units`) n'avaient pas d'écran dédié.
+- **Constat (R49.b)** : l'écran `OrgUnits.tsx` **existait déjà** (création /
+  suppression d'unités via les capabilities `organization.addOrgUnit` /
+  `removeOrgUnit`, lecture `federation.getOrgUnits`), et la route `/admin/units`
+  était **montée** (fix B.8). Le défaut réel, et non documenté, était que la
+  page était **inatteignable** : aucun lien de navigation n'y menait
+  (« route montée mais orpheline »).
+- **Correctif** : point d'entrée ajouté dans le détail d'organisation
+  (`CentralAdmin.tsx` → `OrgDetail`, bouton « Unités internes » →
+  `/admin/units?org=<id>`).
+- **Constat annexe (même classe)** : `/admin/roles` (`OrgRoles.tsx`, accès &
+  rôles de l'org active) était **aussi orphelin** → point d'entrée ajouté dans
+  Réglages → Organisation (« Accès & rôles »).
+- **Garde** : `src/lib/__tests__/route-reachability-guard.test.ts` (3 tests) —
+  toute route montée doit avoir un lien entrant, ou figurer dans une
+  `UNREACHABLE_ALLOWLIST` justifiée (redirect rétro-compat, lien profond public,
+  retour OAuth). Non-vacuité prouvée par mutation (retrait des 2 liens → échec
+  nommant `/admin/roles` et `/admin/units`).
 
 ### R50 — Faux positif écarté : la RLS inter-tenant de `profiles` tient — VÉRIFIÉ
 - **Gravité** : information (aucun défaut).
