@@ -120,6 +120,26 @@
   (les assouplir rouvrirait R52.q et ferait passer un test en l'affaiblissant).
   Interdit respecté : `powersync/service.yaml` et `powersync/sync-config.yaml`
   non touchés. Receipt : `phase-11/2026-10-29-cypress-sync-auth-blocker.md`.
+- **Preuve décisive (2026-10-29)** : `POST /sync/stream` avec un JWT
+  utilisateur réel (`aud: "authenticated"`, ES256, `kid=e6d0da61-…`) →
+  **401 `PSYNC_S2105`** ; contre-épreuves : corps invalide + jeton bidon →
+  `400 FST_ERR_CTP_INVALID_JSON_BODY` (le parseur répond **avant** l'auth — un
+  400 ne prouve rien) ; jeton legacy HS256 → `401 PSYNC_S2101` (clé absente).
+- **Mécanisme exact** : le collecteur JWKS explicite (`client_auth.jwks_uri`)
+  n'a pas de `requiresAudience` → `KeyStore.verifyJwt` retombe sur
+  `client_auth.audience` (= `additional_audiences`) ; le collecteur Supabase
+  auto-dérivé (qui porte `requiresAudience: ["authenticated"]`) est **masqué**
+  par le collecteur explicite (même URL, même `kid`).
+- **Correctif prêt (dépôt, forme exacte)** : `powersync/service.yaml` →
+  `client_auth.additional_audiences: ["authenticated"]`. Après
+  `powersync deploy service-config`, `POST /sync/stream` doit répondre **200**.
+- **Filet produit appliqué par l'agent (ne dépend pas du déploiement)** : au-delà
+  de 30 s sans réplique, l'app affiche « Synchronisation indisponible… » +
+  « Réessayer » (`SyncUnavailableBanner`) au lieu d'un squelette **perpétuel**
+  muet (R132). Les gardes R52 sont **conservées**. Prouvé en local (bannière
+  visible en 45 s sur l'instance cassée).
+- **Convergence** : l'agent local et 2 agents Cloud ont isolé la même cause.
+
 - **Défaut jumeau (R133, non corrigé — dépend de E5)** : dans
   `comprehensive-flow.cy.ts`, l'`id` dérivé de l'URL après création vaut `"new"`
   (`/transaction/new` satisfait `should('include', '/transaction/')`), donc le

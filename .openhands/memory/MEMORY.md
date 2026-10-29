@@ -1,8 +1,13 @@
 # Mémoire projet — Lumina
 
 ## Environnement d'agent (contraintes lourdes, vérifiées)
-- **Cypress ne tourne PAS en local** : binaire non installable (pas d'écran X,
-  téléchargement bloqué). Toute validation E2E passe par la **CI**.
+- **Cypress TOURNE en local** (vérifié 2026-10-28) : binaire 16.0.0 présent,
+  il manque seulement **Xvfb** → `sudo apt-get update && sudo apt-get install
+  -y xvfb`, puis
+  `xvfb-run -a node node_modules/cypress/bin/cypress run --spec cypress/e2e/<S>.cy.ts --browser electron --config video=false`
+  avec `CYPRESS_BASE_URL=http://localhost:8080`. `pnpm` absent du PATH → lancer
+  Vite via `node node_modules/vite/bin/vite.js` (le shim `.bin/vite` est un
+  script shell, pas du JS). Reproduire un échec CI en local est donc possible.
 - **Accès DB possible** : Docker **est** installé (`sudo dockerd &` +
   `chmod 666 /var/run/docker.sock`) ; la chaîne Postgres passe par le **pooler**
   `aws-0-eu-west-2.pooler.supabase.com:5432` (l'hôte direct `db.<ref>…` **ne
@@ -12,6 +17,11 @@
   `powersync deploy sync-config` **fonctionne** (E1 close le 2026-10-27).
 - **`npx tsc --noEmit` à la racine ne vérifie RIEN** (tsconfig `"files": []`,
   sort toujours 0). Utiliser **`npx tsc -b`**.
+- **Délégation parallèle** : API Cloud `POST
+  https://app.all-hands.dev/api/v1/app-conversations` (`Authorization: Bearer
+  $OPENHANDS_API_KEY`) → renvoie un *start-task* ; poller
+  `/app-conversations/start-tasks?ids=<id>` pour l'`app_conversation_id`.
+  Aucun backend Agent Canvas local (localhost:8001 → HTTP 000).
 
 ## PowerSync (instance prod 6a9dd96302481fb31b945823)
 - **Déployable depuis ce conteneur** : jeton admin dans `~/.ps-secrets`

@@ -3487,6 +3487,34 @@ partagée par les deux plateformes et couverte par 3 tests.
   `powersync/service.yaml` et `powersync/sync-config.yaml` **non touchés**.
 - **Receipt** : `docs/agent/receipts/phase-11/2026-10-29-cypress-sync-auth-blocker.md`.
 
+**Mise à jour 2026-10-29 (R129 — mécanisme + filet produit)**
+- **Mécanisme exact (code du service)** : le collecteur JWKS **explicite**
+  (`client_auth.jwks_uri`) n'a pas de `requiresAudience` ; `KeyStore.verifyJwt`
+  retombe alors sur `defaultAudiences = client_auth.audience`
+  (`compound-config-collector.ts`). Le collecteur **Supabase auto-dérivé**
+  (hostname de réplication) porte, lui, `requiresAudience: ["authenticated"]`
+  (`StaticSupabaseKeyCollector`), mais le collecteur explicite (même URL, même
+  `kid`) le **masque** à la sélection de clé. Avec `additional_audiences: []`,
+  aucune audience n'est autorisée → rejet de chaque jeton.
+- **Correctif prêt (dépôt)** : `powersync/service.yaml` →
+  `client_auth.additional_audiences: ["authenticated"]` (cf. E5 pour le
+  déploiement).
+- **Filet produit « zéro écran muet » (livré, ne dépend pas du déploiement)** :
+  la cause racine explique pourquoi les gardes R52 produisaient un squelette
+  **perpétuel** (muet, sans issue). Correctif borné :
+  1. `dataLayer` : `markPowerSyncUnavailable` / `subscribePowerSyncUnavailable` /
+     `useReplicaUnavailable` + **borne de disponibilité** (30 s) dans
+     `usePowerSyncStatus` ;
+  2. `SyncUnavailableBanner` (monté dans `App.tsx`) : au-delà de la borne,
+     affiche « Synchronisation indisponible… » + bouton « Réessayer », hors du
+     flux de route (les gardes R52 sont **conservées**).
+- **Preuve** : vitest **1647/1647** (+4 tests) ; crawler P0
+  `zero-black-screen.cy.ts` **64/64** ; bannière **prouvée en réel** (apparaît
+  en 45 s sur l'instance cassée) ; `tsc -b` = 0 ; eslint 0 erreur.
+- **Convergence** : 2 agents Cloud + l'agent local ont isolé la même cause
+  (PRs #116 mergée, #117 ouverte).
+- **Receipt** : `docs/agent/receipts/phase-12/2026-10-29-powersync-audience-p0.md`.
+
 ### R133 — `comprehensive-flow` dérive l'id `"new"` de l'URL après création — ⛔ BLOQUÉ (dépend de E5) le 2026-10-29
 
 - **Défaut** : dans `cypress/e2e/comprehensive-flow.cy.ts`, après

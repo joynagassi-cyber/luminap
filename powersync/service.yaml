@@ -37,10 +37,23 @@ replication:
 # L'authentification passe par le JWKS public du projet (clés asymétriques) —
 # pas par le secret JWT legacy, qui n'existe pas dans le vault de cette
 # instance. Conforme à `powersync pull instance`.
+#
+# ⚠️ P0 — `additional_audiences` DOIT contenir "authenticated".
+# Supabase impose `aud: "authenticated"` dans l'`aud` de TOUT jeton
+# utilisateur. Or le collecteur JWKS explicite (`jwks_uri`) est enregistré
+# SANS `requiresAudience` : il retombe donc sur `jwt_audiences`
+# (= `additional_audiences`). Avec `[]`, la validation échoue sur CHAQUE
+# jeton (`401 PSYNC_S2105 — Unexpected "aud" claim value: "authenticated"`) →
+# PowerSync ne devient jamais `connected` → toutes les pages restent sur leur
+# squelette de chargement (écran muet, P0). Le collecteur Supabase
+# auto-dérivé (hostname de réplication) porte bien `requiresAudience:
+# ["authenticated"]` ; on aligne donc l'audience explicite sur la même valeur.
+# Preuve : `POST /sync/stream` avec un JWT utilisateur réel → 401 avant,
+# 200 après déploiement.
 client_auth:
   supabase: true
   jwks_uri: https://hhgovvrnalibhgpakswi.supabase.co/auth/v1/.well-known/jwks.json
   jwks:
     keys: []
-  additional_audiences: []
+  additional_audiences: ["authenticated"]
   allow_temporary_tokens: true
