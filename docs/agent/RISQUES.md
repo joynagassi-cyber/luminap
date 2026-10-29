@@ -66,15 +66,25 @@
   (`PASTEUR_PRINCIPAL`) crée toujours (INSERT accepté) et un membre lit
   toujours (`GET` → 200).
 
-### R16 — `profiles.role` et `org_memberships.role` divergent — OUVERT
-- **Défaut** : pour le compte de test, `profiles.role = 'MEMBRE'` mais
-  `org_memberships.role = 'PASTEUR_PRINCIPAL'` pour la même organisation. Deux
-  sources de vérité du rôle coexistent et peuvent se contredire.
+### R16 — `profiles.role` et `org_memberships.role` divergent — OUVERT (risque de modèle)
+- **Défaut** : deux sources de vérité du rôle coexistent — `profiles.role`
+  (profil global) et `org_memberships.role` (rôle dans une organisation) — sans
+  trigger de synchronisation. Elles **peuvent** se contredire.
 - **Impact** : un gate qui ne lirait qu'une des deux tables accorderait ou
-  refuserait à tort. Le correctif R15 lit les deux pour être sûr ; mais la
-  divergence reste un **risque de modèle** (rôle affiché ≠ rôle effectif).
+  refuserait à tort. Le correctif R15 lit les deux pour être sûr ; la divergence
+  reste un **risque de modèle** (rôle affiché ≠ rôle effectif).
+- **Mesure 2026-10-29 (post-purge)** : sur les 2 comptes restants, les deux
+  colonnes sont **cohérentes** (`PASTEUR_PRINCIPAL` = `PASTEUR_PRINCIPAL`). La
+  divergence concrète observée en R16 n'existe donc **plus dans les données**
+  actuelles (elle concernait des profils de test depuis purgés) ; le risque
+  **structurel** (2 colonnes, 0 trigger de sync) demeure.
+- **Ce qui existe déjà** : gardes d'immuabilité/escalade sur `profiles.role`
+  (`guard_profile_role_immutable`, `guard_profile_role_insert` — R15/R91) et
+  `trg_guard_profile_org` (org immuable). Aucun trigger ne propage
+  `profiles.role` → `org_memberships.role` (ni l'inverse).
 - **Décision conservatrice** : ne pas « réparer » les données (risque
-  d'aggraver), documenter et faire trancher le propriétaire.
+  d'aggraver), documenter et faire trancher le propriétaire (choix d'une source
+  de vérité unique, ou ajout d'un trigger de propagation).
 - **Statut** : ouvert, à trancher (voir DECISIONS.md et RAPPORT_FINAL.md).
 
 
