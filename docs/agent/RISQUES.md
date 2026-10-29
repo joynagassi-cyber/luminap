@@ -2973,6 +2973,36 @@ sauvegarde disponible).
   `V: role-model-drift.test.ts` (4) verrouillent TS ↔ DB et échouent si un rôle
   est ajouté/retiré sans mise à jour explicite ; `ADMIN` doit rester hors canon
   et sans permissions tant que R109 n'est pas tranché.
+- **Extension mesurée (2026-10-29) — SECOND orphelin : `CENTRAL_ADMIN`** :
+  le littéral `CENTRAL_ADMIN` est testé par l'UI dans **10 occurrences /
+  7 fichiers** (`CentralAdmin.tsx:91`, `TopHeader.tsx:24`,
+  `SettingsGestion.tsx:107`, `SettingsProfile.tsx:27`,
+  `SettingsPersonalisation.tsx:12`, `capabilities/organization/central.ts:56`,
+  `capabilities/federation/index.ts:107,245`) — tous sous la forme
+  `user?.role === "CENTRAL_ADMIN"`. Or `CENTRAL_ADMIN` est :
+  - **absent** du type canon `Role` (`src/types/index.ts:21`, 14 rôles) ;
+  - **absent** de `role_permissions` en base (mesure : 14 rôles distincts,
+    0 `CENTRAL_ADMIN`) ;
+  - **absent** de **toute politique RLS** (mesure `pg_policies` : 0 ligne
+    citant `CENTRAL_ADMIN`).
+  Ces 10 tests sont donc **toujours faux** aujourd'hui (aucun compte ne porte
+  ce rôle) — code mort latent. Le type `CurrentUser.role` étant `string`
+  (`dataLayer.ts:44`), l'expression compile sans que TS ne signale l'orphelin.
+- **Mécanisme RÉEL d'admin central (mesuré)** : c'est le **grant
+  `org_admins`**, pas un rôle. `create_org` (`supabase/functions/create_org/
+  index.ts:85-97`) **gate** l'appelant sur un grant `org_admins` ACTIF
+  (`admin_profile_id = user.id`, `status = ACTIVE`) puis insère un grant pour
+  le créateur. Les politiques RLS qui gouvernent `org_admins` sont bien celles
+  qui citent le littéral `'ADMIN'` (cf. supra) — c'est-à-dire que la « voie
+  admin central » existe **en base** (via grants + politiques `'ADMIN'`), mais
+  est **invisible du modèle TS**.
+- **Conséquence pour la décision (a) vs (b)** : les données montrent que la
+  voie (b) — « admin central = rôle » — serait en réalité à créer de zéro
+  (ni `ADMIN` ni `CENTRAL_ADMIN` n'ont de permissions, et `CENTRAL_ADMIN` n'a
+  même pas d'existence en base), tandis que la voie (a) — « admin central =
+  grants `org_admins` » — correspond au mécanisme **déjà fonctionnel**
+  (`create_org`). La décision reste **propriétaire** (D-S10-1) : je ne
+  modifie ni le type `Role`, ni `PERMISSION_MATRIX`, ni les politiques RLS.
 - **Statut** : ouvert, documenté, gardé (à trancher — voir DECISIONS.md).
 
 ### R111 — Le parcours « réclamer une invitation » ne pouvait PAS aboutir (FK `auth.users`) — CORRIGÉ (2026-10-26)
