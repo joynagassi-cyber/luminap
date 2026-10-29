@@ -602,16 +602,28 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
 - **14 rôles** en DONNÉES (`role_permissions`, 149 lignes, **27 permissions
   distinctes**), pas un enum : colonne `role` = TEXT **sans CHECK**. Ordre :
   PASTEUR_PRINCIPAL(27) > TREASURIER(23) > ANCIEN(19) > … > MEMBRE(2).
-- **Deux sources alignées** : `PERMISSION_MATRIX` (`src/lib/rbac.ts`, union TS
-  figée 14 rôles) ↔ `role_permissions`. Seul écart `ADMIN`/`CENTRAL_ADMIN`
-  (R109, hors canon, décision propriétaire en attente).
-- **R137 (HAUTE, OUVERT)** : `has_permission()` existe en base mais **0/30**
-  politiques d'écriture ne l'appellent (1 seule l'utilise, en LECTURE :
-  `role_permissions_read`). Tout repose sur `is_org_member` seul → un `MEMBRE`
-  peut INSERT/UPDATE/DELETE une transaction au niveau base (l'UI masque via
-  `PERMISSION_MATRIX`, mais REST/PostgREST direct passe). Même classe que R49
-  (« garde déclarée, jamais câblée »). Correctif = câbler `has_permission` dans
-  ~30 politiques ; chantier P2 non fait (conservateur, PR #152 documente).
+- **15 rôles canoniques depuis le 2026-10-29** : `ADMIN` a été **AJOUTÉ** au
+  modèle canon (R109 **TRANCHÉ**, PR #154) — super-admin, **28 permissions**
+  (union des 14 rôles), `ROLE_HIERARCHY.ADMIN = 999`. `role_permissions` =
+  **177 lignes / 15 rôles**. Seul orphelin restant : `CENTRAL_ADMIN` (D-S10-3).
+- **R137 CORRIGÉ (PR #154)** : `has_permission` était appelée par **0/30**
+  politiques d'écriture (1 seule, en LECTURE) → un `MEMBRE` pouvait écrire au
+  niveau base via REST. **15 politiques** d'écriture câblées sur
+  `is_org_member AND has_permission` (transactions, versements, members, events,
+  groups). `documents`/`accounts` laissées en `is_org_member` seul (R137.a :
+  aucune permission `document:*`/`account:*`). **La RLS ne couvre PAS la voie
+  PowerSync** (`powersync_role` a `BYPASSRLS`) — correctif = voie REST directe.
+- **R139 CORRIGÉ (PR #154)** : `invitations.target_role` n'avait aucun trigger →
+  escalade vers `ADMIN`. Garde à 2 barrières : (1) trigger
+  `guard_invitation_target_role` ; (2) garde dans `settle_invitation_claim`
+  (`REJECTED_ROLE_ESCALATION`). Statut ajouté à `invitation_claims_status_check`.
+- **PIÈGE MAJEUR (mesuré 2×)** : dans une fonction `SECURITY DEFINER`,
+  `current_user` = le **propriétaire**, PAS le client. Une garde
+  `current_user IN ('authenticated','anon')` est **silencieusement inopérante**.
+  Toujours lire l'acteur réel via **`initplan_uid()`** (JWT). `initplan_uid()`
+  lit `request.jwt.claims->>'sub'` ; pour tester en SQL :
+  `select set_config('request.jwt.claims','{"sub":"<uuid>","role":"authenticated"}',false); set role authenticated;`
+  (les blocs `DO $$ … raise exception …$$` annulent la transaction → 0 résidu).
 - **Assignation** : `/admin/roles` (`OrgRoles.tsx`) → `assignMemberRole` écrit
   `org_memberships` (RLS `om_update` = `is_org_admin`) ; capacités →
   `grantCapability` sur `grants` (org-scopée, **0 ligne**). `profiles.role`
