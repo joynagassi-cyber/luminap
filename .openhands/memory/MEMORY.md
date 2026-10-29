@@ -261,6 +261,19 @@ la garde `import.meta.env.DEV` et n'est écrite nulle part ailleurs.
   `RouteOutcome` doit avoir un `case` rendu. Preuve : ajouter un champ fictif fait
   échouer le test. Méthode de détection : pour chaque garde, vérifier que la
   condition peut réellement devenir vraie, et que le déclencheur est alimenté.
+- **Variantes « routage » (R49.b/R49.c, 2026-10-29, PR #147/#148)** :
+  1. **route montée mais orpheline** — page + route OK, **aucun lien** n'y mène
+     (`/admin/units`, `/admin/roles`). Fix : point d'entrée UI.
+  2. **lien cassé** (P0 écran noir) — `navigate()` vers une route **inexistante**
+     (`TransactionEdit` → `/transactions`, jamais montée ; le grand livre est
+     `/finance`).
+  **Garde** `src/lib/__tests__/route-reachability-guard.test.ts` (5) : sens 1
+  (chaque route montée a un lien entrant) + sens 2 (chaque cible correspond à
+  une route montée). **PIÈGE** : le catch-all `path="*"` valide toute cible →
+  garde vacuе ; **exclure `*`**. Couvrir toutes les sources de cible :
+  `navigate("…")`, `to=`/`href=`/`defaultHref=`, **`to:`/`href:` d'objet**,
+  **`route:` (`features.ts`)**, **`navigate(cond ? "/a" : "/b")`**. Normaliser
+  `:param` → préfixe et retirer `?query`/`#hash`.
 
 ## Gardes de test « sans identifiants » (pattern réutilisable)
 - `docs/agent/rls-inventory.json` + `src/lib/__tests__/rls-inventory.test.ts` :
