@@ -3685,3 +3685,35 @@ partagée par les deux plateformes et couverte par 3 tests.
 - **Nature** : fragilité de **spec** (pas un défaut produit).
 - **Repli** : non corrigé (atteignable seulement après E5 ; hors du correctif
   minimal). À traiter après E5.
+
+### R134 — « Filet qui ne garde rien » : gardes statiques vacuelles (boucle vide) — ✅ CORRIGÉ le 2026-10-29
+
+- **Classe** : « filet déclaré, jamais déclenché » (7e occurrence après
+  R105/R106/R107/R108/R113/R116) — variante **vacuité** : une garde statique
+  itère un répertoire/registre et compare deux ensembles ; si l'extraction
+  casse (répertoire renommé, regex cassée, filtre d'extension trop strict),
+  **les deux ensembles deviennent vides** et l'assertion `expect(x).toEqual([])`
+  passe — la garde est **verte sans rien vérifier**.
+- **Défaut mesuré (2 gardes)** :
+  1. `src/lib/__tests__/route-registry-drift.test.ts` — garde **P0 « zéro écran
+     noir »** : `registeredPaths()` lit `src/ionic/routes/*.tsx`. Si ce
+     répertoire change de nom ou si le motif `path="…"` évolue, `registered`
+     devient vide et `missing`/`drift` aussi → **la garde qui protège le P0
+     passerait au vert sans couvrir aucune route**.
+  2. `src/lib/__tests__/no-cjk-strings.test.ts` (R121) — si `walk(SRC)` renvoie
+     une liste vide, aucun fichier n'est scanné et le test passe.
+- **Correctif** : assertions de **non-vacuité** ajoutées (exigent un volume
+  plausible avant la comparaison) :
+  - route-registry : `registered.size > 50` et `ROUTE_REGISTRY.length > 50`
+    (mesuré : 65 routes montées, 67 entrées de registre) ;
+  - no-cjk : `files.length > 100` (mesuré : plusieurs centaines de fichiers
+    `src/**/*.ts(x)`).
+- **Preuve** : `vitest run route-registry-drift no-cjk-strings` → **6 passed**
+  (inchangés fonctionnellement) ; la non-vacuité **échouerait** si l'extraction
+  cassait (seuil > volume réel observé).
+- **Portée du balayage** : les autres gardes statiques qui itèrent un répertoire
+  portent déjà une assertion de non-vacuité (vérifié : `responsive-container`,
+  `screen-states`, `coverage-matrix`, `revoke-trigger-functions`,
+  `member-deletion`, `jsonb-inventory`, `settle-claim-rpc-hardening` comparent à
+  des inventaires/constantes non vides ou portent un `toBeGreaterThan`).
+- **Statut** : corrigé, gardé.
