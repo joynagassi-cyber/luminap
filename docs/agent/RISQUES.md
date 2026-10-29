@@ -3878,3 +3878,64 @@ partagée par les deux plateformes et couverte par 3 tests.
   `git log -S`). Correction apportée inline à l'entrée R85 + garde **R136**.
 - Le résidu réel de R85 reste **environnemental** (worker WASM PowerSync non
   fiable en headless) : aucun test headless ne peut vider la file. Inchangé.
+
+### R137 — L'autorisation d'ÉCRITURE n'est pas appliquée en base : toute politique repose sur `is_org_member` seul — OUVERT (gravité HAUTE)
+- **Gravité** : HAUTE (contrôle d'accès ; écart sécurité ↔ modèle RBAC).
+- **Défaut** : `has_permission(uid, org, resource, action)` **existe** en base
+  (migration `20261026000002`) et lit `role_permissions`, mais **AUCUNE politique
+  RLS ne l'appelle pour les écritures**. Mesure (2026-10-29, `pg_policies`,
+  project `hhgovvrnalibhgpakswi`) :
+  - politiques utilisant `has_permission` : **1 seule**, et c'est une lecture
+    (`role_permissions_read` sur `public.role_permissions`) ;
+  - `transactions` : INSERT/UPDATE/DELETE = `is_org_member(initplan_uid(), org_id)`
+    **seul** — aucun contrôle de permission ;
+  - **0 / 30** politiques d'écriture des tables sensibles (`transactions`,
+    `versements`, `members`, `events`, `groups`, `documents`, `accounts`,
+    `profiles`) ne vérifie une permission ;
+  - aucun **trigger** ne compense sur `transactions` (0 trigger non-interne).
+- **Conséquence mesurable** : un utilisateur au rôle **`MEMBRE`**
+  (`role_permissions` = `event:read`, `transaction:read` uniquement) peut, au
+  niveau **base**, `INSERT`/`UPDATE`/`DELETE` une transaction de son
+  organisation — la RLS l'y autorise. Seuls les rôles `is_org_admin`
+  (`org_memberships` : admin-only) et `can_manage_invitations`
+  (`invitations` : PASTEUR_PRINCIPAL/ANCIEN/TREASURIER) sont réellement
+  contraints.
+- **Nuance honnête (limite de la mesure)** : le chemin d'écriture de l'app est
+  PowerSync `executeWrite`, filtré côté client par `PERMISSION_MATRIX` ; l'UI
+  masque les actions interdites (`useCanAccessMulti`, `security.hasPermission`).
+  Le trou est donc **côté serveur** : il ne se voit pas via l'UI, mais est
+  atteignable par tout client `authenticated` (clé anon publique + jeton) qui
+  écrit directement en REST/PostgREST — c'est-à-dire un utilisateur légitime
+  malveillant ou un script.
+- **Preuve de l'écart** : `receipts/phase-04/2026-10-26-rbac.md` documente déjà
+  que « `has_permission` est livrée **comme primitive** ; les politiques RLS
+  existantes n'ont **pas** été réécrites (elles reposent sur `is_org_member`) ».
+  La primitive a été livrée, mais **jamais câblée** — même classe de défaut que
+  R49 (filet déclaré, jamais câblé).
+- **Action proposée (P2, chantier à haut risque)** : réécrire les politiques
+  d'écriture des tables sensibles sur
+  `is_org_member(uid, org) AND has_permission(uid, org, <res>, <act>)`.
+  Vérifiable par requêtes `pg_policies` + tests REST avec un jeton `MEMBRE`
+  (attendu : 403/0 ligne). Ne pas fusionner sans décision propriétaire
+  (impact : toute écriture légitime passe par `role_permissions`, dont le
+  contenu est aligné sur `PERMISSION_MATRIX` — 27 permissions distinctes).
+- **Statut** : OUVERT, mesuré, non corrigé (conservateur : refonte de ~30
+  politiques, non justifiée sans validation).
+
+### R138 — Le cron de sauvegarde était passé de QUOTIDIEN à HEBDOMADAIRE — ✅ CORRIGÉ le 2026-10-29
+- **Défaut** : `backup.yml` a été créé avec `cron: '0 3 * * *'` (quotidien),
+  puis modifié en `cron: '0 3 * * 0'` (dimanche seulement) au commit `3a22b5b`
+  (`fix(sync): R89.b`). Or le RUNBOOK et le propriétaire attendent une
+  sauvegarde **quotidienne**.
+- **Preuve mesurée (2026-10-29)** : historique des runs `backup.yml` →
+  runs **planifiés** les 25, 26, 27/10 uniquement ; aucun run planifié depuis
+  (les runs #5-#7 sont manuels `workflow_dispatch`). Ligne 22 du workflow :
+  `cron: '0 3 * * 0'`.
+- **Conséquence** : la RPO (perte de données maximale) est de **7 jours**, pas
+  1 jour — contraire à l'attente. Les sauvegardes fonctionnent par ailleurs
+  (artefact chiffré de 3,9 Mo publié, run #7 du 2026-10-29).
+- **Correctif** : `cron: '0 3 * * *'` rétabli (`.github/workflows/backup.yml`),
+  sur consigne explicite du propriétaire du 2026-10-29 (« chaque jour une
+  sauvegarde sera créée »). Le RUNBOOK est aligné (section « Sauvegardes »).
+- **Statut** : corrigé le 2026-10-29 ; à confirmer par le prochain run planifié
+  (la cadence quotidienne se vérifie sur plusieurs jours).

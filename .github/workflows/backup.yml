@@ -19,7 +19,7 @@ name: Sauvegarde Supabase (export logique)
 
 on:
   schedule:
-    - cron: '0 3 * * 0' # hebdomadaire, dimanche 03:00 UTC
+    - cron: '0 3 * * *' # QUOTIDIEN 03:00 UTC (R138 : était passé à hebdomadaire)
   workflow_dispatch:
 
 permissions:
