@@ -1,7 +1,7 @@
-import { Storage } from "@capacitor/storage";
+import { Preferences } from "@capacitor/preferences";
 
 /**
- * StorageAdapter — wraps Capacitor Storage plugin with a clean typed interface.
+ * StorageAdapter — wraps the Capacitor Preferences plugin with a clean typed interface.
  *
  * Provides key/value persistence that works across web and native platforms.
  * All values are serialized to JSON strings before storage.
@@ -11,7 +11,7 @@ export class StorageAdapter {
   private static instance: StorageAdapter | null = null;
   private group: string;
   /** Set by tests to force capacitor env detection. */
-  static __mockStorage: typeof Storage | null = null;
+  static __mockStorage: typeof Preferences | null = null;
 
   private constructor(group = "app") {
     this.group = group;
@@ -28,7 +28,7 @@ export class StorageAdapter {
   async get<T>(key: string): Promise<T | null> {
     if (this.isCapacitorEnv()) {
       try {
-        const result = await Storage.get({ key });
+        const result = await Preferences.get({ key });
         if (result.value === null) return null;
         return this.parseJson<T>(result.value);
       } catch {
@@ -42,7 +42,7 @@ export class StorageAdapter {
   async set<T>(key: string, value: T): Promise<void> {
     if (this.isCapacitorEnv()) {
       try {
-        await Storage.set({ key, value: this.stringify(value) });
+        await Preferences.set({ key, value: this.stringify(value) });
         return;
       } catch {
         // fall through to localStorage
@@ -55,7 +55,7 @@ export class StorageAdapter {
   async remove(key: string): Promise<void> {
     if (this.isCapacitorEnv()) {
       try {
-        await Storage.remove({ key });
+        await Preferences.remove({ key });
         return;
       } catch {
         // fall through to localStorage
@@ -68,7 +68,7 @@ export class StorageAdapter {
   async clear(): Promise<void> {
     if (this.isCapacitorEnv()) {
       try {
-        await Storage.clear();
+        await Preferences.clear();
         return;
       } catch {
         // fall through to localStorage
@@ -81,7 +81,7 @@ export class StorageAdapter {
   async keys(): Promise<string[]> {
     if (this.isCapacitorEnv()) {
       try {
-        const result = await Storage.keys();
+        const result = await Preferences.keys();
         return result.keys;
       } catch {
         return this.getLocalStorageKeys();
@@ -94,7 +94,7 @@ export class StorageAdapter {
    * Inject a fake Storage plugin for testing.
    * Must be called BEFORE getInstance() to take effect.
    */
-  static injectMockPlugin(mockPlugin: typeof Storage): void {
+  static injectMockPlugin(mockPlugin: typeof Preferences): void {
     StorageAdapter.__mockStorage = mockPlugin;
     // Reset instance so new group parameter takes effect
     StorageAdapter.instance = null;

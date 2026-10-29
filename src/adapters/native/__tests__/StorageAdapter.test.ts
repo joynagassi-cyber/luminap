@@ -15,8 +15,8 @@ const { mockStoragePlugin } = vi.hoisted(() => ({
   } as any,
 }));
 
-vi.mock("@capacitor/storage", () => ({
-  Storage: mockStoragePlugin,
+vi.mock("@capacitor/preferences", () => ({
+  Preferences: mockStoragePlugin,
 }));
 
 // Stub window for node environment

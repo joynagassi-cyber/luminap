@@ -12,29 +12,26 @@ importers:
   .:
     dependencies:
       '@capacitor/app':
-        specifier: ^6.0.3
-        version: 6.0.3(@capacitor/core@6.2.2)
+        specifier: ^7.1.2
+        version: 7.1.2(@capacitor/core@7.6.9)
       '@capacitor/browser':
-        specifier: 6.0.6
-        version: 6.0.6(@capacitor/core@6.2.2)
+        specifier: ^7.0.5
+        version: 7.0.5(@capacitor/core@7.6.9)
       '@capacitor/camera':
-        specifier: ^6.1.0
-        version: 6.1.0(@capacitor/core@6.2.2)
+        specifier: ^7.0.5
+        version: 7.0.5(@capacitor/core@7.6.9)
       '@capacitor/keyboard':
-        specifier: 6.0.4
-        version: 6.0.4(@capacitor/core@6.2.2)
+        specifier: ^7.0.6
+        version: 7.0.6(@capacitor/core@7.6.9)
       '@capacitor/network':
-        specifier: ^6.0.4
-        version: 6.0.4(@capacitor/core@6.2.2)
+        specifier: ^7.0.4
+        version: 7.0.4(@capacitor/core@7.6.9)
       '@capacitor/preferences':
-        specifier: ^6.0.2
-        version: 6.0.4(@capacitor/core@6.2.2)
+        specifier: ^7.0.4
+        version: 7.0.4(@capacitor/core@7.6.9)
       '@capacitor/push-notifications':
-        specifier: ^6.0.5
-        version: 6.0.5(@capacitor/core@6.2.2)
-      '@capacitor/storage':
-        specifier: ^1.2.5
-        version: 1.2.5(@capacitor/core@6.2.2)
+        specifier: ^7.0.7
+        version: 7.0.7(@capacitor/core@7.6.9)
       '@hookform/resolvers':
         specifier: ^3.10.0
         version: 3.10.0(react-hook-form@7.87.0(react@19.2.8))
@@ -199,7 +196,7 @@ importers:
         version: 0.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       nitro:
         specifier: 3.0.260610-beta
-        version: 3.0.260610-beta(@capacitor/preferences@6.0.4(@capacitor/core@6.2.2))(dotenv@16.6.1)(jiti@2.7.0)(lru-cache@11.5.2)(rollup@4.63.1)(vite@8.2.2(@types/node@22.14.1)(esbuild@0.27.7)(jiti@2.7.0)(yaml@2.7.1))(xml2js@0.6.2)
+        version: 3.0.260610-beta(@capacitor/preferences@7.0.4(@capacitor/core@7.6.9))(dotenv@16.6.1)(jiti@2.7.0)(lru-cache@11.5.2)(rollup@4.63.1)(vite@8.2.2(@types/node@22.14.1)(esbuild@0.27.7)(jiti@2.7.0)(yaml@2.7.1))(xml2js@0.6.2)
       pdfjs-dist:
         specifier: 6.3.289
         version: 6.3.289
@@ -256,14 +253,14 @@ importers:
         version: 5.0.15(@types/react@19.2.8)(react@19.2.8)(use-sync-external-store@1.7.0(react@19.2.8))
     devDependencies:
       '@capacitor/android':
-        specifier: ^6.2.2
-        version: 6.2.2(@capacitor/core@6.2.2)
+        specifier: ^7.6.9
+        version: 7.6.9(@capacitor/core@7.6.9)
       '@capacitor/cli':
-        specifier: ^8.5.2
-        version: 8.5.2(supports-color@8.1.1)
+        specifier: ^7.6.9
+        version: 7.6.9(supports-color@8.1.1)
       '@capacitor/core':
-        specifier: ^6.2.2
-        version: 6.2.2
+        specifier: ^7.6.9
+        version: 7.6.9
       '@dyad-sh/react-vite-component-tagger':
         specifier: ^0.9.0
         version: 0.9.0(vite@8.2.2(@types/node@22.14.1)(esbuild@0.27.7)(jiti@2.7.0)(yaml@2.7.1))
@@ -460,59 +457,53 @@ packages:
     resolution: {integrity: sha512-ctxtJ/eA+t+6q2++vj5j7FYX3nRu311q1wfYH3xjlLOsczhlhxAg2FWNUXhpGvAw3BWo1xBcvOV6/YLc2r5FJw==}
     hasBin: true
 
-  '@capacitor/android@6.2.2':
-    resolution: {integrity: sha512-JjIu1ryNE16PQTp51rb4NEygxP7cSCDMmUqx4f5f12xscKdGKTjO9bkEP3TroLnTa/J6p2QopIhRbrd3E/7DrA==}
+  '@capacitor/android@7.6.9':
+    resolution: {integrity: sha512-jvfU42aOuj92/KJqRscfDm+5612WzJainFL09xjJgD9oI3OMXN4PBfccn8Ig9i8x7bkVqZv/XNwFshiIRqmggg==}
     peerDependencies:
-      '@capacitor/core': ^6.2.0
+      '@capacitor/core': ^7.6.0
 
-  '@capacitor/app@6.0.3':
-    resolution: {integrity: sha512-4gFUCbcVz0N/YYN32OBFerocWXslIv3Nc90gDiRsBkJc0plwK6kIUT6PKa5WtW2kfhteUeCVXQbvArH2fH+0Ug==}
+  '@capacitor/app@7.1.2':
+    resolution: {integrity: sha512-d4I/oF/PRu4megL7/IGKYfe5j7yzSON1FRFgq6kH+m5kH6g7V+wyjHRLauCzGNjdRx4S+nWOumINds0qcRBtKg==}
     peerDependencies:
-      '@capacitor/core': ^6.0.0
+      '@capacitor/core': '>=7.0.0'
 
-  '@capacitor/browser@6.0.6':
-    resolution: {integrity: sha512-VHOPkMR+JqKz2mf5YncnnOWvFdVYFTTLnPW+JRcsP1LobXmA0gtchER35PQ7XXqXU16eeacrehX+XF+rC6wmQw==}
+  '@capacitor/browser@7.0.5':
+    resolution: {integrity: sha512-YF/kC1m1e6c81X/agtAnYItVlqiQ/nXLG+Q3QXNDuiMoRynqa3Guu8ZaV9kWvqQcHoE2w18xz7WGpPOuh+R1fA==}
     peerDependencies:
-      '@capacitor/core': ^6.0.0
+      '@capacitor/core': '>=7.0.0'
 
-  '@capacitor/camera@6.1.0':
-    resolution: {integrity: sha512-pRb8477MMsAbU1Jgro9xHEgTqv8vAZHGIZRx90DUDWX4guaVzqnvQSZxNtoDhYPBn1VjtpZ2DRG3pL87guH1Vw==}
+  '@capacitor/camera@7.0.5':
+    resolution: {integrity: sha512-+53f1xHq8on7O+ULXbgWp00ooWvn3fUkWxTP3p5zHi1nVriCxLbYnY0zTpZQqn52M96vclFKkoABbTVQ3x755w==}
     peerDependencies:
-      '@capacitor/core': ^6.0.0
+      '@capacitor/core': '>=7.0.0'
 
-  '@capacitor/cli@8.5.2':
-    resolution: {integrity: sha512-O2kpA5ZPJUAmliDCcmpMf8xnJwMezxlFPUrlyOAjbL3U9MFNY3l4ZpPI/UXwvyPmR8ETcVF9pFr+VdWq61rqTQ==}
-    engines: {node: '>=22.0.0'}
+  '@capacitor/cli@7.6.9':
+    resolution: {integrity: sha512-QBDEf38yBAFTJehbi5FvAmhDWV1I/e7Zr3Z6XX0Bj+9T+/OY5EkGbw5/1e+3oIyyeepq3WtdSkLWHs3VNH2gCA==}
+    engines: {node: '>=20.0.0'}
     hasBin: true
 
-  '@capacitor/core@6.2.2':
-    resolution: {integrity: sha512-qEI3DcwJEPzhW+hVGKH8m4jbujtkdUiGkpMLHmpR8epACU7wEsV6NF8pCHzpsMYjc80oK7Cmpcw+MIienv/YRw==}
+  '@capacitor/core@7.6.9':
+    resolution: {integrity: sha512-4DOh/xySC9S5ryhUIqpOppasIyi2WiTdF0JuZ/2DEs+vf5eunRzHDdNYBp1snA3faHciTw/3SVGXfR+WkYxsMA==}
 
-  '@capacitor/keyboard@6.0.4':
-    resolution: {integrity: sha512-tNeyQGxIOTiSv3g+dTxJ/plVpGMnB4daJuCHz1E2Kelo+jOx+FKlyFY9L1Ow144SCzuXK48NXr8WoxXfXgQEKA==}
+  '@capacitor/keyboard@7.0.6':
+    resolution: {integrity: sha512-mH9EHo4EnBA9zJAi6domGVB/PdEkcm0h27nJDHG4Y3fd2oKsheCxDRXlYrbgj8hcyQPe0cGWqAfzfwKzkWQoFQ==}
     peerDependencies:
-      '@capacitor/core': ^6.0.0
+      '@capacitor/core': '>=7.0.0'
 
-  '@capacitor/network@6.0.4':
-    resolution: {integrity: sha512-ywtlM3wJ3evci0T9zl3aGXGvd96pkiQDeoxrGR3rAqcBpf9DQubMGdFRmHma3frn2Fd/MBDYlgleu+nWDXunAg==}
+  '@capacitor/network@7.0.4':
+    resolution: {integrity: sha512-fNhN3968AQWMnzasPJ0B8e+nyk7+R6V9PWIBQWSQRHrKndDgWRHpxkjEzJPgnJr3EjnKLjbwO+UYy+EwBlGs3A==}
     peerDependencies:
-      '@capacitor/core': ^6.0.0
+      '@capacitor/core': '>=7.0.0'
 
-  '@capacitor/preferences@6.0.4':
-    resolution: {integrity: sha512-ziauSI1pgdyl+gduvvf8lInvzF3Wdyu/ok+u7NlnhKp8XOj9plJgtnXZWFiR8CiCK5wMvo+gFaNh3zhMyEUwpA==}
+  '@capacitor/preferences@7.0.4':
+    resolution: {integrity: sha512-TJhkwaI2RCs/iDC9PjNczZV4h6JM4gUtTuKMeFdy0OwGgFEHf4TrtW2mFMc1TnPDalYQ91p9NT+UKgiJs9/xtg==}
     peerDependencies:
-      '@capacitor/core': ^6.0.0
+      '@capacitor/core': '>=7.0.0'
 
-  '@capacitor/push-notifications@6.0.5':
-    resolution: {integrity: sha512-CsRmb0cnZd9Uwx24ym4My5fNKrQvwI4D51aMEph5pUZy+LAjp6q0y4NJe8DEgwaVdAqVLbb4rqn75AZ4WSiFYg==}
+  '@capacitor/push-notifications@7.0.7':
+    resolution: {integrity: sha512-TgFsPV4uOez0RtFKsWPz3XCrLxc9th+UyAkillUY9vL6ezVKT35te9Sn4vGR0jeU2U0KUNU7Dt6oSCALnSiEKg==}
     peerDependencies:
-      '@capacitor/core': ^6.0.0
-
-  '@capacitor/storage@1.2.5':
-    resolution: {integrity: sha512-pWhnw4U7wN/zFV4lA4BLMypSufTktCbk548Yk4whSb0KAq3R0mLfSubRIHkGdcPqQWCsM6g/zUuszurhz6ncWQ==}
-    deprecated: package has been renamed to @capacitor/preferences
-    peerDependencies:
-      '@capacitor/core': ^3.0.0
+      '@capacitor/core': '>=7.0.0'
 
   '@commander-js/extra-typings@14.0.0':
     resolution: {integrity: sha512-hIn0ncNaJRLkZrxBIp5AsW/eXEHNKYQBh0aPdoUqNgD+Io3NIykQqpKFyKcuasZhicGaEZJX/JBSIkZ4e5x8Dg==}
@@ -3007,13 +2998,6 @@ packages:
   boolbase@1.0.0:
     resolution: {integrity: sha512-JZOSA7Mo9sNGB8+UjSgzdLtokWAky1zbztM3WRLCbZ70/3cTANmQmOdR7y2g+J0e2WXywy1yS468tY+IruqEww==}
 
-  bplist-creator@0.1.0:
-    resolution: {integrity: sha512-sXaHZicyEEmY86WyueLTQesbeoH/mquvarJaQNbjuOQO+7gbFcDEWqKmcWA4cOTLzFlfgvkiVxolk1k5bBIpmg==}
-
-  bplist-parser@0.3.1:
-    resolution: {integrity: sha512-PyJxiNtA5T2PlLIeBot4lbp7rj4OadzjnMZD/G5zuBNt8ei/yCU7+wW0h2bag9vr8c+/WuRWmSxbqAl9hL1rBA==}
-    engines: {node: '>= 5.10.0'}
-
   bplist-parser@0.3.2:
     resolution: {integrity: sha512-apC2+fspHGI3mMKj+dGevkGo/tCqVB8jMb6i+OX+E29p0Iposz07fABkRIfVUPNd5A5VbuOz1bZbnmkKLYF+wQ==}
     engines: {node: '>= 5.10.0'}
@@ -5184,9 +5168,6 @@ packages:
     resolution: {integrity: sha512-bzyZ1e88w9O1iNJbKnOlvYTrWPDl46O1bG0D3XInv+9tkPrxrN8jUUTiFlDkkmKWgn1M6CfIA13SuGqOa9Korw==}
     engines: {node: '>=14'}
 
-  simple-plist@1.3.1:
-    resolution: {integrity: sha512-iMSw5i0XseMnrhtIzRb7XpQEXepa9xhWxGUojHBL43SIpQuDQkh3Wpy67ZbDzZVr6EKxvwVChnVpdl8hEVLDiw==}
-
   simple-swizzle@0.2.4:
     resolution: {integrity: sha512-nAu1WFPQSMNr2Zn9PGSZK9AGn4t/y97lEm+MXTtUDwfP0ksAIX4nO+6ruD9Jwut4C49SB1Ws+fbXsm/yScWOHw==}
 
@@ -5252,10 +5233,6 @@ packages:
 
   std-env@4.2.0:
     resolution: {integrity: sha512-oCUKSupKTHX53EyjDtuZQ64pjLJ6yYCtpmEw0goYxtjG9KpbRe8KAsl2tBUGU9DyMcJ0RwJ8GqJAFzMXcXW1Rw==}
-
-  stream-buffers@2.2.0:
-    resolution: {integrity: sha512-uyQK/mx5QjHun80FLJTfaWE7JtwfRMKBLkMne6udYOmvH0CawotVa7TfgYHzAnpphn4+TweIx1QKMnRIbipmUg==}
-    engines: {node: '>= 0.10.0'}
 
   string-width@4.2.3:
     resolution: {integrity: sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g==}
@@ -5621,11 +5598,6 @@ packages:
     deprecated: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
     hasBin: true
 
-  uuid@7.0.3:
-    resolution: {integrity: sha512-DPSke0pXhTZgoF/d+WSt2QaKMCFSfx7QegxEWT+JOuHF5aWrKEn0G+ztjuJg/gG8/ItK+rbPCD/yNv8yyih6Cg==}
-    deprecated: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
-    hasBin: true
-
   uuid@9.0.1:
     resolution: {integrity: sha512-b+1eJOlsR9K8HJpow9Ok3fiWOWSIcIzXodvv0rQjVoOVNpWMpxf1wZNpt4y9h10odCNrqnYp1OBzRktckBe3sA==}
     deprecated: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
@@ -5822,10 +5794,6 @@ packages:
     resolution: {integrity: sha512-Hl0ZOAs672vg+06kfujwRhoS6/jehvULrlFkuF2dRu6pHgA8U06h3xqNIqNNU1LTXPcedxByAR4GS6pwQK0mgA==}
     engines: {node: '>=20'}
 
-  xcode@3.0.1:
-    resolution: {integrity: sha512-kCz5k7J7XbJtjABOvkc5lJmkiDh8VhjVCGNiqdKCscmVpdVUpEAyXv1xmCLkQJ5dsHqx3IPO4XW+NTDhU/fatA==}
-    engines: {node: '>=10.0.0'}
-
   xlsx@0.18.5:
     resolution: {integrity: sha512-dmg3LCjBPHZnQp5/F/+nnTa+miPJxUXB6vtk42YjBBKayDNagxGEeIdWApkYPOf3Z3pm3k62Knjzp7lMeTEtFQ==}
     engines: {node: '>=0.8'}
@@ -6020,23 +5988,23 @@ snapshots:
     dependencies:
       css-tree: 3.2.1
 
-  '@capacitor/android@6.2.2(@capacitor/core@6.2.2)':
+  '@capacitor/android@7.6.9(@capacitor/core@7.6.9)':
     dependencies:
-      '@capacitor/core': 6.2.2
+      '@capacitor/core': 7.6.9
 
-  '@capacitor/app@6.0.3(@capacitor/core@6.2.2)':
+  '@capacitor/app@7.1.2(@capacitor/core@7.6.9)':
     dependencies:
-      '@capacitor/core': 6.2.2
+      '@capacitor/core': 7.6.9
 
-  '@capacitor/browser@6.0.6(@capacitor/core@6.2.2)':
+  '@capacitor/browser@7.0.5(@capacitor/core@7.6.9)':
     dependencies:
-      '@capacitor/core': 6.2.2
+      '@capacitor/core': 7.6.9
 
-  '@capacitor/camera@6.1.0(@capacitor/core@6.2.2)':
+  '@capacitor/camera@7.0.5(@capacitor/core@7.6.9)':
     dependencies:
-      '@capacitor/core': 6.2.2
+      '@capacitor/core': 7.6.9
 
-  '@capacitor/cli@8.5.2(supports-color@8.1.1)':
+  '@capacitor/cli@7.6.9(supports-color@8.1.1)':
     dependencies:
       '@ionic/cli-framework-output': 2.2.8(supports-color@8.1.1)
       '@ionic/utils-subprocess': 3.0.1(supports-color@8.1.1)
@@ -6054,34 +6022,29 @@ snapshots:
       semver: 7.8.5
       tar: 7.5.22
       tslib: 2.8.1
-      xcode: 3.0.1
       xml2js: 0.6.2
     transitivePeerDependencies:
       - supports-color
 
-  '@capacitor/core@6.2.2':
+  '@capacitor/core@7.6.9':
     dependencies:
       tslib: 2.8.1
 
-  '@capacitor/keyboard@6.0.4(@capacitor/core@6.2.2)':
+  '@capacitor/keyboard@7.0.6(@capacitor/core@7.6.9)':
     dependencies:
-      '@capacitor/core': 6.2.2
+      '@capacitor/core': 7.6.9
 
-  '@capacitor/network@6.0.4(@capacitor/core@6.2.2)':
+  '@capacitor/network@7.0.4(@capacitor/core@7.6.9)':
     dependencies:
-      '@capacitor/core': 6.2.2
+      '@capacitor/core': 7.6.9
 
-  '@capacitor/preferences@6.0.4(@capacitor/core@6.2.2)':
+  '@capacitor/preferences@7.0.4(@capacitor/core@7.6.9)':
     dependencies:
-      '@capacitor/core': 6.2.2
+      '@capacitor/core': 7.6.9
 
-  '@capacitor/push-notifications@6.0.5(@capacitor/core@6.2.2)':
+  '@capacitor/push-notifications@7.0.7(@capacitor/core@7.6.9)':
     dependencies:
-      '@capacitor/core': 6.2.2
-
-  '@capacitor/storage@1.2.5(@capacitor/core@6.2.2)':
-    dependencies:
-      '@capacitor/core': 6.2.2
+      '@capacitor/core': 7.6.9
 
   '@commander-js/extra-typings@14.0.0(commander@14.0.3)':
     dependencies:
@@ -8221,14 +8184,6 @@ snapshots:
 
   boolbase@1.0.0: {}
 
-  bplist-creator@0.1.0:
-    dependencies:
-      stream-buffers: 2.2.0
-
-  bplist-parser@0.3.1:
-    dependencies:
-      big-integer: 1.6.52
-
   bplist-parser@0.3.2:
     dependencies:
       big-integer: 1.6.52
@@ -9722,7 +9677,7 @@ snapshots:
 
   nf3@0.3.24: {}
 
-  nitro@3.0.260610-beta(@capacitor/preferences@6.0.4(@capacitor/core@6.2.2))(dotenv@16.6.1)(jiti@2.7.0)(lru-cache@11.5.2)(rollup@4.63.1)(vite@8.2.2(@types/node@22.14.1)(esbuild@0.27.7)(jiti@2.7.0)(yaml@2.7.1))(xml2js@0.6.2):
+  nitro@3.0.260610-beta(@capacitor/preferences@7.0.4(@capacitor/core@7.6.9))(dotenv@16.6.1)(jiti@2.7.0)(lru-cache@11.5.2)(rollup@4.63.1)(vite@8.2.2(@types/node@22.14.1)(esbuild@0.27.7)(jiti@2.7.0)(yaml@2.7.1))(xml2js@0.6.2):
     dependencies:
       consola: 3.4.2
       crossws: 0.4.12(srvx@0.11.22)
@@ -9737,7 +9692,7 @@ snapshots:
       rolldown: 1.2.6
       srvx: 0.11.22
       unenv: 2.0.0-rc.24
-      unstorage: 2.0.0-alpha.7(@capacitor/preferences@6.0.4(@capacitor/core@6.2.2))(db0@0.3.4)(lru-cache@11.5.2)(ofetch@2.0.0-alpha.3)
+      unstorage: 2.0.0-alpha.7(@capacitor/preferences@7.0.4(@capacitor/core@7.6.9))(db0@0.3.4)(lru-cache@11.5.2)(ofetch@2.0.0-alpha.3)
     optionalDependencies:
       dotenv: 16.6.1
       jiti: 2.7.0
@@ -10521,12 +10476,6 @@ snapshots:
 
   signal-exit@4.1.0: {}
 
-  simple-plist@1.3.1:
-    dependencies:
-      bplist-creator: 0.1.0
-      bplist-parser: 0.3.1
-      plist: 3.1.1
-
   simple-swizzle@0.2.4:
     dependencies:
       is-arrayish: 0.3.4
@@ -10590,8 +10539,6 @@ snapshots:
   std-env@3.10.0: {}
 
   std-env@4.2.0: {}
-
-  stream-buffers@2.2.0: {}
 
   string-width@4.2.3:
     dependencies:
@@ -10843,9 +10790,9 @@ snapshots:
 
   universalify@2.0.1: {}
 
-  unstorage@2.0.0-alpha.7(@capacitor/preferences@6.0.4(@capacitor/core@6.2.2))(db0@0.3.4)(lru-cache@11.5.2)(ofetch@2.0.0-alpha.3):
+  unstorage@2.0.0-alpha.7(@capacitor/preferences@7.0.4(@capacitor/core@7.6.9))(db0@0.3.4)(lru-cache@11.5.2)(ofetch@2.0.0-alpha.3):
     optionalDependencies:
-      '@capacitor/preferences': 6.0.4(@capacitor/core@6.2.2)
+      '@capacitor/preferences': 7.0.4(@capacitor/core@7.6.9)
       db0: 0.3.4
       lru-cache: 11.5.2
       ofetch: 2.0.0-alpha.3
@@ -10889,8 +10836,6 @@ snapshots:
     optional: true
 
   uuid@10.0.0: {}
-
-  uuid@7.0.3: {}
 
   uuid@9.0.1: {}
 
@@ -11046,11 +10991,6 @@ snapshots:
     dependencies:
       is-wsl: 3.1.1
       powershell-utils: 0.1.0
-
-  xcode@3.0.1:
-    dependencies:
-      simple-plist: 1.3.1
-      uuid: 7.0.3
 
   xlsx@0.18.5:
     dependencies:

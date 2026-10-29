@@ -114,22 +114,12 @@ jobs:
           else
             echo "Aucun AGP 8.13.0 résiduel — rien à faire (déjà propre)"
           fi
-          # Align SDK 34 + patch namespace plugin storage (même logique
-          # que le step ci-dessus de release.yml). Le fichier réel vit dans
-          # node_modules/.pnpm (symlinké depuis node_modules/@capacitor/...),
-          # on patche le path "vrai" pour que le patch tienne dans
-          # node_modules et pas juste sur le symlink.
-          sed -i "s/compileSdkVersion') ? rootProject.ext.compileSdkVersion : 36/compileSdkVersion') ? rootProject.ext.compileSdkVersion : 34/g" \
-            android/capacitor-cordova-android-plugins/build.gradle
-          sed -i 's/compileSdkVersion = 36/compileSdkVersion = 34/' android/variables.gradle
-          sed -i 's/targetSdkVersion = 36/targetSdkVersion = 34/' android/variables.gradle
-          STORAGE_GRADLE="$(node -e "console.log(require.resolve('@capacitor/storage/android/build.gradle'))" 2>/dev/null || true)"
-          if [ -z "$STORAGE_GRADLE" ]; then
-            STORAGE_GRADLE="node_modules/@capacitor/storage/android/build.gradle"
-          fi
-          if [ -f "$STORAGE_GRADLE" ] && ! grep -q "^    namespace " "$STORAGE_GRADLE"; then
-            sed -i '/^android {/a\    namespace "com.capacitorjs.plugins.storage"' "$STORAGE_GRADLE"
-          fi
+          # P35 (2026-10-29) : plus de patch `namespace` storage ni de
+          # forçage SDK ici. Tous les `@capacitor/*` sont alignés sur 7.x
+          # (AGP 8.7.2, namespace déclaré partout) et `@capacitor/storage`
+          # (déprécié, sans namespace) a été retiré. `android/variables.gradle`
+          # porte déjà compileSdk/targetSdk 35 — le `sed` qui forçait 34 est
+          # supprimé car il casserait la compilation Capacitor 7.
 
       - name: Build debug APK
         # Pas de --no-daemon (le classloader "single-use" du flag

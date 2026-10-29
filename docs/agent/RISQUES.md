@@ -2331,7 +2331,7 @@ d'alerte. Une perte d'appareil = perte définitive des écritures financières.
 
 ---
 
-### R90 — HAUTE — Le workflow « Android Debug Build » n'a JAMAIS réussi (préexistant)
+### R90 — HAUTE — Le workflow « Android Debug Build » n'a JAMAIS réussi (préexistant) — CORRIGÉ (P35)
 
 **Preuve** : `gh run list --workflow=android-debug.yml --limit 20` →
 **20 échecs sur 20 exécutions**, depuis le 2026-10-23T14:19, sur **toutes** les
@@ -2339,32 +2339,47 @@ branches (`agent/session-2026-10-22-stabilisation`, `…-phases-restantes`,
 `…-3-livraison`, `…-6-livraison`, `…-6b-r85-r86`). Le taux d'échec est de
 **100 %**, donc le défaut est **structurel**, pas introduit par un commit.
 
-**Cause racine précise (session 9)** : `@capacitor/cli` est en **^8.5.2**
-alors que `@capacitor/android` / `@capacitor/core` sont restés en **^6.2.2**.
-`pnpm run sync:cap` (CLI 8) génère le module `capacitor-cordova-android-plugins`
-au format attendu par AGP 8, sans `namespace` → `./gradlew assembleDebug` échoue
-(« Could not create an instance of type …LibraryVariantBuilderImpl : Namespace
-not specified », run `40078162326`). Correctif proposé : P35.
+**Cause racine — RECTIFIÉE le 2026-10-29 (P35).** La version initiale de cette
+fiche attribuait l'échec à `capacitor-cordova-android-plugins` « généré sans
+`namespace` par CLI 8 ». **C'est faux** : ce module déclare bien
+`namespace "capacitor.cordova.android.plugins"`. Le vrai blocage, lu dans le
+journal de run (`40078162326`, `40805574818`), est :
 
-**Cause relevée dans le journal CI** :
 ```
-> Configure project :capacitor-cordova-android-plugins
-WARNING: Using flatDir should be avoided …
-FAILURE: Build failed with an exception.
-* What went wrong:
 A problem occurred configuring project ':capacitor-storage'.
-Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
-BUILD FAILED in 17s
+> Namespace not specified. Specify a namespace in the module's build file.
 ```
 
-**Impact** : aucun APK de debug n'est produit automatiquement. La distribution
-Android dépend donc d'un build manuel (`lumina-android.yml`, lui, **réussit** sur
-`main` — vérifié : 4 succès consécutifs les 23-24/10).
+Deux défauts distincts :
 
-**Non corrigé** : hors périmètre (Gradle/Android, pas le code applicatif) et non
-nécessaire à la stabilité web. **À traiter par le propriétaire** : mettre à jour
-la configuration Gradle de `:capacitor-storage` / `capacitor-cordova-android-plugins`
-(ou épingler une version de Gradle < 9).
+1. **Bloquant** — `@capacitor/storage@1.2.5` (déprécié, remplacé par
+   `@capacitor/preferences`) ne déclare **aucun `namespace`** ; AGP 8 refuse de
+   configurer le module `:capacitor-storage` généré par `cap sync`.
+2. **Latent** — désalignement majeur : `@capacitor/cli ^8.5.2` contre
+   `@capacitor/android`/`core` et tous les plugins en `6.x`. Le `cap sync`
+   passait, mais les workflows de release portaient des contournements
+   (retrait `AGP 8.13.0`, patch `namespace` storage, forçage SDK 34).
+
+**Correctif (P35, branche `agent/p35-capacitor-alignment`)** : migration
+`@capacitor/storage` → `@capacitor/preferences` (API identique) et alignement
+**de tous** les paquets `@capacitor/*` sur **7.6.9** (majeure la plus basse qui
+satisfait : majeure unique + `tar@7.5.22` patché pour l'audit + `minSdk 21`
+conservé). AGP `8.7.2`, Gradle `8.11.1`, `compileSdk`/`targetSdk` `35`.
+
+**Preuve de résolution** (locale, JDK 21 + Android SDK 35 installés à la main) :
+`npx cap sync android` OK (7 plugins), puis `cd android && ./gradlew
+assembleDebug` → **BUILD SUCCESSFUL**, `app-debug.apk` (15 Mo) produit,
+`minSdkVersion:'21'` / `targetSdkVersion:'35'`. Namespace présent sur les 9
+modules. Gates web verts (tsc 0, eslint 0 erreur, vite OK, vitest 1643/1643,
+`pnpm audit --audit-level=critical` = `exit 0`).
+
+**Limite** : prouvé localement ; pas encore rejoué par GitHub Actions sur la
+branche (le job s'exécute sur la PR). Détail complet :
+`docs/agent/receipts/phase-35/2026-10-29-p35-capacitor-alignment.md`.
+
+**Impact résiduel** : aucun APK de debug n'avait été produit automatiquement
+avant P35 ; la distribution Android dépendait d'un build manuel
+(`lumina-android.yml`, qui réussissait sur `main`).
 
 
 ## Session 7 (2026-10-24) — audit intégrité/isolation (phase 1)
