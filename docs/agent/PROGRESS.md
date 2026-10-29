@@ -126,14 +126,14 @@
 | 11 | **R132 — P0 « écran muet » : Cypress E2E bloqué par l'auth PowerSync (401 `aud`)** : le service rejette l'audience `authenticated` → `connected:false` → toutes les pages gardées par `isPowerSyncReadyNow()` restent en squelette **perpétuel** (Reports, Balance, comprehensive-flow). **Mécanisme** : collecteur JWKS explicite (`jwks_uri`) sans `requiresAudience` → retombe sur `additional_audiences: []` (mécanisme détaillé en R132). **Correctifs** : (a) `service.yaml` → `additional_audiences: ["authenticated"]` (déploiement = propriétaire, E5) ; (b) filet produit « zéro écran muet » (`useReplicaUnavailable` + `SyncUnavailableBanner`, borne 30 s). | P0 | **terminé** (produit) / **bloqué** (déploiement config) | `fix/powersync-replication-r80` (PR #115) | `phase-12/2026-10-29-powersync-audience-p0.md` |
 | 11 | **R133 — `comprehensive-flow` dérive l'id `"new"`** (`/transaction/new` satisfait `include('/transaction/')`) → visite `/transaction/new/edit` → « Transaction introuvable ». Fragilité de spec, dépend de R132. | P2 | **bloqué** (E5) | `fix/cypress-ui-nav` | `phase-11/2026-10-29-cypress-sync-auth-blocker.md` |
 
-## Escalades ouvertes (ne bloquent pas la boucle)
+## Escalades (état synchronisé avec ESCALATIONS.md)
 
-| Id | Sujet | Repli appliqué | Détail |
+| Id | Sujet | État | Détail |
 |---|---|---|---|
-| E2 | Cypress vert sur `main` (environnement E2E, R98) | specs indépendantes de PowerSync seules bloquantes | ESCALATIONS.md |
-| E3 | Sauvegardes automatiques (`SUPABASE_DB_URL` absent) | chaîne prouvée manuellement, runbook opérateur | ESCALATIONS.md |
-| E4 | Parcours « réclamer une invitation » (FK `auth.users`, R111) | aucun code modifié (décision d'architecture) ; documenté | ESCALATIONS.md |
-| E5 | **Auth PowerSync : audience `authenticated` rejetée (401 `PSYNC_S2105`)** — bloquait toute la suite Cypress gardée par la disponibilité de la réplique | filet produit « zéro écran muet » livré (`SyncUnavailableBanner`, gardes R52 conservées) ; `service.yaml` corrigé (déploiement = propriétaire) | ESCALATIONS.md |
+| E2 | Cypress vert sur `main` (environnement E2E, R98) | **OUVERTE** | seules les specs indépendantes de PowerSync sont bloquantes |
+| E3 | Sauvegardes automatiques | **RÉSOLUE** (2026-10-29) | secrets configurés ; run `40813667253` → artefact chiffré publié |
+| E4 | Parcours « réclamer une invitation » (FK `auth.users`, R111) | **RÉSOLUE** | R111 option (a) livré (PR #55) : session Auth obligatoire avant le claim |
+| E5 | Auth PowerSync : audience `authenticated` rejetée (401 `PSYNC_S2105`) | **OUVERTE** (déploiement = propriétaire) | filet produit « zéro écran muet » livré ; `service.yaml` corrigé |
 
 > E1 (déploiement `sync-config` PowerSync) est **RÉSOLU** depuis le 2026-10-27
 > (jeton admin disponible, déploiement validé, sync `org-e2e` = 6709 événements).
