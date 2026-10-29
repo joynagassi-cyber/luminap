@@ -218,6 +218,16 @@
 ## Classe de défaut récurrente : « filet déclaré, jamais déclenché »
 Cinq occurrences trouvées (R105/R106/R107/R108/R113) : une garde/écran est écrit
 et documenté comme actif, mais son déclencheur n'est jamais alimenté.
+**Variante mesurée (2026-10-29, R134/R136/R145)** : une garde STATIQUE peut être
+VERTE sans rien vérifier — (a) si son extraction retourne un ensemble **vide**
+(R134 : planchers de non-vacuité ajoutés) ; (b) si elle compare des **comptes**
+au lieu de l'ensemble → une **substitution net-zéro** passe (R17, PR #145 :
+empreinte SHA-256 de l'ensemble des noms de migrations + 4e test ; mutation
+net-zéro : seule l'empreinte échoue, les comptages restent verts). Réflexe :
+toute garde « compte/filtre » doit ancre l'**ensemble** ou un plancher.
+Exemple sécurité : `powersync-dev-surface-guard.test.ts` (R136) verrouille que
+la surface DEV (`__psSupabaseClient` = client Supabase écrivable) reste **après**
+la garde `import.meta.env.DEV` et n'est écrite nulle part ailleurs.
 - **R105** : `invitation:*` exigées par ROUTE_REGISTRY, détenues par aucun rôle.
   **Garde DÉJÀ en place** : `src/lib/__tests__/permissions.test.ts`
   (`describe("cohérence ROUTE_REGISTRY ↔ PERMISSION_MATRIX")`, ajouté PR #33) —
