@@ -379,7 +379,13 @@
   buckets privés ; un membre ne voit que le préfixe de son organisation.
 - **Statut** : corrigé (migration `20261022000013`). Rollback fourni.
 
-### R30 — Cypress `nav-bottom` : onglets non cliquables (vues Ionic conservées) — OUVERT
+### R30 — Cypress `nav-bottom` : onglets non cliquables (vues Ionic conservées) — CORRIGÉ (code) / non vérifiable en CI (E2)
+- **Rectification (2026-10-29)** : l'entrée disait « non corrigé ». **C'est
+  faux** : `cypress/e2e/nav-bottom.cy.ts` applique les **deux contournements**
+  — (1) scoping sur la page Ionic active
+  (`div.ion-page:not(.ion-page-hidden) [data-testid=…]`, même filtre que
+  `activePage()`) et (2) `{ force: true }` sur le clic (6 occurrences), les
+  assertions de **navigation** (`pathname`) restant strictes.
 - **Symptôme** : `cy.click()` sur `button[role="tab"][aria-label="Finances"]`
   échoue avec « not visible per `Element.checkVisibility()` » alors que les
   styles calculés sont visibles (`display:flex`, `visibility:visible`,
@@ -391,9 +397,8 @@
   ne suffit pas (jQuery considère la vue sortante « visible »).
 - **Impact** : défaut de **test** (synchronisation), pas de l'application — les
   3 tests échouaient déjà au baseline, à l'identique.
-- **État** : non corrigé. Piste : scoper au `ion-page.ion-page-invisible:not(…)`
-  / attendre `ion-view` actif, ou utiliser `{ force: true }` après assertion du
-  `pathname` (le spec asserte déjà le pathname).
+- **État** : corrigé (code). Non vérifiable en CI pour la cause E2/R98 (réplique
+  PowerSync vide), indépendante de ce défaut.
 - **Gravité** : moyenne (couverture de navigation non obtenue).
 - **Correction partielle apportée** : suppression du libellé d'accessibilité
   dupliqué (`aria-label="Navigation principale"` sur `<nav>` **et** sur le
@@ -1469,24 +1474,30 @@ décodant vers `object`/`array`).
 - **Gravité** : moyenne (défaut de détection, pas défaut produit).
 
 
-### R72 — Les specs Cypress dépendent d'un global exposé seulement en mode dev — OUVERT (moyenne)
-- **Défaut** : `cross-tenant.cy.ts` lit `window.__psSupabaseClient`, publié
-  par `publishDevDiagnostics()` qui commence par
-  `if (!import.meta.env.DEV) return;`. Lancées contre un **build de
-  production** (`vite preview`), les specs échouent avec
-  « `__psSupabaseClient` does not exist » et attendent 4 minutes avant
-  d'abandonner.
-- **Preuve** : `cross-tenant` → 0/1 sur `vite preview` (port 4173, 4 min
-  10 s) ; **1/1 en 24 s** sur `vite` dev (port 4174), même code, même base.
-- **Portée** : toute la suite, dès qu'elle est lancée contre un build de
-  production (ce que fait `cypress.config.ts` par défaut : `baseUrl` =
-  déploiement distant). C'est un piège pour toute personne qui relance les
-  tests : les échecs n'indiquent pas un défaut de l'app.
-- **Correctif proposé (non appliqué)** : exposer le client de diagnostic
-  aussi hors `DEV` (derrière un flag de test explicite), ou faire échouer
-  le spec immédiatement avec un message clair du type « lancez la suite sur
-  `vite` (dev) — cf. RUNBOOK ».
-- **Gravité** : moyenne (faux négatifs de test, pas défaut produit).
+### R72 — Les specs Cypress dépendent d'un global exposé seulement en mode dev — CORRIGÉ (code) / non applicable en CI
+- **Rectification (2026-10-29)** : cette entrée disait « Correctif proposé
+  (**non appliqué**) ». **C'est faux** : l'option (b) — faire échouer le spec
+  **immédiatement** avec un message explicite — **est appliquée** dans
+  `cypress/e2e/cross-tenant.cy.ts:101-108` : si `__psSupabaseClient` est
+  absent, le spec `throw` un message nommant la cause (build de production) et
+  la marche à suivre (`scripts/run-cypress.sh`, cf. RUNBOOK). Il n'attend donc
+  plus 4 minutes.
+- **Non applicable en CI** : `cypress.yml` lance la suite contre
+  `pnpm run dev` (`start: pnpm run dev`, `wait-on http://localhost:8080`,
+  `CYPRESS_BASE_URL=http://localhost:8080`). En mode dev, `import.meta.env.DEV`
+  est vrai → le global **est** publié. R72 ne concerne donc que les runs
+  **locaux** contre un build de production — un piège de méthode, désormais
+  neutralisé par le message d'échec immédiat.
+- **Défaut (historique)** : `cross-tenant.cy.ts` lit
+  `window.__psSupabaseClient`, publié par `publishDevDiagnostics()` qui
+  commence par `if (!import.meta.env.DEV) return;`. Lancées contre un **build
+  de production** (`vite preview`), les specs échouaient avec
+  « `__psSupabaseClient` does not exist » après 4 minutes.
+- **Preuve** : `cross-tenant` → 0/1 sur `vite preview` (port 4173, 4 min 10 s) ;
+  **1/1 en 24 s** sur `vite` dev (port 4174), même code, même base.
+- **Statut** : corrigé (garde d'échec immédiat en place) ; sans effet en CI
+  (serveur dev).
+- **Gravité** : moyenne (faux négatifs de test local, pas défaut produit).
 
 
 ### R73 — Artefact de build versionné : `graphify-out/` (59 Mo) — CORRIGÉ (2026-10-26)
