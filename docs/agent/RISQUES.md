@@ -119,19 +119,27 @@
   trancher — voir DECISIONS.md et RAPPORT_FINAL.md.
 - **Statut** : ouvert, documenté, contourné (instantané).
 
-### R18 — Aucune sauvegarde ni PITR sur le projet Supabase — OUVERT (CRITIQUE pour 4 mois)
+### R18 — Aucune sauvegarde native ni PITR sur le projet Supabase — MITIGÉ (2026-10-29)
 - **Défaut** : l'API Management renvoie `backups: []` et `pitr_enabled: false`
-  pour `hhgovvrnalibhgpakswi` (plan gratuit). Aucun point de restauration.
+  pour `hhgovvrnalibhgpakswi` (plan gratuit). Aucun point de restauration
+  **natif**.
 - **Preuve** : `GET /v1/projects/hhgovvrnalibhgpakswi/database/backups` →
-  `{"walg_enabled":true,"pitr_enabled":false,"backups":[]}`.
-- **Conséquence** : une erreur de schéma ou une suppression accidentelle est
-  **irréversible**. Aucun retour arrière automatique possible.
-- **Mitigation fournie** : `scripts/schema-snapshot.sql` (DDL complet) +
-  migrations réversibles (`rollback/`). Ne couvre PAS les données.
-- **Recommandation** : activer les sauvegardes (plan payant) ou exporter
-  régulièrement les données ; voir RUNBOOK.md.
-- **Statut** : ouvert — hors périmètre de correction (dépend d'une décision
-  d'abonnement du propriétaire).
+  `{"walg_enabled":true,"pitr_enabled":false,"backups":[]}` (revérifié
+  2026-10-29 : inchangé).
+- **Conséquence** : une erreur de schéma ou une suppression accidentelle n'est
+  pas réversible par Supabase lui-même.
+- **Mitigation ACTIVE depuis 2026-10-29 (E3 résolue)** : sauvegarde logique
+  **quotidienne** via `.github/workflows/backup.yml` (secrets `SUPABASE_DB_URL`
+  + `BACKUP_GPG_PASSPHRASE` configurés). Preuve de bout en bout : run
+  `40813667253` → export schéma + données **chiffré** publié en artefact
+  (`supabase-backup-40813667253`). **Restauration testée** : schéma (44 tables,
+  146 policies) + données restaurés dans un conteneur jetable, fidélité
+  contrôlée 10/10 (cf. RUNBOOK §« Sauvegarde VÉRIFIÉE »).
+- **Limite résiduelle** : pas de PITR → la granularité est **journalière**, pas
+  à la seconde ; la fenêtre de perte possible reste de 24 h. Un `backups: []`
+  natif subsiste (dépend d'un plan payant).
+- **Statut** : mitigé (sauvegarde + restauration prouvées). PITR natif =
+  décision d'abonnement du propriétaire.
 
 
 ### R19 — Régression `used_count` (durcissement invitations) — CORRIGÉ
@@ -169,15 +177,15 @@
 - **Résiduel** : les 59 profils **déjà** rattachés à `org-1` restent liés entre
   eux (données potentiellement réelles : non déplacées). Voir R22.
 
-### R22 — 59 comptes rattachés à `org-1` (dont des adresses réelles) — OUVERT
-- **Constat** : `org-1` contient 59 profils mêlant comptes de test et adresses
-  personnelles réelles (`joynagassi@gmail.com`, `kairosiluminate@gmail.com`, …).
-  Ces comptes peuvent se lire entre eux (même organisation).
-- **Risque** : si ces adresses sont des utilisateurs réels distincts, il y a
-  divulgation croisée d'e-mails. Le propriétaire doit décider : purger `org-1`,
-  ou éclater ces comptes en organisations réelles.
-- **Décision conservatrice** : ne rien déplacer automatiquement (risque
-  d'aggraver). Documenté, à trancher.
+### R22 — 59 comptes rattachés à `org-1` (dont des adresses réelles) — ✅ RÉSOLU (2026-10-29, phase 18)
+- **Constat initial** : `org-1` contenait 59 profils mêlant comptes de test et
+  adresses personnelles réelles (`joynagassi@gmail.com`, …), susceptibles de se
+  lire entre eux (même organisation).
+- **Résolution** : la purge des données de test (phase 18, PR #119) a supprimé
+  l'organisation `org-1` **et** tous ses profils. Mesure post-purge : `org-1`
+  inexistante, **0 profil** rattaché, **0 adresse grand public** dans la base
+  (2 profils restants = comptes de test `@lumina.dev`).
+- **Statut** : fermé — la divulgation croisée d'e-mails n'est plus possible.
 
 ### R23 — `settle_invitation_claim` était exécutable par `anon`/PUBLIC — CORRIGÉ
 - **Défaut** : la fonction (règlement de claim) était `EXECUTE`-able par `anon`
