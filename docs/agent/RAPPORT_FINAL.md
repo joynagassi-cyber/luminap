@@ -1105,8 +1105,12 @@ invitation-rls-hardening.test.ts` **10/10**, `SQL` (invité non gestionnaire :
 - CI Pipeline (branches de session) : **success**.
 - Android Debug Build : **failure pré-existante** (R90 — désalignement
   `@capacitor/android` ^6.2.2 vs `@capacitor/cli` ^8.5.2 ; non régression).
-- Cypress : suite volumineuse, exécutée en CI (binaire non installable dans
-  l'environnement d'agent). Résultat consigné dans JOURNAL.md.
+- Cypress : suite **exécutée EN LOCAL** (capacité débloquée le 2026-10-29 —
+  Xvfb + binaire Cypress ; cf. RUNBOOK). **139 tests / 113 passing / 21 failing**
+  (13 specs rouges). Le crawler P0 `zero-black-screen` passe **64/64**. Les specs
+  rouges sont **identiques à la CI** et relèvent de la couche de données (R98) —
+  **pas d'un bug de rendu**. L'ancienne mention « binaire non installable dans
+  l'environnement d'agent » est **périmée**.
 
 ## S5.6 — Découverte majeure : la suite Cypress n'a jamais été verte (R98)
 

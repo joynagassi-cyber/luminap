@@ -2757,6 +2757,66 @@ avant P35 ; la distribution Android dépendait d'un build manuel
 - **Statut** : hypothèse réfutée, cause réelle circonscrite (couche de données /
   sync), non corrigée. **Priorité : critique** (voir P41).
 
+#### R98 — MESURE LOCALE (2026-10-29) : la suite tourne enfin en local — preuve décisive
+
+- **Capacité débloquée** : Cypress 16.0.0 est désormais **exécutable en local**
+  dans l'environnement d'agent. Deux prérequis, tous deux franchis :
+  `sudo apt-get install -y xvfb` (absent au départ) et
+  `node node_modules/cypress/bin/cypress install` (binaire non installé).
+  Lancement :
+  `CYPRESS_BASE_URL=http://localhost:8080 xvfb-run -a node
+  node_modules/cypress/bin/cypress run --browser electron --config video=false`
+  (serveur Vite à démarrer à part :
+  `node node_modules/vite/bin/vite.js --port 8080`).
+- **Mesure — suite complète** : 30 specs, **139 tests**, **113 passing /
+  21 failing** (13 specs rouges).
+- **Specs vertes (dont les plus importantes)** : `zero-black-screen.cy.ts`
+  **64/64** (crawler P0 « zéro écran noir », les 64 routes déclarées),
+  `auth-real` 5/5, `cloud-sync` 1/1, `invitations`, `invitations-rls`,
+  `rls-isolation-hardened` 4/4, `rls-leak`, `rbac-gates` 2/2, `forms-fields` 4/4,
+  `local-dashboard`, `local-smoke`, `nav-bottom`, `responsive-skeleton`,
+  `root-redirect`, `simple-check`, `theme-modes`, `offline-write-sync`.
+- **Specs rouges** : `calendar`, `comprehensive-flow`, `cross-tenant`,
+  `events-tasks`, `finance-deep` (4/5), `forms-v2`, `groups-events`,
+  `members` (1/3), `org-reports`, `performance-batch`, `persistence`,
+  `reports-budgets` (3/5), `sessions`.
+- **Signature des échecs** : **17/21** sont des `Timed out retrying` sur une
+  donnée créée qui n'est pas relue ; **2** sont `expected 0 to be at least N`
+  (`performance-batch` : **0 ligne** atteint le serveur) ; `finance-deep`
+  `/balance` : `h1 « Bilan financier »` absent car la page reste en `loading`
+  (vérifié : la page **rend** bien ce titre quand `data-screen-state="ready"`).
+- **Interprétation (décisive, par la mesure)** :
+  1. Le harnais local reproduit **exactement les mêmes specs rouges** qu'en CI
+     (10 sur 13 en commun) → **ce n'est pas la CI** ; l'hypothèse
+     « parallélisation » est **définitivement réfutée** (déjà réfutée en
+     mono-conteneur, confirmée ici hors CI).
+  2. `cloud-sync.cy.ts` **passe**, mais il **ne teste PAS la synchronisation
+     PowerSync** : après reconnexion il insère lui-même les entités par
+     `cy.request` (contexte Node, non intercepté) puis vérifie leur présence —
+     assertion **tautologique** (elle valide le réseau et la RLS, pas la file
+     d'upload). Voir `offline-write-sync.cy.ts` (R85). Il ne faut donc PAS en
+     conclure que « la synchronisation fonctionne ».
+  3. **Cause racine mesurée du rouge `performance-batch`/`persistence` (R85)** :
+     le **worker WASM de PowerSync ne se connecte jamais en headless** —
+     `__psDb.currentStatus` reste `{connected:false, hasSynced:false}` après
+     120 s, sans erreur remontée. Le **vidage de la file d'upload est donc
+     impossible en headless** (Electron/Xvfb), donc `performance-batch` (qui
+     exige un upload réel) **ne peut pas passer** ici. Tentative de correctif
+     R83 (contexte d'org + `req.continue()` en ligne + warm-up en ligne avant
+     coupure) : **testée, insuffisante** — 0 ligne côté serveur malgré tout
+     (`transactions` en base = 0). Hypothèse réfutée par la mesure ; changements
+     annulés. Preuve locale positive : `offline-write-sync.cy.ts` **passe** (il
+     vérifie la capture dans `ps_crud` et un contrôle négatif, PAS l'upload).
+  4. Les **64 routes** passent le crawler P0 → **aucun écran noir**, même quand
+     les données manquent (l'écran affiche un squelette `loading`).
+  5. La cause des specs rouges restantes est la **couche de données** (worker
+     non connecté en headless, R85) — déjà circonscrite en R53/R83/R72/R54.
+- **Statut** : cause circonscrite **et reproductible localement**. Le crawler
+  P0 (zéro écran noir) et la garde route↔lien sont **validés de bout en bout
+  dans un vrai navigateur**. R98 reste non « corrigé » côté données, mais
+  **l'alerte CI est désormais interprétable** (on sait quelles specs échouent et
+  pourquoi).
+
 #### R96 — MESURE d'accumulation (2026-10-24) : d'autres specs fuient aussi
 Inventaire mesuré en base (project `hhgovvrnalibhgpakswi`) :
 - `organizations` nommées `Annexe A/B …` : **4** (3 archivées par la session 9,

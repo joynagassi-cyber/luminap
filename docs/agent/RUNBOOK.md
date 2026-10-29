@@ -366,6 +366,47 @@ npx cypress run --e2e --browser chromium \
   --spec cypress/e2e/offline-write-sync.cy.ts
 ```
 
+## Exécuter la suite Cypress EN LOCAL (capacité débloquée le 2026-10-29)
+
+Avant cette date, Cypress était réputé « non exécutable en local ». **C'est
+faux** : il manquait seulement Xvfb et le binaire Cypress. Procédure vérifiée :
+
+```bash
+# 1. Dépendances système (une fois) — Xvfb absent par défaut
+sudo apt-get update && sudo apt-get install -y xvfb
+
+# 2. Binaire Cypress (une fois) — le paquet npm ne l'installe pas
+node node_modules/cypress/bin/cypress install
+
+# 3. Serveur Vite à part (le shim .bin/vite n'est pas du JS)
+nohup node node_modules/vite/bin/vite.js --port 8080 --host 127.0.0.1 \
+  > /tmp/vite.log 2>&1 &
+
+# 4. Suite complète, ou une spec ciblée
+CYPRESS_BASE_URL=http://localhost:8080 xvfb-run -a \
+  node node_modules/cypress/bin/cypress run \
+  --browser electron --config video=false
+
+# 4bis. Une seule spec
+CYPRESS_BASE_URL=http://localhost:8080 xvfb-run -a \
+  node node_modules/cypress/bin/cypress run \
+  --spec cypress/e2e/zero-black-screen.cy.ts \
+  --browser electron --config video=false
+```
+
+**Résultat de référence (2026-10-29)** : 30 specs, 139 tests,
+**113 passing / 21 failing** (13 specs rouges). Le crawler P0
+`zero-black-screen.cy.ts` passe **64/64** (les 64 routes). Les specs rouges
+relèvent de la **couche de données** : le **worker WASM PowerSync ne se connecte
+pas en headless** (R85) — `__psDb.currentStatus` reste `{connected:false,
+hasSynced:false}` après 120 s, donc tout test exigeant un **upload réel** vers
+Supabase (`performance-batch`, `persistence`) **ne peut pas passer** en
+Electron/Xvfb. `offline-write-sync.cy.ts` passe parce qu'il ne vérifie que la
+**capture** dans `ps_crud` (pas l'upload). Les écrans, eux, affichent un
+squelette `loading` que le crawler accepte : **aucun écran noir**. La suite reste
+donc un excellent détecteur de régression **UI/routage/rendu**, mais pas de
+synchronisation.
+
 ## Vérifier le type (piège de l'environnement)
 
 - **`npx tsc --noEmit` ne vérifie RIEN** dans ce dépôt : `tsconfig.json` a
