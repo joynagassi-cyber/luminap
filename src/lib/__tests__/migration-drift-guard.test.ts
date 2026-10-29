@@ -15,6 +15,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { join } from "node:path";
 
 const MIGRATIONS_DIR = join(process.cwd(), "supabase", "migrations");
@@ -24,6 +25,18 @@ const files = readdirSync(MIGRATIONS_DIR).filter((f) => f.endsWith(".sql"));
 const timestamped = files.filter((f) => /^\d{14}_/.test(f));
 const sequential = files.filter((f) => /^\d{4}_/.test(f));
 
+/**
+ * Empreinte de l'ENSEMBLE des noms de fichiers (triés, séparateur `\n`, + `\n`
+ * final). Comparer des **comptes** laissait passer une substitution net-zéro
+ * (ajouter 1 migration, en retirer 1 → totaux inchangés, dérive invisible).
+ * L'empreinte rend toute substitution détectable.
+ */
+function filenamesHash(): string {
+  return createHash("sha256")
+    .update([...files].sort().join("\n") + "\n")
+    .digest("hex");
+}
+
 const snapshot = JSON.parse(readFileSync(SNAPSHOT, "utf8")) as {
   measured: {
     repo_timestamped_files: number;
@@ -32,6 +45,7 @@ const snapshot = JSON.parse(readFileSync(SNAPSHOT, "utf8")) as {
     versions_in_common: number;
     common_versions: string[];
     drift_ratio: string;
+    repo_filenames_sha256: string;
   };
 };
 
@@ -64,5 +78,14 @@ describe("R17 — garde : l'instantané de dérive migrations doit refléter le 
     // Si ce ratio venait à changer (régularisation de l'historique), la garde
     // doit le signaler : ce n'est pas une régression, mais un état à re-décider.
     expect(snapshot.measured.drift_ratio).toBe("2/70");
+  });
+
+  it("l'ENSEMBLE des noms de fichiers correspond à l'empreinte figée (substitution net-zéro détectée)", () => {
+    // Un simple comptage laissait passer la substitution « +1 / -1 » (totaux
+    // inchangés). L'empreinte verrouille l'ensemble exact des versions.
+    expect(
+      filenamesHash(),
+      "Ensemble des migrations modifié → re-mesurer la dérive (R17) et mettre à jour docs/agent/migration-drift.json (champ repo_filenames_sha256)",
+    ).toBe(snapshot.measured.repo_filenames_sha256);
   });
 });

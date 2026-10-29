@@ -12,7 +12,8 @@
     "common_versions": ["20261001000001", "20261027000003"],
     "applied_without_repo_file": 68,
     "repo_file_never_applied": 61,
-    "drift_ratio": "2/70"
+    "drift_ratio": "2/70",
+    "repo_filenames_sha256": "8f93962d5d1ad5d4e808bfb840579112959746f9172f959b5d2f4affcebdcd07"
   },
   "tracker_sample_versions": [
     "20260910123851",
