@@ -31,6 +31,8 @@ describe('Lumina — F5 persistence (event)', () => {
     (Cypress.expose('SUPABASE_URL') as string) ||
     'https://hhgovvrnalibhgpakswi.supabase.co';
   const anonKey = Cypress.expose('SUPABASE_ANON_KEY') as string;
+  // P39 — borne temporelle stricte du nettoyage (run courant uniquement).
+  const runStartedAt = new Date().toISOString();
 
   /**
    * Jeton RÉEL de l'utilisateur connecté (motif de
@@ -53,6 +55,20 @@ describe('Lumina — F5 persistence (event)', () => {
     this.timeout(120_000);
     cy.loginOrgAccount();
     cy.ensureAuth();
+  });
+
+  after(() => {
+    // P39 — nettoyage NON FATAL (voir cypress/support/e2eCleanup.ts) : annule
+    // l'événement « Event Persist F5 » créé par ce spec. La mesure
+    // (2026-10-29) comptait 267 résidus de ce nom exact — le spec créait 1
+    // événement par exécution sans jamais le nettoyer. La borne `sinceIso`
+    // garantit que seul l'événement du RUN COURANT est annulé (le nom est
+    // déterministe, donc partagé par tous les runs passés). C'est une
+    // ARCHIVATION (`CANCELLED`), jamais une suppression destructive.
+    cy.cleanupTestArtifacts({
+      eventNamePrefix: ['Event Persist F5'],
+      sinceIso: runStartedAt,
+    });
   });
 
   it('event creation and persistence across navigation', function () {

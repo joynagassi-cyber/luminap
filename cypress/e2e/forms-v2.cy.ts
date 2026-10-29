@@ -40,6 +40,12 @@ describe('Lumina — Forms v2 (currency, table view, DRAFT edit)', () => {
   // org créée au signup du 1er run). Sert aux vérifications REST du setup.
   const ORG_E2E_ID = 'org-e2e';
 
+  // P39 — borne temporelle stricte : seules les soumissions créées APRÈS cet
+  // instant sont purgées. Le formulaire `E2e Forms v2` est une fixture
+  // PARTAGÉE (réutilisée d'un run à l'autre) : on ne l'archive pas, on purge
+  // uniquement ses soumissions du run courant.
+  const runStartedAt = new Date().toISOString();
+
   const SUPABASE_URL =
     (Cypress.expose('SUPABASE_URL') as string) ||
     'https://hhgovvrnalibhgpakswi.supabase.co';
@@ -511,6 +517,15 @@ describe('Lumina — Forms v2 (currency, table view, DRAFT edit)', () => {
         cy.contains('button, ion-button', 'Brouillon').click({ force: true });
         cy.contains('button, ion-button', 'Publier', { timeout: 60_000 }).should('exist');
       }
+    });
+    // P39 — nettoyage NON FATAL (cypress/support/e2eCleanup.ts) : purge les
+    // soumissions créées par ce run pour la fixture `E2e Forms v2`. Sans lui,
+    // chaque exécution laissait une soumission de test de plus (mesure :
+    // 1 « E2e Forms v2 » en base, une soumission par run). Le formulaire
+    // lui-même est conservé (fixture partagée, non archivée).
+    cy.cleanupTestArtifacts({
+      formSubmissionFormNamePrefix: [FORM_NAME],
+      sinceIso: runStartedAt,
     });
   });
 });

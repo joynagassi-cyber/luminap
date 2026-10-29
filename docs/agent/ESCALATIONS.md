@@ -48,45 +48,57 @@
   vitest, build) sont bloquants ; les specs Cypress **indépendantes de
   PowerSync** restent le signal E2E exploitable.
 
-## E3 — Sauvegardes automatiques : chaîne prouvée, activation = propriétaire
+## E3 — Sauvegardes automatiques : **RÉSOLUE** (secrets configurés, publication vérifiée)
 
-- **Symptôme** : `.github/workflows/backup.yml` présent mais jamais exécuté avec
-  succès (secrets `SUPABASE_DB_URL` / `BACKUP_GPG_PASSPHRASE` absents).
-- **Preuves** : chaîne complète **exécutée et vérifiée le 2026-10-27** — schéma
-  17 838 o, données 2 166 111 o (76 tables), empreintes SHA-256 OK, chiffrement
-  AES256 déchiffrable (`gpg --decrypt | zcat` → 76 tables) ; run workflow
-  `40114231378` → 0 artefact publié (garde-fou « chiffré seulement » OK).
-  Restauration prouvée antérieurement (R99 : 44 tables, 146 politiques, 10/10).
+- **Symptôme initial** : `.github/workflows/backup.yml` présent mais export
+  *skipped* (secrets `SUPABASE_DB_URL` / `BACKUP_GPG_PASSPHRASE` absents) → runs
+  **verts mais sans sauvegarde** (faux sentiment de sécurité).
+- **Preuve de résolution (2026-10-29)** : déclenchement manuel → run
+  `40813667253` **succès**, étapes « Export (schéma + données) » **et**
+  « Publier l'export (chiffré uniquement) » **exécutées**, **1 artefact chiffré
+  publié** (`supabase-backup-40813667253`, 3,9 Mo, non expiré). ⇒ Les deux
+  secrets sont **désormais présents** ; les runs planifiés du dimanche
+  produiront donc des artefacts (les runs antérieurs au 27/10 étaient
+  antérieurs à la configuration).
+- **Antériorité** : chaîne vérifiée le 2026-10-27 (schéma 17 838 o, données
+  2 166 111 o, empreintes SHA-256 OK, AES256 déchiffrable) ; restauration
+  prouvée (R99 : 44 tables, 146 politiques, 10/10).
 - **Correctif inclus** : bug latent du script (nom `.gz` conservant le point
-  initial → échec des empreintes) corrigé ; cadence passée en **hebdomadaire**.
-- **Hypothèses testées** : (1) activer le workflow → bloqué faute de secrets ;
-  (2) sauvegarde manuelle → réussie.
-- **Recommandation** : le propriétaire crée `SUPABASE_DB_URL` +
-  `BACKUP_GPG_PASSPHRASE` (procédure RUNBOOK §« Sauvegarde VÉRIFIÉE »).
-- **Repli appliqué** : aucune migration destructive tant que la sauvegarde
-  automatique n'est pas active (principe conservateur D-S9-5) ; runbook opérateur
-  livré.
+  initial → échec des empreintes) corrigé ; cadence **hebdomadaire**.
+- **Reste à la charge du propriétaire** : rien de bloquant. Optionnel : passer
+  le dépôt en privé pour une rétention hors-site durable (les artefacts CI
+  restent 14 j ; dépôt public ⇒ garde-fou « chiffré seulement » actif).
+- **Repli** : la sauvegarde étant **vérifiée**, les opérations destructives
+  (ex. purge des données de test, phase 18) sont désormais **couvertes** par une
+  restauration possible (principe conservateur D-S9-5 levé).
 
-## E4 — Le parcours « réclamer une invitation » ne peut pas aboutir (R111)
+## E4 — Le parcours « réclamer une invitation » — **RÉSOLUE** (R111, option a)
 
-- **Symptôme** : un invité qui réclame une invitation (QR/code/fichier) voit
-  « bienvenue » dans l'app, mais **rien n'arrive en base** : le profil PENDING
-  n'est jamais uploadé, le claim n'est jamais réglé, l'utilisateur n'obtient
-  jamais le rôle/organisation de l'invitation.
-- **Cause racine** : `claimInvitation` crée un profil PENDING à **UUID
+- **Symptôme initial** : un invité qui réclame une invitation (QR/code/fichier)
+  voyait « bienvenue » dans l'app, mais **rien n'arrivait en base** : le profil
+  PENDING n'était jamais uploadé, le claim jamais réglé, l'utilisateur
+  n'obtenait jamais le rôle/organisation de l'invitation.
+- **Cause racine** : `claimInvitation` créait un profil PENDING à **UUID
   aléatoire** (`crypto.randomUUID()`), or `profiles.id → auth.users(id)` et
   `org_memberships.user_id → auth.users(id)` (FK **NON deferrable**). Le
   « bridge `auth.users` » prévu par le design (edge `bridge-auth.ts`, Vague 3.5)
   n'a jamais été implémenté.
-- **Preuves** : `23503` à l'upsert du profil **et** au règlement du trigger ;
-  `invitation_claims = 0` et profils `pending-*@lumina.local = 0` en base ;
-  contrôle négatif/positif : le flux avec un **compte Auth réel** réussit
-  (claim `CONFIRMED`, profil+membership `ACTIVE`, sync filtrée `events:1`).
-- **Décision requise (propriétaire)** : (a) exiger une inscription Auth avant
-  le claim et porter `resulting_user_id` = id Auth du réclamant, ou (b) assouplir
-  la FK `profiles.id → auth.users`. Non tranché.
-- **Repli appliqué** : aucun code modifié (décision d'architecture) ; documenté
-  (R111) + receipt.
+- **Décision retenue (option a, tranchée)** : **inscription Auth obligatoire
+  avant le claim**. Implémenté (PR #55, `agent/r111-claim-auth-required`) :
+  - `claimInvitation` exige une session (`authService.getSession()`) ; sans
+    session → `AUTH_REQUIRED` ; le profil local est un **UPSERT** lié à
+    `auth.uid()` qui n'écrit QUE `status='PENDING'` (role/org_id intacts) ;
+  - `InvitationClaim.tsx` : bandeau « Créez d'abord votre compte » + CTA
+    `/auth` sans session.
+- **Preuve du correctif** : compte Auth réel → profil `PENDING`, claim
+  `PENDING_SYNC` puis règlement serveur → `role=ANCIEN`, `org_id=org-1`, profil
+  `ACTIVE`, claim `CONFIRMED`, `used_count=1`, `org_memberships=1` ; contre-cas
+  (UUID aléatoire) → `23503 profiles_id_fkey` (désormais impossible).
+- **Statut** : **résolue** (code en `main` depuis la PR #55 ; vérifié
+  `src/capabilities/invitation/index.ts` lignes 302-357). Documentée (R111) +
+  receipt `phase-05-06/2026-10-26-r111-claim-auth-required.md`.
+- **Reste ouvert (hors périmètre)** : le scope granulaire (event/report/ressource
+  libre) n'a pas d'UI d'émission (R112).
 
 ## E5 — Authentification PowerSync : audience `authenticated` rejetée (401) — R132
 
@@ -120,6 +132,26 @@
   (les assouplir rouvrirait R52.q et ferait passer un test en l'affaiblissant).
   Interdit respecté : `powersync/service.yaml` et `powersync/sync-config.yaml`
   non touchés. Receipt : `phase-11/2026-10-29-cypress-sync-auth-blocker.md`.
+- **Preuve décisive (2026-10-29)** : `POST /sync/stream` avec un JWT
+  utilisateur réel (`aud: "authenticated"`, ES256, `kid=e6d0da61-…`) →
+  **401 `PSYNC_S2105`** ; contre-épreuves : corps invalide + jeton bidon →
+  `400 FST_ERR_CTP_INVALID_JSON_BODY` (le parseur répond **avant** l'auth — un
+  400 ne prouve rien) ; jeton legacy HS256 → `401 PSYNC_S2101` (clé absente).
+- **Mécanisme exact** : le collecteur JWKS explicite (`client_auth.jwks_uri`)
+  n'a pas de `requiresAudience` → `KeyStore.verifyJwt` retombe sur
+  `client_auth.audience` (= `additional_audiences`) ; le collecteur Supabase
+  auto-dérivé (qui porte `requiresAudience: ["authenticated"]`) est **masqué**
+  par le collecteur explicite (même URL, même `kid`).
+- **Correctif prêt (dépôt, forme exacte)** : `powersync/service.yaml` →
+  `client_auth.additional_audiences: ["authenticated"]`. Après
+  `powersync deploy service-config`, `POST /sync/stream` doit répondre **200**.
+- **Filet produit appliqué par l'agent (ne dépend pas du déploiement)** : au-delà
+  de 30 s sans réplique, l'app affiche « Synchronisation indisponible… » +
+  « Réessayer » (`SyncUnavailableBanner`) au lieu d'un squelette **perpétuel**
+  muet (R132). Les gardes R52 sont **conservées**. Prouvé en local (bannière
+  visible en 45 s sur l'instance cassée).
+- **Convergence** : l'agent local et 2 agents Cloud ont isolé la même cause.
+
 - **Défaut jumeau (R133, non corrigé — dépend de E5)** : dans
   `comprehensive-flow.cy.ts`, l'`id` dérivé de l'URL après création vaut `"new"`
   (`/transaction/new` satisfait `should('include', '/transaction/')`), donc le

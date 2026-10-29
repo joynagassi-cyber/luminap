@@ -34,6 +34,20 @@ describe('Lumina — comprehensive navigation & finance flow', () => {
   const PAGE = 'div.ion-page:not(.ion-page-hidden)';
   const BTNS = `${PAGE} button, ${PAGE} ion-button`;
 
+  // P39 — borne temporelle stricte du nettoyage (run courant uniquement).
+  const runStartedAt = new Date().toISOString();
+
+  after(() => {
+    // Nettoyage NON FATAL (cypress/support/e2eCleanup.ts) : supprime la
+    // transaction « E2E Comprehensive Tx » créée par ce run (DRAFT/PENDING
+    // uniquement — jamais APPROVED). Sans lui, chaque exécution laissait une
+    // transaction réelle de plus en base.
+    cy.cleanupTestArtifacts({
+      transactionDescriptionPrefix: ['E2E Comprehensive Tx'],
+      sinceIso: runStartedAt,
+    });
+  });
+
   /** Clic sur un bouton de la page ACTIVE (Cypress ré-essaie la requête). */
   const clickInPage = (label: string | RegExp) =>
     cy.contains(BTNS, label, { timeout: 30_000 }).first().click({ force: true });

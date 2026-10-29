@@ -13,9 +13,26 @@
  */
 
 describe('Lumina — Forms & Custom Fields', () => {
+  // P39 — libellés des champs personnalisés créés par ce run.
+  const customFieldPrefixes: string[] = [];
+  // Borne temporelle stricte : ne supprime QUE les champs créés par ce run.
+  const runStartedAt = new Date().toISOString();
+
   before(function () {
     this.timeout(90_000);
     cy.loginOrgAccount();
+  });
+
+  after(() => {
+    // P39 — nettoyage NON FATAL (cypress/support/e2eCleanup.ts) : supprime
+    // les champs personnalisés « E2e CF <ts> » créés par ce run. Les
+    // formulaires `E2e Form <ts>` ne sont pas nettoyés ici (le spec ne les
+    // référence plus après publication) — le défaut mesuré portait sur les
+    // groupes/événements/annexes/membres, traités dans leurs specs.
+    cy.cleanupTestArtifacts({
+      customFieldLabelPrefix: customFieldPrefixes,
+      sinceIso: runStartedAt,
+    });
   });
 
   it('creates a form and publishes it', function () {
@@ -73,6 +90,7 @@ describe('Lumina — Forms & Custom Fields', () => {
 
     const fieldLabel = 'E2e CF ' + Date.now().toString().slice(-6);
     const fieldKey = 'e2e_cf_' + Date.now().toString().slice(-6);
+    customFieldPrefixes.push(fieldLabel);
 
     cy.ensureAuth();
     cy.visit('/custom-fields');

@@ -11,9 +11,25 @@
  */
 
 describe('Lumina — Members', () => {
+  // P39 — préfixe de `last_name` unique au run (repli de nettoyage).
+  let memberLastNamePrefix = '';
+  // Borne temporelle stricte : n'archive QUE le membre créé par ce run.
+  const runStartedAt = new Date().toISOString();
+
   before(function () {
     this.timeout(90_000);
     cy.loginOrgAccount();
+  });
+
+  after(() => {
+    // P39 — nettoyage NON FATAL (cypress/support/e2eCleanup.ts) : archive
+    // (`ARCHIVED`) le membre « Jean E2e<ts> » créé par ce run. Mesure :
+    // 285 membres « E2e… » résiduels — le spec créait un membre à chaque
+    // exécution sans jamais le nettoyer.
+    cy.cleanupTestArtifacts({
+      memberLastNamePrefix: [memberLastNamePrefix],
+      sinceIso: runStartedAt,
+    });
   });
 
   it('creates a member and shows it in the list', function () {
@@ -22,6 +38,7 @@ describe('Lumina — Members', () => {
     const firstName = 'Jean';
     const lastName = 'E2e' + Date.now().toString().slice(-5);
     const phone = '0700' + Date.now().toString().slice(-6);
+    memberLastNamePrefix = lastName;
 
     cy.ensureAuth();
     cy.visit('/members');

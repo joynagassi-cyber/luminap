@@ -37,6 +37,16 @@
 const PAGE = 'div.ion-page:not(.ion-page-hidden)';
 
 describe('Lumina — Groups & Events', () => {
+  // P39 — artefacts créés par CE run (noms uniques au run : `Date.now()`).
+  // Le repli par préfixe n'archive que ces noms-là, jamais les résidus des
+  // runs précédents.
+  const createdGroupNames = new Set<string>();
+  const createdEventNames = new Set<string>();
+  // Borne temporelle stricte : n'archive QUE les entités créées après ce
+  // instant (le suffixe `Date.now()` sur 6 chiffres se répète toutes les
+  // ~16,7 min — la borne garantit « run courant uniquement »).
+  const runStartedAt = new Date().toISOString();
+
   before(function () {
     this.timeout(90_000);
     cy.loginOrgAccount();
@@ -44,9 +54,22 @@ describe('Lumina — Groups & Events', () => {
     cy.ensureAuth();
   });
 
+  after(() => {
+    // Nettoyage NON FATAL (voir cypress/support/e2eCleanup.ts) : archive les
+    // groupes (`ARCHIVED`) et annule les événements (`CANCELLED`) créés par ce
+    // run. Sans lui, chaque exécution laissait un groupe « Jeunesse … », un
+    // « Culte de Noël … » et une « Conférence … » ACTIVE en base.
+    cy.cleanupTestArtifacts({
+      groupNamePrefix: [...createdGroupNames],
+      eventNamePrefix: [...createdEventNames],
+      sinceIso: runStartedAt,
+    });
+  });
+
   it('creates a group, opens it, and navigates back to the list', function () {
     this.timeout(180_000);
     const groupName = 'Jeunesse ' + Date.now().toString().slice(-6);
+    createdGroupNames.add(groupName);
 
     cy.ensureAuth();
     cy.visit('/groups');
@@ -104,6 +127,7 @@ describe('Lumina — Groups & Events', () => {
   it('creates an event, shows its detail tabs and the Planifié badge', function () {
     this.timeout(180_000);
     const eventName = 'Culte de Noël ' + Date.now().toString().slice(-6);
+    createdEventNames.add(eventName);
 
     cy.ensureAuth();
     // Le LazyRoute (src/ionic/routes/events.tsx) charge le chunk
@@ -145,6 +169,7 @@ describe('Lumina — Groups & Events', () => {
   it('shows empty budget and transaction tabs on a new event', function () {
     this.timeout(180_000);
     const eventName = 'Conférence ' + Date.now().toString().slice(-6);
+    createdEventNames.add(eventName);
 
     cy.ensureAuth();
     cy.visit('/event/new');

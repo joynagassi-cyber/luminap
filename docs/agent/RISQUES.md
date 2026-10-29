@@ -66,30 +66,55 @@
   (`PASTEUR_PRINCIPAL`) crée toujours (INSERT accepté) et un membre lit
   toujours (`GET` → 200).
 
-### R16 — `profiles.role` et `org_memberships.role` divergent — OUVERT
-- **Défaut** : pour le compte de test, `profiles.role = 'MEMBRE'` mais
-  `org_memberships.role = 'PASTEUR_PRINCIPAL'` pour la même organisation. Deux
-  sources de vérité du rôle coexistent et peuvent se contredire.
+### R16 — `profiles.role` et `org_memberships.role` divergent — OUVERT (risque de modèle)
+- **Défaut** : deux sources de vérité du rôle coexistent — `profiles.role`
+  (profil global) et `org_memberships.role` (rôle dans une organisation) — sans
+  trigger de synchronisation. Elles **peuvent** se contredire.
 - **Impact** : un gate qui ne lirait qu'une des deux tables accorderait ou
-  refuserait à tort. Le correctif R15 lit les deux pour être sûr ; mais la
-  divergence reste un **risque de modèle** (rôle affiché ≠ rôle effectif).
+  refuserait à tort. Le correctif R15 lit les deux pour être sûr ; la divergence
+  reste un **risque de modèle** (rôle affiché ≠ rôle effectif).
+- **Mesure 2026-10-29 (post-purge)** : sur les 2 comptes restants, les deux
+  colonnes sont **cohérentes** (`PASTEUR_PRINCIPAL` = `PASTEUR_PRINCIPAL`). La
+  divergence concrète observée en R16 n'existe donc **plus dans les données**
+  actuelles (elle concernait des profils de test depuis purgés) ; le risque
+  **structurel** (2 colonnes, 0 trigger de sync) demeure.
+- **Ce qui existe déjà** : gardes d'immuabilité/escalade sur `profiles.role`
+  (`guard_profile_role_immutable`, `guard_profile_role_insert` — R15/R91) et
+  `trg_guard_profile_org` (org immuable). Aucun trigger ne propage
+  `profiles.role` → `org_memberships.role` (ni l'inverse).
 - **Décision conservatrice** : ne pas « réparer » les données (risque
-  d'aggraver), documenter et faire trancher le propriétaire.
+  d'aggraver), documenter et faire trancher le propriétaire (choix d'une source
+  de vérité unique, ou ajout d'un trigger de propagation).
 - **Statut** : ouvert, à trancher (voir DECISIONS.md et RAPPORT_FINAL.md).
 
 
 ### R17 — Dérive majeure migrations ↔ base (les fichiers du dépôt ne sont pas la source de vérité) — OUVERT
-- **Défaut** : les 39 migrations enregistrées dans
-  `supabase_migrations.schema_migrations` portent des versions d'horodatage
-  (`20260910123851`, …, `20261022192658`) qui **n'ont AUCUN fichier
-  correspondant** dans `supabase/migrations/`. Inversement, les **34**
-  migrations horodatées du dépôt (`20260909000002_create_invitation_system.sql`,
-  etc.) n'ont **jamais** été enregistrées comme appliquées. Les 63 migrations
-  historiques `NNNN_*.sql` (0000→0062) ne sont pas traçables non plus.
-- **Conséquence** : `supabase db push` rejouerait 34 migrations non tracées sur
-  une base où leur contenu existe déjà → erreurs (objets existants) voire
-  altérations. `supabase db pull` produirait un diff trompeur. **Ne pas lancer
-  `db push` sans revue manuelle.**
+- **Défaut** : le tracker `supabase_migrations.schema_migrations` contient
+  **70** migrations appliquées, dont les versions d'horodatage
+  (`20260910123851`, …, `20261028145533`) **n'ont AUCUN fichier
+  correspondant** dans `supabase/migrations/`. Inversement, les migrations
+  horodatées du dépôt (`20260909000002_create_invitation_system.sql`, etc.)
+  n'ont **jamais** été enregistrées comme appliquées. Les migrations
+  historiques séquentielles `NNNN_*.sql` ne sont pas traçables non plus.
+- **Mesure 2026-10-29** (recoupement `schema_migrations` × fichiers du dépôt) :
+
+  | Ensemble | Nombre |
+  |---|---|
+  | Versions appliquées (tracker) | **70** |
+  | Fichiers horodatés du dépôt | **63** |
+  | **Versions communes** (appliquée *et* fichier présent) | **2** |
+  | Appliquées sans fichier (versions auto-générées à l'application) | **68** |
+  | Fichiers jamais enregistrés comme appliqués | **61** |
+
+  Les seules correspondances exactes sont `20261001000001` et
+  `20261027000003`. **La dérive est donc quasi totale (2/70)** : le tracker et
+  le dépôt sont deux historiques disjoints. Les 63 fichiers séquentiels
+  `NNNN_*` (0000→0062) s'ajoutent aux 63 fichiers horodatés → **126 fichiers**
+  pour un tracker qui ne connaît que des versions à 14 chiffres.
+- **Conséquence** : `supabase db push` rejouerait les **61** migrations non
+  tracées sur une base où leur contenu existe déjà → erreurs (objets existants)
+  voire altérations. `supabase db pull` produirait un diff trompeur. **Ne pas
+  lancer `db push` sans revue manuelle.**
 - **Cause probable** : le schéma a été appliqué via l'éditeur SQL / MCP (versions
   auto-générées à l'heure d'application), pas via `supabase db push`. Mes propres
   correctifs suivent ce chemin : les fichiers `20261022000003/4` du dépôt
@@ -104,19 +129,27 @@
   trancher — voir DECISIONS.md et RAPPORT_FINAL.md.
 - **Statut** : ouvert, documenté, contourné (instantané).
 
-### R18 — Aucune sauvegarde ni PITR sur le projet Supabase — OUVERT (CRITIQUE pour 4 mois)
+### R18 — Aucune sauvegarde native ni PITR sur le projet Supabase — MITIGÉ (2026-10-29)
 - **Défaut** : l'API Management renvoie `backups: []` et `pitr_enabled: false`
-  pour `hhgovvrnalibhgpakswi` (plan gratuit). Aucun point de restauration.
+  pour `hhgovvrnalibhgpakswi` (plan gratuit). Aucun point de restauration
+  **natif**.
 - **Preuve** : `GET /v1/projects/hhgovvrnalibhgpakswi/database/backups` →
-  `{"walg_enabled":true,"pitr_enabled":false,"backups":[]}`.
-- **Conséquence** : une erreur de schéma ou une suppression accidentelle est
-  **irréversible**. Aucun retour arrière automatique possible.
-- **Mitigation fournie** : `scripts/schema-snapshot.sql` (DDL complet) +
-  migrations réversibles (`rollback/`). Ne couvre PAS les données.
-- **Recommandation** : activer les sauvegardes (plan payant) ou exporter
-  régulièrement les données ; voir RUNBOOK.md.
-- **Statut** : ouvert — hors périmètre de correction (dépend d'une décision
-  d'abonnement du propriétaire).
+  `{"walg_enabled":true,"pitr_enabled":false,"backups":[]}` (revérifié
+  2026-10-29 : inchangé).
+- **Conséquence** : une erreur de schéma ou une suppression accidentelle n'est
+  pas réversible par Supabase lui-même.
+- **Mitigation ACTIVE depuis 2026-10-29 (E3 résolue)** : sauvegarde logique
+  **quotidienne** via `.github/workflows/backup.yml` (secrets `SUPABASE_DB_URL`
+  + `BACKUP_GPG_PASSPHRASE` configurés). Preuve de bout en bout : run
+  `40813667253` → export schéma + données **chiffré** publié en artefact
+  (`supabase-backup-40813667253`). **Restauration testée** : schéma (44 tables,
+  146 policies) + données restaurés dans un conteneur jetable, fidélité
+  contrôlée 10/10 (cf. RUNBOOK §« Sauvegarde VÉRIFIÉE »).
+- **Limite résiduelle** : pas de PITR → la granularité est **journalière**, pas
+  à la seconde ; la fenêtre de perte possible reste de 24 h. Un `backups: []`
+  natif subsiste (dépend d'un plan payant).
+- **Statut** : mitigé (sauvegarde + restauration prouvées). PITR natif =
+  décision d'abonnement du propriétaire.
 
 
 ### R19 — Régression `used_count` (durcissement invitations) — CORRIGÉ
@@ -154,15 +187,15 @@
 - **Résiduel** : les 59 profils **déjà** rattachés à `org-1` restent liés entre
   eux (données potentiellement réelles : non déplacées). Voir R22.
 
-### R22 — 59 comptes rattachés à `org-1` (dont des adresses réelles) — OUVERT
-- **Constat** : `org-1` contient 59 profils mêlant comptes de test et adresses
-  personnelles réelles (`joynagassi@gmail.com`, `kairosiluminate@gmail.com`, …).
-  Ces comptes peuvent se lire entre eux (même organisation).
-- **Risque** : si ces adresses sont des utilisateurs réels distincts, il y a
-  divulgation croisée d'e-mails. Le propriétaire doit décider : purger `org-1`,
-  ou éclater ces comptes en organisations réelles.
-- **Décision conservatrice** : ne rien déplacer automatiquement (risque
-  d'aggraver). Documenté, à trancher.
+### R22 — 59 comptes rattachés à `org-1` (dont des adresses réelles) — ✅ RÉSOLU (2026-10-29, phase 18)
+- **Constat initial** : `org-1` contenait 59 profils mêlant comptes de test et
+  adresses personnelles réelles (`joynagassi@gmail.com`, …), susceptibles de se
+  lire entre eux (même organisation).
+- **Résolution** : la purge des données de test (phase 18, PR #119) a supprimé
+  l'organisation `org-1` **et** tous ses profils. Mesure post-purge : `org-1`
+  inexistante, **0 profil** rattaché, **0 adresse grand public** dans la base
+  (2 profils restants = comptes de test `@lumina.dev`).
+- **Statut** : fermé — la divulgation croisée d'e-mails n'est plus possible.
 
 ### R23 — `settle_invitation_claim` était exécutable par `anon`/PUBLIC — CORRIGÉ
 - **Défaut** : la fonction (règlement de claim) était `EXECUTE`-able par `anon`
@@ -3501,6 +3534,34 @@ partagée par les deux plateformes et couverte par 3 tests.
 - **Repli appliqué** : aucun code applicatif modifié ; gardes R52 conservées ;
   `powersync/service.yaml` et `powersync/sync-config.yaml` **non touchés**.
 - **Receipt** : `docs/agent/receipts/phase-11/2026-10-29-cypress-sync-auth-blocker.md`.
+
+**Mise à jour 2026-10-29 (R129 — mécanisme + filet produit)**
+- **Mécanisme exact (code du service)** : le collecteur JWKS **explicite**
+  (`client_auth.jwks_uri`) n'a pas de `requiresAudience` ; `KeyStore.verifyJwt`
+  retombe alors sur `defaultAudiences = client_auth.audience`
+  (`compound-config-collector.ts`). Le collecteur **Supabase auto-dérivé**
+  (hostname de réplication) porte, lui, `requiresAudience: ["authenticated"]`
+  (`StaticSupabaseKeyCollector`), mais le collecteur explicite (même URL, même
+  `kid`) le **masque** à la sélection de clé. Avec `additional_audiences: []`,
+  aucune audience n'est autorisée → rejet de chaque jeton.
+- **Correctif prêt (dépôt)** : `powersync/service.yaml` →
+  `client_auth.additional_audiences: ["authenticated"]` (cf. E5 pour le
+  déploiement).
+- **Filet produit « zéro écran muet » (livré, ne dépend pas du déploiement)** :
+  la cause racine explique pourquoi les gardes R52 produisaient un squelette
+  **perpétuel** (muet, sans issue). Correctif borné :
+  1. `dataLayer` : `markPowerSyncUnavailable` / `subscribePowerSyncUnavailable` /
+     `useReplicaUnavailable` + **borne de disponibilité** (30 s) dans
+     `usePowerSyncStatus` ;
+  2. `SyncUnavailableBanner` (monté dans `App.tsx`) : au-delà de la borne,
+     affiche « Synchronisation indisponible… » + bouton « Réessayer », hors du
+     flux de route (les gardes R52 sont **conservées**).
+- **Preuve** : vitest **1647/1647** (+4 tests) ; crawler P0
+  `zero-black-screen.cy.ts` **64/64** ; bannière **prouvée en réel** (apparaît
+  en 45 s sur l'instance cassée) ; `tsc -b` = 0 ; eslint 0 erreur.
+- **Convergence** : 2 agents Cloud + l'agent local ont isolé la même cause
+  (PRs #116 mergée, #117 ouverte).
+- **Receipt** : `docs/agent/receipts/phase-12/2026-10-29-powersync-audience-p0.md`.
 
 ### R133 — `comprehensive-flow` dérive l'id `"new"` de l'URL après création — ⛔ BLOQUÉ (dépend de E5) le 2026-10-29
 

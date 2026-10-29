@@ -17,6 +17,12 @@
 import { getOrgCredentials } from '../support/orgCreds';
 
 describe('Lumina — cloud sync (offline → online)', () => {
+  // P39 — noms créés par ce run (repli de nettoyage).
+  const groupPrefixes: string[] = [];
+  const customFieldPrefixes: string[] = [];
+  // Borne temporelle stricte : ne nettoie QUE les lignes créées par ce run.
+  const runStartedAt = new Date().toISOString();
+
   before(function () {
     this.timeout(90_000);
     // Login du compte d'organisation UNIQUE du run (créé par
@@ -24,6 +30,24 @@ describe('Lumina — cloud sync (offline → online)', () => {
     // l'org existe déjà, on atterrit direct sur /dashboard (needsOnboarding()
     // = false car l'org a déjà passé le wizard).
     cy.loginOrgAccount();
+  });
+
+  after(() => {
+    // P39 — nettoyage NON FATAL (cypress/support/e2eCleanup.ts). Ce spec
+    // POSTe DIRECTEMENT dans Supabase (accounts, caisses, groups, org_units,
+    // custom_field_definitions) et ne nettoyait rien : chaque exécution
+    // laissait 5 lignes réelles de plus. On archive le groupe/le compte
+    // (`ARCHIVED`), et on supprime les lignes sans statut d'archivage
+    // (caisses, org_units, custom_field_definitions) — ciblées par le nom
+    // unique au run.
+    cy.cleanupTestArtifacts({
+      groupNamePrefix: groupPrefixes,
+      accountNamePrefix: groupPrefixes,
+      caisseNamePrefix: groupPrefixes,
+      orgUnitNamePrefix: groupPrefixes,
+      customFieldLabelPrefix: customFieldPrefixes,
+      sinceIso: runStartedAt,
+    });
   });
 
   it('group and custom field created offline reach Supabase after reconnect', function () {
@@ -41,6 +65,8 @@ describe('Lumina — cloud sync (offline → online)', () => {
     const now = Date.now();
     const accountName = 'TestSync Account ' + now;
     const cfKey = 'test_sync_cf_' + now;
+    groupPrefixes.push(accountName);
+    customFieldPrefixes.push('TestSync Custom Field ' + now);
     // UUID du groupe créé par le spec — on le génère CÔTE SPEC (pas côté
     // app) pour que l'assertion REST puisse le localiser dans Supabase
     // sans dépendre de la valeur côté client (qui peut être une ligne
