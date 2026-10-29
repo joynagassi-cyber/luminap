@@ -597,3 +597,28 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
 - **Non-vacuité obligatoire** : pour tout correctif R52, retirer la garde, voir
   les tests échouer, restaurer. Chaque cas a son test comportemental
   (`list-loading-vs-empty.test.tsx`, `r52l-*`, `r52o-*`, `r52p-*`).
+
+## RBAC Lumina (mesuré 2026-10-29, session R137/R138)
+- **14 rôles** en DONNÉES (`role_permissions`, 149 lignes, **27 permissions
+  distinctes**), pas un enum : colonne `role` = TEXT **sans CHECK**. Ordre :
+  PASTEUR_PRINCIPAL(27) > TREASURIER(23) > ANCIEN(19) > … > MEMBRE(2).
+- **Deux sources alignées** : `PERMISSION_MATRIX` (`src/lib/rbac.ts`, union TS
+  figée 14 rôles) ↔ `role_permissions`. Seul écart `ADMIN`/`CENTRAL_ADMIN`
+  (R109, hors canon, décision propriétaire en attente).
+- **R137 (HAUTE, OUVERT)** : `has_permission()` existe en base mais **0/30**
+  politiques d'écriture ne l'appellent (1 seule l'utilise, en LECTURE :
+  `role_permissions_read`). Tout repose sur `is_org_member` seul → un `MEMBRE`
+  peut INSERT/UPDATE/DELETE une transaction au niveau base (l'UI masque via
+  `PERMISSION_MATRIX`, mais REST/PostgREST direct passe). Même classe que R49
+  (« garde déclarée, jamais câblée »). Correctif = câbler `has_permission` dans
+  ~30 politiques ; chantier P2 non fait (conservateur, PR #152 documente).
+- **Assignation** : `/admin/roles` (`OrgRoles.tsx`) → `assignMemberRole` écrit
+  `org_memberships` (RLS `om_update` = `is_org_admin`) ; capacités →
+  `grantCapability` sur `grants` (org-scopée, **0 ligne**). `profiles.role`
+  jamais touché (rôle global, trigger immuable).
+- **Créer un rôle** : possible en base (TEXT libre) mais **inopérant** — le
+  front ne connaît que l'union TS. Exige R137 d'abord, puis modèle data-driven.
+- **Sauvegarde** : cron `backup.yml` était **hebdomadaire** depuis #52 ;
+  **rétabli quotidien** `0 3 * * *` (R138, PR #152). Run 40889847852 = success,
+  artefact chiffré 3,2 Mo. Secrets `SUPABASE_DB_URL` + `BACKUP_GPG_PASSPHRASE`
+  présents et fonctionnels.
