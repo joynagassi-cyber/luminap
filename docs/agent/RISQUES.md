@@ -2104,9 +2104,17 @@ worker plutôt que le réseau :
 2. `await db.disconnect()` ;
 3. écrire via l'UI (la donnée doit apparaître dans l'interface) ;
 4. `db.connect(connector)` — le connector doit être accessible ; le handle
-   `window.__psDb` est déjà exposé (DEV), le connector ne l'est pas : exposer
-   `window.__psConnector` en DEV est nécessaire (modification produit de
-   ~3 lignes, à confirmer) ;
+   `window.__psDb` est déjà exposé (DEV), **et le connector l'est AUSSI** :
+   `window.__psConnector = _connector` est présent dans
+   `src/lib/powersync/index.ts` (ligne 21, dans `publishDevDiagnostics()`,
+   appelé l. 396). L'affirmation « le connector ne l'est pas / à exposer » —
+   exacte au moment de la rédaction — est **PÉRIMÉE** (vérifié 2026-10-29 :
+   `git log -S"win.__psConnector = _connector"` → introduit par `d86d12b`).
+   **Garde (2026-10-29)** : `src/lib/__tests__/powersync-dev-surface-guard.test.ts`
+   (**R136**) verrouille que cette surface (dont `__psSupabaseClient`, un client
+   Supabase capable d'écritures) reste strictement DEV-only — le prérequis ne
+   peut donc plus disparaître silencieusement, et le risque de fuite en
+   production est couvert ;
 5. attendre la vidange : `await db.getNextCrudTransaction()` → `null`, ou
    `db.currentStatus.uploading === false` sans `uploadError` ;
 6. vérifier la ligne côté serveur avec le **jeton réel** ;
@@ -3740,3 +3748,36 @@ partagée par les deux plateformes et couverte par 3 tests.
   `member-deletion`, `jsonb-inventory`, `settle-claim-rpc-hardening` comparent à
   des inventaires/constantes non vides ou portent un `toBeGreaterThan`).
 - **Statut** : corrigé, gardé.
+
+### R136 — La surface de diagnostic PowerSync (dont un client Supabase) était exposée sur `window` sans garde anti-fuite — ✅ CORRIGÉ le 2026-10-29
+
+- **Gravité** : MOYENNE (exposition conditionnelle ; risque **si** la garde DEV
+  se perdait lors d'un refactor).
+- **Défaut** : `publishDevDiagnostics()` (`src/lib/powersync/index.ts`) expose
+  sur `window` : `__psDb`, `__psConnector`, `__psSupabaseClient` (le **client
+  Supabase** du connector, capable d'écritures avec la session de l'utilisateur)
+  et `__psFlushCrudUpload` (déclencheur d'upload). La **seule** protection est
+  la ligne `if (!import.meta.env.DEV) return;` en tête de fonction. Aucune
+  garde statique ne vérifiait :
+  (a) que cette ligne reste **avant** les écritures `window`, ni
+  (b) qu'aucun autre site du source n'écrit ces globals.
+  Une régression (suppression/relocalisation de la ligne) aurait exposé un
+  client Supabase en **build de production**, sans signal.
+- **Preuve** : `grep -rn "__psConnector" src/` → seule occurrence =
+  `index.ts:21` ; aucune garde de test ne couvrait cette surface.
+- **Correctif** : `src/lib/__tests__/powersync-dev-surface-guard.test.ts` (2) —
+  1. la garde `DEV` existe ET précède toute écriture des 4 globals (chaque
+  global doit être défini **après** le `return` anticipé) ;
+  2. aucun autre fichier source n'écrit ces globals.
+  **Non-vacuité prouvée par mutation** : neutraliser la ligne `DEV` →
+  **1 failed** (`garde … introuvable`).
+- **Statut** : corrigé, gardé.
+
+### R85 — rectificatif de statut (2026-10-29)
+
+- L'étape 4 du correctif identifié affirmait que `window.__psConnector` restait
+  « à exposer (modification produit ~3 lignes, à confirmer) ». **PÉRIMÉ** :
+  `window.__psConnector = _connector` est présent depuis `d86d12b` (vérifié par
+  `git log -S`). Correction apportée inline à l'entrée R85 + garde **R136**.
+- Le résidu réel de R85 reste **environnemental** (worker WASM PowerSync non
+  fiable en headless) : aucun test headless ne peut vider la file. Inchangé.
