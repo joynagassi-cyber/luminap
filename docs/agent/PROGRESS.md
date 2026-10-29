@@ -22,6 +22,7 @@
 | Phase | Tâche | Prio | Statut | Branche / PR | Receipt |
 |---|---|---|---|---|---|
 | 0 | Amorçage de l'état + réconciliation | P0 | **terminé** | `agent/phase-00-etat` | `phase-00/2026-10-26-etat.md` |
+| 12 | **R129 — P0 « écran muet » : audience JWT PowerSync refusée (`PSYNC_S2105`)** : l'instance Production rejetait tout jeton utilisateur → PowerSync jamais `connected` → toutes les pages bloquées sur squelette de chargement perpétuel. **Cause racine** : collecteur JWKS explicite (`jwks_uri`) sans `requiresAudience`, retombant sur `additional_audiences: []`. Correctifs : (a) `service.yaml` → `additional_audiences: ["authenticated"]` (déploiement = propriétaire, E5) ; (b) filet produit « zéro écran muet » (`useReplicaUnavailable` + `SyncUnavailableBanner`) | **P0** | **terminé** (produit) / **bloqué** (déploiement config) | `fix/powersync-replication-r80` (PR #115) | `phase-12/2026-10-29-powersync-audience-p0.md` |
 | 0 | Tâche 1 — skills QA installés (`cypress-e2e`, `claude-code-qa`, `playwright-e2e`, `supertest-api`) | P2 | **terminé** | `agent/task1-qa-skills` | `phase-00/2026-10-26-task1-qa-skills.md` |
 | 2 | Routage : `resolveRoute` + registre unique | P0 | **terminé** | `agent/phase-02-routing` | `phase-02/2026-10-26-routing.md` |
 | 2 | Écrans d'état 404 / « accès refusé » / update-required | P0 | **terminé** | `agent/phase-02-routing` | `phase-02/2026-10-26-routing.md` |

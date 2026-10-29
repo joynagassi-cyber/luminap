@@ -3449,3 +3449,57 @@ partagée par les deux plateformes et couverte par 3 tests.
 - **Preuve** : vitest **1591/1591** (128 fichiers), `tsc -b` exit 0, eslint
   0 erreur.
 - **Receipt** : `docs/agent/receipts/phase-04/2026-10-28-access-cache-invalidation.md`.
+
+### R129 — P0 « écran muet » : l'audience JWT PowerSync refusée bloquait TOUT le contenu derrière les squelettes de chargement — ✅ CAUSE RACINE IDENTIFIÉE, correctif livré (déploiement = propriétaire)
+- **Gravité** : CRITIQUE (P0). L'app entière restait sur des squelettes de
+  chargement perpétuels pour tout utilisateur connecté — y compris en
+  production.
+- **Défaut (mesuré, reproductible)** : l'instance PowerSync Production
+  (`6a9dd96302481fb31b945823`) **rejette tout jeton d'utilisateur Supabase** :
+  ```
+  POST https://6a9dd96302481fb31b945823.powersync.journeyapps.com/sync/stream
+    (JWT utilisateur réel, ES256, kid=e6d0da61-…)
+  → 401 PSYNC_S2105 — Unexpected "aud" claim value: "authenticated"
+  ```
+  Supabase **impose** `aud: "authenticated"` dans ses jetons utilisateur. Or le
+  service config déployé déclare un collecteur JWKS explicite
+  (`client_auth.jwks_uri`) **sans** `requiresAudience`. En lisant le code du
+  service PowerSync (`KeyStore.verifyJwt`, `compound-config-collector.ts`), on
+  établit que ce collecteur retombe alors sur `jwt_audiences`
+  (= `client_auth.additional_audiences`), valant `[]` → **aucune audience
+  autorisée** → rejet de chaque jeton. Le collecteur Supabase auto-dérivé
+  (hostname de réplication) porte bien `requiresAudience: ["authenticated"]`,
+  mais le collecteur JWKS explicite (même URL, même `kid`) le **masque** lors
+  de la sélection de clé.
+- **Chaîne d'impact** : PowerSync ne devient jamais `connected` →
+  `markPowerSyncReady()` n'est jamais appelé → `_psReady` reste `false` → **les
+  pages gardent leur contenu réel derrière `isPowerSyncReadyNow()`** (famille
+  R52 — voulu, pour ne pas afficher un verdict vide faux) → **squelette de
+  chargement perpétuel, sans explication ni issue**. C'est l'« écran noir »
+  du contrat (P0) sous sa forme « écran qui charge sans fin ».
+- **Preuves** :
+  - Sonde hors navigateur : `POST /sync/stream` avec un JWT utilisateur réel →
+    `401 PSYNC_S2105` (déterministe) ; corps invalide + jeton bidon →
+    `400 FST_ERR_CTP_INVALID_JSON_BODY` (le parseur répond avant l'auth : un
+    400 ne prouve rien) ; jeton legacy HS256 → `401 PSYNC_S2101` (clé absente).
+  - Dans le navigateur : `__psDb.currentStatus.dataFlow.downloadError` =
+    `PSYNC_S2105` ; `/members` reste en `data-screen-state="loading"` ; corps
+    de page = « Aller au contenu principal » seul (aucun `h1/h2/h3`).
+  - Convergence indépendante : 2 agents Cloud + l'agent local ont isolé la
+    **même** cause (PRs #116 et #117, non fusionnées).
+- **Correctif (config, dépôt)** : `client_auth.additional_audiences:
+  ["authenticated"]` dans `powersync/service.yaml` (déploiement par le
+  propriétaire — cf. E5).
+- **Correctif (produit, borné — livré)** : filet de sécurité « zéro écran
+  muet » qui ne dépend pas de la config :
+  1. `dataLayer` : état `_psUnavailable` + `markPowerSyncUnavailable` +
+     `subscribePowerSyncUnavailable` + `useReplicaUnavailable` ; borne de
+     disponibilité (30 s) dans `usePowerSyncStatus`.
+  2. `SyncUnavailableBanner` (monté dans `App.tsx`) : au-delà de la borne,
+     affiche « Synchronisation indisponible… » + bouton « Réessayer »
+     (reconnexion best-effort), hors du flux de route.
+- **Non-vacuité / preuve** : vitest **1647/1647** (dont 4 nouveaux tests) ;
+  crawler P0 `zero-black-screen.cy.ts` **64/64** ; bannière **prouvée en
+  réel** (spec dédié : apparaît en 45 s sur l'instance cassée) ; `tsc -b` = 0 ;
+  eslint 0 erreur.
+- **Receipt** : `docs/agent/receipts/phase-12/2026-10-29-powersync-audience-p0.md`.

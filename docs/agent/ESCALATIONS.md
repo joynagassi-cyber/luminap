@@ -87,3 +87,32 @@
   la FK `profiles.id → auth.users`. Non tranché.
 - **Repli appliqué** : aucun code modifié (décision d'architecture) ; documenté
   (R111) + receipt.
+
+## E5 — Audience JWT PowerSync refusée (`PSYNC_S2105`) : déploiement `service-config` = propriétaire
+
+- **Symptôme** : toute l'app reste sur des squelettes de chargement pour un
+  utilisateur connecté (P0 « écran muet », R129). PowerSync ne devient jamais
+  `connected`.
+- **Cause racine (mesurée)** : l'instance Production
+  (`6a9dd96302481fb31b945823`) rejette tout jeton utilisateur Supabase avec
+  `401 PSYNC_S2105 — Unexpected "aud" claim value: "authenticated"`. Le service
+  config déployé a `client_auth.additional_audiences: []`, alors que le
+  collecteur JWKS explicite (`jwks_uri`) valide contre cette liste (il n'a pas
+  de `requiresAudience` propre) → aucune audience autorisée.
+- **Preuve** : `POST /sync/stream` (JWT utilisateur réel) → `401` ;
+  `__psDb.currentStatus.dataFlow.downloadError` = `PSYNC_S2105` dans le
+  navigateur ; `/members` reste en `data-screen-state="loading"`.
+- **Correctif prêt (dépôt)** : `powersync/service.yaml` →
+  `client_auth.additional_audiences: ["authenticated"]`. Appliquer :
+  ```bash
+  powersync deploy service-config
+  ```
+  puis re-mesurer (`POST /sync/stream` doit répondre **200**) et relancer les
+  specs Cypress « cloud » (elles doivent redevenir lisibles).
+- **Repli appliqué (agent, ne dépend pas du déploiement)** : filet de sécurité
+  produit « zéro écran muet » (R129) — au-delà de 30 s sans réplique, l'app
+  affiche « Synchronisation indisponible… » + « Réessayer » au lieu d'un
+  squelette perpétuel. Prouvé en local.
+- **Convergence** : 2 agents Cloud ont isolé la même cause (PRs #116, #117).
+- **Action propriétaire** : déployer le service config (jeton admin
+  `PS_ADMIN_TOKEN` requis, absent de cet environnement).

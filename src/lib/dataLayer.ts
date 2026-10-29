@@ -401,22 +401,37 @@ export interface PSDocument {
 // ============================================================
 
 let _psReady = false;
+// Vrai quand la replique n'est PAS devenue prete dans le delai imparti
+// (auth PowerSync refusee, reseau coupe). Sort l'app du chargement perpetuel
+// muet en exposant un etat explicite « synchronisation indisponible » (P0).
+let _psUnavailable = false;
 
 function isPowerSyncReady(): boolean {
   return _psReady;
 }
 
-// La disponibilite de PowerSync est un etat REACTIF : `markPowerSyncReady`
-// est appele apres le 1er sync, donc APRES le premier rendu des pages. Sans
-// notification, un hook de lecture reste fige sur son repli (store local
-// vide) jusqu'au prochain re-rendu spontane — l'utilisateur voyait une liste
-// vide ou un squelette de chargement sans fin.
 const _readyListeners = new Set<() => void>();
+const _unavailableListeners = new Set<() => void>();
 
 function setPowerSyncReady(ready: boolean) {
+  if (ready) _psUnavailable = false;
   if (_psReady === ready) return;
   _psReady = ready;
-  if (ready) _readyListeners.forEach((l) => l());
+  if (ready) {
+    _readyListeners.forEach((l) => l());
+    _unavailableListeners.forEach((l) => l());
+  }
+}
+
+/**
+ * Marque la replique comme INDISPONIBLE (delai de disponibilite depasse sans
+ * connexion). Les ecrans affichent alors un etat explicite plutot qu'un
+ * squelette perptuel muet (contrat P0 « zero ecran noir »).
+ */
+export function markPowerSyncUnavailable(): void {
+  if (_psUnavailable) return;
+  _psUnavailable = true;
+  _unavailableListeners.forEach((l) => l());
 }
 
 /** S'abonner au passage « PowerSync pret » (etat one-shot). */
@@ -427,9 +442,22 @@ export function subscribePowerSyncReady(listener: () => void): () => void {
   };
 }
 
+/** S'abonner au passage « replique indisponible » (etat one-shot). */
+export function subscribePowerSyncUnavailable(listener: () => void): () => void {
+  _unavailableListeners.add(listener);
+  return () => {
+    _unavailableListeners.delete(listener);
+  };
+}
+
 /** Etat courant, lisible hors React (pour choisir un etat de repli). */
 export function isPowerSyncReadyNow(): boolean {
   return _psReady;
+}
+
+/** La replique est-elle declaree indisponible (delai depasse) ? */
+export function isPowerSyncUnavailableNow(): boolean {
+  return _psUnavailable;
 }
 
 /**
@@ -1037,10 +1065,33 @@ export function usePowerSyncStatus(): boolean {
 
     applyStatus((sync as any).currentStatus);
 
-    return () => { if (typeof unregister === "function") unregister(); };
+    // Borne de disponibilité (P0 « zéro écran muet ») : si la réplique n'est
+    // toujours pas prête après le délai, on la déclare INDISPONIBLE. Les
+    // écrans cessent alors d'afficher un squelette perpétuel et montrent un
+    // état explicite (« synchronisation indisponible »). Le délai couvre une
+    // première synchronisation normale, même lente.
+    const deadline = setTimeout(() => {
+      if (!isPowerSyncReadyNow()) markPowerSyncUnavailable();
+    }, 30_000);
+
+    return () => {
+      clearTimeout(deadline);
+      if (typeof unregister === "function") unregister();
+    };
   }, [sync]);
 
   return ready;
+}
+
+/**
+ * Indique que la réplique locale n'est pas devenue disponible dans le délai
+ * imparti (authentification PowerSync refusée, réseau coupé). Sert aux écrans
+ * pour remplacer un squelette perpétuel par un état explicite réessayable.
+ */
+export function useReplicaUnavailable(): boolean {
+  const [unavailable, setUnavailable] = useState(isPowerSyncUnavailableNow());
+  useEffect(() => subscribePowerSyncUnavailable(() => setUnavailable(true)), []);
+  return unavailable;
 }
 
 // ============================================================
