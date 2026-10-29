@@ -19,10 +19,25 @@
 import { activePage, activePageShouldContain } from '../support/view';
 
 describe('Lumina — Event tasks CRUD + status + progress + F5', () => {
+  // P39 — nom unique au run de l'événement créé (repli de nettoyage).
+  let createdEventName = '';
+  // Borne temporelle stricte : n'annule QUE l'événement créé par ce run.
+  const runStartedAt = new Date().toISOString();
+
   before(function () {
     this.timeout(90_000);
     cy.loginOrgAccount();
     cy.ensureAuth();
+  });
+
+  after(() => {
+    // Nettoyage NON FATAL (cypress/support/e2eCleanup.ts) : annule
+    // l'événement `Event Tasks <ts>` créé par ce run. Sans lui, chaque
+    // exécution laissait un événement ACTIVE de plus en base.
+    cy.cleanupTestArtifacts({
+      eventNamePrefix: [createdEventName],
+      sinceIso: runStartedAt,
+    });
   });
 
   it('creates a task, promotes it to subtask, transitions statuses, and survives F5', function () {
@@ -30,6 +45,7 @@ describe('Lumina — Event tasks CRUD + status + progress + F5', () => {
 
     const ts = Date.now().toString().slice(-6);
     const eventName = `Event Tasks ${ts}`;
+    createdEventName = eventName;
     const parentTitle = `Tâche parente ${ts}`;
     const subTitle = `Sous-tâche ${ts}`;
 

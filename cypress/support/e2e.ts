@@ -930,4 +930,9 @@ import './local';
 // expectNoBlankScreen) — see cypress/support/ionic.ts for why they exist.
 import './ionic';
 
+// Register the E2E auto-cleanup command (cleanupTestArtifacts,
+// trackTestArtifact) — see cypress/support/e2eCleanup.ts for the design
+// (archive-only, run-scoped, non-fatal).
+import './e2eCleanup';
+
 export {};

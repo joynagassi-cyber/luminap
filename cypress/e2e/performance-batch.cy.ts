@@ -19,6 +19,13 @@
  */
 
 describe('Lumina — Performance batch (offline sync + charge tx + calendar)', () => {
+  // P39 — préfixes de description/nom uniques au run, collectés par les tests
+  // et drainés par `after()` (repli quand un test échoue avant la mesure).
+  const txPrefixes: string[] = [];
+  const eventPrefixes: string[] = [];
+  // Borne temporelle stricte : ne nettoie QUE les entités créées par ce run.
+  const runStartedAt = new Date().toISOString();
+
   const SUPABASE_URL =
     (Cypress.expose('SUPABASE_URL') as string) ||
     'https://hhgovvrnalibhgpakswi.supabase.co';
@@ -51,6 +58,19 @@ describe('Lumina — Performance batch (offline sync + charge tx + calendar)', (
     cy.loginOrgAccount();
   });
 
+  after(() => {
+    // P39 — nettoyage NON FATAL : les 120 transactions (`Tx batch`/`ChargeTx`)
+    // et 50 événements (`CalEvent`) créés par ce spec n'étaient jamais
+    // nettoyés (mesure : 12 353 « CalEvent » résiduels). Les transactions ne
+    // s'archivent pas : seules les lignes DRAFT/PENDING du run sont
+    // supprimées (jamais APPROVED). Les événements sont annulés (CANCELLED).
+    cy.cleanupTestArtifacts({
+      transactionDescriptionPrefix: txPrefixes,
+      eventNamePrefix: eventPrefixes,
+      sinceIso: runStartedAt,
+    });
+  });
+
   // ── Test 1: offline exact sync (20 transactions) ──────────────────────────
   it('exact sync: 20 transactions created offline reach server', function () {
     this.timeout(180_000);
@@ -61,6 +81,7 @@ describe('Lumina — Performance batch (offline sync + charge tx + calendar)', (
     const anonKey = Cypress.expose('SUPABASE_ANON_KEY') as string;
     const now = Date.now();
     const COUNT = 20;
+    txPrefixes.push(`Tx batch ${now}`);
 
     // ── 1. Intercept Supabase to simulate offline ─────────────────────
     let offline = true;
@@ -137,6 +158,7 @@ describe('Lumina — Performance batch (offline sync + charge tx + calendar)', (
     const anonKey = Cypress.expose('SUPABASE_ANON_KEY') as string;
     const now = Date.now();
     const COUNT = 50;
+    txPrefixes.push(`ChargeTx ${now}`);
 
     // Offline mode
     let offline = true;
@@ -199,6 +221,7 @@ describe('Lumina — Performance batch (offline sync + charge tx + calendar)', (
 
     const now = Date.now();
     const COUNT = 50;
+    eventPrefixes.push(`CalEvent ${now}`);
 
     cy.ensureAuth();
     // Créer COUNT événements rapidement.
