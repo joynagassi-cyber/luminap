@@ -6,6 +6,14 @@ on:
   pull_request:
     branches: [main, develop]
 
+# L'étape « Comment with APK link » publie un commentaire sur la PR ; sans
+# `pull-requests: write`, le GITHUB_TOKEN par défaut (lecture seule) renvoie
+# 403 « Resource not accessible by integration » et le job échoue APRÈS un
+# build réussi (R90 résiduel).
+permissions:
+  contents: read
+  pull-requests: write
+
 env:
   NODE_VERSION: '22'
   JAVA_VERSION: '21'
