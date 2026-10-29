@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "generated": "2026-10-29",
+  "purpose": "Instantane MESURE de la derive migrations <-> base (R17). Le tracker Supabase n'est pas accessible en CI : ce fichier fige l'etat mesure pour qu'une garde repo-side puisse detecter tout CHANGEMENT de derive (nouvelle migration tracee ou non tracee).",
+  "source_of_truth": "Base = source de verite (schema applique via editeur SQL / MCP, pas via `supabase db push`). Le tracker `supabase_migrations.schema_migrations` et les fichiers `supabase/migrations/` sont deux historiques disjoints.",
+  "measured": {
+    "applied_versions_in_tracker": 70,
+    "repo_timestamped_files": 63,
+    "repo_sequential_files": 63,
+    "repo_total_sql_files": 126,
+    "versions_in_common": 2,
+    "common_versions": ["20261001000001", "20261027000003"],
+    "applied_without_repo_file": 68,
+    "repo_file_never_applied": 61,
+    "drift_ratio": "2/70"
+  },
+  "tracker_sample_versions": [
+    "20260910123851",
+    "20261028145533"
+  ],
+  "mitigation": "scripts/schema-snapshot.sql capture le DDL reel (colonnes, fonctions, policies, triggers, index, contraintes, versions).",
+  "do_not": "Ne PAS lancer `supabase db push` sans revue manuelle : il rejouerait 61 migrations non tracees sur une base ou leur contenu existe deja (erreurs d'objets existants, alterations).",
+  "owner_recommendation": "Regulariser via `supabase migration repair --status applied <version>`, ou adopter 'base = source de verite' et cesser de se fier au tracker. A trancher (DECISIONS.md / RAPPORT_FINAL.md)."
+}
