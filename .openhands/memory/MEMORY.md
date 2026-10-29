@@ -99,8 +99,12 @@
   **Nuance mesurée (2026-10-27)** : le job « E2E (Cypress) » de `ci.yml` peut
   passer sur une branche de correctif (constaté sur PR #52) — le rouge global
   dépend donc aussi du contenu testé.
-- **Android Debug Build = échec pré-existant** (R90) : `@capacitor/cli` ^8.5.2
-  vs `@capacitor/android` ^6.2.2. Non régression.
+- **Android Debug Build = RÉPARÉ (R90, 2026-10-29, PR #129)** : le vrai blocage
+  était `@capacitor/storage` (déprécié, sans `namespace`), PAS le module
+  cordova. Migration → `@capacitor/preferences` + alignement Capacitor 7.6.9.
+  3 derniers runs = `success`. Défaut résiduel corrigé : bloc `permissions:`
+  absent → 403 « Resource not accessible by integration » sur le commentaire PR.
+  **Ce job n'est plus un rouge toléré : tout échec est désormais un vrai signal.**
 - CI Pipeline (`ci.yml`) et `tsc` sont, eux, fiables.
 - Le spec `org-reports.cy.ts` **créait des organisations réelles sans nettoyage**
   (R96, corrigé : hook `after()` non fatal + repli par préfixe).
@@ -166,8 +170,8 @@
   (`data-screen-state`). `src/lib/clientErrors.ts` (capture onerror/
   unhandledrejection, redaction PII, rechargement contrôlé chunk).
 - **Gates fiables** : `npx tsc -b --noEmit`, `pnpm run lint`, `pnpm exec vitest run`,
-  `pnpm run build`, + workflow **`CI Pipeline`**. `Android Debug Build` échoue
-  toujours (R90, pré-existant) ; Cypress sur `main` rouge déterministe (R98/E2).
+  `pnpm run build`, + workflow **`CI Pipeline`**. `Android Debug Build` = **VERT
+  depuis R90/P35** (PR #129) ; Cypress sur `main` rouge déterministe (R98/E2).
 - **PRs** : #21 (état/réconciliation), #22 (routage Phase 2, empilée).
 
 ## Sécurité base (constats vérifiés)
@@ -369,8 +373,8 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   était rouge depuis #73 (défaut hérité, pas une régression de la branche).
 
 ## Défauts pré-existants confirmés (ne pas re-diagnostiquer)
-- **Android Debug Build = échec pré-existant** (`@capacitor/cli` 8.5.2 vs
-  `@capacitor/android` 6.2.2) — R90.
+- ~~Android Debug Build = échec pré-existant~~ → **RÉPARÉ (R90, PR #129)** :
+  vrai blocage = `@capacitor/storage` sans `namespace` ; Capacitor aligné 7.6.9.
 - **Cypress = jamais vert** (R98) ; cause = environnement E2E, pas la
   parallélisation (réfuté par mesure).
 - **CI Pipeline = désormais VERTE** après R114 (#77) — c'est le seul signal
@@ -526,9 +530,10 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   `PS_ADMIN_TOKEN`/`POWERSYNC_TOKEN` unset, pas de `~/.ps-secrets`). Modifier le
   YAML sans redéployer = divergence client/serveur, explicitement documentée
   comme défaut PIRE → ne pas le faire.
-- **`Build Debug APK` rouge = R90 pré-existant** (`Namespace not specified` sur
-  `:capacitor-storage`, désalignement `@capacitor/cli` 8.x vs
-  `@capacitor/android` 6.x) : non régression, indépendant des changements TS.
+- **`Build Debug APK` = VERT depuis R90/P35 (PR #129)** : vrai blocage
+  `Namespace not specified` sur `:capacitor-storage` (déprécié) — PAS le module
+  cordova. Correctif : `@capacitor/storage` → `@capacitor/preferences` +
+  Capacitor 7.6.9. Résiduel : bloc `permissions:` absent (403 sur commentaire PR).
 - **Non-vacuité obligatoire** : pour tout correctif R52, retirer la garde, voir
   les tests échouer, restaurer. Chaque cas a son test comportemental
   (`list-loading-vs-empty.test.tsx`, `r52l-*`, `r52o-*`, `r52p-*`).
