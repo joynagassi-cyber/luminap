@@ -133,7 +133,7 @@ export default function GivingCampaign() {
       notification.sendNotification({
         title: "Nouvel engagement de don",
         message: `${donorName(pledgeDonor)} — ${pledgeAmount} FCFA (${pledgeSchedule})`,
-        targetRole: "TREASURIER" as any,
+        targetRole: "TREASURIER",
         extraData: { campaignId: campaign.id, donorId: pledgeDonor },
       }).catch(() => {});
     } finally {

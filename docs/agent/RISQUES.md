@@ -1649,6 +1649,27 @@ en base) en plus des 3 valeurs de transaction ; test
 `InvitationClaim.tsx:172`, `Versement.tsx:101`, `EventNew.tsx:159` via
 `as any`) — décision de conception P-NEW-6, non bloquante.
 
+**Mise à jour (2026-10-29) — casts `as any` inutiles retirés + gardés** :
+- Mesure : **7** `targetRole: "<valeur>" as any`. Quatre portent `"TREASURIER"`,
+  qui est **déjà** un membre valide du type `Role` → le `as any` était
+  **inutile** (il ne masquait aucune erreur). Retirés :
+  `Versement.tsx`, `EventNew.tsx`, `GivingCampaign.tsx`, `TransactionNew.tsx`.
+  `tsc -b` = **0** (preuve que le cast ne servait à rien) ;
+  `notification.test.ts` + `Notifications-icon.test.tsx` = **24 passed**.
+- Les **3** restants portent `"ADMIN"`, qui n'appartient **pas** au type `Role`
+  (`src/types/index.ts`) — écart de modèle réel (cf. **R109** / D-S10-3, décision
+  propriétaire). **Laissés en l'état** : les retirer casserait le typecheck et
+  forcerait une décision de modèle (ajouter ADMIN vs corriger la valeur). Un
+  `as any` sur une valeur **hors** modèle reste un signal à tracer, pas à
+  blanchir silencieusement.
+- **Garde anti-masquage** : `V: target-role-cast-guard.test.ts` (1). Le `Role`
+  est **dérivé du source** (`src/types/index.ts`), pas recopié. La garde échoue
+  si un `targetRole` portant une valeur **déjà valide** est casté `as any`
+  (non-vacuité : elle exige ≥1 cast présent, donc les 3 `"ADMIN"` la maintiennent
+  non vide).
+- **Reste ouvert** : la sémantique de `action_type` (P-NEW-6) et la décision
+  ADMIN (R109) — inchangées, non bloquantes.
+
 ### Rectificatif sur R70 (message de commit `0702cd2`)
 
 Le message du commit `0702cd2` décrit le point 5 ainsi : « la notification de

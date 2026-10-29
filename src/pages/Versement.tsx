@@ -98,7 +98,7 @@ export default function Versement() {
       notification.sendNotification({
         title: "Versement enregistré",
         message: `${amountNum.toLocaleString()} FCFA versés dans ${selectedCaisse}`,
-        targetRole: "TREASURIER" as any,
+        targetRole: "TREASURIER",
         extraData: { caisseId: selectedCaisse, amount: String(amountNum) },
       }).catch(() => {});
 

@@ -156,7 +156,7 @@ export default function EventNew() {
       notification.sendNotification({
         title: "Nouvel événement planifié",
         message: `« ${name.trim()} » — ${startDate}${endDate ? ` → ${endDate}` : ""}${totalBudget ? ` — budget ${totalBudget.toLocaleString()} FCFA` : ""}`,
-        targetRole: "TREASURIER" as any,
+        targetRole: "TREASURIER",
         extraData: { eventName: name.trim(), startDate },
       }).catch(() => {});
 

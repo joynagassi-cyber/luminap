@@ -197,7 +197,7 @@ export default function TransactionNew() {
       notification.sendNotification({
         title: "Transaction en attente d'approbation",
         message: `Nouvelle dépense de ${trimmedAmount} FCFA — ${trimmedDesc}`,
-        targetRole: "TREASURIER" as any,
+        targetRole: "TREASURIER",
         extraData: { transactionId: txId },
       }).catch(() => {});
     }
