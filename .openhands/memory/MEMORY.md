@@ -91,6 +91,16 @@
   fonctionne : claim CONFIRMED, profil+membership ACTIVE, sync filtrée OK.
 
 ## Pièges CI (constats mesurés)
+- **Cypress TOURNE en local** (2026-10-29) : `sudo apt-get install -y xvfb` +
+  `node node_modules/cypress/bin/cypress install`, puis
+  `CYPRESS_BASE_URL=http://localhost:8080 xvfb-run -a node
+  node_modules/cypress/bin/cypress run --browser electron --config video=false`
+  (Vite à part : `node node_modules/vite/bin/vite.js --port 8080`). Mesure :
+  139 tests / **113 passing / 21 failing** ; crawler P0 `zero-black-screen`
+  **64/64**. **Mais** le worker WASM PowerSync ne se connecte pas en headless
+  (R85) → tout test d'**upload réel** (`performance-batch`, `persistence`) est
+  structurellement rouge ; `cloud-sync` passe mais est **tautologique**
+  (`cy.request`). Correctif R83 testé → **réfuté**.
 - **La suite Cypress n'a JAMAIS été verte sur `main`** (20 runs en échec,
   2026-10-19 → 10-24). Mêmes 10 specs en échec, déterministe.
   **Ce n'est PAS la parallélisation** (réfuté par mesure en mono-conteneur,
