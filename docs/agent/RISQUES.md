@@ -2921,6 +2921,16 @@ sauvegarde disponible).
   `PERMISSION_MATRIX`. Preuve d'effet :
   `public.has_permission(<admin>, 'org-1', 'admin', 'settings') = false` et
   `'transaction','read' = false` ; `is_org_admin(<admin>,'org-1') = false`.
+- **Mesure (2026-10-29, post-purge)** : **aucun** compte `ADMIN` ne subsiste
+  (`profiles.role='ADMIN'` = 0, `org_memberships.role='ADMIN'` = 0 — la ligne
+  ADMIN était une donnée de test, purgée en phase 18). `role_permissions` :
+  **149 lignes, 14 rôles distincts, 0 pour `ADMIN`**. Le **littéral** `'ADMIN'`
+  reste toutefois **codé en dur dans 13 politiques RLS** (mesuré via
+  `pg_policy`) : `grants` (3 : `grants_insert_admin`, `grants_read_org`,
+  `grants_update_admin`), `org_admins` (3 : `*_merged`), `org_memberships`
+  (4 : `om_select/insert/update/delete`), `organizations` (3 : `orgs_*_merged`).
+  Ces politiques accordent des droits à un rôle **qu'aucun compte ne porte plus
+  et que le modèle TS ne connaît pas** — code mort fonctionnel.
 - **Conséquence** : le compte admin central n'obtient AUCUN droit via
   `has_permission` ; aucune route à `permission` (ex. `/admin*`,
   `admin:settings`) ne peut l'autoriser — il est fonctionnellement **verrouillé**
