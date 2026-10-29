@@ -261,6 +261,22 @@ et documenté comme actif, mais son déclencheur n'est jamais alimenté.
   `from "fs"`/`resolve(__dirname,...)` fonctionne (pas besoin de fileURLToPath).
 - `installChunkErrorRecovery` (clientErrors.ts) : recharge 1× par session via
   `sessionStorage['lumina-chunk-reloaded']` (anti-boucle) sur `vite:preloadError`.
+- **Instantanés gelés + gardes « repo-side »** (2026-10-29) : quand la vérité
+  (tracker de migrations, politiques RLS) **exige des identifiants absents en
+  CI**, figer la mesure dans un JSON versionné (`docs/agent/*.json`) et écrire
+  un test qui **échoue dès que le dépôt change** (nombre/forme de fichiers) →
+  force à re-mesurer. Ex. : `migration-drift.json` + `migration-drift-guard`
+  (R17, ratio 2/70 : tracker 70 versions vs 126 fichiers, 2 communes).
+- **Toute garde statique doit porter une assertion de NON-VACUITÉ** (ex.
+  « >20 balises scannées ») : sinon une extraction cassée fait passer le test
+  silencieusement (la garde ne garde plus rien). Cf. `ionic-input-events-guard`.
+- **Analyse de balise, pas de ligne** : pour détecter un attribut sur un tag JSX
+  précis, extraire la **balise ouvrante** complète en gérant `>` dans `{}` —
+  sinon faux positifs (`onIonInput` d'un `<IonInput>` frère compté pour un
+  `<IonSelect>` voisin). Cf. `ReportBuilder.tsx`/`GivingCampaign.tsx`.
+- **pnpm absent en local** (`bash: pnpm: command not found`, `corepack enable`
+  insuffisant) ; `node_modules/.bin/vitest` et `npx tsc -b` marchent. Récupérer
+  les comptages vitest/lint depuis les **logs CI** (`gh run`/API logs, zip).
 
 ## Dérive doc ↔ code : en-têtes de risque périmés (2026-10-27)
 Le registre `docs/agent/RISQUES.md` garde parfois un **en-tête périmé**
