@@ -48,24 +48,29 @@
   vitest, build) sont bloquants ; les specs Cypress **indépendantes de
   PowerSync** restent le signal E2E exploitable.
 
-## E3 — Sauvegardes automatiques : chaîne prouvée, activation = propriétaire
+## E3 — Sauvegardes automatiques : **RÉSOLUE** (secrets configurés, publication vérifiée)
 
-- **Symptôme** : `.github/workflows/backup.yml` présent mais jamais exécuté avec
-  succès (secrets `SUPABASE_DB_URL` / `BACKUP_GPG_PASSPHRASE` absents).
-- **Preuves** : chaîne complète **exécutée et vérifiée le 2026-10-27** — schéma
-  17 838 o, données 2 166 111 o (76 tables), empreintes SHA-256 OK, chiffrement
-  AES256 déchiffrable (`gpg --decrypt | zcat` → 76 tables) ; run workflow
-  `40114231378` → 0 artefact publié (garde-fou « chiffré seulement » OK).
-  Restauration prouvée antérieurement (R99 : 44 tables, 146 politiques, 10/10).
+- **Symptôme initial** : `.github/workflows/backup.yml` présent mais export
+  *skipped* (secrets `SUPABASE_DB_URL` / `BACKUP_GPG_PASSPHRASE` absents) → runs
+  **verts mais sans sauvegarde** (faux sentiment de sécurité).
+- **Preuve de résolution (2026-10-29)** : déclenchement manuel → run
+  `40813667253` **succès**, étapes « Export (schéma + données) » **et**
+  « Publier l'export (chiffré uniquement) » **exécutées**, **1 artefact chiffré
+  publié** (`supabase-backup-40813667253`, 3,9 Mo, non expiré). ⇒ Les deux
+  secrets sont **désormais présents** ; les runs planifiés du dimanche
+  produiront donc des artefacts (les runs antérieurs au 27/10 étaient
+  antérieurs à la configuration).
+- **Antériorité** : chaîne vérifiée le 2026-10-27 (schéma 17 838 o, données
+  2 166 111 o, empreintes SHA-256 OK, AES256 déchiffrable) ; restauration
+  prouvée (R99 : 44 tables, 146 politiques, 10/10).
 - **Correctif inclus** : bug latent du script (nom `.gz` conservant le point
-  initial → échec des empreintes) corrigé ; cadence passée en **hebdomadaire**.
-- **Hypothèses testées** : (1) activer le workflow → bloqué faute de secrets ;
-  (2) sauvegarde manuelle → réussie.
-- **Recommandation** : le propriétaire crée `SUPABASE_DB_URL` +
-  `BACKUP_GPG_PASSPHRASE` (procédure RUNBOOK §« Sauvegarde VÉRIFIÉE »).
-- **Repli appliqué** : aucune migration destructive tant que la sauvegarde
-  automatique n'est pas active (principe conservateur D-S9-5) ; runbook opérateur
-  livré.
+  initial → échec des empreintes) corrigé ; cadence **hebdomadaire**.
+- **Reste à la charge du propriétaire** : rien de bloquant. Optionnel : passer
+  le dépôt en privé pour une rétention hors-site durable (les artefacts CI
+  restent 14 j ; dépôt public ⇒ garde-fou « chiffré seulement » actif).
+- **Repli** : la sauvegarde étant **vérifiée**, les opérations destructives
+  (ex. purge des données de test, phase 18) sont désormais **couvertes** par une
+  restauration possible (principe conservateur D-S9-5 levé).
 
 ## E4 — Le parcours « réclamer une invitation » ne peut pas aboutir (R111)
 
