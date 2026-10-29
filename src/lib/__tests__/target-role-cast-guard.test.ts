@@ -9,8 +9,12 @@
  *
  * La garde distingue les deux cas :
  *   - valeur **dans** `Role` + `as any` → inutile → INTERDIT (cette garde) ;
- *   - valeur **hors** `Role` (ex. `"ADMIN"`) → écart de modèle réel, à tracer
- *     dans RISQUES.md (R109/D-S10-3), pas à blanchir par `as any` silencieux.
+ *   - valeur **hors** `Role` → écart de modèle réel, à tracer dans RISQUES.md.
+ *
+ * Depuis R109 (2026-10-29), `ADMIN` est un `Role` valide : les 3 casts
+ * `targetRole: "ADMIN" as any` ont été retirés. Le corpus peut donc être vide ;
+ * la garde vérifie que le détecteur fonctionne sur un échantillon synthétique
+ * (pour ne pas passer « au vert » par extraction cassée).
  *
  * Le `Role` est **dérivé du source** (`src/types/index.ts`), pas recopié, pour
  * rester juste si le modèle évolue.
@@ -59,11 +63,32 @@ describe("R74 — garde : pas de `as any` inutile sur targetRole", () => {
         }
       }
     }
-    expect(scanned, "aucun targetRole casté trouvé — extraction cassée ?").toBeGreaterThan(0);
     expect(
       offenders,
       `Ces targetRole sont castés \`as any\` alors que la valeur est déjà un Role valide (cast inutile qui masque d'éventuelles erreurs) :\n` +
         offenders.map((o) => `  - ${o}`).join("\n"),
     ).toEqual([]);
   });
+
+  it("le détecteur reconnaît bien un cast inutile (garde non vacive)", () => {
+    // Échantillon synthétique : un rôle valide casté `as any` doit être
+    // détecté. Garantit que la garde ne passe pas « au vert » parce que le
+    // corpus réel est vide (ce qui est désormais le cas depuis R109).
+    const roles = roleMembers();
+    const sample = `targetRole: "${[...roles][0]}" as any,`;
+    const m = sample.match(/targetRole:\s*"([A-Z_]+)"\s*as\s+any/);
+    expect(m, "regex de détection cassée").not.toBeNull();
+    expect(roles.has(m![1])).toBe(true);
+    expect(scannedRolesCount()).toBeGreaterThan(0);
+  });
 });
+
+/** Nombre de fichiers contenant au moins un littéral `targetRole: "X"`. */
+function scannedRolesCount(): number {
+  let n = 0;
+  for (const file of walk(join(process.cwd(), "src"))) {
+    const src = readFileSync(file, "utf8");
+    if (/targetRole:\s*"[A-Z_]+"/.test(src)) n++;
+  }
+  return n;
+}

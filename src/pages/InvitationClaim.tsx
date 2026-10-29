@@ -181,7 +181,7 @@ export default function InvitationClaim() {
       notification.sendNotification({
         title: "Invitation acceptée",
         message: `Nouveau membre : ${parsedPayload.role ?? "membre"} a rejoint l'organisation`,
-        targetRole: "ADMIN" as any,
+        targetRole: "ADMIN",
         extraData: {
           claimId,
           role: parsedPayload.role,

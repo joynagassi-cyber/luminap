@@ -1,8 +1,8 @@
 # Phase 4 — R137 : l'autorisation d'écriture n'est pas appliquée en base (mesure)
 
 - **Date** : 2026-10-29
-- **Priorité** : P2 (sécurité / contrôle d'accès) — mesuré, non corrigé
-- **Statut** : OUVERT (décision propriétaire requise avant refonte)
+- **Priorité** : P2 (sécurité / contrôle d'accès) — **CORRIGÉ le 2026-10-29**
+- **Statut** : CORRIGÉ (voie REST/PostgREST) — migration `20261029000002`
 
 ## Question posée
 
@@ -118,3 +118,37 @@ where schemaname='public' and tablename='transactions';  -- → is_org_member se
 -- 3. Le rôle MEMBRE n'a que 2 permissions
 select * from role_permissions where role='MEMBRE';  -- → event:read, transaction:read
 ```
+
+
+## 7. CORRECTIF LIVRÉ (2026-10-29) — migration `20261029000002`
+
+Les politiques d'écriture des **5 tables sensibles** (`transactions`,
+`versements`, `members`, `events`, `groups`) ont été réécrites :
+
+```sql
+is_org_member(initplan_uid(), org_id)
+AND has_permission(initplan_uid(), org_id, <res>, <act>)
+```
+
+Mesure après correctif : **15 politiques** d'écriture appellent
+`has_permission` (3 par table × 5), contre **1** (une lecture) avant.
+
+**Tables laissées en `is_org_member` seul (R137.a, documenté)** : `documents`
+et `accounts` — aucune permission `document:*` / `account:*` n'existe dans le
+modèle ; les contraindre fermerait l'écriture à tous les rôles.
+
+### Preuves fonctionnelles (instance DEV, 2026-10-29, 0 résidu)
+
+| Cas | Attendu | Mesuré |
+|---|---|---|
+| `MEMBRE` INSERT transaction (REST simulé) | refusé | **`42501` row-level security** |
+| `ADMIN` INSERT transaction | accepté | **accepté** (erreur → contrainte métier, puis succès avec catégorie valide) |
+| `has_permission(MEMBRE,…, 'transaction','create')` | false | **false** |
+| `has_permission(ADMIN/PASTEUR/TREASURIER,…)` | true | **true** |
+
+### Limite honnête
+
+Le chemin d'écriture de l'**application** passe par PowerSync
+(`powersync_role`, `rolbypassrls = true`) : la RLS ne le concerne **pas**. Le
+correctif ferme la voie **REST/PostgREST directe**. Fermer la voie PowerSync
+exige un contrôle côté connecteur/backend — chantier distinct, non traité ici.

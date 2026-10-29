@@ -3087,73 +3087,53 @@ sauvegarde disponible).
   rechargement au clic. Gates : `tsc -b` 0, vitest 1242/1242, `vite build` OK.
 - **Statut** : corrigé.
 
-### R109 — Rôle `ADMIN` présent dans les DONNÉES et les politiques RLS mais absent du modèle TS → compte admin central SANS DROITS — OUVERT (à trancher)
+### R109 — Rôle `ADMIN` : 15e rôle canonique (toutes permissions) — ✅ TRANCHÉ le 2026-10-29
 - **Gravité** : MOYENNE-HAUTE (modèle de rôles ; bloquait le câblage de la garde de route R105/R107).
-- **Mesure (2026-10-26, instance DEV)** : `profiles.role='ADMIN'` (1 ligne) et
-  `org_memberships.role='ADMIN'` (1 ligne), mais **0** ligne
-  `role_permissions.role='ADMIN'` et `ADMIN` **absent** de `Role` (TS) et de
-  `PERMISSION_MATRIX`. Preuve d'effet :
-  `public.has_permission(<admin>, 'org-1', 'admin', 'settings') = false` et
-  `'transaction','read' = false` ; `is_org_admin(<admin>,'org-1') = false`.
-- **Mesure (2026-10-29, post-purge)** : **aucun** compte `ADMIN` ne subsiste
-  (`profiles.role='ADMIN'` = 0, `org_memberships.role='ADMIN'` = 0 — la ligne
-  ADMIN était une donnée de test, purgée en phase 18). `role_permissions` :
-  **149 lignes, 14 rôles distincts, 0 pour `ADMIN`**. Le **littéral** `'ADMIN'`
-  reste toutefois **codé en dur dans 13 politiques RLS** (mesuré via
-  `pg_policy`) : `grants` (3 : `grants_insert_admin`, `grants_read_org`,
-  `grants_update_admin`), `org_admins` (3 : `*_merged`), `org_memberships`
-  (4 : `om_select/insert/update/delete`), `organizations` (3 : `orgs_*_merged`).
-  Ces politiques accordent des droits à un rôle **qu'aucun compte ne porte plus
-  et que le modèle TS ne connaît pas** — code mort fonctionnel.
-- **Conséquence** : le compte admin central n'obtient AUCUN droit via
-  `has_permission` ; aucune route à `permission` (ex. `/admin*`,
-  `admin:settings`) ne peut l'autoriser — il est fonctionnellement **verrouillé**
-  hors des politiques RLS qui testent `profiles.role='ADMIN'` **en dur**
-  (`org_admins_insert_merged`, `org_admins_update_merged`, `orgs_update_merged`).
-  `has_permission` (Phase 4) et ces politiques RLS divergent donc.
-- **Fait notable** : les 14 rôles canon TS ↔ DB sont **parfaitement alignés**
-  (vérifié : migration `20261026000002_rbac_has_permission.sql` ≡
-  `role_permissions` en base, 149 lignes, identiques). Le seul écart est `ADMIN`.
-- **Décision requise (propriétaire)** : (a) supprimer le rôle `ADMIN` et faire
-  reposer l'admin central uniquement sur les grants `org_admins` (nettoyage du
-  littéral dans les 3 politiques), ou (b) ajouter `ADMIN` au modèle canon
-  (`Role` + `PERMISSION_MATRIX` + `role_permissions`) avec les droits
-  d'administration centrale. Non tranché → conservateur (aucune donnée modifiée).
+- **Décision propriétaire (2026-10-29)** : `ADMIN` devient le **15e rôle
+  canonique**, rôle « suprême » qui détient **toutes** les permissions. Un
+  porteur d'`ADMIN` administre son organisation, peut **créer des annexes**
+  (`parent_org_id`) rattachées à son organisation, et l'organisation d'origine
+  peut **superviser** ces annexes (lecture de la famille via `orgs_select_merged`).
+- **Correctif livré** (migrations `20261029000001..4`) :
+  - `role_permissions` : **28 lignes** pour `ADMIN` (union de toutes les
+    permissions des 14 rôles existants) ;
+  - TS : `Role` inclut `"ADMIN"`, `PERMISSION_MATRIX.ADMIN` = toutes les
+    permissions, `ROLE_LABELS.ADMIN` = « Administrateur »,
+    `ROLE_HIERARCHY.ADMIN = 999` (au-dessus de `PASTEUR_PRINCIPAL` = 100) ;
+  - `is_org_admin()` et `can_manage_invitations()` reconnaissent un porteur
+    `ADMIN` (profil ou membership ACTIF) ;
+  - `create_org` (edge) : gate sur `org_admins` ACTIF **ou** rôle canon `ADMIN`,
+    + contrôle d'admin de l'organisation parente.
+- **Preuves mesurées (instance DEV, 2026-10-29)** :
+  - `role_permissions.role='ADMIN'` = **28**, total **177 lignes / 15 rôles** ;
+  - `has_permission(<ADMIN>, org, 'transaction', 'create')` = **true** (vs
+    `false` avant) ; `MEMBRE` = **false** ;
+  - insert d'une transaction par un `ADMIN` via REST simulé → **accepté**
+    (l'erreur passe de `42501` RLS à une contrainte métier), par un `MEMBRE` →
+    **`42501`** ;
+  - création d'annexe (`parent_org_id='org-e2e'`) par un `ADMIN` → **acceptée**,
+    puis relue par le même compte (supervision).
+- **Risque induit, corrigé dans le même lot** : rendre `ADMIN` attribuable par
+  invitation ouvrait une voie d'**escalade** (un gestionnaire
+  `PASTEUR_PRINCIPAL`/`ANCIEN`/`TREASURIER` invitant vers `ADMIN`). Garde à deux
+  barrières livrée (`20261029000003`) — cf. **R139**.
 - **Garde fournie** : `docs/agent/role-model.json` (instantané mesuré) +
-  `V: role-model-drift.test.ts` (4) verrouillent TS ↔ DB et échouent si un rôle
-  est ajouté/retiré sans mise à jour explicite ; `ADMIN` doit rester hors canon
-  et sans permissions tant que R109 n'est pas tranché.
-- **Extension mesurée (2026-10-29) — SECOND orphelin : `CENTRAL_ADMIN`** :
-  le littéral `CENTRAL_ADMIN` est testé par l'UI dans **10 occurrences /
-  7 fichiers** (`CentralAdmin.tsx:91`, `TopHeader.tsx:24`,
-  `SettingsGestion.tsx:107`, `SettingsProfile.tsx:27`,
+  `V: role-model-drift.test.ts` verrouillent TS ↔ DB ; l'invariant
+  « `ADMIN` ⊇ toutes les permissions » échoue si une permission future est
+  ajoutée à un autre rôle sans l'être à `ADMIN`.
+- **Statut** : **TRANCHÉ et livré** (rôle canonique + gardes). `CENTRAL_ADMIN`
+  reste un orphelin distinct (voir ci-dessous), non traité ici.
+- **Second orphelin (distinct, NON traité ici) — `CENTRAL_ADMIN`** : le littéral
+  est testé par l'UI dans **10 occurrences / 7 fichiers** (`CentralAdmin.tsx:91`,
+  `TopHeader.tsx:24`, `SettingsGestion.tsx:107`, `SettingsProfile.tsx:27`,
   `SettingsPersonalisation.tsx:12`, `capabilities/organization/central.ts:56`,
-  `capabilities/federation/index.ts:107,245`) — tous sous la forme
-  `user?.role === "CENTRAL_ADMIN"`. Or `CENTRAL_ADMIN` est :
-  - **absent** du type canon `Role` (`src/types/index.ts:21`, 14 rôles) ;
-  - **absent** de `role_permissions` en base (mesure : 14 rôles distincts,
-    0 `CENTRAL_ADMIN`) ;
-  - **absent** de **toute politique RLS** (mesure `pg_policies` : 0 ligne
-    citant `CENTRAL_ADMIN`).
-  Ces 10 tests sont donc **toujours faux** aujourd'hui (aucun compte ne porte
-  ce rôle) — code mort latent. Le type `CurrentUser.role` étant `string`
-  (`dataLayer.ts:44`), l'expression compile sans que TS ne signale l'orphelin.
-- **Mécanisme RÉEL d'admin central (mesuré)** : c'est le **grant
-  `org_admins`**, pas un rôle. `create_org` (`supabase/functions/create_org/
-  index.ts:85-97`) **gate** l'appelant sur un grant `org_admins` ACTIF
-  (`admin_profile_id = user.id`, `status = ACTIVE`) puis insère un grant pour
-  le créateur. Les politiques RLS qui gouvernent `org_admins` sont bien celles
-  qui citent le littéral `'ADMIN'` (cf. supra) — c'est-à-dire que la « voie
-  admin central » existe **en base** (via grants + politiques `'ADMIN'`), mais
-  est **invisible du modèle TS**.
-- **Conséquence pour la décision (a) vs (b)** : les données montrent que la
-  voie (b) — « admin central = rôle » — serait en réalité à créer de zéro
-  (ni `ADMIN` ni `CENTRAL_ADMIN` n'ont de permissions, et `CENTRAL_ADMIN` n'a
-  même pas d'existence en base), tandis que la voie (a) — « admin central =
-  grants `org_admins` » — correspond au mécanisme **déjà fonctionnel**
-  (`create_org`). La décision reste **propriétaire** (D-S10-1) : je ne
-  modifie ni le type `Role`, ni `PERMISSION_MATRIX`, ni les politiques RLS.
-- **Statut** : ouvert, documenté, gardé (à trancher — voir DECISIONS.md).
+  `capabilities/federation/index.ts:107,245`) sous la forme
+  `user?.role === "CENTRAL_ADMIN"`. Or `CENTRAL_ADMIN` est **absent** du type
+  canon `Role`, **absent** de `role_permissions` (0 ligne) et **absent** de
+  toute politique RLS (0 ligne `pg_policies`). Ces 10 tests sont donc toujours
+  faux — code mort latent. Le mécanisme réel d'admin central est le **grant
+  `org_admins`** (cf. `create_org`), désormais **doublé** par le rôle canon
+  `ADMIN` (R109). Nettoyage de `CENTRAL_ADMIN` = décision propriétaire distincte.
 
 ### R111 — Le parcours « réclamer une invitation » ne pouvait PAS aboutir (FK `auth.users`) — CORRIGÉ (2026-10-26)
 - **Gravité** : CRITIQUE (le parcours d'adhésion d'un membre était inopérant).
@@ -3879,7 +3859,7 @@ partagée par les deux plateformes et couverte par 3 tests.
 - Le résidu réel de R85 reste **environnemental** (worker WASM PowerSync non
   fiable en headless) : aucun test headless ne peut vider la file. Inchangé.
 
-### R137 — L'autorisation d'ÉCRITURE n'est pas appliquée en base : toute politique repose sur `is_org_member` seul — OUVERT (gravité HAUTE)
+### R137 — L'autorisation d'ÉCRITURE n'est pas appliquée en base : toute politique repose sur `is_org_member` seul — ✅ CORRIGÉ le 2026-10-29
 - **Gravité** : HAUTE (contrôle d'accès ; écart sécurité ↔ modèle RBAC).
 - **Défaut** : `has_permission(uid, org, resource, action)` **existe** en base
   (migration `20261026000002`) et lit `role_permissions`, mais **AUCUNE politique
@@ -3893,34 +3873,34 @@ partagée par les deux plateformes et couverte par 3 tests.
     `versements`, `members`, `events`, `groups`, `documents`, `accounts`,
     `profiles`) ne vérifie une permission ;
   - aucun **trigger** ne compense sur `transactions` (0 trigger non-interne).
-- **Conséquence mesurable** : un utilisateur au rôle **`MEMBRE`**
-  (`role_permissions` = `event:read`, `transaction:read` uniquement) peut, au
+- **Conséquence mesurable (avant)** : un utilisateur au rôle **`MEMBRE`**
+  (`role_permissions` = `event:read`, `transaction:read` uniquement) pouvait, au
   niveau **base**, `INSERT`/`UPDATE`/`DELETE` une transaction de son
-  organisation — la RLS l'y autorise. Seuls les rôles `is_org_admin`
-  (`org_memberships` : admin-only) et `can_manage_invitations`
-  (`invitations` : PASTEUR_PRINCIPAL/ANCIEN/TREASURIER) sont réellement
-  contraints.
-- **Nuance honnête (limite de la mesure)** : le chemin d'écriture de l'app est
-  PowerSync `executeWrite`, filtré côté client par `PERMISSION_MATRIX` ; l'UI
-  masque les actions interdites (`useCanAccessMulti`, `security.hasPermission`).
-  Le trou est donc **côté serveur** : il ne se voit pas via l'UI, mais est
-  atteignable par tout client `authenticated` (clé anon publique + jeton) qui
-  écrit directement en REST/PostgREST — c'est-à-dire un utilisateur légitime
-  malveillant ou un script.
-- **Preuve de l'écart** : `receipts/phase-04/2026-10-26-rbac.md` documente déjà
-  que « `has_permission` est livrée **comme primitive** ; les politiques RLS
-  existantes n'ont **pas** été réécrites (elles reposent sur `is_org_member`) ».
-  La primitive a été livrée, mais **jamais câblée** — même classe de défaut que
-  R49 (filet déclaré, jamais câblé).
-- **Action proposée (P2, chantier à haut risque)** : réécrire les politiques
-  d'écriture des tables sensibles sur
+  organisation — la RLS l'y autorisait.
+- **Correctif livré** (migration `20261029000002`) : réécriture des politiques
+  d'écriture des 5 tables sensibles (`transactions`, `versements`, `members`,
+  `events`, `groups`) sur
   `is_org_member(uid, org) AND has_permission(uid, org, <res>, <act>)`.
-  Vérifiable par requêtes `pg_policies` + tests REST avec un jeton `MEMBRE`
-  (attendu : 403/0 ligne). Ne pas fusionner sans décision propriétaire
-  (impact : toute écriture légitime passe par `role_permissions`, dont le
-  contenu est aligné sur `PERMISSION_MATRIX` — 27 permissions distinctes).
-- **Statut** : OUVERT, mesuré, non corrigé (conservateur : refonte de ~30
-  politiques, non justifiée sans validation).
+  **15 politiques** câblées sur `has_permission` (mesure `pg_policies`), contre
+  **1** avant.
+  - **Tables laissées en `is_org_member` seul (R137.a, documenté)** : `documents`
+    et `accounts` — le modèle de permissions ne définit **aucune** permission
+    `document:*` / `account:*` ; les y contraindre fermerait l'écriture à tous
+    les rôles. À traiter quand le vocabulaire de permissions sera étendu.
+- **Preuves mesurées (instance DEV, 2026-10-29)** :
+  - `MEMBRE` → `INSERT` transaction = **`42501`** (`row-level security policy`) ;
+    `ADMIN` → `INSERT` = **accepté** (l'erreur passe de `42501` à une contrainte
+    métier `23503` FK, puis succès avec catégorie valide) ;
+  - `has_permission` : `ADMIN`/`PASTEUR_PRINCIPAL`/`TREASURIER` = **true** pour
+    `transaction:create` ; `MEMBRE` = **false** ;
+  - 0 résidu après tests (transaction annulée / nettoyage ciblé).
+- **Nuance honnête (limite de la mesure)** : le chemin d'écriture de l'app est
+  PowerSync `executeWrite` (rôle `powersync_role`, `rolbypassrls = true`) ;
+  PowerSync **contourne** la RLS. Le correctif ferme donc la voie **REST/PostgREST
+  directe** (client `authenticated` avec clé anon publique). Fermer la voie
+  PowerSync exige un contrôle côté `SupabaseConnector`/backend (chantier distinct).
+- **Statut** : **CORRIGÉ** (voie REST) le 2026-10-29 ; la voie PowerSync reste à
+  traiter séparément (documenté).
 
 ### R138 — Le cron de sauvegarde était passé de QUOTIDIEN à HEBDOMADAIRE — ✅ CORRIGÉ le 2026-10-29
 - **Défaut** : `backup.yml` a été créé avec `cron: '0 3 * * *'` (quotidien),
@@ -3939,3 +3919,42 @@ partagée par les deux plateformes et couverte par 3 tests.
   sauvegarde sera créée »). Le RUNBOOK est aligné (section « Sauvegardes »).
 - **Statut** : corrigé le 2026-10-29 ; à confirmer par le prochain run planifié
   (la cadence quotidienne se vérifie sur plusieurs jours).
+
+### R139 — Escalade par invitation vers le rôle `ADMIN` (nouveau) — ✅ CORRIGÉ le 2026-10-29
+- **Gravité** : HAUTE (escalade de privilèges) — **introduit puis fermé dans le
+  même lot** que R109 (le rôle canon `ADMIN` étant attribuable, il fallait
+  fermer la voie d'invitation).
+- **Défaut** : `invitations.target_role` n'était contraint par **aucun trigger**
+  (mesure : 0 trigger non-interne). Un gestionnaire d'invitations
+  (`can_manage_invitations` = PASTEUR_PRINCIPAL / ANCIEN / TREASURIER) pouvait
+  émettre une invitation `target_role='ADMIN'` et s'octroyer, ou octroyer, le
+  rôle suprême — sans être lui-même ADMIN.
+- **Correctif — deux barrières (défense en profondeur)** (migration
+  `20261029000003`) :
+  1. **Trigger `guard_invitation_target_role`** (BEFORE INSERT/UPDATE OF
+     `target_role` sur `invitations`) : rejette `target_role='ADMIN'` si
+     l'acteur (`initplan_uid()`, lu depuis le JWT) n'est pas ADMIN. Détecte
+     l'acteur **via `initplan_uid()`**, pas `current_user` — dans une fonction
+     `SECURITY DEFINER`, `current_user` vaut le propriétaire, pas le client (piège
+     mesuré : la 1re version laissait passer l'insert).
+  2. **Garde dans `settle_invitation_claim`** (voie PowerSync **et** REST) : au
+     règlement — seul point où un rôle est réellement attribué — une invitation
+     `ADMIN` dont l'émetteur n'est pas ADMIN est **REJETÉE**
+     (`REJECTED_ROLE_ESCALATION`), rôle de la cible **inchangé**. Barrière
+     décisive : le chemin d'écriture de l'app passe par PowerSync
+     (`powersync_role`, BYPASSRLS, sans JWT), où le trigger (1) est aveugle.
+  - La contrainte `invitation_claims_status_check` a été **étendue** pour
+    accepter `REJECTED_ROLE_ESCALATION` (sinon le rejet devenait une erreur SQL
+    `23514`) ; type TS `ClaimStatus` + libellé UI (`InvitationManage`) alignés.
+- **Preuves mesurées (instance DEV, 2026-10-29, transactions annulées / 0 résidu)** :
+  - **Barrière 1** : `PASTEUR_PRINCIPAL` → `INSERT invitations target_role='ADMIN'`
+    via REST simulé = **`42501` `ROLE_ESCALATION`** ; `ADMIN` → **accepté** ;
+  - **Barrière 2** : invitation `ADMIN` émise par un non-ADMIN (via service_role,
+    barrière 1 aveugle) → claim = `REJECTED_ROLE_ESCALATION`,
+    `role_avant=PASTEUR_PRINCIPAL role_apres=PASTEUR_PRINCIPAL` (inchangé) ;
+    cas positif ADMIN→ADMIN = `CONFIRMED`, cible promue `ADMIN` ;
+  - **Non-régression** : invitation normale (PASTEUR_PRINCIPAL → `MEMBRE`) =
+    `CONFIRMED`, cible `MEMBRE` ;
+  - REVOKE de la fonction de trigger : elle **n'apparaît pas** dans les advisors
+    de sécurité (surface RPC fermée, cf. R115).
+- **Statut** : **CORRIGÉ** (barrières 1 et 2 livrées + prouvées).

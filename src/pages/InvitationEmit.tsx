@@ -137,7 +137,7 @@ export default function InvitationEmit() {
       notification.sendNotification({
         title: "Invitation émise",
         message: `Invitation ${code} pour le rôle ${targetRole}`,
-        targetRole: "ADMIN" as any,
+        targetRole: "ADMIN",
         extraData: { invitationId: id, code, targetRole },
       }).catch(() => {});
     } catch (err: any) {

@@ -67,13 +67,21 @@ describe("R109 — modèle de rôles (anti-dérive TS ↔ DB)", () => {
     }
   });
 
-  it("`ADMIN` reste documenté comme rôle DB-only sans permissions (R109)", () => {
-    // Tant que R109 n'est pas tranché, ADMIN ne doit être NI dans le modèle
-    // canon NI porteur de permissions — sinon la garde doit être mise à jour.
-    expect(tsRoles).not.toContain("ADMIN");
-    expect(roleModel.db_only_roles.ADMIN).toBeDefined();
-    expect(roleModel.db_only_roles.ADMIN.role_permissions_rows).toBe(0);
-    // Un rôle DB-only sans permissions ET hors canon = compte sans droits.
-    expect(roleModel.policy_role_literals).toContain("ADMIN");
+  it("`ADMIN` est le 15e rôle canonique, porteur de TOUTES les permissions (R109 tranché)", () => {
+    // R109 a été TRANCHÉ (2026-10-29) : ADMIN fait partie du modèle canon et
+    // détient toutes les permissions. L'invariant « ADMIN ⊇ tous les autres
+    // rôles » garantit qu'aucune permission future ne sera oubliée pour ADMIN.
+    expect(tsRoles).toContain("ADMIN");
+    expect(roleModel.db_only_roles.ADMIN).toBeUndefined();
+
+    const adminPerms = new Set(PERMISSION_MATRIX.ADMIN);
+    const union = new Set(Object.values(PERMISSION_MATRIX).flat());
+    for (const p of union) {
+      expect(adminPerms.has(p), `ADMIN ne détient pas la permission ${p}`).toBe(
+        true,
+      );
+    }
+    // Toutes les permissions déclarées dans le type sont couvertes.
+    expect(adminPerms.size).toBeGreaterThanOrEqual(union.size);
   });
 });

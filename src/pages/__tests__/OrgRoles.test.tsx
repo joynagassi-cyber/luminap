@@ -161,7 +161,7 @@ describe("OrgRoles — liste des membres et rôles", () => {
     expect(screen.getByText("Bob Martin")).toBeInTheDocument();
   });
 
-  it("propose les 14 rôles canon dans le select", () => {
+  it("propose les 15 rôles canon dans le select", () => {
     hoisted.members = [member("m1", "Alice", "Durand")];
 
     renderPage();
@@ -169,9 +169,10 @@ describe("OrgRoles — liste des membres et rôles", () => {
     const selects = screen.getAllByRole("combobox");
     expect(selects).toHaveLength(1);
     const options = within(selects[0]).getAllByRole("option");
-    expect(options).toHaveLength(14);
+    expect(options).toHaveLength(15);
     const labels = options.map((o) => o.textContent);
     expect(labels).toContain("Pasteur Principal");
+    expect(labels).toContain("Administrateur");
     expect(labels).toContain("Membre");
   });
 

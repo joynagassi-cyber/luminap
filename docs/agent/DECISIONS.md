@@ -585,3 +585,57 @@
   est incohérent avec R103 et deviendrait réel si un `GRANT EXECUTE` ou un
   passage en `SECURITY INVOKER` survenait. La correction documente explicitement
   l'exploitabilité mesurée (honnêteté R12) plutôt que de la surestimer.
+
+## Session 12 (boucle autonome) — D-S12-1 à D-S12-4 (2026-10-29)
+
+### D-S12-1 — R109 TRANCHÉ : `ADMIN` devient le 15e rôle canonique (super-admin)
+- **Décision** (mandat propriétaire) : `ADMIN` entre au modèle canon, détenant
+  **toutes** les permissions (28). Un porteur administre son organisation,
+  **crée des annexes** (`parent_org_id`) et **supervise** la famille.
+- **Raison** : le propriétaire a explicitement demandé que « l'admin puisse
+  créer une annexe et l'org mère puisse superviser les annexes ». L'option (b) de
+  R109 (rôle canon) est donc retenue, **au lieu** de la voie grants seule.
+- **Conséquence** : `Role` (TS), `PERMISSION_MATRIX`, `role_permissions` (28
+  lignes), `is_org_admin`, `can_manage_invitations`, `create_org` (edge) et les
+  politiques `orgs_*` (migration `20261029000004`) sont alignés. La garde
+  `role-model-drift.test.ts` verrouille « `ADMIN` ⊇ toutes les permissions ».
+- **RÉVERSIBILITÉ** : `rollback/20261029000001_rollback.sql`.
+
+### D-S12-2 — Garde anti-escalade à DEUX barrières, la seconde fondée sur `initplan_uid()`
+- **Décision** : fermer la voie d'escalade par invitation vers `ADMIN` avec
+  (1) un trigger sur `invitations` **et** (2) une garde dans
+  `settle_invitation_claim`.
+- **Raison (mesurée)** : dans une fonction `SECURITY DEFINER`, `current_user`
+  vaut le **propriétaire**, pas le client — la 1re version du trigger laissait
+  donc passer l'insert (mesuré). On détecte l'acteur via **`initplan_uid()`**
+  (JWT). La barrière (2) est la **décisive** : le chemin d'écriture de l'app
+  passe par PowerSync (`powersync_role`, BYPASSRLS, sans JWT), où le trigger est
+  aveugle ; `settle_invitation_claim` lit `inv.issued_by` de façon fiable.
+- **Conséquence** : `REJECTED_ROLE_ESCALATION` ajouté à la contrainte
+  `invitation_claims_status_check` + au type TS `ClaimStatus` + à l'UI.
+
+### D-S12-3 — Câbler `has_permission` en écriture (R137), avec limite honnête assumée
+- **Décision** : réécrire les politiques d'écriture des **5 tables sensibles**
+  (`transactions`, `versements`, `members`, `events`, `groups`) sur
+  `is_org_member AND has_permission`.
+- **Raison** : R137 mesurait **0/30** politiques d'écriture appelant
+  `has_permission` → un `MEMBRE` pouvait écrire au niveau base via REST.
+- **Limites assumées** :
+  - `documents` / `accounts` laissées en `is_org_member` seul (R137.a) : aucune
+    permission `document:*` / `account:*` n'existe ; les contraindre fermerait
+    l'écriture à **tous** les rôles ;
+  - la voie **PowerSync** (`BYPASSRLS`) **n'est pas** couverte par la RLS — le
+    correctif ferme la voie REST directe. Fermer PowerSync exige un contrôle
+    côté connecteur/backend (chantier distinct, documenté).
+- **RÉVERSIBILITÉ** : `rollback/20261029000002_rollback.sql`.
+
+### D-S12-4 — Règle du trigger SECURITY DEFINER : ne jamais se fier à `current_user`
+- **Décision** : toute garde d'autorisation placée dans une fonction
+  `SECURITY DEFINER` doit lire l'acteur réel via **`initplan_uid()`** (JWT), et
+  **jamais** via `current_user`/`session_user`.
+- **Raison** : piège mesuré deux fois dans cette session (barrière 1 de R139) —
+  `current_user` reflète le propriétaire de la fonction, pas le client. Un
+  contrôle fondé sur `current_user IN ('authenticated','anon')` est
+  **silencieusement inopérant**.
+- **Conséquence** : la garde R139 a été corrigée et re-prouvée ; le motif est
+  documenté pour les futures gardes (cf. aussi D-S9-2).

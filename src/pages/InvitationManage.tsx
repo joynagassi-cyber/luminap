@@ -63,6 +63,7 @@ const CLAIM_CONFIG: Record<string, { label: string; color: string }> = {
   REJECTED_EXPIRED: { label: "Rejetée (expirée)", color: "var(--data-expense)" },
   REJECTED_EXHAUSTED: { label: "Rejetée (épuisée)", color: "var(--data-expense)" },
   REJECTED_REVOKED: { label: "Rejetée", color: "var(--data-expense)" },
+  REJECTED_ROLE_ESCALATION: { label: "Rejetée (escalade)", color: "var(--data-expense)" },
 };
 
 export default function InvitationManage() {

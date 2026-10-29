@@ -5,15 +5,18 @@
   "source_of_truth": "Base = source de verite (schema applique via editeur SQL / MCP, pas via `supabase db push`). Le tracker `supabase_migrations.schema_migrations` et les fichiers `supabase/migrations/` sont deux historiques disjoints.",
   "measured": {
     "applied_versions_in_tracker": 70,
-    "repo_timestamped_files": 63,
+    "repo_timestamped_files": 67,
     "repo_sequential_files": 63,
-    "repo_total_sql_files": 126,
+    "repo_total_sql_files": 130,
     "versions_in_common": 2,
-    "common_versions": ["20261001000001", "20261027000003"],
+    "common_versions": [
+      "20261001000001",
+      "20261027000003"
+    ],
     "applied_without_repo_file": 68,
     "repo_file_never_applied": 61,
     "drift_ratio": "2/70",
-    "repo_filenames_sha256": "8f93962d5d1ad5d4e808bfb840579112959746f9172f959b5d2f4affcebdcd07"
+    "repo_filenames_sha256": "3eac729036d57d31c95b043e386f26dd261c26f62fb3a36279e32a40c896463f"
   },
   "tracker_sample_versions": [
     "20260910123851",
@@ -21,5 +24,8 @@
   ],
   "mitigation": "scripts/schema-snapshot.sql capture le DDL reel (colonnes, fonctions, policies, triggers, index, contraintes, versions).",
   "do_not": "Ne PAS lancer `supabase db push` sans revue manuelle : il rejouerait 61 migrations non tracees sur une base ou leur contenu existe deja (erreurs d'objets existants, alterations).",
-  "owner_recommendation": "Regulariser via `supabase migration repair --status applied <version>`, ou adopter 'base = source de verite' et cesser de se fier au tracker. A trancher (DECISIONS.md / RAPPORT_FINAL.md)."
+  "owner_recommendation": "Regulariser via `supabase migration repair --status applied <version>`, ou adopter 'base = source de verite' et cesser de se fier au tracker. A trancher (DECISIONS.md / RAPPORT_FINAL.md).",
+  "notes_r109": [
+    "4 migrations ajoutees 2026102900000{1..4} (R109 ADMIN canonique + R137 RLS ecriture + garde escalade + annexes ADMIN)."
+  ]
 }
