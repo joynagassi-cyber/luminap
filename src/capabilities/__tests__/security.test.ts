@@ -232,8 +232,7 @@ describe("security capability", () => {
 
     it("returns roles that have admin:settings", () => {
       const roles = security.getRolesWithPermission("admin:settings");
-      expect(roles).toHaveLength(1);
-      expect(roles[0]).toBe("PASTEUR_PRINCIPAL");
+      expect([...roles].sort()).toEqual(["ADMIN", "PASTEUR_PRINCIPAL"]);
     });
 
     it("returns empty array for permission no role has", () => {
@@ -279,7 +278,8 @@ describe("security capability", () => {
   describe("getSortedRoles", () => {
     it("returns roles sorted by hierarchy descending (highest first)", () => {
       const sorted = security.getSortedRoles();
-      expect(sorted[0]).toBe("PASTEUR_PRINCIPAL");
+      expect(sorted[0]).toBe("ADMIN");
+      expect(sorted[1]).toBe("PASTEUR_PRINCIPAL");
       expect(sorted[sorted.length - 1]).toBe("MEMBRE");
     });
 
@@ -963,24 +963,22 @@ describe("security: authorization bypass attempts", () => {
       "admin:roles",
     ];
 
-    it("no role has every possible permission (prevents privilege creep)", () => {
-      for (const role of allPermissions) {
+    it("seul ADMIN détient toutes les permissions (R109 — rôle suprême assumé)", () => {
+      const holders = allPermissions.filter((role) => {
         const rolePerms = security.getRolePermissions(role);
-        const hasAll = allPossiblePerms.every((p) => rolePerms.includes(p));
-        expect(hasAll).toBe(false);
-      }
+        return allPossiblePerms.every((p) => rolePerms.includes(p));
+      });
+      expect(holders).toEqual(["ADMIN"]);
     });
 
-    it("PASTEUR_PRINCIPAL is the only role with admin:settings", () => {
+    it("ADMIN et PASTEUR_PRINCIPAL sont les seuls rôles avec admin:settings", () => {
       const roles = security.getRolesWithPermission("admin:settings");
-      expect(roles).toHaveLength(1);
-      expect(roles[0]).toBe("PASTEUR_PRINCIPAL");
+      expect([...roles].sort()).toEqual(["ADMIN", "PASTEUR_PRINCIPAL"]);
     });
 
-    it("PASTEUR_PRINCIPAL is the only role with admin:roles", () => {
+    it("ADMIN et PASTEUR_PRINCIPAL sont les seuls rôles avec admin:roles", () => {
       const roles = security.getRolesWithPermission("admin:roles");
-      expect(roles).toHaveLength(1);
-      expect(roles[0]).toBe("PASTEUR_PRINCIPAL");
+      expect([...roles].sort()).toEqual(["ADMIN", "PASTEUR_PRINCIPAL"]);
     });
 
     it("MEMBRE has the fewest permissions of all roles", () => {

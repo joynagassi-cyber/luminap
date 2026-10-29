@@ -1594,3 +1594,33 @@ Heure de reprise : 2026-10-24T08:0x Z. Branches : `agent/session-8-security`
   R59/R61/R82/R74 sont vérifiés déjà corrigés (pas de travail redondant).
 - **Statut** : commit `64abb1a`, poussé sur `agent/phase-11-resilience`
   (PR #68). Gates : tsc 0, eslint 0 erreur, vitest **1373/1373**, build OK.
+
+## Session — 2026-10-29 : RBAC — `ADMIN` 15e rôle canonique (R109) + RLS d'écriture (R137) + garde d'escalade (R139)
+
+- **Mandat** : « l'admin doit pouvoir créer une annexe et l'org mère superviser
+  les annexes » → R109 **tranché** (option b : `ADMIN` au modèle canon).
+- **Livré** (4 migrations `20261029000001..04` + 4 rollbacks) :
+  1. `ADMIN` = 15e rôle canonique, **28** permissions (union des 14 rôles) ;
+     `Role`/`PERMISSION_MATRIX`/`ROLE_LABELS`/`ROLE_HIERARCHY` (TS),
+     `is_org_admin`/`can_manage_invitations` (DB), `create_org` (edge).
+  2. **R137** : politiques d'écriture des 5 tables sensibles câblées sur
+     `has_permission` (**15** politiques, contre 1 lecture avant).
+  3. **R139** : garde anti-escalade à **2 barrières** (trigger + `settle_invitation_claim`).
+  4. Politiques `orgs_*` étendues pour la création d'annexe par un `ADMIN`.
+- **Piège mesuré (2×)** : dans une fonction `SECURITY DEFINER`, `current_user`
+  vaut le **propriétaire**, pas le client → la 1re version de la barrière 1
+  laissait passer l'insert. Correctif : lire l'acteur via **`initplan_uid()`**.
+  Nouvelle règle **D-S12-4**.
+- **Preuves fonctionnelles** (instance DEV, 0 résidu) :
+  `MEMBRE` INSERT transaction → `42501` ; `ADMIN` → accepté ; `has_permission`
+  `ADMIN`=true / `MEMBRE`=false ; non-ADMIN → invitation `ADMIN` = `42501` ;
+  claim d'une invitation `ADMIN` émise par un non-ADMIN =
+  `REJECTED_ROLE_ESCALATION` (rôle inchangé) ; ADMIN→ADMIN = `CONFIRMED` ;
+  invitation normale = `CONFIRMED` ; création d'annexe par `ADMIN` = acceptée.
+- **Gates** : `tsc -b --noEmit` = 0 ; `eslint .` = **0 erreur** ; `vitest run` =
+  **1677/1677**.
+- **Limites honnêtes** : la RLS ne couvre pas la voie PowerSync (`BYPASSRLS`) ;
+  `documents`/`accounts` laissées en `is_org_member` seul (aucune permission
+  `document:*`/`account:*`). `CENTRAL_ADMIN` reste un orphelin distinct (D-S10-3).
+- **Déblocage** : R109 tranché → le câblage de la garde de route `hasPermission`
+  (R105) n'est plus bloqué.

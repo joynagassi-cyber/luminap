@@ -19,6 +19,7 @@ export const ORG_PRESETS: Record<
 };
 
 export type Role =
+  | "ADMIN"
   | "PASTEUR_PRINCIPAL"
   | "PASTEUR_ASSOCIE"
   | "PASTEUR_JEUNESSE"

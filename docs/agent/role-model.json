@@ -1,9 +1,10 @@
 {
   "version": 1,
-  "generated": "2026-10-26",
-  "purpose": "Instantane MESURE du modele de roles (TS PERMISSION_MATRIX + base role_permissions + politiques RLS). Sert de garde anti-derive et documente l'ecart ADMIN (R109).",
-  "source_of_truth": "src/lib/rbac.ts (PERMISSION_MATRIX) = 14 roles canon; DB public.role_permissions = miroir identique (mesure 2026-10-26).",
+  "generated": "2026-10-29",
+  "purpose": "Instantane MESURE du modele de roles (TS PERMISSION_MATRIX + base role_permissions + politiques RLS). Sert de garde anti-derive. R109 est TRANCHE (2026-10-29) : ADMIN devient le 15e role canonique (toutes permissions).",
+  "source_of_truth": "src/lib/rbac.ts (PERMISSION_MATRIX) = 15 roles canon (ADMIN inclus) ; DB public.role_permissions = miroir identique (mesure 2026-10-29).",
   "canon_roles": [
+    "ADMIN",
     "ANCIEN",
     "BENEVOLE",
     "COMPTABLE",
@@ -196,24 +197,50 @@
       "transaction:create",
       "transaction:read",
       "transaction:update"
+    ],
+    "ADMIN": [
+      "transaction:create",
+      "transaction:read",
+      "transaction:update",
+      "transaction:approve",
+      "transaction:reject",
+      "transaction:delete",
+      "versement:create",
+      "versement:approve",
+      "group:create",
+      "group:read",
+      "group:update",
+      "group:delete",
+      "event:create",
+      "event:read",
+      "event:update",
+      "event:delete",
+      "report:read",
+      "report:export",
+      "member:create",
+      "member:read",
+      "member:update",
+      "member:delete",
+      "cotisation:manage",
+      "admin:settings",
+      "admin:roles",
+      "invitation:create",
+      "invitation:revoke",
+      "invitation:manage"
     ]
   },
-  "db_only_roles": {
-    "ADMIN": {
-      "reason": "Role present UNIQUEMENT dans les donnees/DB, absent du modele TS (Role, PERMISSION_MATRIX) et de role_permissions.",
-      "measured_profiles": 1,
-      "measured_org_memberships": 1,
-      "role_permissions_rows": 0,
-      "used_in_rls_policies": [
-        "org_admins_insert_merged",
-        "org_admins_update_merged",
-        "orgs_update_merged"
-      ],
-      "effect": "public.has_permission(uid,org,*,*) = false pour ce compte (aucun droit) ; aucune route a permission ne peut l'autoriser ; l'ecriture des tables centrales (org_admins/organizations) repose sur profiles.role='ADMIN' en dur dans les politiques.",
-      "decision": "A TRANCHER (R109) : (a) supprimer le role ADMIN et n'utiliser que les grants/org_admins pour l'admin central, ou (b) ajouter ADMIN au modele canon (Role + PERMISSION_MATRIX + role_permissions) avec les droits d'administration centrale."
-    }
-  },
+  "db_only_roles": {},
   "policy_role_literals": [
     "ADMIN"
-  ]
+  ],
+  "r109": {
+    "status": "TRANCHÉ 2026-10-29",
+    "decision": "ADMIN = 15e role canonique (toutes permissions). Peut administrer son organisation, creer des annexes (parent_org_id) et superviser/voir leur activite.",
+    "migrations": [
+      "20261029000001_admin_role_canonical.sql",
+      "20261029000002_rls_write_permission.sql",
+      "20261029000003_guard_invitation_target_role.sql",
+      "20261029000004_admin_annex_creation.sql"
+    ]
+  }
 }

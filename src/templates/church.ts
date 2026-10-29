@@ -360,6 +360,11 @@ const branding: Template["branding"] = {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const roleMeta: Template["roleMeta"] = {
+  ADMIN: {
+    label: "Administrateur",
+    hierarchy: 999,
+    category: "Administration",
+  },
   PASTEUR_PRINCIPAL: {
     label: "Pasteur Principal",
     hierarchy: 100,

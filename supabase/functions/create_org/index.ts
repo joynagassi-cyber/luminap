@@ -82,16 +82,30 @@ serve(async (req) => {
       return fail(401, "Session invalide ou expirée");
     }
 
-    // 2. Central-admin gate: caller must hold an ACTIVE org_admins grant.
+    // 2. Central-admin gate: caller must hold an ACTIVE org_admins grant,
+    //    OR carry the canonical ADMIN role (R109 — 15e rôle canonique).
     const { data: grants, error: grantError } = await admin
       .from("org_admins")
       .select("id")
       .eq("admin_profile_id", user.id)
       .eq("status", "ACTIVE")
       .limit(1);
-    if (grantError || !grants || grants.length === 0) {
+    let isAdmin = false;
+    if (!grantError && grants && grants.length > 0) {
+      isAdmin = true;
+    } else {
+      // R109 : un porteur du rôle canon ADMIN administre son organisation et
+      // peut créer des annexes, même sans ligne `org_admins`.
+      const { data: prof } = await admin
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .maybeSingle();
+      isAdmin = prof?.role === "ADMIN";
+    }
+    if (!isAdmin) {
       console.error(
-        "[create_org] rejected: no active central grant",
+        "[create_org] rejected: no active central grant and not ADMIN",
         { by: user.id, error: grantError?.message },
       );
       return fail(403, "Admin central requis (aucun grant org_admins actif)");
@@ -125,7 +139,18 @@ serve(async (req) => {
         .eq("org_id", parentOrgId)
         .eq("status", "ACTIVE")
         .limit(1);
-      if (parentGrantError || !parentGrant || parentGrant.length === 0) {
+      let parentOk = !parentGrantError && !!parentGrant && parentGrant.length > 0;
+      if (!parentOk) {
+        // R109 : un ADMIN canonique administre l'organisation où il se trouve.
+        const { data: parentProf } = await admin
+          .from("profiles")
+          .select("org_id, role")
+          .eq("id", user.id)
+          .maybeSingle();
+        parentOk =
+          parentProf?.role === "ADMIN" && parentProf?.org_id === parentOrgId;
+      }
+      if (!parentOk) {
         console.error("[create_org] rejected: not admin of parent org", {
           by: user.id,
           parentOrgId,

@@ -177,7 +177,7 @@ export default function FormFill() {
     notification.sendNotification({
       title: "Nouvelle soumission de formulaire",
       message: `« ${form.name ?? "Formulaire"} » a été soumis`,
-      targetRole: "ADMIN" as any,
+      targetRole: "ADMIN",
       extraData: { formId: form.id, submissionId: submission.id },
     }).catch(() => {});
 

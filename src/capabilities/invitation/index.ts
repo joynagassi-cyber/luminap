@@ -41,7 +41,8 @@ export type ClaimStatus =
   | "REJECTED_DUPLICATE"
   | "REJECTED_EXPIRED"
   | "REJECTED_EXHAUSTED"
-  | "REJECTED_REVOKED";
+  | "REJECTED_REVOKED"
+  | "REJECTED_ROLE_ESCALATION";
 
 export interface Invitation {
   id: string;

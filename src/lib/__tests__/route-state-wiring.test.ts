@@ -42,7 +42,7 @@ const authPageSrc = readFileSync(
  * test (garde anti-obsolescence).
  */
 const PENDING_WIRING: Record<string, string> = {
-  hasPermission: "R105 — bloqué par la décision R109/R16 (modèle de rôles ADMIN)",
+  hasPermission: "R105 — R109 TRANCHÉ (2026-10-29) : reste le câblage de la route",
 };
 
 /** Extrait les clés de l'interface `RouteState`. */

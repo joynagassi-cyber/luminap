@@ -49,6 +49,43 @@ export type Permission =
  *   > Comptable > Responsable Groupe > Bénévole > Membre
  */
 export const PERMISSION_MATRIX: Readonly<Record<Role, Permission[]>> = {
+  // === ADMINISTRATION CENTRALE ===
+  // Rôle suprême (R109 tranché) : détient TOUTES les permissions. Un porteur
+  // peut administrer son organisation, créer des organisations annexes
+  // (rattachées via `parent_org_id`) et superviser/voir l'activité de ces
+  // annexes. La hiérarchie est verrouillée par un test (ADMIN ⊇ tous les
+  // autres rôles) pour qu'aucune permission future ne soit oubliée ici.
+  ADMIN: [
+    "transaction:create",
+    "transaction:read",
+    "transaction:update",
+    "transaction:approve",
+    "transaction:reject",
+    "transaction:delete",
+    "versement:create",
+    "versement:approve",
+    "group:create",
+    "group:read",
+    "group:update",
+    "group:delete",
+    "event:create",
+    "event:read",
+    "event:update",
+    "event:delete",
+    "report:read",
+    "report:export",
+    "member:create",
+    "member:read",
+    "member:update",
+    "member:delete",
+    "cotisation:manage",
+    "admin:settings",
+    "admin:roles",
+    "invitation:create",
+    "invitation:revoke",
+    "invitation:manage",
+  ] as Permission[],
+
   // === SPIRITUAL LEADERSHIP ===
   PASTEUR_PRINCIPAL: [
     "transaction:create",
@@ -251,6 +288,7 @@ export const PERMISSION_MATRIX: Readonly<Record<Role, Permission[]>> = {
  * Role labels for UI display
  */
 export const ROLE_LABELS: Readonly<Record<Role, string>> = {
+  ADMIN: "Administrateur",
   PASTEUR_PRINCIPAL: "Pasteur Principal",
   PASTEUR_ASSOCIE: "Pasteur Associé",
   PASTEUR_JEUNESSE: "Pasteur Jeunesse",
@@ -271,6 +309,7 @@ export const ROLE_LABELS: Readonly<Record<Role, string>> = {
  * Role hierarchy levels (higher = more privileges)
  */
 export const ROLE_HIERARCHY: Readonly<Record<Role, number>> = {
+  ADMIN: 999,
   PASTEUR_PRINCIPAL: 100,
   ANCIEN: 90,
   PASTEUR_ASSOCIE: 85,
