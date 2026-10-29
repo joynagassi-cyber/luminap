@@ -64,6 +64,7 @@
 | 9 | R110 — `notify_budget_exceeded` : colonnes inexistantes sur `budget_lines` (toute création de ligne budgétaire échouait) | P1 | **terminé** | `agent/phase-09-r89b-denormalize-org-id` | `phase-09/2026-10-27-r89b-denormalize-org-id.md` |
 | 12 | Sauvegarde Supabase chiffrée + vérifiée, workflow passé en **hebdomadaire** (P31/E3) | P1 | **terminé** (activation secrets = propriétaire) | `agent/phase-09-r89b-denormalize-org-id` | `phase-09/2026-10-27-backup-weekly-verified.md` |
 | 9 | Synchronisation — garde anti-dérive `ON_DEMAND_STREAMS` ↔ `sync-config.yaml` | P1 | **terminé** | `agent/phase-09-streams-guard` | `phase-09/2026-10-26-r89a-canonical-categories.md` (addendum) |
+| 9 | **R80 + réplication Production** : la réplication PowerSync était **tombée** (mot de passe `postgres` rotaté) ; dérive `grants` déployée périmée ; stream `profiles` trop étroit (UUID au lieu du nom). Réparé (instance réapprovisionnée + `deploy sync-config`) et **prouvé** : `POST /sync/stream` → 200, 15,9 Mo, 30 499 lignes. `service.yaml` réconcilié (utilisateur dédié, JWKS) | P1 | **terminé** | `fix/powersync-replication-r80` | `phase-09/2026-10-28-r80-powersync-repair.md` |
 
 | 11 | Page « État du système » (santé : version, sync, erreurs) | P1 | **terminé** | `agent/phase-11-health` | `phase-11/2026-10-26-health-page.md` |
 | 11 | Bouton « Signaler un problème » (diagnostic copiable, sans PII) | P1 | **terminé** | `agent/phase-11-report-problem` | `phase-11/2026-10-26-health-report-problem.md` |

@@ -1779,7 +1779,17 @@ infalsifiable — par exemple un `webServer` explicite dans
 du build à celui du dernier commit. Voir PROPOSITIONS.md.
 
 
-### R80 — Le stream `profiles` ne synchronise que le profil de l'utilisateur connecté — OUVERT (moyenne)
+### R80 — Le stream `profiles` ne synchronise que le profil de l'utilisateur connecté — CORRIGÉ (2026-10-28, moyenne)
+
+> **CORRIGÉ** : le stream `profiles` reproduit désormais exactement la politique
+> RLS `profiles_select` (`(initplan_uid() = id) OR is_org_member(initplan_uid(), org_id)`,
+> sentinelles `__no_org__`/`no-org`/vide exclues), déployé sur l'instance
+> Production. Preuve : bucket `profiles|0.16.6["org-e2e"]` **count = 1** après
+> déploiement (avant : seuls les buckets `profiles|…[<uid>]`). La colonne
+> « Soumetteur » de `/forms` affiche donc le nom, plus l'UUID. Receipt :
+> `phase-09/2026-10-28-r80-powersync-repair.md`. Le blocage historique
+> (`PS_ADMIN_TOKEN` absent) est levé, et la réplication Production a été
+> réparée dans la même session (E1).
 
 **Défaut** : le stream PowerSync `profiles`
 (`powersync/sync-config.yaml:71-73`) est filtré sur

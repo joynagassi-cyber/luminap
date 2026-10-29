@@ -6,18 +6,32 @@
 > Seuls les risques de **perte de données** ou de **fuite inter-organisation**
 > arrêtent l'élément concerné (désactivé par drapeau).
 
-## E1 — Déploiement du sync-config PowerSync Cloud — RÉSOLU (2026-10-27)
+## E1 — Déploiement du sync-config PowerSync Cloud — RÉSOLU (2026-10-27), **réplication re-réparée (2026-10-28)**
 
 - **Symptôme (historique)** : `powersync deploy sync-config` échouait ;
   `PS_ADMIN_TOKEN` absent de l'environnement de l'agent.
-- **Résolution** : le jeton d'administration a été rendu disponible (coffre
-  local `~/.ps-secrets`, non versionné). `powersync validate` → ✓ ; `powersync
-  deploy sync-config` → *Deployment operation completed successfully*.
-- **Preuve de bout en bout** : après déploiement, la synchronisation du profil
-  à fort volume (`org-e2e`, 6709 événements) réussit — `connected:true`,
-  `hasSynced:true`, **`events: 6709`** (avant : `PSYNC_S2305`, 0 ligne).
-- **Repli (historique)** : fichier source corrigé et versionné pendant la
-  période où le déploiement était bloqué.
+- **Résolution (2026-10-27)** : le jeton d'administration a été rendu disponible.
+  `powersync validate` → ✓ ; `powersync deploy sync-config` → *Deployment
+  operation completed successfully*. Preuve : sync `org-e2e` = 6709 événements.
+- **⚠️ Fausse clôture détectée le 2026-10-28** : l'instance **Production**
+  (`6a9dd96302481fb31b945823`) avait en réalité une réplication **ARRÊTÉE**
+  (`password authentication failed for user "postgres"`, slot `_19_179e`
+  invalidé). Le marquage « RÉSOLU » portait sur le *déploiement du fichier*, pas
+  sur l'état de la connexion — d'où une **panne silencieuse** de ~24 h.
+- **Cause racine** : `service.yaml` visait `username: postgres` +
+  `secret_ref: default_password` ; le mot de passe `postgres` avait été rotaté
+  côté Supabase et était irrécupérable. Le modèle qui fonctionne (instance
+  *Development*) est un **rôle de réplication dédié** créé par l'intégration
+  Supabase (`powersync_*` + `secret_ref: supabase_*_password`).
+- **Réparation** : instance Production réapprovisionnée par le propriétaire
+  (utilisateur `powersync_28d1d97617993b66d4ee0a3b`). Vérifié : `connected`,
+  slot `_21_d422`, lag 0, **`POST /sync/stream` → HTTP 200, 15,9 Mo, 30 499 lignes**.
+- **Dérive corrigée au passage** : le sync-config déployé était périmé (stream
+  `grants` sans cloisonnement org, R61) → redéployé ; `deployed == dépôt` (0 diff).
+- **Durcissement anti-récidive** : `service.yaml` réconcilié avec la config
+  canonique + commentaire interdisant le retour au modèle `postgres`/`default_password` ;
+  `.gitignore` couvre `powersync/*-fetched.yaml`. Receipt :
+  `phase-09/2026-10-28-r80-powersync-repair.md`.
 
 ## E2 — Suite Cypress jamais verte sur `main` (environnement E2E)
 
