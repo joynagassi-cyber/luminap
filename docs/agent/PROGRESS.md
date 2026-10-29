@@ -121,6 +121,8 @@
 | 11 | **R52 — garde statique, 2ᵉ invariant** : un simple import de `isPowerSyncReadyNow` ne blanchit plus (il faut un **appel**) ; un squelette visible ne peut pas être gardé par un `isLoading` mort | P2 | **terminé** | `agent/r52j-trace-orgreport-loading` | `phase-11/2026-10-28-r52q-finance-loading.md` |
 | 11 | **R52.p — `DocumentPicker`** : « Aucun document uploadé » avant lecture (composant partagé). Correctif : garde `documentsPending` | P2 | **terminé** | `agent/r52j-trace-orgreport-loading` | `phase-11/2026-10-28-r52o-p-reports-documents.md` |
 | 11 | **R52 — garde statique durcie** : détecte un verdict vide gardé par un `isLoading` MORT (liste dérivée de `dataLayer.ts`) | P2 | **terminé** | `agent/r52j-trace-orgreport-loading` | `phase-11/2026-10-28-r52o-p-reports-documents.md` |
+| 11 | **R132 — Cypress E2E bloqué par l'auth PowerSync (401 `aud`)** : le service PowerSync rejette l'audience `authenticated` → `connected:false` → toutes les pages gardées par `isPowerSyncReadyNow()` restent en squelette (Reports, Balance, comprehensive-flow). Cause **hors code app** ; correctif = `client_auth.audience` du service config (propriétaire). | P1 | **bloqué** (E5) | `fix/cypress-ui-nav` | `phase-11/2026-10-29-cypress-sync-auth-blocker.md` |
+| 11 | **R133 — `comprehensive-flow` dérive l'id `"new"`** (`/transaction/new` satisfait `include('/transaction/')`) → visite `/transaction/new/edit` → « Transaction introuvable ». Fragilité de spec, dépend de R132. | P2 | **bloqué** (E5) | `fix/cypress-ui-nav` | `phase-11/2026-10-29-cypress-sync-auth-blocker.md` |
 
 ## Escalades ouvertes (ne bloquent pas la boucle)
 
@@ -129,6 +131,10 @@
 | E2 | Cypress vert sur `main` (environnement E2E, R98) | specs indépendantes de PowerSync seules bloquantes | ESCALATIONS.md |
 | E3 | Sauvegardes automatiques (`SUPABASE_DB_URL` absent) | chaîne prouvée manuellement, runbook opérateur | ESCALATIONS.md |
 | E4 | Parcours « réclamer une invitation » (FK `auth.users`, R111) | aucun code modifié (décision d'architecture) ; documenté | ESCALATIONS.md |
+| E5 | **Auth PowerSync : audience `authenticated` rejetée (401 `PSYNC_S2105`)** — bloque toute la suite Cypress gardée par la disponibilité de la réplique | aucun code app modifié ; gardes R52 conservées ; `service.yaml`/`sync-config.yaml` non touchés | ESCALATIONS.md |
 
 > E1 (déploiement `sync-config` PowerSync) est **RÉSOLU** depuis le 2026-10-27
 > (jeton admin disponible, déploiement validé, sync `org-e2e` = 6709 événements).
+> La **réplication** Production (slot invalidé, R80/R111) a en outre été réparée
+> le 2026-10-28 (`fix/powersync-replication-r80`). **E5** est un blocage
+> distinct : le service config déployé rejette l'audience `authenticated`.
