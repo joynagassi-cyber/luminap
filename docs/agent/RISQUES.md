@@ -379,7 +379,13 @@
   buckets privés ; un membre ne voit que le préfixe de son organisation.
 - **Statut** : corrigé (migration `20261022000013`). Rollback fourni.
 
-### R30 — Cypress `nav-bottom` : onglets non cliquables (vues Ionic conservées) — OUVERT
+### R30 — Cypress `nav-bottom` : onglets non cliquables (vues Ionic conservées) — CORRIGÉ (code) / non vérifiable en CI (E2)
+- **Rectification (2026-10-29)** : l'entrée disait « non corrigé ». **C'est
+  faux** : `cypress/e2e/nav-bottom.cy.ts` applique les **deux contournements**
+  — (1) scoping sur la page Ionic active
+  (`div.ion-page:not(.ion-page-hidden) [data-testid=…]`, même filtre que
+  `activePage()`) et (2) `{ force: true }` sur le clic (6 occurrences), les
+  assertions de **navigation** (`pathname`) restant strictes.
 - **Symptôme** : `cy.click()` sur `button[role="tab"][aria-label="Finances"]`
   échoue avec « not visible per `Element.checkVisibility()` » alors que les
   styles calculés sont visibles (`display:flex`, `visibility:visible`,
@@ -391,9 +397,8 @@
   ne suffit pas (jQuery considère la vue sortante « visible »).
 - **Impact** : défaut de **test** (synchronisation), pas de l'application — les
   3 tests échouaient déjà au baseline, à l'identique.
-- **État** : non corrigé. Piste : scoper au `ion-page.ion-page-invisible:not(…)`
-  / attendre `ion-view` actif, ou utiliser `{ force: true }` après assertion du
-  `pathname` (le spec asserte déjà le pathname).
+- **État** : corrigé (code). Non vérifiable en CI pour la cause E2/R98 (réplique
+  PowerSync vide), indépendante de ce défaut.
 - **Gravité** : moyenne (couverture de navigation non obtenue).
 - **Correction partielle apportée** : suppression du libellé d'accessibilité
   dupliqué (`aria-label="Navigation principale"` sur `<nav>` **et** sur le
@@ -1469,24 +1474,30 @@ décodant vers `object`/`array`).
 - **Gravité** : moyenne (défaut de détection, pas défaut produit).
 
 
-### R72 — Les specs Cypress dépendent d'un global exposé seulement en mode dev — OUVERT (moyenne)
-- **Défaut** : `cross-tenant.cy.ts` lit `window.__psSupabaseClient`, publié
-  par `publishDevDiagnostics()` qui commence par
-  `if (!import.meta.env.DEV) return;`. Lancées contre un **build de
-  production** (`vite preview`), les specs échouent avec
-  « `__psSupabaseClient` does not exist » et attendent 4 minutes avant
-  d'abandonner.
-- **Preuve** : `cross-tenant` → 0/1 sur `vite preview` (port 4173, 4 min
-  10 s) ; **1/1 en 24 s** sur `vite` dev (port 4174), même code, même base.
-- **Portée** : toute la suite, dès qu'elle est lancée contre un build de
-  production (ce que fait `cypress.config.ts` par défaut : `baseUrl` =
-  déploiement distant). C'est un piège pour toute personne qui relance les
-  tests : les échecs n'indiquent pas un défaut de l'app.
-- **Correctif proposé (non appliqué)** : exposer le client de diagnostic
-  aussi hors `DEV` (derrière un flag de test explicite), ou faire échouer
-  le spec immédiatement avec un message clair du type « lancez la suite sur
-  `vite` (dev) — cf. RUNBOOK ».
-- **Gravité** : moyenne (faux négatifs de test, pas défaut produit).
+### R72 — Les specs Cypress dépendent d'un global exposé seulement en mode dev — CORRIGÉ (code) / non applicable en CI
+- **Rectification (2026-10-29)** : cette entrée disait « Correctif proposé
+  (**non appliqué**) ». **C'est faux** : l'option (b) — faire échouer le spec
+  **immédiatement** avec un message explicite — **est appliquée** dans
+  `cypress/e2e/cross-tenant.cy.ts:101-108` : si `__psSupabaseClient` est
+  absent, le spec `throw` un message nommant la cause (build de production) et
+  la marche à suivre (`scripts/run-cypress.sh`, cf. RUNBOOK). Il n'attend donc
+  plus 4 minutes.
+- **Non applicable en CI** : `cypress.yml` lance la suite contre
+  `pnpm run dev` (`start: pnpm run dev`, `wait-on http://localhost:8080`,
+  `CYPRESS_BASE_URL=http://localhost:8080`). En mode dev, `import.meta.env.DEV`
+  est vrai → le global **est** publié. R72 ne concerne donc que les runs
+  **locaux** contre un build de production — un piège de méthode, désormais
+  neutralisé par le message d'échec immédiat.
+- **Défaut (historique)** : `cross-tenant.cy.ts` lit
+  `window.__psSupabaseClient`, publié par `publishDevDiagnostics()` qui
+  commence par `if (!import.meta.env.DEV) return;`. Lancées contre un **build
+  de production** (`vite preview`), les specs échouaient avec
+  « `__psSupabaseClient` does not exist » après 4 minutes.
+- **Preuve** : `cross-tenant` → 0/1 sur `vite preview` (port 4173, 4 min 10 s) ;
+  **1/1 en 24 s** sur `vite` dev (port 4174), même code, même base.
+- **Statut** : corrigé (garde d'échec immédiat en place) ; sans effet en CI
+  (serveur dev).
+- **Gravité** : moyenne (faux négatifs de test local, pas défaut produit).
 
 
 ### R73 — Artefact de build versionné : `graphify-out/` (59 Mo) — CORRIGÉ (2026-10-26)
@@ -1715,17 +1726,24 @@ révoqué / retiré) et `OrgAdmin` → « Administrateur d'organisation ».
 `tsc -b` 0 erreur.
 
 
-### R82 — `org-reports.cy.ts` s'auto-empoisonne : la sélection du parent est non déterministe — OUVERT (moyenne)
+### R82 — `org-reports.cy.ts` s'auto-empoisonne : la sélection du parent est non déterministe — CORRIGÉ (code) / non vérifiable en CI (E2)
 
-**Défaut** : le spec crée une hiérarchie Mère → A → B, mais choisit le
-parent dans le popover par
+**Rectification (2026-10-29)** : cette entrée affirmait « correctif identifié
+(NON appliqué — tentative révoquée) » et « spec restauré à son état committé ».
+**C'est faux** : le correctif **est dans le code** depuis `c11aad7`
+(2026-10-24, PR #6) et n'a **jamais été révoqué** (vérifié : `git log -S
+"Aucune"` sur le spec ne montre aucun revert après `c11aad7`). De plus, les
+4 organisations « Annexe A » résiduelles ont été **purgées** en phase 18
+(mesure 2026-10-29 : 3 organisations, 0 annexe). Le diagnostic ci-dessous
+reste exact sur le **défaut d'origine** ; son statut était périmé.
+
+**Défaut d'origine** : le spec crée une hiérarchie Mère → A → B, mais
+choisissait le parent dans le popover par
 `cy.get('ion-popover').find('ion-item').filter(':visible')
- .filter((_, el) => !el.textContent.includes('Aucune')).first()`
-(`cypress/e2e/org-reports.cy.ts:130-134`). Or la liste des options vient de
-`allOrgs` (`Federation.tsx:460`), alimenté par `federation.listOrgs()`
-(`src/capabilities/federation/index.ts:201`) trié **`created_at DESC`**.
-`.first()` sélectionne donc la **dernière organisation créée**, pas
-l'organisation courante (la Mère) comme le commentaire du spec le suppose.
+ .filter((_, el) => !el.textContent.includes('Aucune')).first()`. Or la liste
+vient de `allOrgs` (`Federation.tsx`), alimenté par `federation.listOrgs()`
+trié **`created_at DESC`** : `.first()` désignait donc la **dernière
+organisation créée**, pas l'organisation courante (la Mère).
 
 **Conséquence mesurée** : chaque exécution du spec crée une nouvelle
 « Annexe A », qui devient le parent de la suivante. La base contient ainsi
@@ -1751,28 +1769,29 @@ interprété à tort comme une régression de la hiérarchie d'organisations —
 une fonctionnalité centrale (Phase 2). Non déterministe = défaut, pas
 instabilité à ignorer.
 
-**Correctif identifié (NON appliqué — tentative révoquée)** : deux approches
-ont été codées puis **révoquées**, faute de pouvoir les valider dans le
-budget de la session :
+**Correctif APPLIQUÉ (`c11aad7`, PR #6 — jamais révoqué)** : le `.first()` a été
+remplacé par la sélection **explicite** de l'option portant le nom de
+l'organisation courante, lu dans `lumina-user` (clé `org.name`, écrite par
+`authService.persistCurrentUser`) avec repli `lumina-config` (`churchName`) :
 
-1. remplacer `.first()` par la sélection explicite de l'option portant le
-   nom de l'organisation courante. Mesuré : le nom de la Mère
-   (`lumina-user.org.name` / `lumina-config.churchName`) **n'est pas dans la
-   liste** des options — `cy.contains(ion-item, 'Org E2E 110710')` échoue
-   après 180 s. La liste ne contient donc pas l'organisation courante, ce
-   qui invalide l'hypothèse et **exige une investigation supplémentaire** ;
-2. créer l'arbre de test sous une racine dédiée au spec plutôt que sous
-   l'organisation partagée du compte.
+```js
+cy.window().then((win) => {
+  let orgName = JSON.parse(win.localStorage.getItem('lumina-user') ?? '')?.org?.name || null;
+  if (!orgName) orgName = JSON.parse(win.localStorage.getItem('lumina-config') ?? '')?.churchName || null;
+  cy.get('ion-select[data-testid="org-parent"]').first().click({ force: true });
+  cy.get('ion-popover', { timeout: 10_000 }).find('ion-item').filter(':visible').contains(orgName).click();
+});
+```
 
-Conformément au principe « un changement non testé est pire qu'un défaut
-documenté », `cypress/e2e/org-reports.cy.ts` a été **restauré à son état
-commité** (`git checkout`). Le spec reste en échec, documenté, non maquillé.
+En complément, **P39** (PR #123) a doté le spec d'un hook `after()` qui
+**archive** les annexes créées par le run (`cy.cleanupTestArtifacts`,
+`orgNamePrefix` + `sinceIso`), ce qui empêche toute ré-accumulation.
 
-**Travail restant** : (a) comprendre pourquoi l'organisation courante est
-absente des options du sélecteur parent (`allOrgs` ← `listOrgs`, filtre
-admin/membre) ; (b) purge des 4 organisations « Annexe A » orphelines
-(décision propriétaire : elles portent `status = ACTIVE` et des enfants).
-Coût estimé du point (a) : 1 h.
+**Statut** : le défaut de test est **corrigé dans le code**. Il n'est **pas
+vérifiable en CI** : `org-reports.cy.ts` échoue toujours, mais pour la cause
+d'environnement E2/R98 (réplique PowerSync vide, R132/E5) — plus pour la
+non-déterminisme du sélecteur. Les 4 annexes résiduelles sont **purgées**
+(phase 18). Reste propriétaire : néant sur ce point.
 
 
 ### R81 — Un run Cypress peut porter sur un build obsolète sans que rien ne l'annonce — CORRIGÉ (méthode, moyenne)
