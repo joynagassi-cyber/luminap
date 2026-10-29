@@ -127,12 +127,20 @@
   mesure (`applied_versions_in_tracker=70`, `repo_timestamped_files=63`,
   `repo_sequential_files=63`, `repo_total_sql_files=126`, `versions_in_common=2`,
   `common_versions=["20261001000001","20261027000003"]`, `drift_ratio="2/70"`).
-- **Garde anti-dérive (repo-side)** : `V: migration-drift-guard.test.ts` (3). Le
+- **Garde anti-dérive (repo-side)** : `V: migration-drift-guard.test.ts` (4). Le
   tracker n'étant **pas accessible en CI**, la garde verrouille ce qui est
   vérifiable sans base — le **nombre et la forme des fichiers du dépôt** — et
   **échoue dès qu'une migration est ajoutée/retirée**, forçant à re-mesurer la
   dérive et à mettre à jour l'instantané. Sans elle, une migration appliquée via
   l'éditeur SQL (donc jamais tracée) passerait totalement inaperçue.
+- **Durcissement (2026-10-29)** : la garde initiale comparait des **comptes**
+  (63 horodatés, 63 séquentiels, 126 total). Une **substitution net-zéro**
+  (retirer 1 migration, en ajouter 1) laissait donc passer les 3 tests de
+  comptage — dérive invisible. Ajout d'une empreinte SHA-256 de l'**ensemble**
+  des noms de fichiers (`repo_filenames_sha256` dans l'instantané +
+  4ᵉ test). **Non-vacuité prouvée par mutation** : remplacer un fichier horodaté
+  par un autre (comptes inchangés) → **seul** le test d'empreinte échoue
+  (les 3 tests de comptage restent verts) — le trou est réellement comblé.
 - **Recommandation propriétaire** : régulariser l'historique (marquer les
   migrations appliquées avec `supabase migration repair --status applied <version>`)
   ou adopter « base = source de vérité » et ne plus se fier au tracker. À
