@@ -59,8 +59,21 @@
 ## Base Supabase (hhgovvrnalibhgpakswi)
 - **Instance de DÉVELOPPEMENT**, pas la production : `transactions = 0`,
   `documents = 0`, `versements = 0`. Écritures autorisées.
-- 108 profils (87 `@lumina.dev`, 11 `@example.com`, 9 `@gmail.com`),
-  47 `__no_org__`, 70 members, 42 invitations, 9 organisations (5 ACTIVE).
+- **PURGÉE le 2026-10-29** (phase 18, PR #119) : ne reste que **2 profils**
+  (`lumina-org-e2e@lumina.dev`, `lumina-org-unconfigured@lumina.dev`), 3 orgs
+  (`org-e2e`, `org-e2e-unconf`, `org-central`), 9 catégories canoniques,
+  `role_permissions` (149), `keep_alive` (1). Tout le reste (events,
+  notifications, groups, org_units, accounts, caisses, members, invitations,
+  audits…) est à **0**.
+- **Procédure de purge reproductible** (si besoin) : (1) `update groups set
+  parent_group_id/responsable_member_id = null` ; (2) supprimer enfants→parents ;
+  (3) `alter table public.org_admins disable trigger trg_org_admins_not_last`
+  puis `delete` orgs/profils hors conservés puis `enable trigger` (la garde
+  « dernier admin » bloque sinon `org-central`) ; (4) **re-supprimer
+  `audit_entries`** (les triggers d'audit en régénèrent) avant
+  `delete from auth.users …` (FK `audit_entries_user_id_fkey`) ; (5) restaurer
+  les **9 catégories canoniques** (`20261026000006_seed_canonical_categories.sql`)
+  — données de référence requises (R89.a).
 - `organizations.status` ∈ {ACTIVE, INACTIVE, ARCHIVED} ; archivage =
   `status='ARCHIVED'` + `archived_at/by` + `archive_reason` (≠ DELETE).
 - **RLS sans politique = deny-all** : les advisors `rls_enabled_no_policy` sur
@@ -108,6 +121,11 @@
 - Fidélité de contrôle : comparer les `count(*)` source/restauré (10/10 OK).
 - Sauvegardes réelles : `/workspace/backups/` **hors dépôt** (données réelles,
   ne jamais commiter). `backup.yml` publie **uniquement** si chiffré.
+- **E3 RÉSOLUE (2026-10-29)** : `backup.yml` **est configuré** (secrets
+  `SUPABASE_DB_URL` + `BACKUP_GPG_PASSPHRASE` présents) — preuve : run manuel
+  `40813667253` → export + publication, artefact chiffré 3,9 Mo. **Piège** : un
+  run peut être **vert avec l'export `skipped`** (secret absent) → vérifier
+  l'étape « Export (schéma + données) », pas seulement la conclusion du run.
 
 ## Boucle autonome « lumina-autonomous-hardening » (2026-10-26)
 - Contrat 18 phases ; état dans `docs/agent/` (ex-`docs/agent-session`, renommé).
