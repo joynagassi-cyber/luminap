@@ -24,6 +24,21 @@
   Aucun backend Agent Canvas local (localhost:8001 → HTTP 000).
 
 ## PowerSync (instance prod 6a9dd96302481fb31b945823)
+- **P0 « écran muet » — audience JWT (R129/R132, 2026-10-29)** : l'instance
+  rejette TOUT jeton utilisateur Supabase (`401 PSYNC_S2105 — Unexpected "aud"
+  claim value: "authenticated"`). Cause : `client_auth.jwks_uri` explicite est
+  enregistré **sans** `requiresAudience` → `KeyStore.verifyJwt` retombe sur
+  `client_auth.audience` (= `additional_audiences`) ; le collecteur Supabase
+  auto-dérivé (qui porte `requiresAudience: ["authenticated"]`) est **masqué**
+  par le collecteur explicite (même URL, même `kid`). Correctif :
+  `additional_audiences: ["authenticated"]` dans `service.yaml`. **Sonde
+  décisive** (hors navigateur) : `POST /sync/stream` avec un JWT réel → 401
+  avant, 200 après. Un corps JSON invalide renvoie 400 AVANT l'auth (donc un
+  400 ne prouve rien). Effet produit : `_psReady=false` → pages gardées par
+  `isPowerSyncReadyNow()` bloquées sur squelette perpétuel. Filet produit livré :
+  `markPowerSyncUnavailable`/`useReplicaUnavailable` + `SyncUnavailableBanner`
+  (borne 30 s, monté dans `App.tsx`).
+
 - **Déployable depuis ce conteneur** : jeton admin dans `~/.ps-secrets`
   (`PS_ADMIN_TOKEN`, `PS_DATABASE_PASSWORD`) — **coffre local, jamais commité**.
   `powersync validate` puis `powersync deploy sync-config`.
