@@ -3922,7 +3922,7 @@ partagée par les deux plateformes et couverte par 3 tests.
 - **Statut** : OUVERT, mesuré, non corrigé (conservateur : refonte de ~30
   politiques, non justifiée sans validation).
 
-### R138 — Le cron de sauvegarde est passé de QUOTIDIEN à HEBDOMADAIRE — OUVERT (gravité MOYENNE)
+### R138 — Le cron de sauvegarde était passé de QUOTIDIEN à HEBDOMADAIRE — ✅ CORRIGÉ le 2026-10-29
 - **Défaut** : `backup.yml` a été créé avec `cron: '0 3 * * *'` (quotidien),
   puis modifié en `cron: '0 3 * * 0'` (dimanche seulement) au commit `3a22b5b`
   (`fix(sync): R89.b`). Or le RUNBOOK et le propriétaire attendent une
@@ -3934,6 +3934,8 @@ partagée par les deux plateformes et couverte par 3 tests.
 - **Conséquence** : la RPO (perte de données maximale) est de **7 jours**, pas
   1 jour — contraire à l'attente. Les sauvegardes fonctionnent par ailleurs
   (artefact chiffré de 3,9 Mo publié, run #7 du 2026-10-29).
-- **Action proposée (1 ligne, faible risque)** : rétablir `cron: '0 3 * * *'`.
-- **Statut** : OUVERT, mesuré, non corrigé (à confirmer par le propriétaire —
-  le passage à l'hebdomadaire était peut-être volontaire).
+- **Correctif** : `cron: '0 3 * * *'` rétabli (`.github/workflows/backup.yml`),
+  sur consigne explicite du propriétaire du 2026-10-29 (« chaque jour une
+  sauvegarde sera créée »). Le RUNBOOK est aligné (section « Sauvegardes »).
+- **Statut** : corrigé le 2026-10-29 ; à confirmer par le prochain run planifié
+  (la cadence quotidienne se vérifie sur plusieurs jours).
