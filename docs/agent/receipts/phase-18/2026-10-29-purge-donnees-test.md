@@ -82,12 +82,28 @@
 
 ## 5. Vérification post-purge
 
-- **Login réel** des 2 comptes de test → **OK** (`aud: authenticated`).
+- **Login réel** des 2 comptes de test → **OK** : `POST /auth/v1/token`
+  (`grant_type=password`) → **HTTP 200** pour les deux, avec les identifiants
+  **par défaut de `cypress.config.ts`** (`ORG_EMAIL`/`ORG_PASSWORD` et
+  `ORG_UNCONFIGURED_*`). Les **identifiants de test conservés sont donc
+  fonctionnels** (exigence explicite du propriétaire).
 - Lecture RLS `GET /rest/v1/profiles` avec le JWT du compte de test → renvoie
   uniquement son profil d'org (isolation correcte).
 - Garde `org_assert_not_last_admin` **réactivée** (vérifié dans `pg_trigger`).
-- Aucun doublon, aucune organisation orpheline (toutes les orgs restantes ont
-  leur admin ou sont protégées).
+- **Aucun doublon** (vérifié : 0 doublon d'e-mail de profil, de nom d'org, de
+  grant `org_admins`, de `org_memberships`).
+- **Orphelins** : aucune ligne de donnée métier ne référence une organisation
+  supprimée. Deux organisations conservées n'ont **aucun grant admin** — état
+  **voulu et sûr** :
+  - `org-central` (type `CENTRAL`, créée par migration) : sa vocation est
+    d'accueillir l'admin central, **supprimé avec les données de test**. C'est
+    exactement l'état d'usine ; le futur admin central sera rattaché par
+    `create_org`/grant, pas par une donnée de test.
+  - `org-e2e-unconf` : org **délibérément non configurée** du spec
+    `unconfigured-org` (elle doit rester sans admin pour que le scénario soit
+    valide).
+  Le compte de test principal (`lumina-org-e2e@lumina.dev`) a bien son grant
+  admin sur `org-e2e` (1 grant).
 
 ## 6. Limites
 
