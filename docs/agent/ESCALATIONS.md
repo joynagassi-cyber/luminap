@@ -87,3 +87,41 @@
   la FK `profiles.id → auth.users`. Non tranché.
 - **Repli appliqué** : aucun code modifié (décision d'architecture) ; documenté
   (R111) + receipt.
+
+## E5 — Authentification PowerSync : audience `authenticated` rejetée (401) — R132
+
+- **Symptôme** : toute la suite Cypress reste rouge **au-delà** de E2 : les
+  pages gardées par `isPowerSyncReadyNow()` (Reports, Balance, History, Members,
+  Events, Groups, Versement, TransactionEdit…) affichent leur **squelette
+  indéfiniment**, donc les libellés/titres attendus par les specs ne sont jamais
+  rendus. Ce n'est pas une dérive d'UI : les chaînes existent dans le code.
+- **Cause racine** : le service PowerSync déployé (instance
+  `6a9dd96302481fb31b945823`) **rejette l'audience `authenticated`** des jetons
+  Supabase : `PSYNC_S2105 — Unexpected "aud" claim value: "authenticated"`. Le
+  projet Supabase signe en **ES256 asymétrique** (`kid e6d0da61-…`, JWKS public)
+  et émet `aud: "authenticated"` ; la config JWKS du service n'accepte pas cette
+  audience (le `service.yaml` du dépôt porte `additional_audiences: []` sans
+  liste d'audiences acceptée). Résultat : `status.connected` reste `false`,
+  `markPowerSyncReady()` n'est jamais appelé, `_psReady` reste `false`.
+- **Preuves** : (1) jeton Supabase **valide** (`GET /auth/v1/user` → HTTP 200) ;
+  (2) `POST /sync/stream` avec ce jeton → **HTTP 401 PSYNC_S2105** (reproduit
+  hors navigateur) ; (3) état in-browser `window.__psDb.currentStatus` :
+  `connected: false`, `downloadError` = le message ci-dessus ; (4) contre-épreuve
+  : `isPowerSyncReadyNow()` forcé à `true` (patch non commité) → `reports-budgets`
+  **5/5** (contre 3/5) — la variable décisive est bien la disponibilité.
+- **Correctif requis (propriétaire)** : ajouter `authenticated` aux audiences
+  acceptées du **service config** PowerSync
+  (`client_auth.audience: ["authenticated"]` / `additional_audiences:
+  ["authenticated"]` selon le schéma) puis `powersync deploy service-config`
+  (exige `PS_ADMIN_TOKEN` — absent de l'environnement de l'agent, cf. E1).
+  Vérification attendue : `POST /sync/stream` → **HTTP 200**.
+- **Repli appliqué** : **aucun** code applicatif modifié ; les gardes R52 (qui
+  exigent le squelette tant que la réplique n'a pas répondu) sont **conservées**
+  (les assouplir rouvrirait R52.q et ferait passer un test en l'affaiblissant).
+  Interdit respecté : `powersync/service.yaml` et `powersync/sync-config.yaml`
+  non touchés. Receipt : `phase-11/2026-10-29-cypress-sync-auth-blocker.md`.
+- **Défaut jumeau (R133, non corrigé — dépend de E5)** : dans
+  `comprehensive-flow.cy.ts`, l'`id` dérivé de l'URL après création vaut `"new"`
+  (`/transaction/new` satisfait `should('include', '/transaction/')`), donc le
+  spec visite `/transaction/new/edit` → « Transaction introuvable ». Fragilité
+  de **spec** (pas produit), atteignable seulement après E5.
