@@ -1306,6 +1306,11 @@ depuis une liste (groupe, événement, membre) fonctionne.
 Reste ouvert pour **19 autres pages** (cf. P35). Gravité **basse** (a11y).
 
 ### R62 — Deux sources de vérité pour le rôle, non synchronisées — OUVERT (gravité MOYENNE)
+- **Mesure (2026-10-29, post-purge)** : **les 2 profils restants sont
+  cohérents** (`profiles.role = org_memberships.role` : 2/2
+  `PASTEUR_PRINCIPAL`) — la divergence concrète (MEMBRE vs PASTEUR_PRINCIPAL)
+  n'existe plus. Le risque **structurel** demeure : 2 colonnes, 0 trigger de
+  propagation (cf. R16, même classe).
 - **Gravité** : moyenne (fragilité de sécurité/UX, pas d'exploitation
   connue).
 - **Défaut** : l'application lit `profiles.role` (via
