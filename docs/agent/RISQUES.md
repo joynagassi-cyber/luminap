@@ -3672,19 +3672,42 @@ partagée par les deux plateformes et couverte par 3 tests.
   (PRs #116 mergée, #117 ouverte).
 - **Receipt** : `docs/agent/receipts/phase-12/2026-10-29-powersync-audience-p0.md`.
 
-### R133 — `comprehensive-flow` dérive l'id `"new"` de l'URL après création — ⛔ BLOQUÉ (dépend de E5) le 2026-10-29
+### R133 — `comprehensive-flow` dérive l'id `"new"` de l'URL après création — ✅ DÉJÀ CORRIGÉ (`d38ee9d`, sur `main` depuis le 2026-09-30) — statut RÉCONCILIÉ le 2026-10-29
 
-- **Défaut** : dans `cypress/e2e/comprehensive-flow.cy.ts`, après
+- **Défaut (historique)** : dans `cypress/e2e/comprehensive-flow.cy.ts`, après
   « Enregistrer la transaction », l'assertion
   `cy.location('pathname').should('include', '/transaction/')` est satisfaite
-  par `/transaction/new` (sous-chaîne). L'id extrait vaut donc `"new"` et le
-  spec visite `/transaction/new/edit`, qui rend légitimement
-  « Transaction introuvable » (l'assertion `"Modifier"` échoue).
-- **Preuve** : spec de debug — `id: "new"`, page `data-screen-state="error"`,
-  texte « Transaction introuvable ».
-- **Nature** : fragilité de **spec** (pas un défaut produit).
-- **Repli** : non corrigé (atteignable seulement après E5 ; hors du correctif
-  minimal). À traiter après E5.
+  par `/transaction/new` (sous-chaîne). L'id extrait valait donc `"new"` et le
+  spec visitait `/transaction/new/edit` → « Transaction introuvable ».
+- **Preuve (historique)** : spec de debug — `id: "new"`, page
+  `data-screen-state="error"`, texte « Transaction introuvable ».
+- **Statut RÉEL (mesuré le 2026-10-29)** : **déjà corrigé**. Le commit
+  `d38ee9d` (« fix(e2e): auth déterministe + écran noir Ionic + specs
+  cohérents », **2026-09-30**) a introduit, **avant** la dérivation de l'id :
+  `cy.location('pathname').should('not.include', '/new')` (actuellement
+  `comprehensive-flow.cy.ts:170`, avant `url.split('/transaction/')` l. 178).
+  `git merge-base --is-ancestor d38ee9d origin/main` → **sur `main`**.
+  La présente entrée R133, rédigée le 2026-10-29, portait donc un statut
+  **périmé** (« non corrigé ») : défaut de réconciliation documentaire, pas
+  défaut produit.
+- **Garde anti-récurrence ajoutée (2026-10-29)** :
+  `src/lib/__tests__/cypress-comprehensive-flow-id-guard.test.ts` (**R135**) —
+  verrouille l'**ordre** des trois marqueurs (`include '/transaction/'` <
+  `not.include '/new'` < `split('/transaction/')`) et exige leur présence
+  (non-vacuité : mutation — retirer l'assertion `not.include` fait **échouer**
+  la garde, message nommé). Statique (aucun navigateur requis).
+- **Nature** : fragilité de **spec** (jamais un défaut produit).
+- **Statut** : corrigé (code) + gardé (R135). Non bloquant.
+
+### R135 — Garde anti-récurrence : `comprehensive-flow` doit dériver un id de transaction RÉEL — ✅ CORRIGÉ le 2026-10-29
+- **Classe** : récurrence évitable d'un défaut de spec (R133) — l'assertion qui
+  sécurise la dérivation d'id pouvait disparaître sans signal.
+- **Correctif** : `src/lib/__tests__/cypress-comprehensive-flow-id-guard.test.ts`
+  (1) — vérifie la présence **et l'ordre** des marqueurs dans la spec.
+- **Preuve** : `vitest run cypress-comprehensive-flow-id-guard` → **1 passed** ;
+  non-vacuité par mutation (retrait de `not.include` → **1 failed**, message
+  nommé).
+- **Statut** : corrigé, gardé.
 
 ### R134 — « Filet qui ne garde rien » : gardes statiques vacuelles (boucle vide) — ✅ CORRIGÉ le 2026-10-29
 
