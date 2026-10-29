@@ -273,8 +273,19 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   testée ; sémantique `action_type` = P-NEW-6).
 - **Réflexe** : avant d'attaquer un risque « OUVERT », lire son **corps** et
   `grep` le code ; ne se fier ni à l'en-tête seul, ni à la mémoire.
-- Légitimement ouverts (défaut/env) : R30 (sync Cypress), R33 (IonSelect),
-  R72 (global hors DEV), R80 (`PS_ADMIN_TOKEN`), R109 (décision propriétaire).
+  **Preuve de non-révocation** : `git log -S "<code fautif>" -- <fichier>` —
+  s'il n'y a aucun revert après le commit du correctif, le code est en place.
+- **Rectifié 2026-10-29 (PR #133/#134)** : R30 (sync Cypress) et R72 (global
+  hors DEV) ne sont plus « ouverts » — les correctifs sont **dans le code**
+  (`nav-bottom.cy.ts` : scoping + `{force:true}` ; `cross-tenant.cy.ts` :
+  échec immédiat explicite) ; R82 l'est aussi (depuis `c11aad7`, jamais
+  révoqué). Restent légitimement ouverts : R33 (IonSelect), R80
+  (`PS_ADMIN_TOKEN`), R109 (décision propriétaire), R62/R16 (structurel : 2
+  colonnes de rôle, 0 trigger).
+- **Cypress en CI** tourne contre `pnpm run dev` (`CYPRESS_BASE_URL=
+  http://localhost:8080`) → `import.meta.env.DEV` vrai, donc le global
+  `__psSupabaseClient` EST publié : R72 ne concerne que les runs **locaux**
+  contre un build prod.
 - `App.tsx` (RouteGuard) câble `resolveRoute` avec `isAuthenticated`,
   `activeOrgId`, `linkOrgId`, `isOrgMember` (R107) + schéma via
   `schemaVersion.ts`. **Seul `hasPermission` reste NON câblé** (branche
