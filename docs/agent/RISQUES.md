@@ -79,17 +79,32 @@
 
 
 ### R17 — Dérive majeure migrations ↔ base (les fichiers du dépôt ne sont pas la source de vérité) — OUVERT
-- **Défaut** : les 39 migrations enregistrées dans
-  `supabase_migrations.schema_migrations` portent des versions d'horodatage
-  (`20260910123851`, …, `20261022192658`) qui **n'ont AUCUN fichier
-  correspondant** dans `supabase/migrations/`. Inversement, les **34**
-  migrations horodatées du dépôt (`20260909000002_create_invitation_system.sql`,
-  etc.) n'ont **jamais** été enregistrées comme appliquées. Les 63 migrations
-  historiques `NNNN_*.sql` (0000→0062) ne sont pas traçables non plus.
-- **Conséquence** : `supabase db push` rejouerait 34 migrations non tracées sur
-  une base où leur contenu existe déjà → erreurs (objets existants) voire
-  altérations. `supabase db pull` produirait un diff trompeur. **Ne pas lancer
-  `db push` sans revue manuelle.**
+- **Défaut** : le tracker `supabase_migrations.schema_migrations` contient
+  **70** migrations appliquées, dont les versions d'horodatage
+  (`20260910123851`, …, `20261028145533`) **n'ont AUCUN fichier
+  correspondant** dans `supabase/migrations/`. Inversement, les migrations
+  horodatées du dépôt (`20260909000002_create_invitation_system.sql`, etc.)
+  n'ont **jamais** été enregistrées comme appliquées. Les migrations
+  historiques séquentielles `NNNN_*.sql` ne sont pas traçables non plus.
+- **Mesure 2026-10-29** (recoupement `schema_migrations` × fichiers du dépôt) :
+
+  | Ensemble | Nombre |
+  |---|---|
+  | Versions appliquées (tracker) | **70** |
+  | Fichiers horodatés du dépôt | **63** |
+  | **Versions communes** (appliquée *et* fichier présent) | **2** |
+  | Appliquées sans fichier (versions auto-générées à l'application) | **68** |
+  | Fichiers jamais enregistrés comme appliqués | **61** |
+
+  Les seules correspondances exactes sont `20261001000001` et
+  `20261027000003`. **La dérive est donc quasi totale (2/70)** : le tracker et
+  le dépôt sont deux historiques disjoints. Les 63 fichiers séquentiels
+  `NNNN_*` (0000→0062) s'ajoutent aux 63 fichiers horodatés → **126 fichiers**
+  pour un tracker qui ne connaît que des versions à 14 chiffres.
+- **Conséquence** : `supabase db push` rejouerait les **61** migrations non
+  tracées sur une base où leur contenu existe déjà → erreurs (objets existants)
+  voire altérations. `supabase db pull` produirait un diff trompeur. **Ne pas
+  lancer `db push` sans revue manuelle.**
 - **Cause probable** : le schéma a été appliqué via l'éditeur SQL / MCP (versions
   auto-générées à l'heure d'application), pas via `supabase db push`. Mes propres
   correctifs suivent ce chemin : les fichiers `20261022000003/4` du dépôt
