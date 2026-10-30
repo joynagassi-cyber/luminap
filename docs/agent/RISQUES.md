@@ -145,8 +145,21 @@
   migrations appliquées avec `supabase migration repair --status applied <version>`)
   ou adopter « base = source de vérité » et ne plus se fier au tracker. À
   trancher — voir DECISIONS.md et RAPPORT_FINAL.md.
+- **Réconciliation des OBJETS (2026-10-31)** : audit exhaustif dépôt ↔ base
+  (40 tables, 39 fonctions, 31 triggers, 1 vue) → **delta NUL**. Trois objets
+  déclarés uniquement par le fichier historique `20260909000002` (jamais
+  appliqué en l'état, remplacé en base par `invitation_system_v3`) manquaient :
+  `mark_expired_invitations()`, `update_invitations_updated_at`,
+  `update_invitation_claims_updated_at`. Ils sont **redondants** (l'expiration
+  est appliquée en ligne par `settle_invitation_claim` ; le client et le trigger
+  de règlement mettent `updated_at` à jour) mais **recréés** par la migration
+  idempotente `20261031000003` pour une fidélité exacte. `agent_try_jsonb` reste
+  absent **par conception** (`DROP` en fin de sa propre migration). L'instantané
+  fige désormais `repo_db_object_delta = 0/0/0/0` ; garde
+  `r17-reconciliation-guard.test.ts` (4).
 - **Statut** : ouvert (choix propriétaire), documenté, contourné (instantané),
-  **gardé** (toute nouvelle migration déclenche une re-mesure).
+  **gardé** (toute nouvelle migration déclenche une re-mesure), **delta dépôt↔base
+  des objets = 0** (2026-10-31).
 
 ### R18 — Aucune sauvegarde native ni PITR sur le projet Supabase — MITIGÉ (2026-10-29)
 - **Défaut** : l'API Management renvoie `backups: []` et `pitr_enabled: false`

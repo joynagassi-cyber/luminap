@@ -4,19 +4,28 @@
   "purpose": "Instantane MESURE de la derive migrations <-> base (R17). Le tracker Supabase n'est pas accessible en CI : ce fichier fige l'etat mesure pour qu'une garde repo-side puisse detecter tout CHANGEMENT de derive (nouvelle migration tracee ou non tracee).",
   "source_of_truth": "Base = source de verite (schema applique via editeur SQL / MCP, pas via `supabase db push`). Le tracker `supabase_migrations.schema_migrations` et les fichiers `supabase/migrations/` sont deux historiques disjoints.",
   "measured": {
-    "applied_versions_in_tracker": 70,
-    "repo_timestamped_files": 70,
+    "applied_versions_in_tracker": 79,
+    "repo_timestamped_files": 71,
     "repo_sequential_files": 63,
-    "repo_total_sql_files": 133,
+    "repo_total_sql_files": 134,
     "versions_in_common": 2,
     "common_versions": [
       "20261001000001",
       "20261027000003"
     ],
     "applied_without_repo_file": 68,
-    "repo_file_never_applied": 62,
-    "drift_ratio": "2/70",
-    "repo_filenames_sha256": "4a8c481e7799307ec7aa1974d598da6921323040137f1ab62efaf9eab994e305"
+    "repo_file_never_applied": 63,
+    "drift_ratio": "2/79",
+    "repo_filenames_sha256": "b23bdb766dddf8dd4b8f840e0bb84bd0cb1c03ad8cbb6f7f7c4b42e0d7cccee8",
+    "repo_db_object_delta": {
+      "measured": "2026-10-31",
+      "method": "recoupement exhaustif depot <-> base (tables, fonctions, triggers, vues)",
+      "tables_missing": 0,
+      "functions_missing": 0,
+      "triggers_missing": 0,
+      "views_missing": 0,
+      "note": "delta nul ; seul `agent_try_jsonb` est absent par conception (DROP en fin de sa propre migration 20261024000001)."
+    }
   },
   "tracker_sample_versions": [
     "20260910123851",
@@ -36,5 +45,8 @@
   ],
   "notes_r141bc": [
     "1 migration ajoutee 20261031000002 (R141.b/c RLS ecriture des tables non financieres : documents, event_tasks, report_definitions, custom_field_*, form_*, categories) ; tracker non re-mesure (inaccessible en CI)."
+  ],
+  "notes_r17_reconcile": [
+    "1 migration ajoutee 20261031000003 (reconciliation R17 : recreation idempotente des 3 objets du fichier historique 20260909000002 jamais applique en l'etat — mark_expired_invitations + 2 triggers updated_at). Apres application, le delta depot <-> base est NUL (0 table/fonction/trigger/vue manquant)."
   ]
 }

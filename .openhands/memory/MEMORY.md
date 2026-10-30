@@ -763,3 +763,23 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
 - **Garde anti-dérive migrations** : ajouter une migration fait ÉCHOUER
   `migration-drift-guard.test.ts` → mettre à jour `docs/agent/migration-drift.json`
   (comptes 70/63/133 + `repo_filenames_sha256`).
+
+## R17 — réconciliation dépôt ↔ base (2026-10-31, delta objets = 0)
+- **Le tracker `schema_migrations` et les fichiers du dépôt sont deux
+  historiques DISJOINTS** (2/79 versions communes). Ne PAS se fier au tracker
+  seul ; recouper par OBJETS (tables/fonctions/triggers/vues).
+- **`supabase db push` est INTERDIT** (rejouerait 63 migrations non tracées sur
+  un schéma où leur contenu existe déjà). Appliquer via le MCP `apply_migration`
+  (trace la version).
+- **Audit 2026-10-31** : 40 tables / 39 fonctions / 31 triggers / 1 vue →
+  après correction, **delta = 0**. Le seul absent (`agent_try_jsonb`) l'est
+  **par conception** (DROP en fin de sa propre migration).
+- **Écart trouvé** : le fichier historique `20260909000002_create_invitation_system.sql`
+  n'a jamais été appliqué en l'état (remplacé par `invitation_system_v3`). 3
+  objets manquaient : `mark_expired_invitations()` + 2 triggers `updated_at`
+  sur `invitations`/`invitation_claims`. Redondants (expiration appliquée en
+  ligne par `settle_invitation_claim`) mais recréés (migration
+  `20261031000003`) pour fidélité exacte.
+- **Instantané** `docs/agent/migration-drift.json` : mettre à jour comptes +
+  `repo_filenames_sha256` + `repo_db_object_delta` + `drift_ratio` ; et
+  `migration-drift-guard.test.ts` (assertion du ratio figée).
