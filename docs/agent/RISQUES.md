@@ -4188,6 +4188,30 @@ partagée par les deux plateformes et couverte par 3 tests.
   Le chantier R137/R140/R141 est **complet**.
 - **Statut** : **CORRIGÉ** (livré + prouvé le 2026-10-31).
 
+### R141.e — `org_reports_emitter` : écriture FOR ALL sur le rôle `public` (NON corrigé — dépend du sort de `CENTRAL_ADMIN`)
+- **Gravité** : FAIBLE-MOYENNE (gouvernance d'écriture ; pas d'escalade).
+- **Défaut** : après R141.d, une **seule** politique d'écriture reste hors garde
+  de rôle : `org_reports_emitter` (`FOR ALL`, `TO public`,
+  `USING/WITH CHECK (from_org_id = current_org_id())`). `current_org_id()` lit
+  `profiles.org_id` → **tout membre authentifié** de l'organisation émettrice
+  peut INSERT/UPDATE un rapport fédéré au niveau base (client REST direct).
+- **Pourquoi NON corrigé en autonomie** : le flux d'émission de rapports est
+  **fédéré** (une annexe envoie à sa mère) et la page `/admin/report-send` est
+  atteignable depuis `CentralAdmin` — donc potentiellement par un
+  **`CENTRAL_ADMIN`**, rôle **hors canon** (R109 / D-S10-3, décision
+  propriétaire). Exiger `has_permission(...,'admin','settings')` **casserait**
+  l'émission si elle est faite par un `CENTRAL_ADMIN` (absent de
+  `org_memberships`). Le durcissement dépend donc de la **décision de modèle**
+  sur `CENTRAL_ADMIN` — même blocage que R142.
+- **Ce qui est sûr (mesuré)** : les écritures applicatives de `org_reports`
+  passent par PowerSync (`powersync_role` = BYPASSRLS, `FORCE RLS` ne le
+  concerne pas) → un durcissement serait **app-safe** ; il ne reste qu'à choisir
+  la permission une fois `CENTRAL_ADMIN` tranché.
+- **Action propriétaire** : (1) trancher `CENTRAL_ADMIN` (l'ajouter au canon ou
+  le retirer) ; (2) **puis** scinder `org_reports_emitter` en
+  SELECT (membre) + INSERT/UPDATE gardés (`admin:settings` ou `report:export`).
+- **Statut** : ouvert (bloqué par une décision de modèle).
+
 ### R142 — La garde de route (`hasPermission`) était INERTE (branche `forbidden` morte) — ✅ CORRIGÉ (2026-10-31)
 - **Gravité** : MOYENNE (défense en profondeur absente ; pas d'escalade — la RLS
   filtre déjà les données, cf. R137/R140/R141).

@@ -796,3 +796,15 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   DANS une transaction, puis `ROLLBACK`. `has_permission` lit le rôle via
   `org_memberships` (PAS `profiles.role`).
 - **Pattern de mapping** (table sans permission canon) : `admin:settings`.
+
+## Audit d'écriture COMPLET (2026-10-31)
+- Après R141.d, **1 seule** politique d'écriture hors garde de rôle :
+  `org_reports_emitter` (`FOR ALL`, rôle `public`, `from_org_id=current_org_id()`).
+  NON corrigée : bloquée par la décision de modèle `CENTRAL_ADMIN` (R109).
+- Toutes les tables `public` ont RLS activée ; aucune politique d'écriture `anon`.
+- Autres politiques hors garde = correctes : `profiles_*` (self, role immuable),
+  `org_admins_*`/`orgs_update_merged` (`profiles.role='ADMIN'`), `invitation_claims_insert` (gardée).
+- **Rôle : `has_permission` (DB) lit `org_memberships.role` ; l'UI legacy lit
+  `profiles.role`.** `assignMemberRole` (`src/lib/orgAdmin.ts`) écrit
+  `org_memberships` SEUL → l'UI legacy devient stale (R16/R62). Source unique =
+  décision propriétaire.
