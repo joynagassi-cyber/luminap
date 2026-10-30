@@ -311,10 +311,23 @@
   inaperçues.
 - **Statut** : en cours de correction (voir JOURNAL.md).
 
-### R12 — Warning « Multiple GoTrueClient instances » au chargement
-- **Défaut** : plusieurs instances `GoTrueClient` partagent la clé de session
-  `sb-…-auth-token` → comportement non défini en concurrence.
-- **Statut** : documenté. Proposé : PROPOSITIONS.md P5.
+### R12 — Warning « Multiple GoTrueClient instances » au chargement — CORRIGÉ (2026-10-31)
+- **Défaut** : `src/integrations/supabase/client.ts` créait un **2ᵉ**
+  `createClient` (sans options d'auth) partageant la clé de session
+  `sb-<ref>-auth-token` avec le client de `src/lib/auth.ts` → deux
+  `GoTrueClient` concurrents → comportement non défini + warning.
+- **Correctif** : `integrations/supabase/client.ts` **ré-exporte** désormais
+  l'instance de `@/lib/auth` (`export { supabase } from "@/lib/auth"`), seul
+  propriétaire de la session persistée. `SupabaseConnector` reste un client
+  **non persistant** (`persistSession:false`) → pas un 2ᵉ propriétaire.
+- **Preuve** : `tsc -b` = 0 ; les 3 importateurs (storageService, orgBootstrap,
+  SettingsPersonalisation) compilent ; 24 tests de leurs fichiers passent.
+- **Garde anti-récurrence** : `supabase-single-client-guard.test.ts` (3) —
+  interdit `createClient(` dans `integrations/supabase/client.ts`, exige
+  `persistSession:true` dans `auth.ts`, et l'absence de persistance dans le
+  connecteur.
+- **Statut** : corrigé (statique ; le warning est runtime, non reproductible
+  hors navigateur — cf. limite R98).
 
 ### R13 — Fuites d'abonnements PowerSync (« subscription leaked »)
 - **Défaut** : de nombreux avertissements `[PowerSync]: A subscription to <table>
