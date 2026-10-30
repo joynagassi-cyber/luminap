@@ -51,5 +51,8 @@
   ],
   "notes_r141d": [
     "1 migration ajoutee 20261031000004 (R141.d — cloture du chantier d'autorisation d'ecriture : invitation_claims UPDATE -> invitation:manage ; notifications + role_assignments -> admin:settings ; audit_entries INSERT laisse au niveau membre). Apres application, plus AUCUNE politique d'ecriture REST non gardee (hors audit_entries INSERT volontaire et invitations deja gardee par can_manage_invitations)."
+  ],
+  "notes_version_mismatch": [
+    "MECANISME (decouvert 2026-10-31) : l'application via MCP `apply_migration` enregistre dans `supabase_migrations.schema_migrations` la version = HORODATAGE D'APPLICATION (YYYYMMDDHHMMSS), PAS le nom de fichier du depot. C'est la cause STRUCTURELLE de la 'derive' : une migration du depot appliquee via MCP apparait comme une version differente. D'ou 'versions_in_common = 2' alors que les OBJETS sont alignes (R17 : delta 0/0/0/0). Consequence : le ratio de derive SOUS-ESTIME l'alignement reel ; la seule mesure fiable d'alignement est par OBJETS (cf. repo_db_object_delta), pas par version. Le snapshot sert a detecter un CHANGEMENT cote depot (empreinte de noms), pas a mesurer l'alignement."
   ]
 }

@@ -808,3 +808,13 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   `profiles.role`.** `assignMemberRole` (`src/lib/orgAdmin.ts`) écrit
   `org_memberships` SEUL → l'UI legacy devient stale (R16/R62). Source unique =
   décision propriétaire.
+
+## Mécanisme de la "dérive" migrations (R17) — VÉRIFIÉ 2026-10-31
+- `supabase_apply_migration` (MCP) enregistre dans `schema_migrations` la version
+  = **horodatage d'application** (YYYYMMDDHHMMSS), PAS le nom de fichier du dépôt.
+  → une migration du dépôt appliquée via MCP apparaît comme une version
+  DIFFÉRENTE : c'est la cause **structurelle** de la dérive (versions_in_common=2).
+- Les OBJETS sont pourtant alignés (R17 : delta 0/0/0/0). **Mesurer l'alignement
+  par OBJETS, jamais par version.** Tracker total = 80 (2026-10-31).
+- Le snapshot `migration-drift.json` sert à détecter un CHANGEMENT côté dépôt
+  (empreinte de noms), pas à mesurer l'alignement.
