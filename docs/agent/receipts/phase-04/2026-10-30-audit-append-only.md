@@ -69,3 +69,15 @@ R140 ne traite qu'`audit_entries`. **26 autres tables** (dont des tables
 prouvée (`INSERT accounts` accepté par la RLS). Non corrigé : décision de
 périmètre requise (le vocabulaire de permissions canon ne couvre pas ces
 tables). Cf. RISQUES.md §R141.
+
+### Précisions mesurées ajoutées à R141 (2026-10-30)
+
+- **3 tables retirées** après vérification des politiques : `invitations` et
+  `invitation_claims` (gardées par `can_manage_invitations`), `profiles`
+  (self-only, `initplan_uid() = id`).
+- **Escalade de rôle testée et RÉFUTÉE** (transaction annulée) :
+  `org_memberships`/`grants`/`org_admins` sont gardés par `is_org_admin` ;
+  `has_permission` lit `org_memberships.role`/`grants` (pas `role_assignments`,
+  qui est une table de rôle de session) ; `profiles.role` est **immuable** pour
+  un membre (`guard_profile_role_immutable` → `42501 ROLE_IMMUTABLE`).
+  → R141 est un risque d'**écriture directe**, pas d'escalade.

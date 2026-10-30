@@ -3993,28 +3993,53 @@ partagée par les deux plateformes et couverte par 3 tests.
   cf. **R141**.
 - **Statut** : **CORRIGÉ** (livré + prouvé).
 
-### R141 — Vingt-six tables restent en écriture « membre seul » (dont des tables FINANCIÈRES) — ⚠️ OUVERT (à trancher) le 2026-10-30
+
+### R141 — 26 tables restent en écriture « membre seul » (dont des tables FINANCIÈRES) — ⚠️ OUVERT (à trancher) le 2026-10-30
 - **Gravité** : HAUTE (contrôle d'accès / intégrité financière). **Suite directe de R137**
   (qui n'avait couvert que 15 politiques : transactions, versements, members,
   events, groups).
 - **Défaut mesuré (instance DEV, 2026-10-30)** : **26 tables** du schéma `public`
-  ont au moins une politique d'écriture (`INSERT`/`UPDATE`/`DELETE`) qui repose
-  sur `is_org_member(...)` **seul** — c.-à-d. **tout membre** de l'org, quel que
-  soit son rôle, peut écrire. Les **7 tables à `has_permission`** de R137 sont,
-  elles, correctement gardées.
-- **Tables concernées (mesurées)** : `accounts`, `audit_entries` (→ **R140
-  corrigé**), `budget_lines`, `caisses`, `categories`, `cotisations`,
-  `custom_field_definitions`, `custom_field_values`, `documents`,
-  `event_budgets`, `event_tasks`, `form_definitions`, `form_submissions`,
-  `giving_campaigns`, `giving_donors`, `group_memberships`, `notifications`,
-  `org_budget_lines`, `org_budgets`, `org_units`, `pledges`, `profiles`,
-  `report_definitions`, `role_assignments`, `tax_receipts`, `transaction_giving`.
-- **Exploitabilité prouvée** : en `SET LOCAL ROLE authenticated` avec un JWT
-  simulé, `INSERT INTO accounts (...)` (table FINANCIÈRE) **a été accepté par la
-  RLS** (seul un `CHECK` de colonne a fait échouer la 1ʳᵉ tentative — la RLS,
-  elle, laissait passer). Un membre pouvait donc créer/altérer une caisse, un
-  budget, une campagne de dons, un reçu fiscal… **au niveau base**, hors de tout
-  contrôle de rôle. Le masquage UI n'est pas une frontière de sécurité.
+  ont au moins une politique d'écriture (`INSERT`/`UPDATE`/`DELETE`) reposant sur
+  `is_org_member(...)` **seul** (sans `has_permission` ni `is_org_admin`) — tout
+  **membre** de l'org, quel que soit son rôle, peut écrire. Requête de mesure :
+  `pg_policies` où `cmd ∈ {INSERT,UPDATE,DELETE}` et le `qual`/`with_check`
+  contient `is_org_member` **sans** `has_permission`/`is_org_admin`.
+- **Tables concernées (mesurées, 26)** : `accounts`, `budget_lines`, `caisses`,
+  `categories`, `cotisations`, `custom_field_definitions`, `custom_field_values`,
+  `documents`, `event_budgets`, `event_tasks`, `form_definitions`,
+  `form_submissions`, `giving_campaigns`, `giving_donors`, `group_memberships`,
+  `notifications`, `org_budget_lines`, `org_budgets`, `org_units`, `pledges`,
+  `report_definitions`, `role_assignments`, `tax_receipts`, `transaction_giving`
+  (+ `audit_entries` — **corrigé R140**).
+- **Précision importante (honnêteté R12)** — 3 tables mesurées d'abord par un
+  détecteur **large** ont été **retirées** après vérification des politiques :
+  - `invitations` et `invitation_claims` : en réalité **gardées** par
+    `can_manage_invitations(...)` (le détecteur cherchait `has_permission`, pas
+    `can_manage_*`) → **hors périmètre** ;
+  - `profiles` : en réalité **self-only** (`initplan_uid() = id` en UPDATE/INSERT/
+    DELETE) → **hors périmètre** (un membre ne modifie que SON profil).
+- **Hypothèse d'escalade TESTÉE ET RÉFUTÉE (important)** : j'ai vérifié si un
+  membre pouvait **s'auto-promouvoir** en écrivant les tables de rôle.
+  - `org_memberships`, `grants`, `org_admins` : politiques gardées par
+    `is_org_admin` → **non modifiables** par un membre ;
+  - `has_permission` lit `org_memberships.role` + `grants`, **pas**
+    `role_assignments` (qui est une table de rôle de **session** :
+    `session_id, role, org_id, created_at`) ;
+  - `is_org_admin` lit `profiles.role`, MAIS un trigger
+    `guard_profile_role_immutable` (BEFORE UPDATE) **rejette** toute
+    modification de `profiles.role` par un membre : test mesuré (transaction
+    annulée) → **`42501 ROLE_IMMUTABLE`**. Trois triggers gardent `profiles`
+    (`guard_profile_role_immutable`, `guard_profile_role_insert`,
+    `trg_guard_profile_org`).
+  - **Conclusion** : l'escalade de rôle **n'est pas possible** par ces chemins.
+    R141 porte donc sur l'**écriture directe** de données (financières, unités,
+    catégories…), **pas** sur une escalade de privilèges.
+- **Exploitabilité prouvée (écriture directe)** : en `SET LOCAL ROLE
+  authenticated` + JWT simulé, `INSERT INTO accounts (...)` (table FINANCIÈRE) a
+  été **accepté par la RLS** (seul un `CHECK` de colonne a fait échouer la 1ʳᵉ
+  tentative). Un membre pouvait donc créer/altérer une caisse, un budget, une
+  campagne de dons, un reçu fiscal… **au niveau base**, hors de tout contrôle de
+  rôle. Le masquage UI n'est pas une frontière de sécurité.
 - **Pourquoi non corrigé d'emblée (prudence assumée)** : le vocabulaire de
   permissions canon (`role_permissions`) ne couvre **que** `transaction:*`,
   `versement:*`, `cotisation:*`, `event:*`, `group:*`, `member:*`, `report:*`,
@@ -4025,20 +4050,19 @@ partagée par les deux plateformes et couverte par 3 tests.
   ses unités) — un correctif à l'aveugle serait pire que le défaut.
 - **Remédiation proposée (2 lots, à valider par le propriétaire)** :
   1. **Lot 1 — tables à permission existante** (mapping direct, sûr) :
-     `cotisations` → `cotisation:manage` ; `transaction_giving`,
-     `giving_*`, `pledges` → `transaction:*` (ou `versement:*` selon la
-     sémantique) ; `group_memberships` → `group:update` ; `notifications`,
-     `profiles`, `custom_field_*`, `form_*`, `report_definitions` → capacité
-     pertinente (`member:update`, `report:*`, `admin:settings`).
+     `cotisations` → `cotisation:manage` ; `transaction_giving`, `giving_*`,
+     `pledges` → `transaction:*` (ou `versement:*` selon la sémantique) ;
+     `group_memberships` → `group:update` ; `notifications`, `custom_field_*`,
+     `form_*`, `report_definitions` → capacité pertinente.
   2. **Lot 2 — tables sans permission canon** (`accounts`, `caisses`,
      `org_budgets*`, `budget_lines`, `event_budgets`, `tax_receipts`,
      `org_units`, `categories`, `role_assignments`) : **décider** d'abord la
-     capacité (« Gérer les finances » = `finance.manage` ; « Gérer les unités »
-     = `admin:settings`), puis éventuellement **ajouter** les permissions
-     manquantes à `role_permissions` (données) avant de câbler les politiques.
-  - Dans les deux cas : reproduire le patron R137 (migration idempotente +
-    rollback + preuve `MEMBRE → 42501` / rôle légitime → accepté) et vérifier
-    qu'aucun flux applicatif (onboarding, saisie rapide, dons) ne casse.
+     capacité (« Gérer les finances » = `finance.manage` ; « Gérer les unités » =
+     `admin:settings`), puis **ajouter** les permissions manquantes à
+     `role_permissions` avant de câbler les politiques.
+  - Dans les deux cas : patron R137 (migration idempotente + rollback + preuve
+    `MEMBRE → 42501` / rôle légitime → accepté) et vérifier qu'aucun flux
+    applicatif (onboarding, saisie rapide, dons) ne casse.
 - **Référence** : R137 (15 politiques corrigées, voie REST) ; R140
   (`audit_entries`, corrigé le 2026-10-30).
 - **Statut** : **OUVERT** — décision de périmètre requise (aucune action
