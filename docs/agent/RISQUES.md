@@ -4067,3 +4067,38 @@ partagée par les deux plateformes et couverte par 3 tests.
   (`audit_entries`, corrigé le 2026-10-30).
 - **Statut** : **OUVERT** — décision de périmètre requise (aucune action
   destructive/risquée faite sans validation).
+
+### R142 — Le câblage de la garde de route (`hasPermission`) reste BLOQUÉ par le rôle `CENTRAL_ADMIN` (absent du modèle canon) + un mapping de permission contradictoire — ⚠️ OUVERT le 2026-10-30
+- **Gravité** : MOYENNE (défense en profondeur absente ; pas d'escalade — la RLS
+  filtre déjà les données, cf. R137/R140/R141).
+- **Contexte** : R109 a été **TRANCHÉ** (2026-10-29) — `ADMIN` est désormais le
+  15ᵉ rôle canonique (détient `admin:settings`). On pouvait donc croire le
+  câblage de R105 débloqué. **Vérification faite (2026-10-30) : il ne l'est
+  pas**, pour deux raisons mesurées.
+- **Blocage 1 — `CENTRAL_ADMIN` hors matrice canon** : le code utilise
+  `user.role === "CENTRAL_ADMIN"` (TopHeader, CentralAdmin, SettingsGestion,
+  SettingsPersonalisation, `capabilities/organization/central`, federation),
+  mais `CENTRAL_ADMIN` **n'existe pas** dans `Role`/`PERMISSION_MATRIX`
+  (`parseRole("CENTRAL_ADMIN")` → `null`). Câbler la garde fermerait `/admin*`
+  à ce rôle → **enfermement des admins centraux**. (Un compte `CENTRAL_ADMIN`
+  n'existe pas non plus en base aujourd'hui : `profiles` = 2 ×
+  `PASTEUR_PRINCIPAL`, `org_admins` = 1 × `PASTEUR_PRINCIPAL`.)
+- **Blocage 2 — mapping de permission contradictoire** : `/admin/reports` et
+  `/admin/reports/:id` exigent `admin:settings` dans `ROUTE_REGISTRY`, alors
+  que `OrgReportsReceived` est un écran **destinataire** alimenté par
+  `useReportsReceived` et **atteignable par les membres** (le `Dashboard`
+  affiche un lien « Voir tout → » vers `/admin/reports` **sans aucun garde de
+  rôle**). Câbler la garde **enfermerait dehors** les destinataires de rapports
+  → un membre ne pourrait plus ouvrir les rapports reçus. Le mapping correct
+  est probablement `report:read` (détenu par la plupart des rôles) — à trancher.
+- **Prérequis au câblage (ordre)** :
+  1. décider le sort de `CENTRAL_ADMIN` (l'ajouter au canon, ou le remplacer) ;
+  2. corriger le mapping des routes `/admin/reports*` (probablement
+     `report:read`) ;
+  3. **puis** câbler `hasPermission` dans `App.tsx` (retirer
+     `PENDING_WIRING.hasPermission` de `route-state-wiring.test.ts`) ;
+  4. test E2E par rôle (aucun rôle légitime ne doit être enfermé).
+- **Référence** : R105 (garde inerte), R16 (divergence de source de vérité),
+  R109 (ADMIN canonique).
+- **Statut** : **OUVERT** — non câblé volontairement (câbler maintenant
+  enfermerait dehors des rôles légitimes ; cf. R105 « reste à faire »).
