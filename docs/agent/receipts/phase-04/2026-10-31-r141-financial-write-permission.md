@@ -67,3 +67,17 @@ donc pas casser un flux applicatif ; elles ferment le client REST direct.
 
 - `npx tsc -b` → 0
 - `npx vitest run` → **1728/1728** (155 fichiers)
+
+## Vérification CI (PR #157, commit `0f3d2ff`)
+
+- **Tous les gates PR verts** : Build, Debug APK, E2E (Cypress PR-gate), Lint,
+  Security Audit, TypeScript, Unit Vitest, Socket.
+- **Workflow Cypress « push » (shards) : rouge pré-existant** — signature
+  inchangée (10 specs, déterministe ; R98/R53/R83 : environnement E2E
+  PowerSync). **Contrôle discriminant** : dans `finance-deep.cy.ts`, les tests
+  d'**écriture** financière **passent** (« creates a transaction and returns to
+  /finance » ✓, « transaction detail and edit pages » ✓) ; seul « renders
+  /balance with period toggles » échoue sur un **timeout de rendu** (« Expected
+  to find element: `h1, h2, h3, header`, but never found it »). Une régression
+  RLS aurait fait échouer les écritures → ce n'est **pas** une régression R141.
+
