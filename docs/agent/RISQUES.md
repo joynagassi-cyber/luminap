@@ -4102,3 +4102,32 @@ partagée par les deux plateformes et couverte par 3 tests.
   R109 (ADMIN canonique).
 - **Statut** : **OUVERT** — non câblé volontairement (câbler maintenant
   enfermerait dehors des rôles légitimes ; cf. R105 « reste à faire »).
+
+### R143 — Les correctifs anti-escalade de privilèges n'avaient AUCUNE garde anti-régression — CORRIGÉ (2026-10-30)
+- **Gravité** : MOYENNE (les correctifs sont en place et vérifiés en base ; le
+  défaut était l'**absence de garde** — une migration future pouvait rouvrir la
+  voie sans qu'aucun test ne s'en aperçoive).
+- **Constat** : les 4 correctifs CRITIQUES d'escalade (migrations
+  `20261022000010`–`20261022000014`) n'étaient couverts par **aucun test**. Le
+  seul test RBAC (`capabilities/__tests__/security.test.ts`) porte sur la
+  **matrice de permissions TS**, pas sur les garde-fous **base**.
+- **Rappel des invariants (vérifiés en base le 2026-10-30, transactions
+  annulées)** :
+  1. `profiles.role` **immuable** pour un client — trigger
+     `guard_profile_role_immutable` (BEFORE UPDATE) → `42501 ROLE_IMMUTABLE` ;
+  2. profil client créé privilégié **refusé** — trigger
+     `guard_profile_role_insert` (BEFORE INSERT) ;
+  3. `upsert_profile` (SECURITY DEFINER) refuse `p_role` sans `is_org_admin`
+     → `42501 ROLE_NOT_ALLOWED` (sinon il contournerait le trigger, `current_user`
+     y étant le propriétaire) ;
+  4. `org_memberships` : `INSERT`/`UPDATE` gardés par `is_org_admin` (plus
+     d'auto-adhésion ni d'auto-promotion) ; l'ancienne politique `om_all_merged`
+     n'est jamais recréée.
+- **Correctif** : garde `src/lib/__tests__/rbac-escalation-guard.test.ts`
+  (8 assertions) — vérifie l'existence des triggers, l'absence de suppression
+  tardive, la garde `is_org_admin` dans la **dernière** définition de
+  `upsert_profile`, les politiques `om_insert`/`om_update`, et la non-réapparition
+  d'`om_all_merged`. Patron de lecture des migrations (sans base), comme
+  `audit-append-only-guard.test.ts`.
+- **Référence** : R137/R140/R141 (RLS), R109 (rôle ADMIN).
+- **Statut** : **CORRIGÉ** (garde livrée, `tsc -b` = 0, 1723/1723).
