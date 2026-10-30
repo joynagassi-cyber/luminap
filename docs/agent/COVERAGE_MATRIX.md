@@ -24,7 +24,7 @@
 | Phase | Feature | Test(s) | Statut |
 |---|---|---|---|
 | 2 | `resolveRoute` + registre unique | `V: route-resolver.test.ts` (32) | **couvert** |
-| 2 | Écrans 404 / forbidden / needs-membership / update-required | `V: route-resolver.test.ts` (outcomes) + `V: useOrgMembership.test.tsx` + `V: needs-membership-escape.test.tsx` (échappatoire R120) | **couvert** — needs-membership **câblé** (R107) + **échappatoire réelle** (R120) ; reste `forbidden` non câblé (R105, décision R109) |
+| 2 | Écrans 404 / forbidden / needs-membership / update-required | `V: route-resolver.test.ts` (outcomes) + `V: useOrgMembership.test.tsx` + `V: needs-membership-escape.test.tsx` (échappatoire R120) + `V: r142-route-permission-wiring.test.ts` | **couvert** — needs-membership **câblé** (R107) + **échappatoire réelle** (R120) ; `forbidden` **câblé** (R142, 2026-10-31) |
 | 2 | `data-screen-state` (shell + écrans d'état) | `C: zero-black-screen.cy.ts` (61) + `V: route-registry-drift` (5, dont couverture crawler + matrice deep link) | **couvert** (crawler livré + anti-dérive) |
 | 2 | `ErrorBoundary` par route | `LazyRouteErrorBoundary` (pré-existant) | couvert |
 | 2 | Watchdog `app-ready` (armé hors React, surcouche statique) | `V: boot-watchdog.test.ts` (4, jsdom) | **couvert** |

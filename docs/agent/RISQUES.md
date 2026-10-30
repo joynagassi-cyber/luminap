@@ -145,8 +145,21 @@
   migrations appliquées avec `supabase migration repair --status applied <version>`)
   ou adopter « base = source de vérité » et ne plus se fier au tracker. À
   trancher — voir DECISIONS.md et RAPPORT_FINAL.md.
+- **Réconciliation des OBJETS (2026-10-31)** : audit exhaustif dépôt ↔ base
+  (40 tables, 39 fonctions, 31 triggers, 1 vue) → **delta NUL**. Trois objets
+  déclarés uniquement par le fichier historique `20260909000002` (jamais
+  appliqué en l'état, remplacé en base par `invitation_system_v3`) manquaient :
+  `mark_expired_invitations()`, `update_invitations_updated_at`,
+  `update_invitation_claims_updated_at`. Ils sont **redondants** (l'expiration
+  est appliquée en ligne par `settle_invitation_claim` ; le client et le trigger
+  de règlement mettent `updated_at` à jour) mais **recréés** par la migration
+  idempotente `20261031000003` pour une fidélité exacte. `agent_try_jsonb` reste
+  absent **par conception** (`DROP` en fin de sa propre migration). L'instantané
+  fige désormais `repo_db_object_delta = 0/0/0/0` ; garde
+  `r17-reconciliation-guard.test.ts` (4).
 - **Statut** : ouvert (choix propriétaire), documenté, contourné (instantané),
-  **gardé** (toute nouvelle migration déclenche une re-mesure).
+  **gardé** (toute nouvelle migration déclenche une re-mesure), **delta dépôt↔base
+  des objets = 0** (2026-10-31).
 
 ### R18 — Aucune sauvegarde native ni PITR sur le projet Supabase — MITIGÉ (2026-10-29)
 - **Défaut** : l'API Management renvoie `backups: []` et `pitr_enabled: false`
@@ -298,10 +311,23 @@
   inaperçues.
 - **Statut** : en cours de correction (voir JOURNAL.md).
 
-### R12 — Warning « Multiple GoTrueClient instances » au chargement
-- **Défaut** : plusieurs instances `GoTrueClient` partagent la clé de session
-  `sb-…-auth-token` → comportement non défini en concurrence.
-- **Statut** : documenté. Proposé : PROPOSITIONS.md P5.
+### R12 — Warning « Multiple GoTrueClient instances » au chargement — CORRIGÉ (2026-10-31)
+- **Défaut** : `src/integrations/supabase/client.ts` créait un **2ᵉ**
+  `createClient` (sans options d'auth) partageant la clé de session
+  `sb-<ref>-auth-token` avec le client de `src/lib/auth.ts` → deux
+  `GoTrueClient` concurrents → comportement non défini + warning.
+- **Correctif** : `integrations/supabase/client.ts` **ré-exporte** désormais
+  l'instance de `@/lib/auth` (`export { supabase } from "@/lib/auth"`), seul
+  propriétaire de la session persistée. `SupabaseConnector` reste un client
+  **non persistant** (`persistSession:false`) → pas un 2ᵉ propriétaire.
+- **Preuve** : `tsc -b` = 0 ; les 3 importateurs (storageService, orgBootstrap,
+  SettingsPersonalisation) compilent ; 24 tests de leurs fichiers passent.
+- **Garde anti-récurrence** : `supabase-single-client-guard.test.ts` (3) —
+  interdit `createClient(` dans `integrations/supabase/client.ts`, exige
+  `persistSession:true` dans `auth.ts`, et l'absence de persistance dans le
+  connecteur.
+- **Statut** : corrigé (statique ; le warning est runtime, non reproductible
+  hors navigateur — cf. limite R98).
 
 ### R13 — Fuites d'abonnements PowerSync (« subscription leaked »)
 - **Défaut** : de nombreux avertissements `[PowerSync]: A subscription to <table>
@@ -2650,27 +2676,63 @@ avant P35 ; la distribution Android dépendait d'un build manuel
   Reste à confirmer par un run CI. Non destructif : au pire, un résidu
   reste ACTIVE (comportement antérieur).
 
-### R97 — 2 advisors `rls_enabled_no_policy` (`keep_alive`, `_jsonb_backfill_20261024`) — FAUX POSITIFS (documentés)
+### R97 — advisors `rls_enabled_no_policy` (`keep_alive`, `_jsonb_backfill_20261024`, `_jsonb_null_literal_20261027`) — FAUX POSITIFS (documentés)
 - **Gravité** : BASSE.
-- **Constat** : les deux tables ont RLS **activée sans aucune politique**. Un
+- **Constat** : **3** tables ont RLS **activée sans aucune politique**. Un
   advisor Supabase les signale. En PostgreSQL, RLS activée sans politique =
   **refus total** (deny-all) : les privilèges `SELECT/INSERT/...` accordés à
   `anon`/`authenticated` sont **inopérants** (aucune ligne lisible/écrivable).
   Il n'y a donc **aucune fuite** ; l'advisor signale une intention implicite,
   pas une faille.
-- **Preuve** : `keep_alive` = 1 ligne, `_jsonb_backfill_20261024` = 213 lignes,
-  0 politique chacune ; `information_schema.role_table_grants` montre des
-  privilèges accordés mais la RLS les neutralise (le ping
+- **Preuve (re-mesurée 2026-10-31)** : `keep_alive` = **1** ligne,
+  `_jsonb_backfill_20261024` = **0** ligne, `_jsonb_null_literal_20261027` =
+  **0** ligne, 0 politique chacune ; `information_schema.role_table_grants`
+  montre des privilèges accordés mais la RLS les neutralise (le ping
   `GET /rest/v1/keep_alive` renvoie **HTTP 200 avec un corps vide** — cf.
   workflow `keep-alive.yml`, run `40078250833`).
+- **Correction d'exactitude** : la version antérieure de cette entrée citait
+  `_jsonb_backfill_20261024` = 213 lignes et n'énumérait que 2 tables. La
+  mesure du 2026-10-31 donne **0** ligne et **3** tables (la 3ᵉ,
+  `_jsonb_null_literal_20261027`, provient de la migration de rattrapage
+  `20261027000012`). L'état courant est retenu.
 - **Décision** : **ne pas** créer de politique (ce serait élargir l'accès à des
-  tables internes) et **ne pas** désactiver la RLS. Les deux tables sont
-  conservées : `keep_alive` est la cible du ping anti-pause ;
-  `_jsonb_backfill_20261024` est la sauvegarde du backfill jsonb (R65).
-  Désactiver l'advisor exigerait de supprimer une table utile → refusé
-  (comportement conservateur).
-- **Statut** : documenté, aucune action. Réévaluer si `keep_alive` ou le
-  backfill sont un jour supprimés (l'advisor disparaît alors).
+  tables internes) et **ne pas** désactiver la RLS. Les 3 tables sont
+  conservées : `keep_alive` est la cible du ping anti-pause ; les deux
+  `_jsonb_*` sont les sauvegardes de rollback des rattrapages jsonb (R65),
+  vides après exécution (elles ne se remplissent que si le rattrapage modifie
+  des lignes). Désactiver l'advisor exigerait de supprimer une table utile →
+  refusé (comportement conservateur).
+
+### R97.b — `keep_alive_ping()` : fonction SECURITY DEFINER exécutable par `anon` — INTENTIONNEL
+- **Gravité** : BASSE (aucune donnée sensible).
+- **Constat** : advisor `anon_security_definer_function_executable` —
+  `public.keep_alive_ping()` est `SECURITY DEFINER`, exécutable par `anon` via
+  `/rest/v1/rpc/keep_alive_ping`.
+- **Analyse** : la fonction ne fait qu'`UPDATE public.keep_alive SET
+  external_ping=now(), external_count=external_count+1 WHERE id=1 RETURNING …`.
+  Elle ne lit/écrit aucune donnée métier et ne prend **aucun paramètre** → pas
+  d'injection, pas d'exfiltration. Elle **doit** être exécutable par `anon` : le
+  workflow `keep-alive.yml` l'appelle pour empêcher la mise en pause du projet
+  Supabase (plan gratuit). `SET search_path TO ''` (durcissement correct).
+- **Décision** : conserver (intentionnel). Révoquer casserait l'anti-pause.
+- **Statut** : faux positif (documenté).
+
+### R97.c — `upsert_profile()` : SECURITY DEFINER exécutable par `authenticated` — GARDÉ (cf. R64-bis)
+- **Doublon évité** : ce point est **déjà couvert par R64-bis** (« 7 fonctions
+  SECURITY DEFINER exécutables par `authenticated` » — assumé, helpers RLS).
+- **Précision vérifiée (2026-10-31)** : `upsert_profile` n'est pas un simple
+  helper — elle écrit `profiles` (dont `role`). Elle est néanmoins **gardée** :
+  (1) `IF p_user_id IS DISTINCT FROM auth.uid() THEN RAISE` → on ne peut écrire
+  que **sa propre** ligne ; (2) si `p_role` fourni, `NOT is_org_admin(...)` →
+  `42501 ROLE_NOT_ALLOWED`. **Aucune auto-escalade**. `SET search_path TO
+  'public','pg_temp'`. Rien à changer.
+- **Statut** : couvert par R64-bis (détail de garde ajouté ici).
+
+### R97.d — `auth_leaked_password_protection` (HaveIBeenPwned) — cf. R104
+- **Doublon évité** : déjà couvert par **R104** (protection des mots de passe
+  compromis désactivée — **bloquée par le plan** : « available on Pro Plans and
+  up », vérifié). Action propriétaire (passer au plan Pro).
+- **Statut** : couvert par R104.
 
 ### R98 — La suite Cypress n'a JAMAIS été verte sur `main` (20 runs consécutifs) — CAUSE : environnement E2E (sync PowerSync indisponible) ; hypothèse « parallélisation » RÉFUTÉE par mesure — NON CORRIGÉ (documenté)
 - **Gravité** : HAUTE (l'alerte CI est structurellement inutilisable ; un vrai
@@ -2841,8 +2903,8 @@ specs qui comptent ou listent. C'est la justification mesurée de **P39**
 supprimer des `groups` peut cascader vers `group_members`/`events` sans
 sauvegarde disponible).
 
-### R99 — Sauvegarde : chaîne désormais VÉRIFIÉE, mais automatisation toujours INACTIVE (critique)
-- **Gravité** : **critique** — c'est le risque n°1 pour 4 mois sans surveillance.
+### R99 — Sauvegarde : chaîne VÉRIFIÉE **et automatisation ACTIVE** — RÉSOLU (2026-10-31)
+- **Gravité initiale** : **critique** (risque n°1 pour 4 mois sans surveillance).
 - **Ce qui a été fait (2026-10-24)** :
   1. Une **sauvegarde fraîche** a été produite : schéma 136 Ko
      (43 `CREATE TABLE`, 146 politiques RLS) + données 6,3 Mo (29 tables, dont
@@ -2859,17 +2921,21 @@ sauvegarde disponible).
      n'a publié **aucun artefact** (`total_count = 0`) car le secret est absent.
   Les fichiers vivent **hors du dépôt** (`/workspace/backups/`, ~10 Mo) — ils
   contiennent des données réelles, **ne pas les commiter** (dépôt public).
-- **Ce qui reste (non résolu — hors de portée de la session)** :
-  l'automatisation quotidienne (`backup.yml`) est **toujours inactive** : le
-  secret `SUPABASE_DB_URL` n'existe pas (prouvé par l'avertissement du run), et
-  le jeton de session ne permet pas de le créer (403). Côté Supabase,
-  `pitr_enabled=false` et `backups=[]`.
-- **Procédure complète et testée** : voir RUNBOOK.md §« Sauvegarde VÉRIFIÉE ».
-- **Impact 4 mois** : sans activation, **aucune sauvegarde automatique** ne
-  sera prise ; une corruption ou une erreur humaine serait irréversible. La
-  sauvegarde manuelle produite aujourd'hui **périme** (elle est figée au
-  2026-10-24) et vit dans un environnement de test voué à disparaître : le
-  propriétaire **doit la récupérer** et activer le workflow.
+- **RÉSOLUTION (2026-10-31)** — l'affirmation « automatisation toujours
+  INACTIVE » de cette entrée était **périmée** ; elle est corrigée ici :
+  - les deux secrets (`SUPABASE_DB_URL`, `BACKUP_GPG_PASSPHRASE`) sont
+    **désormais présents** : run manuel `40813667253` (2026-10-29) → étapes
+    « Export » **et** « Publier (chiffré uniquement) » exécutées, **1 artefact
+    chiffré** publié (3,9 Mo) ;
+  - **preuve planifiée** : le run **`schedule`** `41036453279` (2026-10-30
+    09:51 UTC) a **réussi** et publié l'artefact chiffré
+    `supabase-backup-41036453279` (**3,5 Mo, non expiré**) — donc la cadence
+    quotidienne (`cron: '0 3 * * *'`) **produit réellement** des sauvegardes ;
+  - le workflow est passé de manuel à **quotidien** (R138), rétention 14 j,
+    publication **conditionnée au chiffrement** (garde-fou dépôt public).
+- **Statut** : **RÉSOLU** (voir ESCALATIONS.md E3). Ce qui reste côté
+  propriétaire est **optionnel** : rétention hors-site durable (passer le dépôt
+  en privé → schedules 60 j) ; la chaîne est vérifiée (dump + restauration 10/10).
 
 ### R100 — Code d'invitation généré par `Math.random()` (non cryptographique) — CORRIGÉ
 - **Gravité** : MOYENNE (jeton porteur devinable).
@@ -3319,6 +3385,13 @@ sauvegarde disponible).
 - **RÉVERSIBILITÉ** : `rollback/20261028000001_rollback.sql` (réouvre la
   surface — fourni pour la symétrie, à n'appliquer qu'en connaissance de cause).
 - **Receipt** : `docs/agent/receipts/phase-08/2026-10-28-r115-trigger-rpc-surface.md`.
+- **Complément (2026-10-30)** : les **7** fonctions `SECURITY DEFINER` exécutables
+  par `authenticated` (advisor `authenticated_security_definer_function_executable`)
+  ont été vérifiées : `can_manage_invitations`, `current_org_id`, `has_permission`,
+  `is_org_admin`, `is_org_member`, `org_descendants` sont **purement lecture**
+  (aucun INSERT/UPDATE/DELETE/TRUNCATE) → surface d'information, pas d'écriture.
+  `upsert_profile` **écrit** mais porte sa propre garde `is_org_admin`
+  (`42501 ROLE_NOT_ALLOWED`, vérifié ; cf. R143). R115 tient.
 
 ### R116 — La garde de budget de performance était SILENCIEUSEMENT ignorée en CI — ✅ CORRIGÉ le 2026-10-28
 
@@ -3958,3 +4031,331 @@ partagée par les deux plateformes et couverte par 3 tests.
   - REVOKE de la fonction de trigger : elle **n'apparaît pas** dans les advisors
     de sécurité (surface RPC fermée, cf. R115).
 - **Statut** : **CORRIGÉ** (barrières 1 et 2 livrées + prouvées).
+
+### R140 — Le journal d'audit (`audit_entries`) n'était PAS en ajout seul : tout membre pouvait effacer/altérer une trace — ✅ CORRIGÉ le 2026-10-30
+- **Gravité** : HAUTE (intégrité de la traçabilité — anti-traçabilité).
+- **Défaut mesuré (instance DEV, 2026-10-30)** : les politiques
+  `audit_entries_delete` (USING `is_org_member`) et `audit_entries_update`
+  (USING/WITH CHECK `is_org_member`) autorisaient **tout membre de
+  l'organisation** à `UPDATE`/`DELETE` n'importe quelle entrée d'audit de son
+  org. Un `MEMBRE` pouvait donc **effacer ou falsifier la trace de ses propres
+  actions** — l'inverse de l'invariant « toute mutation est tracée ».
+  Non couvert par R137 (qui portait sur les tables métier, pas le journal).
+- **Constat complémentaire** : `audit_entries` n'a **aucune FK entrante** ni
+  cascade ; aucun chemin applicatif ne fait `UPDATE`/`DELETE` dessus (mesuré :
+  `src/` = uniquement `INSERT`/`SELECT` ; les triggers de traçabilité sont
+  `SECURITY DEFINER` et contournent la RLS). Une purge côté client serait donc
+  **toujours** abusive.
+- **Correctif** (migration `20261030000001`, réversible
+  `rollback/20261030000001_rollback.sql`) : retrait des 2 politiques. Sans
+  politique, la RLS est *deny-all* pour `UPDATE`/`DELETE` → l'altération devient
+  impossible. Les `INSERT` (voie REST authentifiée) et les écritures des
+  triggers (`service_role`/`powersync_role`, BYPASSRLS) **restent inchangés**.
+- **Preuves mesurées (transaction annulée)** :
+  - membre `authenticated` : `UPDATE audit_entries … comment='TAMPERED'` puis
+    `DELETE …` → **0 ligne affectée** ; `count` inchangé (62) ;
+  - vérification post-test : `count(comment='TAMPERED') = 0` (aucune
+    falsification persistée) ;
+  - `INSERT` d'une entrée d'audit par un membre → **ACCEPTÉ** (journalisation
+    préservée) ;
+  - garde repo-side `audit-append-only-guard.test.ts` (3 assertions) +
+    `rls-inventory.test.ts` (44 tables) verts.
+- **Portée** : durcissement **isolé et sûr** (1 table, append-only, 0 écriture
+  applicative cassée). Ne traite PAS les tables financières encore en
+  `is_org_member` seul (accounts, caisses, budgets, dons, reçus fiscaux…) —
+  cf. **R141**.
+- **Statut** : **CORRIGÉ** (livré + prouvé).
+
+
+### R141 — 26 tables restaient en écriture « membre seul » (dont des tables FINANCIÈRES) — ✅ CORRIGÉ (2026-10-31, décision tranchée)
+- **Gravité** : HAUTE (contrôle d'accès / intégrité financière). **Suite directe de R137**
+  (qui n'avait couvert que 15 politiques : transactions, versements, members,
+  events, groups).
+- **Défaut mesuré (instance DEV, 2026-10-30)** : **26 tables** du schéma `public`
+  ont au moins une politique d'écriture (`INSERT`/`UPDATE`/`DELETE`) reposant sur
+  `is_org_member(...)` **seul** (sans `has_permission` ni `is_org_admin`) — tout
+  **membre** de l'org, quel que soit son rôle, peut écrire. Requête de mesure :
+  `pg_policies` où `cmd ∈ {INSERT,UPDATE,DELETE}` et le `qual`/`with_check`
+  contient `is_org_member` **sans** `has_permission`/`is_org_admin`.
+- **Tables concernées (mesurées, 26)** : `accounts`, `budget_lines`, `caisses`,
+  `categories`, `cotisations`, `custom_field_definitions`, `custom_field_values`,
+  `documents`, `event_budgets`, `event_tasks`, `form_definitions`,
+  `form_submissions`, `giving_campaigns`, `giving_donors`, `group_memberships`,
+  `notifications`, `org_budget_lines`, `org_budgets`, `org_units`, `pledges`,
+  `report_definitions`, `role_assignments`, `tax_receipts`, `transaction_giving`
+  (+ `audit_entries` — **corrigé R140**).
+- **Précision importante (honnêteté R12)** — 3 tables mesurées d'abord par un
+  détecteur **large** ont été **retirées** après vérification des politiques :
+  - `invitations` et `invitation_claims` : en réalité **gardées** par
+    `can_manage_invitations(...)` (le détecteur cherchait `has_permission`, pas
+    `can_manage_*`) → **hors périmètre** ;
+  - `profiles` : en réalité **self-only** (`initplan_uid() = id` en UPDATE/INSERT/
+    DELETE) → **hors périmètre** (un membre ne modifie que SON profil).
+- **Hypothèse d'escalade TESTÉE ET RÉFUTÉE (important)** : j'ai vérifié si un
+  membre pouvait **s'auto-promouvoir** en écrivant les tables de rôle.
+  - `org_memberships`, `grants`, `org_admins` : politiques gardées par
+    `is_org_admin` → **non modifiables** par un membre ;
+  - `has_permission` lit `org_memberships.role` + `grants`, **pas**
+    `role_assignments` (qui est une table de rôle de **session** :
+    `session_id, role, org_id, created_at`) ;
+  - `is_org_admin` lit `profiles.role`, MAIS un trigger
+    `guard_profile_role_immutable` (BEFORE UPDATE) **rejette** toute
+    modification de `profiles.role` par un membre : test mesuré (transaction
+    annulée) → **`42501 ROLE_IMMUTABLE`**. Trois triggers gardent `profiles`
+    (`guard_profile_role_immutable`, `guard_profile_role_insert`,
+    `trg_guard_profile_org`).
+  - **Conclusion** : l'escalade de rôle **n'est pas possible** par ces chemins.
+    R141 porte donc sur l'**écriture directe** de données (financières, unités,
+    catégories…), **pas** sur une escalade de privilèges.
+- **Exploitabilité prouvée (écriture directe)** : en `SET LOCAL ROLE
+  authenticated` + JWT simulé, `INSERT INTO accounts (...)` (table FINANCIÈRE) a
+  été **accepté par la RLS** (seul un `CHECK` de colonne a fait échouer la 1ʳᵉ
+  tentative). Un membre pouvait donc créer/altérer une caisse, un budget, une
+  campagne de dons, un reçu fiscal… **au niveau base**, hors de tout contrôle de
+  rôle. Le masquage UI n'est pas une frontière de sécurité.
+- **Pourquoi non corrigé d'emblée (prudence assumée)** : le vocabulaire de
+  permissions canon (`role_permissions`) ne couvre **que** `transaction:*`,
+  `versement:*`, `cotisation:*`, `event:*`, `group:*`, `member:*`, `report:*`,
+  `invitation:*`, `admin:*`. Il **n'existe aucune permission** pour `accounts`,
+  `tax_receipts`, `org_budgets`, `pledges`, `giving_campaigns`… Réécrire ces 26
+  tables sans décision explicite risquerait de **casser des flux métier
+  légitimes** (un trésorier doit gérer les caisses ; un responsable doit gérer
+  ses unités) — un correctif à l'aveugle serait pire que le défaut.
+- **Remédiation proposée (2 lots, à valider par le propriétaire)** :
+  1. **Lot 1 — tables à permission existante** (mapping direct, sûr) :
+     `cotisations` → `cotisation:manage` ; `transaction_giving`, `giving_*`,
+     `pledges` → `transaction:*` (ou `versement:*` selon la sémantique) ;
+     `group_memberships` → `group:update` ; `notifications`, `custom_field_*`,
+     `form_*`, `report_definitions` → capacité pertinente.
+  2. **Lot 2 — tables sans permission canon** (`accounts`, `caisses`,
+     `org_budgets*`, `budget_lines`, `event_budgets`, `tax_receipts`,
+     `org_units`, `categories`, `role_assignments`) : **décider** d'abord la
+     capacité (« Gérer les finances » = `finance.manage` ; « Gérer les unités » =
+     `admin:settings`), puis **ajouter** les permissions manquantes à
+     `role_permissions` avant de câbler les politiques.
+  - Dans les deux cas : patron R137 (migration idempotente + rollback + preuve
+    `MEMBRE → 42501` / rôle légitime → accepté) et vérifier qu'aucun flux
+    applicatif (onboarding, saisie rapide, dons) ne casse.
+- **Référence** : R137 (15 politiques corrigées, voie REST) ; R140
+  (`audit_entries`, corrigé le 2026-10-30).
+- **DÉCISION TRANCHÉE (2026-10-31, autonomie accordée « OK ALLONS Y »)** —
+  périmètre : **14 tables** câblées, en 2 lots.
+  - **Lot 1 — permission canon existante** : `cotisations` → `cotisation:manage` ;
+    `group_memberships` → `group:update` ; `org_units` → `admin:settings`.
+  - **Lot 2 — permission nouvelle `finance:manage`** (ajoutée à
+    `role_permissions` ET à `PERMISSION_MATRIX` TS, miroir R109) :
+    `accounts`, `caisses`, `org_budgets`, `org_budget_lines`, `budget_lines`,
+    `event_budgets`, `pledges`, `giving_campaigns`, `giving_donors`,
+    `transaction_giving`, `tax_receipts`. Détenteurs : ADMIN,
+    PASTEUR_PRINCIPAL, TREASURIER, TREASURIER_ADJOINT.
+  - **Hors périmètre (justifié)** : `categories` (écrite dynamiquement par le
+    cycle de vie `UPDATE ${table}` — risque de casse) ; `role_assignments`
+    (table morte : 0 référence client, hors sync-config) ; `notifications`,
+    `custom_field_*`, `form_*`, `report_definitions` (pas de permission canon →
+    R141.c, non urgent car non financier). `documents`, `event_tasks` : suivis
+    en R141.b (contrainte d'appartenance non triviale).
+  - **Sûreté mesurée** : le chemin d'écriture applicatif passe par PowerSync dont
+    le rôle `powersync_role` porte **BYPASSRLS** (vérifié) → ces politiques ne
+    peuvent pas casser un flux applicatif ; elles ferment le client **REST
+    direct** (clé anon publique + JWT).
+  - **Livrable** : migration `20261031000001_rls_write_permission_r141.sql` +
+    rollback `rollback/20261031000001_rollback.sql` + garde
+    `src/lib/__tests__/r141-write-permission-guard.test.ts`.
+  - **Preuve (instance DEV, transaction annulée)** : `INSERT INTO accounts` →
+    **`42501`** pour un **MEMBRE**, **accepté** pour un **TREASURIER**
+    (`has_permission(...,'finance','manage')=true`). 0 résidu.
+- **Statut** : **CORRIGÉ** (livré + prouvé le 2026-10-31).
+
+### R141.b / R141.c — Écriture « membre seul » sur les tables NON FINANCIÈRES restantes — ✅ CORRIGÉ (2026-10-31)
+- **Gravité** : MOYENNE (écriture non gouvernée via le client REST direct ; pas
+  d'escalade — ces tables ne portent ni rôle ni appartenance).
+- **Défaut** : 8 tables hors périmètre de R141 gardaient leurs politiques
+  INSERT/UPDATE/DELETE sur `is_org_member(...)` **SEUL** : tout MEMBRE pouvait
+  écrire au niveau base (clé anon publique + JWT). Tables : `documents`,
+  `event_tasks` (R141.b) ; `report_definitions`, `custom_field_definitions`,
+  `custom_field_values`, `form_definitions`, `form_submissions`, `categories`
+  (R141.c).
+- **Décision (autonomie 2026-10-31)** — **aucune nouvelle permission** (toutes
+  canon) :
+  - `documents` → `admin:settings` (gestion documentaire / Archives) ; NB : la
+    table n'avait **aucune** politique DELETE (deny-all REST) — **non ouverte**
+    (ce serait une nouvelle capacité, hors d'un durcissement).
+  - `event_tasks` → `event:update` (sous-ressource des événements).
+  - `report_definitions` → `report:export` (édition de rapports).
+  - `custom_field_definitions` / `custom_field_values` → `admin:settings`
+    (schéma et valeurs ; portée de `custom_field_values` via sa définition).
+  - `form_definitions` / `form_submissions` → `admin:settings`.
+  - `categories` → `admin:settings` (taxonomie canonique).
+  - **Hors périmètre (justifié)** : `role_assignments` (table morte : 0
+    référence client, hors sync-config ; toute politique y est sans objet).
+- **Sûreté mesurée** : **aucun** chemin d'écriture REST (`supabase.from(...)`)
+  n'existe pour ces tables dans le client — toutes les écritures applicatives
+  passent par PowerSync (`powersync_role` = **BYPASSRLS** vérifié) → ces
+  politiques ne peuvent pas casser un flux applicatif.
+- **Livrable** : migration `20261031000002_rls_write_permission_r141bc.sql` +
+  rollback `rollback/20261031000002_rollback.sql` + garde
+  `src/lib/__tests__/r141bc-write-permission-guard.test.ts` (5 assertions).
+- **Preuve (instance DEV, transaction annulée)** : `INSERT INTO categories` →
+  **`42501`** pour un **MEMBRE** ; **accepté** pour un **PASTEUR_PRINCIPAL**
+  (`has_permission(...,'admin','settings')=true`). 0 résidu ; advisors
+  inchangés (aucun `rls_enabled_no_policy` nouveau) ; `powersync_role`
+  BYPASSRLS confirmé.
+- **Statut** : **CORRIGÉ** (livré + prouvé le 2026-10-31).
+
+### R141.d — Dernières politiques d'écriture « membre seul » (clôture du chantier) — ✅ CORRIGÉ (2026-10-31)
+- **Gravité** : MOYENNE (écriture non gouvernée via le client REST direct ; pas
+  d'escalade).
+- **Défaut** : après R137 (15 politiques), R141 (14 tables financières) et
+  R141.b/c (8 tables non financières), il restait **4** tables dont une ou
+  plusieurs politiques INSERT/UPDATE/DELETE reposaient sur `is_org_member`
+  **SEUL** : `invitation_claims` (UPDATE), `notifications`
+  (INSERT/UPDATE/DELETE), `role_assignments` (INSERT/UPDATE/DELETE) et
+  `audit_entries` (INSERT).
+- **Décision (autonomie 2026-10-31)** — **aucune nouvelle permission** :
+  - `invitation_claims` UPDATE → `invitation:manage` (canon : ADMIN, ANCIEN,
+    PASTEUR_PRINCIPAL, TREASURIER — cohérent avec `can_manage_invitations`).
+  - `notifications` (INSERT/UPDATE/DELETE) → `admin:settings` (pas de permission
+    canon spécifique ; précédent R141.b/c).
+  - `role_assignments` (INSERT/UPDATE/DELETE) → `admin:settings` (**table
+    morte** : 0 référence dans tout le dépôt, hors sync-config).
+  - **LAISSÉ (correct)** : `audit_entries` INSERT — un journal d'audit
+    enregistre l'action de l'acteur **lui-même** ; le restreindre à un rôle
+    priverait les non-managers de toute traçabilité. `audit_entries`
+    UPDATE/DELETE reste deny-all (R140).
+  - `invitations` (INSERT/UPDATE/DELETE) était **déjà** gardée
+    (`is_org_member AND can_manage_invitations`) — non concernée.
+- **Sûreté mesurée** : **aucun** chemin d'écriture REST de ces tables côté
+  client (tout passe par PowerSync, `powersync_role` = BYPASSRLS) ; les triggers
+  `notify_*` s'exécutent dans ce contexte ou en DEFINER
+  (`notify_transaction_change`). Durcir la RLS REST ne peut pas casser un flux.
+- **Livrable** : migration `20261031000004_rls_write_permission_r141d.sql` +
+  rollback `rollback/20261031000004_rollback.sql` + garde
+  `src/lib/__tests__/r141d-write-permission-guard.test.ts` (5 assertions).
+- **Preuve (instance DEV, transaction annulée)** : `INSERT INTO notifications`
+  → **`42501`** pour un **MEMBRE** (`has_permission(...,'admin','settings')`
+  = false) ; **accepté** pour un **PASTEUR_PRINCIPAL** (= true). 0 résidu ;
+  advisors inchangés.
+- **Clôture** : après application, la requête d'audit ne renvoie plus **aucune**
+  politique d'écriture REST non gardée, hormis `audit_entries` INSERT
+  (volontaire) et `invitations` (déjà gardée par `can_manage_invitations`).
+  Le chantier R137/R140/R141 est **complet**.
+- **Statut** : **CORRIGÉ** (livré + prouvé le 2026-10-31).
+
+### R141.e — `org_reports_emitter` : écriture FOR ALL sur le rôle `public` (NON corrigé — dépend du sort de `CENTRAL_ADMIN`)
+- **Gravité** : FAIBLE-MOYENNE (gouvernance d'écriture ; pas d'escalade).
+- **Défaut** : après R141.d, une **seule** politique d'écriture reste hors garde
+  de rôle : `org_reports_emitter` (`FOR ALL`, `TO public`,
+  `USING/WITH CHECK (from_org_id = current_org_id())`). `current_org_id()` lit
+  `profiles.org_id` → **tout membre authentifié** de l'organisation émettrice
+  peut INSERT/UPDATE un rapport fédéré au niveau base (client REST direct).
+- **Pourquoi NON corrigé en autonomie** : le flux d'émission de rapports est
+  **fédéré** (une annexe envoie à sa mère) et la page `/admin/report-send` est
+  atteignable depuis `CentralAdmin` — donc potentiellement par un
+  **`CENTRAL_ADMIN`**, rôle **hors canon** (R109 / D-S10-3, décision
+  propriétaire). Exiger `has_permission(...,'admin','settings')` **casserait**
+  l'émission si elle est faite par un `CENTRAL_ADMIN` (absent de
+  `org_memberships`). Le durcissement dépend donc de la **décision de modèle**
+  sur `CENTRAL_ADMIN` — même blocage que R142.
+- **Ce qui est sûr (mesuré)** : les écritures applicatives de `org_reports`
+  passent par PowerSync (`powersync_role` = BYPASSRLS, `FORCE RLS` ne le
+  concerne pas) → un durcissement serait **app-safe** ; il ne reste qu'à choisir
+  la permission une fois `CENTRAL_ADMIN` tranché.
+- **Action propriétaire** : (1) trancher `CENTRAL_ADMIN` (l'ajouter au canon ou
+  le retirer) ; (2) **puis** scinder `org_reports_emitter` en
+  SELECT (membre) + INSERT/UPDATE gardés (`admin:settings` ou `report:export`).
+- **Statut** : ouvert (bloqué par une décision de modèle).
+
+### R142 — La garde de route (`hasPermission`) était INERTE (branche `forbidden` morte) — ✅ CORRIGÉ (2026-10-31)
+- **Gravité** : MOYENNE (défense en profondeur absente ; pas d'escalade — la RLS
+  filtre déjà les données, cf. R137/R140/R141).
+- **Contexte** : R109 a été **TRANCHÉ** (2026-10-29) — `ADMIN` est désormais le
+  15ᵉ rôle canonique (détient `admin:settings`). On pouvait donc croire le
+  câblage de R105 débloqué. **Vérification faite (2026-10-30) : il ne l'est
+  pas**, pour deux raisons mesurées.
+- **Blocage 1 — `CENTRAL_ADMIN` hors matrice canon** : le code utilise
+  `user.role === "CENTRAL_ADMIN"` (TopHeader, CentralAdmin, SettingsGestion,
+  SettingsPersonalisation, `capabilities/organization/central`, federation),
+  mais `CENTRAL_ADMIN` **n'existe pas** dans `Role`/`PERMISSION_MATRIX`
+  (`parseRole("CENTRAL_ADMIN")` → `null`). Câbler la garde fermerait `/admin*`
+  à ce rôle → **enfermement des admins centraux**. (Un compte `CENTRAL_ADMIN`
+  n'existe pas non plus en base aujourd'hui : `profiles` = 2 ×
+  `PASTEUR_PRINCIPAL`, `org_admins` = 1 × `PASTEUR_PRINCIPAL`.)
+- **Blocage 2 — mapping de permission contradictoire** : `/admin/reports` et
+  `/admin/reports/:id` exigent `admin:settings` dans `ROUTE_REGISTRY`, alors
+  que `OrgReportsReceived` est un écran **destinataire** alimenté par
+  `useReportsReceived` et **atteignable par les membres** (le `Dashboard`
+  affiche un lien « Voir tout → » vers `/admin/reports` **sans aucun garde de
+  rôle**). Câbler la garde **enfermerait dehors** les destinataires de rapports
+  → un membre ne pourrait plus ouvrir les rapports reçus. Le mapping correct
+  est probablement `report:read` (détenu par la plupart des rôles) — à trancher.
+- **Prérequis au câblage (ordre)** :
+  1. décider le sort de `CENTRAL_ADMIN` (l'ajouter au canon, ou le remplacer) ;
+  2. corriger le mapping des routes `/admin/reports*` (probablement
+     `report:read`) ;
+  3. **puis** câbler `hasPermission` dans `App.tsx` (retirer
+     `PENDING_WIRING.hasPermission` de `route-state-wiring.test.ts`) ;
+  4. test E2E par rôle (aucun rôle légitime ne doit être enfermé).
+- **Référence** : R105 (garde inerte), R16 (divergence de source de vérité),
+  R109 (ADMIN canonique).
+- **Statut** : **CORRIGÉ (2026-10-31)** — câblage réalisé avec les 2 décisions
+  ci-dessous.
+- **Décision 1 (blocage 1) — `CENTRAL_ADMIN`** : **fail-closed**. `CENTRAL_ADMIN`
+  reste **hors** `Role`/`PERMISSION_MATRIX` (il ne peut pas être canonisé :
+  `PERMISSION_MATRIX` est indexé par `Role`, `role-model-drift`/`permissions`
+  gardent l'exhaustivité, et `role-model.json` est régénéré depuis la matrice →
+  l'ajouter exigerait de définir ses permissions **DB+TS** sans décision produit,
+  et **ouvrirait un 15ᵉ rôle inutilisé en base** — 0 compte). La garde
+  `roleHasPermission` (nouvelle, `src/lib/rbac.ts`) **refuse** un rôle hors canon
+  (`parseRole → null`). L'admin central canonique est **`ADMIN`** (R109), qui
+  détient `admin:settings`. Un éventuel compte `CENTRAL_ADMIN` historique (0 en
+  base aujourd'hui) serait redirigé vers « Accès refusé » (REST/DB restent la
+  barrière ; non-régression : ces routes étaient déjà interdites en pratique).
+- **Décision 2 (blocage 2) — `/admin/reports*`** : **garde d'appartenance seule**
+  (aucune permission de route), et **non** `report:read`. Mesure : le lien
+  « Voir tout → » du `Dashboard` est rendu **sans garde de rôle**, la RLS
+  `org_reports_receiver` n'exige qu'une **appartenance d'org**, et **`MEMBRE` ne
+  détient PAS `report:read`** (12 rôles sur 14 le détiennent). Exiger
+  `admin:settings` (avant) **ou** `report:read` aurait enfermé dehors des
+  destinataires légitimes. C'est donc le même modèle que `/reports`
+  (appartenance seule) — le résolveur produit `needs-membership` pour un
+  non-membre.
+- **Livrables** : `src/lib/rbac.ts` (`roleHasPermission`) ; `src/App.tsx` (état
+  `userRole` + `hasPermission` câblé) ; `routeResolver.ts` (`/admin/reports*`
+  sans permission) ; garde `src/lib/__tests__/r142-route-permission-wiring.test.ts`
+  (9 assertions) ; `route-state-wiring.test.ts` (`hasPermission` retiré de
+  `PENDING_WIRING`).
+- **Preuve** : suite complète **1736/1736** (156 fichiers) ; `tsc -b` = 0 ;
+  invariants testés — rôle canon → permissions déclarées, hors-canon → refus,
+  null/vide → refus, aucune route gardée par une permission que 0 rôle détient,
+  `/admin/reports*` sans permission de route.
+- **Sûreté** : défense en profondeur uniquement (la RLS reste la barrière
+  serveur) ; aucune donnée exposée ni fermée qui ne l'était déjà au niveau DB.
+
+### R143 — Les correctifs anti-escalade de privilèges n'avaient AUCUNE garde anti-régression — CORRIGÉ (2026-10-30)
+- **Gravité** : MOYENNE (les correctifs sont en place et vérifiés en base ; le
+  défaut était l'**absence de garde** — une migration future pouvait rouvrir la
+  voie sans qu'aucun test ne s'en aperçoive).
+- **Constat** : les 4 correctifs CRITIQUES d'escalade (migrations
+  `20261022000010`–`20261022000014`) n'étaient couverts par **aucun test**. Le
+  seul test RBAC (`capabilities/__tests__/security.test.ts`) porte sur la
+  **matrice de permissions TS**, pas sur les garde-fous **base**.
+- **Rappel des invariants (vérifiés en base le 2026-10-30, transactions
+  annulées)** :
+  1. `profiles.role` **immuable** pour un client — trigger
+     `guard_profile_role_immutable` (BEFORE UPDATE) → `42501 ROLE_IMMUTABLE` ;
+  2. profil client créé privilégié **refusé** — trigger
+     `guard_profile_role_insert` (BEFORE INSERT) ;
+  3. `upsert_profile` (SECURITY DEFINER) refuse `p_role` sans `is_org_admin`
+     → `42501 ROLE_NOT_ALLOWED` (sinon il contournerait le trigger, `current_user`
+     y étant le propriétaire) ;
+  4. `org_memberships` : `INSERT`/`UPDATE` gardés par `is_org_admin` (plus
+     d'auto-adhésion ni d'auto-promotion) ; l'ancienne politique `om_all_merged`
+     n'est jamais recréée.
+- **Correctif** : garde `src/lib/__tests__/rbac-escalation-guard.test.ts`
+  (8 assertions) — vérifie l'existence des triggers, l'absence de suppression
+  tardive, la garde `is_org_admin` dans la **dernière** définition de
+  `upsert_profile`, les politiques `om_insert`/`om_update`, et la non-réapparition
+  d'`om_all_merged`. Patron de lecture des migrations (sans base), comme
+  `audit-append-only-guard.test.ts`.
+- **Référence** : R137/R140/R141 (RLS), R109 (rôle ADMIN).
+- **Statut** : **CORRIGÉ** (garde livrée, `tsc -b` = 0, 1723/1723).

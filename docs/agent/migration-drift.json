@@ -1,22 +1,31 @@
 {
   "version": 1,
-  "generated": "2026-10-29",
+  "generated": "2026-10-31",
   "purpose": "Instantane MESURE de la derive migrations <-> base (R17). Le tracker Supabase n'est pas accessible en CI : ce fichier fige l'etat mesure pour qu'une garde repo-side puisse detecter tout CHANGEMENT de derive (nouvelle migration tracee ou non tracee).",
   "source_of_truth": "Base = source de verite (schema applique via editeur SQL / MCP, pas via `supabase db push`). Le tracker `supabase_migrations.schema_migrations` et les fichiers `supabase/migrations/` sont deux historiques disjoints.",
   "measured": {
-    "applied_versions_in_tracker": 70,
-    "repo_timestamped_files": 67,
+    "applied_versions_in_tracker": 82,
+    "repo_timestamped_files": 74,
     "repo_sequential_files": 63,
-    "repo_total_sql_files": 130,
+    "repo_total_sql_files": 137,
     "versions_in_common": 2,
     "common_versions": [
       "20261001000001",
       "20261027000003"
     ],
-    "applied_without_repo_file": 68,
-    "repo_file_never_applied": 61,
-    "drift_ratio": "2/70",
-    "repo_filenames_sha256": "3eac729036d57d31c95b043e386f26dd261c26f62fb3a36279e32a40c896463f"
+    "applied_without_repo_file": 70,
+    "repo_file_never_applied": 65,
+    "drift_ratio": "2/82",
+    "repo_filenames_sha256": "d35c703a7a2395900d73f72a54d542c15b08083d8a904599120f01dfb3e12377",
+    "repo_db_object_delta": {
+      "measured": "2026-10-31",
+      "method": "recoupement exhaustif depot <-> base (tables, fonctions, triggers, vues)",
+      "tables_missing": 0,
+      "functions_missing": 0,
+      "triggers_missing": 0,
+      "views_missing": 0,
+      "note": "delta nul ; seul `agent_try_jsonb` est absent par conception (DROP en fin de sa propre migration 20261024000001)."
+    }
   },
   "tracker_sample_versions": [
     "20260910123851",
@@ -27,5 +36,30 @@
   "owner_recommendation": "Regulariser via `supabase migration repair --status applied <version>`, ou adopter 'base = source de verite' et cesser de se fier au tracker. A trancher (DECISIONS.md / RAPPORT_FINAL.md).",
   "notes_r109": [
     "4 migrations ajoutees 2026102900000{1..4} (R109 ADMIN canonique + R137 RLS ecriture + garde escalade + annexes ADMIN)."
+  ],
+  "notes_r140": [
+    "1 migration ajoutee 20261030000001 (R140 audit_entries append-only) ; tracker non re-mesure (inaccessible en CI)."
+  ],
+  "notes_r141": [
+    "1 migration ajoutee 20261031000001 (R141 RLS ecriture des tables financieres) ; tracker non re-mesure (inaccessible en CI)."
+  ],
+  "notes_r141bc": [
+    "1 migration ajoutee 20261031000002 (R141.b/c RLS ecriture des tables non financieres : documents, event_tasks, report_definitions, custom_field_*, form_*, categories) ; tracker non re-mesure (inaccessible en CI)."
+  ],
+  "notes_r17_reconcile": [
+    "1 migration ajoutee 20261031000003 (reconciliation R17 : recreation idempotente des 3 objets du fichier historique 20260909000002 jamais applique en l'etat — mark_expired_invitations + 2 triggers updated_at). Apres application, le delta depot <-> base est NUL (0 table/fonction/trigger/vue manquant)."
+  ],
+  "notes_r141d": [
+    "1 migration ajoutee 20261031000004 (R141.d — cloture du chantier d'autorisation d'ecriture : invitation_claims UPDATE -> invitation:manage ; notifications + role_assignments -> admin:settings ; audit_entries INSERT laisse au niveau membre). Apres application, plus AUCUNE politique d'ecriture REST non gardee (hors audit_entries INSERT volontaire et invitations deja gardee par can_manage_invitations)."
+  ],
+  "notes_version_mismatch": [
+    "MECANISME (decouvert 2026-10-31) : l'application via MCP `apply_migration` enregistre dans `supabase_migrations.schema_migrations` la version = HORODATAGE D'APPLICATION (YYYYMMDDHHMMSS), PAS le nom de fichier du depot. C'est la cause STRUCTURELLE de la 'derive' : une migration du depot appliquee via MCP apparait comme une version differente. D'ou 'versions_in_common = 2' alors que les OBJETS sont alignes (R17 : delta 0/0/0/0). Consequence : le ratio de derive SOUS-ESTIME l'alignement reel ; la seule mesure fiable d'alignement est par OBJETS (cf. repo_db_object_delta), pas par version. Le snapshot sert a detecter un CHANGEMENT cote depot (empreinte de noms), pas a mesurer l'alignement."
+  ],
+  "notes_fk_indexes": [
+    "1 migration ajoutee 20261031000005 (index couvrants des 2 FK de event_tasks, advisor `unindexed_foreign_keys` lint 0001). Additive (CREATE INDEX), aucun changement de donnee. Tracker re-mesure : 81."
+  ],
+  "notes_org_federation": [
+    "1 migration ajoutee 20261031000006 (reconciliation R17 : la vue `public.org_federation` existait en base SANS aucun CREATE dans le depot -> une base reconstruite ne l'aurait pas eue). Recreee idempotemment (CREATE OR REPLACE VIEW, definition identique, security_invoker=true) ; grants conserves (CREATE OR REPLACE preserve l'OID). Tracker re-mesure : 82.",
+    "Etat des vues : 2 en base (org_family, org_federation) ; les 2 sont desormais creees par le depot. Objets DB sans CREATE depot restants : `keep_alive` (CREATE dans supabase/keep-alive.sql, hors migrations) et `rls_auto_enable` (evenement Supabase, pas un objet de ce projet) ; `settle_pending_claims_for_invitation` est reference par des migrations (ALTER/REVOKE) mais son CREATE est hors depot."
   ]
 }

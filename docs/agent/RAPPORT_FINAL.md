@@ -1188,8 +1188,12 @@ reste à activer par le propriétaire.
   une image vanilla, la restauration échoue (786 erreurs, 0 table).
 - Le rôle applicatif `powersync_role` doit exister **avant** le dump des données.
 
-**Reste à faire (critique)** : activer les secrets `SUPABASE_DB_URL` et
-`BACKUP_GPG_PASSPHRASE`, puis vérifier une exécution planifiée (R99, P31).
+**RÉSOLU (2026-10-31)** : les secrets `SUPABASE_DB_URL` et
+`BACKUP_GPG_PASSPHRASE` sont **configurés**. Preuves : run manuel `40813667253`
+(2026-10-29) → export + publication d'un artefact **chiffré** ; run **planifié**
+`41036453279` (2026-10-30) → artefact chiffré `supabase-backup-41036453279`
+(3,5 Mo, non expiré). La cadence quotidienne (`cron: '0 3 * * *'`) produit donc
+**réellement** des sauvegardes (cf. R99, E3, P31).
 
 **Note de sécurité** : la sauvegarde contient des données réelles ; elle vit
 **hors du dépôt** (`/workspace/backups/`) et ne doit **jamais** être commitée
@@ -1217,3 +1221,48 @@ R109/R16), R109 (décision propriétaire).
 
 **Leçon retenue** : les en-têtes de statut d'un registre de risques doivent être
 mis à jour **dans le même commit** que le correctif qu'ils décrivent.
+
+## S5.10 — Session « hardening » (2026-10-31) : audits DB, R12, R17, advisors
+
+Objectif de cette session : **auditer systématiquement l'alignement dépôt ↔ base
+et les advisors Supabase**, puis corriger les défauts réels, avec preuve et garde.
+
+### Corrections livrées
+
+| # | Défaut | Preuve | Garde |
+|---|---|---|---|
+| **R141.d** | Dernières politiques d'écriture REST restées sur `is_org_member` SEUL (`invitation_claims` UPDATE, `notifications`, `role_assignments`) → gardées par permission | DEV : MEMBRE→`42501`, PASTOR→accepté | `r141d-write-permission-guard.test.ts` |
+| **Index FK** | `unindexed_foreign_keys` (2 FK `event_tasks`) — index existants composites menés par `org_id`, inutilisables pour la FK | Lint **disparu** après migration `20261031000005` | `fk-index-guard.test.ts` |
+| **R17 (vue)** | `public.org_federation` existait en base **sans CREATE dans le dépôt** (base non reconstructible) | `CREATE OR REPLACE VIEW` idempotent, grants préservés | `view-creation-guard.test.ts` |
+| **R12** | 2ᵉ `createClient` sans options d'auth → « Multiple GoTrueClient » + course sur la session | Ré-export de l'unique instance ; 24 tests | `supabase-single-client-guard.test.ts` |
+
+### Constats d'audit (revus, non actionnables)
+
+- **Advisors sécurité** : `rls_enabled_no_policy` (3 tables) = deny-all (faux
+  positifs) ; `keep_alive_ping` anon = intentionnel (anti-pause) ;
+  `upsert_profile` **gardé** (`p_user_id=auth.uid()` + `is_org_admin`) — aucune
+  auto-escalade ; `auth_leaked_password_protection` = plan Pro (R104).
+- **Advisors perf** : `unused_index` (base dev sans trafic — ne pas supprimer) ;
+  `multiple_permissive_policies` (redondance permissive, aucune faille).
+- **R17 (mécanisme)** : MCP `apply_migration` enregistre l'**horodatage
+  d'application**, pas le nom de fichier → la « dérive de versions » (2/82) est
+  structurelle ; l'alignement réel se mesure **par objets** (delta **0**).
+- **R16/R62** : `has_permission` (DB) lit `org_memberships`, l'UI lit
+  `profiles.role` ; 0 divergence dans les données actuelles.
+- **R141.e** : `org_reports_emitter` (dernière politique d'écriture hors garde)
+  **non durcie** — bloquée par la décision de modèle `CENTRAL_ADMIN` (PR20).
+- **P3-1/PR17** (table de fermeture matérialisée) : **mesurée non justifiée**
+  (3 orgs, 0 org enfant, clôture triviale).
+
+### Gates finaux
+
+- `npx tsc -b` → **0** ; `eslint` (fichiers touchés) → **0** ;
+  `npx vitest run` → **1757/1757** (162 fichiers).
+- CI déterministe (Lint, TS, Unit, Build, Security, Socket, E2E, APK) : **verte**
+  (les seuls rouges sont `cypress-run (1)/(2)` = R98, environnement E2E).
+
+### Décision conservatrice
+
+Aucune action destructive : la base est une instance de **développement**
+(`transactions=0`, `documents=0`) ; PII conservée ; `_jsonb_*` vides conservées
+(sauvegardes de rollback) ; `unused_index` non supprimés (base sans trafic).

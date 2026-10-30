@@ -2,6 +2,7 @@ import { useState } from "react";
 import SettingsShell from "@/components/SettingsShell";
 import ThemeToggle from "@/components/ThemeToggle";
 import ThemePicker from "@/components/ThemePicker";
+import BadgeGallery from "@/components/BadgeGallery";
 import { getStoredThemeId, type ThemeId } from "@/ionic/themes";
 
 export default function SettingsTheme() {
@@ -41,6 +42,15 @@ export default function SettingsTheme() {
         </p>
         <ThemePicker value={themeId} onChange={(id) => setThemeId(id)} />
       </div>
+
+      <p className="text-text-primary font-semibold text-sm mt-6 mb-3">
+        Badges
+      </p>
+      <p className="text-text-tertiary text-xs mb-4">
+        Aperçu des badges de l'application. Ils s'adaptent automatiquement au
+        mode (sombre/clair) et à la couleur de marque ci-dessus.
+      </p>
+      <BadgeGallery />
     </SettingsShell>
   );
 }

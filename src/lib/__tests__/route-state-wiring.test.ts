@@ -42,7 +42,8 @@ const authPageSrc = readFileSync(
  * test (garde anti-obsolescence).
  */
 const PENDING_WIRING: Record<string, string> = {
-  hasPermission: "R105 — R109 TRANCHÉ (2026-10-29) : reste le câblage de la route",
+  // (vide) — `hasPermission` a été câblé par R142 (2026-10-31). Toute nouvelle
+  // entrée doit porter un id de risque (vérifié ci-dessous).
 };
 
 /** Extrait les clés de l'interface `RouteState`. */
@@ -126,6 +127,7 @@ describe("RouteState — aucun champ inerte (garde anti-classe R105/R106/R107)",
       "linkOrgId",
       "clientSchemaVersion",
       "minSchemaVersion",
+      "hasPermission",
     ]) {
       expect(keys, `${k} doit exister dans RouteState`).toContain(k);
       expect(wired.has(k), `${k} doit être alimenté dans App.tsx`).toBe(true);

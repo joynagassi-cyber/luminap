@@ -157,3 +157,39 @@
   (`/transaction/new` satisfait `should('include', '/transaction/')`), donc le
   spec visite `/transaction/new/edit` → « Transaction introuvable ». Fragilité
   de **spec** (pas produit), atteignable seulement après E5.
+
+## E6 — Décisions de périmètre R141 / R142 — ✅ RÉSOLUES (2026-10-31)
+
+Deux défauts mesurés exigeaient une **décision** (l'agent ne pouvait pas trancher
+sans risque de casser des flux légitimes).
+
+### E6.a — R141 : 26 tables en écriture « membre seul » (dont FINANCIÈRES) — ✅ RÉSOLUE (2026-10-31)
+- **Fait mesuré** : `INSERT INTO accounts` (table FINANCIÈRE) **accepté par la
+  RLS** pour un simple membre (`is_org_member` seul). Idem pour `caisses`,
+  `tax_receipts`, `org_budgets`, `pledges`, `giving_*`, etc. (26 tables).
+- **Non-escalade vérifiée** : l'escalade de rôle est **impossible**
+  (`org_memberships`/`grants`/`org_admins` gardés ; `profiles.role` immuable).
+- **Décision prise (autonomie accordée « OK ALLONS Y », 2026-10-31)** : périmètre
+  **14 tables** en 2 lots (Lot 1 = permissions canon existantes ; Lot 2 =
+  nouvelle permission `finance:manage`). Réversible (rollback fourni), preuve
+  `MEMBRE → 42501` / `TREASURIER → accepté`. Détail : RISQUES.md §R141, receipt
+  `phase-04/2026-10-31-r141-financial-write-permission.md`.
+- **Veto propriétaire possible** : rollback `rollback/20261031000001_rollback.sql`
+  restaure l'état antérieur exact.
+
+### E6.b — R142 : câblage de la garde de route (`hasPermission`) — ✅ RÉSOLUE (2026-10-31)
+- **Fait mesuré** : `resolveRoute` n'est appelée qu'avec `{isAuthenticated}` →
+  les branches `forbidden`/`needs-membership` étaient du code mort.
+- **Décisions prises (autonomie « OK ALLONS Y »)** :
+  1. `CENTRAL_ADMIN` **fail-closed** — reste hors canon (0 compte en base) ;
+     l'admin central canonique est `ADMIN` (R109). La garde refuse un rôle hors
+     canon.
+  2. `/admin/reports*` en **appartenance seule** (aucune permission de route) —
+     écran de **réception** atteint par tout membre ; `MEMBRE` ne détient pas
+     `report:read`, donc l'exiger aurait enfermé dehors des destinataires.
+- **Livrable** : `roleHasPermission` + câblage `App.tsx` + garde
+  `r142-route-permission-wiring.test.ts` (9 assertions). Suite **1736/1736**.
+- **Veto propriétaire possible** : les deux décisions sont réversibles (retirer
+  la ligne `hasPermission` d'`App.tsx` restaure la garde inerte ; re-mapper
+  `/admin/reports*` est une ligne du registre).
+

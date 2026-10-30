@@ -28,6 +28,7 @@ export type Permission =
   | "member:update"
   | "member:delete"
   | "cotisation:manage"
+  | "finance:manage"
   | "admin:settings"
   | "admin:roles"
   | "invitation:create"
@@ -79,6 +80,7 @@ export const PERMISSION_MATRIX: Readonly<Record<Role, Permission[]>> = {
     "member:update",
     "member:delete",
     "cotisation:manage",
+    "finance:manage",
     "admin:settings",
     "admin:roles",
     "invitation:create",
@@ -110,6 +112,7 @@ export const PERMISSION_MATRIX: Readonly<Record<Role, Permission[]>> = {
     "member:read",
     "member:update",
     "cotisation:manage",
+    "finance:manage",
     "admin:settings",
     "admin:roles",
     // Miroir de `can_manage_invitations` (SQL, déjà en prod) : ces trois
@@ -236,6 +239,7 @@ export const PERMISSION_MATRIX: Readonly<Record<Role, Permission[]>> = {
     "member:read",
     "member:update",
     "cotisation:manage",
+    "finance:manage",
     // Miroir de `can_manage_invitations` (SQL) — voir PASTEUR_PRINCIPAL.
     "invitation:create",
     "invitation:manage",
@@ -253,6 +257,7 @@ export const PERMISSION_MATRIX: Readonly<Record<Role, Permission[]>> = {
     "report:read",
     "member:read",
     "cotisation:manage",
+    "finance:manage",
   ] as Permission[],
 
   COMPTABLE: [
@@ -375,6 +380,28 @@ export function parseRole(raw: string): Role | null {
   return (Object.keys(PERMISSION_MATRIX) as Role[]).includes(raw as Role)
     ? (raw as Role)
     : null;
+}
+
+/**
+ * R142 — évalue une permission à partir d'un rôle BRUT (chaîne non validée,
+ * telle que lue depuis la base ou `localStorage`).
+ *
+ * Décision (R142.a) : un rôle **hors matrice canon** (ex. `CENTRAL_ADMIN`,
+ * valeur historique non canonique) → **refus** (fail-closed). On ne fait pas
+ * fail-open sur un rôle inconnu : un rôle non canonique ne doit pas contourner
+ * les gardes de route. L'admin central canonique est `ADMIN` (R109), qui détient
+ * `admin:settings`.
+ *
+ * Cette fonction centralise la décision pour qu'elle soit testable et unique
+ * (source de vérité `PERMISSION_MATRIX`).
+ */
+export function roleHasPermission(
+  rawRole: string | null | undefined,
+  permission: string,
+): boolean {
+  const role = parseRole(rawRole ?? "");
+  if (!role) return false;
+  return (PERMISSION_MATRIX[role] as readonly string[]).includes(permission);
 }
 
 /**
