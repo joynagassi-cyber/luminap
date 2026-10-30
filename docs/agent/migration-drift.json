@@ -4,19 +4,19 @@
   "purpose": "Instantane MESURE de la derive migrations <-> base (R17). Le tracker Supabase n'est pas accessible en CI : ce fichier fige l'etat mesure pour qu'une garde repo-side puisse detecter tout CHANGEMENT de derive (nouvelle migration tracee ou non tracee).",
   "source_of_truth": "Base = source de verite (schema applique via editeur SQL / MCP, pas via `supabase db push`). Le tracker `supabase_migrations.schema_migrations` et les fichiers `supabase/migrations/` sont deux historiques disjoints.",
   "measured": {
-    "applied_versions_in_tracker": 81,
-    "repo_timestamped_files": 73,
+    "applied_versions_in_tracker": 82,
+    "repo_timestamped_files": 74,
     "repo_sequential_files": 63,
-    "repo_total_sql_files": 136,
+    "repo_total_sql_files": 137,
     "versions_in_common": 2,
     "common_versions": [
       "20261001000001",
       "20261027000003"
     ],
-    "applied_without_repo_file": 69,
-    "repo_file_never_applied": 64,
-    "drift_ratio": "2/81",
-    "repo_filenames_sha256": "3f66a6ebd6c95a5c5b3a7ac929b6f2d87c1830f2d1d0d92c546fc37093cfe59e",
+    "applied_without_repo_file": 70,
+    "repo_file_never_applied": 65,
+    "drift_ratio": "2/82",
+    "repo_filenames_sha256": "d35c703a7a2395900d73f72a54d542c15b08083d8a904599120f01dfb3e12377",
     "repo_db_object_delta": {
       "measured": "2026-10-31",
       "method": "recoupement exhaustif depot <-> base (tables, fonctions, triggers, vues)",
@@ -57,5 +57,9 @@
   ],
   "notes_fk_indexes": [
     "1 migration ajoutee 20261031000005 (index couvrants des 2 FK de event_tasks, advisor `unindexed_foreign_keys` lint 0001). Additive (CREATE INDEX), aucun changement de donnee. Tracker re-mesure : 81."
+  ],
+  "notes_org_federation": [
+    "1 migration ajoutee 20261031000006 (reconciliation R17 : la vue `public.org_federation` existait en base SANS aucun CREATE dans le depot -> une base reconstruite ne l'aurait pas eue). Recreee idempotemment (CREATE OR REPLACE VIEW, definition identique, security_invoker=true) ; grants conserves (CREATE OR REPLACE preserve l'OID). Tracker re-mesure : 82.",
+    "Etat des vues : 2 en base (org_family, org_federation) ; les 2 sont desormais creees par le depot. Objets DB sans CREATE depot restants : `keep_alive` (CREATE dans supabase/keep-alive.sql, hors migrations) et `rls_auto_enable` (evenement Supabase, pas un objet de ce projet) ; `settle_pending_claims_for_invitation` est reference par des migrations (ALTER/REVOKE) mais son CREATE est hors depot."
   ]
 }
