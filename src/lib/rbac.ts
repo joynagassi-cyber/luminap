@@ -383,6 +383,28 @@ export function parseRole(raw: string): Role | null {
 }
 
 /**
+ * R142 — évalue une permission à partir d'un rôle BRUT (chaîne non validée,
+ * telle que lue depuis la base ou `localStorage`).
+ *
+ * Décision (R142.a) : un rôle **hors matrice canon** (ex. `CENTRAL_ADMIN`,
+ * valeur historique non canonique) → **refus** (fail-closed). On ne fait pas
+ * fail-open sur un rôle inconnu : un rôle non canonique ne doit pas contourner
+ * les gardes de route. L'admin central canonique est `ADMIN` (R109), qui détient
+ * `admin:settings`.
+ *
+ * Cette fonction centralise la décision pour qu'elle soit testable et unique
+ * (source de vérité `PERMISSION_MATRIX`).
+ */
+export function roleHasPermission(
+  rawRole: string | null | undefined,
+  permission: string,
+): boolean {
+  const role = parseRole(rawRole ?? "");
+  if (!role) return false;
+  return (PERMISSION_MATRIX[role] as readonly string[]).includes(permission);
+}
+
+/**
  * CHURCH-SPECIFIC role helpers.
  * Extracted to the church Business Pack (@/packs/church) — kept re-exported
  * here for backward compatibility. cotisation:manage permission is also

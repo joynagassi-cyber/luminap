@@ -158,7 +158,7 @@
   spec visite `/transaction/new/edit` → « Transaction introuvable ». Fragilité
   de **spec** (pas produit), atteignable seulement après E5.
 
-## E6 — Décisions de périmètre requises par le propriétaire (R141 / R142) — 🟡 E6.a RÉSOLUE / E6.b OUVERTE
+## E6 — Décisions de périmètre R141 / R142 — ✅ RÉSOLUES (2026-10-31)
 
 Deux défauts mesurés exigeaient une **décision** (l'agent ne pouvait pas trancher
 sans risque de casser des flux légitimes).
@@ -177,17 +177,19 @@ sans risque de casser des flux légitimes).
 - **Veto propriétaire possible** : rollback `rollback/20261031000001_rollback.sql`
   restaure l'état antérieur exact.
 
-### E6.b — R142 : câblage de la garde de route (`hasPermission`) — ⚠️ OUVERTE
+### E6.b — R142 : câblage de la garde de route (`hasPermission`) — ✅ RÉSOLUE (2026-10-31)
 - **Fait mesuré** : `resolveRoute` n'est appelée qu'avec `{isAuthenticated}` →
-  les branches `forbidden`/`needs-membership` sont du code mort. R109 (rôle
-  ADMIN) est TRANCHÉ, mais le câblage reste bloqué par :
-  1. `CENTRAL_ADMIN` absent de `Role`/`PERMISSION_MATRIX` (parseRole → null) ;
-  2. `/admin/reports*` mappé `admin:settings` alors que les membres doivent y
-     accéder (écran de réception lié depuis le Dashboard).
-- **Décision demandée** : (1) sort de `CENTRAL_ADMIN` ; (2) confirmer le mapping
-  `/admin/reports*` → `report:read` (correctif turnkey **appliqué** : `routeResolver.ts`
-  passe à `report:read` ; sans effet tant que la garde n'est pas câblée). Puis
-  câbler la garde avec un test E2E par rôle.
-- **Repli appliqué** : garde **non câblée** (câbler maintenant enfermerait
-  dehors des rôles légitimes).
+  les branches `forbidden`/`needs-membership` étaient du code mort.
+- **Décisions prises (autonomie « OK ALLONS Y »)** :
+  1. `CENTRAL_ADMIN` **fail-closed** — reste hors canon (0 compte en base) ;
+     l'admin central canonique est `ADMIN` (R109). La garde refuse un rôle hors
+     canon.
+  2. `/admin/reports*` en **appartenance seule** (aucune permission de route) —
+     écran de **réception** atteint par tout membre ; `MEMBRE` ne détient pas
+     `report:read`, donc l'exiger aurait enfermé dehors des destinataires.
+- **Livrable** : `roleHasPermission` + câblage `App.tsx` + garde
+  `r142-route-permission-wiring.test.ts` (9 assertions). Suite **1736/1736**.
+- **Veto propriétaire possible** : les deux décisions sont réversibles (retirer
+  la ligne `hasPermission` d'`App.tsx` restaure la garde inerte ; re-mapper
+  `/admin/reports*` est une ligne du registre).
 

@@ -4100,7 +4100,7 @@ partagée par les deux plateformes et couverte par 3 tests.
     (`has_permission(...,'finance','manage')=true`). 0 résidu.
 - **Statut** : **CORRIGÉ** (livré + prouvé le 2026-10-31).
 
-### R142 — Le câblage de la garde de route (`hasPermission`) reste BLOQUÉ par le rôle `CENTRAL_ADMIN` (absent du modèle canon) + un mapping de permission contradictoire — ⚠️ OUVERT le 2026-10-30
+### R142 — La garde de route (`hasPermission`) était INERTE (branche `forbidden` morte) — ✅ CORRIGÉ (2026-10-31)
 - **Gravité** : MOYENNE (défense en profondeur absente ; pas d'escalade — la RLS
   filtre déjà les données, cf. R137/R140/R141).
 - **Contexte** : R109 a été **TRANCHÉ** (2026-10-29) — `ADMIN` est désormais le
@@ -4132,16 +4132,39 @@ partagée par les deux plateformes et couverte par 3 tests.
   4. test E2E par rôle (aucun rôle légitime ne doit être enfermé).
 - **Référence** : R105 (garde inerte), R16 (divergence de source de vérité),
   R109 (ADMIN canonique).
-- **Statut** : **OUVERT** — non câblé volontairement (câbler maintenant
-  enfermerait dehors des rôles légitimes ; cf. R105 « reste à faire »).
-- **Correctif prêt (turnkey, non appliqué)** : la route `/admin/reports*` est
-  **data-gatée** (≥1 annexe ou ≥1 rapport reçu ; la page gère elle-même le cas
-  vide) et liée depuis le `Dashboard` — c'est un écran de **réception**, pas
-  d'administration. La permission correcte est donc **`report:read`** (détenue
-  par la plupart des rôles) et non `admin:settings`. Correction de 2 lignes dans
-  `src/lib/routeResolver.ts` (lignes 78-79), sans effet d'exécution tant que la
-  garde n'est pas câblée — donc sûre. À appliquer **avant** le câblage, avec la
-  décision `CENTRAL_ADMIN` (blocage 1).
+- **Statut** : **CORRIGÉ (2026-10-31)** — câblage réalisé avec les 2 décisions
+  ci-dessous.
+- **Décision 1 (blocage 1) — `CENTRAL_ADMIN`** : **fail-closed**. `CENTRAL_ADMIN`
+  reste **hors** `Role`/`PERMISSION_MATRIX` (il ne peut pas être canonisé :
+  `PERMISSION_MATRIX` est indexé par `Role`, `role-model-drift`/`permissions`
+  gardent l'exhaustivité, et `role-model.json` est régénéré depuis la matrice →
+  l'ajouter exigerait de définir ses permissions **DB+TS** sans décision produit,
+  et **ouvrirait un 15ᵉ rôle inutilisé en base** — 0 compte). La garde
+  `roleHasPermission` (nouvelle, `src/lib/rbac.ts`) **refuse** un rôle hors canon
+  (`parseRole → null`). L'admin central canonique est **`ADMIN`** (R109), qui
+  détient `admin:settings`. Un éventuel compte `CENTRAL_ADMIN` historique (0 en
+  base aujourd'hui) serait redirigé vers « Accès refusé » (REST/DB restent la
+  barrière ; non-régression : ces routes étaient déjà interdites en pratique).
+- **Décision 2 (blocage 2) — `/admin/reports*`** : **garde d'appartenance seule**
+  (aucune permission de route), et **non** `report:read`. Mesure : le lien
+  « Voir tout → » du `Dashboard` est rendu **sans garde de rôle**, la RLS
+  `org_reports_receiver` n'exige qu'une **appartenance d'org**, et **`MEMBRE` ne
+  détient PAS `report:read`** (12 rôles sur 14 le détiennent). Exiger
+  `admin:settings` (avant) **ou** `report:read` aurait enfermé dehors des
+  destinataires légitimes. C'est donc le même modèle que `/reports`
+  (appartenance seule) — le résolveur produit `needs-membership` pour un
+  non-membre.
+- **Livrables** : `src/lib/rbac.ts` (`roleHasPermission`) ; `src/App.tsx` (état
+  `userRole` + `hasPermission` câblé) ; `routeResolver.ts` (`/admin/reports*`
+  sans permission) ; garde `src/lib/__tests__/r142-route-permission-wiring.test.ts`
+  (9 assertions) ; `route-state-wiring.test.ts` (`hasPermission` retiré de
+  `PENDING_WIRING`).
+- **Preuve** : suite complète **1736/1736** (156 fichiers) ; `tsc -b` = 0 ;
+  invariants testés — rôle canon → permissions déclarées, hors-canon → refus,
+  null/vide → refus, aucune route gardée par une permission que 0 rôle détient,
+  `/admin/reports*` sans permission de route.
+- **Sûreté** : défense en profondeur uniquement (la RLS reste la barrière
+  serveur) ; aucune donnée exposée ni fermée qui ne l'était déjà au niveau DB.
 
 ### R143 — Les correctifs anti-escalade de privilèges n'avaient AUCUNE garde anti-régression — CORRIGÉ (2026-10-30)
 - **Gravité** : MOYENNE (les correctifs sont en place et vérifiés en base ; le

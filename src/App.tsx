@@ -35,6 +35,7 @@ import {
 } from "@/components/RouteStates";
 import { getOrganizationId } from "@/lib/orgContext";
 import { useOrgMembership } from "@/hooks/useOrgMembership";
+import { roleHasPermission } from "@/lib/rbac";
 import {
   getDeepLinkOrgIntent,
   setDeepLinkOrgIntent,
@@ -79,12 +80,16 @@ function RouteGuard() {
   const navigate = useNavigate();
   const [isAuthChecked, setIsAuthChecked] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  // R142 — rôle de l'utilisateur courant, source de la garde de permission.
+  // Lu depuis le profil Supabase live (source fiable), avec repli localStorage.
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   // Layer 1: initial check on mount (cold start / hard reload / direct URL).
   useEffect(() => {
     const check = async () => {
       const session = await authService.getSession();
       setIsAuthenticated(!!session);
+      setUserRole(authService.getState().profile?.role ?? null);
       setIsAuthChecked(true);
     };
     check();
@@ -95,6 +100,7 @@ function RouteGuard() {
   useEffect(() => {
     const unsubscribe = authService.subscribe(() => {
       setIsAuthenticated(!!authService.getState().session);
+      setUserRole(authService.getState().profile?.role ?? null);
     });
     return unsubscribe;
   }, []);
@@ -203,9 +209,15 @@ function RouteGuard() {
     minSchemaVersion: resolveMinSchemaVersion(),
     // R107 — `isOrgMember` alimenté par `useOrgMembership` : `false` UNIQUEMENT
     // sur preuve de non-appartenance (membre de l'org active → `true` ; incertain
-    // → `undefined`, fail-open). `hasPermission` reste à câbler (phase 4/R105,
-    // bloqué par la décision R109 sur le rôle ADMIN).
+    // → `undefined`, fail-open).
     isOrgMember: orgMembership === "unknown" ? undefined : orgMembership === "member",
+    // R142 — garde de permission RÉELLEMENT câblée (branche `forbidden` jusqu'ici
+    // morte). Le rôle provient du profil live ; la décision est centralisée dans
+    // `roleHasPermission` (source de vérité `PERMISSION_MATRIX`). Défense en
+    // profondeur uniquement : la RLS reste la barrière serveur. Un rôle hors
+    // canon (ex. `CENTRAL_ADMIN` historique) est refusé — l'admin central
+    // canonique est `ADMIN` (R109).
+    hasPermission: (permission: string) => roleHasPermission(userRole, permission),
   });
 
   const confirmOrgSwitch = async (targetOrgId: string) => {

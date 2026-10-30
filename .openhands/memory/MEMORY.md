@@ -715,3 +715,29 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   `migration-drift.json` (R17) si une migration est ajoutée.
 - **R142 (partiel)** : `routeResolver.ts` `/admin/reports*` → `report:read`
   (turnkey ; câblage garde encore bloqué par `CENTRAL_ADMIN` hors canon).
+
+## R142 — garde de route câblée (2026-10-31, corrigé)
+- **Défaut** : `resolveRoute` produisait `forbidden` mais `App.tsx` ne fournissait
+  jamais `hasPermission` → garde INERTE (classe « filet déclaré jamais câblé »).
+- **Câblage** : état `userRole` dans `RouteGuard` (lu de
+  `authService.getState().profile?.role`, repli `null`) + `hasPermission:
+  (p) => roleHasPermission(userRole, p)`.
+- **`roleHasPermission(rawRole, perm)`** (nouvelle, `src/lib/rbac.ts`) :
+  centralise la décision, source unique `PERMISSION_MATRIX`, **fail-closed**
+  pour un rôle hors canon (`parseRole → null` → false).
+- **DÉCISION `CENTRAL_ADMIN`** : reste HORS canon (fail-closed). Impossible à
+  canoniser proprement : `PERMISSION_MATRIX` est indexé par `Role`,
+  `role-model-drift`/`permissions` gardent l'exhaustivité, `role-model.json` est
+  régénéré depuis la matrice → l'ajouter exigerait des permissions DB+TS sans
+  décision produit et créerait un rôle inutilisé (0 compte en base). L'admin
+  central canonique = **`ADMIN`** (R109).
+- **DÉCISION `/admin/reports*`** : **appartenance seule** (aucune permission de
+  route), PAS `report:read`. Mesure : `MEMBRE` ne détient PAS `report:read`
+  (12/14 rôles) ; le lien Dashboard est rendu sans garde de rôle ; RLS
+  `org_reports_receiver` = appartenance d'org. Exiger `admin:settings` (avant)
+  ou `report:read` enfermerait dehors des destinataires.
+- **Pièges** : (1) `Role` = 14 rôles + `ADMIN` (R109) ; `SECRETAIRE_ADJOINT` et
+  `RESPONSABLE_GROUPE` ont peu de permissions. (2) Tester un câblage de garde
+  par un invariant « chaque route gardée par une permission que ≥1 rôle détient »
+  + « aucun rôle légitime enfermé ». (3) Le test `route-state-wiring.test.ts`
+  interdit tout champ `RouteState` inerte (retirer de `PENDING_WIRING` en câblant).

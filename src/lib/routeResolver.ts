@@ -76,10 +76,14 @@ export const ROUTE_REGISTRY: readonly RouteDef[] = [
   { pattern: "/admin/units", kind: "app", permission: "admin:settings" },
   { pattern: "/admin/report-send", kind: "app", permission: "admin:settings" },
   // Écran de RÉCEPTION des rapports inter-organisations (data-gaté : ≥1 annexe
-  // ou ≥1 rapport reçu ; cf. OrgReportsReceived.tsx) — atteignable par les
-  // destinataires, donc `report:read` (et non `admin:settings`).
-  { pattern: "/admin/reports", kind: "app", permission: "report:read" },
-  { pattern: "/admin/reports/:id", kind: "app", permission: "report:read" },
+  // ou ≥1 rapport reçu ; cf. OrgReportsReceived.tsx). Atteignable par TOUT
+  // membre de l'org destinataire (le Dashboard affiche le lien « Voir tout »
+  // sans garde de rôle, et la RLS `org_reports_receiver` n'exige qu'une
+  // appartenance d'org) → garde d'APPARTENANCE seule, comme `/reports` (pas de
+  // permission de route). Exiger `admin:settings` (comme avant) ou même
+  // `report:read` enfermerait dehors des destinataires légitimes (R142).
+  { pattern: "/admin/reports", kind: "app" },
+  { pattern: "/admin/reports/:id", kind: "app" },
   { pattern: "/admin/organizations/:id", kind: "app", permission: "admin:settings" },
   { pattern: "/admin/roles", kind: "app", permission: "admin:roles" },
   { pattern: "/trace", kind: "app" },
