@@ -639,3 +639,20 @@
   **silencieusement inopérant**.
 - **Conséquence** : la garde R139 a été corrigée et re-prouvée ; le motif est
   documenté pour les futures gardes (cf. aussi D-S9-2).
+
+### D-S13-1 — Journal d'audit en ajout seul (R140) ; périmètre R141 NON forcé
+- **Décision** : retirer les politiques `audit_entries_update` /
+  `audit_entries_delete` (journal d'audit = append-only). **Ne pas** réécrire
+  d'un coup les 26 autres tables en « membre seul » (R141).
+- **Raison (R140)** : tout `MEMBRE` pouvait effacer/falsifier une entrée d'audit
+  → anti-traçabilité. Aucun chemin applicatif ne fait `UPDATE`/`DELETE` sur
+  cette table → le durcissement est **sûr** (0 flux cassé).
+- **Raison (R141, prudence assumée)** : le vocabulaire de permissions canon
+  (`role_permissions`) **ne couvre pas** `accounts`, `caisses`, `tax_receipts`,
+  `org_budgets`, `pledges`, `giving_*`… Réécrire ces politiques sans décision
+  explicite **casserait** des flux métier légitimes (trésorier, responsable).
+  Un correctif à l'aveugle serait **pire** que le défaut.
+- **Conséquence** : R141 est consigné **OUVERT** (gravité HAUTE) avec une
+  procédure de remédiation en 2 lots, à valider par le propriétaire. C'est la
+  prochaine action à plus forte valeur.
+- **RÉVERSIBILITÉ** : `rollback/20261030000001_rollback.sql`.
