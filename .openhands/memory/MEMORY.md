@@ -741,3 +741,25 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   par un invariant « chaque route gardée par une permission que ≥1 rôle détient »
   + « aucun rôle légitime enfermé ». (3) Le test `route-state-wiring.test.ts`
   interdit tout champ `RouteState` inerte (retirer de `PENDING_WIRING` en câblant).
+
+## R141.b/c — écriture gardée sur les tables non financières (2026-10-31, corrigé)
+- **Défaut** : 8 tables gardaient INSERT/UPDATE/DELETE sur `is_org_member` SEUL
+  → tout MEMBRE pouvait écrire via REST direct. Tables : `documents`,
+  `event_tasks`, `report_definitions`, `custom_field_definitions`,
+  `custom_field_values`, `form_definitions`, `form_submissions`, `categories`.
+- **Mapping (aucune nouvelle permission)** : `documents`→`admin:settings` ;
+  `event_tasks`→`event:update` ; `report_definitions`→`report:export` ; les
+  autres→`admin:settings`. **`documents` n'avait AUCUN DELETE** (deny-all) →
+  NE PAS en créer (ce serait une nouvelle capacité).
+- **`role_assignments`** = table morte (0 référence client, hors sync-config) →
+  hors périmètre.
+- **Sûreté clé** : AUCUN write REST (`supabase.from`) pour ces tables → tout
+  passe par PowerSync (`powersync_role` BYPASSRLS) → durcir la RLS REST ne peut
+  PAS casser l'app. C'est le principe général de R137/R140/R141/R141.b-c.
+- **Pièges preuve DEV** : `handle_new_user` crée le profil → insérer un
+  `auth.users` jetable crée déjà le profil (ne pas réinsérer) ; `categories.type`
+  ∈ {INCOME, EXPENSE} (CHECK, pas 'income') ; `org_memberships.user_id` a une FK
+  vers `auth.users`. Toujours `BEGIN … SET LOCAL ROLE authenticated … ROLLBACK`.
+- **Garde anti-dérive migrations** : ajouter une migration fait ÉCHOUER
+  `migration-drift-guard.test.ts` → mettre à jour `docs/agent/migration-drift.json`
+  (comptes 70/63/133 + `repo_filenames_sha256`).

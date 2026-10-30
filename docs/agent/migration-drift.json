@@ -5,18 +5,18 @@
   "source_of_truth": "Base = source de verite (schema applique via editeur SQL / MCP, pas via `supabase db push`). Le tracker `supabase_migrations.schema_migrations` et les fichiers `supabase/migrations/` sont deux historiques disjoints.",
   "measured": {
     "applied_versions_in_tracker": 70,
-    "repo_timestamped_files": 69,
+    "repo_timestamped_files": 70,
     "repo_sequential_files": 63,
-    "repo_total_sql_files": 132,
+    "repo_total_sql_files": 133,
     "versions_in_common": 2,
     "common_versions": [
       "20261001000001",
       "20261027000003"
     ],
     "applied_without_repo_file": 68,
-    "repo_file_never_applied": 61,
+    "repo_file_never_applied": 62,
     "drift_ratio": "2/70",
-    "repo_filenames_sha256": "ccd3b9ae216ff3fe97fc5e3c14a269615422e3b97e0289312003b0035638f886"
+    "repo_filenames_sha256": "4a8c481e7799307ec7aa1974d598da6921323040137f1ab62efaf9eab994e305"
   },
   "tracker_sample_versions": [
     "20260910123851",
@@ -33,5 +33,8 @@
   ],
   "notes_r141": [
     "1 migration ajoutee 20261031000001 (R141 RLS ecriture des tables financieres) ; tracker non re-mesure (inaccessible en CI)."
+  ],
+  "notes_r141bc": [
+    "1 migration ajoutee 20261031000002 (R141.b/c RLS ecriture des tables non financieres : documents, event_tasks, report_definitions, custom_field_*, form_*, categories) ; tracker non re-mesure (inaccessible en CI)."
   ]
 }

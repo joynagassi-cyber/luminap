@@ -4100,6 +4100,42 @@ partagée par les deux plateformes et couverte par 3 tests.
     (`has_permission(...,'finance','manage')=true`). 0 résidu.
 - **Statut** : **CORRIGÉ** (livré + prouvé le 2026-10-31).
 
+### R141.b / R141.c — Écriture « membre seul » sur les tables NON FINANCIÈRES restantes — ✅ CORRIGÉ (2026-10-31)
+- **Gravité** : MOYENNE (écriture non gouvernée via le client REST direct ; pas
+  d'escalade — ces tables ne portent ni rôle ni appartenance).
+- **Défaut** : 8 tables hors périmètre de R141 gardaient leurs politiques
+  INSERT/UPDATE/DELETE sur `is_org_member(...)` **SEUL** : tout MEMBRE pouvait
+  écrire au niveau base (clé anon publique + JWT). Tables : `documents`,
+  `event_tasks` (R141.b) ; `report_definitions`, `custom_field_definitions`,
+  `custom_field_values`, `form_definitions`, `form_submissions`, `categories`
+  (R141.c).
+- **Décision (autonomie 2026-10-31)** — **aucune nouvelle permission** (toutes
+  canon) :
+  - `documents` → `admin:settings` (gestion documentaire / Archives) ; NB : la
+    table n'avait **aucune** politique DELETE (deny-all REST) — **non ouverte**
+    (ce serait une nouvelle capacité, hors d'un durcissement).
+  - `event_tasks` → `event:update` (sous-ressource des événements).
+  - `report_definitions` → `report:export` (édition de rapports).
+  - `custom_field_definitions` / `custom_field_values` → `admin:settings`
+    (schéma et valeurs ; portée de `custom_field_values` via sa définition).
+  - `form_definitions` / `form_submissions` → `admin:settings`.
+  - `categories` → `admin:settings` (taxonomie canonique).
+  - **Hors périmètre (justifié)** : `role_assignments` (table morte : 0
+    référence client, hors sync-config ; toute politique y est sans objet).
+- **Sûreté mesurée** : **aucun** chemin d'écriture REST (`supabase.from(...)`)
+  n'existe pour ces tables dans le client — toutes les écritures applicatives
+  passent par PowerSync (`powersync_role` = **BYPASSRLS** vérifié) → ces
+  politiques ne peuvent pas casser un flux applicatif.
+- **Livrable** : migration `20261031000002_rls_write_permission_r141bc.sql` +
+  rollback `rollback/20261031000002_rollback.sql` + garde
+  `src/lib/__tests__/r141bc-write-permission-guard.test.ts` (5 assertions).
+- **Preuve (instance DEV, transaction annulée)** : `INSERT INTO categories` →
+  **`42501`** pour un **MEMBRE** ; **accepté** pour un **PASTEUR_PRINCIPAL**
+  (`has_permission(...,'admin','settings')=true`). 0 résidu ; advisors
+  inchangés (aucun `rls_enabled_no_policy` nouveau) ; `powersync_role`
+  BYPASSRLS confirmé.
+- **Statut** : **CORRIGÉ** (livré + prouvé le 2026-10-31).
+
 ### R142 — La garde de route (`hasPermission`) était INERTE (branche `forbidden` morte) — ✅ CORRIGÉ (2026-10-31)
 - **Gravité** : MOYENNE (défense en profondeur absente ; pas d'escalade — la RLS
   filtre déjà les données, cf. R137/R140/R141).
