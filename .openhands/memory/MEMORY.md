@@ -840,3 +840,25 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   Supabase), `settle_pending_claims_for_invitation` (ALTER/REVOKE dans le dépôt,
   CREATE hors dépôt), `agent_try_jsonb` (DROP volontaire fin de sa migration).
 - Tracker après 20261031000006 = 82 ; sha empreinte noms = d35c703a.
+
+## Sauvegardes (état RÉEL, 2026-10-31)
+- `backup.yml` est **ACTIF** : cron quotidien `0 3 * * *`, secrets
+  `SUPABASE_DB_URL` (Session pooler) + `BACKUP_GPG_PASSPHRASE` configurés.
+- Preuve : run **planifié** `41036453279` (2026-10-30) → artefact **chiffré**
+  `supabase-backup-41036453279` (3,5 Mo, non expiré). Run manuel `40813667253`.
+- Les docs qui disaient « INACTIVE/secrets absents » étaient **périmés** (R99,
+  P31, B1, FEATURES, RUNBOOK, 00-RECON) — corrigés le 2026-10-31.
+- Reste optionnel : rétention hors-site (dépôt privé → schedules 60 j).
+
+## R12 — client Supabase unique (2026-10-31)
+- `src/integrations/supabase/client.ts` **ré-exporte** `supabase` de
+  `@/lib/auth` (`export { supabase } from "@/lib/auth"`). Ne JAMAIS y recréer
+  un `createClient` (→ « Multiple GoTrueClient » + course sur `sb-<ref>-auth-token`).
+- `SupabaseConnector` garde un client **non persistant** (persistSession:false).
+- Garde : `supabase-single-client-guard.test.ts`.
+
+## Contrat / boucle
+- `docs/agent/PROGRESS.md` = contrat unique ; chaque fix dans le MÊME commit
+  que sa ligne + un receipt sous `docs/agent/receipts/`.
+- Dérive de statut = défaut récurrent : toujours vérifier l'en-tête d'un risque
+  contre la preuve (GitHub API / DB) avant de le croire.
