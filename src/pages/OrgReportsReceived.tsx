@@ -45,6 +45,8 @@ import { useNavigate } from "react-router-dom";
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
 import EmptyState from "@/components/EmptyState";
+import Badge from "@/components/Badge";
+import { REPORT_BADGES } from "@/lib/badges";
 import {
   useReportsReceived,
   markReportRead,
@@ -58,34 +60,9 @@ import type { IonChangeCustomEvent } from "@/lib/ionic-types";
 
 type PeriodFilter = "all" | "monthly" | "semiannual" | "annual";
 
-/** Badge de statut d'un rapport (PENDING/SENT/READ/FAILED) — tokens Lumina. */
-function StatusBadge({ status }: { status: string }) {
-  const colorMap: Record<string, string> = {
-    PENDING: "var(--data-pending)",
-    SENT: "var(--data-income)",
-    READ: "var(--data-income)",
-    FAILED: "var(--data-expense)",
-  };
-  const labelMap: Record<string, string> = {
-    PENDING: "En attente",
-    SENT: "Envoyé",
-    READ: "Lu",
-    FAILED: "Échec",
-  };
-  const color = colorMap[status] ?? "var(--text-tertiary)";
-  const label = labelMap[status] ?? status;
-  return (
-    <span
-      className="text-xs px-2 py-0.5 rounded-full font-medium"
-      style={{
-        backgroundColor: `color-mix(in srgb, ${color} 12%, transparent)`,
-        color,
-      }}
-      aria-label={`Statut : ${label}`}
-    >
-      {label}
-    </span>
-  );
+/** Badge de statut d'un rapport (PENDING/SENT/READ/FAILED) — table partagée. */
+function ReportStatusBadge({ status }: { status: string }) {
+  return <Badge table={REPORT_BADGES} value={status} />;
 }
 
 /** Icône par format de fichier (pdf/docx/xlsx/png). */
@@ -505,7 +482,7 @@ function ReportCard({
             >
               {report.title}
             </h3>
-            <StatusBadge status={report.status} />
+            <ReportStatusBadge status={report.status} />
           </div>
           <p className="text-xs mt-0.5 truncate" style={{ color: "var(--text-tertiary)" }}>
             De <strong style={{ color: "var(--text-secondary)" }}>{emitterName}</strong> · {periodLabel}

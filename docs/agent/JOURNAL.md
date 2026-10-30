@@ -1624,3 +1624,32 @@ Heure de reprise : 2026-10-24T08:0x Z. Branches : `agent/session-8-security`
   `document:*`/`account:*`). `CENTRAL_ADMIN` reste un orphelin distinct (D-S10-3).
 - **Déblocage** : R109 tranché → le câblage de la garde de route `hasPermission`
   (R105) n'est plus bloqué.
+
+## Session — 2026-10-29 (suite) : badges tokenisés premium (thème-adaptatifs)
+
+- **Demande** : badges professionnels **tokenisés** (adaptés au thème actif —
+  mode clair/sombre + couleur de marque org) avec des **icônes prêtes à
+  l'emploi** sous forme de badges.
+- **Défaut couvert** (classe R117) : les badges de statut étaient dupliqués à la
+  main dans une dizaine de pages, chacune avec sa `colorMap`/`labelMap` locale et
+  sa recette de teinte ad-hoc (`color-mix(...,12%)`, `+ "20"`, hex). Aucune
+  garantie ne reliait un badge à un token.
+- **Livré** :
+  1. `src/lib/badges.ts` — catalogue unique : `BadgeTone` (7) →
+     `BADGE_TONE_TOKEN` (`var(--…)`, jamais de hex) ; `BadgeIconName` (39) ;
+     14 tables de statuts ; `resolveBadge` (repli neutre = clé brute).
+  2. `src/components/Badge.tsx` — composant `memo` : icône + libellé, `dot`,
+     `size` xs/sm/md, `variant` soft/outline, `live`, `aria-label`. Style
+     **tokenisé** (`tint(token,12)`) → suit `[data-theme]` et `--accent-primary`
+     sans code spécifique.
+  3. `src/components/BadgeGallery.tsx` — galerie montée dans **Réglages › Thème**
+     (se re-peint à chaud quand on change de mode/couleur de marque).
+  4. Unification : `OrgReportsReceived` (StatusBadge local → `REPORT_BADGES`),
+     `InvitationManage` (`CLAIM_CONFIG` supprimé → `CLAIM_BADGES`).
+- **Tests** : `badges.test.ts` (20) — chaque ton = `var(--…)` ; token existant
+  dans `App.css` ; **0 hex/rgb** dans les tables ; couverture exacte des statuts
+  du domaine ; repli. `Badge.test.tsx` (12) — texte `var(--data-income)` + fond
+  `color-mix` ; pas de hex/rgb ; icône ; `spec`≡`tone/label/icon` ; repli ;
+  variantes.
+- **Gates** : `tsc -b --noEmit` = 0 ; `eslint` = 0 erreur ; `vitest run` =
+  **1709/1709** (151 fichiers).
