@@ -670,3 +670,24 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   ET (`qual`||`with_check`) contient `is_org_member` SANS
   `has_permission`/`is_org_admin`. Vérifier ensuite `can_manage_*` et les
   politiques self-only pour éliminer les faux positifs.
+
+## Anti-escalade RBAC — défenses vérifiées (2026-10-30)
+- **4 correctifs CRITIQUES d'escalade** (migrations `20261022000010`–`14`,
+  session antérieure) : (10) `org_memberships` INSERT/UPDATE gardés par
+  `is_org_admin` (fin de l'auto-adhésion via `om_all_merged`) ; (11) trigger
+  `guard_profile_role_immutable` (BEFORE UPDATE) ; (12) garde `is_org_admin`
+  dans `upsert_profile` ; (14) trigger `guard_profile_role_insert` (BEFORE INSERT).
+- **PIÈGE CLÉ** : les triggers `guard_profile_role_*` testent
+  `current_user IN ('authenticated','anon')`. Dans une fonction **SECURITY
+  DEFINER**, `current_user` = le **propriétaire** → le trigger **ne voit pas**
+  l'appel. C'est pourquoi `upsert_profile` porte sa **propre** garde
+  `is_org_admin` (sinon injection de `p_role` possible). Toujours vérifier ce
+  couple (trigger + garde propre) pour tout RPC SECURITY DEFINER qui écrit un
+  champ sensible.
+- **R143 (corrigé)** : ces 4 correctifs n'avaient **aucune garde anti-régression**.
+  Ajout de `src/lib/__tests__/rbac-escalation-guard.test.ts` (8 assertions,
+  lecture des migrations, sans base). Invariants : `profiles.role` immuable
+  (`42501 ROLE_IMMUTABLE`), `upsert_profile` → `42501 ROLE_NOT_ALLOWED`,
+  `om_insert`/`om_update` = `is_org_admin`, `om_all_merged` jamais recréée.
+- **Advisor `upsert_profile`** (SECURITY DEFINER exécutable par authenticated)
+  = **faux positif** : garde `is_org_admin` interne (vérifié 42501).
