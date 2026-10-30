@@ -3319,6 +3319,13 @@ sauvegarde disponible).
 - **RÉVERSIBILITÉ** : `rollback/20261028000001_rollback.sql` (réouvre la
   surface — fourni pour la symétrie, à n'appliquer qu'en connaissance de cause).
 - **Receipt** : `docs/agent/receipts/phase-08/2026-10-28-r115-trigger-rpc-surface.md`.
+- **Complément (2026-10-30)** : les **7** fonctions `SECURITY DEFINER` exécutables
+  par `authenticated` (advisor `authenticated_security_definer_function_executable`)
+  ont été vérifiées : `can_manage_invitations`, `current_org_id`, `has_permission`,
+  `is_org_admin`, `is_org_member`, `org_descendants` sont **purement lecture**
+  (aucun INSERT/UPDATE/DELETE/TRUNCATE) → surface d'information, pas d'écriture.
+  `upsert_profile` **écrit** mais porte sa propre garde `is_org_admin`
+  (`42501 ROLE_NOT_ALLOWED`, vérifié ; cf. R143). R115 tient.
 
 ### R116 — La garde de budget de performance était SILENCIEUSEMENT ignorée en CI — ✅ CORRIGÉ le 2026-10-28
 
@@ -4102,6 +4109,14 @@ partagée par les deux plateformes et couverte par 3 tests.
   R109 (ADMIN canonique).
 - **Statut** : **OUVERT** — non câblé volontairement (câbler maintenant
   enfermerait dehors des rôles légitimes ; cf. R105 « reste à faire »).
+- **Correctif prêt (turnkey, non appliqué)** : la route `/admin/reports*` est
+  **data-gatée** (≥1 annexe ou ≥1 rapport reçu ; la page gère elle-même le cas
+  vide) et liée depuis le `Dashboard` — c'est un écran de **réception**, pas
+  d'administration. La permission correcte est donc **`report:read`** (détenue
+  par la plupart des rôles) et non `admin:settings`. Correction de 2 lignes dans
+  `src/lib/routeResolver.ts` (lignes 78-79), sans effet d'exécution tant que la
+  garde n'est pas câblée — donc sûre. À appliquer **avant** le câblage, avec la
+  décision `CENTRAL_ADMIN` (blocage 1).
 
 ### R143 — Les correctifs anti-escalade de privilèges n'avaient AUCUNE garde anti-régression — CORRIGÉ (2026-10-30)
 - **Gravité** : MOYENNE (les correctifs sont en place et vérifiés en base ; le
