@@ -28,6 +28,7 @@ export type Permission =
   | "member:update"
   | "member:delete"
   | "cotisation:manage"
+  | "finance:manage"
   | "admin:settings"
   | "admin:roles"
   | "invitation:create"
@@ -79,6 +80,7 @@ export const PERMISSION_MATRIX: Readonly<Record<Role, Permission[]>> = {
     "member:update",
     "member:delete",
     "cotisation:manage",
+    "finance:manage",
     "admin:settings",
     "admin:roles",
     "invitation:create",
@@ -110,6 +112,7 @@ export const PERMISSION_MATRIX: Readonly<Record<Role, Permission[]>> = {
     "member:read",
     "member:update",
     "cotisation:manage",
+    "finance:manage",
     "admin:settings",
     "admin:roles",
     // Miroir de `can_manage_invitations` (SQL, déjà en prod) : ces trois
@@ -236,6 +239,7 @@ export const PERMISSION_MATRIX: Readonly<Record<Role, Permission[]>> = {
     "member:read",
     "member:update",
     "cotisation:manage",
+    "finance:manage",
     // Miroir de `can_manage_invitations` (SQL) — voir PASTEUR_PRINCIPAL.
     "invitation:create",
     "invitation:manage",
@@ -253,6 +257,7 @@ export const PERMISSION_MATRIX: Readonly<Record<Role, Permission[]>> = {
     "report:read",
     "member:read",
     "cotisation:manage",
+    "finance:manage",
   ] as Permission[],
 
   COMPTABLE: [

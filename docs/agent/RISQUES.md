@@ -4001,7 +4001,7 @@ partagée par les deux plateformes et couverte par 3 tests.
 - **Statut** : **CORRIGÉ** (livré + prouvé).
 
 
-### R141 — 26 tables restent en écriture « membre seul » (dont des tables FINANCIÈRES) — ⚠️ OUVERT (à trancher) le 2026-10-30
+### R141 — 26 tables restaient en écriture « membre seul » (dont des tables FINANCIÈRES) — ✅ CORRIGÉ (2026-10-31, décision tranchée)
 - **Gravité** : HAUTE (contrôle d'accès / intégrité financière). **Suite directe de R137**
   (qui n'avait couvert que 15 politiques : transactions, versements, members,
   events, groups).
@@ -4072,8 +4072,33 @@ partagée par les deux plateformes et couverte par 3 tests.
     applicatif (onboarding, saisie rapide, dons) ne casse.
 - **Référence** : R137 (15 politiques corrigées, voie REST) ; R140
   (`audit_entries`, corrigé le 2026-10-30).
-- **Statut** : **OUVERT** — décision de périmètre requise (aucune action
-  destructive/risquée faite sans validation).
+- **DÉCISION TRANCHÉE (2026-10-31, autonomie accordée « OK ALLONS Y »)** —
+  périmètre : **14 tables** câblées, en 2 lots.
+  - **Lot 1 — permission canon existante** : `cotisations` → `cotisation:manage` ;
+    `group_memberships` → `group:update` ; `org_units` → `admin:settings`.
+  - **Lot 2 — permission nouvelle `finance:manage`** (ajoutée à
+    `role_permissions` ET à `PERMISSION_MATRIX` TS, miroir R109) :
+    `accounts`, `caisses`, `org_budgets`, `org_budget_lines`, `budget_lines`,
+    `event_budgets`, `pledges`, `giving_campaigns`, `giving_donors`,
+    `transaction_giving`, `tax_receipts`. Détenteurs : ADMIN,
+    PASTEUR_PRINCIPAL, TREASURIER, TREASURIER_ADJOINT.
+  - **Hors périmètre (justifié)** : `categories` (écrite dynamiquement par le
+    cycle de vie `UPDATE ${table}` — risque de casse) ; `role_assignments`
+    (table morte : 0 référence client, hors sync-config) ; `notifications`,
+    `custom_field_*`, `form_*`, `report_definitions` (pas de permission canon →
+    R141.c, non urgent car non financier). `documents`, `event_tasks` : suivis
+    en R141.b (contrainte d'appartenance non triviale).
+  - **Sûreté mesurée** : le chemin d'écriture applicatif passe par PowerSync dont
+    le rôle `powersync_role` porte **BYPASSRLS** (vérifié) → ces politiques ne
+    peuvent pas casser un flux applicatif ; elles ferment le client **REST
+    direct** (clé anon publique + JWT).
+  - **Livrable** : migration `20261031000001_rls_write_permission_r141.sql` +
+    rollback `rollback/20261031000001_rollback.sql` + garde
+    `src/lib/__tests__/r141-write-permission-guard.test.ts`.
+  - **Preuve (instance DEV, transaction annulée)** : `INSERT INTO accounts` →
+    **`42501`** pour un **MEMBRE**, **accepté** pour un **TREASURIER**
+    (`has_permission(...,'finance','manage')=true`). 0 résidu.
+- **Statut** : **CORRIGÉ** (livré + prouvé le 2026-10-31).
 
 ### R142 — Le câblage de la garde de route (`hasPermission`) reste BLOQUÉ par le rôle `CENTRAL_ADMIN` (absent du modèle canon) + un mapping de permission contradictoire — ⚠️ OUVERT le 2026-10-30
 - **Gravité** : MOYENNE (défense en profondeur absente ; pas d'escalade — la RLS

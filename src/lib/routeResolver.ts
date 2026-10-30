@@ -75,8 +75,11 @@ export const ROUTE_REGISTRY: readonly RouteDef[] = [
   { pattern: "/admin/federation/tree", kind: "app", permission: "admin:settings" },
   { pattern: "/admin/units", kind: "app", permission: "admin:settings" },
   { pattern: "/admin/report-send", kind: "app", permission: "admin:settings" },
-  { pattern: "/admin/reports", kind: "app", permission: "admin:settings" },
-  { pattern: "/admin/reports/:id", kind: "app", permission: "admin:settings" },
+  // Écran de RÉCEPTION des rapports inter-organisations (data-gaté : ≥1 annexe
+  // ou ≥1 rapport reçu ; cf. OrgReportsReceived.tsx) — atteignable par les
+  // destinataires, donc `report:read` (et non `admin:settings`).
+  { pattern: "/admin/reports", kind: "app", permission: "report:read" },
+  { pattern: "/admin/reports/:id", kind: "app", permission: "report:read" },
   { pattern: "/admin/organizations/:id", kind: "app", permission: "admin:settings" },
   { pattern: "/admin/roles", kind: "app", permission: "admin:roles" },
   { pattern: "/trace", kind: "app" },

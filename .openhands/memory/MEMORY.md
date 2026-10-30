@@ -691,3 +691,27 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   `om_insert`/`om_update` = `is_org_admin`, `om_all_merged` jamais recréée.
 - **Advisor `upsert_profile`** (SECURITY DEFINER exécutable par authenticated)
   = **faux positif** : garde `is_org_admin` interne (vérifié 42501).
+
+## R141 — écriture gardée par permission (2026-10-31, corrigé)
+- **Cause** : R137 n'avait câblé que 15 politiques ; 14 autres tables (dont
+  FINANCIÈRES) restaient en `is_org_member` SEUL → tout MEMBRE écrivait en REST
+  direct. Preuve : `INSERT INTO accounts` accepté.
+- **Décision** : Lot 1 (permissions existantes) `cotisations`→`cotisation:manage`,
+  `group_memberships`→`group:update`, `org_units`→`admin:settings` ; Lot 2
+  nouvelle permission **`finance:manage`** (ADMIN, PASTEUR_PRINCIPAL, TREASURIER,
+  TREASURIER_ADJOINT) pour `accounts`, `caisses`, `org_budgets`,
+  `org_budget_lines`, `budget_lines`, `event_budgets`, `pledges`, `giving_*`,
+  `transaction_giving`, `tax_receipts`. Migration `20261031000001` + rollback.
+- **SÛRETÉ CLÉ** : le chemin d'écriture applicatif = **PowerSync**
+  (`powersync_role` a **BYPASSRLS**, vérifié) → durcir la RLS ne casse AUCUN flux
+  applicatif, ça ne ferme que le client REST direct. Vérifier BYPASSRLS avant
+  toute modif RLS.
+- **PIÈGE de modèle** : les gardes de dérive (`role-model-drift`, `permissions`,
+  `capabilities`) parsent les permissions avec la regex `[a-z]+:[a-z]+` →
+  **pas d'underscore** (`org_unit:manage` casse). Utiliser des paires simples.
+  Toute nouvelle permission doit être ajoutée dans : type `Permission`,
+  `PERMISSION_MATRIX`, miroir `20261026000002_rbac_has_permission.sql`,
+  `role-model.json`, une capacité de `capabilities.ts`, et re-mesurer
+  `migration-drift.json` (R17) si une migration est ajoutée.
+- **R142 (partiel)** : `routeResolver.ts` `/admin/reports*` → `report:read`
+  (turnkey ; câblage garde encore bloqué par `CENTRAL_ADMIN` hors canon).

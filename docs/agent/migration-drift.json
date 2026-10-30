@@ -1,13 +1,13 @@
 {
   "version": 1,
-  "generated": "2026-10-30",
+  "generated": "2026-10-31",
   "purpose": "Instantane MESURE de la derive migrations <-> base (R17). Le tracker Supabase n'est pas accessible en CI : ce fichier fige l'etat mesure pour qu'une garde repo-side puisse detecter tout CHANGEMENT de derive (nouvelle migration tracee ou non tracee).",
   "source_of_truth": "Base = source de verite (schema applique via editeur SQL / MCP, pas via `supabase db push`). Le tracker `supabase_migrations.schema_migrations` et les fichiers `supabase/migrations/` sont deux historiques disjoints.",
   "measured": {
     "applied_versions_in_tracker": 70,
-    "repo_timestamped_files": 68,
+    "repo_timestamped_files": 69,
     "repo_sequential_files": 63,
-    "repo_total_sql_files": 131,
+    "repo_total_sql_files": 132,
     "versions_in_common": 2,
     "common_versions": [
       "20261001000001",
@@ -16,7 +16,7 @@
     "applied_without_repo_file": 68,
     "repo_file_never_applied": 61,
     "drift_ratio": "2/70",
-    "repo_filenames_sha256": "3d9cdf1035f7a776eeaa435a0da26b243092cf9315e9a190a74a688adaf043c4"
+    "repo_filenames_sha256": "ccd3b9ae216ff3fe97fc5e3c14a269615422e3b97e0289312003b0035638f886"
   },
   "tracker_sample_versions": [
     "20260910123851",
@@ -30,5 +30,8 @@
   ],
   "notes_r140": [
     "1 migration ajoutee 20261030000001 (R140 audit_entries append-only) ; tracker non re-mesure (inaccessible en CI)."
+  ],
+  "notes_r141": [
+    "1 migration ajoutee 20261031000001 (R141 RLS ecriture des tables financieres) ; tracker non re-mesure (inaccessible en CI)."
   ]
 }
