@@ -2704,29 +2704,22 @@ avant P35 ; la distribution Android dépendait d'un build manuel
 - **Décision** : conserver (intentionnel). Révoquer casserait l'anti-pause.
 - **Statut** : faux positif (documenté).
 
-### R97.c — `upsert_profile()` : SECURITY DEFINER exécutable par `authenticated` — GARDÉ (revu)
-- **Gravité** : BASSE (garde présente).
-- **Constat** : advisor `authenticated_security_definer_function_executable` —
-  `upsert_profile(p_user_id, …, p_role, p_org_id, …)` est `SECURITY DEFINER`.
-  Elle écrit `profiles` (dont `role`) avec les droits du propriétaire.
-- **Analyse** : la fonction applique **deux** gardes explicites :
-  (1) `IF p_user_id IS DISTINCT FROM auth.uid() THEN RAISE` → un appelant ne
-  peut écrire que **sa propre** ligne ; (2) si `p_role` est fourni,
-  `NOT is_org_admin(auth.uid(), …)` → `42501 ROLE_NOT_ALLOWED`. **Aucune
-  auto-escalade** possible. `SET search_path TO 'public','pg_temp'`.
-- **Décision** : conserver (gardée). Aucune action.
-- **Statut** : faux positif (documenté).
+### R97.c — `upsert_profile()` : SECURITY DEFINER exécutable par `authenticated` — GARDÉ (cf. R64-bis)
+- **Doublon évité** : ce point est **déjà couvert par R64-bis** (« 7 fonctions
+  SECURITY DEFINER exécutables par `authenticated` » — assumé, helpers RLS).
+- **Précision vérifiée (2026-10-31)** : `upsert_profile` n'est pas un simple
+  helper — elle écrit `profiles` (dont `role`). Elle est néanmoins **gardée** :
+  (1) `IF p_user_id IS DISTINCT FROM auth.uid() THEN RAISE` → on ne peut écrire
+  que **sa propre** ligne ; (2) si `p_role` fourni, `NOT is_org_admin(...)` →
+  `42501 ROLE_NOT_ALLOWED`. **Aucune auto-escalade**. `SET search_path TO
+  'public','pg_temp'`. Rien à changer.
+- **Statut** : couvert par R64-bis (détail de garde ajouté ici).
 
-### R97.d — `auth_leaked_password_protection` (HaveIBeenPwned) — ACTION PROPRIÉTAIRE
-- **Gravité** : MOYENNE.
-- **Constat** : advisor `auth_leaked_password_protection` — la protection
-  « mot de passe compromis » (vérification HaveIBeenPwned) est **désactivée**.
-- **Nature** : réglage du **dashboard Auth Supabase** (pas un objet SQL) →
-  **non activable par l'agent** (MCP = SQL uniquement). Décision/action
-  propriétaire.
-- **Recommandation** : activer Authentication → Password Security → « Prevent
-  use of compromised passwords ».
-- **Statut** : ouvert (action propriétaire).
+### R97.d — `auth_leaked_password_protection` (HaveIBeenPwned) — cf. R104
+- **Doublon évité** : déjà couvert par **R104** (protection des mots de passe
+  compromis désactivée — **bloquée par le plan** : « available on Pro Plans and
+  up », vérifié). Action propriétaire (passer au plan Pro).
+- **Statut** : couvert par R104.
 
 ### R98 — La suite Cypress n'a JAMAIS été verte sur `main` (20 runs consécutifs) — CAUSE : environnement E2E (sync PowerSync indisponible) ; hypothèse « parallélisation » RÉFUTÉE par mesure — NON CORRIGÉ (documenté)
 - **Gravité** : HAUTE (l'alerte CI est structurellement inutilisable ; un vrai

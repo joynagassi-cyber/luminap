@@ -10,8 +10,8 @@
 |---|---|---|
 | `rls_enabled_no_policy` (3 : `keep_alive`, `_jsonb_backfill_20261024`, `_jsonb_null_literal_20261027`) | Faux positif (RLS sans politique = deny-all) | R97 |
 | `anon_security_definer_function_executable` (`keep_alive_ping`) | Intentionnel (anti-pause, sans paramètre, aucune donnée métier) | R97.b |
-| `authenticated_security_definer_function_executable` (7 : helpers RLS + `upsert_profile`) | Helpers = usage RLS ; `upsert_profile` **gardé** (`p_user_id=auth.uid()` + `is_org_admin` pour le rôle) → aucune auto-escalade | R97.c |
-| `auth_leaked_password_protection` | **Action propriétaire** (réglage dashboard Auth, non activable via SQL) | R97.d |
+| `authenticated_security_definer_function_executable` (7 : helpers RLS + `upsert_profile`) | Helpers = usage RLS (cf. R64-bis) ; `upsert_profile` **gardé** (`p_user_id=auth.uid()` + `is_org_admin` pour le rôle) → aucune auto-escalade | R64-bis / R97.c |
+| `auth_leaked_password_protection` | **Action propriétaire** (réglage Auth, bloqué par le plan : « Pro Plans and up ») | R104 / R97.d |
 
 **Correction d'exactitude** : R97 annonçait `_jsonb_backfill_20261024` = 213
 lignes et 2 tables. Mesure 2026-10-31 : **0** ligne, **3** tables (ajout de
