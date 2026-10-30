@@ -4,19 +4,19 @@
   "purpose": "Instantane MESURE de la derive migrations <-> base (R17). Le tracker Supabase n'est pas accessible en CI : ce fichier fige l'etat mesure pour qu'une garde repo-side puisse detecter tout CHANGEMENT de derive (nouvelle migration tracee ou non tracee).",
   "source_of_truth": "Base = source de verite (schema applique via editeur SQL / MCP, pas via `supabase db push`). Le tracker `supabase_migrations.schema_migrations` et les fichiers `supabase/migrations/` sont deux historiques disjoints.",
   "measured": {
-    "applied_versions_in_tracker": 80,
-    "repo_timestamped_files": 72,
+    "applied_versions_in_tracker": 81,
+    "repo_timestamped_files": 73,
     "repo_sequential_files": 63,
-    "repo_total_sql_files": 135,
+    "repo_total_sql_files": 136,
     "versions_in_common": 2,
     "common_versions": [
       "20261001000001",
       "20261027000003"
     ],
-    "applied_without_repo_file": 68,
-    "repo_file_never_applied": 63,
-    "drift_ratio": "2/80",
-    "repo_filenames_sha256": "95e190fec8a04016fdafec5426ec382f03b019d47a2fea15d6889e1e7586385f",
+    "applied_without_repo_file": 69,
+    "repo_file_never_applied": 64,
+    "drift_ratio": "2/81",
+    "repo_filenames_sha256": "3f66a6ebd6c95a5c5b3a7ac929b6f2d87c1830f2d1d0d92c546fc37093cfe59e",
     "repo_db_object_delta": {
       "measured": "2026-10-31",
       "method": "recoupement exhaustif depot <-> base (tables, fonctions, triggers, vues)",
@@ -54,5 +54,8 @@
   ],
   "notes_version_mismatch": [
     "MECANISME (decouvert 2026-10-31) : l'application via MCP `apply_migration` enregistre dans `supabase_migrations.schema_migrations` la version = HORODATAGE D'APPLICATION (YYYYMMDDHHMMSS), PAS le nom de fichier du depot. C'est la cause STRUCTURELLE de la 'derive' : une migration du depot appliquee via MCP apparait comme une version differente. D'ou 'versions_in_common = 2' alors que les OBJETS sont alignes (R17 : delta 0/0/0/0). Consequence : le ratio de derive SOUS-ESTIME l'alignement reel ; la seule mesure fiable d'alignement est par OBJETS (cf. repo_db_object_delta), pas par version. Le snapshot sert a detecter un CHANGEMENT cote depot (empreinte de noms), pas a mesurer l'alignement."
+  ],
+  "notes_fk_indexes": [
+    "1 migration ajoutee 20261031000005 (index couvrants des 2 FK de event_tasks, advisor `unindexed_foreign_keys` lint 0001). Additive (CREATE INDEX), aucun changement de donnee. Tracker re-mesure : 81."
   ]
 }

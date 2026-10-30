@@ -2,10 +2,12 @@
 /**
  * Garde anti-dérive R17 — migrations du dépôt ↔ instantané mesuré.
  *
- * R17 : le tracker `supabase_migrations.schema_migrations` (70 versions) et les
- * fichiers `supabase/migrations/` (63 horodatés + 63 séquentiels) sont deux
- * historiques **disjoints** (2 versions communes sur 70). Le tracker n'est PAS
- * accessible en CI, donc on ne peut pas comparer directement.
+ * R17 : le tracker `supabase_migrations.schema_migrations` (81 versions au
+ * 2026-10-31) et les fichiers `supabase/migrations/` (73 horodatés + 63
+ * séquentiels) sont deux historiques **disjoints** (2 versions communes sur 81).
+ * Cause structurelle : MCP `apply_migration` enregistre l'horodatage
+ * d'application, pas le nom de fichier (cf. migration-drift.json). Le tracker
+ * n'est PAS accessible en CI, donc on ne peut pas comparer directement.
  *
  * Ce qu'on PEUT garder sans base : le nombre et la forme des fichiers du dépôt.
  * La garde échoue dès qu'une migration est ajoutée/retirée, ce qui **force** à
@@ -77,7 +79,7 @@ describe("R17 — garde : l'instantané de dérive migrations doit refléter le 
   it("la dérive reste documentée comme quasi totale (garde de non-régression du constat)", () => {
     // Si ce ratio venait à changer (régularisation de l'historique), la garde
     // doit le signaler : ce n'est pas une régression, mais un état à re-décider.
-    expect(snapshot.measured.drift_ratio).toBe("2/80");
+    expect(snapshot.measured.drift_ratio).toBe("2/81");
   });
 
   it("l'ENSEMBLE des noms de fichiers correspond à l'empreinte figée (substitution net-zéro détectée)", () => {
