@@ -77,7 +77,7 @@ describe("R17 — garde : l'instantané de dérive migrations doit refléter le 
   it("la dérive reste documentée comme quasi totale (garde de non-régression du constat)", () => {
     // Si ce ratio venait à changer (régularisation de l'historique), la garde
     // doit le signaler : ce n'est pas une régression, mais un état à re-décider.
-    expect(snapshot.measured.drift_ratio).toBe("2/79");
+    expect(snapshot.measured.drift_ratio).toBe("2/80");
   });
 
   it("l'ENSEMBLE des noms de fichiers correspond à l'empreinte figée (substitution net-zéro détectée)", () => {

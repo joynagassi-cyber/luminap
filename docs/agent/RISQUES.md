@@ -4149,6 +4149,45 @@ partagée par les deux plateformes et couverte par 3 tests.
   BYPASSRLS confirmé.
 - **Statut** : **CORRIGÉ** (livré + prouvé le 2026-10-31).
 
+### R141.d — Dernières politiques d'écriture « membre seul » (clôture du chantier) — ✅ CORRIGÉ (2026-10-31)
+- **Gravité** : MOYENNE (écriture non gouvernée via le client REST direct ; pas
+  d'escalade).
+- **Défaut** : après R137 (15 politiques), R141 (14 tables financières) et
+  R141.b/c (8 tables non financières), il restait **4** tables dont une ou
+  plusieurs politiques INSERT/UPDATE/DELETE reposaient sur `is_org_member`
+  **SEUL** : `invitation_claims` (UPDATE), `notifications`
+  (INSERT/UPDATE/DELETE), `role_assignments` (INSERT/UPDATE/DELETE) et
+  `audit_entries` (INSERT).
+- **Décision (autonomie 2026-10-31)** — **aucune nouvelle permission** :
+  - `invitation_claims` UPDATE → `invitation:manage` (canon : ADMIN, ANCIEN,
+    PASTEUR_PRINCIPAL, TREASURIER — cohérent avec `can_manage_invitations`).
+  - `notifications` (INSERT/UPDATE/DELETE) → `admin:settings` (pas de permission
+    canon spécifique ; précédent R141.b/c).
+  - `role_assignments` (INSERT/UPDATE/DELETE) → `admin:settings` (**table
+    morte** : 0 référence dans tout le dépôt, hors sync-config).
+  - **LAISSÉ (correct)** : `audit_entries` INSERT — un journal d'audit
+    enregistre l'action de l'acteur **lui-même** ; le restreindre à un rôle
+    priverait les non-managers de toute traçabilité. `audit_entries`
+    UPDATE/DELETE reste deny-all (R140).
+  - `invitations` (INSERT/UPDATE/DELETE) était **déjà** gardée
+    (`is_org_member AND can_manage_invitations`) — non concernée.
+- **Sûreté mesurée** : **aucun** chemin d'écriture REST de ces tables côté
+  client (tout passe par PowerSync, `powersync_role` = BYPASSRLS) ; les triggers
+  `notify_*` s'exécutent dans ce contexte ou en DEFINER
+  (`notify_transaction_change`). Durcir la RLS REST ne peut pas casser un flux.
+- **Livrable** : migration `20261031000004_rls_write_permission_r141d.sql` +
+  rollback `rollback/20261031000004_rollback.sql` + garde
+  `src/lib/__tests__/r141d-write-permission-guard.test.ts` (5 assertions).
+- **Preuve (instance DEV, transaction annulée)** : `INSERT INTO notifications`
+  → **`42501`** pour un **MEMBRE** (`has_permission(...,'admin','settings')`
+  = false) ; **accepté** pour un **PASTEUR_PRINCIPAL** (= true). 0 résidu ;
+  advisors inchangés.
+- **Clôture** : après application, la requête d'audit ne renvoie plus **aucune**
+  politique d'écriture REST non gardée, hormis `audit_entries` INSERT
+  (volontaire) et `invitations` (déjà gardée par `can_manage_invitations`).
+  Le chantier R137/R140/R141 est **complet**.
+- **Statut** : **CORRIGÉ** (livré + prouvé le 2026-10-31).
+
 ### R142 — La garde de route (`hasPermission`) était INERTE (branche `forbidden` morte) — ✅ CORRIGÉ (2026-10-31)
 - **Gravité** : MOYENNE (défense en profondeur absente ; pas d'escalade — la RLS
   filtre déjà les données, cf. R137/R140/R141).

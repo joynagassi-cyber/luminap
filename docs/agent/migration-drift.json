@@ -4,10 +4,10 @@
   "purpose": "Instantane MESURE de la derive migrations <-> base (R17). Le tracker Supabase n'est pas accessible en CI : ce fichier fige l'etat mesure pour qu'une garde repo-side puisse detecter tout CHANGEMENT de derive (nouvelle migration tracee ou non tracee).",
   "source_of_truth": "Base = source de verite (schema applique via editeur SQL / MCP, pas via `supabase db push`). Le tracker `supabase_migrations.schema_migrations` et les fichiers `supabase/migrations/` sont deux historiques disjoints.",
   "measured": {
-    "applied_versions_in_tracker": 79,
-    "repo_timestamped_files": 71,
+    "applied_versions_in_tracker": 80,
+    "repo_timestamped_files": 72,
     "repo_sequential_files": 63,
-    "repo_total_sql_files": 134,
+    "repo_total_sql_files": 135,
     "versions_in_common": 2,
     "common_versions": [
       "20261001000001",
@@ -15,8 +15,8 @@
     ],
     "applied_without_repo_file": 68,
     "repo_file_never_applied": 63,
-    "drift_ratio": "2/79",
-    "repo_filenames_sha256": "b23bdb766dddf8dd4b8f840e0bb84bd0cb1c03ad8cbb6f7f7c4b42e0d7cccee8",
+    "drift_ratio": "2/80",
+    "repo_filenames_sha256": "95e190fec8a04016fdafec5426ec382f03b019d47a2fea15d6889e1e7586385f",
     "repo_db_object_delta": {
       "measured": "2026-10-31",
       "method": "recoupement exhaustif depot <-> base (tables, fonctions, triggers, vues)",
@@ -48,5 +48,8 @@
   ],
   "notes_r17_reconcile": [
     "1 migration ajoutee 20261031000003 (reconciliation R17 : recreation idempotente des 3 objets du fichier historique 20260909000002 jamais applique en l'etat — mark_expired_invitations + 2 triggers updated_at). Apres application, le delta depot <-> base est NUL (0 table/fonction/trigger/vue manquant)."
+  ],
+  "notes_r141d": [
+    "1 migration ajoutee 20261031000004 (R141.d — cloture du chantier d'autorisation d'ecriture : invitation_claims UPDATE -> invitation:manage ; notifications + role_assignments -> admin:settings ; audit_entries INSERT laisse au niveau membre). Apres application, plus AUCUNE politique d'ecriture REST non gardee (hors audit_entries INSERT volontaire et invitations deja gardee par can_manage_invitations)."
   ]
 }

@@ -783,3 +783,16 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
 - **Instantané** `docs/agent/migration-drift.json` : mettre à jour comptes +
   `repo_filenames_sha256` + `repo_db_object_delta` + `drift_ratio` ; et
   `migration-drift-guard.test.ts` (assertion du ratio figée).
+
+## Chantier autorisation d'ÉCRITURE — COMPLET (2026-10-31)
+- 4 vagues : R137 (15 politiques) → R141 (14 tables financières, perm
+  `finance:manage`) → R141.b/c (8 non financières) → **R141.d** (4 dernières :
+  `invitation_claims`→`invitation:manage` ; `notifications`+`role_assignments`→
+  `admin:settings`).
+- **LAISSÉ volontairement** : `audit_entries` INSERT au niveau membre (journal
+  de ses propres actions). `invitations` déjà gardée (`can_manage_invitations`).
+- **Preuve RLS via MCP** : le MCP se connecte en `postgres` (BYPASSRLS) → il faut
+  `SET LOCAL ROLE authenticated` + `set_config('request.jwt.claims', '{"sub":"<uuid>"}', true)`
+  DANS une transaction, puis `ROLLBACK`. `has_permission` lit le rôle via
+  `org_memberships` (PAS `profiles.role`).
+- **Pattern de mapping** (table sans permission canon) : `admin:settings`.
