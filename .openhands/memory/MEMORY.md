@@ -818,3 +818,14 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   par OBJETS, jamais par version.** Tracker total = 80 (2026-10-31).
 - Le snapshot `migration-drift.json` sert à détecter un CHANGEMENT côté dépôt
   (empreinte de noms), pas à mesurer l'alignement.
+
+## Advisors Supabase (revus 2026-10-31)
+- Sécurité : `rls_enabled_no_policy` (keep_alive + 2 `_jsonb_*` vides) = deny-all
+  = faux positifs (R97) ; `keep_alive_ping` anon = intentionnel (anti-pause, sans
+  paramètre) ; `upsert_profile` = **gardé** (`p_user_id=auth.uid()` + `is_org_admin`
+  pour changer le rôle → aucune auto-escalade) ; `auth_leaked_password_protection`
+  = action propriétaire (dashboard, pas SQL).
+- Perf : `unindexed_foreign_keys` (event_tasks.event_id/parent_task_id) CORRIGÉ
+  (migration 20261031000005, index mono-colonne car les index existants sont
+  composites menés par org_id). `unused_index` = base dev sans trafic (ne pas
+  supprimer) ; `multiple_permissive_policies` = redondance permissive (aucune faille).

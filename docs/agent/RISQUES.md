@@ -2663,27 +2663,70 @@ avant P35 ; la distribution Android dépendait d'un build manuel
   Reste à confirmer par un run CI. Non destructif : au pire, un résidu
   reste ACTIVE (comportement antérieur).
 
-### R97 — 2 advisors `rls_enabled_no_policy` (`keep_alive`, `_jsonb_backfill_20261024`) — FAUX POSITIFS (documentés)
+### R97 — advisors `rls_enabled_no_policy` (`keep_alive`, `_jsonb_backfill_20261024`, `_jsonb_null_literal_20261027`) — FAUX POSITIFS (documentés)
 - **Gravité** : BASSE.
-- **Constat** : les deux tables ont RLS **activée sans aucune politique**. Un
+- **Constat** : **3** tables ont RLS **activée sans aucune politique**. Un
   advisor Supabase les signale. En PostgreSQL, RLS activée sans politique =
   **refus total** (deny-all) : les privilèges `SELECT/INSERT/...` accordés à
   `anon`/`authenticated` sont **inopérants** (aucune ligne lisible/écrivable).
   Il n'y a donc **aucune fuite** ; l'advisor signale une intention implicite,
   pas une faille.
-- **Preuve** : `keep_alive` = 1 ligne, `_jsonb_backfill_20261024` = 213 lignes,
-  0 politique chacune ; `information_schema.role_table_grants` montre des
-  privilèges accordés mais la RLS les neutralise (le ping
+- **Preuve (re-mesurée 2026-10-31)** : `keep_alive` = **1** ligne,
+  `_jsonb_backfill_20261024` = **0** ligne, `_jsonb_null_literal_20261027` =
+  **0** ligne, 0 politique chacune ; `information_schema.role_table_grants`
+  montre des privilèges accordés mais la RLS les neutralise (le ping
   `GET /rest/v1/keep_alive` renvoie **HTTP 200 avec un corps vide** — cf.
   workflow `keep-alive.yml`, run `40078250833`).
+- **Correction d'exactitude** : la version antérieure de cette entrée citait
+  `_jsonb_backfill_20261024` = 213 lignes et n'énumérait que 2 tables. La
+  mesure du 2026-10-31 donne **0** ligne et **3** tables (la 3ᵉ,
+  `_jsonb_null_literal_20261027`, provient de la migration de rattrapage
+  `20261027000012`). L'état courant est retenu.
 - **Décision** : **ne pas** créer de politique (ce serait élargir l'accès à des
-  tables internes) et **ne pas** désactiver la RLS. Les deux tables sont
-  conservées : `keep_alive` est la cible du ping anti-pause ;
-  `_jsonb_backfill_20261024` est la sauvegarde du backfill jsonb (R65).
-  Désactiver l'advisor exigerait de supprimer une table utile → refusé
-  (comportement conservateur).
-- **Statut** : documenté, aucune action. Réévaluer si `keep_alive` ou le
-  backfill sont un jour supprimés (l'advisor disparaît alors).
+  tables internes) et **ne pas** désactiver la RLS. Les 3 tables sont
+  conservées : `keep_alive` est la cible du ping anti-pause ; les deux
+  `_jsonb_*` sont les sauvegardes de rollback des rattrapages jsonb (R65),
+  vides après exécution (elles ne se remplissent que si le rattrapage modifie
+  des lignes). Désactiver l'advisor exigerait de supprimer une table utile →
+  refusé (comportement conservateur).
+
+### R97.b — `keep_alive_ping()` : fonction SECURITY DEFINER exécutable par `anon` — INTENTIONNEL
+- **Gravité** : BASSE (aucune donnée sensible).
+- **Constat** : advisor `anon_security_definer_function_executable` —
+  `public.keep_alive_ping()` est `SECURITY DEFINER`, exécutable par `anon` via
+  `/rest/v1/rpc/keep_alive_ping`.
+- **Analyse** : la fonction ne fait qu'`UPDATE public.keep_alive SET
+  external_ping=now(), external_count=external_count+1 WHERE id=1 RETURNING …`.
+  Elle ne lit/écrit aucune donnée métier et ne prend **aucun paramètre** → pas
+  d'injection, pas d'exfiltration. Elle **doit** être exécutable par `anon` : le
+  workflow `keep-alive.yml` l'appelle pour empêcher la mise en pause du projet
+  Supabase (plan gratuit). `SET search_path TO ''` (durcissement correct).
+- **Décision** : conserver (intentionnel). Révoquer casserait l'anti-pause.
+- **Statut** : faux positif (documenté).
+
+### R97.c — `upsert_profile()` : SECURITY DEFINER exécutable par `authenticated` — GARDÉ (revu)
+- **Gravité** : BASSE (garde présente).
+- **Constat** : advisor `authenticated_security_definer_function_executable` —
+  `upsert_profile(p_user_id, …, p_role, p_org_id, …)` est `SECURITY DEFINER`.
+  Elle écrit `profiles` (dont `role`) avec les droits du propriétaire.
+- **Analyse** : la fonction applique **deux** gardes explicites :
+  (1) `IF p_user_id IS DISTINCT FROM auth.uid() THEN RAISE` → un appelant ne
+  peut écrire que **sa propre** ligne ; (2) si `p_role` est fourni,
+  `NOT is_org_admin(auth.uid(), …)` → `42501 ROLE_NOT_ALLOWED`. **Aucune
+  auto-escalade** possible. `SET search_path TO 'public','pg_temp'`.
+- **Décision** : conserver (gardée). Aucune action.
+- **Statut** : faux positif (documenté).
+
+### R97.d — `auth_leaked_password_protection` (HaveIBeenPwned) — ACTION PROPRIÉTAIRE
+- **Gravité** : MOYENNE.
+- **Constat** : advisor `auth_leaked_password_protection` — la protection
+  « mot de passe compromis » (vérification HaveIBeenPwned) est **désactivée**.
+- **Nature** : réglage du **dashboard Auth Supabase** (pas un objet SQL) →
+  **non activable par l'agent** (MCP = SQL uniquement). Décision/action
+  propriétaire.
+- **Recommandation** : activer Authentication → Password Security → « Prevent
+  use of compromised passwords ».
+- **Statut** : ouvert (action propriétaire).
 
 ### R98 — La suite Cypress n'a JAMAIS été verte sur `main` (20 runs consécutifs) — CAUSE : environnement E2E (sync PowerSync indisponible) ; hypothèse « parallélisation » RÉFUTÉE par mesure — NON CORRIGÉ (documenté)
 - **Gravité** : HAUTE (l'alerte CI est structurellement inutilisable ; un vrai
