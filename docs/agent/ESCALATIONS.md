@@ -157,3 +157,34 @@
   (`/transaction/new` satisfait `should('include', '/transaction/')`), donc le
   spec visite `/transaction/new/edit` → « Transaction introuvable ». Fragilité
   de **spec** (pas produit), atteignable seulement après E5.
+
+## E6 — Décisions de périmètre requises par le propriétaire (R141 / R142) — ⚠️ OUVERTE (2026-10-30)
+
+Deux défauts mesurés exigent une **décision** (l'agent ne peut pas trancher sans
+risque de casser des flux légitimes). Aucune action destructive/risquée n'a été
+faite.
+
+### E6.a — R141 : 26 tables en écriture « membre seul » (dont FINANCIÈRES)
+- **Fait mesuré** : `INSERT INTO accounts` (table FINANCIÈRE) **accepté par la
+  RLS** pour un simple membre (`is_org_member` seul). Idem pour `caisses`,
+  `tax_receipts`, `org_budgets`, `pledges`, `giving_*`, etc. (26 tables).
+- **Non-escalade vérifiée** : l'escalade de rôle est **impossible**
+  (`org_memberships`/`grants`/`org_admins` gardés ; `profiles.role` immuable).
+- **Décision demandée** : valider le périmètre de remédiation en 2 lots
+  (Lot 1 = permissions canon existantes ; Lot 2 = créer les capacités manquantes
+  « Gérer les finances » / « Gérer les unités »). Détail : RISQUES.md §R141.
+- **Repli appliqué** : aucun changement en base (un correctif à l'aveugle
+  risquerait de casser la saisie trésorier / les dons).
+
+### E6.b — R142 : câblage de la garde de route (`hasPermission`)
+- **Fait mesuré** : `resolveRoute` n'est appelée qu'avec `{isAuthenticated}` →
+  les branches `forbidden`/`needs-membership` sont du code mort. R109 (rôle
+  ADMIN) est TRANCHÉ, mais le câblage reste bloqué par :
+  1. `CENTRAL_ADMIN` absent de `Role`/`PERMISSION_MATRIX` (parseRole → null) ;
+  2. `/admin/reports*` mappé `admin:settings` alors que les membres doivent y
+     accéder (écran de réception lié depuis le Dashboard).
+- **Décision demandée** : (1) sort de `CENTRAL_ADMIN` ; (2) confirmer le mapping
+  `/admin/reports*` → `report:read` (correctif turnkey prêt, sans effet avant
+  câblage). Puis câbler la garde avec un test E2E par rôle.
+- **Repli appliqué** : garde **non câblée** (câbler maintenant enfermerait
+  dehors des rôles légitimes).
