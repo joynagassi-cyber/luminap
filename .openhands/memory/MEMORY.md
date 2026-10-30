@@ -634,3 +634,39 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   **rétabli quotidien** `0 3 * * *` (R138, PR #152). Run 40889847852 = success,
   artefact chiffré 3,2 Mo. Secrets `SUPABASE_DB_URL` + `BACKUP_GPG_PASSPHRASE`
   présents et fonctionnels.
+
+## Audit RLS / RBAC (session 2026-10-30)
+- **Substrat RBAC BIEN gardé (escalade IMPOSSIBLE, vérifié)** :
+  - `org_memberships`, `grants`, `org_admins` : politiques gardées par
+    `is_org_admin` → un membre ne peut PAS écrire les tables de rôle.
+  - `has_permission` lit `org_memberships.role` + `grants` — **pas**
+    `role_assignments` (table de rôle de **session** : session_id/role/org_id).
+  - `is_org_admin` lit `profiles.role`, MAIS 3 triggers gardent `profiles` :
+    `guard_profile_role_immutable` (BEFORE UPDATE), `guard_profile_role_insert`,
+    `trg_guard_profile_org`. Test mesuré : `UPDATE profiles SET role='ADMIN'`
+    par le membre lui-même → **`42501 ROLE_IMMUTABLE`**.
+  - `invitations`/`invitation_claims` : gardées par `can_manage_invitations`
+    (PAS `has_permission`) → un détecteur qui ne cherche que `has_permission`
+    les **sur-compte** à tort.
+  - `profiles` : UPDATE/INSERT/DELETE self-only (`initplan_uid() = id`).
+- **R140 (corrigé)** : `audit_entries` était modifiable par tout membre
+  (`is_org_member` seul sur UPDATE/DELETE) → journal d'audit altérable.
+  Migration `20261030000001` : politiques retirées (deny-all UPDATE/DELETE),
+  INSERT préservé. Garde `audit-append-only-guard.test.ts`.
+- **R141 (ouvert, HAUTE)** : **26 tables** en écriture « membre seul »
+  (`accounts`, `caisses`, `tax_receipts`, `org_budgets`, `pledges`, `giving_*`,
+  `budget_lines`, `categories`, `org_units`, `role_assignments`, `cotisations`,
+  `group_memberships`, `notifications`, `documents`, `custom_field_*`, `form_*`,
+  `event_budgets`, `event_tasks`, `report_definitions`, `transaction_giving`,
+  `giving_campaigns`, `giving_donors`, `org_budget_lines`). Écriture DIRECTE
+  (pas escalade). Non corrigé : le vocabulaire canon n'a pas de permission pour
+  ces tables (casserait des flux légitimes). Remédiation en 2 lots dans RISQUES.
+- **R142 (ouvert)** : câblage de `hasPermission` dans `App.tsx` **toujours
+  bloqué** malgré R109 — (1) `CENTRAL_ADMIN` absent de `Role`/`PERMISSION_MATRIX`
+  (`parseRole` → null) ; (2) `/admin/reports*` exige `admin:settings` alors que
+  les membres doivent y accéder (lien Dashboard non gardé) → enfermerait les
+  destinataires de rapports.
+- **Requête de mesure R141** : `pg_policies` où `cmd ∈ {INSERT,UPDATE,DELETE}`
+  ET (`qual`||`with_check`) contient `is_org_member` SANS
+  `has_permission`/`is_org_admin`. Vérifier ensuite `can_manage_*` et les
+  politiques self-only pour éliminer les faux positifs.
