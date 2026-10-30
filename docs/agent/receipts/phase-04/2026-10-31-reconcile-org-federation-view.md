@@ -44,3 +44,16 @@ migrations, et que `org_federation` est créée avec `security_invoker=true`.
 
 - `npx tsc -b` → **0**
 - `npx vitest run` → **1754/1754** (161 fichiers)
+
+---
+
+## Décision annexe — P3-1 / PR17 (table de fermeture matérialisée) : MESURÉE, NON JUSTIFIÉE
+
+**Mesure (2026-10-31)** : `organizations` = **3** lignes ; `org_family` (CTE
+récursive) = **3** lignes ; paires non triviales (`org_id <> ancestor`) = **0** ;
+organisations enfants (`parent_org_id IS NOT NULL`) = **0**.
+
+**Décision** : ne pas créer de table de fermeture matérialisée. Le coût
+(duplication de données + triggers de maintenance) n'est justifié que si la
+fédération atteint des centaines d'organisations. Rouvrir P3-1/PR17 à ce
+moment-là. `org_family` (vue récursive, `security_invoker=true`) reste adaptée.

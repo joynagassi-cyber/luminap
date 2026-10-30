@@ -829,3 +829,14 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   (migration 20261031000005, index mono-colonne car les index existants sont
   composites menés par org_id). `unused_index` = base dev sans trafic (ne pas
   supprimer) ; `multiple_permissive_policies` = redondance permissive (aucune faille).
+
+## R17 — réconciliation par OBJETS (2026-10-31)
+- Recoupement exhaustif dépôt↔base (tables/fonctions/triggers/vues) = 0 objet du
+  dépôt manquant en base. Seule dérive : `public.org_federation` existait en base
+  sans CREATE dépôt → recréée (migration 20261031000006, CREATE OR REPLACE VIEW
+  préserve OID+grants, security_invoker=true).
+- Objets DB sans CREATE dépôt (légitimes) : `keep_alive` (CREATE dans
+  supabase/keep-alive.sql, hors migrations), `rls_auto_enable` (événement
+  Supabase), `settle_pending_claims_for_invitation` (ALTER/REVOKE dans le dépôt,
+  CREATE hors dépôt), `agent_try_jsonb` (DROP volontaire fin de sa migration).
+- Tracker après 20261031000006 = 82 ; sha empreinte noms = d35c703a.

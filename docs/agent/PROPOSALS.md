@@ -22,7 +22,7 @@
 | PR6 | Écran « mise à jour requise » — écran OK mais **source de version absente** (R106) | compat APK | faible | faible | schéma de sync | P1 |
 | PR7 ✅ | Drapeaux de fonctionnalités (kill switches) | désactivation sûre | faible | faible | config | P1 |
 | PR19 | Alimenter `RouteState` (hasPermission/isOrgMember/schema) dans `App.tsx` — débloque R105/R107, dépend PR18 (R16) | défense en profondeur | moyen | moyen | RBAC canon + config | P1 |
-| PR17 | Table de fermeture matérialisée (ancestor/descendant/depth) pour la fédération | perf des requêtes de famille à grande échelle | faible | moyen | `org_family` (existe) | P2 |
+| PR17 | Table de fermeture matérialisée (ancestor/descendant/depth) pour la fédération | perf des requêtes de famille à grande échelle | faible | moyen | `org_family` (existe) | P2 — **MESURÉ 2026-10-31 : NON JUSTIFIÉ** (3 orgs, 0 org enfant, clôture triviale = 3 lignes / 0 paire non-triviale ; `org_family` = CTE récursive sur 3 lignes). À rouvrir si la fédération dépasse ~des centaines d'organisations. |
 | PR18 | Migration progressive des politiques RLS vers `has_permission()` (décision unique) | une seule source de vérité RBAC en base | moyen | élevé | `has_permission` (livrée) | P2 |
 | PR20 | **Trancher le sort de `CENTRAL_ADMIN`** (rôle hors canon) : l'ajouter au canon (`Role`/`PERMISSION_MATRIX`/`role_permissions`) ou le retirer/remplacer. **Débloque** : R141.e (`org_reports_emitter` non durci) et lève l'ambiguïté de la garde R142 (actuellement fail-closed). | modèle d'autorisation cohérent | moyen | faible | R109 (ADMIN canonique), R142 | P1 |
 
