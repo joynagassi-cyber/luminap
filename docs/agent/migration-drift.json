@@ -1,13 +1,13 @@
 {
   "version": 1,
-  "generated": "2026-10-29",
+  "generated": "2026-10-30",
   "purpose": "Instantane MESURE de la derive migrations <-> base (R17). Le tracker Supabase n'est pas accessible en CI : ce fichier fige l'etat mesure pour qu'une garde repo-side puisse detecter tout CHANGEMENT de derive (nouvelle migration tracee ou non tracee).",
   "source_of_truth": "Base = source de verite (schema applique via editeur SQL / MCP, pas via `supabase db push`). Le tracker `supabase_migrations.schema_migrations` et les fichiers `supabase/migrations/` sont deux historiques disjoints.",
   "measured": {
     "applied_versions_in_tracker": 70,
-    "repo_timestamped_files": 67,
+    "repo_timestamped_files": 68,
     "repo_sequential_files": 63,
-    "repo_total_sql_files": 130,
+    "repo_total_sql_files": 131,
     "versions_in_common": 2,
     "common_versions": [
       "20261001000001",
@@ -16,7 +16,7 @@
     "applied_without_repo_file": 68,
     "repo_file_never_applied": 61,
     "drift_ratio": "2/70",
-    "repo_filenames_sha256": "3eac729036d57d31c95b043e386f26dd261c26f62fb3a36279e32a40c896463f"
+    "repo_filenames_sha256": "3d9cdf1035f7a776eeaa435a0da26b243092cf9315e9a190a74a688adaf043c4"
   },
   "tracker_sample_versions": [
     "20260910123851",
@@ -27,5 +27,8 @@
   "owner_recommendation": "Regulariser via `supabase migration repair --status applied <version>`, ou adopter 'base = source de verite' et cesser de se fier au tracker. A trancher (DECISIONS.md / RAPPORT_FINAL.md).",
   "notes_r109": [
     "4 migrations ajoutees 2026102900000{1..4} (R109 ADMIN canonique + R137 RLS ecriture + garde escalade + annexes ADMIN)."
+  ],
+  "notes_r140": [
+    "1 migration ajoutee 20261030000001 (R140 audit_entries append-only) ; tracker non re-mesure (inaccessible en CI)."
   ]
 }

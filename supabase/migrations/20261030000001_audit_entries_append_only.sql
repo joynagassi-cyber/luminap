@@ -1,0 +1,36 @@
+-- ============================================================================
+-- 20261030000001 — DURCISSEMENT : `audit_entries` en AJOUT SEUL (append-only)
+-- ----------------------------------------------------------------------------
+-- RISQUE (R140) — intégrité du journal d'audit
+--   `audit_entries` est le journal d'audit canonique (invariant « toute
+--   mutation est tracée »). Or les politiques `audit_entries_delete` et
+--   `audit_entries_update` autorisaient TOUT membre de l'organisation
+--   (`is_org_member`) à modifier ou supprimer n'importe quelle entrée de son
+--   org. Un `MEMBRE` pouvait donc effacer la trace de ses propres actions
+--   (anti-traçabilité) — défaut mesuré en base, non couvert par R137.
+--
+-- MESURE (2026-10-30, instance de dev hhgovvrnalibhgpakswi)
+--   - `audit_entries_delete` : USING is_org_member(...)          → à retirer
+--   - `audit_entries_update` : USING/WITH CHECK is_org_member(...) → à retirer
+--   - Aucun chemin d'écriture applicatif ne fait UPDATE/DELETE sur cette
+--     table (vérifié : `src/` ne contient que des INSERT et SELECT ;
+--     les triggers de traçabilité sont SECURITY DEFINER et contournent RLS).
+--   - Aucune FK entrante ni cascade ne dépend d'un DELETE (vérifié).
+--
+-- CORRECTIF (minimal, réversible)
+--   Retirer les politiques UPDATE/DELETE. Sans politique, la RLS est
+--   *deny-all* pour ces commandes : `authenticated` ne peut plus altérer ni
+--   effacer une entrée. Les INSERT (voie REST authentifiée) et les écritures
+--   des triggers (`service_role`/`powersync_role`, BYPASSRLS) restent
+--   inchangés — la journalisation continue de fonctionner.
+--
+--   Note : la suppression d'une organisation ou d'un profil ne cascade pas
+--   vers `audit_entries` (aucune FK) ; il n'y a donc aucune purge légitime à
+--   préserver côté client.
+--
+-- RÉVERSIBILITÉ : rollback/20261030000001_rollback.sql (recrée les 2 politiques
+--   telles qu'elles existaient avant — USING/WITH CHECK is_org_member).
+-- ============================================================================
+
+DROP POLICY IF EXISTS audit_entries_delete ON public.audit_entries;
+DROP POLICY IF EXISTS audit_entries_update ON public.audit_entries;

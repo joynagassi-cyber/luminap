@@ -3958,3 +3958,88 @@ partagée par les deux plateformes et couverte par 3 tests.
   - REVOKE de la fonction de trigger : elle **n'apparaît pas** dans les advisors
     de sécurité (surface RPC fermée, cf. R115).
 - **Statut** : **CORRIGÉ** (barrières 1 et 2 livrées + prouvées).
+
+### R140 — Le journal d'audit (`audit_entries`) n'était PAS en ajout seul : tout membre pouvait effacer/altérer une trace — ✅ CORRIGÉ le 2026-10-30
+- **Gravité** : HAUTE (intégrité de la traçabilité — anti-traçabilité).
+- **Défaut mesuré (instance DEV, 2026-10-30)** : les politiques
+  `audit_entries_delete` (USING `is_org_member`) et `audit_entries_update`
+  (USING/WITH CHECK `is_org_member`) autorisaient **tout membre de
+  l'organisation** à `UPDATE`/`DELETE` n'importe quelle entrée d'audit de son
+  org. Un `MEMBRE` pouvait donc **effacer ou falsifier la trace de ses propres
+  actions** — l'inverse de l'invariant « toute mutation est tracée ».
+  Non couvert par R137 (qui portait sur les tables métier, pas le journal).
+- **Constat complémentaire** : `audit_entries` n'a **aucune FK entrante** ni
+  cascade ; aucun chemin applicatif ne fait `UPDATE`/`DELETE` dessus (mesuré :
+  `src/` = uniquement `INSERT`/`SELECT` ; les triggers de traçabilité sont
+  `SECURITY DEFINER` et contournent la RLS). Une purge côté client serait donc
+  **toujours** abusive.
+- **Correctif** (migration `20261030000001`, réversible
+  `rollback/20261030000001_rollback.sql`) : retrait des 2 politiques. Sans
+  politique, la RLS est *deny-all* pour `UPDATE`/`DELETE` → l'altération devient
+  impossible. Les `INSERT` (voie REST authentifiée) et les écritures des
+  triggers (`service_role`/`powersync_role`, BYPASSRLS) **restent inchangés**.
+- **Preuves mesurées (transaction annulée)** :
+  - membre `authenticated` : `UPDATE audit_entries … comment='TAMPERED'` puis
+    `DELETE …` → **0 ligne affectée** ; `count` inchangé (62) ;
+  - vérification post-test : `count(comment='TAMPERED') = 0` (aucune
+    falsification persistée) ;
+  - `INSERT` d'une entrée d'audit par un membre → **ACCEPTÉ** (journalisation
+    préservée) ;
+  - garde repo-side `audit-append-only-guard.test.ts` (3 assertions) +
+    `rls-inventory.test.ts` (44 tables) verts.
+- **Portée** : durcissement **isolé et sûr** (1 table, append-only, 0 écriture
+  applicative cassée). Ne traite PAS les tables financières encore en
+  `is_org_member` seul (accounts, caisses, budgets, dons, reçus fiscaux…) —
+  cf. **R141**.
+- **Statut** : **CORRIGÉ** (livré + prouvé).
+
+### R141 — Vingt-six tables restent en écriture « membre seul » (dont des tables FINANCIÈRES) — ⚠️ OUVERT (à trancher) le 2026-10-30
+- **Gravité** : HAUTE (contrôle d'accès / intégrité financière). **Suite directe de R137**
+  (qui n'avait couvert que 15 politiques : transactions, versements, members,
+  events, groups).
+- **Défaut mesuré (instance DEV, 2026-10-30)** : **26 tables** du schéma `public`
+  ont au moins une politique d'écriture (`INSERT`/`UPDATE`/`DELETE`) qui repose
+  sur `is_org_member(...)` **seul** — c.-à-d. **tout membre** de l'org, quel que
+  soit son rôle, peut écrire. Les **7 tables à `has_permission`** de R137 sont,
+  elles, correctement gardées.
+- **Tables concernées (mesurées)** : `accounts`, `audit_entries` (→ **R140
+  corrigé**), `budget_lines`, `caisses`, `categories`, `cotisations`,
+  `custom_field_definitions`, `custom_field_values`, `documents`,
+  `event_budgets`, `event_tasks`, `form_definitions`, `form_submissions`,
+  `giving_campaigns`, `giving_donors`, `group_memberships`, `notifications`,
+  `org_budget_lines`, `org_budgets`, `org_units`, `pledges`, `profiles`,
+  `report_definitions`, `role_assignments`, `tax_receipts`, `transaction_giving`.
+- **Exploitabilité prouvée** : en `SET LOCAL ROLE authenticated` avec un JWT
+  simulé, `INSERT INTO accounts (...)` (table FINANCIÈRE) **a été accepté par la
+  RLS** (seul un `CHECK` de colonne a fait échouer la 1ʳᵉ tentative — la RLS,
+  elle, laissait passer). Un membre pouvait donc créer/altérer une caisse, un
+  budget, une campagne de dons, un reçu fiscal… **au niveau base**, hors de tout
+  contrôle de rôle. Le masquage UI n'est pas une frontière de sécurité.
+- **Pourquoi non corrigé d'emblée (prudence assumée)** : le vocabulaire de
+  permissions canon (`role_permissions`) ne couvre **que** `transaction:*`,
+  `versement:*`, `cotisation:*`, `event:*`, `group:*`, `member:*`, `report:*`,
+  `invitation:*`, `admin:*`. Il **n'existe aucune permission** pour `accounts`,
+  `tax_receipts`, `org_budgets`, `pledges`, `giving_campaigns`… Réécrire ces 26
+  tables sans décision explicite risquerait de **casser des flux métier
+  légitimes** (un trésorier doit gérer les caisses ; un responsable doit gérer
+  ses unités) — un correctif à l'aveugle serait pire que le défaut.
+- **Remédiation proposée (2 lots, à valider par le propriétaire)** :
+  1. **Lot 1 — tables à permission existante** (mapping direct, sûr) :
+     `cotisations` → `cotisation:manage` ; `transaction_giving`,
+     `giving_*`, `pledges` → `transaction:*` (ou `versement:*` selon la
+     sémantique) ; `group_memberships` → `group:update` ; `notifications`,
+     `profiles`, `custom_field_*`, `form_*`, `report_definitions` → capacité
+     pertinente (`member:update`, `report:*`, `admin:settings`).
+  2. **Lot 2 — tables sans permission canon** (`accounts`, `caisses`,
+     `org_budgets*`, `budget_lines`, `event_budgets`, `tax_receipts`,
+     `org_units`, `categories`, `role_assignments`) : **décider** d'abord la
+     capacité (« Gérer les finances » = `finance.manage` ; « Gérer les unités »
+     = `admin:settings`), puis éventuellement **ajouter** les permissions
+     manquantes à `role_permissions` (données) avant de câbler les politiques.
+  - Dans les deux cas : reproduire le patron R137 (migration idempotente +
+    rollback + preuve `MEMBRE → 42501` / rôle légitime → accepté) et vérifier
+    qu'aucun flux applicatif (onboarding, saisie rapide, dons) ne casse.
+- **Référence** : R137 (15 politiques corrigées, voie REST) ; R140
+  (`audit_entries`, corrigé le 2026-10-30).
+- **Statut** : **OUVERT** — décision de périmètre requise (aucune action
+  destructive/risquée faite sans validation).

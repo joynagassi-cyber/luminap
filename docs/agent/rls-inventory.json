@@ -1,13 +1,19 @@
 {
   "_comment": "Inventaire RLS du schema public (project hhgovvrnalibhgpakswi, instance de DEV). REGENERE par la requete en tete de rls-inventory.test.ts apres tout changement de schema/RLS.",
-  "_generatedAt": "2026-10-26",
+  "_generatedAt": "2026-10-30",
   "_denyAllAllowlist": [
     "keep_alive",
-    "_jsonb_backfill_20261024"
+    "_jsonb_backfill_20261024",
+    "_jsonb_null_literal_20261027"
   ],
   "tables": [
     {
       "table": "_jsonb_backfill_20261024",
+      "rls": true,
+      "policies": 0
+    },
+    {
+      "table": "_jsonb_null_literal_20261027",
       "rls": true,
       "policies": 0
     },
@@ -19,7 +25,7 @@
     {
       "table": "audit_entries",
       "rls": true,
-      "policies": 4
+      "policies": 2
     },
     {
       "table": "budget_lines",
@@ -94,7 +100,7 @@
     {
       "table": "grants",
       "rls": true,
-      "policies": 1
+      "policies": 3
     },
     {
       "table": "group_memberships",
