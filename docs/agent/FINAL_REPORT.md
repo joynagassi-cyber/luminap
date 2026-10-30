@@ -19,7 +19,7 @@ sont des décisions/opérations **propriétaire**, une est un environnement de t
 
 | # | Condition bloquante | Nature | Preuve du blocage |
 |---|---|---|---|
-| B1 | **Sauvegarde planifiée non activée** (R18/R99, P31/E3) | opération propriétaire | workflow `backup.yml` présent, **jamais exécuté avec succès** ; secrets `SUPABASE_DB_URL` + `BACKUP_GPG_PASSPHRASE` absents. Chaîne **prouvée à la main** (dump + restauration 10/10). |
+| B1 | ~~**Sauvegarde planifiée non activée** (R18/R99, P31/E3)~~ — **RÉSOLU 2026-10-31** | opération propriétaire | **Périmé** : les secrets `SUPABASE_DB_URL` + `BACKUP_GPG_PASSPHRASE` sont configurés ; run **planifié** `41036453279` (2026-10-30) → artefact chiffré `supabase-backup-41036453279` (3,5 Mo, non expiré). Chaîne dump + restauration 10/10. Cadence quotidienne `cron: '0 3 * * *'`. |
 | B2 | **Rôle `ADMIN` non tranché** (R109, R16) | décision propriétaire | 1 compte admin central en base **sans aucun droit** (`has_permission(...)=false`) ; garde de route R105/R107 volontairement **non câblée** pour ne pas l'enfermer dehors. |
 | B3 | **Suite Cypress structurellement rouge** (E2, R98) | environnement E2E | 20 runs consécutifs en échec sur `main` ; cause = environnement (réplique PowerSync vide R53, prérequis offline R83, contexte d'org R72). Le vert Cypress n'est **pas** un signal fiable aujourd'hui. |
 

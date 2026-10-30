@@ -302,15 +302,16 @@
 - **Intérêt** : un échec silencieux chez un utilisateur devient une trace
   exploitable au retour du propriétaire. **Coût** : 4 h. **Priorité** : moyenne.
 
-### P31 — Sauvegardes sans plan Pro (voir aussi P20) — CRITIQUE
+### P31 — Sauvegardes sans plan Pro (voir aussi P20) — ✅ RÉSOLU (2026-10-31)
 - **Problème** : les sauvegardes classiques Supabase exigent un plan Pro.
   L'environnement est en plan **gratuit**.
 - **Proposition** : export logique planifié hors Supabase — `pg_dump`
   quotidien (données + schéma) vers un stockage externe, plus l'export
   `supabase db dump` pour les migrations, avec rotation et test de
   restauration mensuel documenté dans `RUNBOOK.md`.
-- **Intérêt** : sans sauvegarde, une corruption est définitive.
-  **Coût** : 4 h puis 0 h/mois. **Priorité** : critique. **Bloquant** : oui.
+- **Statut** : **implémenté et ACTIF** (voir MAJ ci-dessous). `.github/workflows/backup.yml`
+  (quotidien 03:00 UTC), artefacts chiffrés, garde-fou « publier seulement si
+  chiffré » ; run planifié `41036453279` (2026-10-30) → artefact chiffré publié.
 
 ### P32 — Titres de page sémantiques (`<h1>`) — BASSE
 - **Problème** : R61 — `TopHeader` rend le titre en `<p>`, donc pas de `<h1>`
@@ -538,14 +539,18 @@
 - **Priorité** : moyenne. **Bloquante pour la fiabilité à long terme** : non,
   mais recommandée — les tests sont la seule preuve disponible.
 
-### P31 — Sauvegardes sans plan Pro — OUTILLÉ (reste à activer)
-- **MAJ 2026-10-24** : la proposition est désormais **implémentée** dans le
-  dépôt : `.github/workflows/backup.yml` (quotidien 03:00 UTC) +
+### P31 — Sauvegardes sans plan Pro — ✅ ACTIF ET VÉRIFIÉ (2026-10-31)
+- **MAJ 2026-10-24** : la proposition est **implémentée** dans le dépôt :
+  `.github/workflows/backup.yml` (quotidien 03:00 UTC) +
   `scripts/backup-supabase.sh` (export schéma+données via `supabase db dump`,
   empreintes SHA-256, chiffrement AES256 optionnel, rotation 30 j). L'artefact
-  n'est publié que **chiffré** (dépôt public). **Reste à faire par le
-  propriétaire** : créer les secrets `SUPABASE_DB_URL` et
-  `BACKUP_GPG_PASSPHRASE` (procédure dans RUNBOOK.md §Sauvegardes).
+  n'est publié que **chiffré** (dépôt public).
+- **MAJ 2026-10-31 (résolution)** : les secrets `SUPABASE_DB_URL` et
+  `BACKUP_GPG_PASSPHRASE` sont **désormais configurés**. Preuves : run manuel
+  `40813667253` (2026-10-29) → export + publication d'un artefact chiffré ;
+  run **planifié** `41036453279` (2026-10-30) → artefact chiffré
+  `supabase-backup-41036453279` (3,5 Mo, non expiré). La cadence quotidienne
+  produit donc **réellement** des sauvegardes (cf. R99, E3).
 - **MAJ 2026-10-24 (correctif d'affirmation)** : l'entrée précédente affirmait
   que « ni `pg_dump` ni Docker ne sont disponibles dans l'environnement
   d'agent ». **C'est faux** : Docker est installé (`/usr/bin/docker`) ; seul le
@@ -554,12 +559,9 @@
   bout** (voir R99 et RUNBOOK.md §« Sauvegarde VÉRIFIÉE ») : schéma 136 Ko
   (43 tables, 146 RLS) + données 6,3 Mo, sommes de contrôle OK, restauration
   fidèle 10/10.
-- **Pourquoi l'automatisation n'est pas encore active** : il manque le secret
-  `SUPABASE_DB_URL` (le run `40114231378` l'a prouvé par un avertissement) et le
-  jeton de session ne permet pas de créer de secret GitHub (403). Ce n'est donc
-  **pas** un manque d'outillage mais une action réservée au propriétaire.
-- **Priorité** : critique. **Bloquant** : oui (sans export, une corruption est
-  définitive).
+- **Reste (optionnel, propriétaire)** : rétention hors-site durable (passer le
+  dépôt en privé → schedules 60 j ; sinon artefacts 14 j).
+- **Priorité** : critique (résolue). **Bloquant** : non (chaîne active).
 
 ### P35 — Aligner les versions Capacitor (build Android) — HAUTE
 - **Problème** : `android-debug.yml` échoue (« Namespace not specified » sur le

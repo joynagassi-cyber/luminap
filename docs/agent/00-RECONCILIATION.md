@@ -39,7 +39,7 @@
 | **8 — Isolation & sécurité** | `scripts/rls-isolation-check.sh` ; `cypress/e2e/rls-*.cy.ts` ; R2/R97 | 7 fonctions `SECURITY DEFINER` exécutables par `authenticated` (advisors WARN) ; protection mot de passe compromis désactivée ; tests d'intrusion inter-org automatisés ; entrées hostiles (CSV/XSS) | **partiel** |
 | **9 — Sync / hors-ligne** | `powersync/sync-config.yaml` (31 streams) ; `ON_DEMAND_STREAMS` ; R89.a (FK `cat-dime`), R89.b (plafond 1000) | Débloquer R89.a ; corriger R89.b ; expériences de chaos offline ; indicateurs par élément en attente | **partiel** |
 | **10 — Design/UX/perf/a11y** | `src/ionic/theme.ts` ; catalogue d'états (T12) ; `responsive-skeleton.cy.ts` | Jetons de design consolidés ; états UX §5.1 sur **chaque** écran ; budgets perf mesurés ; contrôles a11y automatisés | **partiel** |
-| **11 — Pre-mortem / chaos / ops** | RUNBOOK ; `keep-alive` ; `backup.yml` ; R98/R99 | `PREMORTEM.md` instancié ; page de santé ; bouton « signaler » ; activation sauvegardes (escalade E3) | **à faire** |
+| **11 — Pre-mortem / chaos / ops** | RUNBOOK ; `keep-alive` ; `backup.yml` ; R98/R99 | `PREMORTEM.md` instancié ; page de santé ; bouton « signaler » ; **activation sauvegardes ✅ (E3/R99 résolues : run planifié `41036453279`, artefact chiffré)** | **partiel** |
 | **12 — Cypress** | 29 specs `cypress/e2e/*` | Suite verte + stable (bloqué env. E2E, escalade E2) ; crawler « zéro écran noir » ; couverture 100 % | **partiel / bloqué** |
 | **13-17 — Tutoriel, personnalisation, propositions, doc, validation** | `/tutoriel` ; `/settings/personnalisation` ; PROPOSITIONS.md ; RUNBOOK | Tests tutoriel ; héritage mère→annexe testé ; `PROPOSALS.md` (contrat) ; `ARCHITECTURE/SECURITY/TESTING` ; `FINAL_REPORT.md` + GO/NO-GO | **à faire** |
 

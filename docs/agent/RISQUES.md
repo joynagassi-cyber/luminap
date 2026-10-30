@@ -2903,8 +2903,8 @@ specs qui comptent ou listent. C'est la justification mesurée de **P39**
 supprimer des `groups` peut cascader vers `group_members`/`events` sans
 sauvegarde disponible).
 
-### R99 — Sauvegarde : chaîne désormais VÉRIFIÉE, mais automatisation toujours INACTIVE (critique)
-- **Gravité** : **critique** — c'est le risque n°1 pour 4 mois sans surveillance.
+### R99 — Sauvegarde : chaîne VÉRIFIÉE **et automatisation ACTIVE** — RÉSOLU (2026-10-31)
+- **Gravité initiale** : **critique** (risque n°1 pour 4 mois sans surveillance).
 - **Ce qui a été fait (2026-10-24)** :
   1. Une **sauvegarde fraîche** a été produite : schéma 136 Ko
      (43 `CREATE TABLE`, 146 politiques RLS) + données 6,3 Mo (29 tables, dont
@@ -2921,17 +2921,21 @@ sauvegarde disponible).
      n'a publié **aucun artefact** (`total_count = 0`) car le secret est absent.
   Les fichiers vivent **hors du dépôt** (`/workspace/backups/`, ~10 Mo) — ils
   contiennent des données réelles, **ne pas les commiter** (dépôt public).
-- **Ce qui reste (non résolu — hors de portée de la session)** :
-  l'automatisation quotidienne (`backup.yml`) est **toujours inactive** : le
-  secret `SUPABASE_DB_URL` n'existe pas (prouvé par l'avertissement du run), et
-  le jeton de session ne permet pas de le créer (403). Côté Supabase,
-  `pitr_enabled=false` et `backups=[]`.
-- **Procédure complète et testée** : voir RUNBOOK.md §« Sauvegarde VÉRIFIÉE ».
-- **Impact 4 mois** : sans activation, **aucune sauvegarde automatique** ne
-  sera prise ; une corruption ou une erreur humaine serait irréversible. La
-  sauvegarde manuelle produite aujourd'hui **périme** (elle est figée au
-  2026-10-24) et vit dans un environnement de test voué à disparaître : le
-  propriétaire **doit la récupérer** et activer le workflow.
+- **RÉSOLUTION (2026-10-31)** — l'affirmation « automatisation toujours
+  INACTIVE » de cette entrée était **périmée** ; elle est corrigée ici :
+  - les deux secrets (`SUPABASE_DB_URL`, `BACKUP_GPG_PASSPHRASE`) sont
+    **désormais présents** : run manuel `40813667253` (2026-10-29) → étapes
+    « Export » **et** « Publier (chiffré uniquement) » exécutées, **1 artefact
+    chiffré** publié (3,9 Mo) ;
+  - **preuve planifiée** : le run **`schedule`** `41036453279` (2026-10-30
+    09:51 UTC) a **réussi** et publié l'artefact chiffré
+    `supabase-backup-41036453279` (**3,5 Mo, non expiré**) — donc la cadence
+    quotidienne (`cron: '0 3 * * *'`) **produit réellement** des sauvegardes ;
+  - le workflow est passé de manuel à **quotidien** (R138), rétention 14 j,
+    publication **conditionnée au chiffrement** (garde-fou dépôt public).
+- **Statut** : **RÉSOLU** (voir ESCALATIONS.md E3). Ce qui reste côté
+  propriétaire est **optionnel** : rétention hors-site durable (passer le dépôt
+  en privé → schedules 60 j) ; la chaîne est vérifiée (dump + restauration 10/10).
 
 ### R100 — Code d'invitation généré par `Math.random()` (non cryptographique) — CORRIGÉ
 - **Gravité** : MOYENNE (jeton porteur devinable).

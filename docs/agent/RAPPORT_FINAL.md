@@ -1188,8 +1188,12 @@ reste à activer par le propriétaire.
   une image vanilla, la restauration échoue (786 erreurs, 0 table).
 - Le rôle applicatif `powersync_role` doit exister **avant** le dump des données.
 
-**Reste à faire (critique)** : activer les secrets `SUPABASE_DB_URL` et
-`BACKUP_GPG_PASSPHRASE`, puis vérifier une exécution planifiée (R99, P31).
+**RÉSOLU (2026-10-31)** : les secrets `SUPABASE_DB_URL` et
+`BACKUP_GPG_PASSPHRASE` sont **configurés**. Preuves : run manuel `40813667253`
+(2026-10-29) → export + publication d'un artefact **chiffré** ; run **planifié**
+`41036453279` (2026-10-30) → artefact chiffré `supabase-backup-41036453279`
+(3,5 Mo, non expiré). La cadence quotidienne (`cron: '0 3 * * *'`) produit donc
+**réellement** des sauvegardes (cf. R99, E3, P31).
 
 **Note de sécurité** : la sauvegarde contient des données réelles ; elle vit
 **hors du dépôt** (`/workspace/backups/`) et ne doit **jamais** être commitée
