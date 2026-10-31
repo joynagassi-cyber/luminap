@@ -1,4 +1,4 @@
-import { CheckCircle2, AlertTriangle, XCircle, Activity, Copy, Check, RefreshCw } from "lucide-react";
+import { CheckCircle2, AlertTriangle, XCircle, Activity, Copy, Check, RefreshCw, Flag } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useState } from "react";
 
@@ -10,11 +10,17 @@ import {
   HEALTH_LEVEL_LABEL,
 } from "@/lib/health";
 import type { HealthLevel } from "@/lib/health";
-import { getRecentErrors } from "@/lib/clientErrors";
+import { getRecentErrors, captureClientError } from "@/lib/clientErrors";
+import {
+  sendProblemReport,
+  getLastProblemReport,
+} from "@/lib/reportProblem";
+import type { ProblemReport } from "@/lib/reportProblem";
 import { performLocalRecovery } from "@/lib/localRecovery";
 import { disconnectPowerSync } from "@/lib/powersync";
 import { deleteAllLocalData } from "@/lib/dataLayer";
 import { resetOrganizationId } from "@/lib/orgContext";
+import { showSuccess, showError } from "@/utils/toast";
 
 const LEVEL_ICON: Record<HealthLevel, LucideIcon> = {
   ok: CheckCircle2,
@@ -41,6 +47,50 @@ export default function Health() {
   const OverallIcon = LEVEL_ICON[report.overall];
   const [copied, setCopied] = useState(false);
   const [recovering, setRecovering] = useState(false);
+  // PR5 — « Signaler un problème » envoie désormais réellement le diagnostic.
+  // `reportOpen` affiche la zone de saisie de la note optionnelle ; `sending`
+  // verrouille le bouton le temps de l'envoi ; `lastReport` alimente la ligne
+  // « dernier signalement » (preuve locale, même sans Sentry).
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportNote, setReportNote] = useState("");
+  const [sending, setSending] = useState(false);
+  const [lastReport, setLastReport] = useState<ProblemReport | null>(() =>
+    getLastProblemReport(),
+  );
+
+  const currentInputs = () =>
+    collectHealthInputs(
+      typeof navigator !== "undefined" ? navigator.onLine : true,
+    );
+
+  // PR5 — envoi réel : Sentry (si DSN configuré) + enregistrement local.
+  const submitReport = () => {
+    setSending(true);
+    try {
+      const result = sendProblemReport(
+        currentInputs(),
+        getRecentErrors(),
+        reportNote,
+      );
+      setLastReport(result.report);
+      setReportNote("");
+      setReportOpen(false);
+      if (result.sentToSentry) {
+        showSuccess("Merci ! Votre signalement a été envoyé.");
+      } else {
+        // Dégradation gracieuse : Sentry non configuré → trace locale seule.
+        showSuccess(
+          "Signalement enregistré localement (envoi automatique indisponible).",
+        );
+      }
+    } catch (err) {
+      showError("Impossible d'envoyer le signalement. Réessayez.");
+      // Instrumenté, jamais avalé (règle R88).
+      captureClientError(err, { message: "Échec du signalement de problème" });
+    } finally {
+      setSending(false);
+    }
+  };
 
   const copyDiagnostic = async () => {
     const text = buildDiagnosticReport(
@@ -125,12 +175,99 @@ export default function Health() {
         })}
       </div>
 
+      {/* PR5 — « Signaler un problème » : ENVOI réel (Sentry + journal local).
+          La note est optionnelle ; le diagnostic est joint automatiquement. */}
+      <div
+        className="mt-4 rounded-xl p-4"
+        style={{
+          backgroundColor: "var(--surface)",
+          border: "1px solid var(--border)",
+        }}
+        data-testid="health.report-block"
+      >
+        <button
+          type="button"
+          onClick={() => setReportOpen((v) => !v)}
+          aria-expanded={reportOpen}
+          aria-label="Signaler un problème"
+          data-testid="health.report-problem"
+          className="w-full rounded-lg flex items-center justify-center gap-2 text-sm font-medium"
+          style={{
+            minHeight: 44,
+            backgroundColor: "var(--accent-primary)",
+            color: "#fff",
+          }}
+        >
+          <Flag className="w-4 h-4" aria-hidden="true" />
+          Signaler un problème
+        </button>
+
+        {reportOpen && (
+          <div className="mt-3">
+            <label
+              htmlFor="health.report-note"
+              className="block text-text-secondary text-xs mb-1"
+            >
+              Décrivez le problème (facultatif)
+            </label>
+            <textarea
+              id="health.report-note"
+              data-testid="health.report-note"
+              value={reportNote}
+              onChange={(e) => setReportNote(e.target.value)}
+              rows={3}
+              maxLength={1000}
+              placeholder="Ce qui s'est passé, à quel moment…"
+              className="w-full rounded-lg p-2 text-sm"
+              style={{
+                backgroundColor: "var(--card)",
+                border: "1px solid var(--border)",
+                color: "var(--text-primary)",
+                resize: "vertical",
+              }}
+            />
+            <p className="mt-1 text-text-tertiary text-xs">
+              Aucune donnée personnelle n'est transmise : version, plateforme,
+              état du système et codes d'erreur uniquement.
+            </p>
+            <button
+              type="button"
+              onClick={submitReport}
+              disabled={sending}
+              aria-label="Envoyer le signalement"
+              data-testid="health.report-send"
+              className="mt-3 w-full rounded-lg flex items-center justify-center gap-2 text-sm font-medium"
+              style={{
+                minHeight: 44,
+                backgroundColor: "var(--accent-primary)",
+                color: "#fff",
+                opacity: sending ? 0.6 : 1,
+              }}
+            >
+              <Flag className="w-4 h-4" aria-hidden="true" />
+              {sending ? "Envoi…" : "Envoyer le signalement"}
+            </button>
+          </div>
+        )}
+
+        {lastReport && (
+          <p
+            className="mt-3 text-text-tertiary text-xs"
+            data-testid="health.last-report"
+          >
+            Dernier signalement :{" "}
+            {new Date(lastReport.generatedAt).toLocaleString()}
+          </p>
+        )}
+      </div>
+
+      {/* Affordance séparée : copier le diagnostic pour le support. */}
       <button
         type="button"
         onClick={copyDiagnostic}
-        aria-label="Signaler un problème : copier le diagnostic"
-        data-testid="health.report-problem"
-        className="mt-4 w-full rounded-lg flex items-center justify-center gap-2 text-sm font-medium"
+        aria-label="Copier le diagnostic"
+        data-testid="health.copy-diagnostic"
+        className="mt-3 w-full rounded-lg flex items-center justify-center gap-2 text-sm font-medium"
         style={{
           minHeight: 44,
           backgroundColor: "var(--surface)",
@@ -143,7 +280,7 @@ export default function Health() {
         ) : (
           <Copy className="w-4 h-4" aria-hidden="true" />
         )}
-        {copied ? "Diagnostic copié" : "Signaler un problème"}
+        {copied ? "Diagnostic copié" : "Copier le diagnostic"}
       </button>
 
       <div className="flex items-center gap-2 mt-4 text-text-tertiary text-xs">
