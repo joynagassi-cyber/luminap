@@ -29,6 +29,7 @@ import { setOrgSetting, ORG_SETTING_KEYS } from "@/lib/orgSettings";
 import { downloadBlob } from "@/lib/download";
 import { backupFilename, serializeBackup, backupToCsv } from "@/lib/backup";
 import { captureClientError } from "@/lib/clientErrors";
+import { recordUsage } from "@/lib/usageStats";
 import { toast } from "@/components/ui/use-toast";
 
 interface ActionItem {
@@ -163,6 +164,9 @@ export default function SettingsGestion() {
     try {
       const bundle = backup.buildBundle();
       const exportedAt = bundle.exportedAt;
+      // PR15 — statistique d'usage anonymisée de l'action d'export (compteur
+      // local uniquement ; aucun identifiant, aucun contenu exporté).
+      recordUsage(kind === "json" ? "action:export-json" : "action:export-csv");
       if (kind === "json") {
         const blob = new Blob([serializeBackup(bundle)], {
           type: "application/json",
