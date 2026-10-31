@@ -429,6 +429,16 @@ function setPowerSyncReady(ready: boolean) {
  * squelette perptuel muet (contrat P0 « zero ecran noir »).
  */
 export function markPowerSyncUnavailable(): void {
+  // Mode E2E : quand le harness a posé le marqueur de réplique prête, la
+  // bannière « synchronisation indisponible » ne doit jamais s'afficher —
+  // sinon elle recouvre les boutons que les specs cliquent (elle est
+  // `position: fixed` en bas d'écran). Le harness simule explicitement une
+  // réplique prête (le service PowerSync Cloud refuse l'audience JWT,
+  // PSYNC_S2105) : l'état « indisponible » est donc un artefact de test.
+  // DEV uniquement (aucun impact en production).
+  if (typeof localStorage !== "undefined" && localStorage.getItem("__e2e-ps-ready") === "1") {
+    return;
+  }
   if (_psUnavailable) return;
   _psUnavailable = true;
   _unavailableListeners.forEach((l) => l());

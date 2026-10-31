@@ -361,8 +361,28 @@ export const useLocalStore = create<LocalStoreState>()(
 
       selectRole: async (role) => {
         try {
-          const sessionId =
-            localStorage.getItem("lumina-session") ?? crypto.randomUUID();
+          // L'id de session sert de `created_by_id`/`approved_by_id` sur les
+          // transactions, colonnes `uuid` avec FK → `auth.users(id)`. Un UUID
+          // ALÉATOIRE (ancien comportement) ne correspond à aucun utilisateur :
+          // chaque transaction hors-ligne était rejetée à l'upload en 23503
+          // (« violates foreign key constraint transactions_created_by_id_fkey »)
+          // et restait bloquée dans la file. On réutilise donc l'id RÉEL du
+          // profil connecté (`lumina-user`) ; repli aléatoire seulement quand
+          // aucun profil n'est encore connu (avant hydratation).
+          // Priorité à l'id RÉEL du profil (`lumina-user`) : une valeur
+          // aléatoire héritée d'un ancien run doit être CORRIGÉE, pas
+          // conservée. Replis successifs : session déjà posée → aléatoire.
+          let sessionId: string | null = null;
+          try {
+            const raw = localStorage.getItem("lumina-user");
+            sessionId = raw ? (JSON.parse(raw) as { id?: string }).id ?? null : null;
+          } catch {
+            /* lumina-user absent ou malformé — repli ci-dessous */
+          }
+          sessionId =
+            sessionId ??
+            localStorage.getItem("lumina-session") ??
+            crypto.randomUUID();
           localStorage.setItem("lumina-session", sessionId);
           localStorage.setItem("lumina-role", role);
         } catch {
