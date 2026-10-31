@@ -28,6 +28,7 @@ import {
   Settings,
   HelpCircle,
   AlertCircle,
+  ShieldCheck,
   Database,
 } from "lucide-react";
 
@@ -596,6 +597,30 @@ const SECTIONS: SectionData[] = [
     ],
     warnings: [
       "Les statistiques d'usage ne sont jamais un journal d'activité nominatif : impossible de savoir QUI a utilisé un écran.",
+    ],
+  },
+  {
+    id: "approbation-deux-etapes",
+    title: "Approbation en deux étapes",
+    icon: ShieldCheck,
+    color: "var(--data-income)",
+    iconBg: "color-mix(in srgb, var(--data-income) 12%, transparent)",
+    titleColor: "var(--data-income)",
+    paragraphs: [
+      "L'approbation en deux étapes (maker-checker) est un contrôle financier : la personne qui CRÉE une transaction ne peut pas être celle qui l'APPROUVE. Celui qui engage la dépense est donc distinct de celui qui la valide.",
+      "Ce réglage est OPTIONNEL et propre à chaque organisation : il est DÉSACTIVÉ par défaut, pour que les églises gérées par un seul administrateur continuent de fonctionner comme avant.",
+      "Un administrateur l'active dans Paramètres → onglet « Gérer » → section « Contrôle financier », en basculant l'interrupteur « Approbation en deux étapes ».",
+      "Quand il est actif, l'auteur d'une transaction en attente voit le bouton « Approuver » désactivé, avec l'explication « L'auteur ne peut pas approuver sa propre dépense ». Un autre membre disposant de la permission d'approbation peut valider la transaction normalement.",
+      "La permission d'approbation reste requise dans tous les cas : activer le réglage ajoute une contrainte, il n'en retire jamais. Sans le droit d'approuver, personne ne peut valider, auteur ou non.",
+      "Le refus est appliqué au niveau de la base de données locale (et pas seulement du bouton) : même une action détournée ne peut pas enregistrer une auto-approbation. Le message d'erreur est explicite.",
+    ],
+    tips: [
+      "Activez-le dès que plusieurs personnes saisissent et approuvent des dépenses, pour éviter qu'une même personne engage et valide.",
+      "Désactivez-le temporairement si un seul responsable est disponible : le comportement historique revient immédiatement.",
+      "Le réglage se synchronise entre les appareils de l'organisation, comme les autres paramètres.",
+    ],
+    warnings: [
+      "Avec le réglage actif, prévoyez au moins deux personnes autorisées à approuver : sinon plus aucune transaction ne pourra être validée.",
     ],
   },
 ];
