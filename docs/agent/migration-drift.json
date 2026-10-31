@@ -5,9 +5,9 @@
   "source_of_truth": "Base = source de verite (schema applique via editeur SQL / MCP, pas via `supabase db push`). Le tracker `supabase_migrations.schema_migrations` et les fichiers `supabase/migrations/` sont deux historiques disjoints.",
   "measured": {
     "applied_versions_in_tracker": 82,
-    "repo_timestamped_files": 74,
+    "repo_timestamped_files": 75,
     "repo_sequential_files": 63,
-    "repo_total_sql_files": 137,
+    "repo_total_sql_files": 138,
     "versions_in_common": 2,
     "common_versions": [
       "20261001000001",
@@ -16,7 +16,7 @@
     "applied_without_repo_file": 70,
     "repo_file_never_applied": 65,
     "drift_ratio": "2/82",
-    "repo_filenames_sha256": "d35c703a7a2395900d73f72a54d542c15b08083d8a904599120f01dfb3e12377",
+    "repo_filenames_sha256": "6f05b9e3b22afe0b253a64254492dd7b71f3b9901b8639e18e4d8870c8d2e84c",
     "repo_db_object_delta": {
       "measured": "2026-10-31",
       "method": "recoupement exhaustif depot <-> base (tables, fonctions, triggers, vues)",
@@ -61,5 +61,8 @@
   "notes_org_federation": [
     "1 migration ajoutee 20261031000006 (reconciliation R17 : la vue `public.org_federation` existait en base SANS aucun CREATE dans le depot -> une base reconstruite ne l'aurait pas eue). Recreee idempotemment (CREATE OR REPLACE VIEW, definition identique, security_invoker=true) ; grants conserves (CREATE OR REPLACE preserve l'OID). Tracker re-mesure : 82.",
     "Etat des vues : 2 en base (org_family, org_federation) ; les 2 sont desormais creees par le depot. Objets DB sans CREATE depot restants : `keep_alive` (CREATE dans supabase/keep-alive.sql, hors migrations) et `rls_auto_enable` (evenement Supabase, pas un objet de ce projet) ; `settle_pending_claims_for_invitation` est reference par des migrations (ALTER/REVOKE) mais son CREATE est hors depot."
+  ],
+  "notes_org_settings": [
+    "1 migration ajoutee 20261031000007 (org_settings : socle de reglages par organisation, PR8 maker-checker + PR13 gel de periode). Additive (CREATE TABLE + RLS admin:settings). Tracker non re-mesure (inaccessible en CI)."
   ]
 }

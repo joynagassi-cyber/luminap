@@ -330,6 +330,15 @@ streams:
       SELECT * FROM tags
       WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
 
+  # Réglages par organisation (PR8 maker-checker, PR13 gel de période).
+  # auto_subscribe : les réglages sont peu nombreux et nécessaires dès le
+  # démarrage (l'écran de transaction doit connaître le gel de période).
+  org_settings:
+    auto_subscribe: true
+    query: |
+      SELECT * FROM org_settings
+      WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+
   tag_assignments:
     auto_subscribe: false
     query: SELECT * FROM tag_assignments WHERE user_id = auth.user_id()
