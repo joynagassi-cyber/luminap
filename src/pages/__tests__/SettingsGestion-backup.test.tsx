@@ -84,6 +84,14 @@ vi.mock("@/components/PeriodLockCard", () => ({
   default: () => null,
 }));
 
+vi.mock("@/hooks/useMakerChecker", () => ({
+  useMakerChecker: () => ({ enabled: false, loaded: true }),
+}));
+
+vi.mock("@/hooks/useCanAccessMulti", () => ({
+  useCanAccessMulti: () => ({ allowed: false, canAccess: false, loading: false, source: "test" }),
+}));
+
 import SettingsGestion from "@/pages/SettingsGestion";
 
 function renderPage() {

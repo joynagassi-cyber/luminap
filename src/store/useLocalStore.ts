@@ -15,6 +15,7 @@ import { create } from "zustand";
 import { lifecycle } from "@/capabilities/lifecycle";
 import { relationship } from "@/capabilities/relationship";
 import { getOrganizationId } from "@/lib/orgContext";
+import { isMakerCheckerEnabled } from "@/lib/makerCheckerSettings";
 import { createVersement as createVersementService } from "@/lib/versement-service";
 import { createGroup as createGroupService } from "@/lib/group-service";
 import {
@@ -432,18 +433,23 @@ export const useLocalStore = create<LocalStoreState>()(
 
       approveTransaction: async (id, userId) => {
         const now = new Date().toISOString();
+        const actorId = userId ?? snap().user.id;
+        // PR8 maker-checker : la garde est évaluée AVANT toute écriture ; un
+        // refus lève une erreur typée (jamais un refus silencieux).
+        const enabled = await isMakerCheckerEnabled();
         set({
           transactions: buildApproveTransaction(
             snap().transactions,
             id,
-            userId ?? snap().user.id,
+            actorId,
             now,
+            { enabled },
           ),
         });
         try {
           await updateTransactionPS(id, {
             status: "APPROVED",
-            approved_by_id: userId ?? snap().user.id,
+            approved_by_id: actorId,
             approved_at: now,
           });
         } catch (e) {
@@ -453,25 +459,29 @@ export const useLocalStore = create<LocalStoreState>()(
 
       batchApproveTransactions: async (ids, userId) => {
         const now = new Date().toISOString();
+        const actorId = userId ?? snap().user.id;
+        const enabled = await isMakerCheckerEnabled();
+        // Refus AVANT toute écriture : le lot entier est refusé si une
+        // transaction a été créée par l'acteur (pas d'approbation partielle).
+        const nextTransactions = buildBatchApproveTransactions(
+          snap().transactions,
+          ids,
+          actorId,
+          now,
+          { enabled },
+        );
         for (const txId of ids) {
           try {
             await updateTransactionPS(txId, {
               status: "APPROVED",
-              approved_by_id: userId ?? snap().user.id,
+              approved_by_id: actorId,
               approved_at: now,
             });
           } catch (e) {
             console.error("[Store] Failed to approve:", txId, e);
           }
         }
-        set({
-          transactions: buildBatchApproveTransactions(
-            snap().transactions,
-            ids,
-            userId ?? snap().user.id,
-            now,
-          ),
-        });
+        set({ transactions: nextTransactions });
       },
 
       reverseTransaction: async (id, reason) => {

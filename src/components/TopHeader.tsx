@@ -1,4 +1,4 @@
-import { Bell, Settings, LayoutDashboard } from "lucide-react";
+import { Bell, Search, Settings, LayoutDashboard } from "lucide-react";
 import { IonHeader, IonToolbar } from "@ionic/react";
 import { useLocalStore } from "@/store/useLocalStore";
 import { useNavigate } from "react-router-dom";
@@ -11,6 +11,7 @@ import {
   useOrganizationContext,
   exitToCentral,
 } from "@/lib/organization-context";
+import { isFeatureEnabled } from "@/lib/featureFlags";
 
 export default function TopHeader({ title }: { title?: string }) {
   const { notifications, markAllNotificationsRead } = useLocalStore();
@@ -85,6 +86,21 @@ export default function TopHeader({ title }: { title?: string }) {
           <div className="flex items-center gap-2">
             {/* L22 — hitzone tactile 44px / visuel 36px via classes CSS nommées
                 (.topheader-action, App.css) plutôt qu'un objet style inline 25 lignes. */}
+            {/* PR11 — recherche globale : entrée visible vers /search, coupée
+                par le kill switch `global-search` (fail-open). */}
+            {isFeatureEnabled("global-search") && (
+              <button
+                type="button"
+                onClick={() => navigate("/search")}
+                className="topheader-action"
+                aria-label="Rechercher"
+                title="Rechercher"
+              >
+                <span className="topheader-action-visual">
+                  <Search className="w-4 h-4 text-text-secondary" />
+                </span>
+              </button>
+            )}
             <button
               type="button"
               onClick={handleNotificationsClick}

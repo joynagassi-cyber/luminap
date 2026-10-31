@@ -6,9 +6,8 @@ import {
   useCaisses,
   useEvents,
   addTransactionPS,
-  addDocumentPS,
 } from "@/lib/dataLayer";
-import { uploadLuminaFile } from "@/lib/storageService";
+import { addReceipt } from "@/lib/receipts";
 import {
   ArrowLeft,
   Wallet,
@@ -168,29 +167,14 @@ export default function TransactionNew() {
       return;
     }
 
-    // Preuves de la dépense : montée des photos dans le bucket privé
-    // `expense_proofs` + métadonnée `documents` (liée à la transaction).
+    // Justificatifs (PR9) : upload dans le bucket privé `expense_proofs` +
+    // métadonnée `transaction_attachments` (synchronisée). `documents` n'a
+    // aucun stream PowerSync : y déposer la preuve la rendait invisible.
     if (isExpense && proofPhotos.length > 0) {
       setProofUploading(true);
       try {
         for (const photo of proofPhotos) {
-          const path = await uploadLuminaFile(
-            "expense_proofs",
-            photo,
-            txId,
-          );
-          await addDocumentPS({
-            title: `Preuve de dépense — ${trimmedDesc}`,
-            purpose: "Attestation irréfutable de la dépense",
-            bucket: "expense_proofs",
-            file_path: path,
-            file_size: photo.size,
-            mime_type: photo.type || "image/*",
-            entity_type: "EXPENSE_PROOF",
-            entity_id: txId,
-            status: "ACTIVE",
-            uploaded_by: sessionId,
-          });
+          await addReceipt(txId, photo, { uploadedBy: sessionId });
         }
         setProofPhotos([]);
       } catch {

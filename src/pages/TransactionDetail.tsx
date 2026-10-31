@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { ListSkeleton } from "@/components/Skeleton";
 import { useFocusTrap } from "@/hooks/useFocusTrap";
 import { useNavigate, useParams } from "react-router-dom";
@@ -12,9 +12,7 @@ import {
   deleteTransactionPS,
   approveTransactionPS,
   reverseTransactionPS,
-  useDocuments,
 } from "@/lib/dataLayer";
-import { getDocumentUrl } from "@/lib/storageService";
 import {
   formatCurrencyCompact,
   formatDate,
@@ -29,12 +27,16 @@ import {
   Trash2,
   AlertCircle,
   RotateCcw,
-  Download,
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
+import JustificatifsSection from "@/components/JustificatifsSection";
+import { purgeReceiptsForTransaction } from "@/lib/receipts";
 import { useCanAccessMulti } from "@/hooks/useCanAccessMulti";
 import { useSubmitGuard } from "@/hooks/useSubmitGuard";
+import { useMakerChecker } from "@/hooks/useMakerChecker";
+import { canApprove as canApproveRule } from "@/lib/makerChecker";
+import { toast } from "@/components/ui/use-toast";
 import { notification } from "@/capabilities/notification";
 import { showError } from "@/utils/toast";
 import { captureClientError } from "@/lib/clientErrors";
@@ -105,22 +107,10 @@ export default function TransactionDetail() {
       }
     });
 
-  // Preuves de dépense (photos dans le bucket `expense_proofs`).
-  const { data: docData } = useDocuments();
-  const proofs = (docData ?? []).filter(
-    (d) => d.entity_id === id && d.entity_type === "EXPENSE_PROOF",
-  );
-  const [proofUrls, setProofUrls] = useState<Record<string, string>>({});
-  useEffect(() => {
-    proofs.forEach(async (d) => {
-      try {
-        const u = await getDocumentUrl("expense_proofs", d.file_path);
-        setProofUrls((p) => ({ ...p, [d.id]: u }));
-      } catch {
-        /* hors ligne — l'aperçu reste indisponible, le bouton Télécharger aussi */
-      }
-    });
-  }, [proofs.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  // PR8 maker-checker : réglage par organisation (défaut OFF). Monté AVANT tout
+  // `return` conditionnel (règle des hooks). `enabled` reste faux tant que le
+  // réglage n'a pas été lu → aucune contrainte par accident.
+  const makerChecker = useMakerChecker();
 
   const tx = transactions.find((t: any) => t.id === id);
 
@@ -165,6 +155,17 @@ export default function TransactionDetail() {
   }
 
   const isIncome = tx.type === "INCOME";
+
+  // PR8 maker-checker — l'acteur est-il l'auteur de la transaction, avec le
+  // réglage actif ? La règle PURE `canApprove` tranche (permission + auteur) :
+  // l'UI ne réimplémente pas la décision, elle l'affiche.
+  const approveDecision = canApproveRule({
+    transaction: { createdById: (tx as any).createdById ?? (tx as any).created_by_id },
+    actorId: user?.id ?? "",
+    actorPermissions: canApproveMulti.allowed ? ["transaction:approve"] : [],
+    enabled: makerChecker.enabled,
+  });
+  const selfApprovalBlocked = approveDecision.reason === "self-approval";
   const category =
     (tx as any).category ||
     categories.find(
@@ -179,6 +180,17 @@ export default function TransactionDetail() {
 
   const handleApprove = () => {
     if (!canApproveMulti.allowed) {
+      return;
+    }
+    // PR8 — refus AVANT toute écriture : le chemin d'écriture lèverait une
+    // erreur typée, mais on évite ici d'ouvrir une fenêtre de double-soumission
+    // pour une action qui ne peut pas aboutir.
+    if (selfApprovalBlocked) {
+      toast({
+        title: "Approbation impossible",
+        description: "L'auteur ne peut pas approuver sa propre dépense.",
+        variant: "destructive",
+      });
       return;
     }
     return runWrite(async () => {
@@ -226,6 +238,10 @@ export default function TransactionDetail() {
       return;
     }
     return runWrite(async () => {
+      // PR9 — ne pas laisser de blob orphelin : purge best-effort des
+      // justificatifs (lignes + objets Storage) AVANT de supprimer la
+      // transaction (la FK est en ON DELETE CASCADE pour les lignes).
+      await purgeReceiptsForTransaction(tx.id);
       await deleteTransactionPS(tx.id);
       await notification.sendNotification({
         title: "Transaction supprimée",
@@ -415,14 +431,27 @@ export default function TransactionDetail() {
               {tx.status === "PENDING" && (
                 <>
                   {canApproveMulti.allowed && (
-                    <button
-                      onClick={handleApprove}
-                      disabled={guard.submitting}
-                      className="w-full py-4 rounded-full font-semibold text-on-accent text-sm transition-all active:scale-95"
-                      style={{ backgroundColor: "var(--data-income)" }}
-                    >
-                      Approuver
-                    </button>
+                    <>
+                      <button
+                        onClick={handleApprove}
+                        disabled={guard.submitting || selfApprovalBlocked}
+                        data-testid="approve-button"
+                        className="w-full py-4 rounded-full font-semibold text-on-accent text-sm transition-all active:scale-95 disabled:opacity-50"
+                        style={{ backgroundColor: "var(--data-income)" }}
+                      >
+                        Approuver
+                      </button>
+                      {selfApprovalBlocked && (
+                        <p
+                          data-testid="self-approval-notice"
+                          role="note"
+                          className="text-xs px-1"
+                          style={{ color: "var(--data-expense)" }}
+                        >
+                          L'auteur ne peut pas approuver sa propre dépense.
+                        </p>
+                      )}
+                    </>
                   )}
                   {canRejectMulti.allowed && (
                     <button
@@ -503,90 +532,9 @@ export default function TransactionDetail() {
               </div>
             )}
 
-            {/* Preuve de la dépense */}
-            {(tx as any).type === "EXPENSE" && (
-              <div
-                className="rounded-xl p-4 mb-6"
-                style={{
-                  backgroundColor: "var(--surface)",
-                  border: "1px solid var(--border)",
-                }}
-              >
-                <p className="text-text-tertiary text-xs mb-2 font-medium">
-                  Preuve de la dépense
-                </p>
-                {proofs.length === 0 ? (
-                  <p className="text-text-tertiary text-xs">
-                    Aucune preuve fournie
-                  </p>
-                ) : (
-                  <div className="grid grid-cols-2 gap-2">
-                    {proofs.map((d) =>
-                      proofUrls[d.id] ? (
-                        <a
-                          key={d.id}
-                          href={proofUrls[d.id]}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="relative rounded-lg overflow-hidden block"
-                          style={{
-                            height: "7rem",
-                            border: "1px solid var(--border)",
-                          }}
-                          aria-label={`Voir la preuve : ${d.title}`}
-                        >
-                          <img
-                            src={proofUrls[d.id]}
-                            alt={d.title}
-                            className="w-full h-full object-cover"
-                          />
-                        </a>
-                      ) : (
-                        <div
-                          key={d.id}
-                          className="rounded-lg overflow-hidden flex items-center justify-center"
-                          style={{
-                            height: "7rem",
-                            border: "1px solid var(--border)",
-                            backgroundColor: "var(--surface)",
-                          }}
-                          aria-label={`Preuve indisponible hors ligne : ${d.title}`}
-                        >
-                          <Download className="w-5 h-5 text-text-tertiary" />
-                        </div>
-                      ),
-                    )}
-                  </div>
-                )}
-                {proofs.length > 0 && (
-                  <div className="flex gap-2 mt-3">
-                    {proofs.map((d) => (
-                      <button
-                        key={d.id}
-                        onClick={async () => {
-                          try {
-                            const u =
-                              proofUrls[d.id] ||
-                              (await getDocumentUrl("expense_proofs", d.file_path));
-                            window.open(u, "_blank");
-                          } catch {
-                            /* hors ligne */
-                          }
-                        }}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs"
-                        style={{
-                          backgroundColor: "var(--surface-hover)",
-                          color: "var(--text-primary)",
-                        }}
-                      >
-                        <Download className="w-3.5 h-3.5" />
-                        Télécharger
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+            {/* Justificatifs (reçus) — PR9 : image ou PDF attaché à la
+                transaction, synchronisé entre appareils de l'organisation. */}
+            <JustificatifsSection transactionId={tx.id} />
 
             {/* Reject Modal */}
             {showRejectModal && (

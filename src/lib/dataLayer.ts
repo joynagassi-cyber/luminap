@@ -32,6 +32,8 @@ import { get, set, invalidate, clear, asyncGetOrSet } from "./cache";
 import { authService } from "./auth";
 import { assertPeriodOpen, getLockedUntil } from "./periodLock";
 import { isFeatureEnabled } from "./featureFlags";
+import { assertApprovable } from "./makerChecker";
+import { isMakerCheckerEnabled } from "./makerCheckerSettings";
 
 
 // ============================================================
@@ -2888,6 +2890,7 @@ export async function updateFormSubmissionPS(
 export { createVersement } from "./versement-service";
 export { createNotification, markNotificationRead, markAllNotificationsRead } from "./notification-service";
 export {
+  validateAddTransaction,
   buildAddTransaction,
   persistAddTransaction,
   auditAddTransaction,
@@ -2950,6 +2953,11 @@ export {
 
 /**
  * Approve a transaction via PowerSync
+ *
+ * PR8 maker-checker : quand le réglage d'organisation est actif, l'auteur de la
+ * transaction ne peut pas l'approuver — on lève une `MakerCheckerError` typée
+ * (jamais un refus silencieux). Par défaut (réglage absent), comportement
+ * historique inchangé.
  */
 export async function approveTransactionPS(
   id: string,
@@ -2964,6 +2972,20 @@ export async function approveTransactionPS(
   );
   await assertTransactionWritable((existing?.array?.[0] as any)?.date);
 
+  // PR8 maker-checker : si le réglage est actif, l'auteur ne peut pas approuver.
+  const enabled = await isMakerCheckerEnabled();
+  if (enabled) {
+    const res = await db.execute(
+      "SELECT created_by_id FROM transactions WHERE id = ?",
+      [id],
+    );
+    const row = (res?.array?.[0] ?? res?.[0]) as
+      | { created_by_id?: string | null }
+      | undefined;
+    assertApprovable({ createdById: row?.created_by_id ?? null }, userId, {
+      enabled: true,
+    });
+  }
   const now = new Date().toISOString();
   await executeWrite(
     `UPDATE transactions SET status = 'APPROVED', approved_by_id = ?, approved_at = ?, updated_at = ? WHERE id = ?`,
@@ -3971,4 +3993,32 @@ export async function markReportRead(reportId: string): Promise<void> {
      WHERE id = ? AND read_at IS NULL`,
     [now, now, reportId],
   );
+}
+
+/**
+ * Dernier rapport ÉMIS par l'org courante (`org_reports.from_org_id = current`),
+ * par `period_start` décroissante. Sert au rappel PR10 (`computeReportReminder`).
+ *
+ * `lastSentAt` = `created_at` (moment d'émission), avec repli sur `period_start`
+ * (la ligne peut provenir d'un ancien enregistrement sans `created_at`).
+ *
+ * `loaded` distingue « pas encore lu » de « aucun rapport envoyé » (règle R52 :
+ * ne jamais annoncer un fait faux avant la première lecture PowerSync).
+ */
+export function useLastSentReport(orgId?: string) {
+  const org = orgId ?? getOrganizationId();
+  const { data: psData } = useQuery<
+    Pick<PSOrgReports, "id" | "period_start" | "created_at" | "status">
+  >(
+    `SELECT id, period_start, created_at, status
+     FROM org_reports WHERE from_org_id = ?
+     ORDER BY period_start DESC LIMIT 1`,
+    [org],
+    { reportFetching: true },
+  );
+  const row = psData?.[0];
+  return {
+    lastSentAt: (row?.created_at ?? row?.period_start ?? null) as string | null,
+    loaded: psData !== undefined,
+  };
 }

@@ -32,6 +32,37 @@ function startsWithRiskyPrefix(text: string): boolean {
   );
 }
 
+/**
+ * Vrai si la cellule commence par un déclencheur de formule (OWASP) : `=`,
+ * `+`, `-`, `@`, TAB/CR/LF, ou un caractère de contrôle C0 suivi d'un
+ * déclencheur. Exposé pour l'IMPORT (PR12) qui doit appliquer la MÊME règle
+ * que l'export — une seule source de vérité, pas de logique dupliquée.
+ */
+export function startsWithFormulaTrigger(text: string): boolean {
+  return startsWithRiskyPrefix(text);
+}
+
+/**
+ * Inverse de `escapeCsvCell` pour l'IMPORT (PR12) : neutralise un déclencheur
+ * de formule en tête de cellule en préfixant une apostrophe — exactement la
+ * règle appliquée à l'export (OWASP « CSV injection »). Le texte reste lisible
+ * dans un tableur, mais ne peut plus s'exécuter comme formule après un
+ * aller-retour export → import → export.
+ *
+ * Retourne la valeur neutralisée et un drapeau `sanitized` pour que l'appelant
+ * puisse journaliser un avertissement de nettoyage.
+ */
+export function sanitizeImportedCell(value: unknown): {
+  value: string;
+  sanitized: boolean;
+} {
+  const text = value == null ? "" : String(value);
+  if (text.length > 0 && startsWithRiskyPrefix(text)) {
+    return { value: "'" + text, sanitized: true };
+  }
+  return { value: text, sanitized: false };
+}
+
 export function escapeCsvCell(value: unknown, delimiter = ";"): string {
   if (value == null) return "";
   let text = typeof value === "object" ? JSON.stringify(value) : String(value);
