@@ -2,12 +2,10 @@ import { PowerSyncDatabase } from "@powersync/web";
 import { AppSchema } from "./schema";
 import { SupabaseConnector } from "./SupabaseConnector";
 import { supabase } from "@/lib/auth";
-// Import statique volontaire : `publishDevDiagnostics()` est appelé depuis
-// `initPowerSync()` (bien après le chargement de tous les modules), donc
-// l'appel synchrone ci-dessous est sûr — contrairement à un import
-// dynamique qui laissait une fenêtre où un écran gardé montait encore sur
-// son squelette avant que l'état « prête » ne soit posé.
-import { markPowerSyncReady } from "@/lib/dataLayer";
+// Import du module de disponibilité (minuscule, sans dépendance) — PAS
+// `@/lib/dataLayer` : importer ce dernier tirait tout le data layer (≈ 3 900
+// lignes) dans le chunk d'entrée et cassait le découpage de code (R116).
+import { markPowerSyncReady } from "./readiness";
 
 // Singleton instance
 let _db: PowerSyncDatabase | null = null;
@@ -28,10 +26,8 @@ function publishDevDiagnostics() {
     // E2E : force l'état « réplique prête ». Le service PowerSync Cloud peut
     // refuser l'audience JWT (PSYNC_S2105) ; les specs E2E hors-ligne
     // seedent alors la base locale et marquent la réplique prête pour que
-    // les écrans rendent au lieu de rester sur leur squelette. Import
-    // dynamique : `dataLayer` importe ce module (cycle évité).
-    win.__psMarkReady = () =>
-      import("@/lib/dataLayer").then((m) => m.markPowerSyncReady());
+    // les écrans rendent au lieu de rester sur leur squelette.
+    win.__psMarkReady = () => markPowerSyncReady();
     // Le drapeau de readiness est un état de module : il est REMIS à `false`
     // à chaque rechargement de page. `cy.visit()` recharge la SPA, donc les
     // specs qui visitent une page gardée APRÈS le seed retombent sur le

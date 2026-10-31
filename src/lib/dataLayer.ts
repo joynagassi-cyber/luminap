@@ -399,76 +399,32 @@ export interface PSDocument {
 // ============================================================
 // Internal helper: check if PowerSync is initialized
 // ============================================================
+// L'état de disponibilité vit dans `@/lib/powersync/readiness` (module
+// minuscule, sans dépendance) afin que `@/lib/powersync` (initialisation)
+// puisse le lire sans tirer tout `dataLayer` dans le chunk d'entrée (budget
+// perf R116). Importé pour usage interne ET ré-exporté pour ne pas rompre
+// les appelants existants.
+import {
+  isPowerSyncReady,
+  setPowerSyncReady,
+  markPowerSyncReady,
+  markPowerSyncUnavailable,
+  subscribePowerSyncReady,
+  subscribePowerSyncUnavailable,
+  isPowerSyncReadyNow,
+  isPowerSyncUnavailableNow,
+} from "./powersync/readiness";
+export {
+  isPowerSyncReady,
+  setPowerSyncReady,
+  markPowerSyncReady,
+  markPowerSyncUnavailable,
+  subscribePowerSyncReady,
+  subscribePowerSyncUnavailable,
+  isPowerSyncReadyNow,
+  isPowerSyncUnavailableNow,
+};
 
-let _psReady = false;
-// Vrai quand la replique n'est PAS devenue prete dans le delai imparti
-// (auth PowerSync refusee, reseau coupe). Sort l'app du chargement perpetuel
-// muet en exposant un etat explicite « synchronisation indisponible » (P0).
-let _psUnavailable = false;
-
-function isPowerSyncReady(): boolean {
-  return _psReady;
-}
-
-const _readyListeners = new Set<() => void>();
-const _unavailableListeners = new Set<() => void>();
-
-function setPowerSyncReady(ready: boolean) {
-  if (ready) _psUnavailable = false;
-  if (_psReady === ready) return;
-  _psReady = ready;
-  if (ready) {
-    _readyListeners.forEach((l) => l());
-    _unavailableListeners.forEach((l) => l());
-  }
-}
-
-/**
- * Marque la replique comme INDISPONIBLE (delai de disponibilite depasse sans
- * connexion). Les ecrans affichent alors un etat explicite plutot qu'un
- * squelette perptuel muet (contrat P0 « zero ecran noir »).
- */
-export function markPowerSyncUnavailable(): void {
-  // Mode E2E : quand le harness a posé le marqueur de réplique prête, la
-  // bannière « synchronisation indisponible » ne doit jamais s'afficher —
-  // sinon elle recouvre les boutons que les specs cliquent (elle est
-  // `position: fixed` en bas d'écran). Le harness simule explicitement une
-  // réplique prête (le service PowerSync Cloud refuse l'audience JWT,
-  // PSYNC_S2105) : l'état « indisponible » est donc un artefact de test.
-  // DEV uniquement (aucun impact en production).
-  if (typeof localStorage !== "undefined" && localStorage.getItem("__e2e-ps-ready") === "1") {
-    return;
-  }
-  if (_psUnavailable) return;
-  _psUnavailable = true;
-  _unavailableListeners.forEach((l) => l());
-}
-
-/** S'abonner au passage « PowerSync pret » (etat one-shot). */
-export function subscribePowerSyncReady(listener: () => void): () => void {
-  _readyListeners.add(listener);
-  return () => {
-    _readyListeners.delete(listener);
-  };
-}
-
-/** S'abonner au passage « replique indisponible » (etat one-shot). */
-export function subscribePowerSyncUnavailable(listener: () => void): () => void {
-  _unavailableListeners.add(listener);
-  return () => {
-    _unavailableListeners.delete(listener);
-  };
-}
-
-/** Etat courant, lisible hors React (pour choisir un etat de repli). */
-export function isPowerSyncReadyNow(): boolean {
-  return _psReady;
-}
-
-/** La replique est-elle declaree indisponible (delai depasse) ? */
-export function isPowerSyncUnavailableNow(): boolean {
-  return _psUnavailable;
-}
 
 /**
  * Decode `budget_items` de facon tolerante.
@@ -1037,14 +993,6 @@ export async function getGroupMembershipsPS(): Promise<PSGroupMembership[]> {
 // ============================================================
 // Migration gate: signal when PowerSync is fully initialized
 // ============================================================
-
-/**
- * Call this once after PowerSync is initialized to signal readiness.
- * This should be called from the root component or App.tsx
- */
-export function markPowerSyncReady(): void {
-  setPowerSyncReady(true);
-}
 
 /**
  * Hook that monitors PowerSync status and marks readiness automatically
