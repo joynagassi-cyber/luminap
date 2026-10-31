@@ -2510,6 +2510,90 @@ export async function createOrganizationPS(input: {
 }
 
 /**
+ * Miroir LOCAL (réplique PowerSync) d'une organisation fraîchement créée côté
+ * serveur, pour que l'UI l'affiche SANS attendre le prochain cycle de sync.
+ *
+ * Pourquoi c'est indispensable : `create_org` (service_role) écrit l'org, le
+ * grant `org_admins` et rattache le profil côté Supabase, mais la réplique
+ * locale reste vide jusqu'à la synchronisation descendante (streams
+ * `org_owned` / `org_administered` / `org_admins`, ~secondes à dizaines de
+ * secondes). Sans ce miroir optimiste :
+ *   - `useOrgMembership` interroge `canAccessOrganization` sur une base locale
+ *     où `organizations`/`org_admins` n'existent pas encore → « non-membre » →
+ *     écran « Organisation non rejointe » juste après la création ;
+ *   - la liste des organisations est vide.
+ * Les écritures locales sont idempotentes (`UPDATE` par id / `INSERT` simple) et
+ * seront réconciliées par le prochain download (mêmes valeurs). Une écriture qui
+ * échoue est NON fatale (le serveur reste la source de vérité).
+ */
+export async function mirrorNewOrganizationLocally(input: {
+  orgId: string;
+  name: string;
+  type?: string;
+  userId: string;
+  role: string;
+  grantId?: string | null;
+}): Promise<void> {
+  const db = getPowerSyncDatabase();
+  const now = new Date().toISOString();
+  const type = input.type ?? "CHURCH";
+
+  // 1) La ligne `organizations` (idempotent : DELETE puis INSERT, car une
+  //    écriture `ON CONFLICT`/`INSERT OR REPLACE` sur une VUE PowerSync échoue
+  //    — cf. garde R160). Le miroir ne sert qu'à la PREMIÈRE organisation d'un
+  //    compte (self-serve) : jamais une annexe, donc aucun rattachement parent.
+  try {
+    await db.execute(`DELETE FROM organizations WHERE id = ?`, [input.orgId]);
+    await db.execute(
+      `INSERT INTO organizations (id, name, type, status, created_at, updated_at)
+       VALUES (?, ?, ?, 'ACTIVE', ?, ?)`,
+      [input.orgId, input.name, type, now, now],
+    );
+  } catch (e) {
+    console.warn("[dataLayer] mirror organizations failed (non-fatal)", e);
+  }
+
+  // 2) Le grant `org_admins` (le créateur devient admin central de sa propre
+  //    organisation) — c'est ce que lit `canAccessOrganization`.
+  try {
+    const grantId = input.grantId ?? `grant-${input.orgId}-${input.userId}`;
+    await db.execute(`DELETE FROM org_admins WHERE id = ?`, [grantId]);
+    await db.execute(
+      `INSERT INTO org_admins (id, admin_profile_id, org_id, status, granted_by, created_at, updated_at)
+       VALUES (?, ?, ?, 'ACTIVE', ?, ?, ?)`,
+      [grantId, input.userId, input.orgId, input.userId, now, now],
+    );
+  } catch (e) {
+    console.warn("[dataLayer] mirror org_admins failed (non-fatal)", e);
+  }
+
+  // 3) L'appartenance multi-org (miroir du flux d'invitation).
+  try {
+    const membershipId = `om-${input.orgId}-${input.userId}`;
+    await db.execute(`DELETE FROM org_memberships WHERE id = ?`, [membershipId]);
+    await db.execute(
+      `INSERT INTO org_memberships (id, user_id, org_id, role, is_primary, status, joined_at)
+       VALUES (?, ?, ?, ?, 1, 'ACTIVE', ?)`,
+      [membershipId, input.userId, input.orgId, input.role, now],
+    );
+  } catch (e) {
+    console.warn("[dataLayer] mirror org_memberships failed (non-fatal)", e);
+  }
+
+  // 4) Le profil local : rattachement à la nouvelle organisation + rôle. Sans
+  //    cela `canAccessOrganization` (branche `profiles.org_id = ?`) et le nom
+  //    d'église ne sont pas résolus tant que le download n'a pas eu lieu.
+  try {
+    await db.execute(
+      `UPDATE profiles SET org_id = ?, role = ?, updated_at = ? WHERE id = ?`,
+      [input.orgId, input.role, now, input.userId],
+    );
+  } catch (e) {
+    console.warn("[dataLayer] mirror profiles failed (non-fatal)", e);
+  }
+}
+
+/**
  * Suspend an organization (lifecycle). History is preserved (ARCHIVED ≠ DELETE).
  */
 export async function setOrganizationStatusPS(
