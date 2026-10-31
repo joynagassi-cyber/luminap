@@ -36,6 +36,7 @@ import {
   BellRing,
   Paperclip,
   Lock,
+  UserPlus,
 } from "lucide-react";
 
 import { CHART_COLORS } from "./utils";
@@ -780,6 +781,30 @@ const SECTIONS: SectionData[] = [
     ],
     warnings: [
       "Le gel ne remplace pas une sauvegarde : exportez vos données (Paramètres → Gérer) avant de clôturer une période importante.",
+    ],
+  },
+  {
+    id: "invitations",
+    title: "Inviter des membres",
+    icon: UserPlus,
+    color: "var(--accent-primary)",
+    iconBg: "color-mix(in srgb, var(--accent-primary) 12%, transparent)",
+    titleColor: "var(--accent-primary)",
+    paragraphs: [
+      "Une invitation permet de faire entrer quelqu'un dans l'organisation sans transmettre de mot de passe : vous générez un code, un QR ou un fichier, et l'invité le réclame depuis l'application.",
+      "Créez une invitation depuis l'écran « Inviter » : choisissez le rôle cible, puis — si besoin — une portée précise (toute l'organisation, un groupe, un événement ou un rapport), et une durée de validité.",
+      "Vous pouvez en plus cocher des capacités (autorisations) précises. Le rôle porte déjà ses permissions habituelles ; les capacités cochées AJOUTENT des droits ciblés, transportés par le code/QR et appliqués à l'invité au moment où il réclame l'invitation.",
+      "L'invité ouvre l'application, va sur « Rejoindre » et saisit le code (ou scanne le QR, ou importe le fichier). Il doit d'abord créer son compte : l'inscription est obligatoire, le profil est rattaché à son identifiant de connexion.",
+      "Après réclamation, un administrateur confirme la demande depuis l'écran de gestion des invitations. Le rôle et l'organisation de l'invitation sont alors appliqués automatiquement.",
+    ],
+    tips: [
+      "Un lien profond (lumina://invitation/claim?code=XXXX) préremplit le code : l'invité n'a pas à le ressaisir.",
+      "L'écran « Rejoindre » fonctionne hors ligne : une invitation pas encore synchronisée peut être collée en JSON complet pour continuer sans réseau.",
+      "Chaque invitation a une durée de validité et un nombre d'utilisations maximal ; vérifiez-les avant de l'envoyer.",
+    ],
+    warnings: [
+      "Ne cochez que les capacités réellement nécessaires : elles élargissent les droits de l'invité au-delà de son rôle.",
+      "Le code d'invitation est un secret : transmettez-le par un canal sûr et révoquez une invitation non utilisée si elle a fuité.",
     ],
   },
 ];

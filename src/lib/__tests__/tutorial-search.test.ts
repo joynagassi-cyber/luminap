@@ -58,6 +58,15 @@ describe("TUTORIAL_SECTIONS (source unique)", () => {
       expect(sectionHaystack(s).length).toBeGreaterThan(0);
     }
   });
+
+  it("documente l'invitation avec capacités (section « invitations »)", () => {
+    const inv = TUTORIAL_SECTIONS.find((s) => s.id === "invitations");
+    expect(inv, "section invitations absente").toBeDefined();
+    const hay = normalizeForSearch(sectionHaystack(inv!));
+    // La section doit couvrir les capacités ET le rôle (contrat §6 : tutoriel).
+    expect(hay).toContain("capacite");
+    expect(hay).toContain("role");
+  });
 });
 
 describe("searchSections", () => {

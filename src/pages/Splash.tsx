@@ -56,13 +56,15 @@ export default function Splash() {
           replace: true,
         });
       } else {
-        // Pas de session → page d'inscription / connexion (route publique)
-        navigate("/auth", { replace: true });
+        // Pas de session → écran d'accueil chaleureux (/welcome), qui mène
+        // ensuite vers la connexion / inscription (/auth). On évite de jeter
+        // l'utilisateur directement sur un formulaire froid.
+        navigate("/welcome", { replace: true });
       }
     } catch {
-      // Erreur inattendue → toujours atterrir sur /auth pour ne pas
+      // Erreur inattendue → toujours atterrir sur /welcome pour ne pas
       // laisser le user bloqué sur le splash.
-      navigate("/auth", { replace: true });
+      navigate("/welcome", { replace: true });
     }
   };
 

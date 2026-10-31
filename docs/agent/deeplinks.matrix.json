@@ -49,12 +49,13 @@
     "update-required",
     "loading->error"
   ],
-  "routes_total": 67,
+  "routes_total": 68,
   "routes_public": [
     "/auth",
     "/auth/callback",
     "/sessions",
-    "/splash"
+    "/splash",
+    "/welcome"
   ],
   "routes_parametrized": [
     "/admin/organizations/:id",
@@ -141,6 +142,7 @@
     "/transaction/:id/edit",
     "/transaction/new",
     "/tutoriel",
-    "/versement"
+    "/versement",
+    "/welcome"
   ]
 }

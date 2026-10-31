@@ -953,3 +953,31 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   (pas `.invoke('val')`) ; (2) handlers d'écriture async fire-and-forget → se
   synchroniser sur l'UI (statut réaffiché) ou poller `__psDb`, pas de lecture
   immédiate.
+
+## Invitations — capacités (grants) + bug de mapping snake_case (2026-10-31, PR #177)
+- **Capabilities `invitation`** : `db.execute("SELECT ...")` PowerSync renvoie
+  des colonnes **snake_case** ; un cast `as Invitation` (camelCase) SANS mapper
+  est un **bug latent** (champs `undefined`). Mesuré : `InvitationClaim` lisait
+  `orgId`/`targetRole`/`expiresAt` = `undefined` → claim sans org/rôle/scope
+  (`selectRole` sauté, audit sans org, cible EVENT/REPORT perdue). Correctif :
+  `mapInvitationRow`/`mapClaimRow` (tolérants) dans les 4 lectures
+  (`getInvitations`/`getInvitation`/`getInvitationByCode`/`getClaims`) + report
+  du scope granulaire (`resource`/`id`) au claim. Garde :
+  `src/capabilities/__tests__/invitation-row-mapping.test.ts` (non-vacuité) +
+  `invitation-get-by-code.test.ts`.
+- **Capacités d'invitation (grants)** : `InvitationEmit` → `grantsPayload`
+  persisté dans `invitations.grants_payload` ET transporté (QR/fichier) ; le
+  trigger `settle_invitation_claim`
+  (`supabase/migrations/20261024000004_harden_settle_claim.sql`, ~L140-170)
+  matérialise les grants `subject_type='user'` au claim. Champ vide auparavant.
+- **Écran `/welcome`** : onboarding mobile natif AVANT `/auth` (le propriétaire
+  REFUSE la variante « landing page » à footer légal / double CTA marketing).
+  Route publique câblée `routeResolver` + `ionic/routes/auth.tsx` +
+  `useAppUrlOpen` ; `Splash` sans session → `/welcome`. Gardes : matrice
+  deep-link, `zero-black-screen.cy.ts`, `cypress/e2e/welcome.cy.ts`.
+- **PR1–PR7 / PR19 = implémentés et couverts** (vérifié 2026-10-31) : `/trace`,
+  export JSON/CSV, `/archives`, `Health`, `report-problem`, `schemaVersion.ts`
+  (R106), kill switches, `RouteState` câblé. Reste en proposition : PR8–PR18,
+  PR20. (PR17 MESURÉ non justifié ; PR18 = RLS `has_permission` ; PR20 =
+  trancher `CENTRAL_ADMIN`.)
+- **`git push`** : `git remote set-url origin https://${GITHUB_TOKEN}@github.com/joynagassi-cyber/luminap.git` avant de pousser (sinon prompt identifiants interactif).

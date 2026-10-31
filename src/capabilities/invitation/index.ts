@@ -117,6 +117,51 @@ export interface ClaimPayload {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Row mappers — PowerSync `db.execute()` renvoie les colonnes en SNAKE_CASE.
+// Les méthodes de lecture ci-dessous les exposent en camelCase (type
+// `Invitation`). Sans cette conversion explicite, tout appelant lisant
+// `invite.targetRole` / `invite.orgId` recevait `undefined` (bug latent
+// mesuré : le claim par code construisait un payload sans org/rôle/scope —
+// `selectRole` était donc sauté et l'audit perdait l'org). Le mapping est
+// TOLÉRANT (accepte déjà-camelCase) pour ne pas casser un appelant qui aurait
+// pré-normalisé.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function mapInvitationRow(row: any): Invitation {
+  return {
+    id: row.id,
+    orgId: row.org_id ?? row.orgId,
+    code: row.code,
+    targetRole: row.target_role ?? row.targetRole,
+    targetScopeType: row.target_scope_type ?? row.targetScopeType,
+    targetGroupId: row.target_group_id ?? row.targetGroupId ?? null,
+    targetMemberId: row.target_member_id ?? row.targetMemberId ?? null,
+    issuedBy: row.issued_by ?? row.issuedBy,
+    issuedAt: row.issued_at ?? row.issuedAt,
+    expiresAt: row.expires_at ?? row.expiresAt,
+    maxUses: row.max_uses ?? row.maxUses,
+    usedCount: row.used_count ?? row.usedCount,
+    status: row.status,
+    targetScopeResource: row.target_scope_resource ?? row.targetScopeResource ?? null,
+    targetScopeId: row.target_scope_id ?? row.targetScopeId ?? null,
+    grantsPayload: row.grants_payload ?? row.grantsPayload,
+    tagsPayload: row.tags_payload ?? row.tagsPayload,
+  };
+}
+
+export function mapClaimRow(row: any): InvitationClaim {
+  return {
+    id: row.id,
+    invitationId: row.invitation_id ?? row.invitationId,
+    claimedByDeviceId: row.claimed_by_device_id ?? row.claimedByDeviceId,
+    claimedAt: row.claimed_at ?? row.claimedAt,
+    resultingUserId: row.resulting_user_id ?? row.resultingUserId ?? null,
+    status: row.status,
+    rejectReason: row.reject_reason ?? row.rejectReason ?? null,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Code generation & QR payload helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -404,7 +449,7 @@ export class InvitationService {
 
     const sql = `SELECT id, org_id, code, target_role, target_scope_type, target_group_id, target_member_id, issued_by, issued_at, expires_at, max_uses, used_count, status, target_scope_resource, target_scope_id, grants_payload, tags_payload FROM invitations WHERE ${conditions.join(" AND ")} ORDER BY created_at DESC`;
     const result = await db.execute(sql, params);
-    return (result?.array || []) as any[] as Invitation[];
+    return ((result?.array || []) as any[]).map(mapInvitationRow);
   }
 
   /**
@@ -416,7 +461,8 @@ export class InvitationService {
       "SELECT id, org_id, code, target_role, target_scope_type, target_group_id, target_member_id, issued_by, issued_at, expires_at, max_uses, used_count, status, target_scope_resource, target_scope_id, grants_payload, tags_payload FROM invitations WHERE id = ?",
       [id],
     );
-    return (result?.array?.[0] as any) ?? null;
+    const row = result?.array?.[0] as any;
+    return row ? mapInvitationRow(row) : null;
   }
 
   /**
@@ -428,7 +474,8 @@ export class InvitationService {
       "SELECT id, org_id, code, target_role, target_scope_type, target_group_id, target_member_id, issued_by, issued_at, expires_at, max_uses, used_count, status, target_scope_resource, target_scope_id, grants_payload, tags_payload FROM invitations WHERE code = ?",
       [code],
     );
-    return (result?.array?.[0] as any) ?? null;
+    const row = result?.array?.[0] as any;
+    return row ? mapInvitationRow(row) : null;
   }
 
   /**
@@ -440,7 +487,7 @@ export class InvitationService {
       "SELECT id, invitation_id, claimed_by_device_id, claimed_at, resulting_user_id, status, reject_reason FROM invitation_claims WHERE invitation_id = ? ORDER BY claimed_at ASC",
       [invitationId],
     );
-    return (result?.array || []) as any[] as InvitationClaim[];
+    return ((result?.array || []) as any[]).map(mapClaimRow);
   }
 
   /**
