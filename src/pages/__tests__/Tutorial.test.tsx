@@ -9,11 +9,12 @@
  *
  * Deux angles complémentaires :
  *
- *   1. **Statique** — le tableau `SECTIONS` n'est pas exporté par la page ;
- *      on l'extrait depuis la source (`src/pages/Tutorial.tsx`) et on évalue
- *      le littéral. On peut ainsi vérifier **chaque** section (id unique,
- *      titre non vide, ≥ 1 paragraphe non vide, tips/warnings non vides),
- *      même celles jamais affichées par défaut.
+ *   1. **Statique** — le tableau `SECTIONS` a été extrait vers le module
+ *      partagé `src/lib/tutorialContent.ts` (PR16 : la page Aide a besoin de
+ *      la même donnée pour sa recherche). On lit le littéral depuis cette
+ *      source et on l'évalue. On peut ainsi vérifier **chaque** section (id
+ *      unique, titre non vide, ≥ 1 paragraphe non vide, tips/warnings non
+ *      vides), même celles jamais affichées par défaut.
  *   2. **Rendu** — on monte `<Tutorial />` sous `MemoryRouter` (composants
  *      Ionic remplacés par le mock HTML partagé, `recharts` neutralisé) et on
  *      vérifie : titre de section active visible, changement de section par
@@ -84,20 +85,21 @@ interface ExtractedSection {
 }
 
 const START_MARKER = "const SECTIONS: SectionData[] = [";
-const END_MARKER = "// ─── SVG Diagrams";
+const END_MARKER = "// ─── Recherche (pure)";
 
 /**
- * `SECTIONS` n'est pas exporté : on lit le littéral du tableau dans la source
- * et on l'évalue. Les valeurs `icon: BookOpen` (identifiants lucide-react) sont
- * remplacées par des chaînes — on ne teste pas les icônes, seulement la
- * structure textuelle. `CHART_COLORS` est injecté tel quel.
+ * `SECTIONS` vit désormais dans le module partagé `tutorialContent.ts` (PR16).
+ * On lit le littéral du tableau dans cette source et on l'évalue. Les valeurs
+ * `icon: BookOpen` (identifiants lucide-react) sont remplacées par des chaînes
+ * — on ne teste pas les icônes, seulement la structure textuelle.
+ * `CHART_COLORS` est injecté tel quel.
  */
 function extractSections(): ExtractedSection[] {
-  const src = readFileSync(resolve(__dirname, "../Tutorial.tsx"), "utf8");
+  const src = readFileSync(resolve(__dirname, "../../lib/tutorialContent.ts"), "utf8");
   const startIdx = src.indexOf(START_MARKER);
-  expect(startIdx, "tableau SECTIONS introuvable dans Tutorial.tsx").toBeGreaterThan(-1);
+  expect(startIdx, "tableau SECTIONS introuvable dans tutorialContent.ts").toBeGreaterThan(-1);
   const endIdx = src.indexOf(END_MARKER, startIdx);
-  expect(endIdx, "marqueur de fin « SVG Diagrams » introuvable").toBeGreaterThan(startIdx);
+  expect(endIdx, "marqueur de fin « Recherche (pure) » introuvable").toBeGreaterThan(startIdx);
 
   const openBracket = startIdx + START_MARKER.length - 1; // pointe sur '['
   const closeBracket = src.lastIndexOf("];", endIdx); // pointe sur ']'
