@@ -106,6 +106,9 @@
 | 11 | PR11 — recherche globale : zone de saisie + état vide honnête | `C: product-features.cy.ts` (PR11) | **couvert** |
 | 13 | PR16 — aide : recherche renvoie des sections puis « aucun résultat » | `C: product-features.cy.ts` (PR16) | **couvert** |
 | 11 | PR14 — `/admin/transfer-ownership` : jamais d'écran noir (étape ou accès refusé) | `C: product-features.cy.ts` (PR14) | **couvert** |
+| 11 | Écran d'accueil mobile `/welcome` (onboarding avant `/auth`) : message inspirant + 2 boutons vers `/auth`, jamais d'écran noir | `C: welcome.cy.ts` (4) + `C: zero-black-screen.cy.ts` (`/welcome`) + `V: route-registry-drift.test.ts` | **couvert** |
+| 11 | Invitations — capacités (grants) à l'émission ET au claim par code : mapping snake_case → camelCase des lignes PowerSync | `V: invitation-row-mapping.test.ts` (5) + `V: invitation-get-by-code.test.ts` (1) + `V: invitation-file-transport.test.ts` | **couvert** (non-vacuité vérifiée : retirer le mapper ⇒ échec) |
+| 13 | Tutoriel — section « Inviter des membres » (capacités + rôle) | `V: tutorial-search.test.ts` (section `invitations`) | **couvert** |
 
 ### Correctif d'intégrité associé (R160, 2026-10-31)
 
