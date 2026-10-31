@@ -32,7 +32,7 @@
  */
 
 /** Page Ionic ACTIVE uniquement (les pages visitées restent montées, masquées). */
-const PAGE = 'div.ion-page:not(.ion-page-hidden)';
+const ACTIVE_PAGE = 'div.ion-page:not(.ion-page-hidden)';
 
 /** Colonnes relues pour prouver l'état réel de la ligne. */
 type GroupRow = {
@@ -134,13 +134,13 @@ describe('Lumina — PR3 corbeille / restauration (soft-delete)', () => {
 
     // ── (a) SOFT-DELETE via le VRAI chemin produit (UI GroupDetail) ──────────
     cy.visit('/groups/' + groupId);
-    cy.get(PAGE, { timeout: 60_000 }).should('exist');
-    cy.get(`${PAGE} h1, ${PAGE} h2, ${PAGE} h3, ${PAGE} ion-title`)
+    cy.get(ACTIVE_PAGE, { timeout: 60_000 }).should('exist');
+    cy.get(`${ACTIVE_PAGE} h1, ${ACTIVE_PAGE} h2, ${ACTIVE_PAGE} h3, ${ACTIVE_PAGE} ion-title`)
       .contains(groupName, { timeout: 60_000 })
       .should('exist');
 
-    cy.get(`${PAGE} button`).contains('Paramètres', { timeout: 30_000 }).click({ force: true });
-    cy.get(`${PAGE} button`)
+    cy.get(`${ACTIVE_PAGE} button`).contains('Paramètres', { timeout: 30_000 }).click({ force: true });
+    cy.get(`${ACTIVE_PAGE} button`)
       .contains('Archiver le groupe', { timeout: 30_000 })
       .click({ force: true });
     // Confirmation via ConfirmModal (aria-label du CTA = libellé).
@@ -204,7 +204,7 @@ describe('Lumina — PR3 corbeille / restauration (soft-delete)', () => {
     cy.visit('/archives');
     // La page rend son contenu (pas de squelette perpétuel).
     cy.contains('Archives', { timeout: 60_000 }).should('exist');
-    cy.get(PAGE).should('exist');
+    cy.get(ACTIVE_PAGE).should('exist');
     cy.get('body').should(($body) => {
       const hasItems = $body.find('button[aria-label^="Restaurer "]').length > 0;
       const hasEmpty = $body.text().includes('Aucun élément archivé');
