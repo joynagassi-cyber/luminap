@@ -32,6 +32,7 @@ import {
   Lightbulb,
   AlertTriangle,
   Database,
+  Search,
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
@@ -649,6 +650,26 @@ const SECTIONS: SectionData[] = [
         solution:
           "Vérifiez que l'événement n'a pas été archivé. Consultez la section Archives pour le restaurer.",
       },
+    ],
+  },
+  {
+    id: "recherche-globale",
+    title: "Recherche globale",
+    icon: Search,
+    color: "var(--accent-primary)",
+    iconBg: "color-mix(in srgb, var(--accent-primary) 12%, transparent)",
+    titleColor: "var(--accent-primary)",
+    paragraphs: [
+      "La recherche globale retrouve en un seul endroit n'importe quel enregistrement : membre, groupe, événement, mouvement financier, document ou formulaire.",
+      "Elle est accessible depuis l'icône loupe de l'en-tête de toutes les pages (et par la route /search). Saisissez quelques lettres : les résultats apparaissent immédiatement.",
+      "La recherche ignore la casse et les accents : « ecole » retrouve « École du dimanche », « therese » retrouve « Thérèse ».",
+      "Les résultats sont classés par pertinence (correspondance exacte, puis début de mot, puis contenu), les plus récents d'abord à pertinence égale. Un clic ouvre directement la fiche de l'enregistrement.",
+      "La recherche s'appuie sur les données déjà synchronisées sur l'appareil : elle fonctionne hors ligne et ne transmet rien à l'extérieur.",
+    ],
+    tips: [
+      "Un badge indique la catégorie de chaque résultat (Membre, Groupe, Événement, Mouvement, Document, Formulaire).",
+      "Tant que les données locales ne sont pas chargées, un squelette s'affiche — jamais un faux « Aucun résultat ».",
+      "La recherche peut être coupée par le kill switch « global-search » sans redéployer l'application.",
     ],
   },
 ];

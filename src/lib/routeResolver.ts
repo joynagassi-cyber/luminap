@@ -34,6 +34,7 @@ export const ROUTE_REGISTRY: readonly RouteDef[] = [
   { pattern: "/onboarding", kind: "app" },
   { pattern: "/dashboard", kind: "app" },
   { pattern: "/notifications", kind: "app" },
+  { pattern: "/search", kind: "app" },
   { pattern: "/tutoriel", kind: "app" },
   { pattern: "/finance", kind: "app" },
   { pattern: "/transaction/new", kind: "app" },
