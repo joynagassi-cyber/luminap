@@ -101,6 +101,7 @@
 | 11 | PR15 — page Santé : bloc « usage » (liste OU état vide honnête) | `C: robustness-features.cy.ts` (PR15) | **couvert** |
 | 11 | PR2 — export/sauvegarde : bouton JSON actif + téléchargement `lumina-sauvegarde-*.json` | `C: robustness-features.cy.ts` (PR2) | **couvert** |
 | 11 | PR1 — journal d'audit `/trace` : état vide honnête (pas de faux chargement) | `C: robustness-features.cy.ts` (PR1) | **couvert** |
+| 11 | PR3 — corbeille/restauration : cycle soft-delete → /archives → restauration réelle | `C: archives-restore.cy.ts` | **couvert** (non-vacuité vérifiée) |
 | 11 | PR12 — import CSV : aperçu lignes valides, confirmation activée, annulation + modèle téléchargeable | `C: product-features.cy.ts` (PR12 ×2) | **couvert** |
 | 11 | PR9 — pièces justificatives : section « Justificatifs » montée sur le détail transaction | `C: product-features.cy.ts` (PR9) | **couvert** |
 | 11 | PR11 — recherche globale : zone de saisie + état vide honnête | `C: product-features.cy.ts` (PR11) | **couvert** |
