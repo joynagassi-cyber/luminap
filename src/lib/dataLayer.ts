@@ -2848,6 +2848,7 @@ export async function updateFormSubmissionPS(
 export { createVersement } from "./versement-service";
 export { createNotification, markNotificationRead, markAllNotificationsRead } from "./notification-service";
 export {
+  validateAddTransaction,
   buildAddTransaction,
   persistAddTransaction,
   auditAddTransaction,

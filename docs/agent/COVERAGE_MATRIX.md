@@ -81,3 +81,4 @@
 | 13 | Centre d'aide étendu (PR16) — recherche accents/casse + FAQ | `V: tutorial-search.test.ts` (16) + `V: Help-search.test.tsx` (8) | **couvert** (non-vacuité vérifiée) |
 | 11 | PR18 — décision RBAC d écriture centralisée : aucune politique d écriture gardée par la seule appartenance | `V: pr18-write-permission-guard.test.ts` (5, sonde de non-vacuité) | **couvert** |
 | 11 | Corbeille / restauration (soft-delete) — PR3 | `V: Archives-restore.test.tsx` (3) + `V: lifecycle.test.ts` | **couvert** (non-vacuité vérifiée) |
+| 11 | Import CSV sécurisé (PR12) — parseur anti-injection de formules + import transactions en brouillon | `V: csv-import.test.ts` (24) + `V: CsvImportPanel.test.tsx` (6) | **couvert** (non-vacuité vérifiée : sanitisation / en-tête / écriture sélective) |

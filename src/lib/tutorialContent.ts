@@ -30,6 +30,7 @@ import {
   AlertCircle,
   ShieldCheck,
   Database,
+  Upload,
 } from "lucide-react";
 
 import { CHART_COLORS } from "./utils";
@@ -621,6 +622,29 @@ const SECTIONS: SectionData[] = [
     ],
     warnings: [
       "Avec le réglage actif, prévoyez au moins deux personnes autorisées à approuver : sinon plus aucune transaction ne pourra être validée.",
+    ],
+  },
+  {
+    id: "import-csv",
+    title: "Importer des transactions (CSV)",
+    icon: Upload,
+    color: CHART_COLORS.income,
+    iconBg: "color-mix(in srgb, var(--data-income) 12%, transparent)",
+    titleColor: CHART_COLORS.income,
+    paragraphs: [
+      "Depuis Paramètres → Gérer → Sauvegarde des données, le bouton « Importer des transactions (CSV) » permet d'ajouter un lot de transactions préparées dans un tableur (Excel, LibreOffice, Google Sheets).",
+      "Vous pouvez d'abord télécharger un modèle CSV pour obtenir les bonnes colonnes. Chaque fichier est analysé puis prévisualisé : vous voyez les lignes valides et les lignes rejetées AVANT toute écriture, puis vous confirmez.",
+      "Toutes les lignes importées sont créées en brouillon (DRAFT). Elles ne sont jamais approuvées automatiquement : vous gardez le contrôle financier complet.",
+    ],
+    tips: [
+      "Colonnes attendues : type, amount, description, date, category_id, source, comment. L'ordre est libre, le séparateur peut être « ; » ou « , ».",
+      "Le montant s'exprime en FCFA (ex. « 10 000 »). Les séparateurs de milliers et la virgule décimale sont tolérés.",
+      "Pour un import de dîmes ou d'offrandes, utilisez le type INCOME ; pour une dépense, EXPENSE.",
+    ],
+    warnings: [
+      "Sécurité : une cellule qui commence par « = », « + », « - » ou « @ » est traitée comme du TEXTE littéral — aucune formule n'est jamais exécutée. Ces cellules sont signalées dans l'aperçu.",
+      "Un fichier trop volumineux (plus de 500 lignes ou 2 Mo) est refusé : découpez-le en plusieurs imports.",
+      "Un en-tête non conforme (colonne manquante ou inattendue) fait échouer tout le fichier : corrigez la première ligne avant de réessayer.",
     ],
   },
 ];
