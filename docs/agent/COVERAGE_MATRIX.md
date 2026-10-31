@@ -82,3 +82,4 @@
 | 11 | PR18 — décision RBAC d écriture centralisée : aucune politique d écriture gardée par la seule appartenance | `V: pr18-write-permission-guard.test.ts` (5, sonde de non-vacuité) | **couvert** |
 | 11 | Corbeille / restauration (soft-delete) — PR3 | `V: Archives-restore.test.tsx` (3) + `V: lifecycle.test.ts` | **couvert** (non-vacuité vérifiée) |
 | 11 | Import CSV sécurisé (PR12) — parseur anti-injection de formules + import transactions en brouillon | `V: csv-import.test.ts` (24) + `V: CsvImportPanel.test.tsx` (6) | **couvert** (non-vacuité vérifiée : sanitisation / en-tête / écriture sélective) |
+| 11 | Transfert de propriété guidé — PR14 (anti-orphelin) | `V: ownership-transfer.test.ts` (16, non-vacuité vérifiée) + `V: TransferOwnership.test.tsx` (8, non-vacuité vérifiée) + `V: route-registry-drift.test.ts` + `SQL: 20261031000007` (org_settings, clé `owner_profile_id`) + `SQL: 20261022000010` (RLS org_memberships) | **couvert** |
