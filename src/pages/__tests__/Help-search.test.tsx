@@ -12,13 +12,16 @@
  *   5. La FAQ « Questions fréquentes » est rendue (5–8 entrées).
  *
  * ── NON-VACUITÉ (preuve documentée, vérifiée) ────────────────────────────────
- *   - Retirer la garde `showNoResult` (rendre « Aucun résultat » sans condition)
- *     → le test « requête vide n'affiche pas Aucun résultat » échoue.
- *   - Retirer le filtre de recherche (rendre `TUTORIAL_SECTIONS` au lieu de
- *     `searchSections(trimmed)`) → le test « filtre par requête » échoue.
- *   - Retirer la section FAQ de `Help.tsx` → le test « FAQ rendue » échoue.
- *   Vérifié en commentant ces blocs : les tests passent au rouge, puis la
+ *   - Rendre `matchedSections` toujours égal à `TUTORIAL_SECTIONS` (retirer le
+ *     filtre de recherche) → 3 tests échouent (« filtre par requête »,
+ *     « insensible aux accents », …).
+ *   - Ne jamais rendre la liste FAQ (`matchedFaq.length > 0` → `false`) →
+ *     3 tests échouent (dont « FAQ rendue »).
+ *   Vérifié en appliquant ces mutations : les tests passent au rouge, puis la
  *   source a été restaurée.
+ *   Note mesurée : retirer la seule garde `hasQuery` de `showNoResult` n'est
+ *   PAS observable (le cas requête-vide reste couvert par l'état vide de
+ *   `matchedSections`), donc non retenu comme preuve.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import "@testing-library/jest-dom/vitest";

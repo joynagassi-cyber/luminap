@@ -91,10 +91,14 @@ a été restaurée.
 
 **PR16**
 
-5. Retrait de `.normalize("NFD").replace(/[\u0300-\u036f]/g, "")` ⇒ **4 tests**
+5. Retrait de `.normalize("NFD").replace(/[\u0300-\u036f]/g, "")` ⇒ **3 tests**
    échouent (dont « insensible aux accents »).
 6. Remplacement du `return sections.filter(...)` de `searchSections` par
-   `return sections` ⇒ **5 tests** échouent (le filtrage disparaît).
+   `return sections` ⇒ **2 tests** échouent (le filtrage disparaît).
+7. Rendre `matchedSections` toujours égal à `TUTORIAL_SECTIONS` dans `Help.tsx`
+   ⇒ **3 tests** de `Help-search.test.tsx` échouent.
+8. Ne jamais rendre la liste FAQ (`matchedFaq.length > 0` → `false`) ⇒
+   **3 tests** échouent (dont « FAQ rendue »).
 
 > Note mesurée : retirer la seule garde `if (!q) return sections;` n'est **pas**
 > observable (une aiguille vide matche tout) — ce n'est donc pas retenu comme

@@ -17,11 +17,9 @@
  * Mutations testées (le test correspondant passe au ROUGE, puis la source est
  * restaurée) :
  *   - Retirer `.normalize("NFD").replace(/[\u0300-\u036f]/g, "")` de
- *     `normalizeForSearch` → 4 tests échouent (dont « insensible aux accents »).
+ *     `normalizeForSearch` → 3 tests échouent (dont « insensible aux accents »).
  *   - Remplacer le `return sections.filter(...)` de `searchSections` par
- *     `return sections` → 5 tests échouent (le filtrage disparaît).
- *   - Retirer la garde `hasQuery` de la section FAQ de `Help.tsx` → le test
- *     « FAQ rendue » de `Help-search.test.tsx` échoue.
+ *     `return sections` → 2 tests échouent (le filtrage disparaît).
  *   Vérifié en appliquant ces mutations : les tests passent au rouge, puis la
  *   source a été restaurée.
  */
