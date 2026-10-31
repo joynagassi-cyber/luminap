@@ -168,3 +168,4 @@
 > le 2026-10-28 (`fix/powersync-replication-r80`). **E5** est un blocage
 > distinct : le service config déployé rejette l'audience `authenticated`.
 | 11 | Socle `org_settings` (réglages par organisation) — prérequis PR8/PR13 | livré : table + RLS `admin:settings` + module fail-safe + stream déployé | **livré** |
+| 11 | Corbeille / restauration (PR3) — tests du câblage UI de `/archives` | livré : `Archives-restore.test.tsx` (3, non-vacuité vérifiée) | **livré** |
