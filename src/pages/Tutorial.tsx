@@ -458,6 +458,28 @@ const SECTIONS: SectionData[] = [
     ],
   },
   {
+    id: "signaler-probleme",
+    title: "Signaler un problème",
+    icon: AlertCircle,
+    color: CHART_COLORS.expense,
+    iconBg: "color-mix(in srgb, var(--data-expense) 12%, transparent)",
+    titleColor: CHART_COLORS.expense,
+    paragraphs: [
+      "Lorsque quelque chose ne fonctionne pas, la page « État du système » (Paramètres → État du système) permet de signaler le problème au support en un geste.",
+      "Le bouton « Signaler un problème » ouvre une zone où vous pouvez décrire ce qui s'est passé (facultatif), puis « Envoyer le signalement » transmet le diagnostic.",
+      "Le signalement joint automatiquement la version de l'app, la plateforme, l'état du système (réseau, synchronisation, organisation) et les codes des dernières erreurs — jamais votre nom, votre e-mail ni le contenu de vos données.",
+      "Un signalement reste toujours enregistré localement sur l'appareil ; la ligne « Dernier signalement » vous confirme qu'il a bien été pris en compte.",
+    ],
+    tips: [
+      "Décrivez l'action qui a déclenché le problème (page ouverte, bouton cliqué) : cela aide le support à reproduire.",
+      "Le bouton « Copier le diagnostic » reste disponible pour transmettre le texte à un technicien par un autre canal.",
+      "Aucune donnée personnelle n'est transmise : seuls des éléments techniques anonymes le sont.",
+    ],
+    warnings: [
+      "Si l'envoi automatique est indisponible (hors ligne), le signalement est conservé localement et transmis dès que possible.",
+    ],
+  },
+  {
     id: "parametres",
     title: "Paramètres",
     icon: Settings,

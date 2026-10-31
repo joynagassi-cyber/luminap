@@ -48,6 +48,7 @@
 | 10 | Responsive (contenu borné/centré, grand viewport ; R119) | `V: responsive-container-guard.test.tsx` (3 : 62 pages montées) | **couvert** |
 | 11 | Pre-mortem / chaos | à créer | **non couvert** |
 | 11 | Page « État du système » (santé) + « Signaler un problème » | `V: health.test.ts` (15) + `C: zero-black-screen` (route) | **couvert** |
+| 11 | « Signaler un problème » — envoi du diagnostic (PR5) | V: report-problem.test.ts | couvert |
 | 11 | Drapeaux de fonctionnalités (kill switches, PR7/R118) | `V: feature-flags.test.ts` (16 : fail-open, désactivation, surcharge locale, câblage) | **couvert** |
 | 12 | Crawler zéro écran noir | `C: zero-black-screen.cy.ts` (toutes routes × état marqué) | **couvert** (hors-cloud) |
 | 13 | Tutoriel | à créer (C) | **non couvert** |
