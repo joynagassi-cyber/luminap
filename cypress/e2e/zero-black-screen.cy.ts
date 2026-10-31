@@ -27,6 +27,7 @@ const ROUTES: string[] = [
   "/dashboard",
   "/notifications",
   "/tutoriel",
+  "/search",
   "/finance",
   "/transaction/new",
   "/transaction/:id",

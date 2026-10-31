@@ -124,6 +124,7 @@
     "/report-builder",
     "/reports",
     "/saisie-rapide/:id",
+    "/search",
     "/sessions",
     "/settings",
     "/settings/about",

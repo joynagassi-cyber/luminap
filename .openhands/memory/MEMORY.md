@@ -598,6 +598,28 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   les tests échouer, restaurer. Chaque cas a son test comportemental
   (`list-loading-vs-empty.test.tsx`, `r52l-*`, `r52o-*`, `r52p-*`).
 
+## PR11 — Recherche globale (2026-10-31)
+- **Environnement local** : `node_modules` ABSENT au départ ; `npm install`
+  échoue (ERESOLVE) → utiliser `npm install --legacy-peer-deps`. `pnpm install
+  --frozen-lockfile` échoue (overrides lockfile). Installer = ~2-3 min.
+- **Env de test obligatoire** : la suite vitest échoue sans `.env.local` (33
+  fichiers rouges : `VITE_SUPABASE_URL/ANON_KEY/JWKS_URL` + `VITE_POWERSYNC_URL`).
+  Créer `.env.local` (gitignored) avec des valeurs factices → 1814 verts.
+- **`npx tsc`** : le paquet `tsc` npm n'existe pas — utiliser le binaire local
+  `node_modules/.bin/tsc` (via `npx tsc` une fois node_modules installé).
+  `tsc -b --force --noEmit` prend ~1-2 min (timeout terminal 300s insuffisant ;
+  lancer en arrière-plan avec `&` et redirection fichier).
+- **Nouvelle route `/search`** : 4 points à synchroniser — `core.tsx`,
+  `ROUTE_REGISTRY` (routeResolver.ts), `deeplinks.matrix.json`
+  (`routes_total` 65→66), `cypress/e2e/zero-black-screen.cy.ts`. La garde
+  `route-registry-drift` + `route-reachability-guard` (lien entrant obligatoire :
+  la loupe `TopHeader` fournit le lien) restent vertes.
+- **Pattern R52 reproductible** : cœur PUR (`globalSearch.ts`) sans I/O →
+  testable ; hook renvoie `ready:false` si `!isPowerSyncReadyNow()` ; page rend
+  `ListSkeleton` (aria-busy) avant lecture. Non-vacuité : 5 mutations prouvées.
+- **`Tutorial.test.tsx` verrouille des SEUILS** (sections/paragraphes/tips) :
+  ajouter une section au tutoriel OBLIGE à relever les 4 constantes
+  (`MIN_SECTIONS` etc.), sinon le test passe quand même (seuils = planchers).
 ## RBAC Lumina (mesuré 2026-10-29, session R137/R138)
 - **14 rôles** en DONNÉES (`role_permissions`, 149 lignes, **27 permissions
   distinctes**), pas un enum : colonne `role` = TEXT **sans CHECK**. Ordre :
