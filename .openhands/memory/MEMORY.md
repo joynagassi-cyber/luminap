@@ -928,3 +928,28 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   a modifié (arbitrage sémantique requis) ; deux `const` homonymes → TS2451 (garder le
   plus grand total si identifiants `UPPER_SNAKE = <nombre>`).
 - `cypress-run (1)/(2)` échoue aussi sur `main` (infra préexistante, pas une régression).
+
+## R160 — écritures UPSERT sur une VUE PowerSync (2026-10-31)
+- **Côté client PowerSync, CHAQUE table est une VUE** (`CREATE VIEW org_settings
+  AS SELECT id, json_extract(data,'$.org_id') …`). Donc `INSERT … ON CONFLICT …
+  DO UPDATE` et `INSERT OR REPLACE` échouent avec **`cannot UPSERT a view`** ;
+  `INSERT` sans `id` → **`id is required`**. Vérif : `SELECT name FROM
+  sqlite_master WHERE type='view'` → `profiles`, `org_settings`, `organizations`.
+- **Symptôme produit** : PR13 (gel de période) + PR8 (maker-checker) inertes —
+  `org_settings` restait vide, sans erreur visible.
+- **Règle** : jamais d'`ON CONFLICT`/`INSERT OR REPLACE` dans les écritures
+  PowerSync client. Faire `SELECT id` puis `UPDATE … WHERE id` OU `INSERT`
+  explicite avec `crypto.randomUUID()`. Garde statique :
+  `src/lib/__tests__/ps-view-upsert-guard.test.ts` (allowlist = `registerOrg`
+  code mort + `claimInvitation` ; cf. ESCALATIONS.md E7).
+- **Piège de test majeur** : un mock PowerSync qui simule l'upsert en JS
+  (find/update en mémoire) MASQUE ce bug — le mock doit LERVER « cannot UPSERT a
+  view » / « id is required ». Leçon générale : un mock qui réimplémente
+  l'opération au lieu de reproduire ses contraintes cache les bugs réels.
+- **E2E** : `cypress/e2e/robustness-features.cy.ts` + `product-features.cy.ts`
+  couvrent PR1/PR2/PR8/PR9/PR11/PR12/PR13/PR14/PR15/PR16 (11 tests).
+- **Pièges E2E mesurés** : (1) input contrôlé React → setter natif
+  `HTMLInputElement.prototype.value` + `dispatchEvent('input',{bubbles:true})`
+  (pas `.invoke('val')`) ; (2) handlers d'écriture async fire-and-forget → se
+  synchroniser sur l'UI (statut réaffiché) ou poller `__psDb`, pas de lecture
+  immédiate.
