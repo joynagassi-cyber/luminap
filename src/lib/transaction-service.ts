@@ -9,6 +9,8 @@ import { policy } from "@/capabilities/policy";
 import { writeAudit } from "@/lib/audit";
 import { getOrganizationId } from "@/lib/orgContext";
 import { generateId } from "@/lib/utils";
+import { assertApprovable } from "@/lib/makerChecker";
+import type { Permission } from "@/lib/rbac";
 import {
   addTransactionPS,
   updateTransactionPS,
@@ -26,6 +28,17 @@ export type TransactionInput = Omit<
   Transaction,
   "id" | "createdAt" | "updatedAt" | "version" | "reversalOfId"
 >;
+/**
+ * Options d'approbation (PR8 maker-checker). Par défaut `enabled: false` :
+ * le comportement historique est conservé à l'identique pour tout appelant
+ * qui ne fournit pas ces options (tests existants inclus).
+ */
+export interface ApproveOptions {
+  /** Maker-checker actif pour l'organisation (réglage `maker_checker_enabled`). */
+  enabled?: boolean;
+  /** Permissions effectives de l'acteur — vérifiées seulement si fournies. */
+  actorPermissions?: readonly Permission[];
+}
 
 // --- addTransaction ---
 
@@ -218,7 +231,20 @@ export function buildApproveTransaction(
   id: string,
   userId: string,
   now: string,
+  options: ApproveOptions = {},
 ): Transaction[] {
+  // PR8 maker-checker : refus TYPÉ (jamais un silence) quand l'acteur est
+  // l'auteur et que le réglage est actif. Par défaut (`enabled` absent), la
+  // garde est neutre → comportement historique inchangé.
+  if (options.enabled) {
+    const target = transactions.find((t) => t.id === id);
+    if (target) {
+      assertApprovable(target, userId, {
+        enabled: true,
+        actorPermissions: options.actorPermissions,
+      });
+    }
+  }
   return transactions.map((t) =>
     t.id === id
       ? {
@@ -240,7 +266,22 @@ export function buildBatchApproveTransactions(
   ids: string[],
   userId: string,
   now: string,
+  options: ApproveOptions = {},
 ): Transaction[] {
+  // PR8 — même garde que l'approbation unitaire, sur CHAQUE transaction visée.
+  // Une seule transaction créée par l'acteur suffit à refuser tout le lot :
+  // on ne veut pas approuver « en partie » un lot hétérogène en silence.
+  if (options.enabled) {
+    for (const id of ids) {
+      const target = transactions.find((t) => t.id === id);
+      if (target) {
+        assertApprovable(target, userId, {
+          enabled: true,
+          actorPermissions: options.actorPermissions,
+        });
+      }
+    }
+  }
   return transactions.map((t) =>
     ids.includes(t.id)
       ? {
