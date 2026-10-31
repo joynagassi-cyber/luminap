@@ -3939,3 +3939,31 @@ export async function markReportRead(reportId: string): Promise<void> {
     [now, now, reportId],
   );
 }
+
+/**
+ * Dernier rapport ÉMIS par l'org courante (`org_reports.from_org_id = current`),
+ * par `period_start` décroissante. Sert au rappel PR10 (`computeReportReminder`).
+ *
+ * `lastSentAt` = `created_at` (moment d'émission), avec repli sur `period_start`
+ * (la ligne peut provenir d'un ancien enregistrement sans `created_at`).
+ *
+ * `loaded` distingue « pas encore lu » de « aucun rapport envoyé » (règle R52 :
+ * ne jamais annoncer un fait faux avant la première lecture PowerSync).
+ */
+export function useLastSentReport(orgId?: string) {
+  const org = orgId ?? getOrganizationId();
+  const { data: psData } = useQuery<
+    Pick<PSOrgReports, "id" | "period_start" | "created_at" | "status">
+  >(
+    `SELECT id, period_start, created_at, status
+     FROM org_reports WHERE from_org_id = ?
+     ORDER BY period_start DESC LIMIT 1`,
+    [org],
+    { reportFetching: true },
+  );
+  const row = psData?.[0];
+  return {
+    lastSentAt: (row?.created_at ?? row?.period_start ?? null) as string | null,
+    loaded: psData !== undefined,
+  };
+}

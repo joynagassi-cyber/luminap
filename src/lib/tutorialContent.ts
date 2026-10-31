@@ -33,6 +33,7 @@ import {
   Upload,
   Crown,
   Search,
+  BellRing,
 } from "lucide-react";
 
 import { CHART_COLORS } from "./utils";
@@ -693,6 +694,28 @@ const SECTIONS: SectionData[] = [
       "Un badge indique la catégorie de chaque résultat (Membre, Groupe, Événement, Mouvement, Document, Formulaire).",
       "Tant que les données locales ne sont pas chargées, un squelette s'affiche — jamais un faux « Aucun résultat ».",
       "La recherche peut être coupée par le kill switch « global-search » sans redéployer l'application.",
+    ],
+  },
+  {
+    id: "rappels-rapport",
+    title: "Rappels de rapport",
+    icon: BellRing,
+    color: CHART_COLORS.pending,
+    iconBg: "color-mix(in srgb, var(--data-pending) 12%, transparent)",
+    titleColor: CHART_COLORS.pending,
+    paragraphs: [
+      "Une annexe doit transmettre régulièrement un rapport de gestion à son organisation parente. Pour ne pas l'oublier, l'application affiche un rappel « Rapport à envoyer » sur l'écran d'envoi du rapport.",
+      "Le rappel s'affiche quand aucun rapport n'a encore été envoyé, ou quand le dernier envoi remonte à plus de 30 jours (cadence mensuelle). Il apparaît en haut de l'écran « Envoyer un rapport ».",
+      "Le rappel est évalué localement, à l'ouverture de l'écran : aucune tâche planifiée côté serveur. Une seule notification est émise par jour, même si vous ouvrez l'écran plusieurs fois.",
+      "La bannière propose « Envoyer maintenant » (accès direct au formulaire) et peut être masquée pour la journée avec la croix.",
+    ],
+    tips: [
+      "Le rappel n'apparaît que pour les organisations ayant une organisation parente (une racine n'a personne à qui envoyer).",
+      "Marquez un rapport comme lu ou envoyé : le rappel se réévalue automatiquement.",
+      "La notification est également déposée dans la cloche (Notifications) et poussée sur l'appareil si vous avez autorisé les notifications.",
+    ],
+    warnings: [
+      "Le rappel ne remplace pas l'envoi : il vous prévient, mais c'est vous qui validez « Générer et envoyer ».",
     ],
   },
 ];
