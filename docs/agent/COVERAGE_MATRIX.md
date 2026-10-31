@@ -77,3 +77,4 @@
 | 11 | Export/sauvegarde des données (UI) — PR2 | `V: backup.test.ts` + `V: SettingsGestion-backup.test.tsx` | **couvert** (non-vacuité vérifiée) |
 | 11 | Journal d'audit consultable — détail d'entrée (PR1) | V: Trace-detail.test.tsx | couvert |
 | 11 | Socle réglages par organisation `org_settings` (PR8 maker-checker + PR13 gel de période) | `V: org-settings.test.ts` (7) + `SQL: 20261031000007` + stream `org_settings` | **couvert** (fail-safe vérifié) |
+| 11 | Import CSV sécurisé (PR12) — parseur anti-injection de formules + import transactions en brouillon | `V: csv-import.test.ts` (24) + `V: CsvImportPanel.test.tsx` (6) | **couvert** (non-vacuité vérifiée : sanitisation / en-tête / écriture sélective) |

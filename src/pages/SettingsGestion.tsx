@@ -18,6 +18,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import SettingsShell from "@/components/SettingsShell";
+import CsvImportPanel from "@/components/CsvImportPanel";
 import { useCurrentUser } from "@/lib/dataLayer";
 import { useLocalStore } from "@/store/useLocalStore";
 import { useBackupData } from "@/hooks/useBackupData";
@@ -375,6 +376,8 @@ export default function SettingsGestion() {
           </button>
         </div>
       </div>
+
+      <CsvImportPanel />
     </SettingsShell>
   );
 }

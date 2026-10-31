@@ -5,6 +5,7 @@
  */
 
 import { workflow } from "@/capabilities/workflow";
+import { policy } from "@/capabilities/policy";
 import { writeAudit } from "@/lib/audit";
 import { getOrganizationId } from "@/lib/orgContext";
 import { generateId } from "@/lib/utils";
@@ -20,7 +21,52 @@ export interface TransactionState {
   user: { role: string; id: string };
 }
 
+/** Entrée de création de transaction (avant `buildAddTransaction`). */
+export type TransactionInput = Omit<
+  Transaction,
+  "id" | "createdAt" | "updatedAt" | "version" | "reversalOfId"
+>;
+
 // --- addTransaction ---
+
+/**
+ * Valide une NOUVELLE transaction avant persistance. Source de vérité unique
+ * des règles de création, réutilisée par la saisie manuelle ET par l'import CSV
+ * (PR12) — aucune règle dupliquée côté import.
+ *
+ * Contrôles : type ∈ {INCOME, EXPENSE} ; montant strictement positif et borné
+ * (`policy.transaction.validateAmount`, en centimes) ; description non vide ;
+ * date au format `AAAA-MM-JJ` ; catégorie renseignée.
+ *
+ * Ne lève jamais : retourne `{ allowed, reason }` (message FR prêt à afficher).
+ */
+export function validateAddTransaction(
+  input: Partial<TransactionInput>,
+): { allowed: boolean; reason?: string } {
+  if (input.type !== "INCOME" && input.type !== "EXPENSE") {
+    return {
+      allowed: false,
+      reason: "Type invalide (attendu : INCOME ou EXPENSE)",
+    };
+  }
+  if (typeof input.amount !== "number" || !Number.isFinite(input.amount)) {
+    return { allowed: false, reason: "Montant invalide" };
+  }
+  const amountCheck = policy.transaction.validateAmount(input.amount);
+  if (!amountCheck.ok) {
+    return { allowed: false, reason: amountCheck.message ?? "Montant invalide" };
+  }
+  if (!input.description || !input.description.trim()) {
+    return { allowed: false, reason: "La description est obligatoire" };
+  }
+  if (!input.date || !/^\d{4}-\d{2}-\d{2}$/.test(input.date)) {
+    return { allowed: false, reason: "La date doit être au format AAAA-MM-JJ" };
+  }
+  if (!input.categoryId) {
+    return { allowed: false, reason: "La catégorie est obligatoire" };
+  }
+  return { allowed: true };
+}
 
 export function buildAddTransaction(
   tx: Omit<
