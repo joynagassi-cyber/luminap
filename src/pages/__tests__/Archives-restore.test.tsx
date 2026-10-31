@@ -19,7 +19,7 @@ import "@testing-library/jest-dom/vitest";
 import { render, screen, fireEvent, cleanup, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 
-const restore = vi.fn(async () => undefined);
+const restore = vi.fn(async (..._args: unknown[]) => undefined);
 const navigate = vi.fn();
 
 const archived = {
