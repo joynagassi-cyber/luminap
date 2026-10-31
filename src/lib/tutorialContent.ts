@@ -34,6 +34,7 @@ import {
   Crown,
   Search,
   BellRing,
+  Paperclip,
 } from "lucide-react";
 
 import { CHART_COLORS } from "./utils";
@@ -716,6 +717,45 @@ const SECTIONS: SectionData[] = [
     ],
     warnings: [
       "Le rappel ne remplace pas l'envoi : il vous prévient, mais c'est vous qui validez « Générer et envoyer ».",
+    ],
+  },
+  {
+    id: "justificatifs",
+    title: "Justificatifs (reçus)",
+    icon: Paperclip,
+    color: CHART_COLORS.income,
+    iconBg: "color-mix(in srgb, var(--data-income) 12%, transparent)",
+    titleColor: CHART_COLORS.income,
+    paragraphs: [
+      "Chaque transaction peut porter une ou plusieurs pièces justificatives : une photo du reçu, une facture numérisée ou un PDF.",
+      "Les justificatifs renforcent la conformité comptable : vous gardez la preuve de chaque dépense directement attachée à la transaction, sans paperasse séparée.",
+      "Ouvrez le détail d'une transaction, puis la section « Justificatifs ». Appuyez sur « Ajouter un justificatif » pour choisir une image ou un PDF depuis votre appareil.",
+      "Les fichiers acceptés sont les images (JPG, PNG, WEBP, GIF) et les PDF, jusqu'à 10 Mo chacun. Tout autre format est refusé.",
+      "Les justificatifs sont stockés de façon sécurisée et synchronisés entre les appareils de votre organisation : un trésorier sur un autre téléphone voit les mêmes reçus.",
+      "Lorsqu'une transaction est supprimée, ses justificatifs sont retirés automatiquement — aucun fichier orphelin ne reste stocké.",
+    ],
+    tips: [
+      "Prenez la photo du reçu au moment de la dépense : vous ne l'oublierez pas plus tard.",
+      "Tant que les données ne sont pas encore lues, la section affiche un squelette de chargement — jamais « aucun justificatif » à tort.",
+      "Hors ligne, un justificatif ajouté sera envoyé automatiquement à la reconnexion.",
+    ],
+    warnings: [
+      "Seuls les membres disposant de la permission de modification des transactions peuvent ajouter ou supprimer un justificatif.",
+      "Un justificatif supprimé ne peut pas être restauré : il faut le renvoyer.",
+    ],
+    faqs: [
+      {
+        q: "Quels formats de fichier sont acceptés ?",
+        a: "Les images (JPG, PNG, WEBP, GIF) et les PDF, jusqu'à 10 Mo par fichier. Les autres formats (par exemple .exe) sont refusés.",
+      },
+      {
+        q: "Puis-je joindre plusieurs reçus à la même transaction ?",
+        a: "Oui. Ajoutez autant de justificatifs que nécessaire ; ils sont tous listés dans la section « Justificatifs » du détail de la transaction.",
+      },
+      {
+        q: "Que se passe-t-il si je supprime la transaction ?",
+        a: "Ses justificatifs sont supprimés en même temps. Le nettoyage des fichiers est fait au mieux : en cas d'échec réseau, il est signalé mais ne bloque pas la suppression.",
+      },
     ],
   },
 ];

@@ -342,3 +342,13 @@ streams:
   tag_assignments:
     auto_subscribe: false
     query: SELECT * FROM tag_assignments WHERE user_id = auth.user_id()
+
+  # Pièces justificatives (reçus) attachées à une transaction — PR9.
+  # Borné à l'organisation de l'utilisateur connecté (comme `transactions`).
+  # `auto_subscribe` : les justificatifs sont peu nombreux et nécessaires dès
+  # l'ouverture du détail d'une transaction (aperçu hors ligne).
+  transaction_attachments:
+    auto_subscribe: true
+    query: |
+      SELECT * FROM transaction_attachments
+      WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
