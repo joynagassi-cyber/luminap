@@ -14,3 +14,10 @@ export type {
   PushRegistrationResult,
   ReceivedNotification,
 } from "./NotificationAdapter";
+
+export { LocalNotificationAdapter } from "./LocalNotificationAdapter";
+export type {
+  LocalNotificationSchema,
+  ScheduleOptions,
+  ScheduleResult,
+} from "./LocalNotificationAdapter";

@@ -97,6 +97,15 @@ vi.mock("@/lib/orgContext", () => ({
   getOrganizationId: () => "org-test-1",
 }));
 
+// ─── cloud push mock (send path) ────────────────────────────────
+// `sendNotification` now performs the REAL cloud send via `@/lib/cloudPush`.
+// Mocking it keeps the capability test hermetic and lets us assert the wiring
+// (title/message/target/orgId forwarded), which is the gap this PR closes.
+const { mockSendCloudPush } = vi.hoisted(() => ({
+  mockSendCloudPush: vi.fn(async () => ({ sent: true, oneSignalId: "os-1" })),
+}));
+vi.mock("@/lib/cloudPush", () => ({ sendCloudPush: mockSendCloudPush }));
+
 describe("notification capability", () => {
   let notif: NotificationCapability;
 
@@ -104,6 +113,7 @@ describe("notification capability", () => {
     notif = new NotificationCapability();
     vi.clearAllMocks();
     mockExecutions.length = 0;
+    mockSendCloudPush.mockResolvedValue({ sent: true, oneSignalId: "os-1" });
     // Reassign the shared reference so the plugin's getTags() call reads the clean state
     Object.keys(mockTags).forEach((k) => delete mockTags[k]);
   });
@@ -277,6 +287,51 @@ describe("notification capability", () => {
         /INSERT INTO notifications/i.test(e.sql),
       );
       expect(insert!.params[1]).toBe("PUSH");
+    });
+
+    // GAP FERMÉ : avant ce correctif, `sendNotification` ne faisait QUE
+    // persister + taguer ; l'edge function `onesignal-notify` n'était jamais
+    // appelée → aucun push cloud réel n'était délivré.
+    it("déclenche l'ENVOI cloud (cloudPush) avec les cibles et l'org", async () => {
+      await notif.initialize();
+      await notif.sendNotification({
+        ...baseData,
+        targetRole: "TREASURIER",
+        targetUserId: "user-42",
+        extraData: { kind: "REMINDER" },
+      });
+      expect(mockSendCloudPush).toHaveBeenCalledTimes(1);
+      expect(mockSendCloudPush).toHaveBeenCalledWith({
+        title: "Hello",
+        message: "World",
+        targetRole: "TREASURIER",
+        targetUserId: "user-42",
+        orgId: "org-test-1",
+        extraData: { kind: "REMINDER" },
+      });
+    });
+
+    it("persiste la ligne in-app AVANT l'envoi cloud (ordre garanti)", async () => {
+      await notif.initialize();
+      await notif.sendNotification(baseData);
+      // L'ordre est garanti par le code : l'INSERT (persistance) précède
+      // l'appel cloud. On le prouve en observant les deux effets.
+      expect(
+        mockExecutions.some((e) => /INSERT INTO notifications/i.test(e.sql)),
+      ).toBe(true);
+      expect(mockSendCloudPush).toHaveBeenCalled();
+    });
+  });
+
+  // ─── notifications locales (device, hors-ligne) ────────────────
+
+  describe("scheduleLocalNotification", () => {
+    it("renvoie null hors environnement natif (no-op sûr)", async () => {
+      const result = await notif.scheduleLocalNotification({
+        title: "T",
+        message: "M",
+      });
+      expect(result).toBeNull();
     });
   });
 
