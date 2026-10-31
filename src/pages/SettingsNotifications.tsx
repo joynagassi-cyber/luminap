@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Bell,
   BellOff,
@@ -9,6 +10,8 @@ import {
   RefreshCw,
   TrendingUp,
   Loader2,
+  Send,
+  LifeBuoy,
 } from "lucide-react";
 import SettingsShell from "@/components/SettingsShell";
 import { useNotifications, isPowerSyncReadyNow } from "@/lib/dataLayer";
@@ -75,11 +78,15 @@ function loadPrefs(): NotifPrefs {
 export default function SettingsNotifications() {
   const { data: notifications } = useNotifications();
   const { markAllNotificationsRead } = useLocalStore();
+  const navigate = useNavigate();
   const [prefs, setPrefs] = useState<NotifPrefs>(loadPrefs);
   const [marked, setMarked] = useState(false);
   // Permission push : demandée à la demande (just-in-time), jamais au boot.
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushPending, setPushPending] = useState(false);
+  // Envoi d'une notification de test (locale + cloud) — diagnostic « ça marche ? ».
+  const [testSent, setTestSent] = useState(false);
+  const [testPending, setTestPending] = useState(false);
 
   // Deux formes possibles selon la source : PowerSync expose `is_read` (0/1),
   // IndexedDB expose `isRead` (boolean). Le prédicat normalise les deux.
@@ -123,6 +130,28 @@ export default function SettingsNotifications() {
       }
     } finally {
       setPushPending(false);
+    }
+  };
+
+  // Notification de test : prouve à l'utilisateur que la chaîne fonctionne.
+  // Elle persiste une ligne in-app, tague le joueur et tente un push cloud ;
+  // une notification LOCALE est planifiée en parallèle (fonctionne hors-ligne).
+  const handleTestNotification = async () => {
+    if (testPending) return;
+    setTestPending(true);
+    try {
+      const payload = {
+        title: "Notification de test",
+        message: "Si vous voyez ceci, les notifications fonctionnent.",
+        targetUserId: undefined,
+        extraData: { kind: "TEST" },
+      };
+      await notification.sendNotification(payload);
+      await notification.scheduleLocalNotification(payload, new Date(Date.now() + 2000));
+      setTestSent(true);
+      setTimeout(() => setTestSent(false), 3000);
+    } finally {
+      setTestPending(false);
     }
   };
 
@@ -215,6 +244,76 @@ export default function SettingsNotifications() {
             {pushPending && <Loader2 className="w-3 h-3 animate-spin" style={{ color: "var(--accent-primary)" }} />}
           </span>
         </button>
+      </div>
+
+      {/* Diagnostic : envoyer une notification de test (locale + cloud) */}
+      <button
+        type="button"
+        onClick={handleTestNotification}
+        disabled={testPending}
+        className="w-full flex items-center justify-center gap-2 py-3 mb-4 rounded-xl font-medium text-sm active:scale-95 disabled:opacity-40"
+        style={{
+          backgroundColor: "var(--card)",
+          color: "var(--accent-primary)",
+          border: "1px solid var(--border)",
+        }}
+        aria-label="Envoyer une notification de test"
+      >
+        {testPending ? (
+          <>
+            <Loader2 className="w-4 h-4 animate-spin" /> Envoi…
+          </>
+        ) : testSent ? (
+          <>
+            <Check className="w-4 h-4" /> Notification envoyée
+          </>
+        ) : (
+          <>
+            <Send className="w-4 h-4" /> Envoyer une notification de test
+          </>
+        )}
+      </button>
+
+      {/* Support : joindre le support (diagnostic + aide) */}
+      <div
+        className="rounded-xl p-4 mb-4"
+        style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
+      >
+        <p className="text-text-primary font-semibold text-sm mb-1">Support</p>
+        <p className="text-text-tertiary text-xs mb-3">
+          Un souci avec les notifications ? Envoyez un diagnostic au support ou
+          consultez l'aide.
+        </p>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => navigate("/settings/health")}
+            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-medium active:scale-95"
+            style={{
+              backgroundColor:
+                "color-mix(in srgb, var(--accent-primary) 15%, transparent)",
+              color: "var(--accent-primary)",
+              border:
+                "1px solid color-mix(in srgb, var(--accent-primary) 30%, transparent)",
+            }}
+            aria-label="Signaler un problème"
+          >
+            <LifeBuoy className="w-4 h-4" /> Signaler un problème
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate("/help")}
+            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-medium active:scale-95"
+            style={{
+              backgroundColor: "var(--card)",
+              color: "var(--text-primary)",
+              border: "1px solid var(--border)",
+            }}
+            aria-label="Ouvrir l'aide"
+          >
+            Aide
+          </button>
+        </div>
       </div>
 
       {/* Préférences par catégorie */}
