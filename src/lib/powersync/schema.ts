@@ -289,6 +289,19 @@ const config = new Table(
   { indexes: {} },
 );
 
+// Réglages par organisation (PR8 maker-checker, PR13 gel de période).
+// Clé primaire composite (org_id, key) côté base ; côté PowerSync l'id local
+// est dérivé, le filtrage se fait par org_id dans le stream.
+const org_settings = new Table(
+  {
+    org_id: column.text,
+    key: column.text,
+    value: column.text,
+    updated_at: column.text,
+  },
+  { indexes: {} },
+);
+
 // ============================================================
 // Form & Custom Field Tables
 // ============================================================
@@ -593,6 +606,7 @@ export const AppSchema = new Schema({
   budget_lines,
   audit_entries,
   config,
+  org_settings,
   form_definitions,
   form_submissions,
   custom_field_definitions,

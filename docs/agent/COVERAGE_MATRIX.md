@@ -76,3 +76,4 @@
 | 11 | `/transaction/:id/edit` : formulaire vide en `ready` avant lecture (R52.t) | `V: r52t-transactionedit-loading.test.tsx` (3, non-vacuité vérifiée) | **couvert** |
 | 11 | Export/sauvegarde des données (UI) — PR2 | `V: backup.test.ts` + `V: SettingsGestion-backup.test.tsx` | **couvert** (non-vacuité vérifiée) |
 | 11 | Journal d'audit consultable — détail d'entrée (PR1) | V: Trace-detail.test.tsx | couvert |
+| 11 | Socle réglages par organisation `org_settings` (PR8 maker-checker + PR13 gel de période) | `V: org-settings.test.ts` (7) + `SQL: 20261031000007` + stream `org_settings` | **couvert** (fail-safe vérifié) |
