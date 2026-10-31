@@ -17,6 +17,12 @@ import {
 } from "@/lib/reportProblem";
 import type { ProblemReport } from "@/lib/reportProblem";
 import { performLocalRecovery } from "@/lib/localRecovery";
+import {
+  getUsageStats,
+  clearUsageStats,
+  isValidFeatureId,
+} from "@/lib/usageStats";
+import type { UsageStats } from "@/lib/usageStats";
 import { disconnectPowerSync } from "@/lib/powersync";
 import { deleteAllLocalData } from "@/lib/dataLayer";
 import { resetOrganizationId } from "@/lib/orgContext";
@@ -35,6 +41,29 @@ const LEVEL_COLOR: Record<HealthLevel, string> = {
 };
 
 const LEVEL_LABEL: Record<HealthLevel, string> = HEALTH_LEVEL_LABEL;
+
+/** Libellés FR lisibles pour les identifiants de fonctionnalité suivis. */
+const USAGE_LABELS: Record<string, string> = {
+  "screen:dashboard": "Accueil",
+  "screen:finance": "Finances",
+  "screen:members": "Membres",
+  "screen:groups": "Groupes",
+  "screen:events": "Événements",
+  "screen:reports": "Rapports",
+  "screen:balance": "Bilan",
+  "screen:budgets": "Budgets",
+  "screen:giving": "Dons & campagnes",
+  "screen:trace": "Trace",
+  "screen:help": "Aide",
+  "screen:settings": "Paramètres",
+  "action:export-json": "Export JSON",
+  "action:export-csv": "Export CSV",
+};
+
+/** Libellé affiché d'un identifiant : nom FR connu, sinon l'identifiant brut. */
+function usageLabel(featureId: string): string {
+  return USAGE_LABELS[featureId] ?? featureId;
+}
 
 /**
  * Page « État du système » (Phase 11, proposition PR4).
@@ -57,6 +86,12 @@ export default function Health() {
   const [lastReport, setLastReport] = useState<ProblemReport | null>(() =>
     getLastProblemReport(),
   );
+  // PR15 — statistiques d'usage locales (compteurs anonymes). Lues à
+  // l'ouverture ; remises à zéro par l'utilisateur (jamais automatiquement).
+  const [usage, setUsage] = useState<UsageStats>(() => getUsageStats());
+  const usageEntries = Object.entries(usage)
+    .filter(([id]) => isValidFeatureId(id))
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
 
   const currentInputs = () =>
     collectHealthInputs(
@@ -126,6 +161,12 @@ export default function Health() {
       resetOrg: () => resetOrganizationId(),
       reload: () => window.location.reload(),
     });
+  };
+
+  // PR15 — remise à zéro des compteurs d'usage (action explicite).
+  const resetUsage = () => {
+    clearUsageStats();
+    setUsage({});
   };
 
   return (
@@ -311,6 +352,61 @@ export default function Health() {
         En cas de base locale corrompue ou pleine. Les données déjà enregistrées
         côté serveur sont rechargées ; vous restez connecté.
       </p>
+
+      {/* PR15 — Statistiques d'usage ANONYMISÉES (compteurs locaux uniquement).
+          Aucune donnée personnelle : ni utilisateur, ni organisation, ni
+          contenu — seulement « combien de fois telle fonctionnalité ». */}
+      <div
+        className="mt-4 rounded-xl p-4"
+        style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
+        data-testid="health.usage-block"
+      >
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-text-primary text-sm font-semibold">
+            Statistiques d'usage
+          </span>
+          {usageEntries.length > 0 && (
+            <button
+              type="button"
+              onClick={resetUsage}
+              aria-label="Réinitialiser les statistiques d'usage"
+              data-testid="health.usage-reset"
+              className="rounded-lg px-3 text-xs font-medium"
+              style={{
+                minHeight: 32,
+                backgroundColor: "var(--card)",
+                border: "1px solid var(--border)",
+                color: "var(--text-secondary)",
+              }}
+            >
+              Réinitialiser
+            </button>
+          )}
+        </div>
+        <p className="text-text-tertiary text-xs mb-3">
+          Compteurs anonymes conservés sur cet appareil : aucune donnée
+          personnelle, aucun contenu.
+        </p>
+
+        {usageEntries.length === 0 ? (
+          <p className="text-text-tertiary text-xs" data-testid="health.usage-empty">
+            Aucune activité enregistrée.
+          </p>
+        ) : (
+          <ul className="space-y-1.5" data-testid="health.usage-list">
+            {usageEntries.map(([id, count]) => (
+              <li
+                key={id}
+                className="flex items-center justify-between text-sm"
+                data-testid={`health.usage.${id}`}
+              >
+                <span className="text-text-secondary">{usageLabel(id)}</span>
+                <span className="text-text-tertiary tabular-nums">{count}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </SettingsShell>
   );
 }

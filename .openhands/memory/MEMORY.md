@@ -862,3 +862,31 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   que sa ligne + un receipt sous `docs/agent/receipts/`.
 - Dérive de statut = défaut récurrent : toujours vérifier l'en-tête d'un risque
   contre la preuve (GitHub API / DB) avant de le croire.
+
+## PR15/PR16 (2026-10-31) — statistiques d'usage + centre d'aide
+- **Environnement de test** : `src/lib/auth.ts:24` LÈVE si `VITE_SUPABASE_URL`
+  / `VITE_SUPABASE_ANON_KEY` absents → ~104 tests / 33 fichiers échouent à
+  tort. Remède : `.env.local` **gitignoré** avec valeurs factices. Ne jamais
+  committer ce fichier ; sans lui, la suite complète est rouge pour une raison
+  purement environnementale.
+- **PR15** : `src/lib/usageStats.ts` (cœur pur). PIÈGE mesuré : le motif
+  `namespace:slug` seul laisse passer `user:42` / `email:jean` — il FAUT une
+  **liste blanche de namespaces** (`screen`, `action`). Le nettoyage
+  (`sanitizeUsagePayload`) est appliqué à l'écriture ET à la lecture (stockage
+  altéré ⇒ nettoyé). Kill switch `usage-stats` (fail-open).
+- **PR16** : contenu du tutoriel extrait en **source unique**
+  `src/lib/tutorialContent.ts` (importé par `Tutorial.tsx` ET `Help.tsx`).
+  PIÈGE : `SECTIONS` référence `CHART_COLORS` → l'import `./utils` est
+  obligatoire dans le module extrait, sinon `ReferenceError` au montage.
+  `Tutorial.test.tsx` lit le littéral via `readFileSync` : après extraction, il
+  faut pointer vers `../../lib/tutorialContent.ts` et changer `END_MARKER` en
+  `// ─── Recherche (pure)`.
+- **Non-vacuité — leçon** : une mutation n'est une preuve que si elle est
+  OBSERVABLE. Retirer `if (!q) return sections;` de `searchSections` ne change
+  RIEN (aiguille vide matche tout) → ne pas la retenir comme preuve ; muter le
+  `return sections.filter(...)` la rend observable. Vérifier chaque mutation.
+- **Lint** : le repo a ~1739 warnings pré-existants, 0 erreur ; `Tutorial.tsx`
+  porte déjà des imports lucide inutilisés (`IonHeader`, `ChevronRight`…) — ne
+  pas les attribuer à un nouveau lot.
+- **`.openhands/memory/MEMORY.md` est SUIVI par git** et tronqué par des
+  sessions antérieures → `git checkout --` avant de committer un PR.
