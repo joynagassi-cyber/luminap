@@ -33,6 +33,7 @@
 | PM18 | Données locales de A visibles par B sur le même appareil | purge locale absente au logout | 2 | 5 | 3 | 30 | `ensureLocalDataOwnedBy(userId)` : purge des clés `lumina-*` + org mémoire au 1er login d'un AUTRE compte | `V: local-data-ownership.test.ts` (4, jsdom : même/autre compte, 1er, null) | **mitigé** |
 | PM19 | Mutation en file jamais envoyée, sans indicateur | échec silencieux | 3 | 4 | 4 | 48 | `usePowerSyncIndicator.syncError` (uploadError/downloadError) + pill « échec d'envoi » sur le tableau de bord | `V: powersync-indicator.test.ts` (3, jsdom : upload/download) | **mitigé** (erreur désormais VISIBLE ; reste : indicateur par élément) |
 | PM20 | Données de test en production | seeds non marqués `is_test` | 2 | 2 | 3 | 12 | marquage `is_test` + orgs de test dédiées | SQL audit | à faire |
+| PM21 | Configuration locale corrompue (`lumina-flags = "null"`) → écran en erreur | `parseFlags` ne traitait pas le littéral JSON `null` (`typeof null === "object"`) → `Object.entries(null)` lève | 2 | 3 | 3 | 18 | garde `obj === null` dans `parseFlags` (fail-open) — **corrigé** (chaos 11, 2026-10-31) | `V: feature-flags.test.ts` (« littéral JSON `null` ») + `V: chaos-feature-catalogue.test.ts` | **mitigé** |
 
 > Ce registre est complété au fil des phases (chaque phase ajoute/actualise ses
 > risques). Le pre-mortem final (Phase 11/17) doit être **sans risque critique non

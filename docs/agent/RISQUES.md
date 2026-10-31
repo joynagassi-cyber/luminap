@@ -4359,3 +4359,26 @@ partagée par les deux plateformes et couverte par 3 tests.
   `audit-append-only-guard.test.ts`.
 - **Référence** : R137/R140/R141 (RLS), R109 (rôle ADMIN).
 - **Statut** : **CORRIGÉ** (garde livrée, `tsc -b` = 0, 1723/1723).
+
+### R144 — `parseFlags` levait sur le littéral JSON `null` (violation du contrat fail-open) — CORRIGÉ (2026-10-31)
+
+- **Découverte** : catalogue de chaos étendu (Phase 11 §5.4), domaine
+  « configuration corrompue ». Test injectant `lumina-flags = "null"`.
+- **Cause racine** : dans `src/lib/featureFlags.ts`, `JSON.parse("null")`
+  renvoie `null`, dont `typeof` vaut `"object"` et qui n'est pas un tableau →
+  la garde `typeof obj !== "object" || Array.isArray(obj)` le laisse passer,
+  puis `Object.entries(null)` lève `TypeError: Cannot convert undefined or null
+  to object`. Le contrat du module (« fail-open : jamais d'exception ») était
+  donc violé pour cette entrée.
+- **Impact** : un `lumina-flags` corrompu en `null` (quota tronqué, écriture
+  interrompue) faisait lever `localFlags()` → `isFeatureEnabled()` pendant le
+  rendu → `ErrorBoundary` de route → écran en erreur, au lieu de la
+  dégradation attendue (aucun drapeau → tout ACTIF).
+- **Correctif** : garde explicite `obj === null` (1 ligne).
+- **Preuve** : `V: feature-flags.test.ts` (« littéral JSON `null` ») +
+  `V: chaos-feature-catalogue.test.ts` (chaos 11) ; run initial ROUGE
+  (`TypeError`) → vert après correctif (non-vacuité).
+- **Référence** : `docs/agent/receipts/phase-11/2026-10-31-chaos-feature-catalogue.md`,
+  PM21.
+- **Statut** : **CORRIGÉ** (`tsc -b` = 0, eslint 0 erreur, 1840/1840).
+
