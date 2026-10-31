@@ -598,6 +598,28 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   les tests échouer, restaurer. Chaque cas a son test comportemental
   (`list-loading-vs-empty.test.tsx`, `r52l-*`, `r52o-*`, `r52p-*`).
 
+## PR11 — Recherche globale (2026-10-31)
+- **Environnement local** : `node_modules` ABSENT au départ ; `npm install`
+  échoue (ERESOLVE) → utiliser `npm install --legacy-peer-deps`. `pnpm install
+  --frozen-lockfile` échoue (overrides lockfile). Installer = ~2-3 min.
+- **Env de test obligatoire** : la suite vitest échoue sans `.env.local` (33
+  fichiers rouges : `VITE_SUPABASE_URL/ANON_KEY/JWKS_URL` + `VITE_POWERSYNC_URL`).
+  Créer `.env.local` (gitignored) avec des valeurs factices → 1814 verts.
+- **`npx tsc`** : le paquet `tsc` npm n'existe pas — utiliser le binaire local
+  `node_modules/.bin/tsc` (via `npx tsc` une fois node_modules installé).
+  `tsc -b --force --noEmit` prend ~1-2 min (timeout terminal 300s insuffisant ;
+  lancer en arrière-plan avec `&` et redirection fichier).
+- **Nouvelle route `/search`** : 4 points à synchroniser — `core.tsx`,
+  `ROUTE_REGISTRY` (routeResolver.ts), `deeplinks.matrix.json`
+  (`routes_total` 65→66), `cypress/e2e/zero-black-screen.cy.ts`. La garde
+  `route-registry-drift` + `route-reachability-guard` (lien entrant obligatoire :
+  la loupe `TopHeader` fournit le lien) restent vertes.
+- **Pattern R52 reproductible** : cœur PUR (`globalSearch.ts`) sans I/O →
+  testable ; hook renvoie `ready:false` si `!isPowerSyncReadyNow()` ; page rend
+  `ListSkeleton` (aria-busy) avant lecture. Non-vacuité : 5 mutations prouvées.
+- **`Tutorial.test.tsx` verrouille des SEUILS** (sections/paragraphes/tips) :
+  ajouter une section au tutoriel OBLIGE à relever les 4 constantes
+  (`MIN_SECTIONS` etc.), sinon le test passe quand même (seuils = planchers).
 ## RBAC Lumina (mesuré 2026-10-29, session R137/R138)
 - **14 rôles** en DONNÉES (`role_permissions`, 149 lignes, **27 permissions
   distinctes**), pas un enum : colonne `role` = TEXT **sans CHECK**. Ordre :
@@ -862,3 +884,31 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   que sa ligne + un receipt sous `docs/agent/receipts/`.
 - Dérive de statut = défaut récurrent : toujours vérifier l'en-tête d'un risque
   contre la preuve (GitHub API / DB) avant de le croire.
+
+## PR15/PR16 (2026-10-31) — statistiques d'usage + centre d'aide
+- **Environnement de test** : `src/lib/auth.ts:24` LÈVE si `VITE_SUPABASE_URL`
+  / `VITE_SUPABASE_ANON_KEY` absents → ~104 tests / 33 fichiers échouent à
+  tort. Remède : `.env.local` **gitignoré** avec valeurs factices. Ne jamais
+  committer ce fichier ; sans lui, la suite complète est rouge pour une raison
+  purement environnementale.
+- **PR15** : `src/lib/usageStats.ts` (cœur pur). PIÈGE mesuré : le motif
+  `namespace:slug` seul laisse passer `user:42` / `email:jean` — il FAUT une
+  **liste blanche de namespaces** (`screen`, `action`). Le nettoyage
+  (`sanitizeUsagePayload`) est appliqué à l'écriture ET à la lecture (stockage
+  altéré ⇒ nettoyé). Kill switch `usage-stats` (fail-open).
+- **PR16** : contenu du tutoriel extrait en **source unique**
+  `src/lib/tutorialContent.ts` (importé par `Tutorial.tsx` ET `Help.tsx`).
+  PIÈGE : `SECTIONS` référence `CHART_COLORS` → l'import `./utils` est
+  obligatoire dans le module extrait, sinon `ReferenceError` au montage.
+  `Tutorial.test.tsx` lit le littéral via `readFileSync` : après extraction, il
+  faut pointer vers `../../lib/tutorialContent.ts` et changer `END_MARKER` en
+  `// ─── Recherche (pure)`.
+- **Non-vacuité — leçon** : une mutation n'est une preuve que si elle est
+  OBSERVABLE. Retirer `if (!q) return sections;` de `searchSections` ne change
+  RIEN (aiguille vide matche tout) → ne pas la retenir comme preuve ; muter le
+  `return sections.filter(...)` la rend observable. Vérifier chaque mutation.
+- **Lint** : le repo a ~1739 warnings pré-existants, 0 erreur ; `Tutorial.tsx`
+  porte déjà des imports lucide inutilisés (`IonHeader`, `ChevronRight`…) — ne
+  pas les attribuer à un nouveau lot.
+- **`.openhands/memory/MEMORY.md` est SUIVI par git** et tronqué par des
+  sessions antérieures → `git checkout --` avant de committer un PR.
