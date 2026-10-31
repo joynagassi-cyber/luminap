@@ -428,11 +428,14 @@ const SECTIONS: SectionData[] = [
     paragraphs: [
       "La page Trace d'activité affiche l'historique complet de toutes les actions financières : créations, modifications, approbations, rejets, archivages et restaurations.",
       "Chaque entrée de trace indique l'action, l'entité concernée, le montant (le cas échéant), et l'auteur.",
+      "Touchez une entrée pour déplier son DÉTAIL : le rôle de l'auteur au moment de l'action, le commentaire, et la différence entre l'état AVANT et APRÈS (uniquement les champs réellement modifiés).",
+      "Une entrée sans état précédent est marquée « Créé », une entrée sans état suivant est marquée « Supprimé » — vous savez ainsi ce qui a changé, pas seulement qu'une action a eu lieu.",
       "Les filtres par type d'entité (Transaction, Groupe, Membre, Événement, Budget, Formulaire) permettent de réduire la vue.",
       "La recherche textuelle permet de retrouver une action spécifique rapidement.",
     ],
     tips: [
       "La trace est un outil d'audit essentiel pour la transparence financière.",
+      "Le détail d'une entrée montre le rôle exact (au moment de l'action), même si l'utilisateur a changé de rôle depuis.",
       "Les actions du trésorier et du pasteur sont distinctement identifiées.",
       "Les entrées archivées et restaurées apparaissent aussi dans la trace.",
       "Filtrez par « Transaction » pour suivre toutes les opérations financières.",
