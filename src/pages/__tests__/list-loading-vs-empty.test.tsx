@@ -66,6 +66,9 @@ vi.mock("@/lib/dataLayer", () => ({
   createGroupPS: vi.fn(async () => undefined),
   updateGroupPS: vi.fn(async () => undefined),
   deleteGroupPS: vi.fn(async () => undefined),
+  // PR10 — la bannière de rappel lit le dernier rapport envoyé ; le mock la
+  // laisse « non lu » pour ne pas changer les assertions de cette suite.
+  useLastSentReport: () => ({ lastSentAt: null, loaded: false }),
 }));
 
 vi.mock("@/capabilities/policy", () => ({

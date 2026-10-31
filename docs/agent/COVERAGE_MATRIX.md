@@ -77,3 +77,4 @@
 | 11 | Export/sauvegarde des données (UI) — PR2 | `V: backup.test.ts` + `V: SettingsGestion-backup.test.tsx` | **couvert** (non-vacuité vérifiée) |
 | 11 | Journal d'audit consultable — détail d'entrée (PR1) | V: Trace-detail.test.tsx | couvert |
 | 11 | Socle réglages par organisation `org_settings` (PR8 maker-checker + PR13 gel de période) | `V: org-settings.test.ts` (7) + `SQL: 20261031000007` + stream `org_settings` | **couvert** (fail-safe vérifié) |
+| 11 | Rappels de rapport à envoyer (PR10) : décision pure `computeReportReminder` + livraison idempotente + bannière | `V: report-reminders.test.ts` (20, non-vacuité vérifiée ×4) + `V: ReportReminderBanner.test.tsx` (8, non-vacuité vérifiée) | **couvert** |
