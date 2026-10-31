@@ -5,9 +5,9 @@
   "source_of_truth": "Base = source de verite (schema applique via editeur SQL / MCP, pas via `supabase db push`). Le tracker `supabase_migrations.schema_migrations` et les fichiers `supabase/migrations/` sont deux historiques disjoints.",
   "measured": {
     "applied_versions_in_tracker": 82,
-    "repo_timestamped_files": 75,
+    "repo_timestamped_files": 77,
     "repo_sequential_files": 63,
-    "repo_total_sql_files": 138,
+    "repo_total_sql_files": 140,
     "versions_in_common": 2,
     "common_versions": [
       "20261001000001",
@@ -16,7 +16,7 @@
     "applied_without_repo_file": 70,
     "repo_file_never_applied": 65,
     "drift_ratio": "2/82",
-    "repo_filenames_sha256": "6f05b9e3b22afe0b253a64254492dd7b71f3b9901b8639e18e4d8870c8d2e84c",
+    "repo_filenames_sha256": "822d87914a024276b3b7ebd1f2b7c3e45957c99a316cbccf58969d897de28547",
     "repo_db_object_delta": {
       "measured": "2026-10-31",
       "method": "recoupement exhaustif depot <-> base (tables, fonctions, triggers, vues)",
@@ -64,5 +64,8 @@
   ],
   "notes_org_settings": [
     "1 migration ajoutee 20261031000007 (org_settings : socle de reglages par organisation, PR8 maker-checker + PR13 gel de periode). Additive (CREATE TABLE + RLS admin:settings). Tracker non re-mesure (inaccessible en CI)."
+  ],
+  "notes_pr9_receipts": [
+    "2 migrations ajoutees 20261031000008 (transaction_attachments : pieces justificatives PR9, table + RLS transaction:update + grants) et 20261031000009 (grants de replication PowerSync generiques pour les tables recentes : `permission denied for table org_settings` bloquait tout `powersync deploy`). Additives. Le sync config a ete redeploye (stream transaction_attachments). Tracker non re-mesure (inaccessible en CI)."
   ]
 }

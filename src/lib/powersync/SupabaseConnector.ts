@@ -226,6 +226,17 @@ function sanitizeDocumentsOpData(
   return coerceUuidKeys(opData, ["uploaded_by"]);
 }
 
+/**
+ * `transaction_attachments.uploaded_by` est un `uuid` (FK → auth.users) : même
+ * bornière que `documents.uploaded_by` (les identifiants de session offline
+ * texte, ex. "local-user", sont coercés à `null`).
+ */
+function sanitizeTransactionAttachmentsOpData(
+  opData: Record<string, unknown>,
+): Record<string, unknown> {
+  return coerceUuidKeys(opData, ["uploaded_by"]);
+}
+
 export type SupabaseConnectorListener = {
   initialized: () => void;
   sessionStarted: (session: Session) => void;
@@ -507,10 +518,17 @@ export class SupabaseConnector
                   "documents",
                   sanitizeDocumentsOpData(op.opData as Record<string, unknown>),
                 )
-              : filterOpDataToSchema(
-                  op.table,
-                  coerceJsonbColumns(op.table, op.opData as Record<string, unknown>),
-                );
+              : op.table === "transaction_attachments"
+                ? filterOpDataToSchema(
+                    "transaction_attachments",
+                    sanitizeTransactionAttachmentsOpData(
+                      op.opData as Record<string, unknown>,
+                    ),
+                  )
+                : filterOpDataToSchema(
+                    op.table,
+                    coerceJsonbColumns(op.table, op.opData as Record<string, unknown>),
+                  );
 
         // Backfill des valeurs par défaut NOT NULL : si une colonne
         // NOT NULL du schéma Postgres est absente de l'opData (PowerSync

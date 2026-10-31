@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { ListSkeleton } from "@/components/Skeleton";
 import { useFocusTrap } from "@/hooks/useFocusTrap";
 import { useNavigate, useParams } from "react-router-dom";
@@ -12,9 +12,7 @@ import {
   deleteTransactionPS,
   approveTransactionPS,
   reverseTransactionPS,
-  useDocuments,
 } from "@/lib/dataLayer";
-import { getDocumentUrl } from "@/lib/storageService";
 import {
   formatCurrencyCompact,
   formatDate,
@@ -29,10 +27,11 @@ import {
   Trash2,
   AlertCircle,
   RotateCcw,
-  Download,
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
+import JustificatifsSection from "@/components/JustificatifsSection";
+import { purgeReceiptsForTransaction } from "@/lib/receipts";
 import { useCanAccessMulti } from "@/hooks/useCanAccessMulti";
 import { useSubmitGuard } from "@/hooks/useSubmitGuard";
 import { notification } from "@/capabilities/notification";
@@ -84,23 +83,6 @@ export default function TransactionDetail() {
   // doit pas écrire deux fois. Le guard est synchrone (ref) → couvre la fenêtre
   // avant le re-rendu qui désactive le bouton.
   const guard = useSubmitGuard();
-
-  // Preuves de dépense (photos dans le bucket `expense_proofs`).
-  const { data: docData } = useDocuments();
-  const proofs = (docData ?? []).filter(
-    (d) => d.entity_id === id && d.entity_type === "EXPENSE_PROOF",
-  );
-  const [proofUrls, setProofUrls] = useState<Record<string, string>>({});
-  useEffect(() => {
-    proofs.forEach(async (d) => {
-      try {
-        const u = await getDocumentUrl("expense_proofs", d.file_path);
-        setProofUrls((p) => ({ ...p, [d.id]: u }));
-      } catch {
-        /* hors ligne — l'aperçu reste indisponible, le bouton Télécharger aussi */
-      }
-    });
-  }, [proofs.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const tx = transactions.find((t: any) => t.id === id);
 
@@ -206,6 +188,10 @@ export default function TransactionDetail() {
       return;
     }
     return guard.run(async () => {
+      // PR9 — ne pas laisser de blob orphelin : purge best-effort des
+      // justificatifs (lignes + objets Storage) AVANT de supprimer la
+      // transaction (la FK est en ON DELETE CASCADE pour les lignes).
+      await purgeReceiptsForTransaction(tx.id);
       await deleteTransactionPS(tx.id);
       await notification.sendNotification({
         title: "Transaction supprimée",
@@ -483,90 +469,9 @@ export default function TransactionDetail() {
               </div>
             )}
 
-            {/* Preuve de la dépense */}
-            {(tx as any).type === "EXPENSE" && (
-              <div
-                className="rounded-xl p-4 mb-6"
-                style={{
-                  backgroundColor: "var(--surface)",
-                  border: "1px solid var(--border)",
-                }}
-              >
-                <p className="text-text-tertiary text-xs mb-2 font-medium">
-                  Preuve de la dépense
-                </p>
-                {proofs.length === 0 ? (
-                  <p className="text-text-tertiary text-xs">
-                    Aucune preuve fournie
-                  </p>
-                ) : (
-                  <div className="grid grid-cols-2 gap-2">
-                    {proofs.map((d) =>
-                      proofUrls[d.id] ? (
-                        <a
-                          key={d.id}
-                          href={proofUrls[d.id]}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="relative rounded-lg overflow-hidden block"
-                          style={{
-                            height: "7rem",
-                            border: "1px solid var(--border)",
-                          }}
-                          aria-label={`Voir la preuve : ${d.title}`}
-                        >
-                          <img
-                            src={proofUrls[d.id]}
-                            alt={d.title}
-                            className="w-full h-full object-cover"
-                          />
-                        </a>
-                      ) : (
-                        <div
-                          key={d.id}
-                          className="rounded-lg overflow-hidden flex items-center justify-center"
-                          style={{
-                            height: "7rem",
-                            border: "1px solid var(--border)",
-                            backgroundColor: "var(--surface)",
-                          }}
-                          aria-label={`Preuve indisponible hors ligne : ${d.title}`}
-                        >
-                          <Download className="w-5 h-5 text-text-tertiary" />
-                        </div>
-                      ),
-                    )}
-                  </div>
-                )}
-                {proofs.length > 0 && (
-                  <div className="flex gap-2 mt-3">
-                    {proofs.map((d) => (
-                      <button
-                        key={d.id}
-                        onClick={async () => {
-                          try {
-                            const u =
-                              proofUrls[d.id] ||
-                              (await getDocumentUrl("expense_proofs", d.file_path));
-                            window.open(u, "_blank");
-                          } catch {
-                            /* hors ligne */
-                          }
-                        }}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs"
-                        style={{
-                          backgroundColor: "var(--surface-hover)",
-                          color: "var(--text-primary)",
-                        }}
-                      >
-                        <Download className="w-3.5 h-3.5" />
-                        Télécharger
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+            {/* Justificatifs (reçus) — PR9 : image ou PDF attaché à la
+                transaction, synchronisé entre appareils de l'organisation. */}
+            <JustificatifsSection transactionId={tx.id} />
 
             {/* Reject Modal */}
             {showRejectModal && (
