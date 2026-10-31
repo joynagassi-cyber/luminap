@@ -38,6 +38,17 @@ const ALLOWED_EXCEPTIONS: Record<string, string> = {
   audit_entries_insert: "journal d'audit : l'acteur enregistre sa propre action",
 };
 
+/**
+ * Politiques d'écriture HORS `has_permission` sur une table métier mais qui ne
+ * s'appuient pas sur `is_org_member` (donc hors de l'invariant principal).
+ * R141.e — `org_reports_emitter` (`FOR ALL`, `current_org_id()`) : durcissement
+ * bloqué par le sort de `CENTRAL_ADMIN` (PR20). Explicité ici pour que sa
+ * disparition (durcissement effectif) fasse ÉCHOUER ce test → on lèvera la ligne.
+ */
+const KNOWN_UNHARDENED_WRITE: Record<string, string> = {
+  org_reports_emitter: "R141.e — bloqué par PR20 (CENTRAL_ADMIN), cf. RISQUES.md",
+};
+
 /** Tables métier dont CHAQUE politique d'écriture doit porter has_permission. */
 const DOMAIN_TABLES = [
   "transactions",
@@ -68,6 +79,7 @@ const DOMAIN_TABLES = [
   "form_submissions",
   "documents",
   "notifications",
+  "org_reports",
 ];
 
 interface Policy {
@@ -164,15 +176,25 @@ describe("PR18 — l'écriture n'est jamais gardée par la seule appartenance", 
     ).toEqual([]);
   });
 
-  it("toutes les politiques d'écriture des tables métier portent has_permission", () => {
+  it("toutes les politiques d'écriture des tables métier portent has_permission, sauf R141.e suivie", () => {
     const offenders = [...policies.values()].filter(
       (p) =>
         DOMAIN_TABLES.includes(p.table) &&
-        !/has_permission\s*\(/i.test(p.body),
+        !/has_permission\s*\(/i.test(p.body) &&
+        !(p.name in KNOWN_UNHARDENED_WRITE),
     );
     expect(
       offenders.map((p) => `${p.name} → ${p.table} (${p.file})`),
     ).toEqual([]);
+  });
+
+  it("R141.e : dès que org_reports_emitter est durci, lever l'exception (sinon elle devient morte)", () => {
+    for (const name of Object.keys(KNOWN_UNHARDENED_WRITE)) {
+      expect(
+        policies.has(name),
+        `org_reports_emitter a disparu (durci ?) → retirer KNOWN_UNHARDENED_WRITE`,
+      ).toBe(true);
+    }
   });
 
   it("les exceptions déclarées existent réellement (pas de code mort)", () => {
