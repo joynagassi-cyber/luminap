@@ -912,3 +912,19 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   pas les attribuer à un nouveau lot.
 - **`.openhands/memory/MEMORY.md` est SUIVI par git** et tronqué par des
   sessions antérieures → `git checkout --` avant de committer un PR.
+
+## Fusion de plusieurs PR de features d'un coup (2026-10-31, #163–#173)
+- Fusionner en **squash** une PR à la fois, en resynchronisant chaque branche avec
+  `origin/main` juste avant. Conflits quasi systématiques : `docs/agent/*` (concaténer)
+  et `Tutorial.tsx` → après PR16 les sections vivent dans `src/lib/tutorialContent.ts`
+  (source unique) : garder la version main de `Tutorial.tsx`, insérer la section de la
+  branche (par `id:`) dans `SECTIONS`, importer l'icône lucide.
+- **Toujours lancer la suite Vitest COMPLÈTE après une fusion multiple** : les gardes
+  anti-dérive ne se déclenchent qu'au global (ex. PR11 avait ajouté `/search` à
+  `deeplinks.matrix.json` sans incrémenter `routes_total` 66→67 ; un mock dataLayer
+  sans `subscribePowerSyncReady` casse `useReceipts`). Aucune PR isolée ne les voyait.
+- Pièges : `git add -A` AVANT de tester `--diff-filter=U` ; concaténer deux blocs
+  « garder les deux » laisse du code orphelin si une branche a SUPPRIMÉ ce que l'autre
+  a modifié (arbitrage sémantique requis) ; deux `const` homonymes → TS2451 (garder le
+  plus grand total si identifiants `UPPER_SNAKE = <nombre>`).
+- `cypress-run (1)/(2)` échoue aussi sur `main` (infra préexistante, pas une régression).
