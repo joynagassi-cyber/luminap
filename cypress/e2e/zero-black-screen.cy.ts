@@ -71,6 +71,7 @@ const ROUTES: string[] = [
   "/admin/reports/:id",
   "/admin/organizations/:id",
   "/admin/roles",
+  "/admin/transfer-ownership",
   "/trace",
   "/history",
   "/help",

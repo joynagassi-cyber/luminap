@@ -117,10 +117,12 @@ const SECTIONS = extractSections();
 // Relevé sur `main` (2026-10-28) : 19 sections, 76 paragraphes, 69 conseils,
 // 12 précautions. Relevé à nouveau après l'ajout de la section
 // « Signaler un problème » (PR5, 2026-10-31) : 20 / 80 / 72 / 13.
-const MIN_SECTIONS = 20;
-const MIN_PARAGRAPHS = 80;
-const MIN_TIPS = 72;
-const MIN_WARNINGS = 13;
+// Relevé à nouveau après l'ajout de la section « Transférer la propriété »
+// (PR14, 2026-10-31) : 22 / 92 / 80 / 16.
+const MIN_SECTIONS = 22;
+const MIN_PARAGRAPHS = 92;
+const MIN_TIPS = 80;
+const MIN_WARNINGS = 16;
 
 beforeAll(() => {
   // jsdom n'implémente pas `scrollIntoView` (appelé au changement d'onglet).

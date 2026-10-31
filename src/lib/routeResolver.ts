@@ -86,6 +86,11 @@ export const ROUTE_REGISTRY: readonly RouteDef[] = [
   { pattern: "/admin/reports/:id", kind: "app" },
   { pattern: "/admin/organizations/:id", kind: "app", permission: "admin:settings" },
   { pattern: "/admin/roles", kind: "app", permission: "admin:roles" },
+  {
+    pattern: "/admin/transfer-ownership",
+    kind: "app",
+    permission: "admin:roles",
+  },
   { pattern: "/trace", kind: "app" },
   { pattern: "/history", kind: "app" },
   { pattern: "/help", kind: "app" },

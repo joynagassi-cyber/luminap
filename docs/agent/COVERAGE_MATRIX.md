@@ -77,3 +77,4 @@
 | 11 | Export/sauvegarde des données (UI) — PR2 | `V: backup.test.ts` + `V: SettingsGestion-backup.test.tsx` | **couvert** (non-vacuité vérifiée) |
 | 11 | Journal d'audit consultable — détail d'entrée (PR1) | V: Trace-detail.test.tsx | couvert |
 | 11 | Socle réglages par organisation `org_settings` (PR8 maker-checker + PR13 gel de période) | `V: org-settings.test.ts` (7) + `SQL: 20261031000007` + stream `org_settings` | **couvert** (fail-safe vérifié) |
+| 11 | Transfert de propriété guidé — PR14 (anti-orphelin) | `V: ownership-transfer.test.ts` (16, non-vacuité vérifiée) + `V: TransferOwnership.test.tsx` (8, non-vacuité vérifiée) + `V: route-registry-drift.test.ts` + `SQL: 20261031000007` (org_settings, clé `owner_profile_id`) + `SQL: 20261022000010` (RLS org_memberships) | **couvert** |

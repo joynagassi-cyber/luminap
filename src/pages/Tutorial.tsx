@@ -32,6 +32,7 @@ import {
   Lightbulb,
   AlertTriangle,
   Database,
+  Crown,
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
@@ -649,6 +650,32 @@ const SECTIONS: SectionData[] = [
         solution:
           "Vérifiez que l'événement n'a pas été archivé. Consultez la section Archives pour le restaurer.",
       },
+    ],
+  },
+  {
+    id: "transfert-propriete",
+    title: "Transférer la propriété",
+    icon: Crown,
+    color: CHART_COLORS.income,
+    iconBg: "color-mix(in srgb, var(--data-income) 12%, transparent)",
+    titleColor: CHART_COLORS.income,
+    paragraphs: [
+      "Le transfert de propriété permet de désigner un autre administrateur pour que l'organisation ne reste jamais sans responsable.",
+      "Ouvrez Paramètres → Organisation → « Transférer la propriété » (réservé aux administrateurs).",
+      "Étape 1 — choisissez la personne : elle doit être un membre ACTIF dont le rôle permet de gérer les accès (Administrateur ou Pasteur Principal).",
+      "Étape 2 — relisez les conséquences : la nouvelle personne pourra administrer l'organisation et gérer les accès.",
+      "Étape 3 — confirmez en saisissant le nom exact de la personne, puis validez.",
+      "Étape 4 — le résultat s'affiche : succès, ou l'étape qui a échoué sans jamais laisser l'organisation sans administrateur.",
+    ],
+    tips: [
+      "La cible reçoit d'abord le rôle Administrateur, PUIS devient propriétaire : l'organisation garde toujours au moins un administrateur.",
+      "L'ancien propriétaire conserve ses données ; seul son rôle peut changer.",
+      "Vérifiez que la personne choisie accepte cette responsabilité avant de continuer.",
+      "Le transfert est tracé dans le journal d'audit (avant/après).",
+    ],
+    warnings: [
+      "Cette action est sensible : ne transférez la propriété qu'à une personne de confiance.",
+      "Un transfert interrompu n'enlève aucun droit : réessayez après avoir vérifié la connexion.",
     ],
   },
 ];
