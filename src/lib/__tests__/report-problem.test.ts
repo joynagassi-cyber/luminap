@@ -69,10 +69,16 @@ function keysOf(obj: unknown, acc: Set<string> = new Set()): Set<string> {
 beforeEach(() => {
   clearProblemReports();
   vi.clearAllMocks();
+  // Le DSN Sentry est forcé ABSENT par défaut : en CI, `.env.local` définit
+  // `VITE_SENTRY_DSN` (le workflow écrit le secret) → sans ce stub, le test
+  // « dégradation gracieuse » échouerait alors que le code est correct. Chaque
+  // test qui veut un DSN le stubbe explicitement (`vi.stubEnv`).
+  vi.stubEnv("VITE_SENTRY_DSN", "");
 });
 
 afterEach(() => {
   clearProblemReports();
+  vi.unstubAllEnvs();
 });
 
 describe("buildProblemReport — structure sans PII (PR5)", () => {
