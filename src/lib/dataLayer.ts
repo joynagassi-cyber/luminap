@@ -30,6 +30,8 @@ import {
 import { parseJsonbValue } from "./jsonb";
 import { get, set, invalidate, clear, asyncGetOrSet } from "./cache";
 import { authService } from "./auth";
+import { assertApprovable } from "./makerChecker";
+import { isMakerCheckerEnabled } from "./makerCheckerSettings";
 
 
 // ============================================================
@@ -2846,6 +2848,7 @@ export async function updateFormSubmissionPS(
 export { createVersement } from "./versement-service";
 export { createNotification, markNotificationRead, markAllNotificationsRead } from "./notification-service";
 export {
+  validateAddTransaction,
   buildAddTransaction,
   persistAddTransaction,
   auditAddTransaction,
@@ -2908,11 +2911,30 @@ export {
 
 /**
  * Approve a transaction via PowerSync
+ *
+ * PR8 maker-checker : quand le réglage d'organisation est actif, l'auteur de la
+ * transaction ne peut pas l'approuver — on lève une `MakerCheckerError` typée
+ * (jamais un refus silencieux). Par défaut (réglage absent), comportement
+ * historique inchangé.
  */
 export async function approveTransactionPS(
   id: string,
   userId: string,
 ): Promise<void> {
+  const enabled = await isMakerCheckerEnabled();
+  if (enabled) {
+    const db = getPowerSyncDatabase();
+    const res = await db.execute(
+      "SELECT created_by_id FROM transactions WHERE id = ?",
+      [id],
+    );
+    const row = (res?.array?.[0] ?? res?.[0]) as
+      | { created_by_id?: string | null }
+      | undefined;
+    assertApprovable({ createdById: row?.created_by_id ?? null }, userId, {
+      enabled: true,
+    });
+  }
   const now = new Date().toISOString();
   await executeWrite(
     `UPDATE transactions SET status = 'APPROVED', approved_by_id = ?, approved_at = ?, updated_at = ? WHERE id = ?`,

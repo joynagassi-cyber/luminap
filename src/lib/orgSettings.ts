@@ -30,6 +30,12 @@ export const ORG_SETTING_KEYS = {
   makerCheckerEnabled: "maker_checker_enabled",
   /** PR13 — date de clôture comptable (ISO YYYY-MM-DD). Défaut : null. */
   periodLockedUntil: "period_locked_until",
+  /**
+   * PR14 — propriétaire de référence de l'organisation (identifiant de profil).
+   * Défaut : null (aucun propriétaire désigné explicitement). Permet de
+   * survivre au départ d'un administrateur sans laisser l'org orpheline.
+   */
+  ownerProfileId: "owner_profile_id",
 } as const;
 
 export type OrgSettingKey =
