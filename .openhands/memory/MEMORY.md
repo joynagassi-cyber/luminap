@@ -981,3 +981,38 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   PR20. (PR17 MESURÉ non justifié ; PR18 = RLS `has_permission` ; PR20 =
   trancher `CENTRAL_ADMIN`.)
 - **`git push`** : `git remote set-url origin https://${GITHUB_TOKEN}@github.com/joynagassi-cyber/luminap.git` avant de pousser (sinon prompt identifiants interactif).
+- **Création d'organisation self-serve = DEAD-END → CORRIGÉ (2026-10-31, R161)** :
+  `OrgSetup.tsx::handleCreate` n'écrivait QUE du localStorage (aucun appel
+  `create_org`) ; seuls `Federation.tsx`/`OrgChildren.tsx` appelaient
+  `bootstrapOrganization` (sous `/admin/federation`, perm `admin:settings` →
+  inaccessibles à un compte neuf). L'edge exigeait un grant `org_admins` ACTIF →
+  compte frais (`MEMBRE`/`__no_org__`) = **403**, dashboard bloqué par la garde
+  `needs-membership` (R107). **Correctif** : `create_org` distingue SELF-SERVE
+  (aucune org → crée sa 1re org, devient `ADMIN`, rattache `profiles.org_id`,
+  écrit `org_memberships`) de la branche ADMIN (annexe). `OrgSetup` appelle
+  `bootstrapOrganization` puis `mirrorNewOrganizationLocally` **AVANT**
+  `setOrganizationId` (ordre CRITIQUE : sinon `useOrgMembership` conclut
+  « non-membre » sur la base locale vide) puis `refreshProfile()`. Gardes :
+  `V: OrgSetup-selfserve.test.tsx` (4) + `V: mirror-new-org.test.ts` (3) +
+  `C: self-serve-org.cy.ts` (1, cloud réel). Edge **déployé** (v9).
+  **Auth email + Google OK** (providers activés, `uri_allow_list` couvre
+  `lumina://auth/callback`).
+- **Purge de données de test Supabase** : le trigger `trg_org_admins_not_last`
+  (`org_assert_not_last_admin`) bloque la suppression d'admin par lot → utiliser
+  `SET LOCAL session_replication_role = replica;` dans la transaction (désactive
+  les triggers utilisateur le temps de la purge, sans effet hors transaction).
+  Ordre FK : `transaction_attachments`/`audit_entries` → `versements` →
+  `budget_lines` → `transactions` → `cotisations` → `event_tasks`/`event_budgets`
+  → `events` → `members` → `groups` → `organizations` (enfants avant parents).
+- **Environnement E2E Cypress local** (dépôt sans node_modules) : `npm install`
+  ÉCHOUE (ERESOLVE `@supabase/server` peerOptional `h3`) → utiliser **pnpm** :
+  `export PATH="/usr/local/lib/node_modules/corepack/shims:$PATH"` (corepack
+  déjà là, pnpm 11.28.10) puis `pnpm install --frozen-lockfile`. Créer
+  `.env.local` (gitignored) avec `VITE_SUPABASE_URL/ANON_KEY` (fallback de
+  cypress.config.ts) + `VITE_POWERSYNC_URL`. Installer `xvfb` + libs GTK/NSS
+  sinon « spawn Xvfb ENOENT ». Runner : `CYPRESS_BASE_URL=http://localhost:8080
+  xvfb-run -a npx cypress run --spec … --browser electron`.
+- **PR7 kill switch = couvert E2E** (PR #180 DRAFT) : `C: feature-flags.cy.ts`
+  (3) prouve `global-search` OFF ⇒ loupe `TopHeader` absente, ON/absent
+  (fail-open) ⇒ visible. Surcharge réelle `localStorage['lumina-flags']`.
+  Non-vacuité : garde `true` dans `TopHeader` ⇒ 2 échecs.
