@@ -54,6 +54,7 @@ vi.mock("@/lib/dataLayer", () => ({
   useDocuments: () => ({ data: [], isLoading: false }),
   useCurrentUser: () => ({ id: "me", role: "ADMIN", org: { id: "org-1" } }),
   isPowerSyncReadyNow: () => true,
+  subscribePowerSyncReady: () => () => undefined,
   approveTransactionPS: vi.fn(async () => undefined),
   updateTransactionPS: vi.fn(async () => undefined),
   deleteTransactionPS: vi.fn(async () => undefined),
