@@ -35,6 +35,9 @@ import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
 import { useCanAccessMulti } from "@/hooks/useCanAccessMulti";
 import { useSubmitGuard } from "@/hooks/useSubmitGuard";
+import { useMakerChecker } from "@/hooks/useMakerChecker";
+import { canApprove as canApproveRule } from "@/lib/makerChecker";
+import { toast } from "@/components/ui/use-toast";
 import { notification } from "@/capabilities/notification";
 import {
   IonPage,
@@ -84,6 +87,11 @@ export default function TransactionDetail() {
   // doit pas écrire deux fois. Le guard est synchrone (ref) → couvre la fenêtre
   // avant le re-rendu qui désactive le bouton.
   const guard = useSubmitGuard();
+
+  // PR8 maker-checker : réglage par organisation (défaut OFF). Monté AVANT tout
+  // `return` conditionnel (règle des hooks). `enabled` reste faux tant que le
+  // réglage n'a pas été lu → aucune contrainte par accident.
+  const makerChecker = useMakerChecker();
 
   // Preuves de dépense (photos dans le bucket `expense_proofs`).
   const { data: docData } = useDocuments();
@@ -145,6 +153,17 @@ export default function TransactionDetail() {
   }
 
   const isIncome = tx.type === "INCOME";
+
+  // PR8 maker-checker — l'acteur est-il l'auteur de la transaction, avec le
+  // réglage actif ? La règle PURE `canApprove` tranche (permission + auteur) :
+  // l'UI ne réimplémente pas la décision, elle l'affiche.
+  const approveDecision = canApproveRule({
+    transaction: { createdById: (tx as any).createdById ?? (tx as any).created_by_id },
+    actorId: user?.id ?? "",
+    actorPermissions: canApproveMulti.allowed ? ["transaction:approve"] : [],
+    enabled: makerChecker.enabled,
+  });
+  const selfApprovalBlocked = approveDecision.reason === "self-approval";
   const category =
     (tx as any).category ||
     categories.find(
@@ -159,6 +178,17 @@ export default function TransactionDetail() {
 
   const handleApprove = () => {
     if (!canApproveMulti.allowed) {
+      return;
+    }
+    // PR8 — refus AVANT toute écriture : le chemin d'écriture lèverait une
+    // erreur typée, mais on évite ici d'ouvrir une fenêtre de double-soumission
+    // pour une action qui ne peut pas aboutir.
+    if (selfApprovalBlocked) {
+      toast({
+        title: "Approbation impossible",
+        description: "L'auteur ne peut pas approuver sa propre dépense.",
+        variant: "destructive",
+      });
       return;
     }
     return guard.run(async () => {
@@ -395,14 +425,27 @@ export default function TransactionDetail() {
               {tx.status === "PENDING" && (
                 <>
                   {canApproveMulti.allowed && (
-                    <button
-                      onClick={handleApprove}
-                      disabled={guard.submitting}
-                      className="w-full py-4 rounded-full font-semibold text-on-accent text-sm transition-all active:scale-95"
-                      style={{ backgroundColor: "var(--data-income)" }}
-                    >
-                      Approuver
-                    </button>
+                    <>
+                      <button
+                        onClick={handleApprove}
+                        disabled={guard.submitting || selfApprovalBlocked}
+                        data-testid="approve-button"
+                        className="w-full py-4 rounded-full font-semibold text-on-accent text-sm transition-all active:scale-95 disabled:opacity-50"
+                        style={{ backgroundColor: "var(--data-income)" }}
+                      >
+                        Approuver
+                      </button>
+                      {selfApprovalBlocked && (
+                        <p
+                          data-testid="self-approval-notice"
+                          role="note"
+                          className="text-xs px-1"
+                          style={{ color: "var(--data-expense)" }}
+                        >
+                          L'auteur ne peut pas approuver sa propre dépense.
+                        </p>
+                      )}
+                    </>
                   )}
                   {canRejectMulti.allowed && (
                     <button

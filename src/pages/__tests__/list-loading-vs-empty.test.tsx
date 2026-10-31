@@ -75,6 +75,11 @@ vi.mock("@/capabilities/policy", () => ({
 vi.mock("@/lib/orgContext", () => ({
   getOrganizationId: () => "org-1",
   hasResolvedOrganization: () => true,
+  subscribeOrganization: () => () => {},
+}));
+
+vi.mock("@/hooks/useMakerChecker", () => ({
+  useMakerChecker: () => ({ enabled: false, loaded: true }),
 }));
 
 vi.mock("@/hooks/useCanAccessMulti", () => ({

@@ -77,3 +77,4 @@
 | 11 | Export/sauvegarde des données (UI) — PR2 | `V: backup.test.ts` + `V: SettingsGestion-backup.test.tsx` | **couvert** (non-vacuité vérifiée) |
 | 11 | Journal d'audit consultable — détail d'entrée (PR1) | V: Trace-detail.test.tsx | couvert |
 | 11 | Socle réglages par organisation `org_settings` (PR8 maker-checker + PR13 gel de période) | `V: org-settings.test.ts` (7) + `SQL: 20261031000007` + stream `org_settings` | **couvert** (fail-safe vérifié) |
+| 11 | Approbation en deux étapes (maker-checker, PR8) : l'auteur ne peut pas approuver sa propre transaction quand le réglage d'org est actif | `V: maker-checker.test.ts` (15) + `V: maker-checker-approve-path.test.ts` (8, chemin d'écriture réel) + `V: maker-checker-ui.test.tsx` (2, bouton désactivé) + réglage `org_settings.maker_checker_enabled` | **couvert** (non-vacuité vérifiée : retirer la règle fait échouer 6 tests) |

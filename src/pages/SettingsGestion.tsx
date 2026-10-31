@@ -14,6 +14,7 @@ import {
   Database,
   FileJson,
   FileSpreadsheet,
+  ShieldCheck,
   Loader2,
   type LucideIcon,
 } from "lucide-react";
@@ -21,6 +22,10 @@ import SettingsShell from "@/components/SettingsShell";
 import { useCurrentUser } from "@/lib/dataLayer";
 import { useLocalStore } from "@/store/useLocalStore";
 import { useBackupData } from "@/hooks/useBackupData";
+import { useMakerChecker } from "@/hooks/useMakerChecker";
+import { useCanAccessMulti } from "@/hooks/useCanAccessMulti";
+import { Switch } from "@/components/ui/switch";
+import { setOrgSetting, ORG_SETTING_KEYS } from "@/lib/orgSettings";
 import { downloadBlob } from "@/lib/download";
 import { backupFilename, serializeBackup, backupToCsv } from "@/lib/backup";
 import { captureClientError } from "@/lib/clientErrors";
@@ -117,6 +122,40 @@ export default function SettingsGestion() {
   const isCentralAdmin = user?.role === "CENTRAL_ADMIN";
   const backup = useBackupData();
   const [busy, setBusy] = useState<null | "json" | "csv">(null);
+
+  // PR8 maker-checker : bascule réservée aux administrateurs (`admin:settings`).
+  const canManageSettings = useCanAccessMulti(
+    user?.id,
+    user?.org?.id,
+    "admin",
+    "settings",
+    undefined,
+    user?.role as any,
+  );
+  const makerChecker = useMakerChecker();
+  const [savingMakerChecker, setSavingMakerChecker] = useState(false);
+
+  const handleToggleMakerChecker = async (next: boolean) => {
+    if (savingMakerChecker) return;
+    setSavingMakerChecker(true);
+    const ok = await setOrgSetting(ORG_SETTING_KEYS.makerCheckerEnabled, next);
+    setSavingMakerChecker(false);
+    if (!ok) {
+      toast({
+        title: "Réglage non enregistré",
+        description:
+          "L'approbation en deux étapes n'a pas pu être modifiée. Réessayez.",
+        variant: "destructive",
+      });
+      return;
+    }
+    toast({
+      title: next ? "Approbation en deux étapes activée" : "Approbation en deux étapes désactivée",
+      description: next
+        ? "L'auteur d'une transaction ne pourra plus l'approuver lui-même."
+        : "Le créateur d'une transaction peut de nouveau l'approuver.",
+    });
+  };
 
   const handleExport = async (kind: "json" | "csv") => {
     if (busy) return;
@@ -375,6 +414,51 @@ export default function SettingsGestion() {
           </button>
         </div>
       </div>
+
+      {canManageSettings.allowed && (
+        <>
+          <p className="text-text-secondary text-xs font-medium mb-2 mt-5">
+            Contrôle financier
+          </p>
+          <div
+            className="rounded-xl p-4"
+            style={{
+              backgroundColor: "var(--surface)",
+              border: "1px solid var(--border)",
+            }}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-2">
+                <ShieldCheck
+                  className="w-5 h-5 flex-shrink-0 mt-0.5"
+                  style={{ color: "var(--accent-primary)" }}
+                />
+                <div>
+                  <p className="text-text-primary text-sm font-semibold">
+                    Approbation en deux étapes
+                  </p>
+                  <p className="text-text-tertiary text-xs mt-0.5">
+                    L'auteur d'une transaction ne peut pas l'approuver lui-même
+                    (maker-checker). Désactivé par défaut.
+                  </p>
+                </div>
+              </div>
+              <Switch
+                checked={makerChecker.enabled}
+                disabled={savingMakerChecker || !makerChecker.loaded}
+                onCheckedChange={(next) => void handleToggleMakerChecker(next)}
+                data-testid="maker-checker-toggle"
+                aria-label="Activer l'approbation en deux étapes"
+              />
+            </div>
+            {!makerChecker.loaded && (
+              <p className="text-text-tertiary text-xs mt-3">
+                Chargement du réglage…
+              </p>
+            )}
+          </div>
+        </>
+      )}
     </SettingsShell>
   );
 }
