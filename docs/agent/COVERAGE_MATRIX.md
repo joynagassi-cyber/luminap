@@ -87,3 +87,35 @@
 | 11 | Rappels de rapport à envoyer (PR10) : décision pure `computeReportReminder` + livraison idempotente + bannière | `V: report-reminders.test.ts` (20, non-vacuité vérifiée ×4) + `V: ReportReminderBanner.test.tsx` (8, non-vacuité vérifiée) | **couvert** |
 | 11 | Pièces justificatives (reçus) sur transactions — PR9 | `V: receipts.test.ts` (12 : validation taille/MIME, cloisonnement, suppression ligne+blob, purge, non-vacuité vérifiée) + `V: justificatifs-loading.test.tsx` (3 : squelette avant lecture, non-vacuité vérifiée) + `SQL: 20261031000008` (table `transaction_attachments` + RLS `transaction:update`) + `SQL: 20261031000009` (grants de réplication) + stream `transaction_attachments` | **couvert** (non-vacuité vérifiée) |
 | 11 | Gel de période comptable (clôture) — PR13 : écriture refusée on/before la date close | `V: period-lock.test.ts` (règle pure) + `V: period-lock-enforcement.test.ts` (9, point d'étranglement dataLayer) + `V: period-lock-service-guards.test.ts` (4, services cotisation/versement) + `V: PeriodLockCard.test.tsx` (5, UI + RBAC) + `V: feature-flags.test.ts` (kill switch `period-lock`) | **couvert** (non-vacuité vérifiée par mutation) |
+
+## E2E Cypress — features robustesse & produit (2026-10-31)
+
+> Couche E2E réelle (offline-first, réplique locale seedée) ajoutée par-dessus la
+> couverture vitest. Runner : `CYPRESS_BASE_URL=http://127.0.0.1:8080 xvfb-run -a
+> npx cypress run --browser chromium --spec <spec>`.
+
+| # | Feature / scénario | Test(s) | Statut |
+|---|---|---|---|
+| 11 | PR13 — gel de période : clôture PERSISTE (round-trip `org_settings`) puis rouvre | `C: robustness-features.cy.ts` (PR13) | **couvert** (non-vacuité vérifiée : revert du correctif ⇒ échec) |
+| 11 | PR8 — maker-checker : la bascule PERSISTE dans `org_settings` | `C: robustness-features.cy.ts` (PR8) | **couvert** (non-vacuité vérifiée) |
+| 11 | PR15 — page Santé : bloc « usage » (liste OU état vide honnête) | `C: robustness-features.cy.ts` (PR15) | **couvert** |
+| 11 | PR2 — export/sauvegarde : bouton JSON actif + téléchargement `lumina-sauvegarde-*.json` | `C: robustness-features.cy.ts` (PR2) | **couvert** |
+| 11 | PR1 — journal d'audit `/trace` : état vide honnête (pas de faux chargement) | `C: robustness-features.cy.ts` (PR1) | **couvert** |
+| 11 | PR12 — import CSV : aperçu lignes valides, confirmation activée, annulation + modèle téléchargeable | `C: product-features.cy.ts` (PR12 ×2) | **couvert** |
+| 11 | PR9 — pièces justificatives : section « Justificatifs » montée sur le détail transaction | `C: product-features.cy.ts` (PR9) | **couvert** |
+| 11 | PR11 — recherche globale : zone de saisie + état vide honnête | `C: product-features.cy.ts` (PR11) | **couvert** |
+| 13 | PR16 — aide : recherche renvoie des sections puis « aucun résultat » | `C: product-features.cy.ts` (PR16) | **couvert** |
+| 11 | PR14 — `/admin/transfer-ownership` : jamais d'écran noir (étape ou accès refusé) | `C: product-features.cy.ts` (PR14) | **couvert** |
+
+### Correctif d'intégrité associé (R160, 2026-10-31)
+
+`setOrgSetting` (`src/lib/orgSettings.ts`) faisait un `INSERT ... ON CONFLICT
+(org_id, key) DO UPDATE` : côté client PowerSync expose chaque table comme une
+**VUE**, donc l'écriture échouait avec « cannot UPSERT a view ». Conséquence :
+les réglages PR8 (maker-checker) et PR13 (gel de période) n'étaient **jamais**
+persistés — boutons en apparence inertes. Correctif : `SELECT id` puis `UPDATE`
+ou `INSERT` explicite (seule forme acceptée par une vue). Garde unitaire : le
+mock PowerSync des tests `org-settings` / `period-lock` / `period-lock-enforcement`
+lève désormais « cannot UPSERT a view » (il simulait l'upsert en JS et masquait
+le bug). Garde E2E : `robustness-features.cy.ts` (PR8/PR13) vérifie la
+persistance réelle.

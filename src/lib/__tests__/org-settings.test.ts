@@ -9,8 +9,14 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // ─── PowerSync mock stateful (stockage en mémoire de org_settings) ──────────
+// FIDÈLE À POWERSYNC : chaque table est une VUE (`CREATE VIEW ... AS SELECT
+// json_extract(data, ...)`). Un `INSERT ... ON CONFLICT DO UPDATE` (ou un
+// `INSERT OR REPLACE`) échoue avec « cannot UPSERT a view », et un INSERT sans
+// `id` échoue avec « id is required ». Ce mock lève donc ces deux erreurs au
+// lieu de simuler l'upsert en JS — c'est ce qui masquait le bug réel (le
+// réglage maker-checker / la clôture de période n'étaient jamais persistés).
 const psState = vi.hoisted(() => ({
-  rows: [] as Array<{ org_id: string; key: string; value: string | null }>,
+  rows: [] as Array<{ id: string; org_id: string; key: string; value: string | null }>,
   failExecute: false,
 }));
 
@@ -18,13 +24,23 @@ vi.mock("@/lib/powersync", () => ({
   getPowerSyncDatabase: vi.fn(() => ({
     execute: vi.fn(async (sql: string, params: any[]) => {
       if (psState.failExecute) throw new Error("db down");
-      if (/INSERT INTO org_settings/i.test(sql)) {
-        const [org_id, key, value] = params as string[];
+      if (/UPSERT a view/i.test(sql) || /ON CONFLICT/i.test(sql) || /INSERT OR REPLACE/i.test(sql)) {
+        throw new Error("cannot UPSERT a view");
+      }
+      if (/^INSERT INTO org_settings/i.test(sql.trim())) {
+        const [id, org_id, key, value] = params as string[];
+        if (!id) throw new Error("id is required");
         const existing = psState.rows.find(
           (r) => r.org_id === org_id && r.key === key,
         );
         if (existing) existing.value = value;
-        else psState.rows.push({ org_id, key, value });
+        else psState.rows.push({ id, org_id, key, value });
+        return { array: [] };
+      }
+      if (/^UPDATE org_settings/i.test(sql.trim())) {
+        const [value, , id] = params as string[];
+        const row = psState.rows.find((r) => r.id === id);
+        if (row) row.value = value;
         return { array: [] };
       }
       if (/DELETE FROM org_settings/i.test(sql)) {
@@ -33,6 +49,14 @@ vi.mock("@/lib/powersync", () => ({
           (r) => !(r.org_id === org_id && r.key === key),
         );
         return { array: [] };
+      }
+      if (/SELECT id FROM org_settings/i.test(sql)) {
+        const [org_id, key] = params as string[];
+        return {
+          array: psState.rows
+            .filter((r) => r.org_id === org_id && r.key === key)
+            .map((r) => ({ id: r.id })),
+        };
       }
       if (/SELECT value FROM org_settings/i.test(sql)) {
         const [org_id, key] = params as string[];
@@ -121,6 +145,7 @@ describe("orgSettings — lecture / écriture / suppression", () => {
 
   it("une valeur illisible (JSON invalide) retombe sur le défaut sans lever", async () => {
     psState.rows.push({
+      id: "row-corrupt",
       org_id: ORG,
       key: ORG_SETTING_KEYS.makerCheckerEnabled,
       value: "{not json",

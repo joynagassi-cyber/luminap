@@ -22,31 +22,54 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// ─── org_settings stateful mock (même forme que org-settings.test.ts) ────────
+// ─── org_settings stateful mock (FIDÈLE à PowerSync : VUE, pas de UPSERT) ────
+// PowerSync expose chaque table comme une vue : `INSERT ... ON CONFLICT DO
+// UPDATE` échoue (« cannot UPSERT a view ») et un INSERT sans `id` échoue
+// (« id is required »). Le mock reproduit ces contraintes — sinon il masque le
+// bug réel où la clôture de période n'était jamais persistée.
 const psState = vi.hoisted(() => ({
-  rows: [] as Array<{ org_id: string; key: string; value: string | null }>,
+  rows: [] as Array<{ id: string; org_id: string; key: string; value: string | null }>,
 }));
 
 vi.mock("@/lib/powersync", () => ({
   getPowerSyncDatabase: vi.fn(() => ({
     execute: vi.fn(async (sql: string, params: any[]) => {
-      if (/INSERT INTO org_settings/i.test(sql)) {
-        const [org_id, key, value] = params as string[];
+      const trimmed = sql.trim();
+      if (/ON CONFLICT/i.test(trimmed) || /INSERT OR REPLACE/i.test(trimmed)) {
+        throw new Error("cannot UPSERT a view");
+      }
+      if (/^INSERT INTO org_settings/i.test(trimmed)) {
+        const [id, org_id, key, value] = params as string[];
+        if (!id) throw new Error("id is required");
         const existing = psState.rows.find(
           (r) => r.org_id === org_id && r.key === key,
         );
         if (existing) existing.value = value;
-        else psState.rows.push({ org_id, key, value });
+        else psState.rows.push({ id, org_id, key, value });
         return { array: [] };
       }
-      if (/DELETE FROM org_settings/i.test(sql)) {
+      if (/^UPDATE org_settings/i.test(trimmed)) {
+        const [value, , id] = params as string[];
+        const row = psState.rows.find((r) => r.id === id);
+        if (row) row.value = value;
+        return { array: [] };
+      }
+      if (/DELETE FROM org_settings/i.test(trimmed)) {
         const [org_id, key] = params as string[];
         psState.rows = psState.rows.filter(
           (r) => !(r.org_id === org_id && r.key === key),
         );
         return { array: [] };
       }
-      if (/SELECT value FROM org_settings/i.test(sql)) {
+      if (/SELECT id FROM org_settings/i.test(trimmed)) {
+        const [org_id, key] = params as string[];
+        return {
+          array: psState.rows
+            .filter((r) => r.org_id === org_id && r.key === key)
+            .map((r) => ({ id: r.id })),
+        };
+      }
+      if (/SELECT value FROM org_settings/i.test(trimmed)) {
         const [org_id, key] = params as string[];
         return {
           array: psState.rows

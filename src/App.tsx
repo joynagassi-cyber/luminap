@@ -438,7 +438,6 @@ const App = () => (
       <Sonner />
       <IonApp style={{ backgroundColor: "var(--canvas)" }}>
         <SentryUserBridge />
-        <UsageStatsBridge />
         <UpdaterBridge />
         {/* Lien « sauter au contenu » — premier élément focalisable, masqué
             visuellement jusqu'au focus clavier (a11y : parcours du clavier). */}
@@ -455,6 +454,12 @@ const App = () => (
           <RouteGuard />
           <AppReadyBridge />
           <AppUrlOpenBridge />
+          {/* PR15 — UsageStatsBridge DOIT être monté SOUS le Router : il
+              appelle `useLocation()`. Monté hors de <IonReactRouter> (comme
+              `SentryUserBridge`), il lève « useLocation() may be used only in
+              the context of a <Router> » et fait tomber TOUTE l'app dans
+              l'ErrorBoundary (écran « Une erreur inattendue s'est produite »). */}
+          <UsageStatsBridge />
           <AppRouter />
           <AppProvider>
             <SyncUnavailableBanner />

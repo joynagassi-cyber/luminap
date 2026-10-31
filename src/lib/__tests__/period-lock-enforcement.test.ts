@@ -18,7 +18,10 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// ─── PowerSync mock stateful ────────────────────────────────────────────────
+// ─── PowerSync mock stateful (FIDÈLE : org_settings est une VUE) ─────────────
+// La clé de stockage reste `${org}:${key}` ; `id` sert de clé interne. Le mock
+// refuse `ON CONFLICT`/`INSERT OR REPLACE` (« cannot UPSERT a view ») et un
+// INSERT sans `id` (« id is required ») — comme PowerSync côté client.
 const ps = vi.hoisted(() => ({
   settings: new Map<string, string>(), // `${org}:${key}` → value
   queries: [] as Array<{ sql: string; params: any[] }>,
@@ -30,15 +33,35 @@ vi.mock("@/lib/powersync", () => ({
   getPowerSyncDatabase: () => ({
     execute: async (sql: string, params: any[] = []) => {
       ps.queries.push({ sql, params });
-      if (/org_settings/i.test(sql) && /INSERT/i.test(sql)) {
-        ps.settings.set(`${params[0]}:${params[1]}`, params[2]);
+      const trimmed = sql.trim();
+      if (/ON CONFLICT/i.test(trimmed) || /INSERT OR REPLACE/i.test(trimmed)) {
+        throw new Error("cannot UPSERT a view");
+      }
+      if (/^INSERT INTO org_settings/i.test(trimmed)) {
+        if (!params[0]) throw new Error("id is required");
+        // (id, org_id, key, value, updated_at)
+        ps.settings.set(`${params[1]}:${params[2]}`, params[3]);
         return { array: [], rowsAffected: 1 };
       }
-      if (/org_settings/i.test(sql) && /DELETE/i.test(sql)) {
+      if (/^UPDATE org_settings/i.test(trimmed)) {
+        // (value, updated_at, id) — `id` vaut `id:${org}:${key}` (cf. SELECT).
+        const id = String(params[2]);
+        const key = id.replace(/^id:/, "");
+        ps.settings.set(key, params[0]);
+        return { array: [], rowsAffected: 1 };
+      }
+      if (/DELETE FROM org_settings/i.test(trimmed)) {
         ps.settings.delete(`${params[0]}:${params[1]}`);
         return { array: [], rowsAffected: 1 };
       }
-      if (/org_settings/i.test(sql) && /SELECT/i.test(sql)) {
+      if (/SELECT id FROM org_settings/i.test(trimmed)) {
+        const key = `${params[0]}:${params[1]}`;
+        return {
+          array: ps.settings.has(key) ? [{ id: `id:${key}` }] : [],
+          rowsAffected: 0,
+        };
+      }
+      if (/SELECT value FROM org_settings/i.test(trimmed)) {
         const v = ps.settings.get(`${params[0]}:${params[1]}`);
         return { array: v === undefined ? [] : [{ value: v }], rowsAffected: 0 };
       }

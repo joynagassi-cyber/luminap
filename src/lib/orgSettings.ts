@@ -74,6 +74,15 @@ export async function getOrgSetting<T>(
  * Écrit un réglage pour l'organisation active (upsert). Renvoie `true` si
  * l'écriture a réussi. Une erreur est instrumentée et renvoyée sous forme de
  * `false` (l'appelant décide du message) — on ne l'avale pas silencieusement.
+ *
+ * NOTE — pas de `INSERT ... ON CONFLICT` : côté client, PowerSync expose chaque
+ * table comme une VUE (`CREATE VIEW org_settings AS SELECT ... json_extract`).
+ * Un `ON CONFLICT DO UPDATE` (ou un `INSERT OR REPLACE`) échoue alors avec
+ * « cannot UPSERT a view » et le réglage n'est JAMAIS persisté — la clôture de
+ * période (PR13) et le maker-checker (PR8) restaient silencieusement inertes
+ * (constaté en E2E). On fait donc un SELECT puis UPDATE-ou-INSERT, seule forme
+ * acceptée par une vue. `id` est obligatoire (PowerSync l'ajoute au schéma mais
+ * ne le génère pas sur un INSERT explicite).
  */
 export async function setOrgSetting(
   key: string,
@@ -82,12 +91,24 @@ export async function setOrgSetting(
 ): Promise<boolean> {
   try {
     const db = getPowerSyncDatabase();
-    await db.execute(
-      `INSERT INTO org_settings (org_id, key, value, updated_at)
-       VALUES (?, ?, ?, ?)
-       ON CONFLICT (org_id, key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
-      [orgId, key, JSON.stringify(value), new Date().toISOString()],
+    const serialized = JSON.stringify(value);
+    const now = new Date().toISOString();
+    const existing = await db.execute(
+      "SELECT id FROM org_settings WHERE org_id = ? AND key = ?",
+      [orgId, key],
     );
+    const rows = (existing?.array || []) as Array<{ id: string }>;
+    if (rows.length > 0) {
+      await db.execute(
+        "UPDATE org_settings SET value = ?, updated_at = ? WHERE id = ?",
+        [serialized, now, rows[0].id],
+      );
+    } else {
+      await db.execute(
+        "INSERT INTO org_settings (id, org_id, key, value, updated_at) VALUES (?, ?, ?, ?, ?)",
+        [crypto.randomUUID(), orgId, key, serialized, now],
+      );
+    }
     return true;
   } catch (err) {
     captureClientError(err, {
