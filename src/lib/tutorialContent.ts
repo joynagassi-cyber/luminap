@@ -35,6 +35,7 @@ import {
   Search,
   BellRing,
   Paperclip,
+  Lock,
 } from "lucide-react";
 
 import { CHART_COLORS } from "./utils";
@@ -756,6 +757,29 @@ const SECTIONS: SectionData[] = [
         q: "Que se passe-t-il si je supprime la transaction ?",
         a: "Ses justificatifs sont supprimés en même temps. Le nettoyage des fichiers est fait au mieux : en cas d'échec réseau, il est signalé mais ne bloque pas la suppression.",
       },
+    ],
+  },
+  {
+    id: "gel-periode",
+    title: "Gel de période (clôture comptable)",
+    icon: Lock,
+    color: CHART_COLORS.planified,
+    iconBg: "color-mix(in srgb, var(--data-planified) 12%, transparent)",
+    titleColor: CHART_COLORS.planified,
+    paragraphs: [
+      "Le gel de période permet de figer une comptabilité déjà validée : à partir de la date de clôture, plus aucune écriture ne peut être ajoutée, modifiée, supprimée, contredite ni approuvée sur la période concernée.",
+      "La clôture est PAR ORGANISATION et PARTAGÉE entre tous les appareils : une fois posée, elle s'applique à tout le monde, en ligne comme hors ligne.",
+      "Un trésorier ou un administrateur la règle depuis Paramètres → onglet « Gérer » → section « Gel de période comptable ». On y saisit la date de clôture (incluse), puis « Clôturer la période ». Le bandeau indique la date en vigueur.",
+      "Toute écriture refusée affiche un message en français indiquant la date de clôture (par exemple lors de la création d'une transaction ou d'un versement daté dans la période close). Le rejet est explicite : rien n'est enregistré en silence.",
+      "Le bouton « Rouvrir la période » retire la clôture : les écritures redeviennent possibles sur toutes les dates. Sans clôture configurée, rien n'est gelé.",
+    ],
+    tips: [
+      "La date de clôture est INCLUSE : clôturer au 31/12 bloque aussi les écritures du 31/12.",
+      "Clôturez après la validation d'un exercice, jamais avant d'avoir approuvé toutes les transactions de la période.",
+      "Le gel s'applique aussi aux paiements de cotisation et aux versements datés dans la période close.",
+    ],
+    warnings: [
+      "Le gel ne remplace pas une sauvegarde : exportez vos données (Paramètres → Gérer) avant de clôturer une période importante.",
     ],
   },
 ];

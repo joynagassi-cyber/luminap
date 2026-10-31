@@ -34,6 +34,7 @@ import { security } from "@/capabilities/security";
 import { workflow } from "@/capabilities/workflow";
 import { getOrganizationId } from "@/lib/orgContext";
 import { DEFAULT_CATEGORY_ID } from "@/lib/canonicalCategories";
+import { periodLockMessage } from "@/lib/periodLock";
 import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar, IonButtons, IonBackButton, IonSelect, IonSelectOption, IonItem, IonLabel, IonInput } from "@ionic/react";
 import EmptyState from "@/components/EmptyState";
 import EventTasks from "@/components/EventTasks";
@@ -192,28 +193,38 @@ export default function EventDetail() {
       budgetItem.fundedBy === "main" ? "main" : budgetItem.fundedBy;
     const categoryId = budgetItem.categoryId || DEFAULT_CATEGORY_ID;
 
-    await addTransactionPS({
-      org_id: getOrganizationId(),
-      type: "EXPENSE",
-      amount: amountCents,
-      description: `${event.name} — ${expenseDescription}`,
-      date: now.split("T")[0],
-      status: "APPROVED",
-      category_id: categoryId,
-      org_unit_id: null,
-      compensates_for: null,
-      comment: `Dépense événement: ${expenseDescription}`,
-      created_by_id: sessionId,
-      approved_by_id: sessionId,
-      approved_at: now,
-      event_id: event.id,
-      source: "CAISSE",
-      person_name: null,
-      source_caisse_id: sourceCaisseId,
-      versement_id: null,
-      reversal_of_id: null,
-      cotisation_id: null,
-    });
+    try {
+      await addTransactionPS({
+        org_id: getOrganizationId(),
+        type: "EXPENSE",
+        amount: amountCents,
+        description: `${event.name} — ${expenseDescription}`,
+        date: now.split("T")[0],
+        status: "APPROVED",
+        category_id: categoryId,
+        org_unit_id: null,
+        compensates_for: null,
+        comment: `Dépense événement: ${expenseDescription}`,
+        created_by_id: sessionId,
+        approved_by_id: sessionId,
+        approved_at: now,
+        event_id: event.id,
+        source: "CAISSE",
+        person_name: null,
+        source_caisse_id: sourceCaisseId,
+        versement_id: null,
+        reversal_of_id: null,
+        cotisation_id: null,
+      });
+    } catch (e) {
+      // PR13 — période comptable close : la dépense datée du jour est refusée
+      // (message FR). On sort AVANT de mettre à jour le budget de l'événement,
+      // sinon le budget divergerait de la comptabilité.
+      setExpenseError(
+        periodLockMessage(e, "Échec de l'enregistrement de la dépense."),
+      );
+      return;
+    }
 
     const updatedItems = budgetItems.map((item: any) =>
       item.id === selectedBudgetItemId

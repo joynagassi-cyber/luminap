@@ -8,7 +8,7 @@
 import { getOrganizationId } from "./orgContext";
 import { DEFAULT_CATEGORY_ID } from "./canonicalCategories";
 import { generateId } from "./utils";
-import { executeWrite } from "./dataLayer";
+import { executeWrite, assertTransactionWritable } from "./dataLayer";
 import type { Transaction } from "@/types";
 
 export interface CreateVersementParams {
@@ -38,6 +38,12 @@ export async function createVersement(
   const comment =
     params.comment ||
     `Versement ${Math.round(params.amount / 100)} FCFA -> Caisse principale`;
+
+  // PR13 — gel de période : un versement écrit 2 transactions datées
+  // d'aujourd'hui. Si la période est close jusqu'à aujourd'hui, on refuse
+  // AVANT toute écriture (aucune ligne partielle). Le rejet est typé et
+  // remonte à l'appelant.
+  await assertTransactionWritable(date);
 
   // Create versement record in PowerSync
   try {

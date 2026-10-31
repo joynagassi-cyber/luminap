@@ -38,6 +38,9 @@ import { useMakerChecker } from "@/hooks/useMakerChecker";
 import { canApprove as canApproveRule } from "@/lib/makerChecker";
 import { toast } from "@/components/ui/use-toast";
 import { notification } from "@/capabilities/notification";
+import { showError } from "@/utils/toast";
+import { captureClientError } from "@/lib/clientErrors";
+import { isPeriodLockedError, periodLockMessage } from "@/lib/periodLock";
 import {
   IonPage,
   IonHeader,
@@ -86,6 +89,23 @@ export default function TransactionDetail() {
   // doit pas écrire deux fois. Le guard est synchrone (ref) → couvre la fenêtre
   // avant le re-rendu qui désactive le bouton.
   const guard = useSubmitGuard();
+
+  // PR13 — exécute une écriture financière en surfaceant proprement un rejet de
+  // gel de période (toast FR) et en instrumentant toute autre erreur. Sans cela,
+  // le rejet typé serait avalé et l'utilisateur croirait l'action réussie.
+  const runWrite = (fn: () => Promise<void>) =>
+    guard.run(async () => {
+      try {
+        await fn();
+      } catch (e) {
+        if (isPeriodLockedError(e)) {
+          showError(periodLockMessage(e, "Période comptable clôturée."));
+          return;
+        }
+        captureClientError(e, { route: "/transaction/:id" });
+        showError("Action impossible pour le moment. Réessayez.");
+      }
+    });
 
   // PR8 maker-checker : réglage par organisation (défaut OFF). Monté AVANT tout
   // `return` conditionnel (règle des hooks). `enabled` reste faux tant que le
@@ -173,7 +193,7 @@ export default function TransactionDetail() {
       });
       return;
     }
-    return guard.run(async () => {
+    return runWrite(async () => {
       await approveTransactionPS(tx.id, user?.id || "");
       // B.7 — notification locale app (persistée dans `notifications` PowerSync,
       // visible dans l'UI in-app. L'audit APPROVED est géré côté trigger serveur.
@@ -195,7 +215,7 @@ export default function TransactionDetail() {
       return;
     }
     if (!rejectComment.trim()) return;
-    return guard.run(async () => {
+    return runWrite(async () => {
       await updateTransactionPS(tx.id, { status: "REJECTED", comment: rejectComment.trim() });
       await notification.sendNotification({
         title: "Transaction rejetée",
@@ -217,7 +237,7 @@ export default function TransactionDetail() {
     if (!canDeleteMulti.allowed) {
       return;
     }
-    return guard.run(async () => {
+    return runWrite(async () => {
       // PR9 — ne pas laisser de blob orphelin : purge best-effort des
       // justificatifs (lignes + objets Storage) AVANT de supprimer la
       // transaction (la FK est en ON DELETE CASCADE pour les lignes).
@@ -241,7 +261,7 @@ export default function TransactionDetail() {
     if (!canReverseMulti.allowed) {
       return;
     }
-    return guard.run(async () => {
+    return runWrite(async () => {
       await reverseTransactionPS(tx.id, user?.id || "", reverseReason.trim());
       await notification.sendNotification({
         title: "Transaction inversée",

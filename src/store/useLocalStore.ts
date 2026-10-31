@@ -700,6 +700,14 @@ export const useLocalStore = create<LocalStoreState>()(
           snap(),
         );
         if (result.error) throw new Error(result.error);
+        // PR13 — persister AVANT de refléter l'état local : si l'écriture est
+        // refusée (période close), la cotisation/membre/transaction ne doivent
+        // pas apparaître payés côté UI.
+        await persistMarkCotisationPaid({
+          ...result,
+          cotisationId,
+          membreId: result.updatedMembre?.id,
+        });
         set({
           cotisations: get().cotisations.map((c) =>
             c.id === cotisationId ? result.updatedCot : c,
@@ -713,11 +721,6 @@ export const useLocalStore = create<LocalStoreState>()(
           });
         if (result.newTransaction)
           set({ transactions: [...get().transactions, result.newTransaction] });
-        await persistMarkCotisationPaid({
-          ...result,
-          cotisationId,
-          membreId: result.updatedMembre?.id,
-        });
       },
 
       markCotisationsAbsent: async (culteId, membreIds) => {

@@ -14,6 +14,7 @@ import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
 import { policy } from "@/capabilities/policy";
 import { useKeyboardAvoidance } from "@/hooks/useKeyboardAvoidance";
+import { periodLockMessage } from "@/lib/periodLock";
 import type { FundSource, Transaction } from "@/types";
 import {
   IonPage,
@@ -186,6 +187,15 @@ export default function TransactionEdit() {
         comment: comment || null,
       });
       navigate(`/transaction/${id}`);
+    } catch (e) {
+      // PR13 — période close (ou autre refus) : message FR au lieu d'un
+      // formulaire qui « ne fait rien ».
+      setError(
+        periodLockMessage(
+          e,
+          "Échec de l'enregistrement des modifications. Réessayez.",
+        ),
+      );
     } finally {
       setSubmitting(false);
     }

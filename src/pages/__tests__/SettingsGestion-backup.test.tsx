@@ -77,6 +77,13 @@ vi.mock("@/components/SettingsShell", () => ({
   default: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
 
+// PR13 — le contrôle du gel de période est testé à part
+// (`components/__tests__/PeriodLockCard.test.tsx`). On l'isole ici : ce test
+// porte sur la sauvegarde, et le composant lit ses propres données.
+vi.mock("@/components/PeriodLockCard", () => ({
+  default: () => null,
+}));
+
 vi.mock("@/hooks/useMakerChecker", () => ({
   useMakerChecker: () => ({ enabled: false, loaded: true }),
 }));
