@@ -46,7 +46,7 @@
 | 9 | Sync hors-ligne | `C: cloud-sync.cy.ts` (bloqué env.) | **bloqué (E2)** |
 | 10 | Responsive / a11y | `C: responsive-skeleton.cy.ts` + `V: responsive-container-guard.test.tsx` | **couvert** (garde statique ; E2E en CI) |
 | 10 | Responsive (contenu borné/centré, grand viewport ; R119) | `V: responsive-container-guard.test.tsx` (3 : 62 pages montées) | **couvert** |
-| 11 | Pre-mortem / chaos | à créer | **non couvert** |
+| 11 | Pre-mortem / chaos | `V: chaos-offline-resilience.test.ts` (13, 5 scénarios) + `V: chaos-feature-catalogue.test.ts` (38, 7 domaines) | **couvert** (12 domaines au total) |
 | 11 | Page « État du système » (santé) + « Signaler un problème » | `V: health.test.ts` (15) + `C: zero-black-screen` (route) | **couvert** |
 | 11 | « Signaler un problème » — envoi du diagnostic (PR5) | V: report-problem.test.ts | couvert |
 | 11 | Drapeaux de fonctionnalités (kill switches, PR7/R118) | `V: feature-flags.test.ts` (16 : fail-open, désactivation, surcharge locale, câblage) | **couvert** |

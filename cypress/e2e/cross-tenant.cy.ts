@@ -158,6 +158,41 @@ describe('Lumina — Cross-tenant isolation (2 orgs)', () => {
       });
     activePageShouldContain('ion-title, h1', eventName);
 
+    // ── 1b. Vider la file d'upload PowerSync ─────────────────────────
+    // L'événement a été écrit dans la base LOCALE (SQLite) et mis en file
+    // d'upload (`ps_crud`). Sous Cypress/Electron, le worker WASM de
+    // PowerSync ne tourne pas, donc le cycle d'upload automatique ne part
+    // jamais : sans ce vidage déterministe, l'assertion REST ci-dessous
+    // (« l'événement est visible dans sa propre org ») échoue alors que
+    // l'app est saine — l'écriture n'a simplement pas encore été poussée.
+    // `__psFlushCrudUpload` (helper DEV) pousse la file via le client
+    // Supabase du connector, exactement le chemin de production.
+    cy.window({ timeout: 60_000 }).then(async (win: any) => {
+      expect(
+        win.__psFlushCrudUpload,
+        'helper DEV __psFlushCrudUpload exposé',
+      ).to.be.a('function');
+      // L'INSERT SQLite est asynchrone vis-à-vis du clic : l'op peut ne pas
+      // être encore dans `ps_crud` au premier essai. On attend qu'elle
+      // apparaisse (polling borné) avant de vider, sinon le flush rapporte
+      // `opsTotal: 0` et l'assertion REST échoue sur une course.
+      let res: any = null;
+      for (let i = 0; i < 20; i += 1) {
+        await win.__psFlushCrudUpload(5);
+        res = win.__psFlushResult;
+        if ((res?.opsTotal ?? 0) > 0) break;
+        await new Promise((r) => setTimeout(r, 500));
+      }
+      expect(
+        (res?.opsTotal ?? 0) > 0,
+        `la file d'upload doit contenir au moins 1 op (résultat=${JSON.stringify(res)})`,
+      ).to.be.true;
+      expect(
+        res?.skipped ?? 0,
+        `aucune op jetée à l’upload (détail=${JSON.stringify(res?.lastFatal)})`,
+      ).to.eq(0);
+    });
+
     // ── 2-4. REST + replica proofs ───────────────────────────────────
     // IMPORTANT : ces requetes sont construites DANS un `cy.then()`. Le
     // corps du test s'execute de maniere SYNCHRONE (toutes les commandes

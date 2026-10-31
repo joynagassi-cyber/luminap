@@ -105,6 +105,20 @@ export default function TransactionNew() {
 
   const filteredCategories = categories.filter((c: any) => c.type === type);
 
+  // `categoryId` est initialisé depuis `categories[0]` AU PREMIER rendu. Or
+  // `useCategories()` renvoie d'abord une liste vide (PowerSync pas encore
+  // hydraté / repli store), donc arriver DIRECTEMENT sur /transaction/new
+  // laissait `categoryId = ""` pour de bon : le champ obligatoire « Catégorie »
+  // restait vide même après saisie du montant et de la description, et
+  // `handleSubmit` refusait silencieusement l'enregistrement
+  // (« Veuillez remplir tous les champs obligatoires »). On rattrape donc
+  // l'arrivée asynchrone des catégories — sans écraser un choix explicite.
+  useEffect(() => {
+    if (categoryId) return;
+    const first = filteredCategories[0]?.id;
+    if (first) setCategoryId(first);
+  }, [categoryId, filteredCategories]);
+
   const handleSubmit = async () => {
     const trimmedAmount = amount.trim();
     const trimmedDesc = description.trim();

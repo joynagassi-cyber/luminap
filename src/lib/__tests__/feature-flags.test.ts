@@ -49,6 +49,15 @@ describe("parseFlags (fail-open)", () => {
     expect(parseFlags("42")).toEqual({});
   });
 
+  it("littéral JSON `null` → aucun drapeau (jamais d'exception)", () => {
+    // Régression : `JSON.parse("null")` renvoie `null` (typeof "object",
+    // non-tableau) et `Object.entries(null)` lève. Le contrat « fail-open »
+    // exige `{}`, comme pour tout autre JSON illisible.
+    expect(parseFlags("null")).toEqual({});
+    expect(parseFlags(null)).toEqual({});
+    expect(parseFlags(undefined)).toEqual({});
+  });
+
   it("valeurs non booléennes → ignorées (fail-open)", () => {
     expect(parseFlags({ a: "false", b: 0, c: null, d: false })).toEqual({
       d: false,

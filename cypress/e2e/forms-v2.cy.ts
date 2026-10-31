@@ -167,6 +167,15 @@ describe('Lumina — Forms v2 (currency, table view, DRAFT edit)', () => {
           cy.wrap($card)
             .contains('button, ion-button', 'Publier', { timeout: 60_000 })
             .should('exist');
+          // La bascule passe par la réplique locale (offline-first) : l'op
+          // part dans la file d'upload PowerSync. En E2E, le cycle d'upload
+          // du worker ne tourne pas de façon fiable → on pousse la file
+          // explicitement, sinon l'état serveur vérifié juste après reste
+          // PUBLISHED.
+          cy.window({ timeout: 60_000 })
+            .its('__psFlushCrudUpload')
+            .should('be.a', 'function')
+            .then((flush: any) => flush(5));
         }
       });
 
@@ -297,13 +306,13 @@ describe('Lumina — Forms v2 (currency, table view, DRAFT edit)', () => {
         throw new Error('nom du compte : firstName/lastName manquants dans localStorage lumina-user');
       }
       // La 1re <td> de chaque ligne du tableau = colonne « Soumetteur ».
+      // `.should()` RETENTE : la résolution du nom lit `profiles` dans la
+      // réplique locale (chargement asynchrone) — une lecture unique peut
+      // tomber avant que la map des noms soit prête (repli UUID).
       cy.get('table[role="table"] td', { timeout: 90_000 })
         .first()
-        .invoke('text')
-        .then((txt) => {
-          if (txt.trim() !== expectedName) {
-            throw new Error(`valeur de la cellule « Soumetteur » : attendu « ${expectedName} », reçu « ${txt.trim()} »`);
-          }
+        .should(($td) => {
+          expect($td.text().trim()).to.eq(expectedName);
         });
     });
     // Colonne du champ currency du formulaire : le montant stocké
