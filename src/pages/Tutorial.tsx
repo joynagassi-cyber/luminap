@@ -31,6 +31,7 @@ import {
   CheckCircle,
   Lightbulb,
   AlertTriangle,
+  Database,
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
@@ -499,6 +500,28 @@ const SECTIONS: SectionData[] = [
       "La photo de profil personnelle s'affiche dans les traces d'activité pour identifier l'auteur.",
       "Le bouton « Actualiser les données » force un rechargement des données depuis la base locale.",
       "Vérifiez régulièrement le statut de synchronisation pour vous assurer que vos données sont sauvegardées.",
+    ],
+  },
+  {
+    id: "sauvegarde",
+    title: "Sauvegarde des données",
+    icon: Database,
+    color: "var(--accent-primary)",
+    iconBg: "color-mix(in srgb, var(--accent-primary) 12%, transparent)",
+    titleColor: "var(--accent-primary)",
+    paragraphs: [
+      "La sauvegarde se trouve dans Paramètres → onglet « Gérer » → section « Sauvegarde des données ». Elle produit une copie complète de l'organisation active, directement sur votre appareil.",
+      "Le bouton « Exporter mes données (JSON) » télécharge un fichier auto-descriptif : il indique le format (lumina-backup), la version, l'organisation, la date et le nombre d'éléments de chaque entité, puis toutes les données (transactions, groupes, membres, événements, caisses, comptes, trace, notifications, documents, formulaires, champs personnalisés).",
+      "Le bouton « Exporter (CSV) » produit un tableau unique (une ligne par élément, colonne « entity ») ouvrable dans un tableur. Les cellules sont échappées : une valeur commençant par « = », « + », « - » ou « @ » est neutralisée, elle ne peut donc pas s'exécuter comme formule.",
+      "Tant que les données locales n'ont pas été lues, la section affiche « Chargement des données… » et non un compte à zéro : vous ne voyez jamais un chiffre faux pendant la synchronisation.",
+    ],
+    tips: [
+      "Le JSON est la sauvegarde complète (à conserver pour la réversibilité) ; le CSV sert au contrôle dans un tableur.",
+      "Exportez régulièrement pour garder une copie hors de l'application et faciliter la passation.",
+      "Une fois les données chargées, le nombre total d'éléments exportés est affiché sous le titre.",
+    ],
+    warnings: [
+      "La sauvegarde contient des données de l'organisation : conservez le fichier dans un endroit sûr et ne le partagez pas publiquement.",
     ],
   },
   {
