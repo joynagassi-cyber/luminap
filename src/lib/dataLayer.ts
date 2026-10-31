@@ -30,6 +30,8 @@ import {
 import { parseJsonbValue } from "./jsonb";
 import { get, set, invalidate, clear, asyncGetOrSet } from "./cache";
 import { authService } from "./auth";
+import { assertPeriodOpen, getLockedUntil } from "./periodLock";
+import { isFeatureEnabled } from "./featureFlags";
 
 
 // ============================================================
@@ -1309,11 +1311,36 @@ export async function listUserTagsPS(
 
 
 /**
+ * PR13 — point de passage UNIQUE du gel de période (clôture comptable).
+ *
+ * Lit la date de clôture de l'organisation (fail-open : aucune clôture ⇒
+ * période ouverte) puis refuse TOUTE écriture sur une transaction datée
+ * on/before cette date, en levant une erreur typée `PERIOD_LOCKED`.
+ *
+ * Branché ici (dataLayer) et non dans les pages : c'est le seul chemin
+ * d'écriture des transactions — `addTransactionPS` / `updateTransactionPS` /
+ * `deleteTransactionPS` / `approveTransactionPS` / `reverseTransactionPS` et
+ * les services (`transaction-service`, `versement-service`,
+ * `cotisation-service`) passent tous par ces fonctions ou `executeWrite`.
+ */
+export async function assertTransactionWritable(
+  date: string | null | undefined,
+): Promise<void> {
+  // Kill switch d'exploitation (PR7) : si la fonctionnalité est coupée, on ne
+  // bloque plus rien (fail-open). Défaut = actif, donc aucun changement de
+  // comportement tant qu'aucun drapeau n'est posé.
+  if (!isFeatureEnabled("period-lock")) return;
+  const lockedUntil = await getLockedUntil();
+  assertPeriodOpen(date, lockedUntil);
+}
+
+/**
  * Add a transaction via PowerSync
  */
 export async function addTransactionPS(
   tx: Omit<PSTransaction, "id" | "created_at" | "updated_at" | "version">,
 ): Promise<string> {
+  await assertTransactionWritable(tx.date);
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
 
@@ -1366,10 +1393,22 @@ export async function updateTransactionPS(
   // Exception: allow status change TO APPROVED (approve flow)
   const db = getPowerSyncDatabase();
   const statusResult = await db.execute(
-    `SELECT status FROM transactions WHERE id = ?`,
+    `SELECT status, date FROM transactions WHERE id = ?`,
     [id],
   );
   const tx = statusResult?.array?.[0] as any;
+
+  // PR13 — gel de période : refuser si la date ACTUELLE de la transaction est
+  // gelée. On lit la date existante AVANT toute écriture ; une transaction
+  // absente (`tx` indéfini) ne peut pas être gelée (elle n'existe pas encore).
+  await assertTransactionWritable(tx?.date);
+  // ... et refuser aussi si la modification DÉPLACE la transaction vers une
+  // date gelée (sinon on pourrait « entrer » une écriture dans la période close
+  // en éditant une transaction existante).
+  if (updates.date !== undefined && updates.date !== tx?.date) {
+    await assertTransactionWritable(updates.date);
+  }
+
   if (tx?.status === "APPROVED" && updates.status !== "APPROVED") {
     throw new Error("TRANSACTION_APPROVED_IMMUTABLE");
   }
@@ -1431,13 +1470,16 @@ export async function deleteTransactionPS(id: string): Promise<void> {
   // Guard: APPROVED transactions are immutable
   const db = getPowerSyncDatabase();
   const statusResult = await db.execute(
-    `SELECT status FROM transactions WHERE id = ?`,
+    `SELECT status, date FROM transactions WHERE id = ?`,
     [id],
   );
   const tx = statusResult?.array?.[0] as any;
   if (tx?.status === "APPROVED") {
     throw new Error("TRANSACTION_APPROVED_IMMUTABLE");
   }
+  // PR13 — gel de période : une transaction datée dans la période close ne peut
+  // pas être supprimée (la clôture doit rester figée).
+  await assertTransactionWritable(tx?.date);
 
   await executeWrite("DELETE FROM transactions WHERE id = ?", [id]);
 }
@@ -2913,6 +2955,15 @@ export async function approveTransactionPS(
   id: string,
   userId: string,
 ): Promise<void> {
+  // PR13 — gel de période : approuver est une écriture sur la transaction ; on
+  // refuse si sa date tombe dans la période close.
+  const db = getPowerSyncDatabase();
+  const existing = await db.execute(
+    `SELECT date FROM transactions WHERE id = ?`,
+    [id],
+  );
+  await assertTransactionWritable((existing?.array?.[0] as any)?.date);
+
   const now = new Date().toISOString();
   await executeWrite(
     `UPDATE transactions SET status = 'APPROVED', approved_by_id = ?, approved_at = ?, updated_at = ? WHERE id = ?`,
@@ -2936,7 +2987,11 @@ export async function reverseTransactionPS(
   const result = await db.execute("SELECT * FROM transactions WHERE id = ?", [id]);
   const tx = result?.array?.[0] as any;
   if (!tx) throw new Error("Transaction not found");
-  
+
+  // PR13 — gel de période : contrer une transaction datée dans la période close
+  // modifierait une comptabilité déjà validée → refus.
+  await assertTransactionWritable(tx.date);
+
   // Create reversal transaction
   await executeWrite(
     `INSERT INTO transactions (

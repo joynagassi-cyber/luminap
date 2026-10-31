@@ -13,6 +13,7 @@ import {
   updateTransactionPS,
   deleteTransactionPS,
 } from "@/lib/dataLayer";
+import { isPeriodLockedError } from "@/lib/periodLock";
 import type { Transaction } from "@/types";
 
 export interface TransactionState {
@@ -67,6 +68,10 @@ export async function persistAddTransaction(newTx: Transaction): Promise<void> {
       cotisation_id: null,
     });
   } catch (error) {
+    // PR13 — un rejet de gel de période est une DÉCISION métier : il remonte
+    // (ne pas l'avaler comme une panne transitoire, sinon la période close
+    // serait silencieusement modifiable).
+    if (isPeriodLockedError(error)) throw error;
     // Persist failure is non-fatal; offline queue will retry
   }
 }
@@ -274,6 +279,8 @@ export async function persistReverseTransaction(
       cotisation_id: null,
     });
   } catch (error) {
+    // PR13 — rejet de gel de période : décision métier, à propager.
+    if (isPeriodLockedError(error)) throw error;
     // Persist failure is non-fatal; offline queue will retry
   }
 }

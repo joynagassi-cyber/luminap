@@ -127,4 +127,12 @@ describe("câblage réel (anti « filet déclaré, jamais câblé »)", () => {
       /isFeatureEnabled\(\s*["']notifications-push["']\s*\)/,
     );
   });
+
+  // PR13 — le gel de période (écriture financière refusée) est un candidat
+  // typique au kill switch d'exploitation : il doit pouvoir être coupé sans
+  // redéploiement si un blocage erroné empêchait des écritures légitimes.
+  it("assertTransactionWritable est gardé par isFeatureEnabled('period-lock')", () => {
+    const src = readFileSync(resolve(__dirname, "../dataLayer.ts"), "utf8");
+    expect(src).toMatch(/isFeatureEnabled\(\s*["']period-lock["']\s*\)/);
+  });
 });

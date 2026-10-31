@@ -25,6 +25,7 @@ import { useKeyboardAvoidance } from "@/hooks/useKeyboardAvoidance";
 import { useOnlineStatus } from "@/lib/dataLayer";
 import { policy } from "@/capabilities/policy";
 import { notification } from "@/capabilities/notification";
+import { periodLockMessage } from "@/lib/periodLock";
 import {
   IonPage,
   IonHeader,
@@ -130,28 +131,42 @@ export default function TransactionNew() {
       return;
     }
     setSubmitting(true);
-    const txId = await addTransactionPS({
-      org_id: getOrganizationId(),
-      type,
-      amount: Math.round(parseFloat(trimmedAmount) * 100),
-      description,
-      date,
-      status: isExpense ? "PENDING" : "DRAFT",
-      category_id: categoryId,
-      org_unit_id: null,
-      source_caisse_id: sourceCaisseId || "main",
-      event_id: eventId || null,
-      source: source || "CAISSE",
-      person_name: source === "PERSONNE" ? personName || null : null,
-      compensates_for: null,
-      comment: comment || null,
-      created_by_id: sessionId,
-      approved_by_id: null,
-      approved_at: null,
-      versement_id: null,
-      reversal_of_id: null,
-      cotisation_id: null,
-    });
+    let txId: string;
+    try {
+      txId = await addTransactionPS({
+        org_id: getOrganizationId(),
+        type,
+        amount: Math.round(parseFloat(trimmedAmount) * 100),
+        description,
+        date,
+        status: isExpense ? "PENDING" : "DRAFT",
+        category_id: categoryId,
+        org_unit_id: null,
+        source_caisse_id: sourceCaisseId || "main",
+        event_id: eventId || null,
+        source: source || "CAISSE",
+        person_name: source === "PERSONNE" ? personName || null : null,
+        compensates_for: null,
+        comment: comment || null,
+        created_by_id: sessionId,
+        approved_by_id: null,
+        approved_at: null,
+        versement_id: null,
+        reversal_of_id: null,
+        cotisation_id: null,
+      });
+    } catch (e) {
+      // PR13 — période comptable close : message FR explicite, l'utilisateur
+      // corrige la date ou demande la réouverture ; pas d'écran muet.
+      setSubmitting(false);
+      setError(
+        periodLockMessage(
+          e,
+          "Échec de l'enregistrement de la transaction. Réessayez.",
+        ),
+      );
+      return;
+    }
 
     // Preuves de la dépense : montée des photos dans le bucket privé
     // `expense_proofs` + métadonnée `documents` (liée à la transaction).

@@ -18,6 +18,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import SettingsShell from "@/components/SettingsShell";
+import PeriodLockCard from "@/components/PeriodLockCard";
 import { useCurrentUser } from "@/lib/dataLayer";
 import { useLocalStore } from "@/store/useLocalStore";
 import { useBackupData } from "@/hooks/useBackupData";
@@ -375,6 +376,10 @@ export default function SettingsGestion() {
           </button>
         </div>
       </div>
+
+      {/* PR13 — gel de période comptable (admin uniquement, permission
+          `finance:manage`). Le composant se masque de lui-même sans le droit. */}
+      <PeriodLockCard />
     </SettingsShell>
   );
 }

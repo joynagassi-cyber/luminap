@@ -77,3 +77,4 @@
 | 11 | Export/sauvegarde des données (UI) — PR2 | `V: backup.test.ts` + `V: SettingsGestion-backup.test.tsx` | **couvert** (non-vacuité vérifiée) |
 | 11 | Journal d'audit consultable — détail d'entrée (PR1) | V: Trace-detail.test.tsx | couvert |
 | 11 | Socle réglages par organisation `org_settings` (PR8 maker-checker + PR13 gel de période) | `V: org-settings.test.ts` (7) + `SQL: 20261031000007` + stream `org_settings` | **couvert** (fail-safe vérifié) |
+| 11 | Gel de période comptable (clôture) — PR13 : écriture refusée on/before la date close | `V: period-lock.test.ts` (règle pure) + `V: period-lock-enforcement.test.ts` (9, point d'étranglement dataLayer) + `V: period-lock-service-guards.test.ts` (4, services cotisation/versement) + `V: PeriodLockCard.test.tsx` (5, UI + RBAC) + `V: feature-flags.test.ts` (kill switch `period-lock`) | **couvert** (non-vacuité vérifiée par mutation) |

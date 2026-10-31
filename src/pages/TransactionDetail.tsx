@@ -36,6 +36,9 @@ import TopHeader from "@/components/TopHeader";
 import { useCanAccessMulti } from "@/hooks/useCanAccessMulti";
 import { useSubmitGuard } from "@/hooks/useSubmitGuard";
 import { notification } from "@/capabilities/notification";
+import { showError } from "@/utils/toast";
+import { captureClientError } from "@/lib/clientErrors";
+import { isPeriodLockedError, periodLockMessage } from "@/lib/periodLock";
 import {
   IonPage,
   IonHeader,
@@ -84,6 +87,23 @@ export default function TransactionDetail() {
   // doit pas écrire deux fois. Le guard est synchrone (ref) → couvre la fenêtre
   // avant le re-rendu qui désactive le bouton.
   const guard = useSubmitGuard();
+
+  // PR13 — exécute une écriture financière en surfaceant proprement un rejet de
+  // gel de période (toast FR) et en instrumentant toute autre erreur. Sans cela,
+  // le rejet typé serait avalé et l'utilisateur croirait l'action réussie.
+  const runWrite = (fn: () => Promise<void>) =>
+    guard.run(async () => {
+      try {
+        await fn();
+      } catch (e) {
+        if (isPeriodLockedError(e)) {
+          showError(periodLockMessage(e, "Période comptable clôturée."));
+          return;
+        }
+        captureClientError(e, { route: "/transaction/:id" });
+        showError("Action impossible pour le moment. Réessayez.");
+      }
+    });
 
   // Preuves de dépense (photos dans le bucket `expense_proofs`).
   const { data: docData } = useDocuments();
@@ -161,7 +181,7 @@ export default function TransactionDetail() {
     if (!canApproveMulti.allowed) {
       return;
     }
-    return guard.run(async () => {
+    return runWrite(async () => {
       await approveTransactionPS(tx.id, user?.id || "");
       // B.7 — notification locale app (persistée dans `notifications` PowerSync,
       // visible dans l'UI in-app. L'audit APPROVED est géré côté trigger serveur.
@@ -183,7 +203,7 @@ export default function TransactionDetail() {
       return;
     }
     if (!rejectComment.trim()) return;
-    return guard.run(async () => {
+    return runWrite(async () => {
       await updateTransactionPS(tx.id, { status: "REJECTED", comment: rejectComment.trim() });
       await notification.sendNotification({
         title: "Transaction rejetée",
@@ -205,7 +225,7 @@ export default function TransactionDetail() {
     if (!canDeleteMulti.allowed) {
       return;
     }
-    return guard.run(async () => {
+    return runWrite(async () => {
       await deleteTransactionPS(tx.id);
       await notification.sendNotification({
         title: "Transaction supprimée",
@@ -225,7 +245,7 @@ export default function TransactionDetail() {
     if (!canReverseMulti.allowed) {
       return;
     }
-    return guard.run(async () => {
+    return runWrite(async () => {
       await reverseTransactionPS(tx.id, user?.id || "", reverseReason.trim());
       await notification.sendNotification({
         title: "Transaction inversée",
