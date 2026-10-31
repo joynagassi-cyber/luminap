@@ -84,6 +84,7 @@
     "/admin/reports",
     "/admin/reports/:id",
     "/admin/roles",
+    "/admin/transfer-ownership",
     "/admin/units",
     "/archives",
     "/auth",

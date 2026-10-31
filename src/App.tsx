@@ -34,6 +34,7 @@ import {
   OrgSwitchScreen,
 } from "@/components/RouteStates";
 import { getOrganizationId } from "@/lib/orgContext";
+import { recordScreenUsage } from "@/lib/usageStats";
 import { useOrgMembership } from "@/hooks/useOrgMembership";
 import { roleHasPermission } from "@/lib/rbac";
 import {
@@ -327,6 +328,23 @@ const AppUrlOpenBridge = () => {
 };
 
 /**
+ * UsageStatsBridge — statistiques d'usage ANONYMISÉES (PR15).
+ *
+ * Enregistre l'usage des ÉCRANS clés (liste blanche dans `usageStats.ts`) à
+ * chaque navigation. Strictement NON bloquant : `recordUsage` ne lève jamais,
+ * n'attend rien et n'écrit qu'un compteur local — aucun identifiant
+ * utilisateur, aucune organisation, aucun texte libre. Kill switch :
+ * drapeau `usage-stats` (fail-open).
+ */
+const UsageStatsBridge = () => {
+  const location = useLocation();
+  useEffect(() => {
+    recordScreenUsage(location.pathname);
+  }, [location.pathname]);
+  return null;
+};
+
+/**
  * SentryUserBridge — rattache l'utilisateur connecté au contexte Sentry
  * (replays, corrélation erreurs ↔ user), et le retire à la déconnexion.
  */
@@ -420,6 +438,7 @@ const App = () => (
       <Sonner />
       <IonApp style={{ backgroundColor: "var(--canvas)" }}>
         <SentryUserBridge />
+        <UsageStatsBridge />
         <UpdaterBridge />
         {/* Lien « sauter au contenu » — premier élément focalisable, masqué
             visuellement jusqu'au focus clavier (a11y : parcours du clavier). */}

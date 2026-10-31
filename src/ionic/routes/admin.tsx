@@ -15,6 +15,7 @@ const OrgReportSend = lazy(() => import("@/pages/OrgReportSend"));
 const OrgReportsReceived = lazy(() => import("@/pages/OrgReportsReceived"));
 const OrgReportDetail = lazy(() => import("@/pages/OrgReportDetail"));
 const OrgRoles = lazy(() => import("@/pages/OrgRoles"));
+const TransferOwnership = lazy(() => import("@/pages/TransferOwnership"));
 
 export const adminRoutes: ReactElement[] = [
   <Route
@@ -78,5 +79,12 @@ export const adminRoutes: ReactElement[] = [
     key="/admin/roles"
     path="/admin/roles"
     element={<LazyRoute component={OrgRoles} />}
+  />,
+  // PR14 — transfert de propriété guidé (anti-orphelin) : passer l'organisation
+  // à un autre administrateur en toute sécurité.
+  <Route
+    key="/admin/transfer-ownership"
+    path="/admin/transfer-ownership"
+    element={<LazyRoute component={TransferOwnership} />}
   />,
 ];
