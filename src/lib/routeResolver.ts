@@ -27,6 +27,7 @@ export interface RouteDef {
 export const ROUTE_REGISTRY: readonly RouteDef[] = [
   // auth / public
   { pattern: "/splash", kind: "public" },
+  { pattern: "/welcome", kind: "public" },
   { pattern: "/auth", kind: "public" },
   { pattern: "/auth/callback", kind: "public" },
   { pattern: "/sessions", kind: "public" },

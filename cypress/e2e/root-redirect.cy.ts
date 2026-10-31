@@ -56,12 +56,14 @@ describe("Lumina — redirection du point d'entrée PWA", () => {
 
   it("`/` sans session aboutit à une page publique, jamais un écran blanc", function () {
     this.timeout(120_000);
-    // Aucune session : /splash est publique, puis /auth prend le relais.
+    // Aucune session : /splash est publique, puis /welcome (accueil
+    // chaleureux) prend le relais avant /auth.
     cy.clearLocalStorage();
     cy.visit("/");
     cy.location("pathname", { timeout: 60_000 }).should((p) => {
       expect(p, "sans session, `/` doit mener à une route publique").to.be.oneOf([
         "/splash",
+        "/welcome",
         "/auth",
       ]);
     });
