@@ -20,7 +20,7 @@
 | # | Proposition | Valeur | Risque | Coût | Dépendances | Prio |
 |---|---|---|---|---|---|---|
 | PR1 ✅ | Journal d'audit consultable (UI) — `/trace` + détail d'entrée | traçabilité des actions sensibles | faible | moyen | audit_entries (existe) | P1 |
-| PR2 ✅ | Export/sauvegarde des données (UI) — JSON + CSV, `useBackupData` | réversibilité, passation | faible | moyen | dataLayer | P1 |
+| PR2 ✅ | Export/sauvegarde des données (UI) — JSON + CSV, `useBackupData` ; **export + import/restauration (JSON)** (`backupImport.ts` : `parseBackupBundle` fail-closed + `planRestore` borné à l'org active) | réversibilité, passation | faible | moyen | dataLayer | P1 |
 | PR3 ✅ | Corbeille / restauration (soft-delete) — `/archives` **+ purge / vidage corbeille** (`purgeEntity`, `purgeAllArchived`, garde fail-closed, audit `DELETE`) | anti-perte | moyen | moyen | archivage (existe) | P2 |
 | PR4 ✅ | Page de santé (version, base, sync, dernières erreurs) | exploitation autonome | faible | faible | `client_errors`, PowerSync status | P1 |
 | PR5 ✅ | Bouton « Signaler un problème » (contexte sans PII) | support | faible | faible | Sentry + `client_errors` | P2 |

@@ -71,6 +71,7 @@ export const ENTITY_LABELS: Record<string, string> = {
   Versement: "Versement",
   Account: "Compte",
   OrgAdmin: "Administrateur d'organisation",
+  Backup: "Sauvegarde",
 };
 
 const FILTERS = [

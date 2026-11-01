@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   Building2,
   ClipboardList,
@@ -14,6 +14,9 @@ import {
   Database,
   FileJson,
   FileSpreadsheet,
+  Upload,
+  AlertCircle,
+  CheckCircle2,
   ShieldCheck,
   Loader2,
   type LucideIcon,
@@ -30,6 +33,15 @@ import { Switch } from "@/components/ui/switch";
 import { setOrgSetting, ORG_SETTING_KEYS } from "@/lib/orgSettings";
 import { downloadBlob } from "@/lib/download";
 import { backupFilename, serializeBackup, backupToCsv } from "@/lib/backup";
+import {
+  parseBackupBundle,
+  planRestore,
+  restorePlanSummary,
+  BackupImportError,
+  type RestorePlan,
+} from "@/lib/backupImport";
+import { restoreBackupRows } from "@/lib/backupRestore";
+import { writeAudit } from "@/lib/audit";
 import { captureClientError } from "@/lib/clientErrors";
 import { recordUsage } from "@/lib/usageStats";
 import { toast } from "@/components/ui/use-toast";
@@ -137,6 +149,87 @@ export default function SettingsGestion() {
   );
   const makerChecker = useMakerChecker();
   const [savingMakerChecker, setSavingMakerChecker] = useState(false);
+
+  // PR2 — import / restauration d'une sauvegarde JSON. L'import est une
+  // ÉCRITURE : il est gardé par `admin:settings` (même permission que le
+  // contrôle financier), contrairement à l'export qui est ouvert.
+  const importInputRef = useRef<HTMLInputElement | null>(null);
+  const [importPlan, setImportPlan] = useState<RestorePlan | null>(null);
+  const [importFileName, setImportFileName] = useState<string | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
+
+  const resetImport = () => {
+    setImportPlan(null);
+    setImportFileName(null);
+    setImportError(null);
+  };
+
+  const handleImportFile = async (file: File) => {
+    resetImport();
+    setImportFileName(file.name);
+    try {
+      const text = await file.text();
+      const bundle = parseBackupBundle(text);
+      // État courant = enveloppe de l'organisation active (mêmes clés d'entité).
+      const current = backup.buildBundle();
+      const plan = planRestore(bundle, {
+        orgId: current.orgId,
+        collections: current.data,
+      });
+      setImportPlan(plan);
+    } catch (err) {
+      const message =
+        err instanceof BackupImportError
+          ? err.message
+          : "Le fichier n'a pas pu être lu.";
+      setImportError(message);
+    }
+  };
+
+  const handleApplyImport = async () => {
+    if (!importPlan || importing) return;
+    setImporting(true);
+    try {
+      const result = await restoreBackupRows(importPlan);
+      // Journal d'audit — trace de la restauration (jamais silencieuse).
+      await writeAudit({
+        orgId: importPlan.orgId,
+        transactionId: null,
+        userId: user?.id ?? "local-user",
+        actorRoleAtTime: (user?.role as string) ?? null,
+        action: "RESTORE",
+        entityType: "Backup",
+        entityId: importFileName ?? "backup.json",
+        beforeState: null,
+        afterState: {
+          creates: importPlan.counts.creates,
+          updates: importPlan.counts.updates,
+          conflicts: importPlan.counts.conflicts,
+          skipped: importPlan.counts.skipped,
+        },
+        comment: restorePlanSummary(importPlan),
+      });
+      recordUsage("action:import-backup");
+      toast({
+        title: "Sauvegarde restaurée",
+        description: `${result.created} création(s), ${result.updated} mise(s) à jour.`,
+      });
+      resetImport();
+    } catch (err) {
+      captureClientError(err, {
+        message: "Restauration de la sauvegarde échouée",
+        route: "/settings/gestion",
+      });
+      toast({
+        title: "Échec de la restauration",
+        description: "Aucune donnée n'a pu être restaurée. Réessayez.",
+        variant: "destructive",
+      });
+    } finally {
+      setImporting(false);
+    }
+  };
 
   const handleToggleMakerChecker = async (next: boolean) => {
     if (savingMakerChecker) return;
@@ -420,6 +513,173 @@ export default function SettingsGestion() {
           </button>
         </div>
       </div>
+
+      {/* PR2 — import / restauration d'une sauvegarde JSON (admin uniquement :
+          c'est une écriture). Un plan est TOUJOURS affiché avant application :
+          jamais de restauration aveugle. R52 : rien n'est proposé tant que la
+          réplique locale n'a pas été lue (comparaison impossible ⇒ pas de plan
+          fiable). */}
+      {canManageSettings.allowed && (
+        <div
+          className="rounded-xl p-4 mt-3"
+          data-testid="backup-import"
+          style={{
+            backgroundColor: "var(--surface)",
+            border: "1px solid var(--border)",
+          }}
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <Upload
+              className="w-5 h-5"
+              style={{ color: "var(--accent-primary)" }}
+            />
+            <span className="text-text-primary text-sm font-semibold">
+              Importer une sauvegarde
+            </span>
+          </div>
+          <p className="text-text-tertiary text-xs mb-3">
+            Restaurez un fichier JSON exporté depuis cette organisation. Un
+            résumé (créations / mises à jour / conflits) est affiché AVANT toute
+            écriture ; vous confirmez ensuite.
+          </p>
+
+          {!backup.ready ? (
+            <div
+              data-testid="backup-import-pending"
+              aria-busy="true"
+              className="flex items-center gap-2 text-text-tertiary text-xs py-2"
+            >
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Chargement des données…
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => importInputRef.current?.click()}
+                disabled={importing}
+                data-testid="backup-import-choose"
+                className="flex-1 min-w-[140px] flex items-center justify-center gap-2 p-3 rounded-xl active:scale-95 transition-transform text-sm font-semibold disabled:opacity-50"
+                style={{
+                  backgroundColor:
+                    "color-mix(in srgb, var(--accent-primary) 15%, transparent)",
+                  color: "var(--accent-primary)",
+                  border: "1px solid var(--border)",
+                }}
+                aria-label="Choisir un fichier de sauvegarde JSON"
+              >
+                <FileJson className="w-4 h-4" />
+                Choisir un fichier JSON
+              </button>
+            </div>
+          )}
+
+          <input
+            ref={importInputRef}
+            type="file"
+            accept=".json,application/json"
+            className="hidden"
+            data-testid="backup-import-input"
+            aria-label="Fichier de sauvegarde JSON"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) void handleImportFile(f);
+              e.target.value = "";
+            }}
+          />
+
+          {importError && (
+            <div
+              className="mt-3 p-3 rounded-xl text-sm"
+              data-testid="backup-import-rejected"
+              style={{
+                backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)",
+                color: "var(--out)",
+              }}
+            >
+              <div className="flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold">Fichier refusé</p>
+                  <p className="text-xs mt-0.5">{importError}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {importPlan && (
+            <div className="mt-3" data-testid="backup-import-plan">
+              <div className="flex items-center gap-2 mb-2">
+                <CheckCircle2 className="w-4 h-4" style={{ color: "var(--in)" }} />
+                <span className="text-text-secondary text-xs">
+                  {restorePlanSummary(importPlan)} — fichier « {importFileName} »
+                </span>
+              </div>
+
+              {importPlan.conflicts.length > 0 && (
+                <div
+                  className="mb-2 p-2 rounded-lg text-xs"
+                  data-testid="backup-import-conflicts"
+                  style={{
+                    backgroundColor:
+                      "color-mix(in srgb, var(--warn) 12%, transparent)",
+                    color: "var(--text-secondary)",
+                  }}
+                >
+                  {importPlan.conflicts.slice(0, 3).map((c, i) => (
+                    <p key={i}>
+                      Conflit — {c.entity} · {c.reason}
+                    </p>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex flex-wrap gap-2 mt-3">
+                <button
+                  type="button"
+                  onClick={() => void handleApplyImport()}
+                  disabled={
+                    importing ||
+                    (importPlan.counts.creates === 0 &&
+                      importPlan.counts.updates === 0)
+                  }
+                  data-testid="backup-import-confirm"
+                  className="flex-1 min-w-[150px] flex items-center justify-center gap-2 p-3 rounded-xl active:scale-95 transition-transform text-sm font-semibold disabled:opacity-50"
+                  style={{
+                    backgroundColor:
+                      "color-mix(in srgb, var(--in) 18%, transparent)",
+                    color: "var(--in)",
+                    border: "1px solid var(--border)",
+                  }}
+                  aria-label="Appliquer la restauration"
+                >
+                  {importing ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Upload className="w-4 h-4" />
+                  )}
+                  Restaurer
+                </button>
+                <button
+                  type="button"
+                  onClick={resetImport}
+                  disabled={importing}
+                  data-testid="backup-import-cancel"
+                  className="flex-1 min-w-[150px] p-3 rounded-xl active:scale-95 transition-transform text-sm font-semibold disabled:opacity-50"
+                  style={{
+                    backgroundColor: "var(--card)",
+                    color: "var(--text-secondary)",
+                    border: "1px solid var(--border)",
+                  }}
+                  aria-label="Annuler la restauration"
+                >
+                  Annuler
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* PR13 — gel de période comptable (admin uniquement, permission
           `finance:manage`). Le composant se masque de lui-même sans le droit. */}
