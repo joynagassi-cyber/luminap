@@ -4,6 +4,35 @@ All notable changes to the Lumina Platform will be documented in this file.
 
 ---
 
+## [Unreleased]
+
+### Added
+- **Observabilité → GitHub Issues (correction autonome)** — chaîne complète
+  `erreur client → Issue GitHub` labellisée `openhands`, que l'automatisation
+  cloud OpenHands détecte et corrige sans intervention.
+  - **Capture globale** (`src/lib/observability/`) : `onerror` /
+    `unhandledrejection` (`clientErrors.ts`), ErrorBoundary racine (`App.tsx`)
+    et par route (`lazy-route.tsx`), erreurs de synchronisation PowerSync
+    (`SupabaseConnector.ts`), tâches longues (`perfMonitor.ts`).
+  - **Classification** (crash / functional / database / sync / performance) à
+    partir du message, du code d'erreur (PostgREST/SQLSTATE) et de la première
+    trame utilisateur.
+  - **Rapport contextuel ultra-détaillé** injecté dans l'Issue : stack trace,
+    pile de composants React, route active, environnement, version, plateforme,
+    état de session (sans identité) et fil d'Ariane des 5 dernières actions.
+  - **Anti-spam** : déduplication par signature (client + serveur), fenêtre de
+    dédup, plafond par session et file d'attente locale qui survit au
+    hors-ligne / rechargement.
+  - **Sécurité** : le jeton GitHub n'est JAMAIS côté client — l'edge function
+    `report-error` (secret Supabase `GITHUB_TOKEN`) vérifie le JWT appelant,
+    valide le dépôt cible contre une allowlist et crée l'Issue. Le dépôt étant
+    public, le rapport est expurgé côté client (aucune PII).
+  - Le bouton « Signaler un problème » (page Santé) remonte aussi une Issue.
+  - Gardes : `error-reporter`, `breadcrumbs`, `perf-monitor`,
+    `report-error-issue` et `error-to-issue-integration-guard` (statique).
+
+---
+
 ## [1.2.1] — 2026-11-01
 
 ### Fixed

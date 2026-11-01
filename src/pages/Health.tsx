@@ -12,7 +12,7 @@ import {
 import type { HealthLevel } from "@/lib/health";
 import { getRecentErrors, captureClientError } from "@/lib/clientErrors";
 import {
-  sendProblemReport,
+  sendProblemReportToIssues,
   getLastProblemReport,
 } from "@/lib/reportProblem";
 import type { ProblemReport } from "@/lib/reportProblem";
@@ -98,11 +98,12 @@ export default function Health() {
       typeof navigator !== "undefined" ? navigator.onLine : true,
     );
 
-  // PR5 — envoi réel : Sentry (si DSN configuré) + enregistrement local.
+  // PR5 — envoi réel : Sentry (si DSN configuré) + enregistrement local +
+  // remontée GitHub Issues (Issue `openhands`, prise en charge autonome).
   const submitReport = () => {
     setSending(true);
     try {
-      const result = sendProblemReport(
+      const result = sendProblemReportToIssues(
         currentInputs(),
         getRecentErrors(),
         reportNote,
@@ -113,9 +114,10 @@ export default function Health() {
       if (result.sentToSentry) {
         showSuccess("Merci ! Votre signalement a été envoyé.");
       } else {
-        // Dégradation gracieuse : Sentry non configuré → trace locale seule.
+        // Dégradation gracieuse : Sentry non configuré → la trace locale et la
+        // remontée GitHub Issues restent actives.
         showSuccess(
-          "Signalement enregistré localement (envoi automatique indisponible).",
+          "Signalement enregistré (transmis à l'équipe pour correction).",
         );
       }
     } catch (err) {

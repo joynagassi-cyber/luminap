@@ -26,6 +26,8 @@ import {
   resolveMinSchemaVersion,
 } from "@/lib/schemaVersion";
 import { installClientErrorCapture, installChunkErrorRecovery } from "@/lib/clientErrors";
+import { reportError } from "@/lib/observability/errorReporter";
+import { ObservabilityBridge } from "@/lib/observability/ObservabilityBridge";
 import { signalAppReady } from "@/lib/bootWatchdog";
 import {
   ForbiddenScreen,
@@ -402,7 +404,17 @@ const UpdaterBridge = () => {
  */
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <ErrorBoundary fallback={
+    <ErrorBoundary
+      onError={(error, componentStack) => {
+        // Remontée automatique d'un crash de rendu (type `crash`).
+        reportError(error, {
+          type: "crash",
+          source: "error-boundary",
+          componentStack,
+          route: typeof window !== "undefined" ? window.location.pathname : undefined,
+        });
+      }}
+      fallback={
       <div
         style={{
           minHeight: "100vh",
@@ -460,6 +472,9 @@ const App = () => (
               the context of a <Router> » et fait tomber TOUTE l'app dans
               l'ErrorBoundary (écran « Une erreur inattendue s'est produite »). */}
           <UsageStatsBridge />
+          {/* Observabilité — DOIT être monté SOUS le Router (lit
+              `useLocation()`) ; sinon il lève et fait tomber l'app. */}
+          <ObservabilityBridge />
           <AppRouter />
           <AppProvider>
             <SyncUnavailableBanner />

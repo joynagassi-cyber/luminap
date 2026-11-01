@@ -46,3 +46,20 @@ la couche de données est dans `src/lib/dataLayer.ts` et les services
   `powersync deploy service-config` exigent `PS_ADMIN_TOKEN` (ou
   `powersync login`). Supabase : `supabase db push` exige
   `SUPABASE_ACCESS_TOKEN` ou un `supabase login` préalable.
+
+## Observabilité → GitHub Issues
+
+- Le cœur est `src/lib/observability/errorReporter.ts` : `reportError` classifie
+  (crash / functional / database / sync / performance), déduplique par signature,
+  met en file locale (survit au hors-ligne) puis flushe via l'edge function
+  `report-error`. Points de capture : `clientErrors.ts` (onerror /
+  unhandledrejection), `App.tsx` (ErrorBoundary racine), `lazy-route.tsx`
+  (ErrorBoundary par route), `SupabaseConnector.ts` (erreurs de sync),
+  `perfMonitor.ts` (tâches longues). `ObservabilityBridge` pousse session +
+  identités et flushe au retour en ligne.
+- Le **jeton GitHub n'est JAMAIS côté client** : il vit dans le secret Supabase
+  `GITHUB_TOKEN` lu par l'edge function `report-error` (voir son README). Le
+  dépôt est PUBLIC ⇒ le rapport est expurgé côté client avant envoi (aucune
+  PII). Ne jamais relâcher cette contrainte.
+- Le label déclencheur `openhands` DOIT exister sur le dépôt, sinon la création
+  d'Issue échoue en 422. Garde statique : `error-to-issue-integration-guard.test.ts`.

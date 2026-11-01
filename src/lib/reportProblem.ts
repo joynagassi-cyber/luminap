@@ -31,6 +31,7 @@ import { authService } from "./auth";
 import { buildHealthReport } from "./health";
 import type { HealthInputs, HealthLevel } from "./health";
 import { normalizeText } from "./sanitize";
+import { reportUserProblem } from "./observability/errorReporter";
 
 /** Clé localStorage du journal local des signalements (jamais de PII). */
 export const PROBLEM_REPORTS_STORAGE_KEY = "lumina-problem-reports";
@@ -275,6 +276,33 @@ export function sendProblemReport(
   }
 
   return { sentToSentry, savedLocally, report };
+}
+
+/**
+ * Variante de {@link sendProblemReport} qui remonte EN PLUS le signalement vers
+ * GitHub Issues (via le reporter d'observabilité). Utilisée par la page Santé :
+ * un problème signalé par l'utilisateur devient une Issue `openhands` au même
+ * titre qu'une erreur automatique, afin qu'il soit réellement pris en charge.
+ * Le rapport (déjà expurgé) alimente le contexte de l'Issue.
+ */
+export function sendProblemReportToIssues(
+  inputs: HealthInputs,
+  recentErrors: readonly Pick<ClientErrorContext, "source" | "message">[],
+  note = "",
+  now: string = new Date().toISOString(),
+  identities: readonly string[] = currentUserIdentities(),
+): SendProblemReportResult {
+  const result = sendProblemReport(inputs, recentErrors, note, now, identities);
+  const summary = note.trim()
+    ? `Problème signalé : ${note.trim()}`
+    : `Problème signalé (santé : ${result.report.overall})`;
+  reportUserProblem(summary, {
+    health: result.report.overall,
+    failedChecks: result.report.failedChecks.join(", "),
+    platform: result.report.platform,
+    version: result.report.appVersion,
+  });
+  return result;
 }
 
 /**
