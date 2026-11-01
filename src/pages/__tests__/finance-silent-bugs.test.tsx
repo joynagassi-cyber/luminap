@@ -112,10 +112,14 @@ beforeEach(() => {
 
 function fillAmountAndDescription() {
   const inputs = Array.from(document.querySelectorAll("input"));
-  const amountInput = inputs.find((el) => el.getAttribute("type") === "number") as HTMLInputElement;
+  const amountInput = inputs.find((el) => el.getAttribute("inputmode") === "decimal") as HTMLInputElement;
   const descInput =
     inputs.find((el) => el.getAttribute("aria-label") === "Description") ??
-    inputs.find((el) => el.getAttribute("type") === "text");
+    inputs.find(
+      (el) =>
+        el.getAttribute("type") === "text" &&
+        el.getAttribute("inputmode") !== "decimal",
+    );
   fireEvent.change(amountInput, { target: { value: "1000" } });
   fireEvent.change(descInput as HTMLInputElement, { target: { value: "Achat matériel" } });
 }

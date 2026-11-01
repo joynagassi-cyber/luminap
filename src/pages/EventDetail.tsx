@@ -13,6 +13,7 @@ import {
   isPowerSyncReadyNow,
 } from "@/lib/dataLayer";
 import { formatCurrencyCompact, formatDate } from "@/lib/utils";
+import { parseAmountToCents } from "@/lib/amountInput";
 import {
   Calendar,
   Clock,
@@ -116,7 +117,7 @@ export default function EventDetail() {
               className="px-4 py-2.5 rounded-xl text-sm font-medium"
               style={{
                 backgroundColor: "var(--accent-primary)",
-                color: "var(--accent-contrast, #fff)",
+                color: "var(--on-accent)",
               }}
             >
               Retour aux événements
@@ -179,13 +180,12 @@ export default function EventDetail() {
     );
     if (!budgetItem) return;
 
-    const amountFCFA = parseFloat(expenseAmount);
-    if (isNaN(amountFCFA) || amountFCFA <= 0) {
+    const amountCents = parseAmountToCents(expenseAmount);
+    if (amountCents === null || amountCents <= 0) {
       setExpenseError("Montant invalide");
       return;
     }
 
-    const amountCents = Math.round(amountFCFA * 100);
     const now = new Date().toISOString();
     const sessionId = localStorage.getItem("lumina-session") || "local-user";
 
@@ -953,8 +953,8 @@ export default function EventDetail() {
                   <IonItem lines="none" className="bg-card rounded-xl">
                     <IonLabel position="floating" className="text-sm text-text-secondary">Montant (FCFA)</IonLabel>
                     <IonInput
-                      type="number"
-                      inputMode="numeric"
+                      type="text"
+                      inputMode="decimal"
                       value={expenseAmount}
                       onIonInput={(e: IonChangeCustomEvent<string>) => setExpenseAmount(e.detail.value ?? "")}
                       placeholder="0"
@@ -966,8 +966,8 @@ export default function EventDetail() {
                         );
                         if (!item) return null;
                         const remaining = item.allocated - (item.spent || 0);
-                        const entered = parseFloat(expenseAmount) || 0;
-                        const overBudget = entered > remaining / 100;
+                        const entered = parseAmountToCents(expenseAmount) || 0;
+                        const overBudget = entered > remaining;
                         return (
                           <p
                             className={`text-xs mt-1 ${overBudget ? "text-expense" : "text-text-tertiary"}`}

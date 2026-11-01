@@ -15,6 +15,7 @@ import TopHeader from "@/components/TopHeader";
 import { policy } from "@/capabilities/policy";
 import { useKeyboardAvoidance } from "@/hooks/useKeyboardAvoidance";
 import { periodLockMessage } from "@/lib/periodLock";
+import { parseAmountToCents } from "@/lib/amountInput";
 import type { FundSource, Transaction } from "@/types";
 import {
   IonPage,
@@ -162,7 +163,11 @@ export default function TransactionEdit() {
       setError("Veuillez remplir tous les champs obligatoires");
       return;
     }
-    const amountCents = Math.round(parseFloat(amount) * 100);
+    const amountCents = parseAmountToCents(trimmedAmount);
+    if (amountCents === null) {
+      setError("Montant invalide");
+      return;
+    }
     const amountCheck = policy.transaction.validateAmount(amountCents);
     if (!amountCheck.ok) {
       setError(amountCheck.message ?? "Montant invalide");
@@ -174,7 +179,7 @@ export default function TransactionEdit() {
     try {
       await updateTransactionPS(id!, {
         type,
-        amount: Math.round(parseFloat(amount) * 100),
+        amount: amountCents,
         description,
         date,
         category_id: categoryId,
@@ -258,8 +263,8 @@ export default function TransactionEdit() {
               <IonItem lines="none" className="bg-card rounded-xl">
                 <IonLabel position="floating" className="text-sm text-text-secondary">Montant (FCFA)</IonLabel>
                 <IonInput
-                  type="number"
-                  inputMode="numeric"
+                  type="text"
+                  inputMode="decimal"
                   value={amount}
                   onIonInput={(e: IonChangeCustomEvent<string>) => setAmount(e.detail.value ?? "")}
                   placeholder="0"

@@ -181,3 +181,17 @@ et crée l'Issue. Le dépôt étant PUBLIC, le rapport est expurgé côté clien
 | 10 | Dashboard de référence : argent en `--in/--out`, section « À traiter » | `V: r52l-dashboard-loading.test.tsx` + `V: a11y-screens.test.tsx` | **couvert** |
 | 10 | **Migration app-wide** des jetons d'argent `--data-{income,expense,expense-hover,pending}` → `--in/--out/--out-hover/--warn` (écrans, composants, tailwind, theme.ts, export PNG, SVG, Cypress) | `V: money-token-migration.test.ts` (4, non-vacuité : réintroduire `var(--data-income)` ⇒ échec) + `V: design-tokens-drift.test.ts` | **couvert** |
 | 13 | Tutoriel / PDF : **aucune donnée de test** (E2E, demo, default-org, jean@example.com, E2E Org, MFE-JC) ; référence `docs/tutoriel/donnees-reelles.yaml` (église « MF ») | `V: tutorial-real-data.test.ts` (6, non-vacuité : réintroduire « Église MFE-JC » ou réimprimer `r["path"]` ⇒ échec) | **couvert** |
+
+### Formatage des montants & intégrité des jetons (2026-11-01)
+
+Parsing de montant unifié sur `parseAmountToCents` / `parseCurrencyAmount`
+(`@/lib/amountInput`) : `parseFloat(x) * 100` tronquait la virgule FR
+(« 1500,50 » → 1500) et `Number(x.replace(/[^\d]/g,"")) * 100` transformait
+« 1500,50 » en 150050 FCFA. Les champs montant passent de `type="number"` à
+`type="text"` + `inputMode="decimal"` (clavier décimal, virgule acceptée).
+
+| # | Feature / correctif | Test(s) | Statut |
+|---|---|---|---|
+| 11 | Parsing de montant partagé (virgule FR, séparateurs de milliers, bornage 2 décimales, `null` jamais `NaN`) | `V: amount-input.test.ts` (8) | **couvert** |
+| 11 | Conversion montant→centimes sans détruire la décimale (écrans finance, import CSV, formulaires, dons/promesses) | `V: money-conversion-guard.test.ts` (2, non-vacuité : réintroduire `Number(x.replace(/[^\d]/g,"")) * 100` ⇒ échec) + `V: csv-import.test.ts` + `V: formSystem-currency.test.ts` | **couvert** (non-vacuité vérifiée) |
+| 10 | Intégrité des jetons : aucun `var(--X)` applicatif ne référence un jeton non défini (hors `--radix-*`/`--sidebar-*` runtime) | `V: design-token-undefined-guard.test.ts` (3, non-vacuité : réintroduire `var(--danger)` ⇒ échec) | **couvert** (non-vacuité vérifiée) |

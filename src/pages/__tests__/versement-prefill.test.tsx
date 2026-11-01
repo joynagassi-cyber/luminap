@@ -91,7 +91,7 @@ describe("Versement — préremplissage par query param", () => {
   it("?defaultAmount=500000 (centimes) préremplit 5 000 FCFA", () => {
     const { container } = renderVersement("?caisseId=g1&defaultAmount=500000");
     const inputs = Array.from(container.querySelectorAll("input"));
-    const amountInput = inputs.find((el) => el.getAttribute("type") === "number") as HTMLInputElement;
+    const amountInput = inputs.find((el) => el.getAttribute("inputmode") === "decimal") as HTMLInputElement;
     expect(amountInput.value).toBe("5000");
   });
 
@@ -99,7 +99,7 @@ describe("Versement — préremplissage par query param", () => {
     const { container } = renderVersement("");
     const select = container.querySelector("select") as HTMLSelectElement;
     const inputs = Array.from(container.querySelectorAll("input"));
-    const amountInput = inputs.find((el) => el.getAttribute("type") === "number") as HTMLInputElement;
+    const amountInput = inputs.find((el) => el.getAttribute("inputmode") === "decimal") as HTMLInputElement;
     expect(select.value).toBe("");
     expect(amountInput.value).toBe("");
   });

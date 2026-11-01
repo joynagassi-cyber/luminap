@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useOrgBudgets, useOrgBudgetLines, useTransactions, useCategories, useOrgUnits, addOrgBudgetPS } from "@/lib/dataLayer";
 import { computeBudgetReport, budgetWindow, type BudgetPeriod } from "@/capabilities/budgets";
 import { formatCurrencyCompact } from "@/lib/utils";
+import { parseAmountToCents } from "@/lib/amountInput";
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
 import { Plus, Target, Wallet, PieChart, X, ChevronRight } from "lucide-react";
@@ -255,7 +256,7 @@ function CreateBudgetSheet({
     if (!name.trim() || saving) return;
     setSaving(true);
     try {
-      const totalCents = Math.round((Number(total.replace(/[^\d]/g, "")) || 0) * 100);
+      const totalCents = parseAmountToCents(total) ?? 0;
       await addOrgBudgetPS({
         fiscal_year: fiscalYear,
         period,
@@ -348,8 +349,8 @@ function CreateBudgetSheet({
           <IonItem lines="none" className="bg-card rounded-xl">
             <IonLabel position="floating" className="text-sm text-text-secondary">Montant prévu (FCFA)</IonLabel>
             <IonInput
-              type="number"
-              inputMode="numeric"
+              type="text"
+              inputMode="decimal"
               value={total}
               onIonInput={(e: IonChangeCustomEvent<string>) => setTotal(e.detail.value ?? "")}
               placeholder="Ex : 5000000"

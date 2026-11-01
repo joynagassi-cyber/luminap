@@ -26,6 +26,7 @@ import {
 } from "@/lib/dataLayer";
 import { useLocalStore } from "@/store/useLocalStore";
 import { formatDate, formatCurrencyCompact } from "@/lib/utils";
+import { parseCurrencyAmount } from "@/lib/amountInput";
 import { isCulteVerrouille } from "@/lib/cotisation-logic";
 import { policy } from "@/capabilities/policy";
 import type { CotisationStatut } from "@/types";
@@ -202,9 +203,9 @@ export default function SaisieRapide() {
                     cot.montantObligatoire ?? cot.montant_obligatoire ?? 0;
                   const customVal =
                     customMontants[cot.id] ?? String(montantOblig);
-                  const customCents = Math.round(
-                    parseFloat(customVal) * 100,
-                  );
+                  // Le champ est saisi en FCFA ; on accepte virgule/séparateurs.
+                  const customCents =
+                    (parseCurrencyAmount(customVal) ?? 0) * 100;
                   const useCustom =
                     Number.isFinite(customCents) &&
                     customCents > 0 &&
@@ -231,7 +232,8 @@ export default function SaisieRapide() {
                       {/* Champ montant personnalisable */}
                       <div className="flex items-center gap-2 mb-3">
                         <IonInput
-                          type="number"
+                          type="text"
+                          inputMode="decimal"
                           value={customMontants[cot.id] ?? String(montantOblig / 100)}
                           onIonInput={(e: IonChangeCustomEvent<string>) =>
                             setCustomMontants((prev) => ({

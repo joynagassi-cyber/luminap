@@ -13,6 +13,7 @@ import { useKeyboardAvoidance } from "@/hooks/useKeyboardAvoidance";
 import type { Category, FundSource } from "@/types";
 import { getOrganizationId } from "@/lib/orgContext";
 import { periodLockMessage } from "@/lib/periodLock";
+import { parseAmountToCents } from "@/lib/amountInput";
 import {
   IonPage,
   IonHeader,
@@ -68,10 +69,10 @@ export default function TransactionNewGroup() {
   const [error, setError] = useState("");
 
   const validateAmount = (val: string): string => {
-    const num = parseFloat(val);
-    if (!val) return "";
-    if (isNaN(num) || num <= 0) return "Le montant doit être supérieur à 0";
-    if (num > 999999999) return "Montant maximum atteint";
+    if (!val.trim()) return "";
+    const cents = parseAmountToCents(val);
+    if (cents === null || cents <= 0) return "Le montant doit être supérieur à 0";
+    if (cents > 999999999 * 100) return "Montant maximum atteint";
     return "";
   };
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -105,6 +106,11 @@ export default function TransactionNewGroup() {
       setError("Veuillez remplir tous les champs obligatoires");
       return;
     }
+    const amountCents = parseAmountToCents(trimmedAmount);
+    if (amountCents === null) {
+      setError("Veuillez entrer un montant valide");
+      return;
+    }
     setError("");
     setSubmitting(true);
     const sessionId = localStorage.getItem("lumina-session") || "local-user";
@@ -114,7 +120,7 @@ export default function TransactionNewGroup() {
       await addTransactionPS({
         org_id: getOrganizationId(),
         type,
-        amount: Math.round(parseFloat(amount) * 100),
+        amount: amountCents,
         description,
         date,
         status: isExpense ? "PENDING" : "DRAFT",
@@ -207,8 +213,8 @@ export default function TransactionNewGroup() {
             <IonItem lines="none" className="mb-5 bg-card rounded-xl">
               <IonLabel position="floating" className="text-sm text-text-secondary">Montant (FCFA)</IonLabel>
               <IonInput
-                type="number"
-                inputMode="numeric"
+                type="text"
+                inputMode="decimal"
                 value={amount}
                 onIonInput={(e: IonChangeCustomEvent<string>) => setAmount(e.detail.value ?? "")}
                 placeholder="0"

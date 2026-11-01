@@ -25,6 +25,7 @@ import { useOnlineStatus } from "@/lib/dataLayer";
 import { policy } from "@/capabilities/policy";
 import { notification } from "@/capabilities/notification";
 import { periodLockMessage } from "@/lib/periodLock";
+import { parseAmountToCents } from "@/lib/amountInput";
 import {
   IonPage,
   IonHeader,
@@ -100,10 +101,10 @@ export default function TransactionNew() {
   const isOnline = useOnlineStatus();
 
   const validateAmount = (val: string): string => {
-    const num = parseFloat(val);
-    if (!val) return "";
-    if (isNaN(num) || num <= 0) return "Le montant doit être supérieur à 0";
-    if (num > 999999999) return "Montant maximum atteint";
+    if (!val.trim()) return "";
+    const cents = parseAmountToCents(val);
+    if (cents === null || cents <= 0) return "Le montant doit être supérieur à 0";
+    if (cents > 999999999 * 100) return "Montant maximum atteint";
     return "";
   };
 
@@ -160,7 +161,11 @@ export default function TransactionNew() {
     // JAMAIS envoyée aux trésoriers — échec silencieux.
     const status = isExpense ? "PENDING" : "DRAFT";
 
-    const amountCents = Math.round(parseFloat(trimmedAmount) * 100);
+    const amountCents = parseAmountToCents(trimmedAmount);
+    if (amountCents === null) {
+      setError("Veuillez entrer un montant valide");
+      return;
+    }
     const amountCheck = policy.transaction.validateAmount(amountCents);
     if (!amountCheck.ok) {
       setError(amountCheck.message ?? "Veuillez entrer un montant valide");
@@ -172,7 +177,7 @@ export default function TransactionNew() {
       txId = await addTransactionPS({
         org_id: getOrganizationId(),
         type,
-        amount: Math.round(parseFloat(trimmedAmount) * 100),
+        amount: amountCents,
         description,
         date,
         status,
@@ -308,7 +313,7 @@ export default function TransactionNew() {
               <IonLabel position="floating">Montant (FCFA)</IonLabel>
               <IonInput
                 ref={amountRef}
-                type="number"
+                type="text"
                 inputMode="decimal"
                 aria-label="Montant en francs CFA"
                 aria-invalid={!!fieldErrors.amount}

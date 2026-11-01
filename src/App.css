@@ -59,6 +59,11 @@
   --z-toast: 70;
   --z-skip: 100;
 
+  /* Hauteur de la BottomNav (56 px : 40 px de contenu + 2×8 px de padding).
+     Consommée par les éléments positionnés au-dessus de la nav (bandeau
+     hors-ligne) ; définie ici pour rester alignée sur la barre réelle. */
+  --nav-height: 56px;
+
   /* Voile (scrim) des overlays de page. En clair, un voile noir 60–70 %
      écrase les surfaces blanches : on passe à un voile gris 35 %. */
   --scrim: rgba(0, 0, 0, 0.6);

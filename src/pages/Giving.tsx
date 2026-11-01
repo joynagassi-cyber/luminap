@@ -13,6 +13,7 @@ import {
 } from "@/lib/dataLayer";
 import { campaignProgress } from "@/capabilities/giving";
 import { formatCurrencyCompact, formatCurrencyFull } from "@/lib/utils";
+import { parseAmountToCents } from "@/lib/amountInput";
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
 import EmptyState from "@/components/EmptyState";
@@ -279,7 +280,7 @@ export default function Giving() {
                   name: input.name,
                   purpose: input.purpose || null,
                   fund: input.fund || null,
-                  target_amount_cents: Math.round((Number(input.target.replace(/[^\d]/g, "")) || 0) * 100),
+                  target_amount_cents: parseAmountToCents(input.target) ?? 0,
                   start_date: null,
                   end_date: null,
                   status: "ACTIVE",
@@ -460,7 +461,7 @@ function CampaignSheet({
       </label>
       <label className="block">
         <span className="text-text-tertiary text-xs uppercase tracking-wide block mb-1">Objectif (FCFA)</span>
-        <IonInput type="number" value={target} onIonInput={(e) => setTarget((e.detail.value as string) ?? "")} placeholder="Ex : 5000000" data-testid="campaign-target" />
+        <IonInput type="text" inputMode="decimal" value={target} onIonInput={(e) => setTarget((e.detail.value as string) ?? "")} placeholder="Ex : 5000000" data-testid="campaign-target" />
       </label>
       <PrimaryButton onClick={submit} disabled={saving || !name.trim()} label={saving ? "Création…" : "Créer la campagne"} />
     </Sheet>

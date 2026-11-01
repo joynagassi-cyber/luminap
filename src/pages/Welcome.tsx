@@ -38,7 +38,7 @@ function WelcomeIllustration() {
         </linearGradient>
         <linearGradient id="lumina-book" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0%" stopColor="var(--accent-primary)" />
-          <stop offset="100%" stopColor="var(--accent-secondary, var(--accent-primary))" />
+          <stop offset="100%" stopColor="var(--accent-light)" />
         </linearGradient>
       </defs>
 

@@ -9,6 +9,7 @@ import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
 import DatePicker from "@/components/DatePicker";
 import { generateId, formatCurrencyCompact } from "@/lib/utils";
+import { parseAmountToCents } from "@/lib/amountInput";
 import type { BudgetItem, Event } from "@/types";
 import { getOrganizationId } from "@/lib/orgContext";
 import { CANONICAL_CATEGORIES } from "@/lib/canonicalCategories";
@@ -96,10 +97,12 @@ export default function EventNew() {
 
   const handleAddBudget = () => {
     if (!newBudgetLabel.trim() || !newBudgetAmount) return;
+    const allocated = parseAmountToCents(newBudgetAmount);
+    if (allocated === null || allocated <= 0) return;
     const item: BudgetItem = {
       id: generateId(),
       label: newBudgetLabel.trim(),
-      allocated: Math.round(parseFloat(newBudgetAmount) * 100),
+      allocated,
       spent: 0,
       fundedBy: newBudgetFundedBy,
       isCustom: true,
@@ -124,12 +127,11 @@ export default function EventNew() {
         // Le montant de cotisation est requis et doit être choisi par l'utilisateur.
         // L'UI le saisit en FCFA ; on convertit en cents (1 FCFA = 100 cents)
         // pour transmettre au service `createCulte`.
-        const fcfa = parseFloat(montantCotisation);
-        if (!Number.isFinite(fcfa) || fcfa <= 0) {
+        const montantCents = parseAmountToCents(montantCotisation);
+        if (montantCents === null || montantCents <= 0) {
           setError("Le montant de cotisation est requis (en FCFA).");
           return;
         }
-        const montantCents = Math.round(fcfa * 100);
 
         await createCulte({
           name: name.trim(),
@@ -245,7 +247,8 @@ export default function EventNew() {
                       Montant obligatoire (FCFA) *
                     </IonLabel>
                     <IonInput
-                      type="number"
+                      type="text"
+                      inputMode="decimal"
                       aria-label="Montant de cotisation obligatoire en FCFA"
                       value={montantCotisation}
                       onIonInput={(e: IonChangeCustomEvent<string>) =>
@@ -422,7 +425,8 @@ export default function EventNew() {
                     }}
                   />
                   <IonInput
-                    type="number"
+                    type="text"
+                    inputMode="decimal"
                     value={newBudgetAmount}
                     onIonInput={(e) =>
                       setNewBudgetAmount((e.detail.value as string) ?? "")

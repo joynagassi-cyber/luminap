@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useCaisses, useAccounts, useTransactions, createVersement, isPowerSyncReadyNow } from "@/lib/dataLayer";
 import { formatCurrencyCompact } from "@/lib/utils";
+import { parseCurrencyAmount } from "@/lib/amountInput";
 import { ArrowLeft, Check, AlertCircle, Wallet, RefreshCw } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
@@ -80,7 +81,10 @@ export default function Versement() {
   const balanceFCFA = Math.round(balance / 100);
 
   const maxAmount = Math.max(0, balanceFCFA);
-  const amountNum = Math.round(parseFloat(amount || "0"));
+  // Le montant est saisi en FCFA (entiers) ; on accepte la virgule/les
+  // séparateurs de milliers, comme partout ailleurs (sinon « 1 000 » tapé
+  // depuis un clavier FR était compté 1). `null` → 0 (formulaire incomplet).
+  const amountNum = Math.round(parseCurrencyAmount(amount) ?? 0);
   const isValid = amountNum > 0 && amountNum <= maxAmount;
 
   const handleConfirm = async () => {
@@ -272,8 +276,8 @@ export default function Versement() {
                 >
                   <IonLabel position="floating" className="text-sm text-text-secondary">Montant à verser (FCFA)</IonLabel>
                   <IonInput
-                    type="number"
-                    inputMode="numeric"
+                    type="text"
+                    inputMode="decimal"
                     value={amount}
                     onIonInput={(e: IonChangeCustomEvent<string>) => setAmount(e.detail.value ?? "")}
                     placeholder="0"
