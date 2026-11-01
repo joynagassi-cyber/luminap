@@ -1106,6 +1106,32 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
 - **Après tout changement de schéma** : régénérer `docs/agent/rls-inventory.json`
   (garde `rls-inventory.test.ts`) et `docs/agent/migration-drift.json`.
 
+### Audit QA + durcissement (2026-11-01, PR #321)
+- **RÈGLE D'OR observabilité** : un message d'erreur remonté ne doit JAMAIS
+  contenir de valeur variable (durée, id, montant) — la signature de dédup =
+  type + message + 1ʳᵉ trame, donc un message interpolé ⇒ signature unique ⇒
+  dédup inopérante ⇒ spam. Mettre la valeur dans `context`. C'est la cause du
+  spam « Tâche longue détectée (${ms} ms) » (**89 Issues** sur le dépôt public).
+- **Dédup serveur = réservation ATOMIQUE en base AVANT la recherche GitHub**
+  (`/search/issues` a une indexation différée → doublons mesurés #307/#308).
+  Table `error_report_dedupe` PK `(dedupe_key, window_start)` + RPC
+  `claim_error_report`/`release_error_report` (migration `20261101000003`).
+  Edge function déployée **v7**.
+- **Ne remonter QUE depuis un build de production** : `isTransmissionAllowed()`
+  (`import.meta.env.PROD`) — sinon un `vite dev` local pollue le dépôt public.
+  Échappatoire `VITE_REPORT_ERRORS_IN_DEV=true`. Un rapport bloqué est retiré de
+  la file (`drop:true`), pas réessayé.
+- **Self-update** : `ApkUpdaterPlugin.canInstall()` doit garder
+  `canRequestPackageInstalls()` derrière `SDK_INT >= 26` (minSdk 21). Les échecs
+  de mise à jour remontent via `reportError` (source `self-update`).
+- **Release** : `release.yml` doit patcher `versionName`/`versionCode` depuis le
+  tag dans le job **`prepare`** (avant l'upload de `patched-android-src` que
+  consomme `build-android`), sinon `versionName` reste figé → boucle de MAJ.
+- **Bug produit réel (Issue #317)** : `report_definitions` (schéma PowerSync
+  local) n'a pas la colonne `kind` alors que `reporting.ts` l'écrit/la lit →
+  `no such column: kind`. Correctif = colonne + bump de version de schéma client.
+- **Garde** : `observability-self-healing-guard.test.ts` (27).
+
 ## Release Lumina v1.2.1 + flake `auth-real` (2026-11-01)
 - **Release = tag `v*`** → workflow `release.yml` (prepare → build unsigned →
   sign apksigner v1+v2+v3 → GitHub Release). Body lu depuis
