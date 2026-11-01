@@ -1069,6 +1069,28 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   (« Formulaire absent de Supabase après setup »), `offline-write-sync`
   (org_id `org-<uuid>` vs `org-e2e` + erreur React interne).
 
+## Observabilité → GitHub Issues (2026-11-01)
+- Chaîne erreurs client → Issue GitHub labellisée `openhands`. Cœur :
+  `src/lib/observability/errorReporter.ts` (`reportError`). Capture câblée dans
+  `clientErrors.ts`, `App.tsx` (ErrorBoundary racine), `lazy-route.tsx`,
+  `SupabaseConnector.ts`, `powersync/index.ts`, `perfMonitor.ts`, `main.tsx`.
+- **Le jeton GitHub n'est JAMAIS côté client** : secret Supabase `GITHUB_TOKEN`
+  lu par l'edge function `report-error` (projet lié `hhgovvrnalibhgpakswi`,
+  déployée v2). Le dépôt est PUBLIC → rapport expurgé côté client (`redact` +
+  `scrubIdentities`) avant envoi.
+- **Label `openhands` créé** sur le dépôt (couleur 5319E7) : GitHub rejette la
+  création d'Issue (422) si le label n'existe pas. À recréer si le dépôt change.
+- **Test env** : la suite vitest exige `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`
+  (sinon `src/lib/auth.ts` lève à l'import → ~100 fichiers « failed »). Un
+  `.env.local` gitignoré avec des valeurs factices suffit → suite complète verte.
+- **Déploiement edge function** : `npx supabase functions deploy` met >120 s à
+  installer le CLI (timeout) → préférer le MCP `deploy_edge_function`.
+- **Règle Router** : tout composant à hook de React Router (`useLocation`…)
+  DOIT être monté SOUS `<IonReactRouter>`. `ObservabilityBridge` l'avait été
+  au-dessus → panne totale (classe PR15). `router-context-guard` durcie pour
+  analyser aussi les composants IMPORTÉS (avant : seulement ceux déclarés dans
+  App.tsx). Détail : `.openhands/memory/2026-11-01.md`.
+
 ## Release Lumina v1.2.1 + flake `auth-real` (2026-11-01)
 - **Release = tag `v*`** → workflow `release.yml` (prepare → build unsigned →
   sign apksigner v1+v2+v3 → GitHub Release). Body lu depuis
