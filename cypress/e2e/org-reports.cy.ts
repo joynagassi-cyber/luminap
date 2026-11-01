@@ -38,11 +38,17 @@ describe('Lumina — Org reports hierarchy, send page gating, RLS', () => {
   const orgPrefixes: string[] = [];
   // Borne temporelle stricte : n'archive QUE les annexes créées par ce run.
   const runStartedAt = new Date().toISOString();
+  // Id de l'organisation ACTIVE (la « Mère »), résolu dynamiquement — jamais
+  // `org-e2e` (id figé disparu depuis R161, cf. `cy.orgActiveId()`).
+  let activeOrgId = '';
 
   before(function () {
     this.timeout(90_000);
     cy.loginOrgAccount();
     cy.ensureAuth();
+    cy.orgActiveId().then((id) => {
+      activeOrgId = id;
+    });
   });
 
   after(() => {
@@ -167,10 +173,11 @@ describe('Lumina — Org reports hierarchy, send page gating, RLS', () => {
       const w = win as unknown as {
         __psDb?: { getAll: (sql: string, params?: unknown[]) => Promise<any[]> };
       };
-      const activeOrgId = win.localStorage.getItem('lumina-active-org') ?? 'org-e2e';
+      // La « Mère » = org active résolue au `before` (jamais `org-e2e`).
+      const orgId = activeOrgId || win.localStorage.getItem('lumina-active-org') || '';
       const rows = (await w.__psDb?.getAll(
         'SELECT name FROM organizations WHERE id = ?',
-        [activeOrgId],
+        [orgId],
       )) ?? [];
       const orgName: string | null = rows[0]?.name ? String(rows[0].name) : null;
       expect(orgName, 'nom de l\'organisation courante (réplique)').to.be.a('string').and.not.be.empty;
@@ -222,11 +229,12 @@ describe('Lumina — Org reports hierarchy, send page gating, RLS', () => {
 
     // Org A est une ANNEXE de la Mère (org courante) : elle n'apparaît donc
     // pas dans la liste des racines. Il faut déplier la Mère pour la voir.
-    // On cible EXPLICITEMENT la carte de la Mère (`org-open-org-e2e`) :
-    // `.first()` prenait la première racine rendue, qui n'est pas forcément
-    // la Mère (l'ordre vient de `created_at DESC`), donc on dépliait la
-    // mauvaise organisation et l'annexe restait invisible.
-    cy.get('[data-testid="org-open-org-e2e"]', { timeout: 60_000 }).click();
+    // On cible EXPLICITEMENT la carte de la Mère, par l'id d'org RÉSOLU
+    // (`org-open-<id>`) — jamais `org-open-org-e2e` (id figé disparu depuis
+    // R161) : `.first()` prenait la première racine rendue, qui n'est pas
+    // forcément la Mère (l'ordre vient de `created_at DESC`), donc on
+    // dépliait la mauvaise organisation et l'annexe restait invisible.
+    cy.get(`[data-testid="org-open-${activeOrgId}"]`, { timeout: 60_000 }).click();
     cy.contains('span', orgAName, { timeout: 60_000 }).should('be.visible');
     cy.log(`Org A created: ${orgAName}`);
 

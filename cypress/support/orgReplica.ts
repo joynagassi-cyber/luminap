@@ -67,11 +67,46 @@ declare global {
   }
 }
 
+// Valeurs de REPLI historiques. Depuis R161 (création self-serve), les ids
+// d'organisation sont `org-<uuid>` et le compte e2e change d'UUID selon
+// l'environnement : `org-e2e` / l'UUID figé ci-dessous n'existent plus en
+// base. Les commandes résolvent donc l'org/l'utilisateur RÉELS depuis le
+// contexte navigateur (cf. `resolveActiveOrgContext`) et ne retombent sur ces
+// constantes que si la résolution échoue (jamais le cas après un
+// `loginOrgAccount()` réussi).
 export const E2E_ORG_ID = 'org-e2e';
 export const E2E_ORG_NAME = 'Lumina Org E2E';
 export const E2E_USER_ID = '87afea21-bad7-453b-9ae5-4ad1da2ca13f';
 export const E2E_USER_EMAIL = 'lumina-org-e2e@lumina.dev';
 export const E2E_ROLE = 'PASTEUR_PRINCIPAL';
+
+/**
+ * Résout l'organisation active et l'utilisateur courant depuis le contexte
+ * navigateur (`lumina-user`, puis `lumina-active-org`). Ces clés sont posées
+ * par `auth.ts` à la connexion ; les ignorer fait seed/hydrater une réplique
+ * locale portant `org-e2e` alors que la base n'a que `org-<uuid>`, ce qui
+ * casse ensuite toute écriture REST (RLS 42501) et toute assertion.
+ */
+function resolveActiveOrgContext(win: any): { orgId: string; userId: string; userEmail: string } {
+  let orgId = '';
+  let userId = '';
+  let userEmail = '';
+  try {
+    const u = JSON.parse(win?.localStorage?.getItem('lumina-user') ?? 'null');
+    if (u?.org?.id) orgId = String(u.org.id);
+    if (u?.id) userId = String(u.id);
+    if (u?.email) userEmail = String(u.email);
+  } catch {
+    /* lumina-user absent/malformé — on tente lumina-active-org */
+  }
+  if (!orgId) {
+    const ls = win?.localStorage?.getItem('lumina-active-org') || '';
+    if (ls) orgId = ls;
+  }
+  // `org-e2e` est un id périmé : ne jamais le considérer comme résolu.
+  if (orgId === 'org-e2e') orgId = '';
+  return { orgId, userId, userEmail };
+}
 // `org_memberships.id` et `org_admins.id` sont des colonnes `uuid` côté
 // Postgres (vérifié : information_schema). Un id textuel arbitraire
 // (« e2e-admin-org-e2e ») fait échouer l'upload PowerSync avec 22P02
@@ -90,12 +125,6 @@ interface ReplicaDb {
 }
 
 Cypress.Commands.add('seedOrgReplica', function (overrides = {}) {
-  const orgId = overrides.orgId ?? E2E_ORG_ID;
-  const orgName = overrides.orgName ?? E2E_ORG_NAME;
-  const userId = overrides.userId ?? E2E_USER_ID;
-  const userEmail = overrides.userEmail ?? E2E_USER_EMAIL;
-  const role = overrides.role ?? E2E_ROLE;
-
   // The DEV handle is published when the app initializes PowerSync; wait for
   // it rather than failing fast (the app boot may still be in flight).
   cy.window({ timeout: 120_000 }).should((win) => {
@@ -109,6 +138,15 @@ Cypress.Commands.add('seedOrgReplica', function (overrides = {}) {
     const w = win as unknown as { __psDb?: ReplicaDb; __psMarkReady?: () => void };
     const db = w.__psDb;
     if (!db?.writeTransaction) return;
+    // Résolution DYNAMIQUE : l'org/l'utilisateur réels du compte courant,
+    // jamais `org-e2e` (id figé disparu depuis R161). Les surcharges
+    // explicites du spec restent prioritaires.
+    const ctx = resolveActiveOrgContext(win);
+    const orgId = overrides.orgId ?? (ctx.orgId || E2E_ORG_ID);
+    const orgName = overrides.orgName ?? E2E_ORG_NAME;
+    const userId = overrides.userId ?? (ctx.userId || E2E_USER_ID);
+    const userEmail = overrides.userEmail ?? (ctx.userEmail || E2E_USER_EMAIL);
+    const role = overrides.role ?? E2E_ROLE;
     const now = new Date().toISOString();
 
     await db.writeTransaction(async (tx) => {
@@ -243,7 +281,6 @@ function toSqlValue(v: unknown): string | number | null {
 }
 
 Cypress.Commands.add('hydrateOrgReplica', function (opts = {}) {
-  const orgId = opts.orgId ?? E2E_ORG_ID;
   const tables = opts.tables ?? HYDRATE_TABLES;
   const limit = opts.limit ?? 2000;
 
@@ -257,6 +294,9 @@ Cypress.Commands.add('hydrateOrgReplica', function (opts = {}) {
   cy.window({ timeout: 180_000 }).then({ timeout: 180_000 }, async (win: any) => {
     const db = win.__psDb as ReplicaDb;
     if (!db?.writeTransaction) return;
+    // Org RÉELLE du compte courant (jamais `org-e2e`) : sinon le filtre REST
+    // `org_id=eq.org-e2e` ne renvoie rien et la réplique reste vide.
+    const orgId = opts.orgId ?? (resolveActiveOrgContext(win).orgId || E2E_ORG_ID);
 
     try {
       // Jeton + URL : le client Supabase du connector porte l'URL et la clé.
@@ -298,7 +338,8 @@ Cypress.Commands.add('hydrateOrgReplica', function (opts = {}) {
           // dont le créateur reçoit un grant `org_admins`). Un filtre
           // `org_id=eq.<org courante>` manquerait ces grants : on lit donc
           // tous les grants ACTIFS du profil courant, toutes orgs confondues.
-          url += `&status=eq.ACTIVE&admin_profile_id=eq.${E2E_USER_ID}`;
+          const { userId } = resolveActiveOrgContext(win);
+          url += `&status=eq.ACTIVE&admin_profile_id=eq.${userId || E2E_USER_ID}`;
         }
         const res = await win.fetch(url, {
           headers: { apikey: anonKey, Authorization: `Bearer ${token}` },
