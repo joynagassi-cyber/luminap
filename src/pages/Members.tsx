@@ -1,8 +1,7 @@
 import { captureClientError } from "@/lib/clientErrors";
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useCurrentUser } from "@/lib/dataLayer";
-import { useMembers, addMemberPS, isPowerSyncReadyNow } from "@/lib/dataLayer";
+import { useCurrentUser, useMembers, addMemberPS, isPowerSyncReadyNow } from "@/lib/dataLayer";
 import { getOrganizationId } from "@/lib/orgContext";
 import { resource } from "@/capabilities/resource";
 import { lifecycle } from "@/capabilities/lifecycle";
@@ -14,8 +13,6 @@ import {
   Search,
   Archive,
   RefreshCw,
-  UserPlus,
-  UserMinus,
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
@@ -24,12 +21,14 @@ import type { Member } from "@/types";
 import {
   IonPage,
   IonContent,
-  IonInfiniteScroll,
   IonInput,
 } from "@ionic/react";
 import EmptyState from "@/components/EmptyState";
 import CapabilityBanner from "@/components/CapabilityBanner";
 import { showError } from "@/utils/toast";
+import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
+import { MotionCard } from "@/design/motion/MotionCard";
 
 export default function MembersPage() {
   const navigate = useNavigate();
@@ -39,7 +38,6 @@ export default function MembersPage() {
   const [archivedError, setArchivedError] = useState(false);
   const [retryArchived, setRetryArchived] = useState(0);
 
-  // Load archived members via Resource capability
   useEffect(() => {
     setArchivedError(false);
     resource
@@ -67,7 +65,6 @@ export default function MembersPage() {
     retry: retryMembers,
   } = useMembers();
 
-  // R52.m — réplique PowerSync non prête : « Aucun membre » serait un fait FAUX.
   const replicaPending = !isPowerSyncReadyNow();
 
   const filteredMembers = useMemo(() => {
@@ -89,7 +86,6 @@ export default function MembersPage() {
     (m: any) => m.status === "ACTIVE",
   );
 
-  // Un nouveau membre créé revient en tête de liste : on repart du premier écran.
   useEffect(() => {
     setVisibleCount(50);
   }, [searchQuery]);
@@ -125,8 +121,6 @@ export default function MembersPage() {
       setEmail("");
       setShowForm(false);
     } catch (err) {
-      // Une erreur avalée laissait l'utilisateur devant un formulaire qui ne
-      // se ferme pas, sans explication. On journalise ET on affiche.
       console.error("[members] échec de la création du membre", err);
       showError("Impossible d'ajouter le membre. Réessayez.");
     } finally {
@@ -136,29 +130,32 @@ export default function MembersPage() {
 
   const handleArchive = async (member: any) => {
     const check = workflow.check("member", member.status, "INACTIVE");
-    if (!check.allowed) {
-      return;
-    }
+    if (!check.allowed) return;
     await lifecycle.archive(
       "Member",
       member.id,
       "Archivé via la gestion des membres",
       user.id,
     );
-    // Refresh archived list
     const { items } = await resource.listArchived<Member>("Member");
     setArchivedMembers(items);
   };
 
   const handleRestore = async (member: any) => {
     const check = workflow.check("member", member.status, "ACTIVE");
-    if (!check.allowed) {
-      return;
-    }
+    if (!check.allowed) return;
     await lifecycle.restore("Member", member.id, "Rétabli", user.id);
-    // Refresh archived list
     const { items } = await resource.listArchived<Member>("Member");
     setArchivedMembers(items);
+  };
+
+  const CARD_VARIANTS = {
+    hidden: { opacity: 0, y: 12 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.5, ease: [0.4, 0, 0.2, 1] },
+    },
   };
 
   if (membersLoading || (members.length === 0 && replicaPending)) {
@@ -176,13 +173,18 @@ export default function MembersPage() {
           <TopHeader title="Membres" />
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             <CapabilityBanner orgId={getOrganizationId()} />
+
             {/* Header */}
-            <div className="flex items-center justify-between mb-5">
+            <motion.div
+              initial="hidden"
+              animate="visible"
+              variants={CARD_VARIANTS}
+              className="flex items-center justify-between mb-6"
+            >
               <div>
-                <h1 className="text-text-primary font-bold text-xl">Membres</h1>
-                <p className="text-text-tertiary text-xs mt-0.5">
-                  {activeMembers.length} actif
-                  {activeMembers.length !== 1 ? "s" : ""}
+                <h1 className="text-text-primary font-bold text-2xl tracking-tight">Membres</h1>
+                <p className="text-text-tertiary text-xs mt-1">
+                  {activeMembers.length} actif{activeMembers.length !== 1 ? "s" : ""}
                 </p>
               </div>
               <CircleAction
@@ -191,90 +193,106 @@ export default function MembersPage() {
               >
                 <PlusCircle className="w-6 h-6" />
               </CircleAction>
-            </div>
+            </motion.div>
 
             {/* Search */}
-            <div className="relative mb-4">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
-              {/* M4 */}
+            <motion.div
+              initial="hidden"
+              animate="visible"
+              variants={CARD_VARIANTS}
+              transition={{ delay: 0.1 }}
+              className="relative mb-6"
+            >
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
               <IonInput
                 aria-label="Rechercher un membre"
-                placeholder="Rechercher un membre..."
+                placeholder="Rechercher un membre…"
                 value={searchQuery}
                 onIonInput={(e) => setSearchQuery((e.detail.value as string) ?? "")}
+                className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border bg-surface text-text-primary placeholder:text-text-placeholder focus:border-accent-primary focus:ring-1 focus:ring-accent-primary focus:outline-none"
               />
-            </div>
+            </motion.div>
 
             {/* Create form */}
             {showForm && (
-              <div
-                className="rounded-xl p-4 mb-4"
-                style={{
-                  backgroundColor: "var(--surface)",
-                  border: "1px solid color-mix(in srgb, var(--accent-primary) 19%, transparent)",
-                }}
+              <motion.div
+                initial="hidden"
+                animate="visible"
+                variants={CARD_VARIANTS}
+                transition={{ delay: 0.2 }}
+                className="mb-6"
               >
-                <h3 className="text-text-primary font-semibold text-sm mb-3">
-                  Nouveau membre
-                </h3>
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    {/* M4 */}
+                <MotionCard variant="elevated" className="p-6">
+                  <h3 className="text-text-primary font-semibold text-sm mb-4">
+                    Nouveau membre
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-4">
+                      <IonInput
+                        aria-label="Prénom"
+                        autocomplete="given-name"
+                        placeholder="Prénom"
+                        value={firstName}
+                        onIonInput={(e) => setFirstName((e.detail.value as string) ?? "")}
+                        className="w-full pl-4 pr-4 py-2.5 rounded-lg border border-border bg-surface text-text-primary placeholder:text-text-placeholder focus:border-accent-primary focus:ring-1 focus:ring-accent-primary focus:outline-none"
+                      />
+                      <IonInput
+                        aria-label="Nom"
+                        autocomplete="family-name"
+                        placeholder="Nom"
+                        value={lastName}
+                        onIonInput={(e) => setLastName((e.detail.value as string) ?? "")}
+                        className="w-full pl-4 pr-4 py-2.5 rounded-lg border border-border bg-surface text-text-primary placeholder:text-text-placeholder focus:border-accent-primary focus:ring-1 focus:ring-accent-primary focus:outline-none"
+                      />
+                    </div>
                     <IonInput
-                      aria-label="Prénom"
-                      autocomplete="given-name"
-                      placeholder="Prénom"
-                      value={firstName}
-                      onIonInput={(e) => setFirstName((e.detail.value as string) ?? "")}
+                      type="tel"
+                      aria-label="Téléphone"
+                      autocomplete="tel"
+                      placeholder="Téléphone"
+                      value={phone}
+                      onIonInput={(e) => setPhone((e.detail.value as string) ?? "")}
+                      className="w-full pl-4 pr-4 py-2.5 rounded-lg border border-border bg-surface text-text-primary placeholder:text-text-placeholder focus:border-accent-primary focus:ring-1 focus:ring-accent-primary focus:outline-none"
                     />
                     <IonInput
-                      aria-label="Nom"
-                      autocomplete="family-name"
-                      placeholder="Nom"
-                      value={lastName}
-                      onIonInput={(e) => setLastName((e.detail.value as string) ?? "")}
+                      type="email"
+                      aria-label="Email"
+                      autocomplete="email"
+                      placeholder="Email (optionnel)"
+                      value={email}
+                      onIonInput={(e) => setEmail((e.detail.value as string) ?? "")}
+                      className="w-full pl-4 pr-4 py-2.5 rounded-lg border border-border bg-surface text-text-primary placeholder:text-text-placeholder focus:border-accent-primary focus:ring-1 focus:ring-accent-primary focus:outline-none"
                     />
+                    <div className="flex gap-3 mt-2">
+                      <button
+                        data-testid="member-submit"
+                        onClick={handleCreate}
+                        disabled={saving || !firstName.trim() || !lastName.trim()}
+                        className="flex-1 py-3 rounded-full font-semibold text-on-accent text-sm shadow-fab active:scale-95"
+                        style={{ backgroundColor: "var(--accent-primary)" }}
+                      >
+                        {saving ? "Ajout…" : "Ajouter"}
+                      </button>
+                      <button
+                        onClick={() => setShowForm(false)}
+                        className="flex-1 py-3 rounded-full font-medium text-sm border border-border bg-surface text-text-primary active:scale-95"
+                      >
+                        Annuler
+                      </button>
+                    </div>
                   </div>
-                  <IonInput
-                    type="tel"
-                    aria-label="Téléphone"
-                    autocomplete="tel"
-                    placeholder="Téléphone"
-                    value={phone}
-                    onIonInput={(e) => setPhone((e.detail.value as string) ?? "")}
-                  />
-                  <IonInput
-                    type="email"
-                    aria-label="Email"
-                    autocomplete="email"
-                    placeholder="Email (optionnel)"
-                    value={email}
-                    onIonInput={(e) => setEmail((e.detail.value as string) ?? "")}
-                  />
-                  <div className="flex gap-2">
-                    <button
-                      data-testid="member-submit"
-                      onClick={handleCreate}
-                      disabled={saving || !firstName.trim() || !lastName.trim()}
-                      className="flex-1 py-3 rounded-full font-semibold text-on-accent text-sm"
-                      style={{ backgroundColor: "var(--accent-primary)" }}
-                    >
-                      {saving ? "Ajout..." : "Ajouter"}
-                    </button>
-                    <button
-                      onClick={() => setShowForm(false)}
-                      className="px-4 py-3 rounded-full font-medium text-sm"
-                      style={{ backgroundColor: "var(--surface-hover)" }}
-                    >
-                      Annuler
-                    </button>
-                  </div>
-                </div>
-              </div>
+                </MotionCard>
+              </motion.div>
             )}
 
             {/* Members list */}
-            <div className="space-y-2">
+            <motion.div
+              initial="hidden"
+              animate="visible"
+              variants={CARD_VARIANTS}
+              transition={{ delay: 0.3 }}
+              className="space-y-2"
+            >
               {activeMembers.length === 0 ? (
                 <EmptyState
                   title="Aucun membre"
@@ -286,109 +304,95 @@ export default function MembersPage() {
               ) : (
                 <>
                   {visibleMembers.map((member: any) => (
-                  <div
-                    key={member.id}
-                    className="rounded-xl p-4 flex items-center gap-3"
-                    style={{
-                      backgroundColor: "var(--surface)",
-                      border: "1px solid var(--border)",
-                    }}
-                  >
-                    <div
-                      className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                      style={{ backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)" }}
+                    <MotionCard
+                      key={member.id}
+                      variant="flat"
+                      className="flex items-center gap-4 p-4 group"
                     >
-                      <span
-                        className="text-sm font-bold"
-                        style={{ color: "var(--accent-primary)" }}
+                      <div
+                        className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0"
+                        style={{
+                          backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)",
+                        }}
                       >
-                        {(member.first_name || member.firstName)?.charAt(0)}
-                        {(member.last_name || member.lastName)?.charAt(0)}
-                      </span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-text-primary text-sm font-semibold truncate">
-                        {member.first_name || member.firstName}{" "}
-                        {member.last_name || member.lastName}
-                      </p>
-                      <p className="text-text-tertiary text-xs">
-                        {member.phone || "Pas de téléphone"}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => handleArchive(member)}
-                      className="p-2 rounded-full active:scale-95 transition-transform"
-                      style={{ backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)" }}
-                    >
-                      <Archive
-                        className="w-4 h-4"
-                        style={{ color: "var(--out)" }}
-                      />
-                    </button>
-                  </div>
-                  ))}
-                  {activeMembers.length > visibleCount && !membersError && (
-                    <IonInfiniteScroll
-                      position="bottom"
-                      threshold="150px"
-                      onIonInfinite={loadNext}
-                    >
-                      <div className="py-3">
+                        <span
+                          className="text-sm font-bold"
+                          style={{ color: "var(--accent-primary)" }}
+                        >
+                          {(member.first_name || member.firstName)?.charAt(0)}
+                          {(member.last_name || member.lastName)?.charAt(0)}
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-text-primary text-sm font-semibold truncate">
+                          {member.first_name || member.firstName} {member.last_name || member.lastName}
+                        </p>
                         <p className="text-text-tertiary text-xs">
-                          Chargement…
+                          {member.phone || "Pas de téléphone"}
                         </p>
                       </div>
-                    </IonInfiniteScroll>
+                      <button
+                        onClick={() => handleArchive(member)}
+                        className="p-2 rounded-full active:scale-95 transition-transform"
+                        style={{
+                          backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)",
+                        }}
+                      >
+                        <Archive
+                          className="w-4 h-4"
+                          style={{ color: "var(--out)" }}
+                        />
+                      </button>
+                    </MotionCard>
+                  ))}
+                  {activeMembers.length > visibleCount && !membersError && (
+                    <MotionCard variant="flat" className="p-4 text-center">
+                      <p className="text-text-tertiary text-xs">Chargement…</p>
+                    </MotionCard>
                   )}
+                  {activeMembers.length > 0 &&
+                    activeMembers.length <= visibleCount &&
+                    !membersError && (
+                      <p className="text-text-tertiary text-xs text-center py-3">
+                        Fin de la liste — {activeMembers.length} membre{activeMembers.length !== 1 ? "s" : ""} affiché{activeMembers.length !== 1 ? "s" : ""}
+                      </p>
+                    )}
                 </>
               )}
-              {activeMembers.length > 0 && activeMembers.length <= visibleCount && !membersError && (
-                <p className="text-text-tertiary text-xs text-center py-3">
-                  Fin de la liste — {activeMembers.length} membre
-                  {activeMembers.length !== 1 ? "s" : ""} affiché
-                  {activeMembers.length !== 1 ? "s" : ""}
-                </p>
-              )}
-            </div>
+            </motion.div>
 
             {/* Error retry on the main list */}
             {membersError && (
-              <div
-                className="mb-4 rounded-xl p-4 text-center"
-                style={{ backgroundColor: "var(--surface)" }}
-              >
+              <MotionCard variant="flat" className="p-4 text-center">
                 <p className="text-text-tertiary text-sm mb-2">
                   Impossible de charger les membres.
                 </p>
                 <button
                   onClick={retryMembers}
                   aria-label="Réessayer le chargement des membres"
-                  className="px-4 py-2 rounded-full text-sm font-semibold text-on-accent transition-all active:scale-95"
+                  className="px-4 py-2 rounded-full text-sm font-semibold text-on-accent active:scale-95"
                   style={{ backgroundColor: "var(--accent-primary)" }}
                 >
                   Réessayer
                 </button>
-              </div>
+              </MotionCard>
             )}
 
             {/* Archived members */}
             {archivedError && (
-              <div
-                className="text-center py-6 rounded-xl"
-                style={{ backgroundColor: "var(--surface)" }}
-              >
+              <MotionCard variant="flat" className="p-6 text-center">
                 <p className="text-text-tertiary text-sm">
                   Impossible de charger les membres archivés.
                 </p>
                 <button
                   onClick={() => setRetryArchived((n) => n + 1)}
-                  className="mt-2 px-4 py-2 rounded-full text-sm font-semibold text-on-accent transition-all active:scale-95"
+                  className="mt-2 px-4 py-2 rounded-full text-sm font-semibold text-on-accent active:scale-95"
                   style={{ backgroundColor: "var(--accent-primary)" }}
                   aria-label="Réessayer le chargement des membres archivés"
                 >
                   Réessayer
                 </button>
-              </div>
+              </MotionCard>
             )}
             {archivedMembers.length > 0 && (
               <div>
@@ -400,16 +404,13 @@ export default function MembersPage() {
                 </div>
                 <div className="space-y-2">
                   {archivedMembers.map((member: any) => (
-                    <div
+                    <MotionCard
                       key={member.id}
-                      className="rounded-xl p-4 flex items-center gap-3 opacity-60"
-                      style={{
-                        backgroundColor: "var(--card)",
-                        border: "1px solid var(--border)",
-                      }}
+                      variant="flat"
+                      className="flex items-center gap-4 p-4 opacity-70"
                     >
                       <div
-                        className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                        className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0"
                         style={{ backgroundColor: "var(--surface-hover)" }}
                       >
                         <span className="text-sm font-bold text-text-tertiary">
@@ -419,21 +420,22 @@ export default function MembersPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-text-secondary text-sm font-medium truncate">
-                          {member.first_name || member.firstName}{" "}
-                          {member.last_name || member.lastName}
+                          {member.first_name || member.firstName} {member.last_name || member.lastName}
                         </p>
                       </div>
                       <button
                         onClick={() => handleRestore(member)}
                         className="p-2 rounded-full active:scale-95 transition-transform"
-                        style={{ backgroundColor: "color-mix(in srgb, var(--in) 12%, transparent)" }}
+                        style={{
+                          backgroundColor: "color-mix(in srgb, var(--in) 12%, transparent)",
+                        }}
                       >
                         <RefreshCw
                           className="w-4 h-4"
                           style={{ color: "var(--in)" }}
                         />
                       </button>
-                    </div>
+                    </MotionCard>
                   ))}
                 </div>
               </div>

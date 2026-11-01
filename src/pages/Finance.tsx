@@ -8,11 +8,8 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Filter,
-  Plus,
   Search,
   X,
-  Calendar,
-  TrendingUp,
   Wallet,
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
@@ -27,21 +24,19 @@ import { getOrganizationId } from "@/lib/orgContext";
 import { FinanceSkeleton } from "@/components/PageSkeletons";
 import {
   IonPage,
-  IonHeader,
   IonContent,
-  IonTitle,
-  IonToolbar,
-  IonInfiniteScroll,
   IonInput,
-  
 } from "@ionic/react";
 import type { IonChangeCustomEvent } from "@/lib/ionic-types";
-
+import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
+import {
+  MotionCard,
+} from "@/design/motion/MotionCard";
 export const FINANCE_PAGE_SIZE = 50;
 
 export default function Finance() {
   const navigate = useNavigate();
-  // M6 — stable pour les enfants memo (TransactionCard)
   const openTransaction = useCallback((id: string) => navigate(`/transaction/${id}`), [navigate]);
   const location = useLocation();
   const preselectedCaisse = location.state?.caisseId;
@@ -55,7 +50,6 @@ export default function Finance() {
   const [loadError, setLoadError] = useState(false);
   const [visibleCount, setVisibleCount] = useState(FINANCE_PAGE_SIZE);
 
-  // Load transactions via Resource capability.
   const loadTransactions = useCallback(() => {
     setLoading(true);
     setLoadError(false);
@@ -70,8 +64,6 @@ export default function Finance() {
         setLoading(false);
       })
       .catch((e) => {
-        // R88 — ne pas avaler : sans trace, l'utilisateur voyait une liste
-        // vide identique à « aucune transaction » (c'est ce qui a masqué R87).
         captureClientError(e, { message: "Échec du chargement des transactions" });
         setLoadError(true);
         setLoading(false);
@@ -124,7 +116,6 @@ export default function Finance() {
     dateRange,
   ]);
 
-  // Un changement de filtre ramène la fenêtre visible au premier écran.
   useEffect(() => {
     setVisibleCount(FINANCE_PAGE_SIZE);
   }, [searchTerm, selectedType, selectedStatus, selectedCaisse, dateRange]);
@@ -137,19 +128,21 @@ export default function Finance() {
   const totalExpense = filteredTransactions
     .filter((t: any) => t.type === "EXPENSE" && t.status === "APPROVED")
     .reduce((s: number, t: any) => s + t.amount, 0);
+  const netBalance = totalIncome - totalExpense;
 
   const handleAddTransaction = (type: "INCOME" | "EXPENSE") => {
-    // Query param (pas de location.state) : le routeur Ionic ne préserve pas
-    // le `state` de React Router, le type doit donc voyager dans l'URL.
     navigate(`/transaction/new?type=${type}`);
   };
 
-  // UN SEUL <IonPage> à la racine (corrigé écran noir BottomNav) : le
-  // view-stack d'Ionic s'enregistre via registerIonPage sur la DOM
-  // identité de l'élément — si on change de <IonPage> à chaque branche
-  // (loading vs chargé), l'élément est démonté/remonté, la transition
-  // est rejouée et le view entrant reste stuck en ion-page-invisible.
-  // On garde le MÊME <IonPage> et on bascule uniquement le contenu.
+  const CARD_VARIANTS = {
+    hidden: { opacity: 0, y: 12 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.5, ease: [0.4, 0, 0.2, 1] },
+    },
+  };
+
   return (
     <IonPage>
       <IonContent className="bg-canvas">
@@ -168,238 +161,317 @@ export default function Finance() {
               <h1 className="sr-only">Finance — Grand livre</h1>
               <TopHeader title="Finance" />
               <div data-screen-state="ready" className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
-            <CapabilityBanner orgId={getOrganizationId()} />
-            {/* Summary Cards */}
-            <div className="grid grid-cols-2 gap-3 mb-6">
-              <div
-                className="rounded-xl p-4"
-                style={{ backgroundColor: "color-mix(in srgb, var(--in) 12%, transparent)" }}
-              >
-                <p className="text-text-tertiary text-xs">Revenus</p>
-                <p className="text-text-primary font-bold text-lg mt-1">
-                  {formatCentsToFCFA(totalIncome)}
-                </p>
-              </div>
-              <div
-                className="rounded-xl p-4"
-                style={{ backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)" }}
-              >
-                <p className="text-text-tertiary text-xs">Dépenses</p>
-                <p className="text-text-primary font-bold text-lg mt-1">
-                  {formatCentsToFCFA(totalExpense)}
-                </p>
-              </div>
-            </div>
+                <CapabilityBanner orgId={getOrganizationId()} />
 
-            {/* Search & Filter */}
-            <div className="flex gap-2 mb-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
-                <IonInput
-                  type="text"
-                  aria-label="Rechercher une transaction"
-                  placeholder="Rechercher..."
-                  value={searchTerm}
-                  onIonInput={(e: IonChangeCustomEvent<string>) => setSearchTerm(e.detail.value ?? "")}
-                  className="w-full pl-10"
-                />
-              </div>
-              <button
-                onClick={() => setFilterOpen(!filterOpen)}
-                className="px-4 rounded-xl flex items-center gap-2"
-                style={{
-                  backgroundColor: "var(--surface)",
-                  border: "1px solid var(--border)",
-                }}
-                aria-label="Filtres"
-                aria-expanded={filterOpen}
-              >
-                <Filter className="w-4 h-4 text-text-secondary" />
-              </button>
-            </div>
-
-            {/* Filter Panel */}
-            {filterOpen && (
-              <div
-                className="rounded-xl p-4 mb-4 space-y-3"
-                style={{ backgroundColor: "var(--surface)" }}
-              >
-                <div className="flex items-center justify-between">
-                  <p className="text-text-primary text-sm font-medium">
-                    Filtres
-                  </p>
-                  <button
-                    onClick={() => setFilterOpen(false)}
-                    style={{ color: "var(--text-secondary)" }}
-                    aria-label="Fermer les filtres"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-
-                {/* Type Filter */}
-                <div>
-                  <p className="text-text-tertiary text-xs mb-2">Type</p>
-                  <div className="flex gap-2">
-                    {["ALL", "INCOME", "EXPENSE"].map((f) => (
-                      <button
-                        key={f}
-                        onClick={() => setSelectedType(f)}
-                        className="px-3 py-1.5 rounded-lg text-xs font-medium"
-                        style={{
-                          backgroundColor:
-                            selectedType === f ? "var(--accent-primary)" : "var(--surface)",
-                          color: selectedType === f ? "var(--text-primary)" : "var(--text-secondary)",
-                        }}
-                      >
-                        {f === "ALL"
-                          ? "Tout"
-                          : f === "INCOME"
-                            ? "Revenu"
-                            : "Dépense"}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Status Filter */}
-                <div>
-                  <p className="text-text-tertiary text-xs mb-2">Statut</p>
-                  <div className="flex gap-2">
-                    {["ALL", "APPROVED", "PENDING", "DRAFT"].map((f) => (
-                      <button
-                        key={f}
-                        onClick={() => setSelectedStatus(f)}
-                        className="px-3 py-1.5 rounded-lg text-xs font-medium"
-                        style={{
-                          backgroundColor:
-                            selectedStatus === f ? "var(--data-planified)" : "var(--surface)",
-                          color: selectedStatus === f ? "var(--text-primary)" : "var(--text-secondary)",
-                        }}
-                      >
-                        {f === "ALL" ? "Tout" : f}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Caisse Filter */}
-                <div>
-                  <p className="text-text-tertiary text-xs mb-2">Caisse</p>
-                  <div className="flex gap-2 flex-wrap">
-                    <button
-                      onClick={() => setSelectedCaisse("ALL")}
-                      className="px-3 py-1.5 rounded-lg text-xs font-medium"
-                      style={{
-                        backgroundColor:
-                          selectedCaisse === "ALL" ? "var(--accent-primary)" : "var(--surface)",
-                        color: selectedCaisse === "ALL" ? "var(--text-primary)" : "var(--text-secondary)",
-                      }}
-                    >
-                      Toutes
-                    </button>
-                    {caisses.map((c: any) => (
-                      <button
-                        key={c.id}
-                        onClick={() => setSelectedCaisse(c.id)}
-                        className="px-3 py-1.5 rounded-lg text-xs font-medium"
-                        style={{
-                          backgroundColor:
-                            selectedCaisse === c.id ? "var(--accent-primary)" : "var(--surface)",
-                          color: selectedCaisse === c.id ? "var(--text-primary)" : "var(--text-secondary)",
-                        }}
-                      >
-                        {c.name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Date Range */}
-                <div>
-                  <p className="text-text-tertiary text-xs mb-2">Période</p>
-                  <div className="flex gap-2">
-                    <IonInput
-                      type="date"
-                      aria-label="Date de début de période"
-                      value={dateRange.from}
-                      onIonInput={(e: IonChangeCustomEvent<string>) =>
-                        setDateRange({ ...dateRange, from: e.detail.value ?? "" })
-                      }
-                      className="px-3 py-2 text-xs"
-                    />
-                    <span className="text-text-tertiary text-xs self-center">
-                      →
-                    </span>
-                    <IonInput
-                      type="date"
-                      aria-label="Date de fin de période"
-                      value={dateRange.to}
-                      onIonInput={(e: IonChangeCustomEvent<string>) =>
-                        setDateRange({ ...dateRange, to: e.detail.value ?? "" })
-                      }
-                      className="px-3 py-2 text-xs"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Transactions List */}
-            <div className="space-y-2 mb-6">
-              {filteredTransactions.length === 0 ? (
-                <EmptyState
-                  title="Aucune transaction trouvée"
-                  description="Modifiez les filtres ou le période pour retrouver vos mouvements."
-                  icon={<Wallet className="w-6 h-6" />}
-                />
-              ) : (
-                <>
-                  {visibleTransactions.map((tx: any) => (
-                    <TransactionCard
-                      key={tx.id}
-                      transaction={tx}
-                      onPress={openTransaction}
-                    />
-                  ))}
-                  {visibleCount < filteredTransactions.length && (
-                    <IonInfiniteScroll
-                      position="bottom"
-                      threshold="300px"
-                      onIonInfinite={() =>
-                        setVisibleCount((c) => c + FINANCE_PAGE_SIZE)
-                      }
-                    >
-                      <div className="py-3">
-                        <p className="text-text-tertiary text-xs">
-                          Chargement…
+                {/* Solde net — Carte héro */}
+                <motion.div
+                  initial="hidden"
+                  animate="visible"
+                  variants={CARD_VARIANTS}
+                  className="mb-6"
+                >
+                  <MotionCard variant="elevated" className="p-6">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider mb-1">
+                          Solde net
+                        </p>
+                        <p className={`text-3xl font-bold ${
+                          netBalance >= 0
+                            ? "text-text-primary"
+                            : "text-out"
+                        }`}>
+                          {formatCentsToFCFA(netBalance)}
                         </p>
                       </div>
-                    </IonInfiniteScroll>
-                  )}
-                </>
-              )}
-            </div>
+                      <div className="p-3 rounded-xl bg-surface-hover">
+                        <Wallet className="w-6 h-6 text-text-secondary" />
+                      </div>
+                    </div>
+                    <div className="mt-4 flex gap-4 text-xs font-medium">
+                      <span className={`flex items-center gap-1 ${
+                        netBalance >= 0 ? "text-text-secondary" : "text-out"
+                      }`}>
+                        <span className="w-1 h-1 rounded-full bg-current" />
+                        {netBalance >= 0 ? "Excédent" : "Déficit"}
+                      </span>
+                      <span className="text-text-tertiary">
+                        {formatCentsToFCFA(totalIncome)} entrées •
+                        {formatCentsToFCFA(totalExpense)} sorties
+                      </span>
+                    </div>
+                  </MotionCard>
+                </motion.div>
 
-            {/* M23 — FAB multi-agir : CircleAction avec tone (plus de shadow/
-                bouton ad-hoc par page, ombre --shadow-accent unique) */}
-            <div className="fixed bottom-24 right-5 flex flex-col gap-3">
-              <CircleAction
-                tone="income"
-                onClick={() => handleAddTransaction("INCOME")}
-                aria-label="Nouvelle entrée"
-              >
-                <ArrowUpRight className="w-6 h-6 text-on-accent" />
-              </CircleAction>
-              <CircleAction
-                tone="expense"
-                onClick={() => handleAddTransaction("EXPENSE")}
-                aria-label="Nouvelle dépense"
-              >
-                <ArrowDownRight className="w-6 h-6 text-on-accent" />
-              </CircleAction>
-            </div>
-            </div>
+                {/* Résumé Revenus / Dépenses */}
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                  <motion.div
+                    initial="hidden"
+                    animate="visible"
+                    variants={CARD_VARIANTS}
+                    transition={{ delay: 0.1 }}
+                  >
+                    <MotionCard variant="accent" className="p-5">
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="w-8 h-8 rounded-lg bg-income/10 flex items-center justify-center text-income">
+                          <ArrowUpRight className="w-4 h-4" />
+                        </div>
+                      </div>
+                      <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider mb-1">
+                        Revenus
+                      </p>
+                      <p className="text-text-primary font-bold text-2xl">
+                        {formatCentsToFCFA(totalIncome)}
+                      </p>
+                    </MotionCard>
+                  </motion.div>
+                  <motion.div
+                    initial="hidden"
+                    animate="visible"
+                    variants={CARD_VARIANTS}
+                    transition={{ delay: 0.2 }}
+                  >
+                    <MotionCard variant="accent" className="p-5">
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="w-8 h-8 rounded-lg bg-expense/10 flex items-center justify-center text-expense">
+                          <ArrowDownRight className="w-4 h-4" />
+                        </div>
+                      </div>
+                      <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider mb-1">
+                        Dépenses
+                      </p>
+                      <p className="text-text-primary font-bold text-2xl">
+                        {formatCentsToFCFA(totalExpense)}
+                      </p>
+                    </MotionCard>
+                  </motion.div>
+                </div>
+
+                {/* Recherche & Filtres */}
+                <motion.div
+                  initial="hidden"
+                  animate="visible"
+                  variants={CARD_VARIANTS}
+                  transition={{ delay: 0.3 }}
+                  className="mb-6"
+                >
+                  <div className="flex flex-col gap-3">
+                    <div className="relative">
+                      <Search
+                        className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary"
+                      />
+                      <IonInput
+                        type="text"
+                        aria-label="Rechercher une transaction"
+                        placeholder="Rechercher..."
+                        value={searchTerm}
+                        onIonInput={(e: IonChangeCustomEvent<string>) =>
+                          setSearchTerm(e.detail.value ?? "")
+                        }
+                        className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border bg-surface text-text-primary placeholder:text-text-placeholder focus:border-accent-primary focus:ring-1 focus:ring-accent-primary focus:outline-none"
+                      />
+                    </div>
+
+                    <button
+                      onClick={() => setFilterOpen(!filterOpen)}
+                      className="flex w-full items-center gap-2 px-4 py-2.5 rounded-lg border border-border bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-accent-primary"
+                      aria-label="Filtres"
+                      aria-expanded={filterOpen}
+                    >
+                      <Filter className="w-4 h-4" />
+                      <span className="text-sm font-medium">Filtres</span>
+                      {filterOpen ? (
+                        <X className="w-4 h-4 ml-auto" />
+                      ) : null}
+                    </button>
+                  </div>
+
+                  {/* Panel Filtres */}
+                  {filterOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.25 }}
+                      className="mt-3 rounded-xl p-5 border border-border bg-surface shadow-pop"
+                    >
+                      <div className="flex items-center justify-between mb-4">
+                        <p className="text-text-primary text-sm font-medium">
+                          Filtres
+                        </p>
+                        <button
+                          onClick={() => setFilterOpen(false)}
+                          className="text-text-secondary hover:text-text-primary transition-colors"
+                          aria-label="Fermer les filtres"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      {/* Type */}
+                      <div className="mb-4">
+                        <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider mb-2">
+                          Type
+                        </p>
+                        <div className="flex gap-2">
+                          {["ALL", "INCOME", "EXPENSE"].map((f) => (
+                            <button
+                              key={f}
+                              onClick={() => setSelectedType(f)}
+                              className={cn(
+                                "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
+                                selectedType === f
+                                  ? "bg-accent-primary text-text-primary"
+                                  : "bg-surface-hover text-text-secondary hover:bg-surface",
+                              )}
+                            >
+                              {f === "ALL" ? "Tout" : f === "INCOME" ? "Revenu" : "Dépense"}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Statut */}
+                      <div className="mb-4">
+                        <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider mb-2">
+                          Statut
+                        </p>
+                        <div className="flex gap-2 flex-wrap">
+                          {["ALL", "APPROVED", "PENDING", "DRAFT"].map((f) => (
+                            <button
+                              key={f}
+                              onClick={() => setSelectedStatus(f)}
+                              className={cn(
+                                "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
+                                selectedStatus === f
+                                  ? "bg-green-50 text-green-700 border border-green-100"
+                                  : "bg-surface-hover text-text-secondary border border-transparent hover:border-border",
+                              )}
+                            >
+                              {f === "ALL" ? "Tout" : f}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Caisse */}
+                      <div className="mb-4">
+                        <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider mb-2">
+                          Caisse
+                        </p>
+                        <div className="flex gap-2 flex-wrap">
+                          <button
+                            onClick={() => setSelectedCaisse("ALL")}
+                            className={cn(
+                              "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
+                              selectedCaisse === "ALL"
+                                ? "bg-accent-primary text-text-primary"
+                                : "bg-surface-hover text-text-secondary hover:bg-surface",
+                            )}
+                          >
+                            Toutes
+                          </button>
+                          {caisses.map((c: any) => (
+                            <button
+                              key={c.id}
+                              onClick={() => setSelectedCaisse(c.id)}
+                              className={cn(
+                                "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
+                                selectedCaisse === c.id
+                                  ? "bg-accent-primary text-text-primary"
+                                  : "bg-surface-hover text-text-secondary hover:bg-surface",
+                              )}
+                            >
+                              {c.name}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Période */}
+                      <div>
+                        <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider mb-2">
+                          Période
+                        </p>
+                        <div className="flex gap-3">
+                          <div className="relative flex-1">
+                            <IonInput
+                              type="date"
+                              aria-label="Date de début"
+                              value={dateRange.from}
+                              onIonInput={(e: IonChangeCustomEvent<string>) =>
+                                setDateRange({ ...dateRange, from: e.detail.value ?? "" })
+                              }
+                              className="w-full pl-3 pr-4 py-2 rounded-lg border border-border bg-surface text-text-primary placeholder:text-text-placeholder focus:border-accent-primary focus:ring-1 focus:ring-accent-primary focus:outline-none"
+                            />
+                          </div>
+                          <span className="text-text-tertiary text-xs self-center">
+                            →
+                          </span>
+                          <div className="relative flex-1">
+                            <IonInput
+                              type="date"
+                              aria-label="Date de fin"
+                              value={dateRange.to}
+                              onIonInput={(e: IonChangeCustomEvent<string>) =>
+                                setDateRange({ ...dateRange, to: e.detail.value ?? "" })
+                              }
+                              className="w-full pl-3 pr-4 py-2 rounded-lg border border-border bg-surface text-text-primary placeholder:text-text-placeholder focus:border-accent-primary focus:ring-1 focus:ring-accent-primary focus:outline-none"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </motion.div>
+
+                {/* Liste des transactions */}
+                <motion.div
+                  initial="hidden"
+                  animate="visible"
+                  variants={CARD_VARIANTS}
+                  transition={{ delay: 0.4 }}
+                  className="mb-6"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider">
+                      Derniers mouvements
+                    </p>
+                    <span className="text-text-secondary text-xs">
+                      {visibleTransactions.length} sur {filteredTransactions.length}
+                    </span>
+                  </div>
+
+                  {filteredTransactions.length === 0 ? (
+                    <EmptyState
+                      title="Aucune transaction trouvée"
+                      description="Modifiez les filtres ou la période pour retrouver vos mouvements."
+                      icon={<Wallet className="w-6 h-6" />}
+                    />
+                  ) : (
+                    <ul className="space-y-2">
+                      {visibleTransactions.map((tx: any) => (
+                        <li key={tx.id}>
+                          <TransactionCard
+                            transaction={tx}
+                            onPress={openTransaction}
+                            className="group"
+                          />
+                        </li>
+                      ))}
+                      {visibleCount < filteredTransactions.length && (
+                        <li>
+                          <div className="px-4 py-3 text-center">
+                            <p className="text-text-tertiary text-xs">
+                              Chargement…
+                            </p>
+                          </div>
+                        </li>
+                      )}
+                    </ul>
+                  )}
+                </motion.div>
+              </div>
             </Fragment>
           )}
           <BottomNav />

@@ -2,12 +2,15 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   IonPage,
-  IonHeader,
   IonContent,
-  IonTitle,
-  IonToolbar,
 } from "@ionic/react";
-import { useEvents, useTransactions, useMembers, parseBudgetItems, isPowerSyncReadyNow } from "@/lib/dataLayer";
+import {
+  useEvents,
+  useTransactions,
+  useMembers,
+  parseBudgetItems,
+  isPowerSyncReadyNow,
+} from "@/lib/dataLayer";
 import { Plus, Clock, Gift, ArrowUp, ArrowDown } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
@@ -21,6 +24,9 @@ import SegmentedTabs from "@/components/SegmentedTabs";
 import EventCalendar from "@/components/EventCalendar";
 import EventTimeline from "@/components/EventCalendar/EventTimeline";
 import { EVENT_STATUS_COLORS, EVENT_STATUS_LABELS } from "@/lib/event-status";
+import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
+import { MotionCard } from "@/design/motion/MotionCard";
 
 /** Vues de la page Événements : liste (défaut) | calendrier | timeline. */
 type ViewMode = "list" | "calendar" | "timeline";
@@ -69,6 +75,15 @@ export default function Events() {
 
   const visibleEvents = sortedEvents.slice(0, visibleCount);
 
+  const CARD_VARIANTS = {
+    hidden: { opacity: 0, y: 12 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.5, ease: [0.4, 0, 0.2, 1] },
+    },
+  };
+
   return (
     <IonPage>
       {psLoading || (events.length === 0 && replicaPending) ? (
@@ -79,12 +94,18 @@ export default function Events() {
         <IonContent className="bg-canvas" fullscreen>
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe">
             <CapabilityBanner orgId={getOrganizationId()} />
-            <div className="flex items-center justify-between mb-5">
+
+            <motion.div
+              initial="hidden"
+              animate="visible"
+              variants={CARD_VARIANTS}
+              className="flex items-center justify-between mb-6"
+            >
               <div>
-                <h1 className="text-text-primary font-bold text-xl">
+                <h1 className="text-text-primary font-bold text-2xl tracking-tight">
                   Événements
                 </h1>
-                <p className="text-text-tertiary text-xs mt-0.5">
+                <p className="text-text-tertiary text-xs mt-1">
                   {events.length} événement{events.length !== 1 ? "s" : ""}
                 </p>
               </div>
@@ -94,10 +115,16 @@ export default function Events() {
               >
                 <Plus className="w-5 h-5" />
               </CircleAction>
-            </div>
+            </motion.div>
 
             {/* Toggle Liste | Calendrier | Timeline — pattern SegmentedTabs */}
-            <div className="mb-5">
+            <motion.div
+              initial="hidden"
+              animate="visible"
+              variants={CARD_VARIANTS}
+              transition={{ delay: 0.1 }}
+              className="mb-6"
+            >
               <SegmentedTabs
                 tabs={[
                   { id: "list", label: "Liste" },
@@ -107,38 +134,62 @@ export default function Events() {
                 active={viewMode}
                 onChange={(id) => {
                   setViewMode(id as ViewMode);
-                  // Quitter la timeline (entrée via ?date=) doit retirer le
-                  // paramètre : sinon l'URL reste désynchronisée de la vue et
-                  // un retour/refresh ré-ouvre la timeline.
                   if (id !== "timeline" && searchParams.has("date")) {
                     setSearchParams({}, { replace: true });
                   }
                 }}
               />
-            </div>
+            </motion.div>
 
             {viewMode === "calendar" ? (
-              <EventCalendar
-                events={events}
-                onSelectEvent={(id) => navigate(`/event/${id}`)}
-                onSelectDay={(iso) => navigate(`/events?date=${iso}`)}
-              />
+              <motion.div
+                initial="hidden"
+                animate="visible"
+                variants={CARD_VARIANTS}
+              >
+                <EventCalendar
+                  events={events}
+                  onSelectEvent={(id) => navigate(`/event/${id}`)}
+                  onSelectDay={(iso) => navigate(`/events?date=${iso}`)}
+                />
+              </motion.div>
             ) : viewMode === "timeline" ? (
-              <EventTimeline
-                events={events}
-                onSelectEvent={(id) => navigate(`/event/${id}`)}
-              />
+              <motion.div
+                initial="hidden"
+                animate="visible"
+                variants={CARD_VARIANTS}
+              >
+                <EventTimeline
+                  events={events}
+                  onSelectEvent={(id) => navigate(`/event/${id}`)}
+                />
+              </motion.div>
             ) : sortedEvents.length === 0 ? (
-              <EmptyState
-                title="Aucun événement"
-                description="Planifiez vos prochaines célébrations"
-                actionLabel="Créer un événement"
-                onAction={() => navigate("/event/new")}
-              />
+              <motion.div
+                initial="hidden"
+                animate="visible"
+                variants={CARD_VARIANTS}
+                className="flex flex-col items-center justify-center py-20"
+              >
+                <EmptyState
+                  title="Aucun événement"
+                  description="Planifiez vos prochaines célébrations"
+                  actionLabel="Créer un événement"
+                  onAction={() => navigate("/event/new")}
+                />
+              </motion.div>
             ) : (
-              <div className="space-y-3">
+              <motion.div
+                initial="hidden"
+                animate="visible"
+                variants={CARD_VARIANTS}
+                transition={{ delay: 0.2 }}
+                className="space-y-3"
+              >
                 {visibleEvents.map((event: any) => {
-                  const color = EVENT_STATUS_COLORS[event.status] || "var(--text-tertiary)";
+                  const color =
+                    EVENT_STATUS_COLORS[event.status] ||
+                    "var(--text-tertiary)";
                   const eventTxs = txsByEvent.get(event.id) ?? [];
                   const income = eventTxs
                     .filter(
@@ -154,90 +205,92 @@ export default function Events() {
                     .reduce((s: number, t: any) => s + t.amount, 0);
                   const budgetItems = parseBudgetItems(event.budget_items);
                   return (
-                    <button
+                    <MotionCard
                       key={event.id}
-                      onClick={() => navigate(`/event/${event.id}`)}
-                      className="w-full text-left rounded-xl p-4 transition-all active:scale-95"
-                      style={{
-                        backgroundColor: "var(--surface)",
-                        border: "1px solid var(--border)",
-                      }}
+                      variant="flat"
+                      onPress={() => navigate(`/event/${event.id}`)}
+                      className="flex items-start gap-4 p-4"
                       aria-label={`Voir les détails de ${event.name}`}
                     >
-                      <div className="flex items-start gap-3">
-                        <div
-                          className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                          style={{ backgroundColor: color + "20" }}
-                        >
-                          <Gift
-                            className="text-lg"
-                            style={{ color: "var(--accent-primary)" }}
-                          />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-text-primary font-semibold truncate">
-                            {event.name}
-                          </p>
-                          <p className="text-text-tertiary text-xs mt-0.5">
-                            {formatDate(event.start_date || event.startDate)}
-                            {event.end_date || event.endDate
-                              ? " → " +
-                                formatDate(event.end_date || event.endDate)
-                              : ""}
-                          </p>
-                          <div className="flex items-center gap-2 mt-1.5">
-                            <span
-                              className="text-xs px-2 py-0.5 rounded-full font-medium"
-                              style={{ color, backgroundColor: color + "20" }}
-                            >
-                              {EVENT_STATUS_LABELS[event.status] || event.status}
+                      <div
+                        className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0"
+                        style={{
+                          backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)",
+                        }}
+                      >
+                        <Gift
+                          className="text-lg"
+                          style={{ color: "var(--accent-primary)" }}
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-text-primary font-semibold truncate">
+                          {event.name}
+                        </p>
+                        <p className="text-text-tertiary text-xs mt-0.5">
+                          {formatDate(event.start_date || event.startDate)}
+                          {event.end_date || event.endDate
+                            ? " → " +
+                              formatDate(event.end_date || event.endDate)
+                            : ""}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1.5">
+                          <span
+                            className="text-xs px-2 py-0.5 rounded-full font-medium"
+                            style={{
+                              color,
+                              backgroundColor: color + "20",
+                            }}
+                          >
+                            {EVENT_STATUS_LABELS[event.status] || event.status}
+                          </span>
+                          {budgetItems.length > 0 && (
+                            <span className="text-xs text-text-tertiary">
+                              {budgetItems.length} poste
+                              {budgetItems.length > 1 ? "s" : ""}
                             </span>
-                            {budgetItems.length > 0 && (
-                              <span className="text-xs text-text-tertiary">
-                                {budgetItems.length} poste
-                                {budgetItems.length > 1 ? "s" : ""}
-                              </span>
-                            )}
-                          </div>
-                          {eventTxs.length > 0 && (
-                            <div className="flex items-center gap-3 mt-2 text-xs">
-                              <span
-                                className="flex items-center gap-1"
-                                style={{ color: "var(--in)" }}
-                              >
-                                <ArrowUp className="w-3 h-3" /> +
-                                {formatCurrencyCompact(income)} F
-                              </span>
-                              <span
-                                className="flex items-center gap-1"
-                                style={{ color: "var(--out)" }}
-                              >
-                                <ArrowDown className="w-3 h-3" /> -
-                                {formatCurrencyCompact(expense)} F
-                              </span>
-                            </div>
                           )}
                         </div>
-                        <Clock className="w-4 h-4 text-text-tertiary flex-shrink-0 mt-1" />
+                        {eventTxs.length > 0 && (
+                          <div className="flex items-center gap-3 mt-2 text-xs">
+                            <span
+                              className="flex items-center gap-1"
+                              style={{ color: "var(--in)" }}
+                            >
+                              <ArrowUp className="w-3 h-3" /> +
+                              {formatCurrencyCompact(income)} F
+                            </span>
+                            <span
+                              className="flex items-center gap-1"
+                              style={{ color: "var(--out)" }}
+                            >
+                              <ArrowDown className="w-3 h-3" /> -
+                              {formatCurrencyCompact(expense)} F
+                            </span>
+                          </div>
+                        )}
                       </div>
-                    </button>
+                      <Clock
+                        className="w-4 h-4 text-text-tertiary flex-shrink-0 mt-1"
+                      />
+                    </MotionCard>
                   );
                 })}
                 {sortedEvents.length > visibleCount && (
-                  <button
-                    onClick={() => setVisibleCount((c) => c + 50)}
-                    className="w-full py-3 rounded-xl text-sm font-medium"
+                  <MotionCard
+                    variant="flat"
+                    className="p-4 text-center"
+                    onClick={() =>
+                      setVisibleCount((c) => c + 50)
+                    }
                     aria-label="Afficher plus d'événements"
-                    style={{
-                      backgroundColor: "var(--surface)",
-                      color: "var(--text-secondary)",
-                      border: "1px solid var(--border)",
-                    }}
                   >
-                    Afficher plus
-                  </button>
+                    <p className="text-text-secondary text-sm font-medium">
+                      Afficher plus
+                    </p>
+                  </MotionCard>
                 )}
-              </div>
+              </motion.div>
             )}
           </div>
           <BottomNav />

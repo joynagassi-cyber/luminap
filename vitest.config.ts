@@ -24,11 +24,13 @@ export default defineConfig({
       'src/store/__tests__/**/*.test.ts',
       'src/hooks/__tests__/**/*.test.tsx',
       'src/updater/__tests__/**/*.test.ts',
+      'src/labo/__tests__/**/*.test.ts',
     ],
     environmentMatchGlobs: {
       'src/components/**': 'jsdom',
       'src/hooks/**': 'jsdom',
       'src/store/**': 'jsdom',
+      'src/labo/**': 'node',
     },
     setupFiles: [path.resolve(import.meta.dirname, './src/lib/__tests__/setup.ts')],
     coverage: {

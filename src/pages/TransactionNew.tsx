@@ -27,35 +27,30 @@ import { notification } from "@/capabilities/notification";
 import { periodLockMessage } from "@/lib/periodLock";
 import {
   IonPage,
-  IonHeader,
   IonContent,
-  IonTitle,
-  IonToolbar,
   IonInput,
-  IonButton,
-  IonSpinner,
   IonSelect,
   IonSelectOption,
-  IonItem,
-  IonLabel,
   IonTextarea,
+  IonButton,
+  IonSpinner,
 } from "@ionic/react";
+import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
+import { MotionCard } from "@/design/motion/MotionCard";
+import { FormField } from "@/design/forms/FormField";
 
 export default function TransactionNew() {
   const navigate = useNavigate();
   const location = useLocation();
 
   const preselectedCaisse = (location.state as any)?.caisseId || "";
-  // Le type arrive en priorité par query param (`?type=`) : fiable à travers
-  // le routeur Ionic (le `location.state` de React Router n'est pas préservé
-  // entre les vues de l'IonRouterOutlet). Fallback sur location.state.
   const preselectedType =
     new URLSearchParams(location.search).get("type") ||
     (location.state as any)?.type ||
     "";
   const preselectedEvent = (location.state as any)?.eventId || "";
 
-  // PowerSync with fallback
   const { data: psCategories } = useCategories();
   const { data: psCaisses } = useCaisses();
   const { data: psEvents } = useEvents();
@@ -82,16 +77,10 @@ export default function TransactionNew() {
   const [comment, setComment] = useState("");
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  // Photos de preuve de dépense (montées dans le bucket `expense_proofs`).
   const [proofPhotos, setProofPhotos] = useState<File[]>([]);
   const [proofUploading, setProofUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const amountRef = useRef<any>(null);
-  // Garde SYNCHRONE anti double-soumission : `submitting` (état React) n'est
-  // appliqué qu'APRÈS le re-rendu, donc deux clics rapprochés sur un appareil
-  // lent peuvent appeler `addTransactionPS` deux fois — un enregistrement
-  // financier en double. Le verrou `ref` est posé avant tout `await`, donc
-  // insensible au timing du re-rendu.
+  const amountRef = useRef<HTMLInputElement | null>(null);
   const submitLockRef = useRef(false);
   const keyboardHeight = useKeyboardAvoidance();
   const isOnline = useOnlineStatus();
@@ -112,14 +101,6 @@ export default function TransactionNew() {
 
   const filteredCategories = categories.filter((c: any) => c.type === type);
 
-  // `categoryId` est initialisé depuis `categories[0]` AU PREMIER rendu. Or
-  // `useCategories()` renvoie d'abord une liste vide (PowerSync pas encore
-  // hydraté / repli store), donc arriver DIRECTEMENT sur /transaction/new
-  // laissait `categoryId = ""` pour de bon : le champ obligatoire « Catégorie »
-  // restait vide même après saisie du montant et de la description, et
-  // `handleSubmit` refusait silencieusement l'enregistrement
-  // (« Veuillez remplir tous les champs obligatoires »). On rattrape donc
-  // l'arrivée asynchrone des catégories — sans écraser un choix explicite.
   useEffect(() => {
     if (categoryId) return;
     const first = filteredCategories[0]?.id;
@@ -133,7 +114,6 @@ export default function TransactionNew() {
 
     if (!trimmedAmount || !trimmedDesc || !trimmedCatId) {
       setError("Veuillez remplir tous les champs obligatoires");
-      // Focus le premier champ manquant (montant) pour l'utilisateur clavier.
       if (!trimmedAmount) {
         setTimeout(() => amountRef.current?.focus?.(), 0);
       }
@@ -175,8 +155,6 @@ export default function TransactionNew() {
         cotisation_id: null,
       });
     } catch (e) {
-      // PR13 — période comptable close : message FR explicite, l'utilisateur
-      // corrige la date ou demande la réouverture ; pas d'écran muet.
       setSubmitting(false);
       setError(
         periodLockMessage(
@@ -187,9 +165,6 @@ export default function TransactionNew() {
       return;
     }
 
-    // Justificatifs (PR9) : upload dans le bucket privé `expense_proofs` +
-    // métadonnée `transaction_attachments` (synchronisée). `documents` n'a
-    // aucun stream PowerSync : y déposer la preuve la rendait invisible.
     if (isExpense && proofPhotos.length > 0) {
       setProofUploading(true);
       try {
@@ -198,8 +173,6 @@ export default function TransactionNew() {
         }
         setProofPhotos([]);
       } catch {
-        // Hors ligne / refus du bucket : la transaction est déjà créée,
-        // la preuve restera accessible une fois rebranché.
         setError(
           "Transaction enregistrée. L'envoi de la photo a échoué (hors ligne ?). La preuve pourra être relancée depuis le détail.",
         );
@@ -211,21 +184,21 @@ export default function TransactionNew() {
 
     setSubmitting(false);
 
-    // Notify the treasurers that a transaction is pending approval
-    if (isExpense && status === "PENDING") {
-      notification.sendNotification({
-        title: "Transaction en attente d'approbation",
-        message: `Nouvelle dépense de ${trimmedAmount} FCFA — ${trimmedDesc}`,
-        targetRole: "TREASURIER",
-        extraData: { transactionId: txId },
-      }).catch(() => {});
+    if (isExpense) {
+      notification
+        .sendNotification({
+          title: "Transaction en attente d'approbation",
+          message: `Nouvelle dépense de ${trimmedAmount} FCFA — ${trimmedDesc}`,
+          targetRole: "TREASURIER",
+          extraData: { transactionId: txId },
+        })
+        .catch(() => {});
     }
 
     navigate(`/transaction/${txId}`);
   };
 
   const handleSubmit = async () => {
-    // Verrou synchrone : la 2e soumission concurrente sort immédiatement.
     if (submitLockRef.current) return;
     submitLockRef.current = true;
     try {
@@ -233,6 +206,15 @@ export default function TransactionNew() {
     } finally {
       submitLockRef.current = false;
     }
+  };
+
+  const CARD_VARIANTS = {
+    hidden: { opacity: 0, y: 12 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.5, ease: [0.4, 0, 0.2, 1] },
+    },
   };
 
   return (
@@ -247,74 +229,93 @@ export default function TransactionNew() {
             paddingBottom: keyboardHeight > 0 ? `${keyboardHeight}px` : undefined,
           }}
         >
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={CARD_VARIANTS}
+            className="mb-1"
+          >
             <button
               onClick={() => navigate(-1)}
-              className="flex items-center gap-2 text-text-secondary text-sm mb-5"
+              className="flex items-center gap-2 text-text-secondary text-sm"
             >
               <ArrowLeft className="w-4 h-4" /> Retour
             </button>
+          </motion.div>
 
-            {/* Type selector */}
-            <div className="flex gap-2 mb-5">
-              <button
-                onClick={() => setType("INCOME")}
-                className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all"
-                style={{
-                  backgroundColor: type === "INCOME" ? "var(--in)" : "var(--surface)",
-                  color: type === "INCOME" ? "var(--text-primary)" : "var(--text-secondary)",
-                }}
-              >
-                Entrée
-              </button>
-              <button
-                onClick={() => setType("EXPENSE")}
-                className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all"
-                style={{
-                  backgroundColor: type === "EXPENSE" ? "var(--out)" : "var(--surface)",
-                  color: type === "EXPENSE" ? "var(--text-primary)" : "var(--text-secondary)",
-                }}
-              >
-                Sortie
-              </button>
-            </div>
-
-            {/* Amount */}
-            <IonItem
-              lines="none"
-              className="mb-5 bg-card rounded-xl"
-              style={
-                fieldErrors.amount
-                  ? { border: "1px solid var(--out)" }
-                  : undefined
-              }
+          {/* Type selector */}
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={CARD_VARIANTS}
+            transition={{ delay: 0.08 }}
+            className="flex gap-3 mb-6"
+          >
+            <button
+              onClick={() => setType("INCOME")}
+              className={cn(
+                "flex-1 py-4 rounded-2xl text-sm font-semibold transition-all shadow-sm",
+                type === "INCOME"
+                  ? "bg-accent-primary text-on-accent shadow-accent-sm"
+                  : "bg-surface border border-border text-text-secondary hover:bg-surface-hover",
+              )}
             >
-              <IonLabel position="floating">Montant (FCFA)</IonLabel>
+              <Wallet className="w-4 h-4 mr-2" /> Entrée
+            </button>
+            <button
+              onClick={() => setType("EXPENSE")}
+              className={cn(
+                "flex-1 py-4 rounded-2xl text-sm font-semibold transition-all shadow-sm",
+                type === "EXPENSE"
+                  ? "bg-destructive text-on-accent shadow-accent-sm"
+                  : "bg-surface border border-border text-text-secondary hover:bg-surface-hover",
+              )}
+            >
+              <Wallet className="w-4 h-4 mr-2" /> Sortie
+            </button>
+          </motion.div>
+
+          {/* Amount */}
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={CARD_VARIANTS}
+            transition={{ delay: 0.16 }}
+            className="mb-6"
+          >
+            <FormField
+              label="Montant (FCFA)"
+              error={fieldErrors.amount}
+              helperText={fieldErrors.amount ? undefined : "Saisissez le montant en francs CFA"}
+            >
               <IonInput
-                ref={amountRef}
+                ref={amountRef as any}
                 type="number"
                 inputMode="decimal"
                 aria-label="Montant en francs CFA"
                 aria-invalid={!!fieldErrors.amount}
-                aria-describedby={fieldErrors.amount ? "tx-amount-error" : undefined}
                 value={amount}
                 onIonInput={(e) =>
                   handleAmountChange((e.detail.value as string) ?? "")
                 }
                 placeholder="0"
+                className="w-full"
               />
-              {fieldErrors.amount && (
-                <p
-                  id="tx-amount-error"
-                  className="text-expense text-xs mt-1"
-                >
-                  {fieldErrors.amount}
-                </p>
-              )}
-            </IonItem>
+            </FormField>
+          </motion.div>
 
-            {/* Description */}
-            <IonItem lines="none" className="mb-5 bg-card rounded-xl">
-              <IonLabel position="floating">Description</IonLabel>
+          {/* Description */}
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={CARD_VARIANTS}
+            transition={{ delay: 0.24 }}
+            className="mb-6"
+          >
+            <FormField
+              label="Description"
+              helperText="Ex: Dîme du mois"
+            >
               <IonInput
                 type="text"
                 aria-label="Description"
@@ -323,27 +324,44 @@ export default function TransactionNew() {
                   setDescription((e.detail.value as string) ?? "")
                 }
                 placeholder="Ex: Dîme du mois"
+                className="w-full"
               />
-            </IonItem>
+            </FormField>
+          </motion.div>
 
-            {/* Date */}
-            <IonItem lines="none" className="mb-5 bg-card rounded-xl">
-              <IonLabel position="floating">Date</IonLabel>
+          {/* Date */}
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={CARD_VARIANTS}
+            transition={{ delay: 0.32 }}
+            className="mb-6"
+          >
+            <FormField label="Date">
               <IonInput
                 type="date"
                 aria-label="Date"
                 value={date}
                 onIonInput={(e) => setDate((e.detail.value as string) ?? "")}
+                className="w-full"
               />
-            </IonItem>
+            </FormField>
+          </motion.div>
 
-            {/* Category */}
-            <IonItem lines="none" className="mb-5 bg-card rounded-xl">
-              <IonLabel position="floating">Catégorie</IonLabel>
+          {/* Category */}
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={CARD_VARIANTS}
+            transition={{ delay: 0.4 }}
+            className="mb-6"
+          >
+            <FormField label="Catégorie">
               <IonSelect
                 aria-label="Catégorie"
                 value={categoryId}
                 onIonChange={(e) => setCategoryId(e.detail.value)}
+                className="w-full"
               >
                 <IonSelectOption value="">
                   Sélectionner une catégorie
@@ -354,33 +372,47 @@ export default function TransactionNew() {
                   </IonSelectOption>
                 ))}
               </IonSelect>
-            </IonItem>
+            </FormField>
+          </motion.div>
 
-            {/* Source */}
-            <IonItem lines="none" className="mb-5 bg-card rounded-xl">
-              <IonLabel position="floating">Source</IonLabel>
+          {/* Source */}
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={CARD_VARIANTS}
+            transition={{ delay: 0.48 }}
+            className="mb-6"
+          >
+            <FormField label="Source">
               <IonSelect
                 aria-label="Source"
                 value={source}
                 onIonChange={(e) => setSource(e.detail.value as any)}
+                className="w-full"
               >
                 <IonSelectOption value="CAISSE">Caisse</IonSelectOption>
-                <IonSelectOption value="COTISATION">
-                  Cotisation
-                </IonSelectOption>
+                <IonSelectOption value="COTISATION">Cotisation</IonSelectOption>
                 <IonSelectOption value="PERSONNE">Personne</IonSelectOption>
                 <IonSelectOption value="AUTRE">Autre</IonSelectOption>
               </IonSelect>
-            </IonItem>
+            </FormField>
+          </motion.div>
 
-            {/* Caisse */}
-            {source === "CAISSE" && (
-              <IonItem lines="none" className="mb-5 bg-card rounded-xl">
-                <IonLabel position="floating">Caisse</IonLabel>
+          {/* Caisse */}
+          {source === "CAISSE" && (
+            <motion.div
+              initial="hidden"
+              animate="visible"
+              variants={CARD_VARIANTS}
+              transition={{ delay: 0.56 }}
+              className="mb-6"
+            >
+              <FormField label="Caisse">
                 <IonSelect
                   aria-label="Caisse"
                   value={sourceCaisseId}
                   onIonChange={(e) => setSourceCaisseId(e.detail.value)}
+                  className="w-full"
                 >
                   {caisses.map((c: any) => (
                     <IonSelectOption key={c.id} value={c.id}>
@@ -388,13 +420,20 @@ export default function TransactionNew() {
                     </IonSelectOption>
                   ))}
                 </IonSelect>
-              </IonItem>
-            )}
+              </FormField>
+            </motion.div>
+          )}
 
-            {/* Person name */}
-            {source === "PERSONNE" && (
-              <IonItem lines="none" className="mb-5 bg-card rounded-xl">
-                <IonLabel position="floating">Nom de la personne</IonLabel>
+          {/* Person name */}
+          {source === "PERSONNE" && (
+            <motion.div
+              initial="hidden"
+              animate="visible"
+              variants={CARD_VARIANTS}
+              transition={{ delay: 0.56 }}
+              className="mb-6"
+            >
+              <FormField label="Nom de la personne">
                 <IonInput
                   type="text"
                   aria-label="Nom de la personne"
@@ -403,17 +442,26 @@ export default function TransactionNew() {
                     setPersonName((e.detail.value as string) ?? "")
                   }
                   placeholder="Nom de la personne"
+                  className="w-full"
                 />
-              </IonItem>
-            )}
+              </FormField>
+            </motion.div>
+          )}
 
-            {/* Event */}
-            <IonItem lines="none" className="mb-5 bg-card rounded-xl">
-              <IonLabel position="floating">Événement</IonLabel>
+          {/* Event */}
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={CARD_VARIANTS}
+            transition={{ delay: 0.64 }}
+            className="mb-6"
+          >
+            <FormField label="Événement">
               <IonSelect
                 aria-label="Événement"
                 value={eventId}
                 onIonChange={(e) => setEventId(e.detail.value)}
+                className="w-full"
               >
                 <IonSelectOption value="">
                   Aucun événement
@@ -424,11 +472,18 @@ export default function TransactionNew() {
                   </IonSelectOption>
                 ))}
               </IonSelect>
-            </IonItem>
+            </FormField>
+          </motion.div>
 
-            {/* Comment */}
-            <IonItem lines="none" className="mb-6 bg-card rounded-xl">
-              <IonLabel position="floating">Commentaire</IonLabel>
+          {/* Comment */}
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={CARD_VARIANTS}
+            transition={{ delay: 0.72 }}
+            className="mb-6"
+          >
+            <FormField label="Commentaire" helperText="Ajouter un commentaire...">
               <IonTextarea
                 aria-label="Commentaire"
                 value={comment}
@@ -437,38 +492,41 @@ export default function TransactionNew() {
                 }
                 placeholder="Ajouter un commentaire..."
                 rows={3}
+                className="w-full"
               />
-            </IonItem>
+            </FormField>
+          </motion.div>
 
-            {/* Preuve photo de la dépense (Sortie uniquement) */}
-            {type === "EXPENSE" && (
-              <div className="mb-6 rounded-xl p-4"
-                style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
-              >
+          {/* Preuve photo de la dépense (Sortie uniquement) */}
+          {type === "EXPENSE" && (
+            <motion.div
+              initial="hidden"
+              animate="visible"
+              variants={CARD_VARIANTS}
+              transition={{ delay: 0.8 }}
+              className="mb-6"
+            >
+              <MotionCard variant="flat" className="p-5">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-sm font-semibold text-text-primary">
                     Preuve de la dépense
                   </p>
                   {proofUploading && (
-                    <span className="text-xs text-text-tertiary">
-                      Envoi...
-                    </span>
+                    <span className="text-xs text-text-tertiary">Envoi…</span>
                   )}
                 </div>
                 <p className="text-xs text-text-tertiary mb-3">
                   Prenez ou choisissez une photo pour attester la dépense
-                  (reçu, facture, matériel...). Elle est archivée de manière
+                  (reçu, facture, matériel…). Elle est archivée de manière
                   irrévocable.
                 </p>
 
-                {/* Aperçus */}
                 {proofPhotos.length > 0 && (
                   <div className="flex flex-wrap gap-2 mb-3">
                     {proofPhotos.map((p, i) => (
                       <div
                         key={i}
-                        className="relative w-20 h-20 rounded-lg overflow-hidden"
-                        style={{ border: "1px solid var(--border)" }}
+                        className="relative w-20 h-20 rounded-lg overflow-hidden border border-border"
                       >
                         <img
                           src={URL.createObjectURL(p)}
@@ -493,13 +551,9 @@ export default function TransactionNew() {
                   </div>
                 )}
 
-                <div className="flex gap-2">
+                <div className="flex gap-3">
                   <label
-                    className="flex-1 py-2.5 rounded-full text-sm font-medium text-center cursor-pointer flex items-center justify-center gap-1.5"
-                    style={{
-                      backgroundColor: "var(--surface-hover)",
-                      color: "var(--text-primary)",
-                    }}
+                    className="flex-1 py-3 rounded-xl text-sm font-medium text-center cursor-pointer flex items-center justify-center gap-2 border border-border bg-surface text-text-primary hover:bg-surface-hover transition-colors"
                   >
                     <Camera className="w-4 h-4" />
                     Prendre une photo
@@ -516,11 +570,7 @@ export default function TransactionNew() {
                     />
                   </label>
                   <label
-                    className="flex-1 py-2.5 rounded-full text-sm font-medium text-center cursor-pointer flex items-center justify-center gap-1.5"
-                    style={{
-                      backgroundColor: "var(--surface-hover)",
-                      color: "var(--text-primary)",
-                    }}
+                    className="flex-1 py-3 rounded-xl text-sm font-medium text-center cursor-pointer flex items-center justify-center gap-2 border border-border bg-surface text-text-primary hover:bg-surface-hover transition-colors"
                   >
                     <ImagePlus className="w-4 h-4" />
                     Depuis la galerie
@@ -539,43 +589,50 @@ export default function TransactionNew() {
                   </label>
                 </div>
                 {!isOnline && proofPhotos.length === 0 && (
-                  <p className="text-xs text-pending mt-2">
+                  <p className="text-xs text-text-tertiary mt-2">
                     Hors ligne : la photo ne pourra pas être envoyée avant
                     reconnexion.
                   </p>
                 )}
-              </div>
-            )}
+              </MotionCard>
+            </motion.div>
+          )}
 
-            {error && (
-              <div
-                className="mb-4 p-3 rounded-xl text-sm text-center"
-                style={{ backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)", color: "var(--out)" }}
-              >
-                {error}
-              </div>
-            )}
-
-            <IonButton
-              expand="block"
-              onClick={handleSubmit}
-              disabled={submitting}
-              style={{
-                backgroundColor:
-                  type === "INCOME" ? "var(--in)" : "var(--out)",
-              }}
+          {error && (
+            <motion.div
+              initial="hidden"
+              animate="visible"
+              variants={CARD_VARIANTS}
+              className="mb-6"
             >
-              {submitting ? (
-                <>
-                  <IonSpinner name="lines" style={{ marginRight: 6 }} />
-                  Enregistrement…
-                </>
-              ) : (
-                "Enregistrer la transaction"
-              )}
-            </IonButton>
-          </div>
-          <BottomNav />
+              <MotionCard variant="flat" className="p-4 text-center">
+                <p className="text-text-primary text-sm text-center">
+                  {error}
+                </p>
+              </MotionCard>
+            </motion.div>
+          )}
+
+          <IonButton
+            expand="block"
+            onClick={handleSubmit}
+            disabled={submitting}
+            className={cn(
+              "py-4 rounded-2xl text-sm font-semibold shadow-fab",
+              type === "INCOME" ? "bg-accent-primary text-on-accent" : "bg-destructive text-on-accent",
+            )}
+          >
+            {submitting ? (
+              <>
+                <IonSpinner name="lines" style={{ marginRight: 6 }} />
+                Enregistrement…
+              </>
+            ) : (
+              "Enregistrer la transaction"
+            )}
+          </IonButton>
+        </div>
+        <BottomNav />
       </IonContent>
     </IonPage>
   );

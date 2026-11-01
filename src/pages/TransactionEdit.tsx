@@ -9,7 +9,7 @@ import {
   updateTransactionPS,
   isPowerSyncReadyNow,
 } from "@/lib/dataLayer";
-import { ArrowUpRight, ArrowDownRight, X, Wallet, User } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
 import { policy } from "@/capabilities/policy";
@@ -18,26 +18,27 @@ import { periodLockMessage } from "@/lib/periodLock";
 import type { FundSource, Transaction } from "@/types";
 import {
   IonPage,
-  IonHeader,
   IonContent,
-  IonTitle,
-  IonToolbar,
   IonSelect,
   IonSelectOption,
-  
   IonItem,
   IonLabel,
   IonInput,
   IonTextarea,
+  IonButton,
+  IonSpinner,
 } from "@ionic/react";
 import type { IonChangeCustomEvent } from "@/lib/ionic-types";
+import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
+import { MotionCard } from "@/design/motion/MotionCard";
+import { FormField } from "@/design/forms/FormField";
 
 export default function TransactionEdit() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const keyboardHeight = useKeyboardAvoidance();
 
-  // PowerSync with fallback
   const { data: psTransactions } = useTransactions();
   const { data: psCategories } = useCategories();
   const { data: psEvents } = useEvents();
@@ -48,6 +49,7 @@ export default function TransactionEdit() {
   const categories = psCategories ?? [];
   const events = psEvents ?? [];
   const orgUnits = psOrgUnits ?? [];
+  const accounts = psAccounts ?? [];
 
   const [type, setType] = useState<"INCOME" | "EXPENSE">("INCOME");
   const [amount, setAmount] = useState("");
@@ -69,7 +71,6 @@ export default function TransactionEdit() {
   useEffect(() => {
     const tx = transactions.find((t: any) => t.id === id);
     if (!tx) return;
-    // Immunité: approved transactions cannot be edited
     if (tx.status === "APPROVED") {
       navigate(`/transaction/${id}`);
       return;
@@ -81,39 +82,30 @@ export default function TransactionEdit() {
       setDate(tx.date.split("T")[0]);
       setCategoryId((tx as any).category_id || (tx as any).categoryId || "");
       setOrgUnitId((tx as any).org_unit_id || (tx as any).orgUnitId || "");
-      setSourceCaisseId((tx as any).source_caisse_id || (tx as any).sourceCaisseId || "main");
+      setSourceCaisseId(
+        (tx as any).source_caisse_id || (tx as any).sourceCaisseId || "main",
+      );
       setSource((tx as any).source || "CAISSE");
       setPersonName((tx as any).person_name || (tx as any).personName || "");
       setEventId((tx as any).event_id || (tx as any).eventId || "");
-      setCompensatesFor((tx as any).compensates_for || (tx as any).compensatesFor || "");
+      setCompensatesFor(
+        (tx as any).compensates_for || (tx as any).compensatesFor || "",
+      );
       setComment((tx as any).comment || "");
     }
   }, [id, transactions]);
 
-  // R52.t — avant la 1re lecture, `transactions` est vide : le formulaire
-  // s'affichait VIDE en `data-screen-state="ready"`. L'utilisateur pouvait
-  // croire à une transaction sans montant/description et enregistrer un
-  // formulaire vide (ou écraser les vraies valeurs arrivées au sync suivant).
-  // Même famille que R52.l→R52.s (D-R41 : aucun signal de disponibilité).
   const tx = transactions.find((t: any) => t.id === id);
   if (!tx) {
     if (!isPowerSyncReadyNow()) {
       return (
-        <div
-          data-screen-state="loading"
-          className="min-h-dvh flex items-center justify-center"
-        >
-          <p className="text-text-tertiary">Chargement...</p>
+        <div data-screen-state="loading" className="min-h-dvh flex items-center justify-center">
+          <p className="text-text-tertiary">Chargement…</p>
         </div>
       );
     }
     return (
       <IonPage>
-        <IonHeader>
-          <IonToolbar>
-            <IonTitle>Transaction introuvable</IonTitle>
-          </IonToolbar>
-        </IonHeader>
         <IonContent fullscreen className="bg-canvas">
           <div
             data-screen-state="error"
@@ -124,8 +116,7 @@ export default function TransactionEdit() {
                 Cette transaction est introuvable.
               </p>
               <p className="text-text-tertiary text-sm mb-6">
-                Elle a peut-être été supprimée, ou elle appartient à une autre
-                organisation.
+                Elle a peut-être été supprimée, ou elle appartient à une autre organisation.
               </p>
               <button
                 type="button"
@@ -147,242 +138,365 @@ export default function TransactionEdit() {
   const handleOrgUnitChange = (ouId: string) => {
     setOrgUnitId(ouId);
     if (ouId) {
-      const account = psAccounts.find((a: any) => a.id === ouId);
-      if (account) setSourceCaisseId(account.id);
-    } else {
-      setSourceCaisseId("main");
+      const ou = orgUnits.find((o: any) => o.id === ouId);
+      if (ou?.caisse_id) setSourceCaisseId(ou.caisse_id);
     }
   };
 
-  const handleSubmit = async () => {
-    const trimmedAmount = amount?.toString().trim();
-    const trimmedDesc = description?.trim();
+  const submitTransaction = async () => {
+    const trimmedAmount = amount.trim();
+    const trimmedDesc = description.trim();
     const trimmedCatId = categoryId?.toString().trim();
+
     if (!trimmedAmount || !trimmedDesc || !trimmedCatId) {
       setError("Veuillez remplir tous les champs obligatoires");
       return;
     }
-    const amountCents = Math.round(parseFloat(amount) * 100);
+    setError("");
+    const amountCents = Math.round(parseFloat(trimmedAmount) * 100);
     const amountCheck = policy.transaction.validateAmount(amountCents);
     if (!amountCheck.ok) {
-      setError(amountCheck.message ?? "Montant invalide");
+      setError(amountCheck.message ?? "Veuillez entrer un montant valide");
       return;
     }
-    if (submitting) return;
-    setError(null);
     setSubmitting(true);
     try {
-      await updateTransactionPS(id!, {
+      await updateTransactionPS({
+        id,
         type,
-        amount: Math.round(parseFloat(amount) * 100),
+        amount: amountCents,
         description,
         date,
         category_id: categoryId,
         org_unit_id: orgUnitId || null,
-        source_caisse_id: sourceCaisseId,
+        source_caisse_id: sourceCaisseId || "main",
+        event_id: eventId || null,
         source,
         person_name: source === "PERSONNE" ? personName || null : null,
-        event_id: eventId || null,
         compensates_for: compensatesFor || null,
         comment: comment || null,
       });
       navigate(`/transaction/${id}`);
     } catch (e) {
-      // PR13 — période close (ou autre refus) : message FR au lieu d'un
-      // formulaire qui « ne fait rien ».
+      setSubmitting(false);
       setError(
         periodLockMessage(
           e,
-          "Échec de l'enregistrement des modifications. Réessayez.",
+          "Échec de la mise à jour de la transaction. Réessayez.",
         ),
       );
-    } finally {
-      setSubmitting(false);
     }
+  };
+
+  const CARD_VARIANTS = {
+    hidden: { opacity: 0, y: 12 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.5, ease: [0.4, 0, 0.2, 1] },
+    },
   };
 
   return (
     <IonPage>
-      <IonContent className="bg-canvas">
-        <div data-screen-state="ready" className="min-h-dvh">
-          <TopHeader title="Modifier" />
-          <div
-            className="px-5 pt-safe-calc pb-safe-calc max-w-lg mx-auto"
-            style={{
-              paddingBottom: keyboardHeight > 0 ? `${keyboardHeight}px` : undefined,
-            }}
+      <IonContent fullscreen>
+        <h1 className="sr-only">Modifier la transaction</h1>
+        <TopHeader title="Modifier" />
+        <div
+          data-screen-state="ready"
+          className="max-w-lg mx-auto w-full px-5 pt-safe-calc pb-safe-calc"
+          style={{
+            paddingBottom: keyboardHeight > 0 ? `${keyboardHeight}px` : undefined,
+          }}
+        >
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={CARD_VARIANTS}
+            className="mb-1"
           >
-            <div className="flex items-center justify-between mb-6">
-              <button
-                onClick={() => navigate(-1)}
-                className="flex items-center gap-2 text-text-secondary text-sm"
-                aria-label="Retour"
+            <button
+              onClick={() => navigate(`/transaction/${id}`)}
+              className="flex items-center gap-2 text-text-secondary text-sm"
+            >
+              <ArrowLeft className="w-4 h-4" /> Retour
+            </button>
+          </motion.div>
+
+          {/* Type selector */}
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={CARD_VARIANTS}
+            transition={{ delay: 0.08 }}
+            className="flex gap-3 mb-6"
+          >
+            <button
+              onClick={() => setType("INCOME")}
+              className={cn(
+                "flex-1 py-4 rounded-2xl text-sm font-semibold transition-all shadow-sm",
+                type === "INCOME"
+                  ? "bg-accent-primary text-on-accent shadow-accent-sm"
+                  : "bg-surface border border-border text-text-secondary hover:bg-surface-hover",
+              )}
+            >
+              Entrée
+            </button>
+            <button
+              onClick={() => setType("EXPENSE")}
+              className={cn(
+                "flex-1 py-4 rounded-2xl text-sm font-semibold transition-all shadow-sm",
+                type === "EXPENSE"
+                  ? "bg-destructive text-on-accent shadow-accent-sm"
+                  : "bg-surface border border-border text-text-secondary hover:bg-surface-hover",
+              )}
+            >
+              Sortie
+            </button>
+          </motion.div>
+
+          {/* Amount */}
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={CARD_VARIANTS}
+            transition={{ delay: 0.16 }}
+            className="mb-6"
+          >
+            <FormField label="Montant (FCFA)" error={error}>
+              <IonInput
+                type="number"
+                inputMode="decimal"
+                aria-label="Montant en francs CFA"
+                value={amount}
+                onIonInput={(e) => setAmount((e.detail.value as string) ?? "")}
+                placeholder="0"
+                className="w-full"
+              />
+            </FormField>
+          </motion.div>
+
+          {/* Description */}
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={CARD_VARIANTS}
+            transition={{ delay: 0.24 }}
+            className="mb-6"
+          >
+            <FormField label="Description">
+              <IonInput
+                type="text"
+                aria-label="Description"
+                value={description}
+                onIonInput={(e) => setDescription((e.detail.value as string) ?? "")}
+                placeholder="Ex: Dîme du mois"
+                className="w-full"
+              />
+            </FormField>
+          </motion.div>
+
+          {/* Date */}
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={CARD_VARIANTS}
+            transition={{ delay: 0.32 }}
+            className="mb-6"
+          >
+            <FormField label="Date">
+              <IonInput
+                type="date"
+                aria-label="Date"
+                value={date}
+                onIonInput={(e) => setDate((e.detail.value as string) ?? "")}
+                className="w-full"
+              />
+            </FormField>
+          </motion.div>
+
+          {/* Category */}
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={CARD_VARIANTS}
+            transition={{ delay: 0.4 }}
+            className="mb-6"
+          >
+            <FormField label="Catégorie">
+              <IonSelect
+                aria-label="Catégorie"
+                value={categoryId}
+                onIonChange={(e) => setCategoryId(e.detail.value)}
+                className="w-full"
               >
-                <ArrowUpRight className="w-4 h-4 rotate-180" /> Retour
-              </button>
-              <h1 className="text-text-primary font-bold text-lg">Modifier</h1>
-              <div className="w-16" />
-            </div>
+                <IonSelectOption value="">
+                  Sélectionner une catégorie
+                </IonSelectOption>
+                {filteredCategories.map((cat: any) => (
+                  <IonSelectOption key={cat.id} value={cat.id}>
+                    {cat.label_fr || cat.label}
+                  </IonSelectOption>
+                ))}
+              </IonSelect>
+            </FormField>
+          </motion.div>
 
-            <div className="space-y-4">
-              <div
-                className="flex rounded-xl p-1"
-                style={{ backgroundColor: "var(--surface)" }}
+          {/* Source */}
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={CARD_VARIANTS}
+            transition={{ delay: 0.48 }}
+            className="mb-6"
+          >
+            <FormField label="Source">
+              <IonSelect
+                aria-label="Source"
+                value={source}
+                onIonChange={(e) => setSource(e.detail.value as any)}
+                className="w-full"
               >
-                <button
-                  onClick={() => setType("INCOME")}
-                  className="flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all"
-                  style={
-                    type === "INCOME"
-                      ? { backgroundColor: "var(--in)", color: "var(--text-primary)" }
-                      : { color: "var(--text-secondary)" }
-                  }
-                  aria-label="Entrée"
-                >
-                  Entrée
-                </button>
-                <button
-                  onClick={() => setType("EXPENSE")}
-                  className="flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all"
-                  style={
-                    type === "EXPENSE"
-                      ? { backgroundColor: "var(--out)", color: "var(--text-primary)" }
-                      : { color: "var(--text-secondary)" }
-                  }
-                  aria-label="Sortie"
-                >
-                  Sortie
-                </button>
-              </div>
+                <IonSelectOption value="CAISSE">Caisse</IonSelectOption>
+                <IonSelectOption value="COTISATION">Cotisation</IonSelectOption>
+                <IonSelectOption value="PERSONNE">Personne</IonSelectOption>
+                <IonSelectOption value="AUTRE">Autre</IonSelectOption>
+              </IonSelect>
+            </FormField>
+          </motion.div>
 
-              <IonItem lines="none" className="bg-card rounded-xl">
-                <IonLabel position="floating" className="text-sm text-text-secondary">Montant (FCFA)</IonLabel>
-                <IonInput
-                  type="number"
-                  inputMode="numeric"
-                  value={amount}
-                  onIonInput={(e: IonChangeCustomEvent<string>) => setAmount(e.detail.value ?? "")}
-                  placeholder="0"
-                />
-              </IonItem>
+          {/* Caisse */}
+          {source === "CAISSE" && (
+            <motion.div
+              initial="hidden"
+              animate="visible"
+              variants={CARD_VARIANTS}
+              transition={{ delay: 0.56 }}
+              className="mb-6"
+            >
+              <FormField label="Caisse">
+                <IonSelect
+                  aria-label="Caisse"
+                  value={sourceCaisseId}
+                  onIonChange={(e) => setSourceCaisseId(e.detail.value)}
+                  className="w-full"
+                >
+                  {accounts.map((c: any) => (
+                    <IonSelectOption key={c.id} value={c.id}>
+                      {c.name}
+                    </IonSelectOption>
+                  ))}
+                </IonSelect>
+              </FormField>
+            </motion.div>
+          )}
 
-              <IonItem lines="none" className="bg-card rounded-xl">
-                <IonLabel position="floating" className="text-sm text-text-secondary">Description</IonLabel>
+          {/* Person name */}
+          {source === "PERSONNE" && (
+            <motion.div
+              initial="hidden"
+              animate="visible"
+              variants={CARD_VARIANTS}
+              transition={{ delay: 0.56 }}
+              className="mb-6"
+            >
+              <FormField label="Nom de la personne">
                 <IonInput
                   type="text"
-                  value={description}
-                  onIonInput={(e: IonChangeCustomEvent<string>) => setDescription(e.detail.value ?? "")}
-                  placeholder="Description de la transaction"
+                  aria-label="Nom de la personne"
+                  value={personName}
+                  onIonInput={(e) =>
+                    setPersonName((e.detail.value as string) ?? "")
+                  }
+                  placeholder="Nom de la personne"
+                  className="w-full"
                 />
-              </IonItem>
+              </FormField>
+            </motion.div>
+          )}
 
-              <IonItem lines="none" className="bg-card rounded-xl">
-                <IonLabel position="floating" className="text-sm text-text-secondary">Date</IonLabel>
-                <IonInput
-                  type="date"
-                  value={date}
-                  onIonInput={(e: IonChangeCustomEvent<string>) => setDate(e.detail.value ?? "")}
-                />
-              </IonItem>
-
-              <div>
-                <label className="text-text-tertiary text-xs mb-2 block">
-                  Catégorie
-                </label>
-                <IonSelect
-                  value={categoryId}
-                  onIonChange={(e: IonChangeCustomEvent<string>) => setCategoryId(e.detail.value)}
-                  interface="popover"
-                >
-                  <IonSelectOption value="">Sélectionner une catégorie</IonSelectOption>
-                  {filteredCategories.map((cat: any) => (
-                    <IonSelectOption key={cat.id} value={cat.id}>
-                      {cat.label_fr || cat.label}
-                    </IonSelectOption>
-                  ))}
-                </IonSelect>
-              </div>
-
-              <div>
-                <label className="text-text-tertiary text-xs mb-2 block">
-                  Source
-                </label>
-                <IonSelect
-                  value={source}
-                  onIonChange={(e: IonChangeCustomEvent<string>) => setSource(e.detail.value as FundSource)}
-                  interface="popover"
-                >
-                  <IonSelectOption value="CAISSE">Caisse</IonSelectOption>
-                  <IonSelectOption value="COTISATION">Cotisation</IonSelectOption>
-                  <IonSelectOption value="PERSONNE">Personne</IonSelectOption>
-                  <IonSelectOption value="AUTRE">Autre</IonSelectOption>
-                </IonSelect>
-              </div>
-
-              {source === "PERSONNE" && (
-                <IonItem lines="none" className="bg-card rounded-xl">
-                  <IonLabel position="floating" className="text-sm text-text-secondary">Nom de la personne</IonLabel>
-                  <IonInput
-                    type="text"
-                    value={personName}
-                    onIonInput={(e: IonChangeCustomEvent<string>) => setPersonName(e.detail.value ?? "")}
-                    placeholder="Nom de la personne"
-                  />
-                </IonItem>
-              )}
-
-              <div>
-                <label className="text-text-tertiary text-xs mb-2 block">
-                  Événement (optionnel)
-                </label>
-                <IonSelect
-                  value={eventId}
-                  onIonChange={(e: IonChangeCustomEvent<string>) => setEventId(e.detail.value)}
-                  interface="popover"
-                >
-                  <IonSelectOption value="">Aucun événement</IonSelectOption>
-                  {events.map((ev: any) => (
-                    <IonSelectOption key={ev.id} value={ev.id}>
-                      {ev.name}
-                    </IonSelectOption>
-                  ))}
-                </IonSelect>
-              </div>
-
-              <IonItem lines="none" className="bg-card rounded-xl">
-                <IonLabel position="floating" className="text-sm text-text-secondary">Commentaire (optionnel)</IonLabel>
-                <IonTextarea
-                  value={comment}
-                  onIonInput={(e: IonChangeCustomEvent<string>) => setComment(e.detail.value ?? "")}
-                  placeholder="Ajouter un commentaire..."
-                  rows={2}
-                />
-              </IonItem>
-
-              {error && (
-                <div
-                  className="mb-4 p-3 rounded-xl text-sm text-center"
-                  style={{ backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)", color: "var(--out)" }}
-                >
-                  {error}
-                </div>
-              )}
-
-              <button
-                onClick={handleSubmit}
-                disabled={submitting}
-                className="w-full py-4 rounded-full font-semibold text-on-accent text-sm transition-all active:scale-95"
-                style={{
-                  backgroundColor: type === "INCOME" ? "var(--in)" : "var(--out)",
-                }}
-                aria-label="Sauvegarder la transaction"
+          {/* Event */}
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={CARD_VARIANTS}
+            transition={{ delay: 0.64 }}
+            className="mb-6"
+          >
+            <FormField label="Événement">
+              <IonSelect
+                aria-label="Événement"
+                value={eventId}
+                onIonChange={(e) => setEventId(e.detail.value)}
+                className="w-full"
               >
-                {submitting ? "Sauvegarde..." : "Sauvegarder"}
-              </button>
-            </div>
-          </div>
-          <BottomNav />
+                <IonSelectOption value="">
+                  Aucun événement
+                </IonSelectOption>
+                {events.map((ev: any) => (
+                  <IonSelectOption key={ev.id} value={ev.id}>
+                    {ev.name}
+                  </IonSelectOption>
+                ))}
+              </IonSelect>
+            </FormField>
+          </motion.div>
+
+          {/* Comment */}
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={CARD_VARIANTS}
+            transition={{ delay: 0.72 }}
+            className="mb-6"
+          >
+            <FormField label="Commentaire">
+              <IonTextarea
+                aria-label="Commentaire"
+                value={comment}
+                onIonInput={(e) => setComment((e.detail.value as string) ?? "")}
+                placeholder="Ajouter un commentaire…"
+                rows={3}
+                className="w-full"
+              />
+            </FormField>
+          </motion.div>
+
+          {error && (
+            <motion.div
+              initial="hidden"
+              animate="visible"
+              variants={CARD_VARIANTS}
+              className="mb-6"
+            >
+              <MotionCard variant="flat" className="p-4 text-center">
+                <p className="text-text-primary text-sm text-center">{error}</p>
+              </MotionCard>
+            </motion.div>
+          )}
+
+          <IonButton
+            expand="block"
+            onClick={submitTransaction}
+            disabled={submitting}
+            className={cn(
+              "py-4 rounded-2xl text-sm font-semibold shadow-fab",
+              type === "INCOME"
+                ? "bg-accent-primary text-on-accent"
+                : "bg-destructive text-on-accent",
+            )}
+          >
+            {submitting ? (
+              <>
+                <IonSpinner name="lines" style={{ marginRight: 6 }} />
+                Enregistrement…
+              </>
+            ) : (
+              "Enregistrer les modifications"
+            )}
+          </IonButton>
         </div>
+        <BottomNav />
       </IonContent>
     </IonPage>
   );

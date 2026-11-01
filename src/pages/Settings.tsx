@@ -16,6 +16,8 @@ import {
 import { IonPage, IonContent } from "@ionic/react";
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
+import { motion } from "framer-motion";
+import { MotionCard } from "@/design/motion/MotionCard";
 
 interface SettingsOption {
   id: string;
@@ -123,23 +125,28 @@ const GROUPS: SettingsGroup[] = [
   },
 ];
 
+const CARD_VARIANTS = {
+  hidden: { opacity: 0, y: 12 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5, ease: [0.4, 0, 0.2, 1] },
+  },
+};
+
 function SettingsOptionCard({ option }: { option: SettingsOption }) {
   const navigate = useNavigate();
   const Icon = option.icon;
   return (
-    <button
-      type="button"
+    <MotionCard
+      variant="flat"
       onClick={() => navigate(option.to)}
-      className="w-full flex items-center gap-3 p-4 rounded-xl text-left transition-[transform,background-color] active:scale-[0.99]"
-      style={{
-        backgroundColor: "var(--surface)",
-        border: "1px solid var(--border)",
-      }}
+      className="flex items-center gap-3 p-4"
       data-testid={`settings-opt-${option.id}`}
       aria-label={`Ouvrir ${option.label}`}
     >
       <div
-        className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+        className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0"
         style={{
           backgroundColor: "color-mix(in srgb, var(--accent-primary) 15%, transparent)",
         }}
@@ -147,7 +154,9 @@ function SettingsOptionCard({ option }: { option: SettingsOption }) {
         <Icon className="w-5 h-5" style={{ color: "var(--accent-primary)" }} />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-text-primary text-sm font-semibold">{option.label}</p>
+        <p className="text-text-primary text-sm font-semibold">
+          {option.label}
+        </p>
         <p className="text-text-tertiary text-xs mt-0.5 truncate">
           {option.description}
         </p>
@@ -156,7 +165,7 @@ function SettingsOptionCard({ option }: { option: SettingsOption }) {
         className="w-4 h-4 text-text-tertiary flex-shrink-0"
         aria-hidden="true"
       />
-    </button>
+    </MotionCard>
   );
 }
 
@@ -171,16 +180,34 @@ export default function SettingsPage() {
         <div data-screen-state="ready" className="min-h-dvh">
           <TopHeader title="Paramètres" />
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
-            <h1 className="text-text-primary font-bold text-xl mb-1">
+            <motion.h1
+              initial="hidden"
+              animate="visible"
+              variants={CARD_VARIANTS}
+              className="text-text-primary font-bold text-2xl tracking-tight mb-1"
+            >
               Paramètres
-            </h1>
-            <p className="text-text-tertiary text-xs mb-5">
+            </motion.h1>
+            <motion.p
+              initial="hidden"
+              animate="visible"
+              variants={CARD_VARIANTS}
+              transition={{ delay: 0.1 }}
+              className="text-text-tertiary text-xs mb-6"
+            >
               Chaque option ouvre sa propre page de configuration.
-            </p>
+            </motion.p>
 
-            {GROUPS.map((group) => (
-              <div key={group.title} className="mb-6">
-                <p className="text-text-tertiary text-xs font-medium uppercase tracking-wide mb-2 px-1">
+            {GROUPS.map((group, gi) => (
+              <motion.div
+                key={group.title}
+                initial="hidden"
+                animate="visible"
+                variants={CARD_VARIANTS}
+                transition={{ delay: 0.15 + gi * 0.08 }}
+                className="mb-6"
+              >
+                <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider mb-2 px-1">
                   {group.title}
                 </p>
                 <div className="space-y-2">
@@ -188,7 +215,7 @@ export default function SettingsPage() {
                     <SettingsOptionCard key={o.id} option={o} />
                   ))}
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
           <BottomNav />

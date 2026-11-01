@@ -15,34 +15,87 @@ import type { Role } from "@/types";
 import { getOrganizationId, setOrganizationId } from "./orgContext";
 
 // Use environment variables — never hardcode credentials.
-// L'application exige explicitement VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY
-// (plus de fallback silencieux vers le projet de dev).
+// Quand VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY manquent, l'app démarre en
+// mode local-only : aucun client Supabase n'est créé, authService retourne une
+// session vide (non-authentifié) et toutes les écritures restent sur l'appareil.
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+let supabase: SupabaseClient;
+
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error(
-    "[auth] VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY manquantes : l'authentification ne peut pas fonctionner sans Supabase.",
+  console.warn(
+    "[auth] VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY manquantes — mode local-only (sans Supabase). L'authentification distante est indisponible.",
+  );
+  // Faux client Supabase pour le mode local-only : toutes les méthodes
+  // retournent des valeurs vides, l'app démarre sans authentification distante.
+  supabase = {
+    auth: {
+      getSession: async () => ({ data: { session: null }, error: null }),
+      getUser: async () => ({ data: { user: null }, error: null }),
+      signInWithPassword: async () => ({
+        data: { user: null, session: null },
+        error: new Error("Supabase non configuré"),
+      }),
+      signUp: async () => ({
+        data: { user: null, session: null },
+        error: new Error("Supabase non configuré"),
+      }),
+      signInWithOAuth: async () => ({
+        data: { url: null },
+        error: new Error("Supabase non configuré"),
+      }),
+      exchangeCodeForSession: async () => ({
+        data: { session: null },
+        error: new Error("Supabase non configuré"),
+      }),
+      refreshSession: async () => ({
+        data: { session: null },
+        error: new Error("Supabase non configuré"),
+      }),
+      stopAutoRefresh: () => {},
+      onAuthStateChange: () => ({
+        data: { subscription: { unsubscribe: () => {} } },
+      }),
+    },
+    from: () => ({
+      select: () => ({
+        eq: () => ({
+          maybeSingle: async () => ({ data: null, error: null }),
+        }),
+      }),
+      update: () => ({
+        eq: () => ({ error: null }),
+      }),
+      insert: () => ({
+        select: () => ({
+          maybeSingle: async () => ({ data: null, error: null }),
+        }),
+      }),
+    }),
+    rpc: async () => ({ data: null, error: new Error("Supabase non configuré") }),
+  } as unknown as SupabaseClient;
+} else {
+  supabase = createClient(
+    supabaseUrl,
+    supabaseAnonKey,
+    {
+      auth: {
+        // PKCE : le client stocke le code_verifier et l'échange contre une
+        // session. Sans ça, flowType reste "implicit" par défaut et
+        // exchangeCodeForSession (utilisé au callback /auth/callback) échoue.
+        flowType: "pkce",
+        // Persiste la session (localStorage) pour « Mes comptes ».
+        persistSession: true,
+        // Auto-détecte les tokens dans l'URL au rechargement.
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+      },
+    },
   );
 }
 
-export const supabase: SupabaseClient = createClient(
-  supabaseUrl,
-  supabaseAnonKey,
-  {
-    auth: {
-      // PKCE : le client stocke le code_verifier et l'échange contre une
-      // session. Sans ça, flowType reste "implicit" par défaut et
-      // exchangeCodeForSession (utilisé au callback /auth/callback) échoue.
-      flowType: "pkce",
-      // Persiste la session (localStorage) pour « Mes comptes ».
-      persistSession: true,
-      // Auto-détecte les tokens dans l'URL au rechargement.
-      autoRefreshToken: true,
-      detectSessionInUrl: true,
-    },
-  },
-);
+export { supabase };
 
 // Profile type from database
 export interface Profile {

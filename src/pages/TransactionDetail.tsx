@@ -50,13 +50,15 @@ import {
   IonButtons,
   IonBackButton,
 } from "@ionic/react";
+import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
+import { MotionCard } from "@/design/motion/MotionCard";
 
 export default function TransactionDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const user = useCurrentUser();
 
-  // PowerSync with fallback
   const { data: psTransactions } = useTransactions();
   const { data: psEvents } = useEvents();
   const { data: psOrgUnits } = useOrgUnits();
@@ -67,32 +69,51 @@ export default function TransactionDetail() {
   const orgUnits = psOrgUnits ?? [];
   const categories = psCategories ?? [];
 
-  const [showActions, setShowActions] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectComment, setRejectComment] = useState("");
   const [showReverseModal, setShowReverseModal] = useState(false);
   const [reverseReason, setReverseReason] = useState("");
 
-  // B.1 — branchement du gate multi-org (union fédération + legacy).
-  // Montés AVANT tout `return` conditionnel (règle des hooks).
-  const canApproveMulti = useCanAccessMulti(user?.id, user?.org?.id, "transaction", "approve", undefined, user?.role as any);
-  const canRejectMulti = useCanAccessMulti(user?.id, user?.org?.id, "transaction", "reject", undefined, user?.role as any);
-  const canDeleteMulti = useCanAccessMulti(user?.id, user?.org?.id, "transaction", "delete", undefined, user?.role as any);
-  const canReverseMulti = useCanAccessMulti(user?.id, user?.org?.id, "transaction", "reverse", undefined, user?.role as any);
+  const canApproveMulti = useCanAccessMulti(
+    user?.id,
+    user?.org?.id,
+    "transaction",
+    "approve",
+    undefined,
+    user?.role as any,
+  );
+  const canRejectMulti = useCanAccessMulti(
+    user?.id,
+    user?.org?.id,
+    "transaction",
+    "reject",
+    undefined,
+    user?.role as any,
+  );
+  const canDeleteMulti = useCanAccessMulti(
+    user?.id,
+    user?.org?.id,
+    "transaction",
+    "delete",
+    undefined,
+    user?.role as any,
+  );
+  const canReverseMulti = useCanAccessMulti(
+    user?.id,
+    user?.org?.id,
+    "transaction",
+    "reverse",
+    undefined,
+    user?.role as any,
+  );
 
   const rejectModalRef = useRef<HTMLDivElement>(null);
   const reverseModalRef = useRef<HTMLDivElement>(null);
   useFocusTrap(rejectModalRef, showRejectModal);
   useFocusTrap(reverseModalRef, showReverseModal);
 
-  // Anti double-soumission (PM17) : un double-tap sur une action financière ne
-  // doit pas écrire deux fois. Le guard est synchrone (ref) → couvre la fenêtre
-  // avant le re-rendu qui désactive le bouton.
   const guard = useSubmitGuard();
 
-  // PR13 — exécute une écriture financière en surfaceant proprement un rejet de
-  // gel de période (toast FR) et en instrumentant toute autre erreur. Sans cela,
-  // le rejet typé serait avalé et l'utilisateur croirait l'action réussie.
   const runWrite = (fn: () => Promise<void>) =>
     guard.run(async () => {
       try {
@@ -107,27 +128,20 @@ export default function TransactionDetail() {
       }
     });
 
-  // PR8 maker-checker : réglage par organisation (défaut OFF). Monté AVANT tout
-  // `return` conditionnel (règle des hooks). `enabled` reste faux tant que le
-  // réglage n'a pas été lu → aucune contrainte par accident.
   const makerChecker = useMakerChecker();
 
   const tx = transactions.find((t: any) => t.id === id);
 
-  // R52.h — « Transaction introuvable » n'est exact qu'une fois la réplique
-  // prête (même garde qu'`EventDetail`).
   if (!tx && !isPowerSyncReadyNow()) {
     return (
       <IonPage>
         <IonContent fullscreen className="bg-canvas">
           <h1 className="sr-only">Détail de la transaction</h1>
-          <div className="min-h-dvh">
-            <TopHeader title="Transaction" />
-            <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
-              <ListSkeleton count={4} />
-            </div>
-            <BottomNav />
+          <TopHeader title="Transaction" />
+          <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
+            <ListSkeleton count={4} />
           </div>
+          <BottomNav />
         </IonContent>
       </IonPage>
     );
@@ -145,7 +159,7 @@ export default function TransactionDetail() {
           </IonToolbar>
         </IonHeader>
         <IonContent fullscreen className="bg-canvas">
-        <h1 className="sr-only">Détail de la transaction</h1>
+          <h1 className="sr-only">Détail de la transaction</h1>
           <div data-screen-state="notfound" className="min-h-dvh flex items-center justify-center">
             <p className="text-text-tertiary">Transaction introuvable</p>
           </div>
@@ -156,11 +170,10 @@ export default function TransactionDetail() {
 
   const isIncome = tx.type === "INCOME";
 
-  // PR8 maker-checker — l'acteur est-il l'auteur de la transaction, avec le
-  // réglage actif ? La règle PURE `canApprove` tranche (permission + auteur) :
-  // l'UI ne réimplémente pas la décision, elle l'affiche.
   const approveDecision = canApproveRule({
-    transaction: { createdById: (tx as any).createdById ?? (tx as any).created_by_id },
+    transaction: {
+      createdById: (tx as any).createdById ?? (tx as any).created_by_id,
+    },
     actorId: user?.id ?? "",
     actorPermissions: canApproveMulti.allowed ? ["transaction:approve"] : [],
     enabled: makerChecker.enabled,
@@ -169,22 +182,23 @@ export default function TransactionDetail() {
   const category =
     (tx as any).category ||
     categories.find(
-      (c: any) => c.id === (tx as any).category_id || c.id === (tx as any).categoryId,
+      (c: any) =>
+        c.id === (tx as any).category_id || c.id === (tx as any).categoryId,
     );
   const orgUnit =
     (tx as any).orgUnit ||
-    orgUnits.find((o: any) => o.id === (tx as any).org_unit_id || o.id === (tx as any).orgUnitId);
+    orgUnits.find(
+      (o: any) =>
+        o.id === (tx as any).org_unit_id || o.id === (tx as any).orgUnitId,
+    );
   const event =
     (tx as any).event ||
-    events.find((e: any) => e.id === (tx as any).event_id || e.id === (tx as any).eventId);
+    events.find(
+      (e: any) => e.id === (tx as any).event_id || e.id === (tx as any).eventId,
+    );
 
   const handleApprove = () => {
-    if (!canApproveMulti.allowed) {
-      return;
-    }
-    // PR8 — refus AVANT toute écriture : le chemin d'écriture lèverait une
-    // erreur typée, mais on évite ici d'ouvrir une fenêtre de double-soumission
-    // pour une action qui ne peut pas aboutir.
+    if (!canApproveMulti.allowed) return;
     if (selfApprovalBlocked) {
       toast({
         title: "Approbation impossible",
@@ -195,8 +209,6 @@ export default function TransactionDetail() {
     }
     return runWrite(async () => {
       await approveTransactionPS(tx.id, user?.id || "");
-      // B.7 — notification locale app (persistée dans `notifications` PowerSync,
-      // visible dans l'UI in-app. L'audit APPROVED est géré côté trigger serveur.
       await notification.sendNotification({
         title: "Transaction approuvée",
         message: `${tx.description || tx.id} a été approuvée.`,
@@ -211,12 +223,13 @@ export default function TransactionDetail() {
   };
 
   const handleRejectConfirm = () => {
-    if (!canRejectMulti.allowed) {
-      return;
-    }
+    if (!canRejectMulti.allowed) return;
     if (!rejectComment.trim()) return;
     return runWrite(async () => {
-      await updateTransactionPS(tx.id, { status: "REJECTED", comment: rejectComment.trim() });
+      await updateTransactionPS(tx.id, {
+        status: "REJECTED",
+        comment: rejectComment.trim(),
+      });
       await notification.sendNotification({
         title: "Transaction rejetée",
         message: `${tx.description || tx.id} a été rejetée : ${rejectComment.trim()}`,
@@ -234,13 +247,8 @@ export default function TransactionDetail() {
   };
 
   const handleDelete = () => {
-    if (!canDeleteMulti.allowed) {
-      return;
-    }
+    if (!canDeleteMulti.allowed) return;
     return runWrite(async () => {
-      // PR9 — ne pas laisser de blob orphelin : purge best-effort des
-      // justificatifs (lignes + objets Storage) AVANT de supprimer la
-      // transaction (la FK est en ON DELETE CASCADE pour les lignes).
       await purgeReceiptsForTransaction(tx.id);
       await deleteTransactionPS(tx.id);
       await notification.sendNotification({
@@ -258,9 +266,7 @@ export default function TransactionDetail() {
 
   const handleReverse = () => {
     if (!reverseReason.trim()) return;
-    if (!canReverseMulti.allowed) {
-      return;
-    }
+    if (!canReverseMulti.allowed) return;
     return runWrite(async () => {
       await reverseTransactionPS(tx.id, user?.id || "", reverseReason.trim());
       await notification.sendNotification({
@@ -279,12 +285,20 @@ export default function TransactionDetail() {
     });
   };
 
-  // Find reversal transaction if exists
   const reversal = (tx as any).reversalOfId
     ? transactions.find(
         (t: any) => t.reversal_of_id === tx.id || t.reversalOfId === tx.id,
       )
     : null;
+
+  const CARD_VARIANTS = {
+    hidden: { opacity: 0, y: 12 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.5, ease: [0.4, 0, 0.2, 1] },
+    },
+  };
 
   return (
     <IonPage>
@@ -297,24 +311,39 @@ export default function TransactionDetail() {
         </IonToolbar>
       </IonHeader>
       <IonContent fullscreen className="bg-canvas">
-      <h1 className="sr-only">Détail de la transaction</h1>
+        <h1 className="sr-only">Détail de la transaction</h1>
         <div data-screen-state="ready" className="min-h-dvh">
           <TopHeader title="Transaction" />
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
-            <button
-              onClick={() => navigate(-1)}
+            <motion.div
+              initial="hidden"
+              animate="visible"
+              variants={CARD_VARIANTS}
               className="flex items-center gap-2 text-text-secondary text-sm mb-6"
             >
-              <ArrowLeft className="w-4 h-4" />
-              <span>Retour</span>
-            </button>
+              <button
+                onClick={() => navigate(-1)}
+                className="flex items-center gap-2"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span>Retour</span>
+              </button>
+            </motion.div>
 
             {/* Amount */}
-            <div className="text-center mb-8">
+            <motion.div
+              initial="hidden"
+              animate="visible"
+              variants={CARD_VARIANTS}
+              transition={{ delay: 0.08 }}
+              className="text-center mb-8"
+            >
               <div
                 className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
                 style={{
-                  backgroundColor: isIncome ? "color-mix(in srgb, var(--in) 12%, transparent)" : "color-mix(in srgb, var(--out) 12%, transparent)",
+                  backgroundColor: isIncome
+                    ? "color-mix(in srgb, var(--in) 12%, transparent)"
+                    : "color-mix(in srgb, var(--out) 12%, transparent)",
                 }}
               >
                 {isIncome ? (
@@ -324,7 +353,9 @@ export default function TransactionDetail() {
                 )}
               </div>
               <p
-                className={`text-2xl font-black tabular-nums ${isIncome ? "text-income" : "text-expense"}`}
+                className={`text-3xl font-black tabular-nums ${
+                  isIncome ? "text-income" : "text-expense"
+                }`}
               >
                 {isIncome ? "+" : "-"}
                 {formatCurrencyCompact(tx.amount)} F
@@ -332,102 +363,131 @@ export default function TransactionDetail() {
               <p className="text-text-tertiary text-sm mt-2">
                 {formatDate(tx.date)}
               </p>
-            </div>
+            </motion.div>
 
             {/* Description */}
-            <div
-              className="rounded-xl p-4 mb-4"
-              style={{ backgroundColor: "var(--surface)" }}
+            <motion.div
+              initial="hidden"
+              animate="visible"
+              variants={CARD_VARIANTS}
+              transition={{ delay: 0.16 }}
+              className="mb-6"
             >
-              <p className="text-text-primary font-medium text-base">
-                {tx.description}
-              </p>
-              <div className="flex flex-wrap gap-2 mt-3">
-                {category && (
+              <MotionCard variant="flat" className="p-5">
+                <p className="text-text-primary font-medium text-base">
+                  {tx.description}
+                </p>
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {category && (
+                    <span
+                      className="text-xs px-2.5 py-1 rounded-full"
+                      style={{
+                        backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)",
+                        color: "var(--accent-primary)",
+                      }}
+                    >
+                      {category.label_fr || category.label}
+                    </span>
+                  )}
+                  {orgUnit && (
+                    <span
+                      className="text-xs px-2.5 py-1 rounded-full"
+                      style={{
+                        backgroundColor: "color-mix(in srgb, var(--data-planified) 12%, transparent)",
+                        color: "var(--data-planified)",
+                      }}
+                    >
+                      {orgUnit.name}
+                    </span>
+                  )}
+                  {event && (
+                    <span
+                      className="text-xs px-2.5 py-1 rounded-full"
+                      style={{
+                        backgroundColor: "color-mix(in srgb, var(--data-advance) 12%, transparent)",
+                        color: "var(--data-advance)",
+                      }}
+                    >
+                      {event.name}
+                    </span>
+                  )}
                   <span
                     className="text-xs px-2.5 py-1 rounded-full"
-                    style={{ backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)", color: "var(--accent-primary)" }}
+                    style={{
+                      backgroundColor: getStatusColor(tx.status as any) + "20",
+                      color: getStatusColor(tx.status as any),
+                    }}
                   >
-                    {category.label_fr || category.label}
+                    {getStatusLabel(tx.status as any)}
                   </span>
-                )}
-                {orgUnit && (
-                  <span
-                    className="text-xs px-2.5 py-1 rounded-full"
-                    style={{ backgroundColor: "color-mix(in srgb, var(--data-planified) 12%, transparent)", color: "var(--data-planified)" }}
-                  >
-                    {orgUnit.name}
-                  </span>
-                )}
-                {event && (
-                  <span
-                    className="text-xs px-2.5 py-1 rounded-full"
-                    style={{ backgroundColor: "color-mix(in srgb, var(--data-advance) 12%, transparent)", color: "var(--data-advance)" }}
-                  >
-                    {event.name}
-                  </span>
-                )}
-                <span
-                  className="text-xs px-2.5 py-1 rounded-full"
-                  style={{
-                    backgroundColor: getStatusColor(tx.status as any) + "20",
-                    color: getStatusColor(tx.status as any),
-                  }}
-                >
-                  {getStatusLabel(tx.status as any)}
-                </span>
-              </div>
-            </div>
+                </div>
+              </MotionCard>
+            </motion.div>
 
             {/* Details */}
-            <div
-              className="rounded-xl p-4 mb-6"
-              style={{ backgroundColor: "var(--surface)" }}
+            <motion.div
+              initial="hidden"
+              animate="visible"
+              variants={CARD_VARIANTS}
+              transition={{ delay: 0.24 }}
+              className="mb-6"
             >
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-text-tertiary text-sm">Type</span>
-                  <span className="text-text-primary text-sm font-medium">
-                    {tx.type === "INCOME" ? "Entrée" : "Sortie"}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-text-tertiary text-sm">Caisse</span>
-                  <span className="text-text-primary text-sm font-medium">
-                    {(tx as any).source_caisse_id || (tx as any).sourceCaisseId || "Principale"}
-                  </span>
-                </div>
-                {tx.comment && (
+              <MotionCard variant="flat" className="p-5">
+                <div className="space-y-3">
                   <div className="flex justify-between">
-                    <span className="text-text-tertiary text-sm">
-                      Commentaire
-                    </span>
-                    <span className="text-text-primary text-sm font-medium text-right max-w-[60%]">
-                      {tx.comment}
-                    </span>
-                  </div>
-                )}
-                <div className="flex justify-between">
-                  <span className="text-text-tertiary text-sm">Créé le</span>
-                  <span className="text-text-primary text-sm font-medium">
-                    {formatDate((tx as any).created_at || (tx as any).createdAt)}
-                  </span>
-                </div>
-                {(tx as any).approved_at && (
-                  <div className="flex justify-between">
-                    <span className="text-text-tertiary text-sm">
-                      Approuvé le
-                    </span>
+                    <span className="text-text-tertiary text-sm">Type</span>
                     <span className="text-text-primary text-sm font-medium">
-                      {formatDate((tx as any).approved_at)}
+                      {tx.type === "INCOME" ? "Entrée" : "Sortie"}
                     </span>
                   </div>
-                )}
-              </div>
-            </div>
+                  <div className="flex justify-between">
+                    <span className="text-text-tertiary text-sm">Caisse</span>
+                    <span className="text-text-primary text-sm font-medium">
+                      {(tx as any).source_caisse_id ||
+                        (tx as any).sourceCaisseId ||
+                        "Principale"}
+                    </span>
+                  </div>
+                  {tx.comment && (
+                    <div className="flex justify-between">
+                      <span className="text-text-tertiary text-sm">
+                        Commentaire
+                      </span>
+                      <span className="text-text-primary text-sm font-medium text-right max-w-[60%]">
+                        {tx.comment}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <span className="text-text-tertiary text-sm">Créé le</span>
+                    <span className="text-text-primary text-sm font-medium">
+                      {formatDate(
+                        (tx as any).created_at || (tx as any).createdAt,
+                      )}
+                    </span>
+                  </div>
+                  {(tx as any).approved_at && (
+                    <div className="flex justify-between">
+                      <span className="text-text-tertiary text-sm">
+                        Approuvé le
+                      </span>
+                      <span className="text-text-primary text-sm font-medium">
+                        {formatDate((tx as any).approved_at)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </MotionCard>
+            </motion.div>
 
             {/* Actions */}
-            <div className="space-y-2 mb-6">
+            <motion.div
+              initial="hidden"
+              animate="visible"
+              variants={CARD_VARIANTS}
+              transition={{ delay: 0.32 }}
+              className="space-y-2 mb-6"
+            >
               {tx.status === "PENDING" && (
                 <>
                   {canApproveMulti.allowed && (
@@ -436,7 +496,12 @@ export default function TransactionDetail() {
                         onClick={handleApprove}
                         disabled={guard.submitting || selfApprovalBlocked}
                         data-testid="approve-button"
-                        className="w-full py-4 rounded-full font-semibold text-on-accent text-sm transition-all active:scale-95 disabled:opacity-50"
+                        className={cn(
+                          "w-full py-4 rounded-full font-semibold text-on-accent text-sm transition-all active:scale-95 disabled:opacity-50",
+                          guard.submitting || selfApprovalBlocked
+                            ? "opacity-50"
+                            : "",
+                        )}
                         style={{ backgroundColor: "var(--in)" }}
                       >
                         Approuver
@@ -509,137 +574,169 @@ export default function TransactionDetail() {
                     Supprimer
                   </button>
                 )}
-            </div>
+            </motion.div>
 
             {/* Reversal */}
             {reversal && (
-              <div
-                className="rounded-xl p-4 mb-6"
-                style={{
-                  backgroundColor: "var(--surface)",
-                  border: "1px solid color-mix(in srgb, var(--warn) 20%, transparent)",
-                }}
+              <motion.div
+                initial="hidden"
+                animate="visible"
+                variants={CARD_VARIANTS}
+                transition={{ delay: 0.4 }}
+                className="mb-6"
               >
-                <p className="text-text-tertiary text-xs mb-2">
-                  Contre-transaction
-                </p>
-                <p className="text-text-primary text-sm font-medium">
-                  {reversal.description}
-                </p>
-                <p className="text-text-tertiary text-xs mt-1">
-                  {formatDate(reversal.date)}
-                </p>
-              </div>
-            )}
-
-            {/* Justificatifs (reçus) — PR9 : image ou PDF attaché à la
-                transaction, synchronisé entre appareils de l'organisation. */}
-            <JustificatifsSection transactionId={tx.id} />
-
-            {/* Reject Modal */}
-            {showRejectModal && (
-              <div
-                ref={rejectModalRef}
-                role="dialog"
-                aria-modal="true"
-                className="fixed inset-0 z-overlay flex items-center justify-center p-4 outline-none"
-                style={{ backgroundColor: "var(--scrim)" }}
-              >
-                <div
-                  className="w-full max-w-sm rounded-2xl p-5"
-                  style={{ backgroundColor: "var(--surface)" }}
+                <MotionCard
+                  variant="flat"
+                  className="p-5"
+                  style={{
+                    backgroundColor: "var(--surface)",
+                    border: "1px solid color-mix(in srgb, var(--warn) 20%, transparent)",
+                  }}
                 >
-                  <h3 className="text-text-primary font-semibold text-lg mb-4">
-                    Rejeter la transaction
-                  </h3>
-                  <textarea
-                    value={rejectComment}
-                    onChange={(e) => setRejectComment(e.target.value)}
-                    placeholder="Raison du rejet (optionnel)"
-                    rows={3}
-                    className="w-full px-4 py-3 rounded-xl text-sm  mb-4 resize-none"
-                    style={{
-                      backgroundColor: "var(--surface-hover)",
-                      color: "var(--text-primary)",
-                      border: "1px solid var(--surface-active)",
-                    }}
-                  />
-                  <div className="flex gap-2">
-                    <button
-                      onClick={handleRejectConfirm}
-                      disabled={guard.submitting}
-                      className="flex-1 py-3 rounded-full font-semibold text-on-accent text-sm"
-                      style={{ backgroundColor: "var(--out)" }}
-                    >
-                      Rejeter
-                    </button>
-                    <button
-                      onClick={() => setShowRejectModal(false)}
-                      className="px-4 py-3 rounded-full font-medium text-sm"
-                      style={{ backgroundColor: "var(--surface-hover)" }}
-                    >
-                      Annuler
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Reverse Modal */}
-            {showReverseModal && (
-              <div
-                ref={reverseModalRef}
-                role="dialog"
-                aria-modal="true"
-                className="fixed inset-0 z-overlay flex items-center justify-center p-4 outline-none"
-                style={{ backgroundColor: "var(--scrim)" }}
-              >
-                <div
-                  className="w-full max-w-sm rounded-2xl p-5"
-                  style={{ backgroundColor: "var(--surface)" }}
-                >
-                  <h3 className="text-text-primary font-semibold text-lg mb-4">
-                    Contre-transagir
-                  </h3>
-                  <p className="text-text-tertiary text-sm mb-4">
-                    Raison de la contre-transaction
+                  <p className="text-text-tertiary text-xs mb-2">
+                    Contre-transaction
                   </p>
-                  <textarea
-                    value={reverseReason}
-                    onChange={(e) => setReverseReason(e.target.value)}
-                    placeholder="Ex: Erreur de montant"
-                    rows={3}
-                    className="w-full px-4 py-3 rounded-xl text-sm  mb-4 resize-none"
-                    style={{
-                      backgroundColor: "var(--surface-hover)",
-                      color: "var(--text-primary)",
-                      border: "1px solid var(--surface-active)",
-                    }}
-                  />
-                  <div className="flex gap-2">
-                    <button
-                      onClick={handleReverse}
-                      disabled={guard.submitting}
-                      className="flex-1 py-3 rounded-full font-semibold text-on-accent text-sm"
-                      style={{ backgroundColor: "var(--warn)" }}
-                    >
-                      Confirmer
-                    </button>
-                    <button
-                      onClick={() => setShowReverseModal(false)}
-                      className="px-4 py-3 rounded-full font-medium text-sm"
-                      style={{ backgroundColor: "var(--surface-hover)" }}
-                    >
-                      Annuler
-                    </button>
-                  </div>
-                </div>
-              </div>
+                  <p className="text-text-primary text-sm font-medium">
+                    {reversal.description}
+                  </p>
+                  <p className="text-text-tertiary text-xs mt-1">
+                    {formatDate(reversal.date)}
+                  </p>
+                </MotionCard>
+              </motion.div>
             )}
+
+            {/* Justificatifs */}
+            <motion.div
+              initial="hidden"
+              animate="visible"
+              variants={CARD_VARIANTS}
+              transition={{ delay: 0.48 }}
+              className="mb-6"
+            >
+              <JustificatifsSection transactionId={tx.id} />
+            </motion.div>
           </div>
           <BottomNav />
         </div>
       </IonContent>
+
+      {/* Reject Modal */}
+      <AnimatePresence>
+        {showRejectModal && (
+          <motion.div
+            ref={rejectModalRef}
+            role="dialog"
+            aria-modal="true"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] flex items-center justify-center p-4 outline-none"
+            style={{ backgroundColor: "var(--scrim)" }}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="w-full max-w-sm rounded-2xl p-5"
+              style={{ backgroundColor: "var(--surface)" }}
+            >
+              <h3 className="text-text-primary font-semibold text-lg mb-4">
+                Rejeter la transaction
+              </h3>
+              <textarea
+                value={rejectComment}
+                onChange={(e) => setRejectComment(e.target.value)}
+                placeholder="Raison du rejet (optionnel)"
+                rows={3}
+                className="w-full px-4 py-3 rounded-xl text-sm mb-4 resize-none"
+                style={{
+                  backgroundColor: "var(--surface-hover)",
+                  color: "var(--text-primary)",
+                  border: "1px solid var(--surface-active)",
+                }}
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={handleRejectConfirm}
+                  disabled={guard.submitting}
+                  className="flex-1 py-3 rounded-full font-semibold text-on-accent text-sm"
+                  style={{ backgroundColor: "var(--out)" }}
+                >
+                  Rejeter
+                </button>
+                <button
+                  onClick={() => setShowRejectModal(false)}
+                  className="px-4 py-3 rounded-full font-medium text-sm"
+                  style={{ backgroundColor: "var(--surface-hover)" }}
+                >
+                  Annuler
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Reverse Modal */}
+      <AnimatePresence>
+        {showReverseModal && (
+          <motion.div
+            ref={reverseModalRef}
+            role="dialog"
+            aria-modal="true"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] flex items-center justify-center p-4 outline-none"
+            style={{ backgroundColor: "var(--scrim)" }}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="w-full max-w-sm rounded-2xl p-5"
+              style={{ backgroundColor: "var(--surface)" }}
+            >
+              <h3 className="text-text-primary font-semibold text-lg mb-4">
+                Contre-transagir
+              </h3>
+              <p className="text-text-tertiary text-sm mb-4">
+                Raison de la contre-transaction
+              </p>
+              <textarea
+                value={reverseReason}
+                onChange={(e) => setReverseReason(e.target.value)}
+                placeholder="Ex: Erreur de montant"
+                rows={3}
+                className="w-full px-4 py-3 rounded-xl text-sm mb-4 resize-none"
+                style={{
+                  backgroundColor: "var(--surface-hover)",
+                  color: "var(--text-primary)",
+                  border: "1px solid var(--surface-active)",
+                }}
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={handleReverse}
+                  disabled={guard.submitting}
+                  className="flex-1 py-3 rounded-full font-semibold text-on-accent text-sm"
+                  style={{ backgroundColor: "var(--warn)" }}
+                >
+                  Confirmer
+                </button>
+                <button
+                  onClick={() => setShowReverseModal(false)}
+                  className="px-4 py-3 rounded-full font-medium text-sm"
+                  style={{ backgroundColor: "var(--surface-hover)" }}
+                >
+                  Annuler
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </IonPage>
   );
 }

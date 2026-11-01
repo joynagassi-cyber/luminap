@@ -37,6 +37,7 @@ import { getOrganizationId } from "@/lib/orgContext";
 import { recordScreenUsage } from "@/lib/usageStats";
 import { useOrgMembership } from "@/hooks/useOrgMembership";
 import { roleHasPermission } from "@/lib/rbac";
+import { LaboToggleLazy } from "@/labo/labo-toggle-lazy";
 import {
   getDeepLinkOrgIntent,
   setDeepLinkOrgIntent,
@@ -86,12 +87,26 @@ function RouteGuard() {
   const [userRole, setUserRole] = useState<string | null>(null);
 
   // Layer 1: initial check on mount (cold start / hard reload / direct URL).
+  // `Promise.race` avec un timeout de 5s garantit que le check ne peut JAMAIS
+  // pendre indéfiniment (même si `getSession()` résout ni ne rejette).
   useEffect(() => {
     const check = async () => {
-      const session = await authService.getSession();
-      setIsAuthenticated(!!session);
-      setUserRole(authService.getState().profile?.role ?? null);
-      setIsAuthChecked(true);
+      const timeout = new Promise<never>((_res, rej) =>
+        setTimeout(() => rej(new Error("auth timeout")), 5000),
+      );
+      try {
+        const session = await Promise.race([authService.getSession(), timeout]);
+        setIsAuthenticated(!!session);
+        setUserRole(authService.getState().profile?.role ?? null);
+      } catch (e) {
+        // Ne laisse JAMAIS le check bloquer : on marque comme non-authentifié
+        // et on continue, le résolveur gérera la redirection.
+        console.warn("[RouteGuard] getSession failed:", e);
+        setIsAuthenticated(false);
+        setUserRole(null);
+      } finally {
+        setIsAuthChecked(true);
+      }
     };
     check();
   }, []);
@@ -179,6 +194,10 @@ function RouteGuard() {
         />
         <p style={{ color: "var(--text-tertiary)", fontSize: 12 }}>
           Chargement…
+        </p>
+        {/* Diagnostic temporaire : état de l'auth visible à l'écran */}
+        <p style={{ color: "var(--accent-primary)", fontSize: 10, marginTop: 8 }}>
+          [DIAG] auth en cours…
         </p>
       </div>
     );
@@ -491,6 +510,9 @@ const App = () => (
                   />
                 </Routes>
               </IonRouterOutlet>
+
+              {/* Labo — développement uniquement, exclu du build prod (import dynamique) */}
+              <LaboToggleLazy />
             </main>
           </AppProvider>
         </IonReactRouter>
