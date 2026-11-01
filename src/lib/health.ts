@@ -14,7 +14,7 @@ import { useEffect, useState } from "react";
 
 import { Capacitor } from "@capacitor/core";
 
-import { getRecentErrors } from "./clientErrors";
+import { getRecentErrors, redact } from "./clientErrors";
 import { isPowerSyncReadyNow } from "./dataLayer";
 import { getOrganizationId, hasResolvedOrganization } from "./orgContext";
 import { normalizeText } from "./sanitize";
@@ -147,8 +147,9 @@ export function collectHealthInputs(online: boolean): HealthInputs {
 /**
  * Construit un rapport de diagnostic **copiable** (Phase 11, « Signaler un
  * problème »). Pur et sans PII : mêmes champs que le rapport santé, plus les
- * dernières erreurs **déjà expurgées** par `clientErrors.redact`. Utilisé par
- * le bouton « Copier le diagnostic » de la page Santé.
+ * dernières erreurs **expurgées par `clientErrors.redact`** (e-mails, jetons)
+ * puis neutralisées (`normalizeText`). Utilisé par le bouton « Copier le
+ * diagnostic » de la page Santé.
  */
 export function buildDiagnosticReport(
   inputs: HealthInputs,
@@ -167,10 +168,13 @@ export function buildDiagnosticReport(
   ];
   errors.slice(0, 5).forEach((e, i) => {
     // `e.message` provient d'une erreur runtime, donc indirectement de
-    // données/entrées hostiles : on retire les caractères de contrôle (dont
-    // les séquences ANSI ESC) et on plafonne, pour que le texte collé dans un
-    // rapport de bug reste du texte inerte et borné.
-    lines.push(`  ${i + 1}. ${normalizeText(e.message, { maxLength: 500 })}`);
+    // données/entrées hostiles. On le repasse par `redact` (e-mails, jetons)
+    // puis on retire les caractères de contrôle (dont les séquences ANSI ESC)
+    // et on plafonne : même si le tampon a déjà expurgé, le texte collé dans un
+    // rapport de bug reste du texte inerte, borné et sans PII.
+    lines.push(
+      `  ${i + 1}. ${normalizeText(redact(e.message), { maxLength: 500 })}`,
+    );
   });
   return lines.join("\n");
 }
