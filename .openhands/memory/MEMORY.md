@@ -1107,3 +1107,23 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
 - **Token GitHub** : `$GITHUB_TOKEN` de l'env peut être **expiré (401)** ; le
   token embarqué dans `git remote get-url origin` sert alors à l'API REST.
 - **PDF tutoriel** : `docs/agent/GUIDE_ECRANS.pdf` (35 pages, 5,4 Mo).
+
+## Observabilité → GitHub Issues (auto-correction OpenHands) — 2026-11-01
+- **Chaîne** : erreur client → `src/lib/observability/errorReporter.ts`
+  (classify/dedupe/queue) → edge `report-error` → Issue GitHub labellisée
+  **`openhands`** sur `joynagassi-cyber/luminap` → correction autonome.
+- **Capture** : `clientErrors.ts` (onerror/unhandledrejection), `App.tsx`
+  ErrorBoundary, `lazy-route.tsx`, `SupabaseConnector.ts` (sync), `perfMonitor.ts`
+  (long tasks). Kill switch : drapeau `error-reporting`.
+- **Voie pré-login (anonyme)** : `report-error` = `verify_jwt:false` ; la
+  fonction vérifie l'appelant (`auth.getUser`) ; anonyme plafonné 5/h (bucket
+  `ip:<sha256(salt+ip)>`), authentifié 20/h (`user:<uuid>`). Sans
+  `SERVICE_ROLE_KEY` → 503. RPC `register_anonymous_report` SECURITY DEFINER,
+  EXECUTE réservé à service_role ; table `error_report_throttle` deny-all
+  (migration `20261101000002`, rollback fourni).
+- **Piège** : le jeton GitHub vit UNIQUEMENT côté edge (`GITHUB_TOKEN`) ;
+  garde statique `error-to-issue-integration-guard.test.ts` (26) l'impose.
+- **Piège env** : `npx vitest run --reporter=basic` échoue (vitest 5) ;
+  lancer `npx vitest run`.
+- **Après tout changement de schéma** : régénérer `docs/agent/rls-inventory.json`
+  (garde `rls-inventory.test.ts`) et `docs/agent/migration-drift.json`.
