@@ -1104,3 +1104,28 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   **valeurs parsées** (pas le texte brut : les commentaires documentant les motifs
   interdits feraient échouer le test). `build.py` n'imprime plus `r["path"]`.
 - Dépendance dev ajoutée : `yaml` (pnpm).
+
+## Migration app-wide jetons d'argent --data-* → --in/--out/--warn (2026-11-01, PR #193, commit 6213021)
+- **Renommage complet** : `--data-income`→`--in`, `--data-expense`→`--out`,
+  `--data-expense-hover`→`--out-hover`, `--data-pending`→`--warn` (~450 occ.,
+  ~86 fichiers) : écrans, composants, `tailwind.config.ts`, `src/ionic/theme.ts`
+  (catalogue TS `in/out/warn` + triplets `-rgb`), `src/lib/{utils,badges,
+  event-status,export,tutorialContent}.ts`, `capabilities/federation`, SVG
+  `public/diagrams/domain-logic.svg`, sélecteur Cypress `forms-v2.cy.ts`.
+- **App.css** : anciens noms SUPPRIMÉS (plus d'alias) ; `--out-hover` ajouté
+  dans les 2 modes (`#ef4444` sombre / `#991b1b` clair). Les jetons statuts
+  hors-argent RESTENT en `--data-*` (`planified/advance/pink/exhausted/success/
+  muted/alert`) — ne pas les confondre.
+- **theme.ts** : valeurs mode-aware `in:#4ADE80/out:#F87171/warn:#FBBF24` (sombre),
+  `in:#166534/out:#B91C1C/warn:#92400E` (clair) — le drift guard compare à App.css.
+- **export.ts** : le PNG canvas ne lit pas les CSS vars → résolution runtime
+  `getComputedStyle(document.documentElement).getPropertyValue('--in')` + repli.
+- **Garde** : `src/lib/__tests__/money-token-migration.test.ts` (4) — scanne
+  src/cypress/public + tailwind.config.ts + index.html, interdit le retour des
+  anciens noms (s'auto-exclut). Non-vacuité : `utils.ts` → `var(--data-income)`
+  ⇒ échec `src/lib/utils.ts → --data-income`.
+- **Piège** : ordre sed `-expense-hover` AVANT `-expense` (sinon
+  `--data-expense-hover`→`--out-hover` cassé : `--data-expense` match d'abord).
+- Gates : vitest 206 fichiers / 2157 passés ; tsc 0 ; eslint 0 erreur.
+- Hors périmètre laissé : `--data-danger` non défini (repli en dur) dans
+  UpdateDialog.tsx + SettingsAbout.tsx (pré-existant).
