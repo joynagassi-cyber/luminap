@@ -87,6 +87,12 @@ export default function TransactionNew() {
   const [proofUploading, setProofUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const amountRef = useRef<any>(null);
+  // Garde SYNCHRONE anti double-soumission : `submitting` (état React) n'est
+  // appliqué qu'APRÈS le re-rendu, donc deux clics rapprochés sur un appareil
+  // lent peuvent appeler `addTransactionPS` deux fois — un enregistrement
+  // financier en double. Le verrou `ref` est posé avant tout `await`, donc
+  // insensible au timing du re-rendu.
+  const submitLockRef = useRef(false);
   const keyboardHeight = useKeyboardAvoidance();
   const isOnline = useOnlineStatus();
 
@@ -120,7 +126,7 @@ export default function TransactionNew() {
     if (first) setCategoryId(first);
   }, [categoryId, filteredCategories]);
 
-  const handleSubmit = async () => {
+  const submitTransaction = async () => {
     const trimmedAmount = amount.trim();
     const trimmedDesc = description.trim();
     const trimmedCatId = categoryId?.toString().trim();
@@ -216,6 +222,17 @@ export default function TransactionNew() {
     }
 
     navigate(`/transaction/${txId}`);
+  };
+
+  const handleSubmit = async () => {
+    // Verrou synchrone : la 2e soumission concurrente sort immédiatement.
+    if (submitLockRef.current) return;
+    submitLockRef.current = true;
+    try {
+      await submitTransaction();
+    } finally {
+      submitLockRef.current = false;
+    }
   };
 
   return (
