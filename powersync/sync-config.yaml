@@ -373,3 +373,65 @@ streams:
     query: |
       SELECT * FROM transaction_attachments
       WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+
+  # ── Tables du schéma client SANS stream (défaut mesuré 2026-11-01) ───────
+  # Ces 9 tables figurent dans `src/lib/powersync/schema.ts` et sont lues via
+  # le SQL LOCAL (`useQuery` / `db.execute`) MAIS n'étaient synchronisées par
+  # AUCUN stream : leur réplique restait donc vide (lecture locale = vide ;
+  # `/trace`, `/budgets`, `/giving`, corbeille `documents`) et un appareil neuf
+  # ne les recevait jamais. Vérifié contre la config DÉPLOYÉE
+  # (`powersync fetch status`). Toutes portent `org_id` (vérifié en base) →
+  # filtre direct éprouvé (cf. R89.b), pas de JOIN.
+  audit_entries:
+    auto_subscribe: true
+    query: |
+      SELECT * FROM audit_entries
+      WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+
+  documents:
+    auto_subscribe: true
+    query: |
+      SELECT * FROM documents
+      WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+
+  org_budgets:
+    auto_subscribe: true
+    query: |
+      SELECT * FROM org_budgets
+      WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+
+  org_budget_lines:
+    auto_subscribe: true
+    query: |
+      SELECT * FROM org_budget_lines
+      WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+
+  giving_donors:
+    auto_subscribe: true
+    query: |
+      SELECT * FROM giving_donors
+      WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+
+  giving_campaigns:
+    auto_subscribe: true
+    query: |
+      SELECT * FROM giving_campaigns
+      WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+
+  pledges:
+    auto_subscribe: true
+    query: |
+      SELECT * FROM pledges
+      WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+
+  tax_receipts:
+    auto_subscribe: true
+    query: |
+      SELECT * FROM tax_receipts
+      WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+
+  transaction_giving:
+    auto_subscribe: true
+    query: |
+      SELECT * FROM transaction_giving
+      WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
