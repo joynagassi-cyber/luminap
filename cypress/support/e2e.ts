@@ -949,6 +949,11 @@ import './local';
 // org-data specs can run offline. See cypress/support/orgReplica.ts.
 import './orgReplica';
 
+// Register the RICH demo-organization seeder (seedDemoOrg) used by the
+// screenshot/visual-docs spec (cypress/e2e/screenshots.cy.ts) so every screen
+// renders with realistic data. See cypress/support/visualSeed.ts.
+import './visualSeed';
+
 // Register the Ionic UI helpers (clickButton, typeIonicInput,
 // expectNoBlankScreen) — see cypress/support/ionic.ts for why they exist.
 import './ionic';

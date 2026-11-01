@@ -14,11 +14,14 @@
  *   - PR2 — export/sauvegarde : le bouton JSON est activé dès que la réplique
  *     est prête et déclenche bien un téléchargement.
  *   - PR1 — journal d'audit consultable : /trace rend son état vide honnête.
+ *   - PR4 — page de santé : état général + relevés présents, sans écran vide.
+ *   - PR5 — « Signaler un problème » : l'envoi est RÉEL (journal local) et la
+ *     ligne « dernier signalement » le prouve, sans PII.
  *
  * NB : pas de `import { cy }` — `cy` est global dans le runner (voir
  * local-dashboard.cy.ts pour le détail du piège de bundling).
  */
-describe('Lumina — features de robustesse (PR8/PR13/PR15/PR2/PR1)', () => {
+describe('Lumina — features de robustesse (PR8/PR13/PR15/PR2/PR1/PR4/PR5)', () => {
   before(function () {
     this.timeout(90_000);
     cy.interceptCloud();
@@ -212,5 +215,54 @@ describe('Lumina — features de robustesse (PR8/PR13/PR15/PR2/PR1)', () => {
     );
     // Les filtres d'entité existent et l'état vide est explicite.
     cy.contains('Transaction', { timeout: 20_000 }).should('exist');
+  });
+
+  it('PR4 — la page Santé affiche l\'état général et ses relevés (jamais vide)', function () {
+    this.timeout(120_000);
+    cy.visit('/settings/health');
+    // L'état général est posé AVANT le rendu (fail-safe : jamais de trou).
+    cy.get('[data-testid="health.overall"]', { timeout: 40_000 })
+      .should('exist')
+      .and(($el) => {
+        const level = $el.attr('data-health-overall');
+        expect(
+          ['ok', 'warn', 'error'],
+          'l\'état général doit être un niveau valide',
+        ).to.include(level);
+      });
+    // Au moins un relevé détaillé (version, réseau, synchronisation…) est rendu.
+    cy.get('[data-testid^="health.check."]').should('have.length.gte', 1);
+  });
+
+  it('PR5 — « Signaler un problème » enregistre réellement un signalement local', function () {
+    this.timeout(120_000);
+    cy.visit('/settings/health');
+    // Aucun signalement au départ (localStorage neuf).
+    cy.get('[data-testid="health.last-report"]').should('not.exist');
+
+    cy.get('[data-testid="health.report-problem"]', { timeout: 40_000 })
+      .should('exist')
+      .click();
+    cy.get('[data-testid="health.report-note"]')
+      .should('be.visible')
+      .type('Test E2E — le bouton Enregistrer ne répond pas.');
+    cy.get('[data-testid="health.report-send"]').click();
+
+    // Preuve LOCALE de l'envoi : la ligne « dernier signalement » apparaît,
+    // même quand Sentry n'est pas configuré (dégradation gracieuse).
+    cy.get('[data-testid="health.last-report"]', { timeout: 20_000 }).should(
+      'exist',
+    );
+    // Le journal local contient bien une entrée, sans donnée personnelle.
+    cy.window().then((win) => {
+      const raw = win.localStorage.getItem('lumina-problem-reports');
+      expect(raw, 'journal local des signalements').to.be.a('string');
+      const reports = JSON.parse(raw as string) as Array<{
+        note?: string;
+        generatedAt?: string;
+      }>;
+      expect(reports.length).to.be.gte(1);
+      expect(reports[reports.length - 1].generatedAt).to.be.a('string');
+    });
   });
 });
