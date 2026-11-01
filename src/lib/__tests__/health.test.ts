@@ -19,6 +19,7 @@ const base: HealthInputs = {
   syncReady: true,
   hasOrg: true,
   orgId: "org-1",
+  orgName: "Église Lumina",
   recentErrorCount: 0,
 };
 
@@ -89,6 +90,27 @@ describe("buildHealthReport", () => {
     expect(err?.detail).toContain("boom");
     expect(err?.detail).toContain("1 erreur");
   });
+
+  it("le libellé « sync » n'expose pas le terme technique PowerSync", () => {
+    const sync = buildHealthReport(base, "t").checks.find((c) => c.id === "sync");
+    expect(sync?.label).toBe("Synchronisation");
+    expect(JSON.stringify(sync)).not.toMatch(/PowerSync/);
+  });
+
+  it("l'organisation active affiche le NOM, jamais l'ID technique", () => {
+    const org = buildHealthReport(base, "t").checks.find((c) => c.id === "org");
+    expect(org?.detail).toBe("Église Lumina");
+    expect(org?.detail).not.toBe("org-1");
+  });
+
+  it("sans nom résolu, aucun ID technique n'est affiché", () => {
+    const org = buildHealthReport(
+      { ...base, orgId: "default-org", orgName: undefined },
+      "t",
+    ).checks.find((c) => c.id === "org");
+    expect(org?.detail).not.toContain("default-org");
+    expect(org?.detail).toBe("organisation active");
+  });
 });
 
 describe("buildDiagnosticReport (Signaler un problème)", () => {
@@ -101,7 +123,7 @@ describe("buildDiagnosticReport (Signaler un problème)", () => {
     expect(txt).toContain("Diagnostic Lumina");
     expect(txt).toContain("Version : 1.0.9");
     expect(txt).toContain("Plateforme : web");
-    expect(txt).toContain("Organisation : org-1");
+    expect(txt).toContain("Organisation : Église Lumina");
     expect(txt).toContain("Erreurs récentes : 1");
     expect(txt).toContain("TypeError: x");
   });
@@ -124,6 +146,17 @@ describe("buildDiagnosticReport (Signaler un problème)", () => {
   it("organisation absente → « aucune »", () => {
     const txt = buildDiagnosticReport({ ...base, hasOrg: false }, [], "t");
     expect(txt).toContain("Organisation : aucune");
+  });
+
+  it("le diagnostic copiable ne fuit ni ID technique ni terme PowerSync", () => {
+    const txt = buildDiagnosticReport(
+      { ...base, orgId: "default-org", orgName: undefined },
+      [],
+      "t",
+    );
+    expect(txt).not.toContain("default-org");
+    expect(txt).not.toContain("PowerSync");
+    expect(txt).toContain("Organisation : active");
   });
 
   it("neutralise les caractères de contrôle dans un message d'erreur (entrée hostile)", () => {

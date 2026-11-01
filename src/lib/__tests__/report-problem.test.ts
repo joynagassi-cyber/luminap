@@ -165,6 +165,43 @@ describe("buildProblemReport — structure sans PII (PR5)", () => {
     expect(report.errors[0].message).not.toContain("admin@church.org");
   });
 
+  it("expurge les JETONS (JWT, Bearer) de la note ET des erreurs", () => {
+    const jwt = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.SflKxwRJSM";
+    const report = buildProblemReport(
+      base,
+      [{ source: "handled", message: `401 avec Bearer ${jwt}` }],
+      "t",
+      `mon token : ${jwt}`,
+    );
+    const serialized = JSON.stringify(report);
+    expect(serialized).not.toContain(jwt);
+    expect(report.note).toContain("<jwt>");
+    expect(report.errors[0].message).toContain("<jwt>");
+
+    // Un jeton opaque (non-JWT) porté par `Bearer` est aussi expurgé.
+    const opaque = buildProblemReport(
+      base,
+      [{ source: "handled", message: "401 Bearer sk_live_ABC123XYZ" }],
+      "t",
+    );
+    expect(opaque.errors[0].message).not.toContain("sk_live_ABC123XYZ");
+    expect(opaque.errors[0].message).toContain("Bearer <token>");
+  });
+
+  it("N'INTRODUIT jamais le nom d'organisation (PII non saisie)", () => {
+    // Le nom d'org alimente le contrôle « org » du rapport santé, mais
+    // `buildProblemReport` ne conserve QUE les identifiants de contrôle : le
+    // nom ne doit donc jamais atteindre le rapport.
+    const report = buildProblemReport(
+      { ...base, orgName: "Église Saint-Michel" },
+      [],
+      "t",
+    );
+    const serialized = JSON.stringify(report);
+    expect(serialized).not.toContain("Saint-Michel");
+    expect(report.failedChecks).toEqual([]);
+  });
+
   it("neutralise les caractères de contrôle et plafonne la note (entrée hostile)", () => {
     const report = buildProblemReport(
       base,
