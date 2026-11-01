@@ -473,7 +473,27 @@ function enqueue(report: ErrorReport): void {
 
 export type ReportTransport = (
   report: ErrorReport,
-) => Promise<{ ok: boolean }>;
+) => Promise<{ ok: boolean; drop?: boolean }>;
+
+/**
+ * La remontée automatique est-elle autorisée dans cet environnement ?
+ *
+ * FAUX POSITIF CORRIGÉ (audit 2026-11-01) : un serveur de développement
+ * (`vite dev`, localhost) remontait ses erreurs au dépôt PUBLIC — mesuré :
+ * ~45 Issues « Tâche longue détectée » + 4 « no such column: kind » émises
+ * depuis `environment: development` / `platform: web` / route `/reports`. Ces
+ * rapports sont du bruit pour l'agent autonome (chemins `node_modules`,
+ * artefacts HMR) et polluent le dépôt.
+ *
+ * Politique : on ne transmet QUE depuis un build de production. Un développeur
+ * qui veut tester la chaîne de bout en bout force la voie avec
+ * `VITE_REPORT_ERRORS_IN_DEV=true`. Les rapports bloqués sont RETIRÉS de la
+ * file (pas de réessai infini) mais restent visibles localement (page Santé).
+ */
+export function isTransmissionAllowed(): boolean {
+  if (import.meta.env.VITE_REPORT_ERRORS_IN_DEV === "true") return true;
+  return import.meta.env.PROD === true;
+}
 
 /**
  * Transport par défaut : appelle l'edge function `report-error`, qui détient le
@@ -487,7 +507,19 @@ export type ReportTransport = (
  * n'attache aucun en-tête `Authorization` (la clé publishable voyage en
  * `apikey`), donc l'appel est bien identifié comme anonyme côté serveur.
  */
-async function defaultTransport(report: ErrorReport): Promise<{ ok: boolean }> {
+async function defaultTransport(
+  report: ErrorReport,
+): Promise<{ ok: boolean; drop?: boolean }> {
+  if (!isTransmissionAllowed()) {
+    // Bruit de développement : on retire le rapport sans créer d'Issue.
+    console.warn(
+      "[observability] remontée GitHub ignorée hors production (dev/localhost) :",
+      report.type,
+      report.message,
+    );
+    return { ok: false, drop: true };
+  }
+
   const { supabase } = await import("@/integrations/supabase/client");
   const { data } = await supabase.auth.getSession();
   const accessToken = data?.session?.access_token;
@@ -549,9 +581,12 @@ async function runFlush(): Promise<number> {
       if (result.ok) {
         sent += 1;
         recentSignatures.set(report.signature, Date.now());
-      } else {
+      } else if (!result.drop) {
+        // Échec transitoire (hors-ligne, 5xx) → garder pour un nouvel essai.
         remaining.push(report);
       }
+      // `drop: true` (bruit de dev, environnement non autorisé) : retiré
+      // définitivement — inutile de réessayer à chaque flush.
     } catch {
       remaining.push(report);
     }

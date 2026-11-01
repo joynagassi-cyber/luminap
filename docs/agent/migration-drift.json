@@ -5,9 +5,9 @@
   "source_of_truth": "Base = source de verite (schema applique via editeur SQL / MCP, pas via `supabase db push`). Le tracker `supabase_migrations.schema_migrations` et les fichiers `supabase/migrations/` sont deux historiques disjoints.",
   "measured": {
     "applied_versions_in_tracker": 87,
-    "repo_timestamped_files": 79,
+    "repo_timestamped_files": 80,
     "repo_sequential_files": 63,
-    "repo_total_sql_files": 142,
+    "repo_total_sql_files": 143,
     "versions_in_common": 2,
     "common_versions": [
       "20261001000001",
@@ -16,7 +16,7 @@
     "applied_without_repo_file": 70,
     "repo_file_never_applied": 65,
     "drift_ratio": "2/87",
-    "repo_filenames_sha256": "922e6f49d2edcd09d5a6e96c48ca4e52ab05f2f8265d13193b67ca0922c11fcb",
+    "repo_filenames_sha256": "3098f277dad1d3c8401f7ef755fdf8d5082c0e67d70f9ad07d7a2521e28dfae2",
     "repo_db_object_delta": {
       "measured": "2026-10-31",
       "method": "recoupement exhaustif depot <-> base (tables, fonctions, triggers, vues)",

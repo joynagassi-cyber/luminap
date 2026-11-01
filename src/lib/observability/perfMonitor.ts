@@ -12,6 +12,14 @@
  *
  * Les rapports de performance sont signalés au plus une fois par fenêtre
  * (`PERF_THROTTLE_MS`) afin de rester utiles sans devenir du bruit.
+ *
+ * FAUX POSITIF CORRIGÉ (audit 2026-11-01) : le message incluait la DURÉE
+ * mesurée (`Tâche longue détectée (193 ms)`). Or la signature de dédup est
+ * calculée sur le message → chaque durée produisait une signature DISTINCTE,
+ * donc la dédup (client ET serveur) ne jouait JAMAIS : ~45 Issues identiques
+ * « Tâche longue détectée (130..470 ms) » ont été créées, déclenchant autant de
+ * tentatives de correction autonome OpenHands pour du bruit. Le message est
+ * désormais CONSTANT ; la durée vit dans `context.durationMs` (déjà présent).
  */
 import { reportError } from "./errorReporter";
 
@@ -23,6 +31,18 @@ export const SLOW_OPERATION_THRESHOLD_MS = 1500;
 
 /** Fenêtre de regroupement des signalements de performance (ms). */
 export const PERF_THROTTLE_MS = 30_000;
+
+/**
+ * Message CONSTANT d'une tâche longue. Il ne doit JAMAIS embarquer la durée :
+ * la signature de dédup (type + message + 1re trame) doit rester identique
+ * d'un signalement à l'autre, sinon chaque mesure crée une Issue. La durée est
+ * transmise dans `context.durationMs`.
+ */
+export const LONG_TASK_MESSAGE =
+  "Tâche longue détectée — interface potentiellement gelée";
+
+/** Message CONSTANT d'une opération lente (nom d'opération dans le contexte). */
+export const SLOW_OPERATION_MESSAGE = "Opération lente détectée";
 
 let lastPerfReportAt = 0;
 
@@ -36,16 +56,11 @@ function reportLongTask(duration: number): void {
   const now = Date.now();
   if (!canReportPerf(now)) return;
   lastPerfReportAt = now;
-  reportError(
-    new Error(
-      `Tâche longue détectée (${Math.round(duration)} ms) — interface potentiellement gelée`,
-    ),
-    {
-      type: "performance",
-      source: "longtask",
-      context: { durationMs: String(Math.round(duration)) },
-    },
-  );
+  reportError(new Error(LONG_TASK_MESSAGE), {
+    type: "performance",
+    source: "longtask",
+    context: { durationMs: String(Math.round(duration)) },
+  });
 }
 
 /**
@@ -88,14 +103,11 @@ export async function measureOperation<T>(
       const now = Date.now();
       if (canReportPerf(now)) {
         lastPerfReportAt = now;
-        reportError(
-          new Error(`Opération lente « ${name} » (${duration} ms)`),
-          {
-            type: "performance",
-            source: "slow-operation",
-            context: { operation: name, durationMs: String(duration) },
-          },
-        );
+        reportError(new Error(SLOW_OPERATION_MESSAGE), {
+          type: "performance",
+          source: "slow-operation",
+          context: { operation: name, durationMs: String(duration) },
+        });
       }
     }
   }
