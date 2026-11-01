@@ -117,9 +117,30 @@ exacts et cohérents avec le solde dérivé côté service.
 | Unitaires (ciblés) | `npx vitest run <9 fichiers PR5-PR19>` | **191 passed** |
 | Unitaires (complet) | `npx vitest run` | **215 fichiers, 2212 passed, 6 skipped** |
 
-## Écart NON corrigeable (assumé, hérité de la passe 1)
+## Écart CORRIGÉ en passe 4 (2026-11-01) — PII des TIERS (noms de membres)
 
-- Les noms des **autres membres** ne peuvent pas être retirés par valeur : ils
-  ne sont pas accessibles sans une lecture base, qui romprait le caractère
-  synchrone de l'envoi. Atténuation : les erreurs runtime n'interpolent pas de
-  nom de membre ; les PII à forme sont masquées partout.
+- **Écart** : un nom de **membre tiers** cité dans la note libre ou un message
+  d'erreur (« échec pour Jean-Baptiste Kouassi ») traversait le rapport vers
+  Sentry et le journal local. `redact` ne masque que les PII à FORME (e-mail,
+  jeton, téléphone) ; un nom propre n'a pas de forme détectable et ce n'est pas
+  l'identité de l'utilisateur courant, donc `scrubIdentities` ne le voyait pas.
+- **Preuve de non-vacuité initiale** : sonde `buildProblemReport(base,
+  [{message:"échec pour Jean-Baptiste Kouassi"}], "t", "voir Jean-Baptiste
+  Kouassi")` → `JSON.stringify(report)` contenait `Kouassi` (test vert avant
+  correctif).
+- **La passe 3 avait conclu à tort que c'était non corrigeable** (« les noms des
+  autres membres ne sont pas accessibles sans lecture base »). FAUX : les
+  membres de l'org active sont **synchrones** via `useMembers()` (cache
+  PowerSync/indexeddb), donc disponibles côté UI sans I/O bloquante.
+- **Correctif** : `memberIdentities(members)` extrait nom complet + prénom + nom
+  (tolérant snake_case PowerSync / camelCase store) ; `sendProblemReport` /
+  `sendProblemReportToIssues` acceptent une liste `members` et l'ajoutent aux
+  identités à masquer par valeur ; `Health.tsx` passe `useMembers().data`.
+- **Non-vacuité** : retirer `memberIdentities(members)` du calcul
+  `scopedIdentities` ⇒ `report-problem.test.ts` rouge (1 test).
+- **Contrepartie assumée** : masquer aussi le prénom isole les homonymes d'un mot
+  courant dans la note ; la sécurité PII prime sur la lisibilité du rapport.
+
+## Écarts NON corrigeables (assumés)
+
+- Aucun restant connu pour PR5 après passe 4.

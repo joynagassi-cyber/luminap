@@ -81,6 +81,7 @@ vi.mock("@/lib/powersync", () => ({ disconnectPowerSync: vi.fn(async () => undef
 vi.mock("@/lib/dataLayer", () => ({
   deleteAllLocalData: vi.fn(async () => undefined),
   useOrganizations: () => ({ data: [] }),
+  useMembers: () => ({ data: [] }),
 }));
 vi.mock("@/lib/orgContext", () => ({ resetOrganizationId: vi.fn() }));
 vi.mock("@/lib/organization-context", () => ({

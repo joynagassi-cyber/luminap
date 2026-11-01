@@ -41,6 +41,7 @@ import {
   clearProblemReports,
   isSentryConfigured,
   scrubIdentities,
+  memberIdentities,
 } from "@/lib/reportProblem";
 import { authService } from "@/lib/auth";
 import type { HealthInputs } from "@/lib/health";
@@ -485,5 +486,52 @@ describe("PR5 — audit PII adversarial (aucune fuite, tous canaux)", () => {
     expect(stored).not.toContain(MEMBER);
     expect(stored).not.toContain(EMAIL);
     expect(stored).not.toContain(PHONE);
+  });
+});
+
+/**
+ * PR5 — PII des TIERS (membres de l'organisation). Un nom propre n'a pas de
+ * forme reconnaissable : `redact` ne le masque pas et il n'est pas l'identité
+ * de l'utilisateur courant. Or un message d'erreur ou la note libre peut citer
+ * un membre (« échec pour Jean-Baptiste Kouassi ») → le nom partait vers Sentry
+ * et le journal local. `sendProblemReport`/`sendProblemReportToIssues` acceptent
+ * donc la liste des membres et en extraient les identités par VALEUR.
+ */
+describe("PR5 — PII des tiers : noms de membres retirés par valeur", () => {
+  const MEMBER = "Jean-Baptiste Kouassi";
+  const members = [{ first_name: "Jean-Baptiste", last_name: "Kouassi" }];
+
+  it("memberIdentities extrait nom complet + prénom + nom (snake_case)", () => {
+    expect(memberIdentities(members)).toEqual([
+      "Jean-Baptiste Kouassi",
+      "Jean-Baptiste",
+      "Kouassi",
+    ]);
+  });
+
+  it("memberIdentities tolère le camelCase (store local) et les entrées invalides", () => {
+    expect(memberIdentities([{ firstName: "Marie", lastName: "Dupont" }])).toEqual([
+      "Marie Dupont",
+      "Marie",
+      "Dupont",
+    ]);
+    expect(memberIdentities([null, undefined, 42, {}, { first_name: "A" }])).toEqual([]);
+  });
+
+  it("sendProblemReport masque le nom d'un membre cité dans la note ET un message d'erreur", () => {
+    const result = sendProblemReport(
+      base,
+      [{ source: "handled", message: `échec du chargement pour ${MEMBER}` }],
+      `merci de recontacter ${MEMBER}`,
+      "2026-10-31T08:00:00.000Z",
+      [],
+      members,
+    );
+    const s = JSON.stringify(result.report);
+    expect(s).not.toContain(MEMBER);
+    expect(s).not.toContain("Kouassi");
+    expect(result.report.note).toContain("<masqué>");
+    const stored = localStorage.getItem("lumina-problem-reports") ?? "";
+    expect(stored).not.toContain(MEMBER);
   });
 });

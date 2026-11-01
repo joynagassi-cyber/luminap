@@ -24,7 +24,7 @@ import {
 } from "@/lib/usageStats";
 import type { UsageStats } from "@/lib/usageStats";
 import { disconnectPowerSync } from "@/lib/powersync";
-import { deleteAllLocalData, useOrganizations } from "@/lib/dataLayer";
+import { deleteAllLocalData, useOrganizations, useMembers } from "@/lib/dataLayer";
 import { resetOrganizationId } from "@/lib/orgContext";
 import { useOrganizationContext } from "@/lib/organization-context";
 import { formatDateTime } from "@/lib/utils";
@@ -80,6 +80,11 @@ export default function Health() {
   // (`default-org`) à l'écran. `undefined` tant que la liste n'est pas chargée
   // → l'écran affiche un libellé neutre.
   const orgName = orgData?.find((o) => o.id === ctx.orgId)?.name;
+  // PR5 — identités des membres (prénom/nom) à masquer par VALEUR dans le
+  // rapport : `redact` ne reconnaît pas un nom propre, un message d'erreur ou
+  // la note libre peut donc citer un membre. Lecture synchrone depuis le cache
+  // local (aucune I/O bloquante).
+  const { data: members } = useMembers();
   const report = useHealthSnapshot(5000, orgName);
   const OverallIcon = LEVEL_ICON[report.overall];
   const [copied, setCopied] = useState(false);
@@ -116,6 +121,9 @@ export default function Health() {
         currentInputs(),
         getRecentErrors(),
         reportNote,
+        new Date().toISOString(),
+        undefined,
+        members,
       );
       setLastReport(result.report);
       setReportNote("");

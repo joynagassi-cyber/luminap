@@ -605,6 +605,11 @@ const SECTIONS: SectionData[] = [
           "Vérifiez que le champ personnalisé a bien été créé pour l'entité concernée (Transaction, Événement, etc.).",
       },
       {
+        title: "Champs obligatoires : qu'est-ce qui est vraiment requis ?",
+        solution:
+          "Les champs marqués d'un astérisque (*) sont obligatoires — pour une transaction, seuls le montant et la catégorie le sont. La description, le commentaire, l'e-mail et le téléphone sont facultatifs : laissez-les vides si vous n'en avez pas besoin.",
+      },
+      {
         title: "Événement ne s'affiche pas",
         solution:
           "Vérifiez que l'événement n'a pas été archivé. Consultez la section Archives pour le restaurer.",
