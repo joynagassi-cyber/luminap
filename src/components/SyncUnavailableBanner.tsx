@@ -14,7 +14,7 @@
  */
 import { useState } from "react";
 import { CloudOff, RotateCw } from "lucide-react";
-import { useReplicaUnavailable } from "@/lib/dataLayer";
+import { markPowerSyncReady, useReplicaUnavailable } from "@/lib/dataLayer";
 import { getPowerSyncConnector, getPowerSyncDatabase } from "@/lib/powersync";
 
 export function SyncUnavailableBanner() {
@@ -27,6 +27,10 @@ export function SyncUnavailableBanner() {
     setRetrying(true);
     try {
       await getPowerSyncDatabase().connect(getPowerSyncConnector());
+      // Reconnexion réussie : lever l'état « indisponible » pour que la
+      // bannière se referme sans rechargement (le listener de disponibilité
+      // referme le hook, qui relit l'état vrai).
+      markPowerSyncReady();
     } catch {
       // La reconnexion est best-effort : PowerSync retente de lui-même.
     } finally {
