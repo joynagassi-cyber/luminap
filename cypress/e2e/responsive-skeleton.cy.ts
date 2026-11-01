@@ -16,8 +16,8 @@
  *     modes light/dark : le `.shimmer` (l'animation du skeleton,
  *     src/App.css:258) est présent dans les deux modes — le
  *     balayage lumineux du skeleton utilise `--skeleton-base`
- *     (dark #212121 / light #eef0f2) et `--skeleton-highlight`
- *     (dark #2b2b2b / light #e0e3e7) — on vérifie que le token
+ *     (dark #1a1a1c / light #eef0f2) et `--skeleton-highlight`
+ *     (dark #232326 / light #e0e3e7) — on vérifie que le token
  *     effectif change bien avec le mode (complétude du skeleton).
  *
  * Le spec est OFFLINE (interceptCloud) + seed local (le seed
@@ -166,15 +166,19 @@ describe('Lumina — responsive (mobile + landscape) + skeleton light/dark', () 
       });
   });
 
-  it('le skeleton S AFFICHE en mode DARK (token --skeleton-base = #212121)', function () {
+  it('le skeleton S AFFICHE en mode DARK (token --skeleton-base = #1a1a1c)', function () {
     this.timeout(90_000);
 
     cy.viewport(390, 844);
     seedForcedSkeleton();
-    // Le mode DARK est le défaut (src/ionic/themes.ts:193) — on
-    // n écrit PAS lumina-theme-mode, le <html> porte
-    // data-theme="dark".
-    cy.visit('/dashboard');
+    // Mode DARK explicite : depuis #193 le défaut est « system », qui
+    // résout vers la préférence de l'OS (non déterministe en CI) — on
+    // force donc « dark » AVANT le 1er paint pour un test stable.
+    cy.visit('/dashboard', {
+      onBeforeLoad(win) {
+        win.localStorage.setItem('lumina-theme-mode', 'dark');
+      },
+    });
     cy.location('pathname', { timeout: 60_000 }).should('eq', '/dashboard');
 
     // 1. La page a RENDU (ni écran noir ni blanc) — l assertion ne
@@ -187,19 +191,19 @@ describe('Lumina — responsive (mobile + landscape) + skeleton light/dark', () 
       timeout: 60_000,
     }).should('exist');
 
-    // 2. Le token du skeleton est EN MODE DARK (src/App.css:84-85
-    //    — --skeleton-base: #212121, --skeleton-highlight:
-    //    #2b2b2b) : on lit le computed value EFFECTIF sur <html>
-    //    (pas seulement le data-theme) — c est l assertion de la
-    //    complétude du skeleton dark.
+    // 2. Le token du skeleton est EN MODE DARK (src/App.css:106-107
+    //    — --skeleton-base: #1a1a1c, --skeleton-highlight: #232326,
+    //    valeurs de la maquette dashboard-MF #193) : on lit le computed
+    //    value EFFECTIF sur <html> (pas seulement le data-theme) — c est
+    //    l assertion de la complétude du skeleton dark.
     cy.window().then((win) => {
       const cs = win.getComputedStyle(win.document.documentElement);
-      expect(normalizeHex(cs.getPropertyValue('--skeleton-base').trim())).to.eq('#212121');
-      expect(normalizeHex(cs.getPropertyValue('--skeleton-highlight').trim())).to.eq('#2b2b2b');
+      expect(normalizeHex(cs.getPropertyValue('--skeleton-base').trim())).to.eq('#1a1a1c');
+      expect(normalizeHex(cs.getPropertyValue('--skeleton-highlight').trim())).to.eq('#232326');
       // Le skeleton est visible sur le canvas sombre :
-      // --canvas dark = #121212 (le balayage #212121→#2b2b2b est
-      // bien contrastant sur ce fond).
-      expect(normalizeHex(cs.getPropertyValue('--canvas').trim())).to.eq('#121212');
+      // --canvas dark = #0f0f10 (#193) — le balayage #1a1a1c→#232326
+      // est bien contrastant sur ce fond.
+      expect(normalizeHex(cs.getPropertyValue('--canvas').trim())).to.eq('#0f0f10');
     });
   });
 
@@ -226,15 +230,15 @@ describe('Lumina — responsive (mobile + landscape) + skeleton light/dark', () 
       timeout: 60_000,
     }).should('exist');
 
-    // 2. Le token du skeleton est EN MODE LIGHT (src/App.css:104-
-    //    105 — --skeleton-base: #eef0f2, --skeleton-highlight:
-    //    #e0e3e7) : le balayage lumineux du skeleton est adapté
-    //    au fond clair (canvas #f5f6f8, src/App.css:93).
+    // 2. Le token du skeleton est EN MODE LIGHT (src/App.css:156-157
+    //    — --skeleton-base: #eef0f2, --skeleton-highlight: #e0e3e7) :
+    //    le balayage lumineux du skeleton est adapté au fond clair
+    //    (canvas #f7f7f8, #193).
     cy.window().then((win) => {
       const cs = win.getComputedStyle(win.document.documentElement);
       expect(normalizeHex(cs.getPropertyValue('--skeleton-base').trim())).to.eq('#eef0f2');
       expect(normalizeHex(cs.getPropertyValue('--skeleton-highlight').trim())).to.eq('#e0e3e7');
-      expect(normalizeHex(cs.getPropertyValue('--canvas').trim())).to.eq('#f5f6f8');
+      expect(normalizeHex(cs.getPropertyValue('--canvas').trim())).to.eq('#f7f7f8');
     });
   });
 });
