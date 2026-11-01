@@ -1,12 +1,14 @@
 /**
- * OrgSetup — création d'organisation en 3 étapes (Apple/Google polish).
+ * OrgSetup — création d'organisation en 5 étapes (Apple/Google polish).
  *
- * Étape 1 : Logo de l'organisation (upload ou ignorer)
- * Étape 2 : Identité — nom complet + sigle
- * Étape 3 : Détails du profil — adresse, numéro de téléphone, site web, description
+ * 1. Logo de l'organisation (upload ou ignorer)
+ * 2. Identité — nom complet + sigle
+ * 3. Type d'organisation (Église, École, Entreprise, ONG, Institution)
+ * 4. Modules à activer (Cotisations, Groupes, Événements, Caisses, etc.)
+ * 5. Détails (adresse, téléphone, site web, description) + Thème de marque
  *
- * Chaque étape est animée avec framer-motion. Le design utilise uniquement
- * des tokens CSS `var(--*)` et respecte la charte française.
+ * Design Apple/Google : tokens CSS `var(--*)` uniquement, coins arrondis,
+ * ombres subtiles, animations framer-motion, interface en français.
  */
 
 import { useState, useCallback } from "react";
@@ -23,17 +25,21 @@ import {
   FileText,
   CheckCircle,
   ArrowRight,
+  Church,
+  School,
+  Users,
+  CalendarDays,
+  Wallet,
+  Landmark,
+  KeyRound,
+  Archive,
 } from "lucide-react";
 import { IonPage, IonContent } from "@ionic/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { MotionCard } from "@/design/motion/MotionCard";
-import {
-  LUMINA_THEMES,
-  applyTheme,
-  getThemeById,
-  type ThemeId,
-} from "@/ionic/themes";
+import { LUMINA_THEMES, applyTheme, getThemeById, type ThemeId } from "@/ionic/themes";
+import ThemePicker from "@/components/ThemePicker";
 import {
   useAppConfig,
   mirrorNewOrganizationLocally,
@@ -49,12 +55,14 @@ import {
   type OrgTypeChoice,
 } from "@/lib/onboardingState";
 
-type Step = 1 | 2 | 3;
+type Step = 1 | 2 | 3 | 4 | 5;
 
 const STEP_LABELS: Record<Step, string> = {
   1: "Logo",
   2: "Identité",
-  3: "Détails",
+  3: "Type",
+  4: "Modules",
+  5: "Détails",
 };
 
 const SERVER_ORG_TYPE: Readonly<Record<OrgTypeChoice, string>> = {
@@ -75,6 +83,71 @@ const STEP_VARIANTS = {
   exit: { opacity: 0, x: -20, transition: { duration: 0.3 } },
 };
 
+const TEMPLATE_CHOICES: Array<{
+  type: OrgTypeChoice;
+  label: string;
+  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
+  desc: string;
+  defaultFeatures: string[];
+  roles: Array<{ id: string; label: string }>;
+}> = [
+  {
+    type: "Eglise",
+    label: "Église",
+    icon: Church,
+    desc: "Culte, cotisations, groupes et caisses paroissiales",
+    defaultFeatures: ["cotisations", "groupes", "evenements", "caisses", "rapports", "formulaires", "invitations", "archives"],
+    roles: [
+      { id: "PASTEUR_PRINCIPAL", label: "Pasteur principal" },
+      { id: "TREASURIER", label: "Trésorier" },
+      { id: "COMPTABLE", label: "Comptable" },
+      { id: "SECRETAIRE", label: "Secrétaire" },
+      { id: "RESPONSABLE_DEPARTEMENT", label: "Resp. département" },
+    ],
+  },
+  {
+    type: "Ecole",
+    label: "École",
+    icon: School,
+    desc: "Scolarité, événements et inscriptions",
+    defaultFeatures: ["cotisations", "evenements", "caisses", "formulaires", "invitations"],
+    roles: [
+      { id: "DIRECTEUR", label: "Directeur" },
+      { id: "ADMINISTRATION", label: "Administration" },
+      { id: "PROFESSEUR", label: "Professeur" },
+      { id: "SURVEILLANT", label: "Surveillant" },
+    ],
+  },
+  {
+    type: "Entreprise",
+    label: "Entreprise",
+    icon: Building2,
+    desc: "Magasins, caisses de vente, stock et bilans",
+    defaultFeatures: ["caisses", "groupes", "rapports", "formulaires", "invitations", "archives"],
+    roles: [
+      { id: "DIRECTEUR_REGIONAL", label: "Directeur régional" },
+      { id: "GESTIONNAIRE_MAGASIN", label: "Gestionnaire magasin" },
+      { id: "CAISSIER", label: "Caissier" },
+      { id: "EMPLOYE", label: "Employé" },
+    ],
+  },
+];
+
+const FEATURES: Array<{
+  key: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
+}> = [
+  { key: "cotisations", label: "Cotisations", icon: Landmark },
+  { key: "groupes", label: "Groupes", icon: Users },
+  { key: "evenements", label: "Événements", icon: CalendarDays },
+  { key: "caisses", label: "Caisses", icon: Wallet },
+  { key: "rapports", label: "Rapports & bilans", icon: FileText },
+  { key: "formulaires", label: "Formulaires", icon: FileText },
+  { key: "invitations", label: "Invitations", icon: KeyRound },
+  { key: "archives", label: "Archives & historique", icon: Archive },
+];
+
 export default function OrgSetup() {
   const navigate = useNavigate();
   const { config, updateConfig } = useAppConfig();
@@ -86,13 +159,27 @@ export default function OrgSetup() {
   const [createError, setCreateError] = useState<string | null>(null);
 
   // ── Étape 1 : Logo ──
-  const [logoUrl, setLogoUrl] = useState(saved.org.name ? config.churchLogo ?? "" : "");
+  const [logoUrl, setLogoUrl] = useState("");
 
   // ── Étape 2 : Identité ──
   const [name, setName] = useState(saved.org.name || config.churchName || "");
   const [sigle, setSigle] = useState(saved.org.sigle || "");
 
-  // ── Étape 3 : Détails ──
+  // ── Étape 3 : Type ──
+  const [type, setType] = useState<OrgTypeChoice | null>(
+    (saved.org.type as OrgTypeChoice) ?? DEFAULT_ORG_TYPE,
+  );
+  const [role, setRole] = useState<string | null>(saved.role ?? null);
+
+  // ── Étape 4 : Modules ──
+  const [features, setFeatures] = useState<string[]>(
+    saved.org.features.length
+      ? saved.org.features
+      : (TEMPLATE_CHOICES.find((t) => t.type === type)?.defaultFeatures ??
+          TEMPLATE_CHOICES[0].defaultFeatures),
+  );
+
+  // ── Étape 5 : Détails ──
   const [address, setAddress] = useState("");
   const [phone, setPhone] = useState("");
   const [website, setWebsite] = useState("");
@@ -101,10 +188,11 @@ export default function OrgSetup() {
     (saved.org.theme as ThemeId) ?? LUMINA_THEMES[0].id,
   );
 
-  const canCreate = name.trim().length >= 2;
+  const chosen = TEMPLATE_CHOICES.find((t) => t.type === type) ?? null;
+  const canCreate = name.trim().length >= 2 && type !== null && role !== null;
 
   const handleNext = () => {
-    if (step < 3) setStep((s) => (s + 1) as Step);
+    if (step < 5) setStep((s) => (s + 1) as Step);
   };
 
   const handleBack = () => {
@@ -127,23 +215,34 @@ export default function OrgSetup() {
     reader.readAsDataURL(file);
   };
 
+  const pickType = (t: OrgTypeChoice) => {
+    setType(t);
+    setRole(null);
+    setFeatures(
+      TEMPLATE_CHOICES.find((tc) => tc.type === t)?.defaultFeatures ??
+        TEMPLATE_CHOICES[0].defaultFeatures,
+    );
+  };
+
+  const toggleFeature = (key: string) => {
+    setFeatures((f) => (f.includes(key) ? f.filter((k) => k !== key) : [...f, key]));
+  };
+
   const handleCreate = async () => {
-    if (!canCreate) return;
+    if (!canCreate || !chosen) return;
     setCreating(true);
     setCreateError(null);
     try {
       const nextTheme = getThemeById(themeId);
-
       applyTheme(nextTheme);
 
       const created = await bootstrapOrganization({
         name: name.trim(),
-        type: SERVER_ORG_TYPE[DEFAULT_ORG_TYPE] ?? "CHURCH",
+        type: SERVER_ORG_TYPE[type as OrgTypeChoice] ?? "CHURCH",
       });
       const orgId = created.orgId;
 
-      const effectiveRole =
-        parseRole(created.role ?? "") ?? DEFAULT_ROLE;
+      const effectiveRole = parseRole(created.role ?? "") ?? DEFAULT_ROLE;
 
       const userId =
         authService.getState().profile?.id ??
@@ -153,7 +252,7 @@ export default function OrgSetup() {
         await mirrorNewOrganizationLocally({
           orgId,
           name: name.trim(),
-          type: SERVER_ORG_TYPE[DEFAULT_ORG_TYPE] ?? "CHURCH",
+          type: SERVER_ORG_TYPE[type as OrgTypeChoice] ?? "CHURCH",
           userId,
           role: effectiveRole,
           grantId: created.grantId ?? null,
@@ -185,15 +284,14 @@ export default function OrgSetup() {
       state.org = {
         name: name.trim(),
         sigle: sigle.trim().toUpperCase(),
-        type: DEFAULT_ORG_TYPE,
+        type,
         theme: themeId,
-        features: [],
+        features,
       };
       state.role = effectiveRole;
       completeOnboarding(state);
 
       await selectRole(effectiveRole);
-
       navigate("/dashboard", { replace: true });
     } catch (err) {
       setCreateError(
@@ -206,7 +304,7 @@ export default function OrgSetup() {
     }
   };
 
-  const progress = (step - 1) / 2;
+  const progress = (step - 1) / 4;
 
   return (
     <IonPage>
@@ -230,7 +328,7 @@ export default function OrgSetup() {
           {/* ── Stepper ── */}
           <div className="px-6 mb-8">
             <div className="flex items-center justify-between">
-              {[1, 2, 3].map((n) => {
+              {[1, 2, 3, 4, 5].map((n) => {
                 const active = step === n;
                 const completed = step > n;
                 return (
@@ -238,7 +336,7 @@ export default function OrgSetup() {
                     key={n}
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: n * 0.08 }}
+                    transition={{ delay: n * 0.06 }}
                     className="flex flex-col items-center gap-2 relative z-10"
                   >
                     <div
@@ -259,12 +357,10 @@ export default function OrgSetup() {
                     <span className="text-[10px] font-medium uppercase tracking-wider">
                       {STEP_LABELS[n as Step]}
                     </span>
-                    {n < 3 && (
+                    {n < 5 && (
                       <div
                         className={`absolute -top-2 left-1/2 -translate-x-1/2 w-full h-0.5 ${
-                          completed
-                            ? "bg-accent-primary"
-                            : "bg-border"
+                          completed ? "bg-accent-primary" : "bg-border"
                         } z-0`}
                       />
                     )}
@@ -325,9 +421,7 @@ export default function OrgSetup() {
                           />
                         ) : (
                           <>
-                            <ImageIcon
-                              className="w-12 h-12 text-text-tertiary mb-3"
-                            />
+                            <ImageIcon className="w-12 h-12 text-text-tertiary mb-3" />
                             <p className="text-sm font-medium text-text-primary">
                               Ajouter un logo
                             </p>
@@ -398,7 +492,7 @@ export default function OrgSetup() {
                       affiché dans les menus.
                     </motion.p>
 
-                    <MotionCard variant="flat" className="p-6 mb-6">
+                    <MotionCard variant="flat" className="p-6 mb-8">
                       <div className="space-y-4">
                         <div>
                           <label className="block text-xs font-semibold uppercase tracking-wider text-text-secondary mb-2">
@@ -451,7 +545,7 @@ export default function OrgSetup() {
                       </button>
                       <button
                         onClick={handleNext}
-                        disabled={!canCreate}
+                        disabled={name.trim().length < 2}
                         className="px-6 py-3 rounded-xl font-semibold text-sm text-on-accent transition-all active:scale-95 disabled:opacity-40 shadow-accent"
                         style={{ backgroundColor: "var(--accent-primary)" }}
                       >
@@ -461,8 +555,224 @@ export default function OrgSetup() {
                   </>
                 )}
 
-                {/* ── ÉTAPE 3 : Détails ── */}
+                {/* ── ÉTAPE 3 : Type d'organisation ── */}
                 {step === 3 && (
+                  <>
+                    <motion.h1
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="text-text-primary font-bold text-3xl leading-tight mb-2"
+                    >
+                      Type d’organisation
+                    </motion.h1>
+                    <motion.p
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.1 }}
+                      className="text-text-secondary text-sm leading-relaxed mb-8"
+                    >
+                      Choisissez le type qui correspond le mieux à votre
+                      organisation. Cela détermine les modules et rôles par défaut.
+                    </motion.p>
+
+                    <div className="space-y-3 mb-8">
+                      {TEMPLATE_CHOICES.map((t) => {
+                        const active = type === t.type;
+                        return (
+                          <MotionCard
+                            key={t.type}
+                            variant="flat"
+                            onPress={() => pickType(t.type)}
+                            className="p-5 flex items-start gap-4 cursor-pointer group"
+                            style={{
+                              border:
+                                active
+                                  ? "2px solid var(--accent-primary)"
+                                  : "1px solid var(--surface-hover)",
+                            }}
+                          >
+                            <div
+                              className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+                              style={{
+                                background: active
+                                  ? "color-mix(in srgb, var(--accent-primary) 20%, transparent)"
+                                  : "var(--surface-hover)",
+                              }}
+                            >
+                              <t.icon
+                                className="w-6 h-6"
+                                style={{
+                                  color: active
+                                    ? "var(--accent-primary)"
+                                    : "var(--text-tertiary)",
+                                }}
+                              />
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-text-primary font-semibold text-sm">
+                                {t.label}
+                                {active && (
+                                  <CheckCircle className="w-4 h-4 inline ml-2" />
+                                )}
+                              </p>
+                              <p className="text-text-tertiary text-xs mt-1">
+                                {t.desc}
+                              </p>
+                            </div>
+                          </MotionCard>
+                        );
+                      })}
+                    </div>
+
+                    {/* Sélection du rôle après le type */}
+                    {chosen && (
+                      <MotionCard variant="flat" className="p-6 mb-8">
+                        <p className="text-xs font-semibold uppercase tracking-wider text-text-secondary mb-3">
+                          Votre rôle
+                        </p>
+                        <div className="grid grid-cols-2 gap-3">
+                          {chosen.roles.map((r) => {
+                            const on = role === r.id;
+                            return (
+                              <MotionCard
+                                key={r.id}
+                                variant="flat"
+                                onPress={() => setRole(r.id)}
+                                className="p-4 text-center cursor-pointer group"
+                                style={{
+                                  border: on
+                                    ? "1.5px solid var(--accent-primary)"
+                                    : "1px solid var(--surface-hover)",
+                                  opacity: on ? 1 : 0.5,
+                                }}
+                              >
+                                <p
+                                  className="text-xs font-semibold"
+                                  style={{
+                                    color: on
+                                      ? "var(--accent-primary)"
+                                      : "var(--text-primary)",
+                                  }}
+                                >
+                                  {r.label}
+                                </p>
+                              </MotionCard>
+                            );
+                          })}
+                        </div>
+                      </MotionCard>
+                    )}
+
+                    <div className="flex justify-between">
+                      <button
+                        onClick={handleBack}
+                        className="py-3 rounded-xl font-medium text-sm transition-all active:scale-95"
+                        style={{
+                          backgroundColor: "var(--surface)",
+                          color: "var(--text-secondary)",
+                          border: "1px solid var(--border)",
+                        }}
+                      >
+                        <ChevronLeft className="w-4 h-4 mr-2" /> Précédent
+                      </button>
+                      <button
+                        onClick={handleNext}
+                        disabled={type === null || role === null}
+                        className="px-6 py-3 rounded-xl font-semibold text-sm text-on-accent transition-all active:scale-95 disabled:opacity-40 shadow-accent"
+                        style={{ backgroundColor: "var(--accent-primary)" }}
+                      >
+                        Suivant <ChevronRight className="w-4 h-4 ml-2" />
+                      </button>
+                    </div>
+                  </>
+                )}
+
+                {/* ── ÉTAPE 4 : Modules / Features ── */}
+                {step === 4 && (
+                  <>
+                    <motion.h1
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="text-text-primary font-bold text-3xl leading-tight mb-2"
+                    >
+                      Modules à activer
+                    </motion.h1>
+                    <motion.p
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.1 }}
+                      className="text-text-secondary text-sm leading-relaxed mb-8"
+                    >
+                      Sélectionnez les fonctionnalités dont votre organisation
+                      aura besoin. Vous pourrez les ajuster plus tard.
+                    </motion.p>
+
+                    <div className="grid grid-cols-2 gap-3 mb-8">
+                      {FEATURES.map(({ key, label, icon: Icon }) => {
+                        const on = features.includes(key);
+                        return (
+                          <MotionCard
+                            key={key}
+                            variant="flat"
+                            onPress={() => toggleFeature(key)}
+                            className="p-4 flex items-center gap-3 cursor-pointer group"
+                            style={{
+                              border: on
+                                ? "1.5px solid var(--accent-primary)"
+                                : "1px solid var(--surface-hover)",
+                              opacity: on ? 1 : 0.5,
+                            }}
+                          >
+                            <div
+                              className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                              style={{
+                                background: on
+                                  ? "color-mix(in srgb, var(--accent-primary) 20%, transparent)"
+                                  : "var(--surface-hover)",
+                              }}
+                            >
+                              <Icon
+                                className="w-4 h-4"
+                                style={{
+                                  color: on
+                                    ? "var(--accent-primary)"
+                                    : "var(--text-tertiary)",
+                                }}
+                              />
+                            </div>
+                            <p className="text-xs font-medium text-text-primary leading-tight">
+                              {label}
+                            </p>
+                          </MotionCard>
+                        );
+                      })}
+                    </div>
+
+                    <div className="flex justify-between">
+                      <button
+                        onClick={handleBack}
+                        className="py-3 rounded-xl font-medium text-sm transition-all active:scale-95"
+                        style={{
+                          backgroundColor: "var(--surface)",
+                          color: "var(--text-secondary)",
+                          border: "1px solid var(--border)",
+                        }}
+                      >
+                        <ChevronLeft className="w-4 h-4 mr-2" /> Précédent
+                      </button>
+                      <button
+                        onClick={handleNext}
+                        className="px-6 py-3 rounded-xl font-semibold text-sm text-on-accent transition-all active:scale-95 shadow-accent"
+                        style={{ backgroundColor: "var(--accent-primary)" }}
+                      >
+                        Suivant <ChevronRight className="w-4 h-4 ml-2" />
+                      </button>
+                    </div>
+                  </>
+                )}
+
+                {/* ── ÉTAPE 5 : Détails + Thème ── */}
+                {step === 5 && (
                   <>
                     <motion.h1
                       initial={{ opacity: 0, y: 10 }}
