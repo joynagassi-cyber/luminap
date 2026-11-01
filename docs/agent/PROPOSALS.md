@@ -14,7 +14,7 @@
 
 | # | Proposition | Valeur | Risque | Coût | Dépendances | Prio |
 |---|---|---|---|---|---|---|
-| PR1 ✅ | Journal d'audit consultable (UI) — `/trace` + détail d'entrée | traçabilité des actions sensibles | faible | moyen | audit_entries (existe) | P1 |
+| PR1 ✅ | Journal d'audit consultable (UI) — `/trace` + détail d'entrée. **Étendu (NeverBreak #6)** à members / cotisations / versements / groupes / événements / transferts : chaque mutation de ces services écrit désormais une entrée (`audit-coverage-guard.test.ts` + `audit-coverage-behavior.test.ts`) | traçabilité des actions sensibles | faible | moyen | audit_entries (existe) | P1 |
 | PR2 ✅ | Export/sauvegarde des données (UI) — JSON + CSV, `useBackupData` | réversibilité, passation | faible | moyen | dataLayer | P1 |
 | PR3 ✅ | Corbeille / restauration (soft-delete) — `/archives` | anti-perte | moyen | moyen | archivage (existe) | P2 |
 | PR4 ✅ | Page de santé (version, base, sync, dernières erreurs) | exploitation autonome | faible | faible | `client_errors`, PowerSync status | P1 |
