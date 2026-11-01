@@ -20,6 +20,8 @@
     "audit": "node --experimental-strip-types scripts/audit-lumina.ts",
     "cypress:open": "cypress open",
     "cypress:run": "node cypress/run.mjs",
+    "docs:screens": "npx cypress run --spec cypress/e2e/screenshots.cy.ts --browser electron",
+    "docs:visual": "python3 scripts/visual-docs/build.py",
     "cypress:chrome": "node cypress/run.mjs --browser chrome",
     "e2e:smoke": "npx cypress run --spec cypress/e2e/simple-check.cy.ts",
     "e2e:full": "bash scripts/run-cypress.sh",

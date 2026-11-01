@@ -51,7 +51,7 @@
 | 11 | « Signaler un problème » — envoi du diagnostic (PR5) | V: report-problem.test.ts | couvert |
 | 11 | Drapeaux de fonctionnalités (kill switches, PR7/R118) | `V: feature-flags.test.ts` (16 : fail-open, désactivation, surcharge locale, câblage) | **couvert** |
 | 12 | Crawler zéro écran noir | `C: zero-black-screen.cy.ts` (toutes routes × état marqué) | **couvert** (hors-cloud) |
-| 13 | Tutoriel | à créer (C) | **non couvert** |
+| 13 | Tutoriel — guide visuel (captures annotées intégrées) | `V: screen-guide-gallery.test.tsx` (5 : manifeste cohérent + captures présentes + rendu) + `C: screen-guide.cy.ts` (2 : capture annotée réellement servie) | **couvert** (non-vacuité : section sans capture ⇒ pas de galerie) |
 | 14 | Personnalisation profil/org | à créer (C) | **non couvert** |
 | 10 | Anti double-soumission (actions financières) | `V: useSubmitGuard.test.tsx` (3, jsdom) | **couvert** (TransactionDetail ; autres écrans à étendre) |
 | 9 | Erreur de sync VISIBLE (uploadError/downloadError → pill) | `V: powersync-indicator.test.ts` (3, jsdom) | **couvert** |

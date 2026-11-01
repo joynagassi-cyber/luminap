@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
+import ScreenGuideGallery from "@/components/ScreenGuideGallery";
 import {
   PieChart,
   Pie,
@@ -974,6 +975,9 @@ export default function Tutorial() {
                   </div>
                 </div>
               )}
+
+              {/* Captures d'écrans annotées (Phase 13 — guide visuel) */}
+              <ScreenGuideGallery sectionId={current.id} />
 
               {/* Tips */}
               {current.tips && current.tips.length > 0 && (

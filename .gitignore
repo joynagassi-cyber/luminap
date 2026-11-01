@@ -70,3 +70,7 @@ cypress/.r85-*
 # PowerSync CLI — fichiers de comparaison générés par `powersync pull instance`
 # (ne contiennent pas de secret en clair, mais dupliquent service.yaml/sync-config.yaml)
 powersync/*-fetched.yaml
+
+# Python (outillage scripts/visual-docs)
+__pycache__/
+*.pyc
