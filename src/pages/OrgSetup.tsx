@@ -28,7 +28,12 @@ import { IonPage, IonContent } from "@ionic/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { MotionCard } from "@/design/motion/MotionCard";
-import { LUMINA_THEMES, applyTheme, getThemeById } from "@/ionic/themes";
+import {
+  LUMINA_THEMES,
+  applyTheme,
+  getThemeById,
+  type ThemeId,
+} from "@/ionic/themes";
 import {
   useAppConfig,
   mirrorNewOrganizationLocally,
@@ -92,7 +97,9 @@ export default function OrgSetup() {
   const [phone, setPhone] = useState("");
   const [website, setWebsite] = useState("");
   const [description, setDescription] = useState("");
-  const [themeId, setThemeId] = useState(saved.org.theme ?? LUMINA_THEMES[0].id);
+  const [themeId, setThemeId] = useState<ThemeId>(
+    (saved.org.theme as ThemeId) ?? LUMINA_THEMES[0].id,
+  );
 
   const canCreate = name.trim().length >= 2;
 
@@ -529,21 +536,11 @@ export default function OrgSetup() {
                           <label className="block text-xs font-semibold uppercase tracking-wider text-text-secondary mb-2">
                             Thème de marque
                           </label>
-                          <div className="flex gap-2 overflow-x-auto pb-2">
-                            {LUMINA_THEMES.slice(0, 8).map((t) => (
-                              <button
-                                key={t.id}
-                                type="button"
-                                onClick={() => setThemeId(t.id)}
-                                className={`w-8 h-8 rounded-full flex-shrink-0 transition-all active:scale-90 border-2 ${
-                                  themeId === t.id
-                                    ? "border-accent-primary ring-2 ring-offset-2 ring-offset-surface"
-                                    : "border-border"
-                                }`}
-                                style={{ background: t.primary }}
-                              />
-                            ))}
-                          </div>
+                          <ThemePicker
+                            value={themeId}
+                            onChange={setThemeId}
+                            columns={5}
+                          />
                         </div>
                       </div>
                     </MotionCard>
