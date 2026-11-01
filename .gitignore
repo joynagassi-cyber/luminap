@@ -2,7 +2,9 @@ out/
 results.json
 
 # ── Build / runtime ─────────────────────────────────────────────────────────
-node_modules/
+# Pas de slash final : `node_modules/` ne matche pas un lien symbolique
+# `node_modules` (commité par erreur dans #390), `node_modules` si.
+node_modules
 dist/
 test-results/
 cypress/screenshots/
