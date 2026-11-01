@@ -2,6 +2,12 @@ out/
 results.json
 
 # ── Build / runtime ─────────────────────────────────────────────────────────
+# `node_modules/` (slash final) ne matche PAS un lien symbolique `node_modules`
+# (ni fichier). Un lien `node_modules` à chemin ABSOLU a été committé
+# (intégration PR #390) → `pnpm install` échouait sur CHAQUE runner CI avec
+# `ENOTDIR: not a directory, mkdir '.../node_modules'`. Les deux formes sont
+# désormais ignorées.
+node_modules
 node_modules/
 dist/
 test-results/
@@ -81,3 +87,7 @@ audit/baseline-admin/
 
 # Python venv (outillage scripts/cost-audit, scripts/pitch-deck)
 .venv/
+
+# Lockfile npm — pnpm 11 est imposé (package.json pnpm.version + CI --frozen-lockfile).
+# Le double lockfile provoquait des installs divergentes (audit 2026-10-27).
+package-lock.json

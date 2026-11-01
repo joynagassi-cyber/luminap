@@ -200,3 +200,17 @@ Parsing de montant unifié sur `parseAmountToCents` / `parseCurrencyAmount`
 | 11 | Parsing de montant partagé (virgule FR, séparateurs de milliers, bornage 2 décimales, `null` jamais `NaN`) | `V: amount-input.test.ts` (8) | **couvert** |
 | 11 | Conversion montant→centimes sans détruire la décimale (écrans finance, import CSV, formulaires, dons/promesses) | `V: money-conversion-guard.test.ts` (2, non-vacuité : réintroduire `Number(x.replace(/[^\d]/g,"")) * 100` ⇒ échec) + `V: csv-import.test.ts` + `V: formSystem-currency.test.ts` | **couvert** (non-vacuité vérifiée) |
 | 10 | Intégrité des jetons : aucun `var(--X)` applicatif ne référence un jeton non défini (hors `--radix-*`/`--sidebar-*` runtime) | `V: design-token-undefined-guard.test.ts` (3, non-vacuité : réintroduire `var(--danger)` ⇒ échec) | **couvert** (non-vacuité vérifiée) |
+
+### Synchronisation PowerSync — couverture schéma ↔ streams (2026-11-01)
+
+DÉFAUT MESURÉ (audit 360°, vérifié contre la config PowerSync **déployée** via
+`powersync fetch status`) : 9 tables du schéma client étaient lues en SQL LOCAL
+(`useQuery`/`db.execute`) mais **aucun stream** ne les synchronisait → réplique
+toujours VIDE, appareil neuf sans données, sans erreur visible. Corrigé par
+l'ajout des streams (filtre direct `org_id IN (SELECT org_id FROM profiles WHERE
+id = auth.user_id())`, éprouvé R89.b). Vérifié en base : toutes portent `org_id`
+et figurent dans la publication `powersync`.
+
+| # | Feature / correctif | Test(s) | Statut |
+|---|---|---|---|
+| 11 | Toute table du schéma client lue en LOCAL a un stream PowerSync (défaut : `audit_entries` PR1 `/trace` 5 250 lignes, `documents`, `org_budgets`, `org_budget_lines`, `giving_donors`, `giving_campaigns`, `pledges`, `tax_receipts`, `transaction_giving`) | `V: sync-stream-coverage.test.ts` (3, non-vacuité : retirer un stream ⇒ échec) | **couvert** (non-vacuité vérifiée) |

@@ -226,3 +226,30 @@ sans risque de casser des flux légitimes).
   une garde statique (lint/test) qui échoue sur `ON CONFLICT` dans `src/lib` et
   `src/capabilities`.
 - **Statut** : `org_settings` **corrigé + gardé** ; occurrences 1–2 **consignées**.
+
+## E8 — 9 tables du schéma client SANS stream PowerSync — **corrigé côté config, DÉPLOIEMENT REQUIS** (2026-11-01)
+
+- **Fait mesuré** (audit 360°, vérifié contre la config PowerSync **déployée**
+  via `powersync fetch status`, instance Production `6a9dd96302481fb31b945823`) :
+  9 tables déclarées dans `src/lib/powersync/schema.ts` et lues en SQL LOCAL
+  (`useQuery`/`db.execute`) n'avaient **aucun stream** dans
+  `powersync/sync-config.yaml` → la réplique locale reste **VIDE** en
+  permanence (écran « aucune donnée ») et un appareil neuf ne les reçoit jamais,
+  **sans erreur visible**. Tables : `audit_entries` (5 250 lignes en base —
+  piste d'audit PR1 `/trace`), `documents` (corbeille/archives PR3),
+  `org_budgets`, `org_budget_lines` (P0 budgets), `giving_donors`,
+  `giving_campaigns`, `pledges`, `tax_receipts`, `transaction_giving` (P0 dons).
+- **Vérifs** : toutes portent `org_id` en base (audit `information_schema`) et
+  figurent dans la publication `powersync` (`pg_publication_tables`) → le filtre
+  direct `org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())`
+  (motif éprouvé R89.b) suffit, sans JOIN.
+- **Correctif** : 9 streams ajoutés à `sync-config.yaml`
+  (`auto_subscribe: true`). `powersync validate` → **tous les tests passent**.
+  Garde anti-dérive : `V: sync-stream-coverage.test.ts` (3, non-vacuité :
+  retirer un stream ⇒ échec). `config` (table serveur inexistante, lue par aucun
+  code) est explicitement allowlistée.
+- **DÉPLOIEMENT REQUIS (E1)** : le correctif est côté **fichier de config** ;
+  il n'a d'effet qu'après `powersync deploy` sur l'instance Production. Non
+  effectué ici (contrainte : pas de déploiement). Tant que non déployé, les 9
+  écrans restent vides sur appareil neuf.
+- **Statut** : config **corrigée + gardée** ; **déploiement en attente**.
