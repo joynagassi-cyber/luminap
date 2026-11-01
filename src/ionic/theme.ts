@@ -25,9 +25,9 @@ const LUMINA_TOKENS = {
   textSecondary: "#A1A1AA",
   textTertiary: "#71717A",
   textPlaceholder: "#535353",
-  dataIncome: "#1DB954",
-  dataExpense: "#E51332",
-  dataPending: "#FFB800",
+  in: "#4ADE80",
+  out: "#F87171",
+  warn: "#FBBF24",
   accentPrimary: "#FF6B00",
   accentLight: "#FF8533",
   accentDark: "#CC5500",
@@ -35,7 +35,8 @@ const LUMINA_TOKENS = {
 
 type ModeTokens = { [K in keyof typeof LUMINA_TOKENS]: string };
 
-/** Lumina design tokens — light mode. Les couleurs financières + accent sont inchangées. */
+/** Lumina design tokens — light mode. Seuls les neutres + l'argent changent
+ *  de valeur ; l'accent suit le thème d'organisation (jamais le mode). */
 const LUMINA_LIGHT_TOKENS: ModeTokens = {
   ...LUMINA_TOKENS,
   canvas: "#F7F7F8",
@@ -47,6 +48,9 @@ const LUMINA_LIGHT_TOKENS: ModeTokens = {
   textSecondary: "#52525B",
   textTertiary: "#8A8F96",
   textPlaceholder: "#9AA0A8",
+  in: "#166534",
+  out: "#B91C1C",
+  warn: "#92400E",
 };
 
 const MODE_TOKENS: Record<"dark" | "light", ModeTokens> = {

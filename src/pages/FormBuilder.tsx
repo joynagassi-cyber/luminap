@@ -283,10 +283,10 @@ export default function FormBuilder() {
                         style={{
                           backgroundColor:
                             form.status === "PUBLISHED"
-                              ? "color-mix(in srgb, var(--data-income) 12%, transparent)"
-                              : "color-mix(in srgb, var(--data-pending) 12%, transparent)",
+                              ? "color-mix(in srgb, var(--in) 12%, transparent)"
+                              : "color-mix(in srgb, var(--warn) 12%, transparent)",
                           color:
-                            form.status === "PUBLISHED" ? "var(--data-income)" : "var(--data-pending)",
+                            form.status === "PUBLISHED" ? "var(--in)" : "var(--warn)",
                         }}
                       >
                         {form.status}
@@ -512,7 +512,7 @@ export default function FormBuilder() {
                         <button
                           onClick={() => removeField(field.key)}
                           aria-label={`Supprimer le champ ${field.label || "sans nom"}`}
-                          style={{ color: "var(--data-expense)" }}
+                          style={{ color: "var(--out)" }}
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -627,7 +627,7 @@ export default function FormBuilder() {
                 </div>
 
                 {error && (
-                  <p className="text-xs mb-3" style={{ color: "var(--data-expense)" }}>
+                  <p className="text-xs mb-3" style={{ color: "var(--out)" }}>
                     {error}
                   </p>
                 )}

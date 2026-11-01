@@ -299,7 +299,7 @@ export default function OrgUnits() {
                       aria-label={`Supprimer ${u.name}`}
                       className="flex-shrink-0 transition-all active:scale-95"
                       style={{
-                        color: "var(--data-expense)",
+                        color: "var(--out)",
                         background: "transparent",
                         border: "none",
                         cursor: "pointer",
@@ -318,9 +318,9 @@ export default function OrgUnits() {
               <div
                 className="mt-4 p-3 rounded-xl text-sm"
                 style={{
-                  backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)",
-                  border: "1px solid color-mix(in srgb, var(--data-expense) 25%, transparent)",
-                  color: "var(--data-expense)",
+                  backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)",
+                  border: "1px solid color-mix(in srgb, var(--out) 25%, transparent)",
+                  color: "var(--out)",
                 }}
               >
                 {error}

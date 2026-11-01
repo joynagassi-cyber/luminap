@@ -236,7 +236,7 @@ export default function SettingsProfile() {
             role="alert"
             data-testid="profile-save-error"
             className="mt-3 text-xs"
-            style={{ color: "var(--data-expense)" }}
+            style={{ color: "var(--out)" }}
           >
             Enregistrement impossible : {saveError}. Vérifiez votre connexion et
             réessayez.
@@ -298,7 +298,7 @@ export default function SettingsProfile() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-text-tertiary">
               {isOnline ? (
-                <Cloud className="w-4 h-4" style={{ color: "var(--data-income)" }} />
+                <Cloud className="w-4 h-4" style={{ color: "var(--in)" }} />
               ) : (
                 <CloudOff className="w-4 h-4" style={{ color: "var(--text-secondary)" }} />
               )}
@@ -308,9 +308,9 @@ export default function SettingsProfile() {
               className="text-xs px-2 py-0.5 rounded-full font-medium"
               style={{
                 backgroundColor: isOnline
-                  ? "color-mix(in srgb, var(--data-income) 12%, transparent)"
+                  ? "color-mix(in srgb, var(--in) 12%, transparent)"
                   : "color-mix(in srgb, var(--text-tertiary) 12%, transparent)",
-                color: isOnline ? "var(--data-income)" : "var(--text-tertiary)",
+                color: isOnline ? "var(--in)" : "var(--text-tertiary)",
               }}
             >
               {isOnline ? "Connecté" : "Hors ligne"}
@@ -338,7 +338,7 @@ export default function SettingsProfile() {
         className="w-full flex items-center justify-center gap-2 py-3 rounded-full font-medium text-sm transition-transform active:scale-95"
         style={{
           backgroundColor: "var(--surface)",
-          color: "var(--data-expense)",
+          color: "var(--out)",
           border: "1px solid var(--border)",
         }}
         aria-label="Se déconnecter"

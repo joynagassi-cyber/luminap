@@ -371,12 +371,12 @@ export default function SessionsPage() {
                     className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
                     style={{
                       backgroundColor:
-                        "color-mix(in srgb, var(--data-expense) 12%, transparent)",
+                        "color-mix(in srgb, var(--out) 12%, transparent)",
                     }}
                   >
                     <LogOut
                       className="w-5 h-5"
-                      style={{ color: "var(--data-expense)" }}
+                      style={{ color: "var(--out)" }}
                     />
                   </div>
                   <div>

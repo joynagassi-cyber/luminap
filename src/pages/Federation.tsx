@@ -44,7 +44,7 @@ import type { IonChangeCustomEvent } from "@/lib/ionic-types";
 const STATUS_LABEL = FEDERATION_STATUS_LABEL;
 
 // M22 — carte de statut UNIQUE partagée (vue liste + vue graphe) :
-// plus de map locale qui diverge (ex. SUSPENDED en accent vs data-expense).
+// plus de map locale qui diverge (ex. SUSPENDED en accent vs --out).
 const STATUS_COLOR = FEDERATION_STATUS_COLOR;
 
 /**
@@ -499,13 +499,13 @@ export default function Federation() {
               <div
                 className="rounded-xl p-4 mb-4 space-y-3"
                 style={{
-                  backgroundColor: "color-mix(in srgb, var(--data-income) 10%, transparent)",
-                  border: "1px solid color-mix(in srgb, var(--data-income) 25%, transparent)",
+                  backgroundColor: "color-mix(in srgb, var(--in) 10%, transparent)",
+                  border: "1px solid color-mix(in srgb, var(--in) 25%, transparent)",
                 }}
               >
                 <div className="flex items-center gap-2">
-                  <UserPlus className="w-4 h-4" style={{ color: "var(--data-income)" }} />
-                  <p className="text-sm font-medium" style={{ color: "var(--data-income)" }}>
+                  <UserPlus className="w-4 h-4" style={{ color: "var(--in)" }} />
+                  <p className="text-sm font-medium" style={{ color: "var(--in)" }}>
                     « {createdOrg.name} » créée (opérationnelle). Vous êtes son admin.
                   </p>
                 </div>
@@ -656,9 +656,9 @@ export default function Federation() {
               <div
                 className="mt-4 p-3 rounded-xl text-sm"
                 style={{
-                  backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)",
-                  border: "1px solid color-mix(in srgb, var(--data-expense) 25%, transparent)",
-                  color: "var(--data-expense)",
+                  backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)",
+                  border: "1px solid color-mix(in srgb, var(--out) 25%, transparent)",
+                  color: "var(--out)",
                 }}
               >
                 {error}
@@ -670,9 +670,9 @@ export default function Federation() {
               <div
                 className="mt-3 p-3 rounded-xl text-xs space-y-2"
                 style={{
-                  backgroundColor: "color-mix(in srgb, var(--data-pending) 10%, transparent)",
-                  border: "1px solid color-mix(in srgb, var(--data-pending) 25%, transparent)",
-                  color: "var(--data-pending)",
+                  backgroundColor: "color-mix(in srgb, var(--warn) 10%, transparent)",
+                  border: "1px solid color-mix(in srgb, var(--warn) 25%, transparent)",
+                  color: "var(--warn)",
                 }}
               >
                 <p className="font-semibold">

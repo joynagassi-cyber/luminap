@@ -1,7 +1,7 @@
 # Reçu — Addendum 2 : jetons de la maquette dashboard-MF, Inter, thème « système » (Phase 10)
 
 **Date :** 2026-11-01
-**Branche :** `verify/pr5-pr7-pr19-robustness-2`
+**Branche :** `design/addendum2-dashboard-mf`
 **Portée :** volet B de l'addendum 2 (design de référence), sans toucher aux
 propositions produit PR8–PR16.
 
@@ -41,16 +41,36 @@ Les jetons neufs portent des valeurs **distinctes par mode** : `--in`, `--out`,
 
 `src/pages/Dashboard.tsx` (écran de référence de la maquette) consomme
 désormais `--in` / `--out` au lieu de `--data-income` / `--data-expense`, et la
-section s'intitule « À traiter » (libellé de la maquette). Les **86 usages**
-de `--data-income/expense` dans les autres écrans ne sont **pas** touchés :
-une migration app-wide de la palette financière (vert/orange de la maquette vs
-vert/rouge historiques) reste un **arbitrage produit** — hors périmètre.
+section s'intitule « À traiter » (libellé de la maquette).
+
+### B1 (suite) — migration app-wide des jetons d'argent
+
+Les anciens jetons financiers `--data-income` / `--data-expense` /
+`--data-expense-hover` / `--data-pending` ont été **entièrement renommés** vers
+`--in` / `--out` / `--out-hover` / `--warn` dans **tout** le dépôt (~450
+occurrences, ~80 fichiers) : écrans, composants, `tailwind.config.ts`,
+`src/ionic/theme.ts` (catalogue TS + triplets `-rgb`), `src/lib/{utils,badges,
+event-status,export,tutorialContent}.ts`, `capabilities/federation`, le SVG
+`public/diagrams/domain-logic.svg` et le sélecteur Cypress `forms-v2.cy.ts`.
+
+- `App.css` reste le fichier de jetons unique : les anciens noms sont
+  **supprimés** (plus aucun alias `--data-income`), `--out-hover` est ajouté
+  dans les deux modes.
+- `src/lib/export.ts` (graphique PNG canvas, qui ne lit pas les CSS vars)
+  résout désormais `--in`/`--out` **au runtime** via `getComputedStyle` (suit le
+  mode) avec repli sur la valeur du mode sombre, au lieu de hex figés.
+- Garde de non-régression : `src/lib/__tests__/money-token-migration.test.ts`
+  (4) interdit le retour des anciens noms dans `src`, `cypress`, `public`,
+  `tailwind.config.ts`, `index.html`.
 
 ## Gardes
 
 - `src/lib/__tests__/design-tokens-addendum.test.ts` (10) : présence du
   vocabulaire maquette dans les deux modes + contrastes WCAG (texte ≥ 15:1,
   `--brand-text` clair ≈ 5.2:1, argent ≥ 4.5:1).
+- `src/lib/__tests__/money-token-migration.test.ts` (4) : aucun ancien jeton
+  `--data-{income,expense,expense-hover,pending}` ; `--in/--out/--out-hover/
+  --warn` définis dans les deux modes ; mapping Tailwind.
 - `design-tokens-drift` / `design-tokens-contrast` / `theme-mode` /
   `boot-storage-resilience` : mis à jour et verts.
 
@@ -60,9 +80,10 @@ vert/rouge historiques) reste un **arbitrage produit** — hors périmètre.
 |---|---|
 | `--brand-text` clair → `#ffcc99` | `design-tokens-addendum` échoue (contraste) |
 | suppression de `--divider` (clair) | `design-tokens-addendum` échoue (jeton manquant) |
+| `APPROVED: "var(--in)"` → `"var(--data-income)"` (`utils.ts`) | `money-token-migration` échoue (`src/lib/utils.ts → --data-income`) |
 
 ## Preuves
 
-- `npx vitest run` : **206 fichiers, 2161 passés, 6 ignorés**.
+- `npx vitest run` : **206 fichiers, 2157 passés, 6 ignorés**.
 - `npx tsc -b --force --noEmit` : 0 erreur.
 - `npx eslint` (fichiers modifiés) : 0 erreur (avertissements préexistants).

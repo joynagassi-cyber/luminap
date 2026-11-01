@@ -21,13 +21,13 @@ import { MEMBER_BADGES, TRANSACTION_BADGES } from "@/lib/badges";
 afterEach(cleanup);
 
 describe("Badge — tokenisation", () => {
-  it("tone='success' : texte var(--data-income) et fond color-mix (tint)", () => {
+  it("tone='success' : texte var(--in) et fond color-mix (tint)", () => {
     const { container } = render(<Badge tone="success" label="Actif" />);
     const badge = container.querySelector("span") as HTMLElement;
     expect(badge).toHaveTextContent("Actif");
-    expect(badge.style.color).toBe("var(--data-income)");
+    expect(badge.style.color).toBe("var(--in)");
     expect(badge.style.backgroundColor).toContain("color-mix");
-    expect(badge.style.backgroundColor).toContain("var(--data-income)");
+    expect(badge.style.backgroundColor).toContain("var(--in)");
   });
 
   it("tone='accent' suit la couleur de marque (var(--accent-primary))", () => {
@@ -118,7 +118,7 @@ describe("Badge — variantes & options", () => {
     const { container } = render(<Badge tone="warning" label="En attente" dot />);
     expect(container.querySelector("svg")).not.toBeInTheDocument();
     const dotEl = container.querySelectorAll("span > span")[0] as HTMLElement;
-    expect(dotEl.style.backgroundColor).toBe("var(--data-pending)");
+    expect(dotEl.style.backgroundColor).toBe("var(--warn)");
   });
 
   it("`live` expose role='status' (région vivante)", () => {

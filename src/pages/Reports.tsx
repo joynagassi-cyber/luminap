@@ -53,8 +53,8 @@ import type { ReportDefinition } from "@/types";
 type Tab = "global" | "groupes" | "evenements";
 type Period = "month" | "year" | "all";
 
-const PIE_COLORS = ["var(--accent-primary)", "var(--data-planified)", "var(--data-income)", "var(--data-advance)", "var(--data-pink)", "var(--shortcut-forms)", "var(--shortcut-reports)", "var(--data-expense)"];
-const COLORS = { grid: "var(--surface-hover)", text: "var(--text-tertiary)", income: "var(--data-income)", expense: "var(--data-expense)", accent: "var(--accent-primary)" };
+const PIE_COLORS = ["var(--accent-primary)", "var(--data-planified)", "var(--in)", "var(--data-advance)", "var(--data-pink)", "var(--shortcut-forms)", "var(--shortcut-reports)", "var(--out)"];
+const COLORS = { grid: "var(--surface-hover)", text: "var(--text-tertiary)", income: "var(--in)", expense: "var(--out)", accent: "var(--accent-primary)" };
 
 // La couche de données renvoie snake_case (PowerSync) OU camelCase (IndexedDB) :
 // on normalise à la lecture pour rester correct dans les deux modes.
@@ -101,15 +101,15 @@ const GlobalPanel = memo(function GlobalPanel({ totalIncome, totalExpense, netRe
     <div className="space-y-5">
       <div className="grid grid-cols-3 gap-3">
         <div className="rounded-xl p-4 text-left" style={{ backgroundColor: "var(--surface)" }}>
-          <div className="w-8 h-8 rounded-full flex items-center justify-center mb-2" style={{ backgroundColor: "color-mix(in srgb, var(--data-income) 12%, transparent)" }}>
-            <TrendingUp className="w-4 h-4" style={{ color: "var(--data-income)" }} />
+          <div className="w-8 h-8 rounded-full flex items-center justify-center mb-2" style={{ backgroundColor: "color-mix(in srgb, var(--in) 12%, transparent)" }}>
+            <TrendingUp className="w-4 h-4" style={{ color: "var(--in)" }} />
           </div>
           <p className="text-text-tertiary text-xs">Entrées</p>
           <p className="text-income font-bold text-sm mt-1">+{formatCentsToFCFA(totalIncome)}</p>
         </div>
         <div className="rounded-xl p-4 text-left" style={{ backgroundColor: "var(--surface)" }}>
-          <div className="w-8 h-8 rounded-full flex items-center justify-center mb-2" style={{ backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)" }}>
-            <TrendingDown className="w-4 h-4" style={{ color: "var(--data-expense)" }} />
+          <div className="w-8 h-8 rounded-full flex items-center justify-center mb-2" style={{ backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)" }}>
+            <TrendingDown className="w-4 h-4" style={{ color: "var(--out)" }} />
           </div>
           <p className="text-text-tertiary text-xs">Sorties</p>
           <p className="text-expense font-bold text-sm mt-1">-{formatCentsToFCFA(totalExpense)}</p>
@@ -119,7 +119,7 @@ const GlobalPanel = memo(function GlobalPanel({ totalIncome, totalExpense, netRe
             <BarChart3 className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
           </div>
           <p className="text-text-tertiary text-xs">Résultat</p>
-          <p className="font-bold text-sm mt-1" style={{ color: netResult >= 0 ? "var(--data-income)" : "var(--data-expense)" }}>
+          <p className="font-bold text-sm mt-1" style={{ color: netResult >= 0 ? "var(--in)" : "var(--out)" }}>
             {netResult >= 0 ? "+" : "-"}{formatCentsToFCFA(Math.abs(netResult))}
           </p>
         </div>
@@ -202,7 +202,7 @@ const GroupPanel = memo(function GroupPanel({ caisseData }: GroupPanelProps) {
                 {formatCentsToFCFA(c.income)} entrées · {formatCentsToFCFA(c.expense)} sorties
               </p>
             </div>
-            <span className="text-sm font-bold tabular-nums" style={{ color: c.solde >= 0 ? "var(--data-income)" : "var(--data-expense)" }}>
+            <span className="text-sm font-bold tabular-nums" style={{ color: c.solde >= 0 ? "var(--in)" : "var(--out)" }}>
               {c.solde >= 0 ? "+" : "-"}{formatCentsToFCFA(Math.abs(c.solde))}
             </span>
           </div>
@@ -255,7 +255,7 @@ const EventPanel = memo(function EventPanel({ eventData, onOpen }: EventPanelPro
                     Budget {formatCentsToFCFA(e.budget)} · Net {formatCentsToFCFA(Math.abs(e.net))}
                   </p>
                 </div>
-                <span className="text-sm font-bold tabular-nums" style={{ color: e.net >= 0 ? "var(--data-income)" : "var(--data-expense)" }}>
+                <span className="text-sm font-bold tabular-nums" style={{ color: e.net >= 0 ? "var(--in)" : "var(--out)" }}>
                   {e.net >= 0 ? "+" : "-"}{formatCentsToFCFA(Math.abs(e.net))}
                 </span>
               </button>
@@ -617,8 +617,8 @@ export default function Reports() {
                 </div>
                 <div className="space-y-3">
                   {([
-                    { fmt: "pdf" as const, label: "PDF", desc: "Document professionnel", color: "var(--data-expense)" },
-                    { fmt: "excel" as const, label: "Excel", desc: "Feuilles multiples", color: "var(--data-income)" },
+                    { fmt: "pdf" as const, label: "PDF", desc: "Document professionnel", color: "var(--out)" },
+                    { fmt: "excel" as const, label: "Excel", desc: "Feuilles multiples", color: "var(--in)" },
                     { fmt: "csv" as const, label: "CSV", desc: "Compatible tableurs", color: "var(--data-planified)" },
                   ]).map((o) => (
                     <button

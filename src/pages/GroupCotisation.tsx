@@ -262,7 +262,7 @@ export default function GroupCotisation() {
           {formError && (
             <div
               className="mb-4 p-3 rounded-xl text-sm"
-              style={{ backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)", color: "var(--data-expense)" }}
+              style={{ backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)", color: "var(--out)" }}
             >
               {formError}
             </div>
@@ -387,23 +387,23 @@ export default function GroupCotisation() {
                     className="rounded-xl p-3.5 mb-2 flex items-center gap-3"
                     style={{
                       backgroundColor: isPaid
-                        ? "color-mix(in srgb, var(--data-income) 6%, transparent)"
+                        ? "color-mix(in srgb, var(--in) 6%, transparent)"
                         : isAbsent
                           ? "color-mix(in srgb, var(--text-tertiary) 10%, transparent)"
                           : "var(--surface)",
-                      border: `1px solid ${isPaid ? "color-mix(in srgb, var(--data-income) 20%, transparent)" : isAbsent ? "color-mix(in srgb, var(--text-tertiary) 30%, transparent)" : "var(--border)"}`,
+                      border: `1px solid ${isPaid ? "color-mix(in srgb, var(--in) 20%, transparent)" : isAbsent ? "color-mix(in srgb, var(--text-tertiary) 30%, transparent)" : "var(--border)"}`,
                     }}
                   >
                     <div
                       className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
                       style={{
-                        backgroundColor: isPaid ? "color-mix(in srgb, var(--data-income) 12%, transparent)" : "var(--surface-hover)",
+                        backgroundColor: isPaid ? "color-mix(in srgb, var(--in) 12%, transparent)" : "var(--surface-hover)",
                       }}
                     >
                       <span
                         className="text-xs font-bold"
                         style={{
-                          color: isPaid ? "var(--data-income)" : "var(--accent-primary)",
+                          color: isPaid ? "var(--in)" : "var(--accent-primary)",
                         }}
                       >
                         {name.charAt(0)}
@@ -425,7 +425,7 @@ export default function GroupCotisation() {
                         <IonButton
                           size="small"
                           fill="solid"
-                          style={{ backgroundColor: "var(--data-income)" }}
+                          style={{ backgroundColor: "var(--in)" }}
                           disabled={busy}
                           onClick={() => handlePay(cot, oblig)}
                         >

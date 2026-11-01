@@ -353,7 +353,7 @@ function useUnifiedTodos(
 }
 
 const TONE_COLOR: Record<UnifiedTodo["tone"], string> = {
-  pending: "var(--data-pending)",
+  pending: "var(--warn)",
   planified: "var(--data-planified)",
   advance: "var(--data-advance)",
   income: "var(--in)",
@@ -623,8 +623,8 @@ function CaisseCard({
             <span
               className="text-[10px] px-1.5 py-0.5 rounded-full font-medium inline-block mt-0.5"
               style={{
-                backgroundColor: "color-mix(in srgb, var(--data-pending) 14%, transparent)",
-                color: "var(--data-pending)",
+                backgroundColor: "color-mix(in srgb, var(--warn) 14%, transparent)",
+                color: "var(--warn)",
               }}
             >
               {pendingCount} en attente
@@ -676,8 +676,8 @@ function OrgBanner() {
           <span
             className="text-[10px] px-2 py-0.5 rounded-full font-medium"
             style={{
-              backgroundColor: "color-mix(in srgb, var(--data-pending) 14%, transparent)",
-              color: "var(--data-pending)",
+              backgroundColor: "color-mix(in srgb, var(--warn) 14%, transparent)",
+              color: "var(--warn)",
             }}
           >
             {current.status.toLowerCase()}

@@ -134,7 +134,7 @@ function TransactionFlowDiagram() {
         width="80"
         height="50"
         rx="8"
-        fill="color-mix(in srgb, var(--data-pending) 12%, transparent)"
+        fill="color-mix(in srgb, var(--warn) 12%, transparent)"
         stroke={CHART_COLORS.pending}
         strokeWidth="1.5"
       />
@@ -176,7 +176,7 @@ function TransactionFlowDiagram() {
         width="80"
         height="50"
         rx="8"
-        fill="color-mix(in srgb, var(--data-income) 12%, transparent)"
+        fill="color-mix(in srgb, var(--in) 12%, transparent)"
         stroke={CHART_COLORS.income}
         strokeWidth="1.5"
       />
@@ -197,7 +197,7 @@ function TransactionFlowDiagram() {
         width="80"
         height="50"
         rx="8"
-        fill="color-mix(in srgb, var(--data-expense) 12%, transparent)"
+        fill="color-mix(in srgb, var(--out) 12%, transparent)"
         stroke={CHART_COLORS.expense}
         strokeWidth="1.5"
       />
@@ -347,7 +347,7 @@ function VersementFlowDiagram() {
         width="120"
         height="80"
         rx="10"
-        fill="color-mix(in srgb, var(--data-pending) 12%, transparent)"
+        fill="color-mix(in srgb, var(--warn) 12%, transparent)"
         stroke={CHART_COLORS.pending}
         strokeWidth="1.5"
       />
@@ -389,7 +389,7 @@ function VersementFlowDiagram() {
         width="120"
         height="80"
         rx="10"
-        fill="color-mix(in srgb, var(--data-income) 12%, transparent)"
+        fill="color-mix(in srgb, var(--in) 12%, transparent)"
         stroke={CHART_COLORS.income}
         strokeWidth="1.5"
       />
@@ -1006,7 +1006,7 @@ export default function Tutorial() {
               {current.warnings && current.warnings.length > 0 && (
                 <div
                   className="rounded-xl p-4 mb-5 transition-all duration-200"
-                  style={{ backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)" }}
+                  style={{ backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)" }}
                 >
                   <p
                     className="text-sm font-semibold mb-3 flex items-center gap-2"

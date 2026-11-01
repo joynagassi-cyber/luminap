@@ -180,7 +180,7 @@ export default function Cotisations() {
                           <div className="flex items-center gap-3 mt-2 text-xs">
                             <span
                               className="flex items-center gap-1"
-                              style={{ color: "var(--data-income)" }}
+                              style={{ color: "var(--in)" }}
                             >
                               <CheckCircle className="w-3 h-3" />
                               {stat.paid}/{stat.totalMembers}
@@ -202,7 +202,7 @@ export default function Cotisations() {
                               <span style={{ color: "var(--text-tertiary)" }}>Collecté</span>
                               <span
                                 className="font-semibold"
-                                style={{ color: "var(--data-income)" }}
+                                style={{ color: "var(--in)" }}
                               >
                                 {formatCurrencyCompact(stat.totalCollected)} F
                               </span>
@@ -216,7 +216,7 @@ export default function Cotisations() {
                                 style={{
                                   width: `${Math.min(progress, 100)}%`,
                                   background:
-                                    progress >= 100 ? "var(--data-income)" : "var(--accent-primary)",
+                                    progress >= 100 ? "var(--in)" : "var(--accent-primary)",
                                 }}
                               />
                             </div>

@@ -44,7 +44,7 @@ const SCREENS = [
         />
         <rect x="50" y="40" width="180" height="8" rx="4" fill="var(--accent-primary)" />
         <rect x="50" y="60" width="120" height="6" rx="3" fill="var(--surface-hover)" />
-        <rect x="50" y="80" width="70" height="40" rx="8" fill="color-mix(in srgb, var(--data-income) 12%, transparent)" />
+        <rect x="50" y="80" width="70" height="40" rx="8" fill="color-mix(in srgb, var(--in) 12%, transparent)" />
         <rect x="130" y="80" width="100" height="40" rx="8" fill="var(--surface-hover)" />
         <rect x="50" y="135" width="180" height="6" rx="3" fill="var(--surface-hover)" />
         <rect x="50" y="150" width="130" height="6" rx="3" fill="var(--surface-hover)" />
@@ -166,7 +166,7 @@ const SCREENS = [
           stroke="var(--surface-hover)"
           strokeWidth="1"
         />
-        <circle cx="95" cy="70" r="10" fill="color-mix(in srgb, var(--data-income) 12%, transparent)" />
+        <circle cx="95" cy="70" r="10" fill="color-mix(in srgb, var(--in) 12%, transparent)" />
         <rect x="88" y="67" width="14" height="6" rx="1" fill={CHART_COLORS.income} />
         <rect x="115" y="63" width="60" height="4" rx="2" fill="var(--surface-hover)" />
         <rect x="115" y="73" width="40" height="4" rx="2" fill="var(--surface-hover)" />
@@ -181,7 +181,7 @@ const SCREENS = [
           stroke="var(--surface-hover)"
           strokeWidth="1"
         />
-        <circle cx="95" cy="130" r="10" fill="color-mix(in srgb, var(--data-expense) 12%, transparent)" />
+        <circle cx="95" cy="130" r="10" fill="color-mix(in srgb, var(--out) 12%, transparent)" />
         <rect x="88" y="127" width="14" height="6" rx="1" fill={CHART_COLORS.expense} />
         <rect x="115" y="123" width="60" height="4" rx="2" fill="var(--surface-hover)" />
         <rect x="115" y="133" width="40" height="4" rx="2" fill="var(--surface-hover)" />

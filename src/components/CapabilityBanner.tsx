@@ -26,7 +26,7 @@ function CapabilityList({
   tone: "allowed" | "denied";
 }) {
   const allowed = tone === "allowed";
-  const color = allowed ? "var(--data-income)" : "var(--text-tertiary)";
+  const color = allowed ? "var(--in)" : "var(--text-tertiary)";
   const Icon = allowed ? Check : X;
 
   return (

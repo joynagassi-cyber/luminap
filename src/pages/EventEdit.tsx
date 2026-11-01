@@ -171,7 +171,7 @@ export default function EventEdit() {
             {error && (
               <div
                 className="mb-4 p-3 rounded-xl text-sm text-center"
-                style={{ backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)", color: "var(--data-expense)" }}
+                style={{ backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)", color: "var(--out)" }}
               >
                 {error}
               </div>
@@ -181,7 +181,7 @@ export default function EventEdit() {
               <IonItem
                 lines="none"
                 className="bg-card rounded-xl"
-                style={fieldErrors.name ? { border: "1px solid var(--data-expense)" } : undefined}
+                style={fieldErrors.name ? { border: "1px solid var(--out)" } : undefined}
               >
                 <IonLabel position="floating" className="text-sm text-text-secondary">Nom de l'événement *</IonLabel>
                 <IonInput
@@ -206,7 +206,7 @@ export default function EventEdit() {
               <IonItem
                 lines="none"
                 className="bg-card rounded-xl"
-                style={fieldErrors.startDate ? { border: "1px solid var(--data-expense)" } : undefined}
+                style={fieldErrors.startDate ? { border: "1px solid var(--out)" } : undefined}
               >
                 <IonLabel position="floating" className="text-sm text-text-secondary">Date de début *</IonLabel>
                 <IonInput
@@ -222,7 +222,7 @@ export default function EventEdit() {
               <IonItem
                 lines="none"
                 className="bg-card rounded-xl"
-                style={fieldErrors.endDate ? { border: "1px solid var(--data-expense)" } : undefined}
+                style={fieldErrors.endDate ? { border: "1px solid var(--out)" } : undefined}
               >
                 <IonLabel position="floating" className="text-sm text-text-secondary">Date de fin</IonLabel>
                 <IonInput
@@ -254,7 +254,7 @@ export default function EventEdit() {
               <IonItem
                 lines="none"
                 className="bg-card rounded-xl"
-                style={fieldErrors.budget ? { border: "1px solid var(--data-expense)" } : undefined}
+                style={fieldErrors.budget ? { border: "1px solid var(--out)" } : undefined}
               >
                 <IonLabel position="floating" className="text-sm text-text-secondary">Budget (FCFA)</IonLabel>
                 <IonInput

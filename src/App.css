@@ -1,16 +1,13 @@
 /* Lumina Design System — Color Tokens
  *
  * Deux modes (data-theme="dark" par défaut / data-theme="light") basculés sur
- * <html> par `applyThemeMode` (src/ionic/themes.ts). Les couleurs financières
- * et l'accent sont INVIOLABLES : elles ne changent jamais avec le mode.
+ * <html> par `applyThemeMode` (src/ionic/themes.ts). L'argent (`--in`/`--out`/
+ * `--warn`) suit désormais le mode (maquette dashboard-MF) ; l'accent reste
+ * inviolable (il suit le thème d'organisation, jamais le mode).
  */
 :root {
-  /* Couleurs financières — invariantes (le langage de l'argent ne change
-     jamais, ni avec le mode ni avec le thème d'organisation). */
-  --data-income: #1db954;
-  --data-expense: #e51332;
-  --data-expense-hover: #c4102b;
-  --data-pending: #ffb800;
+  /* Argent + états (--in / --out / --warn) : valeurs par mode, définies dans
+     les blocs de thème ci-dessous (maquette dashboard-MF, addendum 2 B1). */
   /* Couleurs sémantiques de statut (hors finances) — invariants. */
   --data-planified: #3b82f6;
   --data-advance: #8b5cf6;
@@ -68,15 +65,15 @@
 }
 
 /* ── Vocabulaire de jetons « Addendum 2 / maquette dashboard-MF » ────────────
- * Noms de référence du design de référence (dashboard-MF). Ils ALIASENT les
- * jetons historiques ci-dessous pour ne pas casser les 99+ fichiers qui
- * utilisent `--canvas` / `--accent-primary` / `--data-*`. Le fichier de jetons
- * reste unique (ce fichier). Aucune couleur en dur dans un composant.
+ * Noms de référence du design de référence (dashboard-MF). Les neutres ALIASENT
+ * les jetons historiques (`--bg`→`--canvas`, `--text`→`--text-primary`…) pour ne
+ * pas casser les fichiers qui les utilisent. Le fichier de jetons reste unique.
+ * Aucune couleur en dur dans un composant.
  *
- * Sémantique : `--in`/`--out`/`--warn` sont les couleurs d'ARGENT et d'ÉTAT —
- * elles ne changent JAMAIS avec la couleur de marque (règle B1). Les
- * `--data-income`/`--data-expense` historiques restent la source des graphiques
- * et badges financiers ; `--in`/`--out` en dérivent ici par défaut. */
+ * Sémantique (B1) : `--in`/`--out`/`--warn` sont les couleurs d'ARGENT et d'ÉTAT
+ * — elles suivent le MODE (clair/sombre) mais JAMAIS la couleur de marque. Elles
+ * ont remplacé les anciens jetons d'argent `--data-*` (migration app-wide,
+ * addendum 2) ; la garde `money-token-migration.test.ts` interdit leur retour. */
 :root {
   --bg: var(--canvas);
   --text: var(--text-primary);
@@ -118,6 +115,7 @@
   --in: #4ade80;
   --in-bg: rgba(74, 222, 128, 0.12);
   --out: #f87171;
+  --out-hover: #ef4444;
   --out-bg: rgba(248, 113, 113, 0.12);
   --warn: #fbbf24;
   --warn-bg: rgba(251, 191, 36, 0.14);
@@ -165,6 +163,7 @@
   --in: #166534;
   --in-bg: #dcfce7;
   --out: #b91c1c;
+  --out-hover: #991b1b;
   --out-bg: #fee2e2;
   --warn: #92400e;
   --warn-bg: #fef3c7;

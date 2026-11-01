@@ -92,7 +92,7 @@ class LazyRouteErrorBoundary extends Component<
             >
               <div
                 className="flex h-14 w-14 items-center justify-center rounded-full"
-                style={{ backgroundColor: "color-mix(in srgb, var(--data-pending) 12%, transparent)" }}
+                style={{ backgroundColor: "color-mix(in srgb, var(--warn) 12%, transparent)" }}
               >
                 <span className="text-2xl" aria-hidden>
                   ⚠

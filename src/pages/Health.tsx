@@ -35,9 +35,9 @@ const LEVEL_ICON: Record<HealthLevel, LucideIcon> = {
 };
 
 const LEVEL_COLOR: Record<HealthLevel, string> = {
-  ok: "var(--data-income, #22c55e)",
+  ok: "var(--in, #22c55e)",
   warn: "#f59e0b",
-  error: "var(--data-expense, #ef4444)",
+  error: "var(--out, #ef4444)",
 };
 
 const LEVEL_LABEL: Record<HealthLevel, string> = HEALTH_LEVEL_LABEL;
@@ -341,7 +341,7 @@ export default function Health() {
           minHeight: 44,
           backgroundColor: "var(--surface)",
           border: "1px solid var(--border)",
-          color: "var(--data-expense, #ef4444)",
+          color: "var(--out, #ef4444)",
           opacity: recovering ? 0.6 : 1,
         }}
       >

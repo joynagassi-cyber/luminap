@@ -68,11 +68,11 @@ describe("ChartContainer — sink dangerouslySetInnerHTML", () => {
 
   it("conserve une couleur légitime", () => {
     const { container } = render(
-      <ChartContainer config={{ a: { color: "var(--data-income)" } }}>
+      <ChartContainer config={{ a: { color: "var(--in)" } }}>
         <div />
       </ChartContainer>,
     );
     const cssText = container.querySelector("style")?.textContent ?? "";
-    expect(cssText).toContain("var(--data-income)");
+    expect(cssText).toContain("var(--in)");
   });
 });

@@ -449,15 +449,15 @@ describe("ThemePicker", () => {
 // ─── StatusBadge ─────────────────────────────────────────────────────────────
 
 describe("StatusBadge", () => {
-  it("renders APPROVED with a colour resolved from the design token (#1DB954) and label 'Approuvé'", () => {
+  it("renders APPROVED with a colour resolved from the design token (--in) and label 'Approuvé'", () => {
     const { container } = render(<StatusBadge status="APPROVED" />);
     const badge = container.querySelector("span") as HTMLElement;
     expect(badge).toHaveTextContent("Approuvé");
     // Le composant passe par les tokens CSS (DESIGN.md §2, commit f58ebe5) :
-    // getStatusColor renvoie var(--data-income) ; jsdom ne résout pas les
+    // getStatusColor renvoie var(--in) ; jsdom ne résout pas les
     // var() — on vérifie donc le token (et non une couleur normalisée en
     // rgba, comme c'était le cas avec les hex bruts).
-    expect(badge.style.color).toBe("var(--data-income)");
+    expect(badge.style.color).toBe("var(--in)");
     // Le backgroundColor est produit par tint() (color-mix) — la propriété
     // inline est renseignée (non vide) mais son normalisation dépend du
     // moteur de rendu ; on vérifie sa présence, pas sa valeur exacte.
@@ -484,18 +484,18 @@ describe("StatusBadge", () => {
     expect(badgeSm.className).not.toContain("text-sm");
   });
 
-  it("renders PENDING with the pending token (#FFB800) and label 'En attente'", () => {
+  it("renders PENDING with the pending token (--warn) and label 'En attente'", () => {
     const { container } = render(<StatusBadge status="PENDING" />);
     const badge = container.querySelector("span") as HTMLElement;
     expect(badge).toHaveTextContent("En attente");
-    expect(badge.style.color).toBe("var(--data-pending)");
+    expect(badge.style.color).toBe("var(--warn)");
   });
 
-  it("renders REJECTED with the expense token (#E51332) and label 'Rejeté'", () => {
+  it("renders REJECTED with the expense token (--out) and label 'Rejeté'", () => {
     const { container } = render(<StatusBadge status="REJECTED" />);
     const badge = container.querySelector("span") as HTMLElement;
     expect(badge).toHaveTextContent("Rejeté");
-    expect(badge.style.color).toBe("var(--data-expense)");
+    expect(badge.style.color).toBe("var(--out)");
   });
 
   it("renders DRAFT with the tertiary-text token (#808080) and label 'Brouillon'", () => {

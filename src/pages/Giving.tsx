@@ -122,7 +122,7 @@ export default function Giving() {
                               className="h-full rounded-full"
                               style={{
                                 width: `${Math.min(100, bar)}%`,
-                                backgroundColor: done ? "var(--data-income)" : "var(--accent-primary)",
+                                backgroundColor: done ? "var(--in)" : "var(--accent-primary)",
                               }}
                             />
                           </div>
@@ -172,7 +172,7 @@ export default function Giving() {
                         {d.tax_receipt_enabled === 1 && (
                           <span
                             className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                            style={{ backgroundColor: "color-mix(in srgb, var(--data-income) 12%, transparent)", color: "var(--data-income)" }}
+                            style={{ backgroundColor: "color-mix(in srgb, var(--in) 12%, transparent)", color: "var(--in)" }}
                           >
                             Reçu fiscal
                           </span>
@@ -205,8 +205,8 @@ export default function Giving() {
                               className="text-xs font-semibold px-2 py-0.5 rounded-full"
                               style={{
                                 backgroundColor:
-                                  "color-mix(in srgb, var(--data-pending) 12%, transparent)",
-                                color: "var(--data-pending)",
+                                  "color-mix(in srgb, var(--warn) 12%, transparent)",
+                                color: "var(--warn)",
                               }}
                             >
                               {p.schedule}
@@ -406,7 +406,7 @@ function DonorSheet({
         data-testid="donor-tax-toggle"
       >
         <span className="text-text-secondary text-xs">Reçu fiscal annuel</span>
-        <span className="text-xs font-semibold" style={{ color: tax ? "var(--data-income)" : "var(--text-tertiary)" }}>
+        <span className="text-xs font-semibold" style={{ color: tax ? "var(--in)" : "var(--text-tertiary)" }}>
           {tax ? "Oui" : "Non"}
         </span>
       </button>

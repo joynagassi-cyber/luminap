@@ -33,7 +33,7 @@ export interface AuthAttemptResult {
 
 /**
  * Lit la bannière d'erreur de l'AuthPage. Elle est rendue dans un `<div>`
- * stylé (`backgroundColor` = `color-mix(… var(--data-expense) …)`) sans
+ * stylé (`backgroundColor` = `color-mix(… var(--out) …)`) sans
  * `role`/`aria` — on scanne donc les `div` dont le texte matche les messages
  * connus de `src/lib/auth.ts`.
  */

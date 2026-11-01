@@ -196,7 +196,7 @@ export default function EventNew() {
           {error && (
             <div
               className="mb-4 p-3 rounded-xl text-sm text-center"
-              style={{ backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)", color: "var(--data-expense)" }}
+              style={{ backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)", color: "var(--out)" }}
             >
               {error}
             </div>
@@ -465,9 +465,9 @@ export default function EventNew() {
                         <button
                           onClick={() => handleRemoveBudget(item.id)}
                           className="p-1 rounded-full"
-                          style={{ backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)" }}
+                          style={{ backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)" }}
                         >
-                          <X className="w-4 h-4" style={{ color: "var(--data-expense)" }} />
+                          <X className="w-4 h-4" style={{ color: "var(--out)" }} />
                         </button>
                       </div>
                     ))}

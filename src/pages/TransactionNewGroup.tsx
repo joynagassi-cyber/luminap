@@ -164,7 +164,7 @@ export default function TransactionNewGroup() {
                 onClick={() => setType("INCOME")}
                 className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all"
                 style={{
-                  backgroundColor: type === "INCOME" ? "var(--data-income)" : "var(--surface)",
+                  backgroundColor: type === "INCOME" ? "var(--in)" : "var(--surface)",
                   color: type === "INCOME" ? "var(--text-primary)" : "var(--text-secondary)",
                 }}
               >
@@ -174,7 +174,7 @@ export default function TransactionNewGroup() {
                 onClick={() => setType("EXPENSE")}
                 className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all"
                 style={{
-                  backgroundColor: type === "EXPENSE" ? "var(--data-expense)" : "var(--surface)",
+                  backgroundColor: type === "EXPENSE" ? "var(--out)" : "var(--surface)",
                   color: type === "EXPENSE" ? "var(--text-primary)" : "var(--text-secondary)",
                 }}
               >
@@ -278,7 +278,7 @@ export default function TransactionNewGroup() {
             {error && (
               <div
                 className="mb-4 p-3 rounded-xl text-sm text-center"
-                style={{ backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)", color: "var(--data-expense)" }}
+                style={{ backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)", color: "var(--out)" }}
               >
                 {error}
               </div>
@@ -289,7 +289,7 @@ export default function TransactionNewGroup() {
               disabled={submitting}
               className="w-full py-4 rounded-full font-semibold text-on-accent text-sm transition-all active:scale-95 disabled:opacity-50"
               style={{
-                backgroundColor: type === "INCOME" ? "var(--data-income)" : "var(--data-expense)",
+                backgroundColor: type === "INCOME" ? "var(--in)" : "var(--out)",
               }}
             >
               {submitting ? "Enregistrement..." : "Enregistrer la transaction"}

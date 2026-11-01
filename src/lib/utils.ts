@@ -106,9 +106,9 @@ export function getStatusColor(status: Transaction["status"]): string {
   // DRAFT pointe vers --text-tertiary (suive le mode) et non #808080 brut.
   const colors: Record<Transaction["status"], string> = {
     DRAFT: "var(--text-tertiary)",
-    PENDING: "var(--data-pending)",
-    APPROVED: "var(--data-income)",
-    REJECTED: "var(--data-expense)",
+    PENDING: "var(--warn)",
+    APPROVED: "var(--in)",
+    REJECTED: "var(--out)",
   };
   return colors[status];
 }
@@ -116,9 +116,9 @@ export function getStatusColor(status: Transaction["status"]): string {
 /** Palette des graphiques financiers — pointeurs sur les tokens CSS
  *  invariants (DESIGN.md §2), jamais hardcodés en hex dans les composants. */
 export const CHART_COLORS = {
-  income: "var(--data-income)",
-  expense: "var(--data-expense)",
-  pending: "var(--data-pending)",
+  income: "var(--in)",
+  expense: "var(--out)",
+  pending: "var(--warn)",
   planified: "var(--data-planified)",
   advance: "var(--data-advance)",
   pink: "var(--data-pink)",

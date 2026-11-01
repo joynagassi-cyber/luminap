@@ -121,7 +121,7 @@ export default function Splash() {
           {/* Sync indicator */}
           <div
             className="absolute top-4 right-4 flex items-center gap-2 text-xs"
-            style={{ color: isPowerSyncReady ? "var(--data-income)" : "var(--text-secondary)" }}
+            style={{ color: isPowerSyncReady ? "var(--in)" : "var(--text-secondary)" }}
           >
             {isPowerSyncReady ? <Wifi className="w-4 h-4" /> : <WifiOff className="w-4 h-4" />}
             <span>{isPowerSyncReady ? "Sync" : "Offline"}</span>
