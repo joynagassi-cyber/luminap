@@ -36,9 +36,10 @@ describe('Lumina — Forms v2 (currency, table view, DRAFT edit)', () => {
   // (seul le champ currency porte cet attribut — le 6e du modal,
   // rotation FIELD_TYPES[5]).
   const CURRENCY_LABEL = 'Montant (FCFA)';
-  // Identifiant de l'organisation E2E (compte `lumina-org-e2e@lumina.dev`,
-  // org créée au signup du 1er run). Sert aux vérifications REST du setup.
-  const ORG_E2E_ID = 'org-e2e';
+  // Identifiant de l'organisation ACTIVE du compte e2e, résolu dynamiquement
+  // au `before` (jamais `org-e2e` : id figé disparu depuis R161 — cf.
+  // `cy.orgActiveId()`). Sert aux vérifications REST du setup.
+  let ORG_E2E_ID = '';
 
   // P39 — borne temporelle stricte : seules les soumissions créées APRÈS cet
   // instant sont purgées. Le formulaire `E2e Forms v2` est une fixture
@@ -99,6 +100,9 @@ describe('Lumina — Forms v2 (currency, table view, DRAFT edit)', () => {
     this.timeout(600_000);
     cy.loginOrgAccount();
     cy.ensureAuth();
+    cy.orgActiveId().then((id) => {
+      ORG_E2E_ID = id;
+    });
 
     const apiForm = () =>
       realToken().then((token) =>

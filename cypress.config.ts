@@ -42,6 +42,14 @@ export default defineConfig({
       // tous les specs suivants le relisent via loginOrgAccount().
       // Pré-déclaré ici (null) pour que la clé soit lisible au boot.
       orgCreds: null,
+      // ID de l'organisation ACTIVE du compte d'org courant, posé par
+      // `loginOrgAccount()` (lu depuis la réplique PowerSync / le profil).
+      // Les specs cloud ne doivent JAMAIS coder `org-e2e` en dur : depuis
+      // R161 (création self-serve), chaque organisation reçoit un id
+      // `org-<uuid>` (jamais `org-e2e`), donc un id figé ne résout plus et
+      // la RLS rejette toute écriture (42501). Prédéclaré pour être lisible
+      // via `Cypress.expose('orgActiveId')` (contexte Node ET navigateur).
+      orgActiveId: null,
       // Prédéclarée pour que `Cypress.expose('userJwt', …)` du spec
       // cloud-sync soit lisible côté Node (Cypress 16 : les clés de
       // `expose` doivent être pré-déclarées dans cypress.config.ts pour

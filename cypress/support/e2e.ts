@@ -172,6 +172,18 @@ declare global {
        *   });
        */
       ensureAuth(options?: { allowSkip?: boolean }): Chainable;
+      /**
+       * Résout l'identifiant de l'organisation ACTIVE du compte d'org
+       * courant, sans jamais coder `org-e2e` en dur.
+       *
+       * Depuis R161 (création self-serve), chaque organisation reçoit un id
+       * `org-<uuid>` : `org-e2e` n'existe plus en base, donc un id figé fait
+       * échouer toute écriture REST (RLS 42501) et toute assertion
+       * d'appartenance. Sources, dans l'ordre : slot `expose('orgActiveId')`
+       * (posé par `loginOrgAccount`) → `localStorage['lumina-active-org']`
+       * (posé par `auth.ts` à la connexion) → réplique PowerSync.
+       */
+      orgActiveId(): Chainable<string>;
     }
   }
 }
@@ -455,6 +467,54 @@ Cypress.Commands.add('ensureAuth', function (options?: {
   cy.session('lumina-org-account', () => {
     cy.loginOrgAccount({ allowSkip: options?.allowSkip });
   });
+});
+
+/**
+ * Résout l'id de l'organisation ACTIVE du compte d'org courant.
+ *
+ * `org-e2e` est un id FIGÉ qui n'existe plus depuis R161 (création
+ * self-serve : chaque organisation reçoit `org-<uuid>`). L'utiliser
+ * provoquait des échecs cloud réels (RLS 42501, FK 23503, listes vides)
+ * sur TOUS les specs cloud. Ce helper résout la valeur réelle, dans
+ * l'ordre : slot `expose('orgActiveId')` (posé par `loginOrgAccount`),
+ * `localStorage['lumina-active-org']`, puis la réplique PowerSync
+ * (`organizations` non-`__no_org__`). Échoue clairement si introuvable
+ * plutôt que de retomber silencieusement sur un id périmé.
+ */
+Cypress.Commands.add('orgActiveId', function (): Cypress.Chainable<string> {
+  const exposed = (Cypress.expose('orgActiveId') as string) || '';
+  if (exposed && exposed !== 'org-e2e') {
+    return cy.wrap(exposed) as unknown as Cypress.Chainable<string>;
+  }
+  return cy.window({ timeout: 30_000 }).then(async (win: any) => {
+    // `auth.ts` pose `lumina-user.org.id` (source de vérité du contexte
+    // applicatif) puis `lumina-active-org` : les deux sont fiables.
+    try {
+      const u = JSON.parse(win.localStorage?.getItem('lumina-user') ?? 'null');
+      const fromUser = u?.org?.id ? String(u.org.id) : '';
+      if (fromUser && fromUser !== 'org-e2e') return fromUser;
+    } catch {
+      /* lumina-user absent/malformé — on tente les autres sources */
+    }
+    const fromLs = win.localStorage?.getItem('lumina-active-org') || '';
+    if (fromLs && fromLs !== 'org-e2e') return fromLs;
+    try {
+      const rows =
+        (await win.__psDb?.getAll(
+          `SELECT id FROM organizations
+             WHERE id NOT IN ('__no_org__', 'no-org', 'org-1')
+             ORDER BY created_at DESC LIMIT 1`,
+        )) ?? [];
+      const id = rows[0]?.id ? String(rows[0].id) : '';
+      if (id) return id;
+    } catch {
+      /* réplique indisponible — on échoue plus bas avec un message clair */
+    }
+    throw new Error(
+      "orgActiveId: aucune organisation active résolue (expose/localStorage/réplique). " +
+        "Vérifier que loginOrgAccount() a bien tourné et que le compte a une org.",
+    );
+  }) as unknown as Cypress.Chainable<string>;
 });
 
 /**
@@ -860,6 +920,15 @@ Cypress.Commands.add('loginOrgAccount', function (options?: {
     // réelles de l'org (REST → réplique), y compris le profil complet.
     cy.seedOrgReplica();
     cy.hydrateOrgReplica();
+    // Pose le slot `orgActiveId` (survit au reste du run) : les specs cloud
+    // lisent l'org active sans recalculer la résolution à chaque appel.
+    cy.orgActiveId().then((id) => {
+      try {
+        Cypress.expose('orgActiveId', id);
+      } catch {
+        /* contexte navigateur : le slot reste résolu à la demande */
+      }
+    });
     return cy.wrap(null);
   });
 });
