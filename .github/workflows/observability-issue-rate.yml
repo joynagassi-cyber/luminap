@@ -1,0 +1,75 @@
+name: Observability issue-rate alert
+
+# Sentinelle de la chaîne d'auto-correction (audit 2026-11-01).
+#
+# La remontée d'erreurs crée des Issues GitHub labellisées `openhands`, que
+# l'automatisation OpenHands corrige ensuite. Un RÉGRESSION de la
+# déduplication (client ou serveur) se manifeste par une RAFALE d'Issues : le
+# 2026-11-01, un message de perf instable a généré ~89 Issues de bruit avant
+# d'être détecté. Ce workflow alerte (job rouge → notification GitHub) dès que
+# le débit dépasse un seuil, avant que le dépôt ne soit inondé.
+#
+# Dépôt PUBLIC : les schedules GitHub Actions ne sont pas désactivés.
+
+on:
+  schedule:
+    # Chaque jour à 07:00 UTC.
+    - cron: '0 7 * * *'
+  workflow_dispatch:
+    inputs:
+      max_per_day:
+        description: "Seuil d'Issues `openhands` créées sur 24 h"
+        required: false
+        default: '15'
+
+permissions:
+  contents: read
+  issues: read
+
+jobs:
+  rate-check:
+    name: Débit d'Issues openhands
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Compter les Issues openhands créées sur 24 h
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          MAX_PER_DAY: ${{ github.event.inputs.max_per_day || '15' }}
+        run: |
+          set -u
+          # Fenêtre glissante de 24 h (UTC).
+          SINCE=$(date -u -d '24 hours ago' +%Y-%m-%dT%H:%M:%SZ)
+          echo "Fenêtre : depuis $SINCE"
+
+          # Pagination : on compte toutes les Issues (ouvertes ET fermées)
+          # labellisées `openhands` créées dans la fenêtre.
+          count=0
+          page=1
+          while : ; do
+            resp=$(curl -sS -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "${{ github.api_url }}/repos/$REPO/issues?labels=openhands&state=all&since=$SINCE&per_page=100&page=$page")
+            n=$(printf '%s' "$resp" | python3 -c 'import json,sys; print(len(json.load(sys.stdin)))')
+            count=$(( count + n ))
+            [ "$n" -lt 100 ] && break
+            page=$(( page + 1 ))
+          done
+
+          echo "Issues openhands créées sur 24 h : $count (seuil : $MAX_PER_DAY)"
+          {
+            echo "### Débit d'Issues \`openhands\`"
+            echo ""
+            echo "| Métrique | Valeur |"
+            echo "| --- | --- |"
+            echo "| Issues créées sur 24 h | **$count** |"
+            echo "| Seuil d'alerte | $MAX_PER_DAY |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$count" -gt "$MAX_PER_DAY" ]; then
+            echo "::error::$count Issues \`openhands\` créées sur 24 h (seuil $MAX_PER_DAY). Régression probable de la déduplication (message d'erreur instable, table error_report_dedupe indisponible, ou edge function report-error en panne). Vérifier : SELECT dedupe_key, window_start, created_at FROM error_report_dedupe ORDER BY created_at DESC LIMIT 20;"
+            exit 1
+          fi
+          echo "OK — débit normal."
