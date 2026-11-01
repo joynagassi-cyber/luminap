@@ -78,8 +78,8 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 const STATUS_COLOR: Record<string, string> = {
-  PENDING: "var(--data-pending)",
-  ACTIVE: "var(--data-income)",
+  PENDING: "var(--warn)",
+  ACTIVE: "var(--in)",
   SUSPENDED: "var(--accent-primary)",
   ARCHIVED: "var(--text-tertiary)",
 };
@@ -227,8 +227,8 @@ function MesAnnexesHeader({
           <span
             className="text-xs px-2 py-0.5 rounded-full font-medium"
             style={{
-              backgroundColor: "color-mix(in srgb, var(--data-income) 12%, transparent)",
-              color: "var(--data-income)",
+              backgroundColor: "color-mix(in srgb, var(--in) 12%, transparent)",
+              color: "var(--in)",
             }}
           >
             {childrenCount} annexe{childrenCount > 1 ? "s" : ""} active{childrenCount > 1 ? "s" : ""}
@@ -368,7 +368,7 @@ function OrgDetail({ orgId, onBack }: { orgId: string; onBack: () => void }) {
               <p className="text-text-tertiary text-xs">Membres</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold" style={{ color: "var(--data-income)" }}>{reportCard.activeAdminCount}</p>
+              <p className="text-2xl font-bold" style={{ color: "var(--in)" }}>{reportCard.activeAdminCount}</p>
               <p className="text-text-tertiary text-xs">Admins actifs</p>
             </div>
             <div className="text-center">
@@ -558,9 +558,9 @@ function OrgDetail({ orgId, onBack }: { orgId: string; onBack: () => void }) {
         <div
           className="mt-4 p-3 rounded-xl text-sm"
           style={{
-            backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)",
-            border: "1px solid color-mix(in srgb, var(--data-expense) 25%, transparent)",
-            color: "var(--data-expense)",
+            backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--out) 25%, transparent)",
+            color: "var(--out)",
           }}
         >
           {error}
@@ -607,8 +607,8 @@ export default function CentralAdmin() {
 
   const kpis = [
     { label: "Total", value: stats?.total ?? managedOrgs?.length ?? 0, color: "var(--accent-primary)", icon: Building2 },
-    { label: "Actives", value: stats?.byStatus.ACTIVE ?? 0, color: "var(--data-income)", icon: ShieldCheck },
-    { label: "En attente", value: stats?.byStatus.PENDING ?? 0, color: "var(--data-pending)", icon: Clock },
+    { label: "Actives", value: stats?.byStatus.ACTIVE ?? 0, color: "var(--in)", icon: ShieldCheck },
+    { label: "En attente", value: stats?.byStatus.PENDING ?? 0, color: "var(--warn)", icon: Clock },
     { label: "Suspendues", value: stats?.byStatus.SUSPENDED ?? 0, color: "var(--accent-primary)", icon: ShieldOff },
     { label: "Archivées", value: stats?.byStatus.ARCHIVED ?? 0, color: "var(--text-tertiary)", icon: Archive },
   ];
@@ -943,9 +943,9 @@ export default function CentralAdmin() {
               <div
                 className="mt-4 p-3 rounded-xl text-sm"
                 style={{
-                  backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)",
-                  border: "1px solid color-mix(in srgb, var(--data-expense) 25%, transparent)",
-                  color: "var(--data-expense)",
+                  backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)",
+                  border: "1px solid color-mix(in srgb, var(--out) 25%, transparent)",
+                  color: "var(--out)",
                 }}
               >
                 {error}

@@ -75,7 +75,7 @@ const SHORTCUTS: ActionItem[] = [
     label: "Rapports",
     hint: "Bilans & stats",
     icon: BarChart3,
-    color: "var(--data-income)",
+    color: "var(--in)",
     to: "/reports",
   },
 ];
@@ -85,14 +85,14 @@ const ACTIONS: ActionItem[] = [
     label: "Bilan financier",
     hint: "Voir le rapport par période",
     icon: CreditCard,
-    color: "var(--data-income)",
+    color: "var(--in)",
     to: "/balance",
   },
   {
     label: "Historique financier",
     hint: "Graphiques et statistiques",
     icon: BarChart3,
-    color: "var(--data-pending)",
+    color: "var(--warn)",
     to: "/history",
   },
   {
@@ -106,7 +106,7 @@ const ACTIONS: ActionItem[] = [
     label: "Versement",
     hint: "Transférer vers la caisse principale",
     icon: CreditCard,
-    color: "var(--data-pending)",
+    color: "var(--warn)",
     to: "/versement",
   },
   {

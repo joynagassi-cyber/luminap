@@ -98,42 +98,63 @@ describe('Lumina — Cross-tenant isolation (2 orgs)', () => {
     // spec attendrait 4 minutes puis echouerait avec un message obscur
     // (« `__psSupabaseClient` does not exist ») alors que l'app est saine.
     // On echoue donc tout de suite, avec la cause et la marche a suivre.
-    cy.window().then((win) => {
-      if (!(win as unknown as Record<string, unknown>).__psSupabaseClient) {
+    cy.window().then(async (win) => {
+      const w = win as unknown as Record<string, unknown>;
+      if (!w.__psSupabaseClient) {
         throw new Error(
           "Ce spec exige le serveur de DEV (`npx vite`), pas un build de " +
             "production : `window.__psSupabaseClient` n'est publie qu'en " +
             "mode dev. Lancer via `scripts/run-cypress.sh` (cf. RUNBOOK.md).",
         );
       }
-    });
 
-    cy.window()
-      .its('__psSupabaseClient')
-      .should('exist')
-      .then(async (client: any) => {
-        const { data } = await client.auth.getSession();
-        accessToken = data?.session?.access_token ?? '';
-        expect(accessToken, 'jeton de session Supabase').to.be.a('string').and
-          .not.be.empty;
+      // Le client du connector (`__psSupabaseClient`) est NON persistant
+      // (`persistSession: false`) : sa session est posée par un miroir
+      // ASYNCHRONE (`mirrorAppSessionIntoConnector`). Au boot il peut donc
+      // répondre `null` alors que l'utilisateur est bien connecté — ce qui
+      // rendait `accessToken` vide (« jeton de session Supabase: expected ''
+      // not to be empty », run 41342904303). La session PERSISTÉE de l'app
+      // (client A, clé `sb-<ref>-auth-token`) est la source de vérité : c'est
+      // celle que `RouteGuard` et `rls-isolation-hardened` lisent. On la
+      // préfère dès qu'elle est présente.
+      const persistedToken = ((): string => {
+        try {
+          const key = Object.keys(win.localStorage).find((k) =>
+            /-auth-token$/.test(k),
+          );
+          if (!key) return '';
+          const raw = JSON.parse(win.localStorage.getItem(key) ?? 'null');
+          return raw?.access_token ?? '';
+        } catch {
+          return '';
+        }
+      })();
 
-        // Org courante : le profil de l'utilisateur connecte. Lue avec le
-        // jeton de session (un appel anon sur `profiles` repond 401).
-        const res = await fetch(
-          `${SUPABASE_URL}/rest/v1/profiles?select=org_id&limit=1`,
-          {
-            headers: {
-              apikey: anonKey,
-              Authorization: `Bearer ${accessToken}`,
-            },
+      const client = w.__psSupabaseClient as {
+        auth: { getSession: () => Promise<{ data: { session: any } }> };
+      };
+      const { data } = await client.auth.getSession();
+      accessToken = persistedToken || data?.session?.access_token || '';
+      expect(accessToken, 'jeton de session Supabase').to.be.a('string').and.not
+        .be.empty;
+
+      // Org courante : le profil de l'utilisateur connecte. Lue avec le
+      // jeton de session (un appel anon sur `profiles` repond 401).
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/profiles?select=org_id&limit=1`,
+        {
+          headers: {
+            apikey: anonKey,
+            Authorization: `Bearer ${accessToken}`,
           },
-        );
-        expect(res.status, 'lecture du profil').to.eq(200);
-        const profiles = await res.json();
-        currentOrgId = profiles?.[0]?.org_id ?? '';
-        expect(currentOrgId, 'org_id de la session').to.be.a('string').and.not.be
-          .empty;
-      });
+        },
+      );
+      expect(res.status, 'lecture du profil').to.eq(200);
+      const profiles = await res.json();
+      currentOrgId = profiles?.[0]?.org_id ?? '';
+      expect(currentOrgId, 'org_id de la session').to.be.a('string').and.not.be
+        .empty;
+    });
 
 
     // ── 1. Create an event in the current org ────────────────────────

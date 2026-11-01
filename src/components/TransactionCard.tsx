@@ -37,12 +37,12 @@ export const TransactionCard = memo(function TransactionCard({
       <div className="flex items-center gap-3">
         <div
           className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-          style={{ backgroundColor: isIncome ? tint("var(--data-income)", 12) : tint("var(--data-expense)", 12) }}
+          style={{ backgroundColor: isIncome ? tint("var(--in)", 12) : tint("var(--out)", 12) }}
         >
           {isIncome ? (
-            <ArrowUpRight className="w-5 h-5" style={{ color: "var(--data-income)" }} />
+            <ArrowUpRight className="w-5 h-5" style={{ color: "var(--in)" }} />
           ) : (
-            <ArrowDownRight className="w-5 h-5" style={{ color: "var(--data-expense)" }} />
+            <ArrowDownRight className="w-5 h-5" style={{ color: "var(--out)" }} />
           )}
         </div>
         <div className="flex-1 min-w-0">

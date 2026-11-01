@@ -44,7 +44,12 @@ export default function Finance() {
   // M6 — stable pour les enfants memo (TransactionCard)
   const openTransaction = useCallback((id: string) => navigate(`/transaction/${id}`), [navigate]);
   const location = useLocation();
-  const preselectedCaisse = location.state?.caisseId;
+  // `caisseId` en query param (repli `location.state`) : le routeur Ionic ne
+  // préserve pas le state, donc « Tout voir » depuis un groupe ouvrait la liste
+  // sans filtre de caisse.
+  const preselectedCaisse =
+    new URLSearchParams(location.search).get("caisseId") ||
+    location.state?.caisseId;
 
   const { data: categories } = useCategories();
   const { data: accounts } = useAccounts();
@@ -173,7 +178,7 @@ export default function Finance() {
             <div className="grid grid-cols-2 gap-3 mb-6">
               <div
                 className="rounded-xl p-4"
-                style={{ backgroundColor: "color-mix(in srgb, var(--data-income) 12%, transparent)" }}
+                style={{ backgroundColor: "color-mix(in srgb, var(--in) 12%, transparent)" }}
               >
                 <p className="text-text-tertiary text-xs">Revenus</p>
                 <p className="text-text-primary font-bold text-lg mt-1">
@@ -182,7 +187,7 @@ export default function Finance() {
               </div>
               <div
                 className="rounded-xl p-4"
-                style={{ backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)" }}
+                style={{ backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)" }}
               >
                 <p className="text-text-tertiary text-xs">Dépenses</p>
                 <p className="text-text-primary font-bold text-lg mt-1">

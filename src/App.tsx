@@ -26,6 +26,8 @@ import {
   resolveMinSchemaVersion,
 } from "@/lib/schemaVersion";
 import { installClientErrorCapture, installChunkErrorRecovery } from "@/lib/clientErrors";
+import { reportError } from "@/lib/observability/errorReporter";
+import { ObservabilityBridge } from "@/lib/observability/ObservabilityBridge";
 import { signalAppReady } from "@/lib/bootWatchdog";
 import {
   ForbiddenScreen,
@@ -43,6 +45,7 @@ import {
   clearDeepLinkOrgIntent,
 } from "@/lib/deepLinkIntent";
 import { enterOrganization } from "@/lib/organization-context";
+import { useMoneyFormatStore } from "@/lib/moneyFormat";
 import "./ionic/theme";
 
 // Capture globale des erreurs non gérées (contrat Phase 1/2) : rend visibles
@@ -400,9 +403,25 @@ const UpdaterBridge = () => {
 /**
  * App — wraps the entire Lumina application in IonApp + IonReactRouter.
  */
-const App = () => (
+const App = () => {
+  // Réglage d'affichage des montants : s'abonner ICI (racine) force un
+  // re-rendu de tout l'arbre quand l'utilisateur change le format, donc les
+  // montants déjà affichés se réécrivent immédiatement (ex. « 50 000 FCFA »
+  // → « 50K ») sans navigation ni rechargement.
+  useMoneyFormatStore((s) => s.format);
+  return (
   <QueryClientProvider client={queryClient}>
-    <ErrorBoundary fallback={
+    <ErrorBoundary
+      onError={(error, componentStack) => {
+        // Remontée automatique d'un crash de rendu (type `crash`).
+        reportError(error, {
+          type: "crash",
+          source: "error-boundary",
+          componentStack,
+          route: typeof window !== "undefined" ? window.location.pathname : undefined,
+        });
+      }}
+      fallback={
       <div
         style={{
           minHeight: "100vh",
@@ -460,6 +479,9 @@ const App = () => (
               the context of a <Router> » et fait tomber TOUTE l'app dans
               l'ErrorBoundary (écran « Une erreur inattendue s'est produite »). */}
           <UsageStatsBridge />
+          {/* Observabilité — DOIT être monté SOUS le Router (lit
+              `useLocation()`) ; sinon il lève et fait tomber l'app. */}
+          <ObservabilityBridge />
           <AppRouter />
           <AppProvider>
             <SyncUnavailableBanner />
@@ -498,6 +520,7 @@ const App = () => (
     </TooltipProvider>
     </ErrorBoundary>
   </QueryClientProvider>
-);
+  );
+};
 
 export default App;

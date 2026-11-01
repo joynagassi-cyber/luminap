@@ -25,6 +25,25 @@
  */
 
 describe('Lumina — real auth flows (cloud)', () => {
+  // Borne temporelle du run : le nettoyage ne touche QUE les organisations
+  // créées par ce run (jamais la pollution historique, purgée séparément).
+  const runStartedAt = new Date().toISOString();
+
+  after(() => {
+    // Archivage (non fatal, run-scoped) des organisations JETABLES créées par
+    // les helpers d'auth : nom dynamique (`Org E2E <ts>`, défaut de
+    // runOnboarding) ou scénario « unconfigured » (`Lumina E2E Unconfigured`).
+    // L'organisation de RÉFÉRENCE du run (« Lumina E2E », partagée par tous les
+    // specs) n'est PAS touchée — elle est réutilisée run après run, c'est tout
+    // l'intérêt de la garde P0. Depuis cette garde, un compte possédant déjà
+    // une organisation la RÉUTILISE : ce nettoyage est donc normalement un
+    // no-op, et couvre le cas résiduel du tout premier run (compte neuf).
+    cy.cleanupTestArtifacts({
+      orgNamePrefix: ['Org E2E', 'Self-Serve E2E', 'Lumina E2E Unconfigured'],
+      sinceIso: runStartedAt,
+    });
+  });
+
   it('Create account with email and password (signup → full onboarding)', function () {
     this.timeout(300_000);
 

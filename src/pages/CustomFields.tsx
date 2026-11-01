@@ -177,7 +177,7 @@ export default function CustomFields() {
                     </div>
                     <button
                       onClick={() => handleDelete(field.id)}
-                      style={{ color: "var(--data-expense)" }}
+                      style={{ color: "var(--out)" }}
                       aria-label={`Supprimer le champ ${field.label}`}
                     >
                       <Trash2 className="w-4 h-4" />
@@ -299,7 +299,7 @@ export default function CustomFields() {
                 </div>
 
                 {error && (
-                  <p className="text-xs mb-3" style={{ color: "var(--data-expense)" }}>
+                  <p className="text-xs mb-3" style={{ color: "var(--out)" }}>
                     {error}
                   </p>
                 )}

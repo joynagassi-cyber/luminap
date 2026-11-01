@@ -12,12 +12,16 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import "@testing-library/jest-dom/vitest";
-import { render, screen, cleanup } from "@testing-library/react";
+import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
 
-const unavailable = { value: false };
+const mocks = vi.hoisted(() => ({
+  unavailable: { value: false },
+  markPowerSyncReady: vi.fn(),
+}));
 
 vi.mock("@/lib/dataLayer", () => ({
-  useReplicaUnavailable: () => unavailable.value,
+  useReplicaUnavailable: () => mocks.unavailable.value,
+  markPowerSyncReady: mocks.markPowerSyncReady,
 }));
 
 vi.mock("@/lib/powersync", () => ({
@@ -30,7 +34,8 @@ import { SyncUnavailableBanner } from "@/components/SyncUnavailableBanner";
 describe("SyncUnavailableBanner (P0 zéro écran muet)", () => {
   beforeEach(() => {
     cleanup();
-    unavailable.value = false;
+    mocks.unavailable.value = false;
+    mocks.markPowerSyncReady.mockClear();
   });
 
   it("n'affiche rien tant que la réplique est disponible", () => {
@@ -40,10 +45,17 @@ describe("SyncUnavailableBanner (P0 zéro écran muet)", () => {
   });
 
   it("affiche un état explicite + une action quand la réplique est indisponible", () => {
-    unavailable.value = true;
+    mocks.unavailable.value = true;
     render(<SyncUnavailableBanner />);
     expect(screen.getByText(/Synchronisation indisponible/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Réessayer/i })).toBeInTheDocument();
     expect(document.querySelector('[data-sync-unavailable="true"]')).not.toBeNull();
+  });
+
+  it("« Réessayer » relie une reconnexion réussie à markPowerSyncReady (bannière levée)", async () => {
+    mocks.unavailable.value = true;
+    render(<SyncUnavailableBanner />);
+    fireEvent.click(screen.getByRole("button", { name: /Réessayer/i }));
+    await waitFor(() => expect(mocks.markPowerSyncReady).toHaveBeenCalledTimes(1));
   });
 });

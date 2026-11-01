@@ -238,8 +238,8 @@ export default function CsvImportPanel() {
           data-testid="csv-import-rejected"
           style={{
             backgroundColor:
-              "color-mix(in srgb, var(--data-expense) 12%, transparent)",
-            color: "var(--data-expense)",
+              "color-mix(in srgb, var(--out) 12%, transparent)",
+            color: "var(--out)",
           }}
         >
           <div className="flex items-start gap-2">
@@ -262,7 +262,7 @@ export default function CsvImportPanel() {
           <div className="flex items-center gap-2 mb-2">
             <CheckCircle2
               className="w-4 h-4"
-              style={{ color: "var(--data-income)" }}
+              style={{ color: "var(--in)" }}
             />
             <span className="text-text-secondary text-xs">
               {plan.valid} ligne(s) prête(s) · {plan.invalid} rejetée(s) —
@@ -300,7 +300,7 @@ export default function CsvImportPanel() {
                           {r.sanitized ? " (cellule neutralisée)" : ""}
                         </span>
                       ) : (
-                        <span style={{ color: "var(--data-expense)" }}>
+                        <span style={{ color: "var(--out)" }}>
                           {r.error}
                         </span>
                       )}
@@ -322,7 +322,7 @@ export default function CsvImportPanel() {
               className="mt-2 p-2 rounded-lg text-xs"
               style={{
                 backgroundColor:
-                  "color-mix(in srgb, var(--data-pending) 12%, transparent)",
+                  "color-mix(in srgb, var(--warn) 12%, transparent)",
                 color: "var(--text-secondary)",
               }}
               data-testid="csv-import-warnings"
@@ -342,8 +342,8 @@ export default function CsvImportPanel() {
               className="flex-1 min-w-[150px] flex items-center justify-center gap-2 p-3 rounded-xl active:scale-95 transition-transform text-sm font-semibold disabled:opacity-50"
               style={{
                 backgroundColor:
-                  "color-mix(in srgb, var(--data-income) 18%, transparent)",
-                color: "var(--data-income)",
+                  "color-mix(in srgb, var(--in) 18%, transparent)",
+                color: "var(--in)",
                 border: "1px solid var(--border)",
               }}
               aria-label="Confirmer l'import des lignes valides"

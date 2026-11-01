@@ -78,8 +78,19 @@ vi.mock("@/lib/clientErrors", async () => {
 });
 
 vi.mock("@/lib/powersync", () => ({ disconnectPowerSync: vi.fn(async () => undefined) }));
-vi.mock("@/lib/dataLayer", () => ({ deleteAllLocalData: vi.fn(async () => undefined) }));
+vi.mock("@/lib/dataLayer", () => ({
+  deleteAllLocalData: vi.fn(async () => undefined),
+  useOrganizations: () => ({ data: [] }),
+  useMembers: () => ({ data: [] }),
+}));
 vi.mock("@/lib/orgContext", () => ({ resetOrganizationId: vi.fn() }));
+vi.mock("@/lib/organization-context", () => ({
+  useOrganizationContext: () => ({
+    mode: "ORG",
+    orgId: "__no_org__",
+    label: "Votre organisation",
+  }),
+}));
 
 import Health from "@/pages/Health";
 import { getLastProblemReport, clearProblemReports } from "@/lib/reportProblem";

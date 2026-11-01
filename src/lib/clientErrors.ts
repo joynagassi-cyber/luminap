@@ -13,6 +13,8 @@
 import * as Sentry from "@sentry/react";
 import { Capacitor } from "@capacitor/core";
 
+import { reportError } from "./observability/errorReporter";
+
 export interface ClientErrorContext {
   message: string;
   stack?: string;
@@ -24,12 +26,16 @@ export interface ClientErrorContext {
   source: "onerror" | "unhandledrejection" | "handled";
 }
 
-/** Redact anything that looks like an email or a bearer/JWT token. */
+/** Redact anything that looks like an email, a bearer/JWT token or a phone number. */
 export function redact(text: string): string {
   return text
     .replace(/[\w.+-]+@[\w-]+\.[\w.-]+/g, "<email>")
     .replace(/eyJ[\w-]{10,}\.[\w-]{10,}\.[\w-]{10,}/g, "<jwt>")
-    .replace(/Bearer\s+[\w.-]+/gi, "Bearer <token>");
+    .replace(/Bearer\s+[\w.-]+/gi, "Bearer <token>")
+    // Numéros de téléphone (formats FR courants) : 10 chiffres commençant par
+    // 0, séparés ou non par espace/point/tiret. Les identifiants numériques
+    // (montants, dates, ids) ne commencent pas par 0 → pas de sur-masquage.
+    .replace(/\b0[1-9](?:[\s.-]?\d{2}){4}\b/g, "<tel>");
 }
 
 function currentRoute(): string | undefined {
@@ -108,6 +114,8 @@ export function captureClientError(
     err instanceof Error ? err : new Error(context?.message ?? ctx.message),
     { tags: { source: "handled", route: ctx.route, platform: ctx.platform } },
   );
+  // Remontée automatique vers GitHub Issues (dédup + file hors-ligne).
+  reportError(err, { source: "handled", route: context?.route });
 }
 
 /**
@@ -126,6 +134,11 @@ export function installClientErrorCapture(): () => void {
     Sentry.captureException(event.error ?? new Error(ctx.message), {
       tags: { source: "onerror", route: ctx.route, platform: ctx.platform },
     });
+    reportError(event.error ?? new Error(ctx.message), {
+      type: "crash",
+      source: "onerror",
+      route: ctx.route,
+    });
   };
 
   const onRejection = (event: PromiseRejectionEvent) => {
@@ -138,6 +151,10 @@ export function installClientErrorCapture(): () => void {
         route: ctx.route,
         platform: ctx.platform,
       },
+    });
+    reportError(event.reason ?? new Error(ctx.message), {
+      source: "unhandledrejection",
+      route: ctx.route,
     });
   };
 

@@ -4,6 +4,88 @@ All notable changes to the Lumina Platform will be documented in this file.
 
 ---
 
+## [Unreleased]
+
+### Added
+- **Observabilité → GitHub Issues (correction autonome)** — chaîne complète
+  `erreur client → Issue GitHub` labellisée `openhands`, que l'automatisation
+  cloud OpenHands détecte et corrige sans intervention.
+  - **Capture globale** (`src/lib/observability/`) : `onerror` /
+    `unhandledrejection` (`clientErrors.ts`), ErrorBoundary racine (`App.tsx`)
+    et par route (`lazy-route.tsx`), erreurs de synchronisation PowerSync
+    (`SupabaseConnector.ts`), tâches longues (`perfMonitor.ts`).
+  - **Classification** (crash / functional / database / sync / performance) à
+    partir du message, du code d'erreur (PostgREST/SQLSTATE) et de la première
+    trame utilisateur.
+  - **Rapport contextuel ultra-détaillé** injecté dans l'Issue : stack trace,
+    pile de composants React, route active, environnement, version, plateforme,
+    état de session (sans identité) et fil d'Ariane des 5 dernières actions.
+  - **Anti-spam** : déduplication par signature (client + serveur), fenêtre de
+    dédup, plafond par session et file d'attente locale qui survit au
+    hors-ligne / rechargement.
+  - **Sécurité** : le jeton GitHub n'est JAMAIS côté client — l'edge function
+    `report-error` (secret Supabase `GITHUB_TOKEN`) vérifie le JWT appelant,
+    valide le dépôt cible contre une allowlist et crée l'Issue. Le dépôt étant
+    public, le rapport est expurgé côté client (aucune PII).
+  - Le bouton « Signaler un problème » (page Santé) remonte aussi une Issue.
+  - **Capture PRÉ-LOGIN (anonyme) rate-limitée** — les incidents survenant
+    avant la connexion (crash de l'écran d'auth, échec d'invitation, perte
+    réseau au boot) sont désormais remontés : l'edge function n'exige plus de
+    JWT (`verify_jwt: false`) et distingue deux voies — authentifiée (plafond
+    large, bucket `user:<uuid>`) et anonyme (plafond serré, bucket =
+    `sha256(salt+ip)`, IP jamais stockée en clair). La vérification JWT reste
+    faite dans la fonction, donc un en-tête forgé retombe sur la voie anonyme.
+    Sans `service_role` la voie anonyme est REFUSÉE (jamais non plafonnée).
+    Table `error_report_throttle` (deny-all) + RPC `register_anonymous_report`
+    (EXECUTE réservé au `service_role`).
+  - Gardes : `error-reporter`, `breadcrumbs`, `perf-monitor`,
+    `report-error-issue`, `report-error-throttle` et
+    `error-to-issue-integration-guard` (statique).
+
+---
+
+## [1.2.1] — 2026-11-01
+
+### Fixed
+- **Fuite de données personnelles dans le diagnostic de santé (PR4)** — le
+  bouton « Copier le diagnostic » de la page « État du système » recopiait
+  verbatim le message d'erreur brut ; il applique désormais `redact()`
+  (e-mail, JWT, clé API masqués). Preuve de non-vacuité : le test échoue sans
+  le `redact`.
+- **Fuite de données personnelles dans « Signaler un problème » (PR5)** — une
+  note libre contenant un nom propre ou un numéro de téléphone partait verbatim
+  vers Sentry et le journal local. `scrubIdentities()` retire désormais par
+  valeur l'e-mail, le prénom et le nom de l'utilisateur courant, dans la note
+  comme dans les messages d'erreur repris ; `redact()` masque aussi les numéros
+  français.
+- **Invariant « pas encore lu » ≠ « vide » sur `/archives` (R52)** — la
+  sous-liste « Documents archivés » affichait « Aucun document archivé » avant
+  la fin de la première lecture PowerSync. Garde de disponibilité rétablie.
+- **Garde de câblage RBAC (PR19)** — `route-state-wiring` vérifiait la présence
+  de la clé `hasPermission`, pas sa valeur : `hasPermission: undefined`
+  (fail-open silencieux) passait la garde et `tsc`. La garde détecte désormais
+  les clés câblées au littéral `undefined`.
+
+### Added
+- **Test direct de `useBackupData` (PR2)** — le hook portait deux invariants
+  (garde R52 `ready`, cloisonnement à l'organisation active) jamais vérifiés
+  (toujours mocké). Test ajouté ; non-vacuité prouvée par mutation.
+
+### Changed
+- **Vérification indépendante des filets de robustesse PR1–PR7 / PR19** — trois
+  revues croisées (journal d'audit + sauvegarde ; corbeille + santé ;
+  signalement + mise-à-jour-requise + kill switches + câblage de route) avec
+  preuve de non-vacuité par mutation pour chaque filet.
+
+### Fixed (E2E)
+- **Suite Cypress de nouveau verte** — fin de l'id d'organisation `org-e2e`
+  figé (résolution dynamique de l'org active, R161 self-serve), reseed
+  idempotent des catégories canoniques (intégrité FK), et flush déterministe
+  de la file d'upload PowerSync après création d'un formulaire (`forms-v2`).
+  10 specs passaient rouges sur `main`, désormais toutes vertes.
+
+---
+
 ## [1.2.0] — 2026-11-01
 
 ### Added

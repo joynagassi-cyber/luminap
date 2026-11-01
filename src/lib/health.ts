@@ -42,6 +42,11 @@ export interface HealthInputs {
   syncReady: boolean;
   hasOrg: boolean;
   orgId: string;
+  /**
+   * Libellé LISIBLE de l'organisation (nom), jamais l'ID technique
+   * (`default-org`). Absent → aucun identifiant brut n'est affiché.
+   */
+  orgName?: string;
   /** Nombre d'erreurs client récentes (buffer mémoire). */
   recentErrorCount: number;
   lastErrorMessage?: string;
@@ -90,7 +95,7 @@ export function buildHealthReport(
     },
     {
       id: "sync",
-      label: "Synchronisation PowerSync",
+      label: "Synchronisation",
       level: inputs.syncReady ? "ok" : "warn",
       detail: inputs.syncReady
         ? "connectée et synchronisée"
@@ -100,7 +105,11 @@ export function buildHealthReport(
       id: "org",
       label: "Organisation active",
       level: inputs.hasOrg ? "ok" : "error",
-      detail: inputs.hasOrg ? inputs.orgId : "aucune organisation résolue",
+      // Jamais l'ID technique (`default-org`) : le nom résolu si disponible,
+      // sinon un libellé neutre.
+      detail: inputs.hasOrg
+        ? inputs.orgName || "organisation active"
+        : "aucune organisation résolue",
     },
     {
       id: "errors",
@@ -128,7 +137,7 @@ export function buildHealthReport(
 }
 
 /** Collecte les entrées réelles de l'environnement courant. */
-export function collectHealthInputs(online: boolean): HealthInputs {
+export function collectHealthInputs(online: boolean, orgName?: string): HealthInputs {
   const errors = getRecentErrors();
   const last = errors[0];
   return {
@@ -138,6 +147,7 @@ export function collectHealthInputs(online: boolean): HealthInputs {
     syncReady: isPowerSyncReadyNow(),
     hasOrg: hasResolvedOrganization(),
     orgId: getOrganizationId(),
+    orgName,
     recentErrorCount: errors.length,
     lastErrorMessage: last?.message,
     lastErrorAt: last ? new Date().toISOString() : undefined,
@@ -162,8 +172,8 @@ export function buildDiagnosticReport(
     `Version : ${inputs.appVersion || "inconnue"}`,
     `Plateforme : ${inputs.platform}`,
     `Réseau : ${inputs.online ? "en ligne" : "hors ligne"}`,
-    `Sync PowerSync : ${inputs.syncReady ? "connectée" : "en attente"}`,
-    `Organisation : ${inputs.hasOrg ? inputs.orgId : "aucune"}`,
+    `Synchronisation : ${inputs.syncReady ? "connectée" : "en attente"}`,
+    `Organisation : ${inputs.hasOrg ? inputs.orgName || "active" : "aucune"}`,
     `Erreurs récentes : ${errors.length}`,
   ];
   errors.slice(0, 5).forEach((e, i) => {
@@ -180,7 +190,7 @@ export function buildDiagnosticReport(
 }
 
 /** Hook React : rapport santé, rafraîchi toutes les `intervalMs`. */
-export function useHealthSnapshot(intervalMs = 5000): HealthReport {
+export function useHealthSnapshot(intervalMs = 5000, orgName?: string): HealthReport {
   const [online, setOnline] = useState(
     typeof navigator === "undefined" ? true : navigator.onLine,
   );
@@ -197,18 +207,18 @@ export function useHealthSnapshot(intervalMs = 5000): HealthReport {
   }, []);
 
   const [report, setReport] = useState<HealthReport>(() =>
-    buildHealthReport(collectHealthInputs(online), new Date().toISOString()),
+    buildHealthReport(collectHealthInputs(online, orgName), new Date().toISOString()),
   );
 
   useEffect(() => {
     const tick = () =>
       setReport(
-        buildHealthReport(collectHealthInputs(online), new Date().toISOString()),
+        buildHealthReport(collectHealthInputs(online, orgName), new Date().toISOString()),
       );
     tick();
     const id = setInterval(tick, intervalMs);
     return () => clearInterval(id);
-  }, [online, intervalMs]);
+  }, [online, intervalMs, orgName]);
 
   return report;
 }

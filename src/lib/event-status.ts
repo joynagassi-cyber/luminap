@@ -14,9 +14,9 @@
 /** Tokens Lumina pour chaque statut d'événement (jamais de couleur brute). */
 export const EVENT_STATUS_COLORS: Record<string, string> = {
   PLANIFIED: "var(--data-planified)",
-  ONGOING: "var(--data-income)",
+  ONGOING: "var(--in)",
   COMPLETED: "var(--text-tertiary)",
-  CANCELLED: "var(--data-expense)",
+  CANCELLED: "var(--out)",
 };
 
 export const EVENT_STATUS_LABELS: Record<string, string> = {

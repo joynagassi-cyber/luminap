@@ -6,6 +6,8 @@ import { supabase } from "@/lib/auth";
 // `@/lib/dataLayer` : importer ce dernier tirait tout le data layer (≈ 3 900
 // lignes) dans le chunk d'entrée et cassait le découpage de code (R116).
 import { markPowerSyncReady } from "./readiness";
+import { pushBreadcrumb } from "@/lib/observability/breadcrumbs";
+import { reportError } from "@/lib/observability/errorReporter";
 
 // Singleton instance
 let _db: PowerSyncDatabase | null = null;
@@ -428,6 +430,24 @@ export async function initPowerSync(): Promise<void> {
         uploadError: status.uploadError?.message,
         downloadError: status.downloadError?.message,
       });
+      // Fil d'Ariane : transitions de connexion (reproduction d'un bug de sync).
+      pushBreadcrumb("sync", "statut PowerSync", {
+        connected: String(status.connected),
+        uploading: String(status.uploading),
+        downloading: String(status.downloading),
+      });
+      // Erreurs de flux (téléchargement/upload) → remontée automatique.
+      const syncError = status.downloadError ?? status.uploadError;
+      if (syncError) {
+        reportError(syncError, {
+          type: "sync",
+          source: "powersync-status",
+          context: {
+            connected: String(status.connected),
+            phase: status.downloadError ? "download" : "upload",
+          },
+        });
+      }
     },
   });
 

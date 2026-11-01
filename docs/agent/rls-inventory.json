@@ -1,10 +1,12 @@
 {
   "_comment": "Inventaire RLS du schema public (project hhgovvrnalibhgpakswi, instance de DEV). REGENERE par la requete en tete de rls-inventory.test.ts apres tout changement de schema/RLS.",
-  "_generatedAt": "2026-10-30",
+  "_generatedAt": "2026-11-01",
   "_denyAllAllowlist": [
-    "keep_alive",
     "_jsonb_backfill_20261024",
-    "_jsonb_null_literal_20261027"
+    "_jsonb_null_literal_20261027",
+    "error_report_dedupe",
+    "error_report_throttle",
+    "keep_alive"
   ],
   "tables": [
     {
@@ -61,6 +63,16 @@
       "table": "documents",
       "rls": true,
       "policies": 3
+    },
+    {
+      "table": "error_report_dedupe",
+      "rls": true,
+      "policies": 0
+    },
+    {
+      "table": "error_report_throttle",
+      "rls": true,
+      "policies": 0
     },
     {
       "table": "event_budgets",
@@ -163,6 +175,11 @@
       "policies": 2
     },
     {
+      "table": "org_settings",
+      "rls": true,
+      "policies": 4
+    },
+    {
       "table": "org_units",
       "rls": true,
       "policies": 4
@@ -211,6 +228,11 @@
       "table": "tax_receipts",
       "rls": true,
       "policies": 4
+    },
+    {
+      "table": "transaction_attachments",
+      "rls": true,
+      "policies": 3
     },
     {
       "table": "transaction_giving",

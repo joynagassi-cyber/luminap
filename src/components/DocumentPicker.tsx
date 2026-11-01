@@ -217,7 +217,7 @@ export default function DocumentPicker({
           )}
         </button>
         {uploadError && (
-          <p className="text-xs" style={{ color: "var(--data-expense)" }}>
+          <p className="text-xs" style={{ color: "var(--out)" }}>
             {uploadError}
           </p>
         )}

@@ -15,6 +15,7 @@ import TopHeader from "@/components/TopHeader";
 import { policy } from "@/capabilities/policy";
 import { useKeyboardAvoidance } from "@/hooks/useKeyboardAvoidance";
 import { periodLockMessage } from "@/lib/periodLock";
+import { parseAmountToCents } from "@/lib/amountInput";
 import type { FundSource, Transaction } from "@/types";
 import {
   IonPage,
@@ -162,7 +163,11 @@ export default function TransactionEdit() {
       setError("Veuillez remplir tous les champs obligatoires");
       return;
     }
-    const amountCents = Math.round(parseFloat(amount) * 100);
+    const amountCents = parseAmountToCents(trimmedAmount);
+    if (amountCents === null) {
+      setError("Montant invalide");
+      return;
+    }
     const amountCheck = policy.transaction.validateAmount(amountCents);
     if (!amountCheck.ok) {
       setError(amountCheck.message ?? "Montant invalide");
@@ -174,7 +179,7 @@ export default function TransactionEdit() {
     try {
       await updateTransactionPS(id!, {
         type,
-        amount: Math.round(parseFloat(amount) * 100),
+        amount: amountCents,
         description,
         date,
         category_id: categoryId,
@@ -234,7 +239,7 @@ export default function TransactionEdit() {
                   className="flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all"
                   style={
                     type === "INCOME"
-                      ? { backgroundColor: "var(--data-income)", color: "var(--text-primary)" }
+                      ? { backgroundColor: "var(--in)", color: "var(--text-primary)" }
                       : { color: "var(--text-secondary)" }
                   }
                   aria-label="Entrée"
@@ -246,7 +251,7 @@ export default function TransactionEdit() {
                   className="flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all"
                   style={
                     type === "EXPENSE"
-                      ? { backgroundColor: "var(--data-expense)", color: "var(--text-primary)" }
+                      ? { backgroundColor: "var(--out)", color: "var(--text-primary)" }
                       : { color: "var(--text-secondary)" }
                   }
                   aria-label="Sortie"
@@ -258,8 +263,8 @@ export default function TransactionEdit() {
               <IonItem lines="none" className="bg-card rounded-xl">
                 <IonLabel position="floating" className="text-sm text-text-secondary">Montant (FCFA)</IonLabel>
                 <IonInput
-                  type="number"
-                  inputMode="numeric"
+                  type="text"
+                  inputMode="decimal"
                   value={amount}
                   onIonInput={(e: IonChangeCustomEvent<string>) => setAmount(e.detail.value ?? "")}
                   placeholder="0"
@@ -362,7 +367,7 @@ export default function TransactionEdit() {
               {error && (
                 <div
                   className="mb-4 p-3 rounded-xl text-sm text-center"
-                  style={{ backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)", color: "var(--data-expense)" }}
+                  style={{ backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)", color: "var(--out)" }}
                 >
                   {error}
                 </div>
@@ -373,7 +378,7 @@ export default function TransactionEdit() {
                 disabled={submitting}
                 className="w-full py-4 rounded-full font-semibold text-on-accent text-sm transition-all active:scale-95"
                 style={{
-                  backgroundColor: type === "INCOME" ? "var(--data-income)" : "var(--data-expense)",
+                  backgroundColor: type === "INCOME" ? "var(--in)" : "var(--out)",
                 }}
                 aria-label="Sauvegarder la transaction"
               >

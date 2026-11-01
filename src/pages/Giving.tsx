@@ -13,6 +13,7 @@ import {
 } from "@/lib/dataLayer";
 import { campaignProgress } from "@/capabilities/giving";
 import { formatCurrencyCompact, formatCurrencyFull } from "@/lib/utils";
+import { parseAmountToCents } from "@/lib/amountInput";
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
 import EmptyState from "@/components/EmptyState";
@@ -122,7 +123,7 @@ export default function Giving() {
                               className="h-full rounded-full"
                               style={{
                                 width: `${Math.min(100, bar)}%`,
-                                backgroundColor: done ? "var(--data-income)" : "var(--accent-primary)",
+                                backgroundColor: done ? "var(--in)" : "var(--accent-primary)",
                               }}
                             />
                           </div>
@@ -172,7 +173,7 @@ export default function Giving() {
                         {d.tax_receipt_enabled === 1 && (
                           <span
                             className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                            style={{ backgroundColor: "color-mix(in srgb, var(--data-income) 12%, transparent)", color: "var(--data-income)" }}
+                            style={{ backgroundColor: "color-mix(in srgb, var(--in) 12%, transparent)", color: "var(--in)" }}
                           >
                             Reçu fiscal
                           </span>
@@ -205,8 +206,8 @@ export default function Giving() {
                               className="text-xs font-semibold px-2 py-0.5 rounded-full"
                               style={{
                                 backgroundColor:
-                                  "color-mix(in srgb, var(--data-pending) 12%, transparent)",
-                                color: "var(--data-pending)",
+                                  "color-mix(in srgb, var(--warn) 12%, transparent)",
+                                color: "var(--warn)",
                               }}
                             >
                               {p.schedule}
@@ -279,7 +280,7 @@ export default function Giving() {
                   name: input.name,
                   purpose: input.purpose || null,
                   fund: input.fund || null,
-                  target_amount_cents: Math.round((Number(input.target.replace(/[^\d]/g, "")) || 0) * 100),
+                  target_amount_cents: parseAmountToCents(input.target) ?? 0,
                   start_date: null,
                   end_date: null,
                   status: "ACTIVE",
@@ -387,16 +388,16 @@ function DonorSheet({
   return (
     <Sheet title="Nouveau donateur" onClose={onClose}>
       <label className="block">
-        <span className="text-text-tertiary text-xs uppercase tracking-wide block mb-1">Nom complet</span>
+        <span className="text-text-tertiary text-xs uppercase tracking-wide block mb-1">Nom complet *</span>
         {/* M4 */}
         <IonInput value={name} onIonInput={(e) => setName((e.detail.value as string) ?? "")} placeholder="Ex : Marie A." data-testid="donor-name" />
       </label>
       <label className="block">
-        <span className="text-text-tertiary text-xs uppercase tracking-wide block mb-1">Email</span>
+        <span className="text-text-tertiary text-xs uppercase tracking-wide block mb-1">Email (optionnel)</span>
         <IonInput value={email} onIonInput={(e) => setEmail((e.detail.value as string) ?? "")} placeholder="email@…" />
       </label>
       <label className="block">
-        <span className="text-text-tertiary text-xs uppercase tracking-wide block mb-1">Téléphone</span>
+        <span className="text-text-tertiary text-xs uppercase tracking-wide block mb-1">Téléphone (optionnel)</span>
         <IonInput value={phone} onIonInput={(e) => setPhone((e.detail.value as string) ?? "")} placeholder="+225 …" />
       </label>
       <button
@@ -406,7 +407,7 @@ function DonorSheet({
         data-testid="donor-tax-toggle"
       >
         <span className="text-text-secondary text-xs">Reçu fiscal annuel</span>
-        <span className="text-xs font-semibold" style={{ color: tax ? "var(--data-income)" : "var(--text-tertiary)" }}>
+        <span className="text-xs font-semibold" style={{ color: tax ? "var(--in)" : "var(--text-tertiary)" }}>
           {tax ? "Oui" : "Non"}
         </span>
       </button>
@@ -446,21 +447,21 @@ function CampaignSheet({
   return (
     <Sheet title="Nouvelle campagne" onClose={onClose}>
       <label className="block">
-        <span className="text-text-tertiary text-xs uppercase tracking-wide block mb-1">Nom</span>
+        <span className="text-text-tertiary text-xs uppercase tracking-wide block mb-1">Nom *</span>
         {/* M4 */}
         <IonInput value={name} onIonInput={(e) => setName((e.detail.value as string) ?? "")} placeholder="Ex : Fonds mission 2026" data-testid="campaign-name" />
       </label>
       <label className="block">
-        <span className="text-text-tertiary text-xs uppercase tracking-wide block mb-1">But</span>
+        <span className="text-text-tertiary text-xs uppercase tracking-wide block mb-1">But (optionnel)</span>
         <IonInput value={purpose} onIonInput={(e) => setPurpose((e.detail.value as string) ?? "")} placeholder="Objectif de la campagne" />
       </label>
       <label className="block">
-        <span className="text-text-tertiary text-xs uppercase tracking-wide block mb-1">Fonds / caisse</span>
+        <span className="text-text-tertiary text-xs uppercase tracking-wide block mb-1">Fonds / caisse (optionnel)</span>
         <IonInput value={fund} onIonInput={(e) => setFund((e.detail.value as string) ?? "")} placeholder="Ex : Caisse mission" />
       </label>
       <label className="block">
-        <span className="text-text-tertiary text-xs uppercase tracking-wide block mb-1">Objectif (FCFA)</span>
-        <IonInput type="number" value={target} onIonInput={(e) => setTarget((e.detail.value as string) ?? "")} placeholder="Ex : 5000000" data-testid="campaign-target" />
+        <span className="text-text-tertiary text-xs uppercase tracking-wide block mb-1">Objectif (FCFA) (optionnel)</span>
+        <IonInput type="text" inputMode="decimal" value={target} onIonInput={(e) => setTarget((e.detail.value as string) ?? "")} placeholder="Ex : 5000000" data-testid="campaign-target" />
       </label>
       <PrimaryButton onClick={submit} disabled={saving || !name.trim()} label={saving ? "Création…" : "Créer la campagne"} />
     </Sheet>

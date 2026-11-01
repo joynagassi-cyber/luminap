@@ -106,7 +106,7 @@ const SECTIONS: SectionData[] = [
     title: "Dashboard",
     icon: Home,
     color: CHART_COLORS.income,
-    iconBg: "color-mix(in srgb, var(--data-income) 12%, transparent)",
+    iconBg: "color-mix(in srgb, var(--in) 12%, transparent)",
     titleColor: CHART_COLORS.income,
     paragraphs: [
       "Le tableau de bord (Accueil) est votre point d'entrée principal. Il affiche en temps réel le solde de chaque caisse, les entrées et sorties du mois, ainsi que les événements à venir.",
@@ -128,7 +128,7 @@ const SECTIONS: SectionData[] = [
     title: "Transactions",
     icon: Wallet,
     color: CHART_COLORS.income,
-    iconBg: "color-mix(in srgb, var(--data-income) 12%, transparent)",
+    iconBg: "color-mix(in srgb, var(--in) 12%, transparent)",
     titleColor: CHART_COLORS.income,
     paragraphs: [
       "Une transaction peut être une entrée (revenu) ou une sortie (dépense). Chaque transaction enregistre le montant, la date, la catégorie, la caisse source, et peut être liée à un groupe ou un événement.",
@@ -175,7 +175,7 @@ const SECTIONS: SectionData[] = [
     title: "Gestion des caisses",
     icon: Wallet,
     color: CHART_COLORS.pending,
-    iconBg: "color-mix(in srgb, var(--data-pending) 12%, transparent)",
+    iconBg: "color-mix(in srgb, var(--warn) 12%, transparent)",
     titleColor: CHART_COLORS.pending,
     paragraphs: [
       "La caisse principale (id: 'main') est la caisse centrale de l'église. C'est elle qui apparaît sur le tableau de bord comme solde global.",
@@ -221,7 +221,7 @@ const SECTIONS: SectionData[] = [
     title: "Versement",
     icon: ArrowRightLeft,
     color: CHART_COLORS.pending,
-    iconBg: "color-mix(in srgb, var(--data-pending) 12%, transparent)",
+    iconBg: "color-mix(in srgb, var(--warn) 12%, transparent)",
     titleColor: CHART_COLORS.pending,
     paragraphs: [
       "Le versement transfère des fonds d'une caisse groupe vers la caisse principale de l'église.",
@@ -291,7 +291,7 @@ const SECTIONS: SectionData[] = [
     title: "Historique",
     icon: History,
     color: CHART_COLORS.pending,
-    iconBg: "color-mix(in srgb, var(--data-pending) 12%, transparent)",
+    iconBg: "color-mix(in srgb, var(--warn) 12%, transparent)",
     titleColor: CHART_COLORS.pending,
     paragraphs: [
       "La page Historique offre une vue approfondie des données financières avec des graphiques interactifs à courbes de Bézier.",
@@ -378,7 +378,7 @@ const SECTIONS: SectionData[] = [
     title: "Trace d'activité",
     icon: ListChecks,
     color: CHART_COLORS.expense,
-    iconBg: "color-mix(in srgb, var(--data-expense) 12%, transparent)",
+    iconBg: "color-mix(in srgb, var(--out) 12%, transparent)",
     titleColor: CHART_COLORS.expense,
     paragraphs: [
       "La page Trace d'activité affiche l'historique complet de toutes les actions financières : créations, modifications, approbations, rejets, archivages et restaurations.",
@@ -407,6 +407,7 @@ const SECTIONS: SectionData[] = [
       "L'archivage permet de masquer les éléments inactifs sans les supprimer définitivement : groupes, comptes, membres et événements.",
       "Un groupe est archivé quand il n'a plus d'activité. Un événement devient « Archivé » quand il est annulé.",
       "La page Archives centralise tous les éléments archivés avec la possibilité de les restaurer en un clic.",
+      "Un administrateur peut aussi les supprimer définitivement (purge) : soit élément par élément, soit en vidant toute la corbeille.",
       "Les éléments archivés ne sont plus visibles dans les listes principales mais peuvent être restaurés à tout moment.",
     ],
     tips: [
@@ -415,13 +416,16 @@ const SECTIONS: SectionData[] = [
       "Un groupe restauré retrouve son compte caisse et son historique de transactions.",
       "La recherche dans les archives permet de retrouver rapidement un élément spécifique.",
     ],
+    warnings: [
+      "La suppression définitive est irréversible : elle efface l'élément et ses données associées. Elle est réservée aux administrateurs et demande une confirmation explicite.",
+    ],
   },
   {
     id: "signaler-probleme",
     title: "Signaler un problème",
     icon: AlertCircle,
     color: CHART_COLORS.expense,
-    iconBg: "color-mix(in srgb, var(--data-expense) 12%, transparent)",
+    iconBg: "color-mix(in srgb, var(--out) 12%, transparent)",
     titleColor: CHART_COLORS.expense,
     paragraphs: [
       "Lorsque quelque chose ne fonctionne pas, la page « État du système » (Paramètres → État du système) permet de signaler le problème au support en un geste.",
@@ -560,7 +564,7 @@ const SECTIONS: SectionData[] = [
     title: "Erreurs fréquentes",
     icon: AlertCircle,
     color: CHART_COLORS.expense,
-    iconBg: "color-mix(in srgb, var(--data-expense) 12%, transparent)",
+    iconBg: "color-mix(in srgb, var(--out) 12%, transparent)",
     titleColor: CHART_COLORS.expense,
     paragraphs: ["Erreurs courantes et comment les résoudre."],
     errors: [
@@ -590,6 +594,11 @@ const SECTIONS: SectionData[] = [
           "Vérifiez votre connexion internet. Si le problème persiste, allez dans Paramètres → Actualiser les données.",
       },
       {
+        title: "Écran « Mise à jour requise » au démarrage",
+        solution:
+          "Votre application est plus ancienne que le format de données attendu. Touchez « Recharger » puis mettez à jour Lumina depuis votre store (ou rechargez la page web). Vos données locales ne sont pas perdues.",
+      },
+      {
         title: "Transaction rejetée, comment la modifier ?",
         solution:
           "Une transaction rejetée doit être recréée. Vous pouvez copier les informations de l'ancienne transaction dans la nouvelle.",
@@ -598,6 +607,11 @@ const SECTIONS: SectionData[] = [
         title: "Champ personnalisé introuvable",
         solution:
           "Vérifiez que le champ personnalisé a bien été créé pour l'entité concernée (Transaction, Événement, etc.).",
+      },
+      {
+        title: "Champs obligatoires : qu'est-ce qui est vraiment requis ?",
+        solution:
+          "Les champs marqués d'un astérisque (*) sont obligatoires — pour une transaction, seuls le montant et la catégorie le sont. La description, le commentaire, l'e-mail et le téléphone sont facultatifs : laissez-les vides si vous n'en avez pas besoin.",
       },
       {
         title: "Événement ne s'affiche pas",
@@ -632,9 +646,9 @@ const SECTIONS: SectionData[] = [
     id: "approbation-deux-etapes",
     title: "Approbation en deux étapes",
     icon: ShieldCheck,
-    color: "var(--data-income)",
-    iconBg: "color-mix(in srgb, var(--data-income) 12%, transparent)",
-    titleColor: "var(--data-income)",
+    color: "var(--in)",
+    iconBg: "color-mix(in srgb, var(--in) 12%, transparent)",
+    titleColor: "var(--in)",
     paragraphs: [
       "L'approbation en deux étapes (maker-checker) est un contrôle financier : la personne qui CRÉE une transaction ne peut pas être celle qui l'APPROUVE. Celui qui engage la dépense est donc distinct de celui qui la valide.",
       "Ce réglage est OPTIONNEL et propre à chaque organisation : il est DÉSACTIVÉ par défaut, pour que les églises gérées par un seul administrateur continuent de fonctionner comme avant.",
@@ -657,7 +671,7 @@ const SECTIONS: SectionData[] = [
     title: "Importer des transactions (CSV)",
     icon: Upload,
     color: CHART_COLORS.income,
-    iconBg: "color-mix(in srgb, var(--data-income) 12%, transparent)",
+    iconBg: "color-mix(in srgb, var(--in) 12%, transparent)",
     titleColor: CHART_COLORS.income,
     paragraphs: [
       "Depuis Paramètres → Gérer → Sauvegarde des données, le bouton « Importer des transactions (CSV) » permet d'ajouter un lot de transactions préparées dans un tableur (Excel, LibreOffice, Google Sheets).",
@@ -680,7 +694,7 @@ const SECTIONS: SectionData[] = [
     title: "Transférer la propriété",
     icon: Crown,
     color: CHART_COLORS.income,
-    iconBg: "color-mix(in srgb, var(--data-income) 12%, transparent)",
+    iconBg: "color-mix(in srgb, var(--in) 12%, transparent)",
     titleColor: CHART_COLORS.income,
     paragraphs: [
       "Le transfert de propriété permet de désigner un autre administrateur pour que l'organisation ne reste jamais sans responsable.",
@@ -726,7 +740,7 @@ const SECTIONS: SectionData[] = [
     title: "Rappels de rapport",
     icon: BellRing,
     color: CHART_COLORS.pending,
-    iconBg: "color-mix(in srgb, var(--data-pending) 12%, transparent)",
+    iconBg: "color-mix(in srgb, var(--warn) 12%, transparent)",
     titleColor: CHART_COLORS.pending,
     paragraphs: [
       "Une annexe doit transmettre régulièrement un rapport de gestion à son organisation parente. Pour ne pas l'oublier, l'application affiche un rappel « Rapport à envoyer » sur l'écran d'envoi du rapport.",
@@ -748,7 +762,7 @@ const SECTIONS: SectionData[] = [
     title: "Justificatifs (reçus)",
     icon: Paperclip,
     color: CHART_COLORS.income,
-    iconBg: "color-mix(in srgb, var(--data-income) 12%, transparent)",
+    iconBg: "color-mix(in srgb, var(--in) 12%, transparent)",
     titleColor: CHART_COLORS.income,
     paragraphs: [
       "Chaque transaction peut porter une ou plusieurs pièces justificatives : une photo du reçu, une facture numérisée ou un PDF.",

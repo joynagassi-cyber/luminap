@@ -109,16 +109,16 @@ export function exportPDF(options: ExportOptions) {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
   doc.setTextColor(30, 30, 30);
-  doc.text(`Total entrées: ${formatCurrencyCompact(totalIncome)} FCFA`, 20, 18);
+  doc.text(`Total entrées: ${formatCurrencyCompact(totalIncome)}`, 20, 18);
   doc.setTextColor(229, 19, 50);
   doc.text(
-    `Total sorties: ${formatCurrencyCompact(totalExpense)} FCFA`,
+    `Total sorties: ${formatCurrencyCompact(totalExpense)}`,
     70,
     18,
   );
   doc.setTextColor(29, 185, 84);
   doc.text(
-    `Résultat: ${netResult >= 0 ? "+" : "-"}${formatCurrencyCompact(Math.abs(netResult))} FCFA`,
+    `Résultat: ${netResult >= 0 ? "+" : "-"}${formatCurrencyCompact(Math.abs(netResult))}`,
     120,
     18,
   );
@@ -479,17 +479,17 @@ function exportOrgReportPDF(payload: OrgReportPayload): Blob {
   doc.roundedRect(14, 38, pageWidth - 28, 16, 3, 3);
   doc.setFontSize(10);
   doc.setTextColor(29, 185, 84);
-  doc.text(`Entrées: ${formatCurrencyCompact(summary.totalIncome)} FCFA`, 20, 47);
+  doc.text(`Entrées: ${formatCurrencyCompact(summary.totalIncome)}`, 20, 47);
   doc.setTextColor(229, 19, 50);
   doc.text(
-    `Sorties: ${formatCurrencyCompact(summary.totalExpense)} FCFA`,
+    `Sorties: ${formatCurrencyCompact(summary.totalExpense)}`,
     75,
     47,
   );
   doc.setTextColor(30, 30, 30);
   doc.setFont("helvetica", "bold");
   doc.text(
-    `Résultat: ${summary.netResult >= 0 ? "+" : "-"}${formatCurrencyCompact(Math.abs(summary.netResult))} FCFA`,
+    `Résultat: ${summary.netResult >= 0 ? "+" : "-"}${formatCurrencyCompact(Math.abs(summary.netResult))}`,
     130,
     47,
   );
@@ -606,7 +606,7 @@ async function exportOrgReportDOCX(payload: OrgReportPayload): Promise<Blob> {
             text: `Généré le ${new Date().toLocaleDateString("fr-FR")}`,
           }),
           new Paragraph({
-            text: `Entrées : ${formatCurrencyCompact(summary.totalIncome)} FCFA · Sorties : ${formatCurrencyCompact(summary.totalExpense)} FCFA · Résultat : ${summary.netResult >= 0 ? "+" : "-"}${formatCurrencyCompact(Math.abs(summary.netResult))} FCFA`,
+            text: `Entrées : ${formatCurrencyCompact(summary.totalIncome)} · Sorties : ${formatCurrencyCompact(summary.totalExpense)} · Résultat : ${summary.netResult >= 0 ? "+" : "-"}${formatCurrencyCompact(Math.abs(summary.netResult))}`,
           }),
           new Paragraph({
             text: `Transactions : ${payload.transactions.length} · Événements : ${summary.eventCount} · Membres : ${summary.memberCount} · Documents joints : ${summary.documentCount}`,
@@ -744,12 +744,20 @@ function exportOrgReportXLSX(payload: OrgReportPayload): Blob {
  * `document.createElement("canvas")` + `canvas.toDataURL("image/png")`
  * → Blob, renvoyé pour l'upload dans le bucket privé `org_reports`.
  *
- * Les couleurs des barres suivent la sémantique des tokens `--data-*`
- * (revenus `--data-income`, dépenses `--data-expense`, accent
- * `--accent-primary`) en valeurs canvas (le canvas ne lit pas les CSS
- * custom properties sans resolvers ; les hex ici reflètent les tokens
- * standards — jamais d'autre teinte brute ailleurs dans l'app).
+ * Les couleurs des barres suivent la sémantique des tokens d'argent
+ * (`--in` = entrées, `--out` = sorties, accent `--accent-primary`) en valeurs
+ * canvas (le canvas ne lit pas les CSS custom properties). On résout donc le
+ * jeton au runtime (mode clair/sombre) avec un repli sur la valeur du mode
+ * sombre — jamais d'autre teinte brute ailleurs dans l'app).
  */
+function cssToken(name: string, fallback: string): string {
+  if (typeof document === "undefined") return fallback;
+  const v = getComputedStyle(document.documentElement)
+    .getPropertyValue(name)
+    .trim();
+  return v || fallback;
+}
+
 function exportOrgReportPNG(payload: OrgReportPayload): Blob {
   const W = 800;
   const H = 400;
@@ -763,9 +771,11 @@ function exportOrgReportPNG(payload: OrgReportPayload): Blob {
   const income = formatCurrencyCompact(summary.totalIncome);
   const expense = formatCurrencyCompact(summary.totalExpense);
   const net = formatCurrencyCompact(Math.abs(summary.netResult));
+  const inColor = cssToken("--in", "#4ADE80");
+  const outColor = cssToken("--out", "#F87171");
   const bars = [
-    { label: "Entrées", value: summary.totalIncome, short: income, color: "#1DB954" },
-    { label: "Sorties", value: summary.totalExpense, short: expense, color: "#E51332" },
+    { label: "Entrées", value: summary.totalIncome, short: income, color: inColor },
+    { label: "Sorties", value: summary.totalExpense, short: expense, color: outColor },
     {
       label: "Résultat",
       value: Math.abs(summary.netResult),

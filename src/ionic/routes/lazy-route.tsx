@@ -17,6 +17,7 @@ import {
 } from "react";
 import { IonPage, IonContent } from "@ionic/react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { reportError } from "@/lib/observability/errorReporter";
 
 // ─── Suspense Fallback ─────────────────────────────────────────────────────
 // IMPORTANT — ce fallback ne doit PAS rendre un <IonPage>.
@@ -73,6 +74,12 @@ class LazyRouteErrorBoundary extends Component<
       error,
       info?.componentStack ?? null,
     );
+    reportError(error, {
+      type: "crash",
+      source: "lazy-route-boundary",
+      componentStack: info?.componentStack ?? undefined,
+      route: typeof window !== "undefined" ? window.location.pathname : undefined,
+    });
   }
 
   private retry = () => {
@@ -92,7 +99,7 @@ class LazyRouteErrorBoundary extends Component<
             >
               <div
                 className="flex h-14 w-14 items-center justify-center rounded-full"
-                style={{ backgroundColor: "color-mix(in srgb, var(--data-pending) 12%, transparent)" }}
+                style={{ backgroundColor: "color-mix(in srgb, var(--warn) 12%, transparent)" }}
               >
                 <span className="text-2xl" aria-hidden>
                   ⚠

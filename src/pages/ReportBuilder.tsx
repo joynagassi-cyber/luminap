@@ -596,7 +596,7 @@ export default function ReportBuilder() {
               <span className="text-text-primary text-xs flex-1 truncate">
                 {METRIC_FNS.find((x) => x.value === m.fn)?.label || m.fn} · {m.alias || m.field}
               </span>
-              <button onClick={() => removeMetric(i)} style={{ color: "var(--data-expense)" }} aria-label="Retirer">
+              <button onClick={() => removeMetric(i)} style={{ color: "var(--out)" }} aria-label="Retirer">
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -638,7 +638,7 @@ export default function ReportBuilder() {
         </section>
 
         {error && (
-          <p className="text-xs mb-3" style={{ color: "var(--data-expense)" }}>
+          <p className="text-xs mb-3" style={{ color: "var(--out)" }}>
             {error}
           </p>
         )}
@@ -789,7 +789,7 @@ export default function ReportBuilder() {
                     <button
                       onClick={() => del(r.id)}
                       className="w-7 h-7 rounded-full flex items-center justify-center"
-                      style={{ backgroundColor: "var(--surface-hover)", color: "var(--data-expense)" }}
+                      style={{ backgroundColor: "var(--surface-hover)", color: "var(--out)" }}
                       aria-label="Supprimer"
                     >
                       <X className="w-3.5 h-3.5" />

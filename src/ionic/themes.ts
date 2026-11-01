@@ -196,17 +196,18 @@ export function applyTheme(theme?: LuminaTheme): void {
 // mirrored onto the Ionic vars that cannot be CSS vars (src/ionic/theme.ts),
 // and persisted in localStorage.
 
-export type ThemeMode = "dark" | "light";
+export type ThemeMode = "system" | "dark" | "light";
 
 export const THEME_MODE_STORAGE_KEY = "lumina-theme-mode";
 
+/** Choix persisté. Défaut « system » (addendum B2 : suivre le réglage de l'OS). */
 export function getStoredThemeMode(): ThemeMode {
-  if (typeof localStorage === "undefined") return "dark";
+  if (typeof localStorage === "undefined") return "system";
   try {
     const v = localStorage.getItem(THEME_MODE_STORAGE_KEY);
-    return v === "light" ? "light" : "dark";
+    return v === "light" || v === "dark" || v === "system" ? v : "system";
   } catch {
-    return "dark";
+    return "system";
   }
 }
 
@@ -221,15 +222,61 @@ export function persistThemeMode(mode: ThemeMode): void {
 }
 
 /**
- * Apply the light/dark mode: sets `data-theme` on <html>, pushes the
- * mode-specific Ionic vars, persists the choice. Idempotent and SSR-safe.
+ * Résout « system » vers la préférence de l'OS. Sans `matchMedia` (SSR, tests
+ * jsdom), on retombe sur sombre — le défaut historique de Lumina.
  */
-export function applyThemeMode(mode?: ThemeMode): void {
+export function resolveThemeMode(mode: ThemeMode): "dark" | "light" {
+  if (mode === "dark" || mode === "light") return mode;
+  if (typeof window !== "undefined" && typeof window.matchMedia === "function") {
+    try {
+      return window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : "light";
+    } catch {
+      return "dark";
+    }
+  }
+  return "dark";
+}
+
+let systemListenerBound = false;
+
+/** En mode « system », suivre en direct les changements du réglage de l'OS. */
+function bindSystemListener(): void {
+  if (systemListenerBound) return;
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+    return;
+  }
+  try {
+    window
+      .matchMedia("(prefers-color-scheme: dark)")
+      .addEventListener("change", () => {
+        if (getStoredThemeMode() === "system") {
+          applyThemeMode("system", { persist: false });
+        }
+      });
+    systemListenerBound = true;
+  } catch {
+    /* environnement sans addEventListener : repli statique, sans écoute */
+  }
+}
+
+/**
+ * Apply the light/dark mode: sets `data-theme` on <html> to the *resolved*
+ * mode (system → OS preference), pushes the mode-specific Ionic vars, persists
+ * the *choice*. Idempotent and SSR-safe.
+ */
+export function applyThemeMode(
+  mode?: ThemeMode,
+  opts?: { persist?: boolean },
+): void {
   if (typeof document === "undefined") return;
-  const m: ThemeMode = mode === "light" ? "light" : "dark";
-  document.documentElement.dataset.theme = m;
-  applyIonicThemeMode(m);
-  persistThemeMode(m);
+  const choice: ThemeMode = mode ?? getStoredThemeMode();
+  const resolved = resolveThemeMode(choice);
+  document.documentElement.dataset.theme = resolved;
+  applyIonicThemeMode(resolved);
+  if (opts?.persist !== false) persistThemeMode(choice);
+  if (choice === "system") bindSystemListener();
 }
 
 /** Convenience: read the stored mode and apply it (safe on first paint). */

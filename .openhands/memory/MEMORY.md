@@ -32,6 +32,32 @@
   `/app-conversations/start-tasks?ids=<id>` pour l'`app_conversation_id`.
   Aucun backend Agent Canvas local (localhost:8001 → HTTP 000).
 
+## E2E isolation — 2 flakies de course (2026-11-01, run 41342904303, PR #247)
+- **`cross-tenant.cy.ts` « jeton vide »** : ne JAMAIS lire la session via
+  `window.__psSupabaseClient` (client B du connector, `persistSession:false`,
+  miroir ASYNCHRONE → `getSession()` peut être `null` alors qu'on est connecté).
+  Lire la session PERSISTÉE de client A : `localStorage['sb-<ref>-auth-token']`
+  (`Object.keys(ls).find(k=>/-auth-token$/.test(k))`), comme
+  `rls-isolation-hardened` et `RouteGuard`. Ce n'était PAS une perte de session
+  (dans le même conteneur, 2 s après, l'autre spec lisait le jeton).
+- **`rls-isolation-hardened.cy.ts` `org_family` « hors périmètre »** : PAS une
+  fuite. La vue a `security_invoker=true` → mesuré sous le JWT réel,
+  `org_family` == `organizations` (0 diff). Les orgs « fuitées » avaient été
+  créées par des `POST /rest/v1/organizations → 201` de l'ONBOARDING d'un AUTRE
+  conteneur CI **pendant** la fenêtre du spec (base partagée + CI parallèle) :
+  absentes du snapshot `organizations` ANTÉRIEUR = lecture non atomique.
+  Correctif : relire `organizations` APRÈS `org_family` et n'accuser que les
+  ancêtres absents des DEUX snapshots (les orgs ne sont pas supprimées pendant
+  le run). Invariant strict conservé.
+- **Règle générale** : sur ce projet (base partagée, `cypress.yml` en 2
+  conteneurs), toute assertion d'isolation comparant deux snapshots doit être
+  insensible aux écritures concurrentes. Vérifier d'abord la date de création
+  (`organizations.created_at`) des lignes « fuitées » avant de conclure à une
+  fuite.
+- **MCP Supabase lecture** : `execute_sql` + `begin; set local role authenticated;
+  set_config('request.jwt.claims', json_build_object('sub',<uid>,...)::text,true);
+  … rollback;` permet de mesurer la RLS d'un compte sans écrire.
+
 ## PowerSync (instance prod 6a9dd96302481fb31b945823)
 - **P0 « écran muet » — audience JWT (R129/R132, 2026-10-29)** : l'instance
   rejette TOUT jeton utilisateur Supabase (`401 PSYNC_S2105 — Unexpected "aud"
@@ -773,6 +799,24 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   + « aucun rôle légitime enfermé ». (3) Le test `route-state-wiring.test.ts`
   interdit tout champ `RouteState` inerte (retirer de `PENDING_WIRING` en câblant).
 
+## E2E : org active dynamique + FK catégories (2026-10-31, PR #186)
+- **Les specs Cypress ne doivent JAMAIS coder `org-e2e`** : id disparu depuis
+  R161 (self-serve → `org-<uuid>`). POST REST `org_id=org-e2e` → 403 `42501` ;
+  org réelle → 201. Utiliser `cy.orgActiveId()` (expose → `lumina-user.org.id`
+  → `lumina-active-org` → réplique). `orgReplica.ts` résout via
+  `resolveActiveOrgContext()`.
+- **Intégrité** : `categories` doit contenir les 9 canoniques ; à 0, toute
+  écriture financière échoue en 23503 (`transactions_category_id_fkey`), y
+  compris la file d'upload PowerSync. Migration idempotente
+  `20261101000001_reseed_canonical_categories.sql`.
+- **PR1–PR7 + PR8–PR16 déjà implémentées** (unit : 64/64 et 141/141). Ne pas
+  relancer d'implémentation. Ouverts = décisions propriétaire : PR17 (non
+  justifié à 3 orgs), PR18 (RLS→has_permission), PR20 (`CENTRAL_ADMIN`, bloque R141.e).
+- **Délégation Cloud** : `POST /api/v1/app-conversations` asynchrone →
+  start-task `id` ; poller `start-tasks?ids=<UN_UUID>` (jamais `a,b` → 422)
+  jusqu'à `READY`, lire `app_conversation_id` ; UI `/canvas/conversations/<id>`.
+  `openhands_api.py` exige `httpx` (absent) → `curl`.
+
 ## R141.b/c — écriture gardée sur les tables non financières (2026-10-31, corrigé)
 - **Défaut** : 8 tables gardaient INSERT/UPDATE/DELETE sur `is_org_member` SEUL
   → tout MEMBRE pouvait écrire via REST direct. Tables : `documents`,
@@ -989,6 +1033,14 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   (R106), kill switches, `RouteState` câblé. Reste en proposition : PR8–PR18,
   PR20. (PR17 MESURÉ non justifié ; PR18 = RLS `has_permission` ; PR20 =
   trancher `CENTRAL_ADMIN`.)
+- **PR5 PII des TIERS (2026-11-01)** : `redact` ne masque que les PII à FORME
+  (e-mail/jeton/téléphone). Un NOM de membre tiers cité dans la note libre ou un
+  message d'erreur traversait le rapport (Sentry + journal local). Corrigé via
+  `memberIdentities(members)` + param `members` de `sendProblemReport`/
+  `sendProblemReportToIssues` ; `Health.tsx` passe `useMembers().data`. La
+  conclusion « non corrigeable » (pas d'accès synchrone) était FAUSSE :
+  `useMembers()` sert le cache local sans I/O bloquante. Non-vacuité prouvée.
+  (Feature flags PR7 = FAIL-OPEN confirmé : drapeau absent/illisible ⇒ actif.)
 - **`git push`** : `git remote set-url origin https://${GITHUB_TOKEN}@github.com/joynagassi-cyber/luminap.git` avant de pousser (sinon prompt identifiants interactif).
 - **Création d'organisation self-serve = DEAD-END → CORRIGÉ (2026-10-31, R161)** :
   `OrgSetup.tsx::handleCreate` n'écrivait QUE du localStorage (aucun appel
@@ -1050,3 +1102,112 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
 - Pré-existants sur `main` (NE PAS confondre avec ce flake) : `forms-v2`
   (« Formulaire absent de Supabase après setup »), `offline-write-sync`
   (org_id `org-<uuid>` vs `org-e2e` + erreur React interne).
+
+## Observabilité → GitHub Issues (2026-11-01)
+- Chaîne erreurs client → Issue GitHub labellisée `openhands`. Cœur :
+  `src/lib/observability/errorReporter.ts` (`reportError`). Capture câblée dans
+  `clientErrors.ts`, `App.tsx` (ErrorBoundary racine), `lazy-route.tsx`,
+  `SupabaseConnector.ts`, `powersync/index.ts`, `perfMonitor.ts`, `main.tsx`.
+- **Le jeton GitHub n'est JAMAIS côté client** : secret Supabase `GITHUB_TOKEN`
+  lu par l'edge function `report-error` (projet lié `hhgovvrnalibhgpakswi`,
+  déployée v2). Le dépôt est PUBLIC → rapport expurgé côté client (`redact` +
+  `scrubIdentities`) avant envoi.
+- **Label `openhands` créé** sur le dépôt (couleur 5319E7) : GitHub rejette la
+  création d'Issue (422) si le label n'existe pas. À recréer si le dépôt change.
+- **Test env** : la suite vitest exige `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`
+  (sinon `src/lib/auth.ts` lève à l'import → ~100 fichiers « failed »). Un
+  `.env.local` gitignoré avec des valeurs factices suffit → suite complète verte.
+- **Déploiement edge function** : `npx supabase functions deploy` met >120 s à
+  installer le CLI (timeout) → préférer le MCP `deploy_edge_function`.
+- **Règle Router** : tout composant à hook de React Router (`useLocation`…)
+  DOIT être monté SOUS `<IonReactRouter>`. `ObservabilityBridge` l'avait été
+  au-dessus → panne totale (classe PR15). `router-context-guard` durcie pour
+  analyser aussi les composants IMPORTÉS (avant : seulement ceux déclarés dans
+  App.tsx). Détail : `.openhands/memory/2026-11-01.md`.
+
+### Audit QA + durcissement (2026-11-01, PR #321)
+- **RÈGLE D'OR observabilité** : un message d'erreur remonté ne doit JAMAIS
+  contenir de valeur variable (durée, id, montant) — la signature de dédup =
+  type + message + 1ʳᵉ trame, donc un message interpolé ⇒ signature unique ⇒
+  dédup inopérante ⇒ spam. Mettre la valeur dans `context`. C'est la cause du
+  spam « Tâche longue détectée (${ms} ms) » (**89 Issues** sur le dépôt public).
+- **Dédup serveur = réservation ATOMIQUE en base AVANT la recherche GitHub**
+  (`/search/issues` a une indexation différée → doublons mesurés #307/#308).
+  Table `error_report_dedupe` PK `(dedupe_key, window_start)` + RPC
+  `claim_error_report`/`release_error_report` (migration `20261101000003`).
+  Edge function déployée **v7**.
+- **Ne remonter QUE depuis un build de production** : `isTransmissionAllowed()`
+  (`import.meta.env.PROD`) — sinon un `vite dev` local pollue le dépôt public.
+  Échappatoire `VITE_REPORT_ERRORS_IN_DEV=true`. Un rapport bloqué est retiré de
+  la file (`drop:true`), pas réessayé.
+- **Self-update** : `ApkUpdaterPlugin.canInstall()` doit garder
+  `canRequestPackageInstalls()` derrière `SDK_INT >= 26` (minSdk 21). Les échecs
+  de mise à jour remontent via `reportError` (source `self-update`).
+- **Release** : `release.yml` doit patcher `versionName`/`versionCode` depuis le
+  tag dans le job **`prepare`** (avant l'upload de `patched-android-src` que
+  consomme `build-android`), sinon `versionName` reste figé → boucle de MAJ.
+- **Bug produit réel (Issue #317)** : `report_definitions` (schéma PowerSync
+  local) n'a pas la colonne `kind` alors que `reporting.ts` l'écrit/la lit →
+  `no such column: kind`. Correctif = colonne + bump de version de schéma client.
+- **Garde** : `observability-self-healing-guard.test.ts` (27).
+
+## Release Lumina v1.2.1 + flake `auth-real` (2026-11-01)
+- **Release = tag `v*`** → workflow `release.yml` (prepare → build unsigned →
+  sign apksigner v1+v2+v3 → GitHub Release). Body lu depuis
+  `.github/release-bodies/release-<ver>.md`. Version source UNIQUE :
+  `android/app/build.gradle` (`versionCode`/`versionName`). v1.2.1 publiée
+  (`main` `9e24da8`, APK 15 146 529 o + `.sha256`).
+- **Flake E2E cloud** : `auth-real.cy.ts` et `org-reports.cy.ts` dépendent du
+  backend live ; en cas de rouge isolé, **relancer le job** (`POST
+  /actions/jobs/<id>/rerun`) avant de conclure. Un rerun vert = flake.
+- **Bug réel (pas flake) `auth-real` spec 3** : ne JAMAIS lire le libellé d'un
+  bouton submit de façon SYNCHRONE après un submit asynchrone — pendant
+  `loading` il rend un **spinner sans texte** (faux « succès »). Attendre un
+  signal robuste : navigation quittée OU libellé de mode cible visible.
+- **Token GitHub** : `$GITHUB_TOKEN` de l'env peut être **expiré (401)** ; le
+  token embarqué dans `git remote get-url origin` sert alors à l'API REST.
+- **PDF tutoriel** : `docs/agent/GUIDE_ECRANS.pdf` (35 pages, 5,4 Mo).
+
+## Jetons/thème — addendum 2 maquette dashboard-MF (2026-11-01, PR #193)
+- **Vocabulaire maquette en ALIAS** dans `src/App.css` (fichier unique) :
+  `--bg`→`--canvas`, `--text`→`--text-primary`, `--text-muted`→`--text-secondary`,
+  `--brand-fill`→`--accent-primary` ; jetons mode-aware `--in/--out/--warn`(+`-bg`),
+  `--divider`, `--surface-nav`, `--brand-text`. Palette sombre #0F0F10/#1A1A1C/#2C2C30.
+- **PIÈGE** : `design-tokens-contrast.test.ts`/`drift.test.ts` extraient le bloc
+  clair par regex naïf `[data-theme="light"]\s*\{([^}]*)\}`. NE JAMAIS créer un
+  bloc `[data-theme="light"]` séparé (ex. `:root[data-theme="light"]{…}`) : ça
+  casse l'extraction → « token --text-primary manquant ». Mettre `color-scheme`
+  DANS le bloc de palette existant.
+- **Thème** : `ThemeMode="system"|"dark"|"light"`, défaut **system**,
+  `resolveThemeMode` (matchMedia). Inter embarquée `@fontsource/inter` (offline).
+- **Garde données réelles** : `docs/tutoriel/donnees-reelles.yaml` (église « MF »)
+  + `src/lib/__tests__/tutorial-real-data.test.ts` — bannit `\bE2E\b`, `\bdemo\b`,
+  `d[ée]mo`, `default-org`, `jean@example.com`, `E2E Org`, `MFE-JC`. Scanner les
+  **valeurs parsées** (pas le texte brut : les commentaires documentant les motifs
+  interdits feraient échouer le test). `build.py` n'imprime plus `r["path"]`.
+- Dépendance dev ajoutée : `yaml` (pnpm).
+
+## Migration app-wide jetons d'argent --data-* → --in/--out/--warn (2026-11-01, PR #193, commit 6213021)
+- **Renommage complet** : `--data-income`→`--in`, `--data-expense`→`--out`,
+  `--data-expense-hover`→`--out-hover`, `--data-pending`→`--warn` (~450 occ.,
+  ~86 fichiers) : écrans, composants, `tailwind.config.ts`, `src/ionic/theme.ts`
+  (catalogue TS `in/out/warn` + triplets `-rgb`), `src/lib/{utils,badges,
+  event-status,export,tutorialContent}.ts`, `capabilities/federation`, SVG
+  `public/diagrams/domain-logic.svg`, sélecteur Cypress `forms-v2.cy.ts`.
+- **App.css** : anciens noms SUPPRIMÉS (plus d'alias) ; `--out-hover` ajouté
+  dans les 2 modes (`#ef4444` sombre / `#991b1b` clair). Les jetons statuts
+  hors-argent RESTENT en `--data-*` (`planified/advance/pink/exhausted/success/
+  muted/alert`) — ne pas les confondre.
+- **theme.ts** : valeurs mode-aware `in:#4ADE80/out:#F87171/warn:#FBBF24` (sombre),
+  `in:#166534/out:#B91C1C/warn:#92400E` (clair) — le drift guard compare à App.css.
+- **export.ts** : le PNG canvas ne lit pas les CSS vars → résolution runtime
+  `getComputedStyle(document.documentElement).getPropertyValue('--in')` + repli.
+- **Garde** : `src/lib/__tests__/money-token-migration.test.ts` (4) — scanne
+  src/cypress/public + tailwind.config.ts + index.html, interdit le retour des
+  anciens noms (s'auto-exclut). Non-vacuité : `utils.ts` → `var(--data-income)`
+  ⇒ échec `src/lib/utils.ts → --data-income`.
+- **Piège** : ordre sed `-expense-hover` AVANT `-expense` (sinon
+  `--data-expense-hover`→`--out-hover` cassé : `--data-expense` match d'abord).
+- Gates : vitest 206 fichiers / 2157 passés ; tsc 0 ; eslint 0 erreur.
+- Hors périmètre laissé : `--data-danger` non défini (repli en dur) dans
+  UpdateDialog.tsx + SettingsAbout.tsx (pré-existant).

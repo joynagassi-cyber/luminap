@@ -334,14 +334,14 @@ export default function TransferOwnership() {
                   className="rounded-xl p-4 mb-4"
                   style={{
                     backgroundColor:
-                      "color-mix(in srgb, var(--data-pending) 12%, transparent)",
+                      "color-mix(in srgb, var(--warn) 12%, transparent)",
                     border: "1px solid var(--border)",
                   }}
                 >
                   <div className="flex items-center gap-2 mb-2">
                     <TriangleAlert
                       className="w-4 h-4"
-                      style={{ color: "var(--data-pending)" }}
+                      style={{ color: "var(--warn)" }}
                     />
                     <span className="text-text-primary text-sm font-semibold">
                       À savoir
@@ -402,7 +402,7 @@ export default function TransferOwnership() {
                   onClick={() => void handleApply()}
                   disabled={!canConfirm || applying || !plan}
                   className="w-full py-3 rounded-full font-semibold text-on-accent text-sm disabled:opacity-50"
-                  style={{ backgroundColor: "var(--data-expense)" }}
+                  style={{ backgroundColor: "var(--out)" }}
                 >
                   {applying ? "Transfert en cours…" : "Transférer la propriété"}
                 </button>

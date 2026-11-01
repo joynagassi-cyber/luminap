@@ -67,7 +67,7 @@ export default function SettingsAbout() {
               </span>
               <button
                 onClick={startUpdate}
-                style={{ color: "var(--data-income, #22c55e)", fontWeight: 700 }}
+                style={{ color: "var(--in, #22c55e)", fontWeight: 700 }}
               >
                 Mettre à jour
               </button>
@@ -82,7 +82,7 @@ export default function SettingsAbout() {
           )}
           {status === "readyToInstall" && (
             <>
-              <Check className="w-4 h-4" style={{ color: "var(--data-income, #22c55e)" }} />
+              <Check className="w-4 h-4" style={{ color: "var(--in, #22c55e)" }} />
               <span className="text-text-secondary">Prêt à installer</span>
             </>
           )}
@@ -92,7 +92,7 @@ export default function SettingsAbout() {
             </span>
           )}
           {status === "error" && (
-            <span style={{ color: "var(--data-danger, #ff5c5c)" }}>
+            <span style={{ color: "var(--data-alert)" }}>
               {updater.error}
             </span>
           )}
@@ -168,7 +168,7 @@ export default function SettingsAbout() {
         style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
       >
         <div className="flex items-center gap-2 mb-3">
-          <ShieldCheck className="w-5 h-5" style={{ color: "var(--data-income)" }} />
+          <ShieldCheck className="w-5 h-5" style={{ color: "var(--in)" }} />
           <span className="text-text-primary font-semibold text-sm">
             Confidentialité & sécurité
           </span>

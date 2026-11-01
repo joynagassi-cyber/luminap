@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import {
   useCategories,
@@ -13,6 +13,7 @@ import { useKeyboardAvoidance } from "@/hooks/useKeyboardAvoidance";
 import type { Category, FundSource } from "@/types";
 import { getOrganizationId } from "@/lib/orgContext";
 import { periodLockMessage } from "@/lib/periodLock";
+import { parseAmountToCents } from "@/lib/amountInput";
 import {
   IonPage,
   IonHeader,
@@ -46,7 +47,14 @@ export default function TransactionNewGroup() {
 
   const groupAccount = accounts.find((a: any) => a.id === groupId);
   const caisse = caisses.find((c: any) => c.id === groupId);
-  const queryType = (location.state as any)?.type || "INCOME";
+  // Le type arrive par QUERY PARAM (`?type=`) : le routeur Ionic ne préserve
+  // pas le `location.state` de React Router entre les vues. GroupDetail
+  // passait le type via `state` → « Sortie » ouvrait toujours « Entrée »
+  // (défaut), donc le bouton Sortie « ne menait pas vers Sortie ».
+  const queryType =
+    new URLSearchParams(location.search).get("type") ||
+    (location.state as any)?.type ||
+    "INCOME";
 
   const [type, setType] = useState<"INCOME" | "EXPENSE">(queryType as any);
   const [amount, setAmount] = useState("");
@@ -61,10 +69,10 @@ export default function TransactionNewGroup() {
   const [error, setError] = useState("");
 
   const validateAmount = (val: string): string => {
-    const num = parseFloat(val);
-    if (!val) return "";
-    if (isNaN(num) || num <= 0) return "Le montant doit être supérieur à 0";
-    if (num > 999999999) return "Montant maximum atteint";
+    if (!val.trim()) return "";
+    const cents = parseAmountToCents(val);
+    if (cents === null || cents <= 0) return "Le montant doit être supérieur à 0";
+    if (cents > 999999999 * 100) return "Montant maximum atteint";
     return "";
   };
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -75,26 +83,52 @@ export default function TransactionNewGroup() {
     setFilteredCategories(categories.filter((c: any) => c.type === type) as any);
   }, [type, categories]);
 
+  // La catégorie sélectionnée doit appartenir au TYPE courant. `categoryId`
+  // était figé sur `categories[0]` du 1er rendu (souvent vide, PowerSync pas
+  // encore hydraté) et n'était jamais recalculé au basculement Entrée↔Sortie :
+  // le champ « Catégorie » restait vide ou portait une catégorie du mauvais
+  // type, et `handleSubmit` refusait alors l'enregistrement.
+  const lastTypeRef = useRef(type);
+  useEffect(() => {
+    const typeChanged = lastTypeRef.current !== type;
+    lastTypeRef.current = type;
+    if (typeChanged || !categoryId) {
+      setCategoryId(filteredCategories[0]?.id ?? "");
+    }
+  }, [type, categoryId, filteredCategories]);
+
   const handleSubmit = async () => {
     const trimmedAmount = amount.trim();
     const trimmedDesc = description.trim();
     const trimmedCatId = categoryId?.toString().trim();
 
-    if (!trimmedAmount || !trimmedDesc || !trimmedCatId) {
-      setError("Veuillez remplir tous les champs obligatoires");
+    // Description FACULTATIVE (colonne NOT NULL → repli plus bas) ; seuls le
+    // montant et la catégorie sont réellement requis.
+    if (!trimmedAmount || !trimmedCatId) {
+      setError("Veuillez remplir les champs obligatoires (montant, catégorie)");
+      return;
+    }
+    const amountCents = parseAmountToCents(trimmedAmount);
+    if (amountCents === null) {
+      setError("Veuillez entrer un montant valide");
       return;
     }
     setError("");
     setSubmitting(true);
     const sessionId = localStorage.getItem("lumina-session") || "local-user";
     const isExpense = type === "EXPENSE";
+    const safeDescription =
+      trimmedDesc ||
+      (categories.find((c: any) => c.id === trimmedCatId) as any)?.label_fr ||
+      (categories.find((c: any) => c.id === trimmedCatId) as any)?.label ||
+      "Transaction";
 
     try {
       await addTransactionPS({
         org_id: getOrganizationId(),
         type,
-        amount: Math.round(parseFloat(amount) * 100),
-        description,
+        amount: amountCents,
+        description: safeDescription,
         date,
         status: isExpense ? "PENDING" : "DRAFT",
         category_id: categoryId,
@@ -164,7 +198,7 @@ export default function TransactionNewGroup() {
                 onClick={() => setType("INCOME")}
                 className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all"
                 style={{
-                  backgroundColor: type === "INCOME" ? "var(--data-income)" : "var(--surface)",
+                  backgroundColor: type === "INCOME" ? "var(--in)" : "var(--surface)",
                   color: type === "INCOME" ? "var(--text-primary)" : "var(--text-secondary)",
                 }}
               >
@@ -174,7 +208,7 @@ export default function TransactionNewGroup() {
                 onClick={() => setType("EXPENSE")}
                 className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all"
                 style={{
-                  backgroundColor: type === "EXPENSE" ? "var(--data-expense)" : "var(--surface)",
+                  backgroundColor: type === "EXPENSE" ? "var(--out)" : "var(--surface)",
                   color: type === "EXPENSE" ? "var(--text-primary)" : "var(--text-secondary)",
                 }}
               >
@@ -184,10 +218,10 @@ export default function TransactionNewGroup() {
 
             {/* Amount */}
             <IonItem lines="none" className="mb-5 bg-card rounded-xl">
-              <IonLabel position="floating" className="text-sm text-text-secondary">Montant (FCFA)</IonLabel>
+              <IonLabel position="floating" className="text-sm text-text-secondary">Montant (FCFA) *</IonLabel>
               <IonInput
-                type="number"
-                inputMode="numeric"
+                type="text"
+                inputMode="decimal"
                 value={amount}
                 onIonInput={(e: IonChangeCustomEvent<string>) => setAmount(e.detail.value ?? "")}
                 placeholder="0"
@@ -196,7 +230,7 @@ export default function TransactionNewGroup() {
 
             {/* Description */}
             <IonItem lines="none" className="mb-5 bg-card rounded-xl">
-              <IonLabel position="floating" className="text-sm text-text-secondary">Description</IonLabel>
+              <IonLabel position="floating" className="text-sm text-text-secondary">Description (optionnel)</IonLabel>
               <IonInput
                 type="text"
                 value={description}
@@ -218,7 +252,7 @@ export default function TransactionNewGroup() {
             {/* Category */}
             <div className="mb-5">
               <label className="text-text-tertiary text-xs mb-2 block">
-                Catégorie
+                Catégorie *
               </label>
               <IonSelect
                 value={categoryId}
@@ -278,7 +312,7 @@ export default function TransactionNewGroup() {
             {error && (
               <div
                 className="mb-4 p-3 rounded-xl text-sm text-center"
-                style={{ backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)", color: "var(--data-expense)" }}
+                style={{ backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)", color: "var(--out)" }}
               >
                 {error}
               </div>
@@ -289,7 +323,7 @@ export default function TransactionNewGroup() {
               disabled={submitting}
               className="w-full py-4 rounded-full font-semibold text-on-accent text-sm transition-all active:scale-95 disabled:opacity-50"
               style={{
-                backgroundColor: type === "INCOME" ? "var(--data-income)" : "var(--data-expense)",
+                backgroundColor: type === "INCOME" ? "var(--in)" : "var(--out)",
               }}
             >
               {submitting ? "Enregistrement..." : "Enregistrer la transaction"}

@@ -123,18 +123,18 @@ export default function ReportReminderBanner({
       data-reminder-reason={reminder.reason}
       className={className}
       style={{
-        backgroundColor: "color-mix(in srgb, var(--data-pending) 12%, var(--surface))",
-        border: "1px solid color-mix(in srgb, var(--data-pending) 35%, transparent)",
+        backgroundColor: "color-mix(in srgb, var(--warn) 12%, var(--surface))",
+        border: "1px solid color-mix(in srgb, var(--warn) 35%, transparent)",
         borderRadius: "var(--radius, 12px)",
       }}
     >
       <div className="flex items-start gap-3 p-3">
         <span
           className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full"
-          style={{ backgroundColor: "color-mix(in srgb, var(--data-pending) 18%, transparent)" }}
+          style={{ backgroundColor: "color-mix(in srgb, var(--warn) 18%, transparent)" }}
           aria-hidden
         >
-          <BellRing className="h-4 w-4" style={{ color: "var(--data-pending)" }} />
+          <BellRing className="h-4 w-4" style={{ color: "var(--warn)" }} />
         </span>
         <div className="min-w-0 flex-1">
           <p className="text-text-primary text-sm font-semibold">{reminder.title}</p>

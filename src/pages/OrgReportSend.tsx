@@ -431,9 +431,9 @@ export default function OrgReportSend() {
               <div
                 className="rounded-xl p-3 text-sm"
                 style={{
-                  backgroundColor: "color-mix(in srgb, var(--data-income) 10%, transparent)",
-                  border: "1px solid color-mix(in srgb, var(--data-income) 25%, transparent)",
-                  color: "var(--data-income)",
+                  backgroundColor: "color-mix(in srgb, var(--in) 10%, transparent)",
+                  border: "1px solid color-mix(in srgb, var(--in) 25%, transparent)",
+                  color: "var(--in)",
                 }}
               >
                 {success}
@@ -445,9 +445,9 @@ export default function OrgReportSend() {
               <div
                 className="rounded-xl p-3 text-sm"
                 style={{
-                  backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)",
-                  border: "1px solid color-mix(in srgb, var(--data-expense) 25%, transparent)",
-                  color: "var(--data-expense)",
+                  backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)",
+                  border: "1px solid color-mix(in srgb, var(--out) 25%, transparent)",
+                  color: "var(--out)",
                 }}
               >
                 {error}
@@ -490,8 +490,8 @@ export default function OrgReportSend() {
                           onClick={() => markAsRead(r.id)}
                           className="flex items-center gap-1 text-xs px-2 py-1 rounded-full font-semibold transition-all active:scale-95"
                           style={{
-                            color: "var(--data-pending)",
-                            border: "1px solid var(--data-pending)",
+                            color: "var(--warn)",
+                            border: "1px solid var(--warn)",
                             background: "transparent",
                           }}
                           aria-label={`Marquer comme lu : ${r.title}`}
@@ -502,8 +502,8 @@ export default function OrgReportSend() {
                         <span
                           className="text-xs px-2 py-0.5 rounded-full font-medium"
                           style={{
-                            backgroundColor: "color-mix(in srgb, var(--data-income) 12%, transparent)",
-                            color: "var(--data-income)",
+                            backgroundColor: "color-mix(in srgb, var(--in) 12%, transparent)",
+                            color: "var(--in)",
                           }}
                         >
                           {r.status === "READ" ? "Lu" : r.status}

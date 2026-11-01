@@ -115,7 +115,7 @@ export default function Cotisations() {
               <CircleAction
                 aria-label="Créer un nouveau culte"
                 onClick={() =>
-                  navigate("/event/new", { state: { defaultType: "CULTE" } })
+                  navigate("/event/new?type=CULTE")
                 }
               >
                 <Plus className="w-6 h-6" />
@@ -128,7 +128,7 @@ export default function Cotisations() {
                 description="Créez votre premier culte pour suivre les cotisations"
                 actionLabel="Créer un culte"
                 onAction={() =>
-                  navigate("/event/new", { state: { defaultType: "CULTE" } })
+                  navigate("/event/new?type=CULTE")
                 }
               />
             ) : (
@@ -180,7 +180,7 @@ export default function Cotisations() {
                           <div className="flex items-center gap-3 mt-2 text-xs">
                             <span
                               className="flex items-center gap-1"
-                              style={{ color: "var(--data-income)" }}
+                              style={{ color: "var(--in)" }}
                             >
                               <CheckCircle className="w-3 h-3" />
                               {stat.paid}/{stat.totalMembers}
@@ -202,9 +202,9 @@ export default function Cotisations() {
                               <span style={{ color: "var(--text-tertiary)" }}>Collecté</span>
                               <span
                                 className="font-semibold"
-                                style={{ color: "var(--data-income)" }}
+                                style={{ color: "var(--in)" }}
                               >
-                                {formatCurrencyCompact(stat.totalCollected)} F
+                                {formatCurrencyCompact(stat.totalCollected)}
                               </span>
                             </div>
                             <div
@@ -216,14 +216,14 @@ export default function Cotisations() {
                                 style={{
                                   width: `${Math.min(progress, 100)}%`,
                                   background:
-                                    progress >= 100 ? "var(--data-income)" : "var(--accent-primary)",
+                                    progress >= 100 ? "var(--in)" : "var(--accent-primary)",
                                 }}
                               />
                             </div>
                             <div className="flex items-center justify-between text-xs mt-1">
                               <span style={{ color: "var(--text-placeholder)" }}>Objectif</span>
                               <span style={{ color: "var(--text-placeholder)" }}>
-                                {formatCurrencyCompact(stat.expectedTotal)} F
+                                {formatCurrencyCompact(stat.expectedTotal)}
                               </span>
                             </div>
                           </div>

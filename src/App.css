@@ -1,16 +1,13 @@
 /* Lumina Design System — Color Tokens
  *
  * Deux modes (data-theme="dark" par défaut / data-theme="light") basculés sur
- * <html> par `applyThemeMode` (src/ionic/themes.ts). Les couleurs financières
- * et l'accent sont INVIOLABLES : elles ne changent jamais avec le mode.
+ * <html> par `applyThemeMode` (src/ionic/themes.ts). L'argent (`--in`/`--out`/
+ * `--warn`) suit désormais le mode (maquette dashboard-MF) ; l'accent reste
+ * inviolable (il suit le thème d'organisation, jamais le mode).
  */
 :root {
-  /* Couleurs financières — invariantes (le langage de l'argent ne change
-     jamais, ni avec le mode ni avec le thème d'organisation). */
-  --data-income: #1db954;
-  --data-expense: #e51332;
-  --data-expense-hover: #c4102b;
-  --data-pending: #ffb800;
+  /* Argent + états (--in / --out / --warn) : valeurs par mode, définies dans
+     les blocs de thème ci-dessous (maquette dashboard-MF, addendum 2 B1). */
   /* Couleurs sémantiques de statut (hors finances) — invariants. */
   --data-planified: #3b82f6;
   --data-advance: #8b5cf6;
@@ -62,49 +59,130 @@
   --z-toast: 70;
   --z-skip: 100;
 
+  /* Hauteur de la BottomNav (56 px : 40 px de contenu + 2×8 px de padding).
+     Consommée par les éléments positionnés au-dessus de la nav (bandeau
+     hors-ligne) ; définie ici pour rester alignée sur la barre réelle. */
+  --nav-height: 56px;
+
   /* Voile (scrim) des overlays de page. En clair, un voile noir 60–70 %
      écrase les surfaces blanches : on passe à un voile gris 35 %. */
   --scrim: rgba(0, 0, 0, 0.6);
 }
 
+/* ── Vocabulaire de jetons « Addendum 2 / maquette dashboard-MF » ────────────
+ * Noms de référence du design de référence (dashboard-MF). Les neutres ALIASENT
+ * les jetons historiques (`--bg`→`--canvas`, `--text`→`--text-primary`…) pour ne
+ * pas casser les fichiers qui les utilisent. Le fichier de jetons reste unique.
+ * Aucune couleur en dur dans un composant.
+ *
+ * Sémantique (B1) : `--in`/`--out`/`--warn` sont les couleurs d'ARGENT et d'ÉTAT
+ * — elles suivent le MODE (clair/sombre) mais JAMAIS la couleur de marque. Elles
+ * ont remplacé les anciens jetons d'argent `--data-*` (migration app-wide,
+ * addendum 2) ; la garde `money-token-migration.test.ts` interdit leur retour. */
+:root {
+  --bg: var(--canvas);
+  --text: var(--text-primary);
+  --text-muted: var(--text-secondary);
+  --brand-fill: var(--accent-primary);
+  --brand-on-fill: var(--on-accent);
+  /* Inter embarquée (addendum B2) ; repli système si la fonte n'est pas prête. */
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* Le navigateur adapte les contrôles natifs (scrollbars, champs) au mode. */
+  color-scheme: dark;
+}
+
 /* ── Mode sombre (défaut — s'applique aussi sans data-theme) ─────────────── */
 :root,
 [data-theme="dark"] {
-  --canvas: #121212;
-  --surface: #212121;
-  --card: #181818;
-  --surface-hover: #282828;
-  --surface-active: #333333;
-  --border: #282828;
-  --text-primary: #ffffff;
-  --text-secondary: #b3b3b3;
-  --text-tertiary: #808080;
+  /* Neutres — valeurs de la maquette dashboard-MF (B1). */
+  --canvas: #0f0f10;
+  --surface: #1a1a1c;
+  --card: #1a1a1c;
+  --surface-nav: #141416;
+  --surface-hover: #232326;
+  --surface-active: #2c2c30;
+  --border: #2c2c30;
+  --divider: #232326;
+  --text-primary: #f4f4f5;
+  --text-secondary: #a1a1aa;
+  --text-tertiary: #71717a;
   --text-placeholder: #535353;
-  --nav-bg: rgba(18, 18, 18, 0.97);
-  --skeleton-base: #212121;
-  --skeleton-highlight: #2b2b2b;
-  --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --nav-bg: rgba(20, 20, 22, 0.97);
+  --skeleton-base: #1a1a1c;
+  --skeleton-highlight: #232326;
+  --shadow-card: none;
   --shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.5);
+
+  /* Marque : texte de lien / onglet actif (le fond reste --accent-primary). */
+  --brand-text: #ff9a4d;
+
+  /* Argent + états (invariants de teinte entre les modes ; valeurs par mode). */
+  --in: #4ade80;
+  --in-bg: rgba(74, 222, 128, 0.12);
+  --out: #f87171;
+  --out-hover: #ef4444;
+  --out-bg: rgba(248, 113, 113, 0.12);
+  --warn: #fbbf24;
+  --warn-bg: rgba(251, 191, 36, 0.14);
+  /* Boutons d'action financiers (aplats). */
+  --btn-in-bg: #4ade80;
+  --btn-in-ink: #052e16;
+  --btn-out-bg: #f87171;
+  --btn-out-ink: #450a0a;
+  /* Point de synchronisation. */
+  --sync-online: #4ade80;
+  --sync-pending: #fbbf24;
+  --sync-error: #f87171;
+  /* Pastille de l'organisation (en-tête). */
+  --org-chip-bg: #2a1a0e;
+  --org-chip-border: #5a3a1e;
+  --org-chip-ink: #ff9a4d;
+  /* Pastille de notification (anneau de 2 px de la couleur de fond). */
+  --notif-dot: #ff7a1a;
 }
 
 /* ── Mode clair ───────────────────────────────────────────────────────────── */
 [data-theme="light"] {
+  color-scheme: light;
   --scrim: rgba(26, 26, 26, 0.35);
-  --canvas: #f5f6f8;
+  --canvas: #f7f7f8;
   --surface: #ffffff;
   --card: #ffffff;
+  --surface-nav: #ffffff;
   --surface-hover: #eef0f2;
   --surface-active: #e4e6e9;
-  --border: #e3e5e8;
-  --text-primary: #1a1a1a;
-  --text-secondary: #555a60;
+  --border: #e4e4e7;
+  --divider: #efeff1;
+  --text-primary: #18181b;
+  --text-secondary: #52525b;
   --text-tertiary: #8a8f96;
   --text-placeholder: #9aa0a8;
   --nav-bg: rgba(255, 255, 255, 0.97);
   --skeleton-base: #eef0f2;
   --skeleton-highlight: #e0e3e7;
-  --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.08);
-  --shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.12);
+  --shadow-card: 0 1px 2px rgba(24, 24, 27, 0.06), 0 8px 24px rgba(24, 24, 27, 0.05);
+  --shadow-pop: 0 8px 24px rgba(24, 24, 27, 0.12);
+
+  --brand-text: #c2410c;
+
+  --in: #166534;
+  --in-bg: #dcfce7;
+  --out: #b91c1c;
+  --out-hover: #991b1b;
+  --out-bg: #fee2e2;
+  --warn: #92400e;
+  --warn-bg: #fef3c7;
+  --btn-in-bg: #15803d;
+  --btn-in-ink: #ffffff;
+  --btn-out-bg: #b91c1c;
+  --btn-out-ink: #ffffff;
+  --sync-online: #16a34a;
+  --sync-pending: #b45309;
+  --sync-error: #b91c1c;
+  --org-chip-bg: #ffedd5;
+  --org-chip-border: #fed7aa;
+  --org-chip-ink: #9a3412;
+  --notif-dot: #ea580c;
 }
 
 *,
@@ -120,6 +198,7 @@ body,
 #root {
   background-color: var(--canvas);
   color: var(--text-primary);
+  font-family: var(--font-sans);
   -webkit-tap-highlight-color: transparent;
   margin: 0;
   padding: 0;

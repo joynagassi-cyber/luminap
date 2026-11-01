@@ -66,7 +66,7 @@ describe("sanitizeCssValue — évasion de la feuille de style", () => {
 
   it("conserve une couleur légitime", () => {
     expect(sanitizeCssValue("#6366f1")).toBe("#6366f1");
-    expect(sanitizeCssValue("var(--data-income)")).toBe("var(--data-income)");
+    expect(sanitizeCssValue("var(--in)")).toBe("var(--in)");
   });
 
   it("plafonne la longueur et retire les caractères de contrôle", () => {

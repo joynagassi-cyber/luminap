@@ -321,7 +321,7 @@ export default function InvitationManage() {
                         </div>
 
                         {claimError && (
-                          <p className="mt-2 text-xs" style={{ color: "var(--data-expense)" }}>
+                          <p className="mt-2 text-xs" style={{ color: "var(--out)" }}>
                             {claimError}
                           </p>
                         )}
@@ -346,7 +346,7 @@ export default function InvitationManage() {
                                       <Badge table={CLAIM_BADGES} value={cl.status} size="xs" />
                                     </div>
                                     {cl.rejectReason && (
-                                      <p className="text-xs mt-1" style={{ color: "var(--data-expense)" }}>
+                                      <p className="text-xs mt-1" style={{ color: "var(--out)" }}>
                                         {cl.rejectReason}
                                       </p>
                                     )}
@@ -358,7 +358,7 @@ export default function InvitationManage() {
                                           onClick={() => handleConfirmClaim(inv.id, cl.id)}
                                           disabled={claimBusy === cl.id}
                                           className="px-3 py-1.5 rounded-full text-xs font-semibold text-on-accent transition-all active:scale-95 disabled:opacity-50"
-                                          style={{ backgroundColor: "var(--data-income)" }}
+                                          style={{ backgroundColor: "var(--in)" }}
                                         >
                                           {claimBusy === cl.id ? (
                                             <>
@@ -379,8 +379,8 @@ export default function InvitationManage() {
                                           disabled={claimBusy === cl.id}
                                           className="px-3 py-1.5 rounded-full text-xs font-semibold transition-all active:scale-95 disabled:opacity-50"
                                           style={{
-                                            color: "var(--data-expense)",
-                                            border: "1px solid var(--data-expense)",
+                                            color: "var(--out)",
+                                            border: "1px solid var(--out)",
                                             background: "transparent",
                                           }}
                                         >
@@ -485,7 +485,7 @@ export default function InvitationManage() {
                 onClick={handleRejectClaim}
                 disabled={claimBusy !== null}
                 className="flex-1 py-3 rounded-full text-sm font-semibold text-on-accent transition-all active:scale-95 disabled:opacity-50"
-                style={{ backgroundColor: "var(--data-expense)" }}
+                style={{ backgroundColor: "var(--out)" }}
               >
                 {claimBusy ? (
                   <>

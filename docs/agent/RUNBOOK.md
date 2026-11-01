@@ -297,6 +297,7 @@ psql "$DATABASE_URL" -f supabase/migrations/rollback/<version>_rollback.sql
 | 20261022000013 | isolation Storage | `rollback/20261022000013_rollback.sql` |
 | 20261022000014 | `profiles.role` à l'INSERT | `rollback/20261022000014_rollback.sql` |
 | 20261024000001 | rattrapage du double encodage jsonb (données) | `rollback/20261024000001_rollback.sql` |
+| 20261101000002 | `error_report_throttle` + RPC `register_anonymous_report` (rate-limit pré-login) | `rollback/20261101000002_rollback.sql` |
 
 ### Cas particulier : 20261024000001 (rattrapage jsonb)
 
@@ -761,3 +762,41 @@ public), rétention 14 j.
    qu'un avertissement. Patch prêt :
    `docs/agent/patches/backup-yml-faux-vert.patch`.
 
+
+## Observabilité → GitHub Issues (couper / diagnostiquer)
+
+Chaîne : erreur client → edge function `report-error` → Issue GitHub labellisée
+`openhands` (corrigée par l'automatisation cloud OpenHands).
+
+**Couper le signalement** (sans redéployer) : désactiver le drapeau de
+fonctionnalité `error-reporting` (kill switch côté client) — plus aucun rapport
+n'est émis. Les rapports déjà en file locale restent inertes.
+
+**Vérifier l'état de l'edge function** :
+
+```bash
+curl -s -X POST "https://<ref>.supabase.co/functions/v1/report-error" \
+  -H "apikey: <clé_publiable>" -H "Content-Type: application/json" \
+  -d '{"report":{"kind":"lumina-error-report","signature":"probe","message":"probe"}}'
+```
+
+- `400 {"error":"Dépôt non autorisé."}` → la fonction répond (voie atteinte).
+- `429 {"error":"Trop de rapports…"}` → plafond anonyme atteint (5/h par IP).
+- `503` → `SUPABASE_SERVICE_ROLE_KEY` absente côté edge (voie anonyme fermée).
+
+**Inspecter / purger le compteur de rate-limiting** (service_role uniquement,
+table en deny-all) :
+
+```sql
+select bucket, window_start, count from public.error_report_throttle
+order by window_start desc;
+delete from public.error_report_throttle;  -- remise à zéro
+```
+
+**Vérifier la voie authentifiée** : un rapport avec un JWT valide crée l'Issue
+et incrémente le bucket `user:<uuid>` ; le même `signature` deux fois →
+`deduped:true` (pas de doublon).
+
+**Risque résiduel connu** : endpoint public borné (5/h par IP, dédup, allowlist,
+troncature). Un tiers peut faire créer une Issue au texte qu'il contrôle — le
+dépôt est public. Cf. R145 et le README de la fonction.

@@ -30,6 +30,6 @@ describe("BadgeGallery", () => {
     const badges = container.querySelectorAll("span[aria-label^='Statut']");
     expect(badges.length).toBeGreaterThan(20);
     const approved = screen.getAllByText("Approuvé")[0];
-    expect(approved).toHaveStyle({ color: "var(--data-income)" });
+    expect(approved).toHaveStyle({ color: "var(--in)" });
   });
 });

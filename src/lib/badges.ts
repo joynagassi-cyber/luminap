@@ -34,9 +34,9 @@ export const BADGE_TONE_TOKEN: Record<BadgeTone, string> = {
   neutral: "var(--text-secondary)",
   accent: "var(--accent-primary)",
   info: "var(--data-planified)",
-  success: "var(--data-income)",
-  warning: "var(--data-pending)",
-  danger: "var(--data-expense)",
+  success: "var(--in)",
+  warning: "var(--warn)",
+  danger: "var(--out)",
   muted: "var(--text-tertiary)",
 };
 

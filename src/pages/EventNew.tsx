@@ -9,6 +9,7 @@ import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
 import DatePicker from "@/components/DatePicker";
 import { generateId, formatCurrencyCompact } from "@/lib/utils";
+import { parseAmountToCents } from "@/lib/amountInput";
 import type { BudgetItem, Event } from "@/types";
 import { getOrganizationId } from "@/lib/orgContext";
 import { CANONICAL_CATEGORIES } from "@/lib/canonicalCategories";
@@ -64,7 +65,14 @@ export default function EventNew() {
   const [endDate, setEndDate] = useState("");
   const [status, setStatus] = useState<Event["status"]>("PLANIFIED");
   const [eventType, setEventType] = useState<"EVENT" | "CULTE">(
-    location.state?.defaultType === "CULTE" ? "CULTE" : "EVENT",
+    // Le type arrive par QUERY PARAM (`?type=CULTE`) : le routeur Ionic ne
+    // préserve pas le `location.state` de React Router entre les vues, donc
+    // « Créer un culte » (Cotisations) ouvrait le formulaire sur « Événement »
+    // (défaut). Fallback sur `state` pour les liens internes historiques.
+    (new URLSearchParams(location.search).get("type") ||
+      location.state?.defaultType) === "CULTE"
+      ? "CULTE"
+      : "EVENT",
   );
   const [montantCotisation, setMontantCotisation] = useState("");
   const [budgetItems, setBudgetItems] = useState<BudgetItem[]>([]);
@@ -96,10 +104,12 @@ export default function EventNew() {
 
   const handleAddBudget = () => {
     if (!newBudgetLabel.trim() || !newBudgetAmount) return;
+    const allocated = parseAmountToCents(newBudgetAmount);
+    if (allocated === null || allocated <= 0) return;
     const item: BudgetItem = {
       id: generateId(),
       label: newBudgetLabel.trim(),
-      allocated: Math.round(parseFloat(newBudgetAmount) * 100),
+      allocated,
       spent: 0,
       fundedBy: newBudgetFundedBy,
       isCustom: true,
@@ -124,12 +134,11 @@ export default function EventNew() {
         // Le montant de cotisation est requis et doit être choisi par l'utilisateur.
         // L'UI le saisit en FCFA ; on convertit en cents (1 FCFA = 100 cents)
         // pour transmettre au service `createCulte`.
-        const fcfa = parseFloat(montantCotisation);
-        if (!Number.isFinite(fcfa) || fcfa <= 0) {
+        const montantCents = parseAmountToCents(montantCotisation);
+        if (montantCents === null || montantCents <= 0) {
           setError("Le montant de cotisation est requis (en FCFA).");
           return;
         }
-        const montantCents = Math.round(fcfa * 100);
 
         await createCulte({
           name: name.trim(),
@@ -196,7 +205,7 @@ export default function EventNew() {
           {error && (
             <div
               className="mb-4 p-3 rounded-xl text-sm text-center"
-              style={{ backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)", color: "var(--data-expense)" }}
+              style={{ backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)", color: "var(--out)" }}
             >
               {error}
             </div>
@@ -245,7 +254,8 @@ export default function EventNew() {
                       Montant obligatoire (FCFA) *
                     </IonLabel>
                     <IonInput
-                      type="number"
+                      type="text"
+                      inputMode="decimal"
                       aria-label="Montant de cotisation obligatoire en FCFA"
                       value={montantCotisation}
                       onIonInput={(e: IonChangeCustomEvent<string>) =>
@@ -297,7 +307,7 @@ export default function EventNew() {
           {/* Description */}
           <div className="mb-5">
             <label className="text-text-tertiary text-xs mb-2 block">
-              Description
+              Description (optionnel)
             </label>
             <IonTextarea
               aria-label="Description"
@@ -422,7 +432,8 @@ export default function EventNew() {
                     }}
                   />
                   <IonInput
-                    type="number"
+                    type="text"
+                    inputMode="decimal"
                     value={newBudgetAmount}
                     onIonInput={(e) =>
                       setNewBudgetAmount((e.detail.value as string) ?? "")
@@ -459,15 +470,15 @@ export default function EventNew() {
                             {item.label}
                           </p>
                           <p className="text-text-tertiary text-xs">
-                            {formatCurrencyCompact(item.allocated)} F
+                            {formatCurrencyCompact(item.allocated)}
                           </p>
                         </div>
                         <button
                           onClick={() => handleRemoveBudget(item.id)}
                           className="p-1 rounded-full"
-                          style={{ backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)" }}
+                          style={{ backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)" }}
                         >
-                          <X className="w-4 h-4" style={{ color: "var(--data-expense)" }} />
+                          <X className="w-4 h-4" style={{ color: "var(--out)" }} />
                         </button>
                       </div>
                     ))}
@@ -487,7 +498,7 @@ export default function EventNew() {
               >
                 <p className="text-text-tertiary text-xs">Budget total</p>
                 <p className="text-text-primary font-bold text-lg">
-                  {formatCurrencyCompact(totalBudget)} F
+                  {formatCurrencyCompact(totalBudget)}
                 </p>
               </div>
             )}

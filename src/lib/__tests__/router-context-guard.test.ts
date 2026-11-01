@@ -19,7 +19,7 @@
  * entière — panne totale, pas dégradation.
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import * as ts from "typescript";
 
@@ -118,6 +118,117 @@ function analyzeApp(source: string): { findings: Finding[]; routerFound: boolean
 
   return { findings, routerFound };
 }
+
+describe("router-context-guard — composants IMPORTÉS à hooks de Router", () => {
+  /**
+   * Lacune révélée le 2026-11-01 : `ObservabilityBridge` (IMPORTÉ) appelle
+   * `useLocation()` et avait été monté AU-DESSUS de `<IonReactRouter>` — même
+   * panne totale que l'incident PR15, mais l'analyse ci-dessus ne regardait que
+   * les composants DÉCLARÉS dans App.tsx. On résout donc les imports locaux et
+   * on vérifie aussi les composants importés rendus dans App.tsx.
+   */
+  const source = readFileSync(APP_PATH, "utf8");
+  const srcDir = join(process.cwd(), "src");
+
+  function resolveLocal(importPath: string): string | null {
+    let base: string;
+    if (importPath.startsWith("@/")) base = join(srcDir, importPath.slice(2));
+    else if (importPath.startsWith(".")) base = join(process.cwd(), "src", importPath);
+    else return null; // dépendance externe — hors périmètre
+    for (const candidate of [
+      `${base}.tsx`,
+      `${base}.ts`,
+      join(base, "index.tsx"),
+      join(base, "index.ts"),
+    ]) {
+      try {
+        if (statSync(candidate).isFile()) return candidate;
+      } catch {
+        /* absent */
+      }
+    }
+    return null;
+  }
+
+  /** Nom importé → chemin absolu, pour les imports locaux d'App.tsx. */
+  const importedComponents = new Map<string, string>();
+  const importRe = /import\s+(?:type\s+)?\{([^}]+)\}\s+from\s+["']([^"']+)["']/g;
+  for (const m of source.matchAll(importRe)) {
+    const names = m[1]
+      .split(",")
+      .map((s) => s.trim().split(/\s+as\s+/)[0].trim())
+      .filter((s) => /^[A-Z]/.test(s));
+    const resolved = resolveLocal(m[2]);
+    if (!resolved) continue;
+    for (const name of names) importedComponents.set(name, resolved);
+  }
+
+  /** Le fichier importé appelle-t-il un hook de Router ? */
+  function usesRouterHook(file: string): string[] {
+    let content: string;
+    try {
+      content = readFileSync(file, "utf8");
+    } catch {
+      return [];
+    }
+    const sf = ts.createSourceFile(
+      file,
+      content,
+      ts.ScriptTarget.Latest,
+      true,
+      file.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
+    );
+    const found = new Set<string>();
+    const walk = (node: ts.Node): void => {
+      if (ts.isCallExpression(node) && ts.isIdentifier(node.expression)) {
+        if (ROUTER_HOOKS.has(node.expression.text)) found.add(node.expression.text);
+      }
+      node.forEachChild(walk);
+    };
+    walk(sf);
+    return [...found];
+  }
+
+  const openIdx = source.indexOf("<IonReactRouter");
+  const closeIdx = source.indexOf("</IonReactRouter>");
+  // L'arbre de rendu d'App commence à `<IonApp` : les usages JSX situés AVANT
+  // sont des déclarations de composants (ex. `RouteStates` rendu par
+  // `RouteGuard`), pas des montages — on les ignore pour éviter les faux
+  // positifs.
+  const treeStart = source.indexOf("<IonApp");
+
+  it("aucun composant importé à hooks de Router n'est monté hors du Router", () => {
+    const offenders: string[] = [];
+    const jsxRe = /<([A-Z][A-Za-z0-9_]*)[\s/>]/g;
+    const seen = new Set<string>();
+    for (const m of source.matchAll(jsxRe)) {
+      const tag = m[1];
+      const pos = m.index ?? 0;
+      if (pos < treeStart) continue; // déclaration, pas un montage
+      if (seen.has(tag)) continue;
+      seen.add(tag);
+      const file = importedComponents.get(tag);
+      if (!file) continue;
+      const hooks = usesRouterHook(file);
+      if (hooks.length === 0) continue;
+      const insideRouter = pos > openIdx && pos < closeIdx;
+      if (!insideRouter) offenders.push(`${tag} (${hooks.join(", ")}) @ ${file}`);
+    }
+    expect(
+      offenders,
+      `Composant(s) IMPORTÉ(S) appelant un hook de Router hors <IonReactRouter> : ` +
+        `${offenders.join(" | ")}. Même panne totale que l'incident PR15.`,
+    ).toEqual([]);
+  });
+
+  it("la sonde importée est non vide (ObservabilityBridge détecté à hooks)", () => {
+    // Non-vacuité : ObservabilityBridge DOIT être reconnu comme un composant
+    // importé à hook de Router, sinon la garde ne protège rien.
+    const file = importedComponents.get("ObservabilityBridge");
+    expect(file, "ObservabilityBridge doit être un import local résolu").toBeDefined();
+    expect(usesRouterHook(file!)).toContain("useLocation");
+  });
+});
 
 describe("router-context-guard — hooks de Router montés sous <IonReactRouter>", () => {
   const source = readFileSync(APP_PATH, "utf8");

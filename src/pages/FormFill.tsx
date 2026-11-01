@@ -270,7 +270,7 @@ export default function FormFill() {
             {errors.length > 0 && (
               <div
                 className="mb-4 p-3 rounded-xl text-sm"
-                style={{ backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)", color: "var(--data-expense)" }}
+                style={{ backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)", color: "var(--out)" }}
               >
                 {errors[0]}
               </div>
@@ -280,7 +280,7 @@ export default function FormFill() {
               <div className="text-center py-16">
                 <CheckCircle
                   className="w-16 h-16 mx-auto mb-4"
-                  style={{ color: "var(--data-income)" }}
+                  style={{ color: "var(--in)" }}
                 />
                 <p className="text-text-primary font-bold text-lg mb-2">
                   Soumis avec succès !
@@ -303,7 +303,7 @@ export default function FormFill() {
                     <label className="text-text-tertiary text-xs mb-1.5 block">
                       {field.label}{" "}
                       {field.required && (
-                        <span style={{ color: "var(--data-expense)" }}>*</span>
+                        <span style={{ color: "var(--out)" }}>*</span>
                       )}
                     </label>
                     {field.type === "boolean" ? (

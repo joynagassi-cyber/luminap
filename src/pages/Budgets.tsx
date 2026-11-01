@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useOrgBudgets, useOrgBudgetLines, useTransactions, useCategories, useOrgUnits, addOrgBudgetPS } from "@/lib/dataLayer";
 import { computeBudgetReport, budgetWindow, type BudgetPeriod } from "@/capabilities/budgets";
 import { formatCurrencyCompact } from "@/lib/utils";
+import { parseAmountToCents } from "@/lib/amountInput";
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
 import { Plus, Target, Wallet, PieChart, X, ChevronRight } from "lucide-react";
@@ -125,18 +126,18 @@ export default function Budgets() {
                 </p>
               </div>
               <div className="rounded-xl p-4" style={{ backgroundColor: "var(--surface)" }}>
-                <PieChart className="w-4 h-4 mb-2" style={{ color: "var(--data-income)" }} />
+                <PieChart className="w-4 h-4 mb-2" style={{ color: "var(--in)" }} />
                 <p className="text-text-tertiary text-xs">Réel</p>
                 <p className="text-income font-bold text-sm mt-1">
                   {formatCurrencyCompact(activeTotals.actual)}
                 </p>
               </div>
               <div className="rounded-xl p-4" style={{ backgroundColor: "var(--surface)" }}>
-                <Target className="w-4 h-4 mb-2" style={{ color: "var(--data-pending)" }} />
+                <Target className="w-4 h-4 mb-2" style={{ color: "var(--warn)" }} />
                 <p className="text-text-tertiary text-xs">Restant</p>
                 <p
                   className="font-bold text-sm mt-1"
-                  style={{ color: activeTotals.planned - activeTotals.actual >= 0 ? "var(--data-income)" : "var(--data-expense)" }}
+                  style={{ color: activeTotals.planned - activeTotals.actual >= 0 ? "var(--in)" : "var(--out)" }}
                 >
                   {formatCurrencyCompact(Math.max(0, activeTotals.planned - activeTotals.actual))}
                 </p>
@@ -204,7 +205,7 @@ export default function Budgets() {
                       <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: "var(--surface-hover)" }}>
                         <div
                           className="h-full rounded-full"
-                          style={{ width: `${Math.min(100, bar)}%`, backgroundColor: over ? "var(--data-expense)" : "var(--accent-primary)" }}
+                          style={{ width: `${Math.min(100, bar)}%`, backgroundColor: over ? "var(--out)" : "var(--accent-primary)" }}
                         />
                       </div>
                       <p className="text-text-tertiary text-xs mt-1.5">{win.start} → {win.end}</p>
@@ -255,7 +256,7 @@ function CreateBudgetSheet({
     if (!name.trim() || saving) return;
     setSaving(true);
     try {
-      const totalCents = Math.round((Number(total.replace(/[^\d]/g, "")) || 0) * 100);
+      const totalCents = parseAmountToCents(total) ?? 0;
       await addOrgBudgetPS({
         fiscal_year: fiscalYear,
         period,
@@ -297,7 +298,7 @@ function CreateBudgetSheet({
 
         <div className="space-y-3">
           <IonItem lines="none" className="bg-card rounded-xl">
-            <IonLabel position="floating" className="text-sm text-text-secondary">Nom</IonLabel>
+            <IonLabel position="floating" className="text-sm text-text-secondary">Nom *</IonLabel>
             <IonInput
               type="text"
               value={name}
@@ -348,8 +349,8 @@ function CreateBudgetSheet({
           <IonItem lines="none" className="bg-card rounded-xl">
             <IonLabel position="floating" className="text-sm text-text-secondary">Montant prévu (FCFA)</IonLabel>
             <IonInput
-              type="number"
-              inputMode="numeric"
+              type="text"
+              inputMode="decimal"
               value={total}
               onIonInput={(e: IonChangeCustomEvent<string>) => setTotal(e.detail.value ?? "")}
               placeholder="Ex : 5000000"

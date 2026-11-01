@@ -1,13 +1,13 @@
 {
   "version": 1,
-  "generated": "2026-10-31",
+  "generated": "2026-11-01",
   "purpose": "Instantane MESURE de la derive migrations <-> base (R17). Le tracker Supabase n'est pas accessible en CI : ce fichier fige l'etat mesure pour qu'une garde repo-side puisse detecter tout CHANGEMENT de derive (nouvelle migration tracee ou non tracee).",
   "source_of_truth": "Base = source de verite (schema applique via editeur SQL / MCP, pas via `supabase db push`). Le tracker `supabase_migrations.schema_migrations` et les fichiers `supabase/migrations/` sont deux historiques disjoints.",
   "measured": {
-    "applied_versions_in_tracker": 82,
-    "repo_timestamped_files": 78,
+    "applied_versions_in_tracker": 87,
+    "repo_timestamped_files": 80,
     "repo_sequential_files": 63,
-    "repo_total_sql_files": 141,
+    "repo_total_sql_files": 143,
     "versions_in_common": 2,
     "common_versions": [
       "20261001000001",
@@ -15,8 +15,8 @@
     ],
     "applied_without_repo_file": 70,
     "repo_file_never_applied": 65,
-    "drift_ratio": "2/82",
-    "repo_filenames_sha256": "3a5ac09e2815187986dd9d3a983057e29ba769beeff19681a0e8cbe2af4c254f",
+    "drift_ratio": "2/87",
+    "repo_filenames_sha256": "3098f277dad1d3c8401f7ef755fdf8d5082c0e67d70f9ad07d7a2521e28dfae2",
     "repo_db_object_delta": {
       "measured": "2026-10-31",
       "method": "recoupement exhaustif depot <-> base (tables, fonctions, triggers, vues)",
@@ -70,5 +70,8 @@
   ],
   "notes_reseed_categories": [
     "1 migration ajoutee 20261101000001 (reseed idempotent des categories canoniques : `categories` etait a 0 en base live apres une purge manuelle -> toute ecriture financiere echouait en 23503 `transactions_category_id_fkey`, y compris la file d'upload PowerSync). ON CONFLICT DO NOTHING, additive/idempotente. Deja appliquee au projet live (9 lignes). Empreinte de noms re-mesuree : 78 horodatees / 141 total."
+  ],
+  "notes_error_throttle": [
+    "1 migration ajoutee 20261101000002 (error_report_throttle : rate-limiting des rapports d'erreur ANONYMES pre-login + RPC register_anonymous_report SECURITY DEFINER reservee au service_role ; table deny-all). Additive (CREATE TABLE + RPC). Tracker re-mesure : 87 ; empreinte de noms re-mesuree : 79 horodatees / 142 total."
   ]
 }

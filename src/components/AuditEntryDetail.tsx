@@ -175,7 +175,11 @@ function diffAuditStates(
         kind: !inBefore ? "added" : !inAfter ? "removed" : "changed",
       });
     }
-    return { kind: "changed", rows, beforeText, afterText };
+    // Deux états identiques ne sont PAS une modification : sans ce repli,
+    // l'entrée annonçait « Modifié » en n'affichant aucune ligne de diff —
+    // un verdict faux sur une piste d'audit (l'utilisateur croit qu'une
+    // action a changé quelque chose alors que rien n'a changé).
+    return { kind: rows.length === 0 ? "unchanged" : "changed", rows, beforeText, afterText };
   }
 
   // États scalaires (chaîne, nombre…) : comparaison directe.
@@ -302,10 +306,10 @@ export default function AuditEntryDetail({ entry }: { entry: AuditEntryLike }) {
                   style={{
                     color:
                       row.kind === "added"
-                        ? "var(--data-income)"
+                        ? "var(--in)"
                         : row.kind === "removed"
-                          ? "var(--data-expense)"
-                          : "var(--data-pending)",
+                          ? "var(--out)"
+                          : "var(--warn)",
                   }}
                 >
                   {ROW_KIND_LABEL[row.kind]}
@@ -313,7 +317,7 @@ export default function AuditEntryDetail({ entry }: { entry: AuditEntryLike }) {
                 <div className="flex items-center gap-2 mt-0.5 text-xs">
                   <span
                     className="line-through break-all"
-                    style={{ color: "var(--data-expense)" }}
+                    style={{ color: "var(--out)" }}
                     data-testid="audit-diff-before"
                   >
                     {row.before}
@@ -321,7 +325,7 @@ export default function AuditEntryDetail({ entry }: { entry: AuditEntryLike }) {
                   <span className="text-text-tertiary">→</span>
                   <span
                     className="break-all"
-                    style={{ color: "var(--data-income)" }}
+                    style={{ color: "var(--in)" }}
                     data-testid="audit-diff-after"
                   >
                     {row.after}

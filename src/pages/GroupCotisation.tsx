@@ -28,6 +28,7 @@ import {
 import { policy } from "@/capabilities/policy";
 import { getOrganizationId } from "@/lib/orgContext";
 import { formatCurrencyCompact, formatDate } from "@/lib/utils";
+import { parseAmountToCents } from "@/lib/amountInput";
 import { Plus, Check, Clock, X, Coins } from "lucide-react";
 import { useKeyboardAvoidance } from "@/hooks/useKeyboardAvoidance";
 import { ListSkeleton } from "@/components/Skeleton";
@@ -111,13 +112,12 @@ export default function GroupCotisation() {
   const handleCreateSession = async () => {
     setFormError(null);
     setBusy(true);
-    const fcfa = parseFloat(sessionMontant);
-    if (!Number.isFinite(fcfa) || fcfa <= 0) {
+    const montantCents = parseAmountToCents(sessionMontant);
+    if (montantCents === null || montantCents <= 0) {
       setFormError("Le montant de cotisation est requis (en FCFA).");
       setBusy(false);
       return;
     }
-    const montantCents = Math.round(fcfa * 100);
     const amountCheck = policy.cotisation.validateAmount(montantCents);
     if (!amountCheck.ok) {
       setFormError(amountCheck.message ?? "Montant invalide");
@@ -262,7 +262,7 @@ export default function GroupCotisation() {
           {formError && (
             <div
               className="mb-4 p-3 rounded-xl text-sm"
-              style={{ backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)", color: "var(--data-expense)" }}
+              style={{ backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)", color: "var(--out)" }}
             >
               {formError}
             </div>
@@ -347,13 +347,13 @@ export default function GroupCotisation() {
                   <div>
                     <p className="text-text-tertiary">Collecté</p>
                     <p className="text-income font-bold text-sm">
-                      {formatCurrencyCompact(stats.totalCollecte)} F
+                      {formatCurrencyCompact(stats.totalCollecte)}
                     </p>
                   </div>
                   <div>
                     <p className="text-text-tertiary">Attendu</p>
                     <p className="text-text-primary font-bold text-sm">
-                      {formatCurrencyCompact(stats.attendu)} F
+                      {formatCurrencyCompact(stats.attendu)}
                     </p>
                   </div>
                   <div>
@@ -387,23 +387,23 @@ export default function GroupCotisation() {
                     className="rounded-xl p-3.5 mb-2 flex items-center gap-3"
                     style={{
                       backgroundColor: isPaid
-                        ? "color-mix(in srgb, var(--data-income) 6%, transparent)"
+                        ? "color-mix(in srgb, var(--in) 6%, transparent)"
                         : isAbsent
                           ? "color-mix(in srgb, var(--text-tertiary) 10%, transparent)"
                           : "var(--surface)",
-                      border: `1px solid ${isPaid ? "color-mix(in srgb, var(--data-income) 20%, transparent)" : isAbsent ? "color-mix(in srgb, var(--text-tertiary) 30%, transparent)" : "var(--border)"}`,
+                      border: `1px solid ${isPaid ? "color-mix(in srgb, var(--in) 20%, transparent)" : isAbsent ? "color-mix(in srgb, var(--text-tertiary) 30%, transparent)" : "var(--border)"}`,
                     }}
                   >
                     <div
                       className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
                       style={{
-                        backgroundColor: isPaid ? "color-mix(in srgb, var(--data-income) 12%, transparent)" : "var(--surface-hover)",
+                        backgroundColor: isPaid ? "color-mix(in srgb, var(--in) 12%, transparent)" : "var(--surface-hover)",
                       }}
                     >
                       <span
                         className="text-xs font-bold"
                         style={{
-                          color: isPaid ? "var(--data-income)" : "var(--accent-primary)",
+                          color: isPaid ? "var(--in)" : "var(--accent-primary)",
                         }}
                       >
                         {name.charAt(0)}
@@ -425,7 +425,7 @@ export default function GroupCotisation() {
                         <IonButton
                           size="small"
                           fill="solid"
-                          style={{ backgroundColor: "var(--data-income)" }}
+                          style={{ backgroundColor: "var(--in)" }}
                           disabled={busy}
                           onClick={() => handlePay(cot, oblig)}
                         >
@@ -514,7 +514,8 @@ export default function GroupCotisation() {
                     Montant obligatoire (FCFA)
                   </IonLabel>
                   <IonInput
-                    type="number"
+                    type="text"
+                    inputMode="decimal"
                     value={sessionMontant}
                     onIonInput={(e: IonChangeCustomEvent<string>) =>
                       setSessionMontant(e.detail.value ?? "")

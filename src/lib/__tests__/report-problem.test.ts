@@ -40,7 +40,10 @@ import {
   getLastProblemReport,
   clearProblemReports,
   isSentryConfigured,
+  scrubIdentities,
+  memberIdentities,
 } from "@/lib/reportProblem";
+import { authService } from "@/lib/auth";
 import type { HealthInputs } from "@/lib/health";
 
 const base: HealthInputs = {
@@ -163,6 +166,43 @@ describe("buildProblemReport — structure sans PII (PR5)", () => {
     expect(report.errors[0].message).not.toContain("admin@church.org");
   });
 
+  it("expurge les JETONS (JWT, Bearer) de la note ET des erreurs", () => {
+    const jwt = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.SflKxwRJSM";
+    const report = buildProblemReport(
+      base,
+      [{ source: "handled", message: `401 avec Bearer ${jwt}` }],
+      "t",
+      `mon token : ${jwt}`,
+    );
+    const serialized = JSON.stringify(report);
+    expect(serialized).not.toContain(jwt);
+    expect(report.note).toContain("<jwt>");
+    expect(report.errors[0].message).toContain("<jwt>");
+
+    // Un jeton opaque (non-JWT) porté par `Bearer` est aussi expurgé.
+    const opaque = buildProblemReport(
+      base,
+      [{ source: "handled", message: "401 Bearer sk_live_ABC123XYZ" }],
+      "t",
+    );
+    expect(opaque.errors[0].message).not.toContain("sk_live_ABC123XYZ");
+    expect(opaque.errors[0].message).toContain("Bearer <token>");
+  });
+
+  it("N'INTRODUIT jamais le nom d'organisation (PII non saisie)", () => {
+    // Le nom d'org alimente le contrôle « org » du rapport santé, mais
+    // `buildProblemReport` ne conserve QUE les identifiants de contrôle : le
+    // nom ne doit donc jamais atteindre le rapport.
+    const report = buildProblemReport(
+      { ...base, orgName: "Église Saint-Michel" },
+      [],
+      "t",
+    );
+    const serialized = JSON.stringify(report);
+    expect(serialized).not.toContain("Saint-Michel");
+    expect(report.failedChecks).toEqual([]);
+  });
+
   it("neutralise les caractères de contrôle et plafonne la note (entrée hostile)", () => {
     const report = buildProblemReport(
       base,
@@ -239,5 +279,259 @@ describe("sendProblemReport — Sentry configuré (envoi réel)", () => {
     } finally {
       vi.unstubAllEnvs();
     }
+  });
+});
+
+/**
+ * PR5 — audit PII (nom propre / téléphone). `redact` ne masque que les PII à
+ * FORME reconnaissable (e-mail, JWT, Bearer) : un NOM ou un NUMÉRO de téléphone
+ * saisi par l'utilisateur traversait le rapport tel quel. Le rapport part vers
+ * Sentry et est conservé localement → fuite. On retire désormais les identités
+ * de l'utilisateur courant par VALEUR (`scrubIdentities`).
+ */
+describe("scrubIdentities — retrait par valeur (PR5)", () => {
+  it("masque un jeton connu, insensible à la casse", () => {
+    expect(scrubIdentities("Bonjour Jean DUPONT", ["Jean Dupont"])).toBe(
+      "Bonjour <masqué>",
+    );
+  });
+
+  it("ignore les jetons trop courts (bruit) et les vides", () => {
+    expect(scrubIdentities("abc a", ["a", "", "  "])).toBe("abc a");
+  });
+
+  it("échappe les métacaractères RegExp (pas d'injection de motif)", () => {
+    // Sans échappement, `a.b` matcherait `axb` et le motif serait interprété.
+    expect(scrubIdentities("valeur a.b ici", ["a.b"])).toBe("valeur <masqué> ici");
+    expect(scrubIdentities("axb", ["a.b"])).toBe("axb");
+  });
+
+  it("sans identité → texte inchangé", () => {
+    expect(scrubIdentities("rien à masquer", [])).toBe("rien à masquer");
+  });
+});
+
+describe("buildProblemReport — le rapport ne fuit ni nom ni téléphone (PR5)", () => {
+  const identities = ["Marie Dupont", "marie.dupont@church.org", "Dupont"];
+
+  it("masque le nom de l'utilisateur dans la note libre", () => {
+    const report = buildProblemReport(
+      base,
+      [],
+      "t",
+      "Contactez Marie Dupont au 06 12 34 56 78",
+      identities,
+    );
+    expect(report.note).not.toContain("Marie Dupont");
+    expect(report.note).toContain("<masqué>");
+  });
+
+  it("masque le nom de l'utilisateur dans les messages d'erreur repris", () => {
+    const report = buildProblemReport(
+      base,
+      [{ source: "handled", message: "Échec du chargement pour Marie Dupont" }],
+      "t",
+      "",
+      identities,
+    );
+    expect(report.errors[0].message).not.toContain("Marie Dupont");
+  });
+
+  it("l'e-mail est masqué par `redact` même sans identité fournie", () => {
+    const report = buildProblemReport(
+      base,
+      [],
+      "t",
+      "écrire à marie.dupont@church.org",
+    );
+    expect(report.note).not.toContain("marie.dupont@church.org");
+  });
+});
+
+describe("sendProblemReport — identités de l'utilisateur courant (PR5)", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("masque par défaut le prénom/nom/e-mail du profil connecté", () => {
+    const profile = {
+      id: "u1",
+      email: "marie.dupont@church.org",
+      first_name: "Marie",
+      last_name: "Dupont",
+      role: "ADMIN",
+      org_id: "org-1",
+      created_at: "t",
+      updated_at: "t",
+    };
+    vi.spyOn(authService, "getState").mockReturnValue({
+      session: null,
+      user: null,
+      profile,
+      isLoading: false,
+      error: null,
+    } as ReturnType<typeof authService.getState>);
+
+    const result = sendProblemReport(
+      base,
+      [{ source: "handled", message: "souci pour Marie Dupont" }],
+      "mon nom est Marie Dupont et mon mail marie.dupont@church.org",
+      "2026-10-31T08:00:00.000Z",
+    );
+
+    const serialized = JSON.stringify(result.report);
+    expect(serialized).not.toContain("Marie Dupont");
+    expect(serialized).not.toContain("marie.dupont@church.org");
+    // Le signalement reste utile : la note survit (partiellement masquée).
+    expect(result.savedLocally).toBe(true);
+    expect(result.report.note).toContain("<masqué>");
+  });
+
+  it("sans profil connecté → aucune exception, identités vides", () => {
+    vi.spyOn(authService, "getState").mockReturnValue({
+      session: null,
+      user: null,
+      profile: null,
+      isLoading: false,
+      error: null,
+    } as ReturnType<typeof authService.getState>);
+    expect(() =>
+      sendProblemReport(base, [], "note", "2026-10-31T08:00:00.000Z"),
+    ).not.toThrow();
+  });
+});
+
+/**
+ * PR5 — audit PII ADVERSARIAL (vérification indépendante).
+ *
+ * On injecte, dans TOUS les canaux d'entrée du rapport (note libre + messages
+ * d'erreur repris), des PII de formes variées : e-mail, jeton Bearer/JWT,
+ * numéro de téléphone FR, nom d'un MEMBRE de l'organisation, identifiant
+ * d'organisation. Le rapport sérialisé ne doit en contenir AUCUNE, y compris
+ * dans l'objet transmis à Sentry (`extra.report`) et dans le journal local.
+ */
+describe("PR5 — audit PII adversarial (aucune fuite, tous canaux)", () => {
+  const MEMBER = "Jean-Baptiste Kouassi";
+  const EMAIL = "jb.kouassi@church.org";
+  const PHONE = "06 12 34 56 78";
+  const TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.abcdefghijklmnop";
+  const ORG_ID = "org-secret-42";
+  const note = `Note: ${MEMBER} (${EMAIL}, ${PHONE}) jeton=${TOKEN} org=${ORG_ID}`;
+
+  it("ne fuit AUCUNE PII de forme (e-mail/jeton/téléphone) dans le rapport", () => {
+    const report = buildProblemReport(
+      base,
+      [{ source: "handled", message: `échec pour ${MEMBER} <${EMAIL}> ${PHONE} ${TOKEN}` }],
+      "t",
+      note,
+    );
+    const s = JSON.stringify(report);
+    expect(s).not.toContain(EMAIL);
+    expect(s).not.toContain(TOKEN);
+    expect(s).not.toContain(PHONE);
+  });
+
+  it("retire par VALEUR le nom d'un membre connu (prénom/nom fournis)", () => {
+    const report = buildProblemReport(
+      base,
+      [{ source: "handled", message: `erreur liée à ${MEMBER}` }],
+      "t",
+      `voir ${MEMBER}`,
+      [MEMBER, "Jean-Baptiste", "Kouassi"],
+    );
+    const s = JSON.stringify(report);
+    expect(s).not.toContain(MEMBER);
+    expect(s).not.toContain("Kouassi");
+    expect(report.note).toContain("<masqué>");
+  });
+
+  it("n'expose jamais l'ID technique d'organisation, même fourni dans la note", () => {
+    // `base.orgId === "org-1"` : l'ID de l'organisation ACTIVE est la valeur
+    // réellement à risque (elle transite déjà par `collectHealthInputs`).
+    const report = buildProblemReport(base, [], "t", `org=${base.orgId}`);
+    expect(JSON.stringify(report)).not.toContain(base.orgId);
+    expect(report.note).toContain("<masqué>");
+  });
+
+  it("le contexte transmis à Sentry (extra.report) est lui aussi sans PII", () => {
+    vi.stubEnv("VITE_SENTRY_DSN", "https://abc@o0.ingest.sentry.io/1");
+    try {
+      sendProblemReport(
+        base,
+        [{ source: "onerror", message: `${MEMBER} ${EMAIL} ${PHONE}` }],
+        `jeton ${TOKEN}`,
+        "2026-10-31T08:00:00.000Z",
+        [MEMBER],
+      );
+      const call = vi.mocked(Sentry.captureMessage).mock.calls[0];
+      const s = JSON.stringify(call[1]);
+      expect(s).not.toContain(MEMBER);
+      expect(s).not.toContain(EMAIL);
+      expect(s).not.toContain(PHONE);
+      expect(s).not.toContain(TOKEN);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it("le journal local persisté est lui aussi sans PII", () => {
+    sendProblemReport(
+      base,
+      [{ source: "handled", message: `${MEMBER} ${EMAIL}` }],
+      `tel ${PHONE}`,
+      "2026-10-31T08:00:00.000Z",
+      [MEMBER],
+    );
+    const stored = localStorage.getItem("lumina-problem-reports") ?? "";
+    expect(stored).not.toContain(MEMBER);
+    expect(stored).not.toContain(EMAIL);
+    expect(stored).not.toContain(PHONE);
+  });
+});
+
+/**
+ * PR5 — PII des TIERS (membres de l'organisation). Un nom propre n'a pas de
+ * forme reconnaissable : `redact` ne le masque pas et il n'est pas l'identité
+ * de l'utilisateur courant. Or un message d'erreur ou la note libre peut citer
+ * un membre (« échec pour Jean-Baptiste Kouassi ») → le nom partait vers Sentry
+ * et le journal local. `sendProblemReport`/`sendProblemReportToIssues` acceptent
+ * donc la liste des membres et en extraient les identités par VALEUR.
+ */
+describe("PR5 — PII des tiers : noms de membres retirés par valeur", () => {
+  const MEMBER = "Jean-Baptiste Kouassi";
+  const members = [{ first_name: "Jean-Baptiste", last_name: "Kouassi" }];
+
+  it("memberIdentities extrait nom complet + prénom + nom (snake_case)", () => {
+    expect(memberIdentities(members)).toEqual([
+      "Jean-Baptiste Kouassi",
+      "Jean-Baptiste",
+      "Kouassi",
+    ]);
+  });
+
+  it("memberIdentities tolère le camelCase (store local) et les entrées invalides", () => {
+    expect(memberIdentities([{ firstName: "Marie", lastName: "Dupont" }])).toEqual([
+      "Marie Dupont",
+      "Marie",
+      "Dupont",
+    ]);
+    expect(memberIdentities([null, undefined, 42, {}, { first_name: "A" }])).toEqual([]);
+  });
+
+  it("sendProblemReport masque le nom d'un membre cité dans la note ET un message d'erreur", () => {
+    const result = sendProblemReport(
+      base,
+      [{ source: "handled", message: `échec du chargement pour ${MEMBER}` }],
+      `merci de recontacter ${MEMBER}`,
+      "2026-10-31T08:00:00.000Z",
+      [],
+      members,
+    );
+    const s = JSON.stringify(result.report);
+    expect(s).not.toContain(MEMBER);
+    expect(s).not.toContain("Kouassi");
+    expect(result.report.note).toContain("<masqué>");
+    const stored = localStorage.getItem("lumina-problem-reports") ?? "";
+    expect(stored).not.toContain(MEMBER);
   });
 });

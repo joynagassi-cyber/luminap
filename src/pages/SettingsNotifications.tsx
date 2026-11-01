@@ -385,7 +385,7 @@ export default function SettingsNotifications() {
         className="w-full flex items-center justify-center gap-2 py-3 rounded-full font-medium text-sm active:scale-95"
         style={{
           backgroundColor: "var(--surface)",
-          color: "var(--data-expense)",
+          color: "var(--out)",
           border: "1px solid var(--border)",
         }}
         aria-label="Marquer toutes les notifications comme lues"

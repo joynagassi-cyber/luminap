@@ -221,16 +221,16 @@ export default function MembersPage() {
                   <div className="grid grid-cols-2 gap-3">
                     {/* M4 */}
                     <IonInput
-                      aria-label="Prénom"
+                      aria-label="Prénom (obligatoire)"
                       autocomplete="given-name"
-                      placeholder="Prénom"
+                      placeholder="Prénom *"
                       value={firstName}
                       onIonInput={(e) => setFirstName((e.detail.value as string) ?? "")}
                     />
                     <IonInput
-                      aria-label="Nom"
+                      aria-label="Nom (obligatoire)"
                       autocomplete="family-name"
-                      placeholder="Nom"
+                      placeholder="Nom *"
                       value={lastName}
                       onIonInput={(e) => setLastName((e.detail.value as string) ?? "")}
                     />
@@ -318,11 +318,11 @@ export default function MembersPage() {
                     <button
                       onClick={() => handleArchive(member)}
                       className="p-2 rounded-full active:scale-95 transition-transform"
-                      style={{ backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)" }}
+                      style={{ backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)" }}
                     >
                       <Archive
                         className="w-4 h-4"
-                        style={{ color: "var(--data-expense)" }}
+                        style={{ color: "var(--out)" }}
                       />
                     </button>
                   </div>
@@ -426,11 +426,11 @@ export default function MembersPage() {
                       <button
                         onClick={() => handleRestore(member)}
                         className="p-2 rounded-full active:scale-95 transition-transform"
-                        style={{ backgroundColor: "color-mix(in srgb, var(--data-income) 12%, transparent)" }}
+                        style={{ backgroundColor: "color-mix(in srgb, var(--in) 12%, transparent)" }}
                       >
                         <RefreshCw
                           className="w-4 h-4"
-                          style={{ color: "var(--data-income)" }}
+                          style={{ color: "var(--in)" }}
                         />
                       </button>
                     </div>

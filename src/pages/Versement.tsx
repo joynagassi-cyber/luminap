@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useCaisses, useAccounts, useTransactions, createVersement, isPowerSyncReadyNow } from "@/lib/dataLayer";
 import { formatCurrencyCompact } from "@/lib/utils";
+import { parseCurrencyAmount } from "@/lib/amountInput";
 import { ArrowLeft, Check, AlertCircle, Wallet, RefreshCw } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
@@ -36,14 +37,21 @@ export default function Versement() {
   const accounts = psAccounts ?? [];
   const transactions = psTransactions ?? [];
 
+  // Les valeurs de préremplissage voyagent par QUERY PARAM : le routeur Ionic
+  // ne préserve pas `location.state` entre les vues, donc « Verser » depuis un
+  // groupe ouvrait la page avec AUCUNE caisse (ni montant) — le bouton restait
+  // désactivé, sans explication. Repli sur `location.state` pour le web direct.
+  const qs = new URLSearchParams(location.search);
+  const stateCaisseId = (location.state as any)?.caisseId;
+  const stateAmount = (location.state as any)?.defaultAmount;
   const [selectedCaisse, setSelectedCaisse] = useState<string>(
-    (location.state as any)?.caisseId || "",
+    qs.get("caisseId") || stateCaisseId || "",
   );
-  const [amount, setAmount] = useState<string>(
-    (location.state as any)?.defaultAmount
-      ? String(Math.round((location.state as any).defaultAmount / 100))
-      : "",
-  );
+  const [amount, setAmount] = useState<string>(() => {
+    const q = qs.get("defaultAmount");
+    const raw = q != null ? Number(q) : stateAmount;
+    return raw ? String(Math.round(raw / 100)) : "";
+  });
   const [comment, setComment] = useState("");
   const [showConfirm, setShowConfirm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -54,11 +62,14 @@ export default function Versement() {
   );
   const selected = groupAccounts.find((a: any) => a.id === selectedCaisse);
 
-  // Re-calculate balance fresh each time
+  // Solde de la caisse : n'admettre QUE les transactions APPROUVÉES (même
+  // invariant que `account.ts::getAccountBalance`). L'ancien filtre testait
+  // `sourceCaisseId` (camelCase), champ inexistant sur les lignes PowerSync
+  // (`PSTransaction` est snake_case) : la 2ᵉ branche du `||` était morte, donc
+  // les dépenses DRAFT/PENDING non approuvées étaient comptées → solde fantôme.
   const approvedTxs = transactions.filter(
     (t: any) =>
-      t.source_caisse_id === selectedCaisse ||
-      (t.sourceCaisseId === selectedCaisse && t.status === "APPROVED"),
+      t.source_caisse_id === selectedCaisse && t.status === "APPROVED",
   );
   const balance =
     approvedTxs
@@ -70,7 +81,10 @@ export default function Versement() {
   const balanceFCFA = Math.round(balance / 100);
 
   const maxAmount = Math.max(0, balanceFCFA);
-  const amountNum = Math.round(parseFloat(amount || "0"));
+  // Le montant est saisi en FCFA (entiers) ; on accepte la virgule/les
+  // séparateurs de milliers, comme partout ailleurs (sinon « 1 000 » tapé
+  // depuis un clavier FR était compté 1). `null` → 0 (formulaire incomplet).
+  const amountNum = Math.round(parseCurrencyAmount(amount) ?? 0);
   const isValid = amountNum > 0 && amountNum <= maxAmount;
 
   const handleConfirm = async () => {
@@ -145,8 +159,8 @@ export default function Versement() {
                   <div
                     className="p-3 rounded-xl text-sm text-center"
                     style={{
-                      backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)",
-                      color: "var(--data-expense)",
+                      backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)",
+                      color: "var(--out)",
                     }}
                   >
                     {formError}
@@ -164,7 +178,7 @@ export default function Versement() {
                       Montant à verser
                     </p>
                     <p className="text-2xl font-black text-accent">
-                      {formatCurrencyCompact(amountNum)} F
+                      {formatCurrencyCompact(amountNum)}
                     </p>
                   </div>
                   <div className="space-y-2 text-sm">
@@ -242,7 +256,7 @@ export default function Versement() {
                           Solde disponible
                         </p>
                         <p className="text-text-primary font-bold text-xl mt-1">
-                          {formatCurrencyCompact(balanceFCFA)} F
+                          {formatCurrencyCompact(balance)}
                         </p>
                       </div>
                       <Wallet className="w-8 h-8 text-text-tertiary" />
@@ -256,14 +270,14 @@ export default function Versement() {
                   className="bg-card rounded-xl"
                   style={
                     amountNum > maxAmount
-                      ? { border: "1px solid var(--data-expense)" }
+                      ? { border: "1px solid var(--out)" }
                       : undefined
                   }
                 >
                   <IonLabel position="floating" className="text-sm text-text-secondary">Montant à verser (FCFA)</IonLabel>
                   <IonInput
-                    type="number"
-                    inputMode="numeric"
+                    type="text"
+                    inputMode="decimal"
                     value={amount}
                     onIonInput={(e: IonChangeCustomEvent<string>) => setAmount(e.detail.value ?? "")}
                     placeholder="0"
@@ -276,7 +290,7 @@ export default function Versement() {
                   )}
                   {amountNum <= maxAmount && maxAmount > 0 && (
                     <p className="text-text-tertiary text-xs mt-1 text-center">
-                      Maximum: {formatCurrencyCompact(maxAmount)} F
+                      Maximum: {formatCurrencyCompact(balance)}
                     </p>
                   )}
                 </IonItem>

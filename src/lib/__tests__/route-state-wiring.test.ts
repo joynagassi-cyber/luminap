@@ -92,9 +92,28 @@ function appWiringKeys(): Set<string> {
   return keys;
 }
 
+/**
+ * Clés câblées à la VALEUR LITTÉRALE `undefined` — un « faux câblage » : la clé
+ * est présente (donc le test de présence ci-dessus passe, et `tsc` aussi tant
+ * que le champ est optionnel) mais la valeur est morte → la branche du
+ * résolveur reste inerte. C'est exactement le défaut « filet déclaré, jamais
+ * câblé », juste déguisé.
+ */
+function appDeadWiredKeys(): Set<string> {
+  const call = appSrc.match(/resolveRoute\(location\.pathname,\s*\{([\s\S]*?)\}\s*\)/);
+  if (!call) throw new Error("appel resolveRoute(...) introuvable dans App.tsx");
+  const dead = new Set<string>();
+  for (const line of call[1].split("\n")) {
+    const m = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*:\s*undefined\s*,?\s*$/);
+    if (m) dead.add(m[1]);
+  }
+  return dead;
+}
+
 describe("RouteState — aucun champ inerte (garde anti-classe R105/R106/R107)", () => {
   const keys = routeStateKeys();
   const wired = appWiringKeys();
+  const dead = appDeadWiredKeys();
 
   it("l'interface RouteState expose bien des champs (sanity)", () => {
     expect(keys.length).toBeGreaterThanOrEqual(3);
@@ -102,7 +121,7 @@ describe("RouteState — aucun champ inerte (garde anti-classe R105/R106/R107)",
 
   it("chaque champ est câblé dans App.tsx OU inscrit dans PENDING_WIRING", () => {
     const orphans = keys.filter(
-      (k) => !wired.has(k) && !(k in PENDING_WIRING),
+      (k) => (!wired.has(k) || dead.has(k)) && !(k in PENDING_WIRING),
     );
     expect(orphans).toEqual([]);
   });
@@ -131,6 +150,9 @@ describe("RouteState — aucun champ inerte (garde anti-classe R105/R106/R107)",
     ]) {
       expect(keys, `${k} doit exister dans RouteState`).toContain(k);
       expect(wired.has(k), `${k} doit être alimenté dans App.tsx`).toBe(true);
+      // Non-vacuité : un champ optionnel câblé à `undefined` passe `tsc` et le
+      // test de présence ci-dessus, mais laisse la branche du résolveur morte.
+      expect(dead.has(k), `${k} ne doit pas être câblé à \`undefined\``).toBe(false);
     }
   });
 });

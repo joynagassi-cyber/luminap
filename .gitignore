@@ -74,4 +74,10 @@ powersync/*-fetched.yaml
 # Python (outillage scripts/visual-docs)
 __pycache__/
 *.pyc
+
+# Audit visuel pré-prod — captures lourdes non versionnées (texte/JSON conservés)
+audit/baseline/
+audit/baseline-admin/
+
+# Python venv (outillage scripts/cost-audit, scripts/pitch-deck)
 .venv/

@@ -266,6 +266,13 @@ streams:
       FROM organizations o
       WHERE o.id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
 
+  # Robustesse PSYNC_S2305 : ne synchroniser QUE les grants ACTIFS.
+  # Un grant révoqué (status = 'REVOKED') n'ouvre aucun droit (la RLS ne lit
+  # que les grants ACTIVE) et l'UI le retire déjà de la liste
+  # (CentralAdmin.handleRevoke). Les inclure gonflait la sous-requête de
+  # paramètre : sur un compte ayant accumulé des centaines de grants, la limite
+  # PowerSync de 1000 résultats est franchie → la synchronisation échoue
+  # entièrement (bannière « Synchronisation indisponible », aucune donnée).
   org_administered:
     auto_subscribe: false
     query: |
@@ -274,7 +281,11 @@ streams:
              archived_at, archived_by, archive_reason,
              created_at, updated_at
       FROM organizations
-      WHERE id IN (SELECT org_id FROM org_admins WHERE admin_profile_id = auth.user_id())
+      WHERE id IN (
+        SELECT org_id FROM org_admins
+        WHERE admin_profile_id = auth.user_id()
+          AND status = 'ACTIVE'
+      )
 
   org_owned:
     auto_subscribe: false

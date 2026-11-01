@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ChevronLeft,
@@ -29,6 +29,7 @@ import {
   useAppConfig,
   selectRole,
   mirrorNewOrganizationLocally,
+  findExistingRootOrganization,
 } from "@/lib/dataLayer";
 import { bootstrapOrganization } from "@/lib/orgBootstrap";
 import { authService } from "@/lib/auth";
@@ -39,6 +40,7 @@ import {
   loadOnboardingState,
   type OrgTypeChoice,
 } from "@/lib/onboardingState";
+import { decideExistingRootOrg } from "@/lib/orgCreationGuard";
 
 /**
  * Correspondance type d'onboarding (UI) → type serveur accepté par l'edge
@@ -164,8 +166,69 @@ export default function OrgSetup() {
   const [role, setRole] = useState<string | null>(saved.role ?? null);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  // Garde anti-doublon : organisation déjà possédée par ce compte (issue du
+  // miroir local / du profil). `undefined` = vérification en cours.
+  const [existingOrg, setExistingOrg] = useState<
+    { id: string; name: string } | null | undefined
+  >(undefined);
 
   const chosen = TEMPLATE_CHOICES.find((t) => t.type === type) ?? null;
+
+  /**
+   * Lit le miroir local (profil + organisations) et décide si le compte
+   * possède DÉJÀ une organisation racine exploitable.
+   */
+  const resolveExistingOrg = async () => {
+    const profile = authService.getState().profile;
+    const userId = profile?.id ?? authService.getState().user?.id ?? "";
+    const orgs = userId ? await findExistingRootOrganization(userId) : null;
+    return decideExistingRootOrg({
+      profileOrgId: profile?.org_id ?? null,
+      profileName: config?.churchName ?? null,
+      orgs,
+    });
+  };
+
+  /** Réutilise l'organisation existante : contexte posé puis dashboard. */
+  const reuseExistingOrg = (org: { id: string; name: string }) => {
+    setOrganizationId(org.id);
+    try {
+      localStorage.setItem("lumina-active-org", org.id);
+    } catch {
+      /* stockage indisponible — le contexte mémoire suffit */
+    }
+    void authService.refreshProfile();
+    completeOnboarding({
+      ...loadOnboardingState(),
+      branch: "creator",
+      completed: true,
+    });
+    navigate("/dashboard", { replace: true });
+  };
+
+  /**
+   * P0 — un compte qui possède DÉJÀ une organisation ne doit PAS en créer une
+   * nouvelle par le wizard : c'est ce qui produisait 1452 orgs ACTIVE pour un
+   * seul compte et cassait la synchronisation PowerSync (`PSYNC_S2305`,
+   * > 1000 résultats). On lit le miroir local et on redirige vers le dashboard
+   * si une organisation existe déjà.
+   */
+  useEffect(() => {
+    let cancelled = false;
+    void resolveExistingOrg().then((decision) => {
+      if (cancelled) return;
+      if (!decision.blocked) {
+        setExistingOrg(null);
+        return;
+      }
+      setExistingOrg(decision.org ?? null);
+      if (decision.org?.id) reuseExistingOrg(decision.org);
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [config?.churchName, navigate]);
 
   const toggleFeature = (key: string) => {
     setFeatures((f) => (f.includes(key) ? f.filter((k) => k !== key) : [...f, key]));
@@ -182,6 +245,20 @@ export default function OrgSetup() {
 
   const handleCreate = async () => {
     if (!canCreate || !chosen) return;
+    // Garde anti-doublon (ceinture + bretelles) : si le compte possède déjà une
+    // organisation, on ne crée JAMAIS de racine supplémentaire — on le ramène
+    // sur la sienne. La décision est RE-VÉRIFIÉE ici (pas seulement à l'effet)
+    // pour fermer la course « clic avant la fin du contrôle asynchrone ».
+    const decision = await resolveExistingOrg();
+    if (decision.blocked) {
+      if (decision.org?.id) {
+        reuseExistingOrg(decision.org);
+      } else {
+        setExistingOrg(decision.org ?? null);
+        navigate("/dashboard", { replace: true });
+      }
+      return;
+    }
     setCreating(true);
     setCreateError(null);
     try {
@@ -464,6 +541,32 @@ export default function OrgSetup() {
 
           {/* CTA */}
           <div className="px-6 pb-10">
+            {existingOrg && (
+              <div
+                role="status"
+                className="mb-3 p-3 rounded-xl text-sm"
+                style={{
+                  backgroundColor:
+                    "color-mix(in srgb, var(--accent-primary) 10%, transparent)",
+                  border:
+                    "1px solid color-mix(in srgb, var(--accent-primary) 30%, transparent)",
+                  color: "var(--text-secondary)",
+                }}
+              >
+                Vous avez déjà une organisation
+                {existingOrg.name ? ` (« ${existingOrg.name} »)` : ""}. Créer une
+                nouvelle organisation n'est pas nécessaire — vous allez être
+                redirigé vers votre tableau de bord.
+                <button
+                  type="button"
+                  onClick={() => navigate("/dashboard", { replace: true })}
+                  className="block mt-2 font-semibold"
+                  style={{ color: "var(--accent-primary)" }}
+                >
+                  Continuer avec mon organisation
+                </button>
+              </div>
+            )}
             {createError && (
               <div
                 role="alert"
