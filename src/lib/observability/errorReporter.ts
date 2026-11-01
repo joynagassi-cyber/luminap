@@ -489,10 +489,43 @@ export type ReportTransport = (
  * qui veut tester la chaîne de bout en bout force la voie avec
  * `VITE_REPORT_ERRORS_IN_DEV=true`. Les rapports bloqués sont RETIRÉS de la
  * file (pas de réessai infini) mais restent visibles localement (page Santé).
+ *
+ * DURCISSEMENT (2026-11-01, 2e passe) : `import.meta.env.PROD` seul NE SUFFIT
+ * PAS. Vite définit `PROD` d'après `NODE_ENV` ; or la CI GitHub exporte
+ * `NODE_ENV=production`, donc un `vite dev` (serveur de dev) de la CI Cypress
+ * voyait `PROD === true` et remontait ses erreurs au dépôt PUBLIC (mesuré :
+ * rafale d'Issues « Tâche longue détectée » sur `localhost:8080`). On exige
+ * donc EN PLUS que `MODE` ne soit pas un mode de développement/test.
  */
+
+/** Modes Vite considérés comme non-production (serveur de dev / tests). */
+const NON_PRODUCTION_MODES: ReadonlySet<string> = new Set([
+  "development",
+  "test",
+]);
+
+/** Sous-ensemble d'`import.meta.env` dont dépend la décision de transmettre. */
+export interface TransmissionEnv {
+  PROD?: boolean;
+  MODE?: string;
+  VITE_REPORT_ERRORS_IN_DEV?: string;
+}
+
+/**
+ * Décision PURE (sans `import.meta.env`) : autorise la remontée seulement si
+ * l'environnement décrit un VRAI build de production. Extraite pour être
+ * testée exhaustivement (y compris le cas CI « PROD hérité vrai + MODE=dev »).
+ */
+export function isTransmissionAllowedFor(env: TransmissionEnv): boolean {
+  if (env.VITE_REPORT_ERRORS_IN_DEV === "true") return true;
+  if (env.PROD !== true) return false;
+  // `MODE` vaut "development" pour `vite dev` et "test" sous vitest, quelle
+  // que soit la valeur de NODE_ENV — c'est le discriminant fiable du build.
+  return !NON_PRODUCTION_MODES.has(env.MODE ?? "");
+}
+
 export function isTransmissionAllowed(): boolean {
-  if (import.meta.env.VITE_REPORT_ERRORS_IN_DEV === "true") return true;
-  return import.meta.env.PROD === true;
+  return isTransmissionAllowedFor(import.meta.env);
 }
 
 /**

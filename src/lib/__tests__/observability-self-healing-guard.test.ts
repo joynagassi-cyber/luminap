@@ -16,7 +16,7 @@
  * Ces gardes échouent si un refactor rebranche l'un de ces pièges.
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 import { dedupeKey, DEDUPE_KEY_PREFIX } from "../../../supabase/functions/report-error/dedupe";
@@ -148,7 +148,7 @@ describe("errorReporter — garde de transmission (pas de bruit dev → dépôt 
 
   it("expose isTransmissionAllowed() conditionnée à la production", () => {
     expect(src).toContain("isTransmissionAllowed");
-    expect(src).toMatch(/import\.meta\.env\.PROD\s*===\s*true/);
+    expect(src).toMatch(/import\.meta\.env\.PROD/);
   });
 
   it("une échappatoire explicite existe pour tester la chaîne en dev", () => {
@@ -157,6 +157,17 @@ describe("errorReporter — garde de transmission (pas de bruit dev → dépôt 
 
   it("le transport par défaut abandonne (drop) hors production", () => {
     expect(src).toMatch(/isTransmissionAllowed\(\)[\s\S]*?drop:\s*true/);
+  });
+
+  it("refuse les modes Vite de développement/test (PROD seul est insuffisant en CI)", () => {
+    // La CI GitHub exporte NODE_ENV=production → un `vite dev` voit
+    // `import.meta.env.PROD === true`. La garde doit AUSSI exiger un MODE
+    // non-développement, sinon les serveurs de dev de la CI remontent au
+    // dépôt public (mesuré : ~58 Issues « Tâche longue détectée »).
+    expect(src).toContain("NON_PRODUCTION_MODES");
+    expect(src).toContain("isTransmissionAllowedFor");
+    expect(src).toMatch(/NON_PRODUCTION_MODES\.has\(env\.MODE/);
+    expect(src).toMatch(/NON_PRODUCTION_MODES[\s\S]*?["']development["']/);
   });
 
   it("un rapport 'drop' est retiré de la file (pas de réessai infini)", () => {
@@ -213,5 +224,42 @@ describe("release — versionName/versionCode pilotés par le tag (self-update d
   it("échoue bruyamment si le patch n'a pas pris (pas de Release fausse)", () => {
     expect(src).toMatch(/versionName non appliqué/);
     expect(src).toMatch(/versionCode non appliqué/);
+  });
+});
+
+describe("Cypress — la remontée d'erreurs est neutralisée (défense en profondeur)", () => {
+  const support = read("cypress/support/e2e.ts");
+  const blocker = read("cypress/support/noErrorReporting.ts");
+
+  it("le support Cypress charge le bloqueur", () => {
+    expect(support).toContain("./noErrorReporting");
+  });
+
+  it("le bloqueur stubbe le POST report-error (aucun test ne crée d'Issue)", () => {
+    expect(blocker).toContain("functions/v1/report-error");
+    expect(blocker).toMatch(/method:\s*'POST'/);
+    expect(blocker).toMatch(/ok:\s*true/);
+    // Interception globale, avant chaque test.
+    expect(blocker).toMatch(/beforeEach\(/);
+  });
+});
+
+describe("CI — aucun workflow n'active la remontée d'erreurs en dev", () => {
+  const workflows = readdirSync(join(root, ".github/workflows")).filter((f) =>
+    f.endsWith(".yml"),
+  );
+
+  it("VITE_REPORT_ERRORS_IN_DEV n'est JAMAIS forcé à true dans un workflow", () => {
+    // L'échappatoire existe pour un poste de développeur, jamais pour la CI :
+    // un workflow qui l'activerait ferait remonter le bruit de la CI Cypress
+    // (`vite dev` sur localhost) au dépôt public.
+    const offenders: string[] = [];
+    for (const wf of workflows) {
+      const src = read(`.github/workflows/${wf}`);
+      if (/VITE_REPORT_ERRORS_IN_DEV\s*[:=]\s*['"]?true/i.test(src)) {
+        offenders.push(wf);
+      }
+    }
+    expect(offenders).toEqual([]);
   });
 });
