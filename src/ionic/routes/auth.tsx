@@ -14,6 +14,7 @@ import { Route } from "react-router-dom";
 import { LazyRoute } from "./lazy-route";
 
 const Splash = lazy(() => import("@/pages/Splash"));
+const Welcome = lazy(() => import("@/pages/Welcome"));
 const Sessions = lazy(() => import("@/pages/Sessions"));
 const Onboarding = lazy(() => import("@/pages/Onboarding"));
 const AuthPage = lazy(() => import("@/pages/AuthPage"));
@@ -23,6 +24,11 @@ export const authRoutes: ReactElement[] = [
     key="/splash"
     path="/splash"
     element={<LazyRoute component={Splash} />}
+  />,
+  <Route
+    key="/welcome"
+    path="/welcome"
+    element={<LazyRoute component={Welcome} />}
   />,
   <Route
     key="/auth"

@@ -155,24 +155,25 @@ describe('Lumina — Org reports hierarchy, send page gating, RLS', () => {
     // On sélectionne donc EXPLICITEMENT l'option de la Mère, par son nom
     // exact (l'organisation courante du compte).
     //
-    // Le nom est lu dans `lumina-user` (clé `org.name`, écrite par
-    // `authService.persistCurrentUser`) avec repli sur `lumina-config`
-    // (`churchName`) — c'est le même repli que le code de production.
-    cy.window().then((win) => {
-      let orgName: string | null = null;
-      try {
-        orgName = JSON.parse(win.localStorage.getItem('lumina-user') ?? '')?.org?.name || null;
-      } catch {
-        /* clé absente ou malformée */
-      }
-      if (!orgName) {
-        try {
-          orgName = JSON.parse(win.localStorage.getItem('lumina-config') ?? '')?.churchName || null;
-        } catch {
-          /* clé absente ou malformée */
-        }
-      }
-      expect(orgName, 'nom de l\'organisation courante').to.be.a('string').and.not.be.empty;
+    // Le nom de l'org COURANTE est lu dans la RÉPLIQUE LOCALE (`organizations`,
+    // org active) — c'est la source EXACTE des options du popover : la liste
+    // vient de `allOrgs`, alimenté par `federation.listOrgs()` (SQL sur la
+    // réplique). Lire `lumina-user`/`lumina-config` donnait un nom DIFFÉRENT
+    // (le `churchName` du dernier onboarding, ex. « Org E2E 282742 ») alors
+    // que la réplique porte le nom réel de l'org en base (« Lumina Org E2E ») :
+    // l'option cherchée n'existait donc jamais dans le popover (échec mesuré :
+    // timeout 180 s sur l'option du parent).
+    cy.window().then(async (win) => {
+      const w = win as unknown as {
+        __psDb?: { getAll: (sql: string, params?: unknown[]) => Promise<any[]> };
+      };
+      const activeOrgId = win.localStorage.getItem('lumina-active-org') ?? 'org-e2e';
+      const rows = (await w.__psDb?.getAll(
+        'SELECT name FROM organizations WHERE id = ?',
+        [activeOrgId],
+      )) ?? [];
+      const orgName: string | null = rows[0]?.name ? String(rows[0].name) : null;
+      expect(orgName, 'nom de l\'organisation courante (réplique)').to.be.a('string').and.not.be.empty;
       cy.get('ion-select[data-testid="org-parent"]').first().click({ force: true });
       cy.get('ion-popover', { timeout: 10_000 })
         .find('ion-item')
@@ -197,11 +198,35 @@ describe('Lumina — Org reports hierarchy, send page gating, RLS', () => {
     // Soumettre (bouton « Créer » — aria-label Federation.tsx L446)
     cy.get('button[aria-label="Créer l\'organisation"]').click({ timeout: 30_000 });
 
+    // La création passe par l'edge `create_org` (service_role) : c'est un
+    // aller-retour ASYNCHRONE. Le clic ne l'attend pas — sans point de
+    // synchronisation, la réhydratation qui suit lit le serveur AVANT que
+    // l'organisation n'existe, et l'annexe manque dans la réplique (échec
+    // mesuré : « Annexe A … » absente de l'arborescence alors qu'elle existe
+    // en base). La bannière « créée (opérationnelle) » n'est rendue qu'après
+    // `setCreatedOrg(...)`, donc l'attendre garantit que la ligne est écrite.
+    cy.contains('créée (opérationnelle)', { timeout: 60_000 }).should('be.visible');
+
+    // L'org A est créée côté SERVEUR (edge `create_org`, service_role) : la
+    // réplique locale ne la connaît pas (le service PowerSync Cloud refuse
+    // l'audience JWT, donc rien ne descend). La liste « racines » et
+    // l'arborescence se lisent pourtant dans la réplique
+    // (`federation.listOrgs`). On réhydrate donc la réplique PUIS on
+    // remonte la page : `loadOrgs()` ne s'exécute qu'au montage (et après
+    // une création), donc hydrater sans recharger laisserait `allOrgs` sur
+    // son ancien contenu — la carte de A n'existerait jamais.
+    cy.hydrateOrgReplica();
+    cy.ensureAuth();
+    cy.visit('/admin/federation');
+    cy.get('ion-title', { timeout: 30_000 }).should('be.visible');
+
     // Org A est une ANNEXE de la Mère (org courante) : elle n'apparaît donc
     // pas dans la liste des racines. Il faut déplier la Mère pour la voir.
-    // (L'ancienne assertion `cy.contains(orgAName)` cherchait un texte de
-    // carte racine : structurellement introuvable.)
-    cy.get('[data-testid^="org-open-"]', { timeout: 60_000 }).first().click();
+    // On cible EXPLICITEMENT la carte de la Mère (`org-open-org-e2e`) :
+    // `.first()` prenait la première racine rendue, qui n'est pas forcément
+    // la Mère (l'ordre vient de `created_at DESC`), donc on dépliait la
+    // mauvaise organisation et l'annexe restait invisible.
+    cy.get('[data-testid="org-open-org-e2e"]', { timeout: 60_000 }).click();
     cy.contains('span', orgAName, { timeout: 60_000 }).should('be.visible');
     cy.log(`Org A created: ${orgAName}`);
 
@@ -306,6 +331,14 @@ describe('Lumina — Org reports hierarchy, send page gating, RLS', () => {
       });
 
     // ── 6. RLS negative assertions (anon key) ─────────────────────────
+    // `org_reports` n'accorde PAS le privilège SELECT au rôle `anon`
+    // (vérifié : information_schema.role_table_grants → anon n'a que
+    // REFERENCES/TRIGGER/TRUNCATE). PostgREST refuse donc la requête au
+    // niveau du GRANT (401 Unauthorized) au lieu de renvoyer 200 + 0 ligne.
+    // Les deux issues prouvent la même propriété — « anon ne lit aucune
+    // ligne » —, on accepte donc les deux : exiger spécifiquement 200 était
+    // une sur-spécification du MÉCANISME (grant vs politique), pas du
+    // résultat de sécurité.
     cy.request({
       method: 'GET',
       url: `${SUPABASE_URL}/rest/v1/org_reports?select=id,status&limit=5`,
@@ -313,7 +346,12 @@ describe('Lumina — Org reports hierarchy, send page gating, RLS', () => {
         apikey: anonKey,
         Authorization: `Bearer ${anonKey}`,
       },
+      failOnStatusCode: false,
     }).then((res: any) => {
+      if (res.status === 401 || res.status === 403) {
+        cy.log(`org_reports : refusé au niveau du GRANT (${res.status}) — anon n'a pas SELECT`);
+        return;
+      }
       expect(res.status).to.eq(200);
       const count = (res.body as any[]).length;
       cy.log(`org_reports row count (anon key, no org context): ${count}`);
@@ -328,7 +366,16 @@ describe('Lumina — Org reports hierarchy, send page gating, RLS', () => {
         apikey: anonKey,
         Authorization: `Bearer ${anonKey}`,
       },
+      failOnStatusCode: false,
     }).then((res: any) => {
+      // Même propriété que `org_reports` : `event_tasks` n'accorde pas SELECT
+      // au rôle `anon` → PostgREST répond 401. On accepte le refus au niveau
+      // du GRANT autant que 200 + 0 ligne (les deux prouvent « anon ne lit
+      // rien »).
+      if (res.status === 401 || res.status === 403) {
+        cy.log(`event_tasks : refusé au niveau du GRANT (${res.status}) — anon n'a pas SELECT`);
+        return;
+      }
       expect(res.status).to.eq(200);
       expect((res.body as any[]).length).to.eq(0);
       cy.log('event_tasks: 0 rows for anon (RLS enforced)');

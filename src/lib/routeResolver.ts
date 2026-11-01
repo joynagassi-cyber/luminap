@@ -27,6 +27,7 @@ export interface RouteDef {
 export const ROUTE_REGISTRY: readonly RouteDef[] = [
   // auth / public
   { pattern: "/splash", kind: "public" },
+  { pattern: "/welcome", kind: "public" },
   { pattern: "/auth", kind: "public" },
   { pattern: "/auth/callback", kind: "public" },
   { pattern: "/sessions", kind: "public" },
@@ -34,6 +35,7 @@ export const ROUTE_REGISTRY: readonly RouteDef[] = [
   { pattern: "/onboarding", kind: "app" },
   { pattern: "/dashboard", kind: "app" },
   { pattern: "/notifications", kind: "app" },
+  { pattern: "/search", kind: "app" },
   { pattern: "/tutoriel", kind: "app" },
   { pattern: "/finance", kind: "app" },
   { pattern: "/transaction/new", kind: "app" },
@@ -75,10 +77,22 @@ export const ROUTE_REGISTRY: readonly RouteDef[] = [
   { pattern: "/admin/federation/tree", kind: "app", permission: "admin:settings" },
   { pattern: "/admin/units", kind: "app", permission: "admin:settings" },
   { pattern: "/admin/report-send", kind: "app", permission: "admin:settings" },
-  { pattern: "/admin/reports", kind: "app", permission: "admin:settings" },
-  { pattern: "/admin/reports/:id", kind: "app", permission: "admin:settings" },
+  // Écran de RÉCEPTION des rapports inter-organisations (data-gaté : ≥1 annexe
+  // ou ≥1 rapport reçu ; cf. OrgReportsReceived.tsx). Atteignable par TOUT
+  // membre de l'org destinataire (le Dashboard affiche le lien « Voir tout »
+  // sans garde de rôle, et la RLS `org_reports_receiver` n'exige qu'une
+  // appartenance d'org) → garde d'APPARTENANCE seule, comme `/reports` (pas de
+  // permission de route). Exiger `admin:settings` (comme avant) ou même
+  // `report:read` enfermerait dehors des destinataires légitimes (R142).
+  { pattern: "/admin/reports", kind: "app" },
+  { pattern: "/admin/reports/:id", kind: "app" },
   { pattern: "/admin/organizations/:id", kind: "app", permission: "admin:settings" },
   { pattern: "/admin/roles", kind: "app", permission: "admin:roles" },
+  {
+    pattern: "/admin/transfer-ownership",
+    kind: "app",
+    permission: "admin:roles",
+  },
   { pattern: "/trace", kind: "app" },
   { pattern: "/history", kind: "app" },
   { pattern: "/help", kind: "app" },

@@ -37,9 +37,11 @@ import {
   Shield,
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
+import Badge from "@/components/Badge";
 import { ShimmerCard } from "@/components/Shimmer";
 import EmptyState from "@/components/EmptyState";
 import CapabilityBanner from "@/components/CapabilityBanner";
+import { CLAIM_BADGES } from "@/lib/badges";
 import { getOrganizationId } from "@/lib/orgContext";
 import { useInvitations } from "@/lib/dataLayer";
 import { useCurrentUser } from "@/lib/dataLayer";
@@ -54,16 +56,6 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }>
   EXPIRED: { label: "Expiré", color: "var(--data-muted)", icon: Clock },
   REVOKED: { label: "Révoqué", color: "var(--data-alert)", icon: XCircle },
   EXHAUSTED: { label: "Épuisé", color: "var(--data-exhausted)", icon: Users },
-};
-
-const CLAIM_CONFIG: Record<string, { label: string; color: string }> = {
-  PENDING_SYNC: { label: "En attente", color: "var(--data-pending)" },
-  CONFIRMED: { label: "Confirmée", color: "var(--data-income)" },
-  REJECTED_DUPLICATE: { label: "Rejetée (doublon)", color: "var(--data-expense)" },
-  REJECTED_EXPIRED: { label: "Rejetée (expirée)", color: "var(--data-expense)" },
-  REJECTED_EXHAUSTED: { label: "Rejetée (épuisée)", color: "var(--data-expense)" },
-  REJECTED_REVOKED: { label: "Rejetée", color: "var(--data-expense)" },
-  REJECTED_ROLE_ESCALATION: { label: "Rejetée (escalade)", color: "var(--data-expense)" },
 };
 
 export default function InvitationManage() {
@@ -341,8 +333,6 @@ export default function InvitationManage() {
                                 Demandes ({claims[inv.id].length})
                               </p>
                               {claims[inv.id].map((cl) => {
-                                const cfg =
-                                  CLAIM_CONFIG[cl.status] ?? CLAIM_CONFIG.PENDING_SYNC;
                                 return (
                                   <div
                                     key={cl.id}
@@ -353,15 +343,7 @@ export default function InvitationManage() {
                                       <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
                                         {new Date(cl.claimedAt).toLocaleString("fr-FR")}
                                       </span>
-                                      <span
-                                        className="text-xs px-1.5 py-0.5 rounded-full font-medium"
-                                        style={{
-                                          backgroundColor: `${cfg.color}20`,
-                                          color: cfg.color,
-                                        }}
-                                      >
-                                        {cfg.label}
-                                      </span>
+                                      <Badge table={CLAIM_BADGES} value={cl.status} size="xs" />
                                     </div>
                                     {cl.rejectReason && (
                                       <p className="text-xs mt-1" style={{ color: "var(--data-expense)" }}>

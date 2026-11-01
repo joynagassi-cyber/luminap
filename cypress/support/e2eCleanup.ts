@@ -369,23 +369,34 @@ async function rest(
   token: string,
   body?: Record<string, unknown>,
 ): Promise<FetchResult> {
-  const res = await win.fetch(`${supaUrl()}/rest/v1/${path}`, {
-    method,
-    headers: {
-      apikey: anonKey(),
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-      Prefer: "return=minimal",
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  let data: unknown = null;
+  // Chaque requête est bornée : sans ça, un `fetch` qui ne résout jamais
+  // (réseau bloqué, interception Cypress) fige le nettoyage entier et le
+  // hook `after()` dépasse le timeout de commande → Cypress saute les tests
+  // restants du spec. La borne transforme un blocage en échec non fatal.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 15_000);
   try {
-    data = await res.json();
-  } catch {
-    /* réponse sans corps (return=minimal) */
+    const res = await win.fetch(`${supaUrl()}/rest/v1/${path}`, {
+      method,
+      headers: {
+        apikey: anonKey(),
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        Prefer: "return=minimal",
+      },
+      body: body ? JSON.stringify(body) : undefined,
+      signal: controller.signal,
+    });
+    let data: unknown = null;
+    try {
+      data = await res.json();
+    } catch {
+      /* réponse sans corps (return=minimal) */
+    }
+    return { ok: res.ok, status: res.status, data };
+  } finally {
+    clearTimeout(timer);
   }
-  return { ok: res.ok, status: res.status, data };
 }
 
 /** Nettoie une famille : d'abord par id (exact), puis par préfixe (repli). */
@@ -570,15 +581,22 @@ Cypress.Commands.add("cleanupTestArtifacts", (options: CleanupOptions = {}) => {
   // Tout s'exécute dans le contexte NAVIGATEUR via `window.fetch`, enveloppé
   // dans un try/catch : contrairement à `cy.request`, une erreur réseau ou RLS
   // ne fait pas échouer le spec (exigence « non fatal »).
-  cy.window({ log: false }).then(async (win) => {
-    try {
-      await runCleanup(win, options);
-    } catch (e) {
-      console.info("[cleanupTestArtifacts] échec global ignoré (non fatal)", e);
-    } finally {
-      resetTrackedArtifacts();
-    }
-  });
+  //
+  // Timeout relevé : le nettoyage enchaîne une requête par entité suivie
+  // (jusqu'à ~70), donc le délai de commande par défaut (8 s) est dépassé et
+  // Cypress échoue le hook `after()` — ce qui SAUTE les tests restants du
+  // spec. La borne est ici, pas sur `defaultCommandTimeout`, pour ne pas
+  // relâcher les assertions des tests.
+  cy.window({ log: false })
+    .then({ timeout: 180_000 }, async (win) => {
+      try {
+        await runCleanup(win, options);
+      } catch (e) {
+        console.info("[cleanupTestArtifacts] échec global ignoré (non fatal)", e);
+      } finally {
+        resetTrackedArtifacts();
+      }
+    });
 });
 
 export {};

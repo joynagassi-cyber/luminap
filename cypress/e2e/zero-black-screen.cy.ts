@@ -20,6 +20,7 @@
 
 const ROUTES: string[] = [
   "/splash",
+  "/welcome",
   "/auth",
   "/auth/callback",
   "/sessions",
@@ -27,6 +28,7 @@ const ROUTES: string[] = [
   "/dashboard",
   "/notifications",
   "/tutoriel",
+  "/search",
   "/finance",
   "/transaction/new",
   "/transaction/:id",
@@ -71,6 +73,7 @@ const ROUTES: string[] = [
   "/admin/reports/:id",
   "/admin/organizations/:id",
   "/admin/roles",
+  "/admin/transfer-ownership",
   "/trace",
   "/history",
   "/help",
@@ -101,7 +104,7 @@ const VALID_STATES = new Set([
 ]);
 
 /** Redirections légitimes (gardes) — une route qui y aboutit n'est pas noire. */
-const VALID_REDIRECTS = ["/auth", "/splash", "/dashboard", "/onboarding"];
+const VALID_REDIRECTS = ["/auth", "/welcome", "/splash", "/dashboard", "/onboarding"];
 
 function materialize(pattern: string): string {
   return pattern.replace(/:id/g, "e2e-nonexistent");

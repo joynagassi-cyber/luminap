@@ -46,6 +46,7 @@ import {
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
 import DocumentPicker from "@/components/DocumentPicker";
+import ReportReminderBanner from "@/components/ReportReminderBanner";
 import { ListSkeleton } from "@/components/Skeleton";
 import {
   useCurrentUser,
@@ -330,6 +331,10 @@ export default function OrgReportSend() {
         <div data-screen-state="ready" className="min-h-dvh">
           <TopHeader title="Envoyer un rapport" />
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc space-y-4">
+            {/* PR10 — rappel « Rapport à envoyer » (idempotent, dismissible) :
+                visible seulement quand la cadence est dépassée et qu'aucun
+                rapport n'a été envoyé ce jour. */}
+            <ReportReminderBanner orgId={orgId} />
             {/* Destinataire (la mère — gating, non modifiable) */}
             {parent && (
               <div

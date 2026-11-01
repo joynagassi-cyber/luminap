@@ -10,6 +10,7 @@ import {
   ChevronRight,
   Activity,
   ShieldCheck,
+  Crown,
   type LucideIcon,
 } from "lucide-react";
 import { IonPage, IonContent } from "@ionic/react";
@@ -70,6 +71,13 @@ const GROUPS: SettingsGroup[] = [
         description: "Rôles des membres et capacités accordées dans l'organisation",
         icon: ShieldCheck,
         to: "/admin/roles",
+      },
+      {
+        id: "transfer-ownership",
+        label: "Transférer la propriété",
+        description: "Désigner un autre administrateur de l'organisation",
+        icon: Crown,
+        to: "/admin/transfer-ownership",
       },
       {
         id: "features",

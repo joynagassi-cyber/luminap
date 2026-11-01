@@ -66,6 +66,7 @@ export const CAPABILITIES: readonly Capability[] = [
       "transaction:delete",
       "versement:create",
       "versement:approve",
+      "finance:manage",
     ],
   },
   {

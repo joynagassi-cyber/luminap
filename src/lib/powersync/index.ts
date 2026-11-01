@@ -2,6 +2,10 @@ import { PowerSyncDatabase } from "@powersync/web";
 import { AppSchema } from "./schema";
 import { SupabaseConnector } from "./SupabaseConnector";
 import { supabase } from "@/lib/auth";
+// Import du module de disponibilité (minuscule, sans dépendance) — PAS
+// `@/lib/dataLayer` : importer ce dernier tirait tout le data layer (≈ 3 900
+// lignes) dans le chunk d'entrée et cassait le découpage de code (R116).
+import { markPowerSyncReady } from "./readiness";
 
 // Singleton instance
 let _db: PowerSyncDatabase | null = null;
@@ -19,6 +23,20 @@ function publishDevDiagnostics() {
     const win = window as unknown as Record<string, unknown>;
     win.__psDb = _db;
     win.__psConnector = _connector;
+    // E2E : force l'état « réplique prête ». Le service PowerSync Cloud peut
+    // refuser l'audience JWT (PSYNC_S2105) ; les specs E2E hors-ligne
+    // seedent alors la base locale et marquent la réplique prête pour que
+    // les écrans rendent au lieu de rester sur leur squelette.
+    win.__psMarkReady = () => markPowerSyncReady();
+    // Le drapeau de readiness est un état de module : il est REMIS à `false`
+    // à chaque rechargement de page. `cy.visit()` recharge la SPA, donc les
+    // specs qui visitent une page gardée APRÈS le seed retombent sur le
+    // squelette. Le harness E2E pose ce drapeau localStorage ; au boot on
+    // re-marque « prête » de façon SYNCHRONE (DEV uniquement, aucun impact
+    // en production) pour qu'aucun écran gardé ne monte sur son squelette.
+    if (localStorage.getItem("__e2e-ps-ready") === "1") {
+      markPowerSyncReady();
+    }
     // Exposer le client Supabase du connector (`_connector.client`)
     // pour que les specs E2E puissent faire des upserts directs
     // (contournement de `cy.intercept` qui bloque les `fetch` du
@@ -163,14 +181,37 @@ function publishDevDiagnostics() {
         }
       }
       const lastUpload = (winForLog as any)?.__psLastUpload as
-        | { pushed: number; skipped: number }
+        | { pushed: number; skipped: number; lastFatal?: unknown }
         | undefined;
       const skipped = fatalSkipped + (lastUpload?.skipped ?? 0);
+      // Diagnostic : état de la file d'upload locale après le flush. Sert à
+      // distinguer « rien n'a été mis en file » de « la file contient des ops
+      // que le worker gelé n'a pas tirées ».
+      let queue: { count: number; tables: string[] } = { count: -1, tables: [] };
+      try {
+        const rows: any[] = await _db.getAll("SELECT data FROM ps_crud LIMIT 100");
+        const tables = rows
+          .map((r) => {
+            try {
+              return String(JSON.parse(String(r.data))?.type ?? "?");
+            } catch {
+              return "?";
+            }
+          })
+          .filter((t) => t !== "?");
+        queue = { count: rows.length, tables: [...new Set(tables)] };
+      } catch {
+        /* lecture impossible : laisser le sentinel -1 */
+      }
       const result = {
         flushed: true,
         passes,
         opsTotal,
         fatalSkipped,
+        queue,
+        // Diagnostic : dernier rejet FATAL (table/op/code/message) — permet
+        // aux specs E2E de savoir POURQUOI une op a été jetée.
+        lastFatal: lastUpload?.lastFatal ?? null,
         // Résultat RÉEL de la dernière transaction poussée : `skipped > 0`
         // signifie qu'au moins une op a été jetée (donnée PERDUE). Sans ce
         // champ, un appelant ne peut pas distinguer un vrai succès d'une
@@ -352,6 +393,14 @@ export async function initPowerSync(): Promise<void> {
     database: {
       dbFilename: "lumina.db",
       debugMode: import.meta.env.DEV, // Activer le debug en développement
+      // E2E : le worker WASM dédié de `@powersync/web` se bloque dans le
+      // contexte Electron headless de Cypress — après ~5 allers-retours
+      // comlink, le 6e appel `db.execute` ne résout plus jamais (l'échec
+      // remonte en `DataCloneError` non clonable). On exécute donc SQLite
+      // sur le thread principal pendant les tests : c'est l'option prévue
+      // par PowerSync pour les environnements de test. `window.Cypress`
+      // n'existe que sous Cypress → aucun impact production/build.
+      useWebWorker: !(typeof window !== "undefined" && (window as any).Cypress),
     },
   });
 

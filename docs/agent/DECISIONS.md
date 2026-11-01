@@ -340,10 +340,12 @@
   ont été **archivées** (`status='ARCHIVED'`, `archive_reason` renseigné) et
   non supprimées. Le spec archive désormais ses propres organisations dans un
   hook `after()`.
-- **Raison** : aucune sauvegarde DB n'existe encore (P31 non activée par le
-  propriétaire) → toute suppression serait irréversible. `ARCHIVED ≠ DELETE`
-  est le cycle de vie sanctionné par l'app (`archiveOrganization`), l'action
-  est réversible et tracée.
+- **Raison** : à la date de la décision, aucune sauvegarde automatique DB
+  n'était active (P31 non activée) → toute suppression était irréversible.
+  `ARCHIVED ≠ DELETE` est le cycle de vie sanctionné par l'app
+  (`archiveOrganization`), l'action est réversible et tracée. (Depuis
+  2026-10-31 la sauvegarde quotidienne est active — R99/E3 — mais la décision
+  reste la bonne : l'archivage conserve l'historique, la suppression le détruit.)
 - **Alternative écartée** : `DELETE` des organisations (irréversible sans
   sauvegarde, et sans FK depuis `profiles`/`org_memberships`/`org_admins` vers
   `organizations`, la suppression laisserait des orphelins) ; ne rien faire

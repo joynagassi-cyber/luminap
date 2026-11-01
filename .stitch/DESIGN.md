@@ -66,7 +66,7 @@ Lumina est une application mobile de gestion financière (finance communautaire 
 - **BottomNav** : barre fixe 128px (safe-area), fond `--nav-bg` + blur 10px, onglets `rounded-xl`, icône `20×20` + label `12px`, accent Orange sur l'onglet actif.
 - **TopHeader** : hauteur ~64px, org badge `32×32 rounded-lg`, actions `36px`, fond band sombre, blur 10px.
 - **Form Inputs** : `IonInput` / `IonSelect`, fond surface, focus ring 2px Orange, label `12px` tertiaire, placeholder `--text-placeholder`.
-- **Status Badges** : pills `rounded-full` avec pastille couleur + label texte explicite (`StatusBadge`).
+- **Status Badges** : pills `rounded-full` avec pastille couleur + label texte explicite (`StatusBadge`). Composant unifié `Badge` (`src/components/Badge.tsx`) : icône lucide prête à l'emploi + libellé, 7 tons → **tokens CSS** (`src/lib/badges.ts`), `size` xs/sm/md, `variant` soft/outline. S'adapte au mode (`[data-theme]`) et à l'accent org ; jamais de couleur brute. Galerie : Réglages › Thème.
 - **Skeletons** : `shimmer` via `translateX` (balayage 1400ms), base `--skeleton-base`, highlight `--skeleton-highlight`, radius 4px.
 
 ## 5. Layout Principles

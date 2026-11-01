@@ -5,14 +5,18 @@
  */
 
 import { workflow } from "@/capabilities/workflow";
+import { policy } from "@/capabilities/policy";
 import { writeAudit } from "@/lib/audit";
 import { getOrganizationId } from "@/lib/orgContext";
 import { generateId } from "@/lib/utils";
+import { assertApprovable } from "@/lib/makerChecker";
+import type { Permission } from "@/lib/rbac";
 import {
   addTransactionPS,
   updateTransactionPS,
   deleteTransactionPS,
 } from "@/lib/dataLayer";
+import { isPeriodLockedError } from "@/lib/periodLock";
 import type { Transaction } from "@/types";
 
 export interface TransactionState {
@@ -20,7 +24,63 @@ export interface TransactionState {
   user: { role: string; id: string };
 }
 
+/** Entrée de création de transaction (avant `buildAddTransaction`). */
+export type TransactionInput = Omit<
+  Transaction,
+  "id" | "createdAt" | "updatedAt" | "version" | "reversalOfId"
+>;
+/**
+ * Options d'approbation (PR8 maker-checker). Par défaut `enabled: false` :
+ * le comportement historique est conservé à l'identique pour tout appelant
+ * qui ne fournit pas ces options (tests existants inclus).
+ */
+export interface ApproveOptions {
+  /** Maker-checker actif pour l'organisation (réglage `maker_checker_enabled`). */
+  enabled?: boolean;
+  /** Permissions effectives de l'acteur — vérifiées seulement si fournies. */
+  actorPermissions?: readonly Permission[];
+}
+
 // --- addTransaction ---
+
+/**
+ * Valide une NOUVELLE transaction avant persistance. Source de vérité unique
+ * des règles de création, réutilisée par la saisie manuelle ET par l'import CSV
+ * (PR12) — aucune règle dupliquée côté import.
+ *
+ * Contrôles : type ∈ {INCOME, EXPENSE} ; montant strictement positif et borné
+ * (`policy.transaction.validateAmount`, en centimes) ; description non vide ;
+ * date au format `AAAA-MM-JJ` ; catégorie renseignée.
+ *
+ * Ne lève jamais : retourne `{ allowed, reason }` (message FR prêt à afficher).
+ */
+export function validateAddTransaction(
+  input: Partial<TransactionInput>,
+): { allowed: boolean; reason?: string } {
+  if (input.type !== "INCOME" && input.type !== "EXPENSE") {
+    return {
+      allowed: false,
+      reason: "Type invalide (attendu : INCOME ou EXPENSE)",
+    };
+  }
+  if (typeof input.amount !== "number" || !Number.isFinite(input.amount)) {
+    return { allowed: false, reason: "Montant invalide" };
+  }
+  const amountCheck = policy.transaction.validateAmount(input.amount);
+  if (!amountCheck.ok) {
+    return { allowed: false, reason: amountCheck.message ?? "Montant invalide" };
+  }
+  if (!input.description || !input.description.trim()) {
+    return { allowed: false, reason: "La description est obligatoire" };
+  }
+  if (!input.date || !/^\d{4}-\d{2}-\d{2}$/.test(input.date)) {
+    return { allowed: false, reason: "La date doit être au format AAAA-MM-JJ" };
+  }
+  if (!input.categoryId) {
+    return { allowed: false, reason: "La catégorie est obligatoire" };
+  }
+  return { allowed: true };
+}
 
 export function buildAddTransaction(
   tx: Omit<
@@ -67,6 +127,10 @@ export async function persistAddTransaction(newTx: Transaction): Promise<void> {
       cotisation_id: null,
     });
   } catch (error) {
+    // PR13 — un rejet de gel de période est une DÉCISION métier : il remonte
+    // (ne pas l'avaler comme une panne transitoire, sinon la période close
+    // serait silencieusement modifiable).
+    if (isPeriodLockedError(error)) throw error;
     // Persist failure is non-fatal; offline queue will retry
   }
 }
@@ -172,7 +236,20 @@ export function buildApproveTransaction(
   id: string,
   userId: string,
   now: string,
+  options: ApproveOptions = {},
 ): Transaction[] {
+  // PR8 maker-checker : refus TYPÉ (jamais un silence) quand l'acteur est
+  // l'auteur et que le réglage est actif. Par défaut (`enabled` absent), la
+  // garde est neutre → comportement historique inchangé.
+  if (options.enabled) {
+    const target = transactions.find((t) => t.id === id);
+    if (target) {
+      assertApprovable(target, userId, {
+        enabled: true,
+        actorPermissions: options.actorPermissions,
+      });
+    }
+  }
   return transactions.map((t) =>
     t.id === id
       ? {
@@ -194,7 +271,22 @@ export function buildBatchApproveTransactions(
   ids: string[],
   userId: string,
   now: string,
+  options: ApproveOptions = {},
 ): Transaction[] {
+  // PR8 — même garde que l'approbation unitaire, sur CHAQUE transaction visée.
+  // Une seule transaction créée par l'acteur suffit à refuser tout le lot :
+  // on ne veut pas approuver « en partie » un lot hétérogène en silence.
+  if (options.enabled) {
+    for (const id of ids) {
+      const target = transactions.find((t) => t.id === id);
+      if (target) {
+        assertApprovable(target, userId, {
+          enabled: true,
+          actorPermissions: options.actorPermissions,
+        });
+      }
+    }
+  }
   return transactions.map((t) =>
     ids.includes(t.id)
       ? {
@@ -274,6 +366,8 @@ export async function persistReverseTransaction(
       cotisation_id: null,
     });
   } catch (error) {
+    // PR13 — rejet de gel de période : décision métier, à propager.
+    if (isPeriodLockedError(error)) throw error;
     // Persist failure is non-fatal; offline queue will retry
   }
 }

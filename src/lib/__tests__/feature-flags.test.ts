@@ -49,6 +49,15 @@ describe("parseFlags (fail-open)", () => {
     expect(parseFlags("42")).toEqual({});
   });
 
+  it("littéral JSON `null` → aucun drapeau (jamais d'exception)", () => {
+    // Régression : `JSON.parse("null")` renvoie `null` (typeof "object",
+    // non-tableau) et `Object.entries(null)` lève. Le contrat « fail-open »
+    // exige `{}`, comme pour tout autre JSON illisible.
+    expect(parseFlags("null")).toEqual({});
+    expect(parseFlags(null)).toEqual({});
+    expect(parseFlags(undefined)).toEqual({});
+  });
+
   it("valeurs non booléennes → ignorées (fail-open)", () => {
     expect(parseFlags({ a: "false", b: 0, c: null, d: false })).toEqual({
       d: false,
@@ -126,5 +135,13 @@ describe("câblage réel (anti « filet déclaré, jamais câblé »)", () => {
     expect(src).toMatch(
       /isFeatureEnabled\(\s*["']notifications-push["']\s*\)/,
     );
+  });
+
+  // PR13 — le gel de période (écriture financière refusée) est un candidat
+  // typique au kill switch d'exploitation : il doit pouvoir être coupé sans
+  // redéploiement si un blocage erroné empêchait des écritures légitimes.
+  it("assertTransactionWritable est gardé par isFeatureEnabled('period-lock')", () => {
+    const src = readFileSync(resolve(__dirname, "../dataLayer.ts"), "utf8");
+    expect(src).toMatch(/isFeatureEnabled\(\s*["']period-lock["']\s*\)/);
   });
 });

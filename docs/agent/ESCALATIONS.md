@@ -157,3 +157,72 @@
   (`/transaction/new` satisfait `should('include', '/transaction/')`), donc le
   spec visite `/transaction/new/edit` → « Transaction introuvable ». Fragilité
   de **spec** (pas produit), atteignable seulement après E5.
+
+## E6 — Décisions de périmètre R141 / R142 — ✅ RÉSOLUES (2026-10-31)
+
+Deux défauts mesurés exigeaient une **décision** (l'agent ne pouvait pas trancher
+sans risque de casser des flux légitimes).
+
+### E6.a — R141 : 26 tables en écriture « membre seul » (dont FINANCIÈRES) — ✅ RÉSOLUE (2026-10-31)
+- **Fait mesuré** : `INSERT INTO accounts` (table FINANCIÈRE) **accepté par la
+  RLS** pour un simple membre (`is_org_member` seul). Idem pour `caisses`,
+  `tax_receipts`, `org_budgets`, `pledges`, `giving_*`, etc. (26 tables).
+- **Non-escalade vérifiée** : l'escalade de rôle est **impossible**
+  (`org_memberships`/`grants`/`org_admins` gardés ; `profiles.role` immuable).
+- **Décision prise (autonomie accordée « OK ALLONS Y », 2026-10-31)** : périmètre
+  **14 tables** en 2 lots (Lot 1 = permissions canon existantes ; Lot 2 =
+  nouvelle permission `finance:manage`). Réversible (rollback fourni), preuve
+  `MEMBRE → 42501` / `TREASURIER → accepté`. Détail : RISQUES.md §R141, receipt
+  `phase-04/2026-10-31-r141-financial-write-permission.md`.
+- **Veto propriétaire possible** : rollback `rollback/20261031000001_rollback.sql`
+  restaure l'état antérieur exact.
+
+### E6.b — R142 : câblage de la garde de route (`hasPermission`) — ✅ RÉSOLUE (2026-10-31)
+- **Fait mesuré** : `resolveRoute` n'est appelée qu'avec `{isAuthenticated}` →
+  les branches `forbidden`/`needs-membership` étaient du code mort.
+- **Décisions prises (autonomie « OK ALLONS Y »)** :
+  1. `CENTRAL_ADMIN` **fail-closed** — reste hors canon (0 compte en base) ;
+     l'admin central canonique est `ADMIN` (R109). La garde refuse un rôle hors
+     canon.
+  2. `/admin/reports*` en **appartenance seule** (aucune permission de route) —
+     écran de **réception** atteint par tout membre ; `MEMBRE` ne détient pas
+     `report:read`, donc l'exiger aurait enfermé dehors des destinataires.
+- **Livrable** : `roleHasPermission` + câblage `App.tsx` + garde
+  `r142-route-permission-wiring.test.ts` (9 assertions). Suite **1736/1736**.
+- **Veto propriétaire possible** : les deux décisions sont réversibles (retirer
+  la ligne `hasPermission` d'`App.tsx` restaure la garde inerte ; re-mapper
+  `/admin/reports*` est une ligne du registre).
+
+
+## E7 — Écritures `UPSERT` sur une VUE PowerSync (« cannot UPSERT a view ») — **CORRIGÉ pour `org_settings`**, 2 occurrences latentes consignées (2026-10-31)
+
+- **Symptôme** : PR13 (gel de période) et PR8 (maker-checker) semblaient
+  **inertes** — cliquer « Clôturer la période » / la bascule n'enregistrait rien,
+  sans erreur visible. Découvert par sonde E2E (`org_settings` vide après clic).
+- **Cause racine (mesurée)** : côté client, PowerSync expose chaque table comme
+  une **VUE** (`CREATE VIEW org_settings AS SELECT id, json_extract(data,'$.org_id') …`).
+  Toute écriture de forme `INSERT … ON CONFLICT (id|org_id,key) DO UPDATE` (ou
+  `INSERT OR REPLACE`) échoue alors avec **`Error: cannot UPSERT a view`** ; un
+  `INSERT` sans `id` échoue avec `Error: id is required`. Preuve :
+  `cypress` probe (`SELECT name FROM sqlite_master WHERE type='view'` →
+  `profiles`, `org_settings`, `organizations`).
+- **Portée** : `setOrgSetting` (`src/lib/orgSettings.ts`) était le point
+  d'étranglement de PR8+PR13 → **corrigé** (`SELECT id` puis `UPDATE`-ou-`INSERT`
+  explicite avec `uuid`). Le mock PowerSync des tests unitaires **simulait**
+  l'upsert en JS, masquant le bug : il lève désormais « cannot UPSERT a view »
+  (garde unitaire) + garde E2E `robustness-features.cy.ts` (PR8/PR13).
+- **Occurrences latentes restantes (même classe, non corrigées — hors périmètre
+  robustesse, nécessitent une revue de schéma PowerSync)** :
+  1. `src/capabilities/organization/index.ts` `registerOrg()` — `ON CONFLICT (id)`
+     sur `organizations` (vue). **Aucun appelant** en prod (code mort) → risque
+     nul tant que non câblé.
+  2. `src/capabilities/invitation/index.ts` `claimInvitation()` — `ON CONFLICT (id)`
+     sur `profiles` (vue) **et** colonne `status` absente du schéma PowerSync
+     local (`profiles has no column named status`). Le claim échouerait côté
+     client ; à traiter avec la table `profiles` (schéma + stream) — laissé en
+     l'état pour éviter une divergence client/serveur (cf. E1/R80).
+- **Recommandation** : bannir `ON CONFLICT`/`INSERT OR REPLACE` des écritures
+  PowerSync client ; utiliser `SELECT` + `UPDATE`/`INSERT` explicite. Envisager
+  une garde statique (lint/test) qui échoue sur `ON CONFLICT` dans `src/lib` et
+  `src/capabilities`.
+- **Statut** : `org_settings` **corrigé + gardé** ; occurrences 1–2 **consignées**.

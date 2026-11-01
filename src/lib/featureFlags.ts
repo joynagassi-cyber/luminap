@@ -40,7 +40,7 @@ export function parseFlags(raw: unknown): FeatureFlags {
       return {};
     }
   }
-  if (typeof obj !== "object" || Array.isArray(obj)) return {};
+  if (typeof obj !== "object" || obj === null || Array.isArray(obj)) return {};
   const out: FeatureFlags = {};
   for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
     if (typeof value === "boolean") out[key] = value;

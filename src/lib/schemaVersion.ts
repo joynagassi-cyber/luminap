@@ -20,7 +20,7 @@
  * À incrémenter quand la forme des données locales change de façon
  * incompatible (nouvelle table obligatoire, colonne renommée, etc.).
  */
-export const CLIENT_SCHEMA_VERSION = 1;
+export const CLIENT_SCHEMA_VERSION = 2;
 
 /**
  * Parse une version minimale. Retourne `undefined` si la valeur est absente,

@@ -15,6 +15,7 @@ import { create } from "zustand";
 import { lifecycle } from "@/capabilities/lifecycle";
 import { relationship } from "@/capabilities/relationship";
 import { getOrganizationId } from "@/lib/orgContext";
+import { isMakerCheckerEnabled } from "@/lib/makerCheckerSettings";
 import { createVersement as createVersementService } from "@/lib/versement-service";
 import { createGroup as createGroupService } from "@/lib/group-service";
 import {
@@ -361,8 +362,28 @@ export const useLocalStore = create<LocalStoreState>()(
 
       selectRole: async (role) => {
         try {
-          const sessionId =
-            localStorage.getItem("lumina-session") ?? crypto.randomUUID();
+          // L'id de session sert de `created_by_id`/`approved_by_id` sur les
+          // transactions, colonnes `uuid` avec FK → `auth.users(id)`. Un UUID
+          // ALÉATOIRE (ancien comportement) ne correspond à aucun utilisateur :
+          // chaque transaction hors-ligne était rejetée à l'upload en 23503
+          // (« violates foreign key constraint transactions_created_by_id_fkey »)
+          // et restait bloquée dans la file. On réutilise donc l'id RÉEL du
+          // profil connecté (`lumina-user`) ; repli aléatoire seulement quand
+          // aucun profil n'est encore connu (avant hydratation).
+          // Priorité à l'id RÉEL du profil (`lumina-user`) : une valeur
+          // aléatoire héritée d'un ancien run doit être CORRIGÉE, pas
+          // conservée. Replis successifs : session déjà posée → aléatoire.
+          let sessionId: string | null = null;
+          try {
+            const raw = localStorage.getItem("lumina-user");
+            sessionId = raw ? (JSON.parse(raw) as { id?: string }).id ?? null : null;
+          } catch {
+            /* lumina-user absent ou malformé — repli ci-dessous */
+          }
+          sessionId =
+            sessionId ??
+            localStorage.getItem("lumina-session") ??
+            crypto.randomUUID();
           localStorage.setItem("lumina-session", sessionId);
           localStorage.setItem("lumina-role", role);
         } catch {
@@ -432,18 +453,23 @@ export const useLocalStore = create<LocalStoreState>()(
 
       approveTransaction: async (id, userId) => {
         const now = new Date().toISOString();
+        const actorId = userId ?? snap().user.id;
+        // PR8 maker-checker : la garde est évaluée AVANT toute écriture ; un
+        // refus lève une erreur typée (jamais un refus silencieux).
+        const enabled = await isMakerCheckerEnabled();
         set({
           transactions: buildApproveTransaction(
             snap().transactions,
             id,
-            userId ?? snap().user.id,
+            actorId,
             now,
+            { enabled },
           ),
         });
         try {
           await updateTransactionPS(id, {
             status: "APPROVED",
-            approved_by_id: userId ?? snap().user.id,
+            approved_by_id: actorId,
             approved_at: now,
           });
         } catch (e) {
@@ -453,25 +479,29 @@ export const useLocalStore = create<LocalStoreState>()(
 
       batchApproveTransactions: async (ids, userId) => {
         const now = new Date().toISOString();
+        const actorId = userId ?? snap().user.id;
+        const enabled = await isMakerCheckerEnabled();
+        // Refus AVANT toute écriture : le lot entier est refusé si une
+        // transaction a été créée par l'acteur (pas d'approbation partielle).
+        const nextTransactions = buildBatchApproveTransactions(
+          snap().transactions,
+          ids,
+          actorId,
+          now,
+          { enabled },
+        );
         for (const txId of ids) {
           try {
             await updateTransactionPS(txId, {
               status: "APPROVED",
-              approved_by_id: userId ?? snap().user.id,
+              approved_by_id: actorId,
               approved_at: now,
             });
           } catch (e) {
             console.error("[Store] Failed to approve:", txId, e);
           }
         }
-        set({
-          transactions: buildBatchApproveTransactions(
-            snap().transactions,
-            ids,
-            userId ?? snap().user.id,
-            now,
-          ),
-        });
+        set({ transactions: nextTransactions });
       },
 
       reverseTransaction: async (id, reason) => {
@@ -670,6 +700,14 @@ export const useLocalStore = create<LocalStoreState>()(
           snap(),
         );
         if (result.error) throw new Error(result.error);
+        // PR13 — persister AVANT de refléter l'état local : si l'écriture est
+        // refusée (période close), la cotisation/membre/transaction ne doivent
+        // pas apparaître payés côté UI.
+        await persistMarkCotisationPaid({
+          ...result,
+          cotisationId,
+          membreId: result.updatedMembre?.id,
+        });
         set({
           cotisations: get().cotisations.map((c) =>
             c.id === cotisationId ? result.updatedCot : c,
@@ -683,11 +721,6 @@ export const useLocalStore = create<LocalStoreState>()(
           });
         if (result.newTransaction)
           set({ transactions: [...get().transactions, result.newTransaction] });
-        await persistMarkCotisationPaid({
-          ...result,
-          cotisationId,
-          membreId: result.updatedMembre?.id,
-        });
       },
 
       markCotisationsAbsent: async (culteId, membreIds) => {

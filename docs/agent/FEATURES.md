@@ -354,7 +354,7 @@ serveur.
 | Synchronisation descendante (nouvel appareil) | validée | **non validée** | `PSYNC_S2305` : le stream échoue, rien ne descend (R89.b) |
 | Rapports / versements / cotisations | validée | **non validée** | dépendent des transactions, qui n'atteignent pas le serveur |
 | Détail d'une transaction | validée | **cassée** | D1 : `/transaction/:id` = « introuvable » pour une écriture locale |
-| Sauvegarde des données serveur | — | **absente** | P31 : aucun `pg_dump` planifié (free tier) |
+| Sauvegarde des données serveur | — | **active** | P31/R99 résolus : `backup.yml` quotidien, artefact chiffré publié (run planifié `41036453279`) |
 
 **Preuves** : `RISQUES.md` §R89 (journal d'upload complet), §D1, §R88, §P31.
 **Règle appliquée** : ne jamais déclarer « validée » une fonctionnalité dont la

@@ -30,6 +30,10 @@ import {
 import { parseJsonbValue } from "./jsonb";
 import { get, set, invalidate, clear, asyncGetOrSet } from "./cache";
 import { authService } from "./auth";
+import { assertPeriodOpen, getLockedUntil } from "./periodLock";
+import { isFeatureEnabled } from "./featureFlags";
+import { assertApprovable } from "./makerChecker";
+import { isMakerCheckerEnabled } from "./makerCheckerSettings";
 
 
 // ============================================================
@@ -399,66 +403,32 @@ export interface PSDocument {
 // ============================================================
 // Internal helper: check if PowerSync is initialized
 // ============================================================
+// L'état de disponibilité vit dans `@/lib/powersync/readiness` (module
+// minuscule, sans dépendance) afin que `@/lib/powersync` (initialisation)
+// puisse le lire sans tirer tout `dataLayer` dans le chunk d'entrée (budget
+// perf R116). Importé pour usage interne ET ré-exporté pour ne pas rompre
+// les appelants existants.
+import {
+  isPowerSyncReady,
+  setPowerSyncReady,
+  markPowerSyncReady,
+  markPowerSyncUnavailable,
+  subscribePowerSyncReady,
+  subscribePowerSyncUnavailable,
+  isPowerSyncReadyNow,
+  isPowerSyncUnavailableNow,
+} from "./powersync/readiness";
+export {
+  isPowerSyncReady,
+  setPowerSyncReady,
+  markPowerSyncReady,
+  markPowerSyncUnavailable,
+  subscribePowerSyncReady,
+  subscribePowerSyncUnavailable,
+  isPowerSyncReadyNow,
+  isPowerSyncUnavailableNow,
+};
 
-let _psReady = false;
-// Vrai quand la replique n'est PAS devenue prete dans le delai imparti
-// (auth PowerSync refusee, reseau coupe). Sort l'app du chargement perpetuel
-// muet en exposant un etat explicite « synchronisation indisponible » (P0).
-let _psUnavailable = false;
-
-function isPowerSyncReady(): boolean {
-  return _psReady;
-}
-
-const _readyListeners = new Set<() => void>();
-const _unavailableListeners = new Set<() => void>();
-
-function setPowerSyncReady(ready: boolean) {
-  if (ready) _psUnavailable = false;
-  if (_psReady === ready) return;
-  _psReady = ready;
-  if (ready) {
-    _readyListeners.forEach((l) => l());
-    _unavailableListeners.forEach((l) => l());
-  }
-}
-
-/**
- * Marque la replique comme INDISPONIBLE (delai de disponibilite depasse sans
- * connexion). Les ecrans affichent alors un etat explicite plutot qu'un
- * squelette perptuel muet (contrat P0 « zero ecran noir »).
- */
-export function markPowerSyncUnavailable(): void {
-  if (_psUnavailable) return;
-  _psUnavailable = true;
-  _unavailableListeners.forEach((l) => l());
-}
-
-/** S'abonner au passage « PowerSync pret » (etat one-shot). */
-export function subscribePowerSyncReady(listener: () => void): () => void {
-  _readyListeners.add(listener);
-  return () => {
-    _readyListeners.delete(listener);
-  };
-}
-
-/** S'abonner au passage « replique indisponible » (etat one-shot). */
-export function subscribePowerSyncUnavailable(listener: () => void): () => void {
-  _unavailableListeners.add(listener);
-  return () => {
-    _unavailableListeners.delete(listener);
-  };
-}
-
-/** Etat courant, lisible hors React (pour choisir un etat de repli). */
-export function isPowerSyncReadyNow(): boolean {
-  return _psReady;
-}
-
-/** La replique est-elle declaree indisponible (delai depasse) ? */
-export function isPowerSyncUnavailableNow(): boolean {
-  return _psUnavailable;
-}
 
 /**
  * Decode `budget_items` de facon tolerante.
@@ -1029,14 +999,6 @@ export async function getGroupMembershipsPS(): Promise<PSGroupMembership[]> {
 // ============================================================
 
 /**
- * Call this once after PowerSync is initialized to signal readiness.
- * This should be called from the root component or App.tsx
- */
-export function markPowerSyncReady(): void {
-  setPowerSyncReady(true);
-}
-
-/**
  * Hook that monitors PowerSync status and marks readiness automatically
  */
 export function usePowerSyncStatus(): boolean {
@@ -1309,11 +1271,36 @@ export async function listUserTagsPS(
 
 
 /**
+ * PR13 — point de passage UNIQUE du gel de période (clôture comptable).
+ *
+ * Lit la date de clôture de l'organisation (fail-open : aucune clôture ⇒
+ * période ouverte) puis refuse TOUTE écriture sur une transaction datée
+ * on/before cette date, en levant une erreur typée `PERIOD_LOCKED`.
+ *
+ * Branché ici (dataLayer) et non dans les pages : c'est le seul chemin
+ * d'écriture des transactions — `addTransactionPS` / `updateTransactionPS` /
+ * `deleteTransactionPS` / `approveTransactionPS` / `reverseTransactionPS` et
+ * les services (`transaction-service`, `versement-service`,
+ * `cotisation-service`) passent tous par ces fonctions ou `executeWrite`.
+ */
+export async function assertTransactionWritable(
+  date: string | null | undefined,
+): Promise<void> {
+  // Kill switch d'exploitation (PR7) : si la fonctionnalité est coupée, on ne
+  // bloque plus rien (fail-open). Défaut = actif, donc aucun changement de
+  // comportement tant qu'aucun drapeau n'est posé.
+  if (!isFeatureEnabled("period-lock")) return;
+  const lockedUntil = await getLockedUntil();
+  assertPeriodOpen(date, lockedUntil);
+}
+
+/**
  * Add a transaction via PowerSync
  */
 export async function addTransactionPS(
   tx: Omit<PSTransaction, "id" | "created_at" | "updated_at" | "version">,
 ): Promise<string> {
+  await assertTransactionWritable(tx.date);
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
 
@@ -1366,10 +1353,22 @@ export async function updateTransactionPS(
   // Exception: allow status change TO APPROVED (approve flow)
   const db = getPowerSyncDatabase();
   const statusResult = await db.execute(
-    `SELECT status FROM transactions WHERE id = ?`,
+    `SELECT status, date FROM transactions WHERE id = ?`,
     [id],
   );
   const tx = statusResult?.array?.[0] as any;
+
+  // PR13 — gel de période : refuser si la date ACTUELLE de la transaction est
+  // gelée. On lit la date existante AVANT toute écriture ; une transaction
+  // absente (`tx` indéfini) ne peut pas être gelée (elle n'existe pas encore).
+  await assertTransactionWritable(tx?.date);
+  // ... et refuser aussi si la modification DÉPLACE la transaction vers une
+  // date gelée (sinon on pourrait « entrer » une écriture dans la période close
+  // en éditant une transaction existante).
+  if (updates.date !== undefined && updates.date !== tx?.date) {
+    await assertTransactionWritable(updates.date);
+  }
+
   if (tx?.status === "APPROVED" && updates.status !== "APPROVED") {
     throw new Error("TRANSACTION_APPROVED_IMMUTABLE");
   }
@@ -1431,13 +1430,16 @@ export async function deleteTransactionPS(id: string): Promise<void> {
   // Guard: APPROVED transactions are immutable
   const db = getPowerSyncDatabase();
   const statusResult = await db.execute(
-    `SELECT status FROM transactions WHERE id = ?`,
+    `SELECT status, date FROM transactions WHERE id = ?`,
     [id],
   );
   const tx = statusResult?.array?.[0] as any;
   if (tx?.status === "APPROVED") {
     throw new Error("TRANSACTION_APPROVED_IMMUTABLE");
   }
+  // PR13 — gel de période : une transaction datée dans la période close ne peut
+  // pas être supprimée (la clôture doit rester figée).
+  await assertTransactionWritable(tx?.date);
 
   await executeWrite("DELETE FROM transactions WHERE id = ?", [id]);
 }
@@ -2508,6 +2510,90 @@ export async function createOrganizationPS(input: {
 }
 
 /**
+ * Miroir LOCAL (réplique PowerSync) d'une organisation fraîchement créée côté
+ * serveur, pour que l'UI l'affiche SANS attendre le prochain cycle de sync.
+ *
+ * Pourquoi c'est indispensable : `create_org` (service_role) écrit l'org, le
+ * grant `org_admins` et rattache le profil côté Supabase, mais la réplique
+ * locale reste vide jusqu'à la synchronisation descendante (streams
+ * `org_owned` / `org_administered` / `org_admins`, ~secondes à dizaines de
+ * secondes). Sans ce miroir optimiste :
+ *   - `useOrgMembership` interroge `canAccessOrganization` sur une base locale
+ *     où `organizations`/`org_admins` n'existent pas encore → « non-membre » →
+ *     écran « Organisation non rejointe » juste après la création ;
+ *   - la liste des organisations est vide.
+ * Les écritures locales sont idempotentes (`UPDATE` par id / `INSERT` simple) et
+ * seront réconciliées par le prochain download (mêmes valeurs). Une écriture qui
+ * échoue est NON fatale (le serveur reste la source de vérité).
+ */
+export async function mirrorNewOrganizationLocally(input: {
+  orgId: string;
+  name: string;
+  type?: string;
+  userId: string;
+  role: string;
+  grantId?: string | null;
+}): Promise<void> {
+  const db = getPowerSyncDatabase();
+  const now = new Date().toISOString();
+  const type = input.type ?? "CHURCH";
+
+  // 1) La ligne `organizations` (idempotent : DELETE puis INSERT, car une
+  //    écriture `ON CONFLICT`/`INSERT OR REPLACE` sur une VUE PowerSync échoue
+  //    — cf. garde R160). Le miroir ne sert qu'à la PREMIÈRE organisation d'un
+  //    compte (self-serve) : jamais une annexe, donc aucun rattachement parent.
+  try {
+    await db.execute(`DELETE FROM organizations WHERE id = ?`, [input.orgId]);
+    await db.execute(
+      `INSERT INTO organizations (id, name, type, status, created_at, updated_at)
+       VALUES (?, ?, ?, 'ACTIVE', ?, ?)`,
+      [input.orgId, input.name, type, now, now],
+    );
+  } catch (e) {
+    console.warn("[dataLayer] mirror organizations failed (non-fatal)", e);
+  }
+
+  // 2) Le grant `org_admins` (le créateur devient admin central de sa propre
+  //    organisation) — c'est ce que lit `canAccessOrganization`.
+  try {
+    const grantId = input.grantId ?? `grant-${input.orgId}-${input.userId}`;
+    await db.execute(`DELETE FROM org_admins WHERE id = ?`, [grantId]);
+    await db.execute(
+      `INSERT INTO org_admins (id, admin_profile_id, org_id, status, granted_by, created_at, updated_at)
+       VALUES (?, ?, ?, 'ACTIVE', ?, ?, ?)`,
+      [grantId, input.userId, input.orgId, input.userId, now, now],
+    );
+  } catch (e) {
+    console.warn("[dataLayer] mirror org_admins failed (non-fatal)", e);
+  }
+
+  // 3) L'appartenance multi-org (miroir du flux d'invitation).
+  try {
+    const membershipId = `om-${input.orgId}-${input.userId}`;
+    await db.execute(`DELETE FROM org_memberships WHERE id = ?`, [membershipId]);
+    await db.execute(
+      `INSERT INTO org_memberships (id, user_id, org_id, role, is_primary, status, joined_at)
+       VALUES (?, ?, ?, ?, 1, 'ACTIVE', ?)`,
+      [membershipId, input.userId, input.orgId, input.role, now],
+    );
+  } catch (e) {
+    console.warn("[dataLayer] mirror org_memberships failed (non-fatal)", e);
+  }
+
+  // 4) Le profil local : rattachement à la nouvelle organisation + rôle. Sans
+  //    cela `canAccessOrganization` (branche `profiles.org_id = ?`) et le nom
+  //    d'église ne sont pas résolus tant que le download n'a pas eu lieu.
+  try {
+    await db.execute(
+      `UPDATE profiles SET org_id = ?, role = ?, updated_at = ? WHERE id = ?`,
+      [input.orgId, input.role, now, input.userId],
+    );
+  } catch (e) {
+    console.warn("[dataLayer] mirror profiles failed (non-fatal)", e);
+  }
+}
+
+/**
  * Suspend an organization (lifecycle). History is preserved (ARCHIVED ≠ DELETE).
  */
 export async function setOrganizationStatusPS(
@@ -2846,6 +2932,7 @@ export async function updateFormSubmissionPS(
 export { createVersement } from "./versement-service";
 export { createNotification, markNotificationRead, markAllNotificationsRead } from "./notification-service";
 export {
+  validateAddTransaction,
   buildAddTransaction,
   persistAddTransaction,
   auditAddTransaction,
@@ -2908,11 +2995,39 @@ export {
 
 /**
  * Approve a transaction via PowerSync
+ *
+ * PR8 maker-checker : quand le réglage d'organisation est actif, l'auteur de la
+ * transaction ne peut pas l'approuver — on lève une `MakerCheckerError` typée
+ * (jamais un refus silencieux). Par défaut (réglage absent), comportement
+ * historique inchangé.
  */
 export async function approveTransactionPS(
   id: string,
   userId: string,
 ): Promise<void> {
+  // PR13 — gel de période : approuver est une écriture sur la transaction ; on
+  // refuse si sa date tombe dans la période close.
+  const db = getPowerSyncDatabase();
+  const existing = await db.execute(
+    `SELECT date FROM transactions WHERE id = ?`,
+    [id],
+  );
+  await assertTransactionWritable((existing?.array?.[0] as any)?.date);
+
+  // PR8 maker-checker : si le réglage est actif, l'auteur ne peut pas approuver.
+  const enabled = await isMakerCheckerEnabled();
+  if (enabled) {
+    const res = await db.execute(
+      "SELECT created_by_id FROM transactions WHERE id = ?",
+      [id],
+    );
+    const row = (res?.array?.[0] ?? res?.[0]) as
+      | { created_by_id?: string | null }
+      | undefined;
+    assertApprovable({ createdById: row?.created_by_id ?? null }, userId, {
+      enabled: true,
+    });
+  }
   const now = new Date().toISOString();
   await executeWrite(
     `UPDATE transactions SET status = 'APPROVED', approved_by_id = ?, approved_at = ?, updated_at = ? WHERE id = ?`,
@@ -2936,7 +3051,11 @@ export async function reverseTransactionPS(
   const result = await db.execute("SELECT * FROM transactions WHERE id = ?", [id]);
   const tx = result?.array?.[0] as any;
   if (!tx) throw new Error("Transaction not found");
-  
+
+  // PR13 — gel de période : contrer une transaction datée dans la période close
+  // modifierait une comptabilité déjà validée → refus.
+  await assertTransactionWritable(tx.date);
+
   // Create reversal transaction
   await executeWrite(
     `INSERT INTO transactions (
@@ -3916,4 +4035,32 @@ export async function markReportRead(reportId: string): Promise<void> {
      WHERE id = ? AND read_at IS NULL`,
     [now, now, reportId],
   );
+}
+
+/**
+ * Dernier rapport ÉMIS par l'org courante (`org_reports.from_org_id = current`),
+ * par `period_start` décroissante. Sert au rappel PR10 (`computeReportReminder`).
+ *
+ * `lastSentAt` = `created_at` (moment d'émission), avec repli sur `period_start`
+ * (la ligne peut provenir d'un ancien enregistrement sans `created_at`).
+ *
+ * `loaded` distingue « pas encore lu » de « aucun rapport envoyé » (règle R52 :
+ * ne jamais annoncer un fait faux avant la première lecture PowerSync).
+ */
+export function useLastSentReport(orgId?: string) {
+  const org = orgId ?? getOrganizationId();
+  const { data: psData } = useQuery<
+    Pick<PSOrgReports, "id" | "period_start" | "created_at" | "status">
+  >(
+    `SELECT id, period_start, created_at, status
+     FROM org_reports WHERE from_org_id = ?
+     ORDER BY period_start DESC LIMIT 1`,
+    [org],
+    { reportFetching: true },
+  );
+  const row = psData?.[0];
+  return {
+    lastSentAt: (row?.created_at ?? row?.period_start ?? null) as string | null,
+    loaded: psData !== undefined,
+  };
 }

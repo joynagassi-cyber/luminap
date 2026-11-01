@@ -14,7 +14,7 @@ import { generateId } from "./utils";
 import { formatDate, formatCentsToFCFA } from "./utils";
 import { getOrganizationId } from "./orgContext";
 import { DEFAULT_CATEGORY_ID } from "./canonicalCategories";
-import { executeWrite, updateCotisationPS, updateMemberPS } from "./dataLayer";
+import { executeWrite, updateCotisationPS, updateMemberPS, assertTransactionWritable } from "./dataLayer";
 import {
   determinerStatutAvance,
   calculerDon,
@@ -242,6 +242,14 @@ export async function persistMarkCotisationPaid(
   },
 ): Promise<void> {
   const now = new Date().toISOString();
+
+  // PR13 — gel de période : ce chemin écrit une transaction datée du paiement.
+  // On refuse AVANT la moindre écriture (sinon la cotisation serait marquée
+  // payée alors que la transaction comptable, elle, serait refusée : demi-
+  // écriture incohérente).
+  if (result.newTransaction) {
+    await assertTransactionWritable(result.newTransaction.date);
+  }
 
   await updateCotisationPS(result.cotisationId, {
     statut: result.updatedCot.statut,

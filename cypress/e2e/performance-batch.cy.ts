@@ -59,6 +59,7 @@ describe('Lumina — Performance batch (offline sync + charge tx + calendar)', (
   });
 
   after(() => {
+    if ((Cypress.expose('CYPRESS_SKIP_CLEANUP') as string) === '1') return;
     // P39 — nettoyage NON FATAL : les 120 transactions (`Tx batch`/`ChargeTx`)
     // et 50 événements (`CalEvent`) créés par ce spec n'étaient jamais
     // nettoyés (mesure : 12 353 « CalEvent » résiduels). Les transactions ne
@@ -83,7 +84,19 @@ describe('Lumina — Performance batch (offline sync + charge tx + calendar)', (
     const COUNT = 20;
     txPrefixes.push(`Tx batch ${now}`);
 
-    // ── 1. Intercept Supabase to simulate offline ─────────────────────
+    // ── 1. Auth + premier rendu du formulaire ─────────────────────────
+    // Les intercepts sont posés APRÈS le premier `cy.visit` : les enregistrer
+    // avant ferait échouer le chargement du bundle (le GET du chunk est
+    // détruit pendant que la page se charge). Mesuré : dans cette
+    // configuration le formulaire se rend puis la boucle écrit bien les
+    // 20 transactions en local ET dans `ps_crud`.
+    cy.ensureAuth();
+    cy.visit('/transaction/new');
+    cy.get('h1, h2, h3, [role="heading"]', { timeout: 30_000 })
+      .contains(/nouvelle transaction/i)
+      .should('be.visible');
+
+    // ── 2. Simuler le hors-ligne ──────────────────────────────────────
     let offline = true;
     cy.intercept({ method: 'GET', url: `${SUPABASE_URL}/**` }, (req: any) => {
       if (offline) req.destroy();
@@ -91,13 +104,6 @@ describe('Lumina — Performance batch (offline sync + charge tx + calendar)', (
     cy.intercept({ method: 'POST', url: `${SUPABASE_URL}/**` }, (req: any) => {
       if (offline) req.destroy();
     }).as('sgPost');
-
-    // ── 2. Create COUNT transactions while offline ────────────────────
-    cy.ensureAuth();
-    cy.visit('/transaction/new');
-    cy.get('h1, h2, h3, [role="heading"]', { timeout: 30_000 })
-      .contains(/nouvelle transaction/i)
-      .should('be.visible');
 
     for (let i = 0; i < COUNT; i++) {
       cy.get('input[aria-label="Montant en francs CFA"], ion-input input[aria-label="Montant en francs CFA"]')
@@ -109,28 +115,62 @@ describe('Lumina — Performance batch (offline sync + charge tx + calendar)', (
         .clear()
         .type(`Tx batch ${now} #${i}`);
       cy.contains('Enregistrer la transaction', { timeout: 10_000 }).click();
-      // Après enregistrement, l'app navigue vers le DÉTAIL de la transaction
-      // (/transaction/:id) — elle ne revient pas sur la liste. La spec
-      // cherchait un bouton « Ajouter une transaction » qui n'existe nulle
-      // part dans l'app (la page Finances expose « Nouvelle entrée » /
-      // « Nouvelle dépense », et le FAB s'appelle « Transaction ») : l'échec
-      // était un défaut de test, pas de code. On revient donc directement au
-      // formulaire, de façon déterministe.
+      // Attendre l'affichage de la description sur la page DÉTAIL. On ne peut
+      // PAS se contenter de `cy.location().should('match', /^\/transaction\/[^/]+$/)` :
+      // `/transaction/new` satisfait cette expression, donc l'assertion passe
+      // immédiatement sur le formulaire et le `cy.visit` suivant recharge la
+      // page et interrompt l'écriture asynchrone (mesure : 0 ligne serveur).
+      cy.contains(`Tx batch ${now} #${i}`, { timeout: 30_000 }).should('be.visible');
       cy.visit('/transaction/new');
       cy.url().should('include', '/transaction/new');
+      cy.get('input[aria-label="Description"]', { timeout: 30_000 }).should('be.visible');
     }
 
     // ── 3. Restore online mode ────────────────────────────────────────
     offline = false;
 
-    // ── 4. Wait for sync cycle ────────────────────────────────────────
-    cy.wait(40_000);
+    // ── 4. Flush the upload queue deterministically ───────────────────
+    // Sous Cypress/Electron, le worker WASM de PowerSync ne fait pas tourner
+    // son cycle d'upload : `cy.wait(40_000)` seul ne pousse RIEN (mesure :
+    // 0 ligne côté serveur, « expected 0 to be at least 20 »). Le helper DEV
+    // `__psFlushCrudUpload` pousse la file via le client Supabase du
+    // connector — exactement le chemin de production (cf. cross-tenant.cy.ts).
+    // On draine jusqu'à ce que `ps_crud` soit vide (un appel ne pousse qu'un
+    // lot, donc `opsTotal >= COUNT` ne suffit pas).
+    cy.window({ timeout: 60_000 }).then({ timeout: 180_000 }, async (win: any) => {
+      expect(win.__psFlushCrudUpload, 'helper DEV __psFlushCrudUpload exposé').to.be.a('function');
+      const crudCount = async () => {
+        const r = await win.__psDb.getAll('SELECT count(*) c FROM ps_crud');
+        return (r?.[0]?.c as number) ?? -1;
+      };
+      const localCount = async () => {
+        const r = await win.__psDb.getAll(
+          `SELECT count(*) c FROM transactions WHERE description LIKE 'Tx batch ${now}%'`,
+        );
+        return (r?.[0]?.c as number) ?? 0;
+      };
+      // Le drain n'est PAS borné par `opsTotal` : un appel de flush ne
+      // pousse qu'un lot (maxPasses ops), donc `opsTotal >= COUNT` n'est
+      // jamais vrai pour COUNT=20 et la boucle épuisait son budget sans
+      // vider la file. On draine jusqu'à ce que `ps_crud` soit vide.
+      let last: any = null;
+      for (let i = 0; i < 60; i += 1) {
+        if ((await crudCount()) <= 0) break;
+        await win.__psFlushCrudUpload(10);
+        last = win.__psFlushResult;
+        await new Promise((r) => setTimeout(r, 300));
+      }
+      const remaining = await crudCount();
+      cy.log(`flush batch 20 → local=${await localCount()} remainingCrud=${remaining}`);
+      expect(last?.skipped ?? 0, `aucune op jetée (détail=${JSON.stringify(last?.lastFatal)})`).to.eq(0);
+      expect(remaining, 'la file d’upload doit être vidée').to.eq(0);
+    });
 
     // ── 5. Assert COUNT rows reached Supabase ─────────────────────────
     realToken().then((token) => {
       cy.request({
         method: 'GET',
-        url: `${SUPABASE_URL}/rest/v1/transactions?description=like.*Tx batch ${now}.*&select=id&limit=100`,
+        url: `${SUPABASE_URL}/rest/v1/transactions?description=like.${encodeURIComponent(`*Tx batch ${now}*`)}&select=id&limit=100`,
         headers: {
           apikey: anonKey,
           Authorization: `Bearer ${token}`,
@@ -160,20 +200,23 @@ describe('Lumina — Performance batch (offline sync + charge tx + calendar)', (
     const COUNT = 50;
     txPrefixes.push(`ChargeTx ${now}`);
 
-    // Offline mode
+    // Offline mode — intercepts posés APRÈS le premier rendu du formulaire
+    // (mêmes raisons que le test 1 : détruire le GET du bundle pendant le
+    // chargement casse la page).
     let offline = true;
-    cy.intercept({ method: 'GET', url: `${SUPABASE_URL}/**` }, (req: any) => {
-      if (offline) req.destroy();
-    });
-    cy.intercept({ method: 'POST', url: `${SUPABASE_URL}/**` }, (req: any) => {
-      if (offline) req.destroy();
-    });
 
     cy.ensureAuth();
     cy.visit('/transaction/new');
     cy.get('h1, h2, h3, [role="heading"]', { timeout: 30_000 })
       .contains(/nouvelle transaction/i)
       .should('be.visible');
+
+    cy.intercept({ method: 'GET', url: `${SUPABASE_URL}/**` }, (req: any) => {
+      if (offline) req.destroy();
+    });
+    cy.intercept({ method: 'POST', url: `${SUPABASE_URL}/**` }, (req: any) => {
+      if (offline) req.destroy();
+    });
 
     for (let i = 0; i < COUNT; i++) {
       cy.get('input[aria-label="Montant en francs CFA"], ion-input input[aria-label="Montant en francs CFA"]')
@@ -185,21 +228,46 @@ describe('Lumina — Performance batch (offline sync + charge tx + calendar)', (
         .clear()
         .type(`ChargeTx ${now} ${i}`);
       cy.contains('Enregistrer la transaction', { timeout: 10_000 }).click();
-      // Même défaut que le test 1 : l'app navigue vers le DÉTAIL de la
-      // transaction, et « Ajouter une transaction » n'existe nulle part
-      // (cy.go('back') ne ramène pas au formulaire de façon fiable).
+      // Attendre l'affichage de la description sur la page DÉTAIL avant de
+      // revenir au formulaire : `handleSubmit` est asynchrone, et un
+      // `cy.visit` immédiat recharge la page et interrompt l'écriture en
+      // cours (mesure : les 50 submits restaient sur /transaction/new,
+      // 0 ligne écrite). La description sur le détail prouve aussi que la
+      // transaction a bien été persistée (lecture PowerSync).
+      cy.contains(`ChargeTx ${now} ${i}`, { timeout: 30_000 }).should('be.visible');
       cy.visit('/transaction/new');
       cy.url().should('include', '/transaction/new');
+      cy.get('input[aria-label="Description"]', { timeout: 30_000 }).should('be.visible');
     }
 
     // Back online
     offline = false;
-    cy.wait(45_000);
+
+    // Flush déterministe (même raison que le test 1 : le cycle du worker ne
+    // tourne pas sous Cypress, `cy.wait` seul ne pousse rien). On draine
+    // jusqu'à ce que `ps_crud` soit vide — un appel ne pousse qu'un lot.
+    cy.window({ timeout: 60_000 }).then({ timeout: 240_000 }, async (win: any) => {
+      expect(win.__psFlushCrudUpload, 'helper DEV __psFlushCrudUpload exposé').to.be.a('function');
+      const crudCount = async () => {
+        const r = await win.__psDb.getAll('SELECT count(*) c FROM ps_crud');
+        return (r?.[0]?.c as number) ?? -1;
+      };
+      let last: any = null;
+      for (let i = 0; i < 80; i += 1) {
+        if ((await crudCount()) <= 0) break;
+        await win.__psFlushCrudUpload(10);
+        last = win.__psFlushResult;
+        await new Promise((r) => setTimeout(r, 300));
+      }
+      cy.log(`flush charge 50 → remainingCrud=${await crudCount()}`);
+      expect(last?.skipped ?? 0, `aucune op jetée (détail=${JSON.stringify(last?.lastFatal)})`).to.eq(0);
+      expect(await crudCount(), 'la file d’upload doit être vidée').to.eq(0);
+    });
 
     realToken().then((token) => {
       cy.request({
         method: 'GET',
-        url: `${SUPABASE_URL}/rest/v1/transactions?description=like.*ChargeTx ${now}.*&select=id&limit=100`,
+        url: `${SUPABASE_URL}/rest/v1/transactions?description=like.${encodeURIComponent(`*ChargeTx ${now}*`)}&select=id&limit=100`,
         headers: {
           apikey: anonKey,
           Authorization: `Bearer ${token}`,

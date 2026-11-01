@@ -25,12 +25,34 @@ import {
 } from "@ionic/react";
 import ThemePicker from "@/components/ThemePicker";
 import { LUMINA_THEMES, applyTheme } from "@/ionic/themes";
-import { useAppConfig, selectRole } from "@/lib/dataLayer";
+import {
+  useAppConfig,
+  selectRole,
+  mirrorNewOrganizationLocally,
+} from "@/lib/dataLayer";
+import { bootstrapOrganization } from "@/lib/orgBootstrap";
+import { authService } from "@/lib/auth";
+import { setOrganizationId } from "@/lib/orgContext";
+import { parseRole } from "@/lib/rbac";
 import {
   completeOnboarding,
   loadOnboardingState,
   type OrgTypeChoice,
 } from "@/lib/onboardingState";
+
+/**
+ * Correspondance type d'onboarding (UI) → type serveur accepté par l'edge
+ * `create_org` (`VALID_TYPES`). L'UI utilise des libellés français ; le serveur
+ * attend les constantes canoniques.
+ */
+const SERVER_ORG_TYPE: Readonly<Record<OrgTypeChoice, string>> = {
+  Eglise: "CHURCH",
+  Ecole: "SCHOOL",
+  ONG: "NGO",
+  Entreprise: "ENTERPRISE",
+  Institution: "CHURCH",
+  Custom: "CHURCH",
+};
 
 /**
  * Templates currently available (per spec: only templates that exist are
@@ -141,6 +163,7 @@ export default function OrgSetup() {
   );
   const [role, setRole] = useState<string | null>(saved.role ?? null);
   const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
 
   const chosen = TEMPLATE_CHOICES.find((t) => t.type === type) ?? null;
 
@@ -160,12 +183,69 @@ export default function OrgSetup() {
   const handleCreate = async () => {
     if (!canCreate || !chosen) return;
     setCreating(true);
+    setCreateError(null);
     try {
       const nextTheme = LUMINA_THEMES.find((t) => t.id === themeId) ?? LUMINA_THEMES[0];
       applyTheme(nextTheme);
 
-      // Persist the org identity (full name drives dashboard / pages / reports;
-      // the sigle is kept in onboarding state for compact surfaces).
+      // ── 1. CRÉATION RÉELLE de l'organisation côté serveur ────────────────
+      // Sans cet appel, « Créer l'organisation » n'écrivait QUE du localStorage :
+      // l'utilisateur restait `org_id = '__no_org__'` en base, non-membre de la
+      // garde de route → dashboard inatteignable. L'edge `create_org` (service_role)
+      // crée l'org, le grant admin ET rattache le profil du créateur.
+      const created = await bootstrapOrganization({
+        name: name.trim(),
+        type: SERVER_ORG_TYPE[type as OrgTypeChoice] ?? "CHURCH",
+      });
+      const orgId = created.orgId;
+
+      // Rôle effectif du créateur : `ADMIN` (canonique, renvoyé par le serveur)
+      // — il doit pouvoir administrer son organisation (réglages, rôles,
+      // invitations). Le rôle « cosmétique » choisi dans le wizard (ex.
+      // COMPTABLE) ne suffirait pas et laisserait un compte inutilisable.
+      const effectiveRole = parseRole(created.role ?? "") ?? "ADMIN";
+
+      // ── 2. RÉSOLUTION IMMÉDIATE du contexte côté client ──────────────────
+      // ORDRE CRITIQUE : on écrit D'ABORD le miroir local (preuve
+      // d'appartenance), PUIS on pose le contexte d'organisation. Poser le
+      // contexte déclenche le re-rendu de `useOrgMembership`, qui interroge
+      // `canAccessOrganization` sur la base locale : si le miroir n'était pas
+      // encore écrit, la garde conclurait « non-membre » (et le dashboard
+      // resterait bloqué, sans nouvelle réévaluation). Le serveur a écrit en
+      // base ; la réplique PowerSync locale n'est pas encore à jour (download
+      // asynchrone), donc on pose :
+      //   a) un miroir local optimiste (organizations / org_admins /
+      //      org_memberships / profiles) pour que `canAccessOrganization`
+      //      (garde « needs-membership ») réponde OUI sans attendre le sync ;
+      //   b) le contexte d'organisation en mémoire + localStorage (orgContext) ;
+      //   c) le profil d'auth rafraîchi (rôle ADMIN + org_id) pour que
+      //      `AppContext` / `useCurrentUser` / la permission `admin:settings`
+      //      soient corrects.
+      const userId =
+        authService.getState().profile?.id ??
+        authService.getState().user?.id ??
+        "";
+      if (userId) {
+        await mirrorNewOrganizationLocally({
+          orgId,
+          name: name.trim(),
+          type: SERVER_ORG_TYPE[type as OrgTypeChoice] ?? "CHURCH",
+          userId,
+          role: effectiveRole,
+          grantId: created.grantId ?? null,
+        });
+      }
+
+      setOrganizationId(orgId);
+      try {
+        localStorage.setItem("lumina-active-org", orgId);
+      } catch {
+        /* stockage indisponible — le contexte mémoire suffit */
+      }
+
+      await authService.refreshProfile();
+
+      // ── 3. Persistance locale (identité, thème, état d'onboarding) ───────
       await updateConfig({ churchName: name.trim() });
 
       const state = loadOnboardingState();
@@ -177,11 +257,18 @@ export default function OrgSetup() {
         theme: themeId,
         features,
       };
-      state.role = role;
+      state.role = effectiveRole;
       completeOnboarding(state);
 
-      await selectRole(role);
+      await selectRole(effectiveRole);
       navigate("/dashboard", { replace: true });
+    } catch (err) {
+      // Échec VISIBLE (pas de bouton inerte) : l'utilisateur peut réessayer.
+      setCreateError(
+        err instanceof Error && err.message
+          ? err.message
+          : "La création de l'organisation a échoué. Réessayez.",
+      );
     } finally {
       setCreating(false);
     }
@@ -377,6 +464,22 @@ export default function OrgSetup() {
 
           {/* CTA */}
           <div className="px-6 pb-10">
+            {createError && (
+              <div
+                role="alert"
+                data-screen-state="error"
+                className="mb-3 p-3 rounded-xl text-sm"
+                style={{
+                  backgroundColor:
+                    "color-mix(in srgb, var(--data-alert) 10%, transparent)",
+                  border:
+                    "1px solid color-mix(in srgb, var(--data-alert) 30%, transparent)",
+                  color: "var(--data-alert)",
+                }}
+              >
+                {createError}
+              </div>
+            )}
             <button
               onClick={handleCreate}
               disabled={!canCreate || creating}

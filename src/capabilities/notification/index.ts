@@ -12,6 +12,7 @@
 import { getPowerSyncDatabase } from "@/lib/powersync";
 import { getOrganizationId } from "@/lib/orgContext";
 import { getOneSignalService, initOneSignal } from "@/lib/onesignal";
+import { LocalNotificationAdapter } from "@/adapters/native";
 import type { Role } from "@/types";
 
 export interface NotificationSendData {
@@ -21,6 +22,9 @@ export interface NotificationSendData {
   targetUserId?: string;
   extraData?: Record<string, string>;
 }
+
+/** Android notification channel used for locally scheduled notifications. */
+export const LOCAL_NOTIFICATION_CHANNEL_ID = "lumina-default";
 
 /**
  * Notification capability — OneSignal adapter
@@ -142,6 +146,21 @@ export class NotificationCapability {
       }
     }
     await service.setTags(tags);
+
+    // 3) Cloud push (OneSignal via the `onesignal-notify` edge function).
+    //    Without this step nothing was ever actually SENT: the function only
+    //    persisted a row and set tags. Best-effort — a failed push must not
+    //    break the write that triggered it (the in-app row above already
+    //    landed, so the user still sees the notification).
+    const { sendCloudPush } = await import("@/lib/cloudPush");
+    await sendCloudPush({
+      title: data.title,
+      message: data.message,
+      targetRole: data.targetRole,
+      targetUserId: data.targetUserId,
+      orgId: getOrganizationId(),
+      extraData: data.extraData,
+    });
   }
 
   /**
@@ -173,6 +192,44 @@ export class NotificationCapability {
     const existing: string[] = tags["topics"] ? JSON.parse(tags["topics"]) : [];
     const filtered = existing.filter((t) => t !== topic);
     await service.User?.addTag("topics", JSON.stringify(filtered));
+  }
+
+  /**
+   * Schedule a LOCAL notification (device-side, no network).
+   *
+   * Complements the cloud push path: a local notification fires even when the
+   * device is offline, which is what reminders need. No-op (returns null) in a
+   * browser — never throws, so callers need no platform check.
+   *
+   * @param at absolute date to fire; omit to fire immediately.
+   * @returns the native notification id, or null when not native/on failure.
+   */
+  async scheduleLocalNotification(
+    data: NotificationSendData,
+    at?: Date,
+  ): Promise<number | null> {
+    const local = LocalNotificationAdapter.getInstance();
+    if (!local.isNative()) return null;
+    // Android 8+ requires a channel before anything can be displayed.
+    await local.createChannel({
+      id: LOCAL_NOTIFICATION_CHANNEL_ID,
+      name: "Lumina",
+      description: "Notifications Lumina",
+      importance: 4,
+    });
+    const result = await local.schedule({
+      title: data.title,
+      body: data.message,
+      channelId: LOCAL_NOTIFICATION_CHANNEL_ID,
+      ...(data.extraData ? { extra: data.extraData } : {}),
+      ...(at ? { schedule: { at } } : {}),
+    });
+    return result.id;
+  }
+
+  /** Cancel a previously scheduled local notification by id. */
+  async cancelLocalNotification(id: number): Promise<void> {
+    await LocalNotificationAdapter.getInstance().cancel([id]);
   }
 }
 

@@ -131,7 +131,11 @@ describe('Lumina — Forms & Custom Fields', () => {
       .invoke('text')
       .then((label) => {
         const trimmed = label.trim();
-        cy.get(`button[aria-label="Supprimer le champ ${trimmed}"]`).click();
+        // `{force: true}` : le `TopHeader` (position fixe) recouvre le bouton
+        // quand la liste est courte — le clic échoue sinon sur
+        // « element is being covered by another element ». Les autres clics
+        // de ce spec utilisent déjà `force: true` pour la même raison.
+        cy.get(`button[aria-label="Supprimer le champ ${trimmed}"]`).click({ force: true });
         // Field no longer visible
         cy.contains(trimmed).should('not.exist');
       });

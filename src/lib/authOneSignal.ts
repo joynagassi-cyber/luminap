@@ -6,7 +6,6 @@
  * which handles both Capacitor native and web environments.
  */
 import { getOneSignalService, initOneSignal } from "./onesignal";
-import { authService } from "./auth";
 import { getOrganizationId } from "./orgContext";
 import type { Role } from "@/types";
 
@@ -86,46 +85,17 @@ class OneSignalAuthService {
     message: string,
     data?: Record<string, any>,
   ): Promise<void> {
-    // Delegate to the OneSignal edge function for server-side push.
-    // The edge function resolves targeting from OneSignal tags (role, org_id)
-    // set on each player during login, and requires a valid Supabase session.
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-    if (!supabaseUrl || !anonKey) return; // Silent no-op if Supabase env missing
-
-    const session = await authService.getSession();
-    const accessToken = session?.access_token;
-    if (!accessToken) {
-      // Without a session the edge function rejects the call (401); don't even
-      // try, otherwise a stale OneSignal id would be sent as a bogus JWT.
-      console.warn("[authOneSignal] notifyRole ignoré : session absente");
-      return;
-    }
-
-    const res = await fetch(
-      `${supabaseUrl}/functions/v1/onesignal-notify`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          apikey: anonKey,
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({
-          actionType: "ROLE_NOTIFY",
-          title,
-          message,
-          targetRole: role,
-          orgId: getOrganizationId(),
-          data,
-        }),
-      },
-    );
-
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      console.warn("[authOneSignal] notifyRole failed:", body?.error ?? res.status);
-    }
+    // Delegate to the shared cloud-push module (single send path). The edge
+    // function resolves targeting from OneSignal tags (role, org_id) set on
+    // each player during login and requires a valid Supabase session.
+    const { sendCloudPush } = await import("./cloudPush");
+    await sendCloudPush({
+      title,
+      message,
+      targetRole: role,
+      orgId: getOrganizationId(),
+      extraData: data as Record<string, string> | undefined,
+    });
   }
 }
 

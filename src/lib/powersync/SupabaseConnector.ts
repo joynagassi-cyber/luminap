@@ -226,6 +226,17 @@ function sanitizeDocumentsOpData(
   return coerceUuidKeys(opData, ["uploaded_by"]);
 }
 
+/**
+ * `transaction_attachments.uploaded_by` est un `uuid` (FK → auth.users) : même
+ * bornière que `documents.uploaded_by` (les identifiants de session offline
+ * texte, ex. "local-user", sont coercés à `null`).
+ */
+function sanitizeTransactionAttachmentsOpData(
+  opData: Record<string, unknown>,
+): Record<string, unknown> {
+  return coerceUuidKeys(opData, ["uploaded_by"]);
+}
+
 export type SupabaseConnectorListener = {
   initialized: () => void;
   sessionStarted: (session: Session) => void;
@@ -485,6 +496,10 @@ export class SupabaseConnector
     // les ops ont été jetées (cf. R89.c).
     let pushedOps = 0;
     let skippedOps = 0;
+    // Dernier rejet FATAL observé (table/op/code/message) — exposé aux specs
+    // E2E via `__psLastUpload` pour diagnostiquer une op jetée sans dépendre
+    // de la console navigateur (invisible dans le stdout Cypress).
+    let lastFatal: { table: string; op: string; code?: string; msg: string } | null = null;
     try {
       for (const op of transaction.crud) {
         lastOp = op;
@@ -507,10 +522,17 @@ export class SupabaseConnector
                   "documents",
                   sanitizeDocumentsOpData(op.opData as Record<string, unknown>),
                 )
-              : filterOpDataToSchema(
-                  op.table,
-                  coerceJsonbColumns(op.table, op.opData as Record<string, unknown>),
-                );
+              : op.table === "transaction_attachments"
+                ? filterOpDataToSchema(
+                    "transaction_attachments",
+                    sanitizeTransactionAttachmentsOpData(
+                      op.opData as Record<string, unknown>,
+                    ),
+                  )
+                : filterOpDataToSchema(
+                    op.table,
+                    coerceJsonbColumns(op.table, op.opData as Record<string, unknown>),
+                  );
 
         // Backfill des valeurs par défaut NOT NULL : si une colonne
         // NOT NULL du schéma Postgres est absente de l'opData (PowerSync
@@ -576,6 +598,7 @@ export class SupabaseConnector
           // détail des opData manquantes pour diagnostiquer l'origine.
           if (isFatal) {
             skippedOps++;
+            lastFatal = { table: op.table, op: String(op.op), code, msg: errMsg };
             logOpOutcome(op, false, code, errMsg, op.opData?.org_id);
             if (DEV_LOG) {
               const missingCols = code?.startsWith("23502")
@@ -619,12 +642,14 @@ export class SupabaseConnector
         winForLog?.console?.info?.(
           `[PowerSync] pushCrudTransaction DONE: ${pushedOps} pushed, ${skippedOps} discarded`,
         );
-        // Exposé pour que le flush DEV (`__psFlushCrudUpload`) puisse rapporter
-        // le résultat RÉEL (ops jetées incluses) au lieu d'un compteur qui
-        // ignore les `continue` internes (cf. R89.c).
-        if (winForLog) {
-          (winForLog as any).__psLastUpload = { pushed: pushedOps, skipped: skippedOps };
-        }
+      }
+      // Exposé pour que le flush DEV (`__psFlushCrudUpload`) puisse rapporter
+      // le résultat RÉEL (ops jetées incluses) au lieu d'un compteur qui
+      // ignore les `continue` internes (cf. R89.c). Écrit sur TOUS les
+      // chemins de sortie (succès comme échec) — un échec qui ne renseigne
+      // pas ce champ rend le diagnostic impossible.
+      if (winForLog) {
+        (winForLog as any).__psLastUpload = { pushed: pushedOps, skipped: skippedOps, lastFatal, phase: "done" };
       }
     } catch (ex: any) {
       // `FATAL_RESPONSE_CODES` ne matche que sur `ex.code` (Postgres 5-char
@@ -642,6 +667,7 @@ export class SupabaseConnector
       // restait à 0 ligne). On traite le FATAL comme FATAL-SKIP : on log,
       // on DISCARD l'op (continue), on complete la tx pour que PowerSync
       // avance.
+      const winForLog = typeof window !== "undefined" ? window : null;
       if (
         (typeof ex.code === "string" &&
           FATAL_RESPONSE_CODES.some((regex) => regex.test(ex.code))) ||
@@ -653,14 +679,25 @@ export class SupabaseConnector
          */
         logOpOutcome(lastOp, false, ex.code, ex.message, lastOp?.opData?.org_id);
         await transaction.complete();
+        if (winForLog) {
+          (winForLog as any).__psLastUpload = {
+            pushed: pushedOps, skipped: skippedOps, lastFatal, phase: "fatal-skip",
+            error: { code: ex.code, message: ex.message },
+          };
+        }
       } else {
         // Error may be retryable - e.g. network error
         logOpOutcome(lastOp, false, ex.code ?? ex.code2 ?? "?", ex.message, lastOp?.opData?.org_id);
-        const winForLog = typeof window !== "undefined" ? window : null;
         winForLog?.console?.warn?.(
           `[PowerSync] pushCrudTransaction FAILED (retryable):`,
           ex?.message ?? ex,
         );
+        if (winForLog) {
+          (winForLog as any).__psLastUpload = {
+            pushed: pushedOps, skipped: skippedOps, lastFatal, phase: "retryable-throw",
+            error: { code: ex.code, message: ex.message },
+          };
+        }
         throw ex;
       }
     }

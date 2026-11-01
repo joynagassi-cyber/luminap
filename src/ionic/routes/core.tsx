@@ -10,6 +10,7 @@ import { LazyRoute } from "./lazy-route";
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
 const Notifications = lazy(() => import("@/pages/Notifications"));
 const Tutorial = lazy(() => import("@/pages/Tutorial"));
+const Search = lazy(() => import("@/pages/Search"));
 
 export const coreRoutes: ReactElement[] = [
   <Route
@@ -26,5 +27,10 @@ export const coreRoutes: ReactElement[] = [
     key="/tutoriel"
     path="/tutoriel"
     element={<LazyRoute component={Tutorial} />}
+  />,
+  <Route
+    key="/search"
+    path="/search"
+    element={<LazyRoute component={Search} />}
   />,
 ];

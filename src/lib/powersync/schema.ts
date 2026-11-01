@@ -289,6 +289,19 @@ const config = new Table(
   { indexes: {} },
 );
 
+// Réglages par organisation (PR8 maker-checker, PR13 gel de période).
+// Clé primaire composite (org_id, key) côté base ; côté PowerSync l'id local
+// est dérivé, le filtrage se fait par org_id dans le stream.
+const org_settings = new Table(
+  {
+    org_id: column.text,
+    key: column.text,
+    value: column.text,
+    updated_at: column.text,
+  },
+  { indexes: {} },
+);
+
 // ============================================================
 // Form & Custom Field Tables
 // ============================================================
@@ -448,6 +461,22 @@ const documents = new Table(
   { indexes: {} },
 );
 
+// Pièces justificatives (reçus) attachées à une transaction — PR9.
+// Le blob vit dans le bucket Storage privé `expense_proofs` ; cette table
+// porte la métadonnée synchronisable (chemin, type MIME, taille).
+const transaction_attachments = new Table(
+  {
+    org_id: column.text,
+    transaction_id: column.text,
+    path: column.text,
+    mime: column.text,
+    size: column.integer,
+    uploaded_by: column.text,
+    created_at: column.text,
+  },
+  { indexes: { transaction_attachments_transaction_id: ["transaction_id"] } },
+);
+
 // ============================================================
 // P0 — Budgets (budget par centre de coûts + écart prévu/réel)
 // Distinct des budgets d'événement (`event_budgets`/`budget_lines`) :
@@ -593,12 +622,14 @@ export const AppSchema = new Schema({
   budget_lines,
   audit_entries,
   config,
+  org_settings,
   form_definitions,
   form_submissions,
   custom_field_definitions,
   custom_field_values,
   report_definitions,
   documents,
+  transaction_attachments,
   cotisations,
   invitations,
   invitation_claims,

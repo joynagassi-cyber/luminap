@@ -194,6 +194,22 @@ describe('Lumina — F5 persistence (event)', () => {
     // `events` filtrent par `is_org_member(auth.uid(), org_id)` : la clé
     // anon ne renvoie rien). L'upload PowerSync est asynchrone → on
     // retente avec une temporisation bornée.
+    //
+    // Sous Cypress/Electron le cycle d'upload du worker WASM ne tourne pas :
+    // sans vidage explicite, la ligne reste indéfiniment dans `ps_crud` et
+    // l'assertion échoue alors que l'app est saine. On draine la file via le
+    // helper DEV `__psFlushCrudUpload` (chemin de production du connector)
+    // avant de vérifier côté serveur — même correctif que performance-batch.
+    cy.window({ timeout: 60_000 }).then({ timeout: 120_000 }, async (win: any) => {
+      expect(win.__psFlushCrudUpload, 'helper DEV __psFlushCrudUpload exposé').to.be.a('function');
+      for (let i = 0; i < 30; i += 1) {
+        const rows = await win.__psDb.getAll('SELECT count(*) c FROM ps_crud');
+        if (((rows?.[0]?.c as number) ?? 0) <= 0) break;
+        await win.__psFlushCrudUpload(10);
+        await new Promise((r) => setTimeout(r, 300));
+      }
+    });
+
     realToken().then((token) => {
       const check = (attempts: number): void => {
         cy.request({

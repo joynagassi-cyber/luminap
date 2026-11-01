@@ -97,6 +97,19 @@ export default function SessionsPage() {
     if (!profile?.id) return;
     refetch();
     try {
+      // Écrire la forme CANONIQUE complète (identique à
+      // `authService.persistCurrentUser`) — en particulier le bloc `org`.
+      // L'ancienne version n'écrivait que id/email/nom/rôle : chaque
+      // passage sur /sessions écrasait donc la clé `lumina-user` en
+      // supprimant `org`, et les lecteurs qui n'ont pas le profil live
+      // (rbac-gates R38 : `user.org.id`) retombaient sur `undefined`.
+      let orgName = "";
+      try {
+        const cfg = JSON.parse(localStorage.getItem("lumina-config") ?? "{}");
+        if (cfg?.churchName) orgName = cfg.churchName;
+      } catch {
+        /* config absente — nom d'organisation laissé vide */
+      }
       localStorage.setItem(
         "lumina-user",
         JSON.stringify({
@@ -105,6 +118,12 @@ export default function SessionsPage() {
           firstName: profile.first_name,
           lastName: profile.last_name,
           role: profile.role,
+          org: {
+            id: profile.org_id,
+            name: orgName,
+            type: "Eglise",
+            accentColor: "#FF6B00",
+          },
         }),
       );
     } catch {

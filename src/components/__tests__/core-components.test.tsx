@@ -608,6 +608,14 @@ describe("TopHeader", () => {
     expect(navigate).toHaveBeenCalledWith("/settings");
   });
 
+  it("PR11 — navigates to /search when the global search button is clicked", () => {
+    setNotifications([]);
+    render(<TopHeader />);
+    const navigate = lastNavigate();
+    fireEvent.click(screen.getByLabelText("Rechercher"));
+    expect(navigate).toHaveBeenCalledWith("/search");
+  });
+
   it("calls exitToCentral + navigate('/admin') on 'Retour au central' click", () => {
     vi.mocked(useCurrentUser).mockReturnValue({
       id: "user-1", role: "CENTRAL_ADMIN", email: "t@t",

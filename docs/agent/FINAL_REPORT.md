@@ -30,6 +30,7 @@ ci-dessous n'est pas levée. **B1 et B2 sont désormais LEVÉES** (mesuré le
 > risque **HAUTE** à traiter avant l'exposition publique, mais il ne bloque pas
 > la validation des gates déterministes.
 
+
 ## 2. Gates déterministes — MESURÉS VERTS
 
 | Gate | Commande | Résultat (2026-10-30, `main` @ `2696b4b`) |

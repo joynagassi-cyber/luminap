@@ -798,6 +798,24 @@ Cypress.Commands.add('loginOrgAccount', function (): Cypress.Chainable {
   });
   // Fin de la capture : on ne change PLUS d'état (plus de
   // clearLocalStorage ni de redirection) — le spec gère le reste.
+  //
+  // Seed de la réplique locale avant de rendre la main : le service
+  // PowerSync Cloud rejette l'audience JWT (`PSYNC_S2105`), donc la
+  // réplique ne descend jamais et TOUTES les pages gardées par
+  // `isPowerSyncReadyNow()` restent en squelette (sessions, events,
+  // groups, members, finance, reports…). `seedOrgReplica()` écrit l'org
+  // E2E dans la réplique locale + marque la réplique prête → les pages
+  // rendent hors-ligne. Centré ici : une seule ligne couvre tous les
+  // specs qui utilisent `loginOrgAccount()`.
+  // Seed de la réplique locale + hydratation REST (voir ci-dessous).
+  // `seedOrgReplica()` pose l'org/profil/membership/admin E2E dans la
+  // réplique locale ; `hydrateOrgReplica()` y copie ensuite les données
+  // réelles de l'org (REST → réplique) — y compris le profil complet, ce
+  // qui alimente les lookups de noms (colonne « Soumetteur »). Les deux
+  // sont nécessaires : le seed garantit les lignes de base même si le REST
+  // ne les renvoie pas (RLS), l'hydratation apporte les données métier.
+  cy.seedOrgReplica();
+  cy.hydrateOrgReplica();
   return cy.wrap(null);
 });
 
@@ -925,6 +943,11 @@ Cypress.Commands.add('resumeOnboardingForOrgAccount', function (): Cypress.Chain
 // Register the offline/local helpers (seedLocalSession, interceptCloud,
 // restoreCloud) so they are available to every spec.
 import './local';
+
+// Register the offline organization-replica seeder (seedOrgReplica) — works
+// around the PowerSync Cloud JWT-audience rejection (PSYNC_S2105) so the
+// org-data specs can run offline. See cypress/support/orgReplica.ts.
+import './orgReplica';
 
 // Register the Ionic UI helpers (clickButton, typeIonicInput,
 // expectNoBlankScreen) — see cypress/support/ionic.ts for why they exist.

@@ -50,6 +50,22 @@ import {
 } from "@/capabilities/invitation";
 import { notification } from "@/capabilities/notification";
 
+/**
+ * Parse une colonne JSON persistée (`grants_payload` / `tags_payload`) en
+ * tableau sûr. Un contenu absent/malformé retombe sur `[]` — le claim ne doit
+ * jamais échouer à cause d'une colonne JSON vide.
+ */
+function parseJsonArray(raw: unknown): any[] {
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw !== "string" || !raw.trim()) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
 export default function InvitationClaim() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -105,13 +121,26 @@ export default function InvitationClaim() {
           // B.3 — le scope peut être ORG/GROUP/EVENT/REPORT (invitations
           // granulaires) : on ne force plus le cast ORG|GROUP (le cast
           // précédent tronquait le scope granulaire au claim code-manuel).
+          // On reporte AUSSI la ressource/id libres (`target_scope_resource`/
+          // `target_scope_id`) : sans elles, une invitation EVENT/REPORT
+          // perdait sa cible au claim.
           scope: {
             type: invite.targetScopeType,
             ...(invite.targetScopeType === "GROUP" && invite.targetGroupId
               ? { groupId: invite.targetGroupId }
               : {}),
+            ...(invite.targetScopeResource
+              ? { resource: invite.targetScopeResource }
+              : {}),
+            ...(invite.targetScopeId ? { id: invite.targetScopeId } : {}),
           },
           memberId: invite.targetMemberId,
+          // B.3 — le code manuel ne perd PAS les capacités/tags configurés :
+          // on les relit depuis la ligne persistée (`grants_payload` /
+          // `tags_payload`) pour que l'invité reçoive exactement les
+          // autorisations prévues par l'admin.
+          grants: parseJsonArray(invite.grantsPayload),
+          tags: parseJsonArray(invite.tagsPayload),
           issuedAt: invite.issuedAt,
           expiresAt: invite.expiresAt,
         };

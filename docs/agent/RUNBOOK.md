@@ -726,9 +726,10 @@ union all select 'audit_entries', count(*) from public.audit_entries;
 org_memberships 5, org_admins 6, invitations 66, members 94, groups 222,
 events 3220, audit_entries 97, notifications 3320).
 
-### 4. État au 2026-10-27 — ce qui reste à faire par le propriétaire
+### 4. État au 2026-10-31 — sauvegarde ACTIVE (E3/R99 résolues)
 
-**Historique des runs : la sauvegarde n'a jamais tourné en CI avant le 27/10.**
+**Historique des runs.** Avant le 27/10, la sauvegarde n'avait jamais abouti en
+CI (secrets absents → étapes *skipped* → verts trompeurs) :
 
 | Run | Date | Conclusion affichée | Réalité |
 |---|---|---|---|
@@ -738,28 +739,25 @@ events 3220, audit_entries 97, notifications 3320).
 | `40473991148` | 27/10 08:30 | `success` | idem |
 | `40531962063` | 27/10 15:32 | **`failure`** | secrets présents, export lancé, **échec IPv6** |
 
-Annotation constante sur les quatre premiers : « `SUPABASE_DB_URL` absent —
-sauvegarde NON configurée ». Ces verts étaient donc **faux**. À noter pour la
-mémoire du projet : `.openhands/memory/2026-10-27.md` cite le run du 24/10
-comme preuve du garde-fou « chiffré uniquement » ; ce step était `skipped`,
-lui aussi. La chaîne n'a été validée que **manuellement**, hors CI.
+**Depuis, la chaîne est active et vérifiée** (les deux secrets sont configurés,
+le secret `SUPABASE_DB_URL` pointe sur le **Session pooler**) :
 
-**Reste à faire :**
+| Run | Date | Type | Résultat |
+|---|---|---|---|
+| `40813667253` | 29/10 03:42 | manuel | **success** — export + artefact **chiffré** (3,9 Mo) |
+| `40889847852` | 29/10 14:16 | manuel | **success** |
+| **`41036453279`** | **30/10 09:51** | **planifié** | **success** — artefact chiffré `supabase-backup-41036453279` (**3,5 Mo, non expiré**) |
 
-1. Remplacer le secret `SUPABASE_DB_URL` par la chaîne **Session pooler**
-   (voir l'encadré « ⚠️ Prendre le Session pooler » ci-dessus) — c'est la
-   seule action nécessaire pour que l'export aboutisse. L'ancienne valeur
-   pointe sur `db.hhgovvrnalibhgpakswi.supabase.co`, IPv6-only.
-2. Relancer *Actions* → « Sauvegarde Supabase » → *Run workflow*, puis
-   vérifier : conclusion `success`, **1 artefact** `supabase-backup-<run_id>`,
-   et que les annotations listent bien le schéma, les données et les sommes de
-   contrôle, tous en `.gpg`.
-3. Faire **durcir l'échec** dans `.github/workflows/backup.yml` : un secret
-   absent doit faire échouer le job (`exit 1`), pas seulement émettre un
-   avertissement. Correctif prêt mais **non poussable par l'agent** (le jeton
-   GitHub App n'a pas la permission `workflows`) :
+La cadence **quotidienne** (`cron: '0 3 * * *'`, R138) produit donc **réellement**
+des sauvegardes. Publication conditionnée au **chiffrement** (garde-fou dépôt
+public), rétention 14 j.
+
+**Reste (optionnel, propriétaire)** :
+
+1. **Rétention hors-site durable** : passer le dépôt en **privé** (schedules 60 j)
+   ou copier les exports chiffrés hors-site (S3, disque local) — un artefact
+   GitHub n'est pas une sauvegarde durable.
+2. **Durcir l'échec sur secret absent** (optionnel) : un secret manquant n'émet
+   qu'un avertissement. Patch prêt :
    `docs/agent/patches/backup-yml-faux-vert.patch`.
-4. Idéalement, passer le dépôt en **privé** ou copier les exports chiffrés
-   hors-site (S3, disque local) : un artefact GitHub n'est pas une sauvegarde
-   durable.
 

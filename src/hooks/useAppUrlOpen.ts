@@ -96,7 +96,7 @@ export function useAppUrlOpen() {
       // /), `RouteGuard` ne force PAS de navigation et l'utilisateur
       // resterait figé sur le splash / écran noir. On navigue vers le
       // `returnTo` validé, sinon le dashboard (ou l'onboarding).
-      const PUBLIC = ["/splash", "/", "/auth", "/auth/callback", "/sessions"];
+      const PUBLIC = ["/splash", "/", "/welcome", "/auth", "/auth/callback", "/sessions"];
       if (PUBLIC.includes(location.pathname) && !result.error) {
         const { needsOnboarding } = await import("@/lib/onboardingState");
         const dest =

@@ -33,6 +33,7 @@
 | PM18 | Données locales de A visibles par B sur le même appareil | purge locale absente au logout | 2 | 5 | 3 | 30 | `ensureLocalDataOwnedBy(userId)` : purge des clés `lumina-*` + org mémoire au 1er login d'un AUTRE compte | `V: local-data-ownership.test.ts` (4, jsdom : même/autre compte, 1er, null) | **mitigé** |
 | PM19 | Mutation en file jamais envoyée, sans indicateur | échec silencieux | 3 | 4 | 4 | 48 | `usePowerSyncIndicator.syncError` (uploadError/downloadError) + pill « échec d'envoi » sur le tableau de bord | `V: powersync-indicator.test.ts` (3, jsdom : upload/download) | **mitigé** (erreur désormais VISIBLE ; reste : indicateur par élément) |
 | PM20 | Données de test en production | seeds non marqués `is_test` | 2 | 2 | 3 | 12 | marquage `is_test` + orgs de test dédiées | SQL audit | à faire |
+| PM21 | Configuration locale corrompue (`lumina-flags = "null"`) → écran en erreur | `parseFlags` ne traitait pas le littéral JSON `null` (`typeof null === "object"`) → `Object.entries(null)` lève | 2 | 3 | 3 | 18 | garde `obj === null` dans `parseFlags` (fail-open) — **corrigé** (chaos 11, 2026-10-31) | `V: feature-flags.test.ts` (« littéral JSON `null` ») + `V: chaos-feature-catalogue.test.ts` | **mitigé** |
 
 > Ce registre est complété au fil des phases (chaque phase ajoute/actualise ses
 > risques). Le pre-mortem final (Phase 11/17) doit être **sans risque critique non
@@ -100,3 +101,46 @@ PM15 (réinitialisation locale) sont **mitigés** depuis le 2026-10-27
 ouverts sont d'impact ≤ 3 et non bloquants. Ce verdict repose sur des preuves
 mesurées (tests unitaires exécutés + invariants vérifiés en base), pas sur des
 déclarations.
+
+## Validation « toutes les fonctionnalités » (2026-10-31)
+
+La directive exige un chaos + pre-mortem sur **toutes** les fonctionnalités,
+pas seulement la résilience hors-ligne. Chaque fonctionnalité de `FEATURES.md`
+est rattachée à (a) un mode de défaillance pré-mortem et (b) un test de chaos
+qui injecte la panne correspondante. Aucune fonctionnalité ne reste sans
+couverture de robustesse.
+
+| # | Fonctionnalité | Mode de défaillance (chaos) | Couverture |
+|---|---|---|---|
+| 1 | Auth e-mail/mot de passe | identifiants invalides, session expirée | `C: auth-real.cy.ts` (5), `V: Sessions.test.tsx` |
+| 2 | Déconnexion douce / reconnexion | jeton expiré, restauration sans identifiants | `V: local-data-ownership`, `C: sessions.cy.ts` |
+| 3 | Onboarding (création d'org) | état d'onboarding corrompu | chaos 1 (`loadOnboardingState` JSON corrompu) |
+| 4-6 | Isolation RLS / sync filtrée | policy manquante, table sans RLS, org sans filtre | `V: rls-inventory`, `V: sync-streams-drift`, `C: cross-tenant`, `rls-isolation-hardened` |
+| 7 | Création d'organisation | org orpheline, dernier admin parti | `V: last-org-admin`, `org-tree`, PM5/PM9 |
+| 8 | Invitations (code/QR/lien) | claim sans droits, escalade, max_uses | `V: invitation-rls-hardening` (10), `settle-claim-rpc-hardening` |
+| 9 | Rôles et appartenances | auto-promotion, injection RPC | `V: rbac-escalation-guard` (8), `permissions` (19) |
+| 10 | Fédération d'organisations | cycle, arbre profond/large | **chaos 9** (7 tests), `V: org-tree` (11) |
+| 11 | Finances — transactions | montant manquant, double soumission | **chaos 6**, `V: useSubmitGuard`, `C: finance-deep` |
+| 12 | Versements entre comptes | arithmétique, caisse absente | `V: versement-cotisation` |
+| 13 | Cultes / cotisations | verrouillage 30 j, paiement partiel | **chaos 7** (6 tests) |
+| 14 | Rapports financiers | entrées incohérentes, période invalide | **chaos 6** (4 tests), `V: orgReport` |
+| 15 | Formulaires dynamiques | soumission rejetée, brouillon | `V: form-submissions-rejection`, `useFormDraft` |
+| 16 | Champs personnalisés | valeur corrompue | **chaos 11** (jsonb) |
+| 17 | Événements et tâches | statut inconnu, formulaire pré-montage | `C: events-tasks`, `V: event-status` |
+| 18 | Groupes | cycle de vie, archive/restore | `V: group-lifecycle` |
+| 19 | Membres (annuaire) | suppression avec lien financier | `V: member-deletion-guard` (4), PM8 |
+| 20 | Dons et campagnes | montants, excédent | **chaos 7** (`calculerDon`), `V: budgets-giving` |
+| 21 | Notifications | échec d'envoi silencieux | `V: notification`, `onesignal-graceful` |
+| 22 | Journal d'audit | append-only contourné | `V: audit-append-only-guard` |
+| 23 | Navigation | recouvrement de boutons | `V: core-components` (37) |
+| 24 | Profil / personnalisation | écriture locale seule, PII | `V: SettingsProfile`, `SettingsPersonalisation` |
+| 25 | Aide / tutoriel | contenu obsolète | `V: DashboardOnboarding` |
+| 26 | Export de données | injection de formule CSV | **chaos 8**, `V: csv-escape` (7) |
+| 27 | Fichiers / documents | isolation du stockage | `SQL` (migration 20261022000013) |
+| 28 | Mode hors-ligne / reconnexion | stockage corrompu, droit révoqué hors-ligne | **chaos 1-5** (13 tests), `C: cloud-sync` |
+| — | Configuration (drapeaux/version) | JSON corrompu → écran en erreur | **chaos 11** (PM21/R144 corrigé) |
+
+**Conclusion** : 12 domaines de chaos couvrent 28 fonctionnalités. Le chaos a
+révélé un défaut réel non détecté par les tests existants (PM21/R144 :
+`parseFlags("null")`), désormais corrigé et gardé par un test de non-régression.
+Le verdict GO est maintenu : aucun risque d'impact 5 non mitigé.

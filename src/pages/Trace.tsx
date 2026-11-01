@@ -21,6 +21,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
+import AuditEntryDetail from "@/components/AuditEntryDetail";
 import { ListSkeleton } from "@/components/Skeleton";
 import TopHeader from "@/components/TopHeader";
 import { formatDateTime, formatDate } from "@/lib/utils";
@@ -94,6 +95,17 @@ export default function TracePage() {
   const [filter, setFilter] = useState("Tout");
   const [search, setSearch] = useState("");
   const [visibleCount, setVisibleCount] = useState(50);
+  // Identifiants des entrées dont le détail (PR1) est déplié.
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+
+  const toggleExpanded = (id: string) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   // Un changement de filtre ou de recherche ramène la fenêtre au premier écran.
   useEffect(() => {
@@ -185,33 +197,53 @@ export default function TracePage() {
                   {filteredEntries.slice(0, visibleCount).map((entry: any) => {
                   const meta = ACTION_META[entry.action] || ACTION_META.UPDATE;
                   const EntityLabel = meta.icon;
+                  const expanded = expandedIds.has(entry.id);
+                  const panelId = `audit-detail-${entry.id}`;
                   return (
                     <div
                       key={entry.id}
-                      className="rounded-xl p-4 flex items-center gap-3"
+                      className="rounded-xl overflow-hidden"
                       style={{
                         backgroundColor: "var(--surface)",
                         border: "1px solid var(--border)",
                       }}
                     >
-                      <div
-                        className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                        style={{ backgroundColor: meta.color + "20" }}
+                      <button
+                        type="button"
+                        onClick={() => toggleExpanded(entry.id)}
+                        aria-expanded={expanded}
+                        aria-controls={panelId}
+                        aria-label={`Voir le détail de l'action ${meta.label} ${getEntityLabel(entry)} du ${formatDateTime(entry.created_at)}`}
+                        className="w-full p-4 flex items-center gap-3 text-left"
+                        style={{ backgroundColor: "transparent" }}
                       >
-                        <EntityLabel
-                          className="w-5 h-5"
-                          style={{ color: meta.color }}
+                        <div
+                          className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                          style={{ backgroundColor: meta.color + "20" }}
+                        >
+                          <EntityLabel
+                            className="w-5 h-5"
+                            style={{ color: meta.color }}
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-text-primary text-sm font-medium">
+                            {meta.label} {getEntityLabel(entry)}
+                          </p>
+                          <p className="text-text-tertiary text-xs mt-0.5">
+                            {formatDateTime(entry.created_at)}
+                          </p>
+                        </div>
+                        <ChevronRight
+                          className="w-4 h-4 text-text-tertiary transition-transform"
+                          style={{ transform: expanded ? "rotate(90deg)" : undefined }}
                         />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-text-primary text-sm font-medium">
-                          {meta.label} {getEntityLabel(entry)}
-                        </p>
-                        <p className="text-text-tertiary text-xs mt-0.5">
-                          {formatDateTime(entry.created_at)}
-                        </p>
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-text-tertiary" />
+                      </button>
+                      {expanded && (
+                        <div id={panelId}>
+                          <AuditEntryDetail entry={entry} />
+                        </div>
+                      )}
                     </div>
                   );
                   })}

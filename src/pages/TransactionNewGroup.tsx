@@ -12,6 +12,7 @@ import TopHeader from "@/components/TopHeader";
 import { useKeyboardAvoidance } from "@/hooks/useKeyboardAvoidance";
 import type { Category, FundSource } from "@/types";
 import { getOrganizationId } from "@/lib/orgContext";
+import { periodLockMessage } from "@/lib/periodLock";
 import {
   IonPage,
   IonHeader,
@@ -88,28 +89,40 @@ export default function TransactionNewGroup() {
     const sessionId = localStorage.getItem("lumina-session") || "local-user";
     const isExpense = type === "EXPENSE";
 
-    await addTransactionPS({
-      org_id: getOrganizationId(),
-      type,
-      amount: Math.round(parseFloat(amount) * 100),
-      description,
-      date,
-      status: isExpense ? "PENDING" : "DRAFT",
-      category_id: categoryId,
-      org_unit_id: null,
-      source_caisse_id: groupId || "main",
-      event_id: null,
-      source: source || "CAISSE",
-      person_name: source === "PERSONNE" ? personName || null : null,
-      compensates_for: null,
-      comment: comment || null,
-      created_by_id: sessionId,
-      approved_by_id: null,
-      approved_at: null,
-      versement_id: null,
-      reversal_of_id: null,
-      cotisation_id: null,
-    });
+    try {
+      await addTransactionPS({
+        org_id: getOrganizationId(),
+        type,
+        amount: Math.round(parseFloat(amount) * 100),
+        description,
+        date,
+        status: isExpense ? "PENDING" : "DRAFT",
+        category_id: categoryId,
+        org_unit_id: null,
+        source_caisse_id: groupId || "main",
+        event_id: null,
+        source: source || "CAISSE",
+        person_name: source === "PERSONNE" ? personName || null : null,
+        compensates_for: null,
+        comment: comment || null,
+        created_by_id: sessionId,
+        approved_by_id: null,
+        approved_at: null,
+        versement_id: null,
+        reversal_of_id: null,
+        cotisation_id: null,
+      });
+    } catch (e) {
+      // PR13 — période comptable close : message FR explicite.
+      setSubmitting(false);
+      setError(
+        periodLockMessage(
+          e,
+          "Échec de l'enregistrement de la transaction. Réessayez.",
+        ),
+      );
+      return;
+    }
     navigate(`/groups/${groupId}`);
   };
 

@@ -35,6 +35,7 @@ import {
   Building2,
   Shield,
   FileDown,
+  KeyRound,
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { useKeyboardAvoidance } from "@/hooks/useKeyboardAvoidance";
@@ -44,9 +45,11 @@ import {
   invitation,
   exportInvitationToFile,
 } from "@/capabilities/invitation";
+import { CAPABILITIES, capabilityGrantPayload } from "@/lib/capabilities";
 import { getOrganizationId } from "@/lib/orgContext";
 import { downloadBlob } from "@/lib/download";
 import { notification } from "@/capabilities/notification";
+import type { Grant } from "@/types/federation";
 import type { Member } from "@/types";
 
 const ROLES = [
@@ -86,6 +89,37 @@ export default function InvitationEmit() {
   // (ex. "event", "report") + son id, plutôt que de se limiter à ORG|GROUP.
   const [targetScopeResource, setTargetScopeResource] = useState("");
   const [targetScopeId, setTargetScopeId] = useState("");
+  // Capacités supplémentaires accordées par l'invitation (grants). Le rôle
+  // cible porte déjà ses permissions ; ces capacités AJOUTENT des droits
+  // précis, matérialisés côté serveur par `settle_invitation_claim`
+  // (insertion dans `grants`, subject_type='user'). Sans ce sélecteur, le
+  // champ était figé à `[]` : l'admin ne pouvait pas « configurer les
+  // autorisations » transportées par le code/QR (demande produit).
+  const [selectedCapabilities, setSelectedCapabilities] = useState<string[]>([]);
+
+  const toggleCapability = (id: string) =>
+    setSelectedCapabilities((prev) =>
+      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id],
+    );
+
+  /** Grants transportés par l'invitation, dérivés des capacités cochées. */
+  const grantsPayload: Grant[] = useMemo(
+    () =>
+      selectedCapabilities.flatMap((capId) => {
+        const cap = CAPABILITIES.find((c) => c.id === capId);
+        if (!cap) return [];
+        return capabilityGrantPayload(cap).map((p) => ({
+          subjectType: "user" as const,
+          subjectId: "", // résolu côté serveur au claim (auth.uid())
+          resource: p.resource,
+          action: p.action,
+          grantedBy: "",
+          grantedAt: "",
+          revokedAt: null,
+        }));
+      }),
+    [selectedCapabilities],
+  );
 
   const [generatedCode, setGeneratedCode] = useState("");
   const [generatedId, setGeneratedId] = useState("");
@@ -123,6 +157,9 @@ export default function InvitationEmit() {
         // B.3 — scope granulaire (Vague 3) : le trigger le matérialise au claim
         targetScopeResource: targetScopeResource || undefined,
         targetScopeId: targetScopeId || undefined,
+        // Capacités configurées par l'admin : transportées dans le QR/fichier
+        // ET persistées dans `grants_payload` → appliquées au claim.
+        grantsPayload: grantsPayload.length ? grantsPayload : undefined,
       });
 
       setCreatedAt(new Date().toISOString());
@@ -185,7 +222,9 @@ export default function InvitationEmit() {
         ...(targetScopeId ? { id: targetScopeId } : {}),
       },
       memberId: targetMemberId || null,
-      grants: [],
+      // Capacités configurées par l'admin, transportées dans le QR/fichier
+      // (le claim les matérialise côté serveur).
+      grants: grantsPayload,
       tags: [],
       issuedAt: createdAt,
       // Réutilise la valeur PERSISTÉE (pas recalculée au render) — sinon le
@@ -203,6 +242,7 @@ export default function InvitationEmit() {
     targetMemberId,
     targetScopeResource,
     targetScopeId,
+    grantsPayload,
     createdAt,
     expiresAt,
   ]);
@@ -316,6 +356,55 @@ export default function InvitationEmit() {
                     ))}
                   </IonSelect>
                 </IonItem>
+
+                {/* Capacités (autorisations) configurées par l'admin :
+                    transportées par le code/QR et appliquées au claim. */}
+                <div
+                  className="rounded-xl p-4"
+                  style={{
+                    backgroundColor: "var(--surface)",
+                    border: "1px solid var(--border)",
+                  }}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <KeyRound className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
+                    <span className="text-sm text-text-secondary font-medium">
+                      Autorisations supplémentaires
+                    </span>
+                  </div>
+                  <p className="text-xs text-text-tertiary mb-3">
+                    Le rôle cible porte déjà ses droits. Cochez des capacités
+                    pour en accorder davantage à l'invité (appliquées à la
+                    réclamation).
+                  </p>
+                  <div className="space-y-2">
+                    {CAPABILITIES.map((cap) => {
+                      const checked = selectedCapabilities.includes(cap.id);
+                      return (
+                        <label
+                          key={cap.id}
+                          className="flex items-start gap-3 cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleCapability(cap.id)}
+                            className="mt-1"
+                            aria-label={cap.label}
+                          />
+                          <span>
+                            <span className="text-sm text-text-primary block">
+                              {cap.label}
+                            </span>
+                            <span className="text-xs text-text-tertiary block">
+                              {cap.description}
+                            </span>
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
 
                 <IonItem lines="none" className="bg-card rounded-xl">
                   <IonLabel>Durée de validité</IonLabel>
