@@ -80,6 +80,28 @@ const SECTIONS: SectionData[] = [
     ],
   },
   {
+    id: "organisation",
+    title: "Créer son organisation",
+    icon: Landmark,
+    color: "var(--accent-primary)",
+    iconBg: "color-mix(in srgb, var(--accent-primary) 12%, transparent)",
+    titleColor: "var(--accent-primary)",
+    paragraphs: [
+      "Lors de votre première connexion, l'assistant vous propose deux chemins : « Je crée mon organisation » (vous en devenez administrateur) ou « Je rejoins une organisation » (avec un code d'invitation).",
+      "Si vous créez votre organisation, renseignez son nom, son sigle, son type (Église, École, Entreprise…) et choisissez un rôle de départ. À la validation, l'organisation est créée sur le serveur et votre compte y est rattaché : vous en êtes l'administrateur (rôle ADMIN), avec accès aux réglages, aux rôles et aux invitations.",
+      "La création est confirmée immédiatement, même hors ligne : l'application enregistre une copie locale de l'organisation pour vous laisser entrer dans le tableau de bord sans attendre la synchronisation. Si l'opération échoue côté serveur, un message explicite s'affiche et vous pouvez réessayer — aucun écran sans issue.",
+      "Un compte qui n'appartient encore à aucune organisation voit l'écran « Organisation non rejointe », qui propose justement de créer la sienne ou de saisir un code d'invitation.",
+    ],
+    tips: [
+      "Le créateur d'une organisation en devient automatiquement l'administrateur (rôle ADMIN) : c'est lui qui pourra inviter les autres membres.",
+      "Vous pouvez créer des annexes (organisations rattachées) plus tard depuis la fédération, si votre rôle le permet.",
+      "Le nom complet sert dans les rapports ; le sigle s'affiche dans les menus.",
+    ],
+    warnings: [
+      "Choisissez le nom et le type avec soin : ils identifient l'organisation dans tous les rapports et exports.",
+    ],
+  },
+  {
     id: "dashboard",
     title: "Dashboard",
     icon: Home,

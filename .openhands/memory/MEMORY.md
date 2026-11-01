@@ -16,7 +16,16 @@
 - **`PS_ADMIN_TOKEN` disponible** dans le coffre local `~/.ps-secrets` →
   `powersync deploy sync-config` **fonctionne** (E1 close le 2026-10-27).
 - **`npx tsc --noEmit` à la racine ne vérifie RIEN** (tsconfig `"files": []`,
-  sort toujours 0). Utiliser **`npx tsc -b`**.
+  sort toujours 0). Utiliser **`npx tsc -b`** (et **`--force`** en cas de doute :
+  le cache incrémental masque de vraies erreurs, ex. `TS2451`).
+- **Specs `cypress/e2e/*.cy.ts` sans `import` = scripts GLOBAUX** (même portée) :
+  deux `const FOO` racine dans deux fichiers ⇒ `TS2451` au CI. Noms uniques par
+  fichier (préfixe) ou déclarer dans `describe`. (R182, 2026-10-31.)
+- **Gate E2E qui FAIT FOI = job « E2E (Cypress) » de `ci.yml`** (offline-first).
+  Le workflow **`cypress.yml`** (« Cypress Tests », parallèle + Cloud
+  `record:true`) échoue souvent SUR `main` : specs cloud `performance-batch`,
+  `cloud-sync` (login `/auth` timeout), `offline-write-sync` (« R85 … never did »).
+  Ne pas conclure à une régression sur sa base.
 - **Délégation parallèle** : API Cloud `POST
   https://app.all-hands.dev/api/v1/app-conversations` (`Authorization: Bearer
   $OPENHANDS_API_KEY`) → renvoie un *start-task* ; poller
@@ -1016,3 +1025,4 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   (3) prouve `global-search` OFF ⇒ loupe `TopHeader` absente, ON/absent
   (fail-open) ⇒ visible. Surcharge réelle `localStorage['lumina-flags']`.
   Non-vacuité : garde `true` dans `TopHeader` ⇒ 2 échecs.
+
