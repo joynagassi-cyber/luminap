@@ -147,6 +147,16 @@ describe('Lumina — Forms v2 (currency, table view, DRAFT edit)', () => {
       // Le formulaire est créé : on prouve l'état final en rechargeant
       // /forms et en y retrouvant la carte (rendu après le chargement).
       cy.contains('p', FORM_NAME, { timeout: 90_000 }).should('exist');
+      // La création passe par la réplique locale (offline-first) : l'op part
+      // dans la file d'upload PowerSync, dont le cycle du worker ne tourne pas
+      // de façon fiable sous Electron headless. Sans poussée explicite, la
+      // ligne n'existe jamais côté Supabase et l'assertion REST ci-dessous
+      // conclut « absent » alors que la carte est bien visible. Même remède
+      // que la branche de normalisation DRAFT ci-dessous.
+      cy.window({ timeout: 60_000 })
+        .its('__psFlushCrudUpload')
+        .should('be.a', 'function')
+        .then((flush: any) => flush(5));
     });
 
     // Normalisation DRAFT : T6.2 publie le formulaire sans le remettre en
