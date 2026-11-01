@@ -1,0 +1,1036 @@
+{
+  "title": "Lumina — Pitch deck églises",
+  "subtitle": "La gestion financière de votre église, même hors connexion.",
+  "slideCount": 13,
+  "files": {
+    "pptx": {
+      "href": "files/lumina-pitch-eglises.pptx",
+      "name": "lumina-pitch-eglises.pptx",
+      "bytes": 223691
+    },
+    "pdf": {
+      "href": "files/lumina-pitch-eglises.pdf",
+      "name": "lumina-pitch-eglises.pdf",
+      "bytes": 248585
+    }
+  },
+  "slides": [
+    {
+      "number": 1,
+      "title": "Lumina",
+      "kicker": "PRÉSENTATION AUX RESPONSABLES D'ÉGLISE",
+      "image": "slides/slide-01.webp",
+      "thumbnail": "thumbs/slide-01.webp",
+      "width": 1920,
+      "height": 1080,
+      "blocks": [
+        {
+          "text": "La gestion financière de votre église, même hors connexion.",
+          "size": 26.0,
+          "bold": true,
+          "top": 2.95,
+          "left": 0.7
+        },
+        {
+          "text": "Caisse · Cotisations · Budgets · Rapports · Multi-églises",
+          "size": 16.0,
+          "bold": false,
+          "top": 4.35,
+          "left": 0.7
+        },
+        {
+          "text": "Démonstration",
+          "size": 14.0,
+          "bold": true,
+          "top": 5.53,
+          "left": 0.7
+        },
+        {
+          "text": "Captures réelles de l'application — données de démonstration.",
+          "size": 10.0,
+          "bold": false,
+          "top": 6.65,
+          "left": 0.7
+        }
+      ],
+      "notes": "Ouvrir sur la promesse : gérer l'argent et les activités de l'église sans dépendre d'une connexion permanente. Ne pas entrer dans la technique."
+    },
+    {
+      "number": 2,
+      "title": "Le problème que vous vivez",
+      "kicker": "CONSTAT",
+      "image": "slides/slide-02.webp",
+      "thumbnail": "thumbs/slide-02.webp",
+      "width": 1920,
+      "height": 1080,
+      "blocks": [
+        {
+          "text": "Informations dispersées",
+          "size": 16.0,
+          "bold": true,
+          "top": 1.95,
+          "left": 0.79
+        },
+        {
+          "text": "Visibilité limitée",
+          "size": 16.0,
+          "bold": true,
+          "top": 1.95,
+          "left": 6.99
+        },
+        {
+          "text": "Cahiers, fichiers Excel, messages et reçus vivent dans plusieurs endroits.",
+          "size": 12.5,
+          "bold": false,
+          "top": 2.41,
+          "left": 0.79
+        },
+        {
+          "text": "Soldes, cotisations et dépenses sont difficiles à consolider rapidement.",
+          "size": 12.5,
+          "bold": false,
+          "top": 2.41,
+          "left": 6.99
+        },
+        {
+          "text": "Rapports lents",
+          "size": 16.0,
+          "bold": true,
+          "top": 4.1,
+          "left": 0.79
+        },
+        {
+          "text": "Réseau instable",
+          "size": 16.0,
+          "bold": true,
+          "top": 4.1,
+          "left": 6.99
+        },
+        {
+          "text": "Le bilan ou le rapport demandé en urgence prend trop de temps à préparer.",
+          "size": 12.5,
+          "bold": false,
+          "top": 4.56,
+          "left": 0.79
+        },
+        {
+          "text": "La saisie se bloque quand la connexion tombe, surtout en déplacement.",
+          "size": 12.5,
+          "bold": false,
+          "top": 4.56,
+          "left": 6.99
+        },
+        {
+          "text": "Résultat : du temps perdu, des erreurs et des décisions moins sûres.",
+          "size": 15.0,
+          "bold": true,
+          "top": 6.28,
+          "left": 0.8
+        }
+      ],
+      "notes": "Faire réagir la salle : Quel problème est le plus fréquent ? Rester concret, pas culpabilisant."
+    },
+    {
+      "number": 3,
+      "title": "Lumina, en une phrase",
+      "kicker": "SOLUTION",
+      "image": "slides/slide-03.webp",
+      "thumbnail": "thumbs/slide-03.webp",
+      "width": 1920,
+      "height": 1080,
+      "blocks": [
+        {
+          "text": "Une application mobile et web pour suivre l'argent, les membres et les activités de votre église — avec ou sans réseau.",
+          "size": 22.0,
+          "bold": true,
+          "top": 1.98,
+          "left": 0.9
+        },
+        {
+          "text": "Offline-first",
+          "size": 16.0,
+          "bold": true,
+          "top": 3.9,
+          "left": 0.79
+        },
+        {
+          "text": "Simple pour l'équipe",
+          "size": 16.0,
+          "bold": true,
+          "top": 3.9,
+          "left": 4.97
+        },
+        {
+          "text": "Pensé pour les églises",
+          "size": 16.0,
+          "bold": true,
+          "top": 3.9,
+          "left": 9.15
+        },
+        {
+          "text": "La saisie continue localement, puis se synchronise dès que le réseau revient.",
+          "size": 12.5,
+          "bold": false,
+          "top": 4.36,
+          "left": 0.79
+        },
+        {
+          "text": "Une interface mobile pensée pour les trésoriers, responsables et pasteurs.",
+          "size": 12.5,
+          "bold": false,
+          "top": 4.36,
+          "left": 4.97
+        },
+        {
+          "text": "Cultes, cotisations, groupes, budgets et rapports multi-sites.",
+          "size": 12.5,
+          "bold": false,
+          "top": 4.36,
+          "left": 9.15
+        }
+      ],
+      "notes": "Insister : Lumina n'est pas un tableur générique. Le vocabulaire et les workflows sont ceux d'une église."
+    },
+    {
+      "number": 4,
+      "title": "Ce que vous pouvez gérer",
+      "kicker": "FONCTIONNALITÉS",
+      "image": "slides/slide-04.webp",
+      "thumbnail": "thumbs/slide-04.webp",
+      "width": 1920,
+      "height": 1080,
+      "blocks": [
+        {
+          "text": "Trésorerie",
+          "size": 15.0,
+          "bold": true,
+          "top": 2.0,
+          "left": 0.79
+        },
+        {
+          "text": "Cotisations & dons",
+          "size": 15.0,
+          "bold": true,
+          "top": 2.0,
+          "left": 4.97
+        },
+        {
+          "text": "Budgets",
+          "size": 15.0,
+          "bold": true,
+          "top": 2.0,
+          "left": 9.15
+        },
+        {
+          "text": "Caisses, entrées, sorties, versements et soldes.",
+          "size": 12.5,
+          "bold": false,
+          "top": 2.46,
+          "left": 0.79
+        },
+        {
+          "text": "Collectes par culte, avances, campagnes et suivi.",
+          "size": 12.5,
+          "bold": false,
+          "top": 2.46,
+          "left": 4.97
+        },
+        {
+          "text": "Prévu, réel, restant et alertes de dépassement.",
+          "size": 12.5,
+          "bold": false,
+          "top": 2.46,
+          "left": 9.15
+        },
+        {
+          "text": "Membres & groupes",
+          "size": 15.0,
+          "bold": true,
+          "top": 4.35,
+          "left": 0.79
+        },
+        {
+          "text": "Événements & cultes",
+          "size": 15.0,
+          "bold": true,
+          "top": 4.35,
+          "left": 4.97
+        },
+        {
+          "text": "Documents",
+          "size": 15.0,
+          "bold": true,
+          "top": 4.35,
+          "left": 9.15
+        },
+        {
+          "text": "Fiches, adhésions, responsables et caisses de groupe.",
+          "size": 12.5,
+          "bold": false,
+          "top": 4.81,
+          "left": 0.79
+        },
+        {
+          "text": "Calendrier, tâches, préparation et suivi.",
+          "size": 12.5,
+          "bold": false,
+          "top": 4.81,
+          "left": 4.97
+        },
+        {
+          "text": "Archives, justificatifs et rapports exportables.",
+          "size": 12.5,
+          "bold": false,
+          "top": 4.81,
+          "left": 9.15
+        }
+      ],
+      "notes": "Ne pas promettre de paiement mobile intégré : Lumina trace et organise, mais n'encaisse pas à la place d'un PSP."
+    },
+    {
+      "number": 5,
+      "title": "Un aperçu de l'application",
+      "kicker": "ÉCRANS RÉELS",
+      "image": "slides/slide-05.webp",
+      "thumbnail": "thumbs/slide-05.webp",
+      "width": 1920,
+      "height": 1080,
+      "blocks": [
+        {
+          "text": "Lecture immédiate des montants et des statuts.",
+          "size": 14.0,
+          "bold": false,
+          "top": 2.6,
+          "left": 5.12
+        },
+        {
+          "text": "Budgets : prévu, réel, restant",
+          "size": 12.0,
+          "bold": false,
+          "top": 5.53,
+          "left": 1.8
+        },
+        {
+          "text": "Détail budget : prévu / réel par ligne",
+          "size": 12.0,
+          "bold": false,
+          "top": 5.53,
+          "left": 7.25
+        },
+        {
+          "text": "Captures réelles de l'application avec des données de démonstration.",
+          "size": 11.0,
+          "bold": false,
+          "top": 6.35,
+          "left": 0.55
+        }
+      ],
+      "notes": "Montrer que l'app est réelle. Préciser que les chiffres affichés sont de la démonstration, pas des données d'une église cliente."
+    },
+    {
+      "number": 6,
+      "title": "Même sans connexion, vous continuez",
+      "kicker": "OFFLINE-FIRST",
+      "image": "slides/slide-06.webp",
+      "thumbnail": "thumbs/slide-06.webp",
+      "width": 1920,
+      "height": 1080,
+      "blocks": [
+        {
+          "text": "Saisie locale",
+          "size": 17.0,
+          "bold": true,
+          "top": 2.2,
+          "left": 1.6
+        },
+        {
+          "text": "Synchronisation",
+          "size": 17.0,
+          "bold": true,
+          "top": 2.2,
+          "left": 5.78
+        },
+        {
+          "text": "Vision centralisée",
+          "size": 17.0,
+          "bold": true,
+          "top": 2.2,
+          "left": 9.96
+        },
+        {
+          "text": "1",
+          "size": 20.0,
+          "bold": true,
+          "top": 2.22,
+          "left": 0.83
+        },
+        {
+          "text": "2",
+          "size": 20.0,
+          "bold": true,
+          "top": 2.22,
+          "left": 5.01
+        },
+        {
+          "text": "3",
+          "size": 20.0,
+          "bold": true,
+          "top": 2.22,
+          "left": 9.19
+        },
+        {
+          "text": "L'équipe enregistre transactions, cotisations et notes sur l'appareil.",
+          "size": 13.5,
+          "bold": false,
+          "top": 3.0,
+          "left": 0.83
+        },
+        {
+          "text": "Quand le réseau revient, les données se synchronisent avec le cloud.",
+          "size": 13.5,
+          "bold": false,
+          "top": 3.0,
+          "left": 5.01
+        },
+        {
+          "text": "Les responsables retrouvent une vue consolidée et à jour.",
+          "size": 13.5,
+          "bold": false,
+          "top": 3.0,
+          "left": 9.19
+        },
+        {
+          "text": "Bon à savoir : la consultation et la saisie fonctionnent hors ligne. L'envoi de pièces jointes nécessite une connexion au moment de l'upload.",
+          "size": 13.5,
+          "bold": false,
+          "top": 5.55,
+          "left": 0.85
+        }
+      ],
+      "notes": "Être transparent sur la limite des pièces jointes. L'offline-first couvre la saisie et la lecture, pas l'upload binaire hors réseau."
+    },
+    {
+      "number": 7,
+      "title": "Confiance et traçabilité",
+      "kicker": "SÉCURITÉ",
+      "image": "slides/slide-07.webp",
+      "thumbnail": "thumbs/slide-07.webp",
+      "width": 1920,
+      "height": 1080,
+      "blocks": [
+        {
+          "text": "Rôles & permissions",
+          "size": 16.0,
+          "bold": true,
+          "top": 2.0,
+          "left": 0.79
+        },
+        {
+          "text": "Journal d'audit",
+          "size": 16.0,
+          "bold": true,
+          "top": 2.0,
+          "left": 6.99
+        },
+        {
+          "text": "Chaque utilisateur voit et fait ce que son rôle autorise.",
+          "size": 12.5,
+          "bold": false,
+          "top": 2.46,
+          "left": 0.79
+        },
+        {
+          "text": "Les actions importantes sont tracées pour faciliter le contrôle.",
+          "size": 12.5,
+          "bold": false,
+          "top": 2.46,
+          "left": 6.99
+        },
+        {
+          "text": "Organisations séparées",
+          "size": 16.0,
+          "bold": true,
+          "top": 4.2,
+          "left": 0.79
+        },
+        {
+          "text": "Historique conservé",
+          "size": 16.0,
+          "bold": true,
+          "top": 4.2,
+          "left": 6.99
+        },
+        {
+          "text": "Les données d'une église ou d'un site restent cloisonnées.",
+          "size": 12.5,
+          "bold": false,
+          "top": 4.66,
+          "left": 0.79
+        },
+        {
+          "text": "Les données anciennes restent stockées, même si l'offre limite la consultation.",
+          "size": 12.5,
+          "bold": false,
+          "top": 4.66,
+          "left": 6.99
+        }
+      ],
+      "notes": "Ne pas promettre de SLA contractuel ni de sauvegarde illimitée. Parler de traçabilité, rôles et conservation, pas de certification."
+    },
+    {
+      "number": 8,
+      "title": "Des rapports pour décider",
+      "kicker": "PILOTAGE",
+      "image": "slides/slide-08.webp",
+      "thumbnail": "thumbs/slide-08.webp",
+      "width": 1920,
+      "height": 1080,
+      "blocks": [
+        {
+          "text": "Bilan par période, caisse et catégorie",
+          "size": 15.0,
+          "bold": false,
+          "top": 1.95,
+          "left": 0.89
+        },
+        {
+          "text": "Exemple de lecture budgétaire",
+          "size": 14.0,
+          "bold": true,
+          "top": 2.25,
+          "left": 7.3
+        },
+        {
+          "text": "Exports PDF et Excel pour le conseil ou l'assemblée",
+          "size": 15.0,
+          "bold": false,
+          "top": 2.57,
+          "left": 0.89
+        },
+        {
+          "text": "Prévu",
+          "size": 12.0,
+          "bold": false,
+          "top": 2.95,
+          "left": 7.3
+        },
+        {
+          "text": "Suivi des budgets : prévu, réel, écart",
+          "size": 15.0,
+          "bold": false,
+          "top": 3.19,
+          "left": 0.89
+        },
+        {
+          "text": "Réel",
+          "size": 12.0,
+          "bold": false,
+          "top": 3.73,
+          "left": 7.3
+        },
+        {
+          "text": "Historique consultable selon l'offre choisie",
+          "size": 15.0,
+          "bold": false,
+          "top": 3.81,
+          "left": 0.89
+        },
+        {
+          "text": "Restant",
+          "size": 12.0,
+          "bold": false,
+          "top": 4.51,
+          "left": 7.3
+        },
+        {
+          "text": "L'offre Essentiel limite la consultation aux 30 derniers jours ; l'offre Église ouvre l'historique et les rapports d'organisation.",
+          "size": 13.0,
+          "bold": false,
+          "top": 6.05,
+          "left": 0.55
+        }
+      ],
+      "notes": "Le graphique est illustratif, pas une donnée client. Faire le lien entre historique et valeur de pilotage."
+    },
+    {
+      "number": 9,
+      "title": "Pour les réseaux et méga-églises",
+      "kicker": "MULTI-ORGANISATIONS",
+      "image": "slides/slide-09.webp",
+      "thumbnail": "thumbs/slide-09.webp",
+      "width": 1920,
+      "height": 1080,
+      "blocks": [
+        {
+          "text": "Administrer plusieurs organisations depuis un espace central",
+          "size": 15.0,
+          "bold": false,
+          "top": 1.95,
+          "left": 0.89
+        },
+        {
+          "text": "Administration centrale",
+          "size": 13.0,
+          "bold": true,
+          "top": 2.31,
+          "left": 8.2
+        },
+        {
+          "text": "Consolider les rapports inter-organisations",
+          "size": 15.0,
+          "bold": false,
+          "top": 2.57,
+          "left": 0.89
+        },
+        {
+          "text": "Suivre les sites, annexes ou églises filles",
+          "size": 15.0,
+          "bold": false,
+          "top": 3.19,
+          "left": 0.89
+        },
+        {
+          "text": "Donner des accès ciblés aux responsables centraux",
+          "size": 15.0,
+          "bold": false,
+          "top": 3.81,
+          "left": 0.89
+        },
+        {
+          "text": "Site A",
+          "size": 12.0,
+          "bold": false,
+          "top": 4.53,
+          "left": 7.25
+        },
+        {
+          "text": "Site B",
+          "size": 12.0,
+          "bold": false,
+          "top": 4.53,
+          "left": 9.0
+        },
+        {
+          "text": "Site C",
+          "size": 12.0,
+          "bold": false,
+          "top": 4.53,
+          "left": 10.75
+        },
+        {
+          "text": "Offre Réseau : jusqu'à 5 organisations incluses dans la proposition commerciale.",
+          "size": 14.0,
+          "bold": true,
+          "top": 6.15,
+          "left": 0.8
+        }
+      ],
+      "notes": "Le quota de 5 organisations est une recommandation commerciale, pas une limite technique déjà vérifiée dans l'app."
+    },
+    {
+      "number": 10,
+      "title": "Trois offres mensuelles",
+      "kicker": "TARIFS EN FCFA",
+      "image": "slides/slide-10.webp",
+      "thumbnail": "thumbs/slide-10.webp",
+      "width": 1920,
+      "height": 1080,
+      "blocks": [
+        {
+          "text": "Recommandé",
+          "size": 10.5,
+          "bold": true,
+          "top": 1.49,
+          "left": 5.88
+        },
+        {
+          "text": "Essentiel",
+          "size": 20.0,
+          "bold": true,
+          "top": 1.95,
+          "left": 0.83
+        },
+        {
+          "text": "Église",
+          "size": 20.0,
+          "bold": true,
+          "top": 1.95,
+          "left": 5.01
+        },
+        {
+          "text": "Réseau",
+          "size": 20.0,
+          "bold": true,
+          "top": 1.95,
+          "left": 9.19
+        },
+        {
+          "text": "2 500 F",
+          "size": 32.0,
+          "bold": true,
+          "top": 2.42,
+          "left": 0.83
+        },
+        {
+          "text": "5 000 F",
+          "size": 32.0,
+          "bold": true,
+          "top": 2.42,
+          "left": 5.01
+        },
+        {
+          "text": "12 000 F",
+          "size": 32.0,
+          "bold": true,
+          "top": 2.42,
+          "left": 9.19
+        },
+        {
+          "text": "par mois · Commencer à gérer",
+          "size": 11.5,
+          "bold": false,
+          "top": 3.05,
+          "left": 0.83
+        },
+        {
+          "text": "par mois · Piloter toute l'année",
+          "size": 11.5,
+          "bold": false,
+          "top": 3.05,
+          "left": 5.01
+        },
+        {
+          "text": "par mois · Coordonner plusieurs sites",
+          "size": 11.5,
+          "bold": false,
+          "top": 3.05,
+          "left": 9.19
+        },
+        {
+          "text": "1 organisation",
+          "size": 11.8,
+          "bold": false,
+          "top": 3.55,
+          "left": 1.07
+        },
+        {
+          "text": "1 organisation",
+          "size": 11.8,
+          "bold": false,
+          "top": 3.55,
+          "left": 5.25
+        },
+        {
+          "text": "Jusqu'à 5 organisations",
+          "size": 11.8,
+          "bold": false,
+          "top": 3.55,
+          "left": 9.43
+        },
+        {
+          "text": "Consultation des 30 derniers jours",
+          "size": 11.8,
+          "bold": false,
+          "top": 4.05,
+          "left": 1.07
+        },
+        {
+          "text": "Historique et rapports d'organisation",
+          "size": 11.8,
+          "bold": false,
+          "top": 4.05,
+          "left": 5.25
+        },
+        {
+          "text": "Administration centrale",
+          "size": 11.8,
+          "bold": false,
+          "top": 4.05,
+          "left": 9.43
+        },
+        {
+          "text": "Données anciennes conservées",
+          "size": 11.8,
+          "bold": false,
+          "top": 4.55,
+          "left": 1.07
+        },
+        {
+          "text": "Budgets, cotisations et dons",
+          "size": 11.8,
+          "bold": false,
+          "top": 4.55,
+          "left": 5.25
+        },
+        {
+          "text": "Rapports inter-organisations",
+          "size": 11.8,
+          "bold": false,
+          "top": 4.55,
+          "left": 9.43
+        },
+        {
+          "text": "Pas de rapports d'organisation",
+          "size": 11.8,
+          "bold": false,
+          "top": 5.05,
+          "left": 1.07
+        },
+        {
+          "text": "Exports PDF / Excel",
+          "size": 11.8,
+          "bold": false,
+          "top": 5.05,
+          "left": 5.25
+        },
+        {
+          "text": "Coordination multi-sites",
+          "size": 11.8,
+          "bold": false,
+          "top": 5.05,
+          "left": 9.43
+        },
+        {
+          "text": "Création d'organisations limitée",
+          "size": 11.8,
+          "bold": false,
+          "top": 5.55,
+          "left": 1.07
+        },
+        {
+          "text": "Pour une église locale",
+          "size": 11.8,
+          "bold": false,
+          "top": 5.55,
+          "left": 5.25
+        },
+        {
+          "text": "Pour méga-église ou réseau",
+          "size": 11.8,
+          "bold": false,
+          "top": 5.55,
+          "left": 9.43
+        },
+        {
+          "text": "Offres commerciales proposées en FCFA/mois. Périmètre exact, quotas et activation à valider au déploiement.",
+          "size": 9.5,
+          "bold": false,
+          "top": 6.72,
+          "left": 0.55
+        }
+      ],
+      "notes": "Ne pas dire que l'app bloque déjà automatiquement les quotas : l'application des offres reste à implémenter/valider. Voir audit coûts : à 10 églises, le socle technique est un coût d'amorçage."
+    },
+    {
+      "number": 11,
+      "title": "Mise en place accompagnée",
+      "kicker": "DÉMARRAGE",
+      "image": "slides/slide-11.webp",
+      "thumbnail": "thumbs/slide-11.webp",
+      "width": 1920,
+      "height": 1080,
+      "blocks": [
+        {
+          "text": "1",
+          "size": 18.0,
+          "bold": true,
+          "top": 2.24,
+          "left": 0.8
+        },
+        {
+          "text": "2",
+          "size": 18.0,
+          "bold": true,
+          "top": 2.24,
+          "left": 3.93
+        },
+        {
+          "text": "3",
+          "size": 18.0,
+          "bold": true,
+          "top": 2.24,
+          "left": 7.06
+        },
+        {
+          "text": "4",
+          "size": 18.0,
+          "bold": true,
+          "top": 2.24,
+          "left": 10.19
+        },
+        {
+          "text": "Cadrage",
+          "size": 16.5,
+          "bold": true,
+          "top": 2.95,
+          "left": 0.8
+        },
+        {
+          "text": "Configuration",
+          "size": 16.5,
+          "bold": true,
+          "top": 2.95,
+          "left": 3.93
+        },
+        {
+          "text": "Formation",
+          "size": 16.5,
+          "bold": true,
+          "top": 2.95,
+          "left": 7.06
+        },
+        {
+          "text": "Démarrage",
+          "size": 16.5,
+          "bold": true,
+          "top": 2.95,
+          "left": 10.19
+        },
+        {
+          "text": "Caisses, rôles, exercice, catégories et besoins de rapport.",
+          "size": 12.5,
+          "bold": false,
+          "top": 3.45,
+          "left": 0.8
+        },
+        {
+          "text": "Organisation, membres, groupes, budgets et modèles.",
+          "size": 12.5,
+          "bold": false,
+          "top": 3.45,
+          "left": 3.93
+        },
+        {
+          "text": "Prise en main par l'équipe de saisie et les responsables.",
+          "size": 12.5,
+          "bold": false,
+          "top": 3.45,
+          "left": 7.06
+        },
+        {
+          "text": "Saisie réelle, premiers rapports et ajustements.",
+          "size": 12.5,
+          "bold": false,
+          "top": 3.45,
+          "left": 10.19
+        },
+        {
+          "text": "Objectif : démarrer petit, avec une caisse, un culte et un budget, puis étendre à toute l'organisation.",
+          "size": 14.0,
+          "bold": false,
+          "top": 5.8,
+          "left": 0.55
+        }
+      ],
+      "notes": "Rassurer sur l'accompagnement sans promettre un délai contractuel non validé."
+    },
+    {
+      "number": 12,
+      "title": "Bon à savoir avant de démarrer",
+      "kicker": "TRANSPARENCE",
+      "image": "slides/slide-12.webp",
+      "thumbnail": "thumbs/slide-12.webp",
+      "width": 1920,
+      "height": 1080,
+      "blocks": [
+        {
+          "text": "Paiements",
+          "size": 16.0,
+          "bold": true,
+          "top": 2.0,
+          "left": 0.79
+        },
+        {
+          "text": "Pièces jointes",
+          "size": 16.0,
+          "bold": true,
+          "top": 2.0,
+          "left": 7.07
+        },
+        {
+          "text": "Lumina organise et trace les dons et cotisations. L'encaissement mobile ou carte dépend d'un prestataire de paiement séparé.",
+          "size": 12.5,
+          "bold": false,
+          "top": 2.46,
+          "left": 0.79
+        },
+        {
+          "text": "Les justificatifs et archives sont envoyés lorsque la connexion est disponible. La saisie texte reste possible hors ligne.",
+          "size": 12.5,
+          "bold": false,
+          "top": 2.46,
+          "left": 7.07
+        },
+        {
+          "text": "Stockage & utilisateurs",
+          "size": 16.0,
+          "bold": true,
+          "top": 4.2,
+          "left": 0.79
+        },
+        {
+          "text": "Engagement de service",
+          "size": 16.0,
+          "bold": true,
+          "top": 4.2,
+          "left": 7.07
+        },
+        {
+          "text": "Les offres ne promettent pas un stockage ou des utilisateurs illimités. Le dimensionnement se fait selon l'usage réel.",
+          "size": 12.5,
+          "bold": false,
+          "top": 4.66,
+          "left": 0.79
+        },
+        {
+          "text": "Les délais d'assistance, sauvegardes avancées et engagements contractuels se définissent au déploiement.",
+          "size": 12.5,
+          "bold": false,
+          "top": 4.66,
+          "left": 7.07
+        }
+      ],
+      "notes": "Cette slide protège la confiance : elle évite les promesses d'illimité, de SLA ou de paiement intégré non vérifiées."
+    },
+    {
+      "number": 13,
+      "title": "Planifions une démonstration avec vos cas d'usage.",
+      "kicker": "",
+      "image": "slides/slide-13.webp",
+      "thumbnail": "thumbs/slide-13.webp",
+      "width": 1920,
+      "height": 1080,
+      "blocks": [
+        {
+          "text": "Lumina",
+          "size": 24.0,
+          "bold": true,
+          "top": 0.82,
+          "left": 1.6
+        },
+        {
+          "text": "Choisissez une caisse, un culte, un budget et un rapport : nous les déroumons ensemble dans Lumina.",
+          "size": 18.0,
+          "bold": false,
+          "top": 3.45,
+          "left": 0.7
+        },
+        {
+          "text": "Réserver une démonstration",
+          "size": 14.5,
+          "bold": true,
+          "top": 4.78,
+          "left": 0.7
+        },
+        {
+          "text": "Tester l'offre Église",
+          "size": 14.5,
+          "bold": true,
+          "top": 4.78,
+          "left": 4.55
+        }
+      ],
+      "notes": "Clôturer sur une action simple. Ne pas inventer de contact email/téléphone non fourni ; utiliser le canal de la présentation."
+    }
+  ]
+}
