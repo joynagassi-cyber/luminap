@@ -17,8 +17,9 @@
  * donc PAS verrouillés ici pour ne pas figer une régression connue.
  *
  * Les couleurs d'ARGENT `--in` / `--out` sont, elles, désormais VERROUILLÉES
- * (voir le second `describe`). L'ancien rouge de marque `--data-expense`
- * (#e51332), porté en TEXTE, ne tenait que 3.34–4.08:1 sur les surfaces sombres
+ * (voir le second `describe`). L'ancien rouge de marque (jeton financier
+ * historique, désormais supprimé par la migration addendum-2), porté en TEXTE,
+ * ne tenait que 3.34–4.08:1 sur les surfaces sombres
  * de la maquette (échec AA) — c'est le rouge « vif/agressif » signalé sur
  * l'historique et l'accueil. La migration addendum-2 a remplacé ces jetons par
  * `--in` / `--out` **par mode** (sombre #4ade80 / #f87171, clair #166534 /
