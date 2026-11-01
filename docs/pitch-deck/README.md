@@ -39,6 +39,20 @@ PYTHONPATH=.venv/pitch-tools/python python scripts/pitch-deck/build_deck.py
 
 Le script utilise les polices Manrope / Inter présentes dans `.venv/pitch-tools/fonts` si disponibles, avec repli Helvetica côté PDF. Les assets sont dans `scripts/pitch-deck/assets`.
 
+## Lecteur web
+
+Un lecteur statique permet de parcourir les diapositives, lire le texte extrait du PPTX, afficher les notes orateur, ouvrir le PDF original et télécharger les deux fichiers.
+
+```bash
+# Prépare les aperçus WebP + data.json depuis le PDF/PPTX existants
+PYTHONPATH=.venv/pitch-tools/python python scripts/pitch-deck/build_viewer.py
+
+# Lance le lecteur sur 0.0.0.0:4173
+node scripts/pitch-deck/serve-viewer.mjs
+```
+
+Le lecteur n'essaie pas de convertir le PPTX en HTML : l'aperçu visuel utilise le PDF assorti, tandis que le texte et les notes sont extraits du PPTX original. Les fichiers originaux restent téléchargeables.
+
 ## Lien avec l'audit coûts
 
 Le deck ne montre pas les coûts internes. Voir `docs/audit-couts/` pour le simulateur et le rapport d'infrastructure. Les prix restent proposés tant que les factures réelles et les frais d'encaissement ne sont pas validés.
