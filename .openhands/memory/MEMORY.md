@@ -1177,3 +1177,25 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
 - Gates : vitest 206 fichiers / 2157 passés ; tsc 0 ; eslint 0 erreur.
 - Hors périmètre laissé : `--data-danger` non défini (repli en dur) dans
   UpdateDialog.tsx + SettingsAbout.tsx (pré-existant).
+
+## « Présent » ≠ « complet » — le contrat PROPOSALS est implémenté mais 3 features sont PARTIELLES (2026-11-01)
+- **Méthode** : ne pas se fier aux ✅ de `docs/agent/PROPOSALS.md` — vérifier
+  dans le code (`grep -c writeAudit <service>`, `grep -rniE
+  "parseBackup|importBackup|restoreBackup"`, lister les `onClick` d'un écran).
+- **Écart A — audit (PR1 / NeverBreak #6)** : `writeAudit` n'est appelé que par
+  `transaction-service`, `reporting`, `formSystem`, `customFields`. **0** dans
+  `member/cotisation/versement/group/group-lifecycle/event/ownershipTransfer`
+  → l'invariant « AuditLog sur toute mutation » est FAUX pour ces entités.
+- **Écart B — sauvegarde (PR2)** : `src/lib/backup.ts` = **export seulement**
+  (JSON/CSV). Aucun import/restauration → « réversibilité » à moitié tenue.
+- **Écart C — corbeille (PR3)** : `/archives` (`Archives.tsx`) restaure
+  (`lifecycle.restore`) mais **aucune purge** (suppression définitive).
+- **Analyse livrée** : `docs/agent/PROPOSALS_GAP_ANALYSIS.md` (PR #328).
+- **Implémentation** : agents G (audit) / H (import) / I (purge) — PRs dédiées.
+- **Piège gh** : `gh pr merge` sur une PR **draft** échoue (exit 0, message
+  « Pull Request is still a draft ») → `gh pr ready <n>` d'abord.
+- **Palette #193 (valeurs courantes)** : dark canvas `#0f0f10` / surface-card
+  `#1a1a1c` / text `#f4f4f5` / border `#2c2c30` / skeleton `#1a1a1c`+`#232326` ;
+  light canvas `#f7f7f8` / text `#18181b` / border `#e4e4e7`. Défaut thème =
+  `system`. Deux specs E2E portaient l'ancienne palette : `theme-modes.cy.ts`
+  ET `responsive-skeleton.cy.ts` (ne pas en oublier un quand une palette change).
