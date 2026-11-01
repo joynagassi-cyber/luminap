@@ -3,64 +3,46 @@ import { fr } from "date-fns/locale";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import type { Transaction } from "@/types";
+import { formatAmount, formatMoney } from "./moneyFormat";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
 /**
- * Format an amount stored in cents to a compact display string.
- * Rule: < 1000 FCFA → full number, ≥ 1000 → K, ≥ 1 000 000 → M
- * Examples (input is cents):
- *   50000   → "500"        (500 FCFA)
- *   500000  → "5K"         (5 000 FCFA)
- *   1500000 → "1.5M"       (15 000 FCFA)
- *   50000000→ "50K"        (500 000 FCFA)
- */
-/**
- * Convert cents to FCFA full display (no K/M).
- * Examples: 50000 → "500", 500000 → "5 000", 1500000 → "15 000"
+ * Convertit des centimes en affichage FCFA « complet » (sans K/M).
+ * Toujours complet : l'appelant a explicitement demandé les chiffres bruts.
+ * Exemples : 50000 → "500", 500000 → "5 000", 1500000 → "15 000"
  */
 export function formatCurrencyFull(cents: number): string {
-  const ffa = cents / 100;
-  return new Intl.NumberFormat("fr-FR", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(ffa);
-}
-
-export function formatCurrencyCompact(cents: number): string {
-  const ffa = cents / 100;
-  if (Math.abs(ffa) >= 1_000_000) return `${(ffa / 1_000_000).toFixed(1)}M`;
-  if (Math.abs(ffa) >= 1_000) return `${(ffa / 1_000).toFixed(0)}K`;
-  return new Intl.NumberFormat("fr-FR", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(ffa);
+  return formatAmount(cents, "full");
 }
 
 /**
- * Format cents to FCFA compact display.
- * Delegates to formatCurrencyCompact which handles the K/M formatting.
- * Examples:
- *   500000 cents → "5K" (5 000 FCFA)
- *   50000 cents → "500" (500 FCFA)
- *   1500000 cents → "15K" (15 000 FCFA)
+ * Affichage des montants « compact » — délègue au FORMAT CHOISI PAR
+ * L'UTILISATEUR (`src/lib/moneyFormat.ts`). Défaut : « 50 000 FCFA » (chiffres
+ * groupés + devise) ; options : compact (50K), complet sans devise (50 000),
+ * compact avec devise (50K FCFA). Voir Réglages → Thème & apparence.
+ */
+export function formatCurrencyCompact(cents: number): string {
+  return formatMoney(cents);
+}
+
+/**
+ * Format cents to FCFA (format choisi par l'utilisateur).
+ *   préférence « complet » → "5 000"  /  "50 000 FCFA"
+ *   préférence « compact » → "5K"     /  "50K FCFA"
  */
 export function formatCentsToFCFA(cents: number): string {
-  return formatCurrencyCompact(cents);
+  return formatMoney(cents);
 }
 
 /**
- * Convert cents to FCFA full display (no K/M).
- * Examples: 50000 → "500", 500000 → "5 000", 1500000 → "15 000"
+ * Convertit des centimes en affichage FCFA « complet » (sans K/M).
+ * Exemples : 50000 → "500", 500000 → "5 000", 1500000 → "15 000"
  */
 export function formatCentsFull(cents: number): string {
-  const ffa = cents / 100;
-  return new Intl.NumberFormat("fr-FR", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(ffa);
+  return formatAmount(cents, "full");
 }
 
 /**

@@ -217,7 +217,7 @@ export function markCotisationPaid(
       compensatesFor: null,
       comment:
         donCents > 0
-          ? `Cotisation + don ${formatCentsToFCFA(donCents)} FCFA`
+          ? `Cotisation + don ${formatCentsToFCFA(donCents)}`
           : "Cotisation",
       version: 1,
       sourceCaisseId: "main",

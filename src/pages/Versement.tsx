@@ -36,14 +36,21 @@ export default function Versement() {
   const accounts = psAccounts ?? [];
   const transactions = psTransactions ?? [];
 
+  // Les valeurs de préremplissage voyagent par QUERY PARAM : le routeur Ionic
+  // ne préserve pas `location.state` entre les vues, donc « Verser » depuis un
+  // groupe ouvrait la page avec AUCUNE caisse (ni montant) — le bouton restait
+  // désactivé, sans explication. Repli sur `location.state` pour le web direct.
+  const qs = new URLSearchParams(location.search);
+  const stateCaisseId = (location.state as any)?.caisseId;
+  const stateAmount = (location.state as any)?.defaultAmount;
   const [selectedCaisse, setSelectedCaisse] = useState<string>(
-    (location.state as any)?.caisseId || "",
+    qs.get("caisseId") || stateCaisseId || "",
   );
-  const [amount, setAmount] = useState<string>(
-    (location.state as any)?.defaultAmount
-      ? String(Math.round((location.state as any).defaultAmount / 100))
-      : "",
-  );
+  const [amount, setAmount] = useState<string>(() => {
+    const q = qs.get("defaultAmount");
+    const raw = q != null ? Number(q) : stateAmount;
+    return raw ? String(Math.round(raw / 100)) : "";
+  });
   const [comment, setComment] = useState("");
   const [showConfirm, setShowConfirm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);

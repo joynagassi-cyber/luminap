@@ -177,9 +177,9 @@ export default function GroupDetail() {
   ];
 
   const handleVersement = () => {
-    navigate("/versement", {
-      state: { caisseId: account.id, defaultAmount: balance },
-    });
+    navigate(
+      `/versement?caisseId=${account.id}&defaultAmount=${balance}`,
+    );
   };
 
   const handleUpdate = async () => {
@@ -384,7 +384,7 @@ export default function GroupDetail() {
           {/* Quick actions */}
           <div className="flex gap-3 mb-6">
             <button
-              onClick={() => navigate(`/groups/${id}/transaction/new`)}
+              onClick={() => navigate(`/groups/${id}/transaction/new?type=INCOME`)}
               className="flex-1 py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-95"
               style={{
                 backgroundColor: "color-mix(in srgb, var(--in) 12%, transparent)",
@@ -396,9 +396,7 @@ export default function GroupDetail() {
             </button>
             <button
               onClick={() =>
-                navigate(`/groups/${id}/transaction/new`, {
-                  state: { type: "EXPENSE" },
-                })
+                navigate(`/groups/${id}/transaction/new?type=EXPENSE`)
               }
               className="flex-1 py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-95"
               style={{
@@ -472,7 +470,7 @@ export default function GroupDetail() {
                 </p>
                 <button
                   onClick={() =>
-                    navigate("/finance", { state: { caisseId: account.id } })
+                    navigate(`/finance?caisseId=${account.id}`)
                   }
                   className="text-xs font-medium"
                   style={{ color: "var(--accent-primary)" }}
@@ -706,7 +704,7 @@ export default function GroupDetail() {
                             </p>
                             <p className="text-text-tertiary text-xs">
                               {formatDate(tx.date)} ·{" "}
-                              {formatCurrencyCompact(tx.amount)} FCFA
+                              {formatCurrencyCompact(tx.amount)}
                             </p>
                           </div>
                         </div>

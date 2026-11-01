@@ -399,3 +399,91 @@ describe("sendProblemReport — identités de l'utilisateur courant (PR5)", () =
     ).not.toThrow();
   });
 });
+
+/**
+ * PR5 — audit PII ADVERSARIAL (vérification indépendante).
+ *
+ * On injecte, dans TOUS les canaux d'entrée du rapport (note libre + messages
+ * d'erreur repris), des PII de formes variées : e-mail, jeton Bearer/JWT,
+ * numéro de téléphone FR, nom d'un MEMBRE de l'organisation, identifiant
+ * d'organisation. Le rapport sérialisé ne doit en contenir AUCUNE, y compris
+ * dans l'objet transmis à Sentry (`extra.report`) et dans le journal local.
+ */
+describe("PR5 — audit PII adversarial (aucune fuite, tous canaux)", () => {
+  const MEMBER = "Jean-Baptiste Kouassi";
+  const EMAIL = "jb.kouassi@church.org";
+  const PHONE = "06 12 34 56 78";
+  const TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.abcdefghijklmnop";
+  const ORG_ID = "org-secret-42";
+  const note = `Note: ${MEMBER} (${EMAIL}, ${PHONE}) jeton=${TOKEN} org=${ORG_ID}`;
+
+  it("ne fuit AUCUNE PII de forme (e-mail/jeton/téléphone) dans le rapport", () => {
+    const report = buildProblemReport(
+      base,
+      [{ source: "handled", message: `échec pour ${MEMBER} <${EMAIL}> ${PHONE} ${TOKEN}` }],
+      "t",
+      note,
+    );
+    const s = JSON.stringify(report);
+    expect(s).not.toContain(EMAIL);
+    expect(s).not.toContain(TOKEN);
+    expect(s).not.toContain(PHONE);
+  });
+
+  it("retire par VALEUR le nom d'un membre connu (prénom/nom fournis)", () => {
+    const report = buildProblemReport(
+      base,
+      [{ source: "handled", message: `erreur liée à ${MEMBER}` }],
+      "t",
+      `voir ${MEMBER}`,
+      [MEMBER, "Jean-Baptiste", "Kouassi"],
+    );
+    const s = JSON.stringify(report);
+    expect(s).not.toContain(MEMBER);
+    expect(s).not.toContain("Kouassi");
+    expect(report.note).toContain("<masqué>");
+  });
+
+  it("n'expose jamais l'ID technique d'organisation, même fourni dans la note", () => {
+    // `base.orgId === "org-1"` : l'ID de l'organisation ACTIVE est la valeur
+    // réellement à risque (elle transite déjà par `collectHealthInputs`).
+    const report = buildProblemReport(base, [], "t", `org=${base.orgId}`);
+    expect(JSON.stringify(report)).not.toContain(base.orgId);
+    expect(report.note).toContain("<masqué>");
+  });
+
+  it("le contexte transmis à Sentry (extra.report) est lui aussi sans PII", () => {
+    vi.stubEnv("VITE_SENTRY_DSN", "https://abc@o0.ingest.sentry.io/1");
+    try {
+      sendProblemReport(
+        base,
+        [{ source: "onerror", message: `${MEMBER} ${EMAIL} ${PHONE}` }],
+        `jeton ${TOKEN}`,
+        "2026-10-31T08:00:00.000Z",
+        [MEMBER],
+      );
+      const call = vi.mocked(Sentry.captureMessage).mock.calls[0];
+      const s = JSON.stringify(call[1]);
+      expect(s).not.toContain(MEMBER);
+      expect(s).not.toContain(EMAIL);
+      expect(s).not.toContain(PHONE);
+      expect(s).not.toContain(TOKEN);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it("le journal local persisté est lui aussi sans PII", () => {
+    sendProblemReport(
+      base,
+      [{ source: "handled", message: `${MEMBER} ${EMAIL}` }],
+      `tel ${PHONE}`,
+      "2026-10-31T08:00:00.000Z",
+      [MEMBER],
+    );
+    const stored = localStorage.getItem("lumina-problem-reports") ?? "";
+    expect(stored).not.toContain(MEMBER);
+    expect(stored).not.toContain(EMAIL);
+    expect(stored).not.toContain(PHONE);
+  });
+});

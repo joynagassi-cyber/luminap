@@ -510,24 +510,28 @@ export function useTransactions() {
   // render (cache vide) la fonction appelait 4 hooks, au render suivant
   // (cache rempli) elle n'en appelait que 3 → « change in the order of
   // Hooks » → crash d'Ionic (`Should have a queue`) et ErrorBoundary sur
-  // /transaction/:id/edit. Aucun hook ne doit être sauté : le cache est
-  // donc consulté APRÈS, et le résultat de useQuery est simplement ignoré
-  // s'il est périmé.
+  // /transaction/:id/edit. Le cache est donc TOUJOURS lu APRÈS `useQuery`,
+  // et aucun hook n'est sauté quel que soit le chemin de retour.
   const cached = get<PSTransaction[]>("txs:" + orgId);
 
   const { data: psData, isLoading: psStatus } = useQuery<PSTransaction>(
     "SELECT id, org_id, type, amount, description, date, status, category_id, org_unit_id, event_id, source, person_name, compensates_for, comment, version, source_caisse_id, versement_id, reversal_of_id, created_by_id, approved_by_id, created_at, updated_at, approved_at FROM transactions WHERE org_id = ? ORDER BY created_at DESC",
-    [orgId],
+    [orgId, orgRev],
     { reportFetching: true },
   );
 
-  if (cached)
-    return { data: cached, isLoading: false, source: "cached" as const };
-
+  // La donnée PowerSync VIVANTE prime toujours sur le cache mémoire : c'est
+  // elle qui reflète une création/édition (y compris depuis un autre appareil
+  // après synchronisation). Le cache ne sert que de repli quand la requête est
+  // momentanément vide. Inverser ces deux branches laissait l'écran figé sur
+  // une liste périmée jusqu'à expiration du TTL (60 s) — « l'UI ne se met pas
+  // à jour ».
   if (psData && psData.length > 0 && isPowerSyncReady()) {
     set("txs:" + orgId, psData, { tier: "cpu" });
     return { data: psData, isLoading: false, source: "powersync" as const };
   }
+
+  if (cached) return { data: cached, isLoading: false, source: "cached" as const };
 
   return {
     data: store.transactions,
@@ -1100,6 +1104,18 @@ export async function executeWrite(
 ): Promise<number> {
   const db = getPowerSyncDatabase();
   const result = await db.execute(sql, params);
+  // Toute écriture sur `transactions` invalide le cache mémoire des
+  // transactions ET des soldes. Sans cela, `useTransactions` ressert la liste
+  // figée et `getAccountBalance` un solde figé (TTL « cpu » = 60 s) : après une
+  // création/édition/suppression, l'écran n'affiche PAS la transaction ni le
+  // nouveau solde qu'on vient d'enregistrer — c'est le « l'UI ne se met pas à
+  // jour » constaté. Point d'étranglement unique : addTransactionPS/
+  // updateTransactionPS/deleteTransactionPS/approve/reverse ET les INSERT
+  // directs de versement-service / cotisation-service passent tous par ici.
+  if (/\btransactions\b/i.test(sql)) {
+    invalidate("txs:");
+    invalidate("balance:");
+  }
   return (result as { rowsAffected?: number })?.rowsAffected ?? 1;
 }
 

@@ -53,7 +53,10 @@ export default function TransactionNew() {
     new URLSearchParams(location.search).get("type") ||
     (location.state as any)?.type ||
     "";
-  const preselectedEvent = (location.state as any)?.eventId || "";
+  const preselectedEvent =
+    new URLSearchParams(location.search).get("eventId") ||
+    (location.state as any)?.eventId ||
+    "";
 
   // PowerSync with fallback
   const { data: psCategories } = useCategories();
@@ -120,11 +123,19 @@ export default function TransactionNew() {
   // `handleSubmit` refusait silencieusement l'enregistrement
   // (« Veuillez remplir tous les champs obligatoires »). On rattrape donc
   // l'arrivée asynchrone des catégories — sans écraser un choix explicite.
+  //
+  // Le choix explicite ne vaut que POUR LE TYPE courant : basculer Entrée↔Sortie
+  // change la liste des catégories, donc la catégorie sélectionnée n'existe plus
+  // et il faut reprendre la 1re du nouveau type (sinon on enregistre une
+  // transaction dont la catégorie n'appartient pas à son type).
+  const lastTypeRef = useRef(type);
   useEffect(() => {
-    if (categoryId) return;
-    const first = filteredCategories[0]?.id;
-    if (first) setCategoryId(first);
-  }, [categoryId, filteredCategories]);
+    const typeChanged = lastTypeRef.current !== type;
+    lastTypeRef.current = type;
+    if (typeChanged || !categoryId) {
+      setCategoryId(filteredCategories[0]?.id ?? "");
+    }
+  }, [type, categoryId, filteredCategories]);
 
   const submitTransaction = async () => {
     const trimmedAmount = amount.trim();
@@ -142,6 +153,12 @@ export default function TransactionNew() {
     setError("");
     const sessionId = localStorage.getItem("lumina-session") || "local-user";
     const isExpense = type === "EXPENSE";
+    // Statut dérivé du type, calculé UNE fois. Avant, le code lisait `status`
+    // (identifiant libre) qui se résolvait en réalité sur `window.status`
+    // (toujours "") : la comparaison `status === "PENDING"` était donc toujours
+    // fausse et la notification « dépense en attente d'approbation » n'était
+    // JAMAIS envoyée aux trésoriers — échec silencieux.
+    const status = isExpense ? "PENDING" : "DRAFT";
 
     const amountCents = Math.round(parseFloat(trimmedAmount) * 100);
     const amountCheck = policy.transaction.validateAmount(amountCents);
@@ -158,7 +175,7 @@ export default function TransactionNew() {
         amount: Math.round(parseFloat(trimmedAmount) * 100),
         description,
         date,
-        status: isExpense ? "PENDING" : "DRAFT",
+        status,
         category_id: categoryId,
         org_unit_id: null,
         source_caisse_id: sourceCaisseId || "main",

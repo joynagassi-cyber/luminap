@@ -134,6 +134,13 @@ export function buildProblemReport(
   identities: readonly string[] = [],
 ): ProblemReport {
   const health = buildHealthReport(inputs, now);
+  // L'identifiant technique d'organisation est une PII « par valeur » (pas de
+  // forme détectable) : `redact` ne le voit pas. Le rapport ne doit JAMAIS le
+  // contenir (contrat PR5), or la note libre / un message d'erreur peut le
+  // citer. On l'ajoute donc aux identités à masquer par valeur.
+  const scopedIdentities = inputs.orgId
+    ? [...identities, inputs.orgId]
+    : identities;
   return {
     kind: "lumina-problem-report",
     generatedAt: now,
@@ -145,8 +152,8 @@ export function buildProblemReport(
     failedChecks: health.checks
       .filter((c) => c.level !== "ok")
       .map((c) => c.id),
-    errors: recentErrors.map((e) => toReportError(e, identities)),
-    note: normalizeText(scrubIdentities(redact(note), identities), {
+    errors: recentErrors.map((e) => toReportError(e, scopedIdentities)),
+    note: normalizeText(scrubIdentities(redact(note), scopedIdentities), {
       maxLength: MAX_NOTE_LENGTH,
       collapseWhitespace: false,
     }),

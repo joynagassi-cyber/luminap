@@ -235,7 +235,7 @@ export default function EventDetail() {
     await updateEventPS(event.id, { budget_items: JSON.stringify(updatedItems) });
 
     setSuccess(
-      `Dépense de ${formatCurrencyCompact(amountCents)} FCFA enregistrée`,
+      `Dépense de ${formatCurrencyCompact(amountCents)} enregistrée`,
     );
     setTimeout(() => setSuccess(""), 3000);
     setShowAddExpense(false);
@@ -445,7 +445,7 @@ export default function EventDetail() {
                   <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
                   <span>
                     Budget dépassé de{" "}
-                    {formatCurrencyCompact(budgetSpent - event.budget)} FCFA
+                    {formatCurrencyCompact(budgetSpent - event.budget)}
                   </span>
                 </div>
               )}
@@ -793,9 +793,7 @@ export default function EventDetail() {
               ) && (
                 <button
                   onClick={() =>
-                    navigate("/transaction/new", {
-                      state: { eventId: event.id },
-                    })
+                    navigate(`/transaction/new?eventId=${event.id}`)
                   }
                   className="w-full py-3 rounded-xl font-medium text-sm flex items-center justify-center gap-2 mb-3 transition-all active:scale-95"
                   style={{

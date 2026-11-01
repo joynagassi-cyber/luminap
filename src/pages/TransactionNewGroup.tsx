@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import {
   useCategories,
@@ -46,7 +46,14 @@ export default function TransactionNewGroup() {
 
   const groupAccount = accounts.find((a: any) => a.id === groupId);
   const caisse = caisses.find((c: any) => c.id === groupId);
-  const queryType = (location.state as any)?.type || "INCOME";
+  // Le type arrive par QUERY PARAM (`?type=`) : le routeur Ionic ne préserve
+  // pas le `location.state` de React Router entre les vues. GroupDetail
+  // passait le type via `state` → « Sortie » ouvrait toujours « Entrée »
+  // (défaut), donc le bouton Sortie « ne menait pas vers Sortie ».
+  const queryType =
+    new URLSearchParams(location.search).get("type") ||
+    (location.state as any)?.type ||
+    "INCOME";
 
   const [type, setType] = useState<"INCOME" | "EXPENSE">(queryType as any);
   const [amount, setAmount] = useState("");
@@ -74,6 +81,20 @@ export default function TransactionNewGroup() {
   useEffect(() => {
     setFilteredCategories(categories.filter((c: any) => c.type === type) as any);
   }, [type, categories]);
+
+  // La catégorie sélectionnée doit appartenir au TYPE courant. `categoryId`
+  // était figé sur `categories[0]` du 1er rendu (souvent vide, PowerSync pas
+  // encore hydraté) et n'était jamais recalculé au basculement Entrée↔Sortie :
+  // le champ « Catégorie » restait vide ou portait une catégorie du mauvais
+  // type, et `handleSubmit` refusait alors l'enregistrement.
+  const lastTypeRef = useRef(type);
+  useEffect(() => {
+    const typeChanged = lastTypeRef.current !== type;
+    lastTypeRef.current = type;
+    if (typeChanged || !categoryId) {
+      setCategoryId(filteredCategories[0]?.id ?? "");
+    }
+  }, [type, categoryId, filteredCategories]);
 
   const handleSubmit = async () => {
     const trimmedAmount = amount.trim();
