@@ -208,6 +208,16 @@ streams:
       SELECT * FROM custom_field_definitions
       WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
 
+  # Définitions de rapports (/reports, /report-builder). Scopées à
+  # l'organisation de l'utilisateur, comme `transactions`. Sans ce stream, la
+  # table locale restait vide et les rapports d'une autre session n'étaient
+  # jamais reçus (R184/#317).
+  report_definitions:
+    auto_subscribe: true
+    query: |
+      SELECT * FROM report_definitions
+      WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+
   # ── Invitations ─────────────────────────────────────────────────────────
   # Les invitations sont créées par un admin et validées par un utilisateur.
   # On synchronise :
