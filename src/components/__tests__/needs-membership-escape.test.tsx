@@ -36,9 +36,22 @@ function reachableForNonMember(path: string): boolean {
 }
 
 describe("R120 — l'écran non-membre offre une échappatoire réelle", () => {
-  it("le CTA principal mène à une route praticable pour un non-membre", () => {
+  it("le CTA principal (créer une organisation) mène à une route praticable", () => {
     // Garde anti-dérive : le CTA ne doit jamais viser une route bloquée.
+    // `/org-setup` est exempté de `needs-membership` — c'est le parcours du
+    // créateur self-serve, sans lequel un nouvel inscrit n'a aucune issue.
+    expect(reachableForNonMember("/org-setup")).toBe(true);
     expect(reachableForNonMember("/invitation/claim")).toBe(true);
+    render(
+      <MemoryRouter>
+        <NeedsMembershipScreen />
+      </MemoryRouter>,
+    );
+    fireEvent.click(screen.getByText("Créer une organisation"));
+    expect(mockNavigate).toHaveBeenCalledWith("/org-setup");
+  });
+
+  it("le CTA secondaire (invitation) mène aussi à une route praticable", () => {
     render(
       <MemoryRouter>
         <NeedsMembershipScreen />

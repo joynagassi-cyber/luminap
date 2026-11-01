@@ -1099,6 +1099,42 @@ class AuthService {
     return this.state;
   }
 
+  /**
+   * Re-read the caller's profile from Supabase and publish it to the app.
+   *
+   * Indispensable après une opération serveur qui modifie le profil hors du
+   * flux d'auth habituel — typiquement la création d'organisation (`create_org`
+   * passe le créateur en `ADMIN` et le rattache à la nouvelle organisation).
+   * Sans ce rafraîchissement, `getState().profile` conserve `org_id =
+   * '__no_org__'` / rôle `MEMBRE` : `AppContext` ne résout alors pas la nouvelle
+   * organisation, `useOrgMembership` reste « non-membre » et la garde de route
+   * renvoie l'utilisateur sur l'écran « Organisation non rejointe » — alors que
+   * la base est correcte. Le dashboard devient inatteignable après création.
+   *
+   * Best-effort : renvoie `null` (sans jeter) si le profil est illisible.
+   */
+  async refreshProfile(): Promise<Profile | null> {
+    let uid = this.state.user?.id ?? this.state.profile?.id ?? null;
+    if (!uid) {
+      const session = await this.getSession();
+      uid = session?.user?.id ?? null;
+    }
+    if (!uid) return null;
+    try {
+      const profile = await this.getProfile(uid);
+      if (profile) {
+        // `setState` persiste `lumina-user` ET re-résout le contexte
+        // d'organisation (`syncOrganizationContext`) — la chaîne complète
+        // (AppContext, orgContext, useCurrentUser) se met à jour.
+        this.setState({ profile });
+        this.notifyListeners();
+      }
+      return profile;
+    } catch {
+      return null;
+    }
+  }
+
   // Subscribe to auth changes
   subscribe(callback: () => void): () => void {
     this.listeners.add(callback);
