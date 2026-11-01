@@ -73,8 +73,8 @@
 | 11 | `/settings/notifications` : « Tout est lu » avant lecture (R52.r) | `V: r52r-settings-notifications-loading.test.tsx` (2, non-vacuité vérifiée) | **couvert** |
 | 11 | `/event/:id/edit` : « Chargement... » infini + nom non pré-rempli (R52.s) | `V: r52s-eventedit-loading.test.tsx` (3, non-vacuité vérifiée) | **couvert** |
 | 11 | `/transaction/:id/edit` : formulaire vide en `ready` avant lecture (R52.t) | `V: r52t-transactionedit-loading.test.tsx` (3, non-vacuité vérifiée) | **couvert** |
-| 11 | Export/sauvegarde des données (UI) — PR2 | `V: backup.test.ts` + `V: SettingsGestion-backup.test.tsx` | **couvert** (non-vacuité vérifiée) |
-| 11 | Journal d'audit consultable — détail d'entrée (PR1) | V: Trace-detail.test.tsx | couvert |
+| 11 | Export/sauvegarde des données (UI) — PR2 | `V: backup.test.ts` (12) + `V: SettingsGestion-backup.test.tsx` (5) + `V: useBackupData.test.tsx` (4, hook R52 + périmètre org, non-vacuité vérifiée) | **couvert** (non-vacuité vérifiée) |
+| 11 | Journal d'audit consultable — détail d'entrée (PR1) | `V: Trace-detail.test.tsx` (5, dont verdict honnête « inchangé » — non-vacuité vérifiée) + `V: Trace-labels.test.tsx` (3) | **couvert** |
 | 11 | Socle réglages par organisation `org_settings` (PR8 maker-checker + PR13 gel de période) | `V: org-settings.test.ts` (7) + `SQL: 20261031000007` + stream `org_settings` | **couvert** (fail-safe vérifié) |
 | 11 | Statistiques d'usage anonymisées (PR15) — compteurs locaux sans PII + section « État du système » | `V: usage-stats.test.ts` (20) + `V: health-usage-stats.test.tsx` (3) | **couvert** (non-vacuité vérifiée) |
 | 13 | Centre d'aide étendu (PR16) — recherche accents/casse + FAQ | `V: tutorial-search.test.ts` (16) + `V: Help-search.test.tsx` (8) | **couvert** (non-vacuité vérifiée) |
