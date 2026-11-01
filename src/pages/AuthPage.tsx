@@ -275,7 +275,7 @@ export default function AuthPage() {
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-5">
             <img
-              src="/lumina-logo.png"
+              src="/lumina-logo-version-monochrome.png"
               alt="Lumina"
               className="w-10 h-10 object-contain"
             />

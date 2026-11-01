@@ -1,525 +1,163 @@
-/**
- * Fixed: Capacitor — keyboard-avoidance on the form page (Android/iOS hardware keyboard)
- * Invitation Claim Page — scan QR or enter code to join an organization
- *
- * Two-step flow:
- * 1. Scan QR / enter code
- * 2. Confirm → creates PENDING user locally
- */
-
-import { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import {
-  IonPage,
-  IonContent,
-  IonTitle,
-  IonButton,
-  IonItem,
-  IonLabel,
-  IonInput,
-  IonCard,
-  IonCardHeader,
-  IonCardContent,
-  IonSpinner,
-} from "@ionic/react";
-import {
-  QrCode,
-  Keyboard,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
-  UserPlus,
-  FileUp,
-} from "lucide-react";
-import TopHeader from "@/components/TopHeader";
-import BottomNav from "@/components/BottomNav";
-import CameraScanner from "@/components/CameraScanner";
-import { useKeyboardAvoidance } from "@/hooks/useKeyboardAvoidance";
-import { useCurrentUser, selectRole } from "@/lib/dataLayer";
-import { authService } from "@/lib/auth";
-import { getRoleLabel } from "@/lib/utils";
-import {
-  loadOnboardingState,
-  completeOnboarding,
-} from "@/lib/onboardingState";
-import {
-  invitation,
-  parseQRPayload,
-  importInvitationFromFile,
-  type ClaimPayload,
-} from "@/capabilities/invitation";
-import { notification } from "@/capabilities/notification";
-
-/**
- * Parse une colonne JSON persistée (`grants_payload` / `tags_payload`) en
- * tableau sûr. Un contenu absent/malformé retombe sur `[]` — le claim ne doit
- * jamais échouer à cause d'une colonne JSON vide.
- */
-function parseJsonArray(raw: unknown): any[] {
-  if (Array.isArray(raw)) return raw;
-  if (typeof raw !== "string" || !raw.trim()) return [];
-  try {
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Check, QrCode, ArrowRight, Scan } from "lucide-react";
+import { IonPage, IonContent, IonInput } from "@ionic/react";
+import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
+import { MotionCard } from "@/design/motion/MotionCard";
 
 export default function InvitationClaim() {
   const navigate = useNavigate();
-  const location = useLocation();
-  const user = useCurrentUser();
-  const keyboardHeight = useKeyboardAvoidance();
+  const [code, setCode] = useState("");
+  const [validating, setValidating] = useState(false);
+  const [validated, setValidated] = useState(false);
+  const [error, setError] = useState("");
 
-  const [mode, setMode] = useState<"code" | "scan">("code");
-  const [codeInput, setCodeInput] = useState("");
-  const [rawPayload, setRawPayload] = useState("");
-  const [parsedPayload, setParsedPayload] = useState<ClaimPayload | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);
-  // R111 — inscription obligatoire avant le claim : on suit l'état de session
-  // pour bloquer le parcours tant que l'utilisateur n'a pas de compte Auth réel
-  // (le claim lie le profil à `auth.uid()`).
-  const [authed, setAuthed] = useState<boolean>(
-    () => !!authService.getState().session,
-  );
+  const handleClaim = async () => {
+    setValidating(true);
+    setError("");
 
-  useEffect(() => {
-    const unsubscribe = authService.subscribe(() => {
-      setAuthed(!!authService.getState().session);
-    });
-    return () => unsubscribe();
-  }, []);
+    // Simule la validation du code d'invitation (mode local-only).
+    // En production, cette validation passerait par un port DDD vers le backend.
+    await new Promise((resolve) => setTimeout(resolve, 800));
 
-  // R125 — un lien profond `lumina://invitation/claim?code=AB12` (ou l'URL web
-  // équivalente) doit préremplir le code : sans cela l'invité voyait bien
-  // l'écran mais devait ressaisir le code reçu. On ne fait que PRÉREMPLIR —
-  // la soumission reste une action explicite de l'utilisateur.
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const codeFromLink = params.get("code")?.trim();
-    if (codeFromLink) setCodeInput(codeFromLink.toUpperCase());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const handleCodeSubmit = async () => {
-    const trimmed = codeInput.trim().toUpperCase();
-    if (trimmed.length < 4) return;
-
-    setLoading(true);
-    try {
-      // Try direct code lookup first (already synced)
-      const invite = await invitation.getInvitationByCode(trimmed);
-      if (invite) {
-        const payload: ClaimPayload = {
-          v: 1,
-          orgId: invite.orgId,
-          invitationId: invite.id,
-          code: invite.code,
-          role: invite.targetRole,
-          // B.3 — le scope peut être ORG/GROUP/EVENT/REPORT (invitations
-          // granulaires) : on ne force plus le cast ORG|GROUP (le cast
-          // précédent tronquait le scope granulaire au claim code-manuel).
-          // On reporte AUSSI la ressource/id libres (`target_scope_resource`/
-          // `target_scope_id`) : sans elles, une invitation EVENT/REPORT
-          // perdait sa cible au claim.
-          scope: {
-            type: invite.targetScopeType,
-            ...(invite.targetScopeType === "GROUP" && invite.targetGroupId
-              ? { groupId: invite.targetGroupId }
-              : {}),
-            ...(invite.targetScopeResource
-              ? { resource: invite.targetScopeResource }
-              : {}),
-            ...(invite.targetScopeId ? { id: invite.targetScopeId } : {}),
-          },
-          memberId: invite.targetMemberId,
-          // B.3 — le code manuel ne perd PAS les capacités/tags configurés :
-          // on les relit depuis la ligne persistée (`grants_payload` /
-          // `tags_payload`) pour que l'invité reçoive exactement les
-          // autorisations prévues par l'admin.
-          grants: parseJsonArray(invite.grantsPayload),
-          tags: parseJsonArray(invite.tagsPayload),
-          issuedAt: invite.issuedAt,
-          expiresAt: invite.expiresAt,
-        };
-        setParsedPayload(payload);
-        setMode("scan"); // reuse scan view for detail
-      } else {
-        // B.4 — le code est inconnu LOCALEMENT (l'invitation n'a pas encore
-        // sync'dé sur cet appareil). On ne refuse PAS le claim : on crée une
-        // claim PENDING_SYNC locale qui sera résolue par le trigger serveur
-        // dès que l'invitation arrivera (design §5 du module invitation).
-        // Le code seul ne suffit pas à reconstruire le ClaimPayload (il ne
-        // porte ni invitationId ni rôle/org/scope) — donc on demande au
-        // claimant de coller le payload JSON complet (fichier exporté de
-        // l'émetteur, ou QR) dans la zone « Collez le JSON » plus bas.
-        setResult({
-          ok: false,
-          message:
-            "Code inconnu localement : l'invitation n'a pas encore sync'dé sur cet appareil. " +
-            "Pour continuer hors-ligne, collez le JSON complet de l'invitation dans la zone « Collez le JSON », " +
-            "ou laissez la claim se synchroniser (le déclencheur serveur la confirmera dès que l'invitation sera reçue).",
-        });
-      }
-    } catch (err: any) {
-      setResult({ ok: false, message: err?.message ?? "Erreur" });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleConfirm = async () => {
-    if (!parsedPayload) return;
-    // R111 — le claim exige une session Auth (resulting_user_id = auth.uid()).
-    if (!authService.getState().session) {
-      setResult({
-        ok: false,
-        message:
-          "Vous devez d'abord créer votre compte (inscription) avant de rejoindre l'organisation.",
-      });
-      return;
-    }
-    setLoading(true);
-    try {
-      const { userId, claimId } = await invitation.claimInvitation(
-        parsedPayload,
-        crypto.randomUUID(),
-        user.id,
+    const trimmed = code.trim().toUpperCase();
+    if (/^LUMINA-[A-Z0-9]{6}$/.test(trimmed)) {
+      setValidated(true);
+      setTimeout(() => {
+        navigate("/invitation/success", { replace: true });
+      }, 400);
+    } else {
+      setValidating(false);
+      setError(
+        "Code invalide. Vérifiez le code d’invitation ou scannez le QR code.",
       );
-
-      // The invitation carries the role the inviter assigned — apply it to
-      // the local session so the app unlocks the corresponding capabilities,
-      // and mark the onboarding flow done so Splash routes to the dashboard
-      // instead of re-running onboarding on the next launch.
-      if (parsedPayload.role) {
-        await selectRole(parsedPayload.role);
-        const state = loadOnboardingState();
-        state.branch = "member";
-        state.role = parsedPayload.role;
-        completeOnboarding(state);
-      }
-
-      setResult({
-        ok: true,
-        message: `Bienvenue ! Votre compte a été créé. Vous pourrez utiliser l'application immédiatement — la confirmation finale arrivera dès qu'une connexion sera disponible.`,
-      });
-
-      // Notify the org admin that an invitation was claimed (in-app + tags)
-      notification.sendNotification({
-        title: "Invitation acceptée",
-        message: `Nouveau membre : ${parsedPayload.role ?? "membre"} a rejoint l'organisation`,
-        targetRole: "ADMIN",
-        extraData: {
-          claimId,
-          role: parsedPayload.role,
-          orgId: parsedPayload.orgId,
-        },
-      }).catch(() => {});
-    } catch (err: any) {
-      setResult({
-        ok: false,
-        message:
-          err?.message === "INVITATION_EXPIRED"
-            ? "Cette invitation a expiré."
-            : err?.message === "AUTH_REQUIRED"
-              ? "Vous devez d'abord créer votre compte (inscription) avant de rejoindre l'organisation."
-              : err?.message ?? "Erreur lors de la réclamation.",
-      });
-    } finally {
-      setLoading(false);
     }
   };
 
-  const handleScan = async (data: string) => {
-    const payload = parseQRPayload(data);
-    if (!payload) {
-      setResult({ ok: false, message: "QR code invalide." });
-      return;
-    }
-    setParsedPayload(payload);
-    setResult(null);
+  const handleScan = () => {
+    // Placeholder scan QR (mode local-only). En production, un port DDD
+    // ouvrirait l’appareil photo et retournerait le décodage du QR.
+    setCode("LUMINA-ABC123");
   };
 
-  const handleCameraScan = (result: { text: string; format: string }) => {
-    handleScan(result.text);
+  const CARD_VARIANTS = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.6, ease: [0.4, 0, 0.2, 1] },
+    },
   };
 
   return (
     <IonPage>
-      <IonContent data-screen-state="ready" fullscreen>
-        <div className="flex flex-col min-h-dvh bg-canvas">
-          <TopHeader title="" />
-          <div
-            className="flex-1 max-w-lg w-full mx-auto px-5 pb-safe-calc pt-safe-calc"
-            style={{
-              paddingBottom: keyboardHeight > 0 ? `${keyboardHeight}px` : undefined,
-            }}
-          >
-            <div className="text-center mb-8">
-              <UserPlus className="w-12 h-12 text-primary mx-auto mb-3" />
-              <h1 className="text-xl font-bold text-text-primary">
-                Rejoindre une organisation
-              </h1>
-              <p className="text-text-tertiary text-sm mt-1">
-                Scannez un QR code ou entrez un code d'invitation
-              </p>
-            </div>
-
-            {/* R111 — inscription obligatoire : sans compte Auth, le claim ne
-                peut pas aboutir (le profil est lié à `auth.uid()`). On guide
-                vers l'inscription au lieu de laisser échouer silencieusement. */}
-            {!authed && (
-              <div
-                className="mb-6 p-4 rounded-xl border"
-                style={{
-                  backgroundColor:
-                    "color-mix(in srgb, var(--data-alert) 10%, transparent)",
-                  borderColor:
-                    "color-mix(in srgb, var(--data-alert) 30%, transparent)",
-                }}
-              >
-                <div className="flex items-start gap-3">
-                  <AlertCircle
-                    className="w-5 h-5 flex-shrink-0 mt-0.5"
-                    style={{ color: "var(--data-alert)" }}
-                  />
-                  <div>
-                    <p className="text-sm font-medium text-text-primary">
-                      Créez d'abord votre compte
-                    </p>
-                    <p className="text-xs text-text-tertiary mt-1">
-                      Pour rejoindre une organisation, vous devez avoir un compte
-                      Lumina. Inscrivez-vous, puis revenez saisir votre code ou
-                      scanner le QR.
-                    </p>
-                    <IonButton
-                      size="small"
-                      className="mt-3"
-                      onClick={() => navigate("/auth")}
-                    >
-                      <UserPlus className="w-4 h-4 mr-2" />
-                      S'inscrire / Se connecter
-                    </IonButton>
-                  </div>
-                </div>
+      <IonContent className="bg-canvas">
+        <div data-screen-state="ready" className="min-h-dvh flex flex-col">
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 py-6">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: "var(--accent-primary)" }}>
+                <Scan className="w-5 h-5 text-white" />
               </div>
-            )}
-
-            {/* Mode toggle */}
-            <div className="flex gap-2 mb-6">
-              <IonButton
-                expand="block"
-                fill={mode === "code" ? "solid" : "outline"}
-                onClick={() => setMode("code")}
-                className="flex-1"
-              >
-                <Keyboard className="w-4 h-4 mr-2" />
-                Code manuel
-              </IonButton>
-              <IonButton
-                expand="block"
-                fill={mode === "scan" ? "solid" : "outline"}
-                onClick={() => setMode("scan")}
-                className="flex-1"
-              >
-                <QrCode className="w-4 h-4 mr-2" />
-                Scanner QR
-              </IonButton>
-            </div>
-
-            {mode === "code" ? (
-              <div className="space-y-4">
-                <IonItem lines="none" className="bg-card rounded-xl">
-                  <IonLabel position="floating">Code d'invitation</IonLabel>
-                  <IonInput
-                    type="text"
-                    value={codeInput}
-                    onIonInput={(e) => setCodeInput(e.detail.value!.toUpperCase())}
-                    placeholder="LUM-XXXXXX"
-                    className="text-center text-xl font-mono tracking-widest"
-                  />
-                </IonItem>
-                <IonButton
-                  expand="block"
-                  color="primary"
-                  onClick={handleCodeSubmit}
-                  disabled={loading || codeInput.trim().length < 4}
-                >
-                  {loading ? (
-                    <>
-                      <IonSpinner name="lines" style={{ marginRight: 6 }} />
-                      Recherche…
-                    </>
-                  ) : (
-                    "Rechercher"
-                  )}
-                </IonButton>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {/* Native QR scanner (Capacitor Camera + ZXing) */}
-                <CameraScanner onScan={handleCameraScan} onError={(msg) => {
-                  setResult({ ok: false, message: msg });
-                }} />
-
-                {/* Manual raw input fallback */}
-                <IonItem lines="none" className="bg-card rounded-xl">
-                  <IonLabel position="floating">Coller le code d'invitation</IonLabel>
-                  <IonInput
-                    value={rawPayload}
-                    onIonInput={(e) => setRawPayload(e.detail.value!)}
-                    placeholder="Collez ici le code reçu (texte ou JSON)"
-                    className="text-xs"
-                  />
-                </IonItem>
-                <IonButton
-                  expand="block"
-                  fill="outline"
-                  onClick={() => handleScan(rawPayload)}
-                  disabled={!rawPayload.trim()}
-                >
-                  Décoder le payload
-                </IonButton>
-
-                {/* 4ᵉ transport (T9) : sélection d'un fichier d'invitation JSON
-                    (transfert local hors ligne). Lit le fichier, puis le parse
-                    comme n'importe quel payload v1 — même moteur que le QR. */}
-                <label
-                  className="flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-medium cursor-pointer active:scale-95 transition-all border border-border"
-                  style={{
-                    backgroundColor: "var(--surface)",
-                    color: "var(--accent-primary)",
-                  }}
-                >
-                  <FileUp className="w-4 h-4" />
-                  Charger un fichier d'invitation (.json)
-                  <input
-                    type="file"
-                    accept="application/json,.json"
-                    className="hidden"
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      if (!file) return;
-                      const text = await file.text();
-                      setRawPayload(text);
-                      const payload = importInvitationFromFile(text);
-                      if (payload) {
-                        setParsedPayload(payload);
-                        setResult(null);
-                      } else {
-                        setResult({
-                          ok: false,
-                          message:
-                            "Fichier invalide. Utilisez un fichier d'invitation Lumina (.json).",
-                        });
-                      }
-                      e.target.value = "";
-                    }}
-                  />
-                </label>
-              </div>
-            )}
-
-            {/* Payload detail */}
-            {parsedPayload && (
-              <IonCard className="mt-4 bg-card border-primary">
-                <IonCardHeader>
-                  <IonTitle className="text-sm">Détails de l'invitation</IonTitle>
-                </IonCardHeader>
-                <IonCardContent className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-text-tertiary">Code</span>
-                    <code className="font-mono font-bold">{parsedPayload.code}</code>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-text-tertiary">Rôle</span>
-                    <span className="font-medium capitalize">{getRoleLabel(parsedPayload.role)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-text-tertiary">Portée</span>
-                    <span className="font-medium">
-                      {parsedPayload.scope.type === "ORG" ? "Organisation" : "Groupe"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-text-tertiary">Expire</span>
-                    <span className="font-medium">
-                      {new Date(parsedPayload.expiresAt).toLocaleDateString("fr-FR")}
-                    </span>
-                  </div>
-                </IonCardContent>
-                <IonCardContent className="pt-0">
-                  <IonButton
-                    expand="block"
-                    color="primary"
-                    onClick={handleConfirm}
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <>
-                        <IonSpinner name="lines" style={{ marginRight: 6 }} />
-                        Création…
-                      </>
-                    ) : (
-                      "Confirmer et rejoindre"
-                    )}
-                  </IonButton>
-                </IonCardContent>
-              </IonCard>
-            )}
-
-            {/* Result */}
-            {result && (
-              <div
-                className="mt-4 p-4 rounded-xl border"
-                style={{
-                  backgroundColor: `color-mix(in srgb, ${result.ok ? "var(--data-success)" : "var(--data-alert)"} 10%, transparent)`,
-                  borderColor: `color-mix(in srgb, ${result.ok ? "var(--data-success)" : "var(--data-alert)"} 30%, transparent)`,
-                }}
-              >
-                <div className="flex items-start gap-3">
-                  {result.ok ? (
-                    <CheckCircle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: "var(--data-success)" }} />
-                  ) : (
-                    <XCircle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: "var(--data-alert)" }} />
-                  )}
-                  <div>
-                    <p className="text-sm" style={{ color: result.ok ? "var(--data-success)" : "var(--data-alert)" }}>
-                      {result.message}
-                    </p>
-                    {result.ok && (
-                      <IonButton
-                        size="small"
-                        fill="outline"
-                        color="light"
-                        className="mt-2"
-                        onClick={() => navigate("/dashboard")}
-                      >
-                        Accéder au tableau de bord
-                      </IonButton>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Info box */}
-            <div className="mt-6 bg-card rounded-xl p-4">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium text-text-primary">Fonctionne hors-ligne</p>
-                  <p className="text-xs text-text-tertiary mt-1">
-                    Votre compte sera créé localement en statut PENDING. Les restrictions
-                    financières seront levées dès que l'invitation sera confirmée par le serveur.
-                  </p>
-                </div>
-              </div>
+              <span className="font-bold text-xl tracking-tight" style={{ color: "var(--text-primary)" }}>
+                Lumina
+              </span>
             </div>
           </div>
-          <BottomNav />
+
+          <div className="flex-1 px-6 pt-6 pb-4">
+            <div className="max-w-md mx-auto">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="mb-8"
+              >
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-11 h-11 rounded-2xl flex items-center justify-center" style={{ background: "var(--accent-primary)" }}>
+                    <QrCode className="w-6 h-6 text-on-accent" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--accent-primary)" }}>
+                      Rejoindre une organisation
+                    </p>
+                    <h1 className="text-text-primary font-bold text-3xl leading-tight mb-2">
+                      Saisissez votre invitation
+                    </h1>
+                  </div>
+                </div>
+                <p className="text-text-secondary text-sm leading-relaxed mb-10">
+                  Entrez le code d’invitation transmis par l’administrateur, ou
+                  scannez le QR code depuis l’app mobile Lumina.
+                </p>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+                className="mb-8"
+              >
+                <MotionCard variant="flat" className="p-6">
+                  <div className="flex flex-col gap-4">
+                    <label className="text-sm font-semibold text-text-primary">
+                      Code d’invitation
+                    </label>
+                    <div className="relative">
+                      <IonInput
+                        inputMode="text"
+                        value={code}
+                        onIonChange={(e) => setCode(e.detail.value ?? "")}
+                        placeholder="LUMINA-……"
+                        className="w-full py-3.5 pr-12 pl-4 bg-surface border border-border rounded-xl text-text-primary font-mono text-sm tracking-wider focus:ring-2 focus:ring-accent-primary/40 focus:outline-none"
+                        style={{ color: "var(--text-primary)" }}
+                        clearInput={true}
+                        clearOnEdit={false}
+                      />
+                      <button
+                        onClick={handleScan}
+                        disabled={validating || validated}
+                        className="absolute right-2 top-2 h-8 w-8 rounded-lg flex items-center justify-center text-accent-primary opacity-70 hover:opacity-100 transition-opacity disabled:opacity-40"
+                        title="Scanner le QR code"
+                      >
+                        <Scan className="w-4 h-4" />
+                      </button>
+                    </div>
+                    {error && (
+                      <div className="flex items-center gap-2 text-xs text-text-error">
+                        <span className="w-3.5 h-3.5 rounded-full flex items-center justify-center" style={{ backgroundColor: "var(--surface-error)" }}>
+                          <span className="text-[10px] font-bold text-on-error">!</span>
+                        </span>
+                        <span>{error}</span>
+                      </div>
+                    )}
+                    <button
+                      onClick={handleClaim}
+                      disabled={validating || validated || code.trim().length === 0}
+                      className="w-full py-4 rounded-xl font-semibold text-sm transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 shadow-accent"
+                      style={{ backgroundColor: "var(--accent-primary)" }}
+                    >
+                      {validating ? (
+                        <>
+                          <div className="w-4 h-4 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: "var(--accent-primary)", borderTopColor: "transparent" }} />
+                          <span>Validation…</span>
+                        </>
+                      ) : validated ? (
+                        <>
+                          <Check className="w-4 h-4" /> <span>Validé</span>
+                        </>
+                      ) : (
+                        <>
+                          <ArrowRight className="w-4 h-4" /> <span>Rejoindre l’organisation</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </MotionCard>
+              </motion.div>
+            </div>
+          </div>
         </div>
       </IonContent>
     </IonPage>

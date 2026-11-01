@@ -17,6 +17,10 @@ const Splash = lazy(() => import("@/pages/Splash"));
 const Welcome = lazy(() => import("@/pages/Welcome"));
 const Sessions = lazy(() => import("@/pages/Sessions"));
 const Onboarding = lazy(() => import("@/pages/Onboarding"));
+const OnboardingChoice = lazy(() => import("@/pages/OnboardingChoice"));
+const OnboardingMembers = lazy(() => import("@/pages/OnboardingMembers"));
+const InvitationClaim = lazy(() => import("@/pages/InvitationClaim"));
+const InvitationSuccess = lazy(() => import("@/pages/InvitationSuccess"));
 const AuthPage = lazy(() => import("@/pages/AuthPage"));
 
 export const authRoutes: ReactElement[] = [
@@ -47,9 +51,34 @@ export const authRoutes: ReactElement[] = [
     path="/sessions"
     element={<LazyRoute component={Sessions} />}
   />,
+  // Choix du parcours : créer son organisation ou rejoindre par invitation
+  <Route
+    key="/onboarding/choice"
+    path="/onboarding/choice"
+    element={<LazyRoute component={OnboardingChoice} />}
+  />,
+  // Présentation des fonctionnalités (7 écrans illustrés)
   <Route
     key="/onboarding"
     path="/onboarding"
     element={<LazyRoute component={Onboarding} />}
+  />,
+  // Ajout des membres de l’équipe de gestion (QR code + code invitation)
+  <Route
+    key="/onboarding/members"
+    path="/onboarding/members"
+    element={<LazyRoute component={OnboardingMembers} />}
+  />,
+  // Revendication d’une invitation (saisie du code ou scan QR)
+  <Route
+    key="/invitation/claim"
+    path="/invitation/claim"
+    element={<LazyRoute component={InvitationClaim} />}
+  />,
+  // Confirmation d’adhésion à l’organisation
+  <Route
+    key="/invitation/success"
+    path="/invitation/success"
+    element={<LazyRoute component={InvitationSuccess} />}
   />,
 ];

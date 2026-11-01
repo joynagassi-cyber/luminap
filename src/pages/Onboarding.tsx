@@ -2,9 +2,13 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ChevronRight,
-  ShieldCheck,
-  UserPlus,
-  Info,
+  ArrowRight,
+  Wallet,
+  Calendar,
+  BarChart3,
+  Users,
+  Building,
+  Heart,
 } from "lucide-react";
 import {
   IonPage,
@@ -16,908 +20,562 @@ import {
   completeOnboarding,
   type OnboardingState,
 } from "@/lib/onboardingState";
-import { CHART_COLORS } from "@/lib/utils";
+import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
+import { MotionCard } from "@/design/motion/MotionCard";
+
+/**
+ * Illustration vectorielle premium — écran de bienvenue
+ */
+function WelcomeIllustration() {
+  return (
+    <svg
+      viewBox="0 0 400 300"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className="w-full h-auto"
+      style={{ maxHeight: 280 }}
+    >
+      <defs>
+        <linearGradient id="welcomeGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="var(--accent-primary)" stopOpacity="0.25" />
+          <stop offset="100%" stopColor="var(--accent-primary)" stopOpacity="0.05" />
+        </linearGradient>
+        <filter id="welcomeGlow" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="15" result="blur" />
+          <feComposite in="SourceGraphic" in2="blur" operator="over" />
+        </filter>
+      </defs>
+
+      <rect x="0" y="0" width="400" height="300" fill="url(#welcomeGrad)" />
+
+      <circle cx="280" cy="60" r="70" fill="var(--accent-primary)" opacity="0.15" filter="url(#welcomeGlow)" />
+      <circle cx="320" cy="90" r="40" fill="var(--accent-primary)" opacity="0.1" filter="url(#welcomeGlow)" />
+
+      <rect x="60" y="120" width="140" height="110" rx="16" fill="var(--surface)" stroke="var(--border)" strokeWidth="1" />
+      <rect x="85" y="135" width="90" height="10" rx="4" fill="var(--surface-hover)" />
+      <rect x="85" y="155" width="70" height="8" rx="3" fill="var(--surface-hover)" />
+      <rect x="85" y="173" width="50" height="8" rx="3" fill="var(--surface-hover)" />
+      <rect x="115" y="185" width="30" height="25" rx="6" fill="var(--accent-primary)" />
+      <rect x="80" y="145" width="18" height="18" rx="4" fill="color-mix(in srgb, var(--accent-primary) 20%, transparent)" />
+      <rect x="120" y="145" width="18" height="18" rx="4" fill="color-mix(in srgb, var(--accent-primary) 20%, transparent)" />
+
+      <path d="M 300 250 Q 280 220 260 250" stroke="var(--accent-primary)" strokeWidth="3" strokeLinecap="round" opacity="0.3" />
+      <path d="M 310 260 Q 290 230 270 260" stroke="var(--accent-primary)" strokeWidth="3" strokeLinecap="round" opacity="0.2" />
+
+      {[20, 80, 150, 220, 350].map((x, i) => (
+        <path
+          key={i}
+          d={`M${x} ${40 + i * 10} l2 4 l4 -1 l-4 -1 l-2 4 z`}
+          fill="var(--accent-primary)"
+          opacity={0.6 + (i % 3) * 0.1}
+        />
+      ))}
+    </svg>
+  );
+}
+
+/**
+ * Illustration vectorielle premium — Tableau de bord
+ */
+function DashboardIllustration() {
+  return (
+    <svg
+      viewBox="0 0 400 300"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className="w-full h-auto"
+      style={{ maxHeight: 280 }}
+    >
+      <defs>
+        <linearGradient id="dashGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="var(--data-planified)" stopOpacity="0.2" />
+          <stop offset="100%" stopColor="var(--data-planified)" stopOpacity="0.05" />
+        </linearGradient>
+      </defs>
+
+      <rect x="0" y="0" width="400" height="300" fill="url(#dashGrad)" />
+
+      <rect x="40" y="80" width="120" height="90" rx="12" fill="var(--surface)" stroke="var(--border)" strokeWidth="1" />
+      <rect x="55" y="95" width="90" height="8" rx="3" fill="var(--surface-hover)" />
+      <rect x="55" y="115" width="110" height="28" rx="6" fill="color-mix(in srgb, var(--in) 15%, transparent)" />
+      <rect x="60" y="125" width="30" height="14" rx="4" fill="var(--in)" />
+      <rect x="95" y="125" width="20" height="14" rx="4" fill="var(--surface-hover)" />
+
+      <rect x="240" y="80" width="120" height="90" rx="12" fill="var(--surface)" stroke="var(--border)" strokeWidth="1" />
+      <rect x="255" y="95" width="90" height="8" rx="3" fill="var(--surface-hover)" />
+      <rect x="255" y="115" width="100" height="28" rx="6" fill="color-mix(in srgb, var(--out) 15%, transparent)" />
+      <rect x="260" y="125" width="30" height="14" rx="4" fill="var(--out)" />
+      <rect x="295" y="125" width="20" height="14" rx="4" fill="var(--surface-hover)" />
+
+      <rect x="40" y="200" width="320" height="70" rx="12" fill="var(--surface)" stroke="var(--border)" strokeWidth="1" />
+      <polyline points="50,240 90,210 140,235 190,195 240,225 290,200 340,180" stroke="var(--accent-primary)" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="50" cy="240" r="4" fill="var(--accent-primary)" />
+      <circle cx="90" cy="210" r="4" fill="var(--accent-primary)" />
+      <circle cx="140" cy="235" r="4" fill="var(--accent-primary)" />
+      <circle cx="190" cy="195" r="4" fill="var(--accent-primary)" />
+      <circle cx="240" cy="225" r="4" fill="var(--accent-primary)" />
+      <circle cx="290" cy="200" r="4" fill="var(--accent-primary)" />
+      <circle cx="340" cy="180" r="4" fill="var(--accent-primary)" />
+
+      <circle cx="360" cy="40" r="6" fill="var(--accent-primary)" opacity="0.4" />
+      <circle cx="380" cy="260" r="5" fill="var(--data-planified)" opacity="0.3" />
+    </svg>
+  );
+}
+
+/**
+ * Illustration vectorielle premium — Transactions
+ */
+function TransactionIllustration() {
+  return (
+    <svg
+      viewBox="0 0 400 300"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className="w-full h-auto"
+      style={{ maxHeight: 280 }}
+    >
+      <defs>
+        <linearGradient id="txGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="var(--data-success)" stopOpacity="0.18" />
+          <stop offset="100%" stopColor="var(--data-success)" stopOpacity="0.04" />
+        </linearGradient>
+      </defs>
+
+      <rect x="0" y="0" width="400" height="300" fill="url(#txGrad)" />
+
+      <rect x="130" y="70" width="140" height="200" rx="24" fill="var(--surface)" stroke="var(--border)" strokeWidth="1" />
+      <rect x="150" y="95" width="100" height="40" rx="20" fill="var(--surface-hover)" />
+      <rect x="160" y="105" width="80" height="20" rx="10" fill="var(--border)" />
+
+      <rect x="150" y="155" width="100" height="14" rx="6" fill="color-mix(in srgb, var(--in) 15%, transparent)" />
+      <rect x="155" y="163" width="40" height="6" rx="2" fill="var(--in)" />
+      <rect x="150" y="180" width="100" height="14" rx="6" fill="var(--surface-hover)" />
+      <rect x="155" y="188" width="45" height="6" rx="2" fill="var(--text-tertiary)" />
+      <rect x="150" y="205" width="100" height="14" rx="6" fill="color-mix(in srgb, var(--out) 15%, transparent)" />
+      <rect x="155" y="213" width="42" height="6" rx="2" fill="var(--out)" />
+
+      <rect x="260" y="140" width="50" height="32" rx="6" fill="var(--accent-primary)" />
+      <rect x="270" y="150" width="30" height="4" rx="1" fill="white" opacity="0.8" />
+      <rect x="270" y="158" width="20" height="4" rx="1" fill="white" opacity="0.6" />
+
+      <path d="M 90 180 L 110 160 L 100 160 L 110 140 L 120 160" stroke="var(--in)" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M 90 220 L 110 200 L 100 200 L 110 180 L 120 200" stroke="var(--out)" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+
+      <circle cx="320" cy="100" r="3" fill="var(--accent-primary)" opacity="0.7" />
+      <circle cx="340" cy="80" r="2" fill="var(--accent-primary)" opacity="0.5" />
+      <circle cx="300" cy="70" r="3" fill="var(--accent-primary)" opacity="0.6" />
+    </svg>
+  );
+}
+
+/**
+ * Illustration vectorielle premium — Caisses & Groupes
+ */
+function CaisseIllustration() {
+  return (
+    <svg
+      viewBox="0 0 400 300"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className="w-full h-auto"
+      style={{ maxHeight: 280 }}
+    >
+      <defs>
+        <linearGradient id="caisseGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="var(--in)" stopOpacity="0.18" />
+          <stop offset="100%" stopColor="var(--in)" stopOpacity="0.04" />
+        </linearGradient>
+      </defs>
+
+      <rect x="0" y="0" width="400" height="300" fill="url(#caisseGrad)" />
+
+      <rect x="50" y="110" width="80" height="110" rx="12" fill="var(--surface)" stroke="var(--border)" strokeWidth="1" />
+      <rect x="65" y="125" width="50" height="10" rx="4" fill="var(--surface-hover)" />
+      <rect x="65" y="145" width="40" height="8" rx="3" fill="var(--surface-hover)" />
+      <rect x="65" y="163" width="30" height="8" rx="3" fill="color-mix(in srgb, var(--in) 20%, transparent)" />
+      <rect x="70" y="171" width="20" height="10" rx="3" fill="var(--in)" />
+
+      <rect x="160" y="70" width="80" height="150" rx="12" fill="var(--surface)" stroke="var(--border)" strokeWidth="1" />
+      <rect x="175" y="85" width="50" height="10" rx="4" fill="var(--surface-hover)" />
+      <rect x="175" y="105" width="55" height="8" rx="3" fill="var(--surface-hover)" />
+      <rect x="175" y="123" width="45" height="8" rx="3" fill="color-mix(in srgb, var(--in) 20%, transparent)" />
+      <rect x="180" y="131" width="25" height="10" rx="3" fill="var(--in)" />
+
+      <rect x="270" y="130" width="80" height="90" rx="12" fill="var(--surface)" stroke="var(--border)" strokeWidth="1" />
+      <rect x="285" y="145" width="50" height="10" rx="4" fill="var(--surface-hover)" />
+      <rect x="285" y="165" width="40" height="8" rx="3" fill="var(--surface-hover)" />
+
+      <path d="M 130 165 L 160 145" stroke="var(--accent-primary)" strokeWidth="2" strokeLinecap="round" opacity="0.6" />
+      <path d="M 240 145 L 270 175" stroke="var(--accent-primary)" strokeWidth="2" strokeLinecap="round" opacity="0.6" />
+
+      <path d="M 145 158 L 155 148 L 150 148 L 155 138 L 160 148" stroke="var(--accent-primary)" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" opacity="0.8" />
+      <path d="M 255 168 L 265 158 L 260 158 L 265 148 L 270 158" stroke="var(--accent-primary)" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" opacity="0.8" />
+
+      <circle cx="350" cy="40" r="5" fill="var(--in)" opacity="0.5" />
+      <circle cx="370" cy="250" r="4" fill="var(--in)" opacity="0.4" />
+      <circle cx="330" cy="220" r="6" fill="var(--in)" opacity="0.3" />
+    </svg>
+  );
+}
+
+/**
+ * Illustration vectorielle premium — Événements & Budgets
+ */
+function EventIllustration() {
+  return (
+    <svg
+      viewBox="0 0 400 300"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className="w-full h-auto"
+      style={{ maxHeight: 280 }}
+    >
+      <defs>
+        <linearGradient id="evtGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="var(--data-advance)" stopOpacity="0.18" />
+          <stop offset="100%" stopColor="var(--data-advance)" stopOpacity="0.04" />
+        </linearGradient>
+      </defs>
+
+      <rect x="0" y="0" width="400" height="300" fill="url(#evtGrad)" />
+
+      <rect x="60" y="80" width="110" height="140" rx="16" fill="var(--surface)" stroke="var(--border)" strokeWidth="1" />
+      <rect x="75" y="95" width="80" height="14" rx="6" fill="var(--surface-hover)" />
+      <rect x="80" y="115" width="30" height="6" rx="2" fill="var(--text-tertiary)" />
+      <rect x="80" y="127" width="24" height="6" rx="2" fill="var(--text-tertiary)" />
+      <circle cx="90" cy="160" r="12" fill="color-mix(in srgb, var(--data-advance) 20%, transparent)" />
+      <rect x="84" y="154" width="4" height="4" rx="1" fill="var(--data-advance)" />
+      <circle cx="125" cy="160" r="8" fill="var(--surface-hover)" />
+      <rect x="120" y="155" width="3" height="3" rx="1" fill="var(--text-tertiary)" />
+      <circle cx="95" cy="195" r="8" fill="var(--surface-hover)" />
+      <rect x="90" y="190" width="3" height="3" rx="1" fill="var(--text-tertiary)" />
+
+      <rect x="210" y="130" width="140" height="110" rx="14" fill="color-mix(in srgb, var(--data-advance) 15%, transparent)" stroke="var(--data-advance)" strokeWidth="1" />
+      <rect x="225" y="145" width="110" height="10" rx="4" fill="var(--surface-hover)" />
+      <rect x="225" y="165" width="100" height="8" rx="3" fill="var(--surface-hover)" />
+      <rect x="225" y="183" width="80" height="8" rx="3" fill="color-mix(in srgb, var(--data-advance) 20%, transparent)" />
+      <rect x="230" y="191" width="35" height="10" rx="3" fill="var(--data-advance)" />
+
+      <circle cx="300" cy="80" r="16" fill="var(--accent-primary)" />
+      <path d="M 292 74 L 300 66 L 308 74 L 300 78 Z" fill="white" />
+      <path d="M 296 84 L 300 88 L 304 84" stroke="white" strokeWidth="2" strokeLinecap="round" />
+
+      <circle cx="340" cy="110" r="3" fill="var(--accent-primary)" opacity="0.8" />
+      <circle cx="360" cy="125" r="2" fill="var(--data-advance)" opacity="0.7" />
+      <circle cx="320" cy="140" r="3" fill="var(--accent-primary)" opacity="0.6" />
+    </svg>
+  );
+}
+
+/**
+ * Illustration vectorielle premium — Rapports & Bilans
+ */
+function ReportIllustration() {
+  return (
+    <svg
+      viewBox="0 0 400 300"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className="w-full h-auto"
+      style={{ maxHeight: 280 }}
+    >
+      <defs>
+        <linearGradient id="rptGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="var(--data-planified)" stopOpacity="0.18" />
+          <stop offset="100%" stopColor="var(--data-planified)" stopOpacity="0.04" />
+        </linearGradient>
+      </defs>
+
+      <rect x="0" y="0" width="400" height="300" fill="url(#rptGrad)" />
+
+      <rect x="60" y="60" width="130" height="190" rx="12" fill="var(--surface)" stroke="var(--border)" strokeWidth="1" />
+      <rect x="75" y="75" width="100" height="12" rx="5" fill="var(--surface-hover)" />
+      <rect x="75" y="97" width="80" height="8" rx="3" fill="var(--surface-hover)" />
+      <rect x="75" y="113" width="60" height="8" rx="3" fill="var(--surface-hover)" />
+      <path d="M 75 145 Q 110 135 140 145" stroke="var(--data-planified)" strokeWidth="2" fill="none" strokeLinecap="round" opacity="0.6" />
+      <rect x="75" y="165" width="40" height="6" rx="2" fill="var(--text-tertiary)" />
+      <rect x="75" y="179" width="30" height="6" rx="2" fill="var(--text-tertiary)" />
+      <circle cx="120" cy="195" r="14" fill="color-mix(in srgb, var(--data-planified) 15%, transparent)" stroke="var(--data-planified)" strokeWidth="1.5" />
+      <rect x="116" y="191" width="2" height="8" rx="1" fill="var(--data-planified)" />
+      <rect x="118" y="193" width="8" height="2" rx="1" fill="var(--data-planified)" />
+
+      <rect x="230" y="70" width="110" height="170" rx="12" fill="var(--surface)" stroke="var(--border)" strokeWidth="1" />
+      <rect x="245" y="85" width="80" height="10" rx="4" fill="var(--surface-hover)" />
+      <rect x="250" y="180" width="20" height="60" rx="4" fill="color-mix(in srgb, var(--data-planified) 20%, transparent)" />
+      <rect x="280" y="140" width="20" height="100" rx="4" fill="var(--data-planified)" />
+      <rect x="310" y="160" width="20" height="80" rx="4" fill="color-mix(in srgb, var(--data-planified) 40%, transparent)" />
+
+      <circle cx="260" cy="140" r="4" fill="var(--data-planified)" />
+      <circle cx="290" cy="160" r="4" fill="var(--data-planified)" />
+      <circle cx="320" cy="140" r="4" fill="var(--data-planified)" />
+
+      <path d="M 250 250 L 260 240 L 270 250" stroke="var(--data-planified)" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/**
+ * Illustration vectorielle premium — Organisation & Marque
+ */
+function OrgIllustration() {
+  return (
+    <svg
+      viewBox="0 0 400 300"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className="w-full h-auto"
+      style={{ maxHeight: 280 }}
+    >
+      <defs>
+        <linearGradient id="orgGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="var(--accent-primary)" stopOpacity="0.2" />
+          <stop offset="100%" stopColor="var(--accent-primary)" stopOpacity="0.05" />
+        </linearGradient>
+      </defs>
+
+      <rect x="0" y="0" width="400" height="300" fill="url(#orgGrad)" />
+
+      <circle cx="200" cy="110" r="45" fill="var(--accent-primary)" />
+      <path d="M 190 105 L 210 105 L 200 125 Z" fill="white" />
+      <circle cx="200" cy="110" r="8" fill="white" opacity="0.3" />
+
+      <rect x="80" y="180" width="60" height="70" rx="10" fill="var(--surface)" stroke="var(--border)" strokeWidth="1" />
+      <rect x="90" y="190" width="40" height="10" rx="4" fill="var(--surface-hover)" />
+      <rect x="90" y="210" width="30" height="8" rx="3" fill="var(--surface-hover)" />
+
+      <rect x="260" y="170" width="60" height="80" rx="10" fill="var(--surface)" stroke="var(--border)" strokeWidth="1" />
+      <rect x="270" y="185" width="40" height="10" rx="4" fill="var(--surface-hover)" />
+      <rect x="270" y="205" width="35" height="8" rx="3" fill="var(--surface-hover)" />
+
+      <path d="M 140 250 Q 200 220 260 250" stroke="var(--accent-primary)" strokeWidth="3" fill="none" strokeLinecap="round" opacity="0.5" />
+      <circle cx="140" cy="250" r="6" fill="var(--accent-primary)" />
+      <circle cx="260" cy="250" r="6" fill="var(--accent-primary)" />
+      <circle cx="200" cy="220" r="6" fill="var(--accent-primary)" opacity="0.7" />
+
+      <circle cx="60" cy="220" r="12" fill="var(--accent-primary)" />
+      <circle cx="90" cy="220" r="12" fill="color-mix(in srgb, var(--accent-primary) 80%, var(--data-planified))" />
+      <circle cx="120" cy="220" r="12" fill="var(--data-planified)" />
+      <circle cx="150" cy="220" r="12" fill="var(--in)" />
+      <circle cx="180" cy="220" r="12" fill="var(--out)" />
+
+      <circle cx="340" cy="60" r="4" fill="var(--accent-primary)" opacity="0.6" />
+      <circle cx="360" cy="200" r="5" fill="var(--accent-primary)" opacity="0.4" />
+    </svg>
+  );
+}
+
+/** Mapping écran → illustration */
+const ILLUSTRATIONS: Record<string, React.ComponentType> = {
+  welcome: WelcomeIllustration,
+  dashboard: DashboardIllustration,
+  transactions: TransactionIllustration,
+  caisses: CaisseIllustration,
+  events: EventIllustration,
+  reports: ReportIllustration,
+  org: OrgIllustration,
+};
 
 const SCREENS = [
   {
     id: "welcome",
+    badge: "Bienvenue",
     title: "Gérez vos finances simplement",
-    subtitle: "Bienvenue sur Lumina",
     description:
-      "Suivez vos revenus, dépenses et versements — offline, sécurisé et accessible à tous.",
-    illustration: (
-      <svg
-        viewBox="0 0 280 200"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        className="w-full"
-      >
-        <rect
-          x="30"
-          y="20"
-          width="220"
-          height="160"
-          rx="16"
-          fill="var(--surface)"
-          stroke="var(--surface-hover)"
-          strokeWidth="1"
-        />
-        <rect x="50" y="40" width="180" height="8" rx="4" fill="var(--accent-primary)" />
-        <rect x="50" y="60" width="120" height="6" rx="3" fill="var(--surface-hover)" />
-        <rect x="50" y="80" width="70" height="40" rx="8" fill="color-mix(in srgb, var(--in) 12%, transparent)" />
-        <rect x="130" y="80" width="100" height="40" rx="8" fill="var(--surface-hover)" />
-        <rect x="50" y="135" width="180" height="6" rx="3" fill="var(--surface-hover)" />
-        <rect x="50" y="150" width="130" height="6" rx="3" fill="var(--surface-hover)" />
-        <circle cx="220" cy="44" r="3" fill={CHART_COLORS.expense} />
-        <circle cx="210" cy="44" r="3" fill={CHART_COLORS.pending} />
-        <circle cx="200" cy="44" r="3" fill={CHART_COLORS.income} />
-        <rect x="60" y="90" width="20" height="20" rx="4" fill={CHART_COLORS.income} />
-        <rect
-          x="72"
-          y="96"
-          width="30"
-          height="4"
-          rx="2"
-          fill={CHART_COLORS.income}
-          opacity="0.6"
-        />
-        <rect
-          x="72"
-          y="104"
-          width="20"
-          height="4"
-          rx="2"
-          fill={CHART_COLORS.income}
-          opacity="0.4"
-        />
-      </svg>
-    ),
+      "Suivez vos revenus, vos dépenses et vos versements — hors ligne, sécurisé, accessible à tous.",
   },
   {
     id: "dashboard",
-    title: "Vue d'ensemble",
-    subtitle: "Tableau de bord",
+    badge: "Tableau de bord",
+    title: "Vue d’ensemble en un coup d’œil",
     description:
-      "Consultez instantanément le solde de chaque caisse, les transactions récentes et les événements à venir. Tout en un coup d'œil.",
-    illustration: (
-      <svg
-        viewBox="0 0 280 200"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        className="w-full"
-      >
-        <rect
-          x="20"
-          y="20"
-          width="110"
-          height="70"
-          rx="12"
-          fill="var(--surface)"
-          stroke="var(--surface-hover)"
-          strokeWidth="1"
-        />
-        <rect x="35" y="35" width="50" height="8" rx="4" fill={CHART_COLORS.income} />
-        <rect x="35" y="50" width="80" height="4" rx="2" fill="var(--surface-hover)" />
-        <rect x="35" y="60" width="60" height="4" rx="2" fill="var(--surface-hover)" />
-        <rect x="35" y="80" width="40" height="4" rx="2" fill="var(--surface-hover)" />
-        <rect
-          x="150"
-          y="20"
-          width="110"
-          height="70"
-          rx="12"
-          fill="var(--surface)"
-          stroke="var(--surface-hover)"
-          strokeWidth="1"
-        />
-        <rect x="165" y="35" width="50" height="8" rx="4" fill={CHART_COLORS.pending} />
-        <rect x="165" y="50" width="80" height="4" rx="2" fill="var(--surface-hover)" />
-        <rect x="165" y="60" width="60" height="4" rx="2" fill="var(--surface-hover)" />
-        <rect x="165" y="80" width="40" height="4" rx="2" fill="var(--surface-hover)" />
-        <rect
-          x="20"
-          y="105"
-          width="240"
-          height="75"
-          rx="12"
-          fill="var(--surface)"
-          stroke="var(--surface-hover)"
-          strokeWidth="1"
-        />
-        <rect x="35" y="120" width="30" height="40" rx="4" fill="var(--surface-hover)" />
-        <rect x="75" y="135" width="30" height="25" rx="4" fill="var(--accent-primary)" />
-        <rect x="115" y="125" width="30" height="35" rx="4" fill="var(--surface-hover)" />
-        <rect x="155" y="140" width="30" height="20" rx="4" fill="var(--surface-hover)" />
-        <rect x="195" y="115" width="30" height="45" rx="4" fill="var(--surface-hover)" />
-      </svg>
-    ),
+      "Consultez le solde de chaque caisse, les transactions récentes et les événements à venir.",
   },
   {
     id: "transactions",
-    title: "Transactions",
-    subtitle: "Enregistrer chaque mouvement",
+    badge: "Transactions",
+    title: "Enregistrez chaque mouvement",
     description:
-      "Enregistrez vos mouvements en quelques touches et suivez leur statut. Chaque action reste tracée.",
-    illustration: (
-      <svg
-        viewBox="0 0 280 200"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        className="w-full"
-      >
-        <rect
-          x="60"
-          y="15"
-          width="160"
-          height="170"
-          rx="16"
-          fill="var(--surface)"
-          stroke="var(--surface-hover)"
-          strokeWidth="1"
-        />
-        <rect x="80" y="35" width="120" height="6" rx="3" fill="var(--surface-hover)" />
-        <rect
-          x="80"
-          y="55"
-          width="90"
-          height="50"
-          rx="8"
-          fill="var(--surface)"
-          stroke="var(--surface-hover)"
-          strokeWidth="1"
-        />
-        <circle cx="95" cy="70" r="10" fill="color-mix(in srgb, var(--in) 12%, transparent)" />
-        <rect x="88" y="67" width="14" height="6" rx="1" fill={CHART_COLORS.income} />
-        <rect x="115" y="63" width="60" height="4" rx="2" fill="var(--surface-hover)" />
-        <rect x="115" y="73" width="40" height="4" rx="2" fill="var(--surface-hover)" />
-        <rect x="115" y="83" width="30" height="4" rx="2" fill="var(--surface-hover)" />
-        <rect
-          x="80"
-          y="115"
-          width="90"
-          height="50"
-          rx="8"
-          fill="var(--surface)"
-          stroke="var(--surface-hover)"
-          strokeWidth="1"
-        />
-        <circle cx="95" cy="130" r="10" fill="color-mix(in srgb, var(--out) 12%, transparent)" />
-        <rect x="88" y="127" width="14" height="6" rx="1" fill={CHART_COLORS.expense} />
-        <rect x="115" y="123" width="60" height="4" rx="2" fill="var(--surface-hover)" />
-        <rect x="115" y="133" width="40" height="4" rx="2" fill="var(--surface-hover)" />
-        <rect x="115" y="143" width="30" height="4" rx="2" fill="var(--surface-hover)" />
-        <circle cx="230" cy="170" r="18" fill="var(--accent-primary)" />
-        <path
-          d="M222 170h16M230 162v16"
-          stroke="white"
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-      </svg>
-    ),
+      "Quelques touches suffisent pour saisir une dépense ou une entrée. Tout reste traçable.",
   },
   {
     id: "caisses",
-    title: "Caisses & Groupes",
-    subtitle: "Organisez vos fonds",
+    badge: "Caisses & Groupes",
+    title: "Organisez vos fonds",
     description:
-      "Chaque groupe possède sa caisse. Effectuez des versements entre caisses en toute simplicité.",
-    illustration: (
-      <svg
-        viewBox="0 0 280 200"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        className="w-full"
-      >
-        <rect
-          x="20"
-          y="15"
-          width="100"
-          height="70"
-          rx="12"
-          fill="var(--surface)"
-          stroke="var(--surface-hover)"
-          strokeWidth="1"
-        />
-        <rect x="35" y="30" width="70" height="6" rx="3" fill="var(--accent-primary)" />
-        <rect x="35" y="45" width="50" height="4" rx="2" fill="var(--surface-hover)" />
-        <rect x="35" y="55" width="40" height="4" rx="2" fill="var(--surface-hover)" />
-        <rect x="35" y="75" width="70" height="4" rx="2" fill="var(--surface-hover)" />
-        <rect
-          x="160"
-          y="15"
-          width="100"
-          height="70"
-          rx="12"
-          fill="var(--surface)"
-          stroke="var(--surface-hover)"
-          strokeWidth="1"
-        />
-        <rect x="175" y="30" width="70" height="6" rx="3" fill={CHART_COLORS.advance} />
-        <rect x="175" y="45" width="50" height="4" rx="2" fill="var(--surface-hover)" />
-        <rect x="175" y="55" width="40" height="4" rx="2" fill="var(--surface-hover)" />
-        <rect x="175" y="75" width="70" height="4" rx="2" fill="var(--surface-hover)" />
-        <rect
-          x="20"
-          y="105"
-          width="100"
-          height="70"
-          rx="12"
-          fill="var(--surface)"
-          stroke="var(--surface-hover)"
-          strokeWidth="1"
-        />
-        <rect x="35" y="120" width="70" height="6" rx="3" fill={CHART_COLORS.income} />
-        <rect x="35" y="135" width="50" height="4" rx="2" fill="var(--surface-hover)" />
-        <rect x="35" y="145" width="40" height="4" rx="2" fill="var(--surface-hover)" />
-        <rect x="35" y="165" width="70" height="4" rx="2" fill="var(--surface-hover)" />
-        <rect
-          x="160"
-          y="105"
-          width="100"
-          height="70"
-          rx="12"
-          fill="var(--surface)"
-          stroke="var(--surface-hover)"
-          strokeWidth="1"
-        />
-        <rect x="175" y="120" width="70" height="6" rx="3" fill={CHART_COLORS.pending} />
-        <rect x="175" y="135" width="50" height="4" rx="2" fill="var(--surface-hover)" />
-        <rect x="175" y="145" width="40" height="4" rx="2" fill="var(--surface-hover)" />
-        <rect x="175" y="165" width="70" height="4" rx="2" fill="var(--surface-hover)" />
-        <path
-          d="M120 50h40M120 140h40"
-          stroke="var(--accent-primary)"
-          strokeWidth="1.5"
-          strokeDasharray="3 3"
-          strokeLinecap="round"
-        />
-        <path
-          d="M130 45l10 5-10 5"
-          stroke="var(--accent-primary)"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <path
-          d="M150 135l10 5-10 5"
-          stroke="var(--accent-primary)"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    ),
+      "Chaque groupe possède sa caisse. Faites des versements entre caisses en toute simplicité.",
   },
   {
     id: "events",
-    title: "Événements & Budgets",
-    subtitle: "Planifiez chaque célébration",
+    badge: "Événements",
+    title: "Planifiez chaque célébration",
     description:
-      "Planifiez vos événements avec un budget et suivez les dépenses en temps réel.",
-    illustration: (
-      <svg
-        viewBox="0 0 280 200"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        className="w-full"
-      >
-        <rect
-          x="30"
-          y="15"
-          width="220"
-          height="170"
-          rx="16"
-          fill="var(--surface)"
-          stroke="var(--surface-hover)"
-          strokeWidth="1"
-        />
-        <rect x="50" y="30" width="60" height="8" rx="4" fill={CHART_COLORS.pink} />
-        <rect x="120" y="30" width="40" height="8" rx="4" fill="var(--surface-hover)" />
-        <rect x="170" y="30" width="40" height="8" rx="4" fill="var(--surface-hover)" />
-        <rect x="50" y="55" width="180" height="1" fill="var(--surface-hover)" />
-        <rect x="50" y="70" width="120" height="6" rx="3" fill="var(--surface-hover)" />
-        <rect x="50" y="85" width="80" height="6" rx="3" fill="var(--surface-hover)" />
-        <rect x="50" y="100" width="100" height="6" rx="3" fill="var(--surface-hover)" />
-        <rect
-          x="50"
-          y="125"
-          width="180"
-          height="40"
-          rx="8"
-          fill="var(--card)"
-          stroke="var(--surface-hover)"
-          strokeWidth="1"
-        />
-        <rect x="60" y="135" width="60" height="4" rx="2" fill="var(--surface-hover)" />
-        <rect x="60" y="145" width="40" height="4" rx="2" fill="var(--surface-hover)" />
-        <rect x="180" y="135" width="40" height="14" rx="4" fill="color-mix(in srgb, var(--data-pink) 12%, transparent)" />
-        <rect x="240" y="70" width="10" height="40" rx="2" fill={CHART_COLORS.pink} />
-        <rect
-          x="225"
-          y="85"
-          width="10"
-          height="25"
-          rx="2"
-          fill={CHART_COLORS.pink}
-          opacity="0.6"
-        />
-        <rect
-          x="210"
-          y="95"
-          width="10"
-          height="15"
-          rx="2"
-          fill={CHART_COLORS.pink}
-          opacity="0.4"
-        />
-      </svg>
-    ),
+      "Créez un événement avec un budget, suivez les dépenses en temps réel.",
   },
   {
     id: "reports",
-    title: "Rapports & Bilans",
-    subtitle: "Des exports professionnels",
+    badge: "Rapports",
+    title: "Bilans et exports professionnels",
     description:
-      "Générez des bilans financiers et exportez-les à tout moment, signés au nom de votre organisation.",
-    illustration: (
-      <svg
-        viewBox="0 0 280 200"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        className="w-full"
-      >
-        <rect
-          x="20"
-          y="15"
-          width="130"
-          height="170"
-          rx="12"
-          fill="var(--surface)"
-          stroke="var(--surface-hover)"
-          strokeWidth="1"
-        />
-        <rect x="35" y="35" width="100" height="6" rx="3" fill={CHART_COLORS.planified} />
-        <rect x="35" y="55" width="70" height="4" rx="2" fill="var(--surface-hover)" />
-        <rect x="35" y="65" width="50" height="4" rx="2" fill="var(--surface-hover)" />
-        <rect x="35" y="85" width="100" height="50" rx="6" fill="var(--card)" />
-        <rect x="45" y="110" width="20" height="20" rx="3" fill={CHART_COLORS.planified} />
-        <rect
-          x="70"
-          y="100"
-          width="20"
-          height="30"
-          rx="3"
-          fill={CHART_COLORS.planified}
-          opacity="0.7"
-        />
-        <rect
-          x="95"
-          y="90"
-          width="20"
-          height="40"
-          rx="3"
-          fill={CHART_COLORS.planified}
-          opacity="0.5"
-        />
-        <rect
-          x="120"
-          y="105"
-          width="20"
-          height="25"
-          rx="3"
-          fill={CHART_COLORS.planified}
-          opacity="0.3"
-        />
-        <rect x="35" y="150" width="100" height="6" rx="3" fill="var(--surface-hover)" />
-        <rect x="35" y="162" width="70" height="4" rx="2" fill="var(--surface-hover)" />
-        <rect
-          x="170"
-          y="30"
-          width="80"
-          height="140"
-          rx="12"
-          fill="var(--surface)"
-          stroke="var(--surface-hover)"
-          strokeWidth="1"
-        />
-        <rect x="185" y="50" width="50" height="6" rx="3" fill="var(--surface-hover)" />
-        <rect x="185" y="70" width="50" height="4" rx="2" fill="var(--surface-hover)" />
-        <rect x="185" y="80" width="50" height="4" rx="2" fill="var(--surface-hover)" />
-        <rect x="185" y="100" width="50" height="4" rx="2" fill="var(--surface-hover)" />
-        <rect x="185" y="110" width="50" height="4" rx="2" fill="var(--surface-hover)" />
-        <rect x="185" y="130" width="50" height="20" rx="4" fill={CHART_COLORS.planified} />
-        <rect x="195" y="137" width="30" height="6" rx="2" fill="white" />
-      </svg>
-    ),
+      "Générez des bilans financiers signés au nom de votre organisation, à tout moment.",
   },
   {
     id: "org",
-    title: "Votre organisation, votre marque",
-    subtitle: "Nom, sigle, type & thème",
+    badge: "Votre organisation",
+    title: "Nom, marque et thème",
     description:
-      "Donnez à votre organisation un nom, un sigle et un type, puis personnalisez son thème de couleurs. Cette identité habille chaque écran et chaque rapport.",
-    illustration: (
-      <svg
-        viewBox="0 0 280 200"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        className="w-full"
-      >
-        <rect
-          x="20"
-          y="20"
-          width="240"
-          height="80"
-          rx="14"
-          fill="var(--surface)"
-          stroke="var(--surface-hover)"
-          strokeWidth="1"
-        />
-        <circle cx="48" cy="48" r="14" fill="var(--accent-primary)" />
-        <rect x="70" y="40" width="110" height="8" rx="4" fill="var(--text-tertiary)" />
-        <rect x="70" y="56" width="70" height="6" rx="3" fill="var(--surface-hover)" />
-        <rect
-          x="196"
-          y="36"
-          width="52"
-          height="24"
-          rx="6"
-          fill="var(--card)"
-          stroke="var(--accent-primary)"
-          strokeWidth="1.5"
-        />
-        <text
-          x="222"
-          y="52"
-          textAnchor="middle"
-          fontSize="10"
-          fontWeight="700"
-          fill="var(--accent-primary)"
-        >
-          MFE
-        </text>
-        <rect
-          x="196"
-          y="66"
-          width="52"
-          height="24"
-          rx="6"
-          fill="var(--card)"
-          stroke="var(--surface-hover)"
-          strokeWidth="1.5"
-        />
-        <text
-          x="222"
-          y="82"
-          textAnchor="middle"
-          fontSize="9"
-          fill="var(--text-tertiary)"
-        >
-          ONG
-        </text>
-        {/* swatches */}
-        <rect
-          x="20"
-          y="115"
-          width="240"
-          height="70"
-          rx="14"
-          fill="var(--surface)"
-          stroke="var(--surface-hover)"
-          strokeWidth="1"
-        />
-        <rect x="36" y="128" width="60" height="6" rx="3" fill="var(--text-tertiary)" />
-        {/* pastilles de thème ; mapping M17 : 7C3AED→.advance, 2563EB→.planified, 10B981→.success,
-            DB2777→.pink, B45309→.pending, 4F46E5→.advance, DC2626→.expense */}
-        <circle cx="42" cy="156" r="10" fill="var(--accent-primary)" />
-        <circle cx="72" cy="156" r="10" fill={CHART_COLORS.advance} />
-        <circle cx="102" cy="156" r="10" fill={CHART_COLORS.planified} />
-        <circle cx="132" cy="156" r="10" fill={CHART_COLORS.success} />
-        <circle cx="162" cy="156" r="10" fill={CHART_COLORS.pink} />
-        <circle cx="192" cy="156" r="10" fill={CHART_COLORS.pending} />
-        <circle cx="222" cy="156" r="10" fill={CHART_COLORS.advance} />
-        <circle cx="252" cy="156" r="10" fill={CHART_COLORS.expense} />
-      </svg>
-    ),
-  },
-  {
-    id: "features",
-    title: "Fonctions & rôles",
-    subtitle: "Activez ce qu'il vous faut",
-    description:
-      "Activez les modules qui correspondent à votre organisation et assignez des rôles. Lumina s'adapte à vos besoins.",
-    illustration: (
-      <svg
-        viewBox="0 0 280 200"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        className="w-full"
-      >
-        <rect
-          x="20"
-          y="20"
-          width="140"
-          height="160"
-          rx="14"
-          fill="var(--surface)"
-          stroke="var(--surface-hover)"
-          strokeWidth="1"
-        />
-        <rect x="35" y="38" width="80" height="6" rx="3" fill="var(--text-tertiary)" />
-        {[0, 1, 2, 3].map((i) => (
-          <g key={i}>
-            <rect
-              x="35"
-              y={60 + i * 26}
-              width="110"
-              height="18"
-              rx="9"
-              fill="var(--card)"
-              stroke="var(--surface-hover)"
-              strokeWidth="1"
-            />
-            <circle
-              cx="134"
-              cy={69 + i * 26}
-              r="7"
-              fill={i < 3 ? "var(--accent-primary)" : "var(--surface-hover)"}
-            />
-            <circle cx="134" cy={69 + i * 26} r="7" fill="none" />
-          </g>
-        ))}
-        <rect
-          x="175"
-          y="20"
-          width="85"
-          height="74"
-          rx="12"
-          fill="var(--surface)"
-          stroke="var(--surface-hover)"
-          strokeWidth="1"
-        />
-        <rect x="188" y="34" width="59" height="46" rx="4" fill="var(--card)" />
-        <rect x="188" y="86" width="59" height="6" rx="3" fill="var(--accent-primary)" />
-        <rect
-          x="175"
-          y="104"
-          width="85"
-          height="76"
-          rx="12"
-          fill="var(--surface)"
-          stroke="var(--surface-hover)"
-          strokeWidth="1"
-        />
-        <circle cx="200" cy="130" r="10" fill="var(--accent-primary)" />
-        <rect x="216" y="124" width="34" height="5" rx="2" fill="var(--text-tertiary)" />
-        <rect x="216" y="134" width="24" height="4" rx="2" fill="var(--surface-hover)" />
-        <rect x="188" y="150" width="59" height="4" rx="2" fill="var(--surface-hover)" />
-      </svg>
-    ),
+      "Donnez une identité à votre organisation : nom, sigle, type et couleurs. Elle habille chaque écran.",
   },
 ];
 
-const TOTAL_STEPS = SCREENS.length + 1; // 8 presentation + 1 branch choice
-
+const TOTAL_STEPS = SCREENS.length;
 
 export default function Onboarding() {
   const navigate = useNavigate();
   const [initial] = useState<OnboardingState>(loadOnboardingState);
   const [current, setCurrent] = useState(initial.screen);
-  const [branch, setBranch] = useState(initial.branch);
-  const [branchLoading, setBranchLoading] = useState<OnboardingState["branch"]>(
-    null,
-  );
 
   const isPresentation = current < SCREENS.length;
   const screen = SCREENS[current];
-  const isBranchStep = current === SCREENS.length; // step 9 = branch choice
+  const Illustration = ILLUSTRATIONS[screen.id];
 
-  /**
-   * Persist the resume point. `screen` is the index into the combined step
-   * list (0..7 presentation, 8 branch). On reload the user returns here.
-   */
-  const persist = (step: number, nextBranch: OnboardingState["branch"]) => {
-    saveOnboardingState({ ...loadOnboardingState(), screen: step, branch: nextBranch });
-  };
-
-  const handleBranchChoice = (choice: "creator" | "member") => {
-    setBranch(choice);
-    setBranchLoading(choice);
-    persist(SCREENS.length, choice);
-    // Give the button a moment to paint the selected state.
-    setTimeout(() => {
-      if (choice === "creator") {
-        navigate("/org-setup", { replace: true });
-      } else {
-        // Real claim engine: code / QR / file / proximity.
-        navigate("/invitation/claim", { replace: true });
-      }
-    }, 150);
+  const persist = (step: number) => {
+    saveOnboardingState({ ...loadOnboardingState(), screen: step });
   };
 
   const handleNext = () => {
-    if (isBranchStep) {
-      // Branch is chosen on its own screen — Next is hidden there.
+    if (current >= SCREENS.length - 1) {
+      // Dernière page de l'onboarding → ajout membres
+      completeOnboarding(loadOnboardingState());
+      navigate("/onboarding/members", { replace: true });
       return;
     }
     setCurrent((c) => c + 1);
-    persist(current + 1, branch);
+    persist(current + 1);
   };
 
   const handleBack = () => {
-    if (isBranchStep) {
-      setCurrent(SCREENS.length - 1);
-      persist(SCREENS.length - 1, branch);
-    } else if (current > 0) {
+    if (current > 0) {
       setCurrent((c) => c - 1);
-      persist(current - 1, branch);
+      persist(current - 1);
     } else {
-      // « Passer » / « Ignorer » à l'écran 0 — ne renvoie PAS vers /auth :
-      // c'est un comportement de log-out qui ferait perdre la session courante
-      // (et oblige le user à retaper ses identifiants). Ici on finalize
-      // l'onboarding SANS configurer d'organisation : le user retombe sur
-      // /dashboard avec le profil par défaut, et needsOnboarding() retourne
-      // false pour toute connexion future sur ce navigateur.
       completeOnboarding(loadOnboardingState());
       navigate("/dashboard", { replace: true });
     }
   };
 
-  const totalDots = TOTAL_STEPS;
+  const CARD_VARIANTS = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.6, ease: [0.4, 0, 0.2, 1] },
+    },
+  };
 
   return (
     <IonPage>
       <IonContent className="bg-canvas">
         <div data-screen-state="ready" className="min-h-dvh flex flex-col">
-          {/* Header with logo */}
-          <div className="flex items-center justify-between px-6 py-5">
-            <img
-              src="/lumina-logo.png"
-              alt="Lumina"
-              className="w-10 h-10 object-contain"
-            />
-            {!isBranchStep && current > 0 ? (
-              <button
-                onClick={handleBack}
-                className="text-text-tertiary text-sm font-medium"
-              >
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 py-6">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: "var(--accent-primary)" }}>
+                <Heart className="w-5 h-5 text-white" />
+              </div>
+              <span className="font-bold text-xl tracking-tight" style={{ color: "var(--text-primary)" }}>Lumina</span>
+            </div>
+            {current > 0 ? (
+              <button onClick={handleBack} className="text-text-tertiary text-sm font-medium">
                 Précédent
-              </button>
-            ) : !isBranchStep ? (
-              <button
-                onClick={handleBack}
-                className="text-text-tertiary text-sm font-medium"
-              >
-                Passer
               </button>
             ) : (
-              <button
-                onClick={handleBack}
-                className="text-text-tertiary text-sm font-medium"
-              >
-                Précédent
+              <button onClick={handleBack} className="text-text-tertiary text-sm font-medium">
+                Ignorer
               </button>
             )}
           </div>
 
-          {isBranchStep ? (
-            /* ── Step 9 — choose your path ────────────────────────────── */
-            <div className="flex-1 flex flex-col px-8 pt-4">
-              <div className="flex-1 flex flex-col justify-center">
-                <div className="flex items-center gap-3 mb-2">
-                  <div
-                    className="w-11 h-11 rounded-2xl flex items-center justify-center"
-                    style={{ background: "var(--accent-primary)" }}
-                  >
-                    <Info className="w-6 h-6 text-on-accent" />
-                  </div>
-                  <div>
-                    <p
-                      className="text-sm font-semibold"
-                      style={{ color: "var(--accent-primary)" }}
-                    >
-                      Votre parcours
-                    </p>
-                    <h1 className="text-text-primary font-bold text-2xl leading-tight">
-                      Comment démarrer ?
-                    </h1>
-                  </div>
-                </div>
-
-                <p className="text-text-secondary text-sm leading-relaxed mb-8">
-                  Vous avez 2 portes d'entrée. Le premier créateur fonde son
-                  organisation&nbsp;; les autres s'y joignent par invitation.
-                </p>
-
-                {/* Creator */}
-                <button
-                  onClick={() => handleBranchChoice("creator")}
-                  disabled={branchLoading !== null}
-                  className="w-full text-left rounded-2xl p-5 mb-4 transition-all active:scale-[0.98] disabled:opacity-50"
-                  style={{
-                    background: "var(--surface)",
-                    border:
-                      branchLoading === "creator"
-                        ? "2px solid var(--accent-primary)"
-                        : "1px solid var(--surface-hover)",
-                  }}
-                >
-                  <div className="flex items-start gap-4">
-                    <div
-                      className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0"
-                      style={{
-                        background: "color-mix(in srgb, var(--accent-primary) 20%, transparent)",
-                      }}
-                    >
-                      <ShieldCheck
-                        className="w-6 h-6"
-                        style={{ color: "var(--accent-primary)" }}
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-text-primary font-semibold">
-                        Je crée mon organisation
-                      </p>
-                      <p className="text-text-tertiary text-xs mt-1 leading-relaxed">
-                        Administrateur — vous fondez l'organisation&nbsp;:
-                        nom, type, thème et modules.
-                      </p>
-                    </div>
-                    {branchLoading === "creator" && (
-                      <div
-                        className="w-5 h-5 rounded-full border-2 border-t-transparent animate-spin"
-                        style={{
-                          borderColor: "var(--accent-primary)",
-                          borderTopColor: "transparent",
-                        }}
-                      />
-                    )}
-                  </div>
-                </button>
-
-                {/* Member */}
-                <button
-                  onClick={() => handleBranchChoice("member")}
-                  disabled={branchLoading !== null}
-                  className="w-full text-left rounded-2xl p-5 transition-all active:scale-[0.98] disabled:opacity-50"
-                  style={{
-                    background: "var(--surface)",
-                    border:
-                      branchLoading === "member"
-                        ? "2px solid var(--accent-primary)"
-                        : "1px solid var(--surface-hover)",
-                  }}
-                >
-                  <div className="flex items-start gap-4">
-                    <div
-                      className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0"
-                      style={{
-                        background:
-                          "color-mix(in srgb, var(--accent-primary) 20%, transparent)",
-                      }}
-                    >
-                      <UserPlus
-                        className="w-6 h-6"
-                        style={{ color: "var(--accent-primary)" }}
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-text-primary font-semibold">
-                        Je rejoins par invitation
-                      </p>
-                      <p className="text-text-tertiary text-xs mt-1 leading-relaxed">
-                        Membre / collaborateur — code, QR, fichier ou
-                        proximité. Vous êtes intégré au rôle qui vous a été
-                        attribué.
-                      </p>
-                    </div>
-                    {branchLoading === "member" && (
-                      <div
-                        className="w-5 h-5 rounded-full border-2 border-t-transparent animate-spin"
-                        style={{
-                          borderColor: "var(--accent-primary)",
-                          borderTopColor: "transparent",
-                        }}
-                      />
-                    )}
-                  </div>
-                </button>
-              </div>
-            </div>
-          ) : (
-            <>
-              {/* Illustration */}
-              <div className="flex-shrink-0 px-8 pt-4 pb-2">
-                <div
-                  className="rounded-2xl overflow-hidden"
-                  style={{ background: "var(--card)" }}
-                >
-                  {screen.illustration}
-                </div>
-              </div>
-
-              {/* Content */}
-              <div className="flex-1 px-8 pt-8 pb-4">
+          <div className="flex-1 px-6 pt-6 pb-4">
+            <div className="max-w-md mx-auto">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="mb-4"
+              >
                 <p
-                  className="text-sm font-semibold mb-2"
-                  style={{
-                    color:
-                      screen.id === "welcome"
-                        ? "var(--accent-primary)"
-                        : "var(--text-tertiary)",
-                  }}
+                  className="text-xs font-semibold uppercase tracking-wider"
+                  style={{ color: "var(--accent-primary)" }}
                 >
-                  {screen.subtitle}
+                  {screen.badge}
                 </p>
-                <h1 className="text-text-primary font-bold text-2xl leading-tight mb-3">
+                <h1 className="text-text-primary font-bold text-3xl leading-tight mb-4">
                   {screen.title}
                 </h1>
-                <p className="text-text-secondary text-sm leading-relaxed">
+                <p className="text-text-secondary text-lg leading-relaxed mb-8">
                   {screen.description}
                 </p>
-              </div>
-            </>
-          )}
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.6, delay: 0.1 }}
+                className="relative"
+              >
+                <Illustration />
+              </motion.div>
+            </div>
+          </div>
 
-          {/* Bottom */}
-          <div className="px-8 pb-10">
-            {/* Dots */}
-            <div className="flex justify-center gap-1.5 mb-8">
-              {Array.from({ length: totalDots }).map((_, i) => (
+          <div className="px-6 pb-12">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.4, delay: 0.2 }}
+              className="flex justify-center gap-2"
+            >
+              {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
                 <div
                   key={i}
-                  className="rounded-full transition-all"
+                  className="rounded-full transition-all duration-300"
                   style={{
-                    width: i === current ? "24px" : "6px",
-                    height: "6px",
+                    width: i === current ? "32px" : "10px",
+                    height: "10px",
                     backgroundColor:
-                      i === current
-                        ? "var(--accent-primary)"
-                        : "var(--surface-hover)",
+                      i === current ? "var(--accent-primary)" : "var(--surface-hover)",
                   }}
                 />
               ))}
-            </div>
+            </motion.div>
 
-            {/* Buttons */}
-            {isBranchStep ? (
-              <div className="flex gap-3">
-                <button
-                  onClick={handleBack}
-                  className="flex-1 py-3.5 rounded-full font-semibold text-sm transition-all active:scale-95"
-                  style={{
-                    backgroundColor: "var(--surface)",
-                    color: "var(--text-secondary)",
-                    border: "1px solid var(--border)",
-                  }}
-                >
-                  Précédent
-                </button>
-              </div>
-            ) : (
-              <div className="flex gap-3">
-                <button
-                  onClick={handleBack}
-                  className="flex-1 py-3.5 rounded-full font-semibold text-sm transition-all active:scale-95"
-                  style={{
-                    backgroundColor: "var(--surface)",
-                    color: "var(--text-secondary)",
-                    border: "1px solid var(--border)",
-                  }}
-                >
-                  {current > 0 ? "Précédent" : "Ignorer"}
-                </button>
-                <button
-                  onClick={handleNext}
-                  className="flex-1 py-3.5 rounded-full font-semibold text-sm text-on-accent transition-all active:scale-95 flex items-center justify-center gap-2"
-                  style={{ backgroundColor: "var(--accent-primary)" }}
-                >
-                  Suivant
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
-            )}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.3 }}
+              className="flex gap-3 mt-10"
+            >
+              <button
+                onClick={handleBack}
+                className="flex-1 py-4.5 rounded-full font-semibold text-sm transition-all active:scale-95"
+                style={{
+                  backgroundColor: "var(--surface)",
+                  color: "var(--text-secondary)",
+                  border: "1px solid var(--border)",
+                }}
+              >
+                {current > 0 ? "Précédent" : "Ignorer"}
+              </button>
+              <button
+                onClick={handleNext}
+                className="flex-1 py-4.5 rounded-full font-semibold text-sm text-on-accent transition-all active:scale-95 flex items-center justify-center gap-2 shadow-accent"
+                style={{ backgroundColor: "var(--accent-primary)" }}
+              >
+                {current === SCREENS.length - 1 ? "Terminer" : "Suivant"}
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </motion.div>
           </div>
         </div>
       </IonContent>

@@ -17,11 +17,7 @@ import {
 } from "lucide-react";
 import {
   IonPage,
-  IonHeader,
   IonContent,
-  IonTitle,
-  IonToolbar,
-  IonInput,
 } from "@ionic/react";
 import ThemePicker from "@/components/ThemePicker";
 import { LUMINA_THEMES, applyTheme } from "@/ionic/themes";
@@ -39,12 +35,10 @@ import {
   loadOnboardingState,
   type OrgTypeChoice,
 } from "@/lib/onboardingState";
+import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
+import { MotionCard } from "@/design/motion/MotionCard";
 
-/**
- * Correspondance type d'onboarding (UI) → type serveur accepté par l'edge
- * `create_org` (`VALID_TYPES`). L'UI utilise des libellés français ; le serveur
- * attend les constantes canoniques.
- */
 const SERVER_ORG_TYPE: Readonly<Record<OrgTypeChoice, string>> = {
   Eglise: "CHURCH",
   Ecole: "SCHOOL",
@@ -54,10 +48,6 @@ const SERVER_ORG_TYPE: Readonly<Record<OrgTypeChoice, string>> = {
   Custom: "CHURCH",
 };
 
-/**
- * Templates currently available (per spec: only templates that exist are
- * shown). Each carries its default roles + pre-configured features.
- */
 const TEMPLATE_CHOICES: Array<{
   type: OrgTypeChoice;
   label: string;
@@ -93,7 +83,7 @@ const TEMPLATE_CHOICES: Array<{
     type: "Ecole",
     label: "École",
     icon: School,
-    desc: "Scolarité, scolarités, événements et inscriptions",
+    desc: "Scolarité, événements et inscriptions",
     roles: [
       { id: "DIRECTEUR", label: "Directeur" },
       { id: "ADMINISTRATION", label: "Administration" },
@@ -130,7 +120,6 @@ const TEMPLATE_CHOICES: Array<{
   },
 ];
 
-/** Feature catalog (toggleable per org). */
 const FEATURES: Array<{
   key: string;
   label: string;
@@ -173,7 +162,6 @@ export default function OrgSetup() {
 
   const pickType = (t: (typeof TEMPLATE_CHOICES)[number]) => {
     setType(t.type);
-    // Seed the feature list from the template preset when moving between types.
     setFeatures(t.defaultFeatures);
     setRole(null);
   };
@@ -188,39 +176,14 @@ export default function OrgSetup() {
       const nextTheme = LUMINA_THEMES.find((t) => t.id === themeId) ?? LUMINA_THEMES[0];
       applyTheme(nextTheme);
 
-      // ── 1. CRÉATION RÉELLE de l'organisation côté serveur ────────────────
-      // Sans cet appel, « Créer l'organisation » n'écrivait QUE du localStorage :
-      // l'utilisateur restait `org_id = '__no_org__'` en base, non-membre de la
-      // garde de route → dashboard inatteignable. L'edge `create_org` (service_role)
-      // crée l'org, le grant admin ET rattache le profil du créateur.
       const created = await bootstrapOrganization({
         name: name.trim(),
         type: SERVER_ORG_TYPE[type as OrgTypeChoice] ?? "CHURCH",
       });
       const orgId = created.orgId;
 
-      // Rôle effectif du créateur : `ADMIN` (canonique, renvoyé par le serveur)
-      // — il doit pouvoir administrer son organisation (réglages, rôles,
-      // invitations). Le rôle « cosmétique » choisi dans le wizard (ex.
-      // COMPTABLE) ne suffirait pas et laisserait un compte inutilisable.
       const effectiveRole = parseRole(created.role ?? "") ?? "ADMIN";
 
-      // ── 2. RÉSOLUTION IMMÉDIATE du contexte côté client ──────────────────
-      // ORDRE CRITIQUE : on écrit D'ABORD le miroir local (preuve
-      // d'appartenance), PUIS on pose le contexte d'organisation. Poser le
-      // contexte déclenche le re-rendu de `useOrgMembership`, qui interroge
-      // `canAccessOrganization` sur la base locale : si le miroir n'était pas
-      // encore écrit, la garde conclurait « non-membre » (et le dashboard
-      // resterait bloqué, sans nouvelle réévaluation). Le serveur a écrit en
-      // base ; la réplique PowerSync locale n'est pas encore à jour (download
-      // asynchrone), donc on pose :
-      //   a) un miroir local optimiste (organizations / org_admins /
-      //      org_memberships / profiles) pour que `canAccessOrganization`
-      //      (garde « needs-membership ») réponde OUI sans attendre le sync ;
-      //   b) le contexte d'organisation en mémoire + localStorage (orgContext) ;
-      //   c) le profil d'auth rafraîchi (rôle ADMIN + org_id) pour que
-      //      `AppContext` / `useCurrentUser` / la permission `admin:settings`
-      //      soient corrects.
       const userId =
         authService.getState().profile?.id ??
         authService.getState().user?.id ??
@@ -239,13 +202,10 @@ export default function OrgSetup() {
       setOrganizationId(orgId);
       try {
         localStorage.setItem("lumina-active-org", orgId);
-      } catch {
-        /* stockage indisponible — le contexte mémoire suffit */
-      }
+      } catch {}
 
       await authService.refreshProfile();
 
-      // ── 3. Persistance locale (identité, thème, état d'onboarding) ───────
       await updateConfig({ churchName: name.trim() });
 
       const state = loadOnboardingState();
@@ -263,29 +223,36 @@ export default function OrgSetup() {
       await selectRole(effectiveRole);
       navigate("/dashboard", { replace: true });
     } catch (err) {
-      // Échec VISIBLE (pas de bouton inerte) : l'utilisateur peut réessayer.
       setCreateError(
         err instanceof Error && err.message
           ? err.message
-          : "La création de l'organisation a échoué. Réessayez.",
+          : "La création de l’organisation a échoué. Réessayez.",
       );
     } finally {
       setCreating(false);
     }
   };
 
+  const CARD_VARIANTS = {
+    hidden: { opacity: 0, y: 12 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.5, ease: [0.4, 0, 0.2, 1] },
+    },
+  };
+
   return (
     <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>Configuration</IonTitle>
-        </IonToolbar>
-      </IonHeader>
       <IonContent className="bg-canvas">
         <div data-screen-state="ready" className="min-h-dvh">
-          {/* Top bar */}
-          <div className="flex items-center justify-between px-6 py-4">
-            <img src="/lumina-logo.png" alt="Lumina" className="w-10 h-10 object-contain" />
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 py-5">
+            <img
+              src="/lumina-logo-version-monochrome.png"
+              alt="Lumina"
+              className="w-10 h-10 object-contain"
+            />
             <button
               onClick={() => navigate(-1)}
               className="text-text-tertiary text-sm font-medium"
@@ -295,67 +262,97 @@ export default function OrgSetup() {
           </div>
 
           <div className="px-6 pb-safe pt-safe">
-            <div className="max-w-sm mx-auto">
-              <h1 className="text-text-primary font-bold text-xl mb-1">
+            <div className="max-w-md mx-auto">
+              <motion.h1
+                initial="hidden"
+                animate="visible"
+                variants={CARD_VARIANTS}
+                className="text-text-primary font-bold text-3xl leading-tight mb-2"
+              >
                 Votre organisation
-              </h1>
-              <p className="text-text-tertiary text-sm mb-6">
+              </motion.h1>
+              <motion.p
+                initial="hidden"
+                animate="visible"
+                variants={CARD_VARIANTS}
+                transition={{ delay: 0.1 }}
+                className="text-text-secondary text-sm leading-relaxed mb-8"
+              >
                 Configurez son identité avant de lancer votre tableau de bord.
-              </p>
+              </motion.p>
 
-              {/* ── 1. Identity ─────────────────────────────────────────── */}
-              <p className="text-xs font-semibold text-text-tertiary uppercase tracking-wide mb-3">
-                Identité
-              </p>
-              <label className="block mb-4">
-                <span className="text-sm text-text-secondary mb-1.5 block">
-                  Nom complet de l'organisation
-                </span>
-                {/* M4 */}
-                <IonInput
-                  value={name}
-                  onIonInput={(e) => setName((e.detail.value as string) ?? "")}
-                  placeholder="Église MFE-JC Centrale"
-                />
-              </label>
-              <label className="block mb-6">
-                <span className="text-sm text-text-secondary mb-1.5 block">
-                  Sigle{" "}
-                  <span className="text-text-placeholder text-xs">
-                    (affiché dans les menus, le nom complet reste dans les rapports)
-                  </span>
-                </span>
-                <IonInput
-                  value={sigle}
-                  onIonInput={(e) => setSigle(((e.detail.value as string) ?? "").toUpperCase().slice(0, 12))}
-                  placeholder="MFE"
-                />
-              </label>
+              {/* ── 1. Identité ─────────────────────────────────────────── */}
+              <motion.div
+                initial="hidden"
+                animate="visible"
+                variants={CARD_VARIANTS}
+                transition={{ delay: 0.2 }}
+                className="mb-8"
+              >
+                <p className="text-xs font-semibold uppercase tracking-wider mb-3">
+                  Identité
+                </p>
+                <MotionCard variant="flat" className="p-5 mb-4">
+                  <p className="text-sm text-text-secondary mb-2 block">
+                    Nom complet de l’organisation
+                  </p>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Église MFE-JC Centrale"
+                    className="w-full text-sm text-text-primary bg-transparent border-b border-b border-border focus:border-accent-primary focus:ring-0 outline-none placeholder:text-text-placeholder"
+                  />
+                </MotionCard>
+                <MotionCard variant="flat" className="p-5">
+                  <p className="text-sm text-text-secondary mb-2 block">
+                    Sigle
+                  </p>
+                  <p className="text-xs text-text-placeholder mb-1">
+                    Affiché dans les menus, le nom complet reste dans les rapports.
+                  </p>
+                  <input
+                    type="text"
+                    value={sigle}
+                    onChange={(e) =>
+                      setSigle(((e.target.value as string) ?? "").toUpperCase().slice(0, 12))
+                    }
+                    placeholder="MFE"
+                    className="w-full text-sm text-text-primary bg-transparent border-b border-b border-border focus:border-accent-primary focus:ring-0 outline-none placeholder:text-text-placeholder"
+                  />
+                </MotionCard>
+              </motion.div>
 
-              {/* ── 2. Type (available templates) ──────────────────────── */}
-              <p className="text-xs font-semibold text-text-tertiary uppercase tracking-wide mb-3">
-                Type d'organisation
-              </p>
-              <div className="space-y-2 mb-6">
-                {TEMPLATE_CHOICES.map((t) => {
-                  const Icon = t.icon;
-                  const active = type === t.type;
-                  return (
-                    <button
-                      key={t.type}
-                      type="button"
-                      onClick={() => pickType(t)}
-                      className="w-full text-left rounded-xl p-4 transition-all active:scale-[0.98]"
-                      style={{
-                        background: "var(--surface)",
-                        border: active
-                          ? "2px solid var(--accent-primary)"
-                          : "1px solid var(--surface-hover)",
-                      }}
-                    >
-                      <div className="flex items-center gap-3">
+              {/* ── 2. Type ─────────────────────────────────────────────── */}
+              <motion.div
+                initial="hidden"
+                animate="visible"
+                variants={CARD_VARIANTS}
+                transition={{ delay: 0.3 }}
+                className="mb-8"
+              >
+                <p className="text-xs font-semibold uppercase tracking-wider mb-3">
+                  Type d’organisation
+                </p>
+                <div className="space-y-3 mb-6">
+                  {TEMPLATE_CHOICES.map((t) => {
+                    const Icon = t.icon;
+                    const active = type === t.type;
+                    return (
+                      <MotionCard
+                        key={t.type}
+                        variant="flat"
+                        onPress={() => pickType(t)}
+                        className="p-5 flex items-start gap-4 cursor-pointer group"
+                        style={{
+                          border:
+                            active
+                              ? "2px solid var(--accent-primary)"
+                              : "1px solid var(--surface-hover)",
+                        }}
+                      >
                         <div
-                          className="w-9 h-9 rounded-lg flex items-center justify-center"
+                          className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
                           style={{
                             background: active
                               ? "color-mix(in srgb, var(--accent-primary) 20%, transparent)"
@@ -363,122 +360,154 @@ export default function OrgSetup() {
                           }}
                         >
                           <Icon
-                            className="w-5 h-5"
-                            style={{ color: active ? "var(--accent-primary)" : "var(--text-tertiary)" }}
+                            className="w-6 h-6"
+                            style={{
+                              color: active
+                                ? "var(--accent-primary)"
+                                : "var(--text-tertiary)",
+                            }}
                           />
                         </div>
                         <div className="flex-1">
                           <p className="text-text-primary font-semibold text-sm">
-                            {t.label}{" "}
+                            {t.label}
                             {active && (
                               <Check
-                                className="w-4 h-4 inline ml-1"
+                                className="w-4 h-4 inline ml-2"
                                 style={{ color: "var(--accent-primary)" }}
                               />
                             )}
                           </p>
-                          <p className="text-text-tertiary text-xs mt-0.5">{t.desc}</p>
+                          <p className="text-text-tertiary text-xs mt-1">
+                            {t.desc}
+                          </p>
                         </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* ── 3. Branding — 10 themes, applied live ─────────────── */}
-              <p className="text-xs font-semibold text-text-tertiary uppercase tracking-wide mb-3">
-                Thème de votre organisation
-              </p>
-              <div className="mb-6">
-                <ThemePicker value={themeId} onChange={setThemeId} />
-              </div>
-
-              {/* ── 4. Modules ─────────────────────────────────────────── */}
-              <p className="text-xs font-semibold text-text-tertiary uppercase tracking-wide mb-3">
-                Modules à activer
-              </p>
-              <div className="grid grid-cols-2 gap-2 mb-6">
-                {FEATURES.map(({ key, label, icon: Icon }) => {
-                  const on = features.includes(key);
-                  return (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() => toggleFeature(key)}
-                      className="rounded-xl p-3 text-left transition-all active:scale-[0.97]"
-                      style={{
-                        background: "var(--surface)",
-                        border: on
-                          ? "1.5px solid var(--accent-primary)"
-                          : "1px solid var(--surface-hover)",
-                        opacity: on ? 1 : 0.6,
-                      }}
-                    >
-                      <Icon
-                        className="w-4 h-4 mb-1.5"
-                        style={{ color: on ? "var(--accent-primary)" : "var(--text-tertiary)" }}
-                      />
-                      <p className="text-xs font-medium text-text-primary leading-tight">
-                        {label}
-                      </p>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* ── 5. Creator role ────────────────────────────────────── */}
-              <p className="text-xs font-semibold text-text-tertiary uppercase tracking-wide mb-3">
-                Votre rôle
-              </p>
-              {chosen && (
-                <div className="grid grid-cols-2 gap-2 mb-2">
-                  {chosen.roles.map((r) => {
-                    const on = role === r.id;
-                    return (
-                      <button
-                        key={r.id}
-                        type="button"
-                        onClick={() => setRole(r.id)}
-                        className="rounded-xl p-3 text-left transition-all active:scale-[0.97]"
-                        style={{
-                          background: "var(--surface)",
-                          border: on
-                            ? "1.5px solid var(--accent-primary)"
-                            : "1px solid var(--surface-hover)",
-                          opacity: on ? 1 : 0.6,
-                        }}
-                      >
-                        <p
-                          className="text-xs font-semibold"
-                          style={{ color: on ? "var(--accent-primary)" : "var(--text-primary)" }}
-                        >
-                          {r.label}
-                        </p>
-                      </button>
+                      </MotionCard>
                     );
                   })}
                 </div>
-              )}
+              </motion.div>
+
+              {/* ── 3. Thème ────────────────────────────────────────────── */}
+              <motion.div
+                initial="hidden"
+                animate="visible"
+                variants={CARD_VARIANTS}
+                transition={{ delay: 0.4 }}
+                className="mb-8"
+              >
+                <p className="text-xs font-semibold uppercase tracking-wider mb-3">
+                  Thème de votre organisation
+                </p>
+                <MotionCard variant="flat" className="p-5">
+                  <ThemePicker value={themeId} onChange={setThemeId} />
+                </MotionCard>
+              </motion.div>
+
+              {/* ── 4. Modules ──────────────────────────────────────────── */}
+              <motion.div
+                initial="hidden"
+                animate="visible"
+                variants={CARD_VARIANTS}
+                transition={{ delay: 0.5 }}
+                className="mb-8"
+              >
+                <p className="text-xs font-semibold uppercase tracking-wider mb-3">
+                  Modules à activer
+                </p>
+                <div className="grid grid-cols-2 gap-3 mb-6">
+                  {FEATURES.map(({ key, label, icon: Icon }) => {
+                    const on = features.includes(key);
+                    return (
+                      <MotionCard
+                        key={key}
+                        variant="flat"
+                        onPress={() => toggleFeature(key)}
+                        className="p-4 flex items-center gap-3 cursor-pointer group"
+                        style={{
+                          border: on
+                            ? "1.5px solid var(--accent-primary)"
+                            : "1px solid var(--surface-hover)",
+                          opacity: on ? 1 : 0.5,
+                        }}
+                      >
+                        <div
+                          className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                          style={{
+                            background: on
+                              ? "color-mix(in srgb, var(--accent-primary) 20%, transparent)"
+                              : "var(--surface-hover)",
+                          }}
+                        >
+                          <Icon
+                            className="w-4 h-4"
+                            style={{
+                              color: on
+                                ? "var(--accent-primary)"
+                                : "var(--text-tertiary)",
+                            }}
+                          />
+                        </div>
+                        <p className="text-xs font-medium text-text-primary leading-tight">
+                          {label}
+                        </p>
+                      </MotionCard>
+                    );
+                  })}
+                </div>
+              </motion.div>
+
+              {/* ── 5. Rôle ─────────────────────────────────────────────── */}
+              <motion.div
+                initial="hidden"
+                animate="visible"
+                variants={CARD_VARIANTS}
+                transition={{ delay: 0.6 }}
+                className="mb-8"
+              >
+                <p className="text-xs font-semibold uppercase tracking-wider mb-3">
+                  Votre rôle
+                </p>
+                {chosen && (
+                  <div className="grid grid-cols-2 gap-3 mb-6">
+                    {chosen.roles.map((r) => {
+                      const on = role === r.id;
+                      return (
+                        <MotionCard
+                          key={r.id}
+                          variant="flat"
+                          onPress={() => setRole(r.id)}
+                          className="p-4 text-center cursor-pointer group"
+                          style={{
+                            border: on
+                              ? "1.5px solid var(--accent-primary)"
+                              : "1px solid var(--surface-hover)",
+                            opacity: on ? 1 : 0.5,
+                          }}
+                        >
+                          <p
+                            className="text-xs font-semibold"
+                            style={{ color: on ? "var(--accent-primary)" : "var(--text-primary)" }}
+                          >
+                            {r.label}
+                          </p>
+                        </MotionCard>
+                      );
+                    })}
+                  </div>
+                )}
+              </motion.div>
             </div>
           </div>
 
           {/* CTA */}
           <div className="px-6 pb-10">
             {createError && (
-              <div
-                role="alert"
-                data-screen-state="error"
-                className="mb-3 p-3 rounded-xl text-sm"
-                style={{
-                  backgroundColor:
-                    "color-mix(in srgb, var(--data-alert) 10%, transparent)",
-                  border:
-                    "1px solid color-mix(in srgb, var(--data-alert) 30%, transparent)",
-                  color: "var(--data-alert)",
-                }}
-              >
-                {createError}
-              </div>
+              <MotionCard variant="flat" className="p-4 mb-6 text-center" style={{ backgroundColor: "color-mix(in srgb, var(--data-alert) 10%, transparent)" }}>
+                <p className="text-sm text-text-primary" style={{ color: "var(--data-alert)" }}>
+                  {createError}
+                </p>
+              </MotionCard>
             )}
             <button
               onClick={handleCreate}
@@ -493,17 +522,16 @@ export default function OrgSetup() {
                 </>
               ) : (
                 <>
-                  Créer l'organisation
+                  Créer l’organisation
                   <ChevronRight className="w-4 h-4" />
                 </>
               )}
             </button>
             <button
               onClick={() => navigate(-1)}
-              className="w-full mt-3 py-3 rounded-full text-sm font-medium text-text-tertiary"
+              className="w-full mt-3 py-3 rounded-full text-sm font-medium text-text-tertiary flex items-center justify-center gap-2"
             >
-              <ChevronLeft className="w-4 h-4 inline mr-1" />
-              Retour
+              <ChevronLeft className="w-4 h-4" /> Retour
             </button>
           </div>
         </div>
