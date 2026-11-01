@@ -327,7 +327,7 @@ export default function TransactionDetail() {
                 className={`text-2xl font-black tabular-nums ${isIncome ? "text-income" : "text-expense"}`}
               >
                 {isIncome ? "+" : "-"}
-                {formatCurrencyCompact(tx.amount)} F
+                {formatCurrencyCompact(tx.amount)}
               </p>
               <p className="text-text-tertiary text-sm mt-2">
                 {formatDate(tx.date)}

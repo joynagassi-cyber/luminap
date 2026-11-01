@@ -17,6 +17,7 @@ const h = vi.hoisted(() => ({
   loc: { pathname: "/versement", search: "", state: null as any },
   navigate: vi.fn(),
   accounts: [] as any[],
+  txs: [] as any[],
 }));
 
 vi.mock("lucide-react", () => {
@@ -48,7 +49,7 @@ vi.mock("react-router-dom", async (importOriginal) => {
 vi.mock("@/lib/dataLayer", () => ({
   useCaisses: () => ({ data: [] }),
   useAccounts: () => ({ data: h.accounts, isLoading: false }),
-  useTransactions: () => ({ data: [] }),
+  useTransactions: () => ({ data: h.txs }),
   createVersement: vi.fn(async () => ({})),
   isPowerSyncReadyNow: () => true,
 }));
@@ -66,6 +67,7 @@ beforeEach(() => {
     { id: "g1", name: "Groupe A", owner_type: "GROUP", status: "ACTIVE" },
     { id: "g2", name: "Groupe B", owner_type: "GROUP", status: "ACTIVE" },
   ];
+  h.txs = [];
 });
 
 function renderVersement(search: string) {
@@ -100,5 +102,52 @@ describe("Versement — préremplissage par query param", () => {
     const amountInput = inputs.find((el) => el.getAttribute("type") === "number") as HTMLInputElement;
     expect(select.value).toBe("");
     expect(amountInput.value).toBe("");
+  });
+});
+
+/**
+ * Bug de classe « montant fantôme » : le solde d'une caisse n'additionnait que
+ * les transactions APPROUVÉES. Le filtre testait `sourceCaisseId` (camelCase),
+ * un champ qui N'EXISTE PAS sur les lignes PowerSync (`PSTransaction` est
+ * snake_case) : la seconde branche du `||` était toujours fausse, donc TOUTE
+ * transaction dont `source_caisse_id === caisse` comptait — y compris les
+ * dépenses DRAFT/PENDING non approuvées et les écritures annulées. Le solde
+ * affiché était faux (souvent négatif ou surévalué) et bornait à tort le
+ * montant versable.
+ */
+describe("Versement — solde d'une caisse (n'admettre que l'APPROUVÉ)", () => {
+  // `Intl.NumberFormat("fr-FR")` groupe avec U+202F (espace fine insécable) :
+  // on normalise avant d'assertir, sinon la comparaison échoue sur le séparateur.
+  const norm = (s: string) => s.replace(/[\u202f\u00a0]/g, " ");
+
+  it("ignore les transactions non approuvées (DRAFT/PENDING)", () => {
+    h.txs = [
+      { source_caisse_id: "g1", type: "INCOME", amount: 100000, status: "APPROVED" },
+      { source_caisse_id: "g1", type: "EXPENSE", amount: 50000, status: "PENDING" },
+      { source_caisse_id: "g1", type: "INCOME", amount: 999999, status: "DRAFT" },
+    ];
+    const { container } = renderVersement("?caisseId=g1");
+    const text = norm(container.textContent ?? "");
+    // Solde attendu : 100000 centimes = 1 000 FCFA. Le bug comptait
+    // +100000 − 50000 + 999999 → 10 500 FCFA (fantôme).
+    expect(text).toContain("1 000 FCFA");
+    expect(text).not.toContain("10 500");
+  });
+
+  it("les transactions d'une AUTRE caisse ne comptent pas", () => {
+    h.txs = [
+      { source_caisse_id: "g1", type: "INCOME", amount: 200000, status: "APPROVED" },
+      { source_caisse_id: "g2", type: "INCOME", amount: 500000, status: "APPROVED" },
+    ];
+    const { container } = renderVersement("?caisseId=g1");
+    const text = norm(container.textContent ?? "");
+    expect(text).toContain("2 000 FCFA");
+    expect(text).not.toContain("7 000");
+  });
+
+  it("n'affiche jamais « FCFA » en double (… FCFA F)", () => {
+    h.txs = [{ source_caisse_id: "g1", type: "INCOME", amount: 100000, status: "APPROVED" }];
+    const { container } = renderVersement("?caisseId=g1");
+    expect(norm(container.textContent ?? "")).not.toContain("FCFA F");
   });
 });

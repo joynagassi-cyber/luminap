@@ -254,7 +254,7 @@ export default function SaisieRapide() {
                               color: "var(--data-planified)",
                             }}
                           >
-                            Surplus: {formatCurrencyCompact(customCents - montantOblig)} F
+                            Surplus: {formatCurrencyCompact(customCents - montantOblig)}
                           </span>
                         )}
                       </div>

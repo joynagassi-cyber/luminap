@@ -81,6 +81,33 @@ audit PII adversarial, garde du tutoriel, robustesse finance/money-format).
 - `export.ts` : « FCFA » était doublé (la devise est déjà incluse par
   `formatCurrencyCompact`). Correctif : ne plus la ré-ajouter.
 
+## Passe 3.b — audit « la feature est-elle robuste à long terme ? » (2ᵉ vague)
+
+Après avoir affirmé que la feature money-format était « finie », un audit a
+montré qu'elle avait introduit une **régression de masse** : `formatCurrencyCompact`
+rend désormais la devise (« 50 000 FCFA »), mais ~20 sites d'appel y ajoutaient
+encore « F » → « 50 000 FCFA F » sur tous les écrans finance.
+
+1. **Devise doublée (régression introduite par ce lot).** 20 sites corrigés
+   (GroupDetail, EventNew, EventDetail, Cotisations, Events, MembreDetail,
+   GroupCotisation, Versement, SaisieRapide, MembresEnAvance, TransactionDetail).
+   Garde statique `money-unit-guard.test.ts` (non-vacuité : réintroduire un
+   suffixe ⇒ rouge) — la classe est désormais fermée par construction.
+2. **Solde de caisse faux (`Versement.tsx`).** Le filtre testait
+   `sourceCaisseId` (camelCase), champ **inexistant** sur les lignes PowerSync
+   (`PSTransaction` est snake_case) : la 2ᵉ branche du `||` était morte, donc
+   les dépenses **DRAFT/PENDING non approuvées** étaient comptées → solde
+   fantôme, plafond de versement faux. Correctif : n'admettre que
+   `source_caisse_id === caisse && status === "APPROVED"` (même invariant que
+   `account.ts::getAccountBalance`). Non-vacuité : restaurer le filtre fautif
+   ⇒ 1 test rouge.
+3. **Solde affiché 100× trop petit.** `balanceFCFA` (déjà en FCFA) était passé
+   à `formatCurrencyCompact`, qui attend des **centimes** → « 10 FCFA » au lieu
+   de « 1 000 FCFA ». Correctif : passer `balance` (centimes).
+
+Résultat : le solde de caisse affiché ET le plafond de versement sont désormais
+exacts et cohérents avec le solde dérivé côté service.
+
 ## Gates (locaux)
 
 | Gate | Commande | Résultat |
@@ -88,7 +115,7 @@ audit PII adversarial, garde du tutoriel, robustesse finance/money-format).
 | Typecheck | `npx tsc -b --force --noEmit` | **0** |
 | Lint | `npx eslint <fichiers touchés>` | **0 erreur** (warnings `any` préexistants) |
 | Unitaires (ciblés) | `npx vitest run <9 fichiers PR5-PR19>` | **191 passed** |
-| Unitaires (complet) | `npx vitest run` | **214 fichiers, 2207 passed, 6 skipped** |
+| Unitaires (complet) | `npx vitest run` | **215 fichiers, 2212 passed, 6 skipped** |
 
 ## Écart NON corrigeable (assumé, hérité de la passe 1)
 

@@ -571,7 +571,7 @@ export default function EventDetail() {
                             </span>
                             <span className="text-text-tertiary">
                               {formatCurrencyCompact(item.spent || 0)}/
-                              {formatCurrencyCompact(item.allocated)} F
+                              {formatCurrencyCompact(item.allocated)}
                             </span>
                           </div>
                           <div
@@ -663,7 +663,7 @@ export default function EventDetail() {
                           }}
                         >
                           {tx.type === "INCOME" ? "+" : "-"}
-                          {formatCurrencyCompact(tx.amount)} F
+                          {formatCurrencyCompact(tx.amount)}
                         </span>
                       </div>
                     ))}
@@ -718,12 +718,12 @@ export default function EventDetail() {
                         </div>
                         <div className="text-right ml-3">
                           <p className="text-text-primary text-sm font-bold">
-                            {formatCurrencyCompact(item.allocated)} F
+                            {formatCurrencyCompact(item.allocated)}
                           </p>
                           <p
                             className={`text-xs ${isExceeded ? "text-expense" : "text-text-tertiary"}`}
                           >
-                            {formatCurrencyCompact(item.spent || 0)} F dépensé
+                            {formatCurrencyCompact(item.spent || 0)} dépensé
                           </p>
                         </div>
                       </div>
@@ -858,7 +858,7 @@ export default function EventDetail() {
                         }}
                       >
                         {tx.type === "INCOME" ? "+" : "-"}
-                        {formatCurrencyCompact(tx.amount)} F
+                        {formatCurrencyCompact(tx.amount)}
                       </span>
                     </div>
                   ))

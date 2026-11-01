@@ -337,7 +337,7 @@ export default function GroupDetail() {
               {pendingAmount !== 0 && (
                 <p className="text-xs mt-1" style={{ color: "var(--warn)" }}>
                   {pendingAmount > 0 ? "+" : ""}
-                  {formatCurrencyCompact(Math.abs(pendingAmount))} FCFA en
+                  {formatCurrencyCompact(Math.abs(pendingAmount))} en
                   attente
                 </p>
               )}
@@ -637,7 +637,7 @@ export default function GroupDetail() {
                           </p>
                         </div>
                         <span className="text-sm font-bold text-expense">
-                          -{formatCurrencyCompact(v.amount)} F
+                          -{formatCurrencyCompact(v.amount)}
                         </span>
                       </div>
                     ))}

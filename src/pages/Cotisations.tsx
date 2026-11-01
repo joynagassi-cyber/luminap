@@ -204,7 +204,7 @@ export default function Cotisations() {
                                 className="font-semibold"
                                 style={{ color: "var(--in)" }}
                               >
-                                {formatCurrencyCompact(stat.totalCollected)} F
+                                {formatCurrencyCompact(stat.totalCollected)}
                               </span>
                             </div>
                             <div
@@ -223,7 +223,7 @@ export default function Cotisations() {
                             <div className="flex items-center justify-between text-xs mt-1">
                               <span style={{ color: "var(--text-placeholder)" }}>Objectif</span>
                               <span style={{ color: "var(--text-placeholder)" }}>
-                                {formatCurrencyCompact(stat.expectedTotal)} F
+                                {formatCurrencyCompact(stat.expectedTotal)}
                               </span>
                             </div>
                           </div>

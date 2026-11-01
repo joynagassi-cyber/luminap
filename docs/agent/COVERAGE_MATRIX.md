@@ -69,6 +69,7 @@
 | 11 | `DocumentPicker` : « Aucun document uploadé » avant lecture (R52.p) | `V: r52p-document-picker-loading.test.tsx` (2, non-vacuité vérifiée) | **couvert** |
 | 11 | Garde statique : verdict vide gardé par un `isLoading` MORT (liste dérivée de dataLayer) | `V: r52-readiness-guard.test.ts` (3, sonde de non-vacuité) | **couvert** |
 | 11 | `/balance`, `/history`, `/versement` : chiffres faux avant lecture (R52.q) | `V: r52q-finance-loading.test.tsx` (6, non-vacuité vérifiée) | **couvert** |
+| 11 | Format d'affichage des montants (préférence locale, 4 styles) + solde de caisse exact (approuvé seulement, unité non doublée) | `V: money-format.test.ts` (11) + `V: money-unit-guard.test.ts` (2, garde statique « FCFA F ») + `V: versement-prefill.test.tsx` (6 : solde n'admet que l'APPROUVÉ, non-vacuité vérifiée) | **couvert** (non-vacuité vérifiée) |
 | 11 | Garde statique : squelette gardé par un `isLoading` MORT sans disponibilité prouvée | `V: r52-readiness-guard.test.ts` (4, mutation de Balance.tsx) | **couvert** |
 | 11 | `/settings/notifications` : « Tout est lu » avant lecture (R52.r) | `V: r52r-settings-notifications-loading.test.tsx` (2, non-vacuité vérifiée) | **couvert** |
 | 11 | `/event/:id/edit` : « Chargement... » infini + nom non pré-rempli (R52.s) | `V: r52s-eventedit-loading.test.tsx` (3, non-vacuité vérifiée) | **couvert** |

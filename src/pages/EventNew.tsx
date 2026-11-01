@@ -459,7 +459,7 @@ export default function EventNew() {
                             {item.label}
                           </p>
                           <p className="text-text-tertiary text-xs">
-                            {formatCurrencyCompact(item.allocated)} F
+                            {formatCurrencyCompact(item.allocated)}
                           </p>
                         </div>
                         <button
@@ -487,7 +487,7 @@ export default function EventNew() {
               >
                 <p className="text-text-tertiary text-xs">Budget total</p>
                 <p className="text-text-primary font-bold text-lg">
-                  {formatCurrencyCompact(totalBudget)} F
+                  {formatCurrencyCompact(totalBudget)}
                 </p>
               </div>
             )}

@@ -347,13 +347,13 @@ export default function GroupCotisation() {
                   <div>
                     <p className="text-text-tertiary">Collecté</p>
                     <p className="text-income font-bold text-sm">
-                      {formatCurrencyCompact(stats.totalCollecte)} F
+                      {formatCurrencyCompact(stats.totalCollecte)}
                     </p>
                   </div>
                   <div>
                     <p className="text-text-tertiary">Attendu</p>
                     <p className="text-text-primary font-bold text-sm">
-                      {formatCurrencyCompact(stats.attendu)} F
+                      {formatCurrencyCompact(stats.attendu)}
                     </p>
                   </div>
                   <div>

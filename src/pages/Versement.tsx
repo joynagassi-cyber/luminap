@@ -61,11 +61,14 @@ export default function Versement() {
   );
   const selected = groupAccounts.find((a: any) => a.id === selectedCaisse);
 
-  // Re-calculate balance fresh each time
+  // Solde de la caisse : n'admettre QUE les transactions APPROUVÉES (même
+  // invariant que `account.ts::getAccountBalance`). L'ancien filtre testait
+  // `sourceCaisseId` (camelCase), champ inexistant sur les lignes PowerSync
+  // (`PSTransaction` est snake_case) : la 2ᵉ branche du `||` était morte, donc
+  // les dépenses DRAFT/PENDING non approuvées étaient comptées → solde fantôme.
   const approvedTxs = transactions.filter(
     (t: any) =>
-      t.source_caisse_id === selectedCaisse ||
-      (t.sourceCaisseId === selectedCaisse && t.status === "APPROVED"),
+      t.source_caisse_id === selectedCaisse && t.status === "APPROVED",
   );
   const balance =
     approvedTxs
@@ -171,7 +174,7 @@ export default function Versement() {
                       Montant à verser
                     </p>
                     <p className="text-2xl font-black text-accent">
-                      {formatCurrencyCompact(amountNum)} F
+                      {formatCurrencyCompact(amountNum)}
                     </p>
                   </div>
                   <div className="space-y-2 text-sm">
@@ -249,7 +252,7 @@ export default function Versement() {
                           Solde disponible
                         </p>
                         <p className="text-text-primary font-bold text-xl mt-1">
-                          {formatCurrencyCompact(balanceFCFA)} F
+                          {formatCurrencyCompact(balance)}
                         </p>
                       </div>
                       <Wallet className="w-8 h-8 text-text-tertiary" />
@@ -283,7 +286,7 @@ export default function Versement() {
                   )}
                   {amountNum <= maxAmount && maxAmount > 0 && (
                     <p className="text-text-tertiary text-xs mt-1 text-center">
-                      Maximum: {formatCurrencyCompact(maxAmount)} F
+                      Maximum: {formatCurrencyCompact(balance)}
                     </p>
                   )}
                 </IonItem>
