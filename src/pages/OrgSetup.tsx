@@ -348,17 +348,26 @@ export default function OrgSetup() {
                       )}
                     </MotionCard>
 
-                    <button
-                      onClick={handleSkipLogo}
-                      className="w-full py-3.5 rounded-xl font-medium text-sm transition-all active:scale-95"
-                      style={{
-                        backgroundColor: "var(--surface)",
-                        color: "var(--text-secondary)",
-                        border: "1px solid var(--border)",
-                      }}
-                    >
-                      Ignorer pour l’instant
-                    </button>
+                    <div className="flex flex-col sm:flex-row sm:justify-end gap-3">
+                      <button
+                        onClick={handleSkipLogo}
+                        className="w-full sm:w-auto py-3.5 rounded-xl font-medium text-sm transition-all active:scale-95"
+                        style={{
+                          backgroundColor: "var(--surface)",
+                          color: "var(--text-secondary)",
+                          border: "1px solid var(--border)",
+                        }}
+                      >
+                        Ignorer pour l’instant
+                      </button>
+                      <button
+                        onClick={handleNext}
+                        className="w-full sm:w-auto px-6 py-3.5 rounded-xl font-semibold text-sm text-on-accent transition-all active:scale-95 shadow-accent flex items-center justify-center gap-2"
+                        style={{ backgroundColor: "var(--accent-primary)" }}
+                      >
+                        Continuer <ChevronRight className="w-4 h-4 ml-2" />
+                      </button>
+                    </div>
                   </>
                 )}
 
