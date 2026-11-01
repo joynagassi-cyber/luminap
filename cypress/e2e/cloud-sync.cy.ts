@@ -22,6 +22,9 @@ describe('Lumina — cloud sync (offline → online)', () => {
   const customFieldPrefixes: string[] = [];
   // Borne temporelle stricte : ne nettoie QUE les lignes créées par ce run.
   const runStartedAt = new Date().toISOString();
+  // Id de l'organisation ACTIVE, résolu dynamiquement dans le test (jamais
+  // `org-e2e` : id figé disparu depuis R161 — cf. `cy.orgActiveId()`).
+  let activeOrgId = '';
 
   before(function () {
     this.timeout(90_000);
@@ -97,30 +100,33 @@ describe('Lumina — cloud sync (offline → online)', () => {
     // `allowed=false` et le FAB « Créer un groupe » n'est pas rendu.
     cy.visit('/dashboard', { timeout: 90_000 });
     cy.wait(10_000);
-    cy.window().then((win: any) => {
-      const activeOrgId =
-        (Cypress.expose('CYPRESS_ORG_ACTIVE_ID') as string) || 'org-e2e';
-      const ls = win.localStorage;
-      const raw = ls.getItem('lumina-user');
-      const user = raw ? JSON.parse(raw) : null;
-      if (user) {
-        user.org = { id: activeOrgId, name: 'Lumina Org E2E', type: 'CHURCH' };
-        user.role = 'PASTEUR_PRINCIPAL';
-        ls.setItem('lumina-user', JSON.stringify(user));
-      } else {
-        // Repli : si lumina-user n'existe pas encore, on le crée.
-        ls.setItem(
-          'lumina-user',
-          JSON.stringify({
-            id: '87afea21-bad7-453b-9ae5-4ad1da2ca13f',
-            email: 'lumina-org-e2e@lumina.dev',
-            role: 'PASTEUR_PRINCIPAL',
-            org: { id: activeOrgId, name: 'Lumina Org E2E', type: 'CHURCH' },
-          }),
-        );
-      }
-      ls.setItem('lumina-active-org', activeOrgId);
-      ls.setItem('lumina-role', 'PASTEUR_PRINCIPAL');
+    cy.orgActiveId().then((resolvedOrgId) => {
+      activeOrgId = resolvedOrgId;
+      cy.window().then((win: any) => {
+        const ls = win.localStorage;
+        const raw = ls.getItem('lumina-user');
+        const user = raw ? JSON.parse(raw) : null;
+        if (user) {
+          user.org = { id: activeOrgId, name: 'Lumina Org E2E', type: 'CHURCH' };
+          user.role = 'PASTEUR_PRINCIPAL';
+          ls.setItem('lumina-user', JSON.stringify(user));
+        } else {
+          // Repli : si lumina-user n'existe pas encore, on le crée avec un id
+          // `local-user` (jamais un UUID figé : le compte e2e change d'UUID
+          // d'un environnement à l'autre, et un id périmé casse les FK).
+          ls.setItem(
+            'lumina-user',
+            JSON.stringify({
+              id: 'local-user',
+              email: 'lumina-org-e2e@lumina.dev',
+              role: 'PASTEUR_PRINCIPAL',
+              org: { id: activeOrgId, name: 'Lumina Org E2E', type: 'CHURCH' },
+            }),
+          );
+        }
+        ls.setItem('lumina-active-org', activeOrgId);
+        ls.setItem('lumina-role', 'PASTEUR_PRINCIPAL');
+      });
     });
     cy.visit('/dashboard', { timeout: 90_000 });
     cy.wait(10_000);
@@ -439,25 +445,25 @@ describe('Lumina — cloud sync (offline → online)', () => {
       // runner attende tous les POSTs avant de continuer).
       postEntity('org_units', {
         id: groupId, name: accountName, type: 'groupe',
-        org_id: 'org-e2e', description: '', is_active: 1, created_at: nowIso,
+        org_id: activeOrgId, description: '', is_active: 1, created_at: nowIso,
       });
       postEntity('groups', {
-        id: groupId, org_id: 'org-e2e', name: accountName,
+        id: groupId, org_id: activeOrgId, name: accountName,
         status: 'ACTIVE', created_at: nowIso, updated_at: nowIso,
       });
       postEntity('accounts', {
-        id: groupId, org_id: 'org-e2e', owner_type: 'GROUP', owner_id: groupId,
+        id: groupId, org_id: activeOrgId, owner_type: 'GROUP', owner_id: groupId,
         name: accountName, currency: 'XOF', status: 'ACTIVE',
         created_at: nowIso, updated_at: nowIso,
       });
       postEntity('caisses', {
         id: groupId, name: accountName, description: '',
-        type: 'GROUP', color: '#FF6B00', org_id: 'org-e2e',
+        type: 'GROUP', color: '#FF6B00', org_id: activeOrgId,
         created_at: nowIso, updated_at: nowIso,
       });
       postEntity('custom_field_definitions', {
         id: 'cf-' + groupId,
-        org_id: 'org-e2e', entity_type: 'Transaction',
+        org_id: activeOrgId, entity_type: 'Transaction',
         field_name: cfKey, field_label: 'TestSync Custom Field ' + Date.now(),
         field_type: 'text', order: 0,
         created_at: nowIso, updated_at: nowIso,

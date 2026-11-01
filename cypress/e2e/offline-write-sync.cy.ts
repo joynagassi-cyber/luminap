@@ -39,8 +39,10 @@ describe('Lumina — écriture hors ligne (R85)', () => {
     (Cypress.expose('SUPABASE_URL') as string) ||
     'https://hhgovvrnalibhgpakswi.supabase.co';
   const anonKey = Cypress.expose('SUPABASE_ANON_KEY') as string;
-  const activeOrgId =
-    (Cypress.expose('CYPRESS_ORG_ACTIVE_ID') as string) || 'org-e2e';
+
+  // Id de l'organisation ACTIVE, résolu dynamiquement au 1er test (jamais
+  // `org-e2e` : id figé disparu depuis R161 — cf. `cy.orgActiveId()`).
+  let activeOrgId = '';
 
   before(function () {
     this.timeout(120_000);
@@ -57,19 +59,22 @@ describe('Lumina — écriture hors ligne (R85)', () => {
     // retombe sur `__no_org__` et l'INSERT part avec un org_id invalide
     // (rejeté par la RLS à l'upload, sans erreur visible).
     cy.visit('/dashboard', { timeout: 90_000 });
-    cy.window({ timeout: 60_000 }).then((win: any) => {
-      const ls = win.localStorage;
-      const raw = ls.getItem('lumina-user');
-      const user = raw ? JSON.parse(raw) : null;
-      const next = user ?? {
-        id: '87afea21-bad7-453b-9ae5-4ad1da2ca13f',
-        email: 'lumina-org-e2e@lumina.dev',
-      };
-      next.org = { id: activeOrgId, name: 'Lumina Org E2E', type: 'CHURCH' };
-      next.role = 'PASTEUR_PRINCIPAL';
-      ls.setItem('lumina-user', JSON.stringify(next));
-      ls.setItem('lumina-active-org', activeOrgId);
-      ls.setItem('lumina-role', 'PASTEUR_PRINCIPAL');
+    cy.orgActiveId().then((resolvedOrgId) => {
+      activeOrgId = resolvedOrgId;
+      return cy.window({ timeout: 60_000 }).then((win: any) => {
+        const ls = win.localStorage;
+        const raw = ls.getItem('lumina-user');
+        const user = raw ? JSON.parse(raw) : null;
+        // Id du user : celui réellement persisté par `auth.ts` (jamais un id
+        // figé — le compte e2e partagé change d'UUID d'un environnement à
+        // l'autre, et un id périmé casse les FK côté serveur).
+        const next = user ?? { id: 'local-user', email: 'lumina-org-e2e@lumina.dev' };
+        next.org = { id: activeOrgId, name: 'Lumina Org E2E', type: 'CHURCH' };
+        next.role = 'PASTEUR_PRINCIPAL';
+        ls.setItem('lumina-user', JSON.stringify(next));
+        ls.setItem('lumina-active-org', activeOrgId);
+        ls.setItem('lumina-role', 'PASTEUR_PRINCIPAL');
+      });
     });
     cy.visit('/dashboard', { timeout: 90_000 });
 
