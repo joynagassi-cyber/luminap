@@ -4,6 +4,30 @@ All notable changes to the Lumina Platform will be documented in this file.
 
 ---
 
+## [1.2.0] — 2026-11-01
+
+### Added
+- **Guide visuel des écrans** — 64 captures annotées (390×844) générées par
+  Cypress, intégrées au tutoriel en galerie par section + PDF
+  `docs/agent/GUIDE_ECRANS.pdf` (35 pages). Chaîne reproductible via
+  `pnpm docs:screens` puis `pnpm docs:visual`.
+- **Création d'organisation self-serve (R161)** — un nouvel utilisateur peut
+  créer sa propre organisation sans invitation ; fin du cul-de-sac
+  « Organisation non rejointe ».
+- **Couverture E2E PR4/PR5** — page de santé (état général + relevés) et
+  « Signaler un problème » (signalement réellement journalisé, sans PII).
+
+### Changed
+- **Autorisation d'écriture durcie (R141 / R141.b / R141.c / R141.d)** — les
+  dernières politiques RLS d'écriture sur « membre seul » passent sur les
+  permissions canon (`has_permission()`).
+
+### Fixed
+- Gardes anti-régression ajoutées : `pr18-write-permission-guard`,
+  `r141d-write-permission-guard`, `r141bc-write-permission-guard`.
+
+---
+
 ## [Platform Complete] — 2026-09-09
 
 ### Summary
