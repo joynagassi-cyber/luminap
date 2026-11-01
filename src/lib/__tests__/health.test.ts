@@ -137,6 +137,24 @@ describe("buildDiagnosticReport (Signaler un problème)", () => {
     expect(txt).toContain("boom[31m=1+1");
   });
 
+  it("expurge la PII (e-mail, jeton) du diagnostic copiable", () => {
+    const txt = buildDiagnosticReport(
+      base,
+      [
+        {
+          message:
+            "contact jean.dupont@example.com token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.abcdefghijklmnop.qrstuvwxyz012345 Bearer sk-abc123.def456",
+        },
+      ],
+      "t",
+    );
+    expect(txt).not.toContain("jean.dupont@example.com");
+    expect(txt).not.toContain("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9");
+    expect(txt).not.toContain("sk-abc123.def456");
+    expect(txt).toContain("<email>");
+    expect(txt).toContain("<jwt>");
+  });
+
   it("plafonne la longueur d'un message d'erreur hostile (500)", () => {
     const txt = buildDiagnosticReport(base, [{ message: "x".repeat(900) }], "t");
     const line = txt.split("\n").find((l) => l.includes("x"))!;

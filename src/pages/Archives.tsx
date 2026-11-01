@@ -7,6 +7,7 @@ import {
   useDocuments,
   addDocumentPS,
   updateDocumentPS,
+  isPowerSyncReadyNow,
   type PSDocument,
 } from "@/lib/dataLayer";
 import { uploadLuminaFile, getDocumentUrl } from "@/lib/storageService";
@@ -44,10 +45,15 @@ export default function Archives() {
   const [retryCount, setRetryCount] = useState(0);
 
   // ── Documents (upload / archivage via bucket `archives`) ─────────────
-  const { data: allDocuments } = useDocuments();
+  const { data: allDocuments, isLoading: documentsLoading } = useDocuments();
   const documents = (allDocuments ?? []).filter(
     (d) => d.bucket === "archives",
   );
+  // R52 — `useDocuments()` renvoie `isLoading: true` tant que la réplique
+  // PowerSync n'a pas répondu : afficher « Aucun document archivé » pendant ce
+  // temps serait un verdict FAUX (l'utilisateur croirait avoir perdu ses
+  // archives). On ne conclut au vide qu'une fois la lecture terminée.
+  const documentsPending = documentsLoading || !isPowerSyncReadyNow();
   const [docTitle, setDocTitle] = useState("");
   const [docPurpose, setDocPurpose] = useState("");
   const [docFile, setDocFile] = useState<File | null>(null);
@@ -299,11 +305,22 @@ export default function Archives() {
                   {/* Liste des documents */}
                   <div className="space-y-2">
                     {documents.length === 0 ? (
-                      <EmptyState
-                        title="Aucun document archivé"
-                        description="Les documents archivés apparaîtront ici"
-                        icon={<FileText className="w-6 h-6" />}
-                      />
+                      documentsPending ? (
+                        <div
+                          className="rounded-xl p-4 text-center"
+                          style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
+                        >
+                          <p className="text-text-tertiary text-sm">
+                            Chargement des documents…
+                          </p>
+                        </div>
+                      ) : (
+                        <EmptyState
+                          title="Aucun document archivé"
+                          description="Les documents archivés apparaîtront ici"
+                          icon={<FileText className="w-6 h-6" />}
+                        />
+                      )
                     ) : (
                       documents.map((doc) => (
                         <div
