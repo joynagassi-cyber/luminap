@@ -1262,4 +1262,8 @@ import './ionic';
 // (archive-only, run-scoped, non-fatal).
 import './e2eCleanup';
 
+// Neutralise la remontée d'erreurs vers le dépôt public (défense en
+// profondeur — aucun test ne doit créer de vraie Issue GitHub).
+import './noErrorReporting';
+
 export {};
