@@ -304,7 +304,7 @@ export default function OrgSetup() {
     }
   };
 
-  const progress = (step - 1) / 4;
+  const progress = (step - 1) / 5;
 
   return (
     <IonPage>
@@ -327,54 +327,56 @@ export default function OrgSetup() {
 
           {/* ── Stepper ── */}
           <div className="px-6 mb-8">
-            <div className="flex items-center justify-between">
+            {/* Barre de progression avec gradient subtil (orange actif) */}
+            <div className="relative mt-8 mb-6 h-2 bg-surface rounded-full overflow-hidden border border-border/50">
+              <div className="absolute top-0 left-0 h-full rounded-full transition-all duration-500 ease-out" style={{ width: `${progress * 100}%` }}>
+                <div className="absolute inset-0 rounded-full" style={{
+                  background: "linear-gradient(90deg, var(--accent-primary) 0%, color-mix(in srgb, var(--accent-primary) 70%, white) 100%)",
+                  opacity: 0.9,
+                }} />
+                <div className="absolute inset-0 rounded-full overflow-hidden" style={{ maskImage: "linear-gradient(to right, transparent 0%, black 25%, black 75%, transparent 100%)", maskSize: "200% 100%", maskPosition: "0 0" }}>
+                  <div className="absolute inset-0 rounded-full animate-[shimmer_2s_infinite]" style={{
+                    background: "rgba(255,255,255,0.4)",
+                    transform: "translateX(-100%)",
+                  }} />
+                </div>
+              </div>
+            </div>
+
+            {/* Cercles des étapes */}
+            <div className="flex items-center justify-between relative z-10">
               {[1, 2, 3, 4, 5].map((n) => {
                 const active = step === n;
                 const completed = step > n;
                 return (
                   <motion.div
                     key={n}
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: n * 0.06 }}
-                    className="flex flex-col items-center gap-2 relative z-10"
+                    initial={{ opacity: 0, scale: 0.8, y: 10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    transition={{ delay: n * 0.05 }}
+                    className="flex flex-col items-center gap-1.5 relative z-20"
                   >
                     <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                      className={`w-11 h-11 rounded-full flex items-center justify-center text-xs font-bold shadow-lg transition-all ${
                         completed
-                          ? "bg-accent-primary text-on-accent border-2 border-accent-primary"
+                          ? "bg-accent-primary text-on-accent border-3 border-accent-primary shadow-accent"
                           : active
-                          ? "bg-accent-primary text-on-accent border-2 border-accent-primary shadow-accent"
-                          : "bg-surface border-2 border-border text-text-tertiary"
+                          ? "bg-accent-primary text-on-accent border-3 border-accent-primary shadow-[0_0_0_4px_color-mix(in_srgb_var(--accent-primary)_40%_transparent)]"
+                          : "bg-surface border-2 border-border text-text-tertiary shadow-sm hover:border-accent-primary/50"
                       }`}
                     >
                       {completed ? (
-                        <CheckCircle className="w-5 h-5" />
+                        <CheckCircle className="w-5 h-5 text-on-accent" />
                       ) : (
-                        n
+                        <span className="font-bold">{n}</span>
                       )}
                     </div>
-                    <span className="text-[10px] font-medium uppercase tracking-wider">
+                    <span className="text-[9px] font-semibold uppercase tracking-wider leading-none">
                       {STEP_LABELS[n as Step]}
                     </span>
-                    {n < 5 && (
-                      <div
-                        className={`absolute -top-2 left-1/2 -translate-x-1/2 w-full h-0.5 ${
-                          completed ? "bg-accent-primary" : "bg-border"
-                        } z-0`}
-                      />
-                    )}
                   </motion.div>
                 );
               })}
-            </div>
-            <div className="mt-2 h-1 bg-surface rounded-full overflow-hidden">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${progress * 100}%` }}
-                transition={{ duration: 0.4 }}
-                className="h-full bg-accent-primary rounded-full shadow-accent"
-              />
             </div>
           </div>
 
