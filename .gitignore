@@ -74,3 +74,4 @@ powersync/*-fetched.yaml
 # Python (outillage scripts/visual-docs)
 __pycache__/
 *.pyc
+.venv/

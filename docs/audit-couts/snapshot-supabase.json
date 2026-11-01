@@ -1,0 +1,23 @@
+{
+  "measured_at": "2026-11-01T15:25:44Z",
+  "project": "Lumina-project",
+  "project_ref": "hhgovvrnalibhgpakswi",
+  "region": "eu-west-2",
+  "database_bytes": 47926419,
+  "database_mib": 45.71,
+  "auth_users": 42,
+  "organizations": 1272,
+  "members": 0,
+  "transactions": 0,
+  "cotisations": 0,
+  "events": 55,
+  "audit_entries": 1272,
+  "notifications": 2742,
+  "auth_sessions": 24455,
+  "auth_refresh_tokens": 24506,
+  "storage_files": 0,
+  "storage_bytes": 0,
+  "public_bytes": 9363456,
+  "auth_bytes": 24748032,
+  "note": "Environnement de test/dev en croissance pendant les mesures; aucune donnée client validée. pg_database_size hors WAL/disque système. Plan payant/non payant non exposé par le connecteur."
+}
