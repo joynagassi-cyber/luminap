@@ -982,25 +982,38 @@ Cypress.Commands.add('resumeOnboardingForOrgAccount', function (): Cypress.Chain
     cy.get('input[type="email"]').type(creds.email);
     cy.get('input[type="password"]').type(creds.password);
     cy.contains('button[type="submit"]', 'Créer mon compte').click();
-    cy.get('button[type="submit"]').then(($btns) => {
-      const texts = $btns.map((_, el) => el.textContent).get();
-      const signupStillThere = texts.some((t) =>
-        t?.includes('Créer mon compte'),
-      );
-      if (signupStillThere) {
-        throw new Error(
-          'resumeOnboardingForOrgAccount: sign-up du compte unconfigured ' +
-            'a échoué — le bouton « Créer mon compte » est resté visible ' +
-            '(bannière d’erreur d’auth à inspecter).',
-        );
-      }
-      // L'app a basculé en mode login (compte déjà existant — run suivant)
-      // ou le signup a atterri directement. Dans les deux cas on
-      // re-soumet en login pour garantir la session authentifiée.
-      cy.get('input[type="email"]').clear().type(creds.email);
-      cy.get('input[type="password"]').clear().type(creds.password);
-      cy.contains('button[type="submit"]', 'Se connecter').click();
-    });
+
+    // Le sign-up est ASYNCHRONE : pendant la requête, le bouton affiche un
+    // SPINNER (aucun texte). L'ancien code lisait son texte IMMÉDIATEMENT et
+    // concluait à tort au succès dès que le spinner remplaçait « Créer mon
+    // compte », puis cherchait « Se connecter » — inexistant si le compte est
+    // NEUF (l'app part sur /onboarding), d'où un timeout de 300 s (échec
+    // mesuré en CI, run après run). On attend ici un signal ROBUSTE,
+    // NON-ÉCHOUANT et borné : l'app a quitté /auth (compte neuf → onboarding)
+    // OU le formulaire est repassé en mode LOGIN (« Se connecter » visible —
+    // compte déjà existant, bannière « already exists »).
+    //
+    // Le point 1 ci-dessous rejoue de toute façon un login complet : ce bloc
+    // ne sert qu'à PROVISIONNER le compte (le créer s'il est absent) et à
+    // garantir la session quand le mode login est atteint.
+    const signupStart = Date.now();
+    const waitForSignupOutcome = (): Cypress.Chainable => {
+      return cy.window({ log: false }).then((win) => {
+        if (win.location.pathname !== '/auth') return;
+        const loginBtn = Array.from(
+          win.document.querySelectorAll('button[type="submit"]'),
+        ).some((b) => (b.textContent || '').includes('Se connecter'));
+        if (loginBtn) {
+          cy.get('input[type="email"]').clear().type(creds.email);
+          cy.get('input[type="password"]').clear().type(creds.password);
+          cy.contains('button[type="submit"]', 'Se connecter').click();
+          return;
+        }
+        if (Date.now() - signupStart >= 60_000) return;
+        return cy.wait(200, { log: false }).then(waitForSignupOutcome);
+      });
+    };
+    waitForSignupOutcome();
 
     // 1. Signin stabilisé du compte unconfigured (déjà en base depuis le
     //    1er run ou créé au point 0 ci-dessus). La session Supabase est
