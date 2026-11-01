@@ -24,12 +24,16 @@ export interface ClientErrorContext {
   source: "onerror" | "unhandledrejection" | "handled";
 }
 
-/** Redact anything that looks like an email or a bearer/JWT token. */
+/** Redact anything that looks like an email, a bearer/JWT token or a phone number. */
 export function redact(text: string): string {
   return text
     .replace(/[\w.+-]+@[\w-]+\.[\w.-]+/g, "<email>")
     .replace(/eyJ[\w-]{10,}\.[\w-]{10,}\.[\w-]{10,}/g, "<jwt>")
-    .replace(/Bearer\s+[\w.-]+/gi, "Bearer <token>");
+    .replace(/Bearer\s+[\w.-]+/gi, "Bearer <token>")
+    // Numéros de téléphone (formats FR courants) : 10 chiffres commençant par
+    // 0, séparés ou non par espace/point/tiret. Les identifiants numériques
+    // (montants, dates, ids) ne commencent pas par 0 → pas de sur-masquage.
+    .replace(/\b0[1-9](?:[\s.-]?\d{2}){4}\b/g, "<tel>");
 }
 
 function currentRoute(): string | undefined {
