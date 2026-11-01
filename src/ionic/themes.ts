@@ -23,7 +23,27 @@ export type ThemeId =
   | "know"
   | "feminine"
   | "tech"
-  | "luxury";
+  | "luxury"
+  | "black"
+  | "blue"
+  | "brown"
+  | "cyan"
+  | "gold"
+  | "gray"
+  | "green"
+  | "lime"
+  | "magenta"
+  | "maroon"
+  | "navy"
+  | "olive"
+  | "orange"
+  | "pink"
+  | "purple"
+  | "red"
+  | "silver"
+  | "teal"
+  | "white"
+  | "yellow";
 
 export interface LuminaTheme {
   id: ThemeId;
@@ -36,6 +56,7 @@ export interface LuminaTheme {
 }
 
 export const LUMINA_THEMES: readonly LuminaTheme[] = [
+  // ── Palettes de marque Lumina (dégradés harmonisés) ─────────────────────
   {
     id: "fire",
     name: "Orange Fire",
@@ -115,6 +136,167 @@ export const LUMINA_THEMES: readonly LuminaTheme[] = [
     light: "#FDE68A",
     dark: "#78350F",
     inspiration: "Prestige, fondations, institutions",
+  },
+  // ── 20 couleurs CSS classiques (nom, HEX, dégradé auto) ──────────────────
+  {
+    id: "black",
+    name: "Noir",
+    primary: "#000000",
+    light: "#4D4D4D",
+    dark: "#000000",
+    inspiration: "Classique, sobre, intemporel",
+  },
+  {
+    id: "blue",
+    name: "Bleu",
+    primary: "#0000FF",
+    light: "#4D4DFF",
+    dark: "#0000CC",
+    inspiration: "Sérénité, confiance, ciel",
+  },
+  {
+    id: "brown",
+    name: "Marron",
+    primary: "#A52A2A",
+    light: "#BF6565",
+    dark: "#832222",
+    inspiration: "Terre, stabilité, authenticité",
+  },
+  {
+    id: "cyan",
+    name: "Cyan",
+    primary: "#00FFFF",
+    light: "#66FFFF",
+    dark: "#00CCCC",
+    inspiration: "Eau, fraîcheur, clarté",
+  },
+  {
+    id: "gold",
+    name: "Or",
+    primary: "#FFD700",
+    light: "#FFE04D",
+    dark: "#CCAC00",
+    inspiration: "Prestige, excellence, lumière",
+  },
+  {
+    id: "gray",
+    name: "Gris",
+    primary: "#808080",
+    light: "#A6A6A6",
+    dark: "#666666",
+    inspiration: "Neutre, moderne, équilibré",
+  },
+  {
+    id: "green",
+    name: "Vert",
+    primary: "#008000",
+    light: "#4DBA4D",
+    dark: "#006600",
+    inspiration: "Croissance, vie, renouveau",
+  },
+  {
+    id: "lime",
+    name: "Lime",
+    primary: "#00FF00",
+    light: "#66FF66",
+    dark: "#00CC00",
+    inspiration: "Vitamine, jeunesse, énergie",
+  },
+  {
+    id: "magenta",
+    name: "Magenta",
+    primary: "#FF00FF",
+    light: "#FF66FF",
+    dark: "#CC00CC",
+    inspiration: "Audace, créativité, modernité",
+  },
+  {
+    id: "maroon",
+    name: "Grenat",
+    primary: "#800000",
+    light: "#BF4D4D",
+    dark: "#660000",
+    inspiration: "Passion, profondeur, solennité",
+  },
+  {
+    id: "navy",
+    name: "Bleu marine",
+    primary: "#000080",
+    light: "#4D4DBF",
+    dark: "#000066",
+    inspiration: "Autorité, tradition, institution",
+  },
+  {
+    id: "olive",
+    name: "Olive",
+    primary: "#808000",
+    light: "#BFBF4D",
+    dark: "#666600",
+    inspiration: "Sagesse, récolte, calme",
+  },
+  {
+    id: "orange",
+    name: "Orange",
+    primary: "#FFA500",
+    light: "#FFB84D",
+    dark: "#CC8400",
+    inspiration: "Chaleur, accueil, dynamisme",
+  },
+  {
+    id: "pink",
+    name: "Rose",
+    primary: "#FFC0CB",
+    light: "#FFD9E3",
+    dark: "#CC9AA2",
+    inspiration: "Douceur, bienveillance, accueil",
+  },
+  {
+    id: "purple",
+    name: "Violet",
+    primary: "#800080",
+    light: "#BF4DBF",
+    dark: "#660066",
+    inspiration: "Spiritualité, royauté, imagination",
+  },
+  {
+    id: "red",
+    name: "Rouge",
+    primary: "#FF0000",
+    light: "#FF4D4D",
+    dark: "#CC0000",
+    inspiration: "Urgence, courage, amour",
+  },
+  {
+    id: "silver",
+    name: "Argent",
+    primary: "#C0C0C0",
+    light: "#D9D9D9",
+    dark: "#999999",
+    inspiration: "Pureté, technologie, modernité",
+  },
+  {
+    id: "teal",
+    name: "Sarcelle",
+    primary: "#008080",
+    light: "#4DBFBF",
+    dark: "#006666",
+    inspiration: "Équilibre, apaisement, santé",
+  },
+  {
+    id: "white",
+    name: "Blanc",
+    primary: "#FFFFFF",
+    light: "#FFFFFF",
+    dark: "#E0E0E0",
+    inspiration: "Lumière, pureté, simplicité",
+  },
+  {
+    id: "yellow",
+    name: "Jaune",
+    primary: "#FFFF00",
+    light: "#FFFF4D",
+    dark: "#CCCC00",
+    inspiration: "Joie, clarté, optimisme",
   },
 ] as const;
 
