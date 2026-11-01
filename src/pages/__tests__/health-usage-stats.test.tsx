@@ -34,8 +34,18 @@ vi.mock("@/components/TopHeader", () => ({
 vi.mock("@/components/BottomNav", () => ({ default: () => null }));
 vi.mock("@/utils/toast", () => ({ showSuccess: vi.fn(), showError: vi.fn() }));
 vi.mock("@/lib/powersync", () => ({ disconnectPowerSync: vi.fn(async () => undefined) }));
-vi.mock("@/lib/dataLayer", () => ({ deleteAllLocalData: vi.fn(async () => undefined) }));
+vi.mock("@/lib/dataLayer", () => ({
+  deleteAllLocalData: vi.fn(async () => undefined),
+  useOrganizations: () => ({ data: [] }),
+}));
 vi.mock("@/lib/orgContext", () => ({ resetOrganizationId: vi.fn() }));
+vi.mock("@/lib/organization-context", () => ({
+  useOrganizationContext: () => ({
+    mode: "ORG",
+    orgId: "__no_org__",
+    label: "Votre organisation",
+  }),
+}));
 // Le cœur pur de santé est testé ailleurs : on fige seulement l'instantané
 // (sinon `useHealthSnapshot` touche PowerSync/`Capacitor`).
 vi.mock("@/lib/health", async () => {

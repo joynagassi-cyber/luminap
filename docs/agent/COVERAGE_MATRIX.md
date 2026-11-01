@@ -47,8 +47,8 @@
 | 10 | Responsive / a11y | `C: responsive-skeleton.cy.ts` + `V: responsive-container-guard.test.tsx` | **couvert** (garde statique ; E2E en CI) |
 | 10 | Responsive (contenu borné/centré, grand viewport ; R119) | `V: responsive-container-guard.test.tsx` (3 : 62 pages montées) | **couvert** |
 | 11 | Pre-mortem / chaos | `V: chaos-offline-resilience.test.ts` (13, 5 scénarios) + `V: chaos-feature-catalogue.test.ts` (38, 7 domaines) | **couvert** (12 domaines au total) |
-| 11 | Page « État du système » (santé, PR4) + « Signaler un problème » (PR5) | `V: health.test.ts` (18 : dont fuite PII du diagnostic copiable, non-vacuité vérifiée) + `V: report-problem.test.ts` (22 : structure sans PII, **audit nom/téléphone**, envoi réel, journal borné) + `C: robustness-features.cy.ts` (PR4 : état général + relevés ; PR5 : signalement réellement journalisé) | **couvert** |
-| 11 | Drapeaux de fonctionnalités (kill switches, PR7/R118) | `V: feature-flags.test.ts` (18 : fail-open, désactivation, surcharge locale, câblage) | **couvert** |
+| 11 | Page « État du système » (santé, PR4) + « Signaler un problème » (PR5) | `V: health.test.ts` (22 : dont fuite PII du diagnostic copiable + nom d'org non fuité, non-vacuité vérifiée) + `V: report-problem.test.ts` (24 : structure sans PII, **audit nom/téléphone/jetons**, envoi réel, journal borné) + `C: robustness-features.cy.ts` (PR4 : état général + relevés ; PR5 : signalement réellement journalisé) | **couvert** |
+| 11 | Drapeaux de fonctionnalités (kill switches, PR7/R118) | `V: feature-flags.test.ts` (18 : fail-open, désactivation, surcharge locale, câblage) + `V: onesignal-killswitch.test.ts` (2 : effet réel — drapeau coupé ⇒ `initOneSignal` no-op) | **couvert** |
 | 12 | Crawler zéro écran noir | `C: zero-black-screen.cy.ts` (toutes routes × état marqué) | **couvert** (hors-cloud) |
 | 13 | Tutoriel — guide visuel (captures annotées intégrées) | `V: screen-guide-gallery.test.tsx` (5 : manifeste cohérent + captures présentes + rendu) + `C: screen-guide.cy.ts` (2 : capture annotée réellement servie) | **couvert** (non-vacuité : section sans capture ⇒ pas de galerie) |
 | 14 | Personnalisation profil/org | à créer (C) | **non couvert** |
@@ -109,8 +109,10 @@
 | 11 | Écran d'accueil mobile `/welcome` (onboarding avant `/auth`) : message inspirant + 2 boutons vers `/auth`, jamais d'écran noir | `C: welcome.cy.ts` (4) + `C: zero-black-screen.cy.ts` (`/welcome`) + `V: route-registry-drift.test.ts` | **couvert** |
 | 11 | Invitations — capacités (grants) à l'émission ET au claim par code : mapping snake_case → camelCase des lignes PowerSync | `V: invitation-row-mapping.test.ts` (5) + `V: invitation-get-by-code.test.ts` (1) + `V: invitation-file-transport.test.ts` | **couvert** (non-vacuité vérifiée : retirer le mapper ⇒ échec) |
 | 13 | Tutoriel — section « Inviter des membres » (capacités + rôle) | `V: tutorial-search.test.ts` (section `invitations`) | **couvert** |
-| 11 | PR6 — écran "mise à jour requise" : version cliente incompatible ⇒ écran dédié, compatible ⇒ dashboard | `C: update-required.cy.ts` | couvert (non-vacuité vérifiée) |
-| 11 | PR7 — kill switch : fonctionnalité masquée quand le drapeau est OFF, visible quand ON | `C: feature-flags.cy.ts` | couvert (non-vacuité vérifiée) |
+| 11 | PR6 — écran "mise à jour requise" : version cliente incompatible ⇒ écran dédié, compatible ⇒ dashboard | `C: update-required.cy.ts` + `V: schema-version.test.ts` (12) + `V: route-resolver.test.ts` (branche `update-required`) | couvert (non-vacuité vérifiée) |
+| 11 | PR7 — kill switch : fonctionnalité masquée quand le drapeau est OFF, visible quand ON | `C: feature-flags.cy.ts` + `V: feature-flags.test.ts` (fail-open) + `V: onesignal-killswitch.test.ts` | couvert (non-vacuité vérifiée) |
+| 11 | PR19 — câblage `RouteState` dans `App.tsx` (hasPermission/isOrgMember/schema) : aucun champ inerte | `V: route-state-wiring.test.ts` (11) + `V: route-resolver.test.ts` | couvert (non-vacuité vérifiée) |
+| 13 | Tutoriel — section « Erreurs fréquentes » : écran « Mise à jour requise » (PR6) | `V: tutorial-search.test.ts` + `V: Tutorial.test.tsx` | couvert |
 
 
 ### Correctif d'intégrité associé (R160, 2026-10-31)

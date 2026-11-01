@@ -590,6 +590,11 @@ const SECTIONS: SectionData[] = [
           "Vérifiez votre connexion internet. Si le problème persiste, allez dans Paramètres → Actualiser les données.",
       },
       {
+        title: "Écran « Mise à jour requise » au démarrage",
+        solution:
+          "Votre application est plus ancienne que le format de données attendu. Touchez « Recharger » puis mettez à jour Lumina depuis votre store (ou rechargez la page web). Vos données locales ne sont pas perdues.",
+      },
+      {
         title: "Transaction rejetée, comment la modifier ?",
         solution:
           "Une transaction rejetée doit être recréée. Vous pouvez copier les informations de l'ancienne transaction dans la nouvelle.",
