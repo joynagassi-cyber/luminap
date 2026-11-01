@@ -1,16 +1,19 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { resource } from "@/capabilities/resource";
 import { lifecycle } from "@/capabilities/lifecycle";
-import type { Group, Member, Event } from "@/types";
+import type { ArchivableEntity, Group, Member, Event } from "@/types";
 import {
   useDocuments,
   addDocumentPS,
   updateDocumentPS,
   isPowerSyncReadyNow,
+  useCurrentUser,
   type PSDocument,
 } from "@/lib/dataLayer";
 import { uploadLuminaFile, getDocumentUrl } from "@/lib/storageService";
+import { purgeEntity, purgeAllArchived } from "@/lib/trash";
+import { useCanAccessMulti } from "@/hooks/useCanAccessMulti";
 import {
   Users,
   Search,
@@ -20,9 +23,11 @@ import {
   FileText,
   Upload,
   Download,
+  Trash2,
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
+import ConfirmModal from "@/components/ConfirmModal";
 import { ArchivesSkeleton } from "@/components/PageSkeletons";
 import {
   IonPage,
@@ -33,9 +38,23 @@ import {
   IonInput,
 } from "@ionic/react";
 import EmptyState from "@/components/EmptyState";
+import { getOrganizationId } from "@/lib/orgContext";
+import type { Role } from "@/types";
 
 export default function Archives() {
   const navigate = useNavigate();
+  const user = useCurrentUser();
+  const orgId = getOrganizationId() || user?.org?.id || "";
+
+  // Purge réservée aux administrateurs (mêmes rôles que /admin/roles).
+  const { allowed: canPurge } = useCanAccessMulti(
+    user?.id,
+    orgId,
+    "admin",
+    "roles",
+    undefined,
+    user?.role as Role | undefined,
+  );
 
   const [archivedGroups, setArchivedGroups] = useState<Group[]>([]);
   const [archivedMembers, setArchivedMembers] = useState<Member[]>([]);
@@ -43,6 +62,16 @@ export default function Archives() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+  const [purgeError, setPurgeError] = useState("");
+
+  // Confirmation explicite avant toute suppression définitive.
+  const [purgeTarget, setPurgeTarget] = useState<{
+    type: "group" | "member" | "event";
+    id: string;
+    name: string;
+  } | null>(null);
+  const [showEmptyTrash, setShowEmptyTrash] = useState(false);
+  const [purging, setPurging] = useState(false);
 
   // ── Documents (upload / archivage via bucket `archives`) ─────────────
   const { data: allDocuments, isLoading: documentsLoading } = useDocuments();
@@ -107,32 +136,30 @@ export default function Archives() {
   };
 
   // Load archived entities via Resource capability
+  const loadArchived = useCallback(async (): Promise<boolean> => {
+    setLoading(true);
+    setLoadError(false);
+    try {
+      const [groups, members, events] = await Promise.all([
+        resource.listArchived<Group>("Group"),
+        resource.listArchived<Member>("Member"),
+        resource.listArchived<Event>("Event"),
+      ]);
+      setArchivedGroups(groups.items);
+      setArchivedMembers(members.items);
+      setArchivedEvents(events.items);
+      return true;
+    } catch {
+      setLoadError(true);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      setLoadError(false);
-      try {
-        const [groups, members, events] = await Promise.all([
-          resource.listArchived<Group>("Group"),
-          resource.listArchived<Member>("Member"),
-          resource.listArchived<Event>("Event"),
-        ]);
-        if (!cancelled) {
-          setArchivedGroups(groups.items);
-          setArchivedMembers(members.items);
-          setArchivedEvents(events.items);
-        }
-      } catch (e) {
-        if (!cancelled) setLoadError(true);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [retryCount]);
+    loadArchived();
+  }, [retryCount, loadArchived]);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<
@@ -183,6 +210,42 @@ export default function Archives() {
     navigate(-1);
   };
 
+  const toEntityType = (type: "group" | "member" | "event"): ArchivableEntity =>
+    type === "event" ? "Event" : ((type.charAt(0).toUpperCase() + type.slice(1)) as ArchivableEntity);
+
+  const handlePurge = async (
+    type: "group" | "member" | "event",
+    id: string,
+  ) => {
+    if (!canPurge) return;
+    setPurgeError("");
+    setPurging(true);
+    try {
+      await purgeEntity(toEntityType(type), id, user?.id ?? "local-user");
+      await loadArchived();
+    } catch {
+      setPurgeError(
+        "Suppression définitive impossible. Réessayez (élément déjà supprimé ou hors ligne).",
+      );
+    } finally {
+      setPurging(false);
+    }
+  };
+
+  const handleEmptyTrash = async () => {
+    if (!canPurge) return;
+    setPurgeError("");
+    setPurging(true);
+    try {
+      await purgeAllArchived(user?.id ?? "local-user");
+      await loadArchived();
+    } catch {
+      setPurgeError("Vidage impossible. Réessayez (hors ligne ?).");
+    } finally {
+      setPurging(false);
+    }
+  };
+
   return (
     <IonPage>
       <IonContent className="bg-canvas">
@@ -205,6 +268,36 @@ export default function Archives() {
               <h1 className="text-text-primary font-bold text-xl mb-5">
                 Archives
               </h1>
+
+              {purgeError && (
+                <div
+                  className="p-3 rounded-xl text-sm mb-4"
+                  style={{
+                    backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)",
+                    color: "var(--out)",
+                  }}
+                >
+                  {purgeError}
+                </div>
+              )}
+
+              {/* Purge en lot — réservée aux administrateurs, confirmation
+                  explicite. R52 : jamais de « vider » sur une liste non lue. */}
+              {canPurge && !loadError && filtered.length > 0 && (
+                <button
+                  onClick={() => setShowEmptyTrash(true)}
+                  disabled={purging}
+                  className="w-full mb-5 py-3 rounded-full text-sm font-semibold flex items-center justify-center gap-2 active:scale-95 transition-transform disabled:opacity-40"
+                  style={{
+                    backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)",
+                    color: "var(--out)",
+                  }}
+                  aria-label="Vider la corbeille"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Vider la corbeille
+                </button>
+              )}
 
               {/* Search */}
               <div className="relative mb-4">
@@ -473,6 +566,28 @@ export default function Archives() {
                           style={{ color: "var(--in)" }}
                         />
                       </button>
+                      {canPurge && (
+                        <button
+                          onClick={() =>
+                            setPurgeTarget({
+                              type: item.type,
+                              id: item.id,
+                              name: item.name,
+                            })
+                          }
+                          disabled={purging}
+                          className="p-2 rounded-full active:scale-95 transition-transform disabled:opacity-40"
+                          style={{
+                            backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)",
+                          }}
+                          aria-label={`Supprimer définitivement ${item.name}`}
+                        >
+                          <Trash2
+                            className="w-4 h-4"
+                            style={{ color: "var(--out)" }}
+                          />
+                        </button>
+                      )}
                     </div>
                   ))
                 )}
@@ -482,6 +597,35 @@ export default function Archives() {
           )}
           <BottomNav />
         </div>
+
+        {/* Confirmation explicite — suppression définitive (irréversible). */}
+        <ConfirmModal
+          open={purgeTarget !== null}
+          onClose={() => setPurgeTarget(null)}
+          onConfirm={() => {
+            const target = purgeTarget;
+            setPurgeTarget(null);
+            if (target) handlePurge(target.type, target.id);
+          }}
+          title="Supprimer définitivement ?"
+          description={`« ${purgeTarget?.name ?? ""} » et ses données associées seront supprimés définitivement. Cette action est irréversible.`}
+          confirmLabel="Supprimer définitivement"
+          confirmVariant="danger"
+        />
+
+        {/* Confirmation explicite — vidage complet de la corbeille. */}
+        <ConfirmModal
+          open={showEmptyTrash}
+          onClose={() => setShowEmptyTrash(false)}
+          onConfirm={() => {
+            setShowEmptyTrash(false);
+            handleEmptyTrash();
+          }}
+          title="Vider la corbeille ?"
+          description="Tous les éléments archivés de cette organisation seront supprimés définitivement. Cette action est irréversible."
+          confirmLabel="Vider la corbeille"
+          confirmVariant="danger"
+        />
       </IonContent>
     </IonPage>
   );

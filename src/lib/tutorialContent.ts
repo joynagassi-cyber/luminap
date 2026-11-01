@@ -407,6 +407,7 @@ const SECTIONS: SectionData[] = [
       "L'archivage permet de masquer les éléments inactifs sans les supprimer définitivement : groupes, comptes, membres et événements.",
       "Un groupe est archivé quand il n'a plus d'activité. Un événement devient « Archivé » quand il est annulé.",
       "La page Archives centralise tous les éléments archivés avec la possibilité de les restaurer en un clic.",
+      "Un administrateur peut aussi les supprimer définitivement (purge) : soit élément par élément, soit en vidant toute la corbeille.",
       "Les éléments archivés ne sont plus visibles dans les listes principales mais peuvent être restaurés à tout moment.",
     ],
     tips: [
@@ -414,6 +415,9 @@ const SECTIONS: SectionData[] = [
       "Un membre archivé peut être restauré pour retrouver son accès aux transactions passées.",
       "Un groupe restauré retrouve son compte caisse et son historique de transactions.",
       "La recherche dans les archives permet de retrouver rapidement un élément spécifique.",
+    ],
+    warnings: [
+      "La suppression définitive est irréversible : elle efface l'élément et ses données associées. Elle est réservée aux administrateurs et demande une confirmation explicite.",
     ],
   },
   {
