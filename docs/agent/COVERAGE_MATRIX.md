@@ -110,6 +110,8 @@
 | 11 | Invitations — capacités (grants) à l'émission ET au claim par code : mapping snake_case → camelCase des lignes PowerSync | `V: invitation-row-mapping.test.ts` (5) + `V: invitation-get-by-code.test.ts` (1) + `V: invitation-file-transport.test.ts` | **couvert** (non-vacuité vérifiée : retirer le mapper ⇒ échec) |
 | 13 | Tutoriel — section « Inviter des membres » (capacités + rôle) | `V: tutorial-search.test.ts` (section `invitations`) | **couvert** |
 | 11 | PR6 — écran "mise à jour requise" : version cliente incompatible ⇒ écran dédié, compatible ⇒ dashboard | `C: update-required.cy.ts` | couvert (non-vacuité vérifiée) |
+| 11 | PR7 — kill switch : fonctionnalité masquée quand le drapeau est OFF, visible quand ON | `C: feature-flags.cy.ts` | couvert (non-vacuité vérifiée) |
+
 
 ### Correctif d'intégrité associé (R160, 2026-10-31)
 
@@ -123,3 +125,25 @@ mock PowerSync des tests `org-settings` / `period-lock` / `period-lock-enforceme
 lève désormais « cannot UPSERT a view » (il simulait l'upsert en JS et masquait
 le bug). Garde E2E : `robustness-features.cy.ts` (PR8/PR13) vérifie la
 persistance réelle.
+
+## Correctif d'intégrité associé (R161 — cul-de-sac « Organisation non rejointe », 2026-10-31)
+
+Un compte tout juste créé (`MEMBRE` / `org_id = '__no_org__'`) qui suivait
+l'onboarding « Je crée mon organisation » **ne pouvait pas créer d'organisation** :
+`create_org` exigeait un grant `org_admins` ACTIVE que ce compte ne pouvait pas
+avoir, et `OrgSetup.handleCreate` n'écrivait que du `localStorage` (aucun appel
+serveur). La garde de route `needs-membership` (R107) bloquait alors le
+dashboard — application **inutilisable** pour tout nouvel utilisateur.
+
+Correctif : `create_org` distingue désormais la branche **SELF-SERVE** (compte
+sans organisation → crée sa première organisation, devient `ADMIN`, rattache
+`profiles.org_id`, écrit `org_memberships`) de la branche **ADMIN** (création
+d'annexe). Côté client, `OrgSetup` appelle `bootstrapOrganization`, écrit un
+**miroir local optimiste** (`mirrorNewOrganizationLocally`) **avant** de poser
+le contexte d'organisation (ordre critique : sinon `useOrgMembership` conclut
+« non-membre » sur la base locale encore vide), puis `refreshProfile`.
+
+| # | Feature / correctif | Test(s) | Statut |
+|---|---|---|---|
+| 5 | Création d'organisation self-serve (compte neuf → org + grant + profil ADMIN) — R161 | `V: OrgSetup-selfserve.test.tsx` (4) + `V: mirror-new-org.test.ts` (3) + `C: self-serve-org.cy.ts` (1, cloud réel) | **couvert** (non-vacuité : retirer `bootstrapOrganization`/le miroir ⇒ échec) |
+| 2 | Échappatoire de l'écran « Organisation non rejointe » (créer/rejoindre) — R120 | `V: needs-membership-escape.test.tsx` (5) | **couvert** |

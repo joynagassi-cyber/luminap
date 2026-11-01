@@ -67,6 +67,17 @@ describe("TUTORIAL_SECTIONS (source unique)", () => {
     expect(hay).toContain("capacite");
     expect(hay).toContain("role");
   });
+
+  it("documente la création self-serve d'organisation (section « organisation », R161)", () => {
+    const org = TUTORIAL_SECTIONS.find((s) => s.id === "organisation");
+    expect(org, "section organisation absente").toBeDefined();
+    const hay = normalizeForSearch(sectionHaystack(org!));
+    // Contrat §6 : la feature doit avoir sa section de tutoriel. On vérifie les
+    // notions-clés (création, rattachement, écran « non rejointe »).
+    expect(hay).toContain("je cree mon organisation");
+    expect(hay).toContain("administrateur");
+    expect(hay).toContain("organisation non rejointe");
+  });
 });
 
 describe("searchSections", () => {

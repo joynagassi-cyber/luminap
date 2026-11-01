@@ -43,6 +43,9 @@ interface StateScreenProps {
   onPrimary: () => void;
   secondaryLabel?: string;
   onSecondary?: () => void;
+  /** Optional third action (e.g. sign out) — rendered last, least prominent. */
+  tertiaryLabel?: string;
+  onTertiary?: () => void;
 }
 
 function StateScreen({
@@ -54,6 +57,8 @@ function StateScreen({
   onPrimary,
   secondaryLabel,
   onSecondary,
+  tertiaryLabel,
+  onTertiary,
 }: StateScreenProps) {
   return (
     <IonPage>
@@ -101,6 +106,15 @@ function StateScreen({
                   {secondaryLabel}
                 </button>
               )}
+              {tertiaryLabel && onTertiary && (
+                <button
+                  type="button"
+                  onClick={onTertiary}
+                  className="px-8 py-2 rounded-full text-sm font-medium text-text-tertiary active:scale-95 transition-all"
+                >
+                  {tertiaryLabel}
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -129,14 +143,18 @@ export function ForbiddenScreen({ permission }: { permission?: string }) {
 }
 
 /**
- * Not a member of the active organisation — offers to claim/join.
+ * Not a member of the active organisation — offers to create one or join.
  *
  * `/dashboard` n'est PAS exempté de `needs-membership` (R107) : proposer
  * « Retour à l'accueil » renvoyait l'utilisateur sur cet écran même
- * (boucle sans issue). Le seul chemin praticable depuis un compte non membre
- * est donc la réclamation d'invitation, ou la déconnexion (pour changer de
- * compte). `onSignOut` est fourni par le garde de route ; sans lui, le bouton
- * n'est pas rendu (aucun bouton mort).
+ * (boucle sans issue). Deux chemins praticables depuis un compte sans
+ * organisation :
+ *   1. **Créer son organisation** → `/org-setup` (exempté de la garde) — c'est
+ *      le parcours d'un créateur self-serve, qui DOIT être joignable : sans ce
+ *      bouton, un nouvel inscrit n'avait AUCUN moyen de créer son organisation
+ *      et restait bloqué (le bouton n'existait nulle part ailleurs) ;
+ *   2. **Rejoindre par invitation** → `/invitation/claim` (route publique).
+ * La déconnexion reste disponible en action tertiaire pour changer de compte.
  */
 export function NeedsMembershipScreen({ onSignOut }: { onSignOut?: () => void } = {}) {
   const navigate = useNavigate();
@@ -145,11 +163,13 @@ export function NeedsMembershipScreen({ onSignOut }: { onSignOut?: () => void } 
       state="forbidden"
       icon="🏠"
       title="Organisation non rejointe"
-      message="Votre compte n'est pas encore membre de cette organisation. Utilisez une invitation pour la rejoindre, ou changez de compte."
-      primaryLabel="Saisir un code d'invitation"
-      onPrimary={() => navigate("/invitation/claim")}
-      secondaryLabel={onSignOut ? "Changer de compte" : undefined}
-      onSecondary={onSignOut}
+      message="Votre compte n'est pas encore rattaché à une organisation. Créez la vôtre, ou rejoignez-en une avec un code d'invitation."
+      primaryLabel="Créer une organisation"
+      onPrimary={() => navigate("/org-setup")}
+      secondaryLabel="Saisir un code d'invitation"
+      onSecondary={() => navigate("/invitation/claim")}
+      tertiaryLabel={onSignOut ? "Changer de compte" : undefined}
+      onTertiary={onSignOut}
     />
   );
 }
