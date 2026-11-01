@@ -1,0 +1,1046 @@
+[
+  {
+    "route": "/welcome",
+    "slug": "welcome",
+    "findings": [],
+    "error": null,
+    "finalUrl": "http://localhost:8080/welcome",
+    "measure": {
+      "headerBottom": null,
+      "firstTop": 0,
+      "firstTag": "DIV",
+      "firstText": "Votre organisation,enfin à portée de main.Gérez vos membres,",
+      "gap": null,
+      "headers": 0
+    }
+  },
+  {
+    "route": "/splash",
+    "slug": "splash",
+    "findings": [
+      "TECH_LEAK:default-org",
+      "RAW_ENUM:PASTEUR_PRINCIPAL"
+    ],
+    "error": null,
+    "finalUrl": "http://localhost:8080/dashboard",
+    "measure": {
+      "headerBottom": 100,
+      "firstTop": null,
+      "firstTag": null,
+      "firstText": null,
+      "gap": null,
+      "headers": 1
+    }
+  },
+  {
+    "route": "/auth",
+    "slug": "auth",
+    "findings": [],
+    "error": null,
+    "finalUrl": "http://localhost:8080/auth",
+    "measure": {
+      "headerBottom": null,
+      "firstTop": 0,
+      "firstTag": "DIV",
+      "firstText": "ConnectéBon retourConnectez-vous pour accéder à LuminaContin",
+      "gap": null,
+      "headers": 0
+    }
+  },
+  {
+    "route": "/onboarding",
+    "slug": "onboarding",
+    "findings": [],
+    "error": null,
+    "finalUrl": "http://localhost:8080/onboarding",
+    "measure": {
+      "headerBottom": null,
+      "firstTop": 0,
+      "firstTag": "DIV",
+      "firstText": "PasserBienvenue sur LuminaGérez vos finances simplementSuive",
+      "gap": null,
+      "headers": 0
+    }
+  },
+  {
+    "route": "/sessions",
+    "slug": "sessions",
+    "findings": [
+      "TECH_LEAK:default-org"
+    ],
+    "error": null,
+    "finalUrl": "http://localhost:8080/sessions",
+    "measure": {
+      "headerBottom": 100,
+      "firstTop": 100,
+      "firstTag": "DIV",
+      "firstText": "Vos comptes restent ici même après déconnexion. Cliquez sur ",
+      "gap": 0,
+      "headers": 1
+    }
+  },
+  {
+    "route": "/org-setup",
+    "slug": "org_setup",
+    "findings": [],
+    "error": null,
+    "finalUrl": "http://localhost:8080/org-setup",
+    "measure": {
+      "headerBottom": null,
+      "firstTop": 16,
+      "firstTag": "DIV",
+      "firstText": "⚠Impossible d'afficher cette pageUne erreur est survenue pen",
+      "gap": null,
+      "headers": 0
+    }
+  },
+  {
+    "route": "/dashboard",
+    "slug": "dashboard",
+    "findings": [
+      "TECH_LEAK:default-org",
+      "RAW_ENUM:PASTEUR_PRINCIPAL"
+    ],
+    "error": null,
+    "finalUrl": "http://localhost:8080/dashboard",
+    "measure": {
+      "headerBottom": 100,
+      "firstTop": 100,
+      "firstTag": "DIV",
+      "firstText": "Accueil — tableau de bord financierDonnées financières à jou",
+      "gap": 0,
+      "headers": 1
+    }
+  },
+  {
+    "route": "/notifications",
+    "slug": "notifications",
+    "findings": [
+      "TECH_LEAK:default-org"
+    ],
+    "error": null,
+    "finalUrl": "http://localhost:8080/notifications",
+    "measure": {
+      "headerBottom": 100,
+      "firstTop": 100,
+      "firstTag": "DIV",
+      "firstText": "Notifications2 non lusTout marquer luTransaction à approuver",
+      "gap": 0,
+      "headers": 1
+    }
+  },
+  {
+    "route": "/search",
+    "slug": "search",
+    "findings": [
+      "TECH_LEAK:default-org"
+    ],
+    "error": null,
+    "finalUrl": "http://localhost:8080/search",
+    "measure": {
+      "headerBottom": 100,
+      "firstTop": 100,
+      "firstTag": "DIV",
+      "firstText": "RechercheMembres, groupes, événements, mouvements, documents",
+      "gap": 0,
+      "headers": 1
+    }
+  },
+  {
+    "route": "/history",
+    "slug": "history",
+    "findings": [
+      "TECH_LEAK:default-org"
+    ],
+    "error": null,
+    "finalUrl": "http://localhost:8080/history",
+    "measure": {
+      "headerBottom": 100,
+      "firstTop": 100,
+      "firstTag": "DIV",
+      "firstText": "ToutCe moisCette annéeEntrées+277KSorties-100KRésultat+177KV",
+      "gap": 0,
+      "headers": 1
+    }
+  },
+  {
+    "route": "/help",
+    "slug": "help",
+    "findings": [
+      "TECH_LEAK:default-org",
+      "TECH_LEAK:PowerSync"
+    ],
+    "error": null,
+    "finalUrl": "http://localhost:8080/help",
+    "measure": {
+      "headerBottom": 100,
+      "firstTop": 100,
+      "firstTag": "DIV",
+      "firstText": "Aide & InformationsRechercher dans l'aideQuestions fréquente",
+      "gap": 0,
+      "headers": 1
+    }
+  },
+  {
+    "route": "/tutoriel",
+    "slug": "tutoriel",
+    "findings": [
+      "TECH_LEAK:default-org"
+    ],
+    "error": null,
+    "finalUrl": "http://localhost:8080/tutoriel",
+    "measure": {
+      "headerBottom": 100,
+      "firstTop": 100,
+      "firstTag": "DIV",
+      "firstText": "RetourVue d'ensembleCréer son organisationDashboardTransacti",
+      "gap": 0,
+      "headers": 1
+    }
+  },
+  {
+    "route": "/finance",
+    "slug": "finance",
+    "findings": [
+      "TECH_LEAK:default-org"
+    ],
+    "error": null,
+    "finalUrl": "http://localhost:8080/finance",
+    "measure": {
+      "headerBottom": 100,
+      "firstTop": 100,
+      "firstTag": "DIV",
+      "firstText": "Vous pouvezGérer les financesCréer, modifier, approuver, rej",
+      "gap": 0,
+      "headers": 1
+    }
+  },
+  {
+    "route": "/balance",
+    "slug": "balance",
+    "findings": [
+      "TECH_LEAK:default-org"
+    ],
+    "error": null,
+    "finalUrl": "http://localhost:8080/balance",
+    "measure": {
+      "headerBottom": 100,
+      "firstTop": 100,
+      "firstTag": "DIV",
+      "firstText": "Bilan financierMoisAnnéeCaisse JeunesseCaisse principaleEntr",
+      "gap": 0,
+      "headers": 1
+    }
+  },
+  {
+    "route": "/cotisations",
+    "slug": "cotisations",
+    "findings": [
+      "TECH_LEAK:default-org"
+    ],
+    "error": null,
+    "finalUrl": "http://localhost:8080/cotisations",
+    "measure": {
+      "headerBottom": 100,
+      "firstTop": 100,
+      "firstTag": "DIV",
+      "firstText": "Cotisations1 culteCulte dominical1 nov. 20260/0Collecté0 FOb",
+      "gap": 0,
+      "headers": 1
+    }
+  },
+  {
+    "route": "/versement",
+    "slug": "versement",
+    "findings": [
+      "TECH_LEAK:default-org"
+    ],
+    "error": null,
+    "finalUrl": "http://localhost:8080/versement",
+    "measure": {
+      "headerBottom": 100,
+      "firstTop": 100,
+      "firstTag": "DIV",
+      "firstText": "RetourVerser à la caisse principaleSélectionner une caisseCh",
+      "gap": 0,
+      "headers": 1
+    }
+  },
+  {
+    "route": "/membres-en-avance",
+    "slug": "membres_en_avance",
+    "findings": [
+      "TECH_LEAK:default-org"
+    ],
+    "error": null,
+    "finalUrl": "http://localhost:8080/membres-en-avance",
+    "measure": {
+      "headerBottom": 100,
+      "firstTop": 100,
+      "firstTag": "DIV",
+      "firstText": "RetourTotal en avance0FCFA0 membreAucun membre en avanceTous",
+      "gap": 0,
+      "headers": 1
+    }
+  },
+  {
+    "route": "/budgets",
+    "slug": "budgets",
+    "findings": [
+      "TECH_LEAK:default-org"
+    ],
+    "error": null,
+    "finalUrl": "http://localhost:8080/budgets",
+    "measure": {
+      "headerBottom": 100,
+      "firstTop": 100,
+      "firstTag": "DIV",
+      "firstText": "Budgets NouveauExercice 2026Toutes périodesAnnuelT1 (jan–mar",
+      "gap": 0,
+      "headers": 1
+    }
+  },
+  {
+    "route": "/giving",
+    "slug": "giving",
+    "findings": [
+      "TECH_LEAK:default-org"
+    ],
+    "error": null,
+    "finalUrl": "http://localhost:8080/giving",
+    "measure": {
+      "headerBottom": 110,
+      "firstTop": 109,
+      "firstTag": "DIV",
+      "firstText": "Accueil",
+      "gap": -1,
+      "headers": 1
+    }
+  },
+  {
+    "route": "/reports",
+    "slug": "reports",
+    "findings": [
+      "TECH_LEAK:default-org"
+    ],
+    "error": null,
+    "finalUrl": "http://localhost:8080/reports",
+    "measure": {
+      "headerBottom": 100,
+      "firstTop": 100,
+      "firstTag": "DIV",
+      "firstText": "Vous pouvezGérer les financesCréer, modifier, approuver, rej",
+      "gap": 0,
+      "headers": 1
+    }
+  },
+  {
+    "route": "/report-builder",
+    "slug": "report_builder",
+    "findings": [
+      "TECH_LEAK:default-org"
+    ],
+    "error": null,
+    "finalUrl": "http://localhost:8080/report-builder",
+    "measure": {
+      "headerBottom": 110,
+      "firstTop": 109,
+      "firstTag": "DIV",
+      "firstText": "Accueil",
+      "gap": -1,
+      "headers": 1
+    }
+  },
+  {
+    "route": "/admin",
+    "slug": "admin",
+    "findings": [],
+    "error": null,
+    "finalUrl": "http://localhost:8080/admin",
+    "measure": {
+      "headerBottom": null,
+      "firstTop": 0,
+      "firstTag": "DIV",
+      "firstText": "🔒Accès refuséIl vous manque la permission « admin:settings ",
+      "gap": null,
+      "headers": 0
+    }
+  },
+  {
+    "route": "/admin/federation",
+    "slug": "admin_federation",
+    "findings": [],
+    "error": null,
+    "finalUrl": "http://localhost:8080/admin/federation",
+    "measure": {
+      "headerBottom": null,
+      "firstTop": 0,
+      "firstTag": "DIV",
+      "firstText": "🔒Accès refuséIl vous manque la permission « admin:settings ",
+      "gap": null,
+      "headers": 0
+    }
+  },
+  {
+    "route": "/admin/federation/tree",
+    "slug": "admin_federation_tree",
+    "findings": [],
+    "error": null,
+    "finalUrl": "http://localhost:8080/admin/federation",
+    "measure": {
+      "headerBottom": null,
+      "firstTop": 0,
+      "firstTag": "DIV",
+      "firstText": "🔒Accès refuséIl vous manque la permission « admin:settings ",
+      "gap": null,
+      "headers": 0
+    }
+  },
+  {
+    "route": "/admin/roles",
+    "slug": "admin_roles",
+    "findings": [
+      "TECH_LEAK:default-org"
+    ],
+    "error": null,
+    "finalUrl": "http://localhost:8080/admin/roles",
+    "measure": {
+      "headerBottom": 110,
+      "firstTop": 302,
+      "firstTag": "DIV",
+      "firstText": "🔒Accès refuséIl vous manque la permission « admin:roles ». ",
+      "gap": 192,
+      "headers": 1
+    }
+  },
+  {
+    "route": "/admin/reports",
+    "slug": "admin_reports",
+    "findings": [
+      "TECH_LEAK:default-org",
+      "DOUBLE_HEADER:2"
+    ],
+    "error": null,
+    "finalUrl": "http://localhost:8080/admin/reports",
+    "measure": {
+      "headerBottom": 44,
+      "firstTop": 44,
+      "firstTag": "DIV",
+      "firstText": "Rapports reçusGestion financièredefault-orgAucun rapport reç",
+      "gap": 0,
+      "headers": 2
+    }
+  },
+  {
+    "route": "/admin/units",
+    "slug": "admin_units",
+    "findings": [
+      "TECH_LEAK:default-org"
+    ],
+    "error": null,
+    "finalUrl": "http://localhost:8080/admin/units",
+    "measure": {
+      "headerBottom": 100,
+      "firstTop": 302,
+      "firstTag": "DIV",
+      "firstText": "🔒Accès refuséIl vous manque la permission « admin:settings ",
+      "gap": 202,
+      "headers": 1
+    }
+  },
+  {
+    "route": "/admin/transfer-ownership",
+    "slug": "admin_transfer_ownership",
+    "findings": [
+      "TECH_LEAK:default-org"
+    ],
+    "error": null,
+    "finalUrl": "http://localhost:8080/admin/transfer-ownership",
+    "measure": {
+      "headerBottom": 110,
+      "firstTop": 302,
+      "firstTag": "DIV",
+      "firstText": "🔒Accès refuséIl vous manque la permission « admin:roles ». ",
+      "gap": 192,
+      "headers": 1
+    }
+  },
+  {
+    "route": "/admin/report-send",
+    "slug": "admin_report_send",
+    "findings": [],
+    "error": null,
+    "finalUrl": "http://localhost:8080/admin/report-send",
+    "measure": {
+      "headerBottom": null,
+      "firstTop": 0,
+      "firstTag": "DIV",
+      "firstText": "🔒Accès refuséIl vous manque la permission « admin:settings ",
+      "gap": null,
+      "headers": 0
+    }
+  },
+  {
+    "route": "/groups",
+    "slug": "groups",
+    "findings": [
+      "TECH_LEAK:default-org"
+    ],
+    "error": null,
+    "finalUrl": "http://localhost:8080/groups",
+    "measure": {
+      "headerBottom": 100,
+      "firstTop": 100,
+      "firstTag": "DIV",
+      "firstText": "Vous pouvezGérer les financesCréer, modifier, approuver, rej",
+      "gap": 0,
+      "headers": 1
+    }
+  },
+  {
+    "route": "/members",
+    "slug": "members",
+    "findings": [
+      "TECH_LEAK:default-org"
+    ],
+    "error": null,
+    "finalUrl": "http://localhost:8080/members",
+    "measure": {
+      "headerBottom": 100,
+      "firstTop": 100,
+      "firstTag": "DIV",
+      "firstText": "Vous pouvezGérer les financesCréer, modifier, approuver, rej",
+      "gap": 0,
+      "headers": 1
+    }
+  },
+  {
+    "route": "/events",
+    "slug": "events",
+    "findings": [],
+    "error": null,
+    "finalUrl": "http://localhost:8080/events",
+    "measure": {
+      "headerBottom": null,
+      "firstTop": 0,
+      "firstTag": "DIV",
+      "firstText": "Vous pouvezGérer les financesCréer, modifier, approuver, rej",
+      "gap": null,
+      "headers": 0
+    }
+  },
+  {
+    "route": "/forms",
+    "slug": "forms",
+    "findings": [
+      "TECH_LEAK:default-org",
+      "TECH_LEAK:PUBLISHED"
+    ],
+    "error": null,
+    "finalUrl": "http://localhost:8080/forms",
+    "measure": {
+      "headerBottom": 100,
+      "firstTop": 100,
+      "firstTag": "DIV",
+      "firstText": "RetourFormulaires CréerFiche de visitePUBLISHED0 champs · Cl",
+      "gap": 0,
+      "headers": 1
+    }
+  },
+  {
+    "route": "/custom-fields",
+    "slug": "custom_fields",
+    "findings": [
+      "TECH_LEAK:default-org"
+    ],
+    "error": null,
+    "finalUrl": "http://localhost:8080/custom-fields",
+    "measure": {
+      "headerBottom": 126,
+      "firstTop": 126,
+      "firstTag": "DIV",
+      "firstText": "RetourChamps personnalisés CréerQuartiermemberClé: quartier ",
+      "gap": 0,
+      "headers": 1
+    }
+  },
+  {
+    "route": "/archives",
+    "slug": "archives",
+    "findings": [],
+    "error": null,
+    "finalUrl": "http://localhost:8080/archives",
+    "measure": {
+      "headerBottom": null,
+      "firstTop": 16,
+      "firstTag": "DIV",
+      "firstText": "⚠Impossible d'afficher cette pageUne erreur est survenue pen",
+      "gap": null,
+      "headers": 0
+    }
+  },
+  {
+    "route": "/trace",
+    "slug": "trace",
+    "findings": [
+      "TECH_LEAK:default-org"
+    ],
+    "error": null,
+    "finalUrl": "http://localhost:8080/trace",
+    "measure": {
+      "headerBottom": 100,
+      "firstTop": 100,
+      "firstTag": "DIV",
+      "firstText": "ToutTransactionGroupeMembreÉvénementBudgetFormulaireApprouvé",
+      "gap": 0,
+      "headers": 1
+    }
+  },
+  {
+    "route": "/invitation/emit",
+    "slug": "invitation_emit",
+    "findings": [],
+    "error": null,
+    "finalUrl": "http://localhost:8080/invitation/emit",
+    "measure": {
+      "headerBottom": 44,
+      "firstTop": 302,
+      "firstTag": "DIV",
+      "firstText": "🔒Accès refuséIl vous manque la permission « invitation:crea",
+      "gap": 258,
+      "headers": 1
+    }
+  },
+  {
+    "route": "/invitation/manage",
+    "slug": "invitation_manage",
+    "findings": [],
+    "error": null,
+    "finalUrl": "http://localhost:8080/invitation/manage",
+    "measure": {
+      "headerBottom": 44,
+      "firstTop": 302,
+      "firstTag": "DIV",
+      "firstText": "🔒Accès refuséIl vous manque la permission « invitation:mana",
+      "gap": 258,
+      "headers": 1
+    }
+  },
+  {
+    "route": "/invitation/claim",
+    "slug": "invitation_claim",
+    "findings": [
+      "TECH_LEAK:default-org",
+      "TECH_LEAK:PENDING"
+    ],
+    "error": null,
+    "finalUrl": "http://localhost:8080/invitation/claim",
+    "measure": {
+      "headerBottom": 100,
+      "firstTop": 100,
+      "firstTag": "DIV",
+      "firstText": "Rejoindre une organisationScannez un QR code ou entrez un co",
+      "gap": 0,
+      "headers": 1
+    }
+  },
+  {
+    "route": "/settings",
+    "slug": "settings",
+    "findings": [
+      "TECH_LEAK:default-org",
+      "ENGLISH:Features & navigation"
+    ],
+    "error": null,
+    "finalUrl": "http://localhost:8080/settings",
+    "measure": {
+      "headerBottom": 100,
+      "firstTop": 100,
+      "firstTag": "DIV",
+      "firstText": "ParamètresChaque option ouvre sa propre page de configuratio",
+      "gap": 0,
+      "headers": 1
+    }
+  },
+  {
+    "route": "/settings/about",
+    "slug": "settings_about",
+    "findings": [
+      "TECH_LEAK:default-org",
+      "TECH_LEAK:PowerSync"
+    ],
+    "error": null,
+    "finalUrl": "http://localhost:8080/settings/about",
+    "measure": {
+      "headerBottom": 100,
+      "firstTop": 100,
+      "firstTag": "DIV",
+      "firstText": "RetourÀ proposLumina — plateforme universelle d'organisation",
+      "gap": 0,
+      "headers": 1
+    }
+  },
+  {
+    "route": "/settings/features",
+    "slug": "settings_features",
+    "findings": [
+      "TECH_LEAK:default-org",
+      "ENGLISH:Features & navigation"
+    ],
+    "error": null,
+    "finalUrl": "http://localhost:8080/settings/features",
+    "measure": {
+      "headerBottom": 110,
+      "firstTop": 109,
+      "firstTag": "DIV",
+      "firstText": "Accueil",
+      "gap": -1,
+      "headers": 1
+    }
+  },
+  {
+    "route": "/settings/gestion",
+    "slug": "settings_gestion",
+    "findings": [
+      "TECH_LEAK:default-org"
+    ],
+    "error": null,
+    "finalUrl": "http://localhost:8080/settings/gestion",
+    "measure": {
+      "headerBottom": 100,
+      "firstTop": 100,
+      "firstTag": "DIV",
+      "firstText": "RetourGérerRaccourcis pratiques et actions sur vos donnéesRa",
+      "gap": 0,
+      "headers": 1
+    }
+  },
+  {
+    "route": "/settings/health",
+    "slug": "settings_health",
+    "findings": [
+      "TECH_LEAK:default-org",
+      "TECH_LEAK:PowerSync",
+      "AMPM"
+    ],
+    "error": null,
+    "finalUrl": "http://localhost:8080/settings/health",
+    "measure": {
+      "headerBottom": 110,
+      "firstTop": 109,
+      "firstTag": "DIV",
+      "firstText": "Accueil",
+      "gap": -1,
+      "headers": 1
+    }
+  },
+  {
+    "route": "/settings/notifications",
+    "slug": "settings_notifications",
+    "findings": [
+      "TECH_LEAK:default-org"
+    ],
+    "error": null,
+    "finalUrl": "http://localhost:8080/settings/notifications",
+    "measure": {
+      "headerBottom": 100,
+      "firstTop": 100,
+      "firstTag": "DIV",
+      "firstText": "RetourNotificationsPréférences et gestion des notifications ",
+      "gap": 0,
+      "headers": 1
+    }
+  },
+  {
+    "route": "/settings/personnalisation",
+    "slug": "settings_personnalisation",
+    "findings": [],
+    "error": null,
+    "finalUrl": "http://localhost:8080/settings/personnalisation",
+    "measure": {
+      "headerBottom": null,
+      "firstTop": 16,
+      "firstTag": "DIV",
+      "firstText": "⚠Impossible d'afficher cette pageUne erreur est survenue pen",
+      "gap": null,
+      "headers": 0
+    }
+  },
+  {
+    "route": "/settings/profil",
+    "slug": "settings_profil",
+    "findings": [
+      "TECH_LEAK:default-org"
+    ],
+    "error": null,
+    "finalUrl": "http://localhost:8080/settings/profil",
+    "measure": {
+      "headerBottom": 100,
+      "firstTop": 100,
+      "firstTag": "DIV",
+      "firstText": "RetourProfilVos informations et votre comptePASTEUR PRINCIPA",
+      "gap": 0,
+      "headers": 1
+    }
+  },
+  {
+    "route": "/settings/theme",
+    "slug": "settings_theme",
+    "findings": [
+      "TECH_LEAK:default-org"
+    ],
+    "error": null,
+    "finalUrl": "http://localhost:8080/settings/theme",
+    "measure": {
+      "headerBottom": 110,
+      "firstTop": 109,
+      "firstTag": "DIV",
+      "firstText": "Accueil",
+      "gap": -1,
+      "headers": 1
+    }
+  },
+  {
+    "route": "/budgets/demo-budget-2026",
+    "slug": "budgets_demo_budget_2026",
+    "findings": [
+      "TECH_LEAK:default-org"
+    ],
+    "error": null,
+    "finalUrl": "http://localhost:8080/budgets/demo-budget-2026",
+    "measure": {
+      "headerBottom": 100,
+      "firstTop": 100,
+      "firstTag": "DIV",
+      "firstText": "Budget annuel 2026Caisse principale · 2026-01-01 → 2026-12-3",
+      "gap": 0,
+      "headers": 1
+    }
+  },
+  {
+    "route": "/culte/demo-event-culte",
+    "slug": "culte_demo_event_culte",
+    "findings": [],
+    "error": null,
+    "finalUrl": "http://localhost:8080/culte/demo-event-culte",
+    "measure": {
+      "headerBottom": 44,
+      "firstTop": 44,
+      "firstTag": "DIV",
+      "firstText": "Culte dominical1 nov. 2026Total membres0Payés0Absents0Non pa",
+      "gap": 0,
+      "headers": 1
+    }
+  },
+  {
+    "route": "/event/demo-event-retraite",
+    "slug": "event_demo_event_retraite",
+    "findings": [
+      "BAD_DATE:ISO"
+    ],
+    "error": null,
+    "finalUrl": "http://localhost:8080/event/demo-event-retraite",
+    "measure": {
+      "headerBottom": 44,
+      "firstTop": 57,
+      "firstTag": "DIV",
+      "firstText": "AperçuAccueilFinancesFinancesVersementBudgetsBilanDons & Cam",
+      "gap": 13,
+      "headers": 1
+    }
+  },
+  {
+    "route": "/event/demo-event-retraite/edit",
+    "slug": "event_demo_event_retraite_edit",
+    "findings": [
+      "TECH_LEAK:default-org"
+    ],
+    "error": null,
+    "finalUrl": "http://localhost:8080/event/demo-event-retraite/edit",
+    "measure": {
+      "headerBottom": 110,
+      "firstTop": 109,
+      "firstTag": "DIV",
+      "firstText": "Accueil",
+      "gap": -1,
+      "headers": 1
+    }
+  },
+  {
+    "route": "/form/fill/demo-form-visite",
+    "slug": "form_fill_demo_form_visite",
+    "findings": [
+      "TECH_LEAK:default-org"
+    ],
+    "error": null,
+    "finalUrl": "http://localhost:8080/form/fill/demo-form-visite",
+    "measure": {
+      "headerBottom": 100,
+      "firstTop": 100,
+      "firstTag": "DIV",
+      "firstText": "RetourSuivi des visites pastoralesSoumettre",
+      "gap": 0,
+      "headers": 1
+    }
+  },
+  {
+    "route": "/forms/demo-form-visite/submissions",
+    "slug": "forms_demo_form_visite_submissions",
+    "findings": [
+      "BAD_DATE:mm/dd/yyyy"
+    ],
+    "error": null,
+    "finalUrl": "http://localhost:8080/forms/demo-form-visite/submissions",
+    "measure": {
+      "headerBottom": 44,
+      "firstTop": 44,
+      "firstTag": "DIV",
+      "firstText": "Tous les statutsSoumisesTraitéesRejetéesExporter CSVExporter",
+      "gap": 0,
+      "headers": 1
+    }
+  },
+  {
+    "route": "/giving/campaigns/demo-campaign-construction",
+    "slug": "giving_campaigns_demo_campaign_construction",
+    "findings": [
+      "TECH_LEAK:default-org",
+      "TECH_LEAK:MONTHLY"
+    ],
+    "error": null,
+    "finalUrl": "http://localhost:8080/giving/campaigns/demo-campaign-construction",
+    "measure": {
+      "headerBottom": 100,
+      "firstTop": 100,
+      "firstTag": "DIV",
+      "firstText": "Construction du templeNouvelle salle de culteCollecté0Pledge",
+      "gap": 0,
+      "headers": 1
+    }
+  },
+  {
+    "route": "/groups/demo-group-jeunesse",
+    "slug": "groups_demo_group_jeunesse",
+    "findings": [],
+    "error": null,
+    "finalUrl": "http://localhost:8080/groups/demo-group-jeunesse",
+    "measure": {
+      "headerBottom": 44,
+      "firstTop": 44,
+      "firstTag": "DIV",
+      "firstText": "Groupe introuvableRetour aux groupes",
+      "gap": 0,
+      "headers": 1
+    }
+  },
+  {
+    "route": "/groups/demo-group-jeunesse/cotisation",
+    "slug": "groups_demo_group_jeunesse_cotisation",
+    "findings": [],
+    "error": null,
+    "finalUrl": "http://localhost:8080/groups/demo-group-jeunesse/cotisation",
+    "measure": {
+      "headerBottom": 44,
+      "firstTop": 44,
+      "firstTag": "DIV",
+      "firstText": "1 membre(s) dans ce groupe Nouvelle cotisationCotisations pr",
+      "gap": 0,
+      "headers": 1
+    }
+  },
+  {
+    "route": "/groups/demo-group-jeunesse/transaction/new",
+    "slug": "groups_demo_group_jeunesse_transaction_new",
+    "findings": [
+      "TECH_LEAK:default-org"
+    ],
+    "error": null,
+    "finalUrl": "http://localhost:8080/groups/demo-group-jeunesse/transaction/new",
+    "measure": {
+      "headerBottom": 110,
+      "firstTop": 109,
+      "firstTag": "DIV",
+      "firstText": "Accueil",
+      "gap": -1,
+      "headers": 1
+    }
+  },
+  {
+    "route": "/membre/demo-mem-1",
+    "slug": "membre_demo_mem_1",
+    "findings": [
+      "TECH_LEAK:default-org",
+      "DOUBLE_HEADER:2"
+    ],
+    "error": null,
+    "finalUrl": "http://localhost:8080/membre/demo-mem-1",
+    "measure": {
+      "headerBottom": 44,
+      "firstTop": 44,
+      "firstTag": "DIV",
+      "firstText": "MembreGestion financièredefault-orgMKMarie Kabila+243 900 00",
+      "gap": 0,
+      "headers": 2
+    }
+  },
+  {
+    "route": "/saisie-rapide/demo-group-jeunesse",
+    "slug": "saisie_rapide_demo_group_jeunesse",
+    "findings": [],
+    "error": null,
+    "finalUrl": "http://localhost:8080/saisie-rapide/demo-group-jeunesse",
+    "measure": {
+      "headerBottom": 44,
+      "firstTop": 44,
+      "firstTag": "DIV",
+      "firstText": "Culte introuvable.",
+      "gap": 0,
+      "headers": 1
+    }
+  },
+  {
+    "route": "/transaction/demo-tx-1",
+    "slug": "transaction_demo_tx_1",
+    "findings": [],
+    "error": null,
+    "finalUrl": "http://localhost:8080/transaction/demo-tx-1",
+    "measure": {
+      "headerBottom": null,
+      "firstTop": 16,
+      "firstTag": "DIV",
+      "firstText": "⚠Impossible d'afficher cette pageUne erreur est survenue pen",
+      "gap": null,
+      "headers": 0
+    }
+  },
+  {
+    "route": "/transaction/demo-tx-1/edit",
+    "slug": "transaction_demo_tx_1_edit",
+    "findings": [],
+    "error": null,
+    "finalUrl": "http://localhost:8080/transaction/demo-tx-1",
+    "measure": {
+      "headerBottom": 0,
+      "firstTop": null,
+      "firstTag": null,
+      "firstText": null,
+      "gap": null,
+      "headers": 1
+    }
+  },
+  {
+    "route": "/admin/reports/demo-report-mensuel",
+    "slug": "admin_reports_demo_report_mensuel",
+    "findings": [],
+    "error": null,
+    "finalUrl": "http://localhost:8080/admin/reports/demo-report-mensuel",
+    "measure": {
+      "headerBottom": null,
+      "firstTop": 16,
+      "firstTag": "DIV",
+      "firstText": "⚠Impossible d'afficher cette pageUne erreur est survenue pen",
+      "gap": null,
+      "headers": 0
+    }
+  }
+]
