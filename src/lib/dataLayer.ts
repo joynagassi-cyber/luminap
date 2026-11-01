@@ -34,6 +34,7 @@ import { assertPeriodOpen, getLockedUntil } from "./periodLock";
 import { isFeatureEnabled } from "./featureFlags";
 import { assertApprovable } from "./makerChecker";
 import { isMakerCheckerEnabled } from "./makerCheckerSettings";
+import type { ExistingOrgCandidate } from "./orgCreationGuard";
 
 
 // ============================================================
@@ -2614,6 +2615,49 @@ export async function mirrorNewOrganizationLocally(input: {
     );
   } catch (e) {
     console.warn("[dataLayer] mirror profiles failed (non-fatal)", e);
+  }
+}
+
+/**
+ * Organisations RÉELLES dont l'utilisateur est déjà membre ou admin, lues dans
+ * le miroir PowerSync local. Alimente la garde anti-doublon du wizard
+ * d'onboarding (`decideExistingRootOrg`).
+ *
+ * Renvoie `null` (≠ `[]`) quand la réplique est INDISPONIBLE : la garde se
+ * replie alors sur `profiles.org_id` (déjà en localStorage), ce qui rattrape le
+ * cas P0 même quand PowerSync est justement en échec.
+ */
+export async function findExistingRootOrganization(
+  userId: string,
+): Promise<ExistingOrgCandidate[] | null> {
+  if (!userId) return null;
+  try {
+    const db = getPowerSyncDatabase();
+    const res = await db.execute(
+      `SELECT DISTINCT o.id AS orgId, o.name AS name, o.status AS status
+         FROM organizations o
+         LEFT JOIN profiles p ON p.org_id = o.id AND p.id = ?
+         LEFT JOIN org_memberships m
+           ON m.org_id = o.id AND m.user_id = ? AND m.status IN ('ACTIVE','PENDING')
+         LEFT JOIN org_admins g
+           ON g.org_id = o.id AND g.admin_profile_id = ? AND g.status = 'ACTIVE'
+        WHERE o.id NOT IN ('__no_org__', 'no-org')
+          AND (p.id IS NOT NULL OR m.id IS NOT NULL OR g.id IS NOT NULL)`,
+      [userId, userId, userId],
+    );
+    const rows = (res?.array ?? []) as Array<{
+      orgId: string;
+      name?: string | null;
+      status?: string | null;
+    }>;
+    return rows.map((r) => ({
+      orgId: String(r.orgId),
+      name: r.name ?? null,
+      status: r.status ?? null,
+    }));
+  } catch (e) {
+    console.info("[dataLayer] findExistingRootOrganization indisponible", e);
+    return null;
   }
 }
 
