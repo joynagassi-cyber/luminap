@@ -175,7 +175,11 @@ function diffAuditStates(
         kind: !inBefore ? "added" : !inAfter ? "removed" : "changed",
       });
     }
-    return { kind: "changed", rows, beforeText, afterText };
+    // Deux états identiques ne sont PAS une modification : sans ce repli,
+    // l'entrée annonçait « Modifié » en n'affichant aucune ligne de diff —
+    // un verdict faux sur une piste d'audit (l'utilisateur croit qu'une
+    // action a changé quelque chose alors que rien n'a changé).
+    return { kind: rows.length === 0 ? "unchanged" : "changed", rows, beforeText, afterText };
   }
 
   // États scalaires (chaîne, nombre…) : comparaison directe.

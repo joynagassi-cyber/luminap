@@ -15,13 +15,14 @@
  *   3. « Créé » quand il n'y a pas de `before_state`, « Supprimé » sans
  *      `after_state` ;
  *   4. un JSON illisible ne fait pas planter l'écran : la valeur brute est
- *      affichée ET l'erreur est instrumentée (`captureClientError`).
+ *      affichée ET l'erreur est instrumentée (`captureClientError`) ;
+ *   5. deux états IDENTIQUES ne sont pas annoncés « Modifié » (verdict honnête).
  *
  * NON-VACUITÉ (preuve) : en retirant le rendu du diff (remplacer
  * `<AuditEntryDetail entry={entry} />` par `null`, ou supprimer le bloc
  * `audit-diff` du composant), les assertions « ancien → nouveau » et
  * « champ modifié » échouent. Vérifié en commentant le panneau de détail :
- * les 4 tests ci-dessous passent au rouge, puis la source est restaurée.
+ * les tests ci-dessous passent au rouge, puis la source est restaurée.
  */
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import "@testing-library/jest-dom/vitest";
@@ -167,6 +168,27 @@ describe("PR1 — /trace : détail d'entrée d'audit consultable", () => {
     expandFirstRow();
     expect(screen.getByTestId("audit-change-kind")).toHaveTextContent("Supprimé");
     expect(screen.getByText("name")).toBeInTheDocument();
+  });
+
+  it("n'annonce PAS « Modifié » quand les deux états sont identiques (verdict honnête)", () => {
+    // Défaut visé : un diff d'objets identiques ne produisait AUCUNE ligne
+    // mais était tout de même libellé « Modifié » — un fait faux sur une piste
+    // d'audit. Sans le repli `rows.length === 0 ? "unchanged"`, ce test échoue.
+    state.entries = [
+      entry({
+        before_state: '{"status":"APPROVED","amount":1000}',
+        after_state: '{"status":"APPROVED","amount":1000}',
+      }),
+    ];
+    renderTrace();
+    expandFirstRow();
+
+    expect(screen.getByTestId("audit-change-kind")).toHaveTextContent(
+      "Aucun changement enregistré",
+    );
+    expect(screen.getByTestId("audit-change-kind")).not.toHaveTextContent("Modifié");
+    // Aucune ligne de diff n'est rendue pour un état inchangé.
+    expect(document.querySelector('[data-testid="audit-diff"]')).toBeNull();
   });
 
   it("ne plante PAS sur un JSON illisible : affiche la valeur brute + instrumente l'erreur", () => {
