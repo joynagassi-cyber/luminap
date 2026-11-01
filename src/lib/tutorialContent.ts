@@ -381,7 +381,8 @@ const SECTIONS: SectionData[] = [
     iconBg: "color-mix(in srgb, var(--out) 12%, transparent)",
     titleColor: CHART_COLORS.expense,
     paragraphs: [
-      "La page Trace d'activité affiche l'historique complet de toutes les actions financières : créations, modifications, approbations, rejets, archivages et restaurations.",
+      "La page Trace d'activité affiche l'historique complet de toutes les actions sensibles : créations, modifications, suppressions, approbations, rejets, archivages et restaurations.",
+      "Sont tracées non seulement les opérations financières, mais aussi les membres, les groupes, les événements, les cotisations, les versements et les transferts de propriété.",
       "Chaque entrée de trace indique l'action, l'entité concernée, le montant (le cas échéant), et l'auteur.",
       "Touchez une entrée pour déplier son DÉTAIL : le rôle de l'auteur au moment de l'action, le commentaire, et la différence entre l'état AVANT et APRÈS (uniquement les champs réellement modifiés).",
       "Une entrée sans état précédent est marquée « Créé », une entrée sans état suivant est marquée « Supprimé » — vous savez ainsi ce qui a changé, pas seulement qu'une action a eu lieu.",

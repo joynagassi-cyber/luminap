@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCurrentUser } from "@/lib/dataLayer";
-import { useGroups, useOrgUnits, createGroupPS, isPowerSyncReadyNow } from "@/lib/dataLayer";
+import { useGroups, useOrgUnits, isPowerSyncReadyNow } from "@/lib/dataLayer";
+import { persistCreateGroup, persistUpdateGroup, persistDeleteGroup } from "@/lib/group-lifecycle";
 import { GroupsSkeleton } from "@/components/PageSkeletons";
-import { getPowerSyncDatabase } from "@/lib/powersync";
 import { useCanAccessMulti } from "@/hooks/useCanAccessMulti";
 import type { OrgUnit } from "@/types";
 import { Users, Plus, Edit3, Trash2 } from "lucide-react";
@@ -80,7 +80,7 @@ export default function Groups() {
     if (creating) return;
     setCreating(true);
     try {
-      await createGroupPS({
+      await persistCreateGroup({
         name: createName.trim(),
         type: createType,
         description: createDesc.trim(),
@@ -111,12 +111,12 @@ export default function Groups() {
       return;
     }
     setError("");
-    // Update via raw SQL for org_units (name + description — pas de colonne updated_at)
-    const db = getPowerSyncDatabase();
-    await db.execute(
-      `UPDATE org_units SET name = ?, description = ? WHERE id = ?`,
-      [editName.trim(), editDesc.trim(), id],
-    );
+    // Mise à jour des 4 lignes du groupe (org_units + caisses + groups +
+    // accounts) via la couche AUDITÉE : la mutation laisse une trace.
+    await persistUpdateGroup(id, {
+      name: editName.trim(),
+      description: editDesc.trim(),
+    });
     setShowEdit(null);
     setSuccess("Groupe modifié");
     setTimeout(() => setSuccess(""), 3000);
@@ -129,13 +129,8 @@ export default function Groups() {
     }
     setError("");
     try {
-      // Delete from all related tables
-      const db = getPowerSyncDatabase();
-      await db.execute(`DELETE FROM group_memberships WHERE group_id = ?`, [id]);
-      await db.execute(`DELETE FROM accounts WHERE id = ?`, [id]);
-      await db.execute(`DELETE FROM caisses WHERE id = ?`, [id]);
-      await db.execute(`DELETE FROM groups WHERE id = ?`, [id]);
-      await db.execute(`DELETE FROM org_units WHERE id = ?`, [id]);
+      // Suppression de toutes les lignes liées via la couche AUDITÉE.
+      await persistDeleteGroup(id);
       setShowDelete(null);
       setSuccess("Groupe supprimé");
       setTimeout(() => setSuccess(""), 3000);
