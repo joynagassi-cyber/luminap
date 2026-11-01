@@ -1033,6 +1033,14 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   (R106), kill switches, `RouteState` câblé. Reste en proposition : PR8–PR18,
   PR20. (PR17 MESURÉ non justifié ; PR18 = RLS `has_permission` ; PR20 =
   trancher `CENTRAL_ADMIN`.)
+- **PR5 PII des TIERS (2026-11-01)** : `redact` ne masque que les PII à FORME
+  (e-mail/jeton/téléphone). Un NOM de membre tiers cité dans la note libre ou un
+  message d'erreur traversait le rapport (Sentry + journal local). Corrigé via
+  `memberIdentities(members)` + param `members` de `sendProblemReport`/
+  `sendProblemReportToIssues` ; `Health.tsx` passe `useMembers().data`. La
+  conclusion « non corrigeable » (pas d'accès synchrone) était FAUSSE :
+  `useMembers()` sert le cache local sans I/O bloquante. Non-vacuité prouvée.
+  (Feature flags PR7 = FAIL-OPEN confirmé : drapeau absent/illisible ⇒ actif.)
 - **`git push`** : `git remote set-url origin https://${GITHUB_TOKEN}@github.com/joynagassi-cyber/luminap.git` avant de pousser (sinon prompt identifiants interactif).
 - **Création d'organisation self-serve = DEAD-END → CORRIGÉ (2026-10-31, R161)** :
   `OrgSetup.tsx::handleCreate` n'écrivait QUE du localStorage (aucun appel
