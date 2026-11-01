@@ -306,10 +306,10 @@ export default function AuditEntryDetail({ entry }: { entry: AuditEntryLike }) {
                   style={{
                     color:
                       row.kind === "added"
-                        ? "var(--data-income)"
+                        ? "var(--in)"
                         : row.kind === "removed"
-                          ? "var(--data-expense)"
-                          : "var(--data-pending)",
+                          ? "var(--out)"
+                          : "var(--warn)",
                   }}
                 >
                   {ROW_KIND_LABEL[row.kind]}
@@ -317,7 +317,7 @@ export default function AuditEntryDetail({ entry }: { entry: AuditEntryLike }) {
                 <div className="flex items-center gap-2 mt-0.5 text-xs">
                   <span
                     className="line-through break-all"
-                    style={{ color: "var(--data-expense)" }}
+                    style={{ color: "var(--out)" }}
                     data-testid="audit-diff-before"
                   >
                     {row.before}
@@ -325,7 +325,7 @@ export default function AuditEntryDetail({ entry }: { entry: AuditEntryLike }) {
                   <span className="text-text-tertiary">→</span>
                   <span
                     className="break-all"
-                    style={{ color: "var(--data-income)" }}
+                    style={{ color: "var(--in)" }}
                     data-testid="audit-diff-after"
                   >
                     {row.after}

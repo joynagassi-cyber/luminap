@@ -24,8 +24,8 @@ export default function SettingsTheme() {
         </p>
         <ThemeToggle />
         <p className="text-text-tertiary text-xs mt-3">
-          Le mode sombre est le défaut. Le choix se conserve entre les sessions
-          et s'applique à l'ensemble de l'application.
+          « Système » suit le réglage clair/sombre de votre appareil. Le choix
+          se conserve entre les sessions et s'applique à toute l'application.
         </p>
       </div>
 

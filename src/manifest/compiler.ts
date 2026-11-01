@@ -49,7 +49,7 @@ export class ManifestCompilerService implements ManifestCompiler {
         secondaryColor:
           orgData.branding?.secondaryColor ??
           template.branding?.secondaryColor ??
-          "#1DB954",
+          "#4ADE80",
         logoUrl: orgData.branding?.logoUrl ?? template.branding?.logoUrl,
       },
       compiledAt: new Date().toISOString(),

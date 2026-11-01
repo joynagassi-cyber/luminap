@@ -262,13 +262,13 @@ describe('Lumina — Forms v2 (currency, table view, DRAFT edit)', () => {
     cy.get('input[inputmode="decimal"]').type('abc');
     cy.contains('button, ion-button', 'Soumettre').first().click();
     // La validation est rejetée (bannière d'erreur de FormFill —
-    // le bloc `errors.length > 0` style data-expense) ET la
+    // le bloc `errors.length > 0` style --out) ET la
     // confirmation « Soumis avec succès ! » n'apparaît PAS.
     cy.get('input[inputmode="decimal"]').should('have.value', 'abc');
     // Le bloc d'erreur porte le message (le contenu dépend du
     // label du champ — on n'assert PAS le texte exact, on assert
-    // que le bloc data-expense est présent).
-    cy.get('div[style*="data-expense"]', { timeout: 30_000 }).should('exist');
+    // que le bloc --out est présent).
+    cy.get('div[style*="--out"]', { timeout: 30_000 }).should('exist');
     // La confirmation ne doit PAS exister. cy.contains ne traverse
     // pas les <script> ni les <style> — plus fiable qu'un scan
     // querySelectorAll('*') qui peut matcher le texte dans un

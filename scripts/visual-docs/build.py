@@ -284,10 +284,10 @@ def build_pdf(records: list[dict]) -> bool:
             c.setFont("Helvetica-Bold", 13)
             c.drawString(tx, ty, r["title"])
             ty -= 14
-            c.setFont("Helvetica", 9)
-            c.setFillColorRGB(0.35, 0.35, 0.35)
-            c.drawString(tx, ty, r["path"])
-            ty -= 14
+            # Le chemin technique (route interne) n'est PAS imprimé : le guide
+            # est un document utilisateur, il ne doit exposer ni identifiants de
+            # jeu de données ni routes internes.
+            # (garde : src/lib/__tests__/tutorial-real-data.test.ts)
             c.setFillColorRGB(*[v / 255 for v in INK])
             for line in wrap(r["purpose"], 9, tw):
                 c.drawString(tx, ty, line)

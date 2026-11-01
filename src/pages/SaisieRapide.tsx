@@ -174,9 +174,9 @@ export default function SaisieRapide() {
               <div
                 className="mb-3 p-3 rounded-xl text-sm"
                 style={{
-                  backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)",
-                  border: "1px solid color-mix(in srgb, var(--data-expense) 25%, transparent)",
-                  color: "var(--data-expense)",
+                  backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)",
+                  border: "1px solid color-mix(in srgb, var(--out) 25%, transparent)",
+                  color: "var(--out)",
                 }}
               >
                 {error}

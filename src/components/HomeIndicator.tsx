@@ -36,7 +36,7 @@ type Shortcut = {
     déterministe (6 items, toutes des routes stables du registre FEATURES).
     Couleurs : tokens CSS (invariants, déclarés dans src/App.css). */
 const SHORTCUT_FEATURES: Shortcut[] = [
-  { key: "finance", label: "Finances", desc: "Entrées & sorties", icon: Wallet, color: "var(--data-income)", route: "/finance" },
+  { key: "finance", label: "Finances", desc: "Entrées & sorties", icon: Wallet, color: "var(--in)", route: "/finance" },
   { key: "membres", label: "Membres", desc: "Liste du groupe", icon: Users, color: "var(--data-planified)", route: "/members" },
   { key: "events", label: "Événements", desc: "Cultes & budgets", icon: CalendarPlus, color: "var(--shortcut-events)", route: "/events" },
   { key: "giving", label: "Dons", desc: "Campagnes en cours", icon: Ticket, color: "var(--data-advance)", route: "/giving" },

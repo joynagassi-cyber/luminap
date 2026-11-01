@@ -314,13 +314,13 @@ export default function TransactionDetail() {
               <div
                 className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
                 style={{
-                  backgroundColor: isIncome ? "color-mix(in srgb, var(--data-income) 12%, transparent)" : "color-mix(in srgb, var(--data-expense) 12%, transparent)",
+                  backgroundColor: isIncome ? "color-mix(in srgb, var(--in) 12%, transparent)" : "color-mix(in srgb, var(--out) 12%, transparent)",
                 }}
               >
                 {isIncome ? (
-                  <Check className="w-8 h-8" style={{ color: "var(--data-income)" }} />
+                  <Check className="w-8 h-8" style={{ color: "var(--in)" }} />
                 ) : (
-                  <X className="w-8 h-8" style={{ color: "var(--data-expense)" }} />
+                  <X className="w-8 h-8" style={{ color: "var(--out)" }} />
                 )}
               </div>
               <p
@@ -437,7 +437,7 @@ export default function TransactionDetail() {
                         disabled={guard.submitting || selfApprovalBlocked}
                         data-testid="approve-button"
                         className="w-full py-4 rounded-full font-semibold text-on-accent text-sm transition-all active:scale-95 disabled:opacity-50"
-                        style={{ backgroundColor: "var(--data-income)" }}
+                        style={{ backgroundColor: "var(--in)" }}
                       >
                         Approuver
                       </button>
@@ -446,7 +446,7 @@ export default function TransactionDetail() {
                           data-testid="self-approval-notice"
                           role="note"
                           className="text-xs px-1"
-                          style={{ color: "var(--data-expense)" }}
+                          style={{ color: "var(--out)" }}
                         >
                           L'auteur ne peut pas approuver sa propre dépense.
                         </p>
@@ -459,8 +459,8 @@ export default function TransactionDetail() {
                       className="w-full py-4 rounded-full font-semibold text-sm transition-all active:scale-95"
                       style={{
                         backgroundColor: "var(--surface)",
-                        color: "var(--data-expense)",
-                        border: "1px solid color-mix(in srgb, var(--data-expense) 20%, transparent)",
+                        color: "var(--out)",
+                        border: "1px solid color-mix(in srgb, var(--out) 20%, transparent)",
                       }}
                     >
                       Rejeter
@@ -474,8 +474,8 @@ export default function TransactionDetail() {
                   className="w-full py-4 rounded-full font-semibold text-sm transition-all active:scale-95"
                   style={{
                     backgroundColor: "var(--surface)",
-                    color: "var(--data-pending)",
-                    border: "1px solid color-mix(in srgb, var(--data-pending) 20%, transparent)",
+                    color: "var(--warn)",
+                    border: "1px solid color-mix(in srgb, var(--warn) 20%, transparent)",
                   }}
                 >
                   Contre-transagir
@@ -502,8 +502,8 @@ export default function TransactionDetail() {
                     className="w-full py-4 rounded-full font-semibold text-sm transition-all active:scale-95"
                     style={{
                       backgroundColor: "var(--surface)",
-                      color: "var(--data-expense)",
-                      border: "1px solid color-mix(in srgb, var(--data-expense) 20%, transparent)",
+                      color: "var(--out)",
+                      border: "1px solid color-mix(in srgb, var(--out) 20%, transparent)",
                     }}
                   >
                     Supprimer
@@ -517,7 +517,7 @@ export default function TransactionDetail() {
                 className="rounded-xl p-4 mb-6"
                 style={{
                   backgroundColor: "var(--surface)",
-                  border: "1px solid color-mix(in srgb, var(--data-pending) 20%, transparent)",
+                  border: "1px solid color-mix(in srgb, var(--warn) 20%, transparent)",
                 }}
               >
                 <p className="text-text-tertiary text-xs mb-2">
@@ -569,7 +569,7 @@ export default function TransactionDetail() {
                       onClick={handleRejectConfirm}
                       disabled={guard.submitting}
                       className="flex-1 py-3 rounded-full font-semibold text-on-accent text-sm"
-                      style={{ backgroundColor: "var(--data-expense)" }}
+                      style={{ backgroundColor: "var(--out)" }}
                     >
                       Rejeter
                     </button>
@@ -621,7 +621,7 @@ export default function TransactionDetail() {
                       onClick={handleReverse}
                       disabled={guard.submitting}
                       className="flex-1 py-3 rounded-full font-semibold text-on-accent text-sm"
-                      style={{ backgroundColor: "var(--data-pending)" }}
+                      style={{ backgroundColor: "var(--warn)" }}
                     >
                       Confirmer
                     </button>

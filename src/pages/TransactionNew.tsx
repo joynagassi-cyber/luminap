@@ -243,7 +243,7 @@ export default function TransactionNew() {
                 onClick={() => setType("INCOME")}
                 className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all"
                 style={{
-                  backgroundColor: type === "INCOME" ? "var(--data-income)" : "var(--surface)",
+                  backgroundColor: type === "INCOME" ? "var(--in)" : "var(--surface)",
                   color: type === "INCOME" ? "var(--text-primary)" : "var(--text-secondary)",
                 }}
               >
@@ -253,7 +253,7 @@ export default function TransactionNew() {
                 onClick={() => setType("EXPENSE")}
                 className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all"
                 style={{
-                  backgroundColor: type === "EXPENSE" ? "var(--data-expense)" : "var(--surface)",
+                  backgroundColor: type === "EXPENSE" ? "var(--out)" : "var(--surface)",
                   color: type === "EXPENSE" ? "var(--text-primary)" : "var(--text-secondary)",
                 }}
               >
@@ -267,7 +267,7 @@ export default function TransactionNew() {
               className="mb-5 bg-card rounded-xl"
               style={
                 fieldErrors.amount
-                  ? { border: "1px solid var(--data-expense)" }
+                  ? { border: "1px solid var(--out)" }
                   : undefined
               }
             >
@@ -533,7 +533,7 @@ export default function TransactionNew() {
             {error && (
               <div
                 className="mb-4 p-3 rounded-xl text-sm text-center"
-                style={{ backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)", color: "var(--data-expense)" }}
+                style={{ backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)", color: "var(--out)" }}
               >
                 {error}
               </div>
@@ -545,7 +545,7 @@ export default function TransactionNew() {
               disabled={submitting}
               style={{
                 backgroundColor:
-                  type === "INCOME" ? "var(--data-income)" : "var(--data-expense)",
+                  type === "INCOME" ? "var(--in)" : "var(--out)",
               }}
             >
               {submitting ? (

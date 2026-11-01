@@ -109,7 +109,7 @@ function HeroCard({
   navigate: ReturnType<typeof useNavigate>;
 }) {
   const netColor =
-    netResult >= 0 ? "var(--data-income)" : "var(--data-expense)";
+    netResult >= 0 ? "var(--in)" : "var(--out)";
   const now = new Date();
   // PM19 — une erreur d'envoi (uploadError/downloadError) doit être VISIBLE :
   // sinon une saisie en file jamais envoyée restait muette (le pill affichait
@@ -170,24 +170,24 @@ function HeroCard({
           style={{
             backgroundColor: "color-mix(in srgb, var(--accent-primary) 8%, transparent)",
             color: hasSyncError
-            ? "var(--data-expense)"
+            ? "var(--out)"
             : online
               ? "var(--accent-primary)"
-              : "var(--data-expense)",
+              : "var(--out)",
           }}
           aria-label={`État de synchronisation : ${syncLabel}`}
         >
           {hasSyncError ? (
             <Circle
               className="w-1.5 h-1.5"
-              style={{ fill: "var(--data-expense)", color: "var(--data-expense)" }}
+              style={{ fill: "var(--out)", color: "var(--out)" }}
             />
           ) : syncing ? (
             <Radio className="w-3.5 h-3.5 animate-pulse" />
           ) : online ? (
-            <Circle className="w-1.5 h-1.5" style={{ fill: "var(--data-income)", color: "var(--data-income)" }} />
+            <Circle className="w-1.5 h-1.5" style={{ fill: "var(--in)", color: "var(--in)" }} />
           ) : (
-            <Circle className="w-1.5 h-1.5" style={{ fill: "var(--data-expense)", color: "var(--data-expense)" }} />
+            <Circle className="w-1.5 h-1.5" style={{ fill: "var(--out)", color: "var(--out)" }} />
           )}
           <span>{syncLabel}</span>
         </div>
@@ -208,11 +208,11 @@ function HeroCard({
             <span className="text-text-tertiary text-sm">F</span>
           </div>
           <p className="text-text-tertiary text-xs mt-1.5 flex items-center gap-1">
-            <span style={{ color: "var(--data-income)" }}>
+            <span style={{ color: "var(--in)" }}>
               Entrées du mois +{formatCentsToFCFA(totalIncome)}
             </span>
             <span aria-hidden="true">·</span>
-            <span style={{ color: "var(--data-expense)" }}>
+            <span style={{ color: "var(--out)" }}>
               Sorties du mois −{formatCentsToFCFA(totalExpense)}
             </span>
           </p>
@@ -226,13 +226,13 @@ function HeroCard({
       <div className="rounded-xl p-3" style={{ backgroundColor: "var(--surface-hover)" }}>
         <div className="flex items-center justify-between mb-2">
           <span className="text-text-tertiary text-xs">Tendance (6 mois)</span>
-          <TrendingUp className="w-3.5 h-3.5" style={{ color: "var(--data-income)" }} />
+          <TrendingUp className="w-3.5 h-3.5" style={{ color: "var(--in)" }} />
         </div>
         <TrendChart
           values={trend}
           labels={trendLabels}
           height={96}
-          color="var(--data-income)"
+          color="var(--in)"
           withTooltip
         />
       </div>
@@ -353,11 +353,11 @@ function useUnifiedTodos(
 }
 
 const TONE_COLOR: Record<UnifiedTodo["tone"], string> = {
-  pending: "var(--data-pending)",
+  pending: "var(--warn)",
   planified: "var(--data-planified)",
   advance: "var(--data-advance)",
-  income: "var(--data-income)",
-  expense: "var(--data-expense)",
+  income: "var(--in)",
+  expense: "var(--out)",
 };
 
 function UnifiedTodoList({ todos, navigate }: { todos: UnifiedTodo[]; navigate: ReturnType<typeof useNavigate> }) {
@@ -379,7 +379,7 @@ function UnifiedTodoList({ todos, navigate }: { todos: UnifiedTodo[]; navigate: 
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <Inbox className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
-          <p className="text-text-primary text-sm font-semibold">À faire</p>
+          <p className="text-text-primary text-sm font-semibold">À traiter</p>
           <span
             className="text-xs px-2 py-0.5 rounded-full font-medium"
             style={{
@@ -422,7 +422,7 @@ function UnifiedTodoList({ todos, navigate }: { todos: UnifiedTodo[]; navigate: 
                   <span
                     className="text-xs font-semibold tabular-nums flex-shrink-0"
                     style={{
-                      color: t.amountCents >= 0 ? "var(--data-income)" : "var(--data-expense)",
+                      color: t.amountCents >= 0 ? "var(--in)" : "var(--out)",
                     }}
                   >
                     {t.amountCents >= 0 ? "+" : "-"}
@@ -515,7 +515,7 @@ function ReceivedReportsSection({
                 </p>
               </div>
               {r.read_at ? (
-                <CheckCircle2 className="w-4 h-4 flex-shrink-0" style={{ color: "var(--data-income)" }} />
+                <CheckCircle2 className="w-4 h-4 flex-shrink-0" style={{ color: "var(--in)" }} />
               ) : (
                 <span
                   className="text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0"
@@ -612,7 +612,7 @@ function CaisseCard({
           <p
             className="font-bold text-lg tabular-nums"
             style={{
-              color: balance >= 0 ? "var(--data-income)" : "var(--data-expense)",
+              color: balance >= 0 ? "var(--in)" : "var(--out)",
             }}
           >
             {balance >= 0 ? "" : "-"}
@@ -623,8 +623,8 @@ function CaisseCard({
             <span
               className="text-[10px] px-1.5 py-0.5 rounded-full font-medium inline-block mt-0.5"
               style={{
-                backgroundColor: "color-mix(in srgb, var(--data-pending) 14%, transparent)",
-                color: "var(--data-pending)",
+                backgroundColor: "color-mix(in srgb, var(--warn) 14%, transparent)",
+                color: "var(--warn)",
               }}
             >
               {pendingCount} en attente
@@ -636,7 +636,7 @@ function CaisseCard({
         <TrendChart
           values={sparkValues}
           height={40}
-          color={balance >= 0 ? "var(--data-income)" : "var(--data-expense)"}
+          color={balance >= 0 ? "var(--in)" : "var(--out)"}
         />
       </div>
     </button>
@@ -676,8 +676,8 @@ function OrgBanner() {
           <span
             className="text-[10px] px-2 py-0.5 rounded-full font-medium"
             style={{
-              backgroundColor: "color-mix(in srgb, var(--data-pending) 14%, transparent)",
-              color: "var(--data-pending)",
+              backgroundColor: "color-mix(in srgb, var(--warn) 14%, transparent)",
+              color: "var(--warn)",
             }}
           >
             {current.status.toLowerCase()}
@@ -864,7 +864,7 @@ export default function Dashboard() {
                 const overBudget = event.budget > 0 && budgetSpent > event.budget;
                 const EVENT_COLORS: Record<string, string> = {
                   PLANIFIED: "var(--data-planified)",
-                  ONGOING: "var(--data-income)",
+                  ONGOING: "var(--in)",
                 };
                 const color = EVENT_COLORS[event.status] || "var(--text-tertiary)";
                 return (
@@ -874,7 +874,7 @@ export default function Dashboard() {
                     className="w-full text-left rounded-xl p-4 transition-all active:scale-95"
                     style={{
                       backgroundColor: "var(--surface)",
-                      border: `1px solid ${overBudget ? tint("var(--data-expense)", 25) : "var(--border)"}`,
+                      border: `1px solid ${overBudget ? tint("var(--out)", 25) : "var(--border)"}`,
                     }}
                   >
                     <div className="flex items-center gap-3">
@@ -904,7 +904,7 @@ export default function Dashboard() {
                                 style={{
                                   width: `${Math.min(100, (budgetSpent / event.budget) * 100)}%`,
                                   backgroundColor: overBudget
-                                    ? "var(--data-expense)"
+                                    ? "var(--out)"
                                     : "var(--accent-primary)",
                                 }}
                               />

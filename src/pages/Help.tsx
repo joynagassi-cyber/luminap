@@ -331,7 +331,7 @@ export default function Help() {
             </div>
 
             <p className="text-text-tertiary text-xs text-center">
-              Lumina v2.0 · Église MFE-JC Centrale
+              Lumina v2.0 · Église MF Centrale
             </p>
           </div>
           <BottomNav />

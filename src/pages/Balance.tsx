@@ -185,12 +185,12 @@ export default function Balance() {
               >
                 <div
                   className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: "color-mix(in srgb, var(--data-income) 12%, transparent)" }}
+                  style={{ backgroundColor: "color-mix(in srgb, var(--in) 12%, transparent)" }}
                   aria-hidden="true"
                 >
                   <TrendingUp
                     className="w-4 h-4"
-                    style={{ color: "var(--data-income)" }}
+                    style={{ color: "var(--in)" }}
                   />
                 </div>
                 <p className="text-text-tertiary text-xs">Entrées</p>
@@ -204,12 +204,12 @@ export default function Balance() {
               >
                 <div
                   className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)" }}
+                  style={{ backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)" }}
                   aria-hidden="true"
                 >
                   <TrendingDown
                     className="w-4 h-4"
-                    style={{ color: "var(--data-expense)" }}
+                    style={{ color: "var(--out)" }}
                   />
                 </div>
                 <p className="text-text-tertiary text-xs">Sorties</p>
@@ -231,7 +231,7 @@ export default function Balance() {
                 <p className="text-text-tertiary text-xs">Résultat</p>
                 <p
                   className="font-black text-base tabular-nums mt-2"
-                  style={{ color: netResult >= 0 ? "var(--data-income)" : "var(--data-expense)" }}
+                  style={{ color: netResult >= 0 ? "var(--in)" : "var(--out)" }}
                 >
                   {netResult >= 0 ? "+" : "-"}
                   {formatCurrencyCompact(Math.abs(netResult))}
@@ -268,7 +268,7 @@ export default function Balance() {
                           className="rounded-full"
                           style={{
                             width: `${(cat.income / maxVal) * 50}%`,
-                            backgroundColor: "var(--data-income)",
+                            backgroundColor: "var(--in)",
                           }}
                         />
                       )}
@@ -277,7 +277,7 @@ export default function Balance() {
                           className="rounded-full ml-auto"
                           style={{
                             width: `${(cat.expense / maxVal) * 50}%`,
-                            backgroundColor: "var(--data-expense)",
+                            backgroundColor: "var(--out)",
                           }}
                         />
                       )}
@@ -364,11 +364,11 @@ export default function Balance() {
                     >
                       <div
                         className="w-10 h-10 rounded-full flex items-center justify-center"
-                        style={{ backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)" }}
+                        style={{ backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)" }}
                       >
                         <FileText
                           className="text-lg"
-                          style={{ color: "var(--data-expense)" }}
+                          style={{ color: "var(--out)" }}
                         />
                       </div>
                       <div className="text-left">
@@ -399,11 +399,11 @@ export default function Balance() {
                     >
                       <div
                         className="w-10 h-10 rounded-full flex items-center justify-center"
-                        style={{ backgroundColor: "color-mix(in srgb, var(--data-income) 12%, transparent)" }}
+                        style={{ backgroundColor: "color-mix(in srgb, var(--in) 12%, transparent)" }}
                       >
                         <BarChart3
                           className="text-lg"
-                          style={{ color: "var(--data-income)" }}
+                          style={{ color: "var(--in)" }}
                         />
                       </div>
                       <div className="text-left">

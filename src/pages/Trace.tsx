@@ -38,23 +38,23 @@ export const ACTION_META: Record<
   string,
   { icon: typeof Clock; color: string; label: string }
 > = {
-  CREATE: { icon: CheckCircle, color: "var(--data-income)", label: "Créé" },
+  CREATE: { icon: CheckCircle, color: "var(--in)", label: "Créé" },
   UPDATE: { icon: Edit2, color: "var(--data-planified)", label: "Modifié" },
-  DELETE: { icon: Trash2, color: "var(--data-expense)", label: "Supprimé" },
-  APPROVE: { icon: CheckCircle, color: "var(--data-income)", label: "Approuvé" },
-  REJECT: { icon: XCircle, color: "var(--data-expense)", label: "Rejeté" },
+  DELETE: { icon: Trash2, color: "var(--out)", label: "Supprimé" },
+  APPROVE: { icon: CheckCircle, color: "var(--in)", label: "Approuvé" },
+  REJECT: { icon: XCircle, color: "var(--out)", label: "Rejeté" },
   ARCHIVE: { icon: FileText, color: "var(--text-secondary)", label: "Archivé" },
-  RESTORE: { icon: CheckCircle, color: "var(--data-income)", label: "Rétabli" },
-  REVISE: { icon: Edit2, color: "var(--data-pending)", label: "Révisé" },
-  CANCEL: { icon: XCircle, color: "var(--data-expense)", label: "Annulé" },
+  RESTORE: { icon: CheckCircle, color: "var(--in)", label: "Rétabli" },
+  REVISE: { icon: Edit2, color: "var(--warn)", label: "Révisé" },
+  CANCEL: { icon: XCircle, color: "var(--out)", label: "Annulé" },
   // Actions réellement présentes dans audit_entries pour la gestion des
   // administrateurs d'organisation (14 entrées relevées en base). Sans ces
   // cas, la piste d'audit affichait « Modifié » pour une attribution ou un
   // retrait d'administrateur — une information fausse sur un sujet sensible.
-  ADMIN_ASSIGNED: { icon: CheckCircle, color: "var(--data-income)", label: "Admin attribué" },
-  ADMIN_REINSTATED: { icon: CheckCircle, color: "var(--data-income)", label: "Admin rétabli" },
-  ADMIN_REVOKED: { icon: XCircle, color: "var(--data-expense)", label: "Admin révoqué" },
-  ADMIN_REMOVED: { icon: Trash2, color: "var(--data-expense)", label: "Admin retiré" },
+  ADMIN_ASSIGNED: { icon: CheckCircle, color: "var(--in)", label: "Admin attribué" },
+  ADMIN_REINSTATED: { icon: CheckCircle, color: "var(--in)", label: "Admin rétabli" },
+  ADMIN_REVOKED: { icon: XCircle, color: "var(--out)", label: "Admin révoqué" },
+  ADMIN_REMOVED: { icon: Trash2, color: "var(--out)", label: "Admin retiré" },
 };
 
 export const ENTITY_LABELS: Record<string, string> = {

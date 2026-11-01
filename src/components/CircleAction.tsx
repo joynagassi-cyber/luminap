@@ -16,8 +16,8 @@ interface CircleActionProps {
 }
 
 const TONE: Record<string, string> = {
-  income: "var(--data-income)",
-  expense: "var(--data-expense)",
+  income: "var(--in)",
+  expense: "var(--out)",
   advance: "var(--data-advance)",
 };
 

@@ -46,7 +46,7 @@ function tokens(source: string): Record<string, string> {
   return out;
 }
 
-/** `surfaceHover` → `surface-hover`, `dataIncome` → `data-income`. */
+/** `surfaceHover` → `surface-hover`, `textPrimary` → `text-primary`. */
 function kebab(key: string): string {
   return key.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
 }

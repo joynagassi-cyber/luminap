@@ -427,8 +427,8 @@ export default function OrgReportDetail() {
                   className="mt-3 flex items-center gap-2 text-xs rounded-lg p-2"
                   style={{
                     backgroundColor:
-                      "color-mix(in srgb, var(--data-income) 10%, transparent)",
-                    color: "var(--data-income)",
+                      "color-mix(in srgb, var(--in) 10%, transparent)",
+                    color: "var(--in)",
                   }}
                   role="status"
                 >
@@ -520,15 +520,15 @@ export default function OrgReportDetail() {
  */
 function ReportSummaryCards({ summary }: { summary: ReportSummary }) {
   const netPositive = summary.netResult >= 0;
-  const netColor = netPositive ? "var(--data-income)" : "var(--data-expense)";
+  const netColor = netPositive ? "var(--in)" : "var(--out)";
   const cellStyle = {
     backgroundColor: "var(--surface)",
     border: "1px solid var(--border)",
   } as const;
   return (
     <div className="grid grid-cols-2 gap-2">
-      <SummaryCard label="Revenus" value={formatCurrencyCompact(summary.totalIncome)} color="var(--data-income)" />
-      <SummaryCard label="Dépenses" value={formatCurrencyCompact(summary.totalExpense)} color="var(--data-expense)" />
+      <SummaryCard label="Revenus" value={formatCurrencyCompact(summary.totalIncome)} color="var(--in)" />
+      <SummaryCard label="Dépenses" value={formatCurrencyCompact(summary.totalExpense)} color="var(--out)" />
       <SummaryCard label="Résultat net" value={formatCurrencyCompact(summary.netResult)} color={netColor} />
       <div
         className="rounded-xl p-3"
@@ -713,7 +713,7 @@ function ReportFilePreview({
             Télécharger {fileName}
           </button>
           {error && (
-            <p className="text-xs" style={{ color: "var(--data-expense)" }}>
+            <p className="text-xs" style={{ color: "var(--out)" }}>
               {error}
             </p>
           )}

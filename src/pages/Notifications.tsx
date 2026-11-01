@@ -50,15 +50,15 @@ function getNotifIcon(actionType: string) {
     case "event":
       return <Clock className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />;
     case "invitation":
-      return <TrendingUp className="w-4 h-4" style={{ color: "var(--data-income)" }} />;
+      return <TrendingUp className="w-4 h-4" style={{ color: "var(--in)" }} />;
     case "form":
-      return <CheckCircle className="w-4 h-4" style={{ color: "var(--data-pending)" }} />;
+      return <CheckCircle className="w-4 h-4" style={{ color: "var(--warn)" }} />;
     case "pending":
-      return <Bell className="w-4 h-4" style={{ color: "var(--data-pending)" }} />;
+      return <Bell className="w-4 h-4" style={{ color: "var(--warn)" }} />;
     case "approved":
-      return <CheckCircle className="w-4 h-4" style={{ color: "var(--data-income)" }} />;
+      return <CheckCircle className="w-4 h-4" style={{ color: "var(--in)" }} />;
     case "exceeded":
-      return <AlertCircle className="w-4 h-4" style={{ color: "var(--data-expense)" }} />;
+      return <AlertCircle className="w-4 h-4" style={{ color: "var(--out)" }} />;
     default:
       return <Bell className="w-4 h-4" style={{ color: "var(--text-secondary)" }} />;
   }
@@ -133,7 +133,7 @@ export default function NotificationsPage() {
                 <div className="flex items-center gap-2">
                   <span
                     className="text-xs px-2.5 py-1 rounded-full font-medium"
-                    style={{ backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)", color: "var(--data-expense)" }}
+                    style={{ backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)", color: "var(--out)" }}
                   >
                     {unread} non lu{unread > 1 ? "s" : ""}
                   </span>

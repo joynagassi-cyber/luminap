@@ -744,12 +744,20 @@ function exportOrgReportXLSX(payload: OrgReportPayload): Blob {
  * `document.createElement("canvas")` + `canvas.toDataURL("image/png")`
  * → Blob, renvoyé pour l'upload dans le bucket privé `org_reports`.
  *
- * Les couleurs des barres suivent la sémantique des tokens `--data-*`
- * (revenus `--data-income`, dépenses `--data-expense`, accent
- * `--accent-primary`) en valeurs canvas (le canvas ne lit pas les CSS
- * custom properties sans resolvers ; les hex ici reflètent les tokens
- * standards — jamais d'autre teinte brute ailleurs dans l'app).
+ * Les couleurs des barres suivent la sémantique des tokens d'argent
+ * (`--in` = entrées, `--out` = sorties, accent `--accent-primary`) en valeurs
+ * canvas (le canvas ne lit pas les CSS custom properties). On résout donc le
+ * jeton au runtime (mode clair/sombre) avec un repli sur la valeur du mode
+ * sombre — jamais d'autre teinte brute ailleurs dans l'app).
  */
+function cssToken(name: string, fallback: string): string {
+  if (typeof document === "undefined") return fallback;
+  const v = getComputedStyle(document.documentElement)
+    .getPropertyValue(name)
+    .trim();
+  return v || fallback;
+}
+
 function exportOrgReportPNG(payload: OrgReportPayload): Blob {
   const W = 800;
   const H = 400;
@@ -763,9 +771,11 @@ function exportOrgReportPNG(payload: OrgReportPayload): Blob {
   const income = formatCurrencyCompact(summary.totalIncome);
   const expense = formatCurrencyCompact(summary.totalExpense);
   const net = formatCurrencyCompact(Math.abs(summary.netResult));
+  const inColor = cssToken("--in", "#4ADE80");
+  const outColor = cssToken("--out", "#F87171");
   const bars = [
-    { label: "Entrées", value: summary.totalIncome, short: income, color: "#1DB954" },
-    { label: "Sorties", value: summary.totalExpense, short: expense, color: "#E51332" },
+    { label: "Entrées", value: summary.totalIncome, short: income, color: inColor },
+    { label: "Sorties", value: summary.totalExpense, short: expense, color: outColor },
     {
       label: "Résultat",
       value: Math.abs(summary.netResult),
