@@ -17,11 +17,13 @@
 #   JOINs). Un user 1-org = 1 ligne → `IN` = `=` sémantiquement ; un user
 #   multi-org = N lignes → `IN` couvre le double-scope.
 #
-# Pattern pour les tables LIAISON sans `org_id`
-#   `group_memberships`     : liée à `groups` (a `org_id`) → filtre par group_id
-#   `event_budgets`         : liée à `events`  (a `org_id`) → filtre par event_id
-#   `budget_lines`          : liée à `event_budgets` → filtre transitif
-#   `custom_field_values`   : liée à `custom_field_definitions` (a `org_id`)
+# Pattern pour les tables historiquement « liaison sans org_id »
+#   `group_memberships`, `event_budgets`, `budget_lines`, `custom_field_values`
+#   étaient filtrées par JOIN sur le parent ; `org_id` a depuis été
+#   DÉNORMALISÉ sur ces tables (R89.b) et leur stream utilise le filtre direct
+#   `org_id IN (…)` ci-dessus — le JOIN avait été abandonné car PowerSync ne
+#   peut pas clé la partition sur une colonne absente de la ligne (1 bucket par
+#   ligne → plafond 1000, `PSYNC_S2305`).
 #   Aucun alias sur la table source (pas de `gm`, `eb`, `bl`, `cv`) :
 #   PowerSync sync le source row sous l'alias si on en met, ce qui casse les
 #   requêtes client qui cherchent la table par son vrai nom.
