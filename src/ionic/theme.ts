@@ -16,14 +16,14 @@ import type { ThemeMode } from "./themes";
 
 // Lumina design tokens — dark mode (default).
 const LUMINA_TOKENS = {
-  canvas: "#121212",
-  surface: "#212121",
-  surfaceHover: "#282828",
-  surfaceActive: "#333333",
-  border: "#282828",
-  textPrimary: "#FFFFFF",
-  textSecondary: "#B3B3B3",
-  textTertiary: "#808080",
+  canvas: "#0F0F10",
+  surface: "#1A1A1C",
+  surfaceHover: "#232326",
+  surfaceActive: "#2C2C30",
+  border: "#2C2C30",
+  textPrimary: "#F4F4F5",
+  textSecondary: "#A1A1AA",
+  textTertiary: "#71717A",
   textPlaceholder: "#535353",
   dataIncome: "#1DB954",
   dataExpense: "#E51332",
@@ -38,18 +38,18 @@ type ModeTokens = { [K in keyof typeof LUMINA_TOKENS]: string };
 /** Lumina design tokens — light mode. Les couleurs financières + accent sont inchangées. */
 const LUMINA_LIGHT_TOKENS: ModeTokens = {
   ...LUMINA_TOKENS,
-  canvas: "#F5F6F8",
+  canvas: "#F7F7F8",
   surface: "#FFFFFF",
   surfaceHover: "#EEF0F2",
   surfaceActive: "#E4E6E9",
-  border: "#E3E5E8",
-  textPrimary: "#1A1A1A",
-  textSecondary: "#555A60",
+  border: "#E4E4E7",
+  textPrimary: "#18181B",
+  textSecondary: "#52525B",
   textTertiary: "#8A8F96",
   textPlaceholder: "#9AA0A8",
 };
 
-const MODE_TOKENS: Record<ThemeMode, ModeTokens> = {
+const MODE_TOKENS: Record<"dark" | "light", ModeTokens> = {
   dark: LUMINA_TOKENS,
   light: LUMINA_LIGHT_TOKENS,
 };

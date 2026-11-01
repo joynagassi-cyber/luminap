@@ -501,7 +501,7 @@ function GroupTreeDiagram() {
         fontSize="12"
         fontWeight="700"
       >
-        Église MFE-JC
+        Église MF
       </text>
       <text x="200" y="44" textAnchor="middle" fill="var(--text-tertiary)" fontSize="9">
         Caisse principale (main)

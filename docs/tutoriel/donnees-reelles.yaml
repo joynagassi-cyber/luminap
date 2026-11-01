@@ -1,0 +1,61 @@
+# ============================================================================
+# Source unique des données « réelles » du tutoriel in-app et du guide PDF.
+# Addendum 2, volet A. Toute capture d'écran, annotation ou texte du guide
+# doit s'appuyer sur ces valeurs — JAMAIS sur des données de test/démo.
+#
+# Vérifié par src/lib/__tests__/tutorial-real-data.test.ts :
+#   - le nom, le sigle et le type de l'organisation sont exacts ;
+#   - aucun motif interdit (E2E, demo, default-org, jean@example.com, E2E Org,
+#     MFE-JC) n'apparaît, ni ici, ni dans les sources du tutoriel / du PDF.
+#
+# NB : ce fichier est la référence de CONTENU. Il ne contient aucune donnée
+# personnelle réelle ; les personnes ci-dessous sont des exemples plausibles
+# destinés à illustrer l'usage de l'application.
+# ============================================================================
+
+organisation:
+  nom: "Église MF"
+  sigle: "MF"
+  type: "Église"
+  ville: "Douala"
+  pays: "Cameroun"
+  devise: "FCFA"
+  fuseau: "Africa/Douala"
+
+# Groupes / départements (le tutoriel illustre la ventilation des caisses).
+groupes:
+  - nom: "Diacres"
+  - nom: "Jeunesse"
+  - nom: "Dames"
+
+# Caisses (une caisse principale + une par groupe).
+caisses:
+  - nom: "Caisse principale"
+    type: "principale"
+  - nom: "Caisse Jeunesse"
+    type: "groupe"
+
+# Exemples de membres et de rôles (pas de données personnelles réelles).
+membres:
+  - nom: "Paul Mbarga"
+    role: "Trésorier"
+  - nom: "Esther Ngo Bell"
+    role: "Présidente"
+  - nom: "Samuel Fotso"
+    role: "Secrétaire"
+
+# Budgets de démonstration illustrant la saisie et le suivi.
+budgets:
+  - nom: "Construction du temple"
+    exercice: 2026
+  - nom: "Action sociale"
+    exercice: 2026
+
+# ----------------------------------------------------------------------------
+# Contrôle de publication : le guide PDF n'est diffusé qu'après validation
+# explicite du propriétaire. Tant que `publiable` vaut `false`, la chaîne
+# docs:visual ne doit pas produire de document destiné au public.
+# ----------------------------------------------------------------------------
+publication:
+  publiable: false
+  motif: "En attente de validation du propriétaire"

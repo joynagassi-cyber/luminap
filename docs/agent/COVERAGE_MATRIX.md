@@ -147,3 +147,12 @@ le contexte d'organisation (ordre critique : sinon `useOrgMembership` conclut
 |---|---|---|---|
 | 5 | Création d'organisation self-serve (compte neuf → org + grant + profil ADMIN) — R161 | `V: OrgSetup-selfserve.test.tsx` (4) + `V: mirror-new-org.test.ts` (3) + `C: self-serve-org.cy.ts` (1, cloud réel) | **couvert** (non-vacuité : retirer `bootstrapOrganization`/le miroir ⇒ échec) |
 | 2 | Échappatoire de l'écran « Organisation non rejointe » (créer/rejoindre) — R120 | `V: needs-membership-escape.test.tsx` (5) | **couvert** |
+
+## Addendum 2 — design de référence (jetons maquette dashboard-MF, 2026-11-01)
+
+| # | Feature / correctif | Test(s) | Statut |
+|---|---|---|---|
+| 10 | Jetons de la maquette (B1) : `--bg/--text/--text-muted/--brand-fill` (alias), `--in/--out/--warn`, `--divider`, `--surface-nav`, `--brand-text` — présence + contrastes dans les deux modes | `V: design-tokens-addendum.test.ts` (10, non-vacuité : retouche de palette ⇒ échec) + `V: design-tokens-drift.test.ts` + `V: design-tokens-contrast.test.ts` | **couvert** |
+| 10 | Mode d'affichage « système » par défaut (B2) + Inter embarquée (offline) | `V: theme-mode.test.ts` (système/clair/sombre, `resolveThemeMode`) + `V: boot-storage-resilience.test.ts` | **couvert** |
+| 10 | Dashboard de référence : argent en `--in/--out`, section « À traiter » | `V: r52l-dashboard-loading.test.tsx` + `V: a11y-screens.test.tsx` | **couvert** |
+| 13 | Tutoriel / PDF : **aucune donnée de test** (E2E, demo, default-org, jean@example.com, E2E Org, MFE-JC) ; référence `docs/tutoriel/donnees-reelles.yaml` (église « MF ») | `V: tutorial-real-data.test.ts` (6, non-vacuité : réintroduire « Église MFE-JC » ou réimprimer `r["path"]` ⇒ échec) | **couvert** |

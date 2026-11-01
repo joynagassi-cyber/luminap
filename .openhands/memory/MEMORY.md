@@ -1085,3 +1085,22 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
 - **Token GitHub** : `$GITHUB_TOKEN` de l'env peut être **expiré (401)** ; le
   token embarqué dans `git remote get-url origin` sert alors à l'API REST.
 - **PDF tutoriel** : `docs/agent/GUIDE_ECRANS.pdf` (35 pages, 5,4 Mo).
+
+## Jetons/thème — addendum 2 maquette dashboard-MF (2026-11-01, PR #193)
+- **Vocabulaire maquette en ALIAS** dans `src/App.css` (fichier unique) :
+  `--bg`→`--canvas`, `--text`→`--text-primary`, `--text-muted`→`--text-secondary`,
+  `--brand-fill`→`--accent-primary` ; jetons mode-aware `--in/--out/--warn`(+`-bg`),
+  `--divider`, `--surface-nav`, `--brand-text`. Palette sombre #0F0F10/#1A1A1C/#2C2C30.
+- **PIÈGE** : `design-tokens-contrast.test.ts`/`drift.test.ts` extraient le bloc
+  clair par regex naïf `[data-theme="light"]\s*\{([^}]*)\}`. NE JAMAIS créer un
+  bloc `[data-theme="light"]` séparé (ex. `:root[data-theme="light"]{…}`) : ça
+  casse l'extraction → « token --text-primary manquant ». Mettre `color-scheme`
+  DANS le bloc de palette existant.
+- **Thème** : `ThemeMode="system"|"dark"|"light"`, défaut **system**,
+  `resolveThemeMode` (matchMedia). Inter embarquée `@fontsource/inter` (offline).
+- **Garde données réelles** : `docs/tutoriel/donnees-reelles.yaml` (église « MF »)
+  + `src/lib/__tests__/tutorial-real-data.test.ts` — bannit `\bE2E\b`, `\bdemo\b`,
+  `d[ée]mo`, `default-org`, `jean@example.com`, `E2E Org`, `MFE-JC`. Scanner les
+  **valeurs parsées** (pas le texte brut : les commentaires documentant les motifs
+  interdits feraient échouer le test). `build.py` n'imprime plus `r["path"]`.
+- Dépendance dev ajoutée : `yaml` (pnpm).
