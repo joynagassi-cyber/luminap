@@ -2,6 +2,12 @@ out/
 results.json
 
 # ── Build / runtime ─────────────────────────────────────────────────────────
+# `node_modules/` (slash final) ne matche PAS un lien symbolique `node_modules`
+# (ni fichier). Un lien `node_modules` à chemin ABSOLU a été committé
+# (intégration PR #390) → `pnpm install` échouait sur CHAQUE runner CI avec
+# `ENOTDIR: not a directory, mkdir '.../node_modules'`. Les deux formes sont
+# désormais ignorées.
+node_modules
 node_modules/
 dist/
 test-results/
