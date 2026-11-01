@@ -28,6 +28,11 @@ const archived = {
   Event: [{ id: "e1", name: "Concert annulé" }],
 };
 
+// État mutable du chargement des documents (R52) : `documentsPending` doit
+// empêcher le verdict « Aucun document archivé » tant que la lecture n'a pas
+// abouti. Piloté par les tests R52 ci-dessous.
+const docsState = { loading: false, ready: true, documents: [] as unknown[] };
+
 vi.mock("@/capabilities/lifecycle", () => ({
   lifecycle: { restore: (...args: unknown[]) => restore(...args) },
 }));
@@ -42,7 +47,11 @@ vi.mock("@/capabilities/resource", () => ({
 }));
 
 vi.mock("@/lib/dataLayer", () => ({
-  useDocuments: () => ({ data: [], ready: true }),
+  useDocuments: () => ({
+    data: docsState.documents,
+    isLoading: docsState.loading,
+  }),
+  isPowerSyncReadyNow: () => docsState.ready,
   addDocumentPS: vi.fn(),
   updateDocumentPS: vi.fn(),
 }));
@@ -77,6 +86,9 @@ import Archives from "@/pages/Archives";
 beforeEach(() => {
   restore.mockClear();
   navigate.mockClear();
+  docsState.loading = false;
+  docsState.ready = true;
+  docsState.documents = [];
 });
 afterEach(() => cleanup());
 
@@ -112,5 +124,34 @@ describe("PR3 — page /archives (corbeille)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Filtrer par Membres" }));
     expect(screen.queryByText("Chorale")).not.toBeInTheDocument();
     expect(screen.getByText("Anne Dupont")).toBeInTheDocument();
+  });
+});
+
+/**
+ * R52 — « Aucun document archivé » n'est exact qu'une fois la lecture terminée.
+ * `useDocuments()` renvoie `isLoading: true` (et la réplique n'est pas prête)
+ * tant que PowerSync n'a pas répondu : afficher le verdict vide pendant ce
+ * temps fait croire à une perte de documents.
+ */
+describe("R52 — /archives : verdict vide des documents seulement après lecture", () => {
+  it("n'annonce pas « Aucun document archivé » pendant la lecture", async () => {
+    docsState.loading = true;
+    docsState.ready = false;
+    docsState.documents = [];
+    renderPage();
+    await screen.findByText("Chorale");
+    fireEvent.click(screen.getByRole("button", { name: "Filtrer par Documents" }));
+    expect(screen.queryByText("Aucun document archivé")).not.toBeInTheDocument();
+    expect(screen.getByText("Chargement des documents…")).toBeInTheDocument();
+  });
+
+  it("annonce le vide une fois la lecture terminée (réellement aucun document)", async () => {
+    docsState.loading = false;
+    docsState.ready = true;
+    docsState.documents = [];
+    renderPage();
+    await screen.findByText("Chorale");
+    fireEvent.click(screen.getByRole("button", { name: "Filtrer par Documents" }));
+    expect(await screen.findByText("Aucun document archivé")).toBeInTheDocument();
   });
 });
