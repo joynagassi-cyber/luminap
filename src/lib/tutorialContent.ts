@@ -475,6 +475,7 @@ const SECTIONS: SectionData[] = [
       "La sauvegarde se trouve dans Paramètres → onglet « Gérer » → section « Sauvegarde des données ». Elle produit une copie complète de l'organisation active, directement sur votre appareil.",
       "Le bouton « Exporter mes données (JSON) » télécharge un fichier auto-descriptif : il indique le format (lumina-backup), la version, l'organisation, la date et le nombre d'éléments de chaque entité, puis toutes les données (transactions, groupes, membres, événements, caisses, comptes, trace, notifications, documents, formulaires, champs personnalisés).",
       "Le bouton « Exporter (CSV) » produit un tableau unique (une ligne par élément, colonne « entity ») ouvrable dans un tableur. Les cellules sont échappées : une valeur commençant par « = », « + », « - » ou « @ » est neutralisée, elle ne peut donc pas s'exécuter comme formule.",
+      "Le bouton « Choisir un fichier JSON » restaure une sauvegarde exportée depuis la même organisation : le fichier est analysé, un résumé du plan (créations, mises à jour, conflits) s'affiche AVANT toute écriture, puis vous confirmez. Une sauvegarde appartenant à une autre organisation est refusée ; la restauration est tracée dans le journal d'audit.",
       "Tant que les données locales n'ont pas été lues, la section affiche « Chargement des données… » et non un compte à zéro : vous ne voyez jamais un chiffre faux pendant la synchronisation.",
     ],
     tips: [
@@ -913,7 +914,7 @@ export const HELP_FAQ: FaqEntry[] = [
   },
   {
     q: "Comment sauvegarder mes données ?",
-    a: "Ouvrez Paramètres → Sauvegarde des données. Vous pouvez exporter en JSON (restauration complète) ou en CSV (tableur). Une erreur d'export est signalée par un message.",
+    a: "Ouvrez Paramètres → Sauvegarde des données. Vous pouvez exporter en JSON (sauvegarde complète) ou en CSV (tableur), et restaurer un fichier JSON exporté depuis la même organisation (un résumé du plan s'affiche avant confirmation). Une erreur d'export est signalée par un message.",
   },
   {
     q: "Une transaction est en attente d'approbation, que se passe-t-il ?",
