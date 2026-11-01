@@ -9,6 +9,11 @@
 > Ce fichier est le pendant « contrat » de `docs/agent/PROPOSITIONS.md`
 > (document de session, P1→P41). Les propositions de session restent la
 > référence détaillée ; ici on tient la liste contractuelle et sa catégorie.
+>
+> **Analyse d'écart experte** : `docs/agent/PROPOSALS_GAP_ANALYSIS.md` — vérifie
+> dans le code l'état réel et identifie les features **partielles** (audit
+> incomplet, sauvegarde sans import, corbeille sans purge), traitées par les
+> PR dédiées (agents G/H/I).
 
 ## Robustesse / intégrité — implémentables pendant l'absence
 
