@@ -130,7 +130,7 @@ export default function MembresEnAvance() {
                         className="text-sm font-bold"
                         style={{ color: "var(--data-planified)" }}
                       >
-                        {formatCurrencyCompact(montant)} F
+                        {formatCurrencyCompact(montant)}
                       </p>
                       <p className="text-text-tertiary text-xs">en avance</p>
                     </div>

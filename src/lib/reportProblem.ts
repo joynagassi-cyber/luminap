@@ -134,6 +134,13 @@ export function buildProblemReport(
   identities: readonly string[] = [],
 ): ProblemReport {
   const health = buildHealthReport(inputs, now);
+  // L'identifiant technique d'organisation est une PII « par valeur » (pas de
+  // forme détectable) : `redact` ne le voit pas. Le rapport ne doit JAMAIS le
+  // contenir (contrat PR5), or la note libre / un message d'erreur peut le
+  // citer. On l'ajoute donc aux identités à masquer par valeur.
+  const scopedIdentities = inputs.orgId
+    ? [...identities, inputs.orgId]
+    : identities;
   return {
     kind: "lumina-problem-report",
     generatedAt: now,
@@ -145,8 +152,8 @@ export function buildProblemReport(
     failedChecks: health.checks
       .filter((c) => c.level !== "ok")
       .map((c) => c.id),
-    errors: recentErrors.map((e) => toReportError(e, identities)),
-    note: normalizeText(scrubIdentities(redact(note), identities), {
+    errors: recentErrors.map((e) => toReportError(e, scopedIdentities)),
+    note: normalizeText(scrubIdentities(redact(note), scopedIdentities), {
       maxLength: MAX_NOTE_LENGTH,
       collapseWhitespace: false,
     }),
@@ -214,12 +221,9 @@ function persistProblemReport(report: ProblemReport): boolean {
 /**
  * Identités de l'utilisateur courant à masquer dans le rapport : son e-mail et
  * son nom (prénom/nom). Ce sont des valeurs SANS forme détectable — `redact` ne
- * peut pas les reconnaître, il faut donc les retirer par VALEUR. On n'énumère
- * volontairement QUE l'utilisateur courant (lecture locale, synchrone) : les
- * noms des AUTRES membres ne sont pas accessibles sans lecture base, qui
- * romprait la pureté/le caractère synchrone de l'envoi.
+ * peut pas les reconnaître, il faut donc les retirer par VALEUR.
  */
-function currentUserIdentities(): string[] {
+export function currentUserIdentities(): string[] {
   try {
     const p = authService.getState().profile;
     if (!p) return [];
@@ -227,6 +231,30 @@ function currentUserIdentities(): string[] {
   } catch {
     return [];
   }
+}
+
+/**
+ * Identités des membres de l'organisation (prénom / nom / nom complet) à
+ * masquer par VALEUR. Un nom propre n'a pas de forme détectable par `redact` :
+ * un message d'erreur ou la note libre peut citer un membre (ex. « échec pour
+ * Jean-Baptiste Kouassi ») → sans ce retrait, le nom part vers Sentry et le
+ * journal local. Tolérant sur la casse des clés (PowerSync renvoie du
+ * snake_case, le store local du camelCase) et ignore les valeurs trop courtes
+ * (bruit). Contrepartie assumée : masquer aussi un prénom isole les homonymes
+ * d'un mot courant ; la sécurité PII prime sur le confort du rapport.
+ */
+export function memberIdentities(members: readonly unknown[]): string[] {
+  const out: string[] = [];
+  for (const raw of members ?? []) {
+    if (!raw || typeof raw !== "object") continue;
+    const m = raw as Record<string, unknown>;
+    const first = String(m.first_name ?? m.firstName ?? "").trim();
+    const last = String(m.last_name ?? m.lastName ?? "").trim();
+    for (const value of [`${first} ${last}`.trim(), first, last]) {
+      if (value.length >= 2) out.push(value);
+    }
+  }
+  return out;
 }
 
 /**
@@ -249,8 +277,16 @@ export function sendProblemReport(
   note = "",
   now: string = new Date().toISOString(),
   identities: readonly string[] = currentUserIdentities(),
+  members: readonly unknown[] = [],
 ): SendProblemReportResult {
-  const report = buildProblemReport(inputs, recentErrors, now, note, identities);
+  const scopedIdentities = [...identities, ...memberIdentities(members)];
+  const report = buildProblemReport(
+    inputs,
+    recentErrors,
+    now,
+    note,
+    scopedIdentities,
+  );
   const savedLocally = persistProblemReport(report);
 
   let sentToSentry = false;
@@ -291,8 +327,16 @@ export function sendProblemReportToIssues(
   note = "",
   now: string = new Date().toISOString(),
   identities: readonly string[] = currentUserIdentities(),
+  members: readonly unknown[] = [],
 ): SendProblemReportResult {
-  const result = sendProblemReport(inputs, recentErrors, note, now, identities);
+  const result = sendProblemReport(
+    inputs,
+    recentErrors,
+    note,
+    now,
+    identities,
+    members,
+  );
   const summary = note.trim()
     ? `Problème signalé : ${note.trim()}`
     : `Problème signalé (santé : ${result.report.overall})`;

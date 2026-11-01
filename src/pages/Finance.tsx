@@ -44,7 +44,12 @@ export default function Finance() {
   // M6 — stable pour les enfants memo (TransactionCard)
   const openTransaction = useCallback((id: string) => navigate(`/transaction/${id}`), [navigate]);
   const location = useLocation();
-  const preselectedCaisse = location.state?.caisseId;
+  // `caisseId` en query param (repli `location.state`) : le routeur Ionic ne
+  // préserve pas le state, donc « Tout voir » depuis un groupe ouvrait la liste
+  // sans filtre de caisse.
+  const preselectedCaisse =
+    new URLSearchParams(location.search).get("caisseId") ||
+    location.state?.caisseId;
 
   const { data: categories } = useCategories();
   const { data: accounts } = useAccounts();

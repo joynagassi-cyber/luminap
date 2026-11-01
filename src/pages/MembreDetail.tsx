@@ -304,7 +304,7 @@ export default function MembreDetail() {
                       </div>
                       <div className="text-right flex-shrink-0">
                         <p className="text-text-primary text-sm font-bold">
-                          {formatCurrencyCompact(cotisation.montantPaye)} F
+                          {formatCurrencyCompact(cotisation.montantPaye)}
                         </p>
                         {cotisation.montantPaye >
                           cotisation.montantObligatoire && (

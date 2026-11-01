@@ -220,7 +220,7 @@ export default function Groups() {
                 </h3>
                 <div className="space-y-3">
                   <IonItem lines="none" className="bg-card rounded-xl">
-                    <IonLabel position="floating" className="text-sm text-text-secondary">Nom du groupe</IonLabel>
+                    <IonLabel position="floating" className="text-sm text-text-secondary">Nom du groupe *</IonLabel>
                     <IonInput
                       type="text"
                       value={createName}
@@ -384,7 +384,7 @@ export default function Groups() {
                   </h3>
                   <div className="space-y-3">
                     <IonItem lines="none" className="bg-card rounded-xl">
-                      <IonLabel position="floating" className="text-sm text-text-secondary">Nom du groupe</IonLabel>
+                      <IonLabel position="floating" className="text-sm text-text-secondary">Nom du groupe *</IonLabel>
                       <IonInput
                         type="text"
                         value={editName}
@@ -392,7 +392,7 @@ export default function Groups() {
                       />
                     </IonItem>
                     <IonItem lines="none" className="bg-card rounded-xl">
-                      <IonLabel position="floating" className="text-sm text-text-secondary">Description</IonLabel>
+                      <IonLabel position="floating" className="text-sm text-text-secondary">Description (optionnel)</IonLabel>
                       <IonTextarea
                         value={editDesc}
                         onIonInput={(e: IonChangeCustomEvent<string>) => setEditDesc(e.detail.value ?? "")}

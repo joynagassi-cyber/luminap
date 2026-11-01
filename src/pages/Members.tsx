@@ -221,16 +221,16 @@ export default function MembersPage() {
                   <div className="grid grid-cols-2 gap-3">
                     {/* M4 */}
                     <IonInput
-                      aria-label="Prénom"
+                      aria-label="Prénom (obligatoire)"
                       autocomplete="given-name"
-                      placeholder="Prénom"
+                      placeholder="Prénom *"
                       value={firstName}
                       onIonInput={(e) => setFirstName((e.detail.value as string) ?? "")}
                     />
                     <IonInput
-                      aria-label="Nom"
+                      aria-label="Nom (obligatoire)"
                       autocomplete="family-name"
-                      placeholder="Nom"
+                      placeholder="Nom *"
                       value={lastName}
                       onIonInput={(e) => setLastName((e.detail.value as string) ?? "")}
                     />

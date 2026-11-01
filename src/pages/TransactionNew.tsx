@@ -25,6 +25,7 @@ import { useOnlineStatus } from "@/lib/dataLayer";
 import { policy } from "@/capabilities/policy";
 import { notification } from "@/capabilities/notification";
 import { periodLockMessage } from "@/lib/periodLock";
+import { parseAmountToCents } from "@/lib/amountInput";
 import {
   IonPage,
   IonHeader,
@@ -53,7 +54,10 @@ export default function TransactionNew() {
     new URLSearchParams(location.search).get("type") ||
     (location.state as any)?.type ||
     "";
-  const preselectedEvent = (location.state as any)?.eventId || "";
+  const preselectedEvent =
+    new URLSearchParams(location.search).get("eventId") ||
+    (location.state as any)?.eventId ||
+    "";
 
   // PowerSync with fallback
   const { data: psCategories } = useCategories();
@@ -97,10 +101,10 @@ export default function TransactionNew() {
   const isOnline = useOnlineStatus();
 
   const validateAmount = (val: string): string => {
-    const num = parseFloat(val);
-    if (!val) return "";
-    if (isNaN(num) || num <= 0) return "Le montant doit être supérieur à 0";
-    if (num > 999999999) return "Montant maximum atteint";
+    if (!val.trim()) return "";
+    const cents = parseAmountToCents(val);
+    if (cents === null || cents <= 0) return "Le montant doit être supérieur à 0";
+    if (cents > 999999999 * 100) return "Montant maximum atteint";
     return "";
   };
 
@@ -120,19 +124,31 @@ export default function TransactionNew() {
   // `handleSubmit` refusait silencieusement l'enregistrement
   // (« Veuillez remplir tous les champs obligatoires »). On rattrape donc
   // l'arrivée asynchrone des catégories — sans écraser un choix explicite.
+  //
+  // Le choix explicite ne vaut que POUR LE TYPE courant : basculer Entrée↔Sortie
+  // change la liste des catégories, donc la catégorie sélectionnée n'existe plus
+  // et il faut reprendre la 1re du nouveau type (sinon on enregistre une
+  // transaction dont la catégorie n'appartient pas à son type).
+  const lastTypeRef = useRef(type);
   useEffect(() => {
-    if (categoryId) return;
-    const first = filteredCategories[0]?.id;
-    if (first) setCategoryId(first);
-  }, [categoryId, filteredCategories]);
+    const typeChanged = lastTypeRef.current !== type;
+    lastTypeRef.current = type;
+    if (typeChanged || !categoryId) {
+      setCategoryId(filteredCategories[0]?.id ?? "");
+    }
+  }, [type, categoryId, filteredCategories]);
 
   const submitTransaction = async () => {
     const trimmedAmount = amount.trim();
     const trimmedDesc = description.trim();
     const trimmedCatId = categoryId?.toString().trim();
 
-    if (!trimmedAmount || !trimmedDesc || !trimmedCatId) {
-      setError("Veuillez remplir tous les champs obligatoires");
+    // Montant et catégorie sont réellement obligatoires (colonnes NOT NULL) ;
+    // la DESCRIPTION ne l'est pas : un mouvement se décrit de lui-même par sa
+    // catégorie et son montant. On ne bloque donc plus l'enregistrement quand
+    // elle est vide (l'utilisateur devait inventer un texte pour « Dîme »).
+    if (!trimmedAmount || !trimmedCatId) {
+      setError("Veuillez remplir les champs obligatoires (montant, catégorie)");
       // Focus le premier champ manquant (montant) pour l'utilisateur clavier.
       if (!trimmedAmount) {
         setTimeout(() => amountRef.current?.focus?.(), 0);
@@ -142,8 +158,27 @@ export default function TransactionNew() {
     setError("");
     const sessionId = localStorage.getItem("lumina-session") || "local-user";
     const isExpense = type === "EXPENSE";
+    // Statut dérivé du type, calculé UNE fois. Avant, le code lisait `status`
+    // (identifiant libre) qui se résolvait en réalité sur `window.status`
+    // (toujours "") : la comparaison `status === "PENDING"` était donc toujours
+    // fausse et la notification « dépense en attente d'approbation » n'était
+    // JAMAIS envoyée aux trésoriers — échec silencieux.
+    const status = isExpense ? "PENDING" : "DRAFT";
 
-    const amountCents = Math.round(parseFloat(trimmedAmount) * 100);
+    // `transactions.description` est NOT NULL en base : une description vide
+    // doit donc être remplacée par un repli lisible (la catégorie choisie),
+    // jamais par NULL/''. On ne stocke pas un placeholder trompeur pour autant.
+    const safeDescription =
+      trimmedDesc ||
+      (categories.find((c: any) => c.id === trimmedCatId) as any)?.label_fr ||
+      (categories.find((c: any) => c.id === trimmedCatId) as any)?.label ||
+      "Transaction";
+
+    const amountCents = parseAmountToCents(trimmedAmount);
+    if (amountCents === null) {
+      setError("Veuillez entrer un montant valide");
+      return;
+    }
     const amountCheck = policy.transaction.validateAmount(amountCents);
     if (!amountCheck.ok) {
       setError(amountCheck.message ?? "Veuillez entrer un montant valide");
@@ -155,10 +190,10 @@ export default function TransactionNew() {
       txId = await addTransactionPS({
         org_id: getOrganizationId(),
         type,
-        amount: Math.round(parseFloat(trimmedAmount) * 100),
-        description,
+        amount: amountCents,
+        description: safeDescription,
         date,
-        status: isExpense ? "PENDING" : "DRAFT",
+        status,
         category_id: categoryId,
         org_unit_id: null,
         source_caisse_id: sourceCaisseId || "main",
@@ -215,7 +250,7 @@ export default function TransactionNew() {
     if (isExpense && status === "PENDING") {
       notification.sendNotification({
         title: "Transaction en attente d'approbation",
-        message: `Nouvelle dépense de ${trimmedAmount} FCFA — ${trimmedDesc}`,
+        message: `Nouvelle dépense de ${trimmedAmount} FCFA — ${safeDescription}`,
         targetRole: "TREASURIER",
         extraData: { transactionId: txId },
       }).catch(() => {});
@@ -288,10 +323,10 @@ export default function TransactionNew() {
                   : undefined
               }
             >
-              <IonLabel position="floating">Montant (FCFA)</IonLabel>
+              <IonLabel position="floating">Montant (FCFA) *</IonLabel>
               <IonInput
                 ref={amountRef}
-                type="number"
+                type="text"
                 inputMode="decimal"
                 aria-label="Montant en francs CFA"
                 aria-invalid={!!fieldErrors.amount}
@@ -314,7 +349,7 @@ export default function TransactionNew() {
 
             {/* Description */}
             <IonItem lines="none" className="mb-5 bg-card rounded-xl">
-              <IonLabel position="floating">Description</IonLabel>
+              <IonLabel position="floating">Description (optionnel)</IonLabel>
               <IonInput
                 type="text"
                 aria-label="Description"
@@ -339,7 +374,7 @@ export default function TransactionNew() {
 
             {/* Category */}
             <IonItem lines="none" className="mb-5 bg-card rounded-xl">
-              <IonLabel position="floating">Catégorie</IonLabel>
+              <IonLabel position="floating">Catégorie *</IonLabel>
               <IonSelect
                 aria-label="Catégorie"
                 value={categoryId}

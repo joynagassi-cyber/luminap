@@ -28,6 +28,7 @@ import {
 import { policy } from "@/capabilities/policy";
 import { getOrganizationId } from "@/lib/orgContext";
 import { formatCurrencyCompact, formatDate } from "@/lib/utils";
+import { parseAmountToCents } from "@/lib/amountInput";
 import { Plus, Check, Clock, X, Coins } from "lucide-react";
 import { useKeyboardAvoidance } from "@/hooks/useKeyboardAvoidance";
 import { ListSkeleton } from "@/components/Skeleton";
@@ -111,13 +112,12 @@ export default function GroupCotisation() {
   const handleCreateSession = async () => {
     setFormError(null);
     setBusy(true);
-    const fcfa = parseFloat(sessionMontant);
-    if (!Number.isFinite(fcfa) || fcfa <= 0) {
+    const montantCents = parseAmountToCents(sessionMontant);
+    if (montantCents === null || montantCents <= 0) {
       setFormError("Le montant de cotisation est requis (en FCFA).");
       setBusy(false);
       return;
     }
-    const montantCents = Math.round(fcfa * 100);
     const amountCheck = policy.cotisation.validateAmount(montantCents);
     if (!amountCheck.ok) {
       setFormError(amountCheck.message ?? "Montant invalide");
@@ -347,13 +347,13 @@ export default function GroupCotisation() {
                   <div>
                     <p className="text-text-tertiary">Collecté</p>
                     <p className="text-income font-bold text-sm">
-                      {formatCurrencyCompact(stats.totalCollecte)} F
+                      {formatCurrencyCompact(stats.totalCollecte)}
                     </p>
                   </div>
                   <div>
                     <p className="text-text-tertiary">Attendu</p>
                     <p className="text-text-primary font-bold text-sm">
-                      {formatCurrencyCompact(stats.attendu)} F
+                      {formatCurrencyCompact(stats.attendu)}
                     </p>
                   </div>
                   <div>
@@ -514,7 +514,8 @@ export default function GroupCotisation() {
                     Montant obligatoire (FCFA)
                   </IonLabel>
                   <IonInput
-                    type="number"
+                    type="text"
+                    inputMode="decimal"
                     value={sessionMontant}
                     onIonInput={(e: IonChangeCustomEvent<string>) =>
                       setSessionMontant(e.detail.value ?? "")

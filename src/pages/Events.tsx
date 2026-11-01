@@ -206,14 +206,14 @@ export default function Events() {
                                 style={{ color: "var(--in)" }}
                               >
                                 <ArrowUp className="w-3 h-3" /> +
-                                {formatCurrencyCompact(income)} F
+                                {formatCurrencyCompact(income)}
                               </span>
                               <span
                                 className="flex items-center gap-1"
                                 style={{ color: "var(--out)" }}
                               >
                                 <ArrowDown className="w-3 h-3" /> -
-                                {formatCurrencyCompact(expense)} F
+                                {formatCurrencyCompact(expense)}
                               </span>
                             </div>
                           )}

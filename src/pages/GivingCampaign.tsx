@@ -15,6 +15,7 @@ import { campaignProgress, giving } from "@/capabilities/giving";
 import { notification } from "@/capabilities/notification";
 import { useKeyboardAvoidance } from "@/hooks/useKeyboardAvoidance";
 import { formatCurrencyFull } from "@/lib/utils";
+import { parseAmountToCents } from "@/lib/amountInput";
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
 import { Plus, Link2, Trash2, Handshake, Receipt, X, Check } from "lucide-react";
@@ -118,7 +119,7 @@ export default function GivingCampaign() {
       await addPledgePS({
         campaign_id: campaign.id,
         donor_id: pledgeDonor,
-        pledged_amount_cents: Math.round((Number(pledgeAmount.replace(/[^\d]/g, "")) || 0) * 100),
+        pledged_amount_cents: parseAmountToCents(pledgeAmount) ?? 0,
         schedule: pledgeSchedule,
         amount_per_period_cents: 0,
         start_date: null,
@@ -245,7 +246,7 @@ export default function GivingCampaign() {
                   </IonSelect>
                   <div className="grid grid-cols-2 gap-2">
                     {/* M4 */}
-                    <IonInput type="number" value={pledgeAmount} onIonInput={(e) => setPledgeAmount((e.detail.value as string) ?? "")} placeholder="Montant (FCFA)" aria-label="Montant" data-testid="pledge-amount" />
+                    <IonInput type="text" inputMode="decimal" value={pledgeAmount} onIonInput={(e) => setPledgeAmount((e.detail.value as string) ?? "")} placeholder="Montant (FCFA)" aria-label="Montant" data-testid="pledge-amount" />
                     <IonSelect value={pledgeSchedule} onIonChange={(e) => setPledgeSchedule(e.detail.value)} className="px-3 py-2.5 rounded-lg text-sm outline-none" style={inputStyle} aria-label="Fréquence">
                       <IonSelectOption value="ONCE">Une fois</IonSelectOption>
                       <IonSelectOption value="MONTHLY">Mensuel</IonSelectOption>

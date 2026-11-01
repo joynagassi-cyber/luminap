@@ -109,16 +109,16 @@ export function exportPDF(options: ExportOptions) {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
   doc.setTextColor(30, 30, 30);
-  doc.text(`Total entrées: ${formatCurrencyCompact(totalIncome)} FCFA`, 20, 18);
+  doc.text(`Total entrées: ${formatCurrencyCompact(totalIncome)}`, 20, 18);
   doc.setTextColor(229, 19, 50);
   doc.text(
-    `Total sorties: ${formatCurrencyCompact(totalExpense)} FCFA`,
+    `Total sorties: ${formatCurrencyCompact(totalExpense)}`,
     70,
     18,
   );
   doc.setTextColor(29, 185, 84);
   doc.text(
-    `Résultat: ${netResult >= 0 ? "+" : "-"}${formatCurrencyCompact(Math.abs(netResult))} FCFA`,
+    `Résultat: ${netResult >= 0 ? "+" : "-"}${formatCurrencyCompact(Math.abs(netResult))}`,
     120,
     18,
   );
@@ -479,17 +479,17 @@ function exportOrgReportPDF(payload: OrgReportPayload): Blob {
   doc.roundedRect(14, 38, pageWidth - 28, 16, 3, 3);
   doc.setFontSize(10);
   doc.setTextColor(29, 185, 84);
-  doc.text(`Entrées: ${formatCurrencyCompact(summary.totalIncome)} FCFA`, 20, 47);
+  doc.text(`Entrées: ${formatCurrencyCompact(summary.totalIncome)}`, 20, 47);
   doc.setTextColor(229, 19, 50);
   doc.text(
-    `Sorties: ${formatCurrencyCompact(summary.totalExpense)} FCFA`,
+    `Sorties: ${formatCurrencyCompact(summary.totalExpense)}`,
     75,
     47,
   );
   doc.setTextColor(30, 30, 30);
   doc.setFont("helvetica", "bold");
   doc.text(
-    `Résultat: ${summary.netResult >= 0 ? "+" : "-"}${formatCurrencyCompact(Math.abs(summary.netResult))} FCFA`,
+    `Résultat: ${summary.netResult >= 0 ? "+" : "-"}${formatCurrencyCompact(Math.abs(summary.netResult))}`,
     130,
     47,
   );
@@ -606,7 +606,7 @@ async function exportOrgReportDOCX(payload: OrgReportPayload): Promise<Blob> {
             text: `Généré le ${new Date().toLocaleDateString("fr-FR")}`,
           }),
           new Paragraph({
-            text: `Entrées : ${formatCurrencyCompact(summary.totalIncome)} FCFA · Sorties : ${formatCurrencyCompact(summary.totalExpense)} FCFA · Résultat : ${summary.netResult >= 0 ? "+" : "-"}${formatCurrencyCompact(Math.abs(summary.netResult))} FCFA`,
+            text: `Entrées : ${formatCurrencyCompact(summary.totalIncome)} · Sorties : ${formatCurrencyCompact(summary.totalExpense)} · Résultat : ${summary.netResult >= 0 ? "+" : "-"}${formatCurrencyCompact(Math.abs(summary.netResult))}`,
           }),
           new Paragraph({
             text: `Transactions : ${payload.transactions.length} · Événements : ${summary.eventCount} · Membres : ${summary.memberCount} · Documents joints : ${summary.documentCount}`,

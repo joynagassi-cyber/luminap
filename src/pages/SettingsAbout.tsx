@@ -92,7 +92,7 @@ export default function SettingsAbout() {
             </span>
           )}
           {status === "error" && (
-            <span style={{ color: "var(--data-danger, #ff5c5c)" }}>
+            <span style={{ color: "var(--data-alert)" }}>
               {updater.error}
             </span>
           )}

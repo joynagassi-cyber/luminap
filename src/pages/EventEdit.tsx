@@ -11,6 +11,7 @@ import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
 import { useKeyboardAvoidance } from "@/hooks/useKeyboardAvoidance";
 import { getOrganizationId } from "@/lib/orgContext";
+import { parseAmountToCents } from "@/lib/amountInput";
 import type { Event } from "@/types";
 import {
   IonPage,
@@ -121,8 +122,11 @@ export default function EventEdit() {
     if (!startDate) errors.startDate = "La date de début est requise";
     if (endDate && endDate < startDate)
       errors.endDate = "La date de fin doit être après le début";
-    const budgetNum = parseFloat(budget);
-    if (budgetNum < 0) errors.budget = "Le budget doit être positif";
+    if (budget.trim()) {
+      const budgetCents = parseAmountToCents(budget);
+      if (budgetCents === null || budgetCents < 0)
+        errors.budget = "Le budget doit être positif";
+    }
     setFieldErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -139,7 +143,7 @@ export default function EventEdit() {
         start_date: startDate,
         end_date: endDate || null,
         status,
-        budget: Math.round(parseFloat(budget) * 100),
+        budget: parseAmountToCents(budget) ?? 0,
       });
       navigate(`/event/${id}`);
     } catch (e: any) {
@@ -258,8 +262,8 @@ export default function EventEdit() {
               >
                 <IonLabel position="floating" className="text-sm text-text-secondary">Budget (FCFA)</IonLabel>
                 <IonInput
-                  type="number"
-                  inputMode="numeric"
+                  type="text"
+                  inputMode="decimal"
                   value={budget}
                   onIonInput={(e: IonChangeCustomEvent<string>) => setBudget(e.detail.value ?? "")}
                   placeholder="0"
