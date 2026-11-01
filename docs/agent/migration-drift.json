@@ -5,9 +5,9 @@
   "source_of_truth": "Base = source de verite (schema applique via editeur SQL / MCP, pas via `supabase db push`). Le tracker `supabase_migrations.schema_migrations` et les fichiers `supabase/migrations/` sont deux historiques disjoints.",
   "measured": {
     "applied_versions_in_tracker": 82,
-    "repo_timestamped_files": 77,
+    "repo_timestamped_files": 78,
     "repo_sequential_files": 63,
-    "repo_total_sql_files": 140,
+    "repo_total_sql_files": 141,
     "versions_in_common": 2,
     "common_versions": [
       "20261001000001",
@@ -16,7 +16,7 @@
     "applied_without_repo_file": 70,
     "repo_file_never_applied": 65,
     "drift_ratio": "2/82",
-    "repo_filenames_sha256": "822d87914a024276b3b7ebd1f2b7c3e45957c99a316cbccf58969d897de28547",
+    "repo_filenames_sha256": "3a5ac09e2815187986dd9d3a983057e29ba769beeff19681a0e8cbe2af4c254f",
     "repo_db_object_delta": {
       "measured": "2026-10-31",
       "method": "recoupement exhaustif depot <-> base (tables, fonctions, triggers, vues)",
@@ -67,5 +67,8 @@
   ],
   "notes_pr9_receipts": [
     "2 migrations ajoutees 20261031000008 (transaction_attachments : pieces justificatives PR9, table + RLS transaction:update + grants) et 20261031000009 (grants de replication PowerSync generiques pour les tables recentes : `permission denied for table org_settings` bloquait tout `powersync deploy`). Additives. Le sync config a ete redeploye (stream transaction_attachments). Tracker non re-mesure (inaccessible en CI)."
+  ],
+  "notes_reseed_categories": [
+    "1 migration ajoutee 20261101000001 (reseed idempotent des categories canoniques : `categories` etait a 0 en base live apres une purge manuelle -> toute ecriture financiere echouait en 23503 `transactions_category_id_fkey`, y compris la file d'upload PowerSync). ON CONFLICT DO NOTHING, additive/idempotente. Deja appliquee au projet live (9 lignes). Empreinte de noms re-mesuree : 78 horodatees / 141 total."
   ]
 }
