@@ -4,6 +4,48 @@ All notable changes to the Lumina Platform will be documented in this file.
 
 ---
 
+## [1.2.1] — 2026-11-01
+
+### Fixed
+- **Fuite de données personnelles dans le diagnostic de santé (PR4)** — le
+  bouton « Copier le diagnostic » de la page « État du système » recopiait
+  verbatim le message d'erreur brut ; il applique désormais `redact()`
+  (e-mail, JWT, clé API masqués). Preuve de non-vacuité : le test échoue sans
+  le `redact`.
+- **Fuite de données personnelles dans « Signaler un problème » (PR5)** — une
+  note libre contenant un nom propre ou un numéro de téléphone partait verbatim
+  vers Sentry et le journal local. `scrubIdentities()` retire désormais par
+  valeur l'e-mail, le prénom et le nom de l'utilisateur courant, dans la note
+  comme dans les messages d'erreur repris ; `redact()` masque aussi les numéros
+  français.
+- **Invariant « pas encore lu » ≠ « vide » sur `/archives` (R52)** — la
+  sous-liste « Documents archivés » affichait « Aucun document archivé » avant
+  la fin de la première lecture PowerSync. Garde de disponibilité rétablie.
+- **Garde de câblage RBAC (PR19)** — `route-state-wiring` vérifiait la présence
+  de la clé `hasPermission`, pas sa valeur : `hasPermission: undefined`
+  (fail-open silencieux) passait la garde et `tsc`. La garde détecte désormais
+  les clés câblées au littéral `undefined`.
+
+### Added
+- **Test direct de `useBackupData` (PR2)** — le hook portait deux invariants
+  (garde R52 `ready`, cloisonnement à l'organisation active) jamais vérifiés
+  (toujours mocké). Test ajouté ; non-vacuité prouvée par mutation.
+
+### Changed
+- **Vérification indépendante des filets de robustesse PR1–PR7 / PR19** — trois
+  revues croisées (journal d'audit + sauvegarde ; corbeille + santé ;
+  signalement + mise-à-jour-requise + kill switches + câblage de route) avec
+  preuve de non-vacuité par mutation pour chaque filet.
+
+### Fixed (E2E)
+- **Suite Cypress de nouveau verte** — fin de l'id d'organisation `org-e2e`
+  figé (résolution dynamique de l'org active, R161 self-serve), reseed
+  idempotent des catégories canoniques (intégrité FK), et flush déterministe
+  de la file d'upload PowerSync après création d'un formulaire (`forms-v2`).
+  10 specs passaient rouges sur `main`, désormais toutes vertes.
+
+---
+
 ## [1.2.0] — 2026-11-01
 
 ### Added
