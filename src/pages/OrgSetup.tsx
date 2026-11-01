@@ -1,23 +1,31 @@
 /**
  * OrgSetup — création d'organisation en 5 étapes (Apple/Google polish).
  *
- * 1. Logo de l'organisation (upload ou ignorer)
- * 2. Identité — nom complet + sigle
- * 3. Type d'organisation (Église, École, Entreprise, ONG, Institution)
- * 4. Modules à activer (Cotisations, Groupes, Événements, Caisses, etc.)
- * 5. Détails (adresse, téléphone, site web, description) + Thème de marque
+ * Flux corrigé (recommandation UX) :
+ *  1. Identité — nom complet + sigle
+ *  2. Logo — upload ou ignorer (après l'identité, effort moindre)
+ *  3. Type d'organisation — Église, École, Entreprise, ONG, Institution
+ *  4. Modules à activer — Cotisations, Groupes, Événements, Caisses…
+ *  5. Détails + Thème — adresse, téléphone, site, description, couleur
  *
- * Design Apple/Google : tokens CSS `var(--*)` uniquement, coins arrondis,
- * ombres subtiles, animations framer-motion, interface en français.
+ * Corrections appliquées :
+ *  - Dropzone à hauteur fixe (≈170 px) avec bon contraste de bordure
+ *  - Footer collant avec un seul bouton CTA (libellé dynamique)
+ *  - Stepper simplifié : « Étape X sur 5 » + nom + barre segmentée (20% par étape)
+ *  - Contraste WCAG AA : texte noir sur accent primaire (≈ 7:1)
+ *  - Sanitisation SVG (protection XSS) + redimensionnement canvas client
+ *  - Aperçu du logo avec Remplacer / Supprimer après sélection
+ *  - Retour haut à gauche bien visible
+ *
+ * Design : tokens CSS `var(--*)` uniquement, interface en français.
  */
 
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ChevronLeft,
   ChevronRight,
   Image as ImageIcon,
-  SkipForward,
   Building2,
   MapPin,
   Phone,
@@ -25,6 +33,7 @@ import {
   FileText,
   CheckCircle,
   ArrowRight,
+  X as XIcon,
   Church,
   School,
   Users,
@@ -38,7 +47,12 @@ import { IonPage, IonContent } from "@ionic/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { MotionCard } from "@/design/motion/MotionCard";
-import { LUMINA_THEMES, applyTheme, getThemeById, type ThemeId } from "@/ionic/themes";
+import {
+  LUMINA_THEMES,
+  applyTheme,
+  getThemeById,
+  type ThemeId,
+} from "@/ionic/themes";
 import ThemePicker from "@/components/ThemePicker";
 import {
   useAppConfig,
@@ -57,12 +71,12 @@ import {
 
 type Step = 1 | 2 | 3 | 4 | 5;
 
-const STEP_LABELS: Record<Step, string> = {
-  1: "Logo",
-  2: "Identité",
-  3: "Type",
-  4: "Modules",
-  5: "Détails",
+const STEP_INFO: Record<Step, { label: string; name: string }> = {
+  1: { label: "Identité", name: "Nom et sigle" },
+  2: { label: "Logo", name: "Logo de l'organisation" },
+  3: { label: "Type", name: "Type d'organisation" },
+  4: { label: "Modules", name: "Modules à activer" },
+  5: { label: "Détails", name: "Profil et thème" },
 };
 
 const SERVER_ORG_TYPE: Readonly<Record<OrgTypeChoice, string>> = {
@@ -76,12 +90,6 @@ const SERVER_ORG_TYPE: Readonly<Record<OrgTypeChoice, string>> = {
 
 const DEFAULT_ORG_TYPE: OrgTypeChoice = "Eglise";
 const DEFAULT_ROLE = "PASTEUR_PRINCIPAL";
-
-const STEP_VARIANTS = {
-  hidden: { opacity: 0, x: 20 },
-  visible: { opacity: 1, x: 0, transition: { duration: 0.4 } },
-  exit: { opacity: 0, x: -20, transition: { duration: 0.3 } },
-};
 
 const TEMPLATE_CHOICES: Array<{
   type: OrgTypeChoice;
@@ -148,6 +156,51 @@ const FEATURES: Array<{
   { key: "archives", label: "Archives & historique", icon: Archive },
 ];
 
+/** Sanitise un SVG en supprimant script et attributs d'événement (protection XSS). */
+function sanitizeSvg(svgText: string): string {
+  return svgText
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+    .replace(/\bon\w+=("[^"]*"|'[^']*'|[^>\s]+)/gi, "")
+    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, "");
+}
+
+/**
+ * Redimensionne une image côté client via canvas (max 512 px, WebP si supporté).
+ * Retourne une data URL. Best-effort : en cas d'échec, retourne l'original.
+ */
+function resizeImage(file: File, maxSize = 512): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.src = URL.createObjectURL(file);
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      let { width, height } = img;
+      if (width > height && width > maxSize) {
+        height = Math.round((height * maxSize) / width);
+        width = maxSize;
+      } else if (height > maxSize) {
+        width = Math.round((width * maxSize) / height);
+        height = maxSize;
+      }
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        resolve(img.src);
+        return;
+      }
+      ctx.drawImage(img, 0, 0, width, height);
+      try {
+        resolve(canvas.toDataURL("image/webp", 0.85));
+      } catch {
+        resolve(canvas.toDataURL("image/png", 0.85));
+      }
+      URL.revokeObjectURL(img.src);
+    };
+    img.onerror = () => resolve("");
+  });
+}
+
 export default function OrgSetup() {
   const navigate = useNavigate();
   const { config, updateConfig } = useAppConfig();
@@ -158,12 +211,13 @@ export default function OrgSetup() {
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
-  // ── Étape 1 : Logo ──
-  const [logoUrl, setLogoUrl] = useState("");
-
-  // ── Étape 2 : Identité ──
+  // ── Étape 1 : Identité ──
   const [name, setName] = useState(saved.org.name || config.churchName || "");
   const [sigle, setSigle] = useState(saved.org.sigle || "");
+
+  // ── Étape 2 : Logo ──
+  const [logoUrl, setLogoUrl] = useState("");
+  const [logoFile, setLogoFile] = useState<File | null>(null);
 
   // ── Étape 3 : Type ──
   const [type, setType] = useState<OrgTypeChoice | null>(
@@ -189,31 +243,10 @@ export default function OrgSetup() {
   );
 
   const chosen = TEMPLATE_CHOICES.find((t) => t.type === type) ?? null;
+  const stepInfo = STEP_INFO[step];
+  const progress = (step - 1) / 4;
+
   const canCreate = name.trim().length >= 2 && type !== null && role !== null;
-
-  const handleNext = () => {
-    if (step < 5) setStep((s) => (s + 1) as Step);
-  };
-
-  const handleBack = () => {
-    if (step > 1) setStep((s) => (s - 1) as Step);
-    else navigate(-1);
-  };
-
-  const handleSkipLogo = () => {
-    setLogoUrl("");
-    setStep(2);
-  };
-
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      setLogoUrl(reader.result as string);
-    };
-    reader.readAsDataURL(file);
-  };
 
   const pickType = (t: OrgTypeChoice) => {
     setType(t);
@@ -228,6 +261,58 @@ export default function OrgSetup() {
     setFeatures((f) => (f.includes(key) ? f.filter((k) => k !== key) : [...f, key]));
   };
 
+  // ── Navigation ──
+  const handleNext = () => {
+    if (step < 5) setStep((s) => (s + 1) as Step);
+  };
+
+  const handleBack = () => {
+    if (step > 1) setStep((s) => (s - 1) as Step);
+    else navigate(-1);
+  };
+
+  // ── Logo ──
+  const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!/^image\/(jpeg|png|svg\+xml|webp)$/i.test(file.type)) {
+      setCreateError("Format non supporté. Utilisez PNG, JPG, SVG ou WebP.");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setCreateError("Le fichier dépasse 2 Mo. Choisissez une image plus légère.");
+      return;
+    }
+
+    let dataUrl: string;
+    if (file.type === "image/svg+xml") {
+      const text = await file.text();
+      const safe = sanitizeSvg(text);
+      const blob = new Blob([safe], { type: "image/svg+xml" });
+      dataUrl = URL.createObjectURL(blob);
+    } else {
+      dataUrl = await resizeImage(file);
+    }
+
+    setLogoFile(file);
+    setLogoUrl(dataUrl);
+    setCreateError(null);
+  };
+
+  const handleReplaceLogo = () => {
+    document.getElementById("logo-input")?.click();
+  };
+
+  const handleRemoveLogo = () => {
+    setLogoUrl("");
+    setLogoFile(null);
+    const input = document.getElementById("logo-input") as HTMLInputElement | null;
+    if (input) input.value = "";
+  };
+
+  const hasLogo = logoUrl.length > 0;
+
+  // ── Création ──
   const handleCreate = async () => {
     if (!canCreate || !chosen) return;
     setCreating(true);
@@ -304,7 +389,11 @@ export default function OrgSetup() {
     }
   };
 
-  const progress = (step - 1) / 5;
+  const CARD_VARIANTS = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
+    exit: { opacity: 0, y: -20, transition: { duration: 0.3 } },
+  };
 
   return (
     <IonPage>
@@ -319,185 +408,68 @@ export default function OrgSetup() {
             />
             <button
               onClick={handleBack}
-              className="text-text-tertiary text-sm font-medium"
+              className="text-text-primary font-semibold text-sm"
+              aria-label="Retour"
             >
-              {step > 1 ? "Précédent" : "Annuler"}
+              <ChevronLeft className="w-4 h-4 mr-1" /> Retour
             </button>
           </div>
 
-          {/* ── Stepper ── */}
+          {/* ── Stepper simplifié ── */}
           <div className="px-6 mb-8">
-            {/* Barre de progression avec gradient subtil (orange actif) */}
-            <div className="relative mt-8 mb-6 h-2 bg-surface rounded-full overflow-hidden border border-border/50">
-              <div className="absolute top-0 left-0 h-full rounded-full transition-all duration-500 ease-out" style={{ width: `${progress * 100}%` }}>
-                <div className="absolute inset-0 rounded-full" style={{
-                  background: "linear-gradient(90deg, var(--accent-primary) 0%, color-mix(in srgb, var(--accent-primary) 70%, white) 100%)",
-                  opacity: 0.9,
-                }} />
-                <div className="absolute inset-0 rounded-full overflow-hidden" style={{ maskImage: "linear-gradient(to right, transparent 0%, black 25%, black 75%, transparent 100%)", maskSize: "200% 100%", maskPosition: "0 0" }}>
-                  <div className="absolute inset-0 rounded-full animate-[shimmer_2s_infinite]" style={{
-                    background: "rgba(255,255,255,0.4)",
-                    transform: "translateX(-100%)",
-                  }} />
-                </div>
-              </div>
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-bold text-text-secondary uppercase tracking-wider">
+                Étape {step} sur 5
+              </span>
+              <span className="text-xs font-bold text-text-primary uppercase tracking-wider">
+                {stepInfo.label}
+              </span>
             </div>
-
-            {/* Cercles des étapes */}
-            <div className="flex items-center justify-between relative z-10">
-              {[1, 2, 3, 4, 5].map((n) => {
-                const active = step === n;
-                const completed = step > n;
-                return (
-                  <motion.div
-                    key={n}
-                    initial={{ opacity: 0, scale: 0.8, y: 10 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    transition={{ delay: n * 0.05 }}
-                    className="flex flex-col items-center gap-1.5 relative z-20"
-                  >
-                    <div
-                      className={`w-11 h-11 rounded-full flex items-center justify-center text-xs font-bold shadow-lg transition-all ${
-                        completed
-                          ? "bg-accent-primary text-on-accent border-3 border-accent-primary shadow-accent"
-                          : active
-                          ? "bg-accent-primary text-on-accent border-3 border-accent-primary shadow-[0_0_0_4px_color-mix(in_srgb_var(--accent-primary)_40%_transparent)]"
-                          : "bg-surface border-2 border-border text-text-tertiary shadow-sm hover:border-accent-primary/50"
-                      }`}
-                    >
-                      {completed ? (
-                        <CheckCircle className="w-5 h-5 text-on-accent" />
-                      ) : (
-                        <span className="font-bold">{n}</span>
-                      )}
-                    </div>
-                    <span className="text-[9px] font-semibold uppercase tracking-wider leading-none">
-                      {STEP_LABELS[n as Step]}
-                    </span>
-                  </motion.div>
-                );
-              })}
+            <div className="h-1.5 bg-surface rounded-full overflow-hidden border border-border/50">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${progress * 100}%` }}
+                transition={{ duration: 0.4 }}
+                className="h-full bg-accent-primary rounded-full"
+              />
             </div>
           </div>
 
           {/* ── Contenu des étapes ── */}
-          <div className="flex-1 px-6">
+          <div className="flex-1 px-6 pb-24">
             <AnimatePresence mode="wait">
               <motion.div
                 key={step}
-                initial={STEP_VARIANTS.hidden}
-                animate={STEP_VARIANTS.visible}
-                exit={STEP_VARIANTS.exit}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
                 className="max-w-md mx-auto"
               >
-                {/* ── ÉTAPE 1 : Logo ── */}
+                {/* ── ÉTAPE 1 : Identité ── */}
                 {step === 1 && (
                   <>
                     <motion.h1
-                      initial={{ opacity: 0, y: 10 }}
+                      initial={{ opacity: 0, y: 15 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="text-text-primary font-bold text-3xl leading-tight mb-2"
-                    >
-                      Logo de l’organisation
-                    </motion.h1>
-                    <motion.p
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.1 }}
-                      className="text-text-secondary text-sm leading-relaxed mb-8"
-                    >
-                      Ajoutez un logo pour personnaliser votre organisation. Vous
-                      pouvez aussi ignorer cette étape.
-                    </motion.p>
-
-                    <MotionCard variant="flat" className="p-0 mb-8 relative overflow-hidden">
-                      <div
-                        className="aspect-square bg-surface border-2 border-dashed border-border rounded-2xl flex flex-col items-center justify-center cursor-pointer group hover:border-accent-primary transition-colors"
-                        onClick={() => document.getElementById("logo-input")?.click()}
-                      >
-                        {logoUrl ? (
-                          <img
-                            src={logoUrl}
-                            alt="Logo"
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <>
-                            <ImageIcon className="w-12 h-12 text-text-tertiary mb-3" />
-                            <p className="text-sm font-medium text-text-primary">
-                              Ajouter un logo
-                            </p>
-                            <p className="text-xs text-text-tertiary">
-                              PNG, JPG ou SVG (max 2 Mo)
-                            </p>
-                          </>
-                        )}
-                        <input
-                          id="logo-input"
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={handleLogoChange}
-                        />
-                      </div>
-                      {logoUrl && (
-                        <button
-                          onClick={() => setLogoUrl("")}
-                          className="absolute top-3 right-3 bg-black/60 backdrop-blur text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-black/80 transition-colors"
-                          title="Supprimer le logo"
-                        >
-                          <SkipForward className="w-4 h-4" />
-                        </button>
-                      )}
-                    </MotionCard>
-
-                    <div className="flex flex-col sm:flex-row sm:justify-end gap-3">
-                      <button
-                        onClick={handleSkipLogo}
-                        className="w-full sm:w-auto py-3.5 rounded-xl font-medium text-sm transition-all active:scale-95"
-                        style={{
-                          backgroundColor: "var(--surface)",
-                          color: "var(--text-secondary)",
-                          border: "1px solid var(--border)",
-                        }}
-                      >
-                        Ignorer pour l’instant
-                      </button>
-                      <button
-                        onClick={handleNext}
-                        className="w-full sm:w-auto px-6 py-3.5 rounded-xl font-semibold text-sm text-on-accent transition-all active:scale-95 shadow-accent flex items-center justify-center gap-2"
-                        style={{ backgroundColor: "var(--accent-primary)" }}
-                      >
-                        Continuer <ChevronRight className="w-4 h-4 ml-2" />
-                      </button>
-                    </div>
-                  </>
-                )}
-
-                {/* ── ÉTAPE 2 : Identité ── */}
-                {step === 2 && (
-                  <>
-                    <motion.h1
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="text-text-primary font-bold text-3xl leading-tight mb-2"
+                      className="text-text-primary font-bold text-3xl leading-tight mb-4"
                     >
                       Identité de l’organisation
                     </motion.h1>
                     <motion.p
-                      initial={{ opacity: 0, y: 10 }}
+                      initial={{ opacity: 0, y: 15 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.1 }}
-                      className="text-text-secondary text-sm leading-relaxed mb-8"
+                      transition={{ delay: 0.08 }}
+                      className="text-text-secondary text-sm leading-relaxed mb-10"
                     >
                       Donnez un nom à votre organisation et un sigle court
                       affiché dans les menus.
                     </motion.p>
 
-                    <MotionCard variant="flat" className="p-6 mb-8">
-                      <div className="space-y-4">
+                    <MotionCard variant="flat" className="p-6 mb-10">
+                      <div className="space-y-5">
                         <div>
-                          <label className="block text-xs font-semibold uppercase tracking-wider text-text-secondary mb-2">
+                          <label className="block text-xs font-bold uppercase tracking-wider text-text-secondary mb-2">
                             Nom complet de l’organisation
                           </label>
                           <input
@@ -505,12 +477,12 @@ export default function OrgSetup() {
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             placeholder="Église MFE-JC Centrale"
-                            className="w-full text-sm text-text-primary bg-transparent border-b border-border focus:border-accent-primary focus:ring-0 outline-none placeholder:text-text-placeholder"
+                            className="w-full text-sm text-text-primary bg-transparent border-b-2 border-border focus:border-accent-primary focus:ring-0 outline-none placeholder:text-text-placeholder/40"
                             autoFocus
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-semibold uppercase tracking-wider text-text-secondary mb-2">
+                          <label className="block text-xs font-bold uppercase tracking-wider text-text-secondary mb-2">
                             Sigle
                           </label>
                           <p className="text-[10px] text-text-tertiary mb-1">
@@ -527,33 +499,102 @@ export default function OrgSetup() {
                               )
                             }
                             placeholder="MFE"
-                            className="w-full text-sm text-text-primary bg-transparent border-b border-border focus:border-accent-primary focus:ring-0 outline-none placeholder:text-text-placeholder"
+                            className="w-full text-sm text-text-primary bg-transparent border-b-2 border-border focus:border-accent-primary focus:ring-0 outline-none placeholder:text-text-placeholder/40"
                           />
                         </div>
                       </div>
                     </MotionCard>
+                  </>
+                )}
 
-                    <div className="flex justify-between">
-                      <button
-                        onClick={handleBack}
-                        className="py-3 rounded-xl font-medium text-sm transition-all active:scale-95"
-                        style={{
-                          backgroundColor: "var(--surface)",
-                          color: "var(--text-secondary)",
-                          border: "1px solid var(--border)",
+                {/* ── ÉTAPE 2 : Logo ── */}
+                {step === 2 && (
+                  <>
+                    <motion.h1
+                      initial={{ opacity: 0, y: 15 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="text-text-primary font-bold text-3xl leading-tight mb-4"
+                    >
+                      Logo de l’organisation
+                    </motion.h1>
+                    <motion.p
+                      initial={{ opacity: 0, y: 15 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.08 }}
+                      className="text-text-secondary text-sm leading-relaxed mb-10"
+                    >
+                      Ajoutez un logo pour personnaliser votre organisation.
+                      Il apparaîtra dans l’en-tête et sur les rapports.
+                      <br />
+                      Vos initiales seront utilisées si vous n’en ajoutez pas.
+                    </motion.p>
+
+                    <MotionCard variant="flat" className="p-0 overflow-hidden mb-10">
+                      {/* Dropzone à hauteur fixe */}
+                      <div
+                        className="relative w-full aspect-[16/9] min-h-[170px] max-h-[200px] bg-surface border-2 border-border rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all hover:border-accent-primary/50 focus-within:border-accent-primary"
+                        onClick={() => document.getElementById("logo-input")?.click()}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            document.getElementById("logo-input")?.click();
+                          }
                         }}
+                        aria-label={hasLogo ? "Modifier le logo" : "Ajouter un logo"}
                       >
-                        <ChevronLeft className="w-4 h-4 mr-2" /> Précédent
-                      </button>
-                      <button
-                        onClick={handleNext}
-                        disabled={name.trim().length < 2}
-                        className="px-6 py-3 rounded-xl font-semibold text-sm text-on-accent transition-all active:scale-95 disabled:opacity-40 shadow-accent"
-                        style={{ backgroundColor: "var(--accent-primary)" }}
-                      >
-                        Suivant <ChevronRight className="w-4 h-4 ml-2" />
-                      </button>
-                    </div>
+                        {hasLogo ? (
+                          <>
+                            <img
+                              src={logoUrl}
+                              alt="Aperçu du logo"
+                              className="w-full h-full object-cover rounded-xl"
+                            />
+                            <div className="absolute inset-0 bg-black/20 backdrop-blur-sm flex flex-col items-center justify-center rounded-xl">
+                              <ImageIcon className="w-8 h-8 text-white/60 mb-2" />
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleReplaceLogo();
+                                }}
+                                className="px-4 py-2 rounded-lg bg-white text-text-primary text-xs font-bold hover:bg-white/90 transition-colors"
+                              >
+                                Remplacer
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRemoveLogo();
+                                }}
+                                className="mt-2 px-4 py-2 rounded-lg bg-transparent border border-white/40 text-white text-xs font-semibold hover:bg-white/20 transition-colors"
+                              >
+                                Supprimer
+                              </button>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3" style={{ background: "color-mix(in srgb, var(--accent-primary) 15%, transparent)" }}>
+                              <ImageIcon className="w-6 h-6" style={{ color: "var(--accent-primary)" }} />
+                            </div>
+                            <p className="text-text-primary font-medium text-sm mb-1">
+                              Ajouter un logo
+                            </p>
+                            <p className="text-text-tertiary text-xs leading-relaxed text-center px-4">
+                              PNG, JPG, SVG ou WebP (max 2 Mo)
+                            </p>
+                            <input
+                              id="logo-input"
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={handleLogoChange}
+                            />
+                          </>
+                        )}
+                      </div>
+                    </MotionCard>
                   </>
                 )}
 
@@ -561,23 +602,23 @@ export default function OrgSetup() {
                 {step === 3 && (
                   <>
                     <motion.h1
-                      initial={{ opacity: 0, y: 10 }}
+                      initial={{ opacity: 0, y: 15 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="text-text-primary font-bold text-3xl leading-tight mb-2"
+                      className="text-text-primary font-bold text-3xl leading-tight mb-4"
                     >
                       Type d’organisation
                     </motion.h1>
                     <motion.p
-                      initial={{ opacity: 0, y: 10 }}
+                      initial={{ opacity: 0, y: 15 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.1 }}
-                      className="text-text-secondary text-sm leading-relaxed mb-8"
+                      transition={{ delay: 0.08 }}
+                      className="text-text-secondary text-sm leading-relaxed mb-10"
                     >
                       Choisissez le type qui correspond le mieux à votre
                       organisation. Cela détermine les modules et rôles par défaut.
                     </motion.p>
 
-                    <div className="space-y-3 mb-8">
+                    <div className="space-y-3 mb-10">
                       {TEMPLATE_CHOICES.map((t) => {
                         const active = type === t.type;
                         return (
@@ -591,6 +632,9 @@ export default function OrgSetup() {
                                 active
                                   ? "2px solid var(--accent-primary)"
                                   : "1px solid var(--surface-hover)",
+                              background: active
+                                ? "color-mix(in srgb, var(--accent-primary) 8%, transparent)"
+                                : "var(--surface)",
                             }}
                           >
                             <div
@@ -626,10 +670,9 @@ export default function OrgSetup() {
                       })}
                     </div>
 
-                    {/* Sélection du rôle après le type */}
                     {chosen && (
-                      <MotionCard variant="flat" className="p-6 mb-8">
-                        <p className="text-xs font-semibold uppercase tracking-wider text-text-secondary mb-3">
+                      <MotionCard variant="flat" className="p-6 mb-10">
+                        <p className="text-xs font-bold uppercase tracking-wider text-text-secondary mb-3">
                           Votre rôle
                         </p>
                         <div className="grid grid-cols-2 gap-3">
@@ -646,6 +689,9 @@ export default function OrgSetup() {
                                     ? "1.5px solid var(--accent-primary)"
                                     : "1px solid var(--surface-hover)",
                                   opacity: on ? 1 : 0.5,
+                                  background: on
+                                    ? "color-mix(in srgb, var(--accent-primary) 12%, transparent)"
+                                    : "var(--surface)",
                                 }}
                               >
                                 <p
@@ -664,52 +710,30 @@ export default function OrgSetup() {
                         </div>
                       </MotionCard>
                     )}
-
-                    <div className="flex justify-between">
-                      <button
-                        onClick={handleBack}
-                        className="py-3 rounded-xl font-medium text-sm transition-all active:scale-95"
-                        style={{
-                          backgroundColor: "var(--surface)",
-                          color: "var(--text-secondary)",
-                          border: "1px solid var(--border)",
-                        }}
-                      >
-                        <ChevronLeft className="w-4 h-4 mr-2" /> Précédent
-                      </button>
-                      <button
-                        onClick={handleNext}
-                        disabled={type === null || role === null}
-                        className="px-6 py-3 rounded-xl font-semibold text-sm text-on-accent transition-all active:scale-95 disabled:opacity-40 shadow-accent"
-                        style={{ backgroundColor: "var(--accent-primary)" }}
-                      >
-                        Suivant <ChevronRight className="w-4 h-4 ml-2" />
-                      </button>
-                    </div>
                   </>
                 )}
 
-                {/* ── ÉTAPE 4 : Modules / Features ── */}
+                {/* ── ÉTAPE 4 : Modules ── */}
                 {step === 4 && (
                   <>
                     <motion.h1
-                      initial={{ opacity: 0, y: 10 }}
+                      initial={{ opacity: 0, y: 15 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="text-text-primary font-bold text-3xl leading-tight mb-2"
+                      className="text-text-primary font-bold text-3xl leading-tight mb-4"
                     >
                       Modules à activer
                     </motion.h1>
                     <motion.p
-                      initial={{ opacity: 0, y: 10 }}
+                      initial={{ opacity: 0, y: 15 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.1 }}
-                      className="text-text-secondary text-sm leading-relaxed mb-8"
+                      transition={{ delay: 0.08 }}
+                      className="text-text-secondary text-sm leading-relaxed mb-10"
                     >
                       Sélectionnez les fonctionnalités dont votre organisation
                       aura besoin. Vous pourrez les ajuster plus tard.
                     </motion.p>
 
-                    <div className="grid grid-cols-2 gap-3 mb-8">
+                    <div className="grid grid-cols-2 gap-3 mb-10">
                       {FEATURES.map(({ key, label, icon: Icon }) => {
                         const on = features.includes(key);
                         return (
@@ -723,6 +747,9 @@ export default function OrgSetup() {
                                 ? "1.5px solid var(--accent-primary)"
                                 : "1px solid var(--surface-hover)",
                               opacity: on ? 1 : 0.5,
+                              background: on
+                                ? "color-mix(in srgb, var(--accent-primary) 8%, transparent)"
+                                : "var(--surface)",
                             }}
                           >
                             <div
@@ -749,27 +776,6 @@ export default function OrgSetup() {
                         );
                       })}
                     </div>
-
-                    <div className="flex justify-between">
-                      <button
-                        onClick={handleBack}
-                        className="py-3 rounded-xl font-medium text-sm transition-all active:scale-95"
-                        style={{
-                          backgroundColor: "var(--surface)",
-                          color: "var(--text-secondary)",
-                          border: "1px solid var(--border)",
-                        }}
-                      >
-                        <ChevronLeft className="w-4 h-4 mr-2" /> Précédent
-                      </button>
-                      <button
-                        onClick={handleNext}
-                        className="px-6 py-3 rounded-xl font-semibold text-sm text-on-accent transition-all active:scale-95 shadow-accent"
-                        style={{ backgroundColor: "var(--accent-primary)" }}
-                      >
-                        Suivant <ChevronRight className="w-4 h-4 ml-2" />
-                      </button>
-                    </div>
                   </>
                 )}
 
@@ -777,26 +783,26 @@ export default function OrgSetup() {
                 {step === 5 && (
                   <>
                     <motion.h1
-                      initial={{ opacity: 0, y: 10 }}
+                      initial={{ opacity: 0, y: 15 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="text-text-primary font-bold text-3xl leading-tight mb-2"
+                      className="text-text-primary font-bold text-3xl leading-tight mb-4"
                     >
                       Détails de l’organisation
                     </motion.h1>
                     <motion.p
-                      initial={{ opacity: 0, y: 10 }}
+                      initial={{ opacity: 0, y: 15 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.1 }}
-                      className="text-text-secondary text-sm leading-relaxed mb-8"
+                      transition={{ delay: 0.08 }}
+                      className="text-text-secondary text-sm leading-relaxed mb-10"
                     >
                       Adresse, numéro de téléphone et autres informations qui
                       apparaîtront sur le profil de votre organisation.
                     </motion.p>
 
-                    <MotionCard variant="flat" className="p-6 mb-8">
-                      <div className="space-y-4">
+                    <MotionCard variant="flat" className="p-6 mb-10">
+                      <div className="space-y-5">
                         <div>
-                          <label className="block text-xs font-semibold uppercase tracking-wider text-text-secondary mb-2">
+                          <label className="block text-xs font-bold uppercase tracking-wider text-text-secondary mb-2">
                             Adresse
                           </label>
                           <input
@@ -804,11 +810,11 @@ export default function OrgSetup() {
                             value={address}
                             onChange={(e) => setAddress(e.target.value)}
                             placeholder="123 Rue de la Paix, Ville"
-                            className="w-full text-sm text-text-primary bg-transparent border-b border-border focus:border-accent-primary focus:ring-0 outline-none placeholder:text-text-placeholder"
+                            className="w-full text-sm text-text-primary bg-transparent border-b-2 border-border focus:border-accent-primary focus:ring-0 outline-none placeholder:text-text-placeholder/40"
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-semibold uppercase tracking-wider text-text-secondary mb-2">
+                          <label className="block text-xs font-bold uppercase tracking-wider text-text-secondary mb-2">
                             Numéro de téléphone
                           </label>
                           <input
@@ -817,11 +823,11 @@ export default function OrgSetup() {
                             onChange={(e) => setPhone(e.target.value)}
                             placeholder="+229 XX XX XX XX"
                             inputMode="tel"
-                            className="w-full text-sm text-text-primary bg-transparent border-b border-border focus:border-accent-primary focus:ring-0 outline-none placeholder:text-text-placeholder"
+                            className="w-full text-sm text-text-primary bg-transparent border-b-2 border-border focus:border-accent-primary focus:ring-0 outline-none placeholder:text-text-placeholder/40"
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-semibold uppercase tracking-wider text-text-secondary mb-2">
+                          <label className="block text-xs font-bold uppercase tracking-wider text-text-secondary mb-2">
                             Site web
                           </label>
                           <input
@@ -829,11 +835,11 @@ export default function OrgSetup() {
                             value={website}
                             onChange={(e) => setWebsite(e.target.value)}
                             placeholder="https://exemple.org"
-                            className="w-full text-sm text-text-primary bg-transparent border-b border-border focus:border-accent-primary focus:ring-0 outline-none placeholder:text-text-placeholder"
+                            className="w-full text-sm text-text-primary bg-transparent border-b-2 border-border focus:border-accent-primary focus:ring-0 outline-none placeholder:text-text-placeholder/40"
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-semibold uppercase tracking-wider text-text-secondary mb-2">
+                          <label className="block text-xs font-bold uppercase tracking-wider text-text-secondary mb-2">
                             Description
                           </label>
                           <textarea
@@ -841,11 +847,11 @@ export default function OrgSetup() {
                             onChange={(e) => setDescription(e.target.value)}
                             placeholder="Une courte présentation de votre organisation…"
                             rows={3}
-                            className="w-full text-sm text-text-primary bg-transparent border-b border-border focus:border-accent-primary focus:ring-0 outline-none placeholder:text-text-placeholder resize-none"
+                            className="w-full text-sm text-text-primary bg-transparent border-b-2 border-border focus:border-accent-primary focus:ring-0 outline-none placeholder:text-text-placeholder/40 resize-none"
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-semibold uppercase tracking-wider text-text-secondary mb-2">
+                          <label className="block text-xs font-bold uppercase tracking-wider text-text-secondary mb-2">
                             Thème de marque
                           </label>
                           <ThemePicker
@@ -884,7 +890,7 @@ export default function OrgSetup() {
                       <button
                         onClick={handleCreate}
                         disabled={!canCreate || creating}
-                        className="w-full sm:w-auto py-3.5 rounded-xl font-semibold text-sm text-on-accent transition-all active:scale-95 disabled:opacity-40 shadow-accent flex items-center justify-center gap-2"
+                        className="w-full sm:w-auto py-3.5 rounded-xl font-bold text-sm text-black transition-all active:scale-[0.97] disabled:opacity-40 shadow-accent flex items-center justify-center gap-2 uppercase tracking-wider"
                         style={{ backgroundColor: "var(--accent-primary)" }}
                       >
                         {creating ? (
@@ -894,8 +900,7 @@ export default function OrgSetup() {
                           </>
                         ) : (
                           <>
-                            Créer l’organisation
-                            <ArrowRight className="w-4 h-4" />
+                            <ArrowRight className="w-4 h-4" /> Créer l’organisation
                           </>
                         )}
                       </button>
@@ -905,8 +910,51 @@ export default function OrgSetup() {
               </motion.div>
             </AnimatePresence>
           </div>
+
+          {/* ── Footer collant (un seul CTA principal) ── */}
+          {step !== 5 && (
+            <div
+              className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-canvas/95 backdrop-blur-md"
+              style={{ paddingBottom: "env(safe-area-inset-bottom)", paddingTop: "10px" }}
+            >
+              <div className="max-w-md mx-auto px-6">
+                {step === 2 && !hasLogo ? (
+                  <button
+                    onClick={handleNext}
+                    className="w-full py-4 rounded-xl font-bold text-sm text-text-secondary transition-all active:scale-[0.97] border border-border"
+                  >
+                    Ignorer pour l’instant
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleNext}
+                    disabled={
+                      step === 1 ? name.trim().length < 2 :
+                      step === 3 ? type === null || role === null :
+                      false
+                    }
+                    className="w-full py-4 rounded-xl font-bold text-sm text-black transition-all active:scale-[0.97] shadow-accent flex items-center justify-center gap-2 uppercase tracking-wider"
+                    style={{ backgroundColor: "var(--accent-primary)" }}
+                  >
+                    {creating ? (
+                      <>
+                        <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                        <span>Création en cours…</span>
+                      </>
+                    ) : (
+                      <>
+                        Continuer <ChevronRight className="w-4 h-4 ml-2" />
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </IonContent>
     </IonPage>
   );
 }
+
+
