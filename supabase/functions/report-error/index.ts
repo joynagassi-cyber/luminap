@@ -9,6 +9,7 @@ import {
   type IssueListItem,
 } from "./issue.ts";
 import { dedupeKey } from "./dedupe.ts";
+import { isNonProductionReport } from "./environment.ts";
 import {
   ANON_MAX_PER_HOUR,
   DEFAULT_IP_SALT,
@@ -237,6 +238,15 @@ serve(async (req) => {
   const report = payload.report;
   if (!report || typeof report !== "object" || !report.message) {
     return fail(400, "Rapport manquant ou invalide.");
+  }
+
+  // 1bis. Filtre d'environnement (AUTORITAIRE). Un client périmé ou un serveur
+  // de développement (CI Cypress `pnpm run dev`, APK non mis à jour) peut
+  // appeler l'endpoint public alors que le client courant ne le fait plus.
+  // Mesuré : ~58 Issues créées depuis `environment: development` (PR #200).
+  // Aucune Issue n'est ouverte pour un rapport non-production.
+  if (isNonProductionReport(report)) {
+    return ok({ ok: true, skipped: "non-production" });
   }
 
   // 2. Identification de l'appelant : JWT utilisateur vérifié, sinon anonyme.
