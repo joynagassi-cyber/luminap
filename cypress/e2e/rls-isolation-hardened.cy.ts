@@ -97,20 +97,37 @@ describe('Lumina — isolation RLS avec le jeton réel (read-only)', () => {
       // `org_family` (security_invoker=true) ne doit exposer AUCUN ancêtre
       // que l'endpoint `organizations` n'expose pas déjà sous la même RLS.
       // Toute différence serait une fuite par la vue.
+      //
+      // COURSE MESURÉE (run 41342904303) : le projet Supabase est PARTAGÉ et
+      // la CI tourne sur 2 conteneurs EN PARALLÈLE ; l'onboarding d'un autre
+      // spec crée des organisations (POST /rest/v1/organizations → 201) PENDANT
+      // la fenêtre de lecture de ce test. Les 3 « fuites » observées
+      // (`org-de625d59…`, `org-594c710d…`, `org-1dc536ee…`) avaient toutes été
+      // créées à T+1,0 s / +1,1 s / +0,9 s, soit ENTRE la lecture
+      // `organizations` (snapshot) et la lecture `org_family` → elles n'étaient
+      // absentes que du snapshot ANTÉRIEUR. Ce n'est pas une fuite (mesure
+      // statique sous le JWT du compte : `org_family` = `organizations`, 0
+      // différence), c'est une lecture non atomique.
+      //
+      // Le test reste STRICT et devient insensible à la course : on relit
+      // `organizations` APRÈS `org_family` (les organisations ne sont jamais
+      // supprimées pendant le run → le 2e snapshot est un sur-ensemble) et on
+      // n'accuse que les ancêtres absents des DEUX snapshots. Une vraie fuite
+      // (un ancêtre jamais exposé par `organizations` sous le même jeton)
+      // reste détectée.
       cy.request({
         method: 'GET',
         url: `${SUPABASE_URL}/rest/v1/organizations?select=id`,
         headers,
       }).then((orgsRes) => {
         expect(orgsRes.status).to.eq(200);
-        const allowed = new Set(
+        const allowedBefore = new Set(
           (orgsRes.body as any[]).map((r) => r.id as string),
         );
         // Contrôle négatif : l'organisation historique org-1 doit rester
         // hors du périmètre du compte.
-        expect(Array.from(allowed), 'org-1 ne doit pas être visible').to.not.include(
-          'org-1',
-        );
+        expect(Array.from(allowedBefore), 'org-1 ne doit pas être visible').to.not
+          .include('org-1');
 
         cy.request({
           method: 'GET',
@@ -121,14 +138,27 @@ describe('Lumina — isolation RLS avec le jeton réel (read-only)', () => {
           const exposed = Array.from(
             new Set((res.body as any[]).map((r) => r.ancestor as string)),
           );
-          const leaked = exposed.filter((a) => !allowed.has(a));
-          expect(
-            leaked,
-            `organisations exposées par org_family mais hors périmètre RLS : ${leaked.join(', ')}`,
-          ).to.deep.eq([]);
-          cy.log(
-            `✅ org_family expose ${exposed.length} org(s), toutes dans le périmètre RLS`,
-          );
+
+          // 2e snapshot, postérieur à `org_family` (cf. commentaire ci-dessus).
+          cy.request({
+            method: 'GET',
+            url: `${SUPABASE_URL}/rest/v1/organizations?select=id`,
+            headers,
+          }).then((orgsAfterRes) => {
+            expect(orgsAfterRes.status).to.eq(200);
+            const allowed = new Set([
+              ...allowedBefore,
+              ...(orgsAfterRes.body as any[]).map((r) => r.id as string),
+            ]);
+            const leaked = exposed.filter((a) => !allowed.has(a));
+            expect(
+              leaked,
+              `organisations exposées par org_family mais hors périmètre RLS : ${leaked.join(', ')}`,
+            ).to.deep.eq([]);
+            cy.log(
+              `✅ org_family expose ${exposed.length} org(s), toutes dans le périmètre RLS`,
+            );
+          });
         });
       });
     });

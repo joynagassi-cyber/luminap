@@ -32,6 +32,32 @@
   `/app-conversations/start-tasks?ids=<id>` pour l'`app_conversation_id`.
   Aucun backend Agent Canvas local (localhost:8001 → HTTP 000).
 
+## E2E isolation — 2 flakies de course (2026-11-01, run 41342904303, PR #247)
+- **`cross-tenant.cy.ts` « jeton vide »** : ne JAMAIS lire la session via
+  `window.__psSupabaseClient` (client B du connector, `persistSession:false`,
+  miroir ASYNCHRONE → `getSession()` peut être `null` alors qu'on est connecté).
+  Lire la session PERSISTÉE de client A : `localStorage['sb-<ref>-auth-token']`
+  (`Object.keys(ls).find(k=>/-auth-token$/.test(k))`), comme
+  `rls-isolation-hardened` et `RouteGuard`. Ce n'était PAS une perte de session
+  (dans le même conteneur, 2 s après, l'autre spec lisait le jeton).
+- **`rls-isolation-hardened.cy.ts` `org_family` « hors périmètre »** : PAS une
+  fuite. La vue a `security_invoker=true` → mesuré sous le JWT réel,
+  `org_family` == `organizations` (0 diff). Les orgs « fuitées » avaient été
+  créées par des `POST /rest/v1/organizations → 201` de l'ONBOARDING d'un AUTRE
+  conteneur CI **pendant** la fenêtre du spec (base partagée + CI parallèle) :
+  absentes du snapshot `organizations` ANTÉRIEUR = lecture non atomique.
+  Correctif : relire `organizations` APRÈS `org_family` et n'accuser que les
+  ancêtres absents des DEUX snapshots (les orgs ne sont pas supprimées pendant
+  le run). Invariant strict conservé.
+- **Règle générale** : sur ce projet (base partagée, `cypress.yml` en 2
+  conteneurs), toute assertion d'isolation comparant deux snapshots doit être
+  insensible aux écritures concurrentes. Vérifier d'abord la date de création
+  (`organizations.created_at`) des lignes « fuitées » avant de conclure à une
+  fuite.
+- **MCP Supabase lecture** : `execute_sql` + `begin; set local role authenticated;
+  set_config('request.jwt.claims', json_build_object('sub',<uid>,...)::text,true);
+  … rollback;` permet de mesurer la RLS d'un compte sans écrire.
+
 ## PowerSync (instance prod 6a9dd96302481fb31b945823)
 - **P0 « écran muet » — audience JWT (R129/R132, 2026-10-29)** : l'instance
   rejette TOUT jeton utilisateur Supabase (`401 PSYNC_S2105 — Unexpected "aud"
@@ -1090,21 +1116,6 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   au-dessus → panne totale (classe PR15). `router-context-guard` durcie pour
   analyser aussi les composants IMPORTÉS (avant : seulement ceux déclarés dans
   App.tsx). Détail : `.openhands/memory/2026-11-01.md`.
-- **Voie PRÉ-LOGIN (anonyme, R145)** : l'edge `report-error` est passée en
-  `verify_jwt:false` (v4) et vérifie elle-même l'appelant (`auth.getUser`) —
-  sinon tout crash AVANT connexion était perdu. Anonyme plafonné 5/h (bucket
-  `ip:<sha256(salt+ip)>`, IP jamais en clair), authentifié 20/h (`user:<uuid>`).
-  Sans `SERVICE_ROLE_KEY` → 503 ; JWT forgé → retombe anonyme (pas de
-  contournement). RPC `register_anonymous_report` SECURITY DEFINER (EXECUTE
-  réservé à `service_role`) + table `error_report_throttle` deny-all
-  (migration `20261101000002`, rollback fourni).
-- **Kill switch client** : drapeau `error-reporting`.
-- **Garde d'intégration** : `error-to-issue-integration-guard.test.ts` (26)
-  verrouille jeton hors client + migration fermée + rollback présent.
-- **Piège env (vitest 5)** : `npx vitest run --reporter=basic` ÉCHOUE
-  (« Failed to load custom Reporter from basic ») ; lancer `npx vitest run`.
-- **Après tout changement de schéma** : régénérer `docs/agent/rls-inventory.json`
-  (garde `rls-inventory.test.ts`) et `docs/agent/migration-drift.json`.
 
 ## Release Lumina v1.2.1 + flake `auth-real` (2026-11-01)
 - **Release = tag `v*`** → workflow `release.yml` (prepare → build unsigned →
