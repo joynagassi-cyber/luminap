@@ -10,6 +10,7 @@ import {
 import { Session, SupabaseClient, createClient } from "@supabase/supabase-js";
 import { AppSchema } from "./schema";
 import { coerceJsonbColumns } from "@/lib/jsonb";
+import { reportError } from "@/lib/observability/errorReporter";
 
 /**
  * Colonnes déclarées par le schéma PowerSync pour chaque table + la PK
@@ -685,6 +686,18 @@ export class SupabaseConnector
             error: { code: ex.code, message: ex.message },
           };
         }
+        // Erreur de synchronisation NON récupérable (op jetée, donnée
+        // potentiellement perdue) → remontée automatique.
+        reportError(ex, {
+          type: "sync",
+          source: "powersync-fatal",
+          context: {
+            table: lastOp?.table,
+            op: lastOp?.op,
+            code: ex?.code,
+            message: ex?.message,
+          },
+        });
       } else {
         // Error may be retryable - e.g. network error
         logOpOutcome(lastOp, false, ex.code ?? ex.code2 ?? "?", ex.message, lastOp?.opData?.org_id);
@@ -697,6 +710,17 @@ export class SupabaseConnector
             pushed: pushedOps, skipped: skippedOps, lastFatal, phase: "retryable-throw",
             error: { code: ex.code, message: ex.message },
           };
+        }
+        // Erreur de synchronisation récupérable (nouvelle tentative). Hors
+        // ligne, c'est le comportement ATTENDU (retry à la reconnexion) → on
+        // ne signale pas pour ne pas noyer les vraies erreurs ; en ligne, la
+        // dédup du reporter évite le spam si elle se répète.
+        if (typeof navigator === "undefined" || navigator.onLine) {
+          reportError(ex, {
+            type: "sync",
+            source: "powersync-retryable",
+            context: { table: lastOp?.table, op: lastOp?.op, code: ex?.code },
+          });
         }
         throw ex;
       }

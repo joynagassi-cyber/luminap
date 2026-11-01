@@ -24,6 +24,9 @@ import { PowerSyncProvider } from "@/components/PowerSyncProvider";
 import { prefetchNavViews, useFeatureConfig } from "@/lib/features";
 import { initSentry } from "@/lib/sentry";
 import { armBootWatchdog } from "@/lib/bootWatchdog";
+import { installBreadcrumbCapture } from "@/lib/observability/breadcrumbs";
+import { installLongTaskMonitor } from "@/lib/observability/perfMonitor";
+import { flushPendingReports } from "@/lib/observability/errorReporter";
 
 // Arme le watchdog de démarrage AVANT tout montage React : si la coquille ne
 // signale jamais sa disponibilité (chunk manquant, échec d'hydratation, blocage
@@ -34,6 +37,16 @@ armBootWatchdog();
 // boot (initPowerSync, applyStoredTheme, loadIonicDefinitions…). Silencieux
 // si le DSN (VITE_SENTRY_DSN) n'est pas défini — le SDK reste actif sans envoi.
 initSentry();
+
+// Observabilité — capture automatique du fil d'Ariane (clics, navigations,
+// réseau) et surveillance des tâches longues (interface gelée). Armés tôt pour
+// couvrir la phase de boot. Les rapports déjà en file (hors-ligne, rechargement)
+// sont ré-émis dès que possible.
+installBreadcrumbCapture();
+installLongTaskMonitor();
+void flushPendingReports().catch(() => {
+  /* fire-and-forget : la file est réessayée à la reconnexion / au prochain boot */
+});
 
 
 // Initialize PowerSync before React mounts. This is fire-and-forget: it

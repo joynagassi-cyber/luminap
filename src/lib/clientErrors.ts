@@ -13,6 +13,8 @@
 import * as Sentry from "@sentry/react";
 import { Capacitor } from "@capacitor/core";
 
+import { reportError } from "./observability/errorReporter";
+
 export interface ClientErrorContext {
   message: string;
   stack?: string;
@@ -112,6 +114,8 @@ export function captureClientError(
     err instanceof Error ? err : new Error(context?.message ?? ctx.message),
     { tags: { source: "handled", route: ctx.route, platform: ctx.platform } },
   );
+  // Remontée automatique vers GitHub Issues (dédup + file hors-ligne).
+  reportError(err, { source: "handled", route: context?.route });
 }
 
 /**
@@ -130,6 +134,11 @@ export function installClientErrorCapture(): () => void {
     Sentry.captureException(event.error ?? new Error(ctx.message), {
       tags: { source: "onerror", route: ctx.route, platform: ctx.platform },
     });
+    reportError(event.error ?? new Error(ctx.message), {
+      type: "crash",
+      source: "onerror",
+      route: ctx.route,
+    });
   };
 
   const onRejection = (event: PromiseRejectionEvent) => {
@@ -142,6 +151,10 @@ export function installClientErrorCapture(): () => void {
         route: ctx.route,
         platform: ctx.platform,
       },
+    });
+    reportError(event.reason ?? new Error(ctx.message), {
+      source: "unhandledrejection",
+      route: ctx.route,
     });
   };
 

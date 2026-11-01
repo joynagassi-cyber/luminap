@@ -1069,6 +1069,43 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   (« Formulaire absent de Supabase après setup »), `offline-write-sync`
   (org_id `org-<uuid>` vs `org-e2e` + erreur React interne).
 
+## Observabilité → GitHub Issues (2026-11-01)
+- Chaîne erreurs client → Issue GitHub labellisée `openhands`. Cœur :
+  `src/lib/observability/errorReporter.ts` (`reportError`). Capture câblée dans
+  `clientErrors.ts`, `App.tsx` (ErrorBoundary racine), `lazy-route.tsx`,
+  `SupabaseConnector.ts`, `powersync/index.ts`, `perfMonitor.ts`, `main.tsx`.
+- **Le jeton GitHub n'est JAMAIS côté client** : secret Supabase `GITHUB_TOKEN`
+  lu par l'edge function `report-error` (projet lié `hhgovvrnalibhgpakswi`,
+  déployée v2). Le dépôt est PUBLIC → rapport expurgé côté client (`redact` +
+  `scrubIdentities`) avant envoi.
+- **Label `openhands` créé** sur le dépôt (couleur 5319E7) : GitHub rejette la
+  création d'Issue (422) si le label n'existe pas. À recréer si le dépôt change.
+- **Test env** : la suite vitest exige `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`
+  (sinon `src/lib/auth.ts` lève à l'import → ~100 fichiers « failed »). Un
+  `.env.local` gitignoré avec des valeurs factices suffit → suite complète verte.
+- **Déploiement edge function** : `npx supabase functions deploy` met >120 s à
+  installer le CLI (timeout) → préférer le MCP `deploy_edge_function`.
+- **Règle Router** : tout composant à hook de React Router (`useLocation`…)
+  DOIT être monté SOUS `<IonReactRouter>`. `ObservabilityBridge` l'avait été
+  au-dessus → panne totale (classe PR15). `router-context-guard` durcie pour
+  analyser aussi les composants IMPORTÉS (avant : seulement ceux déclarés dans
+  App.tsx). Détail : `.openhands/memory/2026-11-01.md`.
+- **Voie PRÉ-LOGIN (anonyme, R145)** : l'edge `report-error` est passée en
+  `verify_jwt:false` (v4) et vérifie elle-même l'appelant (`auth.getUser`) —
+  sinon tout crash AVANT connexion était perdu. Anonyme plafonné 5/h (bucket
+  `ip:<sha256(salt+ip)>`, IP jamais en clair), authentifié 20/h (`user:<uuid>`).
+  Sans `SERVICE_ROLE_KEY` → 503 ; JWT forgé → retombe anonyme (pas de
+  contournement). RPC `register_anonymous_report` SECURITY DEFINER (EXECUTE
+  réservé à `service_role`) + table `error_report_throttle` deny-all
+  (migration `20261101000002`, rollback fourni).
+- **Kill switch client** : drapeau `error-reporting`.
+- **Garde d'intégration** : `error-to-issue-integration-guard.test.ts` (26)
+  verrouille jeton hors client + migration fermée + rollback présent.
+- **Piège env (vitest 5)** : `npx vitest run --reporter=basic` ÉCHOUE
+  (« Failed to load custom Reporter from basic ») ; lancer `npx vitest run`.
+- **Après tout changement de schéma** : régénérer `docs/agent/rls-inventory.json`
+  (garde `rls-inventory.test.ts`) et `docs/agent/migration-drift.json`.
+
 ## Release Lumina v1.2.1 + flake `auth-real` (2026-11-01)
 - **Release = tag `v*`** → workflow `release.yml` (prepare → build unsigned →
   sign apksigner v1+v2+v3 → GitHub Release). Body lu depuis

@@ -4382,3 +4382,31 @@ partagée par les deux plateformes et couverte par 3 tests.
   PM21.
 - **Statut** : **CORRIGÉ** (`tsc -b` = 0, eslint 0 erreur, 1840/1840).
 
+
+### R145 — Les erreurs PRÉ-LOGIN n'étaient pas remontables (edge function `report-error` exigeait un JWT) — ✅ CORRIGÉ (2026-11-01)
+
+- **Défaut** : `report-error` exigeait un appelant authentifié (`verify_jwt: true`
+  + `auth.getUser`). Tout incident survenant AVANT la connexion — crash de
+  l'écran d'auth, échec du flux d'invitation, perte réseau au boot — restait en
+  file locale et n'était remonté qu'APRÈS login ; il était perdu si
+  l'utilisateur ne parvenait jamais à se connecter (précisément le cas à
+  diagnostiquer).
+- **Preuve** : appel anonyme avant correctif → `HTTP 401 {"error":"Jeton
+  manquant."}` ; après → `HTTP 400 {"error":"Dépôt non autorisé."}` (le handler
+  est atteint, le rapport est traité) puis `HTTP 200 {"ok":true,"issueNumber":203}`
+  pour un rapport réel (Issue créée avec le label `openhands`, puis fermée).
+- **Correctif** : `verify_jwt: false` ; la fonction identifie elle-même
+  l'appelant (`auth.getUser`). Voie authentifiée = plafond large
+  (`USER_MAX_PER_HOUR` = 20, bucket `user:<uuid>`) ; voie anonyme = plafond serré
+  (`ANON_MAX_PER_HOUR` = 5, bucket `sha256(salt+ip)`, IP jamais en clair). RPC
+  `register_anonymous_report` (SECURITY DEFINER, EXECUTE réservé au
+  `service_role`) sur la table `error_report_throttle` (deny-all). Sans
+  `service_role`, la voie anonyme est REFUSÉE (503) — jamais d'endpoint public
+  non plafonné. Un JWT forgé retombe sur la voie anonyme (vérifié : 429 après
+  5 appels). Déployée (v3).
+- **Preuve de non-vacuité** : `V: report-error-throttle.test.ts` (12, logique
+  pure) + gardes statiques de `V: error-to-issue-integration-guard.test.ts`
+  (voie anonyme, bucket IP, `429`, refus sans `service_role`).
+- **Risque résiduel** : point d'écriture public borné (5/h par IP, dédup par
+  signature, allowlist, troncature) — documenté dans le README de la fonction.
+- **Statut** : **CORRIGÉ** (tsc 0, eslint 0, 2231/2231).

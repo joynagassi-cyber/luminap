@@ -150,6 +150,26 @@ le contexte d'organisation (ordre critique : sinon `useOrgMembership` conclut
 | 5 | Création d'organisation self-serve (compte neuf → org + grant + profil ADMIN) — R161 | `V: OrgSetup-selfserve.test.tsx` (4) + `V: mirror-new-org.test.ts` (3) + `C: self-serve-org.cy.ts` (1, cloud réel) | **couvert** (non-vacuité : retirer `bootstrapOrganization`/le miroir ⇒ échec) |
 | 2 | Échappatoire de l'écran « Organisation non rejointe » (créer/rejoindre) — R120 | `V: needs-membership-escape.test.tsx` (5) | **couvert** |
 
+## Observabilité → GitHub Issues (2026-11-01)
+
+Chaîne complète **erreur client → Issue GitHub `openhands`** (correction
+autonome OpenHands). Capture : `onerror`/`unhandledrejection`
+(`clientErrors.ts`), ErrorBoundary racine (`App.tsx`) et par route
+(`lazy-route.tsx`), erreurs de synchronisation PowerSync
+(`SupabaseConnector.ts`) et tâches longues (`perfMonitor.ts`). Classification
+(crash / functional / database / sync / performance), déduplication par
+signature (client + serveur), file locale survivant au hors-ligne, puis envoi à
+l'edge function `report-error` qui détient le jeton GitHub (jamais côté client)
+et crée l'Issue. Le dépôt étant PUBLIC, le rapport est expurgé côté client
+(aucune PII).
+
+| # | Feature / correctif | Test(s) | Statut |
+|---|---|---|---|
+| 11 | Capture globale (crash / erreurs métier / DB / sync / perf) + rapport contextuel (stack, route, session, 5 derniers breadcrumbs) | `V: error-reporter.test.ts` (dont classification DB/sync/perf, dédup, file) + `V: breadcrumbs.test.ts` + `V: perf-monitor.test.ts` | **couvert** |
+| 11 | Formatage de l'Issue (titre, corps contextuel, marqueur de signature, dédup serveur) | `V: report-error-issue.test.ts` | **couvert** (logique pure `issue.ts`, sans import Deno) |
+| 11 | **Voie pré-login (anonyme) rate-limitée** : bucket = hash d'IP (IP jamais en clair), plafond serré vs authentifié, EXECUTE réservé au `service_role`, refus sans `service_role`, JWT forgé → voie anonyme | `V: report-error-throttle.test.ts` (12, logique pure `throttle.ts`) | **couvert** |
+| 11 | Intégration : jeton GitHub hors client, label `openhands`, allowlist de dépôts, vérification d'appelant (`auth.getUser`), voie anonyme câblée, points de capture câblés | `V: error-to-issue-integration-guard.test.ts` (26, gardes statiques) | **couvert** |
+
 ## Addendum 2 — design de référence (jetons maquette dashboard-MF, 2026-11-01)
 
 | # | Feature / correctif | Test(s) | Statut |
