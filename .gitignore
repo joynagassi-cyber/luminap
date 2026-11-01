@@ -78,3 +78,4 @@ __pycache__/
 # Audit visuel pré-prod — captures lourdes non versionnées (texte/JSON conservés)
 audit/baseline/
 audit/baseline-admin/
+image-search/ >> .gitignore
