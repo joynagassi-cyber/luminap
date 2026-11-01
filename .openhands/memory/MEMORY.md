@@ -773,6 +773,24 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   + « aucun rôle légitime enfermé ». (3) Le test `route-state-wiring.test.ts`
   interdit tout champ `RouteState` inerte (retirer de `PENDING_WIRING` en câblant).
 
+## E2E : org active dynamique + FK catégories (2026-10-31, PR #186)
+- **Les specs Cypress ne doivent JAMAIS coder `org-e2e`** : id disparu depuis
+  R161 (self-serve → `org-<uuid>`). POST REST `org_id=org-e2e` → 403 `42501` ;
+  org réelle → 201. Utiliser `cy.orgActiveId()` (expose → `lumina-user.org.id`
+  → `lumina-active-org` → réplique). `orgReplica.ts` résout via
+  `resolveActiveOrgContext()`.
+- **Intégrité** : `categories` doit contenir les 9 canoniques ; à 0, toute
+  écriture financière échoue en 23503 (`transactions_category_id_fkey`), y
+  compris la file d'upload PowerSync. Migration idempotente
+  `20261101000001_reseed_canonical_categories.sql`.
+- **PR1–PR7 + PR8–PR16 déjà implémentées** (unit : 64/64 et 141/141). Ne pas
+  relancer d'implémentation. Ouverts = décisions propriétaire : PR17 (non
+  justifié à 3 orgs), PR18 (RLS→has_permission), PR20 (`CENTRAL_ADMIN`, bloque R141.e).
+- **Délégation Cloud** : `POST /api/v1/app-conversations` asynchrone →
+  start-task `id` ; poller `start-tasks?ids=<UN_UUID>` (jamais `a,b` → 422)
+  jusqu'à `READY`, lire `app_conversation_id` ; UI `/canvas/conversations/<id>`.
+  `openhands_api.py` exige `httpx` (absent) → `curl`.
+
 ## R141.b/c — écriture gardée sur les tables non financières (2026-10-31, corrigé)
 - **Défaut** : 8 tables gardaient INSERT/UPDATE/DELETE sur `is_org_member` SEUL
   → tout MEMBRE pouvait écrire via REST direct. Tables : `documents`,
@@ -1050,3 +1068,20 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
 - Pré-existants sur `main` (NE PAS confondre avec ce flake) : `forms-v2`
   (« Formulaire absent de Supabase après setup »), `offline-write-sync`
   (org_id `org-<uuid>` vs `org-e2e` + erreur React interne).
+
+## Release Lumina v1.2.1 + flake `auth-real` (2026-11-01)
+- **Release = tag `v*`** → workflow `release.yml` (prepare → build unsigned →
+  sign apksigner v1+v2+v3 → GitHub Release). Body lu depuis
+  `.github/release-bodies/release-<ver>.md`. Version source UNIQUE :
+  `android/app/build.gradle` (`versionCode`/`versionName`). v1.2.1 publiée
+  (`main` `9e24da8`, APK 15 146 529 o + `.sha256`).
+- **Flake E2E cloud** : `auth-real.cy.ts` et `org-reports.cy.ts` dépendent du
+  backend live ; en cas de rouge isolé, **relancer le job** (`POST
+  /actions/jobs/<id>/rerun`) avant de conclure. Un rerun vert = flake.
+- **Bug réel (pas flake) `auth-real` spec 3** : ne JAMAIS lire le libellé d'un
+  bouton submit de façon SYNCHRONE après un submit asynchrone — pendant
+  `loading` il rend un **spinner sans texte** (faux « succès »). Attendre un
+  signal robuste : navigation quittée OU libellé de mode cible visible.
+- **Token GitHub** : `$GITHUB_TOKEN` de l'env peut être **expiré (401)** ; le
+  token embarqué dans `git remote get-url origin` sert alors à l'API REST.
+- **PDF tutoriel** : `docs/agent/GUIDE_ECRANS.pdf` (35 pages, 5,4 Mo).
