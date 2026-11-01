@@ -37,7 +37,15 @@ import {
   getOrgCredentials,
   getUnconfiguredOrgCredentials,
   setOrgCreds,
+  type OrgCredentials,
 } from './orgCreds';
+
+// Retry borné + skip gracieux pour l'auth cloud (GoTrue partagé). La
+// politique PURE (classify/backoff/maySkip) vit dans authRetryPolicy.ts
+// (testée en vitest) ; cloudRetry.ts ajoute le poller DOM + le skip Mocha.
+// Voir l'en-tête de ces modules pour la cause racine mesurée (run
+// 41282690879 : 400 Invalid login credentials + 500 transitoires + 422).
+import { attemptAuthWithRetry, runWithAuthRetry } from './cloudRetry';
 
 /* eslint-disable @typescript-eslint/no-namespace */
 declare global {
@@ -67,7 +75,7 @@ declare global {
        * /splash pour re-hydrater. A appeler après freshSignup si le
        * spec fait des cy.visit() multiples sur des routes protégées.
        */
-      ensureAuth(): Chainable;
+      ensureAuth(options?: { allowSkip?: boolean }): Chainable;
       /**
        * Parcours l'onboarding COMPLET par l'UI (pas le contournement par
        * localStorage de skipOnboarding()) :
@@ -111,8 +119,15 @@ declare global {
         orgName?: string;
         orgType?: 'Église' | 'École' | 'Entreprise';
         role?: string;
+        /**
+         * Si vrai, un échec INFRA (GoTrue partagé en 429/5xx après le budget
+         * de retry) marque la spec PENDING au lieu d'échouer. Un échec
+         * d'auth AUTHENTIQUE (mauvais mot de passe, compte inconnu) échoue
+         * TOUJOURS — jamais de skip silencieux.
+         */
+        allowSkip?: boolean;
       }): Chainable<{ email: string; password: string }>;
-      loginOrgAccount(): Chainable;
+      loginOrgAccount(options?: { allowSkip?: boolean }): Chainable;
       /**
        * Déclenche l'ONBOARDING COMPLET (le wizard réel, sans raccourci
        * localStorage) pour le compte d'organisation courant — le cas
@@ -156,7 +171,7 @@ declare global {
        *     cy.visit('/balance');
        *   });
        */
-      ensureAuth(): Chainable;
+      ensureAuth(options?: { allowSkip?: boolean }): Chainable;
     }
   }
 }
@@ -416,7 +431,9 @@ Cypress.Commands.add('requireCredentials', function (): Cypress.Chainable {
  * /auth/v1/token si le cookie http-only persiste), sinon c'est
  * vraiment perdue et le spec doit re-sign.
  */
-Cypress.Commands.add('ensureAuth', function () {
+Cypress.Commands.add('ensureAuth', function (options?: {
+  allowSkip?: boolean;
+}) {
   // Cypress 16 active `testIsolation` par défaut : `localStorage` (donc le
   // token Supabase, qui vit UNIQUEMENT en localStorage — supabase-js ne
   // pose pas de cookie http-only) est EFFACÉ avant chaque `it()`. L'ancienne
@@ -431,8 +448,12 @@ Cypress.Commands.add('ensureAuth', function () {
   // test, et rejoue le setup si le cache est invalide. Le setup est
   // `loginOrgAccount()` (login UI réel, idempotent). Résultat : chaque
   // `it()` repart authentifié, indépendamment de l'ordre d'exécution.
+  //
+  // `allowSkip` est transmis tel quel : si le GoTrue partagé est en panne
+  // après le budget de retry, la spec est marquée PENDING (pending) —
+  // vérifié : le skip fonctionne depuis un setup `cy.session()`.
   cy.session('lumina-org-account', () => {
-    cy.loginOrgAccount();
+    cy.loginOrgAccount({ allowSkip: options?.allowSkip });
   });
 });
 
@@ -535,6 +556,90 @@ Cypress.Commands.add('freshSignup', function (overrides?: {
 });
 
 /**
+ * Provisionne (ou ré-authentifie) le compte d'organisation FIXE via le
+ * parcours UI COMPLET : signup `/auth` → wizard d'onboarding →
+ * `/org-setup` → `/dashboard`, SANS raccourci localStorage. Extrait de
+ * `signupOrgAccount` pour être réutilisé par le fallback de provisioning
+ * (compte absent de la base partagée).
+ *
+ * Le chemin « compte déjà inscrit » est géré : l'app bascule
+ * automatiquement en mode login (voir handleSignup d'AuthPage) ; on
+ * resoumet alors en login avec les mêmes identifiants.
+ */
+function provisionOrgAccount(
+  fixed: OrgCredentials,
+  overrides?: {
+    orgName?: string;
+    orgType?: 'Église' | 'École' | 'Entreprise';
+    role?: string;
+  },
+): Cypress.Chainable {
+  cy.visit('/auth');
+  cy.contains('button', 'Pas encore de compte', { timeout: 30_000 }).should(
+    'be.visible',
+  );
+  cy.contains('button', 'Pas encore de compte').click();
+  cy.get('input[aria-label="Prénom"]').type(fixed.email.split('@')[0].slice(0, 10));
+  cy.get('input[aria-label="Nom"]').type('E2E');
+  cy.get('input[type="email"]').type(fixed.email);
+  cy.get('input[type="password"]').type(fixed.password);
+  cy.contains('button[type="submit"]', 'Créer mon compte').click();
+
+  // Compte déjà inscrit → l'app bascule en mode login : on resoumet.
+  cy.get('button[type="submit"]').then(($btns) => {
+    const texts = $btns.map((_, el) => el.textContent).get();
+    const signupStillThere = texts.some((t) =>
+      t?.includes('Créer mon compte'),
+    );
+    if (!signupStillThere) {
+      cy.get('input[type="email"]').clear().type(fixed.email);
+      cy.get('input[type="password"]').clear().type(fixed.password);
+      cy.contains('button[type="submit"]', 'Se connecter').click();
+    }
+  });
+
+  cy.location('pathname', { timeout: 120_000 }).then((path: string) => {
+    if (path === '/onboarding') return;
+    if (path === '/dashboard') return;
+    throw new Error(
+      `provisionOrgAccount: après signup/login, path inattendu ${path} (attendu /onboarding ou /dashboard)`,
+    );
+  });
+
+  // Wizard COMPLET si le navigateur est vierge (l'exigence stricte).
+  cy.window().then((win) => {
+    const onboarded = win.localStorage.getItem('lumina-onboarded');
+    if (onboarded === 'true') return;
+    cy.location('pathname').then((p: string) => {
+      if (p === '/onboarding') {
+        cy.runOnboarding({
+          orgName: overrides?.orgName ?? fixed.orgName,
+          orgType: (overrides?.orgType ?? fixed.orgType) as
+            | 'Église'
+            | 'École'
+            | 'Entreprise',
+          role: overrides?.role ?? fixed.role,
+        });
+      }
+    });
+  });
+  cy.location('pathname', { timeout: 90_000 }).should('eq', '/dashboard');
+
+  cy.window().then((win) => {
+    const sbKey = Object.keys(win.localStorage).find(
+      (k) => /-auth-token$/.test(k),
+    );
+    if (!sbKey || !win.localStorage.getItem(sbKey)) {
+      throw new Error(
+        'provisionOrgAccount: token Supabase absent — le wizard a atterri ' +
+          'sur /dashboard mais la session n\'est pas persistée.',
+      );
+    }
+  });
+  return cy.wrap(null);
+}
+
+/**
  * Sign-up du compte d'organisation UNIQUE du run, avec parcours
  * COMPLET par l'UI (pas de raccourci localStorage) :
  *
@@ -562,6 +667,7 @@ Cypress.Commands.add('signupOrgAccount', function (
       orgName?: string;
       orgType?: 'Église' | 'École' | 'Entreprise';
       role?: string;
+      allowSkip?: boolean;
     },
   ): Cypress.Chainable<{ email: string; password: string }> {
     // IDENTIFIANT UNIQUE (source de vérité) : le compte est FIXE
@@ -573,134 +679,93 @@ Cypress.Commands.add('signupOrgAccount', function (
     // Run précédent : le compte a déjà son onboarding complété (flag
     // exposé par le 1er spec du run). On n'essaie PAS de re-signup :
     // login direct, l'org existe déjà en base → /dashboard.
+    //
+    // NB (cause racine CI 41282690879) : `getOrgCreds()` retombe TOUJOURS
+    // sur l'identifiant fixe (voir orgCreds.ts), donc cette branche est en
+    // pratique la SEULE prise — l'ancien login « manuel » à 120 s était la
+    // source des échecs de ce spec. On délègue désormais à
+    // `loginOrgAccount({ allowSkip })` : retry borné + backoff sur les
+    // erreurs infra (429/5xx), échec explicite sur les erreurs d'auth
+    // authentiques, skip gracieux (pending) si autorisé.
+    //
+    // MAIS (vraie cause racine) : sur le projet PARTAGÉ, le compte de test
+    // peut être ABSENT (base purgée). `getOrgCreds()` retombant sur
+    // l'identifiant fixe, l'ancien code ne re-signupait JAMAIS → 400
+    // « Invalid login credentials » en boucle. On retente donc d'abord le
+    // login (rapide, borné, non-échouant) ; s'il échoue sur des
+    // identifiants refusés ET que `allowSkip` autorise le provisionnement,
+    // on PROVISIONNE le compte (signup UI complet + wizard) — l'exigence
+    // « signup → onboarding → setup org → dashboard » est respectée à la
+    // lettre. L'échec d'auth authentique reste visible si `allowSkip` est
+    // faux (jamais de provisioning silencieux).
     const existing = getOrgCreds();
     if (existing?.email && existing?.password) {
       cy.log(
-        `signupOrgAccount: compte ${existing.email} déjà positionné pour ce run — login direct`,
+        `signupOrgAccount: compte ${existing.email} déjà positionné pour ce run — login direct (retry borné + skip gracieux)`,
       );
+
+      const statusRef = { status: 0 };
+      cy.intercept('POST', '**/auth/v1/token**', (req) => {
+        req.continue((res) => {
+          statusRef.status = res.statusCode;
+        });
+      });
       cy.clearLocalStorage();
-      cy.visit('/auth');
-      cy.get('input[type="email"]').first().type(existing.email);
-      cy.get('input[type="password"]').first().type(existing.password);
-      cy.contains('button[type="submit"]', 'Se connecter').click();
-      // Deux issues possibles selon l'état du navigateur (clearLocal-
-      // Storage() ci-dessus) : /dashboard si le wizard a déjà été
-      // complété pour ce navigateur dans ce run (case a — spec 1 du
-      // run relancé sans nettoyage), /onboarding si c'est un
-      // navigateur vierge mais le compte préexiste en base (case b —
-      // le cas EXACT demandé : user enregistré mais non configuré
-      // pour ce navigateur → re-parcours du setup). Les deux sont
-      // des post-conditions valides pour ce command : on laisse le
-      // should() final (sous la branche du cas a) stabiliser.
-      cy.location('pathname', { timeout: 120_000 }).should((path: string) => {
-        expect(path, `après login compte préexistant: ${path}`).to.be.oneOf([
-          '/onboarding',
-          '/dashboard',
-        ]);
-      });
-      // Si on est sur /onboarding (case b), on joue le wizard COMPLET
-      // jusqu'à /dashboard (post-condition du command, pas un
-      // raccourci localStorage).
-      cy.location('pathname').then((path: string) => {
-        if (path === '/onboarding') {
-          cy.runOnboarding();
-          cy.location('pathname', { timeout: 90_000 }).should('eq', '/dashboard');
+      const ctx = this as unknown as Mocha.Context;
+
+      return attemptAuthWithRetry({
+        label: 'signupOrgAccount(login préexistant)',
+        ctx,
+        statusRef,
+        attempt: () => {
+          cy.visit('/auth');
+          cy.get('input[type="email"]').first().type(existing.email);
+          cy.get('input[type="password"]').first().type(existing.password);
+          cy.contains('button[type="submit"]', 'Se connecter').click();
+        },
+      }).then((result) => {
+        if (result.navigated) {
+          // Le login a abouti : on rejoue l'onboarding si le navigateur est
+          // vierge (needsOnboarding()), sinon on rend la main tel quel —
+          // comportement identique à l'ancienne branche « login direct ».
+          cy.location('pathname').then((path: string) => {
+            if (path === '/onboarding') {
+              cy.runOnboarding();
+              cy.location('pathname', { timeout: 90_000 }).should(
+                'eq',
+                '/dashboard',
+              );
+            }
+          });
+          return cy.wrap(existing);
         }
+
+        // Login refusé. Provisionner le compte SEULEMENT si autorisé.
+        const canProvision =
+          overrides?.allowSkip === true &&
+          result.kind === 'invalid-credentials';
+        if (!canProvision) {
+          // Comportement inchangé par défaut : on délègue au retry
+          // échouant/skippant (message explicite, jamais de skip silencieux).
+          return cy
+            .loginOrgAccount({ allowSkip: overrides?.allowSkip })
+            .then(() => cy.wrap(existing));
+        }
+
+        cy.log(
+          `signupOrgAccount: login refusé (${result.kind}, HTTP ${result.status}) — provisioning du compte ${existing.email} (signup UI complet + wizard)`,
+        );
+        return provisionOrgAccount(fixed, overrides).then(() => {
+          setOrgCreds({ email: fixed.email, password: fixed.password });
+          return cy.wrap({ email: fixed.email, password: fixed.password });
+        });
       });
-      return cy.wrap(existing);
     }
 
-    cy.visit('/auth');
-    cy.contains('button', 'Pas encore de compte', { timeout: 30_000 }).should(
-      'be.visible',
-    );
-    cy.contains('button', 'Pas encore de compte').click();
-    cy.get('input[aria-label="Prénom"]').type(fixed.email.split('@')[0].slice(0, 10));
-    cy.get('input[aria-label="Nom"]').type('E2E');
-    cy.get('input[type="email"]').type(fixed.email);
-    cy.get('input[type="password"]').type(fixed.password);
-    cy.contains('button[type="submit"]', 'Créer mon compte').click();
-
-    // Deux issues possibles :
-    //  a. 1er run absolu : le compte n'existait pas en base → sign-up
-    //     propre → /onboarding (wizard COMPLET, l'exigence stricte de
-    //     l'utilisateur — pas de raccourci localStorage).
-    //  b. Run suivant : le compte EXISTAIT déjà (identifiant unique) →
-    //     l'app détecte "already exists", bascule AUTOMATIQUEMENT en
-    //     mode login (voir handleSignup de AuthPage.tsx) et reste sur
-    //     /auth avec la bannière d'erreur. On capte ce cas, on
-    //     resubmit via login (même email/mot de passe) → /onboarding
-    //     (le compte est enregistré mais non configuré pour ce
-    //     navigateur — le cas EXACT demandé par l'utilisateur).
-    cy.get('button[type="submit"]').then(($btns) => {
-      const texts = $btns.map((_, el) => el.textContent).get();
-      const signupStillThere = texts.some((t) =>
-        t?.includes('Créer mon compte'),
-      );
-      if (!signupStillThere) {
-        // L'app a basculé en mode login (compte préexistant) : on
-        // resubmit avec le même email/mot de passe → /onboarding.
-        cy.get('input[type="email"]').clear().type(fixed.email);
-        cy.get('input[type="password"]').clear().type(fixed.password);
-        cy.contains('button[type="submit"]', 'Se connecter').click();
-      }
-      // Sinon (signup abouti, redirect /onboarding en cours) : on laisse
-      // la navigation se faire, le should() ci-dessous la capte.
+    return provisionOrgAccount(fixed, overrides).then(() => {
+      setOrgCreds({ email: fixed.email, password: fixed.password });
+      return cy.wrap({ email: fixed.email, password: fixed.password });
     });
-
-    cy.location('pathname', { timeout: 120_000 }).then((path: string) => {
-      // Identifiant unique : le compte existe déjà en base (run
-      // précédent) mais pas pour CE navigateur → /onboarding (cas
-      // b). Le 1er run absolu (compte inexistant en base) passe par
-      // le signup propre → /onboarding aussi (cas a).
-      if (path === '/onboarding') return;
-      if (path === '/dashboard') {
-        // Le signup abouti ET le redirect s'est passé très vite — le
-        // wizard onboarding a déjà été joué et complété (ex. run où
-        // on a replanqué les flags manuellement ou un run antérieur
-        // a posé lumina-onboarded avant ce spec). Post-condition
-        // satisfait, on continue sans replanquer le wizard.
-        return;
-      }
-      throw new Error(
-        `signupOrgAccount: après signup/login, path inattendu ${path} (attendu /onboarding ou /dashboard)`,
-      );
-    });
-    // Si on est sur /onboarding, on joue le wizard COMPLET (l'exigence
-    // stricte — pas de raccourci localStorage). Sur /dashboard,
-    // l'onboarding est déjà complété pour ce navigateur : on passe
-    // directement au post-condition.
-    cy.window().then((win) => {
-      const onboarded = win.localStorage.getItem('lumina-onboarded');
-      if (onboarded === 'true') return;
-      cy.location('pathname').then((p: string) => {
-        if (p === '/onboarding') {
-          cy.runOnboarding({
-            orgName: overrides?.orgName ?? fixed.orgName,
-            orgType: (overrides?.orgType ?? fixed.orgType) as
-              | 'Église'
-              | 'École'
-              | 'Entreprise',
-            role: overrides?.role ?? fixed.role,
-          });
-        }
-      });
-    });
-    cy.location('pathname', { timeout: 90_000 }).should('eq', '/dashboard');
-
-    setOrgCreds({ email: fixed.email, password: fixed.password });
-    cy.window().then((win) => {
-      const sbKey = Object.keys(win.localStorage).find(
-        (k) => /-auth-token$/.test(k),
-      );
-      if (!sbKey || !win.localStorage.getItem(sbKey)) {
-        throw new Error(
-          'signupOrgAccount: token Supabase absent — le wizard a atterri ' +
-            'sur /dashboard mais la session n\'est pas persistée.',
-        );
-      }
-    });
-    return cy.wrap({ email: fixed.email, password: fixed.password });
   });
 
 /**
@@ -711,14 +776,27 @@ Cypress.Commands.add('signupOrgAccount', function (
  *      (`getOrgCreds()` — cache in-mem + config Node, voir
  *      cypress/support/orgCreds.ts).
  *   2. cy.visit('/auth') + submit du form login → /dashboard.
- *   3. Post-condition : /dashboard (pas /onboarding — l'org existe,
- *      onboarding déjà complété par le wizard du 1er spec).
+ *   3. Post-condition : /onboarding ou /dashboard (pas /auth).
  *
- * Si les credentials ne sont pas posés (le 1er spec n'a pas tourné,
- * ou le run a été nettoyé), ce spec échoue avec un message clair
- * plutôt que de recréer silencieusement un compte.
+ * ## Résilience (cause racine mesurée, run CI 41282690879)
+ *
+ * Le projet Supabase est PARTAGÉ et, pendant le run, GoTrue a renvoyé des
+ * centaines de `400 Invalid login credentials` (compte non provisionné /
+ * mot de passe divergent), des `500` transitoires (« context canceled »,
+ * « unexpected EOF ») et deux `422 User already registered` (course entre
+ * les 2 conteneurs CI). Le POST login ne « complete » donc jamais et
+ * l'assertion de nav time out à 90 s → échec d'INFRA, pas de produit.
+ *
+ * On distingue désormais :
+ *   - TRANSITOIRE (429/5xx/POST en vol) → retry borné + backoff exponentiel
+ *     (voir cloudRetry.ts / authRetryPolicy.ts). Budget épuisé + `allowSkip`
+ *     ⇒ spec PENDING (pending), jamais un échec rouge.
+ *   - AUTHENTIQUE (identifiants invalides / compte inconnu) → échec EXPLICITE
+ *     immédiat, jamais retenté, jamais skippé : c'est un vrai défaut.
  */
-Cypress.Commands.add('loginOrgAccount', function (): Cypress.Chainable {
+Cypress.Commands.add('loginOrgAccount', function (options?: {
+  allowSkip?: boolean;
+}): Cypress.Chainable {
   const creds = getOrgCreds();
   if (!creds?.email || !creds?.password) {
     throw new Error(
@@ -728,95 +806,62 @@ Cypress.Commands.add('loginOrgAccount', function (): Cypress.Chainable {
         'le run (il pose le compte partagé pour la suite).',
     );
   }
+
+  // Statut HTTP du POST `grant_type=password` — capturé par l'intercept
+  // ci-dessous, lu par le poller pour distinguer 429/5xx (transitoire) de
+  // 400 (identifiants refusés).
+  const statusRef = { status: 0 };
+  cy.intercept('POST', '**/auth/v1/token**', (req) => {
+    req.continue((res) => {
+      statusRef.status = res.statusCode;
+    });
+  });
+
   cy.clearLocalStorage();
-  cy.visit('/auth');
-  cy.get('input[type="email"]').first().type(creds.email);
-  cy.get('input[type="password"]').first().type(creds.password);
-  cy.contains('button[type="submit"]', 'Se connecter').click();
 
-  // Diagnostic (6e run, 'Mes comptes' vide) : tracer quel branch le
-  // login prend — /onboarding (wizard rejoué, flags vides) ou
-  // /dashboard (onboarding déjà complété).
-  // NB : jamais de commande (cy.window) DANS le callback should() —
-  // should() re-exécute la fonction à chaque retry et rejoue alors
-  // la commande. Assertion pure ici ; le trace suit dans le .then().
-  cy.location('pathname', { timeout: 90_000 }).should((path: string) => {
-    expect(
-      path,
-      `after login: ${path} (attendu /onboarding ou /dashboard — le POST login nav a pas completé en 90 s : vérifier le 503 Render / la rate limit GoTrue / le timeout du form)`,
-    ).to.be.oneOf(['/onboarding', '/dashboard']);
-  });
-  cy.location('pathname').then((path: string) => {
-    return cy.window().then((win) => {
-      const flags = ['lumina-onboarding', 'lumina-onboarded', 'lumina-role', 'lumina-user']
-        .map((k) => `${k}=${win.localStorage.getItem(k)}`)
-        .join(' ');
-      console.info(`[loginOrgAccount] post-login path=${path} flags: ${flags}`);
+  // `this` = contexte Mocha de la commande (vérifié : `this.skip()` marche
+  // depuis un hook, un spec, une commande custom et un setup `cy.session`).
+  const ctx = this as unknown as Mocha.Context;
+
+  return runWithAuthRetry({
+    label: 'loginOrgAccount',
+    allowSkip: options?.allowSkip,
+    ctx,
+    statusRef,
+    attempt: () => {
+      cy.visit('/auth');
+      cy.get('input[type="email"]').first().type(creds.email);
+      cy.get('input[type="password"]').first().type(creds.password);
+      cy.contains('button[type="submit"]', 'Se connecter').click();
+    },
+  }).then((result) => {
+    // `result.navigated` est garanti vrai ici (sinon le retry a levé ou
+    // skippé). Trace légère conservée pour le diagnostic CI.
+    cy.location('pathname').then((path: string) => {
+      console.info(
+        `[loginOrgAccount] login accepté — path=${path}` +
+          (result.status ? ` (HTTP ${result.status})` : ''),
+      );
+      if (path === '/onboarding') {
+        // Navigateur vierge (clearLocalStorage ci-dessus) : needsOnboarding()
+        // = true → on rejoue le wizard COMPLET (pas de raccourci localStorage).
+        cy.runOnboarding();
+        cy.location('pathname', { timeout: 90_000 }).should('eq', '/dashboard');
+      }
     });
-  });
 
-  // Retouche 2 (same 4e run) : le .then() ci-dessous re-lit le path APRES
-  // que le should() ci-dessus a déjà validé → plus de race : le branch
-  // est déterministe.
-  cy.location('pathname').then((path: string) => {
-    if (path === '/onboarding') {
-      // Case b : le navigateur a été nettoyé (cy.clearLocalStorage()
-      // ci-dessus), needsOnboarding() = true → le wizard COMPLET se
-      // rejoue (runOnboarding), sans raccourci localStorage.
-      cy.runOnboarding();
-      cy.location('pathname', { timeout: 90_000 }).should('eq', '/dashboard');
-      return;
-    }
-    // Case a (default) : path === '/dashboard', déjà conforme.
+    // Seed de la réplique locale avant de rendre la main : le service
+    // PowerSync Cloud rejette l'audience JWT (`PSYNC_S2105`), donc la
+    // réplique ne descend jamais et TOUTES les pages gardées par
+    // `isPowerSyncReadyNow()` restent en squelette (sessions, events,
+    // groups, members, finance, reports…). `seedOrgReplica()` écrit l'org
+    // E2E dans la réplique locale + marque la réplique prête → les pages
+    // rendent hors-ligne ; `hydrateOrgReplica()` y copie ensuite les données
+    // réelles de l'org (REST → réplique), y compris le profil complet.
+    cy.seedOrgReplica();
+    cy.hydrateOrgReplica();
+    return cy.wrap(null);
   });
-
-  // 7e run (4m11s, listReopen jamais vue) : capture du state du /sessions
-  // post-login — le bug 'Mes comptes' vide EST ici ; le spy console
-  // (sessions.cy.ts) ne démarre qu'au 1er it → trop tard pour le montage
-  // /sessions du before(). Trace local au lieu. NB : on re-lit le path
-  // (variable locale `postPath` — jamais le `path` du .then() ci-dessus,
-  // hors scope ici) pour l'étiquette, SANS en dépendre pour l'action.
-  cy.location('pathname').then((postPath: string) => {
-    return cy.window().then((win) => {
-      const ls = Object.keys(win.localStorage).map((k) => {
-        const v = win.localStorage.getItem(k) || '';
-        return `${k}=${v.length > 60 ? v.slice(0, 55) + '…' : v}`;
-      }).join(' ');
-      console.info(`[loginOrgAccount] at /${postPath}: ${ls}`);
-    });
-  });
-  cy.visit('/sessions');
-  cy.window().then((win) => {
-    const btns = Array.from(win.document.querySelectorAll('button'))
-      .map((b) => (b.getAttribute('aria-label') || b.textContent || '?').trim().slice(0, 48))
-      .join(' | ');
-    const flags = ['lumina-user', 'my-orgs', 'lumina-onboarding', 'lumina-onboarded']
-      .map((k) => `${k}=${(win.localStorage.getItem(k) || '(absent)').slice(0, 60)}`)
-      .join(' ');
-    console.info(`[loginOrgAccount] /sessions post-login — flags: ${flags}`);
-    console.info(`[loginOrgAccount] /sessions boutons: ${btns || '(aucun)'}`);
-  });
-  // Fin de la capture : on ne change PLUS d'état (plus de
-  // clearLocalStorage ni de redirection) — le spec gère le reste.
-  //
-  // Seed de la réplique locale avant de rendre la main : le service
-  // PowerSync Cloud rejette l'audience JWT (`PSYNC_S2105`), donc la
-  // réplique ne descend jamais et TOUTES les pages gardées par
-  // `isPowerSyncReadyNow()` restent en squelette (sessions, events,
-  // groups, members, finance, reports…). `seedOrgReplica()` écrit l'org
-  // E2E dans la réplique locale + marque la réplique prête → les pages
-  // rendent hors-ligne. Centré ici : une seule ligne couvre tous les
-  // specs qui utilisent `loginOrgAccount()`.
-  // Seed de la réplique locale + hydratation REST (voir ci-dessous).
-  // `seedOrgReplica()` pose l'org/profil/membership/admin E2E dans la
-  // réplique locale ; `hydrateOrgReplica()` y copie ensuite les données
-  // réelles de l'org (REST → réplique) — y compris le profil complet, ce
-  // qui alimente les lookups de noms (colonne « Soumetteur »). Les deux
-  // sont nécessaires : le seed garantit les lignes de base même si le REST
-  // ne les renvoie pas (RLS), l'hydratation apporte les données métier.
-  cy.seedOrgReplica();
-  cy.hydrateOrgReplica();
-  return cy.wrap(null);
 });
 
 /**

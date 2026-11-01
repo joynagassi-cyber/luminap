@@ -23,12 +23,16 @@
 describe("Lumina — redirection du point d'entrée PWA", () => {
   before(function () {
     this.timeout(90_000);
-    cy.loginOrgAccount();
+    // Skip gracieux (pending) si le GoTrue PARTAGÉ est en panne après le
+    // budget de retry — la redirection `/` est déjà couverte hors-ligne par
+    // `zero-black-screen.cy.ts` (gate déterministe). Jamais de skip sur un
+    // échec d'auth authentique (mauvais mot de passe / compte inconnu).
+    cy.loginOrgAccount({ allowSkip: true });
   });
 
   it("`/` (start_url de la PWA) redirige vers une page réelle, jamais un écran blanc", function () {
     this.timeout(120_000);
-    cy.ensureAuth();
+    cy.ensureAuth({ allowSkip: true });
     cy.visit("/");
     // 1. La redirection aboutit (et ne reste PAS sur `/`).
     cy.location("pathname", { timeout: 60_000 }).should((p) => {

@@ -43,6 +43,10 @@ describe('Lumina — real auth flows (cloud)', () => {
       orgName: 'Lumina E2E',
       orgType: 'Église',
       role: 'PASTEUR_PRINCIPAL',
+      // Provisionne le compte si absent de la base partagée ; skip gracieux
+      // (pending) si GoTrue est en panne après le budget de retry. Jamais de
+      // skip sur un échec d'auth authentique.
+      allowSkip: true,
     });
   });
 
@@ -57,7 +61,7 @@ describe('Lumina — real auth flows (cloud)', () => {
     // « si pour un flux de connexion l'onboarding réapparaît, il y a un
     // bug produit à corriger ». On échoue si Splash nous renvoie sur
     // /onboarding ou /org-setup au lieu de /dashboard.
-    cy.loginOrgAccount();
+    cy.loginOrgAccount({ allowSkip: true });
   });
 
   it('Registered but unconfigured user — login resumes onboarding → org setup', function () {

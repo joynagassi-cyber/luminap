@@ -1026,3 +1026,27 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   (fail-open) ⇒ visible. Surcharge réelle `localStorage['lumina-flags']`.
   Non-vacuité : garde `true` dans `TopHeader` ⇒ 2 échecs.
 
+
+## Flake CI `cypress.yml` = compte de test Supabase ABSENT (2026-11-01, R183)
+- **Cause racine mesurée** (logs auth Supabase + run 41282690879) : le compte
+  partagé `lumina-org-e2e@lumina.dev` était ABSENT de la base partagée →
+  GoTrue renvoie **`400 Invalid login credentials`** en boucle (pas 429/503) ;
+  + des `500` transitoires (« context canceled ») et des `422 User already
+  registered` (course entre les 2 conteneurs CI). Résultat : le POST login ne
+  complète jamais → `should(/onboarding|/dashboard)` time out à 90-120 s.
+  ~12 specs cloud échouent (auth-real, root-redirect, calendar, finance-deep,
+  members, groups-events, cross-tenant, …) — l'offline gate reste vert.
+- **Correctif** (`cypress/support/authRetryPolicy.ts` pur + `cloudRetry.ts`) :
+  retry BORNÉ (3 tentatives, backoff 1,5/3 s) sur TRANSITOIRE (429/5xx/POST en
+  vol) uniquement ; un `400 invalid-credentials` n'est JAMAIS retenté/skippé.
+  `loginOrgAccount({allowSkip:true})` → après budget, `ctx.skip()` (pending)
+  SEULEMENT si la cause est infra ; `signupOrgAccount` re-provisionne le compte
+  (signup UI + wizard) si absent. allowSkip câblé sur auth-real + root-redirect
+  uniquement. Garde vitest `src/lib/__tests__/cypress-auth-retry-policy.test.ts`
+  (11).
+- **Piège outillage** : `export CYPRESS_ORG_PASSWORD=…` dans une commande
+  shell PERSISTE entre commandes (session unique) → un test « mauvais mot de
+  passe » empoisonne les runs suivants. Toujours `unset` après.
+- Pré-existants sur `main` (NE PAS confondre avec ce flake) : `forms-v2`
+  (« Formulaire absent de Supabase après setup »), `offline-write-sync`
+  (org_id `org-<uuid>` vs `org-e2e` + erreur React interne).
