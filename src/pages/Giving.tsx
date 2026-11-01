@@ -388,16 +388,16 @@ function DonorSheet({
   return (
     <Sheet title="Nouveau donateur" onClose={onClose}>
       <label className="block">
-        <span className="text-text-tertiary text-xs uppercase tracking-wide block mb-1">Nom complet</span>
+        <span className="text-text-tertiary text-xs uppercase tracking-wide block mb-1">Nom complet *</span>
         {/* M4 */}
         <IonInput value={name} onIonInput={(e) => setName((e.detail.value as string) ?? "")} placeholder="Ex : Marie A." data-testid="donor-name" />
       </label>
       <label className="block">
-        <span className="text-text-tertiary text-xs uppercase tracking-wide block mb-1">Email</span>
+        <span className="text-text-tertiary text-xs uppercase tracking-wide block mb-1">Email (optionnel)</span>
         <IonInput value={email} onIonInput={(e) => setEmail((e.detail.value as string) ?? "")} placeholder="email@…" />
       </label>
       <label className="block">
-        <span className="text-text-tertiary text-xs uppercase tracking-wide block mb-1">Téléphone</span>
+        <span className="text-text-tertiary text-xs uppercase tracking-wide block mb-1">Téléphone (optionnel)</span>
         <IonInput value={phone} onIonInput={(e) => setPhone((e.detail.value as string) ?? "")} placeholder="+225 …" />
       </label>
       <button
@@ -447,20 +447,20 @@ function CampaignSheet({
   return (
     <Sheet title="Nouvelle campagne" onClose={onClose}>
       <label className="block">
-        <span className="text-text-tertiary text-xs uppercase tracking-wide block mb-1">Nom</span>
+        <span className="text-text-tertiary text-xs uppercase tracking-wide block mb-1">Nom *</span>
         {/* M4 */}
         <IonInput value={name} onIonInput={(e) => setName((e.detail.value as string) ?? "")} placeholder="Ex : Fonds mission 2026" data-testid="campaign-name" />
       </label>
       <label className="block">
-        <span className="text-text-tertiary text-xs uppercase tracking-wide block mb-1">But</span>
+        <span className="text-text-tertiary text-xs uppercase tracking-wide block mb-1">But (optionnel)</span>
         <IonInput value={purpose} onIonInput={(e) => setPurpose((e.detail.value as string) ?? "")} placeholder="Objectif de la campagne" />
       </label>
       <label className="block">
-        <span className="text-text-tertiary text-xs uppercase tracking-wide block mb-1">Fonds / caisse</span>
+        <span className="text-text-tertiary text-xs uppercase tracking-wide block mb-1">Fonds / caisse (optionnel)</span>
         <IonInput value={fund} onIonInput={(e) => setFund((e.detail.value as string) ?? "")} placeholder="Ex : Caisse mission" />
       </label>
       <label className="block">
-        <span className="text-text-tertiary text-xs uppercase tracking-wide block mb-1">Objectif (FCFA)</span>
+        <span className="text-text-tertiary text-xs uppercase tracking-wide block mb-1">Objectif (FCFA) (optionnel)</span>
         <IonInput type="text" inputMode="decimal" value={target} onIonInput={(e) => setTarget((e.detail.value as string) ?? "")} placeholder="Ex : 5000000" data-testid="campaign-target" />
       </label>
       <PrimaryButton onClick={submit} disabled={saving || !name.trim()} label={saving ? "Création…" : "Créer la campagne"} />

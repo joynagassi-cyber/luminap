@@ -102,8 +102,10 @@ export default function TransactionNewGroup() {
     const trimmedDesc = description.trim();
     const trimmedCatId = categoryId?.toString().trim();
 
-    if (!trimmedAmount || !trimmedDesc || !trimmedCatId) {
-      setError("Veuillez remplir tous les champs obligatoires");
+    // Description FACULTATIVE (colonne NOT NULL → repli plus bas) ; seuls le
+    // montant et la catégorie sont réellement requis.
+    if (!trimmedAmount || !trimmedCatId) {
+      setError("Veuillez remplir les champs obligatoires (montant, catégorie)");
       return;
     }
     const amountCents = parseAmountToCents(trimmedAmount);
@@ -115,13 +117,18 @@ export default function TransactionNewGroup() {
     setSubmitting(true);
     const sessionId = localStorage.getItem("lumina-session") || "local-user";
     const isExpense = type === "EXPENSE";
+    const safeDescription =
+      trimmedDesc ||
+      (categories.find((c: any) => c.id === trimmedCatId) as any)?.label_fr ||
+      (categories.find((c: any) => c.id === trimmedCatId) as any)?.label ||
+      "Transaction";
 
     try {
       await addTransactionPS({
         org_id: getOrganizationId(),
         type,
         amount: amountCents,
-        description,
+        description: safeDescription,
         date,
         status: isExpense ? "PENDING" : "DRAFT",
         category_id: categoryId,
@@ -211,7 +218,7 @@ export default function TransactionNewGroup() {
 
             {/* Amount */}
             <IonItem lines="none" className="mb-5 bg-card rounded-xl">
-              <IonLabel position="floating" className="text-sm text-text-secondary">Montant (FCFA)</IonLabel>
+              <IonLabel position="floating" className="text-sm text-text-secondary">Montant (FCFA) *</IonLabel>
               <IonInput
                 type="text"
                 inputMode="decimal"
@@ -223,7 +230,7 @@ export default function TransactionNewGroup() {
 
             {/* Description */}
             <IonItem lines="none" className="mb-5 bg-card rounded-xl">
-              <IonLabel position="floating" className="text-sm text-text-secondary">Description</IonLabel>
+              <IonLabel position="floating" className="text-sm text-text-secondary">Description (optionnel)</IonLabel>
               <IonInput
                 type="text"
                 value={description}
@@ -245,7 +252,7 @@ export default function TransactionNewGroup() {
             {/* Category */}
             <div className="mb-5">
               <label className="text-text-tertiary text-xs mb-2 block">
-                Catégorie
+                Catégorie *
               </label>
               <IonSelect
                 value={categoryId}

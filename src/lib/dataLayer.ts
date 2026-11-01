@@ -28,6 +28,7 @@ import {
   resetOrganizationId,
 } from "./orgContext";
 import { parseJsonbValue } from "./jsonb";
+import { sortCaisses } from "./caisseOrder";
 import { get, set, invalidate, clear, asyncGetOrSet } from "./cache";
 import { authService } from "./auth";
 import { assertPeriodOpen, getLockedUntil } from "./periodLock";
@@ -635,11 +636,15 @@ export function useCaisses() {
   const store = useLocalStore();
 
   if (psData && psData.length > 0 && isPowerSyncReady()) {
-    return { data: psData, isLoading: false, source: "powersync" as const };
+    return {
+      data: sortCaisses(psData),
+      isLoading: false,
+      source: "powersync" as const,
+    };
   }
 
   return {
-    data: store.caisses,
+    data: sortCaisses(store.caisses),
     isLoading: false,
     source: "indexeddb" as const,
   };
@@ -659,11 +664,15 @@ export function useAccounts() {
   const store = useLocalStore();
 
   if (psData && psData.length > 0 && isPowerSyncReady()) {
-    return { data: psData, isLoading: false, source: "powersync" as const };
+    return {
+      data: sortCaisses(psData),
+      isLoading: false,
+      source: "powersync" as const,
+    };
   }
 
   return {
-    data: store.accounts,
+    data: sortCaisses(store.accounts),
     isLoading: false,
     source: "indexeddb" as const,
   };

@@ -298,7 +298,7 @@ function CreateBudgetSheet({
 
         <div className="space-y-3">
           <IonItem lines="none" className="bg-card rounded-xl">
-            <IonLabel position="floating" className="text-sm text-text-secondary">Nom</IonLabel>
+            <IonLabel position="floating" className="text-sm text-text-secondary">Nom *</IonLabel>
             <IonInput
               type="text"
               value={name}

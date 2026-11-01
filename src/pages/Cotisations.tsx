@@ -115,7 +115,7 @@ export default function Cotisations() {
               <CircleAction
                 aria-label="Créer un nouveau culte"
                 onClick={() =>
-                  navigate("/event/new", { state: { defaultType: "CULTE" } })
+                  navigate("/event/new?type=CULTE")
                 }
               >
                 <Plus className="w-6 h-6" />
@@ -128,7 +128,7 @@ export default function Cotisations() {
                 description="Créez votre premier culte pour suivre les cotisations"
                 actionLabel="Créer un culte"
                 onAction={() =>
-                  navigate("/event/new", { state: { defaultType: "CULTE" } })
+                  navigate("/event/new?type=CULTE")
                 }
               />
             ) : (

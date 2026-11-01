@@ -65,7 +65,14 @@ export default function EventNew() {
   const [endDate, setEndDate] = useState("");
   const [status, setStatus] = useState<Event["status"]>("PLANIFIED");
   const [eventType, setEventType] = useState<"EVENT" | "CULTE">(
-    location.state?.defaultType === "CULTE" ? "CULTE" : "EVENT",
+    // Le type arrive par QUERY PARAM (`?type=CULTE`) : le routeur Ionic ne
+    // préserve pas le `location.state` de React Router entre les vues, donc
+    // « Créer un culte » (Cotisations) ouvrait le formulaire sur « Événement »
+    // (défaut). Fallback sur `state` pour les liens internes historiques.
+    (new URLSearchParams(location.search).get("type") ||
+      location.state?.defaultType) === "CULTE"
+      ? "CULTE"
+      : "EVENT",
   );
   const [montantCotisation, setMontantCotisation] = useState("");
   const [budgetItems, setBudgetItems] = useState<BudgetItem[]>([]);
@@ -300,7 +307,7 @@ export default function EventNew() {
           {/* Description */}
           <div className="mb-5">
             <label className="text-text-tertiary text-xs mb-2 block">
-              Description
+              Description (optionnel)
             </label>
             <IonTextarea
               aria-label="Description"
