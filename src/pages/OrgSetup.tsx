@@ -244,7 +244,7 @@ export default function OrgSetup() {
 
   const chosen = TEMPLATE_CHOICES.find((t) => t.type === type) ?? null;
   const stepInfo = STEP_INFO[step];
-  const progress = (step - 1) / 4;
+  const progress = step / 5;
 
   const canCreate = name.trim().length >= 2 && type !== null && role !== null;
 
@@ -425,12 +425,15 @@ export default function OrgSetup() {
                 {stepInfo.label}
               </span>
             </div>
-            <div className="h-1.5 bg-surface rounded-full overflow-hidden border border-border/50">
+            <div className="h-3 bg-surface rounded-full overflow-hidden border border-border/50">
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${progress * 100}%` }}
                 transition={{ duration: 0.4 }}
-                className="h-full bg-accent-primary rounded-full"
+                className="h-full rounded-full"
+                style={{
+                  background: "linear-gradient(90deg, var(--accent-primary) 0%, color-mix(in srgb, var(--accent-primary) 50%, var(--data-alert)) 100%)",
+                }}
               />
             </div>
           </div>
