@@ -27,6 +27,7 @@ import * as Sentry from "@sentry/react";
 
 import { redact } from "./clientErrors";
 import type { ClientErrorContext } from "./clientErrors";
+import { authService } from "./auth";
 import { buildHealthReport } from "./health";
 import type { HealthInputs, HealthLevel } from "./health";
 import { normalizeText } from "./sanitize";
@@ -78,14 +79,39 @@ export interface ProblemReport {
   note: string;
 }
 
+/** Échappe les métacaractères d'une chaîne pour un usage dans `RegExp`. */
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Retire d'un texte toute occurrence d'un identifiant connu (e-mail, prénom,
+ * nom de l'utilisateur courant) — insensible à la casse. `redact` masque les
+ * PII à FORME reconnaissable (e-mail, jeton) ; un nom propre n'a pas de forme
+ * détectable, il faut donc le retirer par VALEUR. Les jetons de moins de 2
+ * caractères sont ignorés (bruit, faux positifs sur des mots courants).
+ */
+export function scrubIdentities(
+  text: string,
+  identities: readonly string[],
+): string {
+  let out = text;
+  for (const raw of identities) {
+    const token = (raw ?? "").trim();
+    if (token.length < 2) continue;
+    out = out.replace(new RegExp(escapeRegExp(token), "gi"), "<masqué>");
+  }
+  return out;
+}
+
 /** Normalise une entrée d'erreur client en entrée de rapport (PII-free). */
-function toReportError(err: {
-  source: string;
-  message: string;
-}): ProblemReportError {
+function toReportError(
+  err: { source: string; message: string },
+  identities: readonly string[],
+): ProblemReportError {
   return {
     code: err.source,
-    message: normalizeText(redact(err.message), {
+    message: normalizeText(scrubIdentities(redact(err.message), identities), {
       maxLength: MAX_ERROR_MESSAGE_LENGTH,
       collapseWhitespace: true,
     }),
@@ -104,6 +130,7 @@ export function buildProblemReport(
   recentErrors: readonly Pick<ClientErrorContext, "source" | "message">[],
   now: string,
   note = "",
+  identities: readonly string[] = [],
 ): ProblemReport {
   const health = buildHealthReport(inputs, now);
   return {
@@ -117,8 +144,8 @@ export function buildProblemReport(
     failedChecks: health.checks
       .filter((c) => c.level !== "ok")
       .map((c) => c.id),
-    errors: recentErrors.map(toReportError),
-    note: normalizeText(redact(note), {
+    errors: recentErrors.map((e) => toReportError(e, identities)),
+    note: normalizeText(scrubIdentities(redact(note), identities), {
       maxLength: MAX_NOTE_LENGTH,
       collapseWhitespace: false,
     }),
@@ -184,6 +211,24 @@ function persistProblemReport(report: ProblemReport): boolean {
 }
 
 /**
+ * Identités de l'utilisateur courant à masquer dans le rapport : son e-mail et
+ * son nom (prénom/nom). Ce sont des valeurs SANS forme détectable — `redact` ne
+ * peut pas les reconnaître, il faut donc les retirer par VALEUR. On n'énumère
+ * volontairement QUE l'utilisateur courant (lecture locale, synchrone) : les
+ * noms des AUTRES membres ne sont pas accessibles sans lecture base, qui
+ * romprait la pureté/le caractère synchrone de l'envoi.
+ */
+function currentUserIdentities(): string[] {
+  try {
+    const p = authService.getState().profile;
+    if (!p) return [];
+    return [p.email ?? "", p.first_name ?? "", p.last_name ?? ""];
+  } catch {
+    return [];
+  }
+}
+
+/**
  * Envoie un signalement de problème.
  *
  * - émet le rapport via Sentry (`captureMessage`, niveau `info`, `extra` = le
@@ -193,15 +238,18 @@ function persistProblemReport(report: ProblemReport): boolean {
  * - dégrade proprement si Sentry est absent : `sentToSentry = false`, le local
  *   reste la seule trace et l'appelant prévient l'utilisateur (toast FR).
  *
- * `now` et `note` sont injectables pour les tests.
+ * `now`, `note` et `identities` sont injectables pour les tests. `identities`
+ * vaut par défaut les valeurs d'identité de l'utilisateur courant (voir
+ * `currentUserIdentities`).
  */
 export function sendProblemReport(
   inputs: HealthInputs,
   recentErrors: readonly Pick<ClientErrorContext, "source" | "message">[],
   note = "",
   now: string = new Date().toISOString(),
+  identities: readonly string[] = currentUserIdentities(),
 ): SendProblemReportResult {
-  const report = buildProblemReport(inputs, recentErrors, now, note);
+  const report = buildProblemReport(inputs, recentErrors, now, note, identities);
   const savedLocally = persistProblemReport(report);
 
   let sentToSentry = false;

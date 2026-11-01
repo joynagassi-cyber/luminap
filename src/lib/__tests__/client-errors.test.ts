@@ -26,6 +26,18 @@ describe("redact — aucune PII dans les rapports", () => {
     expect(redact("Authorization: Bearer abc.def.ghi")).toContain("<token>");
   });
 
+  it("masque un numéro de téléphone (séparateurs inclus)", () => {
+    expect(redact("rappeler le 06 12 34 56 78")).toBe("rappeler le <tel>");
+    expect(redact("tel: 0612345678")).toContain("<tel>");
+    expect(redact("06.12.34.56.78")).toBe("<tel>");
+    expect(redact("06-12-34-56-78")).toBe("<tel>");
+  });
+
+  it("ne masque PAS un identifiant numérique qui ne commence pas par 0", () => {
+    // Un montant / id / horodatage ne doit pas être confondu avec un téléphone.
+    expect(redact("montant 1234567890")).toBe("montant 1234567890");
+  });
+
   it("laisse passer un message sans PII", () => {
     expect(redact("NetworkError when attempting to fetch resource.")).toBe(
       "NetworkError when attempting to fetch resource.",

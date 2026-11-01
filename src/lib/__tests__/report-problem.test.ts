@@ -40,7 +40,9 @@ import {
   getLastProblemReport,
   clearProblemReports,
   isSentryConfigured,
+  scrubIdentities,
 } from "@/lib/reportProblem";
+import { authService } from "@/lib/auth";
 import type { HealthInputs } from "@/lib/health";
 
 const base: HealthInputs = {
@@ -239,5 +241,124 @@ describe("sendProblemReport — Sentry configuré (envoi réel)", () => {
     } finally {
       vi.unstubAllEnvs();
     }
+  });
+});
+
+/**
+ * PR5 — audit PII (nom propre / téléphone). `redact` ne masque que les PII à
+ * FORME reconnaissable (e-mail, JWT, Bearer) : un NOM ou un NUMÉRO de téléphone
+ * saisi par l'utilisateur traversait le rapport tel quel. Le rapport part vers
+ * Sentry et est conservé localement → fuite. On retire désormais les identités
+ * de l'utilisateur courant par VALEUR (`scrubIdentities`).
+ */
+describe("scrubIdentities — retrait par valeur (PR5)", () => {
+  it("masque un jeton connu, insensible à la casse", () => {
+    expect(scrubIdentities("Bonjour Jean DUPONT", ["Jean Dupont"])).toBe(
+      "Bonjour <masqué>",
+    );
+  });
+
+  it("ignore les jetons trop courts (bruit) et les vides", () => {
+    expect(scrubIdentities("abc a", ["a", "", "  "])).toBe("abc a");
+  });
+
+  it("échappe les métacaractères RegExp (pas d'injection de motif)", () => {
+    // Sans échappement, `a.b` matcherait `axb` et le motif serait interprété.
+    expect(scrubIdentities("valeur a.b ici", ["a.b"])).toBe("valeur <masqué> ici");
+    expect(scrubIdentities("axb", ["a.b"])).toBe("axb");
+  });
+
+  it("sans identité → texte inchangé", () => {
+    expect(scrubIdentities("rien à masquer", [])).toBe("rien à masquer");
+  });
+});
+
+describe("buildProblemReport — le rapport ne fuit ni nom ni téléphone (PR5)", () => {
+  const identities = ["Marie Dupont", "marie.dupont@church.org", "Dupont"];
+
+  it("masque le nom de l'utilisateur dans la note libre", () => {
+    const report = buildProblemReport(
+      base,
+      [],
+      "t",
+      "Contactez Marie Dupont au 06 12 34 56 78",
+      identities,
+    );
+    expect(report.note).not.toContain("Marie Dupont");
+    expect(report.note).toContain("<masqué>");
+  });
+
+  it("masque le nom de l'utilisateur dans les messages d'erreur repris", () => {
+    const report = buildProblemReport(
+      base,
+      [{ source: "handled", message: "Échec du chargement pour Marie Dupont" }],
+      "t",
+      "",
+      identities,
+    );
+    expect(report.errors[0].message).not.toContain("Marie Dupont");
+  });
+
+  it("l'e-mail est masqué par `redact` même sans identité fournie", () => {
+    const report = buildProblemReport(
+      base,
+      [],
+      "t",
+      "écrire à marie.dupont@church.org",
+    );
+    expect(report.note).not.toContain("marie.dupont@church.org");
+  });
+});
+
+describe("sendProblemReport — identités de l'utilisateur courant (PR5)", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("masque par défaut le prénom/nom/e-mail du profil connecté", () => {
+    const profile = {
+      id: "u1",
+      email: "marie.dupont@church.org",
+      first_name: "Marie",
+      last_name: "Dupont",
+      role: "ADMIN",
+      org_id: "org-1",
+      created_at: "t",
+      updated_at: "t",
+    };
+    vi.spyOn(authService, "getState").mockReturnValue({
+      session: null,
+      user: null,
+      profile,
+      isLoading: false,
+      error: null,
+    } as ReturnType<typeof authService.getState>);
+
+    const result = sendProblemReport(
+      base,
+      [{ source: "handled", message: "souci pour Marie Dupont" }],
+      "mon nom est Marie Dupont et mon mail marie.dupont@church.org",
+      "2026-10-31T08:00:00.000Z",
+    );
+
+    const serialized = JSON.stringify(result.report);
+    expect(serialized).not.toContain("Marie Dupont");
+    expect(serialized).not.toContain("marie.dupont@church.org");
+    // Le signalement reste utile : la note survit (partiellement masquée).
+    expect(result.savedLocally).toBe(true);
+    expect(result.report.note).toContain("<masqué>");
+  });
+
+  it("sans profil connecté → aucune exception, identités vides", () => {
+    vi.spyOn(authService, "getState").mockReturnValue({
+      session: null,
+      user: null,
+      profile: null,
+      isLoading: false,
+      error: null,
+    } as ReturnType<typeof authService.getState>);
+    expect(() =>
+      sendProblemReport(base, [], "note", "2026-10-31T08:00:00.000Z"),
+    ).not.toThrow();
   });
 });
