@@ -1,5 +1,15 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
+// Inter embarquée (addendum B2) : sous-ensembles latin + latin étendu, woff2.
+// Aucun appel à Google Fonts à l'exécution — l'app doit marcher hors ligne.
+import "@fontsource/inter/latin-400.css";
+import "@fontsource/inter/latin-500.css";
+import "@fontsource/inter/latin-600.css";
+import "@fontsource/inter/latin-700.css";
+import "@fontsource/inter/latin-ext-400.css";
+import "@fontsource/inter/latin-ext-500.css";
+import "@fontsource/inter/latin-ext-600.css";
+import "@fontsource/inter/latin-ext-700.css";
 import "./App.css";
 import "./globals.css";
 // Ionic structural CSS: layout for ion-app / .ion-page / ion-content

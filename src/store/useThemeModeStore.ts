@@ -1,5 +1,10 @@
 import { create } from "zustand";
-import { applyThemeMode, getStoredThemeMode, type ThemeMode } from "@/ionic/themes";
+import {
+  applyThemeMode,
+  getStoredThemeMode,
+  resolveThemeMode,
+  type ThemeMode,
+} from "@/ionic/themes";
 
 interface ThemeModeState {
   mode: ThemeMode;
@@ -8,19 +13,21 @@ interface ThemeModeState {
 }
 
 /**
- * Mode clair/sombre de Lumina — sombre par défaut, choix persisté
- * (localStorage `lumina-theme-mode`, géré par applyThemeMode/persistThemeMode
- * dans src/ionic/themes.ts). Le store ne fait que relier l'état React au
- * moteur d'application.
+ * Mode d'affichage de Lumina — « system » par défaut (suit le réglage de l'OS),
+ * choix persisté (localStorage `lumina-theme-mode`, géré par
+ * applyThemeMode/persistThemeMode dans src/ionic/themes.ts). Le store ne fait
+ * que relier l'état React au moteur d'application.
  */
-export const useThemeModeStore = create<ThemeModeState>()((set, get) => ({
+export const useThemeModeStore = create<ThemeModeState>()((set) => ({
   mode: getStoredThemeMode(),
   setMode: (mode) => {
     applyThemeMode(mode);
     set({ mode });
   },
   toggleMode: () => {
-    const next: ThemeMode = get().mode === "dark" ? "light" : "dark";
-    get().setMode(next);
+    const resolved = resolveThemeMode(useThemeModeStore.getState().mode);
+    const next: ThemeMode = resolved === "dark" ? "light" : "dark";
+    applyThemeMode(next);
+    set({ mode: next });
   },
 }));

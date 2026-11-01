@@ -269,8 +269,8 @@ export default function GroupDetail() {
               className="mb-4 p-3 rounded-xl text-sm"
               style={{
                 backgroundColor:
-                  "color-mix(in srgb, var(--data-expense) 12%, transparent)",
-                color: "var(--data-expense)",
+                  "color-mix(in srgb, var(--out) 12%, transparent)",
+                color: "var(--out)",
               }}
             >
               {error}
@@ -281,8 +281,8 @@ export default function GroupDetail() {
               className="mb-4 p-3 rounded-xl text-sm"
               style={{
                 backgroundColor:
-                  "color-mix(in srgb, var(--data-income) 12%, transparent)",
-                color: "var(--data-income)",
+                  "color-mix(in srgb, var(--in) 12%, transparent)",
+                color: "var(--in)",
               }}
             >
               {success}
@@ -326,7 +326,7 @@ export default function GroupDetail() {
               <p className="text-text-tertiary text-xs mb-1">Solde actuel</p>
               <p
                 className="text-2xl font-black"
-                style={{ color: balance >= 0 ? "var(--data-income)" : "var(--data-expense)" }}
+                style={{ color: balance >= 0 ? "var(--in)" : "var(--out)" }}
               >
                 {balance >= 0 ? "" : "-"}
                 {formatCurrencyCompact(Math.abs(balance))}
@@ -335,7 +335,7 @@ export default function GroupDetail() {
                 </span>
               </p>
               {pendingAmount !== 0 && (
-                <p className="text-xs mt-1" style={{ color: "var(--data-pending)" }}>
+                <p className="text-xs mt-1" style={{ color: "var(--warn)" }}>
                   {pendingAmount > 0 ? "+" : ""}
                   {formatCurrencyCompact(Math.abs(pendingAmount))} FCFA en
                   attente
@@ -347,16 +347,16 @@ export default function GroupDetail() {
               <div className="flex items-center gap-2">
                 <div
                   className="w-6 h-6 rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: "color-mix(in srgb, var(--data-income) 12%, transparent)" }}
+                  style={{ backgroundColor: "color-mix(in srgb, var(--in) 12%, transparent)" }}
                 >
                   <TrendingUp
                     className="w-3 h-3"
-                    style={{ color: "var(--data-income)" }}
+                    style={{ color: "var(--in)" }}
                   />
                 </div>
                 <span className="text-text-tertiary">
                   Entrées:{" "}
-                  <span style={{ color: "var(--data-income)" }}>
+                  <span style={{ color: "var(--in)" }}>
                     +{formatCurrencyCompact(income)}
                   </span>
                 </span>
@@ -364,16 +364,16 @@ export default function GroupDetail() {
               <div className="flex items-center gap-2">
                 <div
                   className="w-6 h-6 rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)" }}
+                  style={{ backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)" }}
                 >
                   <TrendingDown
                     className="w-3 h-3 rotate-180"
-                    style={{ color: "var(--data-expense)" }}
+                    style={{ color: "var(--out)" }}
                   />
                 </div>
                 <span className="text-text-tertiary">
                   Sorties:{" "}
-                  <span style={{ color: "var(--data-expense)" }}>
+                  <span style={{ color: "var(--out)" }}>
                     -{formatCurrencyCompact(expense)}
                   </span>
                 </span>
@@ -387,9 +387,9 @@ export default function GroupDetail() {
               onClick={() => navigate(`/groups/${id}/transaction/new`)}
               className="flex-1 py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-95"
               style={{
-                backgroundColor: "color-mix(in srgb, var(--data-income) 12%, transparent)",
-                color: "var(--data-income)",
-                border: "1px solid color-mix(in srgb, var(--data-income) 25%, transparent)",
+                backgroundColor: "color-mix(in srgb, var(--in) 12%, transparent)",
+                color: "var(--in)",
+                border: "1px solid color-mix(in srgb, var(--in) 25%, transparent)",
               }}
             >
               <ArrowUp className="w-4 h-4" /> Entrée
@@ -402,9 +402,9 @@ export default function GroupDetail() {
               }
               className="flex-1 py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-95"
               style={{
-                backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)",
-                color: "var(--data-expense)",
-                border: "1px solid color-mix(in srgb, var(--data-expense) 25%, transparent)",
+                backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)",
+                color: "var(--out)",
+                border: "1px solid color-mix(in srgb, var(--out) 25%, transparent)",
               }}
             >
               <ArrowDown className="w-4 h-4" /> Sortie
@@ -570,11 +570,11 @@ export default function GroupDetail() {
                           <button
                             onClick={() => handleRemoveMember(membership.id)}
                             className="w-8 h-8 rounded-full flex items-center justify-center"
-                            style={{ backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)" }}
+                            style={{ backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)" }}
                           >
                             <UserMinus
                               className="w-4 h-4"
-                              style={{ color: "var(--data-expense)" }}
+                              style={{ color: "var(--out)" }}
                             />
                           </button>
                         )}
@@ -669,7 +669,7 @@ export default function GroupDetail() {
                               evt.type === "info"
                                 ? "var(--accent-primary)"
                                 : evt.type === "success"
-                                  ? "var(--data-income)"
+                                  ? "var(--in)"
                                   : "var(--text-tertiary)",
                           }}
                         />
@@ -696,7 +696,7 @@ export default function GroupDetail() {
                             className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0"
                             style={{
                               backgroundColor:
-                                tx.type === "INCOME" ? "var(--data-income)" : "var(--data-expense)",
+                                tx.type === "INCOME" ? "var(--in)" : "var(--out)",
                             }}
                           />
                           <div>
@@ -825,9 +825,9 @@ export default function GroupDetail() {
               >
                 <div
                   className="w-10 h-10 rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)" }}
+                  style={{ backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)" }}
                 >
-                  <Trash2 className="w-5 h-5" style={{ color: "var(--data-expense)" }} />
+                  <Trash2 className="w-5 h-5" style={{ color: "var(--out)" }} />
                 </div>
                 <span className="text-expense text-sm font-medium">
                   Supprimer le groupe
@@ -908,7 +908,7 @@ export default function GroupDetail() {
                 </IonSelect>
                 </IonItem>
                 {error && (
-                  <p className="text-xs" style={{ color: "var(--data-expense)" }}>
+                  <p className="text-xs" style={{ color: "var(--out)" }}>
                     {error}
                   </p>
                 )}

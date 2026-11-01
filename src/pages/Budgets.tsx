@@ -125,18 +125,18 @@ export default function Budgets() {
                 </p>
               </div>
               <div className="rounded-xl p-4" style={{ backgroundColor: "var(--surface)" }}>
-                <PieChart className="w-4 h-4 mb-2" style={{ color: "var(--data-income)" }} />
+                <PieChart className="w-4 h-4 mb-2" style={{ color: "var(--in)" }} />
                 <p className="text-text-tertiary text-xs">Réel</p>
                 <p className="text-income font-bold text-sm mt-1">
                   {formatCurrencyCompact(activeTotals.actual)}
                 </p>
               </div>
               <div className="rounded-xl p-4" style={{ backgroundColor: "var(--surface)" }}>
-                <Target className="w-4 h-4 mb-2" style={{ color: "var(--data-pending)" }} />
+                <Target className="w-4 h-4 mb-2" style={{ color: "var(--warn)" }} />
                 <p className="text-text-tertiary text-xs">Restant</p>
                 <p
                   className="font-bold text-sm mt-1"
-                  style={{ color: activeTotals.planned - activeTotals.actual >= 0 ? "var(--data-income)" : "var(--data-expense)" }}
+                  style={{ color: activeTotals.planned - activeTotals.actual >= 0 ? "var(--in)" : "var(--out)" }}
                 >
                   {formatCurrencyCompact(Math.max(0, activeTotals.planned - activeTotals.actual))}
                 </p>
@@ -204,7 +204,7 @@ export default function Budgets() {
                       <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: "var(--surface-hover)" }}>
                         <div
                           className="h-full rounded-full"
-                          style={{ width: `${Math.min(100, bar)}%`, backgroundColor: over ? "var(--data-expense)" : "var(--accent-primary)" }}
+                          style={{ width: `${Math.min(100, bar)}%`, backgroundColor: over ? "var(--out)" : "var(--accent-primary)" }}
                         />
                       </div>
                       <p className="text-text-tertiary text-xs mt-1.5">{win.start} → {win.end}</p>

@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 /**
- * Tests for the dark/light theme mode:
- *  - getStoredThemeMode / persistThemeMode (localStorage, dark default)
- *  - applyThemeMode (data-theme on <html>, Ionic attrs, idempotency)
+ * Tests for the display mode (system/dark/light):
+ *  - getStoredThemeMode / persistThemeMode (localStorage, "system" default)
+ *  - resolveThemeMode (system → OS preference, dark fallback sans matchMedia)
+ *  - applyThemeMode (data-theme = mode résolu, Ionic attrs, idempotency)
  *  - useThemeModeStore (setMode persists + flips the document, toggleMode)
- *  - mapping mode → canvas tokens (dark #121212 / light #F5F6F8)
  */
 
 import { describe, it, expect, beforeEach } from "vitest";
@@ -13,6 +13,7 @@ import {
   applyStoredThemeMode,
   getStoredThemeMode,
   persistThemeMode,
+  resolveThemeMode,
   THEME_MODE_STORAGE_KEY,
 } from "@/ionic/themes";
 import { useThemeModeStore } from "@/store/useThemeModeStore";
@@ -27,8 +28,8 @@ beforeEach(() => {
 });
 
 describe("getStoredThemeMode / persistThemeMode", () => {
-  it("defaults to dark when nothing is stored", () => {
-    expect(getStoredThemeMode()).toBe("dark");
+  it("defaults to system when nothing is stored", () => {
+    expect(getStoredThemeMode()).toBe("system");
   });
 
   it("reads back a persisted light mode", () => {
@@ -37,9 +38,20 @@ describe("getStoredThemeMode / persistThemeMode", () => {
     expect(getStoredThemeMode()).toBe("light");
   });
 
-  it("falls back to dark on a corrupt value", () => {
+  it("falls back to system on a corrupt value", () => {
     localStorage.setItem(THEME_MODE_STORAGE_KEY, "neon");
-    expect(getStoredThemeMode()).toBe("dark");
+    expect(getStoredThemeMode()).toBe("system");
+  });
+});
+
+describe("resolveThemeMode", () => {
+  it("passes through explicit dark / light", () => {
+    expect(resolveThemeMode("dark")).toBe("dark");
+    expect(resolveThemeMode("light")).toBe("light");
+  });
+
+  it("resolves system to dark when matchMedia is unavailable (jsdom default)", () => {
+    expect(resolveThemeMode("system")).toBe("dark");
   });
 });
 
@@ -67,14 +79,14 @@ describe("applyThemeMode", () => {
   it("sets mode-specific Ionic vars (--ion-background-color)", () => {
     applyThemeMode("light");
     expect(root.style.getPropertyValue("--ion-background-color")).toBe(
-      "#F5F6F8",
+      "#F7F7F8",
     );
-    expect(root.style.getPropertyValue("--ion-text-color")).toBe("#1A1A1A");
+    expect(root.style.getPropertyValue("--ion-text-color")).toBe("#18181B");
     applyThemeMode("dark");
     expect(root.style.getPropertyValue("--ion-background-color")).toBe(
-      "#121212",
+      "#0F0F10",
     );
-    expect(root.style.getPropertyValue("--ion-text-color")).toBe("#FFFFFF");
+    expect(root.style.getPropertyValue("--ion-text-color")).toBe("#F4F4F5");
   });
 
   it("is idempotent", () => {

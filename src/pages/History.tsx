@@ -78,9 +78,9 @@ const MONTHS_FR = [
   "Déc",
 ];
 const COLORS = {
-  income: "var(--data-income)",
-  expense: "var(--data-expense)",
-  pending: "var(--data-pending)",
+  income: "var(--in)",
+  expense: "var(--out)",
+  pending: "var(--warn)",
   accent: "var(--accent-primary)",
   purple: "var(--data-advance)",
   blue: "var(--data-planified)",
@@ -257,7 +257,7 @@ export default function HistoryPage() {
                   className="font-bold text-base"
                   style={{
                     color:
-                      totalIncome - totalExpense >= 0 ? "var(--data-income)" : "var(--data-expense)",
+                      totalIncome - totalExpense >= 0 ? "var(--in)" : "var(--out)",
                   }}
                 >
                   {totalIncome - totalExpense >= 0 ? "+" : "-"}
@@ -349,19 +349,19 @@ export default function HistoryPage() {
                     style={{
                       backgroundColor:
                         tx.type === "INCOME"
-                          ? "color-mix(in srgb, var(--data-income) 12%, transparent)"
-                          : "color-mix(in srgb, var(--data-expense) 12%, transparent)",
+                          ? "color-mix(in srgb, var(--in) 12%, transparent)"
+                          : "color-mix(in srgb, var(--out) 12%, transparent)",
                     }}
                   >
                     {tx.type === "INCOME" ? (
                       <ArrowUpRight
                         className="w-5 h-5"
-                        style={{ color: "var(--data-income)" }}
+                        style={{ color: "var(--in)" }}
                       />
                     ) : (
                       <ArrowDownRight
                         className="w-5 h-5"
-                        style={{ color: "var(--data-expense)" }}
+                        style={{ color: "var(--out)" }}
                       />
                     )}
                   </div>
@@ -376,7 +376,7 @@ export default function HistoryPage() {
                   <span
                     className="font-bold text-sm"
                     style={{
-                      color: tx.type === "INCOME" ? "var(--data-income)" : "var(--data-expense)",
+                      color: tx.type === "INCOME" ? "var(--in)" : "var(--out)",
                     }}
                   >
                     {tx.type === "INCOME" ? "+" : "-"}

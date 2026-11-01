@@ -67,7 +67,7 @@
 
   <text x="92" y="640" font-family="Arial" font-size="12" fill="#808080">Réf. code : src/capabilities/workflow/index.ts (eventStatusGuard + transitions immuables) · src/capabilities/policy/index.ts (checkLock, validateAmount, checkBalance)</text>
   <text x="92" y="660" font-family="Arial" font-size="12" fill="#808080">· src/lib/event-status.ts (EVENT_STATUS_COLORS / _LABELS — tokens, jamais de couleur brute)</text>
-  <text x="92" y="682" font-family="Arial" font-size="11.5" fill="#535353">Couleurs statuts : PLANIFIED = --data-planified · ONGOING = --data-income (vert #1DB954) · COMPLETED = --text-tertiary · CANCELLED = --data-expense (rouge #E51332)</text>
+  <text x="92" y="682" font-family="Arial" font-size="11.5" fill="#535353">Couleurs statuts : PLANIFIED = --data-planified · ONGOING = --in (vert) · COMPLETED = --text-tertiary · CANCELLED = --out (rouge)</text>
 
   <!-- ══════════════════════════════════════════════════════════════════════ -->
   <!--  GRAPHE B — ARBORESCENCE MULTI-ORG (haut-droite, 1090–2136)           -->

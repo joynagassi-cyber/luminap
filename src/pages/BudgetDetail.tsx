@@ -133,7 +133,7 @@ export default function BudgetDetail() {
               </div>
               <div className="rounded-xl p-3 text-center" style={{ backgroundColor: "var(--surface)" }}>
                 <p className="text-text-tertiary text-xs">Écart</p>
-                <p className="font-bold text-sm mt-1" style={{ color: over ? "var(--data-expense)" : "var(--data-income)" }}>
+                <p className="font-bold text-sm mt-1" style={{ color: over ? "var(--out)" : "var(--in)" }}>
                   {report.totalVariance >= 0 ? "+" : "-"}{formatCurrencyCompact(Math.abs(report.totalVariance))}
                 </p>
               </div>
@@ -170,14 +170,14 @@ export default function BudgetDetail() {
                         <div className="h-2 rounded-full overflow-hidden mb-1" style={{ backgroundColor: "var(--surface-hover)" }}>
                           <div
                             className="h-full rounded-full"
-                            style={{ width: `${Math.min(100, bar)}%`, backgroundColor: lOver ? "var(--data-expense)" : "var(--accent-primary)" }}
+                            style={{ width: `${Math.min(100, bar)}%`, backgroundColor: lOver ? "var(--out)" : "var(--accent-primary)" }}
                           />
                         </div>
                         <div className="flex justify-between text-xs">
                           <span className="text-text-tertiary">Prévu {formatCurrencyFull(l.planned)}</span>
                           <span className="text-text-secondary">
                             Réel {formatCurrencyFull(l.actual)} ·{" "}
-                            <span style={{ color: lOver ? "var(--data-expense)" : "var(--data-income)" }}>
+                            <span style={{ color: lOver ? "var(--out)" : "var(--in)" }}>
                               {l.variance >= 0 ? "+" : "-"}{formatCurrencyFull(Math.abs(l.variance))}
                             </span>
                           </span>
@@ -255,7 +255,7 @@ export default function BudgetDetail() {
               <button
                 onClick={closeBudget}
                 className="w-full flex items-center justify-center gap-2 py-3.5 rounded-full font-semibold text-sm active:scale-95 transition-transform"
-                style={{ backgroundColor: "var(--surface)", color: "var(--data-expense)" }}
+                style={{ backgroundColor: "var(--surface)", color: "var(--out)" }}
               >
                 <Lock className="w-4 h-4" /> Clôturer le budget
               </button>

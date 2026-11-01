@@ -1,7 +1,7 @@
 /**
  * TrendChart — recharts AreaChart wrapper pour les sparklines du dashboard.
  *
- * Usage : <TrendChart points={points} height={96} color="var(--data-income)" />
+ * Usage : <TrendChart points={points} height={96} color="var(--in)" />
  * Les points sont des nombres (y-values). Le composant construit lui-même
  * l'axe x à partir de labels optionnels (mois courts).
  *

@@ -24,8 +24,10 @@ import {
 } from "@/lib/usageStats";
 import type { UsageStats } from "@/lib/usageStats";
 import { disconnectPowerSync } from "@/lib/powersync";
-import { deleteAllLocalData } from "@/lib/dataLayer";
+import { deleteAllLocalData, useOrganizations } from "@/lib/dataLayer";
 import { resetOrganizationId } from "@/lib/orgContext";
+import { useOrganizationContext } from "@/lib/organization-context";
+import { formatDateTime } from "@/lib/utils";
 import { showSuccess, showError } from "@/utils/toast";
 
 const LEVEL_ICON: Record<HealthLevel, LucideIcon> = {
@@ -35,9 +37,9 @@ const LEVEL_ICON: Record<HealthLevel, LucideIcon> = {
 };
 
 const LEVEL_COLOR: Record<HealthLevel, string> = {
-  ok: "var(--data-income, #22c55e)",
+  ok: "var(--in, #22c55e)",
   warn: "#f59e0b",
-  error: "var(--data-expense, #ef4444)",
+  error: "var(--out, #ef4444)",
 };
 
 const LEVEL_LABEL: Record<HealthLevel, string> = HEALTH_LEVEL_LABEL;
@@ -72,7 +74,13 @@ function usageLabel(featureId: string): string {
  * autonome : un utilisateur peut décrire l'état réel de son app.
  */
 export default function Health() {
-  const report = useHealthSnapshot();
+  const ctx = useOrganizationContext();
+  const { data: orgData } = useOrganizations("mine");
+  // Nom LISIBLE de l'organisation courante : jamais l'ID technique
+  // (`default-org`) à l'écran. `undefined` tant que la liste n'est pas chargée
+  // → l'écran affiche un libellé neutre.
+  const orgName = orgData?.find((o) => o.id === ctx.orgId)?.name;
+  const report = useHealthSnapshot(5000, orgName);
   const OverallIcon = LEVEL_ICON[report.overall];
   const [copied, setCopied] = useState(false);
   const [recovering, setRecovering] = useState(false);
@@ -96,6 +104,7 @@ export default function Health() {
   const currentInputs = () =>
     collectHealthInputs(
       typeof navigator !== "undefined" ? navigator.onLine : true,
+      orgName,
     );
 
   // PR5 — envoi réel : Sentry (si DSN configuré) + enregistrement local +
@@ -131,7 +140,10 @@ export default function Health() {
 
   const copyDiagnostic = async () => {
     const text = buildDiagnosticReport(
-      collectHealthInputs(typeof navigator !== "undefined" ? navigator.onLine : true),
+      collectHealthInputs(
+        typeof navigator !== "undefined" ? navigator.onLine : true,
+        orgName,
+      ),
       getRecentErrors(),
       new Date().toISOString(),
     );
@@ -188,7 +200,7 @@ export default function Health() {
             État général : {LEVEL_LABEL[report.overall]}
           </div>
           <div className="text-text-tertiary text-xs">
-            Relevé à {new Date(report.generatedAt).toLocaleTimeString()}
+            Relevé à {formatDateTime(report.generatedAt)}
           </div>
         </div>
       </div>
@@ -299,7 +311,7 @@ export default function Health() {
             data-testid="health.last-report"
           >
             Dernier signalement :{" "}
-            {new Date(lastReport.generatedAt).toLocaleString()}
+            {formatDateTime(lastReport.generatedAt)}
           </p>
         )}
       </div>
@@ -343,7 +355,7 @@ export default function Health() {
           minHeight: 44,
           backgroundColor: "var(--surface)",
           border: "1px solid var(--border)",
-          color: "var(--data-expense, #ef4444)",
+          color: "var(--out, #ef4444)",
           opacity: recovering ? 0.6 : 1,
         }}
       >

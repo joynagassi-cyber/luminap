@@ -514,8 +514,8 @@ function ReportCard({
             disabled={marking}
             className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full font-semibold transition-all active:scale-95 disabled:opacity-50"
             style={{
-              color: "var(--data-pending)",
-              border: "1px solid var(--data-pending)",
+              color: "var(--warn)",
+              border: "1px solid var(--warn)",
               backgroundColor: "transparent",
             }}
             aria-label={`Marquer « ${report.title} » comme lu`}

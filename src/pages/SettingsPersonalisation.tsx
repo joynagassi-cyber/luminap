@@ -177,7 +177,7 @@ export default function SettingsPersonalisation() {
               role="alert"
               data-testid="org-save-error"
               className="flex items-start gap-1.5 text-xs"
-              style={{ color: "var(--data-expense)" }}
+              style={{ color: "var(--out)" }}
             >
               <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" aria-hidden="true" />
               <span>{error}</span>

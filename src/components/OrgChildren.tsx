@@ -223,9 +223,9 @@ export default function OrgChildren({
         <div
           className="rounded-xl p-3 text-sm"
           style={{
-            backgroundColor: "color-mix(in srgb, var(--data-income) 10%, transparent)",
-            border: "1px solid color-mix(in srgb, var(--data-income) 25%, transparent)",
-            color: "var(--data-income)",
+            backgroundColor: "color-mix(in srgb, var(--in) 10%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--in) 25%, transparent)",
+            color: "var(--in)",
           }}
         >
           {createdMsg}
@@ -326,9 +326,9 @@ export default function OrgChildren({
         <div
           className="rounded-xl p-3 text-sm"
           style={{
-            backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)",
-            border: "1px solid color-mix(in srgb, var(--data-expense) 25%, transparent)",
-            color: "var(--data-expense)",
+            backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--out) 25%, transparent)",
+            color: "var(--out)",
           }}
         >
           {error}

@@ -417,7 +417,7 @@ export default function AuthPage() {
               {error && (
                 <div
                   className="p-3 rounded-xl text-sm text-center"
-                  style={{ backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)", color: "var(--data-expense)" }}
+                  style={{ backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)", color: "var(--out)" }}
                 >
                   {error}
                 </div>

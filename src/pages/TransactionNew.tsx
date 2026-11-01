@@ -87,6 +87,12 @@ export default function TransactionNew() {
   const [proofUploading, setProofUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const amountRef = useRef<any>(null);
+  // Garde SYNCHRONE anti double-soumission : `submitting` (état React) n'est
+  // appliqué qu'APRÈS le re-rendu, donc deux clics rapprochés sur un appareil
+  // lent peuvent appeler `addTransactionPS` deux fois — un enregistrement
+  // financier en double. Le verrou `ref` est posé avant tout `await`, donc
+  // insensible au timing du re-rendu.
+  const submitLockRef = useRef(false);
   const keyboardHeight = useKeyboardAvoidance();
   const isOnline = useOnlineStatus();
 
@@ -120,7 +126,7 @@ export default function TransactionNew() {
     if (first) setCategoryId(first);
   }, [categoryId, filteredCategories]);
 
-  const handleSubmit = async () => {
+  const submitTransaction = async () => {
     const trimmedAmount = amount.trim();
     const trimmedDesc = description.trim();
     const trimmedCatId = categoryId?.toString().trim();
@@ -218,6 +224,17 @@ export default function TransactionNew() {
     navigate(`/transaction/${txId}`);
   };
 
+  const handleSubmit = async () => {
+    // Verrou synchrone : la 2e soumission concurrente sort immédiatement.
+    if (submitLockRef.current) return;
+    submitLockRef.current = true;
+    try {
+      await submitTransaction();
+    } finally {
+      submitLockRef.current = false;
+    }
+  };
+
   return (
     <IonPage>
       <IonContent fullscreen>
@@ -243,7 +260,7 @@ export default function TransactionNew() {
                 onClick={() => setType("INCOME")}
                 className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all"
                 style={{
-                  backgroundColor: type === "INCOME" ? "var(--data-income)" : "var(--surface)",
+                  backgroundColor: type === "INCOME" ? "var(--in)" : "var(--surface)",
                   color: type === "INCOME" ? "var(--text-primary)" : "var(--text-secondary)",
                 }}
               >
@@ -253,7 +270,7 @@ export default function TransactionNew() {
                 onClick={() => setType("EXPENSE")}
                 className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all"
                 style={{
-                  backgroundColor: type === "EXPENSE" ? "var(--data-expense)" : "var(--surface)",
+                  backgroundColor: type === "EXPENSE" ? "var(--out)" : "var(--surface)",
                   color: type === "EXPENSE" ? "var(--text-primary)" : "var(--text-secondary)",
                 }}
               >
@@ -267,7 +284,7 @@ export default function TransactionNew() {
               className="mb-5 bg-card rounded-xl"
               style={
                 fieldErrors.amount
-                  ? { border: "1px solid var(--data-expense)" }
+                  ? { border: "1px solid var(--out)" }
                   : undefined
               }
             >
@@ -533,7 +550,7 @@ export default function TransactionNew() {
             {error && (
               <div
                 className="mb-4 p-3 rounded-xl text-sm text-center"
-                style={{ backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)", color: "var(--data-expense)" }}
+                style={{ backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)", color: "var(--out)" }}
               >
                 {error}
               </div>
@@ -545,7 +562,7 @@ export default function TransactionNew() {
               disabled={submitting}
               style={{
                 backgroundColor:
-                  type === "INCOME" ? "var(--data-income)" : "var(--data-expense)",
+                  type === "INCOME" ? "var(--in)" : "var(--out)",
               }}
             >
               {submitting ? (

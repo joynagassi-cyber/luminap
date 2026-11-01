@@ -44,16 +44,16 @@ export interface OrgUnit {
  * et la vue graphe (components/FederationGraph.tsx).
  *
  * Tokens (DESIGN.md §2, cohérent avec getStatusColor de @/lib/utils) :
- *  PENDING → --data-pending, ACTIVE → --data-income,
- *  SUSPENDED → --data-expense, ARCHIVED → --text-tertiary.
+ *  PENDING → --warn, ACTIVE → --in,
+ *  SUSPENDED → --out, ARCHIVED → --text-tertiary.
  *
  * JAMAIS de teinte brute ni de map dupliquée dans les pages : toute
  * nouvelle vue du statut des organisations importe cette constante.
  */
 export const FEDERATION_STATUS_COLOR: Record<string, string> = {
-  PENDING: "var(--data-pending)",
-  ACTIVE: "var(--data-income)",
-  SUSPENDED: "var(--data-expense)",
+  PENDING: "var(--warn)",
+  ACTIVE: "var(--in)",
+  SUSPENDED: "var(--out)",
   ARCHIVED: "var(--text-tertiary)",
 };
 

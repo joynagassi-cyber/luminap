@@ -31,8 +31,8 @@ const STATUS_CONFIG: Record<
   },
   IN_PROGRESS: {
     label: "En cours",
-    color: "var(--data-income)",
-    bg: "color-mix(in srgb, var(--data-income) 12%, transparent)",
+    color: "var(--in)",
+    bg: "color-mix(in srgb, var(--in) 12%, transparent)",
     icon: Play,
   },
   DONE: {
@@ -43,8 +43,8 @@ const STATUS_CONFIG: Record<
   },
   BLOCKED: {
     label: "Bloquée",
-    color: "var(--data-expense)",
-    bg: "color-mix(in srgb, var(--data-expense) 12%, transparent)",
+    color: "var(--out)",
+    bg: "color-mix(in srgb, var(--out) 12%, transparent)",
     icon: Lock,
   },
 };
@@ -239,8 +239,8 @@ export default function EventTasks({
                       onClick={() => changeStatus(task.id, "IN_PROGRESS")}
                       className="text-xs px-2 py-1 rounded-full font-medium transition-all active:scale-95"
                       style={{
-                        backgroundColor: "color-mix(in srgb, var(--data-income) 12%, transparent)",
-                        color: "var(--data-income)",
+                        backgroundColor: "color-mix(in srgb, var(--in) 12%, transparent)",
+                        color: "var(--in)",
                       }}
                       aria-label="Marquer en cours"
                     >
@@ -267,8 +267,8 @@ export default function EventTasks({
                       onClick={() => changeStatus(task.id, "BLOCKED")}
                       className="text-xs px-2 py-1 rounded-full font-medium transition-all active:scale-95"
                       style={{
-                        backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)",
-                        color: "var(--data-expense)",
+                        backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)",
+                        color: "var(--out)",
                       }}
                       aria-label="Marquer bloquée"
                     >
@@ -319,8 +319,8 @@ export default function EventTasks({
                 <div
                   className="mb-4 p-3 rounded-xl text-sm"
                   style={{
-                    backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)",
-                    color: "var(--data-expense)",
+                    backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)",
+                    color: "var(--out)",
                   }}
                 >
                   {error}

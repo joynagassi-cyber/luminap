@@ -200,7 +200,7 @@ export default function GivingCampaign() {
                   className="h-full rounded-full"
                   style={{
                     width: `${Math.min(100, p.pctOfTarget ?? 0)}%`,
-                    backgroundColor: done ? "var(--data-income)" : "var(--accent-primary)",
+                    backgroundColor: done ? "var(--in)" : "var(--accent-primary)",
                   }}
                 />
               </div>
@@ -211,7 +211,7 @@ export default function GivingCampaign() {
                 </div>
                 <div>
                   <p className="text-text-tertiary text-xs">Pledges</p>
-                  <p className="text-text-secondary font-bold text-sm" style={{ color: "var(--data-pending)" }}>
+                  <p className="text-text-secondary font-bold text-sm" style={{ color: "var(--warn)" }}>
                     {formatCurrencyFull(p.pledged)}
                   </p>
                 </div>

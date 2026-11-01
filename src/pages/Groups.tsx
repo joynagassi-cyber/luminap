@@ -19,9 +19,9 @@ import type { IonChangeCustomEvent } from "@/lib/ionic-types";
 const COLOR_PALETTE = [
   "var(--data-planified)",
   "var(--data-advance)",
-  "var(--data-expense)",
-  "var(--data-income)",
-  "var(--data-pending)",
+  "var(--out)",
+  "var(--in)",
+  "var(--warn)",
   "var(--accent-primary)",
   "var(--accent-light)",
   "var(--accent-dark)",
@@ -187,8 +187,8 @@ export default function Groups() {
               <div
                 className="mb-4 p-3 rounded-xl text-sm text-center"
                 style={{
-                  backgroundColor: "color-mix(in srgb, var(--data-income) 12%, transparent)",
-                  color: "var(--data-income)",
+                  backgroundColor: "color-mix(in srgb, var(--in) 12%, transparent)",
+                  color: "var(--in)",
                 }}
               >
                 {success}
@@ -198,8 +198,8 @@ export default function Groups() {
               <div
                 className="mb-4 p-3 rounded-xl text-sm text-center"
                 style={{
-                  backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)",
-                  color: "var(--data-expense)",
+                  backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)",
+                  color: "var(--out)",
                 }}
               >
                 {error}
@@ -354,12 +354,12 @@ export default function Groups() {
                           }}
                           className="p-2 rounded-full active:scale-95 transition-transform"
                           style={{
-                            backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)",
+                            backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)",
                           }}
                         >
                           <Trash2
                             className="w-4 h-4"
-                            style={{ color: "var(--data-expense)" }}
+                            style={{ color: "var(--out)" }}
                           />
                         </button>
                       )}
@@ -442,7 +442,7 @@ export default function Groups() {
                     <button
                       onClick={() => handleDelete(showDelete)}
                       className="flex-1 py-3 rounded-full font-semibold text-on-accent text-sm"
-                      style={{ backgroundColor: "var(--data-expense)" }}
+                      style={{ backgroundColor: "var(--out)" }}
                     >
                       Supprimer
                     </button>

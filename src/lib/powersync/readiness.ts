@@ -27,11 +27,17 @@ export function isPowerSyncReady(): boolean {
 }
 
 export function setPowerSyncReady(ready: boolean): void {
+  const wasUnavailable = _psUnavailable;
   if (ready) _psUnavailable = false;
-  if (_psReady === ready) return;
+  const readyChanged = _psReady !== ready;
   _psReady = ready;
-  if (ready) {
+  if (ready && readyChanged) {
     _readyListeners.forEach((l) => l());
+  }
+  // Notifier AUSSI quand seule la disponibilité a changé (`_psReady` déjà
+  // `true` mais `_psUnavailable` était `true`) : sinon une bannière déjà
+  // affichée ne se refermerait jamais après un rétablissement de la sync.
+  if (ready && wasUnavailable) {
     _unavailableListeners.forEach((l) => l());
   }
 }

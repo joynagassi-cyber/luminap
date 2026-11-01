@@ -145,8 +145,8 @@ export default function Versement() {
                   <div
                     className="p-3 rounded-xl text-sm text-center"
                     style={{
-                      backgroundColor: "color-mix(in srgb, var(--data-expense) 12%, transparent)",
-                      color: "var(--data-expense)",
+                      backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)",
+                      color: "var(--out)",
                     }}
                   >
                     {formError}
@@ -256,7 +256,7 @@ export default function Versement() {
                   className="bg-card rounded-xl"
                   style={
                     amountNum > maxAmount
-                      ? { border: "1px solid var(--data-expense)" }
+                      ? { border: "1px solid var(--out)" }
                       : undefined
                   }
                 >

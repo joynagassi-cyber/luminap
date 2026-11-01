@@ -1090,6 +1090,21 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   au-dessus → panne totale (classe PR15). `router-context-guard` durcie pour
   analyser aussi les composants IMPORTÉS (avant : seulement ceux déclarés dans
   App.tsx). Détail : `.openhands/memory/2026-11-01.md`.
+- **Voie PRÉ-LOGIN (anonyme, R145)** : l'edge `report-error` est passée en
+  `verify_jwt:false` (v4) et vérifie elle-même l'appelant (`auth.getUser`) —
+  sinon tout crash AVANT connexion était perdu. Anonyme plafonné 5/h (bucket
+  `ip:<sha256(salt+ip)>`, IP jamais en clair), authentifié 20/h (`user:<uuid>`).
+  Sans `SERVICE_ROLE_KEY` → 503 ; JWT forgé → retombe anonyme (pas de
+  contournement). RPC `register_anonymous_report` SECURITY DEFINER (EXECUTE
+  réservé à `service_role`) + table `error_report_throttle` deny-all
+  (migration `20261101000002`, rollback fourni).
+- **Kill switch client** : drapeau `error-reporting`.
+- **Garde d'intégration** : `error-to-issue-integration-guard.test.ts` (26)
+  verrouille jeton hors client + migration fermée + rollback présent.
+- **Piège env (vitest 5)** : `npx vitest run --reporter=basic` ÉCHOUE
+  (« Failed to load custom Reporter from basic ») ; lancer `npx vitest run`.
+- **Après tout changement de schéma** : régénérer `docs/agent/rls-inventory.json`
+  (garde `rls-inventory.test.ts`) et `docs/agent/migration-drift.json`.
 
 ## Release Lumina v1.2.1 + flake `auth-real` (2026-11-01)
 - **Release = tag `v*`** → workflow `release.yml` (prepare → build unsigned →
@@ -1108,22 +1123,46 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   token embarqué dans `git remote get-url origin` sert alors à l'API REST.
 - **PDF tutoriel** : `docs/agent/GUIDE_ECRANS.pdf` (35 pages, 5,4 Mo).
 
-## Observabilité → GitHub Issues (auto-correction OpenHands) — 2026-11-01
-- **Chaîne** : erreur client → `src/lib/observability/errorReporter.ts`
-  (classify/dedupe/queue) → edge `report-error` → Issue GitHub labellisée
-  **`openhands`** sur `joynagassi-cyber/luminap` → correction autonome.
-- **Capture** : `clientErrors.ts` (onerror/unhandledrejection), `App.tsx`
-  ErrorBoundary, `lazy-route.tsx`, `SupabaseConnector.ts` (sync), `perfMonitor.ts`
-  (long tasks). Kill switch : drapeau `error-reporting`.
-- **Voie pré-login (anonyme)** : `report-error` = `verify_jwt:false` ; la
-  fonction vérifie l'appelant (`auth.getUser`) ; anonyme plafonné 5/h (bucket
-  `ip:<sha256(salt+ip)>`), authentifié 20/h (`user:<uuid>`). Sans
-  `SERVICE_ROLE_KEY` → 503. RPC `register_anonymous_report` SECURITY DEFINER,
-  EXECUTE réservé à service_role ; table `error_report_throttle` deny-all
-  (migration `20261101000002`, rollback fourni).
-- **Piège** : le jeton GitHub vit UNIQUEMENT côté edge (`GITHUB_TOKEN`) ;
-  garde statique `error-to-issue-integration-guard.test.ts` (26) l'impose.
-- **Piège env** : `npx vitest run --reporter=basic` échoue (vitest 5) ;
-  lancer `npx vitest run`.
-- **Après tout changement de schéma** : régénérer `docs/agent/rls-inventory.json`
-  (garde `rls-inventory.test.ts`) et `docs/agent/migration-drift.json`.
+## Jetons/thème — addendum 2 maquette dashboard-MF (2026-11-01, PR #193)
+- **Vocabulaire maquette en ALIAS** dans `src/App.css` (fichier unique) :
+  `--bg`→`--canvas`, `--text`→`--text-primary`, `--text-muted`→`--text-secondary`,
+  `--brand-fill`→`--accent-primary` ; jetons mode-aware `--in/--out/--warn`(+`-bg`),
+  `--divider`, `--surface-nav`, `--brand-text`. Palette sombre #0F0F10/#1A1A1C/#2C2C30.
+- **PIÈGE** : `design-tokens-contrast.test.ts`/`drift.test.ts` extraient le bloc
+  clair par regex naïf `[data-theme="light"]\s*\{([^}]*)\}`. NE JAMAIS créer un
+  bloc `[data-theme="light"]` séparé (ex. `:root[data-theme="light"]{…}`) : ça
+  casse l'extraction → « token --text-primary manquant ». Mettre `color-scheme`
+  DANS le bloc de palette existant.
+- **Thème** : `ThemeMode="system"|"dark"|"light"`, défaut **system**,
+  `resolveThemeMode` (matchMedia). Inter embarquée `@fontsource/inter` (offline).
+- **Garde données réelles** : `docs/tutoriel/donnees-reelles.yaml` (église « MF »)
+  + `src/lib/__tests__/tutorial-real-data.test.ts` — bannit `\bE2E\b`, `\bdemo\b`,
+  `d[ée]mo`, `default-org`, `jean@example.com`, `E2E Org`, `MFE-JC`. Scanner les
+  **valeurs parsées** (pas le texte brut : les commentaires documentant les motifs
+  interdits feraient échouer le test). `build.py` n'imprime plus `r["path"]`.
+- Dépendance dev ajoutée : `yaml` (pnpm).
+
+## Migration app-wide jetons d'argent --data-* → --in/--out/--warn (2026-11-01, PR #193, commit 6213021)
+- **Renommage complet** : `--data-income`→`--in`, `--data-expense`→`--out`,
+  `--data-expense-hover`→`--out-hover`, `--data-pending`→`--warn` (~450 occ.,
+  ~86 fichiers) : écrans, composants, `tailwind.config.ts`, `src/ionic/theme.ts`
+  (catalogue TS `in/out/warn` + triplets `-rgb`), `src/lib/{utils,badges,
+  event-status,export,tutorialContent}.ts`, `capabilities/federation`, SVG
+  `public/diagrams/domain-logic.svg`, sélecteur Cypress `forms-v2.cy.ts`.
+- **App.css** : anciens noms SUPPRIMÉS (plus d'alias) ; `--out-hover` ajouté
+  dans les 2 modes (`#ef4444` sombre / `#991b1b` clair). Les jetons statuts
+  hors-argent RESTENT en `--data-*` (`planified/advance/pink/exhausted/success/
+  muted/alert`) — ne pas les confondre.
+- **theme.ts** : valeurs mode-aware `in:#4ADE80/out:#F87171/warn:#FBBF24` (sombre),
+  `in:#166534/out:#B91C1C/warn:#92400E` (clair) — le drift guard compare à App.css.
+- **export.ts** : le PNG canvas ne lit pas les CSS vars → résolution runtime
+  `getComputedStyle(document.documentElement).getPropertyValue('--in')` + repli.
+- **Garde** : `src/lib/__tests__/money-token-migration.test.ts` (4) — scanne
+  src/cypress/public + tailwind.config.ts + index.html, interdit le retour des
+  anciens noms (s'auto-exclut). Non-vacuité : `utils.ts` → `var(--data-income)`
+  ⇒ échec `src/lib/utils.ts → --data-income`.
+- **Piège** : ordre sed `-expense-hover` AVANT `-expense` (sinon
+  `--data-expense-hover`→`--out-hover` cassé : `--data-expense` match d'abord).
+- Gates : vitest 206 fichiers / 2157 passés ; tsc 0 ; eslint 0 erreur.
+- Hors périmètre laissé : `--data-danger` non défini (repli en dur) dans
+  UpdateDialog.tsx + SettingsAbout.tsx (pré-existant).

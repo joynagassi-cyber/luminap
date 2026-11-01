@@ -1004,11 +1004,16 @@ export async function getGroupMembershipsPS(): Promise<PSGroupMembership[]> {
 export function usePowerSyncStatus(): boolean {
   const sync = usePowerSync();
   const [ready, setReady] = useState(false);
+  // Dernier statut connu : sert à la borne de disponibilité pour distinguer
+  // « jamais connecté » (vraie indisponibilité) de « connecté mais 1re sync
+  // encore en cours » (ne doit PAS déclarer indisponible).
+  const statusRef = useRef<any>(null);
 
   useEffect(() => {
     if (!sync) return;
 
     const applyStatus = (status: any) => {
+      statusRef.current = status;
       if (status?.connected && status?.hasSynced) {
         setReady(true);
         markPowerSyncReady();
@@ -1032,8 +1037,14 @@ export function usePowerSyncStatus(): boolean {
     // écrans cessent alors d'afficher un squelette perpétuel et montrent un
     // état explicite (« synchronisation indisponible »). Le délai couvre une
     // première synchronisation normale, même lente.
+    //
+    // Si `connected === true`, la synchronisation est EN COURS (1re sync d'une
+    // grosse organisation peut dépasser le délai) : ne PAS déclarer
+    // indisponible. Seule une absence de connexion durable le fait.
     const deadline = setTimeout(() => {
-      if (!isPowerSyncReadyNow()) markPowerSyncUnavailable();
+      if (isPowerSyncReadyNow()) return;
+      if (statusRef.current?.connected) return;
+      markPowerSyncUnavailable();
     }, 30_000);
 
     return () => {
@@ -1052,7 +1063,20 @@ export function usePowerSyncStatus(): boolean {
  */
 export function useReplicaUnavailable(): boolean {
   const [unavailable, setUnavailable] = useState(isPowerSyncUnavailableNow());
-  useEffect(() => subscribePowerSyncUnavailable(() => setUnavailable(true)), []);
+  useEffect(() => {
+    // Refléter l'état courant des DEUX transitions : « indisponible » ET
+    // « redevenu disponible ». Sans l'abonnement à `subscribePowerSyncReady`,
+    // la bannière restait affichée à jamais après un rétablissement de la
+    // synchronisation. On RELIT l'état vrai (au lieu de forcer `true`) pour
+    // éviter une valeur périmée si le module a déjà rebasculé.
+    const sync = () => setUnavailable(isPowerSyncUnavailableNow());
+    const unsubUnavailable = subscribePowerSyncUnavailable(sync);
+    const unsubReady = subscribePowerSyncReady(sync);
+    return () => {
+      unsubUnavailable();
+      unsubReady();
+    };
+  }, []);
   return unavailable;
 }
 

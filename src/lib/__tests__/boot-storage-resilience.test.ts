@@ -57,9 +57,9 @@ describe("lecture du thème — best-effort (chaos stockage)", () => {
     expect(getStoredThemeId()).toBeNull();
   });
 
-  it("getStoredThemeMode retombe sur dark quand getItem échoue", () => {
+  it("getStoredThemeMode retombe sur system quand getItem échoue", () => {
     breakGetItem();
-    expect(getStoredThemeMode()).toBe("dark");
+    expect(getStoredThemeMode()).toBe("system");
   });
 
   it("applyStoredTheme garde le boot et applique le thème par défaut", () => {

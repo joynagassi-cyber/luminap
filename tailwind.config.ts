@@ -30,10 +30,11 @@ export default {
         "text-secondary": "var(--text-secondary)",
         "text-tertiary": "var(--text-tertiary)",
         "text-placeholder": "var(--text-placeholder)",
-        // Financial colors — invariants (le langage de l'argent ne change pas)
-        income: "var(--data-income)",
-        expense: "var(--data-expense)",
-        pending: "var(--data-pending)",
+        // Argent (--in/--out/--warn) : suit le MODE (maquette dashboard-MF),
+        // jamais la couleur de marque (addendum 2 B1).
+        income: "var(--in)",
+        expense: "var(--out)",
+        pending: "var(--warn)",
         // Statuts sémantiques (hors finances) — invariants (DESIGN.md §2)
         planified: "var(--data-planified)",
         advance: "var(--data-advance)",
@@ -71,7 +72,7 @@ export default {
           foreground: "var(--text-secondary)",
         },
         destructive: {
-          DEFAULT: "var(--data-expense)",
+          DEFAULT: "var(--out)",
           foreground: "#FFFFFF",
         },
         muted: {
