@@ -1013,3 +1013,16 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   Ordre FK : `transaction_attachments`/`audit_entries` → `versements` →
   `budget_lines` → `transactions` → `cotisations` → `event_tasks`/`event_budgets`
   → `events` → `members` → `groups` → `organizations` (enfants avant parents).
+- **Environnement E2E Cypress local** (dépôt sans node_modules) : `npm install`
+  ÉCHOUE (ERESOLVE `@supabase/server` peerOptional `h3`) → utiliser **pnpm** :
+  `export PATH="/usr/local/lib/node_modules/corepack/shims:$PATH"` (corepack
+  déjà là, pnpm 11.28.10) puis `pnpm install --frozen-lockfile`. Créer
+  `.env.local` (gitignored) avec `VITE_SUPABASE_URL/ANON_KEY` (fallback de
+  cypress.config.ts) + `VITE_POWERSYNC_URL`. Installer `xvfb` + libs GTK/NSS
+  sinon « spawn Xvfb ENOENT ». Runner : `CYPRESS_BASE_URL=http://localhost:8080
+  xvfb-run -a npx cypress run --spec … --browser electron`.
+- **PR7 kill switch = couvert E2E** (PR #180 DRAFT) : `C: feature-flags.cy.ts`
+  (3) prouve `global-search` OFF ⇒ loupe `TopHeader` absente, ON/absent
+  (fail-open) ⇒ visible. Surcharge réelle `localStorage['lumina-flags']`.
+  Non-vacuité : garde `true` dans `TopHeader` ⇒ 2 échecs.
+
