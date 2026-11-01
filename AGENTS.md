@@ -61,5 +61,14 @@ la couche de données est dans `src/lib/dataLayer.ts` et les services
   `GITHUB_TOKEN` lu par l'edge function `report-error` (voir son README). Le
   dépôt est PUBLIC ⇒ le rapport est expurgé côté client avant envoi (aucune
   PII). Ne jamais relâcher cette contrainte.
+- **Voie pré-login (anonyme)** : `report-error` tourne en `verify_jwt: false` et
+  accepte les rapports SANS session (crash de l'écran d'auth, échec
+  d'invitation, perte réseau au boot). La vérification JWT est faite DANS la
+  fonction (`auth.getUser`) : un JWT valide → voie authentifiée (plafond large) ;
+  sinon → voie anonyme plafonnée (bucket = `sha256(salt+ip)`, IP jamais stockée
+  en clair) via la RPC `register_anonymous_report` (EXECUTE réservé au
+  `service_role`). Sans `service_role`, la voie anonyme est REFUSÉE. Toute
+  évolution doit préserver ce plafond — un endpoint public non borné permet de
+  spammer des Issues.
 - Le label déclencheur `openhands` DOIT exister sur le dépôt, sinon la création
   d'Issue échoue en 422. Garde statique : `error-to-issue-integration-guard.test.ts`.

@@ -165,4 +165,5 @@ et crée l'Issue. Le dépôt étant PUBLIC, le rapport est expurgé côté clien
 |---|---|---|---|
 | 11 | Capture globale (crash / erreurs métier / DB / sync / perf) + rapport contextuel (stack, route, session, 5 derniers breadcrumbs) | `V: error-reporter.test.ts` (dont classification DB/sync/perf, dédup, file) + `V: breadcrumbs.test.ts` + `V: perf-monitor.test.ts` | **couvert** |
 | 11 | Formatage de l'Issue (titre, corps contextuel, marqueur de signature, dédup serveur) | `V: report-error-issue.test.ts` | **couvert** (logique pure `issue.ts`, sans import Deno) |
-| 11 | Intégration : jeton GitHub hors client, label `openhands`, allowlist de dépôts, auth obligatoire, points de capture câblés | `V: error-to-issue-integration-guard.test.ts` (16, gardes statiques) | **couvert** |
+| 11 | **Voie pré-login (anonyme) rate-limitée** : bucket = hash d'IP (IP jamais en clair), plafond serré vs authentifié, EXECUTE réservé au `service_role`, refus sans `service_role`, JWT forgé → voie anonyme | `V: report-error-throttle.test.ts` (12, logique pure `throttle.ts`) | **couvert** |
+| 11 | Intégration : jeton GitHub hors client, label `openhands`, allowlist de dépôts, auth obligatoire, voie anonyme câblée, points de capture câblés | `V: error-to-issue-integration-guard.test.ts` (26, gardes statiques) | **couvert** |

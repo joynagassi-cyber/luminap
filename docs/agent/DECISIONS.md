@@ -658,3 +658,26 @@
   procédure de remédiation en 2 lots, à valider par le propriétaire. C'est la
   prochaine action à plus forte valeur.
 - **RÉVERSIBILITÉ** : `rollback/20261030000001_rollback.sql`.
+
+### D-S14-1 — Ouvrir une voie de rapport ANONYME (pré-login) plutôt que de la refuser
+
+- **Décision** : `report-error` passe en `verify_jwt: false` et accepte les
+  rapports sans session, sous un **plafond par origine** (5/h par IP hachée).
+- **Raison** : les incidents les plus précieux surviennent AVANT la connexion
+  (crash de l'écran d'auth, échec d'invitation, perte réseau au boot) et sont
+  **invisibles** si l'endpoint exige un JWT. Refuser la voie revenait à ne jamais
+  diagnostiquer ce qui empêche de se connecter.
+- **Contraintes conservées** (non négociables) :
+  - la vérification d'identité reste faite DANS la fonction (`auth.getUser`) —
+    un en-tête `Authorization` présent n'est jamais cru sur parole ;
+  - la voie anonyme est **plafonnée** et **refusée** si `service_role` est
+    indisponible (503) — jamais d'endpoint public non borné ;
+  - l'IP n'est **jamais** stockée en clair (bucket = `sha256(salt + ip)`) ;
+  - la RPC de comptage est SECURITY DEFINER, EXECUTE **révoqué** de
+    `PUBLIC`/`anon`/`authenticated` (seul `service_role`) : un client ne peut pas
+    gonfler un compteur pour bloquer autrui (déni de signalement).
+- **Alternative écartée** : jeton de capacité / `Turnstile` (surcoût UX et
+  dépendance externe pour un gain marginal vu le plafond) ; à reconsidérer
+  uniquement si l'abus devient un problème réel.
+- **Conséquence** : R145 consigné CORRIGÉ ; risque résiduel borné documenté
+  (README de la fonction). RÉVERSIBILITÉ : `rollback/20261101000002_rollback.sql`.

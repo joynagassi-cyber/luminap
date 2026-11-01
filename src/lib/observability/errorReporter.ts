@@ -479,15 +479,21 @@ export type ReportTransport = (
  * Transport par défaut : appelle l'edge function `report-error`, qui détient le
  * jeton GitHub (jamais exposé au client) et crée l'Issue. Import DYNAMIQUE du
  * client Supabase : garde ce module léger et testable sans variables d'env.
+ *
+ * PRÉ-LOGIN : si aucune session n'est disponible, on envoie QUAND MÊME le
+ * rapport (voie anonyme). L'edge function applique alors un plafond serré par
+ * origine (hachage d'IP) — un utilisateur bloqué à l'écran de connexion ne
+ * pourrait sinon jamais remonter son crash. Sans jeton, `functions.invoke`
+ * n'attache aucun en-tête `Authorization` (la clé publishable voyage en
+ * `apikey`), donc l'appel est bien identifié comme anonyme côté serveur.
  */
 async function defaultTransport(report: ErrorReport): Promise<{ ok: boolean }> {
   const { supabase } = await import("@/integrations/supabase/client");
   const { data } = await supabase.auth.getSession();
   const accessToken = data?.session?.access_token;
-  if (!accessToken) return { ok: false }; // pas de session → réessayer plus tard
 
   const res = await supabase.functions.invoke("report-error", {
-    headers: { Authorization: `Bearer ${accessToken}` },
+    headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
     body: { report },
   });
   if (res.error) return { ok: false };

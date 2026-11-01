@@ -28,8 +28,19 @@ All notable changes to the Lumina Platform will be documented in this file.
     valide le dépôt cible contre une allowlist et crée l'Issue. Le dépôt étant
     public, le rapport est expurgé côté client (aucune PII).
   - Le bouton « Signaler un problème » (page Santé) remonte aussi une Issue.
+  - **Capture PRÉ-LOGIN (anonyme) rate-limitée** — les incidents survenant
+    avant la connexion (crash de l'écran d'auth, échec d'invitation, perte
+    réseau au boot) sont désormais remontés : l'edge function n'exige plus de
+    JWT (`verify_jwt: false`) et distingue deux voies — authentifiée (plafond
+    large, bucket `user:<uuid>`) et anonyme (plafond serré, bucket =
+    `sha256(salt+ip)`, IP jamais stockée en clair). La vérification JWT reste
+    faite dans la fonction, donc un en-tête forgé retombe sur la voie anonyme.
+    Sans `service_role` la voie anonyme est REFUSÉE (jamais non plafonnée).
+    Table `error_report_throttle` (deny-all) + RPC `register_anonymous_report`
+    (EXECUTE réservé au `service_role`).
   - Gardes : `error-reporter`, `breadcrumbs`, `perf-monitor`,
-    `report-error-issue` et `error-to-issue-integration-guard` (statique).
+    `report-error-issue`, `report-error-throttle` et
+    `error-to-issue-integration-guard` (statique).
 
 ---
 
