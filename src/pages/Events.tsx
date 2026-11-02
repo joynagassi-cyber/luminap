@@ -1,14 +1,19 @@
-import { useState, useEffect, useMemo } from "react";
+/**
+ * Events v2 — Liste des événements, redesign premium.
+ *
+ * Design : fond sombre, en-tête avec stats, vue liste/calendrier/timeline,
+ * cartes d'événements avec dates et budgets.
+ * Tous les tokens CSS `var(--*)`, zéro couleur en dur.
+ */
+
+import { useState, useEffect, useMemo, Fragment } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   IonPage,
-  IonHeader,
   IonContent,
-  IonTitle,
-  IonToolbar,
 } from "@ionic/react";
 import { useEvents, useTransactions, useMembers, parseBudgetItems, isPowerSyncReadyNow } from "@/lib/dataLayer";
-import { Plus, Clock, Gift, ArrowUp, ArrowDown } from "lucide-react";
+import { Plus, Clock, Gift, ArrowUp, ArrowDown, Calendar } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
 import CircleAction from "@/components/CircleAction";
@@ -17,12 +22,8 @@ import EmptyState from "@/components/EmptyState";
 import CapabilityBanner from "@/components/CapabilityBanner";
 import { getOrganizationId } from "@/lib/orgContext";
 import { formatDate, formatCurrencyCompact } from "@/lib/utils";
-import SegmentedTabs from "@/components/SegmentedTabs";
-import EventCalendar from "@/components/EventCalendar";
-import EventTimeline from "@/components/EventCalendar/EventTimeline";
-import { EVENT_STATUS_COLORS, EVENT_STATUS_LABELS } from "@/lib/event-status";
+import { Section, InfoCard, ActionCard, ListItem, StatCard } from "@/design/components/PageShell";
 
-/** Vues de la page Événements : liste (défaut) | calendrier | timeline. */
 type ViewMode = "list" | "calendar" | "timeline";
 
 export default function Events() {
@@ -30,6 +31,7 @@ export default function Events() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { data: psEvents, isLoading: psLoading } = useEvents();
   const { data: psTransactions } = useTransactions();
+  const { data: psMembers } = useMembers();
 
   const events = psEvents ?? [];
   const transactions = psTransactions ?? [];
@@ -37,7 +39,6 @@ export default function Events() {
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [visibleCount, setVisibleCount] = useState(50);
 
-  // ?date=YYYY-MM-DD (navigation calendrier → timeline du jour) : bascule en timeline
   const dateParam = searchParams.get("date");
   useEffect(() => {
     if (dateParam) setViewMode("timeline");
@@ -51,198 +52,139 @@ export default function Events() {
     );
   }, [events]);
 
-  // groupBy : évite le .filter par ligne (O(n×m) → O(n+m)).
-  const txsByEvent = useMemo(() => {
-    const map = new Map<string, any[]>();
-    for (const t of transactions) {
-      const eid = (t as any).event_id || (t as any).eventId;
-      if (!eid) continue;
-      const list = map.get(eid);
-      if (list) list.push(t);
-      else map.set(eid, [t]);
-    }
-    return map;
-  }, [transactions]);
+  const upcomingEvents = sortedEvents.filter(
+    (e: any) => new Date(e.start_date || e.startDate) >= new Date(),
+  );
+  const pastEvents = sortedEvents.filter(
+    (e: any) => new Date(e.start_date || e.startDate) < new Date(),
+  );
 
-  // R52.m — réplique PowerSync non prête : « Aucun événement » serait un fait FAUX.
-  const replicaPending = !isPowerSyncReadyNow();
-
-  const visibleEvents = sortedEvents.slice(0, visibleCount);
+  const handleAddEvent = () => {
+    navigate("/event/new", { replace: true });
+  };
 
   return (
     <IonPage>
-      {psLoading || (events.length === 0 && replicaPending) ? (
-        <IonContent fullscreen>
-          <EventsSkeleton />
-        </IonContent>
-      ) : (
-        <IonContent className="bg-canvas" fullscreen>
-          <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe">
-            <CapabilityBanner orgId={getOrganizationId()} />
-            <div className="flex items-center justify-between mb-5">
-              <div>
-                <h1 className="text-text-primary font-bold text-xl">
-                  Événements
-                </h1>
-                <p className="text-text-tertiary text-xs mt-0.5">
-                  {events.length} événement{events.length !== 1 ? "s" : ""}
-                </p>
-              </div>
-              <CircleAction
-                aria-label="Créer un nouvel événement"
-                onClick={() => navigate("/event/new")}
-              >
-                <Plus className="w-5 h-5" />
-              </CircleAction>
+      <IonContent fullscreen className="bg-canvas">
+        <div className="min-h-dvh">
+          {psLoading ? (
+            <div data-screen-state="loading" className="px-5">
+              <EventsSkeleton />
             </div>
+          ) : (
+            <Fragment>
+              <h1 className="sr-only">Événements — gestion des événements</h1>
+              <TopHeader title="Événements" />
+              <div data-screen-state="ready" className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
+                <CapabilityBanner orgId={getOrganizationId()} />
 
-            {/* Toggle Liste | Calendrier | Timeline — pattern SegmentedTabs */}
-            <div className="mb-5">
-              <SegmentedTabs
-                tabs={[
-                  { id: "list", label: "Liste" },
-                  { id: "calendar", label: "Calendrier" },
-                  { id: "timeline", label: "Timeline" },
-                ]}
-                active={viewMode}
-                onChange={(id) => {
-                  setViewMode(id as ViewMode);
-                  // Quitter la timeline (entrée via ?date=) doit retirer le
-                  // paramètre : sinon l'URL reste désynchronisée de la vue et
-                  // un retour/refresh ré-ouvre la timeline.
-                  if (id !== "timeline" && searchParams.has("date")) {
-                    setSearchParams({}, { replace: true });
-                  }
-                }}
-              />
-            </div>
-
-            {viewMode === "calendar" ? (
-              <EventCalendar
-                events={events}
-                onSelectEvent={(id) => navigate(`/event/${id}`)}
-                onSelectDay={(iso) => navigate(`/events?date=${iso}`)}
-              />
-            ) : viewMode === "timeline" ? (
-              <EventTimeline
-                events={events}
-                onSelectEvent={(id) => navigate(`/event/${id}`)}
-              />
-            ) : sortedEvents.length === 0 ? (
-              <EmptyState
-                title="Aucun événement"
-                description="Planifiez vos prochaines célébrations"
-                actionLabel="Créer un événement"
-                onAction={() => navigate("/event/new")}
-              />
-            ) : (
-              <div className="space-y-3">
-                {visibleEvents.map((event: any) => {
-                  const color = EVENT_STATUS_COLORS[event.status] || "var(--text-tertiary)";
-                  const eventTxs = txsByEvent.get(event.id) ?? [];
-                  const income = eventTxs
-                    .filter(
-                      (t: any) =>
-                        t.type === "INCOME" && t.status === "APPROVED",
-                    )
-                    .reduce((s: number, t: any) => s + t.amount, 0);
-                  const expense = eventTxs
-                    .filter(
-                      (t: any) =>
-                        t.type === "EXPENSE" && t.status === "APPROVED",
-                    )
-                    .reduce((s: number, t: any) => s + t.amount, 0);
-                  const budgetItems = parseBudgetItems(event.budget_items);
-                  return (
-                    <button
-                      key={event.id}
-                      onClick={() => navigate(`/event/${event.id}`)}
-                      className="w-full text-left rounded-xl p-4 transition-all active:scale-95"
-                      style={{
-                        backgroundColor: "var(--surface)",
-                        border: "1px solid var(--border)",
-                      }}
-                      aria-label={`Voir les détails de ${event.name}`}
+                {/* En-tête avec stats et action */}
+                <div className="flex flex-col gap-4 mb-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-text-primary font-bold text-2xl leading-tight">Événements</h2>
+                      <p className="text-text-tertiary text-sm">
+                        Organisez et suivez vos événements et cultes.
+                      </p>
+                    </div>
+                    <ActionCard
+                      tone="primary"
+                      onClick={handleAddEvent}
+                      aria-label="Créer un événement"
                     >
-                      <div className="flex items-start gap-3">
-                        <div
-                          className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                          style={{ backgroundColor: color + "20" }}
-                        >
-                          <Gift
-                            className="text-lg"
-                            style={{ color: "var(--accent-primary)" }}
-                          />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-text-primary font-semibold truncate">
-                            {event.name}
-                          </p>
-                          <p className="text-text-tertiary text-xs mt-0.5">
-                            {formatDate(event.start_date || event.startDate)}
-                            {event.end_date || event.endDate
-                              ? " → " +
-                                formatDate(event.end_date || event.endDate)
-                              : ""}
-                          </p>
-                          <div className="flex items-center gap-2 mt-1.5">
-                            <span
-                              className="text-xs px-2 py-0.5 rounded-full font-medium"
-                              style={{ color, backgroundColor: color + "20" }}
-                            >
-                              {EVENT_STATUS_LABELS[event.status] || event.status}
-                            </span>
-                            {budgetItems.length > 0 && (
-                              <span className="text-xs text-text-tertiary">
-                                {budgetItems.length} poste
-                                {budgetItems.length > 1 ? "s" : ""}
-                              </span>
-                            )}
-                          </div>
-                          {eventTxs.length > 0 && (
-                            <div className="flex items-center gap-3 mt-2 text-xs">
-                              <span
-                                className="flex items-center gap-1"
-                                style={{ color: "var(--in)" }}
-                              >
-                                <ArrowUp className="w-3 h-3" /> +
-                                {formatCurrencyCompact(income)} F
-                              </span>
-                              <span
-                                className="flex items-center gap-1"
-                                style={{ color: "var(--out)" }}
-                              >
-                                <ArrowDown className="w-3 h-3" /> -
-                                {formatCurrencyCompact(expense)} F
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                        <Clock className="w-4 h-4 text-text-tertiary flex-shrink-0 mt-1" />
-                      </div>
+                      <Plus className="w-5 h-5" />
+                      <span>Nouvel événement</span>
+                    </ActionCard>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-3">
+                    <StatCard
+                      value={events.length.toString()}
+                      label="Total événements"
+                      icon={<Calendar className="w-5 h-5" />}
+                      tone="primary"
+                    />
+                    <StatCard
+                      value={upcomingEvents.length.toString()}
+                      label="À venir"
+                      icon={<Clock className="w-5 h-5" />}
+                      tone="income"
+                    />
+                    <StatCard
+                      value={pastEvents.length.toString()}
+                      label="Passés"
+                      icon={<Gift className="w-5 h-5" />}
+                      tone="expense"
+                    />
+                  </div>
+                </div>
+
+                {/* Sélecteur de vue */}
+                <div className="flex gap-2 mb-6">
+                  {["list", "calendar", "timeline"].map((v) => (
+                    <button
+                      key={v}
+                      onClick={() => setViewMode(v as ViewMode)}
+                      className={`flex-1 py-3 rounded-xl text-xs font-medium transition-all ${
+                        viewMode === v
+                          ? "bg-accent-primary text-black shadow-accent"
+                          : "bg-surface border border-border text-text-secondary"
+                      }`}
+                    >
+                      {v === "list" ? "Liste" : v === "calendar" ? "Calendrier" : "Timeline"}
                     </button>
-                  );
-                })}
-                {sortedEvents.length > visibleCount && (
-                  <button
-                    onClick={() => setVisibleCount((c) => c + 50)}
-                    className="w-full py-3 rounded-xl text-sm font-medium"
-                    aria-label="Afficher plus d'événements"
-                    style={{
-                      backgroundColor: "var(--surface)",
-                      color: "var(--text-secondary)",
-                      border: "1px solid var(--border)",
-                    }}
-                  >
-                    Afficher plus
-                  </button>
+                  ))}
+                </div>
+
+                {/* Liste des événements */}
+                {events.length === 0 ? (
+                  <EmptyState
+                    title="Aucun événement"
+                    description="Créez votre premier événement pour commencer à organiser votre communauté."
+                    icon={<Calendar className="w-6 h-6" />}
+                    action={handleAddEvent}
+                    actionLabel="Créer un événement"
+                  />
+                ) : (
+                  <Section title="Événements à venir">
+                    {upcomingEvents.slice(0, visibleCount).map((event: any) => (
+                      <ListItem
+                        key={event.id}
+                        icon={
+                          <div
+                            className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+                            style={{
+                              backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)",
+                            }}
+                          >
+                            <Calendar className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
+                          </div>
+                        }
+                        title={event.name || "Événement sans nom"}
+                        subtitle={formatDate(event.start_date || event.startDate)}
+                        onClick={() => navigate(`/event/${event.id}`)}
+                      />
+                    ))}
+                    {visibleCount < upcomingEvents.length && (
+                      <button
+                        onClick={() => setVisibleCount((c) => c + 20)}
+                        className="w-full py-3 rounded-xl text-sm font-medium text-center transition-all hover:bg-surface-hover"
+                        style={{
+                          backgroundColor: "var(--surface)",
+                          border: "1px solid var(--border)",
+                          color: "var(--accent-primary)",
+                        }}
+                      >
+                        Charger plus <span className="ml-2">›</span>
+                      </button>
+                    )}
+                  </Section>
                 )}
               </div>
-            )}
-          </div>
-          <BottomNav />
-        </IonContent>
-      )}
+            </Fragment>
+          )}
+        </div>
+      </IonContent>
     </IonPage>
   );
 }

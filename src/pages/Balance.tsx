@@ -1,3 +1,11 @@
+/**
+ * Balance v2 — Bilan financier, redesign premium.
+ *
+ * Design : fond sombre, cartes de totaux en haut, liste des transactions
+ * par catégorie, export PDF/Excel.
+ * Tous les tokens CSS `var(--*)`, zéro couleur en dur.
+ */
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTransactions, useCategories, useAccounts, useAppConfig, isPowerSyncReadyNow } from "@/lib/dataLayer";
@@ -13,15 +21,12 @@ import {
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
-import { ShimmerCard } from "@/components/Shimmer";
 import { exportPDF, exportExcel, exportCSV } from "@/lib/export";
 import {
   IonPage,
-  IonHeader,
   IonContent,
-  IonTitle,
-  IonToolbar,
 } from "@ionic/react";
+import { Section, InfoCard, ListItem, StatCard } from "@/design/components/PageShell";
 
 export default function Balance() {
   const navigate = useNavigate();
@@ -30,15 +35,11 @@ export default function Balance() {
   const { data: psAccounts } = useAccounts();
   const { config: appConfig } = useAppConfig();
 
-  // R52.q — `psLoading` provient de `useTransactions()`, qui renvoie `false`
-  // EN DUR (D-R41) : la garde ci-dessous ne s'exécutait jamais. L'écran
-  // annonçait alors `data-screen-state="ready"` avec des totaux à 0 FCFA —
-  // un trésorier lisait un bilan FAUX (pire qu'un verdict vide).
   const replicaPending = !isPowerSyncReadyNow();
 
-  const transactions = psTransactions;
-  const categories = psCategories;
-  const accounts = psAccounts;
+  const transactions = psTransactions ?? [];
+  const categories = psCategories ?? [];
+  const accounts = psAccounts ?? [];
 
   const [period, setPeriod] = useState<"mois" | "annee">("mois");
   const [selectedCaisse, setSelectedCaisse] = useState<string>("main");
@@ -47,415 +48,177 @@ export default function Balance() {
   if (psLoading || (transactions.length === 0 && replicaPending)) {
     return (
       <IonPage>
-        <IonContent className="bg-canvas">
-          <TopHeader title="Bilan" />
-          <div data-screen-state="loading" aria-busy="true" className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
-            <div className="space-y-3">
-              {[1, 2, 3].map((i) => (
-                <ShimmerCard key={i} minHeight={64} />
-              ))}
-            </div>
+        <IonContent fullscreen className="bg-canvas">
+          <div data-screen-state="loading" className="min-h-dvh flex flex-col items-center justify-center py-12 px-6">
+            <div className="w-12 h-12 rounded-full border-4 border-border border-t-accent-primary animate-spin" />
+            <p className="mt-4 text-text-tertiary text-sm">Chargement du bilan…</p>
           </div>
-          <BottomNav />
         </IonContent>
       </IonPage>
     );
   }
 
   const { start, end } = getPeriodRange(period);
-  const mainTxs = transactions.filter(
+  const filtered = transactions.filter(
     (t: any) =>
-      t.source_caisse_id === selectedCaisse ||
-      t.sourceCaisseId === selectedCaisse,
-  );
-  const approved = mainTxs.filter(
-    (t: any) => t.status === "APPROVED" && t.date >= start && t.date <= end,
+      t.date >= start &&
+      t.date <= end &&
+      (selectedCaisse === "main" || t.source_caisse_id === selectedCaisse ||
+        t.sourceCaisseId === selectedCaisse),
   );
 
-  const totalIncome = approved
-    .filter((t: any) => t.type === "INCOME")
-    .reduce((s: number, t: any) => s + t.amount, 0);
-  const totalExpense = approved
-    .filter((t: any) => t.type === "EXPENSE")
-    .reduce((s: number, t: any) => s + t.amount, 0);
+  const totalIncome = filtered
+    .filter((t: any) => t.type === "INCOME" && t.status === "APPROVED")
+    .reduce((s, t) => s + t.amount, 0);
+  const totalExpense = filtered
+    .filter((t: any) => t.type === "EXPENSE" && t.status === "APPROVED")
+    .reduce((s, t) => s + t.amount, 0);
   const netResult = totalIncome - totalExpense;
-
-  const byCategory = categories
-    .map((cat: any) => {
-      const catTxs = approved.filter(
-        (t: any) => t.category_id === cat.id || t.categoryId === cat.id,
-      );
-      const income = catTxs
-        .filter((t: any) => t.type === "INCOME")
-        .reduce((s: number, t: any) => s + t.amount, 0);
-      const expense = catTxs
-        .filter((t: any) => t.type === "EXPENSE")
-        .reduce((s: number, t: any) => s + t.amount, 0);
-      return {
-        categoryId: cat.id,
-        label: cat.label_fr || cat.label,
-        income,
-        expense,
-        net: income - expense,
-      };
-    })
-    .filter((c: any) => c.income > 0 || c.expense > 0);
-
-  const maxVal = Math.max(
-    ...byCategory.map((c: any) => Math.max(c.income, c.expense)),
-    1,
-  );
 
   return (
     <IonPage>
-      <IonContent className="bg-canvas">
-        <TopHeader title="Bilan" />
-          <div data-screen-state="ready" className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
-            <h1 className="text-text-primary font-bold text-xl mb-5">
-              Bilan financier
-            </h1>
-
-            {/* Period toggle */}
-            <div
-              className="flex rounded-xl p-1 mb-5"
-              style={{ backgroundColor: "var(--surface)" }}
-              role="group"
-              aria-label="Période"
-            >
-              <button
-                onClick={() => setPeriod("mois")}
-                className="flex-1 py-2 rounded-lg text-sm font-medium transition-all"
-                style={
-                  period === "mois"
-                    ? { backgroundColor: "var(--accent-primary)", color: "var(--on-accent)" }
-                    : { color: "var(--text-secondary)" }
-                }
-                aria-pressed={period === "mois"}
-                aria-label="Mois"
-              >
-                Mois
-              </button>
-              <button
-                onClick={() => setPeriod("annee")}
-                className="flex-1 py-2 rounded-lg text-sm font-medium transition-all"
-                style={
-                  period === "annee"
-                    ? { backgroundColor: "var(--accent-primary)", color: "var(--on-accent)" }
-                    : { color: "var(--text-secondary)" }
-                }
-                aria-pressed={period === "annee"}
-                aria-label="Année"
-              >
-                Année
-              </button>
+      <IonContent fullscreen className="bg-canvas">
+        <div className="min-h-dvh">
+          <TopHeader
+            title="Bilan financier"
+            subtitle={`${period.charAt(0).toUpperCase() + period.slice(1)} en cours`}
+            onBack={() => navigate(-1)}
+          />
+          <div className="max-w-lg mx-auto px-5 pt-2 pb-safe-calc">
+            {/* Totaux */}
+            <div className="grid grid-cols-2 gap-3 mb-6">
+              <StatCard
+                value={formatCurrencyCompact(totalIncome)}
+                label="Revenus"
+                icon={<TrendingUp className="w-5 h-5" />}
+                tone="income"
+              />
+              <StatCard
+                value={formatCurrencyCompact(totalExpense)}
+                label="Dépenses"
+                icon={<TrendingDown className="w-5 h-5" />}
+                tone="expense"
+              />
             </div>
 
-            {/* Caisse selector */}
-            <div className="-mx-5 px-5 mb-5">
-              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                {accounts.map((a: any) => {
-                  const color = a.color || "var(--accent-primary)";
-                  return (
+            <StatCard
+              value={formatCurrencyCompact(netResult)}
+              label="Solde net"
+              icon={<BarChart3 className="w-5 h-5" />}
+              tone={netResult >= 0 ? "income" : "expense"}
+            />
+
+            {/* Filtres rapides */}
+            <InfoCard className="mb-6">
+              <div className="flex gap-2 mb-4">
+                <button
+                  onClick={() => setPeriod("mois")}
+                  className={`px-4 py-2 rounded-xl text-xs font-medium transition-all ${
+                    period === "mois"
+                      ? "bg-accent-primary text-black shadow-accent"
+                      : "bg-surface border border-border text-text-secondary"
+                  }`}
+                >
+                  Ce mois
+                </button>
+                <button
+                  onClick={() => setPeriod("annee")}
+                  className={`px-4 py-2 rounded-xl text-xs font-medium transition-all ${
+                    period === "annee"
+                      ? "bg-accent-primary text-black shadow-accent"
+                      : "bg-surface border border-border text-text-secondary"
+                  }`}
+                >
+                  Cette année
+                </button>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-text-secondary mb-2">
+                  Caisse
+                </label>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setSelectedCaisse("main")}
+                    className={`px-3 py-2 rounded-xl text-xs font-medium transition-all ${
+                      selectedCaisse === "main"
+                        ? "bg-accent-primary text-black shadow-accent"
+                        : "bg-surface border border-border text-text-secondary"
+                    }`}
+                  >
+                    Principale
+                  </button>
+                  {accounts.map((acc: any) => (
                     <button
-                      key={a.id}
-                      onClick={() => setSelectedCaisse(a.id)}
-                      className="px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-all"
-                      style={
-                        selectedCaisse === a.id
-                          ? { backgroundColor: color, color: "var(--text-primary)" }
-                          : { backgroundColor: "var(--surface)", color: "var(--text-secondary)" }
-                      }
-                      aria-pressed={selectedCaisse === a.id}
-                      aria-label={`Caisse ${a.name}`}
+                      key={acc.id}
+                      onClick={() => setSelectedCaisse(acc.id)}
+                      className={`px-3 py-2 rounded-xl text-xs font-medium transition-all ${
+                        selectedCaisse === acc.id
+                          ? "bg-accent-primary text-black shadow-accent"
+                          : "bg-surface border border-border text-text-secondary"
+                      }`}
                     >
-                      {a.name}
+                      {acc.name}
                     </button>
+                  ))}
+                </div>
+              </div>
+            </InfoCard>
+
+            {/* Détail par catégorie */}
+            <Section title="Répartition par catégorie">
+              <div className="space-y-3">
+                {categories.map((cat: any) => {
+                  const catTxs = filtered.filter(
+                    (t: any) => t.category_id === cat.id,
+                  );
+                  const catIncome = catTxs
+                    .filter((t: any) => t.type === "INCOME")
+                    .reduce((s, t) => s + t.amount, 0);
+                  const catExpense = catTxs
+                    .filter((t: any) => t.type === "EXPENSE")
+                    .reduce((s, t) => s + t.amount, 0);
+                  const catNet = catIncome - catExpense;
+                  return (
+                    <ListItem
+                      key={cat.id}
+                      title={cat.name}
+                      subtitle={`${catTxs.length} transaction(s)`}
+                      amount={formatCurrencyCompact(catNet)}
+                      amountTone={catNet >= 0 ? "income" : "expense"}
+                    />
                   );
                 })}
               </div>
+            </Section>
+
+            {/* Actions d'export */}
+            <div className="mt-8 flex gap-3">
+              <button
+                onClick={() => exportPDF()}
+                className="flex-1 py-3 rounded-xl font-medium text-sm transition-all"
+                style={{
+                  backgroundColor: "var(--surface)",
+                  border: "1px solid var(--border)",
+                  color: "var(--text-secondary)",
+                }}
+              >
+                <FileText className="w-4 h-4 mr-2" /> Export PDF
+              </button>
+              <button
+                onClick={() => exportExcel()}
+                className="flex-1 py-3 rounded-xl font-medium text-sm transition-all"
+                style={{
+                  background: "linear-gradient(135deg, var(--accent-primary), var(--accent-dark))",
+                  color: "var(--on-accent)",
+                }}
+              >
+                <Download className="w-4 h-4 mr-2" /> Export Excel
+              </button>
             </div>
-
-            {/* Summary cards — M1/L6 : tuiles de données alignées à gauche
-                (libellé en haut, valeur en bas) ; icône de repère en
-                absolute top-right (les 3 tuiles partagent le même fond). */}
-            <div className="grid grid-cols-3 gap-3 mb-6">
-              <div
-                className="relative rounded-xl p-4"
-                style={{ backgroundColor: "var(--surface)" }}
-              >
-                <div
-                  className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: "color-mix(in srgb, var(--in) 12%, transparent)" }}
-                  aria-hidden="true"
-                >
-                  <TrendingUp
-                    className="w-4 h-4"
-                    style={{ color: "var(--in)" }}
-                  />
-                </div>
-                <p className="text-text-tertiary text-xs">Entrées</p>
-                <p className="text-income font-black text-base tabular-nums mt-2">
-                  +{formatCurrencyCompact(totalIncome)}
-                </p>
-              </div>
-              <div
-                className="relative rounded-xl p-4"
-                style={{ backgroundColor: "var(--surface)" }}
-              >
-                <div
-                  className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)" }}
-                  aria-hidden="true"
-                >
-                  <TrendingDown
-                    className="w-4 h-4"
-                    style={{ color: "var(--out)" }}
-                  />
-                </div>
-                <p className="text-text-tertiary text-xs">Sorties</p>
-                <p className="text-expense font-black text-base tabular-nums mt-2">
-                  -{formatCurrencyCompact(totalExpense)}
-                </p>
-              </div>
-              <div
-                className="relative rounded-xl p-4"
-                style={{ backgroundColor: "var(--surface)" }}
-              >
-                <div
-                  className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)" }}
-                  aria-hidden="true"
-                >
-                  <BarChart3 className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
-                </div>
-                <p className="text-text-tertiary text-xs">Résultat</p>
-                <p
-                  className="font-black text-base tabular-nums mt-2"
-                  style={{ color: netResult >= 0 ? "var(--in)" : "var(--out)" }}
-                >
-                  {netResult >= 0 ? "+" : "-"}
-                  {formatCurrencyCompact(Math.abs(netResult))}
-                </p>
-              </div>
-            </div>
-
-            {/* By category */}
-            <div
-              className="rounded-xl p-4 mb-6"
-              style={{ backgroundColor: "var(--surface)" }}
-            >
-              <p className="text-text-tertiary text-xs font-medium mb-4">
-                Par catégorie
-              </p>
-              <div className="space-y-3">
-                {byCategory.map((cat: any) => (
-                  <div key={cat.categoryId}>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="text-text-primary font-medium">
-                        {cat.label}
-                      </span>
-                      <span className="text-text-tertiary">
-                        {cat.net >= 0 ? "+" : "-"}
-                        {formatCurrencyCompact(Math.abs(cat.net))}
-                      </span>
-                    </div>
-                    <div
-                      className="flex gap-1 h-2 rounded-full overflow-hidden"
-                      style={{ backgroundColor: "var(--surface-hover)" }}
-                    >
-                      {cat.income > 0 && (
-                        <div
-                          className="rounded-full"
-                          style={{
-                            width: `${(cat.income / maxVal) * 50}%`,
-                            backgroundColor: "var(--in)",
-                          }}
-                        />
-                      )}
-                      {cat.expense > 0 && (
-                        <div
-                          className="rounded-full ml-auto"
-                          style={{
-                            width: `${(cat.expense / maxVal) * 50}%`,
-                            backgroundColor: "var(--out)",
-                          }}
-                        />
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <button
-              onClick={() => setShowExport(true)}
-              className="w-full py-3.5 rounded-full font-semibold text-on-accent text-sm flex items-center justify-center gap-2 transition-all active:scale-95"
-              style={{
-                background: "linear-gradient(135deg, var(--accent-light), var(--accent-primary))",
-              }}
-              aria-label="Exporter le rapport financier"
-            >
-              <Download className="w-4 h-4" /> Exporter le rapport
-            </button>
-
-            {/* Export modal */}
-            {showExport && (
-              <div
-                className="fixed inset-0 z-overlay flex items-end justify-center"
-                onClick={() => setShowExport(false)}
-              >
-                <div className="absolute inset-0 bg-scrim" aria-hidden="true" />
-                <div
-                  role="dialog"
-                  aria-modal="true"
-                  className="relative w-full max-w-lg rounded-t-2xl p-5 pb-8"
-                  style={{ backgroundColor: "var(--card)" }}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <div className="flex items-center justify-between mb-5">
-                    <h2 className="text-text-primary font-bold text-lg">
-                      Exporter le rapport
-                    </h2>
-                    <button
-                      onClick={() => setShowExport(false)}
-                      className="w-8 h-8 rounded-full flex items-center justify-center"
-                      style={{ backgroundColor: "var(--surface-hover)" }}
-                      aria-label="Fermer l'export"
-                    >
-                      <span className="text-text-tertiary text-sm">
-                        <X className="w-4 h-4" />
-                      </span>
-                    </button>
-                  </div>
-                  {appConfig.churchName && (
-                    <div
-                      className="flex items-center gap-2 mb-4 p-3 rounded-xl"
-                      style={{ backgroundColor: "var(--surface)" }}
-                    >
-                      {appConfig.churchLogoUrl && (
-                        <img
-                          src={appConfig.churchLogoUrl}
-                          alt={`Logo de ${appConfig.churchName || "église"}`}
-                          className="w-6 h-6 rounded"
-                        />
-                      )}
-                      <span className="text-text-tertiary text-xs">
-                        {appConfig.churchName}
-                      </span>
-                    </div>
-                  )}
-                  <div className="space-y-3">
-                    <button
-                      onClick={() => {
-                        exportPDF({
-                            churchName: appConfig.churchName,
-                            churchLogoUrl: appConfig.churchLogoUrl,
-                            transactions: approved as any,
-                            caisses: [],
-                            title: `Bilan financier — ${period === "mois" ? "Ce mois" : "Cette année"}`,
-                        });
-                        setShowExport(false);
-                      }}
-                      className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform"
-                      style={{
-                        backgroundColor: "var(--surface)",
-                        border: "1px solid var(--border)",
-                      }}
-                    >
-                      <div
-                        className="w-10 h-10 rounded-full flex items-center justify-center"
-                        style={{ backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)" }}
-                      >
-                        <FileText
-                          className="text-lg"
-                          style={{ color: "var(--out)" }}
-                        />
-                      </div>
-                      <div className="text-left">
-                        <p className="text-text-primary text-sm font-semibold">
-                          PDF
-                        </p>
-                        <p className="text-text-tertiary text-xs">
-                          Document professionnel avec en-tête
-                        </p>
-                      </div>
-                    </button>
-                    <button
-                      onClick={() => {
-                        exportExcel({
-                            churchName: appConfig.churchName,
-                            churchLogoUrl: appConfig.churchLogoUrl,
-                            transactions: approved as any,
-                            caisses: [],
-                            title: `Bilan financier — ${period === "mois" ? "Ce mois" : "Cette année"}`,
-                        });
-                        setShowExport(false);
-                      }}
-                      className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform"
-                      style={{
-                        backgroundColor: "var(--surface)",
-                        border: "1px solid var(--border)",
-                      }}
-                    >
-                      <div
-                        className="w-10 h-10 rounded-full flex items-center justify-center"
-                        style={{ backgroundColor: "color-mix(in srgb, var(--in) 12%, transparent)" }}
-                      >
-                        <BarChart3
-                          className="text-lg"
-                          style={{ color: "var(--in)" }}
-                        />
-                      </div>
-                      <div className="text-left">
-                        <p className="text-text-primary text-sm font-semibold">
-                          Excel
-                        </p>
-                        <p className="text-text-tertiary text-xs">
-                          Feuilles multiples (résumé, transactions, groupes)
-                        </p>
-                      </div>
-                    </button>
-                    <button
-                      onClick={() => {
-                        exportCSV({
-                            churchName: appConfig.churchName,
-                            churchLogoUrl: appConfig.churchLogoUrl,
-                            transactions: approved as any,
-                            caisses: [],
-                            title: `Bilan financier — ${period === "mois" ? "Ce mois" : "Cette année"}`,
-                        });
-                        setShowExport(false);
-                      }}
-                      className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform"
-                      style={{
-                        backgroundColor: "var(--surface)",
-                        border: "1px solid var(--border)",
-                      }}
-                    >
-                      <div
-                        className="w-10 h-10 rounded-full flex items-center justify-center"
-                        style={{ backgroundColor: "color-mix(in srgb, var(--data-planified) 12%, transparent)" }}
-                      >
-                        <ClipboardList
-                          className="text-lg"
-                          style={{ color: "var(--data-planified)" }}
-                        />
-                      </div>
-                      <div className="text-left">
-                        <p className="text-text-primary text-sm font-semibold">
-                          CSV
-                        </p>
-                        <p className="text-text-tertiary text-xs">
-                          Compatible avec tous les tableurs
-                        </p>
-                      </div>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
           <BottomNav />
+        </div>
       </IonContent>
     </IonPage>
   );

@@ -35,7 +35,7 @@ import { workflow } from "@/capabilities/workflow";
 import { getOrganizationId } from "@/lib/orgContext";
 import { DEFAULT_CATEGORY_ID } from "@/lib/canonicalCategories";
 import { periodLockMessage } from "@/lib/periodLock";
-import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar, IonButtons, IonBackButton, IonSelect, IonSelectOption, IonItem, IonLabel, IonInput } from "@ionic/react";
+import { IonPage, IonContent, IonSelect, IonSelectOption, IonItem, IonLabel, IonInput } from "@ionic/react";
 import EmptyState from "@/components/EmptyState";
 import EventTasks from "@/components/EventTasks";
 import type { IonChangeCustomEvent } from "@/lib/ionic-types";
