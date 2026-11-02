@@ -29,6 +29,8 @@ interface TrendChartProps {
   height?: number;
   /** Affiche le tooltip au survol (desktop). Défaut : masqué. */
   withTooltip?: boolean;
+  /** Formate la valeur du tooltip (sinon brute — ex. centimes illisibles). */
+  formatValue?: (value: number) => string;
 }
 
 export default function TrendChart({
@@ -37,6 +39,7 @@ export default function TrendChart({
   color = "var(--accent-primary)",
   height = 96,
   withTooltip = false,
+  formatValue,
 }: TrendChartProps) {
   const data = values.map((v, i) => ({ i, value: v, label: labels?.[i] ?? String(i) }));
 
@@ -68,7 +71,7 @@ export default function TrendChart({
                           color: "var(--text-secondary)",
                         }}
                       >
-                        {p.label ?? ""} · {p.value}
+                        {p.label ?? ""} · {formatValue ? formatValue(p.value) : p.value}
                       </div>
                     );
                   }

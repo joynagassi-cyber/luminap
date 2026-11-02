@@ -21,9 +21,6 @@ import TransactionCard from "@/components/TransactionCard";
 import EmptyState from "@/components/EmptyState";
 import { LoadErrorBlock } from "@/components/RouteStates";
 import { captureClientError } from "@/lib/clientErrors";
-import CircleAction from "@/components/CircleAction";
-import CapabilityBanner from "@/components/CapabilityBanner";
-import { getOrganizationId } from "@/lib/orgContext";
 import { FinanceSkeleton } from "@/components/PageSkeletons";
 import {
   IonPage,
@@ -88,6 +85,7 @@ export default function Finance() {
   }, [loadTransactions]);
 
   const [filterOpen, setFilterOpen] = useState(false);
+  const [fabOpen, setFabOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedType, setSelectedType] = useState<string>("ALL");
   const [selectedStatus, setSelectedStatus] = useState<string>("ALL");
@@ -173,7 +171,6 @@ export default function Finance() {
               <h1 className="sr-only">Finance — Grand livre</h1>
               <TopHeader title="Finance" />
               <div data-screen-state="ready" className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
-            <CapabilityBanner orgId={getOrganizationId()} />
             {/* Summary Cards */}
             <div className="grid grid-cols-2 gap-3 mb-6">
               <div
@@ -386,23 +383,75 @@ export default function Finance() {
               )}
             </div>
 
-            {/* M23 — FAB multi-agir : CircleAction avec tone (plus de shadow/
-                bouton ad-hoc par page, ombre --shadow-accent unique) */}
-            <div className="fixed bottom-24 right-5 flex flex-col gap-3">
-              <CircleAction
-                tone="income"
-                onClick={() => handleAddTransaction("INCOME")}
-                aria-label="Nouvelle entrée"
+            {/* Bug P2-6 : un seul FAB « + » (les deux boutons icône seule
+                verts/rouges empilés masquaient le contenu sans libellé).
+                Ouvert, il propose Entrée / Sortie EN TOUTES LETTRES. */}
+            <div
+              className="fixed right-5 flex flex-col items-end gap-3"
+              style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)" }}
+            >
+              {fabOpen && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => handleAddTransaction("INCOME")}
+                    aria-label="Nouvelle entrée"
+                    className="flex items-center gap-2 pl-4 pr-1.5 py-1.5 rounded-full text-sm font-semibold active:scale-95 transition-transform"
+                    style={{
+                      backgroundColor: "var(--surface)",
+                      border: "1px solid var(--border)",
+                      color: "var(--text-primary)",
+                      boxShadow: "var(--shadow-card)",
+                    }}
+                  >
+                    Nouvelle entrée
+                    <span
+                      aria-hidden="true"
+                      className="w-10 h-10 rounded-full flex items-center justify-center"
+                      style={{ backgroundColor: "var(--in)" }}
+                    >
+                      <ArrowUpRight className="w-5 h-5 text-on-accent" />
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleAddTransaction("EXPENSE")}
+                    aria-label="Nouvelle dépense"
+                    className="flex items-center gap-2 pl-4 pr-1.5 py-1.5 rounded-full text-sm font-semibold active:scale-95 transition-transform"
+                    style={{
+                      backgroundColor: "var(--surface)",
+                      border: "1px solid var(--border)",
+                      color: "var(--text-primary)",
+                      boxShadow: "var(--shadow-card)",
+                    }}
+                  >
+                    Nouvelle dépense
+                    <span
+                      aria-hidden="true"
+                      className="w-10 h-10 rounded-full flex items-center justify-center"
+                      style={{ backgroundColor: "var(--out)" }}
+                    >
+                      <ArrowDownRight className="w-5 h-5 text-on-accent" />
+                    </span>
+                  </button>
+                </>
+              )}
+              <button
+                type="button"
+                onClick={() => setFabOpen((open) => !open)}
+                aria-label={fabOpen ? "Fermer les actions" : "Ajouter une transaction"}
+                aria-expanded={fabOpen}
+                className="w-14 h-14 rounded-full flex items-center justify-center text-on-accent active:scale-95 transition-transform"
+                style={{
+                  backgroundColor: "var(--accent-primary)",
+                  boxShadow: "var(--shadow-fab)",
+                }}
               >
-                <ArrowUpRight className="w-6 h-6 text-on-accent" />
-              </CircleAction>
-              <CircleAction
-                tone="expense"
-                onClick={() => handleAddTransaction("EXPENSE")}
-                aria-label="Nouvelle dépense"
-              >
-                <ArrowDownRight className="w-6 h-6 text-on-accent" />
-              </CircleAction>
+                <Plus
+                  className="w-7 h-7 transition-transform"
+                  style={{ transform: fabOpen ? "rotate(45deg)" : undefined }}
+                />
+              </button>
             </div>
             </div>
             </Fragment>

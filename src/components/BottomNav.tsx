@@ -63,7 +63,13 @@ export default function BottomNav() {
   const fabAction = useMemo(() => {
     const path = location.pathname;
 
-    if (path === "/finance" || path.startsWith("/transaction/")) {
+    if (
+      path === "/finance" ||
+      path.startsWith("/transaction/") ||
+      // Le constructeur de rapport a ses propres CTA (Exécuter /
+      // Enregistrer) : le FAB les recouvrait (bug P2-5).
+      path === "/report-builder"
+    ) {
       return null;
     }
     // /dashboard : les « Actions rapides » (Entrée / Sortie / Versement /
@@ -151,6 +157,19 @@ export default function BottomNav() {
     color: "inherit",
   });
 
+  // Bug P2-6 : la barre d'onglets restait affichée pendant la saisie d'un
+  // formulaire (espace réduit, clavier). On la masque sur les écrans de
+  // création/édition — ils ont tous leur propre bouton Retour.
+  const hideBottomNav = [
+    /^\/transaction\/new$/,
+    /^\/transaction\/[^/]+\/edit$/,
+    /^\/groups\/[^/]+\/transaction\/new$/,
+    /^\/event\/new$/,
+    /^\/event\/[^/]+\/edit$/,
+    /^\/report-builder$/,
+  ].some((re) => re.test(location.pathname));
+  if (hideBottomNav) return null;
+
   return (
     <>
       {/* FAB — Contextual action button (bouton natif). Masqué sur certaines
@@ -161,7 +180,7 @@ export default function BottomNav() {
           onClick={fabAction.action}
           style={{
             position: "fixed",
-            bottom: 80,
+            bottom: "calc(env(safe-area-inset-bottom, 0px) + 80px)",
             right: 20,
             zIndex: "var(--z-nav)",
             width: 56,
@@ -206,7 +225,11 @@ export default function BottomNav() {
           background: "var(--nav-bg)",
           backdropFilter: "blur(10px)",
           borderTop: "1px solid var(--border)",
-          padding: "4px 8px 8px",
+          // Bug P1-3 : la barre doit se terminer AU-DESSUS de la
+          // navigation système Android (edge-to-edge) — le padding bas
+          //absorbe l'inset système au lieu d'un fixe 8px que les
+          // boutons ◀ ● ■ recouvraient.
+          padding: "4px 8px calc(env(safe-area-inset-bottom, 0px) + 8px)",
         }}
       >
         <div

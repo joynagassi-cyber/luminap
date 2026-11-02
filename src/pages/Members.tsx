@@ -28,7 +28,6 @@ import {
   IonInput,
 } from "@ionic/react";
 import EmptyState from "@/components/EmptyState";
-import CapabilityBanner from "@/components/CapabilityBanner";
 import { showError } from "@/utils/toast";
 
 export default function MembersPage() {
@@ -175,7 +174,6 @@ export default function MembersPage() {
         <div data-screen-state="ready" className="min-h-dvh">
           <TopHeader title="Membres" />
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
-            <CapabilityBanner orgId={getOrganizationId()} />
             {/* Header */}
             <div className="flex items-center justify-between mb-5">
               <div>

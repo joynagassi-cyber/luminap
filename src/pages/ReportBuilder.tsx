@@ -13,6 +13,7 @@ import {
   FileText,
   SlidersHorizontal,
   ListChecks,
+  Check,
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
@@ -45,6 +46,38 @@ const METRIC_FNS: { value: MetricExpr["fn"]; label: string }[] = [
   { value: "min", label: "Min" },
   { value: "max", label: "Max" },
 ];
+
+/** Libellés métier des champs — jamais le nom de colonne brut (bug P1-1). */
+const FIELD_LABELS: Record<string, string> = {
+  amount: "Montant",
+};
+
+/**
+ * Nom d'affichage d'une métrique : l'alias choisi par l'utilisateur s'il
+ * existe (et n'est pas le nom de colonne par défaut, ex. « amount »),
+ * sinon un libellé métier (« Total des montants », « Nombre de
+ * transactions »…). Avant : « Somme · amount » à l'écran.
+ */
+function metricName(m: MetricExpr): string {
+  const alias = m.alias?.trim();
+  if (alias && alias !== m.field) return alias;
+  if (m.field === "amount") {
+    switch (m.fn) {
+      case "sum":
+        return "Total des montants";
+      case "count":
+        return "Nombre de transactions";
+      case "avg":
+        return "Montant moyen";
+      case "min":
+        return "Montant minimum";
+      case "max":
+        return "Montant maximum";
+    }
+  }
+  const fn = METRIC_FNS.find((x) => x.value === m.fn)?.label || m.fn;
+  return `${fn} · ${FIELD_LABELS[m.field] || m.field}`;
+}
 
 const GROUP_DIMS: { key: string; label: string }[] = [
   { key: "month", label: "Mois" },
@@ -447,7 +480,7 @@ export default function ReportBuilder() {
       value: row[label] ?? 0,
     }));
   }, [previewResult, draft.groupBy, caisses, categories]);
-  const chartName = firstMetric?.alias || firstMetric?.field || "Valeur";
+  const chartName = firstMetric ? metricName(firstMetric) : "Valeur";
 
   const f = draft.filterState;
 
@@ -464,19 +497,17 @@ export default function ReportBuilder() {
           <ArrowLeft className="w-4 h-4" /> Retour aux rapports
         </button>
 
-        <div className="flex items-center gap-2 mb-5">
-          <h1 className="text-text-primary font-bold text-xl">
-            Constructeur de rapport
-          </h1>
-          {loadedId && (
+        <h1 className="sr-only">Constructeur de rapport</h1>
+        {loadedId && (
+          <div className="flex items-center gap-2 mb-5">
             <span
               className="text-xs font-medium px-2 py-0.5 rounded-full"
               style={{ backgroundColor: "var(--surface-hover)", color: "var(--text-secondary)" }}
             >
               Chargé
             </span>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Filtres */}
         <section className="mb-6">
@@ -540,7 +571,7 @@ export default function ReportBuilder() {
 
         {/* Nom */}
         <IonItem lines="none" className="mb-5 bg-card rounded-xl">
-          <IonLabel position="floating" className="text-sm text-text-secondary">Nom du rapport</IonLabel>
+          <IonLabel position="stacked" className="text-sm text-text-secondary">Nom du rapport</IonLabel>
           <IonInput
             type="text"
             value={draft.name || ""}
@@ -563,16 +594,23 @@ export default function ReportBuilder() {
                 <button
                   key={dim.key}
                   onClick={() => toggleGroup(dim.key)}
-                  className="px-3 py-1.5 rounded-full text-xs font-medium"
+                  aria-pressed={!!on}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium"
                   style={
                     on
-                      ? { backgroundColor: "var(--accent-primary)", color: "var(--on-accent)" }
+                      ? {
+                          backgroundColor: "var(--accent-primary)",
+                          color: "var(--on-accent)",
+                          border: "1px solid var(--accent-primary)",
+                        }
                       : {
-                          backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)",
-                          color: "var(--accent-primary)",
+                          backgroundColor: "transparent",
+                          color: "var(--text-secondary)",
+                          border: "1px solid var(--border)",
                         }
                   }
                 >
+                  {on && <Check className="w-3 h-3" aria-hidden="true" />}
                   {dim.label}
                 </button>
               );
@@ -594,7 +632,7 @@ export default function ReportBuilder() {
               style={{ backgroundColor: "var(--surface)" }}
             >
               <span className="text-text-primary text-xs flex-1 truncate">
-                {METRIC_FNS.find((x) => x.value === m.fn)?.label || m.fn} · {m.alias || m.field}
+                {metricName(m)}
               </span>
               <button onClick={() => removeMetric(i)} style={{ color: "var(--out)" }} aria-label="Retirer">
                 <Trash2 className="w-3.5 h-3.5" />
@@ -624,7 +662,8 @@ export default function ReportBuilder() {
               type="text"
               value={draft.metric?.alias || ""}
               onIonInput={(e: IonChangeCustomEvent<string>) => updateMetricDraft({ alias: e.detail.value ?? "" })}
-              placeholder="Alias"
+              placeholder="Nom affiché (optionnel)"
+              aria-label="Nom affiché de la métrique (optionnel)"
               className="text-xs"
             />
           </div>
