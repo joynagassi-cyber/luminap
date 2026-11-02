@@ -10,9 +10,10 @@
  *      rôle sans droit ne voit AUCUNE affordance d'import.
  *   3. Un fichier valide affiche le RÉSUMÉ du plan (créations / mises à jour /
  *      conflits) et n'écrit RIEN tant que « Restaurer » n'est pas cliqué.
- *   4. À la confirmation, la restauration est appliquée ET une entrée d'audit
- *      `RESTORE` (entityType « Backup », commentaire avec les compteurs) est
- *      écrite, puis un toast récapitulatif est affiché.
+ *   4. À la confirmation, la restauration est appliquée ET le writer reçoit le
+ *      libellé de la source (l'entrée d'audit `RESTORE` est écrite par le
+ *      writer lui-même — cf. `backup-restore.test.ts`), puis un toast
+ *      récapitulatif est affiché.
  *   5. Un fichier d'une AUTRE organisation est REFUSÉ (anti-fuite inter-org) :
  *      aucun plan, aucun bouton d'application, aucune écriture.
  *
@@ -21,8 +22,8 @@
  *     ⇒ le test « rôle sans droit » échoue ;
  *   - retirer le bornage d'org (`planRestore` ORG_MISMATCH) ⇒ le test « fichier
  *     d'une autre organisation refusé » échoue ;
- *   - écrire l'audit avant la confirmation ⇒ le test « aucune écriture avant
- *     confirmation » échoue.
+ *   - appeler `restoreBackupRows` avant la confirmation ⇒ le test « aucune
+ *     écriture avant confirmation » échoue.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import "@testing-library/jest-dom/vitest";
@@ -30,7 +31,6 @@ import { render, screen, fireEvent, cleanup, waitFor } from "@testing-library/re
 import { MemoryRouter } from "react-router-dom";
 
 const restoreBackupRows = vi.fn();
-const writeAudit = vi.fn();
 const recordUsage = vi.fn();
 const captureClientError = vi.fn();
 const toast = vi.fn();
@@ -105,10 +105,6 @@ vi.mock("@/lib/backupRestore", () => ({
   restoreBackupRows: (...args: unknown[]) => restoreBackupRows(...args),
 }));
 
-vi.mock("@/lib/audit", () => ({
-  writeAudit: (...args: unknown[]) => writeAudit(...args),
-}));
-
 vi.mock("@/lib/usageStats", () => ({
   recordUsage: (...args: unknown[]) => recordUsage(...args),
 }));
@@ -118,8 +114,6 @@ import SettingsGestion from "@/pages/SettingsGestion";
 beforeEach(() => {
   restoreBackupRows.mockReset();
   restoreBackupRows.mockResolvedValue({ written: 1, created: 1, updated: 0 });
-  writeAudit.mockReset();
-  writeAudit.mockResolvedValue(undefined);
   recordUsage.mockClear();
   captureClientError.mockClear();
   toast.mockClear();
@@ -195,12 +189,11 @@ describe("SettingsGestion — plan de restauration", () => {
     expect(
       screen.getByText(/2 création\(s\), 0 mise\(s\) à jour, 0 conflit\(s\)/),
     ).toBeInTheDocument();
-    // Aucune écriture ni audit tant que l'utilisateur n'a pas confirmé.
+    // Aucune écriture tant que l'utilisateur n'a pas confirmé.
     expect(restoreBackupRows).not.toHaveBeenCalled();
-    expect(writeAudit).not.toHaveBeenCalled();
   });
 
-  it("applique le plan, écrit l'audit RESTORE et affiche un toast", async () => {
+  it("applique le plan, transmet la source au writer et affiche un toast", async () => {
     renderPage();
     selectFile(
       backupText("org-1", { transactions: [{ id: "t1", org_id: "org-1" }] }),
@@ -212,13 +205,14 @@ describe("SettingsGestion — plan de restauration", () => {
     fireEvent.click(screen.getByTestId("backup-import-confirm"));
 
     await waitFor(() => expect(restoreBackupRows).toHaveBeenCalledTimes(1));
-    await waitFor(() => expect(writeAudit).toHaveBeenCalledTimes(1));
 
-    const entry = writeAudit.mock.calls[0][0] as Record<string, unknown>;
-    expect(entry.action).toBe("RESTORE");
-    expect(entry.entityType).toBe("Backup");
-    expect(entry.orgId).toBe("org-1");
-    expect(String(entry.comment)).toMatch(/1 création\(s\)/);
+    // L'audit `RESTORE` est écrit par le writer lui-même : la page lui transmet
+    // seulement le libellé de la source (cf. `backup-restore.test.ts`).
+    const [, options] = restoreBackupRows.mock.calls[0] as [
+      unknown,
+      { sourceLabel?: string },
+    ];
+    expect(options?.sourceLabel).toBeTruthy();
 
     expect(toast).toHaveBeenCalledWith(
       expect.objectContaining({ title: "Sauvegarde restaurée" }),
@@ -237,7 +231,6 @@ describe("SettingsGestion — plan de restauration", () => {
     expect(screen.getByText(/autre organisation/)).toBeInTheDocument();
     expect(screen.queryByTestId("backup-import-confirm")).toBeNull();
     expect(restoreBackupRows).not.toHaveBeenCalled();
-    expect(writeAudit).not.toHaveBeenCalled();
   });
 
   it("refuse un fichier au format inconnu avec un message explicite", async () => {

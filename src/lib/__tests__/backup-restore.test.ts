@@ -15,6 +15,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const executed: { sql: string; params: unknown[] }[] = [];
+const writeAudit = vi.hoisted(() =>
+  vi.fn(async (_entry: Record<string, unknown>) => {}),
+);
 const powersyncMock = vi.hoisted(() => {
   const db = {
     execute: vi.fn(),
@@ -27,6 +30,10 @@ const powersyncMock = vi.hoisted(() => {
   };
 });
 vi.mock("@/lib/powersync", () => powersyncMock);
+vi.mock("@/lib/audit", () => ({
+  writeAudit,
+  resolveAuditActor: () => ({ userId: "u-1", actorRoleAtTime: "ADMIN" }),
+}));
 
 import { getPowerSyncDatabase } from "@/lib/powersync";
 import { restoreBackupRows } from "@/lib/backupRestore";
@@ -45,6 +52,7 @@ function planOf(rows: { entity: string; table: string; id: string; row: Record<s
 
 beforeEach(() => {
   executed.length = 0;
+  writeAudit.mockClear();
   const db = getPowerSyncDatabase() as unknown as { execute: ReturnType<typeof vi.fn> };
   db.execute.mockReset();
   db.execute.mockImplementation(async (sql: string, params: unknown[]) => {
@@ -126,5 +134,38 @@ describe("restoreBackupRows — écriture R160-safe", () => {
       ),
     ).rejects.toThrow(/non restaurable/);
     expect(executed).toHaveLength(0);
+  });
+
+  it("écrit une entrée d'audit RESTORE (NeverBreak #6 — trace non contournable)", async () => {
+    await restoreBackupRows(
+      planOf([
+        {
+          entity: "transactions",
+          table: "transactions",
+          id: "t1",
+          row: { org_id: "org-1", description: "Dîme" },
+        },
+      ]),
+      { sourceLabel: "sauvegarde-2026.json" },
+    );
+
+    expect(writeAudit).toHaveBeenCalledTimes(1);
+    const entry = writeAudit.mock.calls[0][0] as Record<string, unknown>;
+    expect(entry.action).toBe("RESTORE");
+    expect(entry.entityType).toBe("Backup");
+    expect(entry.orgId).toBe("org-1");
+    expect(entry.entityId).toBe("sauvegarde-2026.json");
+    expect(entry.userId).toBe("u-1");
+  });
+
+  it("n'écrit AUCUN audit quand une table hors liste blanche fait échouer l'écriture", async () => {
+    await expect(
+      restoreBackupRows(
+        planOf([
+          { entity: "evil", table: "sqlite_master", id: "x", row: { org_id: "org-1" } },
+        ]),
+      ),
+    ).rejects.toThrow(/non restaurable/);
+    expect(writeAudit).not.toHaveBeenCalled();
   });
 });

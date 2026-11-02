@@ -41,7 +41,6 @@ import {
   type RestorePlan,
 } from "@/lib/backupImport";
 import { restoreBackupRows } from "@/lib/backupRestore";
-import { writeAudit } from "@/lib/audit";
 import { captureClientError } from "@/lib/clientErrors";
 import { recordUsage } from "@/lib/usageStats";
 import { toast } from "@/components/ui/use-toast";
@@ -191,25 +190,11 @@ export default function SettingsGestion() {
     if (!importPlan || importing) return;
     setImporting(true);
     try {
-      const result = await restoreBackupRows(importPlan);
-      // Journal d'audit — trace de la restauration (jamais silencieuse).
-      await writeAudit({
-        orgId: importPlan.orgId,
-        transactionId: null,
-        userId: user?.id ?? "local-user",
-        actorRoleAtTime: (user?.role as string) ?? null,
-        action: "RESTORE",
-        entityType: "Backup",
-        entityId: importFileName ?? "backup.json",
-        beforeState: null,
-        afterState: {
-          creates: importPlan.counts.creates,
-          updates: importPlan.counts.updates,
-          conflicts: importPlan.counts.conflicts,
-          skipped: importPlan.counts.skipped,
-        },
-        comment: restorePlanSummary(importPlan),
+      const result = await restoreBackupRows(importPlan, {
+        sourceLabel: importFileName ?? "backup.json",
       });
+      // L'entrée d'audit RESTORE est écrite par `restoreBackupRows` (le writer),
+      // pour qu'aucun appelant ne puisse restaurer sans laisser de trace.
       recordUsage("action:import-backup");
       toast({
         title: "Sauvegarde restaurée",
