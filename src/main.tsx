@@ -20,6 +20,7 @@ import "@ionic/core/css/ionic.bundle.css";
 import "./ionic/theme.css";
 import { applyStoredTheme, applyStoredThemeMode } from "./ionic/themes";
 import { initPowerSync } from "@/lib/powersync";
+import { initFloatingLabelFix } from "@/lib/formLabelFix";
 import { PowerSyncProvider } from "@/components/PowerSyncProvider";
 import { prefetchNavViews, useFeatureConfig } from "@/lib/features";
 import { initSentry } from "@/lib/sentry";
@@ -116,6 +117,13 @@ try {
   );
 
   rootEl.classList.add("is-hydrated");
+
+  // Correction globale des labels flottants Ion (chevauchement avec la valeur)
+  try {
+    initFloatingLabelFix();
+  } catch (e) {
+    console.warn("[Lumina] formLabelFix failed:", e);
+  }
 } catch (e) {
   showBootError(
     "Échec du montage de l’application",
@@ -123,7 +131,6 @@ try {
     "Vérifiez la console du navigateur (F12) pour plus de détails.",
   );
 }
-
 // ─── Préchargement des vues de nav (hors chemin critique) ─────────────────
 try {
   void prefetchNavViews(useFeatureConfig.getState().navTabs).catch(() => {});

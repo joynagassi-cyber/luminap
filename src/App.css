@@ -363,22 +363,12 @@ textarea:focus-visible,
 }
 
 /* ── Formulaires : correction chevauchement label flottant / valeur ──
- * Avec `IonLabel position="floating"`, quand l'input a une valeur
- * (y compris "0"), le label doit remonter au-dessus de la valeur.
- * Sans cela, le label et la valeur se superposent (ex. "Montant" sur "0").
+ * La classe `has-value` est ajoutée sur l'ion-item parent par
+ * src/lib/formLabelFix.ts quand l'ion-input a une valeur non vide.
+ * Cela force le label flottant à remonter au-dessus de la valeur.
  */
-ion-item ion-label[position="floating"] {
+ion-item.has-value ion-label[position="floating"] {
   transform-origin: left;
-  /* Le label remonte quand l'input a une valeur (Ionic gère déjà le cas
-   * focus, mais pas toujours le cas valeur contrôlée par React). */
-}
-ion-input:not([value=""]),
-ion-input:not([value="0"]) {
-  --padding-start: 0;
-}
-/* Force le label flottant en position haute quand l'input n'est pas vide */
-ion-item:has(ion-input:not([value=""])) ion-label[position="floating"],
-ion-item:has(ion-input:not([value="0"])) ion-label[position="floating"] {
   --transform: translatey(-50%) scale(0.85);
   transform: translatey(-50%) scale(0.85);
 }
