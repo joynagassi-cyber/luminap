@@ -227,7 +227,7 @@ sans risque de casser des flux légitimes).
   `src/capabilities`.
 - **Statut** : `org_settings` **corrigé + gardé** ; occurrences 1–2 **consignées**.
 
-## E8 — 9 tables du schéma client SANS stream PowerSync — **corrigé côté config, DÉPLOIEMENT REQUIS** (2026-11-01)
+## E8 — 9 tables du schéma client SANS stream PowerSync — **CORRIGÉ ET DÉPLOYÉ** (2026-11-01)
 
 - **Fait mesuré** (audit 360°, vérifié contre la config PowerSync **déployée**
   via `powersync fetch status`, instance Production `6a9dd96302481fb31b945823`) :
@@ -248,13 +248,36 @@ sans risque de casser des flux légitimes).
   Garde anti-dérive : `V: sync-stream-coverage.test.ts` (3, non-vacuité :
   retirer un stream ⇒ échec). `config` (table serveur inexistante, lue par aucun
   code) est explicitement allowlistée.
-- **DÉPLOIEMENT REQUIS (E1)** : le correctif est côté **fichier de config** ;
-  il n'a d'effet qu'après `powersync deploy` sur l'instance Production. Non
-  effectué ici (contrainte : pas de déploiement). Tant que non déployé, les 9
-  écrans restent vides sur appareil neuf.
-- **Statut** : config **corrigée + gardée** ; **déploiement en attente**.
+- **DÉPLOIEMENT EFFECTUÉ (2026-11-02)** : `powersync deploy sync-config` sur
+  l'instance Production `6a9dd96302481fb31b945823` → **succès**. Vérifié après
+  déploiement : `powersync fetch status` liste les 9 tables
+  (`used_for_replication: yes`), connexion `connected`, lag 0. `POST
+  /sync/stream` avec un JWT utilisateur d'org normale → **HTTP 200**. Le
+  dry-run suivant indique « matches the deployed sync config, nothing to update ».
+- **Statut** : config **corrigée + gardée + DÉPLOYÉE** ✅.
 
-## E9 — injection d'organisation via le chemin INSERT de `profiles` — **corrigé côté fichier, DÉPLOIEMENT REQUIS** (2026-11-01)
+## E10 — `PSYNC_S2305` sur les comptes administrant >1000 organisations (2026-11-01)
+
+- **Fait mesuré** : `POST /sync/stream` avec le JWT d'un compte
+  `CENTRAL_ADMIN` (ex. `ad0cd25d-…`, admin de **2092** organisations) renvoie
+  `HTTP 500 PSYNC_S2305 — Too many parameter query results (limit of 1000)`.
+  Un compte d'org normale (1 org) renvoie **HTTP 200**. Le seuil est donc
+  franchi par les streams `org_administered` / `org_owned`
+  (`WHERE id IN (SELECT org_id FROM org_admins WHERE admin_profile_id =
+  auth.user_id() …)`) : la sous-requête dépasse 1000 lignes.
+- **Ce n'est PAS une régression des 9 streams E8** : le même compte échoue sur
+  `org_administered`/`org_owned`, antérieurs au déploiement du 2026-11-02
+  (vérifié : un compte normal passe).
+- **Impact** : un administrateur central (>1000 orgs) ne peut pas synchroniser
+  du tout (écran muet). Cas de bord de la base de démo (2092 orgs de test
+  rattachées à un compte) ; à trancher avec le propriétaire.
+- **Piste** : borner la sous-requête (les streams Sync n'autorisent pas `LIMIT`
+  dans le `WHERE`), ou scinder l'administration en plusieurs streams paginés,
+  ou ne pas exposer l'union complète côté client (l'UI liste déjà les orgs via
+  des vues ciblées). À décider — hors périmètre d'un correctif aveugle.
+- **Statut** : **consigné** (pas de correctif : cas de bord, décision requise).
+
+## E9 — injection d'organisation via le chemin INSERT de `profiles` — **CORRIGÉ ET APPLIQUÉ** (2026-11-01)
 
 - **Fait mesuré** (audit backend read-only, prouvé en transaction annulée sous
   rôle `authenticated` avec les claims d'un compte e2e) : le durcissement de
@@ -281,7 +304,11 @@ sans risque de casser des flux légitimes).
   service_role, `settle_invitation_claim`) s'exécutent hors rôles client et ne
   sont pas affectés. Garde repo-side : `V: profile-org-insert-guard.test.ts` (3,
   non-vacuité vérifiée).
-- **DÉPLOIEMENT REQUIS** : correctif côté **fichier de migration**, sans effet
-  tant qu'il n'est pas appliqué à la base live (contrainte : pas de migration
-  live ici). Tant que non appliqué, la faille reste exploitable.
-- **Statut** : correctif **écrit + gardé** ; **application en attente**.
+- **APPLICATION EFFECTUÉE (2026-11-02)** : migration appliquée à la base live
+  (`apply_migration`). Vérifié après application, en transaction annulée :
+  (a) RPC `upsert_profile(p_org_id := 'org-1')` → `org_id` **forcé à
+  `__no_org__`** (avant : `org-1`) ; (b) `INSERT profiles {org_id:'org-1'}` →
+  **bloqué** (`ORG_ID_NOT_ALLOWED`) ; (c) `INSERT {org_id:'__no_org__'}` →
+  accepté (chemin légitime) ; (d) un admin ACTIF de son org obtient bien son
+  org via le RPC. Faille fermée.
+- **Statut** : correctif **écrit + gardé + APPLIQUÉ** ✅.
