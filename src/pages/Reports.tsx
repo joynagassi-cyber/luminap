@@ -26,8 +26,6 @@ import {
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
 import EmptyState from "@/components/EmptyState";
-import CapabilityBanner from "@/components/CapabilityBanner";
-import { getOrganizationId } from "@/lib/orgContext";
 import { ReportsSkeleton } from "@/components/PageSkeletons";
 import { ListSkeleton } from "@/components/Skeleton";
 import { exportPDF, exportExcel, exportCSV } from "@/lib/export";
@@ -112,7 +110,7 @@ const GlobalPanel = memo(function GlobalPanel({ totalIncome, totalExpense, netRe
             <TrendingDown className="w-4 h-4" style={{ color: "var(--out)" }} />
           </div>
           <p className="text-text-tertiary text-xs">Sorties</p>
-          <p className="text-expense font-bold text-sm mt-1">-{formatCentsToFCFA(totalExpense)}</p>
+          <p className="text-expense font-bold text-sm mt-1">−{formatCentsToFCFA(totalExpense)}</p>
         </div>
         <div className="rounded-xl p-4 text-left" style={{ backgroundColor: "var(--surface)" }}>
           <div className="w-8 h-8 rounded-full flex items-center justify-center mb-2" style={{ backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)" }}>
@@ -120,7 +118,7 @@ const GlobalPanel = memo(function GlobalPanel({ totalIncome, totalExpense, netRe
           </div>
           <p className="text-text-tertiary text-xs">Résultat</p>
           <p className="font-bold text-sm mt-1" style={{ color: netResult >= 0 ? "var(--in)" : "var(--out)" }}>
-            {netResult >= 0 ? "+" : "-"}{formatCentsToFCFA(Math.abs(netResult))}
+            {netResult >= 0 ? "+" : "−"}{formatCentsToFCFA(Math.abs(netResult))}
           </p>
         </div>
       </div>
@@ -203,7 +201,7 @@ const GroupPanel = memo(function GroupPanel({ caisseData }: GroupPanelProps) {
               </p>
             </div>
             <span className="text-sm font-bold tabular-nums" style={{ color: c.solde >= 0 ? "var(--in)" : "var(--out)" }}>
-              {c.solde >= 0 ? "+" : "-"}{formatCentsToFCFA(Math.abs(c.solde))}
+              {c.solde >= 0 ? "+" : "−"}{formatCentsToFCFA(Math.abs(c.solde))}
             </span>
           </div>
         ))}
@@ -256,7 +254,7 @@ const EventPanel = memo(function EventPanel({ eventData, onOpen }: EventPanelPro
                   </p>
                 </div>
                 <span className="text-sm font-bold tabular-nums" style={{ color: e.net >= 0 ? "var(--in)" : "var(--out)" }}>
-                  {e.net >= 0 ? "+" : "-"}{formatCentsToFCFA(Math.abs(e.net))}
+                  {e.net >= 0 ? "+" : "−"}{formatCentsToFCFA(Math.abs(e.net))}
                 </span>
               </button>
             ))}
@@ -450,7 +448,6 @@ export default function Reports() {
         <div className="min-h-dvh">
           <TopHeader title="Rapports" />
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
-            <CapabilityBanner orgId={getOrganizationId()} />
             {/* Période */}
             <div className="flex gap-2 mb-5">
               {([

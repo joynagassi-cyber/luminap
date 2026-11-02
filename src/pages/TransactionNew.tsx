@@ -17,6 +17,7 @@ import {
   X,
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
+import FormField from "@/components/FormField";
 import TopHeader from "@/components/TopHeader";
 import { generateId } from "@/lib/utils";
 import { getOrganizationId } from "@/lib/orgContext";
@@ -33,12 +34,9 @@ import {
   IonTitle,
   IonToolbar,
   IonInput,
-  IonButton,
   IonSpinner,
   IonSelect,
   IonSelectOption,
-  IonItem,
-  IonLabel,
   IonTextarea,
 } from "@ionic/react";
 
@@ -163,7 +161,16 @@ export default function TransactionNew() {
     // (toujours "") : la comparaison `status === "PENDING"` était donc toujours
     // fausse et la notification « dépense en attente d'approbation » n'était
     // JAMAIS envoyée aux trésoriers — échec silencieux.
-    const status = isExpense ? "PENDING" : "DRAFT";
+    //
+    // Une ENTRÉE est constatée immédiatement (APPROVED) : l'argent reçu est
+    // un fait, comme les cotisations (`cotisation-service` crée déjà en
+    // APPROVED). La créer en DRAFT la rendait invisible partout — dashboard
+    // (totaux APPROVED, « Derniers mouvements » APPROVED+PENDING), bilan et
+    // rapports (APPROVED only) — sans aucun chemin d'approbation (le bouton
+    // « Approuver » ne s'affichait que pour PENDING) : bug P0-1, revenus
+    // perdus de vue dès la saisie. Une SORTIE reste PENDING : c'est elle
+    // qui engage la caisse et attend le visa d'un trésorier.
+    const status = isExpense ? "PENDING" : "APPROVED";
 
     // `transactions.description` est NOT NULL en base : une description vide
     // doit donc être remplacée par un repli lisible (la catégorie choisie),
@@ -203,8 +210,10 @@ export default function TransactionNew() {
         compensates_for: null,
         comment: comment || null,
         created_by_id: sessionId,
-        approved_by_id: null,
-        approved_at: null,
+        // Entrée approuvée d'office à la saisie : tracer qui/quand, comme le
+        // fait `approveTransactionPS` sur le chemin d'approbation manuel.
+        approved_by_id: status === "APPROVED" ? sessionId : null,
+        approved_at: status === "APPROVED" ? new Date().toISOString() : null,
         versement_id: null,
         reversal_of_id: null,
         cotisation_id: null,
@@ -313,17 +322,14 @@ export default function TransactionNew() {
               </button>
             </div>
 
-            {/* Amount */}
-            <IonItem
-              lines="none"
-              className="mb-5 bg-card rounded-xl"
-              style={
-                fieldErrors.amount
-                  ? { border: "1px solid var(--out)" }
-                  : undefined
-              }
+            {/* Amount — FormField : label AU-DESSUS du champ (bug P0-3 :
+                l'ancien label flottant se superposait à la valeur) */}
+            <FormField
+              label="Montant (FCFA)"
+              required
+              error={fieldErrors.amount || undefined}
+              errorId="tx-amount-error"
             >
-              <IonLabel position="floating">Montant (FCFA) *</IonLabel>
               <IonInput
                 ref={amountRef}
                 type="text"
@@ -337,19 +343,10 @@ export default function TransactionNew() {
                 }
                 placeholder="0"
               />
-              {fieldErrors.amount && (
-                <p
-                  id="tx-amount-error"
-                  className="text-expense text-xs mt-1"
-                >
-                  {fieldErrors.amount}
-                </p>
-              )}
-            </IonItem>
+            </FormField>
 
             {/* Description */}
-            <IonItem lines="none" className="mb-5 bg-card rounded-xl">
-              <IonLabel position="floating">Description (optionnel)</IonLabel>
+            <FormField label="Description (optionnel)">
               <IonInput
                 type="text"
                 aria-label="Description"
@@ -359,24 +356,27 @@ export default function TransactionNew() {
                 }
                 placeholder="Ex: Dîme du mois"
               />
-            </IonItem>
+            </FormField>
 
             {/* Date */}
-            <IonItem lines="none" className="mb-5 bg-card rounded-xl">
-              <IonLabel position="floating">Date</IonLabel>
+            <FormField label="Date">
               <IonInput
                 type="date"
                 aria-label="Date"
                 value={date}
                 onIonInput={(e) => setDate((e.detail.value as string) ?? "")}
               />
-            </IonItem>
+            </FormField>
 
-            {/* Category */}
-            <IonItem lines="none" className="mb-5 bg-card rounded-xl">
-              <IonLabel position="floating">Catégorie *</IonLabel>
+            {/* Category — interface alert : liste déroulante tactile lisible
+                même avec beaucoup de catégories (bug P0-4) */}
+            <FormField label="Catégorie" required>
               <IonSelect
                 aria-label="Catégorie"
+                interface="alert"
+                interfaceOptions={{ header: "Catégorie" }}
+                cancelText="Annuler"
+                okText="Valider"
                 value={categoryId}
                 onIonChange={(e) => setCategoryId(e.detail.value)}
               >
@@ -389,13 +389,14 @@ export default function TransactionNew() {
                   </IonSelectOption>
                 ))}
               </IonSelect>
-            </IonItem>
+            </FormField>
 
-            {/* Source */}
-            <IonItem lines="none" className="mb-5 bg-card rounded-xl">
-              <IonLabel position="floating">Source</IonLabel>
+            {/* Source — 4 options : feuille d'action mobile */}
+            <FormField label="Source">
               <IonSelect
                 aria-label="Source"
+                interface="action-sheet"
+                cancelText="Annuler"
                 value={source}
                 onIonChange={(e) => setSource(e.detail.value as any)}
               >
@@ -406,14 +407,17 @@ export default function TransactionNew() {
                 <IonSelectOption value="PERSONNE">Personne</IonSelectOption>
                 <IonSelectOption value="AUTRE">Autre</IonSelectOption>
               </IonSelect>
-            </IonItem>
+            </FormField>
 
             {/* Caisse */}
             {source === "CAISSE" && (
-              <IonItem lines="none" className="mb-5 bg-card rounded-xl">
-                <IonLabel position="floating">Caisse</IonLabel>
+              <FormField label="Caisse">
                 <IonSelect
                   aria-label="Caisse"
+                  interface="alert"
+                  interfaceOptions={{ header: "Caisse" }}
+                  cancelText="Annuler"
+                  okText="Valider"
                   value={sourceCaisseId}
                   onIonChange={(e) => setSourceCaisseId(e.detail.value)}
                 >
@@ -423,13 +427,12 @@ export default function TransactionNew() {
                     </IonSelectOption>
                   ))}
                 </IonSelect>
-              </IonItem>
+              </FormField>
             )}
 
             {/* Person name */}
             {source === "PERSONNE" && (
-              <IonItem lines="none" className="mb-5 bg-card rounded-xl">
-                <IonLabel position="floating">Nom de la personne</IonLabel>
+              <FormField label="Nom de la personne">
                 <IonInput
                   type="text"
                   aria-label="Nom de la personne"
@@ -439,14 +442,17 @@ export default function TransactionNew() {
                   }
                   placeholder="Nom de la personne"
                 />
-              </IonItem>
+              </FormField>
             )}
 
             {/* Event */}
-            <IonItem lines="none" className="mb-5 bg-card rounded-xl">
-              <IonLabel position="floating">Événement</IonLabel>
+            <FormField label="Événement">
               <IonSelect
                 aria-label="Événement"
+                interface="alert"
+                interfaceOptions={{ header: "Événement" }}
+                cancelText="Annuler"
+                okText="Valider"
                 value={eventId}
                 onIonChange={(e) => setEventId(e.detail.value)}
               >
@@ -459,11 +465,10 @@ export default function TransactionNew() {
                   </IonSelectOption>
                 ))}
               </IonSelect>
-            </IonItem>
+            </FormField>
 
             {/* Comment */}
-            <IonItem lines="none" className="mb-6 bg-card rounded-xl">
-              <IonLabel position="floating">Commentaire</IonLabel>
+            <FormField label="Commentaire" className="mb-6">
               <IonTextarea
                 aria-label="Commentaire"
                 value={comment}
@@ -473,7 +478,7 @@ export default function TransactionNew() {
                 placeholder="Ajouter un commentaire..."
                 rows={3}
               />
-            </IonItem>
+            </FormField>
 
             {/* Preuve photo de la dépense (Sortie uniquement) */}
             {type === "EXPENSE" && (
@@ -591,24 +596,28 @@ export default function TransactionNew() {
               </div>
             )}
 
-            <IonButton
-              expand="block"
+            {/* Bouton HTML natif (bug P2-6) : un IonButton garde son fond
+                accent orange dans le shadow DOM — la couleur posée en
+                `style` (vert/rouge selon le type) ne teintait que l'hôte
+                et dépassait en artefact aux coins de la pilule. Fond
+                accent de l'app pour les deux types : le sélecteur
+                Entrée/Sortie porte déjà la sémantique de couleur. */}
+            <button
+              type="button"
               onClick={handleSubmit}
               disabled={submitting}
-              style={{
-                backgroundColor:
-                  type === "INCOME" ? "var(--in)" : "var(--out)",
-              }}
+              className="w-full py-4 rounded-full font-semibold text-on-accent text-sm flex items-center justify-center gap-2 transition-transform active:scale-95 disabled:opacity-60"
+              style={{ backgroundColor: "var(--accent-primary)" }}
             >
               {submitting ? (
                 <>
-                  <IonSpinner name="lines" style={{ marginRight: 6 }} />
+                  <IonSpinner name="lines" style={{ width: 18, height: 18 }} />
                   Enregistrement…
                 </>
               ) : (
                 "Enregistrer la transaction"
               )}
-            </IonButton>
+            </button>
           </div>
           <BottomNav />
       </IonContent>

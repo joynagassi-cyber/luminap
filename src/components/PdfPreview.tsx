@@ -42,6 +42,8 @@ import {
   WifiOff,
   RefreshCw,
 } from "lucide-react";
+import { downloadBlob } from "@/lib/download";
+import { showError } from "@/utils/toast";
 
 // Chemin du worker : react-pdf (pdfjs-dist v6) ne préconfigure pas
 // `GlobalWorkerOptions.workerSrc`. Sans URL valide, le renderer de pdfjs
@@ -174,15 +176,14 @@ export default function PdfPreview({
     try {
       const res = await fetch(url);
       const blob = await res.blob();
-      const objectUrl = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = objectUrl;
-      a.download = fileName;
-      a.click();
-      URL.revokeObjectURL(objectUrl);
+      // `downloadBlob` : web = <a download>, natif = fichier + feuille de
+      // partage (le <a download> seul est muet en WebView, bug P0-2).
+      await downloadBlob(blob, fileName);
       onDownload?.();
     } catch {
-      /* hors-ligne ou CORS — le lien signé reste dispo */
+      // Jamais silencieux : l'utilisateur doit savoir que rien n'a été
+      // enregistré (hors-ligne ou CORS — le lien signé reste dispo).
+      showError("Téléchargement impossible. Vérifiez votre connexion puis réessayez.");
     }
   };
 

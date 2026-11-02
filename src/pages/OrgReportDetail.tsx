@@ -82,6 +82,8 @@ import { federation } from "@/capabilities/federation";
 import { getReportUrl, getDocumentUrl } from "@/lib/storageService";
 import { formatCurrencyCompact, formatDate } from "@/lib/utils";
 import PdfPreview from "@/components/PdfPreview";
+import { downloadBlob } from "@/lib/download";
+import { showError } from "@/utils/toast";
 
 /** Vue locale d'un rapport `org_reports` (PowerSync — snake_case). */
 interface OrgReportRow {
@@ -614,14 +616,11 @@ function ReportFilePreview({
     try {
       const res = await fetch(url);
       const blob = await res.blob();
-      const objectUrl = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = objectUrl;
-      a.download = fileName;
-      a.click();
-      URL.revokeObjectURL(objectUrl);
+      // `downloadBlob` : en WebView native, le <a download> seul ne
+      // télécharge rien (bug P0-2) — fichier local + feuille de partage.
+      await downloadBlob(blob, fileName);
     } catch {
-      /* hors-ligne ou CORS */
+      showError("Téléchargement impossible. Vérifiez votre connexion puis réessayez.");
     }
   };
 

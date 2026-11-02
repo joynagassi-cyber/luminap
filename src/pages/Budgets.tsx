@@ -6,7 +6,9 @@ import { formatCurrencyCompact } from "@/lib/utils";
 import { parseAmountToCents } from "@/lib/amountInput";
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
-import { Plus, Target, Wallet, PieChart, X, ChevronRight } from "lucide-react";
+import { Plus, Target, Wallet, PieChart, X, ChevronRight, Download } from "lucide-react";
+import { downloadBlob } from "@/lib/download";
+import { escapeCsvRow } from "@/lib/csv";
 import { IonPage, IonContent, IonSelect, IonSelectOption, IonItem, IonLabel, IonInput } from "@ionic/react";
 import EmptyState from "@/components/EmptyState";
 import { ListSkeleton } from "@/components/Skeleton";
@@ -59,6 +61,48 @@ export default function Budgets() {
     new Set([new Date().getFullYear(), ...budgets.map((b) => b.fiscal_year)]),
   ).sort((a, b) => b - a);
 
+  // Export CSV des budgets affichés (prévu / réel / écart par ligne).
+  // Absent jusqu'ici (bug P0-2 : aucun export budget) ; `downloadBlob`
+  // gère la WebView native (fichier + feuille de partage).
+  const exportBudgetsCSV = () => {
+    const header = escapeCsvRow([
+      "Budget",
+      "Exercice",
+      "Période",
+      "Statut",
+      "Catégorie",
+      "Sens",
+      "Prévu (FCFA)",
+      "Réel (FCFA)",
+      "Écart (FCFA)",
+      "% consommé",
+    ]);
+    const rows: string[] = [];
+    for (const r of filtered) {
+      for (const l of r.lines) {
+        rows.push(
+          escapeCsvRow([
+            r.budget.name,
+            r.budget.fiscal_year,
+            PERIODS.find((p) => p.value === r.budget.period)?.label ?? r.budget.period,
+            r.budget.status === "CLOSED" ? "Clôturé" : "Actif",
+            l.categoryLabel,
+            l.direction === "INCOME" ? "Entrée" : "Sortie",
+            Math.round(l.planned / 100),
+            Math.round(l.actual / 100),
+            Math.round(l.variance / 100),
+            l.pctUsed == null ? "" : `${Math.round(l.pctUsed)} %`,
+          ]),
+        );
+      }
+    }
+    const csv = "\uFEFF" + [header, ...rows].join("\n");
+    void downloadBlob(
+      new Blob([csv], { type: "text/csv;charset=utf-8;" }),
+      `budgets-${fiscalYear}.csv`,
+    );
+  };
+
   return (
     <IonPage>
       <IonContent className="bg-canvas">
@@ -69,15 +113,31 @@ export default function Budgets() {
               <h1 className="text-text-primary font-bold text-xl" data-testid="budgets-title">
                 Budgets
               </h1>
-              <button
-                onClick={() => setShowCreate(true)}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold text-on-accent active:scale-95 transition-transform"
-                style={{ backgroundColor: "var(--accent-primary)" }}
-                data-testid="new-budget-btn"
-                aria-label="Nouveau budget"
-              >
-                <Plus className="w-4 h-4" /> Nouveau
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={exportBudgetsCSV}
+                  disabled={filtered.length === 0}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold active:scale-95 transition-transform disabled:opacity-50"
+                  style={{
+                    backgroundColor: "var(--surface)",
+                    border: "1px solid var(--border)",
+                    color: "var(--text-secondary)",
+                  }}
+                  data-testid="export-budgets-btn"
+                  aria-label="Exporter les budgets en CSV"
+                >
+                  <Download className="w-4 h-4" /> Exporter
+                </button>
+                <button
+                  onClick={() => setShowCreate(true)}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold text-on-accent active:scale-95 transition-transform"
+                  style={{ backgroundColor: "var(--accent-primary)" }}
+                  data-testid="new-budget-btn"
+                  aria-label="Nouveau budget"
+                >
+                  <Plus className="w-4 h-4" /> Nouveau
+                </button>
+              </div>
             </div>
 
             {/* Filtres */}
@@ -298,7 +358,7 @@ function CreateBudgetSheet({
 
         <div className="space-y-3">
           <IonItem lines="none" className="bg-card rounded-xl">
-            <IonLabel position="floating" className="text-sm text-text-secondary">Nom *</IonLabel>
+            <IonLabel position="stacked" className="text-sm text-text-secondary">Nom *</IonLabel>
             <IonInput
               type="text"
               value={name}
@@ -310,7 +370,7 @@ function CreateBudgetSheet({
 
           <div className="grid grid-cols-2 gap-3">
             <IonItem lines="none" className="bg-card rounded-xl">
-              <IonLabel position="floating" className="text-sm text-text-secondary">Exercice</IonLabel>
+              <IonLabel position="stacked" className="text-sm text-text-secondary">Exercice</IonLabel>
               <IonInput
                 type="number"
                 inputMode="numeric"
@@ -319,7 +379,7 @@ function CreateBudgetSheet({
               />
             </IonItem>
             <IonItem lines="none" className="bg-card rounded-xl">
-              <IonLabel position="floating" className="text-sm text-text-secondary">Période</IonLabel>
+              <IonLabel position="stacked" className="text-sm text-text-secondary">Période</IonLabel>
               <IonSelect
                 value={period}
                 onIonChange={(e: IonChangeCustomEvent<string>) => setPPeriod(e.detail.value as BudgetPeriod)}
@@ -333,7 +393,7 @@ function CreateBudgetSheet({
           </div>
 
           <IonItem lines="none" className="bg-card rounded-xl">
-            <IonLabel position="floating" className="text-sm text-text-secondary">Centre de coûts</IonLabel>
+            <IonLabel position="stacked" className="text-sm text-text-secondary">Centre de coûts</IonLabel>
             <IonSelect
               value={cc}
               onIonChange={(e: IonChangeCustomEvent<string>) => setCc(e.detail.value)}
@@ -347,7 +407,7 @@ function CreateBudgetSheet({
           </IonItem>
 
           <IonItem lines="none" className="bg-card rounded-xl">
-            <IonLabel position="floating" className="text-sm text-text-secondary">Montant prévu (FCFA)</IonLabel>
+            <IonLabel position="stacked" className="text-sm text-text-secondary">Montant prévu (FCFA)</IonLabel>
             <IonInput
               type="text"
               inputMode="decimal"

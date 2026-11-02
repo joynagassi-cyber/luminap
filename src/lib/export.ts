@@ -14,7 +14,20 @@ import {
   WidthType,
 } from "docx";
 import type { Transaction, Caisse, Event } from "@/types";
+import { downloadBlob } from "./download";
 import { formatCurrencyCompact, formatDate, formatCurrencyFull } from "./utils";
+
+/** Nom de fichier lisible dérivé du titre (« Bilan financier » -> bilan-financier-2026-11-02). */
+function exportFileName(title: string | undefined, ext: string): string {
+  const date = new Date().toISOString().split("T")[0];
+  const slug = (title ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return slug ? `${slug}-${date}.${ext}` : `lumina-export-${date}.${ext}`;
+}
 import type { OrgReportPayload } from "./orgReport";
 
 export interface ExportOptions {
@@ -203,7 +216,9 @@ export function exportPDF(options: ExportOptions) {
       drawFooter(doc, data.pageNumber, Math.ceil((rows.length + 1) / 35)),
   });
 
-  doc.save(`lumina_export_${new Date().toISOString().split("T")[0]}.pdf`);
+  // Jamais `doc.save()` : il repose sur <a download>, inopérant dans la
+  // WebView Capacitor (bug P0-2). `downloadBlob` gère web + natif.
+  void downloadBlob(doc.output("blob"), exportFileName(options.title, "pdf"));
 }
 
 export function exportExcel(options: ExportOptions) {
@@ -365,9 +380,14 @@ export function exportExcel(options: ExportOptions) {
     XLSX.utils.book_append_sheet(wb, ws4, "Budget événement");
   }
 
-  XLSX.writeFile(
-    wb,
-    `lumina_export_${new Date().toISOString().split("T")[0]}.xlsx`,
+  // `XLSX.writeFile` télécharge via <a download> : muet en WebView
+  // Capacitor (bug P0-2). On sérialise en Blob et on passe par downloadBlob.
+  const xlsxData = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+  void downloadBlob(
+    new Blob([xlsxData], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    }),
+    exportFileName(options.title, "xlsx"),
   );
 }
 
@@ -402,12 +422,7 @@ export function exportCSV(options: ExportOptions) {
 
   const csv = BOM + [header, ...rows].join("\n");
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `lumina_export_${new Date().toISOString().split("T")[0]}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+  void downloadBlob(blob, exportFileName(options.title, "csv"));
 }
 
 // ============================================================

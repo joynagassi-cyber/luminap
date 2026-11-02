@@ -7,7 +7,7 @@
  * un message explicite (« pas de mère — racine »), pas de formulaire.
  *
  * Formulaire (grammaire ionique canonique : IonItem lines="none" bg-card
- * rounded-xl + IonLabel position="floating" + IonSelect,
+ * rounded-xl + IonLabel position="stacked" + IonSelect,
  * pattern Versement.tsx) :
  *  - IonSelect période  : mensuelle / semestrielle / annuelle
  *  - IonSelect format   : PDF / DOCX / XLSX / PNG
@@ -355,7 +355,7 @@ export default function OrgReportSend() {
 
             {/* Période */}
             <IonItem lines="none" className="bg-card rounded-xl">
-              <IonLabel position="floating" className="text-sm text-text-secondary">
+              <IonLabel position="stacked" className="text-sm text-text-secondary">
                 Période du rapport
               </IonLabel>
               <IonSelect
@@ -375,7 +375,7 @@ export default function OrgReportSend() {
 
             {/* Format */}
             <IonItem lines="none" className="bg-card rounded-xl">
-              <IonLabel position="floating" className="text-sm text-text-secondary">
+              <IonLabel position="stacked" className="text-sm text-text-secondary">
                 Format du fichier
               </IonLabel>
               <IonSelect

@@ -130,7 +130,10 @@ export default function TransactionNewGroup() {
         amount: amountCents,
         description: safeDescription,
         date,
-        status: isExpense ? "PENDING" : "DRAFT",
+        // Entrée constatée immédiatement (APPROVED, cf. TransactionNew /
+        // bug P0-1 : un revenu en DRAFT était invisible des agrégats sans
+        // chemin d'approbation) ; sortie en attente de visa (PENDING).
+        status: isExpense ? "PENDING" : "APPROVED",
         category_id: categoryId,
         org_unit_id: null,
         source_caisse_id: groupId || "main",
@@ -140,8 +143,8 @@ export default function TransactionNewGroup() {
         compensates_for: null,
         comment: comment || null,
         created_by_id: sessionId,
-        approved_by_id: null,
-        approved_at: null,
+        approved_by_id: isExpense ? null : sessionId,
+        approved_at: isExpense ? null : new Date().toISOString(),
         versement_id: null,
         reversal_of_id: null,
         cotisation_id: null,
@@ -218,7 +221,7 @@ export default function TransactionNewGroup() {
 
             {/* Amount */}
             <IonItem lines="none" className="mb-5 bg-card rounded-xl">
-              <IonLabel position="floating" className="text-sm text-text-secondary">Montant (FCFA) *</IonLabel>
+              <IonLabel position="stacked" className="text-sm text-text-secondary">Montant (FCFA) *</IonLabel>
               <IonInput
                 type="text"
                 inputMode="decimal"
@@ -230,7 +233,7 @@ export default function TransactionNewGroup() {
 
             {/* Description */}
             <IonItem lines="none" className="mb-5 bg-card rounded-xl">
-              <IonLabel position="floating" className="text-sm text-text-secondary">Description (optionnel)</IonLabel>
+              <IonLabel position="stacked" className="text-sm text-text-secondary">Description (optionnel)</IonLabel>
               <IonInput
                 type="text"
                 value={description}
@@ -241,7 +244,7 @@ export default function TransactionNewGroup() {
 
             {/* Date */}
             <IonItem lines="none" className="mb-5 bg-card rounded-xl">
-              <IonLabel position="floating" className="text-sm text-text-secondary">Date</IonLabel>
+              <IonLabel position="stacked" className="text-sm text-text-secondary">Date</IonLabel>
               <IonInput
                 type="date"
                 value={date}
@@ -288,7 +291,7 @@ export default function TransactionNewGroup() {
             {/* Person name */}
             {source === "PERSONNE" && (
               <IonItem lines="none" className="mb-5 bg-card rounded-xl">
-                <IonLabel position="floating" className="text-sm text-text-secondary">Nom de la personne</IonLabel>
+                <IonLabel position="stacked" className="text-sm text-text-secondary">Nom de la personne</IonLabel>
                 <IonInput
                   type="text"
                   value={personName}
@@ -300,7 +303,7 @@ export default function TransactionNewGroup() {
 
             {/* Comment */}
             <IonItem lines="none" className="mb-6 bg-card rounded-xl">
-              <IonLabel position="floating" className="text-sm text-text-secondary">Commentaire (optionnel)</IonLabel>
+              <IonLabel position="stacked" className="text-sm text-text-secondary">Commentaire (optionnel)</IonLabel>
               <IonTextarea
                 value={comment}
                 onIonInput={(e: IonChangeCustomEvent<string>) => setComment(e.detail.value ?? "")}
