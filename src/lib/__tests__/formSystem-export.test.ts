@@ -2,7 +2,8 @@
  * Tests pour exportSubmissionsAsXLSX (src/lib/formSystem.ts).
  *
  * Mocks :
- *  - xlsx : book_new / aoa_to_sheet / book_append_sheet / writeFile
+ *  - xlsx : book_new / aoa_to_sheet / book_append_sheet / write (+ writeFile,
+ *    qui ne doit PLUS être appelé : livraison par Blob via downloadBlob, P0-2)
  *  - @/lib/dataLayer : stubs neutres (imports transitifs de formSystem)
  *  - @/lib/orgContext, @/lib/utils, @/lib/powersync, @/lib/cache : neutres
  */
@@ -16,6 +17,11 @@ vi.mock("xlsx", () => ({
     book_append_sheet: vi.fn(),
   },
   writeFile: vi.fn(),
+  write: vi.fn(() => new Uint8Array([80, 75])),
+}));
+
+vi.mock("@/lib/download", () => ({
+  downloadBlob: vi.fn(async () => undefined),
 }));
 
 vi.mock("@/lib/dataLayer", () => ({
@@ -56,6 +62,7 @@ vi.mock("@/lib/cache", () => ({
 
 import { exportSubmissionsAsXLSX, buildSubmissionsCSV } from "@/lib/formSystem";
 import * as XLSX from "xlsx";
+import { downloadBlob } from "@/lib/download";
 import type { FormDefinition, FormSubmission } from "@/types";
 
 const formDef: FormDefinition = {
@@ -120,7 +127,17 @@ describe("exportSubmissionsAsXLSX", () => {
       "SHEET",
       "Soumissions",
     );
-    expect((XLSX.writeFile as any)).toHaveBeenCalledWith("WB", "prefix.xlsx");
+    // Livraison par Blob (downloadBlob gère la WebView native) :
+    // jamais `XLSX.writeFile` (<a download>, muet en Capacitor — P0-2).
+    expect((XLSX.write as any)).toHaveBeenCalledWith("WB", {
+      bookType: "xlsx",
+      type: "array",
+    });
+    expect((XLSX.writeFile as any)).not.toHaveBeenCalled();
+    expect(downloadBlob).toHaveBeenCalledTimes(1);
+    const [blob, filename] = (downloadBlob as any).mock.calls[0];
+    expect(blob).toBeInstanceOf(Blob);
+    expect(filename).toBe("prefix.xlsx");
   });
 
   it("inclut les colonnes méta vides (null) et les clés data hors définition", () => {
