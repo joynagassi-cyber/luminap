@@ -253,3 +253,35 @@ sans risque de casser des flux légitimes).
   effectué ici (contrainte : pas de déploiement). Tant que non déployé, les 9
   écrans restent vides sur appareil neuf.
 - **Statut** : config **corrigée + gardée** ; **déploiement en attente**.
+
+## E9 — injection d'organisation via le chemin INSERT de `profiles` — **corrigé côté fichier, DÉPLOIEMENT REQUIS** (2026-11-01)
+
+- **Fait mesuré** (audit backend read-only, prouvé en transaction annulée sous
+  rôle `authenticated` avec les claims d'un compte e2e) : le durcissement de
+  `profiles.org_id` ne couvrait que le chemin **UPDATE**
+  (`trg_guard_profile_org`, 20261022000005) et le chemin UPDATE de
+  `upsert_profile` (20261022000006). Le chemin **INSERT** n'était gardé par
+  **rien** :
+  - `SELECT public.upsert_profile(<moi>,'x','y',NULL,'org-1',NULL)` →
+    `profiles.org_id` devient **`org-1`** (RPC SECURITY DEFINER, aucun trigger
+    INSERT ne l'arrête) ;
+  - `DELETE profiles(id=<moi>)` puis `INSERT profiles(id,org_id='org-1')` →
+    accepté (policies `profiles_delete` + `profiles_insert_self`).
+  Comme `is_org_member()`/`current_org_id()` s'appuient sur `profiles.org_id`,
+  l'attaquant obtient la **lecture inter-organisation** (profils, transactions,
+  événements, audit… de l'org ciblée).
+- **Preuve** : `SELECT org_id FROM profiles WHERE id=<moi>` → `org-1` après
+  appel RPC (rollback immédiat). Impact démontré : la policy `profiles_select`
+  (`is_org_member(uid, org_id)`) laisse alors lire les profils de `org-1`.
+- **Correctif (fichier)** : migration `20261101000004_guard_profile_org_insert`
+  — (1) trigger `guard_profile_org_insert` BEFORE INSERT (rôles client ⇒ org
+  forcée à `__no_org__`/`no-org`) ; (2) `upsert_profile` n'honore l'organisation
+  demandée que si `is_org_admin(auth.uid(), org)`, sinon `__no_org__`. Les
+  chemins légitimes (`handle_new_user`, edge `create_org`/`signup` en
+  service_role, `settle_invitation_claim`) s'exécutent hors rôles client et ne
+  sont pas affectés. Garde repo-side : `V: profile-org-insert-guard.test.ts` (3,
+  non-vacuité vérifiée).
+- **DÉPLOIEMENT REQUIS** : correctif côté **fichier de migration**, sans effet
+  tant qu'il n'est pas appliqué à la base live (contrainte : pas de migration
+  live ici). Tant que non appliqué, la faille reste exploitable.
+- **Statut** : correctif **écrit + gardé** ; **application en attente**.
