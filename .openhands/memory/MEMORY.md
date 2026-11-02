@@ -30,7 +30,45 @@
   https://app.all-hands.dev/api/v1/app-conversations` (`Authorization: Bearer
   $OPENHANDS_API_KEY`) → renvoie un *start-task* ; poller
   `/app-conversations/start-tasks?ids=<id>` pour l'`app_conversation_id`.
-  Aucun backend Agent Canvas local (localhost:8001 → HTTP 000).
+  **Quota Cloud** : « Daily sandbox limit of 20 reached » → les start-tasks
+  restent en `ERROR` sans `app_conversation_id` (vérifié 2026-11-02).
+- **Backend Agent Canvas LOCAL existe** (vérifié 2026-11-02) : le process
+  `openhands-agent-server --port 60000` tourne dans CE conteneur. Auth =
+  `SESSION_API_KEY` (lisible dans `/proc/<pid>/environ`, **ne jamais
+  l'imprimer**). `POST /api/conversations` (JSON) crée une conversation dans
+  `{"kind":"LocalWorkspace","working_dir":…}`. Recette LLM qui marche :
+  récupérer `GET /api/settings` → `agent_settings`, y injecter
+  `llm.api_key` = corps de `GET https://app.all-hands.dev/api/keys/llm/managed/current`
+  (header `X-Session-API-Key`), `llm.base_url = https://llm-proxy.app.all-hands.dev`,
+  `llm.model = "openai/deepseek-v4.1-flash"` (SEUL modèle accessible à l'équipe ;
+  `gpt-5.6` → 403 team_model_access_denied). Sans le préfixe `openai/` litellm
+  répond « LLM Provider NOT provided ». Passer `agent_settings` (pas
+  `agent_profile_id`, qui exige un profil nommé absent) évite
+  `unresolved_profile_references`. Poller `GET /api/conversations/{id}` →
+  `execution_status`, puis `/agent_final_response`.
+
+## PR #400 (refonte design) a clobberé la logique auditée de `main` (2026-11-02)
+- **Constat** : la fusion de la PR #400 (`arena/db368bef-luminap`) a écrasé la
+  logique de production de `main` (6a779956) — 40 pages remplacées par des
+  mocks/statiques, **10 streams PowerSync supprimés** de `sync-config.yaml`
+  (audit_entries, documents, org_budgets, org_budget_lines, giving_donors,
+  giving_campaigns, pledges, tax_receipts, transaction_giving,
+  report_definitions → perte de données SILENCIEUSE), gardes R52 retirées,
+  purge PR3 débranchée, et **11 fichiers de test affaiblis**. La PR #400 n'a
+  ajouté AUCUN test.
+- **Leçon** : les **gardes de test existantes** (sync-stream-coverage,
+  r52-readiness, audit-coverage, route-reachability, …) sont le filet qui
+  révèle le clobber. `git diff --name-status <parent-de-merge>` liste
+  exactement l'écart.
+- **Correctif prod-green** : `git checkout <parent-de-merge> -- <fichiers M>`
+  puis suppression des artefacts morts de la refonte (`src/design/*`, pages non
+  routées, deps framer-motion/@tailwindcss/forms inutilisées, PROMPT_META.md,
+  package-lock.json). Résultat : `tsc -b --force --noEmit` = 0 erreur,
+  `vitest run` = 245 fichiers / 2496 tests PASS (vs 31 fichiers / 77 tests en
+  échec), `vite build` OK. Branche `fix/prod-green`, commit 1f7234ca.
+- **Piège** : l'arbre de travail avant ce correctif contenait 79 changements
+  non commités (patches tsc de session + clobber PR#400). Toujours
+  `git stash push -u` AVANT de restaurer, pour ne rien perdre.
 
 ## E2E isolation — 2 flakies de course (2026-11-01, run 41342904303, PR #247)
 - **`cross-tenant.cy.ts` « jeton vide »** : ne JAMAIS lire la session via
@@ -1033,6 +1071,14 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   (R106), kill switches, `RouteState` câblé. Reste en proposition : PR8–PR18,
   PR20. (PR17 MESURÉ non justifié ; PR18 = RLS `has_permission` ; PR20 =
   trancher `CENTRAL_ADMIN`.)
+- **PR5 PII des TIERS (2026-11-01)** : `redact` ne masque que les PII à FORME
+  (e-mail/jeton/téléphone). Un NOM de membre tiers cité dans la note libre ou un
+  message d'erreur traversait le rapport (Sentry + journal local). Corrigé via
+  `memberIdentities(members)` + param `members` de `sendProblemReport`/
+  `sendProblemReportToIssues` ; `Health.tsx` passe `useMembers().data`. La
+  conclusion « non corrigeable » (pas d'accès synchrone) était FAUSSE :
+  `useMembers()` sert le cache local sans I/O bloquante. Non-vacuité prouvée.
+  (Feature flags PR7 = FAIL-OPEN confirmé : drapeau absent/illisible ⇒ actif.)
 - **`git push`** : `git remote set-url origin https://${GITHUB_TOKEN}@github.com/joynagassi-cyber/luminap.git` avant de pousser (sinon prompt identifiants interactif).
 - **Création d'organisation self-serve = DEAD-END → CORRIGÉ (2026-10-31, R161)** :
   `OrgSetup.tsx::handleCreate` n'écrivait QUE du localStorage (aucun appel
@@ -1116,6 +1162,58 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   au-dessus → panne totale (classe PR15). `router-context-guard` durcie pour
   analyser aussi les composants IMPORTÉS (avant : seulement ceux déclarés dans
   App.tsx). Détail : `.openhands/memory/2026-11-01.md`.
+
+### Audit QA + durcissement (2026-11-01, PR #321)
+- **RÈGLE D'OR observabilité** : un message d'erreur remonté ne doit JAMAIS
+  contenir de valeur variable (durée, id, montant) — la signature de dédup =
+  type + message + 1ʳᵉ trame, donc un message interpolé ⇒ signature unique ⇒
+  dédup inopérante ⇒ spam. Mettre la valeur dans `context`. C'est la cause du
+  spam « Tâche longue détectée (${ms} ms) » (**89 Issues** sur le dépôt public).
+- **Dédup serveur = réservation ATOMIQUE en base AVANT la recherche GitHub**
+  (`/search/issues` a une indexation différée → doublons mesurés #307/#308).
+  Table `error_report_dedupe` PK `(dedupe_key, window_start)` + RPC
+  `claim_error_report`/`release_error_report` (migration `20261101000003`).
+  Edge function déployée **v7**.
+- **Ne remonter QUE depuis un build de production** : `isTransmissionAllowed()`
+  (`import.meta.env.PROD`) — sinon un `vite dev` local pollue le dépôt public.
+  Échappatoire `VITE_REPORT_ERRORS_IN_DEV=true`. Un rapport bloqué est retiré de
+  la file (`drop:true`), pas réessayé.
+- **Self-update** : `ApkUpdaterPlugin.canInstall()` doit garder
+  `canRequestPackageInstalls()` derrière `SDK_INT >= 26` (minSdk 21). Les échecs
+  de mise à jour remontent via `reportError` (source `self-update`).
+- **Release** : `release.yml` doit patcher `versionName`/`versionCode` depuis le
+  tag dans le job **`prepare`** (avant l'upload de `patched-android-src` que
+  consomme `build-android`), sinon `versionName` reste figé → boucle de MAJ.
+- **Bug produit réel (Issue #317)** : `report_definitions` (schéma PowerSync
+  local) n'a pas la colonne `kind` alors que `reporting.ts` l'écrit/la lit →
+  `no such column: kind`. Correctif = colonne + bump de version de schéma client.
+- **Garde** : `observability-self-healing-guard.test.ts` (27).
+
+### Audit QA + durcissement (2026-11-01, PR #321)
+- **RÈGLE D'OR observabilité** : un message d'erreur remonté ne doit JAMAIS
+  contenir de valeur variable (durée, id, montant) — la signature de dédup =
+  type + message + 1ʳᵉ trame, donc un message interpolé ⇒ signature unique ⇒
+  dédup inopérante ⇒ spam. Mettre la valeur dans `context`. C'est la cause du
+  spam « Tâche longue détectée (${ms} ms) » (**89 Issues** sur le dépôt public).
+- **Dédup serveur = réservation ATOMIQUE en base AVANT la recherche GitHub**
+  (`/search/issues` a une indexation différée → doublons mesurés #307/#308).
+  Table `error_report_dedupe` PK `(dedupe_key, window_start)` + RPC
+  `claim_error_report`/`release_error_report` (migration `20261101000003`).
+  Edge function déployée **v7**.
+- **Ne remonter QUE depuis un build de production** : `isTransmissionAllowed()`
+  (`import.meta.env.PROD`) — sinon un `vite dev` local pollue le dépôt public.
+  Échappatoire `VITE_REPORT_ERRORS_IN_DEV=true`. Un rapport bloqué est retiré de
+  la file (`drop:true`), pas réessayé.
+- **Self-update** : `ApkUpdaterPlugin.canInstall()` doit garder
+  `canRequestPackageInstalls()` derrière `SDK_INT >= 26` (minSdk 21). Les échecs
+  de mise à jour remontent via `reportError` (source `self-update`).
+- **Release** : `release.yml` doit patcher `versionName`/`versionCode` depuis le
+  tag dans le job **`prepare`** (avant l'upload de `patched-android-src` que
+  consomme `build-android`), sinon `versionName` reste figé → boucle de MAJ.
+- **Bug produit réel (Issue #317)** : `report_definitions` (schéma PowerSync
+  local) n'a pas la colonne `kind` alors que `reporting.ts` l'écrit/la lit →
+  `no such column: kind`. Correctif = colonne + bump de version de schéma client.
+- **Garde** : `observability-self-healing-guard.test.ts` (27).
 
 ## Release Lumina v1.2.1 + flake `auth-real` (2026-11-01)
 - **Release = tag `v*`** → workflow `release.yml` (prepare → build unsigned →

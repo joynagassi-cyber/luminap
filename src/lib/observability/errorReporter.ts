@@ -473,7 +473,60 @@ function enqueue(report: ErrorReport): void {
 
 export type ReportTransport = (
   report: ErrorReport,
-) => Promise<{ ok: boolean }>;
+) => Promise<{ ok: boolean; drop?: boolean }>;
+
+/**
+ * La remontée automatique est-elle autorisée dans cet environnement ?
+ *
+ * FAUX POSITIF CORRIGÉ (audit 2026-11-01) : un serveur de développement
+ * (`vite dev`, localhost) remontait ses erreurs au dépôt PUBLIC — mesuré :
+ * ~45 Issues « Tâche longue détectée » + 4 « no such column: kind » émises
+ * depuis `environment: development` / `platform: web` / route `/reports`. Ces
+ * rapports sont du bruit pour l'agent autonome (chemins `node_modules`,
+ * artefacts HMR) et polluent le dépôt.
+ *
+ * Politique : on ne transmet QUE depuis un build de production. Un développeur
+ * qui veut tester la chaîne de bout en bout force la voie avec
+ * `VITE_REPORT_ERRORS_IN_DEV=true`. Les rapports bloqués sont RETIRÉS de la
+ * file (pas de réessai infini) mais restent visibles localement (page Santé).
+ *
+ * DURCISSEMENT (2026-11-01, 2e passe) : `import.meta.env.PROD` seul NE SUFFIT
+ * PAS. Vite définit `PROD` d'après `NODE_ENV` ; or la CI GitHub exporte
+ * `NODE_ENV=production`, donc un `vite dev` (serveur de dev) de la CI Cypress
+ * voyait `PROD === true` et remontait ses erreurs au dépôt PUBLIC (mesuré :
+ * rafale d'Issues « Tâche longue détectée » sur `localhost:8080`). On exige
+ * donc EN PLUS que `MODE` ne soit pas un mode de développement/test.
+ */
+
+/** Modes Vite considérés comme non-production (serveur de dev / tests). */
+const NON_PRODUCTION_MODES: ReadonlySet<string> = new Set([
+  "development",
+  "test",
+]);
+
+/** Sous-ensemble d'`import.meta.env` dont dépend la décision de transmettre. */
+export interface TransmissionEnv {
+  PROD?: boolean;
+  MODE?: string;
+  VITE_REPORT_ERRORS_IN_DEV?: string;
+}
+
+/**
+ * Décision PURE (sans `import.meta.env`) : autorise la remontée seulement si
+ * l'environnement décrit un VRAI build de production. Extraite pour être
+ * testée exhaustivement (y compris le cas CI « PROD hérité vrai + MODE=dev »).
+ */
+export function isTransmissionAllowedFor(env: TransmissionEnv): boolean {
+  if (env.VITE_REPORT_ERRORS_IN_DEV === "true") return true;
+  if (env.PROD !== true) return false;
+  // `MODE` vaut "development" pour `vite dev` et "test" sous vitest, quelle
+  // que soit la valeur de NODE_ENV — c'est le discriminant fiable du build.
+  return !NON_PRODUCTION_MODES.has(env.MODE ?? "");
+}
+
+export function isTransmissionAllowed(): boolean {
+  return isTransmissionAllowedFor(import.meta.env);
+}
 
 /**
  * Transport par défaut : appelle l'edge function `report-error`, qui détient le
@@ -487,7 +540,19 @@ export type ReportTransport = (
  * n'attache aucun en-tête `Authorization` (la clé publishable voyage en
  * `apikey`), donc l'appel est bien identifié comme anonyme côté serveur.
  */
-async function defaultTransport(report: ErrorReport): Promise<{ ok: boolean }> {
+async function defaultTransport(
+  report: ErrorReport,
+): Promise<{ ok: boolean; drop?: boolean }> {
+  if (!isTransmissionAllowed()) {
+    // Bruit de développement : on retire le rapport sans créer d'Issue.
+    console.warn(
+      "[observability] remontée GitHub ignorée hors production (dev/localhost) :",
+      report.type,
+      report.message,
+    );
+    return { ok: false, drop: true };
+  }
+
   const { supabase } = await import("@/integrations/supabase/client");
   const { data } = await supabase.auth.getSession();
   const accessToken = data?.session?.access_token;
@@ -549,9 +614,12 @@ async function runFlush(): Promise<number> {
       if (result.ok) {
         sent += 1;
         recentSignatures.set(report.signature, Date.now());
-      } else {
+      } else if (!result.drop) {
+        // Échec transitoire (hors-ligne, 5xx) → garder pour un nouvel essai.
         remaining.push(report);
       }
+      // `drop: true` (bruit de dev, environnement non autorisé) : retiré
+      // définitivement — inutile de réessayer à chaque flush.
     } catch {
       remaining.push(report);
     }

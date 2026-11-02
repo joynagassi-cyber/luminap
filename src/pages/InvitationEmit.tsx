@@ -1,30 +1,30 @@
 /**
- * Invitation Emit v2 — Création et affichage d'une invitation (QR + code).
+ * Invitation Emit Page — create and display invitation QR/code
  *
- * Flow : sélection du rôle → portée (org/groupe) → génération → affichage QR + code.
- * Design : fond sombre, cartes sur surface, badges de statut, QR sur fond blanc fixe.
- * Tokens CSS `var(--*)`, zéro couleur en dur.
- *
- * Logique métier inchangée : création d'invitation, capacités/grants, portée
- * granulaire, export JSON, copie du code, payload v2.
+ * Flow: select role → select scope (org/group) → generate → display QR + code
  */
 
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   IonPage,
-  IonContent,
   IonHeader,
+  IonContent,
+  IonTitle,
   IonToolbar,
   IonButtons,
   IonBackButton,
+  IonButton,
   IonItem,
   IonLabel,
   IonSelect,
   IonSelectOption,
   IonInput,
-  IonButton,
   IonAlert,
+  IonCard,
+  IonCardHeader,
+  IonCardContent,
+  IonBadge,
 } from "@ionic/react";
 import { QRCodeSVG } from "qrcode.react";
 import {
@@ -39,7 +39,8 @@ import {
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { useKeyboardAvoidance } from "@/hooks/useKeyboardAvoidance";
-import { useMembers, useGroups, useCurrentUser } from "@/lib/dataLayer";
+import { useMembers, useGroups } from "@/lib/dataLayer";
+import { useCurrentUser } from "@/lib/dataLayer";
 import {
   invitation,
   exportInvitationToFile,
@@ -49,7 +50,7 @@ import { getOrganizationId } from "@/lib/orgContext";
 import { downloadBlob } from "@/lib/download";
 import { notification } from "@/capabilities/notification";
 import type { Grant } from "@/types/federation";
-import TopHeader from "@/components/TopHeader";
+import type { Member } from "@/types";
 
 const ROLES = [
   { value: "MEMBRE", label: "Membre" },
@@ -70,6 +71,9 @@ export default function InvitationEmit() {
   const { data: psGroups } = useGroups();
   const members = psMembers ?? [];
 
+  // Organisation ciblée : `?org=<id>` (ex. venue de la page Fédération après
+  // avoir créé une organisation opérationnelle) ; sinon l'organisation courante.
+  // DOIT être déclaré AVANT `groups` (line ci-dessous) — sinon TDZ.
   const orgParam = new URLSearchParams(location.search).get("org");
   const targetOrgId = orgParam ?? getOrganizationId();
   const groups = (psGroups ?? []).filter((g: any) => g.org_id === targetOrgId);
@@ -81,8 +85,16 @@ export default function InvitationEmit() {
   const [targetMemberId, setTargetMemberId] = useState("");
   const [expiresDays, setExpiresDays] = useState(7);
   const [maxUses, setMaxUses] = useState(1);
+  // B.3 — scope granulaire : l'admin peut préciser une ressource cible libre
+  // (ex. "event", "report") + son id, plutôt que de se limiter à ORG|GROUP.
   const [targetScopeResource, setTargetScopeResource] = useState("");
   const [targetScopeId, setTargetScopeId] = useState("");
+  // Capacités supplémentaires accordées par l'invitation (grants). Le rôle
+  // cible porte déjà ses permissions ; ces capacités AJOUTENT des droits
+  // précis, matérialisés côté serveur par `settle_invitation_claim`
+  // (insertion dans `grants`, subject_type='user'). Sans ce sélecteur, le
+  // champ était figé à `[]` : l'admin ne pouvait pas « configurer les
+  // autorisations » transportées par le code/QR (demande produit).
   const [selectedCapabilities, setSelectedCapabilities] = useState<string[]>([]);
 
   const toggleCapability = (id: string) =>
@@ -90,6 +102,7 @@ export default function InvitationEmit() {
       prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id],
     );
 
+  /** Grants transportés par l'invitation, dérivés des capacités cochées. */
   const grantsPayload: Grant[] = useMemo(
     () =>
       selectedCapabilities.flatMap((capId) => {
@@ -97,7 +110,7 @@ export default function InvitationEmit() {
         if (!cap) return [];
         return capabilityGrantPayload(cap).map((p) => ({
           subjectType: "user" as const,
-          subjectId: "",
+          subjectId: "", // résolu côté serveur au claim (auth.uid())
           resource: p.resource,
           action: p.action,
           grantedBy: "",
@@ -114,6 +127,9 @@ export default function InvitationEmit() {
   const [showAlert, setShowAlert] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  // Timestamps de l'invitation courante — conservés pour le payload affiché
+  // (le QR recalcule sinon expiresAt au render, et le claimant peut être
+  // rejeté côté serveur alors que le scan local n'était pas expiré).
   const [createdAt, setCreatedAt] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
 
@@ -126,6 +142,9 @@ export default function InvitationEmit() {
         Date.now() + expiresDays * 24 * 60 * 60 * 1000,
       ).toISOString();
 
+      // Le code affiché DOIT être celui persisté : on le récupère de
+      // `createInvitation` au lieu de régénérer un code aléatoire (qui ne
+      // correspondait à aucune invitation en base).
       const { id, code } = await invitation.createInvitation({
         orgId: targetOrgId,
         targetRole,
@@ -135,8 +154,11 @@ export default function InvitationEmit() {
         issuedBy: user.id,
         expiresAt: expiresAtMs,
         maxUses,
+        // B.3 — scope granulaire (Vague 3) : le trigger le matérialise au claim
         targetScopeResource: targetScopeResource || undefined,
         targetScopeId: targetScopeId || undefined,
+        // Capacités configurées par l'admin : transportées dans le QR/fichier
+        // ET persistées dans `grants_payload` → appliquées au claim.
         grantsPayload: grantsPayload.length ? grantsPayload : undefined,
       });
 
@@ -146,18 +168,15 @@ export default function InvitationEmit() {
       setGeneratedId(id);
       setStep("qr");
       setShowAlert(true);
-      setAlertMessage(
-        "Invitation créée et sauvegardée. L'appareil de l'invité devra scanner le QR ou entrer le code.",
-      );
+      setAlertMessage("Invitation créée et sauvegardée. L'appareil de l'invité devra scanner le QR ou entrer le code.");
 
-      notification
-        .sendNotification({
-          title: "Invitation émise",
-          message: `Invitation ${code} pour le rôle ${targetRole}`,
-          targetRole: "ADMIN",
-          extraData: { invitationId: id, code, targetRole },
-        })
-        .catch(() => {});
+      // Notify the inviter's org (in-app UI + OneSignal tags for server targeting)
+      notification.sendNotification({
+        title: "Invitation émise",
+        message: `Invitation ${code} pour le rôle ${targetRole}`,
+        targetRole: "ADMIN",
+        extraData: { invitationId: id, code, targetRole },
+      }).catch(() => {});
     } catch (err: any) {
       setAlertMessage(err?.message ?? "Erreur lors de la création");
       setShowAlert(true);
@@ -173,6 +192,7 @@ export default function InvitationEmit() {
     });
   };
 
+  /** 4ᵉ transport : exporter l'invitation en fichier JSON (transfert local). */
   const handleExportFile = async () => {
     try {
       const json = await exportInvitationToFile(generatedId);
@@ -195,13 +215,21 @@ export default function InvitationEmit() {
       scope: {
         type: scopeType,
         ...(scopeType === "GROUP" ? { groupId: targetGroupId } : {}),
+        // B.3 — scope granulaire transporté (harmonisé sur AccessScope.id) :
+        // sans ces champs, une invitation scopée (event/report/ressource libre)
+        // perdait sa cible côté QR et le claim retombait sur ORG.
         ...(targetScopeResource ? { resource: targetScopeResource } : {}),
         ...(targetScopeId ? { id: targetScopeId } : {}),
       },
       memberId: targetMemberId || null,
+      // Capacités configurées par l'admin, transportées dans le QR/fichier
+      // (le claim les matérialise côté serveur).
       grants: grantsPayload,
       tags: [],
       issuedAt: createdAt,
+      // Réutilise la valeur PERSISTÉE (pas recalculée au render) — sinon le
+      // claimant peut être rejeté côté serveur alors que le scan local
+      // n'était pas expiré (le trigger compare contre invitations.expires_at).
       expiresAt,
     };
   }, [
@@ -228,42 +256,35 @@ export default function InvitationEmit() {
           </IonButtons>
           <IonTitle>Créer une invitation</IonTitle>
           <IonButtons slot="end">
-            <IonButton
-              fill="clear"
-              onClick={() => navigate("/invitation/manage")}
-              aria-label="Gérer les invitations"
-            >
+            <IonButton fill="clear" onClick={() => navigate("/invitation/manage")}>
               Gérer
             </IonButton>
           </IonButtons>
         </IonToolbar>
       </IonHeader>
-      <IonContent fullscreen className="bg-canvas">
-        <h1 className="sr-only">Émettre une invitation</h1>
+      <IonContent fullscreen>
+      <h1 className="sr-only">Émettre une invitation</h1>
+        {/* M9 — TopHeader supprimé : la barre IonHeader (back + « Gérer »)
+            porte déjà le contexte ; un 2ᵉ chrome 64px en double coquin. */}
         <div data-screen-state="ready" className="min-h-dvh">
           <div
             className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc"
             style={{
-              paddingBottom:
-                keyboardHeight > 0 ? `${keyboardHeight}px` : undefined,
+              paddingBottom: keyboardHeight > 0 ? `${keyboardHeight}px` : undefined,
             }}
           >
             {step === "configure" ? (
               <div className="space-y-6">
                 {/* Role selection */}
                 <IonItem lines="none" className="bg-card rounded-xl">
-                  <IonLabel className="text-sm text-text-secondary mb-1 block">
-                    Rôle cible
-                  </IonLabel>
+                  <IonLabel className="text-sm text-text-secondary mb-1">Rôle cible</IonLabel>
                   <IonSelect
                     value={targetRole}
                     onIonChange={(e) => setTargetRole(e.detail.value!)}
                     placeholder="Sélectionner un rôle"
                     interface="popover"
                     aria-label="Sélectionner un rôle"
-                    style={{
-                      "--placeholder-color": "var(--text-tertiary)",
-                    } as React.CSSProperties}
+                    style={{ "--placeholder-color": "var(--text-tertiary)" } as React.CSSProperties}
                   >
                     {ROLES.map((r) => (
                       <IonSelectOption key={r.value} value={r.value}>
@@ -275,9 +296,7 @@ export default function InvitationEmit() {
 
                 {/* Scope selection */}
                 <IonItem lines="none" className="bg-card rounded-xl">
-                  <IonLabel className="text-sm text-text-secondary mb-1 block">
-                    Portée
-                  </IonLabel>
+                  <IonLabel className="text-sm text-text-secondary mb-1">Portée</IonLabel>
                   <div className="flex gap-2">
                     <IonButton
                       size="small"
@@ -298,14 +317,11 @@ export default function InvitationEmit() {
 
                 {scopeType === "GROUP" && (
                   <IonItem lines="none" className="bg-card rounded-xl">
-                    <IonLabel className="text-sm text-text-secondary mb-1 block">
-                      Groupe cible
-                    </IonLabel>
+                    <IonLabel>Groupe cible</IonLabel>
                     <IonSelect
                       value={targetGroupId}
                       onIonChange={(e) => setTargetGroupId(e.detail.value!)}
                       aria-label="Groupe"
-                      interface="popover"
                     >
                       <IonSelectOption value="">-- Aucun --</IonSelectOption>
                       {groups.map((g: any) => (
@@ -318,7 +334,7 @@ export default function InvitationEmit() {
                 )}
 
                 <IonItem lines="none" className="bg-card rounded-xl">
-                  <IonLabel className="text-sm text-text-secondary mb-1 block">
+                  <IonLabel>
                     <div className="flex items-center gap-2">
                       <Shield className="w-4 h-4" />
                       Membre existant (optionnel)
@@ -331,7 +347,6 @@ export default function InvitationEmit() {
                     value={targetMemberId}
                     onIonChange={(e) => setTargetMemberId(e.detail.value!)}
                     aria-label="Membre"
-                    interface="popover"
                   >
                     <IonSelectOption value="">-- Nouveau membre --</IonSelectOption>
                     {members.map((m: any) => (
@@ -342,19 +357,17 @@ export default function InvitationEmit() {
                   </IonSelect>
                 </IonItem>
 
-                {/* Capacités (autorisations) configurées par l'admin */}
+                {/* Capacités (autorisations) configurées par l'admin :
+                    transportées par le code/QR et appliquées au claim. */}
                 <div
-                  className="rounded-xl p-5 mb-1"
+                  className="rounded-xl p-4"
                   style={{
                     backgroundColor: "var(--surface)",
                     border: "1px solid var(--border)",
                   }}
                 >
                   <div className="flex items-center gap-2 mb-1">
-                    <KeyRound
-                      className="w-4 h-4"
-                      style={{ color: "var(--accent-primary)" }}
-                    />
+                    <KeyRound className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
                     <span className="text-sm text-text-secondary font-medium">
                       Autorisations supplémentaires
                     </span>
@@ -376,11 +389,8 @@ export default function InvitationEmit() {
                             type="checkbox"
                             checked={checked}
                             onChange={() => toggleCapability(cap.id)}
-                            className="mt-0.5 rounded"
+                            className="mt-1"
                             aria-label={cap.label}
-                            style={{
-                              accentColor: "var(--accent-primary)",
-                            }}
                           />
                           <span>
                             <span className="text-sm text-text-primary block">
@@ -397,27 +407,19 @@ export default function InvitationEmit() {
                 </div>
 
                 <IonItem lines="none" className="bg-card rounded-xl">
-                  <IonLabel className="text-sm text-text-secondary mb-1 block">
-                    Durée de validité
-                  </IonLabel>
+                  <IonLabel>Durée de validité</IonLabel>
                   <IonInput
                     type="number"
                     value={String(expiresDays)}
-                    onIonInput={(e) =>
-                      setExpiresDays(Number(e.detail.value!))
-                    }
+                    onIonInput={(e) => setExpiresDays(Number(e.detail.value!))}
                     slot="end"
                     className="w-16 text-center"
                   />
-                  <IonLabel className="text-xs text-text-tertiary ml-1">
-                    jours
-                  </IonLabel>
+                  <IonLabel className="text-xs text-text-tertiary ml-1">jours</IonLabel>
                 </IonItem>
 
                 <IonItem lines="none" className="bg-card rounded-xl">
-                  <IonLabel className="text-sm text-text-secondary mb-1 block">
-                    Usages max
-                  </IonLabel>
+                  <IonLabel>Usages max</IonLabel>
                   <IonInput
                     type="number"
                     value={String(maxUses)}
@@ -429,103 +431,75 @@ export default function InvitationEmit() {
 
                 <IonButton
                   expand="block"
-                  fill="solid"
+                  color="primary"
                   onClick={handleCreate}
-                  className="mt-5 text-sm font-semibold"
+                  className="mt-4"
                   disabled={busy || (scopeType === "GROUP" && !targetGroupId)}
                 >
                   <QrCode className="w-4 h-4 mr-2" />
-                  {busy ? "Génération…" : "Générer l'invitation"}
+                  {busy ? "Génération..." : "Générer l'invitation"}
                 </IonButton>
               </div>
             ) : (
               <div className="space-y-6 text-center">
-                <div className="bg-card rounded-xl p-6">
-                  <p className="text-text-secondary text-xs uppercase tracking-wider font-semibold mb-2">
-                    Scannez ce QR code
-                  </p>
-                  <p className="text-text-primary font-bold text-lg mb-4">
-                    Invitation créée
-                  </p>
-                  {payload && (
-                    <div style={{ backgroundColor: "#fff" }} className="inline-block">
-                      <QRCodeSVG
-                        value={JSON.stringify(payload)}
-                        size={220}
-                        bgColor="#ffffff"
-                        fgColor="#000000"
-                        level="M"
-                      />
-                    </div>
-                  )}
-                  <p className="text-text-tertiary text-sm mt-4">
-                    Montrez ce code à la personne à inviter
-                  </p>
-                </div>
+                <IonCard className="bg-card border-none">
+                  <IonCardHeader>
+                    <IonTitle className="text-center">Scannez ce QR code</IonTitle>
+                    <IonLabel className="text-center text-sm text-text-tertiary block mt-1">
+                      Montrez ce code à la personne à inviter
+                    </IonLabel>
+                  </IonCardHeader>
+                  <IonCardContent className="flex justify-center py-6">
+                    {payload && (
+                      /* fond blanc fixe + modules noirs : vérité de
+                         scannage. Un `bgColor` lié au thème
+                         (`var(--text-primary)`) rendait le QR noir-sur-noir
+                         en thème clair (#1a1a1a) → illisible par la caméra.
+                         Contraste et polarité FIXES, indépendants du thème. */
+                      <div style={{ backgroundColor: "#fff" }} className="inline-block">
+                        <QRCodeSVG
+                          value={JSON.stringify(payload)}
+                          size={220}
+                          bgColor="#ffffff"
+                          fgColor="#000000"
+                          level="M"
+                        />
+                      </div>
+                    )}
+                  </IonCardContent>
+                </IonCard>
 
                 <div className="bg-card rounded-xl p-4">
-                  <p className="text-text-tertiary text-xs uppercase tracking-wider font-semibold mb-2">
-                    Code de substitution
-                  </p>
+                  <p className="text-text-tertiary text-sm mb-2">Code de substitution</p>
                   <div className="flex items-center justify-center gap-3">
-                    <code className="text-xl font-mono font-bold text-text-primary tracking-widest">
+                    <code className="text-2xl font-mono font-bold text-primary tracking-widest">
                       {generatedCode}
                     </code>
-                    <IonButton
-                      size="small"
-                      fill="outline"
-                      onClick={handleCopyCode}
-                      aria-label="Copier le code"
-                    >
-                      {showCopy ? <Check className="w-4 h-4" /> : (
-                        <Copy className="w-4 h-4" />
-                      )}
+                    <IonButton size="small" fill="outline" onClick={handleCopyCode} aria-label="Copier le code">
+                      {showCopy ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                     </IonButton>
                   </div>
-                  <div className="flex items-center gap-2 mt-3">
-                    <span className="text-xs text-text-tertiary">
-                      {targetRole}
-                    </span>
-                    <span
-                      className="text-xs px-2 py-0.5 rounded-full font-medium"
-                      style={{
-                        backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)",
-                        color: "var(--accent-primary)",
-                      }}
-                    >
-                      {scopeType === "ORG" ? "Organisation" : "Groupe"}
-                    </span>
-                  </div>
+                  <IonBadge color="medium" className="mt-3">
+                    {targetRole} · {scopeType === "ORG" ? "Organisation" : "Groupe"}
+                  </IonBadge>
                 </div>
 
                 <IonButton
                   expand="block"
                   fill="outline"
                   onClick={handleExportFile}
-                  className="mt-3 text-sm"
+                  className="mt-3"
                 >
                   <FileDown className="w-4 h-4 mr-2" />
                   Exporter en fichier JSON
                 </IonButton>
 
-                <div className="flex gap-2">
-                  <IonButton
-                    expand="block"
-                    fill="outline"
-                    onClick={() => setStep("configure")}
-                    className="flex-1 text-sm"
-                  >
-                    Créer une autre invitation
-                  </IonButton>
-                  <IonButton
-                    expand="block"
-                    fill="outline"
-                    onClick={() => navigate(-1)}
-                    className="flex-1 text-sm"
-                  >
-                    Retour
-                  </IonButton>
-                </div>
+                <IonButton expand="block" fill="outline" onClick={() => setStep("configure")}>
+                  Créer une autre invitation
+                </IonButton>
+                <IonButton expand="block" color="medium" onClick={() => navigate(-1)}>
+                  Retour
+                </IonButton>
 
                 <IonAlert
                   isOpen={showAlert}
@@ -537,6 +511,7 @@ export default function InvitationEmit() {
               </div>
             )}
           </div>
+
           <BottomNav />
         </div>
       </IonContent>

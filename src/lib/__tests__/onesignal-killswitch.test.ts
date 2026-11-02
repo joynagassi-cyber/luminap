@@ -1,41 +1,50 @@
+// @vitest-environment jsdom
 /**
- * PR7 — le kill switch `notifications-push` coupe réellement la fonctionnalité
- * de bout en bout (et pas seulement « dans le source »).
+ * PR7 — kill switch `notifications-push` : test COMPORTEMENTAL (pas un grep).
  *
- * La garde existante dans `feature-flags.test.ts` ne vérifiait que la PRÉSENCE
- * de `isFeatureEnabled("notifications-push")` dans le TEXTE de `onesignal.ts` —
- * une assertion structurelle qui passerait même si l'appel était neutralisé
- * (`if (false && isFeatureEnabled(...))`). Ici on prouve l'effet OBSERVABLE :
- * drapeau coupé → `initOneSignal()` n'initialise PAS le service ; drapeau actif
- * (défaut, fail-open) → il l'initialise.
+ * La garde de `feature-flags.test.ts` se contente de chercher l'appel
+ * `isFeatureEnabled("notifications-push")` dans la source ; une garde neutralisée
+ * (`if (false && …)`) passerait quand même. On prouve ici le COMPORTEMENT réel :
+ * drapeau coupé ⇒ `initOneSignal()` n'initialise pas le service ; drapeau absent
+ * (fail-open) ⇒ il initialise.
+ *
+ * NON-VACUITÉ : remplacer `if (!isFeatureEnabled("notifications-push"))` par
+ * `if (false)` dans `onesignal.ts` ⇒ le 1er test échoue (le service est
+ * initialisé malgré le drapeau coupé).
  */
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-const flag = vi.hoisted(() => ({ enabled: true }));
-vi.mock("@/lib/featureFlags", () => ({
-  isFeatureEnabled: () => flag.enabled,
-}));
-
-import { getOneSignalService, initOneSignal } from "@/lib/onesignal";
-
-beforeEach(() => {
-  flag.enabled = true;
-  vi.restoreAllMocks();
-});
-
-describe("PR7 — kill switch notifications-push (effet réel)", () => {
-  it("drapeau ACTIF (défaut) → le service est initialisé", async () => {
-    const service = getOneSignalService();
-    const spy = vi.spyOn(service, "initialize").mockResolvedValue(undefined);
-    await initOneSignal();
-    expect(spy).toHaveBeenCalledTimes(1);
+describe("PR7 — kill switch `notifications-push` (comportemental)", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    localStorage.clear();
   });
 
-  it("drapeau COUPÉ → initOneSignal ne touche pas le service (no-op)", async () => {
-    const service = getOneSignalService();
-    const spy = vi.spyOn(service, "initialize").mockResolvedValue(undefined);
-    flag.enabled = false;
-    await initOneSignal();
+  afterEach(() => {
+    localStorage.clear();
+  });
+
+  it("drapeau coupé ⇒ initOneSignal() n'initialise PAS le service", async () => {
+    localStorage.setItem(
+      "lumina-flags",
+      JSON.stringify({ "notifications-push": false }),
+    );
+    const mod = await import("../onesignal");
+    const service = mod.getOneSignalService();
+    const spy = vi.spyOn(service, "initialize").mockResolvedValue();
+
+    await mod.initOneSignal();
+
     expect(spy).not.toHaveBeenCalled();
+  });
+
+  it("drapeau absent (fail-open) ⇒ initOneSignal() initialise le service", async () => {
+    const mod = await import("../onesignal");
+    const service = mod.getOneSignalService();
+    const spy = vi.spyOn(service, "initialize").mockResolvedValue();
+
+    await mod.initOneSignal();
+
+    expect(spy).toHaveBeenCalledTimes(1);
   });
 });

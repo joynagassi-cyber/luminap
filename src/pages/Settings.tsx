@@ -1,11 +1,3 @@
-/**
- * Settings v2 — Hub de paramètres, redesign premium.
- *
- * Design : fond sombre, sections bien délimitées, cartes d'options avec
- * icônes colorées, typographie cohérente.
- * Tous les tokens CSS `var(--*)`, zéro couleur en dur.
- */
-
 import { useNavigate } from "react-router-dom";
 import {
   UserCircle,
@@ -24,7 +16,6 @@ import {
 import { IonPage, IonContent } from "@ionic/react";
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
-import { Section, InfoCard, ListItem } from "@/design/components/PageShell";
 
 interface SettingsOption {
   id: string;
@@ -136,49 +127,69 @@ function SettingsOptionCard({ option }: { option: SettingsOption }) {
   const navigate = useNavigate();
   const Icon = option.icon;
   return (
-    <ListItem
-      key={option.id}
-      icon={
-        <div
-          className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
-          style={{
-            backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)",
-          }}
-        >
-          <Icon className="w-5 h-5" style={{ color: "var(--accent-primary)" }} />
-        </div>
-      }
-      title={option.label}
-      subtitle={option.description}
+    <button
+      type="button"
       onClick={() => navigate(option.to)}
-    />
+      className="w-full flex items-center gap-3 p-4 rounded-xl text-left transition-[transform,background-color] active:scale-[0.99]"
+      style={{
+        backgroundColor: "var(--surface)",
+        border: "1px solid var(--border)",
+      }}
+      data-testid={`settings-opt-${option.id}`}
+      aria-label={`Ouvrir ${option.label}`}
+    >
+      <div
+        className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+        style={{
+          backgroundColor: "color-mix(in srgb, var(--accent-primary) 15%, transparent)",
+        }}
+      >
+        <Icon className="w-5 h-5" style={{ color: "var(--accent-primary)" }} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-text-primary text-sm font-semibold">{option.label}</p>
+        <p className="text-text-tertiary text-xs mt-0.5 truncate">
+          {option.description}
+        </p>
+      </div>
+      <ChevronRight
+        className="w-4 h-4 text-text-tertiary flex-shrink-0"
+        aria-hidden="true"
+      />
+    </button>
   );
 }
 
+/**
+ * Hub de Paramètres : une liste de sections ; chaque option mène à SA propre
+ * page (/settings/<section>) où l'on « entre » et configure le détail.
+ */
 export default function SettingsPage() {
-  const navigate = useNavigate();
-
   return (
     <IonPage>
-      <IonContent fullscreen className="bg-canvas">
-        <div data-screen-state="ready" className="min-h-dvh flex flex-col">
-          <TopHeader title="Paramètres" subtitle="Configuration de l'organisation" />
-          <div className="flex-1 px-6 pt-2 pb-safe-calc">
-            <div className="max-w-lg mx-auto">
-              <h1 className="text-text-primary font-bold text-3xl tracking-tight mb-6">
-                Paramètres
-              </h1>
+      <IonContent className="bg-canvas">
+        <div data-screen-state="ready" className="min-h-dvh">
+          <TopHeader title="Paramètres" />
+          <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
+            <h1 className="text-text-primary font-bold text-xl mb-1">
+              Paramètres
+            </h1>
+            <p className="text-text-tertiary text-xs mb-5">
+              Chaque option ouvre sa propre page de configuration.
+            </p>
 
-              {GROUPS.map((group) => (
-                <Section key={group.title} title={group.title}>
-                  <div className="space-y-2">
-                    {group.options.map((o) => (
-                      <SettingsOptionCard key={o.id} option={o} />
-                    ))}
-                  </div>
-                </Section>
-              ))}
-            </div>
+            {GROUPS.map((group) => (
+              <div key={group.title} className="mb-6">
+                <p className="text-text-tertiary text-xs font-medium uppercase tracking-wide mb-2 px-1">
+                  {group.title}
+                </p>
+                <div className="space-y-2">
+                  {group.options.map((o) => (
+                    <SettingsOptionCard key={o.id} option={o} />
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
           <BottomNav />
         </div>
@@ -186,5 +197,3 @@ export default function SettingsPage() {
     </IonPage>
   );
 }
-
-

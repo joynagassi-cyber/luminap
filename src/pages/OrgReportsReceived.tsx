@@ -1,22 +1,41 @@
 /**
- * OrgReportsReceived v2 — Liste des rapports de gestion reçus.
+ * OrgReportsReceived — page de réception des rapports de gestion
+ * inter-organisations (Phase 4 Feature 2 — rapports organisations).
  *
- * Design : fond sombre, cartes de rapport avec icône de format, badge de
- * statut, compteurs d'agrégats, filtres par annexe et période.
- * Tokens CSS `var(--*)`.
+ * Route : `/admin/reports` (montée dans `src/ionic/routes/admin.tsx`).
  *
- * Logique métier inchangée : watch-query des rapports reçus, résolution des
- * noms d'émetteurs, gating "mère", filtres, mark as read, navigation détail.
+ * Gating (plan §Phase 4 T4.2) : l'org courante doit être en position
+ * de « mère » — soit elle a ≥1 annexe directe (`federation.getOrgChildren`
+ * non vide), soit elle a déjà au moins un rapport reçu
+ * (`org_reports WHERE to_org_id = current`). Sinon : EmptyState
+ * explicite « Aucun rapport reçu pour le moment » (sans masquer la page
+ * elle-même — un user sans annexe mais avec un rapport reçu historique
+ * doit pouvoir le consulter).
+ *
+ * Header : titre « Rapports reçus » + badge de compteur (non-lus =
+ * `read_at IS NULL`) + 2 filtres (IonSelect annexe émettrice, IonSelect
+ * période mensuelle/semestrielle/annuelle).
+ *
+ * Liste : `useReportsReceived` (PowerSync watch-query) — chaque item =
+ * card `rounded-xl bg-surface p-4` avec titre + badge format + période
+ * + nom de l'annexe émettrice + statut (badge PENDING/SENT/READ/FAILED)
+ * + bouton « Marquer comme lu » si non-lu + bouton « Ouvrir » (navigate
+ * vers `/admin/reports/:id` — Phase 4 T4.3).
+ *
+ * Non-régression : la page n'impacte ni `CentralAdmin.tsx` (le bouton
+ * d'émission y reste intact) ni `OrgReportSend.tsx`. Tokens Lumina
+ * uniquement (zéro couleur brute). RLS `org_reports_receiver` : la
+ * watch-query `WHERE to_org_id = ?` ne renvoie que les lignes dont
+ * l'org est destinataire (le stream PowerSync `org_reports` est
+ * auto_subscribe:false + WHERE from_org = current OR to_org = current).
  */
 
-import { useEffect, useMemo, useState } from "react";
-import { IonPage, IonContent, IonHeader, IonToolbar, IonButtons, IonBackButton, IonSelect, IonSelectOption, IonLabel, IonItem } from "@ionic/react";
+import { useEffect, useMemo, useState } from "react";import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar, IonButtons, IonBackButton, IonSelect, IonSelectOption, IonLabel, IonItem } from "@ionic/react";
 import {
   Inbox,
   FileText,
   File,
   Sheet,
-  Image as ImageIcon,
   Check,
   ArrowRight,
   Loader2,
@@ -41,12 +60,14 @@ import type { IonChangeCustomEvent } from "@/lib/ionic-types";
 
 type PeriodFilter = "all" | "monthly" | "semiannual" | "annual";
 
+/** Badge de statut d'un rapport (PENDING/SENT/READ/FAILED) — table partagée. */
 function ReportStatusBadge({ status }: { status: string }) {
   return <Badge table={REPORT_BADGES} value={status} />;
 }
 
-function FormatIcon({ format, className = "w-4 h-4" }: { format: string; className?: string }) {
-  const cls = className;
+/** Icône par format de fichier (pdf/docx/xlsx/png). */
+function FormatIcon({ format }: { format: string }) {
+  const cls = "w-4 h-4";
   const color = "var(--text-secondary)";
   switch (format) {
     case "pdf":
@@ -54,12 +75,17 @@ function FormatIcon({ format, className = "w-4 h-4" }: { format: string; classNa
     case "xlsx":
       return <Sheet className={cls} style={{ color }} />;
     case "png":
-      return <ImageIcon className={cls} style={{ color }} />;
+      return <File className={cls} style={{ color }} />;
     default:
       return <File className={cls} style={{ color }} />;
   }
 }
 
+/**
+ * Décode les agrégats du rapport (`content` jsonb → text PowerSync) pour
+ * afficher un compteur local de transactions dans la card (optionnel).
+ * Retours `null` si le JSON est invalide (pas de crash de liste).
+ */
 function parseContentSummary(
   content: string,
 ): Pick<OrgReportPayload["summary"], "eventCount" | "memberCount" | "documentCount"> | null {
@@ -76,20 +102,34 @@ function parseContentSummary(
   }
 }
 
+/**
+ * OrgReportsReceived — liste des rapports reçus + filtres + actions.
+ */
 export default function OrgReportsReceived() {
   const navigate = useNavigate();
   const orgId = getOrganizationId();
   const { data: reports, isLoading, refetch } = useReportsReceived(orgId);
 
+  // Filtres (état local — pas de URL : filtre transitoire de la page).
   const [annexFilter, setAnnexFilter] = useState<string>("all");
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("all");
+
+  // Nom des annexes émettrices (`from_org_id` → `organizations.name`) —
+  // `federation.getOrgChildren` ne donne que les enfants de l'org courante,
+  // pas les émetteurs : on consulte la table `organizations` (PowerSync)
+  // via `federation.getOrg(id)` pour le nom de chaque émetteur distinct.
   const [emitterNames, setEmitterNames] = useState<Record<string, string>>({});
 
+  // Identifiants émetteurs distincts (pour ne requêter que les nouveaux).
   const emitterIds = useMemo(
     () => Array.from(new Set((reports ?? []).map((r) => r.from_org_id))).filter(Boolean),
     [reports],
   );
 
+  // Chargement des noms des émetteurs (cache local — pas de re-fetch si
+  // déjà connu). `federation.getOrg` lit la table `organizations` (PowerSync
+  // outbox ; le RLS `orgs_select_federation_recursive` donne accès à toute
+  // la famille, pas seulement les enfants directs).
   useEffect(() => {
     let cancelled = false;
     const missing = emitterIds.filter((id) => !emitterNames[id]);
@@ -116,6 +156,7 @@ export default function OrgReportsReceived() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [emitterIds.join("|")]);
 
+  // Gating « mère » : l'org a ≥1 annexe (elle reçoit) OU ≥1 rapport reçu.
   const [hasAnnex, setHasAnnex] = useState(false);
   const [gatingChecked, setGatingChecked] = useState(false);
   useEffect(() => {
@@ -139,6 +180,10 @@ export default function OrgReportsReceived() {
   const hasReceived = (reports ?? []).length > 0;
   const showList = hasReceived || hasAnnex;
 
+  // Filtrage : annexe émettrice + période (mensuelle/semestrielle/annuelle).
+  // Le filtre `period` compare `period_start` à la borne début de la période
+  // canonique de `computePeriod` (mensuelle = mois courant, semestrielle =
+  // S1/S2 de l'année, annuelle = année courante). `all` = pas de filtre.
   const filtered = useMemo(() => {
     const list = reports ?? [];
     if (annexFilter !== "all") {
@@ -149,6 +194,8 @@ export default function OrgReportsReceived() {
       const p = computePeriod(periodFilter);
       return list.filter((r) => {
         const s = String(r.period_start ?? "").slice(0, 10);
+        // Le rapport couvre la période si sa `period_start` tombe dans la
+        // même année/mois/semestre que la période canonique demandée.
         if (periodFilter === "monthly") return s.slice(0, 7) === p.start.slice(0, 7);
         if (periodFilter === "semiannual") {
           const year = p.start.slice(0, 4);
@@ -162,11 +209,13 @@ export default function OrgReportsReceived() {
     return list;
   }, [reports, annexFilter, periodFilter]);
 
+  // Compteurs (badge du header) : total, non-lus (`read_at IS NULL`).
   const unreadCount = useMemo(
     () => (reports ?? []).filter((r) => !r.read_at).length,
     [reports],
   );
 
+  // Annexe émettrice distinctes (pour le IonSelect de filtre).
   const annexOptions = useMemo(() => {
     const seen = new Map<string, string>();
     for (const r of reports ?? []) {
@@ -177,6 +226,7 @@ export default function OrgReportsReceived() {
     return Array.from(seen.entries());
   }, [reports, emitterNames]);
 
+  // « Marquer comme lu » (idempotent — cf. `markReportRead`).
   const [marking, setMarking] = useState<string | null>(null);
   const handleMarkRead = async (reportId: string) => {
     setMarking(reportId);
@@ -191,6 +241,7 @@ export default function OrgReportsReceived() {
   };
 
   // Gating non confirmé et aucun rapport reçu → EmptyState explicite
+  // (pas de crash, pas de page vide silencieuse).
   if (gatingChecked && !showList) {
     return (
       <IonPage>
@@ -202,8 +253,8 @@ export default function OrgReportsReceived() {
             <IonTitle>Rapports reçus</IonTitle>
           </IonToolbar>
         </IonHeader>
-        <IonContent fullscreen className="bg-canvas">
-          <h1 className="sr-only">Rapports d'organisation reçus</h1>
+        <IonContent className="bg-canvas">
+        <h1 className="sr-only">Rapports d'organisation reçus</h1>
           <div className="min-h-dvh">
             <TopHeader title="Rapports reçus" />
             <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
@@ -230,26 +281,33 @@ export default function OrgReportsReceived() {
           <IonTitle>Rapports reçus</IonTitle>
         </IonToolbar>
       </IonHeader>
-      <IonContent fullscreen className="bg-canvas">
-        <h1 className="sr-only">Rapports d'organisation reçus</h1>
+      <IonContent className="bg-canvas">
+      <h1 className="sr-only">Rapports d'organisation reçus</h1>
         <div className="min-h-dvh">
           <TopHeader title="Rapports reçus" />
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc space-y-4">
             {/* Header : badge de compteur + filtres */}
-            <div className="rounded-xl p-4" style={{
-              backgroundColor: "var(--surface)",
-              border: "1px solid var(--border)",
-            }}>
+            <div
+              className="rounded-xl p-4"
+              style={{
+                backgroundColor: "var(--surface)",
+                border: "1px solid var(--border)",
+              }}
+            >
               <div className="flex items-center gap-2 mb-3">
                 <Inbox className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
                 <span className="text-text-primary font-semibold text-sm">
                   {reports?.length ?? 0} rapport{(reports?.length ?? 0) > 1 ? "s" : ""} reçu{(reports?.length ?? 0) > 1 ? "s" : ""}
                 </span>
                 {unreadCount > 0 && (
-                  <span className="ml-auto text-xs px-2 py-0.5 rounded-full font-semibold" style={{
-                    backgroundColor: "color-mix(in srgb, var(--accent-primary) 14%, transparent)",
-                    color: "var(--accent-primary)",
-                  }} aria-label={`${unreadCount} rapport(s) non-lu(s)`}>
+                  <span
+                    className="ml-auto text-xs px-2 py-0.5 rounded-full font-semibold"
+                    style={{
+                      backgroundColor: "color-mix(in srgb, var(--accent-primary) 14%, transparent)",
+                      color: "var(--accent-primary)",
+                    }}
+                    aria-label={`${unreadCount} rapport(s) non-lu(s)`}
+                  >
                     {unreadCount} non-lu{unreadCount > 1 ? "s" : ""}
                   </span>
                 )}
@@ -259,11 +317,15 @@ export default function OrgReportsReceived() {
               <div className="space-y-2">
                 {annexOptions.length > 1 && (
                   <div className="flex items-center gap-2">
-                    <IonLabel className="text-xs" style={{ color: "var(--text-secondary)" }}>Annexe</IonLabel>
+                    <IonLabel className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                      Annexe
+                    </IonLabel>
                     <IonSelect
                       data-testid="report-filter-annex"
                       value={annexFilter}
-                      onIonChange={(e: IonChangeCustomEvent<string>) => setAnnexFilter(e.detail.value)}
+                      onIonChange={(e: IonChangeCustomEvent<string>) =>
+                        setAnnexFilter(e.detail.value)
+                      }
                       interface="popover"
                       style={{
                         backgroundColor: "var(--card)",
@@ -274,7 +336,9 @@ export default function OrgReportsReceived() {
                     >
                       <IonSelectOption value="all">Toutes les annexes</IonSelectOption>
                       {annexOptions.map(([id, name]) => (
-                        <IonSelectOption key={id} value={id}>{name}</IonSelectOption>
+                        <IonSelectOption key={id} value={id}>
+                          {name}
+                        </IonSelectOption>
                       ))}
                     </IonSelect>
                   </div>
@@ -284,7 +348,9 @@ export default function OrgReportsReceived() {
                   <IonSelect
                     data-testid="report-filter-period"
                     value={periodFilter}
-                    onIonChange={(e: IonChangeCustomEvent<PeriodFilter>) => setPeriodFilter(e.detail.value)}
+                    onIonChange={(e: IonChangeCustomEvent<PeriodFilter>) =>
+                      setPeriodFilter(e.detail.value)
+                    }
                     interface="popover"
                     style={{
                       backgroundColor: "var(--card)",
@@ -294,9 +360,15 @@ export default function OrgReportsReceived() {
                     aria-label="Filtrer par période"
                   >
                     <IonSelectOption value="all">Toutes les périodes</IonSelectOption>
-                    <IonSelectOption value="monthly">Période mensuelle ({computePeriod("monthly").label})</IonSelectOption>
-                    <IonSelectOption value="semiannual">Période semestrielle ({computePeriod("semiannual").label})</IonSelectOption>
-                    <IonSelectOption value="annual">Période annuelle ({computePeriod("annual").label})</IonSelectOption>
+                    <IonSelectOption value="monthly">
+                      Période mensuelle ({computePeriod("monthly").label})
+                    </IonSelectOption>
+                    <IonSelectOption value="semiannual">
+                      Période semestrielle ({computePeriod("semiannual").label})
+                    </IonSelectOption>
+                    <IonSelectOption value="annual">
+                      Période annuelle ({computePeriod("annual").label})
+                    </IonSelectOption>
                   </IonSelect>
                 </div>
               </div>
@@ -304,9 +376,11 @@ export default function OrgReportsReceived() {
 
             {/* Liste des rapports (filtrée) */}
             {isLoading && (
-              <div className="rounded-xl p-8 text-center" style={{ backgroundColor: "var(--surface)" }}>
-                <Loader2 className="w-6 h-6 mx-auto mb-2" style={{ color: "var(--text-tertiary)" }} />
-                <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>Chargement des rapports…</p>
+              <div className="rounded-xl p-8 text-center animate-pulse" style={{ backgroundColor: "var(--surface)" }}>
+                <Loader2 className="w-6 h-6 mx-auto animate-spin mb-2" style={{ color: "var(--text-tertiary)" }} />
+                <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>
+                  Chargement des rapports...
+                </p>
               </div>
             )}
 
@@ -333,6 +407,7 @@ export default function OrgReportsReceived() {
               </div>
             )}
 
+            {/* Footer : « Voir tous les rapports » (optionnel si filtré) */}
             {(annexFilter !== "all" || periodFilter !== "all") && (
               <button
                 type="button"
@@ -359,6 +434,10 @@ export default function OrgReportsReceived() {
   );
 }
 
+/**
+ * Card d'un rapport reçu (titre + badge format + période + émetteur +
+ * statut + actions). `rounded-xl bg-surface p-4` — tokens Lumina.
+ */
 function ReportCard({
   report,
   emitterName,
@@ -377,20 +456,30 @@ function ReportCard({
   const periodLabel = `${formatDate(report.period_start)} → ${formatDate(report.period_end)}`;
 
   return (
-    <article className="rounded-xl p-4" style={{
-      backgroundColor: "var(--surface)",
-      border: "1px solid var(--border)",
-    }} aria-label={`Rapport ${report.title} de ${emitterName}`}>
+    <article
+      className="rounded-xl p-4"
+      style={{
+        backgroundColor: "var(--surface)",
+        border: "1px solid var(--border)",
+      }}
+      aria-label={`Rapport ${report.title} de ${emitterName}`}
+    >
       {/* Titre + icône format + statut */}
       <div className="flex items-start gap-3">
-        <div className="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-lg" style={{
-          backgroundColor: "color-mix(in srgb, var(--accent-primary) 10%, transparent)",
-        }}>
+        <div
+          className="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-lg"
+          style={{
+            backgroundColor: "color-mix(in srgb, var(--accent-primary) 10%, transparent)",
+          }}
+        >
           <FormatIcon format={report.format} />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <h3 className="text-sm font-semibold truncate" style={{ color: "var(--text-primary)" }}>
+            <h3
+              className="text-sm font-semibold truncate"
+              style={{ color: "var(--text-primary)" }}
+            >
               {report.title}
             </h3>
             <ReportStatusBadge status={report.status} />
@@ -399,6 +488,7 @@ function ReportCard({
             De <strong style={{ color: "var(--text-secondary)" }}>{emitterName}</strong> · {periodLabel}
           </p>
 
+          {/* Compteurs d'agrégats (si `content` jsonb valide) */}
           {summary && (
             <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2">
               <span className="text-xs tabular-nums" style={{ color: "var(--text-tertiary)" }}>

@@ -1,11 +1,3 @@
-/**
- * CulteDetail v2 — Détail d'un culte, redesign premium.
- *
- * Design : fond sombre, cartes de stats, liste des cotisations avec
- * statuts colorés, actions rapides.
- * Tous les tokens CSS `var(--*)`, zéro couleur en dur.
- */
-
 import { useState } from "react";
 import { ListSkeleton } from "@/components/Skeleton";
 import { useNavigate, useParams } from "react-router-dom";
@@ -22,11 +14,13 @@ import BottomNav from "@/components/BottomNav";
 import ConfirmModal from "@/components/ConfirmModal";
 import {
   IonPage,
+  IonHeader,
   IonContent,
+  IonTitle,
+  IonToolbar,
   IonButtons,
   IonBackButton,
 } from "@ionic/react";
-import { Section, InfoCard, ListItem, StatCard } from "@/design/components/PageShell";
 
 export default function CulteDetail() {
   const { id } = useParams<{ id: string }>();
@@ -41,16 +35,25 @@ export default function CulteDetail() {
 
   const culte = events.find((e: any) => e.id === id);
 
+  // Rules of Hooks : ces `useState` doivent être appelés AVANT tout `return`
+  // précoce. Placés après le `if (!culte)` ci-dessous, ils n'étaient pas
+  // appelés tant que les données n'étaient pas chargées, puis l'étaient une
+  // fois `culte` trouvé → « Rendered more hooks than during the previous
+  // render » et écran d'erreur (même défaut que RouteGuard dans App.tsx).
   const [showMassPay, setShowMassPay] = useState(false);
   const [busyRowId, setBusyRowId] = useState<string | null>(null);
 
+  // R52.h — « Culte introuvable » n'est exact qu'une fois la réplique prête.
   if (!culte && !isPowerSyncReadyNow()) {
     return (
       <IonPage>
-        <IonContent fullscreen className="bg-canvas">
-          <div data-screen-state="loading" className="min-h-dvh flex flex-col items-center justify-center py-12 px-6">
-            <div className="w-12 h-12 rounded-full border-4 border-border border-t-accent-primary animate-spin" />
-            <p className="mt-4 text-text-tertiary text-sm">Chargement…</p>
+        <IonContent className="bg-canvas">
+          <h1 className="sr-only">Détail du culte</h1>
+          <div className="min-h-dvh">
+            <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
+              <ListSkeleton count={4} />
+            </div>
+            <BottomNav />
           </div>
         </IonContent>
       </IonPage>
@@ -60,118 +63,319 @@ export default function CulteDetail() {
   if (!culte) {
     return (
       <IonPage>
-        <IonContent fullscreen className="bg-canvas">
-          <div data-screen-state="ready" className="min-h-dvh flex flex-col items-center justify-center py-12 px-6 text-center">
-            <div className="w-12 h-12 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: "var(--surface)" }}>
-              <Users className="w-6 h-6 text-text-tertiary" />
-            </div>
-            <h2 className="text-text-primary font-bold text-xl mb-2">Culte introuvable</h2>
-            <p className="text-text-tertiary text-sm">Ce culte n'existe pas ou a été supprimé.</p>
+        <IonHeader>
+          <IonToolbar>
+            <IonButtons slot="start">
+              <IonBackButton defaultHref="/cotisations" />
+            </IonButtons>
+            <IonTitle>Détail du Culte</IonTitle>
+          </IonToolbar>
+        </IonHeader>
+        <IonContent>
+          <div data-screen-state="notfound" className="p-4 text-center text-text-tertiary">
+            <p className="font-semibold mb-2">Culte introuvable</p>
+            <button
+              onClick={() => navigate("/cotisations")}
+              className="text-sm"
+              style={{ color: "var(--accent-primary)" }}
+            >
+              Retour aux cultes
+            </button>
           </div>
+          <BottomNav />
         </IonContent>
       </IonPage>
     );
   }
 
-  const stats = calculerStatsCulte(culte, cotisations);
+  const stats = calculerStatsCulte({
+    // `useCotisations` renvoie du canonique camelCase (`Cotisation[]`).
+    cotisations: cotisations.map((c: any) => ({
+      ...c,
+      culteId: c.culteId,
+      membreId: c.membreId,
+    })),
+    culteId: id!,
+  });
+
+  const cotisationsForCulte = cotisations.filter((c: any) => c.culteId === id);
+
+  const cotisationsWithMember = cotisationsForCulte.map((cot: any) => {
+    const member = members.find((m: any) => m.id === cot.membreId);
+    return {
+      ...cot,
+      memberName: member
+        ? (
+            ((member as any).last_name || "") +
+            " " +
+            ((member as any).first_name || "")
+          ).trim() || "Inconnu"
+        : "Inconnu",
+    };
+  });
+
+  const culteDate = (culte as any).start_date || (culte as any).startDate;
+  const isVerouille = culteDate
+    ? new Date().getTime() - new Date(culteDate).getTime() >
+      30 * 24 * 60 * 60 * 1000
+    : false;
+
+
+  const runRowMutation = async (cotId: string, action: () => Promise<void>) => {
+    if (busyRowId) return;
+    setBusyRowId(cotId);
+    try {
+      await action();
+    } finally {
+      setBusyRowId(null);
+    }
+  };
+
+  const handlePaye = async (cotId: string, montantPaye: number) => {
+    const now = new Date().toISOString();
+    const statut: CotisationStatut = "PAYE";
+    await updateCotisationPS(cotId, {
+      statut,
+      montantpaye: montantPaye,
+      datepaiement: now,
+    });
+  };
+
+  const handleAbsent = async (cotId: string) => {
+    await updateCotisationPS(cotId, { statut: "ABSENT" });
+  };
+
+  const handleMassPay = async () => {
+    for (const cot of cotisationsWithMember) {
+      if (cot.statut === "NON_PAYE" || cot.statut === "ABSENT") {
+        await updateCotisationPS(cot.id, {
+          statut: "PAYE",
+          montantpaye: cot.montantObligatoire,
+          datepaiement: new Date().toISOString(),
+        });
+      }
+    }
+    setShowMassPay(false);
+  };
 
   return (
     <IonPage>
-      <IonContent fullscreen className="bg-canvas">
-        <div className="min-h-dvh">
-          <div className="flex items-center justify-between px-6 py-5">
+      <IonHeader>
+        <IonToolbar>
+          <IonButtons slot="start">
+            <IonBackButton defaultHref="/cotisations" />
+          </IonButtons>
+          <IonTitle>Détail du Culte</IonTitle>
+        </IonToolbar>
+      </IonHeader>
+      <IonContent data-screen-state="ready">
+        <div className="max-w-lg mx-auto">
+        <div className="px-4 py-3 flex items-center gap-3 border-b border-border">
             <button
-              onClick={() => navigate(-1)}
-              className="text-text-primary font-semibold text-sm"
-              aria-label="Retour"
+              onClick={() => navigate("/cotisations")}
+              className="w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-95"
+              style={{ backgroundColor: "var(--surface)" }}
+              aria-label="Retour aux cultes"
             >
-              <ArrowLeft className="w-4 h-4 mr-1" /> Retour
+              <ArrowLeft className="w-4 h-4 text-text-secondary" />
+            </button>
+            <div className="flex-1 min-w-0">
+              <h1 className="text-text-primary font-bold text-base truncate">
+                {culte.name}
+              </h1>
+              {culteDate && (
+                <p className="text-text-tertiary text-xs mt-0.5">
+                  {formatDate(culteDate)}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Stats */}
+          <div className="px-4 py-3 grid grid-cols-2 gap-2">
+            <div
+              className="rounded-xl p-3"
+              style={{ backgroundColor: "var(--surface)" }}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <Users className="w-4 h-4 text-text-tertiary" />
+                <span className="text-text-tertiary text-xs">
+                  Total membres
+                </span>
+              </div>
+              <p className="text-text-primary font-bold text-lg">
+                {stats.total}
+              </p>
+            </div>
+            <div
+              className="rounded-xl p-3"
+              style={{ backgroundColor: "var(--surface)" }}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <CheckCircle className="w-4 h-4 text-success" />
+                <span className="text-text-tertiary text-xs">Payés</span>
+              </div>
+              <p className="text-success font-bold text-lg">{stats.paye}</p>
+            </div>
+            <div
+              className="rounded-xl p-3"
+              style={{ backgroundColor: "var(--surface)" }}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <Clock className="w-4 h-4 text-text-tertiary" />
+                <span className="text-text-tertiary text-xs">Absents</span>
+              </div>
+              <p className="text-text-tertiary font-bold text-lg">{stats.absent}</p>
+            </div>
+            <div
+              className="rounded-xl p-3"
+              style={{ backgroundColor: "var(--surface)" }}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <CheckCircle className="w-4 h-4 text-alert" />
+                <span className="text-text-tertiary text-xs">Non payés</span>
+              </div>
+              <p className="text-alert font-bold text-lg">
+                {stats.nonPaye}
+              </p>
+            </div>
+            <div
+              className="col-span-2 rounded-xl p-3"
+              style={{ backgroundColor: "var(--surface)" }}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-text-tertiary text-xs">
+                  Total collecté
+                </span>
+              </div>
+              <p className="text-text-primary font-bold text-xl">
+                {formatCurrencyCompact(stats.totalCollecte)}
+              </p>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="px-4 py-2 flex gap-2">
+            <button
+              onClick={() => setShowMassPay(true)}
+              className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95"
+              style={{ backgroundColor: "var(--accent-primary)", color: "var(--text-primary)" }}
+              aria-label="Effectuer un paiement massif"
+            >
+              Paiement massif
+            </button>
+            <button
+              onClick={() => navigate(`/saisie-rapide/${id}`)}
+              className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95"
+              style={{
+                backgroundColor: "var(--surface)",
+                color: "var(--accent-primary)",
+                border: "1px solid var(--accent-primary)",
+              }}
+              aria-label="Saisie rapide des cotisations"
+            >
+              Saisie rapide
             </button>
           </div>
-          <div className="max-w-lg mx-auto px-5 pt-2 pb-safe-calc">
-            {/* En-tête culte */}
-            <InfoCard className="mb-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h1 className="text-text-primary font-bold text-2xl leading-tight mb-1">
-                    {culte.name || "Culte sans nom"}
-                  </h1>
-                  <p className="text-text-tertiary text-sm">
-                    {formatDate(culte.start_date || culte.startDate)} • {culte.type || "Culte"}
+
+          {/* Cotisations list */}
+          <div className="px-4 py-2 space-y-2">
+            <p className="text-text-tertiary text-xs font-semibold uppercase tracking-wide">
+              Cotisations ({cotisationsWithMember.length})
+            </p>
+            {cotisationsWithMember.map((cot: any) => (
+              <div
+                key={cot.id}
+                className="rounded-xl p-3 flex items-center gap-3"
+                style={{ backgroundColor: "var(--surface)" }}
+              >
+                <div
+                  className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
+                  style={{
+                    backgroundColor: "var(--surface-hover)",
+                    color:
+                      COTISATION_STATUT_COLORS[
+                        cot.statut as CotisationStatut
+                      ] || "var(--text-tertiary)",
+                  }}
+                >
+                  {(cot.memberName || "?").charAt(0).toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-text-primary font-semibold text-sm truncate">
+                    {cot.memberName}
                   </p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span
+                      className="text-xs font-medium px-1.5 py-0.5 rounded"
+                      style={{
+                        color:
+                          COTISATION_STATUT_COLORS[
+                            cot.statut as CotisationStatut
+                          ] || "var(--text-tertiary)",
+                      }}
+                    >
+                      {COTISATION_STATUT_LABELS[
+                        cot.statut as CotisationStatut
+                      ] || cot.statut}
+                    </span>
+                    {cot.montantPaye > 0 && (
+                      <span className="text-text-tertiary text-xs">
+                        {formatCurrencyCompact(cot.montantPaye)}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{
-                  backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)",
-                }}>
-                  <CalendarIcon className="w-5 h-5" style={{ color: "var(--accent-primary)" }} />
+                <div className="flex flex-col gap-1.5 flex-shrink-0">
+                  {(cot.statut === "NON_PAYE" || cot.statut === "ABSENT") && (
+                    <button
+                      onClick={() =>
+                        runRowMutation(cot.id, () =>
+                          handlePaye(cot.id, cot.montantObligatoire),
+                        )
+                      }
+                      disabled={busyRowId !== null}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all active:scale-95 disabled:opacity-50"
+                      style={{ backgroundColor: "var(--data-success)", color: "var(--text-primary)" }}
+                    >
+                      {busyRowId === cot.id ? "..." : "Payé"}
+                    </button>
+                  )}
+                  {cot.statut === "NON_PAYE" && !isVerouille && (
+                    <button
+                      onClick={() =>
+                        runRowMutation(cot.id, () => handleAbsent(cot.id))
+                      }
+                      disabled={busyRowId !== null}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all active:scale-95 disabled:opacity-50"
+                      style={{
+                        backgroundColor: "var(--surface-hover)",
+                        color: "var(--text-tertiary)",
+                        border: "1px solid var(--surface-active)",
+                      }}
+                    >
+                      {busyRowId === cot.id ? "..." : "Absent"}
+                    </button>
+                  )}
                 </div>
               </div>
-            </InfoCard>
-
-            {/* Stats */}
-            <div className="grid grid-cols-3 gap-3 mb-6">
-              <StatCard
-                value={stats.totalCollecte.toString()}
-                label="Total collecté"
-                icon={<TrendingUp className="w-5 h-5" />}
-                tone="income"
-              />
-              <StatCard
-                value={stats.membresPresents.toString()}
-                label="Membres présents"
-                icon={<Users className="w-5 h-5" />}
-                tone="primary"
-              />
-              <StatCard
-                value={stats.tauxPresence.toString()}
-                label="Taux de présence"
-                icon={<Clock className="w-5 h-5" />}
-                tone="advance"
-              />
-            </div>
-
-            {/* Liste des cotisations */}
-            <Section title="Cotisations">
-              <div className="space-y-3">
-                {cotisations.filter((c: any) => c.culteId === culte.id).map((c: any) => {
-                  const statutColor = COTISATION_STATUT_COLORS[c.statut as CotisationStatut] || "var(--text-secondary)";
-                  const statutLabel = COTISATION_STATUT_LABELS[c.statut as CotisationStatut] || c.statut;
-                  return (
-                    <ListItem
-                      key={c.id}
-                      title={c.member_name || "Membre"}
-                      subtitle={statutLabel}
-                      amount={formatCurrencyCompact(c.amount ?? 0)}
-                      amountTone="income"
-                    />
-                  );
-                })}
-              </div>
-            </Section>
+            ))}
           </div>
-          <BottomNav />
         </div>
+
+          {/* Mass payment dialog */}
+          <ConfirmModal
+            open={showMassPay}
+            onClose={() => setShowMassPay(false)}
+            onConfirm={handleMassPay}
+            title="Paiement massif"
+            description={`Payer tous les ${stats.nonPaye + stats.absent} membres non-payés ou absents pour ce culte ?`}
+            confirmLabel="Payer tout"
+            confirmVariant="primary"
+          />
+
+          <BottomNav />
       </IonContent>
     </IonPage>
-  );
-}
-
-function CalendarIcon({ className, style }: { className?: string; style?: React.CSSProperties }) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
-      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-      <line x1="16" y1="2" x2="16" y2="6" />
-      <line x1="8" y1="2" x2="8" y2="6" />
-      <line x1="3" y1="10" x2="21" y2="10" />
-    </svg>
-  );
-}
-
-function TrendingUp({ className, style }: { className?: string; style?: React.CSSProperties }) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
-      <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
-      <polyline points="17 6 23 6 23 12" />
-    </svg>
   );
 }

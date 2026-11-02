@@ -82,6 +82,15 @@ export default defineConfig({
     pageLoadTimeout: 120000,
     screenshotOnRunFailure: true,
     video: false,
+    // Ré-essais en mode `cypress run` (CI) uniquement : les specs cloud
+    // partagent UN compte Supabase (lumina-org-e2e@lumina.dev) et, dans le
+    // workflow `cypress.yml`, deux conteneurs parallèles le sollicitent
+    // simultanément. Les échecs mesurés (`org-reports` « Annexe A … »,
+    // `offline-write-sync` « R85 offline … », `members` sélecteurs) sont
+    // DATA-DÉPENDANTS (état serveur partagé + réplication asynchrone) et
+    // passent à la reprise. `openMode: 0` garde l'exécution interactive
+    // déterministe (pas de reprise cachée pendant le développement).
+    retries: { runMode: 2, openMode: 0 },
     // Keep runs deterministic (avoids flakiness from parallel network bursts).
     viewportWidth: 390,
     viewportHeight: 844,

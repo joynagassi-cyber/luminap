@@ -45,6 +45,7 @@ import {
   clearDeepLinkOrgIntent,
 } from "@/lib/deepLinkIntent";
 import { enterOrganization } from "@/lib/organization-context";
+import { useMoneyFormatStore } from "@/lib/moneyFormat";
 import "./ionic/theme";
 
 // Capture globale des erreurs non gérées (contrat Phase 1/2) : rend visibles
@@ -402,7 +403,13 @@ const UpdaterBridge = () => {
 /**
  * App — wraps the entire Lumina application in IonApp + IonReactRouter.
  */
-const App = () => (
+const App = () => {
+  // Réglage d'affichage des montants : s'abonner ICI (racine) force un
+  // re-rendu de tout l'arbre quand l'utilisateur change le format, donc les
+  // montants déjà affichés se réécrivent immédiatement (ex. « 50 000 FCFA »
+  // → « 50K ») sans navigation ni rechargement.
+  useMoneyFormatStore((s) => s.format);
+  return (
   <QueryClientProvider client={queryClient}>
     <ErrorBoundary
       onError={(error, componentStack) => {
@@ -513,6 +520,7 @@ const App = () => (
     </TooltipProvider>
     </ErrorBoundary>
   </QueryClientProvider>
-);
+  );
+};
 
 export default App;

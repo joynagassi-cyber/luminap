@@ -1,14 +1,3 @@
-/**
- * TransactionNew v2 — Formulaire de saisie de transaction, redesign premium.
- *
- * Design : carte unique avec champs bien espacés, labels flottants corrigés,
- * sélecteur Entrée/Sortie en haut, bouton d'action principal en bas.
- * Tous les tokens CSS `var(--*)`, zéro couleur en dur.
- *
- * Logique métier inchangée : validation, catégories, caisses, preuves,
- * double-soumission, mode hors-ligne.
- */
-
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import {
@@ -26,7 +15,6 @@ import {
   Camera,
   ImagePlus,
   X,
-  ChevronRight,
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
@@ -37,32 +25,41 @@ import { useOnlineStatus } from "@/lib/dataLayer";
 import { policy } from "@/capabilities/policy";
 import { notification } from "@/capabilities/notification";
 import { periodLockMessage } from "@/lib/periodLock";
+import { parseAmountToCents } from "@/lib/amountInput";
 import {
   IonPage,
+  IonHeader,
   IonContent,
+  IonTitle,
+  IonToolbar,
   IonInput,
+  IonButton,
+  IonSpinner,
   IonSelect,
   IonSelectOption,
   IonItem,
   IonLabel,
   IonTextarea,
-  IonButton,
-  IonSpinner,
 } from "@ionic/react";
-import type { IonChangeCustomEvent } from "@/lib/ionic-types";
-import { ActionCard, InfoCard, FormField } from "@/design/components/PageShell";
 
 export default function TransactionNew() {
   const navigate = useNavigate();
   const location = useLocation();
 
   const preselectedCaisse = (location.state as any)?.caisseId || "";
+  // Le type arrive en priorité par query param (`?type=`) : fiable à travers
+  // le routeur Ionic (le `location.state` de React Router n'est pas préservé
+  // entre les vues de l'IonRouterOutlet). Fallback sur location.state.
   const preselectedType =
     new URLSearchParams(location.search).get("type") ||
     (location.state as any)?.type ||
     "";
-  const preselectedEvent = (location.state as any)?.eventId || "";
+  const preselectedEvent =
+    new URLSearchParams(location.search).get("eventId") ||
+    (location.state as any)?.eventId ||
+    "";
 
+  // PowerSync with fallback
   const { data: psCategories } = useCategories();
   const { data: psCaisses } = useCaisses();
   const { data: psEvents } = useEvents();
@@ -89,19 +86,25 @@ export default function TransactionNew() {
   const [comment, setComment] = useState("");
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  // Photos de preuve de dépense (montées dans le bucket `expense_proofs`).
   const [proofPhotos, setProofPhotos] = useState<File[]>([]);
   const [proofUploading, setProofUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const amountRef = useRef<any>(null);
+  // Garde SYNCHRONE anti double-soumission : `submitting` (état React) n'est
+  // appliqué qu'APRÈS le re-rendu, donc deux clics rapprochés sur un appareil
+  // lent peuvent appeler `addTransactionPS` deux fois — un enregistrement
+  // financier en double. Le verrou `ref` est posé avant tout `await`, donc
+  // insensible au timing du re-rendu.
   const submitLockRef = useRef(false);
   const keyboardHeight = useKeyboardAvoidance();
   const isOnline = useOnlineStatus();
 
   const validateAmount = (val: string): string => {
-    const num = parseFloat(val);
-    if (!val) return "";
-    if (isNaN(num) || num <= 0) return "Le montant doit être supérieur à 0";
-    if (num > 999999999) return "Montant maximum atteint";
+    if (!val.trim()) return "";
+    const cents = parseAmountToCents(val);
+    if (cents === null || cents <= 0) return "Le montant doit être supérieur à 0";
+    if (cents > 999999999 * 100) return "Montant maximum atteint";
     return "";
   };
 
@@ -113,344 +116,501 @@ export default function TransactionNew() {
 
   const filteredCategories = categories.filter((c: any) => c.type === type);
 
+  // `categoryId` est initialisé depuis `categories[0]` AU PREMIER rendu. Or
+  // `useCategories()` renvoie d'abord une liste vide (PowerSync pas encore
+  // hydraté / repli store), donc arriver DIRECTEMENT sur /transaction/new
+  // laissait `categoryId = ""` pour de bon : le champ obligatoire « Catégorie »
+  // restait vide même après saisie du montant et de la description, et
+  // `handleSubmit` refusait silencieusement l'enregistrement
+  // (« Veuillez remplir tous les champs obligatoires »). On rattrape donc
+  // l'arrivée asynchrone des catégories — sans écraser un choix explicite.
+  //
+  // Le choix explicite ne vaut que POUR LE TYPE courant : basculer Entrée↔Sortie
+  // change la liste des catégories, donc la catégorie sélectionnée n'existe plus
+  // et il faut reprendre la 1re du nouveau type (sinon on enregistre une
+  // transaction dont la catégorie n'appartient pas à son type).
+  const lastTypeRef = useRef(type);
   useEffect(() => {
-    if (filteredCategories.length > 0 && !categoryId) {
-      setCategoryId(filteredCategories[0].id);
+    const typeChanged = lastTypeRef.current !== type;
+    lastTypeRef.current = type;
+    if (typeChanged || !categoryId) {
+      setCategoryId(filteredCategories[0]?.id ?? "");
     }
-  }, [type, filteredCategories, categoryId]);
+  }, [type, categoryId, filteredCategories]);
 
-  const handleTypeSelect = (t: "INCOME" | "EXPENSE") => {
-    setType(t);
-    setCategoryId("");
-    setFieldErrors((prev) => ({ ...prev, amount: "" }));
-  };
+  const submitTransaction = async () => {
+    const trimmedAmount = amount.trim();
+    const trimmedDesc = description.trim();
+    const trimmedCatId = categoryId?.toString().trim();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (submitLockRef.current) return;
+    // Montant et catégorie sont réellement obligatoires (colonnes NOT NULL) ;
+    // la DESCRIPTION ne l'est pas : un mouvement se décrit de lui-même par sa
+    // catégorie et son montant. On ne bloque donc plus l'enregistrement quand
+    // elle est vide (l'utilisateur devait inventer un texte pour « Dîme »).
+    if (!trimmedAmount || !trimmedCatId) {
+      setError("Veuillez remplir les champs obligatoires (montant, catégorie)");
+      // Focus le premier champ manquant (montant) pour l'utilisateur clavier.
+      if (!trimmedAmount) {
+        setTimeout(() => amountRef.current?.focus?.(), 0);
+      }
+      return;
+    }
     setError("");
+    const sessionId = localStorage.getItem("lumina-session") || "local-user";
+    const isExpense = type === "EXPENSE";
+    // Statut dérivé du type, calculé UNE fois. Avant, le code lisait `status`
+    // (identifiant libre) qui se résolvait en réalité sur `window.status`
+    // (toujours "") : la comparaison `status === "PENDING"` était donc toujours
+    // fausse et la notification « dépense en attente d'approbation » n'était
+    // JAMAIS envoyée aux trésoriers — échec silencieux.
+    const status = isExpense ? "PENDING" : "DRAFT";
 
-    const amountErr = validateAmount(amount);
-    if (amountErr) {
-      setFieldErrors((prev) => ({ ...prev, amount: amountErr }));
-      return;
-    }
-    if (!description.trim()) {
-      setFieldErrors((prev) => ({ ...prev, description: "La description est requise" }));
-      return;
-    }
-    if (!categoryId) {
-      setFieldErrors((prev) => ({ ...prev, category: "Une catégorie est requise" }));
-      return;
-    }
+    // `transactions.description` est NOT NULL en base : une description vide
+    // doit donc être remplacée par un repli lisible (la catégorie choisie),
+    // jamais par NULL/''. On ne stocke pas un placeholder trompeur pour autant.
+    const safeDescription =
+      trimmedDesc ||
+      (categories.find((c: any) => c.id === trimmedCatId) as any)?.label_fr ||
+      (categories.find((c: any) => c.id === trimmedCatId) as any)?.label ||
+      "Transaction";
 
-    submitLockRef.current = true;
+    const amountCents = parseAmountToCents(trimmedAmount);
+    if (amountCents === null) {
+      setError("Veuillez entrer un montant valide");
+      return;
+    }
+    const amountCheck = policy.transaction.validateAmount(amountCents);
+    if (!amountCheck.ok) {
+      setError(amountCheck.message ?? "Veuillez entrer un montant valide");
+      return;
+    }
     setSubmitting(true);
-
+    let txId: string;
     try {
-      const numAmount = parseFloat(amount);
-      const tx = {
-        id: generateId(),
+      txId = await addTransactionPS({
         org_id: getOrganizationId(),
         type,
-        amount: numAmount,
-        description: description.trim(),
+        amount: amountCents,
+        description: safeDescription,
         date,
-        status: "PENDING",
-        category_id: categoryId || null,
-        source_caisse_id: sourceCaisseId || null,
-        source,
-        person_name: personName.trim() || null,
+        status,
+        category_id: categoryId,
+        org_unit_id: null,
+        source_caisse_id: sourceCaisseId || "main",
         event_id: eventId || null,
-        comment: comment.trim() || null,
-        created_by_id: "current-user",
-      };
-
-      await addTransactionPS(tx);
-
-      if (proofPhotos.length > 0) {
-        for (const photo of proofPhotos) {
-          await addReceipt(tx.id, photo);
-        }
-      }
-
-      await notification.send("Transaction enregistrée", {
-        body: `${description.trim()} — ${formatCentsToFCFA(numAmount)}`,
+        source: source || "CAISSE",
+        person_name: source === "PERSONNE" ? personName || null : null,
+        compensates_for: null,
+        comment: comment || null,
+        created_by_id: sessionId,
+        approved_by_id: null,
+        approved_at: null,
+        versement_id: null,
+        reversal_of_id: null,
+        cotisation_id: null,
       });
-
-      navigate("/finance", { replace: true });
-    } catch (err: any) {
-      setError(err?.message || "L'enregistrement a échoué. Réessayez.");
+    } catch (e) {
+      // PR13 — période comptable close : message FR explicite, l'utilisateur
+      // corrige la date ou demande la réouverture ; pas d'écran muet.
       setSubmitting(false);
+      setError(
+        periodLockMessage(
+          e,
+          "Échec de l'enregistrement de la transaction. Réessayez.",
+        ),
+      );
+      return;
+    }
+
+    // Justificatifs (PR9) : upload dans le bucket privé `expense_proofs` +
+    // métadonnée `transaction_attachments` (synchronisée). `documents` n'a
+    // aucun stream PowerSync : y déposer la preuve la rendait invisible.
+    if (isExpense && proofPhotos.length > 0) {
+      setProofUploading(true);
+      try {
+        for (const photo of proofPhotos) {
+          await addReceipt(txId, photo, { uploadedBy: sessionId });
+        }
+        setProofPhotos([]);
+      } catch {
+        // Hors ligne / refus du bucket : la transaction est déjà créée,
+        // la preuve restera accessible une fois rebranché.
+        setError(
+          "Transaction enregistrée. L'envoi de la photo a échoué (hors ligne ?). La preuve pourra être relancée depuis le détail.",
+        );
+        setProofPhotos([]);
+      } finally {
+        setProofUploading(false);
+      }
+    }
+
+    setSubmitting(false);
+
+    // Notify the treasurers that a transaction is pending approval
+    if (isExpense && status === "PENDING") {
+      notification.sendNotification({
+        title: "Transaction en attente d'approbation",
+        message: `Nouvelle dépense de ${trimmedAmount} FCFA — ${safeDescription}`,
+        targetRole: "TREASURIER",
+        extraData: { transactionId: txId },
+      }).catch(() => {});
+    }
+
+    navigate(`/transaction/${txId}`);
+  };
+
+  const handleSubmit = async () => {
+    // Verrou synchrone : la 2e soumission concurrente sort immédiatement.
+    if (submitLockRef.current) return;
+    submitLockRef.current = true;
+    try {
+      await submitTransaction();
+    } finally {
       submitLockRef.current = false;
     }
   };
 
-  const canSubmit =
-    amount.trim() !== "" &&
-    !fieldErrors.amount &&
-    description.trim() !== "" &&
-    categoryId !== "" &&
-    !submitting;
-
-  const typeLabel = type === "INCOME" ? "Entrée" : "Sortie";
-  const typeIcon = type === "INCOME" ? <Wallet className="w-4 h-4" /> : <Wallet className="w-4 h-4" />;
-  const typeColor = type === "INCOME" ? "var(--in)" : "var(--out)";
-
   return (
     <IonPage>
-      <IonContent fullscreen className="bg-canvas">
-        <div className="min-h-dvh">
-          <TopHeader
-            title="Nouvelle transaction"
-            subtitle="Gestion financière"
-            onBack={() => navigate(-1)}
-          />
-          <div className="max-w-md mx-auto px-5 pt-2 pb-safe-calc">
-            {/* Sélecteur Entrée / Sortie */}
-            <div className="mb-6">
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleTypeSelect("INCOME")}
-                  className={`flex-1 py-4 rounded-xl text-sm font-semibold transition-all ${
-                    type === "INCOME"
-                      ? "bg-green-500 text-black shadow-accent"
-                      : "bg-surface border border-border text-text-secondary"
-                  }`}
-                  aria-label="Entrée"
-                >
-                  <span className="flex items-center justify-center gap-2">
-                    <ArrowUpRight className="w-4 h-4" style={{ color: "var(--in)" }} />
-                    Entrée
-                  </span>
-                </button>
-                <button
-                  onClick={() => handleTypeSelect("EXPENSE")}
-                  className={`flex-1 py-4 rounded-xl text-sm font-semibold transition-all ${
-                    type === "EXPENSE"
-                      ? "bg-red-500 text-black shadow-accent"
-                      : "bg-surface border border-border text-text-secondary"
-                  }`}
-                  aria-label="Sortie"
-                >
-                  <span className="flex items-center justify-center gap-2">
-                    <ArrowDownRight className="w-4 h-4" style={{ color: "var(--out)" }} />
-                    Sortie
-                  </span>
-                </button>
-              </div>
+      <IonContent fullscreen>
+        <h1 className="sr-only">Nouvelle transaction</h1>
+        <TopHeader title="Nouvelle transaction" />
+        <div
+          data-screen-state="ready"
+          className="max-w-lg mx-auto w-full px-5 pt-safe-calc pb-safe-calc"
+          style={{
+            paddingBottom: keyboardHeight > 0 ? `${keyboardHeight}px` : undefined,
+          }}
+        >
+            <button
+              onClick={() => navigate(-1)}
+              className="flex items-center gap-2 text-text-secondary text-sm mb-5"
+            >
+              <ArrowLeft className="w-4 h-4" /> Retour
+            </button>
+
+            {/* Type selector */}
+            <div className="flex gap-2 mb-5">
+              <button
+                onClick={() => setType("INCOME")}
+                className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all"
+                style={{
+                  backgroundColor: type === "INCOME" ? "var(--in)" : "var(--surface)",
+                  color: type === "INCOME" ? "var(--text-primary)" : "var(--text-secondary)",
+                }}
+              >
+                Entrée
+              </button>
+              <button
+                onClick={() => setType("EXPENSE")}
+                className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all"
+                style={{
+                  backgroundColor: type === "EXPENSE" ? "var(--out)" : "var(--surface)",
+                  color: type === "EXPENSE" ? "var(--text-primary)" : "var(--text-secondary)",
+                }}
+              >
+                Sortie
+              </button>
             </div>
 
-            {/* Carte principale du formulaire */}
-            <InfoCard className="mb-6">
-              <form onSubmit={handleSubmit} className="space-y-5">
-                {/* Montant */}
-                <div className="relative">
-                  <label className="block text-xs font-bold uppercase tracking-wider text-text-secondary mb-2">
-                    Montant (FCFA)
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary text-sm">
-                      F
+            {/* Amount */}
+            <IonItem
+              lines="none"
+              className="mb-5 bg-card rounded-xl"
+              style={
+                fieldErrors.amount
+                  ? { border: "1px solid var(--out)" }
+                  : undefined
+              }
+            >
+              <IonLabel position="floating">Montant (FCFA) *</IonLabel>
+              <IonInput
+                ref={amountRef}
+                type="text"
+                inputMode="decimal"
+                aria-label="Montant en francs CFA"
+                aria-invalid={!!fieldErrors.amount}
+                aria-describedby={fieldErrors.amount ? "tx-amount-error" : undefined}
+                value={amount}
+                onIonInput={(e) =>
+                  handleAmountChange((e.detail.value as string) ?? "")
+                }
+                placeholder="0"
+              />
+              {fieldErrors.amount && (
+                <p
+                  id="tx-amount-error"
+                  className="text-expense text-xs mt-1"
+                >
+                  {fieldErrors.amount}
+                </p>
+              )}
+            </IonItem>
+
+            {/* Description */}
+            <IonItem lines="none" className="mb-5 bg-card rounded-xl">
+              <IonLabel position="floating">Description (optionnel)</IonLabel>
+              <IonInput
+                type="text"
+                aria-label="Description"
+                value={description}
+                onIonInput={(e) =>
+                  setDescription((e.detail.value as string) ?? "")
+                }
+                placeholder="Ex: Dîme du mois"
+              />
+            </IonItem>
+
+            {/* Date */}
+            <IonItem lines="none" className="mb-5 bg-card rounded-xl">
+              <IonLabel position="floating">Date</IonLabel>
+              <IonInput
+                type="date"
+                aria-label="Date"
+                value={date}
+                onIonInput={(e) => setDate((e.detail.value as string) ?? "")}
+              />
+            </IonItem>
+
+            {/* Category */}
+            <IonItem lines="none" className="mb-5 bg-card rounded-xl">
+              <IonLabel position="floating">Catégorie *</IonLabel>
+              <IonSelect
+                aria-label="Catégorie"
+                value={categoryId}
+                onIonChange={(e) => setCategoryId(e.detail.value)}
+              >
+                <IonSelectOption value="">
+                  Sélectionner une catégorie
+                </IonSelectOption>
+                {filteredCategories.map((cat: any) => (
+                  <IonSelectOption key={cat.id} value={cat.id}>
+                    {cat.label_fr || cat.label}
+                  </IonSelectOption>
+                ))}
+              </IonSelect>
+            </IonItem>
+
+            {/* Source */}
+            <IonItem lines="none" className="mb-5 bg-card rounded-xl">
+              <IonLabel position="floating">Source</IonLabel>
+              <IonSelect
+                aria-label="Source"
+                value={source}
+                onIonChange={(e) => setSource(e.detail.value as any)}
+              >
+                <IonSelectOption value="CAISSE">Caisse</IonSelectOption>
+                <IonSelectOption value="COTISATION">
+                  Cotisation
+                </IonSelectOption>
+                <IonSelectOption value="PERSONNE">Personne</IonSelectOption>
+                <IonSelectOption value="AUTRE">Autre</IonSelectOption>
+              </IonSelect>
+            </IonItem>
+
+            {/* Caisse */}
+            {source === "CAISSE" && (
+              <IonItem lines="none" className="mb-5 bg-card rounded-xl">
+                <IonLabel position="floating">Caisse</IonLabel>
+                <IonSelect
+                  aria-label="Caisse"
+                  value={sourceCaisseId}
+                  onIonChange={(e) => setSourceCaisseId(e.detail.value)}
+                >
+                  {caisses.map((c: any) => (
+                    <IonSelectOption key={c.id} value={c.id}>
+                      {c.name}
+                    </IonSelectOption>
+                  ))}
+                </IonSelect>
+              </IonItem>
+            )}
+
+            {/* Person name */}
+            {source === "PERSONNE" && (
+              <IonItem lines="none" className="mb-5 bg-card rounded-xl">
+                <IonLabel position="floating">Nom de la personne</IonLabel>
+                <IonInput
+                  type="text"
+                  aria-label="Nom de la personne"
+                  value={personName}
+                  onIonInput={(e) =>
+                    setPersonName((e.detail.value as string) ?? "")
+                  }
+                  placeholder="Nom de la personne"
+                />
+              </IonItem>
+            )}
+
+            {/* Event */}
+            <IonItem lines="none" className="mb-5 bg-card rounded-xl">
+              <IonLabel position="floating">Événement</IonLabel>
+              <IonSelect
+                aria-label="Événement"
+                value={eventId}
+                onIonChange={(e) => setEventId(e.detail.value)}
+              >
+                <IonSelectOption value="">
+                  Aucun événement
+                </IonSelectOption>
+                {events.map((ev: any) => (
+                  <IonSelectOption key={ev.id} value={ev.id}>
+                    {ev.name}
+                  </IonSelectOption>
+                ))}
+              </IonSelect>
+            </IonItem>
+
+            {/* Comment */}
+            <IonItem lines="none" className="mb-6 bg-card rounded-xl">
+              <IonLabel position="floating">Commentaire</IonLabel>
+              <IonTextarea
+                aria-label="Commentaire"
+                value={comment}
+                onIonInput={(e) =>
+                  setComment((e.detail.value as string) ?? "")
+                }
+                placeholder="Ajouter un commentaire..."
+                rows={3}
+              />
+            </IonItem>
+
+            {/* Preuve photo de la dépense (Sortie uniquement) */}
+            {type === "EXPENSE" && (
+              <div className="mb-6 rounded-xl p-4"
+                style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-semibold text-text-primary">
+                    Preuve de la dépense
+                  </p>
+                  {proofUploading && (
+                    <span className="text-xs text-text-tertiary">
+                      Envoi...
                     </span>
-                    <input
-                      ref={amountRef}
-                      type="text"
-                      inputMode="decimal"
-                      value={amount}
-                      onChange={(e) => handleAmountChange(e.target.value)}
-                      placeholder="0"
-                      aria-label="Montant en francs CFA"
-                      aria-invalid={!!fieldErrors.amount}
-                      className={`w-full pl-8 pr-4 py-3.5 rounded-xl text-text-primary text-lg font-bold ${
-                        fieldErrors.amount ? "text-out" : ""
-                      }`}
-                      style={{
-                        backgroundColor: "var(--surface)",
-                        border: fieldErrors.amount
-                          ? "1px solid var(--out)"
-                          : "1px solid var(--border)",
-                      }}
-                    />
-                  </div>
-                  {fieldErrors.amount && (
-                    <p className="text-xs mt-1.5 text-text-alert" style={{ color: "var(--out)" }}>
-                      {fieldErrors.amount}
-                    </p>
                   )}
                 </div>
+                <p className="text-xs text-text-tertiary mb-3">
+                  Prenez ou choisissez une photo pour attester la dépense
+                  (reçu, facture, matériel...). Elle est archivée de manière
+                  irrévocable.
+                </p>
 
-                {/* Description */}
-                <div className="relative">
-                  <label className="block text-xs font-bold uppercase tracking-wider text-text-secondary mb-2">
-                    Description
-                  </label>
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
-                    <input
-                      type="text"
-                      value={description}
-                      onChange={(e) => {
-                        setDescription(e.target.value);
-                        setFieldErrors((prev) => ({ ...prev, description: "" }));
-                      }}
-                      placeholder="Ex: Dîme du mois, offrande, dépense…"
-                      aria-label="Description de la transaction"
-                      className="w-full pl-10 pr-4 py-3.5 rounded-xl text-text-primary text-sm"
-                      style={{
-                        backgroundColor: "var(--surface)",
-                        border: "1px solid var(--border)",
-                      }}
-                    />
-                  </div>
-                  {fieldErrors.description && (
-                    <p className="text-xs mt-1.5 text-text-alert" style={{ color: "var(--out)" }}>
-                      {fieldErrors.description}
-                    </p>
-                  )}
-                </div>
-
-                {/* Date */}
-                <div className="relative">
-                  <label className="block text-xs font-bold uppercase tracking-wider text-text-secondary mb-2">
-                    Date
-                  </label>
-                  <input
-                    type="date"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    aria-label="Date de la transaction"
-                    className="w-full pl-4 pr-4 py-3.5 rounded-xl text-text-primary text-sm"
-                    style={{
-                      backgroundColor: "var(--surface)",
-                      border: "1px solid var(--border)",
-                      color: "var(--text-primary)",
-                    }}
-                  />
-                </div>
-
-                {/* Catégorie */}
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-text-secondary mb-2">
-                    Catégorie
-                  </label>
-                  <div className="relative">
-                    <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
-                    <IonSelect
-                      value={categoryId}
-                      onIonChange={(e: IonChangeCustomEvent<string>) => {
-                        setCategoryId(e.detail.value ?? "");
-                        setFieldErrors((prev) => ({ ...prev, category: "" }));
-                      }}
-                      interface="popover"
-                      className="w-full"
-                    >
-                      <IonSelectOption value="">Sélectionner une catégorie</IonSelectOption>
-                      {filteredCategories.map((cat: any) => (
-                        <IonSelectOption key={cat.id} value={cat.id}>
-                          {cat.name}
-                        </IonSelectOption>
-                      ))}
-                    </IonSelect>
-                  </div>
-                  {fieldErrors.category && (
-                    <p className="text-xs mt-1.5 text-text-alert" style={{ color: "var(--out)" }}>
-                      {fieldErrors.category}
-                    </p>
-                  )}
-                </div>
-
-                {/* Caisse source */}
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-text-secondary mb-2">
-                    Caisse
-                  </label>
-                  <div className="relative">
-                    <Wallet className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
-                    <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
-                    <IonSelect
-                      value={sourceCaisseId}
-                      onIonChange={(e: IonChangeCustomEvent<string>) => setSourceCaisseId(e.detail.value ?? "")}
-                      interface="popover"
-                      className="w-full pl-10"
-                    >
-                      <IonSelectOption value="main">Caisse principale</IonSelectOption>
-                      {(caisses ?? []).map((c: any) => (
-                        <IonSelectOption key={c.id} value={c.id}>
-                          {c.name}
-                        </IonSelectOption>
-                      ))}
-                    </IonSelect>
-                  </div>
-                </div>
-
-                {/* Commentaire */}
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-text-secondary mb-2">
-                    Commentaire (optionnel)
-                  </label>
-                  <IonTextarea
-                    value={comment}
-                    onIonChange={(e: IonChangeCustomEvent<string>) => setComment(e.detail.value ?? "")}
-                    placeholder="Ajouter un commentaire…"
-                    rows={3}
-                    className="w-full min-h-[80px] rounded-xl text-text-primary text-sm"
-                    style={{
-                      backgroundColor: "var(--surface)",
-                      border: "1px solid var(--border)",
-                    }}
-                  />
-                </div>
-
-                {/* Erreur globale */}
-                {error && (
-                  <div
-                    className="p-3.5 rounded-xl text-sm text-center"
-                    style={{
-                      backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)",
-                      color: "var(--out)",
-                      border: "1px solid color-mix(in srgb, var(--out) 25%, var(--border))",
-                    }}
-                  >
-                    {error}
+                {/* Aperçus */}
+                {proofPhotos.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {proofPhotos.map((p, i) => (
+                      <div
+                        key={i}
+                        className="relative w-20 h-20 rounded-lg overflow-hidden"
+                        style={{ border: "1px solid var(--border)" }}
+                      >
+                        <img
+                          src={URL.createObjectURL(p)}
+                          alt={`Preuve ${i + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setProofPhotos((prev) =>
+                              prev.filter((_, idx) => idx !== i),
+                            )
+                          }
+                          className="absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center"
+                          style={{ backgroundColor: "var(--scrim)" }}
+                          aria-label={`Supprimer la preuve ${i + 1}`}
+                        >
+                          <X className="w-3 h-3 text-on-accent" />
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 )}
 
-                {/* Bouton d'action */}
-                <IonButton
-                  type="submit"
-                  expand="block"
-                  disabled={!canSubmit}
-                  className="py-4 rounded-xl font-bold text-sm uppercase tracking-wider shadow-accent"
-                  style={{
-                    background: "linear-gradient(135deg, var(--accent-primary), var(--accent-dark))",
-                    color: "var(--on-accent)",
-                    opacity: canSubmit ? 1 : 0.5,
-                  }}
-                >
-                  {submitting ? (
-                    <IonSpinner className="w-5 h-5" />
-                  ) : (
-                    <>
-                      {type === "INCOME" ? "Enregistrer l'entrée" : "Enregistrer la sortie"}
-                    </>
-                  )}
-                </IonButton>
-              </form>
-            </InfoCard>
-
-            {/* Statut de connexion */}
-            {!isOnline && (
-              <div className="mt-4 p-3 rounded-xl text-xs text-center" style={{
-                backgroundColor: "color-mix(in srgb, var(--warn) 12%, transparent)",
-                color: "var(--warn)",
-                border: "1px solid color-mix(in srgb, var(--warn) 25%, var(--border))",
-              }}>
-                Mode hors ligne — la transaction sera synchronisée à la reconnexion.
+                <div className="flex gap-2">
+                  <label
+                    className="flex-1 py-2.5 rounded-full text-sm font-medium text-center cursor-pointer flex items-center justify-center gap-1.5"
+                    style={{
+                      backgroundColor: "var(--surface-hover)",
+                      color: "var(--text-primary)",
+                    }}
+                  >
+                    <Camera className="w-4 h-4" />
+                    Prendre une photo
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) setProofPhotos((prev) => [...prev, f]);
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+                  <label
+                    className="flex-1 py-2.5 rounded-full text-sm font-medium text-center cursor-pointer flex items-center justify-center gap-1.5"
+                    style={{
+                      backgroundColor: "var(--surface-hover)",
+                      color: "var(--text-primary)",
+                    }}
+                  >
+                    <ImagePlus className="w-4 h-4" />
+                    Depuis la galerie
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files ?? []);
+                        if (files.length)
+                          setProofPhotos((prev) => [...prev, ...files]);
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+                </div>
+                {!isOnline && proofPhotos.length === 0 && (
+                  <p className="text-xs text-pending mt-2">
+                    Hors ligne : la photo ne pourra pas être envoyée avant
+                    reconnexion.
+                  </p>
+                )}
               </div>
             )}
+
+            {error && (
+              <div
+                className="mb-4 p-3 rounded-xl text-sm text-center"
+                style={{ backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)", color: "var(--out)" }}
+              >
+                {error}
+              </div>
+            )}
+
+            <IonButton
+              expand="block"
+              onClick={handleSubmit}
+              disabled={submitting}
+              style={{
+                backgroundColor:
+                  type === "INCOME" ? "var(--in)" : "var(--out)",
+              }}
+            >
+              {submitting ? (
+                <>
+                  <IonSpinner name="lines" style={{ marginRight: 6 }} />
+                  Enregistrement…
+                </>
+              ) : (
+                "Enregistrer la transaction"
+              )}
+            </IonButton>
           </div>
-        </div>
+          <BottomNav />
       </IonContent>
     </IonPage>
   );
