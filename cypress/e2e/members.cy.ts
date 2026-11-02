@@ -46,9 +46,11 @@ describe('Lumina — Members', () => {
 
     // Open the create form
     cy.contains('button, ion-button', 'Ajouter').first().click({ force: true });
-    cy.get('input[aria-label="Prénom"]').type(firstName);
-    cy.get('input[aria-label="Nom"]').type(lastName);
-    cy.get('input[aria-label="Téléphone"]').type(phone);
+    // Les libellés portent le suffixe « (obligatoire) » sur les champs requis
+    // (Members.tsx) → sélecteur par préfixe pour ne pas dépendre du suffixe.
+    cy.get('input[aria-label^="Prénom"]').type(firstName);
+    cy.get('input[aria-label^="Nom"]').type(lastName);
+    cy.get('input[aria-label^="Téléphone"]').type(phone);
 
     // Submit — cible le bouton du formulaire (data-testid), pas celui de
     // l'EmptyState (« Ajouter »), qui apparaît aussi quand la liste est vide.
