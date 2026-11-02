@@ -44,6 +44,23 @@
 | PR14 | Transfert de propriété guidé | anti-orphelin | moyen | moyen | Phase 4 | P2 |
 | PR15 | Statistiques d'usage anonymisées | pilotage | faible | faible | télémétrie | P3 |
 | PR16 | Centre d'aide / tutoriel étendu | adoption | faible | moyen | Phase 13 | P3 |
+| PR2.1 | Élargir le périmètre du backup (form_submissions, custom_field_values, cotisations, versements, budgets, *giving*) + remonter `counts.skipped` à l'UI | passation sans perte | faible | moyen | registre `RESTORE_ENTITIES` | P2 |
+| PR4.1 | Persistance inter-sessions des erreurs client (`client_errors`) — IndexedDB local ou table serveur (PII à arbitrer) | diagnostic après rechargement | faible | moyen | `clientErrors.ts` | P3 |
+| PR7.1 | Pilotage **distant** des kill switches (table config ou RPC) | désactivation sans rebuild | faible | moyen | `featureFlags.ts` | P3 |
 
 > Règle : toute feature effectivement implémentée doit avoir **ses tests, son
 > tutoriel (Phase 13) et sa ligne dans COVERAGE_MATRIX.md**.
+
+## Écarts de couverture mesurés (2026-11-02, vérification PR1–PR7 par 7 agents)
+
+Les 7 features robustesse/intégrité sont **implémentées** (vérifiées en lecture
+seule, file:line). Écarts **de couverture** relevés — aucun n'est une fuite de
+données ni un bloquant ; décisions ci-dessous.
+
+| Écart | Constat | Décision |
+|---|---|---|
+| `client_errors` (PR4/PR5) | Le sink `client_errors` n'est **pas une table** : c'est un anneau **en mémoire** (`recentErrors`, `clientErrors.ts`), exposé par `getRecentErrors()` et lu par la page Santé (PR4) + le rapport de problème (PR5). Il est donc **session-scoped** (perdu au rechargement). | **Accepté en l'état** : le contrat §1.3 exige « zéro erreur non gérée », pas la persistance. La persistance inter-sessions (table serveur ou IndexedDB) reste une **proposition** (PII à arbitrer). Corriger la dépendance du tableau (elle dit « table » à tort). |
+| `VITE_MIN_SCHEMA_VERSION` (PR6) | `schemaVersion.ts` + écran `update-required` sont câblés et testés (`schema-version.test.ts`, `route-resolver.test.ts`, `cypress/e2e/update-required.cy.ts`). Mais la variable n'est **déclarée dans aucun build** → la garde est **fail-open** (jamais déclenchée). | **Accepté** : fail-open est **volontaire** (documenté dans `schemaVersion.ts`). Rendre le blocage actif = **décision produit** (forcer la mise à jour des APK < v3). À trancher par le propriétaire ; le câblage (`.env`, `ci.yml`, `release.yml`) est trivial une fois la décision prise. |
+| Kill switches **distants** (PR7) | `featureFlags.ts` fusionne `localStorage["lumina-flags"]` (prioritaire) et `VITE_FLAGS` (build). Aucune source **distante** (pas de table/RPC) → un kill switch se pilote par appareil ou au build, pas à distance. | **Accepté** : le contrat §6 demandait des « drapeaux de fonctionnalités (kill switches) », pas leur pilotage distant. Le pilotage distant reste une **proposition**. |
+| Périmètre du backup (PR2) | L'export/restauration couvre 10 entités (`RESTORE_ENTITIES`) ; `form_submissions`, `custom_field_values`, `cotisations`, `versements`, budgets, tables *giving* ne sont ni exportés ni restaurés. | **Accepté** : pas d'asymétrie export/import (le cycle est cohérent), mais perte possible à la **passation**. Élargir le registre = **proposition** (PR2.1). |
+| Détail d'audit hors `/trace` (PR1) | `auditLogRepo.list()` (`audit.ts`) ne sélectionne pas `before_state`/`after_state` (mis à `null`). `/trace` utilise `useAuditEntries` (complet), donc pas d'impact UI. | **Accepté** : aucun appelant n'exploite ce helper pour l'affichage détaillé. À corriger si un futur écran le consomme. |
