@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#121212" />
+  <meta name="description" content="Lecteur du pitch deck Lumina pour les responsables d'église : diapositives, texte du PowerPoint, notes orateur et téléchargements." />
+  <title>Lumina · Pitch deck églises</title>
+  <link rel="icon" type="image/png" href="./assets/lumina-mark.png" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main">Aller au contenu</a>
+
+  <header class="topbar">
+    <a class="brand" href="./" aria-label="Lumina, accueil du lecteur">
+      <img src="./assets/lumina-mark.png" alt="" width="40" height="42" />
+      <span class="brand-text">
+        <strong>Lumina</strong>
+        <small>Pitch deck · Églises</small>
+      </span>
+    </a>
+
+    <div class="top-actions">
+      <a class="btn btn-primary" id="downloadPptx" href="./files/lumina-pitch-eglises.pptx" download>
+        <span aria-hidden="true">↓</span> Télécharger le PPTX
+      </a>
+      <a class="btn btn-ghost" id="downloadPdf" href="./files/lumina-pitch-eglises.pdf" download>
+        <span aria-hidden="true">↓</span> PDF
+      </a>
+      <button class="icon-btn" id="fullscreenBtn" type="button" aria-label="Mode présentation" aria-pressed="false" title="Mode présentation (F)">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M4 4h6v2H6v4H4V4Zm10 0h6v6h-2V6h-4V4ZM4 14h2v4h4v2H4v-6Zm14 0h2v6h-6v-2h4v-4Z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="progress" aria-hidden="true"><div id="progressBar"></div></div>
+
+  <div class="workspace">
+    <aside class="sidebar" aria-label="Navigation des diapositives">
+      <div class="sidebar-head">
+        <span>Diapositives</span>
+        <span class="pill" id="slideCount">—</span>
+      </div>
+      <label class="search" for="searchInput">
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M10 4a6 6 0 1 1-3.7 10.7l-3 3-1.4-1.4 3-3A6 6 0 0 1 10 4Zm0 2a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/></svg>
+        <input id="searchInput" type="search" placeholder="Rechercher…" autocomplete="off" />
+      </label>
+      <ol class="thumbs" id="thumbList"></ol>
+      <p class="search-empty" id="searchEmpty" hidden>Aucune diapositive ne correspond.</p>
+    </aside>
+
+    <main class="main" id="main">
+      <div class="toolbar">
+        <div class="tabs" role="tablist" aria-label="Mode de lecture">
+          <button class="tab" id="tab-slides" type="button" role="tab" aria-selected="true" aria-controls="slidesPanel" data-mode="slides">Diapositives</button>
+          <button class="tab" id="tab-text" type="button" role="tab" aria-selected="false" aria-controls="textPanel" data-mode="text">Texte &amp; notes</button>
+          <button class="tab" id="tab-pdf" type="button" role="tab" aria-selected="false" aria-controls="pdfPanel" data-mode="pdf">PDF original</button>
+        </div>
+        <div class="toolbar-right">
+          <span class="counter" id="counter" aria-live="polite">— / —</span>
+          <button class="btn btn-small btn-ghost" id="notesToggle" type="button" aria-expanded="true" aria-controls="notesPanel">Masquer les notes</button>
+        </div>
+      </div>
+
+      <section class="panel" id="slidesPanel" role="tabpanel" aria-labelledby="tab-slides">
+        <div class="stage" id="stage">
+          <button class="nav nav-prev" id="prevBtn" type="button" aria-label="Diapositive précédente" title="Précédente (←)">
+            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M14.7 5.3 8 12l6.7 6.7 1.4-1.4L10.8 12l5.3-5.3-1.4-1.4Z"/></svg>
+          </button>
+          <figure class="slide-figure">
+            <img id="slideImage" alt="" width="1920" height="1080" />
+            <figcaption class="sr-only" id="slideCaption"></figcaption>
+          </figure>
+          <button class="nav nav-next" id="nextBtn" type="button" aria-label="Diapositive suivante" title="Suivante (→)">
+            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="m9.3 5.3-1.4 1.4 5.3 5.3-5.3 5.3 1.4 1.4L16 12 9.3 5.3Z"/></svg>
+          </button>
+          <button class="exit-presentation" id="exitPresentation" type="button">Quitter la présentation</button>
+        </div>
+
+        <div class="slide-meta">
+          <div class="slide-heading">
+            <p class="eyebrow" id="slideKicker"></p>
+            <h1 id="slideTitle">Chargement…</h1>
+          </div>
+          <div class="zoom-controls" aria-label="Zoom">
+            <button class="icon-btn" id="zoomOut" type="button" aria-label="Réduire le zoom">−</button>
+            <button class="btn btn-small btn-ghost" id="zoomReset" type="button" title="Ajuster à l'écran"><span id="zoomLabel">100 %</span></button>
+            <button class="icon-btn" id="zoomIn" type="button" aria-label="Augmenter le zoom">+</button>
+          </div>
+        </div>
+
+        <aside class="notes" id="notesPanel" aria-label="Notes orateur">
+          <div class="notes-head">
+            <h2>Notes orateur</h2>
+            <span class="pill">PPTX</span>
+          </div>
+          <p id="notesText"></p>
+        </aside>
+
+        <p class="hint">Aperçu rendu depuis le PDF assorti. Le texte et les notes proviennent du PowerPoint original, téléchargeable ci-dessus.</p>
+      </section>
+
+      <section class="panel" id="textPanel" role="tabpanel" aria-labelledby="tab-text" hidden>
+        <article class="reading">
+          <p class="eyebrow" id="textKicker"></p>
+          <h1 id="textTitle"></h1>
+          <div class="reading-blocks" id="textBlocks"></div>
+          <aside class="notes reading-notes" aria-label="Notes orateur de la diapositive">
+            <div class="notes-head"><h2>Notes orateur</h2><span class="pill">PPTX</span></div>
+            <p id="textNotes"></p>
+          </aside>
+          <p class="hint">Texte extrait du fichier PPTX original. Utilisez les flèches ou la liste des diapositives pour naviguer.</p>
+        </article>
+      </section>
+
+      <section class="panel" id="pdfPanel" role="tabpanel" aria-labelledby="tab-pdf" hidden>
+        <div class="pdf-toolbar">
+          <p>PDF original · <span id="pdfPageCount">—</span> pages</p>
+          <div class="pdf-actions">
+            <a class="btn btn-small btn-ghost" id="openPdf" href="./files/lumina-pitch-eglises.pdf" target="_blank" rel="noopener">Ouvrir dans un onglet</a>
+            <a class="btn btn-small btn-primary" href="./files/lumina-pitch-eglises.pdf" download>Télécharger</a>
+          </div>
+        </div>
+        <iframe class="pdf-frame" id="pdfFrame" title="Pitch deck Lumina au format PDF" src="about:blank" loading="lazy"></iframe>
+        <p class="hint">Si le lecteur PDF intégré ne s'affiche pas sur votre appareil, ouvrez le PDF dans un onglet ou téléchargez-le.</p>
+      </section>
+
+      <div class="load-error" id="loadError" hidden>
+        <h1>Impossible de charger le lecteur</h1>
+        <p>Les fichiers originaux restent disponibles :</p>
+        <p><a class="btn btn-primary" href="./files/lumina-pitch-eglises.pptx" download>Télécharger le PPTX</a> <a class="btn btn-ghost" href="./files/lumina-pitch-eglises.pdf" download>Télécharger le PDF</a></p>
+      </div>
+    </main>
+  </div>
+
+  <nav class="mobile-nav" aria-label="Navigation mobile">
+    <button class="btn btn-ghost" id="mobilePrev" type="button">← Précédente</button>
+    <span class="counter" id="mobileCounter">— / —</span>
+    <button class="btn btn-ghost" id="mobileNext" type="button">Suivante →</button>
+  </nav>
+
+  <script src="./app.js" defer></script>
+</body>
+</html>
