@@ -18,9 +18,11 @@
  */
 import { getPowerSyncDatabase } from "@/lib/powersync";
 import { JSONB_COLUMNS } from "./jsonb";
+import { writeAudit, resolveAuditActor } from "./audit";
 import {
   RESTORABLE_TABLES,
   restorePlanToRows,
+  restorePlanSummary,
   type RestorePlan,
 } from "./backupImport";
 
@@ -28,6 +30,11 @@ export interface RestoreWriteResult {
   written: number;
   created: number;
   updated: number;
+}
+
+export interface RestoreOptions {
+  /** Libellé de la source (nom de fichier) pour l'entrée d'audit. */
+  sourceLabel?: string;
 }
 
 /** Identifiants SQL entre backticks (`order` est un mot réservé). */
@@ -56,9 +63,14 @@ function serializeColumns(
  * Écrit le plan dans la base locale. Chaque ligne est écrite en `SELECT` puis
  * `UPDATE`-ou-`INSERT` (jamais d'UPSERT — cf. R160). Lève si une table hors
  * liste blanche est rencontrée (défense en profondeur).
+ *
+ * NeverBreak #6 — la restauration est une mutation en masse : l'entrée d'audit
+ * `RESTORE` est écrite ICI (et non par l'appelant UI) pour qu'AUCUN appelant ne
+ * puisse restaurer sans laisser de trace.
  */
 export async function restoreBackupRows(
   plan: RestorePlan,
+  options: RestoreOptions = {},
 ): Promise<RestoreWriteResult> {
   const db = getPowerSyncDatabase();
   let created = 0;
@@ -94,6 +106,23 @@ export async function restoreBackupRows(
       created++;
     }
   }
+
+  await writeAudit({
+    orgId: plan.orgId,
+    transactionId: null,
+    ...resolveAuditActor(),
+    action: "RESTORE",
+    entityType: "Backup",
+    entityId: options.sourceLabel ?? "backup.json",
+    beforeState: null,
+    afterState: {
+      creates: plan.counts.creates,
+      updates: plan.counts.updates,
+      conflicts: plan.counts.conflicts,
+      skipped: plan.counts.skipped,
+    },
+    comment: restorePlanSummary(plan),
+  });
 
   return { written: created + updated, created, updated };
 }

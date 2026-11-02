@@ -6,6 +6,9 @@
  */
 
 import { generateId } from "./utils";
+import { createGroupPS, updateGroupPS, deleteGroupPS } from "./dataLayer";
+import { writeAudit, resolveAuditActor } from "./audit";
+import { getOrganizationId } from "./orgContext";
 import type {
   OrgUnit,
   Caisse,
@@ -223,4 +226,85 @@ export function applyRemoveBudgetLine(
   return budgetLines.filter(
     (bl) => !(bl.eventBudgetId === eventBudgetId && bl.id === lineId),
   );
+}
+
+// ============================================================
+// Persistance AUDITÉE (NeverBreak #6)
+// ============================================================
+//
+// Les appliers ci-dessus (`applyUpdateGroup`, `applyDeleteGroup`) sont PURS :
+// ils ne touchent pas la base. L'écriture réelle passait par
+// `createGroupPS` / `updateGroupPS` / `deleteGroupPS` appelés DIRECTEMENT
+// depuis les pages — donc sans aucune trace d'audit. Ces fonctions sont le
+// point d'entrée sanctionné : elles persistent PUIS écrivent l'entrée d'audit.
+//
+// Archivage / restauration : déjà tracés par `capabilities/lifecycle`
+// (`action: "ARCHIVE" | "RESTORE"`).
+
+export interface PersistCreateGroupParams {
+  name: string;
+  type: string;
+  description: string;
+}
+
+/** Crée un groupe (org_units + groups + accounts + caisses) et le trace. */
+export async function persistCreateGroup(
+  params: PersistCreateGroupParams,
+): Promise<string> {
+  const id = await createGroupPS({
+    name: params.name,
+    type: params.type,
+    description: params.description,
+  });
+  await writeAudit({
+    orgId: getOrganizationId(),
+    transactionId: null,
+    ...resolveAuditActor(),
+    action: "CREATE",
+    entityType: "Group",
+    entityId: id,
+    beforeState: null,
+    afterState: { id, ...params, status: "ACTIVE" },
+    comment: null,
+  });
+  return id;
+}
+
+/** Met à jour un groupe (les 4 lignes partagent l'id) et le trace. */
+export async function persistUpdateGroup(
+  id: string,
+  data: { name?: string; description?: string; type?: string },
+  beforeState: Partial<Group> | null = null,
+): Promise<void> {
+  await updateGroupPS(id, data);
+  await writeAudit({
+    orgId: getOrganizationId(),
+    transactionId: null,
+    ...resolveAuditActor(),
+    action: "UPDATE",
+    entityType: "Group",
+    entityId: id,
+    beforeState,
+    afterState: { id, ...data },
+    comment: null,
+  });
+}
+
+/** Supprime un groupe (et ses lignes liées) et le trace. */
+export async function persistDeleteGroup(
+  id: string,
+  beforeState: Partial<Group> | null = null,
+): Promise<void> {
+  await deleteGroupPS(id);
+  await writeAudit({
+    orgId: getOrganizationId(),
+    transactionId: null,
+    ...resolveAuditActor(),
+    action: "DELETE",
+    entityType: "Group",
+    entityId: id,
+    beforeState,
+    afterState: null,
+    comment: null,
+  });
 }

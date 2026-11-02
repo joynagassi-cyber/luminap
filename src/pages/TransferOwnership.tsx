@@ -29,11 +29,11 @@ import { useCurrentUser, isPowerSyncReadyNow } from "@/lib/dataLayer";
 import { getOrganizationId } from "@/lib/orgContext";
 import { useCanAccessMulti } from "@/hooks/useCanAccessMulti";
 import { captureClientError } from "@/lib/clientErrors";
-import { writeAudit } from "@/lib/audit";
 import { showError, showSuccess } from "@/utils/toast";
 import {
   applyOwnershipTransfer,
   assertTransferAllowed,
+  auditOwnershipTransfer,
   candidateLabel,
   defaultTransferPorts,
   loadOwnershipCandidates,
@@ -136,18 +136,11 @@ export default function TransferOwnership() {
         defaultTransferPorts(orgId),
       );
       if (result.ok) {
-        await writeAudit({
-          orgId,
-          transactionId: null,
-          userId: user?.id ?? "",
-          actorRoleAtTime: (user?.role as string) ?? null,
-          action: "UPDATE",
-          entityType: "Organization",
-          entityId: orgId,
-          beforeState: { ownerProfileId: plan.previousOwnerId },
-          afterState: { ownerProfileId: plan.targetId },
-          comment: `Transfert de propriété vers ${confirmTarget}`,
-        });
+        await auditOwnershipTransfer(
+          plan,
+          { userId: user?.id ?? "", role: (user?.role as string) ?? null },
+          confirmTarget,
+        );
         setOutcome({
           ok: true,
           message: `La propriété a été transférée à ${confirmTarget}.`,

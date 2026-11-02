@@ -9,11 +9,10 @@ import {
   useGroupMemberships,
   useCurrentUser,
   isPowerSyncReadyNow,
-  updateGroupPS,
-  deleteGroupPS,
   addGroupMembershipPS,
   removeGroupMembershipPS,
 } from "@/lib/dataLayer";
+import { persistUpdateGroup, persistDeleteGroup } from "@/lib/group-lifecycle";
 import { formatCurrencyCompact, formatDate, tint } from "@/lib/utils";
 import {
   Wallet,
@@ -191,7 +190,7 @@ export default function GroupDetail() {
       setError("Le nom est requis");
       return;
     }
-    await updateGroupPS(id!, {
+    await persistUpdateGroup(id!, {
       name: editName.trim(),
       description: editDesc.trim(),
     });
@@ -206,7 +205,7 @@ export default function GroupDetail() {
       return;
     }
     try {
-      await deleteGroupPS(id!);
+      await persistDeleteGroup(id!);
       navigate("/groups");
     } catch (e: any) {
       setError("Nous n'avons pas pu supprimer ce groupe. Veuillez réessayer.");
