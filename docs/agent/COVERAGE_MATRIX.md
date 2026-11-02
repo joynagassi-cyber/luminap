@@ -39,6 +39,7 @@
 | 6 | Invitations (code/QR/lien) | `C: invitations.cy.ts`, `V: invitation-rls-hardening`, `invitation-code-entropy`, `sync-config-invitations` | partiel (E1) |
 | 7 | Finance transactions | `C: finance-deep.cy.ts`, `V: migration-notify-transaction` | partiel (R101/R102 corrigés) |
 | 8 | Isolation RLS | `SQL` + `C: cross-tenant.cy.ts` | partiel (E1) |
+| 8 | Injection d'organisation via le chemin INSERT de `profiles` (`upsert_profile(p_org_id)` + DELETE/INSERT direct) → lecture inter-org | `SQL: 20261101000004` (trigger BEFORE INSERT + upsert_profile borné) + `V: profile-org-insert-guard.test.ts` (3, non-vacuité vérifiée) | **couvert** (application live en attente — E9) |
 | 8 | Invariant « RLS + ≥1 politique par table » (audit exécutable CI) | `V: rls-inventory.test.ts` (4) + `docs/agent/rls-inventory.json` | **couvert** |
 | 8 | Surface RPC : aucune fonction de trigger `SECURITY DEFINER` exposée + garde R103 (`pg_trigger_depth`) | `V: revoke-trigger-functions.test.ts` (4) + `settle-claim-rpc-hardening.test.ts` (4) + preuves SQL | **couvert** (R115) |
 | 8 | Escalade RPC (`settle_invitation_claim`) | `V: settle-claim-rpc-hardening` (4) + preuve SQL | **couvert** |
