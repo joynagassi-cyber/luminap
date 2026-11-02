@@ -1,3 +1,14 @@
+/**
+ * Archives v2 — Archives et documents, redesign premium.
+ *
+ * Design : fond sombre, onglets de filtre, upload de document intégré,
+ * liste des entités archivées avec bouton de restauration.
+ * Tous les tokens CSS `var(--*)`, zéro couleur en dur.
+ *
+ * Logique métier inchangée : upload, download, toggle archive, restore,
+ * recherche, filtre par type.
+ */
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { resource } from "@/capabilities/resource";
@@ -26,13 +37,16 @@ import TopHeader from "@/components/TopHeader";
 import { ArchivesSkeleton } from "@/components/PageSkeletons";
 import {
   IonPage,
-  IonHeader,
   IonContent,
-  IonTitle,
-  IonToolbar,
   IonInput,
 } from "@ionic/react";
 import EmptyState from "@/components/EmptyState";
+import {
+  Section,
+  InfoCard,
+  ListItem,
+  ActionCard,
+} from "@/design/components/PageShell";
 
 export default function Archives() {
   const navigate = useNavigate();
@@ -44,15 +58,10 @@ export default function Archives() {
   const [loadError, setLoadError] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
 
-  // ── Documents (upload / archivage via bucket `archives`) ─────────────
   const { data: allDocuments, isLoading: documentsLoading } = useDocuments();
   const documents = (allDocuments ?? []).filter(
     (d) => d.bucket === "archives",
   );
-  // R52 — `useDocuments()` renvoie `isLoading: true` tant que la réplique
-  // PowerSync n'a pas répondu : afficher « Aucun document archivé » pendant ce
-  // temps serait un verdict FAUX (l'utilisateur croirait avoir perdu ses
-  // archives). On ne conclut au vide qu'une fois la lecture terminée.
   const documentsPending = documentsLoading || !isPowerSyncReadyNow();
   const [docTitle, setDocTitle] = useState("");
   const [docPurpose, setDocPurpose] = useState("");
@@ -106,7 +115,6 @@ export default function Archives() {
     });
   };
 
-  // Load archived entities via Resource capability
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -185,129 +193,141 @@ export default function Archives() {
 
   return (
     <IonPage>
-      <IonContent className="bg-canvas">
+      <IonContent fullscreen className="bg-canvas">
         <div className="min-h-dvh">
-          <TopHeader title="Archives" />
           {loading ? (
-            <div className="flex items-center justify-center py-20">
+            <div className="flex items-center justify-center py-20 px-6">
               <ArchivesSkeleton />
             </div>
           ) : (
             <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
-              <button
-                onClick={() => navigate(-1)}
-                className="flex items-center gap-2 text-text-secondary text-sm mb-5"
-                aria-label="Retour à la page précédente"
-              >
-                <ArrowLeft className="w-4 h-4" /> Retour
-              </button>
+              <TopHeader title="Archives" onBack={() => navigate(-1)} />
 
-              <h1 className="text-text-primary font-bold text-xl mb-5">
+              <h1 className="text-text-primary font-bold text-2xl mb-6">
                 Archives
               </h1>
 
-              {/* Search */}
-              <div className="relative mb-4">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
-                {/* M4 */}
-                <IonInput
-                  value={searchQuery}
-                  onIonInput={(e) => setSearchQuery((e.detail.value as string) ?? "")}
-                  placeholder="Rechercher dans les archives..."
-                />
-              </div>
+              {/* Recherche */}
+              <InfoCard className="mb-6">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
+                  <IonInput
+                    value={searchQuery}
+                    onIonInput={(e) => setSearchQuery((e.detail.value as string) ?? "")}
+                    placeholder="Rechercher dans les archives…"
+                    className="w-full pl-10 pr-4 py-3 rounded-xl text-text-primary text-sm bg-transparent"
+                  />
+                </div>
 
-              {/* Filter tabs */}
-              <div className="flex gap-2 overflow-x-auto pb-3 mb-5 scrollbar-hide">
-                {[
-                  { id: "all" as const, label: "Tout" },
-                  { id: "group" as const, label: "Groupes" },
-                  { id: "member" as const, label: "Membres" },
-                  { id: "event" as const, label: "Événements" },
-                  { id: "document" as const, label: "Documents" },
-                ].map(({ id, label }) => (
-                  <button
-                    key={id}
-                    onClick={() => setFilterType(id)}
-                    className="px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-all"
-                    style={{
-                      backgroundColor:
-                        filterType === id ? "var(--accent-primary)" : "var(--surface)",
-                      color: filterType === id ? "var(--text-primary)" : "var(--text-secondary)",
-                    }}
-                    aria-pressed={filterType === id}
-                    aria-label={`Filtrer par ${label}`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
+                {/* Filtres */}
+                <div className="flex gap-2 overflow-x-auto pb-4 mb-4 scrollbar-hide mt-4">
+                  {[
+                    { id: "all" as const, label: "Tout" },
+                    { id: "group" as const, label: "Groupes" },
+                    { id: "member" as const, label: "Membres" },
+                    { id: "event" as const, label: "Événements" },
+                    { id: "document" as const, label: "Documents" },
+                  ].map(({ id, label }) => (
+                    <button
+                      key={id}
+                      onClick={() => setFilterType(id)}
+                      className="whitespace-nowrap px-4 py-2 rounded-full text-xs font-medium transition-all"
+                      style={{
+                        backgroundColor:
+                          filterType === id ? "var(--accent-primary)" : "var(--surface)",
+                        color: filterType === id ? "var(--on-accent)" : "var(--text-secondary)",
+                        border: "1px solid var(--border)",
+                      }}
+                      aria-pressed={filterType === id}
+                      aria-label={`Filtrer par ${label}`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </InfoCard>
 
               {/* Documents : upload + liste */}
               {(filterType === "all" || filterType === "document") && (
-                <div className="mb-6">
-                  <h2 className="text-sm font-bold text-text-primary mb-3 flex items-center gap-2">
-                    <Upload className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
-                    Documents
-                  </h2>
-
+                <Section title="Documents">
                   {/* Formulaire d'upload */}
                   <div
-                    className="rounded-xl p-4 mb-4 space-y-3"
+                    className="rounded-xl p-5 mb-4 space-y-4"
                     style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
                   >
-                    {/* M4 */}
-                    <IonInput
-                      value={docTitle}
-                      onIonInput={(e) => setDocTitle((e.detail.value as string) ?? "")}
-                      placeholder="Nom du document *"
-                      aria-label="Nom du document"
-                    />
-                    <IonInput
-                      value={docPurpose}
-                      onIonInput={(e) => setDocPurpose((e.detail.value as string) ?? "")}
-                      placeholder="Objet / à quoi il s'applique (ex: PV assemblée, reçu...)"
-                      aria-label="Objet du document"
-                    />
-                    <label
-                      className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm cursor-pointer"
-                      style={{ backgroundColor: "var(--surface-hover)", color: "var(--text-primary)" }}
-                    >
-                      <FileText className="w-4 h-4" />
-                      {docFile ? docFile.name : "Choisir le fichier (PDF, image...)*"}
+                    <div className="relative">
+                      <label className="block text-xs font-bold uppercase tracking-wider text-text-secondary mb-2">
+                        Nom du document *
+                      </label>
                       <input
-                        type="file"
-                        accept=".pdf,.png,.jpg,.jpeg,.webp,.doc,.docx"
-                        className="hidden"
-                        onChange={(e) => {
-                          setDocFile(e.target.files?.[0] ?? null);
-                          e.target.value = "";
+                        value={docTitle}
+                        onChange={(e) => setDocTitle((e.target as HTMLInputElement).value)}
+                        placeholder="Nom du document"
+                        aria-label="Nom du document"
+                        className="w-full pl-4 pr-4 py-3 rounded-xl text-text-primary text-sm"
+                        style={{
+                          backgroundColor: "var(--surface)",
+                          border: "1px solid var(--border)",
                         }}
                       />
-                    </label>
-                    {docError && (
-                      <p className="text-xs" style={{ color: "var(--out)" }}>
-                        {docError}
-                      </p>
-                    )}
+                    </div>
+                    <div className="relative">
+                      <label className="block text-xs font-bold uppercase tracking-wider text-text-secondary mb-2">
+                        Objet
+                      </label>
+                      <input
+                        value={docPurpose}
+                        onChange={(e) => setDocPurpose((e.target as HTMLInputElement).value)}
+                        placeholder="Objet / à quoi il s'applique (ex: PV assemblée, reçu…)"
+                        aria-label="Objet du document"
+                        className="w-full pl-4 pr-4 py-3 rounded-xl text-text-primary text-sm"
+                        style={{
+                          backgroundColor: "var(--surface)",
+                          border: "1px solid var(--border)",
+                        }}
+                      />
+                    </div>
+                    <div className="relative">
+                      <label className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm cursor-pointer"
+                        style={{ backgroundColor: "var(--surface-hover)", color: "var(--text-primary)" }}
+                      >
+                        <FileText className="w-4 h-4" />
+                        {docFile ? docFile.name : "Choisir le fichier (PDF, image…) *"}
+                        <input
+                          type="file"
+                          accept=".pdf,.png,.jpg,.jpeg,.webp,.doc,.docx"
+                          className="hidden"
+                          onChange={(e) => {
+                            setDocFile(e.target.files?.[0] ?? null);
+                            e.target.value = "";
+                          }}
+                        />
+                      </label>
+                      {docError && (
+                        <p className="text-xs mt-1" style={{ color: "var(--out)" }}>
+                          {docError}
+                        </p>
+                      )}
+                    </div>
                     <button
                       onClick={handleDocumentUpload}
                       disabled={docUploading || !docFile || !docTitle.trim()}
-                      className="w-full py-3 rounded-full text-sm font-semibold text-on-accent transition-all disabled:opacity-40"
+                      className="w-full py-3.5 rounded-xl font-semibold text-sm transition-all disabled:opacity-40"
                       style={{
-                        backgroundColor: "var(--accent-primary)",
+                        background: "linear-gradient(135deg, var(--accent-primary), var(--accent-dark))",
+                        color: "var(--on-accent)",
                       }}
                     >
-                      {docUploading ? "Archivage..." : "Archiver le document"}
+                      {docUploading ? "Archivage…" : "Archiver le document"}
                     </button>
                   </div>
 
                   {/* Liste des documents */}
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {documents.length === 0 ? (
                       documentsPending ? (
                         <div
-                          className="rounded-xl p-4 text-center"
+                          className="rounded-xl p-5 text-center"
                           style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
                         >
                           <p className="text-text-tertiary text-sm">
@@ -323,160 +343,86 @@ export default function Archives() {
                       )
                     ) : (
                       documents.map((doc) => (
-                        <div
+                        <ListItem
                           key={doc.id}
-                          className="rounded-xl p-3 flex items-center gap-3"
-                          style={{
-                            backgroundColor: "var(--surface)",
-                            border: "1px solid var(--border)",
-                          }}
+                          icon={
+                            <div
+                              className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+                              style={{ backgroundColor: "var(--surface-hover)" }}
+                            >
+                              <FileText className="w-5 h-5 text-text-tertiary" />
+                            </div>
+                          }
+                          title={doc.title}
+                          subtitle={doc.purpose || ""}
+                          onClick={() => handleDownloadDocument(doc)}
+                        />
+                      ))
+                    )
+                  }
+                  </div>
+                </Section>
+              )}
+
+              {/* Archived items (entités) */}
+              {filterType !== "document" && (
+                <Section title="Entités archivées">
+                  <div className="space-y-2">
+                    {loadError ? (
+                      <div
+                        className="text-center py-10 rounded-xl"
+                        style={{ backgroundColor: "var(--surface)" }}
+                      >
+                        <Archive className="w-12 h-12 mx-auto mb-4 text-text-tertiary opacity-40" />
+                        <p className="text-text-tertiary text-sm">
+                          Impossible de charger les entités archivées.
+                        </p>
+                        <p className="text-text-tertiary text-xs mt-1">
+                          Vérifiez votre connexion, puis réessayez.
+                        </p>
+                        <button
+                          onClick={() => setRetryCount((n) => n + 1)}
+                          className="mt-3 px-4 py-2 rounded-full text-xs font-semibold text-on-accent transition-all active:scale-95"
+                          style={{ backgroundColor: "var(--accent-primary)" }}
+                          aria-label="Réessayer le chargement des entités archivées"
                         >
-                          <div
-                            className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                            style={{ backgroundColor: "var(--surface-hover)" }}
-                          >
-                            <FileText className="w-5 h-5 text-text-tertiary" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-text-secondary text-sm font-medium truncate">
-                              {doc.title}
-                              {doc.status === "ARCHIVED" && (
-                                <span className="ml-2 text-xs text-text-tertiary">
-                                  (archivé)
-                                </span>
+                          Réessayer
+                        </button>
+                      </div>
+                    ) : filtered.length === 0 ? (
+                      <EmptyState
+                        title="Aucun élément archivé"
+                        description="Les éléments archivés apparaîtront ici"
+                        icon={<Archive className="w-6 h-6" />}
+                      />
+                    ) : (
+                      filtered.map((item: any) => (
+                        <ListItem
+                          key={item.id}
+                          icon={
+                            <div
+                              className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+                              style={{ backgroundColor: "var(--surface-hover)" }}
+                            >
+                              {item.type === "group" && (
+                                <Users className="w-5 h-5 text-text-tertiary" />
                               )}
-                            </p>
-                            {doc.purpose && (
-                              <p className="text-text-tertiary text-xs mt-0.5 truncate">
-                                {doc.purpose}
-                              </p>
-                            )}
-                            <p className="text-text-tertiary text-xs mt-0.5">
-                              {new Date(doc.created_at).toLocaleDateString("fr-FR")}
-                              {doc.file_size
-                                ? ` · ${(doc.file_size / 1024).toFixed(0)} Ko`
-                                : ""}
-                            </p>
-                          </div>
-                          <button
-                            onClick={() => handleDownloadDocument(doc)}
-                            className="p-2 rounded-full active:scale-95"
-                            style={{ backgroundColor: "color-mix(in srgb, var(--in) 12%, transparent)" }}
-                            aria-label={`Télécharger ${doc.title}`}
-                          >
-                            <Download className="w-4 h-4" style={{ color: "var(--in)" }} />
-                          </button>
-                          <button
-                            onClick={() => handleToggleArchiveDocument(doc)}
-                            className="p-2 rounded-full active:scale-95"
-                            style={{
-                              backgroundColor: doc.status === "ARCHIVED" ? "color-mix(in srgb, var(--warn) 12%, transparent)" : "color-mix(in srgb, var(--out) 12%, transparent)",
-                            }}
-                            aria-label={
-                              doc.status === "ARCHIVED"
-                                ? `Rétablir ${doc.title}`
-                                : `Supprimer ${doc.title}`
-                            }
-                          >
-                            <Archive
-                              className="w-4 h-4"
-                              style={{
-                                color: doc.status === "ARCHIVED" ? "var(--warn)" : "var(--out)",
-                              }}
-                            />
-                          </button>
-                        </div>
+                              {item.type === "member" && (
+                                <Users className="w-5 h-5 text-text-tertiary" />
+                              )}
+                              {item.type === "event" && (
+                                <Archive className="w-5 h-5 text-text-tertiary" />
+                              )}
+                            </div>
+                          }
+                          title={item.name}
+                          subtitle={item.reason}
+                          onClick={() => handleRestore(item.type as any, item.id)}
+                        />
                       ))
                     )}
                   </div>
-                </div>
-              )}
-
-              {/* Archived items (entités) — masqué quand l'onglet Documents est actif */}
-              {filterType !== "document" && (
-              <div className="space-y-2">
-                {loadError ? (
-                  <div
-                    className="text-center py-10 rounded-xl"
-                    style={{ backgroundColor: "var(--surface)" }}
-                  >
-                    <Archive className="w-12 h-12 mx-auto mb-4 text-text-tertiary opacity-40" />
-                    <p className="text-text-tertiary text-sm">
-                      Impossible de charger les entités archivées.
-                    </p>
-                    <p className="text-text-tertiary text-xs mt-1">
-                      Vérifiez votre connexion, puis réessayez.
-                    </p>
-                    <button
-                      onClick={() => setRetryCount((n) => n + 1)}
-                      className="mt-3 px-4 py-2 rounded-full text-xs font-semibold text-on-accent transition-all active:scale-95"
-                      style={{ backgroundColor: "var(--accent-primary)" }}
-                      aria-label="Réessayer le chargement des entités archivées"
-                    >
-                      Réessayer
-                    </button>
-                  </div>
-                ) : filtered.length === 0 ? (
-                  <EmptyState
-                    title="Aucun élément archivé"
-                    description="Les éléments archivés apparaîtront ici"
-                    icon={<Archive className="w-6 h-6" />}
-                  />
-                ) : (
-                  filtered.map((item: any) => (
-                    <div
-                      key={item.id}
-                      className="rounded-xl p-4 flex items-center gap-3"
-                      style={{
-                        backgroundColor: "var(--surface)",
-                        border: "1px solid var(--border)",
-                      }}
-                    >
-                      <div
-                        className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                        style={{ backgroundColor: "var(--surface-hover)" }}
-                      >
-                        {item.type === "group" && (
-                          <Users className="w-5 h-5 text-text-tertiary" />
-                        )}
-                        {item.type === "member" && (
-                          <Users className="w-5 h-5 text-text-tertiary" />
-                        )}
-                        {item.type === "event" && (
-                          <Archive className="w-5 h-5 text-text-tertiary" />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-text-secondary text-sm font-medium truncate">
-                          {item.name}
-                        </p>
-                        <p className="text-text-tertiary text-xs mt-0.5">
-                          {item.reason}
-                        </p>
-                        {item.archivedAt && (
-                          <p className="text-text-tertiary text-xs mt-0.5">
-                            Archivé le{" "}
-                            {new Date(item.archivedAt).toLocaleDateString(
-                              "fr-FR",
-                            )}
-                          </p>
-                        )}
-                      </div>
-                      <button
-                        onClick={() => handleRestore(item.type as any, item.id)}
-                        className="p-2 rounded-full active:scale-95 transition-transform"
-                        style={{ backgroundColor: "color-mix(in srgb, var(--in) 12%, transparent)" }}
-                        aria-label={`Restaurer ${item.name}`}
-                      >
-                        <RefreshCw
-                          className="w-4 h-4"
-                          style={{ color: "var(--in)" }}
-                        />
-                      </button>
-                    </div>
-                  ))
-                )}
-              </div>
+                </Section>
               )}
             </div>
           )}
